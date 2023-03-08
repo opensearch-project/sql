@@ -81,6 +81,13 @@ public class MathematicalFunctionIT extends SQLIntegTestCase {
   }
 
   @Test
+  public void testExpm1() throws IOException {
+    JSONObject result = executeQuery("select expm1(account_number) FROM " + TEST_INDEX_BANK + " LIMIT 2");
+    verifySchema(result, schema("expm1(account_number)", null, "double"));
+    verifyDataRows(result, rows(Math.expm1(1)), rows(Math.expm1(6)));
+  }
+
+  @Test
   public void testMod() throws IOException {
     JSONObject result = executeQuery("select mod(3, 2)");
     verifySchema(result, schema("mod(3, 2)", null, "integer"));
@@ -190,19 +197,6 @@ public class MathematicalFunctionIT extends SQLIntegTestCase {
     verifyDataRows(result, rows(Math.atan2(2, 3)));
   }
 
-  protected JSONObject executeQuery(String query) throws IOException {
-    Request request = new Request("POST", QUERY_API_ENDPOINT);
-    request.setJsonEntity(String.format(Locale.ROOT, "{\n" + "  \"query\": \"%s\"\n" + "}", query));
-
-    RequestOptions.Builder restOptionsBuilder = RequestOptions.DEFAULT.toBuilder();
-    restOptionsBuilder.addHeader("Content-Type", "application/json");
-    request.setOptions(restOptionsBuilder);
-
-    Response response = client().performRequest(request);
-    return new JSONObject(getResponseBody(response));
-  }
-
-
   @Test
   public void testCbrt() throws IOException {
     JSONObject result = executeQuery("select cbrt(8)");
@@ -216,5 +210,53 @@ public class MathematicalFunctionIT extends SQLIntegTestCase {
     result = executeQuery("select cbrt(-27)");
     verifySchema(result, schema("cbrt(-27)", "double"));
     verifyDataRows(result, rows(-3.0));
+  }
+
+  @Test
+  public void testLnReturnsNull() throws IOException {
+    JSONObject result = executeQuery("select ln(0), ln(-2)");
+    verifySchema(result,
+        schema("ln(0)", "double"),
+        schema("ln(-2)", "double"));
+    verifyDataRows(result, rows(null, null));
+  }
+
+  @Test
+  public void testLogReturnsNull() throws IOException {
+    JSONObject result = executeQuery("select log(0), log(-2)");
+    verifySchema(result,
+        schema("log(0)", "double"),
+        schema("log(-2)", "double"));
+    verifyDataRows(result, rows(null, null));
+  }
+
+  @Test
+  public void testLog10ReturnsNull() throws IOException {
+    JSONObject result = executeQuery("select log10(0), log10(-2)");
+    verifySchema(result,
+        schema("log10(0)", "double"),
+        schema("log10(-2)", "double"));
+    verifyDataRows(result, rows(null, null));
+  }
+
+  @Test
+  public void testLog2ReturnsNull() throws IOException {
+    JSONObject result = executeQuery("select log2(0), log2(-2)");
+    verifySchema(result,
+        schema("log2(0)", "double"),
+        schema("log2(-2)", "double"));
+    verifyDataRows(result, rows(null, null));
+  }
+
+  protected JSONObject executeQuery(String query) throws IOException {
+    Request request = new Request("POST", QUERY_API_ENDPOINT);
+    request.setJsonEntity(String.format(Locale.ROOT, "{\n" + "  \"query\": \"%s\"\n" + "}", query));
+
+    RequestOptions.Builder restOptionsBuilder = RequestOptions.DEFAULT.toBuilder();
+    restOptionsBuilder.addHeader("Content-Type", "application/json");
+    request.setOptions(restOptionsBuilder);
+
+    Response response = client().performRequest(request);
+    return new JSONObject(getResponseBody(response));
   }
 }

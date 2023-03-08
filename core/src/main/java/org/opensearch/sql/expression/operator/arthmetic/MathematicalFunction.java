@@ -32,6 +32,7 @@ import org.opensearch.sql.data.model.ExprLongValue;
 import org.opensearch.sql.data.model.ExprNullValue;
 import org.opensearch.sql.data.model.ExprShortValue;
 import org.opensearch.sql.data.model.ExprStringValue;
+import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.data.type.ExprCoreType;
 import org.opensearch.sql.data.type.ExprType;
 import org.opensearch.sql.expression.function.BuiltinFunctionName;
@@ -59,6 +60,7 @@ public class MathematicalFunction {
     repository.register(crc32());
     repository.register(euler());
     repository.register(exp());
+    repository.register(expm1());
     repository.register(floor());
     repository.register(ln());
     repository.register(log());
@@ -83,6 +85,23 @@ public class MathematicalFunction {
     repository.register(radians());
     repository.register(sin());
     repository.register(tan());
+  }
+
+  /**
+   * Base function for math functions with similar formats that return DOUBLE.
+   *
+   * @param functionName BuiltinFunctionName of math function.
+   * @param formula lambda function of math formula.
+   * @param returnType data type return type of the calling function
+   * @return DefaultFunctionResolver for math functions.
+   */
+  private static DefaultFunctionResolver baseMathFunction(
+          FunctionName functionName, SerializableFunction<ExprValue,
+          ExprValue> formula, ExprCoreType returnType) {
+    return FunctionDSL.define(functionName,
+        ExprCoreType.numberTypes().stream().map(type -> FunctionDSL.impl(
+                    FunctionDSL.nullMissingHandling(formula),
+                    returnType, type)).collect(Collectors.toList()));
   }
 
   /**
@@ -186,15 +205,21 @@ public class MathematicalFunction {
   }
 
   /**
-   * Definition of exp(x) function. Calculate exponent function e to the x The supported signature
-   * of exp function is INTEGER/LONG/FLOAT/DOUBLE -> DOUBLE
+   * Definition of exp(x) function. Calculate exponent function e to the x
+   * The supported signature of exp function is INTEGER/LONG/FLOAT/DOUBLE -> DOUBLE
    */
   private static DefaultFunctionResolver exp() {
-    return FunctionDSL.define(BuiltinFunctionName.EXP.getName(),
-        ExprCoreType.numberTypes().stream()
-            .map(type -> FunctionDSL.impl(FunctionDSL.nullMissingHandling(
-                v -> new ExprDoubleValue(Math.exp(v.doubleValue()))),
-                type, DOUBLE)).collect(Collectors.toList()));
+    return baseMathFunction(BuiltinFunctionName.EXP.getName(),
+            v -> new ExprDoubleValue(Math.exp(v.doubleValue())), DOUBLE);
+  }
+
+  /**
+   * Definition of expm1(x) function. Calculate exponent function e to the x, minus 1
+   * The supported signature of exp function is INTEGER/LONG/FLOAT/DOUBLE -> DOUBLE
+   */
+  private static DefaultFunctionResolver expm1() {
+    return baseMathFunction(BuiltinFunctionName.EXPM1.getName(),
+            v -> new ExprDoubleValue(Math.expm1(v.doubleValue())), DOUBLE);
   }
 
   /**
@@ -214,11 +239,9 @@ public class MathematicalFunction {
    * ln function is INTEGER/LONG/FLOAT/DOUBLE -> DOUBLE
    */
   private static DefaultFunctionResolver ln() {
-    return FunctionDSL.define(BuiltinFunctionName.LN.getName(),
-        ExprCoreType.numberTypes().stream()
-            .map(type -> FunctionDSL.impl(FunctionDSL.nullMissingHandling(
-                v -> new ExprDoubleValue(Math.log(v.doubleValue()))),
-                type, DOUBLE)).collect(Collectors.toList()));
+    return baseMathFunction(BuiltinFunctionName.LN.getName(),
+        v -> v.doubleValue() <= 0 ? ExprNullValue.of() :
+            new ExprDoubleValue(Math.log(v.doubleValue())), DOUBLE);
   }
 
   /**
@@ -233,7 +256,8 @@ public class MathematicalFunction {
     // build unary log(x), SHORT/INTEGER/LONG/FLOAT/DOUBLE -> DOUBLE
     for (ExprType type : ExprCoreType.numberTypes()) {
       builder.add(FunctionDSL.impl(FunctionDSL
-              .nullMissingHandling(v -> new ExprDoubleValue(Math.log(v.doubleValue()))),
+              .nullMissingHandling(v -> v.doubleValue() <= 0 ? ExprNullValue.of() :
+                  new ExprDoubleValue(Math.log(v.doubleValue()))),
           DOUBLE, type));
     }
 
@@ -241,7 +265,8 @@ public class MathematicalFunction {
     for (ExprType baseType : ExprCoreType.numberTypes()) {
       for (ExprType numberType : ExprCoreType.numberTypes()) {
         builder.add(FunctionDSL.impl(FunctionDSL
-                .nullMissingHandling((b, x) -> new ExprDoubleValue(
+                .nullMissingHandling((b, x) -> b.doubleValue() <= 0 || x.doubleValue() <= 0
+                    ? ExprNullValue.of() : new ExprDoubleValue(
                     Math.log(x.doubleValue()) / Math.log(b.doubleValue()))),
             DOUBLE, baseType, numberType));
       }
@@ -255,11 +280,9 @@ public class MathematicalFunction {
    * log function is SHORT/INTEGER/LONG/FLOAT/DOUBLE -> DOUBLE
    */
   private static DefaultFunctionResolver log10() {
-    return FunctionDSL.define(BuiltinFunctionName.LOG10.getName(),
-        ExprCoreType.numberTypes().stream()
-            .map(type -> FunctionDSL.impl(FunctionDSL.nullMissingHandling(
-                v -> new ExprDoubleValue(Math.log10(v.doubleValue()))),
-                type, DOUBLE)).collect(Collectors.toList()));
+    return baseMathFunction(BuiltinFunctionName.LOG10.getName(),
+        v -> v.doubleValue() <= 0 ? ExprNullValue.of() :
+            new ExprDoubleValue(Math.log10(v.doubleValue())), DOUBLE);
   }
 
   /**
@@ -267,11 +290,9 @@ public class MathematicalFunction {
    * function is SHORT/INTEGER/LONG/FLOAT/DOUBLE -> DOUBLE
    */
   private static DefaultFunctionResolver log2() {
-    return FunctionDSL.define(BuiltinFunctionName.LOG2.getName(),
-        ExprCoreType.numberTypes().stream()
-            .map(type -> FunctionDSL.impl(FunctionDSL.nullMissingHandling(
-                v -> new ExprDoubleValue(Math.log(v.doubleValue()) / Math.log(2))), DOUBLE, type))
-            .collect(Collectors.toList()));
+    return baseMathFunction(BuiltinFunctionName.LOG2.getName(),
+        v -> v.doubleValue() <= 0 ? ExprNullValue.of() :
+            new ExprDoubleValue(Math.log(v.doubleValue()) / Math.log(2)), DOUBLE);
   }
 
   /**
@@ -450,11 +471,8 @@ public class MathematicalFunction {
    * SHORT/INTEGER/LONG/FLOAT/DOUBLE -> INTEGER
    */
   private static DefaultFunctionResolver sign() {
-    return FunctionDSL.define(BuiltinFunctionName.SIGN.getName(),
-        ExprCoreType.numberTypes().stream()
-            .map(type -> FunctionDSL.impl(FunctionDSL.nullMissingHandling(
-                v -> new ExprIntegerValue(Math.signum(v.doubleValue()))),
-                INTEGER, type)).collect(Collectors.toList()));
+    return baseMathFunction(BuiltinFunctionName.SIGN.getName(),
+            v -> new ExprIntegerValue(Math.signum(v.doubleValue())), INTEGER);
   }
 
   /**
@@ -464,12 +482,9 @@ public class MathematicalFunction {
    * INTEGER/LONG/FLOAT/DOUBLE -> DOUBLE
    */
   private static DefaultFunctionResolver sqrt() {
-    return FunctionDSL.define(BuiltinFunctionName.SQRT.getName(),
-        ExprCoreType.numberTypes().stream()
-            .map(type -> FunctionDSL.impl(FunctionDSL.nullMissingHandling(
-                v -> v.doubleValue() < 0 ? ExprNullValue.of() :
-                    new ExprDoubleValue(Math.sqrt(v.doubleValue()))),
-                DOUBLE, type)).collect(Collectors.toList()));
+    return baseMathFunction(BuiltinFunctionName.SQRT.getName(),
+            v -> v.doubleValue() < 0 ? ExprNullValue.of() :
+                    new ExprDoubleValue(Math.sqrt(v.doubleValue())), DOUBLE);
   }
 
   /**
@@ -479,11 +494,8 @@ public class MathematicalFunction {
    * INTEGER/LONG/FLOAT/DOUBLE -> DOUBLE
    */
   private static DefaultFunctionResolver cbrt() {
-    return FunctionDSL.define(BuiltinFunctionName.CBRT.getName(),
-        ExprCoreType.numberTypes().stream()
-            .map(type -> FunctionDSL.impl(FunctionDSL.nullMissingHandling(
-                v -> new ExprDoubleValue(Math.cbrt(v.doubleValue()))),
-                DOUBLE, type)).collect(Collectors.toList()));
+    return baseMathFunction(BuiltinFunctionName.CBRT.getName(),
+            v -> new ExprDoubleValue(Math.cbrt(v.doubleValue())), DOUBLE);
   }
 
   /**
@@ -606,11 +618,8 @@ public class MathematicalFunction {
    * INTEGER/LONG/FLOAT/DOUBLE -> DOUBLE
    */
   private static DefaultFunctionResolver cos() {
-    return FunctionDSL.define(BuiltinFunctionName.COS.getName(),
-        ExprCoreType.numberTypes().stream()
-            .map(type -> FunctionDSL.impl(FunctionDSL.nullMissingHandling(
-                v -> new ExprDoubleValue(Math.cos(v.doubleValue()))),
-                DOUBLE, type)).collect(Collectors.toList()));
+    return baseMathFunction(BuiltinFunctionName.COS.getName(),
+            v -> new ExprDoubleValue(Math.cos(v.doubleValue())), DOUBLE);
   }
 
   /**
@@ -641,11 +650,8 @@ public class MathematicalFunction {
    * INTEGER/LONG/FLOAT/DOUBLE -> DOUBLE
    */
   private static DefaultFunctionResolver degrees() {
-    return FunctionDSL.define(BuiltinFunctionName.DEGREES.getName(),
-        ExprCoreType.numberTypes().stream()
-            .map(type -> FunctionDSL.impl(FunctionDSL.nullMissingHandling(
-                v -> new ExprDoubleValue(Math.toDegrees(v.doubleValue()))),
-                type, DOUBLE)).collect(Collectors.toList()));
+    return baseMathFunction(BuiltinFunctionName.DEGREES.getName(),
+            v -> new ExprDoubleValue(Math.toDegrees(v.doubleValue())), DOUBLE);
   }
 
   /**
@@ -655,11 +661,8 @@ public class MathematicalFunction {
    * INTEGER/LONG/FLOAT/DOUBLE -> DOUBLE
    */
   private static DefaultFunctionResolver radians() {
-    return FunctionDSL.define(BuiltinFunctionName.RADIANS.getName(),
-        ExprCoreType.numberTypes().stream()
-            .map(type -> FunctionDSL.impl(FunctionDSL.nullMissingHandling(
-                v -> new ExprDoubleValue(Math.toRadians(v.doubleValue()))),
-                DOUBLE, type)).collect(Collectors.toList()));
+    return baseMathFunction(BuiltinFunctionName.RADIANS.getName(),
+            v -> new ExprDoubleValue(Math.toRadians(v.doubleValue())), DOUBLE);
   }
 
   /**
@@ -669,11 +672,8 @@ public class MathematicalFunction {
    * INTEGER/LONG/FLOAT/DOUBLE -> DOUBLE
    */
   private static DefaultFunctionResolver sin() {
-    return FunctionDSL.define(BuiltinFunctionName.SIN.getName(),
-        ExprCoreType.numberTypes().stream()
-            .map(type -> FunctionDSL.impl(FunctionDSL.nullMissingHandling(
-                v -> new ExprDoubleValue(Math.sin(v.doubleValue()))),
-                DOUBLE, type)).collect(Collectors.toList()));
+    return baseMathFunction(BuiltinFunctionName.SIN.getName(),
+            v -> new ExprDoubleValue(Math.sin(v.doubleValue())), DOUBLE);
   }
 
   /**
@@ -683,10 +683,7 @@ public class MathematicalFunction {
    * INTEGER/LONG/FLOAT/DOUBLE -> DOUBLE
    */
   private static DefaultFunctionResolver tan() {
-    return FunctionDSL.define(BuiltinFunctionName.TAN.getName(),
-        ExprCoreType.numberTypes().stream()
-            .map(type -> FunctionDSL.impl(FunctionDSL.nullMissingHandling(
-                v -> new ExprDoubleValue(Math.tan(v.doubleValue()))),
-                DOUBLE, type)).collect(Collectors.toList()));
+    return baseMathFunction(BuiltinFunctionName.TAN.getName(),
+            v -> new ExprDoubleValue(Math.tan(v.doubleValue())), DOUBLE);
   }
 }

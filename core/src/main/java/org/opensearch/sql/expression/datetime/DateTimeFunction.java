@@ -35,6 +35,8 @@ import static org.opensearch.sql.utils.DateTimeFormatters.DATE_TIME_FORMATTER_ST
 import static org.opensearch.sql.utils.DateTimeUtils.extractDate;
 import static org.opensearch.sql.utils.DateTimeUtils.extractDateTime;
 
+import com.google.common.collect.ImmutableTable;
+import com.google.common.collect.Table;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.text.DecimalFormat;
@@ -103,6 +105,31 @@ public class DateTimeFunction {
   // Mode used for week/week_of_year function by default when no argument is provided
   private static final ExprIntegerValue DEFAULT_WEEK_OF_YEAR_MODE = new ExprIntegerValue(0);
 
+  // Map used to determine format output for the get_format function
+  private static final Table<String, String, String> formats =
+      ImmutableTable.<String, String, String>builder()
+          .put("date", "usa", "%m.%d.%Y")
+          .put("date", "jis", "%Y-%m-%d")
+          .put("date", "iso", "%Y-%m-%d")
+          .put("date", "eur", "%d.%m.%Y")
+          .put("date", "internal", "%Y%m%d")
+          .put("datetime", "usa", "%Y-%m-%d %H.%i.%s")
+          .put("datetime", "jis", "%Y-%m-%d %H:%i:%s")
+          .put("datetime", "iso", "%Y-%m-%d %H:%i:%s")
+          .put("datetime", "eur", "%Y-%m-%d %H.%i.%s")
+          .put("datetime", "internal", "%Y%m%d%H%i%s")
+          .put("time", "usa", "%h:%i:%s %p")
+          .put("time", "jis", "%H:%i:%s")
+          .put("time", "iso", "%H:%i:%s")
+          .put("time", "eur", "%H.%i.%s")
+          .put("time", "internal", "%H%i%s")
+          .put("timestamp", "usa", "%Y-%m-%d %H.%i.%s")
+          .put("timestamp", "jis", "%Y-%m-%d %H:%i:%s")
+          .put("timestamp", "iso", "%Y-%m-%d %H:%i:%s")
+          .put("timestamp", "eur", "%Y-%m-%d %H.%i.%s")
+          .put("timestamp", "internal", "%Y%m%d%H%i%s")
+          .build();
+
   /**
    * Register Date and Time Functions.
    *
@@ -132,8 +159,10 @@ public class DateTimeFunction {
     repository.register(dayOfYear(BuiltinFunctionName.DAY_OF_YEAR));
     repository.register(from_days());
     repository.register(from_unixtime());
+    repository.register(get_format());
     repository.register(hour(BuiltinFunctionName.HOUR));
     repository.register(hour(BuiltinFunctionName.HOUR_OF_DAY));
+    repository.register(last_day());
     repository.register(localtime());
     repository.register(localtimestamp());
     repository.register(makedate());
@@ -156,6 +185,7 @@ public class DateTimeFunction {
     repository.register(subtime());
     repository.register(sysdate());
     repository.register(time());
+    repository.register(time_format());
     repository.register(time_to_sec());
     repository.register(timediff());
     repository.register(timestamp());
@@ -166,6 +196,7 @@ public class DateTimeFunction {
     repository.register(to_days());
     repository.register(unix_timestamp());
     repository.register(week(BuiltinFunctionName.WEEK));
+    repository.register(week(BuiltinFunctionName.WEEKOFYEAR));
     repository.register(week(BuiltinFunctionName.WEEK_OF_YEAR));
     repository.register(year());
   }
@@ -521,6 +552,12 @@ public class DateTimeFunction {
             STRING, DOUBLE, STRING));
   }
 
+  private DefaultFunctionResolver get_format() {
+    return define(BuiltinFunctionName.GET_FORMAT.getName(),
+        impl(nullMissingHandling(DateTimeFunction::exprGetFormat), STRING, STRING, STRING)
+    );
+  }
+
   /**
    * HOUR(STRING/TIME/DATETIME/DATE/TIMESTAMP). return the hour value for time.
    */
@@ -531,6 +568,18 @@ public class DateTimeFunction {
         impl(nullMissingHandling(DateTimeFunction::exprHour), INTEGER, DATE),
         impl(nullMissingHandling(DateTimeFunction::exprHour), INTEGER, DATETIME),
         impl(nullMissingHandling(DateTimeFunction::exprHour), INTEGER, TIMESTAMP)
+    );
+  }
+
+  private  DefaultFunctionResolver last_day() {
+    return define(BuiltinFunctionName.LAST_DAY.getName(),
+        impl(nullMissingHandling(DateTimeFunction::exprLastDay), DATE, STRING),
+        implWithProperties(nullMissingHandlingWithProperties((functionProperties, arg)
+            -> DateTimeFunction.exprLastDayToday(
+            functionProperties.getQueryStartClock())), DATE, TIME),
+        impl(nullMissingHandling(DateTimeFunction::exprLastDay), DATE, DATE),
+        impl(nullMissingHandling(DateTimeFunction::exprLastDay), DATE, DATETIME),
+        impl(nullMissingHandling(DateTimeFunction::exprLastDay), DATE, TIMESTAMP)
     );
   }
 
@@ -763,15 +812,19 @@ public class DateTimeFunction {
 
   /**
    * Extracts the timestamp of a date and time value.
-   * Also to construct a date type. The supported signatures:
-   * STRING/DATE/DATETIME/TIMESTAMP -> DATE
+   * Input strings may contain a timestamp only in format 'yyyy-MM-dd HH:mm:ss[.SSSSSSSSS]'
+   * STRING/DATE/TIME/DATETIME/TIMESTAMP -> TIMESTAMP
+   * STRING/DATE/TIME/DATETIME/TIMESTAMP, STRING/DATE/TIME/DATETIME/TIMESTAMP -> TIMESTAMP
+   * All types are converted to TIMESTAMP actually before the function call - it is responsibility
+   * of the automatic cast mechanism defined in `ExprCoreType` and performed by `TypeCastOperator`.
    */
   private DefaultFunctionResolver timestamp() {
     return define(BuiltinFunctionName.TIMESTAMP.getName(),
-        impl(nullMissingHandling(DateTimeFunction::exprTimestamp), TIMESTAMP, STRING),
-        impl(nullMissingHandling(DateTimeFunction::exprTimestamp), TIMESTAMP, DATE),
-        impl(nullMissingHandling(DateTimeFunction::exprTimestamp), TIMESTAMP, DATETIME),
-        impl(nullMissingHandling(DateTimeFunction::exprTimestamp), TIMESTAMP, TIMESTAMP));
+        impl(nullMissingHandling(v -> v), TIMESTAMP, TIMESTAMP),
+        // We can use FunctionProperties.None, because it is not used. It is required to convert
+        // TIME to other datetime types, but arguments there are already converted.
+        impl(nullMissingHandling((v1, v2) -> exprAddTime(FunctionProperties.None, v1, v2)),
+            TIMESTAMP, TIMESTAMP, TIMESTAMP));
   }
 
   /**
@@ -865,6 +918,7 @@ public class DateTimeFunction {
    * (STRING, STRING) -> STRING
    * (DATE, STRING) -> STRING
    * (DATETIME, STRING) -> STRING
+   * (TIME, STRING) -> STRING
    * (TIMESTAMP, STRING) -> STRING
    */
   private DefaultFunctionResolver date_format() {
@@ -875,6 +929,12 @@ public class DateTimeFunction {
             STRING, DATE, STRING),
         impl(nullMissingHandling(DateTimeFormatterUtil::getFormattedDate),
             STRING, DATETIME, STRING),
+        implWithProperties(
+            nullMissingHandlingWithProperties(
+                (functionProperties, time, formatString)
+                    -> DateTimeFormatterUtil.getFormattedDateOfToday(
+                        formatString, time, functionProperties.getQueryStartClock())),
+            STRING, TIME, STRING),
         impl(nullMissingHandling(DateTimeFormatterUtil::getFormattedDate),
             STRING, TIMESTAMP, STRING)
     );
@@ -932,6 +992,30 @@ public class DateTimeFunction {
                                           Boolean isAdd) {
     var dt = extractDateTime(datetime, functionProperties);
     return new ExprDatetimeValue(isAdd ? dt.plus(interval) : dt.minus(interval));
+  }
+  
+  /**
+   * Formats date according to format specifier. First argument is time, second is format.
+   * Detailed supported signatures:
+   * (STRING, STRING) -> STRING
+   * (DATE, STRING) -> STRING
+   * (DATETIME, STRING) -> STRING
+   * (TIME, STRING) -> STRING
+   * (TIMESTAMP, STRING) -> STRING
+   */
+  private DefaultFunctionResolver time_format() {
+    return define(BuiltinFunctionName.TIME_FORMAT.getName(),
+        impl(nullMissingHandling(DateTimeFormatterUtil::getFormattedTime),
+            STRING, STRING, STRING),
+        impl(nullMissingHandling(DateTimeFormatterUtil::getFormattedTime),
+            STRING, DATE, STRING),
+        impl(nullMissingHandling(DateTimeFormatterUtil::getFormattedTime),
+            STRING, DATETIME, STRING),
+        impl(nullMissingHandling(DateTimeFormatterUtil::getFormattedTime),
+            STRING, TIME, STRING),
+        impl(nullMissingHandling(DateTimeFormatterUtil::getFormattedTime),
+            STRING, TIMESTAMP, STRING)
+    );
   }
 
   /**
@@ -1202,6 +1286,23 @@ public class DateTimeFunction {
   }
 
   /**
+   * get_format implementation for ExprValue.
+   *
+   * @param type ExprValue of the type.
+   * @param format ExprValue of Time/String type
+   * @return ExprValue..
+   */
+  private ExprValue exprGetFormat(ExprValue type, ExprValue format) {
+    if (formats.contains(type.stringValue().toLowerCase(), format.stringValue().toLowerCase())) {
+      return new ExprStringValue(formats.get(
+          type.stringValue().toLowerCase(),
+          format.stringValue().toLowerCase()));
+    }
+
+    return ExprNullValue.of();
+  }
+
+  /**
    * Hour implementation for ExprValue.
    *
    * @param time ExprValue of Time/String type.
@@ -1210,6 +1311,39 @@ public class DateTimeFunction {
   private ExprValue exprHour(ExprValue time) {
     return new ExprIntegerValue(
         HOURS.between(LocalTime.MIN, time.timeValue()));
+  }
+
+  /**
+   * Helper function to retrieve the last day of a month based on a LocalDate argument.
+   *
+   * @param today a LocalDate.
+   * @return a LocalDate associated with the last day of the month for the given input.
+   */
+  private LocalDate getLastDay(LocalDate today) {
+    return LocalDate.of(
+        today.getYear(),
+        today.getMonth(),
+        today.getMonth().length(today.isLeapYear()));
+  }
+
+  /**
+   * Returns a DATE for the last day of the month of a given argument.
+   *
+   * @param datetime A DATE/DATETIME/TIMESTAMP/STRING ExprValue.
+   * @return An DATE value corresponding to the last day of the month of the given argument.
+   */
+  private ExprValue exprLastDay(ExprValue datetime) {
+    return new ExprDateValue(getLastDay(datetime.dateValue()));
+  }
+
+  /**
+   * Returns a DATE for the last day of the current month.
+   *
+   * @param clock The clock for the query start time from functionProperties.
+   * @return An DATE value corresponding to the last day of the month of the given argument.
+   */
+  private ExprValue exprLastDayToday(Clock clock) {
+    return new ExprDateValue(getLastDay(formatNow(clock).toLocalDate()));
   }
 
   /**
@@ -1488,20 +1622,6 @@ public class DateTimeFunction {
     // java inverses the value, so we have to swap 1 and 2
     return new ExprTimeValue(LocalTime.MIN.plus(
         Duration.between(second.timeValue(), first.timeValue())));
-  }
-
-  /**
-   * Timestamp implementation for ExprValue.
-   *
-   * @param exprValue ExprValue of Timestamp type or String type.
-   * @return ExprValue.
-   */
-  private ExprValue exprTimestamp(ExprValue exprValue) {
-    if (exprValue instanceof ExprStringValue) {
-      return new ExprTimestampValue(exprValue.stringValue());
-    } else {
-      return new ExprTimestampValue(exprValue.timestampValue());
-    }
   }
 
   /**

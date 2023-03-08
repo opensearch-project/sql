@@ -425,6 +425,7 @@ Description
 >>>>>>>>>>>
 
 Usage: date_format(date, format) formats the date argument using the specifiers in the format argument.
+If an argument of type TIME is provided, the local date is used.
 
 .. list-table:: The following table describes the available specifier arguments.
    :widths: 20 80
@@ -501,7 +502,7 @@ Usage: date_format(date, format) formats the date argument using the specifiers 
    * - x
      - x, for any smallcase/uppercase alphabet except [aydmshiHIMYDSEL]
 
-Argument type: STRING/DATE/DATETIME/TIMESTAMP, STRING
+Argument type: STRING/DATE/DATETIME/TIME/TIMESTAMP, STRING
 
 Return type: STRING
 
@@ -516,7 +517,6 @@ Example::
     +-----------------------------------------------+----------------------------------------------------------------+
 
 
-
 DATETIME
 --------
 
@@ -529,9 +529,9 @@ Argument type: DATETIME/STRING
 
 Return type map:
 
-DATETIME, STRING -> DATETIME
+(DATETIME, STRING) -> DATETIME
 
-DATETIME -> DATETIME
+(DATETIME) -> DATETIME
 
 
 Converting datetime with timezone to the second argument timezone.
@@ -1350,21 +1350,26 @@ TIMESTAMP
 Description
 >>>>>>>>>>>
 
-Usage: timestamp(expr) construct a timestamp type with the input string expr as an timestamp. If the argument is of date/datetime/timestamp type, cast expr to timestamp type with default timezone UTC.
+Usage: timestamp(expr) constructs a timestamp type with the input string `expr` as an timestamp. If the argument is not a string, it casts `expr` to timestamp type with default timezone UTC. If argument is a time, it applies today's date before cast.
+With two arguments `timestamp(expr1, expr2)` adds the time expression `expr2` to the date or datetime expression `expr1` and returns the result as a timestamp value.
 
-Argument type: STRING/DATE/DATETIME/TIMESTAMP
+Argument type: STRING/DATE/TIME/DATETIME/TIMESTAMP
 
-Return type: TIMESTAMP
+Return type map:
+
+(STRING/DATE/TIME/DATETIME/TIMESTAMP) -> TIMESTAMP
+
+(STRING/DATE/TIME/DATETIME/TIMESTAMP, STRING/DATE/TIME/DATETIME/TIMESTAMP) -> TIMESTAMP
 
 Example::
 
-    >od source=people | eval `TIMESTAMP('2020-08-26 13:49:00')` = TIMESTAMP('2020-08-26 13:49:00') | fields `TIMESTAMP('2020-08-26 13:49:00')`
+    os> source=people | eval `TIMESTAMP('2020-08-26 13:49:00')` = TIMESTAMP('2020-08-26 13:49:00'), `TIMESTAMP('2020-08-26 13:49:00', TIME('12:15:42'))` = TIMESTAMP('2020-08-26 13:49:00', TIME('12:15:42')) | fields `TIMESTAMP('2020-08-26 13:49:00')`, `TIMESTAMP('2020-08-26 13:49:00', TIME('12:15:42'))`
     fetched rows / total rows = 1/1
-    +------------------------------------+
-    | TIMESTAMP('2020-08-26 13:49:00')   |
-    |------------------------------------|
-    | TIMESTAMP '2020-08-26 13:49:00     |
-    +------------------------------------+
+    +------------------------------------+------------------------------------------------------+
+    | TIMESTAMP('2020-08-26 13:49:00')   | TIMESTAMP('2020-08-26 13:49:00', TIME('12:15:42'))   |
+    |------------------------------------+------------------------------------------------------|
+    | 2020-08-26 13:49:00                | 2020-08-27 02:04:42                                  |
+    +------------------------------------+------------------------------------------------------+
 
 
 TO_DAYS

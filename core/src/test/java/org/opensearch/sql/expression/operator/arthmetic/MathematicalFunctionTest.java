@@ -81,6 +81,12 @@ public class MathematicalFunctionTest extends ExpressionTestBase {
     return builder.add(Arguments.of(2D, 2D)).build();
   }
 
+  private static Stream<Arguments> testLogInvalidDoubleArguments() {
+    return Stream.of(Arguments.of(0D, -2D),
+        Arguments.of(0D, 2D),
+        Arguments.of(2D, 0D));
+  }
+
   private static Stream<Arguments> trigonometricArguments() {
     Stream.Builder<Arguments> builder = Stream.builder();
     return builder
@@ -566,6 +572,90 @@ public class MathematicalFunctionTest extends ExpressionTestBase {
   }
 
   /**
+   * Test expm1 with integer value.
+   */
+  @ParameterizedTest(name = "expm1({0})")
+  @ValueSource(ints = {
+      -1, 0, 1, Integer.MAX_VALUE, Integer.MIN_VALUE})
+  public void expm1_int_value(Integer value) {
+    FunctionExpression expm1 = DSL.expm1(DSL.literal(value));
+    assertThat(
+            expm1.valueOf(valueEnv()),
+            allOf(hasType(DOUBLE), hasValue(Math.expm1(value))));
+    assertEquals(String.format("expm1(%s)", value), expm1.toString());
+  }
+
+  /**
+   * Test expm1 with long value.
+   */
+  @ParameterizedTest(name = "expm1({0})")
+  @ValueSource(longs = {
+      -1L, 0L, 1L, Long.MAX_VALUE, Long.MIN_VALUE})
+  public void expm1_long_value(Long value) {
+    FunctionExpression expm1 = DSL.expm1(DSL.literal(value));
+    assertThat(
+            expm1.valueOf(valueEnv()),
+            allOf(hasType(DOUBLE), hasValue(Math.expm1(value))));
+    assertEquals(String.format("expm1(%s)", value), expm1.toString());
+  }
+
+  /**
+   * Test expm1 with float value.
+   */
+  @ParameterizedTest(name = "expm1({0})")
+  @ValueSource(floats = {
+      -1.5F, -1F, 0F, 1F, 1.5F, Float.MAX_VALUE, Float.MIN_VALUE})
+  public void expm1_float_value(Float value) {
+    FunctionExpression expm1 = DSL.expm1(DSL.literal(value));
+    assertThat(
+            expm1.valueOf(valueEnv()),
+            allOf(hasType(DOUBLE), hasValue(Math.expm1(value))));
+    assertEquals(String.format("expm1(%s)", value), expm1.toString());
+  }
+
+  /**
+   * Test expm1 with double value.
+   */
+  @ParameterizedTest(name = "expm1({0})")
+  @ValueSource(doubles = {
+      -1.5D, -1D, 0D, 1D, 1.5D, Double.MAX_VALUE, Double.MIN_VALUE})
+  public void expm1_double_value(Double value) {
+    FunctionExpression expm1 = DSL.expm1(DSL.literal(value));
+    assertThat(
+            expm1.valueOf(valueEnv()),
+            allOf(hasType(DOUBLE), hasValue(Math.expm1(value))));
+    assertEquals(String.format("expm1(%s)", value), expm1.toString());
+  }
+
+  /**
+   * Test expm1 with short value.
+   */
+  @ParameterizedTest(name = "expm1({0})")
+  @ValueSource(shorts = {
+      -1, 0, 1, Short.MAX_VALUE, Short.MIN_VALUE})
+  public void expm1_short_value(Short value) {
+    FunctionExpression expm1 = DSL.expm1(DSL.literal(value));
+    assertThat(
+            expm1.valueOf(valueEnv()),
+            allOf(hasType(DOUBLE), hasValue(Math.expm1(value))));
+    assertEquals(String.format("expm1(%s)", value), expm1.toString());
+  }
+
+  /**
+   * Test expm1 with short value.
+   */
+  @ParameterizedTest(name = "expm1({0})")
+  @ValueSource(bytes = {
+      -1, 0, 1, Byte.MAX_VALUE, Byte.MIN_VALUE})
+  public void expm1_byte_value(Byte value) {
+    FunctionExpression expm1 = DSL.expm1(DSL.literal(value));
+    assertThat(
+            expm1.valueOf(valueEnv()),
+            allOf(hasType(DOUBLE), hasValue(Math.expm1(value))));
+    assertEquals(String.format("expm1(%s)", value), expm1.toString());
+  }
+
+  /**
    * Test floor with integer value.
    */
   @ParameterizedTest(name = "floor({0})")
@@ -575,7 +665,7 @@ public class MathematicalFunctionTest extends ExpressionTestBase {
     assertThat(
         floor.valueOf(valueEnv()),
         allOf(hasType(LONG), hasValue((long) Math.floor(value))));
-    assertEquals(String.format("floor(%s)", value.toString()), floor.toString());
+    assertEquals(String.format("floor(%s)", value), floor.toString());
   }
 
   /**
@@ -641,7 +731,7 @@ public class MathematicalFunctionTest extends ExpressionTestBase {
    * Test ln with integer value.
    */
   @ParameterizedTest(name = "ln({0})")
-  @ValueSource(ints = {2, -2})
+  @ValueSource(ints = {2, 3})
   public void ln_int_value(Integer value) {
     FunctionExpression ln = DSL.ln(DSL.literal(value));
     assertThat(
@@ -654,7 +744,7 @@ public class MathematicalFunctionTest extends ExpressionTestBase {
    * Test ln with long value.
    */
   @ParameterizedTest(name = "ln({0})")
-  @ValueSource(longs = {2L, -2L})
+  @ValueSource(longs = {2L, 3L})
   public void ln_long_value(Long value) {
     FunctionExpression ln = DSL.ln(DSL.literal(value));
     assertThat(
@@ -667,7 +757,7 @@ public class MathematicalFunctionTest extends ExpressionTestBase {
    * Test ln with float value.
    */
   @ParameterizedTest(name = "ln({0})")
-  @ValueSource(floats = {2F, -2F})
+  @ValueSource(floats = {2F, 3F})
   public void ln_float_value(Float value) {
     FunctionExpression ln = DSL.ln(DSL.literal(value));
     assertThat(
@@ -680,13 +770,24 @@ public class MathematicalFunctionTest extends ExpressionTestBase {
    * Test ln with double value.
    */
   @ParameterizedTest(name = "ln({0})")
-  @ValueSource(doubles = {2D, -2D})
+  @ValueSource(doubles = {2D, 3D})
   public void ln_double_value(Double value) {
     FunctionExpression ln = DSL.ln(DSL.literal(value));
     assertThat(
         ln.valueOf(valueEnv()),
         allOf(hasType(DOUBLE), hasValue(Math.log(value))));
     assertEquals(String.format("ln(%s)", value.toString()), ln.toString());
+  }
+
+  /**
+   * Test ln with invalid value.
+   */
+  @ParameterizedTest(name = "ln({0})")
+  @ValueSource(doubles = {0D, -3D})
+  public void ln_invalid_value(Double value) {
+    FunctionExpression ln = DSL.ln(DSL.literal(value));
+    assertEquals(DOUBLE, ln.type());
+    assertTrue(ln.valueOf(valueEnv()).isNull());
   }
 
   /**
@@ -770,6 +871,17 @@ public class MathematicalFunctionTest extends ExpressionTestBase {
   }
 
   /**
+   * Test log with 1 invalid value.
+   */
+  @ParameterizedTest(name = "log({0})")
+  @ValueSource(doubles = {0D, -3D})
+  public void log_invalid_value(Double value) {
+    FunctionExpression log = DSL.log(DSL.literal(value));
+    assertEquals(DOUBLE, log.type());
+    assertTrue(log.valueOf(valueEnv()).isNull());
+  }
+
+  /**
    * Test log with 1 null value argument.
    */
   @Test
@@ -845,6 +957,17 @@ public class MathematicalFunctionTest extends ExpressionTestBase {
         getDoubleValue(log.valueOf(valueEnv())),
         closeTo(Math.log(v2) / Math.log(v1), 0.0001));
     assertEquals(String.format("log(%s, %s)", v1.toString(), v2.toString()), log.toString());
+  }
+
+  /**
+   * Test log with 2 invalid double arguments.
+   */
+  @ParameterizedTest(name = "log({0}, {2})")
+  @MethodSource("testLogInvalidDoubleArguments")
+  public void log_two_invalid_double_value(Double v1, Double v2) {
+    FunctionExpression log = DSL.log(DSL.literal(v1), DSL.literal(v2));
+    assertEquals(log.type(), DOUBLE);
+    assertTrue(log.valueOf(valueEnv()).isNull());
   }
 
   /**
@@ -968,6 +1091,17 @@ public class MathematicalFunctionTest extends ExpressionTestBase {
   }
 
   /**
+   * Test log10 with 1 invalid double argument.
+   */
+  @ParameterizedTest(name = "log10({0})")
+  @ValueSource(doubles = {0D, -3D})
+  public void log10_two_invalid_value(Double v) {
+    FunctionExpression log = DSL.log10(DSL.literal(v));
+    assertEquals(log.type(), DOUBLE);
+    assertTrue(log.valueOf(valueEnv()).isNull());
+  }
+
+  /**
    * Test log10 with null value.
    */
   @Test
@@ -1047,6 +1181,17 @@ public class MathematicalFunctionTest extends ExpressionTestBase {
         closeTo(Math.log(v) / Math.log(2), 0.0001)
     );
     assertEquals(String.format("log2(%s)", v.toString()), log.toString());
+  }
+
+  /**
+   * Test log2 with an invalid double value.
+   */
+  @ParameterizedTest(name = "log2({0})")
+  @ValueSource(doubles = {0D, -2D})
+  public void log2_invalid_double_value(Double v) {
+    FunctionExpression log = DSL.log2(DSL.literal(v));
+    assertEquals(log.type(), DOUBLE);
+    assertTrue(log.valueOf(valueEnv()).isNull());
   }
 
   /**

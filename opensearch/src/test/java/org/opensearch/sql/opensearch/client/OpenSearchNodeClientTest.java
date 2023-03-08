@@ -55,10 +55,11 @@ import org.opensearch.cluster.metadata.MappingMetadata;
 import org.opensearch.common.collect.ImmutableOpenMap;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.common.util.concurrent.ThreadContext;
-import org.opensearch.common.xcontent.DeprecationHandler;
-import org.opensearch.common.xcontent.NamedXContentRegistry;
-import org.opensearch.common.xcontent.XContentParser;
 import org.opensearch.common.xcontent.XContentType;
+import org.opensearch.core.xcontent.DeprecationHandler;
+import org.opensearch.core.xcontent.NamedXContentRegistry;
+import org.opensearch.core.xcontent.XContentParser;
+import org.opensearch.index.IndexNotFoundException;
 import org.opensearch.search.SearchHit;
 import org.opensearch.search.SearchHits;
 import org.opensearch.sql.data.model.ExprIntegerValue;
@@ -200,8 +201,13 @@ class OpenSearchNodeClientTest {
 
   @Test
   void getIndexMappingsWithNonExistIndex() {
-    mockNodeClient("test");
-    assertTrue(client.getIndexMappings("non_exist_index").isEmpty());
+    when(nodeClient.admin().indices()
+        .prepareGetMappings(any())
+        .setLocal(anyBoolean())
+        .get()
+    ).thenThrow(IndexNotFoundException.class);
+
+    assertThrows(IndexNotFoundException.class, () -> client.getIndexMappings("non_exist_index"));
   }
 
   @Test
@@ -373,15 +379,6 @@ class OpenSearchNodeClientTest {
     } catch (IOException e) {
       throw new IllegalStateException("Failed to mock node client", e);
     }
-  }
-
-  public void mockNodeClient(String indexName) {
-    GetMappingsResponse mockResponse = mock(GetMappingsResponse.class);
-    when(nodeClient.admin().indices()
-        .prepareGetMappings(any())
-        .setLocal(anyBoolean())
-        .get()).thenReturn(mockResponse);
-    when(mockResponse.mappings()).thenReturn(ImmutableOpenMap.of());
   }
 
   private void mockNodeClientSettings(String indexName, String indexMetadata)

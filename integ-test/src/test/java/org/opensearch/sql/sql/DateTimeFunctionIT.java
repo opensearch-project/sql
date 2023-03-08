@@ -514,6 +514,33 @@ public class DateTimeFunctionIT extends SQLIntegTestCase {
   }
 
   @Test
+  public void testLastDay() throws IOException {
+    JSONObject result = executeQuery(
+        String.format("SELECT last_day(cast(date0 as date)) FROM %s LIMIT 3",
+            TEST_INDEX_CALCS));
+    verifyDataRows(result,
+        rows("2004-04-30"),
+        rows("1972-07-31"),
+        rows("1975-11-30"));
+
+    result = executeQuery(
+        String.format("SELECT last_day(datetime(cast(date0 AS string))) FROM %s LIMIT 3",
+            TEST_INDEX_CALCS));
+    verifyDataRows(result,
+        rows("2004-04-30"),
+        rows("1972-07-31"),
+        rows("1975-11-30"));
+
+    result = executeQuery(
+        String.format("SELECT last_day(cast(date0 AS timestamp)) FROM %s LIMIT 3",
+            TEST_INDEX_CALCS));
+    verifyDataRows(result,
+        rows("2004-04-30"),
+        rows("1972-07-31"),
+        rows("1975-11-30"));
+  }
+
+  @Test
   public void testMicrosecond() throws IOException {
     JSONObject result = executeQuery("select microsecond(timestamp('2020-09-16 17:30:00.123456'))");
     verifySchema(result,
@@ -916,7 +943,7 @@ public class DateTimeFunctionIT extends SQLIntegTestCase {
   }
 
   @Test
-  public void testWeekOfYear() throws IOException {
+  public void testWeekOfYearUnderscores() throws IOException {
     JSONObject result = executeQuery("select week_of_year(date('2008-02-20'))");
     verifySchema(result, schema("week_of_year(date('2008-02-20'))", null, "integer"));
     verifyDataRows(result, rows(7));
@@ -929,35 +956,43 @@ public class DateTimeFunctionIT extends SQLIntegTestCase {
   }
 
   @Test
+  public void testWeekOfYear() throws IOException {
+    JSONObject result = executeQuery("select weekofyear(date('2008-02-20'))");
+    verifySchema(result, schema("weekofyear(date('2008-02-20'))", null, "integer"));
+    verifyDataRows(result, rows(7));
+
+    week("2008-02-20", 0, 7, "weekofyear");
+    week("2008-02-20", 1, 8, "weekofyear");
+    week("2008-12-31", 1, 53, "weekofyear");
+    week("2000-01-01", 0, 0, "weekofyear");
+    week("2000-01-01", 2, 52, "week_of_year");
+  }
+
+  private void compareWeekResults(String arg, String table) throws IOException {
+    JSONObject result1 = executeQuery(String.format(
+        "SELECT week(%s) FROM %s", arg, table));
+    JSONObject result2 = executeQuery(String.format(
+        "SELECT week_of_year(%s) FROM %s", arg, table));
+    JSONObject result3 = executeQuery(String.format(
+        "SELECT weekofyear(%s) FROM %s", arg, table));
+
+    result1.getJSONArray("datarows").similar(result2.getJSONArray("datarows"));
+    result1.getJSONArray("datarows").similar(result3.getJSONArray("datarows"));
+  }
+
+  @Test
   public void testWeekAlternateSyntaxesReturnTheSameResults() throws IOException {
     JSONObject result1 = executeQuery("SELECT week(date('2022-11-22'))");
     JSONObject result2 = executeQuery("SELECT week_of_year(date('2022-11-22'))");
+    JSONObject result3 = executeQuery("SELECT weekofyear(date('2022-11-22'))");
     verifyDataRows(result1, rows(47));
     result1.getJSONArray("datarows").similar(result2.getJSONArray("datarows"));
+    result1.getJSONArray("datarows").similar(result3.getJSONArray("datarows"));
 
-    result1 = executeQuery(String.format(
-        "SELECT week(CAST(date0 AS date)) FROM %s", TEST_INDEX_CALCS));
-    result2 = executeQuery(String.format(
-        "SELECT week_of_year(CAST(date0 AS date)) FROM %s", TEST_INDEX_CALCS));
-    result1.getJSONArray("datarows").similar(result2.getJSONArray("datarows"));
-
-    result1 = executeQuery(String.format(
-        "SELECT week(datetime(CAST(time0 AS STRING))) FROM %s", TEST_INDEX_CALCS));
-    result2 = executeQuery(String.format(
-        "SELECT week_of_year(datetime(CAST(time0 AS STRING))) FROM %s", TEST_INDEX_CALCS));
-    result1.getJSONArray("datarows").similar(result2.getJSONArray("datarows"));
-
-    result1 = executeQuery(String.format(
-        "SELECT week(CAST(time0 AS STRING)) FROM %s", TEST_INDEX_CALCS));
-    result2 = executeQuery(String.format(
-        "SELECT week_of_year(CAST(time0 AS STRING)) FROM %s", TEST_INDEX_CALCS));
-    result1.getJSONArray("datarows").similar(result2.getJSONArray("datarows"));
-
-    result1 = executeQuery(String.format(
-        "SELECT week(CAST(datetime0 AS timestamp)) FROM %s", TEST_INDEX_CALCS));
-    result2 = executeQuery(String.format(
-        "SELECT week_of_year(CAST(datetime0 AS timestamp)) FROM %s", TEST_INDEX_CALCS));
-    result1.getJSONArray("datarows").similar(result2.getJSONArray("datarows"));
+    compareWeekResults("CAST(date0 AS date)", TEST_INDEX_CALCS);
+    compareWeekResults("datetime(CAST(time0 AS STRING))", TEST_INDEX_CALCS);
+    compareWeekResults("CAST(time0 AS STRING)", TEST_INDEX_CALCS);
+    compareWeekResults("CAST(datetime0 AS timestamp)", TEST_INDEX_CALCS);
   }
 
   void verifyDateFormat(String date, String type, String format, String formatted) throws IOException {
@@ -977,7 +1012,7 @@ public class DateTimeFunctionIT extends SQLIntegTestCase {
     String timestamp = "1998-01-31 13:14:15.012345";
     String timestampFormat = "%a %b %c %D %d %e %f %H %h %I %i %j %k %l %M "
         + "%m %p %r %S %s %T %% %P";
-    String timestampFormatted = "Sat Jan 01 31st 31 31 12345 13 01 01 14 031 13 1 "
+    String timestampFormatted = "Sat Jan 01 31st 31 31 012345 13 01 01 14 031 13 1 "
         + "January 01 PM 01:14:15 PM 15 15 13:14:15 % P";
     verifyDateFormat(timestamp, "timestamp", timestampFormat, timestampFormatted);
 
@@ -1206,6 +1241,12 @@ public class DateTimeFunctionIT extends SQLIntegTestCase {
   }
 
   @Test
+  public void testGetFormatAsArgument() throws IOException{
+    var result = executeQuery("SELECT DATE_FORMAT('2003-10-03',GET_FORMAT(DATE,'USA'))");
+    verifyDataRows(result, rows("10.03.2003"));
+  }
+
+  @Test
   public void testUnixTimeStamp() throws IOException {
     var result = executeQuery(
         "select UNIX_TIMESTAMP(MAKEDATE(1984, 1984)) f1, "
@@ -1290,6 +1331,26 @@ public class DateTimeFunctionIT extends SQLIntegTestCase {
     var result = executeQuery("select TIMEDIFF('23:59:59', '13:00:00') as f");
     verifySchema(result, schema("TIMEDIFF('23:59:59', '13:00:00')", "f", "time"));
     verifyDataRows(result, rows("10:59:59"));
+  }
+
+  void verifyTimeFormat(String time, String type, String format, String formatted) throws IOException {
+    String query = String.format("time_format(%s('%s'), '%s')", type, time, format);
+    JSONObject result = executeQuery("select " + query);
+    verifySchema(result, schema(query, null, "keyword"));
+    verifyDataRows(result, rows(formatted));
+
+    query = String.format("time_format('%s', '%s')", time, format);
+    result = executeQuery("select " + query);
+    verifySchema(result, schema(query, null, "keyword"));
+    verifyDataRows(result, rows(formatted));
+  }
+
+  @Test
+  public void testTimeFormat() throws IOException {
+    String timestamp = "1998-01-31 13:14:15.012345";
+    String timestampFormat = "%f %H %h %I %i %p %r %S %s %T";
+    String timestampFormatted = "012345 13 01 01 14 PM 01:14:15 PM 15 15 13:14:15";
+    verifyTimeFormat(timestamp, "timestamp", timestampFormat, timestampFormatted);
   }
 
   protected JSONObject executeQuery(String query) throws IOException {

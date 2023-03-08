@@ -14,8 +14,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import org.opensearch.common.xcontent.LoggingDeprecationHandler;
-import org.opensearch.common.xcontent.NamedXContentRegistry;
 import org.opensearch.common.xcontent.yaml.YamlXContentParser;
+import org.opensearch.core.xcontent.NamedXContentRegistry;
 import org.opensearch.sql.legacy.exception.SqlParseException;
 
 /**

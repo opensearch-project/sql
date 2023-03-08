@@ -174,6 +174,10 @@ public class DSL {
     return compile(FunctionProperties.None, BuiltinFunctionName.EXP, expressions);
   }
 
+  public static FunctionExpression expm1(Expression... expressions) {
+    return compile(FunctionProperties.None, BuiltinFunctionName.EXPM1, expressions);
+  }
+
   public static FunctionExpression floor(Expression... expressions) {
     return compile(FunctionProperties.None, BuiltinFunctionName.FLOOR, expressions);
   }
@@ -345,12 +349,21 @@ public class DSL {
     return compile(FunctionProperties.None, BuiltinFunctionName.FROM_DAYS, expressions);
   }
 
+  public static FunctionExpression get_format(Expression... expressions) {
+    return compile(FunctionProperties.None, BuiltinFunctionName.GET_FORMAT, expressions);
+  }
+
   public static FunctionExpression hour(Expression... expressions) {
     return compile(FunctionProperties.None, BuiltinFunctionName.HOUR, expressions);
   }
 
   public static FunctionExpression hour_of_day(Expression... expressions) {
     return compile(FunctionProperties.None, BuiltinFunctionName.HOUR_OF_DAY, expressions);
+  }
+
+  public static FunctionExpression last_day(FunctionProperties functionProperties,
+                                            Expression... expressions) {
+    return compile(functionProperties, BuiltinFunctionName.LAST_DAY, expressions);
   }
 
   public static FunctionExpression microsecond(Expression... expressions) {
@@ -403,11 +416,18 @@ public class DSL {
   }
 
   public static FunctionExpression timestamp(Expression... expressions) {
-    return compile(FunctionProperties.None, BuiltinFunctionName.TIMESTAMP, expressions);
+    return timestamp(FunctionProperties.None, expressions);
   }
 
-  public static FunctionExpression date_format(Expression... expressions) {
-    return compile(FunctionProperties.None, BuiltinFunctionName.DATE_FORMAT, expressions);
+  public static FunctionExpression timestamp(FunctionProperties functionProperties,
+                                             Expression... expressions) {
+    return compile(functionProperties, BuiltinFunctionName.TIMESTAMP, expressions);
+  }
+
+  public static FunctionExpression date_format(
+      FunctionProperties functionProperties,
+      Expression... expressions) {
+    return compile(functionProperties, BuiltinFunctionName.DATE_FORMAT, expressions);
   }
 
   public static FunctionExpression to_days(Expression... expressions) {
@@ -417,6 +437,11 @@ public class DSL {
   public static FunctionExpression week(
       FunctionProperties functionProperties, Expression... expressions) {
     return compile(functionProperties, BuiltinFunctionName.WEEK, expressions);
+  }
+
+  public static FunctionExpression weekofyear(
+      FunctionProperties functionProperties, Expression... expressions) {
+    return compile(functionProperties, BuiltinFunctionName.WEEKOFYEAR, expressions);
   }
 
   public static FunctionExpression week_of_year(
@@ -812,6 +837,11 @@ public class DSL {
   public static FunctionExpression current_date(FunctionProperties functionProperties,
                                                 Expression... args) {
     return compile(functionProperties, BuiltinFunctionName.CURRENT_DATE, args);
+  }
+
+  public static FunctionExpression time_format(FunctionProperties functionProperties,
+                                               Expression... expressions) {
+    return compile(functionProperties, BuiltinFunctionName.TIME_FORMAT, expressions);
   }
 
   public static FunctionExpression utc_date(FunctionProperties functionProperties,
