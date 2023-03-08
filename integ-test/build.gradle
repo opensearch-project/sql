@@ -22,7 +22,6 @@
  * under the License.
  */
 
-import org.gradle.nativeplatform.platform.internal.DefaultNativePlatform
 import org.opensearch.gradle.test.RestIntegTestTask
 import org.opensearch.gradle.testclusters.StandaloneRestIntegTestTask
 
@@ -151,9 +150,10 @@ stopPrometheus.mustRunAfter startPrometheus
 // Run PPL ITs and new, legacy and comparison SQL ITs with new SQL engine enabled
 integTest {
     dependsOn ':opensearch-sql-plugin:bundlePlugin'
-    dependsOn startPrometheus
-    finalizedBy stopPrometheus
-
+    if(getOSFamilyType() != "windows") {
+        dependsOn startPrometheus
+        finalizedBy stopPrometheus
+    }
     systemProperty 'tests.security.manager', 'false'
     systemProperty('project.root', project.projectDir.absolutePath)
 
@@ -176,6 +176,12 @@ integTest {
         filter {
             excludeTestsMatching "org.opensearch.sql.bwc.*IT"
         }
+    }
+
+    if(getOSFamilyType() == "windows") {
+        exclude 'org/opensearch/sql/ppl/PrometheusDataSourceCommandsIT.class'
+        exclude 'org/opensearch/sql/ppl/ShowDataSourcesCommandIT.class'
+        exclude 'org/opensearch/sql/ppl/InformationSchemaCommandIT.class'
     }
 
     exclude 'org/opensearch/sql/doctest/**/*IT.class'
