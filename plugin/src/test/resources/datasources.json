@@ -1,7 +1,7 @@
 [
   {
     "name" : "prometheus",
-    "connector": "prometheus",
+    "connector": "PROMETHEUS",
     "properties" : {
       "prometheus.uri" : "http://localhost:9090",
       "prometheus.auth.type" : "basicauth",

@@ -232,21 +232,15 @@ public class SQLPlugin extends Plugin implements ActionPlugin, ScriptPlugin, Rel
     SecurityAccess.doPrivileged(
         () -> {
           InputStream inputStream = DataSourceSettings.DATASOURCE_CONFIG.get(settings);
-          System.out.println(inputStream.toString());
           if (inputStream != null) {
             Gson gson = new GsonBuilder()
                 .disableJdkUnsafe()
                 .addReflectionAccessFilter(ReflectionAccessFilter.BLOCK_ALL_PLATFORM)
                 .create();
             Type typeTok = new TypeToken<List<DataSourceMetadata>>() {}.getType();
-            ObjectMapper objectMapper = new ObjectMapper();
-            objectMapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
             Reader reader = new InputStreamReader(inputStream, StandardCharsets.UTF_8);
             try {
-              //List<DataSourceMetadata> metadataList = gson.fromJson(reader, typeTok);
-
-              List<DataSourceMetadata> metadataList =
-                  objectMapper.readValue(inputStream, new TypeReference<>() {});
+              List<DataSourceMetadata> metadataList = gson.fromJson(reader, typeTok);
               dataSourceService.addDataSource(metadataList.toArray(new DataSourceMetadata[0]));
             } catch (Throwable e) {
               LOG.error("DataSource construction failed.", e);
