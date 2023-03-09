@@ -331,6 +331,7 @@ TOPHITS:                            'TOPHITS';
 TYPEOF:                             'TYPEOF';
 WEEK_OF_YEAR:                       'WEEK_OF_YEAR';
 WEEKOFYEAR:                         'WEEKOFYEAR';
+WEEKDAY:                            'WEEKDAY';
 WILDCARDQUERY:                      'WILDCARDQUERY';
 WILDCARD_QUERY:                     'WILDCARD_QUERY';
 
