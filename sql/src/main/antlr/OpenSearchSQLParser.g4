@@ -482,6 +482,7 @@ dateTimeFunctionName
     | WEEK_OF_YEAR
     | WEEKOFYEAR
     | YEAR
+    | YEARWEEK
     ;
 
 textFunctionName

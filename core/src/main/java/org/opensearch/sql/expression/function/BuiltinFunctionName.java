@@ -112,6 +112,7 @@ public enum BuiltinFunctionName {
   WEEKOFYEAR(FunctionName.of("weekofyear")),
   WEEK_OF_YEAR(FunctionName.of("week_of_year")),
   YEAR(FunctionName.of("year")),
+  YEARWEEK(FunctionName.of("yearweek")),
   // `now`-like functions
   NOW(FunctionName.of("now")),
   CURDATE(FunctionName.of("curdate")),

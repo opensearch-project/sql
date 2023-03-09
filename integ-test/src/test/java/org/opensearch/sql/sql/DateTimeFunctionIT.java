@@ -985,6 +985,14 @@ public class DateTimeFunctionIT extends SQLIntegTestCase {
     compareWeekResults("CAST(datetime0 AS timestamp)", TEST_INDEX_CALCS);
   }
 
+  @Test
+  public void testYearweek() throws IOException {
+    JSONObject result = executeQuery(
+        String.format("SELECT yearweek(time0), yearweek(time0, 4) FROM %s LIMIT 2", TEST_INDEX_CALCS));
+
+    verifyDataRows(result, rows(189952, 189952), rows(189953, 190001));
+  }
+
   void verifyDateFormat(String date, String type, String format, String formatted) throws IOException {
     String query = String.format("date_format(%s('%s'), '%s')", type, date, format);
     JSONObject result = executeQuery("select " + query);

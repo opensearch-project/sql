@@ -196,6 +196,7 @@ public class DateTimeFunction {
     repository.register(week(BuiltinFunctionName.WEEKOFYEAR));
     repository.register(week(BuiltinFunctionName.WEEK_OF_YEAR));
     repository.register(year());
+    repository.register(yearweek());
   }
 
   /**
@@ -897,6 +898,30 @@ public class DateTimeFunction {
         impl(nullMissingHandling(DateTimeFunction::exprYear), INTEGER, DATETIME),
         impl(nullMissingHandling(DateTimeFunction::exprYear), INTEGER, TIMESTAMP),
         impl(nullMissingHandling(DateTimeFunction::exprYear), INTEGER, STRING)
+    );
+  }
+
+  /**
+   * YEARWEEK(DATE[,mode]). return the week number for date.
+   */
+  private DefaultFunctionResolver yearweek() {
+    return define(BuiltinFunctionName.YEARWEEK.getName(),
+        implWithProperties(nullMissingHandlingWithProperties((functionProperties, arg)
+            -> yearweekToday(
+            DEFAULT_WEEK_OF_YEAR_MODE,
+            functionProperties.getQueryStartClock())), INTEGER, TIME),
+        impl(nullMissingHandling(DateTimeFunction::exprYearweekWithoutMode), INTEGER, DATE),
+        impl(nullMissingHandling(DateTimeFunction::exprYearweekWithoutMode), INTEGER, DATETIME),
+        impl(nullMissingHandling(DateTimeFunction::exprYearweekWithoutMode), INTEGER, TIMESTAMP),
+        impl(nullMissingHandling(DateTimeFunction::exprYearweekWithoutMode), INTEGER, STRING),
+        implWithProperties(nullMissingHandlingWithProperties((functionProperties, time, modeArg)
+            -> yearweekToday(
+            modeArg,
+            functionProperties.getQueryStartClock())), INTEGER, TIME, INTEGER),
+        impl(nullMissingHandling(DateTimeFunction::exprYearweek), INTEGER, DATE, INTEGER),
+        impl(nullMissingHandling(DateTimeFunction::exprYearweek), INTEGER, DATETIME, INTEGER),
+        impl(nullMissingHandling(DateTimeFunction::exprYearweek), INTEGER, TIMESTAMP, INTEGER),
+        impl(nullMissingHandling(DateTimeFunction::exprYearweek), INTEGER, STRING, INTEGER)
     );
   }
 
@@ -1729,6 +1754,52 @@ public class DateTimeFunction {
    */
   private ExprValue exprYear(ExprValue date) {
     return new ExprIntegerValue(date.dateValue().getYear());
+  }
+
+  /**
+   * Helper function to extract the yearweek output from a given date.
+   *
+   * @param date is a LocalDate input argument.
+   * @param mode is an integer containing the mode used to parse the LocalDate.
+   * @return is a long containing the formatted output for the yearweek function.
+   */
+  private ExprIntegerValue extractYearweek(LocalDate date, int mode) {
+    // Needed to align with MySQL. Due to how modes for this function work.
+    // See description of modes here ...
+    // https://dev.mysql.com/doc/refman/8.0/en/date-and-time-functions.html#function_week
+    int modeJava = CalendarLookup.getWeekNumber(mode, date) != 0 ? mode :
+        mode <= 4 ? 2 :
+            7;
+
+    int formatted = CalendarLookup.getYearNumber(modeJava, date) * 100
+        + CalendarLookup.getWeekNumber(modeJava, date);
+
+    return new ExprIntegerValue(formatted);
+  }
+
+  /**
+   * Yearweek for date implementation for ExprValue.
+   *
+   * @param date ExprValue of Date/Datetime/Time/Timestamp/String type.
+   * @param mode ExprValue of Integer type.
+   */
+  private ExprValue exprYearweek(ExprValue date, ExprValue mode) {
+    return extractYearweek(date.dateValue(), mode.integerValue());
+  }
+
+  /**
+   * Yearweek for date implementation for ExprValue.
+   * When mode is not specified default value mode 0 is used.
+   *
+   * @param date ExprValue of Date/Datetime/Time/Timestamp/String type.
+   * @return ExprValue.
+   */
+  private ExprValue exprYearweekWithoutMode(ExprValue date) {
+    return exprYearweek(date, new ExprIntegerValue(0));
+  }
+
+  private ExprValue yearweekToday(ExprValue mode, Clock clock) {
+    return extractYearweek(LocalDateTime.now(clock).toLocalDate(), mode.integerValue());
   }
 
   private ExprValue monthOfYearToday(Clock clock) {

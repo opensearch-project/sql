@@ -340,6 +340,7 @@ STRCMP:                             'STRCMP';
 
 // DATE AND TIME FUNCTIONS
 ADDDATE:                            'ADDDATE';
+YEARWEEK:                           'YEARWEEK';
 
 // RELEVANCE FUNCTIONS AND PARAMETERS
 ALLOW_LEADING_WILDCARD:             'ALLOW_LEADING_WILDCARD';
