@@ -175,7 +175,7 @@ public class SQLPlugin extends Plugin implements ActionPlugin, ScriptPlugin, Rel
                         new OpenSearchNodeClient(this.client), pluginSettings))
                 .add(new PrometheusStorageFactory())
                 .build());
-    dataSourceService.addDataSource(defaultOpenSearchDataSourceMetadata());
+    dataSourceService.createDataSource(defaultOpenSearchDataSourceMetadata());
     loadDataSources(dataSourceService, clusterService.getSettings());
     LocalClusterState.state().setClusterService(clusterService);
     LocalClusterState.state().setPluginSettings((OpenSearchSettings) pluginSettings);
@@ -220,7 +220,7 @@ public class SQLPlugin extends Plugin implements ActionPlugin, ScriptPlugin, Rel
   @Override
   public void reload(Settings settings) {
     dataSourceService.clear();
-    dataSourceService.addDataSource(defaultOpenSearchDataSourceMetadata());
+    dataSourceService.createDataSource(defaultOpenSearchDataSourceMetadata());
     loadDataSources(dataSourceService, settings);
   }
 
@@ -241,7 +241,7 @@ public class SQLPlugin extends Plugin implements ActionPlugin, ScriptPlugin, Rel
             Reader reader = new InputStreamReader(inputStream, StandardCharsets.UTF_8);
             try {
               List<DataSourceMetadata> metadataList = gson.fromJson(reader, typeTok);
-              dataSourceService.addDataSource(metadataList.toArray(new DataSourceMetadata[0]));
+              dataSourceService.createDataSource(metadataList.toArray(new DataSourceMetadata[0]));
             } catch (Throwable e) {
               LOG.error("DataSource construction failed.", e);
             }
