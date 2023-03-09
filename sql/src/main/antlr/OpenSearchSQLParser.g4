@@ -477,6 +477,7 @@ dateTimeFunctionName
     | TIMEDIFF
     | TIMESTAMP
     | TO_DAYS
+    | TO_SECONDS
     | UNIX_TIMESTAMP
     | WEEK
     | WEEK_OF_YEAR

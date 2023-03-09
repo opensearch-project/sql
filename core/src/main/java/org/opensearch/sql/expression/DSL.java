@@ -306,6 +306,10 @@ public class DSL {
     return compile(FunctionProperties.None, BuiltinFunctionName.DATETIME, expressions);
   }
 
+  public static FunctionExpression date_add(Expression... expressions) {
+    return compile(FunctionProperties.None, BuiltinFunctionName.DATE_ADD, expressions);
+  }
+
   public static FunctionExpression day(Expression... expressions) {
     return compile(FunctionProperties.None, BuiltinFunctionName.DAY, expressions);
   }
@@ -433,6 +437,16 @@ public class DSL {
   public static FunctionExpression to_days(Expression... expressions) {
     return compile(FunctionProperties.None, BuiltinFunctionName.TO_DAYS, expressions);
   }
+
+  public static FunctionExpression to_seconds(FunctionProperties functionProperties,
+                                              Expression... expressions) {
+    return compile(functionProperties, BuiltinFunctionName.TO_SECONDS, expressions);
+  }
+
+  public static FunctionExpression to_seconds(Expression... expressions) {
+    return to_seconds(FunctionProperties.None, expressions);
+  }
+
 
   public static FunctionExpression week(
       FunctionProperties functionProperties, Expression... expressions) {

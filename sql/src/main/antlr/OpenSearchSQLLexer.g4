@@ -265,6 +265,7 @@ TIME_TO_SEC:                        'TIME_TO_SEC';
 TIMESTAMP:                          'TIMESTAMP';
 TRUNCATE:                           'TRUNCATE';
 TO_DAYS:                            'TO_DAYS';
+TO_SECONDS:                         'TO_SECONDS';
 UNIX_TIMESTAMP:                     'UNIX_TIMESTAMP';
 UPPER:                              'UPPER';
 UTC_DATE:                           'UTC_DATE';

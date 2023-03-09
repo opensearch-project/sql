@@ -528,6 +528,12 @@ class SQLSyntaxParserTest {
   }
 
   @Test
+  public void can_parse_to_seconds_function() {
+    assertNotNull(parser.parse("SELECT to_seconds(\"2023-02-20\")"));
+    assertNotNull(parser.parse("SELECT to_seconds(950501)"));
+  }
+
+  @Test
   public void can_parse_wildcard_query_relevance_function() {
     assertNotNull(
         parser.parse("SELECT * FROM test WHERE wildcard_query(column, \"this is a test*\")"));
