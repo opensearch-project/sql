@@ -25,6 +25,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.gson.JsonParser; 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
+import com.google.gson.ReflectionAccessFilter;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
@@ -390,7 +391,13 @@ class MetricAggregationBuilderTest {
 
   @SneakyThrows
   private String buildQuery(List<NamedAggregator> namedAggregatorList) {
-    Gson gson = new GsonBuilder().setPrettyPrinting().serializeNulls().disableHtmlEscaping().create();
+    Gson gson = new GsonBuilder()
+        .setPrettyPrinting()
+        .serializeNulls()
+        .disableHtmlEscaping()
+        .disableJdkUnsafe()
+        .addReflectionAccessFilter(ReflectionAccessFilter.BLOCK_ALL_PLATFORM)
+        .create();
     JsonParser parser = new JsonParser();
     return gson.toJson(parser.parse(aggregationBuilder.build(namedAggregatorList).getLeft().toString()));
   }

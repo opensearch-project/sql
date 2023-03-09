@@ -47,8 +47,4 @@ public class DataSourceMetadata {
     return new DataSourceMetadata(DEFAULT_DATASOURCE_NAME,
         DataSourceType.OPENSEARCH, ImmutableMap.of());
   }
-
-  public String toString() {
-    return properties.toString() + " " + name + " " + connector;
-  }
 }
