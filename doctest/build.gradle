@@ -56,7 +56,12 @@ task startPrometheus(type: SpawnProcessTask) {
 
 //evaluationDependsOn(':')
 task startOpenSearch(type: SpawnProcessTask) {
-    command "${path}/gradlew -p ${plugin_path} runRestTestCluster"
+    if( getOSFamilyType() == "windows") {
+        command "${path}\\gradlew.bat -p ${plugin_path} runRestTestCluster"
+    }
+    else {
+        command "${path}/gradlew -p ${plugin_path} runRestTestCluster"
+    }
     ready 'started'
 }
 
@@ -94,12 +99,13 @@ task stopPrometheus() {
         }
     }
 }
-
-stopPrometheus.mustRunAfter startPrometheus
+if(getOSFamilyType() != "windows") {
+    stopPrometheus.mustRunAfter startPrometheus
+    startOpenSearch.dependsOn startPrometheus
+    stopOpenSearch.finalizedBy stopPrometheus
+}
 doctest.dependsOn startOpenSearch
-startOpenSearch.dependsOn startPrometheus
 doctest.finalizedBy stopOpenSearch
-stopOpenSearch.finalizedBy stopPrometheus
 check.dependsOn doctest
 clean.dependsOn(cleanBootstrap)
 
