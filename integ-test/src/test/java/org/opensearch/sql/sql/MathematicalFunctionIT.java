@@ -39,7 +39,7 @@ public class MathematicalFunctionIT extends SQLIntegTestCase {
             schema("PI()", null, "double"));
     verifyDataRows(result, rows(3.141592653589793));
   }
-
+  
   @Test
   public void testCeil() throws IOException {
     JSONObject result = executeQuery("select ceil(0)");
@@ -85,17 +85,6 @@ public class MathematicalFunctionIT extends SQLIntegTestCase {
     JSONObject result = executeQuery("select expm1(account_number) FROM " + TEST_INDEX_BANK + " LIMIT 2");
     verifySchema(result, schema("expm1(account_number)", null, "double"));
     verifyDataRows(result, rows(Math.expm1(1)), rows(Math.expm1(6)));
-  }
-
-  @Test
-  public void testMod() throws IOException {
-    JSONObject result = executeQuery("select mod(3, 2)");
-    verifySchema(result, schema("mod(3, 2)", null, "integer"));
-    verifyDataRows(result, rows(1));
-
-    result = executeQuery("select mod(3.1, 2)");
-    verifySchema(result, schema("mod(3.1, 2)", null, "double"));
-    verifyDataRows(result, rows(1.1));
   }
 
   @Test
