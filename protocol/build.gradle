@@ -32,7 +32,6 @@ dependencies {
     implementation group: 'com.google.guava', name: 'guava', version: '31.0.1-jre'
     implementation group: 'com.fasterxml.jackson.core', name: 'jackson-core', version: "${versions.jackson}"
     implementation group: 'com.fasterxml.jackson.dataformat', name: 'jackson-dataformat-cbor', version: "${versions.jackson}"
-    implementation 'com.google.code.gson:gson:2.10.1'
     implementation project(':core')
     implementation project(':opensearch')
 
@@ -40,6 +39,10 @@ dependencies {
     testImplementation group: 'org.hamcrest', name: 'hamcrest-library', version: '2.1'
     testImplementation group: 'org.mockito', name: 'mockito-core', version: '3.12.4'
     testImplementation group: 'org.mockito', name: 'mockito-junit-jupiter', version: '3.12.4'
+}
+
+configurations.all {
+    resolutionStrategy.force "com.fasterxml.jackson.core:jackson-databind:${versions.jackson_databind}"
 }
 
 test {
