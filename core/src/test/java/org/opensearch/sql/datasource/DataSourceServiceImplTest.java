@@ -6,6 +6,7 @@
 package org.opensearch.sql.datasource;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.lenient;
@@ -65,7 +66,7 @@ class DataSourceServiceImplTest {
 
   @Test
   void getDataSourceSuccess() {
-    dataSourceService.addDataSource(DataSourceMetadata.defaultOpenSearchDataSourceMetadata());
+    dataSourceService.createDataSource(DataSourceMetadata.defaultOpenSearchDataSourceMetadata());
 
     assertEquals(
         new DataSource(DEFAULT_DATASOURCE_NAME, DataSourceType.OPENSEARCH, storageEngine),
@@ -81,19 +82,21 @@ class DataSourceServiceImplTest {
 
   @Test
   void getAddDataSourcesShouldSuccess() {
-    assertEquals(0, dataSourceService.getDataSources().size());
+    assertEquals(0, dataSourceService.getDataSourceMetadataSet().size());
 
-    dataSourceService.addDataSource(metadata(NAME, DataSourceType.OPENSEARCH, ImmutableMap.of()));
-    assertEquals(1, dataSourceService.getDataSources().size());
+    dataSourceService.createDataSource(metadata(NAME,
+        DataSourceType.OPENSEARCH, ImmutableMap.of()));
+    assertEquals(1, dataSourceService.getDataSourceMetadataSet().size());
   }
 
   @Test
   void noDataSourceExistAfterClear() {
-    dataSourceService.addDataSource(metadata(NAME, DataSourceType.OPENSEARCH, ImmutableMap.of()));
-    assertEquals(1, dataSourceService.getDataSources().size());
+    dataSourceService.createDataSource(metadata(NAME,
+        DataSourceType.OPENSEARCH, ImmutableMap.of()));
+    assertEquals(1, dataSourceService.getDataSourceMetadataSet().size());
 
     dataSourceService.clear();
-    assertEquals(0, dataSourceService.getDataSources().size());
+    assertEquals(0, dataSourceService.getDataSourceMetadataSet().size());
   }
 
   @Test
@@ -102,7 +105,7 @@ class DataSourceServiceImplTest {
         assertThrows(
             IllegalArgumentException.class,
             () ->
-                dataSourceService.addDataSource(
+                dataSourceService.createDataSource(
                     metadata(null, DataSourceType.OPENSEARCH, ImmutableMap.of())));
     assertEquals(
         "Missing Name Field from a DataSource. Name is a required parameter.",
@@ -115,7 +118,7 @@ class DataSourceServiceImplTest {
         assertThrows(
             IllegalArgumentException.class,
             () ->
-                dataSourceService.addDataSource(
+                dataSourceService.createDataSource(
                     metadata("prometheus.test", DataSourceType.OPENSEARCH, ImmutableMap.of())));
     assertEquals(
         "DataSource Name: prometheus.test contains illegal characters. "
@@ -128,7 +131,8 @@ class DataSourceServiceImplTest {
     IllegalArgumentException exception =
         assertThrows(
             IllegalArgumentException.class,
-            () -> dataSourceService.addDataSource(metadata(NAME, DataSourceType.OPENSEARCH, null)));
+            () -> dataSourceService.createDataSource(metadata(NAME,
+                DataSourceType.OPENSEARCH, null)));
     assertEquals(
         "Missing properties field in catalog configuration. Properties are required parameters.",
         exception.getMessage());
@@ -136,16 +140,39 @@ class DataSourceServiceImplTest {
 
   @Test
   void metaDataHasDuplicateNameShouldFail() {
-    dataSourceService.addDataSource(metadata(NAME, DataSourceType.OPENSEARCH, ImmutableMap.of()));
-    assertEquals(1, dataSourceService.getDataSources().size());
+    dataSourceService.createDataSource(metadata(NAME,
+        DataSourceType.OPENSEARCH, ImmutableMap.of()));
+    assertEquals(1, dataSourceService.getDataSourceMetadataSet().size());
 
     IllegalArgumentException exception =
         assertThrows(
             IllegalArgumentException.class,
-            () -> dataSourceService.addDataSource(metadata(NAME, DataSourceType.OPENSEARCH, null)));
+            () -> dataSourceService.createDataSource(metadata(NAME,
+                DataSourceType.OPENSEARCH, null)));
     assertEquals(
         String.format("Datasource name should be unique, Duplicate datasource found %s.", NAME),
         exception.getMessage());
+  }
+
+  @Test
+  void testUpdateDatasource() {
+    assertThrows(
+        UnsupportedOperationException.class,
+        () -> dataSourceService.updateDataSource(new DataSourceMetadata()));
+  }
+
+  @Test
+  void testDeleteDatasource() {
+    assertThrows(
+        UnsupportedOperationException.class,
+        () -> dataSourceService.deleteDataSource(NAME));
+  }
+
+  @Test
+  void testLoadDatasource() {
+    assertThrows(
+        UnsupportedOperationException.class,
+        () -> dataSourceService.bootstrapDataSources());
   }
 
   DataSourceMetadata metadata(String name, DataSourceType type, Map<String, String> properties) {

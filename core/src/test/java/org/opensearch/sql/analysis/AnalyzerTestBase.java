@@ -11,13 +11,17 @@ import static org.opensearch.sql.analysis.DataSourceSchemaIdentifierNameResolver
 import static org.opensearch.sql.data.type.ExprCoreType.LONG;
 import static org.opensearch.sql.data.type.ExprCoreType.STRING;
 
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import org.apache.commons.lang3.tuple.Pair;
 import org.opensearch.sql.DataSourceSchemaName;
 import org.opensearch.sql.analysis.symbol.Namespace;
@@ -183,8 +187,10 @@ public class AnalyzerTestBase {
 
 
     @Override
-    public Set<DataSource> getDataSources() {
-      return ImmutableSet.of(opensearchDataSource, prometheusDataSource);
+    public Set<DataSourceMetadata> getDataSourceMetadataSet() {
+      return Stream.of(opensearchDataSource, prometheusDataSource)
+          .map(ds -> new DataSourceMetadata(ds.getName(),
+              ds.getConnectorType(), ImmutableMap.of())).collect(Collectors.toSet());
     }
 
     @Override
@@ -197,8 +203,23 @@ public class AnalyzerTestBase {
     }
 
     @Override
-    public void addDataSource(DataSourceMetadata... metadatas) {
+    public void createDataSource(DataSourceMetadata... metadatas) {
       throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public void updateDataSource(DataSourceMetadata dataSourceMetadata) {
+
+    }
+
+    @Override
+    public void deleteDataSource(String dataSourceName) {
+
+    }
+
+    @Override
+    public void bootstrapDataSources() {
+
     }
 
     @Override

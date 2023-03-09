@@ -7,6 +7,8 @@ package org.opensearch.sql.datasource;
 
 import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
+import com.google.common.collect.ImmutableMap;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
@@ -45,8 +47,12 @@ public class DataSourceServiceImpl implements DataSourceService {
   }
 
   @Override
-  public Set<DataSource> getDataSources() {
-    return Set.copyOf(dataSourceMap.values());
+  public Set<DataSourceMetadata> getDataSourceMetadataSet() {
+    return dataSourceMap.values().stream()
+        .map(dataSource
+            -> new DataSourceMetadata(dataSource.getName(),
+            dataSource.getConnectorType(), ImmutableMap.of()))
+        .collect(Collectors.toSet());
   }
 
   @Override
@@ -59,13 +65,28 @@ public class DataSourceServiceImpl implements DataSourceService {
   }
 
   @Override
-  public void addDataSource(DataSourceMetadata... metadatas) {
+  public void createDataSource(DataSourceMetadata... metadatas) {
     for (DataSourceMetadata metadata : metadatas) {
       validateDataSourceMetaData(metadata);
       dataSourceMap.put(
           metadata.getName(),
           dataSourceFactoryMap.get(metadata.getConnector()).createDataSource(metadata));
     }
+  }
+
+  @Override
+  public void updateDataSource(DataSourceMetadata dataSourceMetadata) {
+    throw new UnsupportedOperationException("will be supported in future");
+  }
+
+  @Override
+  public void deleteDataSource(String dataSourceName) {
+    throw new UnsupportedOperationException("will be supported in future");
+  }
+
+  @Override
+  public void bootstrapDataSources() {
+    throw new UnsupportedOperationException("will be supported in future");
   }
 
   @Override

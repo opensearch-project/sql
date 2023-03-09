@@ -96,7 +96,7 @@ public class DataSourceMetaDataTest {
     Settings settings = getDataSourceSettings("malformed_datasources.json");
     loadConnectors(settings);
 
-    verify(dataSourceService, never()).addDataSource(any());
+    verify(dataSourceService, never()).createDataSource(any());
   }
 
   private Settings getDataSourceSettings(String filename) throws URISyntaxException, IOException {
@@ -114,7 +114,7 @@ public class DataSourceMetaDataTest {
   void verifyAddDataSourceWithMetadata(List<DataSourceMetadata> metadataList) {
     ArgumentCaptor<DataSourceMetadata[]> metadataCaptor =
         ArgumentCaptor.forClass(DataSourceMetadata[].class);
-    verify(dataSourceService, times(1)).addDataSource(metadataCaptor.capture());
+    verify(dataSourceService, times(1)).createDataSource(metadataCaptor.capture());
     List<DataSourceMetadata> actualValues = Arrays.asList(metadataCaptor.getValue());
     assertEquals(metadataList.size(), actualValues.size());
     assertEquals(metadataList, actualValues);

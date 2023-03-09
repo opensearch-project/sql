@@ -95,18 +95,32 @@ fi
 USERNAME=`echo $CREDENTIAL | awk -F ':' '{print $1}'`
 PASSWORD=`echo $CREDENTIAL | awk -F ':' '{print $2}'`
 
-OPENSEARCH_HOME=`ps -ef | grep -o "[o]pensearch.path.home=\S\+" | cut -d= -f2- | head -n1`
-
-curl -SL https://raw.githubusercontent.com/opensearch-project/sql/main/integ-test/src/test/resources/datasource/datasources.json -o "$OPENSEARCH_HOME"/datasources.json
-
-yes | $OPENSEARCH_HOME/bin/opensearch-keystore add-file plugins.query.federation.datasources.config $OPENSEARCH_HOME/datasources.json
-
-if [ $SECURITY_ENABLED == "true" ] 
+OS="`uname`"
+#Cygwin or MinGW packages should be preinstalled in the windows.
+#This command doesn't work without bash
+#https://stackoverflow.com/questions/3466166/how-to-check-if-running-in-cygwin-mac-or-linux
+#Operating System	uname -s
+#Mac OS X	Darwin
+#Cygwin 32-bit (Win-XP)	CYGWIN_NT-5.1
+#Cygwin 32-bit (Win-7 32-bit)	CYGWIN_NT-6.1
+#Cygwin 32-bit (Win-7 64-bit)	CYGWIN_NT-6.1-WOW64
+#Cygwin 64-bit (Win-7 64-bit)	CYGWIN_NT-6.1
+#MinGW (Windows 7 32-bit)	MINGW32_NT-6.1
+#MinGW (Windows 10 64-bit)	MINGW64_NT-10.0
+#Interix (Services for UNIX)	Interix
+#MSYS	MSYS_NT-6.1
+#MSYS2	MSYS_NT-10.0-17763
+if ! [[ $OS =~ CYGWIN*|MINGW*|MINGW32*|MSYS* ]]
 then
-    curl -k --request POST --url https://$BIND_ADDRESS:$BIND_PORT/_nodes/reload_secure_settings --header 'content-type: application/json' --data '{"secure_settings_password":""}' --user $CREDENTIAL
-else 
-    curl --request POST --url http://$BIND_ADDRESS:$BIND_PORT/_nodes/reload_secure_settings --header 'content-type: application/json' --data '{"secure_settings_password":""}'
+	OPENSEARCH_HOME=`ps -ef | grep -o "[o]pensearch.path.home=\S\+" | cut -d= -f2- | head -n1`
+	curl -SL https://raw.githubusercontent.com/opensearch-project/sql/main/integ-test/src/test/resources/datasource/datasources.json -o "$OPENSEARCH_HOME"/datasources.json
+	yes | $OPENSEARCH_HOME/bin/opensearch-keystore add-file plugins.query.federation.datasources.config $OPENSEARCH_HOME/datasources.json
+	if [ $SECURITY_ENABLED == "true" ] 
+	then
+		curl -k --request POST --url https://$BIND_ADDRESS:$BIND_PORT/_nodes/reload_secure_settings --header 'content-type: application/json' --data '{"secure_settings_password":""}' --user $CREDENTIAL
+	else 
+		curl --request POST --url http://$BIND_ADDRESS:$BIND_PORT/_nodes/reload_secure_settings --header 'content-type: application/json' --data '{"secure_settings_password":""}'
+	fi
 fi
-
 
 ./gradlew integTest -Dopensearch.version=$OPENSEARCH_VERSION -Dbuild.snapshot=$SNAPSHOT -Dtests.rest.cluster="$BIND_ADDRESS:$BIND_PORT" -Dtests.cluster="$BIND_ADDRESS:$BIND_PORT" -Dtests.clustername="opensearch-integrationtest" -Dhttps=$SECURITY_ENABLED -Duser=$USERNAME -Dpassword=$PASSWORD --console=plain
