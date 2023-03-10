@@ -22,7 +22,6 @@
  * under the License.
  */
 
-import org.gradle.nativeplatform.platform.internal.DefaultNativePlatform
 import org.opensearch.gradle.test.RestIntegTestTask
 import org.opensearch.gradle.testclusters.StandaloneRestIntegTestTask
 
@@ -37,6 +36,11 @@ apply plugin: 'opensearch.rest-test'
 apply plugin: 'java'
 apply plugin: 'io.freefair.lombok'
 apply plugin: 'com.wiredforcode.spawn'
+
+String baseVersion = "2.7.0"
+String bwcVersion = baseVersion + ".0";
+String baseName = "sqlBwcCluster"
+String bwcFilePath = "src/test/resources/bwc/"
 
 repositories {
     mavenCentral()
@@ -76,6 +80,10 @@ configurations.all {
     resolutionStrategy.force "org.slf4j:slf4j-api:1.7.36"
 }
 
+configurations {
+    zipArchive
+}
+
 dependencies {
     testImplementation group: 'org.opensearch.test', name: 'framework', version: "${opensearch_version}"
     testImplementation group: 'org.opensearch.client', name: 'opensearch-rest-high-level-client', version: "${opensearch_version}"
@@ -91,6 +99,9 @@ dependencies {
     testImplementation group: 'com.h2database', name: 'h2', version: '2.1.214'
     testImplementation group: 'org.xerial', name: 'sqlite-jdbc', version: '3.32.3.3'
     testImplementation group: 'com.google.code.gson', name: 'gson', version: '2.8.9'
+
+    // Needed for BWC tests
+    zipArchive group: 'org.opensearch.plugin', name:'opensearch-sql-plugin', version: "${bwcVersion}-SNAPSHOT"
 }
 
 dependencyLicenses.enabled = false
@@ -151,9 +162,10 @@ stopPrometheus.mustRunAfter startPrometheus
 // Run PPL ITs and new, legacy and comparison SQL ITs with new SQL engine enabled
 integTest {
     dependsOn ':opensearch-sql-plugin:bundlePlugin'
-    dependsOn startPrometheus
-    finalizedBy stopPrometheus
-
+    if(getOSFamilyType() != "windows") {
+        dependsOn startPrometheus
+        finalizedBy stopPrometheus
+    }
     systemProperty 'tests.security.manager', 'false'
     systemProperty('project.root', project.projectDir.absolutePath)
 
@@ -176,6 +188,12 @@ integTest {
         filter {
             excludeTestsMatching "org.opensearch.sql.bwc.*IT"
         }
+    }
+
+    if(getOSFamilyType() == "windows") {
+        exclude 'org/opensearch/sql/ppl/PrometheusDataSourceCommandsIT.class'
+        exclude 'org/opensearch/sql/ppl/ShowDataSourcesCommandIT.class'
+        exclude 'org/opensearch/sql/ppl/InformationSchemaCommandIT.class'
     }
 
     exclude 'org/opensearch/sql/doctest/**/*IT.class'
@@ -224,34 +242,21 @@ task comparisonTest(type: RestIntegTestTask) {
     systemProperty "queries", System.getProperty("queries")
 }
 
-String baseVersion = "2.6.0"
-String bwcVersion = baseVersion + ".0";
-String baseName = "sqlBwcCluster"
-String bwcFilePath = "src/test/resources/bwc/"
-String bwcSqlPlugin = "opensearch-sql-" + bwcVersion + ".zip"
-String bwcRemoteFile = "https://ci.opensearch.org/ci/dbc/distribution-build-opensearch/${baseVersion}/latest/linux/x64/tar/builds/opensearch/plugins/" + bwcSqlPlugin
-
 2.times { i ->
     testClusters {
         "${baseName}$i" {
             testDistribution = "ARCHIVE"
             versions = [baseVersion, opensearch_version]
             numberOfNodes = 3
-            plugin(provider(new Callable<RegularFile>() {
+            plugin(provider(new Callable<RegularFile>(){
                 @Override
                 RegularFile call() throws Exception {
                     return new RegularFile() {
                         @Override
                         File getAsFile() {
-                            File dir = new File('./integ-test/' + bwcFilePath + bwcVersion)
-                            if (!dir.exists()) {
-                                dir.mkdirs()
-                            }
-                            File f = new File(dir, bwcSqlPlugin)
-                            if (!f.exists()) {
-                                new URL(bwcRemoteFile).withInputStream{ ins -> f.withOutputStream{ it << ins }}
-                            }
-                            return fileTree(bwcFilePath + bwcVersion).getSingleFile()
+                            return configurations.zipArchive.asFileTree.matching {
+                                include '**/opensearch-sql-plugin*'
+                            }.singleFile
                         }
                     }
                 }
