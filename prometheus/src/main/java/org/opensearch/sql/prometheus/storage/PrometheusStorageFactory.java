@@ -7,6 +7,8 @@
 
 package org.opensearch.sql.prometheus.storage;
 
+import com.amazonaws.auth.AWSStaticCredentialsProvider;
+import com.amazonaws.auth.BasicAWSCredentials;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.HashSet;
@@ -75,7 +77,8 @@ public class PrometheusStorageFactory implements DataSourceFactory {
       } else if (AuthenticationType.AWSSIGV4AUTH.equals(authenticationType)) {
         validateFieldsInConfig(config, Set.of(REGION, ACCESS_KEY, SECRET_KEY));
         okHttpClient.addInterceptor(new AwsSigningInterceptor(
-            config.get(ACCESS_KEY), config.get(SECRET_KEY),
+            new AWSStaticCredentialsProvider(
+                new BasicAWSCredentials(config.get(ACCESS_KEY), config.get(SECRET_KEY))),
             config.get(REGION), "aps"));
       } else {
         throw new IllegalArgumentException(
