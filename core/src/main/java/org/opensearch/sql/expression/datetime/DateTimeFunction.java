@@ -34,6 +34,7 @@ import static org.opensearch.sql.utils.DateTimeFormatters.DATE_TIME_FORMATTER_ST
 import static org.opensearch.sql.utils.DateTimeUtils.extractDate;
 import static org.opensearch.sql.utils.DateTimeUtils.extractDateTime;
 
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableTable;
 import com.google.common.collect.Table;
 import java.math.BigDecimal;
@@ -55,6 +56,7 @@ import java.time.format.TextStyle;
 import java.time.temporal.TemporalAmount;
 import java.util.Arrays;
 import java.util.Locale;
+import java.util.Map;
 import java.util.TimeZone;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Stream;
@@ -102,6 +104,32 @@ public class DateTimeFunction {
 
   // Mode used for week/week_of_year function by default when no argument is provided
   private static final ExprIntegerValue DEFAULT_WEEK_OF_YEAR_MODE = new ExprIntegerValue(0);
+
+
+  // Map used to determine format output for the extract function
+  private static final Map<String, String> extract_formats =
+      ImmutableMap.<String, String>builder()
+          .put("MICROSECOND", "SSSSSS")
+          .put("SECOND", "ss")
+          .put("MINUTE", "mm")
+          .put("HOUR", "HH")
+          .put("DAY", "dd")
+          .put("WEEK", "w")
+          .put("MONTH", "MM")
+          .put("YEAR", "yyyy")
+          .put("SECOND_MICROSECOND", "ssSSSSSS")
+          .put("MINUTE_MICROSECOND", "mmssSSSSSS")
+          .put("MINUTE_SECOND", "mmss")
+          .put("HOUR_MICROSECOND", "HHmmssSSSSSS")
+          .put("HOUR_SECOND", "HHmmss")
+          .put("HOUR_MINUTE", "HHmm")
+          .put("DAY_MICROSECOND", "ddHHmmssSSSSSS")
+          .put("DAY_SECOND", "ddHHmmss")
+          .put("DAY_MINUTE", "ddHHmm")
+          .put("DAY_HOUR", "ddHH")
+          .put("YEAR_MONTH", "yyyyMM")
+          .put("QUARTER", "Q")
+          .build();
 
   // Map used to determine format output for the get_format function
   private static final Table<String, String, String> formats =
@@ -155,6 +183,7 @@ public class DateTimeFunction {
     repository.register(dayOfWeek(BuiltinFunctionName.DAY_OF_WEEK.getName()));
     repository.register(dayOfYear(BuiltinFunctionName.DAYOFYEAR));
     repository.register(dayOfYear(BuiltinFunctionName.DAY_OF_YEAR));
+    repository.register(extract());
     repository.register(from_days());
     repository.register(from_unixtime());
     repository.register(get_format());
@@ -532,6 +561,17 @@ public class DateTimeFunction {
         impl(nullMissingHandling(DateTimeFunction::exprDayOfYear), INTEGER, TIMESTAMP),
         impl(nullMissingHandling(DateTimeFunction::exprDayOfYear), INTEGER, STRING)
     );
+  }
+
+  private DefaultFunctionResolver extract() {
+    return define(BuiltinFunctionName.EXTRACT.getName(),
+        implWithProperties(nullMissingHandlingWithProperties(DateTimeFunction::exprExtractForTime),
+            LONG, STRING, TIME),
+        impl(nullMissingHandling(DateTimeFunction::exprExtract), LONG, STRING, DATE),
+        impl(nullMissingHandling(DateTimeFunction::exprExtract), LONG, STRING, DATETIME),
+        impl(nullMissingHandling(DateTimeFunction::exprExtract), LONG, STRING, TIMESTAMP),
+        impl(nullMissingHandling(DateTimeFunction::exprExtract), LONG, STRING, STRING)
+        );
   }
 
   /**
@@ -1232,6 +1272,48 @@ public class DateTimeFunction {
    */
   private ExprValue exprDayOfYear(ExprValue date) {
     return new ExprIntegerValue(date.dateValue().getDayOfYear());
+  }
+
+  /**
+   * Obtains a formatted long value for a specified part and datetime for the 'extract' function.
+   *
+   * @param part is an ExprValue which comes from a defined list of accepted values.
+   * @param datetime the date to be formatted as an ExprValue.
+   * @return is a LONG formatted according to the input arguments.
+   */
+  public ExprLongValue formatExtractFunction(ExprValue part, ExprValue datetime) {
+    String partName = part.stringValue().toUpperCase();
+    LocalDateTime arg = datetime.datetimeValue();
+    String text = arg.format(DateTimeFormatter.ofPattern(
+        extract_formats.get(partName), Locale.ENGLISH));
+
+    return new ExprLongValue(Long.parseLong(text));
+  }
+
+  /**
+   * Implements extract function. Returns a LONG formatted according to the 'part' argument.
+   *
+   * @param part Literal that determines the format of the outputted LONG.
+   * @param datetime The date/datetime to be formatted.
+   * @return A LONG
+   */
+  private ExprValue exprExtract(ExprValue part, ExprValue datetime) {
+    return formatExtractFunction(part, datetime);
+  }
+
+  /**
+   * Implements extract function. Returns a LONG formatted according to the 'part' argument.
+   *
+   * @param part Literal that determines the format of the outputted LONG.
+   * @param time The time to be formatted.
+   * @return A LONG
+   */
+  private ExprValue exprExtractForTime(FunctionProperties functionProperties,
+                                       ExprValue part,
+                                       ExprValue time) {
+    return formatExtractFunction(
+        part,
+        new ExprDatetimeValue(extractDateTime(time, functionProperties)));
   }
 
   /**

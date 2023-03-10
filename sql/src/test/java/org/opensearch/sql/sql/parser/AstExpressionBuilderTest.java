@@ -193,6 +193,14 @@ class AstExpressionBuilderTest {
   }
 
   @Test
+  public void canBuildExtractFunctionCall() {
+    assertEquals(
+        function("extract", stringLiteral("DAY"), dateLiteral("2023-02-09")).toString(),
+        buildExprAst("extract(DAY FROM \"2023-02-09\")").toString()
+    );
+  }
+
+  @Test
   public void canBuildGetFormatFunctionCall() {
     assertEquals(
         function("get_format", stringLiteral("DATE"), stringLiteral("USA")),

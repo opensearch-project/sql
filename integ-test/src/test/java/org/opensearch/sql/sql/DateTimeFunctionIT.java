@@ -488,6 +488,47 @@ public class DateTimeFunctionIT extends SQLIntegTestCase {
   }
 
   @Test
+  public void testExtractWithDatetime() throws IOException {
+    JSONObject datetimeResult = executeQuery(
+        String.format(
+            "SELECT extract(DAY_SECOND FROM datetime(cast(datetime0 AS STRING))) FROM %s LIMIT 1",
+            TEST_INDEX_CALCS));
+    verifyDataRows(datetimeResult, rows(9101735));
+  }
+
+  @Test
+  public void testExtractWithTime() throws IOException {
+    JSONObject timeResult = executeQuery(
+        String.format(
+            "SELECT extract(HOUR_SECOND FROM cast(time0 AS TIME)) FROM %s LIMIT 1",
+            TEST_INDEX_CALCS));
+    verifyDataRows(timeResult, rows(210732));
+
+  }
+
+  @Test
+  public void testExtractWithDate() throws IOException {
+    JSONObject dateResult  = executeQuery(
+        String.format(
+            "SELECT extract(YEAR_MONTH FROM cast(date0 AS DATE)) FROM %s LIMIT 1",
+            TEST_INDEX_CALCS));
+    verifyDataRows(dateResult, rows(200404));
+  }
+
+  @Test
+  public void testExtractWithDifferentTypesReturnSameResult() throws IOException {
+    JSONObject dateResult  = executeQuery(
+        String.format("SELECT extract(YEAR_MONTH FROM datetime0) FROM %s LIMIT 1", TEST_INDEX_CALCS));
+
+    JSONObject datetimeResult  = executeQuery(
+        String.format(
+            "SELECT extract(YEAR_MONTH FROM date(datetime0)) FROM %s LIMIT 1",
+            TEST_INDEX_CALCS));
+
+    dateResult.getJSONArray("datarows").similar(datetimeResult.getJSONArray("datarows"));
+  }
+
+  @Test
   public void testHourFunctionAliasesReturnTheSameResults() throws IOException {
     JSONObject result1 = executeQuery("SELECT hour('11:30:00')");
     JSONObject result2 = executeQuery("SELECT hour_of_day('11:30:00')");

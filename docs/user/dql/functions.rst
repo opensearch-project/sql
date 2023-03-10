@@ -1702,6 +1702,75 @@ Example::
     +-------------------------------------------------+
 
 
+EXTRACT
+_______
+
+Description
+>>>>>>>>>>>
+
+Usage: extract(part FROM date) returns a LONG with digits in order according to the given 'part' arguments.
+The specific format of the returned long is determined by the table below.
+
+Argument type: PART
+PART must be one of the following tokens in the table below.
+
+The format specifiers found in this table are the same as those found in the `DATE_FORMAT`_ function.
+.. list-table:: The following table describes the mapping of a 'part' to a particular format.
+   :widths: 20 80
+   :header-rows: 1
+
+   * - Part
+     - Format
+   * - MICROSECOND
+     - %f
+   * - SECOND
+     - %s
+   * - MINUTE
+     - %i
+   * - HOUR
+     - %H
+   * - DAY
+     - %d
+   * - WEEK
+     - %X
+   * - MONTH
+     - %m
+   * - YEAR
+     - %V
+   * - SECOND_MICROSECOND
+     - %s%f
+   * - MINUTE_MICROSECOND
+     - %i%s%f
+   * - MINUTE_SECOND
+     - %i%s
+   * - HOUR_MICROSECOND
+     - %H%i%s%f
+   * - HOUR_SECOND
+     - %H%i%s
+   * - HOUR_MINUTE
+     - %H%i
+   * - DAY_MICROSECOND
+     - %d%H%i%s%f
+   * - DAY_SECOND
+     - %d%H%i%s
+   * - DAY_MINUTE
+     - %d%H%i
+   * - DAY_HOUR
+     - %d%H%
+   * - YEAR_MONTH
+     - %V%m
+
+Return type: LONG
+
+Example::
+
+    os> SELECT extract(YEAR_MONTH FROM "2023-02-07 10:11:12");
+    fetched rows / total rows = 1/1
+    +--------------------------------------------------+
+    | extract(YEAR_MONTH FROM "2023-02-07 10:11:12")   |
+    |--------------------------------------------------|
+    | 202302                                           |
+    +--------------------------------------------------+
 
 FROM_DAYS
 ---------
