@@ -18,7 +18,7 @@ import org.opensearch.sql.data.model.ExprTupleValue;
 import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.data.model.ExprValueUtils;
 import org.opensearch.sql.datasource.DataSourceService;
-import org.opensearch.sql.datasource.model.DataSource;
+import org.opensearch.sql.datasource.model.DataSourceMetadata;
 import org.opensearch.sql.storage.TableScanOperator;
 
 /**
@@ -47,14 +47,15 @@ public class DataSourceTableScan extends TableScanOperator {
   @Override
   public void open() {
     List<ExprValue> exprValues = new ArrayList<>();
-    Set<DataSource> dataSources = dataSourceService.getDataSources();
-    for (DataSource dataSource : dataSources) {
+    Set<DataSourceMetadata> dataSourceMetadataSet
+        = dataSourceService.getDataSourceMetadataSet();
+    for (DataSourceMetadata dataSourceMetadata : dataSourceMetadataSet) {
       exprValues.add(
           new ExprTupleValue(new LinkedHashMap<>(ImmutableMap.of(
               "DATASOURCE_NAME",
-              ExprValueUtils.stringValue(dataSource.getName()),
+              ExprValueUtils.stringValue(dataSourceMetadata.getName()),
               "CONNECTOR_TYPE",
-              ExprValueUtils.stringValue(dataSource.getConnectorType().name())))));
+              ExprValueUtils.stringValue(dataSourceMetadata.getConnector().name())))));
     }
     iterator = exprValues.iterator();
   }

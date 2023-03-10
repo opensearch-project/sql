@@ -46,3 +46,4 @@ gen
 /.prom.pid.lock
 
 .java-version
+.worktrees
