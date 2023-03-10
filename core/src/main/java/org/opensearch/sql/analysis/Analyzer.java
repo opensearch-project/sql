@@ -197,7 +197,9 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
         .collect(Collectors.toList());
     TableFunctionImplementation tableFunctionImplementation
         = (TableFunctionImplementation) repository.compile(context.getFunctionProperties(),
-        dataSourceSchemaIdentifierNameResolver.getDataSourceName(), functionName, arguments);
+        dataSourceService
+            .getDataSource(dataSourceSchemaIdentifierNameResolver.getDataSourceName())
+            .getStorageEngine().getFunctions(), functionName, arguments);
     context.push();
     TypeEnvironment curEnv = context.peek();
     Table table = tableFunctionImplementation.applyArguments();
