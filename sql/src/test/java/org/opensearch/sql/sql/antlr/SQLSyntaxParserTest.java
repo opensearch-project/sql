@@ -367,6 +367,21 @@ class SQLSyntaxParserTest {
   }
 
   @Test
+  public void can_parse_str_to_date() {
+    assertNotNull(parser.parse(
+        "SELECT STR_TO_DATE('01,5,2013','%d,%m,%Y')"
+    ));
+
+    assertNotNull(parser.parse(
+        "SELECT STR_TO_DATE('a09:30:17','a%h:%i:%s')"
+    ));
+
+    assertNotNull(parser.parse(
+        "SELECT STR_TO_DATE('abc','abc');"
+    ));
+  }
+
+  @Test
   public void can_parse_query_string_relevance_function() {
     assertNotNull(parser.parse(
         "SELECT id FROM test WHERE query_string(['*'], 'query')"));

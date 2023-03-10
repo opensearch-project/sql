@@ -461,6 +461,11 @@ public class DSL {
     return compile(FunctionProperties.None, BuiltinFunctionName.MODULES, expressions);
   }
 
+  public static FunctionExpression str_to_date(FunctionProperties functionProperties,
+                                               Expression... expressions) {
+    return compile(functionProperties, BuiltinFunctionName.STR_TO_DATE, expressions);
+  }
+
   public static FunctionExpression substr(Expression... expressions) {
     return compile(FunctionProperties.None, BuiltinFunctionName.SUBSTR, expressions);
   }
