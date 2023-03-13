@@ -23,6 +23,8 @@ import org.apache.hc.core5.http.message.BasicHeader;
 import org.apache.hc.core5.http.nio.ssl.TlsStrategy;
 import org.apache.hc.core5.ssl.SSLContextBuilder;
 import org.apache.hc.core5.util.Timeout;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.json.JSONArray;
 import org.json.JSONObject;
 import org.opensearch.client.Request;
@@ -38,6 +40,8 @@ import org.opensearch.test.rest.OpenSearchRestTestCase;
  * OpenSearch SQL integration test base class to support both security disabled and enabled OpenSearch cluster.
  */
 public abstract class OpenSearchSQLRestTestCase extends OpenSearchRestTestCase {
+
+  private static final Logger LOG = LogManager.getLogger();
 
   protected boolean isHttps() {
     boolean isHttps = Optional.ofNullable(System.getProperty("https"))
@@ -78,9 +82,14 @@ public abstract class OpenSearchSQLRestTestCase extends OpenSearchRestTestCase {
       for (Object object : jsonArray) {
         JSONObject jsonObject = (JSONObject) object;
         String indexName = jsonObject.getString("index");
-        //.opendistro_security isn't allowed to delete from cluster
-        if (!indexName.startsWith(".opensearch_dashboards") && !indexName.startsWith(".opendistro")) {
-          client().performRequest(new Request("DELETE", "/" + indexName));
+        try {
+          // System index, mostly named .opensearch-xxx or .opendistro-xxx, are not allowed to delete
+          if (!indexName.startsWith(".opensearch") && !indexName.startsWith(".opendistro")) {
+            client().performRequest(new Request("DELETE", "/" + indexName));
+          }
+        } catch (Exception e) {
+          // TODO: Ignore index delete error for now. Remove this if strict check on system index added above.
+          LOG.warn("Failed to delete index: " + indexName, e);
         }
       }
     } catch (ParseException e) {
