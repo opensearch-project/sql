@@ -18,53 +18,52 @@ import org.opensearch.client.node.NodeClient;
 import org.opensearch.common.inject.Inject;
 import org.opensearch.sql.datasource.DataSourceService;
 import org.opensearch.sql.datasource.DataSourceServiceImpl;
-import org.opensearch.sql.datasource.model.DataSourceMetadata;
 import org.opensearch.sql.legacy.metrics.MetricName;
 import org.opensearch.sql.legacy.metrics.Metrics;
-import org.opensearch.sql.plugin.model.CreateDataSourceActionRequest;
-import org.opensearch.sql.plugin.model.CreateDataSourceActionResponse;
+import org.opensearch.sql.opensearch.security.SecurityAccess;
+import org.opensearch.sql.plugin.model.UpdateDataSourceActionRequest;
+import org.opensearch.sql.plugin.model.UpdateDataSourceActionResponse;
 import org.opensearch.tasks.Task;
 import org.opensearch.transport.TransportService;
 
-public class TransportCreateDataSourceAction
-    extends HandledTransportAction<CreateDataSourceActionRequest, CreateDataSourceActionResponse> {
+public class TransportUpdateDataSourceAction
+    extends HandledTransportAction<UpdateDataSourceActionRequest, UpdateDataSourceActionResponse> {
 
   private static final Logger LOG = LogManager.getLogger();
-  public static final String NAME = "cluster:admin/opensearch/datasources/create";
-  public static final ActionType<CreateDataSourceActionResponse>
-      ACTION_TYPE = new ActionType<>(NAME, CreateDataSourceActionResponse::new);
+  public static final String NAME = "cluster:admin/opensearch/datasources/update";
+  public static final ActionType<UpdateDataSourceActionResponse>
+      ACTION_TYPE = new ActionType<>(NAME, UpdateDataSourceActionResponse::new);
 
   private DataSourceService dataSourceService;
   private Client client;
 
   /**
-   * TransportCreateDataSourceAction action for creating datasource.
+   * TransportUpdateDataSourceAction action for updating datasource.
    *
-   * @param transportService  transportService.
-   * @param actionFilters     actionFilters.
-   * @param client            client.
+   * @param transportService transportService.
+   * @param actionFilters actionFilters.
+   * @param client client.
    * @param dataSourceService dataSourceService.
    */
   @Inject
-  public TransportCreateDataSourceAction(TransportService transportService,
+  public TransportUpdateDataSourceAction(TransportService transportService,
                                          ActionFilters actionFilters,
                                          NodeClient client,
                                          DataSourceServiceImpl dataSourceService) {
-    super(TransportCreateDataSourceAction.NAME, transportService, actionFilters,
-        CreateDataSourceActionRequest::new);
+    super(TransportUpdateDataSourceAction.NAME, transportService, actionFilters,
+        UpdateDataSourceActionRequest::new);
     this.dataSourceService = dataSourceService;
     this.client = client;
   }
 
   @Override
-  protected void doExecute(Task task, CreateDataSourceActionRequest request,
-                           ActionListener<CreateDataSourceActionResponse> actionListener) {
+  protected void doExecute(Task task, UpdateDataSourceActionRequest request,
+                           ActionListener<UpdateDataSourceActionResponse> actionListener) {
 
     Metrics.getInstance().getNumericalMetric(MetricName.DATASOURCE_REQ_COUNT).increment();
-    DataSourceMetadata dataSourceMetadata = request.getDataSourceMetadata();
-    dataSourceService.createDataSource(dataSourceMetadata);
-    actionListener.onResponse(new CreateDataSourceActionResponse("Created DataSource with name "
-        + dataSourceMetadata.getName()));
+    dataSourceService.updateDataSource(request.getDataSourceMetadata());
+    actionListener.onResponse(new UpdateDataSourceActionResponse("Updated DataSource with name "
+        + request.getDataSourceMetadata().getName()));
   }
 
 }

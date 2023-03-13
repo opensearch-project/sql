@@ -6,6 +6,7 @@
 package org.opensearch.sql.datasource;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
@@ -15,13 +16,13 @@ import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
-import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 import static org.opensearch.sql.analysis.DataSourceSchemaIdentifierNameResolver.DEFAULT_DATASOURCE_NAME;
 
 import com.google.common.collect.ImmutableMap;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -33,6 +34,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.opensearch.sql.datasource.exceptions.DataSourceNotFoundException;
 import org.opensearch.sql.datasource.model.DataSource;
 import org.opensearch.sql.datasource.model.DataSourceMetadata;
 import org.opensearch.sql.datasource.model.DataSourceType;
@@ -41,8 +43,6 @@ import org.opensearch.sql.storage.StorageEngine;
 
 @ExtendWith(MockitoExtension.class)
 class DataSourceServiceImplTest {
-
-  static final String NAME = "opensearch";
 
   @Mock
   private DataSourceFactory dataSourceFactory;
@@ -91,9 +91,9 @@ class DataSourceServiceImplTest {
   void testGetDataSourceForNonExistingDataSource() {
     when(dataSourceMetadataStorage.getDataSourceMetadata("test"))
         .thenReturn(Optional.empty());
-    IllegalArgumentException exception =
+    DataSourceNotFoundException exception =
         assertThrows(
-            IllegalArgumentException.class,
+            DataSourceNotFoundException.class,
             () ->
                 dataSourceService.getDataSource("test"));
     assertEquals("DataSource with name test doesn't exist.", exception.getMessage());
@@ -130,7 +130,7 @@ class DataSourceServiceImplTest {
 
     SecurityException securityException
         = Assertions.assertThrows(SecurityException.class,
-              () -> dataSourceService.getDataSource("test"));
+            () -> dataSourceService.getDataSource("test"));
     Assertions.assertEquals("User is not authorized to access datasource test. "
             + "User should be mapped to any of the roles in [prometheus_access] for access.",
         securityException.getMessage());
@@ -158,7 +158,6 @@ class DataSourceServiceImplTest {
     assertEquals("testDS", dataSource.getName());
     assertEquals(storageEngine, dataSource.getStorageEngine());
     assertEquals(DataSourceType.OPENSEARCH, dataSource.getConnectorType());
-    verifyNoMoreInteractions(dataSourceFactory);
   }
 
   @Test
@@ -213,6 +212,32 @@ class DataSourceServiceImplTest {
 
   @Test
   void testGetDataSourceMetadataSet() {
+    HashMap<String, String> properties = new HashMap<>();
+    properties.put("prometheus.uri", "http://localhost:9200");
+    properties.put("prometheus.auth.type", "basicauth");
+    properties.put("prometheus.auth.username", "username");
+    properties.put("prometheus.auth.password", "password");
+    when(dataSourceMetadataStorage.getDataSourceMetadata()).thenReturn(new ArrayList<>() {
+      {
+        add(metadata("testDS", DataSourceType.PROMETHEUS, Collections.emptyList(),
+            properties));
+      }
+    });
+    Set<DataSourceMetadata> dataSourceMetadataSet
+        = dataSourceService.getDataSourceMetadata(false);
+    assertEquals(1, dataSourceMetadataSet.size());
+    DataSourceMetadata dataSourceMetadata = dataSourceMetadataSet.iterator().next();
+    assertTrue(dataSourceMetadata.getProperties().containsKey("prometheus.uri"));
+    assertFalse(dataSourceMetadata.getProperties().containsKey("prometheus.auth.type"));
+    assertFalse(dataSourceMetadata.getProperties().containsKey("prometheus.auth.username"));
+    assertFalse(dataSourceMetadata.getProperties().containsKey("prometheus.auth.password"));
+    assertFalse(dataSourceMetadataSet
+        .contains(DataSourceMetadata.defaultOpenSearchDataSourceMetadata()));
+    verify(dataSourceMetadataStorage, times(1)).getDataSourceMetadata();
+  }
+
+  @Test
+  void testGetDataSourceMetadataSetWithDefaultDatasource() {
     when(dataSourceMetadataStorage.getDataSourceMetadata()).thenReturn(new ArrayList<>() {
       {
         add(metadata("testDS", DataSourceType.PROMETHEUS, Collections.emptyList(),
@@ -220,7 +245,7 @@ class DataSourceServiceImplTest {
       }
     });
     Set<DataSourceMetadata> dataSourceMetadataSet
-        = dataSourceService.getDataSourceMetadataSet();
+        = dataSourceService.getDataSourceMetadata(true);
     assertEquals(2, dataSourceMetadataSet.size());
     assertTrue(dataSourceMetadataSet
         .contains(DataSourceMetadata.defaultOpenSearchDataSourceMetadata()));
@@ -228,17 +253,42 @@ class DataSourceServiceImplTest {
   }
 
   @Test
-  void testUpdateDatasource() {
-    assertThrows(
-        UnsupportedOperationException.class,
-        () -> dataSourceService.updateDataSource(new DataSourceMetadata()));
+  void testUpdateDataSourceSuccessCase() {
+
+    DataSourceMetadata dataSourceMetadata = metadata("testDS", DataSourceType.OPENSEARCH,
+        Collections.emptyList(), ImmutableMap.of());
+    dataSourceService.updateDataSource(dataSourceMetadata);
+    verify(dataSourceMetadataStorage, times(1))
+        .updateDataSourceMetadata(dataSourceMetadata);
+    verify(dataSourceFactory, times(1))
+        .createDataSource(dataSourceMetadata);
+  }
+
+  @Test
+  void testUpdateDefaultDataSource() {
+    DataSourceMetadata dataSourceMetadata = metadata(DEFAULT_DATASOURCE_NAME,
+        DataSourceType.OPENSEARCH, Collections.emptyList(), ImmutableMap.of());
+    UnsupportedOperationException unsupportedOperationException
+        = assertThrows(UnsupportedOperationException.class,
+            () -> dataSourceService.updateDataSource(dataSourceMetadata));
+    assertEquals("Not allowed to update default datasource :" + DEFAULT_DATASOURCE_NAME,
+        unsupportedOperationException.getMessage());
   }
 
   @Test
   void testDeleteDatasource() {
-    assertThrows(
-        UnsupportedOperationException.class,
-        () -> dataSourceService.deleteDataSource(NAME));
+    dataSourceService.deleteDataSource("testDS");
+    verify(dataSourceMetadataStorage, times(1))
+        .deleteDataSourceMetadata("testDS");
+  }
+
+  @Test
+  void testDeleteDefaultDatasource() {
+    UnsupportedOperationException unsupportedOperationException
+        = assertThrows(UnsupportedOperationException.class,
+           () -> dataSourceService.deleteDataSource(DEFAULT_DATASOURCE_NAME));
+    assertEquals("Not allowed to delete default datasource :" + DEFAULT_DATASOURCE_NAME,
+        unsupportedOperationException.getMessage());
   }
 
   @Test
@@ -268,4 +318,56 @@ class DataSourceServiceImplTest {
     dataSourceMetadata.setProperties(properties);
     return dataSourceMetadata;
   }
+
+  @Test
+  void testRemovalOfAuthorizationInfo() {
+    HashMap<String, String> properties = new HashMap<>();
+    properties.put("prometheus.uri", "https://localhost:9090");
+    properties.put("prometheus.auth.type", "basicauth");
+    properties.put("prometheus.auth.username", "username");
+    properties.put("prometheus.auth.password", "password");
+    DataSourceMetadata dataSourceMetadata =
+        new DataSourceMetadata("testDS", DataSourceType.PROMETHEUS,
+            Collections.singletonList("prometheus_access"), properties);
+    when(dataSourceMetadataStorage.getDataSourceMetadata("testDS"))
+        .thenReturn(Optional.of(dataSourceMetadata));
+
+    DataSourceMetadata dataSourceMetadata1
+        = dataSourceService.getDataSourceMetadata("testDS");
+    assertEquals("testDS", dataSourceMetadata1.getName());
+    assertEquals(DataSourceType.PROMETHEUS, dataSourceMetadata1.getConnector());
+    assertFalse(dataSourceMetadata1.getProperties().containsKey("prometheus.auth.type"));
+    assertFalse(dataSourceMetadata1.getProperties().containsKey("prometheus.auth.username"));
+    assertFalse(dataSourceMetadata1.getProperties().containsKey("prometheus.auth.password"));
+  }
+
+  @Test
+  void testGetDataSourceMetadataForNonExistingDataSource() {
+    when(dataSourceMetadataStorage.getDataSourceMetadata("testDS"))
+        .thenReturn(Optional.empty());
+    IllegalArgumentException exception = assertThrows(IllegalArgumentException.class,
+        () -> dataSourceService.getDataSourceMetadata("testDS"));
+    assertEquals("DataSource with name: testDS doesn't exist.", exception.getMessage());
+  }
+
+  @Test
+  void testGetDataSourceMetadataForSpecificDataSourceName() {
+    HashMap<String, String> properties = new HashMap<>();
+    properties.put("prometheus.uri", "http://localhost:9200");
+    properties.put("prometheus.auth.type", "basicauth");
+    properties.put("prometheus.auth.username", "username");
+    properties.put("prometheus.auth.password", "password");
+    when(dataSourceMetadataStorage.getDataSourceMetadata("testDS"))
+        .thenReturn(Optional.ofNullable(
+            metadata("testDS", DataSourceType.PROMETHEUS, Collections.emptyList(),
+                properties)));
+    DataSourceMetadata dataSourceMetadata
+        = this.dataSourceService.getDataSourceMetadata("testDS");
+    assertTrue(dataSourceMetadata.getProperties().containsKey("prometheus.uri"));
+    assertFalse(dataSourceMetadata.getProperties().containsKey("prometheus.auth.type"));
+    assertFalse(dataSourceMetadata.getProperties().containsKey("prometheus.auth.username"));
+    assertFalse(dataSourceMetadata.getProperties().containsKey("prometheus.auth.password"));
+    verify(dataSourceMetadataStorage, times(1)).getDataSourceMetadata("testDS");
+  }
+
 }

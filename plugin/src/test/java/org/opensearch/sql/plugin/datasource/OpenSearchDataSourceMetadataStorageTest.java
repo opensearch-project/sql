@@ -7,10 +7,10 @@ package org.opensearch.sql.plugin.datasource;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 import static org.opensearch.sql.plugin.datasource.OpenSearchDataSourceMetadataStorage.DATASOURCE_INDEX_NAME;
 
@@ -29,8 +29,12 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 import org.opensearch.action.ActionFuture;
+import org.opensearch.action.DocWriteResponse;
 import org.opensearch.action.admin.indices.create.CreateIndexResponse;
+import org.opensearch.action.delete.DeleteResponse;
+import org.opensearch.action.index.IndexResponse;
 import org.opensearch.action.search.SearchResponse;
+import org.opensearch.action.update.UpdateResponse;
 import org.opensearch.client.Client;
 import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.rest.RestStatus;
@@ -57,6 +61,18 @@ public class OpenSearchDataSourceMetadataStorageTest {
   private ActionFuture<SearchResponse> searchResponseActionFuture;
   @Mock
   private ActionFuture<CreateIndexResponse> createIndexResponseActionFuture;
+  @Mock
+  private ActionFuture<IndexResponse> indexResponseActionFuture;
+  @Mock
+  private IndexResponse indexResponse;
+  @Mock
+  private ActionFuture<UpdateResponse> updateResponseActionFuture;
+  @Mock
+  private UpdateResponse updateResponse;
+  @Mock
+  private ActionFuture<DeleteResponse> deleteResponseActionFuture;
+  @Mock
+  private DeleteResponse deleteResponse;
   @Mock
   private SearchHit searchHit;
   @InjectMocks
@@ -144,6 +160,9 @@ public class OpenSearchDataSourceMetadataStorageTest {
         .thenReturn(createIndexResponseActionFuture);
     when(createIndexResponseActionFuture.actionGet())
         .thenReturn(new CreateIndexResponse(true, true, DATASOURCE_INDEX_NAME));
+    when(client.index(any())).thenReturn(indexResponseActionFuture);
+    when(indexResponseActionFuture.actionGet()).thenReturn(indexResponse);
+    when(indexResponse.getResult()).thenReturn(DocWriteResponse.Result.CREATED);
     DataSourceMetadata dataSourceMetadata = getDataSourceMetadata();
 
     this.openSearchDataSourceMetadataStorage.createDataSourceMetadata(dataSourceMetadata);
@@ -159,18 +178,38 @@ public class OpenSearchDataSourceMetadataStorageTest {
 
   @Test
   public void testUpdateDataSourceMetadata() {
-    assertThrows(
-        UnsupportedOperationException.class,
-        () -> openSearchDataSourceMetadataStorage
-            .updateDataSourceMetadata(new DataSourceMetadata()));
+    when(clusterService.state().routingTable().hasIndex(DATASOURCE_INDEX_NAME))
+        .thenReturn(Boolean.TRUE);
+    when(encryptor.encrypt("secret_key")).thenReturn("secret_key");
+    when(encryptor.encrypt("access_key")).thenReturn("access_key");
+    when(client.update(any())).thenReturn(updateResponseActionFuture);
+    when(updateResponseActionFuture.actionGet()).thenReturn(updateResponse);
+    when(updateResponse.getResult()).thenReturn(DocWriteResponse.Result.UPDATED);
+    DataSourceMetadata dataSourceMetadata = getDataSourceMetadata();
+
+    this.openSearchDataSourceMetadataStorage.updateDataSourceMetadata(dataSourceMetadata);
+
+    verify(encryptor, times(1)).encrypt("secret_key");
+    verify(encryptor, times(1)).encrypt("access_key");
+    verify(client.admin().indices(), times(0)).create(any());
+    verify(client, times(1)).update(any());
+    verify(client.threadPool().getThreadContext(), times(1)).stashContext();
+
   }
 
   @Test
   public void testDeleteDataSourceMetadata() {
-    assertThrows(
-        UnsupportedOperationException.class,
-        () -> openSearchDataSourceMetadataStorage
-            .deleteDataSourceMetadata(TEST_DATASOURCE_INDEX_NAME));
+    when(client.delete(any())).thenReturn(deleteResponseActionFuture);
+    when(deleteResponseActionFuture.actionGet()).thenReturn(deleteResponse);
+    when(deleteResponse.getResult()).thenReturn(DocWriteResponse.Result.DELETED);
+    DataSourceMetadata dataSourceMetadata = getDataSourceMetadata();
+
+    this.openSearchDataSourceMetadataStorage.deleteDataSourceMetadata("testDS");
+
+    verifyNoInteractions(encryptor);
+    verify(client.admin().indices(), times(0)).create(any());
+    verify(client, times(1)).delete(any());
+    verify(client.threadPool().getThreadContext(), times(1)).stashContext();
   }
 
   private String getBasicDataSourceMetadataString() throws JsonProcessingException {
