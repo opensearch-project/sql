@@ -642,7 +642,7 @@ public class MathematicalFunctionTest extends ExpressionTestBase {
   }
 
   /**
-   * Test expm1 with short value.
+   * Test expm1 with byte value.
    */
   @ParameterizedTest(name = "expm1({0})")
   @ValueSource(bytes = {
@@ -1568,6 +1568,92 @@ public class MathematicalFunctionTest extends ExpressionTestBase {
         DSL.ref(INT_TYPE_NULL_VALUE_FIELD, INTEGER));
     assertEquals(DOUBLE, power.type());
     assertTrue(power.valueOf(valueEnv()).isMissing());
+  }
+
+  /**
+   * Test rint with byte value.
+   */
+  @ParameterizedTest(name = "rint({0})")
+  @ValueSource(bytes = {
+      -1, 0, 1, Byte.MAX_VALUE, Byte.MIN_VALUE})
+  public void rint_byte_value(Byte value) {
+    FunctionExpression rint = DSL.rint(DSL.literal(value));
+    assertThat(
+            rint.valueOf(valueEnv()),
+            allOf(hasType(DOUBLE), hasValue(Math.rint(value))));
+    assertEquals(String.format("rint(%s)", value), rint.toString());
+  }
+
+  /**
+   * Test rint with short value.
+   */
+  @ParameterizedTest(name = "rint({0})")
+  @ValueSource(shorts = {
+      -1, 0, 1, Short.MAX_VALUE, Short.MIN_VALUE})
+  public void rint_short_value(Short value) {
+    FunctionExpression rint = DSL.rint(DSL.literal(value));
+    assertThat(
+            rint.valueOf(valueEnv()),
+            allOf(hasType(DOUBLE), hasValue(Math.rint(value))));
+    assertEquals(String.format("rint(%s)", value), rint.toString());
+  }
+
+  /**
+   * Test rint with integer value.
+   */
+  @ParameterizedTest(name = "rint({0})")
+  @ValueSource(ints = {
+      -1, 0, 1, Integer.MAX_VALUE, Integer.MIN_VALUE})
+  public void rint_int_value(Integer value) {
+    FunctionExpression rint = DSL.rint(DSL.literal(value));
+    assertThat(
+            rint.valueOf(valueEnv()),
+            allOf(hasType(DOUBLE), hasValue(Math.rint(value))));
+    assertEquals(String.format("rint(%s)", value), rint.toString());
+  }
+
+  /**
+   * Test rint with long value.
+   */
+  @ParameterizedTest(name = "rint({0})")
+  @ValueSource(longs = {
+      -1L, 0L, 1L, Long.MAX_VALUE, Long.MIN_VALUE})
+  public void rint_long_value(Long value) {
+    FunctionExpression rint = DSL.rint(DSL.literal(value));
+    assertThat(
+            rint.valueOf(valueEnv()),
+            allOf(hasType(DOUBLE), hasValue(Math.rint(value))));
+    assertEquals(String.format("rint(%s)", value), rint.toString());
+  }
+
+  /**
+   * Test rint with float value.
+   */
+  @ParameterizedTest(name = "rint({0})")
+  @ValueSource(floats = {
+      -1F, -0.75F, -0.5F, 0F, 0.5F, 0.500000001F,
+      0.75F, 1F, 1.9999F, 42.42F, Float.MAX_VALUE, Float.MIN_VALUE})
+  public void rint_float_value(Float value) {
+    FunctionExpression rint = DSL.rint(DSL.literal(value));
+    assertThat(
+            rint.valueOf(valueEnv()),
+            allOf(hasType(DOUBLE), hasValue(Math.rint(value))));
+    assertEquals(String.format("rint(%s)", value), rint.toString());
+  }
+
+  /**
+   * Test rint with double value.
+   */
+  @ParameterizedTest(name = "rint({0})")
+  @ValueSource(doubles = {
+      -1F, -0.75F, -0.5F, 0F, 0.5F, 0.500000001F,
+      0.75F, 1F, 1.9999F, 42.42F, Double.MAX_VALUE, Double.MIN_VALUE})
+  public void rint_double_value(Double value) {
+    FunctionExpression rint = DSL.rint(DSL.literal(value));
+    assertThat(
+            rint.valueOf(valueEnv()),
+            allOf(hasType(DOUBLE), hasValue(Math.rint(value))));
+    assertEquals(String.format("rint(%s)", value), rint.toString());
   }
 
   /**

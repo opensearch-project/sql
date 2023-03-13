@@ -218,6 +218,10 @@ public class DSL {
     return compile(FunctionProperties.None, BuiltinFunctionName.RAND, expressions);
   }
 
+  public static FunctionExpression rint(Expression... expressions) {
+    return compile(FunctionProperties.None, BuiltinFunctionName.RINT, expressions);
+  }
+
   public static FunctionExpression round(Expression... expressions) {
     return compile(FunctionProperties.None, BuiltinFunctionName.ROUND, expressions);
   }
