@@ -67,6 +67,21 @@ public class MathematicalFunctionIT extends SQLIntegTestCase {
   }
 
   @Test
+  public void testCosh() throws IOException {
+    JSONObject result = executeQuery("select cosh(1)");
+    verifySchema(result, schema("cosh(1)", null, "double"));
+    verifyDataRows(result, rows(1.543080634815244));
+
+    result = executeQuery("select cosh(-1)");
+    verifySchema(result, schema("cosh(-1)", null, "double"));
+    verifyDataRows(result, rows(1.543080634815244));
+
+    result = executeQuery("select cosh(1.5)");
+    verifySchema(result, schema("cosh(1.5)", null, "double"));
+    verifyDataRows(result, rows(2.352409615243247));
+  }
+
+  @Test
   public void testCrc32() throws IOException {
     JSONObject result = executeQuery("select crc32('MySQL')");
     verifySchema(result, schema("crc32('MySQL')", null, "long"));
