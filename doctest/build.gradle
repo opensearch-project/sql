@@ -124,7 +124,7 @@ task doctest(type: Exec, dependsOn: ['bootstrap']) {
     }
 }
 
-task stopOpenSearch(type: KillProcessTask, dependsOn: [stopThrift])
+task stopOpenSearch(type: KillProcessTask)
 
 task stopPrometheus() {
 
@@ -156,8 +156,9 @@ clean.doLast {
 
 if(getOSFamilyType() != "windows") {
     stopPrometheus.mustRunAfter startPrometheus
-    startOpenSearch.dependsOn startPrometheus
-    stopOpenSearch.finalizedBy stopPrometheus
+    stopThrift.mustRunAfter startThrift
+    startOpenSearch.dependsOn(startPrometheus, startThrift)
+    stopOpenSearch.finalizedBy(stopPrometheus, stopThrift)
 }
 doctest.dependsOn startOpenSearch
 doctest.finalizedBy stopOpenSearch
