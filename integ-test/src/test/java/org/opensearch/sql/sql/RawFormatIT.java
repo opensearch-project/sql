@@ -11,6 +11,7 @@ import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_BANK_RAW_SANIT
 import java.io.IOException;
 import java.util.Locale;
 import org.junit.Test;
+import org.opensearch.sql.common.utils.StringUtils;
 import org.opensearch.sql.legacy.SQLIntegTestCase;
 
 public class RawFormatIT extends SQLIntegTestCase {
@@ -24,13 +25,13 @@ public class RawFormatIT extends SQLIntegTestCase {
   public void rawFormatWithPipeFieldTest() {
     String result = executeQuery(
         String.format(Locale.ROOT, "SELECT firstname, lastname FROM %s", TEST_INDEX_BANK_RAW_SANITIZE), "raw");
-    assertEquals(
-        "firstname|lastname\n"
-            + "+Amber JOHnny|Duke Willmington+\n"
-            + "-Hattie|Bond-\n"
-            + "=Nanette|Bates=\n"
-            + "@Dale|Adams@\n"
-            + "@Elinor|\"Ratliff|||\"\n",
+    assertEquals(StringUtils.format(
+        "firstname|lastname%n"
+            + "+Amber JOHnny|Duke Willmington+%n"
+            + "-Hattie|Bond-%n"
+            + "=Nanette|Bates=%n"
+            + "@Dale|Adams@%n"
+            + "@Elinor|\"Ratliff|||\"%n"),
         result);
   }
 

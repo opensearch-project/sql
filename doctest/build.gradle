@@ -22,7 +22,6 @@ def plugin_path = project(':doctest').projectDir
 task cloneSqlCli(type: Exec) {
     // clone the sql-cli repo locally
     commandLine 'git', 'clone', 'https://github.com/opensearch-project/sql-cli.git'
-    ignoreExitValue = true
 }
 
 task bootstrap(type: Exec, dependsOn: ['cloneSqlCli']) {
@@ -104,8 +103,13 @@ task startPrometheus(type: SpawnProcessTask) {
 }
 
 //evaluationDependsOn(':')
-task startOpenSearch(type: SpawnProcessTask, dependsOn: [startThrift]) {
-    command "${path}/gradlew -p ${plugin_path} runRestTestCluster"
+task startOpenSearch(type: SpawnProcessTask) {
+    if( getOSFamilyType() == "windows") {
+        command "${path}\\gradlew.bat -p ${plugin_path} runRestTestCluster"
+    }
+    else {
+        command "${path}/gradlew -p ${plugin_path} runRestTestCluster"
+    }
     ready 'started'
 }
 
@@ -144,16 +148,19 @@ task stopPrometheus() {
     }
 }
 
+
 clean.doLast {
     file("$projectDir/bin/${SPARK_BINARY}").deleteDir()
     file("$projectDir/bin/${SPARK_BINARY}.tgz").delete()
 }
 
-stopPrometheus.mustRunAfter startPrometheus
+if(getOSFamilyType() != "windows") {
+    stopPrometheus.mustRunAfter startPrometheus
+    startOpenSearch.dependsOn startPrometheus
+    stopOpenSearch.finalizedBy stopPrometheus
+}
 doctest.dependsOn startOpenSearch
-startOpenSearch.dependsOn startPrometheus
 doctest.finalizedBy stopOpenSearch
-stopOpenSearch.finalizedBy stopPrometheus
 check.dependsOn doctest
 clean.dependsOn(cleanBootstrap)
 

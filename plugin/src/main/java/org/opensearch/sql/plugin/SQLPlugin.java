@@ -168,7 +168,7 @@ public class SQLPlugin extends Plugin implements ActionPlugin, ScriptPlugin, Rel
                 .add(new PrometheusStorageFactory())
                 .add(new JDBCStorageFactory())
                 .build());
-    dataSourceService.addDataSource(defaultOpenSearchDataSourceMetadata());
+    dataSourceService.createDataSource(defaultOpenSearchDataSourceMetadata());
     loadDataSources(dataSourceService, clusterService.getSettings());
     LocalClusterState.state().setClusterService(clusterService);
     LocalClusterState.state().setPluginSettings((OpenSearchSettings) pluginSettings);
@@ -213,7 +213,7 @@ public class SQLPlugin extends Plugin implements ActionPlugin, ScriptPlugin, Rel
   @Override
   public void reload(Settings settings) {
     dataSourceService.clear();
-    dataSourceService.addDataSource(defaultOpenSearchDataSourceMetadata());
+    dataSourceService.createDataSource(defaultOpenSearchDataSourceMetadata());
     loadDataSources(dataSourceService, settings);
   }
 
@@ -231,7 +231,7 @@ public class SQLPlugin extends Plugin implements ActionPlugin, ScriptPlugin, Rel
             try {
               List<DataSourceMetadata> metadataList =
                   objectMapper.readValue(inputStream, new TypeReference<>() {});
-              dataSourceService.addDataSource(metadataList.toArray(new DataSourceMetadata[0]));
+              dataSourceService.createDataSource(metadataList.toArray(new DataSourceMetadata[0]));
             } catch (IOException e) {
               LOG.error(
                   "DataSource Configuration File uploaded is malformed. Verify and re-upload.", e);
