@@ -78,6 +78,7 @@ configurations.all {
     resolutionStrategy.force "org.apache.httpcomponents:httpcore:4.4.13"
     resolutionStrategy.force "joda-time:joda-time:2.10.12"
     resolutionStrategy.force "org.slf4j:slf4j-api:1.7.36"
+    resolutionStrategy.force "org.apache.httpcomponents:httpclient:4.5.13"
 }
 
 configurations {
