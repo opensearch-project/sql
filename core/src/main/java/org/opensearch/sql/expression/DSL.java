@@ -307,6 +307,10 @@ public class DSL {
     return compile(FunctionProperties.None, BuiltinFunctionName.COS, expressions);
   }
 
+  public static FunctionExpression cosh(Expression... expressions) {
+    return compile(FunctionProperties.None, BuiltinFunctionName.COSH, expressions);
+  }
+
   public static FunctionExpression cot(Expression... expressions) {
     return compile(FunctionProperties.None, BuiltinFunctionName.COT, expressions);
   }

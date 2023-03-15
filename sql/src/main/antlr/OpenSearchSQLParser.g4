@@ -475,7 +475,7 @@ mathematicalFunctionName
     ;
 
 trigonometricFunctionName
-    : ACOS | ASIN | ATAN | ATAN2 | COS | COT | DEGREES | RADIANS | SIN | SINH | TAN
+    : ACOS | ASIN | ATAN | ATAN2 | COS | COSH | COT | DEGREES | RADIANS | SIN | SINH | TAN
     ;
 
 arithmeticFunctionName

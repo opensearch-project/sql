@@ -82,6 +82,7 @@ public class MathematicalFunction {
     repository.register(atan());
     repository.register(atan2());
     repository.register(cos());
+    repository.register(cosh());
     repository.register(cot());
     repository.register(degrees());
     repository.register(radians());
@@ -617,6 +618,17 @@ public class MathematicalFunction {
   private static DefaultFunctionResolver cos() {
     return baseMathFunction(BuiltinFunctionName.COS.getName(),
             v -> new ExprDoubleValue(Math.cos(v.doubleValue())), DOUBLE);
+  }
+
+  /**
+   * Definition of cosh(x) function.
+   * Returns the hyperbolic cosine of x, defined as (((e^x) + (e^(-x))) / 2)
+   * The supported signature is
+   * BYTE/SHORT/INTEGER/LONG/FLOAT/DOUBLE -> DOUBLE
+   */
+  private static DefaultFunctionResolver cosh() {
+    return baseMathFunction(BuiltinFunctionName.COSH.getName(),
+            v -> new ExprDoubleValue(Math.cosh(v.doubleValue())), DOUBLE);
   }
 
   /**
