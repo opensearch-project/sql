@@ -174,6 +174,12 @@ class SQLSyntaxParserTest {
     );
   }
 
+  @Test
+  public void can_parse_weekday_function() {
+    assertNotNull(parser.parse("SELECT weekday('2022-11-18')"));
+    assertNotNull(parser.parse("SELECT day_of_week('2022-11-18')"));
+  }
+
   @ParameterizedTest(name = "{0}")
   @MethodSource("nowLikeFunctionsData")
   public void can_parse_now_like_functions(String name, Boolean hasFsp, Boolean hasShortcut) {
