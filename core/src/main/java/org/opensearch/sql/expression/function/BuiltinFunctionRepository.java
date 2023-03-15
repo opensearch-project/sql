@@ -10,9 +10,12 @@ import static org.opensearch.sql.ast.expression.Cast.isCastFunction;
 
 import com.google.common.annotations.VisibleForTesting;
 import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import org.apache.commons.lang3.tuple.Pair;
@@ -32,6 +35,7 @@ import org.opensearch.sql.expression.operator.predicate.UnaryPredicateOperator;
 import org.opensearch.sql.expression.system.SystemFunctions;
 import org.opensearch.sql.expression.text.TextFunction;
 import org.opensearch.sql.expression.window.WindowFunctions;
+import org.opensearch.sql.storage.StorageEngine;
 
 /**
  * Builtin Function Repository.
@@ -40,9 +44,8 @@ import org.opensearch.sql.expression.window.WindowFunctions;
  *
  */
 public class BuiltinFunctionRepository {
-  public static final String DEFAULT_NAMESPACE = "default";
 
-  private final Map<String, Map<FunctionName, FunctionResolver>> namespaceFunctionResolverMap;
+  private final Map<FunctionName, FunctionResolver> functionResolverMap;
 
   /** The singleton instance. */
   private static BuiltinFunctionRepository instance;
@@ -50,12 +53,11 @@ public class BuiltinFunctionRepository {
   /**
    * Construct a function repository with the given function registered. This is only used in test.
    *
-   * @param namespaceFunctionResolverMap function supported
+   * @param functionResolverMap function supported
    */
   @VisibleForTesting
-  BuiltinFunctionRepository(
-      Map<String, Map<FunctionName, FunctionResolver>> namespaceFunctionResolverMap) {
-    this.namespaceFunctionResolverMap = namespaceFunctionResolverMap;
+  BuiltinFunctionRepository(Map<FunctionName, FunctionResolver> functionResolverMap) {
+    this.functionResolverMap = functionResolverMap;
   }
 
   /**
@@ -86,106 +88,86 @@ public class BuiltinFunctionRepository {
   }
 
   /**
-   * Register {@link DefaultFunctionResolver} to the Builtin Function Repository
-   * under default namespace.
+   * Register {@link DefaultFunctionResolver} to the Builtin Function Repository.
    *
    * @param resolver {@link DefaultFunctionResolver} to be registered
    */
   public void register(FunctionResolver resolver) {
-    register(DEFAULT_NAMESPACE, resolver);
+    functionResolverMap.put(resolver.getFunctionName(), resolver);
   }
 
   /**
-   * Register {@link DefaultFunctionResolver} to the Builtin Function Repository with
-   * specified namespace.
-   *
-   * @param resolver {@link DefaultFunctionResolver} to be registered
-   */
-  public void register(String namespace, FunctionResolver resolver) {
-    Map<FunctionName, FunctionResolver> functionResolverMap;
-    if (!namespaceFunctionResolverMap.containsKey(namespace)) {
-      functionResolverMap = new HashMap<>();
-      namespaceFunctionResolverMap.put(namespace, functionResolverMap);
-    }
-    namespaceFunctionResolverMap.get(namespace).put(resolver.getFunctionName(), resolver);
-  }
-
-  /**
-   * Compile FunctionExpression under default namespace.
+   * Compile FunctionExpression using core function resolver.
    *
    */
   public FunctionImplementation compile(FunctionProperties functionProperties,
                                         FunctionName functionName, List<Expression> expressions) {
-    return compile(functionProperties, DEFAULT_NAMESPACE, functionName, expressions);
+    return compile(functionProperties, Collections.emptyList(), functionName, expressions);
   }
 
 
   /**
-   * Compile FunctionExpression within given namespace.
-   * Checks for default namespace first and then tries to compile from given namespace.
+   * Compile FunctionExpression within {@link StorageEngine} provided {@link FunctionResolver}.
    */
   public FunctionImplementation compile(FunctionProperties functionProperties,
-                                        String namespace,
+                                        Collection<FunctionResolver> dataSourceFunctionResolver,
                                         FunctionName functionName,
                                         List<Expression> expressions) {
-    List<String> namespaceList = new ArrayList<>(List.of(DEFAULT_NAMESPACE));
-    if (!namespace.equals(DEFAULT_NAMESPACE)) {
-      namespaceList.add(namespace);
-    }
-    FunctionBuilder resolvedFunctionBuilder = resolve(
-        namespaceList, new FunctionSignature(functionName, expressions
-            .stream().map(Expression::type).collect(Collectors.toList())));
+    FunctionBuilder resolvedFunctionBuilder =
+        resolve(
+            dataSourceFunctionResolver,
+            new FunctionSignature(
+                functionName,
+                expressions.stream().map(Expression::type).collect(Collectors.toList())));
     return resolvedFunctionBuilder.apply(functionProperties, expressions);
   }
 
   /**
-   * Resolve the {@link FunctionBuilder} in
-   * repository under a list of namespaces.
-   * Returns the First FunctionBuilder found.
-   * So list of namespaces is also the priority of namespaces.
+   * Resolve the {@link FunctionBuilder} in repository under a list of namespaces. Returns the First
+   * FunctionBuilder found. So list of namespaces is also the priority of namespaces.
    *
    * @param functionSignature {@link FunctionSignature} functionsignature.
    * @return Original function builder if it's a cast function or all arguments have expected types
-   *      or otherwise wrap its arguments by cast function as needed.
+   *     or otherwise wrap its arguments by cast function as needed.
    */
-  public FunctionBuilder
-      resolve(List<String> namespaces,
-              FunctionSignature functionSignature) {
-    FunctionName functionName = functionSignature.getFunctionName();
-    FunctionBuilder result = null;
-    for (String namespace : namespaces) {
-      if (namespaceFunctionResolverMap.containsKey(namespace)
-          && namespaceFunctionResolverMap.get(namespace).containsKey(functionName)) {
-        result = getFunctionBuilder(functionSignature, functionName,
-            namespaceFunctionResolverMap.get(namespace));
-        break;
-      }
-    }
-    if (result == null) {
-      throw new ExpressionEvaluationException(
-          String.format("unsupported function name: %s", functionName.getFunctionName()));
-    } else {
-      return result;
-    }
+  @VisibleForTesting
+  public FunctionBuilder resolve(
+      Collection<FunctionResolver> dataSourceFunctionResolver,
+      FunctionSignature functionSignature) {
+    Map<FunctionName, FunctionResolver> dataSourceFunctionMap = dataSourceFunctionResolver.stream()
+        .collect(Collectors.toMap(FunctionResolver::getFunctionName, t -> t));
+
+    // first, resolve in datasource provide function resolver.
+    // second, resolve in builtin function resolver.
+    return resolve(functionSignature, dataSourceFunctionMap)
+        .or(() -> resolve(functionSignature, functionResolverMap))
+        .orElseThrow(
+            () ->
+                new ExpressionEvaluationException(
+                    String.format(
+                        "unsupported function name: %s", functionSignature.getFunctionName())));
   }
 
-  private FunctionBuilder getFunctionBuilder(
+  private Optional<FunctionBuilder> resolve(
       FunctionSignature functionSignature,
-      FunctionName functionName,
       Map<FunctionName, FunctionResolver> functionResolverMap) {
-    Pair<FunctionSignature, FunctionBuilder> resolvedSignature =
-        functionResolverMap.get(functionName).resolve(functionSignature);
+    FunctionName functionName = functionSignature.getFunctionName();
+    if (functionResolverMap.containsKey(functionName)) {
+      Pair<FunctionSignature, FunctionBuilder> resolvedSignature =
+          functionResolverMap.get(functionName).resolve(functionSignature);
 
-    List<ExprType> sourceTypes = functionSignature.getParamTypeList();
-    List<ExprType> targetTypes = resolvedSignature.getKey().getParamTypeList();
-    FunctionBuilder funcBuilder = resolvedSignature.getValue();
-    if (isCastFunction(functionName)
-            || FunctionSignature.isVarArgFunction(targetTypes)
-            || sourceTypes.equals(targetTypes)) {
-      return funcBuilder;
+      List<ExprType> sourceTypes = functionSignature.getParamTypeList();
+      List<ExprType> targetTypes = resolvedSignature.getKey().getParamTypeList();
+      FunctionBuilder funcBuilder = resolvedSignature.getValue();
+      if (isCastFunction(functionName)
+          || FunctionSignature.isVarArgFunction(targetTypes)
+          || sourceTypes.equals(targetTypes)) {
+        return Optional.of(funcBuilder);
+      }
+      return Optional.of(castArguments(sourceTypes, targetTypes, funcBuilder));
+    } else {
+      return Optional.empty();
     }
-    return castArguments(sourceTypes,
-        targetTypes, funcBuilder);
   }
 
   /**

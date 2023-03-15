@@ -419,12 +419,12 @@ aggregationFunctionName
 
 mathematicalFunctionName
     : ABS | CBRT | CEIL | CEILING | CONV | CRC32 | E | EXP | EXPM1 | FLOOR | LN | LOG | LOG10 | LOG2 | MOD | PI | POW | POWER
-    | RAND | ROUND | SIGN | SQRT | TRUNCATE
+    | RAND | RINT | ROUND | SIGN | SIGNUM | SQRT | TRUNCATE
     | trigonometricFunctionName
     ;
 
 trigonometricFunctionName
-    : ACOS | ASIN | ATAN | ATAN2 | COS | COT | DEGREES | RADIANS | SIN | TAN
+    : ACOS | ASIN | ATAN | ATAN2 | COS | COSH | COT | DEGREES | RADIANS | SIN | SINH | TAN
     ;
 
 dateTimeFunctionName
@@ -466,6 +466,7 @@ dateTimeFunctionName
     | PERIOD_ADD
     | PERIOD_DIFF
     | QUARTER
+    | SEC_TO_TIME
     | SECOND
     | SECOND_OF_MINUTE
     | SUBDATE
@@ -480,6 +481,7 @@ dateTimeFunctionName
     | TO_DAYS
     | UNIX_TIMESTAMP
     | WEEK
+    | WEEKDAY
     | WEEK_OF_YEAR
     | WEEKOFYEAR
     | YEAR
