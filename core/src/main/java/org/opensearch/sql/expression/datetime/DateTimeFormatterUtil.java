@@ -62,7 +62,6 @@ class DateTimeFormatterUtil {
       .put("%W", (date) -> "EEEE") // %W => EEEE - Weekday name (Sunday..Saturday)
       .put("%Y", (date) -> "yyyy") // %Y => yyyy - Year, numeric, 4 digits
       .put("%y", (date) -> "yy") // %y => yy - Year, numeric, 2 digits
-      .put("%Q", (date) -> "Q") // %Q => Q - Quarter, numeric, 1 digit
       // The following are not directly supported by DateTimeFormatter.
       .put("%D", (date) -> // %w - Day of month with English suffix
           String.format("'%d%s'", date.getDayOfMonth(), getSuffix(date.getDayOfMonth())))

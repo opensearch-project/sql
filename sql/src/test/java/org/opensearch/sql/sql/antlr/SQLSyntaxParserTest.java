@@ -206,6 +206,22 @@ class SQLSyntaxParserTest {
     assertNotNull(parser.parse(String.format("SELECT extract(%s FROM \"2023-02-06\")", part)));
   }
 
+  private static Stream<Arguments> getInvalidPartForExtractFunction() {
+    return Stream.of(
+        Arguments.of("INVALID"),
+        Arguments.of("\"SECOND\""),
+        Arguments.of("123")
+    );
+  }
+
+  @ParameterizedTest(name = "{0}")
+  @MethodSource("getInvalidPartForExtractFunction")
+  public void cannot_parse_extract_function_invalid_part(String part) {
+    assertThrows(
+        SyntaxCheckException.class,
+        () -> parser.parse(String.format("SELECT extract(%s FROM \"2023-02-06\")", part)));
+  }
+
   @Test
   public void can_parse_weekday_function() {
     assertNotNull(parser.parse("SELECT weekday('2022-11-18')"));
