@@ -488,7 +488,8 @@ public class MathematicalFunction {
     return baseMathFunction(BuiltinFunctionName.SIGNUM.getName(),
             v -> new ExprIntegerValue(Math.signum(v.doubleValue())), INTEGER);
   }
-  
+
+  /**
    * Definition of sinh(x) function.
    * Returns the hyperbolix sine of x, defined as (((e^x) - (e^(-x))) / 2)
    * The supported signature is
