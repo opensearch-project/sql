@@ -155,6 +155,20 @@ public class MathematicalFunctionIT extends SQLIntegTestCase {
     verifyDataRows(result, rows(-1));
   }
 
+  public void testSinh() throws IOException {
+    JSONObject result = executeQuery("select sinh(1)");
+    verifySchema(result, schema("sinh(1)", null, "double"));
+    verifyDataRows(result, rows(1.1752011936438014));
+
+    result = executeQuery("select sinh(-1)");
+    verifySchema(result, schema("sinh(-1)", null, "double"));
+    verifyDataRows(result, rows(-1.1752011936438014));
+
+    result = executeQuery("select sinh(1.5)");
+    verifySchema(result, schema("sinh(1.5)", null, "double"));
+    verifyDataRows(result, rows(2.1292794550948173));
+  }
+
   @Test
   public void testTruncate() throws IOException {
     JSONObject result = executeQuery("select truncate(56.78, 1)");
