@@ -796,6 +796,16 @@ public class DateTimeFunctionIT extends SQLIntegTestCase {
   }
 
   @Test
+  public void testSecToTime() throws IOException {
+    JSONObject result = executeQuery(
+        String.format("SELECT sec_to_time(balance) FROM %s LIMIT 3", TEST_INDEX_BANK));
+    verifyDataRows(result,
+        rows("10:53:45"),
+        rows("01:34:46"),
+        rows("09:07:18"));
+  }
+
+  @Test
   public void testSecond() throws IOException {
     JSONObject result = executeQuery("select second(timestamp('2020-09-16 17:30:00'))");
     verifySchema(result, schema("second(timestamp('2020-09-16 17:30:00'))", null, "integer"));
@@ -971,6 +981,12 @@ public class DateTimeFunctionIT extends SQLIntegTestCase {
     week("2008-12-31", 1, 53, "week");
     week("2000-01-01", 0, 0, "week");
     week("2000-01-01", 2, 52, "week");
+  }
+
+  @Test
+  public void testWeekday() throws IOException {
+    JSONObject result = executeQuery(String.format("SELECT weekday(date0) FROM %s LIMIT 3", TEST_INDEX_CALCS));
+    verifyDataRows(result, rows(3), rows(1), rows(2));
   }
 
   @Test

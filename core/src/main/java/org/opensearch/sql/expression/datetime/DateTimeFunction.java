@@ -15,6 +15,7 @@ import static java.time.temporal.ChronoUnit.SECONDS;
 import static org.opensearch.sql.data.type.ExprCoreType.DATE;
 import static org.opensearch.sql.data.type.ExprCoreType.DATETIME;
 import static org.opensearch.sql.data.type.ExprCoreType.DOUBLE;
+import static org.opensearch.sql.data.type.ExprCoreType.FLOAT;
 import static org.opensearch.sql.data.type.ExprCoreType.INTEGER;
 import static org.opensearch.sql.data.type.ExprCoreType.INTERVAL;
 import static org.opensearch.sql.data.type.ExprCoreType.LONG;
@@ -61,6 +62,7 @@ import java.util.TimeZone;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Stream;
 import lombok.experimental.UtilityClass;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.tuple.Pair;
 import org.opensearch.sql.data.model.ExprDateValue;
 import org.opensearch.sql.data.model.ExprDatetimeValue;
@@ -205,6 +207,7 @@ public class DateTimeFunction {
     repository.register(period_add());
     repository.register(period_diff());
     repository.register(quarter());
+    repository.register(sec_to_time());
     repository.register(second(BuiltinFunctionName.SECOND));
     repository.register(second(BuiltinFunctionName.SECOND_OF_MINUTE));
     repository.register(subdate());
@@ -224,6 +227,7 @@ public class DateTimeFunction {
     repository.register(week(BuiltinFunctionName.WEEK));
     repository.register(week(BuiltinFunctionName.WEEKOFYEAR));
     repository.register(week(BuiltinFunctionName.WEEK_OF_YEAR));
+    repository.register(weekday());
     repository.register(year());
   }
 
@@ -728,6 +732,15 @@ public class DateTimeFunction {
     );
   }
 
+  private DefaultFunctionResolver sec_to_time() {
+    return define(BuiltinFunctionName.SEC_TO_TIME.getName(),
+        impl((nullMissingHandling(DateTimeFunction::exprSecToTime)), TIME, INTEGER),
+        impl((nullMissingHandling(DateTimeFunction::exprSecToTime)), TIME, LONG),
+        impl((nullMissingHandling(DateTimeFunction::exprSecToTimeWithNanos)), TIME, DOUBLE),
+        impl((nullMissingHandling(DateTimeFunction::exprSecToTimeWithNanos)), TIME, FLOAT)
+    );
+  }
+
   /**
    * SECOND(STRING/TIME/DATETIME/TIMESTAMP). return the second value for time.
    */
@@ -925,6 +938,19 @@ public class DateTimeFunction {
         impl(nullMissingHandling(DateTimeFunction::exprWeek), INTEGER, DATETIME, INTEGER),
         impl(nullMissingHandling(DateTimeFunction::exprWeek), INTEGER, TIMESTAMP, INTEGER),
         impl(nullMissingHandling(DateTimeFunction::exprWeek), INTEGER, STRING, INTEGER)
+    );
+  }
+
+  private DefaultFunctionResolver weekday() {
+    return define(BuiltinFunctionName.WEEKDAY.getName(),
+        implWithProperties(nullMissingHandlingWithProperties(
+            (functionProperties, arg) -> new ExprIntegerValue(
+                formatNow(functionProperties.getQueryStartClock()).getDayOfWeek().getValue() - 1)),
+            INTEGER, TIME),
+        impl(nullMissingHandling(DateTimeFunction::exprWeekday), INTEGER, DATE),
+        impl(nullMissingHandling(DateTimeFunction::exprWeekday), INTEGER, DATETIME),
+        impl(nullMissingHandling(DateTimeFunction::exprWeekday), INTEGER, TIMESTAMP),
+        impl(nullMissingHandling(DateTimeFunction::exprWeekday), INTEGER, STRING)
     );
   }
 
@@ -1581,6 +1607,44 @@ public class DateTimeFunction {
   }
 
   /**
+   * Returns TIME value of sec_to_time function for an INTEGER or LONG arguments.
+   * @param totalSeconds The total number of seconds
+   * @return A TIME value
+   */
+  private ExprValue exprSecToTime(ExprValue totalSeconds) {
+    return new ExprTimeValue(LocalTime.MIN.plus(Duration.ofSeconds(totalSeconds.longValue())));
+  }
+
+  /**
+   * Helper function which obtains the decimal portion of the seconds value passed in.
+   * Uses BigDecimal to prevent issues with math on floating point numbers.
+   * Return is formatted to be used with Duration.ofSeconds();
+   *
+   * @param seconds and ExprDoubleValue or ExprFloatValue for the seconds
+   * @return A LONG representing the nanoseconds portion
+   */
+  private long formatNanos(ExprValue seconds) {
+    //Convert ExprValue to BigDecimal
+    BigDecimal formattedNanos = BigDecimal.valueOf(seconds.doubleValue());
+    //Extract only the nanosecond part
+    formattedNanos = formattedNanos.subtract(BigDecimal.valueOf(formattedNanos.intValue()));
+
+    return formattedNanos.scaleByPowerOfTen(9).longValue();
+  }
+
+  /**
+   * Returns TIME value of sec_to_time function for FLOAT or DOUBLE arguments.
+   * @param totalSeconds The total number of seconds
+   * @return A TIME value
+   */
+  private ExprValue exprSecToTimeWithNanos(ExprValue totalSeconds) {
+    long nanos = formatNanos(totalSeconds);
+
+    return new ExprTimeValue(
+        LocalTime.MIN.plus(Duration.ofSeconds(totalSeconds.longValue(), nanos)));
+  }
+
+  /**
    * Second implementation for ExprValue.
    *
    * @param time ExprValue of Time/String type.
@@ -1717,6 +1781,16 @@ public class DateTimeFunction {
   private ExprValue exprWeek(ExprValue date, ExprValue mode) {
     return new ExprIntegerValue(
         CalendarLookup.getWeekNumber(mode.integerValue(), date.dateValue()));
+  }
+
+  /**
+   * Weekday implementation for ExprValue.
+   *
+   * @param date ExprValue of Date/Datetime/String/Timstamp type.
+   * @return ExprValue.
+   */
+  private ExprValue exprWeekday(ExprValue date) {
+    return new ExprIntegerValue(date.dateValue().getDayOfWeek().getValue() - 1);
   }
 
   private ExprValue unixTimeStamp(Clock clock) {

@@ -642,7 +642,7 @@ public class MathematicalFunctionTest extends ExpressionTestBase {
   }
 
   /**
-   * Test expm1 with short value.
+   * Test expm1 with byte value.
    */
   @ParameterizedTest(name = "expm1({0})")
   @ValueSource(bytes = {
@@ -1571,6 +1571,92 @@ public class MathematicalFunctionTest extends ExpressionTestBase {
   }
 
   /**
+   * Test rint with byte value.
+   */
+  @ParameterizedTest(name = "rint({0})")
+  @ValueSource(bytes = {
+      -1, 0, 1, Byte.MAX_VALUE, Byte.MIN_VALUE})
+  public void rint_byte_value(Byte value) {
+    FunctionExpression rint = DSL.rint(DSL.literal(value));
+    assertThat(
+            rint.valueOf(valueEnv()),
+            allOf(hasType(DOUBLE), hasValue(Math.rint(value))));
+    assertEquals(String.format("rint(%s)", value), rint.toString());
+  }
+
+  /**
+   * Test rint with short value.
+   */
+  @ParameterizedTest(name = "rint({0})")
+  @ValueSource(shorts = {
+      -1, 0, 1, Short.MAX_VALUE, Short.MIN_VALUE})
+  public void rint_short_value(Short value) {
+    FunctionExpression rint = DSL.rint(DSL.literal(value));
+    assertThat(
+            rint.valueOf(valueEnv()),
+            allOf(hasType(DOUBLE), hasValue(Math.rint(value))));
+    assertEquals(String.format("rint(%s)", value), rint.toString());
+  }
+
+  /**
+   * Test rint with integer value.
+   */
+  @ParameterizedTest(name = "rint({0})")
+  @ValueSource(ints = {
+      -1, 0, 1, Integer.MAX_VALUE, Integer.MIN_VALUE})
+  public void rint_int_value(Integer value) {
+    FunctionExpression rint = DSL.rint(DSL.literal(value));
+    assertThat(
+            rint.valueOf(valueEnv()),
+            allOf(hasType(DOUBLE), hasValue(Math.rint(value))));
+    assertEquals(String.format("rint(%s)", value), rint.toString());
+  }
+
+  /**
+   * Test rint with long value.
+   */
+  @ParameterizedTest(name = "rint({0})")
+  @ValueSource(longs = {
+      -1L, 0L, 1L, Long.MAX_VALUE, Long.MIN_VALUE})
+  public void rint_long_value(Long value) {
+    FunctionExpression rint = DSL.rint(DSL.literal(value));
+    assertThat(
+            rint.valueOf(valueEnv()),
+            allOf(hasType(DOUBLE), hasValue(Math.rint(value))));
+    assertEquals(String.format("rint(%s)", value), rint.toString());
+  }
+
+  /**
+   * Test rint with float value.
+   */
+  @ParameterizedTest(name = "rint({0})")
+  @ValueSource(floats = {
+      -1F, -0.75F, -0.5F, 0F, 0.5F, 0.500000001F,
+      0.75F, 1F, 1.9999F, 42.42F, Float.MAX_VALUE, Float.MIN_VALUE})
+  public void rint_float_value(Float value) {
+    FunctionExpression rint = DSL.rint(DSL.literal(value));
+    assertThat(
+            rint.valueOf(valueEnv()),
+            allOf(hasType(DOUBLE), hasValue(Math.rint(value))));
+    assertEquals(String.format("rint(%s)", value), rint.toString());
+  }
+
+  /**
+   * Test rint with double value.
+   */
+  @ParameterizedTest(name = "rint({0})")
+  @ValueSource(doubles = {
+      -1F, -0.75F, -0.5F, 0F, 0.5F, 0.500000001F,
+      0.75F, 1F, 1.9999F, 42.42F, Double.MAX_VALUE, Double.MIN_VALUE})
+  public void rint_double_value(Double value) {
+    FunctionExpression rint = DSL.rint(DSL.literal(value));
+    assertThat(
+            rint.valueOf(valueEnv()),
+            allOf(hasType(DOUBLE), hasValue(Math.rint(value))));
+    assertEquals(String.format("rint(%s)", value), rint.toString());
+  }
+
+  /**
    * Test round with integer value.
    */
   @ParameterizedTest(name = "round({0}")
@@ -1802,6 +1888,150 @@ public class MathematicalFunctionTest extends ExpressionTestBase {
     FunctionExpression sign = DSL.sign(DSL.ref(INT_TYPE_MISSING_VALUE_FIELD, INTEGER));
     assertEquals(INTEGER, sign.type());
     assertTrue(sign.valueOf(valueEnv()).isMissing());
+  }
+
+  /**
+   * Test signum with byte value.
+   */
+  @ParameterizedTest(name = "signum({0})")
+  @ValueSource(bytes = {2, 0, -2})
+  public void signum_bytes_value(Byte value) {
+    FunctionExpression signum = DSL.signum(DSL.literal(value));
+    assertThat(
+        signum.valueOf(valueEnv()),
+        allOf(hasType(INTEGER), hasValue((int) Math.signum(value))));
+    assertEquals(String.format("signum(%s)", value), signum.toString());
+  }
+
+  /**
+   * Test signum with short value.
+   */
+  @ParameterizedTest(name = "signum({0})")
+  @ValueSource(shorts = {2, 0, -2})
+  public void signum_short_value(Short value) {
+    FunctionExpression signum = DSL.signum(DSL.literal(value));
+    assertThat(
+        signum.valueOf(valueEnv()),
+        allOf(hasType(INTEGER), hasValue((int) Math.signum(value))));
+    assertEquals(String.format("signum(%s)", value), signum.toString());
+  }
+
+  /**
+   * Test signum with integer value.
+   */
+  @ParameterizedTest(name = "signum({0})")
+  @ValueSource(ints = {2, 0, -2})
+  public void signum_int_value(Integer value) {
+    FunctionExpression signum = DSL.signum(DSL.literal(value));
+    assertThat(
+        signum.valueOf(valueEnv()),
+        allOf(hasType(INTEGER), hasValue((int) Math.signum(value))));
+    assertEquals(String.format("signum(%s)", value), signum.toString());
+  }
+
+  /**
+   * Test signum with long value.
+   */
+  @ParameterizedTest(name = "signum({0})")
+  @ValueSource(longs = {2L, 0L, -2L})
+  public void signum_long_value(Long value) {
+    FunctionExpression signum = DSL.signum(DSL.literal(value));
+    assertThat(
+        signum.valueOf(valueEnv()),
+        allOf(hasType(INTEGER), hasValue((int) Math.signum(value))));
+    assertEquals(String.format("signum(%s)", value), signum.toString());
+  }
+
+  /**
+   * Test signum with float value.
+   */
+  @ParameterizedTest(name = "signum({0})")
+  @ValueSource(floats = {2F, 0F, -2F})
+  public void signum_float_value(Float value) {
+    FunctionExpression signum = DSL.signum(DSL.literal(value));
+    assertThat(
+        signum.valueOf(valueEnv()),
+        allOf(hasType(INTEGER), hasValue((int) Math.signum(value))));
+    assertEquals(String.format("signum(%s)", value), signum.toString());
+  }
+
+  /**
+   * Test signum with double value.
+   */
+  @ParameterizedTest(name = "signum({0})")
+  @ValueSource(doubles = {2, 0, -2})
+  public void signum_double_value(Double value) {
+    FunctionExpression signum = DSL.signum(DSL.literal(value));
+    assertThat(
+        signum.valueOf(valueEnv()),
+        allOf(hasType(INTEGER), hasValue((int) Math.signum(value))));
+    assertEquals(String.format("signum(%s)", value), signum.toString());
+  }  
+
+  /**
+   * Test sinh with byte value.
+   */
+  @ParameterizedTest(name = "sinh({0})")
+  @ValueSource(bytes = {-1, 1, 2, Byte.MAX_VALUE, Byte.MIN_VALUE})
+  public void sinh_byte_value(Byte value) {
+    FunctionExpression sinh = DSL.sinh(DSL.literal(value));
+    assertThat(sinh.valueOf(valueEnv()), allOf(hasType(DOUBLE), hasValue(Math.sinh(value))));
+    assertEquals(String.format("sinh(%s)", value), sinh.toString());
+  }
+
+  /**
+   * Test sinh with short value.
+   */
+  @ParameterizedTest(name = "sinh({0})")
+  @ValueSource(shorts = {-1, 1, 2, Short.MAX_VALUE, Short.MIN_VALUE})
+  public void sinh_short_value(Short value) {
+    FunctionExpression sinh = DSL.sinh(DSL.literal(value));
+    assertThat(sinh.valueOf(valueEnv()), allOf(hasType(DOUBLE), hasValue(Math.sinh(value))));
+    assertEquals(String.format("sinh(%s)", value), sinh.toString());
+  }
+
+  /**
+   * Test sinh with integer value.
+   */
+  @ParameterizedTest(name = "sinh({0})")
+  @ValueSource(ints = {-1, 1, 2, Integer.MAX_VALUE, Integer.MIN_VALUE})
+  public void sinh_int_value(Integer value) {
+    FunctionExpression sinh = DSL.sinh(DSL.literal(value));
+    assertThat(sinh.valueOf(valueEnv()), allOf(hasType(DOUBLE), hasValue(Math.sinh(value))));
+    assertEquals(String.format("sinh(%s)", value), sinh.toString());
+  }
+
+  /**
+   * Test sinh with long value.
+   */
+  @ParameterizedTest(name = "sinh({0})")
+  @ValueSource(longs = {-1L, 1L, 2L, Long.MAX_VALUE, Long.MIN_VALUE})
+  public void sinh_long_value(Long value) {
+    FunctionExpression sinh = DSL.sinh(DSL.literal(value));
+    assertThat(sinh.valueOf(valueEnv()), allOf(hasType(DOUBLE), hasValue(Math.sinh(value))));
+    assertEquals(String.format("sinh(%s)", value), sinh.toString());
+  }
+
+  /**
+   * Test sinh with float value.
+   */
+  @ParameterizedTest(name = "sinh({0})")
+  @ValueSource(floats = {-1.5F, -1F, 1F, 1.5F, 2F, 2.7F, Float.MAX_VALUE, Float.MIN_VALUE})
+  public void sinh_float_value(Float value) {
+    FunctionExpression sinh = DSL.sinh(DSL.literal(value));
+    assertThat(sinh.valueOf(valueEnv()), allOf(hasType(DOUBLE), hasValue(Math.sinh(value))));
+    assertEquals(String.format("sinh(%s)", value), sinh.toString());
+  }
+
+  /**
+   * Test sinh with double value.
+   */
+  @ParameterizedTest(name = "sinh({0})")
+  @ValueSource(doubles = {-1.5, -1D, 1D, 1.5D, 2D, 2.7D, Double.MAX_VALUE, Double.MIN_VALUE})
+  public void sinh_double_value(Double value) {
+    FunctionExpression sinh = DSL.sinh(DSL.literal(value));
+    assertThat(sinh.valueOf(valueEnv()), allOf(hasType(DOUBLE), hasValue(Math.sinh(value))));
+    assertEquals(String.format("sinh(%s)", value), sinh.toString());
   }
 
   /**
@@ -2314,6 +2544,72 @@ public class MathematicalFunctionTest extends ExpressionTestBase {
     FunctionExpression cos = DSL.cos(DSL.ref(DOUBLE_TYPE_MISSING_VALUE_FIELD, DOUBLE));
     assertEquals(DOUBLE, cos.type());
     assertTrue(cos.valueOf(valueEnv()).isMissing());
+  }
+
+  /**
+   * Test cosh with byte value.
+   */
+  @ParameterizedTest(name = "cosh({0})")
+  @ValueSource(bytes = {-1, 1, 2})
+  public void cosh_byte_value(Byte value) {
+    FunctionExpression cosh = DSL.cosh(DSL.literal(value));
+    assertThat(cosh.valueOf(valueEnv()), allOf(hasType(DOUBLE), hasValue(Math.cosh(value))));
+    assertEquals(String.format("cosh(%s)", value), cosh.toString());
+  }
+
+  /**
+   * Test cosh with short value.
+   */
+  @ParameterizedTest(name = "cosh({0})")
+  @ValueSource(shorts = {-1, 1, 2})
+  public void cosh_short_value(Short value) {
+    FunctionExpression cosh = DSL.cosh(DSL.literal(value));
+    assertThat(cosh.valueOf(valueEnv()), allOf(hasType(DOUBLE), hasValue(Math.cosh(value))));
+    assertEquals(String.format("cosh(%s)", value), cosh.toString());
+  }
+
+  /**
+   * Test cosh with integer value.
+   */
+  @ParameterizedTest(name = "cosh({0})")
+  @ValueSource(ints = {-1, 1, 2})
+  public void cosh_int_value(Integer value) {
+    FunctionExpression cosh = DSL.cosh(DSL.literal(value));
+    assertThat(cosh.valueOf(valueEnv()), allOf(hasType(DOUBLE), hasValue(Math.cosh(value))));
+    assertEquals(String.format("cosh(%s)", value), cosh.toString());
+  }
+
+  /**
+   * Test cosh with long value.
+   */
+  @ParameterizedTest(name = "cosh({0})")
+  @ValueSource(longs = {-1L, 1L, 2L})
+  public void cosh_long_value(Long value) {
+    FunctionExpression cosh = DSL.cosh(DSL.literal(value));
+    assertThat(cosh.valueOf(valueEnv()), allOf(hasType(DOUBLE), hasValue(Math.cosh(value))));
+    assertEquals(String.format("cosh(%s)", value), cosh.toString());
+  }
+
+  /**
+   * Test cosh with float value.
+   */
+  @ParameterizedTest(name = "cosh({0})")
+  @ValueSource(floats = {-1F, 1F, 2F})
+  public void cosh_float_value(Float value) {
+    FunctionExpression cosh = DSL.cosh(DSL.literal(value));
+    assertThat(cosh.valueOf(valueEnv()), allOf(hasType(DOUBLE), hasValue(Math.cosh(value))));
+    assertEquals(String.format("cosh(%s)", value), cosh.toString());
+  }
+
+  /**
+   * Test cosh with double value.
+   */
+  @ParameterizedTest(name = "cosh({0})")
+  @ValueSource(doubles = {-1D, 1D, 2D})
+  public void cosh_double_value(Double value) {
+    FunctionExpression cosh = DSL.cosh(DSL.literal(value));
+    assertThat(cosh.valueOf(valueEnv()), allOf(hasType(DOUBLE), hasValue(Math.cosh(value))));
+    assertEquals(String.format("cosh(%s)", value), cosh.toString());
   }
 
   /**
