@@ -772,9 +772,23 @@ SIGNUM
 Description
 >>>>>>>>>>>
 
-Specifications:
+Usage: Returns the sign of the argument as -1, 0, or 1, depending on whether the number is negative, zero, or positive
 
-1. SIGNUM(NUMBER T) -> T
+Argument type: BYTE/SHORT/INTEGER/LONG/FLOAT/DOUBLE
+
+Return type: INTEGER
+
+Synonyms: `SIGN`_
+
+Example::
+
+    os> SELECT SIGNUM(1), SIGNUM(0), SIGNUM(-1.1)
+    fetched rows / total rows = 1/1
+    +-------------+-------------+----------------+
+    | SIGNUM(1)   | SIGNUM(0)   | SIGNUM(-1.1)   |
+    |-------------+-------------+----------------|
+    | 1           | 0           | -1             |
+    +-------------+-------------+----------------+
 
 
 SIN

@@ -42,6 +42,7 @@ public enum BuiltinFunctionName {
   RINT(FunctionName.of("rint")),
   ROUND(FunctionName.of("round")),
   SIGN(FunctionName.of("sign")),
+  SIGNUM(FunctionName.of("signum")),
   SINH(FunctionName.of("sinh")),
   SQRT(FunctionName.of("sqrt")),
   CBRT(FunctionName.of("cbrt")),
