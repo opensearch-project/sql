@@ -226,6 +226,10 @@ public class DSL {
     return compile(FunctionProperties.None, BuiltinFunctionName.SIGN, expressions);
   }
 
+  public static FunctionExpression sinh(Expression... expressions) {
+    return compile(FunctionProperties.None, BuiltinFunctionName.SINH, expressions);
+  }
+
   public static FunctionExpression sqrt(Expression... expressions) {
     return compile(FunctionProperties.None, BuiltinFunctionName.SQRT, expressions);
   }

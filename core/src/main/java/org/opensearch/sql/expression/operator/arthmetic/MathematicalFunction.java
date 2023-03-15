@@ -71,6 +71,7 @@ public class MathematicalFunction {
     repository.register(power());
     repository.register(round());
     repository.register(sign());
+    repository.register(sinh());
     repository.register(sqrt());
     repository.register(truncate());
     repository.register(pi());
@@ -473,6 +474,17 @@ public class MathematicalFunction {
   private static DefaultFunctionResolver sign() {
     return baseMathFunction(BuiltinFunctionName.SIGN.getName(),
             v -> new ExprIntegerValue(Math.signum(v.doubleValue())), INTEGER);
+  }
+
+  /**
+   * Definition of sinh(x) function.
+   * Returns the hyperbolix sine of x, defined as (((e^x) - (e^(-x))) / 2)
+   * The supported signature is
+   * BYTE/SHORT/INTEGER/LONG/FLOAT/DOUBLE -> DOUBLE
+   */
+  private static DefaultFunctionResolver sinh() {
+    return baseMathFunction(BuiltinFunctionName.SINH.getName(),
+            v -> new ExprDoubleValue(Math.sinh(v.doubleValue())), DOUBLE);
   }
 
   /**
