@@ -429,7 +429,7 @@ mathematicalFunctionName
     ;
 
 trigonometricFunctionName
-    : ACOS | ASIN | ATAN | ATAN2 | COS | COT | DEGREES | RADIANS | SIN | TAN
+    : ACOS | ASIN | ATAN | ATAN2 | COS | COT | DEGREES | RADIANS | SIN | SINH | TAN
     ;
 
 dateTimeFunctionName
