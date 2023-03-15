@@ -72,6 +72,7 @@ public class MathematicalFunction {
     repository.register(rint());
     repository.register(round());
     repository.register(sign());
+    repository.register(signum());
     repository.register(sinh());
     repository.register(sqrt());
     repository.register(truncate());
@@ -486,6 +487,18 @@ public class MathematicalFunction {
    */
   private static DefaultFunctionResolver sign() {
     return baseMathFunction(BuiltinFunctionName.SIGN.getName(),
+            v -> new ExprIntegerValue(Math.signum(v.doubleValue())), INTEGER);
+  }
+
+  /**
+   * Definition of signum(x) function.
+   * Returns the sign of the argument as -1.0, 0, or 1.0
+   * depending on whether x is negative, zero, or positive
+   * The supported signature is
+   * BYTE/SHORT/INTEGER/LONG/FLOAT/DOUBLE -> INTEGER
+   */
+  private static DefaultFunctionResolver signum() {
+    return baseMathFunction(BuiltinFunctionName.SIGNUM.getName(),
             v -> new ExprIntegerValue(Math.signum(v.doubleValue())), INTEGER);
   }
 
