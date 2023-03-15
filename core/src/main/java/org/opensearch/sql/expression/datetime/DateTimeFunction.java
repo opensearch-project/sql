@@ -198,6 +198,7 @@ public class DateTimeFunction {
     repository.register(week(BuiltinFunctionName.WEEK));
     repository.register(week(BuiltinFunctionName.WEEKOFYEAR));
     repository.register(week(BuiltinFunctionName.WEEK_OF_YEAR));
+    repository.register(weekday());
     repository.register(year());
   }
 
@@ -897,6 +898,19 @@ public class DateTimeFunction {
         impl(nullMissingHandling(DateTimeFunction::exprWeek), INTEGER, DATETIME, INTEGER),
         impl(nullMissingHandling(DateTimeFunction::exprWeek), INTEGER, TIMESTAMP, INTEGER),
         impl(nullMissingHandling(DateTimeFunction::exprWeek), INTEGER, STRING, INTEGER)
+    );
+  }
+
+  private DefaultFunctionResolver weekday() {
+    return define(BuiltinFunctionName.WEEKDAY.getName(),
+        implWithProperties(nullMissingHandlingWithProperties(
+            (functionProperties, arg) -> new ExprIntegerValue(
+                formatNow(functionProperties.getQueryStartClock()).getDayOfWeek().getValue() - 1)),
+            INTEGER, TIME),
+        impl(nullMissingHandling(DateTimeFunction::exprWeekday), INTEGER, DATE),
+        impl(nullMissingHandling(DateTimeFunction::exprWeekday), INTEGER, DATETIME),
+        impl(nullMissingHandling(DateTimeFunction::exprWeekday), INTEGER, TIMESTAMP),
+        impl(nullMissingHandling(DateTimeFunction::exprWeekday), INTEGER, STRING)
     );
   }
 
@@ -1685,6 +1699,16 @@ public class DateTimeFunction {
   private ExprValue exprWeek(ExprValue date, ExprValue mode) {
     return new ExprIntegerValue(
         CalendarLookup.getWeekNumber(mode.integerValue(), date.dateValue()));
+  }
+
+  /**
+   * Weekday implementation for ExprValue.
+   *
+   * @param date ExprValue of Date/Datetime/String/Timstamp type.
+   * @return ExprValue.
+   */
+  private ExprValue exprWeekday(ExprValue date) {
+    return new ExprIntegerValue(date.dateValue().getDayOfWeek().getValue() - 1);
   }
 
   private ExprValue unixTimeStamp(Clock clock) {

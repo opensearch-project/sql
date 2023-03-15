@@ -943,6 +943,12 @@ public class DateTimeFunctionIT extends SQLIntegTestCase {
   }
 
   @Test
+  public void testWeekday() throws IOException {
+    JSONObject result = executeQuery(String.format("SELECT weekday(date0) FROM %s LIMIT 3", TEST_INDEX_CALCS));
+    verifyDataRows(result, rows(3), rows(1), rows(2));
+  }
+
+  @Test
   public void testWeekOfYearUnderscores() throws IOException {
     JSONObject result = executeQuery("select week_of_year(date('2008-02-20'))");
     verifySchema(result, schema("week_of_year(date('2008-02-20'))", null, "integer"));

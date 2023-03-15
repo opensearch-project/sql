@@ -480,6 +480,7 @@ dateTimeFunctionName
     | TO_DAYS
     | UNIX_TIMESTAMP
     | WEEK
+    | WEEKDAY
     | WEEK_OF_YEAR
     | WEEKOFYEAR
     | YEAR
