@@ -248,6 +248,7 @@ RINT:                               'RINT';
 ROUND:                              'ROUND';
 RTRIM:                              'RTRIM';
 REVERSE:                            'REVERSE';
+SEC_TO_TIME:                        'SEC_TO_TIME';
 SIGN:                               'SIGN';
 SIGNUM:                             'SIGNUM';
 SIN:                                'SIN';

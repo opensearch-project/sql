@@ -320,9 +320,21 @@ COSH
 Description
 >>>>>>>>>>>
 
-Specifications:
+Usage: cosh(x) calculates the hyperbolic cosine of x, defined as (((e^x) + (e^(-x))) / 2)
 
-1. COSH(NUMBER T) -> DOUBLE
+Argument type: BYTE/SHORT/INTEGER/LONG/FLOAT/DOUBLE
+
+Return Type: DOUBLE
+
+Example::
+
+    os> SELECT COSH(2), COSH(1.5)
+    fetched rows / total rows = 1/1
+    +--------------------+-------------------+
+    | COSH(2)            | COSH(1.5)         |
+    |--------------------+-------------------|
+    | 3.7621956910836314 | 2.352409615243247 |
+    +--------------------+-------------------+
 
 
 COT
@@ -700,9 +712,21 @@ RINT
 Description
 >>>>>>>>>>>
 
-Specifications:
+Usage: RINT(NUMBER T) returns T rounded to the closest whole integer number
 
-1. RINT(NUMBER T) -> T
+Argument type: BYTE/SHORT/INTEGER/LONG/FLOAT/DOUBLE
+
+Return type: DOUBLE
+
+Example::
+
+    os> SELECT RINT(1.7);
+    fetched rows / total rows = 1/1
+    +-------------+
+    | RINT(1.7)   |
+    |-------------|
+    | 2.0         |
+    +-------------+
 
 
 ROUND
@@ -2156,6 +2180,47 @@ Example::
     |-------------------------------|
     | 3                             |
     +-------------------------------+
+
+SEC_TO_TIME
+-----------
+
+Description
+>>>>>>>>>>>
+
+Usage: sec_to_time(number) returns the time in HH:mm:ssss[.nnnnnn] format.
+Note that the function returns a time between 00:00:00 and 23:59:59.
+If an input value is too large (greater than 86399), the function will wrap around and begin returning outputs starting from 00:00:00.
+If an input value is too small (less than 0), the function will wrap around and begin returning outputs counting down from 23:59:59.
+
+Argument type: INTEGER, LONG, DOUBLE, FLOAT
+
+Return type: TIME
+
+Example::
+
+    os> SELECT SEC_TO_TIME(3601)
+    fetched rows / total rows = 1/1
+    +---------------------+
+    | SEC_TO_TIME(3601)   |
+    |---------------------|
+    | 01:00:01            |
+    +---------------------+
+
+    os> SELECT sec_to_time(1234.123);
+    fetched rows / total rows = 1/1
+    +-------------------------+
+    | sec_to_time(1234.123)   |
+    |-------------------------|
+    | 00:20:34.123            |
+    +-------------------------+
+
+    os> SELECT sec_to_time(NULL);
+    fetched rows / total rows = 1/1
+    +---------------------+
+    | sec_to_time(NULL)   |
+    |---------------------|
+    | null                |
+    +---------------------+
 
 
 SECOND

@@ -67,6 +67,21 @@ public class MathematicalFunctionIT extends SQLIntegTestCase {
   }
 
   @Test
+  public void testCosh() throws IOException {
+    JSONObject result = executeQuery("select cosh(1)");
+    verifySchema(result, schema("cosh(1)", null, "double"));
+    verifyDataRows(result, rows(1.543080634815244));
+
+    result = executeQuery("select cosh(-1)");
+    verifySchema(result, schema("cosh(-1)", null, "double"));
+    verifyDataRows(result, rows(1.543080634815244));
+
+    result = executeQuery("select cosh(1.5)");
+    verifySchema(result, schema("cosh(1.5)", null, "double"));
+    verifyDataRows(result, rows(2.352409615243247));
+  }
+
+  @Test
   public void testCrc32() throws IOException {
     JSONObject result = executeQuery("select crc32('MySQL')");
     verifySchema(result, schema("crc32('MySQL')", null, "long"));
@@ -96,6 +111,25 @@ public class MathematicalFunctionIT extends SQLIntegTestCase {
     result = executeQuery("select mod(3.1, 2)");
     verifySchema(result, schema("mod(3.1, 2)", null, "double"));
     verifyDataRows(result, rows(1.1));
+  }
+
+  @Test
+  public void testRint() throws IOException {
+    JSONObject result = executeQuery("select rint(56.78)");
+    verifySchema(result, schema("rint(56.78)", null, "double"));
+    verifyDataRows(result, rows(57.0));
+
+    result = executeQuery("select rint(-56)");
+    verifySchema(result, schema("rint(-56)", null, "double"));
+    verifyDataRows(result, rows(-56.0));
+
+    result = executeQuery("select rint(3.5)");
+    verifySchema(result, schema("rint(3.5)", null, "double"));
+    verifyDataRows(result, rows(4.0));
+
+    result = executeQuery("select rint(-3.5)");
+    verifySchema(result, schema("rint(-3.5)", null, "double"));
+    verifyDataRows(result, rows(-4.0));
   }
 
   @Test

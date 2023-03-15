@@ -755,6 +755,16 @@ public class DateTimeFunctionIT extends SQLIntegTestCase {
   }
 
   @Test
+  public void testSecToTime() throws IOException {
+    JSONObject result = executeQuery(
+        String.format("SELECT sec_to_time(balance) FROM %s LIMIT 3", TEST_INDEX_BANK));
+    verifyDataRows(result,
+        rows("10:53:45"),
+        rows("01:34:46"),
+        rows("09:07:18"));
+  }
+
+  @Test
   public void testSecond() throws IOException {
     JSONObject result = executeQuery("select second(timestamp('2020-09-16 17:30:00'))");
     verifySchema(result, schema("second(timestamp('2020-09-16 17:30:00'))", null, "integer"));
