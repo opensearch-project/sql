@@ -2383,6 +2383,72 @@ public class MathematicalFunctionTest extends ExpressionTestBase {
   }
 
   /**
+   * Test cosh with byte value.
+   */
+  @ParameterizedTest(name = "cosh({0})")
+  @ValueSource(bytes = {-1, 1, 2})
+  public void cosh_byte_value(Byte value) {
+    FunctionExpression cosh = DSL.cosh(DSL.literal(value));
+    assertThat(cosh.valueOf(valueEnv()), allOf(hasType(DOUBLE), hasValue(Math.cosh(value))));
+    assertEquals(String.format("cosh(%s)", value), cosh.toString());
+  }
+
+  /**
+   * Test cosh with short value.
+   */
+  @ParameterizedTest(name = "cosh({0})")
+  @ValueSource(shorts = {-1, 1, 2})
+  public void cosh_short_value(Short value) {
+    FunctionExpression cosh = DSL.cosh(DSL.literal(value));
+    assertThat(cosh.valueOf(valueEnv()), allOf(hasType(DOUBLE), hasValue(Math.cosh(value))));
+    assertEquals(String.format("cosh(%s)", value), cosh.toString());
+  }
+
+  /**
+   * Test cosh with integer value.
+   */
+  @ParameterizedTest(name = "cosh({0})")
+  @ValueSource(ints = {-1, 1, 2})
+  public void cosh_int_value(Integer value) {
+    FunctionExpression cosh = DSL.cosh(DSL.literal(value));
+    assertThat(cosh.valueOf(valueEnv()), allOf(hasType(DOUBLE), hasValue(Math.cosh(value))));
+    assertEquals(String.format("cosh(%s)", value), cosh.toString());
+  }
+
+  /**
+   * Test cosh with long value.
+   */
+  @ParameterizedTest(name = "cosh({0})")
+  @ValueSource(longs = {-1L, 1L, 2L})
+  public void cosh_long_value(Long value) {
+    FunctionExpression cosh = DSL.cosh(DSL.literal(value));
+    assertThat(cosh.valueOf(valueEnv()), allOf(hasType(DOUBLE), hasValue(Math.cosh(value))));
+    assertEquals(String.format("cosh(%s)", value), cosh.toString());
+  }
+
+  /**
+   * Test cosh with float value.
+   */
+  @ParameterizedTest(name = "cosh({0})")
+  @ValueSource(floats = {-1F, 1F, 2F})
+  public void cosh_float_value(Float value) {
+    FunctionExpression cosh = DSL.cosh(DSL.literal(value));
+    assertThat(cosh.valueOf(valueEnv()), allOf(hasType(DOUBLE), hasValue(Math.cosh(value))));
+    assertEquals(String.format("cosh(%s)", value), cosh.toString());
+  }
+
+  /**
+   * Test cosh with double value.
+   */
+  @ParameterizedTest(name = "cosh({0})")
+  @ValueSource(doubles = {-1D, 1D, 2D})
+  public void cosh_double_value(Double value) {
+    FunctionExpression cosh = DSL.cosh(DSL.literal(value));
+    assertThat(cosh.valueOf(valueEnv()), allOf(hasType(DOUBLE), hasValue(Math.cosh(value))));
+    assertEquals(String.format("cosh(%s)", value), cosh.toString());
+  }
+
+  /**
    * Test cot with integer, long, float, double values.
    */
   @ParameterizedTest(name = "cot({0})")

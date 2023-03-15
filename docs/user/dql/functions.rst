@@ -320,9 +320,21 @@ COSH
 Description
 >>>>>>>>>>>
 
-Specifications:
+Usage: cosh(x) calculates the hyperbolic cosine of x, defined as (((e^x) + (e^(-x))) / 2)
 
-1. COSH(NUMBER T) -> DOUBLE
+Argument type: BYTE/SHORT/INTEGER/LONG/FLOAT/DOUBLE
+
+Return Type: DOUBLE
+
+Example::
+
+    os> SELECT COSH(2), COSH(1.5)
+    fetched rows / total rows = 1/1
+    +--------------------+-------------------+
+    | COSH(2)            | COSH(1.5)         |
+    |--------------------+-------------------|
+    | 3.7621956910836314 | 2.352409615243247 |
+    +--------------------+-------------------+
 
 
 COT
