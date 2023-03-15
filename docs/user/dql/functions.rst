@@ -712,9 +712,21 @@ RINT
 Description
 >>>>>>>>>>>
 
-Specifications:
+Usage: RINT(NUMBER T) returns T rounded to the closest whole integer number
 
-1. RINT(NUMBER T) -> T
+Argument type: BYTE/SHORT/INTEGER/LONG/FLOAT/DOUBLE
+
+Return type: DOUBLE
+
+Example::
+
+    os> SELECT RINT(1.7);
+    fetched rows / total rows = 1/1
+    +-------------+
+    | RINT(1.7)   |
+    |-------------|
+    | 2.0         |
+    +-------------+
 
 
 ROUND

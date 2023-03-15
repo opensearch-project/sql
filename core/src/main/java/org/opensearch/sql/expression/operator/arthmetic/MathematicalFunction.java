@@ -69,6 +69,7 @@ public class MathematicalFunction {
     repository.register(mod());
     repository.register(pow());
     repository.register(power());
+    repository.register(rint());
     repository.register(round());
     repository.register(sign());
     repository.register(sinh());
@@ -409,6 +410,17 @@ public class MathematicalFunction {
             FunctionDSL.nullMissingHandling(
                 v -> new ExprFloatValue(new Random(v.integerValue()).nextFloat())), FLOAT, INTEGER)
     );
+  }
+
+  /**
+   * Definition of rint(x) function.
+   * Returns the closest whole integer value to x
+   * The supported signature is
+   * BYTE/SHORT/INTEGER/LONG/FLOAT/DOUBLE -> DOUBLE
+   */
+  private static DefaultFunctionResolver rint() {
+    return baseMathFunction(BuiltinFunctionName.RINT.getName(),
+            v -> new ExprDoubleValue(Math.rint(v.doubleValue())), DOUBLE);
   }
 
   /**
