@@ -23,7 +23,6 @@ import static org.opensearch.sql.data.type.ExprCoreType.STRING;
 import static org.opensearch.sql.data.type.ExprCoreType.STRUCT;
 import static org.opensearch.sql.data.type.ExprCoreType.UNDEFINED;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.CAST_TO_BOOLEAN;
-import static org.opensearch.sql.expression.function.BuiltinFunctionRepository.DEFAULT_NAMESPACE;
 
 import com.google.common.collect.ImmutableList;
 import java.util.Arrays;
@@ -39,7 +38,6 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.opensearch.sql.data.model.ExprValue;
-import org.opensearch.sql.data.type.ExprCoreType;
 import org.opensearch.sql.data.type.ExprType;
 import org.opensearch.sql.exception.ExpressionEvaluationException;
 import org.opensearch.sql.expression.Expression;
@@ -49,12 +47,8 @@ import org.opensearch.sql.expression.env.Environment;
 @ExtendWith(MockitoExtension.class)
 class BuiltinFunctionRepositoryTest {
 
-  public static final String TEST_NAMESPACE = "TEST";
-
   @Mock
   private DefaultFunctionResolver mockfunctionResolver;
-  @Mock
-  private Map<String, Map<FunctionName, FunctionResolver>> mockNamespaceMap;
   @Mock
   private Map<FunctionName, FunctionResolver> mockMap;
   @Mock
@@ -67,38 +61,20 @@ class BuiltinFunctionRepositoryTest {
   private FunctionSignature functionSignature;
   @Mock
   private Expression mockExpression;
-  @Mock
-  private Environment<Expression, ExprCoreType> emptyEnv;
 
   private BuiltinFunctionRepository repo;
 
   @BeforeEach
   void setUp() {
-    repo = new BuiltinFunctionRepository(mockNamespaceMap);
+    repo = new BuiltinFunctionRepository(mockMap);
   }
 
   @Test
   void register() {
-    when(mockNamespaceMap.get(DEFAULT_NAMESPACE)).thenReturn(mockMap);
-    when(mockNamespaceMap.containsKey(DEFAULT_NAMESPACE)).thenReturn(true);
     when(mockfunctionResolver.getFunctionName()).thenReturn(mockFunctionName);
-    BuiltinFunctionRepository repo = new BuiltinFunctionRepository(mockNamespaceMap);
+    BuiltinFunctionRepository repo = new BuiltinFunctionRepository(mockMap);
     repo.register(mockfunctionResolver);
 
-    verify(mockMap, times(1)).put(mockFunctionName, mockfunctionResolver);
-  }
-
-  @Test
-  void register_under_datasource_namespace() {
-    when(mockNamespaceMap.containsKey(TEST_NAMESPACE)).thenReturn(false);
-    when(mockNamespaceMap.put(eq(TEST_NAMESPACE), any())).thenReturn(null);
-    when(mockNamespaceMap.get(TEST_NAMESPACE)).thenReturn(mockMap);
-    when(mockfunctionResolver.getFunctionName()).thenReturn(mockFunctionName);
-    BuiltinFunctionRepository repo = new BuiltinFunctionRepository(mockNamespaceMap);
-    repo.register(TEST_NAMESPACE, mockfunctionResolver);
-
-    verify(mockNamespaceMap, times(1)).put(eq(TEST_NAMESPACE), any());
-    verify(mockNamespaceMap, times(1)).get(TEST_NAMESPACE);
     verify(mockMap, times(1)).put(mockFunctionName, mockfunctionResolver);
   }
 
@@ -109,11 +85,9 @@ class BuiltinFunctionRepositoryTest {
     when(mockfunctionResolver.getFunctionName()).thenReturn(mockFunctionName);
     when(mockfunctionResolver.resolve(any())).thenReturn(
         Pair.of(functionSignature, functionExpressionBuilder));
-    when(mockNamespaceMap.get(DEFAULT_NAMESPACE)).thenReturn(mockMap);
-    when(mockNamespaceMap.containsKey(DEFAULT_NAMESPACE)).thenReturn(true);
     when(mockMap.containsKey(mockFunctionName)).thenReturn(true);
     when(mockMap.get(mockFunctionName)).thenReturn(mockfunctionResolver);
-    BuiltinFunctionRepository repo = new BuiltinFunctionRepository(mockNamespaceMap);
+    BuiltinFunctionRepository repo = new BuiltinFunctionRepository(mockMap);
     repo.register(mockfunctionResolver);
 
     repo.compile(functionProperties, mockFunctionName, Arrays.asList(mockExpression));
@@ -121,22 +95,20 @@ class BuiltinFunctionRepositoryTest {
         .apply(eq(functionProperties), any());
   }
 
-
   @Test
-  void compile_function_under_datasource_namespace() {
+  void compile_datasource_defined_function() {
+    DefaultFunctionResolver dataSourceFunctionResolver = mock(DefaultFunctionResolver.class);
     when(mockExpression.type()).thenReturn(UNDEFINED);
     when(functionSignature.getParamTypeList()).thenReturn(Arrays.asList(UNDEFINED));
-    when(mockfunctionResolver.getFunctionName()).thenReturn(mockFunctionName);
-    when(mockfunctionResolver.resolve(any())).thenReturn(
+    when(dataSourceFunctionResolver.getFunctionName()).thenReturn(mockFunctionName);
+    when(dataSourceFunctionResolver.resolve(any())).thenReturn(
         Pair.of(functionSignature, functionExpressionBuilder));
-    when(mockNamespaceMap.get(TEST_NAMESPACE)).thenReturn(mockMap);
-    when(mockNamespaceMap.containsKey(TEST_NAMESPACE)).thenReturn(true);
-    when(mockMap.containsKey(mockFunctionName)).thenReturn(true);
-    when(mockMap.get(mockFunctionName)).thenReturn(mockfunctionResolver);
-    BuiltinFunctionRepository repo = new BuiltinFunctionRepository(mockNamespaceMap);
-    repo.register(TEST_NAMESPACE, mockfunctionResolver);
+    BuiltinFunctionRepository repo = new BuiltinFunctionRepository(Map.of());
 
-    repo.compile(functionProperties, TEST_NAMESPACE, mockFunctionName,
+    repo.compile(
+        functionProperties,
+        Collections.singletonList(dataSourceFunctionResolver),
+        mockFunctionName,
         Arrays.asList(mockExpression));
     verify(functionExpressionBuilder, times(1))
         .apply(eq(functionProperties), any());
@@ -149,23 +121,20 @@ class BuiltinFunctionRepositoryTest {
     when(mockfunctionResolver.getFunctionName()).thenReturn(mockFunctionName);
     when(mockfunctionResolver.resolve(functionSignature)).thenReturn(
         Pair.of(functionSignature, functionExpressionBuilder));
-    when(mockNamespaceMap.get(DEFAULT_NAMESPACE)).thenReturn(mockMap);
-    when(mockNamespaceMap.containsKey(DEFAULT_NAMESPACE)).thenReturn(true);
     when(mockMap.containsKey(mockFunctionName)).thenReturn(true);
     when(mockMap.get(mockFunctionName)).thenReturn(mockfunctionResolver);
-    BuiltinFunctionRepository repo = new BuiltinFunctionRepository(mockNamespaceMap);
+    BuiltinFunctionRepository repo = new BuiltinFunctionRepository(mockMap);
     repo.register(mockfunctionResolver);
 
     assertEquals(functionExpressionBuilder, repo.resolve(
-        Collections.singletonList(DEFAULT_NAMESPACE), functionSignature));
+        Collections.emptyList(), functionSignature));
   }
 
   @Test
   void resolve_should_not_cast_arguments_in_cast_function() {
     when(mockExpression.toString()).thenReturn("string");
     FunctionImplementation function =
-        repo.resolve(
-                Collections.singletonList(DEFAULT_NAMESPACE),
+        repo.resolve(Collections.emptyList(),
                 registerFunctionResolver(CAST_TO_BOOLEAN.getName(), DATETIME, BOOLEAN))
             .apply(functionProperties, ImmutableList.of(mockExpression));
     assertEquals("cast_to_boolean(string)", function.toString());
@@ -176,8 +145,7 @@ class BuiltinFunctionRepositoryTest {
     when(mockFunctionName.getFunctionName()).thenReturn("mock");
     when(mockExpression.toString()).thenReturn("string");
     FunctionImplementation function =
-        repo.resolve(
-                Collections.singletonList(DEFAULT_NAMESPACE),
+        repo.resolve(Collections.emptyList(),
                 registerFunctionResolver(mockFunctionName, STRING, STRING))
             .apply(functionProperties, ImmutableList.of(mockExpression));
     assertEquals("mock(string)", function.toString());
@@ -188,8 +156,7 @@ class BuiltinFunctionRepositoryTest {
     when(mockFunctionName.getFunctionName()).thenReturn("mock");
     when(mockExpression.toString()).thenReturn("byte");
     FunctionImplementation function =
-        repo.resolve(
-                Collections.singletonList(DEFAULT_NAMESPACE),
+        repo.resolve(Collections.emptyList(),
                 registerFunctionResolver(mockFunctionName, BYTE, INTEGER))
             .apply(functionProperties, ImmutableList.of(mockExpression));
     assertEquals("mock(byte)", function.toString());
@@ -206,7 +173,7 @@ class BuiltinFunctionRepositoryTest {
     registerFunctionResolver(CAST_TO_BOOLEAN.getName(), STRING, STRING);
 
     FunctionImplementation function =
-        repo.resolve(Collections.singletonList(DEFAULT_NAMESPACE), signature)
+        repo.resolve(Collections.emptyList(), signature)
             .apply(functionProperties, ImmutableList.of(mockExpression));
     assertEquals("mock(cast_to_boolean(string))", function.toString());
   }
@@ -215,8 +182,7 @@ class BuiltinFunctionRepositoryTest {
   void resolve_should_throw_exception_for_unsupported_conversion() {
     ExpressionEvaluationException error =
         assertThrows(ExpressionEvaluationException.class, () ->
-            repo.resolve(
-                    Collections.singletonList(DEFAULT_NAMESPACE),
+            repo.resolve(Collections.emptyList(),
                     registerFunctionResolver(mockFunctionName, BYTE, STRUCT))
                 .apply(functionProperties, ImmutableList.of(mockExpression)));
     assertEquals(error.getMessage(), "Type conversion to type STRUCT is not supported");
@@ -225,15 +191,12 @@ class BuiltinFunctionRepositoryTest {
   @Test
   @DisplayName("resolve unregistered function should throw exception")
   void resolve_unregistered() {
-    when(mockNamespaceMap.get(DEFAULT_NAMESPACE)).thenReturn(mockMap);
-    when(mockNamespaceMap.containsKey(DEFAULT_NAMESPACE)).thenReturn(true);
     when(mockMap.containsKey(any())).thenReturn(false);
-    BuiltinFunctionRepository repo = new BuiltinFunctionRepository(mockNamespaceMap);
+    BuiltinFunctionRepository repo = new BuiltinFunctionRepository(mockMap);
     repo.register(mockfunctionResolver);
 
     ExpressionEvaluationException exception = assertThrows(ExpressionEvaluationException.class,
-        () -> repo.resolve(
-            Collections.singletonList(DEFAULT_NAMESPACE),
+        () -> repo.resolve(Collections.emptyList(),
             new FunctionSignature(FunctionName.of("unknown"), List.of())));
     assertEquals("unsupported function name: unknown", exception.getMessage());
   }
@@ -249,8 +212,6 @@ class BuiltinFunctionRepositoryTest {
     DefaultFunctionResolver funcResolver = mock(DefaultFunctionResolver.class);
     FunctionBuilder funcBuilder = mock(FunctionBuilder.class);
 
-    when(mockNamespaceMap.get(DEFAULT_NAMESPACE)).thenReturn(mockMap);
-    when(mockNamespaceMap.containsKey(DEFAULT_NAMESPACE)).thenReturn(true);
     when(mockMap.containsKey(eq(funcName))).thenReturn(true);
     when(mockMap.get(eq(funcName))).thenReturn(funcResolver);
     when(funcResolver.resolve(eq(unresolvedSignature))).thenReturn(

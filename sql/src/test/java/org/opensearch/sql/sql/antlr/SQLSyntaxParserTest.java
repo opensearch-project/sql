@@ -175,6 +175,12 @@ class SQLSyntaxParserTest {
     );
   }
 
+  @Test
+  public void can_parse_weekday_function() {
+    assertNotNull(parser.parse("SELECT weekday('2022-11-18')"));
+    assertNotNull(parser.parse("SELECT day_of_week('2022-11-18')"));
+  }
+
   @ParameterizedTest(name = "{0}")
   @MethodSource("nowLikeFunctionsData")
   public void can_parse_now_like_functions(String name, Boolean hasFsp, Boolean hasShortcut) {
@@ -521,6 +527,13 @@ class SQLSyntaxParserTest {
     assertNotNull(parser.parse("SELECT minute_of_day('2022-12-14 12:23:34');"));;
   }
 
+  @Test
+  public void can_parse_sec_to_time_function() {
+    assertNotNull(parser.parse("SELECT sec_to_time(-6897)"));
+    assertNotNull(parser.parse("SELECT sec_to_time(6897)"));
+    assertNotNull(parser.parse("SELECT sec_to_time(6897.123)"));
+  }
+  
   @Test
   public void can_parse_last_day_function() {
     assertNotNull(parser.parse("SELECT last_day(\"2017-06-20\")"));
