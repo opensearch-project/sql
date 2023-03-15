@@ -99,6 +99,25 @@ public class MathematicalFunctionIT extends SQLIntegTestCase {
   }
 
   @Test
+  public void testRint() throws IOException {
+    JSONObject result = executeQuery("select rint(56.78)");
+    verifySchema(result, schema("rint(56.78)", null, "double"));
+    verifyDataRows(result, rows(57.0));
+
+    result = executeQuery("select rint(-56)");
+    verifySchema(result, schema("rint(-56)", null, "double"));
+    verifyDataRows(result, rows(-56.0));
+
+    result = executeQuery("select rint(3.5)");
+    verifySchema(result, schema("rint(3.5)", null, "double"));
+    verifyDataRows(result, rows(4.0));
+
+    result = executeQuery("select rint(-3.5)");
+    verifySchema(result, schema("rint(-3.5)", null, "double"));
+    verifyDataRows(result, rows(-4.0));
+  }
+
+  @Test
   public void testRound() throws IOException {
     JSONObject result = executeQuery("select round(56.78)");
     verifySchema(result, schema("round(56.78)", null, "double"));

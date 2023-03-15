@@ -39,6 +39,7 @@ public enum BuiltinFunctionName {
   POW(FunctionName.of("pow")),
   POWER(FunctionName.of("power")),
   RAND(FunctionName.of("rand")),
+  RINT(FunctionName.of("rint")),
   ROUND(FunctionName.of("round")),
   SIGN(FunctionName.of("sign")),
   SINH(FunctionName.of("sinh")),
