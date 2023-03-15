@@ -556,6 +556,12 @@ class SQLSyntaxParserTest {
   }
 
   @Test
+  public void can_parse_yearweek_function() {
+    assertNotNull(parser.parse("SELECT yearweek('1987-01-01')"));
+    assertNotNull(parser.parse("SELECT yearweek('1987-01-01', 1)"));
+  }
+
+  @Test
   public void describe_request_accepts_only_quoted_string_literals() {
     assertAll(
         () -> assertThrows(SyntaxCheckException.class,

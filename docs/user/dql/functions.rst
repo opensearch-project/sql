@@ -2813,6 +2813,28 @@ Example::
     +----------------------------+
 
 
+YEARWEEK
+--------
+
+Description
+>>>>>>>>>>>
+
+Usage: yearweek(date) returns the year and week for date as an integer. It accepts and optional mode arguments aligned with those available for the `WEEK`_ function.
+
+Argument type: STRING/DATE/DATETIME/TIME/TIMESTAMP
+
+Return type: INTEGER
+
+Example::
+
+    os> SELECT YEARWEEK('2020-08-26'), YEARWEEK('2019-01-05', 0)
+    fetched rows / total rows = 1/1
+    +--------------------------+-----------------------------+
+    | YEARWEEK('2020-08-26')   | YEARWEEK('2019-01-05', 0)   |
+    |--------------------------+-----------------------------|
+    | 202034                   | 201852                      |
+    +--------------------------+-----------------------------+
+
 String Functions
 ================
 

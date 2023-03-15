@@ -475,6 +475,11 @@ public class DSL {
     return compile(FunctionProperties.None, BuiltinFunctionName.YEAR, expressions);
   }
 
+  public static FunctionExpression yearweek(
+      FunctionProperties functionProperties, Expression... expressions) {
+    return compile(functionProperties, BuiltinFunctionName.YEARWEEK, expressions);
+  }
+
   public static FunctionExpression divide(Expression... expressions) {
     return compile(FunctionProperties.None, BuiltinFunctionName.DIVIDE, expressions);
   }
