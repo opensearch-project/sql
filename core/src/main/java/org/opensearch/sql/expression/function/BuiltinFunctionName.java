@@ -94,6 +94,7 @@ public enum BuiltinFunctionName {
   PERIOD_ADD(FunctionName.of("period_add")),
   PERIOD_DIFF(FunctionName.of("period_diff")),
   QUARTER(FunctionName.of("quarter")),
+  SEC_TO_TIME(FunctionName.of("sec_to_time")),
   SECOND(FunctionName.of("second")),
   SECOND_OF_MINUTE(FunctionName.of("second_of_minute")),
   SUBDATE(FunctionName.of("subdate")),

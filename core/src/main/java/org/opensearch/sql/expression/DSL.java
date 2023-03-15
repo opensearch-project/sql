@@ -461,6 +461,10 @@ public class DSL {
     return compile(FunctionProperties.None, BuiltinFunctionName.MODULES, expressions);
   }
 
+  public static FunctionExpression sec_to_time(Expression... expressions) {
+    return  compile(FunctionProperties.None, BuiltinFunctionName.SEC_TO_TIME, expressions);
+  }
+
   public static FunctionExpression substr(Expression... expressions) {
     return compile(FunctionProperties.None, BuiltinFunctionName.SUBSTR, expressions);
   }

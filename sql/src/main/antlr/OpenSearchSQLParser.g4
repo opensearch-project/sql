@@ -471,6 +471,7 @@ dateTimeFunctionName
     | PERIOD_ADD
     | PERIOD_DIFF
     | QUARTER
+    | SEC_TO_TIME
     | SECOND
     | SECOND_OF_MINUTE
     | SUBDATE
