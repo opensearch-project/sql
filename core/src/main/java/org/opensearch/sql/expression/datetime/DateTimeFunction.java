@@ -1743,7 +1743,7 @@ public class DateTimeFunction {
    * @return ExprValue.
    */
   private ExprValue exprWeekWithoutMode(ExprValue date) {
-    return exprWeek(date, new ExprIntegerValue(0));
+    return exprWeek(date, DEFAULT_WEEK_OF_YEAR_MODE);
   }
 
   /**
