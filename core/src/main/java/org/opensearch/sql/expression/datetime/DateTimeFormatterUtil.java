@@ -255,21 +255,15 @@ class DateTimeFormatterUtil {
   }
 
   private static boolean canGetDate(TemporalAccessor ta) {
-    if (!ta.isSupported(ChronoField.YEAR)
-        || !ta.isSupported(ChronoField.MONTH_OF_YEAR)
-        || !ta.isSupported(ChronoField.DAY_OF_MONTH)) {
-      return false;
-    }
-    return true;
+    return (ta.isSupported(ChronoField.YEAR)
+        && ta.isSupported(ChronoField.MONTH_OF_YEAR)
+        && ta.isSupported(ChronoField.DAY_OF_MONTH));
   }
 
   private static boolean canGetTime(TemporalAccessor ta) {
-    if (!ta.isSupported(ChronoField.HOUR_OF_DAY)
-        || !ta.isSupported(ChronoField.MINUTE_OF_HOUR)
-        || !ta.isSupported(ChronoField.SECOND_OF_MINUTE)) {
-      return false;
-    }
-    return true;
+    return (ta.isSupported(ChronoField.HOUR_OF_DAY)
+        && ta.isSupported(ChronoField.MINUTE_OF_HOUR)
+        && ta.isSupported(ChronoField.SECOND_OF_MINUTE));
   }
 
   static ExprValue parseStringWithDateOrTime(FunctionProperties fp,

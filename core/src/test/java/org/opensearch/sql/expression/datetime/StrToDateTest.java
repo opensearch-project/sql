@@ -31,7 +31,6 @@ import org.opensearch.sql.expression.Expression;
 import org.opensearch.sql.expression.ExpressionTestBase;
 import org.opensearch.sql.expression.FunctionExpression;
 
-@ExtendWith(MockitoExtension.class)
 class StrToDateTest extends ExpressionTestBase {
 
   private static Stream<Arguments> getTestDataForStrToDate() {
