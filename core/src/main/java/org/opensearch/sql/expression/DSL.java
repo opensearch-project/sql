@@ -498,14 +498,6 @@ public class DSL {
     return compile(FunctionProperties.None, BuiltinFunctionName.YEAR, expressions);
   }
 
-  public static FunctionExpression divide(Expression... expressions) {
-    return compile(FunctionProperties.None, BuiltinFunctionName.DIVIDE, expressions);
-  }
-
-  public static FunctionExpression module(Expression... expressions) {
-    return compile(FunctionProperties.None, BuiltinFunctionName.MODULES, expressions);
-  }
-
   public static FunctionExpression sec_to_time(Expression... expressions) {
     return  compile(FunctionProperties.None, BuiltinFunctionName.SEC_TO_TIME, expressions);
   }
