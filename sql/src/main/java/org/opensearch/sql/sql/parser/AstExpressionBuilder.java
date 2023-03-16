@@ -30,6 +30,7 @@ import static org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParser.CountStarF
 import static org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParser.DataTypeFunctionCallContext;
 import static org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParser.DateLiteralContext;
 import static org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParser.DistinctCountFunctionCallContext;
+import static org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParser.ExtractFunctionCallContext;
 import static org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParser.FilterClauseContext;
 import static org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParser.FilteredAggregationFunctionCallContext;
 import static org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParser.FunctionArgContext;
@@ -491,6 +492,14 @@ public class AstExpressionBuilder extends OpenSearchSQLParserBaseVisitor<Unresol
     );
   }
 
+  @Override
+  public UnresolvedExpression visitExtractFunctionCall(ExtractFunctionCallContext ctx) {
+    return new Function(
+        ctx.extractFunction().EXTRACT().toString(),
+        getExtractFunctionArguments(ctx));
+  }
+
+
   private QualifiedName visitIdentifiers(List<IdentContext> identifiers) {
     return new QualifiedName(
         identifiers.stream()
@@ -626,5 +635,14 @@ public class AstExpressionBuilder extends OpenSearchSQLParserBaseVisitor<Unresol
         new Literal(StringUtils.unquoteText(ctx.query.getText()), DataType.STRING)));
     fillRelevanceArgs(ctx.relevanceArg(), builder);
     return builder.build();
+  }
+
+  private List<UnresolvedExpression> getExtractFunctionArguments(
+      ExtractFunctionCallContext ctx) {
+    List<UnresolvedExpression> args = Arrays.asList(
+        new Literal(ctx.extractFunction().datetimePart().getText(), DataType.STRING),
+        visitFunctionArg(ctx.extractFunction().functionArg())
+    );
+    return args;
   }
 }
