@@ -320,9 +320,21 @@ COSH
 Description
 >>>>>>>>>>>
 
-Specifications:
+Usage: cosh(x) calculates the hyperbolic cosine of x, defined as (((e^x) + (e^(-x))) / 2)
 
-1. COSH(NUMBER T) -> DOUBLE
+Argument type: BYTE/SHORT/INTEGER/LONG/FLOAT/DOUBLE
+
+Return Type: DOUBLE
+
+Example::
+
+    os> SELECT COSH(2), COSH(1.5)
+    fetched rows / total rows = 1/1
+    +--------------------+-------------------+
+    | COSH(2)            | COSH(1.5)         |
+    |--------------------+-------------------|
+    | 3.7621956910836314 | 2.352409615243247 |
+    +--------------------+-------------------+
 
 
 COT
@@ -700,9 +712,21 @@ RINT
 Description
 >>>>>>>>>>>
 
-Specifications:
+Usage: RINT(NUMBER T) returns T rounded to the closest whole integer number
 
-1. RINT(NUMBER T) -> T
+Argument type: BYTE/SHORT/INTEGER/LONG/FLOAT/DOUBLE
+
+Return type: DOUBLE
+
+Example::
+
+    os> SELECT RINT(1.7);
+    fetched rows / total rows = 1/1
+    +-------------+
+    | RINT(1.7)   |
+    |-------------|
+    | 2.0         |
+    +-------------+
 
 
 ROUND
@@ -760,9 +784,23 @@ SIGNUM
 Description
 >>>>>>>>>>>
 
-Specifications:
+Usage: Returns the sign of the argument as -1, 0, or 1, depending on whether the number is negative, zero, or positive
 
-1. SIGNUM(NUMBER T) -> T
+Argument type: BYTE/SHORT/INTEGER/LONG/FLOAT/DOUBLE
+
+Return type: INTEGER
+
+Synonyms: `SIGN`_
+
+Example::
+
+    os> SELECT SIGNUM(1), SIGNUM(0), SIGNUM(-1.1)
+    fetched rows / total rows = 1/1
+    +-------------+-------------+----------------+
+    | SIGNUM(1)   | SIGNUM(0)   | SIGNUM(-1.1)   |
+    |-------------+-------------+----------------|
+    | 1           | 0           | -1             |
+    +-------------+-------------+----------------+
 
 
 SIN
@@ -794,9 +832,21 @@ SINH
 Description
 >>>>>>>>>>>
 
-Specifications:
+Usage: sinh(x) calculate the hyperbolic sine of x, defined as (((e^x) - (e^(-x))) / 2)
 
-1. SINH(NUMBER T) -> DOUBLE
+Argument type: BYTE/SHORT/INTEGER/LONG/FLOAT/DOUBLE
+
+Return type: DOUBLE
+
+Example::
+
+    os> SELECT SINH(2), SINH(1.5)
+    fetched rows / total rows = 1/1
+    +-------------------+--------------------+
+    | SINH(2)           | SINH(1.5)          |
+    |-------------------+--------------------|
+    | 3.626860407847019 | 2.1292794550948173 |
+    +-------------------+--------------------+
 
 
 SQRT
@@ -1702,6 +1752,75 @@ Example::
     +-------------------------------------------------+
 
 
+EXTRACT
+_______
+
+Description
+>>>>>>>>>>>
+
+Usage: extract(part FROM date) returns a LONG with digits in order according to the given 'part' arguments.
+The specific format of the returned long is determined by the table below.
+
+Argument type: PART
+PART must be one of the following tokens in the table below.
+
+The format specifiers found in this table are the same as those found in the `DATE_FORMAT`_ function.
+.. list-table:: The following table describes the mapping of a 'part' to a particular format.
+   :widths: 20 80
+   :header-rows: 1
+
+   * - Part
+     - Format
+   * - MICROSECOND
+     - %f
+   * - SECOND
+     - %s
+   * - MINUTE
+     - %i
+   * - HOUR
+     - %H
+   * - DAY
+     - %d
+   * - WEEK
+     - %X
+   * - MONTH
+     - %m
+   * - YEAR
+     - %V
+   * - SECOND_MICROSECOND
+     - %s%f
+   * - MINUTE_MICROSECOND
+     - %i%s%f
+   * - MINUTE_SECOND
+     - %i%s
+   * - HOUR_MICROSECOND
+     - %H%i%s%f
+   * - HOUR_SECOND
+     - %H%i%s
+   * - HOUR_MINUTE
+     - %H%i
+   * - DAY_MICROSECOND
+     - %d%H%i%s%f
+   * - DAY_SECOND
+     - %d%H%i%s
+   * - DAY_MINUTE
+     - %d%H%i
+   * - DAY_HOUR
+     - %d%H%
+   * - YEAR_MONTH
+     - %V%m
+
+Return type: LONG
+
+Example::
+
+    os> SELECT extract(YEAR_MONTH FROM "2023-02-07 10:11:12");
+    fetched rows / total rows = 1/1
+    +--------------------------------------------------+
+    | extract(YEAR_MONTH FROM "2023-02-07 10:11:12")   |
+    |--------------------------------------------------|
+    | 202302                                           |
+    +--------------------------------------------------+
 
 FROM_DAYS
 ---------
@@ -2131,6 +2250,47 @@ Example::
     | 3                             |
     +-------------------------------+
 
+SEC_TO_TIME
+-----------
+
+Description
+>>>>>>>>>>>
+
+Usage: sec_to_time(number) returns the time in HH:mm:ssss[.nnnnnn] format.
+Note that the function returns a time between 00:00:00 and 23:59:59.
+If an input value is too large (greater than 86399), the function will wrap around and begin returning outputs starting from 00:00:00.
+If an input value is too small (less than 0), the function will wrap around and begin returning outputs counting down from 23:59:59.
+
+Argument type: INTEGER, LONG, DOUBLE, FLOAT
+
+Return type: TIME
+
+Example::
+
+    os> SELECT SEC_TO_TIME(3601)
+    fetched rows / total rows = 1/1
+    +---------------------+
+    | SEC_TO_TIME(3601)   |
+    |---------------------|
+    | 01:00:01            |
+    +---------------------+
+
+    os> SELECT sec_to_time(1234.123);
+    fetched rows / total rows = 1/1
+    +-------------------------+
+    | sec_to_time(1234.123)   |
+    |-------------------------|
+    | 00:20:34.123            |
+    +-------------------------+
+
+    os> SELECT sec_to_time(NULL);
+    fetched rows / total rows = 1/1
+    +---------------------+
+    | sec_to_time(NULL)   |
+    |---------------------|
+    | null                |
+    +---------------------+
+
 
 SECOND
 ------
@@ -2162,6 +2322,32 @@ Example::
     |--------------------------------------|
     | 3                                    |
     +--------------------------------------+
+
+
+STR_TO_DATE
+-----------
+
+Description
+>>>>>>>>>>>
+
+Usage: str_to_date(string, string) is used to extract a DATETIME from the first argument string using the formats specified in the second argument string.
+The input argument must have enough information to be parsed as a DATE, DATETIME, or TIME.
+Acceptable string format specifiers are the same as those used in the `DATE_FORMAT`_ function.
+It returns NULL when a statement cannot be parsed due to an invalid pair of arguments, and when 0 is provided for any DATE field. Otherwise, it will return a DATETIME with the parsed values (as well as default values for any field that was not parsed).
+
+Argument type: STRING, STRING
+
+Return type: DATETIME
+
+Example::
+
+    OS> SELECT str_to_date("01,5,2013", "%d,%m,%Y")
+    fetched rows / total rows = 1/1
+    +----------------------------------------+
+    | str_to_date("01,5,2013", "%d,%m,%Y")   |
+    |----------------------------------------|
+    | 2013-05-01 00:00:00                    |
+    +----------------------------------------+
 
 
 SUBDATE
@@ -2649,6 +2835,30 @@ Example::
     | 7                          | 8                             |
     +----------------------------+-------------------------------+
 
+WEEKDAY
+_______
+
+Description
+>>>>>>>>>>>
+
+Usage: weekday(date) returns the weekday index for date (0 = Monday, 1 = Tuesday, ..., 6 = Sunday).
+
+It is similar to the `dayofweek`_ function, but returns different indexes for each day.
+
+Argument type: STRING/DATE/DATETIME/TIME/TIMESTAMP
+
+Return type: INTEGER
+
+Example::
+
+    os> SELECT weekday('2020-08-26'), weekday('2020-08-27')
+    fetched rows / total rows = 1/1
+    +-------------------------+-------------------------+
+    | weekday('2020-08-26')   | weekday('2020-08-27')   |
+    |-------------------------+-------------------------|
+    | 2                       | 3                       |
+    +-------------------------+-------------------------+
+
 WEEK_OF_YEAR
 ------------
 
@@ -2719,6 +2929,28 @@ Example::
     | 2020                       |
     +----------------------------+
 
+
+YEARWEEK
+--------
+
+Description
+>>>>>>>>>>>
+
+Usage: yearweek(date) returns the year and week for date as an integer. It accepts and optional mode arguments aligned with those available for the `WEEK`_ function.
+
+Argument type: STRING/DATE/DATETIME/TIME/TIMESTAMP
+
+Return type: INTEGER
+
+Example::
+
+    os> SELECT YEARWEEK('2020-08-26'), YEARWEEK('2019-01-05', 0)
+    fetched rows / total rows = 1/1
+    +--------------------------+-----------------------------+
+    | YEARWEEK('2020-08-26')   | YEARWEEK('2019-01-05', 0)   |
+    |--------------------------+-----------------------------|
+    | 202034                   | 201852                      |
+    +--------------------------+-----------------------------+
 
 String Functions
 ================
