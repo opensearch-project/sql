@@ -506,6 +506,7 @@ dateTimeFunctionName
     | TIMEDIFF
     | TIMESTAMP
     | TO_DAYS
+    | TO_SECONDS
     | UNIX_TIMESTAMP
     | WEEK
     | WEEKDAY

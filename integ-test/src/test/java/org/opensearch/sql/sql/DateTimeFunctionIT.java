@@ -985,6 +985,21 @@ public class DateTimeFunctionIT extends SQLIntegTestCase {
   }
 
   @Test
+  public void testToSeconds() throws IOException {
+    JSONObject result = executeQuery(
+        String.format("select to_seconds(date(date0)) FROM %s LIMIT 2", TEST_INDEX_CALCS));
+    verifyDataRows(result, rows(63249206400L), rows(62246275200L));
+
+    result = executeQuery(
+        String.format("SELECT to_seconds(datetime(cast(datetime0 AS string))) FROM %s LIMIT 2", TEST_INDEX_CALCS));
+    verifyDataRows(result, rows(63256587455L), rows(63258064234L));
+
+    result = executeQuery(String.format(
+        "select to_seconds(timestamp(datetime0)) FROM %s LIMIT 2", TEST_INDEX_CALCS));
+    verifyDataRows(result, rows(63256587455L), rows(63258064234L));
+  }
+
+  @Test
   public void testYear() throws IOException {
     JSONObject result = executeQuery("select year(date('2020-09-16'))");
     verifySchema(result, schema("year(date('2020-09-16'))", null, "integer"));
