@@ -488,6 +488,47 @@ public class DateTimeFunctionIT extends SQLIntegTestCase {
   }
 
   @Test
+  public void testExtractWithDatetime() throws IOException {
+    JSONObject datetimeResult = executeQuery(
+        String.format(
+            "SELECT extract(DAY_SECOND FROM datetime(cast(datetime0 AS STRING))) FROM %s LIMIT 1",
+            TEST_INDEX_CALCS));
+    verifyDataRows(datetimeResult, rows(9101735));
+  }
+
+  @Test
+  public void testExtractWithTime() throws IOException {
+    JSONObject timeResult = executeQuery(
+        String.format(
+            "SELECT extract(HOUR_SECOND FROM cast(time0 AS TIME)) FROM %s LIMIT 1",
+            TEST_INDEX_CALCS));
+    verifyDataRows(timeResult, rows(210732));
+
+  }
+
+  @Test
+  public void testExtractWithDate() throws IOException {
+    JSONObject dateResult  = executeQuery(
+        String.format(
+            "SELECT extract(YEAR_MONTH FROM cast(date0 AS DATE)) FROM %s LIMIT 1",
+            TEST_INDEX_CALCS));
+    verifyDataRows(dateResult, rows(200404));
+  }
+
+  @Test
+  public void testExtractWithDifferentTypesReturnSameResult() throws IOException {
+    JSONObject dateResult  = executeQuery(
+        String.format("SELECT extract(YEAR_MONTH FROM datetime0) FROM %s LIMIT 1", TEST_INDEX_CALCS));
+
+    JSONObject datetimeResult  = executeQuery(
+        String.format(
+            "SELECT extract(YEAR_MONTH FROM date(datetime0)) FROM %s LIMIT 1",
+            TEST_INDEX_CALCS));
+
+    dateResult.getJSONArray("datarows").similar(datetimeResult.getJSONArray("datarows"));
+  }
+
+  @Test
   public void testHourFunctionAliasesReturnTheSameResults() throws IOException {
     JSONObject result1 = executeQuery("SELECT hour('11:30:00')");
     JSONObject result2 = executeQuery("SELECT hour_of_day('11:30:00')");
@@ -828,6 +869,39 @@ public class DateTimeFunctionIT extends SQLIntegTestCase {
   }
 
   @Test
+  public void testStrToDate() throws IOException {
+    //Ideal case
+    JSONObject result = executeQuery(
+        String.format("SELECT str_to_date(CAST(birthdate AS STRING),"
+                + " '%%Y-%%m-%%d %%h:%%i:%%s') FROM %s LIMIT 2",
+            TEST_INDEX_BANK));
+    verifyDataRows(result,
+        rows("2017-10-23 00:00:00"),
+        rows("2017-11-20 00:00:00")
+    );
+
+    //Bad string format case
+    result = executeQuery(
+        String.format("SELECT str_to_date(CAST(birthdate AS STRING),"
+                + " '%%Y %%s') FROM %s LIMIT 2",
+            TEST_INDEX_BANK));
+    verifyDataRows(result,
+        rows((Object) null),
+        rows((Object) null)
+    );
+
+    //bad date format case
+    result = executeQuery(
+        String.format("SELECT str_to_date(firstname,"
+                + " '%%Y-%%m-%%d %%h:%%i:%%s') FROM %s LIMIT 2",
+            TEST_INDEX_BANK));
+    verifyDataRows(result,
+        rows((Object) null),
+        rows((Object) null)
+    );
+  }
+
+  @Test
   public void testSubDateWithDays() throws IOException {
     var result =
         executeQuery("select subdate(date('2020-09-16'), 1)");
@@ -999,6 +1073,14 @@ public class DateTimeFunctionIT extends SQLIntegTestCase {
     compareWeekResults("datetime(CAST(time0 AS STRING))", TEST_INDEX_CALCS);
     compareWeekResults("CAST(time0 AS STRING)", TEST_INDEX_CALCS);
     compareWeekResults("CAST(datetime0 AS timestamp)", TEST_INDEX_CALCS);
+  }
+
+  @Test
+  public void testYearweek() throws IOException {
+    JSONObject result = executeQuery(
+        String.format("SELECT yearweek(time0), yearweek(time0, 4) FROM %s LIMIT 2", TEST_INDEX_CALCS));
+
+    verifyDataRows(result, rows(189952, 189952), rows(189953, 190001));
   }
 
   void verifyDateFormat(String date, String type, String format, String formatted) throws IOException {

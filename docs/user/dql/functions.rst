@@ -852,9 +852,23 @@ SIGNUM
 Description
 >>>>>>>>>>>
 
-Specifications:
+Usage: Returns the sign of the argument as -1, 0, or 1, depending on whether the number is negative, zero, or positive
 
-1. SIGNUM(NUMBER T) -> T
+Argument type: BYTE/SHORT/INTEGER/LONG/FLOAT/DOUBLE
+
+Return type: INTEGER
+
+Synonyms: `SIGN`_
+
+Example::
+
+    os> SELECT SIGNUM(1), SIGNUM(0), SIGNUM(-1.1)
+    fetched rows / total rows = 1/1
+    +-------------+-------------+----------------+
+    | SIGNUM(1)   | SIGNUM(0)   | SIGNUM(-1.1)   |
+    |-------------+-------------+----------------|
+    | 1           | 0           | -1             |
+    +-------------+-------------+----------------+
 
 
 SIN
@@ -1820,6 +1834,75 @@ Example::
     +-------------------------------------------------+
 
 
+EXTRACT
+_______
+
+Description
+>>>>>>>>>>>
+
+Usage: extract(part FROM date) returns a LONG with digits in order according to the given 'part' arguments.
+The specific format of the returned long is determined by the table below.
+
+Argument type: PART
+PART must be one of the following tokens in the table below.
+
+The format specifiers found in this table are the same as those found in the `DATE_FORMAT`_ function.
+.. list-table:: The following table describes the mapping of a 'part' to a particular format.
+   :widths: 20 80
+   :header-rows: 1
+
+   * - Part
+     - Format
+   * - MICROSECOND
+     - %f
+   * - SECOND
+     - %s
+   * - MINUTE
+     - %i
+   * - HOUR
+     - %H
+   * - DAY
+     - %d
+   * - WEEK
+     - %X
+   * - MONTH
+     - %m
+   * - YEAR
+     - %V
+   * - SECOND_MICROSECOND
+     - %s%f
+   * - MINUTE_MICROSECOND
+     - %i%s%f
+   * - MINUTE_SECOND
+     - %i%s
+   * - HOUR_MICROSECOND
+     - %H%i%s%f
+   * - HOUR_SECOND
+     - %H%i%s
+   * - HOUR_MINUTE
+     - %H%i
+   * - DAY_MICROSECOND
+     - %d%H%i%s%f
+   * - DAY_SECOND
+     - %d%H%i%s
+   * - DAY_MINUTE
+     - %d%H%i
+   * - DAY_HOUR
+     - %d%H%
+   * - YEAR_MONTH
+     - %V%m
+
+Return type: LONG
+
+Example::
+
+    os> SELECT extract(YEAR_MONTH FROM "2023-02-07 10:11:12");
+    fetched rows / total rows = 1/1
+    +--------------------------------------------------+
+    | extract(YEAR_MONTH FROM "2023-02-07 10:11:12")   |
+    |--------------------------------------------------|
+    | 202302                                           |
+    +--------------------------------------------------+
 
 FROM_DAYS
 ---------
@@ -2321,6 +2404,32 @@ Example::
     |--------------------------------------|
     | 3                                    |
     +--------------------------------------+
+
+
+STR_TO_DATE
+-----------
+
+Description
+>>>>>>>>>>>
+
+Usage: str_to_date(string, string) is used to extract a DATETIME from the first argument string using the formats specified in the second argument string.
+The input argument must have enough information to be parsed as a DATE, DATETIME, or TIME.
+Acceptable string format specifiers are the same as those used in the `DATE_FORMAT`_ function.
+It returns NULL when a statement cannot be parsed due to an invalid pair of arguments, and when 0 is provided for any DATE field. Otherwise, it will return a DATETIME with the parsed values (as well as default values for any field that was not parsed).
+
+Argument type: STRING, STRING
+
+Return type: DATETIME
+
+Example::
+
+    OS> SELECT str_to_date("01,5,2013", "%d,%m,%Y")
+    fetched rows / total rows = 1/1
+    +----------------------------------------+
+    | str_to_date("01,5,2013", "%d,%m,%Y")   |
+    |----------------------------------------|
+    | 2013-05-01 00:00:00                    |
+    +----------------------------------------+
 
 
 SUBDATE
@@ -2880,6 +2989,28 @@ Example::
     | 2020                       |
     +----------------------------+
 
+
+YEARWEEK
+--------
+
+Description
+>>>>>>>>>>>
+
+Usage: yearweek(date) returns the year and week for date as an integer. It accepts and optional mode arguments aligned with those available for the `WEEK`_ function.
+
+Argument type: STRING/DATE/DATETIME/TIME/TIMESTAMP
+
+Return type: INTEGER
+
+Example::
+
+    os> SELECT YEARWEEK('2020-08-26'), YEARWEEK('2019-01-05', 0)
+    fetched rows / total rows = 1/1
+    +--------------------------+-----------------------------+
+    | YEARWEEK('2020-08-26')   | YEARWEEK('2019-01-05', 0)   |
+    |--------------------------+-----------------------------|
+    | 202034                   | 201852                      |
+    +--------------------------+-----------------------------+
 
 String Functions
 ================

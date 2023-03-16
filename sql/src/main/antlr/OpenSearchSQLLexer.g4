@@ -211,6 +211,7 @@ DIVIDE:                             'DIVIDE';
 E:                                  'E';
 EXP:                                'EXP';
 EXPM1:                              'EXPM1';
+EXTRACT:                            'EXTRACT';
 FLOOR:                              'FLOOR';
 FROM_DAYS:                          'FROM_DAYS';
 FROM_UNIXTIME:                      'FROM_UNIXTIME';
@@ -255,6 +256,7 @@ SIGNUM:                             'SIGNUM';
 SIN:                                'SIN';
 SINH:                               'SINH';
 SQRT:                               'SQRT';
+STR_TO_DATE:                        'STR_TO_DATE';
 SUBDATE:                            'SUBDATE';
 SUBTIME:                            'SUBTIME';
 SUBTRACT:                           'SUBTRACT';
@@ -343,6 +345,7 @@ STRCMP:                             'STRCMP';
 
 // DATE AND TIME FUNCTIONS
 ADDDATE:                            'ADDDATE';
+YEARWEEK:                           'YEARWEEK';
 
 // RELEVANCE FUNCTIONS AND PARAMETERS
 ALLOW_LEADING_WILDCARD:             'ALLOW_LEADING_WILDCARD';

@@ -262,8 +262,13 @@ public class DSL {
     return compile(FunctionProperties.None, BuiltinFunctionName.SIGN, expressions);
   }
 
+  public static FunctionExpression signum(Expression... expressions) {
+    return compile(FunctionProperties.None, BuiltinFunctionName.SIGNUM, expressions);
+  }
+
   public static FunctionExpression sinh(Expression... expressions) {
     return compile(FunctionProperties.None, BuiltinFunctionName.SINH, expressions);
+
   }
 
   public static FunctionExpression sqrt(Expression... expressions) {
@@ -385,6 +390,15 @@ public class DSL {
     return compile(functionProperties, BuiltinFunctionName.DAY_OF_WEEK, expressions);
   }
 
+  public static FunctionExpression extract(FunctionProperties functionProperties,
+                                           Expression... expressions) {
+    return compile(functionProperties, BuiltinFunctionName.EXTRACT, expressions);
+  }
+
+  public static FunctionExpression extract(Expression... expressions) {
+    return extract(FunctionProperties.None, expressions);
+  }
+
   public static FunctionExpression from_days(Expression... expressions) {
     return compile(FunctionProperties.None, BuiltinFunctionName.FROM_DAYS, expressions);
   }
@@ -498,6 +512,20 @@ public class DSL {
     return compile(FunctionProperties.None, BuiltinFunctionName.YEAR, expressions);
   }
 
+  public static FunctionExpression yearweek(
+      FunctionProperties functionProperties, Expression... expressions) {
+    return compile(functionProperties, BuiltinFunctionName.YEARWEEK, expressions);
+  }
+
+  public static FunctionExpression divide(Expression... expressions) {
+    return compile(FunctionProperties.None, BuiltinFunctionName.DIVIDE, expressions);
+  }
+
+  public static FunctionExpression str_to_date(FunctionProperties functionProperties,
+                                               Expression... expressions) {
+    return compile(functionProperties, BuiltinFunctionName.STR_TO_DATE, expressions);
+  }
+  
   public static FunctionExpression sec_to_time(Expression... expressions) {
     return  compile(FunctionProperties.None, BuiltinFunctionName.SEC_TO_TIME, expressions);
   }

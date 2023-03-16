@@ -167,9 +167,6 @@ public class MathematicalFunctionIT extends SQLIntegTestCase {
     verifyDataRows(result, rows(-4.0));
   }
 
-  /**
-   * Test sign function with double value.
-   */
   @Test
   public void testSign() throws IOException {
     JSONObject result = executeQuery("select sign(1.1)");
@@ -182,6 +179,16 @@ public class MathematicalFunctionIT extends SQLIntegTestCase {
   }
 
   @Test
+  public void testSignum() throws IOException {
+    JSONObject result = executeQuery("select signum(1.1)");
+    verifySchema(result, schema("signum(1.1)", null, "integer"));
+    verifyDataRows(result, rows(1));
+
+    result = executeQuery("select signum(-1.1)");
+    verifySchema(result, schema("signum(-1.1)", null, "integer"));
+    verifyDataRows(result, rows(-1));
+  }
+
   public void testSinh() throws IOException {
     JSONObject result = executeQuery("select sinh(1)");
     verifySchema(result, schema("sinh(1)", null, "double"));
