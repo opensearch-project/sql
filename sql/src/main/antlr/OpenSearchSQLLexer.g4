@@ -210,6 +210,7 @@ DEGREES:                            'DEGREES';
 E:                                  'E';
 EXP:                                'EXP';
 EXPM1:                              'EXPM1';
+EXTRACT:                            'EXTRACT';
 FLOOR:                              'FLOOR';
 FROM_DAYS:                          'FROM_DAYS';
 FROM_UNIXTIME:                      'FROM_UNIXTIME';

@@ -174,6 +174,53 @@ class SQLSyntaxParserTest {
     );
   }
 
+  private static Stream<Arguments> getPartForExtractFunction() {
+    return Stream.of(
+        Arguments.of("MICROSECOND"),
+        Arguments.of("SECOND"),
+        Arguments.of("MINUTE"),
+        Arguments.of("HOUR"),
+        Arguments.of("DAY"),
+        Arguments.of("WEEK"),
+        Arguments.of("MONTH"),
+        Arguments.of("QUARTER"),
+        Arguments.of("YEAR"),
+        Arguments.of("SECOND_MICROSECOND"),
+        Arguments.of("MINUTE_MICROSECOND"),
+        Arguments.of("MINUTE_SECOND"),
+        Arguments.of("HOUR_MICROSECOND"),
+        Arguments.of("HOUR_SECOND"),
+        Arguments.of("HOUR_MINUTE"),
+        Arguments.of("DAY_MICROSECOND"),
+        Arguments.of("DAY_SECOND"),
+        Arguments.of("DAY_MINUTE"),
+        Arguments.of("DAY_HOUR"),
+        Arguments.of("YEAR_MONTH")
+    );
+  }
+
+  @ParameterizedTest(name = "{0}")
+  @MethodSource("getPartForExtractFunction")
+  public void can_parse_extract_function(String part) {
+    assertNotNull(parser.parse(String.format("SELECT extract(%s FROM \"2023-02-06\")", part)));
+  }
+
+  private static Stream<Arguments> getInvalidPartForExtractFunction() {
+    return Stream.of(
+        Arguments.of("INVALID"),
+        Arguments.of("\"SECOND\""),
+        Arguments.of("123")
+    );
+  }
+
+  @ParameterizedTest(name = "{0}")
+  @MethodSource("getInvalidPartForExtractFunction")
+  public void cannot_parse_extract_function_invalid_part(String part) {
+    assertThrows(
+        SyntaxCheckException.class,
+        () -> parser.parse(String.format("SELECT extract(%s FROM \"2023-02-06\")", part)));
+  }
+
   @Test
   public void can_parse_weekday_function() {
     assertNotNull(parser.parse("SELECT weekday('2022-11-18')"));
