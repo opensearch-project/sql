@@ -255,6 +255,7 @@ SIGNUM:                             'SIGNUM';
 SIN:                                'SIN';
 SINH:                               'SINH';
 SQRT:                               'SQRT';
+STR_TO_DATE:                        'STR_TO_DATE';
 SUBDATE:                            'SUBDATE';
 SUBTIME:                            'SUBTIME';
 SUBTRACT:                           'SUBTRACT';

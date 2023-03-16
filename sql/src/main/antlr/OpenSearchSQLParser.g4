@@ -499,6 +499,7 @@ dateTimeFunctionName
     | SUBDATE
     | SUBTIME
     | SYSDATE
+    | STR_TO_DATE
     | TIME
     | TIME_FORMAT
     | TIME_TO_SEC
