@@ -212,6 +212,7 @@ public class DateTimeFunction {
     repository.register(second(BuiltinFunctionName.SECOND_OF_MINUTE));
     repository.register(subdate());
     repository.register(subtime());
+    repository.register(str_to_date());
     repository.register(sysdate());
     repository.register(time());
     repository.register(time_format());
@@ -808,6 +809,18 @@ public class DateTimeFunction {
         implWithProperties(nullMissingHandlingWithProperties(DateTimeFunction::exprSubTime),
             DATETIME, TIMESTAMP, TIMESTAMP)
     );
+  }
+
+  /**
+   * Extracts a date, time, or datetime from the given string.
+   * It accomplishes this using another string which specifies the input format.
+   */
+  private DefaultFunctionResolver str_to_date() {
+    return define(BuiltinFunctionName.STR_TO_DATE.getName(),
+        implWithProperties(
+            nullMissingHandlingWithProperties((functionProperties, arg, format)
+                -> DateTimeFunction.exprStrToDate(functionProperties, arg, format)),
+            DATETIME, STRING, STRING));
   }
 
   /**
@@ -1716,6 +1729,12 @@ public class DateTimeFunction {
   private ExprValue exprSubTime(FunctionProperties functionProperties,
                                 ExprValue temporal, ExprValue temporalDelta) {
     return exprApplyTime(functionProperties, temporal, temporalDelta, false);
+  }
+
+  private ExprValue exprStrToDate(FunctionProperties fp,
+                                  ExprValue dateTimeExpr,
+                                  ExprValue formatStringExp) {
+    return DateTimeFormatterUtil.parseStringWithDateOrTime(fp, dateTimeExpr, formatStringExp);
   }
 
   /**

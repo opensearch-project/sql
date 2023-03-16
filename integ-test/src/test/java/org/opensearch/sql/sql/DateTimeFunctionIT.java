@@ -869,6 +869,39 @@ public class DateTimeFunctionIT extends SQLIntegTestCase {
   }
 
   @Test
+  public void testStrToDate() throws IOException {
+    //Ideal case
+    JSONObject result = executeQuery(
+        String.format("SELECT str_to_date(CAST(birthdate AS STRING),"
+                + " '%%Y-%%m-%%d %%h:%%i:%%s') FROM %s LIMIT 2",
+            TEST_INDEX_BANK));
+    verifyDataRows(result,
+        rows("2017-10-23 00:00:00"),
+        rows("2017-11-20 00:00:00")
+    );
+
+    //Bad string format case
+    result = executeQuery(
+        String.format("SELECT str_to_date(CAST(birthdate AS STRING),"
+                + " '%%Y %%s') FROM %s LIMIT 2",
+            TEST_INDEX_BANK));
+    verifyDataRows(result,
+        rows((Object) null),
+        rows((Object) null)
+    );
+
+    //bad date format case
+    result = executeQuery(
+        String.format("SELECT str_to_date(firstname,"
+                + " '%%Y-%%m-%%d %%h:%%i:%%s') FROM %s LIMIT 2",
+            TEST_INDEX_BANK));
+    verifyDataRows(result,
+        rows((Object) null),
+        rows((Object) null)
+    );
+  }
+
+  @Test
   public void testSubDateWithDays() throws IOException {
     var result =
         executeQuery("select subdate(date('2020-09-16'), 1)");
