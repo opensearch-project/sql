@@ -517,10 +517,6 @@ public class DSL {
     return compile(functionProperties, BuiltinFunctionName.YEARWEEK, expressions);
   }
 
-  public static FunctionExpression divide(Expression... expressions) {
-    return compile(FunctionProperties.None, BuiltinFunctionName.DIVIDE, expressions);
-  }
-
   public static FunctionExpression str_to_date(FunctionProperties functionProperties,
                                                Expression... expressions) {
     return compile(functionProperties, BuiltinFunctionName.STR_TO_DATE, expressions);
