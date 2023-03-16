@@ -2692,6 +2692,30 @@ Example::
     | 7                          | 8                             |
     +----------------------------+-------------------------------+
 
+WEEKDAY
+_______
+
+Description
+>>>>>>>>>>>
+
+Usage: weekday(date) returns the weekday index for date (0 = Monday, 1 = Tuesday, ..., 6 = Sunday).
+
+It is similar to the `dayofweek`_ function, but returns different indexes for each day.
+
+Argument type: STRING/DATE/DATETIME/TIME/TIMESTAMP
+
+Return type: INTEGER
+
+Example::
+
+    os> SELECT weekday('2020-08-26'), weekday('2020-08-27')
+    fetched rows / total rows = 1/1
+    +-------------------------+-------------------------+
+    | weekday('2020-08-26')   | weekday('2020-08-27')   |
+    |-------------------------+-------------------------|
+    | 2                       | 3                       |
+    +-------------------------+-------------------------+
+
 WEEK_OF_YEAR
 ------------
 
