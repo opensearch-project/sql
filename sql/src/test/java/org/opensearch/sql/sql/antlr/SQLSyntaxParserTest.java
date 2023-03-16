@@ -554,6 +554,12 @@ class SQLSyntaxParserTest {
             + "boost=1.5, case_insensitive=true, rewrite=\"scoring_boolean\")"));
   }
 
+  @Test
+  public void can_parse_yearweek_function() {
+    assertNotNull(parser.parse("SELECT yearweek('1987-01-01')"));
+    assertNotNull(parser.parse("SELECT yearweek('1987-01-01', 1)"));
+  }
+
   @ParameterizedTest
   @MethodSource({
       "matchPhraseComplexQueries",
