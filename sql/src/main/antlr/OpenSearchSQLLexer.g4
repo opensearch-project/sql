@@ -207,6 +207,7 @@ DAYOFMONTH:                         'DAYOFMONTH';
 DAYOFWEEK:                          'DAYOFWEEK';
 DAYOFYEAR:                          'DAYOFYEAR';
 DEGREES:                            'DEGREES';
+DIVIDE:                             'DIVIDE';
 E:                                  'E';
 EXP:                                'EXP';
 EXPM1:                              'EXPM1';
@@ -393,7 +394,7 @@ MATCH_BOOL_PREFIX:                  'MATCH_BOOL_PREFIX';
 // Operators. Arithmetics
 
 STAR:                               '*';
-DIVIDE:                             '/';
+SLASH:                              '/';
 MODULE:                             '%';
 PLUS:                               '+';
 MINUS:                              '-';

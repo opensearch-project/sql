@@ -284,7 +284,7 @@ expressionAtom
     | functionCall                                                  #functionCallExpressionAtom
     | LR_BRACKET expression RR_BRACKET                              #nestedExpressionAtom
     | left=expressionAtom
-        mathOperator=(STAR | DIVIDE | MODULE)
+        mathOperator=(STAR | SLASH | MODULE)
             right=expressionAtom                                    #mathExpressionAtom
     | left=expressionAtom
         mathOperator=(PLUS | MINUS)
@@ -448,10 +448,15 @@ mathematicalFunctionName
     : ABS | CBRT | CEIL | CEILING | CONV | CRC32 | E | EXP | EXPM1 | FLOOR | LN | LOG | LOG10 | LOG2 | MOD | PI | POW | POWER
     | RAND | RINT | ROUND | SIGN | SIGNUM | SQRT | TRUNCATE
     | trigonometricFunctionName
+    | arithmeticFunctionName
     ;
 
 trigonometricFunctionName
     : ACOS | ASIN | ATAN | ATAN2 | COS | COSH | COT | DEGREES | RADIANS | SIN | SINH | TAN
+    ;
+
+arithmeticFunctionName
+    : ADD | SUBTRACT | MULTIPLY | DIVIDE | MOD | MODULUS
     ;
 
 dateTimeFunctionName
