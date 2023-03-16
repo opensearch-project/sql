@@ -309,6 +309,7 @@ functionCall
     | relevanceFunction                                             #relevanceFunctionCall
     | highlightFunction                                             #highlightFunctionCall
     | positionFunction                                              #positionFunctionCall
+    | extractFunction                                               #extractFunctionCall
     | getFormatFunction                                             #getFormatFunctionCall
     ;
 
@@ -323,6 +324,32 @@ getFormatType
     | TIMESTAMP
     ;
 
+extractFunction
+    : EXTRACT LR_BRACKET datetimePart FROM functionArg RR_BRACKET
+    ;
+
+datetimePart
+    : MICROSECOND
+    | SECOND
+    | MINUTE
+    | HOUR
+    | DAY
+    | WEEK
+    | MONTH
+    | QUARTER
+    | YEAR
+    | SECOND_MICROSECOND
+    | MINUTE_MICROSECOND
+    | MINUTE_SECOND
+    | HOUR_MICROSECOND
+    | HOUR_SECOND
+    | HOUR_MINUTE
+    | DAY_MICROSECOND
+    | DAY_SECOND
+    | DAY_MINUTE
+    | DAY_HOUR
+    | YEAR_MONTH
+    ;
 
 highlightFunction
     : HIGHLIGHT LR_BRACKET relevanceField (COMMA highlightArg)* RR_BRACKET
