@@ -99,6 +99,7 @@ public enum BuiltinFunctionName {
   SEC_TO_TIME(FunctionName.of("sec_to_time")),
   SECOND(FunctionName.of("second")),
   SECOND_OF_MINUTE(FunctionName.of("second_of_minute")),
+  STR_TO_DATE(FunctionName.of("str_to_date")),
   SUBDATE(FunctionName.of("subdate")),
   SUBTIME(FunctionName.of("subtime")),
   TIME(FunctionName.of("time")),
