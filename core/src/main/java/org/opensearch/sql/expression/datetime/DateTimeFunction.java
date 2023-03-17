@@ -28,10 +28,18 @@ import static org.opensearch.sql.expression.function.FunctionDSL.implWithPropert
 import static org.opensearch.sql.expression.function.FunctionDSL.nullMissingHandling;
 import static org.opensearch.sql.expression.function.FunctionDSL.nullMissingHandlingWithProperties;
 import static org.opensearch.sql.utils.DateTimeFormatters.DATE_FORMATTER_LONG_YEAR;
+import static org.opensearch.sql.utils.DateTimeFormatters.DATE_FORMATTER_NO_YEAR;
 import static org.opensearch.sql.utils.DateTimeFormatters.DATE_FORMATTER_SHORT_YEAR;
+import static org.opensearch.sql.utils.DateTimeFormatters.DATE_FORMATTER_SINGLE_DIGIT_MONTH;
+import static org.opensearch.sql.utils.DateTimeFormatters.DATE_FORMATTER_SINGLE_DIGIT_YEAR;
 import static org.opensearch.sql.utils.DateTimeFormatters.DATE_TIME_FORMATTER_LONG_YEAR;
 import static org.opensearch.sql.utils.DateTimeFormatters.DATE_TIME_FORMATTER_SHORT_YEAR;
 import static org.opensearch.sql.utils.DateTimeFormatters.DATE_TIME_FORMATTER_STRICT_WITH_TZ;
+import static org.opensearch.sql.utils.DateTimeFormatters.FULL_DATE_LENGTH;
+import static org.opensearch.sql.utils.DateTimeFormatters.NO_YEAR_DATE_LENGTH;
+import static org.opensearch.sql.utils.DateTimeFormatters.SHORT_DATE_LENGTH;
+import static org.opensearch.sql.utils.DateTimeFormatters.SINGLE_DIGIT_MONTH_DATE_LENGTH;
+import static org.opensearch.sql.utils.DateTimeFormatters.SINGLE_DIGIT_YEAR_DATE_LENGTH;
 import static org.opensearch.sql.utils.DateTimeUtils.extractDate;
 import static org.opensearch.sql.utils.DateTimeUtils.extractDateTime;
 
@@ -97,6 +105,9 @@ import org.opensearch.sql.utils.DateTimeUtils;
 @UtilityClass
 @SuppressWarnings("unchecked")
 public class DateTimeFunction {
+  //The number of seconds per day
+  public static final long SECONDS_PER_DAY = 86400;
+
   // The number of days from year zero to year 1970.
   private static final Long DAYS_0000_TO_1970 = (146097 * 5L) - (30L * 365L + 7L);
 
@@ -106,7 +117,6 @@ public class DateTimeFunction {
 
   // Mode used for week/week_of_year function by default when no argument is provided
   private static final ExprIntegerValue DEFAULT_WEEK_OF_YEAR_MODE = new ExprIntegerValue(0);
-
 
   // Map used to determine format output for the extract function
   private static final Map<String, String> extract_formats =
@@ -224,6 +234,7 @@ public class DateTimeFunction {
     repository.register(utc_timestamp());
     repository.register(date_format());
     repository.register(to_days());
+    repository.register(to_seconds());
     repository.register(unix_timestamp());
     repository.register(week(BuiltinFunctionName.WEEK));
     repository.register(week(BuiltinFunctionName.WEEKOFYEAR));
@@ -891,6 +902,17 @@ public class DateTimeFunction {
         impl(nullMissingHandling(DateTimeFunction::exprToDays), LONG, TIMESTAMP),
         impl(nullMissingHandling(DateTimeFunction::exprToDays), LONG, DATE),
         impl(nullMissingHandling(DateTimeFunction::exprToDays), LONG, DATETIME));
+  }
+
+  /**
+   * TO_SECONDS(TIMESTAMP/LONG). return the seconds number of the given date.
+   * Arguments of type STRING/TIMESTAMP/LONG are also accepted.
+   * STRING/TIMESTAMP/LONG arguments are automatically cast to TIMESTAMP.
+   */
+  private DefaultFunctionResolver to_seconds() {
+    return define(BuiltinFunctionName.TO_SECONDS.getName(),
+        impl(nullMissingHandling(DateTimeFunction::exprToSeconds), LONG, TIMESTAMP),
+        impl(nullMissingHandling(DateTimeFunction::exprToSecondsForIntType), LONG, LONG));
   }
 
   private FunctionResolver unix_timestamp() {
@@ -1814,6 +1836,80 @@ public class DateTimeFunction {
    */
   private ExprValue exprToDays(ExprValue date) {
     return new ExprLongValue(date.dateValue().toEpochDay() + DAYS_0000_TO_1970);
+  }
+
+  /**
+   * To_seconds implementation for ExprValue.
+   *
+   * @param date ExprValue of Date/Datetime/Timestamp/String type.
+   * @return ExprValue.
+   */
+  private ExprValue exprToSeconds(ExprValue date) {
+    return new ExprLongValue(
+        date.datetimeValue().toEpochSecond(ZoneOffset.UTC) + DAYS_0000_TO_1970 * SECONDS_PER_DAY);
+  }
+
+  /**
+   * Helper function to determine the correct formatter for date arguments passed in as integers.
+   *
+   * @param dateAsInt is an integer formatted as one of YYYYMMDD, YYMMDD, YMMDD, MMDD, MDD
+   * @return is a DateTimeFormatter that can parse the input.
+   */
+  private DateTimeFormatter getFormatter(int dateAsInt) {
+    int length = String.format("%d", dateAsInt).length();
+
+    if (length > 8) {
+      throw new DateTimeException("Integer argument was out of range");
+    }
+
+    //Check below from YYYYMMDD - MMDD which format should be used
+    switch (length) {
+      //Check if dateAsInt is at least 8 digits long
+      case FULL_DATE_LENGTH:
+        return DATE_FORMATTER_LONG_YEAR;
+
+      //Check if dateAsInt is at least 6 digits long
+      case SHORT_DATE_LENGTH:
+        return DATE_FORMATTER_SHORT_YEAR;
+
+      //Check if dateAsInt is at least 5 digits long
+      case SINGLE_DIGIT_YEAR_DATE_LENGTH:
+        return DATE_FORMATTER_SINGLE_DIGIT_YEAR;
+
+      //Check if dateAsInt is at least 4 digits long
+      case NO_YEAR_DATE_LENGTH:
+        return DATE_FORMATTER_NO_YEAR;
+
+      //Check if dateAsInt is at least 3 digits long
+      case SINGLE_DIGIT_MONTH_DATE_LENGTH:
+        return DATE_FORMATTER_SINGLE_DIGIT_MONTH;
+
+      default:
+        break;
+    }
+
+    throw new DateTimeException("No Matching Format");
+  }
+
+  /**
+   * To_seconds implementation with an integer argument for ExprValue.
+   *
+   * @param dateExpr ExprValue of an Integer/Long formatted for a date (e.g., 950501 = 1995-05-01)
+   * @return ExprValue.
+   */
+  private ExprValue exprToSecondsForIntType(ExprValue dateExpr) {
+    try {
+      //Attempt to parse integer argument as date
+      LocalDate date = LocalDate.parse(String.valueOf(dateExpr.integerValue()),
+          getFormatter(dateExpr.integerValue()));
+
+      return new ExprLongValue(date.toEpochSecond(LocalTime.MIN, ZoneOffset.UTC)
+          + DAYS_0000_TO_1970 * SECONDS_PER_DAY);
+
+    } catch (DateTimeException ignored) {
+      //Return null if parsing error
+      return ExprNullValue.of();
+    }
   }
 
   /**
