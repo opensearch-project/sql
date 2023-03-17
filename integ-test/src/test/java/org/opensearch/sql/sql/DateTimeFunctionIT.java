@@ -963,6 +963,17 @@ public class DateTimeFunctionIT extends SQLIntegTestCase {
   }
 
   @Test
+  public void testTimstampadd() throws  IOException {
+    JSONObject result = executeQuery(
+        String.format("SELECT timestampadd(WEEK, 2, time0) FROM %s LIMIT 3", TEST_INDEX_CALCS));
+
+    verifyDataRows(result,
+        rows("1900-01-13 21:07:32"),
+        rows("1900-01-15 13:48:48"),
+        rows("1900-01-15 18:21:08"));
+  }
+
+  @Test
   public void testTimeToSec() throws IOException {
     JSONObject result = executeQuery("select time_to_sec(time('17:30:00'))");
     verifySchema(result, schema("time_to_sec(time('17:30:00'))", null, "long"));

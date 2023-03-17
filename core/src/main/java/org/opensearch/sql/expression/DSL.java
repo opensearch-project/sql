@@ -919,6 +919,15 @@ public class DSL {
     return compile(functionProperties, BuiltinFunctionName.TIME_FORMAT, expressions);
   }
 
+  public static FunctionExpression timestampadd(Expression... expressions) {
+    return timestampadd(FunctionProperties.None, expressions);
+  }
+
+  public static FunctionExpression timestampadd(FunctionProperties functionProperties,
+                                               Expression... expressions) {
+    return compile(functionProperties, BuiltinFunctionName.TIMESTAMPADD, expressions);
+  }
+
   public static FunctionExpression utc_date(FunctionProperties functionProperties,
                                                 Expression... args) {
     return compile(functionProperties, BuiltinFunctionName.UTC_DATE, args);
