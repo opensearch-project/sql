@@ -318,7 +318,6 @@ timestampAddFunction
     : TIMESTAMPADD LR_BRACKET simpleDateTimePart COMMA length=functionArg COMMA timestampExpr=functionArg RR_BRACKET
     ;
 
-
 getFormatFunction
     : GET_FORMAT LR_BRACKET getFormatType COMMA functionArg RR_BRACKET
     ;
