@@ -95,8 +95,8 @@ public class ExpressionTestBase {
         return (expressions) -> DSL.multiply(expressions.get(0), expressions.get(1));
       case DIVIDE:
         return (expressions) -> DSL.divide(expressions.get(0), expressions.get(1));
-      case MODULES:
-        return (expressions) -> DSL.module(expressions.get(0), expressions.get(1));
+      case MODULUS:
+        return (expressions) -> DSL.modulus(expressions.get(0), expressions.get(1));
       default:
         throw new RuntimeException();
     }

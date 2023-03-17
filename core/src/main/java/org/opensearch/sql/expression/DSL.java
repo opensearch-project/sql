@@ -150,6 +150,14 @@ public class DSL {
     return compile(FunctionProperties.None, BuiltinFunctionName.ABS, expressions);
   }
 
+  public static FunctionExpression add(Expression... expressions) {
+    return compile(FunctionProperties.None, BuiltinFunctionName.ADD, expressions);
+  }
+
+  public static FunctionExpression addFunction(Expression... expressions) {
+    return compile(FunctionProperties.None, BuiltinFunctionName.ADDFUNCTION, expressions);
+  }
+
   public static FunctionExpression ceil(Expression... expressions) {
     return compile(FunctionProperties.None, BuiltinFunctionName.CEIL, expressions);
   }
@@ -164,6 +172,14 @@ public class DSL {
 
   public static FunctionExpression crc32(Expression... expressions) {
     return compile(FunctionProperties.None, BuiltinFunctionName.CRC32, expressions);
+  }
+
+  public static FunctionExpression divide(Expression... expressions) {
+    return compile(FunctionProperties.None, BuiltinFunctionName.DIVIDE, expressions);
+  }
+
+  public static FunctionExpression divideFunction(Expression... expressions) {
+    return compile(FunctionProperties.None, BuiltinFunctionName.DIVIDEFUNCTION, expressions);
   }
 
   public static FunctionExpression euler(Expression... expressions) {
@@ -200,6 +216,22 @@ public class DSL {
 
   public static FunctionExpression mod(Expression... expressions) {
     return compile(FunctionProperties.None, BuiltinFunctionName.MOD, expressions);
+  }
+
+  public static FunctionExpression modulus(Expression... expressions) {
+    return compile(FunctionProperties.None, BuiltinFunctionName.MODULUS, expressions);
+  }
+
+  public static FunctionExpression modulusFunction(Expression... expressions) {
+    return compile(FunctionProperties.None, BuiltinFunctionName.MODULUSFUNCTION, expressions);
+  }
+
+  public static FunctionExpression multiply(Expression... expressions) {
+    return compile(FunctionProperties.None, BuiltinFunctionName.MULTIPLY, expressions);
+  }
+
+  public static FunctionExpression multiplyFunction(Expression... expressions) {
+    return compile(FunctionProperties.None, BuiltinFunctionName.MULTIPLYFUNCTION, expressions);
   }
 
   public static FunctionExpression pi(Expression... expressions) {
@@ -286,20 +318,16 @@ public class DSL {
     return compile(FunctionProperties.None, BuiltinFunctionName.SIN, expressions);
   }
 
-  public static FunctionExpression tan(Expression... expressions) {
-    return compile(FunctionProperties.None, BuiltinFunctionName.TAN, expressions);
-  }
-
-  public static FunctionExpression add(Expression... expressions) {
-    return compile(FunctionProperties.None, BuiltinFunctionName.ADD, expressions);
-  }
-
   public static FunctionExpression subtract(Expression... expressions) {
     return compile(FunctionProperties.None, BuiltinFunctionName.SUBTRACT, expressions);
   }
 
-  public static FunctionExpression multiply(Expression... expressions) {
-    return compile(FunctionProperties.None, BuiltinFunctionName.MULTIPLY, expressions);
+  public static FunctionExpression subtractFunction(Expression... expressions) {
+    return compile(FunctionProperties.None, BuiltinFunctionName.SUBTRACTFUNCTION, expressions);
+  }
+
+  public static FunctionExpression tan(Expression... expressions) {
+    return compile(FunctionProperties.None, BuiltinFunctionName.TAN, expressions);
   }
 
   public static FunctionExpression convert_tz(Expression... expressions) {
@@ -494,20 +522,11 @@ public class DSL {
     return compile(functionProperties, BuiltinFunctionName.YEARWEEK, expressions);
   }
 
-  public static FunctionExpression divide(Expression... expressions) {
-    return compile(FunctionProperties.None, BuiltinFunctionName.DIVIDE, expressions);
-  }
-
-  public static FunctionExpression module(Expression... expressions) {
-    return compile(FunctionProperties.None, BuiltinFunctionName.MODULES, expressions);
-  }
-
-
   public static FunctionExpression str_to_date(FunctionProperties functionProperties,
                                                Expression... expressions) {
     return compile(functionProperties, BuiltinFunctionName.STR_TO_DATE, expressions);
   }
-
+  
   public static FunctionExpression sec_to_time(Expression... expressions) {
     return  compile(FunctionProperties.None, BuiltinFunctionName.SEC_TO_TIME, expressions);
   }

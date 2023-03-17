@@ -129,10 +129,23 @@ ADD
 Description
 >>>>>>>>>>>
 
-Specifications:
+Usage: add(x, y) calculates x plus y.
 
-1. ADD(NUMBER T, NUMBER) -> T
+Argument type: BYTE/SHORT/INTEGER/LONG/FLOAT/DOUBLE
 
+Return type: Wider number between x and y
+
+Synonyms: Addition Symbol (+)
+
+Example::
+
+    os> SELECT ADD(2, 1), ADD(2.5, 3);
+    fetched rows / total rows = 1/1
+    +-------------+---------------+
+    | ADD(2, 1)   | ADD(2.5, 3)   |
+    |-------------+---------------|
+    | 3           | 5.5           |
+    +-------------+---------------+
 
 ASIN
 ----
@@ -400,9 +413,23 @@ DIVIDE
 Description
 >>>>>>>>>>>
 
-Specifications:
+Usage: divide(x, y) calculates x divided by y.
 
-1. DIVIDE(NUMBER T, NUMBER) -> T
+Argument type: BYTE/SHORT/INTEGER/LONG/FLOAT/DOUBLE
+
+Return type: Wider number between x and y
+
+Synonyms: Division Symbol (/)
+
+Example::
+
+    os> SELECT DIVIDE(10, 2), DIVIDE(7.5, 3);
+    fetched rows / total rows = 1/1
+    +-----------------+------------------+
+    | DIVIDE(10, 2)   | DIVIDE(7.5, 3)   |
+    |-----------------+------------------|
+    | 5               | 2.5              |
+    +-----------------+------------------+
 
 
 E
@@ -550,11 +577,13 @@ MOD
 Description
 >>>>>>>>>>>
 
-Usage: MOD(n, m) calculates the remainder of the number n divided by m.
+Usage: MOD(x, y) calculates the remainder of the number x divided by y.
 
-Argument type: INTEGER/LONG/FLOAT/DOUBLE
+Argument type: BYTE/SHORT/INTEGER/LONG/FLOAT/DOUBLE
 
-Return type: Wider type between types of n and m if m is nonzero value. If m equals to 0, then returns NULL.
+Return type: Wider number between x and y. If y equals to 0, then returns NULL.
+
+Synonyms: Modulus Symbol (%), `MODULUS`_
 
 Example::
 
@@ -566,6 +595,30 @@ Example::
     | 1           | 1.1           |
     +-------------+---------------+
 
+MODULUS
+-------
+
+Description
+>>>>>>>>>>>
+
+Usage: MODULUS(x, y) calculates the remainder of the number x divided by y.
+
+Argument type: BYTE/SHORT/INTEGER/LONG/FLOAT/DOUBLE
+
+Return type: Wider number between x and y. If y equals to 0, then returns NULL.
+
+Synonyms: Modulus Symbol (%), `MOD`_
+
+Example::
+
+    os> SELECT MODULUS(3, 2), MODULUS(3.1, 2)
+    fetched rows / total rows = 1/1
+    +-----------------+-------------------+
+    | MODULUS(3, 2)   | MODULUS(3.1, 2)   |
+    |-----------------+-------------------|
+    | 1               | 1.1               |
+    +-----------------+-------------------+
+
 
 MULTIPLY
 --------
@@ -573,9 +626,24 @@ MULTIPLY
 Description
 >>>>>>>>>>>
 
-Specifications:
+Usage: MULTIPLY(x, y) calculates the multiplication of x and y.
 
-1. MULTIPLY(NUMBER T, NUMBER) -> NUMBER
+Argument type: BYTE/SHORT/INTEGER/LONG/FLOAT/DOUBLE
+
+Return type: Wider number between x and y. If y equals to 0, then returns NULL.
+
+Synonyms: Multiplication Symbol (\*)
+
+Example::
+
+    os> SELECT MULTIPLY(1, 2), MULTIPLY(-2, 1), MULTIPLY(1.5, 2);
+    fetched rows / total rows = 1/1
+    +------------------+-------------------+--------------------+
+    | MULTIPLY(1, 2)   | MULTIPLY(-2, 1)   | MULTIPLY(1.5, 2)   |
+    |------------------+-------------------+--------------------|
+    | 2                | -2                | 3.0                |
+    +------------------+-------------------+--------------------+
+
 
 PI
 --
@@ -879,9 +947,23 @@ SUBTRACT
 Description
 >>>>>>>>>>>
 
-Specifications:
+Usage: subtract(x, y) calculates x minus y.
 
-1. SUBTRACT(NUMBER T, NUMBER) -> T
+Argument type: BYTE/SHORT/INTEGER/LONG/FLOAT/DOUBLE
+
+Return type: Wider number between x and y
+
+Synonyms: Subtraction Symbol (-)
+
+Example::
+
+    os> SELECT SUBTRACT(2, 1), SUBTRACT(2.5, 3);
+    fetched rows / total rows = 1/1
+    +------------------+--------------------+
+    | SUBTRACT(2, 1)   | SUBTRACT(2.5, 3)   |
+    |------------------+--------------------|
+    | 1                | -0.5               |
+    +------------------+--------------------+
 
 
 TAN
