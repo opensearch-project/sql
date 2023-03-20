@@ -311,6 +311,11 @@ functionCall
     | positionFunction                                              #positionFunctionCall
     | extractFunction                                               #extractFunctionCall
     | getFormatFunction                                             #getFormatFunctionCall
+    | timestampAddFunction                                          #timestampAddFunctionCall
+    ;
+
+timestampAddFunction
+    : TIMESTAMPADD LR_BRACKET simpleDateTimePart COMMA length=functionArg COMMA timestampExpr=functionArg RR_BRACKET
     ;
 
 getFormatFunction
@@ -328,7 +333,7 @@ extractFunction
     : EXTRACT LR_BRACKET datetimePart FROM functionArg RR_BRACKET
     ;
 
-datetimePart
+simpleDateTimePart
     : MICROSECOND
     | SECOND
     | MINUTE
@@ -338,7 +343,10 @@ datetimePart
     | MONTH
     | QUARTER
     | YEAR
-    | SECOND_MICROSECOND
+    ;
+
+complexDateTimePart
+    : SECOND_MICROSECOND
     | MINUTE_MICROSECOND
     | MINUTE_SECOND
     | HOUR_MICROSECOND
@@ -349,6 +357,11 @@ datetimePart
     | DAY_MINUTE
     | DAY_HOUR
     | YEAR_MONTH
+    ;
+
+datetimePart
+    : simpleDateTimePart
+    | complexDateTimePart
     ;
 
 highlightFunction
