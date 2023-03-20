@@ -1,8 +1,8 @@
 .. highlight:: sh
 
-====================
-Prometheus Connector
-====================
+==============
+JDBC Connector
+==============
 
 .. rubric:: Table of contents
 
