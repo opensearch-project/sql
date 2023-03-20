@@ -9,9 +9,12 @@ package org.opensearch.sql.expression.datetime;
 
 import static java.time.temporal.ChronoUnit.DAYS;
 import static java.time.temporal.ChronoUnit.HOURS;
+import static java.time.temporal.ChronoUnit.MICROS;
 import static java.time.temporal.ChronoUnit.MINUTES;
 import static java.time.temporal.ChronoUnit.MONTHS;
 import static java.time.temporal.ChronoUnit.SECONDS;
+import static java.time.temporal.ChronoUnit.WEEKS;
+import static java.time.temporal.ChronoUnit.YEARS;
 import static org.opensearch.sql.data.type.ExprCoreType.DATE;
 import static org.opensearch.sql.data.type.ExprCoreType.DATETIME;
 import static org.opensearch.sql.data.type.ExprCoreType.DOUBLE;
@@ -62,6 +65,7 @@ import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
 import java.time.format.TextStyle;
+import java.time.temporal.ChronoUnit;
 import java.time.temporal.TemporalAmount;
 import java.util.Arrays;
 import java.util.Locale;
@@ -84,6 +88,7 @@ import org.opensearch.sql.data.model.ExprTimestampValue;
 import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.data.type.ExprCoreType;
 import org.opensearch.sql.exception.ExpressionEvaluationException;
+import org.opensearch.sql.exception.SemanticCheckException;
 import org.opensearch.sql.expression.function.BuiltinFunctionName;
 import org.opensearch.sql.expression.function.BuiltinFunctionRepository;
 import org.opensearch.sql.expression.function.DefaultFunctionResolver;
@@ -229,6 +234,7 @@ public class DateTimeFunction {
     repository.register(time_to_sec());
     repository.register(timediff());
     repository.register(timestamp());
+    repository.register(timestampadd());
     repository.register(utc_date());
     repository.register(utc_time());
     repository.register(utc_timestamp());
@@ -891,6 +897,22 @@ public class DateTimeFunction {
         // TIME to other datetime types, but arguments there are already converted.
         impl(nullMissingHandling((v1, v2) -> exprAddTime(FunctionProperties.None, v1, v2)),
             TIMESTAMP, TIMESTAMP, TIMESTAMP));
+  }
+
+  private DefaultFunctionResolver timestampadd() {
+    return define(BuiltinFunctionName.TIMESTAMPADD.getName(),
+        impl(nullMissingHandling(DateTimeFunction::exprTimestampAdd),
+            DATETIME, STRING, INTEGER, DATETIME),
+        impl(nullMissingHandling(DateTimeFunction::exprTimestampAdd),
+            DATETIME, STRING, INTEGER, TIMESTAMP),
+        implWithProperties(
+            nullMissingHandlingWithProperties(
+                (functionProperties, part, amount, time) -> exprTimestampAddForTimeType(
+                    functionProperties.getQueryStartClock(),
+                    part,
+                    amount,
+                    time)),
+            DATETIME, STRING, INTEGER, TIME));
   }
 
   /**
@@ -1794,6 +1816,59 @@ public class DateTimeFunction {
    */
   private ExprValue exprTimeToSec(ExprValue time) {
     return new ExprLongValue(time.timeValue().toSecondOfDay());
+  }
+
+  private ExprValue exprTimestampAdd(ExprValue partExpr,
+                                     ExprValue amountExpr,
+                                     ExprValue datetimeExpr) {
+    String part = partExpr.stringValue();
+    int amount = amountExpr.integerValue();
+    LocalDateTime datetime = datetimeExpr.datetimeValue();
+    ChronoUnit temporalUnit;
+
+    switch (part) {
+      case "MICROSECOND":
+        temporalUnit = MICROS;
+        break;
+      case "SECOND":
+        temporalUnit = SECONDS;
+        break;
+      case "MINUTE":
+        temporalUnit = MINUTES;
+        break;
+      case "HOUR":
+        temporalUnit = HOURS;
+        break;
+      case "DAY":
+        temporalUnit = DAYS;
+        break;
+      case "WEEK":
+        temporalUnit = WEEKS;
+        break;
+      case "MONTH":
+        temporalUnit = MONTHS;
+        break;
+      case "QUARTER":
+        temporalUnit = MONTHS;
+        amount *= 3;
+        break;
+      case "YEAR":
+        temporalUnit = YEARS;
+        break;
+      default:
+        return ExprNullValue.of();
+    }
+    return new ExprDatetimeValue(datetime.plus(amount, temporalUnit));
+  }
+
+  private ExprValue exprTimestampAddForTimeType(Clock clock,
+                                                ExprValue partExpr,
+                                                ExprValue amountExpr,
+                                                ExprValue timeExpr) {
+    LocalDateTime datetime = LocalDateTime.of(
+        formatNow(clock).toLocalDate(),
+        timeExpr.timeValue());
+    return exprTimestampAdd(partExpr, amountExpr, new ExprDatetimeValue(datetime));
   }
 
   /**
