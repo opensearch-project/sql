@@ -2692,6 +2692,29 @@ Example::
     | 2020-08-26 13:49:00                | 2020-08-27 02:04:42                                  |
     +------------------------------------+------------------------------------------------------+
 
+TIMESTAMPADD
+------------
+
+
+Description
+>>>>>>>>>>>
+
+Usage: Returns a DATETIME value based on a passed in DATE/DATETIME/TIME/TIMESTAMP/STRING argument and an INTERVAL and INTEGER argument which determine the amount of time to be added.
+If the third argument is a STRING, it must be formatted as a valid DATETIME. If only a TIME is provided, a DATETIME is still returned with the DATE portion filled in using the current date.
+If the third argument is a DATE, it will be automatically converted to a DATETIME.
+
+Argument type: INTERVAL, INTEGER, DATE/DATETIME/TIME/TIMESTAMP/STRING
+INTERVAL must be one of the following tokens: [MICROSECOND, SECOND, MINUTE, HOUR, DAY, WEEK, MONTH, QUARTER, YEAR]
+
+Examples::
+
+    os> SELECT TIMESTAMPADD(DAY, 17, '2000-01-01 00:00:00'), TIMESTAMPADD(QUARTER, -1, '2000-01-01 00:00:00')
+    fetched rows / total rows = 1/1
+    +------------------------------------------------+----------------------------------------------------+
+    | TIMESTAMPADD(DAY, 17, '2000-01-01 00:00:00')   | TIMESTAMPADD(QUARTER, -1, '2000-01-01 00:00:00')   |
+    |------------------------------------------------+----------------------------------------------------|
+    | 2000-01-18 00:00:00                            | 1999-10-01 00:00:00                                |
+    +------------------------------------------------+----------------------------------------------------+
 
 TO_DAYS
 -------

@@ -332,6 +332,7 @@ SECOND_OF_MINUTE:                   'SECOND_OF_MINUTE';
 STATS:                              'STATS';
 TERM:                               'TERM';
 TERMS:                              'TERMS';
+TIMESTAMPADD:                       'TIMESTAMPADD';
 TOPHITS:                            'TOPHITS';
 TYPEOF:                             'TYPEOF';
 WEEK_OF_YEAR:                       'WEEK_OF_YEAR';

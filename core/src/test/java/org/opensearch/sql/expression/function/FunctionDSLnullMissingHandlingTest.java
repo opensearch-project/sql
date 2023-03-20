@@ -83,6 +83,56 @@ class FunctionDSLnullMissingHandlingTest extends FunctionDSLTestBase {
   }
 
   @Test
+  void nullMissingHandling_threeArgs_FunctionProperties_nullValue_firstArg() {
+    assertEquals(NULL,
+        nullMissingHandlingWithProperties(threeArgsWithProperties)
+            .apply(functionProperties, NULL, ANY, ANY));
+  }
+
+  @Test
+  void nullMissingHandling_threeArgs_FunctionProperties_nullValue_secondArg() {
+    assertEquals(NULL,
+        nullMissingHandlingWithProperties(threeArgsWithProperties)
+            .apply(functionProperties, ANY, NULL, ANY));
+  }
+
+  @Test
+  void nullMissingHandling_threeArgs_FunctionProperties_nullValue_thirdArg() {
+    assertEquals(NULL,
+        nullMissingHandlingWithProperties(threeArgsWithProperties)
+            .apply(functionProperties, ANY, ANY, NULL));
+  }
+
+
+  @Test
+  void nullMissingHandling_threeArgs_FunctionProperties_missingValue_firstArg() {
+    assertEquals(MISSING,
+        nullMissingHandlingWithProperties(threeArgsWithProperties)
+            .apply(functionProperties, MISSING, ANY, ANY));
+  }
+
+  @Test
+  void nullMissingHandling_threeArgs_FunctionProperties_missingValue_secondArg() {
+    assertEquals(MISSING,
+        nullMissingHandlingWithProperties(threeArgsWithProperties)
+            .apply(functionProperties, ANY, MISSING, ANY));
+  }
+
+  @Test
+  void nullMissingHandling_threeArgs_FunctionProperties_missingValue_thirdArg() {
+    assertEquals(MISSING,
+        nullMissingHandlingWithProperties(threeArgsWithProperties)
+            .apply(functionProperties, ANY, ANY, MISSING));
+  }
+
+  @Test
+  void nullMissingHandling_threeArgs_FunctionProperties_apply() {
+    assertEquals(ANY,
+        nullMissingHandlingWithProperties(threeArgsWithProperties)
+            .apply(functionProperties, ANY, ANY, ANY));
+  }
+
+  @Test
   void nullMissingHandling_twoArgs_firstArg_nullValue() {
     assertEquals(NULL, nullMissingHandling(twoArgs).apply(NULL, ANY));
   }
