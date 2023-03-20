@@ -66,11 +66,13 @@ public class MathematicalFunction {
     repository.register(log());
     repository.register(log10());
     repository.register(log2());
-    repository.register(mod());
     repository.register(pow());
     repository.register(power());
+    repository.register(rint());
     repository.register(round());
     repository.register(sign());
+    repository.register(signum());
+    repository.register(sinh());
     repository.register(sqrt());
     repository.register(truncate());
     repository.register(pi());
@@ -80,6 +82,7 @@ public class MathematicalFunction {
     repository.register(atan());
     repository.register(atan2());
     repository.register(cos());
+    repository.register(cosh());
     repository.register(cot());
     repository.register(degrees());
     repository.register(radians());
@@ -296,49 +299,6 @@ public class MathematicalFunction {
   }
 
   /**
-   * Definition of mod(x, y) function.
-   * Calculate the remainder of x divided by y
-   * The supported signature of mod function is
-   * (x: INTEGER/LONG/FLOAT/DOUBLE, y: INTEGER/LONG/FLOAT/DOUBLE)
-   * -> wider type between types of x and y
-   */
-  private static DefaultFunctionResolver mod() {
-    return FunctionDSL.define(BuiltinFunctionName.MOD.getName(),
-        FunctionDSL.impl(
-            FunctionDSL.nullMissingHandling(
-                (v1, v2) -> v2.byteValue() == 0 ? ExprNullValue.of() :
-                    new ExprByteValue(v1.byteValue() % v2.byteValue())),
-            BYTE, BYTE, BYTE),
-        FunctionDSL.impl(
-            FunctionDSL.nullMissingHandling(
-                (v1, v2) -> v2.shortValue() == 0 ? ExprNullValue.of() :
-                    new ExprShortValue(v1.shortValue() % v2.shortValue())),
-            SHORT, SHORT, SHORT),
-        FunctionDSL.impl(
-            FunctionDSL.nullMissingHandling(
-                (v1, v2) -> v2.shortValue() == 0 ? ExprNullValue.of() :
-                    new ExprIntegerValue(Math.floorMod(v1.integerValue(),
-                        v2.integerValue()))),
-            INTEGER, INTEGER, INTEGER),
-        FunctionDSL.impl(
-            FunctionDSL.nullMissingHandling(
-                (v1, v2) -> v2.shortValue() == 0 ? ExprNullValue.of() :
-                    new ExprLongValue(Math.floorMod(v1.longValue(), v2.longValue()))),
-            LONG, LONG, LONG),
-        FunctionDSL.impl(
-            FunctionDSL.nullMissingHandling(
-                (v1, v2) -> v2.shortValue() == 0 ? ExprNullValue.of() :
-                    new ExprFloatValue(v1.floatValue() % v2.floatValue())),
-            FLOAT, FLOAT, FLOAT),
-        FunctionDSL.impl(
-            FunctionDSL.nullMissingHandling(
-                (v1, v2) -> v2.shortValue() == 0 ? ExprNullValue.of() :
-                    new ExprDoubleValue(v1.doubleValue() % v2.doubleValue())),
-            DOUBLE, DOUBLE, DOUBLE)
-    );
-  }
-
-  /**
    * Definition of pi() function.
    * Get the value of pi.
    * () -> DOUBLE
@@ -410,6 +370,17 @@ public class MathematicalFunction {
   }
 
   /**
+   * Definition of rint(x) function.
+   * Returns the closest whole integer value to x
+   * The supported signature is
+   * BYTE/SHORT/INTEGER/LONG/FLOAT/DOUBLE -> DOUBLE
+   */
+  private static DefaultFunctionResolver rint() {
+    return baseMathFunction(BuiltinFunctionName.RINT.getName(),
+            v -> new ExprDoubleValue(Math.rint(v.doubleValue())), DOUBLE);
+  }
+
+  /**
    * Definition of round(x)/round(x, d) function.
    * Rounds the argument x to d decimal places, d defaults to 0 if not specified.
    * The supported signature of round function is
@@ -473,6 +444,29 @@ public class MathematicalFunction {
   private static DefaultFunctionResolver sign() {
     return baseMathFunction(BuiltinFunctionName.SIGN.getName(),
             v -> new ExprIntegerValue(Math.signum(v.doubleValue())), INTEGER);
+  }
+
+  /**
+   * Definition of signum(x) function.
+   * Returns the sign of the argument as -1.0, 0, or 1.0
+   * depending on whether x is negative, zero, or positive
+   * The supported signature is
+   * BYTE/SHORT/INTEGER/LONG/FLOAT/DOUBLE -> INTEGER
+   */
+  private static DefaultFunctionResolver signum() {
+    return baseMathFunction(BuiltinFunctionName.SIGNUM.getName(),
+            v -> new ExprIntegerValue(Math.signum(v.doubleValue())), INTEGER);
+  }
+
+  /**
+   * Definition of sinh(x) function.
+   * Returns the hyperbolix sine of x, defined as (((e^x) - (e^(-x))) / 2)
+   * The supported signature is
+   * BYTE/SHORT/INTEGER/LONG/FLOAT/DOUBLE -> DOUBLE
+   */
+  private static DefaultFunctionResolver sinh() {
+    return baseMathFunction(BuiltinFunctionName.SINH.getName(),
+            v -> new ExprDoubleValue(Math.sinh(v.doubleValue())), DOUBLE);
   }
 
   /**
@@ -620,6 +614,17 @@ public class MathematicalFunction {
   private static DefaultFunctionResolver cos() {
     return baseMathFunction(BuiltinFunctionName.COS.getName(),
             v -> new ExprDoubleValue(Math.cos(v.doubleValue())), DOUBLE);
+  }
+
+  /**
+   * Definition of cosh(x) function.
+   * Returns the hyperbolic cosine of x, defined as (((e^x) + (e^(-x))) / 2)
+   * The supported signature is
+   * BYTE/SHORT/INTEGER/LONG/FLOAT/DOUBLE -> DOUBLE
+   */
+  private static DefaultFunctionResolver cosh() {
+    return baseMathFunction(BuiltinFunctionName.COSH.getName(),
+            v -> new ExprDoubleValue(Math.cosh(v.doubleValue())), DOUBLE);
   }
 
   /**

@@ -207,9 +207,11 @@ DAYOFMONTH:                         'DAYOFMONTH';
 DAYOFWEEK:                          'DAYOFWEEK';
 DAYOFYEAR:                          'DAYOFYEAR';
 DEGREES:                            'DEGREES';
+DIVIDE:                             'DIVIDE';
 E:                                  'E';
 EXP:                                'EXP';
 EXPM1:                              'EXPM1';
+EXTRACT:                            'EXTRACT';
 FLOOR:                              'FLOOR';
 FROM_DAYS:                          'FROM_DAYS';
 FROM_UNIXTIME:                      'FROM_UNIXTIME';
@@ -248,11 +250,13 @@ RINT:                               'RINT';
 ROUND:                              'ROUND';
 RTRIM:                              'RTRIM';
 REVERSE:                            'REVERSE';
+SEC_TO_TIME:                        'SEC_TO_TIME';
 SIGN:                               'SIGN';
 SIGNUM:                             'SIGNUM';
 SIN:                                'SIN';
 SINH:                               'SINH';
 SQRT:                               'SQRT';
+STR_TO_DATE:                        'STR_TO_DATE';
 SUBDATE:                            'SUBDATE';
 SUBTIME:                            'SUBTIME';
 SUBTRACT:                           'SUBTRACT';
@@ -265,6 +269,7 @@ TIME_TO_SEC:                        'TIME_TO_SEC';
 TIMESTAMP:                          'TIMESTAMP';
 TRUNCATE:                           'TRUNCATE';
 TO_DAYS:                            'TO_DAYS';
+TO_SECONDS:                         'TO_SECONDS';
 UNIX_TIMESTAMP:                     'UNIX_TIMESTAMP';
 UPPER:                              'UPPER';
 UTC_DATE:                           'UTC_DATE';
@@ -331,6 +336,7 @@ TOPHITS:                            'TOPHITS';
 TYPEOF:                             'TYPEOF';
 WEEK_OF_YEAR:                       'WEEK_OF_YEAR';
 WEEKOFYEAR:                         'WEEKOFYEAR';
+WEEKDAY:                            'WEEKDAY';
 WILDCARDQUERY:                      'WILDCARDQUERY';
 WILDCARD_QUERY:                     'WILDCARD_QUERY';
 
@@ -340,6 +346,7 @@ STRCMP:                             'STRCMP';
 
 // DATE AND TIME FUNCTIONS
 ADDDATE:                            'ADDDATE';
+YEARWEEK:                           'YEARWEEK';
 
 // RELEVANCE FUNCTIONS AND PARAMETERS
 ALLOW_LEADING_WILDCARD:             'ALLOW_LEADING_WILDCARD';
@@ -387,7 +394,7 @@ MATCH_BOOL_PREFIX:                  'MATCH_BOOL_PREFIX';
 // Operators. Arithmetics
 
 STAR:                               '*';
-DIVIDE:                             '/';
+SLASH:                              '/';
 MODULE:                             '%';
 PLUS:                               '+';
 MINUS:                              '-';

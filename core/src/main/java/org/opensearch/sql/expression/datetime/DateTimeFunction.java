@@ -15,6 +15,7 @@ import static java.time.temporal.ChronoUnit.SECONDS;
 import static org.opensearch.sql.data.type.ExprCoreType.DATE;
 import static org.opensearch.sql.data.type.ExprCoreType.DATETIME;
 import static org.opensearch.sql.data.type.ExprCoreType.DOUBLE;
+import static org.opensearch.sql.data.type.ExprCoreType.FLOAT;
 import static org.opensearch.sql.data.type.ExprCoreType.INTEGER;
 import static org.opensearch.sql.data.type.ExprCoreType.INTERVAL;
 import static org.opensearch.sql.data.type.ExprCoreType.LONG;
@@ -27,13 +28,22 @@ import static org.opensearch.sql.expression.function.FunctionDSL.implWithPropert
 import static org.opensearch.sql.expression.function.FunctionDSL.nullMissingHandling;
 import static org.opensearch.sql.expression.function.FunctionDSL.nullMissingHandlingWithProperties;
 import static org.opensearch.sql.utils.DateTimeFormatters.DATE_FORMATTER_LONG_YEAR;
+import static org.opensearch.sql.utils.DateTimeFormatters.DATE_FORMATTER_NO_YEAR;
 import static org.opensearch.sql.utils.DateTimeFormatters.DATE_FORMATTER_SHORT_YEAR;
+import static org.opensearch.sql.utils.DateTimeFormatters.DATE_FORMATTER_SINGLE_DIGIT_MONTH;
+import static org.opensearch.sql.utils.DateTimeFormatters.DATE_FORMATTER_SINGLE_DIGIT_YEAR;
 import static org.opensearch.sql.utils.DateTimeFormatters.DATE_TIME_FORMATTER_LONG_YEAR;
 import static org.opensearch.sql.utils.DateTimeFormatters.DATE_TIME_FORMATTER_SHORT_YEAR;
 import static org.opensearch.sql.utils.DateTimeFormatters.DATE_TIME_FORMATTER_STRICT_WITH_TZ;
+import static org.opensearch.sql.utils.DateTimeFormatters.FULL_DATE_LENGTH;
+import static org.opensearch.sql.utils.DateTimeFormatters.NO_YEAR_DATE_LENGTH;
+import static org.opensearch.sql.utils.DateTimeFormatters.SHORT_DATE_LENGTH;
+import static org.opensearch.sql.utils.DateTimeFormatters.SINGLE_DIGIT_MONTH_DATE_LENGTH;
+import static org.opensearch.sql.utils.DateTimeFormatters.SINGLE_DIGIT_YEAR_DATE_LENGTH;
 import static org.opensearch.sql.utils.DateTimeUtils.extractDate;
 import static org.opensearch.sql.utils.DateTimeUtils.extractDateTime;
 
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableTable;
 import com.google.common.collect.Table;
 import java.math.BigDecimal;
@@ -55,10 +65,12 @@ import java.time.format.TextStyle;
 import java.time.temporal.TemporalAmount;
 import java.util.Arrays;
 import java.util.Locale;
+import java.util.Map;
 import java.util.TimeZone;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Stream;
 import lombok.experimental.UtilityClass;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.tuple.Pair;
 import org.opensearch.sql.data.model.ExprDateValue;
 import org.opensearch.sql.data.model.ExprDatetimeValue;
@@ -93,6 +105,9 @@ import org.opensearch.sql.utils.DateTimeUtils;
 @UtilityClass
 @SuppressWarnings("unchecked")
 public class DateTimeFunction {
+  //The number of seconds per day
+  public static final long SECONDS_PER_DAY = 86400;
+
   // The number of days from year zero to year 1970.
   private static final Long DAYS_0000_TO_1970 = (146097 * 5L) - (30L * 365L + 7L);
 
@@ -102,6 +117,31 @@ public class DateTimeFunction {
 
   // Mode used for week/week_of_year function by default when no argument is provided
   private static final ExprIntegerValue DEFAULT_WEEK_OF_YEAR_MODE = new ExprIntegerValue(0);
+
+  // Map used to determine format output for the extract function
+  private static final Map<String, String> extract_formats =
+      ImmutableMap.<String, String>builder()
+          .put("MICROSECOND", "SSSSSS")
+          .put("SECOND", "ss")
+          .put("MINUTE", "mm")
+          .put("HOUR", "HH")
+          .put("DAY", "dd")
+          .put("WEEK", "w")
+          .put("MONTH", "MM")
+          .put("YEAR", "yyyy")
+          .put("SECOND_MICROSECOND", "ssSSSSSS")
+          .put("MINUTE_MICROSECOND", "mmssSSSSSS")
+          .put("MINUTE_SECOND", "mmss")
+          .put("HOUR_MICROSECOND", "HHmmssSSSSSS")
+          .put("HOUR_SECOND", "HHmmss")
+          .put("HOUR_MINUTE", "HHmm")
+          .put("DAY_MICROSECOND", "ddHHmmssSSSSSS")
+          .put("DAY_SECOND", "ddHHmmss")
+          .put("DAY_MINUTE", "ddHHmm")
+          .put("DAY_HOUR", "ddHH")
+          .put("YEAR_MONTH", "yyyyMM")
+          .put("QUARTER", "Q")
+          .build();
 
   // Map used to determine format output for the get_format function
   private static final Table<String, String, String> formats =
@@ -155,6 +195,7 @@ public class DateTimeFunction {
     repository.register(dayOfWeek(BuiltinFunctionName.DAY_OF_WEEK.getName()));
     repository.register(dayOfYear(BuiltinFunctionName.DAYOFYEAR));
     repository.register(dayOfYear(BuiltinFunctionName.DAY_OF_YEAR));
+    repository.register(extract());
     repository.register(from_days());
     repository.register(from_unixtime());
     repository.register(get_format());
@@ -176,10 +217,12 @@ public class DateTimeFunction {
     repository.register(period_add());
     repository.register(period_diff());
     repository.register(quarter());
+    repository.register(sec_to_time());
     repository.register(second(BuiltinFunctionName.SECOND));
     repository.register(second(BuiltinFunctionName.SECOND_OF_MINUTE));
     repository.register(subdate());
     repository.register(subtime());
+    repository.register(str_to_date());
     repository.register(sysdate());
     repository.register(time());
     repository.register(time_format());
@@ -191,11 +234,14 @@ public class DateTimeFunction {
     repository.register(utc_timestamp());
     repository.register(date_format());
     repository.register(to_days());
+    repository.register(to_seconds());
     repository.register(unix_timestamp());
     repository.register(week(BuiltinFunctionName.WEEK));
     repository.register(week(BuiltinFunctionName.WEEKOFYEAR));
     repository.register(week(BuiltinFunctionName.WEEK_OF_YEAR));
+    repository.register(weekday());
     repository.register(year());
+    repository.register(yearweek());
   }
 
   /**
@@ -534,6 +580,17 @@ public class DateTimeFunction {
     );
   }
 
+  private DefaultFunctionResolver extract() {
+    return define(BuiltinFunctionName.EXTRACT.getName(),
+        implWithProperties(nullMissingHandlingWithProperties(DateTimeFunction::exprExtractForTime),
+            LONG, STRING, TIME),
+        impl(nullMissingHandling(DateTimeFunction::exprExtract), LONG, STRING, DATE),
+        impl(nullMissingHandling(DateTimeFunction::exprExtract), LONG, STRING, DATETIME),
+        impl(nullMissingHandling(DateTimeFunction::exprExtract), LONG, STRING, TIMESTAMP),
+        impl(nullMissingHandling(DateTimeFunction::exprExtract), LONG, STRING, STRING)
+        );
+  }
+
   /**
    * FROM_DAYS(LONG). return the date value given the day number N.
    */
@@ -688,6 +745,15 @@ public class DateTimeFunction {
     );
   }
 
+  private DefaultFunctionResolver sec_to_time() {
+    return define(BuiltinFunctionName.SEC_TO_TIME.getName(),
+        impl((nullMissingHandling(DateTimeFunction::exprSecToTime)), TIME, INTEGER),
+        impl((nullMissingHandling(DateTimeFunction::exprSecToTime)), TIME, LONG),
+        impl((nullMissingHandling(DateTimeFunction::exprSecToTimeWithNanos)), TIME, DOUBLE),
+        impl((nullMissingHandling(DateTimeFunction::exprSecToTimeWithNanos)), TIME, FLOAT)
+    );
+  }
+
   /**
    * SECOND(STRING/TIME/DATETIME/TIMESTAMP). return the second value for time.
    */
@@ -754,6 +820,18 @@ public class DateTimeFunction {
         implWithProperties(nullMissingHandlingWithProperties(DateTimeFunction::exprSubTime),
             DATETIME, TIMESTAMP, TIMESTAMP)
     );
+  }
+
+  /**
+   * Extracts a date, time, or datetime from the given string.
+   * It accomplishes this using another string which specifies the input format.
+   */
+  private DefaultFunctionResolver str_to_date() {
+    return define(BuiltinFunctionName.STR_TO_DATE.getName(),
+        implWithProperties(
+            nullMissingHandlingWithProperties((functionProperties, arg, format)
+                -> DateTimeFunction.exprStrToDate(functionProperties, arg, format)),
+            DATETIME, STRING, STRING));
   }
 
   /**
@@ -826,6 +904,17 @@ public class DateTimeFunction {
         impl(nullMissingHandling(DateTimeFunction::exprToDays), LONG, DATETIME));
   }
 
+  /**
+   * TO_SECONDS(TIMESTAMP/LONG). return the seconds number of the given date.
+   * Arguments of type STRING/TIMESTAMP/LONG are also accepted.
+   * STRING/TIMESTAMP/LONG arguments are automatically cast to TIMESTAMP.
+   */
+  private DefaultFunctionResolver to_seconds() {
+    return define(BuiltinFunctionName.TO_SECONDS.getName(),
+        impl(nullMissingHandling(DateTimeFunction::exprToSeconds), LONG, TIMESTAMP),
+        impl(nullMissingHandling(DateTimeFunction::exprToSecondsForIntType), LONG, LONG));
+  }
+
   private FunctionResolver unix_timestamp() {
     return define(BuiltinFunctionName.UNIX_TIMESTAMP.getName(),
         implWithProperties(functionProperties
@@ -888,6 +977,19 @@ public class DateTimeFunction {
     );
   }
 
+  private DefaultFunctionResolver weekday() {
+    return define(BuiltinFunctionName.WEEKDAY.getName(),
+        implWithProperties(nullMissingHandlingWithProperties(
+            (functionProperties, arg) -> new ExprIntegerValue(
+                formatNow(functionProperties.getQueryStartClock()).getDayOfWeek().getValue() - 1)),
+            INTEGER, TIME),
+        impl(nullMissingHandling(DateTimeFunction::exprWeekday), INTEGER, DATE),
+        impl(nullMissingHandling(DateTimeFunction::exprWeekday), INTEGER, DATETIME),
+        impl(nullMissingHandling(DateTimeFunction::exprWeekday), INTEGER, TIMESTAMP),
+        impl(nullMissingHandling(DateTimeFunction::exprWeekday), INTEGER, STRING)
+    );
+  }
+
   /**
    * YEAR(STRING/DATE/DATETIME/TIMESTAMP). return the year for date (1000-9999).
    */
@@ -897,6 +999,30 @@ public class DateTimeFunction {
         impl(nullMissingHandling(DateTimeFunction::exprYear), INTEGER, DATETIME),
         impl(nullMissingHandling(DateTimeFunction::exprYear), INTEGER, TIMESTAMP),
         impl(nullMissingHandling(DateTimeFunction::exprYear), INTEGER, STRING)
+    );
+  }
+
+  /**
+   * YEARWEEK(DATE[,mode]). return the week number for date.
+   */
+  private DefaultFunctionResolver yearweek() {
+    return define(BuiltinFunctionName.YEARWEEK.getName(),
+        implWithProperties(nullMissingHandlingWithProperties((functionProperties, arg)
+            -> yearweekToday(
+            DEFAULT_WEEK_OF_YEAR_MODE,
+            functionProperties.getQueryStartClock())), INTEGER, TIME),
+        impl(nullMissingHandling(DateTimeFunction::exprYearweekWithoutMode), INTEGER, DATE),
+        impl(nullMissingHandling(DateTimeFunction::exprYearweekWithoutMode), INTEGER, DATETIME),
+        impl(nullMissingHandling(DateTimeFunction::exprYearweekWithoutMode), INTEGER, TIMESTAMP),
+        impl(nullMissingHandling(DateTimeFunction::exprYearweekWithoutMode), INTEGER, STRING),
+        implWithProperties(nullMissingHandlingWithProperties((functionProperties, time, modeArg)
+            -> yearweekToday(
+            modeArg,
+            functionProperties.getQueryStartClock())), INTEGER, TIME, INTEGER),
+        impl(nullMissingHandling(DateTimeFunction::exprYearweek), INTEGER, DATE, INTEGER),
+        impl(nullMissingHandling(DateTimeFunction::exprYearweek), INTEGER, DATETIME, INTEGER),
+        impl(nullMissingHandling(DateTimeFunction::exprYearweek), INTEGER, TIMESTAMP, INTEGER),
+        impl(nullMissingHandling(DateTimeFunction::exprYearweek), INTEGER, STRING, INTEGER)
     );
   }
 
@@ -1235,6 +1361,48 @@ public class DateTimeFunction {
   }
 
   /**
+   * Obtains a formatted long value for a specified part and datetime for the 'extract' function.
+   *
+   * @param part is an ExprValue which comes from a defined list of accepted values.
+   * @param datetime the date to be formatted as an ExprValue.
+   * @return is a LONG formatted according to the input arguments.
+   */
+  public ExprLongValue formatExtractFunction(ExprValue part, ExprValue datetime) {
+    String partName = part.stringValue().toUpperCase();
+    LocalDateTime arg = datetime.datetimeValue();
+    String text = arg.format(DateTimeFormatter.ofPattern(
+        extract_formats.get(partName), Locale.ENGLISH));
+
+    return new ExprLongValue(Long.parseLong(text));
+  }
+
+  /**
+   * Implements extract function. Returns a LONG formatted according to the 'part' argument.
+   *
+   * @param part Literal that determines the format of the outputted LONG.
+   * @param datetime The date/datetime to be formatted.
+   * @return A LONG
+   */
+  private ExprValue exprExtract(ExprValue part, ExprValue datetime) {
+    return formatExtractFunction(part, datetime);
+  }
+
+  /**
+   * Implements extract function. Returns a LONG formatted according to the 'part' argument.
+   *
+   * @param part Literal that determines the format of the outputted LONG.
+   * @param time The time to be formatted.
+   * @return A LONG
+   */
+  private ExprValue exprExtractForTime(FunctionProperties functionProperties,
+                                       ExprValue part,
+                                       ExprValue time) {
+    return formatExtractFunction(
+        part,
+        new ExprDatetimeValue(extractDateTime(time, functionProperties)));
+  }
+
+  /**
    * From_days implementation for ExprValue.
    *
    * @param exprValue Day number N.
@@ -1499,6 +1667,44 @@ public class DateTimeFunction {
   }
 
   /**
+   * Returns TIME value of sec_to_time function for an INTEGER or LONG arguments.
+   * @param totalSeconds The total number of seconds
+   * @return A TIME value
+   */
+  private ExprValue exprSecToTime(ExprValue totalSeconds) {
+    return new ExprTimeValue(LocalTime.MIN.plus(Duration.ofSeconds(totalSeconds.longValue())));
+  }
+
+  /**
+   * Helper function which obtains the decimal portion of the seconds value passed in.
+   * Uses BigDecimal to prevent issues with math on floating point numbers.
+   * Return is formatted to be used with Duration.ofSeconds();
+   *
+   * @param seconds and ExprDoubleValue or ExprFloatValue for the seconds
+   * @return A LONG representing the nanoseconds portion
+   */
+  private long formatNanos(ExprValue seconds) {
+    //Convert ExprValue to BigDecimal
+    BigDecimal formattedNanos = BigDecimal.valueOf(seconds.doubleValue());
+    //Extract only the nanosecond part
+    formattedNanos = formattedNanos.subtract(BigDecimal.valueOf(formattedNanos.intValue()));
+
+    return formattedNanos.scaleByPowerOfTen(9).longValue();
+  }
+
+  /**
+   * Returns TIME value of sec_to_time function for FLOAT or DOUBLE arguments.
+   * @param totalSeconds The total number of seconds
+   * @return A TIME value
+   */
+  private ExprValue exprSecToTimeWithNanos(ExprValue totalSeconds) {
+    long nanos = formatNanos(totalSeconds);
+
+    return new ExprTimeValue(
+        LocalTime.MIN.plus(Duration.ofSeconds(totalSeconds.longValue(), nanos)));
+  }
+
+  /**
    * Second implementation for ExprValue.
    *
    * @param time ExprValue of Time/String type.
@@ -1545,6 +1751,12 @@ public class DateTimeFunction {
   private ExprValue exprSubTime(FunctionProperties functionProperties,
                                 ExprValue temporal, ExprValue temporalDelta) {
     return exprApplyTime(functionProperties, temporal, temporalDelta, false);
+  }
+
+  private ExprValue exprStrToDate(FunctionProperties fp,
+                                  ExprValue dateTimeExpr,
+                                  ExprValue formatStringExp) {
+    return DateTimeFormatterUtil.parseStringWithDateOrTime(fp, dateTimeExpr, formatStringExp);
   }
 
   /**
@@ -1627,6 +1839,80 @@ public class DateTimeFunction {
   }
 
   /**
+   * To_seconds implementation for ExprValue.
+   *
+   * @param date ExprValue of Date/Datetime/Timestamp/String type.
+   * @return ExprValue.
+   */
+  private ExprValue exprToSeconds(ExprValue date) {
+    return new ExprLongValue(
+        date.datetimeValue().toEpochSecond(ZoneOffset.UTC) + DAYS_0000_TO_1970 * SECONDS_PER_DAY);
+  }
+
+  /**
+   * Helper function to determine the correct formatter for date arguments passed in as integers.
+   *
+   * @param dateAsInt is an integer formatted as one of YYYYMMDD, YYMMDD, YMMDD, MMDD, MDD
+   * @return is a DateTimeFormatter that can parse the input.
+   */
+  private DateTimeFormatter getFormatter(int dateAsInt) {
+    int length = String.format("%d", dateAsInt).length();
+
+    if (length > 8) {
+      throw new DateTimeException("Integer argument was out of range");
+    }
+
+    //Check below from YYYYMMDD - MMDD which format should be used
+    switch (length) {
+      //Check if dateAsInt is at least 8 digits long
+      case FULL_DATE_LENGTH:
+        return DATE_FORMATTER_LONG_YEAR;
+
+      //Check if dateAsInt is at least 6 digits long
+      case SHORT_DATE_LENGTH:
+        return DATE_FORMATTER_SHORT_YEAR;
+
+      //Check if dateAsInt is at least 5 digits long
+      case SINGLE_DIGIT_YEAR_DATE_LENGTH:
+        return DATE_FORMATTER_SINGLE_DIGIT_YEAR;
+
+      //Check if dateAsInt is at least 4 digits long
+      case NO_YEAR_DATE_LENGTH:
+        return DATE_FORMATTER_NO_YEAR;
+
+      //Check if dateAsInt is at least 3 digits long
+      case SINGLE_DIGIT_MONTH_DATE_LENGTH:
+        return DATE_FORMATTER_SINGLE_DIGIT_MONTH;
+
+      default:
+        break;
+    }
+
+    throw new DateTimeException("No Matching Format");
+  }
+
+  /**
+   * To_seconds implementation with an integer argument for ExprValue.
+   *
+   * @param dateExpr ExprValue of an Integer/Long formatted for a date (e.g., 950501 = 1995-05-01)
+   * @return ExprValue.
+   */
+  private ExprValue exprToSecondsForIntType(ExprValue dateExpr) {
+    try {
+      //Attempt to parse integer argument as date
+      LocalDate date = LocalDate.parse(String.valueOf(dateExpr.integerValue()),
+          getFormatter(dateExpr.integerValue()));
+
+      return new ExprLongValue(date.toEpochSecond(LocalTime.MIN, ZoneOffset.UTC)
+          + DAYS_0000_TO_1970 * SECONDS_PER_DAY);
+
+    } catch (DateTimeException ignored) {
+      //Return null if parsing error
+      return ExprNullValue.of();
+    }
+  }
+
+  /**
    * Week for date implementation for ExprValue.
    *
    * @param date ExprValue of Date/Datetime/Timestamp/String type.
@@ -1635,6 +1921,16 @@ public class DateTimeFunction {
   private ExprValue exprWeek(ExprValue date, ExprValue mode) {
     return new ExprIntegerValue(
         CalendarLookup.getWeekNumber(mode.integerValue(), date.dateValue()));
+  }
+
+  /**
+   * Weekday implementation for ExprValue.
+   *
+   * @param date ExprValue of Date/Datetime/String/Timstamp type.
+   * @return ExprValue.
+   */
+  private ExprValue exprWeekday(ExprValue date) {
+    return new ExprIntegerValue(date.dateValue().getDayOfWeek().getValue() - 1);
   }
 
   private ExprValue unixTimeStamp(Clock clock) {
@@ -1718,7 +2014,7 @@ public class DateTimeFunction {
    * @return ExprValue.
    */
   private ExprValue exprWeekWithoutMode(ExprValue date) {
-    return exprWeek(date, new ExprIntegerValue(0));
+    return exprWeek(date, DEFAULT_WEEK_OF_YEAR_MODE);
   }
 
   /**
@@ -1729,6 +2025,52 @@ public class DateTimeFunction {
    */
   private ExprValue exprYear(ExprValue date) {
     return new ExprIntegerValue(date.dateValue().getYear());
+  }
+
+  /**
+   * Helper function to extract the yearweek output from a given date.
+   *
+   * @param date is a LocalDate input argument.
+   * @param mode is an integer containing the mode used to parse the LocalDate.
+   * @return is a long containing the formatted output for the yearweek function.
+   */
+  private ExprIntegerValue extractYearweek(LocalDate date, int mode) {
+    // Needed to align with MySQL. Due to how modes for this function work.
+    // See description of modes here ...
+    // https://dev.mysql.com/doc/refman/8.0/en/date-and-time-functions.html#function_week
+    int modeJava = CalendarLookup.getWeekNumber(mode, date) != 0 ? mode :
+        mode <= 4 ? 2 :
+            7;
+
+    int formatted = CalendarLookup.getYearNumber(modeJava, date) * 100
+        + CalendarLookup.getWeekNumber(modeJava, date);
+
+    return new ExprIntegerValue(formatted);
+  }
+
+  /**
+   * Yearweek for date implementation for ExprValue.
+   *
+   * @param date ExprValue of Date/Datetime/Time/Timestamp/String type.
+   * @param mode ExprValue of Integer type.
+   */
+  private ExprValue exprYearweek(ExprValue date, ExprValue mode) {
+    return extractYearweek(date.dateValue(), mode.integerValue());
+  }
+
+  /**
+   * Yearweek for date implementation for ExprValue.
+   * When mode is not specified default value mode 0 is used.
+   *
+   * @param date ExprValue of Date/Datetime/Time/Timestamp/String type.
+   * @return ExprValue.
+   */
+  private ExprValue exprYearweekWithoutMode(ExprValue date) {
+    return exprYearweek(date, new ExprIntegerValue(0));
+  }
+
+  private ExprValue yearweekToday(ExprValue mode, Clock clock) {
+    return extractYearweek(LocalDateTime.now(clock).toLocalDate(), mode.integerValue());
   }
 
   private ExprValue monthOfYearToday(Clock clock) {
