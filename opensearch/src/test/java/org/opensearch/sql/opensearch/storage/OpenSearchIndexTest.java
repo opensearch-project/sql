@@ -13,6 +13,7 @@ import static org.hamcrest.Matchers.hasEntry;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.doNothing;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.when;
 import static org.opensearch.sql.data.type.ExprCoreType.DOUBLE;
 import static org.opensearch.sql.data.type.ExprCoreType.INTEGER;
@@ -20,10 +21,9 @@ import static org.opensearch.sql.data.type.ExprCoreType.STRING;
 import static org.opensearch.sql.expression.DSL.literal;
 import static org.opensearch.sql.expression.DSL.named;
 import static org.opensearch.sql.expression.DSL.ref;
-import static org.opensearch.sql.opensearch.data.type.OpenSearchDataType.OPENSEARCH_TEXT_KEYWORD;
+import static org.opensearch.sql.opensearch.data.type.OpenSearchDataType.MappingType;
 import static org.opensearch.sql.planner.logical.LogicalPlanDSL.eval;
 import static org.opensearch.sql.planner.logical.LogicalPlanDSL.project;
-import static org.opensearch.sql.planner.logical.LogicalPlanDSL.relation;
 import static org.opensearch.sql.planner.logical.LogicalPlanDSL.remove;
 import static org.opensearch.sql.planner.logical.LogicalPlanDSL.rename;
 import static org.opensearch.sql.planner.logical.LogicalPlanDSL.sort;
@@ -33,6 +33,7 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.apache.commons.lang3.tuple.Pair;
 import org.junit.jupiter.api.BeforeEach;
@@ -52,6 +53,7 @@ import org.opensearch.sql.expression.aggregation.AvgAggregator;
 import org.opensearch.sql.expression.aggregation.NamedAggregator;
 import org.opensearch.sql.opensearch.client.OpenSearchClient;
 import org.opensearch.sql.opensearch.data.type.OpenSearchDataType;
+import org.opensearch.sql.opensearch.data.type.OpenSearchTextType;
 import org.opensearch.sql.opensearch.data.value.OpenSearchExprValueFactory;
 import org.opensearch.sql.opensearch.mapping.IndexMapping;
 import org.opensearch.sql.planner.logical.LogicalPlan;
@@ -76,6 +78,9 @@ class OpenSearchIndexTest {
   @Mock
   private Table table;
 
+  @Mock
+  private IndexMapping mapping;
+
   private OpenSearchIndex index;
 
   @BeforeEach
@@ -95,38 +100,38 @@ class OpenSearchIndexTest {
     Map<String, Object> mappings = ImmutableMap.of(
         "properties",
         ImmutableMap.of(
-            "name", "text_keyword",
+            "name", "text",
             "age", "integer"));
     doNothing().when(client).createIndex(indexName, mappings);
 
     Map<String, ExprType> schema = new HashMap<>();
-    schema.put("name", OPENSEARCH_TEXT_KEYWORD);
+    schema.put("name", OpenSearchTextType.of(Map.of("keyword",
+        OpenSearchDataType.of(MappingType.Keyword))));
     schema.put("age", INTEGER);
     index.create(schema);
   }
 
   @Test
   void getFieldTypes() {
-    when(client.getIndexMappings("test"))
-        .thenReturn(
-            ImmutableMap.of(
-                "test",
-                new IndexMapping(
-                    ImmutableMap.<String, String>builder()
-                        .put("name", "keyword")
-                        .put("address", "text")
-                        .put("age", "integer")
-                        .put("account_number", "long")
-                        .put("balance1", "float")
-                        .put("balance2", "double")
-                        .put("gender", "boolean")
-                        .put("family", "nested")
-                        .put("employer", "object")
-                        .put("birthday", "date")
-                        .put("id1", "byte")
-                        .put("id2", "short")
-                        .put("blob", "binary")
-                        .build())));
+    when(mapping.getFieldMappings()).thenReturn(
+        ImmutableMap.<String, MappingType>builder()
+            .put("name", MappingType.Keyword)
+            .put("address", MappingType.Text)
+            .put("age", MappingType.Integer)
+            .put("account_number", MappingType.Long)
+            .put("balance1", MappingType.Float)
+            .put("balance2", MappingType.Double)
+            .put("gender", MappingType.Boolean)
+            .put("family", MappingType.Nested)
+            .put("employer", MappingType.Object)
+            .put("birthday", MappingType.Date)
+            .put("id1", MappingType.Byte)
+            .put("id2", MappingType.Short)
+            .put("blob", MappingType.Binary)
+            .build().entrySet().stream().collect(Collectors.toMap(
+                e -> e.getKey(), e -> OpenSearchDataType.of(e.getValue())
+            )));
+    when(client.getIndexMappings("test")).thenReturn(ImmutableMap.of("test", mapping));
 
     // Run more than once to confirm caching logic is covered and can work
     for (int i = 0; i < 2; i++) {
@@ -136,7 +141,7 @@ class OpenSearchIndexTest {
           allOf(
               aMapWithSize(13),
               hasEntry("name", ExprCoreType.STRING),
-              hasEntry("address", (ExprType) OpenSearchDataType.OPENSEARCH_TEXT),
+              hasEntry("address", (ExprType) OpenSearchDataType.of(MappingType.Text)),
               hasEntry("age", ExprCoreType.INTEGER),
               hasEntry("account_number", ExprCoreType.LONG),
               hasEntry("balance1", ExprCoreType.FLOAT),
@@ -147,9 +152,35 @@ class OpenSearchIndexTest {
               hasEntry("birthday", ExprCoreType.TIMESTAMP),
               hasEntry("id1", ExprCoreType.BYTE),
               hasEntry("id2", ExprCoreType.SHORT),
-              hasEntry("blob", (ExprType) OpenSearchDataType.OPENSEARCH_BINARY)
-      ));
+              hasEntry("blob", (ExprType) OpenSearchDataType.of(MappingType.Binary))
+          ));
     }
+  }
+
+  @Test
+  void checkCacheUsedForFieldMappings() {
+    when(mapping.getFieldMappings()).thenReturn(
+        Map.of("name", OpenSearchDataType.of(MappingType.Keyword)));
+    when(client.getIndexMappings("test")).thenReturn(
+        ImmutableMap.of("test", mapping));
+
+    OpenSearchIndex index = new OpenSearchIndex(client, settings, "test");
+    assertThat(index.getFieldTypes(), allOf(
+        aMapWithSize(1),
+        hasEntry("name", STRING)));
+    assertThat(index.getFieldOpenSearchTypes(), allOf(
+        aMapWithSize(1),
+        hasEntry("name", OpenSearchDataType.of(STRING))));
+
+    lenient().when(mapping.getFieldMappings()).thenReturn(
+        Map.of("name", OpenSearchDataType.of(MappingType.Integer)));
+
+    assertThat(index.getFieldTypes(), allOf(
+        aMapWithSize(1),
+        hasEntry("name", STRING)));
+    assertThat(index.getFieldOpenSearchTypes(), allOf(
+        aMapWithSize(1),
+        hasEntry("name", OpenSearchDataType.of(STRING))));
   }
 
   @Test

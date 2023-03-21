@@ -33,7 +33,7 @@ public class SystemFunctionIT extends PPLIntegTestCase {
             TEST_INDEX_DATATYPE_NUMERIC));
     // TODO: test null in PPL
     verifyDataRows(response,
-        rows("STRING", "DOUBLE", "INTEGER", "LONG", "INTERVAL"));
+        rows("KEYWORD", "DOUBLE", "INTEGER", "LONG", "INTERVAL"));
 
     response = executeQuery(String.format("source=%s | eval "
         + "`timestamp` = typeof(CAST('1961-04-12 09:07:00' AS TIMESTAMP)),"
@@ -68,7 +68,7 @@ public class SystemFunctionIT extends PPLIntegTestCase {
         + " | fields `text`, `date`, `boolean`, `object`, `keyword`, `ip`, `binary`, `geo_point`",
             TEST_INDEX_DATATYPE_NONNUMERIC));
     verifyDataRows(response,
-        rows("OPENSEARCH_TEXT", "TIMESTAMP", "BOOLEAN", "STRUCT", "STRING",
-                "OPENSEARCH_IP", "OPENSEARCH_BINARY", "OPENSEARCH_GEO_POINT"));
+        rows("TEXT", "TIMESTAMP", "BOOLEAN", "OBJECT", "KEYWORD",
+                "IP", "BINARY", "GEO_POINT"));
   }
 }

@@ -23,7 +23,7 @@ import org.opensearch.sql.expression.FunctionExpression;
 import org.opensearch.sql.expression.ReferenceExpression;
 import org.opensearch.sql.expression.env.Environment;
 import org.opensearch.sql.expression.function.FunctionName;
-import org.opensearch.sql.opensearch.data.type.OpenSearchDataType;
+import org.opensearch.sql.opensearch.data.type.OpenSearchTextType;
 import org.opensearch.sql.opensearch.storage.script.filter.lucene.relevance.MatchPhrasePrefixQuery;
 
 @DisplayNameGeneration(DisplayNameGenerator.ReplaceUnderscores.class)
@@ -42,7 +42,7 @@ public class MatchPhrasePrefixQueryTest  {
   @Test
   public void test_SyntaxCheckException_when_one_argument() {
     List<Expression> arguments = List.of(DSL.namedArgument("field",
-        new ReferenceExpression("test", OpenSearchDataType.OPENSEARCH_TEXT_KEYWORD)));
+        new ReferenceExpression("test", OpenSearchTextType.of())));
     assertThrows(SyntaxCheckException.class,
         () -> matchPhrasePrefixQuery.build(new MatchPhraseExpression(arguments)));
   }
@@ -51,7 +51,7 @@ public class MatchPhrasePrefixQueryTest  {
   public void test_SyntaxCheckException_when_invalid_parameter() {
     List<Expression> arguments = List.of(
         DSL.namedArgument("field",
-            new ReferenceExpression("test", OpenSearchDataType.OPENSEARCH_TEXT_KEYWORD)),
+            new ReferenceExpression("test", OpenSearchTextType.of())),
         DSL.namedArgument("query", "test2"),
         DSL.namedArgument("unsupported", "3"));
     Assertions.assertThrows(SemanticCheckException.class,
@@ -62,7 +62,7 @@ public class MatchPhrasePrefixQueryTest  {
   public void test_analyzer_parameter() {
     List<Expression> arguments = List.of(
         DSL.namedArgument("field",
-            new ReferenceExpression("t1", OpenSearchDataType.OPENSEARCH_TEXT_KEYWORD)),
+            new ReferenceExpression("t1", OpenSearchTextType.of())),
         DSL.namedArgument("query", "t2"),
         DSL.namedArgument("analyzer", "standard")
     );
@@ -73,7 +73,7 @@ public class MatchPhrasePrefixQueryTest  {
   public void build_succeeds_with_two_arguments() {
     List<Expression> arguments = List.of(
         DSL.namedArgument("field",
-            new ReferenceExpression("test", OpenSearchDataType.OPENSEARCH_TEXT_KEYWORD)),
+            new ReferenceExpression("test", OpenSearchTextType.of())),
         DSL.namedArgument("query", "test2"));
     Assertions.assertNotNull(matchPhrasePrefixQuery.build(new MatchPhraseExpression(arguments)));
   }
@@ -82,7 +82,7 @@ public class MatchPhrasePrefixQueryTest  {
   public void test_slop_parameter() {
     List<Expression> arguments = List.of(
         DSL.namedArgument("field",
-            new ReferenceExpression("t1", OpenSearchDataType.OPENSEARCH_TEXT_KEYWORD)),
+            new ReferenceExpression("t1", OpenSearchTextType.of())),
         DSL.namedArgument("query", "t2"),
         DSL.namedArgument("slop", "2")
     );
@@ -93,7 +93,7 @@ public class MatchPhrasePrefixQueryTest  {
   public void test_zero_terms_query_parameter() {
     List<Expression> arguments = List.of(
         DSL.namedArgument("field",
-            new ReferenceExpression("t1", OpenSearchDataType.OPENSEARCH_TEXT_KEYWORD)),
+            new ReferenceExpression("t1", OpenSearchTextType.of())),
         DSL.namedArgument("query", "t2"),
         DSL.namedArgument("zero_terms_query", "ALL")
     );
@@ -104,7 +104,7 @@ public class MatchPhrasePrefixQueryTest  {
   public void test_zero_terms_query_parameter_lower_case() {
     List<Expression> arguments = List.of(
         DSL.namedArgument("field",
-            new ReferenceExpression("t1", OpenSearchDataType.OPENSEARCH_TEXT_KEYWORD)),
+            new ReferenceExpression("t1", OpenSearchTextType.of())),
         DSL.namedArgument("query", "t2"),
         DSL.namedArgument("zero_terms_query", "all")
     );
@@ -115,7 +115,7 @@ public class MatchPhrasePrefixQueryTest  {
   public void test_boost_parameter() {
     List<Expression> arguments = List.of(
         DSL.namedArgument("field",
-            new ReferenceExpression("test", OpenSearchDataType.OPENSEARCH_TEXT_KEYWORD)),
+            new ReferenceExpression("test", OpenSearchTextType.of())),
         DSL.namedArgument("query", "t2"),
         DSL.namedArgument("boost", "0.1")
     );

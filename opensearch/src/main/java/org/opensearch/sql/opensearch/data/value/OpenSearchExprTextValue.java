@@ -6,13 +6,12 @@
 
 package org.opensearch.sql.opensearch.data.value;
 
-import static org.opensearch.sql.opensearch.data.type.OpenSearchDataType.OPENSEARCH_TEXT;
-
 import org.opensearch.sql.data.model.ExprStringValue;
 import org.opensearch.sql.data.type.ExprType;
+import org.opensearch.sql.opensearch.data.type.OpenSearchTextType;
 
 /**
- * Expression Text Value, it is a extension of the ExprValue by Elasticsearch.
+ * Expression Text Value, it is a extension of the ExprValue by OpenSearch.
  */
 public class OpenSearchExprTextValue extends ExprStringValue {
   public OpenSearchExprTextValue(String value) {
@@ -21,6 +20,6 @@ public class OpenSearchExprTextValue extends ExprStringValue {
 
   @Override
   public ExprType type() {
-    return OPENSEARCH_TEXT;
+    return OpenSearchTextType.of();
   }
 }

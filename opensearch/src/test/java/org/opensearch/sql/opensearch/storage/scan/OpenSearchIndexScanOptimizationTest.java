@@ -38,6 +38,7 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 import lombok.Builder;
 import org.apache.commons.lang3.tuple.Pair;
 import org.junit.jupiter.api.BeforeEach;
@@ -60,6 +61,7 @@ import org.opensearch.sql.data.type.ExprType;
 import org.opensearch.sql.expression.DSL;
 import org.opensearch.sql.expression.HighlightExpression;
 import org.opensearch.sql.expression.ReferenceExpression;
+import org.opensearch.sql.opensearch.data.type.OpenSearchDataType;
 import org.opensearch.sql.opensearch.request.OpenSearchRequestBuilder;
 import org.opensearch.sql.opensearch.response.agg.CompositeAggregationParser;
 import org.opensearch.sql.opensearch.response.agg.OpenSearchAggregationResponseParser;
@@ -552,7 +554,9 @@ class OpenSearchIndexScanOptimizationTest {
 
     return () -> {
       verify(requestBuilder, times(1)).pushDownAggregation(Pair.of(aggBuilders, responseParser));
-      verify(requestBuilder, times(1)).pushTypeMapping(aggregation.resultTypes);
+      verify(requestBuilder, times(1)).pushTypeMapping(aggregation.resultTypes
+          .entrySet().stream().collect(Collectors.toMap(Map.Entry::getKey,
+                e -> OpenSearchDataType.of(e.getValue()))));
     };
   }
 
