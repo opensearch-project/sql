@@ -114,6 +114,68 @@ public class MathematicalFunctionIT extends SQLIntegTestCase {
   }
 
   @Test
+  public void testPow() throws IOException {
+    JSONObject result = executeQuery("select pow(3, 2)");
+    verifySchema(result, schema("pow(3, 2)", null, "double"));
+    verifyDataRows(result, rows(9.0));
+
+    result = executeQuery("select pow(0, 2)");
+    verifySchema(result, schema("pow(0, 2)", null, "double"));
+    verifyDataRows(result, rows(0.0));
+
+    result = executeQuery("select pow(3, 0)");
+    verifySchema(result, schema("pow(3, 0)", null, "double"));
+    verifyDataRows(result, rows(1.0));
+
+    result = executeQuery("select pow(-2, 3)");
+    verifySchema(result, schema("pow(-2, 3)", null, "double"));
+    verifyDataRows(result, rows(-8.0));
+
+    result = executeQuery("select pow(2, -2)");
+    verifySchema(result, schema("pow(2, -2)", null, "double"));
+    verifyDataRows(result, rows(0.25));
+
+    result = executeQuery("select pow(-2, -3)");
+    verifySchema(result, schema("pow(-2, -3)", null, "double"));
+    verifyDataRows(result, rows(-0.125));
+
+    result = executeQuery("select pow(-1, 0.5)");
+    verifySchema(result, schema("pow(-1, 0.5)", null, "double"));
+    verifyDataRows(result, rows((Object) null));
+  }
+
+  @Test
+  public void testPower() throws IOException {
+    JSONObject result = executeQuery("select power(3, 2)");
+    verifySchema(result, schema("power(3, 2)", null, "double"));
+    verifyDataRows(result, rows(9.0));
+
+    result = executeQuery("select power(0, 2)");
+    verifySchema(result, schema("power(0, 2)", null, "double"));
+    verifyDataRows(result, rows(0.0));
+
+    result = executeQuery("select power(3, 0)");
+    verifySchema(result, schema("power(3, 0)", null, "double"));
+    verifyDataRows(result, rows(1.0));
+
+    result = executeQuery("select power(-2, 3)");
+    verifySchema(result, schema("power(-2, 3)", null, "double"));
+    verifyDataRows(result, rows(-8.0));
+
+    result = executeQuery("select power(2, -2)");
+    verifySchema(result, schema("power(2, -2)", null, "double"));
+    verifyDataRows(result, rows(0.25));
+
+    result = executeQuery("select power(2, -2)");
+    verifySchema(result, schema("power(2, -2)", null, "double"));
+    verifyDataRows(result, rows(0.25));
+
+    result = executeQuery("select power(-2, -3)");
+    verifySchema(result, schema("power(-2, -3)", null, "double"));
+    verifyDataRows(result, rows(-0.125));
+  }
+
+  @Test
   public void testRint() throws IOException {
     JSONObject result = executeQuery("select rint(56.78)");
     verifySchema(result, schema("rint(56.78)", null, "double"));
