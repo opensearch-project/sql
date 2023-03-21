@@ -8,9 +8,9 @@ package org.opensearch.sql.opensearch.data.value;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.opensearch.sql.opensearch.data.type.OpenSearchDataType.OPENSEARCH_BINARY;
 
 import org.junit.jupiter.api.Test;
+import org.opensearch.sql.opensearch.data.type.OpenSearchBinaryType;
 
 public class OpenSearchExprBinaryValueTest {
 
@@ -40,7 +40,6 @@ public class OpenSearchExprBinaryValueTest {
   public void type() {
     OpenSearchExprBinaryValue value =
         new OpenSearchExprBinaryValue("U29tZSBiaW5hcnkgYmxvYg==");
-    assertEquals(OPENSEARCH_BINARY, value.type());
+    assertEquals(OpenSearchBinaryType.of(), value.type());
   }
-
 }

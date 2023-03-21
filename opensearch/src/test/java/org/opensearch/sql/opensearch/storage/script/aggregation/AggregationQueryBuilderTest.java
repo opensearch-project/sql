@@ -22,7 +22,6 @@ import static org.opensearch.sql.expression.DSL.literal;
 import static org.opensearch.sql.expression.DSL.named;
 import static org.opensearch.sql.expression.DSL.ref;
 import static org.opensearch.sql.expression.DSL.span;
-import static org.opensearch.sql.opensearch.data.type.OpenSearchDataType.OPENSEARCH_TEXT_KEYWORD;
 import static org.opensearch.sql.opensearch.utils.Utils.agg;
 import static org.opensearch.sql.opensearch.utils.Utils.avg;
 import static org.opensearch.sql.opensearch.utils.Utils.group;
@@ -52,6 +51,8 @@ import org.opensearch.sql.expression.NamedExpression;
 import org.opensearch.sql.expression.aggregation.AvgAggregator;
 import org.opensearch.sql.expression.aggregation.CountAggregator;
 import org.opensearch.sql.expression.aggregation.NamedAggregator;
+import org.opensearch.sql.opensearch.data.type.OpenSearchDataType;
+import org.opensearch.sql.opensearch.data.type.OpenSearchTextType;
 import org.opensearch.sql.opensearch.storage.serialization.ExpressionSerializer;
 
 @DisplayNameGeneration(DisplayNameGenerator.ReplaceUnderscores.class)
@@ -142,8 +143,8 @@ class AggregationQueryBuilderTest {
             named("avg(age)", new AvgAggregator(Arrays.asList(ref("age", INTEGER)), INTEGER))),
             Arrays.asList(named("name", ref("name", STRING)))),
         containsInAnyOrder(
-            map("avg(age)", INTEGER),
-            map("name", STRING)
+            map("avg(age)", OpenSearchDataType.of(INTEGER)),
+            map("name", OpenSearchDataType.of(STRING))
         ));
   }
 
@@ -177,7 +178,8 @@ class AggregationQueryBuilderTest {
         buildQuery(
             Arrays.asList(
                 named("avg(age)", new AvgAggregator(Arrays.asList(ref("age", INTEGER)), INTEGER))),
-            Arrays.asList(named("name", ref("name", OPENSEARCH_TEXT_KEYWORD)))));
+            Arrays.asList(named("name", ref("name", OpenSearchTextType.of(Map.of("words",
+                OpenSearchDataType.of(OpenSearchDataType.MappingType.Keyword))))))));
   }
 
   @Test
@@ -185,10 +187,10 @@ class AggregationQueryBuilderTest {
     assertThat(
         buildTypeMapping(Arrays.asList(
             named("avg(age)", new AvgAggregator(Arrays.asList(ref("age", INTEGER)), INTEGER))),
-            Arrays.asList(named("name", ref("name", OPENSEARCH_TEXT_KEYWORD)))),
+            Arrays.asList(named("name", ref("name", STRING)))),
         containsInAnyOrder(
-            map("avg(age)", INTEGER),
-            map("name", OPENSEARCH_TEXT_KEYWORD)
+            map("avg(age)", OpenSearchDataType.of(INTEGER)),
+            map("name", OpenSearchDataType.of(STRING))
         ));
   }
 
@@ -288,8 +290,8 @@ class AggregationQueryBuilderTest {
                 Arrays.asList(DSL.abs(ref("balance", INTEGER))), INTEGER))),
             Arrays.asList(named("age", DSL.asin(ref("age", INTEGER))))),
         containsInAnyOrder(
-            map("avg(balance)", INTEGER),
-            map("age", DOUBLE)
+            map("avg(balance)", OpenSearchDataType.of(INTEGER)),
+            map("age", OpenSearchDataType.of(DOUBLE))
         ));
   }
 
@@ -388,7 +390,7 @@ class AggregationQueryBuilderTest {
             Arrays.asList(named("avg(age) filter(where age > 34)",
                 new AvgAggregator(Arrays.asList(ref("age", INTEGER)), INTEGER)
                     .condition(DSL.greater(ref("age", INTEGER), literal(20))))),
-            Arrays.asList(named(ref("gender", STRING)))));
+            Arrays.asList(named(ref("gender", OpenSearchDataType.of(STRING))))));
   }
 
   @Test
@@ -399,7 +401,7 @@ class AggregationQueryBuilderTest {
                 Arrays.asList(ref("balance", INTEGER)), INTEGER))),
             Collections.emptyList()),
         containsInAnyOrder(
-            map("avg(balance)", INTEGER)
+            map("avg(balance)", OpenSearchDataType.of(INTEGER))
         ));
   }
 
@@ -609,7 +611,7 @@ class AggregationQueryBuilderTest {
         .toPrettyString();
   }
 
-  private Set<Map.Entry<String, ExprType>> buildTypeMapping(
+  private Set<Map.Entry<String, OpenSearchDataType>> buildTypeMapping(
       List<NamedAggregator> namedAggregatorList,
       List<NamedExpression> groupByList) {
     return queryBuilder.buildTypeMapping(namedAggregatorList, groupByList).entrySet();

@@ -76,9 +76,9 @@ class ExprTypeTest {
 
   @Test
   void legacyName() {
-    assertEquals("keyword", STRING.legacyTypeName());
-    assertEquals("nested", ARRAY.legacyTypeName());
-    assertEquals("object", STRUCT.legacyTypeName());
+    assertEquals("KEYWORD", STRING.legacyTypeName());
+    assertEquals("NESTED", ARRAY.legacyTypeName());
+    assertEquals("OBJECT", STRUCT.legacyTypeName());
     assertEquals("integer", INTEGER.legacyTypeName().toLowerCase());
   }
 

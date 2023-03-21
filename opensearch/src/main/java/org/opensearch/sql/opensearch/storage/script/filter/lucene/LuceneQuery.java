@@ -6,8 +6,6 @@
 
 package org.opensearch.sql.opensearch.storage.script.filter.lucene;
 
-import static org.opensearch.sql.opensearch.data.type.OpenSearchDataType.OPENSEARCH_TEXT_KEYWORD;
-
 import com.google.common.collect.ImmutableMap;
 import java.util.Map;
 import java.util.function.Function;
@@ -34,6 +32,7 @@ import org.opensearch.sql.expression.NamedArgumentExpression;
 import org.opensearch.sql.expression.ReferenceExpression;
 import org.opensearch.sql.expression.function.BuiltinFunctionName;
 import org.opensearch.sql.expression.function.FunctionName;
+import org.opensearch.sql.opensearch.data.type.OpenSearchTextType;
 
 /**
  * Lucene query abstraction that builds Lucene query from function expression.
@@ -223,20 +222,4 @@ public abstract class LuceneQuery {
     throw new UnsupportedOperationException(
         "Subclass doesn't implement this and build method either");
   }
-
-  /**
-   * Convert multi-field text field name to its inner keyword field. The limitation and assumption
-   * is that the keyword field name is always "keyword" which is true by default.
-   *
-   * @param fieldName   field name
-   * @param fieldType   field type
-   * @return            keyword field name for multi-field, otherwise original field name returned
-   */
-  protected String convertTextToKeyword(String fieldName, ExprType fieldType) {
-    if (fieldType == OPENSEARCH_TEXT_KEYWORD) {
-      return fieldName + ".keyword";
-    }
-    return fieldName;
-  }
-
 }
