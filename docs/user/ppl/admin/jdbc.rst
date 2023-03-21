@@ -64,7 +64,7 @@ JDBC Table Function
 -------------------
 JDBC datasource could execute direct SQL against the target database. The SQL must be supported by target database.
 
-Sample Example::
+Example::
 
     os> source = myspark.jdbc('SHOW DATABASES');
     fetched rows / total rows = 1/1
@@ -74,3 +74,7 @@ Sample Example::
     | default     |
     +-------------+
 
+Limitation
+================================
+
+* PPL command other source is not supported. for example, if user use ``source = myspark.jdbc('SHOW DATABASES') | fields namespace``, query engine will throw exception.
