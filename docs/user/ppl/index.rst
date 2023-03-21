@@ -38,6 +38,8 @@ The query start with search command and then flowing a set of command delimited 
 
   - `Prometheus Connector <admin/prometheus_connector.rst>`_
 
+  - `JDBC Connector <admin/jdbc.rst>`_
+
 * **Commands**
 
   - `Syntax <cmd/syntax.rst>`_

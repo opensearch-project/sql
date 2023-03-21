@@ -24,7 +24,7 @@ JDBC Connector Properties.
 * ``url`` [Required].
     * This parameters provides the URL to connect to a database instance provided endpoint.
 * ``driver`` [Required].
-    * This parameters provides the Driver to connect to a database instance provided endpoint. The only supported ``org.apache.hive.jdbc.HiveDriver``
+    * This parameters provides the Driver to connect to a database instance provided endpoint. Only support ``org.apache.hive.jdbc.HiveDriver``
 * ``username`` [Optional].
     * This username for basicauth.
 * ``password`` [Optional].
