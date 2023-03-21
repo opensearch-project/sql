@@ -29,7 +29,6 @@ import org.opensearch.sql.expression.ExpressionNodeVisitor;
 import org.opensearch.sql.expression.NamedExpression;
 import org.opensearch.sql.expression.ReferenceExpression;
 import org.opensearch.sql.expression.aggregation.NamedAggregator;
-import org.opensearch.sql.expression.serialization.ExpressionSerializer;
 import org.opensearch.sql.opensearch.data.type.OpenSearchDataType;
 import org.opensearch.sql.opensearch.response.agg.CompositeAggregationParser;
 import org.opensearch.sql.opensearch.response.agg.MetricParser;
@@ -37,6 +36,7 @@ import org.opensearch.sql.opensearch.response.agg.NoBucketAggregationParser;
 import org.opensearch.sql.opensearch.response.agg.OpenSearchAggregationResponseParser;
 import org.opensearch.sql.opensearch.storage.script.aggregation.dsl.BucketAggregationBuilder;
 import org.opensearch.sql.opensearch.storage.script.aggregation.dsl.MetricAggregationBuilder;
+import org.opensearch.sql.opensearch.storage.serialization.ExpressionSerializer;
 
 /**
  * Build the AggregationBuilder from the list of {@link NamedAggregator}

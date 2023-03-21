@@ -16,12 +16,12 @@ class CursorTest {
 
   @Test
   void empty_array_is_none() {
-    Assertions.assertEquals(Cursor.None, new Cursor(new byte[]{}));
+    Assertions.assertEquals(Cursor.None, new Cursor(null));
   }
 
   @Test
   void toString_is_array_value() {
     String cursorTxt = "This is a test";
-    Assertions.assertEquals(cursorTxt, new Cursor(cursorTxt.getBytes()).toString());
+    Assertions.assertEquals(cursorTxt, new Cursor(cursorTxt).toString());
   }
 }

@@ -39,8 +39,8 @@ public class InitialPageRequestBuilder extends PagedRequestBuilder {
 
   /**
    * Constructor.
-   *
-   * @param indexName        index being scanned
+   * @param indexName index being scanned
+   * @param pageSize page size
    * @param exprValueFactory value factory
    */
   // TODO accept indexName as string (same way as `OpenSearchRequestBuilder` does)?

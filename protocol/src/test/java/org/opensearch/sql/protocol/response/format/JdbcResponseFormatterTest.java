@@ -97,7 +97,7 @@ class JdbcResponseFormatterTest {
                     .put("address", "Seattle")
                     .put("age", 20)
                 .build())),
-        new Cursor("test_cursor".getBytes()), 42);
+        new Cursor("test_cursor"), 42);
 
     assertJsonEquals(
         "{"

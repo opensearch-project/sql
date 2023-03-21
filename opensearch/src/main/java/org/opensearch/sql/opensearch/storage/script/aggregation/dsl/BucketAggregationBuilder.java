@@ -23,8 +23,8 @@ import org.opensearch.search.aggregations.support.ValueType;
 import org.opensearch.search.sort.SortOrder;
 import org.opensearch.sql.ast.expression.SpanUnit;
 import org.opensearch.sql.expression.NamedExpression;
-import org.opensearch.sql.expression.serialization.ExpressionSerializer;
 import org.opensearch.sql.expression.span.SpanExpression;
+import org.opensearch.sql.opensearch.storage.serialization.ExpressionSerializer;
 
 /**
  * Bucket Aggregation Builder.

@@ -18,11 +18,4 @@ public class StorageEngineTest {
     StorageEngine k = (dataSourceSchemaName, tableName) -> null;
     Assertions.assertEquals(Collections.emptyList(), k.getFunctions());
   }
-
-  @Test
-  void getTableScan() {
-    StorageEngine k = (dataSourceSchemaName, tableName) -> null;
-    Assertions.assertThrows(UnsupportedOperationException.class,
-        () -> k.getTableScan("indexName", "scrollId"));
-  }
 }

@@ -8,9 +8,7 @@ package org.opensearch.sql.storage;
 
 import java.util.Collection;
 import java.util.Collections;
-import java.util.List;
 import org.opensearch.sql.DataSourceSchemaName;
-import org.opensearch.sql.data.type.ExprType;
 import org.opensearch.sql.expression.function.FunctionResolver;
 
 /**
@@ -30,10 +28,5 @@ public interface StorageEngine {
    */
   default Collection<FunctionResolver> getFunctions() {
     return Collections.emptyList();
-  }
-
-  default TableScanOperator getTableScan(String indexName, String scrollId) {
-    String error = String.format("%s.getTableScan needs to be implemented", getClass());
-    throw new UnsupportedOperationException(error);
   }
 }

@@ -7,23 +7,17 @@ package org.opensearch.sql.executor.pagination;
 
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
+import lombok.RequiredArgsConstructor;
 
 @EqualsAndHashCode
+@RequiredArgsConstructor
 public class Cursor {
-  public static final Cursor None = new Cursor();
+  public static final Cursor None = new Cursor(null);
 
   @Getter
-  private final byte[] raw;
-
-  private Cursor() {
-    raw = new byte[] {};
-  }
-
-  public Cursor(byte[] raw) {
-    this.raw = raw;
-  }
+  private final String data;
 
   public String toString() {
-    return new String(raw);
+    return data;
   }
 }
