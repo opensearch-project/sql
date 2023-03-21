@@ -8,8 +8,8 @@ This document contains a list of maintainers in this repo. See [opensearch-proje
 | --------------------- | --------------------------------------------------- | ----------- |
 | Peng Huo              | [penghuo](https://github.com/penghuo)               | Amazon      |
 | Chen Dai              | [dai-chen](https://github.com/dai-chen)             | Amazon      |
-| Joshua Li             | [joshuali925](https://github.com/joshuali925        | Amazon      |
-| Vamsi Manohar         | [vamsi-amazon](https://github.com/vamsi-amazon      | Amazon      |
+| Chloe Zhang | [chloe-zh](https://github.com/chloe-zh) | Amazon |
+| Vamsi Manohar         | [vamsi-amazon](https://github.com/vamsi-amazon)      | Amazon      |
 | Max Ksyunz            | [MaxKsyunz](https://github.com/MaxKsyunz)           | BitQuill    |
 | Yury Fridlyand        | [Yury-Fridlyand](https://github.com/Yury-Fridlyand) | BitQuill    |
 
