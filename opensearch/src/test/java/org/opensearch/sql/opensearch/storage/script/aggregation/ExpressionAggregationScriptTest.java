@@ -17,8 +17,6 @@ import static org.opensearch.sql.data.type.ExprCoreType.INTEGER;
 import static org.opensearch.sql.data.type.ExprCoreType.STRING;
 import static org.opensearch.sql.expression.DSL.literal;
 import static org.opensearch.sql.expression.DSL.ref;
-import static org.opensearch.sql.opensearch.data.type.OpenSearchDataType.OPENSEARCH_TEXT;
-import static org.opensearch.sql.opensearch.data.type.OpenSearchDataType.OPENSEARCH_TEXT_KEYWORD;
 
 import com.google.common.collect.ImmutableMap;
 import java.time.LocalDate;
@@ -38,10 +36,11 @@ import org.opensearch.search.lookup.LeafSearchLookup;
 import org.opensearch.search.lookup.SearchLookup;
 import org.opensearch.sql.data.model.ExprDateValue;
 import org.opensearch.sql.data.model.ExprDatetimeValue;
-import org.opensearch.sql.data.model.ExprStringValue;
 import org.opensearch.sql.data.model.ExprTimestampValue;
 import org.opensearch.sql.expression.DSL;
 import org.opensearch.sql.expression.Expression;
+import org.opensearch.sql.opensearch.data.type.OpenSearchDataType;
+import org.opensearch.sql.opensearch.data.type.OpenSearchTextType;
 
 @DisplayNameGeneration(DisplayNameGenerator.ReplaceUnderscores.class)
 @ExtendWith(MockitoExtension.class)
@@ -79,7 +78,9 @@ class ExpressionAggregationScriptTest {
     assertThat()
         .docValues("name.keyword", "John")
         .evaluate(
-            DSL.equal(ref("name", OPENSEARCH_TEXT_KEYWORD), literal("John")))
+            DSL.equal(ref("name", OpenSearchTextType.of(Map.of("words",
+                    OpenSearchDataType.of(OpenSearchDataType.MappingType.Keyword)))),
+                literal("John")))
         .shouldMatch(true);
   }
 
@@ -151,7 +152,7 @@ class ExpressionAggregationScriptTest {
   void can_execute_expression_interpret_non_core_type_for_aggregation() {
     assertThat()
         .docValues("text", "pewpew")
-        .evaluate(ref("text", OPENSEARCH_TEXT))
+        .evaluate(ref("text", OpenSearchTextType.of()))
         .shouldMatch("pewpew");
   }
 

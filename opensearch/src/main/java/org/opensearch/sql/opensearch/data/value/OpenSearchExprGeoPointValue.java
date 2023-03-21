@@ -6,13 +6,12 @@
 
 package org.opensearch.sql.opensearch.data.value;
 
-import static org.opensearch.sql.opensearch.data.type.OpenSearchDataType.OPENSEARCH_GEO_POINT;
-
 import java.util.Objects;
 import lombok.Data;
 import org.opensearch.sql.data.model.AbstractExprValue;
 import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.data.type.ExprType;
+import org.opensearch.sql.opensearch.data.type.OpenSearchGeoPointType;
 
 /**
  * OpenSearch GeoPointValue.
@@ -33,7 +32,7 @@ public class OpenSearchExprGeoPointValue extends AbstractExprValue {
 
   @Override
   public ExprType type() {
-    return OPENSEARCH_GEO_POINT;
+    return OpenSearchGeoPointType.of();
   }
 
   @Override

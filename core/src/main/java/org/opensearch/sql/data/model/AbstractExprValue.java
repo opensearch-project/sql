@@ -23,7 +23,7 @@ public abstract class AbstractExprValue implements ExprValue {
     }
     if ((this.isNumber() && other.isNumber())
         || (this.isDateTime() && other.isDateTime())
-        || this.type() == other.type()) {
+        || this.type().equals(other.type())) {
       return compare(other);
     } else {
       throw new ExpressionEvaluationException(

@@ -34,7 +34,7 @@ The OpenSearch SQL Engine support the following data types.
 +---------------------+
 | double              |
 +---------------------+
-| string              |
+| keyword             |
 +---------------------+
 | text                |
 +---------------------+
@@ -87,7 +87,7 @@ The table below list the mapping between OpenSearch Data Type, OpenSearch SQL Da
 +-----------------+---------------------+-----------+
 | double          | double              | DOUBLE    |
 +-----------------+---------------------+-----------+
-| keyword         | string              | VARCHAR   |
+| keyword         | keyword             | VARCHAR   |
 +-----------------+---------------------+-----------+
 | text            | text                | VARCHAR   |
 +-----------------+---------------------+-----------+

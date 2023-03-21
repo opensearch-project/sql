@@ -6,6 +6,7 @@
 
 package org.opensearch.sql.opensearch.data.value;
 
+import static org.junit.jupiter.api.Assertions.assertAll;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -32,11 +33,6 @@ import static org.opensearch.sql.data.type.ExprCoreType.STRING;
 import static org.opensearch.sql.data.type.ExprCoreType.STRUCT;
 import static org.opensearch.sql.data.type.ExprCoreType.TIME;
 import static org.opensearch.sql.data.type.ExprCoreType.TIMESTAMP;
-import static org.opensearch.sql.opensearch.data.type.OpenSearchDataType.OPENSEARCH_BINARY;
-import static org.opensearch.sql.opensearch.data.type.OpenSearchDataType.OPENSEARCH_GEO_POINT;
-import static org.opensearch.sql.opensearch.data.type.OpenSearchDataType.OPENSEARCH_IP;
-import static org.opensearch.sql.opensearch.data.type.OpenSearchDataType.OPENSEARCH_TEXT;
-import static org.opensearch.sql.opensearch.data.type.OpenSearchDataType.OPENSEARCH_TEXT_KEYWORD;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -54,38 +50,41 @@ import org.opensearch.sql.data.model.ExprTimeValue;
 import org.opensearch.sql.data.model.ExprTimestampValue;
 import org.opensearch.sql.data.model.ExprTupleValue;
 import org.opensearch.sql.data.model.ExprValue;
-import org.opensearch.sql.data.type.ExprType;
+import org.opensearch.sql.opensearch.data.type.OpenSearchDataType;
+import org.opensearch.sql.opensearch.data.type.OpenSearchTextType;
 import org.opensearch.sql.opensearch.data.utils.OpenSearchJsonContent;
 
 class OpenSearchExprValueFactoryTest {
 
-  private static final Map<String, ExprType> MAPPING =
-      new ImmutableMap.Builder<String, ExprType>()
-          .put("byteV", BYTE)
-          .put("shortV", SHORT)
-          .put("intV", INTEGER)
-          .put("longV", LONG)
-          .put("floatV", FLOAT)
-          .put("doubleV", DOUBLE)
-          .put("stringV", STRING)
-          .put("dateV", DATE)
-          .put("datetimeV", DATETIME)
-          .put("timeV", TIME)
-          .put("timestampV", TIMESTAMP)
-          .put("boolV", BOOLEAN)
-          .put("structV", STRUCT)
-          .put("structV.id", INTEGER)
-          .put("structV.state", STRING)
-          .put("arrayV", ARRAY)
-          .put("arrayV.info", STRING)
-          .put("arrayV.author", STRING)
-          .put("textV", OPENSEARCH_TEXT)
-          .put("textKeywordV", OPENSEARCH_TEXT_KEYWORD)
-          .put("ipV", OPENSEARCH_IP)
-          .put("geoV", OPENSEARCH_GEO_POINT)
-          .put("binaryV", OPENSEARCH_BINARY)
+  private static final Map<String, OpenSearchDataType> MAPPING =
+      new ImmutableMap.Builder<String, OpenSearchDataType>()
+          .put("byteV", OpenSearchDataType.of(BYTE))
+          .put("shortV", OpenSearchDataType.of(SHORT))
+          .put("intV", OpenSearchDataType.of(INTEGER))
+          .put("longV", OpenSearchDataType.of(LONG))
+          .put("floatV", OpenSearchDataType.of(FLOAT))
+          .put("doubleV", OpenSearchDataType.of(DOUBLE))
+          .put("stringV", OpenSearchDataType.of(STRING))
+          .put("dateV", OpenSearchDataType.of(DATE))
+          .put("datetimeV", OpenSearchDataType.of(DATETIME))
+          .put("timeV", OpenSearchDataType.of(TIME))
+          .put("timestampV", OpenSearchDataType.of(TIMESTAMP))
+          .put("boolV", OpenSearchDataType.of(BOOLEAN))
+          .put("structV", OpenSearchDataType.of(STRUCT))
+          .put("structV.id", OpenSearchDataType.of(INTEGER))
+          .put("structV.state", OpenSearchDataType.of(STRING))
+          .put("arrayV", OpenSearchDataType.of(ARRAY))
+          .put("arrayV.info", OpenSearchDataType.of(STRING))
+          .put("arrayV.author", OpenSearchDataType.of(STRING))
+          .put("textV", OpenSearchDataType.of(OpenSearchDataType.MappingType.Text))
+          .put("textKeywordV", OpenSearchTextType.of(Map.of("words",
+              OpenSearchDataType.of(OpenSearchDataType.MappingType.Keyword))))
+          .put("ipV", OpenSearchDataType.of(OpenSearchDataType.MappingType.Ip))
+          .put("geoV", OpenSearchDataType.of(OpenSearchDataType.MappingType.GeoPoint))
+          .put("binaryV", OpenSearchDataType.of(OpenSearchDataType.MappingType.Binary))
           .build();
-  private OpenSearchExprValueFactory exprValueFactory =
+
+  private final OpenSearchExprValueFactory exprValueFactory =
       new OpenSearchExprValueFactory(MAPPING);
 
   @Test
@@ -167,9 +166,9 @@ class OpenSearchExprValueFactoryTest {
     assertEquals(new OpenSearchExprTextValue("text"),
                  constructFromObject("textV", "text"));
 
-    assertEquals(new OpenSearchExprTextKeywordValue("text"),
+    assertEquals(new OpenSearchExprTextValue("text"),
                  tupleValue("{\"textKeywordV\":\"text\"}").get("textKeywordV"));
-    assertEquals(new OpenSearchExprTextKeywordValue("text"),
+    assertEquals(new OpenSearchExprTextValue("text"),
                  constructFromObject("textKeywordV", "text"));
   }
 
@@ -376,6 +375,29 @@ class OpenSearchExprValueFactoryTest {
         exception.getMessage());
   }
 
+  @Test
+  // aggregation adds info about new columns to the factory,
+  // it is accepted without overwriting existing data.
+  public void factoryMappingsAreExtendableWithoutOverWrite()
+      throws NoSuchFieldException, IllegalAccessException {
+    var factory = new OpenSearchExprValueFactory(Map.of("value", OpenSearchDataType.of(INTEGER)));
+    factory.extendTypeMapping(Map.of(
+        "value", OpenSearchDataType.of(DOUBLE),
+        "agg", OpenSearchDataType.of(DATE)));
+    // extract private field for testing purposes
+    var field = factory.getClass().getDeclaredField("typeMapping");
+    field.setAccessible(true);
+    @SuppressWarnings("unchecked")
+    var mapping = (Map<String, OpenSearchDataType>)field.get(factory);
+    assertAll(
+        () -> assertEquals(2, mapping.size()),
+        () -> assertTrue(mapping.containsKey("value")),
+        () -> assertTrue(mapping.containsKey("agg")),
+        () -> assertEquals(OpenSearchDataType.of(INTEGER), mapping.get("value")),
+        () -> assertEquals(OpenSearchDataType.of(DATE), mapping.get("agg"))
+    );
+  }
+
   public Map<String, ExprValue> tupleValue(String jsonString) {
     final ExprValue construct = exprValueFactory.construct(jsonString);
     return construct.tupleValue();
@@ -385,9 +407,18 @@ class OpenSearchExprValueFactoryTest {
     return exprValueFactory.construct(fieldName, value);
   }
 
-  @EqualsAndHashCode
+  @EqualsAndHashCode(callSuper = false)
   @ToString
-  private static class TestType implements ExprType {
+  private static class TestType extends OpenSearchDataType {
+
+    public TestType() {
+      mappingType = null;
+    }
+
+    @Override
+    protected OpenSearchDataType cloneEmpty() {
+      return this;
+    }
 
     @Override
     public String typeName() {
