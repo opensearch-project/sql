@@ -64,6 +64,40 @@ public class IdentifierIT extends SQLIntegTestCase {
     queryAndAssertTheDoc("SELECT * FROM test.two");
   }
 
+  @Test
+  public void testDoubleUnderscoreIdentifierTest() throws IOException {
+    new Index("test.twounderscores")
+            .addDoc("{\"__age\": 30}");
+    final JSONObject result = new JSONObject(executeQuery("SELECT __age FROM test.twounderscores", "jdbc"));
+
+    verifySchema(result,
+            schema("__age", null, "long"));
+    verifyDataRows(result, rows(30));
+  }
+
+  @Test
+  public void testMetafieldIdentifierTest() throws IOException {
+    // create an index, but the contents doesn't matter
+    String id = "12345";
+    String index = "test.metafields";
+    new Index(index).addDoc("{\"age\": 30}", id);
+
+    // Execute using field metadata values
+    final JSONObject result = new JSONObject(executeQuery(
+            "SELECT *, _id, _index, _score, _maxscore, _sort FROM test.metafields",
+            "jdbc"));
+
+    // Verify that the metadata values are returned when requested
+    verifySchema(result,
+            schema("age", null, "long"),
+            schema("_id", null, "keyword"),
+            schema("_index", null, "keyword"),
+            schema("_score", null, "float"),
+            schema("_maxscore", null, "float"),
+            schema("_sort", null, "long"));
+    verifyDataRows(result, rows(30, id, index, 1.0, 1.0, -2));
+  }
+
   private void createIndexWithOneDoc(String... indexNames) throws IOException {
     for (String indexName : indexNames) {
       new Index(indexName).addDoc("{\"age\": 30}");
@@ -95,6 +129,12 @@ public class IdentifierIT extends SQLIntegTestCase {
 
     void addDoc(String doc) {
       Request indexDoc = new Request("POST", String.format("/%s/_doc?refresh=true", indexName));
+      indexDoc.setJsonEntity(doc);
+      performRequest(client(), indexDoc);
+    }
+
+    void addDoc(String doc, String id) {
+      Request indexDoc = new Request("POST", String.format("/%s/_doc/%s?refresh=true", indexName, id));
       indexDoc.setJsonEntity(doc);
       performRequest(client(), indexDoc);
     }

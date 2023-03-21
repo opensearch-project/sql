@@ -32,6 +32,8 @@ import org.opensearch.search.SearchHits;
 import org.opensearch.search.aggregations.Aggregations;
 import org.opensearch.search.fetch.subphase.highlight.HighlightField;
 import org.opensearch.sql.data.model.ExprIntegerValue;
+import org.opensearch.sql.data.model.ExprLongValue;
+import org.opensearch.sql.data.model.ExprStringValue;
 import org.opensearch.sql.data.model.ExprTupleValue;
 import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.data.model.ExprValueUtils;
@@ -106,9 +108,48 @@ class OpenSearchResponseTest {
     int i = 0;
     for (ExprValue hit : new OpenSearchResponse(searchResponse, factory)) {
       if (i == 0) {
-        assertEquals(exprTupleValue1, hit);
+        assertEquals(exprTupleValue1.tupleValue().get("id"), hit.tupleValue().get("id"));
       } else if (i == 1) {
-        assertEquals(exprTupleValue2, hit);
+        assertEquals(exprTupleValue2.tupleValue().get("id"), hit.tupleValue().get("id"));
+      } else {
+        fail("More search hits returned than expected");
+      }
+      i++;
+    }
+  }
+
+  @Test
+  void iterator_metafields() {
+
+    ExprTupleValue exprTupleHit = ExprTupleValue.fromExprValueMap(ImmutableMap.of(
+        "id1", new ExprIntegerValue(1)
+    ));
+    ExprTupleValue exprTupleResponse = ExprTupleValue.fromExprValueMap(ImmutableMap.of(
+        "id1", new ExprIntegerValue(1),
+        "_index", new ExprStringValue("testIndex"),
+        "_id", new ExprStringValue("testId"),
+        "_sort", new ExprLongValue(123456L)
+    ));
+
+    when(searchResponse.getHits())
+        .thenReturn(
+            new SearchHits(
+                new SearchHit[] {searchHit1},
+                new TotalHits(1L, TotalHits.Relation.EQUAL_TO),
+                Float.NaN));
+
+    when(searchHit1.getSourceAsString()).thenReturn("{\"id1\", 1}");
+    when(searchHit1.getId()).thenReturn("testId");
+    when(searchHit1.getIndex()).thenReturn("testIndex");
+    when(searchHit1.getScore()).thenReturn(Float.NaN);
+    when(searchHit1.getSeqNo()).thenReturn(123456L);
+
+    when(factory.construct(any())).thenReturn(exprTupleHit);
+
+    int i = 0;
+    for (ExprValue hit : new OpenSearchResponse(searchResponse, factory)) {
+      if (i == 0) {
+        assertEquals(exprTupleResponse, hit);
       } else {
         fail("More search hits returned than expected");
       }

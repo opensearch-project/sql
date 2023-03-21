@@ -866,7 +866,19 @@ public class DSL {
   }
 
   public static FunctionExpression wildcard_query(Expression... args) {
-    return compile(FunctionProperties.None,BuiltinFunctionName.WILDCARD_QUERY, args);
+    return compile(FunctionProperties.None, BuiltinFunctionName.WILDCARD_QUERY, args);
+  }
+
+  public static FunctionExpression score(Expression... args) {
+    return compile(FunctionProperties.None, BuiltinFunctionName.SCORE, args);
+  }
+
+  public static FunctionExpression scorequery(Expression... args) {
+    return compile(FunctionProperties.None, BuiltinFunctionName.SCOREQUERY, args);
+  }
+
+  public static FunctionExpression score_query(Expression... args) {
+    return compile(FunctionProperties.None, BuiltinFunctionName.SCORE_QUERY, args);
   }
 
   public static FunctionExpression now(FunctionProperties functionProperties,

@@ -12,6 +12,7 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 import lombok.RequiredArgsConstructor;
 import org.opensearch.sql.common.setting.Settings;
+import org.opensearch.sql.data.type.ExprCoreType;
 import org.opensearch.sql.data.type.ExprType;
 import org.opensearch.sql.opensearch.client.OpenSearchClient;
 import org.opensearch.sql.opensearch.data.type.OpenSearchDataType;
@@ -33,6 +34,20 @@ import org.opensearch.sql.storage.read.TableScanBuilder;
 
 /** OpenSearch table (index) implementation. */
 public class OpenSearchIndex implements Table {
+
+  public static final String METADATA_FIELD_ID = "_id";
+  public static final String METADATA_FIELD_INDEX = "_index";
+  public static final String METADATA_FIELD_SCORE = "_score";
+  public static final String METADATA_FIELD_MAXSCORE = "_maxscore";
+  public static final String METADATA_FIELD_SORT = "_sort";
+
+  public static final java.util.Map<String, ExprType> METADATAFIELD_TYPE_MAP = Map.of(
+      METADATA_FIELD_ID, ExprCoreType.STRING,
+      METADATA_FIELD_INDEX, ExprCoreType.STRING,
+      METADATA_FIELD_SCORE, ExprCoreType.FLOAT,
+      METADATA_FIELD_MAXSCORE, ExprCoreType.FLOAT,
+      METADATA_FIELD_SORT, ExprCoreType.LONG
+  );
 
   /** OpenSearch client connection. */
   private final OpenSearchClient client;
@@ -109,6 +124,11 @@ public class OpenSearchIndex implements Table {
               Map::putAll);
     }
     return cachedFieldTypes;
+  }
+
+  @Override
+  public Map<String, ExprType> getReservedFieldTypes() {
+    return METADATAFIELD_TYPE_MAP;
   }
 
   /**

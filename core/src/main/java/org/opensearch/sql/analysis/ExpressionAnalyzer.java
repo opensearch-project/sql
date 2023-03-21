@@ -8,8 +8,6 @@ package org.opensearch.sql.analysis;
 
 import static org.opensearch.sql.ast.dsl.AstDSL.and;
 import static org.opensearch.sql.ast.dsl.AstDSL.compare;
-import static org.opensearch.sql.expression.function.BuiltinFunctionName.GTE;
-import static org.opensearch.sql.expression.function.BuiltinFunctionName.LTE;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -31,6 +29,7 @@ import org.opensearch.sql.ast.expression.Between;
 import org.opensearch.sql.ast.expression.Case;
 import org.opensearch.sql.ast.expression.Cast;
 import org.opensearch.sql.ast.expression.Compare;
+import org.opensearch.sql.ast.expression.DataType;
 import org.opensearch.sql.ast.expression.EqualTo;
 import org.opensearch.sql.ast.expression.Field;
 import org.opensearch.sql.ast.expression.Function;
@@ -42,6 +41,7 @@ import org.opensearch.sql.ast.expression.Not;
 import org.opensearch.sql.ast.expression.Or;
 import org.opensearch.sql.ast.expression.QualifiedName;
 import org.opensearch.sql.ast.expression.RelevanceFieldList;
+import org.opensearch.sql.ast.expression.ScoreFunction;
 import org.opensearch.sql.ast.expression.Span;
 import org.opensearch.sql.ast.expression.UnresolvedArgument;
 import org.opensearch.sql.ast.expression.UnresolvedAttribute;
@@ -51,6 +51,7 @@ import org.opensearch.sql.ast.expression.WindowFunction;
 import org.opensearch.sql.ast.expression.Xor;
 import org.opensearch.sql.common.antlr.SyntaxCheckException;
 import org.opensearch.sql.data.model.ExprValueUtils;
+import org.opensearch.sql.data.type.ExprCoreType;
 import org.opensearch.sql.data.type.ExprType;
 import org.opensearch.sql.exception.SemanticCheckException;
 import org.opensearch.sql.expression.DSL;
@@ -67,6 +68,7 @@ import org.opensearch.sql.expression.conditional.cases.WhenClause;
 import org.opensearch.sql.expression.function.BuiltinFunctionName;
 import org.opensearch.sql.expression.function.BuiltinFunctionRepository;
 import org.opensearch.sql.expression.function.FunctionName;
+import org.opensearch.sql.expression.function.OpenSearchFunctions;
 import org.opensearch.sql.expression.parse.ParseExpression;
 import org.opensearch.sql.expression.span.SpanExpression;
 import org.opensearch.sql.expression.window.aggregation.AggregateWindowFunction;
@@ -207,6 +209,65 @@ public class ExpressionAnalyzer extends AbstractNodeVisitor<Expression, Analysis
     return new HighlightExpression(expr);
   }
 
+  /**
+   * visitScoreFunction removes the score function from the AST and replaces it with the child
+   * relevance function node. If the optional boost variable is provided, the boost argument
+   * of the relevance function is combined.
+   *
+   * @param node    score function node
+   * @param context analysis context for the query
+   * @return resolved relevance function
+   */
+  public Expression visitScoreFunction(ScoreFunction node, AnalysisContext context) {
+    Literal boostArg = node.getRelevanceFieldWeight();
+    if (!boostArg.getType().equals(DataType.DOUBLE)) {
+      throw new SemanticCheckException(String.format("Expected boost type '%s' but got '%s'",
+          DataType.DOUBLE.name(), boostArg.getType().name()));
+    }
+    Double thisBoostValue = ((Double) boostArg.getValue());
+
+    // update the existing unresolved expression to add a boost argument if it doesn't exist
+    // OR multiply the existing boost argument
+    Function relevanceQueryUnresolvedExpr = (Function) node.getRelevanceQuery();
+    List<UnresolvedExpression> relevanceFuncArgs = relevanceQueryUnresolvedExpr.getFuncArgs();
+
+    boolean doesFunctionContainBoostArgument = false;
+    List<UnresolvedExpression> updatedFuncArgs = new ArrayList<>();
+    for (UnresolvedExpression expr : relevanceFuncArgs) {
+      String argumentName = ((UnresolvedArgument) expr).getArgName();
+      if (argumentName.equalsIgnoreCase("boost")) {
+        doesFunctionContainBoostArgument = true;
+        Literal boostArgLiteral = (Literal) ((UnresolvedArgument) expr).getValue();
+        Double boostValue =
+            Double.parseDouble((String) boostArgLiteral.getValue()) * thisBoostValue;
+        UnresolvedArgument newBoostArg = new UnresolvedArgument(
+                argumentName,
+                new Literal(boostValue.toString(), DataType.STRING)
+        );
+        updatedFuncArgs.add(newBoostArg);
+      } else {
+        updatedFuncArgs.add(expr);
+      }
+    }
+
+    // since nothing was found, add an argument
+    if (!doesFunctionContainBoostArgument) {
+      UnresolvedArgument newBoostArg = new UnresolvedArgument(
+              "boost", new Literal(Double.toString(thisBoostValue), DataType.STRING));
+      updatedFuncArgs.add(newBoostArg);
+    }
+
+    // create a new function expression with boost argument and resolve it
+    Function updatedRelevanceQueryUnresolvedExpr = new Function(
+            relevanceQueryUnresolvedExpr.getFuncName(),
+            updatedFuncArgs);
+    OpenSearchFunctions.OpenSearchFunction relevanceQueryExpr =
+            (OpenSearchFunctions.OpenSearchFunction) updatedRelevanceQueryUnresolvedExpr
+                    .accept(this, context);
+    relevanceQueryExpr.setScoreTracked(true);
+    return relevanceQueryExpr;
+  }
+
   @Override
   public Expression visitIn(In node, AnalysisContext context) {
     return visitIn(node.getField(), node.getValueList(), context);
@@ -297,6 +358,20 @@ public class ExpressionAnalyzer extends AbstractNodeVisitor<Expression, Analysis
   @Override
   public Expression visitQualifiedName(QualifiedName node, AnalysisContext context) {
     QualifierAnalyzer qualifierAnalyzer = new QualifierAnalyzer(context);
+
+    // check for reserved words in the identifier
+    TypeEnvironment typeEnv = context.peek();
+    for (String part : node.getParts()) {
+      Optional<ExprType> exprType = typeEnv.getReservedSymbolTable().lookup(
+          new Symbol(Namespace.FIELD_NAME, part));
+      if (exprType.isPresent()) {
+        return visitMetadata(
+            qualifierAnalyzer.unqualified(node),
+            (ExprCoreType) exprType.get(),
+            context
+        );
+      }
+    }
     return visitIdentifier(qualifierAnalyzer.unqualified(node), context);
   }
 
@@ -311,6 +386,19 @@ public class ExpressionAnalyzer extends AbstractNodeVisitor<Expression, Analysis
   @Override
   public Expression visitUnresolvedArgument(UnresolvedArgument node, AnalysisContext context) {
     return new NamedArgumentExpression(node.getArgName(), node.getValue().accept(this, context));
+  }
+
+  /**
+   * If QualifiedName is actually a reserved metadata field, return the expr type associated
+   * with the metadata field.
+   * @param ident   metadata field name
+   * @param context analysis context
+   * @return DSL reference
+   */
+  private Expression visitMetadata(String ident,
+                                   ExprCoreType exprCoreType,
+                                   AnalysisContext context) {
+    return DSL.ref(ident, exprCoreType);
   }
 
   private Expression visitIdentifier(String ident, AnalysisContext context) {

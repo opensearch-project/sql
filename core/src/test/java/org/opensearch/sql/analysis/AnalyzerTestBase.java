@@ -114,6 +114,10 @@ public class AnalyzerTestBase {
       public PhysicalPlan implement(LogicalPlan plan) {
         throw new UnsupportedOperationException();
       }
+
+      public Map<String, ExprType> getReservedFieldTypes() {
+        return ImmutableMap.of("_test", STRING);
+      }
     });
   }
 

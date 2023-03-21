@@ -100,6 +100,7 @@ public class OpenSearchRequestBuilder {
     sourceBuilder.from(0);
     sourceBuilder.size(querySize);
     sourceBuilder.timeout(DEFAULT_QUERY_TIMEOUT);
+    sourceBuilder.trackScores(false);
   }
 
   /**
@@ -178,6 +179,10 @@ public class OpenSearchRequestBuilder {
   public void pushDownLimit(Integer limit, Integer offset) {
     querySize = limit;
     sourceBuilder.from(offset).size(limit);
+  }
+
+  public void pushDownTrackedScore(boolean trackScores) {
+    sourceBuilder.trackScores(trackScores);
   }
 
   /**
