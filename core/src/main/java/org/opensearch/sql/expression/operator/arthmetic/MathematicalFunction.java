@@ -342,11 +342,15 @@ public class MathematicalFunction {
             DOUBLE, LONG, LONG),
         FunctionDSL.impl(
             FunctionDSL.nullMissingHandling(
-                (v1, v2) -> new ExprDoubleValue(Math.pow(v1.floatValue(), v2.floatValue()))),
+                (v1, v2) -> v1.floatValue() <= 0  && v2.floatValue()
+                        != Math.floor(v2.floatValue()) ? ExprNullValue.of() :
+                    new ExprDoubleValue(Math.pow(v1.floatValue(), v2.floatValue()))),
             DOUBLE, FLOAT, FLOAT),
         FunctionDSL.impl(
             FunctionDSL.nullMissingHandling(
-                (v1, v2) -> new ExprDoubleValue(Math.pow(v1.doubleValue(), v2.doubleValue()))),
+                (v1, v2) -> v1.doubleValue() <= 0  && v2.doubleValue()
+                        != Math.floor(v2.doubleValue()) ? ExprNullValue.of() :
+                    new ExprDoubleValue(Math.pow(v1.doubleValue(), v2.doubleValue()))),
             DOUBLE, DOUBLE, DOUBLE));
   }
 
