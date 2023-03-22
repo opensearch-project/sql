@@ -84,7 +84,8 @@ public class IdentifierIT extends SQLIntegTestCase {
 
     // Execute using field metadata values
     final JSONObject result = new JSONObject(executeQuery(
-            "SELECT *, _id, _index, _score, _maxscore, _sort FROM test.metafields",
+            "SELECT *, _id, _index, _score, _maxscore, _sort "
+                + "FROM " + index,
             "jdbc"));
 
     // Verify that the metadata values are returned when requested
@@ -96,6 +97,30 @@ public class IdentifierIT extends SQLIntegTestCase {
             schema("_maxscore", null, "float"),
             schema("_sort", null, "long"));
     verifyDataRows(result, rows(30, id, index, 1.0, 1.0, -2));
+  }
+
+  @Test
+  public void testMetafieldIdentifierWithAliasTest() throws IOException {
+    // create an index, but the contents doesn't matter
+    String id = "99999";
+    String index = "test.aliasmetafields";
+    new Index(index).addDoc("{\"age\": 30}", id);
+
+    // Execute using field metadata values
+    final JSONObject result = new JSONObject(executeQuery(
+        "SELECT _id AS A, _index AS B, _score AS C, _maxscore AS D, _sort AS E "
+            + "FROM " + index + " "
+            + "WHERE _id = \\\"" + id + "\\\"",
+        "jdbc"));
+
+    // Verify that the metadata values are returned when requested
+    verifySchema(result,
+        schema("_id", "A", "keyword"),
+        schema("_index", "B", "keyword"),
+        schema("_score", "C", "float"),
+        schema("_maxscore", "D", "float"),
+        schema("_sort", "E", "long"));
+    verifyDataRows(result, rows(id, index, null, null, -2));
   }
 
   private void createIndexWithOneDoc(String... indexNames) throws IOException {
