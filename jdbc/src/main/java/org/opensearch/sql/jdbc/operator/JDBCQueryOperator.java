@@ -102,7 +102,7 @@ public class JDBCQueryOperator extends TableScanOperator {
 
   @Override
   public ExprValue next() {
-    return handleSQLException(() -> jdbcResponseHandle.next());
+    return handleSQLException(jdbcResponseHandle::next);
   }
 
   /**

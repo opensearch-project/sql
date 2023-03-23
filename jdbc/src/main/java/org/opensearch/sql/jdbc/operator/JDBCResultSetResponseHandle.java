@@ -53,7 +53,7 @@ public class JDBCResultSetResponseHandle implements JDBCResponseHandle {
       int columnCount = metaData.getColumnCount();
       for (int i = 1; i <= columnCount; i++) {
         // the default type is STRING.
-        ExprType exprType = jdbcTypeToCoreType(metaData.getColumnType(i)).orElse(STRING);
+        ExprType exprType = jdbcTypeToCoreType(metaData.getColumnType(i));
         columnHandleList.add(new ColumnHandle(i, metaData.getColumnName(i), exprType));
       }
     } catch (SQLException e) {
@@ -129,30 +129,30 @@ public class JDBCResultSetResponseHandle implements JDBCResponseHandle {
    * @param type jdbc type.
    * @return ExprType.
    */
-  static Optional<ExprType> jdbcTypeToCoreType(int type) {
+  static ExprType jdbcTypeToCoreType(int type) {
     switch (type) {
       case Types.BIT:
       case Types.BOOLEAN:
-        return Optional.of(BOOLEAN);
+        return BOOLEAN;
 
       case Types.TINYINT:
-        return Optional.of(BYTE);
+        return BYTE;
 
       case Types.SMALLINT:
-        return Optional.of(SHORT);
+        return SHORT;
 
       case Types.INTEGER:
-        return Optional.of(INTEGER);
+        return INTEGER;
 
       case Types.BIGINT:
-        return Optional.of(LONG);
+        return LONG;
 
       case Types.REAL:
       case Types.FLOAT:
       case Types.DOUBLE:
       case Types.NUMERIC:
       case Types.DECIMAL:
-        return Optional.of(DOUBLE);
+        return DOUBLE;
 
       case Types.CHAR:
       case Types.NCHAR:
@@ -163,24 +163,24 @@ public class JDBCResultSetResponseHandle implements JDBCResponseHandle {
       case Types.BINARY:
       case Types.VARBINARY:
       case Types.LONGVARBINARY:
-        return Optional.of(STRING);
+        return STRING;
 
       case Types.DATE:
-        return Optional.of(DATE);
+        return DATE;
 
       case Types.TIME:
-        return Optional.of(TIME);
+        return TIME;
 
       case Types.TIMESTAMP:
-        return Optional.of(TIMESTAMP);
+        return TIMESTAMP;
 
       // we assume the result is json encoded string. refer https://docs.cloudera.com/HDPDocuments/HDP2/HDP-2.0.0.2/ds_Hive/jdbc-hs2.html,
       case Types.ARRAY:
       case Types.JAVA_OBJECT:
       case Types.STRUCT:
-        return Optional.of(STRING);
+        return STRING;
       default:
-        return Optional.empty();
+        return STRING;
     }
   }
 }

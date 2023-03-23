@@ -30,7 +30,7 @@ import org.opensearch.sql.expression.function.FunctionSignature;
 import org.opensearch.sql.jdbc.parser.PropertiesParser;
 
 @ExtendWith(MockitoExtension.class)
-class JDBCFunctionTableFunctionResolverTest {
+class JDBCTableFunctionResolverTest {
   @Mock
   private DataSourceMetadata metadata;
 
@@ -79,7 +79,7 @@ class JDBCFunctionTableFunctionResolverTest {
     SyntaxCheckException exception =
         assertThrows(
             SyntaxCheckException.class,
-            () -> functionBuilder.apply(properties, Collections.emptyList()));
+            () -> functionBuilder.apply(properties, Collections.singletonList(literal(1L))));
     assertEquals(
         "SQL statement is required. For example mysource.jdbc('select * from table')",
         exception.getMessage());

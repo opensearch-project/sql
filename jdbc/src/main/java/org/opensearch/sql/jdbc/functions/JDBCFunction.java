@@ -75,7 +75,7 @@ public class JDBCFunction extends FunctionExpression implements TableFunctionImp
       return ImmutableMap.of();
     }
 
-    // todo, the implement interface should be removed. create an issue....
+    // todo, the implement interface should be removed. https://github.com/opensearch-project/sql/issues/1463
     @SuppressWarnings("deprecation")
     @Override
     public PhysicalPlan implement(LogicalPlan plan) {
@@ -100,7 +100,7 @@ public class JDBCFunction extends FunctionExpression implements TableFunctionImp
     }
 
     /**
-     * PPL by default add LogicalProject operator. It should be ignored.
+     * PPL by default add a LogicalProject operator. It should be ignored.
      */
     @Override
     public boolean pushDownProject(LogicalProject project) {

@@ -85,35 +85,35 @@ class JDBCResultSetResponseHandleTest {
   @Test
   public void testJdbcTypeToCoreType() {
     // Test for all known types
-    assertEquals(Optional.of(BOOLEAN), jdbcTypeToCoreType(Types.BIT));
-    assertEquals(Optional.of(BOOLEAN), jdbcTypeToCoreType(Types.BOOLEAN));
-    assertEquals(Optional.of(BYTE), jdbcTypeToCoreType(Types.TINYINT));
-    assertEquals(Optional.of(SHORT), jdbcTypeToCoreType(Types.SMALLINT));
-    assertEquals(Optional.of(INTEGER), jdbcTypeToCoreType(Types.INTEGER));
-    assertEquals(Optional.of(LONG), jdbcTypeToCoreType(Types.BIGINT));
-    assertEquals(Optional.of(DOUBLE), jdbcTypeToCoreType(Types.REAL));
-    assertEquals(Optional.of(DOUBLE), jdbcTypeToCoreType(Types.FLOAT));
-    assertEquals(Optional.of(DOUBLE), jdbcTypeToCoreType(Types.DOUBLE));
-    assertEquals(Optional.of(DOUBLE), jdbcTypeToCoreType(Types.NUMERIC));
-    assertEquals(Optional.of(DOUBLE), jdbcTypeToCoreType(Types.DECIMAL));
-    assertEquals(Optional.of(STRING), jdbcTypeToCoreType(Types.CHAR));
-    assertEquals(Optional.of(STRING), jdbcTypeToCoreType(Types.NCHAR));
-    assertEquals(Optional.of(STRING), jdbcTypeToCoreType(Types.VARCHAR));
-    assertEquals(Optional.of(STRING), jdbcTypeToCoreType(Types.NVARCHAR));
-    assertEquals(Optional.of(STRING), jdbcTypeToCoreType(Types.LONGVARCHAR));
-    assertEquals(Optional.of(STRING), jdbcTypeToCoreType(Types.LONGNVARCHAR));
-    assertEquals(Optional.of(STRING), jdbcTypeToCoreType(Types.BINARY));
-    assertEquals(Optional.of(STRING), jdbcTypeToCoreType(Types.VARBINARY));
-    assertEquals(Optional.of(STRING), jdbcTypeToCoreType(Types.LONGVARBINARY));
-    assertEquals(Optional.of(DATE), jdbcTypeToCoreType(Types.DATE));
-    assertEquals(Optional.of(TIME), jdbcTypeToCoreType(Types.TIME));
-    assertEquals(Optional.of(TIMESTAMP), jdbcTypeToCoreType(Types.TIMESTAMP));
-    assertEquals(Optional.of(STRING), jdbcTypeToCoreType(Types.ARRAY));
-    assertEquals(Optional.of(STRING), jdbcTypeToCoreType(Types.JAVA_OBJECT));
-    assertEquals(Optional.of(STRING), jdbcTypeToCoreType(Types.STRUCT));
+    assertEquals(BOOLEAN, jdbcTypeToCoreType(Types.BIT));
+    assertEquals(BOOLEAN, jdbcTypeToCoreType(Types.BOOLEAN));
+    assertEquals(BYTE, jdbcTypeToCoreType(Types.TINYINT));
+    assertEquals(SHORT, jdbcTypeToCoreType(Types.SMALLINT));
+    assertEquals(INTEGER, jdbcTypeToCoreType(Types.INTEGER));
+    assertEquals(LONG, jdbcTypeToCoreType(Types.BIGINT));
+    assertEquals(DOUBLE, jdbcTypeToCoreType(Types.REAL));
+    assertEquals(DOUBLE, jdbcTypeToCoreType(Types.FLOAT));
+    assertEquals(DOUBLE, jdbcTypeToCoreType(Types.DOUBLE));
+    assertEquals(DOUBLE, jdbcTypeToCoreType(Types.NUMERIC));
+    assertEquals(DOUBLE, jdbcTypeToCoreType(Types.DECIMAL));
+    assertEquals(STRING, jdbcTypeToCoreType(Types.CHAR));
+    assertEquals(STRING, jdbcTypeToCoreType(Types.NCHAR));
+    assertEquals(STRING, jdbcTypeToCoreType(Types.VARCHAR));
+    assertEquals(STRING, jdbcTypeToCoreType(Types.NVARCHAR));
+    assertEquals(STRING, jdbcTypeToCoreType(Types.LONGVARCHAR));
+    assertEquals(STRING, jdbcTypeToCoreType(Types.LONGNVARCHAR));
+    assertEquals(STRING, jdbcTypeToCoreType(Types.BINARY));
+    assertEquals(STRING, jdbcTypeToCoreType(Types.VARBINARY));
+    assertEquals(STRING, jdbcTypeToCoreType(Types.LONGVARBINARY));
+    assertEquals(DATE, jdbcTypeToCoreType(Types.DATE));
+    assertEquals(TIME, jdbcTypeToCoreType(Types.TIME));
+    assertEquals(TIMESTAMP, jdbcTypeToCoreType(Types.TIMESTAMP));
+    assertEquals(STRING, jdbcTypeToCoreType(Types.ARRAY));
+    assertEquals(STRING, jdbcTypeToCoreType(Types.JAVA_OBJECT));
+    assertEquals(STRING, jdbcTypeToCoreType(Types.STRUCT));
 
     // Test for unknown type
-    assertEquals(Optional.empty(), jdbcTypeToCoreType(999));
+    assertEquals(null, jdbcTypeToCoreType(999));
   }
 
   @Test
