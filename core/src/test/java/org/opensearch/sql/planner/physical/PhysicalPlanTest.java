@@ -5,7 +5,9 @@
 
 package org.opensearch.sql.planner.physical;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 import java.util.List;
 import org.junit.jupiter.api.Test;
@@ -49,5 +51,13 @@ class PhysicalPlanTest {
   void addSplitToChildByDefault() {
     testPlan.add(split);
     verify(child).add(split);
+  }
+
+  @Test
+  void testGetRawResponse() {
+    when(child.getRawResponse()).thenReturn("not empty", "", null);
+    assertEquals("not empty", testPlan.getRawResponse());
+    assertEquals("", testPlan.getRawResponse());
+    assertEquals("", testPlan.getRawResponse());
   }
 }

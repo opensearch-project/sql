@@ -60,16 +60,9 @@ class SQLServiceTest {
     queryManager.awaitTermination(1, TimeUnit.SECONDS);
   }
 
-  @Test
-  public void canExecuteSqlQuery() {
-    doAnswer(invocation -> {
-      ResponseListener<QueryResponse> listener = invocation.getArgument(1);
-      listener.onResponse(new QueryResponse(schema, Collections.emptyList()));
-      return null;
-    }).when(queryService).execute(any(), any());
-
+  private void execute(String query, String format) {
     sqlService.execute(
-        new SQLQueryRequest(new JSONObject(), "SELECT 123", QUERY, "jdbc"),
+        new SQLQueryRequest(new JSONObject(), query, QUERY, format),
         new ResponseListener<QueryResponse>() {
           @Override
           public void onResponse(QueryResponse response) {
@@ -83,19 +76,72 @@ class SQLServiceTest {
         });
   }
 
+  private void executeWithUnsupportedException(String query, String format) {
+    sqlService.execute(
+        new SQLQueryRequest(new JSONObject(), query, QUERY, format),
+        new ResponseListener<QueryResponse>() {
+          @Override
+          public void onResponse(QueryResponse response) {
+            assertNotNull(response);
+          }
+
+          @Override
+          public void onFailure(Exception e) {
+            assert (e instanceof UnsupportedOperationException);
+          }
+        });
+  }
+
+  @Test
+  public void canExecuteSqlQuery() {
+    doAnswer(invocation -> {
+      ResponseListener<QueryResponse> listener = invocation.getArgument(1);
+      listener.onResponse(new QueryResponse(schema, Collections.emptyList(), ""));
+      return null;
+    }).when(queryService).execute(any(), any());
+
+    execute("SELECT 123", "jdbc");
+  }
+
   @Test
   public void canExecuteCsvFormatRequest() {
     doAnswer(invocation -> {
       ResponseListener<QueryResponse> listener = invocation.getArgument(1);
-      listener.onResponse(new QueryResponse(schema, Collections.emptyList()));
+      listener.onResponse(new QueryResponse(schema, Collections.emptyList(), ""));
       return null;
     }).when(queryService).execute(any(), any());
 
-    sqlService.execute(
-        new SQLQueryRequest(new JSONObject(), "SELECT 123", QUERY, "csv"),
-        new ResponseListener<QueryResponse>() {
+    execute("SELECT 123", "csv");
+  }
+
+  @Test
+  public void canExecuteJsonFormatRequest() {
+    doAnswer(invocation -> {
+      ResponseListener<QueryResponse> listener = invocation.getArgument(1);
+      listener.onResponse(new QueryResponse(schema, Collections.emptyList(), ""));
+      return null;
+    }).when(queryService).execute(any(), any());
+
+    execute("SELECT FIELD FROM TABLE", "json");
+  }
+
+  @Test
+  public void canThrowUnsupportedExceptionWithUnsupportedJsonQuery() {
+    executeWithUnsupportedException("SELECT CAST(FIELD AS DOUBLE)", "json");
+  }
+
+  @Test
+  public void canThrowUnsupportedExceptionForHintsQuery() {
+    executeWithUnsupportedException("SELECT /*! HINTS */ 123", "json");
+  }
+
+  @Test
+  public void canExplainHintsQueryWithJsonFormat() {
+    sqlService.explain(
+        new SQLQueryRequest(new JSONObject(), "SELECT /*! HINTS */ 123", EXPLAIN, "json"),
+        new ResponseListener<ExplainResponse>() {
           @Override
-          public void onResponse(QueryResponse response) {
+          public void onResponse(ExplainResponse response) {
             assertNotNull(response);
           }
 

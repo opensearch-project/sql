@@ -32,4 +32,15 @@ public class SQLSyntaxParser implements Parser {
     return parser.root();
   }
 
+  /**
+   * Checks if the query contains hints as it is not yet support in V2.
+   * @param query   a SQL query
+   * @return        boolean value if query contains hints
+   */
+  public ParseTree parseHints(String query) {
+    OpenSearchSQLLexer lexer = new OpenSearchSQLLexer(new CaseInsensitiveCharStream(query));
+    OpenSearchSQLParser hintsParser = new OpenSearchSQLParser(
+        new CommonTokenStream(lexer, OpenSearchSQLLexer.SQLCOMMENT));
+    return hintsParser.root();
+  }
 }

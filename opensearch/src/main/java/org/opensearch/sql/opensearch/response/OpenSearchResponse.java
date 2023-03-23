@@ -12,6 +12,7 @@ import java.util.Iterator;
 import java.util.Map;
 import java.util.stream.Collectors;
 import lombok.EqualsAndHashCode;
+import lombok.Getter;
 import lombok.ToString;
 import org.opensearch.action.search.SearchResponse;
 import org.opensearch.search.SearchHits;
@@ -43,6 +44,9 @@ public class OpenSearchResponse implements Iterable<ExprValue> {
    */
   @EqualsAndHashCode.Exclude
   private final OpenSearchExprValueFactory exprValueFactory;
+  @EqualsAndHashCode.Exclude
+  @Getter
+  private String rawResponse;
 
   /**
    * Constructor of ElasticsearchResponse.
@@ -52,6 +56,7 @@ public class OpenSearchResponse implements Iterable<ExprValue> {
     this.hits = searchResponse.getHits();
     this.aggregations = searchResponse.getAggregations();
     this.exprValueFactory = exprValueFactory;
+    this.rawResponse = searchResponse.toString();
   }
 
   /**

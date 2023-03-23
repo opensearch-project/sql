@@ -142,6 +142,15 @@ public class SQLQueryRequestTest {
     assertTrue(csvRequest.isSupported());
   }
 
+  @Test
+  public void shouldSupportJsonFormat() {
+    SQLQueryRequest jsonRequest =
+        SQLQueryRequestBuilder.request("SELECT 1")
+            .format("json")
+            .build();
+    assertTrue(jsonRequest.isSupported());
+  }
+
   /**
    * SQL query request build helper to improve test data setup readability.
    */

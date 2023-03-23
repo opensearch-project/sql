@@ -25,7 +25,6 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicReference;
 import lombok.RequiredArgsConstructor;
@@ -45,6 +44,7 @@ import org.opensearch.sql.opensearch.data.value.OpenSearchExprValueFactory;
 import org.opensearch.sql.opensearch.executor.protector.OpenSearchExecutionProtector;
 import org.opensearch.sql.opensearch.storage.OpenSearchIndexScan;
 import org.opensearch.sql.planner.physical.PhysicalPlan;
+import org.opensearch.sql.planner.physical.ProjectOperator;
 import org.opensearch.sql.storage.TableScanOperator;
 import org.opensearch.sql.storage.split.Split;
 
@@ -60,6 +60,8 @@ class OpenSearchExecutionEngineTest {
   @Mock private ExecutionContext executionContext;
 
   @Mock private Split split;
+
+  @Mock private ProjectOperator fakeProjectOperator;
 
   @BeforeEach
   void setUp() {
@@ -205,6 +207,29 @@ class OpenSearchExecutionEngineTest {
     assertTrue(plan.hasOpen);
     assertEquals(expected, actual);
     assertTrue(plan.hasClosed);
+  }
+
+  @Test
+  void executeRawResponseSuccessfully() {
+    PhysicalPlan plan = fakeProjectOperator;
+    when(protector.protect(plan)).thenReturn(plan);
+    when(plan.getRawResponse()).thenReturn("searchResponse");
+
+    AtomicReference<QueryResponse> result = new AtomicReference<>();
+    OpenSearchExecutionEngine executor = new OpenSearchExecutionEngine(client, protector);
+    executor.execute(plan, new ResponseListener<QueryResponse>() {
+      @Override
+      public void onResponse(QueryResponse response) {
+        result.set(response);
+      }
+
+      @Override
+      public void onFailure(Exception e) {
+        fail(e);
+      }
+    });
+
+    assertEquals(result.get().getRawResponse(), "searchResponse");
   }
 
   @RequiredArgsConstructor

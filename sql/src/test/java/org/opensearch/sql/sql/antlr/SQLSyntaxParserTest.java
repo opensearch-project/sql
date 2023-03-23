@@ -291,7 +291,7 @@ class SQLSyntaxParserTest {
     assertNotNull(parser.parse("SELECT dayofmonth('2022-11-18')"));
     assertNotNull(parser.parse("SELECT day_of_month('2022-11-18')"));
   }
-    
+
   @Test
   public void can_parse_day_of_week_functions() {
     assertNotNull(parser.parse("SELECT dayofweek('2022-11-18')"));
@@ -718,6 +718,12 @@ class SQLSyntaxParserTest {
     assertNotNull(parser.parse("SELECT * FROM test WHERE Field = multi_match(\"query\")"));
     assertNotNull(parser.parse("SELECT * FROM test WHERE Field = multimatch('query')"));
     assertNotNull(parser.parse("SELECT * FROM test WHERE Field = multimatch(\"query\")"));
+  }
+
+  @Test
+  public void canParseHints() {
+    assertNotNull(parser.parseHints("SELECT /*! HINTS */ field FROM test"));
+    assertNotNull(parser.parseHints("SELECT field FROM test"));
   }
 
   private static Stream<String> matchPhraseQueryComplexQueries() {

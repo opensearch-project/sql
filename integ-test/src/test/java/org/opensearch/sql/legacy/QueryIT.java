@@ -102,7 +102,9 @@ public class QueryIT extends SQLIntegTestCase {
     Assert.assertEquals(14, getTotalHits(response));
   }
 
-  @Test
+  // Duplicated column names like SELECT *, age is not yet supported in V2
+  // Can be tracked with https://github.com/opensearch-project/sql/issues/785
+  @Test(expected = ResponseException.class)
   public void selectAllWithFieldReturnsAll() throws IOException {
     JSONObject response = executeQuery(StringUtils.format(
         "SELECT *, age " +
@@ -114,7 +116,9 @@ public class QueryIT extends SQLIntegTestCase {
     checkSelectAllAndFieldResponseSize(response);
   }
 
-  @Test
+  // Duplicated column names like SELECT *, age is not yet supported in V2
+  // Can be tracked with https://github.com/opensearch-project/sql/issues/785
+  @Test(expected = ResponseException.class)
   public void selectAllWithFieldReverseOrder() throws IOException {
     JSONObject response = executeQuery(StringUtils.format(
         "SELECT *, age " +
@@ -126,7 +130,9 @@ public class QueryIT extends SQLIntegTestCase {
     checkSelectAllAndFieldResponseSize(response);
   }
 
-  @Test
+  // Duplicated column names like SELECT *, age is not yet supported in V2
+  // Can be tracked with https://github.com/opensearch-project/sql/issues/785
+  @Test(expected = ResponseException.class)
   public void selectAllWithMultipleFields() throws IOException {
     JSONObject response = executeQuery(StringUtils.format(
         "SELECT *, age, address " +
@@ -138,7 +144,9 @@ public class QueryIT extends SQLIntegTestCase {
     checkSelectAllAndFieldResponseSize(response);
   }
 
-  @Test
+  // Duplicated column names like SELECT *, age is not yet supported in V2
+  // Can be tracked with https://github.com/opensearch-project/sql/issues/785
+  @Test(expected = ResponseException.class)
   public void selectAllWithFieldAndOrderBy() throws IOException {
     JSONObject response = executeQuery(StringUtils.format(
         "SELECT *, age " +
@@ -577,7 +585,7 @@ public class QueryIT extends SQLIntegTestCase {
   public void inTest() throws IOException {
     JSONObject response = executeQuery(
         String.format(Locale.ROOT, "SELECT age FROM %s WHERE age IN (20, 22) LIMIT 1000",
-            TestsConstants.TEST_INDEX_PHRASE));
+            TestsConstants.TEST_INDEX_PEOPLE));
 
     JSONArray hits = getHits(response);
     for (int i = 0; i < hits.length(); i++) {
@@ -725,7 +733,9 @@ public class QueryIT extends SQLIntegTestCase {
     }
   }
 
-  @Test
+  // Unsupported date format in V2
+  // Can be tracked through https://github.com/opensearch-project/sql/issues/856
+  @Test(expected = ResponseException.class)
   public void dateSearch() throws IOException {
     DateTimeFormatter formatter = DateTimeFormat.forPattern(TestsConstants.DATE_FORMAT);
     DateTime dateToCompare = new DateTime(2014, 8, 18, 0, 0, 0);
@@ -770,7 +780,9 @@ public class QueryIT extends SQLIntegTestCase {
     }
   }
 
-  @Test
+  // Unsupported date format in V2
+  // Can be tracked through https://github.com/opensearch-project/sql/issues/856
+  @Test(expected = ResponseException.class)
   public void dateBetweenSearch() throws IOException {
     DateTimeFormatter formatter = DateTimeFormat.forPattern(TestsConstants.DATE_FORMAT);
 
@@ -1270,7 +1282,9 @@ public class QueryIT extends SQLIntegTestCase {
     Assert.assertTrue(response.contains("PhD"));
   }
 
-  @Test
+  // Objects in IS NOT NULL not yet supported in V2
+  // Can be tracked with https://github.com/opensearch-project/sql/issues/1425
+  @Test(expected = ResponseException.class)
   public void notLikeTests() throws IOException {
     JSONObject response = executeQuery(
         String.format(Locale.ROOT, "SELECT name " +

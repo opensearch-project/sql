@@ -8,6 +8,7 @@ package org.opensearch.sql.sql.domain;
 
 import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableSet;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.Locale;
 import java.util.Map;
@@ -33,6 +34,7 @@ public class SQLQueryRequest {
       "query", "fetch_size", "parameters");
   private static final String QUERY_PARAMS_FORMAT = "format";
   private static final String QUERY_PARAMS_SANITIZE = "sanitize";
+  private static final String[] SUPPORTED_FORMATS = {"jdbc", "csv", "raw", "json"};
 
   /**
    * JSON payload in REST request.
@@ -121,8 +123,8 @@ public class SQLQueryRequest {
   }
 
   private boolean isSupportedFormat() {
-    return Strings.isNullOrEmpty(format) || "jdbc".equalsIgnoreCase(format)
-        || "csv".equalsIgnoreCase(format) || "raw".equalsIgnoreCase(format);
+    return Strings.isNullOrEmpty(format)
+        || Arrays.stream(SUPPORTED_FORMATS).anyMatch(format::equalsIgnoreCase);
   }
 
   private String getFormat(Map<String, String> params) {

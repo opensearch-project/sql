@@ -28,6 +28,7 @@ import org.hamcrest.Matcher;
 import org.json.JSONObject;
 import org.junit.Test;
 import org.opensearch.action.search.SearchResponse;
+import org.opensearch.client.ResponseException;
 import org.opensearch.common.xcontent.LoggingDeprecationHandler;
 import org.opensearch.common.xcontent.XContentFactory;
 import org.opensearch.common.xcontent.XContentType;
@@ -133,7 +134,9 @@ public class QueryFunctionsIT extends SQLIntegTestCase {
     );
   }
 
-  @Test
+  // Specifying city.keyword is not supported in V2
+  // Rework on data types is in progress and tracked with https://github.com/opensearch-project/sql/pull/1314
+  @Test(expected = ResponseException.class)
   public void wildcardQuery() throws IOException {
     assertThat(
         query(

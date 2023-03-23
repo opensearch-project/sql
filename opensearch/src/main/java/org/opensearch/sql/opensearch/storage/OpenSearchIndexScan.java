@@ -52,6 +52,9 @@ public class OpenSearchIndexScan extends TableScanOperator {
   /** Search response for current batch. */
   private Iterator<ExprValue> iterator;
 
+  @Getter
+  private String rawResponse;
+
   /**
    * Constructor.
    */
@@ -80,7 +83,7 @@ public class OpenSearchIndexScan extends TableScanOperator {
     request = requestBuilder.build();
     iterator = Collections.emptyIterator();
     queryCount = 0;
-    fetchNextBatch();
+    rawResponse = fetchNextBatch().getRawResponse();
   }
 
   @Override
@@ -99,11 +102,12 @@ public class OpenSearchIndexScan extends TableScanOperator {
     return iterator.next();
   }
 
-  private void fetchNextBatch() {
+  protected OpenSearchResponse fetchNextBatch() {
     OpenSearchResponse response = client.search(request);
     if (!response.isEmpty()) {
       iterator = response.iterator();
     }
+    return response;
   }
 
   @Override

@@ -45,4 +45,9 @@ public abstract class PhysicalPlan implements PlanNode<PhysicalPlan>,
     throw new IllegalStateException(String.format("[BUG] schema can been only applied to "
         + "ProjectOperator, instead of %s", toString()));
   }
+
+  public String getRawResponse() {
+    return getChild().stream().map(PhysicalPlan::getRawResponse)
+        .filter(r -> r != null && !r.isEmpty()).findFirst().orElse("");
+  }
 }

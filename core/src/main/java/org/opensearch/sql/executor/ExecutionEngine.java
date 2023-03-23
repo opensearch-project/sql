@@ -50,9 +50,23 @@ public interface ExecutionEngine {
    * Data class that encapsulates ExprValue.
    */
   @Data
+  @RequiredArgsConstructor
   class QueryResponse {
     private final Schema schema;
     private final List<ExprValue> results;
+    private final String rawResponse; // JSON response from the OpenSearch instance
+
+    /**
+     * Constructor for Query Response.
+     *
+     * @param schema  schema of the query
+     * @param results list of expressions
+     */
+    public QueryResponse(Schema schema, List<ExprValue> results) {
+      this.schema = schema;
+      this.results = results;
+      this.rawResponse = "";
+    }
   }
 
   @Data
