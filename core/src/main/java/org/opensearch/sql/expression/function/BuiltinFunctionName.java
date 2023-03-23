@@ -109,6 +109,7 @@ public enum BuiltinFunctionName {
   TIME_TO_SEC(FunctionName.of("time_to_sec")),
   TIMESTAMP(FunctionName.of("timestamp")),
   TIMESTAMPADD(FunctionName.of("timestampadd")),
+  TIMESTAMPDIFF(FunctionName.of("timestampdiff")),
   TIME_FORMAT(FunctionName.of("time_format")),
   TO_DAYS(FunctionName.of("to_days")),
   TO_SECONDS(FunctionName.of("to_seconds")),

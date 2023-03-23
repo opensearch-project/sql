@@ -76,6 +76,7 @@ import java.util.stream.Stream;
 import lombok.experimental.UtilityClass;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.tuple.Pair;
+import org.apache.commons.math3.analysis.function.Exp;
 import org.opensearch.sql.data.model.ExprDateValue;
 import org.opensearch.sql.data.model.ExprDatetimeValue;
 import org.opensearch.sql.data.model.ExprDoubleValue;
@@ -235,6 +236,7 @@ public class DateTimeFunction {
     repository.register(timediff());
     repository.register(timestamp());
     repository.register(timestampadd());
+    repository.register(timestampdiff());
     repository.register(utc_date());
     repository.register(utc_time());
     repository.register(utc_timestamp());
@@ -899,6 +901,15 @@ public class DateTimeFunction {
             TIMESTAMP, TIMESTAMP, TIMESTAMP));
   }
 
+  /**
+   * Adds an interval of time to the provided DATE/DATETIME/TIME/TIMESTAMP/STRING argument.
+   * The interval of time added is determined by the given first and second arguments.
+   * The first argument is an interval type, and must be one of the tokens below...
+   * [MICROSECOND, SECOND, MINUTE, HOUR, DAY, WEEK, MONTH, QUARTER, YEAR]
+   * The second argument is the amount of the interval type to be added.
+   * The third argument is the DATE/DATETIME/TIME/TIMESTAMP/STRING to add to.
+   * @return The DATETIME representing the summed DATE/DATETIME/TIME/TIMESTAMP and interval.
+   */
   private DefaultFunctionResolver timestampadd() {
     return define(BuiltinFunctionName.TIMESTAMPADD.getName(),
         impl(nullMissingHandling(DateTimeFunction::exprTimestampAdd),
@@ -913,6 +924,35 @@ public class DateTimeFunction {
                     amount,
                     time)),
             DATETIME, STRING, INTEGER, TIME));
+  }
+
+  /**
+   * Finds the difference between provided DATE/DATETIME/TIME/TIMESTAMP/STRING arguments.
+   * The first argument is an interval type, and must be one of the tokens below...
+   * [MICROSECOND, SECOND, MINUTE, HOUR, DAY, WEEK, MONTH, QUARTER, YEAR]
+   * The second argument the DATE/DATETIME/TIME/TIMESTAMP/STRING representing the start time.
+   * The third argument is the DATE/DATETIME/TIME/TIMESTAMP/STRING representing the end time.
+   * @return A LONG representing the difference between arguments, using the given interval type.
+   */
+  private DefaultFunctionResolver timestampdiff() {
+    return define(BuiltinFunctionName.TIMESTAMPDIFF.getName(),
+        impl(nullMissingHandling(DateTimeFunction::exprTimestampDiff),
+            DATETIME, STRING, DATETIME, DATETIME),
+        impl(nullMissingHandling(DateTimeFunction::exprTimestampDiff),
+            DATETIME, STRING, DATETIME, TIMESTAMP),
+        impl(nullMissingHandling(DateTimeFunction::exprTimestampDiff),
+            DATETIME, STRING, TIMESTAMP, DATETIME),
+        impl(nullMissingHandling(DateTimeFunction::exprTimestampDiff),
+            DATETIME, STRING, TIMESTAMP, TIMESTAMP),
+        implWithProperties(
+            nullMissingHandlingWithProperties(
+                (functionProperties, part, startTime, endTime) -> exprTimestampDiffForTimeType(
+                    functionProperties,
+                    part,
+                    startTime,
+                    endTime)),
+            DATETIME, STRING, TIME, TIME)
+    );
   }
 
   /**
@@ -1869,6 +1909,62 @@ public class DateTimeFunction {
         formatNow(clock).toLocalDate(),
         timeExpr.timeValue());
     return exprTimestampAdd(partExpr, amountExpr, new ExprDatetimeValue(datetime));
+  }
+
+  private ExprValue getTimeDifference(String part, LocalDateTime startTime, LocalDateTime endTime) {
+    long returnVal;
+    switch (part) {
+      case "MICROSECOND":
+        returnVal = MICROS.between(startTime, endTime);
+        break;
+      case "SECOND":
+        returnVal = SECONDS.between(startTime, endTime);
+        break;
+      case "MINUTE":
+        returnVal = MINUTES.between(startTime, endTime);
+        break;
+      case "HOUR":
+        returnVal = HOURS.between(startTime, endTime);
+        break;
+      case "DAY":
+        returnVal = DAYS.between(startTime, endTime);
+        break;
+      case "WEEK":
+        returnVal = WEEKS.between(startTime, endTime);
+        break;
+      case "MONTH":
+        returnVal = MONTHS.between(startTime, endTime);
+        break;
+      case "QUARTER":
+        returnVal = MONTHS.between(startTime, endTime) / 3;
+        break;
+      case "YEAR":
+        returnVal = YEARS.between(startTime, endTime);
+        break;
+      default:
+        return ExprNullValue.of();
+    }
+    return new ExprLongValue(returnVal);
+  }
+
+  private ExprValue exprTimestampDiff(
+                                      ExprValue partExpr,
+                                      ExprValue startTimeExpr,
+                                      ExprValue endTimeExpr) {
+    return getTimeDifference(
+        partExpr.stringValue(),
+        startTimeExpr.datetimeValue(),
+        endTimeExpr.datetimeValue());
+  }
+
+  private ExprValue exprTimestampDiffForTimeType(FunctionProperties fp,
+                                                 ExprValue partExpr,
+                                                 ExprValue startTimeExpr,
+                                                 ExprValue endTimeExpr) {
+    return getTimeDifference(
+        partExpr.stringValue(),
+        extractDateTime(startTimeExpr, fp),
+        extractDateTime(endTimeExpr, fp));
   }
 
   /**
