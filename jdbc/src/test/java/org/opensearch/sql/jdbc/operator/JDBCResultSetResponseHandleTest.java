@@ -113,7 +113,7 @@ class JDBCResultSetResponseHandleTest {
     assertEquals(STRING, jdbcTypeToCoreType(Types.STRUCT));
 
     // Test for unknown type
-    assertEquals(null, jdbcTypeToCoreType(999));
+    assertEquals(STRING, jdbcTypeToCoreType(999));
   }
 
   @Test
