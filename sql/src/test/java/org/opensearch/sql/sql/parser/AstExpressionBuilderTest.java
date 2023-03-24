@@ -238,6 +238,18 @@ class AstExpressionBuilderTest {
   }
 
   @Test
+  public void canBuildTimstampDiffFunctionCall() {
+    assertEquals(
+        function(
+            "timestampdiff",
+            stringLiteral("WEEK"),
+            timestampLiteral("2023-03-15 00:00:01"),
+            dateLiteral("2023-03-14")),
+        buildExprAst("timestampdiff(WEEK, TIMESTAMP '2023-03-15 00:00:01', DATE '2023-03-14')")
+    );
+  }
+
+  @Test
   public void canBuildComparisonExpression() {
     assertEquals(
         function("!=", intLiteral(1), intLiteral(2)),
