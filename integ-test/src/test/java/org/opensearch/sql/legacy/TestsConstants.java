@@ -55,6 +55,7 @@ public class TestsConstants {
   public final static String TEST_INDEX_NULL_MISSING = TEST_INDEX + "_null_missing";
   public final static String TEST_INDEX_CALCS = TEST_INDEX + "_calcs";
   public final static String TEST_INDEX_WILDCARD = TEST_INDEX + "_wildcard";
+  public final static String DATASOURCES = ".ql-datasources";
 
   public final static String DATE_FORMAT = "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'";
   public final static String TS_DATE_FORMAT = "yyyy-MM-dd HH:mm:ss.SSS";

@@ -12,6 +12,7 @@ buildscript {
         version_tokens = opensearch_version.tokenize('-')
         opensearch_build = version_tokens[0] + '.0'
         prometheus_binary_version = "2.37.2"
+        common_utils_version = System.getProperty("common_utils.version", opensearch_build)
         if (buildVersionQualifier) {
             opensearch_build += "-${buildVersionQualifier}"
         }

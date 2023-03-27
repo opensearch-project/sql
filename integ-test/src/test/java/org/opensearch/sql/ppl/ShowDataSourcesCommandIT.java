@@ -17,6 +17,10 @@ import org.json.JSONObject;
 import org.junit.jupiter.api.Test;
 
 public class ShowDataSourcesCommandIT extends PPLIntegTestCase {
+  @Override
+  protected void init() throws Exception {
+    loadIndex(Index.DATASOURCES);
+  }
 
   @Test
   public void testShowDataSourcesCommands() throws IOException {

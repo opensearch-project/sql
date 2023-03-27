@@ -323,7 +323,6 @@ public abstract class SQLIntegTestCase extends OpenSearchSQLRestTestCase {
   }
 
   protected static String executeRequest(final Request request) throws IOException {
-
     Response response = client().performRequest(request);
     Assert.assertEquals(200, response.getStatusLine().getStatusCode());
     return getResponseBody(response);
@@ -593,7 +592,12 @@ public abstract class SQLIntegTestCase extends OpenSearchSQLRestTestCase {
     WILDCARD(TestsConstants.TEST_INDEX_WILDCARD,
         "wildcard",
         getMappingFile("wildcard_index_mappings.json"),
-        "src/test/resources/wildcard.json"),;
+        "src/test/resources/wildcard.json"),
+
+    DATASOURCES(TestsConstants.DATASOURCES,
+        "datasource",
+        getMappingFile("datasources_index_mappings.json"),
+        "src/test/resources/datasources.json");
 
     private final String name;
     private final String type;

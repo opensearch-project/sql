@@ -1,0 +1,19 @@
+---
+##
+# Copyright OpenSearch Contributors
+# SPDX-License-Identifier: Apache-2.0
+##
+
+# Schema file for the observability index
+# Since we only search based on "access", sort on lastUpdatedTimeMs & createdTimeMs,
+# other fields are not used in mapping to avoid index on those fields.
+# Also "dynamic" is set to "false" so that other fields can be added.
+dynamic: false
+properties:
+  name:
+    type: text
+    fields:
+      keyword:
+        type: keyword
+  connectorType:
+    type: keyword
