@@ -34,9 +34,9 @@ public interface DataSourceService {
   /**
    * Register {@link DataSource} defined by {@link DataSourceMetadata}.
    *
-   * @param metadatas list of {@link DataSourceMetadata}.
+   * @param metadata {@link DataSourceMetadata}.
    */
-  void createDataSource(DataSourceMetadata... metadatas);
+  void createDataSource(DataSourceMetadata metadata);
 
   /**
    * Updates {@link DataSource} corresponding to dataSourceMetadata.
@@ -54,13 +54,10 @@ public interface DataSourceService {
   void deleteDataSource(String dataSourceName);
 
   /**
-   * This method is to bootstrap
-   * datasources during the startup of the plugin.
+   * Returns true {@link Boolean} if datasource with dataSourceName exists
+   * or else false {@link Boolean}.
+   *
+   * @param dataSourceName name of the {@link DataSource}.
    */
-  void bootstrapDataSources();
-
-  /**
-   * remove all the registered {@link DataSource}.
-   */
-  void clear();
+  Boolean dataSourceExists(String dataSourceName);
 }

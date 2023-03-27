@@ -9,6 +9,8 @@ package org.opensearch.sql.analysis.model;
 
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.when;
 import static org.opensearch.sql.analysis.DataSourceSchemaIdentifierNameResolver.DEFAULT_DATASOURCE_NAME;
 import static org.opensearch.sql.analysis.DataSourceSchemaIdentifierNameResolver.DEFAULT_SCHEMA_NAME;
 import static org.opensearch.sql.analysis.model.DataSourceSchemaIdentifierNameResolverTest.Identifier.identifierOf;
@@ -18,14 +20,23 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.opensearch.sql.analysis.DataSourceSchemaIdentifierNameResolver;
+import org.opensearch.sql.datasource.DataSourceService;
 
+@ExtendWith(MockitoExtension.class)
 public class DataSourceSchemaIdentifierNameResolverTest {
+
+  @Mock
+  private DataSourceService dataSourceService;
 
   @Test
   void testFullyQualifiedName() {
+    when(dataSourceService.dataSourceExists("prom")).thenReturn(Boolean.TRUE);
     identifierOf(
-            Arrays.asList("prom", "information_schema", "tables"), Collections.singleton("prom"))
+            Arrays.asList("prom", "information_schema", "tables"), dataSourceService)
         .datasource("prom")
         .schema("information_schema")
         .name("tables");
@@ -33,19 +44,22 @@ public class DataSourceSchemaIdentifierNameResolverTest {
 
   @Test
   void defaultDataSourceNameResolve() {
-    identifierOf(Arrays.asList("tables"), Collections.emptySet())
+    when(dataSourceService.dataSourceExists(any())).thenReturn(Boolean.FALSE);
+    identifierOf(Arrays.asList("tables"), dataSourceService)
         .datasource(DEFAULT_DATASOURCE_NAME)
         .schema(DEFAULT_SCHEMA_NAME)
         .name("tables");
 
-    identifierOf(Arrays.asList("information_schema", "tables"), Collections.emptySet())
+    when(dataSourceService.dataSourceExists(any())).thenReturn(Boolean.FALSE);
+    identifierOf(Arrays.asList("information_schema", "tables"), dataSourceService)
         .datasource(DEFAULT_DATASOURCE_NAME)
         .schema("information_schema")
         .name("tables");
 
+    when(dataSourceService.dataSourceExists(any())).thenReturn(Boolean.TRUE);
     identifierOf(
             Arrays.asList(DEFAULT_DATASOURCE_NAME, "information_schema", "tables"),
-            Collections.emptySet())
+            dataSourceService)
         .datasource(DEFAULT_DATASOURCE_NAME)
         .schema("information_schema")
         .name("tables");
@@ -54,12 +68,13 @@ public class DataSourceSchemaIdentifierNameResolverTest {
   static class Identifier {
     private final DataSourceSchemaIdentifierNameResolver resolver;
 
-    protected static Identifier identifierOf(List<String> parts, Set<String> allowedDataSources) {
-      return new Identifier(parts, allowedDataSources);
+    protected static Identifier identifierOf(List<String> parts,
+                                             DataSourceService dataSourceService) {
+      return new Identifier(parts, dataSourceService);
     }
 
-    Identifier(List<String> parts, Set<String> allowedDataSources) {
-      resolver = new DataSourceSchemaIdentifierNameResolver(parts, allowedDataSources);
+    Identifier(List<String> parts, DataSourceService dataSourceService) {
+      resolver = new DataSourceSchemaIdentifierNameResolver(dataSourceService, parts);
     }
 
     Identifier datasource(String expectedDatasource) {
