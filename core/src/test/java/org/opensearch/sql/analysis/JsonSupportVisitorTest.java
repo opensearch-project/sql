@@ -5,8 +5,8 @@
 
 package org.opensearch.sql.analysis;
 
-import static org.junit.jupiter.api.Assertions.assertNull;
-import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.opensearch.sql.ast.dsl.AstDSL.qualifiedName;
 
 import com.google.common.collect.ImmutableList;
@@ -15,6 +15,7 @@ import org.junit.jupiter.api.Test;
 import org.opensearch.sql.ast.dsl.AstDSL;
 import org.opensearch.sql.ast.expression.Literal;
 import org.opensearch.sql.ast.expression.UnresolvedExpression;
+import org.opensearch.sql.ast.tree.Limit;
 import org.opensearch.sql.ast.tree.UnresolvedPlan;
 
 class JsonSupportVisitorTest {
@@ -23,14 +24,13 @@ class JsonSupportVisitorTest {
     UnresolvedPlan project = AstDSL.project(
         AstDSL.relation("table", "table"),
         AstDSL.intLiteral(1));
-    assertThrows(UnsupportedOperationException.class,
-        () -> project.accept(new JsonSupportVisitor(), new JsonSupportVisitorContext()));
+    assertFalse(project.accept(new JsonSupportVisitor(), new JsonSupportVisitorContext()));
   }
 
   @Test
   public void visitLiteralOutsideProject() {
     Literal intLiteral = AstDSL.intLiteral(1);
-    assertNull(intLiteral.accept(new JsonSupportVisitor(), new JsonSupportVisitorContext()));
+    assertTrue(intLiteral.accept(new JsonSupportVisitor(), new JsonSupportVisitorContext()));
   }
 
   @Test
@@ -38,8 +38,7 @@ class JsonSupportVisitorTest {
     UnresolvedPlan project = AstDSL.project(
         AstDSL.relation("table", "table"),
         AstDSL.cast(AstDSL.intLiteral(1), AstDSL.stringLiteral("INT")));
-    assertThrows(UnsupportedOperationException.class,
-        () -> project.accept(new JsonSupportVisitor(), new JsonSupportVisitorContext()));
+    assertFalse(project.accept(new JsonSupportVisitor(), new JsonSupportVisitorContext()));
   }
 
   @Test
@@ -47,7 +46,7 @@ class JsonSupportVisitorTest {
     UnresolvedExpression intCast = AstDSL.cast(
         AstDSL.intLiteral(1),
         AstDSL.stringLiteral("INT"));
-    assertNull(intCast.accept(new JsonSupportVisitor(), new JsonSupportVisitorContext()));
+    assertTrue(intCast.accept(new JsonSupportVisitor(), new JsonSupportVisitorContext()));
   }
 
   @Test
@@ -55,8 +54,7 @@ class JsonSupportVisitorTest {
     UnresolvedPlan project = AstDSL.project(
         AstDSL.relation("table", "table"),
         AstDSL.alias("alias", AstDSL.intLiteral(1)));
-    assertThrows(UnsupportedOperationException.class,
-        () -> project.accept(new JsonSupportVisitor(), new JsonSupportVisitorContext()));
+    assertFalse(project.accept(new JsonSupportVisitor(), new JsonSupportVisitorContext()));
   }
 
   @Test
@@ -64,8 +62,7 @@ class JsonSupportVisitorTest {
     UnresolvedPlan project = AstDSL.project(
         AstDSL.relation("table", "table"),
         AstDSL.alias("alias", AstDSL.intLiteral(1), "alias"));
-    assertThrows(UnsupportedOperationException.class,
-        () -> project.accept(new JsonSupportVisitor(), new JsonSupportVisitorContext()));
+    assertFalse(project.accept(new JsonSupportVisitor(), new JsonSupportVisitorContext()));
   }
 
   @Test
@@ -73,13 +70,13 @@ class JsonSupportVisitorTest {
     UnresolvedPlan project = AstDSL.project(
         AstDSL.relation("table", "table"),
         AstDSL.alias("alias", AstDSL.field("field")));
-    assertNull(project.accept(new JsonSupportVisitor(), new JsonSupportVisitorContext()));
+    assertTrue(project.accept(new JsonSupportVisitor(), new JsonSupportVisitorContext()));
   }
 
   @Test
   public void visitAliasOutsideProject() {
     UnresolvedExpression alias = AstDSL.alias("alias", AstDSL.intLiteral(1));
-    assertNull(alias.accept(new JsonSupportVisitor(), new JsonSupportVisitorContext()));
+    assertTrue(alias.accept(new JsonSupportVisitor(), new JsonSupportVisitorContext()));
   }
 
   @Test
@@ -87,14 +84,13 @@ class JsonSupportVisitorTest {
     UnresolvedPlan function = AstDSL.project(
         AstDSL.relation("table", "table"),
         AstDSL.function("abs", AstDSL.intLiteral(-1)));
-    assertThrows(UnsupportedOperationException.class,
-        () -> function.accept(new JsonSupportVisitor(), new JsonSupportVisitorContext()));
+    assertFalse(function.accept(new JsonSupportVisitor(), new JsonSupportVisitorContext()));
   }
 
   @Test
   public void visitFunctionOutsideProject() {
     UnresolvedExpression function = AstDSL.function("abs", AstDSL.intLiteral(-1));
-    assertNull(function.accept(new JsonSupportVisitor(), new JsonSupportVisitorContext()));
+    assertTrue(function.accept(new JsonSupportVisitor(), new JsonSupportVisitorContext()));
   }
 
   @Test
@@ -105,8 +101,7 @@ class JsonSupportVisitorTest {
         Collections.emptyList(),
         ImmutableList.of(AstDSL.alias("alias", qualifiedName("integer_value"))),
         Collections.emptyList()));
-    assertThrows(UnsupportedOperationException.class,
-        () -> projectAggr.accept(new JsonSupportVisitor(), new JsonSupportVisitorContext()));
+    assertFalse(projectAggr.accept(new JsonSupportVisitor(), new JsonSupportVisitorContext()));
   }
 
   @Test
@@ -120,6 +115,21 @@ class JsonSupportVisitorTest {
         Collections.emptyList(),
         Collections.emptyList(),
         Collections.emptyList());
-    assertNull(aggregation.accept(new JsonSupportVisitor(), new JsonSupportVisitorContext()));
+    assertTrue(aggregation.accept(new JsonSupportVisitor(), new JsonSupportVisitorContext()));
+  }
+
+  @Test
+  public void visitLimit() {
+    Limit limit = AstDSL.limit(AstDSL.relation("table", "table"), 10, 5);
+    assertFalse(limit.accept(new JsonSupportVisitor(), new JsonSupportVisitorContext()));
+  }
+
+  @Test
+  public void visitWithMultipleUnsupportedProjectNodes() {
+    UnresolvedPlan plan = AstDSL.project(
+        AstDSL.relation("table", "table"),
+        AstDSL.function("abs", AstDSL.intLiteral(-1)),
+        AstDSL.alias("alias", AstDSL.intLiteral(1)));
+    assertFalse(plan.accept(new JsonSupportVisitor(), new JsonSupportVisitorContext()));
   }
 }

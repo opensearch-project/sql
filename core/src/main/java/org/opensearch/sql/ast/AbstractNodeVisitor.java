@@ -82,7 +82,7 @@ public abstract class AbstractNodeVisitor<T, C> {
     return result;
   }
 
-  private T defaultResult() {
+  protected T defaultResult() {
     return null;
   }
 

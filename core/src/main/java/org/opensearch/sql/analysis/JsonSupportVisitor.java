@@ -13,6 +13,7 @@ import org.opensearch.sql.ast.expression.Cast;
 import org.opensearch.sql.ast.expression.Function;
 import org.opensearch.sql.ast.expression.Literal;
 import org.opensearch.sql.ast.tree.Aggregation;
+import org.opensearch.sql.ast.tree.Limit;
 import org.opensearch.sql.ast.tree.Project;
 
 /**
@@ -21,86 +22,90 @@ import org.opensearch.sql.ast.tree.Project;
  * Unsupported features in V2 are ones the produce results that differ from
  * legacy results.
  */
-public class JsonSupportVisitor extends AbstractNodeVisitor<Void, JsonSupportVisitorContext> {
+public class JsonSupportVisitor extends AbstractNodeVisitor<Boolean, JsonSupportVisitorContext> {
   @Override
-  public Void visit(Node node, JsonSupportVisitorContext context) {
-    visitChildren(node, context);
-    return null;
+  public Boolean visit(Node node, JsonSupportVisitorContext context) {
+    // UnresolvedPlan can only have one child until joins are supported
+    return node.getChild().get(0).accept(this, context);
   }
 
   @Override
-  public Void visitChildren(Node node, JsonSupportVisitorContext context) {
-    for (Node child : node.getChild()) {
-      child.accept(this, context);
-    }
-    return null;
+  protected Boolean defaultResult() {
+    return Boolean.TRUE;
   }
 
   @Override
-  public Void visitAggregation(Aggregation node, JsonSupportVisitorContext context) {
+  public Boolean visitLimit(Limit node, JsonSupportVisitorContext context) {
+    context.addToUnsupportedNodes("limit");
+    return Boolean.FALSE;
+  }
+
+  @Override
+  public Boolean visitAggregation(Aggregation node, JsonSupportVisitorContext context) {
     if (!node.getGroupExprList().isEmpty()) {
-      throw new UnsupportedOperationException(
-          "Queries with aggregation are not yet supported with json format in the new engine");
+      context.addToUnsupportedNodes("aggregation");
+      return Boolean.FALSE;
     }
-    return null;
+    return Boolean.TRUE;
   }
 
   @Override
-  public Void visitFunction(Function node, JsonSupportVisitorContext context) {
+  public Boolean visitFunction(Function node, JsonSupportVisitorContext context) {
     // Supported if outside of Project
     if (context.isVisitingProject()) {
       // queries with function calls are not supported.
-      throw new UnsupportedOperationException(
-          "Queries with functions are not yet supported with json format in the new engine");
+      context.addToUnsupportedNodes("functions");
+      return Boolean.FALSE;
     }
-    return null;
+    return Boolean.TRUE;
   }
 
   @Override
-  public Void visitLiteral(Literal node, JsonSupportVisitorContext context) {
+  public Boolean visitLiteral(Literal node, JsonSupportVisitorContext context) {
     // Supported if outside of Project
     if (context.isVisitingProject()) {
       // queries with literal values are not supported
-      throw new UnsupportedOperationException(
-          "Queries with literals are not yet supported with json format in the new engine");
+      context.addToUnsupportedNodes("literal");
+      return Boolean.FALSE;
     }
-    return null;
+    return Boolean.TRUE;
   }
 
   @Override
-  public Void visitCast(Cast node, JsonSupportVisitorContext context) {
+  public Boolean visitCast(Cast node, JsonSupportVisitorContext context) {
     // Supported if outside of Project
     if (context.isVisitingProject()) {
       // Queries with cast are not supported
-      throw new UnsupportedOperationException(
-          "Queries with casts are not yet supported with json format in the new engine");
+      context.addToUnsupportedNodes("cast");
+      return Boolean.FALSE;
     }
-    return null;
+    return Boolean.TRUE;
   }
 
   @Override
-  public Void visitAlias(Alias node, JsonSupportVisitorContext context) {
+  public Boolean visitAlias(Alias node, JsonSupportVisitorContext context) {
     // Supported if outside of Project
     if (context.isVisitingProject()) {
       // Alias node is accepted if it does not have a user-defined alias
       // and if the delegated expression is accepted.
       if (StringUtils.isEmpty(node.getAlias())) {
-        node.getDelegated().accept(this, context);
+        return node.getDelegated().accept(this, context);
       } else {
-        throw new UnsupportedOperationException(
-            "Queries with aliases are not yet supported with json format in the new engine");
+        context.addToUnsupportedNodes("alias");
+        return Boolean.FALSE;
       }
     }
-    return null;
+    return Boolean.TRUE;
   }
 
   @Override
-  public Void visitProject(Project node, JsonSupportVisitorContext context) {
-    visit(node, context);
+  public Boolean visitProject(Project node, JsonSupportVisitorContext context) {
+    Boolean isSupported = visit(node, context);
 
     context.setVisitingProject(true);
-    node.getProjectList().forEach(e -> e.accept(this, context));
+    isSupported = node.getProjectList().stream()
+        .allMatch(e -> e.accept(this, context)) && isSupported;
     context.setVisitingProject(false);
-    return null;
+    return isSupported;
   }
 }

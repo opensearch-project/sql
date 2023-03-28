@@ -7,6 +7,7 @@
 package org.opensearch.sql.planner.physical;
 
 import java.util.Iterator;
+import org.apache.commons.lang3.StringUtils;
 import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.executor.ExecutionEngine;
 import org.opensearch.sql.planner.PlanNode;
@@ -48,6 +49,6 @@ public abstract class PhysicalPlan implements PlanNode<PhysicalPlan>,
 
   public String getRawResponse() {
     return getChild().stream().map(PhysicalPlan::getRawResponse)
-        .filter(r -> r != null && !r.isEmpty()).findFirst().orElse("");
+        .filter(StringUtils::isNotEmpty).findFirst().orElse("");
   }
 }

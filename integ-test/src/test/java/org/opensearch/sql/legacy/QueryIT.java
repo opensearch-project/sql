@@ -104,7 +104,7 @@ public class QueryIT extends SQLIntegTestCase {
 
   // Duplicated column names like SELECT *, age is not yet supported in V2
   // Can be tracked with https://github.com/opensearch-project/sql/issues/785
-  @Test(expected = ResponseException.class)
+  @Test
   public void selectAllWithFieldReturnsAll() throws IOException {
     JSONObject response = executeQuery(StringUtils.format(
         "SELECT *, age " +
@@ -118,7 +118,7 @@ public class QueryIT extends SQLIntegTestCase {
 
   // Duplicated column names like SELECT *, age is not yet supported in V2
   // Can be tracked with https://github.com/opensearch-project/sql/issues/785
-  @Test(expected = ResponseException.class)
+  @Test
   public void selectAllWithFieldReverseOrder() throws IOException {
     JSONObject response = executeQuery(StringUtils.format(
         "SELECT *, age " +
@@ -132,7 +132,7 @@ public class QueryIT extends SQLIntegTestCase {
 
   // Duplicated column names like SELECT *, age is not yet supported in V2
   // Can be tracked with https://github.com/opensearch-project/sql/issues/785
-  @Test(expected = ResponseException.class)
+  @Test
   public void selectAllWithMultipleFields() throws IOException {
     JSONObject response = executeQuery(StringUtils.format(
         "SELECT *, age, address " +
@@ -146,7 +146,7 @@ public class QueryIT extends SQLIntegTestCase {
 
   // Duplicated column names like SELECT *, age is not yet supported in V2
   // Can be tracked with https://github.com/opensearch-project/sql/issues/785
-  @Test(expected = ResponseException.class)
+  @Test
   public void selectAllWithFieldAndOrderBy() throws IOException {
     JSONObject response = executeQuery(StringUtils.format(
         "SELECT *, age " +
@@ -782,7 +782,7 @@ public class QueryIT extends SQLIntegTestCase {
 
   // Unsupported date format in V2
   // Can be tracked through https://github.com/opensearch-project/sql/issues/856
-  @Test(expected = ResponseException.class)
+  @Test
   public void dateBetweenSearch() throws IOException {
     DateTimeFormatter formatter = DateTimeFormat.forPattern(TestsConstants.DATE_FORMAT);
 
@@ -1284,7 +1284,7 @@ public class QueryIT extends SQLIntegTestCase {
 
   // Objects in IS NOT NULL not yet supported in V2
   // Can be tracked with https://github.com/opensearch-project/sql/issues/1425
-  @Test(expected = ResponseException.class)
+  @Test
   public void notLikeTests() throws IOException {
     JSONObject response = executeQuery(
         String.format(Locale.ROOT, "SELECT name " +

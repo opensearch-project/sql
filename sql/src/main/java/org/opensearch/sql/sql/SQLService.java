@@ -7,6 +7,7 @@
 package org.opensearch.sql.sql;
 
 import java.util.Optional;
+import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import org.antlr.v4.runtime.tree.ParseTree;
 import org.opensearch.sql.analysis.JsonSupportVisitor;
@@ -87,7 +88,13 @@ public class SQLService {
 
       // Go through the tree and throw exceptions when unsupported
       JsonSupportVisitorContext jsonSupportVisitorContext = new JsonSupportVisitorContext();
-      ((Query) statement).getPlan().accept(new JsonSupportVisitor(), jsonSupportVisitorContext);
+      if (!((Query) statement).getPlan().accept(new JsonSupportVisitor(),
+          jsonSupportVisitorContext)) {
+        throw new UnsupportedOperationException(
+            "The following features are not supported with JSON format: "
+                .concat(jsonSupportVisitorContext.getUnsupportedNodes().stream()
+                .collect(Collectors.joining(", "))));
+      }
     }
 
     return queryExecutionFactory.create(statement, queryListener, explainListener);
