@@ -72,7 +72,7 @@ public class AggMaker {
     private Where where;
 
     /**
-     * 分组查的聚合函数
+     *
      *
      * @param field
      * @return
@@ -535,7 +535,7 @@ public class AggMaker {
     }
 
     /**
-     * 按照时间范围分组
+     *
      *
      * @param field
      * @return
@@ -663,7 +663,7 @@ public class AggMaker {
     }
 
     /**
-     * 构建范围查询
+     *
      *
      * @param field
      * @return
@@ -723,7 +723,7 @@ public class AggMaker {
     }
 
     /**
-     * TOPHITS查询
+     * TOPHITS
      *
      * @param field
      * @return

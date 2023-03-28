@@ -27,10 +27,10 @@ import org.opensearch.cluster.metadata.MappingMetadata;
  * 'type': integer
  * },
  * 'state': {
- * 'type': text，
+ * 'type': text
  * }
  * 'name': {
- * 'type': text，
+ * 'type': text
  * 'fields': {
  * 'keyword': {
  * 'type': keyword,
