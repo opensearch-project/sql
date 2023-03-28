@@ -18,7 +18,7 @@ import org.opensearch.sql.legacy.parser.NestedType;
 import org.opensearch.sql.legacy.utils.StringUtils;
 
 /**
- * 过滤条件
+ *
  *
  * @author ansj
  */
