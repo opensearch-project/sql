@@ -8,12 +8,14 @@ package org.opensearch.sql.planner.logical;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.opensearch.sql.data.type.ExprCoreType.STRING;
 import static org.opensearch.sql.expression.DSL.named;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 import org.apache.commons.lang3.tuple.Pair;
@@ -29,6 +31,7 @@ import org.opensearch.sql.data.model.ExprValueUtils;
 import org.opensearch.sql.expression.DSL;
 import org.opensearch.sql.expression.Expression;
 import org.opensearch.sql.expression.LiteralExpression;
+import org.opensearch.sql.expression.NamedExpression;
 import org.opensearch.sql.expression.ReferenceExpression;
 import org.opensearch.sql.expression.aggregation.Aggregator;
 import org.opensearch.sql.expression.window.WindowDefinition;
@@ -150,6 +153,21 @@ class LogicalPlanNodeVisitorTest {
     LogicalPlan highlight = new LogicalHighlight(filter,
         new LiteralExpression(ExprValueUtils.stringValue("fieldA")), args);
     assertNull(highlight.accept(new LogicalPlanNodeVisitor<Integer, Object>() {
+    }, null));
+
+    List<Map<String, ReferenceExpression>> nestedArgs = List.of(
+        Map.of(
+            "field", new ReferenceExpression("message.info", STRING),
+            "path", new ReferenceExpression("message", STRING)
+        )
+    );
+    List<NamedExpression> projectList =
+        List.of(
+            new NamedExpression("message.info", DSL.nested(DSL.ref("message.info", STRING)), null)
+        );
+
+    LogicalNested nested = new LogicalNested(null, nestedArgs, projectList);
+    assertNull(nested.accept(new LogicalPlanNodeVisitor<Integer, Object>() {
     }, null));
 
     LogicalPlan mlCommons = new LogicalMLCommons(LogicalPlanDSL.relation("schema", table),

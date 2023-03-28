@@ -4341,6 +4341,27 @@ Another example to show how to set custom values for the optional parameters::
     | tEsT wIlDcArD sensitive cases             |
     +-------------------------------------------+
 
+NESTED
+------
+
+Description
+>>>>>>>>>>>
+
+``nested(field | [field, path])``
+
+The ``nested`` function maps to the ``nested`` query used in search engine. It returns nested field types in documents that match the provided specified field(s).
+
+Example with ``field`` and ``path`` parameters::
+
+    os> SELECT nested(message.info, message) FROM nested;
+    fetched rows / total rows = 2/2
+    +----------------+
+    | message.info   |
+    |----------------|
+    | a              |
+    | b              |
+    +----------------+
+
 System Functions
 ================
 

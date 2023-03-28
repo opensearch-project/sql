@@ -37,6 +37,7 @@ import static org.opensearch.sql.data.type.ExprCoreType.DOUBLE;
 import static org.opensearch.sql.data.type.ExprCoreType.INTEGER;
 import static org.opensearch.sql.data.type.ExprCoreType.LONG;
 import static org.opensearch.sql.data.type.ExprCoreType.STRING;
+import static org.opensearch.sql.data.type.ExprCoreType.STRUCT;
 import static org.opensearch.sql.data.type.ExprCoreType.TIMESTAMP;
 import static org.opensearch.sql.utils.MLCommonsConstants.ACTION;
 import static org.opensearch.sql.utils.MLCommonsConstants.ALGO;
@@ -83,12 +84,16 @@ import org.opensearch.sql.data.type.ExprCoreType;
 import org.opensearch.sql.exception.ExpressionEvaluationException;
 import org.opensearch.sql.exception.SemanticCheckException;
 import org.opensearch.sql.expression.DSL;
+import org.opensearch.sql.expression.Expression;
 import org.opensearch.sql.expression.HighlightExpression;
 import org.opensearch.sql.expression.function.OpenSearchFunctions;
+import org.opensearch.sql.expression.NamedExpression;
+import org.opensearch.sql.expression.ReferenceExpression;
 import org.opensearch.sql.expression.window.WindowDefinition;
 import org.opensearch.sql.planner.logical.LogicalAD;
 import org.opensearch.sql.planner.logical.LogicalFilter;
 import org.opensearch.sql.planner.logical.LogicalMLCommons;
+import org.opensearch.sql.planner.logical.LogicalNested;
 import org.opensearch.sql.planner.logical.LogicalPlan;
 import org.opensearch.sql.planner.logical.LogicalPlanDSL;
 import org.opensearch.sql.planner.logical.LogicalProject;
@@ -529,6 +534,120 @@ class AnalyzerTest extends AnalyzerTestBase {
             AstDSL.defaultFieldsArgs(),
             AstDSL.field("integer_value"), // Field not wrapped by Alias
             AstDSL.alias("double_value", AstDSL.field("double_value"))));
+  }
+
+  @Test
+  public void project_nested_field_arg() {
+    List<Map<String, ReferenceExpression>> nestedArgs =
+        List.of(
+            Map.of(
+                "field", new ReferenceExpression("message.info", STRING),
+                "path", new ReferenceExpression("message", STRING)
+            )
+        );
+
+    List<NamedExpression> projectList =
+        List.of(
+            new NamedExpression(
+                "message.info",
+                DSL.nested(DSL.ref("message.info", STRING)),
+                null)
+        );
+
+    assertAnalyzeEqual(
+        LogicalPlanDSL.project(
+            LogicalPlanDSL.nested(
+                LogicalPlanDSL.relation("schema", table),
+                nestedArgs,
+                projectList),
+            DSL.named("message.info",
+                DSL.nested(DSL.ref("message.info", STRING)))
+        ),
+        AstDSL.projectWithArg(
+            AstDSL.relation("schema"),
+            AstDSL.defaultFieldsArgs(),
+            AstDSL.alias("message.info",
+                function("nested", qualifiedName("message", "info")), null)
+        )
+    );
+  }
+
+  @Test
+  public void project_nested_field_and_path_args() {
+    List<Map<String, ReferenceExpression>> nestedArgs =
+        List.of(
+            Map.of(
+                "field", new ReferenceExpression("message.info", STRING),
+                "path", new ReferenceExpression("message", STRING)
+            )
+        );
+
+    List<NamedExpression> projectList =
+        List.of(
+            new NamedExpression(
+                "message.info",
+                DSL.nested(DSL.ref("message.info", STRING), DSL.ref("message", STRING)),
+                null)
+        );
+
+    assertAnalyzeEqual(
+        LogicalPlanDSL.project(
+            LogicalPlanDSL.nested(
+                LogicalPlanDSL.relation("schema", table),
+                nestedArgs,
+                projectList),
+            DSL.named("message.info",
+                DSL.nested(DSL.ref("message.info", STRING), DSL.ref("message", STRING)))
+        ),
+        AstDSL.projectWithArg(
+            AstDSL.relation("schema"),
+            AstDSL.defaultFieldsArgs(),
+            AstDSL.alias("message.info",
+                function(
+                    "nested",
+                    qualifiedName("message", "info"),
+                    qualifiedName("message")
+                ),
+                null
+            )
+        )
+    );
+  }
+
+  @Test
+  public void project_nested_deep_field_arg() {
+    List<Map<String, ReferenceExpression>> nestedArgs =
+        List.of(
+            Map.of(
+                "field", new ReferenceExpression("message.info.id", STRING),
+                "path", new ReferenceExpression("message.info", STRING)
+            )
+        );
+
+    List<NamedExpression> projectList =
+        List.of(
+            new NamedExpression(
+                "message.info.id",
+                DSL.nested(DSL.ref("message.info.id", STRING)),
+                null)
+        );
+
+    assertAnalyzeEqual(
+        LogicalPlanDSL.project(
+            LogicalPlanDSL.nested(
+                LogicalPlanDSL.relation("schema", table),
+                nestedArgs,
+                projectList),
+            DSL.named("message.info.id",
+                DSL.nested(DSL.ref("message.info.id", STRING)))
+        ),
+        AstDSL.projectWithArg(
+            AstDSL.relation("schema"),
+            AstDSL.defaultFieldsArgs(),
+            AstDSL.alias("message.info.id",
+                function("nested", qualifiedName("message", "info", "id")), null)
+        )
+    );
   }
 
   @Test

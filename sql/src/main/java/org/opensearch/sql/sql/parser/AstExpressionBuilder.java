@@ -12,6 +12,7 @@ import static org.opensearch.sql.ast.dsl.AstDSL.qualifiedName;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.IS_NOT_NULL;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.IS_NULL;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.LIKE;
+import static org.opensearch.sql.expression.function.BuiltinFunctionName.NESTED;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.NOT_LIKE;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.POSITION;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.REGEXP;
@@ -40,6 +41,7 @@ import static org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParser.IsNullPred
 import static org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParser.LikePredicateContext;
 import static org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParser.MathExpressionAtomContext;
 import static org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParser.MultiFieldRelevanceFunctionContext;
+import static org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParser.NestedFunctionCallContext;
 import static org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParser.NoFieldRelevanceFunctionContext;
 import static org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParser.NotExpressionContext;
 import static org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParser.NullLiteralContext;
@@ -68,6 +70,7 @@ import static org.opensearch.sql.sql.parser.ParserUtils.createSortOption;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
@@ -79,6 +82,7 @@ import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.apache.commons.lang3.tuple.Pair;
 import org.opensearch.sql.ast.dsl.AstDSL;
 import org.opensearch.sql.ast.expression.AggregateFunction;
+import org.opensearch.sql.ast.expression.Alias;
 import org.opensearch.sql.ast.expression.AllFields;
 import org.opensearch.sql.ast.expression.And;
 import org.opensearch.sql.ast.expression.Case;
@@ -152,6 +156,33 @@ public class AstExpressionBuilder extends OpenSearchSQLParserBaseVisitor<Unresol
   @Override
   public UnresolvedExpression visitScalarFunctionCall(ScalarFunctionCallContext ctx) {
     return buildFunction(ctx.scalarFunctionName().getText(), ctx.functionArgs().functionArg());
+  }
+
+  @Override
+  public UnresolvedExpression visitNestedFunctionCall(NestedFunctionCallContext ctx) {
+    List<UnresolvedExpression> args = new ArrayList();
+
+    args.add(
+        new QualifiedName(
+            ctx.nestedFunction().nestedField().nestedIdent().stream()
+                .map(RuleContext::getText)
+                .map(StringUtils::unquoteIdentifier)
+                .collect(Collectors.toList())
+        )
+    );
+    if (ctx.nestedFunction().nestedPath() != null) {
+      args.add(
+        new QualifiedName(
+            ctx.nestedFunction().nestedPath().nestedIdent().stream()
+                .map(RuleContext::getText)
+                .map(StringUtils::unquoteIdentifier)
+                .collect(Collectors.toList())
+        )
+      );
+    }
+
+    return new Alias(ctx.nestedFunction().nestedField().getText(),
+        new Function(NESTED.getName().getFunctionName(), args));
   }
 
   @Override

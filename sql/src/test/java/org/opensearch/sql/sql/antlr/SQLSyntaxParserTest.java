@@ -636,6 +636,28 @@ class SQLSyntaxParserTest {
   }
 
   @Test
+  public void can_parse_nested_function() {
+    assertNotNull(
+        parser.parse("SELECT NESTED(FIELD.DAYOFWEEK) FROM TEST"));
+    assertNotNull(
+        parser.parse("SELECT NESTED('FIELD.DAYOFWEEK') FROM TEST"));
+    assertNotNull(
+        parser.parse("SELECT SUM(NESTED(FIELD.SUBFIELD)) FROM TEST"));
+    assertNotNull(
+        parser.parse("SELECT NESTED(FIELD.DAYOFWEEK, PATH) FROM TEST"));
+  }
+
+  @Test
+  public void can_not_parse_nested_function_without_dot() {
+    assertThrows(SyntaxCheckException.class,
+        () -> parser.parse("SELECT NESTED(MESSAGE1) FROM TEST"));
+    assertThrows(SyntaxCheckException.class,
+        () -> parser.parse("SELECT COUNT(*) FROM TEST GROUP BY NESTED(MESSAGE2)"));
+    assertThrows(SyntaxCheckException.class,
+        () -> parser.parse("SELECT NESTED(PATH, INVALID_CONDITION)"));
+  }
+
+  @Test
   public void can_parse_yearweek_function() {
     assertNotNull(parser.parse("SELECT yearweek('1987-01-01')"));
     assertNotNull(parser.parse("SELECT yearweek('1987-01-01', 1)"));

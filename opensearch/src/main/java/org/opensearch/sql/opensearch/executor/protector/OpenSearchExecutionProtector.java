@@ -22,6 +22,7 @@ import org.opensearch.sql.planner.physical.RareTopNOperator;
 import org.opensearch.sql.planner.physical.RemoveOperator;
 import org.opensearch.sql.planner.physical.RenameOperator;
 import org.opensearch.sql.planner.physical.SortOperator;
+import org.opensearch.sql.planner.physical.UnnestOperator;
 import org.opensearch.sql.planner.physical.ValuesOperator;
 import org.opensearch.sql.planner.physical.WindowOperator;
 import org.opensearch.sql.storage.TableScanOperator;
@@ -85,6 +86,15 @@ public class OpenSearchExecutionProtector extends ExecutionProtector {
   @Override
   public PhysicalPlan visitEval(EvalOperator node, Object context) {
     return new EvalOperator(visitInput(node.getInput(), context), node.getExpressionList());
+  }
+
+  @Override
+  public PhysicalPlan visitUnnest(UnnestOperator node, Object context) {
+    return doProtect(
+        new UnnestOperator(
+            visitInput(node.getInput(), context), node.getFields(), node.getGroupedPathsAndFields()
+        )
+    );
   }
 
   @Override

@@ -11,6 +11,7 @@ import com.google.common.collect.ImmutableSet;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import lombok.experimental.UtilityClass;
 import org.apache.commons.lang3.tuple.Pair;
 import org.opensearch.sql.ast.tree.RareTopN.CommandType;
@@ -104,5 +105,12 @@ public class PhysicalPlanDSL {
 
   public static LimitOperator limit(PhysicalPlan input, Integer limit, Integer offset) {
     return new LimitOperator(input, limit, offset);
+  }
+
+  public static UnnestOperator unnest(
+      PhysicalPlan input,
+      Set<String> args,
+      Map<String, List<String>> groupedFieldsByPath) {
+    return new UnnestOperator(input, args, groupedFieldsByPath);
   }
 }

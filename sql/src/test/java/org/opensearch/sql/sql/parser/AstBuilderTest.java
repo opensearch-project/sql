@@ -33,21 +33,13 @@ import static org.opensearch.sql.utils.SystemIndexUtils.mappingTable;
 
 import com.google.common.collect.ImmutableList;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
-import java.util.stream.Stream;
-import org.antlr.v4.runtime.tree.ParseTree;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.Arguments;
-import org.junit.jupiter.params.provider.MethodSource;
 import org.opensearch.sql.ast.dsl.AstDSL;
 import org.opensearch.sql.ast.expression.AllFields;
 import org.opensearch.sql.ast.expression.DataType;
 import org.opensearch.sql.ast.expression.Literal;
-import org.opensearch.sql.ast.tree.UnresolvedPlan;
 import org.opensearch.sql.common.antlr.SyntaxCheckException;
-import org.opensearch.sql.sql.antlr.SQLSyntaxParser;
 
 class AstBuilderTest extends AstBuilderTestBase {
 
@@ -697,4 +689,39 @@ class AstBuilderTest extends AstBuilderTestBase {
     );
   }
 
+  @Test
+  public void can_build_nested_select_field() {
+    assertEquals(
+        project(
+            relation("test"),
+            alias(
+                "message.info",
+                function("nested", qualifiedName("message", "info")),
+                null
+            )
+        ),
+        buildAST("SELECT"
+            + " nested(message.info) "
+            + "FROM test"
+        )
+    );
+  }
+
+  @Test
+  public void can_build_nested_select_field_with_alias() {
+    assertEquals(
+        project(
+            relation("test"),
+            alias(
+                "message.info",
+                function("nested", qualifiedName("message", "info")),
+                "nest"
+            )
+        ),
+        buildAST("SELECT"
+            + " nested(message.info) as nest "
+            + "FROM test"
+        )
+    );
+  }
 }

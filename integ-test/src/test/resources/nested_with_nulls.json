@@ -1,0 +1,24 @@
+{"index":{"_id":"1"}}
+{"message":{"author":"e","dayOfWeek":5},"comment":{"data":"hh","likes":5},"myNum":7,"someField":"a"}
+{"index":{"_id":"2"}}
+{"message":{"info":"b","author":"f","dayOfWeek":2},"comment":{"data":"aa","likes":2},"myNum":2,"someField":"a"}
+{"index":{"_id":"3"}}
+{"message":{"info":"c","author":"g","dayOfWeek":1},"comment":{"data":"aa","likes":3},"myNum":3,"someField":"a"}
+{"index":{"_id":"4"}}
+{"message":[{"info":"c","author":"h","dayOfWeek":4},{"info":"a","author":"i","dayOfWeek":5}],"comment":{"data":"ab","likes":1},"myNum":4,"someField":"b"}
+{"index":{"_id":"5"}}
+{"message": [{"info":"zz","author":"zz","dayOfWeek":6}],"comment":{"data":["aa","bb"],"likes":10},"myNum":[3,4],"someField":"a"}
+{"index":{"_id":"7"}}
+{"message":[{"info":"zz", "author":"z\"z", "dayOfWeek":6}], "comment":{"data":["aa","bb"], "likes":10}, "myNum":[3,4], "someField":"a"}
+{"index":{"_id":"8"}}
+{"message":{"info":null,"author":"e","dayOfWeek":7},"comment":{"data":"ee","likes":6},"myNum":6,"someField":"a"}
+{"index":{"_id":"9"}}
+{"message":{"info":"a","author":"e","dayOfWeek":1},"comment":{"data":"ab","likes":3},"myNum":1,"someField":"b"}
+{"index":{"_id":"10"}}
+{"message":[{"info":"rr", "author":"this \"value\" contains quotes", "dayOfWeek":3}], "comment":{"data":["asdf","sdfg"], "likes":56}, "myNum":[1,2,4], "someField":"ert"}
+{"index":{"_id":"11"}}
+{"comment":{"data":"jj","likes":1},"myNum":8,"someField":"a"}
+{"index":{"_id":"12"}}
+{"message":null,"comment":{"data":"kk","likes":0},"myNum":9,"someField":"a"}
+{"index":{"_id":"13"}}
+{}

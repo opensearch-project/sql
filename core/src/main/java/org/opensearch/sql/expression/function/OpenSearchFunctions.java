@@ -47,6 +47,8 @@ public class OpenSearchFunctions {
     repository.register(score(BuiltinFunctionName.SCORE));
     repository.register(score(BuiltinFunctionName.SCOREQUERY));
     repository.register(score(BuiltinFunctionName.SCORE_QUERY));
+    // Functions supported in SELECT clause
+    repository.register(nested(BuiltinFunctionName.NESTED));
   }
 
   private static FunctionResolver match_bool_prefix() {
@@ -91,6 +93,11 @@ public class OpenSearchFunctions {
   private static FunctionResolver wildcard_query(BuiltinFunctionName wildcardQuery) {
     FunctionName funcName = wildcardQuery.getName();
     return new RelevanceFunctionResolver(funcName);
+  }
+
+  private static FunctionResolver nested(BuiltinFunctionName nested) {
+    FunctionName funcName = nested.getName();
+    return new NestedFunctionResolver(funcName);
   }
 
   private static FunctionResolver score(BuiltinFunctionName score) {
