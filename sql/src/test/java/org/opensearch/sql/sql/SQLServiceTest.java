@@ -7,31 +7,35 @@
 package org.opensearch.sql.sql;
 
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doAnswer;
 import static org.opensearch.sql.executor.ExecutionEngine.QueryResponse;
 
-import java.util.Collections;
+import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import org.json.JSONObject;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayNameGeneration;
+import org.junit.jupiter.api.DisplayNameGenerator;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.opensearch.sql.common.response.ResponseListener;
 import org.opensearch.sql.executor.DefaultQueryManager;
-import org.opensearch.sql.executor.ExecutionEngine;
 import org.opensearch.sql.executor.ExecutionEngine.ExplainResponse;
 import org.opensearch.sql.executor.ExecutionEngine.ExplainResponseNode;
 import org.opensearch.sql.executor.QueryService;
 import org.opensearch.sql.executor.execution.QueryPlanFactory;
+import org.opensearch.sql.executor.pagination.PaginatedPlanCache;
 import org.opensearch.sql.sql.antlr.SQLSyntaxParser;
 import org.opensearch.sql.sql.domain.SQLQueryRequest;
 
 @ExtendWith(MockitoExtension.class)
+@DisplayNameGeneration(DisplayNameGenerator.ReplaceUnderscores.class)
 class SQLServiceTest {
 
   private static String QUERY = "/_plugins/_sql";
@@ -46,13 +50,13 @@ class SQLServiceTest {
   private QueryService queryService;
 
   @Mock
-  private ExecutionEngine.Schema schema;
+  private PaginatedPlanCache paginatedPlanCache;
 
   @BeforeEach
   public void setUp() {
     queryManager = DefaultQueryManager.defaultQueryManager();
     sqlService = new SQLService(new SQLSyntaxParser(), queryManager,
-        new QueryPlanFactory(queryService));
+        new QueryPlanFactory(queryService, paginatedPlanCache));
   }
 
   @AfterEach
@@ -61,16 +65,10 @@ class SQLServiceTest {
   }
 
   @Test
-  public void canExecuteSqlQuery() {
-    doAnswer(invocation -> {
-      ResponseListener<QueryResponse> listener = invocation.getArgument(1);
-      listener.onResponse(new QueryResponse(schema, Collections.emptyList()));
-      return null;
-    }).when(queryService).execute(any(), any());
-
+  public void can_execute_sql_query() {
     sqlService.execute(
         new SQLQueryRequest(new JSONObject(), "SELECT 123", QUERY, "jdbc"),
-        new ResponseListener<QueryResponse>() {
+        new ResponseListener<>() {
           @Override
           public void onResponse(QueryResponse response) {
             assertNotNull(response);
@@ -84,13 +82,24 @@ class SQLServiceTest {
   }
 
   @Test
-  public void canExecuteCsvFormatRequest() {
-    doAnswer(invocation -> {
-      ResponseListener<QueryResponse> listener = invocation.getArgument(1);
-      listener.onResponse(new QueryResponse(schema, Collections.emptyList()));
-      return null;
-    }).when(queryService).execute(any(), any());
+  public void can_execute_cursor_query() {
+    sqlService.execute(
+        new SQLQueryRequest(new JSONObject(), null, QUERY, Map.of("format", "jdbc"), "n:cursor"),
+        new ResponseListener<>() {
+          @Override
+          public void onResponse(QueryResponse response) {
+            assertNotNull(response);
+          }
 
+          @Override
+          public void onFailure(Exception e) {
+            fail(e);
+          }
+        });
+  }
+
+  @Test
+  public void can_execute_csv_format_request() {
     sqlService.execute(
         new SQLQueryRequest(new JSONObject(), "SELECT 123", QUERY, "csv"),
         new ResponseListener<QueryResponse>() {
@@ -107,7 +116,7 @@ class SQLServiceTest {
   }
 
   @Test
-  public void canExplainSqlQuery() {
+  public void can_explain_sql_query() {
     doAnswer(invocation -> {
       ResponseListener<ExplainResponse> listener = invocation.getArgument(1);
       listener.onResponse(new ExplainResponse(new ExplainResponseNode("Test")));
@@ -129,7 +138,25 @@ class SQLServiceTest {
   }
 
   @Test
-  public void canCaptureErrorDuringExecution() {
+  public void cannot_explain_cursor_query() {
+    sqlService.explain(new SQLQueryRequest(new JSONObject(), null, EXPLAIN,
+            Map.of("format", "jdbc"), "n:cursor"),
+        new ResponseListener<ExplainResponse>() {
+          @Override
+          public void onResponse(ExplainResponse response) {
+            fail(response.toString());
+          }
+
+          @Override
+          public void onFailure(Exception e) {
+            assertTrue(e.getMessage()
+                .contains("`explain` request for cursor requests is not supported."));
+          }
+        });
+  }
+
+  @Test
+  public void can_capture_error_during_execution() {
     sqlService.execute(
         new SQLQueryRequest(new JSONObject(), "SELECT", QUERY, ""),
         new ResponseListener<QueryResponse>() {
@@ -146,7 +173,7 @@ class SQLServiceTest {
   }
 
   @Test
-  public void canCaptureErrorDuringExplain() {
+  public void can_capture_error_during_explain() {
     sqlService.explain(
         new SQLQueryRequest(new JSONObject(), "SELECT", EXPLAIN, ""),
         new ResponseListener<ExplainResponse>() {
@@ -161,5 +188,4 @@ class SQLServiceTest {
           }
         });
   }
-
 }

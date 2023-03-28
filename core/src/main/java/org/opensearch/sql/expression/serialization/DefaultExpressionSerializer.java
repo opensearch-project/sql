@@ -4,7 +4,7 @@
  */
 
 
-package org.opensearch.sql.opensearch.storage.serialization;
+package org.opensearch.sql.expression.serialization;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;

@@ -15,7 +15,9 @@ import org.opensearch.sql.ast.tree.UnresolvedPlan;
 import org.opensearch.sql.common.response.ResponseListener;
 import org.opensearch.sql.planner.PlanContext;
 import org.opensearch.sql.planner.Planner;
+import org.opensearch.sql.planner.logical.LogicalPaginate;
 import org.opensearch.sql.planner.logical.LogicalPlan;
+import org.opensearch.sql.planner.optimizer.LogicalPlanOptimizer;
 import org.opensearch.sql.planner.physical.PhysicalPlan;
 
 /**
@@ -28,7 +30,15 @@ public class QueryService {
 
   private final ExecutionEngine executionEngine;
 
+  /**
+   * There are two planners, one - to handle pagination requests (cursor/scroll) only and
+   * another one for everything else.
+   * @see OpenSearchPluginModule#queryPlanFactory (:plugin module)
+   * @see LogicalPlanOptimizer#paginationCreate
+   * @see QueryService
+   */
   private final Planner planner;
+  private final Planner paginationPlanner;
 
   /**
    * Execute the {@link UnresolvedPlan}, using {@link ResponseListener} to get response.
@@ -44,6 +54,14 @@ public class QueryService {
     } catch (Exception e) {
       listener.onFailure(e);
     }
+  }
+
+  /**
+   * Execute a physical plan without analyzing or planning anything.
+   */
+  public void executePlan(PhysicalPlan plan,
+                          ResponseListener<ExecutionEngine.QueryResponse> listener) {
+    executionEngine.execute(plan, ExecutionContext.emptyExecutionContext(), listener);
   }
 
   /**
@@ -97,6 +115,6 @@ public class QueryService {
    * Translate {@link LogicalPlan} to {@link PhysicalPlan}.
    */
   public PhysicalPlan plan(LogicalPlan plan) {
-    return planner.plan(plan);
+    return plan instanceof LogicalPaginate ? paginationPlanner.plan(plan) : planner.plan(plan);
   }
 }

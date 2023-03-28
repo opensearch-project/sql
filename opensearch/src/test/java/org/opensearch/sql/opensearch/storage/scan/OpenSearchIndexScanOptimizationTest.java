@@ -66,7 +66,6 @@ import org.opensearch.sql.opensearch.request.OpenSearchRequestBuilder;
 import org.opensearch.sql.opensearch.response.agg.CompositeAggregationParser;
 import org.opensearch.sql.opensearch.response.agg.OpenSearchAggregationResponseParser;
 import org.opensearch.sql.opensearch.response.agg.SingleValueParser;
-import org.opensearch.sql.opensearch.storage.OpenSearchIndexScan;
 import org.opensearch.sql.opensearch.storage.script.aggregation.AggregationQueryBuilder;
 import org.opensearch.sql.planner.logical.LogicalPlan;
 import org.opensearch.sql.planner.optimizer.LogicalPlanOptimizer;
@@ -527,7 +526,7 @@ class OpenSearchIndexScanOptimizationTest {
   }
 
   private Runnable withFilterPushedDown(QueryBuilder filteringCondition) {
-    return () -> verify(requestBuilder, times(1)).pushDown(filteringCondition);
+    return () -> verify(requestBuilder, times(1)).pushDownFilter(filteringCondition);
   }
 
   private Runnable withAggregationPushedDown(

@@ -15,6 +15,7 @@ import org.opensearch.sql.common.antlr.SyntaxCheckException;
 import org.opensearch.sql.data.type.ExprType;
 import org.opensearch.sql.exception.QueryEngineException;
 import org.opensearch.sql.executor.ExecutionEngine.Schema;
+import org.opensearch.sql.executor.pagination.Cursor;
 import org.opensearch.sql.opensearch.response.error.ErrorMessage;
 import org.opensearch.sql.opensearch.response.error.ErrorMessageFactory;
 import org.opensearch.sql.protocol.response.QueryResult;
@@ -39,9 +40,12 @@ public class JdbcResponseFormatter extends JsonResponseFormatter<QueryResult> {
     json.datarows(fetchDataRows(response));
 
     // Populate other fields
-    json.total(response.size())
+    json.total(response.getTotal())
         .size(response.size())
         .status(200);
+    if (!response.getCursor().equals(Cursor.None)) {
+      json.cursor(response.getCursor().toString());
+    }
 
     return json.build();
   }
@@ -95,6 +99,8 @@ public class JdbcResponseFormatter extends JsonResponseFormatter<QueryResult> {
     private final long total;
     private final long size;
     private final int status;
+
+    private final String cursor;
   }
 
   @RequiredArgsConstructor

@@ -33,6 +33,8 @@ import java.util.List;
 import java.util.Map;
 import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.apache.commons.lang3.tuple.Pair;
+import org.junit.jupiter.api.DisplayNameGeneration;
+import org.junit.jupiter.api.DisplayNameGenerator;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
@@ -50,9 +52,11 @@ import org.opensearch.sql.expression.aggregation.AvgAggregator;
 import org.opensearch.sql.expression.aggregation.NamedAggregator;
 import org.opensearch.sql.expression.window.WindowDefinition;
 import org.opensearch.sql.expression.window.ranking.RowNumberFunction;
+import org.opensearch.sql.planner.logical.LogicalPaginate;
 import org.opensearch.sql.planner.logical.LogicalPlan;
 import org.opensearch.sql.planner.logical.LogicalPlanDSL;
 import org.opensearch.sql.planner.logical.LogicalRelation;
+import org.opensearch.sql.planner.physical.PaginateOperator;
 import org.opensearch.sql.planner.physical.PhysicalPlan;
 import org.opensearch.sql.planner.physical.PhysicalPlanDSL;
 import org.opensearch.sql.storage.Table;
@@ -62,16 +66,8 @@ import org.opensearch.sql.storage.write.TableWriteBuilder;
 import org.opensearch.sql.storage.write.TableWriteOperator;
 
 @ExtendWith(MockitoExtension.class)
+@DisplayNameGeneration(DisplayNameGenerator.ReplaceUnderscores.class)
 class DefaultImplementorTest {
-
-  @Mock
-  private Expression filter;
-
-  @Mock
-  private NamedAggregator aggregator;
-
-  @Mock
-  private NamedExpression groupBy;
 
   @Mock
   private Table table;
@@ -79,7 +75,7 @@ class DefaultImplementorTest {
   private final DefaultImplementor<Object> implementor = new DefaultImplementor<>();
 
   @Test
-  public void visitShouldReturnDefaultPhysicalOperator() {
+  public void visit_should_return_default_physical_operator() {
     String indexName = "test";
     NamedExpression include = named("age", ref("age", INTEGER));
     ReferenceExpression exclude = ref("name", STRING);
@@ -157,14 +153,14 @@ class DefaultImplementorTest {
   }
 
   @Test
-  public void visitRelationShouldThrowException() {
+  public void visitRelation_should_throw_an_exception() {
     assertThrows(UnsupportedOperationException.class,
         () -> new LogicalRelation("test", table).accept(implementor, null));
   }
 
   @SuppressWarnings({"rawtypes", "unchecked"})
   @Test
-  public void visitWindowOperatorShouldReturnPhysicalWindowOperator() {
+  public void visitWindowOperator_should_return_PhysicalWindowOperator() {
     NamedExpression windowFunction = named(new RowNumberFunction());
     WindowDefinition windowDefinition = new WindowDefinition(
         Collections.singletonList(ref("state", STRING)),
@@ -204,7 +200,7 @@ class DefaultImplementorTest {
   }
 
   @Test
-  public void visitTableScanBuilderShouldBuildTableScanOperator() {
+  public void visitTableScanBuilder_should_build_TableScanOperator() {
     TableScanOperator tableScanOperator = Mockito.mock(TableScanOperator.class);
     TableScanBuilder tableScanBuilder = new TableScanBuilder() {
       @Override
@@ -216,7 +212,7 @@ class DefaultImplementorTest {
   }
 
   @Test
-  public void visitTableWriteBuilderShouldBuildTableWriteOperator() {
+  public void visitTableWriteBuilder_should_build_TableWriteOperator() {
     LogicalPlan child = values();
     TableWriteOperator tableWriteOperator = Mockito.mock(TableWriteOperator.class);
     TableWriteBuilder logicalPlan = new TableWriteBuilder(child) {
@@ -226,5 +222,12 @@ class DefaultImplementorTest {
       }
     };
     assertEquals(tableWriteOperator, logicalPlan.accept(implementor, null));
+  }
+
+  @Test
+  public void visitPaginate_should_build_PaginateOperator_and_keep_page_size() {
+    var paginate = new LogicalPaginate(42, List.of(values()));
+    var plan = paginate.accept(implementor, null);
+    assertEquals(paginate.getPageSize(), ((PaginateOperator) plan).getPageSize());
   }
 }

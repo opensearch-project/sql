@@ -9,7 +9,6 @@ package org.opensearch.sql.opensearch.request;
 import static org.opensearch.search.sort.FieldSortBuilder.DOC_FIELD_NAME;
 import static org.opensearch.search.sort.SortOrder.ASC;
 
-import com.google.common.collect.Lists;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
@@ -26,7 +25,6 @@ import org.opensearch.index.query.QueryBuilders;
 import org.opensearch.search.aggregations.AggregationBuilder;
 import org.opensearch.search.builder.SearchSourceBuilder;
 import org.opensearch.search.fetch.subphase.highlight.HighlightBuilder;
-import org.opensearch.search.sort.FieldSortBuilder;
 import org.opensearch.search.sort.SortBuilder;
 import org.opensearch.search.sort.SortBuilders;
 import org.opensearch.sql.ast.expression.Literal;
@@ -41,10 +39,10 @@ import org.opensearch.sql.opensearch.response.agg.OpenSearchAggregationResponseP
 /**
  * OpenSearch search request builder.
  */
-@EqualsAndHashCode
+@EqualsAndHashCode(callSuper = false)
 @Getter
 @ToString
-public class OpenSearchRequestBuilder {
+public class OpenSearchRequestBuilder implements PushDownRequestBuilder {
 
   /**
    * Default query timeout in minutes.
@@ -74,15 +72,16 @@ public class OpenSearchRequestBuilder {
   private final OpenSearchExprValueFactory exprValueFactory;
 
   /**
-   * Query size of the request.
+   * Query size of the request -- how many rows will be returned.
    */
-  private Integer querySize;
+  private int querySize;
 
   public OpenSearchRequestBuilder(String indexName,
                                   Integer maxResultWindow,
                                   Settings settings,
                                   OpenSearchExprValueFactory exprValueFactory) {
-    this(new OpenSearchRequest.IndexName(indexName), maxResultWindow, settings, exprValueFactory);
+    this(new OpenSearchRequest.IndexName(indexName), maxResultWindow, settings,
+        exprValueFactory);
   }
 
   /**
@@ -111,11 +110,11 @@ public class OpenSearchRequestBuilder {
     Integer from = sourceBuilder.from();
     Integer size = sourceBuilder.size();
 
-    if (from + size <= maxResultWindow) {
-      return new OpenSearchQueryRequest(indexName, sourceBuilder, exprValueFactory);
-    } else {
+    if (from + size > maxResultWindow) {
       sourceBuilder.size(maxResultWindow - from);
       return new OpenSearchScrollRequest(indexName, sourceBuilder, exprValueFactory);
+    } else {
+      return new OpenSearchQueryRequest(indexName, sourceBuilder, exprValueFactory);
     }
   }
 
@@ -124,7 +123,8 @@ public class OpenSearchRequestBuilder {
    *
    * @param query  query request
    */
-  public void pushDown(QueryBuilder query) {
+  @Override
+  public void pushDownFilter(QueryBuilder query) {
     QueryBuilder current = sourceBuilder.query();
 
     if (current == null) {
@@ -149,6 +149,7 @@ public class OpenSearchRequestBuilder {
    *
    * @param aggregationBuilder pair of aggregation query and aggregation parser.
    */
+  @Override
   public void pushDownAggregation(
       Pair<List<AggregationBuilder>, OpenSearchAggregationResponseParser> aggregationBuilder) {
     aggregationBuilder.getLeft().forEach(builder -> sourceBuilder.aggregation(builder));
@@ -161,6 +162,7 @@ public class OpenSearchRequestBuilder {
    *
    * @param sortBuilders sortBuilders.
    */
+  @Override
   public void pushDownSort(List<SortBuilder<?>> sortBuilders) {
     // TODO: Sort by _doc is added when filter push down. Remove both logic once doctest fixed.
     if (isSortByDocOnly()) {
@@ -175,6 +177,7 @@ public class OpenSearchRequestBuilder {
   /**
    * Push down size (limit) and from (offset) to DSL request.
    */
+  @Override
   public void pushDownLimit(Integer limit, Integer offset) {
     querySize = limit;
     sourceBuilder.from(offset).size(limit);
@@ -184,6 +187,7 @@ public class OpenSearchRequestBuilder {
    * Add highlight to DSL requests.
    * @param field name of the field to highlight
    */
+  @Override
   public void pushDownHighlight(String field, Map<String, Literal> arguments) {
     String unquotedField = StringUtils.unquoteText(field);
     if (sourceBuilder.highlighter() != null) {
@@ -214,20 +218,18 @@ public class OpenSearchRequestBuilder {
   }
 
   /**
-   * Push down project list to DSL requets.
+   * Push down project list to DSL requests.
    */
+  @Override
   public void pushDownProjects(Set<ReferenceExpression> projects) {
     final Set<String> projectsSet =
         projects.stream().map(ReferenceExpression::getAttr).collect(Collectors.toSet());
     sourceBuilder.fetchSource(projectsSet.toArray(new String[0]), new String[0]);
   }
 
+  @Override
   public void pushTypeMapping(Map<String, OpenSearchDataType> typeMapping) {
     exprValueFactory.extendTypeMapping(typeMapping);
-  }
-
-  private boolean isBoolFilterQuery(QueryBuilder current) {
-    return (current instanceof BoolQueryBuilder);
   }
 
   private boolean isSortByDocOnly() {

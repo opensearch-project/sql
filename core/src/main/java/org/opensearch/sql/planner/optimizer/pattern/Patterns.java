@@ -16,6 +16,7 @@ import org.opensearch.sql.planner.logical.LogicalAggregation;
 import org.opensearch.sql.planner.logical.LogicalFilter;
 import org.opensearch.sql.planner.logical.LogicalHighlight;
 import org.opensearch.sql.planner.logical.LogicalLimit;
+import org.opensearch.sql.planner.logical.LogicalPaginate;
 import org.opensearch.sql.planner.logical.LogicalPlan;
 import org.opensearch.sql.planner.logical.LogicalProject;
 import org.opensearch.sql.planner.logical.LogicalRelation;
@@ -109,6 +110,16 @@ public class Patterns {
     return Property.optionalProperty("table",
         plan -> plan instanceof LogicalRelation
             ? Optional.of(((LogicalRelation) plan).getTable())
+            : Optional.empty());
+  }
+
+  /**
+   * Logical pagination with page size.
+   */
+  public static Property<LogicalPlan, Integer> pagination() {
+    return Property.optionalProperty("pagination",
+        plan -> plan instanceof LogicalPaginate
+            ? Optional.of(((LogicalPaginate) plan).getPageSize())
             : Optional.empty());
   }
 

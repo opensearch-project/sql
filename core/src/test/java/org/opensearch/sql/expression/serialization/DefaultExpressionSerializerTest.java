@@ -21,6 +21,8 @@ import org.opensearch.sql.expression.DSL;
 import org.opensearch.sql.expression.Expression;
 import org.opensearch.sql.expression.ExpressionNodeVisitor;
 import org.opensearch.sql.expression.env.Environment;
+import org.opensearch.sql.expression.serialization.DefaultExpressionSerializer;
+import org.opensearch.sql.expression.serialization.ExpressionSerializer;
 
 @DisplayNameGeneration(DisplayNameGenerator.ReplaceUnderscores.class)
 class DefaultExpressionSerializerTest {

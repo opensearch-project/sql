@@ -18,6 +18,7 @@ import org.opensearch.sql.executor.ExecutionEngine;
 import org.opensearch.sql.executor.QueryManager;
 import org.opensearch.sql.executor.QueryService;
 import org.opensearch.sql.executor.execution.QueryPlanFactory;
+import org.opensearch.sql.executor.pagination.PaginatedPlanCache;
 import org.opensearch.sql.expression.function.BuiltinFunctionRepository;
 import org.opensearch.sql.monitor.ResourceMonitor;
 import org.opensearch.sql.opensearch.client.OpenSearchClient;
@@ -58,8 +59,9 @@ public class OpenSearchPluginModule extends AbstractModule {
   }
 
   @Provides
-  public ExecutionEngine executionEngine(OpenSearchClient client, ExecutionProtector protector) {
-    return new OpenSearchExecutionEngine(client, protector);
+  public ExecutionEngine executionEngine(OpenSearchClient client, ExecutionProtector protector,
+                                         PaginatedPlanCache paginatedPlanCache) {
+    return new OpenSearchExecutionEngine(client, protector, paginatedPlanCache);
   }
 
   @Provides
@@ -70,6 +72,11 @@ public class OpenSearchPluginModule extends AbstractModule {
   @Provides
   public ExecutionProtector protector(ResourceMonitor resourceMonitor) {
     return new OpenSearchExecutionProtector(resourceMonitor);
+  }
+
+  @Provides
+  public PaginatedPlanCache paginatedPlanCache(StorageEngine storageEngine) {
+    return new PaginatedPlanCache(storageEngine);
   }
 
   @Provides
@@ -92,12 +99,16 @@ public class OpenSearchPluginModule extends AbstractModule {
    * {@link QueryPlanFactory}.
    */
   @Provides
-  public QueryPlanFactory queryPlanFactory(
-      DataSourceService dataSourceService, ExecutionEngine executionEngine) {
+  public QueryPlanFactory queryPlanFactory(DataSourceService dataSourceService,
+      ExecutionEngine executionEngine,
+      PaginatedPlanCache paginatedPlanCache) {
     Analyzer analyzer =
         new Analyzer(
             new ExpressionAnalyzer(functionRepository), dataSourceService, functionRepository);
     Planner planner = new Planner(LogicalPlanOptimizer.create());
-    return new QueryPlanFactory(new QueryService(analyzer, executionEngine, planner));
+    Planner paginationPlanner = new Planner(LogicalPlanOptimizer.paginationCreate());
+    QueryService queryService = new QueryService(
+        analyzer, executionEngine, planner, paginationPlanner);
+    return new QueryPlanFactory(queryService, paginatedPlanCache);
   }
 }

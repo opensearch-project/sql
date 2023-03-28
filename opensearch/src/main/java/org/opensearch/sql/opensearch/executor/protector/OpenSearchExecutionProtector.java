@@ -16,6 +16,7 @@ import org.opensearch.sql.planner.physical.DedupeOperator;
 import org.opensearch.sql.planner.physical.EvalOperator;
 import org.opensearch.sql.planner.physical.FilterOperator;
 import org.opensearch.sql.planner.physical.LimitOperator;
+import org.opensearch.sql.planner.physical.PaginateOperator;
 import org.opensearch.sql.planner.physical.PhysicalPlan;
 import org.opensearch.sql.planner.physical.ProjectOperator;
 import org.opensearch.sql.planner.physical.RareTopNOperator;
@@ -61,6 +62,12 @@ public class OpenSearchExecutionProtector extends ExecutionProtector {
   @Override
   public PhysicalPlan visitRename(RenameOperator node, Object context) {
     return new RenameOperator(visitInput(node.getInput(), context), node.getMapping());
+  }
+
+  @Override
+  public PhysicalPlan visitPaginate(PaginateOperator node, Object context) {
+    return new PaginateOperator(visitInput(node.getInput(), context), node.getPageSize(),
+        node.getPageIndex());
   }
 
   /**

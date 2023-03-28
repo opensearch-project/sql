@@ -82,4 +82,14 @@ public class ResourceMonitorPlan extends PhysicalPlan {
     }
     return delegate.next();
   }
+
+  @Override
+  public long getTotalHits() {
+    return delegate.getTotalHits();
+  }
+
+  @Override
+  public String toCursor() {
+    return delegate.toCursor();
+  }
 }

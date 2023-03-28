@@ -7,6 +7,7 @@
 package org.opensearch.sql.planner.physical;
 
 import java.util.Iterator;
+import java.util.List;
 import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.executor.ExecutionEngine;
 import org.opensearch.sql.planner.PlanNode;
@@ -43,6 +44,34 @@ public abstract class PhysicalPlan implements PlanNode<PhysicalPlan>,
 
   public ExecutionEngine.Schema schema() {
     throw new IllegalStateException(String.format("[BUG] schema can been only applied to "
-        + "ProjectOperator, instead of %s", toString()));
+        + "ProjectOperator, instead of %s", this.getClass().getSimpleName()));
+  }
+
+  /**
+   * Returns Total hits matched the search criteria. Note: query may return less if limited.
+   * {@see Settings#QUERY_SIZE_LIMIT}.
+   * Any plan which adds/removes rows to the response should overwrite it to provide valid values.
+   *
+   * @return Total hits matched the search criteria.
+   */
+  public long getTotalHits() {
+    return getChild().stream().mapToLong(PhysicalPlan::getTotalHits).max().orElse(0);
+  }
+
+  public String toCursor() {
+    throw new IllegalStateException(String.format("%s is not compatible with cursor feature",
+        this.getClass().getSimpleName()));
+  }
+
+  /**
+   * Creates an S-expression that represents a plan node.
+   * @param plan Label for the plan.
+   * @param params List of serialized parameters. Including the child plans.
+   * @return A string that represents the plan called with those parameters.
+   */
+  protected String createSection(String plan, String... params) {
+    return "(" + plan + ","
+        + String.join(",", params)
+        + ")";
   }
 }

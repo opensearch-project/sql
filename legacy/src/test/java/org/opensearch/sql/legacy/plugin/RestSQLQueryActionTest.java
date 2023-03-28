@@ -74,7 +74,7 @@ public class RestSQLQueryActionTest extends BaseRestHandler {
         new JSONObject("{\"query\": \"SELECT -123\"}"),
         "SELECT -123",
         QUERY_API_ENDPOINT,
-        "");
+        "jdbc");
 
     RestSQLQueryAction queryAction = new RestSQLQueryAction(injector);
     queryAction.prepareRequest(request, (channel, exception) -> {
@@ -90,7 +90,7 @@ public class RestSQLQueryActionTest extends BaseRestHandler {
         new JSONObject("{\"query\": \"SELECT -123\"}"),
         "SELECT -123",
         EXPLAIN_API_ENDPOINT,
-        "");
+        "jdbc");
 
     RestSQLQueryAction queryAction = new RestSQLQueryAction(injector);
     queryAction.prepareRequest(request, (channel, exception) -> {
@@ -107,7 +107,7 @@ public class RestSQLQueryActionTest extends BaseRestHandler {
             "{\"query\": \"SELECT name FROM test1 JOIN test2 ON test1.name = test2.name\"}"),
         "SELECT name FROM test1 JOIN test2 ON test1.name = test2.name",
         QUERY_API_ENDPOINT,
-        "");
+        "jdbc");
 
     AtomicBoolean fallback = new AtomicBoolean(false);
     RestSQLQueryAction queryAction = new RestSQLQueryAction(injector);
@@ -128,7 +128,7 @@ public class RestSQLQueryActionTest extends BaseRestHandler {
             "{\"query\": \"SELECT -123\"}"),
         "SELECT -123",
         QUERY_API_ENDPOINT,
-        "");
+        "jdbc");
 
     doThrow(new IllegalStateException("execution exception"))
         .when(queryManager)

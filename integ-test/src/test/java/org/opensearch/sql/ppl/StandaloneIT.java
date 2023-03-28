@@ -29,6 +29,24 @@ import org.opensearch.common.inject.Provides;
 import org.opensearch.common.inject.Singleton;
 import org.opensearch.sql.analysis.Analyzer;
 import org.opensearch.sql.analysis.ExpressionAnalyzer;
+import org.opensearch.sql.executor.QueryManager;
+import org.opensearch.sql.executor.QueryService;
+import org.opensearch.sql.executor.execution.QueryPlanFactory;
+import org.opensearch.sql.executor.pagination.PaginatedPlanCache;
+import org.opensearch.sql.expression.function.BuiltinFunctionRepository;
+import org.opensearch.sql.monitor.AlwaysHealthyMonitor;
+import org.opensearch.sql.monitor.ResourceMonitor;
+import org.opensearch.sql.opensearch.executor.OpenSearchExecutionEngine;
+import org.opensearch.sql.opensearch.executor.protector.ExecutionProtector;
+import org.opensearch.sql.opensearch.executor.protector.OpenSearchExecutionProtector;
+import org.opensearch.sql.opensearch.storage.OpenSearchStorageEngine;
+import org.opensearch.sql.planner.Planner;
+import org.opensearch.sql.planner.optimizer.LogicalPlanOptimizer;
+import org.opensearch.sql.ppl.antlr.PPLSyntaxParser;
+import org.opensearch.sql.sql.SQLService;
+import org.opensearch.sql.sql.antlr.SQLSyntaxParser;
+import org.opensearch.sql.storage.StorageEngine;
+import org.opensearch.sql.util.ExecuteOnCallerThreadQueryManager;
 import org.opensearch.sql.common.response.ResponseListener;
 import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.datasource.DataSourceMetadataStorage;
@@ -38,31 +56,14 @@ import org.opensearch.sql.datasource.DataSourceUserAuthorizationHelper;
 import org.opensearch.sql.datasource.model.DataSourceMetadata;
 import org.opensearch.sql.executor.ExecutionEngine;
 import org.opensearch.sql.executor.ExecutionEngine.QueryResponse;
-import org.opensearch.sql.executor.QueryManager;
-import org.opensearch.sql.executor.QueryService;
-import org.opensearch.sql.executor.execution.QueryPlanFactory;
-import org.opensearch.sql.expression.function.BuiltinFunctionRepository;
-import org.opensearch.sql.monitor.AlwaysHealthyMonitor;
-import org.opensearch.sql.monitor.ResourceMonitor;
 import org.opensearch.sql.opensearch.client.OpenSearchClient;
 import org.opensearch.sql.opensearch.client.OpenSearchRestClient;
-import org.opensearch.sql.opensearch.executor.OpenSearchExecutionEngine;
-import org.opensearch.sql.opensearch.executor.protector.ExecutionProtector;
-import org.opensearch.sql.opensearch.executor.protector.OpenSearchExecutionProtector;
 import org.opensearch.sql.opensearch.security.SecurityAccess;
 import org.opensearch.sql.opensearch.storage.OpenSearchDataSourceFactory;
-import org.opensearch.sql.opensearch.storage.OpenSearchStorageEngine;
-import org.opensearch.sql.planner.Planner;
-import org.opensearch.sql.planner.optimizer.LogicalPlanOptimizer;
-import org.opensearch.sql.ppl.antlr.PPLSyntaxParser;
 import org.opensearch.sql.ppl.domain.PPLQueryRequest;
 import org.opensearch.sql.protocol.response.QueryResult;
 import org.opensearch.sql.protocol.response.format.SimpleJsonResponseFormatter;
-import org.opensearch.sql.sql.SQLService;
-import org.opensearch.sql.sql.antlr.SQLSyntaxParser;
 import org.opensearch.sql.storage.DataSourceFactory;
-import org.opensearch.sql.storage.StorageEngine;
-import org.opensearch.sql.util.ExecuteOnCallerThreadQueryManager;
 
 /**
  * Run PPL with query engine outside OpenSearch cluster. This IT doesn't require our plugin
@@ -71,13 +72,11 @@ import org.opensearch.sql.util.ExecuteOnCallerThreadQueryManager;
  */
 public class StandaloneIT extends PPLIntegTestCase {
 
-  private RestHighLevelClient restClient;
-
   private PPLService pplService;
 
   @Override
   public void init() {
-    restClient = new InternalRestHighLevelClient(client());
+    RestHighLevelClient restClient = new InternalRestHighLevelClient(client());
     OpenSearchClient client = new OpenSearchRestClient(restClient);
     DataSourceService dataSourceService = new DataSourceServiceImpl(
         new ImmutableSet.Builder<DataSourceFactory>()
@@ -198,8 +197,9 @@ public class StandaloneIT extends PPLIntegTestCase {
     }
 
     @Provides
-    public ExecutionEngine executionEngine(OpenSearchClient client, ExecutionProtector protector) {
-      return new OpenSearchExecutionEngine(client, protector);
+    public ExecutionEngine executionEngine(OpenSearchClient client, ExecutionProtector protector,
+                                           PaginatedPlanCache paginatedPlanCache) {
+      return new OpenSearchExecutionEngine(client, protector, paginatedPlanCache);
     }
 
     @Provides
@@ -229,17 +229,24 @@ public class StandaloneIT extends PPLIntegTestCase {
     }
 
     @Provides
-    public QueryPlanFactory queryPlanFactory(ExecutionEngine executionEngine) {
+    public PaginatedPlanCache paginatedPlanCache(StorageEngine storageEngine) {
+      return new PaginatedPlanCache(storageEngine);
+    }
+
+    @Provides
+    public QueryPlanFactory queryPlanFactory(ExecutionEngine executionEngine,
+                                             PaginatedPlanCache paginatedPlanCache) {
       Analyzer analyzer =
           new Analyzer(
               new ExpressionAnalyzer(functionRepository), dataSourceService, functionRepository);
       Planner planner = new Planner(LogicalPlanOptimizer.create());
-      return new QueryPlanFactory(new QueryService(analyzer, executionEngine, planner));
+      Planner paginationPlanner = new Planner(LogicalPlanOptimizer.paginationCreate());
+      QueryService queryService = new QueryService(analyzer, executionEngine, planner, paginationPlanner);
+      return new QueryPlanFactory(queryService, paginatedPlanCache);
     }
   }
 
-
-  private DataSourceMetadataStorage getDataSourceMetadataStorage() {
+  public static DataSourceMetadataStorage getDataSourceMetadataStorage() {
     return new DataSourceMetadataStorage() {
       @Override
       public List<DataSourceMetadata> getDataSourceMetadata() {
@@ -268,7 +275,7 @@ public class StandaloneIT extends PPLIntegTestCase {
     };
   }
 
-  private DataSourceUserAuthorizationHelper getDataSourceUserRoleHelper() {
+  public static DataSourceUserAuthorizationHelper getDataSourceUserRoleHelper() {
     return new DataSourceUserAuthorizationHelper() {
       @Override
       public void authorizeDataSource(DataSourceMetadata dataSourceMetadata) {
@@ -276,5 +283,4 @@ public class StandaloneIT extends PPLIntegTestCase {
       }
     };
   }
-
 }

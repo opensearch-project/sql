@@ -16,9 +16,9 @@ import org.opensearch.script.FilterScript;
 import org.opensearch.script.ScriptContext;
 import org.opensearch.script.ScriptEngine;
 import org.opensearch.sql.expression.Expression;
+import org.opensearch.sql.expression.serialization.ExpressionSerializer;
 import org.opensearch.sql.opensearch.storage.script.aggregation.ExpressionAggregationScriptFactory;
 import org.opensearch.sql.opensearch.storage.script.filter.ExpressionFilterScriptFactory;
-import org.opensearch.sql.opensearch.storage.serialization.ExpressionSerializer;
 
 /**
  * Custom expression script engine that supports using core engine expression code in DSL

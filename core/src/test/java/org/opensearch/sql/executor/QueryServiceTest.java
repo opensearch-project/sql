@@ -15,11 +15,9 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.lenient;
-import static org.mockito.Mockito.when;
 
 import java.util.Collections;
 import java.util.Optional;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
@@ -27,6 +25,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.opensearch.sql.analysis.Analyzer;
 import org.opensearch.sql.ast.tree.UnresolvedPlan;
 import org.opensearch.sql.common.response.ResponseListener;
+import org.opensearch.sql.executor.pagination.Cursor;
 import org.opensearch.sql.planner.PlanContext;
 import org.opensearch.sql.planner.Planner;
 import org.opensearch.sql.planner.logical.LogicalPlan;
@@ -46,6 +45,9 @@ class QueryServiceTest {
 
   @Mock
   private Planner planner;
+
+  @Mock
+  private Planner paginationPlanner;
 
   @Mock
   private UnresolvedPlan ast;
@@ -118,8 +120,9 @@ class QueryServiceTest {
     public Helper() {
       lenient().when(analyzer.analyze(any(), any())).thenReturn(logicalPlan);
       lenient().when(planner.plan(any())).thenReturn(plan);
+      lenient().when(paginationPlanner.plan(any())).thenReturn(plan);
 
-      queryService = new QueryService(analyzer, executionEngine, planner);
+      queryService = new QueryService(analyzer, executionEngine, planner, paginationPlanner);
     }
 
     Helper executeSuccess() {
@@ -134,7 +137,8 @@ class QueryServiceTest {
           invocation -> {
             ResponseListener<ExecutionEngine.QueryResponse> listener = invocation.getArgument(2);
             listener.onResponse(
-                new ExecutionEngine.QueryResponse(schema, Collections.emptyList()));
+                new ExecutionEngine.QueryResponse(schema, Collections.emptyList(), 0,
+                    Cursor.None));
             return null;
           })
           .when(executionEngine)

@@ -24,6 +24,7 @@ import org.opensearch.sql.expression.ExpressionNodeVisitor;
 import org.opensearch.sql.expression.FunctionExpression;
 import org.opensearch.sql.expression.function.BuiltinFunctionName;
 import org.opensearch.sql.expression.function.FunctionName;
+import org.opensearch.sql.expression.serialization.ExpressionSerializer;
 import org.opensearch.sql.opensearch.storage.script.filter.lucene.LikeQuery;
 import org.opensearch.sql.opensearch.storage.script.filter.lucene.LuceneQuery;
 import org.opensearch.sql.opensearch.storage.script.filter.lucene.RangeQuery;
@@ -38,7 +39,6 @@ import org.opensearch.sql.opensearch.storage.script.filter.lucene.relevance.Quer
 import org.opensearch.sql.opensearch.storage.script.filter.lucene.relevance.QueryStringQuery;
 import org.opensearch.sql.opensearch.storage.script.filter.lucene.relevance.SimpleQueryStringQuery;
 import org.opensearch.sql.opensearch.storage.script.filter.lucene.relevance.WildcardQuery;
-import org.opensearch.sql.opensearch.storage.serialization.ExpressionSerializer;
 
 @RequiredArgsConstructor
 public class FilterQueryBuilder extends ExpressionNodeVisitor<QueryBuilder, Object> {

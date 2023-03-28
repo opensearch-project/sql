@@ -17,22 +17,30 @@ import static org.opensearch.sql.data.type.ExprCoreType.INTEGER;
 import com.google.common.collect.ImmutableMap;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
+import org.junit.jupiter.api.DisplayNameGeneration;
+import org.junit.jupiter.api.DisplayNameGenerator;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.AdditionalAnswers;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.opensearch.sql.data.model.ExprIntegerValue;
 import org.opensearch.sql.data.model.ExprTupleValue;
 import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.data.model.ExprValueUtils;
 import org.opensearch.sql.expression.DSL;
 
 @ExtendWith(MockitoExtension.class)
+@DisplayNameGeneration(DisplayNameGenerator.ReplaceUnderscores.class)
 class FilterOperatorTest extends PhysicalPlanTestBase {
   @Mock
   private PhysicalPlan inputPlan;
 
   @Test
-  public void filterTest() {
+  public void filter_test() {
     FilterOperator plan = new FilterOperator(new TestScan(),
         DSL.equal(DSL.ref("response", INTEGER), DSL.literal(404)));
     List<ExprValue> result = execute(plan);
@@ -41,10 +49,11 @@ class FilterOperatorTest extends PhysicalPlanTestBase {
         .tupleValue(ImmutableMap
             .of("ip", "209.160.24.63", "action", "GET", "response", 404, "referer",
                 "www.amazon.com"))));
+    assertEquals(1, plan.getTotalHits());
   }
 
   @Test
-  public void nullValueShouldBeenIgnored() {
+  public void null_value_should_been_ignored() {
     LinkedHashMap<String, ExprValue> value = new LinkedHashMap<>();
     value.put("response", LITERAL_NULL);
     when(inputPlan.hasNext()).thenReturn(true, false);
@@ -54,10 +63,11 @@ class FilterOperatorTest extends PhysicalPlanTestBase {
         DSL.equal(DSL.ref("response", INTEGER), DSL.literal(404)));
     List<ExprValue> result = execute(plan);
     assertEquals(0, result.size());
+    assertEquals(0, plan.getTotalHits());
   }
 
   @Test
-  public void missingValueShouldBeenIgnored() {
+  public void missing_value_should_been_ignored() {
     LinkedHashMap<String, ExprValue> value = new LinkedHashMap<>();
     value.put("response", LITERAL_MISSING);
     when(inputPlan.hasNext()).thenReturn(true, false);
@@ -67,5 +77,21 @@ class FilterOperatorTest extends PhysicalPlanTestBase {
         DSL.equal(DSL.ref("response", INTEGER), DSL.literal(404)));
     List<ExprValue> result = execute(plan);
     assertEquals(0, result.size());
+    assertEquals(0, plan.getTotalHits());
+  }
+
+  @Test
+  public void totalHits() {
+    when(inputPlan.hasNext()).thenReturn(true, true, true, true, true, false);
+    var answers = Stream.of(200, 240, 300, 403, 404).map(c ->
+            new ExprTupleValue(new LinkedHashMap<>(Map.of("response", new ExprIntegerValue(c)))))
+        .collect(Collectors.toList());
+    when(inputPlan.next()).thenAnswer(AdditionalAnswers.returnsElementsOf(answers));
+
+    FilterOperator plan = new FilterOperator(inputPlan,
+        DSL.less(DSL.ref("response", INTEGER), DSL.literal(400)));
+    List<ExprValue> result = execute(plan);
+    assertEquals(3, result.size());
+    assertEquals(3, plan.getTotalHits());
   }
 }

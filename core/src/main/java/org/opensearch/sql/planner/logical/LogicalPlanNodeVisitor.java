@@ -100,4 +100,8 @@ public abstract class LogicalPlanNodeVisitor<R, C> {
   public R visitAD(LogicalAD plan, C context) {
     return visitNode(plan, context);
   }
+
+  public R visitPaginate(LogicalPaginate plan, C context) {
+    return visitNode(plan, context);
+  }
 }

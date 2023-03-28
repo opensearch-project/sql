@@ -57,8 +57,10 @@ import org.opensearch.sql.opensearch.data.value.OpenSearchExprValueFactory;
 import org.opensearch.sql.opensearch.planner.physical.ADOperator;
 import org.opensearch.sql.opensearch.planner.physical.MLCommonsOperator;
 import org.opensearch.sql.opensearch.planner.physical.MLOperator;
+import org.opensearch.sql.opensearch.request.OpenSearchRequestBuilder;
 import org.opensearch.sql.opensearch.setting.OpenSearchSettings;
-import org.opensearch.sql.opensearch.storage.OpenSearchIndexScan;
+import org.opensearch.sql.opensearch.storage.scan.OpenSearchIndexScan;
+import org.opensearch.sql.planner.physical.PaginateOperator;
 import org.opensearch.sql.planner.physical.PhysicalPlan;
 import org.opensearch.sql.planner.physical.PhysicalPlanDSL;
 
@@ -124,9 +126,11 @@ class OpenSearchExecutionProtectorTest {
                                             PhysicalPlanDSL.agg(
                                                 filter(
                                                     resourceMonitor(
-                                                        new OpenSearchIndexScan(
-                                                            client, settings, indexName,
-                                                            maxResultWindow, exprValueFactory)),
+                                                        new OpenSearchIndexScan(client,
+                                                            new OpenSearchRequestBuilder(indexName,
+                                                                maxResultWindow,
+                                                                settings,
+                                                                exprValueFactory))),
                                                     filterExpr),
                                                 aggregators,
                                                 groupByExprs),
@@ -152,9 +156,11 @@ class OpenSearchExecutionProtectorTest {
                                         PhysicalPlanDSL.rename(
                                             PhysicalPlanDSL.agg(
                                                 filter(
-                                                    new OpenSearchIndexScan(
-                                                        client, settings, indexName,
-                                                        maxResultWindow, exprValueFactory),
+                                                    new OpenSearchIndexScan(client,
+                                                        new OpenSearchRequestBuilder(indexName,
+                                                            maxResultWindow,
+                                                            settings,
+                                                            exprValueFactory)),
                                                     filterExpr),
                                                 aggregators,
                                                 groupByExprs),
@@ -312,6 +318,13 @@ class OpenSearchExecutionProtectorTest {
 
     assertEquals(executionProtector.doProtect(mlOperator),
             executionProtector.visitML(mlOperator, null));
+  }
+
+  @Test
+  public void visitPaginate() {
+    var paginate = new PaginateOperator(values(List.of()), 42);
+    assertEquals(executionProtector.protect(paginate),
+        executionProtector.visitPaginate(paginate, null));
   }
 
   PhysicalPlan resourceMonitor(PhysicalPlan input) {

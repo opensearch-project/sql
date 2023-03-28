@@ -13,11 +13,16 @@ import org.junit.jupiter.api.Test;
 
 public class StorageEngineTest {
 
-
   @Test
   void testFunctionsMethod() {
     StorageEngine k = (dataSourceSchemaName, tableName) -> null;
     Assertions.assertEquals(Collections.emptyList(), k.getFunctions());
   }
 
+  @Test
+  void getTableScan() {
+    StorageEngine k = (dataSourceSchemaName, tableName) -> null;
+    Assertions.assertThrows(UnsupportedOperationException.class,
+        () -> k.getTableScan("indexName", "scrollId"));
+  }
 }

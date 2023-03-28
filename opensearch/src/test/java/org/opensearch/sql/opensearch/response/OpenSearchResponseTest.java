@@ -74,20 +74,29 @@ class OpenSearchResponseTest {
                 new TotalHits(2L, TotalHits.Relation.EQUAL_TO),
                 1.0F));
 
-    assertFalse(new OpenSearchResponse(searchResponse, factory).isEmpty());
+    var response = new OpenSearchResponse(searchResponse, factory);
+    assertFalse(response.isEmpty());
+    assertEquals(2L, response.getTotalHits());
 
     when(searchResponse.getHits()).thenReturn(SearchHits.empty());
     when(searchResponse.getAggregations()).thenReturn(null);
-    assertTrue(new OpenSearchResponse(searchResponse, factory).isEmpty());
+
+    response = new OpenSearchResponse(searchResponse, factory);
+    assertTrue(response.isEmpty());
+    assertEquals(0L, response.getTotalHits());
 
     when(searchResponse.getHits())
         .thenReturn(new SearchHits(null, new TotalHits(0, TotalHits.Relation.EQUAL_TO), 0));
-    OpenSearchResponse response3 = new OpenSearchResponse(searchResponse, factory);
-    assertTrue(response3.isEmpty());
+    response = new OpenSearchResponse(searchResponse, factory);
+    assertTrue(response.isEmpty());
+    assertEquals(0L, response.getTotalHits());
 
     when(searchResponse.getHits()).thenReturn(SearchHits.empty());
     when(searchResponse.getAggregations()).thenReturn(new Aggregations(emptyList()));
-    assertFalse(new OpenSearchResponse(searchResponse, factory).isEmpty());
+
+    response = new OpenSearchResponse(searchResponse, factory);
+    assertFalse(response.isEmpty());
+    assertEquals(0L, response.getTotalHits());
   }
 
   @Test
@@ -104,7 +113,8 @@ class OpenSearchResponseTest {
     when(factory.construct(any())).thenReturn(exprTupleValue1).thenReturn(exprTupleValue2);
 
     int i = 0;
-    for (ExprValue hit : new OpenSearchResponse(searchResponse, factory)) {
+    var response = new OpenSearchResponse(searchResponse, factory);
+    for (ExprValue hit : response) {
       if (i == 0) {
         assertEquals(exprTupleValue1, hit);
       } else if (i == 1) {
@@ -114,6 +124,7 @@ class OpenSearchResponseTest {
       }
       i++;
     }
+    assertEquals(2L, response.getTotalHits());
   }
 
   @Test

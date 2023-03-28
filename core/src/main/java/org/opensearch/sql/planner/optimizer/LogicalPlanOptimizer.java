@@ -13,8 +13,10 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
 import org.opensearch.sql.planner.logical.LogicalPlan;
+import org.opensearch.sql.planner.optimizer.rule.CreatePagingTableScanBuilder;
 import org.opensearch.sql.planner.optimizer.rule.MergeFilterAndFilter;
 import org.opensearch.sql.planner.optimizer.rule.PushFilterUnderSort;
+import org.opensearch.sql.planner.optimizer.rule.PushPageSize;
 import org.opensearch.sql.planner.optimizer.rule.read.CreateTableScanBuilder;
 import org.opensearch.sql.planner.optimizer.rule.read.TableScanPushDown;
 import org.opensearch.sql.planner.optimizer.rule.write.CreateTableWriteBuilder;
@@ -51,6 +53,30 @@ public class LogicalPlanOptimizer {
          * Phase 2: Transformations that rely on data source push down capability
          */
         new CreateTableScanBuilder(),
+        TableScanPushDown.PUSH_DOWN_FILTER,
+        TableScanPushDown.PUSH_DOWN_AGGREGATION,
+        TableScanPushDown.PUSH_DOWN_SORT,
+        TableScanPushDown.PUSH_DOWN_LIMIT,
+        TableScanPushDown.PUSH_DOWN_HIGHLIGHT,
+        TableScanPushDown.PUSH_DOWN_PROJECT,
+        new CreateTableWriteBuilder()));
+  }
+
+  /**
+   * Create {@link LogicalPlanOptimizer} with pre-defined rules.
+   */
+  public static LogicalPlanOptimizer paginationCreate() {
+    return new LogicalPlanOptimizer(Arrays.asList(
+        /*
+         * Phase 1: Transformations that rely on relational algebra equivalence
+         */
+        new MergeFilterAndFilter(),
+        new PushFilterUnderSort(),
+        /*
+         * Phase 2: Transformations that rely on data source push down capability
+         */
+        new PushPageSize(),
+        new CreatePagingTableScanBuilder(),
         TableScanPushDown.PUSH_DOWN_FILTER,
         TableScanPushDown.PUSH_DOWN_AGGREGATION,
         TableScanPushDown.PUSH_DOWN_SORT,

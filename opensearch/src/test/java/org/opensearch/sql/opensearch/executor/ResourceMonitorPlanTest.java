@@ -107,4 +107,16 @@ class ResourceMonitorPlanTest {
     monitorPlan.accept(visitor, context);
     verify(plan, times(1)).accept(visitor, context);
   }
+
+  @Test
+  void getTotalHitsSuccess() {
+    monitorPlan.getTotalHits();
+    verify(plan, times(1)).getTotalHits();
+  }
+
+  @Test
+  void toCursorSuccess() {
+    monitorPlan.toCursor();
+    verify(plan, times(1)).toCursor();
+  }
 }

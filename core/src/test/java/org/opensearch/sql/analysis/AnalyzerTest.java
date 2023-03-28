@@ -75,6 +75,7 @@ import org.opensearch.sql.ast.expression.SpanUnit;
 import org.opensearch.sql.ast.tree.AD;
 import org.opensearch.sql.ast.tree.Kmeans;
 import org.opensearch.sql.ast.tree.ML;
+import org.opensearch.sql.ast.tree.Paginate;
 import org.opensearch.sql.ast.tree.RareTopN.CommandType;
 import org.opensearch.sql.exception.ExpressionEvaluationException;
 import org.opensearch.sql.exception.SemanticCheckException;
@@ -83,6 +84,7 @@ import org.opensearch.sql.expression.HighlightExpression;
 import org.opensearch.sql.expression.window.WindowDefinition;
 import org.opensearch.sql.planner.logical.LogicalAD;
 import org.opensearch.sql.planner.logical.LogicalMLCommons;
+import org.opensearch.sql.planner.logical.LogicalPaginate;
 import org.opensearch.sql.planner.logical.LogicalPlan;
 import org.opensearch.sql.planner.logical.LogicalPlanDSL;
 import org.opensearch.sql.planner.logical.LogicalProject;
@@ -1188,5 +1190,12 @@ class AnalyzerTest extends AnalyzerTestBase {
             .contains(DSL.named(RCF_SCORE, DSL.ref(RCF_SCORE, DOUBLE))));
     assertTrue(((LogicalProject) actual).getProjectList()
             .contains(DSL.named(RCF_ANOMALOUS, DSL.ref(RCF_ANOMALOUS, BOOLEAN))));
+  }
+
+  @Test
+  public void visit_paginate() {
+    LogicalPlan actual = analyze(new Paginate(10, AstDSL.relation("dummy")));
+    assertTrue(actual instanceof LogicalPaginate);
+    assertEquals(10, ((LogicalPaginate) actual).getPageSize());
   }
 }
