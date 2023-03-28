@@ -27,6 +27,7 @@ NYC_TAXI = "nyc_taxi"
 BOOKS = "books"
 APACHE = "apache"
 WILDCARD = "wildcard"
+DATASOURCES = ".ql-datasources"
 
 
 class DocTestConnection(OpenSearchConnection):
@@ -94,6 +95,7 @@ def set_up_test_indices(test):
     load_file("books.json", index_name=BOOKS)
     load_file("apache.json", index_name=APACHE)
     load_file("wildcard.json", index_name=WILDCARD)
+    load_file("datasources.json", index_name=DATASOURCES)
 
 
 def load_file(filename, index_name):

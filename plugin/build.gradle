@@ -81,7 +81,6 @@ dependencyLicenses.enabled = false
 thirdPartyAudit.enabled = false
 
 configurations.all {
-    resolutionStrategy.force 'junit:junit:4.13.2'
     // conflict with spring-jcl
     resolutionStrategy.force "commons-logging:commons-logging:1.2"
     // enforce 2.12.6, https://github.com/opensearch-project/sql/issues/424
@@ -113,11 +112,20 @@ dependencies {
     api "com.fasterxml.jackson.core:jackson-core:${versions.jackson}"
     api "com.fasterxml.jackson.core:jackson-databind:${versions.jackson_databind}"
     api "com.fasterxml.jackson.core:jackson-annotations:${versions.jackson}"
+    api group: 'commons-io', name: 'commons-io', version: '2.8.0'
+    implementation group: 'org.opensearch', name: 'opensearch-x-content', version: "${opensearch_version}"
+    implementation group: 'org.opensearch', name: 'common-utils', version: "${opensearch_build}"
 
     api project(":ppl")
     api project(':legacy')
     api project(':opensearch')
     api project(':prometheus')
+
+    testImplementation group: 'net.bytebuddy', name: 'byte-buddy-agent', version: '1.12.13'
+    testImplementation group: 'org.hamcrest', name: 'hamcrest-library', version: '2.1'
+    testImplementation group: 'org.mockito', name: 'mockito-core', version: '5.2.0'
+    testImplementation group: 'org.mockito', name: 'mockito-junit-jupiter', version: '5.2.0'
+    testImplementation 'org.junit.jupiter:junit-jupiter:5.6.2'
 }
 
 test {

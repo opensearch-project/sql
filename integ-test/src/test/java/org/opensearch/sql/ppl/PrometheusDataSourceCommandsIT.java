@@ -23,6 +23,12 @@ import org.junit.jupiter.api.Test;
 
 public class PrometheusDataSourceCommandsIT extends PPLIntegTestCase {
 
+
+  @Override
+  protected void init() throws Exception {
+    loadIndex(Index.DATASOURCES);
+  }
+
   @Test
   @SneakyThrows
   public void testSourceMetricCommand() {
