@@ -41,7 +41,7 @@ import org.opensearch.sql.legacy.utils.SQLFunctions;
 import org.opensearch.sql.legacy.utils.Util;
 
 /**
- * 一些具有参数的一般在 select 函数.或者group by 函数
+ *
  *
  * @author ansj
  */

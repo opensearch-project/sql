@@ -13,7 +13,7 @@ import org.opensearch.sql.legacy.parser.ChildrenType;
 import org.opensearch.sql.legacy.parser.NestedType;
 
 /**
- * 搜索域
+ *
  *
  * @author ansj
  */
