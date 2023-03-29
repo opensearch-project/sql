@@ -15,7 +15,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import org.opensearch.common.Strings;
-import org.opensearch.common.xcontent.ToXContent;
+import org.opensearch.core.xcontent.ToXContent;
 import org.opensearch.index.query.MatchPhraseQueryBuilder;
 import org.opensearch.index.query.MatchQueryBuilder;
 import org.opensearch.index.query.MultiMatchQueryBuilder;

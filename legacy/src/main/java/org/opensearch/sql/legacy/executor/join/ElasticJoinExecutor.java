@@ -23,7 +23,7 @@ import org.opensearch.client.Client;
 import org.opensearch.common.document.DocumentField;
 import org.opensearch.common.text.Text;
 import org.opensearch.common.unit.TimeValue;
-import org.opensearch.common.xcontent.XContentBuilder;
+import org.opensearch.core.xcontent.XContentBuilder;
 import org.opensearch.index.mapper.MapperService;
 import org.opensearch.rest.BytesRestResponse;
 import org.opensearch.rest.RestChannel;

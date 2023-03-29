@@ -6,7 +6,7 @@
 
 package org.opensearch.sql.legacy.executor.join;
 
-import static org.opensearch.common.xcontent.ToXContent.EMPTY_PARAMS;
+import static org.opensearch.core.xcontent.ToXContent.EMPTY_PARAMS;
 
 import com.google.common.collect.ImmutableMap;
 import java.io.IOException;
@@ -20,10 +20,10 @@ import org.opensearch.client.Client;
 import org.opensearch.common.bytes.BytesReference;
 import org.opensearch.common.io.stream.BytesStreamOutput;
 import org.opensearch.common.unit.TimeValue;
-import org.opensearch.common.xcontent.ToXContent.Params;
-import org.opensearch.common.xcontent.XContentBuilder;
 import org.opensearch.common.xcontent.XContentFactory;
 import org.opensearch.common.xcontent.XContentType;
+import org.opensearch.core.xcontent.ToXContent.Params;
+import org.opensearch.core.xcontent.XContentBuilder;
 import org.opensearch.search.SearchHit;
 import org.opensearch.search.SearchHits;
 import org.opensearch.search.sort.FieldSortBuilder;
