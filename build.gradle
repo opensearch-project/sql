@@ -98,8 +98,6 @@ subprojects {
         mavenLocal()
         maven { url "https://aws.oss.sonatype.org/content/repositories/snapshots" }
         mavenCentral()
-        // todo. remove this when lucene 9.4.0 is released
-        maven { url "https://d1nvenhzbhpy0q.cloudfront.net/snapshots/lucene/" }
     }
 }
 
