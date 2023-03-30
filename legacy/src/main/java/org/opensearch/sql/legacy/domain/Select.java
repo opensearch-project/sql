@@ -18,7 +18,7 @@ import org.opensearch.sql.legacy.parser.SubQueryExpression;
 
 
 /**
- * 将sql语句转换为select 对象
+ * sql select
  *
  * @author ansj
  */
