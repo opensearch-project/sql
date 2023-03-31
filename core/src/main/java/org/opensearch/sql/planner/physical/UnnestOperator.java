@@ -10,7 +10,6 @@ import static java.util.stream.Collectors.toList;
 
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.ListIterator;
@@ -307,7 +306,7 @@ public class UnnestOperator extends PhysicalPlan {
         && (StringUtils.substringAfterLast(field, ".").equals(nestedField)
             || !field.contains("."))
     ) {
-      ret.add(new HashMap<>(Map.of(field, currentObj)));
+      ret.add(new LinkedHashMap<>(Map.of(field, currentObj)));
     } else if (currentObj != null) {
       getNested(field, nestedField.substring(nestedField.indexOf(".") + 1),
           row, ret, currentObj, supportArrays);

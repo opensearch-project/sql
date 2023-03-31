@@ -102,9 +102,24 @@ class UnnestOperatorTest extends PhysicalPlanTestBase {
     assertThat(
         execute(new UnnestOperator(inputPlan, fields, groupedFieldsByPath)),
         contains(
-            tupleValue(new LinkedHashMap<>(Map.of("message.info", "a", "comment.data", "1"))),
-            tupleValue(new LinkedHashMap<>(Map.of("message.info", "b", "comment.data", "1"))),
-            tupleValue(new LinkedHashMap<>(Map.of("message.info", "c", "comment.data", "1")))
+            tupleValue(
+                new LinkedHashMap<>() {{
+                  put("message.info", "a");
+                  put("comment.data", "1");
+                }}
+            ),
+            tupleValue(
+                new LinkedHashMap<>() {{
+                  put("message.info", "b");
+                  put("comment.data", "1");
+                }}
+            ),
+            tupleValue(
+                new LinkedHashMap<>() {{
+                  put("message.info", "c");
+                  put("comment.data", "1");
+                }}
+            )
         )
     );
   }
@@ -124,19 +139,63 @@ class UnnestOperatorTest extends PhysicalPlanTestBase {
                 "field", new ReferenceExpression("comment.data", STRING),
                 "path", new ReferenceExpression("comment", STRING))
         );
-
     assertThat(
         execute(new UnnestOperator(inputPlan, fields)),
         contains(
-            tupleValue(new LinkedHashMap<>(Map.of("message.info", "a", "comment.data", "1"))),
-            tupleValue(new LinkedHashMap<>(Map.of("message.info", "a", "comment.data", "2"))),
-            tupleValue(new LinkedHashMap<>(Map.of("message.info", "a", "comment.data", "3"))),
-            tupleValue(new LinkedHashMap<>(Map.of("message.info", "b", "comment.data", "1"))),
-            tupleValue(new LinkedHashMap<>(Map.of("message.info", "b", "comment.data", "2"))),
-            tupleValue(new LinkedHashMap<>(Map.of("message.info", "b", "comment.data", "3"))),
-            tupleValue(new LinkedHashMap<>(Map.of("message.info", "c", "comment.data", "1"))),
-            tupleValue(new LinkedHashMap<>(Map.of("message.info", "c", "comment.data", "2"))),
-            tupleValue(new LinkedHashMap<>(Map.of("message.info", "c", "comment.data", "3")))
+            tupleValue(
+                new LinkedHashMap<>() {{
+                  put("message.info", "a");
+                  put("comment.data", "1");
+                }}
+            ),
+            tupleValue(
+                new LinkedHashMap<>() {{
+                  put("message.info", "a");
+                  put("comment.data", "2");
+                }}
+            ),
+            tupleValue(
+                new LinkedHashMap<>() {{
+                  put("message.info", "a");
+                  put("comment.data", "3");
+                }}
+            ),
+            tupleValue(
+                new LinkedHashMap<>() {{
+                  put("message.info", "b");
+                  put("comment.data", "1");
+                }}
+            ),
+            tupleValue(
+                new LinkedHashMap<>() {{
+                  put("message.info", "b");
+                  put("comment.data", "2");
+                }}
+            ),
+            tupleValue(
+                new LinkedHashMap<>() {{
+                  put("message.info", "b");
+                  put("comment.data", "3");
+                }}
+            ),
+            tupleValue(
+                new LinkedHashMap<>() {{
+                  put("message.info", "c");
+                  put("comment.data", "1");
+                }}
+            ),
+            tupleValue(
+                new LinkedHashMap<>() {{
+                  put("message.info", "c");
+                  put("comment.data", "2");
+                }}
+            ),
+            tupleValue(
+                new LinkedHashMap<>() {{
+                  put("message.info", "c");
+                  put("comment.data", "3");
+                }}
+            )
         )
     );
   }
@@ -159,9 +218,24 @@ class UnnestOperatorTest extends PhysicalPlanTestBase {
     assertThat(
         execute(new UnnestOperator(inputPlan, fields)),
         contains(
-            tupleValue(new LinkedHashMap<>(Map.of("message.info", "a", "message.id", "1"))),
-            tupleValue(new LinkedHashMap<>(Map.of("message.info", "b", "message.id", "2"))),
-            tupleValue(new LinkedHashMap<>(Map.of("message.info", "c", "message.id", "3")))
+            tupleValue(
+                new LinkedHashMap<>() {{
+                  put("message.info", "a");
+                  put("message.id", "1");
+                }}
+            ),
+            tupleValue(
+                new LinkedHashMap<>() {{
+                  put("message.info", "b");
+                  put("message.id", "2");
+                }}
+            ),
+            tupleValue(
+                new LinkedHashMap<>() {{
+                  put("message.info", "c");
+                  put("message.id", "3");
+                }}
+            )
         )
     );
   }
