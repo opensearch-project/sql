@@ -53,7 +53,7 @@ public class OpenSearchPagedIndexScanTest {
   void query_empty_result() {
     mockResponse(client);
     InitialPageRequestBuilder builder = new InitialPageRequestBuilder(
-        new OpenSearchRequest.IndexName("test"), 3, exprValueFactory);
+        new OpenSearchRequest.IndexName("test"), 3, mock(), exprValueFactory);
     try (OpenSearchPagedIndexScan indexScan = new OpenSearchPagedIndexScan(client, builder)) {
       indexScan.open();
       assertFalse(indexScan.hasNext());
@@ -69,7 +69,7 @@ public class OpenSearchPagedIndexScanTest {
         employee(3, "Allen", "IT")});
 
     PagedRequestBuilder builder = new InitialPageRequestBuilder(
-        new OpenSearchRequest.IndexName("test"), 3, exprValueFactory);
+        new OpenSearchRequest.IndexName("test"), 3, mock(), exprValueFactory);
     try (OpenSearchPagedIndexScan indexScan = new OpenSearchPagedIndexScan(client, builder)) {
       indexScan.open();
 
@@ -90,7 +90,7 @@ public class OpenSearchPagedIndexScanTest {
     verify(client).cleanup(any());
 
     builder = new ContinuePageRequestBuilder(
-        new OpenSearchRequest.IndexName("test"), "scroll", exprValueFactory);
+        new OpenSearchRequest.IndexName("test"), "scroll", mock(), exprValueFactory);
     try (OpenSearchPagedIndexScan indexScan = new OpenSearchPagedIndexScan(client, builder)) {
       indexScan.open();
 
@@ -107,7 +107,7 @@ public class OpenSearchPagedIndexScanTest {
         employee(3, "Allen", "IT")});
 
     ContinuePageRequestBuilder builder = new ContinuePageRequestBuilder(
-        new OpenSearchRequest.IndexName("test"), "scroll", exprValueFactory);
+        new OpenSearchRequest.IndexName("test"), "scroll", mock(), exprValueFactory);
     try (OpenSearchPagedIndexScan indexScan = new OpenSearchPagedIndexScan(client, builder)) {
       indexScan.open();
 
@@ -128,7 +128,7 @@ public class OpenSearchPagedIndexScanTest {
     verify(client).cleanup(any());
 
     builder = new ContinuePageRequestBuilder(
-        new OpenSearchRequest.IndexName("test"), "scroll", exprValueFactory);
+        new OpenSearchRequest.IndexName("test"), "scroll", mock(), exprValueFactory);
     try (OpenSearchPagedIndexScan indexScan = new OpenSearchPagedIndexScan(client, builder)) {
       indexScan.open();
 

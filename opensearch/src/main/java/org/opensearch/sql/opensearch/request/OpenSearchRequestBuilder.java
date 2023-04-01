@@ -76,6 +76,11 @@ public class OpenSearchRequestBuilder implements PushDownRequestBuilder {
    */
   private int querySize;
 
+  /**
+   * Scroll context life time.
+   */
+  private final TimeValue scrollTimeout;
+
   public OpenSearchRequestBuilder(String indexName,
                                   Integer maxResultWindow,
                                   Settings settings,
@@ -93,12 +98,13 @@ public class OpenSearchRequestBuilder implements PushDownRequestBuilder {
                                   OpenSearchExprValueFactory exprValueFactory) {
     this.indexName = indexName;
     this.maxResultWindow = maxResultWindow;
-    this.sourceBuilder = new SearchSourceBuilder();
     this.exprValueFactory = exprValueFactory;
+    this.scrollTimeout = settings.getSettingValue(Settings.Key.SQL_CURSOR_KEEP_ALIVE);
     this.querySize = settings.getSettingValue(Settings.Key.QUERY_SIZE_LIMIT);
-    sourceBuilder.from(0);
-    sourceBuilder.size(querySize);
-    sourceBuilder.timeout(DEFAULT_QUERY_TIMEOUT);
+    this.sourceBuilder = new SearchSourceBuilder()
+        .from(0)
+        .size(querySize)
+        .timeout(DEFAULT_QUERY_TIMEOUT);
   }
 
   /**
@@ -112,7 +118,8 @@ public class OpenSearchRequestBuilder implements PushDownRequestBuilder {
 
     if (from + size > maxResultWindow) {
       sourceBuilder.size(maxResultWindow - from);
-      return new OpenSearchScrollRequest(indexName, sourceBuilder, exprValueFactory);
+      return new OpenSearchScrollRequest(
+          indexName, scrollTimeout, sourceBuilder, exprValueFactory);
     } else {
       return new OpenSearchQueryRequest(indexName, sourceBuilder, exprValueFactory);
     }

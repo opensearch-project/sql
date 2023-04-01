@@ -55,12 +55,14 @@ import org.opensearch.cluster.metadata.IndexMetadata;
 import org.opensearch.cluster.metadata.MappingMetadata;
 import org.opensearch.common.collect.ImmutableOpenMap;
 import org.opensearch.common.settings.Settings;
+import org.opensearch.common.unit.TimeValue;
 import org.opensearch.common.xcontent.XContentType;
 import org.opensearch.core.xcontent.DeprecationHandler;
 import org.opensearch.core.xcontent.NamedXContentRegistry;
 import org.opensearch.core.xcontent.XContentParser;
 import org.opensearch.search.SearchHit;
 import org.opensearch.search.SearchHits;
+import org.opensearch.search.builder.SearchSourceBuilder;
 import org.opensearch.sql.data.model.ExprIntegerValue;
 import org.opensearch.sql.data.model.ExprTupleValue;
 import org.opensearch.sql.data.model.ExprValue;
@@ -68,6 +70,7 @@ import org.opensearch.sql.opensearch.data.type.OpenSearchDataType;
 import org.opensearch.sql.opensearch.data.type.OpenSearchTextType;
 import org.opensearch.sql.opensearch.data.value.OpenSearchExprValueFactory;
 import org.opensearch.sql.opensearch.mapping.IndexMapping;
+import org.opensearch.sql.opensearch.request.OpenSearchRequest;
 import org.opensearch.sql.opensearch.request.OpenSearchScrollRequest;
 import org.opensearch.sql.opensearch.response.OpenSearchResponse;
 
@@ -303,7 +306,9 @@ class OpenSearchRestClientTest {
     when(scrollResponse.getHits()).thenReturn(SearchHits.empty());
 
     // Verify response for first scroll request
-    OpenSearchScrollRequest request = new OpenSearchScrollRequest("test", factory);
+    OpenSearchScrollRequest request = new OpenSearchScrollRequest(
+        new OpenSearchRequest.IndexName("test"), TimeValue.timeValueMinutes(1),
+        new SearchSourceBuilder(), factory);
     OpenSearchResponse response1 = client.search(request);
     assertFalse(response1.isEmpty());
 
@@ -323,7 +328,9 @@ class OpenSearchRestClientTest {
     when(restClient.search(any(), any())).thenThrow(new IOException());
     assertThrows(
         IllegalStateException.class,
-        () -> client.search(new OpenSearchScrollRequest("test", factory)));
+        () -> client.search(new OpenSearchScrollRequest(
+            new OpenSearchRequest.IndexName("test"), TimeValue.timeValueMinutes(1),
+            new SearchSourceBuilder(), factory)));
   }
 
   @Test
@@ -343,7 +350,9 @@ class OpenSearchRestClientTest {
     when(restClient.scroll(any(), any())).thenThrow(new IOException());
 
     // First request run successfully
-    OpenSearchScrollRequest scrollRequest = new OpenSearchScrollRequest("test", factory);
+    OpenSearchScrollRequest scrollRequest = new OpenSearchScrollRequest(
+        new OpenSearchRequest.IndexName("test"), TimeValue.timeValueMinutes(1),
+        new SearchSourceBuilder(), factory);
     client.search(scrollRequest);
     assertThrows(
         IllegalStateException.class, () -> client.search(scrollRequest));
@@ -362,7 +371,9 @@ class OpenSearchRestClientTest {
   @Test
   @SneakyThrows
   void cleanup() {
-    OpenSearchScrollRequest request = new OpenSearchScrollRequest("test", factory);
+    OpenSearchScrollRequest request = new OpenSearchScrollRequest(
+        new OpenSearchRequest.IndexName("test"), TimeValue.timeValueMinutes(1),
+        new SearchSourceBuilder(), factory);
     // Enforce cleaning by setting a private field.
     FieldUtils.writeField(request, "needClean", true, true);
     request.setScrollId("scroll123");
@@ -373,7 +384,9 @@ class OpenSearchRestClientTest {
 
   @Test
   void cleanup_without_scrollId() throws IOException {
-    OpenSearchScrollRequest request = new OpenSearchScrollRequest("test", factory);
+    OpenSearchScrollRequest request = new OpenSearchScrollRequest(
+        new OpenSearchRequest.IndexName("test"), TimeValue.timeValueMinutes(1),
+        new SearchSourceBuilder(), factory);
     client.cleanup(request);
     verify(restClient, never()).clearScroll(any(), any());
   }
@@ -383,7 +396,9 @@ class OpenSearchRestClientTest {
   void cleanup_with_IOException() {
     when(restClient.clearScroll(any(), any())).thenThrow(new IOException());
 
-    OpenSearchScrollRequest request = new OpenSearchScrollRequest("test", factory);
+    OpenSearchScrollRequest request = new OpenSearchScrollRequest(
+        new OpenSearchRequest.IndexName("test"), TimeValue.timeValueMinutes(1),
+        new SearchSourceBuilder(), factory);
     // Enforce cleaning by setting a private field.
     FieldUtils.writeField(request, "needClean", true, true);
     request.setScrollId("scroll123");

@@ -10,6 +10,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 import static org.opensearch.sql.data.type.ExprCoreType.INTEGER;
 import static org.opensearch.sql.opensearch.request.OpenSearchRequestBuilder.DEFAULT_QUERY_TIMEOUT;
 
@@ -22,7 +23,9 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.opensearch.common.unit.TimeValue;
 import org.opensearch.search.builder.SearchSourceBuilder;
+import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.data.type.ExprType;
 import org.opensearch.sql.expression.DSL;
 import org.opensearch.sql.expression.ReferenceExpression;
@@ -36,6 +39,9 @@ public class InitialPageRequestBuilderTest {
   @Mock
   private OpenSearchExprValueFactory exprValueFactory;
 
+  @Mock
+  private Settings settings;
+
   private final int pageSize = 42;
 
   private final OpenSearchRequest.IndexName indexName = new OpenSearchRequest.IndexName("test");
@@ -44,14 +50,16 @@ public class InitialPageRequestBuilderTest {
 
   @BeforeEach
   void setup() {
+    when(settings.getSettingValue(Settings.Key.SQL_CURSOR_KEEP_ALIVE))
+        .thenReturn(TimeValue.timeValueMinutes(1));
     requestBuilder = new InitialPageRequestBuilder(
-        indexName, pageSize, exprValueFactory);
+        indexName, pageSize, settings, exprValueFactory);
   }
 
   @Test
   public void build() {
     assertEquals(
-        new OpenSearchScrollRequest(indexName,
+        new OpenSearchScrollRequest(indexName, TimeValue.timeValueMinutes(1),
             new SearchSourceBuilder()
                 .from(0)
                 .size(pageSize)
@@ -91,7 +99,7 @@ public class InitialPageRequestBuilderTest {
     requestBuilder.pushDownProjects(references);
 
     assertEquals(
-        new OpenSearchScrollRequest(indexName,
+        new OpenSearchScrollRequest(indexName, TimeValue.timeValueMinutes(1),
             new SearchSourceBuilder()
                 .from(0)
                 .size(pageSize)

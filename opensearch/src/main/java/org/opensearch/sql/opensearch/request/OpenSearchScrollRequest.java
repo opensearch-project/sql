@@ -32,8 +32,8 @@ import org.opensearch.sql.opensearch.response.OpenSearchResponse;
 @ToString
 public class OpenSearchScrollRequest implements OpenSearchRequest {
 
-  /** Default scroll context timeout in minutes. */
-  public static final TimeValue DEFAULT_SCROLL_TIMEOUT = TimeValue.timeValueMinutes(100L);
+  /** Scroll context timeout. */
+  private final TimeValue scrollTimeout;
 
   /**
    * {@link OpenSearchRequest.IndexName}.
@@ -59,21 +59,12 @@ public class OpenSearchScrollRequest implements OpenSearchRequest {
   private final SearchSourceBuilder sourceBuilder;
 
   /** Constructor. */
-  public OpenSearchScrollRequest(IndexName indexName, OpenSearchExprValueFactory exprValueFactory) {
-    this.indexName = indexName;
-    this.sourceBuilder = new SearchSourceBuilder();
-    this.exprValueFactory = exprValueFactory;
-  }
-
-  public OpenSearchScrollRequest(String indexName, OpenSearchExprValueFactory exprValueFactory) {
-    this(new IndexName(indexName), exprValueFactory);
-  }
-
-  /** Constructor. */
   public OpenSearchScrollRequest(IndexName indexName,
+                                 TimeValue scrollTimeout,
                                  SearchSourceBuilder sourceBuilder,
                                  OpenSearchExprValueFactory exprValueFactory) {
     this.indexName = indexName;
+    this.scrollTimeout = scrollTimeout;
     this.sourceBuilder = sourceBuilder;
     this.exprValueFactory = exprValueFactory;
   }
@@ -117,7 +108,7 @@ public class OpenSearchScrollRequest implements OpenSearchRequest {
   public SearchRequest searchRequest() {
     return new SearchRequest()
         .indices(indexName.getIndexNames())
-        .scroll(DEFAULT_SCROLL_TIMEOUT)
+        .scroll(scrollTimeout)
         .source(sourceBuilder);
   }
 
@@ -137,7 +128,7 @@ public class OpenSearchScrollRequest implements OpenSearchRequest {
    */
   public SearchScrollRequest scrollRequest() {
     Objects.requireNonNull(scrollId, "Scroll id cannot be null");
-    return new SearchScrollRequest().scroll(DEFAULT_SCROLL_TIMEOUT).scrollId(scrollId);
+    return new SearchScrollRequest().scroll(scrollTimeout).scrollId(scrollId);
   }
 
   /**

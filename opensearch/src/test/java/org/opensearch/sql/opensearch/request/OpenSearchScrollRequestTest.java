@@ -25,6 +25,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.opensearch.action.search.SearchRequest;
 import org.opensearch.action.search.SearchResponse;
 import org.opensearch.action.search.SearchScrollRequest;
+import org.opensearch.common.unit.TimeValue;
 import org.opensearch.index.query.QueryBuilders;
 import org.opensearch.search.SearchHit;
 import org.opensearch.search.SearchHits;
@@ -38,8 +39,9 @@ class OpenSearchScrollRequestTest {
   @Mock
   private OpenSearchExprValueFactory factory;
 
-  private final OpenSearchScrollRequest request =
-      new OpenSearchScrollRequest("test", factory);
+  private final OpenSearchScrollRequest request = new OpenSearchScrollRequest(
+      new OpenSearchRequest.IndexName("test"), TimeValue.timeValueMinutes(1),
+      new SearchSourceBuilder(), factory);
 
   @Test
   void searchRequest() {
@@ -48,7 +50,7 @@ class OpenSearchScrollRequestTest {
     assertEquals(
         new SearchRequest()
             .indices("test")
-            .scroll(OpenSearchScrollRequest.DEFAULT_SCROLL_TIMEOUT)
+            .scroll(TimeValue.timeValueMinutes(1))
             .source(new SearchSourceBuilder().query(QueryBuilders.termQuery("name", "John"))),
         request.searchRequest());
   }
@@ -69,7 +71,7 @@ class OpenSearchScrollRequestTest {
     request.setScrollId("scroll123");
     assertEquals(
         new SearchScrollRequest()
-            .scroll(OpenSearchScrollRequest.DEFAULT_SCROLL_TIMEOUT)
+            .scroll(TimeValue.timeValueMinutes(1))
             .scrollId("scroll123"),
         request.scrollRequest());
   }

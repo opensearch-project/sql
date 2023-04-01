@@ -65,6 +65,8 @@ public class OpenSearchRequestBuilderTest {
   @BeforeEach
   void setup() {
     when(settings.getSettingValue(Settings.Key.QUERY_SIZE_LIMIT)).thenReturn(200);
+    when(settings.getSettingValue(Settings.Key.SQL_CURSOR_KEEP_ALIVE))
+        .thenReturn(TimeValue.timeValueMinutes(1));
 
     requestBuilder = new OpenSearchRequestBuilder(
         "test", MAX_RESULT_WINDOW, settings, exprValueFactory);
@@ -95,7 +97,7 @@ public class OpenSearchRequestBuilderTest {
 
     assertEquals(
         new OpenSearchScrollRequest(
-            new OpenSearchRequest.IndexName("test"),
+            new OpenSearchRequest.IndexName("test"), TimeValue.timeValueMinutes(1),
             new SearchSourceBuilder()
                 .from(offset)
                 .size(MAX_RESULT_WINDOW - offset)

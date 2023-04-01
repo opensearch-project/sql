@@ -45,7 +45,7 @@ public class OpenSearchStorageEngine implements StorageEngine {
     var index = new OpenSearchIndex(client, settings, indexName);
     var requestBuilder = new ContinuePageRequestBuilder(
         new OpenSearchRequest.IndexName(indexName),
-        scrollId,
+        scrollId, settings,
         new OpenSearchExprValueFactory(index.getFieldOpenSearchTypes()));
     return new OpenSearchPagedIndexScan(client, requestBuilder);
   }

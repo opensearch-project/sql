@@ -5,16 +5,16 @@
 
 package org.opensearch.sql.opensearch.request;
 
-import static org.opensearch.sql.opensearch.request.OpenSearchScrollRequest.DEFAULT_SCROLL_TIMEOUT;
-
 import java.util.function.Consumer;
 import java.util.function.Function;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
+import lombok.RequiredArgsConstructor;
 import lombok.ToString;
 import org.opensearch.action.search.SearchRequest;
 import org.opensearch.action.search.SearchResponse;
 import org.opensearch.action.search.SearchScrollRequest;
+import org.opensearch.common.unit.TimeValue;
 import org.opensearch.search.builder.SearchSourceBuilder;
 import org.opensearch.sql.opensearch.data.value.OpenSearchExprValueFactory;
 import org.opensearch.sql.opensearch.response.OpenSearchResponse;
@@ -26,11 +26,12 @@ import org.opensearch.sql.opensearch.response.OpenSearchResponse;
  * First (initial) request is handled by {@link InitialPageRequestBuilder}.
  */
 @EqualsAndHashCode
+@RequiredArgsConstructor
 public class ContinuePageRequest implements OpenSearchRequest {
-  final String initialScrollId;
-
+  private final String initialScrollId;
+  private final TimeValue scrollTimeout;
   // ScrollId that OpenSearch returns after search.
-  String responseScrollId;
+  private String responseScrollId;
 
   @EqualsAndHashCode.Exclude
   @ToString.Exclude
@@ -40,16 +41,11 @@ public class ContinuePageRequest implements OpenSearchRequest {
   @EqualsAndHashCode.Exclude
   private boolean scrollFinished = false;
 
-  public ContinuePageRequest(String scrollId, OpenSearchExprValueFactory exprValueFactory) {
-    this.initialScrollId = scrollId;
-    this.exprValueFactory = exprValueFactory;
-  }
-
   @Override
   public OpenSearchResponse search(Function<SearchRequest, SearchResponse> searchAction,
                                    Function<SearchScrollRequest, SearchResponse> scrollAction) {
     SearchResponse openSearchResponse = scrollAction.apply(new SearchScrollRequest(initialScrollId)
-        .scroll(DEFAULT_SCROLL_TIMEOUT));
+        .scroll(scrollTimeout));
 
     // TODO if terminated_early - something went wrong, e.g. no scroll returned.
     var response = new OpenSearchResponse(openSearchResponse, exprValueFactory);

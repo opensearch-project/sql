@@ -33,6 +33,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.opensearch.action.search.SearchRequest;
 import org.opensearch.action.search.SearchResponse;
 import org.opensearch.action.search.SearchScrollRequest;
+import org.opensearch.common.unit.TimeValue;
 import org.opensearch.search.SearchHit;
 import org.opensearch.search.SearchHits;
 import org.opensearch.sql.opensearch.data.value.OpenSearchExprValueFactory;
@@ -66,7 +67,8 @@ public class ContinuePageRequestTest {
   private final String scroll = "scroll";
   private final String nextScroll = "nextScroll";
 
-  private final ContinuePageRequest request = new ContinuePageRequest(scroll, factory);
+  private final ContinuePageRequest request = new ContinuePageRequest(
+      scroll, TimeValue.timeValueMinutes(1), factory);
 
   @Test
   public void search_with_non_empty_response() {
@@ -118,7 +120,7 @@ public class ContinuePageRequestTest {
     factory = mock();
     assertAll(
         () -> assertThrows(Throwable.class, request::getSourceBuilder),
-        () -> assertSame(factory, new ContinuePageRequest("", factory).getExprValueFactory())
+        () -> assertSame(factory, new ContinuePageRequest("", null, factory).getExprValueFactory())
     );
   }
 }

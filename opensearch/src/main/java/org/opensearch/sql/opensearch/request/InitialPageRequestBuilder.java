@@ -10,8 +10,9 @@ import static org.opensearch.sql.opensearch.request.OpenSearchRequestBuilder.DEF
 import java.util.Map;
 import java.util.Set;
 import lombok.Getter;
+import org.opensearch.common.unit.TimeValue;
 import org.opensearch.search.builder.SearchSourceBuilder;
-import org.opensearch.sql.data.type.ExprType;
+import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.expression.ReferenceExpression;
 import org.opensearch.sql.opensearch.data.type.OpenSearchDataType;
 import org.opensearch.sql.opensearch.data.value.OpenSearchExprValueFactory;
@@ -27,6 +28,7 @@ public class InitialPageRequestBuilder extends PagedRequestBuilder {
   private final OpenSearchRequest.IndexName indexName;
   private final SearchSourceBuilder sourceBuilder;
   private final OpenSearchExprValueFactory exprValueFactory;
+  private final TimeValue scrollTimeout;
 
   /**
    * Constructor.
@@ -37,9 +39,11 @@ public class InitialPageRequestBuilder extends PagedRequestBuilder {
   // TODO accept indexName as string (same way as `OpenSearchRequestBuilder` does)?
   public InitialPageRequestBuilder(OpenSearchRequest.IndexName indexName,
                                    int pageSize,
+                                   Settings settings,
                                    OpenSearchExprValueFactory exprValueFactory) {
     this.indexName = indexName;
     this.exprValueFactory = exprValueFactory;
+    this.scrollTimeout = settings.getSettingValue(Settings.Key.SQL_CURSOR_KEEP_ALIVE);
     this.sourceBuilder = new SearchSourceBuilder()
         .from(0)
         .size(pageSize)
@@ -48,7 +52,7 @@ public class InitialPageRequestBuilder extends PagedRequestBuilder {
 
   @Override
   public OpenSearchScrollRequest build() {
-    return new OpenSearchScrollRequest(indexName, sourceBuilder, exprValueFactory);
+    return new OpenSearchScrollRequest(indexName, scrollTimeout, sourceBuilder, exprValueFactory);
   }
 
   /**
