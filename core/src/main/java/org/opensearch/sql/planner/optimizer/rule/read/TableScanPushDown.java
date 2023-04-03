@@ -9,6 +9,7 @@ import static org.opensearch.sql.planner.optimizer.pattern.Patterns.aggregate;
 import static org.opensearch.sql.planner.optimizer.pattern.Patterns.filter;
 import static org.opensearch.sql.planner.optimizer.pattern.Patterns.highlight;
 import static org.opensearch.sql.planner.optimizer.pattern.Patterns.limit;
+import static org.opensearch.sql.planner.optimizer.pattern.Patterns.paginate;
 import static org.opensearch.sql.planner.optimizer.pattern.Patterns.project;
 import static org.opensearch.sql.planner.optimizer.pattern.Patterns.scanBuilder;
 import static org.opensearch.sql.planner.optimizer.pattern.Patterns.sort;
@@ -74,6 +75,14 @@ public class TableScanPushDown<T extends LogicalPlan> implements Rule<T> {
               scanBuilder()))
           .apply((highlight, scanBuilder) -> scanBuilder.pushDownHighlight(highlight));
 
+  public static final Rule<?> PUSH_DOWN_PAGINATION =
+      match(
+          paginate(
+              project(
+                  scanBuilder()
+              )))
+          .apply2((paginate, /*project?*/ scanBuilder) -> scanBuilder.pushDownPagination(paginate));
+
 
   /** Pattern that matches a plan node. */
   private final WithPattern<T> pattern;
@@ -87,8 +96,16 @@ public class TableScanPushDown<T extends LogicalPlan> implements Rule<T> {
 
   @SuppressWarnings("unchecked")
   private TableScanPushDown(WithPattern<T> pattern,
-                           BiFunction<T, TableScanBuilder, Boolean> pushDownFunction) {
+                            BiFunction<T, TableScanBuilder, Boolean> pushDownFunction) {
     this.pattern = pattern;
+    this.capture = ((CapturePattern<TableScanBuilder>) pattern.getPattern()).capture();
+    this.pushDownFunction = pushDownFunction;
+  }
+
+  @SuppressWarnings("unchecked")
+  private TableScanPushDown(WithPattern<T> parentPattern, WithPattern<T> pattern,
+                            BiFunction<T, TableScanBuilder, Boolean> pushDownFunction) {
+    this.pattern = parentPattern;
     this.capture = ((CapturePattern<TableScanBuilder>) pattern.getPattern()).capture();
     this.pushDownFunction = pushDownFunction;
   }
@@ -124,6 +141,11 @@ public class TableScanPushDown<T extends LogicalPlan> implements Rule<T> {
     public TableScanPushDown<T> apply(
         BiFunction<T, TableScanBuilder, Boolean> pushDownFunction) {
       return new TableScanPushDown<>(pattern, pushDownFunction);
+    }
+
+    public TableScanPushDown<T> apply2(
+        BiFunction<T, TableScanBuilder, Boolean> pushDownFunction) {
+      return new TableScanPushDown<>(pattern, (WithPattern<T>) pattern.getPattern(), pushDownFunction);
     }
   }
 }

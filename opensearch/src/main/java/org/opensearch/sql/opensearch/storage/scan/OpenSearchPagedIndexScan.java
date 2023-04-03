@@ -8,6 +8,7 @@ package org.opensearch.sql.opensearch.storage.scan;
 import java.util.Collections;
 import java.util.Iterator;
 import lombok.EqualsAndHashCode;
+import lombok.Getter;
 import lombok.ToString;
 import org.apache.commons.lang3.NotImplementedException;
 import org.opensearch.sql.data.model.ExprValue;
@@ -21,6 +22,7 @@ import org.opensearch.sql.storage.TableScanOperator;
 @ToString(onlyExplicitlyIncluded = true)
 public class OpenSearchPagedIndexScan extends TableScanOperator {
   private final OpenSearchClient client;
+  @Getter
   private final PagedRequestBuilder requestBuilder;
   @EqualsAndHashCode.Include
   @ToString.Include

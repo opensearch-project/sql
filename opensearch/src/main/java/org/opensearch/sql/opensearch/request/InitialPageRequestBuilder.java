@@ -13,6 +13,7 @@ import lombok.Getter;
 import org.opensearch.common.unit.TimeValue;
 import org.opensearch.search.builder.SearchSourceBuilder;
 import org.opensearch.sql.common.setting.Settings;
+import org.opensearch.sql.data.type.ExprType;
 import org.opensearch.sql.expression.ReferenceExpression;
 import org.opensearch.sql.opensearch.data.type.OpenSearchDataType;
 import org.opensearch.sql.opensearch.data.value.OpenSearchExprValueFactory;
@@ -38,7 +39,6 @@ public class InitialPageRequestBuilder extends PagedRequestBuilder {
    */
   // TODO accept indexName as string (same way as `OpenSearchRequestBuilder` does)?
   public InitialPageRequestBuilder(OpenSearchRequest.IndexName indexName,
-                                   int pageSize,
                                    Settings settings,
                                    OpenSearchExprValueFactory exprValueFactory) {
     this.indexName = indexName;
@@ -46,7 +46,6 @@ public class InitialPageRequestBuilder extends PagedRequestBuilder {
     this.scrollTimeout = settings.getSettingValue(Settings.Key.SQL_CURSOR_KEEP_ALIVE);
     this.sourceBuilder = new SearchSourceBuilder()
         .from(0)
-        .size(pageSize)
         .timeout(DEFAULT_QUERY_TIMEOUT);
   }
 
@@ -67,5 +66,10 @@ public class InitialPageRequestBuilder extends PagedRequestBuilder {
   @Override
   public void pushTypeMapping(Map<String, OpenSearchDataType> typeMapping) {
     exprValueFactory.extendTypeMapping(typeMapping);
+  }
+
+  @Override
+  public void pushDownPageSize(int pageSize) {
+    sourceBuilder.size(pageSize);
   }
 }

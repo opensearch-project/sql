@@ -10,6 +10,7 @@ import org.opensearch.sql.planner.logical.LogicalAggregation;
 import org.opensearch.sql.planner.logical.LogicalFilter;
 import org.opensearch.sql.planner.logical.LogicalHighlight;
 import org.opensearch.sql.planner.logical.LogicalLimit;
+import org.opensearch.sql.planner.logical.LogicalPaginate;
 import org.opensearch.sql.planner.logical.LogicalPlan;
 import org.opensearch.sql.planner.logical.LogicalPlanNodeVisitor;
 import org.opensearch.sql.planner.logical.LogicalProject;
@@ -101,6 +102,17 @@ public abstract class TableScanBuilder extends LogicalPlan {
    * @return true if pushed down, otherwise false
    */
   public boolean pushDownHighlight(LogicalHighlight highlight) {
+    return false;
+  }
+
+  /**
+   * Can a page size be pushed down to table scan builder. Assume no such support
+   * by default unless subclass override this.
+   *
+   * @param paginate logical paginate operator
+   * @return true if pushed down, otherwise false
+   */
+  public boolean pushDownPagination(LogicalPaginate paginate) {
     return false;
   }
 

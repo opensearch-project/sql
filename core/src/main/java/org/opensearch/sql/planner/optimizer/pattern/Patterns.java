@@ -67,10 +67,21 @@ public class Patterns {
   }
 
   /**
+   * Logical paginate operator with a given pattern on inner field.
+   */
+  public static <T extends LogicalPlan> Pattern<LogicalPaginate> paginate(Pattern<T> pattern) {
+    return Pattern.typeOf(LogicalPaginate.class).with(source(pattern));
+  }
+
+  /**
    * Logical project operator with a given pattern on inner field.
    */
   public static <T extends LogicalPlan> Pattern<LogicalProject> project(Pattern<T> pattern) {
     return Pattern.typeOf(LogicalProject.class).with(source(pattern));
+  }
+
+  public static <T extends LogicalPlan> Pattern<LogicalProject> project() {
+    return Pattern.typeOf(LogicalProject.class).capturedAs(Capture.newCapture());
   }
 
   /**

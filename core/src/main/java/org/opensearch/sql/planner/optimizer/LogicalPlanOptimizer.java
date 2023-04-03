@@ -16,7 +16,6 @@ import org.opensearch.sql.planner.logical.LogicalPlan;
 import org.opensearch.sql.planner.optimizer.rule.CreatePagingTableScanBuilder;
 import org.opensearch.sql.planner.optimizer.rule.MergeFilterAndFilter;
 import org.opensearch.sql.planner.optimizer.rule.PushFilterUnderSort;
-import org.opensearch.sql.planner.optimizer.rule.PushPageSize;
 import org.opensearch.sql.planner.optimizer.rule.read.CreateTableScanBuilder;
 import org.opensearch.sql.planner.optimizer.rule.read.TableScanPushDown;
 import org.opensearch.sql.planner.optimizer.rule.write.CreateTableWriteBuilder;
@@ -75,8 +74,8 @@ public class LogicalPlanOptimizer {
         /*
          * Phase 2: Transformations that rely on data source push down capability
          */
-        new PushPageSize(),
         new CreatePagingTableScanBuilder(),
+        TableScanPushDown.PUSH_DOWN_PAGINATION,
         TableScanPushDown.PUSH_DOWN_FILTER,
         TableScanPushDown.PUSH_DOWN_AGGREGATION,
         TableScanPushDown.PUSH_DOWN_SORT,

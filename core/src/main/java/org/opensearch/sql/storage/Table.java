@@ -93,7 +93,7 @@ public interface Table {
     throw new UnsupportedOperationException();
   }
 
-  default TableScanBuilder createPagedScanBuilder(int pageSize) {
+  default TableScanBuilder createPagedScanBuilder() {
     var error = String.format("'%s' does not support pagination", getClass().toString());
     throw new UnsupportedOperationException(error);
   }

@@ -164,8 +164,8 @@ public class OpenSearchIndex implements Table {
   }
 
   @Override
-  public TableScanBuilder createPagedScanBuilder(int pageSize) {
-    var requestBuilder = new InitialPageRequestBuilder(indexName, pageSize, settings,
+  public TableScanBuilder createPagedScanBuilder() {
+    var requestBuilder = new InitialPageRequestBuilder(indexName, settings,
         new OpenSearchExprValueFactory(getFieldOpenSearchTypes()));
     var indexScan = new OpenSearchPagedIndexScan(client, requestBuilder);
     return new OpenSearchPagedIndexScanBuilder(indexScan);

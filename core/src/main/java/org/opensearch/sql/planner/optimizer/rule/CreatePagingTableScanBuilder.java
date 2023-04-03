@@ -41,8 +41,7 @@ public class CreatePagingTableScanBuilder implements Rule<LogicalRelation> {
 
   @Override
   public LogicalPlan apply(LogicalRelation plan, Captures captures) {
-    TableScanBuilder scanBuilder = captures.get(capture)
-        .createPagedScanBuilder(plan.getPageSize());
+    TableScanBuilder scanBuilder = captures.get(capture).createPagedScanBuilder();
     // TODO: Remove this after Prometheus refactored to new table scan builder too
     return (scanBuilder == null) ? plan : scanBuilder;
   }
