@@ -25,6 +25,7 @@ import org.opensearch.client.ResponseException;
 import org.opensearch.client.RestHighLevelClient;
 import org.opensearch.common.inject.Injector;
 import org.opensearch.common.inject.ModulesBuilder;
+import org.opensearch.common.unit.TimeValue;
 import org.opensearch.sql.common.response.ResponseListener;
 import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.data.type.ExprCoreType;
@@ -94,7 +95,8 @@ public class StandalonePaginationIT extends SQLIntegTestCase {
 
       @Override
       public void onFailure(Exception e) {
-        fail();
+        e.printStackTrace();
+        fail(e.getMessage());
       }
     };
 
@@ -150,8 +152,9 @@ public class StandalonePaginationIT extends SQLIntegTestCase {
 
   private Settings defaultSettings() {
     return new Settings() {
-      private final Map<Key, Integer> defaultSettings = new ImmutableMap.Builder<Key, Integer>()
+      private final Map<Key, Object> defaultSettings = new ImmutableMap.Builder<Key, Object>()
           .put(Key.QUERY_SIZE_LIMIT, 200)
+          .put(Key.SQL_CURSOR_KEEP_ALIVE, TimeValue.timeValueMinutes(1))
           .build();
 
       @Override
