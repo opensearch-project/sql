@@ -7,6 +7,8 @@
 package org.opensearch.sql.opensearch.request;
 
 import com.google.common.annotations.VisibleForTesting;
+import java.util.Arrays;
+import java.util.List;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import lombok.EqualsAndHashCode;
@@ -94,11 +96,16 @@ public class OpenSearchQueryRequest implements OpenSearchRequest {
   @Override
   public OpenSearchResponse search(Function<SearchRequest, SearchResponse> searchAction,
                                    Function<SearchScrollRequest, SearchResponse> scrollAction) {
+    List<String> includes =
+        this.sourceBuilder.fetchSource() != null && this.sourceBuilder.fetchSource().includes() != null ?
+        Arrays.asList(this.sourceBuilder.fetchSource().includes()) :
+        List.of();
     if (searchDone) {
-      return new OpenSearchResponse(SearchHits.empty(), exprValueFactory);
+      return new OpenSearchResponse(SearchHits.empty(), exprValueFactory, includes);
     } else {
       searchDone = true;
-      return new OpenSearchResponse(searchAction.apply(searchRequest()), exprValueFactory);
+      return new OpenSearchResponse(
+          searchAction.apply(searchRequest()), exprValueFactory, includes);
     }
   }
 

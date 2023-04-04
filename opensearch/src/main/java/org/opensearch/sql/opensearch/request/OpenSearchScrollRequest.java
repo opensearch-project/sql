@@ -6,6 +6,8 @@
 
 package org.opensearch.sql.opensearch.request;
 
+import java.util.Arrays;
+import java.util.List;
 import java.util.Objects;
 import java.util.function.Consumer;
 import java.util.function.Function;
@@ -87,8 +89,12 @@ public class OpenSearchScrollRequest implements OpenSearchRequest {
       openSearchResponse = searchAction.apply(searchRequest());
     }
     setScrollId(openSearchResponse.getScrollId());
+    List<String> includes =
+        this.sourceBuilder.fetchSource() != null && this.sourceBuilder.fetchSource().includes() != null ?
+            Arrays.asList(this.sourceBuilder.fetchSource().includes()) :
+            List.of();
 
-    return new OpenSearchResponse(openSearchResponse, exprValueFactory);
+    return new OpenSearchResponse(openSearchResponse, exprValueFactory, includes);
   }
 
   @Override

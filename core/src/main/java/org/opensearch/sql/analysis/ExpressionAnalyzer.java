@@ -360,16 +360,17 @@ public class ExpressionAnalyzer extends AbstractNodeVisitor<Expression, Analysis
     QualifierAnalyzer qualifierAnalyzer = new QualifierAnalyzer(context);
 
     // check for reserved words in the identifier
-    TypeEnvironment typeEnv = context.peek();
     for (String part : node.getParts()) {
-      Optional<ExprType> exprType = typeEnv.getReservedSymbolTable().lookup(
-          new Symbol(Namespace.FIELD_NAME, part));
-      if (exprType.isPresent()) {
-        return visitMetadata(
-            qualifierAnalyzer.unqualified(node),
-            (ExprCoreType) exprType.get(),
-            context
-        );
+      for (TypeEnvironment typeEnv = context.peek(); typeEnv != null; typeEnv = typeEnv.getParent()) {
+        Optional<ExprType> exprType = typeEnv.getReservedSymbolTable().lookup(
+            new Symbol(Namespace.FIELD_NAME, part));
+        if (exprType.isPresent()) {
+          return visitMetadata(
+              qualifierAnalyzer.unqualified(node),
+              (ExprCoreType) exprType.get(),
+              context
+          );
+        }
       }
     }
     return visitIdentifier(qualifierAnalyzer.unqualified(node), context);

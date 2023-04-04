@@ -6,9 +6,16 @@
 
 package org.opensearch.sql.opensearch.response;
 
+import static org.opensearch.sql.opensearch.storage.OpenSearchIndex.METADATA_FIELD_ID;
+import static org.opensearch.sql.opensearch.storage.OpenSearchIndex.METADATA_FIELD_INDEX;
+import static org.opensearch.sql.opensearch.storage.OpenSearchIndex.METADATA_FIELD_MAXSCORE;
+import static org.opensearch.sql.opensearch.storage.OpenSearchIndex.METADATA_FIELD_SCORE;
+import static org.opensearch.sql.opensearch.storage.OpenSearchIndex.METADATA_FIELD_SORT;
+
 import com.google.common.collect.ImmutableMap;
 import java.util.Arrays;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 import lombok.EqualsAndHashCode;
@@ -42,6 +49,11 @@ public class OpenSearchResponse implements Iterable<ExprValue> {
   private final Aggregations aggregations;
 
   /**
+   * List of requested include fields
+   */
+  private final List<String> includes;
+
+  /**
    * ElasticsearchExprValueFactory used to build ExprValue from search result.
    */
   @EqualsAndHashCode.Exclude
@@ -51,19 +63,24 @@ public class OpenSearchResponse implements Iterable<ExprValue> {
    * Constructor of ElasticsearchResponse.
    */
   public OpenSearchResponse(SearchResponse searchResponse,
-                            OpenSearchExprValueFactory exprValueFactory) {
+                            OpenSearchExprValueFactory exprValueFactory,
+                            List<String> includes) {
     this.hits = searchResponse.getHits();
     this.aggregations = searchResponse.getAggregations();
     this.exprValueFactory = exprValueFactory;
+    this.includes = includes;
   }
 
   /**
    * Constructor of ElasticsearchResponse with SearchHits.
    */
-  public OpenSearchResponse(SearchHits hits, OpenSearchExprValueFactory exprValueFactory) {
+  public OpenSearchResponse(SearchHits hits,
+                            OpenSearchExprValueFactory exprValueFactory,
+                            List<String> includes) {
     this.hits = hits;
     this.aggregations = null;
     this.exprValueFactory = exprValueFactory;
+    this.includes = includes;
   }
 
   /**
@@ -95,6 +112,21 @@ public class OpenSearchResponse implements Iterable<ExprValue> {
         return (ExprValue) ExprTupleValue.fromExprValueMap(builder.build());
       }).iterator();
     } else {
+      boolean includeId = includes.stream().anyMatch(
+          include -> include.equalsIgnoreCase(METADATA_FIELD_ID)
+      );
+      boolean includeIndex = includes.stream().anyMatch(
+          include -> include.equalsIgnoreCase(METADATA_FIELD_INDEX)
+      );
+      boolean includeScore = includes.stream().anyMatch(
+          include -> include.equalsIgnoreCase(METADATA_FIELD_SCORE)
+      );
+      boolean includeMaxScore = includes.stream().anyMatch(
+          include -> include.equalsIgnoreCase(METADATA_FIELD_MAXSCORE)
+      );
+      boolean includeSort = includes.stream().anyMatch(
+          include -> include.equalsIgnoreCase(METADATA_FIELD_SORT)
+      );
       ExprFloatValue maxScore = Float.isNaN(hits.getMaxScore())
           ? null : new ExprFloatValue(hits.getMaxScore());
       return Arrays.stream(hits.getHits())
@@ -104,15 +136,21 @@ public class OpenSearchResponse implements Iterable<ExprValue> {
 
             ImmutableMap.Builder<String, ExprValue> builder = new ImmutableMap.Builder<>();
             builder.putAll(docData.tupleValue());
-            builder.put("_index", new ExprStringValue(hit.getIndex()));
-            builder.put("_id", new ExprStringValue(hit.getId()));
-            if (!Float.isNaN(hit.getScore())) {
+            if (includeIndex) {
+              builder.put("_index", new ExprStringValue(hit.getIndex()));
+            }
+            if (includeId) {
+              builder.put("_id", new ExprStringValue(hit.getId()));
+            }
+            if (includeScore && !Float.isNaN(hit.getScore())) {
               builder.put("_score", new ExprFloatValue(hit.getScore()));
             }
-            if (maxScore != null) {
+            if (includeMaxScore && maxScore != null) {
               builder.put("_maxscore", maxScore);
             }
-            builder.put("_sort", new ExprLongValue(hit.getSeqNo()));
+            if (includeSort) {
+              builder.put("_sort", new ExprLongValue(hit.getSeqNo()));
+            }
 
             if (!hit.getHighlightFields().isEmpty()) {
               var hlBuilder = ImmutableMap.<String, ExprValue>builder();

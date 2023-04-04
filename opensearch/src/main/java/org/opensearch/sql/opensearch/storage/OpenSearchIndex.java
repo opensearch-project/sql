@@ -171,8 +171,11 @@ public class OpenSearchIndex implements Table {
 
   @Override
   public TableScanBuilder createScanBuilder() {
+    Map<String, OpenSearchDataType> allFields = new HashMap<>();
+    getReservedFieldTypes().forEach((k, v) -> allFields.put(k, OpenSearchDataType.of(v)));
+    allFields.putAll(getFieldOpenSearchTypes());
     OpenSearchIndexScan indexScan = new OpenSearchIndexScan(client, settings, indexName,
-        getMaxResultWindow(), new OpenSearchExprValueFactory(getFieldOpenSearchTypes()));
+        getMaxResultWindow(), new OpenSearchExprValueFactory(allFields));
     return new OpenSearchIndexScanBuilder(indexScan);
   }
 
