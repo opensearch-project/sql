@@ -32,6 +32,7 @@ import org.opensearch.search.SearchHit;
 import org.opensearch.search.SearchHits;
 import org.opensearch.search.aggregations.Aggregations;
 import org.opensearch.search.fetch.subphase.highlight.HighlightField;
+import org.opensearch.sql.data.model.ExprFloatValue;
 import org.opensearch.sql.data.model.ExprIntegerValue;
 import org.opensearch.sql.data.model.ExprLongValue;
 import org.opensearch.sql.data.model.ExprStringValue;
@@ -127,13 +128,81 @@ class OpenSearchResponseTest {
     ExprTupleValue exprTupleHit = ExprTupleValue.fromExprValueMap(ImmutableMap.of(
         "id1", new ExprIntegerValue(1)
     ));
+
+    when(searchResponse.getHits())
+        .thenReturn(
+            new SearchHits(
+                new SearchHit[] {searchHit1},
+                new TotalHits(1L, TotalHits.Relation.EQUAL_TO),
+                3.75F));
+
+    when(searchHit1.getSourceAsString()).thenReturn("{\"id1\", 1}");
+    when(searchHit1.getId()).thenReturn("testId");
+    when(searchHit1.getIndex()).thenReturn("testIndex");
+    when(searchHit1.getScore()).thenReturn(3.75F);
+    when(searchHit1.getSeqNo()).thenReturn(123456L);
+
+    when(factory.construct(any())).thenReturn(exprTupleHit);
+
     ExprTupleValue exprTupleResponse = ExprTupleValue.fromExprValueMap(ImmutableMap.of(
         "id1", new ExprIntegerValue(1),
         "_index", new ExprStringValue("testIndex"),
         "_id", new ExprStringValue("testId"),
+        "_score", new ExprFloatValue(3.75F),
+        "_maxscore", new ExprFloatValue(3.75F),
         "_sort", new ExprLongValue(123456L)
     ));
-    List includes = List.of("id1", "_index", "_id", "_sort", "_score");
+    List includes = List.of("id1", "_index", "_id", "_sort", "_score", "_maxscore");
+    int i = 0;
+    for (ExprValue hit : new OpenSearchResponse(searchResponse, factory, includes)) {
+      if (i == 0) {
+        assertEquals(exprTupleResponse, hit);
+      } else {
+        fail("More search hits returned than expected");
+      }
+      i++;
+    }
+  }
+
+  @Test
+  void iterator_metafields_withoutIncludes() {
+
+    ExprTupleValue exprTupleHit = ExprTupleValue.fromExprValueMap(ImmutableMap.of(
+        "id1", new ExprIntegerValue(1)
+    ));
+
+    when(searchResponse.getHits())
+        .thenReturn(
+            new SearchHits(
+                new SearchHit[] {searchHit1},
+                new TotalHits(1L, TotalHits.Relation.EQUAL_TO),
+                3.75F));
+
+    when(searchHit1.getSourceAsString()).thenReturn("{\"id1\", 1}");
+
+    when(factory.construct(any())).thenReturn(exprTupleHit);
+
+    List includes = List.of("id1");
+    ExprTupleValue exprTupleResponse = ExprTupleValue.fromExprValueMap(ImmutableMap.of(
+        "id1", new ExprIntegerValue(1)
+    ));
+    int i = 0;
+    for (ExprValue hit : new OpenSearchResponse(searchResponse, factory, includes)) {
+      if (i == 0) {
+        assertEquals(exprTupleResponse, hit);
+      } else {
+        fail("More search hits returned than expected");
+      }
+      i++;
+    }
+  }
+
+  @Test
+  void iterator_metafields_scoreNaN() {
+
+    ExprTupleValue exprTupleHit = ExprTupleValue.fromExprValueMap(ImmutableMap.of(
+        "id1", new ExprIntegerValue(1)
+    ));
 
     when(searchResponse.getHits())
         .thenReturn(
@@ -150,6 +219,13 @@ class OpenSearchResponseTest {
 
     when(factory.construct(any())).thenReturn(exprTupleHit);
 
+    List includes = List.of("id1", "_index", "_id", "_sort", "_score", "_maxscore");
+    ExprTupleValue exprTupleResponse = ExprTupleValue.fromExprValueMap(ImmutableMap.of(
+        "id1", new ExprIntegerValue(1),
+        "_index", new ExprStringValue("testIndex"),
+        "_id", new ExprStringValue("testId"),
+        "_sort", new ExprLongValue(123456L)
+    ));
     int i = 0;
     for (ExprValue hit : new OpenSearchResponse(searchResponse, factory, includes)) {
       if (i == 0) {
