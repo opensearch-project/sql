@@ -702,7 +702,7 @@ ident
 keywordsCanBeId
     : FULL
     | FIELD | D | T | TS // OD SQL and ODBC special
-    | COUNT | SUM | AVG | MAX | MIN | NESTED
+    | COUNT | SUM | AVG | MAX | MIN
     | FIRST | LAST
     | TYPE // TODO: Type is keyword required by relevancy function. Remove this when relevancy functions moved out
     ;

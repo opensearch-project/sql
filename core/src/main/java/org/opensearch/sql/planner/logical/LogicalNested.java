@@ -44,6 +44,6 @@ public class LogicalNested extends LogicalPlan {
 
   @Override
   public <R, C> R accept(LogicalPlanNodeVisitor<R, C> visitor, C context) {
-    return visitor.visitUnnest(this, context);
+    return visitor.visitNested(this, context);
   }
 }
