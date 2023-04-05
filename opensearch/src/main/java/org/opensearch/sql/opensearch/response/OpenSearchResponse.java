@@ -49,7 +49,7 @@ public class OpenSearchResponse implements Iterable<ExprValue> {
   private final Aggregations aggregations;
 
   /**
-   * List of requested include fields
+   * List of requested include fields.
    */
   private final List<String> includes;
 

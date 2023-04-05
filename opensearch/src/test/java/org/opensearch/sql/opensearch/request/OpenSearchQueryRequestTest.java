@@ -82,7 +82,6 @@ public class OpenSearchQueryRequestTest {
     when(searchHits.getHits()).thenReturn(new SearchHit[] {searchHit});
 
     OpenSearchResponse searchResponse = request.search(searchAction, scrollAction);
-    verify(sourceBuilder, times(2)).fetchSource();
     verify(fetchSourceContext, times(1)).includes();
     assertFalse(searchResponse.isEmpty());
     searchResponse = request.search(searchAction, scrollAction);
@@ -124,7 +123,6 @@ public class OpenSearchQueryRequestTest {
     when(searchHits.getHits()).thenReturn(new SearchHit[] {searchHit});
 
     OpenSearchResponse searchResponse = request.search(searchAction, scrollAction);
-    verify(sourceBuilder, times(3)).fetchSource();
     verify(fetchSourceContext, times(2)).includes();
     assertFalse(searchResponse.isEmpty());
 

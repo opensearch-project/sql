@@ -361,7 +361,9 @@ public class ExpressionAnalyzer extends AbstractNodeVisitor<Expression, Analysis
 
     // check for reserved words in the identifier
     for (String part : node.getParts()) {
-      for (TypeEnvironment typeEnv = context.peek(); typeEnv != null; typeEnv = typeEnv.getParent()) {
+      for (TypeEnvironment typeEnv = context.peek();
+           typeEnv != null;
+           typeEnv = typeEnv.getParent()) {
         Optional<ExprType> exprType = typeEnv.getReservedSymbolTable().lookup(
             new Symbol(Namespace.FIELD_NAME, part));
         if (exprType.isPresent()) {

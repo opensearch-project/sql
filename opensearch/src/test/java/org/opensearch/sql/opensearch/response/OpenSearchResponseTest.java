@@ -255,7 +255,7 @@ class OpenSearchResponseTest {
 
   @Test
   void aggregation_iterator() {
-    List includes = List.of("id1", "id2");
+    final List includes = List.of("id1", "id2");
 
     when(parser.parse(any()))
         .thenReturn(Arrays.asList(ImmutableMap.of("id1", 1), ImmutableMap.of("id2", 2)));

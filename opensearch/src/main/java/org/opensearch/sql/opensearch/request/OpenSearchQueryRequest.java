@@ -20,6 +20,7 @@ import org.opensearch.action.search.SearchScrollRequest;
 import org.opensearch.common.unit.TimeValue;
 import org.opensearch.search.SearchHits;
 import org.opensearch.search.builder.SearchSourceBuilder;
+import org.opensearch.search.fetch.subphase.FetchSourceContext;
 import org.opensearch.sql.opensearch.data.value.OpenSearchExprValueFactory;
 import org.opensearch.sql.opensearch.response.OpenSearchResponse;
 
@@ -96,10 +97,10 @@ public class OpenSearchQueryRequest implements OpenSearchRequest {
   @Override
   public OpenSearchResponse search(Function<SearchRequest, SearchResponse> searchAction,
                                    Function<SearchScrollRequest, SearchResponse> scrollAction) {
-    List<String> includes =
-        this.sourceBuilder.fetchSource() != null && this.sourceBuilder.fetchSource().includes() != null ?
-        Arrays.asList(this.sourceBuilder.fetchSource().includes()) :
-        List.of();
+    FetchSourceContext fetchSource = this.sourceBuilder.fetchSource();
+    List<String> includes = fetchSource != null && fetchSource.includes() != null
+            ? Arrays.asList(fetchSource.includes())
+            : List.of();
     if (searchDone) {
       return new OpenSearchResponse(SearchHits.empty(), exprValueFactory, includes);
     } else {

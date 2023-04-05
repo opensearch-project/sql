@@ -21,6 +21,7 @@ import org.opensearch.action.search.SearchResponse;
 import org.opensearch.action.search.SearchScrollRequest;
 import org.opensearch.common.unit.TimeValue;
 import org.opensearch.search.builder.SearchSourceBuilder;
+import org.opensearch.search.fetch.subphase.FetchSourceContext;
 import org.opensearch.sql.opensearch.data.value.OpenSearchExprValueFactory;
 import org.opensearch.sql.opensearch.response.OpenSearchResponse;
 
@@ -89,10 +90,10 @@ public class OpenSearchScrollRequest implements OpenSearchRequest {
       openSearchResponse = searchAction.apply(searchRequest());
     }
     setScrollId(openSearchResponse.getScrollId());
-    List<String> includes =
-        this.sourceBuilder.fetchSource() != null && this.sourceBuilder.fetchSource().includes() != null ?
-            Arrays.asList(this.sourceBuilder.fetchSource().includes()) :
-            List.of();
+    FetchSourceContext fetchSource = this.sourceBuilder.fetchSource();
+    List<String> includes = fetchSource != null && fetchSource.includes() != null
+        ? Arrays.asList(this.sourceBuilder.fetchSource().includes())
+        : List.of();
 
     return new OpenSearchResponse(openSearchResponse, exprValueFactory, includes);
   }
