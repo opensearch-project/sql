@@ -137,19 +137,19 @@ public class OpenSearchResponse implements Iterable<ExprValue> {
             ImmutableMap.Builder<String, ExprValue> builder = new ImmutableMap.Builder<>();
             builder.putAll(docData.tupleValue());
             if (includeIndex) {
-              builder.put("_index", new ExprStringValue(hit.getIndex()));
+              builder.put(METADATA_FIELD_INDEX, new ExprStringValue(hit.getIndex()));
             }
             if (includeId) {
-              builder.put("_id", new ExprStringValue(hit.getId()));
+              builder.put(METADATA_FIELD_ID, new ExprStringValue(hit.getId()));
             }
             if (includeScore && !Float.isNaN(hit.getScore())) {
-              builder.put("_score", new ExprFloatValue(hit.getScore()));
+              builder.put(METADATA_FIELD_SCORE, new ExprFloatValue(hit.getScore()));
             }
             if (includeMaxScore && maxScore != null) {
-              builder.put("_maxscore", maxScore);
+              builder.put(METADATA_FIELD_MAXSCORE, maxScore);
             }
             if (includeSort) {
-              builder.put("_sort", new ExprLongValue(hit.getSeqNo()));
+              builder.put(METADATA_FIELD_SORT, new ExprLongValue(hit.getSeqNo()));
             }
 
             if (!hit.getHighlightFields().isEmpty()) {
