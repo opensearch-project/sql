@@ -22,6 +22,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.opensearch.sql.data.model.ExprNullValue;
 import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.expression.ReferenceExpression;
 
@@ -57,12 +58,9 @@ class NestedOperatorTest extends PhysicalPlanTestBase {
           "message",
           collectionValue(
               List.of(
-                  Map.of("info", "a"),
-                  Map.of("info", "b"),
-                  Map.of("info", "c"),
-                  Map.of("id", "1"),
-                  Map.of("id", "2"),
-                  Map.of("id", "3")
+                  Map.of("info", "a", "id", "1"),
+                  Map.of("info", "b", "id", "2"),
+                  Map.of("info", "c", "id", "3")
               )
           )
       )
@@ -304,11 +302,11 @@ class NestedOperatorTest extends PhysicalPlanTestBase {
     Set<String> fields = Set.of("message.val");
     Map<String, List<String>> groupedFieldsByPath =
         Map.of("message", List.of("message.val"));
-    assertTrue(
-        execute(new NestedOperator(inputPlan, fields, groupedFieldsByPath))
-            .get(0)
-            .tupleValue()
-            .size() == 0
+    assertThat(
+        execute(new NestedOperator(inputPlan, fields, groupedFieldsByPath)),
+        contains(
+            tupleValue(new LinkedHashMap<>(Map.of("message.val", ExprNullValue.of())))
+        )
     );
   }
 

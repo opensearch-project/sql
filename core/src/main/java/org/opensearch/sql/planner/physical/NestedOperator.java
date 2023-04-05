@@ -21,6 +21,7 @@ import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import org.apache.commons.lang3.StringUtils;
 import org.opensearch.sql.data.model.ExprCollectionValue;
+import org.opensearch.sql.data.model.ExprNullValue;
 import org.opensearch.sql.data.model.ExprTupleValue;
 import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.expression.ReferenceExpression;
@@ -256,6 +257,7 @@ public class NestedOperator extends PhysicalPlan {
         currentObj = currentMap.tupleValue().get(splitKeys[0]);
       } else {
         currentObj = null;
+        ret.add(new LinkedHashMap<>(Map.of(field, ExprNullValue.of())));
       }
     } else if (currentObj instanceof ExprCollectionValue) {
       ExprValue arrayObj = currentObj;

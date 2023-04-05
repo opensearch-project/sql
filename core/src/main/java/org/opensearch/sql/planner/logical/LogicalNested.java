@@ -14,6 +14,9 @@ import lombok.ToString;
 import org.opensearch.sql.expression.NamedExpression;
 import org.opensearch.sql.expression.ReferenceExpression;
 
+/**
+ * Logical Nested plan.
+ */
 @EqualsAndHashCode(callSuper = true)
 @Getter
 @ToString
