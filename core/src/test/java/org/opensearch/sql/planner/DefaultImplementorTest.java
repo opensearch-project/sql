@@ -115,7 +115,7 @@ class DefaultImplementorTest {
                 null
             )
         );
-    Set<String> unnestOperatorArgs = Set.of("message.info");
+    Set<String> nestedOperatorArgs = Set.of("message.info");
     Map<String, List<String>> groupedFieldsByPath =
         Map.of("message", List.of("message.info"));
 
@@ -151,7 +151,7 @@ class DefaultImplementorTest {
 
     assertEquals(
         PhysicalPlanDSL.project(
-            PhysicalPlanDSL.unnest(
+            PhysicalPlanDSL.nested(
               PhysicalPlanDSL.limit(
                   PhysicalPlanDSL.dedupe(
                       PhysicalPlanDSL.rareTopN(
@@ -175,7 +175,7 @@ class DefaultImplementorTest {
                       dedupeField),
                   limit,
                   offset),
-                unnestOperatorArgs, groupedFieldsByPath),
+                nestedOperatorArgs, groupedFieldsByPath),
             include),
         actual);
   }

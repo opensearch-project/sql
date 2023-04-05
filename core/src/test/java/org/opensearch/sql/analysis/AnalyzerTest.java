@@ -651,6 +651,114 @@ class AnalyzerTest extends AnalyzerTestBase {
   }
 
   @Test
+  public void project_multiple_nested() {
+    List<Map<String, ReferenceExpression>> nestedArgs =
+        List.of(
+            Map.of(
+                "field", new ReferenceExpression("message.info", STRING),
+                "path", new ReferenceExpression("message", STRING)
+            ),
+            Map.of(
+                "field", new ReferenceExpression("comment.data", STRING),
+                "path", new ReferenceExpression("comment", STRING)
+            )
+        );
+
+    List<NamedExpression> projectList =
+        List.of(
+            new NamedExpression(
+                "message.info",
+                DSL.nested(DSL.ref("message.info", STRING)),
+                null),
+            new NamedExpression(
+                "comment.data",
+                DSL.nested(DSL.ref("comment.data", STRING)),
+                null)
+        );
+
+    assertAnalyzeEqual(
+        LogicalPlanDSL.project(
+            LogicalPlanDSL.nested(
+                LogicalPlanDSL.relation("schema", table),
+                nestedArgs,
+                projectList),
+            DSL.named("message.info",
+                DSL.nested(DSL.ref("message.info", STRING))),
+            DSL.named("comment.data",
+                DSL.nested(DSL.ref("comment.data", STRING)))
+        ),
+        AstDSL.projectWithArg(
+            AstDSL.relation("schema"),
+            AstDSL.defaultFieldsArgs(),
+            AstDSL.alias("message.info",
+                function("nested", qualifiedName("message", "info")), null),
+            AstDSL.alias("comment.data",
+                function("nested", qualifiedName("comment", "data")), null)
+        )
+    );
+  }
+
+  @Test
+  public void project_nested_invalid_field_throws_exception() {
+    assertThrows(
+        IllegalArgumentException.class,
+          () -> analyze(AstDSL.projectWithArg(
+              AstDSL.relation("schema"),
+              AstDSL.defaultFieldsArgs(),
+              AstDSL.alias("message",
+                  function("nested", qualifiedName("message")), null)
+          )
+        )
+    );
+  }
+
+  @Test
+  public void project_nested_invalid_arg_type_throws_exception() {
+    assertThrows(
+        IllegalArgumentException.class,
+        () -> analyze(AstDSL.projectWithArg(
+                AstDSL.relation("schema"),
+                AstDSL.defaultFieldsArgs(),
+                AstDSL.alias("message",
+                    function("nested", stringLiteral("message")), null)
+            )
+        )
+    );
+  }
+
+  @Test
+  public void project_nested_no_args_throws_exception() {
+    assertThrows(
+        IllegalArgumentException.class,
+        () -> analyze(AstDSL.projectWithArg(
+                AstDSL.relation("schema"),
+                AstDSL.defaultFieldsArgs(),
+                AstDSL.alias("message",
+                    function("nested"), null)
+            )
+        )
+    );
+  }
+
+  @Test
+  public void project_nested_too_many_args_throws_exception() {
+    assertThrows(
+        IllegalArgumentException.class,
+        () -> analyze(AstDSL.projectWithArg(
+                AstDSL.relation("schema"),
+                AstDSL.defaultFieldsArgs(),
+                AstDSL.alias("message",
+                    function("nested",
+                        stringLiteral("message.info"),
+                        stringLiteral("message"),
+                        stringLiteral("message")),
+                    null)
+            )
+        )
+    );
+  }
+
+  @Test
   public void project_highlight() {
     Map<String, Literal> args = new HashMap<>();
     args.put("pre_tags", new Literal("<mark>", DataType.STRING));

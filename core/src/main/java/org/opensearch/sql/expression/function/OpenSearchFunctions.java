@@ -12,6 +12,7 @@ import java.util.stream.Collectors;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.experimental.UtilityClass;
+import org.apache.commons.lang3.tuple.Pair;
 import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.data.type.ExprType;
 import org.opensearch.sql.expression.Expression;
@@ -48,7 +49,7 @@ public class OpenSearchFunctions {
     repository.register(score(BuiltinFunctionName.SCOREQUERY));
     repository.register(score(BuiltinFunctionName.SCORE_QUERY));
     // Functions supported in SELECT clause
-    repository.register(nested(BuiltinFunctionName.NESTED));
+    repository.register(nested());
   }
 
   private static FunctionResolver match_bool_prefix() {
@@ -95,10 +96,35 @@ public class OpenSearchFunctions {
     return new RelevanceFunctionResolver(funcName);
   }
 
-  private static FunctionResolver nested(BuiltinFunctionName nested) {
-    FunctionName funcName = nested.getName();
-    return new NestedFunctionResolver(funcName);
+  private static FunctionResolver nested() {
+    return new FunctionResolver() {
+      @Override
+      public Pair<FunctionSignature, FunctionBuilder> resolve(
+          FunctionSignature unresolvedSignature) {
+        return Pair.of(unresolvedSignature,
+            (functionProperties, arguments) ->
+            new FunctionExpression(BuiltinFunctionName.NESTED.getName(), arguments) {
+              @Override
+              public ExprValue valueOf(Environment<Expression, ExprValue> valueEnv) {
+                return valueEnv.resolve(getArguments().get(0));
+              }
+
+              @Override
+              public ExprType type() {
+                return getArguments().get(0).type();
+              }
+            });
+      }
+
+      @Override
+      public FunctionName getFunctionName() {
+        return BuiltinFunctionName.NESTED.getName();
+      }
+    };
   }
+
+
+
 
   private static FunctionResolver score(BuiltinFunctionName score) {
     FunctionName funcName = score.getName();

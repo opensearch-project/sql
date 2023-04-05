@@ -139,7 +139,7 @@ class PhysicalPlanNodeVisitorTest extends PhysicalPlanTestBase {
     Set<String> unnestArgs = Set.of("nested.test");
     Map<String, List<String>> groupedFieldsByPath =
         Map.of("nested", List.of("nested.test"));
-    PhysicalPlan unnest = new UnnestOperator(plan, unnestArgs, groupedFieldsByPath);
+    PhysicalPlan unnest = new NestedOperator(plan, unnestArgs, groupedFieldsByPath);
     assertNull(unnest.accept(new PhysicalPlanNodeVisitor<Integer, Object>() {
     }, null));
   }

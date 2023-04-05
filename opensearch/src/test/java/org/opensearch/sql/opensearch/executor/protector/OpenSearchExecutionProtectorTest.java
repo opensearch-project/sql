@@ -60,9 +60,9 @@ import org.opensearch.sql.opensearch.planner.physical.MLCommonsOperator;
 import org.opensearch.sql.opensearch.planner.physical.MLOperator;
 import org.opensearch.sql.opensearch.setting.OpenSearchSettings;
 import org.opensearch.sql.opensearch.storage.OpenSearchIndexScan;
+import org.opensearch.sql.planner.physical.NestedOperator;
 import org.opensearch.sql.planner.physical.PhysicalPlan;
 import org.opensearch.sql.planner.physical.PhysicalPlanDSL;
-import org.opensearch.sql.planner.physical.UnnestOperator;
 
 @ExtendWith(MockitoExtension.class)
 class OpenSearchExecutionProtectorTest {
@@ -315,18 +315,18 @@ class OpenSearchExecutionProtectorTest {
   }
 
   @Test
-  public void testVisitUnnest() {
+  public void testVisitNested() {
     Set<String> args = Set.of("message.info");
     Map<String, List<String>> groupedFieldsByPath =
         Map.of("message", List.of("message.info"));
-    UnnestOperator unnestOperator =
-        new UnnestOperator(
+    NestedOperator nestedOperator =
+        new NestedOperator(
             values(emptyList()),
             args,
             groupedFieldsByPath);
 
-    assertEquals(executionProtector.doProtect(unnestOperator),
-        executionProtector.visitUnnest(unnestOperator, values(emptyList())));
+    assertEquals(executionProtector.doProtect(nestedOperator),
+        executionProtector.visitNested(nestedOperator, values(emptyList())));
   }
 
   PhysicalPlan resourceMonitor(PhysicalPlan input) {

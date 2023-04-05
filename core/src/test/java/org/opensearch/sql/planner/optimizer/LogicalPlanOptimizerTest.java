@@ -87,57 +87,6 @@ class LogicalPlanOptimizerTest {
   }
 
   /**
-   * Nested - Nested --> Nested.
-   */
-  @Test
-  void nested_merge_nested() {
-    List<Map<String, ReferenceExpression>> firstNestedArgs = List.of(
-        Map.of(
-            "field", new ReferenceExpression("other.field", STRING),
-            "path", new ReferenceExpression("other", STRING)
-        )
-    );
-
-    List<Map<String, ReferenceExpression>> secondNestedArgs = List.of(
-        Map.of(
-            "field", new ReferenceExpression("message.info", STRING),
-            "path", new ReferenceExpression("message", STRING)
-        )
-    );
-
-    List<Map<String, ReferenceExpression>> combinedNestedArgs = List.of(
-        Map.of(
-            "field", new ReferenceExpression("message.info", STRING),
-            "path", new ReferenceExpression("message", STRING)
-        ),
-        Map.of(
-            "field", new ReferenceExpression("other.field", STRING),
-            "path", new ReferenceExpression("other", STRING)
-        )
-    );
-
-
-    assertEquals(
-        nested(
-            tableScanBuilder,
-            combinedNestedArgs,
-            null
-        ),
-        optimize(
-            nested(
-                nested(
-                    relation("schema", table),
-                    firstNestedArgs,
-                    null
-                    ),
-                secondNestedArgs,
-                null
-            )
-        )
-    );
-  }
-
-  /**
    * Filter - Sort --> Sort - Filter.
    */
   @Test

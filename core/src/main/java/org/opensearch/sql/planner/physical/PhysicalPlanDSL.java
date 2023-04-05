@@ -107,10 +107,10 @@ public class PhysicalPlanDSL {
     return new LimitOperator(input, limit, offset);
   }
 
-  public static UnnestOperator unnest(
+  public static NestedOperator nested(
       PhysicalPlan input,
       Set<String> args,
       Map<String, List<String>> groupedFieldsByPath) {
-    return new UnnestOperator(input, args, groupedFieldsByPath);
+    return new NestedOperator(input, args, groupedFieldsByPath);
   }
 }

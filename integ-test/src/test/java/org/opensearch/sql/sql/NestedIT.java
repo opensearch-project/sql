@@ -16,6 +16,8 @@ import static org.opensearch.sql.util.MatcherUtils.verifySchema;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.Map;
+
 import org.json.JSONArray;
 import org.json.JSONObject;
 import org.junit.Test;
@@ -56,9 +58,9 @@ public class NestedIT extends SQLIntegTestCase {
 
     assertEquals(5, result.getInt("total"));
     verifySchema(result,
-        schema("message.info", null, "keyword"),
-        schema("comment.data", null, "keyword"),
-        schema("message.dayOfWeek", null, "long"));
+        schema("nested(message.info)", null, "keyword"),
+        schema("nested(comment.data)", null, "keyword"),
+        schema("nested(message.dayOfWeek)", null, "long"));
     verifyDataRows(result,
         rows("a", "ab", 1),
         rows("b", "aa", 2),
@@ -151,6 +153,41 @@ public class NestedIT extends SQLIntegTestCase {
         rows("h", 4, "c", "ab", 1),
         rows("i", 5, "a", "ab", 1),
         rows("zz", 6, "zz", new JSONArray(List.of("aa", "bb")), 10));
+  }
+
+  @Test
+  public void nested_function_mixed_with_non_nested_type_test() {
+    String query =
+        "SELECT nested(message.info), someField FROM " + TEST_INDEX_NESTED_TYPE;
+    JSONObject result = executeJdbcRequest(query);
+
+    assertEquals(6, result.getInt("total"));
+    verifyDataRows(result,
+        rows("a", "b"),
+        rows("b", "a"),
+        rows("c", "a"),
+        rows("c", "b"),
+        rows("a", "b"),
+        rows("zz", "a"));
+  }
+
+  @Test
+  public void nested_function_mixed_with_non_nested_types_test() {
+    String query =
+        "SELECT nested(message.info), office, office.west FROM " + TEST_INDEX_MULTI_NESTED_TYPE;
+    JSONObject result = executeJdbcRequest(query);
+
+    assertEquals(6, result.getInt("total"));
+    verifyDataRows(result,
+        rows("a",
+            new JSONObject(Map.of("south", 3, "west", "ab")), "ab"),
+        rows("b",
+            new JSONObject(Map.of("south", 5, "west", "ff")), "ff"),
+        rows("c",
+            new JSONObject(Map.of("south", 3, "west", "ll")), "ll"),
+        rows("d", null, null),
+        rows("i", null, null),
+        rows("zz", null, null));
   }
 
   @Test

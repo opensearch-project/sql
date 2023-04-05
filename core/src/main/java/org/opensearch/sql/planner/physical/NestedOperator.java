@@ -26,13 +26,13 @@ import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.expression.ReferenceExpression;
 
 /**
- * The UnnestOperator evaluates the {@link UnnestOperator#fields} and
- * generates {@link UnnestOperator#nonNestedFields} to form the
- * {@link UnnestOperator#result} output. Resolve two nested fields
+ * The NestedOperator evaluates the {@link NestedOperator#fields} and
+ * generates {@link NestedOperator#nonNestedFields} to form the
+ * {@link NestedOperator#result} output. Resolve two nested fields
  * with differing paths will result in a cartesian product(inner join).
  */
 @EqualsAndHashCode(callSuper = false)
-public class UnnestOperator extends PhysicalPlan {
+public class NestedOperator extends PhysicalPlan {
   @Getter
   private final PhysicalPlan input;
   @Getter
@@ -47,11 +47,11 @@ public class UnnestOperator extends PhysicalPlan {
   private ListIterator<Map<String, ExprValue>> flattenedResult = result.listIterator();
 
   /**
-   * Constructor for UnnestOperator with list of map as arg.
+   * Constructor for NestedOperator with list of map as arg.
    * @param input : PhysicalPlan input.
    * @param fields : List of all fields and paths for nested fields.
    */
-  public UnnestOperator(PhysicalPlan input, List<Map<String, ReferenceExpression>> fields) {
+  public NestedOperator(PhysicalPlan input, List<Map<String, ReferenceExpression>> fields) {
     this.input = input;
     this.fields = fields.stream()
         .map(m -> m.get("field").toString())
@@ -68,12 +68,12 @@ public class UnnestOperator extends PhysicalPlan {
   }
 
   /**
-   * Constructor for UnnestOperator with Set of fields.
+   * Constructor for NestedOperator with Set of fields.
    * @param input : PhysicalPlan input.
    * @param fields : List of all fields for nested fields.
    * @param groupedPathsAndFields : Map of fields grouped by their path.
    */
-  public UnnestOperator(
+  public NestedOperator(
       PhysicalPlan input,
       Set<String> fields,
       Map<String, List<String>> groupedPathsAndFields
@@ -85,7 +85,7 @@ public class UnnestOperator extends PhysicalPlan {
 
   @Override
   public <R, C> R accept(PhysicalPlanNodeVisitor<R, C> visitor, C context) {
-    return visitor.visitUnnest(this, context);
+    return visitor.visitNested(this, context);
   }
 
   @Override
@@ -109,15 +109,16 @@ public class UnnestOperator extends PhysicalPlan {
       generateNonNestedFieldsMap(inputValue);
       // Add all nested fields to result map
       for (String field : fields) {
-        result = flatten(field, inputValue, result, true);
+        result = flatten(field, inputValue, result);
       }
 
       // Add all non-nested fields to result map
       for (String nonNestedField : nonNestedFields) {
-        result = flatten(nonNestedField, inputValue, result, false);
+        result = flatten(nonNestedField, inputValue, result);
       }
 
       if (result.isEmpty()) {
+        flattenedResult = result.listIterator();
         return new ExprTupleValue(new LinkedHashMap<>());
       }
 
@@ -132,7 +133,6 @@ public class UnnestOperator extends PhysicalPlan {
    * @param inputMap : Row to parse non-nested fields.
    */
   public void generateNonNestedFieldsMap(ExprValue inputMap) {
-
     for (Map.Entry<String, ExprValue> inputField : inputMap.tupleValue().entrySet()) {
       boolean foundNestedField =
           this.fields.stream().anyMatch(
@@ -140,30 +140,7 @@ public class UnnestOperator extends PhysicalPlan {
           );
 
       if (!foundNestedField) {
-        boolean nestingComplete = false;
-        String nonNestedField = inputField.getKey();
-        ExprValue currentObj = inputField.getValue();
-        while (!nestingComplete) {
-          if (currentObj instanceof ExprTupleValue) {
-            var it = currentObj.tupleValue().entrySet().iterator();
-            if (it.hasNext()) {
-              var next = it.next();
-              currentObj = next.getValue();
-              nonNestedField += "." + next.getKey();
-            } else {
-              nestingComplete = true;
-              nonNestedField = null;
-            }
-          } else if (currentObj instanceof ExprCollectionValue) {
-            currentObj = currentObj.collectionValue().get(0);
-          } else {
-            nestingComplete = true;
-          }
-        }
-
-        if (nonNestedField != null) {
-          this.nonNestedFields.add(nonNestedField);
-        }
+        this.nonNestedFields.add(inputField.getKey());
       }
     }
   }
@@ -186,28 +163,26 @@ public class UnnestOperator extends PhysicalPlan {
    * @param nestedField : Field to query in row.
    * @param row : Row returned from OS.
    * @param prevList : List of previous nested calls.
-   * @param supportArrays : When false we do not need to execute a cross join.
    * @return : List of nested select items or cartesian product of nested calls.
    */
   private List<Map<String, ExprValue>> flatten(
       String nestedField,
       ExprValue row,
       List<Map<String,
-      ExprValue>> prevList,
-      boolean supportArrays
+      ExprValue>> prevList
   ) {
     List<Map<String, ExprValue>> copy = new ArrayList<>();
     List<Map<String, ExprValue>> newList = new ArrayList<>();
 
     ExprValue nestedObj = null;
-    getNested(nestedField, nestedField, row, copy, nestedObj, supportArrays);
+    getNested(nestedField, nestedField, row, copy, nestedObj);
 
     // Only one field in select statement
     if (prevList.size() == 0) {
       return copy;
     }
 
-    if (!supportArrays || containSamePath(copy.get(0))) {
+    if (containSamePath(copy.get(0))) {
       var resultIt = this.result.iterator();
       Map<String, ExprValue> resultVal = resultIt.next();
       var copyIt = copy.iterator();
@@ -266,13 +241,11 @@ public class UnnestOperator extends PhysicalPlan {
    * @param row : Row to resolve nested field.
    * @param ret : List to add nested field to.
    * @param nestedObj : Object at current nested level.
-   * @param supportArrays : Only first index of arrays is supports when false.
    * @return : Object at current nested level.
    */
   private void getNested(
       String field, String nestedField, ExprValue row,
-      List<Map<String, ExprValue>> ret, ExprValue nestedObj,
-      boolean supportArrays
+      List<Map<String, ExprValue>> ret, ExprValue nestedObj
   ) {
     ExprValue currentObj = (nestedObj == null) ? row : nestedObj;
     String[] splitKeys = nestedField.split("\\.");
@@ -286,15 +259,9 @@ public class UnnestOperator extends PhysicalPlan {
       }
     } else if (currentObj instanceof ExprCollectionValue) {
       ExprValue arrayObj = currentObj;
-      if (supportArrays) {
-        for (int x = 0; x < arrayObj.collectionValue().size(); x++) {
-          currentObj = arrayObj.collectionValue().get(x);
-          getNested(field, nestedField, row, ret, currentObj, supportArrays);
-          currentObj = null;
-        }
-      } else { // TODO remove when arrays are supported.
-        currentObj = arrayObj.collectionValue().get(0);
-        getNested(field, nestedField, row, ret, currentObj, supportArrays);
+      for (int x = 0; x < arrayObj.collectionValue().size(); x++) {
+        currentObj = arrayObj.collectionValue().get(x);
+        getNested(field, nestedField, row, ret, currentObj);
         currentObj = null;
       }
     } else {
@@ -309,7 +276,7 @@ public class UnnestOperator extends PhysicalPlan {
       ret.add(new LinkedHashMap<>(Map.of(field, currentObj)));
     } else if (currentObj != null) {
       getNested(field, nestedField.substring(nestedField.indexOf(".") + 1),
-          row, ret, currentObj, supportArrays);
+          row, ret, currentObj);
     }
   }
 }

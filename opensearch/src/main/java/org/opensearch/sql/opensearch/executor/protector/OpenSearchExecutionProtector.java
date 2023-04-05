@@ -16,13 +16,13 @@ import org.opensearch.sql.planner.physical.DedupeOperator;
 import org.opensearch.sql.planner.physical.EvalOperator;
 import org.opensearch.sql.planner.physical.FilterOperator;
 import org.opensearch.sql.planner.physical.LimitOperator;
+import org.opensearch.sql.planner.physical.NestedOperator;
 import org.opensearch.sql.planner.physical.PhysicalPlan;
 import org.opensearch.sql.planner.physical.ProjectOperator;
 import org.opensearch.sql.planner.physical.RareTopNOperator;
 import org.opensearch.sql.planner.physical.RemoveOperator;
 import org.opensearch.sql.planner.physical.RenameOperator;
 import org.opensearch.sql.planner.physical.SortOperator;
-import org.opensearch.sql.planner.physical.UnnestOperator;
 import org.opensearch.sql.planner.physical.ValuesOperator;
 import org.opensearch.sql.planner.physical.WindowOperator;
 import org.opensearch.sql.storage.TableScanOperator;
@@ -89,9 +89,9 @@ public class OpenSearchExecutionProtector extends ExecutionProtector {
   }
 
   @Override
-  public PhysicalPlan visitUnnest(UnnestOperator node, Object context) {
+  public PhysicalPlan visitNested(NestedOperator node, Object context) {
     return doProtect(
-        new UnnestOperator(
+        new NestedOperator(
             visitInput(node.getInput(), context), node.getFields(), node.getGroupedPathsAndFields()
         )
     );

@@ -688,40 +688,4 @@ class AstBuilderTest extends AstBuilderTestBase {
         buildAST("SELECT highlight(\"fieldA\") FROM test")
     );
   }
-
-  @Test
-  public void can_build_nested_select_field() {
-    assertEquals(
-        project(
-            relation("test"),
-            alias(
-                "message.info",
-                function("nested", qualifiedName("message", "info")),
-                null
-            )
-        ),
-        buildAST("SELECT"
-            + " nested(message.info) "
-            + "FROM test"
-        )
-    );
-  }
-
-  @Test
-  public void can_build_nested_select_field_with_alias() {
-    assertEquals(
-        project(
-            relation("test"),
-            alias(
-                "message.info",
-                function("nested", qualifiedName("message", "info")),
-                "nest"
-            )
-        ),
-        buildAST("SELECT"
-            + " nested(message.info) as nest "
-            + "FROM test"
-        )
-    );
-  }
 }

@@ -13,6 +13,7 @@ import static org.opensearch.sql.data.model.ExprValueUtils.collectionValue;
 import static org.opensearch.sql.data.model.ExprValueUtils.tupleValue;
 import static org.opensearch.sql.data.type.ExprCoreType.STRING;
 
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -25,7 +26,7 @@ import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.expression.ReferenceExpression;
 
 @ExtendWith(MockitoExtension.class)
-class UnnestOperatorTest extends PhysicalPlanTestBase {
+class NestedOperatorTest extends PhysicalPlanTestBase {
   @Mock
   private PhysicalPlan inputPlan;
 
@@ -50,6 +51,7 @@ class UnnestOperatorTest extends PhysicalPlanTestBase {
       )
   );
 
+
   private final ExprValue testDataWithSamePath = tupleValue(
       Map.of(
           "message",
@@ -72,15 +74,6 @@ class UnnestOperatorTest extends PhysicalPlanTestBase {
       )
   );
 
-  private final ExprValue missingTupleData = tupleValue(
-      Map.of(
-          "tuple",
-          tupleValue(
-              Map.of()
-          )
-      )
-  );
-
   private final ExprValue missingArrayData = tupleValue(
       Map.of(
           "missing",
@@ -99,25 +92,71 @@ class UnnestOperatorTest extends PhysicalPlanTestBase {
     Set<String> fields = Set.of("message.info");
     Map<String, List<String>> groupedFieldsByPath =
         Map.of("message", List.of("message.info"));
+
     assertThat(
-        execute(new UnnestOperator(inputPlan, fields, groupedFieldsByPath)),
+        execute(new NestedOperator(inputPlan, fields, groupedFieldsByPath)),
         contains(
             tupleValue(
                 new LinkedHashMap<>() {{
                   put("message.info", "a");
-                  put("comment.data", "1");
+                  put("comment", collectionValue(
+                      new ArrayList<>() {{
+                        add(new LinkedHashMap<>() {{
+                            put("data", "1");
+                          }}
+                        );
+                        add(new LinkedHashMap<>() {{
+                            put("data", "2");
+                          }}
+                        );
+                        add(new LinkedHashMap<>() {{
+                            put("data", "3");
+                          }}
+                        );
+                      }}
+                  ));
                 }}
             ),
             tupleValue(
                 new LinkedHashMap<>() {{
                   put("message.info", "b");
-                  put("comment.data", "1");
+                  put("comment", collectionValue(
+                      new ArrayList<>() {{
+                        add(new LinkedHashMap<>() {{
+                            put("data", "1");
+                          }}
+                        );
+                        add(new LinkedHashMap<>() {{
+                            put("data", "2");
+                          }}
+                        );
+                        add(new LinkedHashMap<>() {{
+                            put("data", "3");
+                          }}
+                        );
+                      }}
+                  ));
                 }}
             ),
             tupleValue(
                 new LinkedHashMap<>() {{
                   put("message.info", "c");
-                  put("comment.data", "1");
+                  put("comment", collectionValue(
+                      new ArrayList<>() {{
+                        add(new LinkedHashMap<>() {{
+                            put("data", "1");
+                          }}
+                        );
+                        add(new LinkedHashMap<>() {{
+                            put("data", "2");
+                          }}
+                        );
+                        add(new LinkedHashMap<>() {{
+                            put("data", "3");
+                          }}
+                        );
+                      }}
+                  ));
                 }}
             )
         )
@@ -140,7 +179,7 @@ class UnnestOperatorTest extends PhysicalPlanTestBase {
                 "path", new ReferenceExpression("comment", STRING))
         );
     assertThat(
-        execute(new UnnestOperator(inputPlan, fields)),
+        execute(new NestedOperator(inputPlan, fields)),
         contains(
             tupleValue(
                 new LinkedHashMap<>() {{
@@ -216,7 +255,7 @@ class UnnestOperatorTest extends PhysicalPlanTestBase {
                 "path", new ReferenceExpression("message", STRING))
         );
     assertThat(
-        execute(new UnnestOperator(inputPlan, fields)),
+        execute(new NestedOperator(inputPlan, fields)),
         contains(
             tupleValue(
                 new LinkedHashMap<>() {{
@@ -250,7 +289,7 @@ class UnnestOperatorTest extends PhysicalPlanTestBase {
     Map<String, List<String>> groupedFieldsByPath =
         Map.of("message", List.of("message.info"));
     assertThat(
-        execute(new UnnestOperator(inputPlan, fields, groupedFieldsByPath)),
+        execute(new NestedOperator(inputPlan, fields, groupedFieldsByPath)),
         contains(
             tupleValue(new LinkedHashMap<>(Map.of("message", "val")))
         )
@@ -261,12 +300,12 @@ class UnnestOperatorTest extends PhysicalPlanTestBase {
   public void nested_missing_tuple_field() {
     when(inputPlan.hasNext()).thenReturn(true, false);
     when(inputPlan.next())
-        .thenReturn(missingTupleData);
+        .thenReturn(tupleValue(Map.of()));
     Set<String> fields = Set.of("message.val");
     Map<String, List<String>> groupedFieldsByPath =
         Map.of("message", List.of("message.val"));
     assertTrue(
-        execute(new UnnestOperator(inputPlan, fields, groupedFieldsByPath))
+        execute(new NestedOperator(inputPlan, fields, groupedFieldsByPath))
             .get(0)
             .tupleValue()
             .size() == 0
@@ -282,7 +321,7 @@ class UnnestOperatorTest extends PhysicalPlanTestBase {
     Map<String, List<String>> groupedFieldsByPath =
         Map.of("message", List.of("message.data"));
     assertTrue(
-        execute(new UnnestOperator(inputPlan, fields, groupedFieldsByPath))
+        execute(new NestedOperator(inputPlan, fields, groupedFieldsByPath))
             .get(0)
             .tupleValue()
             .size() == 0

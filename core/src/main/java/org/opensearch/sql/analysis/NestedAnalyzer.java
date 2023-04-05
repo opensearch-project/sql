@@ -7,12 +7,15 @@ package org.opensearch.sql.analysis;
 
 import static org.opensearch.sql.data.type.ExprCoreType.STRING;
 
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import lombok.RequiredArgsConstructor;
 import org.opensearch.sql.ast.AbstractNodeVisitor;
 import org.opensearch.sql.ast.expression.Alias;
 import org.opensearch.sql.ast.expression.Function;
+import org.opensearch.sql.ast.expression.QualifiedName;
 import org.opensearch.sql.ast.expression.UnresolvedExpression;
 import org.opensearch.sql.expression.NamedExpression;
 import org.opensearch.sql.expression.ReferenceExpression;
@@ -45,6 +48,7 @@ public class NestedAnalyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisCon
     if (node.getFuncName().equalsIgnoreCase(BuiltinFunctionName.NESTED.name())) {
 
       List<UnresolvedExpression> expressions = node.getFuncArgs();
+      validateArgs(expressions);
       ReferenceExpression nestedField =
           (ReferenceExpression)expressionAnalyzer.analyze(expressions.get(0), context);
       Map<String, ReferenceExpression> args;
@@ -59,11 +63,48 @@ public class NestedAnalyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisCon
             "path", generatePath(nestedField.toString())
         );
       }
-      return new LogicalNested(child, List.of(args), namedExpressions);
+      if (child instanceof LogicalNested) {
+        ((LogicalNested)child).addFields(args);
+        return child;
+      } else {
+        return new LogicalNested(child, new ArrayList<>(Arrays.asList(args)), namedExpressions);
+      }
     }
     return null;
   }
 
+  /**
+   * Validate each parameter used in nested function in SELECT clause. Any supplied parameter
+   * for a nested function in a SELECT statement must be a valid qualified name, and the field
+   * parameter must be nested at least one level.
+   * @param args : Arguments in nested function.
+   */
+  private void validateArgs(List<UnresolvedExpression> args) {
+    if (args.size() < 1 || args.size() > 2) {
+      throw new IllegalArgumentException(
+          "on nested object only allowed 2 parameters (field,path) or 1 parameter (field)"
+      );
+    }
+
+    for (int i = 0; i < args.size(); i++) {
+      if (!(args.get(i) instanceof QualifiedName)) {
+        throw new IllegalArgumentException(
+            String.format("Illegal nested field name: %s", args.get(i).toString())
+        );
+      }
+      if (i == 0 && ((QualifiedName)args.get(i)).getParts().size() < 2) {
+        throw new IllegalArgumentException(
+            String.format("Illegal nested field name: %s", args.get(i).toString())
+        );
+      }
+    }
+  }
+
+  /**
+   * Generate nested path dynamically. Assumes at least one level of nesting in supplied string.
+   * @param field : Nested field to generate path of.
+   * @return : Path of field derived from last level of nesting.
+   */
   private ReferenceExpression generatePath(String field) {
     return new ReferenceExpression(field.substring(0, field.lastIndexOf(".")), STRING);
   }

@@ -18,7 +18,7 @@ import org.opensearch.sql.expression.ReferenceExpression;
 @Getter
 @ToString
 public class LogicalNested extends LogicalPlan {
-  private final List<Map<String, ReferenceExpression>> fields;
+  private List<Map<String, ReferenceExpression>> fields;
   private final List<NamedExpression> projectList;
 
   /**
@@ -33,6 +33,10 @@ public class LogicalNested extends LogicalPlan {
     super(Collections.singletonList(childPlan));
     this.fields = fields;
     this.projectList = projectList;
+  }
+
+  public void addFields(Map<String, ReferenceExpression> fields) {
+    this.fields.add(fields);
   }
 
   @Override

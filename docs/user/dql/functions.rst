@@ -4355,12 +4355,12 @@ Example with ``field`` and ``path`` parameters::
 
     os> SELECT nested(message.info, message) FROM nested;
     fetched rows / total rows = 2/2
-    +----------------+
-    | message.info   |
-    |----------------|
-    | a              |
-    | b              |
-    +----------------+
+    +---------------------------------+
+    | nested(message.info, message)   |
+    |---------------------------------|
+    | a                               |
+    | b                               |
+    +---------------------------------+
 
 System Functions
 ================
