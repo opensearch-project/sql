@@ -64,7 +64,7 @@ public class PlanSerializerTest {
   @Test
   void canConvertToCursor_project_some_fields_relation() {
     var unresolvedPlan = AstDSL.project(AstDSL.relation("table"), AstDSL.field("rando"));
-    Assertions.assertFalse(planCache.canConvertToCursor(unresolvedPlan));
+    assertTrue(planCache.canConvertToCursor(unresolvedPlan));
   }
 
   @ParameterizedTest
