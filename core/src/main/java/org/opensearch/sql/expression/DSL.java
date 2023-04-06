@@ -940,6 +940,12 @@ public class DSL {
     return compile(functionProperties, BuiltinFunctionName.TIMESTAMPADD, expressions);
   }
 
+  public static FunctionExpression timestampdiff(FunctionProperties functionProperties,
+                                                Expression... expressions) {
+    return compile(functionProperties, BuiltinFunctionName.TIMESTAMPDIFF, expressions);
+  }
+
+
   public static FunctionExpression utc_date(FunctionProperties functionProperties,
                                                 Expression... args) {
     return compile(functionProperties, BuiltinFunctionName.UTC_DATE, args);

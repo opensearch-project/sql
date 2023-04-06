@@ -7,7 +7,7 @@
 package org.opensearch.sql.legacy.domain;
 
 /**
- * 排序规则
+ *
  *
  * @author ansj
  */

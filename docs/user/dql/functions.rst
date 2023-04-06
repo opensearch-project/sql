@@ -1508,7 +1508,7 @@ If an argument of type TIME is provided, the local date is used.
    * - %c
      - Month, numeric (0..12)
    * - %D
-     - Day of the month with English suffix (0th, 1st, 2nd, 3rd, …)
+     - Day of the month with English suffix (0th, 1st, 2nd, 3rd, ...)
    * - %d
      - Day of the month, numeric (00..31)
    * - %e
@@ -1734,7 +1734,7 @@ DAYOFWEEK
 Description
 >>>>>>>>>>>
 
-Usage: dayofweek(date) returns the weekday index for date (1 = Sunday, 2 = Monday, …, 7 = Saturday).
+Usage: dayofweek(date) returns the weekday index for date (1 = Sunday, 2 = Monday, ..., 7 = Saturday).
 
 The `day_of_week` function is also provided as an alias.
 
@@ -2707,7 +2707,6 @@ Example::
 TIMESTAMPADD
 ------------
 
-
 Description
 >>>>>>>>>>>
 
@@ -2727,6 +2726,30 @@ Examples::
     |------------------------------------------------+----------------------------------------------------|
     | 2000-01-18 00:00:00                            | 1999-10-01 00:00:00                                |
     +------------------------------------------------+----------------------------------------------------+
+
+TIMESTAMPDIFF
+-------------
+
+Description
+>>>>>>>>>>>
+
+Usage: TIMESTAMPDIFF(interval, start, end) returns the difference between the start and end date/times in interval units.
+If a TIME is provided as an argument, it will be converted to a DATETIME with the DATE portion filled in using the current date.
+Arguments will be automatically converted to a DATETIME/TIME/TIMESTAMP when appropriate.
+Any argument that is a STRING must be formatted as a valid DATETIME.
+
+Argument type: INTERVAL, DATE/DATETIME/TIME/TIMESTAMP/STRING, DATE/DATETIME/TIME/TIMESTAMP/STRING
+INTERVAL must be one of the following tokens: [MICROSECOND, SECOND, MINUTE, HOUR, DAY, WEEK, MONTH, QUARTER, YEAR]
+
+Examples::
+
+    os> SELECT TIMESTAMPDIFF(YEAR, '1997-01-01 00:00:00', '2001-03-06 00:00:00'), TIMESTAMPDIFF(SECOND, time('00:00:23'), time('00:00:00'))
+    fetched rows / total rows = 1/1
+    +---------------------------------------------------------------------+-------------------------------------------------------------+
+    | TIMESTAMPDIFF(YEAR, '1997-01-01 00:00:00', '2001-03-06 00:00:00')   | TIMESTAMPDIFF(SECOND, time('00:00:23'), time('00:00:00'))   |
+    |---------------------------------------------------------------------+-------------------------------------------------------------|
+    | 4                                                                   | -23                                                         |
+    +---------------------------------------------------------------------+-------------------------------------------------------------+
 
 TO_DAYS
 -------
@@ -2892,7 +2915,7 @@ The functions `weekofyear` and `week_of_year` is also provided as an alias.
    * - Mode
      - First day of week
      - Range
-     - Week 1 is the first week …
+     - Week 1 is the first week ...
    * - 0
      - Sunday
      - 0-53

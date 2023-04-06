@@ -113,22 +113,22 @@ public class BasicTest {
     try (FileOutputStream fis = new FileOutputStream(temp);
          BufferedWriter bw = new BufferedWriter(
              new OutputStreamWriter(fis, StandardCharsets.ISO_8859_1))) {
-      bw.write("TEST §");
+      bw.write("TEST \\u2022");
     }
 
     GrokCompiler compiler = GrokCompiler.newInstance();
     compiler.register(new FileInputStream(temp), StandardCharsets.ISO_8859_1);
     Grok grok = compiler.compile("%{TEST}");
-    assertEquals("(?<name0>§)", grok.getNamedRegex());
+    assertEquals("(?<name0>\\u2022)", grok.getNamedRegex());
   }
 
   @Test
   public void test007_testLoadPatternFromReader() throws IOException, GrokException {
-    Reader reader = new StringReader("TEST €");
+    Reader reader = new StringReader("TEST \\u20AC");
     GrokCompiler compiler = GrokCompiler.newInstance();
     compiler.register(reader);
     Grok grok = compiler.compile("%{TEST}");
-    assertEquals("(?<name0>€)", grok.getNamedRegex());
+    assertEquals("(?<name0>\\u20AC)", grok.getNamedRegex());
   }
 
 }

@@ -334,6 +334,7 @@ STATS:                              'STATS';
 TERM:                               'TERM';
 TERMS:                              'TERMS';
 TIMESTAMPADD:                       'TIMESTAMPADD';
+TIMESTAMPDIFF:                      'TIMESTAMPDIFF';
 TOPHITS:                            'TOPHITS';
 TYPEOF:                             'TYPEOF';
 WEEK_OF_YEAR:                       'WEEK_OF_YEAR';

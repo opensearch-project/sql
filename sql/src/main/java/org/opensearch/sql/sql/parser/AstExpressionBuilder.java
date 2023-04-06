@@ -61,7 +61,7 @@ import static org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParser.StringCont
 import static org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParser.StringLiteralContext;
 import static org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParser.TableFilterContext;
 import static org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParser.TimeLiteralContext;
-import static org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParser.TimestampAddFunctionCallContext;
+import static org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParser.TimestampFunctionCallContext;
 import static org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParser.TimestampLiteralContext;
 import static org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParser.WindowFunctionClauseContext;
 import static org.opensearch.sql.sql.parser.ParserUtils.createSortOption;
@@ -177,10 +177,10 @@ public class AstExpressionBuilder extends OpenSearchSQLParserBaseVisitor<Unresol
 
 
   @Override
-  public UnresolvedExpression visitTimestampAddFunctionCall(TimestampAddFunctionCallContext ctx) {
+  public UnresolvedExpression visitTimestampFunctionCall(TimestampFunctionCallContext ctx) {
     return new Function(
-        ctx.timestampAddFunction().TIMESTAMPADD().toString(),
-        timestampAddFunctionArguments(ctx));
+        ctx.timestampFunction().timestampFunctionName().getText(),
+        timestampFunctionArguments(ctx));
   }
 
   @Override
@@ -604,14 +604,14 @@ public class AstExpressionBuilder extends OpenSearchSQLParserBaseVisitor<Unresol
     return args;
   }
 
-  private List<UnresolvedExpression> timestampAddFunctionArguments(
-      TimestampAddFunctionCallContext ctx) {
+  private List<UnresolvedExpression> timestampFunctionArguments(
+      TimestampFunctionCallContext ctx) {
     List<UnresolvedExpression> args = Arrays.asList(
         new Literal(
-            ctx.timestampAddFunction().simpleDateTimePart().getText(),
+            ctx.timestampFunction().simpleDateTimePart().getText(),
             DataType.STRING),
-        visitFunctionArg(ctx.timestampAddFunction().length),
-        visitFunctionArg(ctx.timestampAddFunction().timestampExpr)
+        visitFunctionArg(ctx.timestampFunction().firstArg),
+        visitFunctionArg(ctx.timestampFunction().secondArg)
     );
     return args;
   }

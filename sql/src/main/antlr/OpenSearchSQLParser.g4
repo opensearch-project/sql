@@ -312,11 +312,16 @@ functionCall
     | positionFunction                                              #positionFunctionCall
     | extractFunction                                               #extractFunctionCall
     | getFormatFunction                                             #getFormatFunctionCall
-    | timestampAddFunction                                          #timestampAddFunctionCall
+    | timestampFunction                                             #timestampFunctionCall
     ;
 
-timestampAddFunction
-    : TIMESTAMPADD LR_BRACKET simpleDateTimePart COMMA length=functionArg COMMA timestampExpr=functionArg RR_BRACKET
+timestampFunction
+    : timestampFunctionName LR_BRACKET simpleDateTimePart COMMA firstArg=functionArg COMMA secondArg=functionArg RR_BRACKET
+    ;
+
+timestampFunctionName
+    : TIMESTAMPADD
+    | TIMESTAMPDIFF
     ;
 
 getFormatFunction

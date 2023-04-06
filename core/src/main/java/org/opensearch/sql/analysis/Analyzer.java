@@ -25,7 +25,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.Set;
 import java.util.stream.Collectors;
 import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.apache.commons.lang3.tuple.Pair;
@@ -65,7 +64,6 @@ import org.opensearch.sql.data.model.ExprMissingValue;
 import org.opensearch.sql.data.type.ExprCoreType;
 import org.opensearch.sql.data.type.ExprType;
 import org.opensearch.sql.datasource.DataSourceService;
-import org.opensearch.sql.datasource.model.DataSourceMetadata;
 import org.opensearch.sql.exception.SemanticCheckException;
 import org.opensearch.sql.expression.DSL;
 import org.opensearch.sql.expression.Expression;
@@ -135,13 +133,8 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
   @Override
   public LogicalPlan visitRelation(Relation node, AnalysisContext context) {
     QualifiedName qualifiedName = node.getTableQualifiedName();
-    Set<String> allowedDataSourceNames = dataSourceService.getDataSourceMetadataSet()
-        .stream()
-        .map(DataSourceMetadata::getName)
-        .collect(Collectors.toSet());
     DataSourceSchemaIdentifierNameResolver dataSourceSchemaIdentifierNameResolver
-        = new DataSourceSchemaIdentifierNameResolver(qualifiedName.getParts(),
-        allowedDataSourceNames);
+        = new DataSourceSchemaIdentifierNameResolver(dataSourceService, qualifiedName.getParts());
     String tableName = dataSourceSchemaIdentifierNameResolver.getIdentifierName();
     context.push();
     TypeEnvironment curEnv = context.peek();
@@ -186,13 +179,9 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
   @Override
   public LogicalPlan visitTableFunction(TableFunction node, AnalysisContext context) {
     QualifiedName qualifiedName = node.getFunctionName();
-    Set<String> allowedDataSourceNames = dataSourceService.getDataSourceMetadataSet()
-        .stream()
-        .map(DataSourceMetadata::getName)
-        .collect(Collectors.toSet());
     DataSourceSchemaIdentifierNameResolver dataSourceSchemaIdentifierNameResolver
-        = new DataSourceSchemaIdentifierNameResolver(qualifiedName.getParts(),
-        allowedDataSourceNames);
+        = new DataSourceSchemaIdentifierNameResolver(this.dataSourceService,
+        qualifiedName.getParts());
 
     FunctionName functionName
         = FunctionName.of(dataSourceSchemaIdentifierNameResolver.getIdentifierName());
