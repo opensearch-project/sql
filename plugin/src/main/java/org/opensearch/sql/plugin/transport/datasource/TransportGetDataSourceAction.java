@@ -29,7 +29,7 @@ import org.opensearch.transport.TransportService;
 public class TransportGetDataSourceAction
     extends HandledTransportAction<GetDataSourceActionRequest, GetDataSourceActionResponse> {
 
-  public static final String NAME = "cluster:admin/opensearch/datasources/read";
+  public static final String NAME = "cluster:admin/opensearch/ql/datasources/read";
   public static final ActionType<GetDataSourceActionResponse>
       ACTION_TYPE = new ActionType<>(NAME, GetDataSourceActionResponse::new);
 

@@ -30,7 +30,7 @@ public class TransportCreateDataSourceAction
     extends HandledTransportAction<CreateDataSourceActionRequest, CreateDataSourceActionResponse> {
 
   private static final Logger LOG = LogManager.getLogger();
-  public static final String NAME = "cluster:admin/opensearch/datasources/create";
+  public static final String NAME = "cluster:admin/opensearch/ql/datasources/create";
   public static final ActionType<CreateDataSourceActionResponse>
       ACTION_TYPE = new ActionType<>(NAME, CreateDataSourceActionResponse::new);
 

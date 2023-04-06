@@ -30,7 +30,7 @@ public class TransportUpdateDataSourceAction
     extends HandledTransportAction<UpdateDataSourceActionRequest, UpdateDataSourceActionResponse> {
 
   private static final Logger LOG = LogManager.getLogger();
-  public static final String NAME = "cluster:admin/opensearch/datasources/update";
+  public static final String NAME = "cluster:admin/opensearch/ql/datasources/update";
   public static final ActionType<UpdateDataSourceActionResponse>
       ACTION_TYPE = new ActionType<>(NAME, UpdateDataSourceActionResponse::new);
 

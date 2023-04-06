@@ -27,7 +27,7 @@ import org.opensearch.transport.TransportService;
 public class TransportDeleteDataSourceAction
     extends HandledTransportAction<DeleteDataSourceActionRequest, DeleteDataSourceActionResponse> {
 
-  public static final String NAME = "cluster:admin/opensearch/datasources/delete";
+  public static final String NAME = "cluster:admin/opensearch/ql/datasources/delete";
   public static final ActionType<DeleteDataSourceActionResponse>
       ACTION_TYPE = new ActionType<>(NAME, DeleteDataSourceActionResponse::new);
 
