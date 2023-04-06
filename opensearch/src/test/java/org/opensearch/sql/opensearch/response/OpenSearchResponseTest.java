@@ -148,9 +148,9 @@ class OpenSearchResponseTest {
         "id1", new ExprIntegerValue(1),
         "_index", new ExprStringValue("testIndex"),
         "_id", new ExprStringValue("testId"),
+        "_sort", new ExprLongValue(123456L),
         "_score", new ExprFloatValue(3.75F),
-        "_maxscore", new ExprFloatValue(3.75F),
-        "_sort", new ExprLongValue(123456L)
+        "_maxscore", new ExprFloatValue(3.75F)
     ));
     List includes = List.of("id1", "_index", "_id", "_sort", "_score", "_maxscore");
     int i = 0;

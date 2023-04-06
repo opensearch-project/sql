@@ -128,31 +128,22 @@ public class OpenSearchResponse implements Iterable<ExprValue> {
             ImmutableMap.Builder<String, ExprValue> builder = new ImmutableMap.Builder<>();
             builder.putAll(docData.tupleValue());
             metaDataFieldSet.forEach(metaDataField -> {
-                  switch (metaDataField) {
-                    case METADATA_FIELD_INDEX:
-                      builder.put(METADATA_FIELD_INDEX, new ExprStringValue(hit.getIndex()));
-                      break;
-                    case METADATA_FIELD_ID:
-                      builder.put(METADATA_FIELD_ID, new ExprStringValue(hit.getId()));
-                      break;
-                    case METADATA_FIELD_SCORE:
-                      if (!Float.isNaN(hit.getScore())) {
-                        builder.put(METADATA_FIELD_SCORE, new ExprFloatValue(hit.getScore()));
-                      }
-                      break;
-                    case METADATA_FIELD_MAXSCORE:
-                      if (maxScore != null) {
-                        builder.put(METADATA_FIELD_MAXSCORE, maxScore);
-                      }
-                      break;
-                    case METADATA_FIELD_SORT:
-                      builder.put(METADATA_FIELD_SORT, new ExprLongValue(hit.getSeqNo()));
-                      break;
-                    default:
-                      // no-op
-                  }
+              if (metaDataField.equals(METADATA_FIELD_INDEX)) {
+                builder.put(METADATA_FIELD_INDEX, new ExprStringValue(hit.getIndex()));
+              } else if (metaDataField.equals(METADATA_FIELD_ID)) {
+                builder.put(METADATA_FIELD_ID, new ExprStringValue(hit.getId()));
+              } else if (metaDataField.equals(METADATA_FIELD_SCORE)) {
+                if (!Float.isNaN(hit.getScore())) {
+                  builder.put(METADATA_FIELD_SCORE, new ExprFloatValue(hit.getScore()));
                 }
-            );
+              } else if (metaDataField.equals(METADATA_FIELD_MAXSCORE)) {
+                if (maxScore != null) {
+                  builder.put(METADATA_FIELD_MAXSCORE, maxScore);
+                }
+              } else { // if (metaDataField.equals(METADATA_FIELD_SORT)) {
+                builder.put(METADATA_FIELD_SORT, new ExprLongValue(hit.getSeqNo()));
+              }
+            });
 
             if (!hit.getHighlightFields().isEmpty()) {
               var hlBuilder = ImmutableMap.<String, ExprValue>builder();
