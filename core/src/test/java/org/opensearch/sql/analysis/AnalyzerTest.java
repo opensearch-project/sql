@@ -700,7 +700,7 @@ class AnalyzerTest extends AnalyzerTestBase {
 
   @Test
   public void project_nested_invalid_field_throws_exception() {
-    assertThrows(
+    var exception = assertThrows(
         IllegalArgumentException.class,
           () -> analyze(AstDSL.projectWithArg(
               AstDSL.relation("schema"),
@@ -710,11 +710,12 @@ class AnalyzerTest extends AnalyzerTestBase {
           )
         )
     );
+    assertEquals(exception.getMessage(), "Illegal nested field name: message");
   }
 
   @Test
   public void project_nested_invalid_arg_type_throws_exception() {
-    assertThrows(
+    var exception = assertThrows(
         IllegalArgumentException.class,
         () -> analyze(AstDSL.projectWithArg(
                 AstDSL.relation("schema"),
@@ -724,11 +725,12 @@ class AnalyzerTest extends AnalyzerTestBase {
             )
         )
     );
+    assertEquals(exception.getMessage(), "Illegal nested field name: message");
   }
 
   @Test
   public void project_nested_no_args_throws_exception() {
-    assertThrows(
+    var exception = assertThrows(
         IllegalArgumentException.class,
         () -> analyze(AstDSL.projectWithArg(
                 AstDSL.relation("schema"),
@@ -738,11 +740,14 @@ class AnalyzerTest extends AnalyzerTestBase {
             )
         )
     );
+    assertEquals(exception.getMessage(),
+        "on nested object only allowed 2 parameters (field,path) or 1 parameter (field)"
+    );
   }
 
   @Test
   public void project_nested_too_many_args_throws_exception() {
-    assertThrows(
+    var exception = assertThrows(
         IllegalArgumentException.class,
         () -> analyze(AstDSL.projectWithArg(
                 AstDSL.relation("schema"),
@@ -755,6 +760,9 @@ class AnalyzerTest extends AnalyzerTestBase {
                     null)
             )
         )
+    );
+    assertEquals(exception.getMessage(),
+        "on nested object only allowed 2 parameters (field,path) or 1 parameter (field)"
     );
   }
 
