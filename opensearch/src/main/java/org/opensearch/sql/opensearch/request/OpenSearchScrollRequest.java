@@ -94,7 +94,6 @@ public class OpenSearchScrollRequest implements OpenSearchRequest {
     List<String> includes = fetchSource != null && fetchSource.includes() != null
         ? Arrays.asList(this.sourceBuilder.fetchSource().includes())
         : List.of();
-
     return new OpenSearchResponse(openSearchResponse, exprValueFactory, includes);
   }
 

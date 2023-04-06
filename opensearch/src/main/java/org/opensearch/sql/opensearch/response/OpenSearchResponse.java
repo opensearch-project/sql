@@ -6,6 +6,7 @@
 
 package org.opensearch.sql.opensearch.response;
 
+import static org.opensearch.sql.opensearch.storage.OpenSearchIndex.METADATAFIELD_TYPE_MAP;
 import static org.opensearch.sql.opensearch.storage.OpenSearchIndex.METADATA_FIELD_ID;
 import static org.opensearch.sql.opensearch.storage.OpenSearchIndex.METADATA_FIELD_INDEX;
 import static org.opensearch.sql.opensearch.storage.OpenSearchIndex.METADATA_FIELD_MAXSCORE;
@@ -14,9 +15,11 @@ import static org.opensearch.sql.opensearch.storage.OpenSearchIndex.METADATA_FIE
 
 import com.google.common.collect.ImmutableMap;
 import java.util.Arrays;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 import lombok.EqualsAndHashCode;
 import lombok.ToString;
@@ -112,21 +115,9 @@ public class OpenSearchResponse implements Iterable<ExprValue> {
         return (ExprValue) ExprTupleValue.fromExprValueMap(builder.build());
       }).iterator();
     } else {
-      boolean includeId = includes.stream().anyMatch(
-          include -> include.equalsIgnoreCase(METADATA_FIELD_ID)
-      );
-      boolean includeIndex = includes.stream().anyMatch(
-          include -> include.equalsIgnoreCase(METADATA_FIELD_INDEX)
-      );
-      boolean includeScore = includes.stream().anyMatch(
-          include -> include.equalsIgnoreCase(METADATA_FIELD_SCORE)
-      );
-      boolean includeMaxScore = includes.stream().anyMatch(
-          include -> include.equalsIgnoreCase(METADATA_FIELD_MAXSCORE)
-      );
-      boolean includeSort = includes.stream().anyMatch(
-          include -> include.equalsIgnoreCase(METADATA_FIELD_SORT)
-      );
+      List<String> metaDataFieldSet = includes.stream()
+          .filter(include -> METADATAFIELD_TYPE_MAP.containsKey(include))
+          .collect(Collectors.toList());
       ExprFloatValue maxScore = Float.isNaN(hits.getMaxScore())
           ? null : new ExprFloatValue(hits.getMaxScore());
       return Arrays.stream(hits.getHits())
@@ -136,21 +127,32 @@ public class OpenSearchResponse implements Iterable<ExprValue> {
 
             ImmutableMap.Builder<String, ExprValue> builder = new ImmutableMap.Builder<>();
             builder.putAll(docData.tupleValue());
-            if (includeIndex) {
-              builder.put(METADATA_FIELD_INDEX, new ExprStringValue(hit.getIndex()));
-            }
-            if (includeId) {
-              builder.put(METADATA_FIELD_ID, new ExprStringValue(hit.getId()));
-            }
-            if (includeScore && !Float.isNaN(hit.getScore())) {
-              builder.put(METADATA_FIELD_SCORE, new ExprFloatValue(hit.getScore()));
-            }
-            if (includeMaxScore && maxScore != null) {
-              builder.put(METADATA_FIELD_MAXSCORE, maxScore);
-            }
-            if (includeSort) {
-              builder.put(METADATA_FIELD_SORT, new ExprLongValue(hit.getSeqNo()));
-            }
+            metaDataFieldSet.forEach(metaDataField -> {
+                  switch (metaDataField) {
+                    case METADATA_FIELD_INDEX:
+                      builder.put(METADATA_FIELD_INDEX, new ExprStringValue(hit.getIndex()));
+                      break;
+                    case METADATA_FIELD_ID:
+                      builder.put(METADATA_FIELD_ID, new ExprStringValue(hit.getId()));
+                      break;
+                    case METADATA_FIELD_SCORE:
+                      if (!Float.isNaN(hit.getScore())) {
+                        builder.put(METADATA_FIELD_SCORE, new ExprFloatValue(hit.getScore()));
+                      }
+                      break;
+                    case METADATA_FIELD_MAXSCORE:
+                      if (maxScore != null) {
+                        builder.put(METADATA_FIELD_MAXSCORE, maxScore);
+                      }
+                      break;
+                    case METADATA_FIELD_SORT:
+                      builder.put(METADATA_FIELD_SORT, new ExprLongValue(hit.getSeqNo()));
+                      break;
+                    default:
+                      // no-op
+                  }
+                }
+            );
 
             if (!hit.getHighlightFields().isEmpty()) {
               var hlBuilder = ImmutableMap.<String, ExprValue>builder();
