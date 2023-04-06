@@ -20,23 +20,32 @@ import org.apache.commons.io.IOUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.action.ActionFuture;
+import org.opensearch.action.DocWriteRequest;
 import org.opensearch.action.DocWriteResponse;
 import org.opensearch.action.admin.indices.create.CreateIndexRequest;
 import org.opensearch.action.admin.indices.create.CreateIndexResponse;
+import org.opensearch.action.delete.DeleteRequest;
+import org.opensearch.action.delete.DeleteResponse;
 import org.opensearch.action.index.IndexRequest;
 import org.opensearch.action.index.IndexResponse;
 import org.opensearch.action.search.SearchRequest;
 import org.opensearch.action.search.SearchResponse;
+import org.opensearch.action.support.WriteRequest;
+import org.opensearch.action.update.UpdateRequest;
+import org.opensearch.action.update.UpdateResponse;
 import org.opensearch.client.Client;
 import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.common.util.concurrent.ThreadContext;
 import org.opensearch.common.xcontent.XContentType;
+import org.opensearch.index.engine.DocumentMissingException;
+import org.opensearch.index.engine.VersionConflictEngineException;
 import org.opensearch.index.query.QueryBuilder;
 import org.opensearch.index.query.QueryBuilders;
 import org.opensearch.search.SearchHit;
 import org.opensearch.search.builder.SearchSourceBuilder;
 import org.opensearch.sql.common.encryptor.Encryptor;
 import org.opensearch.sql.datasource.DataSourceMetadataStorage;
+import org.opensearch.sql.datasource.exceptions.DataSourceNotFoundException;
 import org.opensearch.sql.datasource.model.DataSourceMetadata;
 import org.opensearch.sql.datasource.model.auth.AuthenticationType;
 import org.opensearch.sql.plugin.utils.XContentParserUtils;
@@ -45,6 +54,8 @@ public class OpenSearchDataSourceMetadataStorage implements DataSourceMetadataSt
 
   public static final String DATASOURCE_INDEX_NAME = ".ql-datasources";
   private static final String DATASOURCE_INDEX_MAPPING_FILE_NAME = "datasources-index-mapping.yml";
+
+  private static final Integer DATASOURCE_QUERY_RESULT_SIZE = 10000;
   private static final String DATASOURCE_INDEX_SETTINGS_FILE_NAME
       = "datasources-index-settings.yml";
   private static final Logger LOG = LogManager.getLogger();
@@ -96,28 +107,77 @@ public class OpenSearchDataSourceMetadataStorage implements DataSourceMetadataSt
     }
     IndexRequest indexRequest = new IndexRequest(DATASOURCE_INDEX_NAME);
     indexRequest.id(dataSourceMetadata.getName());
+    indexRequest.opType(DocWriteRequest.OpType.CREATE);
+    indexRequest.setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE);
     ActionFuture<IndexResponse> indexResponseActionFuture;
+    IndexResponse indexResponse;
     try (ThreadContext.StoredContext storedContext = client.threadPool().getThreadContext()
         .stashContext()) {
       indexRequest.source(XContentParserUtils.convertToXContent(dataSourceMetadata));
       indexResponseActionFuture = client.index(indexRequest);
+      indexResponse = indexResponseActionFuture.actionGet();
+    } catch (VersionConflictEngineException exception) {
+      throw new IllegalArgumentException("A datasource already exists with name: "
+          + dataSourceMetadata.getName());
     } catch (Exception e) {
       throw new RuntimeException(e);
     }
-    IndexResponse indexResponse = indexResponseActionFuture.actionGet();
+
     if (indexResponse.getResult().equals(DocWriteResponse.Result.CREATED)) {
       LOG.debug("DatasourceMetadata : {}  successfully created", dataSourceMetadata.getName());
+    } else {
+      throw new RuntimeException("Saving dataSource metadata information failed with result : "
+          + indexResponse.getResult().getLowercase());
     }
   }
 
   @Override
   public void updateDataSourceMetadata(DataSourceMetadata dataSourceMetadata) {
-    throw new UnsupportedOperationException("will be supported in future.");
+    encryptDecryptAuthenticationData(dataSourceMetadata, true);
+    UpdateRequest updateRequest
+        = new UpdateRequest(DATASOURCE_INDEX_NAME, dataSourceMetadata.getName());
+    UpdateResponse updateResponse;
+    try (ThreadContext.StoredContext storedContext = client.threadPool().getThreadContext()
+        .stashContext()) {
+      updateRequest.doc(XContentParserUtils.convertToXContent(dataSourceMetadata));
+      updateRequest.setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE);
+      ActionFuture<UpdateResponse> updateResponseActionFuture
+          = client.update(updateRequest);
+      updateResponse = updateResponseActionFuture.actionGet();
+    } catch (DocumentMissingException exception) {
+      throw new DataSourceNotFoundException("Datasource with name: "
+          + dataSourceMetadata.getName() + " doesn't exist");
+    } catch (Exception e) {
+      throw new RuntimeException(e);
+    }
+
+    if (updateResponse.getResult().equals(DocWriteResponse.Result.UPDATED)) {
+      LOG.debug("DatasourceMetadata : {}  successfully updated", dataSourceMetadata.getName());
+    } else {
+      throw new RuntimeException("Saving dataSource metadata information failed with result : "
+          + updateResponse.getResult().getLowercase());
+    }
   }
 
   @Override
   public void deleteDataSourceMetadata(String datasourceName) {
-    throw new UnsupportedOperationException("will be supported in future.");
+    DeleteRequest deleteRequest = new DeleteRequest(DATASOURCE_INDEX_NAME);
+    deleteRequest.id(datasourceName);
+    ActionFuture<DeleteResponse> deleteResponseActionFuture;
+    try (ThreadContext.StoredContext storedContext = client.threadPool().getThreadContext()
+        .stashContext()) {
+      deleteResponseActionFuture = client.delete(deleteRequest);
+    }
+    DeleteResponse deleteResponse = deleteResponseActionFuture.actionGet();
+    if (deleteResponse.getResult().equals(DocWriteResponse.Result.DELETED)) {
+      LOG.debug("DatasourceMetadata : {}  successfully deleted", datasourceName);
+    } else if (deleteResponse.getResult().equals(DocWriteResponse.Result.NOT_FOUND)) {
+      throw new DataSourceNotFoundException("Datasource with name: "
+          + datasourceName + " doesn't exist");
+    } else {
+      throw new RuntimeException("Deleting dataSource metadata information failed with result : "
+          + deleteResponse.getResult().getLowercase());
+    }
   }
 
   private void createDataSourcesIndex() {
@@ -141,7 +201,7 @@ public class OpenSearchDataSourceMetadataStorage implements DataSourceMetadataSt
       if (createIndexResponse.isAcknowledged()) {
         LOG.info("Index: {} creation Acknowledged", DATASOURCE_INDEX_NAME);
       } else {
-        throw new IllegalStateException(
+        throw new RuntimeException(
             String.format("Index: %s creation failed", DATASOURCE_INDEX_NAME));
       }
     } catch (Throwable e) {
@@ -156,6 +216,7 @@ public class OpenSearchDataSourceMetadataStorage implements DataSourceMetadataSt
     searchRequest.indices(DATASOURCE_INDEX_NAME);
     SearchSourceBuilder searchSourceBuilder = new SearchSourceBuilder();
     searchSourceBuilder.query(query);
+    searchSourceBuilder.size(DATASOURCE_QUERY_RESULT_SIZE);
     searchRequest.source(searchSourceBuilder);
     ActionFuture<SearchResponse> searchResponseActionFuture;
     try (ThreadContext.StoredContext storedContext = client.threadPool().getThreadContext()
@@ -164,12 +225,12 @@ public class OpenSearchDataSourceMetadataStorage implements DataSourceMetadataSt
     }
     SearchResponse searchResponse = searchResponseActionFuture.actionGet();
     if (searchResponse.status().getStatus() != 200) {
-      throw new RuntimeException(
-          "Internal server error while fetching datasource metadata information");
+      throw new RuntimeException("Fetching dataSource metadata information failed with status : "
+          + searchResponse.status());
     } else {
       List<DataSourceMetadata> list = new ArrayList<>();
-      for (SearchHit documentFields : searchResponse.getHits().getHits()) {
-        String sourceAsString = documentFields.getSourceAsString();
+      for (SearchHit searchHit : searchResponse.getHits().getHits()) {
+        String sourceAsString = searchHit.getSourceAsString();
         DataSourceMetadata dataSourceMetadata;
         try {
           dataSourceMetadata = XContentParserUtils.toDataSourceMetadata(sourceAsString);
