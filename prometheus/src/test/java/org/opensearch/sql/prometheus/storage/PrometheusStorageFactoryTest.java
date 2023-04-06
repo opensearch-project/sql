@@ -9,6 +9,7 @@ package org.opensearch.sql.prometheus.storage;
 
 import java.util.HashMap;
 import lombok.SneakyThrows;
+import org.apache.commons.lang3.RandomStringUtils;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -87,6 +88,24 @@ public class PrometheusStorageFactoryTest {
         () -> prometheusStorageFactory.getStorageEngine("my_prometheus", properties));
     Assertions.assertEquals("Missing [prometheus.auth.region] fields in the "
             + "Prometheus connector properties.",
+        exception.getMessage());
+  }
+
+
+  @Test
+  @SneakyThrows
+  void testGetStorageEngineWithLongConfigProperties() {
+    PrometheusStorageFactory prometheusStorageFactory = new PrometheusStorageFactory();
+    HashMap<String, String> properties = new HashMap<>();
+    properties.put("prometheus.uri", RandomStringUtils.random(1001));
+    properties.put("prometheus.auth.type", "awssigv4");
+    properties.put("prometheus.auth.secret_key", "accessKey");
+    properties.put("prometheus.auth.access_key", "secretKey");
+    IllegalArgumentException exception = Assertions.assertThrows(IllegalArgumentException.class,
+        () -> prometheusStorageFactory.getStorageEngine("my_prometheus", properties));
+    Assertions.assertEquals("Missing [prometheus.auth.region] fields in the "
+            + "Prometheus connector properties."
+            + "Fields [prometheus.uri] exceeds more than 1000 characters.",
         exception.getMessage());
   }
 

@@ -27,9 +27,21 @@ public interface DataSourceService {
    * Returns all dataSource Metadata objects. The returned objects won't contain
    * any of the credential info.
    *
+   * @param isDefaultDataSourceRequired is used to specify
+   *      if default opensearch connector is required in the output list.
    * @return set of {@link DataSourceMetadata}.
    */
-  Set<DataSourceMetadata> getDataSourceMetadataSet();
+  Set<DataSourceMetadata> getDataSourceMetadata(boolean isDefaultDataSourceRequired);
+
+
+  /**
+   * Returns dataSourceMetadata object with specific name.
+   * The returned objects won't contain any crendetial info.
+   *
+   * @param name name of the {@link DataSource}.
+   * @return set of {@link DataSourceMetadata}.
+   */
+  DataSourceMetadata getDataSourceMetadata(String name);
 
   /**
    * Register {@link DataSource} defined by {@link DataSourceMetadata}.
