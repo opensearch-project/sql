@@ -7,6 +7,7 @@
 
 package org.opensearch.sql.storage;
 
+import java.util.Map;
 import org.opensearch.sql.datasource.DataSourceService;
 import org.opensearch.sql.datasource.model.DataSource;
 import org.opensearch.sql.datasource.model.DataSourceMetadata;
@@ -28,4 +29,5 @@ public interface DataSourceFactory {
    * Create {@link DataSource}.
    */
   DataSource createDataSource(DataSourceMetadata metadata);
+
 }
