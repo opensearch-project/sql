@@ -322,7 +322,7 @@ multiFieldRelevanceFunction
 
 /** tables */
 tableSource
-    : qualifiedName
+    : clusterQualifiedName
     | ID_DATE_SUFFIX
     ;
 
@@ -721,6 +721,10 @@ valueList
 
 qualifiedName
     : ident (DOT ident)*                             #identsAsQualifiedName
+    ;
+
+clusterQualifiedName
+    : (ident COLON)? ident (DOT ident)*
     ;
 
 wcQualifiedName
