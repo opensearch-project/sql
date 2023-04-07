@@ -56,7 +56,11 @@ jacocoTestCoverageVerification {
     violationRules {
         rule {
             element = 'CLASS'
-            excludes = []
+            excludes = [
+                    'org.opensearch.sql.datasources.settings.DataSourceSettings',
+                    'org.opensearch.sql.datasources.exceptions.*',
+                    'org.opensearch.sql.datasources.rest.*'
+            ]
             limit {
                 counter = 'LINE'
                 minimum = 1.0

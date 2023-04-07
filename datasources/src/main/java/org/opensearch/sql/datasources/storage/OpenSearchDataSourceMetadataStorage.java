@@ -11,7 +11,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -43,11 +42,11 @@ import org.opensearch.index.query.QueryBuilder;
 import org.opensearch.index.query.QueryBuilders;
 import org.opensearch.search.SearchHit;
 import org.opensearch.search.builder.SearchSourceBuilder;
-import org.opensearch.sql.datasource.DataSourceMetadataStorage;
-import org.opensearch.sql.datasource.exceptions.DataSourceNotFoundException;
 import org.opensearch.sql.datasource.model.DataSourceMetadata;
-import org.opensearch.sql.datasource.model.auth.AuthenticationType;
+import org.opensearch.sql.datasources.auth.AuthenticationType;
 import org.opensearch.sql.datasources.encryptor.Encryptor;
+import org.opensearch.sql.datasources.exceptions.DataSourceNotFoundException;
+import org.opensearch.sql.datasources.service.DataSourceMetadataStorage;
 import org.opensearch.sql.datasources.utils.XContentParserUtils;
 
 public class OpenSearchDataSourceMetadataStorage implements DataSourceMetadataStorage {
@@ -92,6 +91,7 @@ public class OpenSearchDataSourceMetadataStorage implements DataSourceMetadataSt
   public Optional<DataSourceMetadata> getDataSourceMetadata(String datasourceName) {
     if (!this.clusterService.state().routingTable().hasIndex(DATASOURCE_INDEX_NAME)) {
       createDataSourcesIndex();
+      return Optional.empty();
     }
     return searchInDataSourcesIndex(QueryBuilders.termQuery("name", datasourceName))
         .stream()
@@ -187,13 +187,12 @@ public class OpenSearchDataSourceMetadataStorage implements DataSourceMetadataSt
       InputStream settingsFileStream = OpenSearchDataSourceMetadataStorage.class.getClassLoader()
           .getResourceAsStream(DATASOURCE_INDEX_SETTINGS_FILE_NAME);
       CreateIndexRequest createIndexRequest = new CreateIndexRequest(DATASOURCE_INDEX_NAME);
-      createIndexRequest
-          .mapping(IOUtils.toString(mappingFileStream, StandardCharsets.UTF_8),
+      createIndexRequest.mapping(IOUtils.toString(mappingFileStream, StandardCharsets.UTF_8),
               XContentType.YAML)
           .settings(IOUtils.toString(settingsFileStream, StandardCharsets.UTF_8),
               XContentType.YAML);
       ActionFuture<CreateIndexResponse> createIndexResponseActionFuture;
-      try (ThreadContext.StoredContext storedContext = client.threadPool().getThreadContext()
+      try (ThreadContext.StoredContext ignored = client.threadPool().getThreadContext()
           .stashContext()) {
         createIndexResponseActionFuture = client.admin().indices().create(createIndexRequest);
       }
@@ -202,11 +201,11 @@ public class OpenSearchDataSourceMetadataStorage implements DataSourceMetadataSt
         LOG.info("Index: {} creation Acknowledged", DATASOURCE_INDEX_NAME);
       } else {
         throw new RuntimeException(
-            String.format("Index: %s creation failed", DATASOURCE_INDEX_NAME));
+            "Index creation is not acknowledged.");
       }
     } catch (Throwable e) {
       throw new RuntimeException(
-          "Internal server error while creating" + DATASOURCE_INDEX_NAME + " index"
+          "Internal server error while creating" + DATASOURCE_INDEX_NAME + " index:: "
               + e.getMessage());
     }
   }
@@ -219,7 +218,7 @@ public class OpenSearchDataSourceMetadataStorage implements DataSourceMetadataSt
     searchSourceBuilder.size(DATASOURCE_QUERY_RESULT_SIZE);
     searchRequest.source(searchSourceBuilder);
     ActionFuture<SearchResponse> searchResponseActionFuture;
-    try (ThreadContext.StoredContext storedContext = client.threadPool().getThreadContext()
+    try (ThreadContext.StoredContext ignored = client.threadPool().getThreadContext()
         .stashContext()) {
       searchResponseActionFuture = client.search(searchRequest);
     }
@@ -243,6 +242,7 @@ public class OpenSearchDataSourceMetadataStorage implements DataSourceMetadataSt
     }
   }
 
+  @SuppressWarnings("missingswitchdefault")
   private DataSourceMetadata encryptDecryptAuthenticationData(DataSourceMetadata dataSourceMetadata,
                                                               Boolean isEncryption) {
     Map<String, String> propertiesMap = dataSourceMetadata.getProperties();
@@ -259,8 +259,6 @@ public class OpenSearchDataSourceMetadataStorage implements DataSourceMetadataSt
         case AWSSIGV4AUTH:
           handleSigV4PropertiesEncryptionDecryption(propertiesMap, isEncryption);
           break;
-        default:
-          break;
       }
     }
     return dataSourceMetadata;
@@ -268,14 +266,16 @@ public class OpenSearchDataSourceMetadataStorage implements DataSourceMetadataSt
 
   private void handleBasicAuthPropertiesEncryptionDecryption(Map<String, String> propertiesMap,
                                                              Boolean isEncryption) {
-    Optional<String> usernameKey = propertiesMap.keySet().stream()
+    ArrayList<String> list = new ArrayList<>();
+    propertiesMap.keySet().stream()
         .filter(s -> s.endsWith("auth.username"))
-        .findFirst();
-    Optional<String> passwordKey = propertiesMap.keySet().stream()
+        .findFirst()
+        .ifPresent(list::add);
+    propertiesMap.keySet().stream()
         .filter(s -> s.endsWith("auth.password"))
-        .findFirst();
-    encryptOrDecrypt(propertiesMap, isEncryption,
-        Arrays.asList(usernameKey.get(), passwordKey.get()));
+        .findFirst()
+        .ifPresent(list::add);
+    encryptOrDecrypt(propertiesMap, isEncryption, list);
   }
 
   private void encryptOrDecrypt(Map<String, String> propertiesMap, Boolean isEncryption,
@@ -293,13 +293,16 @@ public class OpenSearchDataSourceMetadataStorage implements DataSourceMetadataSt
 
   private void handleSigV4PropertiesEncryptionDecryption(Map<String, String> propertiesMap,
                                                          Boolean isEncryption) {
-    Optional<String> accessKey = propertiesMap.keySet().stream()
+    ArrayList<String> list = new ArrayList<>();
+    propertiesMap.keySet().stream()
         .filter(s -> s.endsWith("auth.access_key"))
-        .findFirst();
-    Optional<String> secretKey = propertiesMap.keySet().stream()
+        .findFirst()
+        .ifPresent(list::add);
+    propertiesMap.keySet().stream()
         .filter(s -> s.endsWith("auth.secret_key"))
-        .findFirst();
-    encryptOrDecrypt(propertiesMap, isEncryption, Arrays.asList(accessKey.get(), secretKey.get()));
+        .findFirst()
+        .ifPresent(list::add);
+    encryptOrDecrypt(propertiesMap, isEncryption, list);
   }
 
 }

@@ -12,7 +12,6 @@ import lombok.AllArgsConstructor;
 import org.opensearch.client.Client;
 import org.opensearch.commons.ConfigConstants;
 import org.opensearch.commons.authuser.User;
-import org.opensearch.sql.datasource.DataSourceUserAuthorizationHelper;
 import org.opensearch.sql.datasource.model.DataSourceMetadata;
 
 @AllArgsConstructor

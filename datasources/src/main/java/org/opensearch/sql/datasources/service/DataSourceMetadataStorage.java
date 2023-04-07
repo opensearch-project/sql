@@ -5,11 +5,10 @@
  *
  */
 
-package org.opensearch.sql.datasource;
+package org.opensearch.sql.datasources.service;
 
 import java.util.List;
 import java.util.Optional;
-import javax.xml.crypto.Data;
 import org.opensearch.sql.datasource.model.DataSource;
 import org.opensearch.sql.datasource.model.DataSourceMetadata;
 

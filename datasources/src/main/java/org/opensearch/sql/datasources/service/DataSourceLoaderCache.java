@@ -1,4 +1,4 @@
-package org.opensearch.sql.datasource;
+package org.opensearch.sql.datasources.service;
 
 import org.opensearch.sql.datasource.model.DataSource;
 import org.opensearch.sql.datasource.model.DataSourceMetadata;

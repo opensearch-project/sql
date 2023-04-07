@@ -7,21 +7,17 @@
 
 package org.opensearch.sql.datasources.transport;
 
-
-
 import java.util.Set;
 import org.opensearch.action.ActionListener;
 import org.opensearch.action.ActionType;
 import org.opensearch.action.support.ActionFilters;
 import org.opensearch.action.support.HandledTransportAction;
-import org.opensearch.client.Client;
-import org.opensearch.client.node.NodeClient;
 import org.opensearch.common.inject.Inject;
 import org.opensearch.sql.datasource.DataSourceService;
-import org.opensearch.sql.datasource.DataSourceServiceImpl;
 import org.opensearch.sql.datasource.model.DataSourceMetadata;
-import org.opensearch.sql.datasources.model.GetDataSourceActionRequest;
-import org.opensearch.sql.datasources.model.GetDataSourceActionResponse;
+import org.opensearch.sql.datasources.model.transport.GetDataSourceActionRequest;
+import org.opensearch.sql.datasources.model.transport.GetDataSourceActionResponse;
+import org.opensearch.sql.datasources.service.DataSourceServiceImpl;
 import org.opensearch.sql.protocol.response.format.JsonResponseFormatter;
 import org.opensearch.tasks.Task;
 import org.opensearch.transport.TransportService;
@@ -34,24 +30,20 @@ public class TransportGetDataSourceAction
       ACTION_TYPE = new ActionType<>(NAME, GetDataSourceActionResponse::new);
 
   private DataSourceService dataSourceService;
-  private Client client;
 
   /**
    * TransportGetDataSourceAction action for getting datasource.
    *
    * @param transportService  transportService.
    * @param actionFilters     actionFilters.
-   * @param client            client.
    * @param dataSourceService dataSourceService.
    */
   @Inject
   public TransportGetDataSourceAction(TransportService transportService,
                                       ActionFilters actionFilters,
-                                      NodeClient client,
                                       DataSourceServiceImpl dataSourceService) {
     super(TransportGetDataSourceAction.NAME, transportService, actionFilters,
         GetDataSourceActionRequest::new);
-    this.client = client;
     this.dataSourceService = dataSourceService;
   }
 

@@ -29,8 +29,8 @@ public class EncryptorImpl implements Encryptor {
         .build();
 
     JceMasterKey jceMasterKey
-        = JceMasterKey.getInstance(new SecretKeySpec(masterKey.getBytes(), "AES"), "Custom", "",
-        "AES/GCM/NoPadding");
+        = JceMasterKey.getInstance(new SecretKeySpec(masterKey.getBytes(), "AES"), "Custom",
+        "opensearch.config.master.key", "AES/GCM/NoPadding");
 
     final CryptoResult<byte[], JceMasterKey> encryptResult = crypto.encryptData(jceMasterKey,
         plainText.getBytes(StandardCharsets.UTF_8));
@@ -44,8 +44,8 @@ public class EncryptorImpl implements Encryptor {
         .build();
 
     JceMasterKey jceMasterKey
-        = JceMasterKey.getInstance(new SecretKeySpec(masterKey.getBytes(), "AES"), "Custom", "",
-        "AES/GCM/NoPadding");
+        = JceMasterKey.getInstance(new SecretKeySpec(masterKey.getBytes(), "AES"), "Custom",
+        "opensearch.config.master.key", "AES/GCM/NoPadding");
 
     final CryptoResult<byte[], JceMasterKey> decryptedResult
         = crypto.decryptData(jceMasterKey, Base64.getDecoder().decode(encryptedText));

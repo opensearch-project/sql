@@ -5,7 +5,7 @@
  *
  */
 
-package org.opensearch.sql.datasource.model.auth;
+package org.opensearch.sql.datasources.auth;
 
 import java.util.Collections;
 import java.util.HashMap;

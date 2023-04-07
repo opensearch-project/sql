@@ -5,45 +5,45 @@
  *
  */
 
-package org.opensearch.sql.datasources.model;
+package org.opensearch.sql.datasources.model.transport;
+
 
 import static org.opensearch.sql.analysis.DataSourceSchemaIdentifierNameResolver.DEFAULT_DATASOURCE_NAME;
 
 import java.io.IOException;
 import lombok.Getter;
-import lombok.NoArgsConstructor;
 import org.opensearch.action.ActionRequest;
 import org.opensearch.action.ActionRequestValidationException;
 import org.opensearch.common.io.stream.StreamInput;
+import org.opensearch.sql.datasource.model.DataSourceMetadata;
 
-@NoArgsConstructor
-public class GetDataSourceActionRequest extends ActionRequest {
+public class CreateDataSourceActionRequest
+    extends ActionRequest {
 
   @Getter
-  private String dataSourceName;
+  private DataSourceMetadata dataSourceMetadata;
 
   /**
-   * Constructor of GetDataSourceActionRequest from StreamInput.
+   * Constructor of CreateDataSourceActionRequest from StreamInput.
    */
-  public GetDataSourceActionRequest(StreamInput in) throws IOException {
+  public CreateDataSourceActionRequest(StreamInput in) throws IOException {
     super(in);
   }
 
-  public GetDataSourceActionRequest(String dataSourceName) {
-    this.dataSourceName = dataSourceName;
+  public CreateDataSourceActionRequest(DataSourceMetadata dataSourceMetadata) {
+    this.dataSourceMetadata = dataSourceMetadata;
   }
 
   @Override
   public ActionRequestValidationException validate() {
-    if (this.dataSourceName != null && this.dataSourceName.equals(DEFAULT_DATASOURCE_NAME)) {
+    if (this.dataSourceMetadata.getName().equals(DEFAULT_DATASOURCE_NAME)) {
       ActionRequestValidationException exception = new ActionRequestValidationException();
       exception
           .addValidationError(
-              "Not allowed to fetch datasource with name : " + DEFAULT_DATASOURCE_NAME);
+              "Not allowed to create datasource with name : " + DEFAULT_DATASOURCE_NAME);
       return exception;
     } else {
       return null;
     }
   }
-
 }

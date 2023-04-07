@@ -1,4 +1,4 @@
-package org.opensearch.sql.datasource;
+package org.opensearch.sql.datasources.service;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.lenient;

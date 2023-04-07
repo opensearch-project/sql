@@ -11,13 +11,11 @@ import org.opensearch.action.ActionListener;
 import org.opensearch.action.ActionType;
 import org.opensearch.action.support.ActionFilters;
 import org.opensearch.action.support.HandledTransportAction;
-import org.opensearch.client.Client;
-import org.opensearch.client.node.NodeClient;
 import org.opensearch.common.inject.Inject;
 import org.opensearch.sql.datasource.DataSourceService;
-import org.opensearch.sql.datasource.DataSourceServiceImpl;
-import org.opensearch.sql.datasources.model.DeleteDataSourceActionRequest;
-import org.opensearch.sql.datasources.model.DeleteDataSourceActionResponse;
+import org.opensearch.sql.datasources.model.transport.DeleteDataSourceActionRequest;
+import org.opensearch.sql.datasources.model.transport.DeleteDataSourceActionResponse;
+import org.opensearch.sql.datasources.service.DataSourceServiceImpl;
 import org.opensearch.tasks.Task;
 import org.opensearch.transport.TransportService;
 
@@ -29,33 +27,33 @@ public class TransportDeleteDataSourceAction
       ACTION_TYPE = new ActionType<>(NAME, DeleteDataSourceActionResponse::new);
 
   private DataSourceService dataSourceService;
-  private Client client;
 
   /**
    * TransportDeleteDataSourceAction action for deleting datasource.
    *
    * @param transportService  transportService.
    * @param actionFilters     actionFilters.
-   * @param client            client.
    * @param dataSourceService dataSourceService.
    */
   @Inject
   public TransportDeleteDataSourceAction(TransportService transportService,
                                          ActionFilters actionFilters,
-                                         NodeClient client,
                                          DataSourceServiceImpl dataSourceService) {
     super(TransportDeleteDataSourceAction.NAME, transportService, actionFilters,
         DeleteDataSourceActionRequest::new);
-    this.client = client;
     this.dataSourceService = dataSourceService;
   }
 
   @Override
   protected void doExecute(Task task, DeleteDataSourceActionRequest request,
                            ActionListener<DeleteDataSourceActionResponse> actionListener) {
-    dataSourceService.deleteDataSource(request.getDataSourceName());
-    actionListener.onResponse(new DeleteDataSourceActionResponse("Deleted DataSource with name "
-        + request.getDataSourceName()));
+    try {
+      dataSourceService.deleteDataSource(request.getDataSourceName());
+      actionListener.onResponse(new DeleteDataSourceActionResponse("Deleted DataSource with name "
+          + request.getDataSourceName()));
+    } catch (Exception e) {
+      actionListener.onFailure(e);
+    }
   }
 
 }

@@ -1,4 +1,4 @@
-package org.opensearch.sql.datasource;
+package org.opensearch.sql.datasources.service;
 
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;

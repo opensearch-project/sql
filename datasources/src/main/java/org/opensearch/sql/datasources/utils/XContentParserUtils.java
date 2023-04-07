@@ -12,6 +12,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import lombok.experimental.UtilityClass;
 import org.opensearch.common.xcontent.XContentFactory;
 import org.opensearch.common.xcontent.XContentType;
 import org.opensearch.core.xcontent.DeprecationHandler;
@@ -21,6 +22,10 @@ import org.opensearch.core.xcontent.XContentParser;
 import org.opensearch.sql.datasource.model.DataSourceMetadata;
 import org.opensearch.sql.datasource.model.DataSourceType;
 
+/**
+ * Utitlity class to serialize and deserialize objects in XContent.
+ */
+@UtilityClass
 public class XContentParserUtils {
   public static final String NAME_FIELD = "name";
   public static final String CONNECTOR_FIELD = "connector";
@@ -69,7 +74,7 @@ public class XContentParserUtils {
       }
     }
     if (name == null || connector == null) {
-      throw new IllegalArgumentException("Missing required fields");
+      throw new IllegalArgumentException("name and connector are required fields.");
     }
     return new DataSourceMetadata(name, connector, allowedRoles, properties);
   }

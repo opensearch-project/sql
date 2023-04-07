@@ -10,18 +10,18 @@ import static org.opensearch.commons.ConfigConstants.OPENSEARCH_SECURITY_USER_IN
 import java.util.HashMap;
 import java.util.List;
 import org.junit.Assert;
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Answers;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Mockito;
-import org.mockito.junit.MockitoJUnitRunner;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.opensearch.client.Client;
 import org.opensearch.sql.datasource.model.DataSourceMetadata;
 import org.opensearch.sql.datasource.model.DataSourceType;
 
-@RunWith(MockitoJUnitRunner.class)
+@ExtendWith(MockitoExtension.class)
 public class DataSourceUserAuthorizationHelperImplTest {
 
   @Mock(answer = Answers.RETURNS_DEEP_STUBS)
@@ -35,7 +35,7 @@ public class DataSourceUserAuthorizationHelperImplTest {
   public void testAuthorizeDataSourceWithAllowedRoles() {
     String userString = "myuser|bckrole1,bckrol2|prometheus_access|myTenant";
     Mockito.when(client.threadPool().getThreadContext()
-        .getTransient(OPENSEARCH_SECURITY_USER_INFO_THREAD_CONTEXT))
+            .getTransient(OPENSEARCH_SECURITY_USER_INFO_THREAD_CONTEXT))
         .thenReturn(userString);
     DataSourceMetadata dataSourceMetadata = dataSourceMetadata();
     this.dataSourceUserAuthorizationHelper
@@ -46,9 +46,31 @@ public class DataSourceUserAuthorizationHelperImplTest {
   public void testAuthorizeDataSourceWithAdminRole() {
     String userString = "myuser|bckrole1,bckrol2|all_access|myTenant";
     Mockito.when(client.threadPool().getThreadContext()
-        .getTransient(OPENSEARCH_SECURITY_USER_INFO_THREAD_CONTEXT))
+            .getTransient(OPENSEARCH_SECURITY_USER_INFO_THREAD_CONTEXT))
         .thenReturn(userString);
     DataSourceMetadata dataSourceMetadata = dataSourceMetadata();
+    this.dataSourceUserAuthorizationHelper
+        .authorizeDataSource(dataSourceMetadata);
+  }
+
+  @Test
+  public void testAuthorizeDataSourceWithNullUserString() {
+    Mockito.when(client.threadPool().getThreadContext()
+            .getTransient(OPENSEARCH_SECURITY_USER_INFO_THREAD_CONTEXT))
+        .thenReturn(null);
+    DataSourceMetadata dataSourceMetadata = dataSourceMetadata();
+    this.dataSourceUserAuthorizationHelper
+        .authorizeDataSource(dataSourceMetadata);
+  }
+
+  @Test
+  public void testAuthorizeDataSourceWithDefaultDataSource() {
+    String userString = "myuser|bckrole1,bckrol2|role1|myTenant";
+    Mockito.when(client.threadPool().getThreadContext()
+            .getTransient(OPENSEARCH_SECURITY_USER_INFO_THREAD_CONTEXT))
+        .thenReturn(userString);
+    DataSourceMetadata dataSourceMetadata =
+        DataSourceMetadata.defaultOpenSearchDataSourceMetadata();
     this.dataSourceUserAuthorizationHelper
         .authorizeDataSource(dataSourceMetadata);
   }
@@ -57,7 +79,7 @@ public class DataSourceUserAuthorizationHelperImplTest {
   public void testAuthorizeDataSourceWithException() {
     String userString = "myuser|bckrole1,bckrol2|role1|myTenant";
     Mockito.when(client.threadPool().getThreadContext()
-        .getTransient(OPENSEARCH_SECURITY_USER_INFO_THREAD_CONTEXT))
+            .getTransient(OPENSEARCH_SECURITY_USER_INFO_THREAD_CONTEXT))
         .thenReturn(userString);
     DataSourceMetadata dataSourceMetadata = dataSourceMetadata();
     SecurityException securityException

@@ -1,6 +1,10 @@
-package org.opensearch.sql.datasource;
+/*
+ * Copyright OpenSearch Contributors
+ * SPDX-License-Identifier: Apache-2.0
+ */
 
-import java.util.List;
+package org.opensearch.sql.datasources.auth;
+
 import org.opensearch.sql.datasource.model.DataSourceMetadata;
 
 /**

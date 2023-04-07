@@ -5,7 +5,7 @@
  *
  */
 
-package org.opensearch.sql.datasources.model;
+package org.opensearch.sql.datasources.model.transport;
 
 
 import static org.opensearch.sql.analysis.DataSourceSchemaIdentifierNameResolver.DEFAULT_DATASOURCE_NAME;
@@ -17,20 +17,18 @@ import org.opensearch.action.ActionRequestValidationException;
 import org.opensearch.common.io.stream.StreamInput;
 import org.opensearch.sql.datasource.model.DataSourceMetadata;
 
-public class CreateDataSourceActionRequest
+public class UpdateDataSourceActionRequest
     extends ActionRequest {
 
   @Getter
   private DataSourceMetadata dataSourceMetadata;
 
-  /**
-   * Constructor of CreateDataSourceActionRequest from StreamInput.
-   */
-  public CreateDataSourceActionRequest(StreamInput in) throws IOException {
+  /** Constructor of UpdateDataSourceActionRequest from StreamInput. */
+  public UpdateDataSourceActionRequest(StreamInput in) throws IOException {
     super(in);
   }
 
-  public CreateDataSourceActionRequest(DataSourceMetadata dataSourceMetadata) {
+  public UpdateDataSourceActionRequest(DataSourceMetadata dataSourceMetadata) {
     this.dataSourceMetadata = dataSourceMetadata;
   }
 
@@ -40,7 +38,7 @@ public class CreateDataSourceActionRequest
       ActionRequestValidationException exception = new ActionRequestValidationException();
       exception
           .addValidationError(
-              "Not allowed to create datasource with name : " + DEFAULT_DATASOURCE_NAME);
+              "Not allowed to update datasource with name : " + DEFAULT_DATASOURCE_NAME);
       return exception;
     } else {
       return null;

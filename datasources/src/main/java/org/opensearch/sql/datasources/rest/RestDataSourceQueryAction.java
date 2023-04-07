@@ -28,23 +28,23 @@ import org.opensearch.rest.BytesRestResponse;
 import org.opensearch.rest.RestChannel;
 import org.opensearch.rest.RestRequest;
 import org.opensearch.rest.RestStatus;
-import org.opensearch.sql.datasource.exceptions.DataSourceNotFoundException;
 import org.opensearch.sql.datasource.model.DataSourceMetadata;
+import org.opensearch.sql.datasources.exceptions.DataSourceNotFoundException;
+import org.opensearch.sql.datasources.exceptions.ErrorMessage;
+import org.opensearch.sql.datasources.model.transport.CreateDataSourceActionRequest;
+import org.opensearch.sql.datasources.model.transport.CreateDataSourceActionResponse;
+import org.opensearch.sql.datasources.model.transport.DeleteDataSourceActionRequest;
+import org.opensearch.sql.datasources.model.transport.DeleteDataSourceActionResponse;
+import org.opensearch.sql.datasources.model.transport.GetDataSourceActionRequest;
+import org.opensearch.sql.datasources.model.transport.GetDataSourceActionResponse;
+import org.opensearch.sql.datasources.model.transport.UpdateDataSourceActionRequest;
+import org.opensearch.sql.datasources.model.transport.UpdateDataSourceActionResponse;
 import org.opensearch.sql.datasources.transport.TransportCreateDataSourceAction;
 import org.opensearch.sql.datasources.transport.TransportDeleteDataSourceAction;
 import org.opensearch.sql.datasources.transport.TransportGetDataSourceAction;
 import org.opensearch.sql.datasources.transport.TransportUpdateDataSourceAction;
 import org.opensearch.sql.datasources.utils.Scheduler;
 import org.opensearch.sql.datasources.utils.XContentParserUtils;
-import org.opensearch.sql.opensearch.response.error.ErrorMessageFactory;
-import org.opensearch.sql.datasources.model.CreateDataSourceActionRequest;
-import org.opensearch.sql.datasources.model.CreateDataSourceActionResponse;
-import org.opensearch.sql.datasources.model.DeleteDataSourceActionRequest;
-import org.opensearch.sql.datasources.model.DeleteDataSourceActionResponse;
-import org.opensearch.sql.datasources.model.GetDataSourceActionRequest;
-import org.opensearch.sql.datasources.model.GetDataSourceActionResponse;
-import org.opensearch.sql.datasources.model.UpdateDataSourceActionRequest;
-import org.opensearch.sql.datasources.model.UpdateDataSourceActionResponse;
 
 
 public class RestDataSourceQueryAction extends BaseRestHandler {
@@ -237,7 +237,7 @@ public class RestDataSourceQueryAction extends BaseRestHandler {
   private void reportError(final RestChannel channel, final Exception e, final RestStatus status) {
     channel.sendResponse(
         new BytesRestResponse(
-            status, ErrorMessageFactory.createErrorMessage(e, status.getStatus()).toString()));
+            status, new ErrorMessage(e, status.getStatus()).toString()));
   }
 
   private static boolean isClientError(Exception e) {

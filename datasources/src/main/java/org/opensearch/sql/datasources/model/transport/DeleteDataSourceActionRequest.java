@@ -5,7 +5,7 @@
  *
  */
 
-package org.opensearch.sql.datasources.model;
+package org.opensearch.sql.datasources.model.transport;
 
 import static org.opensearch.sql.analysis.DataSourceSchemaIdentifierNameResolver.DEFAULT_DATASOURCE_NAME;
 

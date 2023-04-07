@@ -5,7 +5,7 @@
  *
  */
 
-package org.opensearch.sql.datasource.exceptions;
+package org.opensearch.sql.datasources.exceptions;
 
 /**
  * DataSourceNotFoundException.

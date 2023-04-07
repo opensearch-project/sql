@@ -5,7 +5,7 @@
  *
  */
 
-package org.opensearch.sql.datasources.model;
+package org.opensearch.sql.datasources.model.transport;
 
 import java.io.IOException;
 import lombok.Getter;
@@ -15,12 +15,13 @@ import org.opensearch.common.io.stream.StreamInput;
 import org.opensearch.common.io.stream.StreamOutput;
 
 @RequiredArgsConstructor
-public class GetDataSourceActionResponse extends ActionResponse {
+public class UpdateDataSourceActionResponse
+    extends ActionResponse {
 
   @Getter
   private final String result;
 
-  public GetDataSourceActionResponse(StreamInput in) throws IOException {
+  public UpdateDataSourceActionResponse(StreamInput in) throws IOException {
     super(in);
     result = in.readString();
   }
@@ -29,5 +30,4 @@ public class GetDataSourceActionResponse extends ActionResponse {
   public void writeTo(StreamOutput streamOutput) throws IOException {
     streamOutput.writeString(result);
   }
-
 }
