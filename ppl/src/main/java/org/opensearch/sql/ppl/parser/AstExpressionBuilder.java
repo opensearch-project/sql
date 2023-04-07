@@ -14,6 +14,7 @@ import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.BinaryArit
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.BooleanFunctionCallContext;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.BooleanLiteralContext;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.BySpanClauseContext;
+import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.ClusterTableSourceContext;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.CompareExprContext;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.ConvertedDataTypeContext;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.CountAllFunctionCallContext;
@@ -280,6 +281,15 @@ public class AstExpressionBuilder extends OpenSearchPPLParserBaseVisitor<Unresol
 
   @Override
   public UnresolvedExpression visitTableSource(TableSourceContext ctx) {
+    if (ctx.getChild(0) instanceof IdentsAsQualifiedNameContext) {
+      return visitIdentifiers(((IdentsAsQualifiedNameContext) ctx.getChild(0)).ident());
+    } else {
+      return visitIdentifiers(Arrays.asList(ctx));
+    }
+  }
+
+  @Override
+  public UnresolvedExpression visitClusterTableSource(ClusterTableSourceContext ctx) {
     if (ctx.getChild(0) instanceof IdentsAsQualifiedNameContext) {
       return visitIdentifiers(((IdentsAsQualifiedNameContext) ctx.getChild(0)).ident());
     } else {

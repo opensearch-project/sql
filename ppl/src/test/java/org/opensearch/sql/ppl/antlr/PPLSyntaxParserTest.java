@@ -207,6 +207,7 @@ public class PPLSyntaxParserTest {
             + "analyzer=keyword, quote_field_suffix=\".exact\", fuzzy_prefix_length = 4)"));
   }
 
+  @Test
   public void testDescribeCommandShouldPass() {
     ParseTree tree = new PPLSyntaxParser().parse("describe t");
     assertNotEquals(null, tree);
@@ -216,6 +217,14 @@ public class PPLSyntaxParserTest {
   public void testDescribeCommandWithMultipleIndicesShouldPass() {
     ParseTree tree = new PPLSyntaxParser().parse("describe t,u");
     assertNotEquals(null, tree);
+  }
+
+  @Test
+  public void testDescribeCommandCrossClusterShouldFail() {
+    exceptionRule.expect(RuntimeException.class);
+    exceptionRule.expectMessage("Failed to parse query due to offending symbol");
+
+    new PPLSyntaxParser().parse("describe c:t");
   }
 
   @Test
