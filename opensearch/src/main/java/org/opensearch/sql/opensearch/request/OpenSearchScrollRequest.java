@@ -13,7 +13,6 @@ import java.util.function.Consumer;
 import java.util.function.Function;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
-import lombok.RequiredArgsConstructor;
 import lombok.Setter;
 import lombok.ToString;
 import org.opensearch.action.search.SearchRequest;
@@ -115,7 +114,7 @@ public class OpenSearchScrollRequest implements OpenSearchRequest {
    */
   public SearchRequest searchRequest() {
     return new SearchRequest()
-        .indices(indexName.getIndexNames())
+        .indices(indexName.getIndexFullNames())
         .scroll(DEFAULT_SCROLL_TIMEOUT)
         .source(sourceBuilder);
   }

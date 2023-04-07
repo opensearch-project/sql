@@ -67,6 +67,9 @@ public class OpenSearchQueryRequestTest {
   private final OpenSearchQueryRequest request =
       new OpenSearchQueryRequest("test", 200, factory);
 
+  private final OpenSearchQueryRequest remoteRequest =
+      new OpenSearchQueryRequest("ccs:test", 200, factory);
+
   @Test
   void search() {
     OpenSearchQueryRequest request = new OpenSearchQueryRequest(
@@ -151,5 +154,20 @@ public class OpenSearchQueryRequestTest {
                 .size(200)
                 .query(QueryBuilders.termQuery("name", "John"))),
         request.searchRequest());
+  }
+
+  @Test
+  void searchCrossClusterRequest() {
+    remoteRequest.getSourceBuilder().query(QueryBuilders.termQuery("name", "John"));
+
+    assertEquals(
+        new SearchRequest()
+            .indices("ccs:test")
+            .source(new SearchSourceBuilder()
+                .timeout(OpenSearchQueryRequest.DEFAULT_QUERY_TIMEOUT)
+                .from(0)
+                .size(200)
+                .query(QueryBuilders.termQuery("name", "John"))),
+        remoteRequest.searchRequest());
   }
 }
