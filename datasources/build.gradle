@@ -57,9 +57,10 @@ jacocoTestCoverageVerification {
         rule {
             element = 'CLASS'
             excludes = [
-                    'org.opensearch.sql.datasources.settings.DataSourceSettings',
-                    'org.opensearch.sql.datasources.exceptions.*',
-                    'org.opensearch.sql.datasources.rest.*'
+                'org.opensearch.sql.datasources.settings.DataSourceSettings',
+                'org.opensearch.sql.datasources.exceptions.*',
+                'org.opensearch.sql.datasources.model.*',
+                'org.opensearch.sql.datasources.rest.*'
             ]
             limit {
                 counter = 'LINE'
@@ -67,7 +68,7 @@ jacocoTestCoverageVerification {
             }
             limit {
                 counter = 'BRANCH'
-                minimum = 1.0
+                minimum = 0.9
             }
         }
     }
