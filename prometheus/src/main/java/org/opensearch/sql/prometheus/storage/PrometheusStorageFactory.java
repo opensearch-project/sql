@@ -21,7 +21,7 @@ import okhttp3.OkHttpClient;
 import org.opensearch.sql.datasource.model.DataSource;
 import org.opensearch.sql.datasource.model.DataSourceMetadata;
 import org.opensearch.sql.datasource.model.DataSourceType;
-import org.opensearch.sql.datasource.model.auth.AuthenticationType;
+import org.opensearch.sql.datasources.auth.AuthenticationType;
 import org.opensearch.sql.prometheus.authinterceptors.AwsSigningInterceptor;
 import org.opensearch.sql.prometheus.authinterceptors.BasicAuthenticationInterceptor;
 import org.opensearch.sql.prometheus.client.PrometheusClient;
