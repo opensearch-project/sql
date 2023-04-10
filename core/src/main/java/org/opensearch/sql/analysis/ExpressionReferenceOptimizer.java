@@ -19,6 +19,7 @@ import org.opensearch.sql.expression.aggregation.Aggregator;
 import org.opensearch.sql.expression.conditional.cases.CaseClause;
 import org.opensearch.sql.expression.conditional.cases.WhenClause;
 import org.opensearch.sql.expression.function.BuiltinFunctionRepository;
+import org.opensearch.sql.expression.function.OpenSearchFunctions;
 import org.opensearch.sql.planner.logical.LogicalAggregation;
 import org.opensearch.sql.planner.logical.LogicalPlan;
 import org.opensearch.sql.planner.logical.LogicalPlanNodeVisitor;
@@ -70,8 +71,17 @@ public class ExpressionReferenceOptimizer
       final List<Expression> args =
           node.getArguments().stream().map(expr -> expr.accept(this, context))
               .collect(Collectors.toList());
-      return (Expression) repository.compile(context.getFunctionProperties(),
-          node.getFunctionName(), args);
+      Expression optimizedFunctionExpression = (Expression) repository.compile(
+              context.getFunctionProperties(),
+              node.getFunctionName(),
+              args
+      );
+      // Propagate scoreTracked for OpenSearch functions
+      if (optimizedFunctionExpression instanceof OpenSearchFunctions.OpenSearchFunction) {
+        ((OpenSearchFunctions.OpenSearchFunction) optimizedFunctionExpression).setScoreTracked(
+                ((OpenSearchFunctions.OpenSearchFunction)node).isScoreTracked());
+      }
+      return optimizedFunctionExpression;
     }
   }
 

@@ -72,6 +72,7 @@ public class OpenSearchRequestBuilderTest {
     Integer limit = 200;
     Integer offset = 0;
     requestBuilder.pushDownLimit(limit, offset);
+    requestBuilder.pushDownTrackedScore(true);
 
     assertEquals(
         new OpenSearchQueryRequest(
@@ -79,7 +80,8 @@ public class OpenSearchRequestBuilderTest {
             new SearchSourceBuilder()
                 .from(offset)
                 .size(limit)
-                .timeout(DEFAULT_QUERY_TIMEOUT),
+                .timeout(DEFAULT_QUERY_TIMEOUT)
+                .trackScores(true),
             exprValueFactory),
         requestBuilder.build());
   }

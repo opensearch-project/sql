@@ -49,6 +49,9 @@ public class SortQueryBuilder {
    */
   public SortBuilder<?> build(Expression expression, Sort.SortOption option) {
     if (expression instanceof ReferenceExpression) {
+      if (((ReferenceExpression) expression).getAttr().equalsIgnoreCase("_score")) {
+        return SortBuilders.scoreSort().order(sortOrderMap.get(option.getSortOrder()));
+      }
       return fieldBuild((ReferenceExpression) expression, option);
     } else {
       throw new IllegalStateException("unsupported expression " + expression.getClass());

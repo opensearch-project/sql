@@ -62,6 +62,7 @@ import org.opensearch.sql.ast.tree.UnresolvedPlan;
 import org.opensearch.sql.ast.tree.Values;
 import org.opensearch.sql.data.model.ExprMissingValue;
 import org.opensearch.sql.data.type.ExprCoreType;
+import org.opensearch.sql.data.type.ExprType;
 import org.opensearch.sql.datasource.DataSourceService;
 import org.opensearch.sql.exception.SemanticCheckException;
 import org.opensearch.sql.expression.DSL;
@@ -150,6 +151,9 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
               dataSourceSchemaIdentifierNameResolver.getIdentifierName());
     }
     table.getFieldTypes().forEach((k, v) -> curEnv.define(new Symbol(Namespace.FIELD_NAME, k), v));
+    table.getReservedFieldTypes().forEach(
+        (k, v) -> curEnv.addReservedWord(new Symbol(Namespace.FIELD_NAME, k), v)
+    );
 
     // Put index name or its alias in index namespace on type environment so qualifier
     // can be removed when analyzing qualified name. The value (expr type) here doesn't matter.
@@ -193,6 +197,9 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
     TypeEnvironment curEnv = context.peek();
     Table table = tableFunctionImplementation.applyArguments();
     table.getFieldTypes().forEach((k, v) -> curEnv.define(new Symbol(Namespace.FIELD_NAME, k), v));
+    table.getReservedFieldTypes().forEach(
+        (k, v) -> curEnv.addReservedWord(new Symbol(Namespace.FIELD_NAME, k), v)
+    );
     curEnv.define(new Symbol(Namespace.INDEX_NAME,
             dataSourceSchemaIdentifierNameResolver.getIdentifierName()), STRUCT);
     return new LogicalRelation(dataSourceSchemaIdentifierNameResolver.getIdentifierName(),

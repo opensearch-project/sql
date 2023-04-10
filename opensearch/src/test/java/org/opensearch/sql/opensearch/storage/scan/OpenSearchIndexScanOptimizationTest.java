@@ -7,6 +7,7 @@
 package org.opensearch.sql.opensearch.storage.scan;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.reset;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -33,9 +34,11 @@ import static org.opensearch.sql.planner.optimizer.rule.read.TableScanPushDown.P
 import static org.opensearch.sql.planner.optimizer.rule.read.TableScanPushDown.PUSH_DOWN_SORT;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -48,6 +51,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.opensearch.index.query.QueryBuilder;
 import org.opensearch.index.query.QueryBuilders;
+import org.opensearch.index.query.SpanOrQueryBuilder;
 import org.opensearch.search.aggregations.AggregationBuilder;
 import org.opensearch.search.aggregations.AggregationBuilders;
 import org.opensearch.search.aggregations.bucket.composite.CompositeAggregationBuilder;
@@ -57,10 +61,15 @@ import org.opensearch.search.sort.SortBuilders;
 import org.opensearch.search.sort.SortOrder;
 import org.opensearch.sql.ast.expression.Literal;
 import org.opensearch.sql.ast.tree.Sort.SortOption;
+import org.opensearch.sql.data.model.ExprTupleValue;
+import org.opensearch.sql.data.model.ExprValueUtils;
+import org.opensearch.sql.data.type.ExprCoreType;
 import org.opensearch.sql.data.type.ExprType;
 import org.opensearch.sql.expression.DSL;
+import org.opensearch.sql.expression.FunctionExpression;
 import org.opensearch.sql.expression.HighlightExpression;
 import org.opensearch.sql.expression.ReferenceExpression;
+import org.opensearch.sql.expression.function.OpenSearchFunctions;
 import org.opensearch.sql.opensearch.data.type.OpenSearchDataType;
 import org.opensearch.sql.opensearch.request.OpenSearchRequestBuilder;
 import org.opensearch.sql.opensearch.response.agg.CompositeAggregationParser;
@@ -68,6 +77,7 @@ import org.opensearch.sql.opensearch.response.agg.OpenSearchAggregationResponseP
 import org.opensearch.sql.opensearch.response.agg.SingleValueParser;
 import org.opensearch.sql.opensearch.storage.OpenSearchIndexScan;
 import org.opensearch.sql.opensearch.storage.script.aggregation.AggregationQueryBuilder;
+import org.opensearch.sql.planner.logical.LogicalFilter;
 import org.opensearch.sql.planner.logical.LogicalPlan;
 import org.opensearch.sql.planner.optimizer.LogicalPlanOptimizer;
 import org.opensearch.sql.planner.optimizer.rule.read.CreateTableScanBuilder;
@@ -132,6 +142,119 @@ class OpenSearchIndexScanOptimizationTest {
             DSL.named("i", DSL.ref("intV", INTEGER))
         )
     );
+  }
+
+  /**
+   * SELECT intV as i FROM schema WHERE query_string(["intV^1.5", "QUERY", boost=12.5).
+   */
+  @Test
+  void test_filter_on_opensearchfunction_with_trackedscores_push_down() {
+    LogicalPlan expectedPlan =
+        project(
+            indexScanBuilder(
+                withFilterPushedDown(
+                    QueryBuilders.queryStringQuery("QUERY")
+                        .field("intV", 1.5F)
+                        .boost(12.5F)
+                ),
+                withTrackedScoresPushedDown(true)
+            ),
+            DSL.named("i", DSL.ref("intV", INTEGER))
+        );
+    FunctionExpression queryString = DSL.query_string(
+          DSL.namedArgument("fields", DSL.literal(
+              new ExprTupleValue(new LinkedHashMap<>(ImmutableMap.of(
+                  "intV", ExprValueUtils.floatValue(1.5F)))))),
+          DSL.namedArgument("query", "QUERY"),
+          DSL.namedArgument("boost", "12.5"));
+
+    ((OpenSearchFunctions.OpenSearchFunction) queryString).setScoreTracked(true);
+
+    LogicalPlan logicalPlan = project(
+        filter(
+            relation("schema", table),
+            queryString
+        ),
+        DSL.named("i", DSL.ref("intV", INTEGER))
+    );
+    assertEqualsAfterOptimization(expectedPlan, logicalPlan);
+  }
+
+  @Test
+  void test_filter_on_multiple_opensearchfunctions_with_trackedscores_push_down() {
+    LogicalPlan expectedPlan =
+        project(
+            indexScanBuilder(
+                withFilterPushedDown(
+                    QueryBuilders.boolQuery()
+                        .should(
+                            QueryBuilders.queryStringQuery("QUERY")
+                                .field("intV", 1.5F)
+                                .boost(12.5F))
+                        .should(
+                            QueryBuilders.queryStringQuery("QUERY")
+                                .field("intV", 1.5F)
+                                .boost(12.5F)
+                        )
+                ),
+                withTrackedScoresPushedDown(true)
+            ),
+            DSL.named("i", DSL.ref("intV", INTEGER))
+        );
+    FunctionExpression firstQueryString = DSL.query_string(
+        DSL.namedArgument("fields", DSL.literal(
+            new ExprTupleValue(new LinkedHashMap<>(ImmutableMap.of(
+                "intV", ExprValueUtils.floatValue(1.5F)))))),
+        DSL.namedArgument("query", "QUERY"),
+        DSL.namedArgument("boost", "12.5"));
+    ((OpenSearchFunctions.OpenSearchFunction) firstQueryString).setScoreTracked(false);
+    FunctionExpression secondQueryString = DSL.query_string(
+        DSL.namedArgument("fields", DSL.literal(
+            new ExprTupleValue(new LinkedHashMap<>(ImmutableMap.of(
+                "intV", ExprValueUtils.floatValue(1.5F)))))),
+        DSL.namedArgument("query", "QUERY"),
+        DSL.namedArgument("boost", "12.5"));
+    ((OpenSearchFunctions.OpenSearchFunction) secondQueryString).setScoreTracked(true);
+
+    LogicalPlan logicalPlan = project(
+        filter(
+            relation("schema", table),
+            DSL.or(firstQueryString, secondQueryString)
+        ),
+        DSL.named("i", DSL.ref("intV", INTEGER))
+    );
+    assertEqualsAfterOptimization(expectedPlan, logicalPlan);
+  }
+
+  @Test
+  void test_filter_on_opensearchfunction_without_trackedscores_push_down() {
+    LogicalPlan expectedPlan =
+        project(
+            indexScanBuilder(
+                withFilterPushedDown(
+                    QueryBuilders.queryStringQuery("QUERY")
+                        .field("intV", 1.5F)
+                        .boost(12.5F)
+                ),
+                withTrackedScoresPushedDown(false)
+            ),
+            DSL.named("i", DSL.ref("intV", INTEGER))
+        );
+    FunctionExpression queryString = DSL.query_string(
+        DSL.namedArgument("fields", DSL.literal(
+            new ExprTupleValue(new LinkedHashMap<>(ImmutableMap.of(
+                "intV", ExprValueUtils.floatValue(1.5F)))))),
+        DSL.namedArgument("query", "QUERY"),
+        DSL.namedArgument("boost", "12.5"));
+
+    LogicalPlan logicalPlan = project(
+        filter(
+            relation("schema", table),
+            queryString
+        ),
+        DSL.named("i", DSL.ref("intV", INTEGER))
+    );
+    assertEqualsAfterOptimization(expectedPlan, logicalPlan);
   }
 
   /**
@@ -206,6 +329,21 @@ class OpenSearchIndexScanOptimizationTest {
         sort(
             relation("schema", table),
             Pair.of(SortOption.DEFAULT_ASC, DSL.ref("intV", INTEGER))
+        )
+    );
+  }
+
+  @Test
+  void test_score_sort_push_down() {
+    assertEqualsAfterOptimization(
+        indexScanBuilder(
+            withSortPushedDown(
+                SortBuilders.scoreSort().order(SortOrder.ASC)
+            )
+        ),
+        sort(
+            relation("schema", table),
+            Pair.of(SortOption.DEFAULT_ASC, DSL.ref("_score", INTEGER))
         )
     );
   }
@@ -575,6 +713,10 @@ class OpenSearchIndexScanOptimizationTest {
 
   private Runnable withHighlightPushedDown(String field, Map<String, Literal> arguments) {
     return () -> verify(requestBuilder, times(1)).pushDownHighlight(field, arguments);
+  }
+
+  private Runnable withTrackedScoresPushedDown(boolean trackScores) {
+    return () -> verify(requestBuilder, times(1)).pushDownTrackedScore(trackScores);
   }
 
   private static AggregationAssertHelper.AggregationAssertHelperBuilder aggregate(String aggName) {

@@ -155,6 +155,46 @@ Result set:
 |  Nanette|   Bates|
 +---------+--------+
 
+One can also provide meta-field name(s) to retrieve reserved-fields (beginning with underscore) from OpenSearch documents. Meta-fields are not output
+from wildcard calls (`SELECT *`) and must be explicitly included to be returned.
+
+SQL query::
+
+	POST /_plugins/_sql
+	{
+	  "query" : "SELECT firstname, lastname, _id, _index, _sort FROM accounts"
+	}
+
+Explain::
+
+	{
+	  "from" : 0,
+	  "size" : 200,
+	  "_source" : {
+	    "includes" : [
+	      "firstname",
+	      "_id",
+	      "_index",
+	      "_sort",
+	      "lastname"
+	    ],
+	    "excludes" : [ ]
+	  }
+	}
+
+
+This produces results like this for example::
+
+    os> SELECT firstname, lastname, _index, _sort FROM accounts;
+    fetched rows / total rows = 4/4
+    +-------------+------------+----------+---------+
+    | firstname   | lastname   | _index   | _sort   |
+    |-------------+------------+----------+---------|
+    | Amber       | Duke       | accounts | -2      |
+    | Hattie      | Bond       | accounts | -2      |
+    | Nanette     | Bates      | accounts | -2      |
+    | Dale        | Adams      | accounts | -2      |
+    +-------------+------------+----------+---------+
 
 Example 3: Using Field Alias
 ----------------------------
