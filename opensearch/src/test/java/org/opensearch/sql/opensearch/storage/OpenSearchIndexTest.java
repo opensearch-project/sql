@@ -184,6 +184,21 @@ class OpenSearchIndexTest {
   }
 
   @Test
+  void getReservedFieldTypes() {
+    Map<String, ExprType> fieldTypes = index.getReservedFieldTypes();
+    assertThat(
+        fieldTypes,
+        allOf(
+            aMapWithSize(5),
+            hasEntry("_id", ExprCoreType.STRING),
+            hasEntry("_index", ExprCoreType.STRING),
+            hasEntry("_sort", ExprCoreType.LONG),
+            hasEntry("_score", ExprCoreType.FLOAT),
+            hasEntry("_maxscore", ExprCoreType.FLOAT)
+        ));
+  }
+
+  @Test
   void implementRelationOperatorOnly() {
     when(settings.getSettingValue(Settings.Key.QUERY_SIZE_LIMIT)).thenReturn(200);
     when(client.getIndexMaxResultWindows("test")).thenReturn(Map.of("test", 10000));
