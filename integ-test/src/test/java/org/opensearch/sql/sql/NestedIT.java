@@ -193,14 +193,15 @@ public class NestedIT extends SQLIntegTestCase {
   @Test
   public void nested_function_with_relevance_query() {
     String query =
-        "SELECT nested(message.info), someField FROM " + TEST_INDEX_NESTED_TYPE + " WHERE match(someField, 'b')";
+        "SELECT nested(message.info), highlight(someField) FROM "
+            + TEST_INDEX_NESTED_TYPE + " WHERE match(someField, 'b')";
     JSONObject result = executeJdbcRequest(query);
 
     assertEquals(3, result.getInt("total"));
     verifyDataRows(result,
-        rows("a", "b"),
-        rows("c", "b"),
-        rows("a", "b"));
+        rows("a", new JSONArray(List.of("<em>b</em>"))),
+        rows("c", new JSONArray(List.of("<em>b</em>"))),
+        rows("a", new JSONArray(List.of("<em>b</em>"))));
   }
 
   @Test

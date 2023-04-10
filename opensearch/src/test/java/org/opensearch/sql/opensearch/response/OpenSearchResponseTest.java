@@ -259,7 +259,7 @@ class OpenSearchResponseTest {
 
     when(factory.construct(any())).thenReturn(exprTupleValue1);
 
-    for (ExprValue hit : new OpenSearchResponse(searchResponse, factory)) {
+    for (ExprValue hit : new OpenSearchResponse(searchResponse, factory, includes)) {
       assertEquals(exprTupleValue1, hit);
     }
   }
