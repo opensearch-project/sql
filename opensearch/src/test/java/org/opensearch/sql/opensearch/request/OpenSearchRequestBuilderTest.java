@@ -288,6 +288,43 @@ public class OpenSearchRequestBuilderTest {
   }
 
   @Test
+  void testPushDownNestedWithFilter() {
+    List<Map<String, ReferenceExpression>> args = List.of(
+        Map.of(
+            "field", new ReferenceExpression("message.info", STRING),
+            "path", new ReferenceExpression("message", STRING)
+        )
+    );
+
+    List<NamedExpression> projectList =
+        List.of(
+            new NamedExpression("message.info", DSL.nested(DSL.ref("message.info", STRING)), null)
+        );
+
+    LogicalNested nested = new LogicalNested(null, args, projectList);
+    requestBuilder.getSourceBuilder().query(QueryBuilders.rangeQuery("myNum").gt(3));
+    requestBuilder.pushDownNested(nested.getFields());
+
+    NestedQueryBuilder nestedQuery = nestedQuery("message", matchAllQuery(), ScoreMode.None)
+        .innerHit(new InnerHitBuilder().setFetchSourceContext(
+            new FetchSourceContext(true, new String[]{"message.info"}, null)));
+
+    assertEquals(
+        new SearchSourceBuilder()
+            .query(
+                QueryBuilders.boolQuery().filter(
+                    QueryBuilders.boolQuery()
+                      .must(QueryBuilders.rangeQuery("myNum").gt(3))
+                      .must(nestedQuery)
+                )
+            )
+            .from(DEFAULT_OFFSET)
+            .size(DEFAULT_LIMIT)
+            .timeout(DEFAULT_QUERY_TIMEOUT),
+        requestBuilder.getSourceBuilder());
+  }
+
+  @Test
   void testPushTypeMapping() {
     Map<String, OpenSearchDataType> typeMapping = Map.of("intA", OpenSearchDataType.of(INTEGER));
     requestBuilder.pushTypeMapping(typeMapping);

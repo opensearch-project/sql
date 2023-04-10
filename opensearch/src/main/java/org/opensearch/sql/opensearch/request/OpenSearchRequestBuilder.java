@@ -268,8 +268,13 @@ public class OpenSearchRequestBuilder {
    * Initialize bool query for push down.
    */
   private void initBoolQueryFilter() {
-    sourceBuilder.query(QueryBuilders.boolQuery());
-    query().filter(boolQuery());
+    if (sourceBuilder.query() == null) {
+      sourceBuilder.query(QueryBuilders.boolQuery());
+    } else {
+      sourceBuilder.query(QueryBuilders.boolQuery().must(sourceBuilder.query()));
+    }
+
+    sourceBuilder.query(QueryBuilders.boolQuery().filter(sourceBuilder.query()));
   }
 
   /**

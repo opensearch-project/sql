@@ -123,6 +123,9 @@ class OpenSearchIndexScanQueryBuilder extends TableScanBuilder {
     indexScan.getRequestBuilder().pushDownProjects(
         findReferenceExpressions(nested.getProjectList()));
     // Return false intentionally to keep the original nested operator
+    // Since we return false we need to pushDownProject here as it won't be
+    // pushed down due to no matching push down rule.
+    // TODO: improve LogicalPlanOptimizer pushdown api.
     return false;
   }
 
