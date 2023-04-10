@@ -5,6 +5,7 @@
 
 package org.opensearch.sql.sql;
 
+import static org.hamcrest.Matchers.containsString;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_ACCOUNT;
 import static org.opensearch.sql.util.MatcherUtils.rows;
 import static org.opensearch.sql.util.MatcherUtils.schema;
@@ -12,9 +13,12 @@ import static org.opensearch.sql.util.MatcherUtils.verifyDataRows;
 import static org.opensearch.sql.util.MatcherUtils.verifySchema;
 
 import java.io.IOException;
+import java.util.Locale;
 import org.json.JSONObject;
+import org.junit.Assert;
 import org.junit.Test;
 import org.opensearch.sql.legacy.SQLIntegTestCase;
+import org.opensearch.sql.legacy.TestsConstants;
 import org.opensearch.sql.legacy.utils.StringUtils;
 
 public class MatchIT extends SQLIntegTestCase {
@@ -146,5 +150,15 @@ public class MatchIT extends SQLIntegTestCase {
     JSONObject result3 = executeJdbcRequest(query3);
     assertEquals(result1.getInt("total"), result2.getInt("total"));
     assertEquals(result1.getInt("total"), result3.getInt("total"));
+  }
+
+  @Test
+  public void matchPhraseQueryTest() throws IOException {
+    final String result = explainQuery(String.format(Locale.ROOT,
+        "select address from %s " +
+            "where address= matchPhrase('671 Bristol Street')  order by _score desc limit 3",
+        TestsConstants.TEST_INDEX_ACCOUNT));
+    Assert.assertThat(result,
+        containsString("{\\\"match_phrase\\\":{\\\"address\\\":{\\\"query\\\":\\\"671 Bristol Street\\\""));
   }
 }

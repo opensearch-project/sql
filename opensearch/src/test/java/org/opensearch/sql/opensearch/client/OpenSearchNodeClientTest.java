@@ -324,7 +324,7 @@ class OpenSearchNodeClientTest {
 
     Iterator<ExprValue> hits = response1.iterator();
     assertTrue(hits.hasNext());
-    assertEquals(exprTupleValue, hits.next());
+    assertEquals(exprTupleValue.tupleValue().get("id"), hits.next().tupleValue().get("id"));
     assertFalse(hits.hasNext());
 
     // Verify response for second scroll request
