@@ -1,7 +1,7 @@
 <img src="https://opensearch.org/assets/brand/SVG/Logo/opensearch_logo_default.svg" height="64px"/>
 
 - [OpenSearch SQL](#opensearch-sql)
-  - [Code Summary](#code-summary)
+  - [CodeSummary](#code-summary)
     - [SQL Engine](#sql-engine)
     - [Repository Checks](#repository-checks)
     - [Issues](#issues)
