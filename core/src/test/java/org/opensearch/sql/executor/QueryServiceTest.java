@@ -47,9 +47,6 @@ class QueryServiceTest {
   private Planner planner;
 
   @Mock
-  private Planner paginationPlanner;
-
-  @Mock
   private UnresolvedPlan ast;
 
   @Mock
@@ -120,9 +117,8 @@ class QueryServiceTest {
     public Helper() {
       lenient().when(analyzer.analyze(any(), any())).thenReturn(logicalPlan);
       lenient().when(planner.plan(any())).thenReturn(plan);
-      lenient().when(paginationPlanner.plan(any())).thenReturn(plan);
 
-      queryService = new QueryService(analyzer, executionEngine, planner, paginationPlanner);
+      queryService = new QueryService(analyzer, executionEngine, planner);
     }
 
     Helper executeSuccess() {

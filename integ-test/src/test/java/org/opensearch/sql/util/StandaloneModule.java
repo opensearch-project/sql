@@ -117,7 +117,6 @@ public class StandaloneModule extends AbstractModule {
         new Analyzer(
             new ExpressionAnalyzer(functionRepository), dataSourceService, functionRepository);
     Planner planner = new Planner(LogicalPlanOptimizer.create());
-    Planner paginationPlanner = new Planner(LogicalPlanOptimizer.paginationCreate());
-    return new QueryService(analyzer, executionEngine, planner, paginationPlanner);
+    return new QueryService(analyzer, executionEngine, planner);
   }
 }
