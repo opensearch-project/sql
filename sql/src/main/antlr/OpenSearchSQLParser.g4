@@ -311,6 +311,7 @@ functionCall
     | windowFunctionClause                                          #windowFunctionCall
     | aggregateFunction                                             #aggregateFunctionCall
     | aggregateFunction (orderByClause)? filterClause               #filteredAggregationFunctionCall
+    | scoreRelevanceFunction                                        #scoreRelevanceFunctionCall
     | relevanceFunction                                             #relevanceFunctionCall
     | highlightFunction                                             #highlightFunctionCall
     | positionFunction                                              #positionFunctionCall
@@ -404,7 +405,10 @@ specificFunction
 
 relevanceFunction
     : noFieldRelevanceFunction | singleFieldRelevanceFunction | multiFieldRelevanceFunction | altSingleFieldRelevanceFunction | altMultiFieldRelevanceFunction
+    ;
 
+scoreRelevanceFunction
+    : scoreRelevanceFunctionName LR_BRACKET relevanceFunction (COMMA weight=relevanceFieldWeight)? RR_BRACKET
     ;
 
 noFieldRelevanceFunction
@@ -560,6 +564,10 @@ noFieldRelevanceFunctionName
 
 systemFunctionName
     : TYPEOF
+    ;
+
+scoreRelevanceFunctionName
+    : SCORE | SCOREQUERY | SCORE_QUERY
     ;
 
 singleFieldRelevanceFunctionName

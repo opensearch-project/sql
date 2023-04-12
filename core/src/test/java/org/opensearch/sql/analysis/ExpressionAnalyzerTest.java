@@ -20,7 +20,9 @@ import static org.opensearch.sql.ast.dsl.AstDSL.unresolvedArg;
 import static org.opensearch.sql.data.model.ExprValueUtils.LITERAL_TRUE;
 import static org.opensearch.sql.data.model.ExprValueUtils.integerValue;
 import static org.opensearch.sql.data.type.ExprCoreType.BOOLEAN;
+import static org.opensearch.sql.data.type.ExprCoreType.FLOAT;
 import static org.opensearch.sql.data.type.ExprCoreType.INTEGER;
+import static org.opensearch.sql.data.type.ExprCoreType.LONG;
 import static org.opensearch.sql.data.type.ExprCoreType.STRING;
 import static org.opensearch.sql.data.type.ExprCoreType.STRUCT;
 import static org.opensearch.sql.expression.DSL.ref;
@@ -225,6 +227,32 @@ class ExpressionAnalyzerTest extends AnalyzerTestBase {
             + "must be an field name, index name or its alias",
         exception.getMessage()
     );
+    analysisContext.pop();
+  }
+
+  @Test
+  public void qualified_name_with_reserved_symbol() {
+    analysisContext.push();
+
+    analysisContext.peek().addReservedWord(new Symbol(Namespace.FIELD_NAME, "_reserved"), STRING);
+    analysisContext.peek().addReservedWord(new Symbol(Namespace.FIELD_NAME, "_priority"), FLOAT);
+    analysisContext.peek().define(new Symbol(Namespace.INDEX_NAME, "index_alias"), STRUCT);
+    assertAnalyzeEqual(
+        DSL.ref("_priority", FLOAT),
+        qualifiedName("_priority")
+    );
+    assertAnalyzeEqual(
+        DSL.ref("_reserved", STRING),
+        qualifiedName("index_alias", "_reserved")
+    );
+
+    // reserved fields take priority over symbol table
+    analysisContext.peek().define(new Symbol(Namespace.FIELD_NAME, "_reserved"), LONG);
+    assertAnalyzeEqual(
+        DSL.ref("_reserved", STRING),
+        qualifiedName("index_alias", "_reserved")
+    );
+
     analysisContext.pop();
   }
 
@@ -597,6 +625,142 @@ class ExpressionAnalyzerTest extends AnalyzerTestBase {
           unresolvedArg("max_expansions", stringLiteral("4")),
           unresolvedArg("zero_terms_query", stringLiteral("NONE"))
           )
+    );
+  }
+
+  @Test void score_function_expression() {
+    assertAnalyzeEqual(
+            DSL.score(
+                    DSL.namedArgument("RelevanceQuery",
+                            DSL.match_phrase_prefix(
+                                    DSL.namedArgument("field", "field_value1"),
+                                    DSL.namedArgument("query", "search query"),
+                                    DSL.namedArgument("slop", "3")
+                            )
+                    )),
+            AstDSL.function("score",
+                    unresolvedArg("RelevanceQuery",
+                            AstDSL.function("match_phrase_prefix",
+                                    unresolvedArg("field", stringLiteral("field_value1")),
+                                    unresolvedArg("query", stringLiteral("search query")),
+                                    unresolvedArg("slop", stringLiteral("3"))
+                            )
+                    )
+            )
+    );
+  }
+
+  @Test void score_function_with_boost() {
+    assertAnalyzeEqual(
+            DSL.score(
+                    DSL.namedArgument("RelevanceQuery",
+                            DSL.match_phrase_prefix(
+                                    DSL.namedArgument("field", "field_value1"),
+                                    DSL.namedArgument("query", "search query"),
+                                    DSL.namedArgument("boost", "3.0")
+                            )),
+                    DSL.namedArgument("boost", "2")
+                    ),
+            AstDSL.function("score",
+                    unresolvedArg("RelevanceQuery",
+                            AstDSL.function("match_phrase_prefix",
+                                    unresolvedArg("field", stringLiteral("field_value1")),
+                                    unresolvedArg("query", stringLiteral("search query")),
+                                    unresolvedArg("boost", stringLiteral("3.0"))
+                            )
+                    ),
+                    unresolvedArg("boost", stringLiteral("2"))
+            )
+    );
+  }
+
+  @Test void score_query_function_expression() {
+    assertAnalyzeEqual(
+            DSL.score_query(
+                    DSL.namedArgument("RelevanceQuery",
+                            DSL.wildcard_query(
+                                    DSL.namedArgument("field", "field_value1"),
+                                    DSL.namedArgument("query", "search query")
+                            )
+                    )),
+            AstDSL.function("score_query",
+                    unresolvedArg("RelevanceQuery",
+                            AstDSL.function("wildcard_query",
+                                    unresolvedArg("field", stringLiteral("field_value1")),
+                                    unresolvedArg("query", stringLiteral("search query"))
+                            )
+                    )
+            )
+    );
+  }
+
+  @Test void score_query_function_with_boost() {
+    assertAnalyzeEqual(
+            DSL.score_query(
+                    DSL.namedArgument("RelevanceQuery",
+                            DSL.wildcard_query(
+                                    DSL.namedArgument("field", "field_value1"),
+                                    DSL.namedArgument("query", "search query")
+                            )
+                    ),
+                    DSL.namedArgument("boost", "2.0")
+            ),
+            AstDSL.function("score_query",
+                    unresolvedArg("RelevanceQuery",
+                            AstDSL.function("wildcard_query",
+                                    unresolvedArg("field", stringLiteral("field_value1")),
+                                    unresolvedArg("query", stringLiteral("search query"))
+                            )
+                    ),
+                    unresolvedArg("boost", stringLiteral("2.0"))
+            )
+    );
+  }
+
+  @Test void scorequery_function_expression() {
+    assertAnalyzeEqual(
+            DSL.scorequery(
+                    DSL.namedArgument("RelevanceQuery",
+                            DSL.simple_query_string(
+                                    DSL.namedArgument("field", "field_value1"),
+                                    DSL.namedArgument("query", "search query"),
+                                    DSL.namedArgument("slop", "3")
+                            )
+                    )),
+            AstDSL.function("scorequery",
+                    unresolvedArg("RelevanceQuery",
+                            AstDSL.function("simple_query_string",
+                                    unresolvedArg("field", stringLiteral("field_value1")),
+                                    unresolvedArg("query", stringLiteral("search query")),
+                                    unresolvedArg("slop", stringLiteral("3"))
+                            )
+                    )
+            )
+    );
+  }
+
+  @Test
+  void scorequery_function_with_boost() {
+    assertAnalyzeEqual(
+            DSL.scorequery(
+                    DSL.namedArgument("RelevanceQuery",
+                            DSL.simple_query_string(
+                                    DSL.namedArgument("field", "field_value1"),
+                                    DSL.namedArgument("query", "search query"),
+                                    DSL.namedArgument("slop", "3")
+                            )),
+                    DSL.namedArgument("boost", "2.0")
+                    ),
+            AstDSL.function("scorequery",
+                    unresolvedArg("RelevanceQuery",
+                            AstDSL.function("simple_query_string",
+                                    unresolvedArg("field", stringLiteral("field_value1")),
+                                    unresolvedArg("query", stringLiteral("search query")),
+                                    unresolvedArg("slop", stringLiteral("3"))
+                            )
+                    ),
+                    unresolvedArg("boost", stringLiteral("2.0"))
+            )
     );
   }
 

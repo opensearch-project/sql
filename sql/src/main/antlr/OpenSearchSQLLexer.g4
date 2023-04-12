@@ -134,7 +134,6 @@ STDDEV_SAMP:                        'STDDEV_SAMP';
 SUBSTRING:                          'SUBSTRING';
 TRIM:                               'TRIM';
 
-
 // Keywords, but can be ID
 // Common Keywords, but can be ID
 
@@ -328,6 +327,8 @@ REVERSE_NESTED:                     'REVERSE_NESTED';
 QUERY:                              'QUERY';
 RANGE:                              'RANGE';
 SCORE:                              'SCORE';
+SCOREQUERY:                         'SCOREQUERY';
+SCORE_QUERY:                        'SCORE_QUERY';
 SECOND_OF_MINUTE:                   'SECOND_OF_MINUTE';
 STATS:                              'STATS';
 TERM:                               'TERM';
@@ -465,13 +466,16 @@ BACKTICK_QUOTE_ID:                  BQUOTA_STRING;
 
 // Fragments for Literal primitives
 fragment EXPONENT_NUM_PART:         'E' [-+]? DEC_DIGIT+;
-fragment ID_LITERAL:                [@*A-Z]+?[*A-Z_\-0-9]*;
 fragment DQUOTA_STRING:             '"' ( '\\'. | '""' | ~('"'| '\\') )* '"';
 fragment SQUOTA_STRING:             '\'' ('\\'. | '\'\'' | ~('\'' | '\\'))* '\'';
 fragment BQUOTA_STRING:             '`' ( '\\'. | '``' | ~('`'|'\\'))* '`';
 fragment HEX_DIGIT:                 [0-9A-F];
 fragment DEC_DIGIT:                 [0-9];
 fragment BIT_STRING_L:              'B' '\'' [01]+ '\'';
+
+// Identifiers cannot start with a single '_' since this an OpenSearch reserved
+// metadata field.  Two underscores (or more) is acceptable, such as '__field'.
+fragment ID_LITERAL:                ([@*A-Z_])+?[*A-Z_\-0-9]*;
 
 // Last tokens must generate Errors
 
