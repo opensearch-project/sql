@@ -126,7 +126,13 @@ public class OpenSearchResponse implements Iterable<ExprValue> {
             ExprValue docData = exprValueFactory.construct(source);
 
             ImmutableMap.Builder<String, ExprValue> builder = new ImmutableMap.Builder<>();
-            builder.putAll(docData.tupleValue());
+            if (hit.getInnerHits() == null || hit.getInnerHits().isEmpty()) {
+              builder.putAll(docData.tupleValue());
+            } else {
+              Map<String, Object> rowSource = hit.getSourceAsMap();
+              builder.putAll(ExprValueUtils.tupleValue(rowSource).tupleValue());
+            }
+
             metaDataFieldSet.forEach(metaDataField -> {
               if (metaDataField.equals(METADATA_FIELD_INDEX)) {
                 builder.put(METADATA_FIELD_INDEX, new ExprStringValue(hit.getIndex()));

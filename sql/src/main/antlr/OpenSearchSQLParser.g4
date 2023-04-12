@@ -393,6 +393,7 @@ scalarFunctionName
     | textFunctionName
     | flowControlFunctionName
     | systemFunctionName
+    | nestedFunctionName
     ;
 
 specificFunction
@@ -564,6 +565,10 @@ noFieldRelevanceFunctionName
 
 systemFunctionName
     : TYPEOF
+    ;
+
+nestedFunctionName
+    : NESTED
     ;
 
 scoreRelevanceFunctionName

@@ -288,17 +288,6 @@ class ExpressionAnalyzerTest extends AnalyzerTestBase {
   }
 
   @Test
-  public void skip_array_data_type() {
-    SyntaxCheckException exception =
-        assertThrows(SyntaxCheckException.class,
-            () -> analyze(qualifiedName("array_value")));
-    assertEquals(
-        "Identifier [array_value] of type [ARRAY] is not supported yet",
-        exception.getMessage()
-    );
-  }
-
-  @Test
   public void undefined_var_semantic_check_failed() {
     SemanticCheckException exception = assertThrows(SemanticCheckException.class,
         () -> analyze(

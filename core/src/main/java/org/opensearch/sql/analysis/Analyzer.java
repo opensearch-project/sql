@@ -366,6 +366,14 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
     List<NamedExpression> namedExpressions =
         selectExpressionAnalyzer.analyze(node.getProjectList(), context,
             new ExpressionReferenceOptimizer(expressionAnalyzer.getRepository(), child));
+
+    for (UnresolvedExpression expr : node.getProjectList()) {
+      NestedAnalyzer nestedAnalyzer = new NestedAnalyzer(
+          namedExpressions, expressionAnalyzer, child
+      );
+      child = nestedAnalyzer.analyze(expr, context);
+    }
+
     // new context
     context.push();
     TypeEnvironment newEnv = context.peek();

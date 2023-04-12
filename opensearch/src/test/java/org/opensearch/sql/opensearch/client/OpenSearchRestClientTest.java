@@ -290,6 +290,7 @@ class OpenSearchRestClientTest {
                 new TotalHits(1L, TotalHits.Relation.EQUAL_TO),
                 1.0F));
     when(searchHit.getSourceAsString()).thenReturn("{\"id\", 1}");
+    when(searchHit.getInnerHits()).thenReturn(null);
     when(factory.construct(any())).thenReturn(exprTupleValue);
 
     // Mock second scroll request followed

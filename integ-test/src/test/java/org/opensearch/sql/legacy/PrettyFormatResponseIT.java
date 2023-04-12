@@ -196,7 +196,7 @@ public class PrettyFormatResponseIT extends SQLIntegTestCase {
         String.format(Locale.ROOT, "SELECT nested(message.info), someField FROM %s",
             TestsConstants.TEST_INDEX_NESTED_TYPE));
 
-    List<String> fields = Arrays.asList("message.info", "someField");
+    List<String> fields = Arrays.asList("nested(message.info)", "someField");
     assertContainsColumns(getSchema(response), fields);
     assertContainsData(getDataRows(response), fields);
 

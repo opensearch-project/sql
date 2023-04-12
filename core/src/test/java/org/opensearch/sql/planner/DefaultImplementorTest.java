@@ -18,6 +18,7 @@ import static org.opensearch.sql.planner.logical.LogicalPlanDSL.aggregation;
 import static org.opensearch.sql.planner.logical.LogicalPlanDSL.eval;
 import static org.opensearch.sql.planner.logical.LogicalPlanDSL.filter;
 import static org.opensearch.sql.planner.logical.LogicalPlanDSL.limit;
+import static org.opensearch.sql.planner.logical.LogicalPlanDSL.nested;
 import static org.opensearch.sql.planner.logical.LogicalPlanDSL.project;
 import static org.opensearch.sql.planner.logical.LogicalPlanDSL.rareTopN;
 import static org.opensearch.sql.planner.logical.LogicalPlanDSL.remove;
@@ -31,6 +32,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.apache.commons.lang3.tuple.Pair;
 import org.junit.jupiter.api.Test;
@@ -99,59 +101,81 @@ class DefaultImplementorTest {
         ImmutablePair.of(Sort.SortOption.DEFAULT_ASC, ref("name1", STRING));
     Integer limit = 1;
     Integer offset = 1;
+    List<Map<String, ReferenceExpression>> nestedArgs = List.of(
+        Map.of(
+            "field", new ReferenceExpression("message.info", STRING),
+            "path", new ReferenceExpression("message", STRING)
+        )
+    );
+    List<NamedExpression> nestedProjectList =
+        List.of(
+            new NamedExpression(
+                "message.info",
+                DSL.nested(DSL.ref("message.info", STRING)),
+                null
+            )
+        );
+    Set<String> nestedOperatorArgs = Set.of("message.info");
+    Map<String, List<String>> groupedFieldsByPath =
+        Map.of("message", List.of("message.info"));
+
 
     LogicalPlan plan =
         project(
-            limit(
-                LogicalPlanDSL.dedupe(
-                    rareTopN(
-                        sort(
-                            eval(
-                                remove(
-                                    rename(
-                                        aggregation(
-                                            filter(values(emptyList()), filterExpr),
-                                            aggregators,
-                                            groupByExprs),
-                                        mappings),
-                                    exclude),
-                                newEvalField),
-                            sortField),
-                        CommandType.TOP,
-                        topByExprs,
-                        rareTopNField),
-                    dedupeField),
-                limit,
-                offset),
+            nested(
+              limit(
+                  LogicalPlanDSL.dedupe(
+                      rareTopN(
+                          sort(
+                              eval(
+                                  remove(
+                                      rename(
+                                          aggregation(
+                                              filter(values(emptyList()), filterExpr),
+                                              aggregators,
+                                              groupByExprs),
+                                          mappings),
+                                      exclude),
+                                  newEvalField),
+                              sortField),
+                          CommandType.TOP,
+                          topByExprs,
+                          rareTopNField),
+                      dedupeField),
+                  limit,
+                  offset),
+            nestedArgs, nestedProjectList),
             include);
 
     PhysicalPlan actual = plan.accept(implementor, null);
 
     assertEquals(
         PhysicalPlanDSL.project(
-            PhysicalPlanDSL.limit(
-                PhysicalPlanDSL.dedupe(
-                    PhysicalPlanDSL.rareTopN(
-                        PhysicalPlanDSL.sort(
-                            PhysicalPlanDSL.eval(
-                                PhysicalPlanDSL.remove(
-                                    PhysicalPlanDSL.rename(
-                                        PhysicalPlanDSL.agg(
-                                            PhysicalPlanDSL.filter(
-                                                PhysicalPlanDSL.values(emptyList()),
-                                                filterExpr),
-                                            aggregators,
-                                            groupByExprs),
-                                        mappings),
-                                    exclude),
-                                newEvalField),
-                            sortField),
-                        CommandType.TOP,
-                        topByExprs,
-                        rareTopNField),
-                    dedupeField),
-                limit,
-                offset),
+            PhysicalPlanDSL.nested(
+              PhysicalPlanDSL.limit(
+                  PhysicalPlanDSL.dedupe(
+                      PhysicalPlanDSL.rareTopN(
+                          PhysicalPlanDSL.sort(
+                              PhysicalPlanDSL.eval(
+                                  PhysicalPlanDSL.remove(
+                                      PhysicalPlanDSL.rename(
+                                          PhysicalPlanDSL.agg(
+                                              PhysicalPlanDSL.filter(
+                                                  PhysicalPlanDSL.values(emptyList()),
+                                                  filterExpr),
+                                              aggregators,
+                                              groupByExprs),
+                                          mappings),
+                                      exclude),
+                                  newEvalField),
+                              sortField),
+                          CommandType.TOP,
+                          topByExprs,
+                          rareTopNField),
+                      dedupeField),
+                  limit,
+                  offset),
+                nestedOperatorArgs, groupedFieldsByPath),
             include),
         actual);
   }
