@@ -34,6 +34,7 @@ import org.opensearch.sql.ast.expression.Not;
 import org.opensearch.sql.ast.expression.Or;
 import org.opensearch.sql.ast.expression.ParseMethod;
 import org.opensearch.sql.ast.expression.QualifiedName;
+import org.opensearch.sql.ast.expression.ScoreFunction;
 import org.opensearch.sql.ast.expression.Span;
 import org.opensearch.sql.ast.expression.SpanUnit;
 import org.opensearch.sql.ast.expression.UnresolvedArgument;
@@ -60,7 +61,6 @@ import org.opensearch.sql.ast.tree.Sort.SortOption;
 import org.opensearch.sql.ast.tree.TableFunction;
 import org.opensearch.sql.ast.tree.UnresolvedPlan;
 import org.opensearch.sql.ast.tree.Values;
-import org.opensearch.sql.expression.function.BuiltinFunctionName;
 
 /**
  * Class of static methods to create specific node instances.
@@ -283,6 +283,11 @@ public class AstDSL {
   public UnresolvedExpression highlight(UnresolvedExpression fieldName,
       java.util.Map<String, Literal> arguments) {
     return new HighlightFunction(fieldName, arguments);
+  }
+
+  public UnresolvedExpression score(UnresolvedExpression relevanceQuery,
+                                    Literal relevanceFieldWeight) {
+    return new ScoreFunction(relevanceQuery, relevanceFieldWeight);
   }
 
   public UnresolvedExpression window(UnresolvedExpression function,
