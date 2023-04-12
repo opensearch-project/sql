@@ -28,6 +28,7 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.apache.commons.lang3.tuple.Pair;
 import org.junit.jupiter.api.BeforeEach;
@@ -59,6 +60,7 @@ import org.opensearch.sql.opensearch.planner.physical.MLCommonsOperator;
 import org.opensearch.sql.opensearch.planner.physical.MLOperator;
 import org.opensearch.sql.opensearch.setting.OpenSearchSettings;
 import org.opensearch.sql.opensearch.storage.OpenSearchIndexScan;
+import org.opensearch.sql.planner.physical.NestedOperator;
 import org.opensearch.sql.planner.physical.PhysicalPlan;
 import org.opensearch.sql.planner.physical.PhysicalPlanDSL;
 
@@ -104,10 +106,8 @@ class OpenSearchExecutionProtectorTest {
         ImmutableMap.of(ref("name", STRING), ref("lastname", STRING));
     Pair<ReferenceExpression, Expression> newEvalField =
         ImmutablePair.of(ref("name1", STRING), ref("name", STRING));
-    Integer sortCount = 100;
     Pair<Sort.SortOption, Expression> sortField =
         ImmutablePair.of(DEFAULT_ASC, ref("name1", STRING));
-    Integer size = 200;
     Integer limit = 10;
     Integer offset = 10;
 
@@ -312,6 +312,21 @@ class OpenSearchExecutionProtectorTest {
 
     assertEquals(executionProtector.doProtect(mlOperator),
             executionProtector.visitML(mlOperator, null));
+  }
+
+  @Test
+  public void testVisitNested() {
+    Set<String> args = Set.of("message.info");
+    Map<String, List<String>> groupedFieldsByPath =
+        Map.of("message", List.of("message.info"));
+    NestedOperator nestedOperator =
+        new NestedOperator(
+            values(emptyList()),
+            args,
+            groupedFieldsByPath);
+
+    assertEquals(executionProtector.doProtect(nestedOperator),
+        executionProtector.visitNested(nestedOperator, values(emptyList())));
   }
 
   PhysicalPlan resourceMonitor(PhysicalPlan input) {

@@ -34,6 +34,8 @@ import static org.opensearch.sql.data.type.ExprCoreType.STRUCT;
 import static org.opensearch.sql.data.type.ExprCoreType.TIME;
 import static org.opensearch.sql.data.type.ExprCoreType.TIMESTAMP;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import java.time.Instant;
@@ -92,6 +94,23 @@ class OpenSearchExprValueFactoryTest {
     assertEquals(nullValue(), tupleValue("{\"intV\":null}").get("intV"));
     assertEquals(nullValue(), constructFromObject("intV",  null));
     assertTrue(new OpenSearchJsonContent(null).isNull());
+  }
+
+  @Test
+  public void iterateArrayValue() throws JsonProcessingException {
+    ObjectMapper mapper = new ObjectMapper();
+    var arrayIt = new OpenSearchJsonContent(mapper.readTree("[\"zz\",\"bb\"]")).array();
+    assertTrue(arrayIt.next().stringValue().equals("zz"));
+    assertTrue(arrayIt.next().stringValue().equals("bb"));
+    assertTrue(!arrayIt.hasNext());
+  }
+
+  @Test
+  public void iterateArrayValueWithOneElement() throws JsonProcessingException {
+    ObjectMapper mapper = new ObjectMapper();
+    var arrayIt = new OpenSearchJsonContent(mapper.readTree("[\"zz\"]")).array();
+    assertTrue(arrayIt.next().stringValue().equals("zz"));
+    assertTrue(!arrayIt.hasNext());
   }
 
   @Test
