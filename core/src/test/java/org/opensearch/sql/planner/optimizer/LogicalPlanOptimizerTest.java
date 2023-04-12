@@ -346,7 +346,7 @@ class LogicalPlanOptimizerTest {
   @Test
   void push_page_size_noop_if_no_relation() {
     var paginate = new LogicalPaginate(42, List.of(project(values())));
-    LogicalPlanOptimizer.create().optimize(paginate);
+    assertEquals(paginate, LogicalPlanOptimizer.create().optimize(paginate));
   }
 
   @Test
@@ -395,7 +395,7 @@ class LogicalPlanOptimizerTest {
         .optimize(new LogicalPaginate(42, List.of(project(relation))));
     // `optimized` structure: LogicalPaginate -> LogicalProject -> TableScanBuilder
     // LogicalRelation replaced by a TableScanBuilder instance
-    assertEquals(project(pagedTableScanBuilder), optimized);
+    assertEquals(paginate(project(pagedTableScanBuilder), 42), optimized);
   }
 
   private LogicalPlan optimize(LogicalPlan plan) {
