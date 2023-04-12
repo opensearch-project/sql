@@ -8,24 +8,28 @@ package org.opensearch.sql.expression.function;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.opensearch.sql.data.type.ExprCoreType.BOOLEAN;
+import static org.opensearch.sql.data.type.ExprCoreType.STRING;
 
-import com.google.common.collect.ImmutableMap;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import org.junit.jupiter.api.Test;
 import org.opensearch.sql.data.model.ExprTupleValue;
+import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.data.model.ExprValueUtils;
 import org.opensearch.sql.expression.DSL;
+import org.opensearch.sql.expression.Expression;
 import org.opensearch.sql.expression.ExpressionTestBase;
 import org.opensearch.sql.expression.FunctionExpression;
 import org.opensearch.sql.expression.NamedArgumentExpression;
+import org.opensearch.sql.expression.env.Environment;
 
 
 public class OpenSearchFunctionsTest extends ExpressionTestBase {
   private final NamedArgumentExpression field = new NamedArgumentExpression(
       "field", DSL.literal("message"));
   private final NamedArgumentExpression fields = new NamedArgumentExpression(
-      "fields", DSL.literal(new ExprTupleValue(new LinkedHashMap<>(ImmutableMap.of(
+      "fields", DSL.literal(new ExprTupleValue(new LinkedHashMap<>(Map.of(
           "title", ExprValueUtils.floatValue(1.F),
           "body", ExprValueUtils.floatValue(.3F))))));
   private final NamedArgumentExpression query = new NamedArgumentExpression(
@@ -204,5 +208,17 @@ public class OpenSearchFunctionsTest extends ExpressionTestBase {
     assertEquals(String.format("wildcard_query(field=%s, query=%s)",
             field.getValue(), query.getValue()),
         expr.toString());
+  }
+
+  @Test
+  void nested_query() {
+    FunctionExpression expr = DSL.nested(DSL.ref("message.info", STRING));
+    assertEquals(String.format("FunctionExpression(functionName=%s, arguments=[message.info])",
+        BuiltinFunctionName.NESTED.getName()),
+        expr.toString());
+    Environment<Expression, ExprValue> nestedTuple = ExprValueUtils.tupleValue(
+        Map.of("message", Map.of("info", "result"))).bindingTuples();
+    assertEquals(expr.valueOf(nestedTuple), ExprValueUtils.stringValue("result"));
+    assertEquals(expr.type(), STRING);
   }
 }

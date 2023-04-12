@@ -29,6 +29,7 @@ import org.opensearch.sql.opensearch.storage.serialization.DefaultExpressionSeri
 import org.opensearch.sql.planner.logical.LogicalFilter;
 import org.opensearch.sql.planner.logical.LogicalHighlight;
 import org.opensearch.sql.planner.logical.LogicalLimit;
+import org.opensearch.sql.planner.logical.LogicalNested;
 import org.opensearch.sql.planner.logical.LogicalProject;
 import org.opensearch.sql.planner.logical.LogicalSort;
 import org.opensearch.sql.storage.TableScanOperator;
@@ -113,6 +114,18 @@ class OpenSearchIndexScanQueryBuilder extends TableScanBuilder {
       return ((FunctionExpression) condition).getArguments().stream()
           .anyMatch(this::trackScoresFromOpenSearchFunction);
     }
+    return false;
+  }
+
+  @Override
+  public boolean pushDownNested(LogicalNested nested) {
+    indexScan.getRequestBuilder().pushDownNested(nested.getFields());
+    indexScan.getRequestBuilder().pushDownProjects(
+        findReferenceExpressions(nested.getProjectList()));
+    // Return false intentionally to keep the original nested operator
+    // Since we return false we need to pushDownProject here as it won't be
+    // pushed down due to no matching push down rule.
+    // TODO: improve LogicalPlanOptimizer pushdown api.
     return false;
   }
 

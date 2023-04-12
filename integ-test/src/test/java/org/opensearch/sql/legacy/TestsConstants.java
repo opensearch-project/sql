@@ -31,6 +31,8 @@ public class TestsConstants {
   public final static String TEST_INDEX_LOCATION = TEST_INDEX + "_location";
   public final static String TEST_INDEX_LOCATION2 = TEST_INDEX + "_location2";
   public final static String TEST_INDEX_NESTED_TYPE = TEST_INDEX + "_nested_type";
+  public final static String TEST_INDEX_NESTED_TYPE_WITHOUT_ARRAYS =
+      TEST_INDEX + "_nested_type_without_arrays";
   public final static String TEST_INDEX_NESTED_SIMPLE = TEST_INDEX + "_nested_simple";
   public final static String TEST_INDEX_NESTED_WITH_QUOTES =
       TEST_INDEX + "_nested_type_with_quotes";
@@ -55,6 +57,8 @@ public class TestsConstants {
   public final static String TEST_INDEX_NULL_MISSING = TEST_INDEX + "_null_missing";
   public final static String TEST_INDEX_CALCS = TEST_INDEX + "_calcs";
   public final static String TEST_INDEX_WILDCARD = TEST_INDEX + "_wildcard";
+  public final static String TEST_INDEX_MULTI_NESTED_TYPE = TEST_INDEX + "_multi_nested";
+  public final static String TEST_INDEX_NESTED_WITH_NULLS = TEST_INDEX + "_nested_with_nulls";
   public final static String DATASOURCES = ".ql-datasources";
 
   public final static String DATE_FORMAT = "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'";
