@@ -347,8 +347,6 @@ class LogicalPlanOptimizerTest {
       optimizer.optimize(projectPlan);
       verify(table).createScanBuilder();
       verify(table, never()).createPagedScanBuilder(anyInt());
-      // Assert that createPagedTableScan was not called
-      // Assert that createTableScan was called
     }
   }
 

@@ -43,17 +43,19 @@ public class CreatePagingTableScanBuilder implements Rule<LogicalPaginate> {
    */
   private boolean findLogicalRelation(LogicalPaginate logicalPaginate) {
     Deque<LogicalPlan> plans = new ArrayDeque<>();
-    plans.push(logicalPaginate);
+    plans.add(logicalPaginate);
     do {
-      var plan = plans.pop();
-      if (plan.getChild().stream().anyMatch(LogicalRelation.class::isInstance)) {
-        if (plan.getChild().size() > 1) {
-          throw new UnsupportedOperationException();
+      final var plan = plans.removeFirst();
+      final var children = plan.getChild();
+      if (children.stream().anyMatch(LogicalRelation.class::isInstance)) {
+        if (children.size() > 1) {
+          throw new UnsupportedOperationException(
+              "Unsupported plan: relation operator cannot have siblings");
         }
         relationParent = plan;
         return true;
       }
-      plan.getChild().forEach(plans::push);
+      plans.addAll(children);
     } while (!plans.isEmpty());
     return false;
   }
