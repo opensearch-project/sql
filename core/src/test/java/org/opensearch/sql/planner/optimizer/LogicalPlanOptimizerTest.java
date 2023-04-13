@@ -76,10 +76,6 @@ class LogicalPlanOptimizerTest {
     lenient().when(table.createPagedScanBuilder(anyInt())).thenReturn(pagedTableScanBuilder);
   }
 
-
-
-
-
   /**
    * Filter - Filter --> Filter.
    */
