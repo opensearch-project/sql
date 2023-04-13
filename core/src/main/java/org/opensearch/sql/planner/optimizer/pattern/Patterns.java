@@ -16,6 +16,7 @@ import org.opensearch.sql.planner.logical.LogicalAggregation;
 import org.opensearch.sql.planner.logical.LogicalFilter;
 import org.opensearch.sql.planner.logical.LogicalHighlight;
 import org.opensearch.sql.planner.logical.LogicalLimit;
+import org.opensearch.sql.planner.logical.LogicalNested;
 import org.opensearch.sql.planner.logical.LogicalPlan;
 import org.opensearch.sql.planner.logical.LogicalProject;
 import org.opensearch.sql.planner.logical.LogicalRelation;
@@ -63,6 +64,13 @@ public class Patterns {
    */
   public static <T extends LogicalPlan> Pattern<LogicalHighlight> highlight(Pattern<T> pattern) {
     return Pattern.typeOf(LogicalHighlight.class).with(source(pattern));
+  }
+
+  /**
+   * Logical nested operator with a given pattern on inner field.
+   */
+  public static <T extends LogicalPlan> Pattern<LogicalNested> nested(Pattern<T> pattern) {
+    return Pattern.typeOf(LogicalNested.class).with(source(pattern));
   }
 
   /**

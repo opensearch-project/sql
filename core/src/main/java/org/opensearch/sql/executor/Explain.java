@@ -23,6 +23,7 @@ import org.opensearch.sql.planner.physical.DedupeOperator;
 import org.opensearch.sql.planner.physical.EvalOperator;
 import org.opensearch.sql.planner.physical.FilterOperator;
 import org.opensearch.sql.planner.physical.LimitOperator;
+import org.opensearch.sql.planner.physical.NestedOperator;
 import org.opensearch.sql.planner.physical.PhysicalPlan;
 import org.opensearch.sql.planner.physical.PhysicalPlanNodeVisitor;
 import org.opensearch.sql.planner.physical.ProjectOperator;
@@ -140,6 +141,12 @@ public class Explain extends PhysicalPlanNodeVisitor<ExplainResponseNode, Object
   public ExplainResponseNode visitLimit(LimitOperator node, Object context) {
     return explain(node, context, explanNode -> explanNode.setDescription(ImmutableMap.of(
         "limit", node.getLimit(), "offset", node.getOffset())));
+  }
+
+  @Override
+  public ExplainResponseNode visitNested(NestedOperator node, Object context) {
+    return explain(node, context, explanNode -> explanNode.setDescription(ImmutableMap.of(
+        "nested", node.getFields())));
   }
 
   protected ExplainResponseNode explain(PhysicalPlan node, Object context,

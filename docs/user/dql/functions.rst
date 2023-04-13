@@ -4329,6 +4329,29 @@ Another example to show how to set custom values for the optional parameters::
     | tEsT wIlDcArD sensitive cases             |
     +-------------------------------------------+
 
+NESTED
+------
+
+Description
+>>>>>>>>>>>
+
+``nested(field | [field, path])``
+
+The ``nested`` function maps to the ``nested`` query used in search engine. It returns nested field types in documents that match the provided specified field(s).
+If the user does not provide the ``path`` parameter it will be generated dynamically. For example the ``field`` ``user.office.cubicle`` would dynamically generate the path
+``user.office``.
+
+Example with ``field`` and ``path`` parameters::
+
+    os> SELECT nested(message.info, message) FROM nested;
+    fetched rows / total rows = 2/2
+    +---------------------------------+
+    | nested(message.info, message)   |
+    |---------------------------------|
+    | a                               |
+    | b                               |
+    +---------------------------------+
+
 System Functions
 ================
 

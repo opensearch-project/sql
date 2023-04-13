@@ -74,6 +74,14 @@ public class LogicalPlanDSL {
     return new LogicalHighlight(input, field, arguments);
   }
 
+
+  public static LogicalPlan nested(
+      LogicalPlan input,
+      List<Map<String, ReferenceExpression>> nestedArgs,
+      List<NamedExpression> projectList) {
+    return new LogicalNested(input, nestedArgs, projectList);
+  }
+
   public static LogicalPlan remove(LogicalPlan input, ReferenceExpression... fields) {
     return new LogicalRemove(input, ImmutableSet.copyOf(fields));
   }

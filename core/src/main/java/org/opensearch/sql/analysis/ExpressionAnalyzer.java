@@ -416,17 +416,6 @@ public class ExpressionAnalyzer extends AbstractNodeVisitor<Expression, Analysis
     ReferenceExpression ref = DSL.ref(ident,
         typeEnv.resolve(new Symbol(Namespace.FIELD_NAME, ident)));
 
-    // Fall back to old engine too if type is not supported semantically
-    if (isTypeNotSupported(ref.type())) {
-      throw new SyntaxCheckException(String.format(
-          "Identifier [%s] of type [%s] is not supported yet", ident, ref.type()));
-    }
     return ref;
   }
-
-  // Array type is not supporte yet.
-  private boolean isTypeNotSupported(ExprType type) {
-    return "array".equalsIgnoreCase(type.typeName());
-  }
-
 }
