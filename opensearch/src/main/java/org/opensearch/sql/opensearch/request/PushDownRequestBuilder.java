@@ -27,37 +27,18 @@ public interface PushDownRequestBuilder {
     return (current instanceof BoolQueryBuilder);
   }
 
-  private String throwUnsupported(String operation) {
-    return String.format("%s: push down %s in cursor requests is not supported",
-        getClass().getSimpleName(), operation);
-  }
+  void pushDownFilter(QueryBuilder query);
 
-  default void pushDownFilter(QueryBuilder query) {
-    throw new UnsupportedOperationException(throwUnsupported("filter"));
-  }
+  void pushDownAggregation(Pair<List<AggregationBuilder>,
+                               OpenSearchAggregationResponseParser> aggregationBuilder);
 
-  default void pushDownAggregation(
-      Pair<List<AggregationBuilder>, OpenSearchAggregationResponseParser> aggregationBuilder) {
-    throw new UnsupportedOperationException(throwUnsupported("aggregation"));
-  }
+  void pushDownSort(List<SortBuilder<?>> sortBuilders);
 
-  default void pushDownSort(List<SortBuilder<?>> sortBuilders) {
-    throw new UnsupportedOperationException(throwUnsupported("sort"));
-  }
+  void pushDownLimit(Integer limit, Integer offset);
 
-  default void pushDownLimit(Integer limit, Integer offset) {
-    throw new UnsupportedOperationException(throwUnsupported("limit"));
-  }
+  void pushDownHighlight(String field, Map<String, Literal> arguments);
 
-  default void pushDownHighlight(String field, Map<String, Literal> arguments) {
-    throw new UnsupportedOperationException(throwUnsupported("highlight"));
-  }
+  void pushDownProjects(Set<ReferenceExpression> projects);
 
-  default void pushDownProjects(Set<ReferenceExpression> projects) {
-    throw new UnsupportedOperationException(throwUnsupported("projects"));
-  }
-
-  default void pushTypeMapping(Map<String, OpenSearchDataType> typeMapping) {
-    throw new UnsupportedOperationException(throwUnsupported("type mapping"));
-  }
+  void pushTypeMapping(Map<String, OpenSearchDataType> typeMapping);
 }
