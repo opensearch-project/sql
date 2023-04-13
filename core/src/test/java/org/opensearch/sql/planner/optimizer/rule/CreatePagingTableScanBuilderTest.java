@@ -35,6 +35,7 @@ class CreatePagingTableScanBuilderTest {
         .thenReturn(
             List.of(relation("t1", table), relation("t2", table)));
   }
+
   @Test
   void throws_when_mutliple_children() {
     final var pattern = new CreatePagingTableScanBuilder().pattern();

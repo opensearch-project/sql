@@ -39,7 +39,7 @@ public class CreatePagingTableScanBuilder implements Rule<LogicalPaginate> {
    * Finds an instance of LogicalRelation and saves a reference in relationParent variable.
    * @param logicalPaginate An instance of LogicalPaginate
    * @return true if {@link LogicalRelation} node was found among the descendents of
-   * {@link this.logicalPaginate}, false otherwise.
+   *     {@link this.logicalPaginate}, false otherwise.
    */
   private boolean findLogicalRelation(LogicalPaginate logicalPaginate) {
     Deque<LogicalPlan> plans = new ArrayDeque<>();
@@ -62,7 +62,7 @@ public class CreatePagingTableScanBuilder implements Rule<LogicalPaginate> {
   @Override
   public LogicalPlan apply(LogicalPaginate plan, Captures captures) {
     var logicalRelation = (LogicalRelation) relationParent.getChild().get(0);
-    var scan = logicalRelation.getTable().createPagedScanBuilder(logicalRelation.getPageSize());
+    var scan = logicalRelation.getTable().createPagedScanBuilder(plan.getPageSize());
     relationParent.replaceChildPlans(List.of(scan));
 
     return plan;

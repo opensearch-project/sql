@@ -7,7 +7,6 @@
 package org.opensearch.sql.planner.optimizer;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
@@ -330,14 +329,6 @@ class LogicalPlanOptimizerTest {
         LogicalPlanOptimizer.create().optimize(paginate(project(relation), 4)));
   }
 
-  @Test
-  void push_page_size() {
-    var relation = new LogicalRelation("schema", table);
-    var paginate = new LogicalPaginate(42, List.of(project(relation)));
-    assertNull(relation.getPageSize());
-    LogicalPlanOptimizer.create().optimize(paginate);
-    assertEquals(42, relation.getPageSize());
-  }
 
   @Test
   void push_page_size_noop_if_no_relation() {
@@ -364,7 +355,6 @@ class LogicalPlanOptimizerTest {
   @Test
   void pagination_optimizer_paged_query() {
     var relation = new LogicalRelation("schema", table);
-    relation.setPageSize(4);
     var projectPlan = project(relation, DSL.named(DSL.ref("intV", INTEGER)));
     var pagedPlan = new LogicalPaginate(10, List.of(projectPlan));
 
@@ -386,7 +376,6 @@ class LogicalPlanOptimizerTest {
     when(table.createPagedScanBuilder(anyInt())).thenReturn(pagedTableScanBuilder);
 
     var relation = new LogicalRelation("schema", table);
-    relation.setPageSize(4);
     var optimized = LogicalPlanOptimizer.create()
         .optimize(new LogicalPaginate(42, List.of(project(relation))));
     // `optimized` structure: LogicalPaginate -> LogicalProject -> TableScanBuilder
