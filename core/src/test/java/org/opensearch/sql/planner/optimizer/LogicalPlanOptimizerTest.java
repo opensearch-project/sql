@@ -327,7 +327,7 @@ class LogicalPlanOptimizerTest {
   @Test
   void paged_table_scan_builder_support_project_push_down_can_apply_its_rule() {
 
-    var relation = Mockito.spy(new LogicalRelation("schema", table));
+    var relation = relation("schema", table);
 
     assertEquals(
         paginate(project(pagedTableScanBuilder), 4),

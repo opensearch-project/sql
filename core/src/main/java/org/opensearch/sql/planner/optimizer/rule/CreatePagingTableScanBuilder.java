@@ -16,7 +16,6 @@ import org.opensearch.sql.planner.logical.LogicalPaginate;
 import org.opensearch.sql.planner.logical.LogicalPlan;
 import org.opensearch.sql.planner.logical.LogicalRelation;
 import org.opensearch.sql.planner.optimizer.Rule;
-import org.opensearch.sql.planner.physical.PhysicalPlan;
 
 /**
  * Rule to create a paged TableScanBuilder in pagination request.
@@ -33,22 +32,30 @@ public class CreatePagingTableScanBuilder implements Rule<LogicalPaginate> {
    * Constructor.
    */
   public CreatePagingTableScanBuilder() {
-    this.pattern = Pattern.typeOf(LogicalPaginate.class).matching(lp -> {
-      Deque<LogicalPlan> plans = new ArrayDeque<>();
-      plans.push(lp);
-      do {
-        var plan = plans.pop();
-        if (plan.getChild().stream().anyMatch(LogicalRelation.class::isInstance)) {
-          if (plan.getChild().size() > 1) {
-            throw new UnsupportedOperationException();
-          }
-          relationParent = plan;
-          return true;
+    this.pattern = Pattern.typeOf(LogicalPaginate.class).matching(this::findLogicalRelation);
+  }
+
+  /**
+   * Finds an instance of LogicalRelation and saves a reference in relationParent variable.
+   * @param logicalPaginate An instance of LogicalPaginate
+   * @return true if {@link LogicalRelation} node was found among the descendents of
+   * {@link this.logicalPaginate}, false otherwise.
+   */
+  private boolean findLogicalRelation(LogicalPaginate logicalPaginate) {
+    Deque<LogicalPlan> plans = new ArrayDeque<>();
+    plans.push(logicalPaginate);
+    do {
+      var plan = plans.pop();
+      if (plan.getChild().stream().anyMatch(LogicalRelation.class::isInstance)) {
+        if (plan.getChild().size() > 1) {
+          throw new UnsupportedOperationException();
         }
-        plan.getChild().forEach(plans::push);
-      } while (!plans.isEmpty());
-      return false;
-    });
+        relationParent = plan;
+        return true;
+      }
+      plan.getChild().forEach(plans::push);
+    } while (!plans.isEmpty());
+    return false;
   }
 
 

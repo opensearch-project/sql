@@ -28,12 +28,6 @@ public class QueryService {
 
   private final ExecutionEngine executionEngine;
 
-  /**
-   * There are two planners, one - to handle pagination requests (cursor/scroll) only and
-   * another one for everything else.
-   * @see OpenSearchPluginModule#queryPlanFactory (:plugin module)
-   * @see QueryService
-   */
   private final Planner planner;
 
   /**
