@@ -22,7 +22,7 @@ import org.opensearch.sql.exception.UnsupportedCursorRequestException;
 import org.opensearch.sql.executor.ExecutionEngine;
 import org.opensearch.sql.executor.QueryId;
 import org.opensearch.sql.executor.QueryService;
-import org.opensearch.sql.executor.pagination.PaginatedPlanCache;
+import org.opensearch.sql.executor.pagination.PlanSerializer;
 
 /**
  * QueryExecution Factory.
@@ -39,7 +39,7 @@ public class QueryPlanFactory
    * Query Service.
    */
   private final QueryService queryService;
-  private final PaginatedPlanCache paginatedPlanCache;
+  private final PlanSerializer planSerializer;
 
   /**
    * NO_CONSUMER_RESPONSE_LISTENER should never be called. It is only used as constructor
@@ -80,7 +80,7 @@ public class QueryPlanFactory
       ResponseListener<ExecutionEngine.ExplainResponse> explainListener) {
     QueryId queryId = QueryId.queryId();
     var plan = new ContinuePaginatedPlan(queryId, cursor, queryService,
-        paginatedPlanCache, queryResponseListener);
+            planSerializer, queryResponseListener);
     return isExplain ? new ExplainPlan(queryId, plan, explainListener) : plan;
   }
 
@@ -94,7 +94,7 @@ public class QueryPlanFactory
         context.getLeft().isPresent(), "[BUG] query listener must be not null");
 
     if (node.getFetchSize() > 0) {
-      if (paginatedPlanCache.canConvertToCursor(node.getPlan())) {
+      if (planSerializer.canConvertToCursor(node.getPlan())) {
         return new PaginatedPlan(QueryId.queryId(), node.getPlan(), node.getFetchSize(),
             queryService,
             context.getLeft().get());

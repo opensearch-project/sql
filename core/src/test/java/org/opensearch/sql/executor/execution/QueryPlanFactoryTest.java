@@ -29,7 +29,7 @@ import org.opensearch.sql.common.response.ResponseListener;
 import org.opensearch.sql.exception.UnsupportedCursorRequestException;
 import org.opensearch.sql.executor.ExecutionEngine;
 import org.opensearch.sql.executor.QueryService;
-import org.opensearch.sql.executor.pagination.PaginatedPlanCache;
+import org.opensearch.sql.executor.pagination.PlanSerializer;
 
 @ExtendWith(MockitoExtension.class)
 class QueryPlanFactoryTest {
@@ -50,12 +50,12 @@ class QueryPlanFactoryTest {
   private ExecutionEngine.QueryResponse queryResponse;
 
   @Mock
-  private PaginatedPlanCache paginatedPlanCache;
+  private PlanSerializer planSerializer;
   private QueryPlanFactory factory;
 
   @BeforeEach
   void init() {
-    factory = new QueryPlanFactory(queryService, paginatedPlanCache);
+    factory = new QueryPlanFactory(queryService, planSerializer);
   }
 
   @Test
@@ -125,8 +125,8 @@ class QueryPlanFactoryTest {
 
   @Test
   public void createQueryWithFetchSizeWhichCanBePaged() {
-    when(paginatedPlanCache.canConvertToCursor(plan)).thenReturn(true);
-    factory = new QueryPlanFactory(queryService, paginatedPlanCache);
+    when(planSerializer.canConvertToCursor(plan)).thenReturn(true);
+    factory = new QueryPlanFactory(queryService, planSerializer);
     Statement query = new Query(plan, 10);
     AbstractPlan queryExecution =
         factory.createContinuePaginatedPlan(query, Optional.of(queryListener), Optional.empty());
@@ -135,8 +135,8 @@ class QueryPlanFactoryTest {
 
   @Test
   public void createQueryWithFetchSizeWhichCannotBePaged() {
-    when(paginatedPlanCache.canConvertToCursor(plan)).thenReturn(false);
-    factory = new QueryPlanFactory(queryService, paginatedPlanCache);
+    when(planSerializer.canConvertToCursor(plan)).thenReturn(false);
+    factory = new QueryPlanFactory(queryService, planSerializer);
     Statement query = new Query(plan, 10);
     assertThrows(UnsupportedCursorRequestException.class,
         () -> factory.createContinuePaginatedPlan(query,

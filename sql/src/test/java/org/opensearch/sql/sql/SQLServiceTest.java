@@ -30,7 +30,7 @@ import org.opensearch.sql.executor.ExecutionEngine.ExplainResponse;
 import org.opensearch.sql.executor.ExecutionEngine.ExplainResponseNode;
 import org.opensearch.sql.executor.QueryService;
 import org.opensearch.sql.executor.execution.QueryPlanFactory;
-import org.opensearch.sql.executor.pagination.PaginatedPlanCache;
+import org.opensearch.sql.executor.pagination.PlanSerializer;
 import org.opensearch.sql.sql.antlr.SQLSyntaxParser;
 import org.opensearch.sql.sql.domain.SQLQueryRequest;
 
@@ -50,13 +50,13 @@ class SQLServiceTest {
   private QueryService queryService;
 
   @Mock
-  private PaginatedPlanCache paginatedPlanCache;
+  private PlanSerializer planSerializer;
 
   @BeforeEach
   public void setUp() {
     queryManager = DefaultQueryManager.defaultQueryManager();
     sqlService = new SQLService(new SQLSyntaxParser(), queryManager,
-        new QueryPlanFactory(queryService, paginatedPlanCache));
+        new QueryPlanFactory(queryService, planSerializer));
   }
 
   @AfterEach

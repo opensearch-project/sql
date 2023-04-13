@@ -8,7 +8,7 @@ package org.opensearch.sql.util;
 
 import static com.google.common.base.Strings.isNullOrEmpty;
 import static org.junit.Assert.assertTrue;
-import static org.opensearch.sql.executor.pagination.PaginatedPlanCache.CURSOR_PREFIX;
+import static org.opensearch.sql.executor.pagination.PlanSerializer.CURSOR_PREFIX;
 
 import java.io.BufferedReader;
 import java.io.File;

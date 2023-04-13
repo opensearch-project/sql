@@ -28,7 +28,7 @@ import org.opensearch.sql.storage.TableScanOperator;
  * and deserialization.
  */
 @RequiredArgsConstructor
-public class PaginatedPlanCache {
+public class PlanSerializer {
   public static final String CURSOR_PREFIX = "n:";
   private final StorageEngine storageEngine;
 
@@ -68,7 +68,7 @@ public class PaginatedPlanCache {
   }
 
   /**
-   * Decompresses a query plan that was compress with {@link PaginatedPlanCache#compress}.
+   * Decompresses a query plan that was compress with {@link PlanSerializer#compress}.
    * @param input compressed query plan
    * @return decompressed string
    */
