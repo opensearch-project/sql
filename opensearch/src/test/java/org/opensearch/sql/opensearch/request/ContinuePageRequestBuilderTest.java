@@ -5,9 +5,13 @@
 
 package org.opensearch.sql.opensearch.request;
 
+import static org.junit.jupiter.api.Assertions.assertAll;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+import java.util.Map;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayNameGeneration;
 import org.junit.jupiter.api.DisplayNameGenerator;
@@ -53,5 +57,25 @@ public class ContinuePageRequestBuilderTest {
   @Test
   public void getIndexName() {
     assertEquals(indexName, requestBuilder.getIndexName());
+  }
+
+  @Test
+  public void pushDown_not_supported() {
+    assertAll(
+        () -> assertThrows(UnsupportedOperationException.class,
+            () -> requestBuilder.pushDownFilter(mock())),
+        () -> assertThrows(UnsupportedOperationException.class,
+            () -> requestBuilder.pushDownAggregation(mock())),
+        () -> assertThrows(UnsupportedOperationException.class,
+            () -> requestBuilder.pushDownSort(mock())),
+        () -> assertThrows(UnsupportedOperationException.class,
+            () -> requestBuilder.pushDownLimit(1, 2)),
+        () -> assertThrows(UnsupportedOperationException.class,
+            () -> requestBuilder.pushDownHighlight("", Map.of())),
+        () -> assertThrows(UnsupportedOperationException.class,
+            () -> requestBuilder.pushDownProjects(mock())),
+        () -> assertThrows(UnsupportedOperationException.class,
+            () -> requestBuilder.pushTypeMapping(mock()))
+    );
   }
 }

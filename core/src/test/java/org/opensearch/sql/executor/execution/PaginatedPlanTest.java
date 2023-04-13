@@ -58,7 +58,7 @@ public class PaginatedPlanTest {
         fail();
       }
     };
-    var plan = new PaginatedPlan(QueryId.None, mock(UnresolvedPlan.class), 10,
+    var plan = new PaginatedPlan(QueryId.queryId(), mock(UnresolvedPlan.class), 10,
         queryService, listener);
     plan.execute();
   }
@@ -77,7 +77,7 @@ public class PaginatedPlanTest {
         assertNotNull(e);
       }
     };
-    var plan = new PaginatedPlan(QueryId.None, mock(UnresolvedPlan.class), 10,
+    var plan = new PaginatedPlan(QueryId.queryId(), mock(UnresolvedPlan.class), 10,
         new QueryService(null, new DefaultExecutionEngine(), null), listener);
     plan.execute();
   }

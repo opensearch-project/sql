@@ -32,7 +32,7 @@ import org.opensearch.sql.data.type.ExprCoreType;
 import org.opensearch.sql.datasource.DataSourceService;
 import org.opensearch.sql.datasource.DataSourceServiceImpl;
 import org.opensearch.sql.executor.ExecutionEngine;
-import org.opensearch.sql.executor.pagination.PaginatedPlanCache;
+import org.opensearch.sql.executor.pagination.PlanSerializer;
 import org.opensearch.sql.executor.QueryService;
 import org.opensearch.sql.expression.DSL;
 import org.opensearch.sql.legacy.SQLIntegTestCase;
@@ -56,7 +56,7 @@ public class StandalonePaginationIT extends SQLIntegTestCase {
 
   private QueryService queryService;
 
-  private PaginatedPlanCache paginatedPlanCache;
+  private PlanSerializer planSerializer;
 
   private OpenSearchClient client;
 
@@ -79,7 +79,7 @@ public class StandalonePaginationIT extends SQLIntegTestCase {
     Injector injector = modules.createInjector();
 
     queryService = injector.getInstance(QueryService.class);
-    paginatedPlanCache = injector.getInstance(PaginatedPlanCache.class);
+    planSerializer = injector.getInstance(PlanSerializer.class);
   }
 
   @Test
@@ -124,7 +124,7 @@ public class StandalonePaginationIT extends SQLIntegTestCase {
 
     // act 2, asserts in secondResponder
 
-    PhysicalPlan plan = paginatedPlanCache.convertToPlan(firstResponder.getCursor().toString());
+    PhysicalPlan plan = planSerializer.convertToPlan(firstResponder.getCursor().toString());
     var secondResponder = new TestResponder();
     queryService.executePlan(plan, secondResponder);
 

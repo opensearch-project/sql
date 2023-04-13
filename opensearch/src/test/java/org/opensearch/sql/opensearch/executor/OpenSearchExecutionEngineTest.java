@@ -43,7 +43,7 @@ import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.executor.ExecutionContext;
 import org.opensearch.sql.executor.ExecutionEngine;
 import org.opensearch.sql.executor.ExecutionEngine.ExplainResponse;
-import org.opensearch.sql.executor.pagination.PaginatedPlanCache;
+import org.opensearch.sql.executor.pagination.PlanSerializer;
 import org.opensearch.sql.opensearch.client.OpenSearchClient;
 import org.opensearch.sql.opensearch.data.value.OpenSearchExprValueFactory;
 import org.opensearch.sql.opensearch.executor.protector.OpenSearchExecutionProtector;
@@ -90,7 +90,7 @@ class OpenSearchExecutionEngineTest {
     when(protector.protect(plan)).thenReturn(plan);
 
     OpenSearchExecutionEngine executor = new OpenSearchExecutionEngine(client, protector,
-        new PaginatedPlanCache(null));
+        new PlanSerializer(null));
     List<ExprValue> actual = new ArrayList<>();
     executor.execute(
         plan,
@@ -120,7 +120,7 @@ class OpenSearchExecutionEngineTest {
     when(protector.protect(plan)).thenReturn(plan);
 
     OpenSearchExecutionEngine executor = new OpenSearchExecutionEngine(client, protector,
-        new PaginatedPlanCache(null));
+        new PlanSerializer(null));
     List<ExprValue> actual = new ArrayList<>();
     executor.execute(
         plan,
@@ -148,7 +148,7 @@ class OpenSearchExecutionEngineTest {
     when(protector.protect(plan)).thenReturn(plan);
 
     OpenSearchExecutionEngine executor = new OpenSearchExecutionEngine(client, protector,
-        new PaginatedPlanCache(null));
+        new PlanSerializer(null));
     AtomicReference<Exception> actual = new AtomicReference<>();
     executor.execute(
         plan,
@@ -170,7 +170,7 @@ class OpenSearchExecutionEngineTest {
   @Test
   void explain_successfully() {
     OpenSearchExecutionEngine executor = new OpenSearchExecutionEngine(client, protector,
-        new PaginatedPlanCache(null));
+        new PlanSerializer(null));
     Settings settings = mock(Settings.class);
     when(settings.getSettingValue(QUERY_SIZE_LIMIT)).thenReturn(100);
     when(settings.getSettingValue(SQL_CURSOR_KEEP_ALIVE))
@@ -199,7 +199,7 @@ class OpenSearchExecutionEngineTest {
   @Test
   void explain_with_failure() {
     OpenSearchExecutionEngine executor = new OpenSearchExecutionEngine(client, protector,
-        new PaginatedPlanCache(null));
+        new PlanSerializer(null));
     PhysicalPlan plan = mock(PhysicalPlan.class);
     when(plan.accept(any(), any())).thenThrow(IllegalStateException.class);
 
@@ -229,7 +229,7 @@ class OpenSearchExecutionEngineTest {
     when(executionContext.getSplit()).thenReturn(Optional.of(split));
 
     OpenSearchExecutionEngine executor = new OpenSearchExecutionEngine(client, protector,
-        new PaginatedPlanCache(null));
+        new PlanSerializer(null));
     List<ExprValue> actual = new ArrayList<>();
     executor.execute(
         plan,

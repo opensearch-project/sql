@@ -7,15 +7,22 @@ package org.opensearch.sql.opensearch.request;
 
 import static org.opensearch.sql.opensearch.request.OpenSearchRequestBuilder.DEFAULT_QUERY_TIMEOUT;
 
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import lombok.Getter;
+import org.apache.commons.lang3.tuple.Pair;
 import org.opensearch.common.unit.TimeValue;
+import org.opensearch.index.query.QueryBuilder;
+import org.opensearch.search.aggregations.AggregationBuilder;
 import org.opensearch.search.builder.SearchSourceBuilder;
+import org.opensearch.search.sort.SortBuilder;
+import org.opensearch.sql.ast.expression.Literal;
 import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.expression.ReferenceExpression;
 import org.opensearch.sql.opensearch.data.type.OpenSearchDataType;
 import org.opensearch.sql.opensearch.data.value.OpenSearchExprValueFactory;
+import org.opensearch.sql.opensearch.response.agg.OpenSearchAggregationResponseParser;
 
 /**
  * This builder assists creating the initial OpenSearch paging (scrolling) request.
@@ -53,6 +60,32 @@ public class InitialPageRequestBuilder extends PagedRequestBuilder {
   @Override
   public OpenSearchScrollRequest build() {
     return new OpenSearchScrollRequest(indexName, scrollTimeout, sourceBuilder, exprValueFactory);
+  }
+
+  @Override
+  public void pushDownFilter(QueryBuilder query) {
+    throw new UnsupportedOperationException("Pagination does not support filter (WHERE clause)");
+  }
+
+  @Override
+  public void pushDownAggregation(Pair<List<AggregationBuilder>,
+                                      OpenSearchAggregationResponseParser> aggregationBuilder) {
+    throw new UnsupportedOperationException("Pagination does not support aggregations");
+  }
+
+  @Override
+  public void pushDownSort(List<SortBuilder<?>> sortBuilders) {
+    throw new UnsupportedOperationException("Pagination does not support sort (ORDER BY clause)");
+  }
+
+  @Override
+  public void pushDownLimit(Integer limit, Integer offset) {
+    throw new UnsupportedOperationException("Pagination does not support limit (LIMIT clause)");
+  }
+
+  @Override
+  public void pushDownHighlight(String field, Map<String, Literal> arguments) {
+    throw new UnsupportedOperationException("Pagination does not support highlight function");
   }
 
   /**

@@ -35,11 +35,11 @@ import org.opensearch.sql.storage.StorageEngine;
 import org.opensearch.sql.storage.TableScanOperator;
 
 @DisplayNameGeneration(DisplayNameGenerator.ReplaceUnderscores.class)
-public class PaginatedPlanCacheTest {
+public class PlanSerializerTest {
 
   StorageEngine storageEngine;
 
-  PaginatedPlanCache planCache;
+  PlanSerializer planCache;
 
   // encoded query 'select * from cacls' o_O
   static final String testCursor = "(Paginate,1,2,(Project,"
@@ -275,7 +275,7 @@ public class PaginatedPlanCacheTest {
     storageEngine = mock(StorageEngine.class);
     when(storageEngine.getTableScan(anyString(), anyString()))
         .thenReturn(new MockedTableScanOperator());
-    planCache = new PaginatedPlanCache(storageEngine);
+    planCache = new PlanSerializer(storageEngine);
   }
 
   @Test
@@ -449,11 +449,11 @@ public class PaginatedPlanCacheTest {
 
   @SneakyThrows
   private static String compress(String input) {
-    return new PaginatedPlanCache(null).compress(input);
+    return new PlanSerializer(null).compress(input);
   }
 
   @SneakyThrows
   private static String decompress(String input) {
-    return new PaginatedPlanCache(null).decompress(input);
+    return new PlanSerializer(null).decompress(input);
   }
 }

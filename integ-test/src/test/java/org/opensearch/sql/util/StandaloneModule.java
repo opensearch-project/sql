@@ -15,7 +15,7 @@ import org.opensearch.sql.analysis.ExpressionAnalyzer;
 import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.datasource.DataSourceService;
 import org.opensearch.sql.executor.ExecutionEngine;
-import org.opensearch.sql.executor.pagination.PaginatedPlanCache;
+import org.opensearch.sql.executor.pagination.PlanSerializer;
 import org.opensearch.sql.executor.QueryManager;
 import org.opensearch.sql.executor.QueryService;
 import org.opensearch.sql.executor.execution.QueryPlanFactory;
@@ -68,8 +68,8 @@ public class StandaloneModule extends AbstractModule {
 
   @Provides
   public ExecutionEngine executionEngine(OpenSearchClient client, ExecutionProtector protector,
-                                         PaginatedPlanCache paginatedPlanCache) {
-    return new OpenSearchExecutionEngine(client, protector, paginatedPlanCache);
+                                         PlanSerializer planSerializer) {
+    return new OpenSearchExecutionEngine(client, protector, planSerializer);
   }
 
   @Provides
@@ -99,16 +99,16 @@ public class StandaloneModule extends AbstractModule {
   }
 
   @Provides
-  public PaginatedPlanCache paginatedPlanCache(StorageEngine storageEngine) {
-    return new PaginatedPlanCache(storageEngine);
+  public PlanSerializer paginatedPlanCache(StorageEngine storageEngine) {
+    return new PlanSerializer(storageEngine);
   }
 
   @Provides
   public QueryPlanFactory queryPlanFactory(ExecutionEngine executionEngine,
-                                           PaginatedPlanCache paginatedPlanCache,
+                                           PlanSerializer planSerializer,
                                            QueryService qs) {
 
-    return new QueryPlanFactory(qs, paginatedPlanCache);
+    return new QueryPlanFactory(qs, planSerializer);
   }
 
   @Provides

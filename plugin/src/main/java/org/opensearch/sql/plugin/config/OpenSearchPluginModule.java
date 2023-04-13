@@ -18,7 +18,7 @@ import org.opensearch.sql.executor.ExecutionEngine;
 import org.opensearch.sql.executor.QueryManager;
 import org.opensearch.sql.executor.QueryService;
 import org.opensearch.sql.executor.execution.QueryPlanFactory;
-import org.opensearch.sql.executor.pagination.PaginatedPlanCache;
+import org.opensearch.sql.executor.pagination.PlanSerializer;
 import org.opensearch.sql.expression.function.BuiltinFunctionRepository;
 import org.opensearch.sql.monitor.ResourceMonitor;
 import org.opensearch.sql.opensearch.client.OpenSearchClient;
@@ -60,8 +60,8 @@ public class OpenSearchPluginModule extends AbstractModule {
 
   @Provides
   public ExecutionEngine executionEngine(OpenSearchClient client, ExecutionProtector protector,
-                                         PaginatedPlanCache paginatedPlanCache) {
-    return new OpenSearchExecutionEngine(client, protector, paginatedPlanCache);
+                                         PlanSerializer planSerializer) {
+    return new OpenSearchExecutionEngine(client, protector, planSerializer);
   }
 
   @Provides
@@ -75,8 +75,8 @@ public class OpenSearchPluginModule extends AbstractModule {
   }
 
   @Provides
-  public PaginatedPlanCache paginatedPlanCache(StorageEngine storageEngine) {
-    return new PaginatedPlanCache(storageEngine);
+  public PlanSerializer paginatedPlanCache(StorageEngine storageEngine) {
+    return new PlanSerializer(storageEngine);
   }
 
   @Provides
@@ -101,13 +101,13 @@ public class OpenSearchPluginModule extends AbstractModule {
   @Provides
   public QueryPlanFactory queryPlanFactory(DataSourceService dataSourceService,
       ExecutionEngine executionEngine,
-      PaginatedPlanCache paginatedPlanCache) {
+      PlanSerializer planSerializer) {
     Analyzer analyzer =
         new Analyzer(
             new ExpressionAnalyzer(functionRepository), dataSourceService, functionRepository);
     Planner planner = new Planner(LogicalPlanOptimizer.create());
     QueryService queryService = new QueryService(
         analyzer, executionEngine, planner);
-    return new QueryPlanFactory(queryService, paginatedPlanCache);
+    return new QueryPlanFactory(queryService, planSerializer);
   }
 }

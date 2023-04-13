@@ -14,7 +14,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.mockito.Mockito.withSettings;
-import static org.opensearch.sql.executor.pagination.PaginatedPlanCacheTest.buildCursor;
+import static org.opensearch.sql.executor.pagination.PlanSerializerTest.buildCursor;
 
 import java.util.Map;
 import org.junit.jupiter.api.BeforeAll;
@@ -26,14 +26,14 @@ import org.opensearch.sql.executor.DefaultExecutionEngine;
 import org.opensearch.sql.executor.ExecutionEngine;
 import org.opensearch.sql.executor.QueryId;
 import org.opensearch.sql.executor.QueryService;
-import org.opensearch.sql.executor.pagination.PaginatedPlanCache;
+import org.opensearch.sql.executor.pagination.PlanSerializer;
 import org.opensearch.sql.storage.StorageEngine;
 import org.opensearch.sql.storage.TableScanOperator;
 
 @DisplayNameGeneration(DisplayNameGenerator.ReplaceUnderscores.class)
 public class ContinuePaginatedPlanTest {
 
-  private static PaginatedPlanCache paginatedPlanCache;
+  private static PlanSerializer planSerializer;
 
   private static QueryService queryService;
 
@@ -45,7 +45,7 @@ public class ContinuePaginatedPlanTest {
     var storageEngine = mock(StorageEngine.class);
     when(storageEngine.getTableScan(anyString(), anyString()))
         .thenReturn(mock(TableScanOperator.class));
-    paginatedPlanCache = new PaginatedPlanCache(storageEngine);
+    planSerializer = new PlanSerializer(storageEngine);
     queryService = new QueryService(null, new DefaultExecutionEngine(), null);
   }
 
@@ -62,8 +62,8 @@ public class ContinuePaginatedPlanTest {
         fail();
       }
     };
-    var plan = new ContinuePaginatedPlan(QueryId.None, buildCursor(Map.of()),
-        queryService, paginatedPlanCache, listener);
+    var plan = new ContinuePaginatedPlan(QueryId.queryId(), buildCursor(Map.of()),
+        queryService, planSerializer, listener);
     plan.execute();
   }
 
@@ -81,8 +81,8 @@ public class ContinuePaginatedPlanTest {
         assertNotNull(e);
       }
     };
-    var plan = new ContinuePaginatedPlan(QueryId.None, buildCursor(Map.of("pageSize", "abc")),
-        queryService, paginatedPlanCache, listener);
+    var plan = new ContinuePaginatedPlan(QueryId.queryId(), buildCursor(Map.of("pageSize", "abc")),
+        queryService, planSerializer, listener);
     plan.execute();
   }
 
