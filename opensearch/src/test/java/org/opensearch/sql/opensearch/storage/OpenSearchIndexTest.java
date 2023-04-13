@@ -192,6 +192,21 @@ class OpenSearchIndexTest {
   }
 
   @Test
+  void getReservedFieldTypes() {
+    Map<String, ExprType> fieldTypes = index.getReservedFieldTypes();
+    assertThat(
+        fieldTypes,
+        allOf(
+            aMapWithSize(5),
+            hasEntry("_id", ExprCoreType.STRING),
+            hasEntry("_index", ExprCoreType.STRING),
+            hasEntry("_sort", ExprCoreType.LONG),
+            hasEntry("_score", ExprCoreType.FLOAT),
+            hasEntry("_maxscore", ExprCoreType.FLOAT)
+        ));
+  }
+
+  @Test
   void implementRelationOperatorOnly() {
     when(settings.getSettingValue(Settings.Key.QUERY_SIZE_LIMIT)).thenReturn(200);
     when(settings.getSettingValue(Settings.Key.SQL_CURSOR_KEEP_ALIVE))
@@ -200,10 +215,8 @@ class OpenSearchIndexTest {
 
     LogicalPlan plan = index.createScanBuilder();
     Integer maxResultWindow = index.getMaxResultWindow();
-    OpenSearchRequestBuilder
-        builder = new OpenSearchRequestBuilder(indexName, maxResultWindow,
-        settings, exprValueFactory);
-    assertEquals(new OpenSearchIndexScan(client, builder), index.implement(plan));
+    assertEquals(new OpenSearchIndexScan(client, settings, indexName,
+        maxResultWindow, exprValueFactory), index.implement(index.optimize(plan)));
   }
 
   @Test
@@ -229,12 +242,8 @@ class OpenSearchIndexTest {
 
     LogicalPlan plan = index.createScanBuilder();
     Integer maxResultWindow = index.getMaxResultWindow();
-    OpenSearchRequestBuilder
-        builder = new OpenSearchRequestBuilder(indexName, maxResultWindow,
-        settings, exprValueFactory);
-    assertEquals(
-        new OpenSearchIndexScan(client, builder),
-        index.implement(index.optimize(plan)));
+    assertEquals(new OpenSearchIndexScan(client, settings, indexName,
+            maxResultWindow, exprValueFactory), index.implement(plan));
   }
 
   @Test
@@ -283,10 +292,8 @@ class OpenSearchIndexTest {
                     PhysicalPlanDSL.eval(
                         PhysicalPlanDSL.remove(
                             PhysicalPlanDSL.rename(
-                                new OpenSearchIndexScan(client,
-                                    new OpenSearchRequestBuilder(
-                                      indexName, maxResultWindow,
-                                      settings, exprValueFactory)),
+                                new OpenSearchIndexScan(client, settings, indexName,
+                                    maxResultWindow, exprValueFactory),
                                 mappings),
                             exclude),
                         newEvalField),

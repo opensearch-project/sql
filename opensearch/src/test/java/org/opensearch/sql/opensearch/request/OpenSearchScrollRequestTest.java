@@ -11,10 +11,14 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.Function;
 import org.apache.lucene.search.TotalHits;
 import org.junit.jupiter.api.DisplayNameGeneration;
 import org.junit.jupiter.api.DisplayNameGenerator;
@@ -30,12 +34,34 @@ import org.opensearch.index.query.QueryBuilders;
 import org.opensearch.search.SearchHit;
 import org.opensearch.search.SearchHits;
 import org.opensearch.search.builder.SearchSourceBuilder;
+import org.opensearch.search.fetch.subphase.FetchSourceContext;
 import org.opensearch.sql.opensearch.data.value.OpenSearchExprValueFactory;
+import org.opensearch.sql.opensearch.response.OpenSearchResponse;
 
 @ExtendWith(MockitoExtension.class)
 @DisplayNameGeneration(DisplayNameGenerator.ReplaceUnderscores.class)
 class OpenSearchScrollRequestTest {
 
+  @Mock
+  private Function<SearchRequest, SearchResponse> searchAction;
+
+  @Mock
+  private Function<SearchScrollRequest, SearchResponse> scrollAction;
+
+  @Mock
+  private SearchResponse searchResponse;
+
+  @Mock
+  private SearchHits searchHits;
+
+  @Mock
+  private SearchHit searchHit;
+
+  @Mock
+  private SearchSourceBuilder sourceBuilder;
+
+  @Mock
+  private FetchSourceContext fetchSourceContext;
   @Mock
   private OpenSearchExprValueFactory factory;
 
@@ -74,6 +100,66 @@ class OpenSearchScrollRequestTest {
             .scroll(TimeValue.timeValueMinutes(1))
             .scrollId("scroll123"),
         request.scrollRequest());
+  }
+
+  @Test
+  void search() {
+    OpenSearchScrollRequest request = new OpenSearchScrollRequest(
+        new OpenSearchRequest.IndexName("test"),
+        TimeValue.timeValueMinutes(1),
+        sourceBuilder,
+        factory
+    );
+
+    String[] includes = {"_id", "_index"};
+    when(sourceBuilder.fetchSource()).thenReturn(fetchSourceContext);
+    when(fetchSourceContext.includes()).thenReturn(includes);
+    when(searchAction.apply(any())).thenReturn(searchResponse);
+    when(searchResponse.getHits()).thenReturn(searchHits);
+    when(searchHits.getHits()).thenReturn(new SearchHit[] {searchHit});
+
+    OpenSearchResponse searchResponse = request.search(searchAction, scrollAction);
+    verify(fetchSourceContext, times(2)).includes();
+    assertFalse(searchResponse.isEmpty());
+  }
+
+  @Test
+  void search_withoutContext() {
+    OpenSearchScrollRequest request = new OpenSearchScrollRequest(
+        new OpenSearchRequest.IndexName("test"),
+        TimeValue.timeValueMinutes(1),
+        sourceBuilder,
+        factory
+    );
+
+    when(sourceBuilder.fetchSource()).thenReturn(null);
+    when(searchAction.apply(any())).thenReturn(searchResponse);
+    when(searchResponse.getHits()).thenReturn(searchHits);
+    when(searchHits.getHits()).thenReturn(new SearchHit[] {searchHit});
+
+    OpenSearchResponse searchResponse = request.search(searchAction, scrollAction);
+    verify(sourceBuilder, times(1)).fetchSource();
+    assertFalse(searchResponse.isEmpty());
+  }
+
+  @Test
+  void search_withoutIncludes() {
+    OpenSearchScrollRequest request = new OpenSearchScrollRequest(
+        new OpenSearchRequest.IndexName("test"),
+        TimeValue.timeValueMinutes(1),
+        sourceBuilder,
+        factory
+    );
+
+    when(sourceBuilder.fetchSource()).thenReturn(fetchSourceContext);
+    when(fetchSourceContext.includes()).thenReturn(null);
+    when(searchAction.apply(any())).thenReturn(searchResponse);
+    when(searchResponse.getHits()).thenReturn(searchHits);
+    when(searchHits.getHits()).thenReturn(new SearchHit[]{searchHit});
+
+    OpenSearchResponse searchResponse = request.search(searchAction, scrollAction);
+    verify(fetchSourceContext, times(1)).includes();
+    assertFalse(searchResponse.isEmpty());
   }
 
   @Test

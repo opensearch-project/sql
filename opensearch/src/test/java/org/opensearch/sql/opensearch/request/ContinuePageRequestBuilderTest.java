@@ -11,6 +11,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayNameGeneration;
@@ -75,7 +76,11 @@ public class ContinuePageRequestBuilderTest {
         () -> assertThrows(UnsupportedOperationException.class,
             () -> requestBuilder.pushDownProjects(mock())),
         () -> assertThrows(UnsupportedOperationException.class,
-            () -> requestBuilder.pushTypeMapping(mock()))
+            () -> requestBuilder.pushTypeMapping(mock())),
+        () -> assertThrows(UnsupportedOperationException.class,
+            () -> requestBuilder.pushDownNested(List.of())),
+        () -> assertThrows(UnsupportedOperationException.class,
+            () -> requestBuilder.pushDownTrackedScore(true))
     );
   }
 }

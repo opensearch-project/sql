@@ -18,14 +18,17 @@ import org.opensearch.sql.ast.tree.Sort;
 import org.opensearch.sql.common.utils.StringUtils;
 import org.opensearch.sql.expression.Expression;
 import org.opensearch.sql.expression.ExpressionNodeVisitor;
+import org.opensearch.sql.expression.FunctionExpression;
 import org.opensearch.sql.expression.NamedExpression;
 import org.opensearch.sql.expression.ReferenceExpression;
+import org.opensearch.sql.expression.function.OpenSearchFunctions;
 import org.opensearch.sql.opensearch.storage.script.filter.FilterQueryBuilder;
 import org.opensearch.sql.opensearch.storage.script.sort.SortQueryBuilder;
 import org.opensearch.sql.opensearch.storage.serialization.DefaultExpressionSerializer;
 import org.opensearch.sql.planner.logical.LogicalFilter;
 import org.opensearch.sql.planner.logical.LogicalHighlight;
 import org.opensearch.sql.planner.logical.LogicalLimit;
+import org.opensearch.sql.planner.logical.LogicalNested;
 import org.opensearch.sql.planner.logical.LogicalProject;
 import org.opensearch.sql.planner.logical.LogicalSort;
 import org.opensearch.sql.storage.TableScanOperator;
@@ -60,8 +63,11 @@ class OpenSearchIndexScanQueryBuilder extends TableScanBuilder {
   public boolean pushDownFilter(LogicalFilter filter) {
     FilterQueryBuilder queryBuilder = new FilterQueryBuilder(
         new DefaultExpressionSerializer());
-    QueryBuilder query = queryBuilder.build(filter.getCondition());
+    Expression queryCondition = filter.getCondition();
+    QueryBuilder query = queryBuilder.build(queryCondition);
     indexScan.getRequestBuilder().pushDownFilter(query);
+    indexScan.getRequestBuilder().pushDownTrackedScore(
+        trackScoresFromOpenSearchFunction(queryCondition));
     return true;
   }
 
@@ -96,6 +102,30 @@ class OpenSearchIndexScanQueryBuilder extends TableScanBuilder {
         StringUtils.unquoteText(highlight.getHighlightField().toString()),
         highlight.getArguments());
     return true;
+  }
+
+  private boolean trackScoresFromOpenSearchFunction(Expression condition) {
+    if (condition instanceof OpenSearchFunctions.OpenSearchFunction
+        && ((OpenSearchFunctions.OpenSearchFunction) condition).isScoreTracked()) {
+      return true;
+    }
+    if (condition instanceof FunctionExpression) {
+      return ((FunctionExpression) condition).getArguments().stream()
+          .anyMatch(this::trackScoresFromOpenSearchFunction);
+    }
+    return false;
+  }
+
+  @Override
+  public boolean pushDownNested(LogicalNested nested) {
+    indexScan.getRequestBuilder().pushDownNested(nested.getFields());
+    indexScan.getRequestBuilder().pushDownProjects(
+        findReferenceExpressions(nested.getProjectList()));
+    // Return false intentionally to keep the original nested operator
+    // Since we return false we need to pushDownProject here as it won't be
+    // pushed down due to no matching push down rule.
+    // TODO: improve LogicalPlanOptimizer pushdown api.
+    return false;
   }
 
   /**

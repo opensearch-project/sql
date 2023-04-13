@@ -1,0 +1,10 @@
+{"index":{"_id":"1"}}
+{"message":{"info":"a","author":{"name": "e", "address": {"street": "bc", "number": 1}},"dayOfWeek":1},"office":{"west":"ab","south":3}}
+{"index":{"_id":"2"}}
+{"message":{"info":"b","author":{"name": "f", "address": {"street": "ab", "number": 2}},"dayOfWeek":2},"office":{"west":"ff","south":5}}
+{"index":{"_id":"3"}}
+{"message":{"info":"c","author":{"name": "g", "address": {"street": "sk", "number": 3}},"dayOfWeek":1},"office":{"west":"ll","south":3}}
+{"index":{"_id":"4"}}
+{"message":[{"info":"d","author":{"name": "h", "address": {"street": "mb", "number": 4}},"dayOfWeek":4},{"info":"i","author":{"name": "p", "address": {"street": "on", "number": 5}},"dayOfWeek":5}]}
+{"index":{"_id":"5"}}
+{"message": [{"info":"zz","author":{"name": "yy", "address": {"street": "qc", "number": 6}},"dayOfWeek":6}]}

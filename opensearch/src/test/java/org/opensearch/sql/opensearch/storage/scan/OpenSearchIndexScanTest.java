@@ -75,8 +75,8 @@ class OpenSearchIndexScanTest {
   @Test
   void query_empty_result() {
     mockResponse(client);
-    try (OpenSearchIndexScan indexScan = new OpenSearchIndexScan(client,
-        new OpenSearchRequestBuilder("test", 3, settings, exprValueFactory))) {
+    try (OpenSearchIndexScan indexScan = new OpenSearchIndexScan(client, settings,
+        "test", 3, exprValueFactory)) {
       indexScan.open();
       assertAll(
           () -> assertFalse(indexScan.hasNext()),
@@ -93,8 +93,8 @@ class OpenSearchIndexScanTest {
         employee(2, "Smith", "HR"),
         employee(3, "Allen", "IT")});
 
-    try (OpenSearchIndexScan indexScan = new OpenSearchIndexScan(client,
-        new OpenSearchRequestBuilder("employees", 10, settings, exprValueFactory))) {
+    try (OpenSearchIndexScan indexScan = new OpenSearchIndexScan(client, settings,
+        "employees", 10, exprValueFactory)) {
       indexScan.open();
 
       assertAll(
@@ -119,10 +119,9 @@ class OpenSearchIndexScanTest {
     mockResponse(client,
         new ExprValue[]{employee(1, "John", "IT"), employee(2, "Smith", "HR")},
         new ExprValue[]{employee(3, "Allen", "IT")});
-    //when(settings.getSettingValue(Settings.Key.QUERY_SIZE_LIMIT)).thenReturn(2);
 
-    try (OpenSearchIndexScan indexScan = new OpenSearchIndexScan(client,
-        new OpenSearchRequestBuilder("employees", 10, settings, exprValueFactory))) {
+    try (OpenSearchIndexScan indexScan = new OpenSearchIndexScan(client, settings,
+        "employees", 10, exprValueFactory)) {
       indexScan.open();
 
       assertAll(
@@ -150,8 +149,8 @@ class OpenSearchIndexScanTest {
         employee(3, "Allen", "IT"),
         employee(4, "Bob", "HR")});
 
-    try (OpenSearchIndexScan indexScan = new OpenSearchIndexScan(client,
-        new OpenSearchRequestBuilder("employees", 10, settings, exprValueFactory))) {
+    try (OpenSearchIndexScan indexScan = new OpenSearchIndexScan(client, settings,
+        "employees", 10, exprValueFactory)) {
       indexScan.getRequestBuilder().pushDownLimit(3, 0);
       indexScan.open();
 
@@ -178,9 +177,8 @@ class OpenSearchIndexScanTest {
         new ExprValue[]{employee(1, "John", "IT"), employee(2, "Smith", "HR")},
         new ExprValue[]{employee(3, "Allen", "IT"), employee(4, "Bob", "HR")});
 
-    try (OpenSearchIndexScan indexScan =
-             new OpenSearchIndexScan(client, new OpenSearchRequestBuilder("employees", 2, settings,
-                 exprValueFactory))) {
+    try (OpenSearchIndexScan indexScan = new OpenSearchIndexScan(client, settings,
+        "employees", 2, exprValueFactory)) {
       indexScan.getRequestBuilder().pushDownLimit(3, 0);
       indexScan.open();
 
@@ -210,8 +208,8 @@ class OpenSearchIndexScanTest {
         employee(4, "Bob", "HR")});
     when(settings.getSettingValue(Settings.Key.QUERY_SIZE_LIMIT)).thenReturn(2);
 
-    try (OpenSearchIndexScan indexScan = new OpenSearchIndexScan(client,
-        new OpenSearchRequestBuilder("employees", 10, settings, exprValueFactory))) {
+    try (OpenSearchIndexScan indexScan = new OpenSearchIndexScan(client, settings,
+        "employees", 10, exprValueFactory)) {
       indexScan.open();
 
       assertAll(
@@ -278,9 +276,8 @@ class OpenSearchIndexScanTest {
         new ExprValue[]{employee(1, "John", "IT"), employee(2, "Smith", "HR")},
         new ExprValue[]{employee(3, "Allen", "IT"), employee(4, "Bob", "HR")});
 
-    try (OpenSearchIndexScan indexScan =
-             new OpenSearchIndexScan(client, new OpenSearchRequestBuilder("test", 2, settings,
-                 exprValueFactory))) {
+    try (OpenSearchIndexScan indexScan = new OpenSearchIndexScan(client, settings,
+        "test", 2, exprValueFactory)) {
       indexScan.getRequestBuilder().pushDownLimit(3, 0);
       indexScan.open();
       Map<String, Literal> args = new HashMap<>();
@@ -306,9 +303,8 @@ class OpenSearchIndexScanTest {
                              OpenSearchExprValueFactory valueFactory,
                              Settings settings) {
       this.client = client;
-      this.indexScan = new OpenSearchIndexScan(client,
-          new OpenSearchRequestBuilder("test", 10000,
-              settings, valueFactory));
+      this.indexScan = new OpenSearchIndexScan(client, settings,
+          "test", 10000, valueFactory);
       this.response = mock(OpenSearchResponse.class);
       this.factory = valueFactory;
       when(response.isEmpty()).thenReturn(true);

@@ -4221,6 +4221,48 @@ Another example to show how to set custom values for the optional parameters::
     | 1    | The House at Pooh Corner | Alan Alexander Milne |
     +------+--------------------------+----------------------+
 
+SCORE
+------------
+
+Description
+>>>>>>>>>>>
+
+``score(relevance_expression[, boost])``
+``score_query(relevance_expression[, boost])``
+``scorequery(relevance_expression[, boost])``
+
+The `SCORE()` function calculates the `_score` of any documents matching the enclosed relevance-based expression. The `SCORE()`
+function expects one argument with an optional second argument. The first argument is the relevance-based search expression.
+The second argument is an optional floating-point boost to the score (the default value is 1.0).
+
+The `SCORE()` function sets `track_scores=true` for OpenSearch requests.  Without it, `_score` fields may return `null` for some
+relevance-based search expressions.
+
+Please refer to examples below:
+
+| ``score(query('Tags:taste OR Body:taste', ...), 2.0)``
+
+The `score_query` and `scorequery` functions are alternative names for the `score` function.
+
+Example boosting score::
+
+    os> select *, _score from books where score(query('title:Pooh House', default_operator='AND'), 2.0);
+    fetched rows / total rows = 1/1
+    +------+--------------------------+----------------------+-----------+
+    | id   | title                    | author               | _score    |
+    |------+--------------------------+----------------------+-----------|
+    | 1    | The House at Pooh Corner | Alan Alexander Milne | 1.5884793 |
+    +------+--------------------------+----------------------+-----------+
+
+    os> select *, _score from books where score(query('title:Pooh House', default_operator='AND'), 5.0) OR score(query('title:Winnie', default_operator='AND'), 1.5);
+    fetched rows / total rows = 2/2
+    +------+--------------------------+----------------------+-----------+
+    | id   | title                    | author               | _score    |
+    |------+--------------------------+----------------------+-----------|
+    | 1    | The House at Pooh Corner | Alan Alexander Milne | 3.9711983 |
+    | 2    | Winnie-the-Pooh          | Alan Alexander Milne | 1.1581701 |
+    +------+--------------------------+----------------------+-----------+
+
 HIGHLIGHT
 ------------
 
@@ -4298,6 +4340,29 @@ Another example to show how to set custom values for the optional parameters::
     | test wildcard __ beside each other        |
     | tEsT wIlDcArD sensitive cases             |
     +-------------------------------------------+
+
+NESTED
+------
+
+Description
+>>>>>>>>>>>
+
+``nested(field | [field, path])``
+
+The ``nested`` function maps to the ``nested`` query used in search engine. It returns nested field types in documents that match the provided specified field(s).
+If the user does not provide the ``path`` parameter it will be generated dynamically. For example the ``field`` ``user.office.cubicle`` would dynamically generate the path
+``user.office``.
+
+Example with ``field`` and ``path`` parameters::
+
+    os> SELECT nested(message.info, message) FROM nested;
+    fetched rows / total rows = 2/2
+    +---------------------------------+
+    | nested(message.info, message)   |
+    |---------------------------------|
+    | a                               |
+    | b                               |
+    +---------------------------------+
 
 System Functions
 ================

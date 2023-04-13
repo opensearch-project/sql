@@ -123,6 +123,7 @@ public enum BuiltinFunctionName {
   WEEK_OF_YEAR(FunctionName.of("week_of_year")),
   YEAR(FunctionName.of("year")),
   YEARWEEK(FunctionName.of("yearweek")),
+
   // `now`-like functions
   NOW(FunctionName.of("now")),
   CURDATE(FunctionName.of("curdate")),
@@ -133,6 +134,7 @@ public enum BuiltinFunctionName {
   CURRENT_TIMESTAMP(FunctionName.of("current_timestamp")),
   LOCALTIMESTAMP(FunctionName.of("localtimestamp")),
   SYSDATE(FunctionName.of("sysdate")),
+
   /**
    * Text Functions.
    */
@@ -187,6 +189,8 @@ public enum BuiltinFunctionName {
   STDDEV_POP(FunctionName.of("stddev_pop")),
   // take top documents from aggregation bucket.
   TAKE(FunctionName.of("take")),
+  // Not always an aggregation query
+  NESTED(FunctionName.of("nested")),
 
   /**
    * Text Functions.
@@ -256,6 +260,10 @@ public enum BuiltinFunctionName {
   MATCH_BOOL_PREFIX(FunctionName.of("match_bool_prefix")),
   HIGHLIGHT(FunctionName.of("highlight")),
   MATCH_PHRASE_PREFIX(FunctionName.of("match_phrase_prefix")),
+  SCORE(FunctionName.of("score")),
+  SCOREQUERY(FunctionName.of("scorequery")),
+  SCORE_QUERY(FunctionName.of("score_query")),
+
   /**
    * Legacy Relevance Function.
    */

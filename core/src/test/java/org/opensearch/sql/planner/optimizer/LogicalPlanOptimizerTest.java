@@ -18,10 +18,12 @@ import static org.opensearch.sql.data.model.ExprValueUtils.integerValue;
 import static org.opensearch.sql.data.model.ExprValueUtils.longValue;
 import static org.opensearch.sql.data.type.ExprCoreType.INTEGER;
 import static org.opensearch.sql.data.type.ExprCoreType.LONG;
+import static org.opensearch.sql.data.type.ExprCoreType.STRING;
 import static org.opensearch.sql.planner.logical.LogicalPlanDSL.aggregation;
 import static org.opensearch.sql.planner.logical.LogicalPlanDSL.filter;
 import static org.opensearch.sql.planner.logical.LogicalPlanDSL.highlight;
 import static org.opensearch.sql.planner.logical.LogicalPlanDSL.limit;
+import static org.opensearch.sql.planner.logical.LogicalPlanDSL.nested;
 import static org.opensearch.sql.planner.logical.LogicalPlanDSL.paginate;
 import static org.opensearch.sql.planner.logical.LogicalPlanDSL.project;
 import static org.opensearch.sql.planner.logical.LogicalPlanDSL.relation;
@@ -46,6 +48,8 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.opensearch.sql.ast.tree.Sort;
 import org.opensearch.sql.data.type.ExprType;
 import org.opensearch.sql.expression.DSL;
+import org.opensearch.sql.expression.NamedExpression;
+import org.opensearch.sql.expression.ReferenceExpression;
 import org.opensearch.sql.planner.logical.LogicalPaginate;
 import org.opensearch.sql.planner.logical.LogicalPlan;
 import org.opensearch.sql.planner.logical.LogicalRelation;
@@ -266,6 +270,25 @@ class LogicalPlanOptimizerTest {
                 relation("schema", table),
                 DSL.literal("*"),
                 Collections.emptyMap())
+        )
+    );
+  }
+
+  @Test
+  void table_scan_builder_support_nested_push_down_can_apply_its_rule() {
+    when(tableScanBuilder.pushDownNested(any())).thenReturn(true);
+
+    assertEquals(
+        tableScanBuilder,
+        optimize(
+            nested(
+                relation("schema", table),
+                List.of(Map.of("field", new ReferenceExpression("message.info", STRING))),
+                List.of(new NamedExpression(
+                    "message.info",
+                    DSL.nested(DSL.ref("message.info", STRING)),
+                    null))
+            )
         )
     );
   }

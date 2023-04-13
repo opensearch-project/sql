@@ -56,6 +56,11 @@ public class TestConfig {
       .put("timestamp_value", ExprCoreType.TIMESTAMP)
       .put("field_value1", ExprCoreType.STRING)
       .put("field_value2", ExprCoreType.STRING)
+      .put("message", ExprCoreType.STRING)
+      .put("message.info", ExprCoreType.STRING)
+      .put("message.info.id", ExprCoreType.STRING)
+      .put("comment", ExprCoreType.STRING)
+      .put("comment.data", ExprCoreType.STRING)
       .build();
 
   protected StorageEngine storageEngine() {

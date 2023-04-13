@@ -6,6 +6,11 @@
 
 package org.opensearch.sql.opensearch.request;
 
+import static java.util.stream.Collectors.mapping;
+import static java.util.stream.Collectors.toList;
+import static org.opensearch.index.query.QueryBuilders.boolQuery;
+import static org.opensearch.index.query.QueryBuilders.matchAllQuery;
+import static org.opensearch.index.query.QueryBuilders.nestedQuery;
 import static org.opensearch.search.sort.FieldSortBuilder.DOC_FIELD_NAME;
 import static org.opensearch.search.sort.SortOrder.ASC;
 
@@ -18,12 +23,16 @@ import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.ToString;
 import org.apache.commons.lang3.tuple.Pair;
+import org.apache.lucene.search.join.ScoreMode;
 import org.opensearch.common.unit.TimeValue;
 import org.opensearch.index.query.BoolQueryBuilder;
+import org.opensearch.index.query.InnerHitBuilder;
+import org.opensearch.index.query.NestedQueryBuilder;
 import org.opensearch.index.query.QueryBuilder;
 import org.opensearch.index.query.QueryBuilders;
 import org.opensearch.search.aggregations.AggregationBuilder;
 import org.opensearch.search.builder.SearchSourceBuilder;
+import org.opensearch.search.fetch.subphase.FetchSourceContext;
 import org.opensearch.search.fetch.subphase.highlight.HighlightBuilder;
 import org.opensearch.search.sort.SortBuilder;
 import org.opensearch.search.sort.SortBuilders;
@@ -35,6 +44,7 @@ import org.opensearch.sql.expression.ReferenceExpression;
 import org.opensearch.sql.opensearch.data.type.OpenSearchDataType;
 import org.opensearch.sql.opensearch.data.value.OpenSearchExprValueFactory;
 import org.opensearch.sql.opensearch.response.agg.OpenSearchAggregationResponseParser;
+import org.opensearch.sql.planner.logical.LogicalNested;
 
 /**
  * OpenSearch search request builder.
@@ -104,7 +114,8 @@ public class OpenSearchRequestBuilder implements PushDownRequestBuilder {
     this.sourceBuilder = new SearchSourceBuilder()
         .from(0)
         .size(querySize)
-        .timeout(DEFAULT_QUERY_TIMEOUT);
+        .timeout(DEFAULT_QUERY_TIMEOUT)
+        .trackScores(false);
   }
 
   /**
@@ -190,6 +201,11 @@ public class OpenSearchRequestBuilder implements PushDownRequestBuilder {
     sourceBuilder.from(offset).size(limit);
   }
 
+  @Override
+  public void pushDownTrackedScore(boolean trackScores) {
+    sourceBuilder.trackScores(trackScores);
+  }
+
   /**
    * Add highlight to DSL requests.
    * @param field name of the field to highlight
@@ -245,5 +261,79 @@ public class OpenSearchRequestBuilder implements PushDownRequestBuilder {
       return sorts.equals(Arrays.asList(SortBuilders.fieldSort(DOC_FIELD_NAME)));
     }
     return false;
+  }
+
+  /**
+   * Push down nested to sourceBuilder.
+   * @param nestedArgs : Nested arguments to push down.
+   */
+  @Override
+  public void pushDownNested(List<Map<String, ReferenceExpression>> nestedArgs) {
+    initBoolQueryFilter();
+    groupFieldNamesByPath(nestedArgs).forEach(
+          (path, fieldNames) -> buildInnerHit(
+              fieldNames, createEmptyNestedQuery(path)
+          )
+    );
+  }
+
+  /**
+   * Initialize bool query for push down.
+   */
+  private void initBoolQueryFilter() {
+    if (sourceBuilder.query() == null) {
+      sourceBuilder.query(QueryBuilders.boolQuery());
+    } else {
+      sourceBuilder.query(QueryBuilders.boolQuery().must(sourceBuilder.query()));
+    }
+
+    sourceBuilder.query(QueryBuilders.boolQuery().filter(sourceBuilder.query()));
+  }
+
+  /**
+   * Map all field names in nested queries that use same path.
+   * @param fields : Fields for nested queries.
+   * @return : Map of path and associated field names.
+   */
+  private Map<String, List<String>> groupFieldNamesByPath(
+      List<Map<String, ReferenceExpression>> fields) {
+    // TODO filter out reverse nested when supported - .filter(not(isReverseNested()))
+    return fields.stream().collect(
+        Collectors.groupingBy(
+            m -> m.get("path").toString(),
+            mapping(
+                m -> m.get("field").toString(),
+                toList()
+            )
+        )
+    );
+  }
+
+  /**
+   * Build inner hits portion to nested query.
+   * @param paths : Set of all paths used in nested queries.
+   * @param query : Current pushDown query.
+   */
+  private void buildInnerHit(List<String> paths, NestedQueryBuilder query) {
+    query.innerHit(new InnerHitBuilder().setFetchSourceContext(
+        new FetchSourceContext(true, paths.toArray(new String[0]), null)
+    ));
+  }
+
+  /**
+   * Create a nested query with match all filter to place inner hits.
+   */
+  private NestedQueryBuilder createEmptyNestedQuery(String path) {
+    NestedQueryBuilder nestedQuery = nestedQuery(path, matchAllQuery(), ScoreMode.None);
+    ((BoolQueryBuilder) query().filter().get(0)).must(nestedQuery);
+    return nestedQuery;
+  }
+
+  /**
+   * Return current query.
+   * @return : Current source builder query.
+   */
+  private BoolQueryBuilder query() {
+    return (BoolQueryBuilder) sourceBuilder.query();
   }
 }

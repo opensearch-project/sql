@@ -6,6 +6,8 @@
 
 package org.opensearch.sql.opensearch.request;
 
+import java.util.Arrays;
+import java.util.List;
 import java.util.Objects;
 import java.util.function.Consumer;
 import java.util.function.Function;
@@ -18,6 +20,7 @@ import org.opensearch.action.search.SearchResponse;
 import org.opensearch.action.search.SearchScrollRequest;
 import org.opensearch.common.unit.TimeValue;
 import org.opensearch.search.builder.SearchSourceBuilder;
+import org.opensearch.search.fetch.subphase.FetchSourceContext;
 import org.opensearch.sql.opensearch.data.value.OpenSearchExprValueFactory;
 import org.opensearch.sql.opensearch.response.OpenSearchResponse;
 
@@ -79,8 +82,12 @@ public class OpenSearchScrollRequest implements OpenSearchRequest {
     } else {
       openSearchResponse = searchAction.apply(searchRequest());
     }
+    FetchSourceContext fetchSource = this.sourceBuilder.fetchSource();
+    List<String> includes = fetchSource != null && fetchSource.includes() != null
+        ? Arrays.asList(this.sourceBuilder.fetchSource().includes())
+        : List.of();
 
-    var response = new OpenSearchResponse(openSearchResponse, exprValueFactory);
+    var response = new OpenSearchResponse(openSearchResponse, exprValueFactory, includes);
     if (!(needClean = response.isEmpty())) {
       setScrollId(openSearchResponse.getScrollId());
     }

@@ -112,6 +112,10 @@ public class AnalyzerTestBase {
       public PhysicalPlan implement(LogicalPlan plan) {
         throw new UnsupportedOperationException();
       }
+
+      public Map<String, ExprType> getReservedFieldTypes() {
+        return ImmutableMap.of("_test", STRING);
+      }
     });
   }
 
@@ -185,11 +189,16 @@ public class AnalyzerTestBase {
 
 
     @Override
-    public Set<DataSourceMetadata> getDataSourceMetadataSet() {
+    public Set<DataSourceMetadata> getDataSourceMetadata(boolean isDefaultDataSourceRequired) {
       return Stream.of(opensearchDataSource, prometheusDataSource)
           .map(ds -> new DataSourceMetadata(ds.getName(),
               ds.getConnectorType(),Collections.emptyList(),
               ImmutableMap.of())).collect(Collectors.toSet());
+    }
+
+    @Override
+    public DataSourceMetadata getDataSourceMetadata(String name) {
+      return null;
     }
 
     @Override

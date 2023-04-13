@@ -52,9 +52,30 @@ public class OpenSearchIndexScan extends TableScanOperator {
   /** Search response for current batch. */
   private Iterator<ExprValue> iterator;
 
-  public OpenSearchIndexScan(OpenSearchClient client, OpenSearchRequestBuilder builder) {
+  /**
+   * Constructor.
+   */
+  public OpenSearchIndexScan(OpenSearchClient client, Settings settings,
+                             String indexName, Integer maxResultWindow,
+                             OpenSearchExprValueFactory exprValueFactory) {
+    this(
+            client,
+            settings,
+            new OpenSearchRequest.IndexName(indexName),
+            maxResultWindow,
+            exprValueFactory
+    );
+  }
+
+  /**
+   * Constructor.
+   */
+  public OpenSearchIndexScan(OpenSearchClient client, Settings settings,
+                             OpenSearchRequest.IndexName indexName, Integer maxResultWindow,
+                             OpenSearchExprValueFactory exprValueFactory) {
     this.client = client;
-    this.requestBuilder = builder;
+    this.requestBuilder = new OpenSearchRequestBuilder(
+        indexName, maxResultWindow, settings, exprValueFactory);
   }
 
   @Override

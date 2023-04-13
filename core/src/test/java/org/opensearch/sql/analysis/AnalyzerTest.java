@@ -31,6 +31,7 @@ import static org.opensearch.sql.ast.tree.Sort.SortOption;
 import static org.opensearch.sql.ast.tree.Sort.SortOption.DEFAULT_ASC;
 import static org.opensearch.sql.ast.tree.Sort.SortOrder;
 import static org.opensearch.sql.data.model.ExprValueUtils.integerValue;
+import static org.opensearch.sql.data.model.ExprValueUtils.stringValue;
 import static org.opensearch.sql.data.type.ExprCoreType.BOOLEAN;
 import static org.opensearch.sql.data.type.ExprCoreType.DOUBLE;
 import static org.opensearch.sql.data.type.ExprCoreType.INTEGER;
@@ -71,18 +72,24 @@ import org.opensearch.sql.ast.expression.DataType;
 import org.opensearch.sql.ast.expression.HighlightFunction;
 import org.opensearch.sql.ast.expression.Literal;
 import org.opensearch.sql.ast.expression.ParseMethod;
+import org.opensearch.sql.ast.expression.ScoreFunction;
 import org.opensearch.sql.ast.expression.SpanUnit;
 import org.opensearch.sql.ast.tree.AD;
 import org.opensearch.sql.ast.tree.Kmeans;
 import org.opensearch.sql.ast.tree.ML;
 import org.opensearch.sql.ast.tree.Paginate;
 import org.opensearch.sql.ast.tree.RareTopN.CommandType;
+import org.opensearch.sql.ast.tree.UnresolvedPlan;
 import org.opensearch.sql.exception.ExpressionEvaluationException;
 import org.opensearch.sql.exception.SemanticCheckException;
 import org.opensearch.sql.expression.DSL;
 import org.opensearch.sql.expression.HighlightExpression;
+import org.opensearch.sql.expression.NamedExpression;
+import org.opensearch.sql.expression.ReferenceExpression;
+import org.opensearch.sql.expression.function.OpenSearchFunctions;
 import org.opensearch.sql.expression.window.WindowDefinition;
 import org.opensearch.sql.planner.logical.LogicalAD;
+import org.opensearch.sql.planner.logical.LogicalFilter;
 import org.opensearch.sql.planner.logical.LogicalMLCommons;
 import org.opensearch.sql.planner.logical.LogicalPaginate;
 import org.opensearch.sql.planner.logical.LogicalPlan;
@@ -102,6 +109,54 @@ class AnalyzerTest extends AnalyzerTestBase {
         AstDSL.filter(
             AstDSL.relation("schema"),
             AstDSL.equalTo(AstDSL.field("integer_value"), AstDSL.intLiteral(1))));
+  }
+
+  @Test
+  public void filter_relation_with_reserved_qualifiedName() {
+    assertAnalyzeEqual(
+        LogicalPlanDSL.filter(
+            LogicalPlanDSL.relation("schema", table),
+            DSL.equal(DSL.ref("_test", STRING), DSL.literal(stringValue("value")))),
+        AstDSL.filter(
+            AstDSL.relation("schema"),
+            AstDSL.equalTo(AstDSL.qualifiedName("_test"), AstDSL.stringLiteral("value"))));
+  }
+
+  @Test
+  public void filter_relation_with_invalid_qualifiedName_SemanticCheckException() {
+    UnresolvedPlan invalidFieldPlan = AstDSL.filter(
+        AstDSL.relation("schema"),
+        AstDSL.equalTo(
+            AstDSL.qualifiedName("_invalid"),
+            AstDSL.stringLiteral("value"))
+    );
+
+    SemanticCheckException exception =
+        assertThrows(
+            SemanticCheckException.class,
+            () -> analyze(invalidFieldPlan));
+    assertEquals(
+        "can't resolve Symbol(namespace=FIELD_NAME, name=_invalid) in type env",
+        exception.getMessage());
+  }
+
+  @Test
+  public void filter_relation_with_invalid_qualifiedName_ExpressionEvaluationException() {
+    UnresolvedPlan typeMismatchPlan = AstDSL.filter(
+        AstDSL.relation("schema"),
+        AstDSL.equalTo(AstDSL.qualifiedName("_test"), AstDSL.intLiteral(1))
+    );
+
+    ExpressionEvaluationException exception =
+        assertThrows(
+            ExpressionEvaluationException.class,
+            () -> analyze(typeMismatchPlan));
+    assertEquals(
+        "= function expected {[BYTE,BYTE],[SHORT,SHORT],[INTEGER,INTEGER],[LONG,LONG],"
+            + "[FLOAT,FLOAT],[DOUBLE,DOUBLE],[STRING,STRING],[BOOLEAN,BOOLEAN],[DATE,DATE],"
+            + "[TIME,TIME],[DATETIME,DATETIME],[TIMESTAMP,TIMESTAMP],[INTERVAL,INTERVAL],"
+            + "[STRUCT,STRUCT],[ARRAY,ARRAY]}, but get [STRING,INTEGER]",
+        exception.getMessage());
   }
 
   @Test
@@ -214,6 +269,116 @@ class AnalyzerTest extends AnalyzerTestBase {
         AstDSL.filter(
             AstDSL.relation(Arrays.asList("test.1", "test.2")),
             AstDSL.equalTo(AstDSL.field("integer_value"), AstDSL.intLiteral(1))));
+  }
+
+  @Test
+  public void analyze_filter_visit_score_function() {
+    UnresolvedPlan unresolvedPlan = AstDSL.filter(
+        AstDSL.relation("schema"),
+        new ScoreFunction(
+            AstDSL.function("match_phrase_prefix",
+                AstDSL.unresolvedArg("field", stringLiteral("field_value1")),
+                AstDSL.unresolvedArg("query", stringLiteral("search query")),
+                AstDSL.unresolvedArg("boost", stringLiteral("3"))
+            ), AstDSL.doubleLiteral(1.0))
+    );
+    assertAnalyzeEqual(
+        LogicalPlanDSL.filter(
+            LogicalPlanDSL.relation("schema", table),
+            DSL.match_phrase_prefix(
+                DSL.namedArgument("field", "field_value1"),
+                DSL.namedArgument("query", "search query"),
+                DSL.namedArgument("boost", "3.0")
+            )
+        ),
+        unresolvedPlan
+    );
+
+    LogicalPlan logicalPlan = analyze(unresolvedPlan);
+    OpenSearchFunctions.OpenSearchFunction relevanceQuery =
+        (OpenSearchFunctions.OpenSearchFunction)((LogicalFilter) logicalPlan).getCondition();
+    assertEquals(true, relevanceQuery.isScoreTracked());
+  }
+
+  @Test
+  public void analyze_filter_visit_without_score_function() {
+    UnresolvedPlan unresolvedPlan = AstDSL.filter(
+        AstDSL.relation("schema"),
+        AstDSL.function("match_phrase_prefix",
+            AstDSL.unresolvedArg("field", stringLiteral("field_value1")),
+            AstDSL.unresolvedArg("query", stringLiteral("search query")),
+            AstDSL.unresolvedArg("boost", stringLiteral("3"))
+        )
+    );
+    assertAnalyzeEqual(
+        LogicalPlanDSL.filter(
+            LogicalPlanDSL.relation("schema", table),
+            DSL.match_phrase_prefix(
+                DSL.namedArgument("field", "field_value1"),
+                DSL.namedArgument("query", "search query"),
+                DSL.namedArgument("boost", "3")
+            )
+        ),
+        unresolvedPlan
+    );
+
+    LogicalPlan logicalPlan = analyze(unresolvedPlan);
+    OpenSearchFunctions.OpenSearchFunction relevanceQuery =
+        (OpenSearchFunctions.OpenSearchFunction)((LogicalFilter) logicalPlan).getCondition();
+    assertEquals(false, relevanceQuery.isScoreTracked());
+  }
+
+  @Test
+  public void analyze_filter_visit_score_function_with_double_boost() {
+    UnresolvedPlan unresolvedPlan = AstDSL.filter(
+        AstDSL.relation("schema"),
+        new ScoreFunction(
+            AstDSL.function("match_phrase_prefix",
+                AstDSL.unresolvedArg("field", stringLiteral("field_value1")),
+                AstDSL.unresolvedArg("query", stringLiteral("search query")),
+                AstDSL.unresolvedArg("slop", stringLiteral("3"))
+            ), new Literal(3.0, DataType.DOUBLE)
+        )
+    );
+
+    assertAnalyzeEqual(
+        LogicalPlanDSL.filter(
+            LogicalPlanDSL.relation("schema", table),
+            DSL.match_phrase_prefix(
+                DSL.namedArgument("field", "field_value1"),
+                DSL.namedArgument("query", "search query"),
+                DSL.namedArgument("slop", "3"),
+                DSL.namedArgument("boost", "3.0")
+            )
+        ),
+        unresolvedPlan
+    );
+
+    LogicalPlan logicalPlan = analyze(unresolvedPlan);
+    OpenSearchFunctions.OpenSearchFunction relevanceQuery =
+        (OpenSearchFunctions.OpenSearchFunction)((LogicalFilter) logicalPlan).getCondition();
+    assertEquals(true, relevanceQuery.isScoreTracked());
+  }
+
+  @Test
+  public void analyze_filter_visit_score_function_with_unsupported_boost_SemanticCheckException() {
+    UnresolvedPlan unresolvedPlan = AstDSL.filter(
+        AstDSL.relation("schema"),
+        new ScoreFunction(
+            AstDSL.function("match_phrase_prefix",
+                AstDSL.unresolvedArg("field", stringLiteral("field_value1")),
+                AstDSL.unresolvedArg("query", stringLiteral("search query")),
+                AstDSL.unresolvedArg("boost", stringLiteral("3"))
+            ), AstDSL.stringLiteral("3.0")
+        )
+    );
+    SemanticCheckException exception =
+        assertThrows(
+            SemanticCheckException.class,
+            () -> analyze(unresolvedPlan));
+    assertEquals(
+        "Expected boost type 'DOUBLE' but got 'STRING'",
+        exception.getMessage());
   }
 
   @Test
@@ -367,6 +532,236 @@ class AnalyzerTest extends AnalyzerTestBase {
             AstDSL.defaultFieldsArgs(),
             AstDSL.field("integer_value"), // Field not wrapped by Alias
             AstDSL.alias("double_value", AstDSL.field("double_value"))));
+  }
+
+  @Test
+  public void project_nested_field_arg() {
+    List<Map<String, ReferenceExpression>> nestedArgs =
+        List.of(
+            Map.of(
+                "field", new ReferenceExpression("message.info", STRING),
+                "path", new ReferenceExpression("message", STRING)
+            )
+        );
+
+    List<NamedExpression> projectList =
+        List.of(
+            new NamedExpression(
+                "message.info",
+                DSL.nested(DSL.ref("message.info", STRING)),
+                null)
+        );
+
+    assertAnalyzeEqual(
+        LogicalPlanDSL.project(
+            LogicalPlanDSL.nested(
+                LogicalPlanDSL.relation("schema", table),
+                nestedArgs,
+                projectList),
+            DSL.named("message.info",
+                DSL.nested(DSL.ref("message.info", STRING)))
+        ),
+        AstDSL.projectWithArg(
+            AstDSL.relation("schema"),
+            AstDSL.defaultFieldsArgs(),
+            AstDSL.alias("message.info",
+                function("nested", qualifiedName("message", "info")), null)
+        )
+    );
+  }
+
+  @Test
+  public void project_nested_field_and_path_args() {
+    List<Map<String, ReferenceExpression>> nestedArgs =
+        List.of(
+            Map.of(
+                "field", new ReferenceExpression("message.info", STRING),
+                "path", new ReferenceExpression("message", STRING)
+            )
+        );
+
+    List<NamedExpression> projectList =
+        List.of(
+            new NamedExpression(
+                "message.info",
+                DSL.nested(DSL.ref("message.info", STRING), DSL.ref("message", STRING)),
+                null)
+        );
+
+    assertAnalyzeEqual(
+        LogicalPlanDSL.project(
+            LogicalPlanDSL.nested(
+                LogicalPlanDSL.relation("schema", table),
+                nestedArgs,
+                projectList),
+            DSL.named("message.info",
+                DSL.nested(DSL.ref("message.info", STRING), DSL.ref("message", STRING)))
+        ),
+        AstDSL.projectWithArg(
+            AstDSL.relation("schema"),
+            AstDSL.defaultFieldsArgs(),
+            AstDSL.alias("message.info",
+                function(
+                    "nested",
+                    qualifiedName("message", "info"),
+                    qualifiedName("message")
+                ),
+                null
+            )
+        )
+    );
+  }
+
+  @Test
+  public void project_nested_deep_field_arg() {
+    List<Map<String, ReferenceExpression>> nestedArgs =
+        List.of(
+            Map.of(
+                "field", new ReferenceExpression("message.info.id", STRING),
+                "path", new ReferenceExpression("message.info", STRING)
+            )
+        );
+
+    List<NamedExpression> projectList =
+        List.of(
+            new NamedExpression(
+                "message.info.id",
+                DSL.nested(DSL.ref("message.info.id", STRING)),
+                null)
+        );
+
+    assertAnalyzeEqual(
+        LogicalPlanDSL.project(
+            LogicalPlanDSL.nested(
+                LogicalPlanDSL.relation("schema", table),
+                nestedArgs,
+                projectList),
+            DSL.named("message.info.id",
+                DSL.nested(DSL.ref("message.info.id", STRING)))
+        ),
+        AstDSL.projectWithArg(
+            AstDSL.relation("schema"),
+            AstDSL.defaultFieldsArgs(),
+            AstDSL.alias("message.info.id",
+                function("nested", qualifiedName("message", "info", "id")), null)
+        )
+    );
+  }
+
+  @Test
+  public void project_multiple_nested() {
+    List<Map<String, ReferenceExpression>> nestedArgs =
+        List.of(
+            Map.of(
+                "field", new ReferenceExpression("message.info", STRING),
+                "path", new ReferenceExpression("message", STRING)
+            ),
+            Map.of(
+                "field", new ReferenceExpression("comment.data", STRING),
+                "path", new ReferenceExpression("comment", STRING)
+            )
+        );
+
+    List<NamedExpression> projectList =
+        List.of(
+            new NamedExpression(
+                "message.info",
+                DSL.nested(DSL.ref("message.info", STRING)),
+                null),
+            new NamedExpression(
+                "comment.data",
+                DSL.nested(DSL.ref("comment.data", STRING)),
+                null)
+        );
+
+    assertAnalyzeEqual(
+        LogicalPlanDSL.project(
+            LogicalPlanDSL.nested(
+                LogicalPlanDSL.relation("schema", table),
+                nestedArgs,
+                projectList),
+            DSL.named("message.info",
+                DSL.nested(DSL.ref("message.info", STRING))),
+            DSL.named("comment.data",
+                DSL.nested(DSL.ref("comment.data", STRING)))
+        ),
+        AstDSL.projectWithArg(
+            AstDSL.relation("schema"),
+            AstDSL.defaultFieldsArgs(),
+            AstDSL.alias("message.info",
+                function("nested", qualifiedName("message", "info")), null),
+            AstDSL.alias("comment.data",
+                function("nested", qualifiedName("comment", "data")), null)
+        )
+    );
+  }
+
+  @Test
+  public void project_nested_invalid_field_throws_exception() {
+    var exception = assertThrows(
+        IllegalArgumentException.class,
+          () -> analyze(AstDSL.projectWithArg(
+              AstDSL.relation("schema"),
+              AstDSL.defaultFieldsArgs(),
+              AstDSL.alias("message",
+                  function("nested", qualifiedName("message")), null)
+          )
+        )
+    );
+    assertEquals(exception.getMessage(), "Illegal nested field name: message");
+  }
+
+  @Test
+  public void project_nested_invalid_arg_type_throws_exception() {
+    var exception = assertThrows(
+        IllegalArgumentException.class,
+        () -> analyze(AstDSL.projectWithArg(
+                AstDSL.relation("schema"),
+                AstDSL.defaultFieldsArgs(),
+                AstDSL.alias("message",
+                    function("nested", stringLiteral("message")), null)
+            )
+        )
+    );
+    assertEquals(exception.getMessage(), "Illegal nested field name: message");
+  }
+
+  @Test
+  public void project_nested_no_args_throws_exception() {
+    var exception = assertThrows(
+        IllegalArgumentException.class,
+        () -> analyze(AstDSL.projectWithArg(
+                AstDSL.relation("schema"),
+                AstDSL.defaultFieldsArgs(),
+                AstDSL.alias("message",
+                    function("nested"), null)
+            )
+        )
+    );
+    assertEquals(exception.getMessage(),
+        "on nested object only allowed 2 parameters (field,path) or 1 parameter (field)"
+    );
+  }
+
+  @Test
+  public void project_nested_too_many_args_throws_exception() {
+    var exception = assertThrows(
+        IllegalArgumentException.class,
+        () -> analyze(AstDSL.projectWithArg(
+                AstDSL.relation("schema"),
+                AstDSL.defaultFieldsArgs(),
+                AstDSL.alias("message",
+                    function("nested",
+                        stringLiteral("message.info"),
+                        stringLiteral("message"),
+                        stringLiteral("message")),
+                    null)
+            )
+        )
+    );
+    assertEquals(exception.getMessage(),
+        "on nested object only allowed 2 parameters (field,path) or 1 parameter (field)"
+    );
   }
 
   @Test

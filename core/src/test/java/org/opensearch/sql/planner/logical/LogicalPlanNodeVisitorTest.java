@@ -9,6 +9,7 @@ package org.opensearch.sql.planner.logical;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.mockito.Mockito.mock;
+import static org.opensearch.sql.data.type.ExprCoreType.STRING;
 import static org.opensearch.sql.expression.DSL.named;
 
 import com.google.common.collect.ImmutableList;
@@ -31,6 +32,7 @@ import org.opensearch.sql.data.model.ExprValueUtils;
 import org.opensearch.sql.expression.DSL;
 import org.opensearch.sql.expression.Expression;
 import org.opensearch.sql.expression.LiteralExpression;
+import org.opensearch.sql.expression.NamedExpression;
 import org.opensearch.sql.expression.ReferenceExpression;
 import org.opensearch.sql.expression.aggregation.Aggregator;
 import org.opensearch.sql.expression.window.WindowDefinition;
@@ -114,10 +116,22 @@ class LogicalPlanNodeVisitorTest {
     LogicalPlan ad = new LogicalAD(relation, Map.of());
     LogicalPlan ml = new LogicalML(relation, Map.of());
     LogicalPlan paginate = new LogicalPaginate(42, List.of(relation));
+    List<Map<String, ReferenceExpression>> nestedArgs = List.of(
+        Map.of(
+            "field", new ReferenceExpression("message.info", STRING),
+            "path", new ReferenceExpression("message", STRING)
+        )
+    );
+    List<NamedExpression> projectList =
+        List.of(
+            new NamedExpression("message.info", DSL.nested(DSL.ref("message.info", STRING)), null)
+        );
+
+    LogicalNested nested = new LogicalNested(null, nestedArgs, projectList);
 
     return Stream.of(
         relation, tableScanBuilder, write, tableWriteBuilder, filter, aggregation, rename, project,
-        remove, eval, sort, dedup, window, rareTopN, highlight, mlCommons, ad, ml, paginate
+        remove, eval, sort, dedup, window, rareTopN, highlight, mlCommons, ad, ml, paginate, nested
     ).map(Arguments::of);
   }
 

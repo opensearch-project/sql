@@ -41,4 +41,8 @@ public interface PushDownRequestBuilder {
   void pushDownProjects(Set<ReferenceExpression> projects);
 
   void pushTypeMapping(Map<String, OpenSearchDataType> typeMapping);
+
+  void pushDownNested(List<Map<String, ReferenceExpression>> nestedArgs);
+
+  void pushDownTrackedScore(boolean trackScores);
 }

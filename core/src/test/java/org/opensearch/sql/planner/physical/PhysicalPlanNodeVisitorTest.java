@@ -16,6 +16,9 @@ import static org.opensearch.sql.expression.DSL.named;
 import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import org.apache.commons.lang3.tuple.Pair;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -131,6 +134,13 @@ class PhysicalPlanNodeVisitorTest extends PhysicalPlanTestBase {
 
     PhysicalPlan limit = PhysicalPlanDSL.limit(plan, 1, 1);
     assertNull(limit.accept(new PhysicalPlanNodeVisitor<Integer, Object>() {
+    }, null));
+
+    Set<String> nestedArgs = Set.of("nested.test");
+    Map<String, List<String>> groupedFieldsByPath =
+        Map.of("nested", List.of("nested.test"));
+    PhysicalPlan nested = new NestedOperator(plan, nestedArgs, groupedFieldsByPath);
+    assertNull(nested.accept(new PhysicalPlanNodeVisitor<Integer, Object>() {
     }, null));
   }
 

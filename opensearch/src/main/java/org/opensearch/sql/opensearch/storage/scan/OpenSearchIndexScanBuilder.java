@@ -12,6 +12,7 @@ import org.opensearch.sql.planner.logical.LogicalAggregation;
 import org.opensearch.sql.planner.logical.LogicalFilter;
 import org.opensearch.sql.planner.logical.LogicalHighlight;
 import org.opensearch.sql.planner.logical.LogicalLimit;
+import org.opensearch.sql.planner.logical.LogicalNested;
 import org.opensearch.sql.planner.logical.LogicalProject;
 import org.opensearch.sql.planner.logical.LogicalSort;
 import org.opensearch.sql.storage.TableScanOperator;
@@ -94,6 +95,11 @@ public class OpenSearchIndexScanBuilder extends TableScanBuilder {
   @Override
   public boolean pushDownHighlight(LogicalHighlight highlight) {
     return delegate.pushDownHighlight(highlight);
+  }
+
+  @Override
+  public boolean pushDownNested(LogicalNested nested) {
+    return delegate.pushDownNested(nested);
   }
 
   private boolean sortByFieldsOnly(LogicalSort sort) {

@@ -58,6 +58,7 @@ public class LogicalPlanOptimizer {
         TableScanPushDown.PUSH_DOWN_SORT,
         TableScanPushDown.PUSH_DOWN_LIMIT,
         TableScanPushDown.PUSH_DOWN_HIGHLIGHT,
+        TableScanPushDown.PUSH_DOWN_NESTED,
         TableScanPushDown.PUSH_DOWN_PROJECT,
         new CreateTableWriteBuilder()));
   }

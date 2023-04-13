@@ -53,6 +53,7 @@ import static org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParser.RelevanceA
 import static org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParser.RelevanceFieldAndWeightContext;
 import static org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParser.ScalarFunctionCallContext;
 import static org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParser.ScalarWindowFunctionContext;
+import static org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParser.ScoreRelevanceFunctionContext;
 import static org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParser.ShowDescribePatternContext;
 import static org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParser.SignedDecimalContext;
 import static org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParser.SignedRealContext;
@@ -93,6 +94,7 @@ import org.opensearch.sql.ast.expression.Not;
 import org.opensearch.sql.ast.expression.Or;
 import org.opensearch.sql.ast.expression.QualifiedName;
 import org.opensearch.sql.ast.expression.RelevanceFieldList;
+import org.opensearch.sql.ast.expression.ScoreFunction;
 import org.opensearch.sql.ast.expression.UnresolvedArgument;
 import org.opensearch.sql.ast.expression.UnresolvedExpression;
 import org.opensearch.sql.ast.expression.When;
@@ -188,7 +190,7 @@ public class AstExpressionBuilder extends OpenSearchSQLParserBaseVisitor<Unresol
     return new Function(
             POSITION.getName().getFunctionName(),
             Arrays.asList(visitFunctionArg(ctx.functionArg(0)),
-                    visitFunctionArg(ctx.functionArg(1))));
+                visitFunctionArg(ctx.functionArg(1))));
   }
 
   @Override
@@ -466,7 +468,7 @@ public class AstExpressionBuilder extends OpenSearchSQLParserBaseVisitor<Unresol
     if ((funcName.equalsIgnoreCase(BuiltinFunctionName.MULTI_MATCH.toString())
         || funcName.equalsIgnoreCase(BuiltinFunctionName.MULTIMATCH.toString())
         || funcName.equalsIgnoreCase(BuiltinFunctionName.MULTIMATCHQUERY.toString()))
-        && ! ctx.getRuleContexts(AlternateMultiMatchQueryContext.class)
+        && !ctx.getRuleContexts(AlternateMultiMatchQueryContext.class)
         .isEmpty()) {
       return new Function(
           ctx.multiFieldRelevanceFunctionName().getText().toLowerCase(),
@@ -484,6 +486,20 @@ public class AstExpressionBuilder extends OpenSearchSQLParserBaseVisitor<Unresol
     return new Function(
         ctx.altSyntaxFunctionName.getText().toLowerCase(),
         altMultiFieldRelevanceFunctionArguments(ctx));
+  }
+
+  /**
+   * Visit score-relevance function and collect children.
+   *
+   * @param ctx the parse tree
+   * @return children
+   */
+  public UnresolvedExpression visitScoreRelevanceFunction(ScoreRelevanceFunctionContext ctx) {
+    Literal weight =
+        ctx.weight == null
+            ? new Literal(Double.valueOf(1.0), DataType.DOUBLE)
+            : new Literal(Double.parseDouble(ctx.weight.getText()), DataType.DOUBLE);
+    return new ScoreFunction(visit(ctx.relevanceFunction()), weight);
   }
 
   private Function buildFunction(String functionName,
@@ -510,8 +526,7 @@ public class AstExpressionBuilder extends OpenSearchSQLParserBaseVisitor<Unresol
         identifiers.stream()
                    .map(RuleContext::getText)
                    .map(StringUtils::unquoteIdentifier)
-                   .collect(Collectors.toList())
-    );
+                   .collect(Collectors.toList()));
   }
 
   private void fillRelevanceArgs(List<RelevanceArgContext> args,
@@ -605,6 +620,7 @@ public class AstExpressionBuilder extends OpenSearchSQLParserBaseVisitor<Unresol
   /**
    * Adds support for multi_match alternate syntax like
    * MULTI_MATCH('query'='Dale', 'fields'='*name').
+   *
    * @param ctx : Context for multi field relevance function.
    * @return : Returns list of all arguments for relevance function.
    */
@@ -617,7 +633,7 @@ public class AstExpressionBuilder extends OpenSearchSQLParserBaseVisitor<Unresol
 
     String[] fieldAndWeights = StringUtils.unquoteText(
         ctx.getRuleContexts(AlternateMultiMatchFieldContext.class)
-        .stream().findFirst().get().argVal.getText()).split(",");
+                .stream().findFirst().get().argVal.getText()).split(",");
 
     for (var fieldAndWeight : fieldAndWeights) {
       String[] splitFieldAndWeights = fieldAndWeight.split("\\^");
@@ -629,9 +645,10 @@ public class AstExpressionBuilder extends OpenSearchSQLParserBaseVisitor<Unresol
 
     ctx.getRuleContexts(AlternateMultiMatchQueryContext.class)
         .stream().findFirst().ifPresent(
-          arg ->
-            builder.add(new UnresolvedArgument("query",
-                new Literal(StringUtils.unquoteText(arg.argVal.getText()), DataType.STRING)))
+              arg ->
+                    builder.add(new UnresolvedArgument("query",
+                        new Literal(
+                            StringUtils.unquoteText(arg.argVal.getText()), DataType.STRING)))
         );
 
     fillRelevanceArgs(ctx.relevanceArg(), builder);

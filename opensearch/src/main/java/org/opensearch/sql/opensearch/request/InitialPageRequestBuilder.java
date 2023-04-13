@@ -101,4 +101,14 @@ public class InitialPageRequestBuilder extends PagedRequestBuilder {
   public void pushTypeMapping(Map<String, OpenSearchDataType> typeMapping) {
     exprValueFactory.extendTypeMapping(typeMapping);
   }
+
+  @Override
+  public void pushDownNested(List<Map<String, ReferenceExpression>> nestedArgs) {
+    throw new UnsupportedOperationException("Pagination does not support nested function");
+  }
+
+  @Override
+  public void pushDownTrackedScore(boolean trackScores) {
+    throw new UnsupportedOperationException("Pagination does not support score function");
+  }
 }

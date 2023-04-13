@@ -5,11 +5,15 @@
 
 package org.opensearch.sql.expression.function;
 
+import static org.opensearch.sql.data.type.ExprCoreType.BOOLEAN;
+
 import java.util.List;
 import java.util.stream.Collectors;
+import lombok.Getter;
+import lombok.Setter;
 import lombok.experimental.UtilityClass;
+import org.apache.commons.lang3.tuple.Pair;
 import org.opensearch.sql.data.model.ExprValue;
-import org.opensearch.sql.data.type.ExprCoreType;
 import org.opensearch.sql.data.type.ExprType;
 import org.opensearch.sql.expression.Expression;
 import org.opensearch.sql.expression.FunctionExpression;
@@ -32,6 +36,7 @@ public class OpenSearchFunctions {
     repository.register(simple_query_string());
     repository.register(query());
     repository.register(query_string());
+
     // Register MATCHPHRASE as MATCH_PHRASE as well for backwards
     // compatibility.
     repository.register(match_phrase(BuiltinFunctionName.MATCH_PHRASE));
@@ -40,6 +45,11 @@ public class OpenSearchFunctions {
     repository.register(match_phrase_prefix());
     repository.register(wildcard_query(BuiltinFunctionName.WILDCARD_QUERY));
     repository.register(wildcard_query(BuiltinFunctionName.WILDCARDQUERY));
+    repository.register(score(BuiltinFunctionName.SCORE));
+    repository.register(score(BuiltinFunctionName.SCOREQUERY));
+    repository.register(score(BuiltinFunctionName.SCORE_QUERY));
+    // Functions supported in SELECT clause
+    repository.register(nested());
   }
 
   private static FunctionResolver match_bool_prefix() {
@@ -86,9 +96,48 @@ public class OpenSearchFunctions {
     return new RelevanceFunctionResolver(funcName);
   }
 
+  private static FunctionResolver nested() {
+    return new FunctionResolver() {
+      @Override
+      public Pair<FunctionSignature, FunctionBuilder> resolve(
+          FunctionSignature unresolvedSignature) {
+        return Pair.of(unresolvedSignature,
+            (functionProperties, arguments) ->
+            new FunctionExpression(BuiltinFunctionName.NESTED.getName(), arguments) {
+              @Override
+              public ExprValue valueOf(Environment<Expression, ExprValue> valueEnv) {
+                return valueEnv.resolve(getArguments().get(0));
+              }
+
+              @Override
+              public ExprType type() {
+                return getArguments().get(0).type();
+              }
+            });
+      }
+
+      @Override
+      public FunctionName getFunctionName() {
+        return BuiltinFunctionName.NESTED.getName();
+      }
+    };
+  }
+
+
+
+
+  private static FunctionResolver score(BuiltinFunctionName score) {
+    FunctionName funcName = score.getName();
+    return new RelevanceFunctionResolver(funcName);
+  }
+
   public static class OpenSearchFunction extends FunctionExpression {
     private final FunctionName functionName;
     private final List<Expression> arguments;
+
+    @Getter
+    @Setter
+    private boolean isScoreTracked;
 
     /**
      * Required argument constructor.
@@ -99,6 +148,7 @@ public class OpenSearchFunctions {
       super(functionName, arguments);
       this.functionName = functionName;
       this.arguments = arguments;
+      this.isScoreTracked = false;
     }
 
     @Override
@@ -110,7 +160,7 @@ public class OpenSearchFunctions {
 
     @Override
     public ExprType type() {
-      return ExprCoreType.BOOLEAN;
+      return BOOLEAN;
     }
 
     @Override

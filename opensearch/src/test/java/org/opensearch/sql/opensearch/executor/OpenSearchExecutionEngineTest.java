@@ -180,9 +180,8 @@ class OpenSearchExecutionEngineTest {
     when(settings.getSettingValue(SQL_CURSOR_KEEP_ALIVE))
         .thenReturn(TimeValue.timeValueMinutes(1));
 
-    PhysicalPlan plan = new OpenSearchIndexScan(mock(OpenSearchClient.class),
-        new OpenSearchRequestBuilder("test", 10000, settings,
-            mock(OpenSearchExprValueFactory.class)));
+    PhysicalPlan plan = new OpenSearchIndexScan(mock(OpenSearchClient.class), settings,
+        "test", 10000, mock(OpenSearchExprValueFactory.class));
 
     AtomicReference<ExplainResponse> result = new AtomicReference<>();
     executor.explain(plan, new ResponseListener<ExplainResponse>() {

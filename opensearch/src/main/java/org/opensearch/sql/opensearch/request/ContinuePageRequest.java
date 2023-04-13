@@ -5,6 +5,7 @@
 
 package org.opensearch.sql.opensearch.request;
 
+import java.util.List;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import lombok.EqualsAndHashCode;
@@ -48,7 +49,7 @@ public class ContinuePageRequest implements OpenSearchRequest {
         .scroll(scrollTimeout));
 
     // TODO if terminated_early - something went wrong, e.g. no scroll returned.
-    var response = new OpenSearchResponse(openSearchResponse, exprValueFactory);
+    var response = new OpenSearchResponse(openSearchResponse, exprValueFactory, List.of());
     // on the last empty page, we should close the scroll
     scrollFinished = response.isEmpty();
     responseScrollId = openSearchResponse.getScrollId();

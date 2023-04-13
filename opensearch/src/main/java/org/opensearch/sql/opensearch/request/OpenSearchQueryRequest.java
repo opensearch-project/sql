@@ -9,6 +9,8 @@ package org.opensearch.sql.opensearch.request;
 import static org.opensearch.sql.opensearch.request.OpenSearchRequestBuilder.DEFAULT_QUERY_TIMEOUT;
 
 import com.google.common.annotations.VisibleForTesting;
+import java.util.Arrays;
+import java.util.List;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import lombok.EqualsAndHashCode;
@@ -19,6 +21,7 @@ import org.opensearch.action.search.SearchResponse;
 import org.opensearch.action.search.SearchScrollRequest;
 import org.opensearch.search.SearchHits;
 import org.opensearch.search.builder.SearchSourceBuilder;
+import org.opensearch.search.fetch.subphase.FetchSourceContext;
 import org.opensearch.sql.opensearch.data.value.OpenSearchExprValueFactory;
 import org.opensearch.sql.opensearch.response.OpenSearchResponse;
 
@@ -90,11 +93,16 @@ public class OpenSearchQueryRequest implements OpenSearchRequest {
   @Override
   public OpenSearchResponse search(Function<SearchRequest, SearchResponse> searchAction,
                                    Function<SearchScrollRequest, SearchResponse> scrollAction) {
+    FetchSourceContext fetchSource = this.sourceBuilder.fetchSource();
+    List<String> includes = fetchSource != null && fetchSource.includes() != null
+            ? Arrays.asList(fetchSource.includes())
+            : List.of();
     if (searchDone) {
-      return new OpenSearchResponse(SearchHits.empty(), exprValueFactory);
+      return new OpenSearchResponse(SearchHits.empty(), exprValueFactory, includes);
     } else {
       searchDone = true;
-      return new OpenSearchResponse(searchAction.apply(searchRequest()), exprValueFactory);
+      return new OpenSearchResponse(
+          searchAction.apply(searchRequest()), exprValueFactory, includes);
     }
   }
 

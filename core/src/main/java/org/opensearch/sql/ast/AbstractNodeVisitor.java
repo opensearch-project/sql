@@ -29,6 +29,7 @@ import org.opensearch.sql.ast.expression.Not;
 import org.opensearch.sql.ast.expression.Or;
 import org.opensearch.sql.ast.expression.QualifiedName;
 import org.opensearch.sql.ast.expression.RelevanceFieldList;
+import org.opensearch.sql.ast.expression.ScoreFunction;
 import org.opensearch.sql.ast.expression.Span;
 import org.opensearch.sql.ast.expression.UnresolvedArgument;
 import org.opensearch.sql.ast.expression.UnresolvedAttribute;
@@ -276,6 +277,10 @@ public abstract class AbstractNodeVisitor<T, C> {
   }
 
   public T visitHighlightFunction(HighlightFunction node, C context) {
+    return visitChildren(node, context);
+  }
+
+  public T visitScoreFunction(ScoreFunction node, C context) {
     return visitChildren(node, context);
   }
 

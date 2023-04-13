@@ -14,6 +14,7 @@ import static org.mockito.Mockito.when;
 import static org.opensearch.sql.data.type.ExprCoreType.INTEGER;
 import static org.opensearch.sql.opensearch.request.OpenSearchRequestBuilder.DEFAULT_QUERY_TIMEOUT;
 
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import org.junit.jupiter.api.BeforeEach;
@@ -81,7 +82,11 @@ public class InitialPageRequestBuilderTest {
         () -> assertThrows(UnsupportedOperationException.class,
             () -> requestBuilder.pushDownLimit(1, 2)),
         () -> assertThrows(UnsupportedOperationException.class,
-            () -> requestBuilder.pushDownHighlight("", Map.of()))
+            () -> requestBuilder.pushDownHighlight("", Map.of())),
+        () -> assertThrows(UnsupportedOperationException.class,
+            () -> requestBuilder.pushDownNested(List.of())),
+        () -> assertThrows(UnsupportedOperationException.class,
+            () -> requestBuilder.pushDownTrackedScore(true))
     );
   }
 

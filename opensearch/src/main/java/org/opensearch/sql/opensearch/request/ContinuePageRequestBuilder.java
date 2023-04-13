@@ -85,4 +85,14 @@ public class ContinuePageRequestBuilder extends PagedRequestBuilder {
   public void pushTypeMapping(Map<String, OpenSearchDataType> typeMapping) {
     throw new UnsupportedOperationException("Cursor requests don't support any push down");
   }
+
+  @Override
+  public void pushDownNested(List<Map<String, ReferenceExpression>> nestedArgs) {
+    throw new UnsupportedOperationException("Cursor requests don't support any push down");
+  }
+
+  @Override
+  public void pushDownTrackedScore(boolean trackScores) {
+    throw new UnsupportedOperationException("Cursor requests don't support any push down");
+  }
 }

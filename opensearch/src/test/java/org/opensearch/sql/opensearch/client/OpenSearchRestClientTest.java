@@ -298,6 +298,7 @@ class OpenSearchRestClientTest {
                 new TotalHits(1L, TotalHits.Relation.EQUAL_TO),
                 1.0F));
     when(searchHit.getSourceAsString()).thenReturn("{\"id\", 1}");
+    when(searchHit.getInnerHits()).thenReturn(null);
     when(factory.construct(any())).thenReturn(exprTupleValue);
 
     // Mock second scroll request followed
@@ -314,7 +315,7 @@ class OpenSearchRestClientTest {
 
     Iterator<ExprValue> hits = response1.iterator();
     assertTrue(hits.hasNext());
-    assertEquals(exprTupleValue, hits.next());
+    assertEquals(exprTupleValue.tupleValue().get("id"), hits.next().tupleValue().get("id"));
     assertFalse(hits.hasNext());
 
     // Verify response for second scroll request

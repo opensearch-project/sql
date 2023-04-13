@@ -15,9 +15,10 @@ import static org.opensearch.sql.data.type.ExprCoreType.TIMESTAMP;
 import static org.opensearch.sql.utils.DateTimeFormatters.DATE_TIME_FORMATTER;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.ImmutableMap;
-import java.io.Serializable;
+import com.google.common.collect.Iterators;
 import java.time.Instant;
 import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
@@ -55,7 +56,7 @@ import org.opensearch.sql.opensearch.response.agg.OpenSearchAggregationResponseP
 /**
  * Construct ExprValue from OpenSearch response.
  */
-public class OpenSearchExprValueFactory implements Serializable {
+public class OpenSearchExprValueFactory {
   /**
    * The Mapping of Field and ExprType.
    */
@@ -235,15 +236,20 @@ public class OpenSearchExprValueFactory implements Serializable {
    */
   private ExprValue parseArray(Content content, String prefix) {
     List<ExprValue> result = new ArrayList<>();
-    content.array().forEachRemaining(v -> {
-      // ExprCoreType.ARRAY does not indicate inner elements type. OpenSearch nested will be an
-      // array of structs, otherwise parseArray currently only supports array of strings.
-      if (v.isString()) {
-        result.add(parse(v, prefix, Optional.of(OpenSearchDataType.of(STRING))));
-      } else {
-        result.add(parse(v, prefix, Optional.of(STRUCT)));
-      }
-    });
+    // ExprCoreType.ARRAY does not indicate inner elements type.
+    if (Iterators.size(content.array()) == 1 && content.objectValue() instanceof JsonNode) {
+      result.add(parse(content, prefix, Optional.of(STRUCT)));
+    } else {
+      content.array().forEachRemaining(v -> {
+        // ExprCoreType.ARRAY does not indicate inner elements type. OpenSearch nested will be an
+        // array of structs, otherwise parseArray currently only supports array of strings.
+        if (v.isString()) {
+          result.add(parse(v, prefix, Optional.of(OpenSearchDataType.of(STRING))));
+        } else {
+          result.add(parse(v, prefix, Optional.of(STRUCT)));
+        }
+      });
+    }
     return new ExprCollectionValue(result);
   }
 

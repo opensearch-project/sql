@@ -235,7 +235,7 @@ class ProjectOperatorTest extends PhysicalPlanTestBase {
     assertEquals(project, roundTripPlan);
   }
 
-  @EqualsAndHashCode
+  @EqualsAndHashCode(callSuper = false)
   public static class TestOperator extends PhysicalPlan implements SerializablePlan {
 
     @Override
