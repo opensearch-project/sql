@@ -62,7 +62,7 @@ public class ContinuePaginatedPlanTest {
         fail();
       }
     };
-    var plan = new ContinuePaginatedPlan(QueryId.None, buildCursor(Map.of()),
+    var plan = new ContinuePaginatedPlan(QueryId.queryId(), buildCursor(Map.of()),
         queryService, paginatedPlanCache, listener);
     plan.execute();
   }
@@ -81,7 +81,7 @@ public class ContinuePaginatedPlanTest {
         assertNotNull(e);
       }
     };
-    var plan = new ContinuePaginatedPlan(QueryId.None, buildCursor(Map.of("pageSize", "abc")),
+    var plan = new ContinuePaginatedPlan(QueryId.queryId(), buildCursor(Map.of("pageSize", "abc")),
         queryService, paginatedPlanCache, listener);
     plan.execute();
   }
