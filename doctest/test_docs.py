@@ -27,6 +27,7 @@ NYC_TAXI = "nyc_taxi"
 BOOKS = "books"
 APACHE = "apache"
 WILDCARD = "wildcard"
+NESTED = "nested"
 DATASOURCES = ".ql-datasources"
 
 
@@ -95,6 +96,7 @@ def set_up_test_indices(test):
     load_file("books.json", index_name=BOOKS)
     load_file("apache.json", index_name=APACHE)
     load_file("wildcard.json", index_name=WILDCARD)
+    load_file("nested_objects.json", index_name=NESTED)
     load_file("datasources.json", index_name=DATASOURCES)
 
 
@@ -124,7 +126,7 @@ def set_up(test):
 
 def tear_down(test):
     # drop leftover tables after each test
-    test_data_client.indices.delete(index=[ACCOUNTS, EMPLOYEES, PEOPLE, ACCOUNT2, NYC_TAXI, BOOKS, APACHE, WILDCARD], ignore_unavailable=True)
+    test_data_client.indices.delete(index=[ACCOUNTS, EMPLOYEES, PEOPLE, ACCOUNT2, NYC_TAXI, BOOKS, APACHE, WILDCARD, NESTED], ignore_unavailable=True)
 
 
 docsuite = partial(doctest.DocFileSuite,

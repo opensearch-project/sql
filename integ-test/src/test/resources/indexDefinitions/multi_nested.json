@@ -1,0 +1,42 @@
+{
+  "mappings": {
+    "properties": {
+      "message": {
+        "type": "nested",
+        "properties": {
+          "info": {
+            "type": "keyword"
+          },
+          "author": {
+            "type": "nested",
+            "properties": {
+              "name": {
+                "type": "keyword",
+                "fields": {
+                  "keyword": {
+                    "type": "keyword",
+                    "ignore_above": 256
+                  }
+                }
+              },
+              "address": {
+                "type": "nested",
+                "properties": {
+                  "street": {
+                    "type": "keyword"
+                    },
+                  "number": {
+                    "type": "integer"
+                  }
+                }
+              }
+            }
+          },
+          "dayOfWeek": {
+            "type": "long"
+          }
+        }
+      }
+    }
+  }
+}
