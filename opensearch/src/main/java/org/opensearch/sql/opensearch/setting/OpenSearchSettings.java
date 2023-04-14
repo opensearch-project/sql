@@ -99,8 +99,8 @@ public class OpenSearchSettings extends Settings {
       Setting.Property.Dynamic);
 
   /**
-   * Construct ElasticsearchSetting.
-   * The ElasticsearchSetting must be singleton.
+   * Construct OpenSearchSetting.
+   * The OpenSearchSetting must be singleton.
    */
   @SuppressWarnings("unchecked")
   public OpenSearchSettings(ClusterSettings clusterSettings) {

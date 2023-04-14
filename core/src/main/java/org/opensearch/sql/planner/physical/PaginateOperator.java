@@ -11,13 +11,11 @@ import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.executor.ExecutionEngine;
-import org.opensearch.sql.planner.physical.PhysicalPlan;
-import org.opensearch.sql.planner.physical.PhysicalPlanNodeVisitor;
-import org.opensearch.sql.planner.physical.ProjectOperator;
+import org.opensearch.sql.planner.SerializablePlan;
 
-@RequiredArgsConstructor
 @EqualsAndHashCode(callSuper = false)
-public class PaginateOperator extends PhysicalPlan {
+@RequiredArgsConstructor
+public class PaginateOperator extends PhysicalPlan implements SerializablePlan {
   @Getter
   private final PhysicalPlan input;
 
@@ -30,17 +28,17 @@ public class PaginateOperator extends PhysicalPlan {
    * See usage.
    */
   @Getter
-  private final int pageIndex;
+  private int pageIndex = 0;
 
-  int numReturned = 0;
+  private int numReturned = 0;
 
   /**
-   * Page given physical plan, with pageSize elements per page, starting with the first page.
+   * Page given physical plan, with pageSize elements per page, starting with the given page.
    */
-  public PaginateOperator(PhysicalPlan input, int pageSize) {
+  public PaginateOperator(PhysicalPlan input, int pageSize, int pageIndex) {
     this.pageSize = pageSize;
     this.input = input;
-    this.pageIndex = 0;
+    this.pageIndex = pageIndex;
   }
 
   @Override
@@ -68,17 +66,9 @@ public class PaginateOperator extends PhysicalPlan {
     return input.schema();
   }
 
+  /** No need to serialize a PaginateOperator, it actually does nothing - it is a wrapper. */
   @Override
-  public String toCursor() {
-    // Save cursor to read the next page.
-    // Could process node.getChild() here with another visitor -- one that saves the
-    // parameters for other physical operators -- ProjectOperator, etc.
-    // cursor format: n:<paginate(next-page, pagesize)>|<child>"
-    String child = getChild().get(0).toCursor();
-
-    var nextPage = getPageIndex() + 1;
-    return child == null || child.isEmpty()
-        ? null : createSection("Paginate", Integer.toString(nextPage),
-            Integer.toString(getPageSize()), child);
+  public SerializablePlan getPlanForSerialization() {
+    return (SerializablePlan) input;
   }
 }

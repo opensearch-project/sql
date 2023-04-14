@@ -17,6 +17,7 @@ import static org.opensearch.sql.utils.DateTimeFormatters.DATE_TIME_FORMATTER;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.ImmutableMap;
+import java.io.Serializable;
 import java.time.Instant;
 import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
@@ -54,7 +55,7 @@ import org.opensearch.sql.opensearch.response.agg.OpenSearchAggregationResponseP
 /**
  * Construct ExprValue from OpenSearch response.
  */
-public class OpenSearchExprValueFactory {
+public class OpenSearchExprValueFactory implements Serializable {
   /**
    * The Mapping of Field and ExprType.
    */

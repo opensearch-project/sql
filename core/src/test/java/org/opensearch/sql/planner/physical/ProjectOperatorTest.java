@@ -11,9 +11,7 @@ import static org.hamcrest.Matchers.allOf;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.hasItems;
 import static org.hamcrest.Matchers.iterableWithSize;
-import static org.junit.jupiter.api.Assertions.assertAll;
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.mockito.Mockito.when;
 import static org.opensearch.sql.data.model.ExprValueUtils.LITERAL_MISSING;
 import static org.opensearch.sql.data.model.ExprValueUtils.stringValue;
@@ -23,7 +21,16 @@ import static org.opensearch.sql.planner.physical.PhysicalPlanDSL.project;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.ObjectInput;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutput;
+import java.io.ObjectOutputStream;
 import java.util.List;
+import lombok.EqualsAndHashCode;
+import lombok.SneakyThrows;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
@@ -33,7 +40,7 @@ import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.data.model.ExprValueUtils;
 import org.opensearch.sql.executor.ExecutionEngine;
 import org.opensearch.sql.expression.DSL;
-import org.opensearch.sql.expression.serialization.DefaultExpressionSerializer;
+import org.opensearch.sql.planner.SerializablePlan;
 
 @ExtendWith(MockitoExtension.class)
 class ProjectOperatorTest extends PhysicalPlanTestBase {
@@ -212,18 +219,51 @@ class ProjectOperatorTest extends PhysicalPlanTestBase {
   }
 
   @Test
-  public void toCursor() {
-    when(inputPlan.toCursor()).thenReturn("inputPlan", "", null);
-    var project = DSL.named("response", DSL.ref("response", INTEGER));
-    var npe = DSL.named("action", DSL.ref("action", STRING));
-    var po = project(inputPlan, List.of(project), List.of(npe));
-    var serializer = new DefaultExpressionSerializer();
-    var expected = String.format("(Project,(namedParseExpressions,%s),(projectList,%s),%s)",
-        serializer.serialize(npe), serializer.serialize(project), "inputPlan");
-    assertAll(
-        () -> assertEquals(expected, po.toCursor()),
-        () -> assertNull(po.toCursor()),
-        () -> assertNull(po.toCursor())
-    );
+  @SneakyThrows
+  public void serializable() {
+    var projects = List.of(DSL.named("action", DSL.ref("action", STRING)));
+    var project = new ProjectOperator(new TestOperator(), projects, List.of());
+
+    ByteArrayOutputStream output = new ByteArrayOutputStream();
+    ObjectOutputStream objectOutput = new ObjectOutputStream(output);
+    objectOutput.writeObject(project);
+    objectOutput.flush();
+
+    ObjectInputStream objectInput = new ObjectInputStream(
+        new ByteArrayInputStream(output.toByteArray()));
+    var roundTripPlan = (ProjectOperator) objectInput.readObject();
+    assertEquals(project, roundTripPlan);
+  }
+
+  @EqualsAndHashCode
+  public static class TestOperator extends PhysicalPlan implements SerializablePlan {
+
+    @Override
+    public <R, C> R accept(PhysicalPlanNodeVisitor<R, C> visitor, C context) {
+      return null;
+    }
+
+    @Override
+    public boolean hasNext() {
+      return false;
+    }
+
+    @Override
+    public ExprValue next() {
+      return null;
+    }
+
+    @Override
+    public List<PhysicalPlan> getChild() {
+      return null;
+    }
+
+    @Override
+    public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
+    }
+
+    @Override
+    public void writeExternal(ObjectOutput out) throws IOException {
+    }
   }
 }

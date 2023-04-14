@@ -6,7 +6,6 @@
 
 package org.opensearch.sql.planner.physical;
 
-import static org.junit.jupiter.api.Assertions.assertAll;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
@@ -29,6 +28,7 @@ import org.junit.jupiter.api.DisplayNameGenerator;
 import org.junit.jupiter.api.Test;
 import org.opensearch.sql.data.model.ExprIntegerValue;
 import org.opensearch.sql.expression.DSL;
+import org.opensearch.sql.planner.SerializablePlan;
 
 @DisplayNameGeneration(DisplayNameGenerator.ReplaceUnderscores.class)
 public class PaginateOperatorTest extends PhysicalPlanTestBase {
@@ -90,15 +90,10 @@ public class PaginateOperatorTest extends PhysicalPlanTestBase {
   }
 
   @Test
-  public void toCursor() {
-    var plan = mock(PhysicalPlan.class);
-    when(plan.toCursor()).thenReturn("Great plan, Walter, reliable as a swiss watch!", "", null);
-    var po = new PaginateOperator(plan, 2);
-    assertAll(
-        () -> assertEquals("(Paginate,1,2,Great plan, Walter, reliable as a swiss watch!)",
-            po.toCursor()),
-        () -> assertNull(po.toCursor()),
-        () -> assertNull(po.toCursor())
-    );
+  // PaginateOperator implements SerializablePlan, but not being serialized
+  public void serializable_but_not_serialized() {
+    var plan = mock(PhysicalPlan.class, withSettings().extraInterfaces(SerializablePlan.class));
+    var paginate = new PaginateOperator(plan, 1, 1);
+    assertSame(plan, paginate.getPlanForSerialization());
   }
 }

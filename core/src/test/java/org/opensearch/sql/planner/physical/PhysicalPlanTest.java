@@ -78,19 +78,4 @@ class PhysicalPlanTest {
     when(plan.getTotalHits()).then(CALLS_REAL_METHODS);
     assertEquals(0, plan.getTotalHits());
   }
-
-  @Test
-  void toCursor() {
-    var plan = mock(PhysicalPlan.class);
-    when(plan.toCursor()).then(CALLS_REAL_METHODS);
-    assertTrue(assertThrows(IllegalStateException.class, plan::toCursor)
-        .getMessage().contains("is not compatible with cursor feature"));
-  }
-
-  @Test
-  void createSection() {
-    var plan = mock(PhysicalPlan.class);
-    when(plan.createSection(anyString(), any())).then(CALLS_REAL_METHODS);
-    assertEquals("(plan,one,two)", plan.createSection("plan", "one", "two"));
-  }
 }
