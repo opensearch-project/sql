@@ -7,11 +7,12 @@
 package org.opensearch.sql.planner.optimizer;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.Mockito.lenient;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.opensearch.sql.data.model.ExprValueUtils.integerValue;
 import static org.opensearch.sql.data.model.ExprValueUtils.longValue;
@@ -21,6 +22,7 @@ import static org.opensearch.sql.planner.logical.LogicalPlanDSL.aggregation;
 import static org.opensearch.sql.planner.logical.LogicalPlanDSL.filter;
 import static org.opensearch.sql.planner.logical.LogicalPlanDSL.highlight;
 import static org.opensearch.sql.planner.logical.LogicalPlanDSL.limit;
+import static org.opensearch.sql.planner.logical.LogicalPlanDSL.paginate;
 import static org.opensearch.sql.planner.logical.LogicalPlanDSL.project;
 import static org.opensearch.sql.planner.logical.LogicalPlanDSL.relation;
 import static org.opensearch.sql.planner.logical.LogicalPlanDSL.sort;
@@ -47,6 +49,8 @@ import org.opensearch.sql.expression.DSL;
 import org.opensearch.sql.planner.logical.LogicalPaginate;
 import org.opensearch.sql.planner.logical.LogicalPlan;
 import org.opensearch.sql.planner.logical.LogicalRelation;
+import org.opensearch.sql.planner.optimizer.rule.CreatePagingTableScanBuilder;
+import org.opensearch.sql.planner.optimizer.rule.read.CreateTableScanBuilder;
 import org.opensearch.sql.planner.physical.PhysicalPlan;
 import org.opensearch.sql.storage.Table;
 import org.opensearch.sql.storage.read.TableScanBuilder;
@@ -62,9 +66,13 @@ class LogicalPlanOptimizerTest {
   @Spy
   private TableScanBuilder tableScanBuilder;
 
+  @Spy
+  private TableScanBuilder pagedTableScanBuilder;
+
   @BeforeEach
   void setUp() {
     lenient().when(table.createScanBuilder()).thenReturn(tableScanBuilder);
+    lenient().when(table.createPagedScanBuilder(anyInt())).thenReturn(pagedTableScanBuilder);
   }
 
   /**
@@ -313,48 +321,64 @@ class LogicalPlanOptimizerTest {
 
   @Test
   void paged_table_scan_builder_support_project_push_down_can_apply_its_rule() {
-    when(tableScanBuilder.pushDownProject(any())).thenReturn(true);
-    when(table.createPagedScanBuilder(anyInt())).thenReturn(tableScanBuilder);
 
-    var relation = new LogicalRelation("schema", table);
-    relation.setPageSize(anyInt());
+    var relation = relation("schema", table);
 
     assertEquals(
-        tableScanBuilder,
-        LogicalPlanOptimizer.paginationCreate().optimize(project(relation))
-    );
+        paginate(project(pagedTableScanBuilder), 4),
+        LogicalPlanOptimizer.create().optimize(paginate(project(relation), 4)));
   }
 
-  @Test
-  void push_page_size() {
-    var relation = new LogicalRelation("schema", table);
-    var paginate = new LogicalPaginate(42, List.of(project(relation)));
-    assertNull(relation.getPageSize());
-    LogicalPlanOptimizer.paginationCreate().optimize(paginate);
-    assertEquals(42, relation.getPageSize());
-  }
 
   @Test
   void push_page_size_noop_if_no_relation() {
     var paginate = new LogicalPaginate(42, List.of(project(values())));
-    LogicalPlanOptimizer.paginationCreate().optimize(paginate);
+    assertEquals(paginate, LogicalPlanOptimizer.create().optimize(paginate));
+  }
+
+  @Test
+  void pagination_optimizer_simple_query() {
+    var projectPlan = project(relation("schema", table), DSL.named(DSL.ref("intV", INTEGER)));
+
+    var optimizer = new LogicalPlanOptimizer(
+        List.of(new CreateTableScanBuilder(), new CreatePagingTableScanBuilder()));
+
+    {
+      optimizer.optimize(projectPlan);
+      verify(table).createScanBuilder();
+      verify(table, never()).createPagedScanBuilder(anyInt());
+    }
+  }
+
+  @Test
+  void pagination_optimizer_paged_query() {
+    var relation = new LogicalRelation("schema", table);
+    var projectPlan = project(relation, DSL.named(DSL.ref("intV", INTEGER)));
+    var pagedPlan = new LogicalPaginate(10, List.of(projectPlan));
+
+    var optimizer = new LogicalPlanOptimizer(
+        List.of(new CreateTableScanBuilder(), new CreatePagingTableScanBuilder()));
+    var optimized = optimizer.optimize(pagedPlan);
+    verify(table).createPagedScanBuilder(anyInt());
   }
 
   @Test
   void push_page_size_noop_if_no_sub_plans() {
     var paginate = new LogicalPaginate(42, List.of());
-    LogicalPlanOptimizer.paginationCreate().optimize(paginate);
+    assertEquals(paginate,
+        LogicalPlanOptimizer.create().optimize(paginate));
   }
 
   @Test
   void table_scan_builder_support_offset_push_down_can_apply_its_rule() {
-    when(table.createPagedScanBuilder(anyInt())).thenReturn(tableScanBuilder);
+    when(table.createPagedScanBuilder(anyInt())).thenReturn(pagedTableScanBuilder);
 
-    var optimized = LogicalPlanOptimizer.paginationCreate()
-        .optimize(new LogicalPaginate(42, List.of(project(relation("schema", table)))));
+    var relation = new LogicalRelation("schema", table);
+    var optimized = LogicalPlanOptimizer.create()
+        .optimize(new LogicalPaginate(42, List.of(project(relation))));
     // `optimized` structure: LogicalPaginate -> LogicalProject -> TableScanBuilder
     // LogicalRelation replaced by a TableScanBuilder instance
-    assertEquals(tableScanBuilder, optimized.getChild().get(0).getChild().get(0));
+    assertEquals(paginate(project(pagedTableScanBuilder), 42), optimized);
   }
 
   private LogicalPlan optimize(LogicalPlan plan) {

@@ -9,7 +9,6 @@ package org.opensearch.sql.planner.logical;
 import com.google.common.collect.ImmutableList;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
-import lombok.Setter;
 import lombok.ToString;
 import org.opensearch.sql.storage.Table;
 
@@ -26,10 +25,6 @@ public class LogicalRelation extends LogicalPlan {
   @Getter
   private final Table table;
 
-  @Getter
-  @Setter
-  private Integer pageSize;
-
   /**
    * Constructor of LogicalRelation.
    */
@@ -37,7 +32,6 @@ public class LogicalRelation extends LogicalPlan {
     super(ImmutableList.of());
     this.relationName = relationName;
     this.table = table;
-    this.pageSize = null;
   }
 
   @Override

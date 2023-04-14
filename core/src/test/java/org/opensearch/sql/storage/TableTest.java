@@ -20,6 +20,6 @@ public class TableTest {
   @Test
   public void createPagedScanBuilder_throws() {
     var table = mock(Table.class, withSettings().defaultAnswer(InvocationOnMock::callRealMethod));
-    assertThrows(Throwable.class, () -> table.createPagedScanBuilder(0));
+    assertThrows(Throwable.class, () -> table.createPagedScanBuilder(4));
   }
 }

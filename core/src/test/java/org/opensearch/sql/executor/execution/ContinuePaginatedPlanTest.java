@@ -46,7 +46,7 @@ public class ContinuePaginatedPlanTest {
     when(storageEngine.getTableScan(anyString(), anyString()))
         .thenReturn(mock(TableScanOperator.class));
     planSerializer = new PlanSerializer(storageEngine);
-    queryService = new QueryService(null, new DefaultExecutionEngine(), null, null);
+    queryService = new QueryService(null, new DefaultExecutionEngine(), null);
   }
 
   @Test

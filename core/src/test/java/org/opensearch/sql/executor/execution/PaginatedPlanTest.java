@@ -26,7 +26,6 @@ import org.opensearch.sql.executor.QueryId;
 import org.opensearch.sql.executor.QueryService;
 import org.opensearch.sql.planner.Planner;
 import org.opensearch.sql.planner.logical.LogicalPaginate;
-import org.opensearch.sql.planner.logical.LogicalPlan;
 import org.opensearch.sql.planner.physical.PhysicalPlan;
 
 @DisplayNameGeneration(DisplayNameGenerator.ReplaceUnderscores.class)
@@ -43,7 +42,7 @@ public class PaginatedPlanTest {
     when(analyzer.analyze(any(), any())).thenReturn(mock(LogicalPaginate.class));
     var planner = mock(Planner.class);
     when(planner.plan(any())).thenReturn(mock(PhysicalPlan.class));
-    queryService = new QueryService(analyzer, new DefaultExecutionEngine(), null, planner);
+    queryService = new QueryService(analyzer, new DefaultExecutionEngine(), planner);
   }
 
   @Test
@@ -79,7 +78,7 @@ public class PaginatedPlanTest {
       }
     };
     var plan = new PaginatedPlan(QueryId.queryId(), mock(UnresolvedPlan.class), 10,
-        new QueryService(null, new DefaultExecutionEngine(), null, null), listener);
+        new QueryService(null, new DefaultExecutionEngine(), null), listener);
     plan.execute();
   }
 
