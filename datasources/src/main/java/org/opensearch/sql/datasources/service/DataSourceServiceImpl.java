@@ -18,6 +18,7 @@ import java.util.Set;
 import org.opensearch.sql.common.utils.StringUtils;
 import org.opensearch.sql.datasource.DataSourceService;
 import org.opensearch.sql.datasource.model.DataSource;
+import org.opensearch.sql.datasource.model.DataSourceInterfaceType;
 import org.opensearch.sql.datasource.model.DataSourceMetadata;
 import org.opensearch.sql.datasources.auth.DataSourceUserAuthorizationHelper;
 import org.opensearch.sql.datasources.exceptions.DataSourceNotFoundException;
@@ -128,6 +129,11 @@ public class DataSourceServiceImpl implements DataSourceService {
   public Boolean dataSourceExists(String dataSourceName) {
     return DEFAULT_DATASOURCE_NAME.equals(dataSourceName)
         || this.dataSourceMetadataStorage.getDataSourceMetadata(dataSourceName).isPresent();
+  }
+
+  @Override
+  public DataSourceInterfaceType datasourceInterfaceType() {
+    return DataSourceInterfaceType.API;
   }
 
 

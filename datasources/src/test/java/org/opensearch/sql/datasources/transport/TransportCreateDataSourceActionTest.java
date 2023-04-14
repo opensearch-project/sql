@@ -3,6 +3,7 @@ package org.opensearch.sql.datasources.transport;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 import java.util.HashSet;
 import org.junit.jupiter.api.Assertions;
@@ -16,6 +17,8 @@ import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.opensearch.action.ActionListener;
 import org.opensearch.action.support.ActionFilters;
+import org.opensearch.sql.datasource.DataSourceServiceHolder;
+import org.opensearch.sql.datasource.model.DataSourceInterfaceType;
 import org.opensearch.sql.datasource.model.DataSourceMetadata;
 import org.opensearch.sql.datasource.model.DataSourceType;
 import org.opensearch.sql.datasources.model.transport.CreateDataSourceActionRequest;
@@ -47,11 +50,12 @@ public class TransportCreateDataSourceActionTest {
   @BeforeEach
   public void setUp() {
     action = new TransportCreateDataSourceAction(transportService,
-        new ActionFilters(new HashSet<>()), dataSourceService);
+        new ActionFilters(new HashSet<>()), new DataSourceServiceHolder(dataSourceService));
   }
 
   @Test
   public void testDoExecute() {
+    when(dataSourceService.datasourceInterfaceType()).thenReturn(DataSourceInterfaceType.API);
     DataSourceMetadata dataSourceMetadata = new DataSourceMetadata();
     dataSourceMetadata.setName("test_datasource");
     dataSourceMetadata.setConnector(DataSourceType.PROMETHEUS);
@@ -68,7 +72,27 @@ public class TransportCreateDataSourceActionTest {
   }
 
   @Test
+  public void testDoExecuteWithKeyStoreInterface() {
+    when(dataSourceService.datasourceInterfaceType()).thenReturn(DataSourceInterfaceType.KEYSTORE);
+    DataSourceMetadata dataSourceMetadata = new DataSourceMetadata();
+    dataSourceMetadata.setName("test_datasource");
+    dataSourceMetadata.setConnector(DataSourceType.PROMETHEUS);
+    CreateDataSourceActionRequest request = new CreateDataSourceActionRequest(dataSourceMetadata);
+    action.doExecute(task, request, actionListener);
+    verify(dataSourceService, times(0)).createDataSource(dataSourceMetadata);
+    Mockito.verify(actionListener).onFailure(exceptionArgumentCaptor.capture());
+    Exception exception = exceptionArgumentCaptor.getValue();
+    Assertions.assertTrue(exception instanceof UnsupportedOperationException);
+    Assertions.assertEquals(
+        "Please set datasource interface settings(plugins.query.federation.datasources.interface)"
+            + "to api in opensearch.yml to enable apis for datasource management. "
+            + "Please port any datasources configured in keystore using create api.",
+        exception.getMessage());
+  }
+
+  @Test
   public void testDoExecuteWithException() {
+    when(dataSourceService.datasourceInterfaceType()).thenReturn(DataSourceInterfaceType.API);
     DataSourceMetadata dataSourceMetadata = new DataSourceMetadata();
     dataSourceMetadata.setName("test_datasource");
     dataSourceMetadata.setConnector(DataSourceType.PROMETHEUS);

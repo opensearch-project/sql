@@ -18,7 +18,9 @@ import lombok.SneakyThrows;
 import org.apache.commons.lang3.StringUtils;
 import org.json.JSONArray;
 import org.json.JSONObject;
+import org.junit.BeforeClass;
 import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
 public class PrometheusDataSourceCommandsIT extends PPLIntegTestCase {
@@ -27,6 +29,18 @@ public class PrometheusDataSourceCommandsIT extends PPLIntegTestCase {
   @Override
   protected void init() throws Exception {
     loadIndex(Index.DATASOURCES);
+  }
+
+  /**
+   * Integ tests are dependent on self generated metrics in prometheus instance.
+   * When running individual integ tests there
+   * is no time for generation of metrics in test prometheus instance.
+   * This method gives prometheus time to generate metrics on itself.
+   * @throws InterruptedException
+   */
+  @BeforeClass
+  protected static void metricGenerationWait() throws InterruptedException {
+    Thread.sleep(20000);
   }
 
   @Test

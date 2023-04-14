@@ -30,6 +30,7 @@ import org.opensearch.sql.config.TestConfig;
 import org.opensearch.sql.data.type.ExprType;
 import org.opensearch.sql.datasource.DataSourceService;
 import org.opensearch.sql.datasource.model.DataSource;
+import org.opensearch.sql.datasource.model.DataSourceInterfaceType;
 import org.opensearch.sql.datasource.model.DataSourceMetadata;
 import org.opensearch.sql.datasource.model.DataSourceType;
 import org.opensearch.sql.exception.ExpressionEvaluationException;
@@ -228,6 +229,11 @@ public class AnalyzerTestBase {
     public Boolean dataSourceExists(String dataSourceName) {
       return dataSourceName.equals(DEFAULT_DATASOURCE_NAME)
           || dataSourceName.equals("prometheus");
+    }
+
+    @Override
+    public DataSourceInterfaceType datasourceInterfaceType() {
+      return null;
     }
   }
 

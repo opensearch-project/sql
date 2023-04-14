@@ -7,6 +7,7 @@ package org.opensearch.sql.datasource;
 
 import java.util.Set;
 import org.opensearch.sql.datasource.model.DataSource;
+import org.opensearch.sql.datasource.model.DataSourceInterfaceType;
 import org.opensearch.sql.datasource.model.DataSourceMetadata;
 
 /**
@@ -28,7 +29,8 @@ public interface DataSourceService {
    * any of the credential info.
    *
    * @param isDefaultDataSourceRequired is used to specify
-   *      if default opensearch connector is required in the output list.
+   *                                    if default opensearch connector is required
+   *                                    in the output list.
    * @return set of {@link DataSourceMetadata}.
    */
   Set<DataSourceMetadata> getDataSourceMetadata(boolean isDefaultDataSourceRequired);
@@ -72,4 +74,11 @@ public interface DataSourceService {
    * @param dataSourceName name of the {@link DataSource}.
    */
   Boolean dataSourceExists(String dataSourceName);
+
+  /**
+   * This method helps in identifing the datasource interface.
+   *
+   * @return {@code API} or {@code KEYSTORE} based on interface.
+   */
+  DataSourceInterfaceType datasourceInterfaceType();
 }

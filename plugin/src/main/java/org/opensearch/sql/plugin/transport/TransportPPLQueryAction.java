@@ -21,6 +21,7 @@ import org.opensearch.common.inject.ModulesBuilder;
 import org.opensearch.sql.common.response.ResponseListener;
 import org.opensearch.sql.common.utils.QueryContext;
 import org.opensearch.sql.datasource.DataSourceService;
+import org.opensearch.sql.datasource.DataSourceServiceHolder;
 import org.opensearch.sql.datasources.service.DataSourceServiceImpl;
 import org.opensearch.sql.executor.ExecutionEngine;
 import org.opensearch.sql.legacy.metrics.MetricName;
@@ -54,7 +55,7 @@ public class TransportPPLQueryAction
       ActionFilters actionFilters,
       NodeClient client,
       ClusterService clusterService,
-      DataSourceServiceImpl dataSourceService) {
+      DataSourceServiceHolder dataSourceServiceHolder) {
     super(PPLQueryAction.NAME, transportService, actionFilters, TransportPPLQueryRequest::new);
 
     ModulesBuilder modules = new ModulesBuilder();
@@ -64,7 +65,8 @@ public class TransportPPLQueryAction
           b.bind(NodeClient.class).toInstance(client);
           b.bind(org.opensearch.sql.common.setting.Settings.class)
               .toInstance(new OpenSearchSettings(clusterService.getClusterSettings()));
-          b.bind(DataSourceService.class).toInstance(dataSourceService);
+          b.bind(DataSourceService.class)
+              .toInstance(dataSourceServiceHolder.getDataSourceService());
         });
     this.injector = modules.createInjector();
   }

@@ -13,6 +13,8 @@ import org.opensearch.action.support.ActionFilters;
 import org.opensearch.action.support.HandledTransportAction;
 import org.opensearch.common.inject.Inject;
 import org.opensearch.sql.datasource.DataSourceService;
+import org.opensearch.sql.datasource.DataSourceServiceHolder;
+import org.opensearch.sql.datasource.model.DataSourceInterfaceType;
 import org.opensearch.sql.datasource.model.DataSourceMetadata;
 import org.opensearch.sql.datasources.model.transport.CreateDataSourceActionRequest;
 import org.opensearch.sql.datasources.model.transport.CreateDataSourceActionResponse;
@@ -33,20 +35,27 @@ public class TransportCreateDataSourceAction
    *
    * @param transportService  transportService.
    * @param actionFilters     actionFilters.
-   * @param dataSourceService dataSourceService.
+   * @param dataSourceServiceHolder dataSourceServiceHolder.
    */
   @Inject
   public TransportCreateDataSourceAction(TransportService transportService,
                                          ActionFilters actionFilters,
-                                         DataSourceServiceImpl dataSourceService) {
+                                         DataSourceServiceHolder dataSourceServiceHolder) {
     super(TransportCreateDataSourceAction.NAME, transportService, actionFilters,
         CreateDataSourceActionRequest::new);
-    this.dataSourceService = dataSourceService;
+    this.dataSourceService = dataSourceServiceHolder.getDataSourceService();
   }
 
   @Override
   protected void doExecute(Task task, CreateDataSourceActionRequest request,
                            ActionListener<CreateDataSourceActionResponse> actionListener) {
+    if (dataSourceService.datasourceInterfaceType().equals(DataSourceInterfaceType.KEYSTORE)) {
+      actionListener.onFailure(new UnsupportedOperationException(
+          "Please set datasource interface settings(plugins.query.federation.datasources.interface)"
+              + "to api in opensearch.yml to enable apis for datasource management. "
+              + "Please port any datasources configured in keystore using create api."));
+      return;
+    }
     try {
       DataSourceMetadata dataSourceMetadata = request.getDataSourceMetadata();
       dataSourceService.createDataSource(dataSourceMetadata);

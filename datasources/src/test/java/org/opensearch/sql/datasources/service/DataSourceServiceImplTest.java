@@ -36,6 +36,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.opensearch.sql.datasource.DataSourceService;
 import org.opensearch.sql.datasource.model.DataSource;
+import org.opensearch.sql.datasource.model.DataSourceInterfaceType;
 import org.opensearch.sql.datasource.model.DataSourceMetadata;
 import org.opensearch.sql.datasource.model.DataSourceType;
 import org.opensearch.sql.datasources.auth.DataSourceUserAuthorizationHelper;
@@ -123,7 +124,7 @@ class DataSourceServiceImplTest {
     DataSourceMetadata dataSourceMetadata = metadata("test", DataSourceType.OPENSEARCH,
         Collections.singletonList("prometheus_access"), ImmutableMap.of());
     doThrow(new SecurityException("User is not authorized to access datasource test. "
-            + "User should be mapped to any of the roles in [prometheus_access] for access."))
+        + "User should be mapped to any of the roles in [prometheus_access] for access."))
         .when(dataSourceUserAuthorizationHelper)
         .authorizeDataSource(dataSourceMetadata);
     when(dataSourceMetadataStorage.getDataSourceMetadata("test"))
@@ -288,7 +289,7 @@ class DataSourceServiceImplTest {
   void testDeleteDefaultDatasource() {
     UnsupportedOperationException unsupportedOperationException
         = assertThrows(UnsupportedOperationException.class,
-           () -> dataSourceService.deleteDataSource(DEFAULT_DATASOURCE_NAME));
+            () -> dataSourceService.deleteDataSource(DEFAULT_DATASOURCE_NAME));
     assertEquals("Not allowed to delete default datasource :" + DEFAULT_DATASOURCE_NAME,
         unsupportedOperationException.getMessage());
   }
@@ -370,6 +371,12 @@ class DataSourceServiceImplTest {
     assertFalse(dataSourceMetadata.getProperties().containsKey("prometheus.auth.username"));
     assertFalse(dataSourceMetadata.getProperties().containsKey("prometheus.auth.password"));
     verify(dataSourceMetadataStorage, times(1)).getDataSourceMetadata("testDS");
+  }
+
+  @Test
+  void testDatastoreInterfaceType() {
+    Assertions.assertEquals(DataSourceInterfaceType.API,
+        this.dataSourceService.datasourceInterfaceType());
   }
 
 }

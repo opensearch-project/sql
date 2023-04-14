@@ -13,6 +13,8 @@ import org.opensearch.action.support.ActionFilters;
 import org.opensearch.action.support.HandledTransportAction;
 import org.opensearch.common.inject.Inject;
 import org.opensearch.sql.datasource.DataSourceService;
+import org.opensearch.sql.datasource.DataSourceServiceHolder;
+import org.opensearch.sql.datasource.model.DataSourceInterfaceType;
 import org.opensearch.sql.datasources.model.transport.UpdateDataSourceActionRequest;
 import org.opensearch.sql.datasources.model.transport.UpdateDataSourceActionResponse;
 import org.opensearch.sql.datasources.service.DataSourceServiceImpl;
@@ -33,20 +35,27 @@ public class TransportUpdateDataSourceAction
    *
    * @param transportService transportService.
    * @param actionFilters actionFilters.
-   * @param dataSourceService dataSourceService.
+   * @param dataSourceServiceHolder dataSourceServiceHolder.
    */
   @Inject
   public TransportUpdateDataSourceAction(TransportService transportService,
                                          ActionFilters actionFilters,
-                                         DataSourceServiceImpl dataSourceService) {
+                                         DataSourceServiceHolder dataSourceServiceHolder) {
     super(TransportUpdateDataSourceAction.NAME, transportService, actionFilters,
         UpdateDataSourceActionRequest::new);
-    this.dataSourceService = dataSourceService;
+    this.dataSourceService = dataSourceServiceHolder.getDataSourceService();
   }
 
   @Override
   protected void doExecute(Task task, UpdateDataSourceActionRequest request,
                            ActionListener<UpdateDataSourceActionResponse> actionListener) {
+    if (dataSourceService.datasourceInterfaceType().equals(DataSourceInterfaceType.KEYSTORE)) {
+      actionListener.onFailure(new UnsupportedOperationException(
+          "Please set datasource interface settings(plugins.query.federation.datasources.interface)"
+              + "to api in opensearch.yml to enable apis for datasource management. "
+              + "Please port any datasources configured in keystore using create api."));
+      return;
+    }
     try {
       dataSourceService.updateDataSource(request.getDataSourceMetadata());
       actionListener.onResponse(new UpdateDataSourceActionResponse("Updated DataSource with name "

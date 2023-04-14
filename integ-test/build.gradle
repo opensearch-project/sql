@@ -124,7 +124,7 @@ testClusters.all {
 
 testClusters.integTest {
     plugin ":opensearch-sql-plugin"
-    keystore 'plugins.query.federation.datasources.config', new File("$projectDir/src/test/resources/datasource/", 'datasources.json')
+    setting "plugins.query.federation.datasources.interface", "api"
 }
 
 task startPrometheus(type: SpawnProcessTask) {
