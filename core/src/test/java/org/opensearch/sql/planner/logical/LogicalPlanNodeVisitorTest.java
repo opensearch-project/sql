@@ -116,6 +116,7 @@ class LogicalPlanNodeVisitorTest {
     LogicalPlan ad = new LogicalAD(relation, Map.of());
     LogicalPlan ml = new LogicalML(relation, Map.of());
     LogicalPlan paginate = new LogicalPaginate(42, List.of(relation));
+
     List<Map<String, ReferenceExpression>> nestedArgs = List.of(
         Map.of(
             "field", new ReferenceExpression("message.info", STRING),

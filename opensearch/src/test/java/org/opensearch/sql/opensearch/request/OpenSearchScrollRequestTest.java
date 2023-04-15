@@ -155,7 +155,7 @@ class OpenSearchScrollRequestTest {
     when(fetchSourceContext.includes()).thenReturn(null);
     when(searchAction.apply(any())).thenReturn(searchResponse);
     when(searchResponse.getHits()).thenReturn(searchHits);
-    when(searchHits.getHits()).thenReturn(new SearchHit[]{searchHit});
+    when(searchHits.getHits()).thenReturn(new SearchHit[] {searchHit});
 
     OpenSearchResponse searchResponse = request.search(searchAction, scrollAction);
     verify(fetchSourceContext, times(1)).includes();

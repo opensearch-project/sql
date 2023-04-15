@@ -336,12 +336,10 @@ class NestedOperatorTest extends PhysicalPlanTestBase {
         Map.of("message", List.of("message.data"));
 
     var nested = new NestedOperator(inputPlan, fields, groupedFieldsByPath);
-    assertTrue(
-        execute(nested)
-            .get(0)
-            .tupleValue()
-            .size() == 0
-    );
+    assertEquals(0, execute(nested)
+        .get(0)
+        .tupleValue()
+        .size());
     assertEquals(1, nested.getTotalHits());
   }
 }
