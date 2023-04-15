@@ -20,6 +20,9 @@ import static org.opensearch.sql.planner.optimizer.rule.read.TableScanPushDown.P
 import static org.opensearch.sql.planner.optimizer.rule.read.TableScanPushDown.PUSH_DOWN_HIGHLIGHT;
 import static org.opensearch.sql.planner.optimizer.rule.read.TableScanPushDown.PUSH_DOWN_PROJECT;
 
+import com.facebook.presto.matching.Capture;
+import com.facebook.presto.matching.Captures;
+import com.facebook.presto.matching.Pattern;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -37,7 +40,8 @@ import org.opensearch.sql.opensearch.request.InitialPageRequestBuilder;
 import org.opensearch.sql.planner.logical.LogicalPlan;
 import org.opensearch.sql.planner.logical.LogicalRelation;
 import org.opensearch.sql.planner.optimizer.LogicalPlanOptimizer;
-import org.opensearch.sql.planner.optimizer.rule.CreatePagingTableScanBuilder;
+import org.opensearch.sql.planner.optimizer.Rule;
+import org.opensearch.sql.planner.optimizer.rule.read.CreateTableScanBuilder;
 import org.opensearch.sql.storage.Table;
 
 @ExtendWith(MockitoExtension.class)
@@ -60,21 +64,17 @@ public class OpenSearchPagedIndexScanBuilderTest {
     scanBuilder = new OpenSearchPagedIndexScanBuilder(indexScan);
     when(table.createPagedScanBuilder(anyInt())).thenReturn(scanBuilder);
     when(indexScan.getRequestBuilder()).thenReturn(requestBuilder);
-
   }
 
   @Test
   public void push_down_project() {
-    var relation = (LogicalRelation) relation("schema", table);
-    relation.setPageSize(5);
-
     assertEquals(
         project(
             new OpenSearchPagedIndexScanBuilder(indexScan),
             DSL.named("i", DSL.ref("intV", INTEGER))),
         optimize(
             project(
-                relation,
+                relation("schema", table),
                 DSL.named("i", DSL.ref("intV", INTEGER))
     )));
     scanBuilder.build();
@@ -83,9 +83,6 @@ public class OpenSearchPagedIndexScanBuilderTest {
 
   @Test
   public void push_down_filter() {
-    var relation = (LogicalRelation) relation("schema", table);
-    relation.setPageSize(5);
-
     assertEquals(
         project(
             new OpenSearchPagedIndexScanBuilder(indexScan),
@@ -93,7 +90,7 @@ public class OpenSearchPagedIndexScanBuilderTest {
         optimize(
             project(
                 filter(
-                    relation,
+                    relation("schema", table),
                     DSL.equal(DSL.ref("intV", INTEGER), DSL.literal(integerValue(1)))
                 ),
                 DSL.named("i", DSL.ref("intV", INTEGER))
@@ -104,9 +101,6 @@ public class OpenSearchPagedIndexScanBuilderTest {
 
   @Test
   public void push_down_highlight() {
-    var relation = (LogicalRelation) relation("schema", table);
-    relation.setPageSize(5);
-
     assertEquals(
         project(
             new OpenSearchPagedIndexScanBuilder(indexScan),
@@ -115,7 +109,7 @@ public class OpenSearchPagedIndexScanBuilderTest {
         optimize(
             project(
                 highlight(
-                    relation,
+                    relation("schema", table),
                     DSL.literal("*"), Map.of()),
                     DSL.named("highlight(*)",
                         new HighlightExpression(DSL.literal("*")))
@@ -127,7 +121,18 @@ public class OpenSearchPagedIndexScanBuilderTest {
 
   private LogicalPlan optimize(LogicalPlan plan) {
     return new LogicalPlanOptimizer(List.of(
-            new CreatePagingTableScanBuilder(),
+            new CreateTableScanBuilder(),
+            new Rule<LogicalRelation>() {
+              @Override
+              public Pattern<LogicalRelation> pattern() {
+                return Pattern.typeOf(LogicalRelation.class).capturedAs(Capture.newCapture());
+              }
+
+              @Override
+              public LogicalPlan apply(LogicalRelation plan, Captures captures) {
+                return plan.getTable().createPagedScanBuilder(42);
+              }
+            },
             PUSH_DOWN_FILTER,
             PUSH_DOWN_HIGHLIGHT,
             PUSH_DOWN_PROJECT
