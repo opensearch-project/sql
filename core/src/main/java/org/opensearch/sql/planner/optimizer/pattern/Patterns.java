@@ -122,16 +122,6 @@ public class Patterns {
   }
 
   /**
-   * Logical pagination with page size.
-   */
-  public static Property<LogicalPlan, Integer> pagination() {
-    return Property.optionalProperty("pagination",
-        plan -> plan instanceof LogicalPaginate
-            ? Optional.of(((LogicalPaginate) plan).getPageSize())
-            : Optional.empty());
-  }
-
-  /**
    * Logical write with table field.
    */
   public static Property<LogicalPlan, Table> writeTable() {

@@ -41,14 +41,4 @@ class PatternsTest {
         () -> assertFalse(Patterns.writeTable().getFunction().apply(plan).isPresent())
     );
   }
-
-  @Test
-  void pagination() {
-    assertAll(
-        () -> assertTrue(Patterns.pagination().getFunction()
-            .apply(mock(LogicalPaginate.class)).isPresent()),
-        () -> assertFalse(Patterns.pagination().getFunction()
-            .apply(mock(LogicalFilter.class)).isPresent())
-    );
-  }
 }
