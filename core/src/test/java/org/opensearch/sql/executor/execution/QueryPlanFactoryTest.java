@@ -130,7 +130,7 @@ class QueryPlanFactoryTest {
     Statement query = new Query(plan, 10);
     AbstractPlan queryExecution =
         factory.createContinuePaginatedPlan(query, Optional.of(queryListener), Optional.empty());
-    assertTrue(queryExecution instanceof PaginatedPlan);
+    assertTrue(queryExecution instanceof QueryPlan);
   }
 
   @Test

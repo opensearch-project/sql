@@ -15,7 +15,6 @@ import org.opensearch.sql.planner.physical.PhysicalPlan;
 /**
  * ContinuePaginatedPlan represents cursor a request.
  * It returns subsequent pages to the user (2nd page and all next).
- * {@link PaginatedPlan}
  */
 public class ContinuePaginatedPlan extends AbstractPlan {
 
