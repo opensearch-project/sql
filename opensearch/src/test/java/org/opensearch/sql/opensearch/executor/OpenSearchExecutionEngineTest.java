@@ -50,10 +50,8 @@ import org.opensearch.sql.executor.pagination.PlanSerializer;
 import org.opensearch.sql.opensearch.client.OpenSearchClient;
 import org.opensearch.sql.opensearch.data.value.OpenSearchExprValueFactory;
 import org.opensearch.sql.opensearch.executor.protector.OpenSearchExecutionProtector;
-import org.opensearch.sql.opensearch.request.OpenSearchRequestBuilder;
 import org.opensearch.sql.opensearch.storage.scan.OpenSearchIndexScan;
 import org.opensearch.sql.planner.SerializablePlan;
-import org.opensearch.sql.planner.physical.PaginateOperator;
 import org.opensearch.sql.planner.physical.PhysicalPlan;
 import org.opensearch.sql.storage.TableScanOperator;
 import org.opensearch.sql.storage.split.Split;
@@ -120,7 +118,7 @@ class OpenSearchExecutionEngineTest {
     List<ExprValue> expected =
         Arrays.asList(
             tupleValue(of("name", "John", "age", 20)), tupleValue(of("name", "Allen", "age", 30)));
-    FakePaginatePlan plan = new FakePaginatePlan(new FakePhysicalPlan(expected.iterator()), 10, 0);
+    var plan = new FakePhysicalPlan(expected.iterator());
     when(protector.protect(plan)).thenReturn(plan);
 
     OpenSearchExecutionEngine executor = new OpenSearchExecutionEngine(client, protector,
@@ -253,49 +251,6 @@ class OpenSearchExecutionEngineTest {
     assertTrue(plan.hasOpen);
     assertEquals(expected, actual);
     assertTrue(plan.hasClosed);
-  }
-
-  private static class FakePaginatePlan extends PaginateOperator {
-    private final PhysicalPlan input;
-    private final int pageSize;
-    private final int pageIndex;
-
-    public FakePaginatePlan(PhysicalPlan input, int pageSize, int pageIndex) {
-      super(input, pageSize, pageIndex);
-      this.input = input;
-      this.pageSize = pageSize;
-      this.pageIndex = pageIndex;
-    }
-
-    @Override
-    public void open() {
-      input.open();
-    }
-
-    @Override
-    public void close() {
-      input.close();
-    }
-
-    @Override
-    public void add(Split split) {
-      input.add(split);
-    }
-
-    @Override
-    public boolean hasNext() {
-      return input.hasNext();
-    }
-
-    @Override
-    public ExprValue next() {
-      return input.next();
-    }
-
-    @Override
-    public ExecutionEngine.Schema schema() {
-      return input.schema();
-    }
   }
 
   @RequiredArgsConstructor

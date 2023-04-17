@@ -63,7 +63,6 @@ import org.opensearch.sql.opensearch.planner.physical.MLOperator;
 import org.opensearch.sql.opensearch.setting.OpenSearchSettings;
 import org.opensearch.sql.opensearch.storage.scan.OpenSearchIndexScan;
 import org.opensearch.sql.planner.physical.NestedOperator;
-import org.opensearch.sql.planner.physical.PaginateOperator;
 import org.opensearch.sql.planner.physical.PhysicalPlan;
 import org.opensearch.sql.planner.physical.PhysicalPlanDSL;
 
@@ -333,13 +332,6 @@ class OpenSearchExecutionProtectorTest {
 
     assertEquals(executionProtector.doProtect(nestedOperator),
         executionProtector.visitNested(nestedOperator, values(emptyList())));
-  }
-
-  @Test
-  public void visitPaginate() {
-    var paginate = new PaginateOperator(values(List.of()), 42);
-    assertEquals(executionProtector.protect(paginate),
-        executionProtector.visitPaginate(paginate, null));
   }
 
   PhysicalPlan resourceMonitor(PhysicalPlan input) {

@@ -58,7 +58,6 @@ import org.opensearch.sql.planner.logical.LogicalPaginate;
 import org.opensearch.sql.planner.logical.LogicalPlan;
 import org.opensearch.sql.planner.logical.LogicalPlanDSL;
 import org.opensearch.sql.planner.logical.LogicalRelation;
-import org.opensearch.sql.planner.physical.PaginateOperator;
 import org.opensearch.sql.planner.physical.PhysicalPlan;
 import org.opensearch.sql.planner.physical.PhysicalPlanDSL;
 import org.opensearch.sql.storage.Table;
@@ -246,12 +245,5 @@ class DefaultImplementorTest {
       }
     };
     assertEquals(tableWriteOperator, logicalPlan.accept(implementor, null));
-  }
-
-  @Test
-  public void visitPaginate_should_build_PaginateOperator_and_keep_page_size() {
-    var paginate = new LogicalPaginate(42, List.of(values()));
-    var plan = paginate.accept(implementor, null);
-    assertEquals(paginate.getPageSize(), ((PaginateOperator) plan).getPageSize());
   }
 }

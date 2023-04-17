@@ -67,6 +67,6 @@ public class CreatePagingTableScanBuilder implements Rule<LogicalPaginate> {
     var scan = logicalRelation.getTable().createPagedScanBuilder(plan.getPageSize());
     relationParent.replaceChildPlans(List.of(scan));
 
-    return plan;
+    return plan.getChild().get(0);
   }
 }
