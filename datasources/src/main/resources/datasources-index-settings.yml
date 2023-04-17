@@ -4,7 +4,7 @@
 # SPDX-License-Identifier: Apache-2.0
 ##
 
-# Settings file for the observability index
+# Settings file for the .ql-datasources index
 index:
   number_of_shards: "1"
   auto_expand_replicas: "0-2"
