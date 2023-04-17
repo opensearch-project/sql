@@ -342,13 +342,13 @@ class LogicalPlanOptimizerTest {
         () -> table.createWriteBuilder(null));
   }
 
-  @Test
+    @Test
   void paged_table_scan_builder_support_project_push_down_can_apply_its_rule() {
 
     var relation = relation("schema", table);
 
     assertEquals(
-        paginate(project(pagedTableScanBuilder), 4),
+        project(pagedTableScanBuilder),
         LogicalPlanOptimizer.create().optimize(paginate(project(relation), 4)));
   }
 
@@ -391,7 +391,6 @@ class LogicalPlanOptimizerTest {
     assertEquals(paginate,
         LogicalPlanOptimizer.create().optimize(paginate));
   }
-
   @Test
   void table_scan_builder_support_offset_push_down_can_apply_its_rule() {
     when(table.createPagedScanBuilder(anyInt())).thenReturn(pagedTableScanBuilder);
@@ -401,7 +400,7 @@ class LogicalPlanOptimizerTest {
         .optimize(new LogicalPaginate(42, List.of(project(relation))));
     // `optimized` structure: LogicalPaginate -> LogicalProject -> TableScanBuilder
     // LogicalRelation replaced by a TableScanBuilder instance
-    assertEquals(paginate(project(pagedTableScanBuilder), 42), optimized);
+    assertEquals(project(pagedTableScanBuilder), optimized);
   }
 
   private LogicalPlan optimize(LogicalPlan plan) {
