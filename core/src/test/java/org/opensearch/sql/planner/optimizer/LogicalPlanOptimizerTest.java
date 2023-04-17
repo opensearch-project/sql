@@ -342,7 +342,7 @@ class LogicalPlanOptimizerTest {
         () -> table.createWriteBuilder(null));
   }
 
-    @Test
+  @Test
   void paged_table_scan_builder_support_project_push_down_can_apply_its_rule() {
 
     var relation = relation("schema", table);
@@ -391,6 +391,7 @@ class LogicalPlanOptimizerTest {
     assertEquals(paginate,
         LogicalPlanOptimizer.create().optimize(paginate));
   }
+
   @Test
   void table_scan_builder_support_offset_push_down_can_apply_its_rule() {
     when(table.createPagedScanBuilder(anyInt())).thenReturn(pagedTableScanBuilder);
