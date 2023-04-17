@@ -107,7 +107,11 @@ public class XContentParserUtils {
     builder.startObject();
     builder.field(NAME_FIELD, metadata.getName());
     builder.field(CONNECTOR_FIELD, metadata.getConnector().name());
-    builder.field(ALLOWED_ROLES_FIELD, metadata.getAllowedRoles().toArray());
+    if (metadata.getAllowedRoles() != null) {
+      builder.field(ALLOWED_ROLES_FIELD, metadata.getAllowedRoles().toArray());
+    } else {
+      builder.field(ALLOWED_ROLES_FIELD, new String[0]);
+    }
     builder.startObject(PROPERTIES_FIELD);
     for (Map.Entry<String, String> entry : metadata.getProperties().entrySet()) {
       builder.field(entry.getKey(), entry.getValue());

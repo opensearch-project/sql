@@ -3,6 +3,7 @@ package org.opensearch.sql.datasources.utils;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import com.google.gson.Gson;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -36,6 +37,21 @@ public class XContentParserUtilsTest {
 
   @SneakyThrows
   @Test
+  public void testConvertToXContentWithNullAllowedRoles() {
+    DataSourceMetadata dataSourceMetadata = new DataSourceMetadata();
+    dataSourceMetadata.setName("testDS");
+    dataSourceMetadata.setConnector(DataSourceType.PROMETHEUS);
+    dataSourceMetadata.setAllowedRoles(null);
+    dataSourceMetadata.setProperties(Map.of("prometheus.uri", "https://localhost:9090"));
+
+    XContentBuilder contentBuilder = XContentParserUtils.convertToXContent(dataSourceMetadata);
+    String contentString = BytesReference.bytes(contentBuilder).utf8ToString();
+    Assertions.assertEquals("{\"name\":\"testDS\",\"connector\":\"PROMETHEUS\",\"allowedRoles\":[],\"properties\":{\"prometheus.uri\":\"https://localhost:9090\"}}",
+        contentString);
+  }
+
+  @SneakyThrows
+  @Test
   public void testToDataSourceMetadataFromJson() {
     DataSourceMetadata dataSourceMetadata = new DataSourceMetadata();
     dataSourceMetadata.setName("testDS");
@@ -49,9 +65,8 @@ public class XContentParserUtilsTest {
 
     Assertions.assertEquals(retrievedMetadata, dataSourceMetadata);
     Assertions.assertEquals("prometheus_access", retrievedMetadata.getAllowedRoles().get(0));
-
   }
-
+  
   @SneakyThrows
   @Test
   public void testToDataSourceMetadataFromJsonWithoutName() {

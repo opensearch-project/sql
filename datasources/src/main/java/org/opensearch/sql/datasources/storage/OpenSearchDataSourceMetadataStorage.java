@@ -7,14 +7,23 @@
 
 package org.opensearch.sql.datasources.storage;
 
+import static org.opensearch.sql.datasources.service.DataSourceServiceImpl.DATASOURCE_NAME_REGEX;
+
+import com.google.common.base.Preconditions;
+import com.google.common.base.Strings;
+import com.google.common.collect.ImmutableMap;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import org.apache.commons.io.IOUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -42,7 +51,10 @@ import org.opensearch.index.query.QueryBuilder;
 import org.opensearch.index.query.QueryBuilders;
 import org.opensearch.search.SearchHit;
 import org.opensearch.search.builder.SearchSourceBuilder;
+import org.opensearch.sql.common.utils.StringUtils;
+import org.opensearch.sql.datasource.model.DataSource;
 import org.opensearch.sql.datasource.model.DataSourceMetadata;
+import org.opensearch.sql.datasource.model.DataSourceType;
 import org.opensearch.sql.datasources.auth.AuthenticationType;
 import org.opensearch.sql.datasources.encryptor.Encryptor;
 import org.opensearch.sql.datasources.exceptions.DataSourceNotFoundException;
@@ -60,8 +72,12 @@ public class OpenSearchDataSourceMetadataStorage implements DataSourceMetadataSt
   private static final Logger LOG = LogManager.getLogger();
   private final Client client;
   private final ClusterService clusterService;
-
   private final Encryptor encryptor;
+
+  //This field is for concurrent hashmap
+  private final ConcurrentHashMap<String, DataSourceMetadata> keyStoreDataSourceHashMap;
+
+
 
   /**
    * This class implements DataSourceMetadataStorage interface
@@ -72,17 +88,23 @@ public class OpenSearchDataSourceMetadataStorage implements DataSourceMetadataSt
    * @param encryptor      Encryptor.
    */
   public OpenSearchDataSourceMetadataStorage(Client client, ClusterService clusterService,
-                                             Encryptor encryptor) {
+                                             Encryptor encryptor,
+                                             List<DataSourceMetadata> keyStoreMetadataList) {
     this.client = client;
     this.clusterService = clusterService;
     this.encryptor = encryptor;
+    this.keyStoreDataSourceHashMap = new ConcurrentHashMap<>();
+    keyStoreMetadataList.forEach(metadata
+        -> keyStoreDataSourceHashMap.put(metadata.getName(), metadata));
   }
 
   @Override
   public List<DataSourceMetadata> getDataSourceMetadata() {
     if (!this.clusterService.state().routingTable().hasIndex(DATASOURCE_INDEX_NAME)) {
       createDataSourcesIndex();
-      return Collections.emptyList();
+    }
+    if (!this.keyStoreDataSourceHashMap.isEmpty()) {
+      storeKeyStoreMetadataList();
     }
     return searchInDataSourcesIndex(QueryBuilders.matchAllQuery());
   }
@@ -91,44 +113,22 @@ public class OpenSearchDataSourceMetadataStorage implements DataSourceMetadataSt
   public Optional<DataSourceMetadata> getDataSourceMetadata(String datasourceName) {
     if (!this.clusterService.state().routingTable().hasIndex(DATASOURCE_INDEX_NAME)) {
       createDataSourcesIndex();
-      return Optional.empty();
     }
-    return searchInDataSourcesIndex(QueryBuilders.termQuery("name", datasourceName))
-        .stream()
-        .findFirst()
-        .map(x -> this.encryptDecryptAuthenticationData(x, false));
+    if (!this.keyStoreDataSourceHashMap.isEmpty()) {
+      storeKeyStoreMetadataList();
+    }
+    return searchInDataStore(datasourceName);
   }
 
   @Override
   public void createDataSourceMetadata(DataSourceMetadata dataSourceMetadata) {
-    encryptDecryptAuthenticationData(dataSourceMetadata, true);
     if (!this.clusterService.state().routingTable().hasIndex(DATASOURCE_INDEX_NAME)) {
       createDataSourcesIndex();
     }
-    IndexRequest indexRequest = new IndexRequest(DATASOURCE_INDEX_NAME);
-    indexRequest.id(dataSourceMetadata.getName());
-    indexRequest.opType(DocWriteRequest.OpType.CREATE);
-    indexRequest.setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE);
-    ActionFuture<IndexResponse> indexResponseActionFuture;
-    IndexResponse indexResponse;
-    try (ThreadContext.StoredContext storedContext = client.threadPool().getThreadContext()
-        .stashContext()) {
-      indexRequest.source(XContentParserUtils.convertToXContent(dataSourceMetadata));
-      indexResponseActionFuture = client.index(indexRequest);
-      indexResponse = indexResponseActionFuture.actionGet();
-    } catch (VersionConflictEngineException exception) {
-      throw new IllegalArgumentException("A datasource already exists with name: "
-          + dataSourceMetadata.getName());
-    } catch (Exception e) {
-      throw new RuntimeException(e);
+    if (!this.keyStoreDataSourceHashMap.isEmpty()) {
+      storeKeyStoreMetadataList();
     }
-
-    if (indexResponse.getResult().equals(DocWriteResponse.Result.CREATED)) {
-      LOG.debug("DatasourceMetadata : {}  successfully created", dataSourceMetadata.getName());
-    } else {
-      throw new RuntimeException("Saving dataSource metadata information failed with result : "
-          + indexResponse.getResult().getLowercase());
-    }
+    storeMetadata(dataSourceMetadata);
   }
 
   @Override
@@ -177,6 +177,44 @@ public class OpenSearchDataSourceMetadataStorage implements DataSourceMetadataSt
     } else {
       throw new RuntimeException("Deleting dataSource metadata information failed with result : "
           + deleteResponse.getResult().getLowercase());
+    }
+  }
+
+  private Optional<DataSourceMetadata> searchInDataStore(String datasourceName) {
+    return searchInDataSourcesIndex(QueryBuilders.termQuery("name", datasourceName))
+        .stream()
+        .findFirst()
+        .map(x -> {
+          this.encryptDecryptAuthenticationData(x, false);
+          return x;
+        });
+  }
+
+  private void storeMetadata(DataSourceMetadata dataSourceMetadata) {
+    encryptDecryptAuthenticationData(dataSourceMetadata, true);
+    IndexRequest indexRequest = new IndexRequest(DATASOURCE_INDEX_NAME);
+    indexRequest.id(dataSourceMetadata.getName());
+    indexRequest.opType(DocWriteRequest.OpType.CREATE);
+    indexRequest.setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE);
+    ActionFuture<IndexResponse> indexResponseActionFuture;
+    IndexResponse indexResponse;
+    try (ThreadContext.StoredContext ignored = client.threadPool().getThreadContext()
+        .stashContext()) {
+      indexRequest.source(XContentParserUtils.convertToXContent(dataSourceMetadata));
+      indexResponseActionFuture = client.index(indexRequest);
+      indexResponse = indexResponseActionFuture.actionGet();
+    } catch (VersionConflictEngineException exception) {
+      throw new IllegalArgumentException("A datasource already exists with name: "
+          + dataSourceMetadata.getName());
+    } catch (Exception e) {
+      throw new RuntimeException(e);
+    }
+
+    if (indexResponse.getResult().equals(DocWriteResponse.Result.CREATED)) {
+      LOG.debug("DatasourceMetadata : {}  successfully created", dataSourceMetadata.getName());
+    } else {
+      throw new RuntimeException("Saving dataSource metadata information failed with result : "
+          + indexResponse.getResult().getLowercase());
     }
   }
 
@@ -243,7 +281,7 @@ public class OpenSearchDataSourceMetadataStorage implements DataSourceMetadataSt
   }
 
   @SuppressWarnings("missingswitchdefault")
-  private DataSourceMetadata encryptDecryptAuthenticationData(DataSourceMetadata dataSourceMetadata,
+  private void encryptDecryptAuthenticationData(DataSourceMetadata dataSourceMetadata,
                                                               Boolean isEncryption) {
     Map<String, String> propertiesMap = dataSourceMetadata.getProperties();
     Optional<AuthenticationType> authTypeOptional
@@ -261,7 +299,6 @@ public class OpenSearchDataSourceMetadataStorage implements DataSourceMetadataSt
           break;
       }
     }
-    return dataSourceMetadata;
   }
 
   private void handleBasicAuthPropertiesEncryptionDecryption(Map<String, String> propertiesMap,
@@ -303,6 +340,39 @@ public class OpenSearchDataSourceMetadataStorage implements DataSourceMetadataSt
         .findFirst()
         .ifPresent(list::add);
     encryptOrDecrypt(propertiesMap, isEncryption, list);
+  }
+
+  private void storeKeyStoreMetadataList() {
+    for (String dataSourceName : this.keyStoreDataSourceHashMap.keySet()) {
+      try {
+        DataSourceMetadata dataSourceMetadata = this.keyStoreDataSourceHashMap.get(dataSourceName);
+        validateDataSourceMetaData(dataSourceMetadata);
+        storeMetadata(dataSourceMetadata);
+      } catch (Throwable e) {
+        LOG.error("Datasource  {} creation from keystore failed. "
+                + "Please try manually creating using create api", dataSourceName);
+      }
+    }
+    this.keyStoreDataSourceHashMap.clear();
+  }
+
+  /**
+   * This can be moved to a different validator class when we introduce more connectors.
+   *
+   * @param metadata {@link DataSourceMetadata}.
+   */
+  private void validateDataSourceMetaData(DataSourceMetadata metadata) {
+    Preconditions.checkArgument(
+        !Strings.isNullOrEmpty(metadata.getName()),
+        "Missing Name Field from a DataSource. Name is a required parameter.");
+    Preconditions.checkArgument(
+        metadata.getName().matches(DATASOURCE_NAME_REGEX),
+        StringUtils.format(
+            "DataSource Name: %s contains illegal characters. Allowed characters: a-zA-Z0-9_-*@.",
+            metadata.getName()));
+    Preconditions.checkArgument(
+        !Objects.isNull(metadata.getProperties()),
+        "Missing properties field in catalog configuration. Properties are required parameters.");
   }
 
 }

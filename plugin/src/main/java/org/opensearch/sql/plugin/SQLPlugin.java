@@ -7,8 +7,14 @@ package org.opensearch.sql.plugin;
 
 import static org.opensearch.sql.datasource.model.DataSourceMetadata.defaultOpenSearchDataSourceMetadata;
 
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.DeserializationFeature;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
+import java.io.IOException;
+import java.io.InputStream;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
@@ -47,6 +53,7 @@ import org.opensearch.script.ScriptContext;
 import org.opensearch.script.ScriptEngine;
 import org.opensearch.script.ScriptService;
 import org.opensearch.sql.datasource.DataSourceService;
+import org.opensearch.sql.datasource.model.DataSourceMetadata;
 import org.opensearch.sql.datasources.auth.DataSourceUserAuthorizationHelper;
 import org.opensearch.sql.datasources.auth.DataSourceUserAuthorizationHelperImpl;
 import org.opensearch.sql.datasources.encryptor.EncryptorImpl;
@@ -69,6 +76,7 @@ import org.opensearch.sql.legacy.metrics.Metrics;
 import org.opensearch.sql.legacy.plugin.RestSqlAction;
 import org.opensearch.sql.legacy.plugin.RestSqlStatsAction;
 import org.opensearch.sql.opensearch.client.OpenSearchNodeClient;
+import org.opensearch.sql.opensearch.security.SecurityAccess;
 import org.opensearch.sql.opensearch.setting.LegacyOpenDistroSettings;
 import org.opensearch.sql.opensearch.setting.OpenSearchSettings;
 import org.opensearch.sql.opensearch.storage.OpenSearchDataSourceFactory;
@@ -215,7 +223,7 @@ public class SQLPlugin extends Plugin implements ActionPlugin, ScriptPlugin {
         .DATASOURCE_MASTER_SECRET_KEY.get(clusterService.getSettings());
     DataSourceMetadataStorage dataSourceMetadataStorage
         = new OpenSearchDataSourceMetadataStorage(client, clusterService,
-            new EncryptorImpl(masterKey));
+            new EncryptorImpl(masterKey), getKeyStoreMetadataList());
     DataSourceUserAuthorizationHelper dataSourceUserAuthorizationHelper
         = new DataSourceUserAuthorizationHelperImpl(client);
     return new DataSourceServiceImpl(
@@ -227,5 +235,27 @@ public class SQLPlugin extends Plugin implements ActionPlugin, ScriptPlugin {
         dataSourceMetadataStorage,
         dataSourceUserAuthorizationHelper);
   }
+
+  private List<DataSourceMetadata> getKeyStoreMetadataList() {
+    return SecurityAccess.doPrivileged(
+        () -> {
+          InputStream inputStream
+              = DataSourceSettings.DATASOURCE_CONFIG.get(clusterService.getSettings());
+          if (inputStream != null) {
+            ObjectMapper objectMapper = new ObjectMapper();
+            objectMapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
+            try {
+              return objectMapper.readValue(inputStream, new TypeReference<>() {});
+            } catch (IOException e) {
+              LOG.error(
+                  "DataSource Configuration File uploaded is malformed. Verify and re-upload.", e);
+            } catch (Throwable e) {
+              LOG.error("DataSource construction failed.", e);
+            }
+          }
+          return new ArrayList<>();
+        });
+  }
+
 
 }

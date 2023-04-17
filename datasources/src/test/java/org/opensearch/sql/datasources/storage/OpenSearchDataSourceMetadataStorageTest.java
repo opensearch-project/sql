@@ -9,6 +9,8 @@ import static org.opensearch.sql.datasources.storage.OpenSearchDataSourceMetadat
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.common.collect.ImmutableMap;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -76,6 +78,9 @@ public class OpenSearchDataSourceMetadataStorageTest {
   private DeleteResponse deleteResponse;
   @Mock
   private SearchHit searchHit;
+  @Mock
+  private List<DataSourceMetadata> keyStoreMetadataList;
+
   @InjectMocks
   private OpenSearchDataSourceMetadataStorage openSearchDataSourceMetadataStorage;
 
@@ -261,13 +266,86 @@ public class OpenSearchDataSourceMetadataStorageTest {
     Mockito.when(client.admin().indices().create(ArgumentMatchers.any()))
         .thenReturn(createIndexResponseActionFuture);
     Mockito.when(createIndexResponseActionFuture.actionGet())
-        .thenReturn(new CreateIndexResponse(true, true, DATASOURCE_INDEX_NAME));
+        .thenReturn(new CreateIndexResponse(true, true,
+            DATASOURCE_INDEX_NAME));
     Mockito.when(client.index(ArgumentMatchers.any())).thenReturn(indexResponseActionFuture);
+    Mockito.when(client.search(ArgumentMatchers.any())).thenReturn(searchResponseActionFuture);
+    Mockito.when(searchResponseActionFuture.actionGet()).thenReturn(searchResponse);
+    Mockito.when(searchResponse.status()).thenReturn(RestStatus.OK);
+    Mockito.when(searchResponse.getHits())
+        .thenReturn(
+            new SearchHits(
+                new SearchHit[] {},
+                new TotalHits(0, TotalHits.Relation.EQUAL_TO),
+                1.0F));
+    OpenSearchDataSourceMetadataStorage dataSourceMetadataStorage
+        = new OpenSearchDataSourceMetadataStorage(client, clusterService, encryptor,
+              new ArrayList<>());
 
     List<DataSourceMetadata> dataSourceMetadataList
-        = openSearchDataSourceMetadataStorage.getDataSourceMetadata();
+        = dataSourceMetadataStorage.getDataSourceMetadata();
 
     Assertions.assertEquals(0, dataSourceMetadataList.size());
+  }
+
+  @SneakyThrows
+  @Test
+  public void testGetDataSourceMetadataListWithKeyStoreMetadataList() {
+    Mockito.when(clusterService.state().routingTable().hasIndex(DATASOURCE_INDEX_NAME))
+        .thenReturn(Boolean.TRUE);
+    Mockito.when(client.search(ArgumentMatchers.any())).thenReturn(searchResponseActionFuture);
+    Mockito.when(searchResponseActionFuture.actionGet()).thenReturn(searchResponse);
+    Mockito.when(searchResponse.status()).thenReturn(RestStatus.OK);
+    Mockito.when(searchResponse.getHits())
+        .thenReturn(
+            new SearchHits(
+                new SearchHit[] {searchHit},
+                new TotalHits(1, TotalHits.Relation.EQUAL_TO),
+                1.0F));
+    Mockito.when(searchHit.getSourceAsString())
+        .thenReturn(getBasicDataSourceMetadataString());
+    OpenSearchDataSourceMetadataStorage dataSourceMetadataStorage
+        = new OpenSearchDataSourceMetadataStorage(client, clusterService, encryptor,
+        List.of(getDataSourceMetadata()));
+
+    List<DataSourceMetadata> dataSourceMetadataList
+        = dataSourceMetadataStorage.getDataSourceMetadata();
+
+    Assertions.assertEquals(1, dataSourceMetadataList.size());
+    dataSourceMetadataList
+        = dataSourceMetadataStorage.getDataSourceMetadata();
+    Assertions.assertEquals(1, dataSourceMetadataList.size());
+    Mockito.verify(client, Mockito.times(1)).index(ArgumentMatchers.any());
+    Mockito.verify(client, Mockito.times(2)).search(ArgumentMatchers.any());
+  }
+
+  @SneakyThrows
+  @Test
+  public void testGetDataSourceMetadataListWithKeyStoreMetadataListWithValidationError() {
+    Mockito.when(clusterService.state().routingTable().hasIndex(DATASOURCE_INDEX_NAME))
+        .thenReturn(Boolean.TRUE);
+    Mockito.when(client.search(ArgumentMatchers.any())).thenReturn(searchResponseActionFuture);
+    Mockito.when(searchResponseActionFuture.actionGet()).thenReturn(searchResponse);
+    Mockito.when(searchResponse.status()).thenReturn(RestStatus.OK);
+    Mockito.when(searchResponse.getHits())
+        .thenReturn(
+            new SearchHits(
+                new SearchHit[] {searchHit},
+                new TotalHits(1, TotalHits.Relation.EQUAL_TO),
+                1.0F));
+    Mockito.when(searchHit.getSourceAsString())
+        .thenReturn(getBasicDataSourceMetadataString());
+    OpenSearchDataSourceMetadataStorage dataSourceMetadataStorage
+        = new OpenSearchDataSourceMetadataStorage(client, clusterService, encryptor,
+        List.of(new DataSourceMetadata("$test", DataSourceType.PROMETHEUS,
+            new ArrayList<>(), ImmutableMap.of())));
+
+    List<DataSourceMetadata> dataSourceMetadataList
+        = dataSourceMetadataStorage.getDataSourceMetadata();
+
+    Assertions.assertEquals(1, dataSourceMetadataList.size());
+    Mockito.verify(client, Mockito.times(0)).index(ArgumentMatchers.any());
+    Mockito.verify(client, Mockito.times(1)).search(ArgumentMatchers.any());
   }
 
   @SneakyThrows
@@ -278,13 +356,53 @@ public class OpenSearchDataSourceMetadataStorageTest {
     Mockito.when(client.admin().indices().create(ArgumentMatchers.any()))
         .thenReturn(createIndexResponseActionFuture);
     Mockito.when(createIndexResponseActionFuture.actionGet())
-        .thenReturn(new CreateIndexResponse(true, true, DATASOURCE_INDEX_NAME));
+        .thenReturn(new CreateIndexResponse(true, true,
+            DATASOURCE_INDEX_NAME));
     Mockito.when(client.index(ArgumentMatchers.any())).thenReturn(indexResponseActionFuture);
+    Mockito.when(client.search(ArgumentMatchers.any())).thenReturn(searchResponseActionFuture);
+    Mockito.when(searchResponseActionFuture.actionGet()).thenReturn(searchResponse);
+    Mockito.when(searchResponse.status()).thenReturn(RestStatus.OK);
+    Mockito.when(searchResponse.getHits())
+        .thenReturn(
+            new SearchHits(
+                new SearchHit[] {},
+                new TotalHits(0, TotalHits.Relation.EQUAL_TO),
+                1.0F));
+    OpenSearchDataSourceMetadataStorage dataSourceMetadataStorage
+        = new OpenSearchDataSourceMetadataStorage(client, clusterService, encryptor,
+              new ArrayList<>());
 
     Optional<DataSourceMetadata> dataSourceMetadataOptional
-        = openSearchDataSourceMetadataStorage.getDataSourceMetadata(TEST_DATASOURCE_INDEX_NAME);
+        = dataSourceMetadataStorage.getDataSourceMetadata(TEST_DATASOURCE_INDEX_NAME);
 
     Assertions.assertFalse(dataSourceMetadataOptional.isPresent());
+  }
+
+
+  @SneakyThrows
+  @Test
+  public void testGetDataSourceMetadataWithKeyStoreList() {
+    Mockito.when(clusterService.state().routingTable().hasIndex(DATASOURCE_INDEX_NAME))
+        .thenReturn(Boolean.TRUE);
+    Mockito.when(client.index(ArgumentMatchers.any())).thenReturn(indexResponseActionFuture);
+    Mockito.when(client.search(ArgumentMatchers.any())).thenReturn(searchResponseActionFuture);
+    Mockito.when(searchResponseActionFuture.actionGet()).thenReturn(searchResponse);
+    Mockito.when(searchResponse.status()).thenReturn(RestStatus.OK);
+    Mockito.when(searchResponse.getHits())
+        .thenReturn(
+            new SearchHits(
+                new SearchHit[] {},
+                new TotalHits(0, TotalHits.Relation.EQUAL_TO),
+                1.0F));
+    OpenSearchDataSourceMetadataStorage dataSourceMetadataStorage
+        = new OpenSearchDataSourceMetadataStorage(client, clusterService, encryptor,
+        List.of(getDataSourceMetadata()));
+
+    Optional<DataSourceMetadata> dataSourceMetadataOptional
+        = dataSourceMetadataStorage.getDataSourceMetadata(TEST_DATASOURCE_INDEX_NAME);
+
+    Assertions.assertFalse(dataSourceMetadataOptional.isPresent());
+    Mockito.verify(client, Mockito.times(1)).index(ArgumentMatchers.any());
   }
 
   @Test
@@ -312,6 +430,36 @@ public class OpenSearchDataSourceMetadataStorageTest {
     Mockito.verify(client.threadPool().getThreadContext(), Mockito.times(2)).stashContext();
 
 
+  }
+
+
+  @Test
+  public void testCreateDataSourceMetadataWithKeyStoreList() {
+
+    Mockito.when(clusterService.state().routingTable().hasIndex(DATASOURCE_INDEX_NAME))
+        .thenReturn(Boolean.TRUE);
+    Mockito.when(encryptor.encrypt("secret_key")).thenReturn("secret_key");
+    Mockito.when(encryptor.encrypt("access_key")).thenReturn("access_key");
+    Mockito.when(client.index(ArgumentMatchers.any())).thenReturn(indexResponseActionFuture);
+    Mockito.when(indexResponseActionFuture.actionGet()).thenReturn(indexResponse);
+    Mockito.when(indexResponse.getResult()).thenReturn(DocWriteResponse.Result.CREATED);
+    Map<String, String> properties = new HashMap<>();
+    properties.put("prometheus.auth.type", "awssigv4");
+    properties.put("prometheus.auth.secret_key", "secret_key");
+    properties.put("prometheus.auth.uri", "https://localhost:9090");
+    properties.put("prometheus.auth.access_key", "access_key");
+    OpenSearchDataSourceMetadataStorage dataSourceMetadataStorage
+        = new OpenSearchDataSourceMetadataStorage(client, clusterService, encryptor,
+            List.of(new DataSourceMetadata("testDS", DataSourceType.OPENSEARCH,
+                    new ArrayList<>(), properties)));
+
+    dataSourceMetadataStorage.createDataSourceMetadata(getDataSourceMetadata());
+
+    Mockito.verify(encryptor, Mockito.times(2)).encrypt("secret_key");
+    Mockito.verify(encryptor, Mockito.times(2)).encrypt("access_key");
+    Mockito.verify(client.admin().indices(), Mockito.times(0)).create(ArgumentMatchers.any());
+    Mockito.verify(client, Mockito.times(2)).index(ArgumentMatchers.any());
+    Mockito.verify(client.threadPool().getThreadContext(), Mockito.times(2)).stashContext();
   }
 
   @Test
@@ -432,8 +580,6 @@ public class OpenSearchDataSourceMetadataStorageTest {
 
     Mockito.when(clusterService.state().routingTable().hasIndex(DATASOURCE_INDEX_NAME))
         .thenReturn(Boolean.FALSE);
-    Mockito.when(encryptor.encrypt("secret_key")).thenReturn("secret_key");
-    Mockito.when(encryptor.encrypt("access_key")).thenReturn("access_key");
     Mockito.when(client.admin().indices().create(ArgumentMatchers.any()))
         .thenReturn(createIndexResponseActionFuture);
     Mockito.when(createIndexResponseActionFuture.actionGet())
@@ -448,8 +594,8 @@ public class OpenSearchDataSourceMetadataStorageTest {
             + "Index creation is not acknowledged.",
         runtimeException.getMessage());
 
-    Mockito.verify(encryptor, Mockito.times(1)).encrypt("secret_key");
-    Mockito.verify(encryptor, Mockito.times(1)).encrypt("access_key");
+    Mockito.verify(encryptor, Mockito.times(0)).encrypt("secret_key");
+    Mockito.verify(encryptor, Mockito.times(0)).encrypt("access_key");
     Mockito.verify(client.admin().indices(), Mockito.times(1)).create(ArgumentMatchers.any());
     Mockito.verify(client.threadPool().getThreadContext(), Mockito.times(1)).stashContext();
   }

@@ -33,7 +33,7 @@ import org.opensearch.sql.storage.DataSourceFactory;
  */
 public class DataSourceServiceImpl implements DataSourceService {
 
-  private static String DATASOURCE_NAME_REGEX = "[@*A-Za-z]+?[*a-zA-Z_\\-0-9]*";
+  public static String DATASOURCE_NAME_REGEX = "[@*A-Za-z]+?[*a-zA-Z_\\-0-9]*";
 
   private final DataSourceLoaderCache dataSourceLoaderCache;
 
