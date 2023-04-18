@@ -26,6 +26,7 @@ import org.junit.jupiter.api.DisplayNameGeneration;
 import org.junit.jupiter.api.DisplayNameGenerator;
 import org.opensearch.client.Request;
 import org.opensearch.sql.legacy.SQLIntegTestCase;
+import org.opensearch.sql.legacy.TestsConstants;
 
 // This class has only one test case, because it is parametrized and takes significant time
 @DisplayNameGeneration(DisplayNameGenerator.ReplaceUnderscores.class)
@@ -133,15 +134,15 @@ public class PaginationFilterIT extends SQLIntegTestCase {
      * of expected hits (on all pages) from the filtered result
      */
     final private static Map<String, Integer> STATEMENT_TO_NUM_OF_PAGES = Map.of(
-        "SELECT * FROM opensearch-sql_test_index_account", 1000,
-        "SELECT * FROM opensearch-sql_test_index_account WHERE match(address, 'street')", 385,
-        "SELECT * FROM opensearch-sql_test_index_account WHERE match(address, 'street') AND match(city, 'Ola')", 1,
-        "SELECT firstname, lastname, highlight(address) FROM opensearch-sql_test_index_account WHERE match(address, 'street') AND match(state, 'OH')", 5,
-        "SELECT firstname, lastname, highlight('*') FROM opensearch-sql_test_index_account WHERE match(address, 'street') AND match(state, 'OH')", 5,
-        "SELECT * FROM opensearch-sql_test_index_beer WHERE true", 60,
-        "SELECT * FROM opensearch-sql_test_index_beer WHERE Id=10", 1,
-        "SELECT * FROM opensearch-sql_test_index_beer WHERE Id + 5=15", 1,
-        "SELECT * FROM opensearch-sql_test_index_bank", 7
+        "SELECT * FROM " + TestsConstants.TEST_INDEX_ACCOUNT, 1000,
+        "SELECT * FROM " + TestsConstants.TEST_INDEX_ACCOUNT + " WHERE match(address, 'street')", 385,
+        "SELECT * FROM " + TestsConstants.TEST_INDEX_ACCOUNT + " WHERE match(address, 'street') AND match(city, 'Ola')", 1,
+        "SELECT firstname, lastname, highlight(address) FROM " + TestsConstants.TEST_INDEX_ACCOUNT + " WHERE match(address, 'street') AND match(state, 'OH')", 5,
+        "SELECT firstname, lastname, highlight('*') FROM " + TestsConstants.TEST_INDEX_ACCOUNT + " WHERE match(address, 'street') AND match(state, 'OH')", 5,
+        "SELECT * FROM " + TestsConstants.TEST_INDEX_BEER + " WHERE true", 60,
+        "SELECT * FROM " + TestsConstants.TEST_INDEX_BEER + " WHERE Id=10", 1,
+        "SELECT * FROM " + TestsConstants.TEST_INDEX_BEER + " WHERE Id + 5=15", 1,
+        "SELECT * FROM " + TestsConstants.TEST_INDEX_BANK, 7
     );
 
     private Map<String, Integer> getStatements() {
