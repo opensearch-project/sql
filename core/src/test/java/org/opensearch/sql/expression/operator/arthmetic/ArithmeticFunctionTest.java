@@ -9,13 +9,6 @@ package org.opensearch.sql.expression.operator.arthmetic;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.opensearch.sql.config.TestConfig.INT_TYPE_MISSING_VALUE_FIELD;
-import static org.opensearch.sql.config.TestConfig.INT_TYPE_NULL_VALUE_FIELD;
-import static org.opensearch.sql.data.model.ExprValueUtils.LITERAL_MISSING;
-import static org.opensearch.sql.data.model.ExprValueUtils.LITERAL_NULL;
-import static org.opensearch.sql.data.model.ExprValueUtils.integerValue;
-import static org.opensearch.sql.data.type.ExprCoreType.INTEGER;
-import static org.opensearch.sql.data.type.ExprCoreType.BYTE;
 import static org.opensearch.sql.expression.DSL.literal;
 
 import com.google.common.collect.Lists;

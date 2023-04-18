@@ -525,6 +525,7 @@ mathematicalFunctionName
     | POW
     | POWER
     | RAND
+    | RINT
     | ROUND
     | SIGN
     | SIGNUM

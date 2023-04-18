@@ -235,6 +235,7 @@ public class DateTimeFunction {
     repository.register(timestampadd());
     repository.register(timestampdiff());
     repository.register(to_days());
+    repository.register(to_seconds());
     repository.register(unix_timestamp());
     repository.register(utc_date());
     repository.register(utc_time());
