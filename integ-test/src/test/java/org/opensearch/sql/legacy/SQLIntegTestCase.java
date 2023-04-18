@@ -7,6 +7,8 @@
 package org.opensearch.sql.legacy;
 
 import com.google.common.base.Strings;
+import com.google.gson.Gson;
+import org.apache.commons.lang3.StringUtils;
 import org.json.JSONArray;
 import org.json.JSONObject;
 import org.junit.AfterClass;
@@ -30,6 +32,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Locale;
+import org.opensearch.sql.datasource.model.DataSourceMetadata;
 
 import static com.google.common.base.Strings.isNullOrEmpty;
 import static org.opensearch.sql.legacy.TestUtils.createIndexByRestClient;
@@ -441,6 +444,44 @@ public abstract class SQLIntegTestCase extends OpenSearchSQLRestTestCase {
     return hit.getJSONObject("_source");
   }
 
+  protected static Request getCreateDataSourceRequest(DataSourceMetadata dataSourceMetadata) {
+    Request request = new Request("POST", "/_plugins/_query/_datasources");
+    request.setJsonEntity(new Gson().toJson(dataSourceMetadata));
+    RequestOptions.Builder restOptionsBuilder = RequestOptions.DEFAULT.toBuilder();
+    restOptionsBuilder.addHeader("Content-Type", "application/json");
+    request.setOptions(restOptionsBuilder);
+    return request;
+  }
+
+  protected static Request getUpdateDataSourceRequest(DataSourceMetadata dataSourceMetadata) {
+    Request request = new Request("PUT", "/_plugins/_query/_datasources");
+    request.setJsonEntity(new Gson().toJson(dataSourceMetadata));
+    RequestOptions.Builder restOptionsBuilder = RequestOptions.DEFAULT.toBuilder();
+    restOptionsBuilder.addHeader("Content-Type", "application/json");
+    request.setOptions(restOptionsBuilder);
+    return request;
+  }
+
+  protected static Request getFetchDataSourceRequest(String name) {
+    Request request = new Request("GET", "/_plugins/_query/_datasources" + "/" + name);
+    if (StringUtils.isEmpty(name)) {
+      request = new Request("GET", "/_plugins/_query/_datasources");
+    }
+    RequestOptions.Builder restOptionsBuilder = RequestOptions.DEFAULT.toBuilder();
+    restOptionsBuilder.addHeader("Content-Type", "application/json");
+    request.setOptions(restOptionsBuilder);
+    return request;
+  }
+
+
+  protected static Request getDeleteDataSourceRequest(String name) {
+    Request request = new Request("DELETE", "/_plugins/_query/_datasources" + "/" + name);
+    RequestOptions.Builder restOptionsBuilder = RequestOptions.DEFAULT.toBuilder();
+    restOptionsBuilder.addHeader("Content-Type", "application/json");
+    request.setOptions(restOptionsBuilder);
+    return request;
+  }
+
   /**
    * Enum for associating test index with relevant mapping and data.
    */
@@ -637,5 +678,7 @@ public abstract class SQLIntegTestCase extends OpenSearchSQLRestTestCase {
     public String getDataSet() {
       return this.dataSet;
     }
+
+
   }
 }
