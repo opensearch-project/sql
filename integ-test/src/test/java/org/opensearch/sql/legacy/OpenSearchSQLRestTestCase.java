@@ -34,12 +34,12 @@ import org.opensearch.client.RestClientBuilder;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.common.unit.TimeValue;
 import org.opensearch.common.util.concurrent.ThreadContext;
-import org.opensearch.test.rest.OpenSearchRestTestCase;
+import org.opensearch.sql.multicluster.OpenSearchMultiClustersRestTestCase;
 
 /**
  * OpenSearch SQL integration test base class to support both security disabled and enabled OpenSearch cluster.
  */
-public abstract class OpenSearchSQLRestTestCase extends OpenSearchRestTestCase {
+public abstract class OpenSearchSQLRestTestCase extends OpenSearchMultiClustersRestTestCase {
 
   private static final Logger LOG = LogManager.getLogger();
 
@@ -74,10 +74,17 @@ public abstract class OpenSearchSQLRestTestCase extends OpenSearchRestTestCase {
   }
 
   protected static void wipeAllOpenSearchIndices() throws IOException {
+    wipeAllOpenSearchIndices(client());
+    if (remoteClient() != null) {
+      wipeAllOpenSearchIndices(remoteClient());
+    }
+  }
+
+  protected static void wipeAllOpenSearchIndices(RestClient client) throws IOException {
     // include all the indices, included hidden indices.
     // https://www.elastic.co/guide/en/elasticsearch/reference/current/cat-indices.html#cat-indices-api-query-params
     try {
-      Response response = client().performRequest(new Request("GET", "/_cat/indices?format=json&expand_wildcards=all"));
+      Response response = client.performRequest(new Request("GET", "/_cat/indices?format=json&expand_wildcards=all"));
       JSONArray jsonArray = new JSONArray(EntityUtils.toString(response.getEntity(), "UTF-8"));
       for (Object object : jsonArray) {
         JSONObject jsonObject = (JSONObject) object;
@@ -85,7 +92,7 @@ public abstract class OpenSearchSQLRestTestCase extends OpenSearchRestTestCase {
         try {
           // System index, mostly named .opensearch-xxx or .opendistro-xxx, are not allowed to delete
           if (!indexName.startsWith(".opensearch") && !indexName.startsWith(".opendistro")) {
-            client().performRequest(new Request("DELETE", "/" + indexName));
+            client.performRequest(new Request("DELETE", "/" + indexName));
           }
         } catch (Exception e) {
           // TODO: Ignore index delete error for now. Remove this if strict check on system index added above.
