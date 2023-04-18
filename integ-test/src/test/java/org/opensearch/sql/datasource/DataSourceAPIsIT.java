@@ -12,12 +12,15 @@ import com.google.common.collect.ImmutableMap;
 import com.google.gson.Gson;
 import com.google.gson.JsonObject;
 import com.google.gson.reflect.TypeToken;
+import java.io.IOException;
 import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.List;
 import lombok.SneakyThrows;
 import org.apache.commons.lang3.StringUtils;
+import org.junit.AfterClass;
 import org.junit.Assert;
+import org.junit.BeforeClass;
 import org.junit.Test;
 import org.opensearch.client.Request;
 import org.opensearch.client.RequestOptions;
@@ -28,6 +31,21 @@ import org.opensearch.sql.datasource.model.DataSourceType;
 import org.opensearch.sql.ppl.PPLIntegTestCase;
 
 public class DataSourceAPIsIT extends PPLIntegTestCase {
+
+  @AfterClass
+  protected static void deleteDataSourcesCreated() throws IOException {
+    Request deleteRequest = getDeleteDataSourceRequest("create_prometheus");
+    Response deleteResponse = client().performRequest(deleteRequest);
+    Assert.assertEquals(204, deleteResponse.getStatusLine().getStatusCode());
+
+    deleteRequest = getDeleteDataSourceRequest("update_prometheus");
+    deleteResponse = client().performRequest(deleteRequest);
+    Assert.assertEquals(204, deleteResponse.getStatusLine().getStatusCode());
+
+    deleteRequest = getDeleteDataSourceRequest("get_all_prometheus");
+    deleteResponse = client().performRequest(deleteRequest);
+    Assert.assertEquals(204, deleteResponse.getStatusLine().getStatusCode());
+  }
 
   @SneakyThrows
   @Test
@@ -148,45 +166,6 @@ public class DataSourceAPIsIT extends PPLIntegTestCase {
         new Gson().fromJson(getResponseString, listType);
     Assert.assertTrue(
         dataSourceMetadataList.stream().anyMatch(ds -> ds.getName().equals("get_all_prometheus")));
-  }
-
-
-    private Request getCreateDataSourceRequest(DataSourceMetadata dataSourceMetadata) {
-    Request request = new Request("POST", "/_plugins/_query/_datasources");
-    request.setJsonEntity(new Gson().toJson(dataSourceMetadata));
-    RequestOptions.Builder restOptionsBuilder = RequestOptions.DEFAULT.toBuilder();
-    restOptionsBuilder.addHeader("Content-Type", "application/json");
-    request.setOptions(restOptionsBuilder);
-    return request;
-  }
-
-  private Request getUpdateDataSourceRequest(DataSourceMetadata dataSourceMetadata) {
-    Request request = new Request("PUT", "/_plugins/_query/_datasources");
-    request.setJsonEntity(new Gson().toJson(dataSourceMetadata));
-    RequestOptions.Builder restOptionsBuilder = RequestOptions.DEFAULT.toBuilder();
-    restOptionsBuilder.addHeader("Content-Type", "application/json");
-    request.setOptions(restOptionsBuilder);
-    return request;
-  }
-
-  private Request getFetchDataSourceRequest(String name) {
-    Request request = new Request("GET", "/_plugins/_query/_datasources" + "/" + name);
-    if (StringUtils.isEmpty(name)) {
-      request = new Request("GET", "/_plugins/_query/_datasources");
-    }
-    RequestOptions.Builder restOptionsBuilder = RequestOptions.DEFAULT.toBuilder();
-    restOptionsBuilder.addHeader("Content-Type", "application/json");
-    request.setOptions(restOptionsBuilder);
-    return request;
-  }
-
-
-  private Request getDeleteDataSourceRequest(String name) {
-    Request request = new Request("DELETE", "/_plugins/_query/_datasources" + "/" + name);
-    RequestOptions.Builder restOptionsBuilder = RequestOptions.DEFAULT.toBuilder();
-    restOptionsBuilder.addHeader("Content-Type", "application/json");
-    request.setOptions(restOptionsBuilder);
-    return request;
   }
 
 }
