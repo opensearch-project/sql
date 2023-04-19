@@ -15,7 +15,7 @@ https://user-images.githubusercontent.com/88679692/224208630-8d38d833-abf8-4035-
 
 # REST API
 ## Initial Query Request
-```
+```json
 POST /_plugins/_sql
 {
     "query" : "...",
@@ -24,12 +24,12 @@ POST /_plugins/_sql
 ```
 
 Response:
-```
+```json
 {
   "cursor": /* cursor_id */,
   "datarows": [
     // ...
-    ],
+  ],
   "schema" : [
     // ...
   ]
@@ -44,7 +44,7 @@ The client receives an (error response](#error-response) if:
 -  evaluating `query` results in a server-side error.
 
 ## Next Page Request
-```
+```json
 POST /_plugins/_sql
 {
   "cursor": "<cursor_id>"
@@ -69,7 +69,7 @@ The client will receive an [error response](#error-response) if it sends a curso
 The client will receive an error response if any of the above REST calls result in an server-side error.
 
 The response object has the following format:
-```json5
+```json
 {
     "error": {
         "details": <string>,
@@ -108,8 +108,6 @@ New code workflows are highlighted.
 sequenceDiagram
     participant SQLService
     participant QueryPlanFactory
-    participant ResponseListener
-    participant ResponseFormatter
     participant CanPaginateVisitor
     participant QueryService
     participant Planner
@@ -118,29 +116,31 @@ sequenceDiagram
     participant PlanSerializer
     participant Physical Plan Tree
 
-SQLService->>QueryPlanFactory:execute
+SQLService->>+QueryPlanFactory: execute
   critical
-  QueryPlanFactory->>CanPaginateVisitor:canConvertToCursor
-    CanPaginateVisitor-->>QueryPlanFactory:true
+  QueryPlanFactory->>+CanPaginateVisitor: canConvertToCursor
+    CanPaginateVisitor-->>-QueryPlanFactory: true
   end
-  QueryPlanFactory->>QueryService:execute
-    QueryService->>Planner:optimize
+  QueryPlanFactory->>+QueryService: execute
+    QueryService->>+Planner: optimize
       critical
-      Planner->>CreatePagingTableScanBuilder:apply
-        CreatePagingTableScanBuilder-->>QueryService:paged index scan
+      Planner->>+CreatePagingTableScanBuilder: apply
+        CreatePagingTableScanBuilder-->>-Planner: paged index scan
       end
-    QueryService->>OpenSearchExecutionEngine:execute
+      Planner-->>-QueryService: Logical Plan Tree
+    QueryService->>+OpenSearchExecutionEngine: execute
       Note over OpenSearchExecutionEngine: iterate result set
       critical Serialization
-      OpenSearchExecutionEngine->>PlanSerializer:convertToCursor
-        PlanSerializer-->>OpenSearchExecutionEngine:cursor
+      OpenSearchExecutionEngine->>+PlanSerializer: convertToCursor
+        PlanSerializer-->>-OpenSearchExecutionEngine: cursor
       end
       critical
-      OpenSearchExecutionEngine->>Physical Plan Tree:getTotalHits
-        Physical Plan Tree-->>OpenSearchExecutionEngine:total hits
+      OpenSearchExecutionEngine->>+Physical Plan Tree: getTotalHits
+        Physical Plan Tree-->>-OpenSearchExecutionEngine: total hits
       end
-      OpenSearchExecutionEngine-->>ResponseListener:QueryResponse
-    ResponseListener->>ResponseFormatter:format with cursor
+      OpenSearchExecutionEngine-->>-QueryService: execution completed
+    QueryService-->>-QueryPlanFactory: execution completed
+  QueryPlanFactory-->>-SQLService: execution completed
 ```
 
 ### Second page
@@ -148,31 +148,31 @@ SQLService->>QueryPlanFactory:execute
 sequenceDiagram
     participant SQLService
     participant QueryPlanFactory
-    participant ResponseListener
-    participant ResponseFormatter
     participant QueryService
     participant OpenSearchExecutionEngine
     participant PlanSerializer
     participant Physical Plan Tree
 
-SQLService->>QueryPlanFactory:execute
-  QueryPlanFactory->>QueryService:execute
+SQLService->>+QueryPlanFactory: execute
+  QueryPlanFactory->>+QueryService: execute
     critical Deserialization
-    QueryService->>PlanSerializer:convertToPlan
-      PlanSerializer-->>QueryService:Physical plan tree
+    QueryService->>+PlanSerializer: convertToPlan
+      PlanSerializer-->>-QueryService: Physical plan tree
     end
-    QueryService->>OpenSearchExecutionEngine:execute
+    Note over QueryService: Planner, Optimizer and Implementor<br />are skipped
+    QueryService->>+OpenSearchExecutionEngine: execute
       Note over OpenSearchExecutionEngine: iterate result set
       critical Serialization
-      OpenSearchExecutionEngine->>PlanSerializer:convertToCursor
-        PlanSerializer-->>OpenSearchExecutionEngine:cursor
+      OpenSearchExecutionEngine->>+PlanSerializer: convertToCursor
+        PlanSerializer-->>-OpenSearchExecutionEngine: cursor
       end
       critical
-      OpenSearchExecutionEngine->>Physical Plan Tree:getTotalHits
-        Physical Plan Tree-->>OpenSearchExecutionEngine:total hits
+      OpenSearchExecutionEngine->>+Physical Plan Tree: getTotalHits
+        Physical Plan Tree-->>-OpenSearchExecutionEngine: total hits
       end
-      OpenSearchExecutionEngine-->>ResponseListener:QueryResponse
-    ResponseListener->>ResponseFormatter:format with cursor
+      OpenSearchExecutionEngine-->>-QueryService: execution completed
+    QueryService-->>-QueryPlanFactory: execution completed
+  QueryPlanFactory-->>-SQLService: execution completed
 ```
 ### Legacy Engine Fallback
 ```mermaid
@@ -183,14 +183,17 @@ sequenceDiagram
     participant QueryPlanFactory
     participant CanPaginateVisitor
 
-RestSQLQueryAction->>SQLService:prepareRequest
-  SQLService->>QueryPlanFactory:execute
+RestSQLQueryAction->>+SQLService: prepareRequest
+  SQLService->>+QueryPlanFactory: execute
     critical V2 support check
-    QueryPlanFactory->>CanPaginateVisitor:createContinuePaginatedPlan
-      CanPaginateVisitor-->>QueryPlanFactory:false
-    QueryPlanFactory-->>RestSQLQueryAction:UnsupportedCursorRequestException
+    QueryPlanFactory->>+CanPaginateVisitor: canConvertToCursor
+      CanPaginateVisitor-->>-QueryPlanFactory: false
+    QueryPlanFactory-->>-RestSQLQueryAction: UnsupportedCursorRequestException
+    deactivate SQLService
     end
-      RestSQLQueryAction->>Legacy Engine:accept
+      RestSQLQueryAction->>Legacy Engine: accept
+      Note over Legacy Engine: Processing in Legacy engine
+        Legacy Engine-->>RestSQLQueryAction:complete
 ```
 
 ### Serialization
@@ -203,24 +206,24 @@ sequenceDiagram
     participant OpenSearchScrollRequest
     participant ContinuePageRequest
 
-PlanSerializer->>ProjectOperator:getPlanForSerialization
-  ProjectOperator-->>PlanSerializer:this
-PlanSerializer->>ProjectOperator:serialize
+PlanSerializer->>+ProjectOperator: getPlanForSerialization
+  ProjectOperator-->>-PlanSerializer: this
+PlanSerializer->>+ProjectOperator: serialize
   Note over ProjectOperator: dump private fields
-  ProjectOperator->>ResourceMonitorPlan:getPlanForSerialization
-    ResourceMonitorPlan-->>ProjectOperator:delegate
-  ProjectOperator->>OpenSearchPagedIndexScan:serialize
-    Note over OpenSearchPagedIndexScan: dump private fields
+  ProjectOperator->>+ResourceMonitorPlan: getPlanForSerialization
+    ResourceMonitorPlan-->>-ProjectOperator: delegate
+  Note over ResourceMonitorPlan: ResourceMonitorPlan<br />is not serialized
+  ProjectOperator->>+OpenSearchPagedIndexScan: serialize
     alt First page
-      OpenSearchPagedIndexScan->>OpenSearchScrollRequest:toCursor
-        OpenSearchScrollRequest-->>OpenSearchPagedIndexScan:scroll ID
+      OpenSearchPagedIndexScan->>+OpenSearchScrollRequest: toCursor
+        OpenSearchScrollRequest-->>-OpenSearchPagedIndexScan: scroll ID
     else Subsequent page
-      OpenSearchPagedIndexScan->>ContinuePageRequest:toCursor
-        ContinuePageRequest-->>OpenSearchPagedIndexScan:scroll ID
+      OpenSearchPagedIndexScan->>+ContinuePageRequest: toCursor
+        ContinuePageRequest-->>-OpenSearchPagedIndexScan: scroll ID
     end
-    Note over ResourceMonitorPlan: ResourceMonitorPlan<br />is not serialized
-    OpenSearchPagedIndexScan-->>ProjectOperator:serialized
-  ProjectOperator-->>PlanSerializer:serialized
+    Note over OpenSearchPagedIndexScan: dump private fields
+    OpenSearchPagedIndexScan-->>-ProjectOperator: serialized
+  ProjectOperator-->>-PlanSerializer: serialized
 Note over PlanSerializer: Zip to reduce size
 ```
 
@@ -234,18 +237,21 @@ sequenceDiagram
     participant ContinuePageRequest
 
 Note over PlanSerializer: Unzip
-PlanSerializer->>Deserialization Stream:deserialize
-  Deserialization Stream->>ProjectOperator:create new
+PlanSerializer->>+Deserialization Stream: deserialize
+  Deserialization Stream->>+ProjectOperator: create new
     Note over ProjectOperator: load private fields
-    ProjectOperator-->>Deserialization Stream:deserialize input
-  Deserialization Stream->>OpenSearchPagedIndexScan:create new
-    OpenSearchPagedIndexScan-->>Deserialization Stream:resolve engine
-  Deserialization Stream->>OpenSearchPagedIndexScan:OpenSearchStorageEngine
+    ProjectOperator-->>Deserialization Stream: deserialize input
+  activate Deserialization Stream
+  Deserialization Stream->>+OpenSearchPagedIndexScan: create new
+  deactivate Deserialization Stream
+    OpenSearchPagedIndexScan-->>+Deserialization Stream: resolve engine
+  Deserialization Stream->>-OpenSearchPagedIndexScan: OpenSearchStorageEngine
     Note over OpenSearchPagedIndexScan: load private fields
-    OpenSearchPagedIndexScan->>ContinuePageRequest:create new
-      ContinuePageRequest-->>OpenSearchPagedIndexScan:created
-    OpenSearchPagedIndexScan-->>ProjectOperator:deserialized
-  ProjectOperator-->>PlanSerializer:deserialized
+    OpenSearchPagedIndexScan->>+ContinuePageRequest: create new
+      ContinuePageRequest-->>-OpenSearchPagedIndexScan: created
+    OpenSearchPagedIndexScan-->>-ProjectOperator: deserialized
+  ProjectOperator-->>-PlanSerializer: deserialized
+  deactivate Deserialization Stream
 ```
 
 ### Total Hits
@@ -269,13 +275,13 @@ sequenceDiagram
     participant ResourceMonitorPlan
     participant OpenSearchPagedIndexScan
 
-OpenSearchExecutionEngine->>ProjectOperator:getTotalHits
+OpenSearchExecutionEngine->>+ProjectOperator: getTotalHits
   Note over ProjectOperator: default implementation
-  ProjectOperator->>ResourceMonitorPlan:getTotalHits
+  ProjectOperator->>+ResourceMonitorPlan: getTotalHits
     Note over ResourceMonitorPlan: call to delegate
-    ResourceMonitorPlan->>OpenSearchPagedIndexScan:getTotalHits
+    ResourceMonitorPlan->>+OpenSearchPagedIndexScan: getTotalHits
       Note over OpenSearchPagedIndexScan: use stored value from the search response
-      OpenSearchPagedIndexScan-->>ResourceMonitorPlan:value
-    ResourceMonitorPlan-->>ProjectOperator:value
-  ProjectOperator-->>OpenSearchExecutionEngine:value
+      OpenSearchPagedIndexScan-->>-ResourceMonitorPlan: value
+    ResourceMonitorPlan-->>-ProjectOperator: value
+  ProjectOperator-->>-OpenSearchExecutionEngine: value
 ```
