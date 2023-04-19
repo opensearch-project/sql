@@ -29,6 +29,7 @@ Compatible with OpenSearch and OpenSearch Dashboards Version 2.7.0
 * Integ Test Refactoring ([#1383](https://github.com/opensearch-project/sql/pull/1383))
 * Exclude OpenSearch system index when IT cleanup ([#1381](https://github.com/opensearch-project/sql/pull/1381))
 * Ensure Nested Function Falls Back to Legacy Engine Where Not Supported ([#1549](https://github.com/opensearch-project/sql/pull/1549))
+* adding reflections as a dependency ([#1559](https://github.com/opensearch-project/sql/pull/1559))
 
 ### Documentation
 
