@@ -60,6 +60,7 @@ import org.opensearch.sql.ast.tree.Sort.SortOption;
 import org.opensearch.sql.ast.tree.TableFunction;
 import org.opensearch.sql.ast.tree.UnresolvedPlan;
 import org.opensearch.sql.ast.tree.Values;
+import org.opensearch.sql.common.antlr.SyntaxCheckException;
 import org.opensearch.sql.data.model.ExprMissingValue;
 import org.opensearch.sql.data.type.ExprCoreType;
 import org.opensearch.sql.data.type.ExprType;
@@ -67,11 +68,13 @@ import org.opensearch.sql.datasource.DataSourceService;
 import org.opensearch.sql.exception.SemanticCheckException;
 import org.opensearch.sql.expression.DSL;
 import org.opensearch.sql.expression.Expression;
+import org.opensearch.sql.expression.FunctionExpression;
 import org.opensearch.sql.expression.LiteralExpression;
 import org.opensearch.sql.expression.NamedExpression;
 import org.opensearch.sql.expression.ReferenceExpression;
 import org.opensearch.sql.expression.aggregation.Aggregator;
 import org.opensearch.sql.expression.aggregation.NamedAggregator;
+import org.opensearch.sql.expression.function.BuiltinFunctionName;
 import org.opensearch.sql.expression.function.BuiltinFunctionRepository;
 import org.opensearch.sql.expression.function.FunctionName;
 import org.opensearch.sql.expression.function.TableFunctionImplementation;
@@ -217,11 +220,34 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
   public LogicalPlan visitFilter(Filter node, AnalysisContext context) {
     LogicalPlan child = node.getChild().get(0).accept(this, context);
     Expression condition = expressionAnalyzer.analyze(node.getCondition(), context);
+    verifySupportsCondition(condition);
 
     ExpressionReferenceOptimizer optimizer =
         new ExpressionReferenceOptimizer(expressionAnalyzer.getRepository(), child);
     Expression optimized = optimizer.optimize(condition, context);
     return new LogicalFilter(child, optimized);
+  }
+
+  /**
+   * Ensure NESTED function is not used in WHERE, GROUP BY, and HAVING clauses.
+   * Fallback to legacy engine. Can remove when support is added for NESTED function in WHERE,
+   * GROUP BY, ORDER BY, and HAVING clauses.
+   * @param condition : Filter condition
+   */
+  private void verifySupportsCondition(Expression condition) {
+    if (condition instanceof FunctionExpression) {
+      if (((FunctionExpression) condition).getFunctionName().getFunctionName().equalsIgnoreCase(
+          BuiltinFunctionName.NESTED.name()
+      )) {
+        throw new SyntaxCheckException(
+            "Falling back to legacy engine. Nested function is not supported in WHERE,"
+                + " GROUP BY, and HAVING clauses."
+        );
+      }
+      ((FunctionExpression)condition).getArguments().stream()
+          .forEach(e -> verifySupportsCondition(e)
+      );
+    }
   }
 
   /**
@@ -273,7 +299,9 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
     }
 
     for (UnresolvedExpression expr : node.getGroupExprList()) {
-      groupbyBuilder.add(namedExpressionAnalyzer.analyze(expr, context));
+      NamedExpression resolvedExpr = namedExpressionAnalyzer.analyze(expr, context);
+      verifySupportsCondition(resolvedExpr.getDelegated());
+      groupbyBuilder.add(resolvedExpr);
     }
     ImmutableList<NamedExpression> groupBys = groupbyBuilder.build();
 
