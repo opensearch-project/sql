@@ -232,7 +232,7 @@ integTest {
             systemProperty "tests.rest.${cluster.name}.transport_hosts", "${-> allTransportSocketURI}"
         }
     }
-    
+
     testLogging {
         events "passed", "skipped", "failed"
     }

@@ -16,8 +16,6 @@ import static org.opensearch.sql.util.MatcherUtils.verifyDataRows;
 import java.io.IOException;
 import org.json.JSONObject;
 import org.junit.jupiter.api.Test;
-import org.opensearch.client.Request;
-import org.opensearch.client.ResponseException;
 
 public class CrossClusterSearchIT extends PPLIntegTestCase {
 
@@ -41,10 +39,17 @@ public class CrossClusterSearchIT extends PPLIntegTestCase {
 
   @Test
   public void testCrossClusterSearchCommandWithLogicalExpression() throws IOException {
-    JSONObject result =
-        executeQuery(
-            String.format(
-                "search source=%s firstname='Hattie' | fields firstname", TEST_INDEX_BANK_REMOTE));
+    JSONObject result = executeQuery(String.format(
+        "search source=%s firstname='Hattie' | fields firstname", TEST_INDEX_BANK_REMOTE));
     verifyDataRows(result, rows("Hattie"));
+  }
+
+  @Test
+  public void testCrossClusterSearchMultiClusters() throws IOException {
+    JSONObject result = executeQuery(String.format(
+        "search source=%s,%s firstname='Hattie' | fields firstname", TEST_INDEX_BANK_REMOTE, TEST_INDEX_BANK));
+    verifyDataRows(result,
+        rows("Hattie"),
+        rows("Hattie"));
   }
 }
