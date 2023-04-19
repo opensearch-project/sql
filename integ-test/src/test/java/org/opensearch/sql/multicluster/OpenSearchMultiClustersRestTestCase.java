@@ -33,7 +33,7 @@ public abstract class OpenSearchMultiClustersRestTestCase extends OpenSearchRest
    */
   private static RestClient remoteAdminClient;
 
-  // modified from initClient in OpenSearchRestTestCase
+  // Modified from initClient in OpenSearchRestTestCase
   public void initRemoteClient() throws IOException {
     if (remoteClient == null) {
       assert remoteAdminClient == null;
@@ -58,6 +58,9 @@ public abstract class OpenSearchMultiClustersRestTestCase extends OpenSearchRest
     assert remoteAdminClient != null;
   }
 
+  /**
+   * Get a comma delimited list of [host:port] to which to send REST requests.
+   */
   protected String getTestRestCluster(String clusterName) {
     String cluster = System.getProperty("tests.rest." + clusterName + ".http_hosts");
     if (cluster == null) {
@@ -71,6 +74,9 @@ public abstract class OpenSearchMultiClustersRestTestCase extends OpenSearchRest
     return cluster;
   }
 
+  /**
+   * Get a comma delimited list of [host:port] for connections between clusters.
+   */
   protected String getTestTransportCluster(String clusterName) {
     String cluster = System.getProperty("tests.rest." + clusterName + ".transport_hosts");
     if (cluster == null) {
@@ -84,6 +90,10 @@ public abstract class OpenSearchMultiClustersRestTestCase extends OpenSearchRest
     return cluster;
   }
 
+  /**
+   * Initialize rest client to remote cluster,
+   * and create a connection to it from the coordinating cluster.
+   */
   public void configureMultiClusters() throws IOException {
     initRemoteClient();
 
@@ -109,7 +119,7 @@ public abstract class OpenSearchMultiClustersRestTestCase extends OpenSearchRest
   }
 
   /**
-   * Get the client to remote cluster used for ordinary api calls while writing a test
+   * Get the client to remote cluster used for ordinary api calls while writing a test.
    */
   protected static RestClient remoteClient() {
     return remoteClient;

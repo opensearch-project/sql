@@ -34,7 +34,8 @@ Example: Create the ppl_role for test_user. then test_user could use PPL to quer
         ],
         "allowed_actions": [
           "indices:data/read/search*",
-          "indices:admin/mappings/get"
+          "indices:admin/mappings/get",
+          "indices:monitor/settings/get"
         ]
       }]
     }

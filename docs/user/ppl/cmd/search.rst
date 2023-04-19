@@ -19,7 +19,7 @@ Syntax
 search source=<index> [boolean-expression]
 
 * search: search keywords, which could be ignore.
-* index: mandatory. search command must specify which index to query from.
+* index: mandatory. search command must specify which index to query from. The index name can be prefixed by "<cluster name>:" for cross-cluster search.
 * bool-expression: optional. any expression which could be evaluated to boolean value.
 
 

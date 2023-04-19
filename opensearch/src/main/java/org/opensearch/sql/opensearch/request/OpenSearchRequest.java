@@ -69,7 +69,6 @@ public interface OpenSearchRequest {
      */
     public IndexName(String indexName) {
       this.indexFullNames = indexName.split(COMMA);
-      // Remove all "<cluster>:" prefix if they exist
       this.indexNames = Arrays.stream(indexFullNames)
               .map(name -> name.substring(name.indexOf(COLON) + 1))
               .toArray(String[]::new);
