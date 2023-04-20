@@ -95,9 +95,19 @@ ABS
 Description
 >>>>>>>>>>>
 
-Specifications:
+Argument type: INTEGER/LONG/FLOAT/DOUBLE
 
-1. ABS(NUMBER T) -> T
+Return type: same as argument type.
+
+Example::
+
+    os> SELECT ABS(0), ABS(10), ABS(-10), ABS(12.34567), ABS(-12.34567)
+    fetched rows / total rows = 1/1
+    +----------+-----------+------------+-----------------+------------------+
+    | ABS(0)   | ABS(10)   | ABS(-10)   | ABS(12.34567)   | ABS(-12.34567)   |
+    |----------+-----------+------------+-----------------+------------------|
+    | 0        | 10        | 10         | 12.34567        | 12.34567         |
+    +----------+-----------+------------+-----------------+------------------+
 
 
 ACOS
@@ -232,7 +242,7 @@ INTEGER/LONG/FLOAT/DOUBLE -> DOUBLE
 
 Example::
 
-    opensearchsql> SELECT CBRT(8), CBRT(9.261), CBRT(-27);
+    os> SELECT CBRT(8), CBRT(9.261), CBRT(-27);
     fetched rows / total rows = 1/1
     +-----------+---------------+-------------+
     | CBRT(8)   | CBRT(9.261)   | CBRT(-27)   |
@@ -253,7 +263,11 @@ CEILING
 Description
 >>>>>>>>>>>
 
-Usage: CEILING(T) takes the ceiling of value T.
+Argument type: INTEGER/LONG/FLOAT/DOUBLE
+
+Return type: INTEGER
+
+Specifications:
 
 Note: `CEIL`_ and CEILING functions have the same implementation & functionality
 
@@ -281,6 +295,16 @@ Example::
     | 3147483648                  | 113147483648                  | 3147483648                  |
     +-----------------------------+-------------------------------+-----------------------------+
 
+Example::
+
+    os> SELECT CEIL(0), CEIL(12.34567), CEIL(-12.34567)
+    fetched rows / total rows = 1/1
+    +-----------+------------------+-------------------+
+    | CEIL(0)   | CEIL(12.34567)   | CEIL(-12.34567)   |
+    |-----------+------------------+-------------------|
+    | 0         | 13               | -12               |
+    +-----------+------------------+-------------------+
+
 
 CONV
 ----
@@ -303,6 +327,7 @@ Example::
     |----------------------+----------------------+-------------------+---------------------|
     | c                    | 44                   | 1100              | 15                  |
     +----------------------+----------------------+-------------------+---------------------+
+
 
 COS
 ---
@@ -471,9 +496,21 @@ EXP
 Description
 >>>>>>>>>>>
 
-Specifications:
+Usage: EXP() returns Euler's number raised to the specified number.
 
-1. EXP(NUMBER T) -> T
+Argument type: INTEGER/LONG/FLOAT/DOUBLE
+
+Return type: DOUBLE
+
+Example::
+
+    os> SELECT EXP(2)
+    fetched rows / total rows = 1/1
+    +------------------+
+    | EXP(2)           |
+    |------------------|
+    | 7.38905609893065 |
+    +------------------+
 
 
 EXPM1
@@ -483,6 +520,10 @@ Description
 >>>>>>>>>>>
 
 Usage: EXPM1(NUMBER T) returns the exponential of T, minus 1.
+
+.. math:: e^{X} - 1
+
+See also `EXP`_.
 
 Argument type: INTEGER/LONG/FLOAT/DOUBLE
 
@@ -497,6 +538,7 @@ Example::
     |---------------------+------------+-------------------+-------------------|
     | -0.6321205588285577 | 0.0        | 1.718281828459045 | 3.481689070338065 |
     +---------------------+------------+-------------------+-------------------+
+
 
 FLOOR
 -----
@@ -538,15 +580,28 @@ Example::
     | 282474973688888              | 9223372036854775807              | 9223372036854775807                  |
     +------------------------------+----------------------------------+--------------------------------------+
 
+
 LN
 --
 
 Description
 >>>>>>>>>>>
 
-Specifications:
+Returns the natural logarithm of X; that is, the base-e logarithm of X. If X is NULL or less than or equal to 0, the function returns NULL.
 
-1. LN(NUMBER T) -> DOUBLE
+Argument type: INTEGER/LONG/FLOAT/DOUBLE
+
+Return type: DOUBLE
+
+Example::
+
+    os> select LN(1), LN(e()), LN(10), LN(12.34567);
+    fetched rows / total rows = 1/1
+    +---------+-----------+-------------------+--------------------+
+    | LN(1)   | LN(e())   | LN(10)            | LN(12.34567)       |
+    |---------+-----------+-------------------+--------------------|
+    | 0.0     | 1.0       | 2.302585092994046 | 2.5133053943094317 |
+    +---------+-----------+-------------------+--------------------+
 
 
 LOG
@@ -555,10 +610,24 @@ LOG
 Description
 >>>>>>>>>>>
 
-Specifications:
+If called with one parameter, this function returns the natural logarithm of X (see `LN`_). If called with two parameters, this function returns the logarithm of X to the base B.
+The inverse of this function (when called with a single argument) is the `EXP`_ function.
+If X is NULL or less than or equal to 0, or if B is NULL or less than or equal to 1, then NULL is returned.
 
-1. LOG(NUMBER T) -> DOUBLE
-2. LOG(NUMBER T, NUMBER) -> DOUBLE
+Argument 1 type: INTEGER/LONG/FLOAT/DOUBLE
+Argument 2 type (optional): INTEGER/LONG/FLOAT/DOUBLE
+
+Return type: DOUBLE
+
+Example::
+
+    os> select LOG(1), LOG(e()), LOG(2, 65536), LOG(10, 10000);
+    fetched rows / total rows = 1/1
+    +----------+------------+-----------------+------------------+
+    | LOG(1)   | LOG(e())   | LOG(2, 65536)   | LOG(10, 10000)   |
+    |----------+------------+-----------------+------------------|
+    | 0.0      | 1.0        | 16.0            | 4.0              |
+    +----------+------------+-----------------+------------------+
 
 
 LOG2
@@ -567,9 +636,21 @@ LOG2
 Description
 >>>>>>>>>>>
 
-Specifications:
+Returns the base-2 logarithm of X. If X is NULL or less than or equal to 0, the function returns NULL. LOG2(X) is useful for finding out how many bits a number requires for storage and equal to LOG(2, X).
 
-1. LOG2(NUMBER T) -> DOUBLE
+Argument type: INTEGER/LONG/FLOAT/DOUBLE
+
+Return type: DOUBLE
+
+Example::
+
+    os> select LOG2(1), LOG2(8), LOG2(65536), LOG2(8.8245);
+    fetched rows / total rows = 1/1
+    +-----------+-----------+---------------+--------------------+
+    | LOG2(1)   | LOG2(8)   | LOG2(65536)   | LOG2(8.8245)       |
+    |-----------+-----------+---------------+--------------------|
+    | 0.0       | 3.0       | 16.0          | 3.1415145369723745 |
+    +-----------+-----------+---------------+--------------------+
 
 
 LOG10
@@ -578,9 +659,21 @@ LOG10
 Description
 >>>>>>>>>>>
 
-Specifications:
+Returns the base-10 logarithm of X. If X is NULL or less than or equal to 0, the function returns NULL. LOG10(X) is equal to LOG(10, X).
 
-1. LOG10(NUMBER T) -> DOUBLE
+Argument type: INTEGER/LONG/FLOAT/DOUBLE
+
+Return type: DOUBLE
+
+Example::
+
+    os> select LOG10(1), LOG10(8), LOG10(1000), LOG10(8.8245);
+    fetched rows / total rows = 1/1
+    +------------+--------------------+---------------+--------------------+
+    | LOG10(1)   | LOG10(8)           | LOG10(1000)   | LOG10(8.8245)      |
+    |------------+--------------------+---------------+--------------------|
+    | 0.0        | 0.9030899869919435 | 3.0           | 0.9456901074431278 |
+    +------------+--------------------+---------------+--------------------+
 
 
 MOD
@@ -803,14 +896,12 @@ ROUND
 Description
 >>>>>>>>>>>
 
-Usage: ROUND(x, d) rounds the argument x to d decimal places, d defaults to 0 if not specified
+Usage: ROUND(x, d) rounds the argument x to d decimal places, d defaults to 0 if not specified.
 
-Argument type: INTEGER/LONG/FLOAT/DOUBLE
+Argument 1 type: INTEGER/LONG/FLOAT/DOUBLE
+Argument 2 type (optional): INTEGER
 
-Return type map:
-
-(INTEGER/LONG [,INTEGER]) -> LONG
-(FLOAT/DOUBLE [,INTEGER]) -> LONG
+Return type: LONG
 
 Example::
 
@@ -885,13 +976,13 @@ Return type: DOUBLE
 
 Example::
 
-    os> SELECT SIN(0)
+    os> select sin(0), sin(1), sin(pi()), abs(sin(pi())) < 0.0001;
     fetched rows / total rows = 1/1
-    +----------+
-    | SIN(0)   |
-    |----------|
-    | 0.0      |
-    +----------+
+    +----------+--------------------+------------------------+---------------------------+
+    | sin(0)   | sin(1)             | sin(pi())              | abs(sin(pi())) < 0.0001   |
+    |----------+--------------------+------------------------+---------------------------|
+    | 0.0      | 0.8414709848078965 | 1.2246467991473532e-16 | True                      |
+    +----------+--------------------+------------------------+---------------------------+
 
 
 SINH
@@ -966,7 +1057,6 @@ Example::
     +----------------------------+----------------------------+
 
 
-
 SUBTRACT
 --------
 
@@ -1038,7 +1128,6 @@ Example::
     |----------------------+-----------------------+-------------------|
     | 56.7                 | 50                    | 56                |
     +----------------------+-----------------------+-------------------+
-
 
 
 Date and Time Functions
@@ -1459,6 +1548,7 @@ Example::
     | 2008-02-10 02:00:00                     |
     +-----------------------------------------+
 
+
 DATE_ADD
 --------
 
@@ -1704,6 +1794,7 @@ Example::
     | 26                               |
     +----------------------------------+
 
+
 DAY_OF_MONTH
 ------------
 
@@ -1727,6 +1818,7 @@ Example::
     |------------------------------|
     | 26                           |
     +------------------------------+
+
 
 DAYOFWEEK
 ---------
@@ -1795,7 +1887,7 @@ Example::
 
 
 DAY_OF_YEAR
----------
+-----------
 
 Description
 >>>>>>>>>>>
@@ -1835,7 +1927,7 @@ Example::
 
 
 EXTRACT
-_______
+-------
 
 Description
 >>>>>>>>>>>
@@ -1847,6 +1939,7 @@ Argument type: PART
 PART must be one of the following tokens in the table below.
 
 The format specifiers found in this table are the same as those found in the `DATE_FORMAT`_ function.
+
 .. list-table:: The following table describes the mapping of a 'part' to a particular format.
    :widths: 20 80
    :header-rows: 1
@@ -1903,6 +1996,7 @@ Example::
     |--------------------------------------------------|
     | 202302                                           |
     +--------------------------------------------------+
+
 
 FROM_DAYS
 ---------
@@ -2009,6 +2103,27 @@ Example::
     |--------------------+---------------------------|
     | 1                  | 1                         |
     +--------------------+---------------------------+
+
+
+LAST_DAY
+--------
+
+Usage: Returns the last day of the month as a DATE for a valid argument.
+
+Argument type: DATE/DATETIME/STRING/TIMESTAMP/TIME
+
+Return type: DATE
+
+Example::
+
+    os> SELECT last_day('2023-02-06');
+    fetched rows / total rows = 1/1
+    +--------------------------+
+    | last_day('2023-02-06')   |
+    |--------------------------|
+    | 2023-02-28               |
+    +--------------------------+
+
 
 LOCALTIMESTAMP
 --------------
@@ -2160,8 +2275,9 @@ Example::
     | 2                          | 2                                  |
     +----------------------------+------------------------------------+
 
+
 MINUTE_OF_DAY
-------
+-------------
 
 Description
 >>>>>>>>>>>
@@ -2191,7 +2307,7 @@ Description
 
 Usage: month(date) returns the month for date, in the range 1 to 12 for January to December. The dates with value 0 such as '0000-00-00' or '2008-00-00' are invalid.
 If an argument of type `TIME` is given, the function will use the current date.
-The function `month_of_year`_ is also provided as an alias.
+The function `month_of_year` is also provided as an alias.
 
 Argument type: STRING/DATE/DATETIME/TIME/TIMESTAMP
 
@@ -2332,6 +2448,7 @@ Example::
     | 3                             |
     +-------------------------------+
 
+
 SEC_TO_TIME
 -----------
 
@@ -2381,7 +2498,7 @@ Description
 >>>>>>>>>>>
 
 Usage: second(time) returns the second for time, in the range 0 to 59.
-The function `second_of_minute`_ is provided as an alias
+The function `second_of_minute` is provided as an alias
 
 Argument type: STRING/TIME/DATETIME/TIMESTAMP
 
@@ -2704,6 +2821,7 @@ Example::
     | 2020-08-26 13:49:00                | 2020-08-27 02:04:42                                  |
     +------------------------------------+------------------------------------------------------+
 
+
 TIMESTAMPADD
 ------------
 
@@ -2726,6 +2844,7 @@ Examples::
     |------------------------------------------------+----------------------------------------------------|
     | 2000-01-18 00:00:00                            | 1999-10-01 00:00:00                                |
     +------------------------------------------------+----------------------------------------------------+
+
 
 TIMESTAMPDIFF
 -------------
@@ -2751,6 +2870,7 @@ Examples::
     | 4                                                                   | -23                                                         |
     +---------------------------------------------------------------------+-------------------------------------------------------------+
 
+
 TO_DAYS
 -------
 
@@ -2772,6 +2892,7 @@ Example::
     |------------------------------|
     | 733687                       |
     +------------------------------+
+
 
 TO_SECONDS
 ----------
@@ -2795,6 +2916,7 @@ Example::
     |---------------------------------+----------------------|
     | 63390556800                     | 62961148800          |
     +---------------------------------+----------------------+
+
 
 UNIX_TIMESTAMP
 --------------
@@ -2898,6 +3020,7 @@ Example::
     | 2022-10-03 17:54:28 |
     +---------------------+
 
+
 WEEK
 ----
 
@@ -2963,8 +3086,9 @@ Example::
     | 7                          | 8                             |
     +----------------------------+-------------------------------+
 
+
 WEEKDAY
-_______
+-------
 
 Description
 >>>>>>>>>>>
@@ -2986,6 +3110,7 @@ Example::
     |-------------------------+-------------------------|
     | 2                       | 3                       |
     +-------------------------+-------------------------+
+
 
 WEEK_OF_YEAR
 ------------
@@ -3080,6 +3205,7 @@ Example::
     | 202034                   | 201852                      |
     +--------------------------+-----------------------------+
 
+
 String Functions
 ================
 
@@ -3151,24 +3277,6 @@ Example::
     | hello,world                        |
     +------------------------------------+
 
-LAST_DAY
---------
-
-Usage: Returns the last day of the month as a DATE for a valid argument.
-
-Argument type: DATE/DATETIME/STRING/TIMESTAMP/TIME
-
-Return type: DATE
-
-Example::
-
-    os> SELECT last_day('2023-02-06');
-    fetched rows / total rows = 1/1
-    +--------------------------+
-    | last_day('2023-02-06')   |
-    |--------------------------|
-    | 2023-02-28               |
-    +--------------------------+
 
 LEFT
 ----
@@ -3195,10 +3303,6 @@ LENGTH
 
 Description
 >>>>>>>>>>>
-
-Specifications:
-
-1. LENGTH(STRING) -> INTEGER
 
 Usage: length(str) returns length of string measured in bytes.
 
@@ -3290,7 +3394,7 @@ Example::
 
 
 POSITION
-------
+--------
 
 Description
 >>>>>>>>>>>
@@ -3474,29 +3578,16 @@ Example::
     | HELLOWORLD            | HELLOWORLD            |
     +-----------------------+-----------------------+
 
+
+
 Conditional Functions
 =====================
-
-IF
---
-
-Description
->>>>>>>>>>>
-
-Specifications:
-
-1. IF(BOOLEAN, ES_TYPE, ES_TYPE) -> ES_TYPE
-
 
 IFNULL
 ------
 
 Description
 >>>>>>>>>>>
-
-Specifications:
-
-1. IFNULL(ES_TYPE, ES_TYPE) -> ES_TYPE
 
 Usage: return parameter2 if parameter1 is null, otherwise return parameter1
 
@@ -3541,10 +3632,6 @@ NULLIF
 Description
 >>>>>>>>>>>
 
-Specifications:
-
-1. NULLIF(ES_TYPE, ES_TYPE) -> ES_TYPE
-
 Usage: return null if two parameters are same, otherwise return parameer1
 
 Argument type: Any
@@ -3568,10 +3655,6 @@ ISNULL
 Description
 >>>>>>>>>>>
 
-Specifications:
-
-1. ISNULL(ES_TYPE) -> INTEGER
-
 Usage: return true if parameter is null, otherwise return false
 
 Argument type: Any
@@ -3588,21 +3671,20 @@ Example::
     | True          | False         |
     +---------------+---------------+
 
+
 IF
-------
+--
 
 Description
 >>>>>>>>>>>
-
-Specifications:
-
-1. IF(condition, ES_TYPE1, ES_TYPE2) -> ES_TYPE1 or ES_TYPE2
 
 Usage: if first parameter is true, return second parameter, otherwise return third one.
 
 Argument type: condition as BOOLEAN, second and third can by any type
 
-Return type: Any (NOTE : if parameters #2 and #3 has different type, you will fail semantic check"
+Return type: Any
+
+NOTE : if parameters #2 and #3 has different type, you will fail semantic check
 
 Example::
 
@@ -3621,6 +3703,7 @@ Example::
     |-------------------------------|
     | 100                           |
     +-------------------------------+
+
 
 CASE
 ----
@@ -3752,7 +3835,7 @@ Another example to show how to set custom values for the optional parameters::
 
 
 MATCHQUERY
------
+----------
 
 Description
 >>>>>>>>>>>
@@ -3790,8 +3873,9 @@ Another example to show how to set custom values for the optional parameters::
     | Hattie      |
     +-------------+
 
+
 MATCH_QUERY
------
+-----------
 
 Description
 >>>>>>>>>>>
@@ -3886,8 +3970,9 @@ The match_phrase function also supports an alternative syntax::
     | Hattie      |
     +-------------+
 
+
 MATCH_BOOL_PREFIX
------
+-----------------
 
 Description
 >>>>>>>>>>>
@@ -3927,8 +4012,9 @@ Another example to show how to set custom values for the optional parameters::
     | Hattie      | 671 Bristol Street |
     +-------------+--------------------+
 
+
 MATCH_PHRASE_PREFIX
-------------
+-------------------
 
 Description
 >>>>>>>>>>>
@@ -4045,6 +4131,7 @@ The multi_match function also supports an alternative syntax::
     |-------------|
     | Hattie      |
     +-------------+
+
 
 SIMPLE_QUERY_STRING
 -------------------
@@ -4221,8 +4308,9 @@ Another example to show how to set custom values for the optional parameters::
     | 1    | The House at Pooh Corner | Alan Alexander Milne |
     +------+--------------------------+----------------------+
 
+
 SCORE
-------------
+-----
 
 Description
 >>>>>>>>>>>
@@ -4263,8 +4351,9 @@ Example boosting score::
     | 2    | Winnie-the-Pooh          | Alan Alexander Milne | 1.1581701 |
     +------+--------------------------+----------------------+-----------+
 
+
 HIGHLIGHT
-------------
+---------
 
 Description
 >>>>>>>>>>>
@@ -4288,8 +4377,9 @@ Example searching for field Tags::
     | [Winnie-the-<em>Pooh</em>]                   |
     +----------------------------------------------+
 
+
 WILDCARD_QUERY
-------------
+--------------
 
 Description
 >>>>>>>>>>>
@@ -4341,6 +4431,7 @@ Another example to show how to set custom values for the optional parameters::
     | tEsT wIlDcArD sensitive cases             |
     +-------------------------------------------+
 
+
 NESTED
 ------
 
@@ -4363,6 +4454,7 @@ Example with ``field`` and ``path`` parameters::
     | a                               |
     | b                               |
     +---------------------------------+
+
 
 System Functions
 ================
@@ -4388,5 +4480,4 @@ Example::
     |----------------+---------------+-----------------+------------------|
     | DATE           | INTEGER       | DATETIME        | OBJECT           |
     +----------------+---------------+-----------------+------------------+
-
 

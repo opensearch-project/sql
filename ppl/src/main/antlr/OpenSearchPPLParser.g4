@@ -33,8 +33,22 @@ pplCommands
     ;
 
 commands
-    : whereCommand | fieldsCommand | renameCommand | statsCommand | dedupCommand | sortCommand | evalCommand | headCommand
-    | topCommand | rareCommand | grokCommand | parseCommand | patternsCommand | kmeansCommand | adCommand | mlCommand;
+    : whereCommand
+    | fieldsCommand
+    | renameCommand
+    | statsCommand
+    | dedupCommand
+    | sortCommand
+    | evalCommand
+    | headCommand
+    | topCommand
+    | rareCommand
+    | grokCommand
+    | parseCommand
+    | patternsCommand
+    | kmeansCommand
+    | adCommand
+    | mlCommand;
 
 searchCommand
     : (SEARCH)? fromClause                                          #searchFrom
@@ -220,7 +234,15 @@ statsFunction
     ;
 
 statsFunctionName
-    : AVG | COUNT | SUM | MIN | MAX | VAR_SAMP | VAR_POP | STDDEV_SAMP | STDDEV_POP
+    : AVG
+    | COUNT
+    | SUM
+    | MIN
+    | MAX
+    | VAR_SAMP
+    | VAR_POP
+    | STDDEV_SAMP
+    | STDDEV_POP
     ;
 
 takeAggFunction
@@ -366,11 +388,11 @@ convertedDataType
     ;
 
 evalFunctionName
-    : mathematicalFunctionBase
-    | dateAndTimeFunctionBase
-    | textFunctionBase
+    : mathematicalFunctionName
+    | dateTimeFunctionName
+    | textFunctionName
     | conditionFunctionBase
-    | systemFunctionBase
+    | systemFunctionName
     | positionFunctionName
     ;
 
@@ -387,12 +409,38 @@ relevanceArg
     ;
 
 relevanceArgName
-    : ALLOW_LEADING_WILDCARD | ANALYZER | ANALYZE_WILDCARD | AUTO_GENERATE_SYNONYMS_PHRASE_QUERY
-    | BOOST | CUTOFF_FREQUENCY | DEFAULT_FIELD | DEFAULT_OPERATOR | ENABLE_POSITION_INCREMENTS
-    | ESCAPE | FIELDS | FLAGS | FUZZINESS | FUZZY_MAX_EXPANSIONS | FUZZY_PREFIX_LENGTH
-    | FUZZY_REWRITE | FUZZY_TRANSPOSITIONS | LENIENT | LOW_FREQ_OPERATOR | MAX_DETERMINIZED_STATES
-    | MAX_EXPANSIONS | MINIMUM_SHOULD_MATCH | OPERATOR | PHRASE_SLOP | PREFIX_LENGTH
-    | QUOTE_ANALYZER | QUOTE_FIELD_SUFFIX | REWRITE | SLOP | TIE_BREAKER | TIME_ZONE | TYPE
+    : ALLOW_LEADING_WILDCARD
+    | ANALYZER
+    | ANALYZE_WILDCARD
+    | AUTO_GENERATE_SYNONYMS_PHRASE_QUERY
+    | BOOST
+    | CUTOFF_FREQUENCY
+    | DEFAULT_FIELD
+    | DEFAULT_OPERATOR
+    | ENABLE_POSITION_INCREMENTS
+    | ESCAPE
+    | FIELDS
+    | FLAGS
+    | FUZZINESS
+    | FUZZY_MAX_EXPANSIONS
+    | FUZZY_PREFIX_LENGTH
+    | FUZZY_REWRITE
+    | FUZZY_TRANSPOSITIONS
+    | LENIENT
+    | LOW_FREQ_OPERATOR
+    | MAX_DETERMINIZED_STATES
+    | MAX_EXPANSIONS
+    | MINIMUM_SHOULD_MATCH
+    | OPERATOR
+    | PHRASE_SLOP
+    | PREFIX_LENGTH
+    | QUOTE_ANALYZER
+    | QUOTE_FIELD_SUFFIX
+    | REWRITE
+    | SLOP
+    | TIE_BREAKER
+    | TIME_ZONE
+    | TYPE
     | ZERO_TERMS_QUERY
     ;
 
@@ -421,17 +469,46 @@ relevanceArgValue
     | literalValue
     ;
 
-mathematicalFunctionBase
-    : ABS | CBRT | CEIL | CEILING | CONV | CRC32 | E | EXP | FLOOR | LN | LOG | LOG10 | LOG2 | MOD | PI |POW | POWER
-    | RAND | ROUND | SIGN | SQRT | TRUNCATE
+mathematicalFunctionName
+    : ABS
+    | CBRT
+    | CEIL
+    | CEILING
+    | CONV
+    | CRC32
+    | E
+    | EXP
+    | FLOOR
+    | LN
+    | LOG
+    | LOG10
+    | LOG2
+    | MOD
+    | PI
+    | POW
+    | POWER
+    | RAND
+    | ROUND
+    | SIGN
+    | SQRT
+    | TRUNCATE
     | trigonometricFunctionName
     ;
 
 trigonometricFunctionName
-    : ACOS | ASIN | ATAN | ATAN2 | COS | COT | DEGREES | RADIANS | SIN | TAN
+    : ACOS
+    | ASIN
+    | ATAN
+    | ATAN2
+    | COS
+    | COT
+    | DEGREES
+    | RADIANS
+    | SIN
+    | TAN
     ;
 
-dateAndTimeFunctionBase
+dateTimeFunctionName
     : ADDDATE
     | ADDTIME
     | CONVERT_TZ
@@ -486,16 +563,35 @@ dateAndTimeFunctionBase
 /** condition function return boolean value */
 conditionFunctionBase
     : LIKE
-    | IF | ISNULL | ISNOTNULL | IFNULL | NULLIF
+    | IF
+    | ISNULL
+    | ISNOTNULL
+    | IFNULL
+    | NULLIF
     ;
 
-systemFunctionBase
+systemFunctionName
     : TYPEOF
     ;
 
-textFunctionBase
-    : SUBSTR | SUBSTRING | TRIM | LTRIM | RTRIM | LOWER | UPPER | CONCAT | CONCAT_WS | LENGTH | STRCMP
-    | RIGHT | LEFT | ASCII | LOCATE | REPLACE | REVERSE
+textFunctionName
+    : SUBSTR
+    | SUBSTRING
+    | TRIM
+    | LTRIM
+    | RTRIM
+    | LOWER
+    | UPPER
+    | CONCAT
+    | CONCAT_WS
+    | LENGTH
+    | STRCMP
+    | RIGHT
+    | LEFT
+    | ASCII
+    | LOCATE
+    | REPLACE
+    | REVERSE
     ;
 
 positionFunctionName
@@ -504,9 +600,14 @@ positionFunctionName
 
 /** operators */
 comparisonOperator
-    : EQUAL | NOT_EQUAL | LESS | NOT_LESS | GREATER | NOT_GREATER | REGEXP
+    : EQUAL
+    | NOT_EQUAL
+    | LESS
+    | NOT_LESS
+    | GREATER
+    | NOT_GREATER
+    | REGEXP
     ;
-
 
 singleFieldRelevanceFunctionName
     : MATCH
@@ -571,14 +672,46 @@ timestampLiteral
     ;
 
 intervalUnit
-    : MICROSECOND | SECOND | MINUTE | HOUR | DAY | WEEK | MONTH | QUARTER | YEAR | SECOND_MICROSECOND
-    | MINUTE_MICROSECOND | MINUTE_SECOND | HOUR_MICROSECOND | HOUR_SECOND | HOUR_MINUTE | DAY_MICROSECOND
-    | DAY_SECOND | DAY_MINUTE | DAY_HOUR | YEAR_MONTH
+    : MICROSECOND
+    | SECOND
+    | MINUTE
+    | HOUR
+    | DAY
+    | WEEK
+    | MONTH
+    | QUARTER
+    | YEAR
+    | SECOND_MICROSECOND
+    | MINUTE_MICROSECOND
+    | MINUTE_SECOND
+    | HOUR_MICROSECOND
+    | HOUR_SECOND
+    | HOUR_MINUTE
+    | DAY_MICROSECOND
+    | DAY_SECOND
+    | DAY_MINUTE
+    | DAY_HOUR
+    | YEAR_MONTH
     ;
 
 timespanUnit
-    : MS | S | M | H | D | W | Q | Y
-    | MILLISECOND | SECOND | MINUTE | HOUR | DAY | WEEK | MONTH | QUARTER | YEAR
+    : MS
+    | S
+    | M
+    | H
+    | D
+    | W
+    | Q
+    | Y
+    | MILLISECOND
+    | SECOND
+    | MINUTE
+    | HOUR
+    | DAY
+    | WEEK
+    | MONTH
+    | QUARTER
+    | YEAR
     ;
 
 
@@ -614,6 +747,10 @@ keywordsCanBeId
     | evalFunctionName
     | relevanceArgName
     | intervalUnit
+    | dateTimeFunctionName
+    | textFunctionName
+    | mathematicalFunctionName
+    | positionFunctionName
     // commands
     | SEARCH | DESCRIBE | SHOW | FROM | WHERE | FIELDS | RENAME | STATS | DEDUP | SORT | EVAL | HEAD | TOP | RARE
     | PARSE | METHOD | REGEX | PUNCT | GROK | PATTERN | PATTERNS | NEW_FIELD | KMEANS | AD | ML

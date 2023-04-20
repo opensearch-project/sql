@@ -13,6 +13,9 @@ import static org.opensearch.sql.data.model.ExprValueUtils.LITERAL_TRUE;
 import static org.opensearch.sql.data.type.ExprCoreType.BOOLEAN;
 import static org.opensearch.sql.data.type.ExprCoreType.INTEGER;
 import static org.opensearch.sql.data.type.ExprCoreType.STRING;
+import static org.opensearch.sql.expression.function.FunctionDSL.define;
+import static org.opensearch.sql.expression.function.FunctionDSL.impl;
+import static org.opensearch.sql.expression.function.FunctionDSL.nullMissingHandling;
 
 import com.google.common.collect.ImmutableTable;
 import com.google.common.collect.Table;
@@ -24,7 +27,6 @@ import org.opensearch.sql.data.type.ExprCoreType;
 import org.opensearch.sql.expression.function.BuiltinFunctionName;
 import org.opensearch.sql.expression.function.BuiltinFunctionRepository;
 import org.opensearch.sql.expression.function.DefaultFunctionResolver;
-import org.opensearch.sql.expression.function.FunctionDSL;
 import org.opensearch.sql.utils.OperatorUtils;
 
 /**
@@ -141,116 +143,83 @@ public class BinaryPredicateOperator {
           .build();
 
   private static DefaultFunctionResolver and() {
-    return FunctionDSL.define(BuiltinFunctionName.AND.getName(), FunctionDSL
-        .impl((v1, v2) -> lookupTableFunction(v1, v2, andTable), BOOLEAN, BOOLEAN,
-            BOOLEAN));
+    return define(BuiltinFunctionName.AND.getName(),
+        impl((v1, v2) -> lookupTableFunction(v1, v2, andTable), BOOLEAN, BOOLEAN, BOOLEAN));
   }
 
   private static DefaultFunctionResolver or() {
-    return FunctionDSL.define(BuiltinFunctionName.OR.getName(), FunctionDSL
-        .impl((v1, v2) -> lookupTableFunction(v1, v2, orTable), BOOLEAN, BOOLEAN,
-            BOOLEAN));
+    return define(BuiltinFunctionName.OR.getName(),
+        impl((v1, v2) -> lookupTableFunction(v1, v2, orTable), BOOLEAN, BOOLEAN, BOOLEAN));
   }
 
   private static DefaultFunctionResolver xor() {
-    return FunctionDSL.define(BuiltinFunctionName.XOR.getName(), FunctionDSL
-        .impl((v1, v2) -> lookupTableFunction(v1, v2, xorTable), BOOLEAN, BOOLEAN,
-            BOOLEAN));
+    return define(BuiltinFunctionName.XOR.getName(),
+        impl((v1, v2) -> lookupTableFunction(v1, v2, xorTable), BOOLEAN, BOOLEAN, BOOLEAN));
   }
 
   private static DefaultFunctionResolver equal() {
-    return FunctionDSL.define(BuiltinFunctionName.EQUAL.getName(),
-        ExprCoreType.coreTypes().stream()
-            .map(type -> FunctionDSL.impl(
-                FunctionDSL.nullMissingHandling((v1, v2) -> ExprBooleanValue.of(v1.equals(v2))),
-                BOOLEAN, type, type))
-            .collect(
-                Collectors.toList()));
+    return define(BuiltinFunctionName.EQUAL.getName(), ExprCoreType.coreTypes().stream()
+        .map(type -> impl(nullMissingHandling(
+            (v1, v2) -> ExprBooleanValue.of(v1.equals(v2))),
+            BOOLEAN, type, type))
+        .collect(Collectors.toList()));
   }
 
   private static DefaultFunctionResolver notEqual() {
-    return FunctionDSL
-        .define(BuiltinFunctionName.NOTEQUAL.getName(), ExprCoreType.coreTypes().stream()
-            .map(type -> FunctionDSL
-                .impl(
-                    FunctionDSL
-                        .nullMissingHandling((v1, v2) -> ExprBooleanValue.of(!v1.equals(v2))),
-                    BOOLEAN,
-                    type,
-                    type))
-            .collect(
-                Collectors.toList()));
+    return define(BuiltinFunctionName.NOTEQUAL.getName(), ExprCoreType.coreTypes().stream()
+        .map(type -> impl(nullMissingHandling(
+            (v1, v2) -> ExprBooleanValue.of(!v1.equals(v2))),
+            BOOLEAN, type, type))
+        .collect(Collectors.toList()));
   }
 
   private static DefaultFunctionResolver less() {
-    return FunctionDSL
-        .define(BuiltinFunctionName.LESS.getName(), ExprCoreType.coreTypes().stream()
-            .map(type -> FunctionDSL
-                .impl(FunctionDSL
-                        .nullMissingHandling((v1, v2) -> ExprBooleanValue.of(v1.compareTo(v2) < 0)),
-                    BOOLEAN,
-                    type, type))
-            .collect(
-                Collectors.toList()));
+    return define(BuiltinFunctionName.LESS.getName(), ExprCoreType.coreTypes().stream()
+        .map(type -> impl(nullMissingHandling(
+            (v1, v2) -> ExprBooleanValue.of(v1.compareTo(v2) < 0)),
+            BOOLEAN,type, type))
+        .collect(Collectors.toList()));
   }
 
   private static DefaultFunctionResolver lte() {
-    return FunctionDSL
-        .define(BuiltinFunctionName.LTE.getName(), ExprCoreType.coreTypes().stream()
-            .map(type -> FunctionDSL
-                .impl(
-                    FunctionDSL
-                        .nullMissingHandling(
-                            (v1, v2) -> ExprBooleanValue.of(v1.compareTo(v2) <= 0)),
-                    BOOLEAN,
-                    type, type))
-            .collect(
-                Collectors.toList()));
+    return define(BuiltinFunctionName.LTE.getName(), ExprCoreType.coreTypes().stream()
+        .map(type -> impl(nullMissingHandling(
+            (v1, v2) -> ExprBooleanValue.of(v1.compareTo(v2) <= 0)),
+            BOOLEAN, type, type))
+        .collect(Collectors.toList()));
   }
 
   private static DefaultFunctionResolver greater() {
-    return FunctionDSL
-        .define(BuiltinFunctionName.GREATER.getName(), ExprCoreType.coreTypes().stream()
-            .map(type -> FunctionDSL
-                .impl(FunctionDSL
-                        .nullMissingHandling((v1, v2) -> ExprBooleanValue.of(v1.compareTo(v2) > 0)),
-                    BOOLEAN, type, type))
-            .collect(
-                Collectors.toList()));
+    return define(BuiltinFunctionName.GREATER.getName(), ExprCoreType.coreTypes().stream()
+        .map(type -> impl(nullMissingHandling(
+            (v1, v2) -> ExprBooleanValue.of(v1.compareTo(v2) > 0)),
+            BOOLEAN, type, type))
+        .collect(Collectors.toList()));
   }
 
   private static DefaultFunctionResolver gte() {
-    return FunctionDSL
-        .define(BuiltinFunctionName.GTE.getName(), ExprCoreType.coreTypes().stream()
-            .map(type -> FunctionDSL
-                .impl(
-                    FunctionDSL.nullMissingHandling(
-                        (v1, v2) -> ExprBooleanValue.of(v1.compareTo(v2) >= 0)),
-                    BOOLEAN,
-                    type, type))
-            .collect(
-                Collectors.toList()));
+    return define(BuiltinFunctionName.GTE.getName(), ExprCoreType.coreTypes().stream()
+        .map(type -> impl(nullMissingHandling(
+            (v1, v2) -> ExprBooleanValue.of(v1.compareTo(v2) >= 0)),
+            BOOLEAN, type, type))
+        .collect(Collectors.toList()));
   }
 
   private static DefaultFunctionResolver like() {
-    return FunctionDSL.define(BuiltinFunctionName.LIKE.getName(), FunctionDSL
-        .impl(FunctionDSL.nullMissingHandling(OperatorUtils::matches), BOOLEAN, STRING,
-            STRING));
+    return define(BuiltinFunctionName.LIKE.getName(),
+        impl(nullMissingHandling(OperatorUtils::matches), BOOLEAN, STRING, STRING));
   }
 
   private static DefaultFunctionResolver regexp() {
-    return FunctionDSL.define(BuiltinFunctionName.REGEXP.getName(), FunctionDSL
-        .impl(FunctionDSL.nullMissingHandling(OperatorUtils::matchesRegexp),
-            INTEGER, STRING, STRING));
+    return define(BuiltinFunctionName.REGEXP.getName(),
+        impl(nullMissingHandling(OperatorUtils::matchesRegexp), INTEGER, STRING, STRING));
   }
 
   private static DefaultFunctionResolver notLike() {
-    return FunctionDSL.define(BuiltinFunctionName.NOT_LIKE.getName(), FunctionDSL
-        .impl(FunctionDSL.nullMissingHandling(
+    return define(BuiltinFunctionName.NOT_LIKE.getName(),
+        impl(nullMissingHandling(
             (v1, v2) -> UnaryPredicateOperator.not(OperatorUtils.matches(v1, v2))),
-            BOOLEAN,
-            STRING,
-            STRING));
+            BOOLEAN, STRING, STRING));
   }
 
   private static ExprValue lookupTableFunction(ExprValue arg1, ExprValue arg2,
