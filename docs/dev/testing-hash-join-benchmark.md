@@ -1,4 +1,4 @@
-# Hash Join Benchmark
+# OpenSearch SQL Hash Join Benchmark
 
 ## Summary
 
