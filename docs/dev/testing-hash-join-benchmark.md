@@ -2,12 +2,21 @@
 
 ## Summary
 
-New hash algorithm introduced memory circuit breaker logic to improve cluster's stability which includes 1) rejecting new requests, 2) terminating ongoing requests with half chance, and 3) retrying remaining requests with binary exponential backoff when memory circuit breaker being triggered. The result summary is as following,
+New hash algorithm introduced memory circuit breaker logic to improve cluster's stability which includes:
+
+1) Rejecting new requests
+2) Terminating ongoing requests with half chance
+3) Retrying remaining requests with binary exponential backoff when memory circuit breaker being triggered
+
+The result summary is as following:
 
 * For cluster stability: the cluster turned from green to yellow due to 4 nodes OOM when using 112 clients sending requests against old hash algorithm. For new hash algorithm, no OOM happened when increasing client's number from 1 to 256.
-* For error rate (Graph 1): there are 3 phases. 1) before memory circuit breaker being triggered, the error rate of new and old hash is almost same. 2) between memory circuit breaker being triggered and OOM, old hash is slightly better than new hash, as new hash starting rejecting new request and terminating some ongoing requests. 3) After OOM, new hash is much better than old hash.
-* For throughput: new hash is roughly 1.4x larger than old hash at peak ( Graph 2 and Graph 3). The new hash throughput is able to stay flat with small drop with increased traffic after peak, while old hash drops to almost 0 dramatically.
-* For latency: new hash is roughly 2x faster than old hash ( Graph 4 and Graph 5). The new hash latency increase gradually with increased traffic, while old hash increases quickly to timeout.
+* For error rate (Graph 1): there are 3 phases as below
+    1) Before memory circuit breaker being triggered, the error rate of new and old hash is almost same
+    2) Between memory circuit breaker being triggered and OOM, old hash is slightly better than new hash, as new hash starting rejecting new request and terminating some ongoing requests
+    3) After OOM, new hash is much better than old hash
+* For throughput: new hash is roughly 1.4x larger than old hash at peak ( Graph 2 and Graph 3). The new hash throughput is able to stay flat with small drop with increased traffic after peak, while old hash drops to almost 0 dramatically
+* For latency: new hash is roughly 2x faster than old hash ( Graph 4 and Graph 5). The new hash latency increase gradually with increased traffic, while old hash increases quickly to timeout
 
 ## New Hash Join vs Old Hash Join
 
