@@ -15,19 +15,23 @@ New hash algorithm introduced memory circuit breaker logic to improve cluster's 
 
 Graph 1. SQL Request Error Rates
 
-[Image: newoldhasherr.png](img/hash-join-benchmark/newoldhasherr.png)
+![](img/hash-join-benchmark/newoldhasherr.png)
 
 Graph 2. SQL Request Midian Throughput
-[Image: newoldhashmedt.png](img/hash-join-benchmark/newoldhashmedt.png)
+
+![](img/hash-join-benchmark/newoldhashmedt.png)
 
 Graph 3. SQL Request Max Throughput
-[Image: newoldhashmaxt.png](img/hash-join-benchmark/newoldhashmaxt.png)
+
+![](img/hash-join-benchmark/newoldhashmaxt.png)
 
 Graph 4. SQL Request Latency(90th)
-[Image: newoldhashlat90.png](img/hash-join-benchmark/newoldhashlat90.png)
+
+![](img/hash-join-benchmark/newoldhashlat90.png)
 
 Graph 5. SQL Request Latency(100th)
-[Image: newoldhashlat100.png](img/hash-join-benchmark/newoldhashlat100.png)
+
+![](img/hash-join-benchmark/newoldhashlat100.png)
 
 ### Metrics Table
 
