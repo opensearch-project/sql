@@ -52,6 +52,7 @@ public enum BuiltinFunctionName {
   ATAN(FunctionName.of("atan")),
   ATAN2(FunctionName.of("atan2")),
   COS(FunctionName.of("cos")),
+  COSH(FunctionName.of("cosh")),
   COT(FunctionName.of("cot")),
   DEGREES(FunctionName.of("degrees")),
   RADIANS(FunctionName.of("radians")),
