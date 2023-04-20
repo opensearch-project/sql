@@ -34,7 +34,8 @@ class FilterOperatorTest extends PhysicalPlanTestBase {
   @Test
   public void filterTest() {
     FilterOperator plan = new FilterOperator(new TestScan(),
-        DSL.equal(DSL.ref("response", INTEGER), DSL.literal(404)));
+        DSL.and(DSL.notequal(DSL.ref("response", INTEGER), DSL.literal(200)),
+                DSL.notequal(DSL.ref("response", INTEGER), DSL.literal(500))));
     List<ExprValue> result = execute(plan);
     assertEquals(1, result.size());
     assertThat(result, containsInAnyOrder(ExprValueUtils

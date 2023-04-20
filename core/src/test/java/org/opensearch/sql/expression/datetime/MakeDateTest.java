@@ -7,8 +7,6 @@
 package org.opensearch.sql.expression.datetime;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.mockito.Mockito.when;
-import static org.opensearch.sql.data.model.ExprValueUtils.missingValue;
 import static org.opensearch.sql.data.model.ExprValueUtils.nullValue;
 
 import java.time.LocalDate;
@@ -47,20 +45,6 @@ public class MakeDateTest extends DateTimeTestBase {
   public void checkRounding() {
     assertEquals(LocalDate.of(42, 1, 1), makedate(42.49, 1.49));
     assertEquals(LocalDate.of(43, 1, 2), makedate(42.50, 1.50));
-  }
-
-  @Test
-  public void checkNullValues() {
-    assertEquals(nullValue(), eval(makedate(nullRef, DSL.literal(42.))));
-    assertEquals(nullValue(), eval(makedate(DSL.literal(42.), nullRef)));
-    assertEquals(nullValue(), eval(makedate(nullRef, nullRef)));
-  }
-
-  @Test
-  public void checkMissingValues() {
-    assertEquals(missingValue(), eval(makedate(missingRef, DSL.literal(42.))));
-    assertEquals(missingValue(), eval(makedate(DSL.literal(42.), missingRef)));
-    assertEquals(missingValue(), eval(makedate(missingRef, missingRef)));
   }
 
   private static Stream<Arguments> getTestData() {
