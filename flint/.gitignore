@@ -1,0 +1,20 @@
+# IDE files
+.idea/
+*.iml
+
+# Compiled output
+target/
+project/target/
+
+# Log files
+logs/
+
+# sbt-specific files
+.sbtserver
+.sbt/
+
+# Miscellaneous
+.DS_Store
+*.class
+*.log
+*.zip
