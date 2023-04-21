@@ -102,31 +102,23 @@ V2 SQL engine supports *sql node load balancing* -- a cursor request can be rout
 
 # Implementation Design
 
-## New Responsibilities
+The following features are required from the SQL engine v2 to support pagination:
 1. REST front-end
    1. Route supported paginated query to v2 engine for 
       1. initial requests,
-      1. next page requests.
-   1. Fallback to v1 engine for queries not supported by v2 engine.
-   1. Create correct JSON response from execution of paginated physical plan by v2 engine.
-1. Query Planning
-   1. Differentiate between paginated and normal query plan. 
-   1. Push down pagination to table scan.
-   1. Create paginated physical plan from cursor id.
-1. Query Execution 
+      2. next page requests.
+   2. Fallback to v1 engine for queries not supported by v2 engine.
+   3. Create correct JSON response from execution of paginated physical plan by v2 engine.
+2. Query planning
+   1. Differentiate between paginated and normal query plans. 
+   2. Push down pagination to table scan.
+   3. Create paginated physical plan from cursor id.
+3. Query Execution 
    1. Execute paginated physical plan.
-1. Datasource &mdash; OpenSearch
+4. Data source &mdash; OpenSearch
    1. Support pagination push down.
-   1. Support other push down optimizations with pagination.
-
-### Implementation Details
-| Responsibility | Implementation                                                                                                                                                                                                                                |
-|----------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| 1.i.a.         | When `fetchSize > 0`, `PlanSerializer.canConvertToCursor` is used to check if a query can be paginated by v2 engine. Called from `SQLService.plan` via `QueryExecutionFactory`                                                                |                                                              |
-| 1.i.b.         | When request has a cursor, and the cursor is not legacy cursor, `RestSQLQueryAction.prepareRequest` will call `SQLService.execute` which processes the query.                                                                                 |                                                            |
-| 1.ii.          | When `fetchSize > 0` and `PlanSerializer.canConvertToCursor` returns `false`, `UnsuportedCurosrRequestException` is thrown. This exception is caught in<br/>When query has legacy cursor, fallback happens in `RestSqlAction.prepareRequest`. |
-| 1.iii.         | `OpenSearchExecutionEngine.execute` uses `PlanSerializer.convertToCursor` to convert an executing plan to cursor.<br/> Cursor is stored in `QueryResponse` and added by `JdbcResponseFormatter.buildJsonObject` to output JSON.               |
-| 2.i.           | After  |                                                                                                                                                                                                                                       
+   2. Support other push down optimizations with pagination.
+ 
 
 ## Diagrams
 
