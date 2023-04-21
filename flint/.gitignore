@@ -12,6 +12,7 @@ logs/
 # sbt-specific files
 .sbtserver
 .sbt/
+.bsp/
 
 # Miscellaneous
 .DS_Store
