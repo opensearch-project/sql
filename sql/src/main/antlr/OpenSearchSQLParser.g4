@@ -194,7 +194,10 @@ constant
     ;
 
 decimalLiteral
-    : DECIMAL_LITERAL | ZERO_DECIMAL | ONE_DECIMAL | TWO_DECIMAL
+    : DECIMAL_LITERAL
+    | ZERO_DECIMAL
+    | ONE_DECIMAL
+    | TWO_DECIMAL
     ;
 
 stringLiteral
@@ -203,7 +206,8 @@ stringLiteral
     ;
 
 booleanLiteral
-    : TRUE | FALSE
+    : TRUE
+    | FALSE
     ;
 
 realLiteral
@@ -211,7 +215,8 @@ realLiteral
     ;
 
 sign
-    : PLUS | MINUS
+    : PLUS
+    | MINUS
     ;
 
 nullLiteral
@@ -254,9 +259,26 @@ intervalLiteral
     ;
 
 intervalUnit
-    : MICROSECOND | SECOND | MINUTE | HOUR | DAY | WEEK | MONTH | QUARTER | YEAR | SECOND_MICROSECOND
-    | MINUTE_MICROSECOND | MINUTE_SECOND | HOUR_MICROSECOND | HOUR_SECOND | HOUR_MINUTE | DAY_MICROSECOND
-    | DAY_SECOND | DAY_MINUTE | DAY_HOUR | YEAR_MONTH
+    : MICROSECOND
+    | SECOND
+    | MINUTE
+    | HOUR
+    | DAY
+    | WEEK
+    | MONTH
+    | QUARTER
+    | YEAR
+    | SECOND_MICROSECOND
+    | MINUTE_MICROSECOND
+    | MINUTE_SECOND
+    | HOUR_MICROSECOND
+    | HOUR_SECOND
+    | HOUR_MINUTE
+    | DAY_MICROSECOND
+    | DAY_SECOND
+    | DAY_MINUTE
+    | DAY_HOUR
+    | YEAR_MONTH
     ;
 
 // predicates
@@ -297,8 +319,13 @@ expressionAtom
     ;
 
 comparisonOperator
-    : '=' | '>' | '<' | '<' '=' | '>' '='
-    | '<' '>' | '!' '='
+    : '='
+    | '>'
+    | '<'
+    | '<' '='
+    | '>' '='
+    | '<' '>'
+    | '!' '='
     ;
 
 nullNotnull
@@ -469,22 +496,72 @@ filterClause
     ;
 
 aggregationFunctionName
-    : AVG | COUNT | SUM | MIN | MAX | VAR_POP | VAR_SAMP | VARIANCE | STD | STDDEV | STDDEV_POP | STDDEV_SAMP
+    : AVG
+    | COUNT
+    | SUM
+    | MIN
+    | MAX
+    | VAR_POP
+    | VAR_SAMP
+    | VARIANCE
+    | STD
+    | STDDEV
+    | STDDEV_POP
+    | STDDEV_SAMP
     ;
 
 mathematicalFunctionName
-    : ABS | CBRT | CEIL | CEILING | CONV | CRC32 | E | EXP | EXPM1 | FLOOR | LN | LOG | LOG10 | LOG2 | MOD | PI | POW | POWER
-    | RAND | RINT | ROUND | SIGN | SIGNUM | SQRT | TRUNCATE
+    : ABS
+    | CBRT
+    | CEIL
+    | CEILING
+    | CONV
+    | CRC32
+    | E
+    | EXP
+    | EXPM1
+    | FLOOR
+    | LN
+    | LOG
+    | LOG10
+    | LOG2
+    | MOD
+    | PI
+    | POW
+    | POWER
+    | RAND
+    | RINT
+    | ROUND
+    | SIGN
+    | SIGNUM
+    | SQRT
+    | TRUNCATE
     | trigonometricFunctionName
     | arithmeticFunctionName
     ;
 
 trigonometricFunctionName
-    : ACOS | ASIN | ATAN | ATAN2 | COS | COSH | COT | DEGREES | RADIANS | SIN | SINH | TAN
+    : ACOS
+    | ASIN
+    | ATAN
+    | ATAN2
+    | COS
+    | COSH
+    | COT
+    | DEGREES
+    | RADIANS
+    | SIN
+    | SINH
+    | TAN
     ;
 
 arithmeticFunctionName
-    : ADD | SUBTRACT | MULTIPLY | DIVIDE | MOD | MODULUS
+    : ADD
+    | SUBTRACT
+    | MULTIPLY
+    | DIVIDE
+    | MOD
+    | MODULUS
     ;
 
 dateTimeFunctionName
@@ -550,13 +627,31 @@ dateTimeFunctionName
     ;
 
 textFunctionName
-    : SUBSTR | SUBSTRING | TRIM | LTRIM | RTRIM | LOWER | UPPER
-    | CONCAT | CONCAT_WS | SUBSTR | LENGTH | STRCMP | RIGHT | LEFT
-    | ASCII | LOCATE | REPLACE | REVERSE
+    : SUBSTR
+    | SUBSTRING
+    | TRIM
+    | LTRIM
+    | RTRIM
+    | LOWER
+    | UPPER
+    | CONCAT
+    | CONCAT_WS
+    | SUBSTR
+    | LENGTH
+    | STRCMP
+    | RIGHT
+    | LEFT
+    | ASCII
+    | LOCATE
+    | REPLACE
+    | REVERSE
     ;
 
 flowControlFunctionName
-    : IF | IFNULL | NULLIF | ISNULL
+    : IF
+    | IFNULL
+    | NULLIF
+    | ISNULL
     ;
 
 noFieldRelevanceFunctionName
@@ -576,10 +671,16 @@ scoreRelevanceFunctionName
     ;
 
 singleFieldRelevanceFunctionName
-    : MATCH | MATCHQUERY | MATCH_QUERY
-    | MATCH_PHRASE | MATCHPHRASE | MATCHPHRASEQUERY
-    | MATCH_BOOL_PREFIX | MATCH_PHRASE_PREFIX
-    | WILDCARD_QUERY | WILDCARDQUERY
+    : MATCH
+    | MATCHQUERY
+    | MATCH_QUERY
+    | MATCH_PHRASE
+    | MATCHPHRASE
+    | MATCHPHRASEQUERY
+    | MATCH_BOOL_PREFIX
+    | MATCH_PHRASE_PREFIX
+    | WILDCARD_QUERY
+    | WILDCARDQUERY
     ;
 
 multiFieldRelevanceFunctionName
@@ -620,17 +721,45 @@ highlightArg
     ;
 
 relevanceArgName
-    : ALLOW_LEADING_WILDCARD | ANALYZER | ANALYZE_WILDCARD | AUTO_GENERATE_SYNONYMS_PHRASE_QUERY
-    | BOOST | CASE_INSENSITIVE | CUTOFF_FREQUENCY | DEFAULT_FIELD | DEFAULT_OPERATOR | ENABLE_POSITION_INCREMENTS
-    | ESCAPE | FIELDS | FLAGS | FUZZINESS | FUZZY_MAX_EXPANSIONS | FUZZY_PREFIX_LENGTH
-    | FUZZY_REWRITE | FUZZY_TRANSPOSITIONS | LENIENT | LOW_FREQ_OPERATOR | MAX_DETERMINIZED_STATES
-    | MAX_EXPANSIONS | MINIMUM_SHOULD_MATCH | OPERATOR | PHRASE_SLOP | PREFIX_LENGTH
-    | QUOTE_ANALYZER | QUOTE_FIELD_SUFFIX | REWRITE | SLOP | TIE_BREAKER | TIME_ZONE | TYPE
+    : ALLOW_LEADING_WILDCARD
+    | ANALYZER
+    | ANALYZE_WILDCARD
+    | AUTO_GENERATE_SYNONYMS_PHRASE_QUERY
+    | BOOST
+    | CASE_INSENSITIVE
+    | CUTOFF_FREQUENCY
+    | DEFAULT_FIELD
+    | DEFAULT_OPERATOR
+    | ENABLE_POSITION_INCREMENTS
+    | ESCAPE
+    | FIELDS
+    | FLAGS
+    | FUZZINESS
+    | FUZZY_MAX_EXPANSIONS
+    | FUZZY_PREFIX_LENGTH
+    | FUZZY_REWRITE
+    | FUZZY_TRANSPOSITIONS
+    | LENIENT
+    | LOW_FREQ_OPERATOR
+    | MAX_DETERMINIZED_STATES
+    | MAX_EXPANSIONS
+    | MINIMUM_SHOULD_MATCH
+    | OPERATOR
+    | PHRASE_SLOP
+    | PREFIX_LENGTH
+    | QUOTE_ANALYZER
+    | QUOTE_FIELD_SUFFIX
+    | REWRITE
+    | SLOP
+    | TIE_BREAKER
+    | TIME_ZONE
+    | TYPE
     | ZERO_TERMS_QUERY
     ;
 
 highlightArgName
-    : HIGHLIGHT_POST_TAGS | HIGHLIGHT_PRE_TAGS
+    : HIGHLIGHT_POST_TAGS
+    | HIGHLIGHT_PRE_TAGS
     ;
 
 relevanceFieldAndWeight

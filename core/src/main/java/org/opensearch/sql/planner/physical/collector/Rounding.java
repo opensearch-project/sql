@@ -11,12 +11,12 @@ import static org.opensearch.sql.data.type.ExprCoreType.DOUBLE;
 import static org.opensearch.sql.data.type.ExprCoreType.LONG;
 import static org.opensearch.sql.data.type.ExprCoreType.TIME;
 import static org.opensearch.sql.data.type.ExprCoreType.TIMESTAMP;
+import static org.opensearch.sql.utils.DateTimeUtils.UTC_ZONE_ID;
 
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
-import java.time.ZoneId;
 import java.time.temporal.ChronoField;
 import java.util.Arrays;
 import java.util.concurrent.TimeUnit;
@@ -101,8 +101,8 @@ public abstract class Rounding<T> {
     @Override
     public ExprValue round(ExprValue var) {
       Instant instant = Instant.ofEpochMilli(dateTimeUnit.round(var.datetimeValue()
-          .atZone(ZoneId.of("UTC")).toInstant().toEpochMilli(), interval.integerValue()));
-      return new ExprDatetimeValue(instant.atZone(ZoneId.of("UTC")).toLocalDateTime());
+          .atZone(UTC_ZONE_ID).toInstant().toEpochMilli(), interval.integerValue()));
+      return new ExprDatetimeValue(instant.atZone(UTC_ZONE_ID).toLocalDateTime());
     }
   }
 
@@ -119,8 +119,8 @@ public abstract class Rounding<T> {
     @Override
     public ExprValue round(ExprValue var) {
       Instant instant = Instant.ofEpochMilli(dateTimeUnit.round(var.dateValue().atStartOfDay()
-          .atZone(ZoneId.of("UTC")).toInstant().toEpochMilli(), interval.integerValue()));
-      return new ExprDateValue(instant.atZone(ZoneId.of("UTC")).toLocalDate());
+          .atZone(UTC_ZONE_ID).toInstant().toEpochMilli(), interval.integerValue()));
+      return new ExprDateValue(instant.atZone(UTC_ZONE_ID).toLocalDate());
     }
   }
 
@@ -142,7 +142,7 @@ public abstract class Rounding<T> {
 
       Instant instant = Instant.ofEpochMilli(dateTimeUnit.round(var.timeValue().getLong(
           ChronoField.MILLI_OF_DAY), interval.integerValue()));
-      return new ExprTimeValue(instant.atZone(ZoneId.of("UTC")).toLocalTime());
+      return new ExprTimeValue(instant.atZone(UTC_ZONE_ID).toLocalTime());
     }
   }
 

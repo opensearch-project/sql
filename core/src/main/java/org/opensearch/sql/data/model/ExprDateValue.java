@@ -7,6 +7,7 @@
 package org.opensearch.sql.data.model;
 
 import static org.opensearch.sql.utils.DateTimeFormatters.DATE_TIME_FORMATTER_VARIABLE_NANOS_OPTIONAL;
+import static org.opensearch.sql.utils.DateTimeUtils.UTC_ZONE_ID;
 
 import com.google.common.base.Objects;
 import java.time.Instant;
@@ -68,7 +69,7 @@ public class ExprDateValue extends AbstractExprValue {
 
   @Override
   public Instant timestampValue() {
-    return ZonedDateTime.of(date, timeValue(), ExprTimestampValue.ZONE).toInstant();
+    return ZonedDateTime.of(date, timeValue(), UTC_ZONE_ID).toInstant();
   }
 
   @Override

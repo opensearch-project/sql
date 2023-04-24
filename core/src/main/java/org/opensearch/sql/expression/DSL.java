@@ -501,7 +501,6 @@ public class DSL {
     return to_seconds(FunctionProperties.None, expressions);
   }
 
-
   public static FunctionExpression week(
       FunctionProperties functionProperties, Expression... expressions) {
     return compile(functionProperties, BuiltinFunctionName.WEEK, expressions);
