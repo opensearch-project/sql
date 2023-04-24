@@ -43,6 +43,12 @@ public class PPLSyntaxParserTest {
   }
 
   @Test
+  public void testSearchCommandMatchAllCrossClusterShouldPass() {
+    ParseTree tree = new PPLSyntaxParser().parse("search source=*:t a=1 b=2");
+    assertNotEquals(null, tree);
+  }
+
+  @Test
   public void testSearchCommandCrossClusterWithMultipleIndicesShouldPass() {
     ParseTree tree = new PPLSyntaxParser().parse("search source=c:t,d:u,v a=1 b=2");
     assertNotEquals(null, tree);
@@ -222,6 +228,12 @@ public class PPLSyntaxParserTest {
   @Test
   public void testDescribeCommandCrossClusterShouldPass() {
     ParseTree tree = new PPLSyntaxParser().parse("describe c:t");
+    assertNotEquals(null, tree);
+  }
+
+  @Test
+  public void testDescribeCommandMatchAllCrossClusterShouldPass() {
+    ParseTree tree = new PPLSyntaxParser().parse("describe *:t");
     assertNotEquals(null, tree);
   }
 

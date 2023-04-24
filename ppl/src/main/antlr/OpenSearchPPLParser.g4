@@ -725,7 +725,7 @@ qualifiedName
     ;
 
 clusterQualifiedName
-    : ident COLON ident (DOT ident)*
+    : clusterIdent COLON ident (DOT ident)*
     ;
 
 wcQualifiedName
@@ -737,6 +737,11 @@ ident
     | BACKTICK ident BACKTICK
     | BQUOTA_STRING
     | keywordsCanBeId
+    ;
+
+clusterIdent
+    : ident
+    | STAR
     ;
 
 wildcard

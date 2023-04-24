@@ -21,6 +21,7 @@ public class CrossClusterSearchIT extends PPLIntegTestCase {
 
   private final static String TEST_INDEX_BANK_REMOTE = REMOTE_CLUSTER + ":" + TEST_INDEX_BANK;
   private final static String TEST_INDEX_DOG_REMOTE = REMOTE_CLUSTER + ":" + TEST_INDEX_DOG;
+  private final static String TEST_INDEX_DOG_MATCH_ALL_REMOTE = MATCH_ALL_REMOTE_CLUSTER + ":" + TEST_INDEX_DOG;
 
   @Override
   public void init() throws IOException {
@@ -38,6 +39,12 @@ public class CrossClusterSearchIT extends PPLIntegTestCase {
   }
 
   @Test
+  public void testMatchAllCrossClusterSearchAllFields() throws IOException {
+    JSONObject result = executeQuery(String.format("search source=%s", TEST_INDEX_DOG_MATCH_ALL_REMOTE));
+    verifyColumn(result, columnName("dog_name"), columnName("holdersName"), columnName("age"));
+  }
+
+  @Test
   public void testCrossClusterSearchCommandWithLogicalExpression() throws IOException {
     JSONObject result = executeQuery(String.format(
         "search source=%s firstname='Hattie' | fields firstname", TEST_INDEX_BANK_REMOTE));
@@ -51,5 +58,69 @@ public class CrossClusterSearchIT extends PPLIntegTestCase {
     verifyDataRows(result,
         rows("Hattie"),
         rows("Hattie"));
+  }
+
+  @Test
+  public void testCrossClusterDescribeAllFields() throws IOException {
+    JSONObject result = executeQuery(String.format("describe %s", TEST_INDEX_DOG_REMOTE));
+    verifyColumn(
+        result,
+        columnName("TABLE_CAT"),
+        columnName("TABLE_SCHEM"),
+        columnName("TABLE_NAME"),
+        columnName("COLUMN_NAME"),
+        columnName("DATA_TYPE"),
+        columnName("TYPE_NAME"),
+        columnName("COLUMN_SIZE"),
+        columnName("BUFFER_LENGTH"),
+        columnName("DECIMAL_DIGITS"),
+        columnName("NUM_PREC_RADIX"),
+        columnName("NULLABLE"),
+        columnName("REMARKS"),
+        columnName("COLUMN_DEF"),
+        columnName("SQL_DATA_TYPE"),
+        columnName("SQL_DATETIME_SUB"),
+        columnName("CHAR_OCTET_LENGTH"),
+        columnName("ORDINAL_POSITION"),
+        columnName("IS_NULLABLE"),
+        columnName("SCOPE_CATALOG"),
+        columnName("SCOPE_SCHEMA"),
+        columnName("SCOPE_TABLE"),
+        columnName("SOURCE_DATA_TYPE"),
+        columnName("IS_AUTOINCREMENT"),
+        columnName("IS_GENERATEDCOLUMN")
+    );
+  }
+
+  @Test
+  public void testMatchAllCrossClusterDescribeAllFields() throws IOException {
+    JSONObject result = executeQuery(String.format("describe %s", TEST_INDEX_DOG_MATCH_ALL_REMOTE));
+    verifyColumn(
+        result,
+        columnName("TABLE_CAT"),
+        columnName("TABLE_SCHEM"),
+        columnName("TABLE_NAME"),
+        columnName("COLUMN_NAME"),
+        columnName("DATA_TYPE"),
+        columnName("TYPE_NAME"),
+        columnName("COLUMN_SIZE"),
+        columnName("BUFFER_LENGTH"),
+        columnName("DECIMAL_DIGITS"),
+        columnName("NUM_PREC_RADIX"),
+        columnName("NULLABLE"),
+        columnName("REMARKS"),
+        columnName("COLUMN_DEF"),
+        columnName("SQL_DATA_TYPE"),
+        columnName("SQL_DATETIME_SUB"),
+        columnName("CHAR_OCTET_LENGTH"),
+        columnName("ORDINAL_POSITION"),
+        columnName("IS_NULLABLE"),
+        columnName("SCOPE_CATALOG"),
+        columnName("SCOPE_SCHEMA"),
+        columnName("SCOPE_TABLE"),
+        columnName("SOURCE_DATA_TYPE"),
+        columnName("IS_AUTOINCREMENT"),
+        columnName("IS_GENERATEDCOLUMN")
+    );
   }
 }

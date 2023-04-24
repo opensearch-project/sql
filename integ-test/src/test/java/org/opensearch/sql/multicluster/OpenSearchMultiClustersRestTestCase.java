@@ -25,6 +25,7 @@ import static java.util.Collections.unmodifiableList;
 public abstract class OpenSearchMultiClustersRestTestCase extends OpenSearchRestTestCase {
 
   public static final String REMOTE_CLUSTER = "remoteCluster";
+  public static final String MATCH_ALL_REMOTE_CLUSTER = "*";
 
   private static RestClient remoteClient;
   /**
