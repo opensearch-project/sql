@@ -114,7 +114,7 @@ public class OpenSearchScrollRequest implements OpenSearchRequest {
    */
   public SearchRequest searchRequest() {
     return new SearchRequest()
-        .indices(indexName.getIndexFullNames())
+        .indices(indexName.getIndexNames())
         .scroll(DEFAULT_SCROLL_TIMEOUT)
         .source(sourceBuilder);
   }

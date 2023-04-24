@@ -6,7 +6,6 @@
 
 package org.opensearch.sql.opensearch.request;
 
-import java.util.Arrays;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import lombok.EqualsAndHashCode;
@@ -58,24 +57,11 @@ public interface OpenSearchRequest {
   @EqualsAndHashCode
   class IndexName {
     private static final String COMMA = ",";
-    private static final String COLON = ":";
 
-    private final String[] indexFullNames;
     private final String[] indexNames;
 
-    /**
-     * Constructor.
-     * indexNames are indexFullNames without the "{cluster}:" prefix.
-     */
     public IndexName(String indexName) {
-      this.indexFullNames = indexName.split(COMMA);
-      this.indexNames = Arrays.stream(indexFullNames)
-              .map(name -> name.substring(name.indexOf(COLON) + 1))
-              .toArray(String[]::new);
-    }
-
-    public String[] getIndexFullNames() {
-      return indexFullNames;
+      this.indexNames = indexName.split(COMMA);
     }
 
     public String[] getIndexNames() {
@@ -84,7 +70,7 @@ public interface OpenSearchRequest {
 
     @Override
     public String toString() {
-      return String.join(COMMA, indexFullNames);
+      return String.join(COMMA, indexNames);
     }
   }
 }

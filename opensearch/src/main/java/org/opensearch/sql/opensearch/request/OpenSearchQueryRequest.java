@@ -123,7 +123,7 @@ public class OpenSearchQueryRequest implements OpenSearchRequest {
   @VisibleForTesting
   protected SearchRequest searchRequest() {
     return new SearchRequest()
-        .indices(indexName.getIndexFullNames())
+        .indices(indexName.getIndexNames())
         .source(sourceBuilder);
   }
 }
