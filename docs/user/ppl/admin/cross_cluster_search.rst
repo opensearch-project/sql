@@ -44,6 +44,7 @@ Example search command ::
 Limitation
 ==========
 Since OpenSearch does not support cross cluster system index query, field mapping of a remote cluster index is not available to the local cluster.
+(`[Feature] Cross cluster field mappings query #6573 <https://github.com/opensearch-project/OpenSearch/issues/6573>`_)
 Therefore, the query engine requires that for any remote cluster index that the users need to search,
 the local cluster keep a field mapping system index with the same index name.
 This can be done by creating an index on the local cluster with the same name and schema as the remote cluster index.
@@ -59,39 +60,17 @@ Authentication and Permission
 
 Check `Cross-cluster search access control <https://opensearch.org/docs/latest/security/access-control/cross-cluster-search/>`_ for more details.
 
-On the local cluster, create a new role and grant permission to access PPL plugin and access index, then map the user to this role::
+Example: Create the ppl_role for test_user on local cluster and the ccs_role for test_user on remote cluster. Then test_user could use PPL to query ``ppl-security-demo`` index on remote cluster.
 
-    PUT _plugins/_security/api/roles/ppl_role
-    {
-      "cluster_permissions":[
-        "cluster:admin/opensearch/ppl"
-      ],
-      "index_permissions":[
-        {
-          "index_patterns":["example_index"],
-          "allowed_actions":[
-            "indices:data/read/search",
-            "indices:admin/mappings/get",
-            "indices:monitor/settings/get"
-          ]
-        }
-      ]
-    }
+1. On the local cluster, refer to `Security Settings <security.rst>`_ to create role and user for PPL plugin and index access permission.
 
-    PUT _plugins/_security/api/rolesmapping/ppl_role
-    {
-      "backend_roles" : [],
-      "hosts" : [],
-      "users" : ["test_user"]
-    }
+2. On the remote cluster, create a new role and grant permission to access index. Create a user the same as the local cluster, and map the user to this role::
 
-On the remote cluster, create a new role and grant permission to access index. Create a user the same as the local cluster, and map the user to this role::
-
-    PUT _plugins/_security/api/roles/example_index_ccs_role
+    PUT _plugins/_security/api/roles/ccs_role
     {
       "index_permissions":[
         {
-          "index_patterns":["example_index"],
+          "index_patterns":["ppl-security-demo"],
           "allowed_actions":[
             "indices:admin/shards/search_shards",
             "indices:data/read/search"
@@ -100,7 +79,7 @@ On the remote cluster, create a new role and grant permission to access index. C
       ]
     }
 
-    PUT _plugins/_security/api/rolesmapping/example_index_ccs_role
+    PUT _plugins/_security/api/rolesmapping/ccs_role
     {
       "backend_roles" : [],
       "hosts" : [],
