@@ -53,7 +53,7 @@ public class PPLSyntaxParserTest {
     ParseTree tree = new PPLSyntaxParser().parse("source=c:t a=1 b=2");
     assertNotEquals(null, tree);
   }
-  
+
   @Test
   public void testSearchFieldsCommandShouldPass() {
     ParseTree tree = new PPLSyntaxParser().parse("search source=t a=1 b=2 | fields a,b");
@@ -220,11 +220,9 @@ public class PPLSyntaxParserTest {
   }
 
   @Test
-  public void testDescribeCommandCrossClusterShouldFail() {
-    exceptionRule.expect(RuntimeException.class);
-    exceptionRule.expectMessage("Failed to parse query due to offending symbol");
-
-    new PPLSyntaxParser().parse("describe c:t");
+  public void testDescribeCommandCrossClusterShouldPass() {
+    ParseTree tree = new PPLSyntaxParser().parse("describe c:t");
+    assertNotEquals(null, tree);
   }
 
   @Test

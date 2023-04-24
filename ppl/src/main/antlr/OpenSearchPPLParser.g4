@@ -181,16 +181,12 @@ mlArg
 
 /** clauses */
 fromClause
-    : SOURCE EQUAL clusterTableSourceClause
-    | INDEX EQUAL clusterTableSourceClause
+    : SOURCE EQUAL tableSourceClause
+    | INDEX EQUAL tableSourceClause
     ;
 
 tableSourceClause
     : tableSource (COMMA tableSource)*
-    ;
-
-clusterTableSourceClause
-    : clusterTableSource (COMMA clusterTableSource)*
     ;
 
 renameClasue
@@ -326,11 +322,6 @@ multiFieldRelevanceFunction
 
 /** tables */
 tableSource
-    : qualifiedName
-    | ID_DATE_SUFFIX
-    ;
-
-clusterTableSource
     : qualifiedName
     | clusterQualifiedName
     | ID_DATE_SUFFIX

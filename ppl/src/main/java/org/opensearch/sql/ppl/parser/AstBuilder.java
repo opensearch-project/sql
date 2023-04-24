@@ -7,7 +7,6 @@
 package org.opensearch.sql.ppl.parser;
 
 import static org.opensearch.sql.ast.dsl.AstDSL.qualifiedName;
-import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.ClusterTableSourceClauseContext;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.DedupCommandContext;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.DescribeCommandContext;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.EvalCommandContext;
@@ -347,19 +346,12 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
    */
   @Override
   public UnresolvedPlan visitFromClause(FromClauseContext ctx) {
-    return visitClusterTableSourceClause(ctx.clusterTableSourceClause());
+    return visitTableSourceClause(ctx.tableSourceClause());
   }
 
   @Override
   public UnresolvedPlan visitTableSourceClause(TableSourceClauseContext ctx) {
     return new Relation(ctx.tableSource()
-        .stream().map(this::internalVisitExpression)
-        .collect(Collectors.toList()));
-  }
-
-  @Override
-  public UnresolvedPlan visitClusterTableSourceClause(ClusterTableSourceClauseContext ctx) {
-    return new Relation(ctx.clusterTableSource()
         .stream().map(this::internalVisitExpression)
         .collect(Collectors.toList()));
   }
