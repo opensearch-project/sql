@@ -23,6 +23,7 @@ import com.alibaba.druid.sql.parser.ParserException;
 import java.io.IOException;
 import java.sql.SQLFeatureNotSupportedException;
 import java.util.List;
+import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import org.mockito.stubbing.Answer;
@@ -227,9 +228,9 @@ public class CheckScriptContents {
         when(mockService.state()).thenReturn(mockState);
         when(mockState.metadata()).thenReturn(mockMetaData);
         try {
-            ImmutableOpenMap.Builder<String, MappingMetadata> builder = ImmutableOpenMap.builder();
-            builder.put(TestsConstants.TEST_INDEX_BANK, IndexMetadata.fromXContent(createParser(mappings)).mapping());
-            when(mockMetaData.findMappings(any(),  any())).thenReturn(builder.build());
+            when(mockMetaData.findMappings(any(),  any())).thenReturn(
+                Map.of(TestsConstants.TEST_INDEX_BANK, IndexMetadata.fromXContent(
+                    createParser(mappings)).mapping()));
         }
         catch (IOException e) {
             throw new IllegalStateException(e);
