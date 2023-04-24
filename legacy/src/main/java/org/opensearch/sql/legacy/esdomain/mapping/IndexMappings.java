@@ -12,8 +12,6 @@ import java.util.Map;
 import java.util.Objects;
 import org.opensearch.cluster.metadata.MappingMetadata;
 import org.opensearch.cluster.metadata.Metadata;
-import org.opensearch.common.collect.ImmutableOpenMap;
-import org.opensearch.sql.legacy.domain.Field;
 
 /**
  * Index mappings in the cluster.
@@ -51,7 +49,7 @@ public class IndexMappings implements Mappings<FieldMappings> {
                 indexMetaData -> new FieldMappings(indexMetaData.mapping()));
     }
 
-    public IndexMappings(ImmutableOpenMap<String, MappingMetadata> mappings) {
+    public IndexMappings(Map<String, MappingMetadata> mappings) {
         this.indexMappings = buildMappings(mappings, FieldMappings::new);
     }
 
