@@ -323,7 +323,6 @@ multiFieldRelevanceFunction
 /** tables */
 tableSource
     : qualifiedName
-    | clusterQualifiedName
     | ID_DATE_SUFFIX
     ;
 
@@ -724,10 +723,6 @@ qualifiedName
     : ident (DOT ident)*                             #identsAsQualifiedName
     ;
 
-clusterQualifiedName
-    : clusterIdent COLON ident (DOT ident)*
-    ;
-
 wcQualifiedName
     : wildcard (DOT wildcard)*                       #identsAsWildcardQualifiedName
     ;
@@ -737,11 +732,6 @@ ident
     | BACKTICK ident BACKTICK
     | BQUOTA_STRING
     | keywordsCanBeId
-    ;
-
-clusterIdent
-    : ident
-    | STAR
     ;
 
 wildcard
