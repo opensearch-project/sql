@@ -151,7 +151,7 @@ public class OpenSearchNodeClient implements OpenSearchClient {
         .setLocal(true)
         .get();
     final Stream<String> aliasStream =
-        ImmutableList.copyOf(indexResponse.aliases().valuesIt()).stream()
+        ImmutableList.copyOf(indexResponse.aliases().values()).stream()
             .flatMap(Collection::stream).map(AliasMetadata::alias);
 
     return Stream.concat(Arrays.stream(indexResponse.getIndices()), aliasStream)
