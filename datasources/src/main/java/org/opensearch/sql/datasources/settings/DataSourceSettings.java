@@ -11,9 +11,12 @@ import org.opensearch.common.settings.Setting;
 
 public class DataSourceSettings {
 
+  // we are keeping this to not break upgrades if the config is already present.
+  // This will be completely removed in 3.0.
   public static final Setting<InputStream> DATASOURCE_CONFIG = SecureSetting.secureFile(
       "plugins.query.federation.datasources.config",
-      null);
+      null,
+      Setting.Property.Deprecated);
 
   public static final Setting<String> DATASOURCE_MASTER_SECRET_KEY = Setting.simpleString(
       "plugins.query.datasources.encryption.masterkey",

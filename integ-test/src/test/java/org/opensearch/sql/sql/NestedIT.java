@@ -17,7 +17,6 @@ import static org.opensearch.sql.util.MatcherUtils.verifySchema;
 import java.io.IOException;
 import java.util.List;
 import java.util.Map;
-
 import org.json.JSONArray;
 import org.json.JSONObject;
 import org.junit.Test;
@@ -169,6 +168,63 @@ public class NestedIT extends SQLIntegTestCase {
         rows("c", "b"),
         rows("a", "b"),
         rows("zz", "a"));
+  }
+
+  @Test
+  public void nested_function_with_where_clause() {
+    String query =
+        "SELECT nested(message.info) FROM " + TEST_INDEX_NESTED_TYPE + " WHERE nested(message.info) = 'a'";
+    JSONObject result = executeJdbcRequest(query);
+
+    assertEquals(2, result.getInt("total"));
+    verifyDataRows(result,
+        rows("a"),
+        rows("a"));
+  }
+
+  @Test
+  public void nested_function_with_order_by_clause() {
+    String query =
+        "SELECT nested(message.info) FROM " + TEST_INDEX_NESTED_TYPE
+            + " ORDER BY nested(message.info)";
+    JSONObject result = executeJdbcRequest(query);
+
+    assertEquals(6, result.getInt("total"));
+    verifyDataRows(result,
+        rows("a"),
+        rows("c"),
+        rows("a"),
+        rows("b"),
+        rows("c"),
+        rows("zz"));
+  }
+
+  // Nested function in GROUP BY clause is not yet implemented for JDBC format. This test ensures
+  // that the V2 engine falls back to legacy implementation.
+  // TODO Fix the test when NESTED is supported in GROUP BY in the V2 engine.
+  @Test
+  public void nested_function_with_group_by_clause() {
+    String query =
+        "SELECT count(*) FROM " + TEST_INDEX_NESTED_TYPE + " GROUP BY nested(message.info)";
+    JSONObject result = executeJdbcRequest(query);
+
+    assertTrue(result.getJSONObject("error").get("details").toString().contains(
+        "Aggregation type nested is not yet implemented"
+    ));
+  }
+
+  // Nested function in HAVING clause is not yet implemented for JDBC format. This test ensures
+  // that the V2 engine falls back to legacy implementation.
+  // TODO Fix the test when NESTED is supported in HAVING in the V2 engine.
+  @Test
+  public void nested_function_with_having_clause() {
+    String query =
+        "SELECT count(*) FROM " + TEST_INDEX_NESTED_TYPE + " GROUP BY myNum HAVING nested(comment.likes) > 7";
+    JSONObject result = executeJdbcRequest(query);
+
+    assertTrue(result.getJSONObject("error").get("details").toString().contains(
+        "For more details, please send request for Json format to see the raw response from OpenSearch engine."
+    ));
   }
 
   @Test

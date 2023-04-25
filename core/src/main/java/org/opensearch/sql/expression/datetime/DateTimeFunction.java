@@ -43,6 +43,7 @@ import static org.opensearch.sql.utils.DateTimeFormatters.NO_YEAR_DATE_LENGTH;
 import static org.opensearch.sql.utils.DateTimeFormatters.SHORT_DATE_LENGTH;
 import static org.opensearch.sql.utils.DateTimeFormatters.SINGLE_DIGIT_MONTH_DATE_LENGTH;
 import static org.opensearch.sql.utils.DateTimeFormatters.SINGLE_DIGIT_YEAR_DATE_LENGTH;
+import static org.opensearch.sql.utils.DateTimeUtils.UTC_ZONE_ID;
 import static org.opensearch.sql.utils.DateTimeUtils.extractDate;
 import static org.opensearch.sql.utils.DateTimeUtils.extractDateTime;
 
@@ -67,14 +68,12 @@ import java.time.format.DateTimeParseException;
 import java.time.format.TextStyle;
 import java.time.temporal.ChronoUnit;
 import java.time.temporal.TemporalAmount;
-import java.util.Arrays;
 import java.util.Locale;
 import java.util.Map;
 import java.util.TimeZone;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Stream;
 import lombok.experimental.UtilityClass;
-import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.tuple.Pair;
 import org.opensearch.sql.data.model.ExprDateValue;
 import org.opensearch.sql.data.model.ExprDatetimeValue;
@@ -84,11 +83,9 @@ import org.opensearch.sql.data.model.ExprLongValue;
 import org.opensearch.sql.data.model.ExprNullValue;
 import org.opensearch.sql.data.model.ExprStringValue;
 import org.opensearch.sql.data.model.ExprTimeValue;
-import org.opensearch.sql.data.model.ExprTimestampValue;
 import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.data.type.ExprCoreType;
 import org.opensearch.sql.exception.ExpressionEvaluationException;
-import org.opensearch.sql.exception.SemanticCheckException;
 import org.opensearch.sql.expression.function.BuiltinFunctionName;
 import org.opensearch.sql.expression.function.BuiltinFunctionRepository;
 import org.opensearch.sql.expression.function.DefaultFunctionResolver;
@@ -191,6 +188,7 @@ public class DateTimeFunction {
     repository.register(datediff());
     repository.register(datetime());
     repository.register(date_add());
+    repository.register(date_format());
     repository.register(date_sub());
     repository.register(day());
     repository.register(dayName());
@@ -236,13 +234,12 @@ public class DateTimeFunction {
     repository.register(timestamp());
     repository.register(timestampadd());
     repository.register(timestampdiff());
-    repository.register(utc_date());
-    repository.register(utc_time());
-    repository.register(utc_timestamp());
-    repository.register(date_format());
     repository.register(to_days());
     repository.register(to_seconds());
     repository.register(unix_timestamp());
+    repository.register(utc_date());
+    repository.register(utc_time());
+    repository.register(utc_timestamp());
     repository.register(week(BuiltinFunctionName.WEEK));
     repository.register(week(BuiltinFunctionName.WEEKOFYEAR));
     repository.register(week(BuiltinFunctionName.WEEK_OF_YEAR));
@@ -1286,7 +1283,6 @@ public class DateTimeFunction {
       return new ExprDatetimeValue(
           zonedDateTime.withZoneSameInstant(convertedToTz).toLocalDateTime());
 
-
       // Catches exception for invalid timezones.
       // ex. "+0:00" is an invalid timezone and would result in this exception being thrown.
     } catch (ExpressionEvaluationException | DateTimeException e) {
@@ -1333,7 +1329,6 @@ public class DateTimeFunction {
    */
   private ExprValue exprDateTime(ExprValue dateTime, ExprValue timeZone) {
     String defaultTimeZone = TimeZone.getDefault().getID();
-
 
     try {
       LocalDateTime ldtFormatted =
@@ -1490,7 +1485,7 @@ public class DateTimeFunction {
   private LocalDateTime exprFromUnixTimeImpl(ExprValue time) {
     return LocalDateTime.ofInstant(
             Instant.ofEpochSecond((long)Math.floor(time.doubleValue())),
-            ZoneId.of("UTC"))
+            UTC_ZONE_ID)
         .withNano((int)((time.doubleValue() % 1) * 1E9));
   }
 
@@ -1994,7 +1989,7 @@ public class DateTimeFunction {
    */
   private ExprValue exprUtcTimeStamp(FunctionProperties functionProperties) {
     var zdt = ZonedDateTime.now(functionProperties.getQueryStartClock())
-        .withZoneSameInstant(ZoneId.of("UTC"));
+        .withZoneSameInstant(UTC_ZONE_ID);
     return new ExprDatetimeValue(zdt.toLocalDateTime());
   }
 

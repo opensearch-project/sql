@@ -23,9 +23,8 @@ import org.opensearch.sql.planner.physical.PhysicalPlanNodeVisitor;
  * A PhysicalPlan which will run the delegate plan in resource protection manner.
  */
 @ToString
-@RequiredArgsConstructor
-@EqualsAndHashCode
-public class ResourceMonitorPlan extends PhysicalPlan implements SerializablePlan {
+@EqualsAndHashCode(callSuper = false)
+public class ResourceMonitorPlan extends PhysicalPlan {
 
   /**
    * How many method calls to delegate's next() to perform resource check once.

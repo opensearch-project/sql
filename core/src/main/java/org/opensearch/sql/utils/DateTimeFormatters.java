@@ -44,6 +44,9 @@ public class DateTimeFormatters {
   //Length of a date formatted as MDD.
   public static final int SINGLE_DIGIT_MONTH_DATE_LENGTH = 3;
 
+  private static final int MIN_FRACTION_SECONDS = 0;
+  private static final int MAX_FRACTION_SECONDS = 9;
+
   public static final DateTimeFormatter TIME_ZONE_FORMATTER_NO_COLON =
       new DateTimeFormatterBuilder()
           .appendOffset("+HHmm", "Z")
@@ -123,9 +126,6 @@ public class DateTimeFormatters {
   public static final DateTimeFormatter DATE_TIME_FORMATTER_WITHOUT_NANO =
       SQL_LITERAL_DATE_TIME_FORMAT;
 
-  private static final int MIN_FRACTION_SECONDS = 0;
-  private static final int MAX_FRACTION_SECONDS = 9;
-
   public static final DateTimeFormatter DATE_TIME_FORMATTER_VARIABLE_NANOS =
       new DateTimeFormatterBuilder()
           .appendPattern("uuuu-MM-dd HH:mm:ss")
@@ -204,9 +204,21 @@ public class DateTimeFormatters {
           .toFormatter()
           .withResolverStyle(ResolverStyle.STRICT);
 
+  // uuuu-MM-dd HH:mm:ss[xxx]
   public static final DateTimeFormatter DATE_TIME_FORMATTER_STRICT_WITH_TZ =
       new DateTimeFormatterBuilder()
           .appendPattern("uuuu-MM-dd HH:mm:ss[xxx]")
           .toFormatter()
           .withResolverStyle(ResolverStyle.STRICT);
+
+  // uuuu-MM-dd HH:mm:ss[xxx]
+  public static final DateTimeFormatter DATE_TIME_FORMATTER_WITH_TZ =
+      new DateTimeFormatterBuilder()
+        .appendPattern("uuuu-MM-dd HH:mm:ss[xxx]")
+        .appendFraction(
+      ChronoField.NANO_OF_SECOND,
+      MIN_FRACTION_SECONDS,
+      MAX_FRACTION_SECONDS,
+            true)
+        .toFormatter();
 }
