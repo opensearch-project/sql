@@ -6,6 +6,7 @@
 
 package org.opensearch.sql.legacy.expression.model;
 
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -61,6 +62,8 @@ public class ExprValueFactory {
             return booleanValue((Boolean) o);
         } else if (o instanceof Double) {
             return doubleValue((Double) o);
+        } else if (o instanceof BigDecimal) {
+            return doubleValue(((BigDecimal) o).doubleValue());
         } else if (o instanceof String) {
             return stringValue((String) o);
         } else {
