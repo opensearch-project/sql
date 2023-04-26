@@ -21,6 +21,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 
 import com.google.common.base.Strings;
 import com.google.gson.JsonParser;
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -121,7 +122,7 @@ public class MatcherUtils {
   }
 
   public static Matcher<JSONObject> kvDouble(String key, Matcher<Double> matcher) {
-    return featureValueOf("Json Match", matcher, actual -> (Double) actual.query(key));
+    return featureValueOf("Json Match", matcher, actual -> ((BigDecimal) actual.query(key)).doubleValue());
   }
 
   public static Matcher<JSONObject> kvInt(String key, Matcher<Integer> matcher) {
