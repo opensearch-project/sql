@@ -15,9 +15,8 @@ import org.opensearch.sql.storage.split.Split;
 /**
  * Physical plan.
  */
-public abstract class PhysicalPlan implements PlanNode<PhysicalPlan>,
-    Iterator<ExprValue>,
-    AutoCloseable {
+public abstract class PhysicalPlan
+    implements PlanNode<PhysicalPlan>, Iterator<ExprValue>, AutoCloseable {
   /**
    * Accept the {@link PhysicalPlanNodeVisitor}.
    *
@@ -43,6 +42,17 @@ public abstract class PhysicalPlan implements PlanNode<PhysicalPlan>,
 
   public ExecutionEngine.Schema schema() {
     throw new IllegalStateException(String.format("[BUG] schema can been only applied to "
-        + "ProjectOperator, instead of %s", toString()));
+        + "ProjectOperator, instead of %s", this.getClass().getSimpleName()));
+  }
+
+  /**
+   * Returns Total hits matched the search criteria. Note: query may return less if limited.
+   * {@see Settings#QUERY_SIZE_LIMIT}.
+   * Any plan which adds/removes rows to the response should overwrite it to provide valid values.
+   *
+   * @return Total hits matched the search criteria.
+   */
+  public long getTotalHits() {
+    return getChild().stream().mapToLong(PhysicalPlan::getTotalHits).max().orElse(0);
   }
 }

@@ -4,12 +4,14 @@
  */
 
 
-package org.opensearch.sql.opensearch.storage;
+package org.opensearch.sql.opensearch.storage.scan;
 
+import static org.junit.jupiter.api.Assertions.assertAll;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -21,6 +23,8 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayNameGeneration;
+import org.junit.jupiter.api.DisplayNameGenerator;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
@@ -28,6 +32,7 @@ import org.mockito.invocation.InvocationOnMock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.stubbing.Answer;
 import org.opensearch.common.bytes.BytesArray;
+import org.opensearch.common.unit.TimeValue;
 import org.opensearch.index.query.QueryBuilder;
 import org.opensearch.index.query.QueryBuilders;
 import org.opensearch.search.SearchHit;
@@ -43,9 +48,11 @@ import org.opensearch.sql.opensearch.data.type.OpenSearchDataType;
 import org.opensearch.sql.opensearch.data.value.OpenSearchExprValueFactory;
 import org.opensearch.sql.opensearch.request.OpenSearchQueryRequest;
 import org.opensearch.sql.opensearch.request.OpenSearchRequest;
+import org.opensearch.sql.opensearch.request.OpenSearchRequestBuilder;
 import org.opensearch.sql.opensearch.response.OpenSearchResponse;
 
 @ExtendWith(MockitoExtension.class)
+@DisplayNameGeneration(DisplayNameGenerator.ReplaceUnderscores.class)
 class OpenSearchIndexScanTest {
 
   @Mock
@@ -61,122 +68,166 @@ class OpenSearchIndexScanTest {
   @BeforeEach
   void setup() {
     when(settings.getSettingValue(Settings.Key.QUERY_SIZE_LIMIT)).thenReturn(200);
+    when(settings.getSettingValue(Settings.Key.SQL_CURSOR_KEEP_ALIVE))
+        .thenReturn(TimeValue.timeValueMinutes(1));
   }
 
   @Test
-  void queryEmptyResult() {
-    mockResponse();
-    try (OpenSearchIndexScan indexScan =
-             new OpenSearchIndexScan(client, settings, "test", 3, exprValueFactory)) {
+  void query_empty_result() {
+    mockResponse(client);
+    try (OpenSearchIndexScan indexScan = new OpenSearchIndexScan(client, settings,
+        "test", 3, exprValueFactory)) {
       indexScan.open();
-      assertFalse(indexScan.hasNext());
+      assertAll(
+          () -> assertFalse(indexScan.hasNext()),
+          () -> assertEquals(0, indexScan.getTotalHits())
+      );
     }
     verify(client).cleanup(any());
   }
 
   @Test
-  void queryAllResultsWithQuery() {
-    mockResponse(new ExprValue[]{
+  void query_all_results_with_query() {
+    mockResponse(client, new ExprValue[]{
         employee(1, "John", "IT"),
         employee(2, "Smith", "HR"),
         employee(3, "Allen", "IT")});
 
-    try (OpenSearchIndexScan indexScan =
-             new OpenSearchIndexScan(client, settings, "employees", 10, exprValueFactory)) {
+    try (OpenSearchIndexScan indexScan = new OpenSearchIndexScan(client, settings,
+        "employees", 10, exprValueFactory)) {
       indexScan.open();
 
-      assertTrue(indexScan.hasNext());
-      assertEquals(employee(1, "John", "IT"), indexScan.next());
+      assertAll(
+          () -> assertTrue(indexScan.hasNext()),
+          () -> assertEquals(employee(1, "John", "IT"), indexScan.next()),
 
-      assertTrue(indexScan.hasNext());
-      assertEquals(employee(2, "Smith", "HR"), indexScan.next());
+          () -> assertTrue(indexScan.hasNext()),
+          () -> assertEquals(employee(2, "Smith", "HR"), indexScan.next()),
 
-      assertTrue(indexScan.hasNext());
-      assertEquals(employee(3, "Allen", "IT"), indexScan.next());
+          () -> assertTrue(indexScan.hasNext()),
+          () -> assertEquals(employee(3, "Allen", "IT"), indexScan.next()),
 
-      assertFalse(indexScan.hasNext());
+          () -> assertFalse(indexScan.hasNext()),
+          () -> assertEquals(3, indexScan.getTotalHits())
+      );
     }
     verify(client).cleanup(any());
   }
 
   @Test
-  void queryAllResultsWithScroll() {
-    mockResponse(
+  void query_all_results_with_scroll() {
+    mockResponse(client,
         new ExprValue[]{employee(1, "John", "IT"), employee(2, "Smith", "HR")},
         new ExprValue[]{employee(3, "Allen", "IT")});
 
-    try (OpenSearchIndexScan indexScan =
-             new OpenSearchIndexScan(client, settings, "employees", 2, exprValueFactory)) {
+    try (OpenSearchIndexScan indexScan = new OpenSearchIndexScan(client, settings,
+        "employees", 10, exprValueFactory)) {
       indexScan.open();
 
-      assertTrue(indexScan.hasNext());
-      assertEquals(employee(1, "John", "IT"), indexScan.next());
+      assertAll(
+          () -> assertTrue(indexScan.hasNext()),
+          () -> assertEquals(employee(1, "John", "IT"), indexScan.next()),
 
-      assertTrue(indexScan.hasNext());
-      assertEquals(employee(2, "Smith", "HR"), indexScan.next());
+          () -> assertTrue(indexScan.hasNext()),
+          () -> assertEquals(employee(2, "Smith", "HR"), indexScan.next()),
 
-      assertTrue(indexScan.hasNext());
-      assertEquals(employee(3, "Allen", "IT"), indexScan.next());
+          () -> assertTrue(indexScan.hasNext()),
+          () -> assertEquals(employee(3, "Allen", "IT"), indexScan.next()),
 
-      assertFalse(indexScan.hasNext());
+          () -> assertFalse(indexScan.hasNext()),
+          () -> assertEquals(3, indexScan.getTotalHits())
+      );
     }
     verify(client).cleanup(any());
   }
 
   @Test
-  void querySomeResultsWithQuery() {
-    mockResponse(new ExprValue[]{
+  void query_some_results_with_query() {
+    mockResponse(client, new ExprValue[]{
         employee(1, "John", "IT"),
         employee(2, "Smith", "HR"),
         employee(3, "Allen", "IT"),
         employee(4, "Bob", "HR")});
 
-    try (OpenSearchIndexScan indexScan =
-             new OpenSearchIndexScan(client, settings, "employees", 10, exprValueFactory)) {
+    try (OpenSearchIndexScan indexScan = new OpenSearchIndexScan(client, settings,
+        "employees", 10, exprValueFactory)) {
       indexScan.getRequestBuilder().pushDownLimit(3, 0);
       indexScan.open();
 
-      assertTrue(indexScan.hasNext());
-      assertEquals(employee(1, "John", "IT"), indexScan.next());
+      assertAll(
+          () -> assertTrue(indexScan.hasNext()),
+          () -> assertEquals(employee(1, "John", "IT"), indexScan.next()),
 
-      assertTrue(indexScan.hasNext());
-      assertEquals(employee(2, "Smith", "HR"), indexScan.next());
+          () -> assertTrue(indexScan.hasNext()),
+          () -> assertEquals(employee(2, "Smith", "HR"), indexScan.next()),
 
-      assertTrue(indexScan.hasNext());
-      assertEquals(employee(3, "Allen", "IT"), indexScan.next());
+          () -> assertTrue(indexScan.hasNext()),
+          () -> assertEquals(employee(3, "Allen", "IT"), indexScan.next()),
 
-      assertFalse(indexScan.hasNext());
+          () -> assertFalse(indexScan.hasNext()),
+          () -> assertEquals(3, indexScan.getTotalHits())
+      );
     }
     verify(client).cleanup(any());
   }
 
   @Test
-  void querySomeResultsWithScroll() {
-    mockResponse(
+  void query_some_results_with_scroll() {
+    mockResponse(client,
         new ExprValue[]{employee(1, "John", "IT"), employee(2, "Smith", "HR")},
         new ExprValue[]{employee(3, "Allen", "IT"), employee(4, "Bob", "HR")});
 
-    try (OpenSearchIndexScan indexScan =
-             new OpenSearchIndexScan(client, settings, "employees", 2, exprValueFactory)) {
+    try (OpenSearchIndexScan indexScan = new OpenSearchIndexScan(client, settings,
+        "employees", 2, exprValueFactory)) {
       indexScan.getRequestBuilder().pushDownLimit(3, 0);
       indexScan.open();
 
-      assertTrue(indexScan.hasNext());
-      assertEquals(employee(1, "John", "IT"), indexScan.next());
+      assertAll(
+          () -> assertTrue(indexScan.hasNext()),
+          () -> assertEquals(employee(1, "John", "IT"), indexScan.next()),
 
-      assertTrue(indexScan.hasNext());
-      assertEquals(employee(2, "Smith", "HR"), indexScan.next());
+          () -> assertTrue(indexScan.hasNext()),
+          () -> assertEquals(employee(2, "Smith", "HR"), indexScan.next()),
 
-      assertTrue(indexScan.hasNext());
-      assertEquals(employee(3, "Allen", "IT"), indexScan.next());
+          () -> assertTrue(indexScan.hasNext()),
+          () -> assertEquals(employee(3, "Allen", "IT"), indexScan.next()),
 
-      assertFalse(indexScan.hasNext());
+          () -> assertFalse(indexScan.hasNext()),
+          () -> assertEquals(3, indexScan.getTotalHits())
+      );
     }
     verify(client).cleanup(any());
   }
 
   @Test
-  void pushDownFilters() {
+  void query_results_limited_by_query_size() {
+    mockResponse(client, new ExprValue[]{
+        employee(1, "John", "IT"),
+        employee(2, "Smith", "HR"),
+        employee(3, "Allen", "IT"),
+        employee(4, "Bob", "HR")});
+    when(settings.getSettingValue(Settings.Key.QUERY_SIZE_LIMIT)).thenReturn(2);
+
+    try (OpenSearchIndexScan indexScan = new OpenSearchIndexScan(client, settings,
+        "employees", 10, exprValueFactory)) {
+      indexScan.open();
+
+      assertAll(
+          () -> assertTrue(indexScan.hasNext()),
+          () -> assertEquals(employee(1, "John", "IT"), indexScan.next()),
+
+          () -> assertTrue(indexScan.hasNext()),
+          () -> assertEquals(employee(2, "Smith", "HR"), indexScan.next()),
+
+          () -> assertFalse(indexScan.hasNext()),
+          () -> assertEquals(2, indexScan.getTotalHits())
+      );
+    }
+    verify(client).cleanup(any());
+  }
+
+  @Test
+  void push_down_filters() {
     assertThat()
         .pushDown(QueryBuilders.termQuery("name", "John"))
         .shouldQuery(QueryBuilders.termQuery("name", "John"))
@@ -194,7 +245,7 @@ class OpenSearchIndexScanTest {
   }
 
   @Test
-  void pushDownHighlight() {
+  void push_down_highlight() {
     Map<String, Literal> args = new HashMap<>();
     assertThat()
         .pushDown(QueryBuilders.termQuery("name", "John"))
@@ -205,7 +256,7 @@ class OpenSearchIndexScanTest {
   }
 
   @Test
-  void pushDownHighlightWithArguments() {
+  void push_down_highlight_with_arguments() {
     Map<String, Literal> args = new HashMap<>();
     args.put("pre_tags", new Literal("<mark>", DataType.STRING));
     args.put("post_tags", new Literal("</mark>", DataType.STRING));
@@ -220,13 +271,13 @@ class OpenSearchIndexScanTest {
   }
 
   @Test
-  void pushDownHighlightWithRepeatingFields() {
-    mockResponse(
+  void push_down_highlight_with_repeating_fields() {
+    mockResponse(client,
         new ExprValue[]{employee(1, "John", "IT"), employee(2, "Smith", "HR")},
         new ExprValue[]{employee(3, "Allen", "IT"), employee(4, "Bob", "HR")});
 
-    try (OpenSearchIndexScan indexScan =
-             new OpenSearchIndexScan(client, settings, "test", 2, exprValueFactory)) {
+    try (OpenSearchIndexScan indexScan = new OpenSearchIndexScan(client, settings,
+        "test", 2, exprValueFactory)) {
       indexScan.getRequestBuilder().pushDownLimit(3, 0);
       indexScan.open();
       Map<String, Literal> args = new HashMap<>();
@@ -252,14 +303,15 @@ class OpenSearchIndexScanTest {
                              OpenSearchExprValueFactory valueFactory,
                              Settings settings) {
       this.client = client;
-      this.indexScan = new OpenSearchIndexScan(client, settings, "test", 10000, valueFactory);
+      this.indexScan = new OpenSearchIndexScan(client, settings,
+          "test", 10000, valueFactory);
       this.response = mock(OpenSearchResponse.class);
       this.factory = valueFactory;
       when(response.isEmpty()).thenReturn(true);
     }
 
     PushDownAssertion pushDown(QueryBuilder query) {
-      indexScan.getRequestBuilder().pushDown(query);
+      indexScan.getRequestBuilder().pushDownFilter(query);
       return this;
     }
 
@@ -290,7 +342,7 @@ class OpenSearchIndexScanTest {
     }
   }
 
-  private void mockResponse(ExprValue[]... searchHitBatches) {
+  public static void mockResponse(OpenSearchClient client, ExprValue[]... searchHitBatches) {
     when(client.search(any()))
         .thenAnswer(
             new Answer<OpenSearchResponse>() {
@@ -304,6 +356,9 @@ class OpenSearchIndexScanTest {
                   when(response.isEmpty()).thenReturn(false);
                   ExprValue[] searchHit = searchHitBatches[batchNum];
                   when(response.iterator()).thenReturn(Arrays.asList(searchHit).iterator());
+                  // used in OpenSearchPagedIndexScanTest
+                  lenient().when(response.getTotalHits())
+                      .thenReturn((long) searchHitBatches[batchNum].length);
                 } else {
                   when(response.isEmpty()).thenReturn(true);
                 }
@@ -314,14 +369,14 @@ class OpenSearchIndexScanTest {
             });
   }
 
-  protected ExprValue employee(int docId, String name, String department) {
+  public static ExprValue employee(int docId, String name, String department) {
     SearchHit hit = new SearchHit(docId);
     hit.sourceRef(
         new BytesArray("{\"name\":\"" + name + "\",\"department\":\"" + department + "\"}"));
     return tupleValue(hit);
   }
 
-  private ExprValue tupleValue(SearchHit hit) {
+  private static ExprValue tupleValue(SearchHit hit) {
     return ExprValueUtils.tupleValue(hit.getSourceAsMap());
   }
 }

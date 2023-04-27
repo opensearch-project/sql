@@ -4,7 +4,7 @@
  */
 
 
-package org.opensearch.sql.opensearch.storage;
+package org.opensearch.sql.opensearch.storage.scan;
 
 import java.util.Collections;
 import java.util.Iterator;
@@ -102,6 +102,12 @@ public class OpenSearchIndexScan extends TableScanOperator {
   public ExprValue next() {
     queryCount++;
     return iterator.next();
+  }
+
+  @Override
+  public long getTotalHits() {
+    // ignore response.getTotalHits(), because response returns entire index, regardless of LIMIT
+    return queryCount;
   }
 
   private void fetchNextBatch() {

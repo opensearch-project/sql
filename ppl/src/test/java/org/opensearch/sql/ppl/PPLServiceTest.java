@@ -26,6 +26,8 @@ import org.opensearch.sql.executor.ExecutionEngine.ExplainResponseNode;
 import org.opensearch.sql.executor.ExecutionEngine.QueryResponse;
 import org.opensearch.sql.executor.QueryService;
 import org.opensearch.sql.executor.execution.QueryPlanFactory;
+import org.opensearch.sql.executor.pagination.Cursor;
+import org.opensearch.sql.executor.pagination.PlanSerializer;
 import org.opensearch.sql.ppl.antlr.PPLSyntaxParser;
 import org.opensearch.sql.ppl.domain.PPLQueryRequest;
 
@@ -46,14 +48,18 @@ public class PPLServiceTest {
   @Mock
   private ExecutionEngine.Schema schema;
 
+  @Mock
+  private PlanSerializer planSerializer;
+
   /**
    * Setup the test context.
    */
   @Before
   public void setUp() {
     queryManager = DefaultQueryManager.defaultQueryManager();
+
     pplService = new PPLService(new PPLSyntaxParser(), queryManager,
-        new QueryPlanFactory(queryService));
+        new QueryPlanFactory(queryService, planSerializer));
   }
 
   @After
@@ -65,7 +71,7 @@ public class PPLServiceTest {
   public void testExecuteShouldPass() {
     doAnswer(invocation -> {
       ResponseListener<QueryResponse> listener = invocation.getArgument(1);
-      listener.onResponse(new QueryResponse(schema, Collections.emptyList()));
+      listener.onResponse(new QueryResponse(schema, Collections.emptyList(), 0, Cursor.None));
       return null;
     }).when(queryService).execute(any(), any());
 
@@ -87,7 +93,7 @@ public class PPLServiceTest {
   public void testExecuteCsvFormatShouldPass() {
     doAnswer(invocation -> {
       ResponseListener<QueryResponse> listener = invocation.getArgument(1);
-      listener.onResponse(new QueryResponse(schema, Collections.emptyList()));
+      listener.onResponse(new QueryResponse(schema, Collections.emptyList(), 0, Cursor.None));
       return null;
     }).when(queryService).execute(any(), any());
 
@@ -161,7 +167,7 @@ public class PPLServiceTest {
   public void testPrometheusQuery() {
     doAnswer(invocation -> {
       ResponseListener<QueryResponse> listener = invocation.getArgument(1);
-      listener.onResponse(new QueryResponse(schema, Collections.emptyList()));
+      listener.onResponse(new QueryResponse(schema, Collections.emptyList(), 0, Cursor.None));
       return null;
     }).when(queryService).execute(any(), any());
 

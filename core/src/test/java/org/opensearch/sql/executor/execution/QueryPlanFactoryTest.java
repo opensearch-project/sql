@@ -8,9 +8,11 @@
 
 package org.opensearch.sql.executor.execution;
 
+import static org.junit.jupiter.api.Assertions.assertAll;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.Mockito.when;
 import static org.opensearch.sql.executor.execution.QueryPlanFactory.NO_CONSUMER_RESPONSE_LISTENER;
 
 import java.util.Optional;
@@ -24,8 +26,10 @@ import org.opensearch.sql.ast.statement.Query;
 import org.opensearch.sql.ast.statement.Statement;
 import org.opensearch.sql.ast.tree.UnresolvedPlan;
 import org.opensearch.sql.common.response.ResponseListener;
+import org.opensearch.sql.exception.UnsupportedCursorRequestException;
 import org.opensearch.sql.executor.ExecutionEngine;
 import org.opensearch.sql.executor.QueryService;
+import org.opensearch.sql.executor.pagination.PlanSerializer;
 
 @ExtendWith(MockitoExtension.class)
 class QueryPlanFactoryTest {
@@ -45,46 +49,60 @@ class QueryPlanFactoryTest {
   @Mock
   private ExecutionEngine.QueryResponse queryResponse;
 
+  @Mock
+  private PlanSerializer planSerializer;
   private QueryPlanFactory factory;
 
   @BeforeEach
   void init() {
-    factory = new QueryPlanFactory(queryService);
+    factory = new QueryPlanFactory(queryService, planSerializer);
   }
 
   @Test
   public void createFromQueryShouldSuccess() {
-    Statement query = new Query(plan);
+    Statement query = new Query(plan, 0);
     AbstractPlan queryExecution =
-        factory.create(query, Optional.of(queryListener), Optional.empty());
+        factory.createContinuePaginatedPlan(query, Optional.of(queryListener), Optional.empty());
     assertTrue(queryExecution instanceof QueryPlan);
   }
 
   @Test
   public void createFromExplainShouldSuccess() {
-    Statement query = new Explain(new Query(plan));
+    Statement query = new Explain(new Query(plan, 0));
     AbstractPlan queryExecution =
-        factory.create(query, Optional.empty(), Optional.of(explainListener));
+        factory.createContinuePaginatedPlan(query, Optional.empty(), Optional.of(explainListener));
     assertTrue(queryExecution instanceof ExplainPlan);
   }
 
   @Test
+  public void createFromCursorShouldSuccess() {
+    AbstractPlan queryExecution = factory.createContinuePaginatedPlan("", false,
+        queryListener, explainListener);
+    AbstractPlan explainExecution = factory.createContinuePaginatedPlan("", true,
+        queryListener, explainListener);
+    assertAll(
+        () -> assertTrue(queryExecution instanceof ContinuePaginatedPlan),
+        () -> assertTrue(explainExecution instanceof ExplainPlan)
+    );
+  }
+
+  @Test
   public void createFromQueryWithoutQueryListenerShouldThrowException() {
-    Statement query = new Query(plan);
+    Statement query = new Query(plan, 0);
 
     IllegalArgumentException exception =
-        assertThrows(IllegalArgumentException.class, () -> factory.create(query,
-            Optional.empty(), Optional.empty()));
+        assertThrows(IllegalArgumentException.class, () -> factory.createContinuePaginatedPlan(
+            query, Optional.empty(), Optional.empty()));
     assertEquals("[BUG] query listener must be not null", exception.getMessage());
   }
 
   @Test
   public void createFromExplainWithoutExplainListenerShouldThrowException() {
-    Statement query = new Explain(new Query(plan));
+    Statement query = new Explain(new Query(plan, 0));
 
     IllegalArgumentException exception =
-        assertThrows(IllegalArgumentException.class, () -> factory.create(query,
-            Optional.empty(), Optional.empty()));
+        assertThrows(IllegalArgumentException.class, () -> factory.createContinuePaginatedPlan(
+            query, Optional.empty(), Optional.empty()));
     assertEquals("[BUG] explain listener must be not null", exception.getMessage());
   }
 
@@ -103,5 +121,25 @@ class QueryPlanFactoryTest {
             () -> NO_CONSUMER_RESPONSE_LISTENER.onFailure(new RuntimeException()));
     assertEquals(
         "[BUG] exception response should not sent to unexpected channel", exception.getMessage());
+  }
+
+  @Test
+  public void createQueryWithFetchSizeWhichCanBePaged() {
+    when(planSerializer.canConvertToCursor(plan)).thenReturn(true);
+    factory = new QueryPlanFactory(queryService, planSerializer);
+    Statement query = new Query(plan, 10);
+    AbstractPlan queryExecution =
+        factory.createContinuePaginatedPlan(query, Optional.of(queryListener), Optional.empty());
+    assertTrue(queryExecution instanceof QueryPlan);
+  }
+
+  @Test
+  public void createQueryWithFetchSizeWhichCannotBePaged() {
+    when(planSerializer.canConvertToCursor(plan)).thenReturn(false);
+    factory = new QueryPlanFactory(queryService, planSerializer);
+    Statement query = new Query(plan, 10);
+    assertThrows(UnsupportedCursorRequestException.class,
+        () -> factory.createContinuePaginatedPlan(query,
+            Optional.of(queryListener), Optional.empty()));
   }
 }

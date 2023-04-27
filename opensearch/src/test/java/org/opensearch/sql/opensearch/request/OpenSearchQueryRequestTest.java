@@ -14,6 +14,7 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.opensearch.sql.opensearch.request.OpenSearchRequestBuilder.DEFAULT_QUERY_TIMEOUT;
 
 import java.util.Iterator;
 import java.util.function.Consumer;
@@ -146,7 +147,7 @@ public class OpenSearchQueryRequestTest {
         new SearchRequest()
             .indices("test")
             .source(new SearchSourceBuilder()
-                .timeout(OpenSearchQueryRequest.DEFAULT_QUERY_TIMEOUT)
+                .timeout(DEFAULT_QUERY_TIMEOUT)
                 .from(0)
                 .size(200)
                 .query(QueryBuilders.termQuery("name", "John"))),

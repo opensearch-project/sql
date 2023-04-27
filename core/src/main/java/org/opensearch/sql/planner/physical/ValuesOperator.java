@@ -15,6 +15,7 @@ import lombok.Getter;
 import lombok.ToString;
 import org.opensearch.sql.data.model.ExprCollectionValue;
 import org.opensearch.sql.data.model.ExprValue;
+import org.opensearch.sql.expression.Expression;
 import org.opensearch.sql.expression.LiteralExpression;
 
 /**
@@ -56,9 +57,16 @@ public class ValuesOperator extends PhysicalPlan {
   }
 
   @Override
+  public long getTotalHits() {
+    // ValuesOperator used for queries without `FROM` clause, e.g. `select 1`.
+    // Such query always returns 1 row.
+    return 1;
+  }
+
+  @Override
   public ExprValue next() {
     List<ExprValue> values = valuesIterator.next().stream()
-                                           .map(expr -> expr.valueOf())
+                                           .map(Expression::valueOf)
                                            .collect(Collectors.toList());
     return new ExprCollectionValue(values);
   }

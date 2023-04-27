@@ -8,7 +8,6 @@ package org.opensearch.sql.opensearch.storage.scan;
 import com.google.common.annotations.VisibleForTesting;
 import lombok.EqualsAndHashCode;
 import org.opensearch.sql.expression.ReferenceExpression;
-import org.opensearch.sql.opensearch.storage.OpenSearchIndexScan;
 import org.opensearch.sql.planner.logical.LogicalAggregation;
 import org.opensearch.sql.planner.logical.LogicalFilter;
 import org.opensearch.sql.planner.logical.LogicalHighlight;

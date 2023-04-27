@@ -6,6 +6,8 @@
 
 package org.opensearch.sql.opensearch.request;
 
+import static org.opensearch.sql.opensearch.request.OpenSearchRequestBuilder.DEFAULT_QUERY_TIMEOUT;
+
 import com.google.common.annotations.VisibleForTesting;
 import java.util.Arrays;
 import java.util.List;
@@ -17,7 +19,6 @@ import lombok.ToString;
 import org.opensearch.action.search.SearchRequest;
 import org.opensearch.action.search.SearchResponse;
 import org.opensearch.action.search.SearchScrollRequest;
-import org.opensearch.common.unit.TimeValue;
 import org.opensearch.search.SearchHits;
 import org.opensearch.search.builder.SearchSourceBuilder;
 import org.opensearch.search.fetch.subphase.FetchSourceContext;
@@ -34,11 +35,6 @@ import org.opensearch.sql.opensearch.response.OpenSearchResponse;
 @Getter
 @ToString
 public class OpenSearchQueryRequest implements OpenSearchRequest {
-
-  /**
-   * Default query timeout in minutes.
-   */
-  public static final TimeValue DEFAULT_QUERY_TIMEOUT = TimeValue.timeValueMinutes(1L);
 
   /**
    * {@link OpenSearchRequest.IndexName}.

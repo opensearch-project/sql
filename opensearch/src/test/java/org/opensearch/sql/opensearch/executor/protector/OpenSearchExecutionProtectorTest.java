@@ -11,6 +11,8 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 import static org.opensearch.sql.ast.tree.Sort.SortOption.DEFAULT_ASC;
+import static org.opensearch.sql.common.setting.Settings.Key.QUERY_SIZE_LIMIT;
+import static org.opensearch.sql.common.setting.Settings.Key.SQL_CURSOR_KEEP_ALIVE;
 import static org.opensearch.sql.data.type.ExprCoreType.DOUBLE;
 import static org.opensearch.sql.data.type.ExprCoreType.INTEGER;
 import static org.opensearch.sql.data.type.ExprCoreType.STRING;
@@ -37,11 +39,11 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.opensearch.client.node.NodeClient;
+import org.opensearch.common.unit.TimeValue;
 import org.opensearch.sql.ast.expression.DataType;
 import org.opensearch.sql.ast.expression.Literal;
 import org.opensearch.sql.ast.tree.RareTopN.CommandType;
 import org.opensearch.sql.ast.tree.Sort;
-import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.data.model.ExprBooleanValue;
 import org.opensearch.sql.expression.DSL;
 import org.opensearch.sql.expression.Expression;
@@ -59,7 +61,7 @@ import org.opensearch.sql.opensearch.planner.physical.ADOperator;
 import org.opensearch.sql.opensearch.planner.physical.MLCommonsOperator;
 import org.opensearch.sql.opensearch.planner.physical.MLOperator;
 import org.opensearch.sql.opensearch.setting.OpenSearchSettings;
-import org.opensearch.sql.opensearch.storage.OpenSearchIndexScan;
+import org.opensearch.sql.opensearch.storage.scan.OpenSearchIndexScan;
 import org.opensearch.sql.planner.physical.NestedOperator;
 import org.opensearch.sql.planner.physical.PhysicalPlan;
 import org.opensearch.sql.planner.physical.PhysicalPlanDSL;
@@ -88,8 +90,9 @@ class OpenSearchExecutionProtectorTest {
 
   @Test
   public void testProtectIndexScan() {
-    when(settings.getSettingValue(Settings.Key.QUERY_SIZE_LIMIT)).thenReturn(200);
-
+    when(settings.getSettingValue(QUERY_SIZE_LIMIT)).thenReturn(200);
+    when(settings.getSettingValue(SQL_CURSOR_KEEP_ALIVE))
+        .thenReturn(TimeValue.timeValueMinutes(1));
     String indexName = "test";
     Integer maxResultWindow = 10000;
     NamedExpression include = named("age", ref("age", INTEGER));
@@ -124,9 +127,10 @@ class OpenSearchExecutionProtectorTest {
                                             PhysicalPlanDSL.agg(
                                                 filter(
                                                     resourceMonitor(
-                                                        new OpenSearchIndexScan(
-                                                            client, settings, indexName,
-                                                            maxResultWindow, exprValueFactory)),
+                                                        new OpenSearchIndexScan(client, settings,
+                                                            indexName,
+                                                            maxResultWindow,
+                                                            exprValueFactory)),
                                                     filterExpr),
                                                 aggregators,
                                                 groupByExprs),
@@ -152,9 +156,10 @@ class OpenSearchExecutionProtectorTest {
                                         PhysicalPlanDSL.rename(
                                             PhysicalPlanDSL.agg(
                                                 filter(
-                                                    new OpenSearchIndexScan(
-                                                        client, settings, indexName,
-                                                        maxResultWindow, exprValueFactory),
+                                                    new OpenSearchIndexScan(client, settings,
+                                                        indexName,
+                                                        maxResultWindow,
+                                                        exprValueFactory),
                                                     filterExpr),
                                                 aggregators,
                                                 groupByExprs),

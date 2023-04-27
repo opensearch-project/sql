@@ -31,9 +31,13 @@ public class OpenSearchSystemIndexScan extends TableScanOperator {
    */
   private Iterator<ExprValue> iterator;
 
+  private long totalHits = 0;
+
   @Override
   public void open() {
-    iterator = request.search().iterator();
+    var response = request.search();
+    totalHits = response.size();
+    iterator = response.iterator();
   }
 
   @Override
@@ -44,6 +48,11 @@ public class OpenSearchSystemIndexScan extends TableScanOperator {
   @Override
   public ExprValue next() {
     return iterator.next();
+  }
+
+  @Override
+  public long getTotalHits() {
+    return totalHits;
   }
 
   @Override

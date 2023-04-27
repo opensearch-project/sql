@@ -18,37 +18,46 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.opensearch.sql.common.setting.Settings.Key.QUERY_SIZE_LIMIT;
+import static org.opensearch.sql.common.setting.Settings.Key.SQL_CURSOR_KEEP_ALIVE;
 import static org.opensearch.sql.data.model.ExprValueUtils.tupleValue;
 import static org.opensearch.sql.executor.ExecutionEngine.QueryResponse;
 
+import java.io.IOException;
+import java.io.ObjectInput;
+import java.io.ObjectOutput;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicReference;
 import lombok.RequiredArgsConstructor;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayNameGeneration;
+import org.junit.jupiter.api.DisplayNameGenerator;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.opensearch.common.unit.TimeValue;
 import org.opensearch.sql.common.response.ResponseListener;
 import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.executor.ExecutionContext;
 import org.opensearch.sql.executor.ExecutionEngine;
 import org.opensearch.sql.executor.ExecutionEngine.ExplainResponse;
+import org.opensearch.sql.executor.pagination.PlanSerializer;
 import org.opensearch.sql.opensearch.client.OpenSearchClient;
 import org.opensearch.sql.opensearch.data.value.OpenSearchExprValueFactory;
 import org.opensearch.sql.opensearch.executor.protector.OpenSearchExecutionProtector;
-import org.opensearch.sql.opensearch.storage.OpenSearchIndexScan;
+import org.opensearch.sql.opensearch.storage.scan.OpenSearchIndexScan;
+import org.opensearch.sql.planner.SerializablePlan;
 import org.opensearch.sql.planner.physical.PhysicalPlan;
 import org.opensearch.sql.storage.TableScanOperator;
 import org.opensearch.sql.storage.split.Split;
 
 @ExtendWith(MockitoExtension.class)
+@DisplayNameGeneration(DisplayNameGenerator.ReplaceUnderscores.class)
 class OpenSearchExecutionEngineTest {
 
   @Mock private OpenSearchClient client;
@@ -75,14 +84,15 @@ class OpenSearchExecutionEngineTest {
   }
 
   @Test
-  void executeSuccessfully() {
+  void execute_successfully() {
     List<ExprValue> expected =
         Arrays.asList(
             tupleValue(of("name", "John", "age", 20)), tupleValue(of("name", "Allen", "age", 30)));
     FakePhysicalPlan plan = new FakePhysicalPlan(expected.iterator());
     when(protector.protect(plan)).thenReturn(plan);
 
-    OpenSearchExecutionEngine executor = new OpenSearchExecutionEngine(client, protector);
+    OpenSearchExecutionEngine executor = new OpenSearchExecutionEngine(client, protector,
+        new PlanSerializer(null));
     List<ExprValue> actual = new ArrayList<>();
     executor.execute(
         plan,
@@ -104,13 +114,43 @@ class OpenSearchExecutionEngineTest {
   }
 
   @Test
-  void executeWithFailure() {
+  void execute_with_cursor() {
+    List<ExprValue> expected =
+        Arrays.asList(
+            tupleValue(of("name", "John", "age", 20)), tupleValue(of("name", "Allen", "age", 30)));
+    var plan = new FakePhysicalPlan(expected.iterator());
+    when(protector.protect(plan)).thenReturn(plan);
+
+    OpenSearchExecutionEngine executor = new OpenSearchExecutionEngine(client, protector,
+        new PlanSerializer(null));
+    List<ExprValue> actual = new ArrayList<>();
+    executor.execute(
+        plan,
+        new ResponseListener<QueryResponse>() {
+          @Override
+          public void onResponse(QueryResponse response) {
+            actual.addAll(response.getResults());
+            assertTrue(response.getCursor().toString().startsWith("n:"));
+          }
+
+          @Override
+          public void onFailure(Exception e) {
+            fail("Error occurred during execution", e);
+          }
+        });
+
+    assertEquals(expected, actual);
+  }
+
+  @Test
+  void execute_with_failure() {
     PhysicalPlan plan = mock(PhysicalPlan.class);
     RuntimeException expected = new RuntimeException("Execution error");
     when(plan.hasNext()).thenThrow(expected);
     when(protector.protect(plan)).thenReturn(plan);
 
-    OpenSearchExecutionEngine executor = new OpenSearchExecutionEngine(client, protector);
+    OpenSearchExecutionEngine executor = new OpenSearchExecutionEngine(client, protector,
+        new PlanSerializer(null));
     AtomicReference<Exception> actual = new AtomicReference<>();
     executor.execute(
         plan,
@@ -130,12 +170,16 @@ class OpenSearchExecutionEngineTest {
   }
 
   @Test
-  void explainSuccessfully() {
-    OpenSearchExecutionEngine executor = new OpenSearchExecutionEngine(client, protector);
+  void explain_successfully() {
+    OpenSearchExecutionEngine executor = new OpenSearchExecutionEngine(client, protector,
+        new PlanSerializer(null));
     Settings settings = mock(Settings.class);
     when(settings.getSettingValue(QUERY_SIZE_LIMIT)).thenReturn(100);
-    PhysicalPlan plan = new OpenSearchIndexScan(mock(OpenSearchClient.class),
-        settings, "test", 10000, mock(OpenSearchExprValueFactory.class));
+    when(settings.getSettingValue(SQL_CURSOR_KEEP_ALIVE))
+        .thenReturn(TimeValue.timeValueMinutes(1));
+
+    PhysicalPlan plan = new OpenSearchIndexScan(mock(OpenSearchClient.class), settings,
+        "test", 10000, mock(OpenSearchExprValueFactory.class));
 
     AtomicReference<ExplainResponse> result = new AtomicReference<>();
     executor.explain(plan, new ResponseListener<ExplainResponse>() {
@@ -154,8 +198,9 @@ class OpenSearchExecutionEngineTest {
   }
 
   @Test
-  void explainWithFailure() {
-    OpenSearchExecutionEngine executor = new OpenSearchExecutionEngine(client, protector);
+  void explain_with_failure() {
+    OpenSearchExecutionEngine executor = new OpenSearchExecutionEngine(client, protector,
+        new PlanSerializer(null));
     PhysicalPlan plan = mock(PhysicalPlan.class);
     when(plan.accept(any(), any())).thenThrow(IllegalStateException.class);
 
@@ -176,7 +221,7 @@ class OpenSearchExecutionEngineTest {
   }
 
   @Test
-  void callAddSplitAndOpenInOrder() {
+  void call_add_split_and_open_in_order() {
     List<ExprValue> expected =
         Arrays.asList(
             tupleValue(of("name", "John", "age", 20)), tupleValue(of("name", "Allen", "age", 30)));
@@ -184,7 +229,8 @@ class OpenSearchExecutionEngineTest {
     when(protector.protect(plan)).thenReturn(plan);
     when(executionContext.getSplit()).thenReturn(Optional.of(split));
 
-    OpenSearchExecutionEngine executor = new OpenSearchExecutionEngine(client, protector);
+    OpenSearchExecutionEngine executor = new OpenSearchExecutionEngine(client, protector,
+        new PlanSerializer(null));
     List<ExprValue> actual = new ArrayList<>();
     executor.execute(
         plan,
@@ -208,11 +254,19 @@ class OpenSearchExecutionEngineTest {
   }
 
   @RequiredArgsConstructor
-  private static class FakePhysicalPlan extends TableScanOperator {
+  private static class FakePhysicalPlan extends TableScanOperator implements SerializablePlan {
     private final Iterator<ExprValue> it;
     private boolean hasOpen;
     private boolean hasClosed;
     private boolean hasSplit;
+
+    @Override
+    public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
+    }
+
+    @Override
+    public void writeExternal(ObjectOutput out) throws IOException {
+    }
 
     @Override
     public void open() {

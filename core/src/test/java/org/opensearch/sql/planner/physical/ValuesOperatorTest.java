@@ -9,6 +9,7 @@ package org.opensearch.sql.planner.physical;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.empty;
+import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
 import static org.opensearch.sql.data.model.ExprValueUtils.collectionValue;
 import static org.opensearch.sql.expression.DSL.literal;
@@ -44,6 +45,7 @@ class ValuesOperatorTest {
         results,
         contains(collectionValue(Arrays.asList(1, "abc")))
     );
+    assertThat(values.getTotalHits(), equalTo(1L));
   }
 
 }

@@ -22,7 +22,6 @@ import org.opensearch.sql.expression.FunctionExpression;
 import org.opensearch.sql.expression.NamedExpression;
 import org.opensearch.sql.expression.ReferenceExpression;
 import org.opensearch.sql.expression.function.OpenSearchFunctions;
-import org.opensearch.sql.opensearch.storage.OpenSearchIndexScan;
 import org.opensearch.sql.opensearch.storage.script.filter.FilterQueryBuilder;
 import org.opensearch.sql.opensearch.storage.script.sort.SortQueryBuilder;
 import org.opensearch.sql.opensearch.storage.serialization.DefaultExpressionSerializer;
@@ -66,7 +65,7 @@ class OpenSearchIndexScanQueryBuilder extends TableScanBuilder {
         new DefaultExpressionSerializer());
     Expression queryCondition = filter.getCondition();
     QueryBuilder query = queryBuilder.build(queryCondition);
-    indexScan.getRequestBuilder().pushDown(query);
+    indexScan.getRequestBuilder().pushDownFilter(query);
     indexScan.getRequestBuilder().pushDownTrackedScore(
         trackScoresFromOpenSearchFunction(queryCondition));
     return true;

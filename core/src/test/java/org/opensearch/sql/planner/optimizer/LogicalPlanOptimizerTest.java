@@ -9,6 +9,10 @@ package org.opensearch.sql.planner.optimizer;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.Mockito.lenient;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.opensearch.sql.data.model.ExprValueUtils.integerValue;
 import static org.opensearch.sql.data.model.ExprValueUtils.longValue;
@@ -20,6 +24,7 @@ import static org.opensearch.sql.planner.logical.LogicalPlanDSL.filter;
 import static org.opensearch.sql.planner.logical.LogicalPlanDSL.highlight;
 import static org.opensearch.sql.planner.logical.LogicalPlanDSL.limit;
 import static org.opensearch.sql.planner.logical.LogicalPlanDSL.nested;
+import static org.opensearch.sql.planner.logical.LogicalPlanDSL.paginate;
 import static org.opensearch.sql.planner.logical.LogicalPlanDSL.project;
 import static org.opensearch.sql.planner.logical.LogicalPlanDSL.relation;
 import static org.opensearch.sql.planner.logical.LogicalPlanDSL.sort;
@@ -32,6 +37,8 @@ import java.util.List;
 import java.util.Map;
 import org.apache.commons.lang3.tuple.Pair;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayNameGeneration;
+import org.junit.jupiter.api.DisplayNameGenerator;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
@@ -43,13 +50,18 @@ import org.opensearch.sql.data.type.ExprType;
 import org.opensearch.sql.expression.DSL;
 import org.opensearch.sql.expression.NamedExpression;
 import org.opensearch.sql.expression.ReferenceExpression;
+import org.opensearch.sql.planner.logical.LogicalPaginate;
 import org.opensearch.sql.planner.logical.LogicalPlan;
+import org.opensearch.sql.planner.logical.LogicalRelation;
+import org.opensearch.sql.planner.optimizer.rule.CreatePagingTableScanBuilder;
+import org.opensearch.sql.planner.optimizer.rule.read.CreateTableScanBuilder;
 import org.opensearch.sql.planner.physical.PhysicalPlan;
 import org.opensearch.sql.storage.Table;
 import org.opensearch.sql.storage.read.TableScanBuilder;
 import org.opensearch.sql.storage.write.TableWriteBuilder;
 
 @ExtendWith(MockitoExtension.class)
+@DisplayNameGeneration(DisplayNameGenerator.ReplaceUnderscores.class)
 class LogicalPlanOptimizerTest {
 
   @Mock
@@ -58,9 +70,13 @@ class LogicalPlanOptimizerTest {
   @Spy
   private TableScanBuilder tableScanBuilder;
 
+  @Spy
+  private TableScanBuilder pagedTableScanBuilder;
+
   @BeforeEach
   void setUp() {
-    when(table.createScanBuilder()).thenReturn(tableScanBuilder);
+    lenient().when(table.createScanBuilder()).thenReturn(tableScanBuilder);
+    lenient().when(table.createPagedScanBuilder(anyInt())).thenReturn(pagedTableScanBuilder);
   }
 
   /**
@@ -279,7 +295,6 @@ class LogicalPlanOptimizerTest {
 
   @Test
   void table_not_support_scan_builder_should_not_be_impact() {
-    Mockito.reset(table, tableScanBuilder);
     Table table = new Table() {
       @Override
       public Map<String, ExprType> getFieldTypes() {
@@ -300,7 +315,6 @@ class LogicalPlanOptimizerTest {
 
   @Test
   void table_support_write_builder_should_be_replaced() {
-    Mockito.reset(table, tableScanBuilder);
     TableWriteBuilder writeBuilder = Mockito.mock(TableWriteBuilder.class);
     when(table.createWriteBuilder(any())).thenReturn(writeBuilder);
 
@@ -312,7 +326,6 @@ class LogicalPlanOptimizerTest {
 
   @Test
   void table_not_support_write_builder_should_report_error() {
-    Mockito.reset(table, tableScanBuilder);
     Table table = new Table() {
       @Override
       public Map<String, ExprType> getFieldTypes() {
@@ -327,6 +340,68 @@ class LogicalPlanOptimizerTest {
 
     assertThrows(UnsupportedOperationException.class,
         () -> table.createWriteBuilder(null));
+  }
+
+  @Test
+  void paged_table_scan_builder_support_project_push_down_can_apply_its_rule() {
+
+    var relation = relation("schema", table);
+
+    assertEquals(
+        project(pagedTableScanBuilder),
+        LogicalPlanOptimizer.create().optimize(paginate(project(relation), 4)));
+  }
+
+
+  @Test
+  void push_page_size_noop_if_no_relation() {
+    var paginate = new LogicalPaginate(42, List.of(project(values())));
+    assertEquals(paginate, LogicalPlanOptimizer.create().optimize(paginate));
+  }
+
+  @Test
+  void pagination_optimizer_simple_query() {
+    var projectPlan = project(relation("schema", table), DSL.named(DSL.ref("intV", INTEGER)));
+
+    var optimizer = new LogicalPlanOptimizer(
+        List.of(new CreateTableScanBuilder(), new CreatePagingTableScanBuilder()));
+
+    {
+      optimizer.optimize(projectPlan);
+      verify(table).createScanBuilder();
+      verify(table, never()).createPagedScanBuilder(anyInt());
+    }
+  }
+
+  @Test
+  void pagination_optimizer_paged_query() {
+    var relation = new LogicalRelation("schema", table);
+    var projectPlan = project(relation, DSL.named(DSL.ref("intV", INTEGER)));
+    var pagedPlan = new LogicalPaginate(10, List.of(projectPlan));
+
+    var optimizer = new LogicalPlanOptimizer(
+        List.of(new CreateTableScanBuilder(), new CreatePagingTableScanBuilder()));
+    var optimized = optimizer.optimize(pagedPlan);
+    verify(table).createPagedScanBuilder(anyInt());
+  }
+
+  @Test
+  void push_page_size_noop_if_no_sub_plans() {
+    var paginate = new LogicalPaginate(42, List.of());
+    assertEquals(paginate,
+        LogicalPlanOptimizer.create().optimize(paginate));
+  }
+
+  @Test
+  void table_scan_builder_support_offset_push_down_can_apply_its_rule() {
+    when(table.createPagedScanBuilder(anyInt())).thenReturn(pagedTableScanBuilder);
+
+    var relation = new LogicalRelation("schema", table);
+    var optimized = LogicalPlanOptimizer.create()
+        .optimize(new LogicalPaginate(42, List.of(project(relation))));
+    // `optimized` structure: LogicalPaginate -> LogicalProject -> TableScanBuilder
+    // LogicalRelation replaced by a TableScanBuilder instance
+    assertEquals(project(pagedTableScanBuilder), optimized);
   }
 
   private LogicalPlan optimize(LogicalPlan plan) {

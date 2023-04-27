@@ -47,6 +47,8 @@ public class NestedOperator extends PhysicalPlan {
   @EqualsAndHashCode.Exclude
   private ListIterator<Map<String, ExprValue>> flattenedResult = result.listIterator();
 
+  private long totalHits = 0;
+
   /**
    * Constructor for NestedOperator with list of map as arg.
    * @param input : PhysicalPlan input.
@@ -99,7 +101,6 @@ public class NestedOperator extends PhysicalPlan {
     return input.hasNext() || flattenedResult.hasNext();
   }
 
-
   @Override
   public ExprValue next() {
     if (!flattenedResult.hasNext()) {
@@ -120,11 +121,13 @@ public class NestedOperator extends PhysicalPlan {
 
       if (result.isEmpty()) {
         flattenedResult = result.listIterator();
+        totalHits++;
         return new ExprTupleValue(new LinkedHashMap<>());
       }
 
       flattenedResult = result.listIterator();
     }
+    totalHits++;
     return new ExprTupleValue(new LinkedHashMap<>(flattenedResult.next()));
   }
 
@@ -233,7 +236,6 @@ public class NestedOperator extends PhysicalPlan {
     return false;
   }
 
-
   /**
    * Retrieve nested field(s) in row.
    *
@@ -280,5 +282,10 @@ public class NestedOperator extends PhysicalPlan {
       getNested(field, nestedField.substring(nestedField.indexOf(".") + 1),
           row, ret, currentObj);
     }
+  }
+
+  @Override
+  public long getTotalHits() {
+    return totalHits;
   }
 }

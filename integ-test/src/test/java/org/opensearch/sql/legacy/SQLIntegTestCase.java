@@ -260,6 +260,17 @@ public abstract class SQLIntegTestCase extends OpenSearchSQLRestTestCase {
     return responseString;
   }
 
+  protected JSONObject executeQueryTemplate(String queryTemplate, String index, int fetchSize)
+      throws IOException {
+    var query = String.format(queryTemplate, index);
+    return new JSONObject(executeFetchQuery(query, fetchSize, "jdbc"));
+  }
+
+  protected JSONObject executeQueryTemplate(String queryTemplate, String index) throws IOException {
+    var query = String.format(queryTemplate, index);
+    return executeQueryTemplate(queryTemplate, index, 4);
+  }
+
   protected String executeFetchLessQuery(String query, String requestType) throws IOException {
 
     String endpoint = "/_plugins/_sql?format=" + requestType;

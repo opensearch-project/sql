@@ -32,6 +32,7 @@ class OpenSearchSystemIndexScanTest {
     systemIndexScan.open();
     assertTrue(systemIndexScan.hasNext());
     assertEquals(stringValue("text"), systemIndexScan.next());
+    assertEquals(1, systemIndexScan.getTotalHits());
   }
 
   @Test

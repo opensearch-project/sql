@@ -23,6 +23,8 @@ import java.util.Set;
 import org.apache.commons.lang3.tuple.Pair;
 import org.apache.lucene.search.join.ScoreMode;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayNameGeneration;
+import org.junit.jupiter.api.DisplayNameGenerator;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
@@ -52,6 +54,7 @@ import org.opensearch.sql.opensearch.response.agg.SingleValueParser;
 import org.opensearch.sql.planner.logical.LogicalNested;
 
 @ExtendWith(MockitoExtension.class)
+@DisplayNameGeneration(DisplayNameGenerator.ReplaceUnderscores.class)
 public class OpenSearchRequestBuilderTest {
 
   private static final TimeValue DEFAULT_QUERY_TIMEOUT = TimeValue.timeValueMinutes(1L);
@@ -70,13 +73,15 @@ public class OpenSearchRequestBuilderTest {
   @BeforeEach
   void setup() {
     when(settings.getSettingValue(Settings.Key.QUERY_SIZE_LIMIT)).thenReturn(200);
+    when(settings.getSettingValue(Settings.Key.SQL_CURSOR_KEEP_ALIVE))
+        .thenReturn(TimeValue.timeValueMinutes(1));
 
     requestBuilder = new OpenSearchRequestBuilder(
         "test", MAX_RESULT_WINDOW, settings, exprValueFactory);
   }
 
   @Test
-  void buildQueryRequest() {
+  void build_query_request() {
     Integer limit = 200;
     Integer offset = 0;
     requestBuilder.pushDownLimit(limit, offset);
@@ -95,14 +100,14 @@ public class OpenSearchRequestBuilderTest {
   }
 
   @Test
-  void buildScrollRequestWithCorrectSize() {
+  void build_scroll_request_with_correct_size() {
     Integer limit = 800;
     Integer offset = 10;
     requestBuilder.pushDownLimit(limit, offset);
 
     assertEquals(
         new OpenSearchScrollRequest(
-            new OpenSearchRequest.IndexName("test"),
+            new OpenSearchRequest.IndexName("test"), TimeValue.timeValueMinutes(1),
             new SearchSourceBuilder()
                 .from(offset)
                 .size(MAX_RESULT_WINDOW - offset)
@@ -112,9 +117,9 @@ public class OpenSearchRequestBuilderTest {
   }
 
   @Test
-  void testPushDownQuery() {
+  void test_push_down_query() {
     QueryBuilder query = QueryBuilders.termQuery("intA", 1);
-    requestBuilder.pushDown(query);
+    requestBuilder.pushDownFilter(query);
 
     assertEquals(
         new SearchSourceBuilder()
@@ -128,7 +133,7 @@ public class OpenSearchRequestBuilderTest {
   }
 
   @Test
-  void testPushDownAggregation() {
+  void test_push_down_aggregation() {
     AggregationBuilder aggBuilder = AggregationBuilders.composite(
         "composite_buckets",
         Collections.singletonList(new TermsValuesSourceBuilder("longA")));
@@ -149,9 +154,9 @@ public class OpenSearchRequestBuilderTest {
   }
 
   @Test
-  void testPushDownQueryAndSort() {
+  void test_push_down_query_and_sort() {
     QueryBuilder query = QueryBuilders.termQuery("intA", 1);
-    requestBuilder.pushDown(query);
+    requestBuilder.pushDownFilter(query);
 
     FieldSortBuilder sortBuilder = SortBuilders.fieldSort("intA");
     requestBuilder.pushDownSort(List.of(sortBuilder));
@@ -167,7 +172,7 @@ public class OpenSearchRequestBuilderTest {
   }
 
   @Test
-  void testPushDownSort() {
+  void test_push_down_sort() {
     FieldSortBuilder sortBuilder = SortBuilders.fieldSort("intA");
     requestBuilder.pushDownSort(List.of(sortBuilder));
 
@@ -181,7 +186,7 @@ public class OpenSearchRequestBuilderTest {
   }
 
   @Test
-  void testPushDownNonFieldSort() {
+  void test_push_down_non_field_sort() {
     ScoreSortBuilder sortBuilder = SortBuilders.scoreSort();
     requestBuilder.pushDownSort(List.of(sortBuilder));
 
@@ -195,7 +200,7 @@ public class OpenSearchRequestBuilderTest {
   }
 
   @Test
-  void testPushDownMultipleSort() {
+  void test_push_down_multiple_sort() {
     requestBuilder.pushDownSort(List.of(
         SortBuilders.fieldSort("intA"),
         SortBuilders.fieldSort("intB")));
@@ -211,7 +216,7 @@ public class OpenSearchRequestBuilderTest {
   }
 
   @Test
-  void testPushDownProject() {
+  void test_push_down_project() {
     Set<ReferenceExpression> references = Set.of(DSL.ref("intA", INTEGER));
     requestBuilder.pushDownProjects(references);
 
@@ -225,7 +230,7 @@ public class OpenSearchRequestBuilderTest {
   }
 
   @Test
-  void testPushDownNested() {
+  void test_push_down_nested() {
     List<Map<String, ReferenceExpression>> args = List.of(
         Map.of(
             "field", new ReferenceExpression("message.info", STRING),
@@ -255,7 +260,7 @@ public class OpenSearchRequestBuilderTest {
   }
 
   @Test
-  void testPushDownMultipleNestedWithSamePath() {
+  void test_push_down_multiple_nested_with_same_path() {
     List<Map<String, ReferenceExpression>> args = List.of(
         Map.of(
             "field", new ReferenceExpression("message.info", STRING),
@@ -288,7 +293,7 @@ public class OpenSearchRequestBuilderTest {
   }
 
   @Test
-  void testPushDownNestedWithFilter() {
+  void test_push_down_nested_with_filter() {
     List<Map<String, ReferenceExpression>> args = List.of(
         Map.of(
             "field", new ReferenceExpression("message.info", STRING),
@@ -325,7 +330,7 @@ public class OpenSearchRequestBuilderTest {
   }
 
   @Test
-  void testPushTypeMapping() {
+  void test_push_type_mapping() {
     Map<String, OpenSearchDataType> typeMapping = Map.of("intA", OpenSearchDataType.of(INTEGER));
     requestBuilder.pushTypeMapping(typeMapping);
 

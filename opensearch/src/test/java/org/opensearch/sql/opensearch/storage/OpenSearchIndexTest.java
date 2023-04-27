@@ -14,6 +14,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.lenient;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 import static org.opensearch.sql.data.type.ExprCoreType.DOUBLE;
 import static org.opensearch.sql.data.type.ExprCoreType.INTEGER;
@@ -41,6 +42,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.opensearch.common.unit.TimeValue;
 import org.opensearch.sql.ast.tree.Sort;
 import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.data.model.ExprBooleanValue;
@@ -56,6 +58,12 @@ import org.opensearch.sql.opensearch.data.type.OpenSearchDataType;
 import org.opensearch.sql.opensearch.data.type.OpenSearchTextType;
 import org.opensearch.sql.opensearch.data.value.OpenSearchExprValueFactory;
 import org.opensearch.sql.opensearch.mapping.IndexMapping;
+import org.opensearch.sql.opensearch.request.InitialPageRequestBuilder;
+import org.opensearch.sql.opensearch.request.OpenSearchRequest;
+import org.opensearch.sql.opensearch.request.OpenSearchRequestBuilder;
+import org.opensearch.sql.opensearch.request.PagedRequestBuilder;
+import org.opensearch.sql.opensearch.storage.scan.OpenSearchIndexScan;
+import org.opensearch.sql.opensearch.storage.scan.OpenSearchPagedIndexScan;
 import org.opensearch.sql.planner.logical.LogicalPlan;
 import org.opensearch.sql.planner.logical.LogicalPlanDSL;
 import org.opensearch.sql.planner.physical.PhysicalPlanDSL;
@@ -201,30 +209,48 @@ class OpenSearchIndexTest {
   @Test
   void implementRelationOperatorOnly() {
     when(settings.getSettingValue(Settings.Key.QUERY_SIZE_LIMIT)).thenReturn(200);
+    when(settings.getSettingValue(Settings.Key.SQL_CURSOR_KEEP_ALIVE))
+        .thenReturn(TimeValue.timeValueMinutes(1));
     when(client.getIndexMaxResultWindows("test")).thenReturn(Map.of("test", 10000));
 
     LogicalPlan plan = index.createScanBuilder();
     Integer maxResultWindow = index.getMaxResultWindow();
-    assertEquals(
-        new OpenSearchIndexScan(client, settings, indexName, maxResultWindow, exprValueFactory),
-        index.implement(plan));
+    assertEquals(new OpenSearchIndexScan(client, settings, indexName,
+        maxResultWindow, exprValueFactory), index.implement(index.optimize(plan)));
+  }
+
+  @Test
+  void implementPagedRelationOperatorOnly() {
+    when(client.getIndexMaxResultWindows("test")).thenReturn(Map.of("test", 10000));
+    when(settings.getSettingValue(Settings.Key.SQL_CURSOR_KEEP_ALIVE))
+        .thenReturn(TimeValue.timeValueMinutes(1));
+
+    LogicalPlan plan = index.createPagedScanBuilder(42);
+    Integer maxResultWindow = index.getMaxResultWindow();
+    PagedRequestBuilder builder = new InitialPageRequestBuilder(
+        new OpenSearchRequest.IndexName(indexName),
+        maxResultWindow, mock(), exprValueFactory);
+    assertEquals(new OpenSearchPagedIndexScan(client, builder), index.implement(plan));
   }
 
   @Test
   void implementRelationOperatorWithOptimization() {
     when(settings.getSettingValue(Settings.Key.QUERY_SIZE_LIMIT)).thenReturn(200);
+    when(settings.getSettingValue(Settings.Key.SQL_CURSOR_KEEP_ALIVE))
+        .thenReturn(TimeValue.timeValueMinutes(1));
     when(client.getIndexMaxResultWindows("test")).thenReturn(Map.of("test", 10000));
 
     LogicalPlan plan = index.createScanBuilder();
     Integer maxResultWindow = index.getMaxResultWindow();
-    assertEquals(
-        new OpenSearchIndexScan(client, settings, indexName, maxResultWindow, exprValueFactory),
-        index.implement(index.optimize(plan)));
+    assertEquals(new OpenSearchIndexScan(client, settings, indexName,
+            maxResultWindow, exprValueFactory), index.implement(plan));
   }
 
   @Test
   void implementOtherLogicalOperators() {
     when(settings.getSettingValue(Settings.Key.QUERY_SIZE_LIMIT)).thenReturn(200);
+    when(settings.getSettingValue(Settings.Key.SQL_CURSOR_KEEP_ALIVE))
+        .thenReturn(TimeValue.timeValueMinutes(1));
     when(client.getIndexMaxResultWindows("test")).thenReturn(Map.of("test", 10000));
 
     NamedExpression include = named("age", ref("age", INTEGER));

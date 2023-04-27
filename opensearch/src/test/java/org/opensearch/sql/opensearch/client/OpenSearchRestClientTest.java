@@ -30,8 +30,12 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
+import lombok.SneakyThrows;
+import org.apache.commons.lang3.reflect.FieldUtils;
 import org.apache.lucene.search.TotalHits;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayNameGeneration;
+import org.junit.jupiter.api.DisplayNameGenerator;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
@@ -51,12 +55,14 @@ import org.opensearch.cluster.metadata.IndexMetadata;
 import org.opensearch.cluster.metadata.MappingMetadata;
 import org.opensearch.common.collect.ImmutableOpenMap;
 import org.opensearch.common.settings.Settings;
+import org.opensearch.common.unit.TimeValue;
 import org.opensearch.common.xcontent.XContentType;
 import org.opensearch.core.xcontent.DeprecationHandler;
 import org.opensearch.core.xcontent.NamedXContentRegistry;
 import org.opensearch.core.xcontent.XContentParser;
 import org.opensearch.search.SearchHit;
 import org.opensearch.search.SearchHits;
+import org.opensearch.search.builder.SearchSourceBuilder;
 import org.opensearch.sql.data.model.ExprIntegerValue;
 import org.opensearch.sql.data.model.ExprTupleValue;
 import org.opensearch.sql.data.model.ExprValue;
@@ -64,10 +70,12 @@ import org.opensearch.sql.opensearch.data.type.OpenSearchDataType;
 import org.opensearch.sql.opensearch.data.type.OpenSearchTextType;
 import org.opensearch.sql.opensearch.data.value.OpenSearchExprValueFactory;
 import org.opensearch.sql.opensearch.mapping.IndexMapping;
+import org.opensearch.sql.opensearch.request.OpenSearchRequest;
 import org.opensearch.sql.opensearch.request.OpenSearchScrollRequest;
 import org.opensearch.sql.opensearch.response.OpenSearchResponse;
 
 @ExtendWith(MockitoExtension.class)
+@DisplayNameGeneration(DisplayNameGenerator.ReplaceUnderscores.class)
 class OpenSearchRestClientTest {
 
   private static final String TEST_MAPPING_FILE = "mappings/accounts.json";
@@ -95,7 +103,7 @@ class OpenSearchRestClientTest {
   }
 
   @Test
-  void isIndexExist() throws IOException {
+  void is_index_exist() throws IOException {
     when(restClient.indices()
         .exists(any(), any())) // use any() because missing equals() in GetIndexRequest
         .thenReturn(true);
@@ -104,7 +112,7 @@ class OpenSearchRestClientTest {
   }
 
   @Test
-  void isIndexNotExist() throws IOException {
+  void is_index_not_exist() throws IOException {
     when(restClient.indices()
         .exists(any(), any())) // use any() because missing equals() in GetIndexRequest
         .thenReturn(false);
@@ -113,14 +121,14 @@ class OpenSearchRestClientTest {
   }
 
   @Test
-  void isIndexExistWithException() throws IOException {
+  void is_index_exist_with_exception() throws IOException {
     when(restClient.indices().exists(any(), any())).thenThrow(IOException.class);
 
     assertThrows(IllegalStateException.class, () -> client.exists("test"));
   }
 
   @Test
-  void createIndex() throws IOException {
+  void create_index() throws IOException {
     String indexName = "test";
     Map<String, Object> mappings = ImmutableMap.of(
         "properties",
@@ -133,7 +141,7 @@ class OpenSearchRestClientTest {
   }
 
   @Test
-  void createIndexWithIOException() throws IOException {
+  void create_index_with_IOException() throws IOException {
     when(restClient.indices().create(any(), any())).thenThrow(IOException.class);
 
     assertThrows(IllegalStateException.class,
@@ -141,7 +149,7 @@ class OpenSearchRestClientTest {
   }
 
   @Test
-  void getIndexMappings() throws IOException {
+  void get_index_mappings() throws IOException {
     URL url = Resources.getResource(TEST_MAPPING_FILE);
     String mappings = Resources.toString(url, Charsets.UTF_8);
     String indexName = "test";
@@ -216,14 +224,14 @@ class OpenSearchRestClientTest {
   }
 
   @Test
-  void getIndexMappingsWithIOException() throws IOException {
+  void get_index_mappings_with_IOException() throws IOException {
     when(restClient.indices().getMapping(any(GetMappingsRequest.class), any()))
         .thenThrow(new IOException());
     assertThrows(IllegalStateException.class, () -> client.getIndexMappings("test"));
   }
 
   @Test
-  void getIndexMaxResultWindowsSettings() throws IOException {
+  void get_index_max_result_windows_settings() throws IOException {
     String indexName = "test";
     Integer maxResultWindow = 1000;
 
@@ -247,7 +255,7 @@ class OpenSearchRestClientTest {
   }
 
   @Test
-  void getIndexMaxResultWindowsDefaultSettings() throws IOException {
+  void get_index_max_result_windows_default_settings() throws IOException {
     String indexName = "test";
     Integer maxResultWindow = 10000;
 
@@ -271,7 +279,7 @@ class OpenSearchRestClientTest {
   }
 
   @Test
-  void getIndexMaxResultWindowsWithIOException() throws IOException {
+  void get_index_max_result_windows_with_IOException() throws IOException {
     when(restClient.indices().getSettings(any(GetSettingsRequest.class), any()))
         .thenThrow(new IOException());
     assertThrows(IllegalStateException.class, () -> client.getIndexMaxResultWindows("test"));
@@ -296,11 +304,12 @@ class OpenSearchRestClientTest {
     // Mock second scroll request followed
     SearchResponse scrollResponse = mock(SearchResponse.class);
     when(restClient.scroll(any(), any())).thenReturn(scrollResponse);
-    when(scrollResponse.getScrollId()).thenReturn("scroll456");
     when(scrollResponse.getHits()).thenReturn(SearchHits.empty());
 
     // Verify response for first scroll request
-    OpenSearchScrollRequest request = new OpenSearchScrollRequest("test", factory);
+    OpenSearchScrollRequest request = new OpenSearchScrollRequest(
+        new OpenSearchRequest.IndexName("test"), TimeValue.timeValueMinutes(1),
+        new SearchSourceBuilder(), factory);
     OpenSearchResponse response1 = client.search(request);
     assertFalse(response1.isEmpty());
 
@@ -310,20 +319,23 @@ class OpenSearchRestClientTest {
     assertFalse(hits.hasNext());
 
     // Verify response for second scroll request
+    request.setScrollId("scroll123");
     OpenSearchResponse response2 = client.search(request);
     assertTrue(response2.isEmpty());
   }
 
   @Test
-  void searchWithIOException() throws IOException {
+  void search_with_IOException() throws IOException {
     when(restClient.search(any(), any())).thenThrow(new IOException());
     assertThrows(
         IllegalStateException.class,
-        () -> client.search(new OpenSearchScrollRequest("test", factory)));
+        () -> client.search(new OpenSearchScrollRequest(
+            new OpenSearchRequest.IndexName("test"), TimeValue.timeValueMinutes(1),
+            new SearchSourceBuilder(), factory)));
   }
 
   @Test
-  void scrollWithIOException() throws IOException {
+  void scroll_with_IOException() throws IOException {
     // Mock first scroll request
     SearchResponse searchResponse = mock(SearchResponse.class);
     when(restClient.search(any(), any())).thenReturn(searchResponse);
@@ -339,7 +351,9 @@ class OpenSearchRestClientTest {
     when(restClient.scroll(any(), any())).thenThrow(new IOException());
 
     // First request run successfully
-    OpenSearchScrollRequest scrollRequest = new OpenSearchScrollRequest("test", factory);
+    OpenSearchScrollRequest scrollRequest = new OpenSearchScrollRequest(
+        new OpenSearchRequest.IndexName("test"), TimeValue.timeValueMinutes(1),
+        new SearchSourceBuilder(), factory);
     client.search(scrollRequest);
     assertThrows(
         IllegalStateException.class, () -> client.search(scrollRequest));
@@ -356,32 +370,44 @@ class OpenSearchRestClientTest {
   }
 
   @Test
-  void cleanup() throws IOException {
-    OpenSearchScrollRequest request = new OpenSearchScrollRequest("test", factory);
+  @SneakyThrows
+  void cleanup() {
+    OpenSearchScrollRequest request = new OpenSearchScrollRequest(
+        new OpenSearchRequest.IndexName("test"), TimeValue.timeValueMinutes(1),
+        new SearchSourceBuilder(), factory);
+    // Enforce cleaning by setting a private field.
+    FieldUtils.writeField(request, "needClean", true, true);
     request.setScrollId("scroll123");
     client.cleanup(request);
     verify(restClient).clearScroll(any(), any());
-    assertFalse(request.isScrollStarted());
+    assertFalse(request.isScroll());
   }
 
   @Test
-  void cleanupWithoutScrollId() throws IOException {
-    OpenSearchScrollRequest request = new OpenSearchScrollRequest("test", factory);
+  void cleanup_without_scrollId() throws IOException {
+    OpenSearchScrollRequest request = new OpenSearchScrollRequest(
+        new OpenSearchRequest.IndexName("test"), TimeValue.timeValueMinutes(1),
+        new SearchSourceBuilder(), factory);
     client.cleanup(request);
     verify(restClient, never()).clearScroll(any(), any());
   }
 
   @Test
-  void cleanupWithIOException() throws IOException {
+  @SneakyThrows
+  void cleanup_with_IOException() {
     when(restClient.clearScroll(any(), any())).thenThrow(new IOException());
 
-    OpenSearchScrollRequest request = new OpenSearchScrollRequest("test", factory);
+    OpenSearchScrollRequest request = new OpenSearchScrollRequest(
+        new OpenSearchRequest.IndexName("test"), TimeValue.timeValueMinutes(1),
+        new SearchSourceBuilder(), factory);
+    // Enforce cleaning by setting a private field.
+    FieldUtils.writeField(request, "needClean", true, true);
     request.setScrollId("scroll123");
     assertThrows(IllegalStateException.class, () -> client.cleanup(request));
   }
 
   @Test
-  void getIndices() throws IOException {
+  void get_indices() throws IOException {
     when(restClient.indices().get(any(GetIndexRequest.class), any(RequestOptions.class)))
         .thenReturn(getIndexResponse);
     when(getIndexResponse.getIndices()).thenReturn(new String[] {"index"});
@@ -391,7 +417,7 @@ class OpenSearchRestClientTest {
   }
 
   @Test
-  void getIndicesWithIOException() throws IOException {
+  void get_indices_with_IOException() throws IOException {
     when(restClient.indices().get(any(GetIndexRequest.class), any(RequestOptions.class)))
         .thenThrow(new IOException());
     assertThrows(IllegalStateException.class, () -> client.indices());
@@ -410,7 +436,7 @@ class OpenSearchRestClientTest {
   }
 
   @Test
-  void metaWithIOException() throws IOException {
+  void meta_with_IOException() throws IOException {
     when(restClient.cluster().getSettings(any(), any(RequestOptions.class)))
         .thenThrow(new IOException());
 
@@ -418,7 +444,7 @@ class OpenSearchRestClientTest {
   }
 
   @Test
-  void mlWithException() {
+  void ml_with_exception() {
     assertThrows(UnsupportedOperationException.class, () -> client.getNodeClient());
   }
 

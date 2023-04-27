@@ -152,5 +152,4 @@ public class DefaultImplementor<C> extends LogicalPlanNodeVisitor<PhysicalPlan, 
     // Logical operators visited here must have a single child
     return node.getChild().get(0).accept(this, context);
   }
-
 }

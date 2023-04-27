@@ -54,6 +54,10 @@ public class LogicalPlanDSL {
     return new LogicalRename(input, renameMap);
   }
 
+  public  static LogicalPlan paginate(LogicalPlan input, int fetchSize) {
+    return new LogicalPaginate(fetchSize, List.of(input));
+  }
+
   public static LogicalPlan project(LogicalPlan input, NamedExpression... fields) {
     return new LogicalProject(input, Arrays.asList(fields), ImmutableList.of());
   }

@@ -13,7 +13,6 @@ import java.util.function.Consumer;
 import java.util.function.Function;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
-import lombok.RequiredArgsConstructor;
 import lombok.Setter;
 import lombok.ToString;
 import org.opensearch.action.search.SearchRequest;
@@ -36,8 +35,8 @@ import org.opensearch.sql.opensearch.response.OpenSearchResponse;
 @ToString
 public class OpenSearchScrollRequest implements OpenSearchRequest {
 
-  /** Default scroll context timeout in minutes. */
-  public static final TimeValue DEFAULT_SCROLL_TIMEOUT = TimeValue.timeValueMinutes(1L);
+  /** Scroll context timeout. */
+  private final TimeValue scrollTimeout;
 
   /**
    * {@link OpenSearchRequest.IndexName}.
@@ -54,27 +53,21 @@ public class OpenSearchScrollRequest implements OpenSearchRequest {
    * multi-thread so this state has to be maintained here.
    */
   @Setter
+  @Getter
   private String scrollId;
+
+  private boolean needClean = false;
 
   /** Search request source builder. */
   private final SearchSourceBuilder sourceBuilder;
 
   /** Constructor. */
-  public OpenSearchScrollRequest(IndexName indexName, OpenSearchExprValueFactory exprValueFactory) {
-    this.indexName = indexName;
-    this.sourceBuilder = new SearchSourceBuilder();
-    this.exprValueFactory = exprValueFactory;
-  }
-
-  public OpenSearchScrollRequest(String indexName, OpenSearchExprValueFactory exprValueFactory) {
-    this(new IndexName(indexName), exprValueFactory);
-  }
-
-  /** Constructor. */
   public OpenSearchScrollRequest(IndexName indexName,
+                                 TimeValue scrollTimeout,
                                  SearchSourceBuilder sourceBuilder,
                                  OpenSearchExprValueFactory exprValueFactory) {
     this.indexName = indexName;
+    this.scrollTimeout = scrollTimeout;
     this.sourceBuilder = sourceBuilder;
     this.exprValueFactory = exprValueFactory;
   }
@@ -84,24 +77,30 @@ public class OpenSearchScrollRequest implements OpenSearchRequest {
   public OpenSearchResponse search(Function<SearchRequest, SearchResponse> searchAction,
                                    Function<SearchScrollRequest, SearchResponse> scrollAction) {
     SearchResponse openSearchResponse;
-    if (isScrollStarted()) {
+    if (isScroll()) {
       openSearchResponse = scrollAction.apply(scrollRequest());
     } else {
       openSearchResponse = searchAction.apply(searchRequest());
     }
-    setScrollId(openSearchResponse.getScrollId());
     FetchSourceContext fetchSource = this.sourceBuilder.fetchSource();
     List<String> includes = fetchSource != null && fetchSource.includes() != null
         ? Arrays.asList(this.sourceBuilder.fetchSource().includes())
         : List.of();
-    return new OpenSearchResponse(openSearchResponse, exprValueFactory, includes);
+
+    var response = new OpenSearchResponse(openSearchResponse, exprValueFactory, includes);
+    if (!(needClean = response.isEmpty())) {
+      setScrollId(openSearchResponse.getScrollId());
+    }
+    return response;
   }
 
   @Override
   public void clean(Consumer<String> cleanAction) {
     try {
-      if (isScrollStarted()) {
+      // clean on the last page only, to prevent closing the scroll/cursor in the middle of paging.
+      if (needClean && isScroll()) {
         cleanAction.accept(getScrollId());
+        setScrollId(null);
       }
     } finally {
       reset();
@@ -116,7 +115,7 @@ public class OpenSearchScrollRequest implements OpenSearchRequest {
   public SearchRequest searchRequest() {
     return new SearchRequest()
         .indices(indexName.getIndexNames())
-        .scroll(DEFAULT_SCROLL_TIMEOUT)
+        .scroll(scrollTimeout)
         .source(sourceBuilder);
   }
 
@@ -125,8 +124,8 @@ public class OpenSearchScrollRequest implements OpenSearchRequest {
    *
    * @return true if scroll started
    */
-  public boolean isScrollStarted() {
-    return (scrollId != null);
+  public boolean isScroll() {
+    return scrollId != null;
   }
 
   /**
@@ -136,7 +135,7 @@ public class OpenSearchScrollRequest implements OpenSearchRequest {
    */
   public SearchScrollRequest scrollRequest() {
     Objects.requireNonNull(scrollId, "Scroll id cannot be null");
-    return new SearchScrollRequest().scroll(DEFAULT_SCROLL_TIMEOUT).scrollId(scrollId);
+    return new SearchScrollRequest().scroll(scrollTimeout).scrollId(scrollId);
   }
 
   /**
@@ -145,5 +144,14 @@ public class OpenSearchScrollRequest implements OpenSearchRequest {
    */
   public void reset() {
     scrollId = null;
+  }
+
+  /**
+   * Convert a scroll request to string that can be included in a cursor.
+   * @return a string representing the scroll request.
+   */
+  @Override
+  public String toCursor() {
+    return scrollId;
   }
 }

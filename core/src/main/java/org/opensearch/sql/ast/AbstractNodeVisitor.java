@@ -48,6 +48,7 @@ import org.opensearch.sql.ast.tree.Head;
 import org.opensearch.sql.ast.tree.Kmeans;
 import org.opensearch.sql.ast.tree.Limit;
 import org.opensearch.sql.ast.tree.ML;
+import org.opensearch.sql.ast.tree.Paginate;
 import org.opensearch.sql.ast.tree.Parse;
 import org.opensearch.sql.ast.tree.Project;
 import org.opensearch.sql.ast.tree.RareTopN;
@@ -293,5 +294,9 @@ public abstract class AbstractNodeVisitor<T, C> {
 
   public T visitExplain(Explain node, C context) {
     return visitStatement(node, context);
+  }
+
+  public T visitPaginate(Paginate paginate, C context) {
+    return visitChildren(paginate, context);
   }
 }

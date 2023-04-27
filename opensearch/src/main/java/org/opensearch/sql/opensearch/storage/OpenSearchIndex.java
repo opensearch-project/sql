@@ -20,9 +20,14 @@ import org.opensearch.sql.opensearch.data.value.OpenSearchExprValueFactory;
 import org.opensearch.sql.opensearch.planner.physical.ADOperator;
 import org.opensearch.sql.opensearch.planner.physical.MLCommonsOperator;
 import org.opensearch.sql.opensearch.planner.physical.MLOperator;
+import org.opensearch.sql.opensearch.request.InitialPageRequestBuilder;
 import org.opensearch.sql.opensearch.request.OpenSearchRequest;
+import org.opensearch.sql.opensearch.request.OpenSearchRequestBuilder;
 import org.opensearch.sql.opensearch.request.system.OpenSearchDescribeIndexRequest;
+import org.opensearch.sql.opensearch.storage.scan.OpenSearchIndexScan;
 import org.opensearch.sql.opensearch.storage.scan.OpenSearchIndexScanBuilder;
+import org.opensearch.sql.opensearch.storage.scan.OpenSearchPagedIndexScan;
+import org.opensearch.sql.opensearch.storage.scan.OpenSearchPagedIndexScanBuilder;
 import org.opensearch.sql.planner.DefaultImplementor;
 import org.opensearch.sql.planner.logical.LogicalAD;
 import org.opensearch.sql.planner.logical.LogicalML;
@@ -177,6 +182,14 @@ public class OpenSearchIndex implements Table {
     OpenSearchIndexScan indexScan = new OpenSearchIndexScan(client, settings, indexName,
         getMaxResultWindow(), new OpenSearchExprValueFactory(allFields));
     return new OpenSearchIndexScanBuilder(indexScan);
+  }
+
+  @Override
+  public TableScanBuilder createPagedScanBuilder(int pageSize) {
+    var requestBuilder = new InitialPageRequestBuilder(indexName, pageSize, settings,
+        new OpenSearchExprValueFactory(getFieldOpenSearchTypes()));
+    var indexScan = new OpenSearchPagedIndexScan(client, requestBuilder);
+    return new OpenSearchPagedIndexScanBuilder(indexScan);
   }
 
   @VisibleForTesting
