@@ -30,7 +30,6 @@ import org.opensearch.client.indices.GetMappingsRequest;
 import org.opensearch.client.indices.GetMappingsResponse;
 import org.opensearch.client.node.NodeClient;
 import org.opensearch.cluster.metadata.AliasMetadata;
-import org.opensearch.common.collect.ImmutableOpenMap;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.sql.opensearch.mapping.IndexMapping;
 import org.opensearch.sql.opensearch.request.OpenSearchRequest;
@@ -85,21 +84,21 @@ public class OpenSearchRestClient implements OpenSearchClient {
         .indices(indexExpression).includeDefaults(true);
     try {
       GetSettingsResponse response = client.indices().getSettings(request, RequestOptions.DEFAULT);
-      ImmutableOpenMap<String, Settings> settings = response.getIndexToSettings();
-      ImmutableOpenMap<String, Settings> defaultSettings = response.getIndexToDefaultSettings();
+      Map<String, Settings> settings = response.getIndexToSettings();
+      Map<String, Settings> defaultSettings = response.getIndexToDefaultSettings();
       Map<String, Integer> result = new HashMap<>();
 
-      defaultSettings.forEach(entry -> {
-        Integer maxResultWindow = entry.value.getAsInt("index.max_result_window", null);
+      defaultSettings.forEach((key, value) -> {
+        Integer maxResultWindow = value.getAsInt("index.max_result_window", null);
         if (maxResultWindow != null) {
-          result.put(entry.key, maxResultWindow);
+          result.put(key, maxResultWindow);
         }
       });
 
-      settings.forEach(entry -> {
-        Integer maxResultWindow = entry.value.getAsInt("index.max_result_window", null);
+      settings.forEach((key, value) -> {
+        Integer maxResultWindow = value.getAsInt("index.max_result_window", null);
         if (maxResultWindow != null) {
-          result.put(entry.key, maxResultWindow);
+          result.put(key, maxResultWindow);
         }
       });
 

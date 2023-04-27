@@ -59,7 +59,6 @@ import org.opensearch.client.node.NodeClient;
 import org.opensearch.cluster.metadata.AliasMetadata;
 import org.opensearch.cluster.metadata.IndexMetadata;
 import org.opensearch.cluster.metadata.MappingMetadata;
-import org.opensearch.common.collect.ImmutableOpenMap;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.common.unit.TimeValue;
 import org.opensearch.common.util.concurrent.ThreadContext;
@@ -402,9 +401,7 @@ class OpenSearchNodeClientTest {
   @Test
   void get_indices() {
     AliasMetadata aliasMetadata = mock(AliasMetadata.class);
-    ImmutableOpenMap.Builder<String, List<AliasMetadata>> builder = ImmutableOpenMap.builder();
-    builder.fPut("index",Arrays.asList(aliasMetadata));
-    final ImmutableOpenMap<String, List<AliasMetadata>> openMap = builder.build();
+    final var openMap = Map.of("index", List.of(aliasMetadata));
     when(aliasMetadata.alias()).thenReturn("index_alias");
     when(nodeClient.admin().indices()
         .prepareGetIndex()
@@ -458,10 +455,8 @@ class OpenSearchNodeClientTest {
     GetSettingsResponse mockResponse = mock(GetSettingsResponse.class);
     when(nodeClient.admin().indices().prepareGetSettings(any()).setLocal(anyBoolean()).get())
         .thenReturn(mockResponse);
-    ImmutableOpenMap<String, Settings> metadata =
-        new ImmutableOpenMap.Builder<String, Settings>()
-            .fPut(indexName, IndexMetadata.fromXContent(createParser(indexMetadata)).getSettings())
-            .build();
+    Map<String, Settings> metadata = Map.of(indexName,
+        IndexMetadata.fromXContent(createParser(indexMetadata)).getSettings());
 
     when(mockResponse.getIndexToSettings()).thenReturn(metadata);
   }
