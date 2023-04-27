@@ -7,6 +7,8 @@
 package org.opensearch.sql.legacy;
 
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import org.apache.hc.client5.http.auth.AuthScope;
@@ -27,6 +29,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.json.JSONArray;
 import org.json.JSONObject;
+import org.junit.AfterClass;
 import org.opensearch.client.Request;
 import org.opensearch.client.Response;
 import org.opensearch.client.RestClient;
@@ -34,14 +37,27 @@ import org.opensearch.client.RestClientBuilder;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.common.unit.TimeValue;
 import org.opensearch.common.util.concurrent.ThreadContext;
-import org.opensearch.sql.multicluster.OpenSearchMultiClustersRestTestCase;
+import org.opensearch.common.util.io.IOUtils;
+import org.opensearch.test.rest.OpenSearchRestTestCase;
+
+import static java.util.Collections.unmodifiableList;
 
 /**
  * OpenSearch SQL integration test base class to support both security disabled and enabled OpenSearch cluster.
+ * Allows interaction with multiple external test clusters using OpenSearch's {@link RestClient}.
  */
-public abstract class OpenSearchSQLRestTestCase extends OpenSearchMultiClustersRestTestCase {
+public abstract class OpenSearchSQLRestTestCase extends OpenSearchRestTestCase {
 
   private static final Logger LOG = LogManager.getLogger();
+  public static final String REMOTE_CLUSTER = "remoteCluster";
+  public static final String MATCH_ALL_REMOTE_CLUSTER = "*";
+
+  private static RestClient remoteClient;
+  /**
+   * A client for the running remote OpenSearch cluster configured to take test administrative actions
+   * like remove all indexes after the test completes
+   */
+  private static RestClient remoteAdminClient;
 
   protected boolean isHttps() {
     boolean isHttps = Optional.ofNullable(System.getProperty("https"))
@@ -61,6 +77,21 @@ public abstract class OpenSearchSQLRestTestCase extends OpenSearchMultiClustersR
     return isHttps() ? "https" : "http";
   }
 
+  /**
+   * Get the client to remote cluster used for ordinary api calls while writing a test.
+   */
+  protected static RestClient remoteClient() {
+    return remoteClient;
+  }
+
+  /**
+   * Get the client to remote cluster used for test administrative actions.
+   * Do not use this while writing a test. Only use it for cleaning up after tests.
+   */
+  protected static RestClient remoteAdminClient() {
+    return remoteAdminClient;
+  }
+
   protected RestClient buildClient(Settings settings, HttpHost[] hosts) throws IOException {
     RestClientBuilder builder = RestClient.builder(hosts);
     if (isHttps()) {
@@ -71,6 +102,73 @@ public abstract class OpenSearchSQLRestTestCase extends OpenSearchMultiClustersR
 
     builder.setStrictDeprecationMode(false);
     return builder.build();
+  }
+
+  // Modified from initClient in OpenSearchRestTestCase
+  public void initRemoteClient() throws IOException {
+    if (remoteClient == null) {
+      assert remoteAdminClient == null;
+      String cluster = getTestRestCluster(REMOTE_CLUSTER);
+      String[] stringUrls = cluster.split(",");
+      List<HttpHost> hosts = new ArrayList<>(stringUrls.length);
+      for (String stringUrl : stringUrls) {
+        int portSeparator = stringUrl.lastIndexOf(':');
+        if (portSeparator < 0) {
+          throw new IllegalArgumentException("Illegal cluster url [" + stringUrl + "]");
+        }
+        String host = stringUrl.substring(0, portSeparator);
+        int port = Integer.valueOf(stringUrl.substring(portSeparator + 1));
+        hosts.add(buildHttpHost(host, port));
+      }
+      final List<HttpHost> clusterHosts = unmodifiableList(hosts);
+      logger.info("initializing REST clients against {}", clusterHosts);
+      remoteClient = buildClient(restClientSettings(), clusterHosts.toArray(new HttpHost[0]));
+      remoteAdminClient = buildClient(restAdminSettings(), clusterHosts.toArray(new HttpHost[0]));
+    }
+    assert remoteClient != null;
+    assert remoteAdminClient != null;
+  }
+
+  /**
+   * Get a comma delimited list of [host:port] to which to send REST requests.
+   */
+  protected String getTestRestCluster(String clusterName) {
+    String cluster = System.getProperty("tests.rest." + clusterName + ".http_hosts");
+    if (cluster == null) {
+      throw new RuntimeException(
+          "Must specify [tests.rest."
+              + clusterName
+              + ".http_hosts] system property with a comma delimited list of [host:port] "
+              + "to which to send REST requests"
+      );
+    }
+    return cluster;
+  }
+
+  /**
+   * Get a comma delimited list of [host:port] for connections between clusters.
+   */
+  protected String getTestTransportCluster(String clusterName) {
+    String cluster = System.getProperty("tests.rest." + clusterName + ".transport_hosts");
+    if (cluster == null) {
+      throw new RuntimeException(
+          "Must specify [tests.rest."
+              + clusterName
+              + ".transport_hosts] system property with a comma delimited list of [host:port] "
+              + "for connections between clusters"
+      );
+    }
+    return cluster;
+  }
+
+  @AfterClass
+  public static void closeRemoteClients() throws IOException {
+    try {
+      IOUtils.close(remoteClient, remoteAdminClient);
+    } finally {
+      remoteClient = null;
+      remoteAdminClient = null;
+    }
   }
 
   protected static void wipeAllOpenSearchIndices() throws IOException {
@@ -149,5 +247,23 @@ public abstract class OpenSearchSQLRestTestCase extends OpenSearchMultiClustersR
     if (settings.hasValue(CLIENT_PATH_PREFIX)) {
       builder.setPathPrefix(settings.get(CLIENT_PATH_PREFIX));
     }
+  }
+
+  /**
+   * Initialize rest client to remote cluster,
+   * and create a connection to it from the coordinating cluster.
+   */
+  public void configureMultiClusters() throws IOException {
+    initRemoteClient();
+
+    Request connectionRequest = new Request("PUT", "_cluster/settings");
+    String connectionSetting = "{\"persistent\": {\"cluster\": {\"remote\": {\""
+        + REMOTE_CLUSTER
+        + "\": {\"seeds\": [\""
+        + getTestTransportCluster(REMOTE_CLUSTER).split(",")[0]
+        + "\"]}}}}}";
+    connectionRequest.setJsonEntity(connectionSetting);
+    logger.info("Creating connection from coordinating cluster to {}", REMOTE_CLUSTER);
+    adminClient().performRequest(connectionRequest);
   }
 }
