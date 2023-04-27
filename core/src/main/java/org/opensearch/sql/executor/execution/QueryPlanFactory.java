@@ -95,7 +95,7 @@ public class QueryPlanFactory
 
     if (node.getFetchSize() > 0) {
       if (planSerializer.canConvertToCursor(node.getPlan())) {
-        return new PaginatedPlan(QueryId.queryId(), node.getPlan(), node.getFetchSize(),
+        return new QueryPlan(QueryId.queryId(), node.getPlan(), node.getFetchSize(),
             queryService,
             context.getLeft().get());
       } else {

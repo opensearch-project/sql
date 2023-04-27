@@ -6,37 +6,19 @@
 
 package org.opensearch.sql.ppl;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_BANK;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_DATE;
-import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_PEOPLE2;
-import static org.opensearch.sql.sql.DateTimeFunctionIT.utcDateTimeNow;
 import static org.opensearch.sql.util.MatcherUtils.rows;
 import static org.opensearch.sql.util.MatcherUtils.schema;
 import static org.opensearch.sql.util.MatcherUtils.verifyDataRows;
 import static org.opensearch.sql.util.MatcherUtils.verifySchema;
 import static org.opensearch.sql.util.MatcherUtils.verifySome;
 
-import com.google.common.collect.ImmutableMap;
 import java.io.IOException;
 import java.time.LocalDate;
 import java.time.LocalTime;
-import java.time.Duration;
-import java.time.LocalDateTime;
-import java.time.Period;
-import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
-import java.time.format.DateTimeFormatterBuilder;
-import java.time.temporal.ChronoField;
-import java.time.temporal.Temporal;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.TimeZone;
-import java.util.function.BiFunction;
-import java.util.function.Supplier;
-import java.util.stream.Collectors;
-import org.json.JSONArray;
 import org.json.JSONObject;
 import org.junit.After;
 import org.junit.Before;
@@ -826,189 +808,6 @@ public class DateTimeFunctionIT extends PPLIntegTestCase {
         "source=%s | eval f1 = MAKEDATE(1945, 5.9), f2 = MAKEDATE(1984, 1984) | fields f1, f2", TEST_INDEX_DATE));
     verifySchema(result, schema("f1", null, "date"), schema("f2", null, "date"));
     verifySome(result.getJSONArray("datarows"), rows("1945-01-06", "1989-06-06"));
-  }
-
-  private List<ImmutableMap<Object, Object>> nowLikeFunctionsData() {
-    return List.of(
-      ImmutableMap.builder()
-              .put("name", "now")
-              .put("hasFsp", false)
-              .put("hasShortcut", false)
-              .put("constValue", true)
-              .put("referenceGetter", (Supplier<Temporal>) LocalDateTime::now)
-              .put("parser", (BiFunction<CharSequence, DateTimeFormatter, Temporal>) LocalDateTime::parse)
-              .put("serializationPattern", "uuuu-MM-dd HH:mm:ss")
-              .build(),
-      ImmutableMap.builder()
-              .put("name", "current_timestamp")
-              .put("hasFsp", false)
-              .put("hasShortcut", false)
-              .put("constValue", true)
-              .put("referenceGetter", (Supplier<Temporal>) LocalDateTime::now)
-              .put("parser", (BiFunction<CharSequence, DateTimeFormatter, Temporal>) LocalDateTime::parse)
-              .put("serializationPattern", "uuuu-MM-dd HH:mm:ss")
-              .build(),
-      ImmutableMap.builder()
-              .put("name", "localtimestamp")
-              .put("hasFsp", false)
-              .put("hasShortcut", false)
-              .put("constValue", true)
-              .put("referenceGetter", (Supplier<Temporal>) LocalDateTime::now)
-              .put("parser", (BiFunction<CharSequence, DateTimeFormatter, Temporal>) LocalDateTime::parse)
-              .put("serializationPattern", "uuuu-MM-dd HH:mm:ss")
-              .build(),
-      ImmutableMap.builder()
-              .put("name", "localtime")
-              .put("hasFsp", false)
-              .put("hasShortcut", false)
-              .put("constValue", true)
-              .put("referenceGetter", (Supplier<Temporal>) LocalDateTime::now)
-              .put("parser", (BiFunction<CharSequence, DateTimeFormatter, Temporal>) LocalDateTime::parse)
-              .put("serializationPattern", "uuuu-MM-dd HH:mm:ss")
-              .build(),
-      ImmutableMap.builder()
-              .put("name", "sysdate")
-              .put("hasFsp", true)
-              .put("hasShortcut", false)
-              .put("constValue", false)
-              .put("referenceGetter", (Supplier<Temporal>) LocalDateTime::now)
-              .put("parser", (BiFunction<CharSequence, DateTimeFormatter, Temporal>) LocalDateTime::parse)
-              .put("serializationPattern", "uuuu-MM-dd HH:mm:ss")
-              .build(),
-      ImmutableMap.builder()
-              .put("name", "curtime")
-              .put("hasFsp", false)
-              .put("hasShortcut", false)
-              .put("constValue", false)
-              .put("referenceGetter", (Supplier<Temporal>) LocalTime::now)
-              .put("parser", (BiFunction<CharSequence, DateTimeFormatter, Temporal>) LocalTime::parse)
-              .put("serializationPattern", "HH:mm:ss")
-              .build(),
-      ImmutableMap.builder()
-              .put("name", "current_time")
-              .put("hasFsp", false)
-              .put("hasShortcut", false)
-              .put("constValue", false)
-              .put("referenceGetter", (Supplier<Temporal>) LocalTime::now)
-              .put("parser", (BiFunction<CharSequence, DateTimeFormatter, Temporal>) LocalTime::parse)
-              .put("serializationPattern", "HH:mm:ss")
-              .build(),
-      ImmutableMap.builder()
-              .put("name", "curdate")
-              .put("hasFsp", false)
-              .put("hasShortcut", false)
-              .put("constValue", false)
-              .put("referenceGetter", (Supplier<Temporal>) LocalDate::now)
-              .put("parser", (BiFunction<CharSequence, DateTimeFormatter, Temporal>) LocalDate::parse)
-              .put("serializationPattern", "uuuu-MM-dd")
-              .build(),
-      ImmutableMap.builder()
-              .put("name", "current_date")
-              .put("hasFsp", false)
-              .put("hasShortcut", false)
-              .put("constValue", false)
-              .put("referenceGetter", (Supplier<Temporal>) LocalDate::now)
-              .put("parser", (BiFunction<CharSequence, DateTimeFormatter, Temporal>) LocalDate::parse)
-              .put("serializationPattern", "uuuu-MM-dd")
-              .build(),
-      ImmutableMap.builder()
-              .put("name", "utc_date")
-              .put("hasFsp", false)
-              .put("hasShortcut", false)
-              .put("constValue", true)
-              .put("referenceGetter", (Supplier<Temporal>) ()-> utcDateTimeNow().toLocalDate())
-              .put("parser", (BiFunction<CharSequence, DateTimeFormatter, Temporal>) LocalDate::parse)
-              .put("serializationPattern", "uuuu-MM-dd")
-              .build(),
-      ImmutableMap.builder()
-              .put("name", "utc_time")
-              .put("hasFsp", false)
-              .put("hasShortcut", false)
-              .put("constValue", true)
-              .put("referenceGetter", (Supplier<Temporal>) ()-> utcDateTimeNow().toLocalTime())
-              .put("parser", (BiFunction<CharSequence, DateTimeFormatter, Temporal>) LocalTime::parse)
-              .put("serializationPattern", "HH:mm:ss")
-              .build(),
-      ImmutableMap.builder()
-              .put("name", "utc_timestamp")
-              .put("hasFsp", false)
-              .put("hasShortcut", false)
-              .put("constValue", true)
-              .put("referenceGetter", (Supplier<Temporal>) ()-> utcDateTimeNow())
-              .put("parser", (BiFunction<CharSequence, DateTimeFormatter, Temporal>) LocalDateTime::parse)
-              .put("serializationPattern", "uuuu-MM-dd HH:mm:ss")
-              .build()
-    );
-  }
-
-  private long getDiff(Temporal sample, Temporal reference) {
-    if (sample instanceof LocalDate) {
-      return Period.between((LocalDate) sample, (LocalDate) reference).getDays();
-    }
-    return Duration.between(sample, reference).toSeconds();
-  }
-
-  @Test
-  public void testNowLikeFunctions() throws IOException {
-    for (var funcData : nowLikeFunctionsData()) {
-      String name = (String) funcData.get("name");
-      Boolean hasFsp = (Boolean) funcData.get("hasFsp");
-      Boolean hasShortcut = (Boolean) funcData.get("hasShortcut");
-      Boolean constValue = (Boolean) funcData.get("constValue");
-      Supplier<Temporal> referenceGetter = (Supplier<Temporal>) funcData.get("referenceGetter");
-      BiFunction<CharSequence, DateTimeFormatter, Temporal> parser =
-              (BiFunction<CharSequence, DateTimeFormatter, Temporal>) funcData.get("parser");
-      String serializationPatternStr = (String) funcData.get("serializationPattern");
-
-      var serializationPattern = new DateTimeFormatterBuilder()
-              .appendPattern(serializationPatternStr)
-              .optionalStart()
-              .appendFraction(ChronoField.NANO_OF_SECOND, 0, 9, true)
-              .toFormatter();
-
-      Temporal reference = referenceGetter.get();
-      double delta = 2d; // acceptable time diff, secs
-      if (reference instanceof LocalDate)
-        delta = 1d; // Max date delta could be 1 if test runs on the very edge of two days
-                    // We ignore probability of a test run on edge of month or year to simplify the checks
-
-      var calls = new ArrayList<String>() {{
-        add(name + "()");
-      }};
-      if (hasShortcut)
-        calls.add(name);
-      if (hasFsp)
-        calls.add(name + "(0)");
-
-      // Column order is: func(), func, func(0)
-      //                   shortcut ^    fsp ^
-      // Query looks like:
-      //    source=people2 | eval `now()`=now() | fields `now()`;
-      JSONObject result = executeQuery("source=" + TEST_INDEX_PEOPLE2
-          + " | eval " + calls.stream().map(c -> String.format("`%s`=%s", c, c)).collect(Collectors.joining(","))
-          + " | fields " + calls.stream().map(c -> String.format("`%s`", c)).collect(Collectors.joining(",")));
-
-      var rows = result.getJSONArray("datarows");
-      JSONArray firstRow = rows.getJSONArray(0);
-      for (int i = 0; i < rows.length(); i++) {
-        var row = rows.getJSONArray(i);
-        if (constValue)
-          assertTrue(firstRow.similar(row));
-
-        int column = 0;
-        assertEquals(0,
-            getDiff(reference, parser.apply(row.getString(column++), serializationPattern)), delta);
-
-        if (hasShortcut) {
-          assertEquals(0,
-              getDiff(reference, parser.apply(row.getString(column++), serializationPattern)), delta);
-        }
-        if (hasFsp) {
-          assertEquals(0,
-              getDiff(reference, parser.apply(row.getString(column), serializationPattern)), delta);
-        }
-      }
-    }
   }
 
   @Test

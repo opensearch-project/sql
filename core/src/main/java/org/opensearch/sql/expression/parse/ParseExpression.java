@@ -24,7 +24,7 @@ import org.opensearch.sql.expression.function.FunctionName;
 /**
  * ParseExpression.
  */
-@EqualsAndHashCode
+@EqualsAndHashCode(callSuper = false)
 @ToString
 public abstract class ParseExpression extends FunctionExpression {
   @Getter

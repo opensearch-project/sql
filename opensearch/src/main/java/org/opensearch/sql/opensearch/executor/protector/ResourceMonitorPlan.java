@@ -6,6 +6,9 @@
 
 package org.opensearch.sql.opensearch.executor.protector;
 
+import java.io.IOException;
+import java.io.ObjectInput;
+import java.io.ObjectOutput;
 import java.util.List;
 import lombok.EqualsAndHashCode;
 import lombok.RequiredArgsConstructor;
@@ -21,7 +24,7 @@ import org.opensearch.sql.planner.physical.PhysicalPlanNodeVisitor;
  */
 @ToString
 @RequiredArgsConstructor
-@EqualsAndHashCode
+@EqualsAndHashCode(callSuper = false)
 public class ResourceMonitorPlan extends PhysicalPlan implements SerializablePlan {
 
   /**
@@ -89,9 +92,22 @@ public class ResourceMonitorPlan extends PhysicalPlan implements SerializablePla
     return delegate.getTotalHits();
   }
 
-
   @Override
   public SerializablePlan getPlanForSerialization() {
     return (SerializablePlan) delegate;
+  }
+
+  /**
+   * Those two methods should never be called. They called if a plan upper in the tree missed to
+   * call {@link #getPlanForSerialization}.
+   */
+  @Override
+  public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
+    throw new UnsupportedOperationException();
+  }
+
+  @Override
+  public void writeExternal(ObjectOutput out) throws IOException {
+    throw new UnsupportedOperationException();
   }
 }

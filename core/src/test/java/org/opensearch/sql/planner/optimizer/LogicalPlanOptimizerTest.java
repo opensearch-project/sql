@@ -348,7 +348,7 @@ class LogicalPlanOptimizerTest {
     var relation = relation("schema", table);
 
     assertEquals(
-        paginate(project(pagedTableScanBuilder), 4),
+        project(pagedTableScanBuilder),
         LogicalPlanOptimizer.create().optimize(paginate(project(relation), 4)));
   }
 
@@ -399,9 +399,9 @@ class LogicalPlanOptimizerTest {
     var relation = new LogicalRelation("schema", table);
     var optimized = LogicalPlanOptimizer.create()
         .optimize(new LogicalPaginate(42, List.of(project(relation))));
-    // `optimized` structure: LogicalPaginate -> LogicalProject -> TableScanBuilder
+    // `optimized` structure: LogicalProject -> TableScanBuilder
     // LogicalRelation replaced by a TableScanBuilder instance
-    assertEquals(paginate(project(pagedTableScanBuilder), 42), optimized);
+    assertEquals(project(pagedTableScanBuilder), optimized);
   }
 
   private LogicalPlan optimize(LogicalPlan plan) {

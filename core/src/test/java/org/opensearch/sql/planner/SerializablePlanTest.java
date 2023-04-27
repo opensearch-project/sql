@@ -23,16 +23,6 @@ public class SerializablePlanTest {
   SerializablePlan plan;
 
   @Test
-  void writeExternal_throws() {
-    assertThrows(Throwable.class, () -> plan.writeExternal(null));
-  }
-
-  @Test
-  void readExternal_throws() {
-    assertThrows(Throwable.class, () -> plan.readExternal(null));
-  }
-
-  @Test
   void getPlanForSerialization_defaults_to_self() {
     assertSame(plan, plan.getPlanForSerialization());
   }

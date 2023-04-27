@@ -20,6 +20,7 @@ import static org.opensearch.sql.data.type.ExprCoreType.STRING;
 import static org.opensearch.sql.data.type.ExprCoreType.STRUCT;
 import static org.opensearch.sql.data.type.ExprCoreType.TIME;
 import static org.opensearch.sql.data.type.ExprCoreType.TIMESTAMP;
+import static org.opensearch.sql.utils.DateTimeUtils.UTC_ZONE_ID;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -29,7 +30,6 @@ import java.time.Duration;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
-import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.util.AbstractMap;
 import java.util.ArrayList;
@@ -114,7 +114,7 @@ public class ExprValueUtilsTest {
         LocalDate.parse("2012-08-07"),
         LocalTime.parse("18:00:00"),
         LocalDateTime.parse("2012-08-07T18:00:00"),
-        ZonedDateTime.of(LocalDateTime.parse("2012-08-07T18:00:00"), ZoneId.of("UTC")).toInstant(),
+        ZonedDateTime.of(LocalDateTime.parse("2012-08-07T18:00:00"), UTC_ZONE_ID).toInstant(),
         Duration.ofSeconds(100)
     );
     Stream.Builder<Arguments> builder = Stream.builder();

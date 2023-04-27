@@ -80,6 +80,7 @@ import org.opensearch.sql.ast.tree.ML;
 import org.opensearch.sql.ast.tree.Paginate;
 import org.opensearch.sql.ast.tree.RareTopN.CommandType;
 import org.opensearch.sql.ast.tree.UnresolvedPlan;
+import org.opensearch.sql.common.antlr.SyntaxCheckException;
 import org.opensearch.sql.exception.ExpressionEvaluationException;
 import org.opensearch.sql.exception.SemanticCheckException;
 import org.opensearch.sql.expression.DSL;
@@ -1017,6 +1018,53 @@ class AnalyzerTest extends AnalyzerTestBase {
         )
     );
   }
+
+  /**
+   * Ensure Nested function falls back to legacy engine when used in GROUP BY clause.
+   * TODO Remove this test when support is added.
+   */
+  @Test
+  public void nested_group_by_clause_throws_syntax_exception() {
+    SyntaxCheckException exception = assertThrows(SyntaxCheckException.class,
+        () -> analyze(
+            AstDSL.project(
+                AstDSL.agg(
+                    AstDSL.relation("schema"),
+                    emptyList(),
+                    emptyList(),
+                    ImmutableList.of(alias("nested(message.info)",
+                        function("nested",
+                            qualifiedName("message", "info")))),
+                    emptyList()
+                )))
+    );
+    assertEquals("Falling back to legacy engine. Nested function is not supported in WHERE,"
+            + " GROUP BY, and HAVING clauses.",
+        exception.getMessage());
+  }
+
+  /**
+   * Ensure Nested function falls back to legacy engine when used in WHERE clause.
+   * TODO Remove this test when support is added.
+   */
+  @Test
+  public void nested_where_clause_throws_syntax_exception() {
+    SyntaxCheckException exception = assertThrows(SyntaxCheckException.class,
+        () -> analyze(
+            AstDSL.filter(
+                AstDSL.relation("schema"),
+                AstDSL.equalTo(
+                    AstDSL.function("nested", qualifiedName("message", "info")),
+                    AstDSL.stringLiteral("str")
+                )
+            )
+        )
+    );
+    assertEquals("Falling back to legacy engine. Nested function is not supported in WHERE,"
+            + " GROUP BY, and HAVING clauses.",
+        exception.getMessage());
+  }
+
 
   /**
    * SELECT name, AVG(age) FROM test GROUP BY name.

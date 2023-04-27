@@ -462,6 +462,21 @@ class AstBuilderTest extends AstBuilderTestBase {
         buildAST("SELECT name FROM test ORDER BY name NULLS LAST"));
   }
 
+  /**
+   * Ensure Nested function falls back to legacy engine when used in an ORDER BY clause.
+   * TODO Remove this test when support is added.
+   */
+  @Test
+  public void nested_in_order_by_clause_throws_exception() {
+    SyntaxCheckException exception = assertThrows(SyntaxCheckException.class,
+        () -> buildAST("SELECT * FROM test ORDER BY nested(message.info)")
+    );
+
+    assertEquals(
+        "Falling back to legacy engine. Nested function is not supported in ORDER BY clause.",
+        exception.getMessage());
+  }
+
   @Test
   public void can_build_order_by_sort_order_keyword_insensitive() {
     assertEquals(

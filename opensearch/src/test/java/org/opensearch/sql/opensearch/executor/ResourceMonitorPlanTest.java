@@ -123,4 +123,11 @@ class ResourceMonitorPlanTest {
     monitorPlan = new ResourceMonitorPlan(plan, resourceMonitor);
     assertEquals(plan, monitorPlan.getPlanForSerialization());
   }
+
+  @Test
+  void notSerializable() {
+    // ResourceMonitorPlan shouldn't be serialized, attempt should throw an exception
+    assertThrows(UnsupportedOperationException.class, () -> monitorPlan.writeExternal(null));
+    assertThrows(UnsupportedOperationException.class, () -> monitorPlan.readExternal(null));
+  }
 }

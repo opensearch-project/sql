@@ -17,7 +17,7 @@ import org.opensearch.sql.ast.AbstractNodeVisitor;
 @RequiredArgsConstructor
 @Getter
 @ToString
-@EqualsAndHashCode
+@EqualsAndHashCode(callSuper = false)
 public class Limit extends UnresolvedPlan {
   private UnresolvedPlan child;
   private final Integer limit;

@@ -9,7 +9,6 @@ import java.io.Externalizable;
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
-import org.apache.commons.lang3.NotImplementedException;
 import org.opensearch.sql.executor.pagination.PlanSerializer;
 
 /**
@@ -34,10 +33,7 @@ public interface SerializablePlan extends Externalizable {
    * Argument is an instance of {@link PlanSerializer.CursorDeserializationStream}.
    */
   @Override
-  default void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
-    throw new NotImplementedException(String.format("`readExternal` is not implemented in %s",
-        getClass().getSimpleName()));
-  }
+  void readExternal(ObjectInput in) throws IOException, ClassNotFoundException;
 
   /**
    * Each plan which has as a child plan should do.
@@ -46,10 +42,7 @@ public interface SerializablePlan extends Externalizable {
    * }</pre>
    */
   @Override
-  default void writeExternal(ObjectOutput out) throws IOException {
-    throw new NotImplementedException(String.format("`readExternal` is not implemented in %s",
-        getClass().getSimpleName()));
-  }
+  void writeExternal(ObjectOutput out) throws IOException;
 
   /**
    * Override to return child or delegated plan, so parent plan should skip this one
