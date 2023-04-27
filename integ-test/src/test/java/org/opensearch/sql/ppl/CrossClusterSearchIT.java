@@ -6,6 +6,7 @@
 
 package org.opensearch.sql.ppl;
 
+import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_ACCOUNT;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_BANK;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_DOG;
 import static org.opensearch.sql.util.MatcherUtils.columnName;
@@ -15,13 +16,20 @@ import static org.opensearch.sql.util.MatcherUtils.verifyDataRows;
 
 import java.io.IOException;
 import org.json.JSONObject;
+import org.junit.Rule;
 import org.junit.jupiter.api.Test;
+import org.junit.rules.ExpectedException;
+import org.opensearch.client.ResponseException;
 
 public class CrossClusterSearchIT extends PPLIntegTestCase {
+
+  @Rule
+  public ExpectedException exceptionRule = ExpectedException.none();
 
   private final static String TEST_INDEX_BANK_REMOTE = REMOTE_CLUSTER + ":" + TEST_INDEX_BANK;
   private final static String TEST_INDEX_DOG_REMOTE = REMOTE_CLUSTER + ":" + TEST_INDEX_DOG;
   private final static String TEST_INDEX_DOG_MATCH_ALL_REMOTE = MATCH_ALL_REMOTE_CLUSTER + ":" + TEST_INDEX_DOG;
+  private final static String TEST_INDEX_ACCOUNT_REMOTE = REMOTE_CLUSTER + ":" + TEST_INDEX_ACCOUNT;
 
   @Override
   public void init() throws IOException {
@@ -30,6 +38,7 @@ public class CrossClusterSearchIT extends PPLIntegTestCase {
     loadIndex(Index.BANK, remoteClient());
     loadIndex(Index.DOG);
     loadIndex(Index.DOG, remoteClient());
+    loadIndex(Index.ACCOUNT, remoteClient());
   }
 
   @Test
@@ -42,6 +51,15 @@ public class CrossClusterSearchIT extends PPLIntegTestCase {
   public void testMatchAllCrossClusterSearchAllFields() throws IOException {
     JSONObject result = executeQuery(String.format("search source=%s", TEST_INDEX_DOG_MATCH_ALL_REMOTE));
     verifyColumn(result, columnName("dog_name"), columnName("holdersName"), columnName("age"));
+  }
+
+  @Test
+  public void testCrossClusterSearchWithoutLocalFieldMappingShouldFail() throws IOException {
+    exceptionRule.expect(ResponseException.class);
+    exceptionRule.expectMessage("400 Bad Request");
+    exceptionRule.expectMessage("IndexNotFoundException");
+
+    executeQuery(String.format("search source=%s", TEST_INDEX_ACCOUNT_REMOTE));
   }
 
   @Test
