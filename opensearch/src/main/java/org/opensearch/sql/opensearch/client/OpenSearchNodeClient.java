@@ -112,11 +112,11 @@ public class OpenSearchNodeClient implements OpenSearchClient {
       GetSettingsResponse settingsResponse =
           client.admin().indices().prepareGetSettings(indexExpression).setLocal(true).get();
       ImmutableMap.Builder<String, Integer> result = ImmutableMap.builder();
-      for (ObjectObjectCursor<String, Settings> indexToSetting :
-          settingsResponse.getIndexToSettings()) {
-        Settings settings = indexToSetting.value;
+      for (Map.Entry<String, Settings> indexToSetting :
+          settingsResponse.getIndexToSettings().entrySet()) {
+        Settings settings = indexToSetting.getValue();
         result.put(
-            indexToSetting.key,
+            indexToSetting.getKey(),
             settings.getAsInt(
                 IndexSettings.MAX_RESULT_WINDOW_SETTING.getKey(),
                 IndexSettings.MAX_RESULT_WINDOW_SETTING.getDefault(settings)));
