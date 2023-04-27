@@ -28,9 +28,27 @@ import org.opensearch.client.Request;
 import org.opensearch.sql.legacy.SQLIntegTestCase;
 import org.opensearch.sql.legacy.TestsConstants;
 
-// This class has only one test case, because it is parametrized and takes significant time
+/*
+This class has only one test case, because it is parametrized and takes significant time to run
+ */
 @DisplayNameGeneration(DisplayNameGenerator.ReplaceUnderscores.class)
 public class PaginationFilterIT extends SQLIntegTestCase {
+
+  /**
+   * Map of the OS-SQL statement sent to SQL-plugin, and the total number
+   * of expected hits (on all pages) from the filtered result
+   */
+  final private static Map<String, Integer> STATEMENT_TO_NUM_OF_PAGES = Map.of(
+      "SELECT * FROM " + TestsConstants.TEST_INDEX_ACCOUNT, 1000,
+      "SELECT * FROM " + TestsConstants.TEST_INDEX_ACCOUNT + " WHERE match(address, 'street')", 385,
+      "SELECT * FROM " + TestsConstants.TEST_INDEX_ACCOUNT + " WHERE match(address, 'street') AND match(city, 'Ola')", 1,
+      "SELECT firstname, lastname, highlight(address) FROM " + TestsConstants.TEST_INDEX_ACCOUNT + " WHERE match(address, 'street') AND match(state, 'OH')", 5,
+      "SELECT firstname, lastname, highlight('*') FROM " + TestsConstants.TEST_INDEX_ACCOUNT + " WHERE match(address, 'street') AND match(state, 'OH')", 5,
+      "SELECT * FROM " + TestsConstants.TEST_INDEX_BEER + " WHERE true", 60,
+      "SELECT * FROM " + TestsConstants.TEST_INDEX_BEER + " WHERE Id=10", 1,
+      "SELECT * FROM " + TestsConstants.TEST_INDEX_BEER + " WHERE Id + 5=15", 1,
+      "SELECT * FROM " + TestsConstants.TEST_INDEX_BANK, 7
+  );
 
   private final String sqlStatement;
 
@@ -55,12 +73,10 @@ public class PaginationFilterIT extends SQLIntegTestCase {
 
   @ParametersFactory(argumentFormatting = "select = %1$s, total_hits = %2$d, page_size = %3$d")
   public static Iterable<Object[]> compareTwoDates() {
-    Map<String, Integer> statements = new PaginationBlackboxHelper().getStatements();
-
     List<Integer> pageSizes = List.of(5, 1000);
     List<Object[]> testData = new ArrayList<Object[]>();
 
-    statements.forEach((statement, totalHits) -> {
+    STATEMENT_TO_NUM_OF_PAGES.forEach((statement, totalHits) -> {
       for (var pageSize : pageSizes) {
         testData.add(new Object[] { statement, totalHits, pageSize });
       }
@@ -123,30 +139,5 @@ public class PaginationFilterIT extends SQLIntegTestCase {
         totalResultsCount, pagedSize);
     assertEquals(testReportPrefix + "Paged responses returned an unexpected rows count",
         rows.length(), rowsPaged.length());
-  }
-
-  // A dummy class created, because accessing to `client()` isn't available from a static context,
-  // but it is needed before an instance of `PaginationBlackboxIT` is created.
-  private static class PaginationBlackboxHelper extends SQLIntegTestCase {
-
-    /**
-     * Map of the OS-SQL statement sent to SQL-plugin, and the total number
-     * of expected hits (on all pages) from the filtered result
-     */
-    final private static Map<String, Integer> STATEMENT_TO_NUM_OF_PAGES = Map.of(
-        "SELECT * FROM " + TestsConstants.TEST_INDEX_ACCOUNT, 1000,
-        "SELECT * FROM " + TestsConstants.TEST_INDEX_ACCOUNT + " WHERE match(address, 'street')", 385,
-        "SELECT * FROM " + TestsConstants.TEST_INDEX_ACCOUNT + " WHERE match(address, 'street') AND match(city, 'Ola')", 1,
-        "SELECT firstname, lastname, highlight(address) FROM " + TestsConstants.TEST_INDEX_ACCOUNT + " WHERE match(address, 'street') AND match(state, 'OH')", 5,
-        "SELECT firstname, lastname, highlight('*') FROM " + TestsConstants.TEST_INDEX_ACCOUNT + " WHERE match(address, 'street') AND match(state, 'OH')", 5,
-        "SELECT * FROM " + TestsConstants.TEST_INDEX_BEER + " WHERE true", 60,
-        "SELECT * FROM " + TestsConstants.TEST_INDEX_BEER + " WHERE Id=10", 1,
-        "SELECT * FROM " + TestsConstants.TEST_INDEX_BEER + " WHERE Id + 5=15", 1,
-        "SELECT * FROM " + TestsConstants.TEST_INDEX_BANK, 7
-    );
-
-    private Map<String, Integer> getStatements() {
-      return STATEMENT_TO_NUM_OF_PAGES;
-    }
   }
 }
