@@ -43,7 +43,7 @@ Example search command ::
 
 Limitation
 ==========
-Since OpenSearch does not support cross cluster system index query, field mapping of a remote cluster index is not available to the local cluster.
+Since OpenSearch does not support cross cluster index metadata retrieval, field mapping of a remote cluster index is not available to the local cluster.
 (`[Feature] Cross cluster field mappings query #6573 <https://github.com/opensearch-project/OpenSearch/issues/6573>`_)
 Therefore, the query engine requires that for any remote cluster index that the users need to search,
 the local cluster keep a field mapping system index with the same index name.
@@ -64,7 +64,7 @@ Example: Create the ppl_role for test_user on local cluster and the ccs_role for
 
 1. On the local cluster, refer to `Security Settings <security.rst>`_ to create role and user for PPL plugin and index access permission.
 
-2. On the remote cluster, create a new role and grant permission to access index. Create a user the same as the local cluster, and map the user to this role::
+2. On the remote cluster, create a new role and grant permission to access index. Create a user with the same name and credentials as the local cluster, and map the user to this role::
 
     PUT _plugins/_security/api/roles/ccs_role
     {

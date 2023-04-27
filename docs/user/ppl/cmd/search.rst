@@ -23,6 +23,11 @@ search source=[<remote-cluster>:]<index> [boolean-expression]
 * bool-expression: optional. any expression which could be evaluated to boolean value.
 
 
+Cross-Cluster Search
+====================
+Cross-cluster search lets any node in a cluster execute search requests against other clusters. Refer to `Cross-Cluster Search <admin/cross_cluster_search.rst>`_ for configuration.
+
+
 Example 1: Fetch all the data
 =============================
 
