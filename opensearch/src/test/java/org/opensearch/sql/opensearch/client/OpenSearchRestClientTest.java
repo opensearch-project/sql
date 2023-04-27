@@ -54,7 +54,6 @@ import org.opensearch.client.indices.GetMappingsRequest;
 import org.opensearch.client.indices.GetMappingsResponse;
 import org.opensearch.cluster.metadata.IndexMetadata;
 import org.opensearch.cluster.metadata.MappingMetadata;
-import org.opensearch.common.collect.ImmutableOpenMap;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.common.unit.TimeValue;
 import org.opensearch.common.xcontent.XContentType;
@@ -240,9 +239,9 @@ class OpenSearchRestClientTest {
         .put("index.max_result_window", maxResultWindow)
         .build();
     Settings emptySettings = Settings.builder().build();
-    ImmutableOpenMap<String, Settings> indexToSettings =
+    Map<String, Settings> indexToSettings =
         mockSettings(indexName, maxResultWindowSettings);
-    ImmutableOpenMap<String, Settings> indexToDefaultSettings =
+    Map<String, Settings> indexToDefaultSettings =
         mockSettings(indexName, emptySettings);
     when(response.getIndexToSettings()).thenReturn(indexToSettings);
     when(response.getIndexToDefaultSettings()).thenReturn(indexToDefaultSettings);
@@ -264,9 +263,9 @@ class OpenSearchRestClientTest {
         .put("index.max_result_window", maxResultWindow)
         .build();
     Settings emptySettings = Settings.builder().build();
-    ImmutableOpenMap<String, Settings> indexToSettings =
+    Map<String, Settings> indexToSettings =
         mockSettings(indexName, emptySettings);
-    ImmutableOpenMap<String, Settings> indexToDefaultSettings =
+    Map<String, Settings> indexToDefaultSettings =
         mockSettings(indexName, maxResultWindowSettings);
     when(response.getIndexToSettings()).thenReturn(indexToSettings);
     when(response.getIndexToDefaultSettings()).thenReturn(indexToDefaultSettings);
@@ -451,10 +450,8 @@ class OpenSearchRestClientTest {
     return ImmutableMap.of(indexName, IndexMetadata.fromXContent(createParser(mappings)).mapping());
   }
 
-  private ImmutableOpenMap<String, Settings> mockSettings(String indexName, Settings settings) {
-    ImmutableOpenMap.Builder<String, Settings> indexToSettingsBuilder = ImmutableOpenMap.builder();
-    indexToSettingsBuilder.put(indexName, settings);
-    return indexToSettingsBuilder.build();
+  private Map<String, Settings> mockSettings(String indexName, Settings settings) {
+    return Map.of(indexName, settings);
   }
 
   private XContentParser createParser(String mappings) throws IOException {
