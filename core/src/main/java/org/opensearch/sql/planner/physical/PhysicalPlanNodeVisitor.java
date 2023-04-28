@@ -92,8 +92,4 @@ public abstract class PhysicalPlanNodeVisitor<R, C> {
   public R visitML(PhysicalPlan node, C context) {
     return visitNode(node, context);
   }
-
-  public R visitPaginate(PaginateOperator node, C context) {
-    return visitNode(node, context);
-  }
 }
