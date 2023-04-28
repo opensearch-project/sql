@@ -29,7 +29,6 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.io.Resources;
 import java.io.IOException;
 import java.net.URL;
-import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -98,12 +97,9 @@ class OpenSearchNodeClientTest {
   private SearchHit searchHit;
 
   @Mock
-  private ThreadContext threadContext;
-
-  @Mock
   private GetIndexResponse indexResponse;
 
-  private ExprTupleValue exprTupleValue = ExprTupleValue.fromExprValueMap(ImmutableMap.of("id",
+  private final ExprTupleValue exprTupleValue = ExprTupleValue.fromExprValueMap(ImmutableMap.of("id",
       new ExprIntegerValue(1)));
 
   private OpenSearchClient client;
@@ -455,8 +451,8 @@ class OpenSearchNodeClientTest {
     GetSettingsResponse mockResponse = mock(GetSettingsResponse.class);
     when(nodeClient.admin().indices().prepareGetSettings(any()).setLocal(anyBoolean()).get())
         .thenReturn(mockResponse);
-    Map<String, Settings> metadata = Map.of(indexName,
-        IndexMetadata.fromXContent(createParser(indexMetadata)).getSettings());
+    Map<String, Settings> metadata =Map.of(indexName,
+      IndexMetadata.fromXContent(createParser(indexMetadata)).getSettings());
 
     when(mockResponse.getIndexToSettings()).thenReturn(metadata);
   }

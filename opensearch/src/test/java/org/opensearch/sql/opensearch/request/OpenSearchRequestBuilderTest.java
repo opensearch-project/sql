@@ -6,9 +6,10 @@
 
 package org.opensearch.sql.opensearch.request;
 
+import static org.junit.Assert.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
 import static org.opensearch.index.query.QueryBuilders.matchAllQuery;
 import static org.opensearch.index.query.QueryBuilders.nestedQuery;
 import static org.opensearch.search.sort.FieldSortBuilder.DOC_FIELD_NAME;
@@ -43,6 +44,7 @@ import org.opensearch.search.sort.FieldSortBuilder;
 import org.opensearch.search.sort.ScoreSortBuilder;
 import org.opensearch.search.sort.SortBuilders;
 import org.opensearch.sql.common.setting.Settings;
+import org.opensearch.sql.exception.SemanticCheckException;
 import org.opensearch.sql.expression.DSL;
 import org.opensearch.sql.expression.NamedExpression;
 import org.opensearch.sql.expression.ReferenceExpression;
@@ -55,13 +57,15 @@ import org.opensearch.sql.planner.logical.LogicalNested;
 
 @ExtendWith(MockitoExtension.class)
 @DisplayNameGeneration(DisplayNameGenerator.ReplaceUnderscores.class)
-public class OpenSearchRequestBuilderTest {
+class OpenSearchRequestBuilderTest {
 
   private static final TimeValue DEFAULT_QUERY_TIMEOUT = TimeValue.timeValueMinutes(1L);
   private static final Integer DEFAULT_OFFSET = 0;
   private static final Integer DEFAULT_LIMIT = 200;
   private static final Integer MAX_RESULT_WINDOW = 500;
 
+  private static final OpenSearchRequest.IndexName indexName
+      = new OpenSearchRequest.IndexName("test");
   @Mock
   private Settings settings;
 
@@ -72,18 +76,18 @@ public class OpenSearchRequestBuilderTest {
 
   @BeforeEach
   void setup() {
-    when(settings.getSettingValue(Settings.Key.QUERY_SIZE_LIMIT)).thenReturn(200);
-    when(settings.getSettingValue(Settings.Key.SQL_CURSOR_KEEP_ALIVE))
+    lenient().when(settings.getSettingValue(Settings.Key.QUERY_SIZE_LIMIT))
+        .thenReturn(DEFAULT_LIMIT);
+    lenient().when(settings.getSettingValue(Settings.Key.SQL_CURSOR_KEEP_ALIVE))
         .thenReturn(TimeValue.timeValueMinutes(1));
 
-    requestBuilder = new OpenSearchRequestBuilder(
-        "test", MAX_RESULT_WINDOW, settings, exprValueFactory);
+    requestBuilder = new OpenSearchRequestBuilder(DEFAULT_LIMIT, exprValueFactory);
   }
 
   @Test
   void build_query_request() {
-    Integer limit = 200;
-    Integer offset = 0;
+    int limit = 200;
+    int offset = 0;
     requestBuilder.pushDownLimit(limit, offset);
     requestBuilder.pushDownTrackedScore(true);
 
@@ -96,7 +100,7 @@ public class OpenSearchRequestBuilderTest {
                 .timeout(DEFAULT_QUERY_TIMEOUT)
                 .trackScores(true),
             exprValueFactory),
-        requestBuilder.build());
+        requestBuilder.build(indexName, MAX_RESULT_WINDOW, settings));
   }
 
   @Test
@@ -113,7 +117,7 @@ public class OpenSearchRequestBuilderTest {
                 .size(MAX_RESULT_WINDOW - offset)
                 .timeout(DEFAULT_QUERY_TIMEOUT),
         exprValueFactory),
-        requestBuilder.build());
+        requestBuilder.build(indexName, MAX_RESULT_WINDOW, settings));
   }
 
   @Test
@@ -128,7 +132,7 @@ public class OpenSearchRequestBuilderTest {
             .timeout(DEFAULT_QUERY_TIMEOUT)
             .query(query)
             .sort(DOC_FIELD_NAME, ASC),
-        requestBuilder.getSourceBuilder()
+        requestBuilder.build(indexName, MAX_RESULT_WINDOW, settings).getSourceBuilder()
     );
   }
 
@@ -168,7 +172,7 @@ public class OpenSearchRequestBuilderTest {
             .timeout(DEFAULT_QUERY_TIMEOUT)
             .query(query)
             .sort(sortBuilder),
-        requestBuilder.getSourceBuilder());
+        requestBuilder.build(indexName, MAX_RESULT_WINDOW, settings).getSourceBuilder());
   }
 
   @Test
@@ -182,7 +186,7 @@ public class OpenSearchRequestBuilderTest {
             .size(DEFAULT_LIMIT)
             .timeout(DEFAULT_QUERY_TIMEOUT)
             .sort(sortBuilder),
-        requestBuilder.getSourceBuilder());
+        requestBuilder.build(indexName, MAX_RESULT_WINDOW, settings).getSourceBuilder());
   }
 
   @Test
@@ -196,7 +200,7 @@ public class OpenSearchRequestBuilderTest {
             .size(DEFAULT_LIMIT)
             .timeout(DEFAULT_QUERY_TIMEOUT)
             .sort(sortBuilder),
-        requestBuilder.getSourceBuilder());
+        requestBuilder.build(indexName, MAX_RESULT_WINDOW, settings).getSourceBuilder());
   }
 
   @Test
@@ -212,7 +216,7 @@ public class OpenSearchRequestBuilderTest {
             .timeout(DEFAULT_QUERY_TIMEOUT)
             .sort(SortBuilders.fieldSort("intA"))
             .sort(SortBuilders.fieldSort("intB")),
-        requestBuilder.getSourceBuilder());
+        requestBuilder.build(indexName, MAX_RESULT_WINDOW, settings).getSourceBuilder());
   }
 
   @Test
@@ -226,7 +230,7 @@ public class OpenSearchRequestBuilderTest {
             .size(DEFAULT_LIMIT)
             .timeout(DEFAULT_QUERY_TIMEOUT)
             .fetchSource(new String[]{"intA"}, new String[0]),
-        requestBuilder.getSourceBuilder());
+        requestBuilder.build(indexName, MAX_RESULT_WINDOW, settings).getSourceBuilder());
   }
 
   @Test
@@ -256,7 +260,7 @@ public class OpenSearchRequestBuilderTest {
             .from(DEFAULT_OFFSET)
             .size(DEFAULT_LIMIT)
             .timeout(DEFAULT_QUERY_TIMEOUT),
-        requestBuilder.getSourceBuilder());
+        requestBuilder.build(indexName, MAX_RESULT_WINDOW, settings).getSourceBuilder());
   }
 
   @Test
@@ -289,7 +293,7 @@ public class OpenSearchRequestBuilderTest {
             .from(DEFAULT_OFFSET)
             .size(DEFAULT_LIMIT)
             .timeout(DEFAULT_QUERY_TIMEOUT),
-        requestBuilder.getSourceBuilder());
+        requestBuilder.build(indexName, MAX_RESULT_WINDOW, settings).getSourceBuilder());
   }
 
   @Test
@@ -326,7 +330,7 @@ public class OpenSearchRequestBuilderTest {
             .from(DEFAULT_OFFSET)
             .size(DEFAULT_LIMIT)
             .timeout(DEFAULT_QUERY_TIMEOUT),
-        requestBuilder.getSourceBuilder());
+        requestBuilder.build(indexName, MAX_RESULT_WINDOW, settings).getSourceBuilder());
   }
 
   @Test
@@ -335,5 +339,13 @@ public class OpenSearchRequestBuilderTest {
     requestBuilder.pushTypeMapping(typeMapping);
 
     verify(exprValueFactory).extendTypeMapping(typeMapping);
+  }
+
+  @Test
+  void push_down_highlight_with_repeating_fields() {
+    requestBuilder.pushDownHighlight("name", Map.of());
+    var exception = assertThrows(SemanticCheckException.class, () ->
+      requestBuilder.pushDownHighlight("name", Map.of()));
+    assertEquals("Duplicate field name in highlight", exception.getMessage());
   }
 }

@@ -6,18 +6,28 @@
 
 package org.opensearch.sql.opensearch.storage.scan;
 
+import java.io.IOException;
+import java.io.ObjectInput;
+import java.io.ObjectOutput;
 import java.util.Collections;
 import java.util.Iterator;
 import lombok.EqualsAndHashCode;
-import lombok.Getter;
 import lombok.ToString;
+import org.opensearch.common.unit.TimeValue;
 import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.data.model.ExprValue;
+import org.opensearch.sql.exception.NoCursorException;
+import org.opensearch.sql.executor.pagination.PlanSerializer;
 import org.opensearch.sql.opensearch.client.OpenSearchClient;
 import org.opensearch.sql.opensearch.data.value.OpenSearchExprValueFactory;
+import org.opensearch.sql.opensearch.request.ContinuePageRequestBuilder;
 import org.opensearch.sql.opensearch.request.OpenSearchRequest;
 import org.opensearch.sql.opensearch.request.OpenSearchRequestBuilder;
+import org.opensearch.sql.opensearch.request.PushDownRequestBuilder;
 import org.opensearch.sql.opensearch.response.OpenSearchResponse;
+import org.opensearch.sql.opensearch.storage.OpenSearchIndex;
+import org.opensearch.sql.opensearch.storage.OpenSearchStorageEngine;
+import org.opensearch.sql.planner.SerializablePlan;
 import org.opensearch.sql.storage.TableScanOperator;
 
 /**
@@ -25,21 +35,23 @@ import org.opensearch.sql.storage.TableScanOperator;
  */
 @EqualsAndHashCode(onlyExplicitlyIncluded = true, callSuper = false)
 @ToString(onlyExplicitlyIncluded = true)
-public class OpenSearchIndexScan extends TableScanOperator {
+public class OpenSearchIndexScan extends TableScanOperator implements SerializablePlan {
 
   /** OpenSearch client. */
-  private final OpenSearchClient client;
+  private transient OpenSearchClient client;
 
+  private transient OpenSearchRequest.IndexName indexName;
+  private transient Settings settings;
+  private transient Integer maxResultWindow;
   /** Search request builder. */
   @EqualsAndHashCode.Include
-  @Getter
   @ToString.Include
-  private final OpenSearchRequestBuilder requestBuilder;
+  private transient PushDownRequestBuilder requestBuilder;
 
   /** Search request. */
   @EqualsAndHashCode.Include
   @ToString.Include
-  private OpenSearchRequest request;
+  private transient OpenSearchRequest request;
 
   /** Total query size. */
   @EqualsAndHashCode.Include
@@ -50,39 +62,42 @@ public class OpenSearchIndexScan extends TableScanOperator {
   private Integer queryCount;
 
   /** Search response for current batch. */
-  private Iterator<ExprValue> iterator;
+  private transient Iterator<ExprValue> iterator;
 
   /**
    * Constructor.
    */
-  public OpenSearchIndexScan(OpenSearchClient client, Settings settings,
-                             String indexName, Integer maxResultWindow,
-                             OpenSearchExprValueFactory exprValueFactory) {
-    this(
-            client,
-            settings,
-            new OpenSearchRequest.IndexName(indexName),
-            maxResultWindow,
-            exprValueFactory
-    );
+  public static OpenSearchIndexScan create(OpenSearchClient client,
+                                           String indexName,
+                                           Settings settings,
+                                           Integer maxResultWindow,
+                                           OpenSearchExprValueFactory exprValueFactory) {
+    final var name = new OpenSearchRequest.IndexName(indexName);
+    final int defaultQuerySize = settings.getSettingValue(Settings.Key.QUERY_SIZE_LIMIT);
+    final var requestBuilder = new OpenSearchRequestBuilder(defaultQuerySize, exprValueFactory);
+    return new OpenSearchIndexScan(client, name,
+        settings, maxResultWindow, requestBuilder);
   }
 
-  /**
-   * Constructor.
-   */
-  public OpenSearchIndexScan(OpenSearchClient client, Settings settings,
-                             OpenSearchRequest.IndexName indexName, Integer maxResultWindow,
-                             OpenSearchExprValueFactory exprValueFactory) {
+
+  public OpenSearchIndexScan(OpenSearchClient client,
+                             OpenSearchRequest.IndexName indexName,
+                             Settings settings,
+                             Integer maxResultWindow,
+                             PushDownRequestBuilder requestBuilder) {
     this.client = client;
-    this.requestBuilder = new OpenSearchRequestBuilder(
-        indexName, maxResultWindow, settings, exprValueFactory);
+    this.indexName = indexName;
+    this.settings = settings;
+    this.maxResultWindow = maxResultWindow;
+    this.requestBuilder = requestBuilder;
   }
 
   @Override
   public void open() {
     super.open();
+    request = requestBuilder.build(indexName, maxResultWindow, settings);
+    // TODO does this work for paged requests?
     querySize = requestBuilder.getQuerySize();
-    request = requestBuilder.build();
     iterator = Collections.emptyIterator();
     queryCount = 0;
     fetchNextBatch();
@@ -126,6 +141,44 @@ public class OpenSearchIndexScan extends TableScanOperator {
 
   @Override
   public String explain() {
-    return getRequestBuilder().build().toString();
+    return requestBuilder.build(indexName, maxResultWindow, settings).toString();
+  }
+
+  /**
+   * @deprecated Exists only to satisfy Java serialization API.
+   */
+  @Deprecated(since="introduction")
+  public OpenSearchIndexScan() {
+  }
+
+  @Override
+  public void readExternal(ObjectInput in) throws IOException {
+    var serializedName = in.readUTF();
+    var scrollId = in.readUTF();
+    querySize = in.readInt();
+
+    var engine = (OpenSearchStorageEngine) ((PlanSerializer.CursorDeserializationStream) in)
+        .resolveObject("engine");
+
+    indexName = new OpenSearchRequest.IndexName(serializedName);
+    client = engine.getClient();
+    settings = engine.getSettings();
+    var index = new OpenSearchIndex(client, settings, indexName.toString());
+    maxResultWindow = index.getMaxResultWindow();
+
+    TimeValue scrollTimeout = settings.getSettingValue(Settings.Key.SQL_CURSOR_KEEP_ALIVE);
+    requestBuilder = new ContinuePageRequestBuilder(scrollId, scrollTimeout,
+        new OpenSearchExprValueFactory(index.getFieldOpenSearchTypes()));
+  }
+
+  @Override
+  public void writeExternal(ObjectOutput out) throws IOException {
+    if (request.toCursor() == null || request.toCursor().isEmpty()) {
+      throw new NoCursorException();
+    }
+
+    out.writeUTF(indexName.toString());
+    out.writeUTF(request.toCursor());
+    out.writeInt(querySize);
   }
 }

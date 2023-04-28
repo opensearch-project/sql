@@ -88,7 +88,8 @@ public class OpenSearchScrollRequest implements OpenSearchRequest {
         : List.of();
 
     var response = new OpenSearchResponse(openSearchResponse, exprValueFactory, includes);
-    if (!(needClean = response.isEmpty())) {
+    needClean = response.isEmpty();
+    if (!needClean) {
       setScrollId(openSearchResponse.getScrollId());
     }
     return response;

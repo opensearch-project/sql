@@ -5,14 +5,16 @@
 
 package org.opensearch.sql.opensearch.storage.scan;
 
-import com.google.common.annotations.VisibleForTesting;
+import java.util.function.Function;
 import lombok.EqualsAndHashCode;
 import org.opensearch.sql.expression.ReferenceExpression;
+import org.opensearch.sql.opensearch.request.OpenSearchRequestBuilder;
 import org.opensearch.sql.planner.logical.LogicalAggregation;
 import org.opensearch.sql.planner.logical.LogicalFilter;
 import org.opensearch.sql.planner.logical.LogicalHighlight;
 import org.opensearch.sql.planner.logical.LogicalLimit;
 import org.opensearch.sql.planner.logical.LogicalNested;
+import org.opensearch.sql.planner.logical.LogicalPaginate;
 import org.opensearch.sql.planner.logical.LogicalProject;
 import org.opensearch.sql.planner.logical.LogicalSort;
 import org.opensearch.sql.storage.TableScanOperator;
@@ -25,32 +27,33 @@ import org.opensearch.sql.storage.read.TableScanBuilder;
  */
 public class OpenSearchIndexScanBuilder extends TableScanBuilder {
 
+  @EqualsAndHashCode.Exclude
+  private final Function<OpenSearchRequestBuilder, OpenSearchIndexScan> constructor;
   /**
    * Delegated index scan builder for non-aggregate or aggregate query.
    */
   @EqualsAndHashCode.Include
-  private TableScanBuilder delegate;
+  private PushDownTranslator delegate;
 
   /** Is limit operator pushed down. */
   private boolean isLimitPushedDown = false;
 
-  @VisibleForTesting
-  OpenSearchIndexScanBuilder(TableScanBuilder delegate) {
-    this.delegate = delegate;
-  }
+  public OpenSearchIndexScanBuilder(Function<OpenSearchRequestBuilder, OpenSearchIndexScan> constructor,
+                                    OpenSearchRequestBuilder requestBuilder) {
+    this.constructor = constructor;
+    this.delegate
+        = new OpenSearchIndexScanQueryBuilder(requestBuilder);
 
-  /**
-   * Initialize with given index scan.
-   *
-   * @param indexScan index scan to optimize
-   */
-  public OpenSearchIndexScanBuilder(OpenSearchIndexScan indexScan) {
-    this.delegate = new OpenSearchIndexScanQueryBuilder(indexScan);
+  }
+  public OpenSearchIndexScanBuilder(Function<OpenSearchRequestBuilder, OpenSearchIndexScan> constructor,
+                                     PushDownTranslator translator) {
+    this.constructor = constructor;
+    this.delegate = translator;
   }
 
   @Override
   public TableScanOperator build() {
-    return delegate.build();
+    return constructor.apply(delegate.build());
   }
 
   @Override
@@ -66,10 +69,17 @@ public class OpenSearchIndexScanBuilder extends TableScanBuilder {
 
     // Switch to builder for aggregate query which has different push down logic
     //  for later filter, sort and limit operator.
-    delegate = new OpenSearchIndexScanAggregationBuilder(
-        (OpenSearchIndexScan) delegate.build());
+    delegate = new OpenSearchIndexScanAggregationBuilder(delegate.build());
 
     return delegate.pushDownAggregation(aggregation);
+  }
+
+  @Override
+  public boolean pushDownPageSize(LogicalPaginate paginate) {
+    if (isLimitPushedDown) {
+      throw new IllegalStateException("Pagination has to be pushed down before limit.");
+    }
+    return delegate.pushDownPageSize(paginate);
   }
 
   @Override

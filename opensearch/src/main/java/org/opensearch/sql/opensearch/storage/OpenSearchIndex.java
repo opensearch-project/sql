@@ -7,9 +7,6 @@
 package org.opensearch.sql.opensearch.storage;
 
 import com.google.common.annotations.VisibleForTesting;
-import java.util.HashMap;
-import java.util.LinkedHashMap;
-import java.util.Map;
 import lombok.RequiredArgsConstructor;
 import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.data.type.ExprCoreType;
@@ -20,14 +17,11 @@ import org.opensearch.sql.opensearch.data.value.OpenSearchExprValueFactory;
 import org.opensearch.sql.opensearch.planner.physical.ADOperator;
 import org.opensearch.sql.opensearch.planner.physical.MLCommonsOperator;
 import org.opensearch.sql.opensearch.planner.physical.MLOperator;
-import org.opensearch.sql.opensearch.request.InitialPageRequestBuilder;
 import org.opensearch.sql.opensearch.request.OpenSearchRequest;
 import org.opensearch.sql.opensearch.request.OpenSearchRequestBuilder;
 import org.opensearch.sql.opensearch.request.system.OpenSearchDescribeIndexRequest;
 import org.opensearch.sql.opensearch.storage.scan.OpenSearchIndexScan;
 import org.opensearch.sql.opensearch.storage.scan.OpenSearchIndexScanBuilder;
-import org.opensearch.sql.opensearch.storage.scan.OpenSearchPagedIndexScan;
-import org.opensearch.sql.opensearch.storage.scan.OpenSearchPagedIndexScanBuilder;
 import org.opensearch.sql.planner.DefaultImplementor;
 import org.opensearch.sql.planner.logical.LogicalAD;
 import org.opensearch.sql.planner.logical.LogicalML;
@@ -36,6 +30,11 @@ import org.opensearch.sql.planner.logical.LogicalPlan;
 import org.opensearch.sql.planner.physical.PhysicalPlan;
 import org.opensearch.sql.storage.Table;
 import org.opensearch.sql.storage.read.TableScanBuilder;
+
+import java.util.HashMap;
+import java.util.LinkedHashMap;
+import java.util.Map;
+import java.util.function.Function;
 
 /** OpenSearch table (index) implementation. */
 public class OpenSearchIndex implements Table {
@@ -169,27 +168,16 @@ public class OpenSearchIndex implements Table {
   }
 
   @Override
-  public LogicalPlan optimize(LogicalPlan plan) {
-    // No-op because optimization already done in Planner
-    return plan;
-  }
-
-  @Override
   public TableScanBuilder createScanBuilder() {
     Map<String, OpenSearchDataType> allFields = new HashMap<>();
     getReservedFieldTypes().forEach((k, v) -> allFields.put(k, OpenSearchDataType.of(v)));
     allFields.putAll(getFieldOpenSearchTypes());
-    OpenSearchIndexScan indexScan = new OpenSearchIndexScan(client, settings, indexName,
-        getMaxResultWindow(), new OpenSearchExprValueFactory(allFields));
-    return new OpenSearchIndexScanBuilder(indexScan);
-  }
-
-  @Override
-  public TableScanBuilder createPagedScanBuilder(int pageSize) {
-    var requestBuilder = new InitialPageRequestBuilder(indexName, pageSize, settings,
-        new OpenSearchExprValueFactory(getFieldOpenSearchTypes()));
-    var indexScan = new OpenSearchPagedIndexScan(client, requestBuilder);
-    return new OpenSearchPagedIndexScanBuilder(indexScan);
+    Function<OpenSearchRequestBuilder, OpenSearchIndexScan> buildScan
+        = t -> new OpenSearchIndexScan(client, indexName, settings, getMaxResultWindow(), t);
+    var builder = new OpenSearchRequestBuilder(
+        settings.getSettingValue(Settings.Key.QUERY_SIZE_LIMIT),
+        new OpenSearchExprValueFactory(allFields));
+    return new OpenSearchIndexScanBuilder(buildScan, builder);
   }
 
   @VisibleForTesting

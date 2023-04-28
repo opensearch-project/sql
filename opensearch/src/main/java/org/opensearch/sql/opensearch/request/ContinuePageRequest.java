@@ -5,9 +5,6 @@
 
 package org.opensearch.sql.opensearch.request;
 
-import java.util.List;
-import java.util.function.Consumer;
-import java.util.function.Function;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
@@ -20,11 +17,14 @@ import org.opensearch.search.builder.SearchSourceBuilder;
 import org.opensearch.sql.opensearch.data.value.OpenSearchExprValueFactory;
 import org.opensearch.sql.opensearch.response.OpenSearchResponse;
 
+import java.util.List;
+import java.util.function.Consumer;
+import java.util.function.Function;
+
 /**
  * Scroll (cursor) request is used to page the search. This request is not configurable and has
  * no search query. It just handles paging through responses to the initial request.
  * It is used on second and next pagination (cursor) requests.
- * First (initial) request is handled by {@link InitialPageRequestBuilder}.
  */
 @EqualsAndHashCode
 @RequiredArgsConstructor

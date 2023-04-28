@@ -96,17 +96,17 @@ class OpenSearchExecutionEngineTest {
     List<ExprValue> actual = new ArrayList<>();
     executor.execute(
         plan,
-        new ResponseListener<QueryResponse>() {
-          @Override
-          public void onResponse(QueryResponse response) {
-            actual.addAll(response.getResults());
-          }
+      new ResponseListener<>() {
+        @Override
+        public void onResponse(QueryResponse response) {
+          actual.addAll(response.getResults());
+        }
 
-          @Override
-          public void onFailure(Exception e) {
-            fail("Error occurred during execution", e);
-          }
-        });
+        @Override
+        public void onFailure(Exception e) {
+          fail("Error occurred during execution", e);
+        }
+      });
 
     assertTrue(plan.hasOpen);
     assertEquals(expected, actual);
@@ -126,18 +126,18 @@ class OpenSearchExecutionEngineTest {
     List<ExprValue> actual = new ArrayList<>();
     executor.execute(
         plan,
-        new ResponseListener<QueryResponse>() {
-          @Override
-          public void onResponse(QueryResponse response) {
-            actual.addAll(response.getResults());
-            assertTrue(response.getCursor().toString().startsWith("n:"));
-          }
+      new ResponseListener<>() {
+        @Override
+        public void onResponse(QueryResponse response) {
+          actual.addAll(response.getResults());
+          assertTrue(response.getCursor().toString().startsWith("n:"));
+        }
 
-          @Override
-          public void onFailure(Exception e) {
-            fail("Error occurred during execution", e);
-          }
-        });
+        @Override
+        public void onFailure(Exception e) {
+          fail("Error occurred during execution", e);
+        }
+      });
 
     assertEquals(expected, actual);
   }
@@ -154,17 +154,17 @@ class OpenSearchExecutionEngineTest {
     AtomicReference<Exception> actual = new AtomicReference<>();
     executor.execute(
         plan,
-        new ResponseListener<QueryResponse>() {
-          @Override
-          public void onResponse(QueryResponse response) {
-            fail("Expected error didn't happen");
-          }
+      new ResponseListener<>() {
+        @Override
+        public void onResponse(QueryResponse response) {
+          fail("Expected error didn't happen");
+        }
 
-          @Override
-          public void onFailure(Exception e) {
-            actual.set(e);
-          }
-        });
+        @Override
+        public void onFailure(Exception e) {
+          actual.set(e);
+        }
+      });
     assertEquals(expected, actual.get());
     verify(plan).close();
   }
@@ -178,11 +178,11 @@ class OpenSearchExecutionEngineTest {
     when(settings.getSettingValue(SQL_CURSOR_KEEP_ALIVE))
         .thenReturn(TimeValue.timeValueMinutes(1));
 
-    PhysicalPlan plan = new OpenSearchIndexScan(mock(OpenSearchClient.class), settings,
-        "test", 10000, mock(OpenSearchExprValueFactory.class));
+    PhysicalPlan plan = OpenSearchIndexScan.create(mock(OpenSearchClient.class), "test", settings,
+        10000, mock(OpenSearchExprValueFactory.class));
 
     AtomicReference<ExplainResponse> result = new AtomicReference<>();
-    executor.explain(plan, new ResponseListener<ExplainResponse>() {
+    executor.explain(plan, new ResponseListener<>() {
       @Override
       public void onResponse(ExplainResponse response) {
         result.set(response);
@@ -205,7 +205,7 @@ class OpenSearchExecutionEngineTest {
     when(plan.accept(any(), any())).thenThrow(IllegalStateException.class);
 
     AtomicReference<Exception> result = new AtomicReference<>();
-    executor.explain(plan, new ResponseListener<ExplainResponse>() {
+    executor.explain(plan, new ResponseListener<>() {
       @Override
       public void onResponse(ExplainResponse response) {
         fail("Should fail as expected");
@@ -261,11 +261,11 @@ class OpenSearchExecutionEngineTest {
     private boolean hasSplit;
 
     @Override
-    public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
+    public void readExternal(ObjectInput in)  {
     }
 
     @Override
-    public void writeExternal(ObjectOutput out) throws IOException {
+    public void writeExternal(ObjectOutput out) {
     }
 
     @Override
