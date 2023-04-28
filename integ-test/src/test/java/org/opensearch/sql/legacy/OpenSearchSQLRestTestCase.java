@@ -121,7 +121,6 @@ public abstract class OpenSearchSQLRestTestCase extends OpenSearchRestTestCase {
         hosts.add(buildHttpHost(host, port));
       }
       final List<HttpHost> clusterHosts = unmodifiableList(hosts);
-      logger.info("initializing REST clients against {}", clusterHosts);
       remoteClient = buildClient(restClientSettings(), clusterHosts.toArray(new HttpHost[0]));
       remoteAdminClient = buildClient(restAdminSettings(), clusterHosts.toArray(new HttpHost[0]));
     }
@@ -263,7 +262,6 @@ public abstract class OpenSearchSQLRestTestCase extends OpenSearchRestTestCase {
         + getTestTransportCluster(REMOTE_CLUSTER).split(",")[0]
         + "\"]}}}}}";
     connectionRequest.setJsonEntity(connectionSetting);
-    logger.info("Creating connection from coordinating cluster to {}", REMOTE_CLUSTER);
     adminClient().performRequest(connectionRequest);
   }
 }
