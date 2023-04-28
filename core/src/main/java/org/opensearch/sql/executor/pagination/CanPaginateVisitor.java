@@ -49,7 +49,6 @@ import org.opensearch.sql.ast.tree.Values;
  * - in memory aggregation (window function)
  * - ORDER BY clause
  * - LIMIT/OFFSET clause(s)
- * - without FROM clause
  * - JOIN
  * - a subquery
  * V2 also requires that the table being queried should be an OpenSearch index.
@@ -93,10 +92,9 @@ public class CanPaginateVisitor extends AbstractNodeVisitor<Boolean, Object> {
     return Boolean.FALSE;
   }
 
-  // Queries without FROM clause are not supported
   @Override
   public Boolean visitValues(Values node, Object context) {
-    return Boolean.FALSE;
+    return Boolean.TRUE;
   }
 
   @Override

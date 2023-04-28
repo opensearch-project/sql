@@ -12,6 +12,7 @@ import org.opensearch.sql.planner.logical.LogicalEval;
 import org.opensearch.sql.planner.logical.LogicalFilter;
 import org.opensearch.sql.planner.logical.LogicalLimit;
 import org.opensearch.sql.planner.logical.LogicalNested;
+import org.opensearch.sql.planner.logical.LogicalPaginate;
 import org.opensearch.sql.planner.logical.LogicalPlan;
 import org.opensearch.sql.planner.logical.LogicalPlanNodeVisitor;
 import org.opensearch.sql.planner.logical.LogicalProject;
@@ -146,6 +147,12 @@ public class DefaultImplementor<C> extends LogicalPlanNodeVisitor<PhysicalPlan, 
   public PhysicalPlan visitRelation(LogicalRelation node, C context) {
     throw new UnsupportedOperationException("Storage engine is responsible for "
         + "implementing and optimizing logical plan with relation involved");
+  }
+
+  // Called when paging query requested without `FROM` clause only
+  @Override
+  public PhysicalPlan visitPaginate(LogicalPaginate plan, C context) {
+    return visitChild(plan, context);
   }
 
   protected PhysicalPlan visitChild(LogicalPlan node, C context) {
