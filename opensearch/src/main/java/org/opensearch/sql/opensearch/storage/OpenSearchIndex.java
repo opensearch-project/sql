@@ -186,8 +186,11 @@ public class OpenSearchIndex implements Table {
 
   @Override
   public TableScanBuilder createPagedScanBuilder(int pageSize) {
+    Map<String, OpenSearchDataType> allFields = new HashMap<>();
+    getReservedFieldTypes().forEach((k, v) -> allFields.put(k, OpenSearchDataType.of(v)));
+    allFields.putAll(getFieldOpenSearchTypes());
     var requestBuilder = new InitialPageRequestBuilder(indexName, pageSize, settings,
-        new OpenSearchExprValueFactory(getFieldOpenSearchTypes()));
+        new OpenSearchExprValueFactory(allFields));
     var indexScan = new OpenSearchPagedIndexScan(client, requestBuilder);
     return new OpenSearchPagedIndexScanBuilder(indexScan);
   }

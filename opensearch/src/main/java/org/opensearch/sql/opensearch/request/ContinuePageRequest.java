@@ -5,12 +5,13 @@
 
 package org.opensearch.sql.opensearch.request;
 
+import java.util.Arrays;
 import java.util.List;
 import java.util.function.Consumer;
 import java.util.function.Function;
+import java.util.stream.Collectors;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
-import lombok.RequiredArgsConstructor;
 import lombok.ToString;
 import org.opensearch.action.search.SearchRequest;
 import org.opensearch.action.search.SearchResponse;
@@ -27,7 +28,6 @@ import org.opensearch.sql.opensearch.response.OpenSearchResponse;
  * First (initial) request is handled by {@link InitialPageRequestBuilder}.
  */
 @EqualsAndHashCode
-@RequiredArgsConstructor
 public class ContinuePageRequest implements OpenSearchRequest {
   private final String initialScrollId;
   private final TimeValue scrollTimeout;
@@ -42,6 +42,20 @@ public class ContinuePageRequest implements OpenSearchRequest {
   @EqualsAndHashCode.Exclude
   private boolean scrollFinished = false;
 
+  @EqualsAndHashCode.Exclude
+  private List<String> includes;
+
+  public ContinuePageRequest(String serializedScroll,
+                             TimeValue scrollTimeout,
+                             OpenSearchExprValueFactory exprValueFactory) {
+    var parts = serializedScroll.split("\\|");
+    this.initialScrollId = parts[0];
+    includes = Arrays.stream(parts[1].split(",")).collect(Collectors.toList());
+
+    this.scrollTimeout = scrollTimeout;
+    this.exprValueFactory = exprValueFactory;
+  }
+
   @Override
   public OpenSearchResponse search(Function<SearchRequest, SearchResponse> searchAction,
                                    Function<SearchScrollRequest, SearchResponse> scrollAction) {
@@ -49,7 +63,7 @@ public class ContinuePageRequest implements OpenSearchRequest {
         .scroll(scrollTimeout));
 
     // TODO if terminated_early - something went wrong, e.g. no scroll returned.
-    var response = new OpenSearchResponse(openSearchResponse, exprValueFactory, List.of());
+    var response = new OpenSearchResponse(openSearchResponse, exprValueFactory, includes);
     // on the last empty page, we should close the scroll
     scrollFinished = response.isEmpty();
     responseScrollId = openSearchResponse.getScrollId();
@@ -72,6 +86,6 @@ public class ContinuePageRequest implements OpenSearchRequest {
   @Override
   public String toCursor() {
     // on the last page, we shouldn't return the scroll to user, it is kept for closing (clean)
-    return scrollFinished ? null : responseScrollId;
+    return scrollFinished ? null : responseScrollId + "|" + String.join(",", includes);
   }
 }

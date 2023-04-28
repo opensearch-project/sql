@@ -61,6 +61,8 @@ public class OpenSearchScrollRequest implements OpenSearchRequest {
   /** Search request source builder. */
   private final SearchSourceBuilder sourceBuilder;
 
+  private List<String> includes = List.of();
+
   /** Constructor. */
   public OpenSearchScrollRequest(IndexName indexName,
                                  TimeValue scrollTimeout,
@@ -83,7 +85,7 @@ public class OpenSearchScrollRequest implements OpenSearchRequest {
       openSearchResponse = searchAction.apply(searchRequest());
     }
     FetchSourceContext fetchSource = this.sourceBuilder.fetchSource();
-    List<String> includes = fetchSource != null && fetchSource.includes() != null
+    includes = fetchSource != null && fetchSource.includes() != null
         ? Arrays.asList(this.sourceBuilder.fetchSource().includes())
         : List.of();
 
@@ -152,6 +154,6 @@ public class OpenSearchScrollRequest implements OpenSearchRequest {
    */
   @Override
   public String toCursor() {
-    return scrollId;
+    return scrollId + "|" + String.join(",", includes);
   }
 }
