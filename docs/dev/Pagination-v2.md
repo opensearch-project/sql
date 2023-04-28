@@ -285,3 +285,87 @@ OpenSearchExecutionEngine->>+ProjectOperator: getTotalHits
     ResourceMonitorPlan-->>-ProjectOperator: value
   ProjectOperator-->>-OpenSearchExecutionEngine: value
 ```
+
+### Plan Tree changes
+
+#### Abstract Plan tree
+
+Changes:
+1. New Plan node -- `Paginate` -- added into the tree.
+2. `QueryPlan` got new optional field: page size. When it is set, `Paginate` is being added. It is converted to `LogicalPaginate` later. For non-paging requests the tree remains unchanged.
+
+```mermaid
+classDiagram
+  direction LR
+  class QueryPlan {
+    <<AbstractPlan>>
+    -int pageSize
+  }
+  class Paginate {
+    <<UnresolvedPlan>>
+  }
+  class UnresolvedPlanTree {
+    <<UnresolvedPlan>>
+  }
+  QueryPlan --* Paginate
+  Paginate --* UnresolvedPlanTree
+```
+#### Logical Plan tree
+
+Changes:
+1. `LogicalPaginate` is added to the top of the tree. It has a private field `pageSize` being pushed down in the `Optimizer`.
+
+```mermaid
+classDiagram
+  direction LR
+  class LogicalPaginate {
+    <<LogicalPlan>>
+    -int pageSize
+  }
+  class LogicalPlanTree {
+    <<LogicalPlan>>
+  }
+  class LogicalRelation {
+    <<LogicalPlan>>
+  }
+  LogicalPaginate --* LogicalPlanTree
+  LogicalPlanTree --* LogicalRelation
+```
+
+#### Optimized Plan tree
+
+Changes:
+1. There is a `OpenSearchPagedIndexScanBuilder` instead of `OpenSearchIndexScanQueryBuilder` on the bottom of the tree for paging requests. Non-paging requests are not affected. Both are instances of `TableScanBuilder` which extends `PhysicalPlan` interface.
+2. `LogicalPaginate` is removed from the tree during push down operation in `Optimizer`.
+
+See [article about `TableScanBuilder`](query-optimizer-improvement.md#TableScanBuilder) for more details.
+
+```mermaid
+classDiagram
+  class LogicalProject {
+    <<LogicalPlan>>
+  }
+  class OpenSearchPagedIndexScanBuilder {
+    <<TableScanBuilder>>
+  }
+
+  LogicalProject --* OpenSearchPagedIndexScanBuilder
+```
+
+#### Physical Plan tree
+
+Changes:
+1. `OpenSearchPagedIndexScanBuilder` is converted to `OpenSearchPagedIndexScan` by `Implementor`.
+
+```mermaid
+classDiagram
+  direction LR
+  class ProjectOperator {
+    <<PhysicalPlan>>
+  }
+  class OpenSearchPagedIndexScan {
+    <<TableScanBuilder>>
+  }
+
+  ProjectOperator --* OpenSearchPagedIndexScan
+```
