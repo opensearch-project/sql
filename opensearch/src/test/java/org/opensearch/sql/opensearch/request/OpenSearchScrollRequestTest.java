@@ -11,14 +11,12 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
-import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.function.Function;
 import org.apache.lucene.search.TotalHits;
 import org.junit.jupiter.api.DisplayNameGeneration;
 import org.junit.jupiter.api.DisplayNameGenerator;
@@ -43,12 +41,6 @@ import org.opensearch.sql.opensearch.response.OpenSearchResponse;
 class OpenSearchScrollRequestTest {
 
   @Mock
-  private Function<SearchRequest, SearchResponse> searchAction;
-
-  @Mock
-  private Function<SearchScrollRequest, SearchResponse> scrollAction;
-
-  @Mock
   private SearchResponse searchResponse;
 
   @Mock
@@ -62,6 +54,7 @@ class OpenSearchScrollRequestTest {
 
   @Mock
   private FetchSourceContext fetchSourceContext;
+
   @Mock
   private OpenSearchExprValueFactory factory;
 
@@ -114,13 +107,14 @@ class OpenSearchScrollRequestTest {
     String[] includes = {"_id", "_index"};
     when(sourceBuilder.fetchSource()).thenReturn(fetchSourceContext);
     when(fetchSourceContext.includes()).thenReturn(includes);
-    when(searchAction.apply(any())).thenReturn(searchResponse);
     when(searchResponse.getHits()).thenReturn(searchHits);
     when(searchHits.getHits()).thenReturn(new SearchHit[] {searchHit});
 
-    OpenSearchResponse searchResponse = request.search(searchAction, scrollAction);
+    OpenSearchResponse response = request.search((sr) -> searchResponse, (sr) -> fail());
     verify(fetchSourceContext, times(2)).includes();
-    assertFalse(searchResponse.isEmpty());
+    assertFalse(response.isEmpty());
+    request.setScrollId("scroll");
+    assertEquals("scroll|_id,_index", request.toCursor());
   }
 
   @Test
@@ -133,13 +127,12 @@ class OpenSearchScrollRequestTest {
     );
 
     when(sourceBuilder.fetchSource()).thenReturn(null);
-    when(searchAction.apply(any())).thenReturn(searchResponse);
     when(searchResponse.getHits()).thenReturn(searchHits);
     when(searchHits.getHits()).thenReturn(new SearchHit[] {searchHit});
 
-    OpenSearchResponse searchResponse = request.search(searchAction, scrollAction);
+    OpenSearchResponse response = request.search((sr) -> searchResponse, (sr) -> fail());
     verify(sourceBuilder, times(1)).fetchSource();
-    assertFalse(searchResponse.isEmpty());
+    assertFalse(response.isEmpty());
   }
 
   @Test
@@ -153,19 +146,18 @@ class OpenSearchScrollRequestTest {
 
     when(sourceBuilder.fetchSource()).thenReturn(fetchSourceContext);
     when(fetchSourceContext.includes()).thenReturn(null);
-    when(searchAction.apply(any())).thenReturn(searchResponse);
     when(searchResponse.getHits()).thenReturn(searchHits);
     when(searchHits.getHits()).thenReturn(new SearchHit[] {searchHit});
 
-    OpenSearchResponse searchResponse = request.search(searchAction, scrollAction);
+    OpenSearchResponse response = request.search((sr) -> searchResponse, (sr) -> fail());
     verify(fetchSourceContext, times(1)).includes();
-    assertFalse(searchResponse.isEmpty());
+    assertFalse(response.isEmpty());
   }
 
   @Test
   void toCursor() {
     request.setScrollId("scroll123");
-    assertEquals("scroll123", request.toCursor());
+    assertEquals("scroll123|", request.toCursor());
 
     request.reset();
     assertNull(request.toCursor());
@@ -199,7 +191,7 @@ class OpenSearchScrollRequestTest {
     when(searchResponse.getHits()).thenReturn(
         new SearchHits(new SearchHit[1], new TotalHits(1, TotalHits.Relation.EQUAL_TO), 1F));
 
-    request.search((x) -> searchResponse, (x) -> searchResponse);
+    request.search((sr) -> searchResponse, (sr) -> searchResponse);
     assertEquals("scroll", request.getScrollId());
 
     request.clean((s) -> fail());
@@ -212,7 +204,7 @@ class OpenSearchScrollRequestTest {
     when(searchResponse.getHits()).thenReturn(
         new SearchHits(new SearchHit[0], new TotalHits(0, TotalHits.Relation.EQUAL_TO), 1F));
 
-    request.search((x) -> searchResponse, (x) -> searchResponse);
+    request.search((sr) -> searchResponse, (sr) -> searchResponse);
     assertNull(request.getScrollId());
 
     request.clean((s) -> fail());

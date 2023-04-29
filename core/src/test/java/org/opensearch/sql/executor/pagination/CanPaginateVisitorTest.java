@@ -119,10 +119,10 @@ public class CanPaginateVisitorTest {
 
   @Test
   // select x
-  public void reject_query_without_from() {
+  public void allow_query_without_from() {
     var plan = project(values(List.of(intLiteral(1))),
         alias("1", intLiteral(1)));
-    assertFalse(plan.accept(visitor, null));
+    assertTrue(plan.accept(visitor, null));
   }
 
   @Test
@@ -165,7 +165,7 @@ public class CanPaginateVisitorTest {
   public void visitEqualTo() {
     var plan = project(values(List.of(intLiteral(1))),
         alias("1", equalTo(intLiteral(1), intLiteral(1))));
-    assertFalse(plan.accept(visitor, null));
+    assertTrue(plan.accept(visitor, null));
   }
 
   @Test
@@ -173,7 +173,7 @@ public class CanPaginateVisitorTest {
   public void visitInterval() {
     var plan = project(values(List.of(intLiteral(1))),
         alias("1", intervalLiteral(intLiteral(1), DataType.INTEGER, "days")));
-    assertFalse(plan.accept(visitor, null));
+    assertTrue(plan.accept(visitor, null));
   }
 
   @Test
@@ -181,7 +181,7 @@ public class CanPaginateVisitorTest {
   public void visitCompare() {
     var plan = project(values(List.of(intLiteral(1))),
         alias("1", compare("!=", intLiteral(1), intLiteral(1))));
-    assertFalse(plan.accept(visitor, null));
+    assertTrue(plan.accept(visitor, null));
   }
 
   @Test
@@ -189,7 +189,7 @@ public class CanPaginateVisitorTest {
   public void visitNot() {
     var plan = project(values(List.of(intLiteral(1))),
         alias("1", not(booleanLiteral(true))));
-    assertFalse(plan.accept(visitor, null));
+    assertTrue(plan.accept(visitor, null));
   }
 
   @Test
@@ -197,7 +197,7 @@ public class CanPaginateVisitorTest {
   public void visitOr() {
     var plan = project(values(List.of(intLiteral(1))),
         alias("1", or(booleanLiteral(true), booleanLiteral(false))));
-    assertFalse(plan.accept(visitor, null));
+    assertTrue(plan.accept(visitor, null));
   }
 
   @Test
@@ -205,7 +205,7 @@ public class CanPaginateVisitorTest {
   public void visitAnd() {
     var plan = project(values(List.of(intLiteral(1))),
         alias("1", and(booleanLiteral(true), booleanLiteral(false))));
-    assertFalse(plan.accept(visitor, null));
+    assertTrue(plan.accept(visitor, null));
   }
 
   @Test
@@ -213,7 +213,7 @@ public class CanPaginateVisitorTest {
   public void visitXor() {
     var plan = project(values(List.of(intLiteral(1))),
         alias("1", xor(booleanLiteral(true), booleanLiteral(false))));
-    assertFalse(plan.accept(visitor, null));
+    assertTrue(plan.accept(visitor, null));
   }
 
   @Test
@@ -221,6 +221,14 @@ public class CanPaginateVisitorTest {
   public void visitFunction() {
     var plan = project(values(List.of(intLiteral(1))),
         function("func"));
+    assertTrue(plan.accept(visitor, null));
+  }
+
+  @Test
+  // select nested() ...
+  public void visitNested() {
+    var plan = project(values(List.of(intLiteral(1))),
+        function("nested"));
     assertFalse(plan.accept(visitor, null));
   }
 
@@ -229,7 +237,7 @@ public class CanPaginateVisitorTest {
   public void visitIn() {
     // test combinations of acceptable and not acceptable args for coverage
     assertAll(
-        () -> assertFalse(project(values(List.of(intLiteral(1))), alias("1", in(field("a"))))
+        () -> assertTrue(project(values(List.of(intLiteral(1))), alias("1", in(field("a"))))
             .accept(visitor, null)),
         () -> assertFalse(project(values(List.of(intLiteral(1))),
                 alias("1", in(field("a"), map("1", "2"))))
@@ -245,7 +253,7 @@ public class CanPaginateVisitorTest {
   public void visitBetween() {
     var plan = project(values(List.of(intLiteral(1))),
         alias("1", between(field("a"), intLiteral(1), intLiteral(2))));
-    assertFalse(plan.accept(visitor, null));
+    assertTrue(plan.accept(visitor, null));
   }
 
   @Test
@@ -253,7 +261,7 @@ public class CanPaginateVisitorTest {
   public void visitCase() {
     var plan = project(values(List.of(intLiteral(1))),
         alias("1", caseWhen(intLiteral(1), when(intLiteral(3), intLiteral(4)))));
-    assertFalse(plan.accept(visitor, null));
+    assertTrue(plan.accept(visitor, null));
   }
 
   @Test
@@ -261,7 +269,7 @@ public class CanPaginateVisitorTest {
   public void visitCast() {
     // test combinations of acceptable and not acceptable args for coverage
     assertAll(
-        () -> assertFalse(project(values(List.of(intLiteral(1))),
+        () -> assertTrue(project(values(List.of(intLiteral(1))),
                 alias("1", cast(intLiteral(2), stringLiteral("int"))))
             .accept(visitor, null)),
         () -> assertFalse(project(values(List.of(intLiteral(1))),
@@ -276,7 +284,6 @@ public class CanPaginateVisitorTest {
                 alias("1", cast(map("1", "2"), stringLiteral("int"))))
             .accept(visitor, null))
     );
-    ;
   }
 
   @Test
@@ -393,7 +400,7 @@ public class CanPaginateVisitorTest {
   // test combinations of acceptable and not acceptable args for coverage
   public void canPaginate() {
     assertAll(
-        () -> assertFalse(project(values(List.of(intLiteral(1))),
+        () -> assertTrue(project(values(List.of(intLiteral(1))),
                 function("func", intLiteral(1), intLiteral(1)))
             .accept(visitor, null)),
         () -> assertFalse(project(values(List.of(intLiteral(1))),

@@ -57,9 +57,13 @@ import org.opensearch.sql.expression.window.ranking.RowNumberFunction;
 import org.opensearch.sql.planner.logical.LogicalPaginate;
 import org.opensearch.sql.planner.logical.LogicalPlan;
 import org.opensearch.sql.planner.logical.LogicalPlanDSL;
+import org.opensearch.sql.planner.logical.LogicalProject;
 import org.opensearch.sql.planner.logical.LogicalRelation;
+import org.opensearch.sql.planner.logical.LogicalValues;
 import org.opensearch.sql.planner.physical.PhysicalPlan;
 import org.opensearch.sql.planner.physical.PhysicalPlanDSL;
+import org.opensearch.sql.planner.physical.ProjectOperator;
+import org.opensearch.sql.planner.physical.ValuesOperator;
 import org.opensearch.sql.storage.Table;
 import org.opensearch.sql.storage.TableScanOperator;
 import org.opensearch.sql.storage.read.TableScanBuilder;
@@ -245,5 +249,15 @@ class DefaultImplementorTest {
       }
     };
     assertEquals(tableWriteOperator, logicalPlan.accept(implementor, null));
+  }
+
+  @Test
+  public void visitPaginate_should_remove_it_from_tree() {
+    var logicalPlanTree = new LogicalPaginate(42, List.of(
+        new LogicalProject(
+            new LogicalValues(List.of(List.of())), List.of(), List.of())));
+    var physicalPlanTree = new ProjectOperator(
+        new ValuesOperator(List.of(List.of())), List.of(), List.of());
+    assertEquals(physicalPlanTree, logicalPlanTree.accept(implementor, null));
   }
 }

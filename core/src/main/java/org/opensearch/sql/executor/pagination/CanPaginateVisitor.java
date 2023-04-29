@@ -38,6 +38,7 @@ import org.opensearch.sql.ast.tree.Project;
 import org.opensearch.sql.ast.tree.Relation;
 import org.opensearch.sql.ast.tree.Sort;
 import org.opensearch.sql.ast.tree.Values;
+import org.opensearch.sql.expression.function.BuiltinFunctionName;
 
 /**
  * Use this unresolved plan visitor to check if a plan can be serialized by PaginatedPlanCache.
@@ -74,7 +75,7 @@ public class CanPaginateVisitor extends AbstractNodeVisitor<Boolean, Object> {
     return Boolean.TRUE;
   }
 
-  //For queries with WHERE clause:
+  // For queries with WHERE clause:
   @Override
   public Boolean visitFilter(Filter node, Object context) {
     return canPaginate(node, context) && node.getCondition().accept(this, context);
@@ -92,6 +93,7 @@ public class CanPaginateVisitor extends AbstractNodeVisitor<Boolean, Object> {
     return Boolean.FALSE;
   }
 
+  // For queries without FROM clause:
   @Override
   public Boolean visitValues(Values node, Object context) {
     return Boolean.TRUE;
@@ -175,6 +177,13 @@ public class CanPaginateVisitor extends AbstractNodeVisitor<Boolean, Object> {
 
   @Override
   public Boolean visitFunction(Function node, Object context) {
+    if (node.getFuncName()
+        .equalsIgnoreCase(BuiltinFunctionName.NESTED.getName().getFunctionName())) {
+      // `NESTED` function is not supported in pagination, because `NestedOperator`
+      // (a `PhysicalPlan` node) adds rows to the result set and cannot be properly paged
+      // with the current implementation of Pagination feature.
+      return Boolean.FALSE;
+    }
     return canPaginate(node, context);
   }
 

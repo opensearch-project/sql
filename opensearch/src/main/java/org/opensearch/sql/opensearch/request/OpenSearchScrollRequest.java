@@ -154,6 +154,6 @@ public class OpenSearchScrollRequest implements OpenSearchRequest {
    */
   @Override
   public String toCursor() {
-    return scrollId + "|" + String.join(",", includes);
+    return scrollId == null ? null : scrollId + "|" + String.join(",", includes);
   }
 }

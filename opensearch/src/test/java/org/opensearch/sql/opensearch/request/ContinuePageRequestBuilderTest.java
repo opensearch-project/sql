@@ -13,14 +13,22 @@ import static org.mockito.Mockito.when;
 
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Stream;
+import lombok.SneakyThrows;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayNameGeneration;
 import org.junit.jupiter.api.DisplayNameGenerator;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.opensearch.action.search.SearchResponse;
 import org.opensearch.common.unit.TimeValue;
+import org.opensearch.search.SearchHit;
+import org.opensearch.search.SearchHits;
 import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.opensearch.data.value.OpenSearchExprValueFactory;
 
@@ -35,7 +43,7 @@ public class ContinuePageRequestBuilderTest {
   private Settings settings;
 
   private final OpenSearchRequest.IndexName indexName = new OpenSearchRequest.IndexName("test");
-  private final String scrollId = "scroll";
+  private final String scrollId = "scroll|";
 
   private ContinuePageRequestBuilder requestBuilder;
 
@@ -82,5 +90,32 @@ public class ContinuePageRequestBuilderTest {
         () -> assertThrows(UnsupportedOperationException.class,
             () -> requestBuilder.pushDownTrackedScore(true))
     );
+  }
+
+  private static Stream<Arguments> getScrollsForTest() {
+    return Stream.of(
+        Arguments.of("scroll|1,2", "new_scroll|1,2", List.of("1", "2")),
+        Arguments.of("scroll|", "new_scroll|", List.of())
+    );
+  }
+
+  /** Test different scenarios - with and without `includes`. */
+  @ParameterizedTest
+  @MethodSource("getScrollsForTest")
+  @SneakyThrows
+  public void parse_and_serialize_includes(String scroll, String expectedNewScroll,
+                                           List<String> includes) {
+    var request = new ContinuePageRequest(scroll, TimeValue.timeValueMinutes(1), exprValueFactory);
+    SearchResponse searchResponse = mock();
+    when(searchResponse.getScrollId()).thenReturn("new_scroll");
+    SearchHits hits = mock();
+    when(hits.getHits()).thenReturn(new SearchHit[] { new SearchHit(1) });
+    when(searchResponse.getHits()).thenReturn(hits);
+    var response = request.search((s) -> null, (s) -> searchResponse);
+    assertEquals(expectedNewScroll, request.toCursor());
+    // extract private field
+    var field = response.getClass().getDeclaredField("includes");
+    field.setAccessible(true);
+    assertEquals(includes, field.get(response));
   }
 }

@@ -45,12 +45,15 @@ public class ContinuePageRequest implements OpenSearchRequest {
   @EqualsAndHashCode.Exclude
   private List<String> includes;
 
+  /** Constructor. */
   public ContinuePageRequest(String serializedScroll,
                              TimeValue scrollTimeout,
                              OpenSearchExprValueFactory exprValueFactory) {
     var parts = serializedScroll.split("\\|");
     this.initialScrollId = parts[0];
-    includes = Arrays.stream(parts[1].split(",")).collect(Collectors.toList());
+    includes = parts.length > 1
+        ? Arrays.stream(parts[1].split(",")).collect(Collectors.toList())
+        : List.of();
 
     this.scrollTimeout = scrollTimeout;
     this.exprValueFactory = exprValueFactory;
