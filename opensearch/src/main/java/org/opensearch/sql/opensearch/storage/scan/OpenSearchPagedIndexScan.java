@@ -22,6 +22,7 @@ import org.opensearch.sql.opensearch.data.value.OpenSearchExprValueFactory;
 import org.opensearch.sql.opensearch.request.ContinuePageRequestBuilder;
 import org.opensearch.sql.opensearch.request.OpenSearchRequest;
 import org.opensearch.sql.opensearch.request.PagedRequestBuilder;
+import org.opensearch.sql.opensearch.request.SerializedPageRequest;
 import org.opensearch.sql.opensearch.response.OpenSearchResponse;
 import org.opensearch.sql.opensearch.storage.OpenSearchIndex;
 import org.opensearch.sql.opensearch.storage.OpenSearchStorageEngine;
@@ -94,22 +95,22 @@ public class OpenSearchPagedIndexScan extends TableScanOperator implements Seria
     var engine = (OpenSearchStorageEngine) ((PlanSerializer.CursorDeserializationStream) in)
         .resolveObject("engine");
     var indexName = (String) in.readUTF();
-    var scrollId = (String) in.readUTF();
+    var serializedPageRequest = (SerializedPageRequest) in.readObject();
     client = engine.getClient();
     var index = new OpenSearchIndex(client, engine.getSettings(), indexName);
     requestBuilder = new ContinuePageRequestBuilder(
         new OpenSearchRequest.IndexName(indexName),
-        scrollId, engine.getSettings(),
+        serializedPageRequest, engine.getSettings(),
         new OpenSearchExprValueFactory(index.getFieldOpenSearchTypes()));
   }
 
   @Override
   public void writeExternal(ObjectOutput out) throws IOException {
-    if (request.toCursor() == null || request.toCursor().isEmpty()) {
+    if (request.toCursor() == null) {
       throw new NoCursorException();
     }
 
     out.writeUTF(requestBuilder.getIndexName().toString());
-    out.writeUTF(request.toCursor());
+    out.writeObject(request.toCursor());
   }
 }

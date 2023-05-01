@@ -43,17 +43,14 @@ public class ContinuePageRequest implements OpenSearchRequest {
   private boolean scrollFinished = false;
 
   @EqualsAndHashCode.Exclude
-  private List<String> includes;
+  private final List<String> includes;
 
   /** Constructor. */
-  public ContinuePageRequest(String serializedScroll,
+  public ContinuePageRequest(SerializedPageRequest serializedPageRequest,
                              TimeValue scrollTimeout,
                              OpenSearchExprValueFactory exprValueFactory) {
-    var parts = serializedScroll.split("\\|");
-    this.initialScrollId = parts[0];
-    includes = parts.length > 1
-        ? Arrays.stream(parts[1].split(",")).collect(Collectors.toList())
-        : List.of();
+    this.initialScrollId = serializedPageRequest.getScrollId();
+    this.includes = serializedPageRequest.getIncludes();
 
     this.scrollTimeout = scrollTimeout;
     this.exprValueFactory = exprValueFactory;
@@ -87,8 +84,8 @@ public class ContinuePageRequest implements OpenSearchRequest {
   }
 
   @Override
-  public String toCursor() {
+  public SerializedPageRequest toCursor() {
     // on the last page, we shouldn't return the scroll to user, it is kept for closing (clean)
-    return scrollFinished ? null : responseScrollId + "|" + String.join(",", includes);
+    return scrollFinished ? null : new SerializedPageRequest(responseScrollId, includes);
   }
 }

@@ -111,6 +111,12 @@ public class OpenSearchQueryRequest implements OpenSearchRequest {
     //do nothing.
   }
 
+  @Override
+  public SerializedPageRequest toCursor() {
+    throw new IllegalStateException(
+        String.format("%s is not serializable", getClass().getSimpleName()));
+  }
+
   /**
    * Generate OpenSearch search request.
    *

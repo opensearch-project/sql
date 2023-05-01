@@ -34,11 +34,11 @@ public class PaginationIT extends SQLIntegTestCase {
   }
 
   @Test
-  public void testLargeDataSetV1() throws IOException {
-    var v1query = "SELECT * from " + TEST_INDEX_ONLINE + " WHERE 1 = 1";
-    var v1response = new JSONObject(executeFetchQuery(v1query, 4, "jdbc"));
-    assertEquals(4, v1response.getInt("size"));
-    TestUtils.verifyIsV1Cursor(v1response);
+  public void testLargeDataSetV2WithWhere() throws IOException {
+    var query = "SELECT * from " + TEST_INDEX_ONLINE + " WHERE 1 = 1";
+    var response = new JSONObject(executeFetchQuery(query, 4, "jdbc"));
+    assertEquals(4, response.getInt("size"));
+    TestUtils.verifyIsV2Cursor(response);
   }
 
   @Test

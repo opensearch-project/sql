@@ -16,6 +16,7 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
 import org.apache.lucene.search.TotalHits;
 import org.junit.jupiter.api.DisplayNameGeneration;
@@ -114,7 +115,8 @@ class OpenSearchScrollRequestTest {
     verify(fetchSourceContext, times(2)).includes();
     assertFalse(response.isEmpty());
     request.setScrollId("scroll");
-    assertEquals("scroll|_id,_index", request.toCursor());
+    assertEquals(new SerializedPageRequest("scroll", List.of("_id", "_index")),
+        request.toCursor());
   }
 
   @Test
@@ -157,7 +159,7 @@ class OpenSearchScrollRequestTest {
   @Test
   void toCursor() {
     request.setScrollId("scroll123");
-    assertEquals("scroll123|", request.toCursor());
+    assertEquals(new SerializedPageRequest("scroll123", List.of()), request.toCursor());
 
     request.reset();
     assertNull(request.toCursor());

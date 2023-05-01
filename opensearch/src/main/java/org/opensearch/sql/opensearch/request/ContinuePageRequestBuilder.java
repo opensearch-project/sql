@@ -30,24 +30,24 @@ public class ContinuePageRequestBuilder extends PagedRequestBuilder {
   @Getter
   private final OpenSearchRequest.IndexName indexName;
   @Getter
-  private final String scrollId;
+  private final SerializedPageRequest serializedPageRequest;
   private final TimeValue scrollTimeout;
   private final OpenSearchExprValueFactory exprValueFactory;
 
   /** Constructor. */
   public ContinuePageRequestBuilder(OpenSearchRequest.IndexName indexName,
-                                    String scrollId,
+                                    SerializedPageRequest serializedPageRequest,
                                     Settings settings,
                                     OpenSearchExprValueFactory exprValueFactory) {
     this.indexName = indexName;
-    this.scrollId = scrollId;
+    this.serializedPageRequest = serializedPageRequest;
     this.scrollTimeout = settings.getSettingValue(Settings.Key.SQL_CURSOR_KEEP_ALIVE);
     this.exprValueFactory = exprValueFactory;
   }
 
   @Override
   public OpenSearchRequest build() {
-    return new ContinuePageRequest(scrollId, scrollTimeout, exprValueFactory);
+    return new ContinuePageRequest(serializedPageRequest, scrollTimeout, exprValueFactory);
   }
 
   @Override

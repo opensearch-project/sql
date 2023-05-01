@@ -26,6 +26,7 @@ import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
+import java.util.List;
 import java.util.Map;
 import lombok.SneakyThrows;
 import org.junit.jupiter.api.DisplayNameGeneration;
@@ -44,6 +45,7 @@ import org.opensearch.sql.opensearch.request.ContinuePageRequestBuilder;
 import org.opensearch.sql.opensearch.request.InitialPageRequestBuilder;
 import org.opensearch.sql.opensearch.request.OpenSearchRequest;
 import org.opensearch.sql.opensearch.request.PagedRequestBuilder;
+import org.opensearch.sql.opensearch.request.SerializedPageRequest;
 import org.opensearch.sql.opensearch.response.OpenSearchResponse;
 import org.opensearch.sql.opensearch.storage.OpenSearchStorageEngine;
 
@@ -99,7 +101,7 @@ public class OpenSearchPagedIndexScanTest {
     verify(client).cleanup(any());
 
     builder = new ContinuePageRequestBuilder(
-        new OpenSearchRequest.IndexName("test"), "scroll", mock(), exprValueFactory);
+        new OpenSearchRequest.IndexName("test"), mock(), mock(), exprValueFactory);
     try (OpenSearchPagedIndexScan indexScan = new OpenSearchPagedIndexScan(client, builder)) {
       indexScan.open();
 
@@ -116,7 +118,7 @@ public class OpenSearchPagedIndexScanTest {
         employee(3, "Allen", "IT")});
 
     ContinuePageRequestBuilder builder = new ContinuePageRequestBuilder(
-        new OpenSearchRequest.IndexName("test"), "scroll", mock(), exprValueFactory);
+        new OpenSearchRequest.IndexName("test"), mock(), mock(), exprValueFactory);
     try (OpenSearchPagedIndexScan indexScan = new OpenSearchPagedIndexScan(client, builder)) {
       indexScan.open();
 
@@ -137,7 +139,7 @@ public class OpenSearchPagedIndexScanTest {
     verify(client).cleanup(any());
 
     builder = new ContinuePageRequestBuilder(
-        new OpenSearchRequest.IndexName("test"), "scroll", mock(), exprValueFactory);
+        new OpenSearchRequest.IndexName("test"), mock(), mock(), exprValueFactory);
     try (OpenSearchPagedIndexScan indexScan = new OpenSearchPagedIndexScan(client, builder)) {
       indexScan.open();
 
@@ -158,7 +160,7 @@ public class OpenSearchPagedIndexScanTest {
     PagedRequestBuilder builder = mock();
     OpenSearchRequest request = mock();
     OpenSearchResponse response = mock();
-    when(request.toCursor()).thenReturn("cu-cursor");
+    when(request.toCursor()).thenReturn(new SerializedPageRequest("cu-cursor", List.of()));
     when(builder.build()).thenReturn(request);
     var indexName = new OpenSearchRequest.IndexName("index");
     when(builder.getIndexName()).thenReturn(indexName);
@@ -187,8 +189,9 @@ public class OpenSearchPagedIndexScanTest {
     // But we can validate that index name and scroll was serialized-deserialized correctly
     assertEquals(indexName, roundTripScan.getRequestBuilder().getIndexName());
     assertTrue(roundTripScan.getRequestBuilder() instanceof ContinuePageRequestBuilder);
-    assertEquals("cu-cursor",
-        ((ContinuePageRequestBuilder) roundTripScan.getRequestBuilder()).getScrollId());
+    assertEquals(new SerializedPageRequest("cu-cursor", List.of()),
+        ((ContinuePageRequestBuilder) roundTripScan.getRequestBuilder())
+            .getSerializedPageRequest());
   }
 
   @Test
@@ -202,14 +205,12 @@ public class OpenSearchPagedIndexScanTest {
     OpenSearchPagedIndexScan indexScan = new OpenSearchPagedIndexScan(client, builder);
     indexScan.open();
 
-    when(request.toCursor()).thenReturn(null, "");
-    for (int i = 0; i < 2; i++) {
-      assertThrows(NoCursorException.class, () -> {
-        ByteArrayOutputStream output = new ByteArrayOutputStream();
-        ObjectOutputStream objectOutput = new ObjectOutputStream(output);
-        objectOutput.writeObject(indexScan);
-        objectOutput.flush();
-      });
-    }
+    when(request.toCursor()).thenReturn(null);
+    assertThrows(NoCursorException.class, () -> {
+      ByteArrayOutputStream output = new ByteArrayOutputStream();
+      ObjectOutputStream objectOutput = new ObjectOutputStream(output);
+      objectOutput.writeObject(indexScan);
+      objectOutput.flush();
+    });
   }
 }

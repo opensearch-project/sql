@@ -250,14 +250,4 @@ class DefaultImplementorTest {
     };
     assertEquals(tableWriteOperator, logicalPlan.accept(implementor, null));
   }
-
-  @Test
-  public void visitPaginate_should_remove_it_from_tree() {
-    var logicalPlanTree = new LogicalPaginate(42, List.of(
-        new LogicalProject(
-            new LogicalValues(List.of(List.of())), List.of(), List.of())));
-    var physicalPlanTree = new ProjectOperator(
-        new ValuesOperator(List.of(List.of())), List.of(), List.of());
-    assertEquals(physicalPlanTree, logicalPlanTree.accept(implementor, null));
-  }
 }

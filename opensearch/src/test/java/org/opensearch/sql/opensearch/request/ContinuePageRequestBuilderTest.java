@@ -43,7 +43,7 @@ public class ContinuePageRequestBuilderTest {
   private Settings settings;
 
   private final OpenSearchRequest.IndexName indexName = new OpenSearchRequest.IndexName("test");
-  private final String scrollId = "scroll|";
+  private final SerializedPageRequest scrollId = new SerializedPageRequest("scroll", List.of());
 
   private ContinuePageRequestBuilder requestBuilder;
 
@@ -94,18 +94,25 @@ public class ContinuePageRequestBuilderTest {
 
   private static Stream<Arguments> getScrollsForTest() {
     return Stream.of(
-        Arguments.of("scroll|1,2", "new_scroll|1,2", List.of("1", "2")),
-        Arguments.of("scroll|", "new_scroll|", List.of())
+        Arguments.of(new SerializedPageRequest("scroll", List.of("1", "2")),
+                    new SerializedPageRequest("new_scroll", List.of("1", "2")),
+                    List.of("1", "2"), "with includes"),
+        Arguments.of(new SerializedPageRequest("scroll", List.of()),
+                    new SerializedPageRequest("new_scroll", List.of()),
+                    List.of(), "no includes")
     );
   }
 
   /** Test different scenarios - with and without `includes`. */
-  @ParameterizedTest
+  @ParameterizedTest(name = "{3}")
   @MethodSource("getScrollsForTest")
   @SneakyThrows
-  public void parse_and_serialize_includes(String scroll, String expectedNewScroll,
-                                           List<String> includes) {
-    var request = new ContinuePageRequest(scroll, TimeValue.timeValueMinutes(1), exprValueFactory);
+  public void parse_and_serialize_includes(SerializedPageRequest serializedPageRequest,
+                                           SerializedPageRequest expectedNewScroll,
+                                           List<String> includes,
+                                           String testName) {
+    var request = new ContinuePageRequest(serializedPageRequest,
+        TimeValue.timeValueMinutes(1), exprValueFactory);
     SearchResponse searchResponse = mock();
     when(searchResponse.getScrollId()).thenReturn("new_scroll");
     SearchHits hits = mock();

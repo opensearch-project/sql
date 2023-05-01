@@ -50,9 +50,7 @@ public interface OpenSearchRequest {
    */
   OpenSearchExprValueFactory getExprValueFactory();
 
-  default String toCursor() {
-    return "";
-  }
+  SerializedPageRequest toCursor();
 
   /**
    * OpenSearch Index Name.

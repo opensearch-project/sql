@@ -153,7 +153,7 @@ public class OpenSearchScrollRequest implements OpenSearchRequest {
    * @return a string representing the scroll request.
    */
   @Override
-  public String toCursor() {
-    return scrollId == null ? null : scrollId + "|" + String.join(",", includes);
+  public SerializedPageRequest toCursor() {
+    return scrollId == null ? null : new SerializedPageRequest(scrollId, includes);
   }
 }

@@ -21,6 +21,7 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import java.util.List;
 import java.util.function.Consumer;
 import lombok.SneakyThrows;
 import org.apache.commons.lang3.reflect.FieldUtils;
@@ -60,7 +61,7 @@ public class ContinuePageRequestTest {
   private final String nextScroll = "nextScroll";
 
   private final ContinuePageRequest request = new ContinuePageRequest(
-      scroll, TimeValue.timeValueMinutes(1), factory);
+      new SerializedPageRequest(scroll, List.of()), TimeValue.timeValueMinutes(1), factory);
 
   @Test
   public void search_with_non_empty_response() {
@@ -71,7 +72,7 @@ public class ContinuePageRequestTest {
     OpenSearchResponse response = request.search((sr) -> fail(), (sr) -> searchResponse);
     assertAll(
         () -> assertFalse(response.isEmpty()),
-        () -> assertEquals(nextScroll + "|", request.toCursor())
+        () -> assertEquals(new SerializedPageRequest(nextScroll, List.of()), request.toCursor())
     );
   }
 
@@ -106,7 +107,8 @@ public class ContinuePageRequestTest {
     factory = mock();
     assertAll(
         () -> assertThrows(Throwable.class, request::getSourceBuilder),
-        () -> assertSame(factory, new ContinuePageRequest("", null, factory).getExprValueFactory())
+        () -> assertSame(factory, new ContinuePageRequest(mock(), null, factory)
+            .getExprValueFactory())
     );
   }
 }
