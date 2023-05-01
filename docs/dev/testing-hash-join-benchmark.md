@@ -10,7 +10,7 @@ New hash algorithm introduced memory circuit breaker logic to improve cluster's 
 
 The result summary is as following:
 
-* For cluster stability: the cluster turned from green to yellow due to 4 nodes OOM when using 112 clients sending requests against old hash algorithm. For new hash algorithm, no OOM happened when increasing client's number from 1 to 256.
+* For cluster stability: the cluster turned from green to yellow due to 4 nodes OOM (Out of Memory) when using 112 clients sending requests against old hash algorithm. For new hash algorithm, no OOM happened when increasing client's number from 1 to 256.
 * For error rate (Graph 1): there are 3 phases as below
     1) Before memory circuit breaker being triggered, the error rate of new and old hash is almost same
     2) Between memory circuit breaker being triggered and OOM, old hash is slightly better than new hash, as new hash starting rejecting new request and terminating some ongoing requests
