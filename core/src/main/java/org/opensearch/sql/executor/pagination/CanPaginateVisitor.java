@@ -100,9 +100,10 @@ public class CanPaginateVisitor extends AbstractNodeVisitor<Boolean, Object> {
     return Boolean.FALSE;
   }
 
+  // Queries with LIMIT clause are not supported
   @Override
   public Boolean visitLimit(Limit node, Object context) {
-    return super.visitLimit(node, context);
+    return Boolean.FALSE;
   }
 
   @Override
