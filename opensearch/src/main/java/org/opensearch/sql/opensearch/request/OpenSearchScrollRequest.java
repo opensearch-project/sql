@@ -38,7 +38,11 @@ import org.opensearch.sql.opensearch.storage.OpenSearchStorageEngine;
 @Getter
 @ToString
 public class OpenSearchScrollRequest implements OpenSearchRequest {
-  private final SearchRequest initialSearchRequest;
+  /**
+   * Search request used to initiate paged (scrolled) search. Not needed to get subsequent pages.
+   */
+  @EqualsAndHashCode.Exclude
+  private final transient SearchRequest initialSearchRequest;
   /** Scroll context timeout. */
   private final TimeValue scrollTimeout;
 
@@ -154,7 +158,6 @@ public class OpenSearchScrollRequest implements OpenSearchRequest {
 
   @Override
   public void writeTo(StreamOutput out) throws IOException {
-    initialSearchRequest.writeTo(out);
     out.writeTimeValue(scrollTimeout);
     out.writeString(scrollId);
     out.writeStringCollection(includes);
@@ -169,7 +172,7 @@ public class OpenSearchScrollRequest implements OpenSearchRequest {
    */
   public OpenSearchScrollRequest(StreamInput in, OpenSearchStorageEngine engine)
       throws IOException {
-    initialSearchRequest = new SearchRequest(in);
+    initialSearchRequest = null;
     scrollTimeout = in.readTimeValue();
     scrollId = in.readString();
     includes = in.readStringList();

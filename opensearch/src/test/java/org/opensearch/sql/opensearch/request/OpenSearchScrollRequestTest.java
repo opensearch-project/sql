@@ -273,7 +273,7 @@ class OpenSearchScrollRequestTest {
     var engine = mock(OpenSearchStorageEngine.class);
     when(engine.getTable(any(), any())).thenReturn(indexMock);
     var newRequest = new OpenSearchScrollRequest(inStream, engine);
-    assertEquals(request.getInitialSearchRequest(), newRequest.getInitialSearchRequest());
+    assertEquals(request, newRequest);
     assertEquals("", newRequest.getScrollId());
   }
 
@@ -296,7 +296,7 @@ class OpenSearchScrollRequestTest {
     var engine = mock(OpenSearchStorageEngine.class);
     when(engine.getTable(any(), any())).thenReturn(indexMock);
     var newRequest = new OpenSearchScrollRequest(inStream, engine);
-    assertEquals(request.getInitialSearchRequest(), newRequest.getInitialSearchRequest());
+    assertEquals(request, newRequest);
     assertEquals("", newRequest.getScrollId());
   }
 
