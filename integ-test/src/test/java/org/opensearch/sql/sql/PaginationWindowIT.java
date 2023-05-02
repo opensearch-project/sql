@@ -39,6 +39,7 @@ public class PaginationWindowIT extends SQLIntegTestCase {
       numRows += response.getJSONArray("datarows").length();
       response = executeCursorQuery(cursor);
     } while (response.has("cursor"));
+    numRows += response.getJSONArray("datarows").length();
 
     var countRows = executeJdbcRequest("SELECT COUNT(*) FROM " + TEST_INDEX_PHRASE)
         .getJSONArray("datarows")
@@ -62,7 +63,7 @@ public class PaginationWindowIT extends SQLIntegTestCase {
       numRows += response.getJSONArray("datarows").length();
       response = executeCursorQuery(cursor);
     } while (response.has("cursor"));
-
+    numRows += response.getJSONArray("datarows").length();
     var countRows = executeJdbcRequest("SELECT COUNT(*) FROM " + TEST_INDEX_PHRASE)
         .getJSONArray("datarows")
         .getJSONArray(0)
