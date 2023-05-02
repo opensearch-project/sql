@@ -12,7 +12,11 @@ import lombok.ToString;
 import org.apache.commons.lang3.tuple.Pair;
 import org.apache.lucene.search.join.ScoreMode;
 import org.opensearch.common.unit.TimeValue;
-import org.opensearch.index.query.*;
+import org.opensearch.index.query.BoolQueryBuilder;
+import org.opensearch.index.query.InnerHitBuilder;
+import org.opensearch.index.query.NestedQueryBuilder;
+import org.opensearch.index.query.QueryBuilder;
+import org.opensearch.index.query.QueryBuilders;
 import org.opensearch.search.aggregations.AggregationBuilder;
 import org.opensearch.search.builder.SearchSourceBuilder;
 import org.opensearch.search.fetch.subphase.FetchSourceContext;
@@ -30,7 +34,6 @@ import org.opensearch.sql.opensearch.response.agg.OpenSearchAggregationResponseP
 
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -67,7 +70,7 @@ public class OpenSearchRequestBuilder implements PushDownRequestBuilder {
   /**
    * Size of each page request to return.
    */
-  private Optional<Integer> pageSize = Optional.empty();
+  private Integer pageSize = null;
 
   /**
    * OpenSearchExprValueFactory.
@@ -91,7 +94,7 @@ public class OpenSearchRequestBuilder implements PushDownRequestBuilder {
 
   @Override
   public int getQuerySize() {
-    return pageSize.orElse(querySize);
+    return pageSize == null? querySize : pageSize;
   }
   /**
    * Build DSL request.
@@ -104,7 +107,7 @@ public class OpenSearchRequestBuilder implements PushDownRequestBuilder {
                                  Settings settings) {
     int size = querySize;
     TimeValue scrollTimeout = settings.getSettingValue(Settings.Key.SQL_CURSOR_KEEP_ALIVE);
-    if (pageSize.isEmpty()) {
+    if (pageSize == null) {
       if (startFrom + size > maxResultWindow) {
         sourceBuilder.size(maxResultWindow - startFrom);
         return new OpenSearchScrollRequest(
@@ -118,7 +121,7 @@ public class OpenSearchRequestBuilder implements PushDownRequestBuilder {
       if (startFrom != 0) {
         throw new UnsupportedOperationException("Non-zero offset is not supported with pagination");
       }
-      sourceBuilder.size(pageSize.get());
+      sourceBuilder.size(pageSize);
       return new OpenSearchScrollRequest(indexName, scrollTimeout,
           sourceBuilder, exprValueFactory);
     }
@@ -201,7 +204,7 @@ public class OpenSearchRequestBuilder implements PushDownRequestBuilder {
 
   @Override
   public void pushDownPageSize(int pageSize) {
-    this.pageSize = Optional.of(pageSize);
+    this.pageSize = pageSize;
   }
 
   /**
