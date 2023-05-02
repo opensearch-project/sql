@@ -13,7 +13,6 @@ import java.util.function.Consumer;
 import java.util.function.Function;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
-import lombok.RequiredArgsConstructor;
 import lombok.Setter;
 import lombok.ToString;
 import org.opensearch.action.search.SearchRequest;
