@@ -35,9 +35,11 @@ import static org.opensearch.sql.data.type.ExprCoreType.TIME;
 import static org.opensearch.sql.data.type.ExprCoreType.TIMESTAMP;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.google.gson.JsonParser;
+import com.google.gson.stream.JsonReader;
+import java.io.StringReader;
 import java.time.Instant;
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -98,8 +100,9 @@ class OpenSearchExprValueFactoryTest {
 
   @Test
   public void iterateArrayValue() throws JsonProcessingException {
-    ObjectMapper mapper = new ObjectMapper();
-    var arrayIt = new OpenSearchJsonContent(mapper.readTree("[\"zz\",\"bb\"]")).array();
+    JsonReader reader = new JsonReader(new StringReader("[\"zz\",\"bb\"]"));
+    JsonParser parser = new JsonParser();
+    var arrayIt = new OpenSearchJsonContent(parser.parseReader(reader)).array();
     assertTrue(arrayIt.next().stringValue().equals("zz"));
     assertTrue(arrayIt.next().stringValue().equals("bb"));
     assertTrue(!arrayIt.hasNext());
@@ -107,8 +110,9 @@ class OpenSearchExprValueFactoryTest {
 
   @Test
   public void iterateArrayValueWithOneElement() throws JsonProcessingException {
-    ObjectMapper mapper = new ObjectMapper();
-    var arrayIt = new OpenSearchJsonContent(mapper.readTree("[\"zz\"]")).array();
+    JsonReader reader = new JsonReader(new StringReader("[\"zz\"]"));
+    JsonParser parser = new JsonParser();
+    var arrayIt = new OpenSearchJsonContent(parser.parseReader(reader)).array();
     assertTrue(arrayIt.next().stringValue().equals("zz"));
     assertTrue(!arrayIt.hasNext());
   }

@@ -7,8 +7,8 @@ package org.opensearch.sql.datasources.storage;
 
 import static org.opensearch.sql.datasources.storage.OpenSearchDataSourceMetadataStorage.DATASOURCE_INDEX_NAME;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.gson.Gson;
+import com.google.gson.JsonSyntaxException;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -595,7 +595,7 @@ public class OpenSearchDataSourceMetadataStorageTest {
     Mockito.verify(client.threadPool().getThreadContext(), Mockito.times(1)).stashContext();
   }
 
-  private String getBasicDataSourceMetadataString() throws JsonProcessingException {
+  private String getBasicDataSourceMetadataString() throws JsonSyntaxException {
     DataSourceMetadata dataSourceMetadata = new DataSourceMetadata();
     dataSourceMetadata.setName("testDS");
     dataSourceMetadata.setConnector(DataSourceType.PROMETHEUS);
@@ -606,11 +606,11 @@ public class OpenSearchDataSourceMetadataStorageTest {
     properties.put("prometheus.auth.uri", "https://localhost:9090");
     properties.put("prometheus.auth.password", "password");
     dataSourceMetadata.setProperties(properties);
-    ObjectMapper objectMapper = new ObjectMapper();
-    return objectMapper.writeValueAsString(dataSourceMetadata);
+    Gson gson = new Gson();
+    return gson.toJson(dataSourceMetadata);
   }
 
-  private String getAWSSigv4DataSourceMetadataString() throws JsonProcessingException {
+  private String getAWSSigv4DataSourceMetadataString() throws JsonSyntaxException {
     DataSourceMetadata dataSourceMetadata = new DataSourceMetadata();
     dataSourceMetadata.setName("testDS");
     dataSourceMetadata.setConnector(DataSourceType.PROMETHEUS);
@@ -621,12 +621,12 @@ public class OpenSearchDataSourceMetadataStorageTest {
     properties.put("prometheus.auth.uri", "https://localhost:9090");
     properties.put("prometheus.auth.access_key", "access_key");
     dataSourceMetadata.setProperties(properties);
-    ObjectMapper objectMapper = new ObjectMapper();
-    return objectMapper.writeValueAsString(dataSourceMetadata);
+    Gson gson = new Gson();
+    return gson.toJson(dataSourceMetadata);
   }
 
   private String getDataSourceMetadataStringWithBasicAuthentication()
-      throws JsonProcessingException {
+      throws JsonSyntaxException {
     DataSourceMetadata dataSourceMetadata = new DataSourceMetadata();
     dataSourceMetadata.setName("testDS");
     dataSourceMetadata.setConnector(DataSourceType.PROMETHEUS);
@@ -637,11 +637,11 @@ public class OpenSearchDataSourceMetadataStorageTest {
     properties.put("prometheus.auth.username", "username");
     properties.put("prometheus.auth.password", "password");
     dataSourceMetadata.setProperties(properties);
-    ObjectMapper objectMapper = new ObjectMapper();
-    return objectMapper.writeValueAsString(dataSourceMetadata);
+    Gson gson = new Gson();
+    return gson.toJson(dataSourceMetadata);
   }
 
-  private String getDataSourceMetadataStringWithNoAuthentication() throws JsonProcessingException {
+  private String getDataSourceMetadataStringWithNoAuthentication() throws JsonSyntaxException {
     DataSourceMetadata dataSourceMetadata = new DataSourceMetadata();
     dataSourceMetadata.setName("testDS");
     dataSourceMetadata.setConnector(DataSourceType.PROMETHEUS);
@@ -649,8 +649,8 @@ public class OpenSearchDataSourceMetadataStorageTest {
     Map<String, String> properties = new HashMap<>();
     properties.put("prometheus.auth.uri", "https://localhost:9090");
     dataSourceMetadata.setProperties(properties);
-    ObjectMapper objectMapper = new ObjectMapper();
-    return objectMapper.writeValueAsString(dataSourceMetadata);
+    Gson gson = new Gson();
+    return gson.toJson(dataSourceMetadata);
   }
 
   private DataSourceMetadata getDataSourceMetadata() {

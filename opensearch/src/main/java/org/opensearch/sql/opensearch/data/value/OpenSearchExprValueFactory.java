@@ -14,9 +14,13 @@ import static org.opensearch.sql.data.type.ExprCoreType.TIME;
 import static org.opensearch.sql.data.type.ExprCoreType.TIMESTAMP;
 import static org.opensearch.sql.utils.DateTimeFormatters.DATE_TIME_FORMATTER;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Iterators;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
+import com.google.gson.JsonElement;
 import com.google.gson.JsonParser;
 import com.google.gson.JsonSyntaxException;
 import com.google.gson.stream.JsonReader; 
@@ -239,7 +243,7 @@ public class OpenSearchExprValueFactory {
   private ExprValue parseArray(Content content, String prefix) {
     List<ExprValue> result = new ArrayList<>();
     // ExprCoreType.ARRAY does not indicate inner elements type.
-    if (Iterators.size(content.array()) == 1 && content.objectValue() instanceof JsonNode) {
+    if (Iterators.size(content.array()) == 1 && content.objectValue() instanceof JsonElement) {
       result.add(parse(content, prefix, Optional.of(STRUCT)));
     } else {
       content.array().forEachRemaining(v -> {
