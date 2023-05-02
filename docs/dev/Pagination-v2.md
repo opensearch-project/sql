@@ -300,7 +300,33 @@ OpenSearchExecutionEngine->>+ProjectOperator: getTotalHits
 
 ### Plan Tree changes
 
-There are different plan trees are built during request processing. See more about their purpose and stages [here](query-optimizer-improvement.md#Examples). Article below describes what changes are introduced in these trees by pagination feature.
+There are different plan trees are built during request processing. Read more about their purpose and stages [here](query-optimizer-improvement.md#Examples). Article below describes what changes are introduced in these trees by pagination feature.
+
+Simplified workflow of plan trees is shown below. First (Initial) page request is processed the same way as non-paging request.
+
+```mermaid
+classDiagram
+  direction LR
+  class Abstract Plan Tree
+  class Logical Plan Tree
+  class Optimized Logical Plan Tree
+  class Physical Plan Tree
+
+  Abstract Plan Tree --> Logical Plan Tree : Planner
+  Logical Plan Tree --> Optimized Logical Plan Tree : Optimizer
+  Optimized Logical Plan Tree --> Physical Plan Tree : Implementor
+```
+
+New plan tree workflow was added for subsequent page requests. Since a final Physical Plan tree was already created for Initial request, subsequent requests should have the same tree. The tree is being serialized into `cursor` by `PlanSerializer` and then restored back.
+
+```mermaid
+classDiagram
+  direction LR
+  class Abstract Plan Tree
+  class Physical Plan Tree
+
+  Abstract Plan Tree --> Physical Plan Tree : deserialization
+```
 
 #### Abstract Plan tree
 
@@ -327,8 +353,21 @@ classDiagram
 
 Non-paging requests have the same plan tree, but `pageSize` value in `QueryPlan` is unset.
 
-TODO:
-Add graph for `ContinuePaginatedPlan`.
+Abstract plan tree for Subsequent Query Request (for second and further pages) contains only one node -- `ContinuePaginatedPlan`.
+
+```mermaid
+classDiagram
+  direction LR
+  class ContinuePaginatedPlan {
+    <<AbstractPlan>>
+    -String cursor
+    -PlanSerializer planSerializer
+    -QueryService queryService
+    -ResponseListener queryResponseListener
+  }
+```
+
+`ContinuePaginatedPlan` translated to entire Physical Plan Tree by `PlanSerializer` on cursor deserialization. It bypasses Logical Plan tree stage, `Planner`, `Optimizer` and `Implementor`.
 
 #### Logical Plan tree
 
@@ -366,7 +405,9 @@ classDiagram
   LogicalPlanTree --* LogicalRelation
 ```
 
-#### Optimized Plan tree
+Note: No Logical Plan tree created for Subsequent Query Request.
+
+#### Optimized Logical Plan tree
 
 Changes:
 1. For pagination request, we push a `OpenSearchPagedIndexScanBuilder` instead of `OpenSearchIndexScanQueryBuilder` to the bottom of the tree. Both are instances of `TableScanBuilder` which extends `PhysicalPlan` interface.
@@ -376,6 +417,7 @@ See [article about `TableScanBuilder`](query-optimizer-improvement.md#TableScanB
 
 ```mermaid
 classDiagram
+  direction LR
   class LogicalProject {
     <<LogicalPlan>>
   }
@@ -386,10 +428,13 @@ classDiagram
   LogicalProject --* OpenSearchPagedIndexScanBuilder
 ```
 
+Note: No Logical Plan tree created for Subsequent Query Request.
+
 #### Physical Plan tree
 
 Changes:
 1. `OpenSearchPagedIndexScanBuilder` is converted to `OpenSearchPagedIndexScan` by `Implementor`.
+2. Entire Physical Plan tree is created by `PlanSerializer` for Subsequent Query requests. The deserialized tree has the same structure which Initial Query Request had.
 
 ```mermaid
 classDiagram
