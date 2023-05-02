@@ -111,7 +111,7 @@ public class OpenSearchRequestBuilder implements PushDownRequestBuilder {
             indexName, scrollTimeout, sourceBuilder, exprValueFactory);
       } else {
         sourceBuilder.from(startFrom);
-        sourceBuilder.size(size);
+        sourceBuilder.size(querySize);
         return new OpenSearchQueryRequest(indexName, sourceBuilder, exprValueFactory);
       }
     } else {

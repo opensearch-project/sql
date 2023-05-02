@@ -346,7 +346,6 @@ class OpenSearchIndexScanTest {
                   when(response.isEmpty()).thenReturn(false);
                   ExprValue[] searchHit = searchHitBatches[batchNum];
                   when(response.iterator()).thenReturn(Arrays.asList(searchHit).iterator());
-                  // used in OpenSearchPagedIndexScanTest
                   lenient().when(response.getTotalHits())
                       .thenReturn((long) searchHitBatches[batchNum].length);
                 } else {

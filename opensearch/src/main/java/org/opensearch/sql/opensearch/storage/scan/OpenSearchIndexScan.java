@@ -65,7 +65,7 @@ public class OpenSearchIndexScan extends TableScanOperator implements Serializab
   private transient Iterator<ExprValue> iterator;
 
   /**
-   * Constructor.
+   * Factory method used in tests.
    */
   public static OpenSearchIndexScan create(OpenSearchClient client,
                                            String indexName,
