@@ -33,21 +33,13 @@ import static org.opensearch.sql.utils.SystemIndexUtils.mappingTable;
 
 import com.google.common.collect.ImmutableList;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
-import java.util.stream.Stream;
-import org.antlr.v4.runtime.tree.ParseTree;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.Arguments;
-import org.junit.jupiter.params.provider.MethodSource;
 import org.opensearch.sql.ast.dsl.AstDSL;
 import org.opensearch.sql.ast.expression.AllFields;
 import org.opensearch.sql.ast.expression.DataType;
 import org.opensearch.sql.ast.expression.Literal;
-import org.opensearch.sql.ast.tree.UnresolvedPlan;
 import org.opensearch.sql.common.antlr.SyntaxCheckException;
-import org.opensearch.sql.sql.antlr.SQLSyntaxParser;
 
 class AstBuilderTest extends AstBuilderTestBase {
 
@@ -470,6 +462,21 @@ class AstBuilderTest extends AstBuilderTestBase {
         buildAST("SELECT name FROM test ORDER BY name NULLS LAST"));
   }
 
+  /**
+   * Ensure Nested function falls back to legacy engine when used in an ORDER BY clause.
+   * TODO Remove this test when support is added.
+   */
+  @Test
+  public void nested_in_order_by_clause_throws_exception() {
+    SyntaxCheckException exception = assertThrows(SyntaxCheckException.class,
+        () -> buildAST("SELECT * FROM test ORDER BY nested(message.info)")
+    );
+
+    assertEquals(
+        "Falling back to legacy engine. Nested function is not supported in ORDER BY clause.",
+        exception.getMessage());
+  }
+
   @Test
   public void can_build_order_by_sort_order_keyword_insensitive() {
     assertEquals(
@@ -696,5 +703,4 @@ class AstBuilderTest extends AstBuilderTestBase {
         buildAST("SELECT highlight(\"fieldA\") FROM test")
     );
   }
-
 }

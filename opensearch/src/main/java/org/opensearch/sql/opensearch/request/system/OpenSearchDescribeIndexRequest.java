@@ -15,11 +15,8 @@ import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
 import org.opensearch.sql.data.model.ExprTupleValue;
 import org.opensearch.sql.data.model.ExprValue;
-import org.opensearch.sql.data.type.ExprCoreType;
-import org.opensearch.sql.data.type.ExprType;
 import org.opensearch.sql.opensearch.client.OpenSearchClient;
 import org.opensearch.sql.opensearch.data.type.OpenSearchDataType;
 import org.opensearch.sql.opensearch.mapping.IndexMapping;
@@ -68,7 +65,8 @@ public class OpenSearchDescribeIndexRequest implements OpenSearchSystemRequest {
     List<ExprValue> results = new ArrayList<>();
     Map<String, String> meta = client.meta();
     int pos = 0;
-    for (Map.Entry<String, ExprType> entry : getFieldTypes().entrySet()) {
+    for (Map.Entry<String, OpenSearchDataType> entry
+        : OpenSearchDataType.traverseAndFlatten(getFieldTypes()).entrySet()) {
       results.add(
           row(entry.getKey(), entry.getValue().legacyTypeName().toLowerCase(), pos++,
               clusterName(meta)));
@@ -81,14 +79,12 @@ public class OpenSearchDescribeIndexRequest implements OpenSearchSystemRequest {
    *
    * @return mapping of field and type.
    */
-  public Map<String, ExprType> getFieldTypes() {
-    Map<String, ExprType> fieldTypes = new HashMap<>();
+  // TODO possible collision if two indices have fields with the same name and different mappings
+  public Map<String, OpenSearchDataType> getFieldTypes() {
+    Map<String, OpenSearchDataType> fieldTypes = new HashMap<>();
     Map<String, IndexMapping> indexMappings = client.getIndexMappings(indexName.getIndexNames());
     for (IndexMapping indexMapping : indexMappings.values()) {
-      fieldTypes
-          .putAll(indexMapping.getAllFieldTypes(this::transformESTypeToExprType).entrySet().stream()
-              .filter(entry -> !ExprCoreType.UNKNOWN.equals(entry.getValue()))
-              .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue)));
+      fieldTypes.putAll(indexMapping.getFieldMappings());
     }
     return fieldTypes;
   }
@@ -101,10 +97,6 @@ public class OpenSearchDescribeIndexRequest implements OpenSearchSystemRequest {
   public Integer getMaxResultWindow() {
     return client.getIndexMaxResultWindows(indexName.getIndexNames())
         .values().stream().min(Integer::compare).get();
-  }
-
-  private ExprType transformESTypeToExprType(String openSearchType) {
-    return OpenSearchDataType.getExprType(openSearchType);
   }
 
   private ExprTupleValue row(String fieldName, String fieldType, int position, String clusterName) {

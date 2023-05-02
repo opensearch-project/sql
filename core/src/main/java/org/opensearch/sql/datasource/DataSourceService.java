@@ -27,16 +27,28 @@ public interface DataSourceService {
    * Returns all dataSource Metadata objects. The returned objects won't contain
    * any of the credential info.
    *
+   * @param isDefaultDataSourceRequired is used to specify
+   *      if default opensearch connector is required in the output list.
    * @return set of {@link DataSourceMetadata}.
    */
-  Set<DataSourceMetadata> getDataSourceMetadataSet();
+  Set<DataSourceMetadata> getDataSourceMetadata(boolean isDefaultDataSourceRequired);
+
+
+  /**
+   * Returns dataSourceMetadata object with specific name.
+   * The returned objects won't contain any crendetial info.
+   *
+   * @param name name of the {@link DataSource}.
+   * @return set of {@link DataSourceMetadata}.
+   */
+  DataSourceMetadata getDataSourceMetadata(String name);
 
   /**
    * Register {@link DataSource} defined by {@link DataSourceMetadata}.
    *
-   * @param metadatas list of {@link DataSourceMetadata}.
+   * @param metadata {@link DataSourceMetadata}.
    */
-  void createDataSource(DataSourceMetadata... metadatas);
+  void createDataSource(DataSourceMetadata metadata);
 
   /**
    * Updates {@link DataSource} corresponding to dataSourceMetadata.
@@ -54,13 +66,10 @@ public interface DataSourceService {
   void deleteDataSource(String dataSourceName);
 
   /**
-   * This method is to bootstrap
-   * datasources during the startup of the plugin.
+   * Returns true {@link Boolean} if datasource with dataSourceName exists
+   * or else false {@link Boolean}.
+   *
+   * @param dataSourceName name of the {@link DataSource}.
    */
-  void bootstrapDataSources();
-
-  /**
-   * remove all the registered {@link DataSource}.
-   */
-  void clear();
+  Boolean dataSourceExists(String dataSourceName);
 }

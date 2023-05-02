@@ -12,31 +12,35 @@ import com.fasterxml.jackson.annotation.JsonFormat;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.collect.ImmutableMap;
+import java.util.Collections;
+import java.util.List;
 import java.util.Map;
 import lombok.AllArgsConstructor;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
-import lombok.RequiredArgsConstructor;
 import lombok.Setter;
 import org.opensearch.sql.datasource.DataSourceService;
 
-@JsonIgnoreProperties(ignoreUnknown = true)
 @Getter
 @Setter
 @AllArgsConstructor
 @NoArgsConstructor
 @EqualsAndHashCode
+@JsonIgnoreProperties(ignoreUnknown = true)
 public class DataSourceMetadata {
 
-  @JsonProperty(required = true)
+  @JsonProperty
   private String name;
 
-  @JsonProperty(required = true)
+  @JsonProperty
   @JsonFormat(with = JsonFormat.Feature.ACCEPT_CASE_INSENSITIVE_PROPERTIES)
   private DataSourceType connector;
 
-  @JsonProperty(required = true)
+  @JsonProperty
+  private List<String> allowedRoles;
+
+  @JsonProperty
   private Map<String, String> properties;
 
   /**
@@ -45,6 +49,6 @@ public class DataSourceMetadata {
    */
   public static DataSourceMetadata defaultOpenSearchDataSourceMetadata() {
     return new DataSourceMetadata(DEFAULT_DATASOURCE_NAME,
-        DataSourceType.OPENSEARCH, ImmutableMap.of());
+        DataSourceType.OPENSEARCH, Collections.emptyList(), ImmutableMap.of());
   }
 }

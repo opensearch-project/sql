@@ -17,14 +17,13 @@ import static org.opensearch.sql.data.type.ExprCoreType.STRING;
 import static org.opensearch.sql.data.type.ExprCoreType.STRUCT;
 import static org.opensearch.sql.executor.ExecutionEngine.Schema;
 import static org.opensearch.sql.executor.ExecutionEngine.Schema.Column;
-import static org.opensearch.sql.opensearch.data.type.OpenSearchDataType.OPENSEARCH_TEXT;
-import static org.opensearch.sql.opensearch.data.type.OpenSearchDataType.OPENSEARCH_TEXT_KEYWORD;
 import static org.opensearch.sql.protocol.response.format.JsonResponseFormatter.Style.COMPACT;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.gson.JsonParser;
 import java.util.Arrays;
+import java.util.Map;
 import org.junit.jupiter.api.DisplayNameGeneration;
 import org.junit.jupiter.api.DisplayNameGenerator;
 import org.junit.jupiter.api.Test;
@@ -32,6 +31,8 @@ import org.opensearch.OpenSearchException;
 import org.opensearch.sql.common.antlr.SyntaxCheckException;
 import org.opensearch.sql.data.model.ExprTupleValue;
 import org.opensearch.sql.exception.SemanticCheckException;
+import org.opensearch.sql.opensearch.data.type.OpenSearchDataType;
+import org.opensearch.sql.opensearch.data.type.OpenSearchTextType;
 import org.opensearch.sql.protocol.response.QueryResult;
 
 @DisplayNameGeneration(DisplayNameGenerator.ReplaceUnderscores.class)
@@ -44,8 +45,9 @@ class JdbcResponseFormatterTest {
     QueryResult response = new QueryResult(
         new Schema(ImmutableList.of(
             new Column("name", "name", STRING),
-            new Column("address1", "address1", OPENSEARCH_TEXT),
-            new Column("address2", "address2", OPENSEARCH_TEXT_KEYWORD),
+            new Column("address1", "address1", OpenSearchTextType.of()),
+            new Column("address2", "address2", OpenSearchTextType.of(Map.of("words",
+                OpenSearchDataType.of(OpenSearchDataType.MappingType.Keyword)))),
             new Column("location", "location", STRUCT),
             new Column("employer", "employer", ARRAY),
             new Column("age", "age", INTEGER))),

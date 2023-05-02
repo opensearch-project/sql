@@ -15,7 +15,7 @@ import org.opensearch.search.sort.SortOrder;
 import org.opensearch.sql.ast.tree.Sort;
 import org.opensearch.sql.expression.Expression;
 import org.opensearch.sql.expression.ReferenceExpression;
-import org.opensearch.sql.opensearch.storage.script.ScriptUtils;
+import org.opensearch.sql.opensearch.data.type.OpenSearchTextType;
 
 /**
  * Builder of {@link SortBuilder}.
@@ -49,6 +49,9 @@ public class SortQueryBuilder {
    */
   public SortBuilder<?> build(Expression expression, Sort.SortOption option) {
     if (expression instanceof ReferenceExpression) {
+      if (((ReferenceExpression) expression).getAttr().equalsIgnoreCase("_score")) {
+        return SortBuilders.scoreSort().order(sortOrderMap.get(option.getSortOrder()));
+      }
       return fieldBuild((ReferenceExpression) expression, option);
     } else {
       throw new IllegalStateException("unsupported expression " + expression.getClass());
@@ -56,7 +59,8 @@ public class SortQueryBuilder {
   }
 
   private FieldSortBuilder fieldBuild(ReferenceExpression ref, Sort.SortOption option) {
-    return SortBuilders.fieldSort(ScriptUtils.convertTextToKeyword(ref.getAttr(), ref.type()))
+    return SortBuilders.fieldSort(
+        OpenSearchTextType.convertTextToKeyword(ref.getAttr(), ref.type()))
         .order(sortOrderMap.get(option.getSortOrder()))
         .missing(missingMap.get(option.getNullOrder()));
   }

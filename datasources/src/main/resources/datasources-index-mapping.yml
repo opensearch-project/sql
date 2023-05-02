@@ -1,0 +1,17 @@
+---
+##
+# Copyright OpenSearch Contributors
+# SPDX-License-Identifier: Apache-2.0
+##
+
+# Schema file for the .ql-datasources index
+# Also "dynamic" is set to "false" so that other fields can be added.
+dynamic: false
+properties:
+  name:
+    type: text
+    fields:
+      keyword:
+        type: keyword
+  connector:
+    type: keyword

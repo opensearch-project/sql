@@ -15,6 +15,7 @@ import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import org.opensearch.sql.data.model.ExprTupleValue;
 import org.opensearch.sql.data.model.ExprValue;
+import org.opensearch.sql.data.type.ExprCoreType;
 import org.opensearch.sql.data.type.ExprType;
 import org.opensearch.sql.expression.env.Environment;
 
@@ -100,7 +101,12 @@ public class ReferenceExpression implements Expression {
   }
 
   private ExprValue resolve(ExprValue value, List<String> paths) {
-    final ExprValue wholePathValue = value.keyValue(String.join(PATH_SEP, paths));
+    ExprValue wholePathValue = value.keyValue(String.join(PATH_SEP, paths));
+    // For array types only first index currently supported.
+    if (value.type().equals(ExprCoreType.ARRAY)) {
+      wholePathValue = value.collectionValue().get(0).keyValue(paths.get(0));
+    }
+
     if (!wholePathValue.isMissing() || paths.size() == 1) {
       return wholePathValue;
     } else {

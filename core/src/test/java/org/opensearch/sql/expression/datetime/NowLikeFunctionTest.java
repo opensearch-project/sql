@@ -9,24 +9,20 @@ package org.opensearch.sql.expression.datetime;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.opensearch.sql.data.type.ExprCoreType.DATE;
 import static org.opensearch.sql.data.type.ExprCoreType.DATETIME;
 import static org.opensearch.sql.data.type.ExprCoreType.TIME;
+import static org.opensearch.sql.utils.DateTimeUtils.UTC_ZONE_ID;
 
-import java.time.Duration;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
-import java.time.Period;
-import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.time.temporal.ChronoUnit;
 import java.time.temporal.Temporal;
 import java.time.temporal.TemporalUnit;
 import java.util.List;
 import java.util.TimeZone;
-import java.util.concurrent.Callable;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.function.Supplier;
@@ -128,7 +124,7 @@ class NowLikeFunctionTest extends ExpressionTestBase {
     ZonedDateTime zonedDateTime =
         LocalDateTime.now(functionProperties.getQueryStartClock())
             .atZone(TimeZone.getDefault().toZoneId());
-    return zonedDateTime.withZoneSameInstant(ZoneId.of("UTC")).toLocalDateTime();
+    return zonedDateTime.withZoneSameInstant(UTC_ZONE_ID).toLocalDateTime();
   }
 
   /**

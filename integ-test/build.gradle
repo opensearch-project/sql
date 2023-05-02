@@ -37,9 +37,19 @@ apply plugin: 'java'
 apply plugin: 'io.freefair.lombok'
 apply plugin: 'com.wiredforcode.spawn'
 
+String baseVersion = "2.7.0"
+String bwcVersion = baseVersion + ".0";
+String baseName = "sqlBwcCluster"
+String bwcFilePath = "src/test/resources/bwc/"
+
 repositories {
     mavenCentral()
     maven { url 'https://jitpack.io' }
+
+    // Add extra repository for the JDBC driver if given by user
+    if (System.getProperty("jdbcRepo") != null && new File(System.getProperty("jdbcRepo")).isDirectory()) {
+        maven { url new File(System.getProperty("jdbcRepo")) }
+    }
 }
 
 ext {
@@ -75,11 +85,15 @@ configurations.all {
     resolutionStrategy.force "org.slf4j:slf4j-api:1.7.36"
 }
 
+configurations {
+    zipArchive
+}
+
 dependencies {
     testImplementation group: 'org.opensearch.test', name: 'framework', version: "${opensearch_version}"
     testImplementation group: 'org.opensearch.client', name: 'opensearch-rest-high-level-client', version: "${opensearch_version}"
     testImplementation group: 'org.opensearch.client', name: 'opensearch-rest-client', version: "${opensearch_version}"
-    testImplementation group: 'org.opensearch.driver', name: 'opensearch-sql-jdbc', version: '1.2.0.0'
+    testImplementation group: 'org.opensearch.driver', name: 'opensearch-sql-jdbc', version: System.getProperty("jdbcDriverVersion", '1.2.0.0')
     testImplementation group: 'org.hamcrest', name: 'hamcrest', version: '2.1'
     implementation group: 'org.apache.logging.log4j', name: 'log4j-core', version:'2.17.1'
     testImplementation project(':opensearch-sql-plugin')
@@ -90,6 +104,9 @@ dependencies {
     testImplementation group: 'com.h2database', name: 'h2', version: '2.1.214'
     testImplementation group: 'org.xerial', name: 'sqlite-jdbc', version: '3.32.3.3'
     testImplementation group: 'com.google.code.gson', name: 'gson', version: '2.10.1'
+
+    // Needed for BWC tests
+    zipArchive group: 'org.opensearch.plugin', name:'opensearch-sql-plugin', version: "${bwcVersion}-SNAPSHOT"
 }
 
 dependencyLicenses.enabled = false
@@ -112,7 +129,6 @@ testClusters.all {
 
 testClusters.integTest {
     plugin ":opensearch-sql-plugin"
-    keystore 'plugins.query.federation.datasources.config', new File("$projectDir/src/test/resources/datasource/", 'datasources.json')
 }
 
 task startPrometheus(type: SpawnProcessTask) {
@@ -147,8 +163,55 @@ task stopPrometheus(type: KillProcessTask) {
 
 stopPrometheus.mustRunAfter startPrometheus
 
+task integJdbcTest(type: RestIntegTestTask) {
+    testClusters.findAll {c -> c.clusterName == "integJdbcTest"}.first().
+        plugin ":opensearch-sql-plugin"
+
+    useJUnitPlatform()
+    dependsOn ':opensearch-sql-plugin:bundlePlugin'
+    testLogging {
+        events "passed", "skipped", "failed"
+    }
+    afterTest { desc, result ->
+        logger.quiet "${desc.className}.${desc.name}: ${result.resultType} ${(result.getEndTime() - result.getStartTime())/1000}s"
+    }
+
+    if (System.getProperty("jdbcDriverVersion") != null) {
+        systemProperty "jdbcDriverVersion", System.getProperty("jdbcDriverVersion")
+    }
+
+    if (System.getProperty("jdbcFile") != null) {
+        systemProperty "jdbcFile", System.getProperty("jdbcFile")
+    }
+
+    systemProperty 'tests.security.manager', 'false'
+    systemProperty('project.root', project.projectDir.absolutePath)
+
+    systemProperty "https", System.getProperty("https")
+    systemProperty "user", System.getProperty("user")
+    systemProperty "password", System.getProperty("password")
+
+    // Set default query size limit
+    systemProperty 'defaultQuerySizeLimit', '10000'
+
+    // Tell the test JVM if the cluster JVM is running under a debugger so that tests can use longer timeouts for
+    // requests. The 'doFirst' delays reading the debug setting on the cluster till execution time.
+    doFirst { systemProperty 'cluster.debug', getDebug() }
+
+    if (System.getProperty("test.debug") != null) {
+        jvmArgs '-agentlib:jdwp=transport=dt_socket,server=y,suspend=y,address=*:5005'
+    }
+
+    filter {
+        includeTestsMatching 'org.opensearch.sql.jdbc.*'
+    }
+}
+
 // Run PPL ITs and new, legacy and comparison SQL ITs with new SQL engine enabled
 integTest {
+    testLogging {
+        events "passed", "skipped", "failed"
+    }
     dependsOn ':opensearch-sql-plugin:bundlePlugin'
     if(getOSFamilyType() != "windows") {
         dependsOn startPrometheus
@@ -198,10 +261,16 @@ integTest {
 
     // Skip this IT because all assertions are against explain output
     exclude 'org/opensearch/sql/legacy/OrderIT.class'
+
+    // Exclude JDBC related tests
+    exclude 'org/opensearch/sql/jdbc/**'
 }
 
 
 task comparisonTest(type: RestIntegTestTask) {
+    testLogging {
+        events "passed", "skipped", "failed"
+    }
     dependsOn ':opensearch-sql-plugin:bundlePlugin'
 
     systemProperty 'tests.security.manager', 'false'
@@ -220,6 +289,9 @@ task comparisonTest(type: RestIntegTestTask) {
     exclude 'org/opensearch/sql/ppl/**/*IT.class'
     exclude 'org/opensearch/sql/legacy/**/*IT.class'
 
+    // Exclude JDBC related tests
+    exclude 'org/opensearch/sql/jdbc/**'
+
     // Enable logging output to console
     testLogging.showStandardStreams true
 
@@ -230,34 +302,21 @@ task comparisonTest(type: RestIntegTestTask) {
     systemProperty "queries", System.getProperty("queries")
 }
 
-String baseVersion = "2.6.0"
-String bwcVersion = baseVersion + ".0";
-String baseName = "sqlBwcCluster"
-String bwcFilePath = "src/test/resources/bwc/"
-String bwcSqlPlugin = "opensearch-sql-" + bwcVersion + ".zip"
-String bwcRemoteFile = "https://ci.opensearch.org/ci/dbc/distribution-build-opensearch/${baseVersion}/latest/linux/x64/tar/builds/opensearch/plugins/" + bwcSqlPlugin
-
 2.times { i ->
     testClusters {
         "${baseName}$i" {
             testDistribution = "ARCHIVE"
             versions = [baseVersion, opensearch_version]
             numberOfNodes = 3
-            plugin(provider(new Callable<RegularFile>() {
+            plugin(provider(new Callable<RegularFile>(){
                 @Override
                 RegularFile call() throws Exception {
                     return new RegularFile() {
                         @Override
                         File getAsFile() {
-                            File dir = new File('./integ-test/' + bwcFilePath + bwcVersion)
-                            if (!dir.exists()) {
-                                dir.mkdirs()
-                            }
-                            File f = new File(dir, bwcSqlPlugin)
-                            if (!f.exists()) {
-                                new URL(bwcRemoteFile).withInputStream{ ins -> f.withOutputStream{ it << ins }}
-                            }
-                            return fileTree(bwcFilePath + bwcVersion).getSingleFile()
+                            return configurations.zipArchive.asFileTree.matching {
+                                include '**/opensearch-sql-plugin*'
+                            }.singleFile
                         }
                     }
                 }
@@ -374,6 +433,9 @@ task "${baseName}#fullRestartClusterTask"(type: StandaloneRestIntegTestTask) {
 
 // A bwc test suite which runs all the bwc tasks combined
 task bwcTestSuite(type: StandaloneRestIntegTestTask) {
+    testLogging {
+        events "passed", "skipped", "failed"
+    }
     exclude '**/*Test*'
     exclude '**/*IT*'
     dependsOn tasks.named("${baseName}#mixedClusterTask")
@@ -385,6 +447,9 @@ def opensearch_tmp_dir = rootProject.file('build/private/es_tmp').absoluteFile
 opensearch_tmp_dir.mkdirs()
 
 task integTestRemote(type: RestIntegTestTask) {
+    testLogging {
+        events "passed", "skipped", "failed"
+    }
     testClassesDirs = sourceSets.test.output.classesDirs
     classpath = sourceSets.test.runtimeClasspath
     systemProperty 'tests.security.manager', 'false'
@@ -412,4 +477,5 @@ task integTestRemote(type: RestIntegTestTask) {
     exclude 'org/opensearch/sql/legacy/TermQueryExplainIT.class'
     exclude 'org/opensearch/sql/legacy/QueryAnalysisIT.class'
     exclude 'org/opensearch/sql/legacy/OrderIT.class'
+    exclude 'org/opensearch/sql/jdbc/**'
 }

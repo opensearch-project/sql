@@ -10,15 +10,11 @@ import static java.time.temporal.ChronoField.ALIGNED_WEEK_OF_YEAR;
 import static org.junit.jupiter.api.Assertions.assertAll;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.mockito.Mockito.lenient;
-import static org.mockito.Mockito.when;
 import static org.opensearch.sql.data.model.ExprValueUtils.integerValue;
 import static org.opensearch.sql.data.model.ExprValueUtils.longValue;
-import static org.opensearch.sql.data.model.ExprValueUtils.missingValue;
 import static org.opensearch.sql.data.model.ExprValueUtils.nullValue;
 import static org.opensearch.sql.data.model.ExprValueUtils.stringValue;
 import static org.opensearch.sql.data.type.ExprCoreType.DATE;
-import static org.opensearch.sql.data.type.ExprCoreType.DATETIME;
 import static org.opensearch.sql.data.type.ExprCoreType.INTEGER;
 import static org.opensearch.sql.data.type.ExprCoreType.LONG;
 import static org.opensearch.sql.data.type.ExprCoreType.STRING;
@@ -32,48 +28,28 @@ import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.stream.Stream;
 import lombok.AllArgsConstructor;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
-import org.mockito.Mock;
-import org.mockito.junit.jupiter.MockitoExtension;
 import org.opensearch.sql.data.model.ExprDateValue;
 import org.opensearch.sql.data.model.ExprDatetimeValue;
+import org.opensearch.sql.data.model.ExprDoubleValue;
+import org.opensearch.sql.data.model.ExprIntegerValue;
 import org.opensearch.sql.data.model.ExprLongValue;
 import org.opensearch.sql.data.model.ExprNullValue;
 import org.opensearch.sql.data.model.ExprStringValue;
 import org.opensearch.sql.data.model.ExprTimeValue;
 import org.opensearch.sql.data.model.ExprTimestampValue;
 import org.opensearch.sql.data.model.ExprValue;
-import org.opensearch.sql.data.type.ExprCoreType;
 import org.opensearch.sql.exception.SemanticCheckException;
 import org.opensearch.sql.expression.DSL;
 import org.opensearch.sql.expression.Expression;
 import org.opensearch.sql.expression.ExpressionTestBase;
 import org.opensearch.sql.expression.FunctionExpression;
 import org.opensearch.sql.expression.LiteralExpression;
-import org.opensearch.sql.expression.env.Environment;
 
-@ExtendWith(MockitoExtension.class)
 class DateTimeFunctionTest extends ExpressionTestBase {
-
-  @Mock
-  Environment<Expression, ExprValue> env;
-
-  @Mock
-  Expression nullRef;
-
-  @Mock
-  Expression missingRef;
-
-  @BeforeEach
-  public void setup() {
-    when(nullRef.valueOf(env)).thenReturn(nullValue());
-    when(missingRef.valueOf(env)).thenReturn(missingValue());
-  }
 
   final List<DateFormatTester> dateFormatTesters = ImmutableList.of(
       new DateFormatTester("1998-01-31 13:14:15.012345",
@@ -171,11 +147,6 @@ class DateTimeFunctionTest extends ExpressionTestBase {
 
   @Test
   public void date() {
-    when(nullRef.type()).thenReturn(DATE);
-    when(missingRef.type()).thenReturn(DATE);
-    assertEquals(nullValue(), eval(DSL.date(nullRef)));
-    assertEquals(missingValue(), eval(DSL.date(missingRef)));
-
     FunctionExpression expr = DSL.date(DSL.literal("2020-08-17"));
     assertEquals(DATE, expr.type());
     assertEquals(new ExprDateValue("2020-08-17"), eval(expr));
@@ -195,17 +166,10 @@ class DateTimeFunctionTest extends ExpressionTestBase {
     assertEquals(DATE, expr.type());
     assertEquals(new ExprDateValue("2020-08-17 12:12"), eval(expr));
     assertEquals("date(DATE '2020-08-17')", expr.toString());
-
-
   }
 
   @Test
   public void day() {
-    when(nullRef.type()).thenReturn(DATE);
-    when(missingRef.type()).thenReturn(DATE);
-    assertEquals(nullValue(), eval(DSL.day(nullRef)));
-    assertEquals(missingValue(), eval(DSL.day(missingRef)));
-
     FunctionExpression expression = DSL.day(DSL.literal(new ExprDateValue("2020-08-07")));
     assertEquals(INTEGER, expression.type());
     assertEquals("day(DATE '2020-08-07')", expression.toString());
@@ -219,11 +183,6 @@ class DateTimeFunctionTest extends ExpressionTestBase {
 
   @Test
   public void dayName() {
-    when(nullRef.type()).thenReturn(DATE);
-    when(missingRef.type()).thenReturn(DATE);
-    assertEquals(nullValue(), eval(DSL.dayname(nullRef)));
-    assertEquals(missingValue(), eval(DSL.dayname(missingRef)));
-
     FunctionExpression expression = DSL.dayname(DSL.literal(new ExprDateValue("2020-08-07")));
     assertEquals(STRING, expression.type());
     assertEquals("dayname(DATE '2020-08-07')", expression.toString());
@@ -237,11 +196,6 @@ class DateTimeFunctionTest extends ExpressionTestBase {
 
   @Test
   public void dayOfMonth() {
-    when(nullRef.type()).thenReturn(DATE);
-    when(missingRef.type()).thenReturn(DATE);
-    assertEquals(nullValue(), eval(DSL.dayofmonth(functionProperties, nullRef)));
-    assertEquals(missingValue(), eval(DSL.dayofmonth(functionProperties, missingRef)));
-
     FunctionExpression expression = DSL.dayofmonth(
         functionProperties, DSL.literal(new ExprDateValue("2020-08-07")));
     assertEquals(INTEGER, expression.type());
@@ -261,10 +215,6 @@ class DateTimeFunctionTest extends ExpressionTestBase {
 
   @Test
   public void dayOfMonthWithUnderscores() {
-    lenient().when(nullRef.valueOf(env)).thenReturn(nullValue());
-    lenient().when(missingRef.valueOf(env)).thenReturn(missingValue());
-
-
     FunctionExpression expression1 = DSL.dayofmonth(
         functionProperties, DSL.literal(new ExprDateValue("2020-08-07")));
     FunctionExpression expression2 = DSL.dayofmonth(functionProperties, DSL.literal("2020-07-08"));
@@ -275,14 +225,11 @@ class DateTimeFunctionTest extends ExpressionTestBase {
 
         () -> testDayOfMonthWithUnderscores(expression2, 8),
         () -> assertEquals("dayofmonth(\"2020-07-08\")", expression2.toString())
-
     );
   }
 
   @Test
   public void testDayOfMonthWithTimeType() {
-    lenient().when(nullRef.valueOf(env)).thenReturn(nullValue());
-    lenient().when(missingRef.valueOf(env)).thenReturn(missingValue());
     FunctionExpression expression = DSL.day_of_month(
         functionProperties, DSL.literal(new ExprTimeValue("12:23:34")));
 
@@ -301,9 +248,6 @@ class DateTimeFunctionTest extends ExpressionTestBase {
 
   @Test
   public void dayOfMonthWithUnderscoresLeapYear() {
-    lenient().when(nullRef.valueOf(env)).thenReturn(nullValue());
-    lenient().when(missingRef.valueOf(env)).thenReturn(missingValue());
-
     //Feb. 29 of a leap year
     testDayOfMonthWithUnderscores(DSL.day_of_month(
         functionProperties, DSL.literal("2020-02-29")), 29);
@@ -314,14 +258,7 @@ class DateTimeFunctionTest extends ExpressionTestBase {
 
   @Test
   public void dayOfMonthWithUnderscoresInvalidArguments() {
-    lenient().when(nullRef.type()).thenReturn(DATE);
-    lenient().when(missingRef.type()).thenReturn(DATE);
-
     assertAll(
-        () -> assertEquals(nullValue(), eval(DSL.day_of_month(functionProperties, nullRef))),
-        () -> assertEquals(
-            missingValue(), eval(DSL.day_of_month(functionProperties, missingRef))),
-
         //40th day of the month
         () -> assertThrows(
             SemanticCheckException.class, () -> testInvalidDayOfMonth("2021-02-40")),
@@ -345,9 +282,6 @@ class DateTimeFunctionTest extends ExpressionTestBase {
 
   @Test
   public void dayOfWeek() {
-    lenient().when(nullRef.valueOf(env)).thenReturn(nullValue());
-    lenient().when(missingRef.valueOf(env)).thenReturn(missingValue());
-
     FunctionExpression expression1 = DSL.dayofweek(
         functionProperties,
         DSL.literal(new ExprDateValue("2020-08-07")));
@@ -383,9 +317,6 @@ class DateTimeFunctionTest extends ExpressionTestBase {
 
   @Test
   public void dayOfWeekWithUnderscores() {
-    lenient().when(nullRef.valueOf(env)).thenReturn(nullValue());
-    lenient().when(missingRef.valueOf(env)).thenReturn(missingValue());
-
     FunctionExpression expression1 = DSL.day_of_week(
         functionProperties,
         DSL.literal(new ExprDateValue("2020-08-07")));
@@ -413,8 +344,6 @@ class DateTimeFunctionTest extends ExpressionTestBase {
 
   @Test
   public void testDayOfWeekWithTimeType() {
-    lenient().when(nullRef.valueOf(env)).thenReturn(nullValue());
-    lenient().when(missingRef.valueOf(env)).thenReturn(missingValue());
     FunctionExpression expression = DSL.day_of_week(
         functionProperties, DSL.literal(new ExprTimeValue("12:23:34")));
 
@@ -436,9 +365,6 @@ class DateTimeFunctionTest extends ExpressionTestBase {
 
   @Test
   public void dayOfWeekWithUnderscoresLeapYear() {
-    lenient().when(nullRef.valueOf(env)).thenReturn(nullValue());
-    lenient().when(missingRef.valueOf(env)).thenReturn(missingValue());
-
     assertAll(
         //Feb. 29 of a leap year
         () -> dayOfWeekWithUnderscoresQuery(DSL.day_of_week(
@@ -460,11 +386,6 @@ class DateTimeFunctionTest extends ExpressionTestBase {
 
   @Test
   public void dayOfWeekWithUnderscoresInvalidArgument() {
-    when(nullRef.type()).thenReturn(DATE);
-    when(missingRef.type()).thenReturn(DATE);
-    assertEquals(nullValue(), eval(DSL.day_of_week(functionProperties, nullRef)));
-    assertEquals(missingValue(), eval(DSL.day_of_week(functionProperties, missingRef)));
-
     assertAll(
         //40th day of the month
         () -> assertThrows(SemanticCheckException.class,
@@ -482,11 +403,6 @@ class DateTimeFunctionTest extends ExpressionTestBase {
 
   @Test
   public void dayOfYear() {
-    when(nullRef.type()).thenReturn(DATE);
-    when(missingRef.type()).thenReturn(DATE);
-    assertEquals(nullValue(), eval(DSL.dayofyear(nullRef)));
-    assertEquals(missingValue(), eval(DSL.dayofyear(missingRef)));
-
     FunctionExpression expression = DSL.dayofyear(DSL.literal(new ExprDateValue("2020-08-07")));
     assertEquals(INTEGER, expression.type());
     assertEquals("dayofyear(DATE '2020-08-07')", expression.toString());
@@ -534,9 +450,6 @@ class DateTimeFunctionTest extends ExpressionTestBase {
       LiteralExpression arg,
       String expectedString,
       int expectedResult) {
-    lenient().when(nullRef.valueOf(env)).thenReturn(nullValue());
-    lenient().when(missingRef.valueOf(env)).thenReturn(missingValue());
-
     validateStringFormat(
         DSL.day_of_year(functionProperties, arg),
         expectedString,
@@ -546,9 +459,6 @@ class DateTimeFunctionTest extends ExpressionTestBase {
 
   @Test
   public void testDayOfYearWithTimeType() {
-    lenient().when(nullRef.valueOf(env)).thenReturn(nullValue());
-    lenient().when(missingRef.valueOf(env)).thenReturn(missingValue());
-
     validateStringFormat(
         DSL.day_of_year(functionProperties, DSL.literal(new ExprTimeValue("12:23:34"))),
         "day_of_year(TIME '12:23:34')",
@@ -567,9 +477,6 @@ class DateTimeFunctionTest extends ExpressionTestBase {
 
   @Test
   public void dayOfYearWithUnderscoresDifferentArgumentFormats() {
-    lenient().when(nullRef.valueOf(env)).thenReturn(nullValue());
-    lenient().when(missingRef.valueOf(env)).thenReturn(missingValue());
-
     FunctionExpression expression1 = DSL.day_of_year(
         functionProperties,
         DSL.literal(new ExprDateValue("2020-08-07")));
@@ -594,9 +501,6 @@ class DateTimeFunctionTest extends ExpressionTestBase {
 
   @Test
   public void dayOfYearWithUnderscoresCornerCaseDates() {
-    lenient().when(nullRef.valueOf(env)).thenReturn(nullValue());
-    lenient().when(missingRef.valueOf(env)).thenReturn(missingValue());
-
     assertAll(
         //31st of December during non leap year (should be 365)
         () -> dayOfYearWithUnderscoresQuery("2019-12-31", 365),
@@ -609,9 +513,6 @@ class DateTimeFunctionTest extends ExpressionTestBase {
 
   @Test
   public void dayOfYearWithUnderscoresLeapYear() {
-    lenient().when(nullRef.valueOf(env)).thenReturn(nullValue());
-    lenient().when(missingRef.valueOf(env)).thenReturn(missingValue());
-
     assertAll(
         //28th of Feb
         () -> dayOfYearWithUnderscoresQuery("2020-02-28", 59),
@@ -641,13 +542,7 @@ class DateTimeFunctionTest extends ExpressionTestBase {
 
   @Test
   public void invalidDayOfYearArgument() {
-    when(nullRef.type()).thenReturn(DATE);
-    when(missingRef.type()).thenReturn(DATE);
-
     assertAll(
-        () -> assertEquals(nullValue(), eval(DSL.day_of_year(functionProperties, nullRef))),
-        () -> assertEquals(missingValue(), eval(DSL.day_of_year(functionProperties, missingRef))),
-
         //29th of Feb non-leapyear
         () -> assertThrows(
             SemanticCheckException.class,
@@ -667,15 +562,10 @@ class DateTimeFunctionTest extends ExpressionTestBase {
   
   @Test
   public void from_days() {
-    when(nullRef.type()).thenReturn(LONG);
-    when(missingRef.type()).thenReturn(LONG);
-    assertEquals(nullValue(), eval(DSL.from_days(nullRef)));
-    assertEquals(missingValue(), eval(DSL.from_days(missingRef)));
-
     FunctionExpression expression = DSL.from_days(DSL.literal(new ExprLongValue(730669)));
     assertEquals(DATE, expression.type());
     assertEquals("from_days(730669)", expression.toString());
-    assertEquals(new ExprDateValue("2000-07-03"), expression.valueOf(env));
+    assertEquals(new ExprDateValue("2000-07-03"), expression.valueOf());
   }
 
   private static Stream<Arguments> getTestDataForGetFormat() {
@@ -716,9 +606,6 @@ class DateTimeFunctionTest extends ExpressionTestBase {
   public void testGetFormat(String arg,
                              String format,
                              String expectedResult) {
-    lenient().when(nullRef.valueOf(env)).thenReturn(nullValue());
-    lenient().when(missingRef.valueOf(env)).thenReturn(missingValue());
-
     getFormatQuery(
         DSL.literal(arg),
         DSL.literal(new ExprStringValue(format)),
@@ -727,8 +614,6 @@ class DateTimeFunctionTest extends ExpressionTestBase {
 
   @Test
   public void testGetFormatInvalidFormat() {
-    lenient().when(nullRef.valueOf(env)).thenReturn(nullValue());
-    lenient().when(missingRef.valueOf(env)).thenReturn(missingValue());
     FunctionExpression expr = DSL.get_format(
         DSL.literal("DATE"),
         DSL.literal("1SA"));
@@ -737,11 +622,6 @@ class DateTimeFunctionTest extends ExpressionTestBase {
 
   @Test
   public void hour() {
-    when(nullRef.type()).thenReturn(TIME);
-    when(missingRef.type()).thenReturn(TIME);
-    assertEquals(nullValue(), eval(DSL.hour(nullRef)));
-    assertEquals(missingValue(), eval(DSL.hour(missingRef)));
-
     FunctionExpression expression = DSL.hour(DSL.literal(new ExprTimeValue("01:02:03")));
     assertEquals(INTEGER, expression.type());
     assertEquals(integerValue(1), eval(expression));
@@ -754,17 +634,17 @@ class DateTimeFunctionTest extends ExpressionTestBase {
 
     expression = DSL.hour(DSL.literal(new ExprTimestampValue("2020-08-17 01:02:03")));
     assertEquals(INTEGER, expression.type());
-    assertEquals(integerValue(1), expression.valueOf(env));
+    assertEquals(integerValue(1), expression.valueOf());
     assertEquals("hour(TIMESTAMP '2020-08-17 01:02:03')", expression.toString());
 
     expression = DSL.hour(DSL.literal(new ExprDatetimeValue("2020-08-17 01:02:03")));
     assertEquals(INTEGER, expression.type());
-    assertEquals(integerValue(1), expression.valueOf(env));
+    assertEquals(integerValue(1), expression.valueOf());
     assertEquals("hour(DATETIME '2020-08-17 01:02:03')", expression.toString());
 
     expression = DSL.hour(DSL.literal("2020-08-17 01:02:03"));
     assertEquals(INTEGER, expression.type());
-    assertEquals(integerValue(1), expression.valueOf(env));
+    assertEquals(integerValue(1), expression.valueOf());
     assertEquals("hour(\"2020-08-17 01:02:03\")", expression.toString());
   }
 
@@ -775,9 +655,6 @@ class DateTimeFunctionTest extends ExpressionTestBase {
 
   @Test
   public void invalidMinuteOfDay() {
-    lenient().when(nullRef.valueOf(env)).thenReturn(nullValue());
-    lenient().when(missingRef.valueOf(env)).thenReturn(missingValue());
-
     assertThrows(SemanticCheckException.class,
         () ->  testInvalidMinuteOfDay("2022-12-14 12:23:3400"));
     assertThrows(SemanticCheckException.class,
@@ -806,9 +683,6 @@ class DateTimeFunctionTest extends ExpressionTestBase {
 
   @Test
   public void hourOfDay() {
-    lenient().when(nullRef.valueOf(env)).thenReturn(nullValue());
-    lenient().when(missingRef.valueOf(env)).thenReturn(missingValue());
-
     FunctionExpression expression1 = DSL.hour_of_day(DSL.literal(new ExprTimeValue("01:02:03")));
     FunctionExpression expression2 = DSL.hour_of_day(DSL.literal("01:02:03"));
     FunctionExpression expression3 = DSL.hour_of_day(
@@ -842,12 +716,7 @@ class DateTimeFunctionTest extends ExpressionTestBase {
 
   @Test
   public void hourOfDayInvalidArguments() {
-    when(nullRef.type()).thenReturn(TIME);
-    when(missingRef.type()).thenReturn(TIME);
-
     assertAll(
-        () -> assertEquals(nullValue(), eval(DSL.hour(nullRef))),
-        () -> assertEquals(missingValue(), eval(DSL.hour(missingRef))),
         //Invalid Seconds
         () -> assertThrows(SemanticCheckException.class, () -> invalidHourOfDayQuery("12:23:61")),
         //Invalid Minutes
@@ -894,9 +763,6 @@ class DateTimeFunctionTest extends ExpressionTestBase {
   @ParameterizedTest(name = "{2}")
   @MethodSource("getTestDataForLastDay")
   public void testLastDay(ExprValue testedDateTime, String expectedResult, String expectedQuery) {
-    lenient().when(nullRef.valueOf(env)).thenReturn(nullValue());
-    lenient().when(missingRef.valueOf(env)).thenReturn(missingValue());
-
     checkForExpectedDay(
         DSL.last_day(functionProperties, DSL.literal(testedDateTime)),
         expectedResult,
@@ -906,9 +772,6 @@ class DateTimeFunctionTest extends ExpressionTestBase {
 
   @Test
   public void testLastDayWithTimeType() {
-    lenient().when(nullRef.valueOf(env)).thenReturn(nullValue());
-    lenient().when(missingRef.valueOf(env)).thenReturn(missingValue());
-
     FunctionExpression expression = DSL.last_day(
         functionProperties, DSL.literal(new ExprTimeValue("12:23:34")));
 
@@ -930,19 +793,11 @@ class DateTimeFunctionTest extends ExpressionTestBase {
 
   @Test
   public void testLastDayInvalidArgument() {
-    lenient().when(nullRef.valueOf(env)).thenReturn(nullValue());
-    lenient().when(missingRef.valueOf(env)).thenReturn(missingValue());
-
     assertThrows(SemanticCheckException.class, () ->  lastDay("asdfasdf"));
   }
 
   @Test
   public void microsecond() {
-    when(nullRef.type()).thenReturn(TIME);
-    when(missingRef.type()).thenReturn(TIME);
-    assertEquals(nullValue(), eval(DSL.microsecond(nullRef)));
-    assertEquals(missingValue(), eval(DSL.microsecond(missingRef)));
-
     FunctionExpression expression = DSL
         .microsecond(DSL.literal(new ExprTimeValue("01:02:03.123456")));
     assertEquals(INTEGER, expression.type());
@@ -961,32 +816,27 @@ class DateTimeFunctionTest extends ExpressionTestBase {
 
     expression = DSL.microsecond(DSL.literal(new ExprDatetimeValue("2020-08-17 01:02:03.000010")));
     assertEquals(INTEGER, expression.type());
-    assertEquals(integerValue(10), expression.valueOf(env));
+    assertEquals(integerValue(10), expression.valueOf());
     assertEquals("microsecond(DATETIME '2020-08-17 01:02:03.00001')", expression.toString());
 
     expression = DSL.microsecond(DSL.literal(new ExprDatetimeValue("2020-08-17 01:02:03.123456")));
     assertEquals(INTEGER, expression.type());
-    assertEquals(integerValue(123456), expression.valueOf(env));
+    assertEquals(integerValue(123456), expression.valueOf());
     assertEquals("microsecond(DATETIME '2020-08-17 01:02:03.123456')", expression.toString());
 
     expression = DSL.microsecond(DSL.literal("2020-08-17 01:02:03.123456"));
     assertEquals(INTEGER, expression.type());
-    assertEquals(integerValue(123456), expression.valueOf(env));
+    assertEquals(integerValue(123456), expression.valueOf());
     assertEquals("microsecond(\"2020-08-17 01:02:03.123456\")", expression.toString());
 
     expression = DSL.microsecond(DSL.literal(new ExprTimestampValue("2020-08-17 01:02:03.000010")));
     assertEquals(INTEGER, expression.type());
-    assertEquals(integerValue(10), expression.valueOf(env));
+    assertEquals(integerValue(10), expression.valueOf());
     assertEquals("microsecond(TIMESTAMP '2020-08-17 01:02:03.00001')", expression.toString());
   }
 
   @Test
   public void minute() {
-    when(nullRef.type()).thenReturn(TIME);
-    when(missingRef.type()).thenReturn(TIME);
-    assertEquals(nullValue(), eval(DSL.minute(nullRef)));
-    assertEquals(missingValue(), eval(DSL.minute(missingRef)));
-
     FunctionExpression expression = DSL.minute(DSL.literal(new ExprTimeValue("01:02:03")));
     assertEquals(INTEGER, expression.type());
     assertEquals(integerValue(2), eval(expression));
@@ -999,17 +849,17 @@ class DateTimeFunctionTest extends ExpressionTestBase {
 
     expression = DSL.minute(DSL.literal(new ExprTimestampValue("2020-08-17 01:02:03")));
     assertEquals(INTEGER, expression.type());
-    assertEquals(integerValue(2), expression.valueOf(env));
+    assertEquals(integerValue(2), expression.valueOf());
     assertEquals("minute(TIMESTAMP '2020-08-17 01:02:03')", expression.toString());
 
     expression = DSL.minute(DSL.literal(new ExprDatetimeValue("2020-08-17 01:02:03")));
     assertEquals(INTEGER, expression.type());
-    assertEquals(integerValue(2), expression.valueOf(env));
+    assertEquals(integerValue(2), expression.valueOf());
     assertEquals("minute(DATETIME '2020-08-17 01:02:03')", expression.toString());
 
     expression = DSL.minute(DSL.literal("2020-08-17 01:02:03"));
     assertEquals(INTEGER, expression.type());
-    assertEquals(integerValue(2), expression.valueOf(env));
+    assertEquals(integerValue(2), expression.valueOf());
     assertEquals("minute(\"2020-08-17 01:02:03\")", expression.toString());
   }
 
@@ -1021,11 +871,6 @@ class DateTimeFunctionTest extends ExpressionTestBase {
 
   @Test
   public void minuteOfDay() {
-    when(nullRef.type()).thenReturn(TIME);
-    when(missingRef.type()).thenReturn(TIME);
-    assertEquals(nullValue(), eval(DSL.minute_of_day(nullRef)));
-    assertEquals(missingValue(), eval(DSL.minute_of_day(missingRef)));
-
     FunctionExpression expression = DSL.minute_of_day(DSL.literal(new ExprTimeValue("01:02:03")));
     assertEquals(INTEGER, expression.type());
     assertEquals(integerValue(62), eval(expression));
@@ -1038,17 +883,17 @@ class DateTimeFunctionTest extends ExpressionTestBase {
 
     expression = DSL.minute_of_day(DSL.literal(new ExprTimestampValue("2020-08-17 01:02:03")));
     assertEquals(INTEGER, expression.type());
-    assertEquals(integerValue(62), expression.valueOf(env));
+    assertEquals(integerValue(62), expression.valueOf());
     assertEquals("minute_of_day(TIMESTAMP '2020-08-17 01:02:03')", expression.toString());
 
     expression = DSL.minute_of_day(DSL.literal(new ExprDatetimeValue("2020-08-17 01:02:03")));
     assertEquals(INTEGER, expression.type());
-    assertEquals(integerValue(62), expression.valueOf(env));
+    assertEquals(integerValue(62), expression.valueOf());
     assertEquals("minute_of_day(DATETIME '2020-08-17 01:02:03')", expression.toString());
 
     expression = DSL.minute_of_day(DSL.literal("2020-08-17 01:02:03"));
     assertEquals(INTEGER, expression.type());
-    assertEquals(integerValue(62), expression.valueOf(env));
+    assertEquals(integerValue(62), expression.valueOf());
     assertEquals("minute_of_day(\"2020-08-17 01:02:03\")", expression.toString());
 
     testMinuteOfDay("2020-08-17 23:59:59", 1439);
@@ -1091,9 +936,6 @@ class DateTimeFunctionTest extends ExpressionTestBase {
   @ParameterizedTest(name = "{2}")
   @MethodSource("getTestDataForMinuteOfHour")
   public void minuteOfHour(LiteralExpression arg, int expectedResult, String expectedString) {
-    lenient().when(nullRef.valueOf(env)).thenReturn(nullValue());
-    lenient().when(missingRef.valueOf(env)).thenReturn(missingValue());
-
     minuteOfHourQuery(DSL.minute_of_hour(arg), expectedResult, expectedString);
   }
 
@@ -1104,13 +946,7 @@ class DateTimeFunctionTest extends ExpressionTestBase {
 
   @Test
   public void minuteOfHourInvalidArguments() {
-    when(nullRef.type()).thenReturn(TIME);
-    when(missingRef.type()).thenReturn(TIME);
-
     assertAll(
-        () -> assertEquals(nullValue(), eval(DSL.minute_of_hour(nullRef))),
-        () -> assertEquals(missingValue(), eval(DSL.minute_of_hour(missingRef))),
-
         //Invalid Seconds
         () -> assertThrows(
             SemanticCheckException.class,
@@ -1136,11 +972,6 @@ class DateTimeFunctionTest extends ExpressionTestBase {
 
   @Test
   public void month() {
-    when(nullRef.type()).thenReturn(DATE);
-    when(missingRef.type()).thenReturn(DATE);
-    assertEquals(nullValue(), eval(DSL.month(nullRef)));
-    assertEquals(missingValue(), eval(DSL.month(missingRef)));
-
     FunctionExpression expression = DSL.month(DSL.literal(new ExprDateValue("2020-08-07")));
     assertEquals(INTEGER, expression.type());
     assertEquals("month(DATE '2020-08-07')", expression.toString());
@@ -1185,9 +1016,6 @@ class DateTimeFunctionTest extends ExpressionTestBase {
   @ParameterizedTest(name = "{0}")
   @MethodSource("getTestDataForMonthOfYear")
   public void monthOfYear(LiteralExpression arg, String expectedString, int expectedResult) {
-    lenient().when(nullRef.valueOf(env)).thenReturn(nullValue());
-    lenient().when(missingRef.valueOf(env)).thenReturn(missingValue());
-
     validateStringFormat(
         DSL.month_of_year(functionProperties, arg),
         expectedString,
@@ -1197,9 +1025,6 @@ class DateTimeFunctionTest extends ExpressionTestBase {
 
   @Test
   public void testMonthOfYearWithTimeType() {
-    lenient().when(nullRef.valueOf(env)).thenReturn(nullValue());
-    lenient().when(missingRef.valueOf(env)).thenReturn(missingValue());
-
     validateStringFormat(
         DSL.month_of_year(functionProperties, DSL.literal(new ExprTimeValue("12:23:34"))),
         "month_of_year(TIME '12:23:34')",
@@ -1215,31 +1040,16 @@ class DateTimeFunctionTest extends ExpressionTestBase {
 
   @Test
   public void monthOfYearInvalidDates() {
-    when(nullRef.type()).thenReturn(DATE);
-    when(missingRef.type()).thenReturn(DATE);
-
     assertAll(
-        () -> assertEquals(nullValue(), eval(DSL.month_of_year(
-            functionProperties,
-            nullRef))),
-        () -> assertEquals(missingValue(), eval(DSL.month_of_year(
-            functionProperties,
-            missingRef))),
         () -> assertThrows(SemanticCheckException.class, () ->  invalidDatesQuery("2019-01-50")),
         () -> assertThrows(SemanticCheckException.class, () ->  invalidDatesQuery("2019-02-29")),
         () -> assertThrows(SemanticCheckException.class, () ->  invalidDatesQuery("2019-02-31")),
         () -> assertThrows(SemanticCheckException.class, () ->  invalidDatesQuery("2019-13-05"))
     );
-
-
-
   }
 
   @Test
   public void monthOfYearAlternateArgumentSyntaxes() {
-    lenient().when(nullRef.valueOf(env)).thenReturn(nullValue());
-    lenient().when(missingRef.valueOf(env)).thenReturn(missingValue());
-
     FunctionExpression expression = DSL.month_of_year(
         functionProperties,
         DSL.literal(new ExprDateValue("2020-08-07")));
@@ -1264,11 +1074,6 @@ class DateTimeFunctionTest extends ExpressionTestBase {
 
   @Test
   public void monthName() {
-    when(nullRef.type()).thenReturn(DATE);
-    when(missingRef.type()).thenReturn(DATE);
-    assertEquals(nullValue(), eval(DSL.monthname(nullRef)));
-    assertEquals(missingValue(), eval(DSL.monthname(missingRef)));
-
     FunctionExpression expression = DSL.monthname(DSL.literal(new ExprDateValue("2020-08-07")));
     assertEquals(STRING, expression.type());
     assertEquals("monthname(DATE '2020-08-07')", expression.toString());
@@ -1287,11 +1092,6 @@ class DateTimeFunctionTest extends ExpressionTestBase {
 
   @Test
   public void quarter() {
-    when(nullRef.type()).thenReturn(DATE);
-    when(missingRef.type()).thenReturn(DATE);
-    assertEquals(nullValue(), eval(DSL.quarter(nullRef)));
-    assertEquals(missingValue(), eval(DSL.quarter(missingRef)));
-
     FunctionExpression expression = DSL.quarter(DSL.literal(new ExprDateValue("2020-08-07")));
     assertEquals(INTEGER, expression.type());
     assertEquals("quarter(DATE '2020-08-07')", expression.toString());
@@ -1308,13 +1108,50 @@ class DateTimeFunctionTest extends ExpressionTestBase {
     assertEquals(integerValue(4), eval(expression));
   }
 
+  private static Stream<Arguments> getTestDataForSecToTime() {
+    return Stream.of(
+        Arguments.of(1, "00:00:01"),
+        Arguments.of(2378, "00:39:38"),
+        Arguments.of(6897, "01:54:57"),
+        Arguments.of(-82800, "01:00:00"),
+        Arguments.of(-169200, "01:00:00"),
+        Arguments.of(3600, "01:00:00"),
+        Arguments.of(90000, "01:00:00"),
+        Arguments.of(176400, "01:00:00")
+        );
+  }
+
+  @ParameterizedTest(name = "{0}")
+  @MethodSource("getTestDataForSecToTime")
+  public void testSecToTime(int seconds, String expected) {
+    FunctionExpression expr = DSL.sec_to_time(
+        DSL.literal(new ExprIntegerValue(seconds)));
+
+    assertEquals(TIME, expr.type());
+    assertEquals(new ExprTimeValue(expected), eval(expr));
+  }
+
+  private static Stream<Arguments> getTestDataForSecToTimeWithDecimal() {
+    return Stream.of(
+        Arguments.of(1.123, "00:00:01.123"),
+        Arguments.of(1.00123, "00:00:01.00123"),
+        Arguments.of(1.001023, "00:00:01.001023"),
+        Arguments.of(1.000000042, "00:00:01.000000042"),
+        Arguments.of(3.14, "00:00:03.14")
+    );
+  }
+
+  @ParameterizedTest(name = "{0}")
+  @MethodSource("getTestDataForSecToTimeWithDecimal")
+  public void testSecToTimeWithDecimal(double arg, String expected) {
+    FunctionExpression expr = DSL.sec_to_time(DSL.literal(new ExprDoubleValue(arg)));
+
+    assertEquals(TIME, expr.type());
+    assertEquals(new ExprTimeValue(expected), eval(expr));
+  }
+
   @Test
   public void second() {
-    when(nullRef.type()).thenReturn(TIME);
-    when(missingRef.type()).thenReturn(TIME);
-    assertEquals(nullValue(), eval(DSL.second(nullRef)));
-    assertEquals(missingValue(), eval(DSL.second(missingRef)));
-
     FunctionExpression expression = DSL.second(DSL.literal(new ExprTimeValue("01:02:03")));
     assertEquals(INTEGER, expression.type());
     assertEquals(integerValue(3), eval(expression));
@@ -1332,12 +1169,12 @@ class DateTimeFunctionTest extends ExpressionTestBase {
 
     expression = DSL.second(DSL.literal(new ExprTimestampValue("2020-08-17 01:02:03")));
     assertEquals(INTEGER, expression.type());
-    assertEquals(integerValue(3), expression.valueOf(env));
+    assertEquals(integerValue(3), expression.valueOf());
     assertEquals("second(TIMESTAMP '2020-08-17 01:02:03')", expression.toString());
 
     expression = DSL.second(DSL.literal(new ExprDatetimeValue("2020-08-17 01:02:03")));
     assertEquals(INTEGER, expression.type());
-    assertEquals(integerValue(3), expression.valueOf(env));
+    assertEquals(integerValue(3), expression.valueOf());
     assertEquals("second(DATETIME '2020-08-17 01:02:03')", expression.toString());
   }
 
@@ -1377,9 +1214,6 @@ class DateTimeFunctionTest extends ExpressionTestBase {
   @ParameterizedTest(name = "{2}")
   @MethodSource("getTestDataForSecondOfMinute")
   public void secondOfMinute(LiteralExpression arg, int expectedResult, String expectedString) {
-    lenient().when(nullRef.valueOf(env)).thenReturn(nullValue());
-    lenient().when(missingRef.valueOf(env)).thenReturn(missingValue());
-
     secondOfMinuteQuery(DSL.second_of_minute(arg), expectedResult, expectedString);
   }
 
@@ -1390,12 +1224,7 @@ class DateTimeFunctionTest extends ExpressionTestBase {
 
   @Test
   public void secondOfMinuteInvalidArguments() {
-    when(nullRef.type()).thenReturn(TIME);
-    when(missingRef.type()).thenReturn(TIME);
-
     assertAll(
-        () -> assertEquals(nullValue(), eval(DSL.second_of_minute(nullRef))),
-        () -> assertEquals(missingValue(), eval(DSL.second_of_minute(missingRef))),
         //Invalid Seconds
         () -> assertThrows(SemanticCheckException.class,
             () -> invalidSecondOfMinuteQuery("12:23:61")),
@@ -1411,14 +1240,8 @@ class DateTimeFunctionTest extends ExpressionTestBase {
     );
   }
 
-
   @Test
   public void time_to_sec() {
-    when(nullRef.type()).thenReturn(TIME);
-    when(missingRef.type()).thenReturn(TIME);
-    assertEquals(nullValue(), eval(DSL.time_to_sec(nullRef)));
-    assertEquals(missingValue(), eval(DSL.time_to_sec(missingRef)));
-
     FunctionExpression expression = DSL.time_to_sec(DSL.literal(new ExprTimeValue("22:23:00")));
     assertEquals(LONG, expression.type());
     assertEquals("time_to_sec(TIME '22:23:00')", expression.toString());
@@ -1432,11 +1255,6 @@ class DateTimeFunctionTest extends ExpressionTestBase {
 
   @Test
   public void time() {
-    when(nullRef.type()).thenReturn(TIME);
-    when(missingRef.type()).thenReturn(TIME);
-    assertEquals(nullValue(), eval(DSL.time(nullRef)));
-    assertEquals(missingValue(), eval(DSL.time(missingRef)));
-
     FunctionExpression expr = DSL.time(DSL.literal("01:01:01"));
     assertEquals(TIME, expr.type());
     assertEquals(new ExprTimeValue("01:01:01"), eval(expr));
@@ -1474,19 +1292,14 @@ class DateTimeFunctionTest extends ExpressionTestBase {
 
   @Test
   public void timestamp() {
-    when(nullRef.type()).thenReturn(TIMESTAMP);
-    when(missingRef.type()).thenReturn(TIMESTAMP);
-    assertEquals(nullValue(), eval(DSL.timestamp(nullRef)));
-    assertEquals(missingValue(), eval(DSL.timestamp(missingRef)));
-
     FunctionExpression expr = DSL.timestamp(DSL.literal("2020-08-17 01:01:01"));
     assertEquals(TIMESTAMP, expr.type());
-    assertEquals(new ExprTimestampValue("2020-08-17 01:01:01"), expr.valueOf(env));
+    assertEquals(new ExprTimestampValue("2020-08-17 01:01:01"), expr.valueOf());
     assertEquals("timestamp(cast_to_timestamp(\"2020-08-17 01:01:01\"))", expr.toString());
 
     expr = DSL.timestamp(DSL.literal(new ExprTimestampValue("2020-08-17 01:01:01")));
     assertEquals(TIMESTAMP, expr.type());
-    assertEquals(new ExprTimestampValue("2020-08-17 01:01:01"), expr.valueOf(env));
+    assertEquals(new ExprTimestampValue("2020-08-17 01:01:01"), expr.valueOf());
     assertEquals("timestamp(TIMESTAMP '2020-08-17 01:01:01')", expr.toString());
   }
 
@@ -1516,36 +1329,6 @@ class DateTimeFunctionTest extends ExpressionTestBase {
     assertEquals(INTEGER, expression.type());
     assertEquals(String.format("weekofyear(DATE '%s', %d)", date, mode), expression.toString());
     assertEquals(integerValue(expectedResult), eval(expression));
-  }
-
-  private void nullMissingWeekQuery(ExprCoreType date) {
-    when(nullRef.type()).thenReturn(date);
-    when(missingRef.type()).thenReturn(date);
-    assertEquals(nullValue(), eval(DSL.week(functionProperties, nullRef)));
-    assertEquals(missingValue(), eval(DSL.week(functionProperties, missingRef)));
-  }
-
-  @Test
-  public void testNullMissingWeek() {
-    nullMissingWeekQuery(DATE);
-    nullMissingWeekQuery(DATETIME);
-    nullMissingWeekQuery(TIMESTAMP);
-    nullMissingWeekQuery(STRING);
-
-    when(nullRef.type()).thenReturn(INTEGER);
-    when(missingRef.type()).thenReturn(INTEGER);
-    assertEquals(nullValue(), eval(DSL.week(
-        functionProperties,
-        DSL.literal("2019-01-05"), nullRef)));
-    assertEquals(missingValue(), eval(DSL.week(
-        functionProperties,
-        DSL.literal("2019-01-05"), missingRef)));
-
-    when(nullRef.type()).thenReturn(DATE);
-    when(missingRef.type()).thenReturn(INTEGER);
-    assertEquals(missingValue(), eval(DSL.week(
-        functionProperties,
-        nullRef, missingRef)));
   }
 
   private static Stream<Arguments> getTestDataForWeek() {
@@ -1587,8 +1370,6 @@ class DateTimeFunctionTest extends ExpressionTestBase {
   @ParameterizedTest(name = "{1}{2}")
   @MethodSource("getTestDataForWeek")
   public void testWeek(String date, int mode, int expected) {
-    lenient().when(nullRef.valueOf(env)).thenReturn(nullValue());
-    lenient().when(missingRef.valueOf(env)).thenReturn(missingValue());
     weekQuery(date, mode, expected);
     weekOfYearQuery(date, mode, expected);
     weekOfYearUnderscoresQuery(date, mode, expected);
@@ -1633,8 +1414,6 @@ class DateTimeFunctionTest extends ExpressionTestBase {
       LiteralExpression arg,
       String expectedString,
       Integer expectedInteger) {
-    lenient().when(nullRef.valueOf(env)).thenReturn(nullValue());
-    lenient().when(missingRef.valueOf(env)).thenReturn(missingValue());
     validateStringFormat(
         DSL.week(functionProperties, arg),
         String.format("week(%s)", expectedString), expectedInteger);
@@ -1648,9 +1427,6 @@ class DateTimeFunctionTest extends ExpressionTestBase {
 
   @Test
   public void testWeekOfYearWithTimeType() {
-    lenient().when(nullRef.valueOf(env)).thenReturn(nullValue());
-    lenient().when(missingRef.valueOf(env)).thenReturn(missingValue());
-
     assertAll(
         () -> validateStringFormat(
             DSL.week(
@@ -1674,8 +1450,6 @@ class DateTimeFunctionTest extends ExpressionTestBase {
 
   @Test
   public void modeInUnsupportedFormat() {
-    nullMissingWeekQuery(DATE);
-
     FunctionExpression expression1 = DSL
         .week(functionProperties, DSL.literal(new ExprDateValue("2019-01-05")), DSL.literal(8));
     SemanticCheckException exception =
@@ -1690,39 +1464,8 @@ class DateTimeFunctionTest extends ExpressionTestBase {
         exception.getMessage());
   }
 
-  private void nullMissingWeekOfYearQuery(ExprCoreType date) {
-    when(nullRef.type()).thenReturn(date);
-    when(missingRef.type()).thenReturn(date);
-    assertEquals(nullValue(), eval(DSL.week_of_year(
-        functionProperties,
-        nullRef)));
-    assertEquals(missingValue(), eval(DSL.week_of_year(
-        functionProperties,
-        missingRef)));
-  }
-
   @Test
   public void testInvalidWeekOfYear() {
-    nullMissingWeekOfYearQuery(DATE);
-    nullMissingWeekOfYearQuery(DATETIME);
-    nullMissingWeekOfYearQuery(TIMESTAMP);
-    nullMissingWeekOfYearQuery(STRING);
-
-    when(nullRef.type()).thenReturn(INTEGER);
-    when(missingRef.type()).thenReturn(INTEGER);
-    assertEquals(nullValue(), eval(DSL.week_of_year(
-        functionProperties,
-        DSL.literal("2019-01-05"), nullRef)));
-    assertEquals(missingValue(), eval(DSL.week_of_year(
-        functionProperties,
-        DSL.literal("2019-01-05"), missingRef)));
-
-    when(nullRef.type()).thenReturn(DATE);
-    when(missingRef.type()).thenReturn(INTEGER);
-    assertEquals(missingValue(), eval(DSL.week_of_year(
-        functionProperties,
-        nullRef, missingRef)));
-
     assertAll(
         //Test for WeekOfYear
         //test invalid month
@@ -1756,8 +1499,6 @@ class DateTimeFunctionTest extends ExpressionTestBase {
 
   @Test
   public void weekOfYearModeInUnsupportedFormat() {
-    nullMissingWeekOfYearQuery(DATE);
-
     FunctionExpression expression1 = DSL
         .week_of_year(
             functionProperties,
@@ -1778,11 +1519,6 @@ class DateTimeFunctionTest extends ExpressionTestBase {
 
   @Test
   public void to_days() {
-    when(nullRef.type()).thenReturn(DATE);
-    when(missingRef.type()).thenReturn(DATE);
-    assertEquals(nullValue(), eval(DSL.to_days(nullRef)));
-    assertEquals(missingValue(), eval(DSL.to_days(missingRef)));
-
     FunctionExpression expression = DSL.to_days(DSL.literal(new ExprDateValue("2008-10-07")));
     assertEquals(LONG, expression.type());
     assertEquals("to_days(DATE '2008-10-07')", expression.toString());
@@ -1801,11 +1537,6 @@ class DateTimeFunctionTest extends ExpressionTestBase {
 
   @Test
   public void year() {
-    when(nullRef.type()).thenReturn(DATE);
-    when(missingRef.type()).thenReturn(DATE);
-    assertEquals(nullValue(), eval(DSL.year(nullRef)));
-    assertEquals(missingValue(), eval(DSL.year(missingRef)));
-
     FunctionExpression expression = DSL.year(DSL.literal(new ExprDateValue("2020-08-07")));
     assertEquals(INTEGER, expression.type());
     assertEquals("year(DATE '2020-08-07')", expression.toString());
@@ -1837,58 +1568,6 @@ class DateTimeFunctionTest extends ExpressionTestBase {
         DSL.literal(timestampFormat));
     assertEquals(STRING, expr.type());
     assertEquals(timestampFormatted, eval(expr).stringValue());
-
-    when(nullRef.type()).thenReturn(DATE);
-    when(missingRef.type()).thenReturn(DATE);
-    assertEquals(nullValue(), eval(DSL.date_format(
-        functionProperties,
-        nullRef,
-        DSL.literal(""))));
-    assertEquals(missingValue(), eval(DSL.date_format(
-        functionProperties,
-        missingRef,
-        DSL.literal(""))));
-
-    when(nullRef.type()).thenReturn(DATETIME);
-    when(missingRef.type()).thenReturn(DATETIME);
-    assertEquals(nullValue(), eval(DSL.date_format(
-        functionProperties,
-        nullRef,
-        DSL.literal(""))));
-    assertEquals(missingValue(), eval(DSL.date_format(
-        functionProperties,
-        missingRef,
-        DSL.literal(""))));
-
-    when(nullRef.type()).thenReturn(TIMESTAMP);
-    when(missingRef.type()).thenReturn(TIMESTAMP);
-    assertEquals(nullValue(), eval(DSL.date_format(
-        functionProperties,
-        nullRef,
-        DSL.literal(""))));
-    assertEquals(missingValue(), eval(DSL.date_format(
-        functionProperties,
-        missingRef,
-        DSL.literal(""))));
-
-    when(nullRef.type()).thenReturn(STRING);
-    when(missingRef.type()).thenReturn(STRING);
-    assertEquals(nullValue(), eval(DSL.date_format(
-        functionProperties,
-        nullRef,
-        DSL.literal(""))));
-    assertEquals(missingValue(), eval(DSL.date_format(
-        functionProperties,
-        missingRef,
-        DSL.literal(""))));
-    assertEquals(nullValue(), eval(DSL.date_format(
-        functionProperties,
-        DSL.literal(""),
-        nullRef)));
-    assertEquals(missingValue(), eval(DSL.date_format(
-        functionProperties,
-        DSL.literal(""),
-        missingRef)));
   }
 
   void testDateFormat(DateFormatTester dft) {
@@ -1899,9 +1578,6 @@ class DateTimeFunctionTest extends ExpressionTestBase {
 
   @Test
   public void testDateFormatWithTimeType() {
-    lenient().when(nullRef.valueOf(env)).thenReturn(nullValue());
-    lenient().when(missingRef.valueOf(env)).thenReturn(missingValue());
-
     FunctionExpression expr = DSL.date_format(
         functionProperties,
         DSL.literal(new ExprTimeValue("12:23:34")),
@@ -1921,9 +1597,6 @@ class DateTimeFunctionTest extends ExpressionTestBase {
 
   @Test
   public void testTimeFormatWithDateType() {
-    lenient().when(nullRef.valueOf(env)).thenReturn(nullValue());
-    lenient().when(missingRef.valueOf(env)).thenReturn(missingValue());
-
     FunctionExpression expr = DSL.time_format(
         functionProperties,
         DSL.literal(new ExprDateValue("2023-01-16")),
@@ -2017,9 +1690,6 @@ class DateTimeFunctionTest extends ExpressionTestBase {
   public void testTimeFormat(LiteralExpression arg,
                              LiteralExpression format,
                              String expectedResult) {
-    lenient().when(nullRef.valueOf(env)).thenReturn(nullValue());
-    lenient().when(missingRef.valueOf(env)).thenReturn(missingValue());
-
     timeFormatQuery(arg, format, expectedResult);
   }
 
@@ -2046,8 +1716,6 @@ class DateTimeFunctionTest extends ExpressionTestBase {
   @ParameterizedTest(name = "{0}{1}")
   @MethodSource("getInvalidTestDataForTimeFormat")
   public void testInvalidTimeFormat(LiteralExpression arg, LiteralExpression format) {
-    lenient().when(nullRef.valueOf(env)).thenReturn(nullValue());
-    lenient().when(missingRef.valueOf(env)).thenReturn(missingValue());
     FunctionExpression expr = DSL.time_format(functionProperties, arg, format);
     assertThrows(SemanticCheckException.class, () -> eval(expr));
   }
@@ -2073,8 +1741,6 @@ class DateTimeFunctionTest extends ExpressionTestBase {
   @ParameterizedTest(name = "{0}")
   @MethodSource("getInvalidTimeFormatHandlers")
   public void testTimeFormatWithInvalidHandlers(String handler) {
-    lenient().when(nullRef.valueOf(env)).thenReturn(nullValue());
-    lenient().when(missingRef.valueOf(env)).thenReturn(missingValue());
     FunctionExpression expr = DSL.time_format(
         functionProperties,
         DSL.literal("12:23:34"),
@@ -2084,8 +1750,6 @@ class DateTimeFunctionTest extends ExpressionTestBase {
 
   @Test
   public void testTimeFormatWithDateHandlers() {
-    lenient().when(nullRef.valueOf(env)).thenReturn(nullValue());
-    lenient().when(missingRef.valueOf(env)).thenReturn(missingValue());
     FunctionExpression expr = DSL.time_format(
         functionProperties,
         DSL.literal(new ExprDateValue("2023-01-17")),
@@ -2097,8 +1761,6 @@ class DateTimeFunctionTest extends ExpressionTestBase {
 
   @Test
   public void testTimeFormatAndDateFormatReturnSameResult() {
-    lenient().when(nullRef.valueOf(env)).thenReturn(nullValue());
-    lenient().when(missingRef.valueOf(env)).thenReturn(missingValue());
     FunctionExpression timeFormatExpr = DSL.time_format(
         functionProperties,
         DSL.literal(new ExprDateValue("1998-01-31 13:14:15.012345")),
@@ -2112,6 +1774,6 @@ class DateTimeFunctionTest extends ExpressionTestBase {
   }
 
   private ExprValue eval(Expression expression) {
-    return expression.valueOf(env);
+    return expression.valueOf();
   }
 }

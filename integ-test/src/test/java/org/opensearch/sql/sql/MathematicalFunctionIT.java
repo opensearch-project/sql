@@ -39,7 +39,7 @@ public class MathematicalFunctionIT extends SQLIntegTestCase {
             schema("PI()", null, "double"));
     verifyDataRows(result, rows(3.141592653589793));
   }
-
+  
   @Test
   public void testCeil() throws IOException {
     JSONObject result = executeQuery("select ceil(0)");
@@ -64,6 +64,21 @@ public class MathematicalFunctionIT extends SQLIntegTestCase {
     result = executeQuery("select conv(11, 16, 10)");
     verifySchema(result, schema("conv(11, 16, 10)", null, "keyword"));
     verifyDataRows(result, rows("17"));
+  }
+
+  @Test
+  public void testCosh() throws IOException {
+    JSONObject result = executeQuery("select cosh(1)");
+    verifySchema(result, schema("cosh(1)", null, "double"));
+    verifyDataRows(result, rows(1.543080634815244));
+
+    result = executeQuery("select cosh(-1)");
+    verifySchema(result, schema("cosh(-1)", null, "double"));
+    verifyDataRows(result, rows(1.543080634815244));
+
+    result = executeQuery("select cosh(1.5)");
+    verifySchema(result, schema("cosh(1.5)", null, "double"));
+    verifyDataRows(result, rows(2.352409615243247));
   }
 
   @Test
@@ -96,6 +111,87 @@ public class MathematicalFunctionIT extends SQLIntegTestCase {
     result = executeQuery("select mod(3.1, 2)");
     verifySchema(result, schema("mod(3.1, 2)", null, "double"));
     verifyDataRows(result, rows(1.1));
+  }
+
+  @Test
+  public void testPow() throws IOException {
+    JSONObject result = executeQuery("select pow(3, 2)");
+    verifySchema(result, schema("pow(3, 2)", null, "double"));
+    verifyDataRows(result, rows(9.0));
+
+    result = executeQuery("select pow(0, 2)");
+    verifySchema(result, schema("pow(0, 2)", null, "double"));
+    verifyDataRows(result, rows(0.0));
+
+    result = executeQuery("select pow(3, 0)");
+    verifySchema(result, schema("pow(3, 0)", null, "double"));
+    verifyDataRows(result, rows(1.0));
+
+    result = executeQuery("select pow(-2, 3)");
+    verifySchema(result, schema("pow(-2, 3)", null, "double"));
+    verifyDataRows(result, rows(-8.0));
+
+    result = executeQuery("select pow(2, -2)");
+    verifySchema(result, schema("pow(2, -2)", null, "double"));
+    verifyDataRows(result, rows(0.25));
+
+    result = executeQuery("select pow(-2, -3)");
+    verifySchema(result, schema("pow(-2, -3)", null, "double"));
+    verifyDataRows(result, rows(-0.125));
+
+    result = executeQuery("select pow(-1, 0.5)");
+    verifySchema(result, schema("pow(-1, 0.5)", null, "double"));
+    verifyDataRows(result, rows((Object) null));
+  }
+
+  @Test
+  public void testPower() throws IOException {
+    JSONObject result = executeQuery("select power(3, 2)");
+    verifySchema(result, schema("power(3, 2)", null, "double"));
+    verifyDataRows(result, rows(9.0));
+
+    result = executeQuery("select power(0, 2)");
+    verifySchema(result, schema("power(0, 2)", null, "double"));
+    verifyDataRows(result, rows(0.0));
+
+    result = executeQuery("select power(3, 0)");
+    verifySchema(result, schema("power(3, 0)", null, "double"));
+    verifyDataRows(result, rows(1.0));
+
+    result = executeQuery("select power(-2, 3)");
+    verifySchema(result, schema("power(-2, 3)", null, "double"));
+    verifyDataRows(result, rows(-8.0));
+
+    result = executeQuery("select power(2, -2)");
+    verifySchema(result, schema("power(2, -2)", null, "double"));
+    verifyDataRows(result, rows(0.25));
+
+    result = executeQuery("select power(2, -2)");
+    verifySchema(result, schema("power(2, -2)", null, "double"));
+    verifyDataRows(result, rows(0.25));
+
+    result = executeQuery("select power(-2, -3)");
+    verifySchema(result, schema("power(-2, -3)", null, "double"));
+    verifyDataRows(result, rows(-0.125));
+  }
+
+  @Test
+  public void testRint() throws IOException {
+    JSONObject result = executeQuery("select rint(56.78)");
+    verifySchema(result, schema("rint(56.78)", null, "double"));
+    verifyDataRows(result, rows(57.0));
+
+    result = executeQuery("select rint(-56)");
+    verifySchema(result, schema("rint(-56)", null, "double"));
+    verifyDataRows(result, rows(-56.0));
+
+    result = executeQuery("select rint(3.5)");
+    verifySchema(result, schema("rint(3.5)", null, "double"));
+    verifyDataRows(result, rows(4.0));
+
+    result = executeQuery("select rint(-3.5)");
+    verifySchema(result, schema("rint(-3.5)", null, "double"));
+    verifyDataRows(result, rows(-4.0));
   }
 
   @Test
@@ -133,9 +229,6 @@ public class MathematicalFunctionIT extends SQLIntegTestCase {
     verifyDataRows(result, rows(-4.0));
   }
 
-  /**
-   * Test sign function with double value.
-   */
   @Test
   public void testSign() throws IOException {
     JSONObject result = executeQuery("select sign(1.1)");
@@ -145,6 +238,31 @@ public class MathematicalFunctionIT extends SQLIntegTestCase {
     result = executeQuery("select sign(-1.1)");
     verifySchema(result, schema("sign(-1.1)", null, "integer"));
     verifyDataRows(result, rows(-1));
+  }
+
+  @Test
+  public void testSignum() throws IOException {
+    JSONObject result = executeQuery("select signum(1.1)");
+    verifySchema(result, schema("signum(1.1)", null, "integer"));
+    verifyDataRows(result, rows(1));
+
+    result = executeQuery("select signum(-1.1)");
+    verifySchema(result, schema("signum(-1.1)", null, "integer"));
+    verifyDataRows(result, rows(-1));
+  }
+
+  public void testSinh() throws IOException {
+    JSONObject result = executeQuery("select sinh(1)");
+    verifySchema(result, schema("sinh(1)", null, "double"));
+    verifyDataRows(result, rows(1.1752011936438014));
+
+    result = executeQuery("select sinh(-1)");
+    verifySchema(result, schema("sinh(-1)", null, "double"));
+    verifyDataRows(result, rows(-1.1752011936438014));
+
+    result = executeQuery("select sinh(1.5)");
+    verifySchema(result, schema("sinh(1.5)", null, "double"));
+    verifyDataRows(result, rows(2.1292794550948173));
   }
 
   @Test

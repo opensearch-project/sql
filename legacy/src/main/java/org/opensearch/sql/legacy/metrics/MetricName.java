@@ -27,7 +27,10 @@ public enum MetricName {
     PPL_REQ_TOTAL("ppl_request_total"),
     PPL_REQ_COUNT_TOTAL("ppl_request_count"),
     PPL_FAILED_REQ_COUNT_SYS("ppl_failed_request_count_syserr"),
-    PPL_FAILED_REQ_COUNT_CUS("ppl_failed_request_count_cuserr");
+    PPL_FAILED_REQ_COUNT_CUS("ppl_failed_request_count_cuserr"),
+    DATASOURCE_REQ_COUNT("datasource_request_count"),
+    DATASOURCE_FAILED_REQ_COUNT_SYS("datasource_failed_request_count_syserr"),
+    DATASOURCE_FAILED_REQ_COUNT_CUS("datasource_failed_request_count_cuserr");
 
     private String name;
 

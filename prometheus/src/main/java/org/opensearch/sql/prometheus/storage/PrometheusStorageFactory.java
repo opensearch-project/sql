@@ -11,6 +11,8 @@ import com.amazonaws.auth.AWSStaticCredentialsProvider;
 import com.amazonaws.auth.BasicAWSCredentials;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.security.AccessController;
+import java.security.PrivilegedAction;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
@@ -19,7 +21,7 @@ import okhttp3.OkHttpClient;
 import org.opensearch.sql.datasource.model.DataSource;
 import org.opensearch.sql.datasource.model.DataSourceMetadata;
 import org.opensearch.sql.datasource.model.DataSourceType;
-import org.opensearch.sql.datasource.model.auth.AuthenticationType;
+import org.opensearch.sql.datasources.auth.AuthenticationType;
 import org.opensearch.sql.prometheus.authinterceptors.AwsSigningInterceptor;
 import org.opensearch.sql.prometheus.authinterceptors.BasicAuthenticationInterceptor;
 import org.opensearch.sql.prometheus.client.PrometheusClient;
@@ -37,6 +39,8 @@ public class PrometheusStorageFactory implements DataSourceFactory {
   public static final String ACCESS_KEY = "prometheus.auth.access_key";
   public static final String SECRET_KEY = "prometheus.auth.secret_key";
 
+  private static final Integer MAX_LENGTH_FOR_CONFIG_PROPERTY = 1000;
+
   @Override
   public DataSourceType getDataSourceType() {
     return DataSourceType.PROMETHEUS;
@@ -50,16 +54,35 @@ public class PrometheusStorageFactory implements DataSourceFactory {
         getStorageEngine(metadata.getName(), metadata.getProperties()));
   }
 
-  StorageEngine getStorageEngine(String catalogName, Map<String, String> requiredConfig) {
-    validateFieldsInConfig(requiredConfig, Set.of(URI));
-    PrometheusClient prometheusClient;
-    try {
-      prometheusClient = new PrometheusClientImpl(getHttpClient(requiredConfig),
-          new URI(requiredConfig.get(URI)));
-    } catch (URISyntaxException e) {
-      throw new RuntimeException(
-          String.format("Prometheus Client creation failed due to: %s", e.getMessage()));
+
+  private void validateDataSourceConfigProperties(Map<String, String> dataSourceMetadataConfig) {
+    if (dataSourceMetadataConfig.get(AUTH_TYPE) != null) {
+      AuthenticationType authenticationType
+          = AuthenticationType.get(dataSourceMetadataConfig.get(AUTH_TYPE));
+      if (AuthenticationType.BASICAUTH.equals(authenticationType)) {
+        validateFields(dataSourceMetadataConfig, Set.of(URI, USERNAME, PASSWORD));
+      } else if (AuthenticationType.AWSSIGV4AUTH.equals(authenticationType)) {
+        validateFields(dataSourceMetadataConfig, Set.of(URI, ACCESS_KEY, SECRET_KEY,
+            REGION));
+      }
+    } else {
+      validateFields(dataSourceMetadataConfig, Set.of(URI));
     }
+  }
+
+  StorageEngine getStorageEngine(String catalogName, Map<String, String> requiredConfig) {
+    validateDataSourceConfigProperties(requiredConfig);
+    PrometheusClient prometheusClient;
+    prometheusClient =
+        AccessController.doPrivileged((PrivilegedAction<PrometheusClientImpl>) () -> {
+          try {
+            return new PrometheusClientImpl(getHttpClient(requiredConfig),
+                new URI(requiredConfig.get(URI)));
+          } catch (URISyntaxException e) {
+            throw new RuntimeException(
+                String.format("Prometheus Client creation failed due to: %s", e.getMessage()));
+          }
+        });
     return new PrometheusStorageEngine(prometheusClient);
   }
 
@@ -71,11 +94,9 @@ public class PrometheusStorageFactory implements DataSourceFactory {
     if (config.get(AUTH_TYPE) != null) {
       AuthenticationType authenticationType = AuthenticationType.get(config.get(AUTH_TYPE));
       if (AuthenticationType.BASICAUTH.equals(authenticationType)) {
-        validateFieldsInConfig(config, Set.of(USERNAME, PASSWORD));
         okHttpClient.addInterceptor(new BasicAuthenticationInterceptor(config.get(USERNAME),
             config.get(PASSWORD)));
       } else if (AuthenticationType.AWSSIGV4AUTH.equals(authenticationType)) {
-        validateFieldsInConfig(config, Set.of(REGION, ACCESS_KEY, SECRET_KEY));
         okHttpClient.addInterceptor(new AwsSigningInterceptor(
             new AWSStaticCredentialsProvider(
                 new BasicAWSCredentials(config.get(ACCESS_KEY), config.get(SECRET_KEY))),
@@ -89,16 +110,28 @@ public class PrometheusStorageFactory implements DataSourceFactory {
     return okHttpClient.build();
   }
 
-  private void validateFieldsInConfig(Map<String, String> config, Set<String> fields) {
+  private void validateFields(Map<String, String> config, Set<String> fields) {
     Set<String> missingFields = new HashSet<>();
+    Set<String> invalidLengthFields = new HashSet<>();
     for (String field : fields) {
       if (!config.containsKey(field)) {
         missingFields.add(field);
+      } else if (config.get(field).length() > MAX_LENGTH_FOR_CONFIG_PROPERTY) {
+        invalidLengthFields.add(field);
       }
     }
+    StringBuilder errorStringBuilder = new StringBuilder();
     if (missingFields.size() > 0) {
-      throw new IllegalArgumentException(String.format(
+      errorStringBuilder.append(String.format(
           "Missing %s fields in the Prometheus connector properties.", missingFields));
+    }
+
+    if (invalidLengthFields.size() > 0) {
+      errorStringBuilder.append(String.format(
+          "Fields %s exceeds more than 1000 characters.", invalidLengthFields));
+    }
+    if (errorStringBuilder.length() > 0) {
+      throw new IllegalArgumentException(errorStringBuilder.toString());
     }
   }
 

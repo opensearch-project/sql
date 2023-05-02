@@ -34,13 +34,15 @@ public enum BuiltinFunctionName {
   LOG(FunctionName.of("log")),
   LOG10(FunctionName.of("log10")),
   LOG2(FunctionName.of("log2")),
-  MOD(FunctionName.of("mod")),
   PI(FunctionName.of("pi")),
   POW(FunctionName.of("pow")),
   POWER(FunctionName.of("power")),
   RAND(FunctionName.of("rand")),
+  RINT(FunctionName.of("rint")),
   ROUND(FunctionName.of("round")),
   SIGN(FunctionName.of("sign")),
+  SIGNUM(FunctionName.of("signum")),
+  SINH(FunctionName.of("sinh")),
   SQRT(FunctionName.of("sqrt")),
   CBRT(FunctionName.of("cbrt")),
   TRUNCATE(FunctionName.of("truncate")),
@@ -50,6 +52,7 @@ public enum BuiltinFunctionName {
   ATAN(FunctionName.of("atan")),
   ATAN2(FunctionName.of("atan2")),
   COS(FunctionName.of("cos")),
+  COSH(FunctionName.of("cosh")),
   COT(FunctionName.of("cot")),
   DEGREES(FunctionName.of("degrees")),
   RADIANS(FunctionName.of("radians")),
@@ -76,6 +79,7 @@ public enum BuiltinFunctionName {
   DAYOFYEAR(FunctionName.of("dayofyear")),
   DAY_OF_WEEK(FunctionName.of("day_of_week")),
   DAY_OF_YEAR(FunctionName.of("day_of_year")),
+  EXTRACT(FunctionName.of("extract")),
   FROM_DAYS(FunctionName.of("from_days")),
   FROM_UNIXTIME(FunctionName.of("from_unixtime")),
   GET_FORMAT(FunctionName.of("get_format")),
@@ -94,24 +98,32 @@ public enum BuiltinFunctionName {
   PERIOD_ADD(FunctionName.of("period_add")),
   PERIOD_DIFF(FunctionName.of("period_diff")),
   QUARTER(FunctionName.of("quarter")),
+  SEC_TO_TIME(FunctionName.of("sec_to_time")),
   SECOND(FunctionName.of("second")),
   SECOND_OF_MINUTE(FunctionName.of("second_of_minute")),
+  STR_TO_DATE(FunctionName.of("str_to_date")),
   SUBDATE(FunctionName.of("subdate")),
   SUBTIME(FunctionName.of("subtime")),
   TIME(FunctionName.of("time")),
   TIMEDIFF(FunctionName.of("timediff")),
   TIME_TO_SEC(FunctionName.of("time_to_sec")),
   TIMESTAMP(FunctionName.of("timestamp")),
+  TIMESTAMPADD(FunctionName.of("timestampadd")),
+  TIMESTAMPDIFF(FunctionName.of("timestampdiff")),
   TIME_FORMAT(FunctionName.of("time_format")),
   TO_DAYS(FunctionName.of("to_days")),
+  TO_SECONDS(FunctionName.of("to_seconds")),
   UTC_DATE(FunctionName.of("utc_date")),
   UTC_TIME(FunctionName.of("utc_time")),
   UTC_TIMESTAMP(FunctionName.of("utc_timestamp")),
   UNIX_TIMESTAMP(FunctionName.of("unix_timestamp")),
   WEEK(FunctionName.of("week")),
+  WEEKDAY(FunctionName.of("weekday")),
   WEEKOFYEAR(FunctionName.of("weekofyear")),
   WEEK_OF_YEAR(FunctionName.of("week_of_year")),
   YEAR(FunctionName.of("year")),
+  YEARWEEK(FunctionName.of("yearweek")),
+
   // `now`-like functions
   NOW(FunctionName.of("now")),
   CURDATE(FunctionName.of("curdate")),
@@ -122,6 +134,7 @@ public enum BuiltinFunctionName {
   CURRENT_TIMESTAMP(FunctionName.of("current_timestamp")),
   LOCALTIMESTAMP(FunctionName.of("localtimestamp")),
   SYSDATE(FunctionName.of("sysdate")),
+
   /**
    * Text Functions.
    */
@@ -131,10 +144,16 @@ public enum BuiltinFunctionName {
    * Arithmetic Operators.
    */
   ADD(FunctionName.of("+")),
-  SUBTRACT(FunctionName.of("-")),
-  MULTIPLY(FunctionName.of("*")),
+  ADDFUNCTION(FunctionName.of("add")),
   DIVIDE(FunctionName.of("/")),
-  MODULES(FunctionName.of("%")),
+  DIVIDEFUNCTION(FunctionName.of("divide")),
+  MOD(FunctionName.of("mod")),
+  MODULUS(FunctionName.of("%")),
+  MODULUSFUNCTION(FunctionName.of("modulus")),
+  MULTIPLY(FunctionName.of("*")),
+  MULTIPLYFUNCTION(FunctionName.of("multiply")),
+  SUBTRACT(FunctionName.of("-")),
+  SUBTRACTFUNCTION(FunctionName.of("subtract")),
 
   /**
    * Boolean Operators.
@@ -170,6 +189,8 @@ public enum BuiltinFunctionName {
   STDDEV_POP(FunctionName.of("stddev_pop")),
   // take top documents from aggregation bucket.
   TAKE(FunctionName.of("take")),
+  // Not always an aggregation query
+  NESTED(FunctionName.of("nested")),
 
   /**
    * Text Functions.
@@ -239,6 +260,10 @@ public enum BuiltinFunctionName {
   MATCH_BOOL_PREFIX(FunctionName.of("match_bool_prefix")),
   HIGHLIGHT(FunctionName.of("highlight")),
   MATCH_PHRASE_PREFIX(FunctionName.of("match_phrase_prefix")),
+  SCORE(FunctionName.of("score")),
+  SCOREQUERY(FunctionName.of("scorequery")),
+  SCORE_QUERY(FunctionName.of("score_query")),
+
   /**
    * Legacy Relevance Function.
    */

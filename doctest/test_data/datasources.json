@@ -1,0 +1,1 @@
+{ "name" : "my_prometheus", "connector": "prometheus", "properties" : { "prometheus.uri" : "http://localhost:9090"}}

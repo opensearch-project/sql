@@ -21,6 +21,7 @@ import org.opensearch.sql.expression.DSL;
 import org.opensearch.sql.expression.LiteralExpression;
 import org.opensearch.sql.expression.ReferenceExpression;
 import org.opensearch.sql.opensearch.data.type.OpenSearchDataType;
+import org.opensearch.sql.opensearch.data.type.OpenSearchTextType;
 
 class SingleFieldQueryTest {
   SingleFieldQuery query;
@@ -42,7 +43,9 @@ class SingleFieldQueryTest {
     String sampleField = "fieldA";
 
     query.createQueryBuilder(List.of(DSL.namedArgument("field",
-            new ReferenceExpression(sampleField, OpenSearchDataType.OPENSEARCH_TEXT_KEYWORD)),
+            new ReferenceExpression(sampleField,
+                OpenSearchTextType.of(Map.of("words",
+                    OpenSearchDataType.of(OpenSearchDataType.MappingType.Keyword))))),
         DSL.namedArgument("query",
             new LiteralExpression(ExprValueUtils.stringValue(sampleQuery)))));
 
@@ -56,7 +59,7 @@ class SingleFieldQueryTest {
     String sampleField = "fieldA";
 
     query.createQueryBuilder(List.of(DSL.namedArgument("field",
-            new ReferenceExpression(sampleField, OpenSearchDataType.OPENSEARCH_TEXT)),
+            new ReferenceExpression(sampleField, OpenSearchTextType.of())),
         DSL.namedArgument("query",
             new LiteralExpression(ExprValueUtils.stringValue(sampleQuery)))));
 

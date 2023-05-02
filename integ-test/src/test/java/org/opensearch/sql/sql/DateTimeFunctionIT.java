@@ -8,7 +8,6 @@ package org.opensearch.sql.sql;
 
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_BANK;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_CALCS;
-import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_PEOPLE2;
 import static org.opensearch.sql.legacy.plugin.RestSqlAction.QUERY_API_ENDPOINT;
 import static org.opensearch.sql.util.MatcherUtils.rows;
 import static org.opensearch.sql.util.MatcherUtils.schema;
@@ -17,26 +16,12 @@ import static org.opensearch.sql.util.MatcherUtils.verifySchema;
 import static org.opensearch.sql.util.MatcherUtils.verifySome;
 import static org.opensearch.sql.util.TestUtils.getResponseBody;
 
-import com.google.common.collect.ImmutableMap;
 import java.io.IOException;
-import java.time.Duration;
 import java.time.LocalDate;
-import java.time.LocalDateTime;
 import java.time.LocalTime;
-import java.time.Period;
-import java.time.ZoneId;
-import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
-import java.time.format.DateTimeFormatterBuilder;
-import java.time.temporal.ChronoField;
-import java.time.temporal.Temporal;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.Locale;
 import java.util.TimeZone;
-import java.util.function.BiFunction;
-import java.util.function.Supplier;
-import org.json.JSONArray;
 import org.json.JSONObject;
 import org.junit.After;
 import org.junit.Before;
@@ -488,6 +473,47 @@ public class DateTimeFunctionIT extends SQLIntegTestCase {
   }
 
   @Test
+  public void testExtractWithDatetime() throws IOException {
+    JSONObject datetimeResult = executeQuery(
+        String.format(
+            "SELECT extract(DAY_SECOND FROM datetime(cast(datetime0 AS STRING))) FROM %s LIMIT 1",
+            TEST_INDEX_CALCS));
+    verifyDataRows(datetimeResult, rows(9101735));
+  }
+
+  @Test
+  public void testExtractWithTime() throws IOException {
+    JSONObject timeResult = executeQuery(
+        String.format(
+            "SELECT extract(HOUR_SECOND FROM cast(time0 AS TIME)) FROM %s LIMIT 1",
+            TEST_INDEX_CALCS));
+    verifyDataRows(timeResult, rows(210732));
+
+  }
+
+  @Test
+  public void testExtractWithDate() throws IOException {
+    JSONObject dateResult  = executeQuery(
+        String.format(
+            "SELECT extract(YEAR_MONTH FROM cast(date0 AS DATE)) FROM %s LIMIT 1",
+            TEST_INDEX_CALCS));
+    verifyDataRows(dateResult, rows(200404));
+  }
+
+  @Test
+  public void testExtractWithDifferentTypesReturnSameResult() throws IOException {
+    JSONObject dateResult  = executeQuery(
+        String.format("SELECT extract(YEAR_MONTH FROM datetime0) FROM %s LIMIT 1", TEST_INDEX_CALCS));
+
+    JSONObject datetimeResult  = executeQuery(
+        String.format(
+            "SELECT extract(YEAR_MONTH FROM date(datetime0)) FROM %s LIMIT 1",
+            TEST_INDEX_CALCS));
+
+    dateResult.getJSONArray("datarows").similar(datetimeResult.getJSONArray("datarows"));
+  }
+
+  @Test
   public void testHourFunctionAliasesReturnTheSameResults() throws IOException {
     JSONObject result1 = executeQuery("SELECT hour('11:30:00')");
     JSONObject result2 = executeQuery("SELECT hour_of_day('11:30:00')");
@@ -755,6 +781,16 @@ public class DateTimeFunctionIT extends SQLIntegTestCase {
   }
 
   @Test
+  public void testSecToTime() throws IOException {
+    JSONObject result = executeQuery(
+        String.format("SELECT sec_to_time(balance) FROM %s LIMIT 3", TEST_INDEX_BANK));
+    verifyDataRows(result,
+        rows("10:53:45"),
+        rows("01:34:46"),
+        rows("09:07:18"));
+  }
+
+  @Test
   public void testSecond() throws IOException {
     JSONObject result = executeQuery("select second(timestamp('2020-09-16 17:30:00'))");
     verifySchema(result, schema("second(timestamp('2020-09-16 17:30:00'))", null, "integer"));
@@ -815,6 +851,39 @@ public class DateTimeFunctionIT extends SQLIntegTestCase {
     result2 = executeQuery(String.format(
         "SELECT second_of_minute(CAST(datetime0 AS timestamp)) FROM %s", TEST_INDEX_CALCS));
     result1.getJSONArray("datarows").similar(result2.getJSONArray("datarows"));
+  }
+
+  @Test
+  public void testStrToDate() throws IOException {
+    //Ideal case
+    JSONObject result = executeQuery(
+        String.format("SELECT str_to_date(CAST(birthdate AS STRING),"
+                + " '%%Y-%%m-%%d %%h:%%i:%%s') FROM %s LIMIT 2",
+            TEST_INDEX_BANK));
+    verifyDataRows(result,
+        rows("2017-10-23 00:00:00"),
+        rows("2017-11-20 00:00:00")
+    );
+
+    //Bad string format case
+    result = executeQuery(
+        String.format("SELECT str_to_date(CAST(birthdate AS STRING),"
+                + " '%%Y %%s') FROM %s LIMIT 2",
+            TEST_INDEX_BANK));
+    verifyDataRows(result,
+        rows((Object) null),
+        rows((Object) null)
+    );
+
+    //bad date format case
+    result = executeQuery(
+        String.format("SELECT str_to_date(firstname,"
+                + " '%%Y-%%m-%%d %%h:%%i:%%s') FROM %s LIMIT 2",
+            TEST_INDEX_BANK));
+    verifyDataRows(result,
+        rows((Object) null),
+        rows((Object) null)
+    );
   }
 
   @Test
@@ -879,6 +948,28 @@ public class DateTimeFunctionIT extends SQLIntegTestCase {
   }
 
   @Test
+  public void testTimstampadd() throws  IOException {
+    JSONObject result = executeQuery(
+        String.format("SELECT timestampadd(WEEK, 2, time0) FROM %s LIMIT 3", TEST_INDEX_CALCS));
+
+    verifyDataRows(result,
+        rows("1900-01-13 21:07:32"),
+        rows("1900-01-15 13:48:48"),
+        rows("1900-01-15 18:21:08"));
+  }
+
+  @Test
+  public void testTimstampdiff() throws  IOException {
+    JSONObject result = executeQuery(
+        String.format("SELECT timestampdiff(DAY, time0, datetime0) FROM %s LIMIT 3", TEST_INDEX_CALCS));
+
+    verifyDataRows(result,
+        rows(38176),
+        rows(38191),
+        rows(38198));
+  }
+
+  @Test
   public void testTimeToSec() throws IOException {
     JSONObject result = executeQuery("select time_to_sec(time('17:30:00'))");
     verifySchema(result, schema("time_to_sec(time('17:30:00'))", null, "long"));
@@ -898,6 +989,21 @@ public class DateTimeFunctionIT extends SQLIntegTestCase {
     result = executeQuery("select to_days('2020-09-16')");
     verifySchema(result, schema("to_days('2020-09-16')", null, "long"));
     verifyDataRows(result, rows(738049));
+  }
+
+  @Test
+  public void testToSeconds() throws IOException {
+    JSONObject result = executeQuery(
+        String.format("select to_seconds(date(date0)) FROM %s LIMIT 2", TEST_INDEX_CALCS));
+    verifyDataRows(result, rows(63249206400L), rows(62246275200L));
+
+    result = executeQuery(
+        String.format("SELECT to_seconds(datetime(cast(datetime0 AS string))) FROM %s LIMIT 2", TEST_INDEX_CALCS));
+    verifyDataRows(result, rows(63256587455L), rows(63258064234L));
+
+    result = executeQuery(String.format(
+        "select to_seconds(timestamp(datetime0)) FROM %s LIMIT 2", TEST_INDEX_CALCS));
+    verifyDataRows(result, rows(63256587455L), rows(63258064234L));
   }
 
   @Test
@@ -930,6 +1036,12 @@ public class DateTimeFunctionIT extends SQLIntegTestCase {
     week("2008-12-31", 1, 53, "week");
     week("2000-01-01", 0, 0, "week");
     week("2000-01-01", 2, 52, "week");
+  }
+
+  @Test
+  public void testWeekday() throws IOException {
+    JSONObject result = executeQuery(String.format("SELECT weekday(date0) FROM %s LIMIT 3", TEST_INDEX_CALCS));
+    verifyDataRows(result, rows(3), rows(1), rows(2));
   }
 
   @Test
@@ -985,6 +1097,14 @@ public class DateTimeFunctionIT extends SQLIntegTestCase {
     compareWeekResults("CAST(datetime0 AS timestamp)", TEST_INDEX_CALCS);
   }
 
+  @Test
+  public void testYearweek() throws IOException {
+    JSONObject result = executeQuery(
+        String.format("SELECT yearweek(time0), yearweek(time0, 4) FROM %s LIMIT 2", TEST_INDEX_CALCS));
+
+    verifyDataRows(result, rows(189952, 189952), rows(189953, 190001));
+  }
+
   void verifyDateFormat(String date, String type, String format, String formatted) throws IOException {
     String query = String.format("date_format(%s('%s'), '%s')", type, date, format);
     JSONObject result = executeQuery("select " + query);
@@ -1030,191 +1150,6 @@ public class DateTimeFunctionIT extends SQLIntegTestCase {
         schema("MAKEDATE(1945, 5.9)", "f1", "date"),
         schema("MAKEDATE(1984, 1984)", "f2", "date"));
     verifyDataRows(result, rows("1945-01-06", "1989-06-06"));
-  }
-
-  public static LocalDateTime utcDateTimeNow() {
-    ZonedDateTime zonedDateTime =
-        LocalDateTime.now().atZone(TimeZone.getDefault().toZoneId());
-    return zonedDateTime.withZoneSameInstant(ZoneId.of("UTC")).toLocalDateTime();
-  }
-
-  private List<ImmutableMap<Object, Object>> nowLikeFunctionsData() {
-    return List.of(
-      ImmutableMap.builder()
-              .put("name", "now")
-              .put("hasFsp", false)
-              .put("hasShortcut", false)
-              .put("constValue", true)
-              .put("referenceGetter", (Supplier<Temporal>) LocalDateTime::now)
-              .put("parser", (BiFunction<CharSequence, DateTimeFormatter, Temporal>) LocalDateTime::parse)
-              .put("serializationPattern", "uuuu-MM-dd HH:mm:ss")
-              .build(),
-      ImmutableMap.builder()
-              .put("name", "current_timestamp")
-              .put("hasFsp", false)
-              .put("hasShortcut", false)
-              .put("constValue", true)
-              .put("referenceGetter", (Supplier<Temporal>) LocalDateTime::now)
-              .put("parser", (BiFunction<CharSequence, DateTimeFormatter, Temporal>) LocalDateTime::parse)
-              .put("serializationPattern", "uuuu-MM-dd HH:mm:ss")
-              .build(),
-      ImmutableMap.builder()
-              .put("name", "localtimestamp")
-              .put("hasFsp", false)
-              .put("hasShortcut", false)
-              .put("constValue", true)
-              .put("referenceGetter", (Supplier<Temporal>) LocalDateTime::now)
-              .put("parser", (BiFunction<CharSequence, DateTimeFormatter, Temporal>) LocalDateTime::parse)
-              .put("serializationPattern", "uuuu-MM-dd HH:mm:ss")
-              .build(),
-      ImmutableMap.builder()
-              .put("name", "localtime")
-              .put("hasFsp", false)
-              .put("hasShortcut", false)
-              .put("constValue", true)
-              .put("referenceGetter", (Supplier<Temporal>) LocalDateTime::now)
-              .put("parser", (BiFunction<CharSequence, DateTimeFormatter, Temporal>) LocalDateTime::parse)
-              .put("serializationPattern", "uuuu-MM-dd HH:mm:ss")
-              .build(),
-      ImmutableMap.builder()
-              .put("name", "sysdate")
-              .put("hasFsp", true)
-              .put("hasShortcut", false)
-              .put("constValue", false)
-              .put("referenceGetter", (Supplier<Temporal>) LocalDateTime::now)
-              .put("parser", (BiFunction<CharSequence, DateTimeFormatter, Temporal>) LocalDateTime::parse)
-              .put("serializationPattern", "uuuu-MM-dd HH:mm:ss")
-              .build(),
-      ImmutableMap.builder()
-              .put("name", "curtime")
-              .put("hasFsp", false)
-              .put("hasShortcut", false)
-              .put("constValue", false)
-              .put("referenceGetter", (Supplier<Temporal>) LocalTime::now)
-              .put("parser", (BiFunction<CharSequence, DateTimeFormatter, Temporal>) LocalTime::parse)
-              .put("serializationPattern", "HH:mm:ss")
-              .build(),
-      ImmutableMap.builder()
-              .put("name", "current_time")
-              .put("hasFsp", false)
-              .put("hasShortcut", false)
-              .put("constValue", false)
-              .put("referenceGetter", (Supplier<Temporal>) LocalTime::now)
-              .put("parser", (BiFunction<CharSequence, DateTimeFormatter, Temporal>) LocalTime::parse)
-              .put("serializationPattern", "HH:mm:ss")
-              .build(),
-      ImmutableMap.builder()
-              .put("name", "curdate")
-              .put("hasFsp", false)
-              .put("hasShortcut", false)
-              .put("constValue", false)
-              .put("referenceGetter", (Supplier<Temporal>) LocalDate::now)
-              .put("parser", (BiFunction<CharSequence, DateTimeFormatter, Temporal>) LocalDate::parse)
-              .put("serializationPattern", "uuuu-MM-dd")
-              .build(),
-      ImmutableMap.builder()
-              .put("name", "current_date")
-              .put("hasFsp", false)
-              .put("hasShortcut", false)
-              .put("constValue", false)
-              .put("referenceGetter", (Supplier<Temporal>) LocalDate::now)
-              .put("parser", (BiFunction<CharSequence, DateTimeFormatter, Temporal>) LocalDate::parse)
-              .put("serializationPattern", "uuuu-MM-dd")
-              .build(),
-      ImmutableMap.builder()
-              .put("name", "utc_date")
-              .put("hasFsp", false)
-              .put("hasShortcut", false)
-              .put("constValue", true)
-              .put("referenceGetter", (Supplier<Temporal>) (()-> utcDateTimeNow().toLocalDate()))
-              .put("parser", (BiFunction<CharSequence, DateTimeFormatter, Temporal>) LocalDate::parse)
-              .put("serializationPattern", "uuuu-MM-dd")
-              .build(),
-      ImmutableMap.builder()
-              .put("name", "utc_time")
-              .put("hasFsp", false)
-              .put("hasShortcut", false)
-              .put("constValue", true)
-              .put("referenceGetter", (Supplier<Temporal>) (()-> utcDateTimeNow().toLocalTime()))
-              .put("parser", (BiFunction<CharSequence, DateTimeFormatter, Temporal>) LocalTime::parse)
-              .put("serializationPattern", "HH:mm:ss")
-              .build(),
-      ImmutableMap.builder()
-              .put("name", "utc_timestamp")
-              .put("hasFsp", false)
-              .put("hasShortcut", false)
-              .put("constValue", true)
-              .put("referenceGetter", (Supplier<Temporal>) DateTimeFunctionIT::utcDateTimeNow)
-              .put("parser", (BiFunction<CharSequence, DateTimeFormatter, Temporal>) LocalDateTime::parse)
-              .put("serializationPattern", "uuuu-MM-dd HH:mm:ss")
-              .build()
-    );
-  }
-
-  private long getDiff(Temporal sample, Temporal reference) {
-    if (sample instanceof LocalDate) {
-      return Period.between((LocalDate) sample, (LocalDate) reference).getDays();
-    }
-    return Duration.between(sample, reference).toSeconds();
-  }
-
-  @Test
-  public void testNowLikeFunctions() throws IOException {
-    for (var funcData : nowLikeFunctionsData()) {
-      String name = (String) funcData.get("name");
-      Boolean hasFsp = (Boolean) funcData.get("hasFsp");
-      Boolean hasShortcut = (Boolean) funcData.get("hasShortcut");
-      Boolean constValue = (Boolean) funcData.get("constValue");
-      Supplier<Temporal> referenceGetter = (Supplier<Temporal>) funcData.get("referenceGetter");
-      BiFunction<CharSequence, DateTimeFormatter, Temporal> parser =
-              (BiFunction<CharSequence, DateTimeFormatter, Temporal>) funcData.get("parser");
-      String serializationPatternStr = (String) funcData.get("serializationPattern");
-
-      var serializationPattern = new DateTimeFormatterBuilder()
-              .appendPattern(serializationPatternStr)
-              .optionalStart()
-              .appendFraction(ChronoField.NANO_OF_SECOND, 0, 9, true)
-              .toFormatter();
-
-      Temporal reference = referenceGetter.get();
-      double delta = 2d; // acceptable time diff, secs
-      if (reference instanceof LocalDate)
-        delta = 1d; // Max date delta could be 1 if test runs on the very edge of two days
-                    // We ignore probability of a test run on edge of month or year to simplify the checks
-
-      var calls = new ArrayList<String>() {{
-        add(name + "()");
-      }};
-      if (hasShortcut)
-        calls.add(name);
-      if (hasFsp)
-        calls.add(name + "(0)");
-
-      // Column order is: func(), func, func(0)
-      //                   shortcut ^    fsp ^
-      JSONObject result = executeQuery("select " + String.join(", ", calls) + " from " + TEST_INDEX_PEOPLE2);
-
-      var rows = result.getJSONArray("datarows");
-      JSONArray firstRow = rows.getJSONArray(0);
-      for (int i = 0; i < rows.length(); i++) {
-        var row = rows.getJSONArray(i);
-        if (constValue)
-          assertTrue(firstRow.similar(row));
-
-        int column = 0;
-        assertEquals(0,
-            getDiff(reference, parser.apply(row.getString(column++), serializationPattern)), delta);
-
-        if (hasShortcut) {
-          assertEquals(0,
-              getDiff(reference, parser.apply(row.getString(column++), serializationPattern)), delta);
-        }
-        if (hasFsp) {
-          assertEquals(0,
-              getDiff(reference, parser.apply(row.getString(column), serializationPattern)), delta);
-        }
-      }
-    }
   }
 
   @Test

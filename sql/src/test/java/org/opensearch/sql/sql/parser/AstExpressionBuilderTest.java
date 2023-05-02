@@ -36,6 +36,7 @@ import static org.opensearch.sql.ast.tree.Sort.SortOrder.DESC;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import java.util.HashMap;
+import java.util.stream.Stream;
 import org.antlr.v4.runtime.CommonTokenStream;
 import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.junit.jupiter.api.Test;
@@ -193,6 +194,14 @@ class AstExpressionBuilderTest {
   }
 
   @Test
+  public void canBuildExtractFunctionCall() {
+    assertEquals(
+        function("extract", stringLiteral("DAY"), dateLiteral("2023-02-09")).toString(),
+        buildExprAst("extract(DAY FROM \"2023-02-09\")").toString()
+    );
+  }
+
+  @Test
   public void canBuildGetFormatFunctionCall() {
     assertEquals(
         function("get_format", stringLiteral("DATE"), stringLiteral("USA")),
@@ -218,6 +227,26 @@ class AstExpressionBuilderTest {
     assertEquals(
         function("dayofmonth", dateLiteral("2020-07-07")),
         buildExprAst("dayofmonth(DATE '2020-07-07')")
+    );
+  }
+
+  @Test
+  public void canBuildTimestampAddFunctionCall() {
+    assertEquals(
+        function("timestampadd", stringLiteral("WEEK"), intLiteral(1), dateLiteral("2023-03-14")),
+        buildExprAst("timestampadd(WEEK, 1, DATE '2023-03-14')")
+    );
+  }
+
+  @Test
+  public void canBuildTimstampDiffFunctionCall() {
+    assertEquals(
+        function(
+            "timestampdiff",
+            stringLiteral("WEEK"),
+            timestampLiteral("2023-03-15 00:00:01"),
+            dateLiteral("2023-03-14")),
+        buildExprAst("timestampdiff(WEEK, TIMESTAMP '2023-03-15 00:00:01', DATE '2023-03-14')")
     );
   }
 
@@ -432,6 +461,26 @@ class AstExpressionBuilderTest {
     assertEquals(
         qualifiedName("test", "timestamp"),
         buildExprAst("test.timestamp")
+    );
+  }
+
+  @Test
+  public void canBuildMetaDataFieldAsQualifiedName() {
+    Stream.of("_id", "_index", "_sort", "_score", "_maxscore").forEach(
+        field -> assertEquals(
+            qualifiedName(field),
+            buildExprAst(field)
+        )
+    );
+  }
+
+  @Test
+  public void canBuildNonMetaDataFieldAsQualifiedName() {
+    Stream.of("id", "__id", "_routing", "___field").forEach(
+        field -> assertEquals(
+            qualifiedName(field),
+            buildExprAst(field)
+        )
     );
   }
 
@@ -767,6 +816,36 @@ class AstExpressionBuilderTest {
             unresolvedArg("rewrite", stringLiteral("scoring_boolean"))),
         buildExprAst("wildcard_query(field, 'search query*', boost=1.5,"
             + "case_insensitive=true, rewrite='scoring_boolean'))")
+    );
+  }
+
+  @Test
+  public void relevanceScore_query() {
+    assertEquals(
+        AstDSL.score(
+            AstDSL.function("query_string",
+              unresolvedArg("fields", new RelevanceFieldList(ImmutableMap.of(
+                  "field1", 1.F, "field2", 3.2F))),
+              unresolvedArg("query", stringLiteral("search query"))
+            ),
+            AstDSL.doubleLiteral(1.0)
+        ),
+        buildExprAst("score(query_string(['field1', 'field2' ^ 3.2], 'search query'))")
+    );
+  }
+
+  @Test
+  public void relevanceScore_withBoost_query() {
+    assertEquals(
+        AstDSL.score(
+            AstDSL.function("query_string",
+                unresolvedArg("fields", new RelevanceFieldList(ImmutableMap.of(
+                    "field1", 1.F, "field2", 3.2F))),
+                unresolvedArg("query", stringLiteral("search query"))
+            ),
+            doubleLiteral(1.0)
+        ),
+        buildExprAst("score(query_string(['field1', 'field2' ^ 3.2], 'search query'), 1.0)")
     );
   }
 

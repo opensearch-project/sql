@@ -80,9 +80,9 @@ public enum ExprCoreType implements ExprType {
    */
   private static final Map<ExprCoreType, String> LEGACY_TYPE_NAME_MAPPING =
       new ImmutableMap.Builder<ExprCoreType, String>()
-          .put(STRUCT, "object")
-          .put(ARRAY, "nested")
-          .put(STRING, "keyword")
+          .put(STRUCT, "OBJECT")
+          .put(ARRAY, "NESTED")
+          .put(STRING, "KEYWORD")
           .build();
 
   private static final Set<ExprType> NUMBER_TYPES =

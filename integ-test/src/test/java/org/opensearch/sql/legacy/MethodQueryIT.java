@@ -12,6 +12,7 @@ import static org.hamcrest.Matchers.containsString;
 import java.io.IOException;
 import java.util.Locale;
 import org.junit.Assert;
+import org.junit.Ignore;
 import org.junit.Test;
 
 /**
@@ -27,8 +28,12 @@ public class MethodQueryIT extends SQLIntegTestCase {
   }
 
   /**
-   * query 搜索就是　，　lucene 原生的搜素方式 注意这个例子中ｖａｌｕｅ可以随便命名 "query" :
-   * {query_string" : {"query" : "address:880 Holmes Lane"}
+   * query
+   * "query" : {
+   *   query_string" : {
+   *     "query" : "address:880 Holmes Lane"
+   *   }
+   * }
    *
    * @throws IOException
    */
@@ -43,8 +48,15 @@ public class MethodQueryIT extends SQLIntegTestCase {
   }
 
   /**
-   * matchQuery 是利用分词结果进行单个字段的搜索． "query" : { "match" : { "address" :
-   * {"query":"880 Holmes Lane", "type" : "boolean" } } }
+   * matchQuery
+   * "query" : {
+   *   "match" : {
+   *     "address" : {
+   *       "query" : "880 Holmes Lane",
+   *       "type" : "boolean"
+   *     }
+   *   }
+   * }
    *
    * @throws IOException
    */
@@ -58,21 +70,55 @@ public class MethodQueryIT extends SQLIntegTestCase {
   }
 
   /**
-   * matchQuery 是利用分词结果进行单个字段的搜索． "query" : { "bool" : { "must" : { "bool" : {
-   * "should" : [ { "constant_score" : { "query" : { "match" : { "address" : {
-   * "query" : "Lane", "type" : "boolean" } } }, "boost" : 100.0 } }, {
-   * "constant_score" : { "query" : { "match" : { "address" : { "query" :
-   * "Street", "type" : "boolean" } } }, "boost" : 0.5 } } ] } } } }
+   * matchQuery
+   * {
+   *   "query": {
+   *     "bool": {
+   *       "must": {
+   *         "bool": {
+   *           "should": [
+   *             {
+   *               "constant_score": {
+   *                 "query": {
+   *                   "match": {
+   *                     "address": {
+   *                       "query": "Lane",
+   *                       "type": "boolean"
+   *                     }
+   *                   }
+   *                 },
+   *                 "boost": 100
+   *               }
+   *             },
+   *             {
+   *               "constant_score": {
+   *                 "query": {
+   *                   "match": {
+   *                     "address": {
+   *                       "query": "Street",
+   *                       "type": "boolean"
+   *                     }
+   *                   }
+   *                 },
+   *                 "boost": 0.5
+   *               }
+   *             }
+   *           ]
+   *         }
+   *       }
+   *     }
+   *   }
+   * }
    *
    * @throws IOException
    */
-  // todo
   @Test
+  @Ignore("score query no longer maps to constant_score in the V2 engine - @see org.opensearch.sql.sql.ScoreQueryIT")
   public void scoreQueryTest() throws IOException {
     final String result = explainQuery(String.format(Locale.ROOT,
         "select address from %s " +
             "where score(matchQuery(address, 'Lane'),100) " +
-            "or score(matchQuery(address,'Street'),0.5)  order by _score desc limit 3",
+            "or score(matchQuery(address,'Street'),0.5) order by _score desc limit 3",
         TestsConstants.TEST_INDEX_ACCOUNT));
     Assert.assertThat(result,
         both(containsString("{\"constant_score\":" +
@@ -102,8 +148,13 @@ public class MethodQueryIT extends SQLIntegTestCase {
   }
 
   /**
-   * wildcardQuery 是用通配符的方式查找某个term 　比如例子中 l*e means leae ltae ....
-   * "wildcard": { "address" : { "wildcard" : "l*e" } }
+   * wildcardQuery
+   * l*e means leae ltae ...
+   * "wildcard": {
+   *   "address" : {
+   *     "wildcard" : "l*e"
+   *   }
+   * }
    *
    * @throws IOException
    */
@@ -117,15 +168,16 @@ public class MethodQueryIT extends SQLIntegTestCase {
   }
 
   /**
-   * matchPhraseQueryTest 短语查询完全匹配．
+   * matchPhraseQuery
    * "address" : {
-   * "query" : "671 Bristol Street",
-   * "type" : "phrase"
+   *   "query" : "671 Bristol Street",
+   *   "type" : "phrase"
    * }
    *
    * @throws IOException
    */
   @Test
+  @Ignore("score query no longer handled by legacy engine - @see org.opensearch.sql.sql.ScoreQueryIT")
   public void matchPhraseQueryTest() throws IOException {
     final String result = explainQuery(String.format(Locale.ROOT,
         "select address from %s " +

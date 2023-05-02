@@ -37,8 +37,6 @@ The PPL support the following data types.
 +---------------+
 | string        |
 +---------------+
-| text          |
-+---------------+
 | timestamp     |
 +---------------+
 | datetime      |
@@ -88,7 +86,7 @@ The table below list the mapping between OpenSearch Data Type, PPL Data Type and
 +-----------------+---------------+-----------+
 | keyword         | string        | VARCHAR   |
 +-----------------+---------------+-----------+
-| text            | text          | VARCHAR   |
+| text            | string        | VARCHAR   |
 +-----------------+---------------+-----------+
 | date            | timestamp     | TIMESTAMP |
 +-----------------+---------------+-----------+

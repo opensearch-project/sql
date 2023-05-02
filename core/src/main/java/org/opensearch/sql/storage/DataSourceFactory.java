@@ -28,4 +28,5 @@ public interface DataSourceFactory {
    * Create {@link DataSource}.
    */
   DataSource createDataSource(DataSourceMetadata metadata);
+
 }

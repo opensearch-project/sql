@@ -134,7 +134,6 @@ STDDEV_SAMP:                        'STDDEV_SAMP';
 SUBSTRING:                          'SUBSTRING';
 TRIM:                               'TRIM';
 
-
 // Keywords, but can be ID
 // Common Keywords, but can be ID
 
@@ -207,9 +206,11 @@ DAYOFMONTH:                         'DAYOFMONTH';
 DAYOFWEEK:                          'DAYOFWEEK';
 DAYOFYEAR:                          'DAYOFYEAR';
 DEGREES:                            'DEGREES';
+DIVIDE:                             'DIVIDE';
 E:                                  'E';
 EXP:                                'EXP';
 EXPM1:                              'EXPM1';
+EXTRACT:                            'EXTRACT';
 FLOOR:                              'FLOOR';
 FROM_DAYS:                          'FROM_DAYS';
 FROM_UNIXTIME:                      'FROM_UNIXTIME';
@@ -248,11 +249,13 @@ RINT:                               'RINT';
 ROUND:                              'ROUND';
 RTRIM:                              'RTRIM';
 REVERSE:                            'REVERSE';
+SEC_TO_TIME:                        'SEC_TO_TIME';
 SIGN:                               'SIGN';
 SIGNUM:                             'SIGNUM';
 SIN:                                'SIN';
 SINH:                               'SINH';
 SQRT:                               'SQRT';
+STR_TO_DATE:                        'STR_TO_DATE';
 SUBDATE:                            'SUBDATE';
 SUBTIME:                            'SUBTIME';
 SUBTRACT:                           'SUBTRACT';
@@ -265,6 +268,7 @@ TIME_TO_SEC:                        'TIME_TO_SEC';
 TIMESTAMP:                          'TIMESTAMP';
 TRUNCATE:                           'TRUNCATE';
 TO_DAYS:                            'TO_DAYS';
+TO_SECONDS:                         'TO_SECONDS';
 UNIX_TIMESTAMP:                     'UNIX_TIMESTAMP';
 UPPER:                              'UPPER';
 UTC_DATE:                           'UTC_DATE';
@@ -323,14 +327,19 @@ REVERSE_NESTED:                     'REVERSE_NESTED';
 QUERY:                              'QUERY';
 RANGE:                              'RANGE';
 SCORE:                              'SCORE';
+SCOREQUERY:                         'SCOREQUERY';
+SCORE_QUERY:                        'SCORE_QUERY';
 SECOND_OF_MINUTE:                   'SECOND_OF_MINUTE';
 STATS:                              'STATS';
 TERM:                               'TERM';
 TERMS:                              'TERMS';
+TIMESTAMPADD:                       'TIMESTAMPADD';
+TIMESTAMPDIFF:                      'TIMESTAMPDIFF';
 TOPHITS:                            'TOPHITS';
 TYPEOF:                             'TYPEOF';
 WEEK_OF_YEAR:                       'WEEK_OF_YEAR';
 WEEKOFYEAR:                         'WEEKOFYEAR';
+WEEKDAY:                            'WEEKDAY';
 WILDCARDQUERY:                      'WILDCARDQUERY';
 WILDCARD_QUERY:                     'WILDCARD_QUERY';
 
@@ -340,6 +349,7 @@ STRCMP:                             'STRCMP';
 
 // DATE AND TIME FUNCTIONS
 ADDDATE:                            'ADDDATE';
+YEARWEEK:                           'YEARWEEK';
 
 // RELEVANCE FUNCTIONS AND PARAMETERS
 ALLOW_LEADING_WILDCARD:             'ALLOW_LEADING_WILDCARD';
@@ -387,7 +397,7 @@ MATCH_BOOL_PREFIX:                  'MATCH_BOOL_PREFIX';
 // Operators. Arithmetics
 
 STAR:                               '*';
-DIVIDE:                             '/';
+SLASH:                              '/';
 MODULE:                             '%';
 PLUS:                               '+';
 MINUS:                              '-';
@@ -456,13 +466,16 @@ BACKTICK_QUOTE_ID:                  BQUOTA_STRING;
 
 // Fragments for Literal primitives
 fragment EXPONENT_NUM_PART:         'E' [-+]? DEC_DIGIT+;
-fragment ID_LITERAL:                [@*A-Z]+?[*A-Z_\-0-9]*;
 fragment DQUOTA_STRING:             '"' ( '\\'. | '""' | ~('"'| '\\') )* '"';
 fragment SQUOTA_STRING:             '\'' ('\\'. | '\'\'' | ~('\'' | '\\'))* '\'';
 fragment BQUOTA_STRING:             '`' ( '\\'. | '``' | ~('`'|'\\'))* '`';
 fragment HEX_DIGIT:                 [0-9A-F];
 fragment DEC_DIGIT:                 [0-9];
 fragment BIT_STRING_L:              'B' '\'' [01]+ '\'';
+
+// Identifiers cannot start with a single '_' since this an OpenSearch reserved
+// metadata field.  Two underscores (or more) is acceptable, such as '__field'.
+fragment ID_LITERAL:                ([@*A-Z_])+?[*A-Z_\-0-9]*;
 
 // Last tokens must generate Errors
 

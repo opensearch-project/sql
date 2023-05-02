@@ -25,7 +25,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.Set;
 import java.util.stream.Collectors;
 import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.apache.commons.lang3.tuple.Pair;
@@ -61,18 +60,21 @@ import org.opensearch.sql.ast.tree.Sort.SortOption;
 import org.opensearch.sql.ast.tree.TableFunction;
 import org.opensearch.sql.ast.tree.UnresolvedPlan;
 import org.opensearch.sql.ast.tree.Values;
+import org.opensearch.sql.common.antlr.SyntaxCheckException;
 import org.opensearch.sql.data.model.ExprMissingValue;
 import org.opensearch.sql.data.type.ExprCoreType;
+import org.opensearch.sql.data.type.ExprType;
 import org.opensearch.sql.datasource.DataSourceService;
-import org.opensearch.sql.datasource.model.DataSourceMetadata;
 import org.opensearch.sql.exception.SemanticCheckException;
 import org.opensearch.sql.expression.DSL;
 import org.opensearch.sql.expression.Expression;
+import org.opensearch.sql.expression.FunctionExpression;
 import org.opensearch.sql.expression.LiteralExpression;
 import org.opensearch.sql.expression.NamedExpression;
 import org.opensearch.sql.expression.ReferenceExpression;
 import org.opensearch.sql.expression.aggregation.Aggregator;
 import org.opensearch.sql.expression.aggregation.NamedAggregator;
+import org.opensearch.sql.expression.function.BuiltinFunctionName;
 import org.opensearch.sql.expression.function.BuiltinFunctionRepository;
 import org.opensearch.sql.expression.function.FunctionName;
 import org.opensearch.sql.expression.function.TableFunctionImplementation;
@@ -134,13 +136,8 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
   @Override
   public LogicalPlan visitRelation(Relation node, AnalysisContext context) {
     QualifiedName qualifiedName = node.getTableQualifiedName();
-    Set<String> allowedDataSourceNames = dataSourceService.getDataSourceMetadataSet()
-        .stream()
-        .map(DataSourceMetadata::getName)
-        .collect(Collectors.toSet());
     DataSourceSchemaIdentifierNameResolver dataSourceSchemaIdentifierNameResolver
-        = new DataSourceSchemaIdentifierNameResolver(qualifiedName.getParts(),
-        allowedDataSourceNames);
+        = new DataSourceSchemaIdentifierNameResolver(dataSourceService, qualifiedName.getParts());
     String tableName = dataSourceSchemaIdentifierNameResolver.getIdentifierName();
     context.push();
     TypeEnvironment curEnv = context.peek();
@@ -157,6 +154,9 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
               dataSourceSchemaIdentifierNameResolver.getIdentifierName());
     }
     table.getFieldTypes().forEach((k, v) -> curEnv.define(new Symbol(Namespace.FIELD_NAME, k), v));
+    table.getReservedFieldTypes().forEach(
+        (k, v) -> curEnv.addReservedWord(new Symbol(Namespace.FIELD_NAME, k), v)
+    );
 
     // Put index name or its alias in index namespace on type environment so qualifier
     // can be removed when analyzing qualified name. The value (expr type) here doesn't matter.
@@ -182,13 +182,9 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
   @Override
   public LogicalPlan visitTableFunction(TableFunction node, AnalysisContext context) {
     QualifiedName qualifiedName = node.getFunctionName();
-    Set<String> allowedDataSourceNames = dataSourceService.getDataSourceMetadataSet()
-        .stream()
-        .map(DataSourceMetadata::getName)
-        .collect(Collectors.toSet());
     DataSourceSchemaIdentifierNameResolver dataSourceSchemaIdentifierNameResolver
-        = new DataSourceSchemaIdentifierNameResolver(qualifiedName.getParts(),
-        allowedDataSourceNames);
+        = new DataSourceSchemaIdentifierNameResolver(this.dataSourceService,
+        qualifiedName.getParts());
 
     FunctionName functionName
         = FunctionName.of(dataSourceSchemaIdentifierNameResolver.getIdentifierName());
@@ -197,11 +193,16 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
         .collect(Collectors.toList());
     TableFunctionImplementation tableFunctionImplementation
         = (TableFunctionImplementation) repository.compile(context.getFunctionProperties(),
-        dataSourceSchemaIdentifierNameResolver.getDataSourceName(), functionName, arguments);
+        dataSourceService
+            .getDataSource(dataSourceSchemaIdentifierNameResolver.getDataSourceName())
+            .getStorageEngine().getFunctions(), functionName, arguments);
     context.push();
     TypeEnvironment curEnv = context.peek();
     Table table = tableFunctionImplementation.applyArguments();
     table.getFieldTypes().forEach((k, v) -> curEnv.define(new Symbol(Namespace.FIELD_NAME, k), v));
+    table.getReservedFieldTypes().forEach(
+        (k, v) -> curEnv.addReservedWord(new Symbol(Namespace.FIELD_NAME, k), v)
+    );
     curEnv.define(new Symbol(Namespace.INDEX_NAME,
             dataSourceSchemaIdentifierNameResolver.getIdentifierName()), STRUCT);
     return new LogicalRelation(dataSourceSchemaIdentifierNameResolver.getIdentifierName(),
@@ -219,11 +220,34 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
   public LogicalPlan visitFilter(Filter node, AnalysisContext context) {
     LogicalPlan child = node.getChild().get(0).accept(this, context);
     Expression condition = expressionAnalyzer.analyze(node.getCondition(), context);
+    verifySupportsCondition(condition);
 
     ExpressionReferenceOptimizer optimizer =
         new ExpressionReferenceOptimizer(expressionAnalyzer.getRepository(), child);
     Expression optimized = optimizer.optimize(condition, context);
     return new LogicalFilter(child, optimized);
+  }
+
+  /**
+   * Ensure NESTED function is not used in WHERE, GROUP BY, and HAVING clauses.
+   * Fallback to legacy engine. Can remove when support is added for NESTED function in WHERE,
+   * GROUP BY, ORDER BY, and HAVING clauses.
+   * @param condition : Filter condition
+   */
+  private void verifySupportsCondition(Expression condition) {
+    if (condition instanceof FunctionExpression) {
+      if (((FunctionExpression) condition).getFunctionName().getFunctionName().equalsIgnoreCase(
+          BuiltinFunctionName.NESTED.name()
+      )) {
+        throw new SyntaxCheckException(
+            "Falling back to legacy engine. Nested function is not supported in WHERE,"
+                + " GROUP BY, and HAVING clauses."
+        );
+      }
+      ((FunctionExpression)condition).getArguments().stream()
+          .forEach(e -> verifySupportsCondition(e)
+      );
+    }
   }
 
   /**
@@ -275,7 +299,9 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
     }
 
     for (UnresolvedExpression expr : node.getGroupExprList()) {
-      groupbyBuilder.add(namedExpressionAnalyzer.analyze(expr, context));
+      NamedExpression resolvedExpr = namedExpressionAnalyzer.analyze(expr, context);
+      verifySupportsCondition(resolvedExpr.getDelegated());
+      groupbyBuilder.add(resolvedExpr);
     }
     ImmutableList<NamedExpression> groupBys = groupbyBuilder.build();
 
@@ -368,6 +394,14 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
     List<NamedExpression> namedExpressions =
         selectExpressionAnalyzer.analyze(node.getProjectList(), context,
             new ExpressionReferenceOptimizer(expressionAnalyzer.getRepository(), child));
+
+    for (UnresolvedExpression expr : node.getProjectList()) {
+      NestedAnalyzer nestedAnalyzer = new NestedAnalyzer(
+          namedExpressions, expressionAnalyzer, child
+      );
+      child = nestedAnalyzer.analyze(expr, context);
+    }
+
     // new context
     context.push();
     TypeEnvironment newEnv = context.peek();

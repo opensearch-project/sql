@@ -8,6 +8,7 @@ package org.opensearch.sql.expression.datetime;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.opensearch.sql.data.type.ExprCoreType.TIMESTAMP;
+import static org.opensearch.sql.utils.DateTimeUtils.UTC_ZONE_ID;
 
 import java.time.Instant;
 import java.time.LocalDate;
@@ -66,7 +67,7 @@ public class TimestampTest extends ExpressionTestBase {
     var expr = DSL.timestamp(functionProperties, DSL.time(DSL.literal("22:33:44")));
     assertEquals(TIMESTAMP, expr.type());
     var refValue = LocalDate.now().atTime(LocalTime.of(22, 33, 44))
-        .atZone(ExprTimestampValue.ZONE).toInstant();
+        .atZone(UTC_ZONE_ID).toInstant();
     assertEquals(new ExprTimestampValue(refValue), expr.valueOf());
   }
 
@@ -75,7 +76,7 @@ public class TimestampTest extends ExpressionTestBase {
     var expr = DSL.timestamp(functionProperties, DSL.date(DSL.literal("2077-12-15")));
     assertEquals(TIMESTAMP, expr.type());
     var refValue = LocalDate.of(2077, 12, 15).atStartOfDay()
-        .atZone(ExprTimestampValue.ZONE).toInstant();
+        .atZone(UTC_ZONE_ID).toInstant();
     assertEquals(new ExprTimestampValue(refValue), expr.valueOf());
   }
 
@@ -96,7 +97,7 @@ public class TimestampTest extends ExpressionTestBase {
   }
 
   private static Instant dateTime2Instant(LocalDateTime dt) {
-    return dt.atZone(ExprTimestampValue.ZONE).toInstant();
+    return dt.atZone(UTC_ZONE_ID).toInstant();
   }
 
   private static ExprTimestampValue dateTime2ExprTs(LocalDateTime dt) {

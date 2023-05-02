@@ -7,8 +7,13 @@
 
 package org.opensearch.sql.analysis;
 
+import com.google.common.collect.ImmutableSet;
 import java.util.List;
 import java.util.Set;
+import java.util.stream.Collectors;
+import org.opensearch.sql.ast.expression.QualifiedName;
+import org.opensearch.sql.datasource.DataSourceService;
+import org.opensearch.sql.datasource.model.DataSourceMetadata;
 
 public class DataSourceSchemaIdentifierNameResolver {
 
@@ -19,6 +24,7 @@ public class DataSourceSchemaIdentifierNameResolver {
   private String dataSourceName = DEFAULT_DATASOURCE_NAME;
   private String schemaName = DEFAULT_SCHEMA_NAME;
   private String identifierName;
+  private DataSourceService dataSourceService;
 
   private static final String DOT = ".";
 
@@ -28,13 +34,14 @@ public class DataSourceSchemaIdentifierNameResolver {
    * DataSourceSchemaTable name and DataSourceSchemaFunction in case of table
    * functions.
    *
+   * @param dataSourceService {@link DataSourceService}.
    * @param parts           parts of qualifiedName.
-   * @param allowedDataSources allowedDataSources.
    */
-  public DataSourceSchemaIdentifierNameResolver(List<String> parts,
-                                                Set<String> allowedDataSources) {
+  public DataSourceSchemaIdentifierNameResolver(DataSourceService dataSourceService,
+                                                List<String> parts) {
+    this.dataSourceService = dataSourceService;
     List<String> remainingParts
-        = captureSchemaName(captureDataSourceName(parts, allowedDataSources));
+        = captureSchemaName(captureDataSourceName(parts));
     identifierName = String.join(DOT, remainingParts);
   }
 
@@ -53,9 +60,8 @@ public class DataSourceSchemaIdentifierNameResolver {
 
   // Capture datasource name and return remaining parts(schema name and table name)
   // from the fully qualified name.
-  private List<String> captureDataSourceName(List<String> parts, Set<String> allowedDataSources) {
-    if (parts.size() > 1 && allowedDataSources.contains(parts.get(0))
-        || DEFAULT_DATASOURCE_NAME.equals(parts.get(0))) {
+  private List<String> captureDataSourceName(List<String> parts) {
+    if (parts.size() > 1 && dataSourceService.dataSourceExists(parts.get(0))) {
       dataSourceName = parts.get(0);
       return parts.subList(1, parts.size());
     } else {
@@ -75,6 +81,5 @@ public class DataSourceSchemaIdentifierNameResolver {
       return parts;
     }
   }
-
 
 }

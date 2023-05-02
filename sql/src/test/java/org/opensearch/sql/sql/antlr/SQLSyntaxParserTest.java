@@ -175,6 +175,59 @@ class SQLSyntaxParserTest {
     );
   }
 
+  private static Stream<Arguments> getPartForExtractFunction() {
+    return Stream.of(
+        Arguments.of("MICROSECOND"),
+        Arguments.of("SECOND"),
+        Arguments.of("MINUTE"),
+        Arguments.of("HOUR"),
+        Arguments.of("DAY"),
+        Arguments.of("WEEK"),
+        Arguments.of("MONTH"),
+        Arguments.of("QUARTER"),
+        Arguments.of("YEAR"),
+        Arguments.of("SECOND_MICROSECOND"),
+        Arguments.of("MINUTE_MICROSECOND"),
+        Arguments.of("MINUTE_SECOND"),
+        Arguments.of("HOUR_MICROSECOND"),
+        Arguments.of("HOUR_SECOND"),
+        Arguments.of("HOUR_MINUTE"),
+        Arguments.of("DAY_MICROSECOND"),
+        Arguments.of("DAY_SECOND"),
+        Arguments.of("DAY_MINUTE"),
+        Arguments.of("DAY_HOUR"),
+        Arguments.of("YEAR_MONTH")
+    );
+  }
+
+  @ParameterizedTest(name = "{0}")
+  @MethodSource("getPartForExtractFunction")
+  public void can_parse_extract_function(String part) {
+    assertNotNull(parser.parse(String.format("SELECT extract(%s FROM \"2023-02-06\")", part)));
+  }
+
+  private static Stream<Arguments> getInvalidPartForExtractFunction() {
+    return Stream.of(
+        Arguments.of("INVALID"),
+        Arguments.of("\"SECOND\""),
+        Arguments.of("123")
+    );
+  }
+
+  @ParameterizedTest(name = "{0}")
+  @MethodSource("getInvalidPartForExtractFunction")
+  public void cannot_parse_extract_function_invalid_part(String part) {
+    assertThrows(
+        SyntaxCheckException.class,
+        () -> parser.parse(String.format("SELECT extract(%s FROM \"2023-02-06\")", part)));
+  }
+
+  @Test
+  public void can_parse_weekday_function() {
+    assertNotNull(parser.parse("SELECT weekday('2022-11-18')"));
+    assertNotNull(parser.parse("SELECT day_of_week('2022-11-18')"));
+  }
+
   @ParameterizedTest(name = "{0}")
   @MethodSource("nowLikeFunctionsData")
   public void can_parse_now_like_functions(String name, Boolean hasFsp, Boolean hasShortcut) {
@@ -238,7 +291,7 @@ class SQLSyntaxParserTest {
     assertNotNull(parser.parse("SELECT dayofmonth('2022-11-18')"));
     assertNotNull(parser.parse("SELECT day_of_month('2022-11-18')"));
   }
-    
+
   @Test
   public void can_parse_day_of_week_functions() {
     assertNotNull(parser.parse("SELECT dayofweek('2022-11-18')"));
@@ -364,6 +417,21 @@ class SQLSyntaxParserTest {
         "SELECT id FROM test WHERE"
             + " simple_query_string([\"Tags\" ^ 1.5, Title, `Body` 4.2], 'query', analyzer=keyword,"
             + "flags='AND', quote_field_suffix=\".exact\", fuzzy_prefix_length = 4)"));
+  }
+
+  @Test
+  public void can_parse_str_to_date() {
+    assertNotNull(parser.parse(
+        "SELECT STR_TO_DATE('01,5,2013','%d,%m,%Y')"
+    ));
+
+    assertNotNull(parser.parse(
+        "SELECT STR_TO_DATE('a09:30:17','a%h:%i:%s')"
+    ));
+
+    assertNotNull(parser.parse(
+        "SELECT STR_TO_DATE('abc','abc');"
+    ));
   }
 
   @Test
@@ -522,9 +590,34 @@ class SQLSyntaxParserTest {
   }
 
   @Test
+  public void can_parse_sec_to_time_function() {
+    assertNotNull(parser.parse("SELECT sec_to_time(-6897)"));
+    assertNotNull(parser.parse("SELECT sec_to_time(6897)"));
+    assertNotNull(parser.parse("SELECT sec_to_time(6897.123)"));
+  }
+  
+  @Test
   public void can_parse_last_day_function() {
     assertNotNull(parser.parse("SELECT last_day(\"2017-06-20\")"));
     assertNotNull(parser.parse("SELECT last_day('2004-01-01 01:01:01')"));
+  }
+
+  @Test
+  public void can_parse_timestampadd_function() {
+    assertNotNull(parser.parse("SELECT TIMESTAMPADD(MINUTE, 1, '2003-01-02')"));
+    assertNotNull(parser.parse("SELECT TIMESTAMPADD(WEEK,1,'2003-01-02')"));
+  }
+  
+  @Test
+  public void can_parse_timestampdiff_function() {
+    assertNotNull(parser.parse("SELECT TIMESTAMPDIFF(MINUTE, '2003-01-02', '2003-01-02')"));
+    assertNotNull(parser.parse("SELECT TIMESTAMPDIFF(WEEK,'2003-01-02','2003-01-02')"));
+  }
+
+  @Test
+  public void can_parse_to_seconds_function() {
+    assertNotNull(parser.parse("SELECT to_seconds(\"2023-02-20\")"));
+    assertNotNull(parser.parse("SELECT to_seconds(950501)"));
   }
 
   @Test
@@ -540,6 +633,24 @@ class SQLSyntaxParserTest {
     assertNotNull(
         parser.parse("SELECT * FROM test WHERE wildcard_query(`column`, 'this is a test*', "
             + "boost=1.5, case_insensitive=true, rewrite=\"scoring_boolean\")"));
+  }
+
+  @Test
+  public void can_parse_nested_function() {
+    assertNotNull(
+        parser.parse("SELECT NESTED(FIELD.DAYOFWEEK) FROM TEST"));
+    assertNotNull(
+        parser.parse("SELECT NESTED('FIELD.DAYOFWEEK') FROM TEST"));
+    assertNotNull(
+        parser.parse("SELECT SUM(NESTED(FIELD.SUBFIELD)) FROM TEST"));
+    assertNotNull(
+        parser.parse("SELECT NESTED(FIELD.DAYOFWEEK, PATH) FROM TEST"));
+  }
+
+  @Test
+  public void can_parse_yearweek_function() {
+    assertNotNull(parser.parse("SELECT yearweek('1987-01-01')"));
+    assertNotNull(parser.parse("SELECT yearweek('1987-01-01', 1)"));
   }
 
   @Test

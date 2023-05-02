@@ -47,3 +47,4 @@ gen
 
 .java-version
 .worktrees
+http-client.env.json

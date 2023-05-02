@@ -9,9 +9,9 @@ package org.opensearch.sql.opensearch.data.value;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.opensearch.sql.opensearch.data.type.OpenSearchDataType.OPENSEARCH_IP;
 
 import org.junit.jupiter.api.Test;
+import org.opensearch.sql.opensearch.data.type.OpenSearchIpType;
 
 public class OpenSearchExprIpValueTest {
 
@@ -24,12 +24,13 @@ public class OpenSearchExprIpValueTest {
 
   @Test
   void type() {
-    assertEquals(OPENSEARCH_IP, ipValue.type());
+    assertEquals(OpenSearchIpType.of(), ipValue.type());
   }
 
   @Test
   void compare() {
     assertEquals(0, ipValue.compareTo(new OpenSearchExprIpValue("192.168.0.1")));
+    assertEquals(ipValue, new OpenSearchExprIpValue("192.168.0.1"));
   }
 
   @Test

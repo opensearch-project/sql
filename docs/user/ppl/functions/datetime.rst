@@ -390,7 +390,6 @@ Example::
     +----------------------------+
 
 
-
 DATE_ADD
 --------
 
@@ -440,7 +439,7 @@ If an argument of type TIME is provided, the local date is used.
    * - %c
      - Month, numeric (0..12)
    * - %D
-     - Day of the month with English suffix (0th, 1st, 2nd, 3rd, …)
+     - Day of the month with English suffix (0th, 1st, 2nd, 3rd, ...)
    * - %d
      - Day of the month, numeric (00..31)
    * - %e
@@ -508,13 +507,13 @@ Return type: STRING
 
 Example::
 
-    >od source=people | eval `DATE_FORMAT('1998-01-31 13:14:15.012345', '%T.%f')` = DATE_FORMAT('1998-01-31 13:14:15.012345', '%T.%f'), `DATE_FORMAT(TIMESTAMP('1998-01-31 13:14:15.012345'), '%Y-%b-%D %r')` = DATE_FORMAT(TIMESTAMP('1998-01-31 13:14:15.012345'), '%Y-%b-%D %r') | fields `DATE_FORMAT('1998-01-31 13:14:15.012345', '%T.%f')`, `DATE_FORMAT(TIMESTAMP('1998-01-31 13:14:15.012345'), '%Y-%b-%D %r')`
+    os> source=people | eval `DATE_FORMAT('1998-01-31 13:14:15.012345', '%T.%f')` = DATE_FORMAT('1998-01-31 13:14:15.012345', '%T.%f'), `DATE_FORMAT(TIMESTAMP('1998-01-31 13:14:15.012345'), '%Y-%b-%D %r')` = DATE_FORMAT(TIMESTAMP('1998-01-31 13:14:15.012345'), '%Y-%b-%D %r') | fields `DATE_FORMAT('1998-01-31 13:14:15.012345', '%T.%f')`, `DATE_FORMAT(TIMESTAMP('1998-01-31 13:14:15.012345'), '%Y-%b-%D %r')`
     fetched rows / total rows = 1/1
-    +-----------------------------------------------+----------------------------------------------------------------+
-    | DATE('1998-01-31 13:14:15.012345', '%T.%f')   | DATE(TIMESTAMP('1998-01-31 13:14:15.012345'), '%Y-%b-%D %r')   |
-    |-----------------------------------------------+----------------------------------------------------------------|
-    | '13:14:15.012345'                             | '1998-Jan-31st 01:14:15 PM'                                    |
-    +-----------------------------------------------+----------------------------------------------------------------+
+    +------------------------------------------------------+-----------------------------------------------------------------------+
+    | DATE_FORMAT('1998-01-31 13:14:15.012345', '%T.%f')   | DATE_FORMAT(TIMESTAMP('1998-01-31 13:14:15.012345'), '%Y-%b-%D %r')   |
+    |------------------------------------------------------+-----------------------------------------------------------------------|
+    | 13:14:15.012345                                      | 1998-Jan-31st 01:14:15 PM                                             |
+    +------------------------------------------------------+-----------------------------------------------------------------------+
 
 
 DATETIME
@@ -567,6 +566,7 @@ Example::
     |---------------------------------------------|
     | null                                        |
     +---------------------------------------------+
+
 
 DATE_SUB
 --------
@@ -694,7 +694,7 @@ DAYOFWEEK
 Description
 >>>>>>>>>>>
 
-Usage: dayofweek(date) returns the weekday index for date (1 = Sunday, 2 = Monday, …, 7 = Saturday).
+Usage: dayofweek(date) returns the weekday index for date (1 = Sunday, 2 = Monday, ..., 7 = Saturday).
 
 Argument type: STRING/DATE/DATETIME/TIMESTAMP
 
@@ -1505,7 +1505,7 @@ Usage: week(date[, mode]) returns the week number for date. If the mode argument
    * - Mode
      - First day of week
      - Range
-     - Week 1 is the first week …
+     - Week 1 is the first week ...
    * - 0
      - Sunday
      - 0-53
@@ -1545,11 +1545,11 @@ Return type: INTEGER
 
 Example::
 
-    >od source=people | eval `WEEK(DATE('2008-02-20'))` = WEEK(DATE('2008-02-20')), `WEEK(DATE('2008-02-20'), 1)` = WEEK(DATE('2008-02-20'), 1) | fields `WEEK(DATE('2008-02-20'))`, `WEEK(DATE('2008-02-20'), 1)`
+    os> source=people | eval `WEEK(DATE('2008-02-20'))` = WEEK(DATE('2008-02-20')), `WEEK(DATE('2008-02-20'), 1)` = WEEK(DATE('2008-02-20'), 1) | fields `WEEK(DATE('2008-02-20'))`, `WEEK(DATE('2008-02-20'), 1)`
     fetched rows / total rows = 1/1
     +----------------------------+-------------------------------+
     | WEEK(DATE('2008-02-20'))   | WEEK(DATE('2008-02-20'), 1)   |
-    |----------------------------|-------------------------------|
+    |----------------------------+-------------------------------|
     | 7                          | 8                             |
     +----------------------------+-------------------------------+
 

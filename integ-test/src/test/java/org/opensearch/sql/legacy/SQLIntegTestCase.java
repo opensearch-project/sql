@@ -7,6 +7,8 @@
 package org.opensearch.sql.legacy;
 
 import com.google.common.base.Strings;
+import com.google.gson.Gson;
+import org.apache.commons.lang3.StringUtils;
 import org.json.JSONArray;
 import org.json.JSONObject;
 import org.junit.AfterClass;
@@ -30,6 +32,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Locale;
+import org.opensearch.sql.datasource.model.DataSourceMetadata;
 
 import static com.google.common.base.Strings.isNullOrEmpty;
 import static org.opensearch.sql.legacy.TestUtils.createIndexByRestClient;
@@ -323,7 +326,6 @@ public abstract class SQLIntegTestCase extends OpenSearchSQLRestTestCase {
   }
 
   protected static String executeRequest(final Request request) throws IOException {
-
     Response response = client().performRequest(request);
     Assert.assertEquals(200, response.getStatusLine().getStatusCode());
     return getResponseBody(response);
@@ -442,6 +444,44 @@ public abstract class SQLIntegTestCase extends OpenSearchSQLRestTestCase {
     return hit.getJSONObject("_source");
   }
 
+  protected static Request getCreateDataSourceRequest(DataSourceMetadata dataSourceMetadata) {
+    Request request = new Request("POST", "/_plugins/_query/_datasources");
+    request.setJsonEntity(new Gson().toJson(dataSourceMetadata));
+    RequestOptions.Builder restOptionsBuilder = RequestOptions.DEFAULT.toBuilder();
+    restOptionsBuilder.addHeader("Content-Type", "application/json");
+    request.setOptions(restOptionsBuilder);
+    return request;
+  }
+
+  protected static Request getUpdateDataSourceRequest(DataSourceMetadata dataSourceMetadata) {
+    Request request = new Request("PUT", "/_plugins/_query/_datasources");
+    request.setJsonEntity(new Gson().toJson(dataSourceMetadata));
+    RequestOptions.Builder restOptionsBuilder = RequestOptions.DEFAULT.toBuilder();
+    restOptionsBuilder.addHeader("Content-Type", "application/json");
+    request.setOptions(restOptionsBuilder);
+    return request;
+  }
+
+  protected static Request getFetchDataSourceRequest(String name) {
+    Request request = new Request("GET", "/_plugins/_query/_datasources" + "/" + name);
+    if (StringUtils.isEmpty(name)) {
+      request = new Request("GET", "/_plugins/_query/_datasources");
+    }
+    RequestOptions.Builder restOptionsBuilder = RequestOptions.DEFAULT.toBuilder();
+    restOptionsBuilder.addHeader("Content-Type", "application/json");
+    request.setOptions(restOptionsBuilder);
+    return request;
+  }
+
+
+  protected static Request getDeleteDataSourceRequest(String name) {
+    Request request = new Request("DELETE", "/_plugins/_query/_datasources" + "/" + name);
+    RequestOptions.Builder restOptionsBuilder = RequestOptions.DEFAULT.toBuilder();
+    restOptionsBuilder.addHeader("Content-Type", "application/json");
+    request.setOptions(restOptionsBuilder);
+    return request;
+  }
+
   /**
    * Enum for associating test index with relevant mapping and data.
    */
@@ -506,6 +546,10 @@ public abstract class SQLIntegTestCase extends OpenSearchSQLRestTestCase {
         "nestedType",
         getNestedTypeIndexMapping(),
         "src/test/resources/nested_objects.json"),
+    NESTED_WITHOUT_ARRAYS(TestsConstants.TEST_INDEX_NESTED_TYPE_WITHOUT_ARRAYS,
+        "nestedTypeWithoutArrays",
+        getNestedTypeIndexMapping(),
+        "src/test/resources/nested_objects_without_arrays.json"),
     NESTED_WITH_QUOTES(TestsConstants.TEST_INDEX_NESTED_WITH_QUOTES,
         "nestedType",
         getNestedTypeIndexMapping(),
@@ -593,7 +637,19 @@ public abstract class SQLIntegTestCase extends OpenSearchSQLRestTestCase {
     WILDCARD(TestsConstants.TEST_INDEX_WILDCARD,
         "wildcard",
         getMappingFile("wildcard_index_mappings.json"),
-        "src/test/resources/wildcard.json"),;
+        "src/test/resources/wildcard.json"),
+    DATASOURCES(TestsConstants.DATASOURCES,
+        "datasource",
+        getMappingFile("datasources_index_mappings.json"),
+        "src/test/resources/datasources.json"),
+    MULTI_NESTED(TestsConstants.TEST_INDEX_MULTI_NESTED_TYPE,
+        "multi_nested",
+        getMappingFile("multi_nested.json"),
+        "src/test/resources/multi_nested_objects.json"),
+    NESTED_WITH_NULLS(TestsConstants.TEST_INDEX_NESTED_WITH_NULLS,
+        "multi_nested",
+        getNestedTypeIndexMapping(),
+        "src/test/resources/nested_with_nulls.json");
 
     private final String name;
     private final String type;
@@ -622,5 +678,7 @@ public abstract class SQLIntegTestCase extends OpenSearchSQLRestTestCase {
     public String getDataSet() {
       return this.dataSet;
     }
+
+
   }
 }

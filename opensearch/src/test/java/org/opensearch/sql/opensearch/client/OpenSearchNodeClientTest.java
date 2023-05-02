@@ -6,9 +6,11 @@
 
 package org.opensearch.sql.opensearch.client;
 
+import static org.junit.jupiter.api.Assertions.assertAll;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Answers.RETURNS_DEEP_STUBS;
@@ -20,6 +22,7 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.opensearch.sql.opensearch.client.OpenSearchClient.META_CLUSTER_NAME;
+import static org.opensearch.sql.opensearch.data.type.OpenSearchDataType.MappingType;
 
 import com.google.common.base.Charsets;
 import com.google.common.collect.ImmutableMap;
@@ -52,7 +55,6 @@ import org.opensearch.client.node.NodeClient;
 import org.opensearch.cluster.metadata.AliasMetadata;
 import org.opensearch.cluster.metadata.IndexMetadata;
 import org.opensearch.cluster.metadata.MappingMetadata;
-import org.opensearch.common.collect.ImmutableOpenMap;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.common.util.concurrent.ThreadContext;
 import org.opensearch.common.xcontent.XContentType;
@@ -65,6 +67,8 @@ import org.opensearch.search.SearchHits;
 import org.opensearch.sql.data.model.ExprIntegerValue;
 import org.opensearch.sql.data.model.ExprTupleValue;
 import org.opensearch.sql.data.model.ExprValue;
+import org.opensearch.sql.opensearch.data.type.OpenSearchDataType;
+import org.opensearch.sql.opensearch.data.type.OpenSearchTextType;
 import org.opensearch.sql.opensearch.data.value.OpenSearchExprValueFactory;
 import org.opensearch.sql.opensearch.mapping.IndexMapping;
 import org.opensearch.sql.opensearch.request.OpenSearchScrollRequest;
@@ -156,28 +160,67 @@ class OpenSearchNodeClientTest {
     mockNodeClientIndicesMappings(indexName, mappings);
 
     Map<String, IndexMapping> indexMappings = client.getIndexMappings(indexName);
-    assertEquals(1, indexMappings.size());
 
-    IndexMapping indexMapping = indexMappings.values().iterator().next();
-    assertEquals(18, indexMapping.size());
-    assertEquals("text", indexMapping.getFieldType("address"));
-    assertEquals("integer", indexMapping.getFieldType("age"));
-    assertEquals("double", indexMapping.getFieldType("balance"));
-    assertEquals("keyword", indexMapping.getFieldType("city"));
-    assertEquals("date", indexMapping.getFieldType("birthday"));
-    assertEquals("geo_point", indexMapping.getFieldType("location"));
-    assertEquals("some_new_es_type_outside_type_system", indexMapping.getFieldType("new_field"));
-    assertEquals("text", indexMapping.getFieldType("field with spaces"));
-    assertEquals("text_keyword", indexMapping.getFieldType("employer"));
-    assertEquals("nested", indexMapping.getFieldType("projects"));
-    assertEquals("boolean", indexMapping.getFieldType("projects.active"));
-    assertEquals("date", indexMapping.getFieldType("projects.release"));
-    assertEquals("nested", indexMapping.getFieldType("projects.members"));
-    assertEquals("text", indexMapping.getFieldType("projects.members.name"));
-    assertEquals("object", indexMapping.getFieldType("manager"));
-    assertEquals("text_keyword", indexMapping.getFieldType("manager.name"));
-    assertEquals("keyword", indexMapping.getFieldType("manager.address"));
-    assertEquals("long", indexMapping.getFieldType("manager.salary"));
+    var mapping = indexMappings.values().iterator().next().getFieldMappings();
+    var parsedTypes = OpenSearchDataType.traverseAndFlatten(mapping);
+    assertAll(
+        () -> assertEquals(1, indexMappings.size()),
+        // 10 types extended to 17 after flattening
+        () -> assertEquals(10, mapping.size()),
+        () -> assertEquals(17, parsedTypes.size()),
+        () -> assertEquals("TEXT", mapping.get("address").legacyTypeName()),
+        () -> assertEquals(OpenSearchTextType.of(MappingType.Text),
+            parsedTypes.get("address")),
+        () -> assertEquals("INTEGER", mapping.get("age").legacyTypeName()),
+        () -> assertEquals(OpenSearchTextType.of(MappingType.Integer),
+            parsedTypes.get("age")),
+        () -> assertEquals("DOUBLE", mapping.get("balance").legacyTypeName()),
+        () -> assertEquals(OpenSearchTextType.of(MappingType.Double),
+            parsedTypes.get("balance")),
+        () -> assertEquals("KEYWORD", mapping.get("city").legacyTypeName()),
+        () -> assertEquals(OpenSearchTextType.of(MappingType.Keyword),
+            parsedTypes.get("city")),
+        () -> assertEquals("DATE", mapping.get("birthday").legacyTypeName()),
+        () -> assertEquals(OpenSearchTextType.of(MappingType.Date),
+            parsedTypes.get("birthday")),
+        () -> assertEquals("GEO_POINT", mapping.get("location").legacyTypeName()),
+        () -> assertEquals(OpenSearchTextType.of(MappingType.GeoPoint),
+            parsedTypes.get("location")),
+        // unknown type isn't parsed and ignored
+        () -> assertFalse(mapping.containsKey("new_field")),
+        () -> assertNull(parsedTypes.get("new_field")),
+        () -> assertEquals("TEXT", mapping.get("field with spaces").legacyTypeName()),
+        () -> assertEquals(OpenSearchTextType.of(MappingType.Text),
+            parsedTypes.get("field with spaces")),
+        () -> assertEquals("TEXT", mapping.get("employer").legacyTypeName()),
+        () -> assertEquals(OpenSearchTextType.of(MappingType.Text),
+            parsedTypes.get("employer")),
+        // `employer` is a `text` with `fields`
+        () -> assertTrue(((OpenSearchTextType)parsedTypes.get("employer")).getFields().size() > 0),
+        () -> assertEquals("NESTED", mapping.get("projects").legacyTypeName()),
+        () -> assertEquals(OpenSearchTextType.of(MappingType.Nested),
+            parsedTypes.get("projects")),
+        () -> assertEquals(OpenSearchTextType.of(MappingType.Boolean),
+            parsedTypes.get("projects.active")),
+        () -> assertEquals(OpenSearchTextType.of(MappingType.Date),
+            parsedTypes.get("projects.release")),
+        () -> assertEquals(OpenSearchTextType.of(MappingType.Nested),
+            parsedTypes.get("projects.members")),
+        () -> assertEquals(OpenSearchTextType.of(MappingType.Text),
+            parsedTypes.get("projects.members.name")),
+        () -> assertEquals("OBJECT", mapping.get("manager").legacyTypeName()),
+        () -> assertEquals(OpenSearchTextType.of(MappingType.Object),
+                parsedTypes.get("manager")),
+        () -> assertEquals(OpenSearchTextType.of(MappingType.Text),
+            parsedTypes.get("manager.name")),
+        // `manager.name` is a `text` with `fields`
+        () -> assertTrue(((OpenSearchTextType)parsedTypes.get("manager.name"))
+                .getFields().size() > 0),
+        () -> assertEquals(OpenSearchTextType.of(MappingType.Keyword),
+            parsedTypes.get("manager.address")),
+        () -> assertEquals(OpenSearchTextType.of(MappingType.Long),
+            parsedTypes.get("manager.salary"))
+    );
   }
 
   @Test
@@ -265,6 +308,7 @@ class OpenSearchNodeClientTest {
                 new TotalHits(1L, TotalHits.Relation.EQUAL_TO),
                 1.0F));
     when(searchHit.getSourceAsString()).thenReturn("{\"id\", 1}");
+    when(searchHit.getInnerHits()).thenReturn(null);
     when(factory.construct(any())).thenReturn(exprTupleValue);
 
     // Mock second scroll request followed
@@ -280,7 +324,7 @@ class OpenSearchNodeClientTest {
 
     Iterator<ExprValue> hits = response1.iterator();
     assertTrue(hits.hasNext());
-    assertEquals(exprTupleValue, hits.next());
+    assertEquals(exprTupleValue.tupleValue().get("id"), hits.next().tupleValue().get("id"));
     assertFalse(hits.hasNext());
 
     // Verify response for second scroll request
@@ -326,9 +370,7 @@ class OpenSearchNodeClientTest {
   @Test
   void getIndices() {
     AliasMetadata aliasMetadata = mock(AliasMetadata.class);
-    ImmutableOpenMap.Builder<String, List<AliasMetadata>> builder = ImmutableOpenMap.builder();
-    builder.fPut("index",Arrays.asList(aliasMetadata));
-    final ImmutableOpenMap<String, List<AliasMetadata>> openMap = builder.build();
+    final var openMap = Map.of("index", List.of(aliasMetadata));
     when(aliasMetadata.alias()).thenReturn("index_alias");
     when(nodeClient.admin().indices()
         .prepareGetIndex()
@@ -364,16 +406,12 @@ class OpenSearchNodeClientTest {
         .setLocal(anyBoolean())
         .get()).thenReturn(mockResponse);
     try {
-      ImmutableOpenMap<String, MappingMetadata> metadata;
+      Map<String, MappingMetadata> metadata;
       if (mappings.isEmpty()) {
-        when(emptyMapping.getSourceAsMap()).thenReturn(ImmutableMap.of());
-        metadata =
-            new ImmutableOpenMap.Builder<String, MappingMetadata>()
-                .fPut(indexName, emptyMapping)
-                .build();
+        when(emptyMapping.getSourceAsMap()).thenReturn(Map.of());
+        metadata = Map.of(indexName, emptyMapping);
       } else {
-        metadata = new ImmutableOpenMap.Builder<String, MappingMetadata>().fPut(indexName,
-            IndexMetadata.fromXContent(createParser(mappings)).mapping()).build();
+        metadata = Map.of(indexName, IndexMetadata.fromXContent(createParser(mappings)).mapping());
       }
       when(mockResponse.mappings()).thenReturn(metadata);
     } catch (IOException e) {
@@ -386,10 +424,8 @@ class OpenSearchNodeClientTest {
     GetSettingsResponse mockResponse = mock(GetSettingsResponse.class);
     when(nodeClient.admin().indices().prepareGetSettings(any()).setLocal(anyBoolean()).get())
         .thenReturn(mockResponse);
-    ImmutableOpenMap<String, Settings> metadata =
-        new ImmutableOpenMap.Builder<String, Settings>()
-            .fPut(indexName, IndexMetadata.fromXContent(createParser(indexMetadata)).getSettings())
-            .build();
+    Map<String, Settings> metadata = Map.of(indexName,
+        IndexMetadata.fromXContent(createParser(indexMetadata)).getSettings());
 
     when(mockResponse.getIndexToSettings()).thenReturn(metadata);
   }

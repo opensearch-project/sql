@@ -6,10 +6,14 @@
 
 package org.opensearch.sql.opensearch.request;
 
+import static java.util.stream.Collectors.mapping;
+import static java.util.stream.Collectors.toList;
+import static org.opensearch.index.query.QueryBuilders.boolQuery;
+import static org.opensearch.index.query.QueryBuilders.matchAllQuery;
+import static org.opensearch.index.query.QueryBuilders.nestedQuery;
 import static org.opensearch.search.sort.FieldSortBuilder.DOC_FIELD_NAME;
 import static org.opensearch.search.sort.SortOrder.ASC;
 
-import com.google.common.collect.Lists;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
@@ -19,24 +23,28 @@ import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.ToString;
 import org.apache.commons.lang3.tuple.Pair;
+import org.apache.lucene.search.join.ScoreMode;
 import org.opensearch.common.unit.TimeValue;
 import org.opensearch.index.query.BoolQueryBuilder;
+import org.opensearch.index.query.InnerHitBuilder;
+import org.opensearch.index.query.NestedQueryBuilder;
 import org.opensearch.index.query.QueryBuilder;
 import org.opensearch.index.query.QueryBuilders;
 import org.opensearch.search.aggregations.AggregationBuilder;
 import org.opensearch.search.builder.SearchSourceBuilder;
+import org.opensearch.search.fetch.subphase.FetchSourceContext;
 import org.opensearch.search.fetch.subphase.highlight.HighlightBuilder;
-import org.opensearch.search.sort.FieldSortBuilder;
 import org.opensearch.search.sort.SortBuilder;
 import org.opensearch.search.sort.SortBuilders;
 import org.opensearch.sql.ast.expression.Literal;
 import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.common.utils.StringUtils;
-import org.opensearch.sql.data.type.ExprType;
 import org.opensearch.sql.exception.SemanticCheckException;
 import org.opensearch.sql.expression.ReferenceExpression;
+import org.opensearch.sql.opensearch.data.type.OpenSearchDataType;
 import org.opensearch.sql.opensearch.data.value.OpenSearchExprValueFactory;
 import org.opensearch.sql.opensearch.response.agg.OpenSearchAggregationResponseParser;
+import org.opensearch.sql.planner.logical.LogicalNested;
 
 /**
  * OpenSearch search request builder.
@@ -100,6 +108,7 @@ public class OpenSearchRequestBuilder {
     sourceBuilder.from(0);
     sourceBuilder.size(querySize);
     sourceBuilder.timeout(DEFAULT_QUERY_TIMEOUT);
+    sourceBuilder.trackScores(false);
   }
 
   /**
@@ -180,6 +189,10 @@ public class OpenSearchRequestBuilder {
     sourceBuilder.from(offset).size(limit);
   }
 
+  public void pushDownTrackedScore(boolean trackScores) {
+    sourceBuilder.trackScores(trackScores);
+  }
+
   /**
    * Add highlight to DSL requests.
    * @param field name of the field to highlight
@@ -222,8 +235,8 @@ public class OpenSearchRequestBuilder {
     sourceBuilder.fetchSource(projectsSet.toArray(new String[0]), new String[0]);
   }
 
-  public void pushTypeMapping(Map<String, ExprType> typeMapping) {
-    exprValueFactory.setTypeMapping(typeMapping);
+  public void pushTypeMapping(Map<String, OpenSearchDataType> typeMapping) {
+    exprValueFactory.extendTypeMapping(typeMapping);
   }
 
   private boolean isBoolFilterQuery(QueryBuilder current) {
@@ -236,5 +249,78 @@ public class OpenSearchRequestBuilder {
       return sorts.equals(Arrays.asList(SortBuilders.fieldSort(DOC_FIELD_NAME)));
     }
     return false;
+  }
+
+  /**
+   * Push down nested to sourceBuilder.
+   * @param nestedArgs : Nested arguments to push down.
+   */
+  public void pushDownNested(List<Map<String, ReferenceExpression>> nestedArgs) {
+    initBoolQueryFilter();
+    groupFieldNamesByPath(nestedArgs).forEach(
+          (path, fieldNames) -> buildInnerHit(
+              fieldNames, createEmptyNestedQuery(path)
+          )
+    );
+  }
+
+  /**
+   * Initialize bool query for push down.
+   */
+  private void initBoolQueryFilter() {
+    if (sourceBuilder.query() == null) {
+      sourceBuilder.query(QueryBuilders.boolQuery());
+    } else {
+      sourceBuilder.query(QueryBuilders.boolQuery().must(sourceBuilder.query()));
+    }
+
+    sourceBuilder.query(QueryBuilders.boolQuery().filter(sourceBuilder.query()));
+  }
+
+  /**
+   * Map all field names in nested queries that use same path.
+   * @param fields : Fields for nested queries.
+   * @return : Map of path and associated field names.
+   */
+  private Map<String, List<String>> groupFieldNamesByPath(
+      List<Map<String, ReferenceExpression>> fields) {
+    // TODO filter out reverse nested when supported - .filter(not(isReverseNested()))
+    return fields.stream().collect(
+        Collectors.groupingBy(
+            m -> m.get("path").toString(),
+            mapping(
+                m -> m.get("field").toString(),
+                toList()
+            )
+        )
+    );
+  }
+
+  /**
+   * Build inner hits portion to nested query.
+   * @param paths : Set of all paths used in nested queries.
+   * @param query : Current pushDown query.
+   */
+  private void buildInnerHit(List<String> paths, NestedQueryBuilder query) {
+    query.innerHit(new InnerHitBuilder().setFetchSourceContext(
+        new FetchSourceContext(true, paths.toArray(new String[0]), null)
+    ));
+  }
+
+  /**
+   * Create a nested query with match all filter to place inner hits.
+   */
+  private NestedQueryBuilder createEmptyNestedQuery(String path) {
+    NestedQueryBuilder nestedQuery = nestedQuery(path, matchAllQuery(), ScoreMode.None);
+    ((BoolQueryBuilder) query().filter().get(0)).must(nestedQuery);
+    return nestedQuery;
+  }
+
+  /**
+   * Return current query.
+   * @return : Current source builder query.
+   */
+  private BoolQueryBuilder query() {
+    return (BoolQueryBuilder) sourceBuilder.query();
   }
 }

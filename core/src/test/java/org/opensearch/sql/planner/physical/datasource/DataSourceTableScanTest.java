@@ -13,6 +13,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableMap;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.Set;
@@ -59,8 +60,9 @@ public class DataSourceTableScanTest {
     dataSourceSet.add(new DataSource("opensearch", DataSourceType.OPENSEARCH, storageEngine));
     Set<DataSourceMetadata> dataSourceMetadata = dataSourceSet.stream()
         .map(dataSource -> new DataSourceMetadata(dataSource.getName(),
-        dataSource.getConnectorType(), ImmutableMap.of())).collect(Collectors.toSet());
-    when(dataSourceService.getDataSourceMetadataSet()).thenReturn(dataSourceMetadata);
+        dataSource.getConnectorType(), Collections.emptyList(), ImmutableMap.of()))
+        .collect(Collectors.toSet());
+    when(dataSourceService.getDataSourceMetadata(true)).thenReturn(dataSourceMetadata);
 
     assertFalse(dataSourceTableScan.hasNext());
     dataSourceTableScan.open();

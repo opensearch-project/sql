@@ -9,38 +9,47 @@ package org.opensearch.sql.opensearch.request;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.opensearch.index.query.QueryBuilders.matchAllQuery;
+import static org.opensearch.index.query.QueryBuilders.nestedQuery;
 import static org.opensearch.search.sort.FieldSortBuilder.DOC_FIELD_NAME;
 import static org.opensearch.search.sort.SortOrder.ASC;
 import static org.opensearch.sql.data.type.ExprCoreType.INTEGER;
+import static org.opensearch.sql.data.type.ExprCoreType.STRING;
 
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import org.apache.commons.lang3.tuple.Pair;
+import org.apache.lucene.search.join.ScoreMode;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.opensearch.common.unit.TimeValue;
+import org.opensearch.index.query.InnerHitBuilder;
+import org.opensearch.index.query.NestedQueryBuilder;
 import org.opensearch.index.query.QueryBuilder;
 import org.opensearch.index.query.QueryBuilders;
 import org.opensearch.search.aggregations.AggregationBuilder;
 import org.opensearch.search.aggregations.AggregationBuilders;
 import org.opensearch.search.aggregations.bucket.composite.TermsValuesSourceBuilder;
 import org.opensearch.search.builder.SearchSourceBuilder;
+import org.opensearch.search.fetch.subphase.FetchSourceContext;
 import org.opensearch.search.sort.FieldSortBuilder;
 import org.opensearch.search.sort.ScoreSortBuilder;
 import org.opensearch.search.sort.SortBuilders;
 import org.opensearch.sql.common.setting.Settings;
-import org.opensearch.sql.data.type.ExprType;
 import org.opensearch.sql.expression.DSL;
+import org.opensearch.sql.expression.NamedExpression;
 import org.opensearch.sql.expression.ReferenceExpression;
+import org.opensearch.sql.opensearch.data.type.OpenSearchDataType;
 import org.opensearch.sql.opensearch.data.value.OpenSearchExprValueFactory;
 import org.opensearch.sql.opensearch.response.agg.CompositeAggregationParser;
 import org.opensearch.sql.opensearch.response.agg.OpenSearchAggregationResponseParser;
 import org.opensearch.sql.opensearch.response.agg.SingleValueParser;
+import org.opensearch.sql.planner.logical.LogicalNested;
 
 @ExtendWith(MockitoExtension.class)
 public class OpenSearchRequestBuilderTest {
@@ -71,6 +80,7 @@ public class OpenSearchRequestBuilderTest {
     Integer limit = 200;
     Integer offset = 0;
     requestBuilder.pushDownLimit(limit, offset);
+    requestBuilder.pushDownTrackedScore(true);
 
     assertEquals(
         new OpenSearchQueryRequest(
@@ -78,7 +88,8 @@ public class OpenSearchRequestBuilderTest {
             new SearchSourceBuilder()
                 .from(offset)
                 .size(limit)
-                .timeout(DEFAULT_QUERY_TIMEOUT),
+                .timeout(DEFAULT_QUERY_TIMEOUT)
+                .trackScores(true),
             exprValueFactory),
         requestBuilder.build());
   }
@@ -214,10 +225,110 @@ public class OpenSearchRequestBuilderTest {
   }
 
   @Test
+  void testPushDownNested() {
+    List<Map<String, ReferenceExpression>> args = List.of(
+        Map.of(
+            "field", new ReferenceExpression("message.info", STRING),
+            "path", new ReferenceExpression("message", STRING)
+        )
+    );
+
+    List<NamedExpression> projectList =
+        List.of(
+            new NamedExpression("message.info", DSL.nested(DSL.ref("message.info", STRING)), null)
+        );
+
+    LogicalNested nested = new LogicalNested(null, args, projectList);
+    requestBuilder.pushDownNested(nested.getFields());
+
+    NestedQueryBuilder nestedQuery = nestedQuery("message", matchAllQuery(), ScoreMode.None)
+        .innerHit(new InnerHitBuilder().setFetchSourceContext(
+          new FetchSourceContext(true, new String[]{"message.info"}, null)));
+
+    assertEquals(
+        new SearchSourceBuilder()
+            .query(QueryBuilders.boolQuery().filter(QueryBuilders.boolQuery().must(nestedQuery)))
+            .from(DEFAULT_OFFSET)
+            .size(DEFAULT_LIMIT)
+            .timeout(DEFAULT_QUERY_TIMEOUT),
+        requestBuilder.getSourceBuilder());
+  }
+
+  @Test
+  void testPushDownMultipleNestedWithSamePath() {
+    List<Map<String, ReferenceExpression>> args = List.of(
+        Map.of(
+            "field", new ReferenceExpression("message.info", STRING),
+            "path", new ReferenceExpression("message", STRING)
+        ),
+        Map.of(
+            "field", new ReferenceExpression("message.from", STRING),
+            "path", new ReferenceExpression("message", STRING)
+            )
+    );
+    List<NamedExpression> projectList =
+        List.of(
+            new NamedExpression("message.info", DSL.nested(DSL.ref("message.info", STRING)), null),
+            new NamedExpression("message.from", DSL.nested(DSL.ref("message.from", STRING)), null)
+        );
+
+    LogicalNested nested = new LogicalNested(null, args, projectList);
+    requestBuilder.pushDownNested(nested.getFields());
+
+    NestedQueryBuilder nestedQuery = nestedQuery("message", matchAllQuery(), ScoreMode.None)
+        .innerHit(new InnerHitBuilder().setFetchSourceContext(
+            new FetchSourceContext(true, new String[]{"message.info", "message.from"}, null)));
+    assertEquals(
+        new SearchSourceBuilder()
+            .query(QueryBuilders.boolQuery().filter(QueryBuilders.boolQuery().must(nestedQuery)))
+            .from(DEFAULT_OFFSET)
+            .size(DEFAULT_LIMIT)
+            .timeout(DEFAULT_QUERY_TIMEOUT),
+        requestBuilder.getSourceBuilder());
+  }
+
+  @Test
+  void testPushDownNestedWithFilter() {
+    List<Map<String, ReferenceExpression>> args = List.of(
+        Map.of(
+            "field", new ReferenceExpression("message.info", STRING),
+            "path", new ReferenceExpression("message", STRING)
+        )
+    );
+
+    List<NamedExpression> projectList =
+        List.of(
+            new NamedExpression("message.info", DSL.nested(DSL.ref("message.info", STRING)), null)
+        );
+
+    LogicalNested nested = new LogicalNested(null, args, projectList);
+    requestBuilder.getSourceBuilder().query(QueryBuilders.rangeQuery("myNum").gt(3));
+    requestBuilder.pushDownNested(nested.getFields());
+
+    NestedQueryBuilder nestedQuery = nestedQuery("message", matchAllQuery(), ScoreMode.None)
+        .innerHit(new InnerHitBuilder().setFetchSourceContext(
+            new FetchSourceContext(true, new String[]{"message.info"}, null)));
+
+    assertEquals(
+        new SearchSourceBuilder()
+            .query(
+                QueryBuilders.boolQuery().filter(
+                    QueryBuilders.boolQuery()
+                      .must(QueryBuilders.rangeQuery("myNum").gt(3))
+                      .must(nestedQuery)
+                )
+            )
+            .from(DEFAULT_OFFSET)
+            .size(DEFAULT_LIMIT)
+            .timeout(DEFAULT_QUERY_TIMEOUT),
+        requestBuilder.getSourceBuilder());
+  }
+
+  @Test
   void testPushTypeMapping() {
-    Map<String, ExprType> typeMapping = Map.of("intA", INTEGER);
+    Map<String, OpenSearchDataType> typeMapping = Map.of("intA", OpenSearchDataType.of(INTEGER));
     requestBuilder.pushTypeMapping(typeMapping);
 
-    verify(exprValueFactory).setTypeMapping(typeMapping);
+    verify(exprValueFactory).extendTypeMapping(typeMapping);
   }
 }

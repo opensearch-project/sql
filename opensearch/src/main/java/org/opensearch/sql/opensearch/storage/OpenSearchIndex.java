@@ -8,9 +8,11 @@ package org.opensearch.sql.opensearch.storage;
 
 import com.google.common.annotations.VisibleForTesting;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.Map;
 import lombok.RequiredArgsConstructor;
 import org.opensearch.sql.common.setting.Settings;
+import org.opensearch.sql.data.type.ExprCoreType;
 import org.opensearch.sql.data.type.ExprType;
 import org.opensearch.sql.opensearch.client.OpenSearchClient;
 import org.opensearch.sql.opensearch.data.type.OpenSearchDataType;
@@ -33,6 +35,20 @@ import org.opensearch.sql.storage.read.TableScanBuilder;
 /** OpenSearch table (index) implementation. */
 public class OpenSearchIndex implements Table {
 
+  public static final String METADATA_FIELD_ID = "_id";
+  public static final String METADATA_FIELD_INDEX = "_index";
+  public static final String METADATA_FIELD_SCORE = "_score";
+  public static final String METADATA_FIELD_MAXSCORE = "_maxscore";
+  public static final String METADATA_FIELD_SORT = "_sort";
+
+  public static final java.util.Map<String, ExprType> METADATAFIELD_TYPE_MAP = Map.of(
+      METADATA_FIELD_ID, ExprCoreType.STRING,
+      METADATA_FIELD_INDEX, ExprCoreType.STRING,
+      METADATA_FIELD_SCORE, ExprCoreType.FLOAT,
+      METADATA_FIELD_MAXSCORE, ExprCoreType.FLOAT,
+      METADATA_FIELD_SORT, ExprCoreType.LONG
+  );
+
   /** OpenSearch client connection. */
   private final OpenSearchClient client;
 
@@ -45,6 +61,11 @@ public class OpenSearchIndex implements Table {
 
   /**
    * The cached mapping of field and type in index.
+   */
+  private Map<String, OpenSearchDataType> cachedFieldOpenSearchTypes = null;
+
+  /**
+   * The cached ExprType of fields.
    */
   private Map<String, ExprType> cachedFieldTypes = null;
 
@@ -74,7 +95,7 @@ public class OpenSearchIndex implements Table {
     mappings.put("properties", properties);
 
     for (Map.Entry<String, ExprType> colType : schema.entrySet()) {
-      properties.put(colType.getKey(), OpenSearchDataType.getOpenSearchType(colType.getValue()));
+      properties.put(colType.getKey(), colType.getValue().legacyTypeName().toLowerCase());
     }
     client.createIndex(indexName.toString(), mappings);
   }
@@ -84,12 +105,42 @@ public class OpenSearchIndex implements Table {
    *  Need to either handle field name conflicts
    *   or lazy evaluate when query engine pulls field type.
    */
+  /**
+   * Get simplified parsed mapping info. Unlike {@link #getFieldOpenSearchTypes()}
+   * it returns a flattened map.
+   * @return A map between field names and matching `ExprCoreType`s.
+   */
   @Override
   public Map<String, ExprType> getFieldTypes() {
+    if (cachedFieldOpenSearchTypes == null) {
+      cachedFieldOpenSearchTypes = new OpenSearchDescribeIndexRequest(client, indexName)
+          .getFieldTypes();
+    }
     if (cachedFieldTypes == null) {
-      cachedFieldTypes = new OpenSearchDescribeIndexRequest(client, indexName).getFieldTypes();
+      cachedFieldTypes = OpenSearchDataType.traverseAndFlatten(cachedFieldOpenSearchTypes)
+          .entrySet().stream().collect(
+              LinkedHashMap::new,
+              (map, item) -> map.put(item.getKey(), item.getValue().getExprType()),
+              Map::putAll);
     }
     return cachedFieldTypes;
+  }
+
+  @Override
+  public Map<String, ExprType> getReservedFieldTypes() {
+    return METADATAFIELD_TYPE_MAP;
+  }
+
+  /**
+   * Get parsed mapping info.
+   * @return A complete map between field names and their types.
+   */
+  public Map<String, OpenSearchDataType> getFieldOpenSearchTypes() {
+    if (cachedFieldOpenSearchTypes == null) {
+      cachedFieldOpenSearchTypes = new OpenSearchDescribeIndexRequest(client, indexName)
+          .getFieldTypes();
+    }
+    return cachedFieldOpenSearchTypes;
   }
 
   /**
@@ -120,8 +171,11 @@ public class OpenSearchIndex implements Table {
 
   @Override
   public TableScanBuilder createScanBuilder() {
+    Map<String, OpenSearchDataType> allFields = new HashMap<>();
+    getReservedFieldTypes().forEach((k, v) -> allFields.put(k, OpenSearchDataType.of(v)));
+    allFields.putAll(getFieldOpenSearchTypes());
     OpenSearchIndexScan indexScan = new OpenSearchIndexScan(client, settings, indexName,
-        getMaxResultWindow(), new OpenSearchExprValueFactory(getFieldTypes()));
+        getMaxResultWindow(), new OpenSearchExprValueFactory(allFields));
     return new OpenSearchIndexScanBuilder(indexScan);
   }
 

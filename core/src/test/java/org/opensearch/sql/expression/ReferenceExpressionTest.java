@@ -35,6 +35,7 @@ import com.google.common.collect.ImmutableMap;
 import org.junit.jupiter.api.DisplayNameGeneration;
 import org.junit.jupiter.api.DisplayNameGenerator;
 import org.junit.jupiter.api.Test;
+import org.opensearch.sql.data.model.ExprCollectionValue;
 import org.opensearch.sql.data.model.ExprIntegerValue;
 import org.opensearch.sql.data.model.ExprStringValue;
 import org.opensearch.sql.data.model.ExprTupleValue;
@@ -126,6 +127,16 @@ class ReferenceExpressionTest extends ExpressionTestBase {
     assertEquals(1990, actualValue.integerValue());
   }
 
+  @Test
+  public void array_with_multiple_path_value() {
+    ReferenceExpression expr = new ReferenceExpression("message.info", STRING);
+    ExprValue actualValue = expr.resolve(tuple());
+
+    assertEquals(STRING, actualValue.type());
+    // Array of object, only first index is used
+    assertEquals("First message in array", actualValue.stringValue());
+  }
+
   /**
    * {
    *   "name": "bob smith"
@@ -140,7 +151,11 @@ class ReferenceExpressionTest extends ExpressionTestBase {
    *   },
    *   "address.local": {
    *     "state": "WA",
-   *   }
+   *   },
+   *   "message": [
+   *     { "info": "message in array" },
+   *     { "info": "Only first index of array used" }
+   *   ]
    * }
    */
   private ExprTupleValue tuple() {
@@ -151,12 +166,29 @@ class ReferenceExpressionTest extends ExpressionTestBase {
         ExprValueUtils.tupleValue(ImmutableMap.of("year", 2020));
     ExprValue addressLocal =
         ExprValueUtils.tupleValue(ImmutableMap.of("state", "WA"));
+    ExprValue messageCollectionValue =
+        new ExprCollectionValue(
+            ImmutableList.of(
+                ExprValueUtils.tupleValue(
+                    ImmutableMap.of(
+                        "info", stringValue("First message in array")
+                    )
+                ),
+                ExprValueUtils.tupleValue(
+                    ImmutableMap.of(
+                        "info", stringValue("Only first index of array used")
+                    )
+                )
+            )
+        );
+
     ExprTupleValue tuple = ExprTupleValue.fromExprValueMap(ImmutableMap.of(
         "name", new ExprStringValue("bob smith"),
         "project.year", new ExprIntegerValue(1990),
         "project", project,
         "address", address,
-        "address.local", addressLocal
+        "address.local", addressLocal,
+        "message", messageCollectionValue
         ));
     return tuple;
   }
