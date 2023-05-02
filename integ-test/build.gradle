@@ -26,6 +26,7 @@ import org.opensearch.gradle.test.RestIntegTestTask
 import org.opensearch.gradle.testclusters.StandaloneRestIntegTestTask
 
 import java.util.concurrent.Callable
+import java.util.stream.Collectors
 
 plugins {
     id "de.undercouch.download" version "5.3.0"
@@ -131,6 +132,12 @@ testClusters.integTest {
     plugin ":opensearch-sql-plugin"
 }
 
+testClusters {
+    remoteCluster {
+        plugin ":opensearch-sql-plugin"
+    }
+}
+
 task startPrometheus(type: SpawnProcessTask) {
     mustRunAfter ':doctest:doctest'
 
@@ -209,9 +216,27 @@ task integJdbcTest(type: RestIntegTestTask) {
 
 // Run PPL ITs and new, legacy and comparison SQL ITs with new SQL engine enabled
 integTest {
+    useCluster testClusters.remoteCluster
+
+    // Set properties for connection to clusters and between clusters
+    doFirst {
+        getClusters().forEach { cluster ->
+            String allTransportSocketURI = cluster.nodes.stream().flatMap { node ->
+                node.getAllTransportPortURI().stream()
+            }.collect(Collectors.joining(","))
+            String allHttpSocketURI = cluster.nodes.stream().flatMap { node ->
+                node.getAllHttpSocketURI().stream()
+            }.collect(Collectors.joining(","))
+
+            systemProperty "tests.rest.${cluster.name}.http_hosts", "${-> allHttpSocketURI}"
+            systemProperty "tests.rest.${cluster.name}.transport_hosts", "${-> allTransportSocketURI}"
+        }
+    }
+
     testLogging {
         events "passed", "skipped", "failed"
     }
+
     dependsOn ':opensearch-sql-plugin:bundlePlugin'
     if(getOSFamilyType() != "windows") {
         dependsOn startPrometheus

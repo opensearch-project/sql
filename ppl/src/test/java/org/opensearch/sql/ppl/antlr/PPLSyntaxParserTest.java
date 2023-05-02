@@ -31,8 +31,62 @@ public class PPLSyntaxParserTest {
   }
 
   @Test
+  public void testSearchCommandWithMultipleIndicesShouldPass() {
+    ParseTree tree = new PPLSyntaxParser().parse("search source=t,u a=1 b=2");
+    assertNotEquals(null, tree);
+  }
+
+  @Test
+  public void testSearchCommandCrossClusterShouldPass() {
+    ParseTree tree = new PPLSyntaxParser().parse("search source=c:t a=1 b=2");
+    assertNotEquals(null, tree);
+  }
+
+  @Test
+  public void testSearchCommandCrossClusterHiddenShouldPass() {
+    ParseTree tree = new PPLSyntaxParser().parse("search source=c:.t a=1 b=2");
+    assertNotEquals(null, tree);
+  }
+
+  @Test
+  public void testSearchCommandCrossClusterQualifiedShouldPass() {
+    ParseTree tree = new PPLSyntaxParser().parse("search source=c:t.u a=1 b=2");
+    assertNotEquals(null, tree);
+  }
+
+  @Test
+  public void testSearchCommandCrossClusterHiddenQualifiedShouldPass() {
+    ParseTree tree = new PPLSyntaxParser().parse("search source=c:.t.u a=1 b=2");
+    assertNotEquals(null, tree);
+  }
+
+  @Test
+  public void testSearchCommandMatchAllCrossClusterShouldPass() {
+    ParseTree tree = new PPLSyntaxParser().parse("search source=*:t a=1 b=2");
+    assertNotEquals(null, tree);
+  }
+
+  @Test
+  public void testSearchCommandCrossClusterWithMultipleIndicesShouldPass() {
+    ParseTree tree = new PPLSyntaxParser().parse("search source=c:t,d:u,v a=1 b=2");
+    assertNotEquals(null, tree);
+  }
+
+  @Test
+  public void testSearchCommandCrossClusterIgnoreSearchKeywordShouldPass() {
+    ParseTree tree = new PPLSyntaxParser().parse("source=c:t a=1 b=2");
+    assertNotEquals(null, tree);
+  }
+
+  @Test
   public void testSearchFieldsCommandShouldPass() {
     ParseTree tree = new PPLSyntaxParser().parse("search source=t a=1 b=2 | fields a,b");
+    assertNotEquals(null, tree);
+  }
+
+  @Test
+  public void testSearchFieldsCommandCrossClusterShouldPass() {
+    ParseTree tree = new PPLSyntaxParser().parse("search source=c:t a=1 b=2 | fields a,b");
     assertNotEquals(null, tree);
   }
 
@@ -177,6 +231,7 @@ public class PPLSyntaxParserTest {
             + "analyzer=keyword, quote_field_suffix=\".exact\", fuzzy_prefix_length = 4)"));
   }
 
+  @Test
   public void testDescribeCommandShouldPass() {
     ParseTree tree = new PPLSyntaxParser().parse("describe t");
     assertNotEquals(null, tree);
@@ -185,6 +240,18 @@ public class PPLSyntaxParserTest {
   @Test
   public void testDescribeCommandWithMultipleIndicesShouldPass() {
     ParseTree tree = new PPLSyntaxParser().parse("describe t,u");
+    assertNotEquals(null, tree);
+  }
+
+  @Test
+  public void testDescribeCommandCrossClusterShouldPass() {
+    ParseTree tree = new PPLSyntaxParser().parse("describe c:t");
+    assertNotEquals(null, tree);
+  }
+
+  @Test
+  public void testDescribeCommandMatchAllCrossClusterShouldPass() {
+    ParseTree tree = new PPLSyntaxParser().parse("describe *:t");
     assertNotEquals(null, tree);
   }
 
