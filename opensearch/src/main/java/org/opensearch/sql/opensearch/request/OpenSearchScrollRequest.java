@@ -153,6 +153,6 @@ public class OpenSearchScrollRequest implements OpenSearchRequest {
    */
   @Override
   public String toCursor() {
-    return scrollId;
+    return needClean? "" : scrollId;
   }
 }
