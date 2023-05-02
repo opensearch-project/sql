@@ -79,7 +79,9 @@ public class OpenSearchIndexScan extends TableScanOperator implements Serializab
         settings, maxResultWindow, requestBuilder);
   }
 
-
+  /**
+   * Creates index scan based on a provided OpenSearchRequestBuilder.
+   */
   public OpenSearchIndexScan(OpenSearchClient client,
                              OpenSearchRequest.IndexName indexName,
                              Settings settings,
@@ -144,17 +146,17 @@ public class OpenSearchIndexScan extends TableScanOperator implements Serializab
     return requestBuilder.build(indexName, maxResultWindow, settings).toString();
   }
 
-  /**
+  /** No-args constructor.
    * @deprecated Exists only to satisfy Java serialization API.
    */
-  @Deprecated(since="introduction")
+  @Deprecated(since = "introduction")
   public OpenSearchIndexScan() {
   }
 
   @Override
   public void readExternal(ObjectInput in) throws IOException {
-    var serializedName = in.readUTF();
-    var scrollId = in.readUTF();
+    final var serializedName = in.readUTF();
+    final var scrollId = in.readUTF();
     querySize = in.readInt();
 
     var engine = (OpenSearchStorageEngine) ((PlanSerializer.CursorDeserializationStream) in)

@@ -6,6 +6,17 @@
 
 package org.opensearch.sql.opensearch.request;
 
+import static java.util.stream.Collectors.mapping;
+import static java.util.stream.Collectors.toList;
+import static org.opensearch.index.query.QueryBuilders.matchAllQuery;
+import static org.opensearch.index.query.QueryBuilders.nestedQuery;
+import static org.opensearch.search.sort.FieldSortBuilder.DOC_FIELD_NAME;
+import static org.opensearch.search.sort.SortOrder.ASC;
+
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.ToString;
@@ -32,17 +43,6 @@ import org.opensearch.sql.opensearch.data.type.OpenSearchDataType;
 import org.opensearch.sql.opensearch.data.value.OpenSearchExprValueFactory;
 import org.opensearch.sql.opensearch.response.agg.OpenSearchAggregationResponseParser;
 
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.stream.Collectors;
-
-import static java.util.stream.Collectors.mapping;
-import static java.util.stream.Collectors.toList;
-import static org.opensearch.index.query.QueryBuilders.matchAllQuery;
-import static org.opensearch.index.query.QueryBuilders.nestedQuery;
-import static org.opensearch.search.sort.FieldSortBuilder.DOC_FIELD_NAME;
-import static org.opensearch.search.sort.SortOrder.ASC;
 
 /**
  * OpenSearch search request builder.
@@ -94,8 +94,9 @@ public class OpenSearchRequestBuilder implements PushDownRequestBuilder {
 
   @Override
   public int getQuerySize() {
-    return pageSize == null? querySize : pageSize;
+    return pageSize == null ? querySize : pageSize;
   }
+
   /**
    * Build DSL request.
    *
@@ -131,6 +132,7 @@ public class OpenSearchRequestBuilder implements PushDownRequestBuilder {
   boolean isBoolFilterQuery(QueryBuilder current) {
     return (current instanceof BoolQueryBuilder);
   }
+
   /**
    * Push down query to DSL request.
    *
@@ -246,8 +248,9 @@ public class OpenSearchRequestBuilder implements PushDownRequestBuilder {
    */
   @Override
   public void pushDownProjects(Set<ReferenceExpression> projects) {
-    sourceBuilder.fetchSource(projects.stream().map(ReferenceExpression::getAttr).distinct().toArray(String[]::new),
-      new String[0]);
+    sourceBuilder.fetchSource(
+        projects.stream().map(ReferenceExpression::getAttr).distinct().toArray(String[]::new),
+        new String[0]);
   }
 
   @Override

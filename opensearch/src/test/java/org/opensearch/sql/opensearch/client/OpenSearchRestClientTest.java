@@ -92,8 +92,8 @@ class OpenSearchRestClientTest {
   @Mock
   private GetIndexResponse getIndexResponse;
 
-  private final ExprTupleValue exprTupleValue = ExprTupleValue.fromExprValueMap(ImmutableMap.of("id",
-      new ExprIntegerValue(1)));
+  private final ExprTupleValue exprTupleValue = ExprTupleValue.fromExprValueMap(
+      Map.of("id", new ExprIntegerValue(1)));
 
   @BeforeEach
   void setUp() {

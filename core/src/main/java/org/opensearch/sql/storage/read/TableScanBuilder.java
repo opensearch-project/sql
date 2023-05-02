@@ -117,7 +117,9 @@ public abstract class TableScanBuilder extends LogicalPlan {
     return false;
   }
 
-  public boolean pushDownPageSize(LogicalPaginate paginate) { return false; }
+  public boolean pushDownPageSize(LogicalPaginate paginate) {
+    return false;
+  }
 
   @Override
   public <R, C> R accept(LogicalPlanNodeVisitor<R, C> visitor, C context) {

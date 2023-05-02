@@ -345,7 +345,7 @@ class OpenSearchRequestBuilderTest {
   void push_down_highlight_with_repeating_fields() {
     requestBuilder.pushDownHighlight("name", Map.of());
     var exception = assertThrows(SemanticCheckException.class, () ->
-      requestBuilder.pushDownHighlight("name", Map.of()));
+        requestBuilder.pushDownHighlight("name", Map.of()));
     assertEquals("Duplicate field name in highlight", exception.getMessage());
   }
 }

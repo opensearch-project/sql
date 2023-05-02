@@ -114,8 +114,9 @@ class OpenSearchIndexScanTest {
     verify(client).cleanup(any());
   }
 
-  final static OpenSearchRequest.IndexName EMPLOYEES_INDEX
+  static final OpenSearchRequest.IndexName EMPLOYEES_INDEX
       = new OpenSearchRequest.IndexName("employees");
+
   @Test
   void query_all_results_with_scroll() {
     mockResponse(client,

@@ -27,8 +27,12 @@ import org.opensearch.sql.storage.read.TableScanBuilder;
  */
 public class OpenSearchIndexScanBuilder extends TableScanBuilder {
 
+  /**
+   * A function to create an index scan based on a OpenSearchRequestBuilder.
+   */
   @EqualsAndHashCode.Exclude
-  private final Function<OpenSearchRequestBuilder, OpenSearchIndexScan> constructor;
+  private final Function<OpenSearchRequestBuilder, OpenSearchIndexScan> scanConstructor;
+
   /**
    * Delegated index scan builder for non-aggregate or aggregate query.
    */
@@ -38,22 +42,31 @@ public class OpenSearchIndexScanBuilder extends TableScanBuilder {
   /** Is limit operator pushed down. */
   private boolean isLimitPushedDown = false;
 
-  public OpenSearchIndexScanBuilder(Function<OpenSearchRequestBuilder, OpenSearchIndexScan> constructor,
+
+  /**
+   * Constructor used during query execution.
+   */
+  public OpenSearchIndexScanBuilder(
+      Function<OpenSearchRequestBuilder, OpenSearchIndexScan> scanConstructor,
                                     OpenSearchRequestBuilder requestBuilder) {
-    this.constructor = constructor;
-    this.delegate
-        = new OpenSearchIndexScanQueryBuilder(requestBuilder);
+    this.scanConstructor = scanConstructor;
+    this.delegate = new OpenSearchIndexScanQueryBuilder(requestBuilder);
 
   }
-  public OpenSearchIndexScanBuilder(Function<OpenSearchRequestBuilder, OpenSearchIndexScan> constructor,
-                                     PushDownTranslator translator) {
-    this.constructor = constructor;
+
+  /**
+   * Constructor used for unit tests.
+   */
+  public OpenSearchIndexScanBuilder(Function<OpenSearchRequestBuilder,
+      OpenSearchIndexScan> constructor,
+      PushDownTranslator translator) {
+    this.scanConstructor = constructor;
     this.delegate = translator;
   }
 
   @Override
   public TableScanOperator build() {
-    return constructor.apply(delegate.build());
+    return scanConstructor.apply(delegate.build());
   }
 
   @Override

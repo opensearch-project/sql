@@ -5,6 +5,9 @@
 
 package org.opensearch.sql.opensearch.request;
 
+import java.util.List;
+import java.util.function.Consumer;
+import java.util.function.Function;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
@@ -16,10 +19,6 @@ import org.opensearch.common.unit.TimeValue;
 import org.opensearch.search.builder.SearchSourceBuilder;
 import org.opensearch.sql.opensearch.data.value.OpenSearchExprValueFactory;
 import org.opensearch.sql.opensearch.response.OpenSearchResponse;
-
-import java.util.List;
-import java.util.function.Consumer;
-import java.util.function.Function;
 
 /**
  * Scroll (cursor) request is used to page the search. This request is not configurable and has

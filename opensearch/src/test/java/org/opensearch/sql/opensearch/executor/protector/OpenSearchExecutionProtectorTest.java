@@ -100,7 +100,7 @@ class OpenSearchExecutionProtectorTest {
     Expression filterExpr = literal(ExprBooleanValue.of(true));
     List<NamedExpression> groupByExprs = List.of(named("age", ref("age", INTEGER)));
     List<NamedAggregator> aggregators =
-      List.of(named("avg(age)", new AvgAggregator(List.of(ref("age", INTEGER)),
+        List.of(named("avg(age)", new AvgAggregator(List.of(ref("age", INTEGER)),
         DOUBLE)));
     Map<ReferenceExpression, ReferenceExpression> mappings =
         ImmutableMap.of(ref("name", STRING), ref("lastname", STRING));

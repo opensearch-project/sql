@@ -6,7 +6,32 @@
 
 package org.opensearch.sql.opensearch.storage;
 
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.aMapWithSize;
+import static org.hamcrest.Matchers.allOf;
+import static org.hamcrest.Matchers.hasEntry;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doNothing;
+import static org.mockito.Mockito.lenient;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+import static org.opensearch.sql.data.type.ExprCoreType.INTEGER;
+import static org.opensearch.sql.data.type.ExprCoreType.STRING;
+import static org.opensearch.sql.expression.DSL.named;
+import static org.opensearch.sql.expression.DSL.ref;
+import static org.opensearch.sql.opensearch.data.type.OpenSearchDataType.MappingType;
+import static org.opensearch.sql.planner.logical.LogicalPlanDSL.eval;
+import static org.opensearch.sql.planner.logical.LogicalPlanDSL.project;
+import static org.opensearch.sql.planner.logical.LogicalPlanDSL.remove;
+import static org.opensearch.sql.planner.logical.LogicalPlanDSL.rename;
+import static org.opensearch.sql.planner.logical.LogicalPlanDSL.sort;
+
 import com.google.common.collect.ImmutableMap;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.stream.Collectors;
 import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.apache.commons.lang3.tuple.Pair;
 import org.junit.jupiter.api.BeforeEach;
@@ -30,23 +55,6 @@ import org.opensearch.sql.opensearch.storage.scan.OpenSearchIndexScan;
 import org.opensearch.sql.planner.logical.LogicalPlan;
 import org.opensearch.sql.planner.logical.LogicalPlanDSL;
 import org.opensearch.sql.planner.physical.PhysicalPlanDSL;
-
-import java.util.HashMap;
-import java.util.Map;
-import java.util.stream.Collectors;
-
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.*;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.*;
-import static org.opensearch.sql.data.type.ExprCoreType.INTEGER;
-import static org.opensearch.sql.data.type.ExprCoreType.STRING;
-import static org.opensearch.sql.expression.DSL.named;
-import static org.opensearch.sql.expression.DSL.ref;
-import static org.opensearch.sql.opensearch.data.type.OpenSearchDataType.MappingType;
-import static org.opensearch.sql.planner.logical.LogicalPlanDSL.*;
 
 @ExtendWith(MockitoExtension.class)
 class OpenSearchIndexTest {
@@ -81,9 +89,9 @@ class OpenSearchIndexTest {
 
   @Test
   void createIndex() {
-    Map<String, Object> mappings = ImmutableMap.of(
+    Map<String, Object> mappings = Map.of(
         "properties",
-        ImmutableMap.of(
+        Map.of(
             "name", "text",
             "age", "integer"));
     doNothing().when(client).createIndex(indexName, mappings);

@@ -10,7 +10,6 @@ import com.facebook.presto.matching.Pattern;
 import java.util.ArrayDeque;
 import java.util.Deque;
 import java.util.Optional;
-
 import org.opensearch.sql.planner.logical.LogicalPaginate;
 import org.opensearch.sql.planner.logical.LogicalPlan;
 import org.opensearch.sql.storage.read.TableScanBuilder;
@@ -18,7 +17,8 @@ import org.opensearch.sql.storage.read.TableScanBuilder;
 public class PushDownPageSize implements Rule<LogicalPaginate> {
   @Override
   public Pattern<LogicalPaginate> pattern() {
-    return Pattern.typeOf(LogicalPaginate.class).matching(lp -> findTableScanBuilder(lp).isPresent());
+    return Pattern.typeOf(LogicalPaginate.class)
+      .matching(lp -> findTableScanBuilder(lp).isPresent());
   }
 
   @Override

@@ -29,6 +29,7 @@ public interface PushDownTranslator {
   boolean pushDownPageSize(LogicalPaginate paginate);
 
   boolean pushDownNested(LogicalNested nested);
+
   boolean pushDownAggregation(LogicalAggregation aggregation);
 
   OpenSearchRequestBuilder build();

@@ -6,7 +6,23 @@
 
 package org.opensearch.sql.planner.optimizer;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.lenient;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+import static org.opensearch.sql.data.model.ExprValueUtils.integerValue;
+import static org.opensearch.sql.data.model.ExprValueUtils.longValue;
+import static org.opensearch.sql.data.type.ExprCoreType.INTEGER;
+import static org.opensearch.sql.data.type.ExprCoreType.LONG;
+import static org.opensearch.sql.data.type.ExprCoreType.STRING;
+import static org.opensearch.sql.planner.logical.LogicalPlanDSL.values;
+
 import com.google.common.collect.ImmutableList;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
 import org.apache.commons.lang3.tuple.Pair;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayNameGeneration;
@@ -24,26 +40,13 @@ import org.opensearch.sql.expression.NamedExpression;
 import org.opensearch.sql.expression.ReferenceExpression;
 import org.opensearch.sql.planner.logical.LogicalPaginate;
 import org.opensearch.sql.planner.logical.LogicalPlan;
+import org.opensearch.sql.planner.logical.LogicalPlanDSL;
 import org.opensearch.sql.planner.logical.LogicalPlanNodeVisitor;
 import org.opensearch.sql.planner.logical.LogicalRelation;
 import org.opensearch.sql.planner.physical.PhysicalPlan;
 import org.opensearch.sql.storage.Table;
 import org.opensearch.sql.storage.read.TableScanBuilder;
 import org.opensearch.sql.storage.write.TableWriteBuilder;
-
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
-
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.*;
-import static org.opensearch.sql.data.model.ExprValueUtils.integerValue;
-import static org.opensearch.sql.data.model.ExprValueUtils.longValue;
-import static org.opensearch.sql.data.type.ExprCoreType.*;
-import static org.opensearch.sql.planner.logical.LogicalPlanDSL.values;
-import static org.opensearch.sql.planner.logical.LogicalPlanDSL.*;
 
 @ExtendWith(MockitoExtension.class)
 @DisplayNameGeneration(DisplayNameGenerator.ReplaceUnderscores.class)
@@ -66,15 +69,15 @@ class LogicalPlanOptimizerTest {
   @Test
   void filter_merge_filter() {
     assertEquals(
-        filter(
+        LogicalPlanDSL.filter(
             tableScanBuilder,
             DSL.and(DSL.equal(DSL.ref("integer_value", INTEGER), DSL.literal(integerValue(2))),
                 DSL.equal(DSL.ref("integer_value", INTEGER), DSL.literal(integerValue(1))))
         ),
         optimize(
-            filter(
-                filter(
-                    relation("schema", table),
+            LogicalPlanDSL.filter(
+                LogicalPlanDSL.filter(
+                    LogicalPlanDSL.relation("schema", table),
                     DSL.equal(DSL.ref("integer_value", INTEGER), DSL.literal(integerValue(1)))
                 ),
                 DSL.equal(DSL.ref("integer_value", INTEGER), DSL.literal(integerValue(2)))
@@ -89,17 +92,17 @@ class LogicalPlanOptimizerTest {
   @Test
   void push_filter_under_sort() {
     assertEquals(
-        sort(
-            filter(
+        LogicalPlanDSL.sort(
+            LogicalPlanDSL.filter(
                 tableScanBuilder,
                 DSL.equal(DSL.ref("intV", INTEGER), DSL.literal(integerValue(1)))
             ),
             Pair.of(Sort.SortOption.DEFAULT_ASC, DSL.ref("longV", LONG))
         ),
         optimize(
-            filter(
-                sort(
-                    relation("schema", table),
+            LogicalPlanDSL.filter(
+                LogicalPlanDSL.sort(
+                    LogicalPlanDSL.relation("schema", table),
                     Pair.of(Sort.SortOption.DEFAULT_ASC, DSL.ref("longV", LONG))
                 ),
                 DSL.equal(DSL.ref("intV", INTEGER), DSL.literal(integerValue(1)))
@@ -114,8 +117,8 @@ class LogicalPlanOptimizerTest {
   @Test
   void multiple_filter_should_eventually_be_merged() {
     assertEquals(
-        sort(
-            filter(
+        LogicalPlanDSL.sort(
+            LogicalPlanDSL.filter(
                 tableScanBuilder,
                 DSL.and(DSL.equal(DSL.ref("intV", INTEGER), DSL.literal(integerValue(1))),
                     DSL.less(DSL.ref("longV", INTEGER), DSL.literal(longValue(1L))))
@@ -123,10 +126,10 @@ class LogicalPlanOptimizerTest {
             Pair.of(Sort.SortOption.DEFAULT_ASC, DSL.ref("longV", LONG))
         ),
         optimize(
-            filter(
-                sort(
-                    filter(
-                        relation("schema", table),
+            LogicalPlanDSL.filter(
+                LogicalPlanDSL.sort(
+                    LogicalPlanDSL.filter(
+                        LogicalPlanDSL.relation("schema", table),
                         DSL.less(DSL.ref("longV", INTEGER), DSL.literal(longValue(1L)))
                     ),
                     Pair.of(Sort.SortOption.DEFAULT_ASC, DSL.ref("longV", LONG))
@@ -140,25 +143,25 @@ class LogicalPlanOptimizerTest {
   @Test
   void default_table_scan_builder_should_not_push_down_anything() {
     LogicalPlan[] plans = {
-        project(
-            relation("schema", table),
+        LogicalPlanDSL.project(
+            LogicalPlanDSL.relation("schema", table),
             DSL.named("i", DSL.ref("intV", INTEGER))
         ),
-        filter(
-            relation("schema", table),
+        LogicalPlanDSL.filter(
+            LogicalPlanDSL.relation("schema", table),
             DSL.equal(DSL.ref("intV", INTEGER), DSL.literal(integerValue(1)))
         ),
-        aggregation(
-            relation("schema", table),
+        LogicalPlanDSL.aggregation(
+            LogicalPlanDSL.relation("schema", table),
             ImmutableList
                 .of(DSL.named("AVG(intV)",
                     DSL.avg(DSL.ref("intV", INTEGER)))),
             ImmutableList.of(DSL.named("longV", DSL.ref("longV", LONG)))),
-        sort(
-            relation("schema", table),
+        LogicalPlanDSL.sort(
+            LogicalPlanDSL.relation("schema", table),
             Pair.of(Sort.SortOption.DEFAULT_ASC, DSL.ref("intV", INTEGER))),
-        limit(
-            relation("schema", table),
+        LogicalPlanDSL.limit(
+            LogicalPlanDSL.relation("schema", table),
             1, 1)
     };
 
@@ -174,8 +177,8 @@ class LogicalPlanOptimizerTest {
     assertEquals(
         tableScanBuilder,
         optimize(
-            project(
-                relation("schema", table),
+            LogicalPlanDSL.project(
+                LogicalPlanDSL.relation("schema", table),
                 DSL.named("i", DSL.ref("intV", INTEGER)))
         )
     );
@@ -188,8 +191,8 @@ class LogicalPlanOptimizerTest {
     assertEquals(
         tableScanBuilder,
         optimize(
-            filter(
-                relation("schema", table),
+            LogicalPlanDSL.filter(
+                LogicalPlanDSL.relation("schema", table),
                 DSL.equal(DSL.ref("intV", INTEGER), DSL.literal(integerValue(1))))
         )
     );
@@ -202,8 +205,8 @@ class LogicalPlanOptimizerTest {
     assertEquals(
         tableScanBuilder,
         optimize(
-            aggregation(
-                relation("schema", table),
+            LogicalPlanDSL.aggregation(
+                LogicalPlanDSL.relation("schema", table),
                 ImmutableList
                     .of(DSL.named("AVG(intV)",
                         DSL.avg(DSL.ref("intV", INTEGER)))),
@@ -219,8 +222,8 @@ class LogicalPlanOptimizerTest {
     assertEquals(
         tableScanBuilder,
         optimize(
-            sort(
-                relation("schema", table),
+            LogicalPlanDSL.sort(
+                LogicalPlanDSL.relation("schema", table),
                 Pair.of(Sort.SortOption.DEFAULT_ASC, DSL.ref("intV", INTEGER)))
         )
     );
@@ -233,8 +236,8 @@ class LogicalPlanOptimizerTest {
     assertEquals(
         tableScanBuilder,
         optimize(
-            limit(
-                relation("schema", table),
+            LogicalPlanDSL.limit(
+                LogicalPlanDSL.relation("schema", table),
                 1, 1)
         )
     );
@@ -247,8 +250,8 @@ class LogicalPlanOptimizerTest {
     assertEquals(
         tableScanBuilder,
         optimize(
-            highlight(
-                relation("schema", table),
+            LogicalPlanDSL.highlight(
+                LogicalPlanDSL.relation("schema", table),
                 DSL.literal("*"),
                 Collections.emptyMap())
         )
@@ -262,8 +265,8 @@ class LogicalPlanOptimizerTest {
     assertEquals(
         tableScanBuilder,
         optimize(
-            nested(
-                relation("schema", table),
+            LogicalPlanDSL.nested(
+                LogicalPlanDSL.relation("schema", table),
                 List.of(Map.of("field", new ReferenceExpression("message.info", STRING))),
                 List.of(new NamedExpression(
                     "message.info",
@@ -289,8 +292,8 @@ class LogicalPlanOptimizerTest {
     };
 
     assertEquals(
-        relation("schema", table),
-        optimize(relation("schema", table))
+        LogicalPlanDSL.relation("schema", table),
+        optimize(LogicalPlanDSL.relation("schema", table))
     );
   }
 
@@ -301,7 +304,7 @@ class LogicalPlanOptimizerTest {
 
     assertEquals(
         writeBuilder,
-        optimize(write(values(), table, Collections.emptyList()))
+        optimize(LogicalPlanDSL.write(values(), table, Collections.emptyList()))
     );
   }
 
@@ -327,34 +330,38 @@ class LogicalPlanOptimizerTest {
   void paged_table_scan_builder_support_project_push_down_can_apply_its_rule() {
     when(tableScanBuilder.pushDownPageSize(any())).thenReturn(true);
 
-    var relation = relation("schema", table);
-    var optimized = LogicalPlanOptimizer.create().optimize(paginate(project(relation), 4));
+    var relation = LogicalPlanDSL.relation("schema", table);
+    var optimized = LogicalPlanOptimizer.create()
+        .optimize(LogicalPlanDSL.paginate(LogicalPlanDSL.project(relation), 4));
     verify(tableScanBuilder).pushDownPageSize(any());
 
-    assertEquals(project(tableScanBuilder), optimized);
+    assertEquals(LogicalPlanDSL.project(tableScanBuilder), optimized);
   }
 
   @Test
   void push_down_page_size_multiple_children() {
-    var relation = relation("schema", table);
+    var relation = LogicalPlanDSL.relation("schema", table);
     var twoChildrenPlan = new LogicalPlan(List.of(relation, relation)) {
       @Override
       public <R, C> R accept(LogicalPlanNodeVisitor<R, C> visitor, C context) {
         return null;
       }
     };
-    var queryPlan = paginate(twoChildrenPlan, 4);
+    var queryPlan = LogicalPlanDSL.paginate(twoChildrenPlan, 4);
     var optimizer = LogicalPlanOptimizer.create();
     final var exception = assertThrows(UnsupportedOperationException.class,
         () -> optimizer.optimize(queryPlan));
-    assertEquals("Unsupported plan: relation operator cannot have siblings", exception.getMessage());
+    assertEquals("Unsupported plan: relation operator cannot have siblings",
+        exception.getMessage());
   }
 
   @Test
   void push_down_page_size_push_failed() {
     when(tableScanBuilder.pushDownPageSize(any())).thenReturn(false);
 
-    var queryPlan = paginate(project(relation("schema", table)), 4);
+    var queryPlan = LogicalPlanDSL.paginate(
+        LogicalPlanDSL.project(
+            LogicalPlanDSL.relation("schema", table)), 4);
     var optimizer = LogicalPlanOptimizer.create();
     final var exception = assertThrows(IllegalStateException.class,
         () -> optimizer.optimize(queryPlan));
@@ -363,7 +370,7 @@ class LogicalPlanOptimizerTest {
 
   @Test
   void push_page_size_noop_if_no_relation() {
-    var paginate = new LogicalPaginate(42, List.of(project(values())));
+    var paginate = new LogicalPaginate(42, List.of(LogicalPlanDSL.project(values())));
     assertEquals(paginate, LogicalPlanOptimizer.create().optimize(paginate));
   }
 
@@ -380,10 +387,10 @@ class LogicalPlanOptimizerTest {
 
     var relation = new LogicalRelation("schema", table);
     var optimized = LogicalPlanOptimizer.create()
-        .optimize(new LogicalPaginate(42, List.of(project(relation))));
+        .optimize(new LogicalPaginate(42, List.of(LogicalPlanDSL.project(relation))));
     // `optimized` structure: LogicalPaginate -> LogicalProject -> TableScanBuilder
     // LogicalRelation replaced by a TableScanBuilder instance
-    assertEquals(project(tableScanBuilder), optimized);
+    assertEquals(LogicalPlanDSL.project(tableScanBuilder), optimized);
   }
 
   private LogicalPlan optimize(LogicalPlan plan) {

@@ -5,6 +5,9 @@
 
 package org.opensearch.sql.opensearch.request;
 
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import lombok.Getter;
 import org.apache.commons.lang3.tuple.Pair;
 import org.opensearch.common.unit.TimeValue;
@@ -17,10 +20,6 @@ import org.opensearch.sql.expression.ReferenceExpression;
 import org.opensearch.sql.opensearch.data.type.OpenSearchDataType;
 import org.opensearch.sql.opensearch.data.value.OpenSearchExprValueFactory;
 import org.opensearch.sql.opensearch.response.agg.OpenSearchAggregationResponseParser;
-
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
 
 /**
  * Builds a {@link ContinuePageRequest} to handle subsequent pagination/scroll/cursor requests.
@@ -62,7 +61,7 @@ public class ContinuePageRequestBuilder implements PushDownRequestBuilder {
 
   @Override
   public void pushDownAggregation(Pair<List<AggregationBuilder>,
-                                      OpenSearchAggregationResponseParser> aggregationBuilder) {
+                                        OpenSearchAggregationResponseParser> aggregationBuilder) {
     throw new UnsupportedOperationException(ContinuePageRequestBuilder.PUSH_DOWN_NOT_SUPPORTED);
   }
 

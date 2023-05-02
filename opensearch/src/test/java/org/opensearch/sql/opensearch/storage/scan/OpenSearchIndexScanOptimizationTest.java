@@ -6,8 +6,43 @@
 
 package org.opensearch.sql.opensearch.storage.scan;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.mockito.Mockito.reset;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+import static org.opensearch.sql.ast.tree.Sort.NullOrder.NULL_FIRST;
+import static org.opensearch.sql.ast.tree.Sort.SortOrder.ASC;
+import static org.opensearch.sql.data.model.ExprValueUtils.integerValue;
+import static org.opensearch.sql.data.type.ExprCoreType.DOUBLE;
+import static org.opensearch.sql.data.type.ExprCoreType.INTEGER;
+import static org.opensearch.sql.data.type.ExprCoreType.LONG;
+import static org.opensearch.sql.data.type.ExprCoreType.STRING;
+import static org.opensearch.sql.planner.logical.LogicalPlanDSL.aggregation;
+import static org.opensearch.sql.planner.logical.LogicalPlanDSL.filter;
+import static org.opensearch.sql.planner.logical.LogicalPlanDSL.highlight;
+import static org.opensearch.sql.planner.logical.LogicalPlanDSL.limit;
+import static org.opensearch.sql.planner.logical.LogicalPlanDSL.nested;
+import static org.opensearch.sql.planner.logical.LogicalPlanDSL.project;
+import static org.opensearch.sql.planner.logical.LogicalPlanDSL.relation;
+import static org.opensearch.sql.planner.logical.LogicalPlanDSL.sort;
+import static org.opensearch.sql.planner.optimizer.rule.read.TableScanPushDown.PUSH_DOWN_AGGREGATION;
+import static org.opensearch.sql.planner.optimizer.rule.read.TableScanPushDown.PUSH_DOWN_FILTER;
+import static org.opensearch.sql.planner.optimizer.rule.read.TableScanPushDown.PUSH_DOWN_HIGHLIGHT;
+import static org.opensearch.sql.planner.optimizer.rule.read.TableScanPushDown.PUSH_DOWN_LIMIT;
+import static org.opensearch.sql.planner.optimizer.rule.read.TableScanPushDown.PUSH_DOWN_NESTED;
+import static org.opensearch.sql.planner.optimizer.rule.read.TableScanPushDown.PUSH_DOWN_PROJECT;
+import static org.opensearch.sql.planner.optimizer.rule.read.TableScanPushDown.PUSH_DOWN_SORT;
+
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 import lombok.Builder;
 import org.apache.commons.lang3.tuple.Pair;
 import org.junit.jupiter.api.BeforeEach;
@@ -29,7 +64,11 @@ import org.opensearch.sql.ast.tree.Sort.SortOption;
 import org.opensearch.sql.data.model.ExprTupleValue;
 import org.opensearch.sql.data.model.ExprValueUtils;
 import org.opensearch.sql.data.type.ExprType;
-import org.opensearch.sql.expression.*;
+import org.opensearch.sql.expression.DSL;
+import org.opensearch.sql.expression.FunctionExpression;
+import org.opensearch.sql.expression.HighlightExpression;
+import org.opensearch.sql.expression.NamedExpression;
+import org.opensearch.sql.expression.ReferenceExpression;
 import org.opensearch.sql.expression.function.OpenSearchFunctions;
 import org.opensearch.sql.opensearch.data.type.OpenSearchDataType;
 import org.opensearch.sql.opensearch.request.OpenSearchRequestBuilder;
@@ -42,19 +81,6 @@ import org.opensearch.sql.planner.logical.LogicalPlan;
 import org.opensearch.sql.planner.optimizer.LogicalPlanOptimizer;
 import org.opensearch.sql.planner.optimizer.rule.read.CreateTableScanBuilder;
 import org.opensearch.sql.storage.Table;
-
-import java.util.*;
-import java.util.stream.Collectors;
-
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.mockito.Mockito.*;
-import static org.opensearch.sql.ast.tree.Sort.NullOrder.NULL_FIRST;
-import static org.opensearch.sql.ast.tree.Sort.SortOrder.ASC;
-import static org.opensearch.sql.data.model.ExprValueUtils.integerValue;
-import static org.opensearch.sql.data.type.ExprCoreType.*;
-import static org.opensearch.sql.planner.logical.LogicalPlanDSL.*;
-import static org.opensearch.sql.planner.optimizer.rule.read.TableScanPushDown.*;
-
 
 @ExtendWith(MockitoExtension.class)
 class OpenSearchIndexScanOptimizationTest {
@@ -646,12 +672,14 @@ class OpenSearchIndexScanOptimizationTest {
 
   private OpenSearchIndexScanBuilder indexScanBuilder(Runnable... verifyPushDownCalls) {
     this.verifyPushDownCalls = verifyPushDownCalls;
-    return new OpenSearchIndexScanBuilder(t -> indexScan, new OpenSearchIndexScanQueryBuilder(requestBuilder));
+    return new OpenSearchIndexScanBuilder(t -> indexScan,
+        new OpenSearchIndexScanQueryBuilder(requestBuilder));
   }
 
   private OpenSearchIndexScanBuilder indexScanAggBuilder(Runnable... verifyPushDownCalls) {
     this.verifyPushDownCalls = verifyPushDownCalls;
-    return new OpenSearchIndexScanBuilder(t -> indexScan, new OpenSearchIndexScanAggregationBuilder(requestBuilder));
+    return new OpenSearchIndexScanBuilder(t -> indexScan,
+        new OpenSearchIndexScanAggregationBuilder(requestBuilder));
   }
 
   private void assertEqualsAfterOptimization(LogicalPlan expected, LogicalPlan actual) {

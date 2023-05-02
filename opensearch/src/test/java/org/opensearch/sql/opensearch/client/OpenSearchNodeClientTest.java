@@ -99,8 +99,8 @@ class OpenSearchNodeClientTest {
   @Mock
   private GetIndexResponse indexResponse;
 
-  private final ExprTupleValue exprTupleValue = ExprTupleValue.fromExprValueMap(ImmutableMap.of("id",
-      new ExprIntegerValue(1)));
+  private final ExprTupleValue exprTupleValue = ExprTupleValue.fromExprValueMap(
+      Map.of("id", new ExprIntegerValue(1)));
 
   private OpenSearchClient client;
 
@@ -451,8 +451,8 @@ class OpenSearchNodeClientTest {
     GetSettingsResponse mockResponse = mock(GetSettingsResponse.class);
     when(nodeClient.admin().indices().prepareGetSettings(any()).setLocal(anyBoolean()).get())
         .thenReturn(mockResponse);
-    Map<String, Settings> metadata =Map.of(indexName,
-      IndexMetadata.fromXContent(createParser(indexMetadata)).getSettings());
+    Map<String, Settings> metadata = Map.of(indexName,
+        IndexMetadata.fromXContent(createParser(indexMetadata)).getSettings());
 
     when(mockResponse.getIndexToSettings()).thenReturn(metadata);
   }
