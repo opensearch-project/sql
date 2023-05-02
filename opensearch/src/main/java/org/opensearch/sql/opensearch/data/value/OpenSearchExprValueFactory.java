@@ -19,6 +19,13 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterators;
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonParser;
+import com.google.gson.JsonSyntaxException;
+import com.google.gson.stream.JsonReader; 
+import java.io.StringReader;
 import java.time.Instant;
 import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
@@ -237,7 +244,7 @@ public class OpenSearchExprValueFactory {
   private ExprValue parseArray(Content content, String prefix) {
     List<ExprValue> result = new ArrayList<>();
     // ExprCoreType.ARRAY does not indicate inner elements type.
-    if (Iterators.size(content.array()) == 1 && content.objectValue() instanceof JsonNode) {
+    if (Iterators.size(content.array()) == 1 && content.objectValue() instanceof JsonElement) {
       result.add(parse(content, prefix, Optional.of(STRUCT)));
     } else {
       content.array().forEachRemaining(v -> {
