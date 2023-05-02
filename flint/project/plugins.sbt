@@ -3,6 +3,4 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-package org.opensearch.flint.core
-
-class FlintIndex {}
+addSbtPlugin("org.scalameta" % "sbt-scalafmt" % "2.4.6")

@@ -27,6 +27,9 @@ lazy val flintSparkIntegration = (project in file("flint-spark-integration"))
   .settings(
     name := "flint-spark-integration",
     scalaVersion := scala212,
+    Compile / compile := (Compile / compile)
+      .dependsOn(Compile / scalafmtCheck)
+      .value,
     libraryDependencies ++= Seq(
       "org.apache.spark" %% "spark-core" % sparkVersion,
       "org.apache.spark" %% "spark-sql" % sparkVersion
