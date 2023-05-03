@@ -21,6 +21,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 
 import com.google.common.base.Strings;
 import com.google.gson.JsonParser;
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -121,7 +122,7 @@ public class MatcherUtils {
   }
 
   public static Matcher<JSONObject> kvDouble(String key, Matcher<Double> matcher) {
-    return featureValueOf("Json Match", matcher, actual -> (Double) actual.query(key));
+    return featureValueOf("Json Match", matcher, actual -> ((BigDecimal) actual.query(key)).doubleValue());
   }
 
   public static Matcher<JSONObject> kvInt(String key, Matcher<Integer> matcher) {
@@ -231,30 +232,7 @@ public class MatcherUtils {
 
       @Override
       protected boolean matchesSafely(JSONArray array) {
-        if (array.length() != expectedObjects.length) {
-          return false;
-        }
-
-        for (int i = 0; i < expectedObjects.length; i++) {
-          Object expected = expectedObjects[i];
-          boolean isEqual;
-
-          // Use similar() because JSONObject/JSONArray.equals() only check if same reference
-          if (expected instanceof JSONObject) {
-            isEqual = ((JSONObject) expected).similar(array.get(i));
-          } else if (expected instanceof JSONArray) {
-            isEqual = ((JSONArray) expected).similar(array.get(i));
-          } else if (null == expected) {
-            isEqual = JSONObject.NULL == array.get(i);
-          } else {
-            isEqual = expected.equals(array.get(i));
-          }
-
-          if (!isEqual) {
-            return false;
-          }
-        }
-        return true;
+        return array.similar(new JSONArray(expectedObjects));
       }
     };
   }
