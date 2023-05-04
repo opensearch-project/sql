@@ -21,9 +21,9 @@ import org.opensearch.sql.executor.pagination.PlanSerializer;
 import org.opensearch.sql.opensearch.client.OpenSearchClient;
 import org.opensearch.sql.opensearch.data.value.OpenSearchExprValueFactory;
 import org.opensearch.sql.opensearch.request.ContinuePageRequestBuilder;
+import org.opensearch.sql.opensearch.request.ExecutableRequestBuilder;
 import org.opensearch.sql.opensearch.request.OpenSearchRequest;
 import org.opensearch.sql.opensearch.request.OpenSearchRequestBuilder;
-import org.opensearch.sql.opensearch.request.PushDownRequestBuilder;
 import org.opensearch.sql.opensearch.response.OpenSearchResponse;
 import org.opensearch.sql.opensearch.storage.OpenSearchIndex;
 import org.opensearch.sql.opensearch.storage.OpenSearchStorageEngine;
@@ -46,17 +46,17 @@ public class OpenSearchIndexScan extends TableScanOperator implements Serializab
   /** Search request builder. */
   @EqualsAndHashCode.Include
   @ToString.Include
-  private transient PushDownRequestBuilder requestBuilder;
+  private transient ExecutableRequestBuilder requestBuilder;
 
   /** Search request. */
   @EqualsAndHashCode.Include
   @ToString.Include
   private transient OpenSearchRequest request;
 
-  /** Total query size. */
+  /** Largest number of rows allowed in the response. */
   @EqualsAndHashCode.Include
   @ToString.Include
-  private Integer querySize;
+  private Integer maxResponseSize;
 
   /** Number of rows returned. */
   private Integer queryCount;
@@ -86,7 +86,7 @@ public class OpenSearchIndexScan extends TableScanOperator implements Serializab
                              OpenSearchRequest.IndexName indexName,
                              Settings settings,
                              Integer maxResultWindow,
-                             PushDownRequestBuilder requestBuilder) {
+                             ExecutableRequestBuilder requestBuilder) {
     this.client = client;
     this.indexName = indexName;
     this.settings = settings;
@@ -98,7 +98,7 @@ public class OpenSearchIndexScan extends TableScanOperator implements Serializab
   public void open() {
     super.open();
     request = requestBuilder.build(indexName, maxResultWindow, settings);
-    querySize = requestBuilder.getQuerySize();
+    maxResponseSize = requestBuilder.getMaxResponseSize();
     iterator = Collections.emptyIterator();
     queryCount = 0;
     fetchNextBatch();
@@ -106,7 +106,7 @@ public class OpenSearchIndexScan extends TableScanOperator implements Serializab
 
   @Override
   public boolean hasNext() {
-    if (queryCount >= querySize) {
+    if (queryCount >= maxResponseSize) {
       iterator = Collections.emptyIterator();
     } else if (!iterator.hasNext()) {
       fetchNextBatch();
@@ -156,7 +156,7 @@ public class OpenSearchIndexScan extends TableScanOperator implements Serializab
   public void readExternal(ObjectInput in) throws IOException {
     final var serializedName = in.readUTF();
     final var scrollId = in.readUTF();
-    querySize = in.readInt();
+    maxResponseSize = in.readInt();
 
     var engine = (OpenSearchStorageEngine) ((PlanSerializer.CursorDeserializationStream) in)
         .resolveObject("engine");
@@ -180,6 +180,6 @@ public class OpenSearchIndexScan extends TableScanOperator implements Serializab
 
     out.writeUTF(indexName.toString());
     out.writeUTF(request.toCursor());
-    out.writeInt(querySize);
+    out.writeInt(maxResponseSize);
   }
 }

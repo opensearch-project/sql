@@ -50,7 +50,7 @@ import org.opensearch.sql.opensearch.response.agg.OpenSearchAggregationResponseP
 @EqualsAndHashCode
 @Getter
 @ToString
-public class OpenSearchRequestBuilder implements PushDownRequestBuilder {
+public class OpenSearchRequestBuilder implements ExecutableRequestBuilder {
 
   /**
    * Default query timeout in minutes.
@@ -93,7 +93,7 @@ public class OpenSearchRequestBuilder implements PushDownRequestBuilder {
   }
 
   @Override
-  public int getQuerySize() {
+  public int getMaxResponseSize() {
     return pageSize == null ? querySize : pageSize;
   }
 
@@ -138,7 +138,6 @@ public class OpenSearchRequestBuilder implements PushDownRequestBuilder {
    *
    * @param query  query request
    */
-  @Override
   public void pushDownFilter(QueryBuilder query) {
     QueryBuilder current = sourceBuilder.query();
 
@@ -164,7 +163,6 @@ public class OpenSearchRequestBuilder implements PushDownRequestBuilder {
    *
    * @param aggregationBuilder pair of aggregation query and aggregation parser.
    */
-  @Override
   public void pushDownAggregation(
       Pair<List<AggregationBuilder>, OpenSearchAggregationResponseParser> aggregationBuilder) {
     aggregationBuilder.getLeft().forEach(sourceBuilder::aggregation);
@@ -177,7 +175,6 @@ public class OpenSearchRequestBuilder implements PushDownRequestBuilder {
    *
    * @param sortBuilders sortBuilders.
    */
-  @Override
   public void pushDownSort(List<SortBuilder<?>> sortBuilders) {
     // TODO: Sort by _doc is added when filter push down. Remove both logic once doctest fixed.
     if (isSortByDocOnly()) {
@@ -190,21 +187,18 @@ public class OpenSearchRequestBuilder implements PushDownRequestBuilder {
   }
 
   /**
-   * Push down size (limit) and from (offset) to DSL request.
+   * Pushdown size (limit) and from (offset) to DSL request.
    */
-  @Override
   public void pushDownLimit(Integer limit, Integer offset) {
     querySize = limit;
     startFrom = offset;
     sourceBuilder.from(offset).size(limit);
   }
 
-  @Override
   public void pushDownTrackedScore(boolean trackScores) {
     sourceBuilder.trackScores(trackScores);
   }
 
-  @Override
   public void pushDownPageSize(int pageSize) {
     this.pageSize = pageSize;
   }
@@ -213,7 +207,6 @@ public class OpenSearchRequestBuilder implements PushDownRequestBuilder {
    * Add highlight to DSL requests.
    * @param field name of the field to highlight
    */
-  @Override
   public void pushDownHighlight(String field, Map<String, Literal> arguments) {
     String unquotedField = StringUtils.unquoteText(field);
     if (sourceBuilder.highlighter() != null) {
@@ -246,14 +239,12 @@ public class OpenSearchRequestBuilder implements PushDownRequestBuilder {
   /**
    * Push down project list to DSL requests.
    */
-  @Override
   public void pushDownProjects(Set<ReferenceExpression> projects) {
     sourceBuilder.fetchSource(
         projects.stream().map(ReferenceExpression::getAttr).distinct().toArray(String[]::new),
         new String[0]);
   }
 
-  @Override
   public void pushTypeMapping(Map<String, OpenSearchDataType> typeMapping) {
     exprValueFactory.extendTypeMapping(typeMapping);
   }
@@ -270,7 +261,6 @@ public class OpenSearchRequestBuilder implements PushDownRequestBuilder {
    * Push down nested to sourceBuilder.
    * @param nestedArgs : Nested arguments to push down.
    */
-  @Override
   public void pushDownNested(List<Map<String, ReferenceExpression>> nestedArgs) {
     initBoolQueryFilter();
     groupFieldNamesByPath(nestedArgs).forEach(

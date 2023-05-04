@@ -24,7 +24,7 @@ import org.opensearch.sql.opensearch.response.agg.OpenSearchAggregationResponseP
 /**
  * Builds a {@link ContinuePageRequest} to handle subsequent pagination/scroll/cursor requests.
  */
-public class ContinuePageRequestBuilder implements PushDownRequestBuilder {
+public class ContinuePageRequestBuilder implements ExecutableRequestBuilder {
 
   public static final String PUSH_DOWN_NOT_SUPPORTED =
       "Cursor requests don't support any push down";
@@ -50,58 +50,7 @@ public class ContinuePageRequestBuilder implements PushDownRequestBuilder {
   }
 
   @Override
-  public int getQuerySize() {
+  public int getMaxResponseSize() {
     return Integer.MAX_VALUE;
-  }
-
-  @Override
-  public void pushDownFilter(QueryBuilder query) {
-    throw new UnsupportedOperationException(PUSH_DOWN_NOT_SUPPORTED);
-  }
-
-  @Override
-  public void pushDownAggregation(Pair<List<AggregationBuilder>,
-                                        OpenSearchAggregationResponseParser> aggregationBuilder) {
-    throw new UnsupportedOperationException(ContinuePageRequestBuilder.PUSH_DOWN_NOT_SUPPORTED);
-  }
-
-  @Override
-  public void pushDownSort(List<SortBuilder<?>> sortBuilders) {
-    throw new UnsupportedOperationException(PUSH_DOWN_NOT_SUPPORTED);
-  }
-
-  @Override
-  public void pushDownLimit(Integer limit, Integer offset) {
-    throw new UnsupportedOperationException(PUSH_DOWN_NOT_SUPPORTED);
-  }
-
-  @Override
-  public void pushDownHighlight(String field, Map<String, Literal> arguments) {
-    throw new UnsupportedOperationException(PUSH_DOWN_NOT_SUPPORTED);
-  }
-
-  @Override
-  public void pushDownProjects(Set<ReferenceExpression> projects) {
-    throw new UnsupportedOperationException(PUSH_DOWN_NOT_SUPPORTED);
-  }
-
-  @Override
-  public void pushTypeMapping(Map<String, OpenSearchDataType> typeMapping) {
-    throw new UnsupportedOperationException(PUSH_DOWN_NOT_SUPPORTED);
-  }
-
-  @Override
-  public void pushDownNested(List<Map<String, ReferenceExpression>> nestedArgs) {
-    throw new UnsupportedOperationException(ContinuePageRequestBuilder.PUSH_DOWN_NOT_SUPPORTED);
-  }
-
-  @Override
-  public void pushDownTrackedScore(boolean trackScores) {
-    throw new UnsupportedOperationException(ContinuePageRequestBuilder.PUSH_DOWN_NOT_SUPPORTED);
-  }
-
-  @Override
-  public void pushDownPageSize(int pageSize) {
-    throw new UnsupportedOperationException(ContinuePageRequestBuilder.PUSH_DOWN_NOT_SUPPORTED);
   }
 }

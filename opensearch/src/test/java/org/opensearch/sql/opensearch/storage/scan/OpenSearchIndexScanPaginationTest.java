@@ -49,9 +49,9 @@ import org.opensearch.sql.opensearch.client.OpenSearchClient;
 import org.opensearch.sql.opensearch.data.type.OpenSearchDataType;
 import org.opensearch.sql.opensearch.data.value.OpenSearchExprValueFactory;
 import org.opensearch.sql.opensearch.request.ContinuePageRequestBuilder;
+import org.opensearch.sql.opensearch.request.ExecutableRequestBuilder;
 import org.opensearch.sql.opensearch.request.OpenSearchRequest;
 import org.opensearch.sql.opensearch.request.OpenSearchRequestBuilder;
-import org.opensearch.sql.opensearch.request.PushDownRequestBuilder;
 import org.opensearch.sql.opensearch.response.OpenSearchResponse;
 import org.opensearch.sql.opensearch.storage.OpenSearchStorageEngine;
 
@@ -99,7 +99,7 @@ public class OpenSearchIndexScanPaginationTest {
       employee(2, "Smith", "HR"),
       employee(3, "Allen", "IT")});
 
-    PushDownRequestBuilder builder = new OpenSearchRequestBuilder(QUERY_SIZE, exprValueFactory);
+    ExecutableRequestBuilder builder = new OpenSearchRequestBuilder(QUERY_SIZE, exprValueFactory);
     try (var indexScan
            = new OpenSearchIndexScan(client, INDEX_NAME, settings, MAX_RESULT_WINDOW, builder)) {
       indexScan.open();

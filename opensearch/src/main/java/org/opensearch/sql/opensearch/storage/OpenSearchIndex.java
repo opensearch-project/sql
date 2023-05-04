@@ -171,8 +171,9 @@ public class OpenSearchIndex implements Table {
     Map<String, OpenSearchDataType> allFields = new HashMap<>();
     getReservedFieldTypes().forEach((k, v) -> allFields.put(k, OpenSearchDataType.of(v)));
     allFields.putAll(getFieldOpenSearchTypes());
-    Function<OpenSearchRequestBuilder, OpenSearchIndexScan> buildScan
-        = t -> new OpenSearchIndexScan(client, indexName, settings, getMaxResultWindow(), t);
+    Function<OpenSearchRequestBuilder, OpenSearchIndexScan> buildScan = requestBuilder
+      -> new OpenSearchIndexScan(client, indexName, settings, getMaxResultWindow(),
+      requestBuilder);
     var builder = new OpenSearchRequestBuilder(
         settings.getSettingValue(Settings.Key.QUERY_SIZE_LIMIT),
         new OpenSearchExprValueFactory(allFields));

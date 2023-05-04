@@ -46,30 +46,4 @@ class ContinuePageRequestBuilderTest {
         requestBuilder.build(null, 0, null)
     );
   }
-
-  @Test
-  void pushDown_not_supported() {
-    assertAll(
-        () -> assertThrows(UnsupportedOperationException.class,
-            () -> requestBuilder.pushDownFilter(mock())),
-        () -> assertThrows(UnsupportedOperationException.class,
-            () -> requestBuilder.pushDownAggregation(mock())),
-        () -> assertThrows(UnsupportedOperationException.class,
-            () -> requestBuilder.pushDownSort(mock())),
-        () -> assertThrows(UnsupportedOperationException.class,
-            () -> requestBuilder.pushDownLimit(1, 2)),
-        () -> assertThrows(UnsupportedOperationException.class,
-            () -> requestBuilder.pushDownHighlight("", Map.of())),
-        () -> assertThrows(UnsupportedOperationException.class,
-            () -> requestBuilder.pushDownProjects(mock())),
-        () -> assertThrows(UnsupportedOperationException.class,
-            () -> requestBuilder.pushTypeMapping(mock())),
-        () -> assertThrows(UnsupportedOperationException.class,
-            () -> requestBuilder.pushDownNested(List.of())),
-        () -> assertThrows(UnsupportedOperationException.class,
-          () -> requestBuilder.pushDownPageSize(3)),
-        () -> assertThrows(UnsupportedOperationException.class,
-            () -> requestBuilder.pushDownTrackedScore(true))
-    );
-  }
 }

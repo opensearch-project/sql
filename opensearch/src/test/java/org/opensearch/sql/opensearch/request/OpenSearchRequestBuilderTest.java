@@ -372,6 +372,6 @@ class OpenSearchRequestBuilderTest {
   void query_size_is_page_size() {
     requestBuilder.pushDownPageSize(3);
     requestBuilder.pushDownLimit(4, 0);
-    assertEquals(3, requestBuilder.getQuerySize());
+    assertEquals(3, requestBuilder.getMaxResponseSize());
   }
 }
