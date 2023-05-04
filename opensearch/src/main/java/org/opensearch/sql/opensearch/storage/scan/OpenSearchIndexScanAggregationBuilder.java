@@ -48,7 +48,8 @@ class OpenSearchIndexScanAggregationBuilder implements PushDownTranslator {
   private List<Pair<Sort.SortOption, Expression>> sortList;
 
 
-  OpenSearchIndexScanAggregationBuilder(OpenSearchRequestBuilder requestBuilder, LogicalAggregation aggregation) {
+  OpenSearchIndexScanAggregationBuilder(OpenSearchRequestBuilder requestBuilder,
+                                        LogicalAggregation aggregation) {
     this.requestBuilder = requestBuilder;
     aggregatorList = aggregation.getAggregatorList();
     groupByList = aggregation.getGroupByList();

@@ -172,8 +172,8 @@ public class OpenSearchIndex implements Table {
     getReservedFieldTypes().forEach((k, v) -> allFields.put(k, OpenSearchDataType.of(v)));
     allFields.putAll(getFieldOpenSearchTypes());
     Function<OpenSearchRequestBuilder, OpenSearchIndexScan> buildScan = requestBuilder
-      -> new OpenSearchIndexScan(client, indexName, settings, getMaxResultWindow(),
-      requestBuilder);
+        -> new OpenSearchIndexScan(client, indexName, settings, getMaxResultWindow(),
+        requestBuilder);
     var builder = new OpenSearchRequestBuilder(
         settings.getSettingValue(Settings.Key.QUERY_SIZE_LIMIT),
         new OpenSearchExprValueFactory(allFields));

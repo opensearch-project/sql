@@ -338,22 +338,22 @@ class OpenSearchIndexScanOptimizationTest {
   @Test
   void test_page_push_down() {
     assertEqualsAfterOptimization(
-      project(
-        indexScanBuilder(
-          withPageSizePushDown(5)),
-        DSL.named("intV", DSL.ref("intV", INTEGER))
-      ),
-      paginate(project(
-          relation("schema", table),
-        DSL.named("intV", DSL.ref("intV", INTEGER))
-      ), 5
-    ));
+        project(
+          indexScanBuilder(
+            withPageSizePushDown(5)),
+          DSL.named("intV", DSL.ref("intV", INTEGER))
+        ),
+        paginate(project(
+            relation("schema", table),
+          DSL.named("intV", DSL.ref("intV", INTEGER))
+        ), 5
+      ));
   }
 
   @Test
   void exception_when_page_size_after_limit() {
     LogicalPlan plan = paginate(
-      project(
+        project(
         limit(
           relation("schema", table),
           1, 1),

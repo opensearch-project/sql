@@ -357,7 +357,7 @@ class OpenSearchRequestBuilderTest {
         .from(DEFAULT_OFFSET)
         .size(3)
         .timeout(DEFAULT_QUERY_TIMEOUT),
-      requestBuilder.build(indexName, MAX_RESULT_WINDOW, settings).getSourceBuilder());
+        requestBuilder.build(indexName, MAX_RESULT_WINDOW, settings).getSourceBuilder());
   }
 
   @Test
@@ -365,7 +365,7 @@ class OpenSearchRequestBuilderTest {
     requestBuilder.pushDownPageSize(3);
     requestBuilder.pushDownLimit(300, 2);
     assertThrows(UnsupportedOperationException.class,
-      () -> requestBuilder.build(indexName, MAX_RESULT_WINDOW, settings));
+        () -> requestBuilder.build(indexName, MAX_RESULT_WINDOW, settings));
   }
 
   @Test
