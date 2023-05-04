@@ -36,9 +36,18 @@ Using Cross-Cluster Search in PPL
 =================================
 Perform cross-cluster search by using "<cluster-name>:<index-name>" as the index identifier.
 
-Example search command ::
+Example PPL query::
 
-    >> search source = my_remote_cluster:my_index
+    os> source=my_remote_cluster:accounts;
+    fetched rows / total rows = 4/4
+    +------------------+-------------+----------------------+-----------+----------+--------+------------+---------+-------+-----------------------+------------+
+    | account_number   | firstname   | address              | balance   | gender   | city   | employer   | state   | age   | email                 | lastname   |
+    |------------------+-------------+----------------------+-----------+----------+--------+------------+---------+-------+-----------------------+------------|
+    | 1                | Amber       | 880 Holmes Lane      | 39225     | M        | Brogan | Pyrami     | IL      | 32    | amberduke@pyrami.com  | Duke       |
+    | 6                | Hattie      | 671 Bristol Street   | 5686      | M        | Dante  | Netagy     | TN      | 36    | hattiebond@netagy.com | Bond       |
+    | 13               | Nanette     | 789 Madison Street   | 32838     | F        | Nogal  | Quility    | VA      | 28    | null                  | Bates      |
+    | 18               | Dale        | 467 Hutchinson Court | 4180      | M        | Orick  | null       | MD      | 33    | daleadams@boink.com   | Adams      |
+    +------------------+-------------+----------------------+-----------+----------+--------+------------+---------+-------+-----------------------+------------+
 
 
 Limitation
