@@ -6,7 +6,6 @@
 package org.opensearch.sql.opensearch.storage.scan;
 
 import org.opensearch.sql.opensearch.request.OpenSearchRequestBuilder;
-import org.opensearch.sql.planner.logical.LogicalAggregation;
 import org.opensearch.sql.planner.logical.LogicalFilter;
 import org.opensearch.sql.planner.logical.LogicalHighlight;
 import org.opensearch.sql.planner.logical.LogicalLimit;
@@ -29,8 +28,6 @@ public interface PushDownTranslator {
   boolean pushDownPageSize(LogicalPaginate paginate);
 
   boolean pushDownNested(LogicalNested nested);
-
-  boolean pushDownAggregation(LogicalAggregation aggregation);
 
   OpenSearchRequestBuilder build();
 }

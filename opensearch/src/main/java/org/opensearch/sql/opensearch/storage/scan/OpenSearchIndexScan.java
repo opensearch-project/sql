@@ -98,7 +98,6 @@ public class OpenSearchIndexScan extends TableScanOperator implements Serializab
   public void open() {
     super.open();
     request = requestBuilder.build(indexName, maxResultWindow, settings);
-    // TODO does this work for paged requests?
     querySize = requestBuilder.getQuerySize();
     iterator = Collections.emptyIterator();
     queryCount = 0;

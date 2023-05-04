@@ -348,4 +348,30 @@ class OpenSearchRequestBuilderTest {
         requestBuilder.pushDownHighlight("name", Map.of()));
     assertEquals("Duplicate field name in highlight", exception.getMessage());
   }
+
+  @Test
+  void push_down_page_size() {
+    requestBuilder.pushDownPageSize(3);
+    assertEquals(
+      new SearchSourceBuilder()
+        .from(DEFAULT_OFFSET)
+        .size(3)
+        .timeout(DEFAULT_QUERY_TIMEOUT),
+      requestBuilder.build(indexName, MAX_RESULT_WINDOW, settings).getSourceBuilder());
+  }
+
+  @Test
+  void exception_when_non_zero_offset_and_page_size() {
+    requestBuilder.pushDownPageSize(3);
+    requestBuilder.pushDownLimit(300, 2);
+    assertThrows(UnsupportedOperationException.class,
+      () -> requestBuilder.build(indexName, MAX_RESULT_WINDOW, settings));
+  }
+
+  @Test
+  void query_size_is_page_size() {
+    requestBuilder.pushDownPageSize(3);
+    requestBuilder.pushDownLimit(4, 0);
+    assertEquals(3, requestBuilder.getQuerySize());
+  }
 }

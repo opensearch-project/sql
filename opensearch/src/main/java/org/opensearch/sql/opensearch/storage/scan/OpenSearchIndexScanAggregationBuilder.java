@@ -39,17 +39,19 @@ class OpenSearchIndexScanAggregationBuilder implements PushDownTranslator {
   private final OpenSearchRequestBuilder requestBuilder;
 
   /** Aggregators pushed down. */
-  private List<NamedAggregator> aggregatorList;
+  private final List<NamedAggregator> aggregatorList;
 
   /** Grouping items pushed down. */
-  private List<NamedExpression> groupByList;
+  private final List<NamedExpression> groupByList;
 
   /** Sorting items pushed down. */
   private List<Pair<Sort.SortOption, Expression>> sortList;
 
 
-  OpenSearchIndexScanAggregationBuilder(OpenSearchRequestBuilder requestBuilder) {
+  OpenSearchIndexScanAggregationBuilder(OpenSearchRequestBuilder requestBuilder, LogicalAggregation aggregation) {
     this.requestBuilder = requestBuilder;
+    aggregatorList = aggregation.getAggregatorList();
+    groupByList = aggregation.getGroupByList();
   }
 
   @Override
@@ -62,13 +64,6 @@ class OpenSearchIndexScanAggregationBuilder implements PushDownTranslator {
     requestBuilder.pushTypeMapping(
         builder.buildTypeMapping(aggregatorList, groupByList));
     return requestBuilder;
-  }
-
-  @Override
-  public boolean pushDownAggregation(LogicalAggregation aggregation) {
-    aggregatorList = aggregation.getAggregatorList();
-    groupByList = aggregation.getGroupByList();
-    return true;
   }
 
   @Override

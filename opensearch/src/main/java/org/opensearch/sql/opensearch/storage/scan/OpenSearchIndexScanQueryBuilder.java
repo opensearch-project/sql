@@ -26,7 +26,6 @@ import org.opensearch.sql.opensearch.request.OpenSearchRequestBuilder;
 import org.opensearch.sql.opensearch.storage.script.filter.FilterQueryBuilder;
 import org.opensearch.sql.opensearch.storage.script.sort.SortQueryBuilder;
 import org.opensearch.sql.opensearch.storage.serialization.DefaultExpressionSerializer;
-import org.opensearch.sql.planner.logical.LogicalAggregation;
 import org.opensearch.sql.planner.logical.LogicalFilter;
 import org.opensearch.sql.planner.logical.LogicalHighlight;
 import org.opensearch.sql.planner.logical.LogicalLimit;
@@ -125,11 +124,6 @@ class OpenSearchIndexScanQueryBuilder implements PushDownTranslator {
   }
 
   @Override
-  public boolean pushDownAggregation(LogicalAggregation aggregation) {
-    return false;
-  }
-
-  @Override
   public OpenSearchRequestBuilder build() {
     return requestBuilder;
   }
@@ -138,7 +132,7 @@ class OpenSearchIndexScanQueryBuilder implements PushDownTranslator {
    * Find reference expression from expression.
    * @param expressions a list of expression.
    *
-   * @return a list of ReferenceExpression
+   * @return a set of ReferenceExpression
    */
   public static Set<ReferenceExpression> findReferenceExpressions(
       List<NamedExpression> expressions) {

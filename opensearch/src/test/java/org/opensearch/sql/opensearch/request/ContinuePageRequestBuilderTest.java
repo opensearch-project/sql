@@ -67,6 +67,8 @@ class ContinuePageRequestBuilderTest {
         () -> assertThrows(UnsupportedOperationException.class,
             () -> requestBuilder.pushDownNested(List.of())),
         () -> assertThrows(UnsupportedOperationException.class,
+          () -> requestBuilder.pushDownPageSize(3)),
+        () -> assertThrows(UnsupportedOperationException.class,
             () -> requestBuilder.pushDownTrackedScore(true))
     );
   }

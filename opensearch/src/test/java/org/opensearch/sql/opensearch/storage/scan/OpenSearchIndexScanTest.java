@@ -177,9 +177,7 @@ class OpenSearchIndexScanTest {
 
   @Test
   void query_some_results_with_scroll() {
-    mockResponse(client,
-        new ExprValue[]{employee(1, "John", "IT"), employee(2, "Smith", "HR")},
-        new ExprValue[]{employee(3, "Allen", "IT"), employee(4, "Bob", "HR")});
+    mockTwoPageResponse(client);
     final var requestuilder = new OpenSearchRequestBuilder(10, exprValueFactory);
     requestuilder.pushDownLimit(3, 0);
     try (OpenSearchIndexScan indexScan = new OpenSearchIndexScan(client, EMPLOYEES_INDEX, settings,
@@ -201,6 +199,12 @@ class OpenSearchIndexScanTest {
       );
     }
     verify(client).cleanup(any());
+  }
+
+  static void mockTwoPageResponse(OpenSearchClient client) {
+    mockResponse(client,
+        new ExprValue[]{employee(1, "John", "IT"), employee(2, "Smith", "HR")},
+        new ExprValue[]{employee(3, "Allen", "IT"), employee(4, "Bob", "HR")});
   }
 
   @Test

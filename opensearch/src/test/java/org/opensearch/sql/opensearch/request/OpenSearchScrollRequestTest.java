@@ -207,6 +207,16 @@ class OpenSearchScrollRequestTest {
   }
 
   @Test
+  void no_cursor_on_empty_response() {
+    SearchResponse searchResponse = mock();
+    when(searchResponse.getHits()).thenReturn(
+      new SearchHits(new SearchHit[0], null, 1f));
+
+    request.search((x) -> searchResponse, (x) -> searchResponse);
+    assertEquals("", request.toCursor());
+  }
+
+  @Test
   void no_clean_if_no_scroll_in_response() {
     SearchResponse searchResponse = mock();
     when(searchResponse.getHits()).thenReturn(
@@ -216,5 +226,10 @@ class OpenSearchScrollRequestTest {
     assertNull(request.getScrollId());
 
     request.clean((s) -> fail());
+  }
+
+  @Test
+  void noCursor() {
+    assertNull(request.toCursor());
   }
 }

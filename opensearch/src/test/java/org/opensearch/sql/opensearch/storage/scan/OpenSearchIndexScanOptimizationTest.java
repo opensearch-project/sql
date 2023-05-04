@@ -7,6 +7,8 @@
 package org.opensearch.sql.opensearch.storage.scan;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.reset;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -23,6 +25,7 @@ import static org.opensearch.sql.planner.logical.LogicalPlanDSL.filter;
 import static org.opensearch.sql.planner.logical.LogicalPlanDSL.highlight;
 import static org.opensearch.sql.planner.logical.LogicalPlanDSL.limit;
 import static org.opensearch.sql.planner.logical.LogicalPlanDSL.nested;
+import static org.opensearch.sql.planner.logical.LogicalPlanDSL.paginate;
 import static org.opensearch.sql.planner.logical.LogicalPlanDSL.project;
 import static org.opensearch.sql.planner.logical.LogicalPlanDSL.relation;
 import static org.opensearch.sql.planner.logical.LogicalPlanDSL.sort;
@@ -76,9 +79,11 @@ import org.opensearch.sql.opensearch.response.agg.CompositeAggregationParser;
 import org.opensearch.sql.opensearch.response.agg.OpenSearchAggregationResponseParser;
 import org.opensearch.sql.opensearch.response.agg.SingleValueParser;
 import org.opensearch.sql.opensearch.storage.script.aggregation.AggregationQueryBuilder;
+import org.opensearch.sql.planner.logical.LogicalAggregation;
 import org.opensearch.sql.planner.logical.LogicalNested;
 import org.opensearch.sql.planner.logical.LogicalPlan;
 import org.opensearch.sql.planner.optimizer.LogicalPlanOptimizer;
+import org.opensearch.sql.planner.optimizer.PushDownPageSize;
 import org.opensearch.sql.planner.optimizer.rule.read.CreateTableScanBuilder;
 import org.opensearch.sql.storage.Table;
 
@@ -328,6 +333,33 @@ class OpenSearchIndexScanOptimizationTest {
             Pair.of(SortOption.DEFAULT_ASC, DSL.ref("intV", INTEGER))
         )
     );
+  }
+
+  @Test
+  void test_page_push_down() {
+    assertEqualsAfterOptimization(
+      project(
+        indexScanBuilder(
+          withPageSizePushDown(5)),
+        DSL.named("intV", DSL.ref("intV", INTEGER))
+      ),
+      paginate(project(
+          relation("schema", table),
+        DSL.named("intV", DSL.ref("intV", INTEGER))
+      ), 5
+    ));
+  }
+
+  @Test
+  void exception_when_page_size_after_limit() {
+    LogicalPlan plan = paginate(
+      project(
+        limit(
+          relation("schema", table),
+          1, 1),
+        DSL.named("intV", DSL.ref("intV", INTEGER))
+      ), 4);
+    assertThrows(IllegalStateException.class, () -> optimize(plan));
   }
 
   @Test
@@ -679,7 +711,7 @@ class OpenSearchIndexScanOptimizationTest {
   private OpenSearchIndexScanBuilder indexScanAggBuilder(Runnable... verifyPushDownCalls) {
     this.verifyPushDownCalls = verifyPushDownCalls;
     return new OpenSearchIndexScanBuilder(t -> indexScan,
-        new OpenSearchIndexScanAggregationBuilder(requestBuilder));
+        new OpenSearchIndexScanAggregationBuilder(requestBuilder, mock(LogicalAggregation.class)));
   }
 
   private void assertEqualsAfterOptimization(LogicalPlan expected, LogicalPlan actual) {
@@ -756,6 +788,10 @@ class OpenSearchIndexScanOptimizationTest {
     return () -> verify(requestBuilder, times(1)).pushDownTrackedScore(trackScores);
   }
 
+  private Runnable withPageSizePushDown(int pageSize) {
+    return () -> verify(requestBuilder, times(1)).pushDownPageSize(pageSize);
+  }
+
   private static AggregationAssertHelper.AggregationAssertHelperBuilder aggregate(String aggName) {
     var aggBuilder = new AggregationAssertHelper.AggregationAssertHelperBuilder();
     aggBuilder.aggregateName = aggName;
@@ -781,6 +817,7 @@ class OpenSearchIndexScanOptimizationTest {
   private LogicalPlan optimize(LogicalPlan plan) {
     LogicalPlanOptimizer optimizer = new LogicalPlanOptimizer(List.of(
         new CreateTableScanBuilder(),
+        new PushDownPageSize(),
         PUSH_DOWN_FILTER,
         PUSH_DOWN_AGGREGATION,
         PUSH_DOWN_SORT,
