@@ -183,7 +183,7 @@ class OpenSearchExecutionEngineTest {
     final int maxResultWindow = 10000;
     final var requestBuilder = new OpenSearchRequestBuilder(defaultQuerySize, exprValueFactory);
     PhysicalPlan plan = new OpenSearchIndexScan(mock(OpenSearchClient.class), name,
-      settings, maxResultWindow, requestBuilder);
+        settings, maxResultWindow, requestBuilder);
 
     AtomicReference<ExplainResponse> result = new AtomicReference<>();
     executor.explain(plan, new ResponseListener<>() {

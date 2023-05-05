@@ -203,7 +203,7 @@ class OpenSearchIndexTest {
     final int defaultQuerySize = settings.getSettingValue(Settings.Key.QUERY_SIZE_LIMIT);
     final var requestBuilder = new OpenSearchRequestBuilder(defaultQuerySize, exprValueFactory);
     assertEquals(new OpenSearchIndexScan(client, name,
-      settings, maxResultWindow, requestBuilder), index.implement(index.optimize(plan)));
+        settings, maxResultWindow, requestBuilder), index.implement(index.optimize(plan)));
   }
 
   @Test
@@ -216,7 +216,7 @@ class OpenSearchIndexTest {
     final int defaultQuerySize = settings.getSettingValue(Settings.Key.QUERY_SIZE_LIMIT);
     final var requestBuilder = new OpenSearchRequestBuilder(defaultQuerySize, exprValueFactory);
     assertEquals(new OpenSearchIndexScan(client, name,
-      settings, maxResultWindow, requestBuilder), index.implement(plan));
+        settings, maxResultWindow, requestBuilder), index.implement(plan));
   }
 
   @Test

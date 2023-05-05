@@ -77,7 +77,7 @@ class OpenSearchIndexScanTest {
     final var name = new OpenSearchRequest.IndexName("test");
     final var requestBuilder = new OpenSearchRequestBuilder(QUERY_SIZE, exprValueFactory);
     try (OpenSearchIndexScan indexScan = new OpenSearchIndexScan(client, name,
-      settings, 3, requestBuilder)) {
+        settings, 3, requestBuilder)) {
       indexScan.open();
       assertAll(
           () -> assertFalse(indexScan.hasNext()),
@@ -97,7 +97,7 @@ class OpenSearchIndexScanTest {
     final var name = new OpenSearchRequest.IndexName("employees");
     final var requestBuilder = new OpenSearchRequestBuilder(QUERY_SIZE, exprValueFactory);
     try (OpenSearchIndexScan indexScan = new OpenSearchIndexScan(client, name,
-      settings, 10, requestBuilder)) {
+        settings, 10, requestBuilder)) {
       indexScan.open();
 
       assertAll(
@@ -129,7 +129,7 @@ class OpenSearchIndexScanTest {
     final var name = new OpenSearchRequest.IndexName("employees");
     final var requestBuilder = new OpenSearchRequestBuilder(QUERY_SIZE, exprValueFactory);
     try (OpenSearchIndexScan indexScan = new OpenSearchIndexScan(client, name,
-      settings, 10, requestBuilder)) {
+        settings, 10, requestBuilder)) {
       indexScan.open();
 
       assertAll(
@@ -224,7 +224,7 @@ class OpenSearchIndexScanTest {
     final int defaultQuerySize = 2;
     final var requestBuilder = new OpenSearchRequestBuilder(defaultQuerySize, exprValueFactory);
     try (OpenSearchIndexScan indexScan = new OpenSearchIndexScan(client, name,
-      settings, 10, requestBuilder)) {
+        settings, 10, requestBuilder)) {
       indexScan.open();
 
       assertAll(
