@@ -1,9 +1,26 @@
-## 1 Overview
+## Description
 
 The nested function in SQL and PPL maps to the nested query DSL in the OpenSearch query engine. A nested query is used to search nested object field types in an index. If an object matches the search, the nested query returns the root parent document. Nested inner objects are returned as inner hits in the query result.
 
 When data is mapped as object type and stored in arrays, the inner objects are stored in a flattened form making it impossible to perform queries with isolation on the inner objects. Users may want to store their data using the `nested` object field type in order to avoid array data being stored in a flattened form and to query individual indexes of an array. Using the nested function with data stored as `nested` object field type allows users to query inner objects with isolation.
 
+Please refer to the documentation page for `nested` object field types for a more in-depth view of how this type works in OpenSearch.
+[2.7 OpenSearch Nested Field Types](https://opensearch.org/docs/2.7/field-types/nested/)
+
+## Table Of Contents
+1. [Overview](#1-overview)
+2. [Problem Statement](#11-problem-statement)
+3. [Use Cases](#12-use-cases)
+4. [Requirements](#2-requirements)
+5. [Functional Requirements](#21-functional-requirements)
+6. [Non-functional Requirements](#22-non-functional-requirements)
+7. [Tenets](#23-tenets)
+8. [Scope](#24-scope)
+9. [Out-of-scope](#25-out-of-scope)
+10. [Additional Info](#additional-info)
+11. [Release Schedule](#release-schedule)
+
+## 1 Overview
 ### 1.1 Problem Statement
 
 **1. The V2 engine lacks legacy functionality for the nested function** - 
@@ -50,7 +67,7 @@ After a `nested` query is pushed down to OpenSearch, post-processing is done wit
 - If the SQL plugin fails to form a valid `nested` DSL query to push down to OpenSearch the query execution cannot be completed.
 
 ### 2.4 Scope
-The `nested` function in the legacy engine is supported in multiple clauses in SQL.  A user can use the nested function with the legacy engine in the SELECT, WHERE, GROUP BY, ORDER BY, and HAVING clauses of an SQL statement. The V2 engine has the additional query language PPL to support the nested function. The V2 engine implementation of the nested function likely won’t include all syntax options as the legacy engine to save development time, avoid additional edge cases, and create a more fluid user experience. For example when the `nested` function is used in the WHERE clause, a user can use both of the following syntax options:
+The `nested` function in the legacy engine is supported in multiple clauses in SQL.  A user can use the nested function with the legacy engine in the SELECT, WHERE, GROUP BY, ORDER BY, and HAVING clauses of an SQL statement. The V2 engine has the additional query language PPL to support the nested function. The V2 engine implementation of the nested function may not include all syntax options as the legacy engine to save development time. For example when the `nested` function is used in the WHERE clause, a user can use both of the following syntax options:
 
 - **nested(field | field, path) OPERATOR LITERAL**
 - **nested(path, expression)**
@@ -58,17 +75,17 @@ The `nested` function in the legacy engine is supported in multiple clauses in S
 Both options serve the same functionality in querying an expression of a `nested` field with a literal. The goal of supporting the nested function in the SQL plugin is to reach functional parity with the legacy engine, port over implementation to the PPL query language, add support in the JDBC and ODBC Connectors, and create a base for future PartiQL development. Any remaining bugs from legacy engine should be resolved and any lack of implementations such as JDBC format for nested aggregation should be implemented.
 
 ### 2.5 Out of Scope
-- Not all WHERE clause syntax may be included in the V2 grammar TBD.
+- TBD.
 
 ## Additional Info
 
 ### Release Schedule
-- **Nested used in `SELECT` clause:** [SELECT Clause Design and Release Schedule](sql-nested-function-select-clause.md)
-- **Nested used in `WHERE` clause:** TBD
-- **Nested used in `GROUP BY` clause:** TBD
-- **Nested used in `HAVING` clause:** TBD
-- **Nested used in `ORDER BY` clause:** TBD
-- **Nested Added to PPL query language:** TBD
-- **Nested function support in JDBC connector:** TBD
-- **Nested function support in ODBC connector:** TBD
+- **P[0] Nested used in `SELECT` clause:** [SELECT Clause Design and Release Schedule](sql-nested-function-select-clause.md)
+- **P[0] Nested used in `WHERE` clause:** TBD
+- **P[0] Nested used in `GROUP BY` clause:** TBD
+- **P[0] Nested used in `HAVING` clause:** TBD
+- **P[0] Nested used in `ORDER BY` clause:** TBD
+- **P[1] Nested Added to `PPL` query language:** TBD
+- **P[2] Nested function support in `JDBC` connector:** TBD
+- **P[2] Nested function support in `ODBC` connector:** TBD
 

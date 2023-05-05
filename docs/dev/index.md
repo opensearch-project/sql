@@ -35,6 +35,7 @@
 
 + **SQL**
   + [Aggregate Window Function](sql-aggregate-window-function.md): aggregate window function support
+  + [Nested Function In Select Clause](sql-nested-function-select-clause.md): Nested function support in sql select clause
 + **Piped Processing Language**
 
 ### Query Processing
@@ -55,6 +56,7 @@
   + [Relevancy Search](opensearch-relevancy-search.md): OpenSearch relevancy search functions
   + [Sub Queries](opensearch-nested-field-subquery.md): support sub queries on OpenSearch nested field
   + [Pagination](opensearch-pagination.md): pagination implementation by OpenSearch scroll API
+  + [Nested Function](sql-nested-function.md): Nested function in sql plugin
 + [Prometheus](datasource-prometheus.md): Prometheus query federation
 + **File System**
   + [Querying S3](datasource-query-s3.md): S3 query federation proposal

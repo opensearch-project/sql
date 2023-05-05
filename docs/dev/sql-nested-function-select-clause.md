@@ -1,19 +1,86 @@
-## 1 Overview
+## Description
 
 The `nested` function when used in the `SELECT` clause of an SQL statement specifies the output columns from inner fields of a nested object type in OpenSearch. After a `SELECT` clause is pushed down to OpenSearch the response objects are flattened as illustrated in [Section 2.3](#24-select-clause-nested-query-class-diagram). If multiple `nested` function calls are used in a `SELECT` clause on multiple nested fields with differing paths, a cross-join is returned of the rows in both nested fields.
 
+## Table of Contents
+1. [Overview](#1-overview)
+2. [Syntax](#11-syntax)
+3. [Changes To Core](#12-changes-to-core)
+4. [Example Queries](#13-example-queries)
+5. [Architecture Diagrams](#2-architecture-diagrams)
+6. [Composite States for Nested Query](#21-composite-states-for-nested-query-execution)
+7. [Sequence Diagram for Nested Select Clause Query Push Down](#22-sequence-diagram-for-nested-select-clause-query-push-down)
+8. [Sequence Diagram for Nested Select Clause Post-processing](#23-sequence-diagram-for-nested-select-clause-post-processing)
+9. [Select Clause Nested Query Class Diagram](#24-select-clause-nested-query-class-diagram)
+10. [Additional Info](#additional-info)
+11. [Demo Video](#demo-video)
+12. [Release Schedule](#release-schedule)
+
+## 1 Overview
 ### 1.1 Syntax
 
-Dot notation is used to show nesting level for fields and paths. For example `nestedObj.innerFieldName` denotes a field nested one level.
+Dot notation is used to show nesting level for fields and paths. For example `nestedObj.innerFieldName` denotes a field nested one level. If the user does not provide the `path` parameter it will be generated dynamically. For example the `field` `user.office.cubicle` would dynamically generate the path `user.office`.
 - `nested(field | field, path)`
 
 ### 1.2 Changes To Core
-- **NestedOperator:** Responsible for post-processing and flattening of OS response.
+- **NestedOperator:** Responsible for post-processing and flattening of OpenSearch response.
 - **LogicalNested:** Stores data required for push down.
 - **NestedAnalyzer:** Visitor for LogicalNested instantiation.
 - **Analyzer:** Added ownership of NestedAnalyzer.
 
+
 ### 1.3 Example Queries
+
+Most basic example from mapping to response from SQL plugin.
+
+**Mapping:**
+```json
+{
+  "mappings": {
+    "properties": {
+      "message": {
+        "type": "nested",
+        "properties": {
+          "info": {
+            "type": "keyword",
+            "index": "true"
+          }
+        }
+      }
+    }
+  }
+}
+```
+
+**Dataset:**
+```json
+{"index":{"_id":"1"}}
+{"message":{"info":"a"}}
+```
+
+**Query:**
+`SELECT nested(message.info) FROM nested_objects;`
+
+**Response:**
+```json
+{
+    "schema": [
+        {
+            "name": "nested(message.info)",
+            "type": "keyword"
+        }
+    ],
+    "datarows": [
+        [
+            "a"
+        ]
+    ],
+    "total": 1,
+    "size": 1,
+    "status": 200
+}
+```
+
 A basic nested function in the SELECT clause and output DSL pushed to OpenSearch.
 - `SELECT nested(message.info, message) FROM nested_objects;`
 ```json
@@ -229,7 +296,6 @@ An example with multiple nested function calls in SELECT clause using having dif
 ```
 
 ## 2 Architecture Diagrams
-
 ### 2.1 Composite States for Nested Query Execution
 
 Nested function state diagram illustrating states in SQL plugin for push down execution. The nested operator stays in the `PhysicalPlan` after push down for flattening operation in post-processing. See section [2.3](#24-select-clause-nested-query-class-diagram) for flattening sequence and description.
@@ -240,10 +306,10 @@ direction LR
     LogicalPlan --> OptimizedLogicalPlan: Optimize
     OptimizedLogicalPlan --> PhysicalPlan:push down
     note right of PhysicalPlan
-    NestedOperator stays in PhysicalPlan\nafter push down for post-processing.
+      Note: NestedOperator stays in PhysicalPlan\nafter push down for post-processing.
     end note
 
-    state "Logical Plan" as LogicalPlan:::blah
+    state "Logical Plan Tree" as LogicalPlan
     state LogicalPlan {
         logState1: Project
         logState2: Nested
@@ -254,18 +320,16 @@ direction LR
         logState3 --> Relation
     }
 
-    state "Optimized Logical Plan" as OptimizedLogicalPlan:::blah
+    state "Optimized Logical Plan Tree" as OptimizedLogicalPlan
     state OptimizedLogicalPlan {
         optState1: Project
         optState2: Nested
-        optState3: ...
 
         optState1 --> optState2
-        optState2 --> optState3
-        optState3 --> IndexScanBuilder
+        optState2 --> IndexScanBuilder
     }
 
-    state "Physical Plan" as PhysicalPlan
+    state "Physical Plan Tree" as PhysicalPlan
     state PhysicalPlan {
         phyState1: ProjectOperator
         phyState2: NestedOperator
@@ -293,27 +357,31 @@ sequenceDiagram
     participant DefaultImplementor
 
 %% Parsing
-SQLService->>ParserBaseRoot:visitRoot
-  ParserBaseRoot->>AstExpressionBuilder:visitScalarFunction
-  AstExpressionBuilder-->>ParserBaseRoot:Function
-ParserBaseRoot-->>SQLService:UnresolvedPlan
+SQLService->>+ParserBaseRoot:visitRoot
+  ParserBaseRoot->>+AstExpressionBuilder:visitScalarFunction
+  AstExpressionBuilder-->>-ParserBaseRoot:Function
+ParserBaseRoot-->>-SQLService:UnresolvedPlan
 %% Analysis
-SQLService->>QueryService:analyze
-  QueryService->>Analyzer:visitProject
-    Analyzer->>NestedAnalyzer:visitFunction
-      NestedAnalyzer-->>Analyzer:LogicalNested
-    Analyzer-->>QueryService:UnresolvedPlan
-  QueryService->>Planner:plan
-    %% planner optimization
-    Planner->>TableScanPushDown:apply
-      TableScanPushDown->>OpenSearchRequestBuilder:pushDownNested
-      OpenSearchRequestBuilder-->>TableScanPushDown:boolean
-    TableScanPushDown-->>Planner:LogicalPlan
+SQLService->>+QueryService:analyze
+  QueryService->>+Analyzer:visitProject
+    Analyzer->>+NestedAnalyzer:visitFunction
+    NestedAnalyzer-->>-Analyzer:LogicalNested
+  Analyzer-->>-QueryService:UnresolvedPlan
+    
+  %% planner optimization
+  QueryService->>+Planner:plan
+    Planner->>+TableScanPushDown:apply
+      TableScanPushDown->>+OpenSearchRequestBuilder:pushDownNested
+
+      Note over TableScanPushDown, OpenSearchRequestBuilder: returns false keeping<br>LogicalNested in plan tree
+
+      OpenSearchRequestBuilder-->>-TableScanPushDown:boolean
+    TableScanPushDown-->>-Planner:LogicalPlan
     %% planner implementation
-    Planner->>DefaultImplementor:visitNested
-    DefaultImplementor-->>Planner:NestedOperator
-  Planner-->>QueryService:PhysicalPlan
-QueryService-->>SQLService:PhysicalPlan
+    Planner->>+DefaultImplementor:visitNested
+    DefaultImplementor-->>-Planner:NestedOperator
+  Planner-->>-QueryService:PhysicalPlan
+QueryService-->>-SQLService:PhysicalPlan
 ```
 
 ### 2.3 Sequence Diagram for Nested SELECT Clause Post-processing
@@ -338,19 +406,15 @@ Nested function sequence diagram illustrating the flattening of the OpenSearch r
 sequenceDiagram
 
 %% Flattening
-ProjectOperator->>ResourceMonitorPlan:next
-  ResourceMonitorPlan->>NestedOperator:next
-    loop unnesting
-      NestedOperator->>NestedOperator:flatten
-    end
-  NestedOperator-->>ResourceMonitorPlan:ExprValue
-ResourceMonitorPlan-->>ProjectOperator:ExprValue
-
-%% Resolving
-ProjectOperator->>NamedExpression.delegate:valueOf
-  NamedExpression.delegate->>OpenSearchFunctions.nested:resolve
-  OpenSearchFunctions.nested-->>NamedExpression:ExprValue
-NamedExpression-->>ProjectOperator:ExprValue
+OpenSearchExecutionEngine->>+ProjectOperator:next
+  ProjectOperator->>+ResourceMonitorPlan:next
+    ResourceMonitorPlan->>+NestedOperator:next
+      loop unnesting
+        NestedOperator->>NestedOperator:flatten
+      end
+    NestedOperator-->>-ResourceMonitorPlan:ExprValue
+  ResourceMonitorPlan-->>-ProjectOperator:ExprValue
+ProjectOperator-->>-OpenSearchExecutionEngine:ExprValue
 ```
 
 #### 2.4 Select Clause Nested Query Class Diagram
@@ -406,8 +470,7 @@ classDiagram
 [SELECT Clause Demo](https://user-images.githubusercontent.com/36905077/234634885-d28b3a9a-fc5f-41fb-938a-764b60a775a6.mp4)
 
 ### Release Schedule
-
-- **Phase 1:** Add support for nested function used in SELECT clause.
-  - **Released:** [Issue 1111](https://github.com/opensearch-project/sql/issues/1111)
-- **Phase 2:** Add support for wildcard used in SELECT clause nested function.
-  - **TBD**
+See Issues Tracked under [Issue 1111](https://github.com/opensearch-project/sql/issues/1111) for related PR's and information:
+- [x] **Phase 1:** Add support for nested function used in SELECT clause.
+- [ ] **Phase 2:** Add support for `*` at ending level of field parameter in SELECT clause nested function.
+  - Example: `nestedField.innerFields.*`
