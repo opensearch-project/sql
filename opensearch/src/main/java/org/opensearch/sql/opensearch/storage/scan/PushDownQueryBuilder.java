@@ -17,7 +17,7 @@ import org.opensearch.sql.planner.logical.LogicalSort;
 /**
  * Translates a logical query plan into OpenSearch DSL and an appropriate request.
  */
-public interface PushDownTranslator {
+public interface PushDownQueryBuilder {
   boolean pushDownFilter(LogicalFilter filter);
 
   boolean pushDownSort(LogicalSort sort);

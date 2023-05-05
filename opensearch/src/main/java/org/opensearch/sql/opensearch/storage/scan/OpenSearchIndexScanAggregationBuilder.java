@@ -33,7 +33,7 @@ import org.opensearch.sql.planner.logical.LogicalSort;
  * Index scan builder for aggregate query used by {@link OpenSearchIndexScanBuilder} internally.
  */
 @EqualsAndHashCode
-class OpenSearchIndexScanAggregationBuilder implements PushDownTranslator {
+class OpenSearchIndexScanAggregationBuilder implements PushDownQueryBuilder {
 
   /** OpenSearch index scan to be optimized. */
   private final OpenSearchRequestBuilder requestBuilder;

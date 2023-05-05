@@ -10,7 +10,6 @@ import com.google.common.annotations.VisibleForTesting;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.Map;
-import java.util.function.Function;
 import lombok.RequiredArgsConstructor;
 import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.data.type.ExprCoreType;
@@ -33,6 +32,7 @@ import org.opensearch.sql.planner.logical.LogicalMLCommons;
 import org.opensearch.sql.planner.logical.LogicalPlan;
 import org.opensearch.sql.planner.physical.PhysicalPlan;
 import org.opensearch.sql.storage.Table;
+import org.opensearch.sql.storage.TableScanOperator;
 import org.opensearch.sql.storage.read.TableScanBuilder;
 
 /** OpenSearch table (index) implementation. */
@@ -171,13 +171,16 @@ public class OpenSearchIndex implements Table {
     Map<String, OpenSearchDataType> allFields = new HashMap<>();
     getReservedFieldTypes().forEach((k, v) -> allFields.put(k, OpenSearchDataType.of(v)));
     allFields.putAll(getFieldOpenSearchTypes());
-    Function<OpenSearchRequestBuilder, OpenSearchIndexScan> buildScan = requestBuilder
-        -> new OpenSearchIndexScan(client, indexName, settings, getMaxResultWindow(),
-        requestBuilder);
     var builder = new OpenSearchRequestBuilder(
         settings.getSettingValue(Settings.Key.QUERY_SIZE_LIMIT),
         new OpenSearchExprValueFactory(allFields));
-    return new OpenSearchIndexScanBuilder(buildScan, builder);
+    return new OpenSearchIndexScanBuilder(builder) {
+      @Override
+      protected TableScanOperator createScan(OpenSearchRequestBuilder requestBuilder) {
+        return new OpenSearchIndexScan(client, indexName, settings, getMaxResultWindow(),
+          requestBuilder);
+      }
+    };
   }
 
   @VisibleForTesting

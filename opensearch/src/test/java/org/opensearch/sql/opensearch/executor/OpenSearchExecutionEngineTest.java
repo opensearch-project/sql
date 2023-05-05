@@ -17,12 +17,10 @@ import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
-import static org.opensearch.sql.common.setting.Settings.Key.QUERY_SIZE_LIMIT;
 import static org.opensearch.sql.common.setting.Settings.Key.SQL_CURSOR_KEEP_ALIVE;
 import static org.opensearch.sql.data.model.ExprValueUtils.tupleValue;
 import static org.opensearch.sql.executor.ExecutionEngine.QueryResponse;
 
-import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
 import java.util.ArrayList;
@@ -50,6 +48,8 @@ import org.opensearch.sql.executor.pagination.PlanSerializer;
 import org.opensearch.sql.opensearch.client.OpenSearchClient;
 import org.opensearch.sql.opensearch.data.value.OpenSearchExprValueFactory;
 import org.opensearch.sql.opensearch.executor.protector.OpenSearchExecutionProtector;
+import org.opensearch.sql.opensearch.request.OpenSearchRequest;
+import org.opensearch.sql.opensearch.request.OpenSearchRequestBuilder;
 import org.opensearch.sql.opensearch.storage.scan.OpenSearchIndexScan;
 import org.opensearch.sql.planner.SerializablePlan;
 import org.opensearch.sql.planner.physical.PhysicalPlan;
@@ -174,12 +174,16 @@ class OpenSearchExecutionEngineTest {
     OpenSearchExecutionEngine executor = new OpenSearchExecutionEngine(client, protector,
         new PlanSerializer(null));
     Settings settings = mock(Settings.class);
-    when(settings.getSettingValue(QUERY_SIZE_LIMIT)).thenReturn(100);
     when(settings.getSettingValue(SQL_CURSOR_KEEP_ALIVE))
         .thenReturn(TimeValue.timeValueMinutes(1));
 
-    PhysicalPlan plan = OpenSearchIndexScan.create(mock(OpenSearchClient.class), "test", settings,
-        10000, mock(OpenSearchExprValueFactory.class));
+    OpenSearchExprValueFactory exprValueFactory = mock(OpenSearchExprValueFactory.class);
+    final var name = new OpenSearchRequest.IndexName("test");
+    final int defaultQuerySize = 100;
+    final int maxResultWindow = 10000;
+    final var requestBuilder = new OpenSearchRequestBuilder(defaultQuerySize, exprValueFactory);
+    PhysicalPlan plan = new OpenSearchIndexScan(mock(OpenSearchClient.class), name,
+      settings, maxResultWindow, requestBuilder);
 
     AtomicReference<ExplainResponse> result = new AtomicReference<>();
     executor.explain(plan, new ResponseListener<>() {

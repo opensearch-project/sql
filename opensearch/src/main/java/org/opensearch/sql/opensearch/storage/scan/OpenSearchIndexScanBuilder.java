@@ -5,7 +5,6 @@
 
 package org.opensearch.sql.opensearch.storage.scan;
 
-import java.util.function.Function;
 import lombok.EqualsAndHashCode;
 import org.opensearch.sql.expression.ReferenceExpression;
 import org.opensearch.sql.opensearch.request.OpenSearchRequestBuilder;
@@ -25,31 +24,21 @@ import org.opensearch.sql.storage.read.TableScanBuilder;
  * by delegated builder internally. This is to avoid conditional check of different push down logic
  * for non-aggregate and aggregate query everywhere.
  */
-public class OpenSearchIndexScanBuilder extends TableScanBuilder {
-
-  /**
-   * A function to create an index scan based on a OpenSearchRequestBuilder.
-   */
-  @EqualsAndHashCode.Exclude
-  private final Function<OpenSearchRequestBuilder, OpenSearchIndexScan> scanConstructor;
+public abstract class OpenSearchIndexScanBuilder extends TableScanBuilder {
 
   /**
    * Delegated index scan builder for non-aggregate or aggregate query.
    */
   @EqualsAndHashCode.Include
-  private PushDownTranslator delegate;
+  private PushDownQueryBuilder delegate;
 
   /** Is limit operator pushed down. */
   private boolean isLimitPushedDown = false;
 
-
   /**
    * Constructor used during query execution.
    */
-  public OpenSearchIndexScanBuilder(
-      Function<OpenSearchRequestBuilder, OpenSearchIndexScan> scanConstructor,
-                                    OpenSearchRequestBuilder requestBuilder) {
-    this.scanConstructor = scanConstructor;
+  protected OpenSearchIndexScanBuilder(OpenSearchRequestBuilder requestBuilder) {
     this.delegate = new OpenSearchIndexScanQueryBuilder(requestBuilder);
 
   }
@@ -57,17 +46,16 @@ public class OpenSearchIndexScanBuilder extends TableScanBuilder {
   /**
    * Constructor used for unit tests.
    */
-  public OpenSearchIndexScanBuilder(Function<OpenSearchRequestBuilder,
-      OpenSearchIndexScan> constructor,
-      PushDownTranslator translator) {
-    this.scanConstructor = constructor;
+  protected OpenSearchIndexScanBuilder(PushDownQueryBuilder translator) {
     this.delegate = translator;
   }
 
   @Override
   public TableScanOperator build() {
-    return scanConstructor.apply(delegate.build());
+    return createScan(delegate.build());
   }
+
+  protected abstract TableScanOperator createScan(OpenSearchRequestBuilder requestBuilder);
 
   @Override
   public boolean pushDownFilter(LogicalFilter filter) {

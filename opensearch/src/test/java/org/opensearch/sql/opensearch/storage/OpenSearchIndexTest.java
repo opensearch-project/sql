@@ -51,6 +51,8 @@ import org.opensearch.sql.opensearch.data.type.OpenSearchDataType;
 import org.opensearch.sql.opensearch.data.type.OpenSearchTextType;
 import org.opensearch.sql.opensearch.data.value.OpenSearchExprValueFactory;
 import org.opensearch.sql.opensearch.mapping.IndexMapping;
+import org.opensearch.sql.opensearch.request.OpenSearchRequest;
+import org.opensearch.sql.opensearch.request.OpenSearchRequestBuilder;
 import org.opensearch.sql.opensearch.storage.scan.OpenSearchIndexScan;
 import org.opensearch.sql.planner.logical.LogicalPlan;
 import org.opensearch.sql.planner.logical.LogicalPlanDSL;
@@ -197,8 +199,11 @@ class OpenSearchIndexTest {
     when(settings.getSettingValue(Settings.Key.QUERY_SIZE_LIMIT)).thenReturn(200);
     LogicalPlan plan = index.createScanBuilder();
     Integer maxResultWindow = index.getMaxResultWindow();
-    assertEquals(OpenSearchIndexScan.create(client, indexName, settings,
-        maxResultWindow, exprValueFactory), index.implement(index.optimize(plan)));
+    final var name = new OpenSearchRequest.IndexName(indexName);
+    final int defaultQuerySize = settings.getSettingValue(Settings.Key.QUERY_SIZE_LIMIT);
+    final var requestBuilder = new OpenSearchRequestBuilder(defaultQuerySize, exprValueFactory);
+    assertEquals(new OpenSearchIndexScan(client, name,
+      settings, maxResultWindow, requestBuilder), index.implement(index.optimize(plan)));
   }
 
   @Test
@@ -207,8 +212,11 @@ class OpenSearchIndexTest {
     when(settings.getSettingValue(Settings.Key.QUERY_SIZE_LIMIT)).thenReturn(200);
     LogicalPlan plan = index.createScanBuilder();
     Integer maxResultWindow = index.getMaxResultWindow();
-    assertEquals(OpenSearchIndexScan.create(client, indexName, settings,
-        maxResultWindow, exprValueFactory), index.implement(plan));
+    final var name = new OpenSearchRequest.IndexName(indexName);
+    final int defaultQuerySize = settings.getSettingValue(Settings.Key.QUERY_SIZE_LIMIT);
+    final var requestBuilder = new OpenSearchRequestBuilder(defaultQuerySize, exprValueFactory);
+    assertEquals(new OpenSearchIndexScan(client, name,
+      settings, maxResultWindow, requestBuilder), index.implement(plan));
   }
 
   @Test
@@ -242,6 +250,9 @@ class OpenSearchIndexTest {
             include);
 
     Integer maxResultWindow = index.getMaxResultWindow();
+    final var name = new OpenSearchRequest.IndexName(indexName);
+    final int defaultQuerySize = settings.getSettingValue(Settings.Key.QUERY_SIZE_LIMIT);
+    final var requestBuilder = new OpenSearchRequestBuilder(defaultQuerySize, exprValueFactory);
     assertEquals(
         PhysicalPlanDSL.project(
             PhysicalPlanDSL.dedupe(
@@ -249,8 +260,8 @@ class OpenSearchIndexTest {
                     PhysicalPlanDSL.eval(
                         PhysicalPlanDSL.remove(
                             PhysicalPlanDSL.rename(
-                                OpenSearchIndexScan.create(client, indexName, settings,
-                                    maxResultWindow, exprValueFactory),
+                              new OpenSearchIndexScan(client, name,
+                                settings, maxResultWindow, requestBuilder),
                                 mappings),
                             exclude),
                         newEvalField),

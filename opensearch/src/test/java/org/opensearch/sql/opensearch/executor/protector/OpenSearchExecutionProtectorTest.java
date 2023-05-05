@@ -9,7 +9,6 @@ package org.opensearch.sql.opensearch.executor.protector;
 import static java.util.Collections.emptyList;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
 import static org.opensearch.sql.ast.tree.Sort.SortOption.DEFAULT_ASC;
 import static org.opensearch.sql.data.type.ExprCoreType.DOUBLE;
 import static org.opensearch.sql.data.type.ExprCoreType.INTEGER;
@@ -24,7 +23,6 @@ import static org.opensearch.sql.planner.physical.PhysicalPlanDSL.window;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -41,7 +39,6 @@ import org.opensearch.sql.ast.expression.DataType;
 import org.opensearch.sql.ast.expression.Literal;
 import org.opensearch.sql.ast.tree.RareTopN.CommandType;
 import org.opensearch.sql.ast.tree.Sort;
-import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.data.model.ExprBooleanValue;
 import org.opensearch.sql.expression.DSL;
 import org.opensearch.sql.expression.Expression;
@@ -58,6 +55,8 @@ import org.opensearch.sql.opensearch.data.value.OpenSearchExprValueFactory;
 import org.opensearch.sql.opensearch.planner.physical.ADOperator;
 import org.opensearch.sql.opensearch.planner.physical.MLCommonsOperator;
 import org.opensearch.sql.opensearch.planner.physical.MLOperator;
+import org.opensearch.sql.opensearch.request.OpenSearchRequest;
+import org.opensearch.sql.opensearch.request.OpenSearchRequestBuilder;
 import org.opensearch.sql.opensearch.setting.OpenSearchSettings;
 import org.opensearch.sql.opensearch.storage.scan.OpenSearchIndexScan;
 import org.opensearch.sql.planner.physical.NestedOperator;
@@ -88,10 +87,9 @@ class OpenSearchExecutionProtectorTest {
 
   @Test
   void testProtectIndexScan() {
-    when(settings.getSettingValue(Settings.Key.QUERY_SIZE_LIMIT))
-        .thenReturn(200);
     String indexName = "test";
-    Integer maxResultWindow = 10000;
+    final int maxResultWindow = 10000;
+    final int querySizeLimit = 200;
     NamedExpression include = named("age", ref("age", INTEGER));
     ReferenceExpression exclude = ref("name", STRING);
     ReferenceExpression dedupeField = ref("name", STRING);
@@ -111,6 +109,8 @@ class OpenSearchExecutionProtectorTest {
     Integer limit = 10;
     Integer offset = 10;
 
+    final var name = new OpenSearchRequest.IndexName(indexName);
+    final var requestBuilder = new OpenSearchRequestBuilder(querySizeLimit, exprValueFactory);
     assertEquals(
         PhysicalPlanDSL.project(
             PhysicalPlanDSL.limit(
@@ -124,10 +124,8 @@ class OpenSearchExecutionProtectorTest {
                                             PhysicalPlanDSL.agg(
                                                 filter(
                                                     resourceMonitor(
-                                                        OpenSearchIndexScan.create(client,
-                                                            indexName, settings,
-                                                            maxResultWindow,
-                                                            exprValueFactory)),
+                                                      new OpenSearchIndexScan(client, name,
+                                                        settings, maxResultWindow, requestBuilder)),
                                                     filterExpr),
                                                 aggregators,
                                                 groupByExprs),
@@ -153,10 +151,8 @@ class OpenSearchExecutionProtectorTest {
                                         PhysicalPlanDSL.rename(
                                             PhysicalPlanDSL.agg(
                                                 filter(
-                                                    OpenSearchIndexScan.create(client, indexName,
-                                                        settings,
-                                                        maxResultWindow,
-                                                        exprValueFactory),
+                                                  new OpenSearchIndexScan(client, name,
+                                                    settings, maxResultWindow, requestBuilder),
                                                     filterExpr),
                                                 aggregators,
                                                 groupByExprs),

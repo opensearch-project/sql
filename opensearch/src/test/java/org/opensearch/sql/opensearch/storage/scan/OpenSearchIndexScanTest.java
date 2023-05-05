@@ -67,7 +67,6 @@ class OpenSearchIndexScanTest {
 
   @BeforeEach
   void setup() {
-    lenient().when(settings.getSettingValue(Settings.Key.QUERY_SIZE_LIMIT)).thenReturn(QUERY_SIZE);
     when(settings.getSettingValue(Settings.Key.SQL_CURSOR_KEEP_ALIVE))
         .thenReturn(TimeValue.timeValueMinutes(1));
   }
@@ -75,8 +74,10 @@ class OpenSearchIndexScanTest {
   @Test
   void query_empty_result() {
     mockResponse(client);
-    try (OpenSearchIndexScan indexScan = OpenSearchIndexScan.create(client, "test", settings,
-        3, exprValueFactory)) {
+    final var name = new OpenSearchRequest.IndexName("test");
+    final var requestBuilder = new OpenSearchRequestBuilder(QUERY_SIZE, exprValueFactory);
+    try (OpenSearchIndexScan indexScan = new OpenSearchIndexScan(client, name,
+      settings, 3, requestBuilder)) {
       indexScan.open();
       assertAll(
           () -> assertFalse(indexScan.hasNext()),
@@ -93,8 +94,10 @@ class OpenSearchIndexScanTest {
         employee(2, "Smith", "HR"),
         employee(3, "Allen", "IT")});
 
-    try (OpenSearchIndexScan indexScan = OpenSearchIndexScan.create(client, "employees", settings,
-        10, exprValueFactory)) {
+    final var name = new OpenSearchRequest.IndexName("employees");
+    final var requestBuilder = new OpenSearchRequestBuilder(QUERY_SIZE, exprValueFactory);
+    try (OpenSearchIndexScan indexScan = new OpenSearchIndexScan(client, name,
+      settings, 10, requestBuilder)) {
       indexScan.open();
 
       assertAll(
@@ -123,8 +126,10 @@ class OpenSearchIndexScanTest {
         new ExprValue[]{employee(1, "John", "IT"), employee(2, "Smith", "HR")},
         new ExprValue[]{employee(3, "Allen", "IT")});
 
-    try (OpenSearchIndexScan indexScan = OpenSearchIndexScan.create(client, "employees", settings,
-        10, exprValueFactory)) {
+    final var name = new OpenSearchRequest.IndexName("employees");
+    final var requestBuilder = new OpenSearchRequestBuilder(QUERY_SIZE, exprValueFactory);
+    try (OpenSearchIndexScan indexScan = new OpenSearchIndexScan(client, name,
+      settings, 10, requestBuilder)) {
       indexScan.open();
 
       assertAll(
@@ -214,10 +219,12 @@ class OpenSearchIndexScanTest {
         employee(2, "Smith", "HR"),
         employee(3, "Allen", "IT"),
         employee(4, "Bob", "HR")});
-    when(settings.getSettingValue(Settings.Key.QUERY_SIZE_LIMIT)).thenReturn(2);
 
-    try (OpenSearchIndexScan indexScan = OpenSearchIndexScan.create(client, "employees", settings,
-        10, exprValueFactory)) {
+    final var name = new OpenSearchRequest.IndexName("employees");
+    final int defaultQuerySize = 2;
+    final var requestBuilder = new OpenSearchRequestBuilder(defaultQuerySize, exprValueFactory);
+    try (OpenSearchIndexScan indexScan = new OpenSearchIndexScan(client, name,
+      settings, 10, requestBuilder)) {
       indexScan.open();
 
       assertAll(

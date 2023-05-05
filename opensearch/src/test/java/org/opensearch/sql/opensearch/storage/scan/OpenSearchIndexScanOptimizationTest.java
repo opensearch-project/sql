@@ -86,6 +86,7 @@ import org.opensearch.sql.planner.optimizer.LogicalPlanOptimizer;
 import org.opensearch.sql.planner.optimizer.PushDownPageSize;
 import org.opensearch.sql.planner.optimizer.rule.read.CreateTableScanBuilder;
 import org.opensearch.sql.storage.Table;
+import org.opensearch.sql.storage.TableScanOperator;
 
 @ExtendWith(MockitoExtension.class)
 class OpenSearchIndexScanOptimizationTest {
@@ -105,7 +106,12 @@ class OpenSearchIndexScanOptimizationTest {
 
   @BeforeEach
   void setUp() {
-    indexScanBuilder = new OpenSearchIndexScanBuilder(t -> indexScan, requestBuilder);
+    indexScanBuilder = new OpenSearchIndexScanBuilder(requestBuilder) {
+      @Override
+      protected TableScanOperator createScan(OpenSearchRequestBuilder build) {
+        return indexScan;
+      }
+    };
     when(table.createScanBuilder()).thenReturn(indexScanBuilder);
   }
 
@@ -704,14 +710,23 @@ class OpenSearchIndexScanOptimizationTest {
 
   private OpenSearchIndexScanBuilder indexScanBuilder(Runnable... verifyPushDownCalls) {
     this.verifyPushDownCalls = verifyPushDownCalls;
-    return new OpenSearchIndexScanBuilder(t -> indexScan,
-        new OpenSearchIndexScanQueryBuilder(requestBuilder));
+    return new OpenSearchIndexScanBuilder(new OpenSearchIndexScanQueryBuilder(requestBuilder)) {
+      @Override
+      protected TableScanOperator createScan(OpenSearchRequestBuilder build) {
+        return indexScan;
+      }
+    };
   }
 
   private OpenSearchIndexScanBuilder indexScanAggBuilder(Runnable... verifyPushDownCalls) {
     this.verifyPushDownCalls = verifyPushDownCalls;
-    return new OpenSearchIndexScanBuilder(t -> indexScan,
-        new OpenSearchIndexScanAggregationBuilder(requestBuilder, mock(LogicalAggregation.class)));
+    return new OpenSearchIndexScanBuilder(new OpenSearchIndexScanAggregationBuilder(
+        requestBuilder, mock(LogicalAggregation.class))) {
+      @Override
+      protected TableScanOperator createScan(OpenSearchRequestBuilder build) {
+        return indexScan;
+      }
+    };
   }
 
   private void assertEqualsAfterOptimization(LogicalPlan expected, LogicalPlan actual) {

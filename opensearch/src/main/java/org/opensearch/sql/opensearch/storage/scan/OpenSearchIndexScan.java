@@ -23,7 +23,6 @@ import org.opensearch.sql.opensearch.data.value.OpenSearchExprValueFactory;
 import org.opensearch.sql.opensearch.request.ContinuePageRequestBuilder;
 import org.opensearch.sql.opensearch.request.ExecutableRequestBuilder;
 import org.opensearch.sql.opensearch.request.OpenSearchRequest;
-import org.opensearch.sql.opensearch.request.OpenSearchRequestBuilder;
 import org.opensearch.sql.opensearch.response.OpenSearchResponse;
 import org.opensearch.sql.opensearch.storage.OpenSearchIndex;
 import org.opensearch.sql.opensearch.storage.OpenSearchStorageEngine;
@@ -63,21 +62,6 @@ public class OpenSearchIndexScan extends TableScanOperator implements Serializab
 
   /** Search response for current batch. */
   private transient Iterator<ExprValue> iterator;
-
-  /**
-   * Factory method used in tests.
-   */
-  public static OpenSearchIndexScan create(OpenSearchClient client,
-                                           String indexName,
-                                           Settings settings,
-                                           Integer maxResultWindow,
-                                           OpenSearchExprValueFactory exprValueFactory) {
-    final var name = new OpenSearchRequest.IndexName(indexName);
-    final int defaultQuerySize = settings.getSettingValue(Settings.Key.QUERY_SIZE_LIMIT);
-    final var requestBuilder = new OpenSearchRequestBuilder(defaultQuerySize, exprValueFactory);
-    return new OpenSearchIndexScan(client, name,
-        settings, maxResultWindow, requestBuilder);
-  }
 
   /**
    * Creates index scan based on a provided OpenSearchRequestBuilder.
