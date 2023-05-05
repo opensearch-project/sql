@@ -65,7 +65,7 @@ public class QueryPlanFactory
   /**
    * Create QueryExecution from Statement.
    */
-  public AbstractPlan createContinuePaginatedPlan(
+  public AbstractPlan create(
       Statement statement,
       Optional<ResponseListener<ExecutionEngine.QueryResponse>> queryListener,
       Optional<ResponseListener<ExecutionEngine.ExplainResponse>> explainListener) {
@@ -75,9 +75,9 @@ public class QueryPlanFactory
   /**
    * Creates a ContinuePaginatedPlan from a cursor.
    */
-  public AbstractPlan createContinuePaginatedPlan(String cursor, boolean isExplain,
-      ResponseListener<ExecutionEngine.QueryResponse> queryResponseListener,
-      ResponseListener<ExecutionEngine.ExplainResponse> explainListener) {
+  public AbstractPlan create(String cursor, boolean isExplain,
+                             ResponseListener<ExecutionEngine.QueryResponse> queryResponseListener,
+                             ResponseListener<ExecutionEngine.ExplainResponse> explainListener) {
     QueryId queryId = QueryId.queryId();
     var plan = new ContinuePaginatedPlan(queryId, cursor, queryService,
             planSerializer, queryResponseListener);
@@ -119,7 +119,7 @@ public class QueryPlanFactory
 
     return new ExplainPlan(
         QueryId.queryId(),
-        createContinuePaginatedPlan(node.getStatement(),
+        create(node.getStatement(),
             Optional.of(NO_CONSUMER_RESPONSE_LISTENER), Optional.empty()),
         context.getRight().get());
   }

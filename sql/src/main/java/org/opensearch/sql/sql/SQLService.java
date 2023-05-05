@@ -67,7 +67,7 @@ public class SQLService {
       Optional<ResponseListener<ExplainResponse>> explainListener) {
     if (request.getCursor().isPresent()) {
       // Handle v2 cursor here -- legacy cursor was handled earlier.
-      return queryExecutionFactory.createContinuePaginatedPlan(request.getCursor().get(),
+      return queryExecutionFactory.create(request.getCursor().get(),
           request.isExplainRequest(), queryListener.orElse(null), explainListener.orElse(null));
     } else {
       // 1.Parse query and convert parse tree (CST) to abstract syntax tree (AST)
@@ -81,7 +81,7 @@ public class SQLService {
                       .fetchSize(request.getFetchSize())
                       .build()));
 
-      return queryExecutionFactory.createContinuePaginatedPlan(
+      return queryExecutionFactory.create(
           statement, queryListener, explainListener);
     }
   }

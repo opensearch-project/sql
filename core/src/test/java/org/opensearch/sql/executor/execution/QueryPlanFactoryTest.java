@@ -62,7 +62,7 @@ class QueryPlanFactoryTest {
   public void createFromQueryShouldSuccess() {
     Statement query = new Query(plan, 0);
     AbstractPlan queryExecution =
-        factory.createContinuePaginatedPlan(query, Optional.of(queryListener), Optional.empty());
+        factory.create(query, Optional.of(queryListener), Optional.empty());
     assertTrue(queryExecution instanceof QueryPlan);
   }
 
@@ -70,15 +70,15 @@ class QueryPlanFactoryTest {
   public void createFromExplainShouldSuccess() {
     Statement query = new Explain(new Query(plan, 0));
     AbstractPlan queryExecution =
-        factory.createContinuePaginatedPlan(query, Optional.empty(), Optional.of(explainListener));
+        factory.create(query, Optional.empty(), Optional.of(explainListener));
     assertTrue(queryExecution instanceof ExplainPlan);
   }
 
   @Test
   public void createFromCursorShouldSuccess() {
-    AbstractPlan queryExecution = factory.createContinuePaginatedPlan("", false,
+    AbstractPlan queryExecution = factory.create("", false,
         queryListener, explainListener);
-    AbstractPlan explainExecution = factory.createContinuePaginatedPlan("", true,
+    AbstractPlan explainExecution = factory.create("", true,
         queryListener, explainListener);
     assertAll(
         () -> assertTrue(queryExecution instanceof ContinuePaginatedPlan),
@@ -91,7 +91,7 @@ class QueryPlanFactoryTest {
     Statement query = new Query(plan, 0);
 
     IllegalArgumentException exception =
-        assertThrows(IllegalArgumentException.class, () -> factory.createContinuePaginatedPlan(
+        assertThrows(IllegalArgumentException.class, () -> factory.create(
             query, Optional.empty(), Optional.empty()));
     assertEquals("[BUG] query listener must be not null", exception.getMessage());
   }
@@ -101,7 +101,7 @@ class QueryPlanFactoryTest {
     Statement query = new Explain(new Query(plan, 0));
 
     IllegalArgumentException exception =
-        assertThrows(IllegalArgumentException.class, () -> factory.createContinuePaginatedPlan(
+        assertThrows(IllegalArgumentException.class, () -> factory.create(
             query, Optional.empty(), Optional.empty()));
     assertEquals("[BUG] explain listener must be not null", exception.getMessage());
   }
@@ -129,7 +129,7 @@ class QueryPlanFactoryTest {
     factory = new QueryPlanFactory(queryService, planSerializer);
     Statement query = new Query(plan, 10);
     AbstractPlan queryExecution =
-        factory.createContinuePaginatedPlan(query, Optional.of(queryListener), Optional.empty());
+        factory.create(query, Optional.of(queryListener), Optional.empty());
     assertTrue(queryExecution instanceof QueryPlan);
   }
 
@@ -139,7 +139,7 @@ class QueryPlanFactoryTest {
     factory = new QueryPlanFactory(queryService, planSerializer);
     Statement query = new Query(plan, 10);
     assertThrows(UnsupportedCursorRequestException.class,
-        () -> factory.createContinuePaginatedPlan(query,
+        () -> factory.create(query,
             Optional.of(queryListener), Optional.empty()));
   }
 }
