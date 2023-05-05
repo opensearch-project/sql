@@ -2,6 +2,7 @@
  * Copyright OpenSearch Contributors
  * SPDX-License-Identifier: Apache-2.0
  */
+import Dependencies._
 
 lazy val scala212 = "2.12.14"
 lazy val sparkVersion = "3.3.1"
@@ -24,7 +25,21 @@ lazy val compileScalastyle = taskKey[Unit]("compileScalastyle")
 // Run as part of test task.
 lazy val testScalastyle = taskKey[Unit]("testScalastyle")
 
+lazy val build = taskKey[Unit]("assemblyWithCoverage")
+
+build := Def
+  .sequential(flintSparkIntegration / assembly, flintSparkIntegration / coverageReport)
+  .value
+
 lazy val commonSettings = Seq(
+  // Coverage
+  // todo. for demo now, increase to 100.
+  coverageMinimumStmtTotal := 70,
+  // todo. for demo now, increase to 100.
+  coverageMinimumBranchTotal := 70,
+  coverageFailOnMinimum := true,
+  coverageEnabled := true,
+
   // Scalastyle
   scalastyleConfig := (ThisBuild / scalastyleConfig).value,
   compileScalastyle := (Compile / scalastyle).toTask("").value,
@@ -34,17 +49,55 @@ lazy val commonSettings = Seq(
 
 lazy val root = (project in file("."))
   .aggregate(flintCore, flintSparkIntegration)
+  .disablePlugins(AssemblyPlugin)
   .settings(name := "flint")
 
 lazy val flintCore = (project in file("flint-core"))
+  .disablePlugins(AssemblyPlugin)
   .settings(name := "flint-core", scalaVersion := scala212)
 
 lazy val flintSparkIntegration = (project in file("flint-spark-integration"))
   .dependsOn(flintCore)
+  .enablePlugins(AssemblyPlugin)
   .settings(
     commonSettings,
     name := "flint-spark-integration",
     scalaVersion := scala212,
     libraryDependencies ++= Seq(
-      "org.apache.spark" %% "spark-core" % sparkVersion,
-      "org.apache.spark" %% "spark-sql" % sparkVersion))
+      "org.opensearch.client" % "opensearch-rest-client" % opensearchVersion,
+      "org.opensearch.client" % "opensearch-rest-high-level-client" % opensearchVersion,
+      "org.testcontainers" % "testcontainers" % "1.18.0" % "test",
+      "org.scalactic" %% "scalactic" % "3.2.15",
+      "org.scalatest" %% "scalatest" % "3.2.15" % "test",
+      "org.scalatest" %% "scalatest-flatspec" % "3.2.15" % "test",
+      "org.scalatestplus" %% "mockito-4-6" % "3.2.15.0" % "test",
+      "com.github.sbt" % "junit-interface" % "0.13.3" % "test"),
+    libraryDependencies ++= deps(sparkVersion),
+    assemblyPackageScala / assembleArtifact := false,
+    assembly / assemblyOption ~= {
+      _.withIncludeScala(false)
+    },
+    assembly / assemblyMergeStrategy := {
+      case PathList(ps @ _*) if ps.last endsWith ("module-info.class") =>
+        MergeStrategy.discard
+      case PathList("module-info.class") => MergeStrategy.discard
+      case PathList("META-INF", "versions", xs @ _, "module-info.class") =>
+        MergeStrategy.discard
+      case x =>
+        val oldStrategy = (assembly / assemblyMergeStrategy).value
+        oldStrategy(x)
+    },
+    assembly / test := (Test / test).value)
+
+// Test assembly package with integration test.
+lazy val integtest = (project in file("integ-test"))
+  .dependsOn(flintSparkIntegration % "test->test")
+  .settings(
+    commonSettings,
+    name := "integ-test",
+    scalaVersion := scala212,
+    libraryDependencies ++= Seq(
+      "org.scalactic" %% "scalactic" % "3.2.15",
+      "org.scalatest" %% "scalatest" % "3.2.15" % "test"),
+    libraryDependencies ++= deps(sparkVersion),
+    Test / fullClasspath += (flintSparkIntegration / assembly).value)
