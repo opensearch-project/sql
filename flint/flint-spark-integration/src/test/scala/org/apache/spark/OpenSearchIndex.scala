@@ -14,7 +14,7 @@ import org.opensearch.common.xcontent.XContentType
 /**
  * Provide OpenSearch Index
  */
-trait OpenSearchIndex { this: OpenSearchSuite =>
+trait OpenSearchIndex { self: OpenSearchSuite =>
 
   val oneNodeSetting = """{
                          |  "number_of_shards": "1",
