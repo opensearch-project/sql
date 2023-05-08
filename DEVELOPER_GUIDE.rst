@@ -149,8 +149,7 @@ The plugin codebase is in standard layout of Gradle project::
    ├── sql
    ├── sql-cli
    ├── sql-jdbc
-   ├── sql-odbc
-   └── workbench
+   └── sql-odbc
 
 Here are sub-folders (Gradle modules) for plugin source code:
 
@@ -175,8 +174,6 @@ Note that other related project code has already merged into this single reposit
 - ``sql-cli``: CLI tool for running query from command line.
 - ``sql-jdbc``: JDBC driver.
 - ``sql-odbc``: ODBC driver.
-- ``workbench``: query workbench UI.
-
 
 Code Convention
 ---------------

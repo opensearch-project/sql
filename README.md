@@ -20,7 +20,6 @@ The following projects have been merged into this repository as separate folders
 - [SQL CLI](https://github.com/opensearch-project/sql/tree/main/sql-cli)
 - [SQL JDBC](https://github.com/opensearch-project/sql/tree/main/sql-jdbc)
 - [SQL ODBC](https://github.com/opensearch-project/sql/tree/main/sql-odbc)
-- [Query Workbench](https://github.com/opensearch-project/sql/tree/main/workbench)
 
 ## Code Summary
 
@@ -50,14 +49,6 @@ The following projects have been merged into this repository as separate folders
 |       |                                                 |
 | ----- | ----------------------------------------------- |
 | Build | [![JDBC CI][jdbc-build-badge]][jdbc-build-link] |
-
-### Query WorkBench
-
-|                          |                                                                                                                    |
-| ------------------------ | ------------------------------------------------------------------------------------------------------------------ |
-| Test and build           | [![Observability Dashboards CI][workbench-build-badge]][workbench-build-link]                                      |
-| Code coverage            | [![codecov][workbench-codecov-badge]][sql-codecov-link]                                                                |
-| Distribution build tests | [![cypress tests][cypress-test-badge]][cypress-test-link] [![cypress code][cypress-code-badge]][cypress-code-link] |
 
 ### Repository Checks
 
@@ -103,14 +94,10 @@ The following projects have been merged into this repository as separate folders
 [untriaged-link]: https://github.com/opensearch-project/sql/issues?q=is%3Aopen+is%3Aissue+label%3Auntriaged+
 [nolabel-badge]: https://img.shields.io/github/issues-search/opensearch-project/sql?color=yellow&label=no%20label%20issues&query=is%3Aopen%20is%3Aissue%20no%3Alabel
 [nolabel-link]: https://github.com/opensearch-project/sql/issues?q=is%3Aopen+is%3Aissue+no%3Alabel+
-[workbench-build-badge]: https://github.com/opensearch-project/sql/actions/workflows/sql-workbench-test-and-build-workflow.yml/badge.svg
-[workbench-build-link]: https://github.com/opensearch-project/sql/actions/workflows/sql-workbench-test-and-build-workflow.yml
 [cypress-test-badge]: https://img.shields.io/badge/Cypress%20tests-in%20progress-yellow
 [cypress-test-link]: https://github.com/opensearch-project/opensearch-build/issues/1124
 [cypress-code-badge]: https://img.shields.io/badge/Cypress%20code-blue
-[cypress-code-link]: https://github.com/opensearch-project/sql/tree/main/workbench/.cypress/integration
 [sql-codecov-badge]: https://codecov.io/gh/opensearch-project/sql/branch/main/graphs/badge.svg?flag=sql-engine
-[workbench-codecov-badge]: https://codecov.io/gh/opensearch-project/sql/branch/main/graphs/badge.svg?flag=query-workbench
 [sql-codecov-link]: https://codecov.io/gh/opensearch-project/sql
 [opensearch-it-badge]: https://img.shields.io/badge/SQL%20IT%20tests-in%20progress-yellow
 [opensearch-it-link]: https://github.com/opensearch-project/opensearch-build/issues/1124
