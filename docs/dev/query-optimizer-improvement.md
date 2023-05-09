@@ -6,7 +6,7 @@ This section introduces the current architecture of logical optimizer and physic
 
 Currently each storage engine adds its own logical operator as concrete implementation for `TableScanOperator` abstraction. Typically each data source needs to add 2 logical operators for table scan with and without aggregation. Take OpenSearch for example, there are `OpenSearchLogicalIndexScan` and `OpenSearchLogicalIndexAgg` and a bunch of pushdown optimization rules for each accordingly.
 
-```
+```py
 class LogicalPlanOptimizer:
   /*
    * OpenSearch rules include:
@@ -38,7 +38,7 @@ class LogicalPlanOptimizer:
 
 After logical transformation, planner will let the `Table` in `LogicalRelation` (identified before logical transformation above) transform the logical plan to physical plan.
 
-```
+```py
 class OpenSearchIndex:
 
   def implement(plan: LogicalPlan):
@@ -58,7 +58,7 @@ The current planning architecture causes 2 serious problems:
 1. Each data source adds special logical operator and explode the optimizer rule space. For example, Prometheus also has `PrometheusLogicalMetricAgg` and `PrometheusLogicalMetricScan` accordingly. They have the exactly same pattern to match query plan tree as OpenSearch.
 2. A bigger problem is the difficulty of transforming from logical to physical when there are 2 `Table`s in query plan. Because only 1 of them has the chance to do the `implement()`. This is a blocker for supporting `INSERT ... SELECT ...` statement or JOIN query. See code below.
 
-```
+```java
   public PhysicalPlan plan(LogicalPlan plan) {
     Table table = findTable(plan);
     if (table == null) {
