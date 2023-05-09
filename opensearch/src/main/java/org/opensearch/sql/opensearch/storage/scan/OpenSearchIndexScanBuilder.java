@@ -76,9 +76,6 @@ public abstract class OpenSearchIndexScanBuilder extends TableScanBuilder {
 
   @Override
   public boolean pushDownPageSize(LogicalPaginate paginate) {
-    if (isLimitPushedDown) {
-      throw new IllegalStateException("Pagination has to be pushed down before limit.");
-    }
     return delegate.pushDownPageSize(paginate);
   }
 

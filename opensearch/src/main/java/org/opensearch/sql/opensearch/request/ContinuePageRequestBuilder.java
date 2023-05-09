@@ -12,6 +12,7 @@ import org.opensearch.sql.opensearch.data.value.OpenSearchExprValueFactory;
 
 /**
  * Builds a {@link ContinuePageRequest} to handle subsequent pagination/scroll/cursor requests.
+ * Initial search requests are handled by {@link OpenSearchRequestBuilder}
  */
 public class ContinuePageRequestBuilder implements ExecutableRequestBuilder {
 

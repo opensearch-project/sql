@@ -357,18 +357,6 @@ class OpenSearchIndexScanOptimizationTest {
   }
 
   @Test
-  void exception_when_page_size_after_limit() {
-    LogicalPlan plan = paginate(
-        project(
-        limit(
-          relation("schema", table),
-          1, 1),
-        DSL.named("intV", DSL.ref("intV", INTEGER))
-      ), 4);
-    assertThrows(IllegalStateException.class, () -> optimize(plan));
-  }
-
-  @Test
   void test_score_sort_push_down() {
     assertEqualsAfterOptimization(
         indexScanBuilder(
