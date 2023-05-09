@@ -15,7 +15,7 @@ https://user-images.githubusercontent.com/88679692/224208630-8d38d833-abf8-4035-
 # REST API
 ## Initial Query Request
 
-Initial query request contains the search request and page size. It can't be changed later while scrolling through pages issued by this request. Search query to OpenSearch engine is built during processing the initial request.
+Initial query request contains the search request and page size. Search query to OpenSearch is built during processing of this request. Neither the query nor page size can be change while scrolling through pages based on this request.
 
 ```json
 POST /_plugins/_sql
@@ -73,7 +73,7 @@ This timer is reset every time a page is retrieved.
 
 The client will receive an [error response](#error-response) if it sends a cursor request for an expired cursor.
 
-Keep alive timeout is [configurable](../user/admin/settings.rst#plugins.sql.cursor.keep_alive) by setting `plugins.sql.cursor.keep_alive` and has default value 1 minute.
+Keep alive timeout is [configurable](../user/admin/settings.rst#plugins.sql.cursor.keep_alive) by setting `plugins.sql.cursor.keep_alive` and has default value of 1 minute.
 
 ## Error Response
 
@@ -118,8 +118,6 @@ V2 SQL engine supports *sql node load balancing* -- a cursor request can be rout
 There are different plan trees are built during request processing. Read more about their purpose and stages [here](query-optimizer-improvement.md#Examples). Article below describes what changes are introduced in these trees by pagination feature.
 
 Simplified workflow of plan trees is shown below. Initial Page Request is processed the same way as non-paging request.
-
-#TODO add serialize to next request
 
 ```mermaid
 stateDiagram-v2
@@ -481,19 +479,6 @@ SQLService ->>+ QueryPlanFactory: execute
 ```
 
 #### Initial Query Request
-
-# **TODO add abstract**
-# TODO add analyzer
-
-ANTLR creates ParseTree
-AstBuilder creates UnresolvedPlan tree
-QueryPlanFactory creates AbstractPlan tree
-Analyzer creates LogicalPlan tree
-Optimizer optimizes LogicalPlan tree and replaces LogicalRelation with a TableScanBuilder
-Implementor creates a PhysicalPlan tree
-
-# pewpew
-
 
 Processing of an Initial Query Request has few extra steps comparing versus processing a regular Query Request:
 1. Query validation with `CanPaginateVisitor`. This is required to validate whether incoming query can be paged. This also activate legacy engine fallback mechanism.
