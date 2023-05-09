@@ -1,10 +1,6 @@
 ## Description
 
-The nested function in SQL and PPL maps to the nested query DSL in the OpenSearch query engine. A nested query is used to search nested object field types in an index. If an object matches the search, the nested query returns the root parent document. Nested inner objects are returned as inner hits in the query result.
-
-When data is mapped as object type and stored in arrays, the inner objects are stored in a flattened form making it impossible to perform queries with isolation on the inner objects. Users may want to store their data using the `nested` object field type in order to avoid array data being stored in a flattened form and to query individual indexes of an array. Using the nested function with data stored as `nested` object field type allows users to query inner objects with isolation.
-
-Please refer to the documentation page for `nested` object field types for a more in-depth view of how this type works in OpenSearch.
+The nested function in SQL and PPL maps to the nested query DSL in the OpenSearch query engine. A nested query is used to search nested object field types in an index. If an object matches the search, the nested query returns the root parent document. Nested inner objects are returned as inner hits in the query result. Using the nested function with data stored as `nested` object field type allows users to query inner objects with isolation. Please refer to the documentation page for `nested` object field types for a more in-depth view of how this type works in OpenSearch.
 [2.7 OpenSearch Nested Field Types](https://opensearch.org/docs/2.7/field-types/nested/)
 
 ## Table Of Contents
@@ -23,8 +19,8 @@ Please refer to the documentation page for `nested` object field types for a mor
 ## 1 Overview
 ### 1.1 Problem Statement
 
-**1. The V2 engine lacks legacy functionality for the nested function** - 
-The `nested` function is not present in the V2 engine and must be brought forward from the legacy engine to support user queries for nested object field types in SQL.
+**1. The V2 engine lacks functionality to query nested object types in OpenSearch** -
+The `nested` function is not present in the V2 engine and is one option for user to query nested object field types in the OpenSearch SQL plugin.
 
 **2. SQL provides a better user experience to query data than DSL** - 
 The SQL plugin gives users the ability to interact with their data using SQL and PPL query languages rather than the OpenSearch DSL. To query `nested` object type data in SQL and PPL we need an interface that maps to the DSL `nested` queries in OpenSearch.

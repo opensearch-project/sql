@@ -81,7 +81,7 @@ Most basic example from mapping to response from SQL plugin.
 }
 ```
 
-A basic nested function in the SELECT clause and output DSL pushed to OpenSearch.
+A basic nested function in the SELECT clause and output DSL pushed to OpenSearch. This example queries the `nested` object `message` and the inner field `info` to return all matching inner fields values.
 - `SELECT nested(message.info, message) FROM nested_objects;`
 ```json
 {
@@ -141,7 +141,7 @@ A basic nested function in the SELECT clause and output DSL pushed to OpenSearch
 }
 ```
 
-Example with multiple SELECT clause function calls sharing same path. Queries sharing same path will be added to the same inner hits query for OpenSearch DSL push down.
+Example with multiple SELECT clause function calls sharing same path. These two queries share the same path and will be added to the same inner hits query for pushing DSL to OpenSearch.
 - `SELECT nested(message.info, message), nested(message.author, message) FROM nested_objects;`
 ```json
 {
@@ -204,7 +204,7 @@ Example with multiple SELECT clause function calls sharing same path. Queries sh
 }
 ```
 
-An example with multiple nested function calls in SELECT clause using having differing path values. A separate nested query will be created for each path used within the SQL query.
+An example with multiple nested function calls in the SELECT clause having differing path values. This shows the separate nested query being created for each path used within the SQL query.
 - `SELECT nested(message.info, message), nested(comment.data, comment) FROM nested_objects;`
 ```json
 {
@@ -298,35 +298,32 @@ An example with multiple nested function calls in SELECT clause using having dif
 ## 2 Architecture Diagrams
 ### 2.1 Composite States for Nested Query Execution
 
-Nested function state diagram illustrating states in SQL plugin for push down execution. The nested operator stays in the `PhysicalPlan` after push down for flattening operation in post-processing. See section [2.3](#24-select-clause-nested-query-class-diagram) for flattening sequence and description.
+Nested function state diagram illustrating states in SQL plugin for push down execution. The nested operator stays in the `Physical Plan Tree` after push down for flattening operation in post-processing. See section [2.3](#24-select-clause-nested-query-class-diagram) for flattening sequence and description.
 
 ```mermaid
 stateDiagram-v2
 direction LR
     LogicalPlan --> OptimizedLogicalPlan: Optimize
     OptimizedLogicalPlan --> PhysicalPlan:push down
-    note right of PhysicalPlan
-      Note: NestedOperator stays in PhysicalPlan\nafter push down for post-processing.
-    end note
 
     state "Logical Plan Tree" as LogicalPlan
     state LogicalPlan {
-        logState1: Project
-        logState2: Nested
+        logState1: LogicalProject
+        logState2: LogicalNested
         logState3: ...
 
         logState1 --> logState2
         logState2 --> logState3
-        logState3 --> Relation
+        logState3 --> LogicalRelation
     }
 
     state "Optimized Logical Plan Tree" as OptimizedLogicalPlan
     state OptimizedLogicalPlan {
-        optState1: Project
-        optState2: Nested
+        optState1: LogicalProject
+        optState2: LogicalNested
 
         optState1 --> optState2
-        optState2 --> IndexScanBuilder
+        optState2 --> OpenSearchIndexScanBuilder
     }
 
     state "Physical Plan Tree" as PhysicalPlan
@@ -335,7 +332,7 @@ direction LR
         phyState2: NestedOperator
 
         phyState1 --> phyState2
-        phyState2 --> IndexScan
+        phyState2 --> OpenSearchIndexScan
     }
 ```
 
@@ -385,21 +382,32 @@ QueryService-->>-SQLService:PhysicalPlan
 ```
 
 ### 2.3 Sequence Diagram for Nested SELECT Clause Post-processing
-Nested function sequence diagram illustrating the flattening of the OpenSearch response. Flattening the response from OpenSearch changes the nested types structure by making the full path of an object the key, and the object it refers to the value.
+Nested function sequence diagram illustrating the flattening of the OpenSearch response. Flattening the response from OpenSearch changes the nested types structure by making the full path of an object the key, and the object it refers to the value. As well when a user selects multiple nested fields with differing path values, a cross join is done on the result. These examples show the flattening output keys and cross join.
 
 **Sample input:**
 ```json
 {
   "comments": {
-    "likes": 2
-  }
+    "data": "abc"
+  },
+  "message": [
+    { "info": "letter1" },
+    { "info": "letter2" }
+  ]
 }
 ```
 **Sample Output:**
 ```json
-{
-  "comment.likes": 2
-}
+[
+  [
+    { "comment.data": "abc" },
+    { "message.info": "letter1" }
+  ],
+  [
+    { "comment.data": "abc" },
+    { "message.info": "letter2" }
+  ]
+]
 ```
 
 ```mermaid
@@ -417,7 +425,7 @@ OpenSearchExecutionEngine->>+ProjectOperator:next
 ProjectOperator-->>-OpenSearchExecutionEngine:ExprValue
 ```
 
-#### 2.4 Select Clause Nested Query Class Diagram
+### 2.4 Select Clause Nested Query Class Diagram
 Nested function class diagram for additional classes required for query execution. The `NestedAnalyzer` is a visitor for nested functions used in the SELECT clause to fulfill the `LogicalNested` LogicalPlan. After push down is successful the `NestedOperator` PhysicalPlan is used for object flattening of the OpenSearch response.
 
 ```mermaid
