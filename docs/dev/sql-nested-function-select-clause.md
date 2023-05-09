@@ -24,8 +24,8 @@ Dot notation is used to show nesting level for fields and paths. For example `ne
 
 ### 1.2 Changes To Core
 - **NestedOperator:** Responsible for post-processing and flattening of OpenSearch response.
-- **LogicalNested:** Stores data required for push down.
-- **NestedAnalyzer:** Visitor for LogicalNested instantiation.
+- **LogicalNested:** Stores data required for OpenSearch DSL push down.
+- **NestedAnalyzer:** Identifies nested functions used in `SELECT` clause for `LogicalNested` creation.
 - **Analyzer:** Added ownership of NestedAnalyzer.
 
 
@@ -85,9 +85,6 @@ A basic nested function in the SELECT clause and output DSL pushed to OpenSearch
 - `SELECT nested(message.info, message) FROM nested_objects;`
 ```json
 {
-    "from": 0,
-    "size": 200,
-    "timeout": "1m",
     "query": {
         "bool": {
             "filter": [
@@ -102,17 +99,10 @@ A basic nested function in the SELECT clause and output DSL pushed to OpenSearch
                                         }
                                     },
                                     "path": "message",
-                                    "ignore_unmapped": false,
-                                    "score_mode": "none",
+                                    ...
                                     "boost": 1.0,
                                     "inner_hits": {
-                                        "ignore_unmapped": false,
-                                        "from": 0,
-                                        "size": 3,
-                                        "version": false,
-                                        "seq_no_primary_term": false,
-                                        "explain": false,
-                                        "track_scores": false,
+                                        ...
                                         "_source": {
                                             "includes": [
                                                 "message.info"
@@ -122,22 +112,13 @@ A basic nested function in the SELECT clause and output DSL pushed to OpenSearch
                                     }
                                 }
                             }
-                        ],
-                        "adjust_pure_negative": true,
-                        "boost": 1.0
+                        ]
                     }
                 }
-            ],
-            "adjust_pure_negative": true,
-            "boost": 1.0
+            ]
         }
     },
-    "_source": {
-        "includes": [
-            "message.info"
-        ],
-        "excludes": []
-    }
+    ...
 }
 ```
 
@@ -145,9 +126,6 @@ Example with multiple SELECT clause function calls sharing same path. These two 
 - `SELECT nested(message.info, message), nested(message.author, message) FROM nested_objects;`
 ```json
 {
-    "from": 0,
-    "size": 200,
-    "timeout": "1m",
     "query": {
         "bool": {
             "filter": [
@@ -162,17 +140,9 @@ Example with multiple SELECT clause function calls sharing same path. These two 
                                         }
                                     },
                                     "path": "message",
-                                    "ignore_unmapped": false,
-                                    "score_mode": "none",
-                                    "boost": 1.0,
+                                    ...
                                     "inner_hits": {
-                                        "ignore_unmapped": false,
-                                        "from": 0,
-                                        "size": 3,
-                                        "version": false,
-                                        "seq_no_primary_term": false,
-                                        "explain": false,
-                                        "track_scores": false,
+                                        ...
                                         "_source": {
                                             "includes": [
                                                 "message.info",
@@ -184,23 +154,12 @@ Example with multiple SELECT clause function calls sharing same path. These two 
                                 }
                             }
                         ],
-                        "adjust_pure_negative": true,
-                        "boost": 1.0
                     }
                 }
             ],
-            "adjust_pure_negative": true,
-            "boost": 1.0
         }
     },
-    "_source": {
-        "includes": [
-            "message.info",
-            "message.author",
-            "message"
-        ],
-        "excludes": []
-    }
+    ...
 }
 ```
 
@@ -208,9 +167,6 @@ An example with multiple nested function calls in the SELECT clause having diffe
 - `SELECT nested(message.info, message), nested(comment.data, comment) FROM nested_objects;`
 ```json
 {
-    "from": 0,
-    "size": 200,
-    "timeout": "1m",
     "query": {
         "bool": {
             "filter": [
@@ -225,17 +181,9 @@ An example with multiple nested function calls in the SELECT clause having diffe
                                         }
                                     },
                                     "path": "comment",
-                                    "ignore_unmapped": false,
-                                    "score_mode": "none",
-                                    "boost": 1.0,
+                                    ...
                                     "inner_hits": {
-                                        "ignore_unmapped": false,
-                                        "from": 0,
-                                        "size": 3,
-                                        "version": false,
-                                        "seq_no_primary_term": false,
-                                        "explain": false,
-                                        "track_scores": false,
+                                        ...
                                         "_source": {
                                             "includes": [
                                                 "comment.data"
@@ -253,17 +201,9 @@ An example with multiple nested function calls in the SELECT clause having diffe
                                         }
                                     },
                                     "path": "message",
-                                    "ignore_unmapped": false,
-                                    "score_mode": "none",
-                                    "boost": 1.0,
+                                    ...
                                     "inner_hits": {
-                                        "ignore_unmapped": false,
-                                        "from": 0,
-                                        "size": 3,
-                                        "version": false,
-                                        "seq_no_primary_term": false,
-                                        "explain": false,
-                                        "track_scores": false,
+                                        ...
                                         "_source": {
                                             "includes": [
                                                 "message.info"
@@ -274,24 +214,12 @@ An example with multiple nested function calls in the SELECT clause having diffe
                                 }
                             }
                         ],
-                        "adjust_pure_negative": true,
-                        "boost": 1.0
                     }
                 }
             ],
-            "adjust_pure_negative": true,
-            "boost": 1.0
         }
     },
-    "_source": {
-        "includes": [
-            "message.info",
-            "comment",
-            "comment.data",
-            "message"
-        ],
-        "excludes": []
-    }
+    ...
 }
 ```
 
@@ -478,7 +406,5 @@ classDiagram
 [SELECT Clause Demo](https://user-images.githubusercontent.com/36905077/234634885-d28b3a9a-fc5f-41fb-938a-764b60a775a6.mp4)
 
 ### Release Schedule
-See Issues Tracked under [Issue 1111](https://github.com/opensearch-project/sql/issues/1111) for related PR's and information:
-- [x] **Phase 1:** Add support for nested function used in SELECT clause.
-- [ ] **Phase 2:** Add support for `*` at ending level of field parameter in SELECT clause nested function.
-  - Example: `nestedField.innerFields.*`
+See Issues Tracked under [Issue 1111](https://github.com/opensearch-project/sql/issues/1111) for related PR's and information.
+

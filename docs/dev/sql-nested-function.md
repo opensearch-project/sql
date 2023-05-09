@@ -76,12 +76,6 @@ Both options serve the same functionality in querying an expression of a `nested
 ## Additional Info
 
 ### Release Schedule
-- **P[0] Nested used in `SELECT` clause:** [SELECT Clause Design and Release Schedule](sql-nested-function-select-clause.md)
-- **P[0] Nested used in `WHERE` clause:** TBD
-- **P[0] Nested used in `GROUP BY` clause:** TBD
-- **P[0] Nested used in `HAVING` clause:** TBD
-- **P[0] Nested used in `ORDER BY` clause:** TBD
-- **P[1] Nested Added to `PPL` query language:** TBD
-- **P[2] Nested function support in `JDBC` connector:** TBD
-- **P[2] Nested function support in `ODBC` connector:** TBD
+See Issues Tracked under [Issue 1111](https://github.com/opensearch-project/sql/issues/1111) for related PR's and information.
+
 
