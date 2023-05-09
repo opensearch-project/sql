@@ -361,41 +361,34 @@ Nested function class diagram for additional classes required for query executio
 title: Nested Select Clause Class Diagram
 ---
 classDiagram
+direction BT
 
-    NestedAnalyzer~AbstractNodeVisitor~-->LogicalNested~LogicalPlan~
-    LogicalNested-->NestedOperator~PhysicalPlan~
+    NestedAnalyzer~AbstractNodeVisitor~-->LogicalNested~LogicalPlan~ : «create»
+    DefaultImplementor~C~-->NestedOperator~PhysicalPlan~ : «create»
 
     class NestedAnalyzer{
-        -List~NamedExpression~ namedExpressions
         -ExpressionAnalyzer expressionAnalyzer
-        -LogicalPlan child
+    
         +analyze(UnresolvedExpression projectItem, AnalysisContext context) LogicalPlan
         +visitAlias(Alias node, AnalysisContext context) LogicalPlan
         +visitFunction(Function node, AnalysisContext context) LogicalPlan
         -validateArgs(List~UnresolvedExpression~ args)
-        -generatePath(String field) ReferenceExpression
     }
     class LogicalNested{
         -List~Map~String_ReferenceExpression~~ fields
-        -List~NamedExpression~ projectList
-        +addFields(Map~String_ReferenceExpression~ fields)
         +accept(LogicalPlanNodeVisitor~R_C~ visitor, C context) ~R_C~ R
     }
+    
+    class DefaultImplementor {
+        +visitNested(LogicalNested, C) PhysicalPlan
+    }
+
     class NestedOperator{
         -PhysicalPlan input
-        -Set~String~ fields
-        -Map~String_List~String~~ groupedPathsAndFields
-        -List~Map~String_ExprValue~~ result
-        -ListIterator~Map~String_ExprValue~~ flattenedResult
 
-        +accept(PhysicalPlanNodeVisitor~R_C~ visitor, C context) ~R_C~ R
-        +getChild() List~PhysicalPlan~
         +hasNext() boolean
         +next() ExprValue
-        +generateNonNestedFieldsMap(ExprValue inputMap)
         -flatten(String nestedField, ExprValue row, List~Map~String_ExprValue~~ prevList) List~Map~String_ExprValue~~
-        -containsSamePath(Map~String_ExprValue~ newMap) boolean
-        -getNested(String field, String nestedField, ExprValue row, List~Map~String_ExprValue~~ ret, ExptValue nestedObj)
     }
 ```
 
