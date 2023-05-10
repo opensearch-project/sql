@@ -21,7 +21,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.opensearch.sql.monitor.ResourceMonitor;
 import org.opensearch.sql.opensearch.executor.protector.ResourceMonitorPlan;
-import org.opensearch.sql.planner.SerializablePlan;
+import org.opensearch.sql.planner.ExternalizablePlan;
 import org.opensearch.sql.planner.physical.PhysicalPlan;
 import org.opensearch.sql.planner.physical.PhysicalPlanNodeVisitor;
 
@@ -119,7 +119,7 @@ class ResourceMonitorPlanTest {
 
   @Test
   void getPlanForSerialization() {
-    plan = mock(PhysicalPlan.class, withSettings().extraInterfaces(SerializablePlan.class));
+    plan = mock(PhysicalPlan.class, withSettings().extraInterfaces(ExternalizablePlan.class));
     monitorPlan = new ResourceMonitorPlan(plan, resourceMonitor);
     assertEquals(plan, monitorPlan.getPlanForSerialization());
   }

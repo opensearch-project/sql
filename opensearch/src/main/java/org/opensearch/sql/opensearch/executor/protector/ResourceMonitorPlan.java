@@ -15,7 +15,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.ToString;
 import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.monitor.ResourceMonitor;
-import org.opensearch.sql.planner.SerializablePlan;
+import org.opensearch.sql.planner.ExternalizablePlan;
 import org.opensearch.sql.planner.physical.PhysicalPlan;
 import org.opensearch.sql.planner.physical.PhysicalPlanNodeVisitor;
 
@@ -25,7 +25,7 @@ import org.opensearch.sql.planner.physical.PhysicalPlanNodeVisitor;
 @ToString
 @RequiredArgsConstructor
 @EqualsAndHashCode(callSuper = false)
-public class ResourceMonitorPlan extends PhysicalPlan implements SerializablePlan {
+public class ResourceMonitorPlan extends PhysicalPlan implements ExternalizablePlan {
 
   /**
    * How many method calls to delegate's next() to perform resource check once.
@@ -93,8 +93,8 @@ public class ResourceMonitorPlan extends PhysicalPlan implements SerializablePla
   }
 
   @Override
-  public SerializablePlan getPlanForSerialization() {
-    return (SerializablePlan) delegate;
+  public ExternalizablePlan getPlanForSerialization() {
+    return (ExternalizablePlan) delegate;
   }
 
   /**

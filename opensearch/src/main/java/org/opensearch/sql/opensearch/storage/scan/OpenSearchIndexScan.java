@@ -26,7 +26,7 @@ import org.opensearch.sql.opensearch.request.OpenSearchRequest;
 import org.opensearch.sql.opensearch.response.OpenSearchResponse;
 import org.opensearch.sql.opensearch.storage.OpenSearchIndex;
 import org.opensearch.sql.opensearch.storage.OpenSearchStorageEngine;
-import org.opensearch.sql.planner.SerializablePlan;
+import org.opensearch.sql.planner.ExternalizablePlan;
 import org.opensearch.sql.storage.TableScanOperator;
 
 /**
@@ -34,23 +34,23 @@ import org.opensearch.sql.storage.TableScanOperator;
  */
 @EqualsAndHashCode(onlyExplicitlyIncluded = true, callSuper = false)
 @ToString(onlyExplicitlyIncluded = true)
-public class OpenSearchIndexScan extends TableScanOperator implements SerializablePlan {
+public class OpenSearchIndexScan extends TableScanOperator implements ExternalizablePlan {
 
   /** OpenSearch client. */
-  private transient OpenSearchClient client;
+  private OpenSearchClient client;
 
-  private transient OpenSearchRequest.IndexName indexName;
-  private transient Settings settings;
-  private transient Integer maxResultWindow;
+  private OpenSearchRequest.IndexName indexName;
+  private Settings settings;
+  private Integer maxResultWindow;
   /** Search request builder. */
   @EqualsAndHashCode.Include
   @ToString.Include
-  private transient ExecutableRequestBuilder requestBuilder;
+  private ExecutableRequestBuilder requestBuilder;
 
   /** Search request. */
   @EqualsAndHashCode.Include
   @ToString.Include
-  private transient OpenSearchRequest request;
+  private OpenSearchRequest request;
 
   /** Largest number of rows allowed in the response. */
   @EqualsAndHashCode.Include
@@ -61,7 +61,7 @@ public class OpenSearchIndexScan extends TableScanOperator implements Serializab
   private Integer queryCount;
 
   /** Search response for current batch. */
-  private transient Iterator<ExprValue> iterator;
+  private Iterator<ExprValue> iterator;
 
   /**
    * Creates index scan based on a provided OpenSearchRequestBuilder.

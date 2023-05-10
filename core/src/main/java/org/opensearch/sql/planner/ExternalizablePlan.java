@@ -23,11 +23,11 @@ import org.opensearch.sql.executor.pagination.PlanSerializer;
  *   </li>
  *   <li>
  *     Overwrite {@link #getPlanForSerialization} to return
- *     another instance of {@link SerializablePlan}.
+ *     another instance of {@link ExternalizablePlan}.
  *   </li>
  * </ul>
  */
-public interface SerializablePlan extends Externalizable {
+public interface ExternalizablePlan extends Externalizable {
 
   /**
    * Argument is an instance of {@link PlanSerializer.CursorDeserializationStream}.
@@ -57,7 +57,7 @@ public interface SerializablePlan extends Externalizable {
    * It is needed to skip a `ResourceMonitorPlan` instance only, actually.
    * @return Next plan for serialization.
    */
-  default SerializablePlan getPlanForSerialization() {
+  default ExternalizablePlan getPlanForSerialization() {
     return this;
   }
 }

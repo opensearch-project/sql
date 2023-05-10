@@ -18,9 +18,9 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
 @DisplayNameGeneration(DisplayNameGenerator.ReplaceUnderscores.class)
-public class SerializablePlanTest {
+public class ExternalizablePlanTest {
   @Mock(answer = CALLS_REAL_METHODS)
-  SerializablePlan plan;
+  ExternalizablePlan plan;
 
   @Test
   void getPlanForSerialization_defaults_to_self() {

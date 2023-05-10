@@ -25,7 +25,7 @@ import org.opensearch.sql.data.model.ExprValueUtils;
 import org.opensearch.sql.executor.ExecutionEngine;
 import org.opensearch.sql.expression.NamedExpression;
 import org.opensearch.sql.expression.parse.ParseExpression;
-import org.opensearch.sql.planner.SerializablePlan;
+import org.opensearch.sql.planner.ExternalizablePlan;
 
 /**
  * Project the fields specified in {@link ProjectOperator#projectList} from input.
@@ -33,7 +33,7 @@ import org.opensearch.sql.planner.SerializablePlan;
 @ToString
 @EqualsAndHashCode(callSuper = false)
 @AllArgsConstructor
-public class ProjectOperator extends PhysicalPlan implements SerializablePlan {
+public class ProjectOperator extends PhysicalPlan implements ExternalizablePlan {
   @Getter
   private PhysicalPlan input;
   @Getter
@@ -116,6 +116,6 @@ public class ProjectOperator extends PhysicalPlan implements SerializablePlan {
   @Override
   public void writeExternal(ObjectOutput out) throws IOException {
     out.writeObject(projectList);
-    out.writeObject(((SerializablePlan) input).getPlanForSerialization());
+    out.writeObject(((ExternalizablePlan) input).getPlanForSerialization());
   }
 }

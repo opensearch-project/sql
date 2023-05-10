@@ -20,7 +20,7 @@ import java.util.zip.GZIPOutputStream;
 import lombok.RequiredArgsConstructor;
 import org.opensearch.sql.ast.tree.UnresolvedPlan;
 import org.opensearch.sql.exception.NoCursorException;
-import org.opensearch.sql.planner.SerializablePlan;
+import org.opensearch.sql.planner.ExternalizablePlan;
 import org.opensearch.sql.planner.physical.PhysicalPlan;
 import org.opensearch.sql.storage.StorageEngine;
 
@@ -44,7 +44,7 @@ public class PlanSerializer {
   public Cursor convertToCursor(PhysicalPlan plan) {
     try {
       return new Cursor(CURSOR_PREFIX
-          + serialize(((SerializablePlan) plan).getPlanForSerialization()));
+          + serialize(((ExternalizablePlan) plan).getPlanForSerialization()));
       // ClassCastException thrown when a plan in the tree doesn't implement SerializablePlan
     } catch (NotSerializableException | ClassCastException | NoCursorException e) {
       return Cursor.None;
