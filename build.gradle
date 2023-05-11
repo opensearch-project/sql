@@ -119,11 +119,11 @@ jacocoTestCoverageVerification {
 check.dependsOn jacocoTestCoverageVerification
 
 // TODO: fix code style in main and test source code
-subprojects {
+allprojects {
     apply plugin: 'checkstyle'
     checkstyle {
         configFile rootProject.file("config/checkstyle/google_checks.xml")
-        toolVersion "8.29"
+        toolVersion "8.45.1"
         configProperties = [
                 "org.checkstyle.google.suppressionfilter.config": rootProject.file("config/checkstyle/suppressions.xml")]
         ignoreFailures = false

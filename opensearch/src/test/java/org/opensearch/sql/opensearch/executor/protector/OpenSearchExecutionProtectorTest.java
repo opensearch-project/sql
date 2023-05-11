@@ -277,13 +277,14 @@ class OpenSearchExecutionProtectorTest {
     NodeClient nodeClient = mock(NodeClient.class);
     ADOperator adOperator =
             new ADOperator(
-                    values(emptyList()),
-                    new HashMap<String, Literal>() {{
-          put("shingle_size", new Literal(8, DataType.INTEGER));
-          put("time_decay", new Literal(0.0001, DataType.DOUBLE));
-          put("time_field", new Literal(null, DataType.STRING));
-        }
-      }, nodeClient);
+                values(emptyList()),
+                new HashMap<String, Literal>() {{
+                    put("shingle_size", new Literal(8, DataType.INTEGER));
+                    put("time_decay", new Literal(0.0001, DataType.DOUBLE));
+                    put("time_field", new Literal(null, DataType.STRING));
+                }},
+                nodeClient
+            );
 
     assertEquals(executionProtector.doProtect(adOperator),
             executionProtector.visitAD(adOperator, null));
