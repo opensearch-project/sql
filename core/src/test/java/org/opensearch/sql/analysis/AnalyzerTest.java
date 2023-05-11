@@ -714,10 +714,10 @@ class AnalyzerTest extends AnalyzerTestBase {
   public void ad_batchRCF_relation() {
     Map<String, Literal> argumentMap =
             new HashMap<String, Literal>() {{
-        put("shingle_size", new Literal(8, DataType.INTEGER));
-        put("time_decay", new Literal(0.0001, DataType.DOUBLE));
-        put("time_field", new Literal(null, DataType.STRING));
-      }};
+                put("shingle_size", new Literal(8, DataType.INTEGER));
+                put("time_decay", new Literal(0.0001, DataType.DOUBLE));
+                put("time_field", new Literal(null, DataType.STRING));
+            }};
     assertAnalyzeEqual(
             new LogicalAD(LogicalPlanDSL.relation("schema"), argumentMap),
             new AD(AstDSL.relation("schema"), argumentMap)
