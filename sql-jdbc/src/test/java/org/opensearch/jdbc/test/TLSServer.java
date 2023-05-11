@@ -6,6 +6,8 @@
 
 package org.opensearch.jdbc.test;
 
+import org.eclipse.jetty.server.HttpConnectionFactory;
+import org.eclipse.jetty.server.SslConnectionFactory;
 import org.opensearch.jdbc.internal.util.UrlParser;
 import org.opensearch.jdbc.test.mocks.MockOpenSearch;
 import org.eclipse.jetty.server.ConnectionFactory;
@@ -20,9 +22,9 @@ import org.eclipse.jetty.server.ServerConnector;
 import org.eclipse.jetty.server.handler.AbstractHandler;
 import org.eclipse.jetty.util.ssl.SslContextFactory;
 
-import javax.servlet.ServletException;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
+import jakarta.servlet.ServletException;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
 
 public class TLSServer {
@@ -70,7 +72,7 @@ public class TLSServer {
         ServerConnector httpsConnector = null;
 
         // setup ssl
-        SslContextFactory sslContextFactory = new SslContextFactory();
+        SslContextFactory.Server sslContextFactory = new SslContextFactory.Server();
         sslContextFactory.setKeyStorePath(keyStorePath);
         sslContextFactory.setKeyStorePassword(keyStorePassword);
         sslContextFactory.setKeyStoreType(keyStoreType);
@@ -83,17 +85,19 @@ public class TLSServer {
         sslContextFactory.setNeedClientAuth(needClientAuth);
 
         HttpConfiguration httpConfig = new HttpConfiguration();
-        httpConfig.addCustomizer(new SecureRequestCustomizer());
+        SecureRequestCustomizer src = new SecureRequestCustomizer();
+        src.setSniHostCheck(false);
+        httpConfig.addCustomizer(src);
 
         httpsConnector = createServerConnector(
                 jettyServer,
                 host,
                 0,
-                new org.eclipse.jetty.server.SslConnectionFactory(
+                new SslConnectionFactory(
                         sslContextFactory,
                         "http/1.1"
                 ),
-                new org.eclipse.jetty.server.HttpConnectionFactory(httpConfig)
+                new HttpConnectionFactory(httpConfig)
         );
 
         jettyServer.addConnector(httpsConnector);
@@ -132,8 +136,6 @@ public class TLSServer {
                 connectionFactories
         );
         connector.setPort(port);
-        connector.setStopTimeout(0);
-        connector.getSelectorManager().setStopTimeout(0);
         connector.setHost(bindAddress);
 
         return connector;
