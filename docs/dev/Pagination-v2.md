@@ -525,7 +525,7 @@ SQLService ->>+ QueryPlanFactory : execute
 
 #### Subsequent Query Request
 
-Second and further pages processed by a completely new workflow. The key point there:
+Subsequent pages are processed by a new workflow. The key point there:
 1. `Deserialization` is performed by `PlanSerializer` to restore entire Physical Plan Tree encoded into the cursor.
 2. Since query already contains the Physical Plan Tree, all tree processing steps are skipped.
 3. `Serialization` is performed by `PlanSerializer` - it converts Physical Plan Tree into a cursor, which could be used query a next page.
@@ -563,7 +563,7 @@ SQLService ->>+ QueryPlanFactory : execute
 
 #### Legacy Engine Fallback
 
-Since pagination in V2 engine supports less SQL features than pagination in legacy engine, a fallback mechanism is created to keep V1 engine features still available for the end user. Pagination fallback is backed by a new exception type which allows legacy engine to intersect execution of a request.
+Since pagination in V2 engine supports fewer SQL commands than pagination in legacy engine, a fallback mechanism is created to keep V1 engine features still available for the end user. Pagination fallback is backed by a new exception type which allows legacy engine to intersect execution of a request.
 
 ```mermaid
 sequenceDiagram
@@ -589,7 +589,7 @@ RestSQLQueryAction ->>+ SQLService : prepareRequest
 
 #### Serialization and Deserialization round trip
 
-The SQL engine should be able to completely recover the Physical Plan tree to continue its execution to get the next page. Serialization mechanism is responsible of proper dumping the plan tree. `ResourceMonitorPlan` shouldn't be serialized, because a new object of this type would be created for the restored plan tree before execution.
+The SQL engine should be able to completely recover the Physical Plan tree to continue its execution to get the next page. Serialization mechanism is responsible for recovering the plan tree. note: `ResourceMonitorPlan` isn't serialized, because a new object of this type would be created for the restored plan tree before execution. 
 Serialization and Deserialization are performed by Java object serialization API.
 
 ## TODO describe ...
@@ -674,7 +674,7 @@ Note over PlanSerializer : Zip to reduce size
 
 #### Deserialization
 
-Deserialization restores previously serialized Physical Plan tree. The recovered tree is ready to execute and should return the next page of the search response. To complete the tree restoration, SQL engine should build a new request to the OpenSearch node. This request doesn't contain a search query, but it contains a search context reference -- `scrollID`. To create a new `ContinuePageRequest` object it is require to access to the instance of `OpenSearchStorageEngine`. `OpenSearchStorageEngine` can't be serialized and it exists as a singletone in the SQL plugin engine. `PlanSerializer` creates a customized deserialization binary object stream -- `CursorDeserializationStream`; this stream provides an interface to access to the `OpenSearchStorageEngine` object.
+Deserialization restores previously serialized Physical Plan tree. The recovered tree is ready to execute and should return the next page of the search response. To complete the tree restoration, SQL engine should build a new request to the OpenSearch node. This request doesn't contain a search query, but it contains a search context reference -- `scrollID`. To create a new `ContinuePageRequest` object it is require to access to the instance of `OpenSearchStorageEngine`. `OpenSearchStorageEngine` can't be serialized and it exists as a singleton in the SQL plugin engine. `PlanSerializer` creates a customized deserialization binary object stream -- `CursorDeserializationStream`. This stream provides an interface to access the `OpenSearchStorageEngine` object.
 
 ```mermaid
 sequenceDiagram
