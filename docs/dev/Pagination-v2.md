@@ -16,6 +16,7 @@ https://user-images.githubusercontent.com/88679692/224208630-8d38d833-abf8-4035-
 ## Initial Query Request
 
 Initial query request contains the search request and page size. Search query to OpenSearch is built during processing of this request. Neither the query nor page size can be change while scrolling through pages based on this request.
+The only difference between paged and non-paged requests is `fetch_size` parameter supplied in paged request.
 
 ```json
 POST /_plugins/_sql
@@ -42,12 +43,13 @@ Response:
 If `query` is a DML statement then pagination does not apply, the `fetch_size` parameter is ignored and a cursor is not created. This is existing behaviour in v1 engine.
 
 The client receives an [error response](#error-response) if:
-- `fetch_size` is not a positive integer, or
--  evaluating `query` results in a server-side error.
+- `fetch_size` is not a positive integer
+-  evaluating `query` results in a server-side error
+-  `fetch_size` is bigger than `max_window_size` cluster-wide parameter.
 
-## Next Page Request
+## Subsequent Query Request
 
-Subsequent page request contains a cursor only.
+Subsequent query request contains a cursor only.
 
 ```json
 POST /_plugins/_sql
@@ -87,7 +89,7 @@ The response object has the following format:
         "reason": "<string>",
         "type": "<string>"
     },
-    "status": "<integer>"
+    "status": <integer>
 }
 ```
 
@@ -109,6 +111,7 @@ Efficient implementation of pagination needs to be aware of retrival API used. E
 The discussion below uses *under max_result_window* to refer to scenarios that can be implemented with simple retrieval API and *over max_result_window* for scenarios that require scroll API to implement.
 
 ## SQL Node Load Balancing
+
 V2 SQL engine supports *sql node load balancing* -- a cursor request can be routed to any SQL node in a cluster. This is achieved by encoding all data necessary to retrieve the next page in the `cursor_id`.
 
 ## Feature Design
@@ -173,7 +176,7 @@ New plan tree workflow was added for Subsequent Page Requests. Since a final Phy
 
 #### Abstract Plan tree
 
-Abstract Plan Tree for non-paged requests remains unchanged. The `QueryPlan`, as a top entry`, has a new optional field `pageSize`, which is not defined for non-paged requests. 
+Abstract Plan Tree for non-paged requests remains unchanged. The `QueryPlan`, as a top entry, has a new optional field `pageSize`, which is not defined for non-paged requests.
 
 ```mermaid
 classDiagram
@@ -498,24 +501,24 @@ sequenceDiagram
     participant PlanSerializer
 
 SQLService ->>+ QueryPlanFactory : execute
-  rect rgb(191, 223, 255)
+  rect rgb(91, 123, 155)
   QueryPlanFactory ->>+ CanPaginateVisitor : canConvertToCursor
     CanPaginateVisitor -->>- QueryPlanFactory : true
   end
   QueryPlanFactory ->>+ QueryService : execute
     QueryService ->>+ Planner : optimize
-      rect rgb(191, 223, 255)
+      rect rgb(91, 123, 155)
       Planner ->>+ CreatePagingTableScanBuilder : apply
         CreatePagingTableScanBuilder -->>- Planner : paged index scan
       end
       Planner -->>- QueryService : Logical Plan Tree
     QueryService ->>+ OpenSearchExecutionEngine : execute
-      rect rgb(191, 223, 255)
+      rect rgb(91, 123, 155)
       Note over OpenSearchExecutionEngine, PlanSerializer : Serialization
       OpenSearchExecutionEngine ->>+ PlanSerializer : convertToCursor
         PlanSerializer -->>- OpenSearchExecutionEngine : cursor
       end
-      rect rgb(191, 223, 255)
+      rect rgb(91, 123, 155)
       Note over OpenSearchExecutionEngine : get total hits
       end
       OpenSearchExecutionEngine -->>- QueryService : execution completed
@@ -541,19 +544,19 @@ sequenceDiagram
 
 SQLService ->>+ QueryPlanFactory : execute
   QueryPlanFactory ->>+ QueryService : execute
-    rect rgb(191, 223, 255)
+    rect rgb(91, 123, 155)
     note over QueryService, PlanSerializer : Deserialization
     QueryService ->>+ PlanSerializer: convertToPlan
       PlanSerializer -->>- QueryService: Physical plan tree
     end
     Note over QueryService : Planner, Optimizer and Implementor<br />are skipped
     QueryService ->>+ OpenSearchExecutionEngine : execute
-      rect rgb(191, 223, 255)
+      rect rgb(91, 123, 155)
       note over OpenSearchExecutionEngine, PlanSerializer : Serialization
       OpenSearchExecutionEngine ->>+ PlanSerializer : convertToCursor
         PlanSerializer -->>- OpenSearchExecutionEngine : cursor
       end
-      rect rgb(191, 223, 255)
+      rect rgb(91, 123, 155)
       Note over OpenSearchExecutionEngine : get total hits
       end
       OpenSearchExecutionEngine -->>- QueryService: execution completed
@@ -575,7 +578,7 @@ sequenceDiagram
 
 RestSQLQueryAction ->>+ SQLService : prepareRequest
   SQLService ->>+ QueryPlanFactory : execute
-    rect rgb(191, 223, 255)
+    rect rgb(91, 123, 155)
     note over SQLService, CanPaginateVisitor : V2 support check
     QueryPlanFactory ->>+ CanPaginateVisitor : canConvertToCursor
       CanPaginateVisitor -->>- QueryPlanFactory : false
@@ -591,8 +594,6 @@ RestSQLQueryAction ->>+ SQLService : prepareRequest
 
 The SQL engine should be able to completely recover the Physical Plan tree to continue its execution to get the next page. Serialization mechanism is responsible for recovering the plan tree. note: `ResourceMonitorPlan` isn't serialized, because a new object of this type would be created for the restored plan tree before execution. 
 Serialization and Deserialization are performed by Java object serialization API.
-
-## TODO describe ...
 
 ```mermaid
 stateDiagram-v2
