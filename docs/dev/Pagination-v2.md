@@ -61,7 +61,7 @@ Similarly to v1 engine, the response object is the same as initial response if t
 
 ## End of scrolling/paging
 
-When scrolling is finished, SQL plugin still returns a cursor. This cursor leads to the final page, which as no cursor and no data. Receiving that page means all data was properly queried and returned to user. Cursor is closed automatically on processing that page.
+When scrolling is finished, SQL plugin returns a final cursor. This cursor leads to an empty page, which has no cursor and no data hits. Receiving that page means all data was properly queried, and the scrolling cursor has been closed.
 
 The client will receive an [error response](#error-response) if executing this request results in an OpenSearch or SQL plug-in error.
 
@@ -115,9 +115,9 @@ V2 SQL engine supports *sql node load balancing* -- a cursor request can be rout
 
 ### Plan Tree changes
 
-There are different plan trees are built during request processing. Read more about their purpose and stages [here](query-optimizer-improvement.md#Examples). Article below describes what changes are introduced in these trees by pagination feature.
+Different plan trees are built during request processing. Read more about their purpose and stages [here](query-optimizer-improvement.md#Examples). The section below describes the changes being introduced to these trees by the pagination feature.
 
-Simplified workflow of plan trees is shown below. Initial Page Request is processed the same way as non-paging request.
+Simplified workflow of plan trees is shown below. Initial Page Request is processed the same way as a non-paging request.
 
 ```mermaid
 stateDiagram-v2
@@ -169,11 +169,11 @@ stateDiagram-v2
   }
 ```
 
-New plan tree workflow was added for Subsequent Page Requests. Since a final Physical Plan tree was already created for Initial request, subsequent requests should have the same tree. The tree is being serialized into `cursor` by `PlanSerializer` and then restored back. Query parsing and analysis is also not performed for cursor requests, so these steps are also not executed there.
+New plan tree workflow was added for Subsequent Page Requests. Since a final Physical Plan tree was already created for Initial request, subsequent requests should have the same tree. The tree is serialized into a `cursor` by `PlanSerializer` to be de-serialized on the subsequence Page Request. Query parsing and analysis is not performed for Subsequent Page Requests, since the Physical Plan tree is instead de-serialized from the `cursor`.
 
 #### Abstract Plan tree
 
-Abstract Plan Tree for non-paged requests remains unchanged by pagination feature. `QueryPlan` as a top entry  got new optional field `pageSize`, which is unset for non-paged requests.
+Abstract Plan Tree for non-paged requests remains unchanged. The `QueryPlan`, as a top entry`, has a new optional field `pageSize`, which is not defined for non-paged requests. 
 
 ```mermaid
 classDiagram
@@ -396,7 +396,7 @@ stateDiagram-v2
 
 Changes:
 1. `OpenSearchPagedIndexScanBuilder` is converted to `OpenSearchPagedIndexScan` by `Implementor`.
-2. Entire Physical Plan tree is created by `PlanSerializer` for Subsequent Query requests. The deserialized tree has the same structure which Initial Query Request had.
+2. Entire Physical Plan tree is created by `PlanSerializer` for Subsequent Query requests. The deserialized tree has the same structure as the Initial Query Request.
 
 ```mermaid
 classDiagram
@@ -455,7 +455,7 @@ New code workflows which added by Pagination feature are highlighted.
 
 #### Non Paging Query Request
 
-To simplify comparison and understanding, below represented processing a regular query request. This workflow wasn't changed by Pagination feature.
+A non-paging request sequence diagram is shown below for comparison: 
 
 ```mermaid
 sequenceDiagram

@@ -4,7 +4,7 @@ This section introduces the current architecture of logical optimizer and physic
 
 #### Logical-to-Logical Optimization
 
-Currently each storage engine adds its own logical operator as concrete implementation for `TableScanOperator` abstraction. Typically each data source needs to add 2 logical operators for table scan with and without aggregation. Take OpenSearch for example, there are `OpenSearchLogicalIndexScan` and `OpenSearchLogicalIndexAgg` and a bunch of pushdown optimization rules for each accordingly.
+Currently each storage engine adds its own logical operator as concrete implementation for `TableScanOperator` abstraction. Typically each data source needs to add 2 logical operators for table scan with without aggregation. Take OpenSearch for example, there are `OpenSearchLogicalIndexScan` and `OpenSearchLogicalIndexAgg` and a bunch of pushdown optimization rules for each accordingly.
 
 ```py
 class LogicalPlanOptimizer:
