@@ -17,6 +17,7 @@ import org.junit.Before;
 import org.opensearch.client.Request;
 import org.opensearch.client.RequestOptions;
 import org.opensearch.client.Response;
+import org.opensearch.client.RestClient;
 import org.opensearch.sql.common.setting.Settings;
 
 import javax.management.MBeanServerInvocationHandler;
@@ -167,6 +168,10 @@ public abstract class SQLIntegTestCase extends OpenSearchSQLRestTestCase {
   protected static void wipeAllClusterSettings() throws IOException {
     updateClusterSettings(new ClusterSetting("persistent", "*", null));
     updateClusterSettings(new ClusterSetting("transient", "*", null));
+    if (remoteClient() != null) {
+      updateClusterSettings(new ClusterSetting("persistent", "*", null), remoteClient());
+      updateClusterSettings(new ClusterSetting("transient", "*", null), remoteClient());
+    }
   }
 
   protected void setMaxResultWindow(String indexName, Integer window) throws IOException {
@@ -188,15 +193,19 @@ public abstract class SQLIntegTestCase extends OpenSearchSQLRestTestCase {
    * Make it thread-safe in case tests are running in parallel but does not guarantee
    * if test like DeleteIT that mutates cluster running in parallel.
    */
-  protected synchronized void loadIndex(Index index) throws IOException {
+  protected synchronized void loadIndex(Index index, RestClient client) throws IOException {
     String indexName = index.getName();
     String mapping = index.getMapping();
     String dataSet = index.getDataSet();
 
-    if (!isIndexExist(client(), indexName)) {
-      createIndexByRestClient(client(), indexName, mapping);
-      loadDataByRestClient(client(), indexName, dataSet);
+    if (!isIndexExist(client, indexName)) {
+      createIndexByRestClient(client, indexName, mapping);
+      loadDataByRestClient(client, indexName, dataSet);
     }
+  }
+
+  protected synchronized void loadIndex(Index index) throws IOException {
+    loadIndex(index, client());
   }
 
   protected Request getSqlRequest(String request, boolean explain) {
@@ -325,10 +334,14 @@ public abstract class SQLIntegTestCase extends OpenSearchSQLRestTestCase {
     return executeRequest(sqlRequest);
   }
 
-  protected static String executeRequest(final Request request) throws IOException {
-    Response response = client().performRequest(request);
+  protected static String executeRequest(final Request request, RestClient client) throws IOException {
+    Response response = client.performRequest(request);
     Assert.assertEquals(200, response.getStatusLine().getStatusCode());
     return getResponseBody(response);
+  }
+
+  protected static String executeRequest(final Request request) throws IOException {
+    return executeRequest(request, client());
   }
 
   protected JSONObject executeQueryWithGetRequest(final String sqlQuery) throws IOException {
@@ -350,7 +363,7 @@ public abstract class SQLIntegTestCase extends OpenSearchSQLRestTestCase {
     return new JSONObject(executeRequest(sqlRequest));
   }
 
-  protected static JSONObject updateClusterSettings(ClusterSetting setting) throws IOException {
+  protected static JSONObject updateClusterSettings(ClusterSetting setting, RestClient client) throws IOException {
     Request request = new Request("PUT", "/_cluster/settings");
     String persistentSetting = String.format(Locale.ROOT,
         "{\"%s\": {\"%s\": %s}}", setting.type, setting.name, setting.value);
@@ -358,7 +371,11 @@ public abstract class SQLIntegTestCase extends OpenSearchSQLRestTestCase {
     RequestOptions.Builder restOptionsBuilder = RequestOptions.DEFAULT.toBuilder();
     restOptionsBuilder.addHeader("Content-Type", "application/json");
     request.setOptions(restOptionsBuilder);
-    return new JSONObject(executeRequest(request));
+    return new JSONObject(executeRequest(request, client));
+  }
+
+  protected static JSONObject updateClusterSettings(ClusterSetting setting) throws IOException {
+    return updateClusterSettings(setting, client());
   }
 
   protected static JSONObject getAllClusterSettings() throws IOException {

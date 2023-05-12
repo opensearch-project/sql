@@ -78,6 +78,20 @@ public class AstBuilderTest {
   }
 
   @Test
+  public void testSearchCrossClusterCommand() {
+    assertEqual("search source=c:t",
+        relation(qualifiedName("c:t"))
+    );
+  }
+
+  @Test
+  public void testSearchMatchAllCrossClusterCommand() {
+    assertEqual("search source=*:t",
+        relation(qualifiedName("*:t"))
+    );
+  }
+
+  @Test
   public void testPrometheusSearchCommand() {
     assertEqual("search source = prometheus.http_requests_total",
         relation(qualifiedName("prometheus", "http_requests_total"))
@@ -734,6 +748,12 @@ public class AstBuilderTest {
   public void testDescribeCommand() {
     assertEqual("describe t",
         relation(mappingTable("t")));
+  }
+
+  @Test
+  public void testDescribeMatchAllCrossClusterSearchCommand() {
+    assertEqual("describe *:t",
+        relation(mappingTable("*:t")));
   }
 
   @Test
