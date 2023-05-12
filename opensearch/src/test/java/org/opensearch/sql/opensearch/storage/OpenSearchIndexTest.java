@@ -3,7 +3,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-
 package org.opensearch.sql.opensearch.storage;
 
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -39,6 +38,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.opensearch.common.unit.TimeValue;
 import org.opensearch.sql.ast.tree.Sort;
 import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.data.type.ExprCoreType;
@@ -61,7 +61,9 @@ import org.opensearch.sql.planner.physical.PhysicalPlanDSL;
 @ExtendWith(MockitoExtension.class)
 class OpenSearchIndexTest {
 
-  private final String indexName = "test";
+  public static final int QUERY_SIZE_LIMIT = 200;
+  public static final TimeValue SCROLL_TIMEOUT = new TimeValue(1);
+  public static final OpenSearchRequest.IndexName INDEX_NAME = new OpenSearchRequest.IndexName("test");
 
   @Mock
   private OpenSearchClient client;
@@ -79,12 +81,12 @@ class OpenSearchIndexTest {
 
   @BeforeEach
   void setUp() {
-    this.index = new OpenSearchIndex(client, settings, indexName);
+    this.index = new OpenSearchIndex(client, settings, "test");
   }
 
   @Test
   void isExist() {
-    when(client.exists(indexName)).thenReturn(true);
+    when(client.exists("test")).thenReturn(true);
 
     assertTrue(index.exists());
   }
@@ -96,7 +98,7 @@ class OpenSearchIndexTest {
         Map.of(
             "name", "text",
             "age", "integer"));
-    doNothing().when(client).createIndex(indexName, mappings);
+    doNothing().when(client).createIndex("test", mappings);
 
     Map<String, ExprType> schema = new HashMap<>();
     schema.put("name", OpenSearchTextType.of(Map.of("keyword",
@@ -199,11 +201,10 @@ class OpenSearchIndexTest {
     when(settings.getSettingValue(Settings.Key.QUERY_SIZE_LIMIT)).thenReturn(200);
     LogicalPlan plan = index.createScanBuilder();
     Integer maxResultWindow = index.getMaxResultWindow();
-    final var name = new OpenSearchRequest.IndexName(indexName);
-    final int defaultQuerySize = settings.getSettingValue(Settings.Key.QUERY_SIZE_LIMIT);
-    final var requestBuilder = new OpenSearchRequestBuilder(defaultQuerySize, exprValueFactory);
-    assertEquals(new OpenSearchIndexScan(client, name,
-        settings, maxResultWindow, requestBuilder), index.implement(index.optimize(plan)));
+    final var requestBuilder = new OpenSearchRequestBuilder(QUERY_SIZE_LIMIT, exprValueFactory);
+    assertEquals(new OpenSearchIndexScan(client,
+      200, requestBuilder.build(INDEX_NAME, maxResultWindow, SCROLL_TIMEOUT)),
+      index.implement(index.optimize(plan)));
   }
 
   @Test
@@ -212,11 +213,9 @@ class OpenSearchIndexTest {
     when(settings.getSettingValue(Settings.Key.QUERY_SIZE_LIMIT)).thenReturn(200);
     LogicalPlan plan = index.createScanBuilder();
     Integer maxResultWindow = index.getMaxResultWindow();
-    final var name = new OpenSearchRequest.IndexName(indexName);
-    final int defaultQuerySize = settings.getSettingValue(Settings.Key.QUERY_SIZE_LIMIT);
-    final var requestBuilder = new OpenSearchRequestBuilder(defaultQuerySize, exprValueFactory);
-    assertEquals(new OpenSearchIndexScan(client, name,
-        settings, maxResultWindow, requestBuilder), index.implement(plan));
+    final var requestBuilder = new OpenSearchRequestBuilder(QUERY_SIZE_LIMIT, exprValueFactory);
+    assertEquals(new OpenSearchIndexScan(client, 200,
+      requestBuilder.build(INDEX_NAME, maxResultWindow, SCROLL_TIMEOUT)), index.implement(plan));
   }
 
   @Test
@@ -230,7 +229,6 @@ class OpenSearchIndexTest {
         ImmutableMap.of(ref("name", STRING), ref("lastname", STRING));
     Pair<ReferenceExpression, Expression> newEvalField =
         ImmutablePair.of(ref("name1", STRING), ref("name", STRING));
-    Integer sortCount = 100;
     Pair<Sort.SortOption, Expression> sortField =
         ImmutablePair.of(Sort.SortOption.DEFAULT_ASC, ref("name1", STRING));
 
@@ -250,9 +248,7 @@ class OpenSearchIndexTest {
             include);
 
     Integer maxResultWindow = index.getMaxResultWindow();
-    final var name = new OpenSearchRequest.IndexName(indexName);
-    final int defaultQuerySize = settings.getSettingValue(Settings.Key.QUERY_SIZE_LIMIT);
-    final var requestBuilder = new OpenSearchRequestBuilder(defaultQuerySize, exprValueFactory);
+    final var requestBuilder = new OpenSearchRequestBuilder(QUERY_SIZE_LIMIT, exprValueFactory);
     assertEquals(
         PhysicalPlanDSL.project(
             PhysicalPlanDSL.dedupe(
@@ -260,8 +256,8 @@ class OpenSearchIndexTest {
                     PhysicalPlanDSL.eval(
                         PhysicalPlanDSL.remove(
                             PhysicalPlanDSL.rename(
-                              new OpenSearchIndexScan(client, name,
-                                settings, maxResultWindow, requestBuilder),
+                              new OpenSearchIndexScan(client,
+                                QUERY_SIZE_LIMIT, requestBuilder.build(INDEX_NAME, maxResultWindow, SCROLL_TIMEOUT)),
                                 mappings),
                             exclude),
                         newEvalField),

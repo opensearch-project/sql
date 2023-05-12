@@ -5,6 +5,9 @@
 
 package org.opensearch.sql.opensearch.request;
 
+import java.io.IOException;
+import java.io.ObjectInput;
+import java.io.ObjectOutput;
 import java.util.List;
 import java.util.function.Consumer;
 import java.util.function.Function;
@@ -16,7 +19,6 @@ import org.opensearch.action.search.SearchRequest;
 import org.opensearch.action.search.SearchResponse;
 import org.opensearch.action.search.SearchScrollRequest;
 import org.opensearch.common.unit.TimeValue;
-import org.opensearch.search.builder.SearchSourceBuilder;
 import org.opensearch.sql.opensearch.data.value.OpenSearchExprValueFactory;
 import org.opensearch.sql.opensearch.response.OpenSearchResponse;
 
@@ -63,14 +65,12 @@ public class ContinuePageRequest implements OpenSearchRequest {
   }
 
   @Override
-  public SearchSourceBuilder getSourceBuilder() {
-    throw new UnsupportedOperationException(
-        "SearchSourceBuilder is unavailable for ContinueScrollRequest");
+  public void writeExternal(ObjectOutput out) {
+    throw new UnsupportedOperationException("ContinuePageRequest.writeExternal");
   }
 
   @Override
-  public String toCursor() {
-    // on the last page, we shouldn't return the scroll to user, it is kept for closing (clean)
-    return scrollFinished ? null : responseScrollId;
+  public void readExternal(ObjectInput in) {
+    throw new UnsupportedOperationException("ContinuePageRequest.readExternal");
   }
 }

@@ -35,7 +35,6 @@ import org.opensearch.search.fetch.subphase.highlight.HighlightBuilder;
 import org.opensearch.search.sort.SortBuilder;
 import org.opensearch.search.sort.SortBuilders;
 import org.opensearch.sql.ast.expression.Literal;
-import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.common.utils.StringUtils;
 import org.opensearch.sql.exception.SemanticCheckException;
 import org.opensearch.sql.expression.ReferenceExpression;
@@ -65,7 +64,7 @@ public class OpenSearchRequestBuilder implements ExecutableRequestBuilder {
   /**
    * Query size of the request -- how many rows will be returned.
    */
-  private int querySize;
+  private int requestedTotalSize;
 
   /**
    * Size of each page request to return.
@@ -83,18 +82,13 @@ public class OpenSearchRequestBuilder implements ExecutableRequestBuilder {
   /**
    * Constructor.
    */
-  public OpenSearchRequestBuilder(int querySize, OpenSearchExprValueFactory exprValueFactory) {
-    this.querySize = querySize;
+  public OpenSearchRequestBuilder(int requestedTotalSize, OpenSearchExprValueFactory exprValueFactory) {
+    this.requestedTotalSize = requestedTotalSize;
     this.sourceBuilder = new SearchSourceBuilder()
         .from(startFrom)
         .timeout(DEFAULT_QUERY_TIMEOUT)
         .trackScores(false);
     this.exprValueFactory = exprValueFactory;
-  }
-
-  @Override
-  public int getMaxResponseSize() {
-    return pageSize == null ? querySize : pageSize;
   }
 
   /**
@@ -104,10 +98,8 @@ public class OpenSearchRequestBuilder implements ExecutableRequestBuilder {
    */
   @Override
   public OpenSearchRequest build(OpenSearchRequest.IndexName indexName,
-                                 int maxResultWindow,
-                                 Settings settings) {
-    int size = querySize;
-    TimeValue scrollTimeout = settings.getSettingValue(Settings.Key.SQL_CURSOR_KEEP_ALIVE);
+                                 int maxResultWindow, TimeValue scrollTimeout) {
+    int size = requestedTotalSize;
     if (pageSize == null) {
       if (startFrom + size > maxResultWindow) {
         sourceBuilder.size(maxResultWindow - startFrom);
@@ -115,7 +107,7 @@ public class OpenSearchRequestBuilder implements ExecutableRequestBuilder {
             indexName, scrollTimeout, sourceBuilder, exprValueFactory);
       } else {
         sourceBuilder.from(startFrom);
-        sourceBuilder.size(querySize);
+        sourceBuilder.size(requestedTotalSize);
         return new OpenSearchQueryRequest(indexName, sourceBuilder, exprValueFactory);
       }
     } else {
@@ -190,7 +182,7 @@ public class OpenSearchRequestBuilder implements ExecutableRequestBuilder {
    * Pushdown size (limit) and from (offset) to DSL request.
    */
   public void pushDownLimit(Integer limit, Integer offset) {
-    querySize = limit;
+    requestedTotalSize = limit;
     startFrom = offset;
     sourceBuilder.from(offset).size(limit);
   }
@@ -270,6 +262,9 @@ public class OpenSearchRequestBuilder implements ExecutableRequestBuilder {
     );
   }
 
+  public int getMaxResponseSize() {
+    return pageSize == null? requestedTotalSize : pageSize;
+  }
   /**
    * Initialize bool query for push down.
    */

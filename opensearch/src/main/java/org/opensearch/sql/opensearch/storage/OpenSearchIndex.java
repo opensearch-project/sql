@@ -11,6 +11,7 @@ import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import lombok.RequiredArgsConstructor;
+import org.opensearch.common.unit.TimeValue;
 import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.data.type.ExprCoreType;
 import org.opensearch.sql.data.type.ExprType;
@@ -168,19 +169,27 @@ public class OpenSearchIndex implements Table {
 
   @Override
   public TableScanBuilder createScanBuilder() {
-    Map<String, OpenSearchDataType> allFields = new HashMap<>();
-    getReservedFieldTypes().forEach((k, v) -> allFields.put(k, OpenSearchDataType.of(v)));
-    allFields.putAll(getFieldOpenSearchTypes());
+    final int querySizeLimit = settings.getSettingValue(Settings.Key.QUERY_SIZE_LIMIT);
+
     var builder = new OpenSearchRequestBuilder(
-        settings.getSettingValue(Settings.Key.QUERY_SIZE_LIMIT),
-        new OpenSearchExprValueFactory(allFields));
+      querySizeLimit,
+      createExprValueFactory());
+
     return new OpenSearchIndexScanBuilder(builder) {
       @Override
       protected TableScanOperator createScan(OpenSearchRequestBuilder requestBuilder) {
-        return new OpenSearchIndexScan(client, indexName, settings, getMaxResultWindow(),
-          requestBuilder);
+        final TimeValue cursorKeepAlive = settings.getSettingValue(Settings.Key.SQL_CURSOR_KEEP_ALIVE);
+        return new OpenSearchIndexScan(client, requestBuilder.getMaxResponseSize(),
+          requestBuilder.build(indexName, getMaxResultWindow(), cursorKeepAlive));
       }
     };
+  }
+
+  private OpenSearchExprValueFactory createExprValueFactory() {
+    Map<String, OpenSearchDataType> allFields = new HashMap<>();
+    getReservedFieldTypes().forEach((k, v) -> allFields.put(k, OpenSearchDataType.of(v)));
+    allFields.putAll(getFieldOpenSearchTypes());
+    return new OpenSearchExprValueFactory(allFields);
   }
 
   @VisibleForTesting

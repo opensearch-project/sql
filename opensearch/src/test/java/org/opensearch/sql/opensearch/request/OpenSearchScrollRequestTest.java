@@ -61,24 +61,26 @@ class OpenSearchScrollRequestTest {
   private SearchSourceBuilder sourceBuilder;
 
   @Mock
-  private FetchSourceContext fetchSourceContext;
-  @Mock
   private OpenSearchExprValueFactory factory;
 
+  private final SearchSourceBuilder searchSourceBuilder = new SearchSourceBuilder();
   private final OpenSearchScrollRequest request = new OpenSearchScrollRequest(
       new OpenSearchRequest.IndexName("test"), TimeValue.timeValueMinutes(1),
-      new SearchSourceBuilder(), factory);
+    searchSourceBuilder, factory);
 
   @Test
   void searchRequest() {
-    request.getSourceBuilder().query(QueryBuilders.termQuery("name", "John"));
-
-    assertEquals(
+    searchSourceBuilder.query(QueryBuilders.termQuery("name", "John"));
+    request.search(searchRequest -> {
+      assertEquals(
         new SearchRequest()
-            .indices("test")
-            .scroll(TimeValue.timeValueMinutes(1))
-            .source(new SearchSourceBuilder().query(QueryBuilders.termQuery("name", "John"))),
-        request.searchRequest());
+          .indices("test")
+          .scroll(TimeValue.timeValueMinutes(1))
+          .source(new SearchSourceBuilder().query(QueryBuilders.termQuery("name", "John"))),
+        searchRequest);
+      SearchHits searchHitsMock = when(mock(SearchHits.class).getHits()).thenReturn(new SearchHit[0]).getMock();
+      return when(mock(SearchResponse.class).getHits()).thenReturn(searchHitsMock).getMock();
+    }, searchScrollRequest -> null);
   }
 
   @Test
@@ -111,16 +113,13 @@ class OpenSearchScrollRequestTest {
         factory
     );
 
-    String[] includes = {"_id", "_index"};
-    when(sourceBuilder.fetchSource()).thenReturn(fetchSourceContext);
-    when(fetchSourceContext.includes()).thenReturn(includes);
-    when(searchAction.apply(any())).thenReturn(searchResponse);
     when(searchResponse.getHits()).thenReturn(searchHits);
     when(searchHits.getHits()).thenReturn(new SearchHit[] {searchHit});
 
-    OpenSearchResponse searchResponse = request.search(searchAction, scrollAction);
-    verify(fetchSourceContext, times(2)).includes();
-    assertFalse(searchResponse.isEmpty());
+    OpenSearchResponse openSearchResponse = request.search(searchRequest -> searchResponse,
+        searchScrollRequest -> {throw new AssertionError();});
+
+    assertFalse(openSearchResponse.isEmpty());
   }
 
   @Test
@@ -132,7 +131,6 @@ class OpenSearchScrollRequestTest {
         factory
     );
 
-    when(sourceBuilder.fetchSource()).thenReturn(null);
     when(searchAction.apply(any())).thenReturn(searchResponse);
     when(searchResponse.getHits()).thenReturn(searchHits);
     when(searchHits.getHits()).thenReturn(new SearchHit[] {searchHit});
@@ -151,24 +149,21 @@ class OpenSearchScrollRequestTest {
         factory
     );
 
-    when(sourceBuilder.fetchSource()).thenReturn(fetchSourceContext);
-    when(fetchSourceContext.includes()).thenReturn(null);
     when(searchAction.apply(any())).thenReturn(searchResponse);
     when(searchResponse.getHits()).thenReturn(searchHits);
     when(searchHits.getHits()).thenReturn(new SearchHit[] {searchHit});
 
     OpenSearchResponse searchResponse = request.search(searchAction, scrollAction);
-    verify(fetchSourceContext, times(1)).includes();
     assertFalse(searchResponse.isEmpty());
   }
 
   @Test
-  void toCursor() {
+  void hasAnotherBatch() {
     request.setScrollId("scroll123");
-    assertEquals("scroll123", request.toCursor());
+    assertTrue(request.hasAnotherBatch());
 
     request.reset();
-    assertNull(request.toCursor());
+    assertFalse(request.hasAnotherBatch());
   }
 
   @Test
@@ -213,7 +208,7 @@ class OpenSearchScrollRequestTest {
       new SearchHits(new SearchHit[0], null, 1f));
 
     request.search((x) -> searchResponse, (x) -> searchResponse);
-    assertEquals("", request.toCursor());
+    assertFalse(request.hasAnotherBatch());
   }
 
   @Test
@@ -226,10 +221,5 @@ class OpenSearchScrollRequestTest {
     assertNull(request.getScrollId());
 
     request.clean((s) -> fail());
-  }
-
-  @Test
-  void noCursor() {
-    assertNull(request.toCursor());
   }
 }

@@ -36,6 +36,7 @@ import org.opensearch.common.unit.TimeValue;
 import org.opensearch.index.query.QueryBuilder;
 import org.opensearch.index.query.QueryBuilders;
 import org.opensearch.search.SearchHit;
+import org.opensearch.search.builder.SearchSourceBuilder;
 import org.opensearch.search.fetch.subphase.highlight.HighlightBuilder;
 import org.opensearch.sql.ast.expression.DataType;
 import org.opensearch.sql.ast.expression.Literal;
@@ -55,6 +56,9 @@ import org.opensearch.sql.opensearch.response.OpenSearchResponse;
 class OpenSearchIndexScanTest {
 
   public static final int QUERY_SIZE = 200;
+  public static final OpenSearchRequest.IndexName INDEX_NAME = new OpenSearchRequest.IndexName("employees");
+  public static final int MAX_RESULT_WINDOW = 10000;
+  public static final TimeValue CURSOR_KEEP_ALIVE = TimeValue.timeValueMinutes(1);
   @Mock
   private OpenSearchClient client;
 
@@ -67,8 +71,6 @@ class OpenSearchIndexScanTest {
 
   @BeforeEach
   void setup() {
-    when(settings.getSettingValue(Settings.Key.SQL_CURSOR_KEEP_ALIVE))
-        .thenReturn(TimeValue.timeValueMinutes(1));
   }
 
   @Test
@@ -76,8 +78,8 @@ class OpenSearchIndexScanTest {
     mockResponse(client);
     final var name = new OpenSearchRequest.IndexName("test");
     final var requestBuilder = new OpenSearchRequestBuilder(QUERY_SIZE, exprValueFactory);
-    try (OpenSearchIndexScan indexScan = new OpenSearchIndexScan(client, name,
-        settings, 3, requestBuilder)) {
+    try (OpenSearchIndexScan indexScan = new OpenSearchIndexScan(client,
+      QUERY_SIZE, requestBuilder.build(name, MAX_RESULT_WINDOW, CURSOR_KEEP_ALIVE))) {
       indexScan.open();
       assertAll(
           () -> assertFalse(indexScan.hasNext()),
@@ -94,10 +96,9 @@ class OpenSearchIndexScanTest {
         employee(2, "Smith", "HR"),
         employee(3, "Allen", "IT")});
 
-    final var name = new OpenSearchRequest.IndexName("employees");
     final var requestBuilder = new OpenSearchRequestBuilder(QUERY_SIZE, exprValueFactory);
-    try (OpenSearchIndexScan indexScan = new OpenSearchIndexScan(client, name,
-        settings, 10, requestBuilder)) {
+    try (OpenSearchIndexScan indexScan = new OpenSearchIndexScan(client,
+      10, requestBuilder.build(INDEX_NAME, 10000, CURSOR_KEEP_ALIVE))) {
       indexScan.open();
 
       assertAll(
@@ -126,10 +127,9 @@ class OpenSearchIndexScanTest {
         new ExprValue[]{employee(1, "John", "IT"), employee(2, "Smith", "HR")},
         new ExprValue[]{employee(3, "Allen", "IT")});
 
-    final var name = new OpenSearchRequest.IndexName("employees");
     final var requestBuilder = new OpenSearchRequestBuilder(QUERY_SIZE, exprValueFactory);
-    try (OpenSearchIndexScan indexScan = new OpenSearchIndexScan(client, name,
-        settings, 10, requestBuilder)) {
+    try (OpenSearchIndexScan indexScan = new OpenSearchIndexScan(client,
+      10, requestBuilder.build(INDEX_NAME, 10000, CURSOR_KEEP_ALIVE))) {
       indexScan.open();
 
       assertAll(
@@ -157,10 +157,10 @@ class OpenSearchIndexScanTest {
         employee(3, "Allen", "IT"),
         employee(4, "Bob", "HR")});
 
+    final int limit = 3;
     OpenSearchRequestBuilder builder = new OpenSearchRequestBuilder(0, exprValueFactory);
-    builder.pushDownLimit(3, 0);
-    try (OpenSearchIndexScan indexScan = new OpenSearchIndexScan(client, EMPLOYEES_INDEX, settings,
-        10, builder)) {
+    try (OpenSearchIndexScan indexScan = new OpenSearchIndexScan(client,
+      limit, builder.build(INDEX_NAME, MAX_RESULT_WINDOW, CURSOR_KEEP_ALIVE))) {
       indexScan.open();
 
       assertAll(
@@ -184,9 +184,8 @@ class OpenSearchIndexScanTest {
   void query_some_results_with_scroll() {
     mockTwoPageResponse(client);
     final var requestuilder = new OpenSearchRequestBuilder(10, exprValueFactory);
-    requestuilder.pushDownLimit(3, 0);
-    try (OpenSearchIndexScan indexScan = new OpenSearchIndexScan(client, EMPLOYEES_INDEX, settings,
-        2, requestuilder)) {
+    try (OpenSearchIndexScan indexScan = new OpenSearchIndexScan(client,
+      3, requestuilder.build(INDEX_NAME, MAX_RESULT_WINDOW, CURSOR_KEEP_ALIVE))) {
       indexScan.open();
 
       assertAll(
@@ -220,11 +219,10 @@ class OpenSearchIndexScanTest {
         employee(3, "Allen", "IT"),
         employee(4, "Bob", "HR")});
 
-    final var name = new OpenSearchRequest.IndexName("employees");
     final int defaultQuerySize = 2;
     final var requestBuilder = new OpenSearchRequestBuilder(defaultQuerySize, exprValueFactory);
-    try (OpenSearchIndexScan indexScan = new OpenSearchIndexScan(client, name,
-        settings, 10, requestBuilder)) {
+    try (OpenSearchIndexScan indexScan = new OpenSearchIndexScan(client,
+      defaultQuerySize, requestBuilder.build(INDEX_NAME, QUERY_SIZE, CURSOR_KEEP_ALIVE))) {
       indexScan.open();
 
       assertAll(
@@ -292,7 +290,6 @@ class OpenSearchIndexScanTest {
   private static class PushDownAssertion {
     private final OpenSearchClient client;
     private final OpenSearchRequestBuilder requestBuilder;
-    private final Settings settings;
     private final OpenSearchResponse response;
     private final OpenSearchExprValueFactory factory;
 
@@ -301,7 +298,6 @@ class OpenSearchIndexScanTest {
                              Settings settings) {
       this.client = client;
       this.requestBuilder = new OpenSearchRequestBuilder(QUERY_SIZE, valueFactory);
-      this.settings = settings;
 
       this.response = mock(OpenSearchResponse.class);
       this.factory = valueFactory;
@@ -319,26 +315,33 @@ class OpenSearchIndexScanTest {
     }
 
     PushDownAssertion shouldQueryHighlight(QueryBuilder query, HighlightBuilder highlight) {
-      OpenSearchRequest request = new OpenSearchQueryRequest(EMPLOYEES_INDEX, QUERY_SIZE, factory);
-      request.getSourceBuilder()
-          .query(query)
-          .highlighter(highlight)
-          .sort(DOC_FIELD_NAME, ASC);
+      var sourceBuilder = new SearchSourceBuilder()
+        .from(0)
+        .timeout(CURSOR_KEEP_ALIVE)
+        .query(query)
+        .size(QUERY_SIZE)
+        .highlighter(highlight)
+        .sort(DOC_FIELD_NAME, ASC);
+      OpenSearchRequest request = new OpenSearchQueryRequest(EMPLOYEES_INDEX, sourceBuilder, factory);
+
       when(client.search(request)).thenReturn(response);
-      var indexScan = new OpenSearchIndexScan(client, EMPLOYEES_INDEX, settings,
-          10000, requestBuilder);
+      var indexScan = new OpenSearchIndexScan(client,
+        QUERY_SIZE, requestBuilder.build(EMPLOYEES_INDEX, 10000, CURSOR_KEEP_ALIVE));
       indexScan.open();
       return this;
     }
 
     PushDownAssertion shouldQuery(QueryBuilder expected) {
-      OpenSearchRequest request = new OpenSearchQueryRequest(EMPLOYEES_INDEX, QUERY_SIZE, factory);
-      request.getSourceBuilder()
-             .query(expected)
-             .sort(DOC_FIELD_NAME, ASC);
+      var builder = new SearchSourceBuilder()
+          .from(0)
+          .query(expected)
+          .size(QUERY_SIZE)
+          .timeout(CURSOR_KEEP_ALIVE)
+          .sort(DOC_FIELD_NAME, ASC);
+      OpenSearchRequest request = new OpenSearchQueryRequest(EMPLOYEES_INDEX, builder, factory);
       when(client.search(request)).thenReturn(response);
-      var indexScan = new OpenSearchIndexScan(client, EMPLOYEES_INDEX, settings,
-          10000, requestBuilder);
+      var indexScan = new OpenSearchIndexScan(client,
+        10000, requestBuilder.build(EMPLOYEES_INDEX, 10000, CURSOR_KEEP_ALIVE));
       indexScan.open();
       return this;
     }

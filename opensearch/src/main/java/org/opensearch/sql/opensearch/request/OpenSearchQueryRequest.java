@@ -8,7 +8,9 @@ package org.opensearch.sql.opensearch.request;
 
 import static org.opensearch.sql.opensearch.request.OpenSearchRequestBuilder.DEFAULT_QUERY_TIMEOUT;
 
-import com.google.common.annotations.VisibleForTesting;
+import java.io.IOException;
+import java.io.ObjectInput;
+import java.io.ObjectOutput;
 import java.util.Arrays;
 import java.util.List;
 import java.util.function.Consumer;
@@ -45,6 +47,7 @@ public class OpenSearchQueryRequest implements OpenSearchRequest {
    * Search request source builder.
    */
   private final SearchSourceBuilder sourceBuilder;
+
 
 
   /**
@@ -102,7 +105,9 @@ public class OpenSearchQueryRequest implements OpenSearchRequest {
     } else {
       searchDone = true;
       return new OpenSearchResponse(
-          searchAction.apply(searchRequest()), exprValueFactory, includes);
+          searchAction.apply(new SearchRequest()
+            .indices(indexName.getIndexNames())
+            .source(sourceBuilder)), exprValueFactory, includes);
     }
   }
 
@@ -111,15 +116,13 @@ public class OpenSearchQueryRequest implements OpenSearchRequest {
     //do nothing.
   }
 
-  /**
-   * Generate OpenSearch search request.
-   *
-   * @return search request
-   */
-  @VisibleForTesting
-  protected SearchRequest searchRequest() {
-    return new SearchRequest()
-        .indices(indexName.getIndexNames())
-        .source(sourceBuilder);
+  @Override
+  public void writeExternal(ObjectOutput out) throws IOException {
+    throw new UnsupportedOperationException("OpenSearchQueryRequest.writeExternal");
+  }
+
+  @Override
+  public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
+    throw new UnsupportedOperationException("OpenSearchQueryRequest.readExternal");
   }
 }

@@ -6,6 +6,9 @@
 
 package org.opensearch.sql.opensearch.request;
 
+import java.io.IOException;
+import java.io.ObjectInput;
+import java.io.ObjectOutput;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
@@ -20,7 +23,6 @@ import org.opensearch.action.search.SearchResponse;
 import org.opensearch.action.search.SearchScrollRequest;
 import org.opensearch.common.unit.TimeValue;
 import org.opensearch.search.builder.SearchSourceBuilder;
-import org.opensearch.search.fetch.subphase.FetchSourceContext;
 import org.opensearch.sql.opensearch.data.value.OpenSearchExprValueFactory;
 import org.opensearch.sql.opensearch.response.OpenSearchResponse;
 
@@ -34,20 +36,19 @@ import org.opensearch.sql.opensearch.response.OpenSearchResponse;
 @Getter
 @ToString
 public class OpenSearchScrollRequest implements OpenSearchRequest {
-
+  private SearchRequest initialSearchRequest;
   /** Scroll context timeout. */
-  private final TimeValue scrollTimeout;
+  private TimeValue scrollTimeout;
 
   /**
    * {@link OpenSearchRequest.IndexName}.
    */
-  private final IndexName indexName;
+  private IndexName indexName;
 
   /** Index name. */
   @EqualsAndHashCode.Exclude
   @ToString.Exclude
-  private final OpenSearchExprValueFactory exprValueFactory;
-
+  private OpenSearchExprValueFactory exprValueFactory;
   /**
    * Scroll id which is set after first request issued. Because ElasticsearchClient is shared by
    * multi-thread so this state has to be maintained here.
@@ -58,8 +59,12 @@ public class OpenSearchScrollRequest implements OpenSearchRequest {
 
   private boolean needClean = false;
 
-  /** Search request source builder. */
-  private final SearchSourceBuilder sourceBuilder;
+  private List<String> includes;
+
+  /** Default constructor for Externalizable only.
+   */
+  public OpenSearchScrollRequest() {
+  }
 
   /** Constructor. */
   public OpenSearchScrollRequest(IndexName indexName,
@@ -68,9 +73,17 @@ public class OpenSearchScrollRequest implements OpenSearchRequest {
                                  OpenSearchExprValueFactory exprValueFactory) {
     this.indexName = indexName;
     this.scrollTimeout = scrollTimeout;
-    this.sourceBuilder = sourceBuilder;
     this.exprValueFactory = exprValueFactory;
-  }
+    this.initialSearchRequest = new SearchRequest()
+        .indices(indexName.getIndexNames())
+        .scroll(scrollTimeout)
+        .source(sourceBuilder);
+
+    includes = sourceBuilder.fetchSource() != null && sourceBuilder.fetchSource().includes() != null
+      ? Arrays.asList(sourceBuilder.fetchSource().includes())
+      : List.of();
+    }
+
 
   /** Constructor. */
   @Override
@@ -80,12 +93,8 @@ public class OpenSearchScrollRequest implements OpenSearchRequest {
     if (isScroll()) {
       openSearchResponse = scrollAction.apply(scrollRequest());
     } else {
-      openSearchResponse = searchAction.apply(searchRequest());
+      openSearchResponse = searchAction.apply(initialSearchRequest);
     }
-    FetchSourceContext fetchSource = this.sourceBuilder.fetchSource();
-    List<String> includes = fetchSource != null && fetchSource.includes() != null
-        ? Arrays.asList(this.sourceBuilder.fetchSource().includes())
-        : List.of();
 
     var response = new OpenSearchResponse(openSearchResponse, exprValueFactory, includes);
     needClean = response.isEmpty();
@@ -106,18 +115,6 @@ public class OpenSearchScrollRequest implements OpenSearchRequest {
     } finally {
       reset();
     }
-  }
-
-  /**
-   * Generate OpenSearch search request.
-   *
-   * @return search request
-   */
-  public SearchRequest searchRequest() {
-    return new SearchRequest()
-        .indices(indexName.getIndexNames())
-        .scroll(scrollTimeout)
-        .source(sourceBuilder);
   }
 
   /**
@@ -152,7 +149,29 @@ public class OpenSearchScrollRequest implements OpenSearchRequest {
    * @return a string representing the scroll request.
    */
   @Override
-  public String toCursor() {
-    return needClean ? "" : scrollId;
+  public boolean hasAnotherBatch() {
+    return scrollId != null && !scrollId.equals("");
+  }
+
+  @Override
+  public void writeExternal(ObjectOutput out) throws IOException {
+    out.writeObject(initialSearchRequest);
+    out.writeLong(scrollTimeout.getMillis());
+    out.writeObject(indexName);
+    out.writeObject(exprValueFactory);
+    out.writeUTF(scrollId);
+    out.writeBoolean(needClean);
+    out.writeObject(includes);
+  }
+
+  @Override
+  public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
+    initialSearchRequest = (SearchRequest) in.readObject();
+    scrollTimeout = TimeValue.timeValueMillis(in.readLong());
+    indexName = (IndexName) in.readObject();
+    exprValueFactory = (OpenSearchExprValueFactory) in.readObject();
+    scrollId = in.readUTF();
+    needClean = in.readBoolean();
+    includes = (List<String>) in.readObject();
   }
 }

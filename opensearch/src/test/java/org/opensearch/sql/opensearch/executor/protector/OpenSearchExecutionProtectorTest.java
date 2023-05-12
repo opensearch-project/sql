@@ -39,6 +39,7 @@ import org.opensearch.sql.ast.expression.DataType;
 import org.opensearch.sql.ast.expression.Literal;
 import org.opensearch.sql.ast.tree.RareTopN.CommandType;
 import org.opensearch.sql.ast.tree.Sort;
+import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.data.model.ExprBooleanValue;
 import org.opensearch.sql.expression.DSL;
 import org.opensearch.sql.expression.Expression;
@@ -110,7 +111,8 @@ class OpenSearchExecutionProtectorTest {
     Integer offset = 10;
 
     final var name = new OpenSearchRequest.IndexName(indexName);
-    final var requestBuilder = new OpenSearchRequestBuilder(querySizeLimit, exprValueFactory);
+    final var request = new OpenSearchRequestBuilder(querySizeLimit, exprValueFactory)
+      .build(name, maxResultWindow, settings.getSettingValue(Settings.Key.SQL_CURSOR_KEEP_ALIVE));
     assertEquals(
         PhysicalPlanDSL.project(
             PhysicalPlanDSL.limit(
@@ -124,8 +126,8 @@ class OpenSearchExecutionProtectorTest {
                                             PhysicalPlanDSL.agg(
                                                 filter(
                                                     resourceMonitor(
-                                                      new OpenSearchIndexScan(client, name,
-                                                        settings, maxResultWindow, requestBuilder)),
+                                                      new OpenSearchIndexScan(client,
+                                                        maxResultWindow, request)),
                                                     filterExpr),
                                                 aggregators,
                                                 groupByExprs),
@@ -151,8 +153,8 @@ class OpenSearchExecutionProtectorTest {
                                         PhysicalPlanDSL.rename(
                                             PhysicalPlanDSL.agg(
                                                 filter(
-                                                  new OpenSearchIndexScan(client, name,
-                                                    settings, maxResultWindow, requestBuilder),
+                                                  new OpenSearchIndexScan(client,
+                                                    maxResultWindow, request),
                                                     filterExpr),
                                                 aggregators,
                                                 groupByExprs),

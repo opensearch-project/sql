@@ -6,15 +6,10 @@
 package org.opensearch.sql.opensearch.request;
 
 import static org.junit.jupiter.api.Assertions.assertAll;
-import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertNull;
-import static org.junit.jupiter.api.Assertions.assertSame;
-import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.lenient;
-import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -41,7 +36,7 @@ import org.opensearch.sql.opensearch.response.OpenSearchResponse;
 
 @ExtendWith(MockitoExtension.class)
 @DisplayNameGeneration(DisplayNameGenerator.ReplaceUnderscores.class)
-public class ContinuePageRequestTest {
+class ContinuePageRequestTest {
 
   @Mock
   private Function<SearchRequest, SearchResponse> searchAction;
@@ -71,7 +66,7 @@ public class ContinuePageRequestTest {
       scroll, TimeValue.timeValueMinutes(1), factory);
 
   @Test
-  public void search_with_non_empty_response() {
+  void search_with_non_empty_response() {
     when(scrollAction.apply(any())).thenReturn(searchResponse);
     when(searchResponse.getHits()).thenReturn(searchHits);
     when(searchHits.getHits()).thenReturn(new SearchHit[] {searchHit});
@@ -80,7 +75,6 @@ public class ContinuePageRequestTest {
     OpenSearchResponse searchResponse = request.search(searchAction, scrollAction);
     assertAll(
         () -> assertFalse(searchResponse.isEmpty()),
-        () -> assertEquals(nextScroll, request.toCursor()),
         () -> verify(scrollAction, times(1)).apply(any()),
         () -> verify(searchAction, never()).apply(any())
     );
@@ -88,7 +82,7 @@ public class ContinuePageRequestTest {
 
   @Test
   // Empty response means scroll search is done and no cursor/scroll should be set
-  public void search_with_empty_response() {
+  void search_with_empty_response() {
     when(scrollAction.apply(any())).thenReturn(searchResponse);
     when(searchResponse.getHits()).thenReturn(searchHits);
     when(searchHits.getHits()).thenReturn(null);
@@ -97,7 +91,6 @@ public class ContinuePageRequestTest {
     OpenSearchResponse searchResponse = request.search(searchAction, scrollAction);
     assertAll(
         () -> assertTrue(searchResponse.isEmpty()),
-        () -> assertNull(request.toCursor()),
         () -> verify(scrollAction, times(1)).apply(any()),
         () -> verify(searchAction, never()).apply(any())
     );
@@ -105,22 +98,12 @@ public class ContinuePageRequestTest {
 
   @Test
   @SneakyThrows
-  public void clean() {
+  void clean() {
     request.clean(cleanAction);
     verify(cleanAction, never()).accept(any());
     // Enforce cleaning by setting a private field.
     FieldUtils.writeField(request, "scrollFinished", true, true);
     request.clean(cleanAction);
     verify(cleanAction, times(1)).accept(any());
-  }
-
-  @Test
-  // Added for coverage only
-  public void getters() {
-    factory = mock();
-    assertAll(
-        () -> assertThrows(Throwable.class, request::getSourceBuilder),
-        () -> assertSame(factory, new ContinuePageRequest("", null, factory).getExprValueFactory())
-    );
   }
 }

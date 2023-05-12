@@ -1,11 +1,9 @@
 package org.opensearch.sql.opensearch.request;
 
-import org.opensearch.sql.common.setting.Settings;
+import org.opensearch.common.unit.TimeValue;
 
 public interface ExecutableRequestBuilder {
-  int getMaxResponseSize();
 
   OpenSearchRequest build(OpenSearchRequest.IndexName indexName,
-                          int maxResultWindow,
-                          Settings settings);
+                          int maxResultWindow, TimeValue scrollTimeout);
 }

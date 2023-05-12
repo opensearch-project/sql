@@ -182,8 +182,8 @@ class OpenSearchExecutionEngineTest {
     final int defaultQuerySize = 100;
     final int maxResultWindow = 10000;
     final var requestBuilder = new OpenSearchRequestBuilder(defaultQuerySize, exprValueFactory);
-    PhysicalPlan plan = new OpenSearchIndexScan(mock(OpenSearchClient.class), name,
-        settings, maxResultWindow, requestBuilder);
+    PhysicalPlan plan = new OpenSearchIndexScan(mock(OpenSearchClient.class),
+      maxResultWindow, requestBuilder.build(name, maxResultWindow, settings.getSettingValue(SQL_CURSOR_KEEP_ALIVE)));
 
     AtomicReference<ExplainResponse> result = new AtomicReference<>();
     executor.explain(plan, new ResponseListener<>() {

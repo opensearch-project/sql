@@ -5,8 +5,6 @@
 
 package org.opensearch.sql.opensearch.storage.scan;
 
-import static org.junit.jupiter.api.Assertions.assertAll;
-import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -16,13 +14,11 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.CALLS_REAL_METHODS;
 import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.mockito.Mockito.withSettings;
 import static org.opensearch.sql.data.type.ExprCoreType.STRING;
 import static org.opensearch.sql.opensearch.storage.scan.OpenSearchIndexScanTest.QUERY_SIZE;
-import static org.opensearch.sql.opensearch.storage.scan.OpenSearchIndexScanTest.employee;
 import static org.opensearch.sql.opensearch.storage.scan.OpenSearchIndexScanTest.mockResponse;
 import static org.opensearch.sql.opensearch.storage.scan.OpenSearchIndexScanTest.mockTwoPageResponse;
 
@@ -41,14 +37,11 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.opensearch.common.unit.TimeValue;
 import org.opensearch.sql.common.setting.Settings;
-import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.exception.NoCursorException;
 import org.opensearch.sql.executor.pagination.PlanSerializer;
 import org.opensearch.sql.opensearch.client.OpenSearchClient;
 import org.opensearch.sql.opensearch.data.type.OpenSearchDataType;
 import org.opensearch.sql.opensearch.data.value.OpenSearchExprValueFactory;
-import org.opensearch.sql.opensearch.request.ContinuePageRequestBuilder;
-import org.opensearch.sql.opensearch.request.ExecutableRequestBuilder;
 import org.opensearch.sql.opensearch.request.OpenSearchRequest;
 import org.opensearch.sql.opensearch.request.OpenSearchRequestBuilder;
 import org.opensearch.sql.opensearch.response.OpenSearchResponse;
@@ -86,88 +79,11 @@ public class OpenSearchIndexScanPaginationTest {
     mockResponse(client);
     var builder = new OpenSearchRequestBuilder(QUERY_SIZE, exprValueFactory);
     try (var indexScan
-           = new OpenSearchIndexScan(client, INDEX_NAME, settings, MAX_RESULT_WINDOW, builder)) {
+           = new OpenSearchIndexScan(client, MAX_RESULT_WINDOW, builder.build(INDEX_NAME, MAX_RESULT_WINDOW, settings.getSettingValue(Settings.Key.SQL_CURSOR_KEEP_ALIVE)))) {
       indexScan.open();
       assertFalse(indexScan.hasNext());
     }
     verify(client).cleanup(any());
-  }
-
-  @Test
-  void query_all_results_initial_scroll_request() {
-    mockResponse(client, new ExprValue[]{
-        employee(1, "John", "IT"),
-        employee(2, "Smith", "HR"),
-        employee(3, "Allen", "IT")});
-
-    ExecutableRequestBuilder builder = new OpenSearchRequestBuilder(QUERY_SIZE, exprValueFactory);
-    try (var indexScan
-           = new OpenSearchIndexScan(client, INDEX_NAME, settings, MAX_RESULT_WINDOW, builder)) {
-      indexScan.open();
-
-      assertAll(
-          () -> assertTrue(indexScan.hasNext()),
-          () -> assertEquals(employee(1, "John", "IT"), indexScan.next()),
-
-          () -> assertTrue(indexScan.hasNext()),
-          () -> assertEquals(employee(2, "Smith", "HR"), indexScan.next()),
-
-          () -> assertTrue(indexScan.hasNext()),
-          () -> assertEquals(employee(3, "Allen", "IT"), indexScan.next()),
-
-          () -> assertFalse(indexScan.hasNext()),
-          () -> assertEquals(3, indexScan.getTotalHits())
-      );
-    }
-    verify(client).cleanup(any());
-
-    builder = new ContinuePageRequestBuilder(SCROLL_ID, SCROLL_TIMEOUT, exprValueFactory);
-    try (var indexScan
-           = new OpenSearchIndexScan(client, INDEX_NAME, settings, MAX_RESULT_WINDOW, builder)) {
-      indexScan.open();
-
-      assertFalse(indexScan.hasNext());
-    }
-    verify(client, times(2)).cleanup(any());
-  }
-
-  @Test
-  void query_all_results_continuation_scroll_request() {
-    mockResponse(client, new ExprValue[]{
-        employee(1, "John", "IT"),
-        employee(2, "Smith", "HR"),
-        employee(3, "Allen", "IT")});
-
-    ContinuePageRequestBuilder builder = new ContinuePageRequestBuilder(
-        SCROLL_ID, SCROLL_TIMEOUT, exprValueFactory);
-    try (var indexScan
-           = new OpenSearchIndexScan(client, INDEX_NAME, settings, MAX_RESULT_WINDOW, builder)) {
-      indexScan.open();
-
-      assertAll(
-          () -> assertTrue(indexScan.hasNext()),
-          () -> assertEquals(employee(1, "John", "IT"), indexScan.next()),
-
-          () -> assertTrue(indexScan.hasNext()),
-          () -> assertEquals(employee(2, "Smith", "HR"), indexScan.next()),
-
-          () -> assertTrue(indexScan.hasNext()),
-          () -> assertEquals(employee(3, "Allen", "IT"), indexScan.next()),
-
-          () -> assertFalse(indexScan.hasNext()),
-          () -> assertEquals(3, indexScan.getTotalHits())
-      );
-    }
-    verify(client).cleanup(any());
-
-    builder = new ContinuePageRequestBuilder(SCROLL_ID, SCROLL_TIMEOUT, exprValueFactory);
-    try (var indexScan
-           = new OpenSearchIndexScan(client, INDEX_NAME, settings, MAX_RESULT_WINDOW, builder)) {
-      indexScan.open();
-
-      assertFalse(indexScan.hasNext());
-    }
-    verify(client, times(2)).cleanup(any());
   }
 
   @Test
@@ -182,10 +98,10 @@ public class OpenSearchIndexScanPaginationTest {
     mockTwoPageResponse(client);
     OpenSearchRequestBuilder builder = mock();
     OpenSearchRequest request = mock();
-    when(request.toCursor()).thenReturn("cu-cursor");
+    when(request.hasAnotherBatch()).thenReturn(true);
     when(builder.build(any(), eq(MAX_RESULT_WINDOW), any())).thenReturn(request);
-    var indexScan = new OpenSearchIndexScan(client, INDEX_NAME, settings,
-        MAX_RESULT_WINDOW, builder);
+    var indexScan = new OpenSearchIndexScan(client,
+      MAX_RESULT_WINDOW, builder.build(INDEX_NAME, MAX_RESULT_WINDOW, SCROLL_TIMEOUT));
     indexScan.open();
 
     ByteArrayOutputStream output = new ByteArrayOutputStream();
@@ -193,12 +109,8 @@ public class OpenSearchIndexScanPaginationTest {
     objectOutput.writeObject(indexScan);
     objectOutput.flush();
 
-    when(client.getIndexMappings(any())).thenReturn(Map.of());
     OpenSearchStorageEngine engine = mock();
     when(engine.getClient()).thenReturn(client);
-    when(engine.getSettings()).thenReturn(mock());
-    when(client.getIndexMaxResultWindows(any()))
-        .thenReturn((Map.of(INDEX_NAME.getIndexNames()[0], MAX_RESULT_WINDOW)));
     ObjectInputStream objectInput = new PlanSerializer(engine)
         .getCursorDeserializationStream(new ByteArrayInputStream(output.toByteArray()));
     var roundTripScan = (OpenSearchIndexScan) objectInput.readObject();
@@ -215,15 +127,14 @@ public class OpenSearchIndexScanPaginationTest {
     when(builder.build(any(), anyInt(), any())).thenReturn(request);
     when(client.search(any())).thenReturn(response);
     try (var indexScan
-        = new OpenSearchIndexScan(client, INDEX_NAME, settings, MAX_RESULT_WINDOW, builder)) {
+        = new OpenSearchIndexScan(client, MAX_RESULT_WINDOW,
+          builder.build(INDEX_NAME, MAX_RESULT_WINDOW, SCROLL_TIMEOUT))) {
       indexScan.open();
 
-      when(request.toCursor()).thenReturn(null, "");
-      for (int i = 0; i < 2; i++) {
-        ByteArrayOutputStream output = new ByteArrayOutputStream();
-        ObjectOutputStream objectOutput = new ObjectOutputStream(output);
-        assertThrows(NoCursorException.class, () -> objectOutput.writeObject(indexScan));
-      }
+      when(request.hasAnotherBatch()).thenReturn(false);
+      ByteArrayOutputStream output = new ByteArrayOutputStream();
+      ObjectOutputStream objectOutput = new ObjectOutputStream(output);
+      assertThrows(NoCursorException.class, () -> objectOutput.writeObject(indexScan));
     }
   }
 }

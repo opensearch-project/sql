@@ -10,15 +10,16 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.opensearch.sql.opensearch.request.OpenSearchRequestBuilder.DEFAULT_QUERY_TIMEOUT;
 
-import java.util.Iterator;
 import java.util.function.Consumer;
 import java.util.function.Function;
+import org.apache.lucene.search.TotalHits;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
@@ -31,7 +32,6 @@ import org.opensearch.search.SearchHit;
 import org.opensearch.search.SearchHits;
 import org.opensearch.search.builder.SearchSourceBuilder;
 import org.opensearch.search.fetch.subphase.FetchSourceContext;
-import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.opensearch.data.value.OpenSearchExprValueFactory;
 import org.opensearch.sql.opensearch.response.OpenSearchResponse;
 
@@ -143,14 +143,21 @@ public class OpenSearchQueryRequestTest {
   void searchRequest() {
     request.getSourceBuilder().query(QueryBuilders.termQuery("name", "John"));
 
-    assertEquals(
+    request.search(searchRequest ->{
+      assertEquals(
         new SearchRequest()
-            .indices("test")
-            .source(new SearchSourceBuilder()
-                .timeout(DEFAULT_QUERY_TIMEOUT)
-                .from(0)
-                .size(200)
-                .query(QueryBuilders.termQuery("name", "John"))),
-        request.searchRequest());
+          .indices("test")
+          .source(new SearchSourceBuilder()
+            .timeout(DEFAULT_QUERY_TIMEOUT)
+            .from(0)
+            .size(200)
+            .query(QueryBuilders.termQuery("name", "John"))),
+        searchRequest);
+      return when(mock(SearchResponse.class).getHits())
+        .thenReturn(new SearchHits(new SearchHit[0],
+          new TotalHits(0, TotalHits.Relation.EQUAL_TO),0.0f))
+        .getMock();
+    }, searchScrollRequest -> null);
+
   }
 }
