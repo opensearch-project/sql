@@ -65,4 +65,6 @@
 + **Test Framework**
   + [Doc Test](testing-doctest.md): makes our doc live and runnable to ensure documentation correctness
   + [Comparison Test](testing-comparison-test.md): compares with other databases to ensure functional correctness
++ **Benchmark**
+  + [Hash Join Benchmark](testing-hash-join-benchmark.md): performance test on hash join implementation
 + **Operation Tools**
