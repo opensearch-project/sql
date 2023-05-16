@@ -22,6 +22,14 @@ public interface FlintClient {
   void createIndex(String indexName, FlintMetadata metadata);
 
   /**
+   * Does Flint index with the given name exist
+   *
+   * @param indexName index name
+   * @return true if the index exists, otherwise false
+   */
+  boolean exists(String indexName);
+
+  /**
    * Retrieve metadata in a Flint index.
    *
    * @param indexName index name

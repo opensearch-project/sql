@@ -13,6 +13,7 @@ import org.opensearch.client.RequestOptions;
 import org.opensearch.client.RestClient;
 import org.opensearch.client.RestHighLevelClient;
 import org.opensearch.client.indices.CreateIndexRequest;
+import org.opensearch.client.indices.GetIndexRequest;
 import org.opensearch.client.indices.GetMappingsRequest;
 import org.opensearch.client.indices.GetMappingsResponse;
 import org.opensearch.cluster.metadata.MappingMetadata;
@@ -42,7 +43,18 @@ public class FlintOpenSearchClient implements FlintClient {
       request.mapping(buildIndexMapping(metadata));
 
       client.indices().create(request, RequestOptions.DEFAULT);
+    } catch (Exception e) {
+      throw new IllegalStateException("Failed to create Flint index", e);
+    }
+  }
+
+  @Override
+  public boolean exists(String indexName) {
+    try (RestHighLevelClient client = createClient()) {
+      return client.indices()
+          .exists(new GetIndexRequest(indexName), RequestOptions.DEFAULT);
     } catch (IOException e) {
+      throw new IllegalStateException("Failed to check if Flint index exists", e);
     }
   }
 
@@ -50,11 +62,12 @@ public class FlintOpenSearchClient implements FlintClient {
   public FlintMetadata getIndexMetadata(String indexName) {
     try (RestHighLevelClient client = createClient()) {
       GetMappingsRequest request = new GetMappingsRequest().indices(indexName);
-      GetMappingsResponse response = client.indices().getMapping(request, RequestOptions.DEFAULT);
+      GetMappingsResponse response =
+          client.indices().getMapping(request, RequestOptions.DEFAULT);
 
       return parseIndexMapping(response.mappings().get(indexName));
-    } catch (IOException e) {
-      return null;
+    } catch (Exception e) {
+      throw new IllegalStateException("Failed to get Flint index metadata", e);
     }
   }
 
@@ -64,11 +77,13 @@ public class FlintOpenSearchClient implements FlintClient {
   }
 
   private Map<String, Object> buildIndexMapping(FlintMetadata metadata) {
+    // Convert from {"field": "int"} to {"field": {"type": "int"}}
     Map<String, Object> fieldTypes =
         metadata.getSchema().entrySet().stream()
             .collect(Collectors.toMap(
                 Map.Entry::getKey,
                 entry -> Map.of("type", entry.getValue())));
+
     return Map.of(
         "properties", fieldTypes,
         "_meta", metadata.getMeta());
@@ -77,6 +92,8 @@ public class FlintOpenSearchClient implements FlintClient {
   @SuppressWarnings("unchecked")
   private FlintMetadata parseIndexMapping(MappingMetadata mapping) {
     Map<String, Object> source = mapping.getSourceAsMap();
+
+    // Parse {"field": {"type": "int"}} to {"field": "int"}
     Map<String, String> schema =
         ((Map<String, Object>) source.get("properties"))
             .entrySet().stream()
@@ -84,7 +101,6 @@ public class FlintOpenSearchClient implements FlintClient {
                 Map.Entry::getKey,
                 entry -> ((Map<String, String>) entry.getValue()).get("type")));
 
-    return new FlintMetadata(schema,
-        (Map<String, Object>) source.get("_meta"));
+    return new FlintMetadata(schema, (Map<String, Object>) source.get("_meta"));
   }
 }
