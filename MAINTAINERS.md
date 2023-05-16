@@ -19,9 +19,11 @@ This document contains a list of maintainers in this repo. See [opensearch-proje
 | Vamsi Manohar     | [vamsi-amazon](https://github.com/vamsi-amazon)     | Amazon      |
 | Peng Huo          | [penghuo](https://github.com/penghuo)               | Amazon      |
 | Sean Kao          | [seankao-az](https://github.com/seankao-az)         | Amazon      |
-| Max Ksyunz        | [MaxKsyunz](https://github.com/MaxKsyunz)           | BitQuill    |
-| Yury Fridlyand    | [Yury-Fridlyand](https://github.com/Yury-Fridlyand) | BitQuill    |
 | Anirudha Jadhav   | [anirudha](https://github.com/anirudha)             | Amazon      |
+| Max Ksyunz        | [MaxKsyunz](https://github.com/MaxKsyunz)           | Improving   |
+| Yury Fridlyand    | [Yury-Fridlyand](https://github.com/Yury-Fridlyand) | Improving   |
+| Andrew Carbonetto | [acarbonetto](https://github.com/acarbonetto)       | Improving   |
+| Forest Vey        | [forestmvey](https://github.com/forestmvey)         | Improving   |
 
 ## Emeritus Maintainers
 
