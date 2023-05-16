@@ -3,4 +3,4 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 
-org.apache.spark.sql.v2.OpenSearchJsonDataSourceV2
+org.apache.spark.sql.flint.FlintDataSourceV2

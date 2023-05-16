@@ -3,14 +3,13 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-package org.apache.spark.sql.v2
+package org.apache.spark.sql.flint
 
 import java.util.TimeZone
 
-import scala.collection.JavaConverters._
-
 import com.fasterxml.jackson.core.{JsonFactory, JsonParser}
-import org.opensearch.io.{OpenSearchOptions, OpenSearchReader}
+import org.opensearch.flint.core.FlintOptions
+import org.opensearch.flint.core.storage.FlintReader
 
 import org.apache.spark.sql.catalyst.InternalRow
 import org.apache.spark.sql.catalyst.json.{CreateJacksonParser, JacksonParser, JSONOptionsInRead}
@@ -26,10 +25,7 @@ import org.apache.spark.unsafe.types.UTF8String
  * @param schema
  *   schema
  */
-class OpenSearchPartitionReader(
-    tableName: String,
-    schema: StructType,
-    options: Map[String, String])
+class FlintPartitionReader(reader: FlintReader, schema: StructType, options: FlintOptions)
     extends PartitionReader[InternalRow] {
 
   lazy val parser = new JacksonParser(
@@ -47,12 +43,6 @@ class OpenSearchPartitionReader(
     schema,
     parser.options.columnNameOfCorruptRecord)
 
-  lazy val openSearchReader = {
-    val reader = new OpenSearchReader(tableName, new OpenSearchOptions(options.asJava))
-    reader.open()
-    reader
-  }
-
   var rows: Iterator[InternalRow] = Iterator.empty
 
   /**
@@ -62,8 +52,8 @@ class OpenSearchPartitionReader(
   override def next: Boolean = {
     if (rows.hasNext) {
       true
-    } else if (openSearchReader.hasNext) {
-      rows = safeParser.parse(openSearchReader.next())
+    } else if (reader.hasNext) {
+      rows = safeParser.parse(reader.next())
       rows.hasNext
     } else {
       false
@@ -75,6 +65,6 @@ class OpenSearchPartitionReader(
   }
 
   override def close(): Unit = {
-    openSearchReader.close()
+    reader.close()
   }
 }

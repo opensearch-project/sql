@@ -7,8 +7,9 @@ package org.apache.spark
 
 import org.opensearch.action.bulk.BulkRequest
 import org.opensearch.action.index.IndexRequest
+import org.opensearch.action.support.WriteRequest.RefreshPolicy
 import org.opensearch.client.RequestOptions
-import org.opensearch.client.indices.CreateIndexRequest
+import org.opensearch.client.indices.{CreateIndexRequest, GetIndexRequest}
 import org.opensearch.common.xcontent.XContentType
 
 /**
@@ -43,17 +44,39 @@ trait OpenSearchIndex { self: OpenSearchSuite =>
     index(indexName, oneNodeSetting, mappings, docs)
   }
 
-  def index(index: String, settings: String, mappings: String, doc: Seq[String]): Unit = {
+  def multipleDocIndex(indexName: String, N: Int): Unit = {
+    val mappings = """{
+                     |  "properties": {
+                     |    "id": {
+                     |      "type": "integer"
+                     |    }
+                     |  }
+                     |}""".stripMargin
+
+    val docs = for (n <- 1 to N) yield s"""{"id": $n}""".stripMargin
+    index(indexName, oneNodeSetting, mappings, docs)
+  }
+
+  def index(index: String, settings: String, mappings: String, docs: Seq[String]): Unit = {
     openSearchClient.indices.create(
       new CreateIndexRequest(index)
         .settings(settings, XContentType.JSON)
         .mapping(mappings, XContentType.JSON),
       RequestOptions.DEFAULT)
 
-    val indexRequest = doc.foldLeft(new IndexRequest(index))((req, source) =>
-      req.source(source, XContentType.JSON))
+    val getIndexResponse =
+      openSearchClient.indices().get(new GetIndexRequest(index), RequestOptions.DEFAULT)
+    assume(getIndexResponse.getIndices.contains(index), s"create index $index failed")
+
+    /**
+     *   1. Wait until refresh the index.
+     */
+    val request = new BulkRequest().setRefreshPolicy(RefreshPolicy.WAIT_UNTIL)
+    for (doc <- docs) {
+      request.add(new IndexRequest(index).source(doc, XContentType.JSON))
+    }
     val response =
-      openSearchClient.bulk(new BulkRequest().add(indexRequest), RequestOptions.DEFAULT)
+      openSearchClient.bulk(request, RequestOptions.DEFAULT)
 
     assume(
       !response.hasFailures,

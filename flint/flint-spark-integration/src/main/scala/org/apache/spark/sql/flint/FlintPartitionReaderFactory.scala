@@ -3,18 +3,21 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-package org.apache.spark.sql.v2
+package org.apache.spark.sql.flint
+
+import org.opensearch.flint.core.{FlintClient, FlintOptions}
 
 import org.apache.spark.sql.catalyst.InternalRow
 import org.apache.spark.sql.connector.read.{InputPartition, PartitionReader, PartitionReaderFactory}
 import org.apache.spark.sql.types.StructType
 
-case class OpenSearchPartitionReaderFactory(
+case class FlintPartitionReaderFactory(
     tableName: String,
     schema: StructType,
-    options: Map[String, String])
+    option: FlintOptions)
     extends PartitionReaderFactory {
   override def createReader(partition: InputPartition): PartitionReader[InternalRow] = {
-    new OpenSearchPartitionReader(tableName, schema, options)
+    val flintClient = FlintClient.create(option)
+    new FlintPartitionReader(flintClient.createReader(tableName, null, option), schema, option)
   }
 }
