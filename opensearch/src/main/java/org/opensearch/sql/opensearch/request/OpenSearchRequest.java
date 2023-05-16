@@ -6,21 +6,23 @@
 
 package org.opensearch.sql.opensearch.request;
 
-import java.io.Externalizable;
-import java.io.Serializable;
+import java.io.IOException;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import lombok.EqualsAndHashCode;
 import org.opensearch.action.search.SearchRequest;
 import org.opensearch.action.search.SearchResponse;
 import org.opensearch.action.search.SearchScrollRequest;
+import org.opensearch.common.io.stream.StreamInput;
+import org.opensearch.common.io.stream.StreamOutput;
+import org.opensearch.common.io.stream.Writeable;
 import org.opensearch.sql.opensearch.data.value.OpenSearchExprValueFactory;
 import org.opensearch.sql.opensearch.response.OpenSearchResponse;
 
 /**
  * OpenSearch search request.
  */
-public interface OpenSearchRequest extends Externalizable {
+public interface OpenSearchRequest extends Writeable {
   /**
    * Apply the search action or scroll action on request based on context.
    *
@@ -53,11 +55,14 @@ public interface OpenSearchRequest extends Externalizable {
    * Indices are separated by ",".
    */
   @EqualsAndHashCode
-  class IndexName implements Serializable {
+  class IndexName implements Writeable {
     private static final String COMMA = ",";
 
     private final String[] indexNames;
 
+    public IndexName(StreamInput si) throws IOException {
+      indexNames = si.readStringArray();
+    }
     public IndexName(String indexName) {
       this.indexNames = indexName.split(COMMA);
     }
@@ -69,6 +74,11 @@ public interface OpenSearchRequest extends Externalizable {
     @Override
     public String toString() {
       return String.join(COMMA, indexNames);
+    }
+
+    @Override
+    public void writeTo(StreamOutput out) throws IOException {
+      out.writeStringArray(indexNames);
     }
   }
 }

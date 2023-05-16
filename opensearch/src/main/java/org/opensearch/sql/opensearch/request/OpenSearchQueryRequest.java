@@ -21,6 +21,7 @@ import lombok.ToString;
 import org.opensearch.action.search.SearchRequest;
 import org.opensearch.action.search.SearchResponse;
 import org.opensearch.action.search.SearchScrollRequest;
+import org.opensearch.common.io.stream.StreamOutput;
 import org.opensearch.search.SearchHits;
 import org.opensearch.search.builder.SearchSourceBuilder;
 import org.opensearch.search.fetch.subphase.FetchSourceContext;
@@ -117,12 +118,7 @@ public class OpenSearchQueryRequest implements OpenSearchRequest {
   }
 
   @Override
-  public void writeExternal(ObjectOutput out) throws IOException {
-    throw new UnsupportedOperationException("OpenSearchQueryRequest.writeExternal");
-  }
-
-  @Override
-  public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
-    throw new UnsupportedOperationException("OpenSearchQueryRequest.readExternal");
+  public void writeTo(StreamOutput out) throws IOException {
+    throw new UnsupportedOperationException("Not necessary");
   }
 }

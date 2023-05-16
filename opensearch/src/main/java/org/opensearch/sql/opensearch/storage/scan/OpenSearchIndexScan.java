@@ -6,6 +6,7 @@
 
 package org.opensearch.sql.opensearch.storage.scan;
 
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
@@ -13,11 +14,14 @@ import java.util.Collections;
 import java.util.Iterator;
 import lombok.EqualsAndHashCode;
 import lombok.ToString;
+import org.opensearch.common.io.stream.BytesStreamInput;
+import org.opensearch.common.io.stream.BytesStreamOutput;
 import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.exception.NoCursorException;
 import org.opensearch.sql.executor.pagination.PlanSerializer;
 import org.opensearch.sql.opensearch.client.OpenSearchClient;
 import org.opensearch.sql.opensearch.request.OpenSearchRequest;
+import org.opensearch.sql.opensearch.request.OpenSearchScrollRequest;
 import org.opensearch.sql.opensearch.response.OpenSearchResponse;
 import org.opensearch.sql.opensearch.storage.OpenSearchStorageEngine;
 import org.opensearch.sql.planner.ExternalizablePlan;
@@ -117,14 +121,22 @@ public class OpenSearchIndexScan extends TableScanOperator implements Externaliz
   }
 
   @Override
-  public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
-    request = (OpenSearchRequest) in.readObject();
-    maxResponseSize = in.readInt();
+  public void readExternal(ObjectInput in) throws IOException {
+    int reqSize = in.readInt();
+    byte[] requestStream = new byte[reqSize];
+    in.read(requestStream);
 
     var engine = (OpenSearchStorageEngine) ((PlanSerializer.CursorDeserializationStream) in)
-        .resolveObject("engine");
+      .resolveObject("engine");
+
+    try (BytesStreamInput bsi = new BytesStreamInput(requestStream)) {
+
+      request = new OpenSearchScrollRequest(bsi, engine);
+    }
+    maxResponseSize = in.readInt();
 
     client = engine.getClient();
+
   }
 
   @Override
@@ -133,7 +145,18 @@ public class OpenSearchIndexScan extends TableScanOperator implements Externaliz
       throw new NoCursorException();
     }
 
-    out.writeObject(request);
+    BytesStreamOutput reqOut = new BytesStreamOutput();
+    request.writeTo(reqOut);
+    reqOut.flush();
+
+    ByteArrayOutputStream baos = new ByteArrayOutputStream();
+    reqOut.bytes().writeTo(baos);
+    baos.flush();
+
+    var reqAsBytes = baos.toByteArray();
+    out.writeInt(reqAsBytes.length);
+    out.write(reqAsBytes);
+
     out.writeInt(maxResponseSize);
   }
 }

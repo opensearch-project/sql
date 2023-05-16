@@ -7,10 +7,8 @@ package org.opensearch.sql.opensearch.storage.scan;
 
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.CALLS_REAL_METHODS;
 import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.mock;
@@ -20,11 +18,8 @@ import static org.mockito.Mockito.withSettings;
 import static org.opensearch.sql.data.type.ExprCoreType.STRING;
 import static org.opensearch.sql.opensearch.storage.scan.OpenSearchIndexScanTest.QUERY_SIZE;
 import static org.opensearch.sql.opensearch.storage.scan.OpenSearchIndexScanTest.mockResponse;
-import static org.opensearch.sql.opensearch.storage.scan.OpenSearchIndexScanTest.mockTwoPageResponse;
 
-import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
-import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.util.Map;
 import lombok.SneakyThrows;
@@ -38,14 +33,12 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.opensearch.common.unit.TimeValue;
 import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.exception.NoCursorException;
-import org.opensearch.sql.executor.pagination.PlanSerializer;
 import org.opensearch.sql.opensearch.client.OpenSearchClient;
 import org.opensearch.sql.opensearch.data.type.OpenSearchDataType;
 import org.opensearch.sql.opensearch.data.value.OpenSearchExprValueFactory;
 import org.opensearch.sql.opensearch.request.OpenSearchRequest;
 import org.opensearch.sql.opensearch.request.OpenSearchRequestBuilder;
 import org.opensearch.sql.opensearch.response.OpenSearchResponse;
-import org.opensearch.sql.opensearch.storage.OpenSearchStorageEngine;
 
 @ExtendWith(MockitoExtension.class)
 @DisplayNameGeneration(DisplayNameGenerator.ReplaceUnderscores.class)
@@ -90,32 +83,6 @@ public class OpenSearchIndexScanPaginationTest {
   void explain_not_implemented() {
     assertThrows(Throwable.class, () -> mock(OpenSearchIndexScan.class,
         withSettings().defaultAnswer(CALLS_REAL_METHODS)).explain());
-  }
-
-  @Test
-  @SneakyThrows
-  void serialization() {
-    mockTwoPageResponse(client);
-    OpenSearchRequestBuilder builder = mock();
-    OpenSearchRequest request = mock();
-    when(request.hasAnotherBatch()).thenReturn(true);
-    when(builder.build(any(), eq(MAX_RESULT_WINDOW), any())).thenReturn(request);
-    var indexScan = new OpenSearchIndexScan(client,
-      MAX_RESULT_WINDOW, builder.build(INDEX_NAME, MAX_RESULT_WINDOW, SCROLL_TIMEOUT));
-    indexScan.open();
-
-    ByteArrayOutputStream output = new ByteArrayOutputStream();
-    ObjectOutputStream objectOutput = new ObjectOutputStream(output);
-    objectOutput.writeObject(indexScan);
-    objectOutput.flush();
-
-    OpenSearchStorageEngine engine = mock();
-    when(engine.getClient()).thenReturn(client);
-    ObjectInputStream objectInput = new PlanSerializer(engine)
-        .getCursorDeserializationStream(new ByteArrayInputStream(output.toByteArray()));
-    var roundTripScan = (OpenSearchIndexScan) objectInput.readObject();
-    roundTripScan.open();
-    assertTrue(roundTripScan.hasNext());
   }
 
   @Test

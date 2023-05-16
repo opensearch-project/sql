@@ -7,8 +7,6 @@
 package org.opensearch.sql.opensearch.request;
 
 import java.io.IOException;
-import java.io.ObjectInput;
-import java.io.ObjectOutput;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
@@ -21,10 +19,14 @@ import lombok.ToString;
 import org.opensearch.action.search.SearchRequest;
 import org.opensearch.action.search.SearchResponse;
 import org.opensearch.action.search.SearchScrollRequest;
+import org.opensearch.common.io.stream.StreamInput;
+import org.opensearch.common.io.stream.StreamOutput;
 import org.opensearch.common.unit.TimeValue;
 import org.opensearch.search.builder.SearchSourceBuilder;
 import org.opensearch.sql.opensearch.data.value.OpenSearchExprValueFactory;
 import org.opensearch.sql.opensearch.response.OpenSearchResponse;
+import org.opensearch.sql.opensearch.storage.OpenSearchIndex;
+import org.opensearch.sql.opensearch.storage.OpenSearchStorageEngine;
 
 /**
  * OpenSearch scroll search request. This has to be stateful because it needs to:
@@ -150,28 +152,30 @@ public class OpenSearchScrollRequest implements OpenSearchRequest {
    */
   @Override
   public boolean hasAnotherBatch() {
-    return scrollId != null && !scrollId.equals("");
+    return !needClean && scrollId != null && !scrollId.equals("");
   }
 
   @Override
-  public void writeExternal(ObjectOutput out) throws IOException {
-    out.writeObject(initialSearchRequest);
-    out.writeLong(scrollTimeout.getMillis());
-    out.writeObject(indexName);
-    out.writeObject(exprValueFactory);
-    out.writeUTF(scrollId);
+  public void writeTo(StreamOutput out) throws IOException {
+    initialSearchRequest.writeTo(out);
+    out.writeTimeValue(scrollTimeout);
+    if (!needClean) {
+      // If needClean is true, there is no more data to get from OpenSearch and scrollId is
+      // used only to clean up OpenSearch context.
+      out.writeString(scrollId);
+    }
     out.writeBoolean(needClean);
-    out.writeObject(includes);
+    out.writeStringCollection(includes);
+    indexName.writeTo(out);
   }
 
-  @Override
-  public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
-    initialSearchRequest = (SearchRequest) in.readObject();
-    scrollTimeout = TimeValue.timeValueMillis(in.readLong());
-    indexName = (IndexName) in.readObject();
-    exprValueFactory = (OpenSearchExprValueFactory) in.readObject();
-    scrollId = in.readUTF();
+  public OpenSearchScrollRequest(StreamInput in, OpenSearchStorageEngine engine) throws IOException {
+    initialSearchRequest = new SearchRequest(in);
+    scrollTimeout = in.readTimeValue();
+    scrollId = in.readString();
     needClean = in.readBoolean();
-    includes = (List<String>) in.readObject();
+    includes = in.readStringList();
+    indexName = new IndexName(in);
+    exprValueFactory = new OpenSearchExprValueFactory(((OpenSearchIndex) engine.getTable(null, indexName.toString())).getFieldOpenSearchTypes());
   }
 }
