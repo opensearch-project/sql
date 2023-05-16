@@ -63,6 +63,7 @@ public interface OpenSearchRequest extends Writeable {
     public IndexName(StreamInput si) throws IOException {
       indexNames = si.readStringArray();
     }
+
     public IndexName(String indexName) {
       this.indexNames = indexName.split(COMMA);
     }

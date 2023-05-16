@@ -66,7 +66,7 @@ class OpenSearchScrollRequestTest {
   private final SearchSourceBuilder searchSourceBuilder = new SearchSourceBuilder();
   private final OpenSearchScrollRequest request = new OpenSearchScrollRequest(
       new OpenSearchRequest.IndexName("test"), TimeValue.timeValueMinutes(1),
-    searchSourceBuilder, factory);
+      searchSourceBuilder, factory);
 
   @Test
   void searchRequest() {
@@ -77,8 +77,9 @@ class OpenSearchScrollRequestTest {
           .indices("test")
           .scroll(TimeValue.timeValueMinutes(1))
           .source(new SearchSourceBuilder().query(QueryBuilders.termQuery("name", "John"))),
-        searchRequest);
-      SearchHits searchHitsMock = when(mock(SearchHits.class).getHits()).thenReturn(new SearchHit[0]).getMock();
+          searchRequest);
+      SearchHits searchHitsMock = when(mock(SearchHits.class).getHits())
+          .thenReturn(new SearchHit[0]).getMock();
       return when(mock(SearchResponse.class).getHits()).thenReturn(searchHitsMock).getMock();
     }, searchScrollRequest -> null);
   }
@@ -116,8 +117,11 @@ class OpenSearchScrollRequestTest {
     when(searchResponse.getHits()).thenReturn(searchHits);
     when(searchHits.getHits()).thenReturn(new SearchHit[] {searchHit});
 
+    Function<SearchScrollRequest, SearchResponse> scrollSearch = searchScrollRequest -> {
+      throw new AssertionError();
+    };
     OpenSearchResponse openSearchResponse = request.search(searchRequest -> searchResponse,
-        searchScrollRequest -> {throw new AssertionError();});
+        scrollSearch);
 
     assertFalse(openSearchResponse.isEmpty());
   }

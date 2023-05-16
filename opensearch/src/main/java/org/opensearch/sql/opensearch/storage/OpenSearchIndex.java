@@ -172,15 +172,16 @@ public class OpenSearchIndex implements Table {
     final int querySizeLimit = settings.getSettingValue(Settings.Key.QUERY_SIZE_LIMIT);
 
     var builder = new OpenSearchRequestBuilder(
-      querySizeLimit,
-      createExprValueFactory());
+        querySizeLimit,
+        createExprValueFactory());
 
     return new OpenSearchIndexScanBuilder(builder) {
       @Override
       protected TableScanOperator createScan(OpenSearchRequestBuilder requestBuilder) {
-        final TimeValue cursorKeepAlive = settings.getSettingValue(Settings.Key.SQL_CURSOR_KEEP_ALIVE);
+        final TimeValue cursorKeepAlive =
+            settings.getSettingValue(Settings.Key.SQL_CURSOR_KEEP_ALIVE);
         return new OpenSearchIndexScan(client, requestBuilder.getMaxResponseSize(),
-          requestBuilder.build(indexName, getMaxResultWindow(), cursorKeepAlive));
+            requestBuilder.build(indexName, getMaxResultWindow(), cursorKeepAlive));
       }
     };
   }

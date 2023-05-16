@@ -22,6 +22,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Function;
 import org.apache.commons.lang3.tuple.Pair;
 import org.apache.lucene.search.TotalHits;
 import org.apache.lucene.search.join.ScoreMode;
@@ -32,7 +33,9 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.opensearch.action.search.SearchRequest;
 import org.opensearch.action.search.SearchResponse;
+import org.opensearch.action.search.SearchScrollRequest;
 import org.opensearch.common.unit.TimeValue;
 import org.opensearch.index.query.InnerHitBuilder;
 import org.opensearch.index.query.NestedQueryBuilder;
@@ -124,7 +127,7 @@ class OpenSearchRequestBuilderTest {
     requestBuilder.pushDownFilter(query);
 
     var r = requestBuilder.build(indexName, MAX_RESULT_WINDOW, DEFAULT_QUERY_TIMEOUT);
-    r.search(searchRequest -> {
+    Function<SearchRequest, SearchResponse> querySearch = searchRequest -> {
       assertEquals(
         new SearchSourceBuilder()
           .from(DEFAULT_OFFSET)
@@ -132,10 +135,14 @@ class OpenSearchRequestBuilderTest {
           .timeout(DEFAULT_QUERY_TIMEOUT)
           .query(query)
           .sort(DOC_FIELD_NAME, ASC),
-        searchRequest.source()
+          searchRequest.source()
       );
       return mock();
-    }, searchScrollRequest -> {throw new UnsupportedOperationException();});
+    };
+    Function<SearchScrollRequest, SearchResponse> scrollSearch = searchScrollRequest -> {
+      throw new UnsupportedOperationException();
+    };
+    r.search(querySearch, scrollSearch);
 
   }
 
@@ -178,13 +185,21 @@ class OpenSearchRequestBuilderTest {
         requestBuilder);
   }
 
-  void assertSearchSourceBuilder(SearchSourceBuilder expected, OpenSearchRequestBuilder requestBuilder)
+  void assertSearchSourceBuilder(SearchSourceBuilder expected,
+                                 OpenSearchRequestBuilder requestBuilder)
       throws UnsupportedOperationException {
-    requestBuilder.build(indexName, MAX_RESULT_WINDOW, DEFAULT_QUERY_TIMEOUT).search(searchRequest -> {
+    Function<SearchRequest, SearchResponse> querySearch = searchRequest -> {
       assertEquals(expected, searchRequest.source());
-      return when(mock(SearchResponse.class).getHits()).thenReturn(new SearchHits(new SearchHit[0],
-        new TotalHits(0, TotalHits.Relation.EQUAL_TO), 0.0f)).getMock();
-    }, searchScrollRequest ->{ throw new UnsupportedOperationException();});
+      return when(mock(SearchResponse.class).getHits())
+          .thenReturn(new SearchHits(new SearchHit[0], new TotalHits(0,
+              TotalHits.Relation.EQUAL_TO), 0.0f))
+          .getMock();
+    };
+    Function<SearchScrollRequest, SearchResponse> scrollSearch = searchScrollRequest -> {
+      throw new UnsupportedOperationException();
+    };
+    requestBuilder.build(indexName, MAX_RESULT_WINDOW, DEFAULT_QUERY_TIMEOUT).search(
+        querySearch, scrollSearch);
   }
 
   @Test

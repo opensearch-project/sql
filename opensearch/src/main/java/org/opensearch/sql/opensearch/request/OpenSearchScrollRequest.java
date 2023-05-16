@@ -84,7 +84,7 @@ public class OpenSearchScrollRequest implements OpenSearchRequest {
     includes = sourceBuilder.fetchSource() != null && sourceBuilder.fetchSource().includes() != null
       ? Arrays.asList(sourceBuilder.fetchSource().includes())
       : List.of();
-    }
+  }
 
 
   /** Constructor. */
@@ -169,13 +169,21 @@ public class OpenSearchScrollRequest implements OpenSearchRequest {
     indexName.writeTo(out);
   }
 
-  public OpenSearchScrollRequest(StreamInput in, OpenSearchStorageEngine engine) throws IOException {
+  /**
+   * Constructs OpenSearchScrollRequest from serialized representation.
+   * @param in stream to read data from.
+   * @param engine OpenSearchSqlEngine to get node-specific context.
+   * @throws IOException thrown if reading from input {@param in} fails.
+   */
+  public OpenSearchScrollRequest(StreamInput in, OpenSearchStorageEngine engine)
+      throws IOException {
     initialSearchRequest = new SearchRequest(in);
     scrollTimeout = in.readTimeValue();
     scrollId = in.readString();
     needClean = in.readBoolean();
     includes = in.readStringList();
     indexName = new IndexName(in);
-    exprValueFactory = new OpenSearchExprValueFactory(((OpenSearchIndex) engine.getTable(null, indexName.toString())).getFieldOpenSearchTypes());
+    OpenSearchIndex index = (OpenSearchIndex) engine.getTable(null, indexName.toString());
+    exprValueFactory = new OpenSearchExprValueFactory(index.getFieldOpenSearchTypes());
   }
 }

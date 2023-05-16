@@ -63,7 +63,8 @@ class OpenSearchIndexTest {
 
   public static final int QUERY_SIZE_LIMIT = 200;
   public static final TimeValue SCROLL_TIMEOUT = new TimeValue(1);
-  public static final OpenSearchRequest.IndexName INDEX_NAME = new OpenSearchRequest.IndexName("test");
+  public static final OpenSearchRequest.IndexName INDEX_NAME
+      = new OpenSearchRequest.IndexName("test");
 
   @Mock
   private OpenSearchClient client;
@@ -203,8 +204,8 @@ class OpenSearchIndexTest {
     Integer maxResultWindow = index.getMaxResultWindow();
     final var requestBuilder = new OpenSearchRequestBuilder(QUERY_SIZE_LIMIT, exprValueFactory);
     assertEquals(new OpenSearchIndexScan(client,
-      200, requestBuilder.build(INDEX_NAME, maxResultWindow, SCROLL_TIMEOUT)),
-      index.implement(index.optimize(plan)));
+        200, requestBuilder.build(INDEX_NAME, maxResultWindow, SCROLL_TIMEOUT)),
+        index.implement(index.optimize(plan)));
   }
 
   @Test
@@ -215,7 +216,7 @@ class OpenSearchIndexTest {
     Integer maxResultWindow = index.getMaxResultWindow();
     final var requestBuilder = new OpenSearchRequestBuilder(QUERY_SIZE_LIMIT, exprValueFactory);
     assertEquals(new OpenSearchIndexScan(client, 200,
-      requestBuilder.build(INDEX_NAME, maxResultWindow, SCROLL_TIMEOUT)), index.implement(plan));
+        requestBuilder.build(INDEX_NAME, maxResultWindow, SCROLL_TIMEOUT)), index.implement(plan));
   }
 
   @Test
@@ -257,7 +258,8 @@ class OpenSearchIndexTest {
                         PhysicalPlanDSL.remove(
                             PhysicalPlanDSL.rename(
                               new OpenSearchIndexScan(client,
-                                QUERY_SIZE_LIMIT, requestBuilder.build(INDEX_NAME, maxResultWindow, SCROLL_TIMEOUT)),
+                                QUERY_SIZE_LIMIT, requestBuilder.build(INDEX_NAME, maxResultWindow,
+                                  SCROLL_TIMEOUT)),
                                 mappings),
                             exclude),
                         newEvalField),

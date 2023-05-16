@@ -9,8 +9,6 @@ package org.opensearch.sql.opensearch.request;
 import static org.opensearch.sql.opensearch.request.OpenSearchRequestBuilder.DEFAULT_QUERY_TIMEOUT;
 
 import java.io.IOException;
-import java.io.ObjectInput;
-import java.io.ObjectOutput;
 import java.util.Arrays;
 import java.util.List;
 import java.util.function.Consumer;

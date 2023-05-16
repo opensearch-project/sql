@@ -112,7 +112,8 @@ class OpenSearchExecutionProtectorTest {
 
     final var name = new OpenSearchRequest.IndexName(indexName);
     final var request = new OpenSearchRequestBuilder(querySizeLimit, exprValueFactory)
-      .build(name, maxResultWindow, settings.getSettingValue(Settings.Key.SQL_CURSOR_KEEP_ALIVE));
+        .build(name, maxResultWindow,
+            settings.getSettingValue(Settings.Key.SQL_CURSOR_KEEP_ALIVE));
     assertEquals(
         PhysicalPlanDSL.project(
             PhysicalPlanDSL.limit(

@@ -127,7 +127,7 @@ public class OpenSearchIndexScan extends TableScanOperator implements Externaliz
     in.read(requestStream);
 
     var engine = (OpenSearchStorageEngine) ((PlanSerializer.CursorDeserializationStream) in)
-      .resolveObject("engine");
+        .resolveObject("engine");
 
     try (BytesStreamInput bsi = new BytesStreamInput(requestStream)) {
 

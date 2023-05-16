@@ -47,7 +47,6 @@ public class OpenSearchIndexScanPaginationTest {
   public static final OpenSearchRequest.IndexName INDEX_NAME
       = new OpenSearchRequest.IndexName("test");
   public static final int MAX_RESULT_WINDOW = 3;
-  public static final String SCROLL_ID = "0xbadbeef";
   public static final TimeValue SCROLL_TIMEOUT = TimeValue.timeValueMinutes(4);
   @Mock
   private Settings settings;
@@ -71,8 +70,8 @@ public class OpenSearchIndexScanPaginationTest {
   void query_empty_result() {
     mockResponse(client);
     var builder = new OpenSearchRequestBuilder(QUERY_SIZE, exprValueFactory);
-    try (var indexScan
-           = new OpenSearchIndexScan(client, MAX_RESULT_WINDOW, builder.build(INDEX_NAME, MAX_RESULT_WINDOW, settings.getSettingValue(Settings.Key.SQL_CURSOR_KEEP_ALIVE)))) {
+    try (var indexScan = new OpenSearchIndexScan(client, MAX_RESULT_WINDOW,
+          builder.build(INDEX_NAME, MAX_RESULT_WINDOW, SCROLL_TIMEOUT))) {
       indexScan.open();
       assertFalse(indexScan.hasNext());
     }

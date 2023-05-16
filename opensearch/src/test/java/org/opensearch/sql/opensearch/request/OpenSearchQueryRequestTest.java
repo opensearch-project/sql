@@ -143,21 +143,21 @@ public class OpenSearchQueryRequestTest {
   void searchRequest() {
     request.getSourceBuilder().query(QueryBuilders.termQuery("name", "John"));
 
-    request.search(searchRequest ->{
-      assertEquals(
-        new SearchRequest()
+    Function<SearchRequest, SearchResponse> querySearch = searchRequest -> {
+      assertEquals(new SearchRequest()
           .indices("test")
           .source(new SearchSourceBuilder()
             .timeout(DEFAULT_QUERY_TIMEOUT)
             .from(0)
             .size(200)
             .query(QueryBuilders.termQuery("name", "John"))),
-        searchRequest);
+          searchRequest);
       return when(mock(SearchResponse.class).getHits())
         .thenReturn(new SearchHits(new SearchHit[0],
-          new TotalHits(0, TotalHits.Relation.EQUAL_TO),0.0f))
+            new TotalHits(0, TotalHits.Relation.EQUAL_TO), 0.0f))
         .getMock();
-    }, searchScrollRequest -> null);
+    };
+    request.search(querySearch, searchScrollRequest -> null);
 
   }
 }

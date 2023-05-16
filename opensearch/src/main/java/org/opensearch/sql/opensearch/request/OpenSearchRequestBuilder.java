@@ -82,7 +82,8 @@ public class OpenSearchRequestBuilder implements ExecutableRequestBuilder {
   /**
    * Constructor.
    */
-  public OpenSearchRequestBuilder(int requestedTotalSize, OpenSearchExprValueFactory exprValueFactory) {
+  public OpenSearchRequestBuilder(int requestedTotalSize,
+                                  OpenSearchExprValueFactory exprValueFactory) {
     this.requestedTotalSize = requestedTotalSize;
     this.sourceBuilder = new SearchSourceBuilder()
         .from(startFrom)
@@ -263,8 +264,9 @@ public class OpenSearchRequestBuilder implements ExecutableRequestBuilder {
   }
 
   public int getMaxResponseSize() {
-    return pageSize == null? requestedTotalSize : pageSize;
+    return pageSize == null ? requestedTotalSize : pageSize;
   }
+
   /**
    * Initialize bool query for push down.
    */
