@@ -24,7 +24,6 @@ This document contains a list of maintainers in this repo. See [opensearch-proje
 | Yury Fridlyand    | [Yury-Fridlyand](https://github.com/Yury-Fridlyand) | Improving   |
 | Andrew Carbonetto | [acarbonetto](https://github.com/acarbonetto)       | Improving   |
 | Forest Vey        | [forestmvey](https://github.com/forestmvey)         | Improving   |
-| Guian Gumpac      | [GumpacG](https://github.com/GumpacG)               | Improving   |
 
 ## Emeritus Maintainers
 
