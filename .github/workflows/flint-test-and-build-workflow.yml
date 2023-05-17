@@ -27,4 +27,5 @@ jobs:
           java-version: 11
 
       - name: Integ Test
+        working-directory: ./flint
         run: sbt integtest/test
