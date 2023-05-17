@@ -23,6 +23,13 @@ class FlintSpark(spark: SparkSession) {
     new FlintOpenSearchClient(host, port)
   }
 
+  def createIndex(index: FlintSparkIndex): Unit = {
+    flintClient.createIndex(index.name(), index.metadata())
+
+    // TODO: pending on Flint data source
+    // index.build(spark).writeStream.format("flint")
+  }
+
   /**
    * Describe a Flint index.
    *
