@@ -26,5 +26,5 @@ jobs:
           distribution: 'temurin'
           java-version: 11
 
-      - name: Build with Sbt
-        run: sbt test
+      - name: Integ Test
+        run: sbt integtest/test
