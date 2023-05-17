@@ -5,17 +5,23 @@
 
 package org.apache.spark
 
+import org.opensearch.flint.OpenSearchSuite
+
 import org.apache.spark.sql.{QueryTest, Row}
 import org.apache.spark.sql.functions.asc
 import org.apache.spark.sql.types.{IntegerType, StringType, StructField, StructType}
 
-class FirstITSuit extends QueryTest with FlintSuite with OpenSearchSuite with OpenSearchIndex {
-  test("basic flint read test") {
+/**
+ * OpenSearch related integration test.
+ */
+class FlintDataSourceV2ITSuite extends QueryTest with FlintSuite with OpenSearchSuite {
+
+  test("create dataframe successfully from flint datasource") {
     val indexName = "t0001"
     withIndexName(indexName) {
       simpleIndex(indexName)
       val schema = StructType(
-        Array(
+        Seq(
           StructField("accountId", StringType, true),
           StructField("eventName", StringType, true),
           StructField("eventSource", StringType, true)))

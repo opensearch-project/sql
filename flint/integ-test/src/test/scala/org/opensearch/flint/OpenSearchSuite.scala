@@ -3,19 +3,61 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-package org.apache.spark
+package org.opensearch.flint
 
+import org.apache.http.HttpHost
+import org.opensearch.action.admin.indices.delete.DeleteIndexRequest
 import org.opensearch.action.bulk.BulkRequest
 import org.opensearch.action.index.IndexRequest
 import org.opensearch.action.support.WriteRequest.RefreshPolicy
-import org.opensearch.client.RequestOptions
+import org.opensearch.client.{RequestOptions, RestClient, RestHighLevelClient}
 import org.opensearch.client.indices.{CreateIndexRequest, GetIndexRequest}
 import org.opensearch.common.xcontent.XContentType
+import org.opensearch.testcontainers.OpenSearchContainer
+import org.scalatest.{BeforeAndAfterAll, Suite}
 
 /**
- * Provide OpenSearch Index
+ * Test required OpenSearch domain should extend OpenSearchSuite.
  */
-trait OpenSearchIndex { self: OpenSearchSuite =>
+trait OpenSearchSuite extends BeforeAndAfterAll {
+  self: Suite =>
+
+  protected lazy val container = new OpenSearchContainer()
+
+  protected lazy val openSearchPort: Int = container.port()
+
+  protected lazy val openSearchHost: String = container.getHost
+
+  protected lazy val openSearchClient = new RestHighLevelClient(
+    RestClient.builder(new HttpHost(openSearchHost, openSearchPort, "http")))
+
+  protected lazy val openSearchOptions =
+    Map("host" -> openSearchHost, "port" -> s"$openSearchPort")
+
+  override def beforeAll(): Unit = {
+    container.start()
+    super.beforeAll()
+  }
+
+  override def afterAll(): Unit = {
+    container.close()
+    super.afterAll()
+  }
+
+  /**
+   * Delete index `indexNames` after calling `f`.
+   */
+  protected def withIndexName(indexNames: String*)(f: => Unit): Unit = {
+    try {
+      f
+    } finally {
+      indexNames.foreach { indexName =>
+        openSearchClient
+          .indices()
+          .delete(new DeleteIndexRequest(indexName), RequestOptions.DEFAULT)
+      }
+    }
+  }
 
   val oneNodeSetting = """{
                          |  "number_of_shards": "1",

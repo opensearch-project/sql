@@ -24,7 +24,7 @@ import java.io.IOException;
 public class OpenSearchScrollReader extends OpenSearchReader {
 
   /** Default scroll context timeout in minutes. */
-  public static final TimeValue DEFAULT_SCROLL_TIMEOUT = TimeValue.timeValueMinutes(1L);
+  public static final TimeValue DEFAULT_SCROLL_TIMEOUT = TimeValue.timeValueMinutes(5L);
 
   private final FlintOptions options;
 

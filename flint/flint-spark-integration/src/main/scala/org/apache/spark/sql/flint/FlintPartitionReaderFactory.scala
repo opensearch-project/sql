@@ -5,7 +5,7 @@
 
 package org.apache.spark.sql.flint
 
-import org.opensearch.flint.core.{FlintClient, FlintOptions}
+import org.opensearch.flint.core.{FlintClientBuilder, FlintOptions}
 
 import org.apache.spark.sql.catalyst.InternalRow
 import org.apache.spark.sql.connector.read.{InputPartition, PartitionReader, PartitionReaderFactory}
@@ -17,7 +17,7 @@ case class FlintPartitionReaderFactory(
     option: FlintOptions)
     extends PartitionReaderFactory {
   override def createReader(partition: InputPartition): PartitionReader[InternalRow] = {
-    val flintClient = FlintClient.create(option)
-    new FlintPartitionReader(flintClient.createReader(tableName, null, option), schema, option)
+    val flintClient = FlintClientBuilder.build(option)
+    new FlintPartitionReader(flintClient.createReader(tableName, null), schema, option)
   }
 }
