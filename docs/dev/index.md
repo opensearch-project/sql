@@ -43,7 +43,7 @@
   + [Semantic Analysis](query-semantic-analysis.md): performs semantic analysis to ensure semantic correctness
   + [Type Conversion](query-type-conversion.md): implement implicit data type conversion
 + **Query Planning**
-  + [Logical Optimization](query-optimizier-improvement.md): improvement on logical optimizer and physical implementer
+  + [Logical Optimization](query-optimizer-improvement.md): improvement on logical optimizer and physical implementer
 + **Query Execution**
   + [Query Manager](query-manager.md): query management
 + **Query Acceleration**
@@ -55,6 +55,7 @@
   + [Relevancy Search](opensearch-relevancy-search.md): OpenSearch relevancy search functions
   + [Sub Queries](opensearch-nested-field-subquery.md): support sub queries on OpenSearch nested field
   + [Pagination](opensearch-pagination.md): pagination implementation by OpenSearch scroll API
+  + [Pagination in V2](Pagination-v2.md): pagination implementation in V2 engine
 + [Prometheus](datasource-prometheus.md): Prometheus query federation
 + **File System**
   + [Querying S3](datasource-query-s3.md): S3 query federation proposal
