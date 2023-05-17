@@ -8,6 +8,7 @@ package org.opensearch.sql.opensearch.request;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
@@ -17,8 +18,10 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Function;
+import lombok.SneakyThrows;
 import org.apache.lucene.search.TotalHits;
 import org.junit.jupiter.api.DisplayNameGeneration;
 import org.junit.jupiter.api.DisplayNameGenerator;
@@ -29,19 +32,24 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.opensearch.action.search.SearchRequest;
 import org.opensearch.action.search.SearchResponse;
 import org.opensearch.action.search.SearchScrollRequest;
+import org.opensearch.common.io.stream.BytesStreamInput;
+import org.opensearch.common.io.stream.BytesStreamOutput;
 import org.opensearch.common.unit.TimeValue;
 import org.opensearch.index.query.QueryBuilders;
 import org.opensearch.search.SearchHit;
 import org.opensearch.search.SearchHits;
 import org.opensearch.search.builder.SearchSourceBuilder;
-import org.opensearch.search.fetch.subphase.FetchSourceContext;
 import org.opensearch.sql.opensearch.data.value.OpenSearchExprValueFactory;
 import org.opensearch.sql.opensearch.response.OpenSearchResponse;
+import org.opensearch.sql.opensearch.storage.OpenSearchIndex;
+import org.opensearch.sql.opensearch.storage.OpenSearchStorageEngine;
 
 @ExtendWith(MockitoExtension.class)
 @DisplayNameGeneration(DisplayNameGenerator.ReplaceUnderscores.class)
 class OpenSearchScrollRequestTest {
 
+  public static final OpenSearchRequest.IndexName INDEX_NAME = new OpenSearchRequest.IndexName("test");
+  public static final TimeValue SCROLL_TIMEOUT = TimeValue.timeValueMinutes(1);
   @Mock
   private Function<SearchRequest, SearchResponse> searchAction;
 
@@ -65,8 +73,23 @@ class OpenSearchScrollRequestTest {
 
   private final SearchSourceBuilder searchSourceBuilder = new SearchSourceBuilder();
   private final OpenSearchScrollRequest request = new OpenSearchScrollRequest(
-      new OpenSearchRequest.IndexName("test"), TimeValue.timeValueMinutes(1),
+    INDEX_NAME, SCROLL_TIMEOUT,
       searchSourceBuilder, factory);
+
+  @Test
+  void constructor() {
+    searchSourceBuilder.fetchSource(new String[] {"test"}, null);
+    var request = new OpenSearchScrollRequest(INDEX_NAME, SCROLL_TIMEOUT, searchSourceBuilder, factory);
+    assertNotEquals(List.of(), request.getIncludes());
+  }
+
+  @Test
+  void constructor2() {
+    searchSourceBuilder.fetchSource(new String[]{"test"}, null);
+    var request = new OpenSearchScrollRequest(INDEX_NAME, SCROLL_TIMEOUT, searchSourceBuilder,
+        factory);
+    assertNotEquals(List.of(), request.getIncludes());
+  }
 
   @Test
   void searchRequest() {
@@ -225,5 +248,23 @@ class OpenSearchScrollRequestTest {
     assertNull(request.getScrollId());
 
     request.clean((s) -> fail());
+  }
+
+  @Test
+  @SneakyThrows
+  void serialize_deserialize_no_needClean() {
+    var stream = new BytesStreamOutput();
+    request.writeTo(stream);
+    stream.flush();
+    assertTrue(stream.size() > 0);
+
+    // deserialize
+    var inStream = new BytesStreamInput(stream.bytes().toBytesRef().bytes);
+    var indexMock = mock(OpenSearchIndex.class);
+    var engine = mock(OpenSearchStorageEngine.class);
+    when(engine.getTable(any(), any())).thenReturn(indexMock);
+    var newRequest = new OpenSearchScrollRequest(inStream, engine);
+    assertEquals(request.getInitialSearchRequest(), newRequest.getInitialSearchRequest());
+    assertEquals("", newRequest.getScrollId());
   }
 }

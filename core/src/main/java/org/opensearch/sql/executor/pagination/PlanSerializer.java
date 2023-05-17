@@ -18,7 +18,6 @@ import java.util.zip.Deflater;
 import java.util.zip.GZIPInputStream;
 import java.util.zip.GZIPOutputStream;
 import lombok.RequiredArgsConstructor;
-import org.opensearch.sql.ast.tree.UnresolvedPlan;
 import org.opensearch.sql.exception.NoCursorException;
 import org.opensearch.sql.planner.ExternalizablePlan;
 import org.opensearch.sql.planner.physical.PhysicalPlan;
@@ -34,9 +33,6 @@ public class PlanSerializer {
 
   private final StorageEngine engine;
 
-  public boolean canConvertToCursor(UnresolvedPlan plan) {
-    return plan.accept(new CanPaginateVisitor(), null);
-  }
 
   /**
    * Converts a physical plan tree to a cursor.

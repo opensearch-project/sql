@@ -9,6 +9,7 @@ package org.opensearch.sql.opensearch.storage.scan;
 import static org.junit.jupiter.api.Assertions.assertAll;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.lenient;
@@ -19,9 +20,13 @@ import static org.opensearch.search.sort.FieldSortBuilder.DOC_FIELD_NAME;
 import static org.opensearch.search.sort.SortOrder.ASC;
 import static org.opensearch.sql.data.type.ExprCoreType.STRING;
 
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.ObjectOutputStream;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
+import lombok.SneakyThrows;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayNameGeneration;
 import org.junit.jupiter.api.DisplayNameGenerator;
@@ -43,12 +48,14 @@ import org.opensearch.sql.ast.expression.Literal;
 import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.data.model.ExprValueUtils;
+import org.opensearch.sql.exception.NoCursorException;
 import org.opensearch.sql.opensearch.client.OpenSearchClient;
 import org.opensearch.sql.opensearch.data.type.OpenSearchDataType;
 import org.opensearch.sql.opensearch.data.value.OpenSearchExprValueFactory;
 import org.opensearch.sql.opensearch.request.OpenSearchQueryRequest;
 import org.opensearch.sql.opensearch.request.OpenSearchRequest;
 import org.opensearch.sql.opensearch.request.OpenSearchRequestBuilder;
+import org.opensearch.sql.opensearch.request.OpenSearchScrollRequest;
 import org.opensearch.sql.opensearch.response.OpenSearchResponse;
 
 @ExtendWith(MockitoExtension.class)
@@ -72,6 +79,59 @@ class OpenSearchIndexScanTest {
 
   @BeforeEach
   void setup() {
+  }
+
+  @Test
+  void explain() {
+    var request = mock(OpenSearchRequest.class);
+    when(request.toString()).thenReturn("explain works!");
+    try (var indexScan = new OpenSearchIndexScan(client, QUERY_SIZE, request)) {
+      assertEquals("explain works!", indexScan.explain());
+    }
+  }
+
+  @Test
+  @SneakyThrows
+  void throws_no_cursor_exception() {
+    var request = mock(OpenSearchRequest.class);
+    when(request.hasAnotherBatch()).thenReturn(false);
+    try (var indexScan = new OpenSearchIndexScan(client, QUERY_SIZE, request);
+         var byteStream = new ByteArrayOutputStream();
+         var objectStream = new ObjectOutputStream(byteStream)) {
+      assertThrows(NoCursorException.class, () -> objectStream.writeObject(indexScan));
+      }
+  }
+
+  @Test
+  @SneakyThrows
+  void serialize() {
+    var searchSourceBuilder = new SearchSourceBuilder().size(4);
+
+    var factory = mock(OpenSearchExprValueFactory.class);
+
+    var request = new OpenSearchScrollRequest(
+      INDEX_NAME, CURSOR_KEEP_ALIVE,searchSourceBuilder, factory);
+    request.setScrollId("valid-id");
+    try (var indexScan = new OpenSearchIndexScan(client, QUERY_SIZE, request);
+         var byteStream = new ByteArrayOutputStream();
+         var objectStream = new ObjectOutputStream(byteStream)) {
+          try {
+            indexScan.writeExternal(objectStream);
+            objectStream.flush();
+            byteStream.flush();
+            assertTrue(byteStream.size() > 0);
+          } catch (IOException e) {
+            throw new AssertionError("Expected to serialize the indexScan");
+          }
+        }
+  }
+
+  @Test
+  void plan_for_serialization() {
+    var request = mock(OpenSearchRequest.class);
+    try (var indexScan = new OpenSearchIndexScan(client, QUERY_SIZE, request)) {
+      assertEquals(indexScan, indexScan.getPlanForSerialization());
+    }
   }
 
   @Test

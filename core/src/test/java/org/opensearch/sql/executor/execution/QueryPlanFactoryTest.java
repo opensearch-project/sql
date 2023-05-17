@@ -12,7 +12,6 @@ import static org.junit.jupiter.api.Assertions.assertAll;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.mockito.Mockito.when;
 import static org.opensearch.sql.executor.execution.QueryPlanFactory.NO_CONSUMER_RESPONSE_LISTENER;
 
 import java.util.Optional;
@@ -81,7 +80,7 @@ class QueryPlanFactoryTest {
     AbstractPlan explainExecution = factory.create("", true,
         queryListener, explainListener);
     assertAll(
-        () -> assertTrue(queryExecution instanceof ContinuePaginatedPlan),
+        () -> assertTrue(queryExecution instanceof QueryPlan),
         () -> assertTrue(explainExecution instanceof ExplainPlan)
     );
   }
@@ -125,7 +124,6 @@ class QueryPlanFactoryTest {
 
   @Test
   public void createQueryWithFetchSizeWhichCanBePaged() {
-    when(planSerializer.canConvertToCursor(plan)).thenReturn(true);
     factory = new QueryPlanFactory(queryService, planSerializer);
     Statement query = new Query(plan, 10);
     AbstractPlan queryExecution =
@@ -135,7 +133,6 @@ class QueryPlanFactoryTest {
 
   @Test
   public void createQueryWithFetchSizeWhichCannotBePaged() {
-    when(planSerializer.canConvertToCursor(plan)).thenReturn(false);
     factory = new QueryPlanFactory(queryService, planSerializer);
     Statement query = new Query(plan, 10);
     assertThrows(UnsupportedCursorRequestException.class,

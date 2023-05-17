@@ -162,7 +162,8 @@ public class OpenSearchScrollRequest implements OpenSearchRequest {
     if (!needClean) {
       // If needClean is true, there is no more data to get from OpenSearch and scrollId is
       // used only to clean up OpenSearch context.
-      out.writeString(scrollId);
+
+      out.writeString(scrollId == null? "" : scrollId);
     }
     out.writeBoolean(needClean);
     out.writeStringCollection(includes);

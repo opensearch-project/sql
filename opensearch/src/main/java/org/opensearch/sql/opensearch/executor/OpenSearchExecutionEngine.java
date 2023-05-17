@@ -9,6 +9,7 @@ package org.opensearch.sql.opensearch.executor;
 import com.google.common.collect.ImmutableMap;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import lombok.RequiredArgsConstructor;
 import org.opensearch.sql.common.response.ResponseListener;
 import org.opensearch.sql.data.model.ExprValue;
@@ -70,7 +71,7 @@ public class OpenSearchExecutionEngine implements ExecutionEngine {
           @Override
           public ExplainResponseNode visitTableScan(TableScanOperator node, Object context) {
             return explain(node, context, explainNode -> {
-              explainNode.setDescription(ImmutableMap.of("request", node.explain()));
+              explainNode.setDescription(Map.of("request", node.explain()));
             });
           }
         };

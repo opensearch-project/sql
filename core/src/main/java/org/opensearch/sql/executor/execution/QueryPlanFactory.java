@@ -17,11 +17,14 @@ import org.opensearch.sql.ast.AbstractNodeVisitor;
 import org.opensearch.sql.ast.statement.Explain;
 import org.opensearch.sql.ast.statement.Query;
 import org.opensearch.sql.ast.statement.Statement;
+import org.opensearch.sql.ast.tree.Cursor;
+import org.opensearch.sql.ast.tree.UnresolvedPlan;
 import org.opensearch.sql.common.response.ResponseListener;
 import org.opensearch.sql.exception.UnsupportedCursorRequestException;
 import org.opensearch.sql.executor.ExecutionEngine;
 import org.opensearch.sql.executor.QueryId;
 import org.opensearch.sql.executor.QueryService;
+import org.opensearch.sql.executor.pagination.CanPaginateVisitor;
 import org.opensearch.sql.executor.pagination.PlanSerializer;
 
 /**
@@ -79,9 +82,12 @@ public class QueryPlanFactory
                              ResponseListener<ExecutionEngine.QueryResponse> queryResponseListener,
                              ResponseListener<ExecutionEngine.ExplainResponse> explainListener) {
     QueryId queryId = QueryId.queryId();
-    var plan = new ContinuePaginatedPlan(queryId, cursor, queryService,
-            planSerializer, queryResponseListener);
+    var plan = new QueryPlan(queryId, new Cursor(cursor), queryService, queryResponseListener);
     return isExplain ? new ExplainPlan(queryId, plan, explainListener) : plan;
+  }
+
+   boolean canConvertToCursor(UnresolvedPlan plan) {
+    return plan.accept(new CanPaginateVisitor(), null);
   }
 
   @Override
@@ -94,7 +100,7 @@ public class QueryPlanFactory
         context.getLeft().isPresent(), "[BUG] query listener must be not null");
 
     if (node.getFetchSize() > 0) {
-      if (planSerializer.canConvertToCursor(node.getPlan())) {
+      if (canConvertToCursor(node.getPlan())) {
         return new QueryPlan(QueryId.queryId(), node.getPlan(), node.getFetchSize(),
             queryService,
             context.getLeft().get());

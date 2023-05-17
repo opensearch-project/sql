@@ -41,6 +41,7 @@ import org.opensearch.sql.ast.statement.Query;
 import org.opensearch.sql.ast.statement.Statement;
 import org.opensearch.sql.ast.tree.AD;
 import org.opensearch.sql.ast.tree.Aggregation;
+import org.opensearch.sql.ast.tree.Cursor;
 import org.opensearch.sql.ast.tree.Dedupe;
 import org.opensearch.sql.ast.tree.Eval;
 import org.opensearch.sql.ast.tree.Filter;
@@ -298,5 +299,9 @@ public abstract class AbstractNodeVisitor<T, C> {
 
   public T visitPaginate(Paginate paginate, C context) {
     return visitChildren(paginate, context);
+  }
+
+  public T visitCursor(Cursor cursor, C context) {
+    return visit(cursor, context);
   }
 }
