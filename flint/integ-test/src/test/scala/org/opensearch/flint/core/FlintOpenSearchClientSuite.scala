@@ -10,7 +10,6 @@ import org.opensearch.flint.core.metadata.FlintMetadata
 import org.opensearch.flint.core.storage.FlintOpenSearchClient
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
-
 import scala.collection.JavaConverters._
 
 class FlintOpenSearchClientSuite
