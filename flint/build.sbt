@@ -102,6 +102,7 @@ lazy val integtest = (project in file("integ-test"))
     scalaVersion := scala212,
     libraryDependencies ++= Seq(
       "org.scalactic" %% "scalactic" % "3.2.15",
-      "org.scalatest" %% "scalatest" % "3.2.15" % "test"),
+      "org.scalatest" %% "scalatest" % "3.2.15" % "test",
+      "com.stephenn" %% "scalatest-json-jsonassert" % "0.2.5" % "test"),
     libraryDependencies ++= deps(sparkVersion),
     Test / fullClasspath += (flintSparkIntegration / assembly).value)
