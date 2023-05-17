@@ -54,7 +54,13 @@ lazy val root = (project in file("."))
 
 lazy val flintCore = (project in file("flint-core"))
   .disablePlugins(AssemblyPlugin)
-  .settings(name := "flint-core", scalaVersion := scala212)
+  .settings(
+    name := "flint-core",
+    scalaVersion := scala212,
+    libraryDependencies ++= Seq(
+      "org.opensearch.client" % "opensearch-rest-client" % opensearchVersion,
+      "org.opensearch.client" % "opensearch-rest-high-level-client" % opensearchVersion)
+  )
 
 lazy val flintSparkIntegration = (project in file("flint-spark-integration"))
   .dependsOn(flintCore)
@@ -64,8 +70,6 @@ lazy val flintSparkIntegration = (project in file("flint-spark-integration"))
     name := "flint-spark-integration",
     scalaVersion := scala212,
     libraryDependencies ++= Seq(
-      "org.opensearch.client" % "opensearch-rest-client" % opensearchVersion,
-      "org.opensearch.client" % "opensearch-rest-high-level-client" % opensearchVersion,
       "org.testcontainers" % "testcontainers" % "1.18.0" % "test",
       "org.scalactic" %% "scalactic" % "3.2.15",
       "org.scalatest" %% "scalatest" % "3.2.15" % "test",
@@ -98,6 +102,7 @@ lazy val integtest = (project in file("integ-test"))
     scalaVersion := scala212,
     libraryDependencies ++= Seq(
       "org.scalactic" %% "scalactic" % "3.2.15",
-      "org.scalatest" %% "scalatest" % "3.2.15" % "test"),
+      "org.scalatest" %% "scalatest" % "3.2.15" % "test",
+      "com.stephenn" %% "scalatest-json-jsonassert" % "0.2.5" % "test"),
     libraryDependencies ++= deps(sparkVersion),
     Test / fullClasspath += (flintSparkIntegration / assembly).value)
