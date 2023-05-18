@@ -7,10 +7,15 @@ package org.apache.spark.sql.flint
 
 import java.util
 
+import org.apache.spark.sql.connector.expressions.filter.Predicate
 import org.apache.spark.sql.connector.read.{Batch, InputPartition, PartitionReaderFactory, Scan}
 import org.apache.spark.sql.types.StructType
 
-case class FlintScan(tableName: String, schema: StructType, properties: util.Map[String, String])
+case class FlintScan(
+    tableName: String,
+    schema: StructType,
+    properties: util.Map[String, String],
+    pushedPredicates: Array[Predicate])
     extends Scan
     with Batch {
 
@@ -21,10 +26,19 @@ case class FlintScan(tableName: String, schema: StructType, properties: util.Map
   }
 
   override def createReaderFactory(): PartitionReaderFactory = {
-    FlintPartitionReaderFactory(tableName, schema, properties)
+    FlintPartitionReaderFactory(tableName, schema, properties, pushedPredicates)
   }
 
   override def toBatch: Batch = this
+
+  /**
+   * Print pushedPredicates when explain(mode="extended"). Learn from SPARK JDBCScan.
+   */
+  override def description(): String = {
+    super.description() + ", PushedPredicates: " + seqToString(pushedPredicates)
+  }
+
+  private def seqToString(seq: Seq[Any]): String = seq.mkString("[", ", ", "]")
 }
 
 // todo. add partition support.

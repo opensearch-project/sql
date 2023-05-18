@@ -9,7 +9,9 @@ import java.util
 
 import org.apache.spark.internal.Logging
 import org.apache.spark.sql.SparkSession
-import org.apache.spark.sql.connector.read.{Scan, ScanBuilder}
+import org.apache.spark.sql.connector.expressions.filter.Predicate
+import org.apache.spark.sql.connector.read.{Scan, ScanBuilder, SupportsPushDownV2Filters}
+import org.apache.spark.sql.flint.storage.FlintQueryCompiler
 import org.apache.spark.sql.types.StructType
 
 case class FlintScanBuilder(
@@ -18,9 +20,21 @@ case class FlintScanBuilder(
     schema: StructType,
     properties: util.Map[String, String])
     extends ScanBuilder
+    with SupportsPushDownV2Filters
     with Logging {
 
+  private var pushedPredicate = Array.empty[Predicate]
+
   override def build(): Scan = {
-    FlintScan(tableName, schema, properties)
+    FlintScan(tableName, schema, properties, pushedPredicate)
   }
+
+  override def pushPredicates(predicates: Array[Predicate]): Array[Predicate] = {
+    val (pushed, unSupported) =
+      predicates.partition(FlintQueryCompiler(schema).compile(_).nonEmpty)
+    pushedPredicate = pushed
+    unSupported
+  }
+
+  override def pushedPredicates(): Array[Predicate] = pushedPredicate
 }
