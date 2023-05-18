@@ -3,18 +3,14 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-package org.apache.spark.sql.v2
+package org.apache.spark.sql.flint
 
-import scala.collection.JavaConverters._
+import java.util
 
 import org.apache.spark.sql.connector.read.{Batch, InputPartition, PartitionReaderFactory, Scan}
 import org.apache.spark.sql.types.StructType
-import org.apache.spark.sql.util.CaseInsensitiveStringMap
 
-case class OpenSearchScan(
-    tableName: String,
-    schema: StructType,
-    options: CaseInsensitiveStringMap)
+case class FlintScan(tableName: String, schema: StructType, properties: util.Map[String, String])
     extends Scan
     with Batch {
 
@@ -25,13 +21,11 @@ case class OpenSearchScan(
   }
 
   override def createReaderFactory(): PartitionReaderFactory = {
-    OpenSearchPartitionReaderFactory(
-      tableName,
-      schema,
-      options.asCaseSensitiveMap().asScala.toMap)
+    FlintPartitionReaderFactory(tableName, schema, properties)
   }
 
   override def toBatch: Batch = this
 }
 
+// todo. add partition support.
 private[spark] case class OpenSearchInputPartition() extends InputPartition {}

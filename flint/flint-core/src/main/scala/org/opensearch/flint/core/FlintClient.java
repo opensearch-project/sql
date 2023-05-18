@@ -6,6 +6,7 @@
 package org.opensearch.flint.core;
 
 import org.opensearch.flint.core.metadata.FlintMetadata;
+import org.opensearch.flint.core.storage.FlintReader;
 
 /**
  * Flint index client that provides API for metadata and data operations
@@ -36,4 +37,13 @@ public interface FlintClient {
    * @return index metadata
    */
   FlintMetadata getIndexMetadata(String indexName);
+
+  /**
+   * Create {@link FlintReader}.
+   *
+   * @param indexName index name.
+   * @param query DSL query. DSL query is null means match_all
+   * @return {@link FlintReader}.
+   */
+  FlintReader createReader(String indexName, String query);
 }
