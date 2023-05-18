@@ -5,6 +5,10 @@ OpenSearch Flint is ... It consists of two modules:
 - `flint-core`: a module that contains Flint specification and client.
 - `flint-spark-integration`: a module that provides Spark integration for Flint and derived dataset based on it.
 
+## Documentation
+
+[Flint Index Reference Manual](./docs/index.md)
+
 ## Prerequisites
 
 + Spark 3.3.1
