@@ -6,8 +6,7 @@
 package org.apache.spark.sql.flint
 
 import java.util
-
-import org.opensearch.flint.core.FlintOptions
+import java.util.NoSuchElementException
 
 import org.apache.spark.sql.SparkSession
 import org.apache.spark.sql.connector.catalog.{Table, TableProvider}
@@ -22,7 +21,7 @@ class FlintDataSourceV2 extends TableProvider with DataSourceRegister {
 
   override def inferSchema(options: CaseInsensitiveStringMap): StructType = {
     if (table == null) {
-      table = getFlintTable(Option.empty, new FlintOptions(options.asCaseSensitiveMap()))
+      table = getFlintTable(Option.empty, options.asCaseSensitiveMap())
     }
     table.schema
   }
@@ -32,14 +31,22 @@ class FlintDataSourceV2 extends TableProvider with DataSourceRegister {
       partitioning: Array[Transform],
       properties: util.Map[String, String]): Table = {
     if (table == null) {
-      getFlintTable(Some(schema), new FlintOptions(properties))
+      getFlintTable(Some(schema), properties)
     } else {
       table
     }
   }
 
-  protected def getFlintTable(schema: Option[StructType], option: FlintOptions): FlintTable = {
-    FlintTable(option.getIndexName, SparkSession.active, option, schema)
+  protected def getTableName(properties: util.Map[String, String]): String = {
+    if (properties.containsKey("path")) properties.get("path")
+    else if (properties.containsKey("index")) properties.get("index")
+    else throw new NoSuchElementException("index or path not found")
+  }
+
+  protected def getFlintTable(
+      schema: Option[StructType],
+      properties: util.Map[String, String]): FlintTable = {
+    FlintTable(getTableName(properties), SparkSession.active, schema)
   }
 
   /**

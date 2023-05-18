@@ -8,7 +8,6 @@ package org.apache.spark.sql.flint
 import java.util.TimeZone
 
 import com.fasterxml.jackson.core.{JsonFactory, JsonParser}
-import org.opensearch.flint.core.FlintOptions
 import org.opensearch.flint.core.storage.FlintReader
 
 import org.apache.spark.sql.catalyst.InternalRow
@@ -25,7 +24,7 @@ import org.apache.spark.unsafe.types.UTF8String
  * @param schema
  *   schema
  */
-class FlintPartitionReader(reader: FlintReader, schema: StructType, options: FlintOptions)
+class FlintPartitionReader(reader: FlintReader, schema: StructType)
     extends PartitionReader[InternalRow] {
 
   lazy val parser = new JacksonParser(

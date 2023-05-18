@@ -5,12 +5,12 @@
 
 package org.apache.spark.sql.flint
 
-import org.opensearch.flint.core.FlintOptions
+import java.util
 
 import org.apache.spark.sql.connector.read.{Batch, InputPartition, PartitionReaderFactory, Scan}
 import org.apache.spark.sql.types.StructType
 
-case class FlintScan(tableName: String, schema: StructType, options: FlintOptions)
+case class FlintScan(tableName: String, schema: StructType, properties: util.Map[String, String])
     extends Scan
     with Batch {
 
@@ -21,7 +21,7 @@ case class FlintScan(tableName: String, schema: StructType, options: FlintOption
   }
 
   override def createReaderFactory(): PartitionReaderFactory = {
-    FlintPartitionReaderFactory(tableName, schema, options)
+    FlintPartitionReaderFactory(tableName, schema, properties)
   }
 
   override def toBatch: Batch = this

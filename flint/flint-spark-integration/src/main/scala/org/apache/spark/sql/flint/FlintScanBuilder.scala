@@ -5,7 +5,7 @@
 
 package org.apache.spark.sql.flint
 
-import org.opensearch.flint.core.FlintOptions
+import java.util
 
 import org.apache.spark.internal.Logging
 import org.apache.spark.sql.SparkSession
@@ -16,11 +16,11 @@ case class FlintScanBuilder(
     tableName: String,
     sparkSession: SparkSession,
     schema: StructType,
-    options: FlintOptions)
+    properties: util.Map[String, String])
     extends ScanBuilder
     with Logging {
 
   override def build(): Scan = {
-    FlintScan(tableName, schema, options)
+    FlintScan(tableName, schema, properties)
   }
 }
