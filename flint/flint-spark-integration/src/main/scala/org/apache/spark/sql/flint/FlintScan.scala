@@ -10,7 +10,7 @@ import org.opensearch.flint.core.FlintOptions
 import org.apache.spark.sql.connector.read.{Batch, InputPartition, PartitionReaderFactory, Scan}
 import org.apache.spark.sql.types.StructType
 
-case class FLintScan(tableName: String, schema: StructType, options: FlintOptions)
+case class FlintScan(tableName: String, schema: StructType, options: FlintOptions)
     extends Scan
     with Batch {
 

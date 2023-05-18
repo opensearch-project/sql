@@ -32,9 +32,10 @@ class FlintDataSourceV2 extends TableProvider with DataSourceRegister {
       partitioning: Array[Transform],
       properties: util.Map[String, String]): Table = {
     if (table == null) {
-      table = getFlintTable(Some(schema), new FlintOptions(properties))
+      getFlintTable(Some(schema), new FlintOptions(properties))
+    } else {
+      table
     }
-    table
   }
 
   protected def getFlintTable(schema: Option[StructType], option: FlintOptions): FlintTable = {

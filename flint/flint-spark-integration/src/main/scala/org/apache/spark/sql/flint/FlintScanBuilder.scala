@@ -21,6 +21,6 @@ case class FlintScanBuilder(
     with Logging {
 
   override def build(): Scan = {
-    FLintScan(tableName, schema, options)
+    FlintScan(tableName, schema, options)
   }
 }
