@@ -39,6 +39,13 @@ public interface FlintClient {
   FlintMetadata getIndexMetadata(String indexName);
 
   /**
+   * Delete a Flint index.
+   *
+   * @param indexName index name
+   */
+  void deleteIndex(String indexName);
+
+  /**
    * Create {@link FlintReader}.
    *
    * @param indexName index name.

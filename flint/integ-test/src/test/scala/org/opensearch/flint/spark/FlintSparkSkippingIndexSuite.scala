@@ -5,15 +5,16 @@
 
 package org.opensearch.flint.spark
 
+import scala.Option._
+
 import com.stephenn.scalatest.jsonassert.JsonMatchers.matchJson
-import org.apache.spark.FlintSuite
 import org.opensearch.flint.OpenSearchSuite
 import org.opensearch.flint.spark.skipping.FlintSparkSkippingIndex
-import org.opensearch.flint.spark.skipping.partition.PartitionSkippingStrategy
+import org.opensearch.flint.spark.skipping.partition.PartitionSketch
 import org.scalatest.matchers.must.Matchers.defined
 import org.scalatest.matchers.should.Matchers.convertToAnyShouldWrapper
 
-import scala.Option._
+import org.apache.spark.FlintSuite
 
 class FlintSparkSkippingIndexSuite extends FlintSuite with OpenSearchSuite {
 
@@ -49,16 +50,13 @@ class FlintSparkSkippingIndexSuite extends FlintSuite with OpenSearchSuite {
         |""".stripMargin)
   }
 
-  test("create value list skipping index") {
-    val index = new FlintSparkSkippingIndex(
-      testTable,
-      Seq(new PartitionSkippingStrategy))
+  test("create value list skipping index and then delete it") {
+    val index = new FlintSparkSkippingIndex(testTable, Seq(new PartitionSketch))
     flint.createIndex(index)
 
     val metadata = flint.describeIndex(index.name())
     metadata shouldBe defined
-    metadata.get.getContent should matchJson(
-      """ {
+    metadata.get.getContent should matchJson(""" {
         |   "_meta": {
         |     "kind": "SkippingIndex",
         |     "indexedColumns": [{}]
@@ -75,8 +73,18 @@ class FlintSparkSkippingIndexSuite extends FlintSuite with OpenSearchSuite {
         |     }
         |   }
         | }
-        |""".stripMargin
-    )
+        |""".stripMargin)
+
+    flint.deleteIndex(index.name())
+  }
+
+  test("A table can only have 1 skipping index") {
+    val index = new FlintSparkSkippingIndex(testTable, Seq())
+    flint.createIndex(index)
+
+    assertThrows[IllegalStateException] {
+      flint.createIndex(index)
+    }
   }
 
   test("describe non-exist index should return empty") {

@@ -11,7 +11,7 @@ import org.apache.spark.sql.catalyst.expressions.aggregate.AggregateFunction
 /**
  * Skipping index strategy that defines skipping data structure building and reading logic.
  */
-trait FlintSparkSkippingStrategy {
+trait FlintSparkSkippingSketch {
 
   /**
    * @return

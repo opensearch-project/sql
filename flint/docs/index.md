@@ -16,6 +16,7 @@ A Flint index is ...
   - ValueList index
   - BloomFilter index
 - Covering Index
+- Materialized View
 
 ### Flint Index Specification
 
@@ -38,7 +39,7 @@ A Flint index is ...
 
 #### Field Data Type
 
-For now, Flint uses OpenSearch field type directly.
+For now, Flint Index doesn't define its own data type and uses OpenSearch field type instead.
 
 #### File Format
 
@@ -166,8 +167,9 @@ val index =
   new FlintSkippingIndex(
     tableName="alb_logs",
     indexedColumns=[
-      BloomFilter("client_ip"),
-      ValueList("elb_status")],
+      PartitionSketch(),
+      BloomFilterSketch("client_ip"),
+      ValueListSketch("elb_status")],
     filterPred="time > 2023-04-01 00:00:00")
 flint.createIndex(index)
 ```

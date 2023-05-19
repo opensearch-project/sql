@@ -24,13 +24,17 @@ class FlintSpark(spark: SparkSession) {
     val options = new FlintOptions(
       Map(
         HOST -> spark.conf.get(FLINT_INDEX_STORE_LOCATION, FLINT_INDEX_STORE_LOCATION_DEFAULT),
-        PORT -> spark.conf.get(FLINT_INDEX_STORE_PORT, FLINT_INDEX_STORE_PORT_DEFAULT)
-      ).asJava)
+        PORT -> spark.conf.get(FLINT_INDEX_STORE_PORT, FLINT_INDEX_STORE_PORT_DEFAULT)).asJava)
     new FlintOpenSearchClient(options)
   }
 
   def createIndex(index: FlintSparkIndex): Unit = {
-    flintClient.createIndex(index.name(), index.metadata(spark))
+    val indexName = index.name()
+    if (flintClient.exists(indexName)) {
+      throw new IllegalStateException(
+        s"A table can only have one Flint skipping index: Flint index $indexName is found")
+    }
+    flintClient.createIndex(indexName, index.metadata(spark))
 
     // TODO: pending on Flint data source write capability
     /*
@@ -56,10 +60,15 @@ class FlintSpark(spark: SparkSession) {
       Option.empty
     }
   }
+
+  def deleteIndex(indexName: String): Unit = {
+    flintClient.deleteIndex(indexName)
+  }
 }
 
 object FlintSpark {
 
+  /** Flint configurations in Spark. */
   val FLINT_INDEX_STORE_LOCATION = "spark.flint.indexstore.location"
   val FLINT_INDEX_STORE_LOCATION_DEFAULT = "localhost"
   val FLINT_INDEX_STORE_PORT = "spark.flint.indexstore.port"

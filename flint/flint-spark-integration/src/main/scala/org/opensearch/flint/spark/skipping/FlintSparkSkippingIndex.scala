@@ -20,7 +20,7 @@ import org.apache.spark.sql.catalog.Column
  * @param tableName
  *   source table name
  */
-class FlintSparkSkippingIndex(tableName: String, indexedColumns: Seq[FlintSparkSkippingStrategy])
+class FlintSparkSkippingIndex(tableName: String, indexedColumns: Seq[FlintSparkSkippingSketch])
     extends FlintSparkIndex {
 
   /** Required by json4s write function */

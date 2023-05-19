@@ -7,7 +7,7 @@ OpenSearch Flint is ... It consists of two modules:
 
 ## Documentation
 
-[Flint Index Reference Manual](./docs/index.md)
+Please refer to the [Flint Index Reference Manual](./docs/index.md) for more information.
 
 ## Prerequisites
 

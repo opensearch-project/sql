@@ -5,7 +5,7 @@
 
 package org.opensearch.flint.spark.skipping.partition
 
-import org.opensearch.flint.spark.skipping.FlintSparkSkippingStrategy
+import org.opensearch.flint.spark.skipping.FlintSparkSkippingSketch
 
 import org.apache.spark.sql.catalog.Column
 import org.apache.spark.sql.catalyst.expressions.aggregate.AggregateFunction
@@ -13,7 +13,7 @@ import org.apache.spark.sql.catalyst.expressions.aggregate.AggregateFunction
 /**
  * Skipping strategy for partitioned columns of source table.
  */
-class PartitionSkippingStrategy extends FlintSparkSkippingStrategy {
+class PartitionSketch extends FlintSparkSkippingSketch {
 
   override def outputSchema(columns: Map[String, Column]): Map[String, String] = {
     columns.values
@@ -22,9 +22,10 @@ class PartitionSkippingStrategy extends FlintSparkSkippingStrategy {
       .toMap
   }
 
-  override def getAggregators: Seq[AggregateFunction] = Seq()
+  override def getAggregators: Seq[AggregateFunction] =
+    Seq() // TODO: will do separate with pending FlintSpark.createIndex
 
-  // TODO: move this to single place
+  // TODO: move this mapping info to single place
   private def convertToFlintType(colType: String): String = {
     colType match {
       case "string" => "keyword"
