@@ -5,7 +5,10 @@
 
 package org.opensearch.flint.spark
 
-import org.opensearch.flint.core.FlintClient
+import scala.collection.JavaConverters._
+
+import org.opensearch.flint.core.{FlintClient, FlintOptions}
+import org.opensearch.flint.core.FlintOptions._
 import org.opensearch.flint.core.metadata.FlintMetadata
 import org.opensearch.flint.core.storage.FlintOpenSearchClient
 import org.opensearch.flint.spark.FlintSpark._
@@ -18,13 +21,15 @@ import org.apache.spark.sql.SparkSession
 class FlintSpark(spark: SparkSession) {
 
   val flintClient: FlintClient = {
-    val host = spark.conf.get(FLINT_INDEX_STORE_LOCATION, FLINT_INDEX_STORE_LOCATION_DEFAULT)
-    val port = spark.conf.get(FLINT_INDEX_STORE_PORT, FLINT_INDEX_STORE_PORT_DEFAULT).toInt
-    new FlintOpenSearchClient(host, port)
+    val options = new FlintOptions(
+      Map(
+        HOST -> spark.conf.get(FLINT_INDEX_STORE_LOCATION, FLINT_INDEX_STORE_LOCATION_DEFAULT),
+        PORT -> spark.conf.get(FLINT_INDEX_STORE_PORT, FLINT_INDEX_STORE_PORT_DEFAULT)).asJava)
+    new FlintOpenSearchClient(options)
   }
 
   def createIndex(index: FlintSparkIndex): Unit = {
-    flintClient.createIndex(index.name(), index.metadata())
+    flintClient.createIndex(index.name(), index.metadata(spark))
 
     // TODO: pending on Flint data source
     // index.build(spark).writeStream.format("flint")

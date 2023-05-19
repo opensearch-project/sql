@@ -5,10 +5,14 @@
 
 package org.opensearch.flint.spark.skipping
 
+import org.json4s._
+import org.json4s.native.Serialization
 import org.opensearch.flint.core.metadata.FlintMetadata
 import org.opensearch.flint.spark.FlintSparkIndex
+import org.opensearch.flint.spark.skipping.FlintSparkSkippingIndex.FILE_PATH_COLUMN
 
 import org.apache.spark.sql.{DataFrame, SparkSession}
+import org.apache.spark.sql.catalog.Column
 
 /**
  * Flint skipping index in Spark.
@@ -16,7 +20,27 @@ import org.apache.spark.sql.{DataFrame, SparkSession}
  * @param tableName
  *   source table name
  */
-class FlintSparkSkippingIndex(tableName: String) extends FlintSparkIndex {
+class FlintSparkSkippingIndex(tableName: String, indexedColumns: Seq[FlintSparkSkippingStrategy])
+    extends FlintSparkIndex {
+
+  /** Required by json4s write function */
+  implicit val formats: Formats = Serialization.formats(NoTypeHints)
+
+  /** Output schema of the skipping index */
+  lazy val outputSchema: SparkSession => Map[String, String] = spark => {
+    val columns: Map[String, Column] =
+      spark.catalog
+        .listColumns(tableName)
+        .collect()
+        .map(col => col.name -> col)
+        .toMap
+
+    val schema = indexedColumns
+      .flatMap(_.outputSchema(columns).toList)
+      .toMap
+
+    schema + (FILE_PATH_COLUMN -> "keyword")
+  }
 
   /**
    * @return
@@ -30,17 +54,15 @@ class FlintSparkSkippingIndex(tableName: String) extends FlintSparkIndex {
    * @return
    *   Flint index metadata
    */
-  override def metadata(): FlintMetadata = {
-    new FlintMetadata("""
-        | {
+  override def metadata(spark: SparkSession): FlintMetadata = {
+    val meta = getMetaInfo
+    val schema = getSchema(spark)
+    new FlintMetadata(s"""{
         |   "_meta": {
-        |     "kind": "SkippingIndex"
+        |     "kind": "SkippingIndex",
+        |     "indexedColumns": $meta
         |   },
-        |   "properties": {
-        |     "file_path": {
-        |       "type": "keyword"
-        |     }
-        |   }
+        |   "properties": $schema
         | }
         |""".stripMargin)
   }
@@ -54,6 +76,22 @@ class FlintSparkSkippingIndex(tableName: String) extends FlintSparkIndex {
    *   index building data frame
    */
   override def build(spark: SparkSession): DataFrame = {
-    spark.readStream.table(tableName)
+    // TODO: pending on specific skipping sketch
+    spark.readStream
+      .table(tableName)
   }
+
+  private def getMetaInfo: String = {
+    Serialization.write(indexedColumns)
+  }
+
+  private def getSchema(spark: SparkSession): String = {
+    Serialization.write(outputSchema(spark).map { case (colName, colType) =>
+      colName -> ("type" -> colType)
+    })
+  }
+}
+
+object FlintSparkSkippingIndex {
+  val FILE_PATH_COLUMN = "file_path"
 }

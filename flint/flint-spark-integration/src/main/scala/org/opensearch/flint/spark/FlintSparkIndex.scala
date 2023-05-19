@@ -21,10 +21,12 @@ trait FlintSparkIndex {
   def name(): String
 
   /**
+   * @param spark
+   *   Spark session
    * @return
    *   Flint index metadata
    */
-  def metadata(): FlintMetadata
+  def metadata(spark: SparkSession): FlintMetadata
 
   /**
    * Represent index building by Spark DataFrame.
