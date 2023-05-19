@@ -24,15 +24,21 @@ class FlintSpark(spark: SparkSession) {
     val options = new FlintOptions(
       Map(
         HOST -> spark.conf.get(FLINT_INDEX_STORE_LOCATION, FLINT_INDEX_STORE_LOCATION_DEFAULT),
-        PORT -> spark.conf.get(FLINT_INDEX_STORE_PORT, FLINT_INDEX_STORE_PORT_DEFAULT)).asJava)
+        PORT -> spark.conf.get(FLINT_INDEX_STORE_PORT, FLINT_INDEX_STORE_PORT_DEFAULT)
+      ).asJava)
     new FlintOpenSearchClient(options)
   }
 
   def createIndex(index: FlintSparkIndex): Unit = {
     flintClient.createIndex(index.name(), index.metadata(spark))
 
-    // TODO: pending on Flint data source
-    // index.build(spark).writeStream.format("flint")
+    // TODO: pending on Flint data source write capability
+    /*
+    index.build(spark)
+      .writeStream
+      .format("flint")
+      .start()
+     */
   }
 
   /**

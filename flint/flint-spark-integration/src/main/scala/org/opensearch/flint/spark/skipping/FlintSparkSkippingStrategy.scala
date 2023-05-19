@@ -5,7 +5,6 @@
 
 package org.opensearch.flint.spark.skipping
 
-import org.apache.spark.sql.SparkSession
 import org.apache.spark.sql.catalog.Column
 import org.apache.spark.sql.catalyst.expressions.aggregate.AggregateFunction
 

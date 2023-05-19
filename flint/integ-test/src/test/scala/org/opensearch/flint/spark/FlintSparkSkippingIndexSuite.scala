@@ -7,11 +7,9 @@ package org.opensearch.flint.spark
 
 import com.stephenn.scalatest.jsonassert.JsonMatchers.matchJson
 import org.apache.spark.FlintSuite
-import org.apache.spark.sql.SparkSession
-import org.apache.spark.sql.catalyst.expressions.aggregate.AggregateFunction
 import org.opensearch.flint.OpenSearchSuite
+import org.opensearch.flint.spark.skipping.FlintSparkSkippingIndex
 import org.opensearch.flint.spark.skipping.partition.PartitionSkippingStrategy
-import org.opensearch.flint.spark.skipping.{FlintSparkSkippingIndex, FlintSparkSkippingStrategy}
 import org.scalatest.matchers.must.Matchers.defined
 import org.scalatest.matchers.should.Matchers.convertToAnyShouldWrapper
 
@@ -25,20 +23,22 @@ class FlintSparkSkippingIndexSuite extends FlintSuite with OpenSearchSuite {
     new FlintSpark(spark)
   }
 
+  /** Test table name. */
+  val testTable: String = "test"
+
   override def beforeAll(): Unit = {
     super.beforeAll()
 
-    val tableName = "test"
     val tempLocation = spark.conf.get("spark.sql.warehouse.dir")
 
     sql(s"""
-        | CREATE TABLE $tableName
+        | CREATE TABLE $testTable
         | (
         |   name STRING
         | )
         | USING CSV
         | OPTIONS (
-        |  path '$tempLocation/$tableName',
+        |  path '$tempLocation/$testTable',
         |  header 'false',
         |  delimiter '\t'
         | )
@@ -51,7 +51,7 @@ class FlintSparkSkippingIndexSuite extends FlintSuite with OpenSearchSuite {
 
   test("create value list skipping index") {
     val index = new FlintSparkSkippingIndex(
-      "test",
+      testTable,
       Seq(new PartitionSkippingStrategy))
     flint.createIndex(index)
 
