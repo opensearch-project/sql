@@ -28,6 +28,12 @@ class FlintSpark(spark: SparkSession) {
     new FlintOpenSearchClient(options)
   }
 
+  /**
+   * Create index with the given config.
+   *
+   * @param index
+   *   Flint index to create
+   */
   def createIndex(index: FlintSparkIndex): Unit = {
     val indexName = index.name()
     if (flintClient.exists(indexName)) {
@@ -61,6 +67,12 @@ class FlintSpark(spark: SparkSession) {
     }
   }
 
+  /**
+   * Delete index.
+   *
+   * @param indexName
+   *   index name
+   */
   def deleteIndex(indexName: String): Unit = {
     flintClient.deleteIndex(indexName)
   }

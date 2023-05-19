@@ -55,14 +55,12 @@ class FlintSparkSkippingIndex(tableName: String, indexedColumns: Seq[FlintSparkS
    *   Flint index metadata
    */
   override def metadata(spark: SparkSession): FlintMetadata = {
-    val meta = getMetaInfo
-    val schema = getSchema(spark)
     new FlintMetadata(s"""{
         |   "_meta": {
         |     "kind": "SkippingIndex",
-        |     "indexedColumns": $meta
+        |     "indexedColumns": $getMetaInfo
         |   },
-        |   "properties": $schema
+        |   "properties": ${getSchema(spark)}
         | }
         |""".stripMargin)
   }
@@ -93,5 +91,21 @@ class FlintSparkSkippingIndex(tableName: String, indexedColumns: Seq[FlintSparkS
 }
 
 object FlintSparkSkippingIndex {
+
+  /** File path column name */
   val FILE_PATH_COLUMN = "file_path"
+
+  /**
+   * Get skipping index name which follows the convention: "flint_" prefix + source table name +
+   * "_skipping_index" suffix.
+   *
+   * This helps identify the Flint index because Flint index is not registered to Spark Catalog
+   * for now.
+   *
+   * @param tableName
+   *   source table name
+   * @return
+   *   Flint skipping index name
+   */
+  def getName(tableName: String): String = s"flint_${tableName}_skipping_index"
 }

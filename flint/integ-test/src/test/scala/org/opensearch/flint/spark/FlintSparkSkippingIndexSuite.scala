@@ -31,7 +31,6 @@ class FlintSparkSkippingIndexSuite extends FlintSuite with OpenSearchSuite {
     super.beforeAll()
 
     val tempLocation = spark.conf.get("spark.sql.warehouse.dir")
-
     sql(s"""
         | CREATE TABLE $testTable
         | (
@@ -54,7 +53,10 @@ class FlintSparkSkippingIndexSuite extends FlintSuite with OpenSearchSuite {
     val index = new FlintSparkSkippingIndex(testTable, Seq(new PartitionSketch))
     flint.createIndex(index)
 
-    val metadata = flint.describeIndex(index.name())
+    val indexName = s"flint_${testTable}_skipping_index"
+    index.name() shouldBe indexName
+
+    val metadata = flint.describeIndex(indexName)
     metadata shouldBe defined
     metadata.get.getContent should matchJson(""" {
         |   "_meta": {
@@ -75,7 +77,7 @@ class FlintSparkSkippingIndexSuite extends FlintSuite with OpenSearchSuite {
         | }
         |""".stripMargin)
 
-    flint.deleteIndex(index.name())
+    flint.deleteIndex(indexName)
   }
 
   test("A table can only have 1 skipping index") {
