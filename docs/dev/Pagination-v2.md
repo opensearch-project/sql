@@ -62,10 +62,7 @@ Similarly to v1 engine, the response object is the same as initial response if t
 `cursor_id` will be different with each request.
 
 ## End of scrolling/paging
-
-When scrolling is finished, SQL plugin returns a final cursor. This cursor leads to an empty page, which has no cursor and no data hits. Receiving that page means all data was properly queried, and the scrolling cursor has been closed.
-
-The client will receive an [error response](#error-response) if executing this request results in an OpenSearch or SQL plug-in error.
+The last page in a response will not have a cursor id property.
 
 ## Cursor Keep Alive Timeout
 
@@ -112,9 +109,25 @@ The discussion below uses *under max_result_window* to refer to scenarios that c
 
 ## SQL Node Load Balancing
 
-V2 SQL engine supports *sql node load balancing* &mdash; a cursor request can be routed to any SQL node in a cluster. This is achieved by encoding all data necessary to retrieve the next page in the `cursor_id`.
+V2 SQL engine supports *sql node load balancing* &mdash; a cursor request can be routed to any SQL node in a cluster. This is achieved by encoding all data necessary to retrieve the next page in the `cursor_id` property in the response.
 
 ## Feature Design
+To support pagination, v2 SQL engine needs to:
+1. in REST front-end:
+    1. Route supported paginated query to v2 engine for
+        1. Initial requests,
+        2. Next page requests.
+    2. Fallback to v1 engine for queries not supported by v2 engine.
+    3. Create correct JSON response from execution of paginated physical plan by v2 engine.
+2. during query planning:
+    1. Differentiate between paginated and normal query plans.
+    2. Push down pagination to table scan.
+    3. Create paginated physical plan from cursor id.
+3. during query execution:
+    1. Execute paginated physical plan.
+4. in OpenSearch data source: 
+    1. Support pagination push down.
+    2. Support other push down optimizations with pagination.
 
 ### Query Plan Changes
 
