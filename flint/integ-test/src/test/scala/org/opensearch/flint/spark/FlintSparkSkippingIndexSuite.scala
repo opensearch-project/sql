@@ -53,7 +53,7 @@ class FlintSparkSkippingIndexSuite extends FlintSuite with OpenSearchSuite {
   override def afterEach(): Unit = {
     super.afterEach()
 
-    val indexName = FlintSparkSkippingIndex.getName(testTable)
+    val indexName = FlintSparkSkippingIndex.getIndexName(testTable)
     flint.deleteIndex(indexName)
   }
 

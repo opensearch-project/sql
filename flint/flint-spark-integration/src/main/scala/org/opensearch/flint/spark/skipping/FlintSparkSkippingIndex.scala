@@ -9,7 +9,7 @@ import org.json4s._
 import org.json4s.native.Serialization
 import org.opensearch.flint.core.metadata.FlintMetadata
 import org.opensearch.flint.spark.FlintSparkIndex
-import org.opensearch.flint.spark.skipping.FlintSparkSkippingIndex.{getName, FILE_PATH_COLUMN}
+import org.opensearch.flint.spark.skipping.FlintSparkSkippingIndex.{getIndexName, FILE_PATH_COLUMN}
 
 /**
  * Flint skipping index in Spark.
@@ -33,7 +33,7 @@ class FlintSparkSkippingIndex(tableName: String, indexedColumns: Seq[FlintSparkS
   }
 
   override def name(): String = {
-    getName(tableName)
+    getIndexName(tableName)
   }
 
   override def metadata(): FlintMetadata = {
@@ -75,5 +75,5 @@ object FlintSparkSkippingIndex {
    * @return
    *   Flint skipping index name
    */
-  def getName(tableName: String): String = s"flint_${tableName}_skipping_index"
+  def getIndexName(tableName: String): String = s"flint_${tableName}_skipping_index"
 }
