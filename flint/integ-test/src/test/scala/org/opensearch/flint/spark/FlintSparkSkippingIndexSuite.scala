@@ -10,6 +10,7 @@ import scala.Option._
 import com.stephenn.scalatest.jsonassert.JsonMatchers.matchJson
 import org.opensearch.flint.OpenSearchSuite
 import org.opensearch.flint.spark.FlintSpark.FLINT_INDEX_STORE_LOCATION
+import org.opensearch.flint.spark.skipping.FlintSparkSkippingIndex
 import org.scalatest.matchers.must.Matchers.defined
 import org.scalatest.matchers.should.Matchers.convertToAnyShouldWrapper
 
@@ -49,7 +50,14 @@ class FlintSparkSkippingIndexSuite extends FlintSuite with OpenSearchSuite {
         |""".stripMargin)
   }
 
-  test("create value list skipping index and then delete it") {
+  override def afterEach(): Unit = {
+    super.afterEach()
+
+    val indexName = FlintSparkSkippingIndex.getName(testTable)
+    flint.deleteIndex(indexName)
+  }
+
+  test("create skipping index with metadata successfully") {
     flint
       .skippingIndex()
       .onTable(testTable)
@@ -83,11 +91,9 @@ class FlintSparkSkippingIndexSuite extends FlintSuite with OpenSearchSuite {
         |   }
         | }
         |""".stripMargin)
-
-    flint.deleteIndex(indexName)
   }
 
-  test("A table can only have 1 skipping index") {
+  test("can have only 1 skipping index on a table") {
     flint
       .skippingIndex()
       .onTable(testTable)
@@ -101,7 +107,7 @@ class FlintSparkSkippingIndexSuite extends FlintSuite with OpenSearchSuite {
     }
   }
 
-  test("describe non-exist index should return empty") {
+  test("should return empty if describe index not exist") {
     flint.describeIndex("non-exist") shouldBe empty
   }
 }

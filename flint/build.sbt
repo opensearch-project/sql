@@ -19,6 +19,11 @@ ThisBuild / scalafmtConfig := baseDirectory.value / "dev/.scalafmt.conf"
  */
 ThisBuild / scalastyleConfig := baseDirectory.value / "scalastyle-config.xml"
 
+/**
+ * Tests cannot be run in parallel since multiple Spark contexts cannot run in the same JVM
+ */
+ThisBuild / Test / parallelExecution := false
+
 // Run as part of compile task.
 lazy val compileScalastyle = taskKey[Unit]("compileScalastyle")
 
@@ -69,9 +74,6 @@ lazy val flintSparkIntegration = (project in file("flint-spark-integration"))
     name := "flint-spark-integration",
     scalaVersion := scala212,
     libraryDependencies ++= Seq(
-      "org.json4s" %% "json4s-core" % "4.0.3",
-      "org.json4s" %% "json4s-native" % "4.0.3",
-      "org.json4s" %% "json4s-ext" % "4.0.3",
       "org.scalactic" %% "scalactic" % "3.2.15",
       "org.scalatest" %% "scalatest" % "3.2.15" % "test",
       "org.scalatest" %% "scalatest-flatspec" % "3.2.15" % "test",

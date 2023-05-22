@@ -80,9 +80,16 @@ class FlintSpark(val spark: SparkSession) {
    *
    * @param indexName
    *   index name
+   * @return
+   *   true if exist and deleted, otherwise false
    */
-  def deleteIndex(indexName: String): Unit = {
-    flintClient.deleteIndex(indexName)
+  def deleteIndex(indexName: String): Boolean = {
+    if (flintClient.exists(indexName)) {
+      flintClient.deleteIndex(indexName)
+      true
+    } else {
+      false
+    }
   }
 }
 
