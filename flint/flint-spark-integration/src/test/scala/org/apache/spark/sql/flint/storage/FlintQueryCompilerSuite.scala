@@ -11,7 +11,7 @@ import org.apache.spark.sql.connector.expressions.filter.Predicate
 import org.apache.spark.sql.sources._
 import org.apache.spark.sql.types._
 
-class FlintQueryCompilerSuit extends FlintSuite {
+class FlintQueryCompilerSuite extends FlintSuite {
 
   test("compile a list of expressions should successfully") {
     val query =
