@@ -9,8 +9,7 @@ import scala.Option._
 
 import com.stephenn.scalatest.jsonassert.JsonMatchers.matchJson
 import org.opensearch.flint.OpenSearchSuite
-import org.opensearch.flint.spark.skipping.FlintSparkSkippingIndex
-import org.opensearch.flint.spark.skipping.partition.PartitionSketch
+import org.opensearch.flint.spark.FlintSpark.FLINT_INDEX_STORE_LOCATION
 import org.scalatest.matchers.must.Matchers.defined
 import org.scalatest.matchers.should.Matchers.convertToAnyShouldWrapper
 
@@ -18,14 +17,15 @@ import org.apache.spark.FlintSuite
 
 class FlintSparkSkippingIndexSuite extends FlintSuite with OpenSearchSuite {
 
+  /** Flint Spark high level API being tested */
   lazy val flint: FlintSpark = {
-    spark.conf.set(FlintSpark.FLINT_INDEX_STORE_LOCATION, openSearchHost)
+    spark.conf.set(FLINT_INDEX_STORE_LOCATION, openSearchHost)
     spark.conf.set(FlintSpark.FLINT_INDEX_STORE_PORT, openSearchPort)
     new FlintSpark(spark)
   }
 
   /** Test table name. */
-  val testTable: String = "test"
+  private val testTable = "test"
 
   override def beforeAll(): Unit = {
     super.beforeAll()
@@ -50,18 +50,25 @@ class FlintSparkSkippingIndexSuite extends FlintSuite with OpenSearchSuite {
   }
 
   test("create value list skipping index and then delete it") {
-    val index = new FlintSparkSkippingIndex(testTable, Seq(new PartitionSketch))
-    flint.createIndex(index)
+    flint
+      .skippingIndex()
+      .onTable(testTable)
+      .addPartition("year", "month")
+      .create()
 
     val indexName = s"flint_${testTable}_skipping_index"
-    index.name() shouldBe indexName
-
     val metadata = flint.describeIndex(indexName)
     metadata shouldBe defined
     metadata.get.getContent should matchJson(""" {
         |   "_meta": {
         |     "kind": "SkippingIndex",
-        |     "indexedColumns": [{}]
+        |     "indexedColumns": [
+        |     {
+        |       "year": "int"
+        |     },
+        |     {
+        |       "month": "int"
+        |     }]
         |   },
         |   "properties": {
         |     "year": {
@@ -81,11 +88,16 @@ class FlintSparkSkippingIndexSuite extends FlintSuite with OpenSearchSuite {
   }
 
   test("A table can only have 1 skipping index") {
-    val index = new FlintSparkSkippingIndex(testTable, Seq())
-    flint.createIndex(index)
+    flint
+      .skippingIndex()
+      .onTable(testTable)
+      .create()
 
     assertThrows[IllegalStateException] {
-      flint.createIndex(index)
+      flint
+        .skippingIndex()
+        .onTable(testTable)
+        .create()
     }
   }
 

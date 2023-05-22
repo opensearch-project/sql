@@ -22,6 +22,8 @@ A Flint index is ...
 
 #### Metadata
 
+Currently, Flint metadata is only static configuration without version control and write-ahead log.
+
 ```json
 {
   "version": "0.1",
@@ -172,6 +174,14 @@ val index =
       ValueListSketch("elb_status")],
     filterPred="time > 2023-04-01 00:00:00")
 flint.createIndex(index)
+```
+
+#### Skipping Index Provider SPI
+
+```scala
+trait FlintSparkSkippingStrategy {
+  TODO: outputSchema, getAggregators, rewritePredicate
+}
 ```
 
 ## Benchmarks

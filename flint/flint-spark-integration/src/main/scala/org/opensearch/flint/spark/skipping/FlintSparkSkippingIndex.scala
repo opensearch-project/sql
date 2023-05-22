@@ -9,10 +9,7 @@ import org.json4s._
 import org.json4s.native.Serialization
 import org.opensearch.flint.core.metadata.FlintMetadata
 import org.opensearch.flint.spark.FlintSparkIndex
-import org.opensearch.flint.spark.skipping.FlintSparkSkippingIndex.FILE_PATH_COLUMN
-
-import org.apache.spark.sql.{DataFrame, SparkSession}
-import org.apache.spark.sql.catalog.Column
+import org.opensearch.flint.spark.skipping.FlintSparkSkippingIndex.{getName, FILE_PATH_COLUMN}
 
 /**
  * Flint skipping index in Spark.
@@ -20,23 +17,16 @@ import org.apache.spark.sql.catalog.Column
  * @param tableName
  *   source table name
  */
-class FlintSparkSkippingIndex(tableName: String, indexedColumns: Seq[FlintSparkSkippingSketch])
+class FlintSparkSkippingIndex(tableName: String, indexedColumns: Seq[FlintSparkSkippingStrategy])
     extends FlintSparkIndex {
 
   /** Required by json4s write function */
   implicit val formats: Formats = Serialization.formats(NoTypeHints)
 
   /** Output schema of the skipping index */
-  lazy val outputSchema: SparkSession => Map[String, String] = spark => {
-    val columns: Map[String, Column] =
-      spark.catalog
-        .listColumns(tableName)
-        .collect()
-        .map(col => col.name -> col)
-        .toMap
-
+  val outputSchema: Map[String, String] = {
     val schema = indexedColumns
-      .flatMap(_.outputSchema(columns).toList)
+      .flatMap(_.outputSchema().toList)
       .toMap
 
     schema + (FILE_PATH_COLUMN -> "keyword")
@@ -47,44 +37,26 @@ class FlintSparkSkippingIndex(tableName: String, indexedColumns: Seq[FlintSparkS
    *   Flint index name
    */
   override def name(): String = {
-    tableName + "_skipping_index"
+    getName(tableName)
   }
 
-  /**
-   * @return
-   *   Flint index metadata
-   */
-  override def metadata(spark: SparkSession): FlintMetadata = {
+  override def metadata(): FlintMetadata = {
     new FlintMetadata(s"""{
         |   "_meta": {
         |     "kind": "SkippingIndex",
         |     "indexedColumns": $getMetaInfo
         |   },
-        |   "properties": ${getSchema(spark)}
+        |   "properties": $getSchema
         | }
         |""".stripMargin)
   }
 
-  /**
-   * Represent index building by Spark DataFrame.
-   *
-   * @param spark
-   *   Spark session
-   * @return
-   *   index building data frame
-   */
-  override def build(spark: SparkSession): DataFrame = {
-    // TODO: pending on specific skipping sketch
-    spark.readStream
-      .table(tableName)
-  }
-
   private def getMetaInfo: String = {
-    Serialization.write(indexedColumns)
+    Serialization.write(indexedColumns.map(_.indexedColumn))
   }
 
-  private def getSchema(spark: SparkSession): String = {
-    Serialization.write(outputSchema(spark).map { case (colName, colType) =>
+  private def getSchema: String = {
+    Serialization.write(outputSchema.map { case (colName, colType) =>
       colName -> ("type" -> colType)
     })
   }

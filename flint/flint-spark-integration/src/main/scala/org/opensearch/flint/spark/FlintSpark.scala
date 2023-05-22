@@ -12,15 +12,19 @@ import org.opensearch.flint.core.FlintOptions._
 import org.opensearch.flint.core.metadata.FlintMetadata
 import org.opensearch.flint.core.storage.FlintOpenSearchClient
 import org.opensearch.flint.spark.FlintSpark._
+import org.opensearch.flint.spark.skipping.{FlintSparkSkippingIndex, FlintSparkSkippingStrategy}
+import org.opensearch.flint.spark.skipping.partition.PartitionSkippingStrategy
 
 import org.apache.spark.sql.SparkSession
+import org.apache.spark.sql.catalog.Column
 
 /**
  * Flint Spark integration API entrypoint.
  */
-class FlintSpark(spark: SparkSession) {
+class FlintSpark(val spark: SparkSession) {
 
-  val flintClient: FlintClient = {
+  /** Flint client for low-level index operation */
+  private val flintClient: FlintClient = {
     val options = new FlintOptions(
       Map(
         HOST -> spark.conf.get(FLINT_INDEX_STORE_LOCATION, FLINT_INDEX_STORE_LOCATION_DEFAULT),
@@ -29,7 +33,17 @@ class FlintSpark(spark: SparkSession) {
   }
 
   /**
-   * Create index with the given config.
+   * Create index builder for creating index with fluent API.
+   *
+   * @return
+   *   index builder
+   */
+  def skippingIndex(): IndexBuilder = {
+    new IndexBuilder(this)
+  }
+
+  /**
+   * Create the given index with metadata.
    *
    * @param index
    *   Flint index to create
@@ -40,15 +54,9 @@ class FlintSpark(spark: SparkSession) {
       throw new IllegalStateException(
         s"A table can only have one Flint skipping index: Flint index $indexName is found")
     }
-    flintClient.createIndex(indexName, index.metadata(spark))
+    flintClient.createIndex(indexName, index.metadata())
 
-    // TODO: pending on Flint data source write capability
-    /*
-    index.build(spark)
-      .writeStream
-      .format("flint")
-      .start()
-     */
+    // TODO: start building index by Flint data source write capability
   }
 
   /**
@@ -85,4 +93,55 @@ object FlintSpark {
   val FLINT_INDEX_STORE_LOCATION_DEFAULT = "localhost"
   val FLINT_INDEX_STORE_PORT = "spark.flint.indexstore.port"
   val FLINT_INDEX_STORE_PORT_DEFAULT = "9200"
+
+  /**
+   * Helper class for index class construct. For now only skipping index supported.
+   */
+  class IndexBuilder(flint: FlintSpark) {
+    var tableName: String = ""
+    var indexedColumns: Seq[FlintSparkSkippingStrategy] = Seq()
+
+    lazy val allColumns: Map[String, Column] = {
+      flint.spark.catalog
+        .listColumns(tableName)
+        .collect()
+        .map(col => (col.name, col))
+        .toMap
+    }
+
+    /**
+     * Configure which source table the index is based on.
+     *
+     * @param tableName
+     *   source table name
+     * @return
+     *   index builder
+     */
+    def onTable(tableName: String): IndexBuilder = {
+      this.tableName = tableName
+      this
+    }
+
+    /**
+     * Add partition skipping indexed columns.
+     *
+     * @param colNames
+     *   indexed column names
+     * @return
+     *   index builder
+     */
+    def addPartition(colNames: String*): IndexBuilder = {
+      colNames
+        .map(colName => new PartitionSkippingStrategy((colName, allColumns(colName).dataType)))
+        .foreach(col => indexedColumns = indexedColumns :+ col)
+      this
+    }
+
+    /**
+     * Create index.
+     */
+    def create(): Unit = {
+      flint.createIndex(new FlintSparkSkippingIndex(tableName, indexedColumns))
+    }
+  }
 }
