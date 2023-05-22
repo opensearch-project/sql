@@ -61,7 +61,7 @@ class FlintSparkSkippingIndexSuite extends FlintSuite with OpenSearchSuite {
     flint
       .skippingIndex()
       .onTable(testTable)
-      .addPartition("year", "month")
+      .addPartitionIndex("year", "month")
       .create()
 
     val indexName = s"flint_${testTable}_skipping_index"

@@ -95,7 +95,9 @@ class FlintSpark(val spark: SparkSession) {
 
 object FlintSpark {
 
-  /** Flint configurations in Spark. */
+  /**
+   * Flint configurations in Spark. TODO: shared with Flint data source config?
+   */
   val FLINT_INDEX_STORE_LOCATION = "spark.flint.indexstore.location"
   val FLINT_INDEX_STORE_LOCATION_DEFAULT = "localhost"
   val FLINT_INDEX_STORE_PORT = "spark.flint.indexstore.port"
@@ -137,7 +139,7 @@ object FlintSpark {
      * @return
      *   index builder
      */
-    def addPartition(colNames: String*): IndexBuilder = {
+    def addPartitionIndex(colNames: String*): IndexBuilder = {
       colNames
         .map(colName => new PartitionSkippingStrategy((colName, allColumns(colName).dataType)))
         .foreach(col => indexedColumns = indexedColumns :+ col)

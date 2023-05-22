@@ -165,15 +165,14 @@ Here is an example for Flint Spark integration:
 
 ```scala
 val flint = new FlintSpark(spark)
-val index =
-  new FlintSkippingIndex(
-    tableName="alb_logs",
-    indexedColumns=[
-      PartitionSketch(),
-      BloomFilterSketch("client_ip"),
-      ValueListSketch("elb_status")],
-    filterPred="time > 2023-04-01 00:00:00")
-flint.createIndex(index)
+
+flint.skippingIndex()
+    .onTable("alb_logs")
+    .filterBy("time > 2023-04-01 00:00:00")
+    .addPartitionIndex("year", "month", "day")
+    .addValueListIndex("elb_status_code")
+    .addBloomFilterIndex("client_ip")
+    .create()
 ```
 
 #### Skipping Index Provider SPI

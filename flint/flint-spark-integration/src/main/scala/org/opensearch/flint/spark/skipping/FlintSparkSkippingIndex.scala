@@ -32,10 +32,6 @@ class FlintSparkSkippingIndex(tableName: String, indexedColumns: Seq[FlintSparkS
     schema + (FILE_PATH_COLUMN -> "keyword")
   }
 
-  /**
-   * @return
-   *   Flint index name
-   */
   override def name(): String = {
     getName(tableName)
   }
