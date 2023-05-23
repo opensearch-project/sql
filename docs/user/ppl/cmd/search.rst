@@ -16,11 +16,16 @@ Description
 
 Syntax
 ============
-search source=<index> [boolean-expression]
+search source=[<remote-cluster>:]<index> [boolean-expression]
 
 * search: search keywords, which could be ignore.
-* index: mandatory. search command must specify which index to query from.
+* index: mandatory. search command must specify which index to query from. The index name can be prefixed by "<cluster name>:" for cross-cluster search.
 * bool-expression: optional. any expression which could be evaluated to boolean value.
+
+
+Cross-Cluster Search
+====================
+Cross-cluster search lets any node in a cluster execute search requests against other clusters. Refer to `Cross-Cluster Search <admin/cross_cluster_search.rst>`_ for configuration.
 
 
 Example 1: Fetch all the data

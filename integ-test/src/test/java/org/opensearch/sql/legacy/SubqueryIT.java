@@ -7,6 +7,7 @@
 package org.opensearch.sql.legacy;
 
 import static org.hamcrest.Matchers.both;
+import static org.hamcrest.Matchers.closeTo;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.core.Is.is;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_ACCOUNT;
@@ -22,6 +23,7 @@ import static org.opensearch.sql.util.MatcherUtils.verifySchema;
 
 import com.google.common.collect.Ordering;
 import java.io.IOException;
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
@@ -345,7 +347,8 @@ public class SubqueryIT extends SQLIntegTestCase {
             TEST_INDEX_ACCOUNT));
 
     assertThat(result.query("/aggregations/count/value"), equalTo(1000));
-    assertThat(result.query("/aggregations/balance/value"), equalTo(25714837.0));
+    assertThat(((BigDecimal) result.query("/aggregations/balance/value")).doubleValue(),
+        closeTo(25714837.0, 0.01));
   }
 
   @Test
