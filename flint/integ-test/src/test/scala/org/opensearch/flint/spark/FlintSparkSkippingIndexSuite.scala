@@ -10,7 +10,7 @@ import scala.Option._
 import com.stephenn.scalatest.jsonassert.JsonMatchers.matchJson
 import org.opensearch.flint.OpenSearchSuite
 import org.opensearch.flint.spark.FlintSpark.FLINT_INDEX_STORE_LOCATION
-import org.opensearch.flint.spark.skipping.FlintSparkSkippingIndex
+import org.opensearch.flint.spark.skipping.{ApplyFlintSparkSkippingIndex, FlintSparkSkippingIndex}
 import org.scalatest.matchers.must.Matchers.defined
 import org.scalatest.matchers.should.Matchers.convertToAnyShouldWrapper
 
@@ -95,6 +95,23 @@ class FlintSparkSkippingIndexSuite extends FlintSuite with OpenSearchSuite {
         |   }
         | }
         |""".stripMargin)
+  }
+
+  test("applicable query can be rewritten with skipping index") {
+    flint
+      .skippingIndex()
+      .onTable(testTable)
+      .addPartitionIndex("year", "month")
+      .create()
+
+    val query = sql(s"""
+         | SELECT name
+         | FROM $testTable
+         | WHERE year = 2023 AND month = 04
+         |""".stripMargin)
+
+    val rewriter = new ApplyFlintSparkSkippingIndex(flint)
+    rewriter.apply(query.queryExecution.optimizedPlan)
   }
 
   test("can have only 1 skipping index on a table") {
