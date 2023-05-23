@@ -22,6 +22,7 @@ import static org.opensearch.sql.util.MatcherUtils.verifyDataRowsInOrder;
 import static org.opensearch.sql.util.MatcherUtils.verifySchema;
 
 import java.io.IOException;
+import java.math.BigDecimal;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -1029,7 +1030,7 @@ public class AggregationIT extends SQLIntegTestCase {
         TEST_INDEX_NESTED_TYPE);
     JSONObject result = executeQuery(query);
     JSONObject aggregation = getAggregation(result, "message.dayOfWeek@NESTED");
-    Assert.assertEquals(1.0, (double) aggregation.query("/minDays/value"), 0.0001);
+    Assert.assertEquals(1.0, ((BigDecimal) aggregation.query("/minDays/value")).doubleValue(), 0.0001);
   }
 
   @Test
@@ -1039,7 +1040,7 @@ public class AggregationIT extends SQLIntegTestCase {
         TEST_INDEX_NESTED_TYPE);
     JSONObject result = executeQuery(query);
     JSONObject aggregation = getAggregation(result, "message.dayOfWeek@NESTED");
-    Assert.assertEquals(19.0, (double) aggregation.query("/sumDays/value"), 0.0001);
+    Assert.assertEquals(19.0, ((BigDecimal) aggregation.query("/sumDays/value")).doubleValue(), 0.0001);
   }
 
   @Test

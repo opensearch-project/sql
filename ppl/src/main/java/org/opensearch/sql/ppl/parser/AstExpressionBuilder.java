@@ -24,6 +24,7 @@ import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.EvalClause
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.EvalFunctionCallContext;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.FieldExpressionContext;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.IdentsAsQualifiedNameContext;
+import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.IdentsAsTableQualifiedNameContext;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.IdentsAsWildcardQualifiedNameContext;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.InExprContext;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.IntegerLiteralContext;
@@ -50,6 +51,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import org.antlr.v4.runtime.ParserRuleContext;
 import org.antlr.v4.runtime.RuleContext;
 import org.opensearch.sql.ast.dsl.AstDSL;
@@ -280,8 +282,8 @@ public class AstExpressionBuilder extends OpenSearchPPLParserBaseVisitor<Unresol
 
   @Override
   public UnresolvedExpression visitTableSource(TableSourceContext ctx) {
-    if (ctx.getChild(0) instanceof IdentsAsQualifiedNameContext) {
-      return visitIdentifiers(((IdentsAsQualifiedNameContext) ctx.getChild(0)).ident());
+    if (ctx.getChild(0) instanceof IdentsAsTableQualifiedNameContext) {
+      return visitIdentsAsTableQualifiedName((IdentsAsTableQualifiedNameContext) ctx.getChild(0));
     } else {
       return visitIdentifiers(Arrays.asList(ctx));
     }
@@ -302,6 +304,14 @@ public class AstExpressionBuilder extends OpenSearchPPLParserBaseVisitor<Unresol
   @Override
   public UnresolvedExpression visitIdentsAsQualifiedName(IdentsAsQualifiedNameContext ctx) {
     return visitIdentifiers(ctx.ident());
+  }
+
+  @Override
+  public UnresolvedExpression visitIdentsAsTableQualifiedName(
+      IdentsAsTableQualifiedNameContext ctx) {
+    return visitIdentifiers(
+        Stream.concat(Stream.of(ctx.tableIdent()), ctx.ident().stream())
+            .collect(Collectors.toList()));
   }
 
   @Override
