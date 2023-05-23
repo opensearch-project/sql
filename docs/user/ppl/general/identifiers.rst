@@ -83,6 +83,25 @@ Here are examples for quoting an index name by back ticks::
     +------------------+
 
 
+Cross-Cluster Index Identifiers
+===================
+
+Description
+-----------
+
+A cross-cluster index identifier is an index identifier with a prefix ``<cluster identifier>:``. The cluster identifier could contain star ``*``. This is mostly an cluster pattern for wildcard match.
+
+Use Cases
+---------
+
+It is used to identify an index on a remote cluster for cross-cluster search.
+
+Examples
+--------
+
+For example, if you setup a connection between the local cluster and a remote cluster ``my_cluster``, then you can run ``source=my_cluster:accounts`` to query the ``accounts`` index at ``my_cluster``.
+
+
 Case Sensitivity
 ================
 
