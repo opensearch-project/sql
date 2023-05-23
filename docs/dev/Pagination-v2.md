@@ -7,7 +7,8 @@ A cursor is a SQL abstraction for pagination. A client can open a cursor, retrie
 Currently, SQL plugin does not provide SQL cursor syntax. However, the SQL REST endpoint can return result a page at a time. This feature is used by JDBC and ODBC drivers.
 
 # Scope
-At this time, V2 engine supports pagination only for simple `SELECT * FROM <table>` queries without any other clauses like `WHERE` or `ORDER BY`.
+This document describes pagination in V2 sql engine for non-aggregate queries -- queries 
+without `GROUP BY` clause or use of window functions.
 
 # Demo
 https://user-images.githubusercontent.com/88679692/224208630-8d38d833-abf8-4035-8d15-d5fb4382deca.mp4
@@ -122,16 +123,16 @@ To support pagination, v2 SQL engine needs to:
 2. during query planning:
     1. Differentiate between paginated and normal query plans.
     2. Push down pagination to table scan.
-    3. Create paginated physical plan from cursor id.
+    3. Create a physical query plan from a cursor id.
 3. during query execution:
-    1. Execute paginated physical plan.
+   1. Serialize an executing query and generate a cursor id after returning `fetch_size` number of elements.
 4. in OpenSearch data source: 
     1. Support pagination push down.
     2. Support other push down optimizations with pagination.
 
 ### Query Plan Changes
 
-All three kinds of requests &mdash; non-paged, initial page, or subsequent page  &mdash; are processed in the same way. Simplified workflow of query plan processing is shown below for reference.
+All three kinds of query requests &mdash; non-paged, initial page, or subsequent page  &mdash; are processed in the same way. Simplified workflow of query plan processing is shown below for reference.
 
 ```mermaid
 stateDiagram-v2
@@ -158,7 +159,7 @@ stateDiagram-v2
 
 Unresolved Query Plan for non-paged requests remains unchanged. 
 
-To support initial page requests, the `QueryPlan` class has a new optional field `pageSize`.
+To support initial query requests, the `QueryPlan` class has a new optional field `pageSize`.
 
 ```mermaid
 classDiagram
@@ -176,7 +177,7 @@ classDiagram
 ```
 
 When `QueryPlanFactory.create` is passed initial query request, it:
-1. Adds an instance of `Paginate` unresolved plan as the root of the unresolved query plan. 
+1. Adds an instance of `Paginate` unresolved plan as the root of the unresolved query plan.
 2. Sets `pageSize` parameter in `QueryPlan`.
 
 ```mermaid
@@ -263,7 +264,7 @@ stateDiagram-v2
 
 There are no changes for non-paging requests.
 
-Changes to logical query plan to support initial pagination request:
+Changes to logical query plan to support Initial Query Request:
 1. `LogicalPaginate` is added to the top of the tree. It stores information about paging should be done in a private field `pageSize` being pushed down in the `Optimizer`.
 
 ```mermaid
@@ -450,7 +451,7 @@ SQLService ->>+ QueryPlanFactory: execute
 Processing of an Initial Query Request has few extra steps comparing versus processing a regular Query Request:
 1. Query validation with `CanPaginateVisitor`. This is required to validate whether incoming query can be paged. This also activate legacy engine fallback mechanism.
 2. `Serialization` is performed by `PlanSerializer` - it converts Physical Query Plan into a cursor, which could be used query a next page.
-3Traversal of Physical Query Plan to get total hits, which is required to properly fill response to a user.
+
 
 ```mermaid
 sequenceDiagram
