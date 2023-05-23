@@ -34,10 +34,10 @@ import static org.opensearch.sql.data.type.ExprCoreType.STRUCT;
 import static org.opensearch.sql.data.type.ExprCoreType.TIME;
 import static org.opensearch.sql.data.type.ExprCoreType.TIMESTAMP;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.gson.JsonParser;
+import com.google.gson.JsonSyntaxException;
 import com.google.gson.stream.JsonReader;
 import java.io.StringReader;
 import java.time.Instant;
@@ -99,7 +99,7 @@ class OpenSearchExprValueFactoryTest {
   }
 
   @Test
-  public void iterateArrayValue() throws JsonProcessingException {
+  public void iterateArrayValue() throws JsonSyntaxException {
     JsonReader reader = new JsonReader(new StringReader("[\"zz\",\"bb\"]"));
     JsonParser parser = new JsonParser();
     var arrayIt = new OpenSearchJsonContent(parser.parseReader(reader)).array();
@@ -109,7 +109,7 @@ class OpenSearchExprValueFactoryTest {
   }
 
   @Test
-  public void iterateArrayValueWithOneElement() throws JsonProcessingException {
+  public void iterateArrayValueWithOneElement() throws JsonSyntaxException {
     JsonReader reader = new JsonReader(new StringReader("[\"zz\"]"));
     JsonParser parser = new JsonParser();
     var arrayIt = new OpenSearchJsonContent(parser.parseReader(reader)).array();

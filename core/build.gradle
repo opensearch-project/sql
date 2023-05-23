@@ -48,7 +48,6 @@ dependencies {
     api group: 'org.apache.commons', name: 'commons-lang3', version: '3.12.0'
     api group: 'com.facebook.presto', name: 'presto-matching', version: '0.240'
     api group: 'org.apache.commons', name: 'commons-math3', version: '3.6.1'
-    api "com.fasterxml.jackson.core:jackson-core:${versions.jackson}"
     api "com.fasterxml.jackson.core:jackson-annotations:${versions.jackson}"
     api "com.google.code.gson:gson:2.10.1"
     api project(':common')
