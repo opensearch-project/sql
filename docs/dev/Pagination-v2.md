@@ -638,7 +638,7 @@ Note over PlanSerializer : Zip to reduce size
 
 #### Deserialization
 
-Deserialization restores previously serialized Physical Query Plan. The recovered plan is ready to execute and should return the next page of the search response. To complete the query plan restoration, SQL engine should build a new request to the OpenSearch node. This request doesn't contain a search query, but it contains a search context reference &mdash; `scrollID`. To create a new `OpenSearchScrollRequest` object it is required to access to the instance of `OpenSearchStorageEngine`. `OpenSearchStorageEngine` can't be serialized, and it exists as a singleton in the SQL plugin engine. `PlanSerializer` creates a customized deserialization binary object stream &mdash; `CursorDeserializationStream`. This stream provides an interface to access the `OpenSearchStorageEngine` object.
+Deserialization restores previously serialized Physical Query Plan. The recovered plan is ready to execute and returns the next page of the search response. To complete the query plan restoration, SQL engine will build a new request to the OpenSearch node. This request doesn't contain a search query, but it contains a search context reference &mdash; `scrollID`. To create a new `OpenSearchScrollRequest` object it requires access to the instance of `OpenSearchStorageEngine`. Note: `OpenSearchStorageEngine` can't be serialized, and it exists as a singleton in the SQL plugin engine. `PlanSerializer` creates a customized deserialization binary object stream &mdash; `CursorDeserializationStream`. This stream provides an interface to access the `OpenSearchStorageEngine` object.
 
 ```mermaid
 sequenceDiagram
