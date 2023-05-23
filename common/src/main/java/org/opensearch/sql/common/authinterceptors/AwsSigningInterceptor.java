@@ -5,7 +5,7 @@
  *
  */
 
-package org.opensearch.sql.prometheus.authinterceptors;
+package org.opensearch.sql.common.authinterceptors;
 
 import com.amazonaws.auth.AWSCredentials;
 import com.amazonaws.auth.AWSCredentialsProvider;
