@@ -9,6 +9,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 
 import org.apache.http.HttpHost;
+import org.opensearch.action.admin.indices.delete.DeleteIndexRequest;
 import org.opensearch.client.RequestOptions;
 import org.opensearch.client.RestClient;
 import org.opensearch.client.RestHighLevelClient;
@@ -67,7 +68,7 @@ public class FlintOpenSearchClient implements FlintClient {
 
       client.indices().create(request, RequestOptions.DEFAULT);
     } catch (Exception e) {
-      throw new IllegalStateException("Failed to create Flint index", e);
+      throw new IllegalStateException("Failed to create Flint index " + indexName, e);
     }
   }
 
@@ -77,7 +78,7 @@ public class FlintOpenSearchClient implements FlintClient {
       return client.indices()
           .exists(new GetIndexRequest(indexName), RequestOptions.DEFAULT);
     } catch (IOException e) {
-      throw new IllegalStateException("Failed to check if Flint index exists", e);
+      throw new IllegalStateException("Failed to check if Flint index exists " + indexName, e);
     }
   }
 
@@ -91,7 +92,18 @@ public class FlintOpenSearchClient implements FlintClient {
       MappingMetadata mapping = response.mappings().get(indexName);
       return new FlintMetadata(mapping.source().string());
     } catch (Exception e) {
-      throw new IllegalStateException("Failed to get Flint index metadata", e);
+      throw new IllegalStateException("Failed to get Flint index metadata for " + indexName, e);
+    }
+  }
+
+  @Override
+  public void deleteIndex(String indexName) {
+    try (RestHighLevelClient client = createClient()) {
+      DeleteIndexRequest request = new DeleteIndexRequest(indexName);
+
+      client.indices().delete(request, RequestOptions.DEFAULT);
+    } catch (Exception e) {
+      throw new IllegalStateException("Failed to delete Flint index " + indexName, e);
     }
   }
 

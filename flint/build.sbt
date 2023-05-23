@@ -19,6 +19,11 @@ ThisBuild / scalafmtConfig := baseDirectory.value / "dev/.scalafmt.conf"
  */
 ThisBuild / scalastyleConfig := baseDirectory.value / "scalastyle-config.xml"
 
+/**
+ * Tests cannot be run in parallel since multiple Spark contexts cannot run in the same JVM
+ */
+ThisBuild / Test / parallelExecution := false
+
 // Run as part of compile task.
 lazy val compileScalastyle = taskKey[Unit]("compileScalastyle")
 
