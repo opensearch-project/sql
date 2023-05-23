@@ -144,7 +144,8 @@ object FlintSpark {
           allColumns.getOrElse(
             colName,
             throw new IllegalArgumentException(s"Column $colName does not exist")))
-        .map(col => new PartitionSkippingStrategy(col.name, col.dataType))
+        .map(col =>
+          new PartitionSkippingStrategy(columnName = col.name, columnType = col.dataType))
         .foreach(indexedCol => indexedColumns = indexedColumns :+ indexedCol)
       this
     }

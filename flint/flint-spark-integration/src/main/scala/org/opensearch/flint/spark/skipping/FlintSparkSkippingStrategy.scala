@@ -11,9 +11,15 @@ package org.opensearch.flint.spark.skipping
 trait FlintSparkSkippingStrategy {
 
   /**
+   * Skipping strategy kind.
+   */
+  val kind: String
+
+  /**
    * Indexed column name and its Spark SQL type.
    */
-  val indexedColumn: (String, String)
+  val columnName: String
+  val columnType: String
 
   /**
    * @return

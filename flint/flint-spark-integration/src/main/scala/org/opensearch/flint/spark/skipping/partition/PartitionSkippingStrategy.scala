@@ -10,11 +10,14 @@ import org.opensearch.flint.spark.skipping.FlintSparkSkippingStrategy
 /**
  * Skipping strategy for partitioned columns of source table.
  */
-class PartitionSkippingStrategy(override val indexedColumn: (String, String))
+class PartitionSkippingStrategy(
+    override val kind: String = "partition",
+    override val columnName: String,
+    override val columnType: String)
     extends FlintSparkSkippingStrategy {
 
   override def outputSchema(): Map[String, String] = {
-    Map(indexedColumn._1 -> convertToFlintType(indexedColumn._2))
+    Map(columnName -> convertToFlintType(columnType))
   }
 
   // TODO: move this mapping info to single place

@@ -72,10 +72,14 @@ class FlintSparkSkippingIndexSuite extends FlintSuite with OpenSearchSuite {
         |     "kind": "SkippingIndex",
         |     "indexedColumns": [
         |     {
-        |       "year": "int"
+        |       "kind": "partition",
+        |       "columnName": "year",
+        |       "columnType": "int"
         |     },
         |     {
-        |       "month": "int"
+        |       "kind": "partition",
+        |       "columnName": "month",
+        |       "columnType": "int"
         |     }]
         |   },
         |   "properties": {

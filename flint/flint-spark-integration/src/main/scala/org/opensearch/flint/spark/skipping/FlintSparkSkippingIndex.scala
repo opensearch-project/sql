@@ -48,7 +48,7 @@ class FlintSparkSkippingIndex(tableName: String, indexedColumns: Seq[FlintSparkS
   }
 
   private def getMetaInfo: String = {
-    Serialization.write(indexedColumns.map(_.indexedColumn))
+    Serialization.write(indexedColumns)
   }
 
   private def getSchema: String = {
