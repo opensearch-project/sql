@@ -11,20 +11,17 @@ plugins {
 
 repositories {
     mavenCentral()
-    maven { url 'https://jitpack.io' }
 }
 
 dependencies {
     api project(':core')
     implementation project(':datasources')
+
+    implementation group: 'org.opensearch', name: 'opensearch', version: "${opensearch_version}"
     implementation "io.github.resilience4j:resilience4j-retry:1.5.0"
     implementation group: 'com.fasterxml.jackson.core', name: 'jackson-core', version: "${versions.jackson}"
     implementation group: 'com.fasterxml.jackson.core', name: 'jackson-databind', version: "${versions.jackson_databind}"
     implementation group: 'com.fasterxml.jackson.dataformat', name: 'jackson-dataformat-cbor', version: "${versions.jackson}"
-    implementation group: 'com.squareup.okhttp3', name: 'okhttp', version: '4.9.3'
-    implementation 'com.github.babbel:okhttp-aws-signer:1.0.2'
-    implementation group: 'com.amazonaws', name: 'aws-java-sdk-core', version: '1.12.1'
-    implementation group: 'com.amazonaws', name: 'aws-java-sdk-sts', version: '1.12.1'
     implementation group: 'org.json', name: 'json', version: '20230227'
 
     testImplementation('org.junit.jupiter:junit-jupiter:5.6.2')

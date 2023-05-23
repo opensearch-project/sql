@@ -17,18 +17,22 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
+import lombok.RequiredArgsConstructor;
 import okhttp3.OkHttpClient;
+import org.opensearch.cluster.ClusterName;
+import org.opensearch.sql.common.authinterceptors.AwsSigningInterceptor;
+import org.opensearch.sql.common.authinterceptors.BasicAuthenticationInterceptor;
+import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.datasource.model.DataSource;
 import org.opensearch.sql.datasource.model.DataSourceMetadata;
 import org.opensearch.sql.datasource.model.DataSourceType;
 import org.opensearch.sql.datasources.auth.AuthenticationType;
-import org.opensearch.sql.prometheus.authinterceptors.AwsSigningInterceptor;
-import org.opensearch.sql.prometheus.authinterceptors.BasicAuthenticationInterceptor;
 import org.opensearch.sql.prometheus.client.PrometheusClient;
 import org.opensearch.sql.prometheus.client.PrometheusClientImpl;
 import org.opensearch.sql.storage.DataSourceFactory;
 import org.opensearch.sql.storage.StorageEngine;
 
+@RequiredArgsConstructor
 public class PrometheusStorageFactory implements DataSourceFactory {
 
   public static final String URI = "prometheus.uri";
@@ -38,8 +42,9 @@ public class PrometheusStorageFactory implements DataSourceFactory {
   public static final String REGION = "prometheus.auth.region";
   public static final String ACCESS_KEY = "prometheus.auth.access_key";
   public static final String SECRET_KEY = "prometheus.auth.secret_key";
-
   private static final Integer MAX_LENGTH_FOR_CONFIG_PROPERTY = 1000;
+
+  private final Settings settings;
 
   @Override
   public DataSourceType getDataSourceType() {
@@ -51,7 +56,8 @@ public class PrometheusStorageFactory implements DataSourceFactory {
     return new DataSource(
         metadata.getName(),
         DataSourceType.PROMETHEUS,
-        getStorageEngine(metadata.getName(), metadata.getProperties()));
+        getStorageEngine(metadata.getName(), metadata.getProperties(),
+            ((ClusterName) settings.getSettingValue(Settings.Key.CLUSTER_NAME)).value()));
   }
 
 
@@ -70,7 +76,8 @@ public class PrometheusStorageFactory implements DataSourceFactory {
     }
   }
 
-  StorageEngine getStorageEngine(String catalogName, Map<String, String> requiredConfig) {
+  StorageEngine getStorageEngine(String catalogName, Map<String, String> requiredConfig,
+                                 String clusterName) {
     validateDataSourceConfigProperties(requiredConfig);
     PrometheusClient prometheusClient;
     prometheusClient =

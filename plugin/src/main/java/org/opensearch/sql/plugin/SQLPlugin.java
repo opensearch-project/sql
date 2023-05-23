@@ -222,7 +222,7 @@ public class SQLPlugin extends Plugin implements ActionPlugin, ScriptPlugin {
         new ImmutableSet.Builder<DataSourceFactory>()
             .add(new OpenSearchDataSourceFactory(
                 new OpenSearchNodeClient(this.client), pluginSettings))
-            .add(new PrometheusStorageFactory())
+            .add(new PrometheusStorageFactory(pluginSettings))
             .build(),
         dataSourceMetadataStorage,
         dataSourceUserAuthorizationHelper);

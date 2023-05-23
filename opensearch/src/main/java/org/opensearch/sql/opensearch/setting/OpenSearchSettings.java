@@ -17,6 +17,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Consumer;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.log4j.Log4j2;
+import org.opensearch.cluster.ClusterName;
 import org.opensearch.common.settings.ClusterSettings;
 import org.opensearch.common.settings.Setting;
 import org.opensearch.common.unit.MemorySizeValue;
@@ -123,6 +124,8 @@ public class OpenSearchSettings extends Settings {
         METRICS_ROLLING_WINDOW_SETTING, new Updater(Key.METRICS_ROLLING_WINDOW));
     register(settingBuilder, clusterSettings, Key.METRICS_ROLLING_INTERVAL,
         METRICS_ROLLING_INTERVAL_SETTING, new Updater(Key.METRICS_ROLLING_INTERVAL));
+    settingBuilder.put(Key.CLUSTER_NAME, ClusterName.CLUSTER_NAME_SETTING);
+    latestSettings.put(Key.CLUSTER_NAME, clusterSettings.get(ClusterName.CLUSTER_NAME_SETTING));
     defaultSettings = settingBuilder.build();
   }
 

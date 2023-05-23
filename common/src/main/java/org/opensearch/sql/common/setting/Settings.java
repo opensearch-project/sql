@@ -40,7 +40,9 @@ public abstract class Settings {
     QUERY_MEMORY_LIMIT("plugins.query.memory_limit"),
     QUERY_SIZE_LIMIT("plugins.query.size_limit"),
     METRICS_ROLLING_WINDOW("plugins.query.metrics.rolling_window"),
-    METRICS_ROLLING_INTERVAL("plugins.query.metrics.rolling_interval");
+    METRICS_ROLLING_INTERVAL("plugins.query.metrics.rolling_interval"),
+
+    CLUSTER_NAME("cluster.name");
 
     @Getter
     private final String keyValue;

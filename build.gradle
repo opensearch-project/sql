@@ -76,6 +76,7 @@ repositories {
     mavenLocal()
     maven { url "https://aws.oss.sonatype.org/content/repositories/snapshots" }
     mavenCentral() // For Elastic Libs that you can use to get started coding until open OpenSearch libs are available
+    maven { url 'https://jitpack.io' }
 }
 
 allprojects {
@@ -98,8 +99,8 @@ subprojects {
         mavenLocal()
         maven { url "https://aws.oss.sonatype.org/content/repositories/snapshots" }
         mavenCentral()
-        // todo. remove this when lucene 9.4.0 is released
         maven { url "https://d1nvenhzbhpy0q.cloudfront.net/snapshots/lucene/" }
+        maven { url 'https://jitpack.io' }
     }
 }
 

@@ -10,6 +10,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.mockito.Mockito.when;
 import static org.opensearch.common.unit.TimeValue.timeValueMinutes;
 import static org.opensearch.sql.opensearch.setting.LegacyOpenDistroSettings.legacySettings;
 
@@ -18,6 +19,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.opensearch.cluster.ClusterName;
 import org.opensearch.common.settings.ClusterSettings;
 import org.opensearch.common.settings.Setting;
 import org.opensearch.common.unit.ByteSizeValue;
@@ -33,6 +35,7 @@ class OpenSearchSettingsTest {
 
   @Test
   void getSettingValue() {
+    when(clusterSettings.get(ClusterName.CLUSTER_NAME_SETTING)).thenReturn(ClusterName.DEFAULT);
     OpenSearchSettings settings = new OpenSearchSettings(clusterSettings);
     ByteSizeValue sizeValue = settings.getSettingValue(Settings.Key.QUERY_MEMORY_LIMIT);
 
@@ -48,12 +51,14 @@ class OpenSearchSettingsTest {
 
   @Test
   void getSettings() {
+    when(clusterSettings.get(ClusterName.CLUSTER_NAME_SETTING)).thenReturn(ClusterName.DEFAULT);
     OpenSearchSettings settings = new OpenSearchSettings(clusterSettings);
     assertFalse(settings.getSettings().isEmpty());
   }
 
   @Test
   void update() {
+    when(clusterSettings.get(ClusterName.CLUSTER_NAME_SETTING)).thenReturn(ClusterName.DEFAULT);
     OpenSearchSettings settings = new OpenSearchSettings(clusterSettings);
     ByteSizeValue oldValue = settings.getSettingValue(Settings.Key.QUERY_MEMORY_LIMIT);
     OpenSearchSettings.Updater updater =
@@ -67,6 +72,7 @@ class OpenSearchSettingsTest {
 
   @Test
   void settingsFallback() {
+    when(clusterSettings.get(ClusterName.CLUSTER_NAME_SETTING)).thenReturn(ClusterName.DEFAULT);
     OpenSearchSettings settings = new OpenSearchSettings(clusterSettings);
     assertEquals(
         settings.getSettingValue(Settings.Key.SQL_ENABLED),
