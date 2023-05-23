@@ -7,10 +7,9 @@ package org.opensearch.flint.spark
 
 import scala.collection.JavaConverters._
 
-import org.opensearch.flint.core.{FlintClient, FlintOptions}
+import org.opensearch.flint.core.{FlintClient, FlintClientBuilder, FlintOptions}
 import org.opensearch.flint.core.FlintOptions._
 import org.opensearch.flint.core.metadata.FlintMetadata
-import org.opensearch.flint.core.storage.FlintOpenSearchClient
 import org.opensearch.flint.spark.FlintSpark._
 import org.opensearch.flint.spark.skipping.{FlintSparkSkippingIndex, FlintSparkSkippingStrategy}
 import org.opensearch.flint.spark.skipping.partition.PartitionSkippingStrategy
@@ -29,7 +28,7 @@ class FlintSpark(val spark: SparkSession) {
       Map(
         HOST -> spark.conf.get(FLINT_INDEX_STORE_LOCATION, FLINT_INDEX_STORE_LOCATION_DEFAULT),
         PORT -> spark.conf.get(FLINT_INDEX_STORE_PORT, FLINT_INDEX_STORE_PORT_DEFAULT)).asJava)
-    new FlintOpenSearchClient(options)
+    FlintClientBuilder.build(options)
   }
 
   /**
@@ -141,8 +140,12 @@ object FlintSpark {
      */
     def addPartitionIndex(colNames: String*): IndexBuilder = {
       colNames
-        .map(colName => new PartitionSkippingStrategy((colName, allColumns(colName).dataType)))
-        .foreach(col => indexedColumns = indexedColumns :+ col)
+        .map(colName =>
+          allColumns.getOrElse(
+            colName,
+            throw new IllegalArgumentException(s"Column $colName does not exist")))
+        .map(col => new PartitionSkippingStrategy(col.name, col.dataType))
+        .foreach(indexedCol => indexedColumns = indexedColumns :+ indexedCol)
       this
     }
 
@@ -150,6 +153,8 @@ object FlintSpark {
      * Create index.
      */
     def create(): Unit = {
+      require(tableName.nonEmpty, "table name cannot be empty")
+
       flint.createIndex(new FlintSparkSkippingIndex(tableName, indexedColumns))
     }
   }
