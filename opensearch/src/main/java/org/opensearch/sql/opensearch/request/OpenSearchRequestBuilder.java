@@ -52,11 +52,6 @@ import org.opensearch.sql.opensearch.response.agg.OpenSearchAggregationResponseP
 public class OpenSearchRequestBuilder implements ExecutableRequestBuilder {
 
   /**
-   * Default query timeout in minutes.
-   */
-  public static final TimeValue DEFAULT_QUERY_TIMEOUT = TimeValue.timeValueMinutes(1L);
-
-  /**
    * Search request source builder.
    */
   private final SearchSourceBuilder sourceBuilder;
@@ -87,7 +82,7 @@ public class OpenSearchRequestBuilder implements ExecutableRequestBuilder {
     this.requestedTotalSize = requestedTotalSize;
     this.sourceBuilder = new SearchSourceBuilder()
         .from(startFrom)
-        .timeout(DEFAULT_QUERY_TIMEOUT)
+        .timeout(OpenSearchRequest.DEFAULT_QUERY_TIMEOUT)
         .trackScores(false);
     this.exprValueFactory = exprValueFactory;
   }

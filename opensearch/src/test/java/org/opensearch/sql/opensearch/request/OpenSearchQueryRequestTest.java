@@ -15,7 +15,7 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
-import static org.opensearch.sql.opensearch.request.OpenSearchRequestBuilder.DEFAULT_QUERY_TIMEOUT;
+import static org.opensearch.sql.opensearch.request.OpenSearchRequest.DEFAULT_QUERY_TIMEOUT;
 
 import java.util.function.Consumer;
 import java.util.function.Function;
@@ -146,21 +146,14 @@ public class OpenSearchQueryRequestTest {
   void searchRequest() {
     request.getSourceBuilder().query(QueryBuilders.termQuery("name", "John"));
 
-    Function<SearchRequest, SearchResponse> querySearch = searchRequest -> {
-      assertEquals(new SearchRequest()
+      assertSearchRequest(new SearchRequest()
           .indices("test")
           .source(new SearchSourceBuilder()
             .timeout(DEFAULT_QUERY_TIMEOUT)
             .from(0)
             .size(200)
             .query(QueryBuilders.termQuery("name", "John"))),
-          searchRequest);
-      return when(mock(SearchResponse.class).getHits())
-        .thenReturn(new SearchHits(new SearchHit[0],
-            new TotalHits(0, TotalHits.Relation.EQUAL_TO), 0.0f))
-        .getMock();
-    };
-    request.search(querySearch, searchScrollRequest -> null);
+      request);
 
   }
 
@@ -168,7 +161,7 @@ public class OpenSearchQueryRequestTest {
   void searchCrossClusterRequest() {
     remoteRequest.getSourceBuilder().query(QueryBuilders.termQuery("name", "John"));
 
-    assertEquals(
+    assertSearchRequest(
         new SearchRequest()
             .indices("ccs:test")
             .source(new SearchSourceBuilder()
@@ -176,6 +169,17 @@ public class OpenSearchQueryRequestTest {
                 .from(0)
                 .size(200)
                 .query(QueryBuilders.termQuery("name", "John"))),
-        remoteRequest.searchRequest());
+        remoteRequest);
+  }
+
+  private void assertSearchRequest(SearchRequest expected, OpenSearchQueryRequest request) {
+    Function<SearchRequest, SearchResponse> querySearch = searchRequest -> {
+      assertEquals(expected, searchRequest);
+      return when(mock(SearchResponse.class).getHits())
+        .thenReturn(new SearchHits(new SearchHit[0],
+          new TotalHits(0, TotalHits.Relation.EQUAL_TO), 0.0f))
+        .getMock();
+    };
+    request.search(querySearch, searchScrollRequest -> null);
   }
 }
