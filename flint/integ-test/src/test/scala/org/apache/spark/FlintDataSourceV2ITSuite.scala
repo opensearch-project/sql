@@ -132,7 +132,7 @@ class FlintDataSourceV2ITSuite
     }
   }
 
-  test("write dataframe to flint datasource") {
+  test("write dataframe to flint") {
     val indexName = "t0004"
     val mappings =
       """{
@@ -177,45 +177,7 @@ class FlintDataSourceV2ITSuite
     })
   }
 
-//  test("write dataframe to flint datasource") {
-//    val indexName = "t0004"
-//    val mappings =
-//      """{
-//        |  "properties": {
-//        |    "aInt": {
-//        |      "type": "integer"
-//        |    }
-//        |  }
-//        |}""".stripMargin
-//    val options =
-//      openSearchOptions + ("refresh_policy" -> "wait_for", "spark.flint.write.id.name" -> "aInt")
-//    Seq(
-//      Seq.empty,
-//      Seq("""{"aInt": 1}"""),
-//      for (n <- 1 to 14) yield s"""{"aInt": $n}""".stripMargin).foreach(data => {
-//      withIndexName(indexName) {
-//        index(indexName, oneNodeSetting, mappings, data)
-//
-//        val df = spark.range(15).toDF("aInt")
-//        df.coalesce(1)
-//          .write
-//          .format("flint")
-//          .options(options)
-//          .mode("overwrite")
-//          .save(indexName)
-//
-//        val schema = StructType(Seq(StructField("aInt", IntegerType, true)))
-//        val dfResult1 = spark.sqlContext.read
-//          .format("flint")
-//          .options(openSearchOptions)
-//          .schema(schema)
-//          .load(indexName)
-//        checkAnswer(dfResult1, df)
-//      }
-//    })
-//  }
-
-  test("write with batch size configuration") {
+  test("write dataframe to flint with batch size configuration") {
     val indexName = "t0004"
     val options =
       openSearchOptions + ("refresh_policy" -> "wait_for", "spark.flint.write.id.name" -> "aInt")
@@ -240,12 +202,13 @@ class FlintDataSourceV2ITSuite
           .save(indexName)
 
         val schema = StructType(Seq(StructField("aInt", IntegerType)))
-        val dfResult1 = spark.sqlContext.read
-          .format("flint")
-          .options(openSearchOptions)
-          .schema(schema)
-          .load(indexName)
-        checkAnswer(dfResult1, df)
+        checkAnswer(
+          spark.sqlContext.read
+            .format("flint")
+            .options(openSearchOptions)
+            .schema(schema)
+            .load(indexName),
+          df)
       }
     })
   }

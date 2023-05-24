@@ -25,6 +25,7 @@ import java.util.Arrays;
 
 /**
  * OpenSearch Bulk writer. More reading https://opensearch.org/docs/1.2/opensearch/rest-api/document-apis/bulk/.
+ * It is not thread safe.
  */
 public class OpenSearchWriter extends FlintWriter {
 
@@ -48,6 +49,7 @@ public class OpenSearchWriter extends FlintWriter {
   }
 
   /**
+   * Flush the data in buffer.
    * Todo. StringWriter is not efficient. it will copy the cbuf when create bytes.
    */
   @Override public void flush() {

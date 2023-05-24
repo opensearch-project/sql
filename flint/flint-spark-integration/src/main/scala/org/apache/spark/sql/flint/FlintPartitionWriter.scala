@@ -46,7 +46,10 @@ case class FlintPartitionWriter(
   private lazy val batchSize =
     properties.asScala.toMap.get(BATCH_SIZE).map(_.toInt).filter(_ > 0).getOrElse(1000)
 
-  private var count = 0;
+  /**
+   * total write doc count.
+   */
+  private var docCount = 0;
 
   /**
    * { "create": { "_id": "id1" } } { "title": "Prisoners", "year": 2013 }
@@ -57,16 +60,16 @@ case class FlintPartitionWriter(
     gen.write(record)
     gen.writeLineEnding()
 
-    count += 1
-    if (count >= batchSize) {
+    docCount += 1
+    if (docCount >= batchSize) {
       gen.flush()
-      count = 0
+      docCount = 0
     }
   }
 
   override def commit(): WriterCommitMessage = {
     gen.flush()
-    logDebug(s"Write finish on partitionId: $partitionId, taskId: $taskId")
+    logDebug(s"Write commit on partitionId: $partitionId, taskId: $taskId")
     FlintWriterCommitMessage(partitionId, taskId)
   }
 
@@ -76,11 +79,15 @@ case class FlintPartitionWriter(
 
   override def close(): Unit = {
     gen.close()
+    logDebug(s"Write close on partitionId: $partitionId, taskId: $taskId")
   }
 }
 
 case class FlintWriterCommitMessage(partitionId: Int, taskId: Long) extends WriterCommitMessage
 
+/**
+ * Todo. Move to FlintSparkConfiguration.
+ */
 object FlintPartitionWriter {
   val ID_NAME = "spark.flint.write.id.name"
   val BATCH_SIZE = "spark.flint.write.batch.size"

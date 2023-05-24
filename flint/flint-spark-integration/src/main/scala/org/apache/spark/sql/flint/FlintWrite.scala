@@ -14,6 +14,8 @@ case class FlintWrite(tableName: String, logicalWriteInfo: LogicalWriteInfo)
     with Logging {
 
   override def createBatchWriterFactory(info: PhysicalWriteInfo): DataWriterFactory = {
+    logDebug(
+      s"Create factory of ${logicalWriteInfo.queryId()} with ${info.numPartitions()} partitions")
     FlintPartitionWriterFactory(
       tableName,
       logicalWriteInfo.schema(),
