@@ -132,6 +132,87 @@ class FlintDataSourceV2ITSuite
     }
   }
 
+  test("write dataframe to flint") {
+    val indexName = "t0004"
+    val mappings =
+      """{
+        |  "properties": {
+        |    "aInt": {
+        |      "type": "integer"
+        |    }
+        |  }
+        |}""".stripMargin
+    val options =
+      openSearchOptions + ("refresh_policy" -> "wait_for", "spark.flint.write.id.name" -> "aInt")
+    Seq(Seq.empty, 1 to 14).foreach(data => {
+      withIndexName(indexName) {
+        index(indexName, oneNodeSetting, mappings, Seq.empty)
+        if (data.nonEmpty) {
+          data
+            .toDF("aInt")
+            .coalesce(1)
+            .write
+            .format("flint")
+            .options(options)
+            .mode("overwrite")
+            .save(indexName)
+        }
+
+        val df = spark.range(15).toDF("aInt")
+        df.coalesce(1)
+          .write
+          .format("flint")
+          .options(options)
+          .mode("overwrite")
+          .save(indexName)
+
+        val schema = StructType(Seq(StructField("aInt", IntegerType)))
+        val dfResult1 = spark.sqlContext.read
+          .format("flint")
+          .options(options)
+          .schema(schema)
+          .load(indexName)
+        checkAnswer(dfResult1, df)
+      }
+    })
+  }
+
+  test("write dataframe to flint with batch size configuration") {
+    val indexName = "t0004"
+    val options =
+      openSearchOptions + ("refresh_policy" -> "wait_for", "spark.flint.write.id.name" -> "aInt")
+    Seq(0, 1).foreach(batchSize => {
+      withIndexName(indexName) {
+        val mappings =
+          """{
+            |  "properties": {
+            |    "aInt": {
+            |      "type": "integer"
+            |    }
+            |  }
+            |}""".stripMargin
+        index(indexName, oneNodeSetting, mappings, Seq.empty)
+
+        val df = spark.range(15).toDF("aInt")
+        df.coalesce(1)
+          .write
+          .format("flint")
+          .options(options + ("spark.flint.write.batch.size" -> s"$batchSize"))
+          .mode("overwrite")
+          .save(indexName)
+
+        val schema = StructType(Seq(StructField("aInt", IntegerType)))
+        checkAnswer(
+          spark.sqlContext.read
+            .format("flint")
+            .options(openSearchOptions)
+            .schema(schema)
+            .load(indexName),
+          df)
+      }
+    })
+  }
+
   /**
    * Copy from SPARK JDBCV2Suite.
    */

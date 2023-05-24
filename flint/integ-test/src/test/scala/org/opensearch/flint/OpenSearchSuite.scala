@@ -113,15 +113,18 @@ trait OpenSearchSuite extends BeforeAndAfterAll {
     /**
      *   1. Wait until refresh the index.
      */
-    val request = new BulkRequest().setRefreshPolicy(RefreshPolicy.WAIT_UNTIL)
-    for (doc <- docs) {
-      request.add(new IndexRequest(index).source(doc, XContentType.JSON))
-    }
-    val response =
-      openSearchClient.bulk(request, RequestOptions.DEFAULT)
+    if (docs.nonEmpty) {
+      val request = new BulkRequest().setRefreshPolicy(RefreshPolicy.WAIT_UNTIL)
+      for (doc <- docs) {
+        request.add(new IndexRequest(index).source(doc, XContentType.JSON))
+      }
 
-    assume(
-      !response.hasFailures,
-      s"bulk index docs to $index failed: ${response.buildFailureMessage()}")
+      val response =
+        openSearchClient.bulk(request, RequestOptions.DEFAULT)
+
+      assume(
+        !response.hasFailures,
+        s"bulk index docs to $index failed: ${response.buildFailureMessage()}")
+    }
   }
 }

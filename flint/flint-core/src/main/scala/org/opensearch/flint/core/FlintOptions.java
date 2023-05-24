@@ -23,6 +23,16 @@ public class FlintOptions implements Serializable {
   public static final String SCROLL_SIZE = "scroll_size";
   public static final int DEFAULT_SCROLL_SIZE = 100;
 
+  public static final String REFRESH_POLICY = "refresh_policy";
+  /**
+   * NONE("false")
+   *
+   * IMMEDIATE("true")
+   *
+   * WAIT_UNTIL("wait_for")
+   */
+  public static final String DEFAULT_REFRESH_POLICY = "false";
+
   public FlintOptions(Map<String, String> options) {
     this.options = options;
   }
@@ -38,4 +48,6 @@ public class FlintOptions implements Serializable {
   public int getScrollSize() {
     return Integer.parseInt(options.getOrDefault(SCROLL_SIZE, String.valueOf(DEFAULT_SCROLL_SIZE)));
   }
+
+  public String getRefreshPolicy() {return options.getOrDefault(REFRESH_POLICY, DEFAULT_REFRESH_POLICY);}
 }

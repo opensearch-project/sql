@@ -58,4 +58,36 @@ class FlintOpenSearchClientSuite extends AnyFlatSpec with OpenSearchSuite with M
       reader.close()
     }
   }
+
+  it should "write docs to index successfully " in {
+    val indexName = "t0001"
+    withIndexName(indexName) {
+      val mappings =
+        """{
+          |  "properties": {
+          |    "aInt": {
+          |      "type": "integer"
+          |    }
+          |  }
+          |}""".stripMargin
+
+      val options = openSearchOptions + ("refresh_policy" -> "wait_for")
+      val flintClient = new FlintOpenSearchClient(new FlintOptions(options.asJava))
+      index(indexName, oneNodeSetting, mappings, Seq.empty)
+      val writer = flintClient.createWriter(indexName)
+      writer.write("""{"create":{}}""")
+      writer.write("\n")
+      writer.write("""{"aInt":1}""")
+      writer.write("\n")
+      writer.flush()
+      writer.close()
+
+      val match_all = null
+      val reader = flintClient.createReader(indexName, match_all)
+      reader.hasNext shouldBe true
+      reader.next shouldBe """{"aInt":1}"""
+      reader.hasNext shouldBe false
+      reader.close()
+    }
+  }
 }
