@@ -50,6 +50,22 @@ class OpenSearchDescribeIndexRequestTest {
   }
 
   @Test
+  void testCrossClusterShouldSearchLocal() {
+    when(mapping.getFieldMappings()).thenReturn(
+        Map.of("name", OpenSearchDataType.of(OpenSearchDataType.MappingType.Keyword)));
+    when(client.getIndexMappings("index")).thenReturn(ImmutableMap.of("test", mapping));
+
+    final List<ExprValue> results =
+        new OpenSearchDescribeIndexRequest(client, "ccs:index").search();
+    assertEquals(1, results.size());
+    assertThat(results.get(0).tupleValue(), anyOf(
+        hasEntry("TABLE_NAME", stringValue("index")),
+        hasEntry("COLUMN_NAME", stringValue("name")),
+        hasEntry("TYPE_NAME", stringValue("STRING"))
+    ));
+  }
+
+  @Test
   void testToString() {
     assertEquals("OpenSearchDescribeIndexRequest{indexName='index'}",
         new OpenSearchDescribeIndexRequest(client, "index").toString());

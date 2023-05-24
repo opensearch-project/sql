@@ -13,7 +13,7 @@ Security Settings
 Introduction
 ============
 
-User needs ``cluster:admin/opensearch/ppl`` permission to use PPL plugin. User also needs indices level permission ``indices:admin/mappings/get`` to get field mappings and ``indices:data/read/search*`` to search index.
+User needs ``cluster:admin/opensearch/ppl`` permission to use PPL plugin. User also needs indices level permission ``indices:admin/mappings/get`` to get field mappings, ``indices:monitor/settings/get`` to get cluster settings, and ``indices:data/read/search*`` to search index.
 
 Using Rest API
 ==============
@@ -34,7 +34,8 @@ Example: Create the ppl_role for test_user. then test_user could use PPL to quer
         ],
         "allowed_actions": [
           "indices:data/read/search*",
-          "indices:admin/mappings/get"
+          "indices:admin/mappings/get",
+          "indices:monitor/settings/get"
         ]
       }]
     }
