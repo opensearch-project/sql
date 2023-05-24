@@ -53,7 +53,7 @@ class FlintSparkSkippingIndexSuite extends FlintSuite with OpenSearchSuite {
   override def afterEach(): Unit = {
     super.afterEach()
 
-    val indexName = FlintSparkSkippingIndex.getIndexName(testTable)
+    val indexName = FlintSparkSkippingIndex.getSkippingIndexName(testTable)
     flint.deleteIndex(indexName)
   }
 
@@ -65,9 +65,9 @@ class FlintSparkSkippingIndexSuite extends FlintSuite with OpenSearchSuite {
       .create()
 
     val indexName = s"flint_${testTable}_skipping_index"
-    val metadata = flint.describeIndex(indexName)
-    metadata shouldBe defined
-    metadata.get.getContent should matchJson(""" {
+    val index = flint.describeIndex(indexName)
+    index shouldBe defined
+    index.get.metadata().getContent should matchJson(s"""{
         |   "_meta": {
         |     "kind": "SkippingIndex",
         |     "indexedColumns": [
@@ -80,7 +80,8 @@ class FlintSparkSkippingIndexSuite extends FlintSuite with OpenSearchSuite {
         |       "kind": "partition",
         |       "columnName": "month",
         |       "columnType": "int"
-        |     }]
+        |     }],
+        |     "source": "$testTable"
         |   },
         |   "properties": {
         |     "year": {
@@ -107,7 +108,7 @@ class FlintSparkSkippingIndexSuite extends FlintSuite with OpenSearchSuite {
     val query = sql(s"""
          | SELECT name
          | FROM $testTable
-         | WHERE year = 2023 AND month = 04
+         | WHERE year = 2023 AND month = 5
          |""".stripMargin)
 
     val rewriter = new ApplyFlintSparkSkippingIndex(flint)

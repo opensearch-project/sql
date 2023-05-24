@@ -5,13 +5,11 @@
 
 package org.opensearch.flint.spark.skipping
 
-import org.json4s._
-import org.json4s.native.JsonMethods._
-import org.json4s.native.Serialization
-import org.opensearch.flint.core.metadata.FlintMetadata
 import org.opensearch.flint.spark.FlintSpark
-import org.opensearch.flint.spark.skipping.partition.PartitionSkippingStrategy
+import org.opensearch.flint.spark.skipping.FlintSparkSkippingIndex.{getSkippingIndexName, FILE_PATH_COLUMN, SKIPPING_INDEX_TYPE}
 
+import org.apache.spark.sql.Column
+import org.apache.spark.sql.catalyst.expressions.{And, Predicate}
 import org.apache.spark.sql.catalyst.plans.logical.{Filter, LogicalPlan}
 import org.apache.spark.sql.catalyst.rules.Rule
 import org.apache.spark.sql.execution.datasources.{HadoopFsRelation, LogicalRelation}
@@ -28,53 +26,52 @@ class ApplyFlintSparkSkippingIndex(val flint: FlintSpark) extends Rule[LogicalPl
 
   override def apply(plan: LogicalPlan): LogicalPlan = plan transform {
     case filter @ Filter(
-          condition,
+          condition: Predicate,
           relation @ LogicalRelation(
             baseRelation @ HadoopFsRelation(location, _, _, _, _, _),
             _,
             Some(table),
             false)) =>
-      val indexName =
-        FlintSparkSkippingIndex.getIndexName(table.identifier.table) // TODO: ignore schema name
-      val index = flint.describeIndex(indexName)
-      val indexedCols = parseMetadata(index)
+      // Spark optimize recursively
+      // if (location.isInstanceOf[FlintSparkSkippingFileIndex]) {
+      //  return filter
+      // }
 
-      if (indexedCols.isEmpty) {
+      val indexName = getSkippingIndexName(table.identifier.table) // TODO: ignore schema name
+      val index = flint.describeIndex(indexName)
+
+      if (index.exists(_.kind == SKIPPING_INDEX_TYPE)) {
+        val skippingIndex = index.get.asInstanceOf[FlintSparkSkippingIndex]
+        val rewrittenPredicate = rewriteToPredicateOnSkippingIndex(skippingIndex, condition)
+        val selectedFiles = getSelectedFilesToScanAfterSkip(skippingIndex, rewrittenPredicate)
+
         filter
       } else {
         filter
       }
   }
 
-  private def parseMetadata(index: Option[FlintMetadata]): Seq[FlintSparkSkippingStrategy] = {
-    implicit val formats: Formats = Serialization.formats(NoTypeHints)
+  private def rewriteToPredicateOnSkippingIndex(
+      index: FlintSparkSkippingIndex,
+      condition: Predicate): Predicate = {
 
-    if (index.isDefined) {
+    index.indexedColumns
+      .map(index => index.rewritePredicate(condition))
+      .filter(pred => pred.isDefined)
+      .map(pred => pred.get)
+      .reduce(And(_, _))
+  }
 
-      // TODO: move all these JSON parsing to FlintMetadata once Flint spec finalized
-      val json = parse(index.get.getContent)
-      val kind = (json \ "_meta" \ "kind").extract[String]
+  private def getSelectedFilesToScanAfterSkip(
+      index: FlintSparkSkippingIndex,
+      rewrittenPredicate: Predicate): Set[String] = {
 
-      if (kind == "SkippingIndex") {
-        val indexedColumns = (json \ "_meta" \ "indexedColumns").asInstanceOf[JArray]
-
-        indexedColumns.arr.map { colInfo =>
-          val kind = (colInfo \ "kind").extract[String]
-          val columnName = (colInfo \ "columnName").extract[String]
-          val columnType = (colInfo \ "columnType").extract[String]
-
-          kind match {
-            case "partition" =>
-              new PartitionSkippingStrategy(columnName = columnName, columnType = columnType)
-            case other =>
-              throw new IllegalStateException(s"Unknown skipping strategy: $other")
-          }
-        }
-      } else {
-        Seq()
-      }
-    } else {
-      Seq()
-    }
+    index
+      .query()
+      .filter(new Column(rewrittenPredicate))
+      .select(FILE_PATH_COLUMN)
+      .collect
+      .map(_.getString(0))
+      .toSet
   }
 }

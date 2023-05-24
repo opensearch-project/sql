@@ -7,6 +7,9 @@ package org.opensearch.flint.spark
 
 import scala.collection.JavaConverters._
 
+import org.json4s.{Formats, JArray, NoTypeHints}
+import org.json4s.native.JsonMethods.parse
+import org.json4s.native.Serialization
 import org.opensearch.flint.core.{FlintClient, FlintClientBuilder, FlintOptions}
 import org.opensearch.flint.core.FlintOptions._
 import org.opensearch.flint.core.metadata.FlintMetadata
@@ -66,16 +69,17 @@ class FlintSpark(val spark: SparkSession) {
    * @return
    *   Flint index metadata
    */
-  def describeIndex(indexName: String): Option[FlintMetadata] = {
+  def describeIndex(indexName: String): Option[FlintSparkIndex] = {
     if (flintClient.exists(indexName)) {
-      Some(flintClient.getIndexMetadata(indexName))
+      val metadata = flintClient.getIndexMetadata(indexName)
+      Some(deserialize(metadata))
     } else {
       Option.empty
     }
   }
 
   /**
-   * Delete index.
+   * Delete a Flint index.
    *
    * @param indexName
    *   index name
@@ -88,6 +92,41 @@ class FlintSpark(val spark: SparkSession) {
       true
     } else {
       false
+    }
+  }
+
+  /*
+   * TODO: Remove all these JSON parsing logic once Flint spec finalized
+   *  and FlintMetadata is strong-typed
+   *
+   * For now, deserialize skipping strategies out of Flint metadata json
+   * ex. extract Seq(Partition("year", "int"), ValueList("name")) from
+   *  { "_meta": { "indexedColumns": [ {...partition...}, {...value list...} ] } }
+   *
+   */
+  private def deserialize(metadata: FlintMetadata): FlintSparkIndex = {
+    implicit val formats: Formats = Serialization.formats(NoTypeHints)
+
+    val meta = parse(metadata.getContent) \ "_meta"
+    val tableName = (meta \ "source").extract[String]
+    val indexType = (meta \ "kind").extract[String]
+    val indexedColumns = (meta \ "indexedColumns").asInstanceOf[JArray]
+
+    indexType match {
+      case "SkippingIndex" =>
+        val strategies = indexedColumns.arr.map { colInfo =>
+          val skippingType = (colInfo \ "kind").extract[String]
+          val columnName = (colInfo \ "columnName").extract[String]
+          val columnType = (colInfo \ "columnType").extract[String]
+
+          skippingType match {
+            case "partition" =>
+              new PartitionSkippingStrategy(columnName = columnName, columnType = columnType)
+            case other =>
+              throw new IllegalStateException(s"Unknown skipping strategy: $other")
+          }
+        }
+        new FlintSparkSkippingIndex(spark, tableName, strategies)
     }
   }
 }
@@ -156,7 +195,7 @@ object FlintSpark {
     def create(): Unit = {
       require(tableName.nonEmpty, "table name cannot be empty")
 
-      flint.createIndex(new FlintSparkSkippingIndex(tableName, indexedColumns))
+      flint.createIndex(new FlintSparkSkippingIndex(flint.spark, tableName, indexedColumns))
     }
   }
 }
