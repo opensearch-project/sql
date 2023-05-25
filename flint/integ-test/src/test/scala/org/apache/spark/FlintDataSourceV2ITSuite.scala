@@ -10,14 +10,18 @@ import org.opensearch.flint.OpenSearchSuite
 import org.apache.spark.sql.{DataFrame, ExplainSuiteHelper, QueryTest, Row}
 import org.apache.spark.sql.catalyst.plans.logical.Filter
 import org.apache.spark.sql.execution.datasources.v2.DataSourceV2ScanRelation
+import org.apache.spark.sql.execution.streaming.MemoryStream
 import org.apache.spark.sql.functions.asc
+import org.apache.spark.sql.streaming.{StreamingQuery, StreamTest}
 import org.apache.spark.sql.types._
+import org.apache.spark.util.Utils
 
 /**
  * OpenSearch related integration test.
  */
 class FlintDataSourceV2ITSuite
     extends QueryTest
+    with StreamTest
     with FlintSuite
     with OpenSearchSuite
     with ExplainSuiteHelper {
@@ -211,6 +215,56 @@ class FlintDataSourceV2ITSuite
           df)
       }
     })
+  }
+
+  test("streaming write to flint") {
+    val indexName = "t0001"
+    val inputData = MemoryStream[Int]
+    val df = inputData.toDF().toDF("aInt")
+
+    val checkpointDir = Utils.createTempDir(namePrefix = "stream.checkpoint").getCanonicalPath
+    var query: StreamingQuery = null
+
+    withIndexName(indexName) {
+      val mappings =
+        """{
+          |  "properties": {
+          |    "aInt": {
+          |      "type": "integer"
+          |    }
+          |  }
+          |}""".stripMargin
+      index(indexName, oneNodeSetting, mappings, Seq.empty)
+
+      try {
+        query = df.writeStream
+          .option("checkpointLocation", checkpointDir)
+          .format("flint")
+          .options(openSearchOptions)
+          .option("refresh_policy", "wait_for")
+          .option("spark.flint.write.id.name", "aInt")
+          .start(indexName)
+
+        inputData.addData(1, 2, 3)
+
+        failAfter(streamingTimeout) {
+          query.processAllAvailable()
+        }
+
+        val outputDf = spark.sqlContext.read
+          .format("flint")
+          .options(openSearchOptions)
+          .schema(StructType(Seq(StructField("aInt", IntegerType))))
+          .load(indexName)
+          .as[Int]
+        checkDatasetUnorderly(outputDf, 1, 2, 3)
+
+      } finally {
+        if (query != null) {
+          query.stop()
+        }
+      }
+    }
   }
 
   /**

@@ -30,7 +30,8 @@ case class FlintPartitionWriter(
     dataSchema: StructType,
     properties: util.Map[String, String],
     partitionId: Int,
-    taskId: Long)
+    taskId: Long,
+    epochId: Long = -1)
     extends DataWriter[InternalRow]
     with Logging {
 
@@ -69,8 +70,8 @@ case class FlintPartitionWriter(
 
   override def commit(): WriterCommitMessage = {
     gen.flush()
-    logDebug(s"Write commit on partitionId: $partitionId, taskId: $taskId")
-    FlintWriterCommitMessage(partitionId, taskId)
+    logDebug(s"Write commit on partitionId: $partitionId, taskId: $taskId, epochId: $epochId")
+    FlintWriterCommitMessage(partitionId, taskId, epochId)
   }
 
   override def abort(): Unit = {
@@ -79,11 +80,12 @@ case class FlintPartitionWriter(
 
   override def close(): Unit = {
     gen.close()
-    logDebug(s"Write close on partitionId: $partitionId, taskId: $taskId")
+    logDebug(s"Write close on partitionId: $partitionId, taskId: $taskId, epochId: $epochId")
   }
 }
 
-case class FlintWriterCommitMessage(partitionId: Int, taskId: Long) extends WriterCommitMessage
+case class FlintWriterCommitMessage(partitionId: Int, taskId: Long, epochId: Long)
+    extends WriterCommitMessage
 
 /**
  * Todo. Move to FlintSparkConfiguration.
