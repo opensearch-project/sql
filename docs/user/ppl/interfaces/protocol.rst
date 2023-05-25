@@ -129,7 +129,7 @@ PPL query::
     {
       "error": {
         "reason": "Error occurred in OpenSearch engine: no such index [unknown]",
-        "details": "org.opensearch.index.IndexNotFoundException: no such index [unknown]\nFor more details, please send request for Json format to see the raw response from OpenSearch engine.",
+        "details": "[unknown] IndexNotFoundException[no such index [unknown]]\nFor more details, please send request for Json format to see the raw response from OpenSearch engine.",
         "type": "IndexNotFoundException"
       },
       "status": 404
