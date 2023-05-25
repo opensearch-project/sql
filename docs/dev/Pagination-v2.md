@@ -504,6 +504,8 @@ sequenceDiagram
     participant QueryPlanFactory
     participant QueryService
     participant OpenSearchExecutionEngine
+    participant LogicalCursor
+    participant DefaultImplementor
     participant PlanSerializer
 
 SQLService ->>+ QueryPlanFactory : execute
@@ -613,7 +615,6 @@ sequenceDiagram
     participant ProjectOperator
     participant ResourceMonitorPlan
     participant OpenSearchIndexScan
-    participant OpenSearchScrollRequest
     participant OpenSearchScrollRequest
 
 PlanSerializer ->>+ ProjectOperator : getPlanForSerialization

@@ -6,6 +6,7 @@
 
 package org.opensearch.sql.analysis;
 
+import static org.opensearch.sql.analysis.DataSourceSchemaIdentifierNameResolver.DEFAULT_DATASOURCE_NAME;
 import static org.opensearch.sql.ast.tree.Sort.NullOrder.NULL_FIRST;
 import static org.opensearch.sql.ast.tree.Sort.NullOrder.NULL_LAST;
 import static org.opensearch.sql.ast.tree.Sort.SortOrder.ASC;
@@ -214,7 +215,8 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
 
   @Override
   public LogicalPlan visitCursor(Cursor cursor, AnalysisContext context) {
-    return new LogicalCursor(cursor.getCursor());
+    return new LogicalCursor(cursor.getCursor(),
+        dataSourceService.getDataSource(DEFAULT_DATASOURCE_NAME).getStorageEngine());
   }
 
   @Override

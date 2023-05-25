@@ -27,7 +27,6 @@ import org.opensearch.sql.executor.ExecutionEngine.QueryResponse;
 import org.opensearch.sql.executor.QueryService;
 import org.opensearch.sql.executor.execution.QueryPlanFactory;
 import org.opensearch.sql.executor.pagination.Cursor;
-import org.opensearch.sql.executor.pagination.PlanSerializer;
 import org.opensearch.sql.ppl.antlr.PPLSyntaxParser;
 import org.opensearch.sql.ppl.domain.PPLQueryRequest;
 
@@ -48,9 +47,6 @@ public class PPLServiceTest {
   @Mock
   private ExecutionEngine.Schema schema;
 
-  @Mock
-  private PlanSerializer planSerializer;
-
   /**
    * Setup the test context.
    */
@@ -59,7 +55,7 @@ public class PPLServiceTest {
     queryManager = DefaultQueryManager.defaultQueryManager();
 
     pplService = new PPLService(new PPLSyntaxParser(), queryManager,
-        new QueryPlanFactory(queryService, planSerializer));
+        new QueryPlanFactory(queryService));
   }
 
   @After

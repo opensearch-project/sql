@@ -6,6 +6,7 @@
 
 package org.opensearch.sql.planner;
 
+import org.opensearch.sql.executor.pagination.PlanSerializer;
 import org.opensearch.sql.planner.logical.LogicalAggregation;
 import org.opensearch.sql.planner.logical.LogicalDedupe;
 import org.opensearch.sql.planner.logical.LogicalEval;
@@ -146,6 +147,12 @@ public class DefaultImplementor<C> extends LogicalPlanNodeVisitor<PhysicalPlan, 
   public PhysicalPlan visitRelation(LogicalRelation node, C context) {
     throw new UnsupportedOperationException("Storage engine is responsible for "
         + "implementing and optimizing logical plan with relation involved");
+  }
+
+
+  @Override
+  public PhysicalPlan visitCursor(LogicalCursor plan, C context) {
+    return new PlanSerializer(plan.getEngine()).convertToPlan(plan.getCursor());
   }
 
   protected PhysicalPlan visitChild(LogicalPlan node, C context) {

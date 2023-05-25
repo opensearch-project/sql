@@ -49,14 +49,11 @@ class SQLServiceTest {
   @Mock
   private QueryService queryService;
 
-  @Mock
-  private PlanSerializer planSerializer;
-
   @BeforeEach
   public void setUp() {
     queryManager = DefaultQueryManager.defaultQueryManager();
     sqlService = new SQLService(new SQLSyntaxParser(), queryManager,
-        new QueryPlanFactory(queryService, planSerializer));
+        new QueryPlanFactory(queryService));
   }
 
   @AfterEach

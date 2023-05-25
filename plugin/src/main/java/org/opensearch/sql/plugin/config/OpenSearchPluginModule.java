@@ -108,6 +108,6 @@ public class OpenSearchPluginModule extends AbstractModule {
     Planner planner = new Planner(LogicalPlanOptimizer.create());
     QueryService queryService = new QueryService(
         analyzer, executionEngine, planner);
-    return new QueryPlanFactory(queryService, planSerializer);
+    return new QueryPlanFactory(queryService);
   }
 }

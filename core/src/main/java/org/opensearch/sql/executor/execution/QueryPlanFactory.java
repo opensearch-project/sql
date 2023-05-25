@@ -25,7 +25,6 @@ import org.opensearch.sql.executor.ExecutionEngine;
 import org.opensearch.sql.executor.QueryId;
 import org.opensearch.sql.executor.QueryService;
 import org.opensearch.sql.executor.pagination.CanPaginateVisitor;
-import org.opensearch.sql.executor.pagination.PlanSerializer;
 
 /**
  * QueryExecution Factory.
@@ -42,7 +41,6 @@ public class QueryPlanFactory
    * Query Service.
    */
   private final QueryService queryService;
-  private final PlanSerializer planSerializer;
 
   /**
    * NO_CONSUMER_RESPONSE_LISTENER should never be called. It is only used as constructor

@@ -104,11 +104,9 @@ public class StandaloneModule extends AbstractModule {
   }
 
   @Provides
-  public QueryPlanFactory queryPlanFactory(ExecutionEngine executionEngine,
-                                           PlanSerializer planSerializer,
-                                           QueryService qs) {
+  public QueryPlanFactory queryPlanFactory(QueryService qs) {
 
-    return new QueryPlanFactory(qs, planSerializer);
+    return new QueryPlanFactory(qs);
   }
 
   @Provides
