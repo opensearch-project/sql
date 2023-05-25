@@ -7,7 +7,7 @@
 package org.opensearch.sql.legacy.utils;
 
 import java.io.IOException;
-import org.opensearch.common.Strings;
+import org.opensearch.core.common.Strings;
 import org.opensearch.common.xcontent.LoggingDeprecationHandler;
 import org.opensearch.common.xcontent.XContentFactory;
 import org.opensearch.common.xcontent.XContentType;
@@ -34,7 +34,7 @@ public class JsonPrettyFormatter {
         ){
             contentBuilder.copyCurrentStructure(contentParser);
         }
-        return Strings.toString(contentBuilder);
+        return org.opensearch.common.Strings.toString(contentBuilder);
     }
 
     private JsonPrettyFormatter() {

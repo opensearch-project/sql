@@ -79,7 +79,7 @@ public class OpenSearchJsonContent implements Content {
 
   @Override
   public Iterator<? extends Content> array() {
-    return Iterators.transform(value().getAsJsonArray().iterator(), OpenSearchJsonContent::new);
+    return Iterators.transform(value.getAsJsonArray().iterator(), OpenSearchJsonContent::new);
   }
 
   @Override

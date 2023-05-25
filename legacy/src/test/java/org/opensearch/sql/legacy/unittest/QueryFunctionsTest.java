@@ -24,7 +24,7 @@ import org.hamcrest.Matcher;
 import org.junit.Test;
 import org.mockito.Mockito;
 import org.opensearch.client.Client;
-import org.opensearch.common.Strings;
+import org.opensearch.core.common.Strings;
 import org.opensearch.common.xcontent.XContentType;
 import org.opensearch.index.query.AbstractQueryBuilder;
 import org.opensearch.index.query.MultiMatchQueryBuilder;
@@ -303,6 +303,6 @@ public class QueryFunctionsTest {
     }
 
     private Matcher<String> contains(AbstractQueryBuilder queryBuilder) {
-        return containsString(Strings.toString(XContentType.JSON, queryBuilder, false, false));
+        return containsString(org.opensearch.common.Strings.toString(XContentType.JSON, queryBuilder, false, false));
     }
 }

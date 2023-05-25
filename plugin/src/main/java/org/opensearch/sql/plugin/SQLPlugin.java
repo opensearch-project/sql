@@ -238,4 +238,5 @@ public class SQLPlugin extends Plugin implements ActionPlugin, ScriptPlugin {
         dataSourceMetadataStorage,
         dataSourceUserAuthorizationHelper);
   }
+
 }
