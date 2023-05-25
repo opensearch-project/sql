@@ -336,6 +336,16 @@ public class NestedIT extends SQLIntegTestCase {
   }
 
   @Test
+  public void test_nested_in_where_as_predicate_expression_with_like() {
+    String query = "SELECT message.info FROM " + TEST_INDEX_NESTED_TYPE
+        + " WHERE nested(message.info) LIKE 'a'";
+    JSONObject result = executeJdbcRequest(query);
+    assertEquals(2, result.getInt("total"));
+    // Only first index of array is returned. Second index has 'a'
+    verifyDataRows(result, rows("a"), rows("c"));
+  }
+
+  @Test
   public void test_nested_in_where_as_predicate_expression_with_multiple_conditions() {
     String query = "SELECT message.info, comment.data, message.dayOfWeek FROM " + TEST_INDEX_NESTED_TYPE
         + " WHERE nested(message.info) = 'zz' OR nested(comment.data) = 'ab' AND nested(message.dayOfWeek) >= 4";
