@@ -1,6 +1,6 @@
 ## Description
 
-The `nested` function when used in the `WHERE` clause of an SQL statement filters documents of `nested` object type based on field properties. Two syntax options are available to users, see section [1.1 Syntax](#11-syntax). Both syntax options achieve the goal of filtering a `nested` field with an `Operator` and a `Literal` value. Although semantically the syntax options can produce the same query, they will produce different DSL to push to OpenSearch. This difference is based on the `AND/OR/NOT` boolean queries residing inside a `nested` query or vice versa. See section [2.2](#22-syntax-option-1-object-tree-to-dsl) and [2.3](#23-syntax-option-2-object-tree-to-dsl) for examples depicting this alternate DSL creation. Testing large groups of push down execution times for identical queries using the different syntax options showed a nominal difference of approximately 3% for Syntax option 2.
+The `nested` function when used in the `WHERE` clause of an SQL statement filters documents of `nested` object type based on field properties. Two syntax options are available to users, see section [1.1 Syntax](#11-syntax). Both syntax options achieve the goal of filtering a `nested` field with an `Operator` and a `Literal` value. Although semantically the syntax options can produce the same query, they will produce different DSL to push to OpenSearch. This difference is based on the `AND/OR/NOT` boolean queries residing inside a `nested` query or vice versa. See section [2.1](#21-syntax-option-1-object-tree-to-dsl) and [2.2](#22-syntax-option-2-object-tree-to-dsl) for examples depicting this alternate DSL creation. Testing large groups of push down execution times for identical queries using the different syntax options showed a nominal difference of approximately 3% for Syntax option 2.
 
 ## Table of Contents
 1. [Overview](#1-overview)
@@ -9,9 +9,8 @@ The `nested` function when used in the `WHERE` clause of an SQL statement filter
 4. [Example Data And Usage](#13-example-data-and-usage)
 5. [Example Queries](#14-example-queries)
 6. [Architecture Diagrams](#2-architecture-diagrams)
-7. [Sequence Diagram for filter Push Down](#21-sequence-diagram-for-filter-push-down)
-8. [Syntax Option 1 Object Tree to DSL](#22-syntax-option-1-object-tree-to-dsl)
-9. [Syntax Option 2 Object Tree to DSL](#23-syntax-option-2-object-tree-to-dsl)
+8. [Syntax Option 1 Object Tree to DSL](#21-syntax-option-1-object-tree-to-dsl)
+9. [Syntax Option 2 Object Tree to DSL](#22-syntax-option-2-object-tree-to-dsl)
 10. [Additional Info](#additional-info)
 11. [Release Schedule](#release-schedule)
 
@@ -30,7 +29,7 @@ The nested function has two syntax options when used in the `WHERE` clause of an
 
 ### 1.3 Example Data and Usage
 
-A basic example from data mapping to response from SQL plugin. This example is very basic but useful for understanding the `nested` functions use.
+A basic example from data mapping to response from SQL plugin.
 
 **Mapping:**
 ```json
@@ -106,27 +105,7 @@ When using syntax option 1 we need separate function calls when the `path` is no
 
 
 ## 2 Architecture Diagrams
-### 2.1 Sequence Diagram for filter Push Down
-A sequence diagram illustrating the execution path for `FilterQueryBuilder` push down. Depending on which syntax option is used for the `nested` function, different DSL will be formed in the output query. The following examples in sections [2.3]() and [2.4]() overview how these different queries are formed through the SQL plugin push down semantics. Query execution times have nominal difference and achieve the same goal of filtering documents based on a nested fields literal value. Differing object trees will be pushed through the filter push down sequence to form an output DSL query.
-
-```mermaid
-sequenceDiagram
-    participant TableScanPushDown
-    participant OpenSearchIndexScanQueryBuilder
-    participant FilterQueryBuilder
-
-%% Flattening
-TableScanPushDown->>+OpenSearchIndexScanQueryBuilder:pushDownFilter
-  OpenSearchIndexScanQueryBuilder->>+FilterQueryBuilder:build
-      loop Iterate Expressions
-        FilterQueryBuilder->>FilterQueryBuilder:visitFunction
-      end
-  FilterQueryBuilder-->>-OpenSearchIndexScanQueryBuilder:QueryBuilder
-OpenSearchIndexScanQueryBuilder-->>-TableScanPushDown:LogicalPlan
-```
-
-
-### 2.2 Syntax Option 1 Object Tree to DSL
+### 2.1 Syntax Option 1 Object Tree to DSL
 The following example illustrates the object tree that is built from the example query. This query's object tree will impact the structure of the DSL to be pushed to OpenSearch.
 
 Example Query: `SELECT *  FROM nested_objects WHERE nested(message, message.info = 'a' OR message.info = 'b' AND message.dayOfWeek > 4);`
@@ -261,7 +240,7 @@ After pushing down the filter object tree we have a DSL query to push to OpenSea
 ```
 
 
-### 2.3 Syntax option 2 Object Tree to DSL
+### 2.2 Syntax option 2 Object Tree to DSL
 The following example illustrates the object tree that is built from the example query. Rather than have the boolean logic specified within the `nested` function, we have the `nested` function used in a predicate expression.
 
 Example Query: `SELECT * FROM nested_objects WHERE nested(message.info) = 'a' OR nested(message.info) = 'b' AND nested(message.dayOfWeek) > 4;`
