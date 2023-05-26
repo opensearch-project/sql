@@ -49,7 +49,7 @@ import org.opensearch.sql.opensearch.response.agg.OpenSearchAggregationResponseP
 @EqualsAndHashCode
 @Getter
 @ToString
-public class OpenSearchRequestBuilder implements ExecutableRequestBuilder {
+public class OpenSearchRequestBuilder {
 
   /**
    * Search request source builder.
@@ -92,7 +92,6 @@ public class OpenSearchRequestBuilder implements ExecutableRequestBuilder {
    *
    * @return query request or scroll request
    */
-  @Override
   public OpenSearchRequest build(OpenSearchRequest.IndexName indexName,
                                  int maxResultWindow, TimeValue scrollTimeout) {
     int size = requestedTotalSize;

@@ -10,6 +10,7 @@ import org.opensearch.sql.executor.pagination.PlanSerializer;
 import org.opensearch.sql.planner.logical.LogicalAggregation;
 import org.opensearch.sql.planner.logical.LogicalDedupe;
 import org.opensearch.sql.planner.logical.LogicalEval;
+import org.opensearch.sql.planner.logical.LogicalFetchCursor;
 import org.opensearch.sql.planner.logical.LogicalFilter;
 import org.opensearch.sql.planner.logical.LogicalLimit;
 import org.opensearch.sql.planner.logical.LogicalNested;

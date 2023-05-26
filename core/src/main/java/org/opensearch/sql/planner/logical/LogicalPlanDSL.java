@@ -22,7 +22,6 @@ import org.opensearch.sql.expression.NamedExpression;
 import org.opensearch.sql.expression.ReferenceExpression;
 import org.opensearch.sql.expression.aggregation.NamedAggregator;
 import org.opensearch.sql.expression.window.WindowDefinition;
-import org.opensearch.sql.planner.LogicalFetchCursor;
 import org.opensearch.sql.storage.StorageEngine;
 import org.opensearch.sql.storage.Table;
 

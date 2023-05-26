@@ -82,31 +82,6 @@ class OpenSearchIndexScanAggregationBuilder implements PushDownQueryBuilder {
     return true;
   }
 
-  @Override
-  public boolean pushDownLimit(LogicalLimit limit) {
-    return false;
-  }
-
-  @Override
-  public boolean pushDownProject(LogicalProject project) {
-    return false;
-  }
-
-  @Override
-  public boolean pushDownHighlight(LogicalHighlight highlight) {
-    return false;
-  }
-
-  @Override
-  public boolean pushDownPageSize(LogicalPaginate paginate) {
-    return false;
-  }
-
-  @Override
-  public boolean pushDownNested(LogicalNested nested) {
-    return false;
-  }
-
   private boolean hasAggregatorInSortBy(LogicalSort sort) {
     final Set<String> aggregatorNames =
         aggregatorList.stream().map(NamedAggregator::getName).collect(Collectors.toSet());

@@ -1,4 +1,9 @@
-package org.opensearch.sql.planner;
+/*
+ * Copyright OpenSearch Contributors
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+package org.opensearch.sql.planner.logical;
 
 import java.util.List;
 import lombok.EqualsAndHashCode;

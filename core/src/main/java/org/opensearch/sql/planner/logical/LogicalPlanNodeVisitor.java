@@ -6,7 +6,6 @@
 
 package org.opensearch.sql.planner.logical;
 
-import org.opensearch.sql.planner.LogicalFetchCursor;
 import org.opensearch.sql.storage.read.TableScanBuilder;
 import org.opensearch.sql.storage.write.TableWriteBuilder;
 

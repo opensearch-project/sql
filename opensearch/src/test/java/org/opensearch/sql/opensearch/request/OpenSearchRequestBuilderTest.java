@@ -86,8 +86,8 @@ class OpenSearchRequestBuilderTest {
 
   @Test
   void build_query_request() {
-    int limit = 200;
-    int offset = 0;
+    Integer limit = 200;
+    Integer offset = 0;
     requestBuilder.pushDownLimit(limit, offset);
     requestBuilder.pushDownTrackedScore(true);
 

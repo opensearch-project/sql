@@ -81,11 +81,11 @@ import org.opensearch.sql.expression.function.BuiltinFunctionRepository;
 import org.opensearch.sql.expression.function.FunctionName;
 import org.opensearch.sql.expression.function.TableFunctionImplementation;
 import org.opensearch.sql.expression.parse.ParseExpression;
-import org.opensearch.sql.planner.LogicalFetchCursor;
 import org.opensearch.sql.planner.logical.LogicalAD;
 import org.opensearch.sql.planner.logical.LogicalAggregation;
 import org.opensearch.sql.planner.logical.LogicalDedupe;
 import org.opensearch.sql.planner.logical.LogicalEval;
+import org.opensearch.sql.planner.logical.LogicalFetchCursor;
 import org.opensearch.sql.planner.logical.LogicalFilter;
 import org.opensearch.sql.planner.logical.LogicalLimit;
 import org.opensearch.sql.planner.logical.LogicalML;
@@ -211,12 +211,6 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
             dataSourceSchemaIdentifierNameResolver.getIdentifierName()), STRUCT);
     return new LogicalRelation(dataSourceSchemaIdentifierNameResolver.getIdentifierName(),
         tableFunctionImplementation.applyArguments());
-  }
-
-  @Override
-  public LogicalPlan visitCursor(FetchCursor cursor, AnalysisContext context) {
-    return new LogicalFetchCursor(cursor.getCursor(),
-        dataSourceService.getDataSource(DEFAULT_DATASOURCE_NAME).getStorageEngine());
   }
 
   @Override
@@ -594,4 +588,9 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
     return asc ? SortOption.DEFAULT_ASC : SortOption.DEFAULT_DESC;
   }
 
+  @Override
+  public LogicalPlan visitCursor(FetchCursor cursor, AnalysisContext context) {
+    return new LogicalFetchCursor(cursor.getCursor(),
+      dataSourceService.getDataSource(DEFAULT_DATASOURCE_NAME).getStorageEngine());
+  }
 }

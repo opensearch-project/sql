@@ -39,8 +39,8 @@ public class PushDownPageSize implements Rule<LogicalPaginate> {
     Deque<LogicalPlan> plans = new ArrayDeque<>();
     plans.add(logicalPaginate);
     do {
-      final var plan = plans.removeFirst();
-      final var children = plan.getChild();
+      var plan = plans.removeFirst();
+      var children = plan.getChild();
       if (children.stream().anyMatch(TableScanBuilder.class::isInstance)) {
         if (children.size() > 1) {
           throw new UnsupportedOperationException(

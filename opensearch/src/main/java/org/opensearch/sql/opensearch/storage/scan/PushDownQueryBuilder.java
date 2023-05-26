@@ -18,19 +18,33 @@ import org.opensearch.sql.planner.logical.LogicalSort;
  * Translates a logical query plan into OpenSearch DSL and an appropriate request.
  */
 public interface PushDownQueryBuilder {
-  boolean pushDownFilter(LogicalFilter filter);
+  default boolean pushDownFilter(LogicalFilter filter) {
+    return false;
+  }
 
-  boolean pushDownSort(LogicalSort sort);
+  default boolean pushDownSort(LogicalSort sort) {
+    return false;
+  }
 
-  boolean pushDownLimit(LogicalLimit limit);
+  default boolean pushDownLimit(LogicalLimit limit) {
+    return false;
+  }
 
-  boolean pushDownProject(LogicalProject project);
+  default boolean pushDownProject(LogicalProject project) {
+    return false;
+  }
 
-  boolean pushDownHighlight(LogicalHighlight highlight);
+  default boolean pushDownHighlight(LogicalHighlight highlight) {
+    return false;
+  }
 
-  boolean pushDownPageSize(LogicalPaginate paginate);
+  default boolean pushDownPageSize(LogicalPaginate paginate) {
+    return false;
+  }
 
-  boolean pushDownNested(LogicalNested nested);
+  default boolean pushDownNested(LogicalNested nested) {
+    return false;
+  }
 
   OpenSearchRequestBuilder build();
 }

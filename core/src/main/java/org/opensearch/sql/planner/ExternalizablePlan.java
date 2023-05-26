@@ -30,21 +30,6 @@ import org.opensearch.sql.executor.pagination.PlanSerializer;
 public interface ExternalizablePlan extends Externalizable {
 
   /**
-   * Argument is an instance of {@link PlanSerializer.CursorDeserializationStream}.
-   */
-  @Override
-  void readExternal(ObjectInput in) throws IOException, ClassNotFoundException;
-
-  /**
-   * Each plan which has as a child plan should do.
-   * <pre>{@code
-   * out.writeObject(input.getPlanForSerialization());
-   * }</pre>
-   */
-  @Override
-  void writeExternal(ObjectOutput out) throws IOException;
-
-  /**
    * Override to return child or delegated plan, so parent plan should skip this one
    * for serialization, but it should try to serialize grandchild plan.
    * Imagine plan structure like this

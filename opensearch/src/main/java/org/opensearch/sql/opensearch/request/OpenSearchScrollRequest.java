@@ -90,7 +90,8 @@ public class OpenSearchScrollRequest implements OpenSearchRequest {
   }
 
 
-  /** Constructor. */
+  /** Executes request using either {@param searchAction} or {@param scrollAction} as appropriate.
+   */
   @Override
   public OpenSearchResponse search(Function<SearchRequest, SearchResponse> searchAction,
                                    Function<SearchScrollRequest, SearchResponse> scrollAction) {
