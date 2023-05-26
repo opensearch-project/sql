@@ -64,7 +64,9 @@ lazy val flintCore = (project in file("flint-core"))
     scalaVersion := scala212,
     libraryDependencies ++= Seq(
       "org.opensearch.client" % "opensearch-rest-client" % opensearchVersion,
-      "org.opensearch.client" % "opensearch-rest-high-level-client" % opensearchVersion))
+      "org.opensearch.client" % "opensearch-rest-high-level-client" % opensearchVersion,
+      "com.amazonaws" % "aws-java-sdk" % "1.12.397" % "provided"
+        exclude("com.fasterxml.jackson.core", "jackson-databind") ))
 
 lazy val flintSparkIntegration = (project in file("flint-spark-integration"))
   .dependsOn(flintCore)
@@ -74,6 +76,8 @@ lazy val flintSparkIntegration = (project in file("flint-spark-integration"))
     name := "flint-spark-integration",
     scalaVersion := scala212,
     libraryDependencies ++= Seq(
+      "com.amazonaws" % "aws-java-sdk" % "1.12.397" % "provided"
+        exclude("com.fasterxml.jackson.core", "jackson-databind"),
       "org.scalactic" %% "scalactic" % "3.2.15",
       "org.scalatest" %% "scalatest" % "3.2.15" % "test",
       "org.scalatest" %% "scalatest-flatspec" % "3.2.15" % "test",
@@ -104,6 +108,8 @@ lazy val integtest = (project in file("integ-test"))
     name := "integ-test",
     scalaVersion := scala212,
     libraryDependencies ++= Seq(
+      "com.amazonaws" % "aws-java-sdk" % "1.12.397" % "provided"
+        exclude("com.fasterxml.jackson.core", "jackson-databind"),
       "org.scalactic" %% "scalactic" % "3.2.15",
       "org.scalatest" %% "scalatest" % "3.2.15" % "test",
       "com.stephenn" %% "scalatest-json-jsonassert" % "0.2.5" % "test",

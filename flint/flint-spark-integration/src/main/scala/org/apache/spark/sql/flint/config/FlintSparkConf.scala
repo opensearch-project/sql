@@ -37,7 +37,7 @@ object FlintSparkConf {
    * Helper class, create {@link FlintOptions} from spark conf.
    */
   def apply(sparkConf: RuntimeConfig): FlintOptions = new FlintOptions(
-    Seq(HOST_ENDPOINT, HOST_PORT, REFRESH_POLICY, SCROLL_SIZE)
+    Seq(HOST_ENDPOINT, HOST_PORT, REFRESH_POLICY, SCROLL_SIZE, SCHEME, AUTH, REGION)
       .map(conf => (conf.key, sparkConf.get(PREFIX + conf.key, conf.defaultValue.get)))
       .toMap
       .asJava)
@@ -49,6 +49,18 @@ object FlintSparkConf {
 
   val HOST_PORT = FlintConfig("port")
     .createWithDefault("9200")
+
+  val SCHEME = FlintConfig("scheme")
+    .doc("http or https")
+    .createWithDefault("http")
+
+  val AUTH = FlintConfig("auth")
+    .doc("authentication type. supported value: NONE_AUTH(false), SIGV4_AUTH(sigv4)")
+    .createWithDefault(FlintOptions.NONE_AUTH)
+
+  val REGION = FlintConfig("region")
+    .doc("AWS service region")
+    .createWithDefault(FlintOptions.DEFAULT_REGION)
 
   val DOC_ID_COLUMN_NAME = FlintConfig("write.id_name")
     .doc(
@@ -90,7 +102,7 @@ class FlintSparkConf(properties: JMap[String, String]) extends Serializable {
    */
   def flintOptions(): FlintOptions = {
     new FlintOptions(
-      Seq(HOST_ENDPOINT, HOST_PORT, REFRESH_POLICY, SCROLL_SIZE)
+      Seq(HOST_ENDPOINT, HOST_PORT, REFRESH_POLICY, SCROLL_SIZE, SCHEME, AUTH, REGION)
         .map(conf => (conf.key, conf.readFrom(reader)))
         .toMap
         .asJava)
