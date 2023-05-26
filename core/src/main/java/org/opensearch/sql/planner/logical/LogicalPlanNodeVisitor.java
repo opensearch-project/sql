@@ -109,7 +109,7 @@ public abstract class LogicalPlanNodeVisitor<R, C> {
     return visitNode(plan, context);
   }
 
-  public R visitCursor(LogicalFetchCursor plan, C context) {
+  public R visitFetchCursor(LogicalFetchCursor plan, C context) {
     return visitNode(plan, context);
   }
 }
