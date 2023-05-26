@@ -69,8 +69,8 @@ public class SQLService {
     if (request.getCursor().isPresent()) {
       // Handle v2 cursor here -- legacy cursor was handled earlier.
       if (isExplainRequest) {
-        throw new UnsupportedOperationException("Explain of a paged query continuation " +
-            "is not supported. Use `explain` for the initial query request.");
+        throw new UnsupportedOperationException("Explain of a paged query continuation "
+          + "is not supported. Use `explain` for the initial query request.");
       }
       return queryExecutionFactory.create(request.getCursor().get(),
         isExplainRequest, queryListener.orElse(null), explainListener.orElse(null));

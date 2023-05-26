@@ -8,7 +8,6 @@ package org.opensearch.sql.sql;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doAnswer;
@@ -31,7 +30,6 @@ import org.opensearch.sql.executor.ExecutionEngine.ExplainResponse;
 import org.opensearch.sql.executor.ExecutionEngine.ExplainResponseNode;
 import org.opensearch.sql.executor.QueryService;
 import org.opensearch.sql.executor.execution.QueryPlanFactory;
-import org.opensearch.sql.executor.pagination.PlanSerializer;
 import org.opensearch.sql.sql.antlr.SQLSyntaxParser;
 import org.opensearch.sql.sql.domain.SQLQueryRequest;
 
@@ -147,8 +145,8 @@ class SQLServiceTest {
 
           @Override
           public void onFailure(Exception e) {
-            assertEquals("Explain of a paged query continuation is not supported." +
-                " Use `explain` for the initial query request.", e.getMessage());
+            assertEquals("Explain of a paged query continuation is not supported."
+                + " Use `explain` for the initial query request.", e.getMessage());
           }
         });
   }

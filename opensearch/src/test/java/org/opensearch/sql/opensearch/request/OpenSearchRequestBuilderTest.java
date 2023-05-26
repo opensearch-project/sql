@@ -51,7 +51,6 @@ import org.opensearch.search.fetch.subphase.FetchSourceContext;
 import org.opensearch.search.sort.FieldSortBuilder;
 import org.opensearch.search.sort.ScoreSortBuilder;
 import org.opensearch.search.sort.SortBuilders;
-import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.exception.SemanticCheckException;
 import org.opensearch.sql.expression.DSL;
 import org.opensearch.sql.expression.NamedExpression;

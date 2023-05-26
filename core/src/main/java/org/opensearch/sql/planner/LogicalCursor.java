@@ -17,6 +17,9 @@ public class LogicalCursor extends LogicalPlan {
   @Getter
   private final StorageEngine engine;
 
+  /**
+   * LogicalCursor constructor. Does not have child plans.
+   */
   public LogicalCursor(String cursor, StorageEngine engine) {
     super(List.of());
     this.cursor = cursor;

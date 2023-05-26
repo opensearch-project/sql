@@ -84,7 +84,7 @@ public class QueryPlanFactory
     return isExplain ? new ExplainPlan(queryId, plan, explainListener) : plan;
   }
 
-   boolean canConvertToCursor(UnresolvedPlan plan) {
+  boolean canConvertToCursor(UnresolvedPlan plan) {
     return plan.accept(new CanPaginateVisitor(), null);
   }
 

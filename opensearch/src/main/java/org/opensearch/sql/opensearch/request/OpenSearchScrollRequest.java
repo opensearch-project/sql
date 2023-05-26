@@ -128,7 +128,7 @@ public class OpenSearchScrollRequest implements OpenSearchRequest {
    * @return true if scroll started
    */
   public boolean isScroll() {
-    return scrollId != NO_SCROLL_ID;
+    return !scrollId.equals(NO_SCROLL_ID);
   }
 
   /**

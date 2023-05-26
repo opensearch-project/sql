@@ -90,6 +90,7 @@ import org.opensearch.sql.expression.NamedExpression;
 import org.opensearch.sql.expression.ReferenceExpression;
 import org.opensearch.sql.expression.function.OpenSearchFunctions;
 import org.opensearch.sql.expression.window.WindowDefinition;
+import org.opensearch.sql.planner.LogicalCursor;
 import org.opensearch.sql.planner.logical.LogicalAD;
 import org.opensearch.sql.planner.logical.LogicalFilter;
 import org.opensearch.sql.planner.logical.LogicalMLCommons;
@@ -1646,5 +1647,8 @@ class AnalyzerTest extends AnalyzerTestBase {
   @Test
   void visit_cursor() {
     LogicalPlan actual = analyze((new FetchCursor("test")));
+    assertTrue(actual instanceof LogicalCursor);
+    assertEquals(new LogicalCursor("test",
+        dataSourceService.getDataSource("@opensearch").getStorageEngine()), actual);
   }
 }

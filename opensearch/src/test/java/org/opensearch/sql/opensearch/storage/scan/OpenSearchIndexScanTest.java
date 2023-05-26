@@ -20,10 +20,7 @@ import static org.opensearch.search.sort.FieldSortBuilder.DOC_FIELD_NAME;
 import static org.opensearch.search.sort.SortOrder.ASC;
 import static org.opensearch.sql.data.type.ExprCoreType.STRING;
 
-import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
-import java.io.IOException;
-import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -62,7 +59,6 @@ import org.opensearch.sql.opensearch.request.OpenSearchScrollRequest;
 import org.opensearch.sql.opensearch.response.OpenSearchResponse;
 import org.opensearch.sql.opensearch.storage.OpenSearchIndex;
 import org.opensearch.sql.opensearch.storage.OpenSearchStorageEngine;
-import org.opensearch.sql.storage.StorageEngine;
 
 @ExtendWith(MockitoExtension.class)
 @DisplayNameGeneration(DisplayNameGenerator.ReplaceUnderscores.class)
@@ -75,9 +71,6 @@ class OpenSearchIndexScanTest {
   public static final TimeValue CURSOR_KEEP_ALIVE = TimeValue.timeValueMinutes(1);
   @Mock
   private OpenSearchClient client;
-
-  @Mock
-  private Settings settings;
 
   private final OpenSearchExprValueFactory exprValueFactory = new OpenSearchExprValueFactory(
       Map.of("name", OpenSearchDataType.of(STRING),
@@ -105,7 +98,7 @@ class OpenSearchIndexScanTest {
          var byteStream = new ByteArrayOutputStream();
          var objectStream = new ObjectOutputStream(byteStream)) {
       assertThrows(NoCursorException.class, () -> objectStream.writeObject(indexScan));
-      }
+    }
   }
 
   @Test
@@ -119,14 +112,14 @@ class OpenSearchIndexScanTest {
     when(engine.getClient()).thenReturn(client);
     when(engine.getTable(any(), any())).thenReturn(index);
     var request = new OpenSearchScrollRequest(
-      INDEX_NAME, CURSOR_KEEP_ALIVE, searchSourceBuilder, factory);
+        INDEX_NAME, CURSOR_KEEP_ALIVE, searchSourceBuilder, factory);
     request.setScrollId("valid-id");
 
     try (var indexScan = new OpenSearchIndexScan(client, QUERY_SIZE, request)) {
-        var planSerializer = new PlanSerializer(engine);
-        var cursor = planSerializer.convertToCursor(indexScan);
-        var newPlan = planSerializer.convertToPlan(cursor.toString());
-        assertEquals(indexScan, newPlan);
+      var planSerializer = new PlanSerializer(engine);
+      var cursor = planSerializer.convertToCursor(indexScan);
+      var newPlan = planSerializer.convertToPlan(cursor.toString());
+      assertEquals(indexScan, newPlan);
     }
 
   }

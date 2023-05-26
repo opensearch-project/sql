@@ -99,7 +99,7 @@ public class StandalonePaginationIT extends SQLIntegTestCase {
         e.printStackTrace();
         fail(e.getMessage());
       }
-    };
+    }
 
     // arrange
     {

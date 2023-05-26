@@ -24,7 +24,6 @@ import org.junit.jupiter.api.DisplayNameGenerator;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
-import org.opensearch.sql.ast.dsl.AstDSL;
 import org.opensearch.sql.exception.NoCursorException;
 import org.opensearch.sql.planner.ExternalizablePlan;
 import org.opensearch.sql.planner.physical.PhysicalPlan;

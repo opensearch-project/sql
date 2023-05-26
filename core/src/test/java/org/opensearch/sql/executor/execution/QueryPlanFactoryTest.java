@@ -31,7 +31,6 @@ import org.opensearch.sql.exception.UnsupportedCursorRequestException;
 import org.opensearch.sql.executor.ExecutionEngine;
 import org.opensearch.sql.executor.QueryService;
 import org.opensearch.sql.executor.pagination.CanPaginateVisitor;
-import org.opensearch.sql.executor.pagination.PlanSerializer;
 
 @ExtendWith(MockitoExtension.class)
 class QueryPlanFactoryTest {

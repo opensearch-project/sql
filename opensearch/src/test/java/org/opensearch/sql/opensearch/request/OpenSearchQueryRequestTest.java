@@ -148,15 +148,14 @@ public class OpenSearchQueryRequestTest {
   void searchRequest() {
     request.getSourceBuilder().query(QueryBuilders.termQuery("name", "John"));
 
-      assertSearchRequest(new SearchRequest()
-          .indices("test")
-          .source(new SearchSourceBuilder()
-            .timeout(DEFAULT_QUERY_TIMEOUT)
-            .from(0)
-            .size(200)
-            .query(QueryBuilders.termQuery("name", "John"))),
-      request);
-
+    assertSearchRequest(new SearchRequest()
+        .indices("test")
+        .source(new SearchSourceBuilder()
+          .timeout(DEFAULT_QUERY_TIMEOUT)
+          .from(0)
+          .size(200)
+          .query(QueryBuilders.termQuery("name", "John"))),
+        request);
   }
 
   @Test
@@ -176,7 +175,8 @@ public class OpenSearchQueryRequestTest {
 
   @Test
   void writeTo_unsupported() {
-    assertThrows(UnsupportedOperationException.class, () -> request.writeTo(mock(StreamOutput.class)));
+    assertThrows(UnsupportedOperationException.class,
+        () -> request.writeTo(mock(StreamOutput.class)));
   }
 
   private void assertSearchRequest(SearchRequest expected, OpenSearchQueryRequest request) {
@@ -184,7 +184,7 @@ public class OpenSearchQueryRequestTest {
       assertEquals(expected, searchRequest);
       return when(mock(SearchResponse.class).getHits())
         .thenReturn(new SearchHits(new SearchHit[0],
-          new TotalHits(0, TotalHits.Relation.EQUAL_TO), 0.0f))
+            new TotalHits(0, TotalHits.Relation.EQUAL_TO), 0.0f))
         .getMock();
     };
     request.search(querySearch, searchScrollRequest -> null);

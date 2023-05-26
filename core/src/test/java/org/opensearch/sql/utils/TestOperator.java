@@ -7,7 +7,6 @@ import java.util.List;
 import lombok.Setter;
 import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.exception.NoCursorException;
-import org.opensearch.sql.executor.pagination.PlanSerializerTest;
 import org.opensearch.sql.planner.ExternalizablePlan;
 import org.opensearch.sql.planner.physical.PhysicalPlan;
 import org.opensearch.sql.planner.physical.PhysicalPlanNodeVisitor;
@@ -27,7 +26,7 @@ public class TestOperator extends PhysicalPlan implements ExternalizablePlan {
   }
 
   @Override
-  public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
+  public void readExternal(ObjectInput in) throws IOException {
     field = in.readInt();
   }
 

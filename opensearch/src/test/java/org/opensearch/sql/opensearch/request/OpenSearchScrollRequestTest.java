@@ -6,12 +6,9 @@
 
 package org.opensearch.sql.opensearch.request;
 
-import static org.junit.jupiter.api.Assertions.assertAll;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 import static org.mockito.ArgumentMatchers.any;
@@ -24,8 +21,6 @@ import static org.opensearch.sql.opensearch.request.OpenSearchScrollRequest.NO_S
 
 import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.function.BiConsumer;
-import java.util.function.Consumer;
 import java.util.function.Function;
 import lombok.SneakyThrows;
 import org.apache.lucene.search.TotalHits;
@@ -54,7 +49,8 @@ import org.opensearch.sql.opensearch.storage.OpenSearchStorageEngine;
 @DisplayNameGeneration(DisplayNameGenerator.ReplaceUnderscores.class)
 class OpenSearchScrollRequestTest {
 
-  public static final OpenSearchRequest.IndexName INDEX_NAME = new OpenSearchRequest.IndexName("test");
+  public static final OpenSearchRequest.IndexName INDEX_NAME
+      = new OpenSearchRequest.IndexName("test");
   public static final TimeValue SCROLL_TIMEOUT = TimeValue.timeValueMinutes(1);
   @Mock
   private Function<SearchRequest, SearchResponse> searchAction;
@@ -79,13 +75,14 @@ class OpenSearchScrollRequestTest {
 
   private final SearchSourceBuilder searchSourceBuilder = new SearchSourceBuilder();
   private final OpenSearchScrollRequest request = new OpenSearchScrollRequest(
-    INDEX_NAME, SCROLL_TIMEOUT,
+      INDEX_NAME, SCROLL_TIMEOUT,
       searchSourceBuilder, factory);
 
   @Test
   void constructor() {
     searchSourceBuilder.fetchSource(new String[] {"test"}, null);
-    var request = new OpenSearchScrollRequest(INDEX_NAME, SCROLL_TIMEOUT, searchSourceBuilder, factory);
+    var request = new OpenSearchScrollRequest(INDEX_NAME, SCROLL_TIMEOUT,
+        searchSourceBuilder, factory);
     assertNotEquals(List.of(), request.getIncludes());
   }
 
@@ -280,11 +277,11 @@ class OpenSearchScrollRequestTest {
   @Test
   @SneakyThrows
   void serialize_deserialize_needClean() {
-    var stream = new BytesStreamOutput();
     lenient().when(searchResponse.getHits()).thenReturn(
       new SearchHits(new SearchHit[0], new TotalHits(0, TotalHits.Relation.EQUAL_TO), 1F));
     lenient().when(searchResponse.getScrollId()).thenReturn("");
 
+    var stream = new BytesStreamOutput();
     request.search(searchRequest -> searchResponse, null);
     request.writeTo(stream);
     stream.flush();
@@ -326,6 +323,6 @@ class OpenSearchScrollRequestTest {
 
   void assertIncludes(List<String> expected, SearchSourceBuilder sourceBuilder) {
     assertEquals(expected, new OpenSearchScrollRequest(
-      INDEX_NAME, SCROLL_TIMEOUT, sourceBuilder, factory).getIncludes());
+        INDEX_NAME, SCROLL_TIMEOUT, sourceBuilder, factory).getIncludes());
   }
 }
