@@ -5,20 +5,14 @@
 
 package org.apache.spark.sql.flint
 
-import java.util
-
 import org.apache.spark.internal.Logging
-import org.apache.spark.sql.SparkSession
 import org.apache.spark.sql.connector.expressions.filter.Predicate
 import org.apache.spark.sql.connector.read.{Scan, ScanBuilder, SupportsPushDownV2Filters}
+import org.apache.spark.sql.flint.config.FlintSparkConf
 import org.apache.spark.sql.flint.storage.FlintQueryCompiler
 import org.apache.spark.sql.types.StructType
 
-case class FlintScanBuilder(
-    tableName: String,
-    sparkSession: SparkSession,
-    schema: StructType,
-    properties: util.Map[String, String])
+case class FlintScanBuilder(tableName: String, schema: StructType, options: FlintSparkConf)
     extends ScanBuilder
     with SupportsPushDownV2Filters
     with Logging {
@@ -26,7 +20,7 @@ case class FlintScanBuilder(
   private var pushedPredicate = Array.empty[Predicate]
 
   override def build(): Scan = {
-    FlintScan(tableName, schema, properties, pushedPredicate)
+    FlintScan(tableName, schema, options, pushedPredicate)
   }
 
   override def pushPredicates(predicates: Array[Predicate]): Array[Predicate] = {

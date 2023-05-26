@@ -5,16 +5,15 @@
 
 package org.apache.spark.sql.flint
 
-import java.util
-
 import org.apache.spark.sql.connector.expressions.filter.Predicate
 import org.apache.spark.sql.connector.read.{Batch, InputPartition, PartitionReaderFactory, Scan}
+import org.apache.spark.sql.flint.config.FlintSparkConf
 import org.apache.spark.sql.types.StructType
 
 case class FlintScan(
     tableName: String,
     schema: StructType,
-    properties: util.Map[String, String],
+    options: FlintSparkConf,
     pushedPredicates: Array[Predicate])
     extends Scan
     with Batch {
@@ -26,7 +25,7 @@ case class FlintScan(
   }
 
   override def createReaderFactory(): PartitionReaderFactory = {
-    FlintPartitionReaderFactory(tableName, schema, properties, pushedPredicates)
+    FlintPartitionReaderFactory(tableName, schema, options, pushedPredicates)
   }
 
   override def toBatch: Batch = this
