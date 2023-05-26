@@ -150,7 +150,7 @@ public class DefaultImplementor<C> extends LogicalPlanNodeVisitor<PhysicalPlan, 
   }
 
   @Override
-  public PhysicalPlan visitCursor(LogicalCursor plan, C context) {
+  public PhysicalPlan visitCursor(LogicalFetchCursor plan, C context) {
     return new PlanSerializer(plan.getEngine()).convertToPlan(plan.getCursor());
   }
 

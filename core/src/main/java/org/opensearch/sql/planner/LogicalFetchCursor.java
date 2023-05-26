@@ -10,7 +10,7 @@ import org.opensearch.sql.storage.StorageEngine;
 
 @EqualsAndHashCode(callSuper = false)
 @ToString
-public class LogicalCursor extends LogicalPlan {
+public class LogicalFetchCursor extends LogicalPlan {
   @Getter
   private final String cursor;
 
@@ -20,7 +20,7 @@ public class LogicalCursor extends LogicalPlan {
   /**
    * LogicalCursor constructor. Does not have child plans.
    */
-  public LogicalCursor(String cursor, StorageEngine engine) {
+  public LogicalFetchCursor(String cursor, StorageEngine engine) {
     super(List.of());
     this.cursor = cursor;
     this.engine = engine;

@@ -6,7 +6,7 @@
 
 package org.opensearch.sql.planner.logical;
 
-import org.opensearch.sql.planner.LogicalCursor;
+import org.opensearch.sql.planner.LogicalFetchCursor;
 import org.opensearch.sql.storage.read.TableScanBuilder;
 import org.opensearch.sql.storage.write.TableWriteBuilder;
 
@@ -110,7 +110,7 @@ public abstract class LogicalPlanNodeVisitor<R, C> {
     return visitNode(plan, context);
   }
 
-  public R visitCursor(LogicalCursor plan, C context) {
+  public R visitCursor(LogicalFetchCursor plan, C context) {
     return visitNode(plan, context);
   }
 }

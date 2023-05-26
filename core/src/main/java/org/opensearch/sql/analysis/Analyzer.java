@@ -81,7 +81,7 @@ import org.opensearch.sql.expression.function.BuiltinFunctionRepository;
 import org.opensearch.sql.expression.function.FunctionName;
 import org.opensearch.sql.expression.function.TableFunctionImplementation;
 import org.opensearch.sql.expression.parse.ParseExpression;
-import org.opensearch.sql.planner.LogicalCursor;
+import org.opensearch.sql.planner.LogicalFetchCursor;
 import org.opensearch.sql.planner.logical.LogicalAD;
 import org.opensearch.sql.planner.logical.LogicalAggregation;
 import org.opensearch.sql.planner.logical.LogicalDedupe;
@@ -215,7 +215,7 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
 
   @Override
   public LogicalPlan visitCursor(FetchCursor cursor, AnalysisContext context) {
-    return new LogicalCursor(cursor.getCursor(),
+    return new LogicalFetchCursor(cursor.getCursor(),
         dataSourceService.getDataSource(DEFAULT_DATASOURCE_NAME).getStorageEngine());
   }
 

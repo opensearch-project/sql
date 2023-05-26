@@ -36,7 +36,7 @@ import org.opensearch.sql.expression.NamedExpression;
 import org.opensearch.sql.expression.ReferenceExpression;
 import org.opensearch.sql.expression.aggregation.Aggregator;
 import org.opensearch.sql.expression.window.WindowDefinition;
-import org.opensearch.sql.planner.LogicalCursor;
+import org.opensearch.sql.planner.LogicalFetchCursor;
 import org.opensearch.sql.planner.physical.PhysicalPlan;
 import org.opensearch.sql.storage.StorageEngine;
 import org.opensearch.sql.storage.Table;
@@ -132,7 +132,7 @@ class LogicalPlanNodeVisitorTest {
 
     LogicalNested nested = new LogicalNested(null, nestedArgs, projectList);
 
-    LogicalCursor cursor = new LogicalCursor("n:test", mock(StorageEngine.class));
+    LogicalFetchCursor cursor = new LogicalFetchCursor("n:test", mock(StorageEngine.class));
     return Stream.of(
         relation, tableScanBuilder, write, tableWriteBuilder, filter, aggregation, rename, project,
         remove, eval, sort, dedup, window, rareTopN, highlight, mlCommons, ad, ml, paginate, nested,

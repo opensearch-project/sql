@@ -22,7 +22,7 @@ import org.opensearch.sql.expression.NamedExpression;
 import org.opensearch.sql.expression.ReferenceExpression;
 import org.opensearch.sql.expression.aggregation.NamedAggregator;
 import org.opensearch.sql.expression.window.WindowDefinition;
-import org.opensearch.sql.planner.LogicalCursor;
+import org.opensearch.sql.planner.LogicalFetchCursor;
 import org.opensearch.sql.storage.StorageEngine;
 import org.opensearch.sql.storage.Table;
 
@@ -33,7 +33,7 @@ import org.opensearch.sql.storage.Table;
 public class LogicalPlanDSL {
 
   public static LogicalPlan cursor(String cursor, StorageEngine engine) {
-    return new LogicalCursor(cursor, engine);
+    return new LogicalFetchCursor(cursor, engine);
   }
 
   public static LogicalPlan write(LogicalPlan input, Table table, List<String> columns) {
