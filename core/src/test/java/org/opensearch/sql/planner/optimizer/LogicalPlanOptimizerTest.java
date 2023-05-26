@@ -397,7 +397,7 @@ class LogicalPlanOptimizerTest {
     var relation = new LogicalRelation("schema", table);
     var optimized = LogicalPlanOptimizer.create()
         .optimize(new LogicalPaginate(42, List.of(project(relation))));
-    // `optimized` structure: LogicalPaginate -> LogicalProject -> TableScanBuilder
+    // `optimized` structure: LogicalProject -> TableScanBuilder
     // LogicalRelation replaced by a TableScanBuilder instance
     assertEquals(project(tableScanBuilder), optimized);
   }

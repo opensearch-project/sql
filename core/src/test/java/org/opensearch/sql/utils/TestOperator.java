@@ -7,11 +7,11 @@ import java.util.List;
 import lombok.Setter;
 import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.exception.NoCursorException;
-import org.opensearch.sql.planner.ExternalizablePlan;
+import org.opensearch.sql.planner.SerializablePlan;
 import org.opensearch.sql.planner.physical.PhysicalPlan;
 import org.opensearch.sql.planner.physical.PhysicalPlanNodeVisitor;
 
-public class TestOperator extends PhysicalPlan implements ExternalizablePlan {
+public class TestOperator extends PhysicalPlan implements SerializablePlan {
   private int field;
   @Setter
   private boolean throwNoCursorOnWrite = false;

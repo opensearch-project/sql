@@ -24,7 +24,7 @@ import org.opensearch.sql.opensearch.request.OpenSearchRequest;
 import org.opensearch.sql.opensearch.request.OpenSearchScrollRequest;
 import org.opensearch.sql.opensearch.response.OpenSearchResponse;
 import org.opensearch.sql.opensearch.storage.OpenSearchStorageEngine;
-import org.opensearch.sql.planner.ExternalizablePlan;
+import org.opensearch.sql.planner.SerializablePlan;
 import org.opensearch.sql.storage.TableScanOperator;
 
 /**
@@ -32,7 +32,7 @@ import org.opensearch.sql.storage.TableScanOperator;
  */
 @EqualsAndHashCode(onlyExplicitlyIncluded = true, callSuper = false)
 @ToString(onlyExplicitlyIncluded = true)
-public class OpenSearchIndexScan extends TableScanOperator implements ExternalizablePlan {
+public class OpenSearchIndexScan extends TableScanOperator implements SerializablePlan {
 
   /** OpenSearch client. */
   private OpenSearchClient client;

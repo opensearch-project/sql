@@ -51,7 +51,7 @@ import org.opensearch.sql.opensearch.executor.protector.OpenSearchExecutionProte
 import org.opensearch.sql.opensearch.request.OpenSearchRequest;
 import org.opensearch.sql.opensearch.request.OpenSearchRequestBuilder;
 import org.opensearch.sql.opensearch.storage.scan.OpenSearchIndexScan;
-import org.opensearch.sql.planner.ExternalizablePlan;
+import org.opensearch.sql.planner.SerializablePlan;
 import org.opensearch.sql.planner.physical.PhysicalPlan;
 import org.opensearch.sql.storage.TableScanOperator;
 import org.opensearch.sql.storage.split.Split;
@@ -259,7 +259,7 @@ class OpenSearchExecutionEngineTest {
   }
 
   @RequiredArgsConstructor
-  private static class FakePhysicalPlan extends TableScanOperator implements ExternalizablePlan {
+  private static class FakePhysicalPlan extends TableScanOperator implements SerializablePlan {
     private final Iterator<ExprValue> it;
     private boolean hasOpen;
     private boolean hasClosed;

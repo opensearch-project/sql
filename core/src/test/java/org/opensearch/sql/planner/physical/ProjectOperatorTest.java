@@ -23,13 +23,9 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
-import java.io.IOException;
-import java.io.ObjectInput;
 import java.io.ObjectInputStream;
-import java.io.ObjectOutput;
 import java.io.ObjectOutputStream;
 import java.util.List;
-import lombok.EqualsAndHashCode;
 import lombok.SneakyThrows;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -40,7 +36,6 @@ import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.data.model.ExprValueUtils;
 import org.opensearch.sql.executor.ExecutionEngine;
 import org.opensearch.sql.expression.DSL;
-import org.opensearch.sql.planner.ExternalizablePlan;
 import org.opensearch.sql.utils.TestOperator;
 
 @ExtendWith(MockitoExtension.class)

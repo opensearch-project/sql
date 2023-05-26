@@ -25,7 +25,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.opensearch.sql.exception.NoCursorException;
-import org.opensearch.sql.planner.ExternalizablePlan;
+import org.opensearch.sql.planner.SerializablePlan;
 import org.opensearch.sql.planner.physical.PhysicalPlan;
 import org.opensearch.sql.storage.StorageEngine;
 import org.opensearch.sql.utils.TestOperator;
@@ -144,7 +144,7 @@ public class PlanSerializerTest {
   @Test
   void convertToCursor_and_convertToPlan() {
     var plan = new TestOperator(100500);
-    var roundTripPlan = (ExternalizablePlan)
+    var roundTripPlan = (SerializablePlan)
         planCache.convertToPlan(planCache.convertToCursor(plan).toString());
     assertEquals(plan, roundTripPlan);
     assertNotSame(plan, roundTripPlan);

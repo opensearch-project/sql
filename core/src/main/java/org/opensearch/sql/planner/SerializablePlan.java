@@ -6,10 +6,6 @@
 package org.opensearch.sql.planner;
 
 import java.io.Externalizable;
-import java.io.IOException;
-import java.io.ObjectInput;
-import java.io.ObjectOutput;
-import org.opensearch.sql.executor.pagination.PlanSerializer;
 
 /**
  * All subtypes of PhysicalPlan which needs to be serialized (in cursor, for pagination feature)
@@ -23,11 +19,11 @@ import org.opensearch.sql.executor.pagination.PlanSerializer;
  *   </li>
  *   <li>
  *     Overwrite {@link #getPlanForSerialization} to return
- *     another instance of {@link ExternalizablePlan}.
+ *     another instance of {@link SerializablePlan}.
  *   </li>
  * </ul>
  */
-public interface ExternalizablePlan extends Externalizable {
+public interface SerializablePlan extends Externalizable {
 
   /**
    * Override to return child or delegated plan, so parent plan should skip this one
@@ -42,7 +38,7 @@ public interface ExternalizablePlan extends Externalizable {
    * It is needed to skip a `ResourceMonitorPlan` instance only, actually.
    * @return Next plan for serialization.
    */
-  default ExternalizablePlan getPlanForSerialization() {
+  default SerializablePlan getPlanForSerialization() {
     return this;
   }
 }
