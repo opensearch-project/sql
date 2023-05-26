@@ -244,8 +244,8 @@ class FlintDataSourceV2ITSuite
           .option("checkpointLocation", checkpointDir)
           .format("flint")
           .options(openSearchOptions)
-          .option("refresh_policy", "wait_for")
-          .option("spark.flint.write.id.name", "aInt")
+          .option(s"${FlintSparkConf.REFRESH_POLICY.key}", "wait_for")
+          .option(s"${FlintSparkConf.DOC_ID_COLUMN_NAME.key}", "aInt")
           .start(indexName)
 
         inputData.addData(1, 2, 3)
