@@ -10,14 +10,19 @@ import org.opensearch.flint.OpenSearchSuite
 import org.apache.spark.sql.{DataFrame, ExplainSuiteHelper, QueryTest, Row}
 import org.apache.spark.sql.catalyst.plans.logical.Filter
 import org.apache.spark.sql.execution.datasources.v2.DataSourceV2ScanRelation
+import org.apache.spark.sql.execution.streaming.MemoryStream
+import org.apache.spark.sql.flint.config.FlintSparkConf
 import org.apache.spark.sql.functions.asc
+import org.apache.spark.sql.streaming.{StreamingQuery, StreamTest}
 import org.apache.spark.sql.types._
+import org.apache.spark.util.Utils
 
 /**
  * OpenSearch related integration test.
  */
 class FlintDataSourceV2ITSuite
     extends QueryTest
+    with StreamTest
     with FlintSuite
     with OpenSearchSuite
     with ExplainSuiteHelper {
@@ -52,7 +57,7 @@ class FlintDataSourceV2ITSuite
 
       val df = spark.sqlContext.read
         .format("flint")
-        .options(openSearchOptions + ("scroll_size" -> "1"))
+        .options(openSearchOptions + (s"${FlintSparkConf.SCROLL_SIZE.key}" -> "1"))
         .schema(schema)
         .load(indexName)
         .sort(asc("id"))
@@ -143,7 +148,8 @@ class FlintDataSourceV2ITSuite
         |  }
         |}""".stripMargin
     val options =
-      openSearchOptions + ("refresh_policy" -> "wait_for", "spark.flint.write.id.name" -> "aInt")
+      openSearchOptions + (s"${FlintSparkConf.REFRESH_POLICY.key}" -> "wait_for",
+      s"${FlintSparkConf.DOC_ID_COLUMN_NAME.key}" -> "aInt")
     Seq(Seq.empty, 1 to 14).foreach(data => {
       withIndexName(indexName) {
         index(indexName, oneNodeSetting, mappings, Seq.empty)
@@ -180,7 +186,8 @@ class FlintDataSourceV2ITSuite
   test("write dataframe to flint with batch size configuration") {
     val indexName = "t0004"
     val options =
-      openSearchOptions + ("refresh_policy" -> "wait_for", "spark.flint.write.id.name" -> "aInt")
+      openSearchOptions + (s"${FlintSparkConf.REFRESH_POLICY.key}" -> "wait_for",
+      s"${FlintSparkConf.DOC_ID_COLUMN_NAME.key}" -> "aInt")
     Seq(0, 1).foreach(batchSize => {
       withIndexName(indexName) {
         val mappings =
@@ -211,6 +218,102 @@ class FlintDataSourceV2ITSuite
           df)
       }
     })
+  }
+
+  test("streaming write to flint") {
+    val indexName = "t0001"
+    val inputData = MemoryStream[Int]
+    val df = inputData.toDF().toDF("aInt")
+
+    val checkpointDir = Utils.createTempDir(namePrefix = "stream.checkpoint").getCanonicalPath
+    var query: StreamingQuery = null
+
+    withIndexName(indexName) {
+      val mappings =
+        """{
+          |  "properties": {
+          |    "aInt": {
+          |      "type": "integer"
+          |    }
+          |  }
+          |}""".stripMargin
+      index(indexName, oneNodeSetting, mappings, Seq.empty)
+
+      try {
+        query = df.writeStream
+          .option("checkpointLocation", checkpointDir)
+          .format("flint")
+          .options(openSearchOptions)
+          .option(s"${FlintSparkConf.REFRESH_POLICY.key}", "wait_for")
+          .option(s"${FlintSparkConf.DOC_ID_COLUMN_NAME.key}", "aInt")
+          .start(indexName)
+
+        inputData.addData(1, 2, 3)
+
+        failAfter(streamingTimeout) {
+          query.processAllAvailable()
+        }
+
+        val outputDf = spark.sqlContext.read
+          .format("flint")
+          .options(openSearchOptions)
+          .schema(StructType(Seq(StructField("aInt", IntegerType))))
+          .load(indexName)
+          .as[Int]
+        checkDatasetUnorderly(outputDf, 1, 2, 3)
+
+      } finally {
+        if (query != null) {
+          query.stop()
+        }
+      }
+    }
+  }
+
+  test("read index with spark conf") {
+    val indexName = "t0001"
+    withIndexName(indexName) {
+      simpleIndex(indexName)
+      spark.conf.set(FlintSparkConf.sparkConf(FlintSparkConf.HOST_ENDPOINT.key), openSearchHost)
+      spark.conf.set(FlintSparkConf.sparkConf(FlintSparkConf.HOST_PORT.key), openSearchPort)
+      val schema = StructType(
+        Seq(
+          StructField("accountId", StringType, true),
+          StructField("eventName", StringType, true),
+          StructField("eventSource", StringType, true)))
+      val df = spark.sqlContext.read
+        .format("flint")
+        .schema(schema)
+        .load(indexName)
+
+      assert(df.count() == 1)
+      checkAnswer(df, Row("123", "event", "source"))
+    }
+  }
+
+  test("datasource option should overwrite spark conf") {
+    val indexName = "t0001"
+    withIndexName(indexName) {
+      simpleIndex(indexName)
+      // set invalid host name and port which should be overwrite by datasource option.
+      spark.conf.set(FlintSparkConf.sparkConf(FlintSparkConf.HOST_ENDPOINT.key), "invalid host")
+      spark.conf.set(FlintSparkConf.sparkConf(FlintSparkConf.HOST_PORT.key), "0")
+
+      val schema = StructType(
+        Seq(
+          StructField("accountId", StringType, true),
+          StructField("eventName", StringType, true),
+          StructField("eventSource", StringType, true)))
+      val df = spark.sqlContext.read
+        .format("flint")
+        // override spark conf
+        .options(openSearchOptions)
+        .schema(schema)
+        .load(indexName)
+
+      assert(df.count() == 1)
+      checkAnswer(df, Row("123", "event", "source"))
+    }
   }
 
   /**

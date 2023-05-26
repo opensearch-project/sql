@@ -5,10 +5,7 @@
 
 package org.apache.spark.sql.flint
 
-import java.util
 import java.util.TimeZone
-
-import scala.collection.JavaConverters.mapAsScalaMapConverter
 
 import org.opensearch.flint.core.storage.FlintWriter
 
@@ -17,7 +14,7 @@ import org.apache.spark.sql.catalyst.InternalRow
 import org.apache.spark.sql.catalyst.json.JSONOptions
 import org.apache.spark.sql.catalyst.util.CaseInsensitiveMap
 import org.apache.spark.sql.connector.write.{DataWriter, WriterCommitMessage}
-import org.apache.spark.sql.flint.FlintPartitionWriter.{BATCH_SIZE, ID_NAME}
+import org.apache.spark.sql.flint.config.FlintSparkConf
 import org.apache.spark.sql.flint.json.FlintJacksonGenerator
 import org.apache.spark.sql.types.StructType
 
@@ -28,9 +25,10 @@ import org.apache.spark.sql.types.StructType
 case class FlintPartitionWriter(
     flintWriter: FlintWriter,
     dataSchema: StructType,
-    properties: util.Map[String, String],
+    options: FlintSparkConf,
     partitionId: Int,
-    taskId: Long)
+    taskId: Long,
+    epochId: Long = -1)
     extends DataWriter[InternalRow]
     with Logging {
 
@@ -39,12 +37,9 @@ case class FlintPartitionWriter(
   }
   private lazy val gen = FlintJacksonGenerator(dataSchema, flintWriter, jsonOptions)
 
-  private lazy val idOrdinal = properties.asScala.toMap
-    .get(ID_NAME)
+  private lazy val idOrdinal = options
+    .docIdColumnName()
     .flatMap(filedName => dataSchema.getFieldIndex(filedName))
-
-  private lazy val batchSize =
-    properties.asScala.toMap.get(BATCH_SIZE).map(_.toInt).filter(_ > 0).getOrElse(1000)
 
   /**
    * total write doc count.
@@ -61,7 +56,7 @@ case class FlintPartitionWriter(
     gen.writeLineEnding()
 
     docCount += 1
-    if (docCount >= batchSize) {
+    if (docCount >= options.batchSize()) {
       gen.flush()
       docCount = 0
     }
@@ -69,8 +64,8 @@ case class FlintPartitionWriter(
 
   override def commit(): WriterCommitMessage = {
     gen.flush()
-    logDebug(s"Write commit on partitionId: $partitionId, taskId: $taskId")
-    FlintWriterCommitMessage(partitionId, taskId)
+    logDebug(s"Write commit on partitionId: $partitionId, taskId: $taskId, epochId: $epochId")
+    FlintWriterCommitMessage(partitionId, taskId, epochId)
   }
 
   override def abort(): Unit = {
@@ -79,16 +74,9 @@ case class FlintPartitionWriter(
 
   override def close(): Unit = {
     gen.close()
-    logDebug(s"Write close on partitionId: $partitionId, taskId: $taskId")
+    logDebug(s"Write close on partitionId: $partitionId, taskId: $taskId, epochId: $epochId")
   }
 }
 
-case class FlintWriterCommitMessage(partitionId: Int, taskId: Long) extends WriterCommitMessage
-
-/**
- * Todo. Move to FlintSparkConfiguration.
- */
-object FlintPartitionWriter {
-  val ID_NAME = "spark.flint.write.id.name"
-  val BATCH_SIZE = "spark.flint.write.batch.size"
-}
+case class FlintWriterCommitMessage(partitionId: Int, taskId: Long, epochId: Long)
+    extends WriterCommitMessage

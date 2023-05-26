@@ -20,10 +20,10 @@ public class FlintOptions implements Serializable {
   /**
    * Used by {@link org.opensearch.flint.core.storage.OpenSearchScrollReader}
    */
-  public static final String SCROLL_SIZE = "scroll_size";
+  public static final String SCROLL_SIZE = "read.scroll_size";
   public static final int DEFAULT_SCROLL_SIZE = 100;
 
-  public static final String REFRESH_POLICY = "refresh_policy";
+  public static final String REFRESH_POLICY = "write.refresh_policy";
   /**
    * NONE("false")
    *

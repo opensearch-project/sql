@@ -9,15 +9,14 @@ import scala.Option._
 
 import com.stephenn.scalatest.jsonassert.JsonMatchers.matchJson
 import org.opensearch.flint.OpenSearchSuite
-import org.opensearch.flint.core.FlintOptions._
-import org.opensearch.flint.spark.FlintSpark.{FLINT_INDEX_STORE_LOCATION, FLINT_INDEX_STORE_PORT}
 import org.opensearch.flint.spark.skipping.FlintSparkSkippingIndex.getSkippingIndexName
 import org.scalatest.matchers.must.Matchers.{defined, have}
 import org.scalatest.matchers.should.Matchers.convertToAnyShouldWrapper
 
 import org.apache.spark.FlintSuite
 import org.apache.spark.sql.QueryTest
-import org.apache.spark.sql.flint.FlintPartitionWriter.BATCH_SIZE
+import org.apache.spark.sql.flint.config.FlintSparkConf
+import org.apache.spark.sql.flint.config.FlintSparkConf._
 import org.apache.spark.sql.streaming.StreamTest
 
 class FlintSparkSkippingIndexSuite
@@ -28,14 +27,13 @@ class FlintSparkSkippingIndexSuite
 
   /** Flint Spark high level API being tested */
   lazy val flint: FlintSpark = {
-    spark.conf.set(FLINT_INDEX_STORE_LOCATION, openSearchHost)
-    spark.conf.set(FLINT_INDEX_STORE_PORT, openSearchPort)
-    spark.conf.set(BATCH_SIZE, 1)
-    spark.conf.set(REFRESH_POLICY, "true")
+    spark.conf.set(FlintSparkConf.sparkConf(HOST_ENDPOINT.key), openSearchHost)
+    spark.conf.set(FlintSparkConf.sparkConf(HOST_PORT.key), openSearchPort)
+    spark.conf.set(FlintSparkConf.sparkConf(REFRESH_POLICY.key), "true")
     new FlintSpark(spark)
   }
 
-  /** Test table name. */
+  /** Test table and index name */
   private val testTable = "test"
   private val testIndex = getSkippingIndexName(testTable)
 

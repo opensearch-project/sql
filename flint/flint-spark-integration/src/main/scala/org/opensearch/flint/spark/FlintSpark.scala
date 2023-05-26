@@ -5,13 +5,10 @@
 
 package org.opensearch.flint.spark
 
-import scala.collection.JavaConverters._
-
 import org.json4s.{Formats, JArray, NoTypeHints}
 import org.json4s.native.JsonMethods.parse
 import org.json4s.native.Serialization
-import org.opensearch.flint.core.{FlintClient, FlintClientBuilder, FlintOptions}
-import org.opensearch.flint.core.FlintOptions._
+import org.opensearch.flint.core.{FlintClient, FlintClientBuilder}
 import org.opensearch.flint.core.metadata.FlintMetadata
 import org.opensearch.flint.spark.FlintSpark._
 import org.opensearch.flint.spark.skipping.{FlintSparkSkippingIndex, FlintSparkSkippingStrategy}
@@ -20,25 +17,15 @@ import org.opensearch.flint.spark.skipping.partition.PartitionSkippingStrategy
 
 import org.apache.spark.sql.{DataFrame, SparkSession}
 import org.apache.spark.sql.catalog.Column
-import org.apache.spark.sql.flint.FlintPartitionWriter.BATCH_SIZE
+import org.apache.spark.sql.flint.config.FlintSparkConf
 
 /**
  * Flint Spark integration API entrypoint.
  */
 class FlintSpark(val spark: SparkSession) {
 
-  /** Flint client configuration options */
-  private val flintClientOptions =
-    Map(
-      HOST -> spark.conf.get(FLINT_INDEX_STORE_LOCATION, FLINT_INDEX_STORE_LOCATION_DEFAULT),
-      PORT -> spark.conf.get(FLINT_INDEX_STORE_PORT, FLINT_INDEX_STORE_PORT_DEFAULT),
-      BATCH_SIZE -> spark.conf.get(BATCH_SIZE, "1000"),
-      REFRESH_POLICY -> spark.conf.get(REFRESH_POLICY, DEFAULT_REFRESH_POLICY)).asJava
-
   /** Flint client for low-level index operation */
-  private val flintClient: FlintClient = {
-    FlintClientBuilder.build(new FlintOptions(flintClientOptions))
-  }
+  private val flintClient: FlintClient = FlintClientBuilder.build(FlintSparkConf(spark.conf))
 
   /** Required by json4s parse function */
   implicit val formats: Formats = Serialization.formats(NoTypeHints)
@@ -91,7 +78,6 @@ class FlintSpark(val spark: SparkSession) {
           .build(batchDF)
           .write
           .format("flint")
-          .options(flintClientOptions)
           .mode("overwrite")
           .save(indexName)
       }
@@ -174,14 +160,6 @@ class FlintSpark(val spark: SparkSession) {
 }
 
 object FlintSpark {
-
-  /**
-   * Flint configurations in Spark. TODO: shared with Flint data source config?
-   */
-  val FLINT_INDEX_STORE_LOCATION = "spark.flint.indexstore.location"
-  val FLINT_INDEX_STORE_LOCATION_DEFAULT = "localhost"
-  val FLINT_INDEX_STORE_PORT = "spark.flint.indexstore.port"
-  val FLINT_INDEX_STORE_PORT_DEFAULT = "9200"
 
   /**
    * Helper class for index class construct. For now only skipping index supported.
