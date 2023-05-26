@@ -20,6 +20,7 @@ import org.opensearch.flint.spark.skipping.partition.PartitionSkippingStrategy
 
 import org.apache.spark.sql.{DataFrame, SparkSession}
 import org.apache.spark.sql.catalog.Column
+import org.apache.spark.sql.flint.FlintPartitionWriter.BATCH_SIZE
 
 /**
  * Flint Spark integration API entrypoint.
@@ -30,7 +31,9 @@ class FlintSpark(val spark: SparkSession) {
   private val flintClientOptions =
     Map(
       HOST -> spark.conf.get(FLINT_INDEX_STORE_LOCATION, FLINT_INDEX_STORE_LOCATION_DEFAULT),
-      PORT -> spark.conf.get(FLINT_INDEX_STORE_PORT, FLINT_INDEX_STORE_PORT_DEFAULT)).asJava
+      PORT -> spark.conf.get(FLINT_INDEX_STORE_PORT, FLINT_INDEX_STORE_PORT_DEFAULT),
+      BATCH_SIZE -> spark.conf.get(BATCH_SIZE, "1000"),
+      REFRESH_POLICY -> spark.conf.get(REFRESH_POLICY, DEFAULT_REFRESH_POLICY)).asJava
 
   /** Flint client for low-level index operation */
   private val flintClient: FlintClient = {

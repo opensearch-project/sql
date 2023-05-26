@@ -9,6 +9,7 @@ import scala.Option._
 
 import com.stephenn.scalatest.jsonassert.JsonMatchers.matchJson
 import org.opensearch.flint.OpenSearchSuite
+import org.opensearch.flint.core.FlintOptions._
 import org.opensearch.flint.spark.FlintSpark.{FLINT_INDEX_STORE_LOCATION, FLINT_INDEX_STORE_PORT}
 import org.opensearch.flint.spark.skipping.FlintSparkSkippingIndex.getSkippingIndexName
 import org.scalatest.matchers.must.Matchers.{defined, have}
@@ -16,6 +17,7 @@ import org.scalatest.matchers.should.Matchers.convertToAnyShouldWrapper
 
 import org.apache.spark.FlintSuite
 import org.apache.spark.sql.QueryTest
+import org.apache.spark.sql.flint.FlintPartitionWriter.BATCH_SIZE
 import org.apache.spark.sql.streaming.StreamTest
 
 class FlintSparkSkippingIndexSuite
@@ -28,6 +30,8 @@ class FlintSparkSkippingIndexSuite
   lazy val flint: FlintSpark = {
     spark.conf.set(FLINT_INDEX_STORE_LOCATION, openSearchHost)
     spark.conf.set(FLINT_INDEX_STORE_PORT, openSearchPort)
+    spark.conf.set(BATCH_SIZE, 1)
+    spark.conf.set(REFRESH_POLICY, "true")
     new FlintSpark(spark)
   }
 
