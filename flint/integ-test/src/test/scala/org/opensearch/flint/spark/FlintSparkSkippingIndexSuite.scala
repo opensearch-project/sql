@@ -9,19 +9,19 @@ import scala.Option._
 
 import com.stephenn.scalatest.jsonassert.JsonMatchers.matchJson
 import org.opensearch.flint.OpenSearchSuite
-import org.opensearch.flint.spark.FlintSpark.FLINT_INDEX_STORE_LOCATION
 import org.opensearch.flint.spark.skipping.FlintSparkSkippingIndex
 import org.scalatest.matchers.must.Matchers.defined
 import org.scalatest.matchers.should.Matchers.convertToAnyShouldWrapper
 
 import org.apache.spark.FlintSuite
+import org.apache.spark.sql.flint.config.FlintSparkConf
 
 class FlintSparkSkippingIndexSuite extends FlintSuite with OpenSearchSuite {
 
   /** Flint Spark high level API being tested */
   lazy val flint: FlintSpark = {
-    spark.conf.set(FLINT_INDEX_STORE_LOCATION, openSearchHost)
-    spark.conf.set(FlintSpark.FLINT_INDEX_STORE_PORT, openSearchPort)
+    spark.conf.set(FlintSparkConf.sparkConf(FlintSparkConf.HOST_ENDPOINT.key), openSearchHost)
+    spark.conf.set(FlintSparkConf.sparkConf(FlintSparkConf.HOST_PORT.key), openSearchPort)
     new FlintSpark(spark)
   }
 

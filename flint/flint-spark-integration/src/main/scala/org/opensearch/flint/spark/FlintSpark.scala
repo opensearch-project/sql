@@ -5,10 +5,7 @@
 
 package org.opensearch.flint.spark
 
-import scala.collection.JavaConverters._
-
-import org.opensearch.flint.core.{FlintClient, FlintClientBuilder, FlintOptions}
-import org.opensearch.flint.core.FlintOptions._
+import org.opensearch.flint.core.{FlintClient, FlintClientBuilder}
 import org.opensearch.flint.core.metadata.FlintMetadata
 import org.opensearch.flint.spark.FlintSpark._
 import org.opensearch.flint.spark.skipping.{FlintSparkSkippingIndex, FlintSparkSkippingStrategy}
@@ -16,6 +13,7 @@ import org.opensearch.flint.spark.skipping.partition.PartitionSkippingStrategy
 
 import org.apache.spark.sql.SparkSession
 import org.apache.spark.sql.catalog.Column
+import org.apache.spark.sql.flint.config.FlintSparkConf
 
 /**
  * Flint Spark integration API entrypoint.
@@ -23,13 +21,7 @@ import org.apache.spark.sql.catalog.Column
 class FlintSpark(val spark: SparkSession) {
 
   /** Flint client for low-level index operation */
-  private val flintClient: FlintClient = {
-    val options = new FlintOptions(
-      Map(
-        HOST -> spark.conf.get(FLINT_INDEX_STORE_LOCATION, FLINT_INDEX_STORE_LOCATION_DEFAULT),
-        PORT -> spark.conf.get(FLINT_INDEX_STORE_PORT, FLINT_INDEX_STORE_PORT_DEFAULT)).asJava)
-    FlintClientBuilder.build(options)
-  }
+  private val flintClient: FlintClient = FlintClientBuilder.build(FlintSparkConf(spark.conf))
 
   /**
    * Create index builder for creating index with fluent API.
@@ -93,14 +85,6 @@ class FlintSpark(val spark: SparkSession) {
 }
 
 object FlintSpark {
-
-  /**
-   * Flint configurations in Spark. TODO: shared with Flint data source config?
-   */
-  val FLINT_INDEX_STORE_LOCATION = "spark.flint.indexstore.location"
-  val FLINT_INDEX_STORE_LOCATION_DEFAULT = "localhost"
-  val FLINT_INDEX_STORE_PORT = "spark.flint.indexstore.port"
-  val FLINT_INDEX_STORE_PORT_DEFAULT = "9200"
 
   /**
    * Helper class for index class construct. For now only skipping index supported.

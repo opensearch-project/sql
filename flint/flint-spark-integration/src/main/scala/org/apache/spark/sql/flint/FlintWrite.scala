@@ -8,6 +8,7 @@ package org.apache.spark.sql.flint
 import org.apache.spark.internal.Logging
 import org.apache.spark.sql.connector.write._
 import org.apache.spark.sql.connector.write.streaming.{StreamingDataWriterFactory, StreamingWrite}
+import org.apache.spark.sql.flint.config.FlintSparkConf
 
 case class FlintWrite(tableName: String, logicalWriteInfo: LogicalWriteInfo)
     extends Write
@@ -21,7 +22,7 @@ case class FlintWrite(tableName: String, logicalWriteInfo: LogicalWriteInfo)
     FlintPartitionWriterFactory(
       tableName,
       logicalWriteInfo.schema(),
-      logicalWriteInfo.options().asCaseSensitiveMap())
+      FlintSparkConf(logicalWriteInfo.options().asCaseSensitiveMap()))
   }
 
   override def commit(messages: Array[WriterCommitMessage]): Unit = {
@@ -37,7 +38,7 @@ case class FlintWrite(tableName: String, logicalWriteInfo: LogicalWriteInfo)
     FlintPartitionWriterFactory(
       tableName,
       logicalWriteInfo.schema(),
-      logicalWriteInfo.options().asCaseSensitiveMap())
+      FlintSparkConf(logicalWriteInfo.options().asCaseSensitiveMap()))
   }
 
   override def commit(epochId: Long, messages: Array[WriterCommitMessage]): Unit = {

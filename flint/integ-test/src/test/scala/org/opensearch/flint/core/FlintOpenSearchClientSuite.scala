@@ -14,6 +14,8 @@ import org.opensearch.flint.core.storage.FlintOpenSearchClient
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 
+import org.apache.spark.sql.flint.config.FlintSparkConf.REFRESH_POLICY
+
 class FlintOpenSearchClientSuite extends AnyFlatSpec with OpenSearchSuite with Matchers {
 
   /** Lazy initialize after container started. */
@@ -71,7 +73,7 @@ class FlintOpenSearchClientSuite extends AnyFlatSpec with OpenSearchSuite with M
           |  }
           |}""".stripMargin
 
-      val options = openSearchOptions + ("refresh_policy" -> "wait_for")
+      val options = openSearchOptions + (s"${REFRESH_POLICY.key}" -> "wait_for")
       val flintClient = new FlintOpenSearchClient(new FlintOptions(options.asJava))
       index(indexName, oneNodeSetting, mappings, Seq.empty)
       val writer = flintClient.createWriter(indexName)
