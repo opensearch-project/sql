@@ -7,6 +7,7 @@ package org.apache.spark
 
 import org.apache.spark.sql.catalyst.expressions.CodegenObjectFactoryMode
 import org.apache.spark.sql.catalyst.optimizer.ConvertToLocalRelation
+import org.apache.spark.sql.flint.config.{FlintConfigEntry, FlintSparkConf}
 import org.apache.spark.sql.internal.SQLConf
 import org.apache.spark.sql.test.SharedSparkSession
 
@@ -22,5 +23,12 @@ trait FlintSuite extends SharedSparkSession {
       // ConstantPropagation etc.
       .set(SQLConf.OPTIMIZER_EXCLUDED_RULES.key, ConvertToLocalRelation.ruleName)
     conf
+  }
+
+  /**
+   * Set Flint Spark configuration. (Generic "value: T" has problem with FlintConfigEntry[Any])
+   */
+  protected def setFlintSparkConf[T](config: FlintConfigEntry[T], value: Any): Unit = {
+    spark.conf.set(FlintSparkConf.sparkConf(config.key), value.toString)
   }
 }

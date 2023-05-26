@@ -15,7 +15,7 @@ import org.scalatest.matchers.should.Matchers.convertToAnyShouldWrapper
 
 import org.apache.spark.FlintSuite
 import org.apache.spark.sql.QueryTest
-import org.apache.spark.sql.flint.config.FlintSparkConf
+import org.apache.spark.sql.flint.FlintDataSourceV2.FLINT_DATASOURCE
 import org.apache.spark.sql.flint.config.FlintSparkConf._
 import org.apache.spark.sql.streaming.StreamTest
 
@@ -27,9 +27,9 @@ class FlintSparkSkippingIndexSuite
 
   /** Flint Spark high level API being tested */
   lazy val flint: FlintSpark = {
-    spark.conf.set(FlintSparkConf.sparkConf(HOST_ENDPOINT.key), openSearchHost)
-    spark.conf.set(FlintSparkConf.sparkConf(HOST_PORT.key), openSearchPort)
-    spark.conf.set(FlintSparkConf.sparkConf(REFRESH_POLICY.key), "true")
+    setFlintSparkConf(HOST_ENDPOINT, openSearchHost)
+    setFlintSparkConf(HOST_PORT, openSearchPort)
+    setFlintSparkConf(REFRESH_POLICY, "true")
     new FlintSpark(spark)
   }
 
@@ -138,7 +138,7 @@ class FlintSparkSkippingIndexSuite
 
     val indexData =
       spark.read
-        .format("flint")
+        .format(FLINT_DATASOURCE)
         .schema("year INT, month INT, file_path STRING")
         .options(openSearchOptions)
         .load(testIndex)

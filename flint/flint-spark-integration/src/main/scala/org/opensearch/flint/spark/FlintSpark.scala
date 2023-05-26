@@ -17,6 +17,7 @@ import org.opensearch.flint.spark.skipping.partition.PartitionSkippingStrategy
 
 import org.apache.spark.sql.{DataFrame, SparkSession}
 import org.apache.spark.sql.catalog.Column
+import org.apache.spark.sql.flint.FlintDataSourceV2.FLINT_DATASOURCE
 import org.apache.spark.sql.flint.config.FlintSparkConf
 
 /**
@@ -77,7 +78,7 @@ class FlintSpark(val spark: SparkSession) {
         index
           .build(batchDF)
           .write
-          .format("flint")
+          .format(FLINT_DATASOURCE)
           .mode("overwrite")
           .save(indexName)
       }
