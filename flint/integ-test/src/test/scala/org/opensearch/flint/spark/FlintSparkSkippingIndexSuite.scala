@@ -9,6 +9,7 @@ import scala.Option._
 
 import com.stephenn.scalatest.jsonassert.JsonMatchers.matchJson
 import org.opensearch.flint.OpenSearchSuite
+import org.opensearch.flint.spark.FlintSpark.RefreshMode.{FULL, INCREMENTAL}
 import org.opensearch.flint.spark.skipping.FlintSparkSkippingIndex.getSkippingIndexName
 import org.scalatest.matchers.must.Matchers.{defined, have}
 import org.scalatest.matchers.should.Matchers.convertToAnyShouldWrapper
@@ -123,15 +124,40 @@ class FlintSparkSkippingIndexSuite
         |""".stripMargin)
   }
 
-  test("refresh skipping index successfully") {
+  test("full refresh skipping index successfully") {
+    // Create Flint index and wait for complete
     flint
       .skippingIndex()
       .onTable(testTable)
       .addPartitionIndex("year", "month")
       .create()
 
-    val jobId = flint.refreshIndex(testIndex)
-    val job = spark.streams.get(jobId)
+    val jobId = flint.refreshIndex(testIndex, FULL)
+    jobId shouldBe empty
+
+    val indexData =
+      spark.read
+        .format(FLINT_DATASOURCE)
+        .schema("year INT, month INT, file_path STRING")
+        .options(openSearchOptions)
+        .load(testIndex)
+        .collect()
+        .toSet
+    indexData should have size 2
+  }
+
+  test("incremental refresh skipping index successfully") {
+    // Create Flint index and wait for complete
+    flint
+      .skippingIndex()
+      .onTable(testTable)
+      .addPartitionIndex("year", "month")
+      .create()
+
+    val jobId = flint.refreshIndex(testIndex, INCREMENTAL)
+    jobId shouldBe defined
+
+    val job = spark.streams.get(jobId.get)
     failAfter(streamingTimeout) {
       job.processAllAvailable()
     }

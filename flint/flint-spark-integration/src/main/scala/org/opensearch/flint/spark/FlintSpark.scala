@@ -11,14 +11,17 @@ import org.json4s.native.Serialization
 import org.opensearch.flint.core.{FlintClient, FlintClientBuilder}
 import org.opensearch.flint.core.metadata.FlintMetadata
 import org.opensearch.flint.spark.FlintSpark._
+import org.opensearch.flint.spark.FlintSpark.RefreshMode.{FULL, INCREMENTAL, RefreshMode}
 import org.opensearch.flint.spark.skipping.{FlintSparkSkippingIndex, FlintSparkSkippingStrategy}
 import org.opensearch.flint.spark.skipping.FlintSparkSkippingIndex.SKIPPING_INDEX_TYPE
 import org.opensearch.flint.spark.skipping.partition.PartitionSkippingStrategy
 
 import org.apache.spark.sql.{DataFrame, SparkSession}
+import org.apache.spark.sql.SaveMode._
 import org.apache.spark.sql.catalog.Column
 import org.apache.spark.sql.flint.FlintDataSourceV2.FLINT_DATASOURCE
 import org.apache.spark.sql.flint.config.FlintSparkConf
+import org.apache.spark.sql.streaming.OutputMode.Append
 
 /**
  * Flint Spark integration API entrypoint.
@@ -57,34 +60,50 @@ class FlintSpark(val spark: SparkSession) {
   }
 
   /**
-   * Start refreshing index data
+   * Start refreshing index data according to the given mode.
    *
    * @param indexName
    *   index name
+   * @param mode
+   *   refresh mode
    * @return
-   *   refreshing job ID
+   *   refreshing job ID (empty if batch job for now)
    */
-  def refreshIndex(indexName: String): String = {
+  def refreshIndex(indexName: String, mode: RefreshMode): Option[String] = {
     val index = describeIndex(indexName)
       .getOrElse(throw new IllegalStateException(s"Index $indexName doesn't exist"))
+    val tableName = getSourceTableName(index)
 
-    // TODO: Use Foreach sink for now. Need to move this to FlintSparkSkippingIndex
-    //  if this is permanent solution. Otherwise, not applicable to covering index.
-    spark.readStream
-      .table(getSourceTableName(index))
-      .writeStream
-      .outputMode("append")
-      .foreachBatch { (batchDF: DataFrame, _: Long) =>
-        index
-          .build(batchDF)
-          .write
-          .format(FLINT_DATASOURCE)
-          .mode("overwrite")
-          .save(indexName)
-      }
-      .start()
-      .id
-      .toString
+    // Write Flint index data to Flint data source (shared by both refresh modes for now)
+    def writeFlintIndex(df: DataFrame): Unit = {
+      index
+        .build(df)
+        .write
+        .format(FLINT_DATASOURCE)
+        .mode(Overwrite)
+        .save(indexName)
+    }
+
+    mode match {
+      case FULL =>
+        writeFlintIndex(
+          spark.read
+            .table(tableName))
+        None
+
+      case INCREMENTAL =>
+        // TODO: Use Foreach sink for now. Need to move this to FlintSparkSkippingIndex
+        //  once finalized. Otherwise, covering index/MV may have different logic.
+        val job = spark.readStream
+          .table(tableName)
+          .writeStream
+          .outputMode(Append())
+          .foreachBatch { (batchDF: DataFrame, _: Long) =>
+            writeFlintIndex(batchDF)
+          }
+          .start()
+        Some(job.id.toString)
+    }
   }
 
   /**
@@ -161,6 +180,15 @@ class FlintSpark(val spark: SparkSession) {
 }
 
 object FlintSpark {
+
+  /**
+   * Index refresh mode: FULL: refresh on current source data in batch style at one shot
+   * INCREMENTAL: auto refresh on new data in continuous streaming style
+   */
+  object RefreshMode extends Enumeration {
+    type RefreshMode = Value
+    val FULL, INCREMENTAL = Value
+  }
 
   /**
    * Helper class for index class construct. For now only skipping index supported.
