@@ -125,28 +125,39 @@ OpenSearch stores the Flint index in an OpenSearch index of the given name.
 In the index mapping, the `_meta` and `properties`field stores meta and schema info of a Flint index.
 
 ```json
-alb_logs_skipping_index
 {
   "_meta": {
     "version": "0.1",
     "indexConfig": {
-        "kind": "SkippingIndex",
+        "kind": "skipping",
         "properties": {
           "indexedColumns": [
-            "elb_status_code": "value_list"
+            {
+              "kind": "partition",
+              "columnName": "year",
+              "columnType": "int"
+            },
+            {
+              "kind": "value_list",
+              "columnName": "elb_status_code",
+              "columnType": "int"
+            }
           ]
         }
-    }
-    ......
+    },
+    "source": "alb_logs"
   },
   "properties": {
-     "file_path": {
-       "type": "keyword"
-     },
-     "elb_status_code": {
-         "type": "integer"
-     }
-   }
+    "year": {
+      "type": "integer"
+    },
+    "elb_status_code": {
+      "type": "integer"
+    },
+    "file_path": {
+      "type": "keyword"
+    }
+  }
 }
 ```
 
@@ -173,6 +184,8 @@ flint.skippingIndex()
     .addValueListIndex("elb_status_code")
     .addBloomFilterIndex("client_ip")
     .create()
+
+flint.refresh("flint_alb_logs_skipping_index", FULL)
 ```
 
 #### Skipping Index Provider SPI
