@@ -182,8 +182,9 @@ class FlintSpark(val spark: SparkSession) {
 object FlintSpark {
 
   /**
-   * Index refresh mode: FULL: refresh on current source data in batch style at one shot
-   * INCREMENTAL: auto refresh on new data in continuous streaming style
+   * Index refresh mode:
+   *  FULL: refresh on current source data in batch style at one shot
+   *  INCREMENTAL: auto refresh on new data in continuous streaming style
    */
   object RefreshMode extends Enumeration {
     type RefreshMode = Value

@@ -135,6 +135,7 @@ class FlintSparkSkippingIndexSuite
     val jobId = flint.refreshIndex(testIndex, FULL)
     jobId shouldBe empty
 
+    // TODO: add query index API to avoid this duplicate
     val indexData =
       spark.read
         .format(FLINT_DATASOURCE)

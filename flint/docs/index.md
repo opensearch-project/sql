@@ -28,9 +28,13 @@ Currently, Flint metadata is only static configuration without version control a
 {
   "version": "0.1",
   "indexConfig": {
-    "kind": "SkippingIndex",
+    "kind": "skipping",
     "properties": {
-      "indexedColumns": ...
+      "indexedColumns": [{
+        "kind": "...",
+        "columnName": "...",
+        "columnType": "..."
+      }]
      }
   },
   "source": "alb_logs",
