@@ -9,7 +9,11 @@ import org.json4s._
 import org.json4s.native.Serialization
 import org.opensearch.flint.core.metadata.FlintMetadata
 import org.opensearch.flint.spark.FlintSparkIndex
-import org.opensearch.flint.spark.skipping.FlintSparkSkippingIndex.{getIndexName, FILE_PATH_COLUMN}
+import org.opensearch.flint.spark.skipping.FlintSparkSkippingIndex.{getSkippingIndexName, FILE_PATH_COLUMN, SKIPPING_INDEX_TYPE}
+
+import org.apache.spark.sql.{Column, DataFrame}
+import org.apache.spark.sql.catalyst.dsl.expressions.DslExpression
+import org.apache.spark.sql.functions.input_file_name
 
 /**
  * Flint skipping index in Spark.
@@ -23,8 +27,11 @@ class FlintSparkSkippingIndex(tableName: String, indexedColumns: Seq[FlintSparkS
   /** Required by json4s write function */
   implicit val formats: Formats = Serialization.formats(NoTypeHints)
 
+  /** Skipping index type */
+  override val kind: String = SKIPPING_INDEX_TYPE
+
   /** Output schema of the skipping index */
-  val outputSchema: Map[String, String] = {
+  private val outputSchema: Map[String, String] = {
     val schema = indexedColumns
       .flatMap(_.outputSchema().toList)
       .toMap
@@ -33,22 +40,37 @@ class FlintSparkSkippingIndex(tableName: String, indexedColumns: Seq[FlintSparkS
   }
 
   override def name(): String = {
-    getIndexName(tableName)
+    getSkippingIndexName(tableName)
   }
 
   override def metadata(): FlintMetadata = {
     new FlintMetadata(s"""{
         |   "_meta": {
-        |     "kind": "SkippingIndex",
-        |     "indexedColumns": $getMetaInfo
+        |     "kind": "$SKIPPING_INDEX_TYPE",
+        |     "indexedColumns": $getMetaInfo,
+        |     "source": "$tableName"
         |   },
         |   "properties": $getSchema
         | }
         |""".stripMargin)
   }
 
+  override def build(df: DataFrame): DataFrame = {
+    val outputNames = indexedColumns.flatMap(_.outputSchema().keys)
+    val aggFuncs = indexedColumns.flatMap(_.getAggregators)
+
+    // Wrap aggregate function with output column name
+    val namedAggFuncs =
+      (outputNames, aggFuncs).zipped.map { case (name, aggFunc) =>
+        new Column(aggFunc.toAggregateExpression().as(name))
+      }
+
+    df.groupBy(input_file_name().as(FILE_PATH_COLUMN))
+      .agg(namedAggFuncs.head, namedAggFuncs.tail: _*)
+  }
+
   private def getMetaInfo: String = {
-    Serialization.write(indexedColumns.map(_.indexedColumn))
+    Serialization.write(indexedColumns)
   }
 
   private def getSchema: String = {
@@ -59,6 +81,9 @@ class FlintSparkSkippingIndex(tableName: String, indexedColumns: Seq[FlintSparkS
 }
 
 object FlintSparkSkippingIndex {
+
+  /** Index type name */
+  val SKIPPING_INDEX_TYPE = "skipping"
 
   /** File path column name */
   val FILE_PATH_COLUMN = "file_path"
@@ -75,5 +100,5 @@ object FlintSparkSkippingIndex {
    * @return
    *   Flint skipping index name
    */
-  def getIndexName(tableName: String): String = s"flint_${tableName}_skipping_index"
+  def getSkippingIndexName(tableName: String): String = s"flint_${tableName}_skipping_index"
 }
