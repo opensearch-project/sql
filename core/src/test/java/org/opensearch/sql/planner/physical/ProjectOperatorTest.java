@@ -41,6 +41,7 @@ import org.opensearch.sql.data.model.ExprValueUtils;
 import org.opensearch.sql.executor.ExecutionEngine;
 import org.opensearch.sql.expression.DSL;
 import org.opensearch.sql.planner.ExternalizablePlan;
+import org.opensearch.sql.utils.TestOperator;
 
 @ExtendWith(MockitoExtension.class)
 class ProjectOperatorTest extends PhysicalPlanTestBase {
@@ -236,7 +237,7 @@ class ProjectOperatorTest extends PhysicalPlanTestBase {
   }
 
   @EqualsAndHashCode(callSuper = false)
-  public static class TestOperator extends PhysicalPlan implements ExternalizablePlan {
+  public static class TestOperator2 extends PhysicalPlan implements ExternalizablePlan {
 
     @Override
     public <R, C> R accept(PhysicalPlanNodeVisitor<R, C> visitor, C context) {

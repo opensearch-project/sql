@@ -15,12 +15,8 @@ import static org.mockito.Mockito.mock;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
-import java.io.IOException;
-import java.io.ObjectInput;
-import java.io.ObjectOutput;
 import java.io.ObjectOutputStream;
 import java.io.Serializable;
-import java.util.List;
 import lombok.SneakyThrows;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayNameGeneration;
@@ -29,12 +25,11 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.opensearch.sql.ast.dsl.AstDSL;
-import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.exception.NoCursorException;
 import org.opensearch.sql.planner.ExternalizablePlan;
 import org.opensearch.sql.planner.physical.PhysicalPlan;
-import org.opensearch.sql.planner.physical.PhysicalPlanNodeVisitor;
 import org.opensearch.sql.storage.StorageEngine;
+import org.opensearch.sql.utils.TestOperator;
 
 @DisplayNameGeneration(DisplayNameGenerator.ReplaceUnderscores.class)
 public class PlanSerializerTest {
@@ -47,23 +42,6 @@ public class PlanSerializerTest {
   void setUp() {
     storageEngine = mock(StorageEngine.class);
     planCache = new PlanSerializer(storageEngine);
-  }
-
-  @Test
-  void canConvertToCursor_relation() {
-//    assertTrue(planCache.canConvertToCursor(AstDSL.relation("Table")));
-  }
-
-  @Test
-  void canConvertToCursor_project_allFields_relation() {
-    var unresolvedPlan = AstDSL.project(AstDSL.relation("table"), AstDSL.allFields());
-//    assertTrue(planCache.canConvertToCursor(unresolvedPlan));
-  }
-
-  @Test
-  void canConvertToCursor_project_some_fields_relation() {
-    var unresolvedPlan = AstDSL.project(AstDSL.relation("table"), AstDSL.field("rando"));
-//    Assertions.assertFalse(planCache.canConvertToCursor(unresolvedPlan));
   }
 
   @ParameterizedTest
@@ -111,7 +89,7 @@ public class PlanSerializerTest {
   void serialize_throws() {
     assertThrows(Throwable.class, () -> serialize(new NotSerializableTestClass()));
     var testObj = new TestOperator();
-    testObj.throwIoOnWrite = true;
+    testObj.setThrowIoOnWrite(true);
     assertThrows(Throwable.class, () -> serialize(testObj));
   }
 
@@ -129,7 +107,7 @@ public class PlanSerializerTest {
   @SneakyThrows
   void convertToCursor_returns_no_cursor_if_cant_serialize() {
     var plan = new TestOperator(42);
-    plan.throwNoCursorOnWrite = true;
+    plan.setThrowNoCursorOnWrite(true);
     assertAll(
         () -> assertThrows(NoCursorException.class, () -> serialize(plan)),
         () -> assertEquals(Cursor.None, planCache.convertToCursor(plan))
@@ -189,60 +167,6 @@ public class PlanSerializerTest {
   }
 
   // Helpers and auxiliary classes section below
-
-  public static class TestOperator extends PhysicalPlan implements ExternalizablePlan {
-    private int field;
-    private boolean throwNoCursorOnWrite = false;
-    private boolean throwIoOnWrite = false;
-
-    public TestOperator() {
-    }
-
-    public TestOperator(int value) {
-      field = value;
-    }
-
-    @Override
-    public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
-      field = in.readInt();
-    }
-
-    @Override
-    public void writeExternal(ObjectOutput out) throws IOException {
-      if (throwNoCursorOnWrite) {
-        throw new NoCursorException();
-      }
-      if (throwIoOnWrite) {
-        throw new IOException();
-      }
-      out.writeInt(field);
-    }
-
-    @Override
-    public boolean equals(Object o) {
-      return field == ((TestOperator) o).field;
-    }
-
-    @Override
-    public <R, C> R accept(PhysicalPlanNodeVisitor<R, C> visitor, C context) {
-      return null;
-    }
-
-    @Override
-    public boolean hasNext() {
-      return false;
-    }
-
-    @Override
-    public ExprValue next() {
-      return null;
-    }
-
-    @Override
-    public List<PhysicalPlan> getChild() {
-      return null;
-    }
-  }
 
   @SneakyThrows
   private String serialize(Serializable input) {

@@ -11,19 +11,19 @@ import com.google.common.collect.ImmutableSet;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
 import lombok.experimental.UtilityClass;
 import org.apache.commons.lang3.tuple.Pair;
 import org.opensearch.sql.ast.expression.Literal;
 import org.opensearch.sql.ast.tree.RareTopN.CommandType;
 import org.opensearch.sql.ast.tree.Sort.SortOption;
-import org.opensearch.sql.data.model.ExprCollectionValue;
 import org.opensearch.sql.expression.Expression;
 import org.opensearch.sql.expression.LiteralExpression;
 import org.opensearch.sql.expression.NamedExpression;
 import org.opensearch.sql.expression.ReferenceExpression;
 import org.opensearch.sql.expression.aggregation.NamedAggregator;
 import org.opensearch.sql.expression.window.WindowDefinition;
+import org.opensearch.sql.planner.LogicalCursor;
+import org.opensearch.sql.storage.StorageEngine;
 import org.opensearch.sql.storage.Table;
 
 /**
@@ -31,6 +31,10 @@ import org.opensearch.sql.storage.Table;
  */
 @UtilityClass
 public class LogicalPlanDSL {
+
+  public static LogicalPlan cursor(String cursor, StorageEngine engine) {
+    return new LogicalCursor(cursor, engine);
+  }
 
   public static LogicalPlan write(LogicalPlan input, Table table, List<String> columns) {
     return new LogicalWrite(input, table, columns);

@@ -17,7 +17,7 @@ import org.opensearch.sql.ast.AbstractNodeVisitor;
 import org.opensearch.sql.ast.statement.Explain;
 import org.opensearch.sql.ast.statement.Query;
 import org.opensearch.sql.ast.statement.Statement;
-import org.opensearch.sql.ast.tree.Cursor;
+import org.opensearch.sql.ast.tree.FetchCursor;
 import org.opensearch.sql.ast.tree.UnresolvedPlan;
 import org.opensearch.sql.common.response.ResponseListener;
 import org.opensearch.sql.exception.UnsupportedCursorRequestException;
@@ -80,7 +80,7 @@ public class QueryPlanFactory
                              ResponseListener<ExecutionEngine.QueryResponse> queryResponseListener,
                              ResponseListener<ExecutionEngine.ExplainResponse> explainListener) {
     QueryId queryId = QueryId.queryId();
-    var plan = new QueryPlan(queryId, new Cursor(cursor), queryService, queryResponseListener);
+    var plan = new QueryPlan(queryId, new FetchCursor(cursor), queryService, queryResponseListener);
     return isExplain ? new ExplainPlan(queryId, plan, explainListener) : plan;
   }
 

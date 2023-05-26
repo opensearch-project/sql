@@ -1,11 +1,13 @@
 package org.opensearch.sql.ast.tree;
 
+import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import org.opensearch.sql.ast.AbstractNodeVisitor;
 
 @RequiredArgsConstructor
-public class Cursor extends UnresolvedPlan {
+@EqualsAndHashCode(callSuper = false)
+public class FetchCursor extends UnresolvedPlan {
   @Getter
   final String cursor;
 

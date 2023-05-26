@@ -75,6 +75,7 @@ import org.opensearch.sql.ast.expression.ParseMethod;
 import org.opensearch.sql.ast.expression.ScoreFunction;
 import org.opensearch.sql.ast.expression.SpanUnit;
 import org.opensearch.sql.ast.tree.AD;
+import org.opensearch.sql.ast.tree.FetchCursor;
 import org.opensearch.sql.ast.tree.Kmeans;
 import org.opensearch.sql.ast.tree.ML;
 import org.opensearch.sql.ast.tree.Paginate;
@@ -1640,5 +1641,10 @@ class AnalyzerTest extends AnalyzerTestBase {
     LogicalPlan actual = analyze(new Paginate(10, AstDSL.relation("dummy")));
     assertTrue(actual instanceof LogicalPaginate);
     assertEquals(10, ((LogicalPaginate) actual).getPageSize());
+  }
+
+  @Test
+  void visit_cursor() {
+    LogicalPlan actual = analyze((new FetchCursor("test")));
   }
 }

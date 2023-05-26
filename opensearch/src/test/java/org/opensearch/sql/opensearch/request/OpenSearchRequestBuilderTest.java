@@ -394,4 +394,16 @@ class OpenSearchRequestBuilderTest {
     assertThrows(UnsupportedOperationException.class,
         () -> requestBuilder.build(indexName, MAX_RESULT_WINDOW, DEFAULT_QUERY_TIMEOUT));
   }
+
+  @Test
+  void maxResponseSize_is_page_size() {
+    requestBuilder.pushDownPageSize(4);
+    assertEquals(4, requestBuilder.getMaxResponseSize());
+  }
+
+  @Test
+  void maxResponseSize_is_limit() {
+    requestBuilder.pushDownLimit(100, 0);
+    assertEquals(100, requestBuilder.getMaxResponseSize());
+  }
 }

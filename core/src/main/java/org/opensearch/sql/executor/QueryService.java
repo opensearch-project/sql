@@ -47,14 +47,6 @@ public class QueryService {
   }
 
   /**
-   * Execute a physical plan without analyzing or planning anything.
-   */
-  public void executePlan(PhysicalPlan plan,
-                          ResponseListener<ExecutionEngine.QueryResponse> listener) {
-    executionEngine.execute(plan, ExecutionContext.emptyExecutionContext(), listener);
-  }
-
-  /**
    * Execute the {@link UnresolvedPlan}, with {@link PlanContext} and using {@link ResponseListener}
    * to get response.
    * Todo. Pass split from PlanContext to ExecutionEngine in following PR.

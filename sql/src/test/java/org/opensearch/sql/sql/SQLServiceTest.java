@@ -6,6 +6,7 @@
 
 package org.opensearch.sql.sql;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
@@ -146,8 +147,8 @@ class SQLServiceTest {
 
           @Override
           public void onFailure(Exception e) {
-            assertTrue(e.getMessage()
-                .contains("`explain` request for cursor requests is not supported."));
+            assertEquals("Explain of a paged query continuation is not supported." +
+                " Use `explain` for the initial query request.", e.getMessage());
           }
         });
   }

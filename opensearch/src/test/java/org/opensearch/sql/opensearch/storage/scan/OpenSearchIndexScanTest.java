@@ -20,8 +20,10 @@ import static org.opensearch.search.sort.FieldSortBuilder.DOC_FIELD_NAME;
 import static org.opensearch.search.sort.SortOrder.ASC;
 import static org.opensearch.sql.data.type.ExprCoreType.STRING;
 
+import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -49,6 +51,7 @@ import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.data.model.ExprValueUtils;
 import org.opensearch.sql.exception.NoCursorException;
+import org.opensearch.sql.executor.pagination.PlanSerializer;
 import org.opensearch.sql.opensearch.client.OpenSearchClient;
 import org.opensearch.sql.opensearch.data.type.OpenSearchDataType;
 import org.opensearch.sql.opensearch.data.value.OpenSearchExprValueFactory;
@@ -57,6 +60,9 @@ import org.opensearch.sql.opensearch.request.OpenSearchRequest;
 import org.opensearch.sql.opensearch.request.OpenSearchRequestBuilder;
 import org.opensearch.sql.opensearch.request.OpenSearchScrollRequest;
 import org.opensearch.sql.opensearch.response.OpenSearchResponse;
+import org.opensearch.sql.opensearch.storage.OpenSearchIndex;
+import org.opensearch.sql.opensearch.storage.OpenSearchStorageEngine;
+import org.opensearch.sql.storage.StorageEngine;
 
 @ExtendWith(MockitoExtension.class)
 @DisplayNameGeneration(DisplayNameGenerator.ReplaceUnderscores.class)
@@ -108,22 +114,21 @@ class OpenSearchIndexScanTest {
     var searchSourceBuilder = new SearchSourceBuilder().size(4);
 
     var factory = mock(OpenSearchExprValueFactory.class);
-
+    var engine = mock(OpenSearchStorageEngine.class);
+    var index = mock(OpenSearchIndex.class);
+    when(engine.getClient()).thenReturn(client);
+    when(engine.getTable(any(), any())).thenReturn(index);
     var request = new OpenSearchScrollRequest(
-      INDEX_NAME, CURSOR_KEEP_ALIVE,searchSourceBuilder, factory);
+      INDEX_NAME, CURSOR_KEEP_ALIVE, searchSourceBuilder, factory);
     request.setScrollId("valid-id");
-    try (var indexScan = new OpenSearchIndexScan(client, QUERY_SIZE, request);
-         var byteStream = new ByteArrayOutputStream();
-         var objectStream = new ObjectOutputStream(byteStream)) {
-          try {
-            indexScan.writeExternal(objectStream);
-            objectStream.flush();
-            byteStream.flush();
-            assertTrue(byteStream.size() > 0);
-          } catch (IOException e) {
-            throw new AssertionError("Expected to serialize the indexScan");
-          }
-        }
+
+    try (var indexScan = new OpenSearchIndexScan(client, QUERY_SIZE, request)) {
+        var planSerializer = new PlanSerializer(engine);
+        var cursor = planSerializer.convertToCursor(indexScan);
+        var newPlan = planSerializer.convertToPlan(cursor.toString());
+        assertEquals(indexScan, newPlan);
+    }
+
   }
 
   @Test

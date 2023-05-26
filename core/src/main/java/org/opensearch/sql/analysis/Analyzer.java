@@ -43,7 +43,7 @@ import org.opensearch.sql.ast.expression.QualifiedName;
 import org.opensearch.sql.ast.expression.UnresolvedExpression;
 import org.opensearch.sql.ast.tree.AD;
 import org.opensearch.sql.ast.tree.Aggregation;
-import org.opensearch.sql.ast.tree.Cursor;
+import org.opensearch.sql.ast.tree.FetchCursor;
 import org.opensearch.sql.ast.tree.Dedupe;
 import org.opensearch.sql.ast.tree.Eval;
 import org.opensearch.sql.ast.tree.Filter;
@@ -214,7 +214,7 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
   }
 
   @Override
-  public LogicalPlan visitCursor(Cursor cursor, AnalysisContext context) {
+  public LogicalPlan visitCursor(FetchCursor cursor, AnalysisContext context) {
     return new LogicalCursor(cursor.getCursor(),
         dataSourceService.getDataSource(DEFAULT_DATASOURCE_NAME).getStorageEngine());
   }

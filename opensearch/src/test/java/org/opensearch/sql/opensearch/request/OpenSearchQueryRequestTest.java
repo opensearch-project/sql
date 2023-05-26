@@ -8,6 +8,7 @@ package org.opensearch.sql.opensearch.request;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
@@ -27,6 +28,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.opensearch.action.search.SearchRequest;
 import org.opensearch.action.search.SearchResponse;
 import org.opensearch.action.search.SearchScrollRequest;
+import org.opensearch.common.io.stream.StreamOutput;
 import org.opensearch.index.query.QueryBuilders;
 import org.opensearch.search.SearchHit;
 import org.opensearch.search.SearchHits;
@@ -105,10 +107,10 @@ public class OpenSearchQueryRequestTest {
     when(searchAction.apply(any())).thenReturn(searchResponse);
     when(searchResponse.getHits()).thenReturn(searchHits);
     when(searchHits.getHits()).thenReturn(new SearchHit[] {searchHit});
-
     OpenSearchResponse searchResponse = request.search(searchAction, scrollAction);
     verify(sourceBuilder, times(1)).fetchSource();
     assertFalse(searchResponse.isEmpty());
+    assertFalse(request.hasAnotherBatch());
   }
 
   @Test
@@ -170,6 +172,11 @@ public class OpenSearchQueryRequestTest {
                 .size(200)
                 .query(QueryBuilders.termQuery("name", "John"))),
         remoteRequest);
+  }
+
+  @Test
+  void writeTo_unsupported() {
+    assertThrows(UnsupportedOperationException.class, () -> request.writeTo(mock(StreamOutput.class)));
   }
 
   private void assertSearchRequest(SearchRequest expected, OpenSearchQueryRequest request) {

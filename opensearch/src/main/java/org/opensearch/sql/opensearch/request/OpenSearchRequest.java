@@ -52,9 +52,7 @@ public interface OpenSearchRequest extends Writeable {
    */
   OpenSearchExprValueFactory getExprValueFactory();
 
-  default boolean hasAnotherBatch() {
-    return false;
-  }
+  boolean hasAnotherBatch();
 
   /**
    * OpenSearch Index Name.

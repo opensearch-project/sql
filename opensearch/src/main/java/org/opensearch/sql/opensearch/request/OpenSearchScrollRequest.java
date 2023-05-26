@@ -57,10 +57,13 @@ public class OpenSearchScrollRequest implements OpenSearchRequest {
    */
   @Setter
   @Getter
-  private String scrollId;
+  private String scrollId = NO_SCROLL_ID;
+
+  public static final String NO_SCROLL_ID = "";
 
   private boolean needClean = false;
 
+  @Getter
   private List<String> includes;
 
   /** Default constructor for Externalizable only.
@@ -81,9 +84,9 @@ public class OpenSearchScrollRequest implements OpenSearchRequest {
         .scroll(scrollTimeout)
         .source(sourceBuilder);
 
-    includes = sourceBuilder.fetchSource() != null && sourceBuilder.fetchSource().includes() != null
-      ? Arrays.asList(sourceBuilder.fetchSource().includes())
-      : List.of();
+    includes =  sourceBuilder.fetchSource() == null
+        ? List.of()
+        : Arrays.asList(sourceBuilder.fetchSource().includes());
   }
 
 
@@ -112,7 +115,7 @@ public class OpenSearchScrollRequest implements OpenSearchRequest {
       // clean on the last page only, to prevent closing the scroll/cursor in the middle of paging.
       if (needClean && isScroll()) {
         cleanAction.accept(getScrollId());
-        setScrollId(null);
+        setScrollId(NO_SCROLL_ID);
       }
     } finally {
       reset();
@@ -125,7 +128,7 @@ public class OpenSearchScrollRequest implements OpenSearchRequest {
    * @return true if scroll started
    */
   public boolean isScroll() {
-    return scrollId != null;
+    return scrollId != NO_SCROLL_ID;
   }
 
   /**
@@ -143,7 +146,7 @@ public class OpenSearchScrollRequest implements OpenSearchRequest {
    * to be reused across different physical plan.
    */
   public void reset() {
-    scrollId = null;
+    scrollId = NO_SCROLL_ID;
   }
 
   /**
@@ -152,20 +155,20 @@ public class OpenSearchScrollRequest implements OpenSearchRequest {
    */
   @Override
   public boolean hasAnotherBatch() {
-    return !needClean && scrollId != null && !scrollId.equals("");
+    return !needClean && !scrollId.equals(NO_SCROLL_ID);
   }
 
   @Override
   public void writeTo(StreamOutput out) throws IOException {
     initialSearchRequest.writeTo(out);
     out.writeTimeValue(scrollTimeout);
+    out.writeBoolean(needClean);
     if (!needClean) {
       // If needClean is true, there is no more data to get from OpenSearch and scrollId is
       // used only to clean up OpenSearch context.
 
-      out.writeString(scrollId == null? "" : scrollId);
+      out.writeString(scrollId);
     }
-    out.writeBoolean(needClean);
     out.writeStringCollection(includes);
     indexName.writeTo(out);
   }
@@ -180,8 +183,10 @@ public class OpenSearchScrollRequest implements OpenSearchRequest {
       throws IOException {
     initialSearchRequest = new SearchRequest(in);
     scrollTimeout = in.readTimeValue();
-    scrollId = in.readString();
     needClean = in.readBoolean();
+    if (!needClean) {
+      scrollId = in.readString();
+    }
     includes = in.readStringList();
     indexName = new IndexName(in);
     OpenSearchIndex index = (OpenSearchIndex) engine.getTable(null, indexName.toString());

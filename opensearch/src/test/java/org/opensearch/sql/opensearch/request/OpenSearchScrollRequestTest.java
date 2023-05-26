@@ -6,20 +6,26 @@
 
 package org.opensearch.sql.opensearch.request;
 
+import static org.junit.jupiter.api.Assertions.assertAll;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.opensearch.sql.opensearch.request.OpenSearchScrollRequest.NO_SCROLL_ID;
 
 import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.BiConsumer;
+import java.util.function.Consumer;
 import java.util.function.Function;
 import lombok.SneakyThrows;
 import org.apache.lucene.search.TotalHits;
@@ -191,6 +197,9 @@ class OpenSearchScrollRequestTest {
 
     request.reset();
     assertFalse(request.hasAnotherBatch());
+
+    request.setScrollId("");
+    assertFalse(request.hasAnotherBatch());
   }
 
   @Test
@@ -210,7 +219,7 @@ class OpenSearchScrollRequestTest {
     AtomicBoolean cleanCalled = new AtomicBoolean(false);
     request.clean((s) -> cleanCalled.set(true));
 
-    assertNull(request.getScrollId());
+    assertEquals(NO_SCROLL_ID, request.getScrollId());
     assertTrue(cleanCalled.get());
   }
 
@@ -225,7 +234,7 @@ class OpenSearchScrollRequestTest {
     assertEquals("scroll", request.getScrollId());
 
     request.clean((s) -> fail());
-    assertNull(request.getScrollId());
+    assertEquals(NO_SCROLL_ID, request.getScrollId());
   }
 
   @Test
@@ -245,7 +254,7 @@ class OpenSearchScrollRequestTest {
         new SearchHits(new SearchHit[0], new TotalHits(0, TotalHits.Relation.EQUAL_TO), 1F));
 
     request.search((x) -> searchResponse, (x) -> searchResponse);
-    assertNull(request.getScrollId());
+    assertEquals(NO_SCROLL_ID, request.getScrollId());
 
     request.clean((s) -> fail());
   }
@@ -266,5 +275,57 @@ class OpenSearchScrollRequestTest {
     var newRequest = new OpenSearchScrollRequest(inStream, engine);
     assertEquals(request.getInitialSearchRequest(), newRequest.getInitialSearchRequest());
     assertEquals("", newRequest.getScrollId());
+  }
+
+  @Test
+  @SneakyThrows
+  void serialize_deserialize_needClean() {
+    var stream = new BytesStreamOutput();
+    lenient().when(searchResponse.getHits()).thenReturn(
+      new SearchHits(new SearchHit[0], new TotalHits(0, TotalHits.Relation.EQUAL_TO), 1F));
+    lenient().when(searchResponse.getScrollId()).thenReturn("");
+
+    request.search(searchRequest -> searchResponse, null);
+    request.writeTo(stream);
+    stream.flush();
+    assertTrue(stream.size() > 0);
+
+    // deserialize
+    var inStream = new BytesStreamInput(stream.bytes().toBytesRef().bytes);
+    var indexMock = mock(OpenSearchIndex.class);
+    var engine = mock(OpenSearchStorageEngine.class);
+    when(engine.getTable(any(), any())).thenReturn(indexMock);
+    var newRequest = new OpenSearchScrollRequest(inStream, engine);
+    assertEquals(request.getInitialSearchRequest(), newRequest.getInitialSearchRequest());
+    assertEquals("", newRequest.getScrollId());
+  }
+
+  @Test
+  void default_constructor() {
+    assertEquals(NO_SCROLL_ID, new OpenSearchScrollRequest().getScrollId());
+  }
+
+  @Test
+  void setScrollId() {
+    request.setScrollId("test");
+    assertEquals("test", request.getScrollId());
+  }
+
+  @Test
+  void includes() {
+
+    assertIncludes(List.of(), searchSourceBuilder);
+
+    searchSourceBuilder.fetchSource((String[])null, (String[])null);
+    assertIncludes(List.of(), searchSourceBuilder);
+
+    searchSourceBuilder.fetchSource(new String[] {"test"}, null);
+    assertIncludes(List.of("test"), searchSourceBuilder);
+
+  }
+
+  void assertIncludes(List<String> expected, SearchSourceBuilder sourceBuilder) {
+    assertEquals(expected, new OpenSearchScrollRequest(
+      INDEX_NAME, SCROLL_TIMEOUT, sourceBuilder, factory).getIncludes());
   }
 }

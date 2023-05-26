@@ -114,6 +114,11 @@ public class OpenSearchQueryRequest implements OpenSearchRequest {
   }
 
   @Override
+  public boolean hasAnotherBatch() {
+    return false;
+  }
+
+  @Override
   public void writeTo(StreamOutput out) throws IOException {
     throw new UnsupportedOperationException("Not necessary");
   }
