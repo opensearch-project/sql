@@ -31,7 +31,7 @@ import org.opensearch.sql.storage.Table;
 @UtilityClass
 public class LogicalPlanDSL {
 
-  public static LogicalPlan cursor(String cursor, StorageEngine engine) {
+  public static LogicalPlan fetchCursor(String cursor, StorageEngine engine) {
     return new LogicalFetchCursor(cursor, engine);
   }
 
