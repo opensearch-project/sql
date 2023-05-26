@@ -18,7 +18,7 @@ public class FetchCursor extends UnresolvedPlan {
 
   @Override
   public <T, C> T accept(AbstractNodeVisitor<T, C> nodeVisitor, C context) {
-    return nodeVisitor.visitCursor(this, context);
+    return nodeVisitor.visitFetchCursor(this, context);
   }
 
   @Override
