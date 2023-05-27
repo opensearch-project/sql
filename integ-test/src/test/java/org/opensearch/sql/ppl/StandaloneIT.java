@@ -229,13 +229,12 @@ public class StandaloneIT extends PPLIntegTestCase {
     }
 
     @Provides
-    public PlanSerializer paginatedPlanCache(StorageEngine storageEngine) {
+    public PlanSerializer planSerializer(StorageEngine storageEngine) {
       return new PlanSerializer(storageEngine);
     }
 
     @Provides
-    public QueryPlanFactory queryPlanFactory(ExecutionEngine executionEngine,
-                                             PlanSerializer planSerializer) {
+    public QueryPlanFactory queryPlanFactory(ExecutionEngine executionEngine) {
       Analyzer analyzer =
           new Analyzer(
               new ExpressionAnalyzer(functionRepository), dataSourceService, functionRepository);

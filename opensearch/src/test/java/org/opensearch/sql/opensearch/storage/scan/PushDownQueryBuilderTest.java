@@ -28,13 +28,13 @@ class PushDownQueryBuilderTest {
       }
     };
     assertAll(
-      () -> assertFalse(sample.pushDownFilter(mock(LogicalFilter.class))),
-      () -> assertFalse(sample.pushDownProject(mock(LogicalProject.class))),
-      () -> assertFalse(sample.pushDownHighlight(mock(LogicalHighlight.class))),
-      () -> assertFalse(sample.pushDownSort(mock(LogicalSort.class))),
-      () -> assertFalse(sample.pushDownNested(mock(LogicalNested.class))),
-      () -> assertFalse(sample.pushDownLimit(mock(LogicalLimit.class))),
-      () -> assertFalse(sample.pushDownPageSize(mock(LogicalPaginate.class)))
+        () -> assertFalse(sample.pushDownFilter(mock(LogicalFilter.class))),
+        () -> assertFalse(sample.pushDownProject(mock(LogicalProject.class))),
+        () -> assertFalse(sample.pushDownHighlight(mock(LogicalHighlight.class))),
+        () -> assertFalse(sample.pushDownSort(mock(LogicalSort.class))),
+        () -> assertFalse(sample.pushDownNested(mock(LogicalNested.class))),
+        () -> assertFalse(sample.pushDownLimit(mock(LogicalLimit.class))),
+        () -> assertFalse(sample.pushDownPageSize(mock(LogicalPaginate.class)))
 
     );
   }

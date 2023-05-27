@@ -36,6 +36,10 @@ public interface SerializablePlan extends Externalizable {
    * </pre>
    * In that case only plans A and C should be attempted to serialize.
    * It is needed to skip a `ResourceMonitorPlan` instance only, actually.
+   *
+   *  <pre>{@code
+   *    * A.writeObject(B.getPlanForSerialization());
+   *  }</pre>
    * @return Next plan for serialization.
    */
   default SerializablePlan getPlanForSerialization() {

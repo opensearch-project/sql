@@ -75,7 +75,7 @@ public class OpenSearchPluginModule extends AbstractModule {
   }
 
   @Provides
-  public PlanSerializer paginatedPlanCache(StorageEngine storageEngine) {
+  public PlanSerializer planSerializer(StorageEngine storageEngine) {
     return new PlanSerializer(storageEngine);
   }
 
@@ -100,8 +100,7 @@ public class OpenSearchPluginModule extends AbstractModule {
    */
   @Provides
   public QueryPlanFactory queryPlanFactory(DataSourceService dataSourceService,
-      ExecutionEngine executionEngine,
-      PlanSerializer planSerializer) {
+      ExecutionEngine executionEngine) {
     Analyzer analyzer =
         new Analyzer(
             new ExpressionAnalyzer(functionRepository), dataSourceService, functionRepository);

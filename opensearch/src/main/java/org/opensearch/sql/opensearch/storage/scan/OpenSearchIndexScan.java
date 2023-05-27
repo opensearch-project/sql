@@ -126,18 +126,15 @@ public class OpenSearchIndexScan extends TableScanOperator implements Serializab
     byte[] requestStream = new byte[reqSize];
     in.read(requestStream);
 
-
     var engine = (OpenSearchStorageEngine) ((PlanSerializer.CursorDeserializationStream) in)
         .resolveObject("engine");
 
     try (BytesStreamInput bsi = new BytesStreamInput(requestStream)) {
-
       request = new OpenSearchScrollRequest(bsi, engine);
     }
     maxResponseSize = in.readInt();
 
     client = engine.getClient();
-
   }
 
   @Override
@@ -145,16 +142,16 @@ public class OpenSearchIndexScan extends TableScanOperator implements Serializab
     if (!request.hasAnotherBatch()) {
       throw new NoCursorException();
     }
-
+    // request is not directly Serializable so..
+    // 1. Serialize request to an opensearch byte stream.
     BytesStreamOutput reqOut = new BytesStreamOutput();
     request.writeTo(reqOut);
     reqOut.flush();
 
-    ByteArrayOutputStream baos = new ByteArrayOutputStream();
-    reqOut.bytes().writeTo(baos);
-    baos.flush();
+    // 2. Extract byte[] from the opensearch byte stream
+    var reqAsBytes = reqOut.bytes().toBytesRef().bytes;
 
-    var reqAsBytes = baos.toByteArray();
+    // 3. Write out the byte[] to object output stream.
     out.writeInt(reqAsBytes.length);
     out.write(reqAsBytes);
 

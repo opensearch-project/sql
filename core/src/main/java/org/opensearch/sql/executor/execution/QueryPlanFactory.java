@@ -74,7 +74,7 @@ public class QueryPlanFactory
   }
 
   /**
-   * Creates a ContinuePaginatedPlan from a cursor.
+   * Creates a QueryPlan from a cursor.
    */
   public AbstractPlan create(String cursor, boolean isExplain,
                              ResponseListener<ExecutionEngine.QueryResponse> queryResponseListener,

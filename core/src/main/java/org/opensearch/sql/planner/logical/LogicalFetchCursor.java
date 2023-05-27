@@ -33,6 +33,6 @@ public class LogicalFetchCursor extends LogicalPlan {
 
   @Override
   public <R, C> R accept(LogicalPlanNodeVisitor<R, C> visitor, C context) {
-    return visitor.visitCursor(this, context);
+    return visitor.visitFetchCursor(this, context);
   }
 }

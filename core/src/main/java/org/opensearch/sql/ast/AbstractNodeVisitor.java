@@ -301,7 +301,7 @@ public abstract class AbstractNodeVisitor<T, C> {
     return visitChildren(paginate, context);
   }
 
-  public T visitCursor(FetchCursor cursor, C context) {
+  public T visitFetchCursor(FetchCursor cursor, C context) {
     return visit(cursor, context);
   }
 }

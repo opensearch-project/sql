@@ -589,7 +589,7 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
   }
 
   @Override
-  public LogicalPlan visitCursor(FetchCursor cursor, AnalysisContext context) {
+  public LogicalPlan visitFetchCursor(FetchCursor cursor, AnalysisContext context) {
     return new LogicalFetchCursor(cursor.getCursor(),
       dataSourceService.getDataSource(DEFAULT_DATASOURCE_NAME).getStorageEngine());
   }

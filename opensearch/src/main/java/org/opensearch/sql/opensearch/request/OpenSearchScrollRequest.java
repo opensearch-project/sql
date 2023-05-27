@@ -68,6 +68,7 @@ public class OpenSearchScrollRequest implements OpenSearchRequest {
 
   /** Default constructor for Externalizable only.
    */
+  @Deprecated(since = "introduction")
   public OpenSearchScrollRequest() {
   }
 

@@ -229,7 +229,7 @@ class DefaultImplementorTest {
     var engine = Mockito.mock(StorageEngine.class);
 
     var physicalPlan = new TestOperator();
-    var logicalPlan = LogicalPlanDSL.cursor(new PlanSerializer(engine)
+    var logicalPlan = LogicalPlanDSL.fetchCursor(new PlanSerializer(engine)
         .convertToCursor(physicalPlan).toString(), engine);
     assertEquals(physicalPlan, logicalPlan.accept(implementor, null));
   }
