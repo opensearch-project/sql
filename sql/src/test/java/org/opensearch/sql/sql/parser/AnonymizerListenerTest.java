@@ -20,18 +20,15 @@ import org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParser;
 
 public class AnonymizerListenerTest {
 
-  public AnonymizerListener anonymizerListener = new AnonymizerListener();
-
-  public SyntaxAnalysisErrorListener errorListener = new SyntaxAnalysisErrorListener();
+  private AnonymizerListener anonymizerListener = new AnonymizerListener();
 
   /**
    * Helper function to parse SQl queries for testing purposes.
    * @param query SQL query to be anonymized.
    */
-  public void parse(String query) {
+  private void parse(String query) {
     OpenSearchSQLLexer lexer = new OpenSearchSQLLexer(new CaseInsensitiveCharStream(query));
     OpenSearchSQLParser parser = new OpenSearchSQLParser(new CommonTokenStream(lexer));
-    parser.addErrorListener(errorListener);
     parser.addParseListener(anonymizerListener);
 
     parser.root();
