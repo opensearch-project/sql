@@ -165,7 +165,7 @@ public class OpenSearchQueryRequestTest {
         new SearchRequest()
             .indices("ccs:test")
             .source(new SearchSourceBuilder()
-                .timeout(OpenSearchQueryRequest.DEFAULT_QUERY_TIMEOUT)
+                .timeout(DEFAULT_QUERY_TIMEOUT)
                 .from(0)
                 .size(200)
                 .query(QueryBuilders.termQuery("name", "John"))),
