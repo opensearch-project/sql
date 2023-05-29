@@ -8,13 +8,11 @@ package org.opensearch.sql.opensearch.request;
 
 import static java.util.stream.Collectors.mapping;
 import static java.util.stream.Collectors.toList;
-import static org.opensearch.index.query.QueryBuilders.boolQuery;
 import static org.opensearch.index.query.QueryBuilders.matchAllQuery;
 import static org.opensearch.index.query.QueryBuilders.nestedQuery;
 import static org.opensearch.search.sort.FieldSortBuilder.DOC_FIELD_NAME;
 import static org.opensearch.search.sort.SortOrder.ASC;
 
-import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -37,37 +35,21 @@ import org.opensearch.search.fetch.subphase.highlight.HighlightBuilder;
 import org.opensearch.search.sort.SortBuilder;
 import org.opensearch.search.sort.SortBuilders;
 import org.opensearch.sql.ast.expression.Literal;
-import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.common.utils.StringUtils;
 import org.opensearch.sql.exception.SemanticCheckException;
 import org.opensearch.sql.expression.ReferenceExpression;
 import org.opensearch.sql.opensearch.data.type.OpenSearchDataType;
 import org.opensearch.sql.opensearch.data.value.OpenSearchExprValueFactory;
 import org.opensearch.sql.opensearch.response.agg.OpenSearchAggregationResponseParser;
-import org.opensearch.sql.planner.logical.LogicalNested;
+
 
 /**
  * OpenSearch search request builder.
  */
-@EqualsAndHashCode(callSuper = false)
+@EqualsAndHashCode
 @Getter
 @ToString
-public class OpenSearchRequestBuilder implements PushDownRequestBuilder {
-
-  /**
-   * Default query timeout in minutes.
-   */
-  public static final TimeValue DEFAULT_QUERY_TIMEOUT = TimeValue.timeValueMinutes(1L);
-
-  /**
-   * {@link OpenSearchRequest.IndexName}.
-   */
-  private final OpenSearchRequest.IndexName indexName;
-
-  /**
-   * Index max result window.
-   */
-  private final Integer maxResultWindow;
+public class OpenSearchRequestBuilder {
 
   /**
    * Search request source builder.
@@ -75,47 +57,34 @@ public class OpenSearchRequestBuilder implements PushDownRequestBuilder {
   private final SearchSourceBuilder sourceBuilder;
 
   /**
+   * Query size of the request -- how many rows will be returned.
+   */
+  private int requestedTotalSize;
+
+  /**
+   * Size of each page request to return.
+   */
+  private Integer pageSize = null;
+
+  /**
    * OpenSearchExprValueFactory.
    */
   @EqualsAndHashCode.Exclude
   @ToString.Exclude
   private final OpenSearchExprValueFactory exprValueFactory;
-
-  /**
-   * Query size of the request -- how many rows will be returned.
-   */
-  private int querySize;
-
-  /**
-   * Scroll context life time.
-   */
-  private final TimeValue scrollTimeout;
-
-  public OpenSearchRequestBuilder(String indexName,
-                                  Integer maxResultWindow,
-                                  Settings settings,
-                                  OpenSearchExprValueFactory exprValueFactory) {
-    this(new OpenSearchRequest.IndexName(indexName), maxResultWindow, settings,
-        exprValueFactory);
-  }
+  private int startFrom = 0;
 
   /**
    * Constructor.
    */
-  public OpenSearchRequestBuilder(OpenSearchRequest.IndexName indexName,
-                                  Integer maxResultWindow,
-                                  Settings settings,
+  public OpenSearchRequestBuilder(int requestedTotalSize,
                                   OpenSearchExprValueFactory exprValueFactory) {
-    this.indexName = indexName;
-    this.maxResultWindow = maxResultWindow;
-    this.exprValueFactory = exprValueFactory;
-    this.scrollTimeout = settings.getSettingValue(Settings.Key.SQL_CURSOR_KEEP_ALIVE);
-    this.querySize = settings.getSettingValue(Settings.Key.QUERY_SIZE_LIMIT);
+    this.requestedTotalSize = requestedTotalSize;
     this.sourceBuilder = new SearchSourceBuilder()
-        .from(0)
-        .size(querySize)
-        .timeout(DEFAULT_QUERY_TIMEOUT)
+        .from(startFrom)
+        .timeout(OpenSearchRequest.DEFAULT_QUERY_TIMEOUT)
         .trackScores(false);
+    this.exprValueFactory = exprValueFactory;
   }
 
   /**
@@ -123,17 +92,32 @@ public class OpenSearchRequestBuilder implements PushDownRequestBuilder {
    *
    * @return query request or scroll request
    */
-  public OpenSearchRequest build() {
-    Integer from = sourceBuilder.from();
-    Integer size = sourceBuilder.size();
-
-    if (from + size > maxResultWindow) {
-      sourceBuilder.size(maxResultWindow - from);
-      return new OpenSearchScrollRequest(
-          indexName, scrollTimeout, sourceBuilder, exprValueFactory);
+  public OpenSearchRequest build(OpenSearchRequest.IndexName indexName,
+                                 int maxResultWindow, TimeValue scrollTimeout) {
+    int size = requestedTotalSize;
+    if (pageSize == null) {
+      if (startFrom + size > maxResultWindow) {
+        sourceBuilder.size(maxResultWindow - startFrom);
+        return new OpenSearchScrollRequest(
+            indexName, scrollTimeout, sourceBuilder, exprValueFactory);
+      } else {
+        sourceBuilder.from(startFrom);
+        sourceBuilder.size(requestedTotalSize);
+        return new OpenSearchQueryRequest(indexName, sourceBuilder, exprValueFactory);
+      }
     } else {
-      return new OpenSearchQueryRequest(indexName, sourceBuilder, exprValueFactory);
+      if (startFrom != 0) {
+        throw new UnsupportedOperationException("Non-zero offset is not supported with pagination");
+      }
+      sourceBuilder.size(pageSize);
+      return new OpenSearchScrollRequest(indexName, scrollTimeout,
+          sourceBuilder, exprValueFactory);
     }
+  }
+
+
+  boolean isBoolFilterQuery(QueryBuilder current) {
+    return (current instanceof BoolQueryBuilder);
   }
 
   /**
@@ -141,7 +125,6 @@ public class OpenSearchRequestBuilder implements PushDownRequestBuilder {
    *
    * @param query  query request
    */
-  @Override
   public void pushDownFilter(QueryBuilder query) {
     QueryBuilder current = sourceBuilder.query();
 
@@ -167,10 +150,9 @@ public class OpenSearchRequestBuilder implements PushDownRequestBuilder {
    *
    * @param aggregationBuilder pair of aggregation query and aggregation parser.
    */
-  @Override
   public void pushDownAggregation(
       Pair<List<AggregationBuilder>, OpenSearchAggregationResponseParser> aggregationBuilder) {
-    aggregationBuilder.getLeft().forEach(builder -> sourceBuilder.aggregation(builder));
+    aggregationBuilder.getLeft().forEach(sourceBuilder::aggregation);
     sourceBuilder.size(0);
     exprValueFactory.setParser(aggregationBuilder.getRight());
   }
@@ -180,7 +162,6 @@ public class OpenSearchRequestBuilder implements PushDownRequestBuilder {
    *
    * @param sortBuilders sortBuilders.
    */
-  @Override
   public void pushDownSort(List<SortBuilder<?>> sortBuilders) {
     // TODO: Sort by _doc is added when filter push down. Remove both logic once doctest fixed.
     if (isSortByDocOnly()) {
@@ -193,24 +174,26 @@ public class OpenSearchRequestBuilder implements PushDownRequestBuilder {
   }
 
   /**
-   * Push down size (limit) and from (offset) to DSL request.
+   * Pushdown size (limit) and from (offset) to DSL request.
    */
-  @Override
   public void pushDownLimit(Integer limit, Integer offset) {
-    querySize = limit;
+    requestedTotalSize = limit;
+    startFrom = offset;
     sourceBuilder.from(offset).size(limit);
   }
 
-  @Override
   public void pushDownTrackedScore(boolean trackScores) {
     sourceBuilder.trackScores(trackScores);
+  }
+
+  public void pushDownPageSize(int pageSize) {
+    this.pageSize = pageSize;
   }
 
   /**
    * Add highlight to DSL requests.
    * @param field name of the field to highlight
    */
-  @Override
   public void pushDownHighlight(String field, Map<String, Literal> arguments) {
     String unquotedField = StringUtils.unquoteText(field);
     if (sourceBuilder.highlighter() != null) {
@@ -243,14 +226,12 @@ public class OpenSearchRequestBuilder implements PushDownRequestBuilder {
   /**
    * Push down project list to DSL requests.
    */
-  @Override
   public void pushDownProjects(Set<ReferenceExpression> projects) {
-    final Set<String> projectsSet =
-        projects.stream().map(ReferenceExpression::getAttr).collect(Collectors.toSet());
-    sourceBuilder.fetchSource(projectsSet.toArray(new String[0]), new String[0]);
+    sourceBuilder.fetchSource(
+        projects.stream().map(ReferenceExpression::getAttr).distinct().toArray(String[]::new),
+        new String[0]);
   }
 
-  @Override
   public void pushTypeMapping(Map<String, OpenSearchDataType> typeMapping) {
     exprValueFactory.extendTypeMapping(typeMapping);
   }
@@ -258,7 +239,7 @@ public class OpenSearchRequestBuilder implements PushDownRequestBuilder {
   private boolean isSortByDocOnly() {
     List<SortBuilder<?>> sorts = sourceBuilder.sorts();
     if (sorts != null) {
-      return sorts.equals(Arrays.asList(SortBuilders.fieldSort(DOC_FIELD_NAME)));
+      return sorts.equals(List.of(SortBuilders.fieldSort(DOC_FIELD_NAME)));
     }
     return false;
   }
@@ -267,7 +248,6 @@ public class OpenSearchRequestBuilder implements PushDownRequestBuilder {
    * Push down nested to sourceBuilder.
    * @param nestedArgs : Nested arguments to push down.
    */
-  @Override
   public void pushDownNested(List<Map<String, ReferenceExpression>> nestedArgs) {
     initBoolQueryFilter();
     groupFieldNamesByPath(nestedArgs).forEach(
@@ -275,6 +255,10 @@ public class OpenSearchRequestBuilder implements PushDownRequestBuilder {
               fieldNames, createEmptyNestedQuery(path)
           )
     );
+  }
+
+  public int getMaxResponseSize() {
+    return pageSize == null ? requestedTotalSize : pageSize;
   }
 
   /**

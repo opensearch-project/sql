@@ -75,6 +75,7 @@ import org.opensearch.sql.ast.expression.ParseMethod;
 import org.opensearch.sql.ast.expression.ScoreFunction;
 import org.opensearch.sql.ast.expression.SpanUnit;
 import org.opensearch.sql.ast.tree.AD;
+import org.opensearch.sql.ast.tree.FetchCursor;
 import org.opensearch.sql.ast.tree.Kmeans;
 import org.opensearch.sql.ast.tree.ML;
 import org.opensearch.sql.ast.tree.Paginate;
@@ -90,6 +91,7 @@ import org.opensearch.sql.expression.ReferenceExpression;
 import org.opensearch.sql.expression.function.OpenSearchFunctions;
 import org.opensearch.sql.expression.window.WindowDefinition;
 import org.opensearch.sql.planner.logical.LogicalAD;
+import org.opensearch.sql.planner.logical.LogicalFetchCursor;
 import org.opensearch.sql.planner.logical.LogicalFilter;
 import org.opensearch.sql.planner.logical.LogicalMLCommons;
 import org.opensearch.sql.planner.logical.LogicalPaginate;
@@ -1640,5 +1642,13 @@ class AnalyzerTest extends AnalyzerTestBase {
     LogicalPlan actual = analyze(new Paginate(10, AstDSL.relation("dummy")));
     assertTrue(actual instanceof LogicalPaginate);
     assertEquals(10, ((LogicalPaginate) actual).getPageSize());
+  }
+
+  @Test
+  void visit_cursor() {
+    LogicalPlan actual = analyze((new FetchCursor("test")));
+    assertTrue(actual instanceof LogicalFetchCursor);
+    assertEquals(new LogicalFetchCursor("test",
+        dataSourceService.getDataSource("@opensearch").getStorageEngine()), actual);
   }
 }

@@ -202,7 +202,7 @@ classDiagram
 ```
 
 When `QueryPlanFactory.create` is passed a subsequent query request, it:
-1. Creates an instance of `Cursor` unresolved plan as the sole node in the unresolved query plan.
+1. Creates an instance of `FetchCursor` unresolved plan as the sole node in the unresolved query plan.
 
 ```mermaid
 classDiagram
@@ -213,11 +213,11 @@ classDiagram
         -UnresolvedPlan plan
         -QueryService queryService
     }
-    class Cursor {
+    class FetchCursor {
         <<UnresolvedPlan>>
         -String cursorId
     }
-    QueryPlan --* Cursor
+    QueryPlan --* FetchCursor
 ```
 
 The examples below show Abstract Query Plan for the same query in different request types:
@@ -256,7 +256,7 @@ stateDiagram-v2
   }
 
   state "Subsequent Query Request" As Sub {
-    Cursor
+    FetchCursor
   }
 ```
 
@@ -284,7 +284,7 @@ classDiagram
   LogicalQueryPlan --* LogicalRelation
 ```
 
-For subsequent page requests, `Cursor` unresolved plan is mapped to `LogicalCursor` logical plan.
+For subsequent page requests, `FetchCursor` unresolved plan is mapped to `LogicalFetchCursor` logical plan.
 
 ```mermaid
 classDiagram
@@ -292,11 +292,11 @@ classDiagram
   class LogicalQueryPlan {
     <<LogicalPlan>>
   }
-  class LogicalCursor {
+  class LogicalFetchCursor {
     <<LogicalPlan>>
     -String cursorId
   }
-  LogicalQueryPlan --* LogicalCursor
+  LogicalQueryPlan --* LogicalFetchCursor
 ```
 
 The examples below show logical query plan for the same query in different request types:
@@ -331,7 +331,7 @@ stateDiagram-v2
   }
 
 state "Subsequent Query Request" As Sub {
-Cursor
+FetchCursor
 }
 ```
 
@@ -500,31 +500,20 @@ Subsequent pages are processed by a new workflow. The key point there:
 
 ```mermaid
 sequenceDiagram
-    participant SQLService
-    participant QueryPlanFactory
-    participant QueryService
-    participant OpenSearchExecutionEngine
-    participant PlanSerializer
 
 SQLService ->>+ QueryPlanFactory : execute
   QueryPlanFactory ->>+ QueryService : execute
-    rect rgb(91, 123, 155)
-    note over QueryService, PlanSerializer : Deserialization
-    QueryService ->>+ PlanSerializer: convertToPlan
-      PlanSerializer -->>- QueryService: Physical Query Plan
-    end
-    Note over QueryService : Planner, Optimizer and Implementor<br />are skipped
-    QueryService ->>+ OpenSearchExecutionEngine : execute
-      rect rgb(91, 123, 155)
-      note over OpenSearchExecutionEngine, PlanSerializer : Serialization
-      OpenSearchExecutionEngine ->>+ PlanSerializer : convertToCursor
-        PlanSerializer -->>- OpenSearchExecutionEngine : cursor
-      end
-      rect rgb(91, 123, 155)
-      Note over OpenSearchExecutionEngine : get total hits
-      end
-      OpenSearchExecutionEngine -->>- QueryService: execution completed
-    QueryService -->>- QueryPlanFactory : execution completed
+  QueryService ->>+ Analyzer : analyze
+  Analyzer -->>- QueryService : new LogicalFetchCursor
+  QueryService ->>+ Planner : plan
+  Planner ->>+ DefaultImplementor : implement
+  DefaultImplementor ->>+ PlanSerializer : deserialize
+  PlanSerializer -->>- DefaultImplementor: physical query plan
+  DefaultImplementor -->>- Planner : physical query plan
+  Planner -->>- QueryService : physical query plan
+  QueryService ->>+ OpenSearchExecutionEngine : execute
+  OpenSearchExecutionEngine -->>- QueryService: execution completed
+  QueryService -->>- QueryPlanFactory : execution completed
   QueryPlanFactory -->>- SQLService : execution completed
 ```
 
@@ -613,7 +602,6 @@ sequenceDiagram
     participant ProjectOperator
     participant ResourceMonitorPlan
     participant OpenSearchIndexScan
-    participant OpenSearchScrollRequest
     participant OpenSearchScrollRequest
 
 PlanSerializer ->>+ ProjectOperator : getPlanForSerialization

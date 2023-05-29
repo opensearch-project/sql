@@ -12,6 +12,7 @@ import static org.junit.jupiter.api.Assertions.assertAll;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 import static org.opensearch.sql.executor.execution.QueryPlanFactory.NO_CONSUMER_RESPONSE_LISTENER;
 
@@ -29,7 +30,7 @@ import org.opensearch.sql.common.response.ResponseListener;
 import org.opensearch.sql.exception.UnsupportedCursorRequestException;
 import org.opensearch.sql.executor.ExecutionEngine;
 import org.opensearch.sql.executor.QueryService;
-import org.opensearch.sql.executor.pagination.PlanSerializer;
+import org.opensearch.sql.executor.pagination.CanPaginateVisitor;
 
 @ExtendWith(MockitoExtension.class)
 class QueryPlanFactoryTest {
@@ -49,20 +50,18 @@ class QueryPlanFactoryTest {
   @Mock
   private ExecutionEngine.QueryResponse queryResponse;
 
-  @Mock
-  private PlanSerializer planSerializer;
   private QueryPlanFactory factory;
 
   @BeforeEach
   void init() {
-    factory = new QueryPlanFactory(queryService, planSerializer);
+    factory = new QueryPlanFactory(queryService);
   }
 
   @Test
   public void createFromQueryShouldSuccess() {
     Statement query = new Query(plan, 0);
     AbstractPlan queryExecution =
-        factory.createContinuePaginatedPlan(query, Optional.of(queryListener), Optional.empty());
+        factory.create(query, Optional.of(queryListener), Optional.empty());
     assertTrue(queryExecution instanceof QueryPlan);
   }
 
@@ -70,18 +69,18 @@ class QueryPlanFactoryTest {
   public void createFromExplainShouldSuccess() {
     Statement query = new Explain(new Query(plan, 0));
     AbstractPlan queryExecution =
-        factory.createContinuePaginatedPlan(query, Optional.empty(), Optional.of(explainListener));
+        factory.create(query, Optional.empty(), Optional.of(explainListener));
     assertTrue(queryExecution instanceof ExplainPlan);
   }
 
   @Test
   public void createFromCursorShouldSuccess() {
-    AbstractPlan queryExecution = factory.createContinuePaginatedPlan("", false,
+    AbstractPlan queryExecution = factory.create("", false,
         queryListener, explainListener);
-    AbstractPlan explainExecution = factory.createContinuePaginatedPlan("", true,
+    AbstractPlan explainExecution = factory.create("", true,
         queryListener, explainListener);
     assertAll(
-        () -> assertTrue(queryExecution instanceof ContinuePaginatedPlan),
+        () -> assertTrue(queryExecution instanceof QueryPlan),
         () -> assertTrue(explainExecution instanceof ExplainPlan)
     );
   }
@@ -91,7 +90,7 @@ class QueryPlanFactoryTest {
     Statement query = new Query(plan, 0);
 
     IllegalArgumentException exception =
-        assertThrows(IllegalArgumentException.class, () -> factory.createContinuePaginatedPlan(
+        assertThrows(IllegalArgumentException.class, () -> factory.create(
             query, Optional.empty(), Optional.empty()));
     assertEquals("[BUG] query listener must be not null", exception.getMessage());
   }
@@ -101,7 +100,7 @@ class QueryPlanFactoryTest {
     Statement query = new Explain(new Query(plan, 0));
 
     IllegalArgumentException exception =
-        assertThrows(IllegalArgumentException.class, () -> factory.createContinuePaginatedPlan(
+        assertThrows(IllegalArgumentException.class, () -> factory.create(
             query, Optional.empty(), Optional.empty()));
     assertEquals("[BUG] explain listener must be not null", exception.getMessage());
   }
@@ -125,21 +124,21 @@ class QueryPlanFactoryTest {
 
   @Test
   public void createQueryWithFetchSizeWhichCanBePaged() {
-    when(planSerializer.canConvertToCursor(plan)).thenReturn(true);
-    factory = new QueryPlanFactory(queryService, planSerializer);
+    when(plan.accept(any(CanPaginateVisitor.class), any())).thenReturn(Boolean.TRUE);
+    factory = new QueryPlanFactory(queryService);
     Statement query = new Query(plan, 10);
     AbstractPlan queryExecution =
-        factory.createContinuePaginatedPlan(query, Optional.of(queryListener), Optional.empty());
+        factory.create(query, Optional.of(queryListener), Optional.empty());
     assertTrue(queryExecution instanceof QueryPlan);
   }
 
   @Test
   public void createQueryWithFetchSizeWhichCannotBePaged() {
-    when(planSerializer.canConvertToCursor(plan)).thenReturn(false);
-    factory = new QueryPlanFactory(queryService, planSerializer);
+    when(plan.accept(any(CanPaginateVisitor.class), any())).thenReturn(Boolean.FALSE);
+    factory = new QueryPlanFactory(queryService);
     Statement query = new Query(plan, 10);
     assertThrows(UnsupportedCursorRequestException.class,
-        () -> factory.createContinuePaginatedPlan(query,
+        () -> factory.create(query,
             Optional.of(queryListener), Optional.empty()));
   }
 }

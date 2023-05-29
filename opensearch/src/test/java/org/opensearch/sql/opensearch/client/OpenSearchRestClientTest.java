@@ -78,7 +78,6 @@ import org.opensearch.sql.opensearch.response.OpenSearchResponse;
 class OpenSearchRestClientTest {
 
   private static final String TEST_MAPPING_FILE = "mappings/accounts.json";
-
   @Mock(answer = RETURNS_DEEP_STUBS)
   private RestHighLevelClient restClient;
 
@@ -93,8 +92,8 @@ class OpenSearchRestClientTest {
   @Mock
   private GetIndexResponse getIndexResponse;
 
-  private ExprTupleValue exprTupleValue = ExprTupleValue.fromExprValueMap(ImmutableMap.of("id",
-      new ExprIntegerValue(1)));
+  private final ExprTupleValue exprTupleValue = ExprTupleValue.fromExprValueMap(
+      Map.of("id", new ExprIntegerValue(1)));
 
   @BeforeEach
   void setUp() {
@@ -362,9 +361,7 @@ class OpenSearchRestClientTest {
   void schedule() {
     AtomicBoolean isRun = new AtomicBoolean(false);
     client.schedule(
-        () -> {
-          isRun.set(true);
-        });
+        () -> isRun.set(true));
     assertTrue(isRun.get());
   }
 

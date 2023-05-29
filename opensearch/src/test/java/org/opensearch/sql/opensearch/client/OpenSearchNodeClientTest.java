@@ -29,7 +29,6 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.io.Resources;
 import java.io.IOException;
 import java.net.URL;
-import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -98,13 +97,10 @@ class OpenSearchNodeClientTest {
   private SearchHit searchHit;
 
   @Mock
-  private ThreadContext threadContext;
-
-  @Mock
   private GetIndexResponse indexResponse;
 
-  private ExprTupleValue exprTupleValue = ExprTupleValue.fromExprValueMap(ImmutableMap.of("id",
-      new ExprIntegerValue(1)));
+  private final ExprTupleValue exprTupleValue = ExprTupleValue.fromExprValueMap(
+      Map.of("id", new ExprIntegerValue(1)));
 
   private OpenSearchClient client;
 

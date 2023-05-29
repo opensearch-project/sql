@@ -23,13 +23,9 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
-import java.io.IOException;
-import java.io.ObjectInput;
 import java.io.ObjectInputStream;
-import java.io.ObjectOutput;
 import java.io.ObjectOutputStream;
 import java.util.List;
-import lombok.EqualsAndHashCode;
 import lombok.SneakyThrows;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -40,7 +36,7 @@ import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.data.model.ExprValueUtils;
 import org.opensearch.sql.executor.ExecutionEngine;
 import org.opensearch.sql.expression.DSL;
-import org.opensearch.sql.planner.SerializablePlan;
+import org.opensearch.sql.utils.TestOperator;
 
 @ExtendWith(MockitoExtension.class)
 class ProjectOperatorTest extends PhysicalPlanTestBase {
@@ -233,37 +229,5 @@ class ProjectOperatorTest extends PhysicalPlanTestBase {
         new ByteArrayInputStream(output.toByteArray()));
     var roundTripPlan = (ProjectOperator) objectInput.readObject();
     assertEquals(project, roundTripPlan);
-  }
-
-  @EqualsAndHashCode(callSuper = false)
-  public static class TestOperator extends PhysicalPlan implements SerializablePlan {
-
-    @Override
-    public <R, C> R accept(PhysicalPlanNodeVisitor<R, C> visitor, C context) {
-      return null;
-    }
-
-    @Override
-    public boolean hasNext() {
-      return false;
-    }
-
-    @Override
-    public ExprValue next() {
-      return null;
-    }
-
-    @Override
-    public List<PhysicalPlan> getChild() {
-      return null;
-    }
-
-    @Override
-    public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
-    }
-
-    @Override
-    public void writeExternal(ObjectOutput out) throws IOException {
-    }
   }
 }

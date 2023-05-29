@@ -91,6 +91,7 @@ classDiagram
     +pushDownAggregation(LogicalAggregation) boolean
     +pushDownSort(LogicalSort) boolean
     +pushDownLimit(LogicalLimit) boolean
+    +pushDownPageSize(LogicalPaginate) boolean
     +pushDownProject(LogicalProject) boolean
     +pushDownHighlight(LogicalHighlight) boolean
     +pushDownNested(LogicalNested) boolean
@@ -103,15 +104,12 @@ classDiagram
     +pushDownAggregation(LogicalAggregation) boolean
     +pushDownSort(LogicalSort) boolean
     +pushDownLimit(LogicalLimit) boolean
+    +pushDownPageSize(LogicalPaginate) boolean
     +pushDownProject(LogicalProject) boolean
     +pushDownHighlight(LogicalHighlight) boolean
     +pushDownNested(LogicalNested) boolean
     +findReferenceExpression(NamedExpression)$ List~ReferenceExpression~
     +findReferenceExpressions(List~NamedExpression~)$ Set~ReferenceExpression~
-  }
-  class OpenSearchPagedIndexScanBuilder {
-    +OpenSearchPagedIndexScanBuilder(OpenSearchPagedIndexScan)
-    +build() TableScanOperator
   }
   class OpenSearchIndexScanBuilder {
     -TableScanBuilder delegate
@@ -131,7 +129,6 @@ classDiagram
 
   LogicalPlan <|-- TableScanBuilder
   TableScanBuilder <|-- OpenSearchIndexScanQueryBuilder
-  TableScanBuilder <|-- OpenSearchPagedIndexScanBuilder
   TableScanBuilder <|-- OpenSearchIndexScanBuilder
   OpenSearchIndexScanBuilder *-- "1" TableScanBuilder : delegate
   OpenSearchIndexScanBuilder <.. OpenSearchIndexScanQueryBuilder : creates
@@ -159,7 +156,6 @@ classDiagram
   }
   class Table {
     +TableScanBuilder createScanBuilder()
-    +TableScanBuilder createPagedScanBuilder(int)
   }
   class TableScanPushDown~T~ {
     +Rule~T~ PUSH_DOWN_FILTER$

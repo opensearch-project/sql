@@ -17,12 +17,14 @@ import org.opensearch.sql.ast.AbstractNodeVisitor;
 import org.opensearch.sql.ast.statement.Explain;
 import org.opensearch.sql.ast.statement.Query;
 import org.opensearch.sql.ast.statement.Statement;
+import org.opensearch.sql.ast.tree.FetchCursor;
+import org.opensearch.sql.ast.tree.UnresolvedPlan;
 import org.opensearch.sql.common.response.ResponseListener;
 import org.opensearch.sql.exception.UnsupportedCursorRequestException;
 import org.opensearch.sql.executor.ExecutionEngine;
 import org.opensearch.sql.executor.QueryId;
 import org.opensearch.sql.executor.QueryService;
-import org.opensearch.sql.executor.pagination.PlanSerializer;
+import org.opensearch.sql.executor.pagination.CanPaginateVisitor;
 
 /**
  * QueryExecution Factory.
@@ -39,7 +41,6 @@ public class QueryPlanFactory
    * Query Service.
    */
   private final QueryService queryService;
-  private final PlanSerializer planSerializer;
 
   /**
    * NO_CONSUMER_RESPONSE_LISTENER should never be called. It is only used as constructor
@@ -65,7 +66,7 @@ public class QueryPlanFactory
   /**
    * Create QueryExecution from Statement.
    */
-  public AbstractPlan createContinuePaginatedPlan(
+  public AbstractPlan create(
       Statement statement,
       Optional<ResponseListener<ExecutionEngine.QueryResponse>> queryListener,
       Optional<ResponseListener<ExecutionEngine.ExplainResponse>> explainListener) {
@@ -73,15 +74,18 @@ public class QueryPlanFactory
   }
 
   /**
-   * Creates a ContinuePaginatedPlan from a cursor.
+   * Creates a QueryPlan from a cursor.
    */
-  public AbstractPlan createContinuePaginatedPlan(String cursor, boolean isExplain,
-      ResponseListener<ExecutionEngine.QueryResponse> queryResponseListener,
-      ResponseListener<ExecutionEngine.ExplainResponse> explainListener) {
+  public AbstractPlan create(String cursor, boolean isExplain,
+                             ResponseListener<ExecutionEngine.QueryResponse> queryResponseListener,
+                             ResponseListener<ExecutionEngine.ExplainResponse> explainListener) {
     QueryId queryId = QueryId.queryId();
-    var plan = new ContinuePaginatedPlan(queryId, cursor, queryService,
-            planSerializer, queryResponseListener);
+    var plan = new QueryPlan(queryId, new FetchCursor(cursor), queryService, queryResponseListener);
     return isExplain ? new ExplainPlan(queryId, plan, explainListener) : plan;
+  }
+
+  boolean canConvertToCursor(UnresolvedPlan plan) {
+    return plan.accept(new CanPaginateVisitor(), null);
   }
 
   @Override
@@ -94,7 +98,7 @@ public class QueryPlanFactory
         context.getLeft().isPresent(), "[BUG] query listener must be not null");
 
     if (node.getFetchSize() > 0) {
-      if (planSerializer.canConvertToCursor(node.getPlan())) {
+      if (canConvertToCursor(node.getPlan())) {
         return new QueryPlan(QueryId.queryId(), node.getPlan(), node.getFetchSize(),
             queryService,
             context.getLeft().get());
@@ -119,7 +123,7 @@ public class QueryPlanFactory
 
     return new ExplainPlan(
         QueryId.queryId(),
-        createContinuePaginatedPlan(node.getStatement(),
+        create(node.getStatement(),
             Optional.of(NO_CONSUMER_RESPONSE_LISTENER), Optional.empty()),
         context.getRight().get());
   }

@@ -6,9 +6,7 @@
 
 package org.opensearch.sql.opensearch.request;
 
-import static org.opensearch.sql.opensearch.request.OpenSearchRequestBuilder.DEFAULT_QUERY_TIMEOUT;
-
-import com.google.common.annotations.VisibleForTesting;
+import java.io.IOException;
 import java.util.Arrays;
 import java.util.List;
 import java.util.function.Consumer;
@@ -19,6 +17,7 @@ import lombok.ToString;
 import org.opensearch.action.search.SearchRequest;
 import org.opensearch.action.search.SearchResponse;
 import org.opensearch.action.search.SearchScrollRequest;
+import org.opensearch.common.io.stream.StreamOutput;
 import org.opensearch.search.SearchHits;
 import org.opensearch.search.builder.SearchSourceBuilder;
 import org.opensearch.search.fetch.subphase.FetchSourceContext;
@@ -45,6 +44,7 @@ public class OpenSearchQueryRequest implements OpenSearchRequest {
    * Search request source builder.
    */
   private final SearchSourceBuilder sourceBuilder;
+
 
 
   /**
@@ -102,7 +102,9 @@ public class OpenSearchQueryRequest implements OpenSearchRequest {
     } else {
       searchDone = true;
       return new OpenSearchResponse(
-          searchAction.apply(searchRequest()), exprValueFactory, includes);
+          searchAction.apply(new SearchRequest()
+            .indices(indexName.getIndexNames())
+            .source(sourceBuilder)), exprValueFactory, includes);
     }
   }
 
@@ -111,15 +113,14 @@ public class OpenSearchQueryRequest implements OpenSearchRequest {
     //do nothing.
   }
 
-  /**
-   * Generate OpenSearch search request.
-   *
-   * @return search request
-   */
-  @VisibleForTesting
-  protected SearchRequest searchRequest() {
-    return new SearchRequest()
-        .indices(indexName.getIndexNames())
-        .source(sourceBuilder);
+  @Override
+  public boolean hasAnotherBatch() {
+    return false;
+  }
+
+  @Override
+  public void writeTo(StreamOutput out) throws IOException {
+    throw new UnsupportedOperationException("OpenSearchQueryRequest serialization "
+        + "is not implemented.");
   }
 }

@@ -6,18 +6,25 @@
 
 package org.opensearch.sql.opensearch.storage.scan;
 
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.ObjectInput;
+import java.io.ObjectOutput;
 import java.util.Collections;
 import java.util.Iterator;
 import lombok.EqualsAndHashCode;
-import lombok.Getter;
 import lombok.ToString;
-import org.opensearch.sql.common.setting.Settings;
+import org.opensearch.common.io.stream.BytesStreamInput;
+import org.opensearch.common.io.stream.BytesStreamOutput;
 import org.opensearch.sql.data.model.ExprValue;
+import org.opensearch.sql.exception.NoCursorException;
+import org.opensearch.sql.executor.pagination.PlanSerializer;
 import org.opensearch.sql.opensearch.client.OpenSearchClient;
-import org.opensearch.sql.opensearch.data.value.OpenSearchExprValueFactory;
 import org.opensearch.sql.opensearch.request.OpenSearchRequest;
-import org.opensearch.sql.opensearch.request.OpenSearchRequestBuilder;
+import org.opensearch.sql.opensearch.request.OpenSearchScrollRequest;
 import org.opensearch.sql.opensearch.response.OpenSearchResponse;
+import org.opensearch.sql.opensearch.storage.OpenSearchStorageEngine;
+import org.opensearch.sql.planner.SerializablePlan;
 import org.opensearch.sql.storage.TableScanOperator;
 
 /**
@@ -25,26 +32,20 @@ import org.opensearch.sql.storage.TableScanOperator;
  */
 @EqualsAndHashCode(onlyExplicitlyIncluded = true, callSuper = false)
 @ToString(onlyExplicitlyIncluded = true)
-public class OpenSearchIndexScan extends TableScanOperator {
+public class OpenSearchIndexScan extends TableScanOperator implements SerializablePlan {
 
   /** OpenSearch client. */
-  private final OpenSearchClient client;
-
-  /** Search request builder. */
-  @EqualsAndHashCode.Include
-  @Getter
-  @ToString.Include
-  private final OpenSearchRequestBuilder requestBuilder;
+  private OpenSearchClient client;
 
   /** Search request. */
   @EqualsAndHashCode.Include
   @ToString.Include
   private OpenSearchRequest request;
 
-  /** Total query size. */
+  /** Largest number of rows allowed in the response. */
   @EqualsAndHashCode.Include
   @ToString.Include
-  private Integer querySize;
+  private int maxResponseSize;
 
   /** Number of rows returned. */
   private Integer queryCount;
@@ -53,36 +54,19 @@ public class OpenSearchIndexScan extends TableScanOperator {
   private Iterator<ExprValue> iterator;
 
   /**
-   * Constructor.
+   * Creates index scan based on a provided OpenSearchRequestBuilder.
    */
-  public OpenSearchIndexScan(OpenSearchClient client, Settings settings,
-                             String indexName, Integer maxResultWindow,
-                             OpenSearchExprValueFactory exprValueFactory) {
-    this(
-            client,
-            settings,
-            new OpenSearchRequest.IndexName(indexName),
-            maxResultWindow,
-            exprValueFactory
-    );
-  }
-
-  /**
-   * Constructor.
-   */
-  public OpenSearchIndexScan(OpenSearchClient client, Settings settings,
-                             OpenSearchRequest.IndexName indexName, Integer maxResultWindow,
-                             OpenSearchExprValueFactory exprValueFactory) {
+  public OpenSearchIndexScan(OpenSearchClient client,
+                             int maxResponseSize,
+                             OpenSearchRequest request) {
     this.client = client;
-    this.requestBuilder = new OpenSearchRequestBuilder(
-        indexName, maxResultWindow, settings, exprValueFactory);
+    this.maxResponseSize = maxResponseSize;
+    this.request = request;
   }
 
   @Override
   public void open() {
     super.open();
-    querySize = requestBuilder.getQuerySize();
-    request = requestBuilder.build();
     iterator = Collections.emptyIterator();
     queryCount = 0;
     fetchNextBatch();
@@ -90,7 +74,7 @@ public class OpenSearchIndexScan extends TableScanOperator {
 
   @Override
   public boolean hasNext() {
-    if (queryCount >= querySize) {
+    if (queryCount >= maxResponseSize) {
       iterator = Collections.emptyIterator();
     } else if (!iterator.hasNext()) {
       fetchNextBatch();
@@ -126,6 +110,51 @@ public class OpenSearchIndexScan extends TableScanOperator {
 
   @Override
   public String explain() {
-    return getRequestBuilder().build().toString();
+    return request.toString();
+  }
+
+  /** No-args constructor.
+   * @deprecated Exists only to satisfy Java serialization API.
+   */
+  @Deprecated(since = "introduction")
+  public OpenSearchIndexScan() {
+  }
+
+  @Override
+  public void readExternal(ObjectInput in) throws IOException {
+    int reqSize = in.readInt();
+    byte[] requestStream = new byte[reqSize];
+    in.read(requestStream);
+
+    var engine = (OpenSearchStorageEngine) ((PlanSerializer.CursorDeserializationStream) in)
+        .resolveObject("engine");
+
+    try (BytesStreamInput bsi = new BytesStreamInput(requestStream)) {
+      request = new OpenSearchScrollRequest(bsi, engine);
+    }
+    maxResponseSize = in.readInt();
+
+    client = engine.getClient();
+  }
+
+  @Override
+  public void writeExternal(ObjectOutput out) throws IOException {
+    if (!request.hasAnotherBatch()) {
+      throw new NoCursorException();
+    }
+    // request is not directly Serializable so..
+    // 1. Serialize request to an opensearch byte stream.
+    BytesStreamOutput reqOut = new BytesStreamOutput();
+    request.writeTo(reqOut);
+    reqOut.flush();
+
+    // 2. Extract byte[] from the opensearch byte stream
+    var reqAsBytes = reqOut.bytes().toBytesRef().bytes;
+
+    // 3. Write out the byte[] to object output stream.
+    out.writeInt(reqAsBytes.length);
+    out.write(reqAsBytes);
+
+    out.writeInt(maxResponseSize);
   }
 }

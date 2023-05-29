@@ -6,6 +6,7 @@
 
 package org.opensearch.sql.opensearch.request;
 
+import java.io.IOException;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
@@ -18,11 +19,14 @@ import lombok.ToString;
 import org.opensearch.action.search.SearchRequest;
 import org.opensearch.action.search.SearchResponse;
 import org.opensearch.action.search.SearchScrollRequest;
+import org.opensearch.common.io.stream.StreamInput;
+import org.opensearch.common.io.stream.StreamOutput;
 import org.opensearch.common.unit.TimeValue;
 import org.opensearch.search.builder.SearchSourceBuilder;
-import org.opensearch.search.fetch.subphase.FetchSourceContext;
 import org.opensearch.sql.opensearch.data.value.OpenSearchExprValueFactory;
 import org.opensearch.sql.opensearch.response.OpenSearchResponse;
+import org.opensearch.sql.opensearch.storage.OpenSearchIndex;
+import org.opensearch.sql.opensearch.storage.OpenSearchStorageEngine;
 
 /**
  * OpenSearch scroll search request. This has to be stateful because it needs to:
@@ -34,7 +38,7 @@ import org.opensearch.sql.opensearch.response.OpenSearchResponse;
 @Getter
 @ToString
 public class OpenSearchScrollRequest implements OpenSearchRequest {
-
+  private final SearchRequest initialSearchRequest;
   /** Scroll context timeout. */
   private final TimeValue scrollTimeout;
 
@@ -47,19 +51,20 @@ public class OpenSearchScrollRequest implements OpenSearchRequest {
   @EqualsAndHashCode.Exclude
   @ToString.Exclude
   private final OpenSearchExprValueFactory exprValueFactory;
-
   /**
    * Scroll id which is set after first request issued. Because ElasticsearchClient is shared by
    * multi-thread so this state has to be maintained here.
    */
   @Setter
   @Getter
-  private String scrollId;
+  private String scrollId = NO_SCROLL_ID;
+
+  public static final String NO_SCROLL_ID = "";
 
   private boolean needClean = false;
 
-  /** Search request source builder. */
-  private final SearchSourceBuilder sourceBuilder;
+  @Getter
+  private final List<String> includes;
 
   /** Constructor. */
   public OpenSearchScrollRequest(IndexName indexName,
@@ -68,11 +73,20 @@ public class OpenSearchScrollRequest implements OpenSearchRequest {
                                  OpenSearchExprValueFactory exprValueFactory) {
     this.indexName = indexName;
     this.scrollTimeout = scrollTimeout;
-    this.sourceBuilder = sourceBuilder;
     this.exprValueFactory = exprValueFactory;
+    this.initialSearchRequest = new SearchRequest()
+        .indices(indexName.getIndexNames())
+        .scroll(scrollTimeout)
+        .source(sourceBuilder);
+
+    includes =  sourceBuilder.fetchSource() == null
+        ? List.of()
+        : Arrays.asList(sourceBuilder.fetchSource().includes());
   }
 
-  /** Constructor. */
+
+  /** Executes request using either {@param searchAction} or {@param scrollAction} as appropriate.
+   */
   @Override
   public OpenSearchResponse search(Function<SearchRequest, SearchResponse> searchAction,
                                    Function<SearchScrollRequest, SearchResponse> scrollAction) {
@@ -80,15 +94,12 @@ public class OpenSearchScrollRequest implements OpenSearchRequest {
     if (isScroll()) {
       openSearchResponse = scrollAction.apply(scrollRequest());
     } else {
-      openSearchResponse = searchAction.apply(searchRequest());
+      openSearchResponse = searchAction.apply(initialSearchRequest);
     }
-    FetchSourceContext fetchSource = this.sourceBuilder.fetchSource();
-    List<String> includes = fetchSource != null && fetchSource.includes() != null
-        ? Arrays.asList(this.sourceBuilder.fetchSource().includes())
-        : List.of();
 
     var response = new OpenSearchResponse(openSearchResponse, exprValueFactory, includes);
-    if (!(needClean = response.isEmpty())) {
+    needClean = response.isEmpty();
+    if (!needClean) {
       setScrollId(openSearchResponse.getScrollId());
     }
     return response;
@@ -100,23 +111,11 @@ public class OpenSearchScrollRequest implements OpenSearchRequest {
       // clean on the last page only, to prevent closing the scroll/cursor in the middle of paging.
       if (needClean && isScroll()) {
         cleanAction.accept(getScrollId());
-        setScrollId(null);
+        setScrollId(NO_SCROLL_ID);
       }
     } finally {
       reset();
     }
-  }
-
-  /**
-   * Generate OpenSearch search request.
-   *
-   * @return search request
-   */
-  public SearchRequest searchRequest() {
-    return new SearchRequest()
-        .indices(indexName.getIndexNames())
-        .scroll(scrollTimeout)
-        .source(sourceBuilder);
   }
 
   /**
@@ -125,7 +124,7 @@ public class OpenSearchScrollRequest implements OpenSearchRequest {
    * @return true if scroll started
    */
   public boolean isScroll() {
-    return scrollId != null;
+    return !scrollId.equals(NO_SCROLL_ID);
   }
 
   /**
@@ -143,7 +142,7 @@ public class OpenSearchScrollRequest implements OpenSearchRequest {
    * to be reused across different physical plan.
    */
   public void reset() {
-    scrollId = null;
+    scrollId = NO_SCROLL_ID;
   }
 
   /**
@@ -151,7 +150,42 @@ public class OpenSearchScrollRequest implements OpenSearchRequest {
    * @return a string representing the scroll request.
    */
   @Override
-  public String toCursor() {
-    return scrollId;
+  public boolean hasAnotherBatch() {
+    return !needClean && !scrollId.equals(NO_SCROLL_ID);
+  }
+
+  @Override
+  public void writeTo(StreamOutput out) throws IOException {
+    initialSearchRequest.writeTo(out);
+    out.writeTimeValue(scrollTimeout);
+    out.writeBoolean(needClean);
+    if (!needClean) {
+      // If needClean is true, there is no more data to get from OpenSearch and scrollId is
+      // used only to clean up OpenSearch context.
+
+      out.writeString(scrollId);
+    }
+    out.writeStringCollection(includes);
+    indexName.writeTo(out);
+  }
+
+  /**
+   * Constructs OpenSearchScrollRequest from serialized representation.
+   * @param in stream to read data from.
+   * @param engine OpenSearchSqlEngine to get node-specific context.
+   * @throws IOException thrown if reading from input {@param in} fails.
+   */
+  public OpenSearchScrollRequest(StreamInput in, OpenSearchStorageEngine engine)
+      throws IOException {
+    initialSearchRequest = new SearchRequest(in);
+    scrollTimeout = in.readTimeValue();
+    needClean = in.readBoolean();
+    if (!needClean) {
+      scrollId = in.readString();
+    }
+    includes = in.readStringList();
+    indexName = new IndexName(in);
+    OpenSearchIndex index = (OpenSearchIndex) engine.getTable(null, indexName.toString());
+    exprValueFactory = new OpenSearchExprValueFactory(index.getFieldOpenSearchTypes());
   }
 }

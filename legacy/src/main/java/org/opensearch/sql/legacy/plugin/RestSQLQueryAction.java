@@ -102,7 +102,9 @@ public class RestSQLQueryAction extends BaseRestHandler {
                   channel,
                   createExplainResponseListener(channel, executionErrorHandler),
                   fallbackHandler));
-    } else {
+    }
+    // If close request, sqlService.closeCursor
+    else  {
       return channel ->
           sqlService.execute(
               request,

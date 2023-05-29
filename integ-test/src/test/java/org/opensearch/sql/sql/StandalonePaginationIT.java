@@ -26,6 +26,7 @@ import org.opensearch.client.RestHighLevelClient;
 import org.opensearch.common.inject.Injector;
 import org.opensearch.common.inject.ModulesBuilder;
 import org.opensearch.common.unit.TimeValue;
+import org.opensearch.sql.ast.tree.FetchCursor;
 import org.opensearch.sql.common.response.ResponseListener;
 import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.data.type.ExprCoreType;
@@ -98,7 +99,7 @@ public class StandalonePaginationIT extends SQLIntegTestCase {
         e.printStackTrace();
         fail(e.getMessage());
       }
-    };
+    }
 
     // arrange
     {
@@ -126,7 +127,7 @@ public class StandalonePaginationIT extends SQLIntegTestCase {
 
     PhysicalPlan plan = planSerializer.convertToPlan(firstResponder.getCursor().toString());
     var secondResponder = new TestResponder();
-    queryService.executePlan(plan, secondResponder);
+    queryService.execute(new FetchCursor(firstResponder.getCursor().toString()), secondResponder);
 
     // act 3: confirm that there's no cursor.
   }

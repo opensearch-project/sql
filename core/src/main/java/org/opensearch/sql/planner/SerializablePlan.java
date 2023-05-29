@@ -6,10 +6,6 @@
 package org.opensearch.sql.planner;
 
 import java.io.Externalizable;
-import java.io.IOException;
-import java.io.ObjectInput;
-import java.io.ObjectOutput;
-import org.opensearch.sql.executor.pagination.PlanSerializer;
 
 /**
  * All subtypes of PhysicalPlan which needs to be serialized (in cursor, for pagination feature)
@@ -30,21 +26,6 @@ import org.opensearch.sql.executor.pagination.PlanSerializer;
 public interface SerializablePlan extends Externalizable {
 
   /**
-   * Argument is an instance of {@link PlanSerializer.CursorDeserializationStream}.
-   */
-  @Override
-  void readExternal(ObjectInput in) throws IOException, ClassNotFoundException;
-
-  /**
-   * Each plan which has as a child plan should do.
-   * <pre>{@code
-   * out.writeObject(input.getPlanForSerialization());
-   * }</pre>
-   */
-  @Override
-  void writeExternal(ObjectOutput out) throws IOException;
-
-  /**
    * Override to return child or delegated plan, so parent plan should skip this one
    * for serialization, but it should try to serialize grandchild plan.
    * Imagine plan structure like this
@@ -55,6 +36,10 @@ public interface SerializablePlan extends Externalizable {
    * </pre>
    * In that case only plans A and C should be attempted to serialize.
    * It is needed to skip a `ResourceMonitorPlan` instance only, actually.
+   *
+   *  <pre>{@code
+   *    * A.writeObject(B.getPlanForSerialization());
+   *  }</pre>
    * @return Next plan for serialization.
    */
   default SerializablePlan getPlanForSerialization() {

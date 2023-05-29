@@ -65,10 +65,15 @@ public class SQLService {
       SQLQueryRequest request,
       Optional<ResponseListener<QueryResponse>> queryListener,
       Optional<ResponseListener<ExplainResponse>> explainListener) {
+    boolean isExplainRequest = request.isExplainRequest();
     if (request.getCursor().isPresent()) {
       // Handle v2 cursor here -- legacy cursor was handled earlier.
-      return queryExecutionFactory.createContinuePaginatedPlan(request.getCursor().get(),
-          request.isExplainRequest(), queryListener.orElse(null), explainListener.orElse(null));
+      if (isExplainRequest) {
+        throw new UnsupportedOperationException("Explain of a paged query continuation "
+          + "is not supported. Use `explain` for the initial query request.");
+      }
+      return queryExecutionFactory.create(request.getCursor().get(),
+        isExplainRequest, queryListener.orElse(null), explainListener.orElse(null));
     } else {
       // 1.Parse query and convert parse tree (CST) to abstract syntax tree (AST)
       ParseTree cst = parser.parse(request.getQuery());
@@ -77,11 +82,11 @@ public class SQLService {
               new AstStatementBuilder(
                   new AstBuilder(request.getQuery()),
                   AstStatementBuilder.StatementBuilderContext.builder()
-                      .isExplain(request.isExplainRequest())
+                      .isExplain(isExplainRequest)
                       .fetchSize(request.getFetchSize())
                       .build()));
 
-      return queryExecutionFactory.createContinuePaginatedPlan(
+      return queryExecutionFactory.create(
           statement, queryListener, explainListener);
     }
   }

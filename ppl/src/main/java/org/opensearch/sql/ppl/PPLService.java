@@ -90,7 +90,7 @@ public class PPLService {
         QueryContext.getRequestId(),
         anonymizer.anonymizeStatement(statement));
 
-    return queryExecutionFactory.createContinuePaginatedPlan(
+    return queryExecutionFactory.create(
         statement, queryListener, explainListener);
   }
 }

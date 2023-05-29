@@ -43,6 +43,7 @@ import org.opensearch.sql.ast.tree.AD;
 import org.opensearch.sql.ast.tree.Aggregation;
 import org.opensearch.sql.ast.tree.Dedupe;
 import org.opensearch.sql.ast.tree.Eval;
+import org.opensearch.sql.ast.tree.FetchCursor;
 import org.opensearch.sql.ast.tree.Filter;
 import org.opensearch.sql.ast.tree.Head;
 import org.opensearch.sql.ast.tree.Kmeans;
@@ -298,5 +299,9 @@ public abstract class AbstractNodeVisitor<T, C> {
 
   public T visitPaginate(Paginate paginate, C context) {
     return visitChildren(paginate, context);
+  }
+
+  public T visitFetchCursor(FetchCursor cursor, C context) {
+    return visit(cursor, context);
   }
 }

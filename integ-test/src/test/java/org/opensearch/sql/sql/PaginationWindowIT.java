@@ -21,7 +21,7 @@ public class PaginationWindowIT extends SQLIntegTestCase {
   }
 
   @After
-  void resetParams() throws IOException {
+  public void resetParams() throws IOException {
     resetMaxResultWindow(TEST_INDEX_PHRASE);
     resetQuerySizeLimit();
   }
@@ -31,14 +31,14 @@ public class PaginationWindowIT extends SQLIntegTestCase {
     setMaxResultWindow(TEST_INDEX_PHRASE, 6);
     JSONObject response = executeQueryTemplate("SELECT * FROM %s", TEST_INDEX_PHRASE, 5);
 
-    String cursor = "";
     int numRows = 0;
     do {
       // Process response
-      cursor = response.getString("cursor");
+      String cursor = response.getString("cursor");
       numRows += response.getJSONArray("datarows").length();
       response = executeCursorQuery(cursor);
     } while (response.has("cursor"));
+    numRows += response.getJSONArray("datarows").length();
 
     var countRows = executeJdbcRequest("SELECT COUNT(*) FROM " + TEST_INDEX_PHRASE)
         .getJSONArray("datarows")
@@ -54,15 +54,14 @@ public class PaginationWindowIT extends SQLIntegTestCase {
     JSONObject response = executeQueryTemplate("SELECT * FROM %s", TEST_INDEX_PHRASE, 5);
     assertTrue(response.getInt("size") > querySizeLimit);
 
-    String cursor = "";
     int numRows = 0;
     do {
       // Process response
-      cursor = response.getString("cursor");
+      String cursor = response.getString("cursor");
       numRows += response.getJSONArray("datarows").length();
       response = executeCursorQuery(cursor);
     } while (response.has("cursor"));
-
+    numRows += response.getJSONArray("datarows").length();
     var countRows = executeJdbcRequest("SELECT COUNT(*) FROM " + TEST_INDEX_PHRASE)
         .getJSONArray("datarows")
         .getJSONArray(0)
