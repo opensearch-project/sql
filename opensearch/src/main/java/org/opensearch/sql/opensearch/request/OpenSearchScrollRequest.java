@@ -38,19 +38,19 @@ import org.opensearch.sql.opensearch.storage.OpenSearchStorageEngine;
 @Getter
 @ToString
 public class OpenSearchScrollRequest implements OpenSearchRequest {
-  private SearchRequest initialSearchRequest;
+  private final SearchRequest initialSearchRequest;
   /** Scroll context timeout. */
-  private TimeValue scrollTimeout;
+  private final TimeValue scrollTimeout;
 
   /**
    * {@link OpenSearchRequest.IndexName}.
    */
-  private IndexName indexName;
+  private final IndexName indexName;
 
   /** Index name. */
   @EqualsAndHashCode.Exclude
   @ToString.Exclude
-  private OpenSearchExprValueFactory exprValueFactory;
+  private final OpenSearchExprValueFactory exprValueFactory;
   /**
    * Scroll id which is set after first request issued. Because ElasticsearchClient is shared by
    * multi-thread so this state has to be maintained here.
@@ -64,13 +64,7 @@ public class OpenSearchScrollRequest implements OpenSearchRequest {
   private boolean needClean = false;
 
   @Getter
-  private List<String> includes;
-
-  /** Default constructor for Externalizable only.
-   */
-  @Deprecated(since = "introduction")
-  public OpenSearchScrollRequest() {
-  }
+  private final List<String> includes;
 
   /** Constructor. */
   public OpenSearchScrollRequest(IndexName indexName,
