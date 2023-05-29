@@ -92,12 +92,7 @@ public class PaginationBlackboxIT extends SQLIntegTestCase {
     } while(!cursor.isEmpty());
     assertTrue("Paged response schema doesn't match to non-paged",
         schema.similar(response.getJSONArray("schema")));
-//    assertEquals(0, response.getInt("total"));
 
-//    assertEquals(testReportPrefix + "Last page is not empty",
-//        0, response.getInt("size"));
-//    assertEquals(testReportPrefix + "Last page is not empty",
-//        0, response.getJSONArray("datarows").length());
     assertEquals(testReportPrefix + "Paged responses return another row count that non-paged",
         indexSize, rowsReturned);
     assertTrue(testReportPrefix + "Paged accumulated result has other rows than non-paged",
