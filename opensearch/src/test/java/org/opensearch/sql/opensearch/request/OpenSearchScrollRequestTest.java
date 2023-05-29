@@ -298,11 +298,6 @@ class OpenSearchScrollRequestTest {
   }
 
   @Test
-  void default_constructor() {
-    assertEquals(NO_SCROLL_ID, new OpenSearchScrollRequest().getScrollId());
-  }
-
-  @Test
   void setScrollId() {
     request.setScrollId("test");
     assertEquals("test", request.getScrollId());
