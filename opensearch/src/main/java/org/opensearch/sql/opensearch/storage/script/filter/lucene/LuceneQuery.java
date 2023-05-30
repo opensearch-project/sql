@@ -32,7 +32,6 @@ import org.opensearch.sql.expression.NamedArgumentExpression;
 import org.opensearch.sql.expression.ReferenceExpression;
 import org.opensearch.sql.expression.function.BuiltinFunctionName;
 import org.opensearch.sql.expression.function.FunctionName;
-import org.opensearch.sql.opensearch.data.type.OpenSearchTextType;
 
 /**
  * Lucene query abstraction that builds Lucene query from function expression.
@@ -54,6 +53,19 @@ public abstract class LuceneQuery {
         && (func.getArguments().get(1) instanceof LiteralExpression
         || literalExpressionWrappedByCast(func))
         || isMultiParameterQuery(func);
+  }
+
+  /**
+   * Check if predicate expression has nested function on left side of predicate expression.
+   * Validation for right side being a `LiteralExpression` is done in NestedQuery.
+   * @param func function.
+   * @return return true if function has supported nested function expression.
+   */
+  public boolean isNestedPredicate(FunctionExpression func) {
+    return ((func.getArguments().get(0) instanceof FunctionExpression
+        && ((FunctionExpression)func.getArguments().get(0))
+        .getFunctionName().getFunctionName().equalsIgnoreCase(BuiltinFunctionName.NESTED.name()))
+      );
   }
 
   /**

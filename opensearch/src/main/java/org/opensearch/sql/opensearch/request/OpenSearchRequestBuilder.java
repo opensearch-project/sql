@@ -13,10 +13,14 @@ import static org.opensearch.index.query.QueryBuilders.nestedQuery;
 import static org.opensearch.search.sort.FieldSortBuilder.DOC_FIELD_NAME;
 import static org.opensearch.search.sort.SortOrder.ASC;
 
+import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.ToString;
@@ -41,7 +45,6 @@ import org.opensearch.sql.expression.ReferenceExpression;
 import org.opensearch.sql.opensearch.data.type.OpenSearchDataType;
 import org.opensearch.sql.opensearch.data.value.OpenSearchExprValueFactory;
 import org.opensearch.sql.opensearch.response.agg.OpenSearchAggregationResponseParser;
-
 
 /**
  * OpenSearch search request builder.
@@ -250,11 +253,31 @@ public class OpenSearchRequestBuilder {
    */
   public void pushDownNested(List<Map<String, ReferenceExpression>> nestedArgs) {
     initBoolQueryFilter();
+    List<NestedQueryBuilder> nestedQueries = extractNestedQueries(query());
     groupFieldNamesByPath(nestedArgs).forEach(
-          (path, fieldNames) -> buildInnerHit(
-              fieldNames, createEmptyNestedQuery(path)
-          )
+        (path, fieldNames) ->
+            buildInnerHit(fieldNames, findNestedQueryWithSamePath(nestedQueries, path))
     );
+  }
+
+  /**
+   * InnerHit must be added to the NestedQueryBuilder. We need to extract
+   * the nested queries currently in the query if there is already a filter
+   * push down with nested query.
+   * @param query : current query.
+   * @return : grouped nested queries currently in query.
+   */
+  private List<NestedQueryBuilder> extractNestedQueries(QueryBuilder query) {
+    List<NestedQueryBuilder> result = new ArrayList<>();
+    if (query instanceof NestedQueryBuilder) {
+      result.add((NestedQueryBuilder) query);
+    } else if (query instanceof BoolQueryBuilder) {
+      BoolQueryBuilder boolQ = (BoolQueryBuilder) query;
+      Stream.of(boolQ.filter(), boolQ.must(), boolQ.should())
+          .flatMap(Collection::stream)
+          .forEach(q -> result.addAll(extractNestedQueries(q)));
+    }
+    return result;
   }
 
   public int getMaxResponseSize() {
@@ -305,12 +328,40 @@ public class OpenSearchRequestBuilder {
   }
 
   /**
+   * We need to group nested queries with same path for adding new fields with same path of
+   * inner hits. If we try to add additional inner hits with same path we get an OS error.
+   * @param nestedQueries Current list of nested queries in query.
+   * @param path path comparing with current nested queries.
+   * @return Query with same path or new empty nested query.
+   */
+  private NestedQueryBuilder findNestedQueryWithSamePath(
+      List<NestedQueryBuilder> nestedQueries, String path
+  ) {
+    return nestedQueries.stream()
+        .filter(query -> isSamePath(path, query))
+        .findAny()
+        .orElseGet(createEmptyNestedQuery(path));
+  }
+
+  /**
+   * Check if is nested query is of the same path value.
+   * @param path Value of path to compare with nested query.
+   * @param query nested query builder to compare with path.
+   * @return true if nested query has same path.
+   */
+  private boolean isSamePath(String path, NestedQueryBuilder query) {
+    return nestedQuery(path, query.query(), query.scoreMode()).equals(query);
+  }
+
+  /**
    * Create a nested query with match all filter to place inner hits.
    */
-  private NestedQueryBuilder createEmptyNestedQuery(String path) {
-    NestedQueryBuilder nestedQuery = nestedQuery(path, matchAllQuery(), ScoreMode.None);
-    ((BoolQueryBuilder) query().filter().get(0)).must(nestedQuery);
-    return nestedQuery;
+  private Supplier<NestedQueryBuilder> createEmptyNestedQuery(String path) {
+    return () -> {
+      NestedQueryBuilder nestedQuery = nestedQuery(path, matchAllQuery(), ScoreMode.None);
+      ((BoolQueryBuilder) query().filter().get(0)).must(nestedQuery);
+      return nestedQuery;
+    };
   }
 
   /**

@@ -4456,6 +4456,17 @@ Example with ``field`` and ``path`` parameters::
     +---------------------------------+
 
 
+Example with ``field`` and ``path`` parameters in the SELECT and WHERE clause::
+
+    os> SELECT nested(message.info, message) FROM nested WHERE nested(message.info, message) = 'b';
+    fetched rows / total rows = 1/1
+    +---------------------------------+
+    | nested(message.info, message)   |
+    |---------------------------------|
+    | b                               |
+    +---------------------------------+
+
+
 System Functions
 ================
 

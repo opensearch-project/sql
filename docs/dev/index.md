@@ -36,6 +36,7 @@
 + **SQL**
   + [Aggregate Window Function](sql-aggregate-window-function.md): aggregate window function support
   + [Nested Function In Select Clause](sql-nested-function-select-clause.md): Nested function support in sql select clause
+  + [Nested Function In Where Clause](sql-nested-function-where-clause.md): Nested function support in sql where clause
 + **Piped Processing Language**
 
 ### Query Processing
