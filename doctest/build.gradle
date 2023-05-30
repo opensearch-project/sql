@@ -19,12 +19,9 @@ def path = project(':').projectDir
 // plugin module, and will only build ppl in it.
 def plugin_path = project(':doctest').projectDir
 
-task cloneSqlCli() {
+task cloneSqlCli(type: Exec) {
     // clone the sql-cli repo locally
-    def cliRepo = new File("$projectDir/sql-cli")
-    if(!cliRepo.exists()) {
-        exec { commandLine 'git', 'clone', 'https://github.com/opensearch-project/sql-cli.git' }
-    }
+    commandLine 'git', 'clone', 'https://github.com/opensearch-project/sql-cli.git'
 }
 
 task bootstrap(type: Exec, dependsOn: ['cloneSqlCli']) {
