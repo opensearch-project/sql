@@ -141,8 +141,7 @@ public class RestSqlAction extends BaseRestHandler {
                 }
             }
 
-            LOG.info("[{}] Incoming request {}: {}", QueryContext.getRequestId(), request.uri(),
-                    QueryDataAnonymizer.anonymizeData(sqlRequest.getSql()));
+            LOG.info("[{}] Incoming request {}", QueryContext.getRequestId(), request.uri());
 
             Format format = SqlRequestParam.getFormat(request.params());
 
@@ -157,6 +156,7 @@ public class RestSqlAction extends BaseRestHandler {
                             }
                             LOG.debug("[{}] Request {} is not supported and falling back to old SQL engine",
                                 QueryContext.getRequestId(), newSqlRequest);
+                            LOG.info("Request Query: {}", QueryDataAnonymizer.anonymizeData(sqlRequest.getSql()));
                             QueryAction queryAction = explainRequest(client, sqlRequest, format);
                             executeSqlRequest(request, queryAction, client, restChannel);
                         } catch (Exception e) {
