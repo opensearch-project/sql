@@ -302,6 +302,15 @@ public class AstExpressionBuilderTest extends AstBuilderTest {
   }
 
   @Test
+  public void testSortFieldWithBackticks() {
+    assertEqual("source=t | sort `f`",
+        sort(
+            relation("t"),
+            field("f", defaultSortFieldArgs())
+        ));
+  }
+
+  @Test
   public void testSortFieldWithAutoKeyword() {
     assertEqual("source=t | sort auto(f)",
         sort(
