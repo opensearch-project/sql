@@ -21,7 +21,6 @@ import static org.opensearch.sql.opensearch.request.OpenSearchScrollRequest.NO_S
 
 import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.function.Function;
 import lombok.SneakyThrows;
 import org.apache.commons.lang3.reflect.FieldUtils;
 import org.apache.lucene.search.TotalHits;
@@ -53,12 +52,6 @@ class OpenSearchScrollRequestTest {
   public static final OpenSearchRequest.IndexName INDEX_NAME
       = new OpenSearchRequest.IndexName("test");
   public static final TimeValue SCROLL_TIMEOUT = TimeValue.timeValueMinutes(1);
-  @Mock
-  private Function<SearchRequest, SearchResponse> searchAction;
-
-  @Mock
-  private Function<SearchScrollRequest, SearchResponse> scrollAction;
-
   @Mock
   private SearchResponse searchResponse;
 
@@ -144,13 +137,8 @@ class OpenSearchScrollRequestTest {
     when(searchResponse.getHits()).thenReturn(searchHits);
     when(searchHits.getHits()).thenReturn(new SearchHit[] {searchHit});
 
-    Function<SearchScrollRequest, SearchResponse> scrollSearch = searchScrollRequest -> {
-      throw new AssertionError();
-    };
-    OpenSearchResponse openSearchResponse = request.search(searchRequest -> searchResponse,
-        scrollSearch);
-
-    assertFalse(openSearchResponse.isEmpty());
+    OpenSearchResponse response = request.search((sr) -> searchResponse, (sr) -> fail());
+    assertFalse(response.isEmpty());
   }
 
   @Test
@@ -162,13 +150,12 @@ class OpenSearchScrollRequestTest {
         factory
     );
 
-    when(searchAction.apply(any())).thenReturn(searchResponse);
     when(searchResponse.getHits()).thenReturn(searchHits);
     when(searchHits.getHits()).thenReturn(new SearchHit[] {searchHit});
 
-    OpenSearchResponse searchResponse = request.search(searchAction, scrollAction);
+    OpenSearchResponse response = request.search((sr) -> searchResponse, (sr) -> fail());
     verify(sourceBuilder, times(1)).fetchSource();
-    assertFalse(searchResponse.isEmpty());
+    assertFalse(response.isEmpty());
   }
 
   @Test
@@ -180,12 +167,11 @@ class OpenSearchScrollRequestTest {
         factory
     );
 
-    when(searchAction.apply(any())).thenReturn(searchResponse);
     when(searchResponse.getHits()).thenReturn(searchHits);
     when(searchHits.getHits()).thenReturn(new SearchHit[] {searchHit});
 
-    OpenSearchResponse searchResponse = request.search(searchAction, scrollAction);
-    assertFalse(searchResponse.isEmpty());
+    OpenSearchResponse response = request.search((sr) -> searchResponse, (sr) -> fail());
+    assertFalse(response.isEmpty());
   }
 
   @Test
@@ -230,7 +216,7 @@ class OpenSearchScrollRequestTest {
     when(searchResponse.getHits()).thenReturn(
         new SearchHits(new SearchHit[1], new TotalHits(1, TotalHits.Relation.EQUAL_TO), 1F));
 
-    request.search((x) -> searchResponse, (x) -> searchResponse);
+    request.search((sr) -> searchResponse, (sr) -> searchResponse);
     assertEquals("scroll", request.getScrollId());
 
     request.clean((s) -> fail());
@@ -273,7 +259,7 @@ class OpenSearchScrollRequestTest {
     var engine = mock(OpenSearchStorageEngine.class);
     when(engine.getTable(any(), any())).thenReturn(indexMock);
     var newRequest = new OpenSearchScrollRequest(inStream, engine);
-    assertEquals(request.getInitialSearchRequest(), newRequest.getInitialSearchRequest());
+    assertEquals(request, newRequest);
     assertEquals("", newRequest.getScrollId());
   }
 
@@ -296,7 +282,7 @@ class OpenSearchScrollRequestTest {
     var engine = mock(OpenSearchStorageEngine.class);
     when(engine.getTable(any(), any())).thenReturn(indexMock);
     var newRequest = new OpenSearchScrollRequest(inStream, engine);
-    assertEquals(request.getInitialSearchRequest(), newRequest.getInitialSearchRequest());
+    assertEquals(request, newRequest);
     assertEquals("", newRequest.getScrollId());
   }
 

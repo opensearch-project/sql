@@ -38,6 +38,8 @@ import org.opensearch.sql.opensearch.storage.OpenSearchStorageEngine;
 @Getter
 @ToString
 public class OpenSearchScrollRequest implements OpenSearchRequest {
+
+  @EqualsAndHashCode.Exclude
   private final SearchRequest initialSearchRequest;
   /** Scroll context timeout. */
   private final TimeValue scrollTimeout;
@@ -81,7 +83,7 @@ public class OpenSearchScrollRequest implements OpenSearchRequest {
         .scroll(scrollTimeout)
         .source(sourceBuilder);
 
-    includes =  sourceBuilder.fetchSource() == null
+    includes = sourceBuilder.fetchSource() == null
         ? List.of()
         : Arrays.asList(sourceBuilder.fetchSource().includes());
   }
@@ -154,7 +156,6 @@ public class OpenSearchScrollRequest implements OpenSearchRequest {
 
   @Override
   public void writeTo(StreamOutput out) throws IOException {
-    initialSearchRequest.writeTo(out);
     out.writeTimeValue(scrollTimeout);
     out.writeString(scrollId);
     out.writeStringCollection(includes);
@@ -165,11 +166,11 @@ public class OpenSearchScrollRequest implements OpenSearchRequest {
    * Constructs OpenSearchScrollRequest from serialized representation.
    * @param in stream to read data from.
    * @param engine OpenSearchSqlEngine to get node-specific context.
-   * @throws IOException thrown if reading from input {@param in} fails.
+   * @throws IOException thrown if reading from input {@code in} fails.
    */
   public OpenSearchScrollRequest(StreamInput in, OpenSearchStorageEngine engine)
       throws IOException {
-    initialSearchRequest = new SearchRequest(in);
+    initialSearchRequest = null;
     scrollTimeout = in.readTimeValue();
     scrollId = in.readString();
     includes = in.readStringList();
