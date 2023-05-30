@@ -57,19 +57,19 @@
             },
             "date0" : {
                 "type" : "date",
-                "format": "yyyy-MM-dd"
+                "format": "year_month_day"
             },
             "date1" : {
                 "type" : "date",
-                "format": "yyyy-MM-dd"
+                "format": "year_month_day"
             },
             "date2" : {
                 "type" : "date",
-                "format": "yyyy-MM-dd"
+                "format": "year_month_day"
             },
             "date3" : {
                 "type" : "date",
-                "format": "yyyy-MM-dd"
+                "format": "year_month_day"
             },
             "time0" : {
                 "type" : "date",
