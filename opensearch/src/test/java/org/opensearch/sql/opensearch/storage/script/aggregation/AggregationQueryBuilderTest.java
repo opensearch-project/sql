@@ -29,9 +29,9 @@ import static org.opensearch.sql.opensearch.utils.Utils.avg;
 import static org.opensearch.sql.opensearch.utils.Utils.group;
 import static org.opensearch.sql.opensearch.utils.Utils.sort;
 
-import com.google.gson.JsonParser; 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
+import com.google.gson.JsonParser; 
 import java.util.AbstractMap;
 import java.util.Arrays;
 import java.util.Collections;
@@ -681,7 +681,11 @@ class AggregationQueryBuilderTest {
       List<NamedAggregator> namedAggregatorList,
       List<NamedExpression> groupByList,
       List<Pair<Sort.SortOption, Expression>> sortList) {
-    Gson gson = new GsonBuilder().setPrettyPrinting().serializeNulls().disableHtmlEscaping().create();
+    Gson gson = new GsonBuilder()
+        .setPrettyPrinting()
+        .serializeNulls()
+        .disableHtmlEscaping()
+        .create();
     JsonParser parser = new JsonParser();
     return gson.toJson(parser.parse(
             queryBuilder
