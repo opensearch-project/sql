@@ -171,18 +171,6 @@ public class NestedIT extends SQLIntegTestCase {
   }
 
   @Test
-  public void nested_function_with_where_clause() {
-    String query =
-        "SELECT nested(message.info) FROM " + TEST_INDEX_NESTED_TYPE + " WHERE nested(message.info) = 'a'";
-    JSONObject result = executeJdbcRequest(query);
-
-    assertEquals(2, result.getInt("total"));
-    verifyDataRows(result,
-        rows("a"),
-        rows("a"));
-  }
-
-  @Test
   public void nested_function_with_order_by_clause() {
     String query =
         "SELECT nested(message.info) FROM " + TEST_INDEX_NESTED_TYPE
@@ -312,5 +300,70 @@ public class NestedIT extends SQLIntegTestCase {
         "  \"status\": 400\n" +
         "}"
     ));
+  }
+
+  @Test
+  public void test_nested_where_with_and_conditional() {
+    String query = "SELECT nested(message.info), nested(message.author) FROM " + TEST_INDEX_NESTED_TYPE
+        + " WHERE nested(message, message.info = 'a' AND message.author = 'e')";
+    JSONObject result = executeJdbcRequest(query);
+    assertEquals(1, result.getInt("total"));
+    verifyDataRows(result, rows("a", "e"));
+  }
+
+  @Test
+  public void test_nested_in_select_and_where_as_predicate_expression() {
+    String query = "SELECT nested(message.info) FROM " + TEST_INDEX_NESTED_TYPE
+        + " WHERE nested(message.info) = 'a'";
+    JSONObject result = executeJdbcRequest(query);
+    assertEquals(3, result.getInt("total"));
+    verifyDataRows(
+        result,
+        rows("a"),
+        rows("c"),
+        rows("a")
+    );
+  }
+
+  @Test
+  public void test_nested_in_where_as_predicate_expression() {
+    String query = "SELECT message.info FROM " + TEST_INDEX_NESTED_TYPE
+        + " WHERE nested(message.info) = 'a'";
+    JSONObject result = executeJdbcRequest(query);
+    assertEquals(2, result.getInt("total"));
+    // Only first index of array is returned. Second index has 'a'
+    verifyDataRows(result, rows("a"), rows("c"));
+  }
+
+  @Test
+  public void test_nested_in_where_as_predicate_expression_with_like() {
+    String query = "SELECT message.info FROM " + TEST_INDEX_NESTED_TYPE
+        + " WHERE nested(message.info) LIKE 'a'";
+    JSONObject result = executeJdbcRequest(query);
+    assertEquals(2, result.getInt("total"));
+    // Only first index of array is returned. Second index has 'a'
+    verifyDataRows(result, rows("a"), rows("c"));
+  }
+
+  @Test
+  public void test_nested_in_where_as_predicate_expression_with_multiple_conditions() {
+    String query = "SELECT message.info, comment.data, message.dayOfWeek FROM " + TEST_INDEX_NESTED_TYPE
+        + " WHERE nested(message.info) = 'zz' OR nested(comment.data) = 'ab' AND nested(message.dayOfWeek) >= 4";
+    JSONObject result = executeJdbcRequest(query);
+    assertEquals(2, result.getInt("total"));
+    verifyDataRows(
+        result,
+        rows("c", "ab", 4),
+        rows("zz", "aa", 6)
+    );
+  }
+
+  @Test
+  public void test_nested_in_where_as_predicate_expression_with_relevance_query() {
+    String query = "SELECT comment.likes, someField FROM " + TEST_INDEX_NESTED_TYPE
+        + " WHERE nested(comment.likes) = 10 AND match(someField, 'a')";
+    JSONObject result = executeJdbcRequest(query);
+    assertEquals(1, result.getInt("total"));
+    verifyDataRows(result, rows(10, "a"));
   }
 }
