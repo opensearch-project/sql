@@ -384,16 +384,16 @@ class OpenSearchRequestBuilderTest {
         .innerHit(new InnerHitBuilder().setFetchSourceContext(
             new FetchSourceContext(true, new String[]{"message.info"}, null)));
 
-    assertSearchSourceBuilder(        new SearchSourceBuilder()
-      .query(
-        QueryBuilders.boolQuery().filter(
-          QueryBuilders.boolQuery()
-            .must(filterQuery)
+    assertSearchSourceBuilder(new SearchSourceBuilder()
+        .query(
+          QueryBuilders.boolQuery().filter(
+            QueryBuilders.boolQuery()
+              .must(filterQuery)
         )
       )
-      .from(DEFAULT_OFFSET)
-      .size(DEFAULT_LIMIT)
-      .timeout(DEFAULT_QUERY_TIMEOUT), requestBuilder);
+        .from(DEFAULT_OFFSET)
+        .size(DEFAULT_LIMIT)
+        .timeout(DEFAULT_QUERY_TIMEOUT), requestBuilder);
   }
 
   @Test
