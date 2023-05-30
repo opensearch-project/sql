@@ -13,14 +13,13 @@ import org.antlr.v4.runtime.CommonTokenStream;
 import org.antlr.v4.runtime.tree.ErrorNode;
 import org.junit.jupiter.api.Test;
 import org.opensearch.sql.common.antlr.CaseInsensitiveCharStream;
-import org.opensearch.sql.common.antlr.SyntaxAnalysisErrorListener;
 import org.opensearch.sql.sql.antlr.AnonymizerListener;
 import org.opensearch.sql.sql.antlr.parser.OpenSearchSQLLexer;
 import org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParser;
 
 public class AnonymizerListenerTest {
 
-  private AnonymizerListener anonymizerListener = new AnonymizerListener();
+  private final AnonymizerListener anonymizerListener = new AnonymizerListener();
 
   /**
    * Helper function to parse SQl queries for testing purposes.
