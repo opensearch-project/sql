@@ -34,6 +34,7 @@ import org.opensearch.sql.protocol.response.format.CsvResponseFormatter;
 import org.opensearch.sql.protocol.response.format.Format;
 import org.opensearch.sql.protocol.response.format.JdbcResponseFormatter;
 import org.opensearch.sql.protocol.response.format.JsonResponseFormatter;
+import org.opensearch.sql.protocol.response.format.CommandResponseFormatter;
 import org.opensearch.sql.protocol.response.format.RawResponseFormatter;
 import org.opensearch.sql.protocol.response.format.ResponseFormatter;
 import org.opensearch.sql.sql.SQLService;
@@ -164,7 +165,10 @@ public class RestSQLQueryAction extends BaseRestHandler {
       BiConsumer<RestChannel, Exception> errorHandler) {
     Format format = request.format();
     ResponseFormatter<QueryResult> formatter;
-    if (format.equals(Format.CSV)) {
+
+    if (request.isCursorCloseRequest()) {
+      formatter = new CommandResponseFormatter();
+    } else if (format.equals(Format.CSV)) {
       formatter = new CsvResponseFormatter(request.sanitize());
     } else if (format.equals(Format.RAW)) {
       formatter = new RawResponseFormatter();

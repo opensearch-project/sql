@@ -330,9 +330,9 @@ stateDiagram-v2
     AggregationIP --> RelationIP
   }
 
-state "Subsequent Query Request" As Sub {
-FetchCursor
-}
+  state "Subsequent Query Request" As Sub {
+    FetchCursor
+  }
 ```
 
 
@@ -500,6 +500,12 @@ Subsequent pages are processed by a new workflow. The key point there:
 
 ```mermaid
 sequenceDiagram
+    participant SQLService
+    participant QueryPlanFactory
+    participant QueryService
+    participant OpenSearchExecutionEngine
+    participant DefaultImplementor
+    participant PlanSerializer
 
 SQLService ->>+ QueryPlanFactory : execute
   QueryPlanFactory ->>+ QueryService : execute
@@ -612,13 +618,9 @@ PlanSerializer ->>+ ProjectOperator : serialize
     ResourceMonitorPlan -->>- ProjectOperator : delegate
   Note over ResourceMonitorPlan : ResourceMonitorPlan<br />is not serialized
   ProjectOperator ->>+ OpenSearchIndexScan : writeExternal
-    alt First page
-      OpenSearchIndexScan ->>+ OpenSearchScrollRequest : writeTo
-        OpenSearchScrollRequest -->>- OpenSearchIndexScan : serialized request
-    else Subsequent page
-      OpenSearchIndexScan ->>+ OpenSearchScrollRequest : writeTo
-        OpenSearchScrollRequest -->>- OpenSearchIndexScan : serialized request
-    end
+    OpenSearchIndexScan ->>+ OpenSearchScrollRequest : writeTo
+      Note over OpenSearchScrollRequest : dump private fields
+      OpenSearchScrollRequest -->>- OpenSearchIndexScan : serialized request
     Note over OpenSearchIndexScan : dump private fields
     OpenSearchIndexScan -->>- ProjectOperator : serialized
   ProjectOperator -->>- PlanSerializer : serialized
@@ -654,6 +656,125 @@ PlanSerializer ->>+ CursorDeserializationStream : deserialize
     OpenSearchIndexScan -->>- ProjectOperator : deserialized
   ProjectOperator -->>- PlanSerializer : deserialized
   deactivate CursorDeserializationStream
+```
+
+#### Close Cursor
+
+A user can forcibly close a cursor (scroll) at any moment of paging. Automatic close occurs when paging is complete and no more results left.
+Close cursor protocol defined by following:
+1. REST endpoint: `/_plugins/_sql/close`
+2. Request type: `POST`
+3. Request format:
+```json
+{
+    "cursor" : "<cursor>"
+}
+```
+4. Response format:
+```json
+{
+    "succeeded": true
+}
+```
+5. Failure or error: [error response](#error-response)
+6. Use or sequential close of already closed cursor produces the same error as use of expired/auto-closed/non-existing cursor.
+
+```mermaid
+sequenceDiagram
+SQLService ->>+ QueryPlanFactory : execute
+  QueryPlanFactory ->>+ QueryService : execute
+  QueryService ->>+ Analyzer : analyze
+  Analyzer -->>- QueryService : new LogicalCloseCursor
+  QueryService ->>+ Planner : plan
+  Planner ->>+ DefaultImplementor : implement
+  DefaultImplementor ->>+ PlanSerializer : deserialize
+  PlanSerializer -->>- DefaultImplementor: physical query plan
+  DefaultImplementor -->>- Planner : new CloseOperator
+  Planner -->>- QueryService : CloseOperator
+  QueryService ->>+ OpenSearchExecutionEngine : execute
+  Note over OpenSearchExecutionEngine : Open is no-op, no request issued,<br />no results received and processed
+  Note over OpenSearchExecutionEngine : Clean-up (clear scroll) on auto-close
+  OpenSearchExecutionEngine -->>- QueryService: execution completed
+  QueryService -->>- QueryPlanFactory : execution completed
+  QueryPlanFactory -->>- SQLService : execution completed
+```
+
+```mermaid
+stateDiagram-v2
+    direction LR
+    state "Abstract Query Plan" as Abstract {
+      state "CommandPlan" as CommandPlan {
+        state "Unresolved Query Plan" as Unresolved {
+          state "CloseCursor" as CloseCursor
+          state "FetchCursor" as FetchCursor
+
+          CloseCursor --> FetchCursor
+        }
+      }
+    }
+    state "Logical Query Plan" as Logical {
+      state "LogicalCloseCursor" as LogicalCloseCursor
+      state "LogicalFetchCursor" as LogicalFetchCursor
+
+      LogicalCloseCursor --> LogicalFetchCursor
+    }
+    state "Optimized Query Plan" as Optimized {
+      state "LogicalCloseCursor" as LogicalCloseCursorO
+      state "LogicalFetchCursor" as LogicalFetchCursorO
+
+      LogicalCloseCursorO --> LogicalFetchCursorO
+    }
+    state "Physical Query Plan" as Physical {
+      state "CursorCloseOperator" as CursorCloseOperator
+      state "ProjectOperator" as ProjectOperator
+      state "..." as ...
+      state "OpenSearchIndexScan" as OpenSearchIndexScan
+
+      CursorCloseOperator --> ProjectOperator
+      ProjectOperator --> ...
+      ... --> OpenSearchIndexScan
+    }
+
+    [*] --> Unresolved : QueryPlanner
+    Unresolved --> Logical : Planner
+    Logical --> Optimized : Optimizer
+    Optimized --> Physical : Implementor
+```
+
+`CursorCloseOperator` provides a dummy (empty, since not used) `Schema`, does not perform `open` and always returns `false` by `hasNext`. Such behavior makes it a no-op operator which blocks underlying Physical Plan Tree from issuing any search request, but does not block auto-close provided by `AutoCloseable`. Default close action clears scroll context.
+Regular paging doesn't execute scroll clear, because it checks whether paging is finished or not and raises a flag to prevent clear. This check performed when search response recevied, what never happen due to `CursorCloseOperator`.
+
+```py
+class OpenSearchScrollRequest:
+  bool needClean = true
+
+  def search:
+    ...
+    needClean = response.isEmpty()
+
+  def clean:
+    if needClean:
+      clearScroll()
+```
+
+```py
+class CursorCloseOperator(PhysicalPlan):
+  PhysicalPlan tree
+  def open:
+    pass
+    # no-op, don't propagate `open` of underlying plan tree
+
+  def hasNext:
+    return false
+```
+
+```py
+class PhysicalPlan:
+  def open:
+    innerPlan.open()
+
+  def close:
+    innerPlan.close()
 ```
 
 #### Total Hits

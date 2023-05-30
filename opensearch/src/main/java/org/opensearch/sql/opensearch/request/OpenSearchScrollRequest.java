@@ -51,9 +51,10 @@ public class OpenSearchScrollRequest implements OpenSearchRequest {
   @EqualsAndHashCode.Exclude
   @ToString.Exclude
   private final OpenSearchExprValueFactory exprValueFactory;
+
   /**
-   * Scroll id which is set after first request issued. Because ElasticsearchClient is shared by
-   * multi-thread so this state has to be maintained here.
+   * Scroll id which is set after first request issued. Because OpenSearchClient is shared by
+   * multiple threads so this state has to be maintained here.
    */
   @Setter
   @Getter
@@ -61,7 +62,8 @@ public class OpenSearchScrollRequest implements OpenSearchRequest {
 
   public static final String NO_SCROLL_ID = "";
 
-  private boolean needClean = false;
+  @EqualsAndHashCode.Exclude
+  private boolean needClean = true;
 
   @Getter
   private final List<String> includes;
@@ -158,13 +160,7 @@ public class OpenSearchScrollRequest implements OpenSearchRequest {
   public void writeTo(StreamOutput out) throws IOException {
     initialSearchRequest.writeTo(out);
     out.writeTimeValue(scrollTimeout);
-    out.writeBoolean(needClean);
-    if (!needClean) {
-      // If needClean is true, there is no more data to get from OpenSearch and scrollId is
-      // used only to clean up OpenSearch context.
-
-      out.writeString(scrollId);
-    }
+    out.writeString(scrollId);
     out.writeStringCollection(includes);
     indexName.writeTo(out);
   }
@@ -179,10 +175,7 @@ public class OpenSearchScrollRequest implements OpenSearchRequest {
       throws IOException {
     initialSearchRequest = new SearchRequest(in);
     scrollTimeout = in.readTimeValue();
-    needClean = in.readBoolean();
-    if (!needClean) {
-      scrollId = in.readString();
-    }
+    scrollId = in.readString();
     includes = in.readStringList();
     indexName = new IndexName(in);
     OpenSearchIndex index = (OpenSearchIndex) engine.getTable(null, indexName.toString());

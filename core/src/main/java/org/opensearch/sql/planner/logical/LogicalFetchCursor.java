@@ -13,6 +13,9 @@ import org.opensearch.sql.planner.logical.LogicalPlan;
 import org.opensearch.sql.planner.logical.LogicalPlanNodeVisitor;
 import org.opensearch.sql.storage.StorageEngine;
 
+/**
+ * A plan node which represents operation of fetching a next page from the cursor.
+ */
 @EqualsAndHashCode(callSuper = false)
 @ToString
 public class LogicalFetchCursor extends LogicalPlan {

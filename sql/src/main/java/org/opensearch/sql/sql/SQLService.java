@@ -72,6 +72,10 @@ public class SQLService {
         throw new UnsupportedOperationException("Explain of a paged query continuation "
           + "is not supported. Use `explain` for the initial query request.");
       }
+      if (request.isCursorCloseRequest()) {
+        return queryExecutionFactory.createCloseCursor(request.getCursor().get(),
+            queryListener.orElse(null));
+      }
       return queryExecutionFactory.create(request.getCursor().get(),
         isExplainRequest, queryListener.orElse(null), explainListener.orElse(null));
     } else {

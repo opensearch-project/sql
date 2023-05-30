@@ -99,7 +99,7 @@ public class StandaloneModule extends AbstractModule {
   }
 
   @Provides
-  public PlanSerializer paginatedPlanCache(StorageEngine storageEngine) {
+  public PlanSerializer planSerializer(StorageEngine storageEngine) {
     return new PlanSerializer(storageEngine);
   }
 

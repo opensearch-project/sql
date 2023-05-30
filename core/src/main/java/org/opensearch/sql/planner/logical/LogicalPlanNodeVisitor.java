@@ -112,4 +112,8 @@ public abstract class LogicalPlanNodeVisitor<R, C> {
   public R visitFetchCursor(LogicalFetchCursor plan, C context) {
     return visitNode(plan, context);
   }
+
+  public R visitCloseCursor(LogicalCloseCursor plan, C context) {
+    return visitNode(plan, context);
+  }
 }

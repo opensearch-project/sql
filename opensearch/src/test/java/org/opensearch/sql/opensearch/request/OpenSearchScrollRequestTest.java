@@ -23,6 +23,7 @@ import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Function;
 import lombok.SneakyThrows;
+import org.apache.commons.lang3.reflect.FieldUtils;
 import org.apache.lucene.search.TotalHits;
 import org.junit.jupiter.api.DisplayNameGeneration;
 import org.junit.jupiter.api.DisplayNameGenerator;
@@ -188,7 +189,9 @@ class OpenSearchScrollRequestTest {
   }
 
   @Test
+  @SneakyThrows
   void hasAnotherBatch() {
+    FieldUtils.writeField(request, "needClean", false, true);
     request.setScrollId("scroll123");
     assertTrue(request.hasAnotherBatch());
 

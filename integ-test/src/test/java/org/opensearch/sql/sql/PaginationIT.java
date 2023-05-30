@@ -7,11 +7,16 @@ package org.opensearch.sql.sql;
 
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_CALCS;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_ONLINE;
+import static org.opensearch.sql.legacy.plugin.RestSqlAction.EXPLAIN_API_ENDPOINT;
 
 import java.io.IOException;
+
+import lombok.SneakyThrows;
 import org.json.JSONObject;
 import org.junit.Ignore;
 import org.junit.Test;
+import org.opensearch.client.Request;
+import org.opensearch.client.RequestOptions;
 import org.opensearch.client.ResponseException;
 import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.legacy.SQLIntegTestCase;
@@ -75,5 +80,36 @@ public class PaginationIT extends SQLIntegTestCase {
         "SearchPhaseExecutionException");
 
     wipeAllClusterSettings();
+  }
+
+  @Test
+  @SneakyThrows
+  public void testCloseCursor() {
+    // Initial page request to get cursor
+    var query = "SELECT * from " + TEST_INDEX_CALCS;
+    var response = new JSONObject(executeFetchQuery(query, 4, "jdbc"));
+    assertTrue(response.has("cursor"));
+    var cursor = response.getString("cursor");
+
+    // Close the cursor
+    Request closeCursorRequest = new Request("POST", "_plugins/_sql/close");
+    closeCursorRequest.setJsonEntity(String.format("{ \"cursor\" : \"%s\" } ", cursor));
+    RequestOptions.Builder restOptionsBuilder = RequestOptions.DEFAULT.toBuilder();
+    restOptionsBuilder.addHeader("Content-Type", "application/json");
+    closeCursorRequest.setOptions(restOptionsBuilder);
+    response = new JSONObject(executeRequest(closeCursorRequest));
+    assertTrue(response.has("succeeded"));
+    assertTrue(response.getBoolean("succeeded"));
+
+    // Test that cursor is no longer available
+    ResponseException exception =
+        expectThrows(ResponseException.class, () -> executeCursorQuery(cursor));
+    response = new JSONObject(TestUtils.getResponseBody(exception.getResponse()));
+    assertEquals(response.getJSONObject("error").getString("reason"),
+        "Error occurred in OpenSearch engine: all shards failed");
+    assertTrue(response.getJSONObject("error").getString("details")
+        .contains("SearchContextMissingException[No search context found for id"));
+    assertEquals(response.getJSONObject("error").getString("type"),
+        "SearchPhaseExecutionException");
   }
 }

@@ -18,9 +18,7 @@ import org.opensearch.sql.executor.QueryId;
 import org.opensearch.sql.executor.QueryService;
 
 /**
- * Query plan. Which includes.
- *
- * <p>select query.
+ * Query plan which includes a <em>select</em> query.
  */
 public class QueryPlan extends AbstractPlan {
 

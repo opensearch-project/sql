@@ -8,7 +8,10 @@ package org.opensearch.sql.opensearch.executor.protector;
 
 import static java.util.Collections.emptyList;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 import static org.opensearch.sql.ast.tree.Sort.SortOption.DEFAULT_ASC;
 import static org.opensearch.sql.data.type.ExprCoreType.DOUBLE;
 import static org.opensearch.sql.data.type.ExprCoreType.INTEGER;
@@ -30,6 +33,8 @@ import java.util.Set;
 import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.apache.commons.lang3.tuple.Pair;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayNameGeneration;
+import org.junit.jupiter.api.DisplayNameGenerator;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
@@ -60,11 +65,13 @@ import org.opensearch.sql.opensearch.request.OpenSearchRequest;
 import org.opensearch.sql.opensearch.request.OpenSearchRequestBuilder;
 import org.opensearch.sql.opensearch.setting.OpenSearchSettings;
 import org.opensearch.sql.opensearch.storage.scan.OpenSearchIndexScan;
+import org.opensearch.sql.planner.physical.CursorCloseOperator;
 import org.opensearch.sql.planner.physical.NestedOperator;
 import org.opensearch.sql.planner.physical.PhysicalPlan;
 import org.opensearch.sql.planner.physical.PhysicalPlanDSL;
 
 @ExtendWith(MockitoExtension.class)
+@DisplayNameGeneration(DisplayNameGenerator.ReplaceUnderscores.class)
 class OpenSearchExecutionProtectorTest {
 
   @Mock
@@ -87,7 +94,7 @@ class OpenSearchExecutionProtectorTest {
   }
 
   @Test
-  void testProtectIndexScan() {
+  void test_protect_indexScan() {
     String indexName = "test";
     final int maxResultWindow = 10000;
     final int querySizeLimit = 200;
@@ -174,7 +181,7 @@ class OpenSearchExecutionProtectorTest {
 
   @SuppressWarnings("unchecked")
   @Test
-  void testProtectSortForWindowOperator() {
+  void test_protect_sort_for_windowOperator() {
     NamedExpression rank = named(mock(RankFunction.class));
     Pair<Sort.SortOption, Expression> sortItem =
         ImmutablePair.of(DEFAULT_ASC, DSL.ref("age", INTEGER));
@@ -200,7 +207,7 @@ class OpenSearchExecutionProtectorTest {
   }
 
   @Test
-  void testProtectWindowOperatorInput() {
+  void test_protect_windowOperator_input() {
     NamedExpression avg = named(mock(AggregateWindowFunction.class));
     WindowDefinition windowDefinition = mock(WindowDefinition.class);
 
@@ -219,7 +226,7 @@ class OpenSearchExecutionProtectorTest {
 
   @SuppressWarnings("unchecked")
   @Test
-  void testNotProtectWindowOperatorInputIfAlreadyProtected() {
+  void test_not_protect_windowOperator_input_if_already_protected() {
     NamedExpression avg = named(mock(AggregateWindowFunction.class));
     Pair<Sort.SortOption, Expression> sortItem =
         ImmutablePair.of(DEFAULT_ASC, DSL.ref("age", INTEGER));
@@ -244,7 +251,7 @@ class OpenSearchExecutionProtectorTest {
   }
 
   @Test
-  void testWithoutProtection() {
+  void test_without_protection() {
     Expression filterExpr = literal(ExprBooleanValue.of(true));
 
     assertEquals(
@@ -260,7 +267,7 @@ class OpenSearchExecutionProtectorTest {
   }
 
   @Test
-  void testVisitMlCommons() {
+  void test_visitMLcommons() {
     NodeClient nodeClient = mock(NodeClient.class);
     MLCommonsOperator mlCommonsOperator =
             new MLCommonsOperator(
@@ -278,7 +285,7 @@ class OpenSearchExecutionProtectorTest {
   }
 
   @Test
-  void testVisitAD() {
+  void test_visitAD() {
     NodeClient nodeClient = mock(NodeClient.class);
     ADOperator adOperator =
             new ADOperator(
@@ -296,7 +303,7 @@ class OpenSearchExecutionProtectorTest {
   }
 
   @Test
-  void testVisitML() {
+  void test_visitML() {
     NodeClient nodeClient = mock(NodeClient.class);
     MLOperator mlOperator =
             new MLOperator(
@@ -316,7 +323,7 @@ class OpenSearchExecutionProtectorTest {
   }
 
   @Test
-  void testVisitNested() {
+  void test_visitNested() {
     Set<String> args = Set.of("message.info");
     Map<String, List<String>> groupedFieldsByPath =
         Map.of("message", List.of("message.info"));
@@ -328,6 +335,14 @@ class OpenSearchExecutionProtectorTest {
 
     assertEquals(executionProtector.doProtect(nestedOperator),
         executionProtector.visitNested(nestedOperator, values(emptyList())));
+  }
+
+  @Test
+  void do_nothing_with_CursorCloseOperator_and_children() {
+    var child = mock(PhysicalPlan.class);
+    var plan = new CursorCloseOperator(child);
+    assertSame(plan, executionProtector.protect(plan));
+    verify(child, never()).accept(executionProtector, null);
   }
 
   PhysicalPlan resourceMonitor(PhysicalPlan input) {

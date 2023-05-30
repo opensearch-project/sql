@@ -17,6 +17,7 @@ import org.opensearch.sql.ast.AbstractNodeVisitor;
 import org.opensearch.sql.ast.statement.Explain;
 import org.opensearch.sql.ast.statement.Query;
 import org.opensearch.sql.ast.statement.Statement;
+import org.opensearch.sql.ast.tree.CloseCursor;
 import org.opensearch.sql.ast.tree.FetchCursor;
 import org.opensearch.sql.ast.tree.UnresolvedPlan;
 import org.opensearch.sql.common.response.ResponseListener;
@@ -86,6 +87,15 @@ public class QueryPlanFactory
 
   boolean canConvertToCursor(UnresolvedPlan plan) {
     return plan.accept(new CanPaginateVisitor(), null);
+  }
+
+  /**
+   * Creates a {@link CloseCursor} command on a cursor.
+   */
+  public AbstractPlan createCloseCursor(String cursor,
+      ResponseListener<ExecutionEngine.QueryResponse> queryResponseListener) {
+    return new CommandPlan(QueryId.queryId(), new CloseCursor().attach(new FetchCursor(cursor)),
+        queryService, queryResponseListener);
   }
 
   @Override

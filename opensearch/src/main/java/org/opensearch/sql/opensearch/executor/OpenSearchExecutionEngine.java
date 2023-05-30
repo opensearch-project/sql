@@ -6,7 +6,6 @@
 
 package org.opensearch.sql.opensearch.executor;
 
-import com.google.common.collect.ImmutableMap;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;

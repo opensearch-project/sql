@@ -112,6 +112,10 @@ public class SQLQueryRequest {
     return path.endsWith("/_explain");
   }
 
+  public boolean isCursorCloseRequest() {
+    return path.endsWith("/close");
+  }
+
   /**
    * Decide on the formatter by the requested format.
    */

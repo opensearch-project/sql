@@ -43,6 +43,7 @@ import org.opensearch.sql.ast.expression.QualifiedName;
 import org.opensearch.sql.ast.expression.UnresolvedExpression;
 import org.opensearch.sql.ast.tree.AD;
 import org.opensearch.sql.ast.tree.Aggregation;
+import org.opensearch.sql.ast.tree.CloseCursor;
 import org.opensearch.sql.ast.tree.Dedupe;
 import org.opensearch.sql.ast.tree.Eval;
 import org.opensearch.sql.ast.tree.FetchCursor;
@@ -83,6 +84,7 @@ import org.opensearch.sql.expression.function.TableFunctionImplementation;
 import org.opensearch.sql.expression.parse.ParseExpression;
 import org.opensearch.sql.planner.logical.LogicalAD;
 import org.opensearch.sql.planner.logical.LogicalAggregation;
+import org.opensearch.sql.planner.logical.LogicalCloseCursor;
 import org.opensearch.sql.planner.logical.LogicalDedupe;
 import org.opensearch.sql.planner.logical.LogicalEval;
 import org.opensearch.sql.planner.logical.LogicalFetchCursor;
@@ -572,6 +574,17 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
     return new LogicalPaginate(paginate.getPageSize(), List.of(child));
   }
 
+  @Override
+  public LogicalPlan visitFetchCursor(FetchCursor cursor, AnalysisContext context) {
+    return new LogicalFetchCursor(cursor.getCursor(),
+      dataSourceService.getDataSource(DEFAULT_DATASOURCE_NAME).getStorageEngine());
+  }
+
+  @Override
+  public LogicalPlan visitCloseCursor(CloseCursor closeCursor, AnalysisContext context) {
+    return new LogicalCloseCursor(closeCursor.getChild().get(0).accept(this, context));
+  }
+
   /**
    * The first argument is always "asc", others are optional.
    * Given nullFirst argument, use its value. Otherwise just use DEFAULT_ASC/DESC.
@@ -586,11 +599,5 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
       return new SortOption((asc ? ASC : DESC), (isNullFirst ? NULL_FIRST : NULL_LAST));
     }
     return asc ? SortOption.DEFAULT_ASC : SortOption.DEFAULT_DESC;
-  }
-
-  @Override
-  public LogicalPlan visitFetchCursor(FetchCursor cursor, AnalysisContext context) {
-    return new LogicalFetchCursor(cursor.getCursor(),
-      dataSourceService.getDataSource(DEFAULT_DATASOURCE_NAME).getStorageEngine());
   }
 }
