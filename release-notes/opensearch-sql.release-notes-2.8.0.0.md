@@ -2,13 +2,16 @@ Compatible with OpenSearch and OpenSearch Dashboards Version 2.8.0
 
 ### Features
 
+* Support for pagination in v2 engine of SELECT * FROM <table> queries ([#1666](https://github.com/opensearch-project/sql/pull/1666))
+* Support Alternate Datetime Formats ([#1664](https://github.com/opensearch-project/sql/pull/1664))
+* Create new anonymizer for new engine ([#1665](https://github.com/opensearch-project/sql/pull/1665))
 * Cross cluster search in PPL ([#1512](https://github.com/opensearch-project/sql/pull/1512))
-* Added COSH to V2 engine (#244) ([#1428](https://github.com/opensearch-project/sql/pull/1428))
+* Added COSH to V2 engine ([#1428](https://github.com/opensearch-project/sql/pull/1428))
 * REST API for GET,PUT and DELETE ([#1482](https://github.com/opensearch-project/sql/pull/1482))
 
 ### Enhancements
 
-* Minor clean up of datetime and other classes ([#1310](https://github.com/opensearch-project/sql/pull/1482))
+* Minor clean up of datetime and other classes ([#1310](https://github.com/opensearch-project/sql/pull/1310))
 * Add integration JDBC tests for cursor/fetch_size feature ([#1315](https://github.com/opensearch-project/sql/pull/1315))
 * Refactoring datasource changes to a new module. ([#1504](https://github.com/opensearch-project/sql/pull/1504))
 
