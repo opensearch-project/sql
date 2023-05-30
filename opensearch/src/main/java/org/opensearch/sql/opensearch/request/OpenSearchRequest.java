@@ -52,6 +52,11 @@ public interface OpenSearchRequest extends Writeable {
    */
   OpenSearchExprValueFactory getExprValueFactory();
 
+  /**
+   * Check if there is more data to get from OpenSearch.
+   * @return True if calling {@ref OpenSearchClient.search} with this request will
+   * return non-empty response.
+   */
   boolean hasAnotherBatch();
 
   /**

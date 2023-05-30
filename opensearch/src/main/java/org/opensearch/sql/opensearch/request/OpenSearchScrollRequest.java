@@ -147,10 +147,6 @@ public class OpenSearchScrollRequest implements OpenSearchRequest {
     scrollId = NO_SCROLL_ID;
   }
 
-  /**
-   * Convert a scroll request to string that can be included in a cursor.
-   * @return a string representing the scroll request.
-   */
   @Override
   public boolean hasAnotherBatch() {
     return !needClean && !scrollId.equals(NO_SCROLL_ID);
