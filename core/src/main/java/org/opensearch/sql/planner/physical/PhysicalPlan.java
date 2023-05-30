@@ -44,15 +44,4 @@ public abstract class PhysicalPlan
     throw new IllegalStateException(String.format("[BUG] schema can been only applied to "
         + "ProjectOperator, instead of %s", this.getClass().getSimpleName()));
   }
-
-  /**
-   * Returns Total hits matched the search criteria. Note: query may return less if limited.
-   * {@see Settings#QUERY_SIZE_LIMIT}.
-   * Any plan which adds/removes rows to the response should overwrite it to provide valid values.
-   *
-   * @return Total hits matched the search criteria.
-   */
-  public long getTotalHits() {
-    return getChild().stream().mapToLong(PhysicalPlan::getTotalHits).max().orElse(0);
-  }
 }

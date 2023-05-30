@@ -42,7 +42,7 @@ public class CommandResponseFormatterTest {
                     .put("address", "Seattle")
                     .put("age", 20)
                 .build())),
-        new Cursor("test_cursor"), 42);
+        new Cursor("test_cursor"));
 
     assertEquals("{\n"
                 + "  \"succeeded\": true\n"

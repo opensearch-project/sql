@@ -49,12 +49,6 @@ public class CursorCloseOperator extends PhysicalPlan {
     return new ExecutionEngine.Schema(List.of());
   }
 
-  // TODO remove
-  @Override
-  public long getTotalHits() {
-    return 0;
-  }
-
   @Override
   public void open() {
     // no-op, no search should be invoked.

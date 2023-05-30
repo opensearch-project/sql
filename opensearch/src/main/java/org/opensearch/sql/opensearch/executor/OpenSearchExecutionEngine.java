@@ -52,7 +52,7 @@ public class OpenSearchExecutionEngine implements ExecutionEngine {
             }
 
             QueryResponse response = new QueryResponse(physicalPlan.schema(), result,
-                plan.getTotalHits(), planSerializer.convertToCursor(plan));
+                planSerializer.convertToCursor(plan));
             listener.onResponse(response);
           } catch (Exception e) {
             listener.onFailure(e);

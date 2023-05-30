@@ -180,7 +180,7 @@ public class RestSQLQueryAction extends BaseRestHandler {
       public void onResponse(QueryResponse response) {
         sendResponse(channel, OK,
             formatter.format(new QueryResult(response.getSchema(), response.getResults(),
-                response.getCursor(), response.getTotal())));
+                response.getCursor())));
       }
 
       @Override

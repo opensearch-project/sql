@@ -36,7 +36,7 @@ class QueryResultTest {
             tupleValue(ImmutableMap.of("name", "John", "age", 20)),
             tupleValue(ImmutableMap.of("name", "Allen", "age", 30)),
             tupleValue(ImmutableMap.of("name", "Smith", "age", 40))
-        ), Cursor.None, 0);
+        ), Cursor.None);
     assertEquals(3, response.size());
   }
 
@@ -46,7 +46,7 @@ class QueryResultTest {
         schema,
         Collections.singletonList(
             tupleValue(ImmutableMap.of("name", "John", "age", 20))
-        ), Cursor.None, 0);
+        ), Cursor.None);
 
     assertEquals(
         ImmutableMap.of("name", "string", "age", "integer"),
@@ -61,7 +61,7 @@ class QueryResultTest {
     QueryResult response = new QueryResult(
         schema,
         Collections.singletonList(tupleValue(ImmutableMap.of("n", "John"))),
-        Cursor.None, 0);
+        Cursor.None);
 
     assertEquals(
         ImmutableMap.of("n", "string"),
@@ -73,7 +73,7 @@ class QueryResultTest {
   void columnNameTypesFromEmptyExprValues() {
     QueryResult response = new QueryResult(
         schema,
-        Collections.emptyList(), Cursor.None, 0);
+        Collections.emptyList(), Cursor.None);
     assertEquals(
         ImmutableMap.of("name", "string", "age", "integer"),
         response.columnNameTypes()
@@ -102,7 +102,7 @@ class QueryResultTest {
         Arrays.asList(
             tupleValue(ImmutableMap.of("name", "John", "age", 20)),
             tupleValue(ImmutableMap.of("name", "Allen", "age", 30))
-        ), Cursor.None, 0);
+        ), Cursor.None);
 
     int i = 0;
     for (Object[] objects : response) {

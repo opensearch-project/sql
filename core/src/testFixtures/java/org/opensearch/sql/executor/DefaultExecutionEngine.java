@@ -34,7 +34,7 @@ public class DefaultExecutionEngine implements ExecutionEngine {
         result.add(plan.next());
       }
       QueryResponse response = new QueryResponse(new Schema(new ArrayList<>()), new ArrayList<>(),
-          0, Cursor.None);
+          Cursor.None);
       listener.onResponse(response);
     } catch (Exception e) {
       listener.onFailure(e);

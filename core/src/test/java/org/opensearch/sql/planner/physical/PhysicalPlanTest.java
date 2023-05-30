@@ -61,21 +61,4 @@ class PhysicalPlanTest {
     testPlan.add(split);
     verify(child).add(split);
   }
-
-  @Test
-  void get_total_hits_from_child() {
-    var plan = mock(PhysicalPlan.class);
-    when(child.getTotalHits()).thenReturn(42L);
-    when(plan.getChild()).thenReturn(List.of(child));
-    when(plan.getTotalHits()).then(CALLS_REAL_METHODS);
-    assertEquals(42, plan.getTotalHits());
-    verify(child).getTotalHits();
-  }
-
-  @Test
-  void get_total_hits_uses_default_value() {
-    var plan = mock(PhysicalPlan.class);
-    when(plan.getTotalHits()).then(CALLS_REAL_METHODS);
-    assertEquals(0, plan.getTotalHits());
-  }
 }

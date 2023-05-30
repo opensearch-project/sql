@@ -50,7 +50,6 @@ class FilterOperatorTest extends PhysicalPlanTestBase {
         .tupleValue(ImmutableMap
             .of("ip", "209.160.24.63", "action", "GET", "response", 404, "referer",
                 "www.amazon.com"))));
-    assertEquals(1, plan.getTotalHits());
   }
 
   @Test
@@ -64,7 +63,6 @@ class FilterOperatorTest extends PhysicalPlanTestBase {
         DSL.equal(DSL.ref("response", INTEGER), DSL.literal(404)));
     List<ExprValue> result = execute(plan);
     assertEquals(0, result.size());
-    assertEquals(0, plan.getTotalHits());
   }
 
   @Test
@@ -78,21 +76,5 @@ class FilterOperatorTest extends PhysicalPlanTestBase {
         DSL.equal(DSL.ref("response", INTEGER), DSL.literal(404)));
     List<ExprValue> result = execute(plan);
     assertEquals(0, result.size());
-    assertEquals(0, plan.getTotalHits());
-  }
-
-  @Test
-  public void totalHits() {
-    when(inputPlan.hasNext()).thenReturn(true, true, true, true, true, false);
-    var answers = Stream.of(200, 240, 300, 403, 404).map(c ->
-            new ExprTupleValue(new LinkedHashMap<>(Map.of("response", new ExprIntegerValue(c)))))
-        .collect(Collectors.toList());
-    when(inputPlan.next()).thenAnswer(AdditionalAnswers.returnsElementsOf(answers));
-
-    FilterOperator plan = new FilterOperator(inputPlan,
-        DSL.less(DSL.ref("response", INTEGER), DSL.literal(400)));
-    List<ExprValue> result = execute(plan);
-    assertEquals(3, result.size());
-    assertEquals(3, plan.getTotalHits());
   }
 }

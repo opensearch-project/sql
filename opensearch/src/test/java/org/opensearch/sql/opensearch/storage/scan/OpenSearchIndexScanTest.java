@@ -149,10 +149,7 @@ class OpenSearchIndexScanTest {
     try (OpenSearchIndexScan indexScan = new OpenSearchIndexScan(client,
         QUERY_SIZE, requestBuilder.build(name, MAX_RESULT_WINDOW, CURSOR_KEEP_ALIVE))) {
       indexScan.open();
-      assertAll(
-          () -> assertFalse(indexScan.hasNext()),
-          () -> assertEquals(0, indexScan.getTotalHits())
-      );
+      assertFalse(indexScan.hasNext());
     }
     verify(client).cleanup(any());
   }
@@ -179,8 +176,7 @@ class OpenSearchIndexScanTest {
           () -> assertTrue(indexScan.hasNext()),
           () -> assertEquals(employee(3, "Allen", "IT"), indexScan.next()),
 
-          () -> assertFalse(indexScan.hasNext()),
-          () -> assertEquals(3, indexScan.getTotalHits())
+          () -> assertFalse(indexScan.hasNext())
       );
     }
     verify(client).cleanup(any());
@@ -210,8 +206,7 @@ class OpenSearchIndexScanTest {
           () -> assertTrue(indexScan.hasNext()),
           () -> assertEquals(employee(3, "Allen", "IT"), indexScan.next()),
 
-          () -> assertFalse(indexScan.hasNext()),
-          () -> assertEquals(3, indexScan.getTotalHits())
+          () -> assertFalse(indexScan.hasNext())
       );
     }
     verify(client).cleanup(any());
@@ -241,8 +236,7 @@ class OpenSearchIndexScanTest {
           () -> assertTrue(indexScan.hasNext()),
           () -> assertEquals(employee(3, "Allen", "IT"), indexScan.next()),
 
-          () -> assertFalse(indexScan.hasNext()),
-          () -> assertEquals(3, indexScan.getTotalHits())
+          () -> assertFalse(indexScan.hasNext())
       );
     }
     verify(client).cleanup(any());
@@ -266,8 +260,7 @@ class OpenSearchIndexScanTest {
           () -> assertTrue(indexScan.hasNext()),
           () -> assertEquals(employee(3, "Allen", "IT"), indexScan.next()),
 
-          () -> assertFalse(indexScan.hasNext()),
-          () -> assertEquals(3, indexScan.getTotalHits())
+          () -> assertFalse(indexScan.hasNext())
       );
     }
     verify(client).cleanup(any());
@@ -300,8 +293,7 @@ class OpenSearchIndexScanTest {
           () -> assertTrue(indexScan.hasNext()),
           () -> assertEquals(employee(2, "Smith", "HR"), indexScan.next()),
 
-          () -> assertFalse(indexScan.hasNext()),
-          () -> assertEquals(2, indexScan.getTotalHits())
+          () -> assertFalse(indexScan.hasNext())
       );
     }
     verify(client).cleanup(any());
@@ -429,8 +421,6 @@ class OpenSearchIndexScanTest {
                   when(response.isEmpty()).thenReturn(false);
                   ExprValue[] searchHit = searchHitBatches[batchNum];
                   when(response.iterator()).thenReturn(Arrays.asList(searchHit).iterator());
-                  lenient().when(response.getTotalHits())
-                      .thenReturn((long) searchHitBatches[batchNum].length);
                 } else {
                   when(response.isEmpty()).thenReturn(true);
                 }
