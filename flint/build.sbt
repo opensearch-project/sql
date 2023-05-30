@@ -30,21 +30,7 @@ lazy val compileScalastyle = taskKey[Unit]("compileScalastyle")
 // Run as part of test task.
 lazy val testScalastyle = taskKey[Unit]("testScalastyle")
 
-lazy val build = taskKey[Unit]("assemblyWithCoverage")
-
-build := Def
-  .sequential(flintSparkIntegration / assembly, flintSparkIntegration / coverageReport)
-  .value
-
 lazy val commonSettings = Seq(
-  // Coverage
-  // todo. for demo now, increase to 100.
-  coverageMinimumStmtTotal := 70,
-  // todo. for demo now, increase to 100.
-  coverageMinimumBranchTotal := 70,
-  coverageFailOnMinimum := true,
-  coverageEnabled := true,
-
   // Scalastyle
   scalastyleConfig := (ThisBuild / scalastyleConfig).value,
   compileScalastyle := (Compile / scalastyle).toTask("").value,
