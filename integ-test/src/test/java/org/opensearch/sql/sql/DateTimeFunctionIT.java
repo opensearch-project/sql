@@ -40,7 +40,6 @@ public class DateTimeFunctionIT extends SQLIntegTestCase {
     loadIndex(Index.BANK);
     loadIndex(Index.CALCS);
     loadIndex(Index.PEOPLE2);
-    loadIndex(Index.CALCS);
   }
 
   // Integration test framework sets for OpenSearch instance a random timezone.
@@ -283,9 +282,9 @@ public class DateTimeFunctionIT extends SQLIntegTestCase {
     result1.getJSONArray("datarows").similar(result2.getJSONArray("datarows"));
 
     result1 = executeQuery(String.format(
-        "SELECT dayofmonth(CAST(date0 AS date)) FROM %s", TEST_INDEX_CALCS));
+        "SELECT dayofmonth(date0) FROM %s", TEST_INDEX_CALCS));
     result2 = executeQuery(String.format(
-        "SELECT day_of_month(CAST(date0 AS date)) FROM %s", TEST_INDEX_CALCS));
+        "SELECT day_of_month(date0) FROM %s", TEST_INDEX_CALCS));
     result1.getJSONArray("datarows").similar(result2.getJSONArray("datarows"));
 
     result1 = executeQuery(String.format(
@@ -301,9 +300,9 @@ public class DateTimeFunctionIT extends SQLIntegTestCase {
     result1.getJSONArray("datarows").similar(result2.getJSONArray("datarows"));
 
     result1 = executeQuery(String.format(
-        "SELECT dayofmonth(CAST(datetime0 AS timestamp)) FROM %s", TEST_INDEX_CALCS));
+        "SELECT dayofmonth(datetime0) FROM %s", TEST_INDEX_CALCS));
     result2 = executeQuery(String.format(
-        "SELECT day_of_month(CAST(datetime0 AS timestamp)) FROM %s", TEST_INDEX_CALCS));
+        "SELECT day_of_month(datetime0) FROM %s", TEST_INDEX_CALCS));
     result1.getJSONArray("datarows").similar(result2.getJSONArray("datarows"));
   }
   @Test
@@ -336,9 +335,9 @@ public class DateTimeFunctionIT extends SQLIntegTestCase {
     result1.getJSONArray("datarows").similar(result2.getJSONArray("datarows"));
 
     result1 = executeQuery(String.format(
-        "SELECT dayofweek(CAST(date0 AS date)) FROM %s", TEST_INDEX_CALCS));
+        "SELECT dayofweek(date0) FROM %s", TEST_INDEX_CALCS));
     result2 = executeQuery(String.format(
-        "SELECT day_of_week(CAST(date0 AS date)) FROM %s", TEST_INDEX_CALCS));
+        "SELECT day_of_week(date0) FROM %s", TEST_INDEX_CALCS));
     result1.getJSONArray("datarows").similar(result2.getJSONArray("datarows"));
 
     result1 = executeQuery(String.format(
@@ -354,9 +353,9 @@ public class DateTimeFunctionIT extends SQLIntegTestCase {
     result1.getJSONArray("datarows").similar(result2.getJSONArray("datarows"));
 
     result1 = executeQuery(String.format(
-        "SELECT dayofweek(CAST(datetime0 AS timestamp)) FROM %s", TEST_INDEX_CALCS));
+        "SELECT dayofweek(datetime0) FROM %s", TEST_INDEX_CALCS));
     result2 = executeQuery(String.format(
-        "SELECT day_of_week(CAST(datetime0 AS timestamp)) FROM %s", TEST_INDEX_CALCS));
+        "SELECT day_of_week(datetime0) FROM %s", TEST_INDEX_CALCS));
     result1.getJSONArray("datarows").similar(result2.getJSONArray("datarows"));
   }
 
@@ -398,9 +397,9 @@ public class DateTimeFunctionIT extends SQLIntegTestCase {
     result1.getJSONArray("datarows").similar(result2.getJSONArray("datarows"));
 
     result1 = executeQuery(String.format(
-        "SELECT dayofyear(CAST(date0 AS date)) FROM %s", TEST_INDEX_CALCS));
+        "SELECT dayofyear(date0) FROM %s", TEST_INDEX_CALCS));
     result2 = executeQuery(String.format(
-        "SELECT day_of_year(CAST(date0 AS date)) FROM %s", TEST_INDEX_CALCS));
+        "SELECT day_of_year(date0) FROM %s", TEST_INDEX_CALCS));
     result1.getJSONArray("datarows").similar(result2.getJSONArray("datarows"));
 
     result1 = executeQuery(String.format(
@@ -416,9 +415,9 @@ public class DateTimeFunctionIT extends SQLIntegTestCase {
     result1.getJSONArray("datarows").similar(result2.getJSONArray("datarows"));
 
     result1 = executeQuery(String.format(
-        "SELECT dayofyear(CAST(datetime0 AS timestamp)) FROM %s", TEST_INDEX_CALCS));
+        "SELECT dayofyear(datetime0) FROM %s", TEST_INDEX_CALCS));
     result2 = executeQuery(String.format(
-        "SELECT day_of_year(CAST(datetime0 AS timestamp)) FROM %s", TEST_INDEX_CALCS));
+        "SELECT day_of_year(datetime0) FROM %s", TEST_INDEX_CALCS));
     result1.getJSONArray("datarows").similar(result2.getJSONArray("datarows"));
   }
   @Test
@@ -485,7 +484,7 @@ public class DateTimeFunctionIT extends SQLIntegTestCase {
   public void testExtractWithTime() throws IOException {
     JSONObject timeResult = executeQuery(
         String.format(
-            "SELECT extract(HOUR_SECOND FROM cast(time0 AS TIME)) FROM %s LIMIT 1",
+            "SELECT extract(HOUR_SECOND FROM time0) FROM %s LIMIT 1",
             TEST_INDEX_CALCS));
     verifyDataRows(timeResult, rows(210732));
 
@@ -495,7 +494,7 @@ public class DateTimeFunctionIT extends SQLIntegTestCase {
   public void testExtractWithDate() throws IOException {
     JSONObject dateResult  = executeQuery(
         String.format(
-            "SELECT extract(YEAR_MONTH FROM cast(date0 AS DATE)) FROM %s LIMIT 1",
+            "SELECT extract(YEAR_MONTH FROM date0) FROM %s LIMIT 1",
             TEST_INDEX_CALCS));
     verifyDataRows(dateResult, rows(200404));
   }
@@ -533,16 +532,16 @@ public class DateTimeFunctionIT extends SQLIntegTestCase {
     result1.getJSONArray("datarows").similar(result2.getJSONArray("datarows"));
 
     result1 = executeQuery(String.format(
-        "SELECT hour(CAST(datetime0 AS timestamp)) FROM %s", TEST_INDEX_CALCS));
+        "SELECT hour(datetime0) FROM %s", TEST_INDEX_CALCS));
     result2 = executeQuery(String.format(
-        "SELECT hour_of_day(CAST(datetime0 AS timestamp)) FROM %s", TEST_INDEX_CALCS));
+        "SELECT hour_of_day(datetime0) FROM %s", TEST_INDEX_CALCS));
     result1.getJSONArray("datarows").similar(result2.getJSONArray("datarows"));
   }
 
   @Test
   public void testLastDay() throws IOException {
     JSONObject result = executeQuery(
-        String.format("SELECT last_day(cast(date0 as date)) FROM %s LIMIT 3",
+        String.format("SELECT last_day(date0) FROM %s LIMIT 3",
             TEST_INDEX_CALCS));
     verifyDataRows(result,
         rows("2004-04-30"),
@@ -550,7 +549,7 @@ public class DateTimeFunctionIT extends SQLIntegTestCase {
         rows("1975-11-30"));
 
     result = executeQuery(
-        String.format("SELECT last_day(datetime(cast(date0 AS string))) FROM %s LIMIT 3",
+        String.format("SELECT last_day(date0) FROM %s LIMIT 3",
             TEST_INDEX_CALCS));
     verifyDataRows(result,
         rows("2004-04-30"),
@@ -558,7 +557,7 @@ public class DateTimeFunctionIT extends SQLIntegTestCase {
         rows("1975-11-30"));
 
     result = executeQuery(
-        String.format("SELECT last_day(cast(date0 AS timestamp)) FROM %s LIMIT 3",
+        String.format("SELECT last_day(date0) FROM %s LIMIT 3",
             TEST_INDEX_CALCS));
     verifyDataRows(result,
         rows("2004-04-30"),
@@ -690,9 +689,9 @@ public class DateTimeFunctionIT extends SQLIntegTestCase {
     result1.getJSONArray("datarows").similar(result2.getJSONArray("datarows"));
 
     result1 = executeQuery(String.format(
-        "SELECT minute(CAST(datetime0 AS timestamp)) FROM %s", TEST_INDEX_CALCS));
+        "SELECT minute(datetime0) FROM %s", TEST_INDEX_CALCS));
     result2 = executeQuery(String.format(
-        "SELECT minute_of_hour(CAST(datetime0 AS timestamp)) FROM %s", TEST_INDEX_CALCS));
+        "SELECT minute_of_hour(datetime0) FROM %s", TEST_INDEX_CALCS));
     result1.getJSONArray("datarows").similar(result2.getJSONArray("datarows"));
   }
 
@@ -734,9 +733,9 @@ public class DateTimeFunctionIT extends SQLIntegTestCase {
     result1.getJSONArray("datarows").similar(result2.getJSONArray("datarows"));
 
     result1 = executeQuery(String.format(
-        "SELECT month(CAST(date0 AS date)) FROM %s", TEST_INDEX_CALCS));
+        "SELECT month(date0) FROM %s", TEST_INDEX_CALCS));
     result2 = executeQuery(String.format(
-        "SELECT month_of_year(CAST(date0 AS date)) FROM %s", TEST_INDEX_CALCS));
+        "SELECT month_of_year(date0) FROM %s", TEST_INDEX_CALCS));
     result1.getJSONArray("datarows").similar(result2.getJSONArray("datarows"));
 
     result1 = executeQuery(String.format(
@@ -752,9 +751,9 @@ public class DateTimeFunctionIT extends SQLIntegTestCase {
     result1.getJSONArray("datarows").similar(result2.getJSONArray("datarows"));
 
     result1 = executeQuery(String.format(
-        "SELECT month(CAST(datetime0 AS timestamp)) FROM %s", TEST_INDEX_CALCS));
+        "SELECT month(datetime0) FROM %s", TEST_INDEX_CALCS));
     result2 = executeQuery(String.format(
-        "SELECT month_of_year(CAST(datetime0 AS timestamp)) FROM %s", TEST_INDEX_CALCS));
+        "SELECT month_of_year(datetime0) FROM %s", TEST_INDEX_CALCS));
     result1.getJSONArray("datarows").similar(result2.getJSONArray("datarows"));
   }
 
@@ -847,9 +846,9 @@ public class DateTimeFunctionIT extends SQLIntegTestCase {
     result1.getJSONArray("datarows").similar(result2.getJSONArray("datarows"));
 
     result1 = executeQuery(String.format(
-        "SELECT second(CAST(datetime0 AS timestamp)) FROM %s", TEST_INDEX_CALCS));
+        "SELECT second(datetime0) FROM %s", TEST_INDEX_CALCS));
     result2 = executeQuery(String.format(
-        "SELECT second_of_minute(CAST(datetime0 AS timestamp)) FROM %s", TEST_INDEX_CALCS));
+        "SELECT second_of_minute(datetime0) FROM %s", TEST_INDEX_CALCS));
     result1.getJSONArray("datarows").similar(result2.getJSONArray("datarows"));
   }
 
@@ -994,7 +993,7 @@ public class DateTimeFunctionIT extends SQLIntegTestCase {
   @Test
   public void testToSeconds() throws IOException {
     JSONObject result = executeQuery(
-        String.format("select to_seconds(date(date0)) FROM %s LIMIT 2", TEST_INDEX_CALCS));
+        String.format("select to_seconds(date0) FROM %s LIMIT 2", TEST_INDEX_CALCS));
     verifyDataRows(result, rows(63249206400L), rows(62246275200L));
 
     result = executeQuery(
@@ -1002,7 +1001,7 @@ public class DateTimeFunctionIT extends SQLIntegTestCase {
     verifyDataRows(result, rows(63256587455L), rows(63258064234L));
 
     result = executeQuery(String.format(
-        "select to_seconds(timestamp(datetime0)) FROM %s LIMIT 2", TEST_INDEX_CALCS));
+        "select to_seconds(datetime0) FROM %s LIMIT 2", TEST_INDEX_CALCS));
     verifyDataRows(result, rows(63256587455L), rows(63258064234L));
   }
 
@@ -1091,10 +1090,10 @@ public class DateTimeFunctionIT extends SQLIntegTestCase {
     result1.getJSONArray("datarows").similar(result2.getJSONArray("datarows"));
     result1.getJSONArray("datarows").similar(result3.getJSONArray("datarows"));
 
-    compareWeekResults("CAST(date0 AS date)", TEST_INDEX_CALCS);
+    compareWeekResults("date0", TEST_INDEX_CALCS);
     compareWeekResults("datetime(CAST(time0 AS STRING))", TEST_INDEX_CALCS);
     compareWeekResults("CAST(time0 AS STRING)", TEST_INDEX_CALCS);
-    compareWeekResults("CAST(datetime0 AS timestamp)", TEST_INDEX_CALCS);
+    compareWeekResults("datetime0", TEST_INDEX_CALCS);
   }
 
   @Test
