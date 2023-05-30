@@ -91,7 +91,7 @@ The table below list the mapping between OpenSearch Data Type, OpenSearch SQL Da
 +-----------------+---------------------+-----------+
 | text            | text                | VARCHAR   |
 +-----------------+---------------------+-----------+
-| date            | timestamp           | TIMESTAMP |
+| date*           | timestamp           | TIMESTAMP |
 +-----------------+---------------------+-----------+
 | date_nanos      | timestamp           | TIMESTAMP |
 +-----------------+---------------------+-----------+
@@ -104,7 +104,11 @@ The table below list the mapping between OpenSearch Data Type, OpenSearch SQL Da
 | nested          | array               | STRUCT    |
 +-----------------+---------------------+-----------+
 
-Notes: Not all the OpenSearch SQL Type has correspond OpenSearch Type. e.g. data and time. To use function which required such data type, user should explicitly convert the data type.
+Notes:
+* Not all the OpenSearch SQL Type has correspond OpenSearch Type. e.g. data and time. To use function which required such data type, user should explicitly convert the data type.
+* date*: Maps to `timestamp` by default. Based on the "format" property `date` can map to `date` or `time`. See list of supported named formats `here <https://opensearch.org/docs/latest/field-types/supported-field-types/date/>`_.
+For example, `basic_date` will map to a `date` type, and `basic_time` will map to a `time` type.
+
 
 Data Type Conversion
 ====================
