@@ -246,6 +246,7 @@ afterEvaluate {
 
 testClusters.integTest {
     plugin(project.tasks.bundlePlugin.archiveFile)
+    testDistribution = "ARCHIVE"
 
     // debug with command, ./gradlew opensearch-sql:run -DdebugJVM. --debug-jvm does not work with keystore.
     if (System.getProperty("debugJVM") != null) {

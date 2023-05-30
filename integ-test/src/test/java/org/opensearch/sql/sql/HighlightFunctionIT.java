@@ -64,7 +64,7 @@ public class HighlightFunctionIT extends SQLIntegTestCase {
         schema("highlight(Body, pre_tags='<mark style=\"background-color: green;\">', " +
                 "post_tags='</mark>')", null, "nested"));
 
-    assertEquals(1, response.getInt("total"));
+    assertEquals(1, response.getInt("size"));
 
     verifyDataRows(response, rows(new JSONArray(List.of("What are the differences between an <em>IPA</em>" +
             " and its variants?")),

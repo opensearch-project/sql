@@ -43,7 +43,7 @@ public class OpenSearchNodeClient implements OpenSearchClient {
   private final NodeClient client;
 
   /**
-   * Constructor of ElasticsearchNodeClient.
+   * Constructor of OpenSearchNodeClient.
    */
   public OpenSearchNodeClient(NodeClient client) {
     this.client = client;
@@ -172,7 +172,14 @@ public class OpenSearchNodeClient implements OpenSearchClient {
 
   @Override
   public void cleanup(OpenSearchRequest request) {
-    request.clean(scrollId -> client.prepareClearScroll().addScrollId(scrollId).get());
+    request.clean(scrollId -> {
+      try {
+        client.prepareClearScroll().addScrollId(scrollId).get();
+      } catch (Exception e) {
+        throw new IllegalStateException(
+            "Failed to clean up resources for search request " + request, e);
+      }
+    });
   }
 
   @Override
