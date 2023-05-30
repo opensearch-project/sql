@@ -9,9 +9,22 @@ package org.opensearch.sql.planner.physical;
 import static java.util.Collections.emptyList;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.mockito.Mockito.mock;
 import static org.opensearch.sql.data.type.ExprCoreType.DOUBLE;
 import static org.opensearch.sql.data.type.ExprCoreType.INTEGER;
 import static org.opensearch.sql.expression.DSL.named;
+import static org.opensearch.sql.planner.physical.PhysicalPlanDSL.agg;
+import static org.opensearch.sql.planner.physical.PhysicalPlanDSL.dedupe;
+import static org.opensearch.sql.planner.physical.PhysicalPlanDSL.eval;
+import static org.opensearch.sql.planner.physical.PhysicalPlanDSL.filter;
+import static org.opensearch.sql.planner.physical.PhysicalPlanDSL.limit;
+import static org.opensearch.sql.planner.physical.PhysicalPlanDSL.project;
+import static org.opensearch.sql.planner.physical.PhysicalPlanDSL.rareTopN;
+import static org.opensearch.sql.planner.physical.PhysicalPlanDSL.remove;
+import static org.opensearch.sql.planner.physical.PhysicalPlanDSL.rename;
+import static org.opensearch.sql.planner.physical.PhysicalPlanDSL.sort;
+import static org.opensearch.sql.planner.physical.PhysicalPlanDSL.values;
+import static org.opensearch.sql.planner.physical.PhysicalPlanDSL.window;
 
 import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableList;
@@ -19,9 +32,15 @@ import com.google.common.collect.ImmutableMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Stream;
 import org.apache.commons.lang3.tuple.Pair;
+import org.junit.jupiter.api.DisplayNameGeneration;
+import org.junit.jupiter.api.DisplayNameGenerator;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.opensearch.sql.ast.tree.RareTopN.CommandType;
@@ -34,6 +53,7 @@ import org.opensearch.sql.expression.window.WindowDefinition;
  * Todo, testing purpose, delete later.
  */
 @ExtendWith(MockitoExtension.class)
+@DisplayNameGeneration(DisplayNameGenerator.ReplaceUnderscores.class)
 class PhysicalPlanNodeVisitorTest extends PhysicalPlanTestBase {
   @Mock
   PhysicalPlan plan;
@@ -43,13 +63,13 @@ class PhysicalPlanNodeVisitorTest extends PhysicalPlanTestBase {
   @Test
   public void print_physical_plan() {
     PhysicalPlan plan =
-        PhysicalPlanDSL.remove(
-            PhysicalPlanDSL.project(
-                PhysicalPlanDSL.rename(
-                    PhysicalPlanDSL.agg(
-                        PhysicalPlanDSL.rareTopN(
-                            PhysicalPlanDSL.filter(
-                                PhysicalPlanDSL.limit(
+        remove(
+            project(
+                rename(
+                    agg(
+                        rareTopN(
+                            filter(
+                                limit(
                                     new TestScan(),
                                     1, 1
                                 ),
@@ -76,71 +96,59 @@ class PhysicalPlanNodeVisitorTest extends PhysicalPlanTestBase {
         printer.print(plan));
   }
 
-  @Test
-  public void test_PhysicalPlanVisitor_should_return_null() {
+  public static Stream<Arguments> getPhysicalPlanForTest() {
+    PhysicalPlan plan = mock(PhysicalPlan.class);
+    ReferenceExpression ref = mock(ReferenceExpression.class);
+
     PhysicalPlan filter =
-        PhysicalPlanDSL.filter(
-            new TestScan(), DSL.equal(DSL.ref("response", INTEGER), DSL.literal(10)));
-    assertNull(filter.accept(new PhysicalPlanNodeVisitor<Integer, Object>() {
-    }, null));
+        filter(new TestScan(), DSL.equal(DSL.ref("response", INTEGER), DSL.literal(10)));
 
     PhysicalPlan aggregation =
-        PhysicalPlanDSL.agg(
-            filter, ImmutableList.of(DSL.named("avg(response)",
+        agg(filter, ImmutableList.of(DSL.named("avg(response)",
                 DSL.avg(DSL.ref("response", INTEGER)))), ImmutableList.of());
-    assertNull(aggregation.accept(new PhysicalPlanNodeVisitor<Integer, Object>() {
-    }, null));
 
     PhysicalPlan rename =
-        PhysicalPlanDSL.rename(
-            aggregation, ImmutableMap.of(DSL.ref("ivalue", INTEGER), DSL.ref("avg(response)",
+        rename(aggregation, ImmutableMap.of(DSL.ref("ivalue", INTEGER), DSL.ref("avg(response)",
                 DOUBLE)));
-    assertNull(rename.accept(new PhysicalPlanNodeVisitor<Integer, Object>() {
-    }, null));
 
-    PhysicalPlan project = PhysicalPlanDSL.project(plan, named("ref", ref));
-    assertNull(project.accept(new PhysicalPlanNodeVisitor<Integer, Object>() {
-    }, null));
+    PhysicalPlan project = project(plan, named("ref", ref));
 
-    PhysicalPlan window = PhysicalPlanDSL.window(plan, named(DSL.rowNumber()),
+    PhysicalPlan window = window(plan, named(DSL.rowNumber()),
         new WindowDefinition(emptyList(), emptyList()));
-    assertNull(window.accept(new PhysicalPlanNodeVisitor<Integer, Object>() {
-    }, null));
 
-    PhysicalPlan remove = PhysicalPlanDSL.remove(plan, ref);
-    assertNull(remove.accept(new PhysicalPlanNodeVisitor<Integer, Object>() {
-    }, null));
+    PhysicalPlan remove = remove(plan, ref);
 
-    PhysicalPlan eval = PhysicalPlanDSL.eval(plan, Pair.of(ref, ref));
-    assertNull(eval.accept(new PhysicalPlanNodeVisitor<Integer, Object>() {
-    }, null));
+    PhysicalPlan eval = eval(plan, Pair.of(ref, ref));
 
-    PhysicalPlan sort = PhysicalPlanDSL.sort(plan, Pair.of(SortOption.DEFAULT_ASC, ref));
-    assertNull(sort.accept(new PhysicalPlanNodeVisitor<Integer, Object>() {
-    }, null));
+    PhysicalPlan sort = sort(plan, Pair.of(SortOption.DEFAULT_ASC, ref));
 
-    PhysicalPlan dedupe = PhysicalPlanDSL.dedupe(plan, ref);
-    assertNull(dedupe.accept(new PhysicalPlanNodeVisitor<Integer, Object>() {
-    }, null));
+    PhysicalPlan dedupe = dedupe(plan, ref);
 
-    PhysicalPlan values = PhysicalPlanDSL.values(emptyList());
-    assertNull(values.accept(new PhysicalPlanNodeVisitor<Integer, Object>() {
-    }, null));
+    PhysicalPlan values = values(emptyList());
 
-    PhysicalPlan rareTopN =
-        PhysicalPlanDSL.rareTopN(plan, CommandType.TOP, 5, ImmutableList.of(), ref);
-    assertNull(rareTopN.accept(new PhysicalPlanNodeVisitor<Integer, Object>() {
-    }, null));
+    PhysicalPlan rareTopN = rareTopN(plan, CommandType.TOP, 5, ImmutableList.of(), ref);
 
-    PhysicalPlan limit = PhysicalPlanDSL.limit(plan, 1, 1);
-    assertNull(limit.accept(new PhysicalPlanNodeVisitor<Integer, Object>() {
-    }, null));
+    PhysicalPlan limit = limit(plan, 1, 1);
 
     Set<String> nestedArgs = Set.of("nested.test");
-    Map<String, List<String>> groupedFieldsByPath =
-        Map.of("nested", List.of("nested.test"));
+    Map<String, List<String>> groupedFieldsByPath = Map.of("nested", List.of("nested.test"));
     PhysicalPlan nested = new NestedOperator(plan, nestedArgs, groupedFieldsByPath);
-    assertNull(nested.accept(new PhysicalPlanNodeVisitor<Integer, Object>() {
+
+    PhysicalPlan cursorClose = new CursorCloseOperator(plan);
+
+    return Stream.of(Arguments.of(filter, "filter"), Arguments.of(aggregation, "aggregation"),
+        Arguments.of(rename, "rename"), Arguments.of(project, "project"),
+        Arguments.of(window, "window"), Arguments.of(remove, "remove"),
+        Arguments.of(eval, "eval"), Arguments.of(sort, "sort"), Arguments.of(dedupe, "dedupe"),
+        Arguments.of(values, "values"), Arguments.of(rareTopN, "rareTopN"),
+        Arguments.of(limit, "limit"), Arguments.of(nested, "nested"),
+        Arguments.of(cursorClose, "cursorClose"));
+  }
+
+  @ParameterizedTest(name = "{1}")
+  @MethodSource("getPhysicalPlanForTest")
+  public void test_PhysicalPlanVisitor_should_return_null(PhysicalPlan plan, String name) {
+    assertNull(plan.accept(new PhysicalPlanNodeVisitor<Integer, Object>() {
     }, null));
   }
 

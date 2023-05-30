@@ -80,20 +80,25 @@ class OpenSearchResponseTest {
                 new TotalHits(2L, TotalHits.Relation.EQUAL_TO),
                 1.0F));
 
-    assertFalse(new OpenSearchResponse(searchResponse, factory, includes).isEmpty());
+    var response = new OpenSearchResponse(searchResponse, factory, includes);
+    assertFalse(response.isEmpty());
 
     when(searchResponse.getHits()).thenReturn(SearchHits.empty());
     when(searchResponse.getAggregations()).thenReturn(null);
-    assertTrue(new OpenSearchResponse(searchResponse, factory, includes).isEmpty());
+
+    response = new OpenSearchResponse(searchResponse, factory, includes);
+    assertTrue(response.isEmpty());
 
     when(searchResponse.getHits())
         .thenReturn(new SearchHits(null, new TotalHits(0, TotalHits.Relation.EQUAL_TO), 0));
-    OpenSearchResponse response3 = new OpenSearchResponse(searchResponse, factory, includes);
-    assertTrue(response3.isEmpty());
+    response = new OpenSearchResponse(searchResponse, factory, includes);
+    assertTrue(response.isEmpty());
 
     when(searchResponse.getHits()).thenReturn(SearchHits.empty());
     when(searchResponse.getAggregations()).thenReturn(new Aggregations(emptyList()));
-    assertFalse(new OpenSearchResponse(searchResponse, factory, includes).isEmpty());
+
+    response = new OpenSearchResponse(searchResponse, factory, includes);
+    assertFalse(response.isEmpty());
   }
 
   @Test

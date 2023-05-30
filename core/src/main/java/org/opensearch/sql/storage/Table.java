@@ -99,4 +99,5 @@ public interface Table {
   default StreamingSource asStreamingSource() {
     throw new UnsupportedOperationException();
   }
+
 }

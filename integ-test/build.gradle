@@ -126,6 +126,11 @@ compileTestJava {
 
 testClusters.all {
     testDistribution = 'archive'
+
+    // debug with command, ./gradlew opensearch-sql:run -DdebugJVM. --debug-jvm does not work with keystore.
+    if (System.getProperty("debugJVM") != null) {
+        jvmArgs '-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:5005'
+    }
 }
 
 testClusters.integTest {
@@ -254,10 +259,16 @@ integTest {
 
     // Tell the test JVM if the cluster JVM is running under a debugger so that tests can use longer timeouts for
     // requests. The 'doFirst' delays reading the debug setting on the cluster till execution time.
-    doFirst { systemProperty 'cluster.debug', getDebug() }
+    doFirst {
+        if (System.getProperty("debug-jvm") != null) {
+            setDebug(true);
+        }
+        systemProperty 'cluster.debug', getDebug()
+    }
+
 
     if (System.getProperty("test.debug") != null) {
-        jvmArgs '-agentlib:jdwp=transport=dt_socket,server=y,suspend=y,address=*:5005'
+        jvmArgs '-agentlib:jdwp=transport=dt_socket,server=y,suspend=y,address=*:5006'
     }
 
     if (System.getProperty("tests.rest.bwcsuite") == null) {

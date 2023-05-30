@@ -29,13 +29,16 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.io.Resources;
 import java.io.IOException;
 import java.net.URL;
-import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
+import lombok.SneakyThrows;
+import org.apache.commons.lang3.reflect.FieldUtils;
 import org.apache.lucene.search.TotalHits;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayNameGeneration;
+import org.junit.jupiter.api.DisplayNameGenerator;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InOrder;
@@ -56,6 +59,7 @@ import org.opensearch.cluster.metadata.AliasMetadata;
 import org.opensearch.cluster.metadata.IndexMetadata;
 import org.opensearch.cluster.metadata.MappingMetadata;
 import org.opensearch.common.settings.Settings;
+import org.opensearch.common.unit.TimeValue;
 import org.opensearch.common.util.concurrent.ThreadContext;
 import org.opensearch.common.xcontent.XContentType;
 import org.opensearch.core.xcontent.DeprecationHandler;
@@ -64,6 +68,7 @@ import org.opensearch.core.xcontent.XContentParser;
 import org.opensearch.index.IndexNotFoundException;
 import org.opensearch.search.SearchHit;
 import org.opensearch.search.SearchHits;
+import org.opensearch.search.builder.SearchSourceBuilder;
 import org.opensearch.sql.data.model.ExprIntegerValue;
 import org.opensearch.sql.data.model.ExprTupleValue;
 import org.opensearch.sql.data.model.ExprValue;
@@ -71,10 +76,12 @@ import org.opensearch.sql.opensearch.data.type.OpenSearchDataType;
 import org.opensearch.sql.opensearch.data.type.OpenSearchTextType;
 import org.opensearch.sql.opensearch.data.value.OpenSearchExprValueFactory;
 import org.opensearch.sql.opensearch.mapping.IndexMapping;
+import org.opensearch.sql.opensearch.request.OpenSearchRequest;
 import org.opensearch.sql.opensearch.request.OpenSearchScrollRequest;
 import org.opensearch.sql.opensearch.response.OpenSearchResponse;
 
 @ExtendWith(MockitoExtension.class)
+@DisplayNameGeneration(DisplayNameGenerator.ReplaceUnderscores.class)
 class OpenSearchNodeClientTest {
 
   private static final String TEST_MAPPING_FILE = "mappings/accounts.json";
@@ -90,13 +97,10 @@ class OpenSearchNodeClientTest {
   private SearchHit searchHit;
 
   @Mock
-  private ThreadContext threadContext;
-
-  @Mock
   private GetIndexResponse indexResponse;
 
-  private ExprTupleValue exprTupleValue = ExprTupleValue.fromExprValueMap(ImmutableMap.of("id",
-      new ExprIntegerValue(1)));
+  private final ExprTupleValue exprTupleValue = ExprTupleValue.fromExprValueMap(
+      Map.of("id", new ExprIntegerValue(1)));
 
   private OpenSearchClient client;
 
@@ -106,7 +110,7 @@ class OpenSearchNodeClientTest {
   }
 
   @Test
-  void isIndexExist() {
+  void is_index_exist() {
     when(nodeClient.admin().indices()
         .exists(any(IndicesExistsRequest.class)).actionGet())
         .thenReturn(new IndicesExistsResponse(true));
@@ -115,7 +119,7 @@ class OpenSearchNodeClientTest {
   }
 
   @Test
-  void isIndexNotExist() {
+  void is_index_not_exist() {
     String indexName = "test";
     when(nodeClient.admin().indices()
         .exists(any(IndicesExistsRequest.class)).actionGet())
@@ -125,14 +129,14 @@ class OpenSearchNodeClientTest {
   }
 
   @Test
-  void isIndexExistWithException() {
+  void is_index_exist_with_exception() {
     when(nodeClient.admin().indices().exists(any())).thenThrow(RuntimeException.class);
 
     assertThrows(IllegalStateException.class, () -> client.exists("test"));
   }
 
   @Test
-  void createIndex() {
+  void create_index() {
     String indexName = "test";
     Map<String, Object> mappings = ImmutableMap.of(
         "properties",
@@ -145,7 +149,7 @@ class OpenSearchNodeClientTest {
   }
 
   @Test
-  void createIndexWithException() {
+  void create_index_with_exception() {
     when(nodeClient.admin().indices().create(any())).thenThrow(RuntimeException.class);
 
     assertThrows(IllegalStateException.class,
@@ -153,7 +157,7 @@ class OpenSearchNodeClientTest {
   }
 
   @Test
-  void getIndexMappings() throws IOException {
+  void get_index_mappings() throws IOException {
     URL url = Resources.getResource(TEST_MAPPING_FILE);
     String mappings = Resources.toString(url, Charsets.UTF_8);
     String indexName = "test";
@@ -224,7 +228,7 @@ class OpenSearchNodeClientTest {
   }
 
   @Test
-  void getIndexMappingsWithEmptyMapping() {
+  void get_index_mappings_with_empty_mapping() {
     String indexName = "test";
     mockNodeClientIndicesMappings(indexName, "");
     Map<String, IndexMapping> indexMappings = client.getIndexMappings(indexName);
@@ -235,7 +239,7 @@ class OpenSearchNodeClientTest {
   }
 
   @Test
-  void getIndexMappingsWithIOException() {
+  void get_index_mappings_with_IOException() {
     String indexName = "test";
     when(nodeClient.admin().indices()).thenThrow(RuntimeException.class);
 
@@ -243,7 +247,7 @@ class OpenSearchNodeClientTest {
   }
 
   @Test
-  void getIndexMappingsWithNonExistIndex() {
+  void get_index_mappings_with_non_exist_index() {
     when(nodeClient.admin().indices()
         .prepareGetMappings(any())
         .setLocal(anyBoolean())
@@ -254,7 +258,7 @@ class OpenSearchNodeClientTest {
   }
 
   @Test
-  void getIndexMaxResultWindows() throws IOException {
+  void get_index_max_result_windows() throws IOException {
     URL url = Resources.getResource(TEST_MAPPING_SETTINGS_FILE);
     String indexMetadata = Resources.toString(url, Charsets.UTF_8);
     String indexName = "accounts";
@@ -268,7 +272,7 @@ class OpenSearchNodeClientTest {
   }
 
   @Test
-  void getIndexMaxResultWindowsWithDefaultSettings() throws IOException {
+  void get_index_max_result_windows_with_default_settings() throws IOException {
     URL url = Resources.getResource(TEST_MAPPING_FILE);
     String indexMetadata = Resources.toString(url, Charsets.UTF_8);
     String indexName = "accounts";
@@ -282,7 +286,7 @@ class OpenSearchNodeClientTest {
   }
 
   @Test
-  void getIndexMaxResultWindowsWithIOException() {
+  void get_index_max_result_windows_with_IOException() {
     String indexName = "test";
     when(nodeClient.admin().indices()).thenThrow(RuntimeException.class);
 
@@ -291,7 +295,7 @@ class OpenSearchNodeClientTest {
 
   /** Jacoco enforce this constant lambda be tested. */
   @Test
-  void testAllFieldsPredicate() {
+  void test_all_fields_predicate() {
     assertTrue(OpenSearchNodeClient.ALL_FIELDS.apply("any_index").test("any_field"));
   }
 
@@ -314,11 +318,12 @@ class OpenSearchNodeClientTest {
     // Mock second scroll request followed
     SearchResponse scrollResponse = mock(SearchResponse.class);
     when(nodeClient.searchScroll(any()).actionGet()).thenReturn(scrollResponse);
-    when(scrollResponse.getScrollId()).thenReturn("scroll456");
     when(scrollResponse.getHits()).thenReturn(SearchHits.empty());
 
     // Verify response for first scroll request
-    OpenSearchScrollRequest request = new OpenSearchScrollRequest("test", factory);
+    OpenSearchScrollRequest request = new OpenSearchScrollRequest(
+        new OpenSearchRequest.IndexName("test"), TimeValue.timeValueMinutes(1),
+        new SearchSourceBuilder(), factory);
     OpenSearchResponse response1 = client.search(request);
     assertFalse(response1.isEmpty());
 
@@ -328,6 +333,7 @@ class OpenSearchNodeClientTest {
     assertFalse(hits.hasNext());
 
     // Verify response for second scroll request
+    request.setScrollId("scroll123");
     OpenSearchResponse response2 = client.search(request);
     assertTrue(response2.isEmpty());
   }
@@ -343,16 +349,21 @@ class OpenSearchNodeClientTest {
   }
 
   @Test
+  @SneakyThrows
   void cleanup() {
     ClearScrollRequestBuilder requestBuilder = mock(ClearScrollRequestBuilder.class);
     when(nodeClient.prepareClearScroll()).thenReturn(requestBuilder);
     when(requestBuilder.addScrollId(any())).thenReturn(requestBuilder);
     when(requestBuilder.get()).thenReturn(null);
 
-    OpenSearchScrollRequest request = new OpenSearchScrollRequest("test", factory);
+    OpenSearchScrollRequest request = new OpenSearchScrollRequest(
+        new OpenSearchRequest.IndexName("test"), TimeValue.timeValueMinutes(1),
+        new SearchSourceBuilder(), factory);
     request.setScrollId("scroll123");
+    // Enforce cleaning by setting a private field.
+    FieldUtils.writeField(request, "needClean", true, true);
     client.cleanup(request);
-    assertFalse(request.isScrollStarted());
+    assertFalse(request.isScroll());
 
     InOrder inOrder = Mockito.inOrder(nodeClient, requestBuilder);
     inOrder.verify(nodeClient).prepareClearScroll();
@@ -361,14 +372,30 @@ class OpenSearchNodeClientTest {
   }
 
   @Test
-  void cleanupWithoutScrollId() {
-    OpenSearchScrollRequest request = new OpenSearchScrollRequest("test", factory);
+  void cleanup_without_scrollId() {
+    OpenSearchScrollRequest request = new OpenSearchScrollRequest(
+        new OpenSearchRequest.IndexName("test"), TimeValue.timeValueMinutes(1),
+        new SearchSourceBuilder(), factory);
     client.cleanup(request);
     verify(nodeClient, never()).prepareClearScroll();
   }
 
   @Test
-  void getIndices() {
+  @SneakyThrows
+  void cleanup_rethrows_exception() {
+    when(nodeClient.prepareClearScroll()).thenThrow(new RuntimeException());
+
+    OpenSearchScrollRequest request = new OpenSearchScrollRequest(
+        new OpenSearchRequest.IndexName("test"), TimeValue.timeValueMinutes(1),
+        new SearchSourceBuilder(), factory);
+    request.setScrollId("scroll123");
+    // Enforce cleaning by setting a private field.
+    FieldUtils.writeField(request, "needClean", true, true);
+    assertThrows(IllegalStateException.class, () -> client.cleanup(request));
+  }
+
+  @Test
+  void get_indices() {
     AliasMetadata aliasMetadata = mock(AliasMetadata.class);
     final var openMap = Map.of("index", List.of(aliasMetadata));
     when(aliasMetadata.alias()).thenReturn("index_alias");
