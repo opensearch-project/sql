@@ -1042,29 +1042,6 @@ class AnalyzerTest extends AnalyzerTestBase {
   }
 
   /**
-   * Ensure Nested function falls back to legacy engine when used in WHERE clause.
-   * TODO Remove this test when support is added.
-   */
-  @Test
-  public void nested_where_clause_throws_syntax_exception() {
-    SyntaxCheckException exception = assertThrows(SyntaxCheckException.class,
-        () -> analyze(
-            AstDSL.filter(
-                AstDSL.relation("schema"),
-                AstDSL.equalTo(
-                    AstDSL.function("nested", qualifiedName("message", "info")),
-                    AstDSL.stringLiteral("str")
-                )
-            )
-        )
-    );
-    assertEquals("Falling back to legacy engine. Nested function is not supported in WHERE,"
-            + " GROUP BY, and HAVING clauses.",
-        exception.getMessage());
-  }
-
-
-  /**
    * SELECT name, AVG(age) FROM test GROUP BY name.
    */
   @Test
