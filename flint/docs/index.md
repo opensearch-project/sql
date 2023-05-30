@@ -72,7 +72,24 @@ flintClient.getIndexMetadata("alb_logs_skipping_index")
 Index data read and write example:
 
 ```java
-TODO
+FlintClient flintClient = new FlintOpenSearchClient("localhost", 9200);
+
+// read example
+FlintReader reader = flintClient.createReader("indexName", null)\
+while(reader.hasNext) {
+  reader.next()
+}
+reader.close()
+
+// write example
+FlintWriter writer = flintClient.createWriter("indexName")
+writer.write("{\"create\":{}}")
+writer.write("\n")
+writer.write("{\"aInt\":1}")
+writer.write("\n")
+writer.flush()
+writer.close()
+
 ```
 
 ### API
@@ -171,8 +188,16 @@ In the index mapping, the `_meta` and `properties`field stores meta and schema i
 
 #### Configurations
 
-- `spark.flint.indexstore.location`: default is localhost
-- `spark.flint.indexstore.port`: default is 9200
+- `spark.datasource.flint.location`: default is localhost.
+- `spark.datasource.flint.port`: default is 9200.
+- `spark.datasource.flint.scheme`: default is http. valid values [http, https]
+- `spark.datasource.flint.auth`: default is false. valid values [false, sigv4]
+- `spark.datasource.flint.region`: default is us-west-2. only been used when auth=sigv4
+- `spark.datasource.flint.write.id_name`: no default value.
+- `spark.datasource.flint.write.batch_size`: default value is 1000.
+- `spark.datasource.flint.write.refresh_policy`: default value is false. valid values [NONE(false), 
+  IMMEDIATE(true), WAIT_UNTIL(wait_for)]
+- `spark.datasource.flint.read.scroll_size`: default value is 100.
 
 #### API
 
@@ -198,6 +223,25 @@ flint.refresh("flint_alb_logs_skipping_index", FULL)
 trait FlintSparkSkippingStrategy {
   TODO: outputSchema, getAggregators, rewritePredicate
 }
+```
+
+#### Flint DataSource Read/Write
+
+Here is an example for read index data from AWS OpenSearch domain.
+
+```scala
+val aos = Map(
+  "host" -> "yourdomain.us-west-2.es.amazonaws.com", 
+  "port" -> "-1", 
+  "scheme" -> "https", 
+  "auth" -> "sigv4", 
+  "region" -> "us-west-2")
+
+val df = new SQLContext(sc).read
+        .format("flint")
+        .options(aos)
+        .schema("aInt int")
+        .load("t001")
 ```
 
 ## Benchmarks
