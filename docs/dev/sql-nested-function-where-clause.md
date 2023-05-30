@@ -97,7 +97,7 @@ A basic nested function in the `SELECT` clause. This example filters the `nested
 Using the same query as above but with syntax option 1, the response from OpenSearch will be the same, but the DSL used in the query will differ.
 - `SELECT * FROM nested_objects WHERE nested(message, message.info = 'a' OR messate.author = 'elm');`
 
-This example has a nested function in the `SELECT` clause and the `WHERE` clause of the query. Using the `nested` function in the `SELECT` clause will flatten the response nested objects from OpenSearch.
+This example has a nested function in the `SELECT` clause and the `WHERE` clause of the query. Using the `nested` function in the `SELECT` clause will flatten the response nested objects from OpenSearch. See [Nested In Select](sql-nested-function-select-clause.md) for more details on flattening.
 - `SELECT nested(message.info) FROM nested_objects WHERE nested(message.info) = 'a';`
 
 When using syntax option 1 we need separate function calls when the `path` is not identical. This query exemplifies how a user can use multiple queries with differing `path` values. 
@@ -385,8 +385,8 @@ After pushing down the filter object tree we have a DSL query to push to OpenSea
 ### Demo Video
 TBD
 
-### Potential Normalizing Strategy
-TBD
+### Normalizing Strategy
+A normalization strategy could produce identical DSL independent on the syntax option used in the query. Testing so far hasn't highlighted any major improvements with query execution that necessitate identical DSL. Additional benchmarking and planning will be done to determine a viable normalization strategy and if implementation is required.
 
 ### Release Schedule
 See Issues Tracked under [Issue 1111](https://github.com/opensearch-project/sql/issues/1111) for related PR's and information.
