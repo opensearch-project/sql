@@ -29,6 +29,7 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.io.Resources;
 import java.io.IOException;
 import java.net.URL;
+import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -399,7 +400,7 @@ class OpenSearchNodeClientTest {
   void get_indices() {
     AliasMetadata aliasMetadata = mock(AliasMetadata.class);
     ImmutableOpenMap.Builder<String, List<AliasMetadata>> builder = ImmutableOpenMap.builder();
-    builder.fPut("index",Arrays.asList(aliasMetadata));
+    builder.fPut("index", Arrays.asList(aliasMetadata));
     final ImmutableOpenMap<String, List<AliasMetadata>> openMap = builder.build();
     when(aliasMetadata.alias()).thenReturn("index_alias");
     when(nodeClient.admin().indices()
