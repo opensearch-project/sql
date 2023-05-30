@@ -24,6 +24,7 @@ import org.opensearch.rest.RestStatus;
 import org.opensearch.sql.common.antlr.SyntaxCheckException;
 import org.opensearch.sql.common.response.ResponseListener;
 import org.opensearch.sql.common.utils.QueryContext;
+import org.opensearch.sql.exception.UnsupportedCursorRequestException;
 import org.opensearch.sql.executor.ExecutionEngine.ExplainResponse;
 import org.opensearch.sql.legacy.metrics.MetricName;
 import org.opensearch.sql.legacy.metrics.Metrics;
@@ -33,6 +34,7 @@ import org.opensearch.sql.protocol.response.format.CsvResponseFormatter;
 import org.opensearch.sql.protocol.response.format.Format;
 import org.opensearch.sql.protocol.response.format.JdbcResponseFormatter;
 import org.opensearch.sql.protocol.response.format.JsonResponseFormatter;
+import org.opensearch.sql.protocol.response.format.CommandResponseFormatter;
 import org.opensearch.sql.protocol.response.format.RawResponseFormatter;
 import org.opensearch.sql.protocol.response.format.ResponseFormatter;
 import org.opensearch.sql.sql.SQLService;
@@ -101,7 +103,9 @@ public class RestSQLQueryAction extends BaseRestHandler {
                   channel,
                   createExplainResponseListener(channel, executionErrorHandler),
                   fallbackHandler));
-    } else {
+    }
+    // If close request, sqlService.closeCursor
+    else  {
       return channel ->
           sqlService.execute(
               request,
@@ -119,14 +123,14 @@ public class RestSQLQueryAction extends BaseRestHandler {
     return new ResponseListener<T>() {
       @Override
       public void onResponse(T response) {
-        LOG.error("[{}] Request is handled by new SQL query engine",
+        LOG.info("[{}] Request is handled by new SQL query engine",
             QueryContext.getRequestId());
         next.onResponse(response);
       }
 
       @Override
       public void onFailure(Exception e) {
-        if (e instanceof SyntaxCheckException) {
+        if (e instanceof SyntaxCheckException || e instanceof UnsupportedCursorRequestException) {
           fallBackHandler.accept(channel, e);
         } else {
           next.onFailure(e);
@@ -161,7 +165,10 @@ public class RestSQLQueryAction extends BaseRestHandler {
       BiConsumer<RestChannel, Exception> errorHandler) {
     Format format = request.format();
     ResponseFormatter<QueryResult> formatter;
-    if (format.equals(Format.CSV)) {
+
+    if (request.isCursorCloseRequest()) {
+      formatter = new CommandResponseFormatter();
+    } else if (format.equals(Format.CSV)) {
       formatter = new CsvResponseFormatter(request.sanitize());
     } else if (format.equals(Format.RAW)) {
       formatter = new RawResponseFormatter();
@@ -172,7 +179,8 @@ public class RestSQLQueryAction extends BaseRestHandler {
       @Override
       public void onResponse(QueryResponse response) {
         sendResponse(channel, OK,
-            formatter.format(new QueryResult(response.getSchema(), response.getResults())));
+            formatter.format(new QueryResult(response.getSchema(), response.getResults(),
+                response.getCursor())));
       }
 
       @Override

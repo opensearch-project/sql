@@ -6,6 +6,7 @@
 
 package org.opensearch.sql.analysis;
 
+import static org.opensearch.sql.analysis.DataSourceSchemaIdentifierNameResolver.DEFAULT_DATASOURCE_NAME;
 import static org.opensearch.sql.ast.tree.Sort.NullOrder.NULL_FIRST;
 import static org.opensearch.sql.ast.tree.Sort.NullOrder.NULL_LAST;
 import static org.opensearch.sql.ast.tree.Sort.SortOrder.ASC;
@@ -42,13 +43,16 @@ import org.opensearch.sql.ast.expression.QualifiedName;
 import org.opensearch.sql.ast.expression.UnresolvedExpression;
 import org.opensearch.sql.ast.tree.AD;
 import org.opensearch.sql.ast.tree.Aggregation;
+import org.opensearch.sql.ast.tree.CloseCursor;
 import org.opensearch.sql.ast.tree.Dedupe;
 import org.opensearch.sql.ast.tree.Eval;
+import org.opensearch.sql.ast.tree.FetchCursor;
 import org.opensearch.sql.ast.tree.Filter;
 import org.opensearch.sql.ast.tree.Head;
 import org.opensearch.sql.ast.tree.Kmeans;
 import org.opensearch.sql.ast.tree.Limit;
 import org.opensearch.sql.ast.tree.ML;
+import org.opensearch.sql.ast.tree.Paginate;
 import org.opensearch.sql.ast.tree.Parse;
 import org.opensearch.sql.ast.tree.Project;
 import org.opensearch.sql.ast.tree.RareTopN;
@@ -80,12 +84,15 @@ import org.opensearch.sql.expression.function.TableFunctionImplementation;
 import org.opensearch.sql.expression.parse.ParseExpression;
 import org.opensearch.sql.planner.logical.LogicalAD;
 import org.opensearch.sql.planner.logical.LogicalAggregation;
+import org.opensearch.sql.planner.logical.LogicalCloseCursor;
 import org.opensearch.sql.planner.logical.LogicalDedupe;
 import org.opensearch.sql.planner.logical.LogicalEval;
+import org.opensearch.sql.planner.logical.LogicalFetchCursor;
 import org.opensearch.sql.planner.logical.LogicalFilter;
 import org.opensearch.sql.planner.logical.LogicalLimit;
 import org.opensearch.sql.planner.logical.LogicalML;
 import org.opensearch.sql.planner.logical.LogicalMLCommons;
+import org.opensearch.sql.planner.logical.LogicalPaginate;
 import org.opensearch.sql.planner.logical.LogicalPlan;
 import org.opensearch.sql.planner.logical.LogicalProject;
 import org.opensearch.sql.planner.logical.LogicalRareTopN;
@@ -207,7 +214,6 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
     return new LogicalRelation(dataSourceSchemaIdentifierNameResolver.getIdentifierName(),
         tableFunctionImplementation.applyArguments());
   }
-
 
   @Override
   public LogicalPlan visitLimit(Limit node, AnalysisContext context) {
@@ -561,6 +567,23 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
     return new LogicalML(child, node.getArguments());
   }
 
+  @Override
+  public LogicalPlan visitPaginate(Paginate paginate, AnalysisContext context) {
+    LogicalPlan child = paginate.getChild().get(0).accept(this, context);
+    return new LogicalPaginate(paginate.getPageSize(), List.of(child));
+  }
+
+  @Override
+  public LogicalPlan visitFetchCursor(FetchCursor cursor, AnalysisContext context) {
+    return new LogicalFetchCursor(cursor.getCursor(),
+      dataSourceService.getDataSource(DEFAULT_DATASOURCE_NAME).getStorageEngine());
+  }
+
+  @Override
+  public LogicalPlan visitCloseCursor(CloseCursor closeCursor, AnalysisContext context) {
+    return new LogicalCloseCursor(closeCursor.getChild().get(0).accept(this, context));
+  }
+
   /**
    * The first argument is always "asc", others are optional.
    * Given nullFirst argument, use its value. Otherwise just use DEFAULT_ASC/DESC.
@@ -576,5 +599,4 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
     }
     return asc ? SortOption.DEFAULT_ASC : SortOption.DEFAULT_DESC;
   }
-
 }

@@ -7,6 +7,7 @@ package org.opensearch.sql.planner.physical;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.when;
 import static org.opensearch.sql.data.model.ExprValueUtils.collectionValue;
@@ -91,8 +92,10 @@ class NestedOperatorTest extends PhysicalPlanTestBase {
     Map<String, List<String>> groupedFieldsByPath =
         Map.of("message", List.of("message.info"));
 
+    var nested = new NestedOperator(inputPlan, fields, groupedFieldsByPath);
+
     assertThat(
-        execute(new NestedOperator(inputPlan, fields, groupedFieldsByPath)),
+        execute(nested),
         contains(
             tupleValue(
                 new LinkedHashMap<>() {{
@@ -176,8 +179,10 @@ class NestedOperatorTest extends PhysicalPlanTestBase {
                 "field", new ReferenceExpression("comment.data", STRING),
                 "path", new ReferenceExpression("comment", STRING))
         );
+    var nested = new NestedOperator(inputPlan, fields);
+
     assertThat(
-        execute(new NestedOperator(inputPlan, fields)),
+        execute(nested),
         contains(
             tupleValue(
                 new LinkedHashMap<>() {{
@@ -252,8 +257,10 @@ class NestedOperatorTest extends PhysicalPlanTestBase {
                 "field", new ReferenceExpression("message.id", STRING),
                 "path", new ReferenceExpression("message", STRING))
         );
+    var nested = new NestedOperator(inputPlan, fields);
+
     assertThat(
-        execute(new NestedOperator(inputPlan, fields)),
+        execute(nested),
         contains(
             tupleValue(
                 new LinkedHashMap<>() {{
@@ -286,8 +293,10 @@ class NestedOperatorTest extends PhysicalPlanTestBase {
     Set<String> fields = Set.of("message");
     Map<String, List<String>> groupedFieldsByPath =
         Map.of("message", List.of("message.info"));
+
+    var nested = new NestedOperator(inputPlan, fields, groupedFieldsByPath);
     assertThat(
-        execute(new NestedOperator(inputPlan, fields, groupedFieldsByPath)),
+        execute(nested),
         contains(
             tupleValue(new LinkedHashMap<>(Map.of("message", "val")))
         )
@@ -302,8 +311,10 @@ class NestedOperatorTest extends PhysicalPlanTestBase {
     Set<String> fields = Set.of("message.val");
     Map<String, List<String>> groupedFieldsByPath =
         Map.of("message", List.of("message.val"));
+
+    var nested = new NestedOperator(inputPlan, fields, groupedFieldsByPath);
     assertThat(
-        execute(new NestedOperator(inputPlan, fields, groupedFieldsByPath)),
+        execute(nested),
         contains(
             tupleValue(new LinkedHashMap<>(Map.of("message.val", ExprNullValue.of())))
         )
@@ -318,11 +329,11 @@ class NestedOperatorTest extends PhysicalPlanTestBase {
     Set<String> fields = Set.of("missing.data");
     Map<String, List<String>> groupedFieldsByPath =
         Map.of("message", List.of("message.data"));
-    assertTrue(
-        execute(new NestedOperator(inputPlan, fields, groupedFieldsByPath))
-            .get(0)
-            .tupleValue()
-            .size() == 0
-    );
+
+    var nested = new NestedOperator(inputPlan, fields, groupedFieldsByPath);
+    assertEquals(0, execute(nested)
+        .get(0)
+        .tupleValue()
+        .size());
   }
 }

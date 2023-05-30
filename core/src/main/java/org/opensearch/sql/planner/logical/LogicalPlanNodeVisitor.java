@@ -104,4 +104,16 @@ public abstract class LogicalPlanNodeVisitor<R, C> {
   public R visitAD(LogicalAD plan, C context) {
     return visitNode(plan, context);
   }
+
+  public R visitPaginate(LogicalPaginate plan, C context) {
+    return visitNode(plan, context);
+  }
+
+  public R visitFetchCursor(LogicalFetchCursor plan, C context) {
+    return visitNode(plan, context);
+  }
+
+  public R visitCloseCursor(LogicalCloseCursor plan, C context) {
+    return visitNode(plan, context);
+  }
 }

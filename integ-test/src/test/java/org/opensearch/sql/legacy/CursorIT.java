@@ -123,11 +123,16 @@ public class CursorIT extends SQLIntegTestCase {
     String selectQuery = StringUtils.format("SELECT firstname, state FROM %s", TEST_INDEX_ACCOUNT);
     JSONObject response = new JSONObject(executeFetchQuery(selectQuery, 50, JDBC));
     String cursor = response.getString(CURSOR);
+    verifyIsV1Cursor(cursor);
+
     int pageCount = 1;
 
     while (!cursor.isEmpty()) { //this condition also checks that there is no cursor on last page
       response = executeCursorQuery(cursor);
       cursor = response.optString(CURSOR);
+      if (!cursor.isEmpty()) {
+        verifyIsV1Cursor(cursor);
+      }
       pageCount++;
     }
 
@@ -136,12 +141,16 @@ public class CursorIT extends SQLIntegTestCase {
     // using random value here, with fetch size of 28 we should get 36 pages (ceil of 1000/28)
     response = new JSONObject(executeFetchQuery(selectQuery, 28, JDBC));
     cursor = response.getString(CURSOR);
+    verifyIsV1Cursor(cursor);
     System.out.println(response);
     pageCount = 1;
 
     while (!cursor.isEmpty()) {
       response = executeCursorQuery(cursor);
       cursor = response.optString(CURSOR);
+      if (!cursor.isEmpty()) {
+        verifyIsV1Cursor(cursor);
+      }
       pageCount++;
     }
     assertThat(pageCount, equalTo(36));
@@ -223,6 +232,7 @@ public class CursorIT extends SQLIntegTestCase {
         "}", TestsConstants.TEST_INDEX_ACCOUNT));
 
     assertTrue(response.has(CURSOR));
+    verifyIsV1Cursor(response.getString(CURSOR));
   }
 
   @Test
@@ -244,11 +254,13 @@ public class CursorIT extends SQLIntegTestCase {
         StringUtils.format("SELECT login_time FROM %s LIMIT 500", TEST_INDEX_DATE_TIME);
     JSONObject response = new JSONObject(executeFetchQuery(selectQuery, 1, JDBC));
     String cursor = response.getString(CURSOR);
+    verifyIsV1Cursor(cursor);
     actualDateList.add(response.getJSONArray(DATAROWS).getJSONArray(0).getString(0));
 
     while (!cursor.isEmpty()) {
       response = executeCursorQuery(cursor);
       cursor = response.optString(CURSOR);
+      verifyIsV1Cursor(cursor);
       actualDateList.add(response.getJSONArray(DATAROWS).getJSONArray(0).getString(0));
     }
 
@@ -274,7 +286,6 @@ public class CursorIT extends SQLIntegTestCase {
     query = StringUtils.format("SELECT firstname, email, state FROM %s", TEST_INDEX_ACCOUNT);
     response = new JSONObject(executeFetchQuery(query, 100, JDBC));
     assertTrue(response.has(CURSOR));
-
     wipeAllClusterSettings();
   }
 
@@ -305,12 +316,14 @@ public class CursorIT extends SQLIntegTestCase {
     JSONObject response = new JSONObject(executeFetchLessQuery(query, JDBC));
     JSONArray datawRows = response.optJSONArray(DATAROWS);
     assertThat(datawRows.length(), equalTo(1000));
+    verifyIsV1Cursor(response.getString(CURSOR));
 
     updateClusterSettings(new ClusterSetting(TRANSIENT, "opensearch.sql.cursor.fetch_size", "786"));
     response = new JSONObject(executeFetchLessQuery(query, JDBC));
     datawRows = response.optJSONArray(DATAROWS);
     assertThat(datawRows.length(), equalTo(786));
     assertTrue(response.has(CURSOR));
+    verifyIsV1Cursor(response.getString(CURSOR));
 
     wipeAllClusterSettings();
   }
@@ -323,11 +336,12 @@ public class CursorIT extends SQLIntegTestCase {
         "SELECT firstname, state FROM %s WHERE balance > 100 and age < 40", TEST_INDEX_ACCOUNT);
     JSONObject result = new JSONObject(executeFetchQuery(selectQuery, 50, JDBC));
     String cursor = result.getString(CURSOR);
-
+    verifyIsV1Cursor(cursor);
     // Retrieving next 10 pages out of remaining 19 pages
     for (int i = 0; i < 10; i++) {
       result = executeCursorQuery(cursor);
       cursor = result.optString(CURSOR);
+      verifyIsV1Cursor(cursor);
     }
     //Closing the cursor
     JSONObject closeResp = executeCursorCloseQuery(cursor);
@@ -386,12 +400,14 @@ public class CursorIT extends SQLIntegTestCase {
         StringUtils.format("SELECT age, balance FROM %s LIMIT %s", TEST_INDEX_ACCOUNT, limit);
     JSONObject response = new JSONObject(executeFetchQuery(selectQuery, 50, JDBC));
     String cursor = response.getString(CURSOR);
+    verifyIsV1Cursor(cursor);
     int actualDataRowCount = response.getJSONArray(DATAROWS).length();
     int pageCount = 1;
 
     while (!cursor.isEmpty()) {
       response = executeCursorQuery(cursor);
       cursor = response.optString(CURSOR);
+      verifyIsV1Cursor(cursor);
       actualDataRowCount += response.getJSONArray(DATAROWS).length();
       pageCount++;
     }
@@ -432,10 +448,12 @@ public class CursorIT extends SQLIntegTestCase {
     response.optJSONArray(DATAROWS).forEach(dataRows::put);
 
     String cursor = response.getString(CURSOR);
+    verifyIsV1Cursor(cursor);
     while (!cursor.isEmpty()) {
       response = executeCursorQuery(cursor);
       response.optJSONArray(DATAROWS).forEach(dataRows::put);
       cursor = response.optString(CURSOR);
+      verifyIsV1Cursor(cursor);
     }
 
     verifySchema(withoutCursorResponse.optJSONArray(SCHEMA),
@@ -463,6 +481,13 @@ public class CursorIT extends SQLIntegTestCase {
     Response response = client().performRequest(sqlRequest);
     String responseString = getResponseBody(response, true);
     return responseString;
+  }
+
+  private void verifyIsV1Cursor(String cursor) {
+    if (cursor.isEmpty()) {
+      return;
+    }
+    assertTrue("The cursor '" + cursor + "' is not from v1 engine.", cursor.startsWith("d:"));
   }
 
   private String makeRequest(String query, String fetch_size) {

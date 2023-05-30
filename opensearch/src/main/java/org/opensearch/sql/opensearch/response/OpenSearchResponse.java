@@ -57,13 +57,13 @@ public class OpenSearchResponse implements Iterable<ExprValue> {
   private final List<String> includes;
 
   /**
-   * ElasticsearchExprValueFactory used to build ExprValue from search result.
+   * OpenSearchExprValueFactory used to build ExprValue from search result.
    */
   @EqualsAndHashCode.Exclude
   private final OpenSearchExprValueFactory exprValueFactory;
 
   /**
-   * Constructor of ElasticsearchResponse.
+   * Constructor of OpenSearchResponse.
    */
   public OpenSearchResponse(SearchResponse searchResponse,
                             OpenSearchExprValueFactory exprValueFactory,
@@ -75,7 +75,7 @@ public class OpenSearchResponse implements Iterable<ExprValue> {
   }
 
   /**
-   * Constructor of ElasticsearchResponse with SearchHits.
+   * Constructor of OpenSearchResponse with SearchHits.
    */
   public OpenSearchResponse(SearchHits hits,
                             OpenSearchExprValueFactory exprValueFactory,
