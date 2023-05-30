@@ -88,12 +88,6 @@ public class OpenSearchIndexScan extends TableScanOperator implements Serializab
     return iterator.next();
   }
 
-  @Override
-  public long getTotalHits() {
-    // ignore response.getTotalHits(), because response returns entire index, regardless of LIMIT
-    return queryCount;
-  }
-
   private void fetchNextBatch() {
     OpenSearchResponse response = client.search(request);
     if (!response.isEmpty()) {

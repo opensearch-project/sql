@@ -57,13 +57,6 @@ public class ValuesOperator extends PhysicalPlan {
   }
 
   @Override
-  public long getTotalHits() {
-    // ValuesOperator used for queries without `FROM` clause, e.g. `select 1`.
-    // Such query always returns 1 row.
-    return 1;
-  }
-
-  @Override
   public ExprValue next() {
     List<ExprValue> values = valuesIterator.next().stream()
                                            .map(Expression::valueOf)

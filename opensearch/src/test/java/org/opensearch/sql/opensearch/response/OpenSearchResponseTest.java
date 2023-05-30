@@ -82,27 +82,23 @@ class OpenSearchResponseTest {
 
     var response = new OpenSearchResponse(searchResponse, factory, includes);
     assertFalse(response.isEmpty());
-    assertEquals(2L, response.getTotalHits());
 
     when(searchResponse.getHits()).thenReturn(SearchHits.empty());
     when(searchResponse.getAggregations()).thenReturn(null);
 
     response = new OpenSearchResponse(searchResponse, factory, includes);
     assertTrue(response.isEmpty());
-    assertEquals(0L, response.getTotalHits());
 
     when(searchResponse.getHits())
         .thenReturn(new SearchHits(null, new TotalHits(0, TotalHits.Relation.EQUAL_TO), 0));
     response = new OpenSearchResponse(searchResponse, factory, includes);
     assertTrue(response.isEmpty());
-    assertEquals(0L, response.getTotalHits());
 
     when(searchResponse.getHits()).thenReturn(SearchHits.empty());
     when(searchResponse.getAggregations()).thenReturn(new Aggregations(emptyList()));
 
     response = new OpenSearchResponse(searchResponse, factory, includes);
     assertFalse(response.isEmpty());
-    assertEquals(0L, response.getTotalHits());
   }
 
   @Test

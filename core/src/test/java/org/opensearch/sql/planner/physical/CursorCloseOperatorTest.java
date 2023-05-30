@@ -27,15 +27,6 @@ public class CursorCloseOperatorTest {
     assertFalse(plan.hasNext());
   }
 
-  // TODO remove
-  @Test
-  public void no_total_hits() {
-    var plan = new CursorCloseOperator(null);
-    assertEquals(0, plan.getTotalHits());
-    plan.open();
-    assertEquals(0, plan.getTotalHits());
-  }
-
   @Test
   public void open_is_not_propagated() {
     var child = mock(PhysicalPlan.class);

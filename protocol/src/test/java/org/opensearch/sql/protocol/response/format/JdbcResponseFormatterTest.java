@@ -97,7 +97,7 @@ class JdbcResponseFormatterTest {
                     .put("address", "Seattle")
                     .put("age", 20)
                 .build())),
-        new Cursor("test_cursor"), 42);
+        new Cursor("test_cursor"));
 
     assertJsonEquals(
         "{"
@@ -108,7 +108,7 @@ class JdbcResponseFormatterTest {
             + "],"
             + "\"datarows\":["
             + "[\"John\",\"Seattle\",20]],"
-            + "\"total\":42,"
+            + "\"total\":1,"
             + "\"size\":1,"
             + "\"cursor\":\"test_cursor\","
             + "\"status\":200}",

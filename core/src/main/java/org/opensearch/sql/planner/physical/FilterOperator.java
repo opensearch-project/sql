@@ -32,7 +32,6 @@ public class FilterOperator extends PhysicalPlan {
   private final Expression conditions;
   @ToString.Exclude
   private ExprValue next = null;
-  private long totalHits = 0;
 
   @Override
   public <R, C> R accept(PhysicalPlanNodeVisitor<R, C> visitor, C context) {
@@ -51,7 +50,6 @@ public class FilterOperator extends PhysicalPlan {
       ExprValue exprValue = conditions.valueOf(inputValue.bindingTuples());
       if (!(exprValue.isNull() || exprValue.isMissing()) && (exprValue.booleanValue())) {
         next = inputValue;
-        totalHits++;
         return true;
       }
     }
@@ -61,11 +59,5 @@ public class FilterOperator extends PhysicalPlan {
   @Override
   public ExprValue next() {
     return next;
-  }
-
-  @Override
-  public long getTotalHits() {
-    // ignore `input.getTotalHits()`, because it returns wrong (unfiltered) value
-    return totalHits;
   }
 }
