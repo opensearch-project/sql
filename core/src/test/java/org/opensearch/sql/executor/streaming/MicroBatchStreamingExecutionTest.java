@@ -170,7 +170,7 @@ class MicroBatchStreamingExecutionTest {
                 ResponseListener<ExecutionEngine.QueryResponse> listener =
                     invocation.getArgument(2);
                 listener.onResponse(
-                    new ExecutionEngine.QueryResponse(null, Collections.emptyList(), 0,
+                    new ExecutionEngine.QueryResponse(null, Collections.emptyList(),
                         Cursor.None));
 
                 PlanContext planContext = invocation.getArgument(1);

@@ -36,12 +36,8 @@ public class QueryResult implements Iterable<Object[]> {
   @Getter
   private final Cursor cursor;
 
-  @Getter
-  private final long total;
-
-
   public QueryResult(ExecutionEngine.Schema schema, Collection<ExprValue> exprValues) {
-    this(schema, exprValues, Cursor.None, exprValues.size());
+    this(schema, exprValues, Cursor.None);
   }
 
   /**

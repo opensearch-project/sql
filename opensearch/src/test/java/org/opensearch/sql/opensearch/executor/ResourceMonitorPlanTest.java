@@ -112,12 +112,6 @@ class ResourceMonitorPlanTest {
   }
 
   @Test
-  void getTotalHitsSuccess() {
-    monitorPlan.getTotalHits();
-    verify(plan, times(1)).getTotalHits();
-  }
-
-  @Test
   void getPlanForSerialization() {
     plan = mock(PhysicalPlan.class, withSettings().extraInterfaces(SerializablePlan.class));
     monitorPlan = new ResourceMonitorPlan(plan, resourceMonitor);

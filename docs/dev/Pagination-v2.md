@@ -450,8 +450,8 @@ SQLService ->>+ QueryPlanFactory: execute
 
 Processing of an Initial Query Request has few extra steps comparing versus processing a regular Query Request:
 1. Query validation with `CanPaginateVisitor`. This is required to validate whether incoming query can be paged. This also activate legacy engine fallback mechanism.
-2. `Serialization` is performed by `PlanSerializer` - it converts Physical Query Plan into a cursor, which could be used query a next page.
-
+2. Creating a paged index scan with `CreatePagingTableScanBuilder` `Optimizer` rule. A Regular Query Request triggers `CreateTableScanBuilder` rule instead.
+3. `Serialization` is performed by `PlanSerializer` - it converts Physical Plan Tree into a cursor, which could be used query a next page.
 
 ```mermaid
 sequenceDiagram
@@ -482,9 +482,6 @@ SQLService ->>+ QueryPlanFactory : execute
       OpenSearchExecutionEngine ->>+ PlanSerializer : convertToCursor
         PlanSerializer -->>- OpenSearchExecutionEngine : cursor
       end
-      rect rgb(91, 123, 155)
-      Note over OpenSearchExecutionEngine : get total hits
-      end
       OpenSearchExecutionEngine -->>- QueryService : execution completed
     QueryService -->>- QueryPlanFactory : execution completed
   QueryPlanFactory -->>- SQLService : execution completed
@@ -493,10 +490,9 @@ SQLService ->>+ QueryPlanFactory : execute
 #### Subsequent Query Request
 
 Subsequent pages are processed by a new workflow. The key point there:
-1. `Deserialization` is performed by `PlanSerializer` to restore entire Physical Query Plan encoded into the cursor.
-2. Since query already contains the Physical Query Plan, analysis and optimization steps are no-ops.
-3. `Serialization` is performed by `PlanSerializer` - it converts Physical Query Plan into a cursor, which could be used query a next page.
-4. Traversal of Physical Query Plan to get total hits, which is required to properly fill response to a user.
+1. `Deserialization` is performed by `PlanSerializer` to restore entire Physical Plan Tree encoded into the cursor.
+2. Since query already contains the Physical Plan Tree, all tree processing steps are skipped.
+3. `Serialization` is performed by `PlanSerializer` - it converts Physical Plan Tree into a cursor, which could be used query a next page.
 
 ```mermaid
 sequenceDiagram
@@ -509,17 +505,20 @@ sequenceDiagram
 
 SQLService ->>+ QueryPlanFactory : execute
   QueryPlanFactory ->>+ QueryService : execute
-  QueryService ->>+ Analyzer : analyze
-  Analyzer -->>- QueryService : new LogicalFetchCursor
-  QueryService ->>+ Planner : plan
-  Planner ->>+ DefaultImplementor : implement
-  DefaultImplementor ->>+ PlanSerializer : deserialize
-  PlanSerializer -->>- DefaultImplementor: physical query plan
-  DefaultImplementor -->>- Planner : physical query plan
-  Planner -->>- QueryService : physical query plan
-  QueryService ->>+ OpenSearchExecutionEngine : execute
-  OpenSearchExecutionEngine -->>- QueryService: execution completed
-  QueryService -->>- QueryPlanFactory : execution completed
+    rect rgb(91, 123, 155)
+    note over QueryService, PlanSerializer : Deserialization
+    QueryService ->>+ PlanSerializer: convertToPlan
+      PlanSerializer -->>- QueryService: Physical plan tree
+    end
+    Note over QueryService : Planner, Optimizer and Implementor<br />are skipped
+    QueryService ->>+ OpenSearchExecutionEngine : execute
+      rect rgb(91, 123, 155)
+      note over OpenSearchExecutionEngine, PlanSerializer : Serialization
+      OpenSearchExecutionEngine ->>+ PlanSerializer : convertToCursor
+        PlanSerializer -->>- OpenSearchExecutionEngine : cursor
+      end
+      OpenSearchExecutionEngine -->>- QueryService: execution completed
+    QueryService -->>- QueryPlanFactory : execution completed
   QueryPlanFactory -->>- SQLService : execution completed
 ```
 
@@ -775,36 +774,4 @@ class PhysicalPlan:
 
   def close:
     innerPlan.close()
-```
-
-#### Total Hits
-
-Total Hits is the number of rows matching the search criteria; with `select *` queries it is equal to row (doc) number in the table (index).
-Example:
-Paging thru `SELECT * FROM calcs` (17 rows) with `fetch_size = 5` returns:
-
-* Page 1: total hits = 17, result size = 5, cursor
-* Page 2: total hits = 17, result size = 5, cursor
-* Page 3: total hits = 17, result size = 5, cursor
-* Page 4: total hits = 17, result size = 2, cursor
-* Page 5: total hits = 0, result size = 0
-
-Default implementation of `getTotalHits` in a Physical Plan iterate child plans down the tree and gets the maximum value or 0.
-
-```mermaid
-sequenceDiagram
-    participant OpenSearchExecutionEngine
-    participant ProjectOperator
-    participant ResourceMonitorPlan
-    participant OpenSearchIndexScan
-
-OpenSearchExecutionEngine ->>+ ProjectOperator: getTotalHits
-  Note over ProjectOperator: default implementation
-  ProjectOperator ->>+ ResourceMonitorPlan: getTotalHits
-    Note over ResourceMonitorPlan: call to delegate
-    ResourceMonitorPlan ->>+ OpenSearchIndexScan: getTotalHits
-      Note over OpenSearchIndexScan: use stored value from the search response
-      OpenSearchIndexScan -->>- ResourceMonitorPlan: value
-    ResourceMonitorPlan -->>- ProjectOperator: value
-  ProjectOperator -->>- OpenSearchExecutionEngine: value
 ```

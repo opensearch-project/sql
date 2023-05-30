@@ -88,11 +88,6 @@ public class ResourceMonitorPlan extends PhysicalPlan implements SerializablePla
   }
 
   @Override
-  public long getTotalHits() {
-    return delegate.getTotalHits();
-  }
-
-  @Override
   public SerializablePlan getPlanForSerialization() {
     return (SerializablePlan) delegate;
   }

@@ -162,7 +162,6 @@ class NestedOperatorTest extends PhysicalPlanTestBase {
             )
         )
     );
-    assertEquals(3, nested.getTotalHits());
   }
 
   @Test
@@ -241,7 +240,6 @@ class NestedOperatorTest extends PhysicalPlanTestBase {
             )
         )
     );
-    assertEquals(9, nested.getTotalHits());
   }
 
   @Test
@@ -284,7 +282,6 @@ class NestedOperatorTest extends PhysicalPlanTestBase {
             )
         )
     );
-    assertEquals(3, nested.getTotalHits());
   }
 
   @Test
@@ -304,7 +301,6 @@ class NestedOperatorTest extends PhysicalPlanTestBase {
             tupleValue(new LinkedHashMap<>(Map.of("message", "val")))
         )
     );
-    assertEquals(1, nested.getTotalHits());
   }
 
   @Test
@@ -323,7 +319,6 @@ class NestedOperatorTest extends PhysicalPlanTestBase {
             tupleValue(new LinkedHashMap<>(Map.of("message.val", ExprNullValue.of())))
         )
     );
-    assertEquals(1, nested.getTotalHits());
   }
 
   @Test
@@ -340,6 +335,5 @@ class NestedOperatorTest extends PhysicalPlanTestBase {
         .get(0)
         .tupleValue()
         .size());
-    assertEquals(1, nested.getTotalHits());
   }
 }
