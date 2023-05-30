@@ -184,7 +184,6 @@ public class OpenSearchRestClient implements OpenSearchClient {
             "Failed to clean up resources for search request " + request, e);
       }
     });
-
   }
 
   @Override

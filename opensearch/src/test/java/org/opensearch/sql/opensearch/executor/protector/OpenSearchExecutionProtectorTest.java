@@ -8,8 +8,10 @@ package org.opensearch.sql.opensearch.executor.protector;
 
 import static java.util.Collections.emptyList;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 import static org.opensearch.sql.ast.tree.Sort.SortOption.DEFAULT_ASC;
 import static org.opensearch.sql.data.type.ExprCoreType.DOUBLE;
 import static org.opensearch.sql.data.type.ExprCoreType.INTEGER;
@@ -24,7 +26,6 @@ import static org.opensearch.sql.planner.physical.PhysicalPlanDSL.window;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -32,6 +33,8 @@ import java.util.Set;
 import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.apache.commons.lang3.tuple.Pair;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayNameGeneration;
+import org.junit.jupiter.api.DisplayNameGenerator;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
@@ -58,13 +61,17 @@ import org.opensearch.sql.opensearch.data.value.OpenSearchExprValueFactory;
 import org.opensearch.sql.opensearch.planner.physical.ADOperator;
 import org.opensearch.sql.opensearch.planner.physical.MLCommonsOperator;
 import org.opensearch.sql.opensearch.planner.physical.MLOperator;
+import org.opensearch.sql.opensearch.request.OpenSearchRequest;
+import org.opensearch.sql.opensearch.request.OpenSearchRequestBuilder;
 import org.opensearch.sql.opensearch.setting.OpenSearchSettings;
-import org.opensearch.sql.opensearch.storage.OpenSearchIndexScan;
+import org.opensearch.sql.opensearch.storage.scan.OpenSearchIndexScan;
+import org.opensearch.sql.planner.physical.CursorCloseOperator;
 import org.opensearch.sql.planner.physical.NestedOperator;
 import org.opensearch.sql.planner.physical.PhysicalPlan;
 import org.opensearch.sql.planner.physical.PhysicalPlanDSL;
 
 @ExtendWith(MockitoExtension.class)
+@DisplayNameGeneration(DisplayNameGenerator.ReplaceUnderscores.class)
 class OpenSearchExecutionProtectorTest {
 
   @Mock
@@ -87,21 +94,20 @@ class OpenSearchExecutionProtectorTest {
   }
 
   @Test
-  public void testProtectIndexScan() {
-    when(settings.getSettingValue(Settings.Key.QUERY_SIZE_LIMIT)).thenReturn(200);
-
+  void test_protect_indexScan() {
     String indexName = "test";
-    Integer maxResultWindow = 10000;
+    final int maxResultWindow = 10000;
+    final int querySizeLimit = 200;
     NamedExpression include = named("age", ref("age", INTEGER));
     ReferenceExpression exclude = ref("name", STRING);
     ReferenceExpression dedupeField = ref("name", STRING);
     ReferenceExpression topField = ref("name", STRING);
-    List<Expression> topExprs = Arrays.asList(ref("age", INTEGER));
+    List<Expression> topExprs = List.of(ref("age", INTEGER));
     Expression filterExpr = literal(ExprBooleanValue.of(true));
-    List<NamedExpression> groupByExprs = Arrays.asList(named("age", ref("age", INTEGER)));
+    List<NamedExpression> groupByExprs = List.of(named("age", ref("age", INTEGER)));
     List<NamedAggregator> aggregators =
-        Arrays.asList(named("avg(age)", new AvgAggregator(Arrays.asList(ref("age", INTEGER)),
-            DOUBLE)));
+        List.of(named("avg(age)", new AvgAggregator(List.of(ref("age", INTEGER)),
+        DOUBLE)));
     Map<ReferenceExpression, ReferenceExpression> mappings =
         ImmutableMap.of(ref("name", STRING), ref("lastname", STRING));
     Pair<ReferenceExpression, Expression> newEvalField =
@@ -111,6 +117,10 @@ class OpenSearchExecutionProtectorTest {
     Integer limit = 10;
     Integer offset = 10;
 
+    final var name = new OpenSearchRequest.IndexName(indexName);
+    final var request = new OpenSearchRequestBuilder(querySizeLimit, exprValueFactory)
+        .build(name, maxResultWindow,
+            settings.getSettingValue(Settings.Key.SQL_CURSOR_KEEP_ALIVE));
     assertEquals(
         PhysicalPlanDSL.project(
             PhysicalPlanDSL.limit(
@@ -124,9 +134,8 @@ class OpenSearchExecutionProtectorTest {
                                             PhysicalPlanDSL.agg(
                                                 filter(
                                                     resourceMonitor(
-                                                        new OpenSearchIndexScan(
-                                                            client, settings, indexName,
-                                                            maxResultWindow, exprValueFactory)),
+                                                      new OpenSearchIndexScan(client,
+                                                        maxResultWindow, request)),
                                                     filterExpr),
                                                 aggregators,
                                                 groupByExprs),
@@ -152,9 +161,8 @@ class OpenSearchExecutionProtectorTest {
                                         PhysicalPlanDSL.rename(
                                             PhysicalPlanDSL.agg(
                                                 filter(
-                                                    new OpenSearchIndexScan(
-                                                        client, settings, indexName,
-                                                        maxResultWindow, exprValueFactory),
+                                                  new OpenSearchIndexScan(client,
+                                                    maxResultWindow, request),
                                                     filterExpr),
                                                 aggregators,
                                                 groupByExprs),
@@ -173,7 +181,7 @@ class OpenSearchExecutionProtectorTest {
 
   @SuppressWarnings("unchecked")
   @Test
-  public void testProtectSortForWindowOperator() {
+  void test_protect_sort_for_windowOperator() {
     NamedExpression rank = named(mock(RankFunction.class));
     Pair<Sort.SortOption, Expression> sortItem =
         ImmutablePair.of(DEFAULT_ASC, DSL.ref("age", INTEGER));
@@ -199,7 +207,7 @@ class OpenSearchExecutionProtectorTest {
   }
 
   @Test
-  public void testProtectWindowOperatorInput() {
+  void test_protect_windowOperator_input() {
     NamedExpression avg = named(mock(AggregateWindowFunction.class));
     WindowDefinition windowDefinition = mock(WindowDefinition.class);
 
@@ -218,7 +226,7 @@ class OpenSearchExecutionProtectorTest {
 
   @SuppressWarnings("unchecked")
   @Test
-  public void testNotProtectWindowOperatorInputIfAlreadyProtected() {
+  void test_not_protect_windowOperator_input_if_already_protected() {
     NamedExpression avg = named(mock(AggregateWindowFunction.class));
     Pair<Sort.SortOption, Expression> sortItem =
         ImmutablePair.of(DEFAULT_ASC, DSL.ref("age", INTEGER));
@@ -243,7 +251,7 @@ class OpenSearchExecutionProtectorTest {
   }
 
   @Test
-  public void testWithoutProtection() {
+  void test_without_protection() {
     Expression filterExpr = literal(ExprBooleanValue.of(true));
 
     assertEquals(
@@ -259,7 +267,7 @@ class OpenSearchExecutionProtectorTest {
   }
 
   @Test
-  public void testVisitMlCommons() {
+  void test_visitMLcommons() {
     NodeClient nodeClient = mock(NodeClient.class);
     MLCommonsOperator mlCommonsOperator =
             new MLCommonsOperator(
@@ -277,7 +285,7 @@ class OpenSearchExecutionProtectorTest {
   }
 
   @Test
-  public void testVisitAD() {
+  void test_visitAD() {
     NodeClient nodeClient = mock(NodeClient.class);
     ADOperator adOperator =
             new ADOperator(
@@ -295,7 +303,7 @@ class OpenSearchExecutionProtectorTest {
   }
 
   @Test
-  public void testVisitML() {
+  void test_visitML() {
     NodeClient nodeClient = mock(NodeClient.class);
     MLOperator mlOperator =
             new MLOperator(
@@ -315,7 +323,7 @@ class OpenSearchExecutionProtectorTest {
   }
 
   @Test
-  public void testVisitNested() {
+  void test_visitNested() {
     Set<String> args = Set.of("message.info");
     Map<String, List<String>> groupedFieldsByPath =
         Map.of("message", List.of("message.info"));
@@ -327,6 +335,14 @@ class OpenSearchExecutionProtectorTest {
 
     assertEquals(executionProtector.doProtect(nestedOperator),
         executionProtector.visitNested(nestedOperator, values(emptyList())));
+  }
+
+  @Test
+  void do_nothing_with_CursorCloseOperator_and_children() {
+    var child = mock(PhysicalPlan.class);
+    var plan = new CursorCloseOperator(child);
+    assertSame(plan, executionProtector.protect(plan));
+    verify(child, never()).accept(executionProtector, null);
   }
 
   PhysicalPlan resourceMonitor(PhysicalPlan input) {

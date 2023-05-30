@@ -22,7 +22,7 @@ import org.opensearch.sql.storage.TableScanOperator;
 @ToString(onlyExplicitlyIncluded = true)
 public class OpenSearchSystemIndexScan extends TableScanOperator {
   /**
-   * OpenSearch client.
+   * OpenSearch request.
    */
   private final OpenSearchSystemRequest request;
 
@@ -33,7 +33,8 @@ public class OpenSearchSystemIndexScan extends TableScanOperator {
 
   @Override
   public void open() {
-    iterator = request.search().iterator();
+    var response = request.search();
+    iterator = response.iterator();
   }
 
   @Override

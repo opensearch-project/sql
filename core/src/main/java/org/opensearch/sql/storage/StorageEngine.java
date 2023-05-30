@@ -29,5 +29,4 @@ public interface StorageEngine {
   default Collection<FunctionResolver> getFunctions() {
     return Collections.emptyList();
   }
-
 }
