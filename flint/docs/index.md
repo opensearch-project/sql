@@ -72,7 +72,24 @@ flintClient.getIndexMetadata("alb_logs_skipping_index")
 Index data read and write example:
 
 ```java
-TODO
+FlintClient flintClient = new FlintOpenSearchClient("localhost", 9200);
+
+// read example
+FlintReader reader = flintClient.createReader("indexName", null)\
+while(reader.hasNext) {
+  reader.next()
+}
+reader.close()
+
+// write example
+FlintWriter writer = flintClient.createWriter("indexName")
+writer.write("{\"create\":{}}")
+writer.write("\n")
+writer.write("{\"aInt\":1}")
+writer.write("\n")
+writer.flush()
+writer.close()
+
 ```
 
 ### API
@@ -178,7 +195,8 @@ In the index mapping, the `_meta` and `properties`field stores meta and schema i
 - `spark.datasource.flint.region`: default is us-west-2. only been used when auth=sigv4
 - `spark.datasource.flint.write.id_name`: no default value.
 - `spark.datasource.flint.write.batch_size`: default value is 1000.
-- `spark.datasource.flint.write.refresh_policy`: default value is 1000. valid values [NONE(false), IMMEDIATE(true), WAIT_UNTIL(wait_for)]
+- `spark.datasource.flint.write.refresh_policy`: default value is false. valid values [NONE(false), 
+  IMMEDIATE(true), WAIT_UNTIL(wait_for)]
 - `spark.datasource.flint.read.scroll_size`: default value is 100.
 
 #### API
