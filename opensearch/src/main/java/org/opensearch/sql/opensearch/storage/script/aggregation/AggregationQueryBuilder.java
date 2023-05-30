@@ -25,13 +25,13 @@ import org.opensearch.search.aggregations.bucket.missing.MissingOrder;
 import org.opensearch.search.sort.SortOrder;
 import org.opensearch.sql.ast.tree.Sort;
 import org.opensearch.sql.data.type.ExprCoreType;
+import org.opensearch.sql.data.type.ExprType;
 import org.opensearch.sql.expression.Expression;
 import org.opensearch.sql.expression.ExpressionNodeVisitor;
 import org.opensearch.sql.expression.NamedExpression;
 import org.opensearch.sql.expression.ReferenceExpression;
 import org.opensearch.sql.expression.aggregation.NamedAggregator;
 import org.opensearch.sql.opensearch.data.type.OpenSearchDataType;
-import org.opensearch.sql.opensearch.data.type.OpenSearchDateType;
 import org.opensearch.sql.opensearch.response.agg.CompositeAggregationParser;
 import org.opensearch.sql.opensearch.response.agg.MetricParser;
 import org.opensearch.sql.opensearch.response.agg.NoBucketAggregationParser;
@@ -112,12 +112,10 @@ public class AggregationQueryBuilder extends ExpressionNodeVisitor<AggregationBu
       List<NamedAggregator> namedAggregatorList,
       List<NamedExpression> groupByList) {
     ImmutableMap.Builder<String, OpenSearchDataType> builder = new ImmutableMap.Builder<>();
-    namedAggregatorList.forEach(agg -> {
-      builder.put(agg.getName(), OpenSearchDataType.of(agg.type()));
-    });
-    groupByList.forEach(group -> {
-      builder.put(group.getNameOrAlias(), OpenSearchDataType.of(group.type()));
-    });
+    namedAggregatorList.forEach(agg -> builder.put(agg.getName(),
+        OpenSearchDataType.of(agg.type())));
+    groupByList.forEach(group -> builder.put(group.getNameOrAlias(),
+        OpenSearchDataType.of(group.type())));
     return builder.build();
   }
 
