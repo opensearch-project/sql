@@ -477,6 +477,21 @@ class AstBuilderTest extends AstBuilderTestBase {
         exception.getMessage());
   }
 
+  /**
+   * Ensure Nested function falls back to legacy engine when used in an HAVING clause.
+   * TODO Remove this test when support is added.
+   */
+  @Test
+  public void nested_in_having_clause_throws_exception() {
+    SyntaxCheckException exception = assertThrows(SyntaxCheckException.class,
+        () -> buildAST("SELECT count(*) FROM test HAVING nested(message.info)")
+    );
+
+    assertEquals(
+        "Falling back to legacy engine. Nested function is not supported in the HAVING clause.",
+        exception.getMessage());
+  }
+
   @Test
   public void can_build_order_by_sort_order_keyword_insensitive() {
     assertEquals(
