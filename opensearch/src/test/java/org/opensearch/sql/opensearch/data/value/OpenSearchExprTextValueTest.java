@@ -55,9 +55,9 @@ class OpenSearchExprTextValueTest {
   @Test
   void non_text_types_with_nested_objects_arent_converted() {
     var objectType = OpenSearchDataType.of(OpenSearchDataType.MappingType.Object,
-        Map.of("subfield", OpenSearchDataType.of(STRING)), Map.of());
+        Map.of("subfield", OpenSearchDataType.of(STRING)));
     var arrayType = OpenSearchDataType.of(OpenSearchDataType.MappingType.Nested,
-        Map.of("subfield", OpenSearchDataType.of(STRING)), Map.of());
+        Map.of("subfield", OpenSearchDataType.of(STRING)));
     assertAll(
         () -> assertEquals("field", OpenSearchTextType.convertTextToKeyword("field", objectType)),
         () -> assertEquals("field", OpenSearchTextType.convertTextToKeyword("field", arrayType))
