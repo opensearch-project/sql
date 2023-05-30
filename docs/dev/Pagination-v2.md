@@ -450,8 +450,7 @@ SQLService ->>+ QueryPlanFactory: execute
 
 Processing of an Initial Query Request has few extra steps comparing versus processing a regular Query Request:
 1. Query validation with `CanPaginateVisitor`. This is required to validate whether incoming query can be paged. This also activate legacy engine fallback mechanism.
-2. Creating a paged index scan with `CreatePagingTableScanBuilder` `Optimizer` rule. A Regular Query Request triggers `CreateTableScanBuilder` rule instead.
-3. `Serialization` is performed by `PlanSerializer` - it converts Physical Plan Tree into a cursor, which could be used query a next page.
+2. `Serialization` is performed by `PlanSerializer` - it converts Physical Plan Tree into a cursor, which could be used query a next page.
 
 ```mermaid
 sequenceDiagram
@@ -496,30 +495,28 @@ Subsequent pages are processed by a new workflow. The key point there:
 
 ```mermaid
 sequenceDiagram
-    participant SQLService
     participant QueryPlanFactory
     participant QueryService
-    participant OpenSearchExecutionEngine
+    participant Analyzer
+    participant Planner
     participant DefaultImplementor
     participant PlanSerializer
+    participant OpenSearchExecutionEngine
 
-SQLService ->>+ QueryPlanFactory : execute
-  QueryPlanFactory ->>+ QueryService : execute
-    rect rgb(91, 123, 155)
-    note over QueryService, PlanSerializer : Deserialization
-    QueryService ->>+ PlanSerializer: convertToPlan
-      PlanSerializer -->>- QueryService: Physical plan tree
-    end
-    Note over QueryService : Planner, Optimizer and Implementor<br />are skipped
-    QueryService ->>+ OpenSearchExecutionEngine : execute
+QueryPlanFactory ->>+ QueryService : execute
+  QueryService ->>+ Analyzer : analyze
+    Analyzer -->>- QueryService : new LogicalFetchCursor
+  QueryService ->>+ Planner : plan
+    Planner ->>+ DefaultImplementor : implement
       rect rgb(91, 123, 155)
-      note over OpenSearchExecutionEngine, PlanSerializer : Serialization
-      OpenSearchExecutionEngine ->>+ PlanSerializer : convertToCursor
-        PlanSerializer -->>- OpenSearchExecutionEngine : cursor
+      DefaultImplementor ->>+ PlanSerializer : deserialize
+        PlanSerializer -->>- DefaultImplementor: physical query plan
       end
-      OpenSearchExecutionEngine -->>- QueryService: execution completed
-    QueryService -->>- QueryPlanFactory : execution completed
-  QueryPlanFactory -->>- SQLService : execution completed
+      DefaultImplementor -->>- Planner : physical query plan
+    Planner -->>- QueryService : physical query plan
+  QueryService ->>+ OpenSearchExecutionEngine : execute
+    OpenSearchExecutionEngine -->>- QueryService: execution completed
+  QueryService -->>- QueryPlanFactory : execution completed
 ```
 
 #### Legacy Engine Fallback
