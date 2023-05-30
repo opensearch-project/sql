@@ -35,11 +35,13 @@ import org.mockito.Mock;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.stubbing.Answer;
+import org.opensearch.action.search.SearchResponse;
 import org.opensearch.common.bytes.BytesArray;
 import org.opensearch.common.unit.TimeValue;
 import org.opensearch.index.query.QueryBuilder;
 import org.opensearch.index.query.QueryBuilders;
 import org.opensearch.search.SearchHit;
+import org.opensearch.search.SearchHits;
 import org.opensearch.search.builder.SearchSourceBuilder;
 import org.opensearch.search.fetch.subphase.highlight.HighlightBuilder;
 import org.opensearch.sql.ast.expression.DataType;
@@ -114,6 +116,14 @@ class OpenSearchIndexScanTest {
     var request = new OpenSearchScrollRequest(
         INDEX_NAME, CURSOR_KEEP_ALIVE, searchSourceBuilder, factory);
     request.setScrollId("valid-id");
+    // make a response, so OpenSearchResponse::isEmpty would return true and unset needClean
+    var response = mock(SearchResponse.class);
+    when(response.getAggregations()).thenReturn(mock());
+    var hits = mock(SearchHits.class);
+    when(response.getHits()).thenReturn(hits);
+    when(response.getScrollId()).thenReturn("valid-id");
+    when(hits.getHits()).thenReturn(new SearchHit[]{ mock() });
+    request.search(null, (req) -> response);
 
     try (var indexScan = new OpenSearchIndexScan(client, QUERY_SIZE, request)) {
       var planSerializer = new PlanSerializer(engine);
@@ -121,7 +131,6 @@ class OpenSearchIndexScanTest {
       var newPlan = planSerializer.convertToPlan(cursor.toString());
       assertEquals(indexScan, newPlan);
     }
-
   }
 
   @Test

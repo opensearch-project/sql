@@ -125,6 +125,35 @@ public class SQLQueryRequestTest {
   }
 
   @Test
+  public void should_support_cursor_close_request() {
+    SQLQueryRequest closeRequest =
+        SQLQueryRequestBuilder.request(null)
+                              .cursor("pewpew")
+                              .path("_plugins/_sql/close")
+                              .build();
+
+    SQLQueryRequest emptyCloseRequest =
+        SQLQueryRequestBuilder.request(null)
+                              .cursor("")
+                              .path("_plugins/_sql/close")
+                              .build();
+
+    SQLQueryRequest pagingRequest =
+        SQLQueryRequestBuilder.request(null)
+                              .cursor("pewpew")
+                              .build();
+
+    assertAll(
+        () -> assertTrue(closeRequest.isSupported()),
+        () -> assertTrue(closeRequest.isCursorCloseRequest()),
+        () -> assertTrue(pagingRequest.isSupported()),
+        () -> assertFalse(pagingRequest.isCursorCloseRequest()),
+        () -> assertFalse(emptyCloseRequest.isSupported()),
+        () -> assertTrue(emptyCloseRequest.isCursorCloseRequest())
+    );
+  }
+
+  @Test
   public void should_not_support_request_with_empty_cursor() {
     SQLQueryRequest requestWithEmptyCursor =
         SQLQueryRequestBuilder.request(null)

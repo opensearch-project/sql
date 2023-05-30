@@ -7,6 +7,7 @@
 package org.opensearch.sql.analysis;
 
 import static java.util.Collections.emptyList;
+import static org.junit.jupiter.api.Assertions.assertAll;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -75,6 +76,7 @@ import org.opensearch.sql.ast.expression.ParseMethod;
 import org.opensearch.sql.ast.expression.ScoreFunction;
 import org.opensearch.sql.ast.expression.SpanUnit;
 import org.opensearch.sql.ast.tree.AD;
+import org.opensearch.sql.ast.tree.CloseCursor;
 import org.opensearch.sql.ast.tree.FetchCursor;
 import org.opensearch.sql.ast.tree.Kmeans;
 import org.opensearch.sql.ast.tree.ML;
@@ -91,6 +93,7 @@ import org.opensearch.sql.expression.ReferenceExpression;
 import org.opensearch.sql.expression.function.OpenSearchFunctions;
 import org.opensearch.sql.expression.window.WindowDefinition;
 import org.opensearch.sql.planner.logical.LogicalAD;
+import org.opensearch.sql.planner.logical.LogicalCloseCursor;
 import org.opensearch.sql.planner.logical.LogicalFetchCursor;
 import org.opensearch.sql.planner.logical.LogicalFilter;
 import org.opensearch.sql.planner.logical.LogicalMLCommons;
@@ -1650,5 +1653,15 @@ class AnalyzerTest extends AnalyzerTestBase {
     assertTrue(actual instanceof LogicalFetchCursor);
     assertEquals(new LogicalFetchCursor("test",
         dataSourceService.getDataSource("@opensearch").getStorageEngine()), actual);
+  }
+
+  @Test
+  public void visit_close_cursor() {
+    var analyzed = analyze(new CloseCursor().attach(new FetchCursor("pewpew")));
+    assertAll(
+        () -> assertTrue(analyzed instanceof LogicalCloseCursor),
+        () -> assertTrue(analyzed.getChild().get(0) instanceof LogicalFetchCursor),
+        () -> assertEquals("pewpew", ((LogicalFetchCursor) analyzed.getChild().get(0)).getCursor())
+    );
   }
 }

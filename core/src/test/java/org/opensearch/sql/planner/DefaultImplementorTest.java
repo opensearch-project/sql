@@ -3,12 +3,15 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-
 package org.opensearch.sql.planner;
 
 import static java.util.Collections.emptyList;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 import static org.opensearch.sql.data.type.ExprCoreType.INTEGER;
 import static org.opensearch.sql.data.type.ExprCoreType.STRING;
 import static org.opensearch.sql.expression.DSL.literal;
@@ -40,7 +43,6 @@ import org.junit.jupiter.api.DisplayNameGenerator;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
-import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.opensearch.sql.ast.tree.RareTopN.CommandType;
 import org.opensearch.sql.ast.tree.Sort;
@@ -55,9 +57,11 @@ import org.opensearch.sql.expression.aggregation.AvgAggregator;
 import org.opensearch.sql.expression.aggregation.NamedAggregator;
 import org.opensearch.sql.expression.window.WindowDefinition;
 import org.opensearch.sql.expression.window.ranking.RowNumberFunction;
+import org.opensearch.sql.planner.logical.LogicalCloseCursor;
 import org.opensearch.sql.planner.logical.LogicalPlan;
 import org.opensearch.sql.planner.logical.LogicalPlanDSL;
 import org.opensearch.sql.planner.logical.LogicalRelation;
+import org.opensearch.sql.planner.physical.CursorCloseOperator;
 import org.opensearch.sql.planner.physical.PhysicalPlan;
 import org.opensearch.sql.planner.physical.PhysicalPlanDSL;
 import org.opensearch.sql.storage.StorageEngine;
@@ -226,7 +230,7 @@ class DefaultImplementorTest {
 
   @Test
   void visitLogicalCursor_deserializes_it() {
-    var engine = Mockito.mock(StorageEngine.class);
+    var engine = mock(StorageEngine.class);
 
     var physicalPlan = new TestOperator();
     var logicalPlan = LogicalPlanDSL.fetchCursor(new PlanSerializer(engine)
@@ -236,7 +240,7 @@ class DefaultImplementorTest {
 
   @Test
   public void visitTableScanBuilder_should_build_TableScanOperator() {
-    TableScanOperator tableScanOperator = Mockito.mock(TableScanOperator.class);
+    TableScanOperator tableScanOperator = mock(TableScanOperator.class);
     TableScanBuilder tableScanBuilder = new TableScanBuilder() {
       @Override
       public TableScanOperator build() {
@@ -249,7 +253,7 @@ class DefaultImplementorTest {
   @Test
   public void visitTableWriteBuilder_should_build_TableWriteOperator() {
     LogicalPlan child = values();
-    TableWriteOperator tableWriteOperator = Mockito.mock(TableWriteOperator.class);
+    TableWriteOperator tableWriteOperator = mock(TableWriteOperator.class);
     TableWriteBuilder logicalPlan = new TableWriteBuilder(child) {
       @Override
       public TableWriteOperator build(PhysicalPlan child) {
@@ -257,5 +261,16 @@ class DefaultImplementorTest {
       }
     };
     assertEquals(tableWriteOperator, logicalPlan.accept(implementor, null));
+  }
+
+  @Test
+  public void visitCloseCursor_should_build_CursorCloseOperator() {
+    var logicalChild = mock(LogicalPlan.class);
+    var physicalChild = mock(PhysicalPlan.class);
+    when(logicalChild.accept(implementor, null)).thenReturn(physicalChild);
+    var logicalPlan = new LogicalCloseCursor(logicalChild);
+    var implemented = logicalPlan.accept(implementor, null);
+    assertTrue(implemented instanceof CursorCloseOperator);
+    assertSame(physicalChild, implemented.getChild().get(0));
   }
 }

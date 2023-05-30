@@ -95,6 +95,24 @@ class SQLServiceTest {
   }
 
   @Test
+  public void can_execute_close_cursor_query() {
+    sqlService.execute(
+        new SQLQueryRequest(new JSONObject(), null, QUERY + "/close",
+            Map.of("format", "jdbc"), "n:cursor"),
+        new ResponseListener<>() {
+          @Override
+          public void onResponse(QueryResponse response) {
+            assertNotNull(response);
+          }
+
+          @Override
+          public void onFailure(Exception e) {
+            fail(e);
+          }
+        });
+  }
+
+  @Test
   public void can_execute_csv_format_request() {
     sqlService.execute(
         new SQLQueryRequest(new JSONObject(), "SELECT 123", QUERY, "csv"),

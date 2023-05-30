@@ -132,10 +132,13 @@ class LogicalPlanNodeVisitorTest {
     LogicalNested nested = new LogicalNested(null, nestedArgs, projectList);
 
     LogicalFetchCursor cursor = new LogicalFetchCursor("n:test", mock(StorageEngine.class));
+
+    LogicalCloseCursor closeCursor = new LogicalCloseCursor(cursor);
+
     return Stream.of(
         relation, tableScanBuilder, write, tableWriteBuilder, filter, aggregation, rename, project,
         remove, eval, sort, dedup, window, rareTopN, highlight, mlCommons, ad, ml, paginate, nested,
-        cursor
+        cursor, closeCursor
     ).map(Arguments::of);
   }
 
