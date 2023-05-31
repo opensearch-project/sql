@@ -45,24 +45,29 @@ class ApplyFlintSparkSkippingIndex(flint: FlintSpark) extends Rule[LogicalPlan] 
 
       if (index.exists(_.kind == SKIPPING_INDEX_TYPE)) {
         val skippingIndex = index.get.asInstanceOf[FlintSparkSkippingIndex]
-        val indexPred = rewriteToIndexPredicate(skippingIndex, condition) // TODO: maybe empty
-        val selectedFiles = selectFilesByIndex(skippingIndex, indexPred)
+        val indexPred = rewriteToIndexPredicate(skippingIndex, condition)
 
-        /*
-         * Replace original file index with Flint skipping file index:
-         *  Filter(A=x)
-         *   |- LogicalRelation(
-         *        HadoopFsRelation(
-         *          FileIndex...)
-         *  ==>
-         *  Filter(A=x)
-         *   |- LogicalRelation
-         *        HadoopFsRelation(
-         *          FlintSkippingFileIndex( SELECT file FROM index WHERE rewrite(A=x) ))
-         */
-        val fileIndex = new FlintSparkSkippingFileIndex(location, selectedFiles)
-        val indexRelation = baseRelation.copy(location = fileIndex)(baseRelation.sparkSession)
-        filter.copy(child = relation.copy(relation = indexRelation))
+        if (indexPred.isDefined) {
+          val selectedFiles = selectFilesByIndex(skippingIndex, indexPred.get)
+
+          /*
+           * Replace original file index with Flint skipping file index:
+           *  Filter(A=x)
+           *   |- LogicalRelation(
+           *        HadoopFsRelation(
+           *          FileIndex...)
+           *  ==>
+           *  Filter(A=x)
+           *   |- LogicalRelation
+           *        HadoopFsRelation(
+           *          FlintSkippingFileIndex( SELECT file FROM index WHERE rewrite(A=x) ))
+           */
+          val fileIndex = new FlintSparkSkippingFileIndex(location, selectedFiles)
+          val indexRelation = baseRelation.copy(location = fileIndex)(baseRelation.sparkSession)
+          filter.copy(child = relation.copy(relation = indexRelation))
+        } else {
+          filter
+        }
       } else {
         filter
       }
@@ -70,7 +75,7 @@ class ApplyFlintSparkSkippingIndex(flint: FlintSpark) extends Rule[LogicalPlan] 
 
   private def rewriteToIndexPredicate(
       index: FlintSparkSkippingIndex,
-      condition: Predicate): Predicate = {
+      condition: Predicate): Option[Predicate] = {
 
     // Let each skipping strategy rewrite the predicate on source table
     // to a new predicate on index data, if applicable
@@ -78,7 +83,7 @@ class ApplyFlintSparkSkippingIndex(flint: FlintSpark) extends Rule[LogicalPlan] 
       .map(index => index.rewritePredicate(condition))
       .filter(pred => pred.isDefined)
       .map(pred => pred.get)
-      .reduce(And(_, _))
+      .reduceOption(And(_, _))
   }
 
   private def selectFilesByIndex(
