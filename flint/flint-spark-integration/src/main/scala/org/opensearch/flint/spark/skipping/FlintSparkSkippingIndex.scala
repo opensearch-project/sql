@@ -21,7 +21,9 @@ import org.apache.spark.sql.functions.input_file_name
  * @param tableName
  *   source table name
  */
-class FlintSparkSkippingIndex(tableName: String, indexedColumns: Seq[FlintSparkSkippingStrategy])
+class FlintSparkSkippingIndex(
+    tableName: String,
+    val indexedColumns: Seq[FlintSparkSkippingStrategy])
     extends FlintSparkIndex {
 
   /** Required by json4s write function */
@@ -36,7 +38,7 @@ class FlintSparkSkippingIndex(tableName: String, indexedColumns: Seq[FlintSparkS
       .flatMap(_.outputSchema().toList)
       .toMap
 
-    schema + (FILE_PATH_COLUMN -> "keyword")
+    schema + (FILE_PATH_COLUMN -> "string")
   }
 
   override def name(): String = {
@@ -75,8 +77,16 @@ class FlintSparkSkippingIndex(tableName: String, indexedColumns: Seq[FlintSparkS
 
   private def getSchema: String = {
     Serialization.write(outputSchema.map { case (colName, colType) =>
-      colName -> ("type" -> colType)
+      colName -> ("type" -> convertToFlintType(colType))
     })
+  }
+
+  // TODO: move this mapping info to single place
+  private def convertToFlintType(colType: String): String = {
+    colType match {
+      case "string" => "keyword"
+      case "int" => "integer"
+    }
   }
 }
 

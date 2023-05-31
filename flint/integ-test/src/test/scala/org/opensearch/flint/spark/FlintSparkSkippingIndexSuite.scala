@@ -59,13 +59,13 @@ class FlintSparkSkippingIndexSuite
 
     sql(s"""
         | INSERT INTO $testTable
-        | PARTITION (year=2023, month=04)
+        | PARTITION (year=2023, month=4)
         | VALUES ('Hello')
         | """.stripMargin)
 
     sql(s"""
         | INSERT INTO $testTable
-        | PARTITION (year=2023, month=05)
+        | PARTITION (year=2023, month=5)
         | VALUES ('World')
         | """.stripMargin)
   }
@@ -186,6 +186,26 @@ class FlintSparkSkippingIndexSuite
         .onTable(testTable)
         .create()
     }
+  }
+
+  test("rewrite applicable query with skipping index") {
+    flint
+      .skippingIndex()
+      .onTable(testTable)
+      .addPartitionIndex("year", "month")
+      .create()
+    flint.refreshIndex(testIndex, FULL)
+
+    val query = sql(s"""
+                       | SELECT name
+                       | FROM $testTable
+                       | WHERE year = 2023 AND month = 4
+                       |""".stripMargin)
+
+    //println(query.queryExecution.sparkPlan.treeString)
+    //println(query.queryExecution.analyzed)
+
+    query.show(false)
   }
 
   test("should return empty if describe index not exist") {

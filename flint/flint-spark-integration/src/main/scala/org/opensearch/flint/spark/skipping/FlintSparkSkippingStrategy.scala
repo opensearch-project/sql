@@ -5,6 +5,7 @@
 
 package org.opensearch.flint.spark.skipping
 
+import org.apache.spark.sql.catalyst.expressions.Predicate
 import org.apache.spark.sql.catalyst.expressions.aggregate.AggregateFunction
 
 /**
@@ -34,4 +35,15 @@ trait FlintSparkSkippingStrategy {
    *   aggregators that generate skipping data structure
    */
   def getAggregators: Seq[AggregateFunction]
+
+  /**
+   * Rewrite a filtering condition on source table into a new predicate on index data based on
+   * current skipping strategy.
+   *
+   * @param predicate
+   *   filtering condition on source table
+   * @return
+   *   rewritten filtering condition on index data
+   */
+  def rewritePredicate(predicate: Predicate): Option[Predicate]
 }

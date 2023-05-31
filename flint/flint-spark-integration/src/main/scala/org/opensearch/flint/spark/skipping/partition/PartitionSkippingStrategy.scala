@@ -8,6 +8,8 @@ package org.opensearch.flint.spark.skipping.partition
 import org.opensearch.flint.spark.skipping.FlintSparkSkippingStrategy
 
 import org.apache.spark.sql.Column
+import org.apache.spark.sql.catalyst.analysis.UnresolvedAttribute
+import org.apache.spark.sql.catalyst.expressions.{AttributeReference, EqualTo, Literal, Predicate}
 import org.apache.spark.sql.catalyst.expressions.aggregate.{AggregateFunction, First}
 
 /**
@@ -20,18 +22,17 @@ class PartitionSkippingStrategy(
     extends FlintSparkSkippingStrategy {
 
   override def outputSchema(): Map[String, String] = {
-    Map(columnName -> convertToFlintType(columnType))
+    Map(columnName -> columnType)
   }
 
   override def getAggregators: Seq[AggregateFunction] = {
     Seq(First(new Column(columnName).expr, ignoreNulls = true))
   }
 
-  // TODO: move this mapping info to single place
-  private def convertToFlintType(colType: String): String = {
-    colType match {
-      case "string" => "keyword"
-      case "int" => "integer"
-    }
+  override def rewritePredicate(predicate: Predicate): Option[Predicate] = {
+    predicate.collect {
+      case EqualTo(AttributeReference(`columnName`, _, _, _), value: Literal) =>
+        EqualTo(UnresolvedAttribute(columnName), value)
+    }.headOption
   }
 }

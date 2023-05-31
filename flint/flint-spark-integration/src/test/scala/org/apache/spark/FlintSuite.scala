@@ -5,6 +5,8 @@
 
 package org.apache.spark
 
+import org.opensearch.flint.spark.FlintSparkExtensions
+
 import org.apache.spark.sql.catalyst.expressions.CodegenObjectFactoryMode
 import org.apache.spark.sql.catalyst.optimizer.ConvertToLocalRelation
 import org.apache.spark.sql.flint.config.{FlintConfigEntry, FlintSparkConf}
@@ -22,6 +24,7 @@ trait FlintSuite extends SharedSparkSession {
       // this rule may potentially block testing of other optimization rules such as
       // ConstantPropagation etc.
       .set(SQLConf.OPTIMIZER_EXCLUDED_RULES.key, ConvertToLocalRelation.ruleName)
+      .set("spark.sql.extensions", classOf[FlintSparkExtensions].getName)
     conf
   }
 
