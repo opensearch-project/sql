@@ -5,14 +5,13 @@
 
 package org.opensearch.flint.core.storage;
 
-import java.io.IOException;
-import java.io.Writer;
-import java.util.ArrayList;
-
+import com.amazonaws.auth.AWS4Signer;
+import com.amazonaws.auth.DefaultAWSCredentialsProviderChain;
 import org.apache.http.HttpHost;
 import org.opensearch.action.admin.indices.delete.DeleteIndexRequest;
 import org.opensearch.client.RequestOptions;
 import org.opensearch.client.RestClient;
+import org.opensearch.client.RestClientBuilder;
 import org.opensearch.client.RestHighLevelClient;
 import org.opensearch.client.indices.CreateIndexRequest;
 import org.opensearch.client.indices.GetIndexRequest;
@@ -26,12 +25,16 @@ import org.opensearch.common.xcontent.XContentParser;
 import org.opensearch.common.xcontent.XContentType;
 import org.opensearch.flint.core.FlintClient;
 import org.opensearch.flint.core.FlintOptions;
+import org.opensearch.flint.core.auth.AWSRequestSigningApacheInterceptor;
 import org.opensearch.flint.core.metadata.FlintMetadata;
 import org.opensearch.index.query.AbstractQueryBuilder;
 import org.opensearch.index.query.MatchAllQueryBuilder;
 import org.opensearch.index.query.QueryBuilder;
 import org.opensearch.search.SearchModule;
 import org.opensearch.search.builder.SearchSourceBuilder;
+
+import java.io.IOException;
+import java.util.ArrayList;
 
 import static org.opensearch.common.xcontent.DeprecationHandler.IGNORE_DEPRECATIONS;
 
@@ -47,17 +50,9 @@ public class FlintOpenSearchClient implements FlintClient {
       xContentRegistry =
       new NamedXContentRegistry(new SearchModule(Settings.builder().build(), new ArrayList<>()).getNamedXContents());
 
-  /** OpenSearch host name. */
-  private final String host;
-
-  /** OpenSearch port number. */
-  private final int port;
-
   private final FlintOptions options;
 
   public FlintOpenSearchClient(FlintOptions options) {
-    this.host = options.getHost();
-    this.port = options.getPort();
     this.options = options;
   }
 
@@ -133,7 +128,17 @@ public class FlintOpenSearchClient implements FlintClient {
   }
 
   private RestHighLevelClient createClient() {
-    return new RestHighLevelClient(
-        RestClient.builder(new HttpHost(host, port, "http")));
+    AWS4Signer signer = new AWS4Signer();
+    signer.setServiceName("es");
+    signer.setRegionName(options.getRegion());
+    RestClientBuilder restClientBuilder = RestClient.builder(new HttpHost(options.getHost(),
+        options.getPort(),
+        options.getScheme()));
+    if (options.getAuth().equals(FlintOptions.SIGV4_AUTH)) {
+      restClientBuilder.setHttpClientConfigCallback(cb -> cb.addInterceptorLast(
+          new AWSRequestSigningApacheInterceptor(signer.getServiceName(), signer,
+              new DefaultAWSCredentialsProviderChain())));
+    }
+    return new RestHighLevelClient(restClientBuilder);
   }
 }

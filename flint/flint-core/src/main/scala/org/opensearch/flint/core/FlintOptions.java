@@ -16,7 +16,21 @@ public class FlintOptions implements Serializable {
   private final Map<String, String> options;
 
   public static final String HOST = "host";
+
   public static final String PORT = "port";
+
+  public static final String REGION = "region";
+
+  public static final String DEFAULT_REGION = "us-west-2";
+
+  public static final String SCHEME = "scheme";
+
+  public static final String AUTH = "auth";
+
+  public static final String NONE_AUTH = "false";
+
+  public static final String SIGV4_AUTH = "sigv4";
+
   /**
    * Used by {@link org.opensearch.flint.core.storage.OpenSearchScrollReader}
    */
@@ -50,4 +64,16 @@ public class FlintOptions implements Serializable {
   }
 
   public String getRefreshPolicy() {return options.getOrDefault(REFRESH_POLICY, DEFAULT_REFRESH_POLICY);}
+
+  public String getRegion() {
+    return options.getOrDefault(REGION, DEFAULT_REGION);
+  }
+
+  public String getScheme() {
+    return options.getOrDefault(SCHEME, "http");
+  }
+
+  public String getAuth() {
+    return options.getOrDefault(AUTH, NONE_AUTH);
+  }
 }
