@@ -40,10 +40,6 @@ class FlintDataTypeSuite extends FlintSuite with Matchers {
                           |    "floatField": {
                           |      "type": "float"
                           |    },
-                          |    "dateField": {
-                          |      "type": "date",
-                          |      "format": "yyyy-MM-dd"
-                          |    },
                           |    "textField": {
                           |      "type": "text"
                           |    }
@@ -58,11 +54,6 @@ class FlintDataTypeSuite extends FlintSuite with Matchers {
         StructField("byteField", ByteType, true) ::
         StructField("doubleField", DoubleType, true) ::
         StructField("floatField", FloatType, true) ::
-        StructField(
-          "dateField",
-          DateType,
-          true,
-          new MetadataBuilder().putString("format", "yyyy-MM-dd").build()) ::
         StructField(
           "textField",
           StringType,

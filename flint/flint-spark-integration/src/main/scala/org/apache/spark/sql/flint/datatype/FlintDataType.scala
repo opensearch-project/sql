@@ -12,10 +12,16 @@ import org.json4s.native.Serialization
 
 import org.apache.spark.sql.types._
 
+/**
+ * Mapping between Flint data type and Spark data type
+ */
 object FlintDataType {
 
   implicit val formats: Formats = Serialization.formats(NoTypeHints)
 
+  /**
+   * parse Flint metadata and extract properties to StructType.
+   */
   def deserialize(metadata: String): StructType = {
     deserializeJValue(JsonMethods.parse(metadata))
   }
@@ -46,11 +52,6 @@ object FlintDataType {
       case JString("double") => DoubleType
       case JString("float") => FloatType
 
-      // Dates
-      case JString("date") =>
-        metadataBuilder.putString("format", (fieldProperties \ "format").extract[String])
-        DateType
-
       // Text
       case JString("text") =>
         metadataBuilder.putString("osType", "text")
@@ -65,6 +66,9 @@ object FlintDataType {
     DataTypes.createStructField(fieldName, dataType, true, metadataBuilder.build())
   }
 
+  /**
+   * construct Flint metadata properties section from spark data type.
+   */
   def serialize(structType: StructType): String = {
     val jValue = serializeJValue(structType)
     JsonMethods.compact(JsonMethods.render(jValue))
@@ -95,10 +99,6 @@ object FlintDataType {
       case ByteType => JObject("type" -> JString("byte"))
       case DoubleType => JObject("type" -> JString("double"))
       case FloatType => JObject("type" -> JString("float"))
-
-      // date
-      case DateType =>
-        JObject("type" -> JString("date"), "format" -> JString(metadata.getString("format")))
 
       // objects
       case st: StructType => serializeJValue(st)
