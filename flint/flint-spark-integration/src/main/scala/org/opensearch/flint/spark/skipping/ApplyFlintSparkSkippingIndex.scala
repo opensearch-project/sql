@@ -10,6 +10,7 @@ import java.util.Locale
 import org.opensearch.flint.spark.FlintSpark
 import org.opensearch.flint.spark.skipping.FlintSparkSkippingIndex.{getSkippingIndexName, FILE_PATH_COLUMN, SKIPPING_INDEX_TYPE}
 
+import org.apache.spark.internal.Logging
 import org.apache.spark.sql.Column
 import org.apache.spark.sql.catalyst.expressions.{And, Predicate}
 import org.apache.spark.sql.catalyst.plans.logical.{Filter, LogicalPlan}
@@ -25,7 +26,7 @@ import org.apache.spark.sql.flint.FlintDataSourceV2.FLINT_DATASOURCE
  * @param flint
  *   Flint Spark API
  */
-class ApplyFlintSparkSkippingIndex(flint: FlintSpark) extends Rule[LogicalPlan] {
+class ApplyFlintSparkSkippingIndex(flint: FlintSpark) extends Rule[LogicalPlan] with Logging {
 
   override def apply(plan: LogicalPlan): LogicalPlan = plan transform {
     case filter @ Filter(
@@ -42,13 +43,16 @@ class ApplyFlintSparkSkippingIndex(flint: FlintSpark) extends Rule[LogicalPlan] 
 
       val indexName = getSkippingIndexName(table.identifier.table) // TODO: ignore database name
       val index = flint.describeIndex(indexName)
+      logDebug(s"Checking skipping index: $index")
 
       if (index.exists(_.kind == SKIPPING_INDEX_TYPE)) {
         val skippingIndex = index.get.asInstanceOf[FlintSparkSkippingIndex]
         val indexPred = rewriteToIndexPredicate(skippingIndex, condition)
+        logDebug(s"Predicate after rewrite: $indexPred")
 
         if (indexPred.isDefined) {
           val selectedFiles = selectFilesByIndex(skippingIndex, indexPred.get)
+          logDebug(s"Selected files: $selectedFiles")
 
           /*
            * Replace original file index with Flint skipping file index:
@@ -77,6 +81,7 @@ class ApplyFlintSparkSkippingIndex(flint: FlintSpark) extends Rule[LogicalPlan] 
       index: FlintSparkSkippingIndex,
       condition: Predicate): Option[Predicate] = {
 
+    // Assume the given condition is conjunction (one or more concatenated by AND only)
     // Let each skipping strategy rewrite the predicate on source table
     // to a new predicate on index data, if applicable
     index.indexedColumns
