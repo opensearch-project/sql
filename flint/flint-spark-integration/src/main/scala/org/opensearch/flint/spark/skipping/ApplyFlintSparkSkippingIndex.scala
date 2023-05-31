@@ -35,9 +35,10 @@ class ApplyFlintSparkSkippingIndex(flint: FlintSpark) extends Rule[LogicalPlan] 
             _,
             Some(table),
             false)) =>
-      // Exit if already rewritten with skipping index
+
+      // Exit if plan is already rewritten with skipping index
       if (location.isInstanceOf[FlintSparkSkippingFileIndex]) {
-        return filter
+        return plan
       }
 
       val indexName = getSkippingIndexName(table.identifier.table) // TODO: ignore database name
@@ -45,13 +46,13 @@ class ApplyFlintSparkSkippingIndex(flint: FlintSpark) extends Rule[LogicalPlan] 
 
       if (index.exists(_.kind == SKIPPING_INDEX_TYPE)) {
         val skippingIndex = index.get.asInstanceOf[FlintSparkSkippingIndex]
-        val indexPred = rewriteToIndexPredicate(skippingIndex, condition)
+        val indexPred = rewriteToIndexPredicate(skippingIndex, condition) // TODO: maybe empty
         val selectedFiles = selectFilesByIndex(skippingIndex, indexPred)
 
+        // Insert skipping file index between base relation and its previous file index
         val fileIndex = new FlintSparkSkippingFileIndex(location, selectedFiles)
         val indexRelation = baseRelation.copy(location = fileIndex)(baseRelation.sparkSession)
-        val copy = filter.copy(child = relation.copy(relation = indexRelation))
-        copy
+        filter.copy(child = relation.copy(relation = indexRelation))
       } else {
         filter
       }

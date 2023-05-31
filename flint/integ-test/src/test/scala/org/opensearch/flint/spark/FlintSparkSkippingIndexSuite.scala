@@ -10,12 +10,16 @@ import scala.Option._
 import com.stephenn.scalatest.jsonassert.JsonMatchers.matchJson
 import org.opensearch.flint.OpenSearchSuite
 import org.opensearch.flint.spark.FlintSpark.RefreshMode.{FULL, INCREMENTAL}
+import org.opensearch.flint.spark.skipping.FlintSparkSkippingFileIndex
 import org.opensearch.flint.spark.skipping.FlintSparkSkippingIndex.getSkippingIndexName
+import org.scalatest.matchers.{Matcher, MatchResult}
 import org.scalatest.matchers.must.Matchers.{defined, have}
 import org.scalatest.matchers.should.Matchers.convertToAnyShouldWrapper
 
 import org.apache.spark.FlintSuite
-import org.apache.spark.sql.QueryTest
+import org.apache.spark.sql.{QueryTest, Row}
+import org.apache.spark.sql.execution.{FileSourceScanExec, SparkPlan}
+import org.apache.spark.sql.execution.datasources.HadoopFsRelation
 import org.apache.spark.sql.flint.FlintDataSourceV2.FLINT_DATASOURCE
 import org.apache.spark.sql.flint.config.FlintSparkConf._
 import org.apache.spark.sql.streaming.StreamTest
@@ -188,7 +192,7 @@ class FlintSparkSkippingIndexSuite
     }
   }
 
-  test("rewrite applicable query with skipping index") {
+  test("rewrite query with skipping index") {
     flint
       .skippingIndex()
       .onTable(testTable)
@@ -202,13 +206,35 @@ class FlintSparkSkippingIndexSuite
                        | WHERE year = 2023 AND month = 4
                        |""".stripMargin)
 
-    //println(query.queryExecution.sparkPlan.treeString)
-    //println(query.queryExecution.analyzed)
-
-    query.show(false)
+    checkAnswer(query, Row("Hello"))
+    query.queryExecution.executedPlan should useFlintSparkSkippingFileIndex
   }
 
   test("should return empty if describe index not exist") {
     flint.describeIndex("non-exist") shouldBe empty
+  }
+
+  // Custom matcher to check if a SparkPlan uses FlintSparkSkippingFileIndex
+  def useFlintSparkSkippingFileIndex: Matcher[SparkPlan] = {
+    Matcher { (plan: SparkPlan) =>
+      val usesFlintSparkSkippingFileIndex = plan.collect {
+        case FileSourceScanExec(
+              HadoopFsRelation(location, _, _, _, _, _),
+              _,
+              _,
+              _,
+              _,
+              _,
+              _,
+              _,
+              _) =>
+          location.isInstanceOf[FlintSparkSkippingFileIndex]
+      }.nonEmpty
+
+      MatchResult(
+        usesFlintSparkSkippingFileIndex,
+        "Plan does not use FlintSparkSkippingFileIndex",
+        "Plan uses FlintSparkSkippingFileIndex")
+    }
   }
 }
