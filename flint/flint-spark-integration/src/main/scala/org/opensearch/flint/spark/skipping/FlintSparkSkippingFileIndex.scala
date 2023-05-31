@@ -5,7 +5,7 @@
 
 package org.opensearch.flint.spark.skipping
 
-import org.apache.hadoop.fs.Path
+import org.apache.hadoop.fs.{FileStatus, Path}
 
 import org.apache.spark.sql.catalyst.expressions.Expression
 import org.apache.spark.sql.execution.datasources.{FileIndex, PartitionDirectory}
@@ -15,7 +15,9 @@ import org.apache.spark.sql.types.StructType
  * File index that skips files by Flint Spark skipping index.
  *
  * @param baseFileIndex
+ *   original file index
  * @param selectedFiles
+ *   source file list selected by skipping index
  */
 class FlintSparkSkippingFileIndex(baseFileIndex: FileIndex, selectedFiles: Set[String])
     extends FileIndex {
@@ -24,10 +26,10 @@ class FlintSparkSkippingFileIndex(baseFileIndex: FileIndex, selectedFiles: Set[S
       partitionFilters: Seq[Expression],
       dataFilters: Seq[Expression]): Seq[PartitionDirectory] = {
 
+    // TODO: figure out if list file call can be avoided
     val partitions = baseFileIndex.listFiles(partitionFilters, dataFilters)
     partitions
-      .map(p =>
-        p.copy(files = p.files.filter(f => selectedFiles.contains(f.getPath.toUri.toString))))
+      .map(p => p.copy(files = p.files.filter(isFileNotSkipped)))
       .filter(_.files.nonEmpty)
   }
 
@@ -40,4 +42,8 @@ class FlintSparkSkippingFileIndex(baseFileIndex: FileIndex, selectedFiles: Set[S
   override def sizeInBytes: Long = baseFileIndex.sizeInBytes
 
   override def partitionSchema: StructType = baseFileIndex.partitionSchema
+
+  private def isFileNotSkipped(f: FileStatus) = {
+    selectedFiles.contains(f.getPath.toUri.toString)
+  }
 }

@@ -30,6 +30,7 @@ class PartitionSkippingStrategy(
   }
 
   override def rewritePredicate(predicate: Predicate): Option[Predicate] = {
+    // Column has same name in index data, so just generate same equation
     predicate.collect {
       case EqualTo(AttributeReference(`columnName`, _, _, _), value: Literal) =>
         EqualTo(UnresolvedAttribute(columnName), value)

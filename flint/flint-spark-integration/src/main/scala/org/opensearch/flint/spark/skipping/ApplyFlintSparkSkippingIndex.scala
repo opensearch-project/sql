@@ -35,7 +35,6 @@ class ApplyFlintSparkSkippingIndex(flint: FlintSpark) extends Rule[LogicalPlan] 
             _,
             Some(table),
             false)) =>
-
       // Exit if plan is already rewritten with skipping index
       if (location.isInstanceOf[FlintSparkSkippingFileIndex]) {
         return plan
@@ -49,7 +48,18 @@ class ApplyFlintSparkSkippingIndex(flint: FlintSpark) extends Rule[LogicalPlan] 
         val indexPred = rewriteToIndexPredicate(skippingIndex, condition) // TODO: maybe empty
         val selectedFiles = selectFilesByIndex(skippingIndex, indexPred)
 
-        // Insert skipping file index between base relation and its previous file index
+        /*
+         * Replace original file index with Flint skipping file index:
+         *  Filter(A=x)
+         *   |- LogicalRelation(
+         *        HadoopFsRelation(
+         *          FileIndex...)
+         *  ==>
+         *  Filter(A=x)
+         *   |- LogicalRelation
+         *        HadoopFsRelation(
+         *          FlintSkippingFileIndex( SELECT file FROM index WHERE rewrite(A=x) ))
+         */
         val fileIndex = new FlintSparkSkippingFileIndex(location, selectedFiles)
         val indexRelation = baseRelation.copy(location = fileIndex)(baseRelation.sparkSession)
         filter.copy(child = relation.copy(relation = indexRelation))
@@ -62,6 +72,8 @@ class ApplyFlintSparkSkippingIndex(flint: FlintSpark) extends Rule[LogicalPlan] 
       index: FlintSparkSkippingIndex,
       condition: Predicate): Predicate = {
 
+    // Let each skipping strategy rewrite the predicate on source table
+    // to a new predicate on index data, if applicable
     index.indexedColumns
       .map(index => index.rewritePredicate(condition))
       .filter(pred => pred.isDefined)
@@ -73,6 +85,7 @@ class ApplyFlintSparkSkippingIndex(flint: FlintSpark) extends Rule[LogicalPlan] 
       index: FlintSparkSkippingIndex,
       rewrittenPredicate: Predicate): Set[String] = {
 
+    // Get file list based on the rewritten predicates on index data
     flint.spark.read
       .format(FLINT_DATASOURCE)
       .schema(getSchema(index.indexedColumns))

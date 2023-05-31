@@ -43,7 +43,7 @@ trait FlintSparkSkippingStrategy {
    * @param predicate
    *   filtering condition on source table
    * @return
-   *   rewritten filtering condition on index data
+   *   new filtering condition on index data or empty if index not applicable
    */
   def rewritePredicate(predicate: Predicate): Option[Predicate]
 }
