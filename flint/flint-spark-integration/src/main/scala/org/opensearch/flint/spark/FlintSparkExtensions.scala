@@ -15,9 +15,8 @@ import org.apache.spark.sql.SparkSessionExtensions
 class FlintSparkExtensions extends (SparkSessionExtensions => Unit) {
 
   override def apply(extensions: SparkSessionExtensions): Unit = {
-    // Add skipping index query rewrite rule
     extensions.injectOptimizerRule { spark =>
-      new ApplyFlintSparkSkippingIndex(new FlintSpark(spark))
+      new FlintSparkOptimizer(spark)
     }
   }
 }
