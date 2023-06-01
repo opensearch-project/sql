@@ -43,37 +43,35 @@ class ApplyFlintSparkSkippingIndex(flint: FlintSpark) extends Rule[LogicalPlan] 
 
       val indexName = getSkippingIndexName(table.identifier.table) // TODO: ignore database name
       val index = flint.describeIndex(indexName)
-      logDebug(s"Checking skipping index: $index")
+      logDebug(s"Checking skipping index $indexName result: $index")
 
       if (index.exists(_.kind == SKIPPING_INDEX_TYPE)) {
         val skippingIndex = index.get.asInstanceOf[FlintSparkSkippingIndex]
         val indexPred = rewriteToIndexPredicate(skippingIndex, condition)
         logDebug(s"Predicate after rewrite: $indexPred")
 
+        /*
+         * Replace original file index with Flint skipping file index:
+         *  Filter(a=v)
+         *   |- LogicalRelation(A)
+         *      |- HadoopFsRelation
+         *         |- XFileIndex... <-- replaced with FlintSkippingFileIndex(
+         *                                SELECT file_path
+         *                                FROM flint_A_skipping_index
+         *                                WHERE rewrite(a=v))
+         */
         if (indexPred.isDefined) {
           val selectedFiles = selectFilesByIndex(skippingIndex, indexPred.get)
-          logDebug(s"Selected files: $selectedFiles")
+          logDebug(s"Selected files from skipping index: $selectedFiles")
 
-          /*
-           * Replace original file index with Flint skipping file index:
-           *  Filter(A=x)
-           *   |- LogicalRelation(
-           *        HadoopFsRelation(
-           *          FileIndex...)
-           *  ==>
-           *  Filter(A=x)
-           *   |- LogicalRelation
-           *        HadoopFsRelation(
-           *          FlintSkippingFileIndex( SELECT file FROM index WHERE rewrite(A=x) ))
-           */
           val fileIndex = new FlintSparkSkippingFileIndex(location, selectedFiles)
           val indexRelation = baseRelation.copy(location = fileIndex)(baseRelation.sparkSession)
           filter.copy(child = relation.copy(relation = indexRelation))
         } else {
-          filter
+          filter // No applicable index for the filtering condition
         }
       } else {
-        filter
+        filter // No index found for the source table
       }
   }
 
