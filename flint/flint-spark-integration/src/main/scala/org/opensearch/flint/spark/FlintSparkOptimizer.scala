@@ -21,9 +21,6 @@ import org.apache.spark.sql.flint.config.FlintSparkConf
  */
 class FlintSparkOptimizer(spark: SparkSession) extends Rule[LogicalPlan] {
 
-  /** Flint Spark configuration */
-  private val flintConf: FlintSparkConf = new FlintSparkConf(spark.conf.getAll.asJava)
-
   /** Flint Spark API */
   private val flint: FlintSpark = new FlintSpark(spark)
 
@@ -31,10 +28,15 @@ class FlintSparkOptimizer(spark: SparkSession) extends Rule[LogicalPlan] {
   private val rule = new ApplyFlintSparkSkippingIndex(flint)
 
   override def apply(plan: LogicalPlan): LogicalPlan = {
-    if (flintConf.isOptimizerEnabled) {
+    if (isOptimizerEnabled) {
       rule.apply(plan)
     } else {
       plan
     }
+  }
+
+  private def isOptimizerEnabled: Boolean = {
+    val flintConf = new FlintSparkConf(spark.conf.getAll.asJava)
+    flintConf.isOptimizerEnabled
   }
 }

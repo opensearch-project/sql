@@ -13,7 +13,7 @@ import org.opensearch.flint.spark.FlintSpark.RefreshMode.{FULL, INCREMENTAL}
 import org.opensearch.flint.spark.skipping.FlintSparkSkippingFileIndex
 import org.opensearch.flint.spark.skipping.FlintSparkSkippingIndex.getSkippingIndexName
 import org.scalatest.matchers.{Matcher, MatchResult}
-import org.scalatest.matchers.must.Matchers.{defined, have}
+import org.scalatest.matchers.must.Matchers.{defined, have, not}
 import org.scalatest.matchers.should.Matchers.convertToAnyShouldWrapper
 
 import org.apache.spark.FlintSuite
@@ -192,7 +192,22 @@ class FlintSparkSkippingIndexSuite
     }
   }
 
-  test("rewrite query with skipping index") {
+  test("should run original query if no skipping index") {
+    val query =
+      s"""
+         | SELECT name
+         | FROM $testTable
+         | WHERE year = 2023 AND month = 4
+         |""".stripMargin
+
+    val actual = sql(query).queryExecution.optimizedPlan
+    withFlintOptimizerDisabled {
+      val expect = sql(query).queryExecution.optimizedPlan
+      actual shouldBe expect
+    }
+  }
+
+  test("should rewrite query with skipping index") {
     flint
       .skippingIndex()
       .onTable(testTable)
@@ -235,6 +250,15 @@ class FlintSparkSkippingIndexSuite
         usesFlintSparkSkippingFileIndex,
         "Plan does not use FlintSparkSkippingFileIndex",
         "Plan uses FlintSparkSkippingFileIndex")
+    }
+  }
+
+  private def withFlintOptimizerDisabled(block: => Unit): Unit = {
+    spark.conf.set(OPTIMIZER_RULE_ENABLED.key, "false")
+    try {
+      block
+    } finally {
+      spark.conf.set(OPTIMIZER_RULE_ENABLED.key, "true")
     }
   }
 }

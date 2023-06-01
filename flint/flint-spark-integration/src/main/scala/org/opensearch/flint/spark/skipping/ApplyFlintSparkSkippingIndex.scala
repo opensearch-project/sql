@@ -83,9 +83,7 @@ class ApplyFlintSparkSkippingIndex(flint: FlintSpark) extends Rule[LogicalPlan] 
     // Let each skipping strategy rewrite the predicate on source table
     // to a new predicate on index data, if applicable
     index.indexedColumns
-      .map(index => index.rewritePredicate(condition))
-      .filter(pred => pred.isDefined)
-      .map(pred => pred.get)
+      .flatMap(index => index.rewritePredicate(condition))
       .reduceOption(And(_, _))
   }
 
