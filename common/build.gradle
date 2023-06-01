@@ -51,6 +51,10 @@ dependencies {
     testImplementation group: 'com.squareup.okhttp3', name: 'mockwebserver', version: '4.9.3'
 }
 
+test {
+    useJUnitPlatform()
+}
+
 
 configurations.all {
     resolutionStrategy.force "com.fasterxml.jackson.core:jackson-core:${versions.jackson}"

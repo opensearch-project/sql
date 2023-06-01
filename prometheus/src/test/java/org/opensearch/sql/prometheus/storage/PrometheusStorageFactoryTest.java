@@ -9,6 +9,7 @@ package org.opensearch.sql.prometheus.storage;
 
 import static org.mockito.Mockito.when;
 
+import com.amazonaws.auth.AWSCredentialsProvider;
 import java.util.HashMap;
 import lombok.SneakyThrows;
 import org.apache.commons.lang3.RandomStringUtils;
@@ -17,7 +18,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.opensearch.cluster.ClusterName;
+import org.opensearch.sql.common.authinterceptors.credentialsprovider.ExpirableCredentialsProviderFactory;
 import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.datasource.model.DataSource;
 import org.opensearch.sql.datasource.model.DataSourceMetadata;
@@ -30,9 +31,17 @@ public class PrometheusStorageFactoryTest {
   @Mock
   private Settings settings;
 
+  @Mock
+  private ExpirableCredentialsProviderFactory expirableCredentialsProviderFactory;
+
+  @Mock
+  private AWSCredentialsProvider awsCredentialsProvider;
+
+
   @Test
   void testGetConnectorType() {
-    PrometheusStorageFactory prometheusStorageFactory = new PrometheusStorageFactory(settings);
+    PrometheusStorageFactory prometheusStorageFactory
+        = new PrometheusStorageFactory(settings, expirableCredentialsProviderFactory);
     Assertions.assertEquals(
         DataSourceType.PROMETHEUS, prometheusStorageFactory.getDataSourceType());
   }
@@ -41,7 +50,8 @@ public class PrometheusStorageFactoryTest {
   @SneakyThrows
   void testGetStorageEngineWithBasicAuth() {
     when(settings.getSettingValue(Settings.Key.DATASOURCES_URI_ALLOWHOSTS)).thenReturn(".*");
-    PrometheusStorageFactory prometheusStorageFactory = new PrometheusStorageFactory(settings);
+    PrometheusStorageFactory prometheusStorageFactory
+        = new PrometheusStorageFactory(settings, expirableCredentialsProviderFactory);
     HashMap<String, String> properties = new HashMap<>();
     properties.put("prometheus.uri", "http://dummyprometheus.com:9090");
     properties.put("prometheus.auth.type", "basicauth");
@@ -56,7 +66,8 @@ public class PrometheusStorageFactoryTest {
   @SneakyThrows
   void testGetStorageEngineWithAWSSigV4Auth() {
     when(settings.getSettingValue(Settings.Key.DATASOURCES_URI_ALLOWHOSTS)).thenReturn(".*");
-    PrometheusStorageFactory prometheusStorageFactory = new PrometheusStorageFactory(settings);
+    PrometheusStorageFactory prometheusStorageFactory
+        = new PrometheusStorageFactory(settings, expirableCredentialsProviderFactory);
     HashMap<String, String> properties = new HashMap<>();
     properties.put("prometheus.uri", "http://dummyprometheus.com:9090");
     properties.put("prometheus.auth.type", "awssigv4");
@@ -72,7 +83,8 @@ public class PrometheusStorageFactoryTest {
   @Test
   @SneakyThrows
   void testGetStorageEngineWithMissingURI() {
-    PrometheusStorageFactory prometheusStorageFactory = new PrometheusStorageFactory(settings);
+    PrometheusStorageFactory prometheusStorageFactory
+        = new PrometheusStorageFactory(settings, expirableCredentialsProviderFactory);
     HashMap<String, String> properties = new HashMap<>();
     properties.put("prometheus.auth.type", "awssigv4");
     properties.put("prometheus.auth.region", "us-east-1");
@@ -87,8 +99,45 @@ public class PrometheusStorageFactoryTest {
 
   @Test
   @SneakyThrows
+  void testGetStorageEngineWithMissingIAMRole() {
+    PrometheusStorageFactory prometheusStorageFactory
+        = new PrometheusStorageFactory(settings, expirableCredentialsProviderFactory);
+    HashMap<String, String> properties = new HashMap<>();
+    properties.put("prometheus.uri", "http://dummyprometheus:9090");
+    properties.put("prometheus.auth.type", "iamrole");
+    properties.put("prometheus.auth.region", "us-east-1");
+    IllegalArgumentException exception = Assertions.assertThrows(IllegalArgumentException.class,
+        () -> prometheusStorageFactory.getStorageEngine(properties));
+    Assertions.assertEquals("Missing [prometheus.auth.role_arn] fields "
+            + "in the Prometheus connector properties.",
+        exception.getMessage());
+  }
+
+  @Test
+  @SneakyThrows
+  void testGetStorageEngineForIAMRole() {
+    when(settings.getSettingValue(Settings.Key.DATASOURCES_URI_ALLOWHOSTS)).thenReturn(".*");
+    HashMap<String, String> properties = new HashMap<>();
+    properties.put("prometheus.uri", "http://dummyprometheus.com:9090");
+    properties.put("prometheus.auth.type", "iamrole");
+    properties.put("prometheus.auth.region", "us-east-1");
+    properties.put("prometheus.auth.role_arn",
+        "arn:aws:iam::263689514295:role/AWSOpensearchPrometheus");
+    when(expirableCredentialsProviderFactory
+        .getProvider("arn:aws:iam::263689514295:role/AWSOpensearchPrometheus"))
+        .thenReturn(awsCredentialsProvider);
+    PrometheusStorageFactory prometheusStorageFactory
+        = new PrometheusStorageFactory(settings, expirableCredentialsProviderFactory);
+    StorageEngine storageEngine
+        = prometheusStorageFactory.getStorageEngine(properties);
+    Assertions.assertTrue(storageEngine instanceof PrometheusStorageEngine);
+  }
+
+  @Test
+  @SneakyThrows
   void testGetStorageEngineWithMissingRegionInAWS() {
-    PrometheusStorageFactory prometheusStorageFactory = new PrometheusStorageFactory(settings);
+    PrometheusStorageFactory prometheusStorageFactory
+        = new PrometheusStorageFactory(settings, expirableCredentialsProviderFactory);
     HashMap<String, String> properties = new HashMap<>();
     properties.put("prometheus.uri", "http://dummyprometheus:9090");
     properties.put("prometheus.auth.type", "awssigv4");
@@ -105,7 +154,8 @@ public class PrometheusStorageFactoryTest {
   @Test
   @SneakyThrows
   void testGetStorageEngineWithLongConfigProperties() {
-    PrometheusStorageFactory prometheusStorageFactory = new PrometheusStorageFactory(settings);
+    PrometheusStorageFactory prometheusStorageFactory
+        = new PrometheusStorageFactory(settings, expirableCredentialsProviderFactory);
     HashMap<String, String> properties = new HashMap<>();
     properties.put("prometheus.uri", RandomStringUtils.random(1001));
     properties.put("prometheus.auth.type", "awssigv4");
@@ -123,7 +173,8 @@ public class PrometheusStorageFactoryTest {
   @SneakyThrows
   void testGetStorageEngineWithWrongAuthType() {
     when(settings.getSettingValue(Settings.Key.DATASOURCES_URI_ALLOWHOSTS)).thenReturn(".*");
-    PrometheusStorageFactory prometheusStorageFactory = new PrometheusStorageFactory(settings);
+    PrometheusStorageFactory prometheusStorageFactory
+        = new PrometheusStorageFactory(settings, expirableCredentialsProviderFactory);
     HashMap<String, String> properties = new HashMap<>();
     properties.put("prometheus.uri", "https://test.com");
     properties.put("prometheus.auth.type", "random");
@@ -141,7 +192,8 @@ public class PrometheusStorageFactoryTest {
   @SneakyThrows
   void testGetStorageEngineWithNONEAuthType() {
     when(settings.getSettingValue(Settings.Key.DATASOURCES_URI_ALLOWHOSTS)).thenReturn(".*");
-    PrometheusStorageFactory prometheusStorageFactory = new PrometheusStorageFactory(settings);
+    PrometheusStorageFactory prometheusStorageFactory
+        = new PrometheusStorageFactory(settings, expirableCredentialsProviderFactory);
     HashMap<String, String> properties = new HashMap<>();
     properties.put("prometheus.uri", "https://test.com");
     StorageEngine storageEngine
@@ -152,7 +204,8 @@ public class PrometheusStorageFactoryTest {
   @Test
   @SneakyThrows
   void testGetStorageEngineWithInvalidURISyntax() {
-    PrometheusStorageFactory prometheusStorageFactory = new PrometheusStorageFactory(settings);
+    PrometheusStorageFactory prometheusStorageFactory
+        = new PrometheusStorageFactory(settings, expirableCredentialsProviderFactory);
     HashMap<String, String> properties = new HashMap<>();
     properties.put("prometheus.uri", "http://dummyprometheus.com:9090? param");
     properties.put("prometheus.auth.type", "basicauth");
@@ -178,7 +231,8 @@ public class PrometheusStorageFactoryTest {
     metadata.setConnector(DataSourceType.PROMETHEUS);
     metadata.setProperties(properties);
 
-    DataSource dataSource = new PrometheusStorageFactory(settings).createDataSource(metadata);
+    DataSource dataSource = new PrometheusStorageFactory(settings,
+        expirableCredentialsProviderFactory).createDataSource(metadata);
     Assertions.assertTrue(dataSource.getStorageEngine() instanceof PrometheusStorageEngine);
   }
 
@@ -196,7 +250,8 @@ public class PrometheusStorageFactoryTest {
     metadata.setConnector(DataSourceType.PROMETHEUS);
     metadata.setProperties(properties);
 
-    DataSource dataSource = new PrometheusStorageFactory(settings).createDataSource(metadata);
+    DataSource dataSource = new PrometheusStorageFactory(settings,
+        expirableCredentialsProviderFactory).createDataSource(metadata);
     Assertions.assertTrue(dataSource.getStorageEngine() instanceof PrometheusStorageEngine);
   }
 
@@ -213,7 +268,8 @@ public class PrometheusStorageFactoryTest {
     metadata.setConnector(DataSourceType.PROMETHEUS);
     metadata.setProperties(properties);
 
-    PrometheusStorageFactory prometheusStorageFactory = new PrometheusStorageFactory(settings);
+    PrometheusStorageFactory prometheusStorageFactory = new PrometheusStorageFactory(settings,
+        expirableCredentialsProviderFactory);
     RuntimeException exception = Assertions.assertThrows(RuntimeException.class,
         () -> prometheusStorageFactory.createDataSource(metadata));
     Assertions.assertTrue(
@@ -233,7 +289,8 @@ public class PrometheusStorageFactoryTest {
     metadata.setConnector(DataSourceType.PROMETHEUS);
     metadata.setProperties(properties);
 
-    PrometheusStorageFactory prometheusStorageFactory = new PrometheusStorageFactory(settings);
+    PrometheusStorageFactory prometheusStorageFactory = new PrometheusStorageFactory(settings,
+        expirableCredentialsProviderFactory);
     RuntimeException exception = Assertions.assertThrows(RuntimeException.class,
         () -> prometheusStorageFactory.createDataSource(metadata));
     Assertions.assertTrue(
@@ -255,7 +312,8 @@ public class PrometheusStorageFactoryTest {
     metadata.setConnector(DataSourceType.PROMETHEUS);
     metadata.setProperties(properties);
 
-    PrometheusStorageFactory prometheusStorageFactory = new PrometheusStorageFactory(settings);
+    PrometheusStorageFactory prometheusStorageFactory = new PrometheusStorageFactory(settings,
+        expirableCredentialsProviderFactory);
     RuntimeException exception = Assertions.assertThrows(RuntimeException.class,
         () -> prometheusStorageFactory.createDataSource(metadata));
     Assertions.assertTrue(
@@ -277,7 +335,8 @@ public class PrometheusStorageFactoryTest {
     metadata.setName("prometheus");
     metadata.setConnector(DataSourceType.PROMETHEUS);
     metadata.setProperties(properties);
-    DataSource dataSource = new PrometheusStorageFactory(settings).createDataSource(metadata);
+    DataSource dataSource = new PrometheusStorageFactory(settings,
+        expirableCredentialsProviderFactory).createDataSource(metadata);
     Assertions.assertTrue(dataSource.getStorageEngine() instanceof PrometheusStorageEngine);
   }
 

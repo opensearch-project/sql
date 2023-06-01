@@ -23,6 +23,7 @@ import org.opensearch.action.ActionResponse;
 import org.opensearch.action.ActionType;
 import org.opensearch.client.Client;
 import org.opensearch.client.node.NodeClient;
+import org.opensearch.cluster.ClusterName;
 import org.opensearch.cluster.metadata.IndexNameExpressionResolver;
 import org.opensearch.cluster.node.DiscoveryNodes;
 import org.opensearch.cluster.service.ClusterService;
@@ -47,6 +48,9 @@ import org.opensearch.rest.RestHandler;
 import org.opensearch.script.ScriptContext;
 import org.opensearch.script.ScriptEngine;
 import org.opensearch.script.ScriptService;
+import org.opensearch.sql.common.authinterceptors.credentialsprovider.ExpirableCredentialsProviderFactory;
+import org.opensearch.sql.common.authinterceptors.credentialsprovider.InternalAuthCredentialsClient;
+import org.opensearch.sql.common.authinterceptors.credentialsprovider.InternalAuthCredentialsClientPool;
 import org.opensearch.sql.datasource.DataSourceService;
 import org.opensearch.sql.datasources.auth.DataSourceUserAuthorizationHelper;
 import org.opensearch.sql.datasources.auth.DataSourceUserAuthorizationHelperImpl;
@@ -227,11 +231,20 @@ public class SQLPlugin extends Plugin implements ActionPlugin, ScriptPlugin {
             new EncryptorImpl(masterKey));
     DataSourceUserAuthorizationHelper dataSourceUserAuthorizationHelper
         = new DataSourceUserAuthorizationHelperImpl(client);
+
+    InternalAuthCredentialsClient internalAuthCredentialsClient
+        = InternalAuthCredentialsClientPool.getInstance()
+        .getInternalAuthClient("sql-internal-auth-client");
+    ExpirableCredentialsProviderFactory expirableCredentialsProviderFactory
+        = new ExpirableCredentialsProviderFactory(internalAuthCredentialsClient,
+        clusterService.getClusterSettings()
+            .get(ClusterName.CLUSTER_NAME_SETTING).value().split(":"));
+
     return new DataSourceServiceImpl(
         new ImmutableSet.Builder<DataSourceFactory>()
             .add(new OpenSearchDataSourceFactory(
                 new OpenSearchNodeClient(this.client), pluginSettings))
-            .add(new PrometheusStorageFactory(pluginSettings))
+            .add(new PrometheusStorageFactory(pluginSettings, expirableCredentialsProviderFactory))
             .add(new SparkStorageFactory(this.client, pluginSettings))
             .build(),
         dataSourceMetadataStorage,

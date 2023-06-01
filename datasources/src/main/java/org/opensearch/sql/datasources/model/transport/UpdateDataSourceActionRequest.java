@@ -11,11 +11,14 @@ package org.opensearch.sql.datasources.model.transport;
 import static org.opensearch.sql.analysis.DataSourceSchemaIdentifierNameResolver.DEFAULT_DATASOURCE_NAME;
 
 import java.io.IOException;
+import java.util.Map;
+import java.util.Optional;
 import lombok.Getter;
 import org.opensearch.action.ActionRequest;
 import org.opensearch.action.ActionRequestValidationException;
 import org.opensearch.common.io.stream.StreamInput;
 import org.opensearch.sql.datasource.model.DataSourceMetadata;
+import org.opensearch.sql.datasources.auth.AuthenticationType;
 
 public class UpdateDataSourceActionRequest
     extends ActionRequest {
@@ -41,7 +44,19 @@ public class UpdateDataSourceActionRequest
               "Not allowed to update datasource with name : " + DEFAULT_DATASOURCE_NAME);
       return exception;
     } else {
-      return null;
+      Map<String, String> propertiesMap = this.dataSourceMetadata.getProperties();
+      Optional<AuthenticationType> authTypeOptional
+          = propertiesMap.keySet().stream().filter(s -> s.endsWith("auth.type"))
+          .findFirst()
+          .map(propertiesMap::get)
+          .map(AuthenticationType::get);
+      if (authTypeOptional.isPresent()
+          && (authTypeOptional.get() != AuthenticationType.IAMROLE)) {
+        ActionRequestValidationException exception = new ActionRequestValidationException();
+        exception.addValidationError("Not allowed to update datasource with auth type: "
+            + authTypeOptional.get());
+      }
     }
+    return null;
   }
 }

@@ -117,7 +117,9 @@ public class OpenSearchSettings extends Settings {
 
   public static final Setting<String> DATASOURCE_URI_ALLOW_HOSTS = Setting.simpleString(
       Key.DATASOURCES_URI_ALLOWHOSTS.getKeyValue(),
-      ".*",
+      "^(?!localhost$)"
+          + "(?!.*(?:127\\.|10\\.|192\\.168\\.|172\\.(?:1[6-9]|2[0-9]|3[01])\\.))"
+          + "([a-zA-Z0-9][a-zA-Z0-9\\-]*[a-zA-Z0-9]\\.)+[a-zA-Z]{2,}$\n",
       Setting.Property.NodeScope,
       Setting.Property.Dynamic);
 

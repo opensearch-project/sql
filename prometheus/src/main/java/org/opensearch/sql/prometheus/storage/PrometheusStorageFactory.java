@@ -24,6 +24,7 @@ import okhttp3.OkHttpClient;
 import org.apache.commons.validator.routines.DomainValidator;
 import org.opensearch.sql.common.authinterceptors.AwsSigningInterceptor;
 import org.opensearch.sql.common.authinterceptors.BasicAuthenticationInterceptor;
+import org.opensearch.sql.common.authinterceptors.credentialsprovider.ExpirableCredentialsProviderFactory;
 import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.datasource.model.DataSource;
 import org.opensearch.sql.datasource.model.DataSourceMetadata;
@@ -39,6 +40,7 @@ public class PrometheusStorageFactory implements DataSourceFactory {
 
   public static final String URI = "prometheus.uri";
   public static final String AUTH_TYPE = "prometheus.auth.type";
+  public static final String ROLE_ARN = "prometheus.auth.role_arn";
   public static final String USERNAME = "prometheus.auth.username";
   public static final String PASSWORD = "prometheus.auth.password";
   public static final String REGION = "prometheus.auth.region";
@@ -47,6 +49,9 @@ public class PrometheusStorageFactory implements DataSourceFactory {
   private static final Integer MAX_LENGTH_FOR_CONFIG_PROPERTY = 1000;
 
   private final Settings settings;
+
+  private final ExpirableCredentialsProviderFactory expirableCredentialsProviderFactory;
+
 
   @Override
   public DataSourceType getDataSourceType() {
@@ -73,6 +78,8 @@ public class PrometheusStorageFactory implements DataSourceFactory {
       } else if (AuthenticationType.AWSSIGV4AUTH.equals(authenticationType)) {
         validateMissingFields(dataSourceMetadataConfig, Set.of(URI, ACCESS_KEY, SECRET_KEY,
             REGION));
+      } else if (AuthenticationType.IAMROLE.equals(authenticationType)) {
+        validateMissingFields(dataSourceMetadataConfig, Set.of(URI, ROLE_ARN));
       }
     } else {
       validateMissingFields(dataSourceMetadataConfig, Set.of(URI));
@@ -110,6 +117,10 @@ public class PrometheusStorageFactory implements DataSourceFactory {
         okHttpClient.addInterceptor(new AwsSigningInterceptor(
             new AWSStaticCredentialsProvider(
                 new BasicAWSCredentials(config.get(ACCESS_KEY), config.get(SECRET_KEY))),
+            config.get(REGION), "aps"));
+      } else if (AuthenticationType.IAMROLE.equals(authenticationType)) {
+        okHttpClient.addInterceptor(new AwsSigningInterceptor(
+            expirableCredentialsProviderFactory.getProvider(config.get(ROLE_ARN)),
             config.get(REGION), "aps"));
       } else {
         throw new IllegalArgumentException(

@@ -13,7 +13,7 @@ import java.util.Map;
 
 public enum AuthenticationType {
 
-  BASICAUTH("basicauth"), AWSSIGV4AUTH("awssigv4");
+  BASICAUTH("basicauth"), AWSSIGV4AUTH("awssigv4"), IAMROLE("iamrole");
 
   private String name;
 
