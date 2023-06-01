@@ -14,7 +14,6 @@ import org.apache.spark.sql.execution.streaming.MemoryStream
 import org.apache.spark.sql.flint.config.FlintSparkConf
 import org.apache.spark.sql.functions.asc
 import org.apache.spark.sql.streaming.{StreamingQuery, StreamTest}
-import org.apache.spark.sql.types._
 import org.apache.spark.util.Utils
 
 /**
@@ -29,19 +28,14 @@ class FlintDataSourceV2ITSuite
 
   import testImplicits._
 
-  test("create dataframe successfully from flint datasource") {
+  test("create dataframe from flint datasource with provided schema ") {
     val indexName = "t0001"
     withIndexName(indexName) {
       simpleIndex(indexName)
-      val schema = StructType(
-        Seq(
-          StructField("accountId", StringType, true),
-          StructField("eventName", StringType, true),
-          StructField("eventSource", StringType, true)))
       val df = spark.sqlContext.read
         .format("flint")
         .options(openSearchOptions)
-        .schema(schema)
+        .schema("accountId STRING, eventName STRING, eventSource STRING")
         .load(indexName)
 
       assert(df.count() == 1)
@@ -53,12 +47,10 @@ class FlintDataSourceV2ITSuite
     val indexName = "t0002"
     withIndexName(indexName) {
       multipleDocIndex(indexName, 5)
-      val schema = StructType(Seq(StructField("id", IntegerType, true)))
 
       val df = spark.sqlContext.read
         .format("flint")
         .options(openSearchOptions + (s"${FlintSparkConf.SCROLL_SIZE.key}" -> "1"))
-        .schema(schema)
         .load(indexName)
         .sort(asc("id"))
 
@@ -96,21 +88,11 @@ class FlintDataSourceV2ITSuite
           |}""".stripMargin)
       index(indexName, oneNodeSetting, mappings, docs)
 
-      val schema = StructType(
-        Seq(
-          StructField("aInt", IntegerType, nullable = true),
-          StructField("aString", StringType, nullable = true),
-          StructField(
-            "aText",
-            StringType,
-            nullable = true,
-            new MetadataBuilder().putString("osType", "text").build())))
-
       val df = spark.sqlContext.read
         .format("flint")
         .options(openSearchOptions)
-        .schema(schema)
         .load(indexName)
+        .select("aInt", "aString", "aText")
 
       val df1 = df.filter($"aInt" > 1)
       checkFiltersRemoved(df1)
@@ -172,11 +154,9 @@ class FlintDataSourceV2ITSuite
           .mode("overwrite")
           .save(indexName)
 
-        val schema = StructType(Seq(StructField("aInt", IntegerType)))
         val dfResult1 = spark.sqlContext.read
           .format("flint")
           .options(options)
-          .schema(schema)
           .load(indexName)
         checkAnswer(dfResult1, df)
       }
@@ -208,12 +188,10 @@ class FlintDataSourceV2ITSuite
           .mode("overwrite")
           .save(indexName)
 
-        val schema = StructType(Seq(StructField("aInt", IntegerType)))
         checkAnswer(
           spark.sqlContext.read
             .format("flint")
             .options(openSearchOptions)
-            .schema(schema)
             .load(indexName),
           df)
       }
@@ -257,7 +235,6 @@ class FlintDataSourceV2ITSuite
         val outputDf = spark.sqlContext.read
           .format("flint")
           .options(openSearchOptions)
-          .schema(StructType(Seq(StructField("aInt", IntegerType))))
           .load(indexName)
           .as[Int]
         checkDatasetUnorderly(outputDf, 1, 2, 3)
@@ -276,15 +253,11 @@ class FlintDataSourceV2ITSuite
       simpleIndex(indexName)
       spark.conf.set(FlintSparkConf.sparkConf(FlintSparkConf.HOST_ENDPOINT.key), openSearchHost)
       spark.conf.set(FlintSparkConf.sparkConf(FlintSparkConf.HOST_PORT.key), openSearchPort)
-      val schema = StructType(
-        Seq(
-          StructField("accountId", StringType, true),
-          StructField("eventName", StringType, true),
-          StructField("eventSource", StringType, true)))
+
       val df = spark.sqlContext.read
         .format("flint")
-        .schema(schema)
         .load(indexName)
+        .select("accountId", "eventName", "eventSource")
 
       assert(df.count() == 1)
       checkAnswer(df, Row("123", "event", "source"))
@@ -299,17 +272,12 @@ class FlintDataSourceV2ITSuite
       spark.conf.set(FlintSparkConf.sparkConf(FlintSparkConf.HOST_ENDPOINT.key), "invalid host")
       spark.conf.set(FlintSparkConf.sparkConf(FlintSparkConf.HOST_PORT.key), "0")
 
-      val schema = StructType(
-        Seq(
-          StructField("accountId", StringType, true),
-          StructField("eventName", StringType, true),
-          StructField("eventSource", StringType, true)))
       val df = spark.sqlContext.read
         .format("flint")
         // override spark conf
         .options(openSearchOptions)
-        .schema(schema)
         .load(indexName)
+        .select("accountId", "eventName", "eventSource")
 
       assert(df.count() == 1)
       checkAnswer(df, Row("123", "event", "source"))
