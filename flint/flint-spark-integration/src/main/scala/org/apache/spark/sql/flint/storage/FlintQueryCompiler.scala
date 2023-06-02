@@ -6,9 +6,12 @@
 package org.apache.spark.sql.flint.storage
 
 import org.apache.spark.sql.catalyst.expressions.Literal
+import org.apache.spark.sql.catalyst.util.{DateTimeUtils, TimestampFormatter}
 import org.apache.spark.sql.connector.expressions.{Expression, FieldReference, LiteralValue}
 import org.apache.spark.sql.connector.expressions.filter.{And, Predicate}
-import org.apache.spark.sql.types.{StringType, StructField, StructType}
+import org.apache.spark.sql.flint.datatype.FlintDataType.STRICT_DATE_OPTIONAL_TIME_FORMATTER_WITH_NANOS
+import org.apache.spark.sql.internal.SQLConf
+import org.apache.spark.sql.types._
 
 /**
  * Todo. find the right package.
@@ -37,16 +40,32 @@ case class FlintQueryCompiler(schema: StructType) {
   def compile(expr: Expression, quoteString: Boolean = true): String = {
     expr match {
       case LiteralValue(value, dataType) =>
-        if (quoteString && dataType == StringType) {
-          s""""${Literal(value, dataType).toString()}""""
-        } else {
-          Literal(value, dataType).toString()
-        }
+        quote(extract, quoteString)(value, dataType)
       case p: Predicate => visitPredicate(p)
       case f: FieldReference => f.toString()
       case _ => ""
     }
   }
+
+  def extract(value: Any, dataType: DataType): String = dataType match {
+    case TimestampType =>
+      TimestampFormatter(
+        STRICT_DATE_OPTIONAL_TIME_FORMATTER_WITH_NANOS,
+        DateTimeUtils
+          .getZoneId(SQLConf.get.sessionLocalTimeZone),
+        false)
+        .format(value.asInstanceOf[Long])
+    case _ => Literal(value, dataType).toString()
+  }
+
+  def quote(f: ((Any, DataType) => String), quoteString: Boolean = true)(
+      value: Any,
+      dataType: DataType): String =
+    dataType match {
+      case DateType | TimestampType | StringType if quoteString =>
+        s""""${f(value, dataType)}""""
+      case _ => f(value, dataType)
+    }
 
   /**
    * Predicate is defined in SPARK filters.scala. Todo.

@@ -5,7 +5,7 @@
 
 package org.apache.spark.sql.flint.config
 
-import java.util.{Map => JMap, NoSuchElementException}
+import java.util.{Map => JMap, NoSuchElementException, TimeZone}
 
 import scala.collection.JavaConverters._
 
@@ -19,13 +19,10 @@ import org.apache.spark.sql.flint.config.FlintSparkConf._
  * Define all the Flint Spark Related configuration. <p> User define the config as xxx.yyy using
  * {@link FlintConfig}.
  *
- * <p> How to use config
- *  <ol>
- *    <li> define config using spark.datasource.flint.xxx.yyy in spark conf.
- *    <li> define config using xxx.yyy in datasource options.
- *    <li> Configurations defined in the datasource options will override the same configurations
- *    present in the Spark configuration.
- *  </ol>
+ * <p> How to use config <ol> <li> define config using spark.datasource.flint.xxx.yyy in spark
+ * conf. <li> define config using xxx.yyy in datasource options. <li> Configurations defined in
+ * the datasource options will override the same configurations present in the Spark
+ * configuration. </ol>
  */
 object FlintSparkConf {
 
@@ -82,15 +79,21 @@ object FlintSparkConf {
   val SCROLL_SIZE = FlintConfig("read.scroll_size")
     .doc("scroll read size")
     .createWithDefault("100")
+
+  val TIME_ZONE = FlintConfig("timeZone")
+    .doc("time zone")
+    .createWithDefault(TimeZone.getDefault.getID)
 }
 
 class FlintSparkConf(properties: JMap[String, String]) extends Serializable {
 
-  lazy val reader = new ConfigReader(properties)
+  @transient lazy val reader = new ConfigReader(properties)
 
   def batchSize(): Int = BATCH_SIZE.readFrom(reader).toInt
 
   def docIdColumnName(): Option[String] = DOC_ID_COLUMN_NAME.readFrom(reader)
+
+  def timeZone(): String = TIME_ZONE.readFrom(reader)
 
   def tableName(): String = {
     if (properties.containsKey("path")) properties.get("path")

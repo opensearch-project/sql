@@ -123,6 +123,27 @@ class FlintDataTypeSuite extends FlintSuite with Matchers {
                                                                     |}""".stripMargin)
   }
 
+  test("flint date type deserialize and serialize") {
+    val flintDataType = """{
+                          |  "properties": {
+                          |    "timestampField": {
+                          |      "type": "date",
+                          |      "format": "strict_date_optional_time_nanos"
+                          |    },
+                          |    "dateField": {
+                          |      "type": "date",
+                          |      "format": "strict_date"
+                          |    }
+                          |  }
+                          |}""".stripMargin
+    val sparkStructType = StructType(
+      StructField("timestampField", TimestampType, true) ::
+        StructField("dateField", DateType, true) ::
+        Nil)
+    FlintDataType.deserialize(flintDataType) should contain theSameElementsAs sparkStructType
+    FlintDataType.serialize(sparkStructType) shouldBe compactJson(flintDataType)
+  }
+
   def compactJson(json: String): String = {
     val data: JValue = JsonMethods.parse(json)
     JsonMethods.compact(JsonMethods.render(data))

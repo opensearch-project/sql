@@ -5,15 +5,16 @@
 
 package org.apache.spark.sql.flint
 
-import java.util.TimeZone
-
 import com.fasterxml.jackson.core.{JsonFactory, JsonParser}
 import org.opensearch.flint.core.storage.FlintReader
 
 import org.apache.spark.sql.catalyst.InternalRow
-import org.apache.spark.sql.catalyst.json.{CreateJacksonParser, JacksonParser, JSONOptionsInRead}
+import org.apache.spark.sql.catalyst.json.{CreateJacksonParser, JSONOptionsInRead}
 import org.apache.spark.sql.catalyst.util.{CaseInsensitiveMap, FailureSafeParser}
 import org.apache.spark.sql.connector.read.PartitionReader
+import org.apache.spark.sql.flint.config.FlintSparkConf
+import org.apache.spark.sql.flint.datatype.FlintDataType.DATE_FORMAT_PARAMETERS
+import org.apache.spark.sql.flint.json.FlintJacksonParser
 import org.apache.spark.sql.types.StructType
 import org.apache.spark.unsafe.types.UTF8String
 
@@ -24,15 +25,12 @@ import org.apache.spark.unsafe.types.UTF8String
  * @param schema
  *   schema
  */
-class FlintPartitionReader(reader: FlintReader, schema: StructType)
+class FlintPartitionReader(reader: FlintReader, schema: StructType, options: FlintSparkConf)
     extends PartitionReader[InternalRow] {
 
-  lazy val parser = new JacksonParser(
+  lazy val parser = new FlintJacksonParser(
     schema,
-    new JSONOptionsInRead(
-      CaseInsensitiveMap(Map.empty[String, String]),
-      TimeZone.getDefault.getID,
-      ""),
+    new JSONOptionsInRead(CaseInsensitiveMap(DATE_FORMAT_PARAMETERS), options.timeZone(), ""),
     allowArrayAsStructs = true)
   lazy val stringParser: (JsonFactory, String) => JsonParser =
     CreateJacksonParser.string(_: JsonFactory, _: String)

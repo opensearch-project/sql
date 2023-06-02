@@ -5,6 +5,8 @@
 
 package org.apache.spark
 
+import java.sql.{Date, Timestamp}
+
 import org.opensearch.flint.OpenSearchSuite
 
 import org.apache.spark.sql.{DataFrame, ExplainSuiteHelper, QueryTest, Row}
@@ -12,7 +14,7 @@ import org.apache.spark.sql.catalyst.plans.logical.Filter
 import org.apache.spark.sql.execution.datasources.v2.DataSourceV2ScanRelation
 import org.apache.spark.sql.execution.streaming.MemoryStream
 import org.apache.spark.sql.flint.config.FlintSparkConf
-import org.apache.spark.sql.functions.asc
+import org.apache.spark.sql.functions.{asc, current_date, current_timestamp, to_date, to_timestamp}
 import org.apache.spark.sql.streaming.{StreamingQuery, StreamTest}
 import org.apache.spark.util.Utils
 
@@ -281,6 +283,193 @@ class FlintDataSourceV2ITSuite
 
       assert(df.count() == 1)
       checkAnswer(df, Row("123", "event", "source"))
+    }
+  }
+
+  test("load and save date and timestamp type field") {
+    val indexName = "t0001"
+    val options = openSearchOptions + (s"${FlintSparkConf.REFRESH_POLICY.key}" -> "wait_for")
+    Seq(
+      """{
+          |  "properties": {
+          |    "aDate": {
+          |      "type": "date",
+          |      "format": "strict_date"
+          |    },
+          |    "aTimestamp": {
+          |      "type": "date"
+          |    }
+          |  }
+          |}""".stripMargin,
+      """{
+          |  "properties": {
+          |    "aDate": {
+          |      "type": "date",
+          |      "format": "strict_date"
+          |    },
+          |    "aTimestamp": {
+          |      "type": "date",
+          |      "format": "strict_date_optional_time_nanos"
+          |    }
+          |  }
+          |}""".stripMargin).foreach(mapping => {
+      withIndexName(indexName) {
+        index(indexName, oneNodeSetting, mapping, Seq.empty)
+
+        val df = spark
+          .range(1)
+          .select(current_date().as("aDate"), current_timestamp().as("aTimestamp"))
+          .cache()
+
+        df.coalesce(1)
+          .write
+          .format("flint")
+          .options(options)
+          .mode("overwrite")
+          .save(indexName)
+
+        val dfResult1 = spark.sqlContext.read
+          .format("flint")
+          .options(options)
+          .load(indexName)
+        checkAnswer(dfResult1, df)
+      }
+    })
+  }
+
+  test("load timestamp field in epoch format") {
+    val indexName = "t0001"
+    val options = openSearchOptions + (s"${FlintSparkConf.REFRESH_POLICY.key}" -> "wait_for")
+    Seq(
+      """{
+        |  "properties": {
+        |    "aTimestamp": {
+        |      "type": "date"
+        |    }
+        |  }
+        |}""".stripMargin,
+      """{
+        |  "properties": {
+        |    "aTimestamp": {
+        |      "type": "date",
+        |      "format": "epoch_millis"
+        |    }
+        |  }
+        |}""".stripMargin).foreach(mapping => {
+      withIndexName(indexName) {
+        val docs = Seq("""{
+            |  "aTimestamp": 1420070400000
+            |}""".stripMargin)
+        index(indexName, oneNodeSetting, mapping, docs)
+
+        val df = spark.sqlContext.read
+          .format("flint")
+          .options(options)
+          .load(indexName)
+        checkAnswer(df, Row(Timestamp.valueOf("2014-12-31 16:00:00")))
+      }
+    })
+  }
+
+  // scalastyle:off
+  /**
+   * More reading at.
+   * https://www.databricks.com/blog/2020/07/22/a-comprehensive-look-at-dates-and-timestamps-in-apache-spark-3-0.html
+   */
+  // scalastyle:on
+  test("load timestamp using session timeZone conf") {
+    val indexName = "t0001"
+    Seq(("UTC", "2023-06-01 08:30:00 UTC"), ("PST", "2023-06-01 01:30:00 PST")).foreach {
+      case (timezone, timestampStr) =>
+        withIndexName(indexName) {
+          val mapping =
+            """{
+              |  "properties": {
+              |    "aTimestamp": {
+              |      "type": "date",
+              |      "format": "strict_date_optional_time_nanos"
+              |    }
+              |  }
+              |}""".stripMargin
+
+          /**
+           * store 2 same timestamp represent with different timezone in OpenSearch
+           */
+          val docs = Seq(
+            """{"aTimestamp": "2023-06-01T01:30:00.000000-0700"}""",
+            """{"aTimestamp": "2023-06-01T08:30:00.000000+0000"}""")
+          index(indexName, oneNodeSetting, mapping, docs)
+
+          spark.conf.set("spark.sql.session.timeZone", timezone)
+          val dfResult1 = spark.sqlContext.read
+            .format("flint")
+            .options(openSearchOptions)
+            .load(indexName)
+          checkAnswer(
+            dfResult1,
+            Seq(timestampStr, timestampStr)
+              .toDF("aTimestamp")
+              .select(to_timestamp($"aTimestamp", "yyyy-MM-dd HH:mm:ss z").as("aTimestamp")))
+        }
+    }
+  }
+
+  test("scan with date filter push-down") {
+    val indexName = "t0001"
+    val options = openSearchOptions + (s"${FlintSparkConf.REFRESH_POLICY.key}" -> "wait_for")
+    withIndexName(indexName) {
+      val mappings = """{
+                       |  "properties": {
+                       |    "aDate": {
+                       |      "type": "date",
+                       |      "format": "strict_date"
+                       |    },
+                       |    "aTimestamp": {
+                       |      "type": "date",
+                       |      "format": "strict_date_optional_time_nanos"
+                       |    }
+                       |  }
+                       |}""".stripMargin
+      index(indexName, oneNodeSetting, mappings, Seq.empty)
+
+      spark.conf.set("spark.sql.session.timeZone", "UTC")
+
+      val df =
+        Seq(("2023-05-01", "2023-05-01 12:30:00 UTC"), ("2023-06-01", "2023-06-01 12:30:00 UTC"))
+          .toDF("aDate", "aTimestamp")
+          .select(
+            to_date($"aDate").as("aDate"),
+            to_timestamp($"aTimestamp", "yyyy-MM-dd HH:mm:ss z").as("aTimestamp"))
+          .cache()
+      df.coalesce(1)
+        .write
+        .format("flint")
+        .options(options)
+        .mode("overwrite")
+        .save(indexName)
+
+      val dfRead = spark.sqlContext.read
+        .format("flint")
+        .options(openSearchOptions)
+        .load(indexName)
+
+      val dfResult1 = dfRead.filter("aDate < date'2023-06-01'").select("aDate")
+      checkFiltersRemoved(dfResult1)
+      checkPushedInfo(dfResult1, "PushedPredicates: [aDate IS NOT NULL, aDate < 19509]")
+      checkAnswer(dfResult1, Row(Date.valueOf("2023-05-01")))
+
+      val dfResult2 = dfRead
+        .filter("aTimestamp < timestamp'2023-06-01 12:29:59 UTC'")
+        .select("aTimestamp")
+      checkFiltersRemoved(dfResult2)
+      checkPushedInfo(
+        dfResult2,
+        "PushedPredicates: [aTimestamp IS NOT NULL, aTimestamp < 1685622599000000]")
+      checkAnswer(
+        dfResult2,
+        Seq("2023-05-01 12:30:00 UTC")
+          .toDF("aTimestamp")
+          .select(to_timestamp($"aTimestamp", "yyyy-MM-dd HH:mm:ss z").as("aTimestamp")))
     }
   }
 

@@ -5,11 +5,14 @@
 
 package org.apache.spark.sql.flint.datatype
 
+import java.time.format.DateTimeFormatterBuilder
+
 import org.json4s.{Formats, JField, JValue, NoTypeHints}
 import org.json4s.JsonAST.{JNothing, JObject, JString}
 import org.json4s.jackson.JsonMethods
 import org.json4s.native.Serialization
 
+import org.apache.spark.sql.catalyst.util.DateFormatter
 import org.apache.spark.sql.types._
 
 /**
@@ -18,6 +21,15 @@ import org.apache.spark.sql.types._
 object FlintDataType {
 
   implicit val formats: Formats = Serialization.formats(NoTypeHints)
+
+  val DEFAULT_DATE_FORMAT = "strict_date_optional_time || epoch_millis"
+
+  val STRICT_DATE_OPTIONAL_TIME_FORMATTER_WITH_NANOS =
+    s"${DateFormatter.defaultPattern}'T'HH:mm:ss.SSSSSSZ"
+
+  val DATE_FORMAT_PARAMETERS: Map[String, String] = Map(
+    "dateFormat" -> DateFormatter.defaultPattern,
+    "timestampFormat" -> STRICT_DATE_OPTIONAL_TIME_FORMATTER_WITH_NANOS)
 
   /**
    * parse Flint metadata and extract properties to StructType.
@@ -52,6 +64,12 @@ object FlintDataType {
       case JString("double") => DoubleType
       case JString("float") => FloatType
 
+      // Date
+      case JString("date") =>
+        parseFormat(
+          (fieldProperties \ "format")
+            .extractOrElse(DEFAULT_DATE_FORMAT))
+
       // Text
       case JString("text") =>
         metadataBuilder.putString("osType", "text")
@@ -64,6 +82,26 @@ object FlintDataType {
       case _ => throw new IllegalStateException(s"unsupported data type")
     }
     DataTypes.createStructField(fieldName, dataType, true, metadataBuilder.build())
+  }
+
+  /**
+   * parse format in flint metadata
+   * @return
+   *   (DateTimeFormatter, epoch_millis | epoch_second)
+   */
+  private def parseFormat(format: String): DataType = {
+    val formats = format.split("\\|\\|").map(_.trim)
+    val (formatter, epoch_formatter) =
+      formats.partition(str => str != "epoch_millis" && str != "epoch_second")
+
+    (formatter.headOption, epoch_formatter.headOption) match {
+      case (Some("date"), None) | (Some("strict_date"), None) => DateType
+      case (Some("strict_date_optional_time_nanos"), None) |
+          (Some("strict_date_optional_time"), None) | (None, Some("epoch_millis")) |
+          (Some("strict_date_optional_time"), Some("epoch_millis")) =>
+        TimestampType
+      case _ => throw new IllegalStateException(s"unsupported date type format: $format")
+    }
   }
 
   /**
@@ -99,6 +137,13 @@ object FlintDataType {
       case ByteType => JObject("type" -> JString("byte"))
       case DoubleType => JObject("type" -> JString("double"))
       case FloatType => JObject("type" -> JString("float"))
+
+      // Date
+      case TimestampType =>
+        JObject(
+          "type" -> JString("date"),
+          "format" -> JString("strict_date_optional_time_nanos"));
+      case DateType => JObject("type" -> JString("date"), "format" -> JString("strict_date"));
 
       // objects
       case st: StructType => serializeJValue(st)

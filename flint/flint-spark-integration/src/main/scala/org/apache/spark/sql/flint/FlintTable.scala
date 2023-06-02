@@ -9,6 +9,7 @@ import java.util
 
 import org.opensearch.flint.core.FlintClientBuilder
 
+import org.apache.spark.sql.SparkSession
 import org.apache.spark.sql.connector.catalog.{SupportsRead, SupportsWrite, Table, TableCapability}
 import org.apache.spark.sql.connector.catalog.TableCapability.{BATCH_READ, BATCH_WRITE, STREAMING_WRITE, TRUNCATE}
 import org.apache.spark.sql.connector.read.ScanBuilder
@@ -30,7 +31,13 @@ case class FlintTable(conf: util.Map[String, String], userSpecifiedSchema: Optio
     with SupportsRead
     with SupportsWrite {
 
-  lazy val flintSparkConf: FlintSparkConf = FlintSparkConf(conf)
+  lazy val sparkSession = SparkSession.active
+
+  lazy val flintSparkConf: FlintSparkConf = {
+    val newMap = new java.util.HashMap[String, String](conf)
+    newMap.put("timeZone", sparkSession.sessionState.conf.sessionLocalTimeZone)
+    FlintSparkConf(newMap)
+  }
 
   lazy val name: String = flintSparkConf.tableName()
 
@@ -53,10 +60,10 @@ case class FlintTable(conf: util.Map[String, String], userSpecifiedSchema: Optio
     util.EnumSet.of(BATCH_READ, BATCH_WRITE, TRUNCATE, STREAMING_WRITE)
 
   override def newScanBuilder(options: CaseInsensitiveStringMap): ScanBuilder = {
-    FlintScanBuilder(name, schema, FlintSparkConf(options.asCaseSensitiveMap()))
+    FlintScanBuilder(name, schema, flintSparkConf)
   }
 
   override def newWriteBuilder(info: LogicalWriteInfo): WriteBuilder = {
-    FlintWriteBuilder(name, info)
+    FlintWriteBuilder(name, info, flintSparkConf)
   }
 }
