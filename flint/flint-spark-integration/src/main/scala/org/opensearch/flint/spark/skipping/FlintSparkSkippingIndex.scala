@@ -72,7 +72,7 @@ class FlintSparkSkippingIndex(
   private def getSchema: String = {
     val indexFieldTypes = indexedColumns.map { indexCol =>
       val columnName = indexCol.columnName
-      // Data type INT in catalog is not recognized by Spark IntegerType
+      // Data type INT from catalog is not recognized by Spark DataType.fromJson()
       val columnType = if (indexCol.columnType == "int") "integer" else indexCol.columnType
       val sparkType = DataType.fromJson("\"" + columnType + "\"")
       StructField(columnName, sparkType, nullable = false)

@@ -190,7 +190,7 @@ class FlintSparkSkippingIndexSuite
     }
   }
 
-  test("should run original query if no skipping index") {
+  test("should not rewrite original query if no skipping index") {
     val query =
       s"""
          | SELECT name

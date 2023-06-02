@@ -12,7 +12,7 @@ import org.apache.spark.sql.execution.datasources.{FileIndex, PartitionDirectory
 import org.apache.spark.sql.types.StructType
 
 /**
- * File index that skips files by Flint Spark skipping index.
+ * File index that skips source files based on the selected files by Flint skipping index.
  *
  * @param baseFileIndex
  *   original file index
@@ -30,7 +30,7 @@ class FlintSparkSkippingFileIndex(baseFileIndex: FileIndex, selectedFiles: Set[S
     val partitions = baseFileIndex.listFiles(partitionFilters, dataFilters)
     partitions
       .map(p => p.copy(files = p.files.filter(isFileNotSkipped)))
-      .filter(_.files.nonEmpty)
+      .filter(p => p.files.nonEmpty)
   }
 
   override def rootPaths: Seq[Path] = baseFileIndex.rootPaths
