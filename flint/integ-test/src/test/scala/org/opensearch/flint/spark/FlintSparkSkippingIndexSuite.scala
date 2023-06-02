@@ -143,7 +143,6 @@ class FlintSparkSkippingIndexSuite
     val indexData =
       spark.read
         .format(FLINT_DATASOURCE)
-        .schema("year INT, month INT, file_path STRING")
         .options(openSearchOptions)
         .load(testIndex)
         .collect()
@@ -170,7 +169,6 @@ class FlintSparkSkippingIndexSuite
     val indexData =
       spark.read
         .format(FLINT_DATASOURCE)
-        .schema("year INT, month INT, file_path STRING")
         .options(openSearchOptions)
         .load(testIndex)
         .collect()

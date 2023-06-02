@@ -6,6 +6,7 @@
 package org.opensearch.flint.spark.skipping
 
 import org.json4s._
+import org.json4s.native.JsonMethods._
 import org.json4s.native.Serialization
 import org.opensearch.flint.core.metadata.FlintMetadata
 import org.opensearch.flint.spark.FlintSparkIndex
@@ -13,7 +14,9 @@ import org.opensearch.flint.spark.skipping.FlintSparkSkippingIndex.{getSkippingI
 
 import org.apache.spark.sql.{Column, DataFrame}
 import org.apache.spark.sql.catalyst.dsl.expressions.DslExpression
+import org.apache.spark.sql.flint.datatype.FlintDataType
 import org.apache.spark.sql.functions.input_file_name
+import org.apache.spark.sql.types.{DataType, StringType, StructField, StructType}
 
 /**
  * Flint skipping index in Spark.
@@ -31,15 +34,6 @@ class FlintSparkSkippingIndex(
 
   /** Skipping index type */
   override val kind: String = SKIPPING_INDEX_TYPE
-
-  /** Output schema of the skipping index */
-  private val outputSchema: Map[String, String] = {
-    val schema = indexedColumns
-      .flatMap(_.outputSchema().toList)
-      .toMap
-
-    schema + (FILE_PATH_COLUMN -> "string")
-  }
 
   override def name(): String = {
     getSkippingIndexName(tableName)
@@ -76,17 +70,20 @@ class FlintSparkSkippingIndex(
   }
 
   private def getSchema: String = {
-    Serialization.write(outputSchema.map { case (colName, colType) =>
-      colName -> ("type" -> convertToFlintType(colType))
-    })
-  }
-
-  // TODO: move this mapping info to single place
-  private def convertToFlintType(colType: String): String = {
-    colType match {
-      case "string" => "keyword"
-      case "int" => "integer"
+    val indexFieldTypes = indexedColumns.map { indexCol =>
+      val columnName = indexCol.columnName
+      // Data type INT in catalog is not recognized by Spark IntegerType
+      val columnType = if (indexCol.columnType == "int") "integer" else indexCol.columnType
+      val sparkType = DataType.fromJson("\"" + columnType + "\"")
+      StructField(columnName, sparkType, nullable = false)
     }
+
+    val allFieldTypes =
+      indexFieldTypes :+ StructField(FILE_PATH_COLUMN, StringType, nullable = false)
+
+    // Convert StructType to {"properties": ...} and only need the properties value
+    val properties = FlintDataType.serialize(StructType(allFieldTypes))
+    compact(render(parse(properties) \ "properties"))
   }
 }
 

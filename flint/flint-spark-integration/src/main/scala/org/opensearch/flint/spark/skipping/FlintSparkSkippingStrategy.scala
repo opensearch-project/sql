@@ -19,9 +19,14 @@ trait FlintSparkSkippingStrategy {
   val kind: String
 
   /**
-   * Indexed column name and its Spark SQL type.
+   * Indexed column name.
    */
   val columnName: String
+
+  /**
+   * Indexed column Spark SQL type.
+   */
+  @transient
   val columnType: String
 
   /**

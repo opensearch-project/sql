@@ -5,8 +5,6 @@
 
 package org.opensearch.flint.spark.skipping
 
-import java.util.Locale
-
 import org.opensearch.flint.spark.FlintSpark
 import org.opensearch.flint.spark.skipping.FlintSparkSkippingIndex.{getSkippingIndexName, FILE_PATH_COLUMN, SKIPPING_INDEX_TYPE}
 
@@ -68,10 +66,10 @@ class ApplyFlintSparkSkippingIndex(flint: FlintSpark) extends Rule[LogicalPlan] 
           val indexRelation = baseRelation.copy(location = fileIndex)(baseRelation.sparkSession)
           filter.copy(child = relation.copy(relation = indexRelation))
         } else {
-          filter // No applicable index for the filtering condition
+          filter // Filtering condition not applicable
         }
       } else {
-        filter // No index found for the source table
+        filter // No skipping index found for the source table
       }
   }
 
@@ -94,22 +92,11 @@ class ApplyFlintSparkSkippingIndex(flint: FlintSpark) extends Rule[LogicalPlan] 
     // Get file list based on the rewritten predicates on index data
     flint.spark.read
       .format(FLINT_DATASOURCE)
-      .schema(getSchema(index.indexedColumns))
       .load(index.name())
       .filter(new Column(rewrittenPredicate))
       .select(FILE_PATH_COLUMN)
       .collect
       .map(_.getString(0))
       .toSet
-  }
-
-  private def getSchema(indexCols: Seq[FlintSparkSkippingStrategy]): String = {
-    val colTypes =
-      indexCols
-        .flatMap(_.outputSchema())
-        .map { case (name, colType) => s"$name ${colType.toUpperCase(Locale.ROOT)}" }
-
-    val allColTypes = colTypes :+ s"$FILE_PATH_COLUMN STRING"
-    allColTypes.mkString(", ")
   }
 }
