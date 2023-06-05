@@ -8,7 +8,7 @@ package org.opensearch.flint.spark.skipping
 import org.opensearch.flint.spark.FlintSpark
 import org.opensearch.flint.spark.skipping.FlintSparkSkippingIndex.{getSkippingIndexName, FILE_PATH_COLUMN, SKIPPING_INDEX_TYPE}
 
-import org.apache.spark.sql.Column
+import org.apache.spark.sql.{Column, DataFrame}
 import org.apache.spark.sql.catalyst.expressions.{And, Predicate}
 import org.apache.spark.sql.catalyst.plans.logical.{Filter, LogicalPlan}
 import org.apache.spark.sql.catalyst.rules.Rule
@@ -32,11 +32,7 @@ class ApplyFlintSparkSkippingIndex(flint: FlintSpark) extends Rule[LogicalPlan] 
             baseRelation @ HadoopFsRelation(location, _, _, _, _, _),
             _,
             Some(table),
-            false)) =>
-      // Exit if plan is already rewritten with skipping index
-      if (location.isInstanceOf[FlintSparkSkippingFileIndex]) {
-        return plan
-      }
+            false)) if !location.isInstanceOf[FlintSparkSkippingFileIndex] =>
 
       val indexName = getSkippingIndexName(table.identifier.table) // TODO: database name
       val index = flint.describeIndex(indexName)
@@ -52,8 +48,8 @@ class ApplyFlintSparkSkippingIndex(flint: FlintSpark) extends Rule[LogicalPlan] 
          *        |- FileIndex <== replaced with FlintSkippingFileIndex
          */
         if (indexPred.isDefined) {
-          val selectedFiles = selectFilesByIndex(skippingIndex, indexPred.get)
-          val fileIndex = new FlintSparkSkippingFileIndex(location, selectedFiles)
+          val filterByIndex = buildFilterIndexQuery(skippingIndex, indexPred.get)
+          val fileIndex = new FlintSparkSkippingFileIndex(location, filterByIndex)
           val indexRelation = baseRelation.copy(location = fileIndex)(baseRelation.sparkSession)
           filter.copy(child = relation.copy(relation = indexRelation))
         } else {
@@ -75,9 +71,9 @@ class ApplyFlintSparkSkippingIndex(flint: FlintSpark) extends Rule[LogicalPlan] 
       .reduceOption(And(_, _))
   }
 
-  private def selectFilesByIndex(
+  private def buildFilterIndexQuery(
       index: FlintSparkSkippingIndex,
-      rewrittenPredicate: Predicate): Set[String] = {
+      rewrittenPredicate: Predicate): DataFrame = {
 
     // Get file list based on the rewritten predicates on index data
     flint.spark.read
@@ -85,8 +81,5 @@ class ApplyFlintSparkSkippingIndex(flint: FlintSpark) extends Rule[LogicalPlan] 
       .load(index.name())
       .filter(new Column(rewrittenPredicate))
       .select(FILE_PATH_COLUMN)
-      .collect
-      .map(_.getString(0))
-      .toSet
   }
 }
