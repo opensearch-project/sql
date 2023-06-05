@@ -5,9 +5,18 @@
 
 package org.opensearch.flint.spark
 
+import org.opensearch.flint.spark.skipping.ApplyFlintSparkSkippingIndex
+
 import org.apache.spark.sql.SparkSessionExtensions
 
+/**
+ * Flint Spark extension entrypoint.
+ */
 class FlintSparkExtensions extends (SparkSessionExtensions => Unit) {
 
-  override def apply(v1: SparkSessionExtensions): Unit = {}
+  override def apply(extensions: SparkSessionExtensions): Unit = {
+    extensions.injectOptimizerRule { spark =>
+      new FlintSparkOptimizer(spark)
+    }
+  }
 }
