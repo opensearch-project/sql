@@ -1040,7 +1040,7 @@ sequenceDiagram
 
 #### 6.2.3 Logical Plan Relation Visitor
 
-The following sequence diagram shows what the 
+The following sequence diagram shows how the join type is processed from logical to physical plan. 
 
 ```mermaid
 sequenceDiagram
