@@ -356,7 +356,8 @@ public class OpenSearchExprValueFactory {
    * <a href="https://opensearch.org/docs/latest/opensearch/supported-field-types/nested/">docs</a>
    * The similar data type is nested, but it can only allow a list of objects.
    */
-  private ExprValue parseArray(Content content, String prefix) {
+  public ExprValue parseArray(Content content, String prefix) {
+    System.out.println("Content: " + content);
     List<ExprValue> result = new ArrayList<>();
     // ExprCoreType.ARRAY does not indicate inner elements type.
     if (Iterators.size(content.array()) == 1 && content.objectValue() instanceof JsonElement) {
