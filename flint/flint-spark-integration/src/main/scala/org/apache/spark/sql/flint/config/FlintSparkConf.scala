@@ -80,6 +80,10 @@ object FlintSparkConf {
     .doc("scroll read size")
     .createWithDefault("100")
 
+  val OPTIMIZER_RULE_ENABLED = FlintConfig("spark.flint.optimizer.enabled")
+    .doc("Enable Flint optimizer rule for query rewrite with Flint index")
+    .createWithDefault("true")
+
   val TIME_ZONE = FlintConfig("timeZone")
     .doc("time zone")
     .createWithDefault(TimeZone.getDefault.getID)
@@ -99,6 +103,8 @@ class FlintSparkConf(properties: JMap[String, String]) extends Serializable {
     if (properties.containsKey("path")) properties.get("path")
     else throw new NoSuchElementException("index or path not found")
   }
+
+  def isOptimizerEnabled: Boolean = OPTIMIZER_RULE_ENABLED.readFrom(reader).toBoolean
 
   /**
    * Helper class, create {@link FlintOptions}.

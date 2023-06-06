@@ -10,12 +10,16 @@ import scala.Option._
 import com.stephenn.scalatest.jsonassert.JsonMatchers.matchJson
 import org.opensearch.flint.OpenSearchSuite
 import org.opensearch.flint.spark.FlintSpark.RefreshMode.{FULL, INCREMENTAL}
+import org.opensearch.flint.spark.skipping.FlintSparkSkippingFileIndex
 import org.opensearch.flint.spark.skipping.FlintSparkSkippingIndex.getSkippingIndexName
-import org.scalatest.matchers.must.Matchers.{defined, have}
+import org.scalatest.matchers.{Matcher, MatchResult}
+import org.scalatest.matchers.must.Matchers.{defined, have, not}
 import org.scalatest.matchers.should.Matchers.convertToAnyShouldWrapper
 
 import org.apache.spark.FlintSuite
-import org.apache.spark.sql.QueryTest
+import org.apache.spark.sql.{QueryTest, Row}
+import org.apache.spark.sql.execution.{FileSourceScanExec, SparkPlan}
+import org.apache.spark.sql.execution.datasources.HadoopFsRelation
 import org.apache.spark.sql.flint.FlintDataSourceV2.FLINT_DATASOURCE
 import org.apache.spark.sql.flint.config.FlintSparkConf._
 import org.apache.spark.sql.streaming.StreamTest
@@ -59,13 +63,13 @@ class FlintSparkSkippingIndexSuite
 
     sql(s"""
         | INSERT INTO $testTable
-        | PARTITION (year=2023, month=04)
+        | PARTITION (year=2023, month=4)
         | VALUES ('Hello')
         | """.stripMargin)
 
     sql(s"""
         | INSERT INTO $testTable
-        | PARTITION (year=2023, month=05)
+        | PARTITION (year=2023, month=5)
         | VALUES ('World')
         | """.stripMargin)
   }
@@ -139,7 +143,6 @@ class FlintSparkSkippingIndexSuite
     val indexData =
       spark.read
         .format(FLINT_DATASOURCE)
-        .schema("year INT, month INT, file_path STRING")
         .options(openSearchOptions)
         .load(testIndex)
         .collect()
@@ -166,7 +169,6 @@ class FlintSparkSkippingIndexSuite
     val indexData =
       spark.read
         .format(FLINT_DATASOURCE)
-        .schema("year INT, month INT, file_path STRING")
         .options(openSearchOptions)
         .load(testIndex)
         .collect()
@@ -188,7 +190,73 @@ class FlintSparkSkippingIndexSuite
     }
   }
 
+  test("should not rewrite original query if no skipping index") {
+    val query =
+      s"""
+         | SELECT name
+         | FROM $testTable
+         | WHERE year = 2023 AND month = 4
+         |""".stripMargin
+
+    val actual = sql(query).queryExecution.optimizedPlan
+    withFlintOptimizerDisabled {
+      val expect = sql(query).queryExecution.optimizedPlan
+      actual shouldBe expect
+    }
+  }
+
+  test("should rewrite query with skipping index") {
+    flint
+      .skippingIndex()
+      .onTable(testTable)
+      .addPartitionIndex("year", "month")
+      .create()
+    flint.refreshIndex(testIndex, FULL)
+
+    val query = sql(s"""
+                       | SELECT name
+                       | FROM $testTable
+                       | WHERE year = 2023 AND month = 4
+                       |""".stripMargin)
+
+    checkAnswer(query, Row("Hello"))
+    query.queryExecution.executedPlan should useFlintSparkSkippingFileIndex
+  }
+
   test("should return empty if describe index not exist") {
     flint.describeIndex("non-exist") shouldBe empty
+  }
+
+  // Custom matcher to check if a SparkPlan uses FlintSparkSkippingFileIndex
+  def useFlintSparkSkippingFileIndex: Matcher[SparkPlan] = {
+    Matcher { (plan: SparkPlan) =>
+      val usesFlintSparkSkippingFileIndex = plan.collect {
+        case FileSourceScanExec(
+              HadoopFsRelation(location, _, _, _, _, _),
+              _,
+              _,
+              _,
+              _,
+              _,
+              _,
+              _,
+              _) =>
+          location.isInstanceOf[FlintSparkSkippingFileIndex]
+      }.nonEmpty
+
+      MatchResult(
+        usesFlintSparkSkippingFileIndex,
+        "Plan does not use FlintSparkSkippingFileIndex",
+        "Plan uses FlintSparkSkippingFileIndex")
+    }
+  }
+
+  private def withFlintOptimizerDisabled(block: => Unit): Unit = {
+    spark.conf.set(OPTIMIZER_RULE_ENABLED.key, "false")
+    try {
+      block
+    } finally {
+      spark.conf.set(OPTIMIZER_RULE_ENABLED.key, "true")
+    }
   }
 }

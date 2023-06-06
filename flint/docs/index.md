@@ -202,7 +202,7 @@ In the index mapping, the `_meta` and `properties`field stores meta and schema i
 
 #### Configurations
 
-- `spark.datasource.flint.location`: default is localhost.
+- `spark.datasource.flint.host`: default is localhost.
 - `spark.datasource.flint.port`: default is 9200.
 - `spark.datasource.flint.scheme`: default is http. valid values [http, https]
 - `spark.datasource.flint.auth`: default is false. valid values [false, sigv4]
@@ -212,7 +212,7 @@ In the index mapping, the `_meta` and `properties`field stores meta and schema i
 - `spark.datasource.flint.write.refresh_policy`: default value is false. valid values [NONE(false), 
   IMMEDIATE(true), WAIT_UNTIL(wait_for)]
 - `spark.datasource.flint.read.scroll_size`: default value is 100.
-- `spark.datasource.flint.timeZone`: default value is `spark.sql.session.timeZone`
+- `spark.flint.optimizer.enabled`: default is true.
 
 #### Data Type Mapping
 
@@ -235,7 +235,7 @@ The following table define the data type mapping between Flint data type and Spa
 
 * currently, Flint data type only support date. it is mapped to Spark Data Type based on the format:
   * Map to DateType if format = strict_date, (we also support format = date, may change in future)
-  * Map to TimestampType if format = strict_date_optional_time_nanos, (we also support format = 
+  * Map to TimestampType if format = strict_date_optional_time_nanos, (we also support format =
     strict_date_optional_time | epoch_millis, may change in future)
 
 #### API

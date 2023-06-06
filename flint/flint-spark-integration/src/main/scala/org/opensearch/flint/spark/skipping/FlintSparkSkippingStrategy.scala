@@ -5,6 +5,7 @@
 
 package org.opensearch.flint.spark.skipping
 
+import org.apache.spark.sql.catalyst.expressions.Predicate
 import org.apache.spark.sql.catalyst.expressions.aggregate.AggregateFunction
 
 /**
@@ -18,9 +19,14 @@ trait FlintSparkSkippingStrategy {
   val kind: String
 
   /**
-   * Indexed column name and its Spark SQL type.
+   * Indexed column name.
    */
   val columnName: String
+
+  /**
+   * Indexed column Spark SQL type.
+   */
+  @transient
   val columnType: String
 
   /**
@@ -34,4 +40,15 @@ trait FlintSparkSkippingStrategy {
    *   aggregators that generate skipping data structure
    */
   def getAggregators: Seq[AggregateFunction]
+
+  /**
+   * Rewrite a filtering condition on source table into a new predicate on index data based on
+   * current skipping strategy.
+   *
+   * @param predicate
+   *   filtering condition on source table
+   * @return
+   *   new filtering condition on index data or empty if index not applicable
+   */
+  def rewritePredicate(predicate: Predicate): Option[Predicate]
 }
