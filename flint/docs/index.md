@@ -13,7 +13,7 @@ A Flint index is ...
 - Skipping Index
   - Partition index
   - MinMax index
-  - ValueList index
+  - ValueSet index
   - BloomFilter index
 - Covering Index
 - Materialized View
@@ -116,11 +116,11 @@ DROP SKIPPING INDEX ON <object>
 Skipping index type:
 
 ```sql
-<index_type> ::= { <bloom_filter>, <min_max>, <value_list> }
+<index_type> ::= { <bloom_filter>, <min_max>, <value_set> }
 
 <bloom_filter> ::= BLOOM_FILTER( bitCount, numOfHashFunctions ) #TBD
 <min_max> ::= MIN_MAX
-<value_list> ::= VALUE_LIST
+<value_set> ::= VALUE_SET
 ```
 
 Example:
@@ -129,7 +129,7 @@ Example:
 CREATE SKIPPING INDEX ON alb_logs
 FOR COLUMNS (
   client_ip BLOOM_FILTER,
-  elb_status VALUE_LIST
+  elb_status_code VALUE_SET
 )
 WHERE time > '2023-04-01 00:00:00'
 
@@ -154,12 +154,12 @@ In the index mapping, the `_meta` and `properties`field stores meta and schema i
         "properties": {
           "indexedColumns": [
             {
-              "kind": "partition",
+              "kind": "Partition",
               "columnName": "year",
               "columnType": "int"
             },
             {
-              "kind": "value_list",
+              "kind": "ValuesSet",
               "columnName": "elb_status_code",
               "columnType": "int"
             }
@@ -210,9 +210,9 @@ val flint = new FlintSpark(spark)
 flint.skippingIndex()
     .onTable("alb_logs")
     .filterBy("time > 2023-04-01 00:00:00")
-    .addPartitionIndex("year", "month", "day")
-    .addValueListIndex("elb_status_code")
-    .addBloomFilterIndex("client_ip")
+    .addPartitions("year", "month", "day")
+    .addValueSet("elb_status_code")
+    .addBloomFilter("client_ip")
     .create()
 
 flint.refresh("flint_alb_logs_skipping_index", FULL)

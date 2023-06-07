@@ -18,7 +18,7 @@ import org.opensearch.flint.spark.skipping.FlintSparkSkippingIndex.SKIPPING_INDE
 import org.opensearch.flint.spark.skipping.FlintSparkSkippingStrategy.{SkippingKind, SkippingKindSerializer}
 import org.opensearch.flint.spark.skipping.FlintSparkSkippingStrategy.SkippingKind.{Partition, SkippingKind, ValuesSet}
 import org.opensearch.flint.spark.skipping.partition.PartitionSkippingStrategy
-import org.opensearch.flint.spark.skipping.valuelist.ValueSetSkippingStrategy
+import org.opensearch.flint.spark.skipping.valueset.ValueSetSkippingStrategy
 
 import org.apache.spark.sql.{DataFrame, SparkSession}
 import org.apache.spark.sql.SaveMode._

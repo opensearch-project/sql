@@ -58,8 +58,13 @@ trait FlintSparkSkippingStrategy {
 
 object FlintSparkSkippingStrategy {
 
+  /**
+   * Skipping kind enum class.
+   */
   object SkippingKind extends Enumeration {
     type SkippingKind = Value
+
+    // Use Value[s]Set because ValueSet already exists in Enumeration
     val Partition, ValuesSet = Value
   }
 

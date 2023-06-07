@@ -218,7 +218,7 @@ class FlintSparkSkippingIndexSuite
     }
   }
 
-  test("can build and rewrite query with partition skipping index") {
+  test("can build partition skipping index and rewrite applicable query") {
     flint
       .skippingIndex()
       .onTable(testTable)
@@ -238,7 +238,7 @@ class FlintSparkSkippingIndexSuite
         hasIndexFilter(col("year") === 2023 && col("month") === 4))
   }
 
-  test("can build and rewrite query with value set skipping index") {
+  test("can build value set skipping index and rewrite applicable query") {
     flint
       .skippingIndex()
       .onTable(testTable)
