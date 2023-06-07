@@ -6,17 +6,18 @@
 package org.opensearch.flint.spark.skipping.partition
 
 import org.opensearch.flint.spark.skipping.FlintSparkSkippingStrategy
+import org.opensearch.flint.spark.skipping.FlintSparkSkippingStrategy.SkippingKind.{Partition, SkippingKind}
 
-import org.apache.spark.sql.Column
 import org.apache.spark.sql.catalyst.analysis.UnresolvedAttribute
 import org.apache.spark.sql.catalyst.expressions.{AttributeReference, EqualTo, Literal, Predicate}
 import org.apache.spark.sql.catalyst.expressions.aggregate.{AggregateFunction, First}
+import org.apache.spark.sql.functions.col
 
 /**
  * Skipping strategy for partitioned columns of source table.
  */
-class PartitionSkippingStrategy(
-    override val kind: String = "partition",
+case class PartitionSkippingStrategy(
+    override val kind: SkippingKind = Partition,
     override val columnName: String,
     override val columnType: String)
     extends FlintSparkSkippingStrategy {
@@ -26,14 +27,13 @@ class PartitionSkippingStrategy(
   }
 
   override def getAggregators: Seq[AggregateFunction] = {
-    Seq(First(new Column(columnName).expr, ignoreNulls = true))
+    Seq(First(col(columnName).expr, ignoreNulls = true))
   }
 
   override def rewritePredicate(predicate: Predicate): Option[Predicate] = {
     // Column has same name in index data, so just rewrite to the same equation
-    predicate.collect {
-      case EqualTo(AttributeReference(`columnName`, _, _, _), value: Literal) =>
-        EqualTo(UnresolvedAttribute(columnName), value)
+    predicate.collect { case EqualTo(AttributeReference(`columnName`, _, _, _), value: Literal) =>
+      EqualTo(UnresolvedAttribute(columnName), value)
     }.headOption
   }
 }

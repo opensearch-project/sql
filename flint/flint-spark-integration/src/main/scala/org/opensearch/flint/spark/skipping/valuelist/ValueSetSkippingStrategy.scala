@@ -6,16 +6,17 @@
 package org.opensearch.flint.spark.skipping.valuelist
 
 import org.opensearch.flint.spark.skipping.FlintSparkSkippingStrategy
+import org.opensearch.flint.spark.skipping.FlintSparkSkippingStrategy.SkippingKind.{SkippingKind, ValuesSet}
 
 import org.apache.spark.sql.catalyst.expressions.{AttributeReference, EqualTo, Literal, Predicate}
 import org.apache.spark.sql.catalyst.expressions.aggregate.{AggregateFunction, CollectSet}
 import org.apache.spark.sql.functions.col
 
 /**
- * Skipping strategy based on complete column value list.
+ * Skipping strategy based on unique column value set.
  */
-class ValueListSkippingStrategy(
-    override val kind: String = "value_list", // TODO: enum
+case class ValueSetSkippingStrategy(
+    override val kind: SkippingKind = ValuesSet,
     override val columnName: String,
     override val columnType: String)
     extends FlintSparkSkippingStrategy {
@@ -24,13 +25,10 @@ class ValueListSkippingStrategy(
     Map(columnName -> columnType)
 
   override def getAggregators: Seq[AggregateFunction] =
-    Seq(CollectSet(col(columnName).expr)) // TODO: change others to use col instead of new Column
+    Seq(CollectSet(col(columnName).expr))
 
   override def rewritePredicate(predicate: Predicate): Option[Predicate] =
     predicate.collect { case EqualTo(AttributeReference(`columnName`, _, _, _), value: Literal) =>
-      EqualTo(
-        col(columnName).expr,
-        value
-      ) // TODO: what's the difference between Column and UnresolvedAttribute
+      EqualTo(col(columnName).expr, value)
     }.headOption
 }

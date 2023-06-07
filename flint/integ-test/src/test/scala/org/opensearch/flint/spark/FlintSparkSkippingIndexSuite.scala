@@ -17,11 +17,14 @@ import org.scalatest.matchers.must.Matchers.{defined, have, not}
 import org.scalatest.matchers.should.Matchers.convertToAnyShouldWrapper
 
 import org.apache.spark.FlintSuite
-import org.apache.spark.sql.{QueryTest, Row}
+import org.apache.spark.sql.{Column, QueryTest, Row}
+import org.apache.spark.sql.catalyst.expressions.{EqualTo, Expression}
+import org.apache.spark.sql.catalyst.plans.logical.Filter
 import org.apache.spark.sql.execution.{FileSourceScanExec, SparkPlan}
 import org.apache.spark.sql.execution.datasources.HadoopFsRelation
 import org.apache.spark.sql.flint.FlintDataSourceV2.FLINT_DATASOURCE
 import org.apache.spark.sql.flint.config.FlintSparkConf._
+import org.apache.spark.sql.functions.{col, lit}
 import org.apache.spark.sql.streaming.StreamTest
 
 class FlintSparkSkippingIndexSuite
@@ -48,7 +51,8 @@ class FlintSparkSkippingIndexSuite
     sql(s"""
         | CREATE TABLE $testTable
         | (
-        |   name STRING
+        |   name STRING,
+        |   address STRING
         | )
         | USING CSV
         | OPTIONS (
@@ -64,13 +68,13 @@ class FlintSparkSkippingIndexSuite
     sql(s"""
         | INSERT INTO $testTable
         | PARTITION (year=2023, month=4)
-        | VALUES ('Hello')
+        | VALUES ('Hello', 'Seattle')
         | """.stripMargin)
 
     sql(s"""
         | INSERT INTO $testTable
         | PARTITION (year=2023, month=5)
-        | VALUES ('World')
+        | VALUES ('World', 'Portland')
         | """.stripMargin)
   }
 
@@ -91,7 +95,8 @@ class FlintSparkSkippingIndexSuite
     flint
       .skippingIndex()
       .onTable(testTable)
-      .addPartitionIndex("year", "month")
+      .addPartitions("year", "month")
+      .addValueSet("address")
       .create()
 
     val indexName = s"flint_${testTable}_skipping_index"
@@ -102,14 +107,19 @@ class FlintSparkSkippingIndexSuite
         |     "kind": "skipping",
         |     "indexedColumns": [
         |     {
-        |        "kind": "partition",
+        |        "kind": "Partition",
         |        "columnName": "year",
         |        "columnType": "int"
         |     },
         |     {
-        |        "kind": "partition",
+        |        "kind": "Partition",
         |        "columnName": "month",
         |        "columnType": "int"
+        |     },
+        |     {
+        |        "kind": "ValuesSet",
+        |        "columnName": "address",
+        |        "columnType": "string"
         |     }],
         |     "source": "$testTable"
         |   },
@@ -119,6 +129,9 @@ class FlintSparkSkippingIndexSuite
         |     },
         |     "month": {
         |       "type": "integer"
+        |     },
+        |     "address": {
+        |       "type": "keyword"
         |     },
         |     "file_path": {
         |       "type": "keyword"
@@ -133,7 +146,7 @@ class FlintSparkSkippingIndexSuite
     flint
       .skippingIndex()
       .onTable(testTable)
-      .addPartitionIndex("year", "month")
+      .addPartitions("year", "month")
       .create()
 
     val jobId = flint.refreshIndex(testIndex, FULL)
@@ -155,7 +168,7 @@ class FlintSparkSkippingIndexSuite
     flint
       .skippingIndex()
       .onTable(testTable)
-      .addPartitionIndex("year", "month")
+      .addPartitions("year", "month")
       .create()
 
     val jobId = flint.refreshIndex(testIndex, INCREMENTAL)
@@ -205,11 +218,11 @@ class FlintSparkSkippingIndexSuite
     }
   }
 
-  test("should rewrite query with skipping index") {
+  test("can build and rewrite query with partition skipping index") {
     flint
       .skippingIndex()
       .onTable(testTable)
-      .addPartitionIndex("year", "month")
+      .addPartitions("year", "month")
       .create()
     flint.refreshIndex(testIndex, FULL)
 
@@ -220,7 +233,29 @@ class FlintSparkSkippingIndexSuite
                        |""".stripMargin)
 
     checkAnswer(query, Row("Hello"))
-    query.queryExecution.executedPlan should useFlintSparkSkippingFileIndex
+    query.queryExecution.executedPlan should
+      useFlintSparkSkippingFileIndex(
+        hasIndexFilter(col("year") === 2023 && col("month") === 4))
+  }
+
+  test("can build and rewrite query with value set skipping index") {
+    flint
+      .skippingIndex()
+      .onTable(testTable)
+      .addValueSet("address")
+      .create()
+    flint.refreshIndex(testIndex, FULL)
+
+    val query = sql(s"""
+                       | SELECT name
+                       | FROM $testTable
+                       | WHERE address = 'Portland'
+                       |""".stripMargin)
+
+    checkAnswer(query, Row("World"))
+    query.queryExecution.executedPlan should
+      useFlintSparkSkippingFileIndex(
+        hasIndexFilter(col("address") === "Seattle"))
   }
 
   test("should return empty if describe index not exist") {
@@ -228,11 +263,12 @@ class FlintSparkSkippingIndexSuite
   }
 
   // Custom matcher to check if a SparkPlan uses FlintSparkSkippingFileIndex
-  def useFlintSparkSkippingFileIndex: Matcher[SparkPlan] = {
+  def useFlintSparkSkippingFileIndex(
+      subMatcher: Matcher[FlintSparkSkippingFileIndex]): Matcher[SparkPlan] = {
     Matcher { (plan: SparkPlan) =>
-      val usesFlintSparkSkippingFileIndex = plan.collect {
+      val useFlintSparkSkippingFileIndex = plan.collect {
         case FileSourceScanExec(
-              HadoopFsRelation(location, _, _, _, _, _),
+              HadoopFsRelation(fileIndex: FlintSparkSkippingFileIndex, _, _, _, _, _),
               _,
               _,
               _,
@@ -241,13 +277,30 @@ class FlintSparkSkippingIndexSuite
               _,
               _,
               _) =>
-          location.isInstanceOf[FlintSparkSkippingFileIndex]
+          subMatcher(fileIndex)
       }.nonEmpty
 
       MatchResult(
-        usesFlintSparkSkippingFileIndex,
+        useFlintSparkSkippingFileIndex,
         "Plan does not use FlintSparkSkippingFileIndex",
         "Plan uses FlintSparkSkippingFileIndex")
+    }
+  }
+
+  // Custom matcher to check if FlintSparkSkippingFileIndex has expected filter condition
+  def hasIndexFilter(expect: Column): Matcher[FlintSparkSkippingFileIndex] = {
+    Matcher { (fileIndex: FlintSparkSkippingFileIndex) =>
+      val plan = fileIndex.filterByIndex.queryExecution.logical
+      val hasExpectedFilter = plan.find {
+        case Filter(actual, _) =>
+          actual.semanticEquals(expect.expr)
+        case _ => false
+      }.nonEmpty
+
+      MatchResult(
+        hasExpectedFilter,
+        "FlintSparkSkippingFileIndex does not have expected filter",
+        "FlintSparkSkippingFileIndex has expected filter")
     }
   }
 

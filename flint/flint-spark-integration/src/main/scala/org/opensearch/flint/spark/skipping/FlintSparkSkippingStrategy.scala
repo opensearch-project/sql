@@ -5,6 +5,10 @@
 
 package org.opensearch.flint.spark.skipping
 
+import org.json4s.CustomSerializer
+import org.json4s.JsonAST.JString
+import org.opensearch.flint.spark.skipping.FlintSparkSkippingStrategy.SkippingKind.SkippingKind
+
 import org.apache.spark.sql.catalyst.expressions.Predicate
 import org.apache.spark.sql.catalyst.expressions.aggregate.AggregateFunction
 
@@ -16,7 +20,7 @@ trait FlintSparkSkippingStrategy {
   /**
    * Skipping strategy kind.
    */
-  val kind: String
+  val kind: SkippingKind
 
   /**
    * Indexed column name.
@@ -26,7 +30,6 @@ trait FlintSparkSkippingStrategy {
   /**
    * Indexed column Spark SQL type.
    */
-  @transient
   val columnType: String
 
   /**
@@ -51,4 +54,23 @@ trait FlintSparkSkippingStrategy {
    *   new filtering condition on index data or empty if index not applicable
    */
   def rewritePredicate(predicate: Predicate): Option[Predicate]
+}
+
+object FlintSparkSkippingStrategy {
+
+  object SkippingKind extends Enumeration {
+    type SkippingKind = Value
+    val Partition, ValuesSet = Value
+  }
+
+  /** json4s doesn't serialize Enum by default */
+  object SkippingKindSerializer
+      extends CustomSerializer[SkippingKind](_ =>
+        (
+          { case JString(value) =>
+            SkippingKind.withName(value)
+          },
+          { case kind: SkippingKind =>
+            JString(kind.toString)
+          }))
 }
