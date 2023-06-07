@@ -112,7 +112,6 @@ public class AstBuilderTest {
     );
   }
 
-  @Ignore
   @Test
   public void testSearchWithPrometheusQueryRangeWithPositionedArguments() {
     assertEqual("search source = prometheus.query_range(\"test{code='200'}\",1234, 12345, 3)",
@@ -124,7 +123,6 @@ public class AstBuilderTest {
     ));
   }
 
-  @Ignore
   @Test
   public void testSearchWithPrometheusQueryRangeWithNamedArguments() {
     assertEqual("search source = prometheus.query_range(query = \"test{code='200'}\", "
