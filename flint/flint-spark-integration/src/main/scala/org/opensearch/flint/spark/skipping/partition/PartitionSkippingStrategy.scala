@@ -8,7 +8,6 @@ package org.opensearch.flint.spark.skipping.partition
 import org.opensearch.flint.spark.skipping.FlintSparkSkippingStrategy
 import org.opensearch.flint.spark.skipping.FlintSparkSkippingStrategy.SkippingKind.{Partition, SkippingKind}
 
-import org.apache.spark.sql.catalyst.analysis.UnresolvedAttribute
 import org.apache.spark.sql.catalyst.expressions.{AttributeReference, EqualTo, Literal, Predicate}
 import org.apache.spark.sql.catalyst.expressions.aggregate.{AggregateFunction, First}
 import org.apache.spark.sql.functions.col
