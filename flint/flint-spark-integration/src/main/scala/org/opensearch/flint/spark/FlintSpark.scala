@@ -233,10 +233,7 @@ object FlintSpark {
      */
     def addPartitions(colNames: String*): IndexBuilder = {
       colNames
-        .map(colName =>
-          allColumns.getOrElse(
-            colName,
-            throw new IllegalArgumentException(s"Column $colName does not exist")))
+        .map(findColumn)
         .map(col => PartitionSkippingStrategy(columnName = col.name, columnType = col.dataType))
         .foreach(indexedCol => indexedColumns = indexedColumns :+ indexedCol)
       this
