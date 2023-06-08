@@ -30,7 +30,7 @@ class FlintPartitionReader(reader: FlintReader, schema: StructType, options: Fli
 
   lazy val parser = new FlintJacksonParser(
     schema,
-    new JSONOptionsInRead(CaseInsensitiveMap(DATE_FORMAT_PARAMETERS), options.timeZone(), ""),
+    new JSONOptionsInRead(CaseInsensitiveMap(DATE_FORMAT_PARAMETERS), options.timeZone, ""),
     allowArrayAsStructs = true)
   lazy val stringParser: (JsonFactory, String) => JsonParser =
     CreateJacksonParser.string(_: JsonFactory, _: String)

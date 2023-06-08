@@ -5,6 +5,7 @@
 
 package org.apache.spark.sql.flint.config
 
+import java.util
 import java.util.{Map => JMap, NoSuchElementException}
 
 import scala.collection.JavaConverters._
@@ -12,7 +13,6 @@ import scala.collection.JavaConverters._
 import org.opensearch.flint.core.FlintOptions
 
 import org.apache.spark.internal.config.ConfigReader
-import org.apache.spark.sql.RuntimeConfig
 import org.apache.spark.sql.flint.config.FlintSparkConf._
 import org.apache.spark.sql.internal.SQLConf
 
@@ -27,57 +27,60 @@ import org.apache.spark.sql.internal.SQLConf
  */
 object FlintSparkConf {
 
-  val PREFIX = "spark.datasource.flint."
-
-  def apply(conf: JMap[String, String]): FlintSparkConf = new FlintSparkConf(conf)
+  val DATASOURCE_FLINT_PREFIX = "spark.datasource.flint."
 
   /**
-   * Helper class, create {@link FlintOptions} from spark conf.
+   * Create FlintSparkConf from Datasource options. if no options provided, FlintSparkConf will
+   * read configuraiton from SQLConf.
    */
-  def apply(sparkConf: RuntimeConfig): FlintOptions = new FlintOptions(
-    Seq(HOST_ENDPOINT, HOST_PORT, REFRESH_POLICY, SCROLL_SIZE, SCHEME, AUTH, REGION)
-      .map(conf => (conf.key, sparkConf.get(PREFIX + conf.key, conf.defaultValue.get)))
-      .toMap
-      .asJava)
+  def apply(options: JMap[String, String] = new util.HashMap[String, String]()): FlintSparkConf =
+    new FlintSparkConf(options)
 
-  def sparkConf(key: String): String = PREFIX + key
-
-  val HOST_ENDPOINT = FlintConfig("host")
+  val HOST_ENDPOINT = FlintConfig("spark.datasource.flint.host")
+    .datasourceOption()
     .createWithDefault("localhost")
 
-  val HOST_PORT = FlintConfig("port")
+  val HOST_PORT = FlintConfig("spark.datasource.flint.port")
+    .datasourceOption()
     .createWithDefault("9200")
 
-  val SCHEME = FlintConfig("scheme")
+  val SCHEME = FlintConfig("spark.datasource.flint.scheme")
+    .datasourceOption()
     .doc("http or https")
     .createWithDefault("http")
 
-  val AUTH = FlintConfig("auth")
+  val AUTH = FlintConfig("spark.datasource.flint.auth")
+    .datasourceOption()
     .doc("authentication type. supported value: NONE_AUTH(false), SIGV4_AUTH(sigv4)")
     .createWithDefault(FlintOptions.NONE_AUTH)
 
-  val REGION = FlintConfig("region")
+  val REGION = FlintConfig("spark.datasource.flint.region")
+    .datasourceOption()
     .doc("AWS service region")
     .createWithDefault(FlintOptions.DEFAULT_REGION)
 
-  val DOC_ID_COLUMN_NAME = FlintConfig("write.id_name")
+  val DOC_ID_COLUMN_NAME = FlintConfig("spark.datasource.flint.write.id_name")
+    .datasourceOption()
     .doc(
       "spark write task use spark.flint.write.id.name defined column as doc id when write to " +
         "flint. if not provided, use system generated random id")
     .createOptional()
 
-  val BATCH_SIZE = FlintConfig("write.batch_size")
+  val BATCH_SIZE = FlintConfig("spark.datasource.flint.write.batch_size")
+    .datasourceOption()
     .doc(
       "The number of documents written to Flint in a single batch request is determined by the " +
         "overall size of the HTTP request, which should not exceed 100MB. The actual number of " +
         "documents will vary depending on the individual size of each document.")
     .createWithDefault("1000")
 
-  val REFRESH_POLICY = FlintConfig("write.refresh_policy")
+  val REFRESH_POLICY = FlintConfig("spark.datasource.flint.write.refresh_policy")
+    .datasourceOption()
     .doc("refresh_policy, possible value are NONE(false), IMMEDIATE(true), WAIT_UNTIL(wait_for)")
     .createWithDefault("false")
 
-  val SCROLL_SIZE = FlintConfig("read.scroll_size")
+  val SCROLL_SIZE = FlintConfig("spark.datasource.flint.read.scroll_size")
+    .datasourceOption()
     .doc("scroll read size")
     .createWithDefault("100")
 
@@ -86,6 +89,9 @@ object FlintSparkConf {
     .createWithDefault("true")
 }
 
+/**
+ * if no options provided, FlintSparkConf read configuration from SQLConf.
+ */
 class FlintSparkConf(properties: JMap[String, String]) extends Serializable {
 
   @transient lazy val reader = new ConfigReader(properties)
@@ -93,8 +99,6 @@ class FlintSparkConf(properties: JMap[String, String]) extends Serializable {
   def batchSize(): Int = BATCH_SIZE.readFrom(reader).toInt
 
   def docIdColumnName(): Option[String] = DOC_ID_COLUMN_NAME.readFrom(reader)
-
-  def timeZone(): String = SQLConf.get.sessionLocalTimeZone
 
   def tableName(): String = {
     if (properties.containsKey("path")) properties.get("path")
@@ -104,12 +108,17 @@ class FlintSparkConf(properties: JMap[String, String]) extends Serializable {
   def isOptimizerEnabled: Boolean = OPTIMIZER_RULE_ENABLED.readFrom(reader).toBoolean
 
   /**
+   * spark.sql.session.timeZone
+   */
+  def timeZone: String = SQLConf.get.sessionLocalTimeZone
+
+  /**
    * Helper class, create {@link FlintOptions}.
    */
   def flintOptions(): FlintOptions = {
     new FlintOptions(
       Seq(HOST_ENDPOINT, HOST_PORT, REFRESH_POLICY, SCROLL_SIZE, SCHEME, AUTH, REGION)
-        .map(conf => (conf.key, conf.readFrom(reader)))
+        .map(conf => (conf.optionKey, conf.readFrom(reader)))
         .toMap
         .asJava)
   }

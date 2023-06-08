@@ -269,18 +269,26 @@ trait FlintSparkSkippingStrategy {
 Here is an example for read index data from AWS OpenSearch domain.
 
 ```scala
-val aos = Map(
-  "host" -> "yourdomain.us-west-2.es.amazonaws.com", 
-  "port" -> "-1", 
-  "scheme" -> "https", 
-  "auth" -> "sigv4", 
-  "region" -> "us-west-2")
+
+spark.conf.set("spark.datasource.flint.host", "yourdomain.us-west-2.es.amazonaws.com")
+spark.conf.set("spark.datasource.flint.port", "-1")
+spark.conf.set("spark.datasource.flint.scheme", "https")
+spark.conf.set("spark.datasource.flint.auth", "sigv4")
+spark.conf.set("spark.datasource.flint.region", "us-west-2")
+spark.conf.set("spark.datasource.flint.refresh_policy", "wait_for")
+
+val df = spark.range(15).toDF("aInt")
+
+val re = df.coalesce(1)
+        .write
+        .format("flint")
+        .mode("overwrite")
+        .save("t001")
 
 val df = new SQLContext(sc).read
         .format("flint")
-        .options(aos)
-        .schema("aInt int")
         .load("t001")
+
 ```
 
 ## Benchmarks
