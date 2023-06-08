@@ -6,9 +6,10 @@
 package org.apache.spark.sql.flint
 
 import org.apache.spark.sql.connector.write.{LogicalWriteInfo, SupportsOverwrite, Write, WriteBuilder}
+import org.apache.spark.sql.flint.config.FlintSparkConf
 import org.apache.spark.sql.sources.Filter
 
-case class FlintWriteBuilder(tableName: String, info: LogicalWriteInfo)
+case class FlintWriteBuilder(tableName: String, info: LogicalWriteInfo, option: FlintSparkConf)
     extends SupportsOverwrite {
 
   /**
@@ -16,5 +17,5 @@ case class FlintWriteBuilder(tableName: String, info: LogicalWriteInfo)
    */
   override def overwrite(filters: Array[Filter]): WriteBuilder = this
 
-  override def build(): Write = FlintWrite(tableName, info)
+  override def build(): Write = FlintWrite(tableName, info, option)
 }

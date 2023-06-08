@@ -47,6 +47,20 @@ Currently, Flint metadata is only static configuration without version control a
 
 For now, Flint Index doesn't define its own data type and uses OpenSearch field type instead.
 
+| **FlintDataType** |
+|-------------------|
+| boolean           |
+| long              |
+| integer           |
+| short             |
+| byte              |
+| double            |
+| float             |
+| date              |
+| keyword           |
+| text              |
+| object            |
+
 #### File Format
 
 Please see Index Store section for more details.
@@ -188,7 +202,7 @@ In the index mapping, the `_meta` and `properties`field stores meta and schema i
 
 #### Configurations
 
-- `spark.datasource.flint.location`: default is localhost.
+- `spark.datasource.flint.host`: default is localhost.
 - `spark.datasource.flint.port`: default is 9200.
 - `spark.datasource.flint.scheme`: default is http. valid values [http, https]
 - `spark.datasource.flint.auth`: default is false. valid values [false, sigv4]
@@ -199,6 +213,30 @@ In the index mapping, the `_meta` and `properties`field stores meta and schema i
   IMMEDIATE(true), WAIT_UNTIL(wait_for)]
 - `spark.datasource.flint.read.scroll_size`: default value is 100.
 - `spark.flint.optimizer.enabled`: default is true.
+
+#### Data Type Mapping
+
+The following table define the data type mapping between Flint data type and Spark data type.
+
+| **FlintDataType** | **SparkDataType**                |
+|-------------------|----------------------------------|
+| boolean           | BooleanType                      |
+| long              | LongType                         |
+| integer           | IntegerType                      |
+| short             | ShortType                        |
+| byte              | ByteType                         |
+| double            | DoubleType                       |
+| float             | FloatType                        |
+| date(Timestamp)   | DateType                         |
+| date(Date)        | TimestampType                    |
+| keyword           | StringType                       |
+| text              | StringType(meta(osType)=text)    |
+| object            | StructType                       |
+
+* currently, Flint data type only support date. it is mapped to Spark Data Type based on the format:
+  * Map to DateType if format = strict_date, (we also support format = date, may change in future)
+  * Map to TimestampType if format = strict_date_optional_time_nanos, (we also support format =
+    strict_date_optional_time | epoch_millis, may change in future)
 
 #### API
 

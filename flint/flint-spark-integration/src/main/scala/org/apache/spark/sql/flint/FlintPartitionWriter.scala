@@ -5,8 +5,6 @@
 
 package org.apache.spark.sql.flint
 
-import java.util.TimeZone
-
 import org.opensearch.flint.core.storage.FlintWriter
 
 import org.apache.spark.internal.Logging
@@ -15,6 +13,7 @@ import org.apache.spark.sql.catalyst.json.JSONOptions
 import org.apache.spark.sql.catalyst.util.CaseInsensitiveMap
 import org.apache.spark.sql.connector.write.{DataWriter, WriterCommitMessage}
 import org.apache.spark.sql.flint.config.FlintSparkConf
+import org.apache.spark.sql.flint.datatype.FlintDataType.DATE_FORMAT_PARAMETERS
 import org.apache.spark.sql.flint.json.FlintJacksonGenerator
 import org.apache.spark.sql.types.StructType
 
@@ -33,7 +32,7 @@ case class FlintPartitionWriter(
     with Logging {
 
   private lazy val jsonOptions = {
-    new JSONOptions(CaseInsensitiveMap(Map.empty[String, String]), TimeZone.getDefault.getID, "")
+    new JSONOptions(CaseInsensitiveMap(DATE_FORMAT_PARAMETERS), options.timeZone(), "")
   }
   private lazy val gen = FlintJacksonGenerator(dataSchema, flintWriter, jsonOptions)
 

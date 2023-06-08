@@ -10,7 +10,10 @@ import org.apache.spark.sql.connector.write._
 import org.apache.spark.sql.connector.write.streaming.{StreamingDataWriterFactory, StreamingWrite}
 import org.apache.spark.sql.flint.config.FlintSparkConf
 
-case class FlintWrite(tableName: String, logicalWriteInfo: LogicalWriteInfo)
+case class FlintWrite(
+    tableName: String,
+    logicalWriteInfo: LogicalWriteInfo,
+    option: FlintSparkConf)
     extends Write
     with BatchWrite
     with StreamingWrite
@@ -19,10 +22,7 @@ case class FlintWrite(tableName: String, logicalWriteInfo: LogicalWriteInfo)
   override def createBatchWriterFactory(info: PhysicalWriteInfo): DataWriterFactory = {
     logDebug(s"""Create batch write factory of ${logicalWriteInfo.queryId()} with ${info
         .numPartitions()} partitions""")
-    FlintPartitionWriterFactory(
-      tableName,
-      logicalWriteInfo.schema(),
-      FlintSparkConf(logicalWriteInfo.options().asCaseSensitiveMap()))
+    FlintPartitionWriterFactory(tableName, logicalWriteInfo.schema(), option)
   }
 
   override def commit(messages: Array[WriterCommitMessage]): Unit = {
@@ -35,10 +35,7 @@ case class FlintWrite(tableName: String, logicalWriteInfo: LogicalWriteInfo)
       info: PhysicalWriteInfo): StreamingDataWriterFactory = {
     logDebug(s"""Create streaming write factory of ${logicalWriteInfo.queryId()} with ${info
         .numPartitions()} partitions""")
-    FlintPartitionWriterFactory(
-      tableName,
-      logicalWriteInfo.schema(),
-      FlintSparkConf(logicalWriteInfo.options().asCaseSensitiveMap()))
+    FlintPartitionWriterFactory(tableName, logicalWriteInfo.schema(), option)
   }
 
   override def commit(epochId: Long, messages: Array[WriterCommitMessage]): Unit = {

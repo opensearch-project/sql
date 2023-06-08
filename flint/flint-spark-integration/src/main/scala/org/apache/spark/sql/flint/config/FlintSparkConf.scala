@@ -14,18 +14,16 @@ import org.opensearch.flint.core.FlintOptions
 import org.apache.spark.internal.config.ConfigReader
 import org.apache.spark.sql.RuntimeConfig
 import org.apache.spark.sql.flint.config.FlintSparkConf._
+import org.apache.spark.sql.internal.SQLConf
 
 /**
  * Define all the Flint Spark Related configuration. <p> User define the config as xxx.yyy using
  * {@link FlintConfig}.
  *
- * <p> How to use config
- *  <ol>
- *    <li> define config using spark.datasource.flint.xxx.yyy in spark conf.
- *    <li> define config using xxx.yyy in datasource options.
- *    <li> Configurations defined in the datasource options will override the same configurations
- *    present in the Spark configuration.
- *  </ol>
+ * <p> How to use config <ol> <li> define config using spark.datasource.flint.xxx.yyy in spark
+ * conf. <li> define config using xxx.yyy in datasource options. <li> Configurations defined in
+ * the datasource options will override the same configurations present in the Spark
+ * configuration. </ol>
  */
 object FlintSparkConf {
 
@@ -90,11 +88,13 @@ object FlintSparkConf {
 
 class FlintSparkConf(properties: JMap[String, String]) extends Serializable {
 
-  lazy val reader = new ConfigReader(properties)
+  @transient lazy val reader = new ConfigReader(properties)
 
   def batchSize(): Int = BATCH_SIZE.readFrom(reader).toInt
 
   def docIdColumnName(): Option[String] = DOC_ID_COLUMN_NAME.readFrom(reader)
+
+  def timeZone(): String = SQLConf.get.sessionLocalTimeZone
 
   def tableName(): String = {
     if (properties.containsKey("path")) properties.get("path")
