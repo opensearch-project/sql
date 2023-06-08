@@ -8,8 +8,7 @@ package org.opensearch.sql.datasource.model;
 public enum DataSourceType {
   PROMETHEUS("prometheus"),
   OPENSEARCH("opensearch"),
-  JDBC("jdbc");
-
+  SPARK("spark");
   private String text;
 
   DataSourceType(String text) {
