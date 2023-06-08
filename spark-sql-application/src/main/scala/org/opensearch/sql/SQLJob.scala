@@ -26,28 +26,14 @@ object SQLJob {
     try {
       // Execute SQL query
       val result: DataFrame = spark.sql(query)
-      val resultJson = result.select(to_json(collect_list(struct(result.columns.map(col): _*)))).first().getString(0)
+      val resultJson = getJson(result)
 
       // Convert the schema to a DataFrame
-      val schema = result.schema
-      val schemaRow = schema.fields.map { field =>
-        Row(field.name, field.dataType.typeName)
-      }
-      val schemaDF = spark.createDataFrame(spark.sparkContext.parallelize(schemaRow), StructType(Seq(
-        StructField("column_name", StringType, nullable = false),
-        StructField("data_type", StringType, nullable = false)
-      )))
-      val schemaJson = schemaDF.select(to_json(collect_list(struct(schemaDF.columns.map(col): _*)))).first().getString(0)
+      val schema = schemaDF(spark, result)
+      val schemaJson = getJson(schema)
 
       // Create a DataFrame with stepId, schema and result
-      val dataRow = Seq(
-        Row(sys.env.getOrElse("EMR_STEP_ID", ""))
-      )
-      val dataDF = spark.createDataFrame(spark.sparkContext.parallelize(dataRow), StructType(Seq(
-        StructField("stepId", StringType, nullable = false)
-      )))
-
-      val data = dataDF.withColumn("schema", lit(schemaJson)).withColumn("result",lit(resultJson))
+      val data = stepIdDF(spark).withColumn("schema", lit(schemaJson)).withColumn("result",lit(resultJson))
 
       // Write data to OpenSearch index
       val aos = Map(
@@ -67,5 +53,29 @@ object SQLJob {
       // Stop SparkSession
       spark.stop()
     }
+  }
+
+  def getJson(df: DataFrame): String = {
+    df.select(to_json(collect_list(struct(df.columns.map(col): _*)))).first().getString(0)
+  }
+
+  def schemaDF(spark: SparkSession, result: DataFrame): DataFrame  = {
+    val schema = result.schema
+    val schemaRow = schema.fields.map { field =>
+      Row(field.name, field.dataType.typeName)
+    }
+    spark.createDataFrame(spark.sparkContext.parallelize(schemaRow), StructType(Seq(
+      StructField("column_name", StringType, nullable = false),
+      StructField("data_type", StringType, nullable = false)
+    )))
+  }
+
+  def stepIdDF(spark: SparkSession): DataFrame  = {
+    val dataRow = Seq(
+      Row(sys.env.getOrElse("EMR_STEP_ID", ""))
+    )
+    spark.createDataFrame(spark.sparkContext.parallelize(dataRow), StructType(Seq(
+      StructField("stepId", StringType, nullable = false)
+    )))
   }
 }
