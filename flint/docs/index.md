@@ -255,6 +255,7 @@ flint.skippingIndex()
     .filterBy("time > 2023-04-01 00:00:00")
     .addPartitions("year", "month", "day")
     .addValueSet("elb_status_code")
+    .addMinMax("request_processing_time")
     .addBloomFilter("client_ip")
     .create()
 
