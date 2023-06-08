@@ -35,10 +35,7 @@ case class FlintWrite(
       info: PhysicalWriteInfo): StreamingDataWriterFactory = {
     logDebug(s"""Create streaming write factory of ${logicalWriteInfo.queryId()} with ${info
         .numPartitions()} partitions""")
-    FlintPartitionWriterFactory(
-      tableName,
-      logicalWriteInfo.schema(),
-      FlintSparkConf(logicalWriteInfo.options().asCaseSensitiveMap()))
+    FlintPartitionWriterFactory(tableName, logicalWriteInfo.schema(), option)
   }
 
   override def commit(epochId: Long, messages: Array[WriterCommitMessage]): Unit = {

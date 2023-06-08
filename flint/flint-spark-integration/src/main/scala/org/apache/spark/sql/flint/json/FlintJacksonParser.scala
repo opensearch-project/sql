@@ -29,7 +29,9 @@ import org.apache.spark.util.Utils
 
 /**
  * Constructs a parser for a given schema that translates a json string to an [[InternalRow]].
- * copy from spark {@link JacksonParser}.
+ * copy from spark {@link JacksonParser}. <p> why copy the code <ol> <li> In Flint Storage,
+ * timestamp epoch value is in milliseconds. change parser.getLongValue * 1000000L to parser
+ * .getLongValue * 1000L </ol>
  */
 class FlintJacksonParser(
     schema: DataType,

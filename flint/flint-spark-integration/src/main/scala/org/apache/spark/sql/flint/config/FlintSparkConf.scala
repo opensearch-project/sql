@@ -5,7 +5,7 @@
 
 package org.apache.spark.sql.flint.config
 
-import java.util.{Map => JMap, NoSuchElementException, TimeZone}
+import java.util.{Map => JMap, NoSuchElementException}
 
 import scala.collection.JavaConverters._
 
@@ -14,6 +14,7 @@ import org.opensearch.flint.core.FlintOptions
 import org.apache.spark.internal.config.ConfigReader
 import org.apache.spark.sql.RuntimeConfig
 import org.apache.spark.sql.flint.config.FlintSparkConf._
+import org.apache.spark.sql.internal.SQLConf
 
 /**
  * Define all the Flint Spark Related configuration. <p> User define the config as xxx.yyy using
@@ -83,10 +84,6 @@ object FlintSparkConf {
   val OPTIMIZER_RULE_ENABLED = FlintConfig("spark.flint.optimizer.enabled")
     .doc("Enable Flint optimizer rule for query rewrite with Flint index")
     .createWithDefault("true")
-
-  val TIME_ZONE = FlintConfig("timeZone")
-    .doc("time zone")
-    .createWithDefault(TimeZone.getDefault.getID)
 }
 
 class FlintSparkConf(properties: JMap[String, String]) extends Serializable {
@@ -97,7 +94,7 @@ class FlintSparkConf(properties: JMap[String, String]) extends Serializable {
 
   def docIdColumnName(): Option[String] = DOC_ID_COLUMN_NAME.readFrom(reader)
 
-  def timeZone(): String = TIME_ZONE.readFrom(reader)
+  def timeZone(): String = SQLConf.get.sessionLocalTimeZone
 
   def tableName(): String = {
     if (properties.containsKey("path")) properties.get("path")

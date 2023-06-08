@@ -15,7 +15,6 @@ import org.apache.spark.sql.connector.catalog.TableCapability.{BATCH_READ, BATCH
 import org.apache.spark.sql.connector.read.ScanBuilder
 import org.apache.spark.sql.connector.write.{LogicalWriteInfo, WriteBuilder}
 import org.apache.spark.sql.flint.config.FlintSparkConf
-import org.apache.spark.sql.flint.config.FlintSparkConf.TIME_ZONE
 import org.apache.spark.sql.flint.datatype.FlintDataType
 import org.apache.spark.sql.types.StructType
 import org.apache.spark.sql.util.CaseInsensitiveStringMap
@@ -34,11 +33,7 @@ case class FlintTable(conf: util.Map[String, String], userSpecifiedSchema: Optio
 
   lazy val sparkSession = SparkSession.active
 
-  lazy val flintSparkConf: FlintSparkConf = {
-    val newMap = new java.util.HashMap[String, String](conf)
-    newMap.put(TIME_ZONE.key, sparkSession.sessionState.conf.sessionLocalTimeZone)
-    FlintSparkConf(newMap)
-  }
+  lazy val flintSparkConf: FlintSparkConf = FlintSparkConf(conf)
 
   lazy val name: String = flintSparkConf.tableName()
 
