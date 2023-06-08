@@ -1,7 +1,11 @@
+/*
+ * Copyright OpenSearch Contributors
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
 package org.opensearch.sql
 
-import org.apache.spark.sql.{DataFrame, SparkSession, SQLContext, Row}
-import org.apache.spark.SparkConf
+import org.apache.spark.sql.{DataFrame, SparkSession, Row}
 import org.apache.spark.sql.types._
 import org.apache.spark.sql.functions._
 
@@ -10,15 +14,11 @@ object SQLJob {
     // Get the SQL query and Opensearch Config from the command line arguments
     val query = args(0)
     val index = args(1)
-    val aos_host = args(2)
-    val aos_region = args(3)
-
-    val aos = Map(
-      "host" -> aos_host, 
-      "port" -> "-1", 
-      "scheme" -> "https", 
-      "auth" -> "sigv4", 
-      "region" -> aos_region)
+    val host = args(2)
+    val port = args(3)
+    val scheme = args(4)
+    val auth = args(5)
+    val region = args(6)
 
     // Create a SparkSession
     val spark = SparkSession.builder().appName("SQLJob").getOrCreate()
@@ -50,6 +50,13 @@ object SQLJob {
       val data = dataDF.withColumn("schema", lit(schemaJson)).withColumn("result",lit(resultJson))
 
       // Write data to OpenSearch index
+      val aos = Map(
+        "host" -> host,
+        "port" -> port,
+        "scheme" -> scheme,
+        "auth" -> auth,
+        "region" -> region)
+
       data.write
         .format("flint")
         .options(aos)
