@@ -39,8 +39,11 @@ import org.opensearch.sql.opensearch.storage.OpenSearchStorageEngine;
 @ToString
 public class OpenSearchScrollRequest implements OpenSearchRequest {
 
+  /**
+   * Search request used to initiate paged (scrolled) search. Not needed to get subsequent pages.
+   */
   @EqualsAndHashCode.Exclude
-  private final SearchRequest initialSearchRequest;
+  private final transient SearchRequest initialSearchRequest;
   /** Scroll context timeout. */
   private final TimeValue scrollTimeout;
 
