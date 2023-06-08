@@ -6,30 +6,26 @@
 
 package org.opensearch.sql.sql;
 
-import static org.opensearch.sql.legacy.TestUtils.getResponseBody;
-import static org.opensearch.sql.legacy.TestUtils.isIndexExist;
-import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_ONLINE;
-
 import com.carrotsearch.randomizedtesting.annotations.Name;
 import com.carrotsearch.randomizedtesting.annotations.ParametersFactory;
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
 import lombok.SneakyThrows;
 import org.json.JSONArray;
 import org.json.JSONObject;
 import org.junit.Test;
 import org.junit.jupiter.api.DisplayNameGeneration;
 import org.junit.jupiter.api.DisplayNameGenerator;
-import org.opensearch.client.Request;
 import org.opensearch.sql.legacy.SQLIntegTestCase;
 import org.opensearch.sql.legacy.TestsConstants;
 
-/*
-This class has only one test case, because it is parametrized and takes significant time to run
+/**
+ * Test pagination with `WHERE` clause using a parametrized test.
+ * See constructor {@link #PaginationFilterIT} for list of parameters
+ * and {@link #generateParameters} and {@link #STATEMENT_TO_NUM_OF_PAGES}
+ * to see how these parameters are generated.
  */
 @DisplayNameGeneration(DisplayNameGenerator.ReplaceUnderscores.class)
 public class PaginationFilterIT extends SQLIntegTestCase {
@@ -72,7 +68,7 @@ public class PaginationFilterIT extends SQLIntegTestCase {
   }
 
   @ParametersFactory(argumentFormatting = "query = %1$s, total_hits = %2$d, page_size = %3$d")
-  public static Iterable<Object[]> compareTwoDates() {
+  public static Iterable<Object[]> generateParameters() {
     List<Integer> pageSizes = List.of(5, 1000);
     List<Object[]> testData = new ArrayList<Object[]>();
 

@@ -179,11 +179,9 @@ public class CanPaginateVisitor extends AbstractNodeVisitor<Boolean, Object> {
 
   @Override
   public Boolean visitFunction(Function node, Object context) {
+    // https://github.com/opensearch-project/sql/issues/1718
     if (node.getFuncName()
         .equalsIgnoreCase(BuiltinFunctionName.NESTED.getName().getFunctionName())) {
-      // `NESTED` function is not supported in pagination, because `NestedOperator`
-      // (a `PhysicalPlan` node) adds rows to the result set and cannot be properly paged
-      // with the current implementation of Pagination feature.
       return Boolean.FALSE;
     }
     return canPaginate(node, context);
