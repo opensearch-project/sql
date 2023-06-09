@@ -7,17 +7,21 @@
 package org.opensearch.sql.opensearch.setting;
 
 import static org.opensearch.common.settings.Settings.EMPTY;
+import static org.opensearch.sql.common.setting.Settings.Key.ENCYRPTION_MASTER_KEY;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import java.io.InputStream;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Consumer;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.log4j.Log4j2;
+import org.opensearch.cluster.ClusterName;
 import org.opensearch.common.settings.ClusterSettings;
+import org.opensearch.common.settings.SecureSetting;
 import org.opensearch.common.settings.Setting;
 import org.opensearch.common.unit.MemorySizeValue;
 import org.opensearch.sql.common.setting.LegacySettings;
@@ -98,6 +102,25 @@ public class OpenSearchSettings extends Settings {
       Setting.Property.NodeScope,
       Setting.Property.Dynamic);
 
+  // we are keeping this to not break upgrades if the config is already present.
+  // This will be completely removed in 3.0.
+  public static final Setting<InputStream> DATASOURCE_CONFIG = SecureSetting.secureFile(
+      "plugins.query.federation.datasources.config",
+      null,
+      Setting.Property.Deprecated);
+
+  public static final Setting<String> DATASOURCE_MASTER_SECRET_KEY = Setting.simpleString(
+      ENCYRPTION_MASTER_KEY.getKeyValue(),
+      "0000000000000000",
+      Setting.Property.NodeScope,
+      Setting.Property.Final);
+
+  public static final Setting<String> DATASOURCE_URI_ALLOW_HOSTS = Setting.simpleString(
+      Key.DATASOURCES_URI_ALLOWHOSTS.getKeyValue(),
+      ".*",
+      Setting.Property.NodeScope,
+      Setting.Property.Dynamic);
+
   /**
    * Construct OpenSearchSetting.
    * The OpenSearchSetting must be singleton.
@@ -123,6 +146,10 @@ public class OpenSearchSettings extends Settings {
         METRICS_ROLLING_WINDOW_SETTING, new Updater(Key.METRICS_ROLLING_WINDOW));
     register(settingBuilder, clusterSettings, Key.METRICS_ROLLING_INTERVAL,
         METRICS_ROLLING_INTERVAL_SETTING, new Updater(Key.METRICS_ROLLING_INTERVAL));
+    register(settingBuilder, clusterSettings, Key.DATASOURCES_URI_ALLOWHOSTS,
+        DATASOURCE_URI_ALLOW_HOSTS, new Updater(Key.DATASOURCES_URI_ALLOWHOSTS));
+    registerNonDynamicSettings(settingBuilder, clusterSettings, Key.CLUSTER_NAME,
+        ClusterName.CLUSTER_NAME_SETTING);
     defaultSettings = settingBuilder.build();
   }
 
@@ -139,10 +166,25 @@ public class OpenSearchSettings extends Settings {
                         ClusterSettings clusterSettings, Settings.Key key,
                         Setting setting,
                         Consumer<Object> updater) {
+    if (clusterSettings.get(setting) != null) {
+      latestSettings.put(key, clusterSettings.get(setting));
+    }
     settingBuilder.put(key, setting);
     clusterSettings
         .addSettingsUpdateConsumer(setting, updater);
   }
+
+  /**
+   * Register Non Dynamic Settings without consumer.
+   */
+  private void registerNonDynamicSettings(
+      ImmutableMap.Builder<Key, Setting<?>> settingBuilder,
+      ClusterSettings clusterSettings, Settings.Key key,
+      Setting setting) {
+    settingBuilder.put(key, setting);
+    latestSettings.put(key, clusterSettings.get(setting));
+  }
+
 
   /**
    * Add the inner class only for UT coverage purpose.
@@ -174,6 +216,17 @@ public class OpenSearchSettings extends Settings {
         .add(QUERY_SIZE_LIMIT_SETTING)
         .add(METRICS_ROLLING_WINDOW_SETTING)
         .add(METRICS_ROLLING_INTERVAL_SETTING)
+        .add(DATASOURCE_URI_ALLOW_HOSTS)
+        .build();
+  }
+
+  /**
+   * Init Non Dynamic Plugin Settings.
+   */
+  public static List<Setting<?>> pluginNonDynamicSettings() {
+    return new ImmutableList.Builder<Setting<?>>()
+        .add(DATASOURCE_MASTER_SECRET_KEY)
+        .add(DATASOURCE_CONFIG)
         .build();
   }
 

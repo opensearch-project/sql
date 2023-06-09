@@ -5,7 +5,7 @@
  *
  */
 
-package org.opensearch.sql.prometheus.authinterceptors;
+package org.opensearch.sql.common.authinterceptors;
 
 import java.io.IOException;
 import lombok.NonNull;
