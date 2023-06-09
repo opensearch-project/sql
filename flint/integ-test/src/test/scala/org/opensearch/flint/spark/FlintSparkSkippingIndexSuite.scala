@@ -202,6 +202,17 @@ class FlintSparkSkippingIndexSuite
     }
   }
 
+  test("can have only 1 skipping strategy on a column") {
+    assertThrows[IllegalArgumentException] {
+      flint
+        .skippingIndex()
+        .onTable(testTable)
+        .addPartitions("year")
+        .addValueSet("year")
+        .create()
+    }
+  }
+
   test("should not rewrite original query if no skipping index") {
     val query =
       s"""

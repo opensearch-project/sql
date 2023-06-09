@@ -231,10 +231,12 @@ object FlintSpark {
      *   index builder
      */
     def addPartitions(colNames: String*): IndexBuilder = {
+      require(tableName.nonEmpty, "table name cannot be empty")
+
       colNames
         .map(findColumn)
         .map(col => PartitionSkippingStrategy(columnName = col.name, columnType = col.dataType))
-        .foreach(indexedCol => indexedColumns = indexedColumns :+ indexedCol)
+        .foreach(addIndexedColumn)
       this
     }
 
@@ -247,10 +249,11 @@ object FlintSpark {
      *   index builder
      */
     def addValueSet(colName: String): IndexBuilder = {
+      require(tableName.nonEmpty, "table name cannot be empty")
+
       val col = findColumn(colName)
-      indexedColumns = indexedColumns :+ ValueSetSkippingStrategy(
-        columnName = col.name,
-        columnType = col.dataType)
+      addIndexedColumn(
+        ValueSetSkippingStrategy(columnName = col.name, columnType = col.dataType))
       this
     }
 
@@ -258,8 +261,6 @@ object FlintSpark {
      * Create index.
      */
     def create(): Unit = {
-      require(tableName.nonEmpty, "table name cannot be empty")
-
       flint.createIndex(new FlintSparkSkippingIndex(tableName, indexedColumns))
     }
 
@@ -267,5 +268,13 @@ object FlintSpark {
       allColumns.getOrElse(
         colName,
         throw new IllegalArgumentException(s"Column $colName does not exist"))
+
+    private def addIndexedColumn(indexedCol: FlintSparkSkippingStrategy): Unit = {
+      require(
+        indexedColumns.forall(_.columnName != indexedCol.columnName),
+        s"${indexedCol.columnName} is already indexed")
+
+      indexedColumns = indexedColumns :+ indexedCol
+    }
   }
 }
