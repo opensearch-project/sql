@@ -39,6 +39,14 @@ To build and run this application with Spark, you can run:
 sbt clean publishLocal
 ```
 
+## Test
+
+To run tests, you can use:
+
+```
+sbt test
+```
+
 ## Scalastyle
 
 To check code with scalastyle, you can run:
