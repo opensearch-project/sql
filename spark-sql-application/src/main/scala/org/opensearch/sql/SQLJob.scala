@@ -26,14 +26,10 @@ object SQLJob {
     try {
       // Execute SQL query
       val result: DataFrame = spark.sql(query)
+
       val resultJson = getJson(result)
-
-      // Convert the schema to a DataFrame
-      val schema = schemaDF(spark, result)
-      val schemaJson = getJson(schema)
-
-      // Create a DataFrame with stepId, schema and result
-      val data = stepIdDF(spark).withColumn("schema", lit(schemaJson)).withColumn("result",lit(resultJson))
+      val schemaJson = getJson(getSchema(spark, result))
+      val data = getList(spark, resultJson, "result").join(getList(spark, schemaJson, "schema")).withColumn("stepId", lit(sys.env.getOrElse("EMR_STEP_ID", "")))
 
       // Write data to OpenSearch index
       val aos = Map(
@@ -55,27 +51,25 @@ object SQLJob {
     }
   }
 
-  def getJson(df: DataFrame): String = {
-    df.select(to_json(collect_list(struct(df.columns.map(col): _*)))).first().getString(0)
+  def getJson(df: DataFrame): DataFrame = {
+    df.select(to_json(struct(df.columns.map(col): _*))).toDF("json")
   }
 
-  def schemaDF(spark: SparkSession, result: DataFrame): DataFrame  = {
-    val schema = result.schema
-    val schemaRow = schema.fields.map { field =>
+  def getSchema(spark: SparkSession, result: DataFrame): DataFrame  = {
+    val resultschema = result.schema
+    val resultschemaRows = resultschema.fields.map { field =>
       Row(field.name, field.dataType.typeName)
     }
-    spark.createDataFrame(spark.sparkContext.parallelize(schemaRow), StructType(Seq(
+    spark.createDataFrame(spark.sparkContext.parallelize(resultschemaRows), StructType(Seq(
       StructField("column_name", StringType, nullable = false),
       StructField("data_type", StringType, nullable = false)
     )))
   }
 
-  def stepIdDF(spark: SparkSession): DataFrame  = {
-    val dataRow = Seq(
-      Row(sys.env.getOrElse("EMR_STEP_ID", ""))
-    )
-    spark.createDataFrame(spark.sparkContext.parallelize(dataRow), StructType(Seq(
-      StructField("stepId", StringType, nullable = false)
-    )))
+  def getList(spark: SparkSession, resultJson: DataFrame, name:String): DataFrame = {
+    val list = resultJson.agg(collect_list("json").as(name)).head().getSeq[String](0)
+    val schema = StructType(Seq(StructField(name, ArrayType(StringType))))
+    val rdd = spark.sparkContext.parallelize(Seq(Row(list)))
+    spark.createDataFrame(rdd, schema)
   }
 }
