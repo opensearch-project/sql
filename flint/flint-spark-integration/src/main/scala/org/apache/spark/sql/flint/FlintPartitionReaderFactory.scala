@@ -23,6 +23,6 @@ case class FlintPartitionReaderFactory(
   override def createReader(partition: InputPartition): PartitionReader[InternalRow] = {
     val query = FlintQueryCompiler(schema).compile(pushedPredicates)
     val flintClient = FlintClientBuilder.build(options.flintOptions())
-    new FlintPartitionReader(flintClient.createReader(tableName, query), schema)
+    new FlintPartitionReader(flintClient.createReader(tableName, query), schema, options)
   }
 }
