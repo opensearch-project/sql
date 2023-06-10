@@ -24,6 +24,8 @@ ThisBuild / scalastyleConfig := baseDirectory.value / "scalastyle-config.xml"
  */
 ThisBuild / Test / parallelExecution := false
 
+// enablePlugins(Antlr4Plugin)
+
 // Run as part of compile task.
 lazy val compileScalastyle = taskKey[Unit]("compileScalastyle")
 
@@ -56,7 +58,7 @@ lazy val flintCore = (project in file("flint-core"))
 
 lazy val flintSparkIntegration = (project in file("flint-spark-integration"))
   .dependsOn(flintCore)
-  .enablePlugins(AssemblyPlugin)
+  .enablePlugins(AssemblyPlugin, Antlr4Plugin)
   .settings(
     commonSettings,
     name := "flint-spark-integration",
@@ -70,6 +72,15 @@ lazy val flintSparkIntegration = (project in file("flint-spark-integration"))
       "org.scalatestplus" %% "mockito-4-6" % "3.2.15.0" % "test",
       "com.github.sbt" % "junit-interface" % "0.13.3" % "test"),
     libraryDependencies ++= deps(sparkVersion),
+    // ANTLR settings
+    antlr4Version in Antlr4 := "4.7",
+    // antlr4PackageName in Antlr4 := Some("org.opensearch.flint.spark.sql"),
+    antlr4GenListener in Antlr4 := true,
+    antlr4GenVisitor in Antlr4 := true,
+    antlr4TreatWarningsAsErrors in Antlr4 := true,
+    // antlr4Generate in Antlr4 :=
+    //  Seq(file("flint-spark-integration/src/main/antlr/FlintSparkSqlExtensions.g4")),
+    // Assembly settings
     assemblyPackageScala / assembleArtifact := false,
     assembly / assemblyOption ~= {
       _.withIncludeScala(false)
