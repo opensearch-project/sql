@@ -56,20 +56,19 @@ object SQLJob {
     }
     val resultSchema = spark.createDataFrame(spark.sparkContext.parallelize(schemaRows), StructType(Seq(
       StructField("column_name", StringType, nullable = false),
-      StructField("data_type", StringType, nullable = false)
-    )))
+      StructField("data_type", StringType, nullable = false))))
 
     // Define the data schema
     val schema = StructType(Seq(
       StructField("result", ArrayType(StringType, containsNull = true), nullable = true),
       StructField("schema", ArrayType(StringType, containsNull = true), nullable = true),
-      StructField("stepId", StringType, nullable = true)
-    ))
+      StructField("stepId", StringType, nullable = true)))
 
     // Create the data rows
-    val rows = Seq(
-      (result.toJSON.collect.toList, resultSchema.toJSON.collect.toList, sys.env.getOrElse("EMR_STEP_ID", ""))
-    )
+    val rows = Seq((
+      result.toJSON.collect.toList.map(_.replaceAll("\"", "'")),
+      resultSchema.toJSON.collect.toList.map(_.replaceAll("\"", "'")),
+      sys.env.getOrElse("EMR_STEP_ID", "")))
 
     // Create the DataFrame for data
     spark.createDataFrame(rows).toDF(schema.fields.map(_.name): _*)

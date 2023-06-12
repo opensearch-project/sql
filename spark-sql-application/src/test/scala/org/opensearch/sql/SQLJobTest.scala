@@ -35,8 +35,8 @@ class SQLJobTest extends AnyFunSuite{
     ))
     val expectedRows = Seq(
       Row(
-        Array("{\"Letter\":\"A\",\"Number\":1}","{\"Letter\":\"B\",\"Number\":2}", "{\"Letter\":\"C\",\"Number\":3}"),
-        Array("{\"column_name\":\"Letter\",\"data_type\":\"string\"}", "{\"column_name\":\"Number\",\"data_type\":\"integer\"}"),
+        Array("{'Letter':'A','Number':1}","{'Letter':'B','Number':2}", "{'Letter':'C','Number':3}"),
+        Array("{'column_name':'Letter','data_type':'string'}", "{'column_name':'Number','data_type':'integer'}"),
         ""
       )
     )

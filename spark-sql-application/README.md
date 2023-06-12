@@ -53,13 +53,13 @@ OpenSearch index document will look like
   "_score" : 1.0,
   "_source" : {
     "result" : [
-    """{"Letter":"A","Number":1}""",
-    """{"Letter":"B","Number":2}""",
-    """{"Letter":"C","Number":3}"""
+    "{'Letter':'A','Number':1}",
+    "{'Letter':'B','Number':2}",
+    "{'Letter':'C','Number':3}"
     ],
     "schema" : [
-      """{"column_name":"Letter","data_type":"string"}""",
-      """{"column_name":"Number","data_type":"integer"}"""
+      "{'column_name':'Letter','data_type':'string'}",
+      "{'column_name':'Number','data_type':'integer'}"
     ],
     "stepId" : "s-JZSB1139WIVU"
   }
