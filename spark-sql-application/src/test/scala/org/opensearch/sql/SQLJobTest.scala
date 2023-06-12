@@ -24,57 +24,26 @@ class SQLJobTest extends AnyFunSuite{
     Row("B", 2),
     Row("C", 3)
   )
-  val inputDF: DataFrame = spark.createDataFrame(spark.sparkContext.parallelize(inputRows), inputSchema)
+  val input: DataFrame = spark.createDataFrame(spark.sparkContext.parallelize(inputRows), inputSchema)
 
-  test("Test getJson method") {
+  test("Test getData method") {
     // Define expected dataframe
     val expectedSchema = StructType(Seq(
-      StructField("json", StringType, nullable = true)
+      StructField("result", ArrayType(StringType, containsNull = true), nullable = true),
+      StructField("schema", ArrayType(StringType, containsNull = true), nullable = true),
+      StructField("stepId", StringType, nullable = true)
     ))
     val expectedRows = Seq(
-      Row("{\"Letter\":\"A\",\"Number\":1}"),
-      Row("{\"Letter\":\"B\",\"Number\":2}"),
-      Row("{\"Letter\":\"C\",\"Number\":3}")
+      Row(
+        Array("{\"Letter\":\"A\",\"Number\":1}","{\"Letter\":\"B\",\"Number\":2}", "{\"Letter\":\"C\",\"Number\":3}"),
+        Array("{\"column_name\":\"Letter\",\"data_type\":\"string\"}", "{\"column_name\":\"Number\",\"data_type\":\"integer\"}"),
+        ""
+      )
     )
     val expected: DataFrame = spark.createDataFrame(spark.sparkContext.parallelize(expectedRows), expectedSchema)
 
     // Compare the result
-    val result = SQLJob.getJson(inputDF)
-    assertEqualDataframe(expected, result)
-  }
-
-  test("Test getSchema method") {
-    // Define expected dataframe
-    val expectedSchema = StructType(Seq(
-      StructField("column_name", StringType, nullable = false),
-      StructField("data_type", StringType, nullable = false)
-    ))
-    val expectedRows = Seq(
-      Row("Letter","string"),
-      Row("Number", "integer")
-    )
-    val expected: DataFrame = spark.createDataFrame(spark.sparkContext.parallelize(expectedRows), expectedSchema)
-
-    // Compare the result
-    val result = SQLJob.getSchema(spark, inputDF)
-    assertEqualDataframe(expected, result)
-  }
-
-  test("Test getList method") {
-    val name = "list"
-    // Define expected dataframe
-    val expectedSchema = StructType(Seq(
-      StructField(name, ArrayType(StringType, containsNull = true), nullable = true)
-    ))
-    val expectedRows = Seq(
-      Row(Seq("{\"Letter\":\"A\",\"Number\":1}",
-        "{\"Letter\":\"B\",\"Number\":2}",
-        "{\"Letter\":\"C\",\"Number\":3}"))
-    )
-    val expected: DataFrame = spark.createDataFrame(spark.sparkContext.parallelize(expectedRows), expectedSchema)
-
-    // Compare the result
-    val result = SQLJob.getList(spark, SQLJob.getJson(inputDF), name)
+    val result = SQLJob.getData(input, spark)
     assertEqualDataframe(expected, result)
   }
 

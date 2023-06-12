@@ -7,7 +7,6 @@ package org.opensearch.sql
 
 import org.apache.spark.sql.{DataFrame, SparkSession, Row}
 import org.apache.spark.sql.types._
-import org.apache.spark.sql.functions._
 
 object SQLJob {
   def main(args: Array[String]) {
@@ -27,9 +26,8 @@ object SQLJob {
       // Execute SQL query
       val result: DataFrame = spark.sql(query)
 
-      val resultJson = getJson(result)
-      val schemaJson = getJson(getSchema(spark, result))
-      val data = getList(spark, resultJson, "result").join(getList(spark, schemaJson, "schema")).withColumn("stepId", lit(sys.env.getOrElse("EMR_STEP_ID", "")))
+      // Get Data
+      val data = getData(result, spark)
 
       // Write data to OpenSearch index
       val aos = Map(
@@ -51,25 +49,29 @@ object SQLJob {
     }
   }
 
-  def getJson(df: DataFrame): DataFrame = {
-    df.select(to_json(struct(df.columns.map(col): _*))).toDF("json")
-  }
-
-  def getSchema(spark: SparkSession, result: DataFrame): DataFrame  = {
-    val resultschema = result.schema
-    val resultschemaRows = resultschema.fields.map { field =>
+  def getData(result: DataFrame, spark: SparkSession): DataFrame = {
+    // Create the schema dataframe
+    val schemaRows = result.schema.fields.map { field =>
       Row(field.name, field.dataType.typeName)
     }
-    spark.createDataFrame(spark.sparkContext.parallelize(resultschemaRows), StructType(Seq(
+    val resultSchema = spark.createDataFrame(spark.sparkContext.parallelize(schemaRows), StructType(Seq(
       StructField("column_name", StringType, nullable = false),
       StructField("data_type", StringType, nullable = false)
     )))
-  }
 
-  def getList(spark: SparkSession, resultJson: DataFrame, name:String): DataFrame = {
-    val list = resultJson.agg(collect_list("json").as(name)).head().getSeq[String](0)
-    val schema = StructType(Seq(StructField(name, ArrayType(StringType))))
-    val rdd = spark.sparkContext.parallelize(Seq(Row(list)))
-    spark.createDataFrame(rdd, schema)
+    // Define the data schema
+    val schema = StructType(Seq(
+      StructField("result", ArrayType(StringType, containsNull = true), nullable = true),
+      StructField("schema", ArrayType(StringType, containsNull = true), nullable = true),
+      StructField("stepId", StringType, nullable = true)
+    ))
+
+    // Create the data rows
+    val rows = Seq(
+      (result.toJSON.collect.toList, resultSchema.toJSON.collect.toList, sys.env.getOrElse("EMR_STEP_ID", ""))
+    )
+
+    // Create the DataFrame for data
+    spark.createDataFrame(rows).toDF(schema.fields.map(_.name): _*)
   }
 }
