@@ -16,6 +16,8 @@ import org.opensearch.common.xcontent.XContentType
 import org.opensearch.testcontainers.OpenSearchContainer
 import org.scalatest.{BeforeAndAfterAll, Suite}
 
+import org.apache.spark.sql.flint.config.FlintSparkConf.{HOST_ENDPOINT, HOST_PORT, IGNORE_DOC_ID_COLUMN, REFRESH_POLICY}
+
 /**
  * Test required OpenSearch domain should extend OpenSearchSuite.
  */
@@ -32,7 +34,11 @@ trait OpenSearchSuite extends BeforeAndAfterAll {
     RestClient.builder(new HttpHost(openSearchHost, openSearchPort, "http")))
 
   protected lazy val openSearchOptions =
-    Map("host" -> openSearchHost, "port" -> s"$openSearchPort")
+    Map(
+      s"${HOST_ENDPOINT.optionKey}" -> openSearchHost,
+      s"${HOST_PORT.optionKey}" -> s"$openSearchPort",
+      s"${REFRESH_POLICY.optionKey}" -> "wait_for",
+      s"${IGNORE_DOC_ID_COLUMN.optionKey}" -> "false")
 
   override def beforeAll(): Unit = {
     container.start()

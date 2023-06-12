@@ -14,7 +14,8 @@ import org.apache.spark.sql.catalyst.plans.logical.Filter
 import org.apache.spark.sql.execution.datasources.v2.DataSourceV2ScanRelation
 import org.apache.spark.sql.execution.streaming.MemoryStream
 import org.apache.spark.sql.flint.config.FlintSparkConf
-import org.apache.spark.sql.functions.{asc, current_date, current_timestamp, to_date, to_timestamp}
+import org.apache.spark.sql.flint.config.FlintSparkConf.{DOC_ID_COLUMN_NAME, IGNORE_DOC_ID_COLUMN}
+import org.apache.spark.sql.functions._
 import org.apache.spark.sql.streaming.{StreamingQuery, StreamTest}
 import org.apache.spark.util.Utils
 
@@ -131,9 +132,7 @@ class FlintDataSourceV2ITSuite
         |    }
         |  }
         |}""".stripMargin
-    val options =
-      openSearchOptions + (s"${FlintSparkConf.REFRESH_POLICY.optionKey}" -> "wait_for",
-      s"${FlintSparkConf.DOC_ID_COLUMN_NAME.optionKey}" -> "aInt")
+    val options = openSearchOptions + (s"${DOC_ID_COLUMN_NAME.optionKey}" -> "aInt")
     Seq(Seq.empty, 1 to 14).foreach(data => {
       withIndexName(indexName) {
         index(indexName, oneNodeSetting, mappings, Seq.empty)
@@ -165,11 +164,42 @@ class FlintDataSourceV2ITSuite
     })
   }
 
+  test("write dataframe to flint ignore id column") {
+    val indexName = "t0002"
+    val mappings =
+      """{
+        |  "properties": {
+        |    "aString": {
+        |      "type": "keyword"
+        |    }
+        |  }
+        |}""".stripMargin
+    val options =
+      openSearchOptions + (s"${DOC_ID_COLUMN_NAME.optionKey}" -> "aInt",
+      s"${IGNORE_DOC_ID_COLUMN.optionKey}" -> "true")
+    withIndexName(indexName) {
+      index(indexName, oneNodeSetting, mappings, Seq.empty)
+
+      val df = spark.createDataFrame(Seq((1, "string1"), (2, "string2"))).toDF("aInt", "aString")
+
+      df.coalesce(1)
+        .write
+        .format("flint")
+        .options(options)
+        .mode("overwrite")
+        .save(indexName)
+
+      val dfResult1 = spark.sqlContext.read
+        .format("flint")
+        .options(options)
+        .load(indexName)
+      checkAnswer(dfResult1, df.drop("aInt"))
+    }
+  }
+
   test("write dataframe to flint with batch size configuration") {
     val indexName = "t0004"
-    val options =
-      openSearchOptions + (s"${FlintSparkConf.REFRESH_POLICY.optionKey}" -> "wait_for",
-      s"${FlintSparkConf.DOC_ID_COLUMN_NAME.optionKey}" -> "aInt")
+    val options = openSearchOptions + (s"${DOC_ID_COLUMN_NAME.optionKey}" -> "aInt")
     Seq(0, 1).foreach(batchSize => {
       withIndexName(indexName) {
         val mappings =
@@ -224,8 +254,7 @@ class FlintDataSourceV2ITSuite
           .option("checkpointLocation", checkpointDir)
           .format("flint")
           .options(openSearchOptions)
-          .option(s"${FlintSparkConf.REFRESH_POLICY.optionKey}", "wait_for")
-          .option(s"${FlintSparkConf.DOC_ID_COLUMN_NAME.optionKey}", "aInt")
+          .option(s"${DOC_ID_COLUMN_NAME.optionKey}", "aInt")
           .start(indexName)
 
         inputData.addData(1, 2, 3)
@@ -288,8 +317,6 @@ class FlintDataSourceV2ITSuite
 
   test("load and save date and timestamp type field") {
     val indexName = "t0001"
-    val options =
-      openSearchOptions + (s"${FlintSparkConf.REFRESH_POLICY.optionKey}" -> "wait_for")
     Seq(
       """{
           |  "properties": {
@@ -325,13 +352,13 @@ class FlintDataSourceV2ITSuite
         df.coalesce(1)
           .write
           .format("flint")
-          .options(options)
+          .options(openSearchOptions)
           .mode("overwrite")
           .save(indexName)
 
         val dfResult1 = spark.sqlContext.read
           .format("flint")
-          .options(options)
+          .options(openSearchOptions)
           .load(indexName)
         checkAnswer(dfResult1, df)
       }
@@ -340,8 +367,6 @@ class FlintDataSourceV2ITSuite
 
   test("load timestamp field in epoch format") {
     val indexName = "t0001"
-    val options =
-      openSearchOptions + (s"${FlintSparkConf.REFRESH_POLICY.optionKey}" -> "wait_for")
     Seq(
       """{
         |  "properties": {
@@ -366,7 +391,7 @@ class FlintDataSourceV2ITSuite
 
         val df = spark.sqlContext.read
           .format("flint")
-          .options(options)
+          .options(openSearchOptions)
           .load(indexName)
         checkAnswer(df, Row(Timestamp.valueOf("2014-12-31 16:00:00")))
       }
@@ -418,8 +443,6 @@ class FlintDataSourceV2ITSuite
 
   test("scan with date filter push-down") {
     val indexName = "t0001"
-    val options =
-      openSearchOptions + (s"${FlintSparkConf.REFRESH_POLICY.optionKey}" -> "wait_for")
     withIndexName(indexName) {
       val mappings = """{
                        |  "properties": {
@@ -447,7 +470,7 @@ class FlintDataSourceV2ITSuite
       df.coalesce(1)
         .write
         .format("flint")
-        .options(options)
+        .options(openSearchOptions)
         .mode("overwrite")
         .save(indexName)
 
