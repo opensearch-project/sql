@@ -124,8 +124,6 @@ public class PaginationFallbackIT extends SQLIntegTestCase {
   public void testOrderBy() throws IOException {
     var response = executeQueryTemplate("SELECT * FROM %s ORDER By `107`",
         TEST_INDEX_ONLINE);
-    verifyIsV1Cursor(response);
+    verifyIsV2Cursor(response);
   }
-
-
 }
