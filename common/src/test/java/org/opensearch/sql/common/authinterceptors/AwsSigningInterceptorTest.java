@@ -5,7 +5,7 @@
  *
  */
 
-package org.opensearch.sql.prometheus.authinterceptors;
+package org.opensearch.sql.common.authinterceptors;
 
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -15,7 +15,6 @@ import com.amazonaws.auth.AWSSessionCredentials;
 import com.amazonaws.auth.AWSStaticCredentialsProvider;
 import com.amazonaws.auth.BasicAWSCredentials;
 import com.amazonaws.auth.STSAssumeRoleSessionCredentialsProvider;
-import com.amazonaws.auth.STSSessionCredentialsProvider;
 import lombok.SneakyThrows;
 import okhttp3.Interceptor;
 import okhttp3.Request;
@@ -25,7 +24,9 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
 import org.mockito.Mock;
+import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.opensearch.sql.common.authinterceptors.AwsSigningInterceptor;
 
 @ExtendWith(MockitoExtension.class)
 public class AwsSigningInterceptorTest {
@@ -54,7 +55,7 @@ public class AwsSigningInterceptorTest {
   @Test
   @SneakyThrows
   void testIntercept() {
-    when(chain.request()).thenReturn(new Request.Builder()
+    Mockito.when(chain.request()).thenReturn(new Request.Builder()
         .url("http://localhost:9090")
         .build());
     AwsSigningInterceptor awsSigningInterceptor
@@ -62,7 +63,7 @@ public class AwsSigningInterceptorTest {
             getStaticAWSCredentialsProvider("testAccessKey", "testSecretKey"),
             "us-east-1", "aps");
     awsSigningInterceptor.intercept(chain);
-    verify(chain).proceed(requestArgumentCaptor.capture());
+    Mockito.verify(chain).proceed(requestArgumentCaptor.capture());
     Request request = requestArgumentCaptor.getValue();
     Assertions.assertNotNull(request.headers("Authorization"));
     Assertions.assertNotNull(request.headers("x-amz-date"));
@@ -73,16 +74,16 @@ public class AwsSigningInterceptorTest {
   @Test
   @SneakyThrows
   void testSTSCredentialsProviderInterceptor() {
-    when(chain.request()).thenReturn(new Request.Builder()
+    Mockito.when(chain.request()).thenReturn(new Request.Builder()
         .url("http://localhost:9090")
         .build());
-    when(stsAssumeRoleSessionCredentialsProvider.getCredentials())
+    Mockito.when(stsAssumeRoleSessionCredentialsProvider.getCredentials())
         .thenReturn(getAWSSessionCredentials());
     AwsSigningInterceptor awsSigningInterceptor
         = new AwsSigningInterceptor(stsAssumeRoleSessionCredentialsProvider,
             "us-east-1", "aps");
     awsSigningInterceptor.intercept(chain);
-    verify(chain).proceed(requestArgumentCaptor.capture());
+    Mockito.verify(chain).proceed(requestArgumentCaptor.capture());
     Request request = requestArgumentCaptor.getValue();
     Assertions.assertNotNull(request.headers("Authorization"));
     Assertions.assertNotNull(request.headers("x-amz-date"));

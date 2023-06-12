@@ -5,10 +5,7 @@
  *
  */
 
-package org.opensearch.sql.prometheus.authinterceptors;
-
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
+package org.opensearch.sql.common.authinterceptors;
 
 import java.util.Collections;
 import lombok.SneakyThrows;
@@ -21,7 +18,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
 import org.mockito.Mock;
-import org.mockito.internal.matchers.Null;
+import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
@@ -45,13 +42,13 @@ public class BasicAuthenticationInterceptorTest {
   @Test
   @SneakyThrows
   void testIntercept() {
-    when(chain.request()).thenReturn(new Request.Builder()
+    Mockito.when(chain.request()).thenReturn(new Request.Builder()
             .url("http://localhost:9090")
             .build());
     BasicAuthenticationInterceptor basicAuthenticationInterceptor
         = new BasicAuthenticationInterceptor("testAdmin", "testPassword");
     basicAuthenticationInterceptor.intercept(chain);
-    verify(chain).proceed(requestArgumentCaptor.capture());
+    Mockito.verify(chain).proceed(requestArgumentCaptor.capture());
     Request request = requestArgumentCaptor.getValue();
     Assertions.assertEquals(
         Collections.singletonList(Credentials.basic("testAdmin", "testPassword")),
