@@ -139,7 +139,10 @@ class FlintSparkSkippingIndexSuite
         |     "address": {
         |       "type": "keyword"
         |     },
-        |     "age": {
+        |     "MinMax_age_0": {
+        |       "type": "integer"
+        |     },
+        |     "MinMax_age_1" : {
         |       "type": "integer"
         |     },
         |     "file_path": {
