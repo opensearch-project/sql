@@ -113,7 +113,7 @@ class ArithmeticFunctionTest extends ExpressionTestBase {
     assertEquals(String.format("mod(%s, %s)", op1.toString(), op2.toString()),
             expression.toString());
 
-    expression = DSL.mod(literal(op1), literal(new ExprShortValue(0)));
+    expression = DSL.mod(literal(op1), literal(new ExprByteValue(0)));
     assertTrue(expression.valueOf(valueEnv()).isNull());
     assertEquals(String.format("mod(%s, 0)", op1.toString()), expression.toString());
   }
@@ -128,7 +128,7 @@ class ArithmeticFunctionTest extends ExpressionTestBase {
     assertEquals(String.format("%%(%s, %s)", op1.toString(), op2.toString()),
             expression.toString());
 
-    expression = DSL.modulus(literal(op1), literal(new ExprShortValue(0)));
+    expression = DSL.modulus(literal(op1), literal(new ExprByteValue(0)));
     assertTrue(expression.valueOf(valueEnv()).isNull());
     assertEquals(String.format("%%(%s, 0)", op1.toString()), expression.toString());
   }
@@ -144,7 +144,7 @@ class ArithmeticFunctionTest extends ExpressionTestBase {
     assertEquals(String.format("modulus(%s, %s)", op1.toString(), op2.toString()),
             expression.toString());
 
-    expression = DSL.modulusFunction(literal(op1), literal(new ExprShortValue(0)));
+    expression = DSL.modulusFunction(literal(op1), literal(new ExprByteValue(0)));
     assertTrue(expression.valueOf(valueEnv()).isNull());
     assertEquals(String.format("modulus(%s, 0)", op1.toString()), expression.toString());
   }
@@ -183,7 +183,7 @@ class ArithmeticFunctionTest extends ExpressionTestBase {
     assertEquals(String.format("/(%s, %s)", op1.toString(), op2.toString()),
         expression.toString());
 
-    expression = DSL.divide(literal(op1), literal(new ExprShortValue(0)));
+    expression = DSL.divide(literal(op1), literal(new ExprByteValue(0)));
     assertTrue(expression.valueOf(valueEnv()).isNull());
     assertEquals(String.format("/(%s, 0)", op1.toString()), expression.toString());
   }
@@ -199,7 +199,7 @@ class ArithmeticFunctionTest extends ExpressionTestBase {
     assertEquals(String.format("divide(%s, %s)", op1.toString(), op2.toString()),
             expression.toString());
 
-    expression = DSL.divideFunction(literal(op1), literal(new ExprShortValue(0)));
+    expression = DSL.divideFunction(literal(op1), literal(new ExprByteValue(0)));
     assertTrue(expression.valueOf(valueEnv()).isNull());
     assertEquals(String.format("divide(%s, 0)", op1.toString()), expression.toString());
   }
