@@ -20,7 +20,7 @@ import org.apache.spark.sql.types.StructType
  * @param filterByIndex
  *   pushed down filtering on index data
  */
-class FlintSparkSkippingFileIndex(baseFileIndex: FileIndex, filterByIndex: DataFrame)
+case class FlintSparkSkippingFileIndex(baseFileIndex: FileIndex, filterByIndex: DataFrame)
     extends FileIndex {
 
   override def listFiles(
@@ -32,7 +32,6 @@ class FlintSparkSkippingFileIndex(baseFileIndex: FileIndex, filterByIndex: DataF
         .map(_.getString(0))
         .toSet
 
-    // TODO: figure out if list file call can be avoided
     val partitions = baseFileIndex.listFiles(partitionFilters, dataFilters)
     partitions
       .map(p => p.copy(files = p.files.filter(f => isFileNotSkipped(selectedFiles, f))))

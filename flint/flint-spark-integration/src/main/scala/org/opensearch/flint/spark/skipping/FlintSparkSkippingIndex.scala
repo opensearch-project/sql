@@ -11,6 +11,7 @@ import org.json4s.native.Serialization
 import org.opensearch.flint.core.metadata.FlintMetadata
 import org.opensearch.flint.spark.FlintSparkIndex
 import org.opensearch.flint.spark.skipping.FlintSparkSkippingIndex.{getSkippingIndexName, FILE_PATH_COLUMN, SKIPPING_INDEX_TYPE}
+import org.opensearch.flint.spark.skipping.FlintSparkSkippingStrategy.SkippingKindSerializer
 
 import org.apache.spark.sql.{Column, DataFrame}
 import org.apache.spark.sql.catalyst.dsl.expressions.DslExpression
@@ -30,7 +31,7 @@ class FlintSparkSkippingIndex(
     extends FlintSparkIndex {
 
   /** Required by json4s write function */
-  implicit val formats: Formats = Serialization.formats(NoTypeHints)
+  implicit val formats: Formats = Serialization.formats(NoTypeHints) + SkippingKindSerializer
 
   /** Skipping index type */
   override val kind: String = SKIPPING_INDEX_TYPE
