@@ -22,6 +22,7 @@ import com.google.common.collect.Iterators;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import com.google.gson.JsonSyntaxException;
 import com.google.gson.stream.JsonReader; 
@@ -38,6 +39,8 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
+import java.util.Map.Entry;
 import java.util.function.BiFunction;
 import lombok.Getter;
 import lombok.Setter;
@@ -61,6 +64,7 @@ import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.data.type.ExprType;
 import org.opensearch.sql.opensearch.data.type.OpenSearchDataType;
 import org.opensearch.sql.opensearch.data.type.OpenSearchDateType;
+import org.opensearch.sql.opensearch.data.type.OpenSearchDataType.MappingType;
 import org.opensearch.sql.opensearch.data.utils.Content;
 import org.opensearch.sql.opensearch.data.utils.ObjectContent;
 import org.opensearch.sql.opensearch.data.utils.OpenSearchJsonContent;
@@ -357,22 +361,40 @@ public class OpenSearchExprValueFactory {
    * The similar data type is nested, but it can only allow a list of objects.
    */
   public ExprValue parseArray(Content content, String prefix) {
-    System.out.println("Content: " + content);
     List<ExprValue> result = new ArrayList<>();
     // ExprCoreType.ARRAY does not indicate inner elements type.
-    if (Iterators.size(content.array()) == 1 && content.objectValue() instanceof JsonElement) {
-      result.add(parse(content, prefix, Optional.of(STRUCT)));
-    } else {
-      content.array().forEachRemaining(v -> {
-        // ExprCoreType.ARRAY does not indicate inner elements type. OpenSearch nested will be an
-        // array of structs, otherwise parseArray currently only supports array of strings.
-        if (v.isString()) {
-          result.add(parse(v, prefix, Optional.of(OpenSearchDataType.of(STRING))));
-        } else {
-          result.add(parse(v, prefix, Optional.of(STRUCT)));
+
+    try {
+      if (Iterators.size(content.array()) == 1 && content.objectValue() instanceof JsonElement) {
+        result.add(parse(content, prefix, Optional.of(STRUCT)));
+      } else {
+        content.array().forEachRemaining(v -> {
+          // ExprCoreType.ARRAY does not indicate inner elements type. OpenSearch nested will be an
+          // array of structs, otherwise parseArray currently only supports array of strings.
+          if (v.isString()) {
+            result.add(parse(v, prefix, Optional.of(OpenSearchDataType.of(STRING))));
+          } else {
+            result.add(parse(v, prefix, Optional.of(STRUCT)));
+          }
+        });
+      }
+    } catch (IllegalStateException e) {
+      JsonObject objectValue = (JsonObject) content.objectValue();
+      Set<Entry<String, JsonElement>> entrySet = objectValue.entrySet();
+      if (entrySet.size() == 1) {
+        result.add(parse(content, prefix, Optional.of(STRUCT)));
+      } else {
+        for (Entry<String, JsonElement> entry : entrySet) {
+          if (entry.getValue().isJsonArray()) {
+            result.add(parse(new OpenSearchJsonContent(entry.getValue()), prefix, Optional.of(OpenSearchDataType.of(MappingType.Nested))));
+          }
         }
-      });
+      };
     }
+
+   
+
+    
     return new ExprCollectionValue(result);
   }
 
