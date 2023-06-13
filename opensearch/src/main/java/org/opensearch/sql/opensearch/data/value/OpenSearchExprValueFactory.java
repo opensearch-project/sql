@@ -38,9 +38,9 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.Set;
-import java.util.Map.Entry;
 import java.util.function.BiFunction;
 import lombok.Getter;
 import lombok.Setter;
@@ -63,8 +63,8 @@ import org.opensearch.sql.data.model.ExprTupleValue;
 import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.data.type.ExprType;
 import org.opensearch.sql.opensearch.data.type.OpenSearchDataType;
-import org.opensearch.sql.opensearch.data.type.OpenSearchDateType;
 import org.opensearch.sql.opensearch.data.type.OpenSearchDataType.MappingType;
+import org.opensearch.sql.opensearch.data.type.OpenSearchDateType;
 import org.opensearch.sql.opensearch.data.utils.Content;
 import org.opensearch.sql.opensearch.data.utils.ObjectContent;
 import org.opensearch.sql.opensearch.data.utils.OpenSearchJsonContent;
@@ -386,10 +386,12 @@ public class OpenSearchExprValueFactory {
       } else {
         for (Entry<String, JsonElement> entry : entrySet) {
           if (entry.getValue().isJsonArray()) {
-            result.add(parse(new OpenSearchJsonContent(entry.getValue()), prefix, Optional.of(OpenSearchDataType.of(MappingType.Nested))));
+            result.add(parse(new OpenSearchJsonContent(entry.getValue()), 
+                prefix, 
+                Optional.of(OpenSearchDataType.of(MappingType.Nested))));
           }
         }
-      };
+      }
     }
 
    
