@@ -904,7 +904,7 @@ Argument 2 type (optional): INTEGER
 Return type map:
 
 (INTEGER/LONG[, INTEGER]) -> LONG
-(FLOAT/DOUBLE[, INTEGER]) -> LONG
+(FLOAT/DOUBLE[, INTEGER]) -> DOUBLE
 
 Example::
 
