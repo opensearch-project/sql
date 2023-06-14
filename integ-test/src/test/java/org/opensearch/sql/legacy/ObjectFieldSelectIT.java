@@ -14,7 +14,6 @@ import static org.opensearch.sql.util.MatcherUtils.verifySchema;
 
 import org.json.JSONArray;
 import org.json.JSONObject;
-import org.junit.Assume;
 import org.junit.Test;
 import org.opensearch.sql.legacy.utils.StringUtils;
 
