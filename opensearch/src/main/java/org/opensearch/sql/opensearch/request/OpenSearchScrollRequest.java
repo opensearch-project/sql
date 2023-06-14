@@ -101,6 +101,11 @@ public class OpenSearchScrollRequest implements OpenSearchRequest {
     if (isScroll()) {
       openSearchResponse = scrollAction.apply(scrollRequest());
     } else {
+      if (initialSearchRequest == null) {
+        // Probably a first page search (since there is no scroll set) called on a deserialized
+        // `OpenSearchScrollRequest`, which has no `initialSearchRequest`.
+        throw new UnsupportedOperationException("Misuse of OpenSearchScrollRequest");
+      }
       openSearchResponse = searchAction.apply(initialSearchRequest);
     }
 

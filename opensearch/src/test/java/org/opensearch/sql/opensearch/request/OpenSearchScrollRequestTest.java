@@ -6,9 +6,12 @@
 
 package org.opensearch.sql.opensearch.request;
 
+import static org.junit.jupiter.api.Assertions.assertAll;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 import static org.mockito.ArgumentMatchers.any;
@@ -142,7 +145,7 @@ class OpenSearchScrollRequestTest {
   }
 
   @Test
-  void search_withoutContext() {
+  void search_without_context() {
     OpenSearchScrollRequest request = new OpenSearchScrollRequest(
         new OpenSearchRequest.IndexName("test"),
         TimeValue.timeValueMinutes(1),
@@ -156,6 +159,32 @@ class OpenSearchScrollRequestTest {
     OpenSearchResponse response = request.search((sr) -> searchResponse, (sr) -> fail());
     verify(sourceBuilder, times(1)).fetchSource();
     assertFalse(response.isEmpty());
+  }
+
+  @Test
+  @SneakyThrows
+  void search_without_scroll_and_initial_request_should_throw() {
+    // Steps: serialize a not used request, deserialize it, then use
+    OpenSearchScrollRequest request = new OpenSearchScrollRequest(
+        new OpenSearchRequest.IndexName("test"),
+        TimeValue.timeValueMinutes(1),
+        sourceBuilder,
+        factory
+    );
+    var outStream = new BytesStreamOutput();
+    request.writeTo(outStream);
+    outStream.flush();
+    var inStream = new BytesStreamInput(outStream.bytes().toBytesRef().bytes);
+    var indexMock = mock(OpenSearchIndex.class);
+    var engine = mock(OpenSearchStorageEngine.class);
+    when(engine.getTable(any(), any())).thenReturn(indexMock);
+    var request2 = new OpenSearchScrollRequest(inStream, engine);
+    assertAll(
+        () -> assertFalse(request2.isScroll()),
+        () -> assertNull(request2.getInitialSearchRequest()),
+        () -> assertThrows(UnsupportedOperationException.class,
+            () -> request2.search(sr -> fail("search"), sr -> fail("scroll")))
+    );
   }
 
   @Test
