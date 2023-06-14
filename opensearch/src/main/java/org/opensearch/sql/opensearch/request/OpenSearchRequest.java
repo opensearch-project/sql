@@ -34,7 +34,7 @@ public interface OpenSearchRequest extends Writeable {
    *
    * @param searchAction search action.
    * @param scrollAction scroll search action.
-   * @return ElasticsearchResponse.
+   * @return OpenSearchResponse.
    */
   OpenSearchResponse search(Function<SearchRequest, SearchResponse> searchAction,
                             Function<SearchScrollRequest, SearchResponse> scrollAction);
@@ -47,8 +47,8 @@ public interface OpenSearchRequest extends Writeable {
   void clean(Consumer<String> cleanAction);
 
   /**
-   * Get the ElasticsearchExprValueFactory.
-   * @return ElasticsearchExprValueFactory.
+   * Get the OpenSearchExprValueFactory.
+   * @return OpenSearchExprValueFactory.
    */
   OpenSearchExprValueFactory getExprValueFactory();
 
