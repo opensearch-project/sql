@@ -8,6 +8,18 @@ package org.opensearch.sql
 import org.apache.spark.sql.{DataFrame, SparkSession, Row}
 import org.apache.spark.sql.types._
 
+/**
+ * Spark SQL Application entrypoint
+ *
+ * @param args(0)
+ *   sql query
+ * @param args(1)
+ *   opensearch index name
+ * @param args(2-6)
+ *   opensearch connection values required for flint-integration jar. host, port, scheme, auth, region respectively.
+ * @return
+ *   write sql query result to given opensearch index
+ */
 object SQLJob {
   def main(args: Array[String]) {
     // Get the SQL query and Opensearch Config from the command line arguments
@@ -27,7 +39,7 @@ object SQLJob {
       val result: DataFrame = spark.sql(query)
 
       // Get Data
-      val data = getData(result, spark)
+      val data = getFormattedData(result, spark)
 
       // Write data to OpenSearch index
       val aos = Map(
@@ -49,7 +61,17 @@ object SQLJob {
     }
   }
 
-  def getData(result: DataFrame, spark: SparkSession): DataFrame = {
+  /**
+   * Create a new formatted dataframe with json result, json schema and EMR_STEP_ID.
+   *
+   * @param result
+   *    sql query result dataframe
+   * @param spark
+   *    spark session
+   * @return
+   *    dataframe with result, schema and emr step id
+   */
+  def getFormattedData(result: DataFrame, spark: SparkSession): DataFrame = {
     // Create the schema dataframe
     val schemaRows = result.schema.fields.map { field =>
       Row(field.name, field.dataType.typeName)

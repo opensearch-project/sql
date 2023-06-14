@@ -26,7 +26,7 @@ class SQLJobTest extends AnyFunSuite{
   )
   val input: DataFrame = spark.createDataFrame(spark.sparkContext.parallelize(inputRows), inputSchema)
 
-  test("Test getData method") {
+  test("Test getFormattedData method") {
     // Define expected dataframe
     val expectedSchema = StructType(Seq(
       StructField("result", ArrayType(StringType, containsNull = true), nullable = true),
@@ -43,7 +43,7 @@ class SQLJobTest extends AnyFunSuite{
     val expected: DataFrame = spark.createDataFrame(spark.sparkContext.parallelize(expectedRows), expectedSchema)
 
     // Compare the result
-    val result = SQLJob.getData(input, spark)
+    val result = SQLJob.getFormattedData(input, spark)
     assertEqualDataframe(expected, result)
   }
 
