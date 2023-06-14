@@ -7,7 +7,6 @@
 package org.opensearch.sql.opensearch.storage.scan;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.reset;
 import static org.mockito.Mockito.times;
@@ -86,7 +85,6 @@ import org.opensearch.sql.planner.optimizer.LogicalPlanOptimizer;
 import org.opensearch.sql.planner.optimizer.PushDownPageSize;
 import org.opensearch.sql.planner.optimizer.rule.read.CreateTableScanBuilder;
 import org.opensearch.sql.storage.Table;
-import org.opensearch.sql.storage.TableScanOperator;
 
 @ExtendWith(MockitoExtension.class)
 class OpenSearchIndexScanOptimizationTest {
@@ -106,12 +104,7 @@ class OpenSearchIndexScanOptimizationTest {
 
   @BeforeEach
   void setUp() {
-    indexScanBuilder = new OpenSearchIndexScanBuilder(requestBuilder) {
-      @Override
-      protected TableScanOperator createScan(OpenSearchRequestBuilder build) {
-        return indexScan;
-      }
-    };
+    indexScanBuilder = new OpenSearchIndexScanBuilder(requestBuilder, requestBuilder -> indexScan);
     when(table.createScanBuilder()).thenReturn(indexScanBuilder);
   }
 
@@ -698,23 +691,15 @@ class OpenSearchIndexScanOptimizationTest {
 
   private OpenSearchIndexScanBuilder indexScanBuilder(Runnable... verifyPushDownCalls) {
     this.verifyPushDownCalls = verifyPushDownCalls;
-    return new OpenSearchIndexScanBuilder(new OpenSearchIndexScanQueryBuilder(requestBuilder)) {
-      @Override
-      protected TableScanOperator createScan(OpenSearchRequestBuilder build) {
-        return indexScan;
-      }
-    };
+    return new OpenSearchIndexScanBuilder(new OpenSearchIndexScanQueryBuilder(requestBuilder),
+        requestBuilder -> indexScan);
   }
 
   private OpenSearchIndexScanBuilder indexScanAggBuilder(Runnable... verifyPushDownCalls) {
     this.verifyPushDownCalls = verifyPushDownCalls;
-    return new OpenSearchIndexScanBuilder(new OpenSearchIndexScanAggregationBuilder(
-        requestBuilder, mock(LogicalAggregation.class))) {
-      @Override
-      protected TableScanOperator createScan(OpenSearchRequestBuilder build) {
-        return indexScan;
-      }
-    };
+    var aggregationBuilder = new OpenSearchIndexScanAggregationBuilder(
+        requestBuilder, mock(LogicalAggregation.class));
+    return new OpenSearchIndexScanBuilder(aggregationBuilder, builder -> indexScan);
   }
 
   private void assertEqualsAfterOptimization(LogicalPlan expected, LogicalPlan actual) {
