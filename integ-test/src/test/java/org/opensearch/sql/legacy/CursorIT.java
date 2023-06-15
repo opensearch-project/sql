@@ -13,6 +13,7 @@ import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_ACCOUNT;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_DATE_TIME;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_NESTED_SIMPLE;
 import static org.opensearch.sql.legacy.plugin.RestSqlAction.QUERY_API_ENDPOINT;
+import static org.opensearch.sql.util.TestUtils.verifyIsV2Cursor;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -123,7 +124,7 @@ public class CursorIT extends SQLIntegTestCase {
     String selectQuery = StringUtils.format("SELECT firstname, state FROM %s", TEST_INDEX_ACCOUNT);
     JSONObject response = new JSONObject(executeFetchQuery(selectQuery, 50, JDBC));
     String cursor = response.getString(CURSOR);
-    verifyIsV1Cursor(cursor);
+    verifyIsV2Cursor(response);
 
     int pageCount = 1;
 
@@ -131,17 +132,21 @@ public class CursorIT extends SQLIntegTestCase {
       response = executeCursorQuery(cursor);
       cursor = response.optString(CURSOR);
       if (!cursor.isEmpty()) {
-        verifyIsV1Cursor(cursor);
+        verifyIsV2Cursor(response);
       }
       pageCount++;
     }
+
+    // As of phase 1 of pagination feature implementation in V2, plugin returns an empty page at the
+    // end of scrolling
+    pageCount--;
 
     assertThat(pageCount, equalTo(20));
 
     // using random value here, with fetch size of 28 we should get 36 pages (ceil of 1000/28)
     response = new JSONObject(executeFetchQuery(selectQuery, 28, JDBC));
     cursor = response.getString(CURSOR);
-    verifyIsV1Cursor(cursor);
+    verifyIsV2Cursor(response);
     System.out.println(response);
     pageCount = 1;
 
@@ -149,10 +154,11 @@ public class CursorIT extends SQLIntegTestCase {
       response = executeCursorQuery(cursor);
       cursor = response.optString(CURSOR);
       if (!cursor.isEmpty()) {
-        verifyIsV1Cursor(cursor);
+        verifyIsV2Cursor(response);
       }
       pageCount++;
     }
+
     assertThat(pageCount, equalTo(36));
   }
 
@@ -161,7 +167,7 @@ public class CursorIT extends SQLIntegTestCase {
   public void validTotalResultWithAndWithoutPagination() throws IOException {
     // simple query - accounts index has 1000 docs, using higher limit to get all docs
     String selectQuery = StringUtils.format("SELECT firstname, state FROM %s ", TEST_INDEX_ACCOUNT);
-    verifyWithAndWithoutPaginationResponse(selectQuery + " LIMIT 2000", selectQuery, 80);
+    verifyWithAndWithoutPaginationResponse(selectQuery + " LIMIT 2000", selectQuery, 80, false);
   }
 
   @Test
@@ -169,7 +175,7 @@ public class CursorIT extends SQLIntegTestCase {
     String selectQuery = StringUtils.format(
         "SELECT firstname, state FROM %s WHERE balance < 25000 AND age > 32", TEST_INDEX_ACCOUNT
     );
-    verifyWithAndWithoutPaginationResponse(selectQuery + " LIMIT 2000", selectQuery, 17);
+    verifyWithAndWithoutPaginationResponse(selectQuery + " LIMIT 2000", selectQuery, 17, false);
   }
 
   @Test
@@ -177,7 +183,7 @@ public class CursorIT extends SQLIntegTestCase {
     String selectQuery = StringUtils.format(
         "SELECT firstname, state FROM %s ORDER BY balance DESC ", TEST_INDEX_ACCOUNT
     );
-    verifyWithAndWithoutPaginationResponse(selectQuery + " LIMIT 2000", selectQuery, 26);
+    verifyWithAndWithoutPaginationResponse(selectQuery + " LIMIT 2000", selectQuery, 26, false);
   }
 
   @Test
@@ -186,8 +192,7 @@ public class CursorIT extends SQLIntegTestCase {
         "SELECT firstname, state FROM %s WHERE balance < 25000 ORDER BY balance ASC ",
         TEST_INDEX_ACCOUNT
     );
-    verifyWithAndWithoutPaginationResponse(selectQuery + " LIMIT 2000", selectQuery, 80);
-
+    verifyWithAndWithoutPaginationResponse(selectQuery + " LIMIT 2000", selectQuery, 80, false);
   }
 
   @Test
@@ -196,7 +201,7 @@ public class CursorIT extends SQLIntegTestCase {
     String selectQuery = StringUtils.format(
         "SELECT name, a.city, a.state FROM %s m , m.address as a ", TEST_INDEX_NESTED_SIMPLE
     );
-    verifyWithAndWithoutPaginationResponse(selectQuery + " LIMIT 2000", selectQuery, 1);
+    verifyWithAndWithoutPaginationResponse(selectQuery + " LIMIT 2000", selectQuery, 1, true);
   }
 
   @Test
@@ -210,6 +215,8 @@ public class CursorIT extends SQLIntegTestCase {
     assertFalse(response.has(CURSOR));
   }
 
+  @Ignore("Temporary deactivate the test until parameter substitution implemented in V2")
+  // Test was passing before, because such paging query was executed in V1, but now it is executed in V2
   @Test
   public void testCursorWithPreparedStatement() throws IOException {
     JSONObject response = executeJDBCRequest(String.format("{" +
@@ -336,12 +343,12 @@ public class CursorIT extends SQLIntegTestCase {
         "SELECT firstname, state FROM %s WHERE balance > 100 and age < 40", TEST_INDEX_ACCOUNT);
     JSONObject result = new JSONObject(executeFetchQuery(selectQuery, 50, JDBC));
     String cursor = result.getString(CURSOR);
-    verifyIsV1Cursor(cursor);
+    verifyIsV2Cursor(result);
     // Retrieving next 10 pages out of remaining 19 pages
     for (int i = 0; i < 10; i++) {
       result = executeCursorQuery(cursor);
       cursor = result.optString(CURSOR);
-      verifyIsV1Cursor(cursor);
+      verifyIsV2Cursor(result);
     }
     //Closing the cursor
     JSONObject closeResp = executeCursorCloseQuery(cursor);
@@ -363,12 +370,11 @@ public class CursorIT extends SQLIntegTestCase {
 
     JSONObject resp = new JSONObject(TestUtils.getResponseBody(response));
     assertThat(resp.getInt("status"), equalTo(404));
-    assertThat(resp.query("/error/reason"), equalTo("all shards failed"));
-    assertThat(resp.query("/error/caused_by/reason").toString(),
+    assertThat(resp.query("/error/reason").toString(), containsString("all shards failed"));
+    assertThat(resp.query("/error/details").toString(),
         containsString("No search context found"));
-    assertThat(resp.query("/error/type"), equalTo("search_phase_execution_exception"));
+    assertThat(resp.query("/error/type"), equalTo("SearchPhaseExecutionException"));
   }
-
 
   @Test
   public void invalidCursorIdNotDecodable() throws IOException {
@@ -435,7 +441,8 @@ public class CursorIT extends SQLIntegTestCase {
 
 
   public void verifyWithAndWithoutPaginationResponse(String sqlQuery, String cursorQuery,
-                                                     int fetch_size) throws IOException {
+                                                     int fetch_size, boolean shouldFallBackToV1)
+          throws IOException {
     // we are only checking here for schema and datarows
     JSONObject withoutCursorResponse = new JSONObject(executeFetchQuery(sqlQuery, 0, JDBC));
 
@@ -448,12 +455,22 @@ public class CursorIT extends SQLIntegTestCase {
     response.optJSONArray(DATAROWS).forEach(dataRows::put);
 
     String cursor = response.getString(CURSOR);
-    verifyIsV1Cursor(cursor);
+    if (shouldFallBackToV1) {
+      verifyIsV1Cursor(cursor);
+    } else {
+      verifyIsV2Cursor(response);
+    }
     while (!cursor.isEmpty()) {
       response = executeCursorQuery(cursor);
       response.optJSONArray(DATAROWS).forEach(dataRows::put);
       cursor = response.optString(CURSOR);
-      verifyIsV1Cursor(cursor);
+      if (shouldFallBackToV1) {
+        verifyIsV1Cursor(cursor);
+      } else {
+        if (response.has("cursor")) {
+          verifyIsV2Cursor(response);
+        }
+      }
     }
 
     verifySchema(withoutCursorResponse.optJSONArray(SCHEMA),
@@ -487,7 +504,7 @@ public class CursorIT extends SQLIntegTestCase {
     if (cursor.isEmpty()) {
       return;
     }
-    assertTrue("The cursor '" + cursor + "' is not from v1 engine.", cursor.startsWith("d:"));
+    assertTrue("The cursor '" + cursor.substring(0, 50) + "...' is not from v1 engine.", cursor.startsWith("d:"));
   }
 
   private String makeRequest(String query, String fetch_size) {

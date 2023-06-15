@@ -38,6 +38,7 @@ import org.opensearch.sql.opensearch.storage.OpenSearchStorageEngine;
 @Getter
 @ToString
 public class OpenSearchScrollRequest implements OpenSearchRequest {
+
   /**
    * Search request used to initiate paged (scrolled) search. Not needed to get subsequent pages.
    */
@@ -85,7 +86,7 @@ public class OpenSearchScrollRequest implements OpenSearchRequest {
         .scroll(scrollTimeout)
         .source(sourceBuilder);
 
-    includes =  sourceBuilder.fetchSource() == null
+    includes = sourceBuilder.fetchSource() == null
         ? List.of()
         : Arrays.asList(sourceBuilder.fetchSource().includes());
   }
@@ -100,6 +101,11 @@ public class OpenSearchScrollRequest implements OpenSearchRequest {
     if (isScroll()) {
       openSearchResponse = scrollAction.apply(scrollRequest());
     } else {
+      if (initialSearchRequest == null) {
+        // Probably a first page search (since there is no scroll set) called on a deserialized
+        // `OpenSearchScrollRequest`, which has no `initialSearchRequest`.
+        throw new UnsupportedOperationException("Misuse of OpenSearchScrollRequest");
+      }
       openSearchResponse = searchAction.apply(initialSearchRequest);
     }
 
@@ -168,7 +174,7 @@ public class OpenSearchScrollRequest implements OpenSearchRequest {
    * Constructs OpenSearchScrollRequest from serialized representation.
    * @param in stream to read data from.
    * @param engine OpenSearchSqlEngine to get node-specific context.
-   * @throws IOException thrown if reading from input {@param in} fails.
+   * @throws IOException thrown if reading from input {@code in} fails.
    */
   public OpenSearchScrollRequest(StreamInput in, OpenSearchStorageEngine engine)
       throws IOException {

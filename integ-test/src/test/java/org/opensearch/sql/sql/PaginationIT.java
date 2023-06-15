@@ -5,6 +5,8 @@
 
 package org.opensearch.sql.sql;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_CALCS;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_ONLINE;
 import static org.opensearch.sql.legacy.plugin.RestSqlAction.EXPLAIN_API_ENDPOINT;
@@ -40,11 +42,11 @@ public class PaginationIT extends SQLIntegTestCase {
   }
 
   @Test
-  public void testLargeDataSetV1() throws IOException {
-    var v1query = "SELECT * from " + TEST_INDEX_ONLINE + " WHERE 1 = 1";
-    var v1response = new JSONObject(executeFetchQuery(v1query, 4, "jdbc"));
-    assertEquals(4, v1response.getInt("size"));
-    TestUtils.verifyIsV1Cursor(v1response);
+  public void testLargeDataSetV2WithWhere() throws IOException {
+    var query = "SELECT * from " + TEST_INDEX_ONLINE + " WHERE 1 = 1";
+    var response = new JSONObject(executeFetchQuery(query, 4, "jdbc"));
+    assertEquals(4, response.getInt("size"));
+    TestUtils.verifyIsV2Cursor(response);
   }
 
   @Test
@@ -196,7 +198,6 @@ public class PaginationIT extends SQLIntegTestCase {
 
   @Test
   @SneakyThrows
-  @Ignore("Activate test after PR #1500 merge")
   public void testQueryWithoutFrom() {
     var response = new JSONObject(executeFetchQuery("SELECT 1", 4, "jdbc"));
     assertFalse(response.has("cursor"));
