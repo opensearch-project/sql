@@ -14,6 +14,7 @@ import org.opensearch.sql.planner.logical.LogicalFetchCursor;
 import org.opensearch.sql.planner.logical.LogicalFilter;
 import org.opensearch.sql.planner.logical.LogicalLimit;
 import org.opensearch.sql.planner.logical.LogicalNested;
+import org.opensearch.sql.planner.logical.LogicalPaginate;
 import org.opensearch.sql.planner.logical.LogicalPlan;
 import org.opensearch.sql.planner.logical.LogicalPlanNodeVisitor;
 import org.opensearch.sql.planner.logical.LogicalProject;
@@ -159,6 +160,12 @@ public class DefaultImplementor<C> extends LogicalPlanNodeVisitor<PhysicalPlan, 
   @Override
   public PhysicalPlan visitCloseCursor(LogicalCloseCursor node, C context) {
     return new CursorCloseOperator(visitChild(node, context));
+  }
+
+  // Called when paging query requested without `FROM` clause only
+  @Override
+  public PhysicalPlan visitPaginate(LogicalPaginate plan, C context) {
+    return visitChild(plan, context);
   }
 
   protected PhysicalPlan visitChild(LogicalPlan node, C context) {
