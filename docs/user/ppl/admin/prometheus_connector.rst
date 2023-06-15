@@ -186,3 +186,27 @@ Example queries
     | 11         | "2022-11-03 07:18:64"  | "/-/metrics"                   | 500           |
     +------------+------------------------+--------------------------------+---------------+
 
+PromQL Support for prometheus Connector
+==========================================
+
+`query_range` Table Function
+----------------------------
+Prometheus connector offers `query_range` table function. This table function can be used to query metrics in a specific time range using promQL.
+The function takes inputs similar to parameters mentioned for query range api mentioned here: https://prometheus.io/docs/prometheus/latest/querying/api/
+Arguments should be either passed by name or positionArguments should be either passed by name or position.
+`source=my_prometheus.query_range('prometheus_http_requests_total', 1686694425, 1686700130, 14)`
+or
+`source=my_prometheus.query_range(query='prometheus_http_requests_total', starttime=1686694425, endtime=1686700130, step=14)`
+Example::
+
+    > source=my_prometheus.query_range('prometheus_http_requests_total', 1686694425, 1686700130, 14)
+     +------------+------------------------+--------------------------------+---------------+-------------+-------------+
+    | @value     | @timestamp             |   handler                      | code          | instance    | job         |
+    |------------+------------------------+--------------------------------+---------------+-------------+-------------|
+    | 5          | "2022-11-03 07:18:14"  | "/-/ready"                     | 200           | 192.15.1.1  | prometheus  |
+    | 3          | "2022-11-03 07:18:24"  | "/-/ready"                     | 200           | 192.15.1.1  | prometheus  |
+    | 7          | "2022-11-03 07:18:34"  | "/-/ready"                     | 200           | 192.15.1.1  | prometheus  |
+    | 2          | "2022-11-03 07:18:44"  | "/-/ready"                     | 400           | 192.15.2.1  | prometheus  |
+    | 9          | "2022-11-03 07:18:54"  | "/-/promql"                    | 400           | 192.15.2.1  | prometheus  |
+    | 11         | "2022-11-03 07:18:64"  |"/-/metrics"                    | 500           | 192.15.2.1  | prometheus  |
+    +------------+------------------------+--------------------------------+---------------+-------------+-------------+
