@@ -48,7 +48,6 @@ import org.opensearch.sql.expression.function.BuiltinFunctionName;
  * Currently, V2 engine does not support queries with:
  * - aggregation (GROUP BY clause or aggregation functions like min/max)
  * - in memory aggregation (window function)
- * - ORDER BY clause
  * - LIMIT/OFFSET clause(s)
  * - without FROM clause
  * - JOIN
@@ -68,12 +67,22 @@ public class CanPaginateVisitor extends AbstractNodeVisitor<Boolean, Object> {
     return Boolean.TRUE;
   }
 
-  private Boolean canPaginate(Node node, Object context) {
+  protected Boolean canPaginate(Node node, Object context) {
     var childList = node.getChild();
     if (childList != null) {
       return childList.stream().allMatch(n -> n.accept(this, context));
     }
     return Boolean.TRUE;
+  }
+
+  // Only column references in ORDER BY clause are supported in pagination,
+  // because expressions can't be pushed down due to #1471.
+  // https://github.com/opensearch-project/sql/issues/1471
+  @Override
+  public Boolean visitSort(Sort node, Object context) {
+    return node.getSortList().stream().allMatch(f -> f.getField() instanceof QualifiedName
+            && visitField(f, context))
+        && canPaginate(node, context);
   }
 
   // For queries with WHERE clause:
@@ -88,19 +97,13 @@ public class CanPaginateVisitor extends AbstractNodeVisitor<Boolean, Object> {
     return Boolean.FALSE;
   }
 
-  // Queries with ORDER BY clause are not supported
-  @Override
-  public Boolean visitSort(Sort node, Object context) {
-    return Boolean.FALSE;
-  }
-
-  // Queries without FROM clause are not supported
+  // For queries without FROM clause:
   @Override
   public Boolean visitValues(Values node, Object context) {
-    return Boolean.FALSE;
+    return Boolean.TRUE;
   }
 
-  // Queries with LIMIT clause are not supported
+  // Queries with LIMIT/OFFSET clauses are unsupported
   @Override
   public Boolean visitLimit(Limit node, Object context) {
     return Boolean.FALSE;
