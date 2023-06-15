@@ -27,9 +27,6 @@ public class OpenSearchDefaultImplementorTest {
   @Mock
   OpenSearchClient client;
 
-  @Mock
-  Table table;
-
   @Test
   public void visitMachineLearning() {
     LogicalMLCommons node = Mockito.mock(LogicalMLCommons.class,

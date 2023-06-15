@@ -7,6 +7,7 @@
 package org.opensearch.sql.util;
 
 import static com.google.common.base.Strings.isNullOrEmpty;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.opensearch.sql.executor.pagination.PlanSerializer.CURSOR_PREFIX;
 
@@ -856,8 +857,8 @@ public class TestUtils {
       assertTrue("'cursor' property does not exist", response.has("cursor"));
 
       var cursor = response.getString("cursor");
-      assertTrue("'cursor' property is empty", !cursor.isEmpty());
-      assertTrue("The cursor '" + cursor + "' is not from " + engineName + " engine.",
+      assertFalse("'cursor' property is empty", cursor.isEmpty());
+      assertTrue("The cursor '" + cursor.substring(0, 50) + "...' is not from " + engineName + " engine.",
           validCursorPrefix.stream().anyMatch(cursor::startsWith));
     }
 
