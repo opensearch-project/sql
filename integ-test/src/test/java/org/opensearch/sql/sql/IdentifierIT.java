@@ -105,7 +105,7 @@ public class IdentifierIT extends SQLIntegTestCase {
   public void testMetafieldIdentifierRoutingTest() throws IOException {
     // create an index, but the contents doesn't matter
     String id = "12345";
-    String index = "test.metafields";
+    String index = "test.routing_metafields";
     new Index(index).addDoc("{\"age\": 30}", id);
 
     // Execute using field metadata values
