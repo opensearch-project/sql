@@ -26,6 +26,7 @@ import org.junit.Test;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 import org.opensearch.cluster.ClusterChangedEvent;
+import org.opensearch.cluster.ClusterName;
 import org.opensearch.cluster.ClusterStateListener;
 import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.common.settings.ClusterSettings;
@@ -181,6 +182,7 @@ public class LocalClusterStateTest {
 
     @Test
     public void getDefaultValueForQuerySlowLog() {
+        when(clusterSettings.get(ClusterName.CLUSTER_NAME_SETTING)).thenReturn(ClusterName.DEFAULT);
         OpenSearchSettings settings = new OpenSearchSettings(clusterSettings);
         assertEquals(Integer.valueOf(2), settings.getSettingValue(Settings.Key.SQL_SLOWLOG));
     }

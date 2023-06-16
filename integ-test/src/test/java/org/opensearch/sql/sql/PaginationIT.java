@@ -5,6 +5,8 @@
 
 package org.opensearch.sql.sql;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_CALCS;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_ONLINE;
 import static org.opensearch.sql.legacy.plugin.RestSqlAction.EXPLAIN_API_ENDPOINT;
@@ -12,6 +14,7 @@ import static org.opensearch.sql.legacy.plugin.RestSqlAction.EXPLAIN_API_ENDPOIN
 import java.io.IOException;
 
 import lombok.SneakyThrows;
+import org.json.JSONArray;
 import org.json.JSONObject;
 import org.junit.Ignore;
 import org.junit.Test;
@@ -39,11 +42,11 @@ public class PaginationIT extends SQLIntegTestCase {
   }
 
   @Test
-  public void testLargeDataSetV1() throws IOException {
-    var v1query = "SELECT * from " + TEST_INDEX_ONLINE + " WHERE 1 = 1";
-    var v1response = new JSONObject(executeFetchQuery(v1query, 4, "jdbc"));
-    assertEquals(4, v1response.getInt("size"));
-    TestUtils.verifyIsV1Cursor(v1response);
+  public void testLargeDataSetV2WithWhere() throws IOException {
+    var query = "SELECT * from " + TEST_INDEX_ONLINE + " WHERE 1 = 1";
+    var response = new JSONObject(executeFetchQuery(query, 4, "jdbc"));
+    assertEquals(4, response.getInt("size"));
+    TestUtils.verifyIsV2Cursor(response);
   }
 
   @Test
@@ -111,5 +114,94 @@ public class PaginationIT extends SQLIntegTestCase {
         .contains("SearchContextMissingException[No search context found for id"));
     assertEquals(response.getJSONObject("error").getString("type"),
         "SearchPhaseExecutionException");
+  }
+
+  @Test
+  @SneakyThrows
+  public void testQueryWithOrderBy() {
+    var response = executeJdbcRequest(String.format("select * from %s", TEST_INDEX_CALCS));
+    var indexSize = response.getInt("total");
+    var rows = response.getJSONArray("datarows");
+    var schema = response.getJSONArray("schema");
+
+    var rowsPagedAsc = new JSONArray();
+    var rowsReturnedAsc = 0;
+    var rowsPagedDesc = new JSONArray();
+    var rowsReturnedDesc = 0;
+
+    var query = String.format("SELECT * from %s ORDER BY num1 ASC", TEST_INDEX_CALCS);
+    response = new JSONObject(executeFetchQuery(query, 4, "jdbc"));
+    assertTrue(response.has("cursor"));
+    TestUtils.verifyIsV2Cursor(response);
+    var cursor = response.getString("cursor");
+    do {
+      assertTrue(cursor.isEmpty() || cursor.startsWith("n:"));
+      assertTrue("Paged response schema doesn't match to non-paged",
+          schema.similar(response.getJSONArray("schema")));
+
+      rowsReturnedAsc += response.getInt("size");
+      var datarows = response.getJSONArray("datarows");
+      for (int i = 0; i < datarows.length(); i++) {
+        rowsPagedAsc.put(datarows.get(i));
+      }
+
+      if (response.has("cursor")) {
+        TestUtils.verifyIsV2Cursor(response);
+        cursor = response.getString("cursor");
+        response = executeCursorQuery(cursor);
+      } else {
+        cursor = "";
+      }
+
+    } while(!cursor.isEmpty());
+
+    query = String.format("SELECT * from %s ORDER BY num1 DESC", TEST_INDEX_CALCS);
+    response = new JSONObject(executeFetchQuery(query, 7, "jdbc"));
+    assertTrue(response.has("cursor"));
+    TestUtils.verifyIsV2Cursor(response);
+    cursor = response.getString("cursor");
+    do {
+      assertTrue(cursor.isEmpty() || cursor.startsWith("n:"));
+      assertTrue("Paged response schema doesn't match to non-paged",
+          schema.similar(response.getJSONArray("schema")));
+
+      rowsReturnedDesc += response.getInt("size");
+      var datarows = response.getJSONArray("datarows");
+      for (int i = 0; i < datarows.length(); i++) {
+        rowsPagedDesc.put(datarows.get(i));
+      }
+
+      if (response.has("cursor")) {
+        TestUtils.verifyIsV2Cursor(response);
+        cursor = response.getString("cursor");
+        response = executeCursorQuery(cursor);
+      } else {
+        cursor = "";
+      }
+
+    } while(!cursor.isEmpty());
+
+    assertEquals("Paged responses return another row count that non-paged",
+        indexSize, rowsReturnedAsc);
+    assertEquals("Paged responses return another row count that non-paged",
+        indexSize, rowsReturnedDesc);
+    assertTrue("Paged accumulated result has other rows than non-paged",
+        rows.toList().containsAll(rowsPagedAsc.toList()));
+    assertTrue("Paged accumulated result has other rows than non-paged",
+        rows.toList().containsAll(rowsPagedDesc.toList()));
+
+    for (int row = 0; row < indexSize; row++) {
+      assertTrue(String.format("Row %d: row order is incorrect", row),
+          rowsPagedAsc.getJSONArray(row).similar(rowsPagedDesc.getJSONArray(indexSize - row - 1)));
+    }
+  }
+
+  @Test
+  @SneakyThrows
+  public void testQueryWithoutFrom() {
+    var response = new JSONObject(executeFetchQuery("SELECT 1", 4, "jdbc"));
+    assertFalse(response.has("cursor"));
+    assertEquals(1, response.getInt("total"));
+    assertEquals(1, response.getJSONArray("datarows").getJSONArray(0).getInt(0));
   }
 }

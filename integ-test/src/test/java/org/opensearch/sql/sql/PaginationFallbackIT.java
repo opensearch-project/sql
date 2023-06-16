@@ -26,7 +26,7 @@ public class PaginationFallbackIT extends SQLIntegTestCase {
   @Test
   public void testWhereClause() throws IOException {
     var response = executeQueryTemplate("SELECT * FROM %s WHERE 1 = 1", TEST_INDEX_ONLINE);
-    verifyIsV1Cursor(response);
+    verifyIsV2Cursor(response);
   }
 
   @Test
@@ -39,23 +39,22 @@ public class PaginationFallbackIT extends SQLIntegTestCase {
   public void testSelectWithOpenSearchFuncInFilter() throws IOException {
     var response = executeQueryTemplate(
         "SELECT * FROM %s WHERE `11` = match_phrase('96')", TEST_INDEX_ONLINE);
-    verifyIsV1Cursor(response);
+    verifyIsV2Cursor(response);
   }
 
   @Test
   public void testSelectWithHighlight() throws IOException {
     var response = executeQueryTemplate(
         "SELECT highlight(`11`) FROM %s WHERE match_query(`11`, '96')", TEST_INDEX_ONLINE);
-    // As of 2023-03-08, WHERE clause sends the query to legacy engine and legacy engine
-    // does not support highlight as an expression.
-    assertTrue(response.has("error"));
+
+    verifyIsV2Cursor(response);
   }
 
   @Test
   public void testSelectWithFullTextSearch() throws IOException {
     var response = executeQueryTemplate(
         "SELECT * FROM %s WHERE match_phrase(`11`, '96')", TEST_INDEX_ONLINE);
-    verifyIsV1Cursor(response);
+    verifyIsV2Cursor(response);
   }
 
   @Test
@@ -74,7 +73,7 @@ public class PaginationFallbackIT extends SQLIntegTestCase {
   @Test
   public void testSelectColumnReference() throws IOException {
     var response = executeQueryTemplate("SELECT `107` from %s", TEST_INDEX_ONLINE);
-    verifyIsV1Cursor(response);
+    verifyIsV2Cursor(response);
   }
 
   @Test
@@ -88,7 +87,7 @@ public class PaginationFallbackIT extends SQLIntegTestCase {
   public void testSelectExpression() throws IOException {
     var response = executeQueryTemplate("SELECT 1 + 1 - `107` from %s",
         TEST_INDEX_ONLINE);
-    verifyIsV1Cursor(response);
+    verifyIsV2Cursor(response);
   }
 
   @Test
@@ -124,8 +123,6 @@ public class PaginationFallbackIT extends SQLIntegTestCase {
   public void testOrderBy() throws IOException {
     var response = executeQueryTemplate("SELECT * FROM %s ORDER By `107`",
         TEST_INDEX_ONLINE);
-    verifyIsV1Cursor(response);
+    verifyIsV2Cursor(response);
   }
-
-
 }

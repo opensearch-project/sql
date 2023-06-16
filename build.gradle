@@ -76,6 +76,7 @@ repositories {
     mavenLocal()
     maven { url "https://aws.oss.sonatype.org/content/repositories/snapshots" }
     mavenCentral() // For Elastic Libs that you can use to get started coding until open OpenSearch libs are available
+    maven { url 'https://jitpack.io' }
 }
 
 allprojects {
@@ -91,6 +92,10 @@ allprojects {
     plugins.withId('java') {
         sourceCompatibility = targetCompatibility = "11"
     }
+    configurations.all {
+        resolutionStrategy.force "org.jetbrains.kotlin:kotlin-stdlib:1.6.0"
+        resolutionStrategy.force "org.jetbrains.kotlin:kotlin-stdlib-common:1.6.0"
+    }
 }
 
 subprojects {
@@ -98,8 +103,8 @@ subprojects {
         mavenLocal()
         maven { url "https://aws.oss.sonatype.org/content/repositories/snapshots" }
         mavenCentral()
-        // todo. remove this when lucene 9.4.0 is released
         maven { url "https://d1nvenhzbhpy0q.cloudfront.net/snapshots/lucene/" }
+        maven { url 'https://jitpack.io' }
     }
 }
 

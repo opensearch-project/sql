@@ -57,7 +57,6 @@ import org.opensearch.sql.datasources.model.transport.UpdateDataSourceActionResp
 import org.opensearch.sql.datasources.rest.RestDataSourceQueryAction;
 import org.opensearch.sql.datasources.service.DataSourceMetadataStorage;
 import org.opensearch.sql.datasources.service.DataSourceServiceImpl;
-import org.opensearch.sql.datasources.settings.DataSourceSettings;
 import org.opensearch.sql.datasources.storage.OpenSearchDataSourceMetadataStorage;
 import org.opensearch.sql.datasources.transport.TransportCreateDataSourceAction;
 import org.opensearch.sql.datasources.transport.TransportDeleteDataSourceAction;
@@ -200,8 +199,7 @@ public class SQLPlugin extends Plugin implements ActionPlugin, ScriptPlugin {
     return new ImmutableList.Builder<Setting<?>>()
         .addAll(LegacyOpenDistroSettings.legacySettings())
         .addAll(OpenSearchSettings.pluginSettings())
-        .add(DataSourceSettings.DATASOURCE_CONFIG)
-        .add(DataSourceSettings.DATASOURCE_MASTER_SECRET_KEY)
+        .addAll(OpenSearchSettings.pluginNonDynamicSettings())
         .build();
   }
 
@@ -211,7 +209,7 @@ public class SQLPlugin extends Plugin implements ActionPlugin, ScriptPlugin {
   }
 
   private DataSourceServiceImpl createDataSourceService() {
-    String masterKey = DataSourceSettings
+    String masterKey = OpenSearchSettings
         .DATASOURCE_MASTER_SECRET_KEY.get(clusterService.getSettings());
     DataSourceMetadataStorage dataSourceMetadataStorage
         = new OpenSearchDataSourceMetadataStorage(client, clusterService,
@@ -222,7 +220,7 @@ public class SQLPlugin extends Plugin implements ActionPlugin, ScriptPlugin {
         new ImmutableSet.Builder<DataSourceFactory>()
             .add(new OpenSearchDataSourceFactory(
                 new OpenSearchNodeClient(this.client), pluginSettings))
-            .add(new PrometheusStorageFactory())
+            .add(new PrometheusStorageFactory(pluginSettings))
             .build(),
         dataSourceMetadataStorage,
         dataSourceUserAuthorizationHelper);

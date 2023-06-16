@@ -136,6 +136,17 @@ Master Key config for encrypting credential information
     # Print the master key
     print("Generated master key:", master_key)
 
+Datasource Allow Hosts Config
+========================================================
+* In the OpenSearch configuration file (opensearch.yml), the parameter "plugins.query.datasources.uri.allowhosts" can be utilized to control the permitted hosts within the datasource URI configuration.
+* By default, the value is set to `.*`, which allows any domain to be accepted.
+* For instance, if you set the value to `dummy.*.com`, the following URIs are some examples that would be allowed in the datasource configuration:
+   - https://dummy.prometheus.com:9080
+   - http://dummy.prometheus.com
+
+Note: The mentioned URIs are just examples to illustrate the concept.
+
+
 Using a datasource in PPL command
 ====================================
 Datasource is referred in source command as show in the code block below.
