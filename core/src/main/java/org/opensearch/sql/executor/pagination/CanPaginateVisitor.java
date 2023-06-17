@@ -48,7 +48,7 @@ import org.opensearch.sql.expression.function.BuiltinFunctionName;
  * Currently, V2 engine does not support queries with:
  * - aggregation (GROUP BY clause or aggregation functions like min/max)
  * - in memory aggregation (window function)
- * - LIMIT/OFFSET clause(s)
+ * - OFFSET clause
  * - without FROM clause
  * - JOIN
  * - a subquery
@@ -103,10 +103,13 @@ public class CanPaginateVisitor extends AbstractNodeVisitor<Boolean, Object> {
     return Boolean.TRUE;
   }
 
-  // Queries with LIMIT/OFFSET clauses are unsupported
+  // Limit can't be pushed down in pagination, so has to be implemented by `LimitOperator`.
+  // OpenSearch rejects scroll query with `from` parameter, so offset can't be pushed down.
+  // Non-zero offset produces incomplete or even empty pages, so making it not supported.
   @Override
   public Boolean visitLimit(Limit node, Object context) {
-    return Boolean.FALSE;
+    // TODO open a GH ticket for offset
+    return node.getOffset() == 0 && canPaginate(node, context);
   }
 
   @Override
