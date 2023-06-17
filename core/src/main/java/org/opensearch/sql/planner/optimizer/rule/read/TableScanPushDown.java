@@ -93,7 +93,7 @@ public class TableScanPushDown<T extends LogicalPlan> implements Rule<T> {
 
   @SuppressWarnings("unchecked")
   private TableScanPushDown(WithPattern<T> pattern,
-                           BiFunction<T, TableScanBuilder, Boolean> pushDownFunction) {
+                            BiFunction<T, TableScanBuilder, Boolean> pushDownFunction) {
     this.pattern = pattern;
     this.capture = ((CapturePattern<TableScanBuilder>) pattern.getPattern()).capture();
     this.pushDownFunction = pushDownFunction;

@@ -7,12 +7,17 @@
 package org.opensearch.sql.planner.physical;
 
 import com.google.common.collect.ImmutableList;
+import java.io.IOException;
+import java.io.ObjectInput;
+import java.io.ObjectOutput;
 import java.util.List;
+import lombok.AllArgsConstructor;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
-import lombok.RequiredArgsConstructor;
 import lombok.ToString;
 import org.opensearch.sql.data.model.ExprValue;
+import org.opensearch.sql.exception.NoCursorException;
+import org.opensearch.sql.planner.SerializablePlan;
 
 /**
  * The limit operator sets a window, to and block the rows out of the window
@@ -25,15 +30,21 @@ import org.opensearch.sql.data.model.ExprValue;
  * it occurs when the original result set has a size smaller than {index + limit},
  * or even not greater than the offset. The latter results in an empty output.</p>
  */
-@RequiredArgsConstructor
 @Getter
 @ToString
 @EqualsAndHashCode(callSuper = false)
-public class LimitOperator extends PhysicalPlan {
-  private final PhysicalPlan input;
-  private final Integer limit;
-  private final Integer offset;
+@AllArgsConstructor
+public class LimitOperator extends PhysicalPlan implements SerializablePlan {
+  private PhysicalPlan input;
+  private Integer limit;
+  private Integer offset;
   private Integer count = 0;
+
+  public LimitOperator(PhysicalPlan input, Integer limit, Integer offset) {
+    this.input = input;
+    this.limit = limit;
+    this.offset = offset;
+  }
 
   @Override
   public void open() {
@@ -67,4 +78,29 @@ public class LimitOperator extends PhysicalPlan {
     return ImmutableList.of(input);
   }
 
+  /** Don't use, it is for deserialization needs only. */
+  @Deprecated
+  public LimitOperator() {
+  }
+
+  @Override
+  public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
+    limit = in.readInt();
+    count = in.readInt();
+    // note: offset aren't serialized and deserialized, because not supported in pagination
+    // TODO open a GH ticket and post here link
+    offset = 0;
+    input = (PhysicalPlan) in.readObject();
+  }
+
+  @Override
+  public void writeExternal(ObjectOutput out) throws IOException {
+    if (count == limit) {
+      // paging is finished
+      throw new NoCursorException();
+    }
+    out.writeInt(limit);
+    out.writeInt(count);
+    out.writeObject(((SerializablePlan) input).getPlanForSerialization());
+  }
 }

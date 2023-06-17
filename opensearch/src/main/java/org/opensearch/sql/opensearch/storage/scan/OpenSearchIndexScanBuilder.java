@@ -37,6 +37,9 @@ public class OpenSearchIndexScanBuilder extends TableScanBuilder {
   /** Is limit operator pushed down. */
   private boolean isLimitPushedDown = false;
 
+  /** Is page size set. */
+  private boolean isPageSizePushedDown = false;
+
   /**
    * Constructor used during query execution.
    */
@@ -80,6 +83,7 @@ public class OpenSearchIndexScanBuilder extends TableScanBuilder {
 
   @Override
   public boolean pushDownPageSize(LogicalPaginate paginate) {
+    isPageSizePushedDown = true;
     return delegate.pushDownPageSize(paginate);
   }
 
@@ -93,8 +97,12 @@ public class OpenSearchIndexScanBuilder extends TableScanBuilder {
 
   @Override
   public boolean pushDownLimit(LogicalLimit limit) {
+    if (isPageSizePushedDown) {
+      return false;
+    }
     // Assume limit push down happening on OpenSearchIndexScanQueryBuilder
     isLimitPushedDown = true;
+    // TODO move this logic to OpenSearchRequestBuilder?
     return delegate.pushDownLimit(limit);
   }
 

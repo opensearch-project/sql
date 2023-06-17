@@ -97,9 +97,8 @@ public class OpenSearchRequestBuilder {
    */
   public OpenSearchRequest build(OpenSearchRequest.IndexName indexName,
                                  int maxResultWindow, TimeValue scrollTimeout) {
-    int size = requestedTotalSize;
     if (pageSize == null) {
-      if (startFrom + size > maxResultWindow) {
+      if (startFrom + requestedTotalSize > maxResultWindow) {
         sourceBuilder.size(maxResultWindow - startFrom);
         return new OpenSearchScrollRequest(
             indexName, scrollTimeout, sourceBuilder, exprValueFactory);
@@ -182,7 +181,6 @@ public class OpenSearchRequestBuilder {
   public void pushDownLimit(Integer limit, Integer offset) {
     requestedTotalSize = limit;
     startFrom = offset;
-    sourceBuilder.from(offset).size(limit);
   }
 
   public void pushDownTrackedScore(boolean trackScores) {

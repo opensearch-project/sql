@@ -9,9 +9,13 @@ package org.opensearch.sql.planner.optimizer;
 import static com.facebook.presto.matching.DefaultMatcher.DEFAULT_MATCHER;
 
 import com.facebook.presto.matching.Match;
+
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
+
 import org.opensearch.sql.planner.logical.LogicalPlan;
 import org.opensearch.sql.planner.optimizer.rule.MergeFilterAndFilter;
 import org.opensearch.sql.planner.optimizer.rule.PushFilterUnderSort;
@@ -28,12 +32,12 @@ import org.opensearch.sql.planner.optimizer.rule.write.CreateTableWriteBuilder;
  */
 public class LogicalPlanOptimizer {
 
-  private final List<Rule<?>> rules;
+  private final List<Rule<LogicalPlan>> rules;
 
   /**
    * Create {@link LogicalPlanOptimizer} with customized rules.
    */
-  public LogicalPlanOptimizer(List<Rule<?>> rules) {
+  public LogicalPlanOptimizer(List<Rule<LogicalPlan>> rules) {
     this.rules = rules;
   }
 
@@ -41,7 +45,7 @@ public class LogicalPlanOptimizer {
    * Create {@link LogicalPlanOptimizer} with pre-defined rules.
    */
   public static LogicalPlanOptimizer create() {
-    return new LogicalPlanOptimizer(Arrays.asList(
+    return new LogicalPlanOptimizer(Stream.of(
         /*
          * Phase 1: Transformations that rely on relational algebra equivalence
          */
@@ -51,47 +55,48 @@ public class LogicalPlanOptimizer {
          * Phase 2: Transformations that rely on data source push down capability
          */
         new CreateTableScanBuilder(),
+        new PushDownPageSize(),
         TableScanPushDown.PUSH_DOWN_FILTER,
         TableScanPushDown.PUSH_DOWN_AGGREGATION,
         TableScanPushDown.PUSH_DOWN_SORT,
         TableScanPushDown.PUSH_DOWN_LIMIT,
-        new PushDownPageSize(),
         TableScanPushDown.PUSH_DOWN_HIGHLIGHT,
         TableScanPushDown.PUSH_DOWN_NESTED,
         TableScanPushDown.PUSH_DOWN_PROJECT,
-        new CreateTableWriteBuilder()));
+        new CreateTableWriteBuilder())
+            .map(r -> (Rule<LogicalPlan>)r).collect(Collectors.toList()));
   }
 
   /**
    * Optimize {@link LogicalPlan}.
    */
   public LogicalPlan optimize(LogicalPlan plan) {
-    LogicalPlan optimized = internalOptimize(plan);
-    optimized.replaceChildPlans(
-        optimized.getChild().stream().map(this::optimize).collect(
-            Collectors.toList()));
-    return internalOptimize(optimized);
+    var node = plan;
+    for (Rule<LogicalPlan> rule : rules) {
+      node = traverseAndOptimize(node, rule);
+    }
+    return node;
   }
 
-  private LogicalPlan internalOptimize(LogicalPlan plan) {
-    LogicalPlan node = plan;
-    boolean done = false;
-    while (!done) {
-      done = true;
-      for (Rule rule : rules) {
-        Match match = DEFAULT_MATCHER.match(rule.pattern(), node);
-        if (match.isPresent()) {
-          node = rule.apply(match.value(), match.captures());
+  private LogicalPlan traverseAndOptimize(LogicalPlan plan, Rule<LogicalPlan> rule) {
+    LogicalPlan optimized = internalOptimize(plan, rule);
+    optimized.replaceChildPlans(
+            optimized.getChild().stream().map(p -> traverseAndOptimize(p, rule))
+        .collect(Collectors.toList()));
+    return internalOptimize(optimized, rule);
+  }
 
-          // For new TableScanPushDown impl, pattern match doesn't necessarily cause
-          // push down to happen. So reiterate all rules against the node only if the node
-          // is actually replaced by any rule.
-          // TODO: may need to introduce fixed point or maximum iteration limit in future
-          if (node != match.value()) {
-            done = false;
-          }
-        }
-      }
+  private LogicalPlan internalOptimize(LogicalPlan plan, Rule<LogicalPlan> rule) {
+    LogicalPlan node = plan;
+
+    Match<LogicalPlan> match = DEFAULT_MATCHER.match(rule.pattern(), node);
+    if (match.isPresent()) {
+      node = rule.apply(match.value(), match.captures());
+
+      // For new TableScanPushDown impl, pattern match doesn't necessarily cause
+      // push down to happen. So reiterate all rules against the node only if the node
+      // is actually replaced by any rule.
+      // TODO: may need to introduce fixed point or maximum iteration limit in future
     }
     return node;
   }

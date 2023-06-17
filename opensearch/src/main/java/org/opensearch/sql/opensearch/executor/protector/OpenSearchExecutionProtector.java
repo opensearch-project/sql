@@ -146,7 +146,8 @@ public class OpenSearchExecutionProtector extends ExecutionProtector {
     return new LimitOperator(
         visitInput(node.getInput(), context),
         node.getLimit(),
-        node.getOffset());
+        node.getOffset(),
+        node.getCount());
   }
 
   @Override
