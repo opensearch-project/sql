@@ -5,8 +5,6 @@
 
 package org.opensearch.flint.spark
 
-import scala.collection.JavaConverters._
-
 import org.opensearch.flint.spark.skipping.ApplyFlintSparkSkippingIndex
 
 import org.apache.spark.sql.SparkSession
@@ -36,7 +34,6 @@ class FlintSparkOptimizer(spark: SparkSession) extends Rule[LogicalPlan] {
   }
 
   private def isOptimizerEnabled: Boolean = {
-    val flintConf = new FlintSparkConf(spark.conf.getAll.asJava)
-    flintConf.isOptimizerEnabled
+    FlintSparkConf().isOptimizerEnabled
   }
 }

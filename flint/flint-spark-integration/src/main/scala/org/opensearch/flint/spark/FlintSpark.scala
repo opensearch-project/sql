@@ -32,7 +32,7 @@ import org.apache.spark.sql.streaming.OutputMode.Append
 class FlintSpark(val spark: SparkSession) {
 
   /** Flint client for low-level index operation */
-  private val flintClient: FlintClient = FlintClientBuilder.build(FlintSparkConf(spark.conf))
+  private val flintClient: FlintClient = FlintClientBuilder.build(FlintSparkConf().flintOptions())
 
   /** Required by json4s parse function */
   implicit val formats: Formats = Serialization.formats(NoTypeHints) + SkippingKindSerializer
@@ -185,9 +185,8 @@ class FlintSpark(val spark: SparkSession) {
 object FlintSpark {
 
   /**
-   * Index refresh mode:
-   *  FULL: refresh on current source data in batch style at one shot
-   *  INCREMENTAL: auto refresh on new data in continuous streaming style
+   * Index refresh mode: FULL: refresh on current source data in batch style at one shot
+   * INCREMENTAL: auto refresh on new data in continuous streaming style
    */
   object RefreshMode extends Enumeration {
     type RefreshMode = Value
