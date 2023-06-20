@@ -42,24 +42,21 @@ import org.apache.spark.sql.catalyst.trees.Origin
 import org.apache.spark.sql.types.{DataType, StructType}
 
 /**
- * Flint SQL parser that extends Spark SQL parser to parse Flint command first and fall back to
- * Spark parser for unrecognized statement.
+ * Flint SQL parser that extends Spark SQL parser with Flint SQL statements.
  *
  * @param sparkParser
  *   Spark SQL parser
  */
 class FlintSparkSqlParser(sparkParser: ParserInterface) extends ParserInterface {
 
-  /**
-   * Flint command builder. This has to be lazy because Spark.conf in FlintSpark will create
-   * Parser and thus cause stack overflow
-   */
+  /** Flint AST builder. */
   private val flintAstBuilder = new FlintSparkSqlAstBuilder()
 
   override def parsePlan(sqlText: String): LogicalPlan = parse(sqlText) { flintParser =>
     try {
       flintAstBuilder.visit(flintParser.singleStatement())
     } catch {
+      // Fall back to Spark parse plan logic if flint cannot parse
       case _: ParseException => sparkParser.parsePlan(sqlText)
     }
   }
@@ -81,6 +78,9 @@ class FlintSparkSqlParser(sparkParser: ParserInterface) extends ParserInterface 
   override def parseDataType(sqlText: String): DataType = sparkParser.parseDataType(sqlText)
 
   override def parseQuery(sqlText: String): LogicalPlan = sparkParser.parseQuery(sqlText)
+
+
+  // Starting from here is copied and modified from Spark 3.3.1
 
   protected def parse[T](sqlText: String)(toResult: FlintSparkSqlExtensionsParser => T): T = {
     val lexer = new FlintSparkSqlExtensionsLexer(
@@ -175,50 +175,3 @@ case object FlintPostProcessor extends FlintSparkSqlExtensionsBaseListener {
     parent.addChild(new TerminalNodeImpl(f(newToken)))
   }
 }
-
-/*
-/**
- * The ParseErrorListener converts parse errors into AnalysisExceptions.
- */
-case object FlintParseErrorListener extends BaseErrorListener {
-  override def syntaxError(
-      recognizer: Recognizer[_, _],
-      offendingSymbol: scala.Any,
-      line: Int,
-      charPositionInLine: Int,
-      msg: String,
-      e: RecognitionException): Unit = {
-    val (start, stop) = offendingSymbol match {
-      case token: CommonToken =>
-        val start = Origin(Some(line), Some(token.getCharPositionInLine))
-        val length = token.getStopIndex - token.getStartIndex + 1
-        val stop = Origin(Some(line), Some(token.getCharPositionInLine + length))
-        (start, stop)
-      case _ =>
-        val start = Origin(Some(line), Some(charPositionInLine))
-        (start, start)
-    }
-    throw new FlintParseException(None, msg, start, stop)
-  }
-}
-
-/**
- * A [[ParseException]] is an [[AnalysisException]] that is thrown during the parse process. It
- * contains fields and an extended error message that make reporting and diagnosing errors easier.
- */
-class FlintParseException(
-    val command: Option[String],
-    message: String,
-    val start: Origin,
-    val stop: Origin,
-    errorClass: Option[String] = None,
-    messageParameters: Array[String] = Array.empty)
-    extends AnalysisException(
-      message,
-      start.line,
-      start.startPosition,
-      None,
-      None,
-      errorClass,
-      messageParameters)
-*/

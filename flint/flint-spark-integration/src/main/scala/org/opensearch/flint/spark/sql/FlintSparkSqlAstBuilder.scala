@@ -18,7 +18,7 @@ class FlintSparkSqlAstBuilder extends FlintSparkSqlExtensionsBaseVisitor[Command
   override def visitDropSkippingIndexStatement(
       ctx: DropSkippingIndexStatementContext): Command = {
     FlintSparkSqlCommand { flint =>
-      val tableName = ctx.tableName.getText
+      val tableName = ctx.tableName.getText // TODO: handle schema name
       val indexName = getSkippingIndexName(tableName)
       flint.deleteIndex(indexName)
       Seq.empty

@@ -8,12 +8,10 @@ package org.opensearch.flint.spark.sql
 import org.opensearch.flint.spark.FlintSpark
 
 import org.apache.spark.sql.{Row, SparkSession}
-import org.apache.spark.sql.catalyst.expressions.AttributeReference
 import org.apache.spark.sql.execution.command.LeafRunnableCommand
-import org.apache.spark.sql.types.StringType
 
 /**
- * Flint Spark SQL command.
+ * Flint Spark SQL DDL command.
  *
  * Note that currently Flint SQL layer is thin with all core logic in FlintSpark. May create
  * separate command for each Flint SQL statement in future as needed.
@@ -24,8 +22,4 @@ import org.apache.spark.sql.types.StringType
 case class FlintSparkSqlCommand(block: FlintSpark => Seq[Row]) extends LeafRunnableCommand {
 
   override def run(sparkSession: SparkSession): Seq[Row] = block(new FlintSpark(sparkSession))
-}
-
-object FlintSparkSqlCommand {
-  val DEFAULT_OUTPUT = Seq(AttributeReference("Result", StringType, nullable = true)())
 }

@@ -48,14 +48,14 @@ class FlintSparkSqlSuite extends QueryTest with FlintSuite with OpenSearchSuite 
            |""".stripMargin)
   }
 
-  test("drop index test") {
+  test("drop skipping index") {
     flint
       .skippingIndex()
       .onTable(testTable)
       .addPartitionIndex("year")
       .create()
 
-    sql(s"DROP SKIPPING INDEX ON $testTable").show
+    sql(s"DROP SKIPPING INDEX ON $testTable")
 
     flint.describeIndex(testIndex) shouldBe empty
   }
