@@ -52,7 +52,7 @@ class FlintSparkSqlSuite extends QueryTest with FlintSuite with OpenSearchSuite 
     flint
       .skippingIndex()
       .onTable(testTable)
-      .addPartitionIndex("year")
+      .addPartitions("year")
       .create()
 
     sql(s"DROP SKIPPING INDEX ON $testTable")
