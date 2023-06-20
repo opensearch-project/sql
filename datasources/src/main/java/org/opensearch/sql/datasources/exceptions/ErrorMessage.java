@@ -7,6 +7,7 @@
 package org.opensearch.sql.datasources.exceptions;
 
 import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
 import com.google.gson.JsonObject;
 import lombok.Getter;
 import org.opensearch.rest.RestStatus;
@@ -65,7 +66,8 @@ public class ErrorMessage {
     JsonObject jsonObject = new JsonObject();
     jsonObject.addProperty("status", status);
     jsonObject.add("error", getErrorAsJson());
-    return new Gson().toJson(jsonObject);
+    Gson gson = new GsonBuilder().setPrettyPrinting().create();
+    return gson.toJson(jsonObject);
   }
 
   private JsonObject getErrorAsJson() {
