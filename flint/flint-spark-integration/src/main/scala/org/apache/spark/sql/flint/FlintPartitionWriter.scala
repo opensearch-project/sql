@@ -32,7 +32,7 @@ case class FlintPartitionWriter(
     with Logging {
 
   private lazy val jsonOptions = {
-    new JSONOptions(CaseInsensitiveMap(DATE_FORMAT_PARAMETERS), options.timeZone(), "")
+    new JSONOptions(CaseInsensitiveMap(DATE_FORMAT_PARAMETERS), options.timeZone, "")
   }
   private lazy val gen = FlintJacksonGenerator(dataSchema, flintWriter, jsonOptions)
 

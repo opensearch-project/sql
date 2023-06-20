@@ -11,6 +11,7 @@ import org.json4s.native.Serialization
 import org.opensearch.flint.core.metadata.FlintMetadata
 import org.opensearch.flint.spark.FlintSparkIndex
 import org.opensearch.flint.spark.skipping.FlintSparkSkippingIndex.{getSkippingIndexName, FILE_PATH_COLUMN, SKIPPING_INDEX_TYPE}
+import org.opensearch.flint.spark.skipping.FlintSparkSkippingStrategy.SkippingKindSerializer
 
 import org.apache.spark.sql.{Column, DataFrame}
 import org.apache.spark.sql.catalyst.dsl.expressions.DslExpression
@@ -30,7 +31,7 @@ class FlintSparkSkippingIndex(
     extends FlintSparkIndex {
 
   /** Required by json4s write function */
-  implicit val formats: Formats = Serialization.formats(NoTypeHints)
+  implicit val formats: Formats = Serialization.formats(NoTypeHints) + SkippingKindSerializer
 
   /** Skipping index type */
   override val kind: String = SKIPPING_INDEX_TYPE
@@ -70,13 +71,13 @@ class FlintSparkSkippingIndex(
   }
 
   private def getSchema: String = {
-    val indexFieldTypes = indexedColumns.map { indexCol =>
-      val columnName = indexCol.columnName
-      // Data type INT from catalog is not recognized by Spark DataType.fromJson()
-      val columnType = if (indexCol.columnType == "int") "integer" else indexCol.columnType
-      val sparkType = DataType.fromJson("\"" + columnType + "\"")
-      StructField(columnName, sparkType, nullable = false)
-    }
+    val indexFieldTypes =
+      indexedColumns.flatMap(_.outputSchema()).map { case (colName, colType) =>
+        // Data type INT from catalog is not recognized by Spark DataType.fromJson()
+        val columnType = if (colType == "int") "integer" else colType
+        val sparkType = DataType.fromJson("\"" + columnType + "\"")
+        StructField(colName, sparkType, nullable = false)
+      }
 
     val allFieldTypes =
       indexFieldTypes :+ StructField(FILE_PATH_COLUMN, StringType, nullable = false)

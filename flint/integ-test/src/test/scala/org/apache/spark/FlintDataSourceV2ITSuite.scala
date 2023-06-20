@@ -52,7 +52,7 @@ class FlintDataSourceV2ITSuite
 
       val df = spark.sqlContext.read
         .format("flint")
-        .options(openSearchOptions + (s"${FlintSparkConf.SCROLL_SIZE.key}" -> "1"))
+        .options(openSearchOptions + (s"${FlintSparkConf.SCROLL_SIZE.optionKey}" -> "1"))
         .load(indexName)
         .sort(asc("id"))
 
@@ -132,8 +132,8 @@ class FlintDataSourceV2ITSuite
         |  }
         |}""".stripMargin
     val options =
-      openSearchOptions + (s"${FlintSparkConf.REFRESH_POLICY.key}" -> "wait_for",
-      s"${FlintSparkConf.DOC_ID_COLUMN_NAME.key}" -> "aInt")
+      openSearchOptions + (s"${FlintSparkConf.REFRESH_POLICY.optionKey}" -> "wait_for",
+      s"${FlintSparkConf.DOC_ID_COLUMN_NAME.optionKey}" -> "aInt")
     Seq(Seq.empty, 1 to 14).foreach(data => {
       withIndexName(indexName) {
         index(indexName, oneNodeSetting, mappings, Seq.empty)
@@ -168,8 +168,8 @@ class FlintDataSourceV2ITSuite
   test("write dataframe to flint with batch size configuration") {
     val indexName = "t0004"
     val options =
-      openSearchOptions + (s"${FlintSparkConf.REFRESH_POLICY.key}" -> "wait_for",
-      s"${FlintSparkConf.DOC_ID_COLUMN_NAME.key}" -> "aInt")
+      openSearchOptions + (s"${FlintSparkConf.REFRESH_POLICY.optionKey}" -> "wait_for",
+      s"${FlintSparkConf.DOC_ID_COLUMN_NAME.optionKey}" -> "aInt")
     Seq(0, 1).foreach(batchSize => {
       withIndexName(indexName) {
         val mappings =
@@ -224,8 +224,8 @@ class FlintDataSourceV2ITSuite
           .option("checkpointLocation", checkpointDir)
           .format("flint")
           .options(openSearchOptions)
-          .option(s"${FlintSparkConf.REFRESH_POLICY.key}", "wait_for")
-          .option(s"${FlintSparkConf.DOC_ID_COLUMN_NAME.key}", "aInt")
+          .option(s"${FlintSparkConf.REFRESH_POLICY.optionKey}", "wait_for")
+          .option(s"${FlintSparkConf.DOC_ID_COLUMN_NAME.optionKey}", "aInt")
           .start(indexName)
 
         inputData.addData(1, 2, 3)
@@ -253,8 +253,8 @@ class FlintDataSourceV2ITSuite
     val indexName = "t0001"
     withIndexName(indexName) {
       simpleIndex(indexName)
-      spark.conf.set(FlintSparkConf.sparkConf(FlintSparkConf.HOST_ENDPOINT.key), openSearchHost)
-      spark.conf.set(FlintSparkConf.sparkConf(FlintSparkConf.HOST_PORT.key), openSearchPort)
+      spark.conf.set(FlintSparkConf.HOST_ENDPOINT.key, openSearchHost)
+      spark.conf.set(FlintSparkConf.HOST_PORT.key, openSearchPort)
 
       val df = spark.sqlContext.read
         .format("flint")
@@ -271,8 +271,8 @@ class FlintDataSourceV2ITSuite
     withIndexName(indexName) {
       simpleIndex(indexName)
       // set invalid host name and port which should be overwrite by datasource option.
-      spark.conf.set(FlintSparkConf.sparkConf(FlintSparkConf.HOST_ENDPOINT.key), "invalid host")
-      spark.conf.set(FlintSparkConf.sparkConf(FlintSparkConf.HOST_PORT.key), "0")
+      spark.conf.set(FlintSparkConf.HOST_ENDPOINT.key, "invalid host")
+      spark.conf.set(FlintSparkConf.HOST_PORT.key, "0")
 
       val df = spark.sqlContext.read
         .format("flint")
@@ -288,7 +288,8 @@ class FlintDataSourceV2ITSuite
 
   test("load and save date and timestamp type field") {
     val indexName = "t0001"
-    val options = openSearchOptions + (s"${FlintSparkConf.REFRESH_POLICY.key}" -> "wait_for")
+    val options =
+      openSearchOptions + (s"${FlintSparkConf.REFRESH_POLICY.optionKey}" -> "wait_for")
     Seq(
       """{
           |  "properties": {
@@ -339,7 +340,8 @@ class FlintDataSourceV2ITSuite
 
   test("load timestamp field in epoch format") {
     val indexName = "t0001"
-    val options = openSearchOptions + (s"${FlintSparkConf.REFRESH_POLICY.key}" -> "wait_for")
+    val options =
+      openSearchOptions + (s"${FlintSparkConf.REFRESH_POLICY.optionKey}" -> "wait_for")
     Seq(
       """{
         |  "properties": {
@@ -416,7 +418,8 @@ class FlintDataSourceV2ITSuite
 
   test("scan with date filter push-down") {
     val indexName = "t0001"
-    val options = openSearchOptions + (s"${FlintSparkConf.REFRESH_POLICY.key}" -> "wait_for")
+    val options =
+      openSearchOptions + (s"${FlintSparkConf.REFRESH_POLICY.optionKey}" -> "wait_for")
     withIndexName(indexName) {
       val mappings = """{
                        |  "properties": {
