@@ -15,7 +15,8 @@ import org.opensearch.flint.spark.FlintSpark.RefreshMode.{FULL, INCREMENTAL, Ref
 import org.opensearch.flint.spark.skipping.{FlintSparkSkippingIndex, FlintSparkSkippingStrategy}
 import org.opensearch.flint.spark.skipping.FlintSparkSkippingIndex.SKIPPING_INDEX_TYPE
 import org.opensearch.flint.spark.skipping.FlintSparkSkippingStrategy.{SkippingKind, SkippingKindSerializer}
-import org.opensearch.flint.spark.skipping.FlintSparkSkippingStrategy.SkippingKind.{Partition, ValuesSet}
+import org.opensearch.flint.spark.skipping.FlintSparkSkippingStrategy.SkippingKind.{MinMax, Partition, ValuesSet}
+import org.opensearch.flint.spark.skipping.minmax.MinMaxSkippingStrategy
 import org.opensearch.flint.spark.skipping.partition.PartitionSkippingStrategy
 import org.opensearch.flint.spark.skipping.valueset.ValueSetSkippingStrategy
 
@@ -173,6 +174,8 @@ class FlintSpark(val spark: SparkSession) {
               PartitionSkippingStrategy(columnName = columnName, columnType = columnType)
             case ValuesSet =>
               ValueSetSkippingStrategy(columnName = columnName, columnType = columnType)
+            case MinMax =>
+              MinMaxSkippingStrategy(columnName = columnName, columnType = columnType)
             case other =>
               throw new IllegalStateException(s"Unknown skipping strategy: $other")
           }
@@ -253,6 +256,22 @@ object FlintSpark {
       val col = findColumn(colName)
       addIndexedColumn(
         ValueSetSkippingStrategy(columnName = col.name, columnType = col.dataType))
+      this
+    }
+
+    /**
+     * Add min max skipping indexed column.
+     *
+     * @param colName
+     *   indexed column name
+     * @return
+     *   index builder
+     */
+    def addMinMax(colName: String): IndexBuilder = {
+      val col = findColumn(colName)
+      indexedColumns = indexedColumns :+ MinMaxSkippingStrategy(
+        columnName = col.name,
+        columnType = col.dataType)
       this
     }
 

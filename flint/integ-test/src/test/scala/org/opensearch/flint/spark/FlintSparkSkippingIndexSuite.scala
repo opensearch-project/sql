@@ -51,6 +51,7 @@ class FlintSparkSkippingIndexSuite
         | CREATE TABLE $testTable
         | (
         |   name STRING,
+        |   age INT,
         |   address STRING
         | )
         | USING CSV
@@ -67,13 +68,13 @@ class FlintSparkSkippingIndexSuite
     sql(s"""
         | INSERT INTO $testTable
         | PARTITION (year=2023, month=4)
-        | VALUES ('Hello', 'Seattle')
+        | VALUES ('Hello', 30, 'Seattle')
         | """.stripMargin)
 
     sql(s"""
         | INSERT INTO $testTable
         | PARTITION (year=2023, month=5)
-        | VALUES ('World', 'Portland')
+        | VALUES ('World', 25, 'Portland')
         | """.stripMargin)
   }
 
@@ -96,6 +97,7 @@ class FlintSparkSkippingIndexSuite
       .onTable(testTable)
       .addPartitions("year", "month")
       .addValueSet("address")
+      .addMinMax("age")
       .create()
 
     val indexName = s"flint_${testTable}_skipping_index"
@@ -119,6 +121,11 @@ class FlintSparkSkippingIndexSuite
         |        "kind": "ValuesSet",
         |        "columnName": "address",
         |        "columnType": "string"
+        |     },
+        |     {
+        |        "kind": "MinMax",
+        |        "columnName": "age",
+        |        "columnType": "int"
         |     }],
         |     "source": "$testTable"
         |   },
@@ -131,6 +138,12 @@ class FlintSparkSkippingIndexSuite
         |     },
         |     "address": {
         |       "type": "keyword"
+        |     },
+        |     "MinMax_age_0": {
+        |       "type": "integer"
+        |     },
+        |     "MinMax_age_1" : {
+        |       "type": "integer"
         |     },
         |     "file_path": {
         |       "type": "keyword"
@@ -266,6 +279,26 @@ class FlintSparkSkippingIndexSuite
     query.queryExecution.executedPlan should
       useFlintSparkSkippingFileIndex(
         hasIndexFilter(col("address") === "Seattle"))
+  }
+
+  test("can build min max skipping index and rewrite applicable query") {
+    flint
+      .skippingIndex()
+      .onTable(testTable)
+      .addMinMax("age")
+      .create()
+    flint.refreshIndex(testIndex, FULL)
+
+    val query = sql(s"""
+                       | SELECT name
+                       | FROM $testTable
+                       | WHERE age = 25
+                       |""".stripMargin)
+
+    checkAnswer(query, Row("World"))
+    query.queryExecution.executedPlan should
+      useFlintSparkSkippingFileIndex(
+        hasIndexFilter(col("MinMax_age_0") <= 25 && col("MinMax_age_1") >= 25))
   }
 
   test("should return empty if describe index not exist") {
