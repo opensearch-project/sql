@@ -21,6 +21,7 @@ import java.util.List;
 import java.util.Locale;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.opensearch.OpenSearchException;
 import org.opensearch.action.ActionListener;
 import org.opensearch.client.node.NodeClient;
 import org.opensearch.rest.BaseRestHandler;
@@ -224,6 +225,9 @@ public class RestDataSourceQueryAction extends BaseRestHandler {
   private void handleException(Exception e, RestChannel restChannel) {
     if (e instanceof DataSourceNotFoundException) {
       reportError(restChannel, e, NOT_FOUND);
+    } else if (e instanceof OpenSearchException) {
+      OpenSearchException exception = (OpenSearchException) e;
+      reportError(restChannel, exception, exception.status());
     } else {
       LOG.error("Error happened during request handling", e);
       if (isClientError(e)) {
