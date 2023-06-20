@@ -104,10 +104,12 @@ nonReserved
     ;
 
 
-// Flint Lexer Extension
+// Flint lexical tokens
 
 SKIPPING : 'SKIPPING';
 
+
+// Spark lexical tokens
 
 SEMICOLON: ';';
 

@@ -3,7 +3,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 import Dependencies._
-import com.simplytyped.Antlr4Plugin.autoImport.antlr4Version
 
 lazy val scala212 = "2.12.14"
 lazy val sparkVersion = "3.3.1"
@@ -24,8 +23,6 @@ ThisBuild / scalastyleConfig := baseDirectory.value / "scalastyle-config.xml"
  * Tests cannot be run in parallel since multiple Spark contexts cannot run in the same JVM
  */
 ThisBuild / Test / parallelExecution := false
-
-// enablePlugins(Antlr4Plugin)
 
 // Run as part of compile task.
 lazy val compileScalastyle = taskKey[Unit]("compileScalastyle")
@@ -78,7 +75,6 @@ lazy val flintSparkIntegration = (project in file("flint-spark-integration"))
     Antlr4 / antlr4PackageName := Some("org.opensearch.flint.spark.sql"),
     Antlr4 / antlr4GenListener := true,
     Antlr4 / antlr4GenVisitor := true,
-    // antlr4TreatWarningsAsErrors in Antlr4 := true,
     // Assembly settings
     assemblyPackageScala / assembleArtifact := false,
     assembly / assemblyOption ~= {

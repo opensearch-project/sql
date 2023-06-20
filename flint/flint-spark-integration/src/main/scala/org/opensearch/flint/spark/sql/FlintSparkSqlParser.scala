@@ -3,6 +3,28 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+/*
+ * This file contains code from the Apache Spark project (original license below).
+ * It contains modifications, which are licensed as above:
+ */
+
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *    http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 package org.opensearch.flint.spark.sql
 
 import org.antlr.v4.runtime._
@@ -32,41 +54,15 @@ class FlintSparkSqlParser(sparkParser: ParserInterface) extends ParserInterface 
    * Flint command builder. This has to be lazy because Spark.conf in FlintSpark will create
    * Parser and thus cause stack overflow
    */
-  private val flintCmdBuilder = new FlintSparkSqlCommandBuilder()
+  private val flintAstBuilder = new FlintSparkSqlAstBuilder()
 
-  override def parsePlan(sqlText: String): LogicalPlan = {
-    val flintLexer = new FlintSparkSqlExtensionsLexer(
-      new UpperCaseCharStream(CharStreams.fromString(sqlText)))
-    flintLexer.removeErrorListeners()
-    flintLexer.addErrorListener(ParseErrorListener)
-
-    val tokenStream = new CommonTokenStream(flintLexer)
-    val flintParser = new FlintSparkSqlExtensionsParser(tokenStream)
-    flintParser.addParseListener(PostProcessor)
-    // parser.addParseListener(UnclosedCommentProcessor(command, tokenStream))
-    flintParser.removeErrorListeners()
-    flintParser.addErrorListener(ParseErrorListener)
-
-    try {
-      val ctx = flintParser.singleStatement()
-      flintCmdBuilder.visit(ctx) match {
-        case plan: LogicalPlan => plan
-        case _ => sparkParser.parsePlan(sqlText)
-      }
-    } catch {
-      case e: ParseException => sparkParser.parsePlan(sqlText)
-    }
-
-  }
-
-  /*
   override def parsePlan(sqlText: String): LogicalPlan = parse(sqlText) { flintParser =>
-    flintCmdBuilder.visit(flintParser.singleStatement()) match {
-      case plan: LogicalPlan => plan
-      case _ => sparkParser.parsePlan(sqlText)
+    try {
+      flintAstBuilder.visit(flintParser.singleStatement())
+    } catch {
+      case _: ParseException => sparkParser.parsePlan(sqlText)
     }
   }
-  */
 
   override def parseExpression(sqlText: String): Expression = sparkParser.parseExpression(sqlText)
 
@@ -94,7 +90,7 @@ class FlintSparkSqlParser(sparkParser: ParserInterface) extends ParserInterface 
 
     val tokenStream = new CommonTokenStream(lexer)
     val parser = new FlintSparkSqlExtensionsParser(tokenStream)
-    parser.addParseListener(PostProcessor)
+    parser.addParseListener(FlintPostProcessor)
     parser.removeErrorListeners()
     parser.addErrorListener(ParseErrorListener)
 
@@ -114,7 +110,10 @@ class FlintSparkSqlParser(sparkParser: ParserInterface) extends ParserInterface 
           toResult(parser)
       }
     } catch {
-      case e: ParseException => throw e
+      case e: ParseException if e.command.isDefined =>
+        throw e
+      case e: ParseException =>
+        throw e.withCommand(sqlText)
       case e: AnalysisException =>
         val position = Origin(e.line, e.startPosition)
         throw new ParseException(
@@ -137,18 +136,7 @@ class UpperCaseCharStream(wrapped: CodePointCharStream) extends CharStream {
   override def seek(where: Int): Unit = wrapped.seek(where)
   override def size(): Int = wrapped.size
 
-  override def getText(interval: Interval): String = {
-    // ANTLR 4.7's CodePointCharStream implementations have bugs when
-    // getText() is called with an empty stream, or intervals where
-    // the start > end. See
-    // https://github.com/antlr/antlr4/commit/ac9f7530 for one fix
-    // that is not yet in a released ANTLR artifact.
-    if (size() > 0 && (interval.b - interval.a >= 0)) {
-      wrapped.getText(interval)
-    } else {
-      ""
-    }
-  }
+  override def getText(interval: Interval): String = wrapped.getText(interval)
 
   override def LA(i: Int): Int = {
     val la = wrapped.LA(i)
@@ -157,7 +145,7 @@ class UpperCaseCharStream(wrapped: CodePointCharStream) extends CharStream {
   }
 }
 
-case object PostProcessor extends FlintSparkSqlExtensionsBaseListener {
+case object FlintPostProcessor extends FlintSparkSqlExtensionsBaseListener {
 
   /** Remove the back ticks from an Identifier. */
   override def exitQuotedIdentifier(ctx: QuotedIdentifierContext): Unit = {
@@ -187,3 +175,50 @@ case object PostProcessor extends FlintSparkSqlExtensionsBaseListener {
     parent.addChild(new TerminalNodeImpl(f(newToken)))
   }
 }
+
+/*
+/**
+ * The ParseErrorListener converts parse errors into AnalysisExceptions.
+ */
+case object FlintParseErrorListener extends BaseErrorListener {
+  override def syntaxError(
+      recognizer: Recognizer[_, _],
+      offendingSymbol: scala.Any,
+      line: Int,
+      charPositionInLine: Int,
+      msg: String,
+      e: RecognitionException): Unit = {
+    val (start, stop) = offendingSymbol match {
+      case token: CommonToken =>
+        val start = Origin(Some(line), Some(token.getCharPositionInLine))
+        val length = token.getStopIndex - token.getStartIndex + 1
+        val stop = Origin(Some(line), Some(token.getCharPositionInLine + length))
+        (start, stop)
+      case _ =>
+        val start = Origin(Some(line), Some(charPositionInLine))
+        (start, start)
+    }
+    throw new FlintParseException(None, msg, start, stop)
+  }
+}
+
+/**
+ * A [[ParseException]] is an [[AnalysisException]] that is thrown during the parse process. It
+ * contains fields and an extended error message that make reporting and diagnosing errors easier.
+ */
+class FlintParseException(
+    val command: Option[String],
+    message: String,
+    val start: Origin,
+    val stop: Origin,
+    errorClass: Option[String] = None,
+    messageParameters: Array[String] = Array.empty)
+    extends AnalysisException(
+      message,
+      start.line,
+      start.startPosition,
+      None,
+      None,
+      errorClass,
+      messageParameters)
+*/

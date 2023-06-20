@@ -5,7 +5,7 @@
 
 package org.opensearch.flint.spark.sql
 
-import org.opensearch.flint.spark.skipping.FlintSparkSkippingIndex
+import org.opensearch.flint.spark.skipping.FlintSparkSkippingIndex.getSkippingIndexName
 import org.opensearch.flint.spark.sql.FlintSparkSqlExtensionsParser.DropSkippingIndexStatementContext
 
 import org.apache.spark.sql.catalyst.plans.logical.Command
@@ -13,13 +13,13 @@ import org.apache.spark.sql.catalyst.plans.logical.Command
 /**
  * Flint Spark AST builder that builds Spark command for Flint index statement.
  */
-class FlintSparkSqlCommandBuilder extends FlintSparkSqlExtensionsBaseVisitor[Command] {
+class FlintSparkSqlAstBuilder extends FlintSparkSqlExtensionsBaseVisitor[Command] {
 
   override def visitDropSkippingIndexStatement(
       ctx: DropSkippingIndexStatementContext): Command = {
     FlintSparkSqlCommand { flint =>
       val tableName = ctx.tableName.getText
-      val indexName = FlintSparkSkippingIndex.getSkippingIndexName(tableName)
+      val indexName = getSkippingIndexName(tableName)
       flint.deleteIndex(indexName)
       Seq.empty
     }
