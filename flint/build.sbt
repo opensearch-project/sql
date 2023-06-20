@@ -3,6 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 import Dependencies._
+import com.simplytyped.Antlr4Plugin.autoImport.antlr4Version
 
 lazy val scala212 = "2.12.14"
 lazy val sparkVersion = "3.3.1"
@@ -73,13 +74,11 @@ lazy val flintSparkIntegration = (project in file("flint-spark-integration"))
       "com.github.sbt" % "junit-interface" % "0.13.3" % "test"),
     libraryDependencies ++= deps(sparkVersion),
     // ANTLR settings
-    antlr4Version in Antlr4 := "4.7",
-    // antlr4PackageName in Antlr4 := Some("org.opensearch.flint.spark.sql"),
-    antlr4GenListener in Antlr4 := true,
-    antlr4GenVisitor in Antlr4 := true,
-    antlr4TreatWarningsAsErrors in Antlr4 := true,
-    // antlr4Generate in Antlr4 :=
-    //  Seq(file("flint-spark-integration/src/main/antlr/FlintSparkSqlExtensions.g4")),
+    Antlr4 / antlr4Version := "4.7",
+    Antlr4 / antlr4PackageName := Some("org.opensearch.flint.spark.sql"),
+    Antlr4 / antlr4GenListener := true,
+    Antlr4 / antlr4GenVisitor := true,
+    // antlr4TreatWarningsAsErrors in Antlr4 := true,
     // Assembly settings
     assemblyPackageScala / assembleArtifact := false,
     assembly / assemblyOption ~= {
