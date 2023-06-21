@@ -56,7 +56,7 @@ lazy val flintCore = (project in file("flint-core"))
 
 lazy val flintSparkIntegration = (project in file("flint-spark-integration"))
   .dependsOn(flintCore)
-  .enablePlugins(AssemblyPlugin)
+  .enablePlugins(AssemblyPlugin, Antlr4Plugin)
   .settings(
     commonSettings,
     name := "flint-spark-integration",
@@ -70,6 +70,12 @@ lazy val flintSparkIntegration = (project in file("flint-spark-integration"))
       "org.scalatestplus" %% "mockito-4-6" % "3.2.15.0" % "test",
       "com.github.sbt" % "junit-interface" % "0.13.3" % "test"),
     libraryDependencies ++= deps(sparkVersion),
+    // ANTLR settings
+    Antlr4 / antlr4Version := "4.8",
+    Antlr4 / antlr4PackageName := Some("org.opensearch.flint.spark.sql"),
+    Antlr4 / antlr4GenListener := true,
+    Antlr4 / antlr4GenVisitor := true,
+    // Assembly settings
     assemblyPackageScala / assembleArtifact := false,
     assembly / assemblyOption ~= {
       _.withIncludeScala(false)
