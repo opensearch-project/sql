@@ -5,9 +5,12 @@
 
 package org.opensearch.sql.prometheus.client;
 
-import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+import com.google.gson.ReflectionAccessFilter;
+import com.google.gson.reflect.TypeToken;
 import java.io.IOException;
+import java.lang.reflect.Type;
 import java.net.URI;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
@@ -78,9 +81,12 @@ public class PrometheusClientImpl implements PrometheusClient {
         .build();
     Response response = this.okHttpClient.newCall(request).execute();
     JSONObject jsonObject = readResponse(response);
-    TypeReference<HashMap<String, List<MetricMetadata>>> typeRef
-        = new TypeReference<>() {};
-    return new ObjectMapper().readValue(jsonObject.getJSONObject("data").toString(), typeRef);
+    Type typeTok = new TypeToken<HashMap<String, List<MetricMetadata>>>() {}.getType();
+    Gson gson = new GsonBuilder()
+        .disableJdkUnsafe()
+        .addReflectionAccessFilter(ReflectionAccessFilter.BLOCK_ALL_PLATFORM)
+        .create();
+    return gson.fromJson(jsonObject.getJSONObject("data").toString(), typeTok);
   }
 
   private List<String> toListOfLabels(JSONArray array) {

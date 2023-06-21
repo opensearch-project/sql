@@ -17,10 +17,10 @@ import org.opensearch.OpenSearchGenerationException;
 import org.opensearch.action.admin.cluster.settings.ClusterUpdateSettingsRequest;
 import org.opensearch.client.Requests;
 import org.opensearch.client.node.NodeClient;
-import org.opensearch.common.Strings;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.common.xcontent.XContentFactory;
 import org.opensearch.common.xcontent.XContentType;
+import org.opensearch.core.common.Strings;
 import org.opensearch.core.xcontent.XContentBuilder;
 import org.opensearch.core.xcontent.XContentParser;
 import org.opensearch.rest.BaseRestHandler;
@@ -110,7 +110,7 @@ public class RestQuerySettingsAction extends BaseRestHandler {
       XContentBuilder builder = XContentFactory.contentBuilder(XContentType.JSON);
       builder.map(source);
       Settings.Builder settingsBuilder = Settings.builder()
-          .loadFromSource(Strings.toString(builder), builder.contentType());
+          .loadFromSource(org.opensearch.common.Strings.toString(builder), builder.contentType());
       settingsBuilder.keys().removeIf(key -> {
         for (String prefix : SETTINGS_PREFIX) {
           if (key.startsWith(prefix)) {

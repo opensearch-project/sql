@@ -13,7 +13,7 @@ import java.util.Objects;
 import org.opensearch.action.search.ClearScrollResponse;
 import org.opensearch.action.search.SearchResponse;
 import org.opensearch.client.Client;
-import org.opensearch.common.Strings;
+import org.opensearch.core.common.Strings;
 import org.opensearch.common.unit.TimeValue;
 import org.opensearch.common.xcontent.XContentType;
 import org.opensearch.index.query.BoolQueryBuilder;
@@ -96,7 +96,7 @@ public class Scroll extends BatchPhysicalOperator<SearchHit> {
                     generateNewQueryWithExtraFilter((BoolQueryBuilder) filter));
 
             if (LOG.isDebugEnabled()) {
-                LOG.debug("Received extra query filter, re-build query: {}", Strings.toString(XContentType.JSON,
+                LOG.debug("Received extra query filter, re-build query: {}", org.opensearch.common.Strings.toString(XContentType.JSON,
                         request.getRequestBuilder().request().source(), true, true
                 ));
             }
@@ -196,6 +196,6 @@ public class Scroll extends BatchPhysicalOperator<SearchHit> {
      *********************************************/
 
     public String getRequest() {
-        return Strings.toString(XContentType.JSON, request.getRequestBuilder().request().source());
+        return org.opensearch.common.Strings.toString(XContentType.JSON, request.getRequestBuilder().request().source());
     }
 }
