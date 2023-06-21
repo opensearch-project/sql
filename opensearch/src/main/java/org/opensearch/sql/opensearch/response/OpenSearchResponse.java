@@ -195,7 +195,7 @@ public class OpenSearchResponse implements Iterable<ExprValue> {
    * Handle an aggregation response.
    * @return Parsed and built return values from response.
    */
-  public Iterator<ExprValue> handleAggregationResponse() {
+  private Iterator<ExprValue> handleAggregationResponse() {
     return exprValueFactory.getParser().parse(aggregations).stream().map(entry -> {
       ImmutableMap.Builder<String, ExprValue> builder = new ImmutableMap.Builder<>();
       for (Map.Entry<String, Object> value : entry.entrySet()) {
