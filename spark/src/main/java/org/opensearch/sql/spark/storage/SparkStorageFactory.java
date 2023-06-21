@@ -23,13 +23,6 @@ import java.util.Map;
 public class SparkStorageFactory implements DataSourceFactory {
   private final Client client;
   private final Settings settings;
-  public static final String EMR_CLUSTER = "emr.cluster";
-  public static final String OPENSEARCH_DOMAIN_ENDPOINT = "opensearch.domain";
-  public static final String AUTH_TYPE = "emr.auth.type";
-  public static final String REGION = "emr.auth.region";
-  public static final String ROLE_ARN = "emr.auth.role_arn";
-  public static final String ACCESS_KEY = "emr.auth.access_key";
-  public static final String SECRET_KEY = "emr.auth.secret_key";
 
   @Override
   public DataSourceType getDataSourceType() {
