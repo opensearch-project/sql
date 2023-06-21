@@ -453,6 +453,19 @@ class OpenSearchExprValueFactoryTest {
   }
 
   @Test
+  public void constructMultiNestedArraysOfStringsReturnsFirstIndex() {
+    assertEquals(
+        stringValue("z"),
+        tupleValue(
+            "{\"stringV\":"
+                + "[\"z\","
+                + "[\"s\"],"
+                + "[\"zz\", \"au\"]"
+                + "]}"
+        ).get("stringV"));
+  }
+
+  @Test
   public void constructArrayOfInts() {
     assertEquals(new ExprCollectionValue(
             List.of(integerValue(1), integerValue(2))),

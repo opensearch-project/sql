@@ -375,6 +375,9 @@ public class NestedIT extends SQLIntegTestCase {
     JSONObject result = executeJdbcRequest(query);
 
     assertEquals(11, result.getInt("total"));
+    verifySchema(result,
+        schema("nested(address.moveInDate)", null, "object")
+    );
     verifyDataRows(result,
         rows(new JSONObject(Map.of("dateAndTime","1984-04-12 09:07:42"))),
         rows(new JSONArray(
