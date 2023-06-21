@@ -16,6 +16,9 @@ repositories {
 dependencies {
     api project(':core')
     implementation project(':datasources')
+
+    implementation group: 'org.opensearch', name: 'opensearch', version: "${opensearch_version}"
+    implementation group: 'org.json', name: 'json', version: '20230227'
 }
 
 test {
