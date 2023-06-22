@@ -10,6 +10,7 @@ import com.google.common.annotations.VisibleForTesting;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.function.Function;
 import lombok.RequiredArgsConstructor;
 import org.opensearch.common.unit.TimeValue;
 import org.opensearch.sql.common.setting.Settings;
@@ -33,7 +34,6 @@ import org.opensearch.sql.planner.logical.LogicalMLCommons;
 import org.opensearch.sql.planner.logical.LogicalPlan;
 import org.opensearch.sql.planner.physical.PhysicalPlan;
 import org.opensearch.sql.storage.Table;
-import org.opensearch.sql.storage.TableScanOperator;
 import org.opensearch.sql.storage.read.TableScanBuilder;
 
 /** OpenSearch table (index) implementation. */
@@ -171,19 +171,14 @@ public class OpenSearchIndex implements Table {
   public TableScanBuilder createScanBuilder() {
     final int querySizeLimit = settings.getSettingValue(Settings.Key.QUERY_SIZE_LIMIT);
 
+    final TimeValue cursorKeepAlive = settings.getSettingValue(Settings.Key.SQL_CURSOR_KEEP_ALIVE);
     var builder = new OpenSearchRequestBuilder(
         querySizeLimit,
         createExprValueFactory());
-
-    return new OpenSearchIndexScanBuilder(builder) {
-      @Override
-      protected TableScanOperator createScan(OpenSearchRequestBuilder requestBuilder) {
-        final TimeValue cursorKeepAlive =
-            settings.getSettingValue(Settings.Key.SQL_CURSOR_KEEP_ALIVE);
-        return new OpenSearchIndexScan(client, requestBuilder.getMaxResponseSize(),
-            requestBuilder.build(indexName, getMaxResultWindow(), cursorKeepAlive));
-      }
-    };
+    Function<OpenSearchRequestBuilder, OpenSearchIndexScan> createScanOperator =
+        requestBuilder -> new OpenSearchIndexScan(client, requestBuilder.getMaxResponseSize(),
+        requestBuilder.build(indexName, getMaxResultWindow(), cursorKeepAlive));
+    return new OpenSearchIndexScanBuilder(builder, createScanOperator);
   }
 
   private OpenSearchExprValueFactory createExprValueFactory() {

@@ -39,8 +39,13 @@ public abstract class Settings {
      */
     QUERY_MEMORY_LIMIT("plugins.query.memory_limit"),
     QUERY_SIZE_LIMIT("plugins.query.size_limit"),
+    ENCYRPTION_MASTER_KEY("plugins.query.datasources.encryption.masterkey"),
+    DATASOURCES_URI_ALLOWHOSTS("plugins.query.datasources.uri.allowhosts"),
+
     METRICS_ROLLING_WINDOW("plugins.query.metrics.rolling_window"),
-    METRICS_ROLLING_INTERVAL("plugins.query.metrics.rolling_interval");
+    METRICS_ROLLING_INTERVAL("plugins.query.metrics.rolling_interval"),
+
+    CLUSTER_NAME("cluster.name");
 
     @Getter
     private final String keyValue;

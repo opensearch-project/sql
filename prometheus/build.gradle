@@ -11,21 +11,20 @@ plugins {
 
 repositories {
     mavenCentral()
-    maven { url 'https://jitpack.io' }
 }
 
 dependencies {
     api project(':core')
     implementation project(':datasources')
+
+    implementation group: 'org.opensearch', name: 'opensearch', version: "${opensearch_version}"
     implementation "io.github.resilience4j:resilience4j-retry:1.5.0"
     implementation group: 'com.fasterxml.jackson.core', name: 'jackson-core', version: "${versions.jackson}"
     implementation group: 'com.fasterxml.jackson.core', name: 'jackson-databind', version: "${versions.jackson_databind}"
     implementation group: 'com.fasterxml.jackson.dataformat', name: 'jackson-dataformat-cbor', version: "${versions.jackson}"
-    implementation group: 'com.squareup.okhttp3', name: 'okhttp', version: '4.9.3'
-    implementation 'com.github.babbel:okhttp-aws-signer:1.0.2'
-    implementation group: 'com.amazonaws', name: 'aws-java-sdk-core', version: '1.12.1'
-    implementation group: 'com.amazonaws', name: 'aws-java-sdk-sts', version: '1.12.1'
     implementation group: 'org.json', name: 'json', version: '20230227'
+    // https://mvnrepository.com/artifact/commons-validator/commons-validator
+    implementation group: 'commons-validator', name: 'commons-validator', version: '1.7'
 
     testImplementation('org.junit.jupiter:junit-jupiter:5.6.2')
     testImplementation group: 'org.hamcrest', name: 'hamcrest-library', version: '2.1'
@@ -43,8 +42,6 @@ test {
 }
 
 configurations.all {
-    resolutionStrategy.force "org.jetbrains.kotlin:kotlin-stdlib:1.6.0"
-    resolutionStrategy.force "org.jetbrains.kotlin:kotlin-stdlib-common:1.6.0"
     resolutionStrategy.force 'junit:junit:4.13.2'
 }
 

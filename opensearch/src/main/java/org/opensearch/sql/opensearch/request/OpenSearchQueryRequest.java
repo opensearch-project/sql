@@ -45,8 +45,6 @@ public class OpenSearchQueryRequest implements OpenSearchRequest {
    */
   private final SearchSourceBuilder sourceBuilder;
 
-
-
   /**
    * OpenSearchExprValueFactory.
    */
