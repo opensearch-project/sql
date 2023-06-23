@@ -107,12 +107,12 @@ public class IdentifierIT extends SQLIntegTestCase {
     String index = "test.routing_select";
     String mapping = "{\"_routing\": {\"required\": true }}";
     new Index(index, mapping)
+        .addDocWithShardId("{\"age\": 31}", "test0", "test0")
         .addDocWithShardId("{\"age\": 31}", "test1", "test1")
         .addDocWithShardId("{\"age\": 32}", "test2", "test2")
         .addDocWithShardId("{\"age\": 33}", "test3", "test3")
         .addDocWithShardId("{\"age\": 34}", "test4", "test4")
-        .addDocWithShardId("{\"age\": 35}", "test5", "test5")
-        .addDocWithShardId("{\"age\": 36}", "test6", "test6");
+        .addDocWithShardId("{\"age\": 35}", "test5", "test5");
 
     // Execute using field metadata values filtering on the routing shard hash id
     final JSONObject result = new JSONObject(executeQuery(
@@ -122,7 +122,7 @@ public class IdentifierIT extends SQLIntegTestCase {
 
     // Verify that the metadata values are returned when requested
     verifySchema(result,
-        schema("age", null, "keyword"),
+        schema("age", null, "long"),
         schema("_id", null, "keyword"),
         schema("_index", null, "keyword"),
         schema("_routing", null, "keyword"));
@@ -145,7 +145,7 @@ public class IdentifierIT extends SQLIntegTestCase {
     String index = "test.routing_filter";
     String mapping = "{\"_routing\": {\"required\": true }}";
     new Index(index, mapping)
-        .addDocWithShardId("{\"age\": 30}", "test1", "test1")
+        .addDocWithShardId("{\"age\": 31}", "test1", "test1")
         .addDocWithShardId("{\"age\": 32}", "test2", "test2")
         .addDocWithShardId("{\"age\": 33}", "test3", "test3")
         .addDocWithShardId("{\"age\": 34}", "test4", "test4")
