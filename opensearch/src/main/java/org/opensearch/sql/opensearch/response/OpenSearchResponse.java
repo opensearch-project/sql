@@ -10,16 +10,15 @@ import static org.opensearch.sql.opensearch.storage.OpenSearchIndex.METADATAFIEL
 import static org.opensearch.sql.opensearch.storage.OpenSearchIndex.METADATA_FIELD_ID;
 import static org.opensearch.sql.opensearch.storage.OpenSearchIndex.METADATA_FIELD_INDEX;
 import static org.opensearch.sql.opensearch.storage.OpenSearchIndex.METADATA_FIELD_MAXSCORE;
+import static org.opensearch.sql.opensearch.storage.OpenSearchIndex.METADATA_FIELD_ROUTING;
 import static org.opensearch.sql.opensearch.storage.OpenSearchIndex.METADATA_FIELD_SCORE;
 import static org.opensearch.sql.opensearch.storage.OpenSearchIndex.METADATA_FIELD_SORT;
 
 import com.google.common.collect.ImmutableMap;
 import java.util.Arrays;
-import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.stream.Collectors;
 import lombok.EqualsAndHashCode;
 import lombok.ToString;
@@ -146,8 +145,10 @@ public class OpenSearchResponse implements Iterable<ExprValue> {
                 if (maxScore != null) {
                   builder.put(METADATA_FIELD_MAXSCORE, maxScore);
                 }
-              } else { // if (metaDataField.equals(METADATA_FIELD_SORT)) {
+              } else if (metaDataField.equals(METADATA_FIELD_SORT)) {
                 builder.put(METADATA_FIELD_SORT, new ExprLongValue(hit.getSeqNo()));
+              } else { // if (metaDataField.equals(METADATA_FIELD_ROUTING)){
+                builder.put(METADATA_FIELD_ROUTING, new ExprStringValue(hit.getShard().toString()));
               }
             });
 

@@ -14,6 +14,8 @@ import static org.opensearch.sql.util.TestUtils.createHiddenIndexByRestClient;
 import static org.opensearch.sql.util.TestUtils.performRequest;
 
 import java.io.IOException;
+import java.util.ArrayList;
+import org.json.JSONArray;
 import org.json.JSONObject;
 import org.junit.jupiter.api.Test;
 import org.opensearch.client.Request;
@@ -97,6 +99,31 @@ public class IdentifierIT extends SQLIntegTestCase {
             schema("_maxscore", null, "float"),
             schema("_sort", null, "long"));
     verifyDataRows(result, rows(30, id, index, 1.0, 1.0, -2));
+  }
+
+  @Test
+  public void testMetafieldIdentifierRoutingTest() throws IOException {
+    // create an index, but the contents doesn't matter
+    String id = "12345";
+    String index = "test.routing_metafields";
+    new Index(index).addDoc("{\"age\": 30}", id);
+
+    // Execute using field metadata values
+    final JSONObject result = new JSONObject(executeQuery(
+        "SELECT _id, _index, _routing "
+            + "FROM " + index,
+        "jdbc"));
+
+    // Verify that the metadata values are returned when requested
+    verifySchema(result,
+        schema("_id", null, "keyword"),
+        schema("_index", null, "keyword"),
+        schema("_routing", null, "keyword"));
+    assertTrue(result.getJSONArray("schema").length() == 3);
+
+    // routing has the format: [thread_id][index][node] - where thread_id and node may be variable
+    // per run
+    assertTrue(result.getJSONArray("datarows").get(0).toString().contains("[" + index + "]"));
   }
 
   @Test
