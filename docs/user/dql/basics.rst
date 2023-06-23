@@ -155,14 +155,14 @@ Result set:
 |  Nanette|   Bates|
 +---------+--------+
 
-One can also provide meta-field name(s) to retrieve reserved-fields (beginning with underscore) from OpenSearch documents. Meta-fields are not output
-from wildcard calls (`SELECT *`) and must be explicitly included to be returned.
+One can also provide meta-field name(s) to retrieve reserved-fields (beginning with underscore) from OpenSearch documents.  They may also be used
+in the query `WHERE` or `ORDER BY` clauses. Meta-fields are not output from wildcard calls (`SELECT *`) and must be explicitly included to be returned.
 
 SQL query::
 
 	POST /_plugins/_sql
 	{
-	  "query" : "SELECT firstname, lastname, _id, _index, _sort FROM accounts"
+	  "query" : "SELECT firstname, lastname, _id, _index, _sort, _routing FROM accounts WHERE _index = 'accounts'"
 	}
 
 Explain::
@@ -175,6 +175,7 @@ Explain::
 	      "firstname",
 	      "_id",
 	      "_index",
+	      "_routing",
 	      "_sort",
 	      "lastname"
 	    ],
