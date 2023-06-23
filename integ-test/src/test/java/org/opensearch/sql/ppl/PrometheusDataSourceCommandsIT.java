@@ -113,8 +113,8 @@ public class PrometheusDataSourceCommandsIT extends PPLIntegTestCase {
     verifySchema(response,
         schema("agg",  "double"),
         schema("span(@timestamp,15s)", "timestamp"),
-        schema("`handler`", "string"),
-        schema("`job`", "string"));
+        schema("handler", "string"),
+        schema("job", "string"));
     Assertions.assertTrue(response.getInt("size") > 0);
     Assertions.assertEquals(4, response.getJSONArray("datarows").getJSONArray(0).length());
     JSONArray firstRow = response.getJSONArray("datarows").getJSONArray(0);
@@ -132,7 +132,7 @@ public class PrometheusDataSourceCommandsIT extends PPLIntegTestCase {
     verifySchema(response,
         schema("agg",  "double"),
         schema("span(@timestamp,15s)", "timestamp"),
-        schema("`handler`", "string"),
+        schema("handler", "string"),
         schema("job", "string"));
     Assertions.assertTrue(response.getInt("size") > 0);
     Assertions.assertEquals(4, response.getJSONArray("datarows").getJSONArray(0).length());

@@ -58,12 +58,17 @@ import org.opensearch.sql.expression.aggregation.NamedAggregator;
 import org.opensearch.sql.expression.window.WindowDefinition;
 import org.opensearch.sql.expression.window.ranking.RowNumberFunction;
 import org.opensearch.sql.planner.logical.LogicalCloseCursor;
+import org.opensearch.sql.planner.logical.LogicalPaginate;
 import org.opensearch.sql.planner.logical.LogicalPlan;
 import org.opensearch.sql.planner.logical.LogicalPlanDSL;
+import org.opensearch.sql.planner.logical.LogicalProject;
 import org.opensearch.sql.planner.logical.LogicalRelation;
+import org.opensearch.sql.planner.logical.LogicalValues;
 import org.opensearch.sql.planner.physical.CursorCloseOperator;
 import org.opensearch.sql.planner.physical.PhysicalPlan;
 import org.opensearch.sql.planner.physical.PhysicalPlanDSL;
+import org.opensearch.sql.planner.physical.ProjectOperator;
+import org.opensearch.sql.planner.physical.ValuesOperator;
 import org.opensearch.sql.storage.StorageEngine;
 import org.opensearch.sql.storage.Table;
 import org.opensearch.sql.storage.TableScanOperator;
@@ -272,5 +277,15 @@ class DefaultImplementorTest {
     var implemented = logicalPlan.accept(implementor, null);
     assertTrue(implemented instanceof CursorCloseOperator);
     assertSame(physicalChild, implemented.getChild().get(0));
+  }
+
+  @Test
+  public void visitPaginate_should_remove_it_from_tree() {
+    var logicalPlanTree = new LogicalPaginate(42, List.of(
+        new LogicalProject(
+            new LogicalValues(List.of(List.of())), List.of(), List.of())));
+    var physicalPlanTree = new ProjectOperator(
+        new ValuesOperator(List.of(List.of())), List.of(), List.of());
+    assertEquals(physicalPlanTree, logicalPlanTree.accept(implementor, null));
   }
 }

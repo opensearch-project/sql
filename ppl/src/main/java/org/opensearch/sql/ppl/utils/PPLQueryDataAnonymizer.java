@@ -101,10 +101,13 @@ public class PPLQueryDataAnonymizer extends AbstractNodeVisitor<String, String> 
   }
 
   @Override
-  @Generated //To exclude from jacoco..will remove https://github.com/opensearch-project/sql/issues/1019
   public String visitTableFunction(TableFunction node, String context) {
-    //<TODO>
-    return null;
+    String arguments =
+        node.getArguments().stream()
+            .map(unresolvedExpression
+                -> this.expressionAnalyzer.analyze(unresolvedExpression, context))
+            .collect(Collectors.joining(","));
+    return StringUtils.format("source=%s(%s)", node.getFunctionName().toString(), arguments);
   }
 
   @Override

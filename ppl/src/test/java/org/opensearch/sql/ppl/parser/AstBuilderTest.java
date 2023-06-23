@@ -112,7 +112,6 @@ public class AstBuilderTest {
     );
   }
 
-  @Ignore
   @Test
   public void testSearchWithPrometheusQueryRangeWithPositionedArguments() {
     assertEqual("search source = prometheus.query_range(\"test{code='200'}\",1234, 12345, 3)",
@@ -124,7 +123,6 @@ public class AstBuilderTest {
     ));
   }
 
-  @Ignore
   @Test
   public void testSearchWithPrometheusQueryRangeWithNamedArguments() {
     assertEqual("search source = prometheus.query_range(query = \"test{code='200'}\", "
@@ -266,6 +264,27 @@ public class AstBuilderTest {
   @Test
   public void testStatsCommandWithByClause() {
     assertEqual("source=t | stats count(a) by b DEDUP_SPLITVALUES=false",
+        agg(
+            relation("t"),
+            exprList(
+                alias(
+                    "count(a)",
+                    aggregate("count", field("a"))
+                )
+            ),
+            emptyList(),
+            exprList(
+                alias(
+                    "b",
+                    field("b")
+                )),
+            defaultStatsArgs()
+        ));
+  }
+
+  @Test
+  public void testStatsCommandWithByClauseInBackticks() {
+    assertEqual("source=t | stats count(a) by `b` DEDUP_SPLITVALUES=false",
         agg(
             relation("t"),
             exprList(

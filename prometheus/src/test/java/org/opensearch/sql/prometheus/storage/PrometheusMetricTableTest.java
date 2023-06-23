@@ -55,7 +55,9 @@ import org.opensearch.sql.planner.physical.PhysicalPlan;
 import org.opensearch.sql.planner.physical.ProjectOperator;
 import org.opensearch.sql.prometheus.client.PrometheusClient;
 import org.opensearch.sql.prometheus.constants.TestConstants;
+import org.opensearch.sql.prometheus.functions.scan.QueryRangeFunctionTableScanBuilder;
 import org.opensearch.sql.prometheus.request.PrometheusQueryRequest;
+import org.opensearch.sql.storage.read.TableScanBuilder;
 
 @ExtendWith(MockitoExtension.class)
 class PrometheusMetricTableTest {
@@ -900,5 +902,24 @@ class PrometheusMetricTableTest {
   }
 
 
+  @Test
+  void testCreateScanBuilderWithQueryRangeTableFunction() {
+    PrometheusQueryRequest prometheusQueryRequest = new PrometheusQueryRequest();
+    prometheusQueryRequest.setPromQl("test");
+    prometheusQueryRequest.setStep("15m");
+    PrometheusMetricTable prometheusMetricTable =
+        new PrometheusMetricTable(client, prometheusQueryRequest);
+    TableScanBuilder tableScanBuilder = prometheusMetricTable.createScanBuilder();
+    Assertions.assertNotNull(tableScanBuilder);
+    Assertions.assertTrue(tableScanBuilder instanceof QueryRangeFunctionTableScanBuilder);
+  }
+
+  @Test
+  void testCreateScanBuilderWithPPLQuery() {
+    PrometheusMetricTable prometheusMetricTable =
+        new PrometheusMetricTable(client, TestConstants.METRIC_NAME);
+    TableScanBuilder tableScanBuilder = prometheusMetricTable.createScanBuilder();
+    Assertions.assertNull(tableScanBuilder);
+  }
 
 }
