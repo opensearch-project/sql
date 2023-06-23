@@ -901,7 +901,10 @@ Usage: ROUND(x, d) rounds the argument x to d decimal places, d defaults to 0 if
 Argument 1 type: INTEGER/LONG/FLOAT/DOUBLE
 Argument 2 type (optional): INTEGER
 
-Return type: LONG
+Return type map:
+
+(INTEGER/LONG[, INTEGER]) -> LONG
+(FLOAT/DOUBLE[, INTEGER]) -> DOUBLE
 
 Example::
 

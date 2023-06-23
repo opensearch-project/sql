@@ -3,7 +3,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import java.util.concurrent.Callable
 import org.opensearch.gradle.testclusters.RunTask
 
 plugins {
@@ -51,7 +50,7 @@ task startPrometheus(type: SpawnProcessTask) {
     }
     command "$projectDir/bin/prometheus/prometheus --storage.tsdb.path=$projectDir/bin/prometheus/data --config.file=$projectDir/bin/prometheus/prometheus.yml"
     ready 'TSDB started'
-    pidLockFileName '.prom.pid.lock'
+    pidLockFileName ".prom.pid.lock"
 }
 
 //evaluationDependsOn(':')
@@ -78,36 +77,26 @@ task doctest(type: Exec, dependsOn: ['bootstrap']) {
 
 task stopOpenSearch(type: KillProcessTask)
 
-task stopPrometheus() {
-
+task stopPrometheus(type: KillProcessTask) {
+    pidLockFileName ".prom.pid.lock"
     doLast {
-        def pidFile = new File(path, ".prom.pid.lock")
-        if (!pidFile.exists()) {
-            logger.quiet "No Prometheus server running!"
-            return
-        }
-
-        def pid = pidFile.text
-        def process = "kill $pid".execute()
-
-        try {
-            process.waitFor()
-        } finally {
-            pidFile.delete()
-            file("$projectDir/bin/prometheus").deleteDir()
-            file("$projectDir/bin/prometheus.tar.gz").delete()
-        }
+        file("$projectDir/bin/prometheus").deleteDir()
+        file("$projectDir/bin/prometheus.tar.gz").delete()
     }
 }
+
+// Stop Prom AFTER Start Prom...
 if(getOSFamilyType() != "windows") {
     stopPrometheus.mustRunAfter startPrometheus
     startOpenSearch.dependsOn startPrometheus
     stopOpenSearch.finalizedBy stopPrometheus
+    startOpenSearch.finalizedBy stopPrometheus
 }
 doctest.dependsOn startOpenSearch
 doctest.finalizedBy stopOpenSearch
 check.dependsOn doctest
 clean.dependsOn(cleanBootstrap)
+clean.dependsOn(stopPrometheus)
 
 // 2.0.0-alpha1-SNAPSHOT -> 2.0.0.0-alpha1-SNAPSHOT
 String opensearch_no_snapshot = opensearch_version.replace('-SNAPSHOT', '')
