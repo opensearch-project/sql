@@ -202,9 +202,11 @@ public class DBResult {
     // H2 calculates the value before setting column name
     // for example, for query "select 1 + 1" it returns a column named "2" instead of "1 + 1"
     boolean skipColumnNameCheck = databaseName.equalsIgnoreCase("h2") || other.databaseName.equalsIgnoreCase("h2");
-    if ((!skipColumnNameCheck && !schema.equals(other.schema) || (skipColumnNameCheck &&
-            !schema.stream().map(Type::getType).collect(Collectors.toList())
-                .equals(other.schema.stream().map(Type::getType).collect(Collectors.toList()))))) {
+    if (!skipColumnNameCheck && !schema.equals(other.schema)) {
+      return false;
+    }
+    if (skipColumnNameCheck && !schema.stream().map(Type::getType).collect(Collectors.toList())
+                    .equals(other.schema.stream().map(Type::getType).collect(Collectors.toList()))) {
       return false;
     }
     return dataRows.equals(other.dataRows);
