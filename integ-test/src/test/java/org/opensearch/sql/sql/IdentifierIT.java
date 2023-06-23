@@ -102,16 +102,61 @@ public class IdentifierIT extends SQLIntegTestCase {
   }
 
   @Test
-  public void testMetafieldIdentifierRoutingTest() throws IOException {
-    // create an index, but the contents doesn't matter
-    String id = "12345";
-    String index = "test.routing_metafields";
-    new Index(index).addDoc("{\"age\": 30}", id);
+  public void testMetafieldIdentifierRoutingSelectTest() throws IOException {
+    // create an index, but the contents doesn't really matter
+    String index = "test.routing_select";
+    String mapping = "{\"_routing\": {\"required\": true }}";
+    new Index(index, mapping)
+        .addDocWithShardId("{\"age\": 31}", "test1", "test1")
+        .addDocWithShardId("{\"age\": 32}", "test2", "test2")
+        .addDocWithShardId("{\"age\": 33}", "test3", "test3")
+        .addDocWithShardId("{\"age\": 34}", "test4", "test4")
+        .addDocWithShardId("{\"age\": 35}", "test5", "test5")
+        .addDocWithShardId("{\"age\": 36}", "test6", "test6");
 
-    // Execute using field metadata values
+    // Execute using field metadata values filtering on the routing shard hash id
+    final JSONObject result = new JSONObject(executeQuery(
+        "SELECT age, _id, _index, _routing "
+            + "FROM " + index,
+        "jdbc"));
+
+    // Verify that the metadata values are returned when requested
+    verifySchema(result,
+        schema("age", null, "keyword"),
+        schema("_id", null, "keyword"),
+        schema("_index", null, "keyword"),
+        schema("_routing", null, "keyword"));
+    assertTrue(result.getJSONArray("schema").length() == 4);
+
+    var datarows = result.getJSONArray("datarows");
+    assertEquals(6, datarows.length());
+
+    // note that _routing in the SELECT clause returns the shard
+    for (int i = 0; i < 6; i++) {
+      assertEquals("test" + i, datarows.getJSONArray(i).getString(1));
+      assertEquals(index, datarows.getJSONArray(i).getString(2));
+      assertTrue(datarows.getJSONArray(i).getString(3).contains("[" + index + "]"));
+    }
+  }
+
+  @Test
+  public void testMetafieldIdentifierRoutingFilterTest() throws IOException {
+    // create an index, but the contents doesn't really matter
+    String index = "test.routing_filter";
+    String mapping = "{\"_routing\": {\"required\": true }}";
+    new Index(index, mapping)
+        .addDocWithShardId("{\"age\": 30}", "test1", "test1")
+        .addDocWithShardId("{\"age\": 32}", "test2", "test2")
+        .addDocWithShardId("{\"age\": 33}", "test3", "test3")
+        .addDocWithShardId("{\"age\": 34}", "test4", "test4")
+        .addDocWithShardId("{\"age\": 35}", "test5", "test5")
+        .addDocWithShardId("{\"age\": 36}", "test6", "test6");
+
+    // Execute using field metadata values filtering on the routing shard hash id
     final JSONObject result = new JSONObject(executeQuery(
         "SELECT _id, _index, _routing "
-            + "FROM " + index,
+            + "FROM " + index + " "
+            + "WHERE _routing = \\\"test4\\\"",
         "jdbc"));
 
     // Verify that the metadata values are returned when requested
@@ -121,9 +166,11 @@ public class IdentifierIT extends SQLIntegTestCase {
         schema("_routing", null, "keyword"));
     assertTrue(result.getJSONArray("schema").length() == 3);
 
-    // routing has the format: [thread_id][index][node] - where thread_id and node may be variable
-    // per run
-    assertTrue(result.getJSONArray("datarows").get(0).toString().contains("[" + index + "]"));
+    var datarows = result.getJSONArray("datarows");
+    assertEquals(1, datarows.length());
+
+    // note that _routing in the SELECT clause returns the shard
+    assertTrue(datarows.getJSONArray(0).getString(2).contains("[" + index + "]"));
   }
 
   @Test
@@ -179,16 +226,32 @@ public class IdentifierIT extends SQLIntegTestCase {
       }
     }
 
+    Index(String indexName, String mapping) throws IOException {
+      this.indexName = indexName;
+
+      Request createIndex = new Request("PUT", "/" + indexName);
+      createIndex.setJsonEntity(mapping);
+      executeRequest(new Request("PUT", "/" + indexName));
+    }
+
     void addDoc(String doc) {
       Request indexDoc = new Request("POST", String.format("/%s/_doc?refresh=true", indexName));
       indexDoc.setJsonEntity(doc);
       performRequest(client(), indexDoc);
     }
 
-    void addDoc(String doc, String id) {
+    public Index addDoc(String doc, String id) {
       Request indexDoc = new Request("POST", String.format("/%s/_doc/%s?refresh=true", indexName, id));
       indexDoc.setJsonEntity(doc);
       performRequest(client(), indexDoc);
+      return this;
+    }
+
+    public Index addDocWithShardId(String doc, String id, String routing) {
+      Request indexDoc = new Request("POST", String.format("/%s/_doc/%s?refresh=true&routing=%s", indexName, id, routing));
+      indexDoc.setJsonEntity(doc);
+      performRequest(client(), indexDoc);
+      return this;
     }
   }
 
