@@ -3,6 +3,7 @@
 This application execute sql query and store the result in OpenSearch index in following format
 ```
 "stepId":"<emr-step-id>",
+"applicationId":"<spark-application-id>"
 "schema": "json blob",
 "result": "json blob"
 ```
@@ -61,7 +62,8 @@ OpenSearch index document will look like
       "{'column_name':'Letter','data_type':'string'}",
       "{'column_name':'Number','data_type':'integer'}"
     ],
-    "stepId" : "s-JZSB1139WIVU"
+    "stepId" : "s-JZSB1139WIVU",
+    "applicationId" : "application_1687726870985_0003"
   }
 }
 ```
