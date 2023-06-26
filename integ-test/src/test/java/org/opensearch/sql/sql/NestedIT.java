@@ -570,4 +570,23 @@ public class NestedIT extends SQLIntegTestCase {
         )
     );
   }
+
+  @Test
+  public void nested_function_all_subfields_in_wrong_clause() {
+    String query = "SELECT * FROM " + TEST_INDEX_NESTED_TYPE + " ORDER BY nested(message.*)";
+
+    Exception exception = assertThrows(RuntimeException.class, () ->
+        executeJdbcRequest(query));
+
+    assertTrue(exception.getMessage().contains("" +
+        "{\n" +
+        "  \"error\": {\n" +
+        "    \"reason\": \"There was internal problem at backend\",\n" +
+        "    \"details\": \"Invalid use of expression nested(message.*)\",\n" +
+        "    \"type\": \"UnsupportedOperationException\"\n" +
+        "  },\n" +
+        "  \"status\": 503\n" +
+        "}"
+    ));
+  }
 }
