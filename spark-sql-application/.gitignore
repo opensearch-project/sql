@@ -1,0 +1,14 @@
+# Compiled output
+target/
+project/target/
+
+# sbt-specific files
+.sbtserver
+.sbt/
+.bsp/
+
+# Miscellaneous
+.DS_Store
+*.class
+*.log
+*.zip
