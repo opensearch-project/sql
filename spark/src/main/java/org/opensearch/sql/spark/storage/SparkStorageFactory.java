@@ -5,6 +5,7 @@
 
 package org.opensearch.sql.spark.storage;
 
+import java.util.Map;
 import lombok.RequiredArgsConstructor;
 import org.opensearch.client.Client;
 import org.opensearch.sql.common.setting.Settings;
@@ -14,8 +15,6 @@ import org.opensearch.sql.datasource.model.DataSourceType;
 import org.opensearch.sql.spark.client.SparkClient;
 import org.opensearch.sql.storage.DataSourceFactory;
 import org.opensearch.sql.storage.StorageEngine;
-
-import java.util.Map;
 
 @RequiredArgsConstructor
 public class SparkStorageFactory implements DataSourceFactory {
@@ -30,9 +29,9 @@ public class SparkStorageFactory implements DataSourceFactory {
   @Override
   public DataSource createDataSource(DataSourceMetadata metadata) {
     return new DataSource(
-            metadata.getName(),
-            DataSourceType.SPARK,
-            getStorageEngine(metadata.getProperties()));
+        metadata.getName(),
+        DataSourceType.SPARK,
+        getStorageEngine(metadata.getProperties()));
   }
 
   StorageEngine getStorageEngine(Map<String, String> requiredConfig) {

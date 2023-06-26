@@ -18,18 +18,18 @@ import org.opensearch.sql.storage.read.TableScanBuilder;
 @AllArgsConstructor
 public class SqlFunctionTableScanBuilder extends TableScanBuilder {
 
-    private final SparkClient sparkClient;
+  private final SparkClient sparkClient;
 
-    private final SparkQueryRequest sparkQueryRequest;
+  private final SparkQueryRequest sparkQueryRequest;
 
-    @Override
-    public TableScanOperator build() {
-        //TODO: return SqlFunctionTableScanOperator
-        return null;
-    }
+  @Override
+  public TableScanOperator build() {
+    //TODO: return SqlFunctionTableScanOperator
+    return null;
+  }
 
-    @Override
-    public boolean pushDownProject(LogicalProject project) {
-        return true;
-    }
+  @Override
+  public boolean pushDownProject(LogicalProject project) {
+    return true;
+  }
 }

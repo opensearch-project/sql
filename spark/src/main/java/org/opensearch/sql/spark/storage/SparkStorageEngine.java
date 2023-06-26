@@ -7,6 +7,8 @@
 
 package org.opensearch.sql.spark.storage;
 
+import java.util.Collection;
+import java.util.Collections;
 import lombok.RequiredArgsConstructor;
 import org.opensearch.sql.DataSourceSchemaName;
 import org.opensearch.sql.expression.function.FunctionResolver;
@@ -15,25 +17,21 @@ import org.opensearch.sql.spark.functions.resolver.SqlTableFunctionResolver;
 import org.opensearch.sql.storage.StorageEngine;
 import org.opensearch.sql.storage.Table;
 
-import java.util.Collection;
-import java.util.Collections;
-
 /**
  * Spark storage engine implementation.
  */
 @RequiredArgsConstructor
 public class SparkStorageEngine implements StorageEngine {
+  private final SparkClient sparkClient;
 
-    private final SparkClient sparkClient;
+  @Override
+  public Collection<FunctionResolver> getFunctions() {
+    return Collections.singletonList(
+        new SqlTableFunctionResolver(sparkClient));
+  }
 
-    @Override
-    public Collection<FunctionResolver> getFunctions() {
-        return Collections.singletonList(
-                new SqlTableFunctionResolver(sparkClient));
-    }
-
-    @Override
-    public Table getTable(DataSourceSchemaName dataSourceSchemaName, String tableName) {
-        return null;
-    }
+  @Override
+  public Table getTable(DataSourceSchemaName dataSourceSchemaName, String tableName) {
+    return null;
+  }
 }

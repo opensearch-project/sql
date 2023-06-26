@@ -21,9 +21,9 @@ import lombok.ToString;
 @NoArgsConstructor
 public class SparkQueryRequest {
 
-    /**
-     * SQL.
-     */
-    private String sql;
+  /**
+   * SQL.
+   */
+  private String sql;
 
 }
