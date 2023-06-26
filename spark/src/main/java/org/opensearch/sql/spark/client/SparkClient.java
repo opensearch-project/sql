@@ -13,9 +13,10 @@ import org.json.JSONObject;
  */
 public interface SparkClient {
   /**
+   * This method executes spark sql query.
+   *
    * @param query spark sql query
    * @return      spark query response
-   * @throws      IOException
    */
   JSONObject sql(String query) throws IOException;
 }

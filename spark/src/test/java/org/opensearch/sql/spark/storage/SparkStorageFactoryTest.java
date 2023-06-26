@@ -14,6 +14,8 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.opensearch.client.Client;
 import org.opensearch.sql.common.setting.Settings;
+import org.opensearch.sql.datasource.model.DataSource;
+import org.opensearch.sql.datasource.model.DataSourceMetadata;
 import org.opensearch.sql.datasource.model.DataSourceType;
 import org.opensearch.sql.storage.StorageEngine;
 
@@ -39,6 +41,17 @@ public class SparkStorageFactoryTest {
     StorageEngine storageEngine
         = sparkStorageFactory.getStorageEngine(new HashMap<>());
     Assertions.assertTrue(storageEngine instanceof SparkStorageEngine);
+  }
+
+  @Test
+  void createDataSourceSuccessWithLocalhost() {
+    DataSourceMetadata metadata = new DataSourceMetadata();
+    metadata.setName("spark");
+    metadata.setConnector(DataSourceType.SPARK);
+    metadata.setProperties(new HashMap<>());
+
+    DataSource dataSource = new SparkStorageFactory(client, settings).createDataSource(metadata);
+    Assertions.assertTrue(dataSource.getStorageEngine() instanceof SparkStorageEngine);
   }
 
 }

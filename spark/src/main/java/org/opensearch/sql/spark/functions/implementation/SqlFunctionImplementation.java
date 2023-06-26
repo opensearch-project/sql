@@ -35,6 +35,8 @@ public class SqlFunctionImplementation extends FunctionExpression
   private final SparkClient sparkClient;
 
   /**
+   * Constructor for spark sql function.
+   *
    * @param functionName name of the function
    * @param arguments    a list of expressions
    * @param sparkClient  spark client
@@ -75,6 +77,8 @@ public class SqlFunctionImplementation extends FunctionExpression
   }
 
   /**
+   * This method build spark query request.
+   *
    * @param arguments spark sql function arguments
    * @return          spark query request
    */
