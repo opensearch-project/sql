@@ -201,7 +201,8 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
             .map(OpenSearchPPLParser.StatsByClauseContext::fieldList)
             .map(expr -> expr.fieldExpression().stream()
                 .map(groupCtx ->
-                    (UnresolvedExpression) new Alias(getTextInQuery(groupCtx),
+                    (UnresolvedExpression) new Alias(
+                        StringUtils.unquoteIdentifier(getTextInQuery(groupCtx)),
                         internalVisitExpression(groupCtx)))
                 .collect(Collectors.toList()))
             .orElse(Collections.emptyList());
@@ -429,10 +430,10 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
   public UnresolvedPlan visitMlCommand(OpenSearchPPLParser.MlCommandContext ctx) {
     ImmutableMap.Builder<String, Literal> builder = ImmutableMap.builder();
     ctx.mlArg()
-            .forEach(x -> {
-              builder.put(x.argName.getText(),
-                      (Literal) internalVisitExpression(x.argValue));
-            });
+        .forEach(x -> {
+          builder.put(x.argName.getText(),
+              (Literal) internalVisitExpression(x.argValue));
+        });
     return new ML(builder.build());
   }
 

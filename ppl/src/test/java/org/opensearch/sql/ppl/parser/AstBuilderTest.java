@@ -283,6 +283,27 @@ public class AstBuilderTest {
   }
 
   @Test
+  public void testStatsCommandWithByClauseInBackticks() {
+    assertEqual("source=t | stats count(a) by `b` DEDUP_SPLITVALUES=false",
+        agg(
+            relation("t"),
+            exprList(
+                alias(
+                    "count(a)",
+                    aggregate("count", field("a"))
+                )
+            ),
+            emptyList(),
+            exprList(
+                alias(
+                    "b",
+                    field("b")
+                )),
+            defaultStatsArgs()
+        ));
+  }
+
+  @Test
   public void testStatsCommandWithAlias() {
     assertEqual("source=t | stats count(a) as alias",
         agg(
