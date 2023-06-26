@@ -38,7 +38,7 @@ apply plugin: 'java'
 apply plugin: 'io.freefair.lombok'
 apply plugin: 'com.wiredforcode.spawn'
 
-String baseVersion = "2.8.0"
+String baseVersion = "2.9.0"
 String bwcVersion = baseVersion + ".0";
 String baseName = "sqlBwcCluster"
 String bwcFilePath = "src/test/resources/bwc/"
@@ -78,8 +78,6 @@ configurations.all {
     resolutionStrategy.force "com.fasterxml.jackson.dataformat:jackson-dataformat-smile:${versions.jackson}"
     resolutionStrategy.force "com.fasterxml.jackson.dataformat:jackson-dataformat-cbor:${versions.jackson}"
     resolutionStrategy.force "com.fasterxml.jackson.core:jackson-databind:${versions.jackson_databind}"
-    resolutionStrategy.force "org.jetbrains.kotlin:kotlin-stdlib:1.6.0"
-    resolutionStrategy.force "org.jetbrains.kotlin:kotlin-stdlib-common:1.6.0"
     resolutionStrategy.force "com.squareup.okhttp3:okhttp:4.9.3"
     resolutionStrategy.force "org.apache.httpcomponents:httpcore:4.4.13"
     resolutionStrategy.force "joda-time:joda-time:2.10.12"

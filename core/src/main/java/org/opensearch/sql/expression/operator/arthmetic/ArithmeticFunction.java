@@ -106,7 +106,8 @@ public class ArithmeticFunction {
   private static DefaultFunctionResolver divideBase(FunctionName functionName) {
     return define(functionName,
         impl(nullMissingHandling(
-            (v1, v2) -> new ExprByteValue(v1.byteValue() / v2.byteValue())),
+            (v1, v2) -> v2.byteValue() == 0 ? ExprNullValue.of() :
+                    new ExprByteValue(v1.byteValue() / v2.byteValue())),
                 BYTE, BYTE, BYTE),
         impl(nullMissingHandling(
             (v1, v2) -> v2.shortValue() == 0 ? ExprNullValue.of() :
@@ -140,7 +141,7 @@ public class ArithmeticFunction {
   }
 
   /**
-   * Definition of modulo(x, y) function.
+   * Definition of modulus(x, y) function.
    * Returns the number x modulo by number y
    * The supported signature of modulo function is
    * (x: BYTE/SHORT/INTEGER/LONG/FLOAT/DOUBLE, y: BYTE/SHORT/INTEGER/LONG/FLOAT/DOUBLE)
@@ -149,7 +150,8 @@ public class ArithmeticFunction {
   private static DefaultFunctionResolver modulusBase(FunctionName functionName) {
     return define(functionName,
             impl(nullMissingHandling(
-                (v1, v2) -> new ExprByteValue(v1.byteValue() % v2.byteValue())),
+                (v1, v2) -> v2.byteValue() == 0 ? ExprNullValue.of() :
+                        new ExprByteValue(v1.byteValue() % v2.byteValue())),
                     BYTE, BYTE, BYTE),
             impl(nullMissingHandling(
                 (v1, v2) -> v2.shortValue() == 0 ? ExprNullValue.of() :

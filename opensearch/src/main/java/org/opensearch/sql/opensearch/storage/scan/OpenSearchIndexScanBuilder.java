@@ -5,6 +5,7 @@
 
 package org.opensearch.sql.opensearch.storage.scan;
 
+import java.util.function.Function;
 import lombok.EqualsAndHashCode;
 import org.opensearch.sql.expression.ReferenceExpression;
 import org.opensearch.sql.opensearch.request.OpenSearchRequestBuilder;
@@ -24,8 +25,9 @@ import org.opensearch.sql.storage.read.TableScanBuilder;
  * by delegated builder internally. This is to avoid conditional check of different push down logic
  * for non-aggregate and aggregate query everywhere.
  */
-public abstract class OpenSearchIndexScanBuilder extends TableScanBuilder {
+public class OpenSearchIndexScanBuilder extends TableScanBuilder {
 
+  private final Function<OpenSearchRequestBuilder, OpenSearchIndexScan> scanFactory;
   /**
    * Delegated index scan builder for non-aggregate or aggregate query.
    */
@@ -38,24 +40,26 @@ public abstract class OpenSearchIndexScanBuilder extends TableScanBuilder {
   /**
    * Constructor used during query execution.
    */
-  protected OpenSearchIndexScanBuilder(OpenSearchRequestBuilder requestBuilder) {
+  public OpenSearchIndexScanBuilder(OpenSearchRequestBuilder requestBuilder,
+      Function<OpenSearchRequestBuilder, OpenSearchIndexScan> scanFactory) {
     this.delegate = new OpenSearchIndexScanQueryBuilder(requestBuilder);
+    this.scanFactory = scanFactory;
 
   }
 
   /**
    * Constructor used for unit tests.
    */
-  protected OpenSearchIndexScanBuilder(PushDownQueryBuilder translator) {
+  protected OpenSearchIndexScanBuilder(PushDownQueryBuilder translator,
+      Function<OpenSearchRequestBuilder, OpenSearchIndexScan> scanFactory) {
     this.delegate = translator;
+    this.scanFactory = scanFactory;
   }
 
   @Override
   public TableScanOperator build() {
-    return createScan(delegate.build());
+    return scanFactory.apply(delegate.build());
   }
-
-  protected abstract TableScanOperator createScan(OpenSearchRequestBuilder requestBuilder);
 
   @Override
   public boolean pushDownFilter(LogicalFilter filter) {

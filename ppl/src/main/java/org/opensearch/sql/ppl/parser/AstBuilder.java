@@ -20,6 +20,7 @@ import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.SearchFrom
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.SearchFromFilterContext;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.SortCommandContext;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.StatsCommandContext;
+import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.TableFunctionContext;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.TableSourceClauseContext;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.TopCommandContext;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.WhereCommandContext;
@@ -33,7 +34,6 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
-import lombok.Generated;
 import lombok.RequiredArgsConstructor;
 import org.antlr.v4.runtime.ParserRuleContext;
 import org.antlr.v4.runtime.Token;
@@ -46,6 +46,7 @@ import org.opensearch.sql.ast.expression.Literal;
 import org.opensearch.sql.ast.expression.Map;
 import org.opensearch.sql.ast.expression.ParseMethod;
 import org.opensearch.sql.ast.expression.QualifiedName;
+import org.opensearch.sql.ast.expression.UnresolvedArgument;
 import org.opensearch.sql.ast.expression.UnresolvedExpression;
 import org.opensearch.sql.ast.tree.AD;
 import org.opensearch.sql.ast.tree.Aggregation;
@@ -62,6 +63,7 @@ import org.opensearch.sql.ast.tree.RareTopN.CommandType;
 import org.opensearch.sql.ast.tree.Relation;
 import org.opensearch.sql.ast.tree.Rename;
 import org.opensearch.sql.ast.tree.Sort;
+import org.opensearch.sql.ast.tree.TableFunction;
 import org.opensearch.sql.ast.tree.UnresolvedPlan;
 import org.opensearch.sql.common.utils.StringUtils;
 import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser;
@@ -346,7 +348,11 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
    */
   @Override
   public UnresolvedPlan visitFromClause(FromClauseContext ctx) {
-    return visitTableSourceClause(ctx.tableSourceClause());
+    if (ctx.tableFunction() != null) {
+      return visitTableFunction(ctx.tableFunction());
+    } else {
+      return visitTableSourceClause(ctx.tableSourceClause());
+    }
   }
 
   @Override
@@ -357,10 +363,16 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
   }
 
   @Override
-  @Generated //To exclude from jacoco..will remove https://github.com/opensearch-project/sql/issues/1019
-  public UnresolvedPlan visitTableFunction(OpenSearchPPLParser.TableFunctionContext ctx) {
-    //<TODO>
-    return null;
+  public UnresolvedPlan visitTableFunction(TableFunctionContext ctx) {
+    ImmutableList.Builder<UnresolvedExpression> builder = ImmutableList.builder();
+    ctx.functionArgs().functionArg().forEach(arg
+        -> {
+      String argName = (arg.ident() != null) ? arg.ident().getText() : null;
+      builder.add(
+          new UnresolvedArgument(argName,
+              this.internalVisitExpression(arg.valueExpression())));
+    });
+    return new TableFunction(this.internalVisitExpression(ctx.qualifiedName()), builder.build());
   }
 
   /**
