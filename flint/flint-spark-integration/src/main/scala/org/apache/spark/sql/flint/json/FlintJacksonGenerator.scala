@@ -20,8 +20,13 @@ import org.apache.spark.sql.types._
 
 /**
  * copy from spark {@link JacksonGenerator}.
+ *   1. Add ignoredFieldName, the column is ignored when write.
  */
-case class FlintJacksonGenerator(dataType: DataType, writer: Writer, options: JSONOptions) {
+case class FlintJacksonGenerator(
+    dataType: DataType,
+    writer: Writer,
+    options: JSONOptions,
+    ignoredFieldName: Option[String] = None) {
   // A `ValueWriter` is responsible for writing a field of an `InternalRow` to appropriate
   // JSON data. Here we are using `SpecializedGetters` rather than `InternalRow` so that
   // we can directly access data in `ArrayData` without the help of `SpecificMutableRow`.
@@ -202,12 +207,14 @@ case class FlintJacksonGenerator(dataType: DataType, writer: Writer, options: JS
     var i = 0
     while (i < row.numFields) {
       val field = schema(i)
-      if (!row.isNullAt(i)) {
-        gen.writeFieldName(field.name)
-        fieldWriters(i).apply(row, i)
-      } else if (!options.ignoreNullFields) {
-        gen.writeFieldName(field.name)
-        gen.writeNull()
+      if (!ignoredFieldName.contains(field.name)) {
+        if (!row.isNullAt(i)) {
+          gen.writeFieldName(field.name)
+          fieldWriters(i).apply(row, i)
+        } else if (!options.ignoreNullFields) {
+          gen.writeFieldName(field.name)
+          gen.writeNull()
+        }
       }
       i += 1
     }

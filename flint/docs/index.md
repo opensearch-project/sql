@@ -213,6 +213,7 @@ In the index mapping, the `_meta` and `properties`field stores meta and schema i
 - `spark.datasource.flint.auth`: default is false. valid values [false, sigv4]
 - `spark.datasource.flint.region`: default is us-west-2. only been used when auth=sigv4
 - `spark.datasource.flint.write.id_name`: no default value.
+- `spark.datasource.flint.ignore.id_column` : default value is true.
 - `spark.datasource.flint.write.batch_size`: default value is 1000.
 - `spark.datasource.flint.write.refresh_policy`: default value is false. valid values [NONE(false), 
   IMMEDIATE(true), WAIT_UNTIL(wait_for)]

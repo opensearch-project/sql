@@ -66,6 +66,11 @@ object FlintSparkConf {
         "flint. if not provided, use system generated random id")
     .createOptional()
 
+  val IGNORE_DOC_ID_COLUMN = FlintConfig("spark.datasource.flint.ignore.id_column")
+    .datasourceOption()
+    .doc("Enable spark write task ignore doc_id column. the default value is ture")
+    .createWithDefault("true")
+
   val BATCH_SIZE = FlintConfig("spark.datasource.flint.write.batch_size")
     .datasourceOption()
     .doc(
@@ -99,6 +104,8 @@ class FlintSparkConf(properties: JMap[String, String]) extends Serializable {
   def batchSize(): Int = BATCH_SIZE.readFrom(reader).toInt
 
   def docIdColumnName(): Option[String] = DOC_ID_COLUMN_NAME.readFrom(reader)
+
+  def ignoreIdColumn(): Boolean = IGNORE_DOC_ID_COLUMN.readFrom(reader).toBoolean
 
   def tableName(): String = {
     if (properties.containsKey("path")) properties.get("path")

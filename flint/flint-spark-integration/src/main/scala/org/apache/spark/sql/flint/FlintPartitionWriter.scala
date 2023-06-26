@@ -34,11 +34,16 @@ case class FlintPartitionWriter(
   private lazy val jsonOptions = {
     new JSONOptions(CaseInsensitiveMap(DATE_FORMAT_PARAMETERS), options.timeZone, "")
   }
-  private lazy val gen = FlintJacksonGenerator(dataSchema, flintWriter, jsonOptions)
+  private lazy val gen =
+    FlintJacksonGenerator(dataSchema, flintWriter, jsonOptions, ignoredFieldName)
 
-  private lazy val idOrdinal = options
-    .docIdColumnName()
-    .flatMap(filedName => dataSchema.getFieldIndex(filedName))
+  private lazy val idFieldName = options.docIdColumnName()
+
+  private lazy val idOrdinal =
+    idFieldName.flatMap(filedName => dataSchema.getFieldIndex(filedName))
+
+  private lazy val ignoredFieldName: Option[String] =
+    idFieldName.filter(_ => options.ignoreIdColumn())
 
   /**
    * total write doc count.
