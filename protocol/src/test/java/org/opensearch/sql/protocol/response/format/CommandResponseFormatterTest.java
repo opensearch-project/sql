@@ -10,6 +10,7 @@ import static org.mockito.Mockito.mock;
 import static org.opensearch.sql.data.model.ExprValueUtils.tupleValue;
 import static org.opensearch.sql.data.type.ExprCoreType.INTEGER;
 import static org.opensearch.sql.data.type.ExprCoreType.STRING;
+import static org.opensearch.sql.protocol.response.format.JsonResponseFormatter.CONTENT_TYPE;
 import static org.opensearch.sql.protocol.response.format.JsonResponseFormatter.Style.PRETTY;
 
 import com.google.common.collect.ImmutableList;
@@ -55,5 +56,11 @@ public class CommandResponseFormatterTest {
     var exception = new Exception("pewpew", new RuntimeException("meow meow"));
     assertEquals(new JdbcResponseFormatter(PRETTY).format(exception),
         new CommandResponseFormatter().format(exception));
+  }
+
+  @Test
+  void testContentType() {
+    var formatter = new CommandResponseFormatter();
+    assertEquals(formatter.contentType(), CONTENT_TYPE);
   }
 }
