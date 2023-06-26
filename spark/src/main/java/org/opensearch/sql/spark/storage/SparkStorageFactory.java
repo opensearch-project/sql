@@ -16,6 +16,9 @@ import org.opensearch.sql.spark.client.SparkClient;
 import org.opensearch.sql.storage.DataSourceFactory;
 import org.opensearch.sql.storage.StorageEngine;
 
+/**
+ * Storage factory implementation for spark connector.
+ */
 @RequiredArgsConstructor
 public class SparkStorageFactory implements DataSourceFactory {
   private final Client client;
@@ -34,6 +37,10 @@ public class SparkStorageFactory implements DataSourceFactory {
         getStorageEngine(metadata.getProperties()));
   }
 
+  /**
+   * @param requiredConfig spark config options
+   * @return               spark client
+   */
   StorageEngine getStorageEngine(Map<String, String> requiredConfig) {
     SparkClient sparkClient = null;
     //TODO: Initialize spark client

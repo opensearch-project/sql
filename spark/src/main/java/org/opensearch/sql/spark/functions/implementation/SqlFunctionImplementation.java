@@ -24,6 +24,9 @@ import org.opensearch.sql.spark.request.SparkQueryRequest;
 import org.opensearch.sql.spark.storage.SparkMetricTable;
 import org.opensearch.sql.storage.Table;
 
+/**
+ * Spark SQL function implementation.
+ */
 public class SqlFunctionImplementation extends FunctionExpression
     implements TableFunctionImplementation {
 
@@ -32,10 +35,9 @@ public class SqlFunctionImplementation extends FunctionExpression
   private final SparkClient sparkClient;
 
   /**
-   * Required argument constructor.
-   *
    * @param functionName name of the function
    * @param arguments    a list of expressions
+   * @param sparkClient  spark client
    */
   public SqlFunctionImplementation(
       FunctionName functionName, List<Expression> arguments, SparkClient sparkClient) {
@@ -72,6 +74,10 @@ public class SqlFunctionImplementation extends FunctionExpression
     return new SparkMetricTable(sparkClient, buildQueryFromSqlFunction(arguments));
   }
 
+  /**
+   * @param arguments spark sql function arguments
+   * @return          spark query request
+   */
   private SparkQueryRequest buildQueryFromSqlFunction(List<Expression> arguments) {
 
     SparkQueryRequest sparkQueryRequest = new SparkQueryRequest();

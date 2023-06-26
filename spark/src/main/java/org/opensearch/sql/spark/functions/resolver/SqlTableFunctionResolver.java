@@ -25,6 +25,9 @@ import org.opensearch.sql.expression.function.FunctionSignature;
 import org.opensearch.sql.spark.client.SparkClient;
 import org.opensearch.sql.spark.functions.implementation.SqlFunctionImplementation;
 
+/**
+ * Function resolver for sql function of spark connector.
+ */
 @RequiredArgsConstructor
 public class SqlTableFunctionResolver implements FunctionResolver {
   private final SparkClient sparkClient;

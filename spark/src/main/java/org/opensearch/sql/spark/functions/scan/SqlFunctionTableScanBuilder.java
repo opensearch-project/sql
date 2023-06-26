@@ -13,7 +13,7 @@ import org.opensearch.sql.storage.TableScanOperator;
 import org.opensearch.sql.storage.read.TableScanBuilder;
 
 /**
- * TableScanBuilder for sql table function of spark connector.
+ * TableScanBuilder for sql function of spark connector.
  */
 @AllArgsConstructor
 public class SqlFunctionTableScanBuilder extends TableScanBuilder {
