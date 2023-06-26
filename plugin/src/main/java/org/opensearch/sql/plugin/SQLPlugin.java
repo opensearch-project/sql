@@ -88,7 +88,6 @@ import org.opensearch.threadpool.FixedExecutorBuilder;
 import org.opensearch.threadpool.ThreadPool;
 import org.opensearch.watcher.ResourceWatcherService;
 
-
 public class SQLPlugin extends Plugin implements ActionPlugin, ScriptPlugin {
 
   private static final Logger LOG = LogManager.getLogger();
