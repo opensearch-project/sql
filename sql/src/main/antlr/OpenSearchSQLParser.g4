@@ -328,7 +328,8 @@ nullNotnull
     ;
 
 functionCall
-    : scalarFunctionName LR_BRACKET functionArgs RR_BRACKET         #scalarFunctionCall
+    : nestedFunctionName LR_BRACKET allTupleFields RR_BRACKET       #nestedAllFunctionCall
+    | scalarFunctionName LR_BRACKET functionArgs RR_BRACKET         #scalarFunctionCall
     | specificFunction                                              #specificFunctionCall
     | windowFunctionClause                                          #windowFunctionCall
     | aggregateFunction                                             #aggregateFunctionCall
@@ -811,6 +812,10 @@ tableName
 
 columnName
     : qualifiedName
+    ;
+
+allTupleFields
+    : path=qualifiedName DOT STAR
     ;
 
 alias

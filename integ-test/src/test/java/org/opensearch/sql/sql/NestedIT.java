@@ -89,8 +89,7 @@ public class NestedIT extends SQLIntegTestCase {
     verifyDataRows(result, rows(19));
   }
 
-  // TODO not currently supported by legacy, should we add implementation in AstBuilder?
-  @Disabled
+  @Test
   public void nested_function_in_a_function_in_select_test() {
     String query = "SELECT upper(nested(message.info)) FROM " +
         TEST_INDEX_NESTED_TYPE_WITHOUT_ARRAYS;
@@ -103,6 +102,41 @@ public class NestedIT extends SQLIntegTestCase {
         rows("C"),
         rows("ZZ"));
   }
+
+  @Test
+  public void nested_all_function_in_a_function_in_select_test() {
+    String query = "SELECT nested(message.*) FROM " +
+        TEST_INDEX_NESTED_TYPE_WITHOUT_ARRAYS + " WHERE nested(message.info) = 'a'";
+    JSONObject result = executeJdbcRequest(query);
+    verifyDataRows(result, rows("e", 1, "a"));
+  }
+
+  @Test
+  public void invalid_multiple_nested_all_function_in_a_function_in_select_test() {
+    String query = "SELECT nested(message.*), nested(message.info) FROM " +
+        TEST_INDEX_NESTED_TYPE_WITHOUT_ARRAYS;
+    RuntimeException result = assertThrows(
+        RuntimeException.class,
+        () -> executeJdbcRequest(query)
+    );
+    assertTrue(
+        result.getMessage().contains("IllegalArgumentException")
+        && result.getMessage().contains("Multiple entries with same key")
+    );
+  }
+
+  @Test
+  public void nested_all_function_with_limit_test() {
+    String query = "SELECT nested(message.*) FROM " +
+        TEST_INDEX_NESTED_TYPE_WITHOUT_ARRAYS + " LIMIT 3";
+    JSONObject result = executeJdbcRequest(query);
+    verifyDataRows(result,
+        rows("e", 1, "a"),
+        rows("f", 2, "b"),
+        rows("g", 1, "c")
+    );
+  }
+
 
   @Test
   public void nested_function_with_array_of_multi_nested_field_test() {
@@ -404,6 +438,107 @@ public class NestedIT extends SQLIntegTestCase {
   }
 
   @Test
+  public void nested_function_all_subfields() {
+    String query = "SELECT nested(message.*) FROM " + TEST_INDEX_NESTED_TYPE;
+    JSONObject result = executeJdbcRequest(query);
+
+    assertEquals(6, result.getInt("total"));
+    verifySchema(result,
+        schema("nested(message.author)", null, "keyword"),
+        schema("nested(message.dayOfWeek)", null, "long"),
+        schema("nested(message.info)", null, "keyword"));
+    verifyDataRows(result,
+        rows("e", 1, "a"),
+        rows("f", 2, "b"),
+        rows("g", 1, "c"),
+        rows("h", 4, "c"),
+        rows("i", 5, "a"),
+        rows("zz", 6, "zz"));
+  }
+
+  @Test
+  public void nested_function_all_subfields_and_specified_subfield() {
+    String query = "SELECT nested(message.*), nested(comment.data) FROM "
+        + TEST_INDEX_NESTED_TYPE;
+    JSONObject result = executeJdbcRequest(query);
+
+    assertEquals(6, result.getInt("total"));
+    verifySchema(result,
+        schema("nested(message.author)", null, "keyword"),
+        schema("nested(message.dayOfWeek)", null, "long"),
+        schema("nested(message.info)", null, "keyword"),
+        schema("nested(comment.data)", null, "keyword"));
+    verifyDataRows(result,
+        rows("e", 1, "a", "ab"),
+        rows("f", 2, "b", "aa"),
+        rows("g", 1, "c", "aa"),
+        rows("h", 4, "c", "ab"),
+        rows("i", 5, "a", "ab"),
+        rows("zz", 6, "zz", new JSONArray(List.of("aa", "bb"))));
+  }
+
+  @Test
+  public void nested_function_all_deep_nested_subfields() {
+    String query = "SELECT nested(message.author.address.*) FROM "
+        + TEST_INDEX_MULTI_NESTED_TYPE;
+    JSONObject result = executeJdbcRequest(query);
+
+    assertEquals(6, result.getInt("total"));
+    verifySchema(result,
+        schema("nested(message.author.address.number)", null, "integer"),
+        schema("nested(message.author.address.street)", null, "keyword"));
+    verifyDataRows(result,
+        rows(1, "bc"),
+        rows(2, "ab"),
+        rows(3, "sk"),
+        rows(4, "mb"),
+        rows(5, "on"),
+        rows(6, "qc"));
+  }
+
+  @Test
+  public void nested_function_all_subfields_for_two_nested_fields() {
+    String query = "SELECT nested(message.*), nested(comment.*) FROM "
+        + TEST_INDEX_NESTED_TYPE;
+    JSONObject result = executeJdbcRequest(query);
+
+    assertEquals(6, result.getInt("total"));
+    verifySchema(result,
+        schema("nested(message.author)", null, "keyword"),
+        schema("nested(message.dayOfWeek)", null, "long"),
+        schema("nested(message.info)", null, "keyword"),
+        schema("nested(comment.data)", null, "keyword"),
+        schema("nested(comment.likes)", null, "long"));
+    verifyDataRows(result,
+        rows("e", 1, "a", "ab", 3),
+        rows("f", 2, "b", "aa", 2),
+        rows("g", 1, "c", "aa", 3),
+        rows("h", 4, "c", "ab", 1),
+        rows("i", 5, "a", "ab", 1),
+        rows("zz", 6, "zz", new JSONArray(List.of("aa", "bb")), 10));
+  }
+
+  @Test
+  public void nested_function_all_subfields_and_non_nested_field() {
+    String query = "SELECT nested(message.*), myNum FROM " + TEST_INDEX_NESTED_TYPE;
+    JSONObject result = executeJdbcRequest(query);
+
+    assertEquals(6, result.getInt("total"));
+    verifySchema(result,
+        schema("nested(message.author)", null, "keyword"),
+        schema("nested(message.dayOfWeek)", null, "long"),
+        schema("nested(message.info)", null, "keyword"),
+        schema("myNum", null, "long"));
+    verifyDataRows(result,
+        rows("e", 1, "a", 1),
+        rows("f", 2, "b", 2),
+        rows("g", 1, "c", 3),
+        rows("h", 4, "c", 4),
+        rows("i", 5, "a", 4),
+        rows("zz", 6, "zz", new JSONArray(List.of(3, 4))));
+  }
+
+  @Test
   public void nested_function_with_date_types_as_object_arrays_within_arrays_test() {
     String query = "SELECT nested(address.moveInDate) FROM " + TEST_INDEX_NESTED_SIMPLE;
     JSONObject result = executeJdbcRequest(query);
@@ -415,9 +550,9 @@ public class NestedIT extends SQLIntegTestCase {
     verifyDataRows(result,
         rows(new JSONObject(Map.of("dateAndTime","1984-04-12 09:07:42"))),
         rows(new JSONArray(
-            List.of(
-                Map.of("dateAndTime", "2023-05-03 08:07:42"),
-                Map.of("dateAndTime", "2001-11-11 04:07:44"))
+                List.of(
+                    Map.of("dateAndTime", "2023-05-03 08:07:42"),
+                    Map.of("dateAndTime", "2001-11-11 04:07:44"))
             )
         ),
         rows(new JSONObject(Map.of("dateAndTime", "1966-03-19 03:04:55"))),
@@ -429,8 +564,8 @@ public class NestedIT extends SQLIntegTestCase {
         rows(new JSONObject(Map.of("dateAndTime", "1933-12-12 05:05:45"))),
         rows(new JSONObject(Map.of("dateAndTime", "1909-06-17 01:04:21"))),
         rows(new JSONArray(
-            List.of(
-                Map.of("dateAndTime", "2001-11-11 04:07:44"))
+                List.of(
+                    Map.of("dateAndTime", "2001-11-11 04:07:44"))
             )
         )
     );
