@@ -53,8 +53,8 @@ public class SqlTableFunctionResolver implements FunctionResolver {
 
       if (arguments.size() != argumentNames.size()) {
         throw new SemanticCheckException(
-            generateErrorMessageForMissingArguments(argumentsPassedByPosition, arguments,
-                argumentNames));
+            String.format("Missing arguments:[%s]",
+                String.join(",", argumentNames.subList(arguments.size(), argumentNames.size()))));
       }
 
       if (argumentsPassedByPosition) {
@@ -68,22 +68,6 @@ public class SqlTableFunctionResolver implements FunctionResolver {
       return new SqlFunctionImplementation(functionName, arguments, sparkClient);
     };
     return Pair.of(functionSignature, functionBuilder);
-  }
-
-  private String generateErrorMessageForMissingArguments(Boolean argumentsPassedByPosition,
-                                                         List<Expression> arguments,
-                                                         List<String> argumentNames) {
-    if (argumentsPassedByPosition) {
-      return String.format("Missing arguments:[%s]",
-          String.join(",", argumentNames.subList(arguments.size(), argumentNames.size())));
-    } else {
-      Set<String> requiredArguments = new HashSet<>(argumentNames);
-      Set<String> providedArguments =
-          arguments.stream().map(expression -> ((NamedArgumentExpression) expression).getArgName())
-              .collect(Collectors.toSet());
-      requiredArguments.removeAll(providedArguments);
-      return String.format("Missing arguments:[%s]", String.join(",", requiredArguments));
-    }
   }
 
   @Override
