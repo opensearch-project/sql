@@ -12,8 +12,9 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
+import java.util.Objects;
 import java.util.Set;
-import lombok.EqualsAndHashCode;
+import java.util.stream.Collectors;
 import lombok.Getter;
 import lombok.ToString;
 import org.json.JSONPropertyName;
@@ -24,7 +25,6 @@ import org.opensearch.sql.legacy.utils.StringUtils;
  * query with SELECT columns or just *, order of column and row may matter or not. So the internal data structure of this
  * class is passed in from outside either list or set, hash map or linked hash map etc.
  */
-@EqualsAndHashCode(exclude = "databaseName")
 @ToString
 public class DBResult {
 
@@ -191,4 +191,24 @@ public class DBResult {
     return list;
   }
 
+  public boolean equals(final Object o) {
+    if (o == this) {
+      return true;
+    }
+    if (!(o instanceof DBResult)) {
+      return false;
+    }
+    final DBResult other = (DBResult) o;
+    // H2 calculates the value before setting column name
+    // for example, for query "select 1 + 1" it returns a column named "2" instead of "1 + 1"
+    boolean skipColumnNameCheck = databaseName.equalsIgnoreCase("h2") || other.databaseName.equalsIgnoreCase("h2");
+    if (!skipColumnNameCheck && !schema.equals(other.schema)) {
+      return false;
+    }
+    if (skipColumnNameCheck && !schema.stream().map(Type::getType).collect(Collectors.toList())
+                    .equals(other.schema.stream().map(Type::getType).collect(Collectors.toList()))) {
+      return false;
+    }
+    return dataRows.equals(other.dataRows);
+  }
 }
