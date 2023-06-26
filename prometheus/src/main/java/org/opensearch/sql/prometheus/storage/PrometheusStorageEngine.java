@@ -10,6 +10,7 @@ package org.opensearch.sql.prometheus.storage;
 import static org.opensearch.sql.analysis.DataSourceSchemaIdentifierNameResolver.INFORMATION_SCHEMA_NAME;
 import static org.opensearch.sql.utils.SystemIndexUtils.isSystemIndex;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import lombok.RequiredArgsConstructor;
@@ -17,6 +18,7 @@ import org.opensearch.sql.DataSourceSchemaName;
 import org.opensearch.sql.exception.SemanticCheckException;
 import org.opensearch.sql.expression.function.FunctionResolver;
 import org.opensearch.sql.prometheus.client.PrometheusClient;
+import org.opensearch.sql.prometheus.functions.resolver.QueryExemplarsTableFunctionResolver;
 import org.opensearch.sql.prometheus.functions.resolver.QueryRangeTableFunctionResolver;
 import org.opensearch.sql.prometheus.storage.system.PrometheusSystemTable;
 import org.opensearch.sql.storage.StorageEngine;
@@ -34,8 +36,10 @@ public class PrometheusStorageEngine implements StorageEngine {
 
   @Override
   public Collection<FunctionResolver> getFunctions() {
-    return Collections.singletonList(
-        new QueryRangeTableFunctionResolver(prometheusClient));
+    ArrayList<FunctionResolver> functionList = new ArrayList<>();
+    functionList.add(new QueryRangeTableFunctionResolver(prometheusClient));
+    functionList.add(new QueryExemplarsTableFunctionResolver(prometheusClient));
+    return functionList;
   }
 
   @Override

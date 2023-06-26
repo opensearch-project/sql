@@ -28,6 +28,7 @@ import okhttp3.OkHttpClient;
 import okhttp3.mockwebserver.MockResponse;
 import okhttp3.mockwebserver.MockWebServer;
 import okhttp3.mockwebserver.RecordedRequest;
+import org.json.JSONArray;
 import org.json.JSONObject;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -133,6 +134,20 @@ public class PrometheusClientImplTest {
     verifyGetAllMetricsCall(recordedRequest);
   }
 
+
+  @Test
+  @SneakyThrows
+  void testQueryExemplars() {
+    MockResponse mockResponse = new MockResponse()
+        .addHeader("Content-Type", "application/json; charset=utf-8")
+        .setBody(getJson("query_exemplars_response.json"));
+    mockWebServer.enqueue(mockResponse);
+    JSONArray jsonArray = prometheusClient.queryExemplars(QUERY, STARTTIME, ENDTIME);
+    assertTrue(new JSONArray(getJson("query_exemplars_result.json")).similar(jsonArray));
+    RecordedRequest recordedRequest = mockWebServer.takeRequest();
+    verifyQueryExemplarsCall(recordedRequest);
+  }
+
   @AfterEach
   void tearDown() throws IOException {
     mockWebServer.shutdown();
@@ -164,4 +179,13 @@ public class PrometheusClientImplTest {
     assertEquals("/api/v1/metadata", httpUrl.encodedPath());
   }
 
+  private void verifyQueryExemplarsCall(RecordedRequest recordedRequest) {
+    HttpUrl httpUrl = recordedRequest.getRequestUrl();
+    assertEquals("GET", recordedRequest.getMethod());
+    assertNotNull(httpUrl);
+    assertEquals("/api/v1/query_exemplars", httpUrl.encodedPath());
+    assertEquals(QUERY, httpUrl.queryParameter("query"));
+    assertEquals(STARTTIME.toString(), httpUrl.queryParameter("start"));
+    assertEquals(ENDTIME.toString(), httpUrl.queryParameter("end"));
+  }
 }

@@ -1,0 +1,9 @@
+{
+  "root": {
+    "name": "QueryExemplarsFunctionTableScanOperator",
+    "description": {
+      "request": "query_exemplars(app_ads_ad_requests_total, 1689228292, 1689232299)"
+    },
+    "children": []
+  }
+}
