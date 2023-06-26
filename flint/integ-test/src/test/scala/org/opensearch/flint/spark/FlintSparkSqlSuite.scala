@@ -48,13 +48,29 @@ class FlintSparkSqlSuite extends QueryTest with FlintSuite with OpenSearchSuite 
            |""".stripMargin)
   }
 
-  test("drop skipping index") {
+  protected override def beforeEach(): Unit = {
+    super.beforeEach()
+
     flint
       .skippingIndex()
       .onTable(testTable)
       .addPartitions("year")
       .create()
+  }
 
+  protected override def afterEach(): Unit = {
+    super.afterEach()
+
+    flint.deleteIndex(testIndex)
+  }
+
+  test("describe skipping index") {
+    val result = sql(s"DESC SKIPPING INDEX ON $testTable")
+
+    checkAnswer(result, Seq())
+  }
+
+  test("drop skipping index") {
     sql(s"DROP SKIPPING INDEX ON $testTable")
 
     flint.describeIndex(testIndex) shouldBe empty
