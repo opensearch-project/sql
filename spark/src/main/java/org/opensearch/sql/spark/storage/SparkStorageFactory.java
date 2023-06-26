@@ -38,8 +38,8 @@ public class SparkStorageFactory implements DataSourceFactory {
   }
 
   StorageEngine getStorageEngine(Map<String, String> requiredConfig) {
-    SparkClient sparkClient;
-    //TODO: Initialize spark client send to storage engine
-    return new SparkStorageEngine(null);
+    SparkClient sparkClient = null;
+    //TODO: Initialize spark client
+    return new SparkStorageEngine(sparkClient);
   }
 }
