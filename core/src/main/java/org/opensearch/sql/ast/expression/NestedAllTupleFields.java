@@ -18,7 +18,6 @@ import org.opensearch.sql.ast.Node;
 /**
  * Represents all tuple fields used in nested function.
  */
-@ToString
 @RequiredArgsConstructor
 @EqualsAndHashCode(callSuper = false)
 public class NestedAllTupleFields extends UnresolvedExpression {
