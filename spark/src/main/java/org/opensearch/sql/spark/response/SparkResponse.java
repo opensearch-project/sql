@@ -54,7 +54,7 @@ public class SparkResponse {
     SearchResponse searchResponse = searchResponseActionFuture.actionGet();
     if (searchResponse.status().getStatus() != 200) {
       throw new RuntimeException(
-          "Fetching result from .query_execution_result index failed with status : "
+          "Fetching result from " + SPARK_INDEX_NAME + " index failed with status : "
           + searchResponse.status());
     } else {
       JSONObject data = new JSONObject();

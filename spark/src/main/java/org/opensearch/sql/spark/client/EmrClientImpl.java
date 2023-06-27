@@ -70,11 +70,11 @@ public class EmrClientImpl implements SparkClient {
     this.emrRegion = emrRegion;
     this.emrAccessKey = emrAccessKey;
     this.emrSecretKey = emrSecretKey;
-    this.flintHost = flintHost;
-    this.flintPort = flintPort;
-    this.flintScheme = flintScheme;
-    this.flintAuth = flintAuth;
-    this.flintRegion = flintRegion;
+    this.flintHost = flintHost != null ? flintHost : "localhost";
+    this.flintPort = flintPort != null ? flintPort : "9200";
+    this.flintScheme = flintScheme != null ? flintScheme : "http";
+    this.flintAuth = flintAuth != null ? flintAuth : "-1";
+    this.flintRegion = flintRegion != null ? flintRegion : "us-west-2";
   }
 
   @Override
@@ -129,7 +129,8 @@ public class EmrClientImpl implements SparkClient {
     return stepId;
   }
 
-  private void waitForStepExecution(AmazonElasticMapReduce emrClient, DescribeStepRequest stepRequest) {
+  private void waitForStepExecution(
+      AmazonElasticMapReduce emrClient, DescribeStepRequest stepRequest) {
     // Wait for the step to complete
     boolean completed = false;
     while (!completed) {

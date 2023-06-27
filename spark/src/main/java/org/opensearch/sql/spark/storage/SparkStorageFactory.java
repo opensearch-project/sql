@@ -17,6 +17,7 @@ import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.datasource.model.DataSource;
 import org.opensearch.sql.datasource.model.DataSourceMetadata;
 import org.opensearch.sql.datasource.model.DataSourceType;
+import org.opensearch.sql.datasources.auth.AuthenticationType;
 import org.opensearch.sql.spark.client.EmrClientImpl;
 import org.opensearch.sql.spark.client.SparkClient;
 import org.opensearch.sql.storage.DataSourceFactory;
@@ -65,7 +66,7 @@ public class SparkStorageFactory implements DataSourceFactory {
    * This function gets spark storage engine.
    *
    * @param requiredConfig spark config options
-   * @return               spark storage engine object
+   * @return spark storage engine object
    */
   StorageEngine getStorageEngine(Map<String, String> requiredConfig) {
     SparkClient sparkClient;
@@ -73,7 +74,7 @@ public class SparkStorageFactory implements DataSourceFactory {
       sparkClient =
           AccessController.doPrivileged((PrivilegedAction<EmrClientImpl>) () -> {
             try {
-              validateDataSourceConfigProperties(requiredConfig);
+              validateEMRConfigProperties(requiredConfig);
               return new EmrClientImpl(
                   client,
                   requiredConfig.get(EMR_CLUSTER),
@@ -97,19 +98,16 @@ public class SparkStorageFactory implements DataSourceFactory {
     return new SparkStorageEngine(sparkClient);
   }
 
-  private void validateDataSourceConfigProperties(Map<String, String> dataSourceMetadataConfig)
+  private void validateEMRConfigProperties(Map<String, String> dataSourceMetadataConfig)
       throws IllegalArgumentException {
-    // TODO Update validation
     if (dataSourceMetadataConfig.get(EMR_CLUSTER) == null
-        && dataSourceMetadataConfig.get(EMR_AUTH_TYPE) == null
-        && dataSourceMetadataConfig.get(EMR_ACCESS_KEY) == null
-        && dataSourceMetadataConfig.get(EMR_SECRET_KEY) == null
-        && dataSourceMetadataConfig.get(FLINT_HOST) == null
-        && dataSourceMetadataConfig.get(FLINT_PORT) == null
-        && dataSourceMetadataConfig.get(FLINT_SCHEME) == null
-        && dataSourceMetadataConfig.get(FLINT_AUTH) == null
-        && dataSourceMetadataConfig.get(FLINT_REGION) == null) {
-      throw new IllegalArgumentException("Cluster missing");
+        || dataSourceMetadataConfig.get(EMR_AUTH_TYPE) == null) {
+      throw new IllegalArgumentException("EMR config properties are missing");
+    }
+    if (dataSourceMetadataConfig.get(EMR_AUTH_TYPE).equals(AuthenticationType.AWSSIGV4AUTH)
+        && (dataSourceMetadataConfig.get(EMR_ACCESS_KEY) == null
+        || dataSourceMetadataConfig.get(EMR_SECRET_KEY) == null)) {
+      throw new IllegalArgumentException("EMR auth properties are missing");
     }
   }
 }

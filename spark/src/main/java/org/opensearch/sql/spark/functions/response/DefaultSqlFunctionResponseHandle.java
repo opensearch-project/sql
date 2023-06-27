@@ -89,7 +89,8 @@ public class DefaultSqlFunctionResponseHandle implements SqlFunctionResponseHand
       } else if (type == ExprCoreType.DATE) {
         linkedHashMap.put(column.getName(), new ExprDateValue(row.getString(column.getName())));
       } else if (type == ExprCoreType.TIMESTAMP) {
-        linkedHashMap.put(column.getName(), new ExprTimestampValue(row.getString(column.getName())));
+        linkedHashMap.put(column.getName(),
+            new ExprTimestampValue(row.getString(column.getName())));
       } else if (type == ExprCoreType.STRING) {
         linkedHashMap.put(column.getName(), new ExprStringValue(row.getString(column.getName())));
       } else {
