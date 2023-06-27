@@ -15,6 +15,7 @@ import org.opensearch.sql.planner.physical.PhysicalPlan;
 import org.opensearch.sql.spark.client.SparkClient;
 import org.opensearch.sql.spark.functions.scan.SqlFunctionTableScanBuilder;
 import org.opensearch.sql.spark.request.SparkQueryRequest;
+import org.opensearch.sql.spark.storage.implementor.SparkDefaultImplementor;
 import org.opensearch.sql.storage.Table;
 import org.opensearch.sql.storage.read.TableScanBuilder;
 
@@ -57,8 +58,12 @@ public class SparkMetricTable implements Table {
 
   @Override
   public PhysicalPlan implement(LogicalPlan plan) {
-    //TODO: Add plan
-    return null;
+    SparkMetricScan metricScan =
+        new SparkMetricScan(sparkClient);
+    if (sparkQueryRequest != null) {
+      metricScan.setRequest(sparkQueryRequest);
+    }
+    return plan.accept(new SparkDefaultImplementor(), metricScan);
   }
 
   @Override

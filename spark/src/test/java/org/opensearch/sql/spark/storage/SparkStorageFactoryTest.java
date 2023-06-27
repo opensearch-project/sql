@@ -45,10 +45,20 @@ public class SparkStorageFactoryTest {
 
   @Test
   void createDataSourceSuccessWithLocalhost() {
+    HashMap<String, String> properties = new HashMap<>();
+    properties.put("spark.connector", "emr");
+    properties.put("emr.cluster", "j-abc123");
+    properties.put("emr.auth.type", "sigv4");
+    properties.put("spark.datasource.flint.host", "localhost");
+    properties.put("spark.datasource.flint.port", "9200");
+    properties.put("spark.datasource.flint.scheme", "http");
+    properties.put("spark.datasource.flint.auth", "false");
+    properties.put("spark.datasource.flint.region", "us-west-2");
+
     DataSourceMetadata metadata = new DataSourceMetadata();
     metadata.setName("spark");
     metadata.setConnector(DataSourceType.SPARK);
-    metadata.setProperties(new HashMap<>());
+    metadata.setProperties(properties);
 
     DataSource dataSource = new SparkStorageFactory(client, settings).createDataSource(metadata);
     Assertions.assertTrue(dataSource.getStorageEngine() instanceof SparkStorageEngine);

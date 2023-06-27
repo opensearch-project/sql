@@ -19,7 +19,7 @@ public class ExprBooleanValue extends AbstractExprValue {
 
   private final Boolean value;
 
-  private ExprBooleanValue(Boolean value) {
+  public ExprBooleanValue(Boolean value) {
     this.value = value;
   }
 
