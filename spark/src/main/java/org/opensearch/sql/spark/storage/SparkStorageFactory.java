@@ -78,7 +78,7 @@ public class SparkStorageFactory implements DataSourceFactory {
               return new EmrClientImpl(
                   client,
                   requiredConfig.get(EMR_CLUSTER),
-                  requiredConfig.get(EMR_AUTH_TYPE),
+                  requiredConfig.get(EMR_REGION),
                   requiredConfig.get(EMR_ACCESS_KEY),
                   requiredConfig.get(EMR_SECRET_KEY),
                   requiredConfig.get(FLINT_HOST),
@@ -103,8 +103,10 @@ public class SparkStorageFactory implements DataSourceFactory {
     if (dataSourceMetadataConfig.get(EMR_CLUSTER) == null
         || dataSourceMetadataConfig.get(EMR_AUTH_TYPE) == null) {
       throw new IllegalArgumentException("EMR config properties are missing");
-    }
-    if (dataSourceMetadataConfig.get(EMR_AUTH_TYPE).equals(AuthenticationType.AWSSIGV4AUTH)
+    } else if (dataSourceMetadataConfig.get(EMR_AUTH_TYPE) != null
+        && !dataSourceMetadataConfig.get(EMR_AUTH_TYPE).equals(AuthenticationType.AWSSIGV4AUTH)) {
+      throw new IllegalArgumentException("EMR auth type not supported");
+    } else if (dataSourceMetadataConfig.get(EMR_AUTH_TYPE).equals(AuthenticationType.AWSSIGV4AUTH)
         && (dataSourceMetadataConfig.get(EMR_ACCESS_KEY) == null
         || dataSourceMetadataConfig.get(EMR_SECRET_KEY) == null)) {
       throw new IllegalArgumentException("EMR auth properties are missing");
