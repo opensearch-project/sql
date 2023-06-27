@@ -12,7 +12,7 @@ import org.opensearch.flint.spark.skipping.FlintSparkSkippingIndex.getSkippingIn
 import org.scalatest.matchers.should.Matchers.convertToAnyShouldWrapper
 
 import org.apache.spark.FlintSuite
-import org.apache.spark.sql.QueryTest
+import org.apache.spark.sql.{QueryTest, Row}
 import org.apache.spark.sql.flint.config.FlintSparkConf.{HOST_ENDPOINT, HOST_PORT}
 
 class FlintSparkSqlSuite extends QueryTest with FlintSuite with OpenSearchSuite {
@@ -55,6 +55,7 @@ class FlintSparkSqlSuite extends QueryTest with FlintSuite with OpenSearchSuite 
       .skippingIndex()
       .onTable(testTable)
       .addPartitions("year")
+      .addValueSet("name")
       .create()
   }
 
@@ -67,7 +68,14 @@ class FlintSparkSqlSuite extends QueryTest with FlintSuite with OpenSearchSuite 
   test("describe skipping index") {
     val result = sql(s"DESC SKIPPING INDEX ON $testTable")
 
-    checkAnswer(result, Seq())
+    checkAnswer(result, Seq(Row("year", "int"), Row("name", "string")))
+  }
+
+  test("should return empty if no skipping index to describe") {
+    flint.deleteIndex(testIndex)
+
+    val result = sql(s"DESC SKIPPING INDEX ON $testTable")
+    checkAnswer(result, Seq.empty)
   }
 
   test("drop skipping index") {
