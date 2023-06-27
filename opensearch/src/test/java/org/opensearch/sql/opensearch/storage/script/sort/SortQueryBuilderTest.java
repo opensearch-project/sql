@@ -64,6 +64,17 @@ class SortQueryBuilderTest {
   }
 
   @Test
+  void nested_with_too_few_args_throws_exception() {
+    assertThrows(
+        IllegalArgumentException.class,
+        () -> sortQueryBuilder.build(
+            DSL.nested(),
+            Sort.SortOption.DEFAULT_ASC
+        )
+    );
+  }
+
+  @Test
   void nested_with_invalid_arg_type_throws_exception() {
     assertThrows(
         IllegalArgumentException.class,

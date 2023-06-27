@@ -80,7 +80,7 @@ public class SortQueryBuilder {
    * @param nestedFunc Nested function expression.
    */
   private void validateNestedArgs(FunctionExpression nestedFunc) {
-    if (nestedFunc.getArguments().size() > 2) {
+    if (nestedFunc.getArguments().size() < 1 || nestedFunc.getArguments().size() > 2) {
       throw new IllegalArgumentException(
           "nested function supports 2 parameters (field, path) or 1 parameter (field)"
       );
