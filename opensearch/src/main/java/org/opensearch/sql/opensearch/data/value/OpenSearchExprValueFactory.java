@@ -6,8 +6,14 @@
 
 package org.opensearch.sql.opensearch.data.value;
 
+import static org.opensearch.sql.data.type.ExprCoreType.ARRAY;
+import static org.opensearch.sql.data.type.ExprCoreType.BOOLEAN;
 import static org.opensearch.sql.data.type.ExprCoreType.DATE;
 import static org.opensearch.sql.data.type.ExprCoreType.DATETIME;
+import static org.opensearch.sql.data.type.ExprCoreType.DOUBLE;
+import static org.opensearch.sql.data.type.ExprCoreType.FLOAT;
+import static org.opensearch.sql.data.type.ExprCoreType.INTEGER;
+import static org.opensearch.sql.data.type.ExprCoreType.LONG;
 import static org.opensearch.sql.data.type.ExprCoreType.STRING;
 import static org.opensearch.sql.data.type.ExprCoreType.STRUCT;
 import static org.opensearch.sql.data.type.ExprCoreType.TIME;
@@ -18,10 +24,10 @@ import static org.opensearch.sql.utils.DateTimeFormatters.STRICT_YEAR_MONTH_DAY_
 import static org.opensearch.sql.utils.DateTimeUtils.UTC_ZONE_ID;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ArrayNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.Iterators;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalTime;
@@ -55,8 +61,11 @@ import org.opensearch.sql.data.model.ExprTimestampValue;
 import org.opensearch.sql.data.model.ExprTupleValue;
 import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.data.type.ExprType;
+import org.opensearch.sql.opensearch.data.type.OpenSearchBinaryType;
 import org.opensearch.sql.opensearch.data.type.OpenSearchDataType;
 import org.opensearch.sql.opensearch.data.type.OpenSearchDateType;
+import org.opensearch.sql.opensearch.data.type.OpenSearchGeoPointType;
+import org.opensearch.sql.opensearch.data.type.OpenSearchIpType;
 import org.opensearch.sql.opensearch.data.utils.Content;
 import org.opensearch.sql.opensearch.data.utils.ObjectContent;
 import org.opensearch.sql.opensearch.data.utils.OpenSearchJsonContent;
@@ -149,10 +158,10 @@ public class OpenSearchExprValueFactory {
    *     { "employ.id",    "INTEGER" }
    *     { "employ.state", "STRING"  }
    */
-  public ExprValue construct(String jsonString) {
+  public ExprValue construct(String jsonString, boolean supportArrays) {
     try {
       return parse(new OpenSearchJsonContent(OBJECT_MAPPER.readTree(jsonString)), TOP_PATH,
-          Optional.of(STRUCT));
+          Optional.of(STRUCT), supportArrays);
     } catch (JsonProcessingException e) {
       throw new IllegalStateException(String.format("invalid json: %s.", jsonString), e);
     }
@@ -167,21 +176,27 @@ public class OpenSearchExprValueFactory {
    * @param value value object
    * @return ExprValue
    */
-  public ExprValue construct(String field, Object value) {
-    return parse(new ObjectContent(value), field, type(field));
+  public ExprValue construct(String field, Object value, boolean supportArrays) {
+    return parse(new ObjectContent(value), field, type(field), supportArrays);
   }
 
-  private ExprValue parse(Content content, String field, Optional<ExprType> fieldType) {
+  private ExprValue parse(
+      Content content,
+      String field,
+      Optional<ExprType> fieldType,
+      boolean supportArrays
+  ) {
     if (content.isNull() || !fieldType.isPresent()) {
       return ExprNullValue.of();
     }
 
     ExprType type = fieldType.get();
-    if (type.equals(OpenSearchDataType.of(OpenSearchDataType.MappingType.Object))
-          || type == STRUCT) {
-      return parseStruct(content, field);
-    } else if (type.equals(OpenSearchDataType.of(OpenSearchDataType.MappingType.Nested))) {
-      return parseArray(content, field);
+    if (type.equals(OpenSearchDataType.of(OpenSearchDataType.MappingType.Nested))
+        || content.isArray()) {
+      return parseArray(content, field, type, supportArrays);
+    } else if (type.equals(OpenSearchDataType.of(OpenSearchDataType.MappingType.Object))
+        || type == STRUCT) {
+      return parseStruct(content, field, supportArrays);
     } else {
       if (typeActionMap.containsKey(type)) {
         return typeActionMap.get(type).apply(content, type);
@@ -338,39 +353,97 @@ public class OpenSearchExprValueFactory {
     return new ExprTimestampValue((Instant) value.objectValue());
   }
 
-  private ExprValue parseStruct(Content content, String prefix) {
+  /**
+   * Parse struct content.
+   * @param content Content to parse.
+   * @param prefix Prefix for Level of object depth to parse.
+   * @param supportArrays Parsing the whole array if array is type nested.
+   * @return Value parsed from content.
+   */
+  private ExprValue parseStruct(Content content, String prefix, boolean supportArrays) {
     LinkedHashMap<String, ExprValue> result = new LinkedHashMap<>();
     content.map().forEachRemaining(entry -> result.put(entry.getKey(),
         parse(entry.getValue(),
             makeField(prefix, entry.getKey()),
-            type(makeField(prefix, entry.getKey())))));
+            type(makeField(prefix, entry.getKey())), supportArrays)));
     return new ExprTupleValue(result);
   }
 
   /**
-   * Todo. ARRAY is not completely supported now. In OpenSearch, there is no dedicated array type.
-   * <a href="https://opensearch.org/docs/latest/opensearch/supported-field-types/nested/">docs</a>
-   * The similar data type is nested, but it can only allow a list of objects.
+   * Parse array content. Can also parse nested which isn't necessarily an array.
+   * @param content Content to parse.
+   * @param prefix Prefix for Level of object depth to parse.
+   * @param type Type of content parsing.
+   * @param supportArrays Parsing the whole array if array is type nested.
+   * @return Value parsed from content.
    */
-  private ExprValue parseArray(Content content, String prefix) {
+  private ExprValue parseArray(
+      Content content,
+      String prefix,
+      ExprType type,
+      boolean supportArrays
+  ) {
     List<ExprValue> result = new ArrayList<>();
-    // ExprCoreType.ARRAY does not indicate inner elements type.
-    if (Iterators.size(content.array()) == 1 && content.objectValue() instanceof JsonNode) {
-      result.add(parse(content, prefix, Optional.of(STRUCT)));
+
+    // ARRAY is mapped to nested but can take the json structure of an Object.
+    if (content.objectValue() instanceof ObjectNode) {
+      result.add(parseStruct(content, prefix, supportArrays));
+      // non-object type arrays are only supported when parsing inner_hits of OS response.
+    } else if (
+        !(type instanceof OpenSearchDataType
+            && ((OpenSearchDataType) type).getExprType().equals(ARRAY))
+        && !supportArrays) {
+      return parseInnerArrayValue(content.array().next(), prefix, type, supportArrays);
     } else {
       content.array().forEachRemaining(v -> {
-        // ExprCoreType.ARRAY does not indicate inner elements type. OpenSearch nested will be an
-        // array of structs, otherwise parseArray currently only supports array of strings.
-        if (v.isString()) {
-          result.add(parse(v, prefix, Optional.of(OpenSearchDataType.of(STRING))));
-        } else {
-          result.add(parse(v, prefix, Optional.of(STRUCT)));
-        }
+        result.add(parseInnerArrayValue(v, prefix, type, supportArrays));
       });
     }
     return new ExprCollectionValue(result);
   }
 
+  /**
+   * Parse inner array value. Can be object type and recurse continues.
+   * @param content Array index being parsed.
+   * @param prefix Prefix for value.
+   * @param type Type of inner array value.
+   * @param supportArrays Parsing the whole array if array is type nested.
+   * @return Inner array value.
+   */
+  private ExprValue parseInnerArrayValue(
+      Content content,
+      String prefix,
+      ExprType type,
+      boolean supportArrays
+  ) {
+    if (type instanceof OpenSearchIpType
+        || type instanceof OpenSearchBinaryType
+        || type instanceof OpenSearchDateType
+        || type instanceof OpenSearchGeoPointType) {
+      return parse(content, prefix, Optional.of(type), supportArrays);
+    } else if (content.isString()) {
+      return parse(content, prefix, Optional.of(OpenSearchDataType.of(STRING)), supportArrays);
+    } else if (content.isLong()) {
+      return parse(content, prefix, Optional.of(OpenSearchDataType.of(LONG)), supportArrays);
+    } else if (content.isFloat()) {
+      return parse(content, prefix, Optional.of(OpenSearchDataType.of(FLOAT)), supportArrays);
+    } else if (content.isDouble()) {
+      return parse(content, prefix, Optional.of(OpenSearchDataType.of(DOUBLE)), supportArrays);
+    } else if (content.isNumber()) {
+      return parse(content, prefix, Optional.of(OpenSearchDataType.of(INTEGER)), supportArrays);
+    } else if (content.isBoolean()) {
+      return parse(content, prefix, Optional.of(OpenSearchDataType.of(BOOLEAN)), supportArrays);
+    } else {
+      return parse(content, prefix, Optional.of(STRUCT), supportArrays);
+    }
+  }
+
+  /**
+   * Make complete path string for field.
+   * @param path Path of field.
+   * @param field Field to append to path.
+   * @return Field appended to path level.
+   */
   private String makeField(String path, String field) {
     return path.equalsIgnoreCase(TOP_PATH) ? field : String.join(".", path, field);
   }

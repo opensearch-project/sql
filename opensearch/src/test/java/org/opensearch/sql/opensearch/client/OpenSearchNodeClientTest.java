@@ -315,7 +315,7 @@ class OpenSearchNodeClientTest {
                 1.0F));
     when(searchHit.getSourceAsString()).thenReturn("{\"id\", 1}");
     when(searchHit.getInnerHits()).thenReturn(null);
-    when(factory.construct(any())).thenReturn(exprTupleValue);
+    when(factory.construct(any(), anyBoolean())).thenReturn(exprTupleValue);
 
     // Mock second scroll request followed
     SearchResponse scrollResponse = mock(SearchResponse.class);

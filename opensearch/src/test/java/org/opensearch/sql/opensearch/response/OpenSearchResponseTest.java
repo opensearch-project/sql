@@ -12,7 +12,11 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyBoolean;
+import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableMap;
@@ -114,7 +118,8 @@ class OpenSearchResponseTest {
     when(searchHit2.getSourceAsString()).thenReturn("{\"id1\", 2}");
     when(searchHit1.getInnerHits()).thenReturn(null);
     when(searchHit2.getInnerHits()).thenReturn(null);
-    when(factory.construct(any())).thenReturn(exprTupleValue1).thenReturn(exprTupleValue2);
+    when(factory.construct(any(), anyBoolean()))
+        .thenReturn(exprTupleValue1).thenReturn(exprTupleValue2);
 
     int i = 0;
     for (ExprValue hit : new OpenSearchResponse(searchResponse, factory, List.of("id1"))) {
@@ -149,7 +154,7 @@ class OpenSearchResponseTest {
     when(searchHit1.getScore()).thenReturn(3.75F);
     when(searchHit1.getSeqNo()).thenReturn(123456L);
 
-    when(factory.construct(any())).thenReturn(exprTupleHit);
+    when(factory.construct(any(), anyBoolean())).thenReturn(exprTupleHit);
 
     ExprTupleValue exprTupleResponse = ExprTupleValue.fromExprValueMap(ImmutableMap.of(
         "id1", new ExprIntegerValue(1),
@@ -187,7 +192,7 @@ class OpenSearchResponseTest {
 
     when(searchHit1.getSourceAsString()).thenReturn("{\"id1\", 1}");
 
-    when(factory.construct(any())).thenReturn(exprTupleHit);
+    when(factory.construct(any(), anyBoolean())).thenReturn(exprTupleHit);
 
     List includes = List.of("id1");
     ExprTupleValue exprTupleResponse = ExprTupleValue.fromExprValueMap(ImmutableMap.of(
@@ -224,7 +229,7 @@ class OpenSearchResponseTest {
     when(searchHit1.getScore()).thenReturn(Float.NaN);
     when(searchHit1.getSeqNo()).thenReturn(123456L);
 
-    when(factory.construct(any())).thenReturn(exprTupleHit);
+    when(factory.construct(any(), anyBoolean())).thenReturn(exprTupleHit);
 
     List includes = List.of("id1", "_index", "_id", "_sort", "_score", "_maxscore");
     ExprTupleValue exprTupleResponse = ExprTupleValue.fromExprValueMap(ImmutableMap.of(
@@ -252,8 +257,6 @@ class OpenSearchResponseTest {
                 new SearchHit[] {searchHit1},
                 new TotalHits(2L, TotalHits.Relation.EQUAL_TO),
                 1.0F));
-    when(searchHit1.getSourceAsString()).thenReturn("{\"id1\", 1}");
-    when(searchHit1.getSourceAsMap()).thenReturn(Map.of("id1", 1));
     when(searchHit1.getInnerHits()).thenReturn(
         Map.of(
             "innerHit",
@@ -262,7 +265,7 @@ class OpenSearchResponseTest {
                 new TotalHits(2L, TotalHits.Relation.EQUAL_TO),
                 1.0F)));
 
-    when(factory.construct(any())).thenReturn(exprTupleValue1);
+    when(factory.construct(any(), anyBoolean())).thenReturn(exprTupleValue1);
 
     for (ExprValue hit : new OpenSearchResponse(searchResponse, factory, includes)) {
       assertEquals(exprTupleValue1, hit);
@@ -293,7 +296,7 @@ class OpenSearchResponseTest {
         .thenReturn(Arrays.asList(ImmutableMap.of("id1", 1), ImmutableMap.of("id2", 2)));
     when(searchResponse.getAggregations()).thenReturn(aggregations);
     when(factory.getParser()).thenReturn(parser);
-    when(factory.construct(anyString(), any()))
+    when(factory.construct(anyString(), anyInt(), anyBoolean()))
         .thenReturn(new ExprIntegerValue(1))
         .thenReturn(new ExprIntegerValue(2));
 
@@ -329,7 +332,7 @@ class OpenSearchResponseTest {
                 1.0F));
 
     when(searchHit1.getHighlightFields()).thenReturn(highlightMap);
-    when(factory.construct(any())).thenReturn(resultTuple);
+    when(factory.construct(any(), anyBoolean())).thenReturn(resultTuple);
 
     for (ExprValue resultHit : new OpenSearchResponse(searchResponse, factory, includes)) {
       var expected = ExprValueUtils.collectionValue(
