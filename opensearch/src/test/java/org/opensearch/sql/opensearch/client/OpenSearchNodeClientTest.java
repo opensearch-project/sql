@@ -399,9 +399,7 @@ class OpenSearchNodeClientTest {
   @Test
   void get_indices() {
     AliasMetadata aliasMetadata = mock(AliasMetadata.class);
-    ImmutableOpenMap.Builder<String, List<AliasMetadata>> builder = ImmutableOpenMap.builder();
-    builder.fPut("index", Arrays.asList(aliasMetadata));
-    final ImmutableOpenMap<String, List<AliasMetadata>> openMap = builder.build();
+    final var openMap = Map.of("index", List.of(aliasMetadata));
     when(aliasMetadata.alias()).thenReturn("index_alias");
     when(nodeClient.admin().indices()
         .prepareGetIndex()
@@ -437,16 +435,12 @@ class OpenSearchNodeClientTest {
         .setLocal(anyBoolean())
         .get()).thenReturn(mockResponse);
     try {
-      ImmutableOpenMap<String, MappingMetadata> metadata;
+      Map<String, MappingMetadata> metadata;
       if (mappings.isEmpty()) {
-        when(emptyMapping.getSourceAsMap()).thenReturn(ImmutableMap.of());
-        metadata =
-            new ImmutableOpenMap.Builder<String, MappingMetadata>()
-                .fPut(indexName, emptyMapping)
-                .build();
+        when(emptyMapping.getSourceAsMap()).thenReturn(Map.of());
+        metadata = Map.of(indexName, emptyMapping);
       } else {
-        metadata = new ImmutableOpenMap.Builder<String, MappingMetadata>().fPut(indexName,
-            IndexMetadata.fromXContent(createParser(mappings)).mapping()).build();
+        metadata = Map.of(indexName, IndexMetadata.fromXContent(createParser(mappings)).mapping());
       }
       when(mockResponse.mappings()).thenReturn(metadata);
     } catch (IOException e) {

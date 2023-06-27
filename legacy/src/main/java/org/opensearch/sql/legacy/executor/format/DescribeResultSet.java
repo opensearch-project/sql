@@ -6,7 +6,6 @@
 
 package org.opensearch.sql.legacy.executor.format;
 
-import com.carrotsearch.hppc.cursors.ObjectObjectCursor;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -15,7 +14,6 @@ import java.util.Map.Entry;
 import org.opensearch.action.admin.indices.get.GetIndexResponse;
 import org.opensearch.client.Client;
 import org.opensearch.cluster.metadata.MappingMetadata;
-import org.opensearch.common.collect.ImmutableOpenMap;
 import org.opensearch.sql.legacy.domain.IndexStatement;
 import org.opensearch.sql.legacy.executor.format.DataRows.Row;
 import org.opensearch.sql.legacy.executor.format.Schema.Column;
@@ -79,14 +77,14 @@ public class DescribeResultSet extends ResultSet {
     private List<Row> loadRows() {
         List<Row> rows = new ArrayList<>();
         GetIndexResponse indexResponse = (GetIndexResponse) queryResult;
-        ImmutableOpenMap<String, MappingMetadata> indexMappings = indexResponse.getMappings();
+        Map<String, MappingMetadata> indexMappings = indexResponse.getMappings();
 
         // Iterate through indices in indexMappings
-        for (ObjectObjectCursor<String, MappingMetadata> indexCursor : indexMappings) {
-            String index = indexCursor.key;
+        for (Entry<String, MappingMetadata> indexCursor : indexMappings.entrySet()) {
+            String index = indexCursor.getKey();
 
             if (matchesPatternIfRegex(index, statement.getIndexPattern())) {
-                rows.addAll(loadIndexData(index, indexCursor.value.getSourceAsMap()));
+                rows.addAll(loadIndexData(index, indexCursor.getValue().getSourceAsMap()));
             }
         }
         return rows;

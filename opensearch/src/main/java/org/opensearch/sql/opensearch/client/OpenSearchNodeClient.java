@@ -9,7 +9,6 @@ package org.opensearch.sql.opensearch.client;
 import com.carrotsearch.hppc.cursors.ObjectObjectCursor;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.Streams;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
@@ -89,9 +88,9 @@ public class OpenSearchNodeClient implements OpenSearchClient {
           .prepareGetMappings(indexExpression)
           .setLocal(true)
           .get();
-      return Streams.stream(mappingsResponse.mappings().iterator())
-          .collect(Collectors.toMap(cursor -> cursor.key,
-              cursor -> new IndexMapping(cursor.value)));
+      return mappingsResponse.mappings().entrySet().stream().collect(Collectors.toUnmodifiableMap(
+              Map.Entry::getKey,
+              cursor -> new IndexMapping(cursor.getValue())));
     } catch (IndexNotFoundException e) {
       // Re-throw directly to be treated as client error finally
       throw e;
@@ -152,7 +151,7 @@ public class OpenSearchNodeClient implements OpenSearchClient {
         .setLocal(true)
         .get();
     final Stream<String> aliasStream =
-        ImmutableList.copyOf(indexResponse.aliases().valuesIt()).stream()
+        ImmutableList.copyOf(indexResponse.aliases().values()).stream()
             .flatMap(Collection::stream).map(AliasMetadata::alias);
 
     return Stream.concat(Arrays.stream(indexResponse.getIndices()), aliasStream)
