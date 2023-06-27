@@ -169,8 +169,10 @@ public class IdentifierIT extends SQLIntegTestCase {
     var datarows = result.getJSONArray("datarows");
     assertEquals(1, datarows.length());
 
-    // note that _routing in the SELECT clause returns the shard
+    assertEquals("test4", datarows.getJSONArray(0).getString(0));
+    // note that _routing in the SELECT clause returns the shard, not the routing hash id
     assertTrue(datarows.getJSONArray(0).getString(2).contains("[" + index + "]"));
+
   }
 
   @Test
