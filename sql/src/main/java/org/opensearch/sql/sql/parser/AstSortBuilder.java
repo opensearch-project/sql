@@ -17,17 +17,12 @@ import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.opensearch.sql.ast.expression.Argument;
 import org.opensearch.sql.ast.expression.Field;
-import org.opensearch.sql.ast.expression.Function;
 import org.opensearch.sql.ast.expression.UnresolvedExpression;
 import org.opensearch.sql.ast.tree.Sort;
 import org.opensearch.sql.ast.tree.Sort.NullOrder;
 import org.opensearch.sql.ast.tree.Sort.SortOption;
 import org.opensearch.sql.ast.tree.Sort.SortOrder;
 import org.opensearch.sql.ast.tree.UnresolvedPlan;
-import org.opensearch.sql.common.antlr.SyntaxCheckException;
-import org.opensearch.sql.exception.SemanticCheckException;
-import org.opensearch.sql.expression.FunctionExpression;
-import org.opensearch.sql.expression.function.BuiltinFunctionName;
 import org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParserBaseVisitor;
 import org.opensearch.sql.sql.parser.context.QuerySpecification;
 
@@ -53,15 +48,6 @@ public class AstSortBuilder extends OpenSearchSQLParserBaseVisitor<UnresolvedPla
     List<UnresolvedExpression> items = querySpec.getOrderByItems();
     List<SortOption> options = querySpec.getOrderByOptions();
     for (int i = 0; i < items.size(); i++) {
-      // TODO remove me when Nested function is supported in ORDER BY clause.
-      if (items.get(i) instanceof Function
-          && ((Function)items.get(i)).getFuncName().equalsIgnoreCase(
-              BuiltinFunctionName.NESTED.name())
-      ) {
-        throw new SyntaxCheckException(
-            "Falling back to legacy engine. Nested function is not supported in ORDER BY clause."
-        );
-      }
       fields.add(
           new Field(
               querySpec.replaceIfAliasOrOrdinal(items.get(i)),

@@ -187,6 +187,40 @@ public class NestedIT extends SQLIntegTestCase {
         rows("zz"));
   }
 
+  @Test
+  public void nested_function_with_order_by_clause_desc() {
+    String query =
+        "SELECT nested(message.info) FROM " + TEST_INDEX_NESTED_TYPE
+            + " ORDER BY nested(message.info, message) DESC";
+    JSONObject result = executeJdbcRequest(query);
+
+    assertEquals(6, result.getInt("total"));
+    verifyDataRows(result,
+        rows("zz"),
+        rows("c"),
+        rows("c"),
+        rows("a"),
+        rows("b"),
+        rows("a"));
+  }
+
+  @Test
+  public void nested_function_and_field_with_order_by_clause() {
+    String query =
+        "SELECT nested(message.info), myNum FROM " + TEST_INDEX_NESTED_TYPE
+            + " ORDER BY nested(message.info, message), myNum";
+    JSONObject result = executeJdbcRequest(query);
+
+    assertEquals(6, result.getInt("total"));
+    verifyDataRows(result,
+        rows("a", 1),
+        rows("c", 4),
+        rows("a", 4),
+        rows("b", 2),
+        rows("c", 3),
+        rows("zz", new JSONArray(List.of(3, 4))));
+  }
+
   // Nested function in GROUP BY clause is not yet implemented for JDBC format. This test ensures
   // that the V2 engine falls back to legacy implementation.
   // TODO Fix the test when NESTED is supported in GROUP BY in the V2 engine.
