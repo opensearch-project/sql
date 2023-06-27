@@ -638,13 +638,28 @@ class SQLSyntaxParserTest {
   @Test
   public void can_parse_nested_function() {
     assertNotNull(
-        parser.parse("SELECT NESTED(FIELD.DAYOFWEEK) FROM TEST"));
+        parser.parse("SELECT NESTED(PATH.INNER_FIELD) FROM TEST"));
     assertNotNull(
-        parser.parse("SELECT NESTED('FIELD.DAYOFWEEK') FROM TEST"));
+        parser.parse("SELECT NESTED('PATH.INNER_FIELD') FROM TEST"));
     assertNotNull(
-        parser.parse("SELECT SUM(NESTED(FIELD.SUBFIELD)) FROM TEST"));
+        parser.parse("SELECT SUM(NESTED(PATH.INNER_FIELD)) FROM TEST"));
     assertNotNull(
-        parser.parse("SELECT NESTED(FIELD.DAYOFWEEK, PATH) FROM TEST"));
+        parser.parse("SELECT NESTED(PATH.INNER_FIELD, PATH) FROM TEST"));
+    assertNotNull(
+        parser.parse(
+            "SELECT * FROM TEST WHERE NESTED(PATH.INNER_FIELDS) = 'A'"
+        )
+    );
+    assertNotNull(
+        parser.parse(
+            "SELECT * FROM TEST WHERE NESTED(PATH.INNER_FIELDS, PATH) = 'A'"
+        )
+    );
+    assertNotNull(
+        parser.parse(
+        "SELECT FIELD FROM TEST ORDER BY nested(PATH.INNER_FIELD, PATH)"
+        )
+    );
   }
 
   @Test

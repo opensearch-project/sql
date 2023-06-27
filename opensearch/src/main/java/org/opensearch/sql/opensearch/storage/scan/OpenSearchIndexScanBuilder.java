@@ -5,6 +5,8 @@
 
 package org.opensearch.sql.opensearch.storage.scan;
 
+import static org.opensearch.sql.analysis.NestedAnalyzer.isNestedFunction;
+
 import java.util.function.Function;
 import lombok.EqualsAndHashCode;
 import org.opensearch.sql.expression.ReferenceExpression;
@@ -113,9 +115,15 @@ public class OpenSearchIndexScanBuilder extends TableScanBuilder {
     return delegate.pushDownNested(nested);
   }
 
+  /**
+   * Valid if sorting is only by fields.
+   * @param sort Logical sort
+   * @return True if sorting by fields only
+   */
   private boolean sortByFieldsOnly(LogicalSort sort) {
     return sort.getSortList().stream()
-        .map(sortItem -> sortItem.getRight() instanceof ReferenceExpression)
+        .map(sortItem -> sortItem.getRight() instanceof ReferenceExpression
+        || isNestedFunction(sortItem.getRight()))
         .reduce(true, Boolean::logicalAnd);
   }
 }
