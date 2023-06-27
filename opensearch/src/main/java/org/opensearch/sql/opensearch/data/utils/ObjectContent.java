@@ -6,6 +6,7 @@
 
 package org.opensearch.sql.opensearch.data.utils;
 
+import com.fasterxml.jackson.databind.node.ArrayNode;
 import java.util.AbstractMap;
 import java.util.Iterator;
 import java.util.List;
@@ -101,6 +102,31 @@ public class ObjectContent implements Content {
   @Override
   public boolean isNumber() {
     return value instanceof Number;
+  }
+
+  @Override
+  public boolean isFloat() {
+    return value instanceof Float;
+  }
+
+  @Override
+  public boolean isDouble() {
+    return value instanceof Double;
+  }
+
+  @Override
+  public boolean isLong() {
+    return value instanceof Long;
+  }
+
+  @Override
+  public boolean isBoolean() {
+    return value instanceof Boolean;
+  }
+
+  @Override
+  public boolean isArray() {
+    return value instanceof ArrayNode;
   }
 
   @Override
