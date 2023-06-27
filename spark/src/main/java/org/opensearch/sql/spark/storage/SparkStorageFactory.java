@@ -103,9 +103,6 @@ public class SparkStorageFactory implements DataSourceFactory {
     if (dataSourceMetadataConfig.get(EMR_CLUSTER) == null
         || dataSourceMetadataConfig.get(EMR_AUTH_TYPE) == null) {
       throw new IllegalArgumentException("EMR config properties are missing");
-    } else if (dataSourceMetadataConfig.get(EMR_AUTH_TYPE) != null
-        && !dataSourceMetadataConfig.get(EMR_AUTH_TYPE).equals(AuthenticationType.AWSSIGV4AUTH)) {
-      throw new IllegalArgumentException("EMR auth type not supported");
     } else if (dataSourceMetadataConfig.get(EMR_AUTH_TYPE).equals(AuthenticationType.AWSSIGV4AUTH)
         && (dataSourceMetadataConfig.get(EMR_ACCESS_KEY) == null
         || dataSourceMetadataConfig.get(EMR_SECRET_KEY) == null)) {

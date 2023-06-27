@@ -5,6 +5,11 @@
 
 package org.opensearch.sql.spark.client;
 
+import static org.opensearch.sql.spark.data.constants.SparkConstants.FLINT_DEFAULT_AUTH;
+import static org.opensearch.sql.spark.data.constants.SparkConstants.FLINT_DEFAULT_HOST;
+import static org.opensearch.sql.spark.data.constants.SparkConstants.FLINT_DEFAULT_PORT;
+import static org.opensearch.sql.spark.data.constants.SparkConstants.FLINT_DEFAULT_REGION;
+import static org.opensearch.sql.spark.data.constants.SparkConstants.FLINT_DEFAULT_SCHEME;
 import static org.opensearch.sql.spark.data.constants.SparkConstants.FLINT_INTEGRATION_JAR;
 import static org.opensearch.sql.spark.data.constants.SparkConstants.SPARK_APPLICATION_JAR;
 import static org.opensearch.sql.spark.data.constants.SparkConstants.SPARK_INDEX_NAME;
@@ -12,7 +17,6 @@ import static org.opensearch.sql.spark.data.constants.SparkConstants.STEP_ID_FIE
 
 import com.amazonaws.auth.AWSStaticCredentialsProvider;
 import com.amazonaws.auth.BasicAWSCredentials;
-import com.amazonaws.regions.Regions;
 import com.amazonaws.services.elasticmapreduce.AmazonElasticMapReduce;
 import com.amazonaws.services.elasticmapreduce.AmazonElasticMapReduceClientBuilder;
 import com.amazonaws.services.elasticmapreduce.model.ActionOnFailure;
@@ -70,11 +74,11 @@ public class EmrClientImpl implements SparkClient {
     this.emrRegion = emrRegion;
     this.emrAccessKey = emrAccessKey;
     this.emrSecretKey = emrSecretKey;
-    this.flintHost = flintHost != null ? flintHost : "localhost";
-    this.flintPort = flintPort != null ? flintPort : "9200";
-    this.flintScheme = flintScheme != null ? flintScheme : "http";
-    this.flintAuth = flintAuth != null ? flintAuth : "-1";
-    this.flintRegion = flintRegion != null ? flintRegion : "us-west-2";
+    this.flintHost = flintHost != null ? flintHost : FLINT_DEFAULT_HOST;
+    this.flintPort = flintPort != null ? flintPort : FLINT_DEFAULT_PORT;
+    this.flintScheme = flintScheme != null ? flintScheme : FLINT_DEFAULT_SCHEME;
+    this.flintAuth = flintAuth != null ? flintAuth : FLINT_DEFAULT_AUTH;
+    this.flintRegion = flintRegion != null ? flintRegion : FLINT_DEFAULT_REGION;
   }
 
   @Override
@@ -143,8 +147,8 @@ public class EmrClientImpl implements SparkClient {
         logger.info("EMR step completed successfully.");
       } else if (statusDetail.getState().equals("FAILED")
           || statusDetail.getState().equals("CANCELLED")) {
-        completed = true;
         logger.error("EMR step failed or cancelled.");
+        throw new RuntimeException("Spark SQL application failed");
       } else {
         // Sleep for some time before checking the status again
         try {
