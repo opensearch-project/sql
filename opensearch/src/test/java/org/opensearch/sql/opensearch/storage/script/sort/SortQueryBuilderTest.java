@@ -10,11 +10,14 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.opensearch.sql.data.type.ExprCoreType.INTEGER;
+import static org.opensearch.sql.data.type.ExprCoreType.STRING;
 
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.Test;
 import org.opensearch.sql.ast.tree.Sort;
+import org.opensearch.sql.data.model.ExprShortValue;
 import org.opensearch.sql.expression.DSL;
+import org.opensearch.sql.expression.LiteralExpression;
 
 class SortQueryBuilderTest {
 
@@ -23,6 +26,62 @@ class SortQueryBuilderTest {
   @Test
   void build_sortbuilder_from_reference() {
     assertNotNull(sortQueryBuilder.build(DSL.ref("intV", INTEGER), Sort.SortOption.DEFAULT_ASC));
+  }
+
+  @Test
+  void build_sortbuilder_from_nested_function() {
+    assertNotNull(
+        sortQueryBuilder.build(
+            DSL.nested(DSL.ref("message.info", STRING)),
+            Sort.SortOption.DEFAULT_ASC
+        )
+    );
+  }
+
+  @Test
+  void build_sortbuilder_from_nested_function_with_path_param() {
+    assertNotNull(
+        sortQueryBuilder.build(
+            DSL.nested(DSL.ref("message.info", STRING), DSL.ref("message", STRING)),
+            Sort.SortOption.DEFAULT_ASC
+        )
+    );
+  }
+
+  @Test
+  void nested_with_too_many_args_throws_exception() {
+    assertThrows(
+        IllegalArgumentException.class,
+        () -> sortQueryBuilder.build(
+            DSL.nested(
+                DSL.ref("message.info", STRING),
+                DSL.ref("message", STRING),
+                DSL.ref("message", STRING)
+            ),
+            Sort.SortOption.DEFAULT_ASC
+        )
+    );
+  }
+
+  @Test
+  void nested_with_invalid_arg_type_throws_exception() {
+    assertThrows(
+        IllegalArgumentException.class,
+        () -> sortQueryBuilder.build(
+            DSL.nested(
+                DSL.literal(1)
+            ),
+            Sort.SortOption.DEFAULT_ASC
+        )
+    );
+  }
+
+  @Test
+  void build_sortbuilder_from_expression_should_throw_exception() {
+    final IllegalStateException exception =
+        assertThrows(IllegalStateException.class, () -> sortQueryBuilder.build(
+            new LiteralExpression(new ExprShortValue(1)), Sort.SortOption.DEFAULT_ASC));
+    assertThat(exception.getMessage(), Matchers.containsString("unsupported expression"));
   }
 
   @Test

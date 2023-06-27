@@ -9,9 +9,11 @@ package org.opensearch.sql.analysis;
 import static java.util.Collections.emptyList;
 import static org.junit.jupiter.api.Assertions.assertAll;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.opensearch.sql.analysis.DataSourceSchemaIdentifierNameResolver.DEFAULT_DATASOURCE_NAME;
+import static org.opensearch.sql.analysis.NestedAnalyzer.isNestedFunction;
 import static org.opensearch.sql.ast.dsl.AstDSL.aggregate;
 import static org.opensearch.sql.ast.dsl.AstDSL.alias;
 import static org.opensearch.sql.ast.dsl.AstDSL.argument;
@@ -39,6 +41,7 @@ import static org.opensearch.sql.data.type.ExprCoreType.INTEGER;
 import static org.opensearch.sql.data.type.ExprCoreType.LONG;
 import static org.opensearch.sql.data.type.ExprCoreType.STRING;
 import static org.opensearch.sql.data.type.ExprCoreType.TIMESTAMP;
+import static org.opensearch.sql.expression.DSL.literal;
 import static org.opensearch.sql.utils.MLCommonsConstants.ACTION;
 import static org.opensearch.sql.utils.MLCommonsConstants.ALGO;
 import static org.opensearch.sql.utils.MLCommonsConstants.ASYNC;
@@ -574,6 +577,10 @@ class AnalyzerTest extends AnalyzerTestBase {
                 function("nested", qualifiedName("message", "info")), null)
         )
     );
+
+    assertTrue(isNestedFunction(DSL.nested(DSL.ref("message.info", STRING))));
+    assertFalse(isNestedFunction(DSL.literal("fieldA")));
+    assertFalse(isNestedFunction(DSL.match(DSL.namedArgument("field", literal("message")))));
   }
 
   @Test
