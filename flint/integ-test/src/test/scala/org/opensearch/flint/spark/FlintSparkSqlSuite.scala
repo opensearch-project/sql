@@ -30,11 +30,11 @@ class FlintSparkSqlSuite extends QueryTest with FlintSuite with OpenSearchSuite 
 
   override def beforeAll(): Unit = {
     super.beforeAll()
-
     sql(s"""
            | CREATE TABLE $testTable
            | (
-           |   name STRING
+           |   name STRING,
+           |   age INT
            | )
            | USING CSV
            | OPTIONS (
@@ -50,25 +50,29 @@ class FlintSparkSqlSuite extends QueryTest with FlintSuite with OpenSearchSuite 
 
   protected override def beforeEach(): Unit = {
     super.beforeEach()
-
     flint
       .skippingIndex()
       .onTable(testTable)
       .addPartitions("year")
       .addValueSet("name")
+      .addMinMax("age")
       .create()
   }
 
   protected override def afterEach(): Unit = {
     super.afterEach()
-
     flint.deleteIndex(testIndex)
   }
 
   test("describe skipping index") {
     val result = sql(s"DESC SKIPPING INDEX ON $testTable")
 
-    checkAnswer(result, Seq(Row("year", "int"), Row("name", "string")))
+    checkAnswer(
+      result,
+      Seq(
+        Row("year", "int", "Partition"),
+        Row("name", "string", "ValuesSet"),
+        Row("age", "int", "MinMax")))
   }
 
   test("should return empty if no skipping index to describe") {

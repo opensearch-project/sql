@@ -23,14 +23,16 @@ class FlintSparkSqlAstBuilder extends FlintSparkSqlExtensionsBaseVisitor[Command
       ctx: DescribeSkippingIndexStatementContext): Command = {
     val outputSchema = Seq(
       AttributeReference("indexed_col_name", StringType, nullable = false)(),
-      AttributeReference("data_type", StringType, nullable = false)())
+      AttributeReference("data_type", StringType, nullable = false)(),
+      AttributeReference("skip_type", StringType, nullable = false)())
 
     FlintSparkSqlCommand(outputSchema) { flint =>
       val indexName = getSkippingIndexName(ctx.tableName.getText)
       flint
         .describeIndex(indexName)
         .map { case index: FlintSparkSkippingIndex =>
-          index.indexedColumns.map(strategy => Row(strategy.columnName, strategy.columnType))
+          index.indexedColumns.map(strategy =>
+            Row(strategy.columnName, strategy.columnType, strategy.kind.toString))
         }
         .getOrElse(Seq.empty)
     }
