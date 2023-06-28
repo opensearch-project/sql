@@ -33,8 +33,7 @@ public class SparkMetricTable implements Table {
   /**
    * Constructor for entire Sql Request.
    */
-  public SparkMetricTable(SparkClient sparkService,
-                          @Nonnull SparkQueryRequest sparkQueryRequest) {
+  public SparkMetricTable(SparkClient sparkService, SparkQueryRequest sparkQueryRequest) {
     this.sparkClient = sparkService;
     this.sparkQueryRequest = sparkQueryRequest;
   }
@@ -60,9 +59,7 @@ public class SparkMetricTable implements Table {
   public PhysicalPlan implement(LogicalPlan plan) {
     SparkMetricScan metricScan =
         new SparkMetricScan(sparkClient);
-    if (sparkQueryRequest != null) {
-      metricScan.setRequest(sparkQueryRequest);
-    }
+    metricScan.setRequest(sparkQueryRequest);
     return plan.accept(new SparkDefaultImplementor(), metricScan);
   }
 

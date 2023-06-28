@@ -73,27 +73,21 @@ public class SparkStorageFactory implements DataSourceFactory {
     if (requiredConfig.get(CONNECTOR_TYPE).equals(EMR)) {
       sparkClient =
           AccessController.doPrivileged((PrivilegedAction<EmrClientImpl>) () -> {
-            try {
-              validateEMRConfigProperties(requiredConfig);
-              return new EmrClientImpl(
-                  client,
-                  requiredConfig.get(EMR_CLUSTER),
-                  requiredConfig.get(EMR_REGION),
-                  requiredConfig.get(EMR_ACCESS_KEY),
-                  requiredConfig.get(EMR_SECRET_KEY),
-                  requiredConfig.get(FLINT_HOST),
-                  requiredConfig.get(FLINT_PORT),
-                  requiredConfig.get(FLINT_SCHEME),
-                  requiredConfig.get(FLINT_AUTH),
-                  requiredConfig.get(FLINT_REGION));
-            } catch (IllegalArgumentException e) {
-              throw new IllegalArgumentException(
-                  String.format("Invalid cluster in spark properties: %s", e.getMessage()));
-            }
+            validateEMRConfigProperties(requiredConfig);
+            return new EmrClientImpl(
+                client,
+                requiredConfig.get(EMR_CLUSTER),
+                requiredConfig.get(EMR_REGION),
+                requiredConfig.get(EMR_ACCESS_KEY),
+                requiredConfig.get(EMR_SECRET_KEY),
+                requiredConfig.get(FLINT_HOST),
+                requiredConfig.get(FLINT_PORT),
+                requiredConfig.get(FLINT_SCHEME),
+                requiredConfig.get(FLINT_AUTH),
+                requiredConfig.get(FLINT_REGION));
           });
-
     } else {
-      throw new InvalidParameterException("Connector type is invalid");
+      throw new InvalidParameterException("Spark connector type is invalid.");
     }
     return new SparkStorageEngine(sparkClient);
   }
@@ -102,11 +96,12 @@ public class SparkStorageFactory implements DataSourceFactory {
       throws IllegalArgumentException {
     if (dataSourceMetadataConfig.get(EMR_CLUSTER) == null
         || dataSourceMetadataConfig.get(EMR_AUTH_TYPE) == null) {
-      throw new IllegalArgumentException("EMR config properties are missing");
-    } else if (dataSourceMetadataConfig.get(EMR_AUTH_TYPE).equals(AuthenticationType.AWSSIGV4AUTH)
+      throw new IllegalArgumentException("EMR config properties are missing.");
+    } else if (dataSourceMetadataConfig.get(EMR_AUTH_TYPE)
+        .equals(AuthenticationType.AWSSIGV4AUTH.getName())
         && (dataSourceMetadataConfig.get(EMR_ACCESS_KEY) == null
         || dataSourceMetadataConfig.get(EMR_SECRET_KEY) == null)) {
-      throw new IllegalArgumentException("EMR auth properties are missing");
+      throw new IllegalArgumentException("EMR auth keys are missing.");
     }
   }
 }

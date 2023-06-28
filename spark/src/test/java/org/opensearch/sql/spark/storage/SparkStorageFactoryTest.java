@@ -5,6 +5,7 @@
 
 package org.opensearch.sql.spark.storage;
 
+import java.security.InvalidParameterException;
 import java.util.HashMap;
 import lombok.SneakyThrows;
 import org.junit.jupiter.api.Assertions;
@@ -37,10 +38,83 @@ public class SparkStorageFactoryTest {
   @Test
   @SneakyThrows
   void testGetStorageEngine() {
+    HashMap<String, String> properties = new HashMap<>();
+    properties.put("spark.connector", "emr");
+    properties.put("emr.cluster", "j-abc123");
+    properties.put("emr.auth.type", "awssigv4");
+    properties.put("emr.auth.secret_key", "abc");
+    properties.put("emr.auth.access_key", "123");
     SparkStorageFactory sparkStorageFactory = new SparkStorageFactory(client, settings);
     StorageEngine storageEngine
-        = sparkStorageFactory.getStorageEngine(new HashMap<>());
+        = sparkStorageFactory.getStorageEngine(properties);
     Assertions.assertTrue(storageEngine instanceof SparkStorageEngine);
+  }
+
+  @Test
+  @SneakyThrows
+  void testInvalidConnectorType() {
+    HashMap<String, String> properties = new HashMap<>();
+    properties.put("spark.connector", "random");
+    SparkStorageFactory sparkStorageFactory = new SparkStorageFactory(client, settings);
+    InvalidParameterException exception = Assertions.assertThrows(InvalidParameterException.class,
+        () -> sparkStorageFactory.getStorageEngine(properties));
+    Assertions.assertEquals("Spark connector type is invalid.",
+        exception.getMessage());
+  }
+
+  @Test
+  @SneakyThrows
+  void testMissingAuth() {
+    HashMap<String, String> properties = new HashMap<>();
+    properties.put("spark.connector", "emr");
+    properties.put("emr.cluster", "j-abc123");
+    SparkStorageFactory sparkStorageFactory = new SparkStorageFactory(client, settings);
+    IllegalArgumentException exception = Assertions.assertThrows(IllegalArgumentException.class,
+        () -> sparkStorageFactory.getStorageEngine(properties));
+    Assertions.assertEquals("EMR config properties are missing.",
+        exception.getMessage());
+  }
+
+  @Test
+  @SneakyThrows
+  void testMissingCluster() {
+    HashMap<String, String> properties = new HashMap<>();
+    properties.put("spark.connector", "emr");
+    properties.put("emr.auth.type", "awssigv4");
+    SparkStorageFactory sparkStorageFactory = new SparkStorageFactory(client, settings);
+    IllegalArgumentException exception = Assertions.assertThrows(IllegalArgumentException.class,
+        () -> sparkStorageFactory.getStorageEngine(properties));
+    Assertions.assertEquals("EMR config properties are missing.",
+        exception.getMessage());
+  }
+
+  @Test
+  @SneakyThrows
+  void testMissingAuthKeys() {
+    HashMap<String, String> properties = new HashMap<>();
+    properties.put("spark.connector", "emr");
+    properties.put("emr.cluster", "j-abc123");
+    properties.put("emr.auth.type", "awssigv4");
+    SparkStorageFactory sparkStorageFactory = new SparkStorageFactory(client, settings);
+    IllegalArgumentException exception = Assertions.assertThrows(IllegalArgumentException.class,
+        () -> sparkStorageFactory.getStorageEngine(properties));
+    Assertions.assertEquals("EMR auth keys are missing.",
+        exception.getMessage());
+  }
+
+  @Test
+  @SneakyThrows
+  void testMissingAuthSecretKey() {
+    HashMap<String, String> properties = new HashMap<>();
+    properties.put("spark.connector", "emr");
+    properties.put("emr.cluster", "j-abc123");
+    properties.put("emr.auth.type", "awssigv4");
+    properties.put("emr.auth.access_key", "test");
+    SparkStorageFactory sparkStorageFactory = new SparkStorageFactory(client, settings);
+    IllegalArgumentException exception = Assertions.assertThrows(IllegalArgumentException.class,
+        () -> sparkStorageFactory.getStorageEngine(properties));
+    Assertions.assertEquals("EMR auth keys are missing.",
+        exception.getMessage());
   }
 
   @Test
@@ -48,7 +122,7 @@ public class SparkStorageFactoryTest {
     HashMap<String, String> properties = new HashMap<>();
     properties.put("spark.connector", "emr");
     properties.put("emr.cluster", "j-abc123");
-    properties.put("emr.auth.type", "sigv4");
+    properties.put("emr.auth.type", "iam");
     properties.put("spark.datasource.flint.host", "localhost");
     properties.put("spark.datasource.flint.port", "9200");
     properties.put("spark.datasource.flint.scheme", "http");

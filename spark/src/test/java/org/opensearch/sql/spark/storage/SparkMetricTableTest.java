@@ -7,16 +7,12 @@ package org.opensearch.sql.spark.storage;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
-import static org.opensearch.sql.planner.logical.LogicalPlanDSL.project;
-import static org.opensearch.sql.planner.logical.LogicalPlanDSL.relation;
 
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import lombok.SneakyThrows;
 import org.junit.jupiter.api.Assertions;
@@ -25,10 +21,10 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.opensearch.sql.data.type.ExprType;
-import org.opensearch.sql.expression.NamedExpression;
 import org.opensearch.sql.planner.physical.PhysicalPlan;
 import org.opensearch.sql.spark.client.SparkClient;
 import org.opensearch.sql.spark.functions.scan.SqlFunctionTableScanBuilder;
+import org.opensearch.sql.spark.functions.scan.SqlFunctionTableScanOperator;
 import org.opensearch.sql.spark.request.SparkQueryRequest;
 import org.opensearch.sql.storage.read.TableScanBuilder;
 
@@ -78,10 +74,8 @@ public class SparkMetricTableTest {
     sparkQueryRequest.setSql("select 1");
     SparkMetricTable sparkMetricTable =
         new SparkMetricTable(client, sparkQueryRequest);
-    List<NamedExpression> finalProjectList = new ArrayList<>();
     PhysicalPlan plan = sparkMetricTable.implement(
-        project(relation("sql", sparkMetricTable),
-            finalProjectList, null));
-    assertNull(plan);
+        new SqlFunctionTableScanBuilder(client, sparkQueryRequest));
+    assertTrue(plan instanceof SqlFunctionTableScanOperator);
   }
 }
