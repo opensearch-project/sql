@@ -4469,6 +4469,17 @@ Example with ``field`` and ``path`` parameters in the SELECT and WHERE clause::
     | b                               |
     +---------------------------------+
 
+Example with ``field`` and ``path`` parameters in the SELECT and ORDER BY clause::
+
+    os> SELECT nested(message.info, message) FROM nested ORDER BY nested(message.info, message) DESC;
+    fetched rows / total rows = 2/2
+    +---------------------------------+
+    | nested(message.info, message)   |
+    |---------------------------------|
+    | b                               |
+    | a                               |
+    +---------------------------------+
+
 
 System Functions
 ================
