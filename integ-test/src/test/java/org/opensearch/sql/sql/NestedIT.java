@@ -550,9 +550,9 @@ public class NestedIT extends SQLIntegTestCase {
     verifyDataRows(result,
         rows(new JSONObject(Map.of("dateAndTime","1984-04-12 09:07:42"))),
         rows(new JSONArray(
-                List.of(
-                    Map.of("dateAndTime", "2023-05-03 08:07:42"),
-                    Map.of("dateAndTime", "2001-11-11 04:07:44"))
+            List.of(
+                Map.of("dateAndTime", "2023-05-03 08:07:42"),
+                Map.of("dateAndTime", "2001-11-11 04:07:44"))
             )
         ),
         rows(new JSONObject(Map.of("dateAndTime", "1966-03-19 03:04:55"))),
@@ -564,8 +564,8 @@ public class NestedIT extends SQLIntegTestCase {
         rows(new JSONObject(Map.of("dateAndTime", "1933-12-12 05:05:45"))),
         rows(new JSONObject(Map.of("dateAndTime", "1909-06-17 01:04:21"))),
         rows(new JSONArray(
-                List.of(
-                    Map.of("dateAndTime", "2001-11-11 04:07:44"))
+            List.of(
+                Map.of("dateAndTime", "2001-11-11 04:07:44"))
             )
         )
     );
