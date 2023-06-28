@@ -86,6 +86,17 @@ public class TypeEnvironment implements Environment<Symbol, ExprType> {
   }
 
   /**
+   * Resolve all fields in the current environment.
+   * @param namespace     a namespace
+   * @return              all symbols in the namespace
+   */
+  public Map<String, ExprType> lookupAllTupleFields(Namespace namespace) {
+    Map<String, ExprType> result = new LinkedHashMap<>();
+    symbolTable.lookupAllTupleFields(namespace).forEach(result::putIfAbsent);
+    return result;
+  }
+
+  /**
    * Define symbol with the type.
    *
    * @param symbol symbol to define

@@ -129,6 +129,21 @@ public class SymbolTable {
   }
 
   /**
+   * Look up all top level symbols in the namespace.
+   *
+   * @param namespace     a namespace
+   * @return              all symbols in the namespace map
+   */
+  public Map<String, ExprType> lookupAllTupleFields(Namespace namespace) {
+    final LinkedHashMap<String, ExprType> allSymbols =
+        orderedTable.getOrDefault(namespace, new LinkedHashMap<>());
+    final LinkedHashMap<String, ExprType> result = new LinkedHashMap<>();
+    allSymbols.entrySet().stream()
+        .forEach(entry -> result.put(entry.getKey(), entry.getValue()));
+    return result;
+  }
+
+  /**
    * Check if namespace map in empty (none definition).
    *
    * @param namespace a namespace
