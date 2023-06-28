@@ -50,11 +50,7 @@ public class NestedAnalyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisCon
   public LogicalPlan visitNestedAllTupleFields(NestedAllTupleFields node, AnalysisContext context) {
     List<Map<String, ReferenceExpression>> args = new ArrayList<>();
     for (NamedExpression namedExpr : namedExpressions) {
-
-      if (namedExpr.getDelegated() instanceof FunctionExpression
-          && ((FunctionExpression) namedExpr.getDelegated()).getFunctionName()
-          .getFunctionName().equalsIgnoreCase(BuiltinFunctionName.NESTED.name())) {
-
+      if (isNestedFunction(namedExpr.getDelegated())) {
         ReferenceExpression field =
             (ReferenceExpression) ((FunctionExpression) namedExpr.getDelegated())
                 .getArguments().get(0);
