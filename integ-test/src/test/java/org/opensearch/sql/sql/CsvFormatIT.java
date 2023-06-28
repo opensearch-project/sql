@@ -12,6 +12,9 @@ import static org.opensearch.sql.protocol.response.format.FlatResponseFormatter.
 import java.io.IOException;
 import java.util.Locale;
 
+import org.apache.http.Header;
+import org.apache.http.HeaderElement;
+import org.apache.http.ParseException;
 import org.junit.Test;
 import org.opensearch.client.Request;
 import org.opensearch.client.Response;
@@ -64,6 +67,6 @@ public class CsvFormatIT extends SQLIntegTestCase {
 
     Response response = client().performRequest(sqlRequest);
 
-    assertEquals(response.getEntity().getContentType(), "content-type: " + CONTENT_TYPE);
+    assertEquals(response.getEntity().getContentType().getName(), CONTENT_TYPE);
   }
 }

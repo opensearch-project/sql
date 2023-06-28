@@ -49,6 +49,6 @@ public class RawFormatIT extends SQLIntegTestCase {
 
     Response response = client().performRequest(sqlRequest);
 
-    assertEquals(response.getEntity().getContentType(), "content-type: " + CONTENT_TYPE);
+    assertEquals(response.getEntity().getContentType().getName(), CONTENT_TYPE);
   }
 }
