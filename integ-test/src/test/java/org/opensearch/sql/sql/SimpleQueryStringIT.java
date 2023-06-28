@@ -5,11 +5,17 @@
 
 package org.opensearch.sql.sql;
 
+import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_BANK_CSV_SANITIZE;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_BEER;
+import static org.opensearch.sql.protocol.response.format.JsonResponseFormatter.CONTENT_TYPE;
 
 import java.io.IOException;
+import java.util.Locale;
+
 import org.json.JSONObject;
 import org.junit.Test;
+import org.opensearch.client.Request;
+import org.opensearch.client.Response;
 import org.opensearch.sql.legacy.SQLIntegTestCase;
 
 public class SimpleQueryStringIT extends SQLIntegTestCase {
@@ -60,5 +66,19 @@ public class SimpleQueryStringIT extends SQLIntegTestCase {
         + " WHERE simple_query_string(['*Date'], '2014-01-22');";
     var result = new JSONObject(executeQuery(query, "jdbc"));
     assertEquals(10, result.getInt("total"));
+  }
+
+  @Test
+  public void contentHeaderTest() throws IOException {
+    String query = "SELECT Id FROM " + TEST_INDEX_BEER
+            + " WHERE simple_query_string([\\\"Tags\\\" ^ 1.5, Title, 'Body' 4.2], 'taste')";
+    String requestBody = makeRequest(query);
+
+    Request sqlRequest = new Request("POST", "/_plugins/_sql");
+    sqlRequest.setJsonEntity(requestBody);
+
+    Response response = client().performRequest(sqlRequest);
+
+    assertEquals(response.getEntity().getContentType().getValue(), CONTENT_TYPE);
   }
 }
