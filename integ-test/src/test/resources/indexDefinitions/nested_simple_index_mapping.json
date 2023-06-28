@@ -21,6 +21,14 @@
                 "ignore_above": 256
               }
             }
+          },
+          "moveInDate" : {
+            "properties": {
+              "dateAndTime": {
+                "type": "date",
+                "format": "basic_date_time"
+              }
+            }
           }
         }
       },
