@@ -77,7 +77,7 @@ public class SqlFunctionImplementation extends FunctionExpression
   }
 
   /**
-   * This method build spark query request.
+   * This method builds a spark query request.
    *
    * @param arguments spark sql function arguments
    * @return          spark query request
@@ -89,13 +89,11 @@ public class SqlFunctionImplementation extends FunctionExpression
       String argName = ((NamedArgumentExpression) arg).getArgName();
       Expression argValue = ((NamedArgumentExpression) arg).getValue();
       ExprValue literalValue = argValue.valueOf();
-      switch (argName) {
-        case QUERY:
-          sparkQueryRequest.setSql((String) literalValue.value());
-          break;
-        default:
-          throw new ExpressionEvaluationException(
-              String.format("Invalid Function Argument:%s", argName));
+      if (argName.equals(QUERY)) {
+        sparkQueryRequest.setSql((String) literalValue.value());
+      } else {
+        throw new ExpressionEvaluationException(
+            String.format("Invalid Function Argument:%s", argName));
       }
     });
     return sparkQueryRequest;
