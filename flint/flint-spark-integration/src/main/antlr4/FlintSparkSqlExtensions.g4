@@ -19,8 +19,19 @@ statement
     ;
 
 skippingIndexStatement
-    : describeSkippingIndexStatement
+    : createSkippingIndexStatement
+    | refreshSkippingIndexStatement
+    | describeSkippingIndexStatement
     | dropSkippingIndexStatement
+    ;
+
+createSkippingIndexStatement
+    : CREATE SKIPPING INDEX ON tableName=multipartIdentifier
+        LEFT_PAREN indexColTypeList RIGHT_PAREN
+    ;
+
+refreshSkippingIndexStatement
+    : REFRESH SKIPPING INDEX ON tableName=multipartIdentifier
     ;
 
 describeSkippingIndexStatement
@@ -29,4 +40,12 @@ describeSkippingIndexStatement
 
 dropSkippingIndexStatement
     : DROP SKIPPING INDEX ON tableName=multipartIdentifier
+    ;
+
+indexColTypeList
+    : indexColType (COMMA indexColType)*
+    ;
+
+indexColType
+    : identifier skipType=(PARTITION | VALUE_SET | MIN_MAX)
     ;

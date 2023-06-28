@@ -106,20 +106,30 @@ nonReserved
 
 // Flint lexical tokens
 
-SKIPPING : 'SKIPPING';
+MIN_MAX: 'MIN_MAX';
+SKIPPING: 'SKIPPING';
+VALUE_SET: 'VALUE_SET';
 
 
 // Spark lexical tokens
 
 SEMICOLON: ';';
 
+LEFT_PAREN: '(';
+RIGHT_PAREN: ')';
+COMMA: ',';
+DOT: '.';
+
+CREATE: 'CREATE';
 DESC: 'DESC';
 DESCRIBE: 'DESCRIBE';
-DOT: '.';
 DROP: 'DROP';
 INDEX: 'INDEX';
-MINUS: '-';
 ON: 'ON';
+PARTITION: 'PARTITION';
+REFRESH: 'REFRESH';
+
+MINUS: '-';
 
 IDENTIFIER
     : (LETTER | DIGIT | '_')+

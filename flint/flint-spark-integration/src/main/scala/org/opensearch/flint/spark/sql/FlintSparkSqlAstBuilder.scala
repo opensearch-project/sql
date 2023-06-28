@@ -5,9 +5,12 @@
 
 package org.opensearch.flint.spark.sql
 
+import java.util.Locale
+
+import org.opensearch.flint.spark.FlintSpark.RefreshMode
 import org.opensearch.flint.spark.skipping.FlintSparkSkippingIndex
 import org.opensearch.flint.spark.skipping.FlintSparkSkippingIndex.getSkippingIndexName
-import org.opensearch.flint.spark.sql.FlintSparkSqlExtensionsParser.{DescribeSkippingIndexStatementContext, DropSkippingIndexStatementContext}
+import org.opensearch.flint.spark.sql.FlintSparkSqlExtensionsParser.{CreateSkippingIndexStatementContext, DescribeSkippingIndexStatementContext, DropSkippingIndexStatementContext, RefreshSkippingIndexStatementContext}
 
 import org.apache.spark.sql.Row
 import org.apache.spark.sql.catalyst.expressions.AttributeReference
@@ -18,6 +21,35 @@ import org.apache.spark.sql.types.StringType
  * Flint Spark AST builder that builds Spark command for Flint index statement.
  */
 class FlintSparkSqlAstBuilder extends FlintSparkSqlExtensionsBaseVisitor[Command] {
+
+  override def visitCreateSkippingIndexStatement(
+      ctx: CreateSkippingIndexStatementContext): Command =
+    FlintSparkSqlCommand() { flint =>
+      val indexBuilder = flint
+        .skippingIndex()
+        .onTable(ctx.tableName.getText)
+
+      ctx.indexColTypeList().indexColType().forEach { colTypeCtx =>
+        val colName = colTypeCtx.identifier().getText
+        val skipType = colTypeCtx.skipType.getText.toLowerCase(Locale.ROOT)
+
+        skipType match {
+          case "partition" => indexBuilder.addPartitions(colName)
+          case "value_set" => indexBuilder.addValueSet(colName)
+          case "min_max" => indexBuilder.addMinMax(colName)
+        }
+      }
+      indexBuilder.create()
+      Seq.empty
+    }
+
+  override def visitRefreshSkippingIndexStatement(
+      ctx: RefreshSkippingIndexStatementContext): Command =
+    FlintSparkSqlCommand() { flint =>
+      val indexName = getSkippingIndexName(ctx.tableName.getText)
+      flint.refreshIndex(indexName, RefreshMode.FULL)
+      Seq.empty
+    }
 
   override def visitDescribeSkippingIndexStatement(
       ctx: DescribeSkippingIndexStatementContext): Command = {
