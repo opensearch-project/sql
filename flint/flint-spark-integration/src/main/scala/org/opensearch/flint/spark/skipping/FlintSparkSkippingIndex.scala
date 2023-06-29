@@ -10,13 +10,14 @@ import org.json4s.native.JsonMethods._
 import org.json4s.native.Serialization
 import org.opensearch.flint.core.metadata.FlintMetadata
 import org.opensearch.flint.spark.FlintSparkIndex
+import org.opensearch.flint.spark.FlintSparkIndex.ID_COLUMN_NAME
 import org.opensearch.flint.spark.skipping.FlintSparkSkippingIndex.{getSkippingIndexName, FILE_PATH_COLUMN, SKIPPING_INDEX_TYPE}
 import org.opensearch.flint.spark.skipping.FlintSparkSkippingStrategy.SkippingKindSerializer
 
 import org.apache.spark.sql.{Column, DataFrame}
 import org.apache.spark.sql.catalyst.dsl.expressions.DslExpression
 import org.apache.spark.sql.flint.datatype.FlintDataType
-import org.apache.spark.sql.functions.input_file_name
+import org.apache.spark.sql.functions.{col, input_file_name, sha1}
 import org.apache.spark.sql.types.{DataType, StringType, StructField, StructType}
 
 /**
@@ -64,6 +65,7 @@ class FlintSparkSkippingIndex(
 
     df.groupBy(input_file_name().as(FILE_PATH_COLUMN))
       .agg(namedAggFuncs.head, namedAggFuncs.tail: _*)
+      .withColumn(ID_COLUMN_NAME, sha1(col(FILE_PATH_COLUMN)))
   }
 
   private def getMetaInfo: String = {

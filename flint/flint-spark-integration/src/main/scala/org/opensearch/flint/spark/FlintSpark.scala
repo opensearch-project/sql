@@ -5,6 +5,8 @@
 
 package org.opensearch.flint.spark
 
+import scala.collection.JavaConverters._
+
 import org.json4s.{Formats, JArray, NoTypeHints}
 import org.json4s.native.JsonMethods.parse
 import org.json4s.native.Serialization
@@ -12,6 +14,7 @@ import org.opensearch.flint.core.{FlintClient, FlintClientBuilder}
 import org.opensearch.flint.core.metadata.FlintMetadata
 import org.opensearch.flint.spark.FlintSpark._
 import org.opensearch.flint.spark.FlintSpark.RefreshMode.{FULL, INCREMENTAL, RefreshMode}
+import org.opensearch.flint.spark.FlintSparkIndex.ID_COLUMN_NAME
 import org.opensearch.flint.spark.skipping.{FlintSparkSkippingIndex, FlintSparkSkippingStrategy}
 import org.opensearch.flint.spark.skipping.FlintSparkSkippingIndex.SKIPPING_INDEX_TYPE
 import org.opensearch.flint.spark.skipping.FlintSparkSkippingStrategy.{SkippingKind, SkippingKindSerializer}
@@ -25,6 +28,7 @@ import org.apache.spark.sql.SaveMode._
 import org.apache.spark.sql.catalog.Column
 import org.apache.spark.sql.flint.FlintDataSourceV2.FLINT_DATASOURCE
 import org.apache.spark.sql.flint.config.FlintSparkConf
+import org.apache.spark.sql.flint.config.FlintSparkConf.{DOC_ID_COLUMN_NAME, IGNORE_DOC_ID_COLUMN}
 import org.apache.spark.sql.streaming.OutputMode.Append
 
 /**
@@ -33,7 +37,11 @@ import org.apache.spark.sql.streaming.OutputMode.Append
 class FlintSpark(val spark: SparkSession) {
 
   /** Flint client for low-level index operation */
-  private val flintClient: FlintClient = FlintClientBuilder.build(FlintSparkConf().flintOptions())
+  private val flintClient: FlintClient =
+    FlintClientBuilder.build(
+      FlintSparkConf(
+        Map(DOC_ID_COLUMN_NAME.key -> ID_COLUMN_NAME, IGNORE_DOC_ID_COLUMN.key -> "true").asJava)
+        .flintOptions())
 
   /** Required by json4s parse function */
   implicit val formats: Formats = Serialization.formats(NoTypeHints) + SkippingKindSerializer
@@ -254,8 +262,7 @@ object FlintSpark {
       require(tableName.nonEmpty, "table name cannot be empty")
 
       val col = findColumn(colName)
-      addIndexedColumn(
-        ValueSetSkippingStrategy(columnName = col.name, columnType = col.dataType))
+      addIndexedColumn(ValueSetSkippingStrategy(columnName = col.name, columnType = col.dataType))
       this
     }
 
@@ -269,9 +276,8 @@ object FlintSpark {
      */
     def addMinMax(colName: String): IndexBuilder = {
       val col = findColumn(colName)
-      indexedColumns = indexedColumns :+ MinMaxSkippingStrategy(
-        columnName = col.name,
-        columnType = col.dataType)
+      indexedColumns =
+        indexedColumns :+ MinMaxSkippingStrategy(columnName = col.name, columnType = col.dataType)
       this
     }
 
