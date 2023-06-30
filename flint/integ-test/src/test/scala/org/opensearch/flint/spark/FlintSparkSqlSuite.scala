@@ -25,7 +25,7 @@ class FlintSparkSqlSuite extends QueryTest with FlintSuite with OpenSearchSuite 
   }
 
   /** Test table and index name */
-  private val testTable = "test"
+  private val testTable = "flint_sql_test"
   private val testIndex = getSkippingIndexName(testTable)
 
   override def beforeAll(): Unit = {
