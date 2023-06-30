@@ -14,7 +14,7 @@ import org.opensearch.flint.core.{FlintClient, FlintClientBuilder}
 import org.opensearch.flint.core.metadata.FlintMetadata
 import org.opensearch.flint.spark.FlintSpark._
 import org.opensearch.flint.spark.FlintSpark.RefreshMode.{FULL, INCREMENTAL, RefreshMode}
-import org.opensearch.flint.spark.FlintSparkIndex.ID_COLUMN_NAME
+import org.opensearch.flint.spark.FlintSparkIndex.ID_COLUMN
 import org.opensearch.flint.spark.skipping.{FlintSparkSkippingIndex, FlintSparkSkippingStrategy}
 import org.opensearch.flint.spark.skipping.FlintSparkSkippingIndex.SKIPPING_INDEX_TYPE
 import org.opensearch.flint.spark.skipping.FlintSparkSkippingStrategy.{SkippingKind, SkippingKindSerializer}
@@ -36,12 +36,16 @@ import org.apache.spark.sql.streaming.OutputMode.Append
  */
 class FlintSpark(val spark: SparkSession) {
 
+  /** Flint spark configuration */
+  private val flintSparkConf: FlintSparkConf =
+    FlintSparkConf(
+      Map(
+        DOC_ID_COLUMN_NAME.key -> ID_COLUMN,
+        IGNORE_DOC_ID_COLUMN.key -> "true"
+      ).asJava)
+
   /** Flint client for low-level index operation */
-  private val flintClient: FlintClient =
-    FlintClientBuilder.build(
-      FlintSparkConf(
-        Map(DOC_ID_COLUMN_NAME.key -> ID_COLUMN_NAME, IGNORE_DOC_ID_COLUMN.key -> "true").asJava)
-        .flintOptions())
+  private val flintClient: FlintClient = FlintClientBuilder.build(flintSparkConf.flintOptions())
 
   /** Required by json4s parse function */
   implicit val formats: Formats = Serialization.formats(NoTypeHints) + SkippingKindSerializer

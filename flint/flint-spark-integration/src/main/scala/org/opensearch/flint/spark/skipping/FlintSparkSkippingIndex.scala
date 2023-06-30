@@ -10,7 +10,7 @@ import org.json4s.native.JsonMethods._
 import org.json4s.native.Serialization
 import org.opensearch.flint.core.metadata.FlintMetadata
 import org.opensearch.flint.spark.FlintSparkIndex
-import org.opensearch.flint.spark.FlintSparkIndex.ID_COLUMN_NAME
+import org.opensearch.flint.spark.FlintSparkIndex.ID_COLUMN
 import org.opensearch.flint.spark.skipping.FlintSparkSkippingIndex.{getSkippingIndexName, FILE_PATH_COLUMN, SKIPPING_INDEX_TYPE}
 import org.opensearch.flint.spark.skipping.FlintSparkSkippingStrategy.SkippingKindSerializer
 
@@ -30,6 +30,8 @@ class FlintSparkSkippingIndex(
     tableName: String,
     val indexedColumns: Seq[FlintSparkSkippingStrategy])
     extends FlintSparkIndex {
+
+  require(indexedColumns.nonEmpty, "indexed columns must not be empty")
 
   /** Required by json4s write function */
   implicit val formats: Formats = Serialization.formats(NoTypeHints) + SkippingKindSerializer
@@ -65,7 +67,7 @@ class FlintSparkSkippingIndex(
 
     df.groupBy(input_file_name().as(FILE_PATH_COLUMN))
       .agg(namedAggFuncs.head, namedAggFuncs.tail: _*)
-      .withColumn(ID_COLUMN_NAME, sha1(col(FILE_PATH_COLUMN)))
+      .withColumn(ID_COLUMN, sha1(col(FILE_PATH_COLUMN)))
   }
 
   private def getMetaInfo: String = {

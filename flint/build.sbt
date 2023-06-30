@@ -50,7 +50,8 @@ lazy val flintCore = (project in file("flint-core"))
     scalaVersion := scala212,
     libraryDependencies ++= Seq(
       "org.opensearch.client" % "opensearch-rest-client" % opensearchVersion,
-      "org.opensearch.client" % "opensearch-rest-high-level-client" % opensearchVersion,
+      "org.opensearch.client" % "opensearch-rest-high-level-client" % opensearchVersion
+        exclude("org.apache.logging.log4j", "log4j-api"),
       "com.amazonaws" % "aws-java-sdk" % "1.12.397" % "provided"
         exclude("com.fasterxml.jackson.core", "jackson-databind") ))
 
