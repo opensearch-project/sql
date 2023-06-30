@@ -48,5 +48,5 @@ object FlintSparkIndex {
   /**
    * ID column name.
    */
-  val ID_COLUMN: String = "id"
+  val ID_COLUMN: String = "__id__"
 }
