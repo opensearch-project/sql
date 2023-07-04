@@ -20,6 +20,8 @@ import org.opensearch.sql.datasource.model.DataSourceType;
 import org.opensearch.sql.datasources.auth.AuthenticationType;
 import org.opensearch.sql.spark.client.EmrClientImpl;
 import org.opensearch.sql.spark.client.SparkClient;
+import org.opensearch.sql.spark.helper.EMRHelper;
+import org.opensearch.sql.spark.helper.FlintHelper;
 import org.opensearch.sql.storage.DataSourceFactory;
 import org.opensearch.sql.storage.StorageEngine;
 
@@ -76,15 +78,17 @@ public class SparkStorageFactory implements DataSourceFactory {
             validateEMRConfigProperties(requiredConfig);
             return new EmrClientImpl(
                 client,
+                new EMRHelper(
                 requiredConfig.get(EMR_CLUSTER),
-                requiredConfig.get(EMR_REGION),
                 requiredConfig.get(EMR_ACCESS_KEY),
                 requiredConfig.get(EMR_SECRET_KEY),
+                requiredConfig.get(EMR_REGION)),
+                new FlintHelper(
                 requiredConfig.get(FLINT_HOST),
                 requiredConfig.get(FLINT_PORT),
                 requiredConfig.get(FLINT_SCHEME),
                 requiredConfig.get(FLINT_AUTH),
-                requiredConfig.get(FLINT_REGION));
+                requiredConfig.get(FLINT_REGION)));
           });
     } else {
       throw new InvalidParameterException("Spark connector type is invalid.");

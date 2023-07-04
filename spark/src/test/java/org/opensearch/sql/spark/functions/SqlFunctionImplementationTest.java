@@ -45,7 +45,6 @@ public class SqlFunctionImplementationTest {
     assertEquals(ExprCoreType.STRUCT, sqlFunctionImplementation.type());
   }
 
-
   @Test
   void testApplyArguments() {
     FunctionName functionName = new FunctionName("sql");

@@ -18,7 +18,13 @@ import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.datasource.model.DataSource;
 import org.opensearch.sql.datasource.model.DataSourceMetadata;
 import org.opensearch.sql.datasource.model.DataSourceType;
+import org.opensearch.sql.spark.client.EmrClientImpl;
+import org.opensearch.sql.spark.helper.EMRHelper;
+import org.opensearch.sql.spark.helper.FlintHelper;
 import org.opensearch.sql.storage.StorageEngine;
+
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 public class SparkStorageFactoryTest {
@@ -42,8 +48,9 @@ public class SparkStorageFactoryTest {
     properties.put("spark.connector", "emr");
     properties.put("emr.cluster", "j-abc123");
     properties.put("emr.auth.type", "awssigv4");
-    properties.put("emr.auth.secret_key", "abc");
-    properties.put("emr.auth.access_key", "123");
+    properties.put("emr.auth.access_key", "access_key");
+    properties.put("emr.auth.secret_key", "secret_key");
+    properties.put("emr.auth.region", "region");
     SparkStorageFactory sparkStorageFactory = new SparkStorageFactory(client, settings);
     StorageEngine storageEngine
         = sparkStorageFactory.getStorageEngine(properties);
@@ -118,11 +125,14 @@ public class SparkStorageFactoryTest {
   }
 
   @Test
-  void createDataSourceSuccessWithLocalhost() {
+  void createDataSourceSuccess() {
     HashMap<String, String> properties = new HashMap<>();
     properties.put("spark.connector", "emr");
     properties.put("emr.cluster", "j-abc123");
-    properties.put("emr.auth.type", "iam");
+    properties.put("emr.auth.type", "awssigv4");
+    properties.put("emr.auth.access_key", "access_key");
+    properties.put("emr.auth.secret_key", "secret_key");
+    properties.put("emr.auth.region", "region");
     properties.put("spark.datasource.flint.host", "localhost");
     properties.put("spark.datasource.flint.port", "9200");
     properties.put("spark.datasource.flint.scheme", "http");
