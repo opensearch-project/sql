@@ -186,7 +186,16 @@ public class ExpressionAnalyzer extends AbstractNodeVisitor<Expression, Analysis
     FunctionName functionName = FunctionName.of(node.getFuncName());
     List<Expression> arguments =
         node.getFuncArgs().stream()
-            .map(unresolvedExpression -> analyze(unresolvedExpression, context))
+            .map(unresolvedExpression -> {
+              var ret = analyze(unresolvedExpression, context);
+              if (ret == null) {
+                throw new UnsupportedOperationException(
+                    String.format("Invalid use of expression %s", unresolvedExpression)
+                );
+              } else {
+                return ret;
+              }
+            })
             .collect(Collectors.toList());
     return (Expression) repository.compile(context.getFunctionProperties(),
         functionName, arguments);

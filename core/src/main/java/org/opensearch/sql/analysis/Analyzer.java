@@ -29,6 +29,7 @@ import java.util.Optional;
 import java.util.stream.Collectors;
 import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.apache.commons.lang3.tuple.Pair;
+import org.apache.commons.math3.analysis.function.Exp;
 import org.opensearch.sql.DataSourceSchemaName;
 import org.opensearch.sql.analysis.symbol.Namespace;
 import org.opensearch.sql.analysis.symbol.Symbol;
@@ -469,8 +470,13 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
         node.getSortList().stream()
             .map(
                 sortField -> {
-                  Expression expression = optimizer.optimize(
-                      expressionAnalyzer.analyze(sortField.getField(), context), context);
+                  var analyzed = expressionAnalyzer.analyze(sortField.getField(), context);
+                  if (analyzed == null) {
+                    throw new UnsupportedOperationException(
+                        String.format("Invalid use of expression %s", sortField.getField())
+                    );
+                  }
+                  Expression expression = optimizer.optimize(analyzed, context);
                   return ImmutablePair.of(analyzeSortOption(sortField.getFieldArgs()), expression);
                 })
             .collect(Collectors.toList());

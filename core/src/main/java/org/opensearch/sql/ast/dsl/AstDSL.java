@@ -30,6 +30,7 @@ import org.opensearch.sql.ast.expression.Interval;
 import org.opensearch.sql.ast.expression.Let;
 import org.opensearch.sql.ast.expression.Literal;
 import org.opensearch.sql.ast.expression.Map;
+import org.opensearch.sql.ast.expression.NestedAllTupleFields;
 import org.opensearch.sql.ast.expression.Not;
 import org.opensearch.sql.ast.expression.Or;
 import org.opensearch.sql.ast.expression.ParseMethod;
@@ -375,6 +376,10 @@ public class AstDSL {
 
   public Alias alias(String name, UnresolvedExpression expr, String alias) {
     return new Alias(name, expr, alias);
+  }
+
+  public NestedAllTupleFields nestedAllTupleFields(String path) {
+    return new NestedAllTupleFields(path);
   }
 
   public static List<UnresolvedExpression> exprList(UnresolvedExpression... exprList) {
