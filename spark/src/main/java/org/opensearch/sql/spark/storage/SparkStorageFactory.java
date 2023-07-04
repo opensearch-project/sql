@@ -95,7 +95,6 @@ public class SparkStorageFactory implements DataSourceFactory {
     }
     return new SparkStorageEngine(sparkClient);
   }
-
   private void validateEMRConfigProperties(Map<String, String> dataSourceMetadataConfig)
       throws IllegalArgumentException {
     if (dataSourceMetadataConfig.get(EMR_CLUSTER) == null

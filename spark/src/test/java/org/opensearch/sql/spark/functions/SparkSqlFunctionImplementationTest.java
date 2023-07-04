@@ -20,12 +20,12 @@ import org.opensearch.sql.expression.DSL;
 import org.opensearch.sql.expression.Expression;
 import org.opensearch.sql.expression.function.FunctionName;
 import org.opensearch.sql.spark.client.SparkClient;
-import org.opensearch.sql.spark.functions.implementation.SqlFunctionImplementation;
+import org.opensearch.sql.spark.functions.implementation.SparkSqlFunctionImplementation;
 import org.opensearch.sql.spark.request.SparkQueryRequest;
-import org.opensearch.sql.spark.storage.SparkMetricTable;
+import org.opensearch.sql.spark.storage.SparkTable;
 
 @ExtendWith(MockitoExtension.class)
-public class SqlFunctionImplementationTest {
+public class SparkSqlFunctionImplementationTest {
   @Mock
   private SparkClient client;
 
@@ -34,15 +34,15 @@ public class SqlFunctionImplementationTest {
     FunctionName functionName = new FunctionName("sql");
     List<Expression> namedArgumentExpressionList
         = List.of(DSL.namedArgument("query", DSL.literal("select 1")));
-    SqlFunctionImplementation sqlFunctionImplementation
-        = new SqlFunctionImplementation(functionName, namedArgumentExpressionList, client);
+    SparkSqlFunctionImplementation sparkSqlFunctionImplementation
+        = new SparkSqlFunctionImplementation(functionName, namedArgumentExpressionList, client);
     UnsupportedOperationException exception = assertThrows(UnsupportedOperationException.class,
-        () -> sqlFunctionImplementation.valueOf());
+        () -> sparkSqlFunctionImplementation.valueOf());
     assertEquals("Spark defined function [sql] is only "
         + "supported in SOURCE clause with spark connector catalog", exception.getMessage());
     assertEquals("sql(query=\"select 1\")",
-        sqlFunctionImplementation.toString());
-    assertEquals(ExprCoreType.STRUCT, sqlFunctionImplementation.type());
+        sparkSqlFunctionImplementation.toString());
+    assertEquals(ExprCoreType.STRUCT, sparkSqlFunctionImplementation.type());
   }
 
   @Test
@@ -50,13 +50,13 @@ public class SqlFunctionImplementationTest {
     FunctionName functionName = new FunctionName("sql");
     List<Expression> namedArgumentExpressionList
         = List.of(DSL.namedArgument("query", DSL.literal("select 1")));
-    SqlFunctionImplementation sqlFunctionImplementation
-        = new SqlFunctionImplementation(functionName, namedArgumentExpressionList, client);
-    SparkMetricTable sparkMetricTable
-        = (SparkMetricTable) sqlFunctionImplementation.applyArguments();
-    assertNotNull(sparkMetricTable.getSparkQueryRequest());
+    SparkSqlFunctionImplementation sparkSqlFunctionImplementation
+        = new SparkSqlFunctionImplementation(functionName, namedArgumentExpressionList, client);
+    SparkTable sparkTable
+        = (SparkTable) sparkSqlFunctionImplementation.applyArguments();
+    assertNotNull(sparkTable.getSparkQueryRequest());
     SparkQueryRequest sparkQueryRequest
-        = sparkMetricTable.getSparkQueryRequest();
+        = sparkTable.getSparkQueryRequest();
     assertEquals("select 1", sparkQueryRequest.getSql());
   }
 
@@ -66,10 +66,10 @@ public class SqlFunctionImplementationTest {
     List<Expression> namedArgumentExpressionList
         = List.of(DSL.namedArgument("query", DSL.literal("select 1")),
         DSL.namedArgument("tmp", DSL.literal(12345)));
-    SqlFunctionImplementation sqlFunctionImplementation
-        = new SqlFunctionImplementation(functionName, namedArgumentExpressionList, client);
+    SparkSqlFunctionImplementation sparkSqlFunctionImplementation
+        = new SparkSqlFunctionImplementation(functionName, namedArgumentExpressionList, client);
     ExpressionEvaluationException exception = assertThrows(ExpressionEvaluationException.class,
-        () -> sqlFunctionImplementation.applyArguments());
+        () -> sparkSqlFunctionImplementation.applyArguments());
     assertEquals("Invalid Function Argument:tmp", exception.getMessage());
   }
 

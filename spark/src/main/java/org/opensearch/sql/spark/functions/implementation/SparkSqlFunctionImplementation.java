@@ -5,7 +5,7 @@
 
 package org.opensearch.sql.spark.functions.implementation;
 
-import static org.opensearch.sql.spark.functions.resolver.SqlTableFunctionResolver.QUERY;
+import static org.opensearch.sql.spark.functions.resolver.SparkSqlTableFunctionResolver.QUERY;
 
 import java.util.List;
 import java.util.stream.Collectors;
@@ -21,13 +21,13 @@ import org.opensearch.sql.expression.function.FunctionName;
 import org.opensearch.sql.expression.function.TableFunctionImplementation;
 import org.opensearch.sql.spark.client.SparkClient;
 import org.opensearch.sql.spark.request.SparkQueryRequest;
-import org.opensearch.sql.spark.storage.SparkMetricTable;
+import org.opensearch.sql.spark.storage.SparkTable;
 import org.opensearch.sql.storage.Table;
 
 /**
  * Spark SQL function implementation.
  */
-public class SqlFunctionImplementation extends FunctionExpression
+public class SparkSqlFunctionImplementation extends FunctionExpression
     implements TableFunctionImplementation {
 
   private final FunctionName functionName;
@@ -41,7 +41,7 @@ public class SqlFunctionImplementation extends FunctionExpression
    * @param arguments    a list of expressions
    * @param sparkClient  spark client
    */
-  public SqlFunctionImplementation(
+  public SparkSqlFunctionImplementation(
       FunctionName functionName, List<Expression> arguments, SparkClient sparkClient) {
     super(functionName, arguments);
     this.functionName = functionName;
@@ -73,11 +73,11 @@ public class SqlFunctionImplementation extends FunctionExpression
 
   @Override
   public Table applyArguments() {
-    return new SparkMetricTable(sparkClient, buildQueryFromSqlFunction(arguments));
+    return new SparkTable(sparkClient, buildQueryFromSqlFunction(arguments));
   }
 
   /**
-   * This method build spark query request.
+   * This method builds a spark query request.
    *
    * @param arguments spark sql function arguments
    * @return          spark query request
@@ -89,13 +89,11 @@ public class SqlFunctionImplementation extends FunctionExpression
       String argName = ((NamedArgumentExpression) arg).getArgName();
       Expression argValue = ((NamedArgumentExpression) arg).getValue();
       ExprValue literalValue = argValue.valueOf();
-      switch (argName) {
-        case QUERY:
-          sparkQueryRequest.setSql((String) literalValue.value());
-          break;
-        default:
-          throw new ExpressionEvaluationException(
-              String.format("Invalid Function Argument:%s", argName));
+      if (argName.equals(QUERY)) {
+        sparkQueryRequest.setSql((String) literalValue.value());
+      } else {
+        throw new ExpressionEvaluationException(
+            String.format("Invalid Function Argument:%s", argName));
       }
     });
     return sparkQueryRequest;

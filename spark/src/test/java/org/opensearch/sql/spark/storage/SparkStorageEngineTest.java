@@ -18,7 +18,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.opensearch.sql.DataSourceSchemaName;
 import org.opensearch.sql.expression.function.FunctionResolver;
 import org.opensearch.sql.spark.client.SparkClient;
-import org.opensearch.sql.spark.functions.resolver.SqlTableFunctionResolver;
+import org.opensearch.sql.spark.functions.resolver.SparkSqlTableFunctionResolver;
 import org.opensearch.sql.storage.Table;
 
 @ExtendWith(MockitoExtension.class)
@@ -34,7 +34,7 @@ public class SparkStorageEngineTest {
     assertNotNull(functionResolverCollection);
     assertEquals(1, functionResolverCollection.size());
     assertTrue(
-        functionResolverCollection.iterator().next() instanceof SqlTableFunctionResolver);
+        functionResolverCollection.iterator().next() instanceof SparkSqlTableFunctionResolver);
   }
 
   @Test

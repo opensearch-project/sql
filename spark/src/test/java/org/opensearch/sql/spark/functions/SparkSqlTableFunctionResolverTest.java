@@ -27,13 +27,13 @@ import org.opensearch.sql.expression.function.FunctionProperties;
 import org.opensearch.sql.expression.function.FunctionSignature;
 import org.opensearch.sql.expression.function.TableFunctionImplementation;
 import org.opensearch.sql.spark.client.SparkClient;
-import org.opensearch.sql.spark.functions.implementation.SqlFunctionImplementation;
-import org.opensearch.sql.spark.functions.resolver.SqlTableFunctionResolver;
+import org.opensearch.sql.spark.functions.implementation.SparkSqlFunctionImplementation;
+import org.opensearch.sql.spark.functions.resolver.SparkSqlTableFunctionResolver;
 import org.opensearch.sql.spark.request.SparkQueryRequest;
-import org.opensearch.sql.spark.storage.SparkMetricTable;
+import org.opensearch.sql.spark.storage.SparkTable;
 
 @ExtendWith(MockitoExtension.class)
-public class SqlTableFunctionResolverTest {
+public class SparkSqlTableFunctionResolverTest {
   @Mock
   private SparkClient client;
 
@@ -42,8 +42,8 @@ public class SqlTableFunctionResolverTest {
 
   @Test
   void testResolve() {
-    SqlTableFunctionResolver sqlTableFunctionResolver
-        = new SqlTableFunctionResolver(client);
+    SparkSqlTableFunctionResolver sqlTableFunctionResolver
+        = new SparkSqlTableFunctionResolver(client);
     FunctionName functionName = FunctionName.of("sql");
     List<Expression> expressions
         = List.of(DSL.namedArgument("query", DSL.literal("select 1")));
@@ -57,19 +57,19 @@ public class SqlTableFunctionResolverTest {
     FunctionBuilder functionBuilder = resolution.getValue();
     TableFunctionImplementation functionImplementation
         = (TableFunctionImplementation) functionBuilder.apply(functionProperties, expressions);
-    assertTrue(functionImplementation instanceof SqlFunctionImplementation);
-    SparkMetricTable sparkMetricTable
-        = (SparkMetricTable) functionImplementation.applyArguments();
-    assertNotNull(sparkMetricTable.getSparkQueryRequest());
+    assertTrue(functionImplementation instanceof SparkSqlFunctionImplementation);
+    SparkTable sparkTable
+        = (SparkTable) functionImplementation.applyArguments();
+    assertNotNull(sparkTable.getSparkQueryRequest());
     SparkQueryRequest sparkQueryRequest =
-        sparkMetricTable.getSparkQueryRequest();
+        sparkTable.getSparkQueryRequest();
     assertEquals("select 1", sparkQueryRequest.getSql());
   }
 
   @Test
   void testArgumentsPassedByPosition() {
-    SqlTableFunctionResolver sqlTableFunctionResolver
-        = new SqlTableFunctionResolver(client);
+    SparkSqlTableFunctionResolver sqlTableFunctionResolver
+        = new SparkSqlTableFunctionResolver(client);
     FunctionName functionName = FunctionName.of("sql");
     List<Expression> expressions
         = List.of(DSL.namedArgument(null, DSL.literal("select 1")));
@@ -85,19 +85,19 @@ public class SqlTableFunctionResolverTest {
     FunctionBuilder functionBuilder = resolution.getValue();
     TableFunctionImplementation functionImplementation
         = (TableFunctionImplementation) functionBuilder.apply(functionProperties, expressions);
-    assertTrue(functionImplementation instanceof SqlFunctionImplementation);
-    SparkMetricTable sparkMetricTable
-        = (SparkMetricTable) functionImplementation.applyArguments();
-    assertNotNull(sparkMetricTable.getSparkQueryRequest());
+    assertTrue(functionImplementation instanceof SparkSqlFunctionImplementation);
+    SparkTable sparkTable
+        = (SparkTable) functionImplementation.applyArguments();
+    assertNotNull(sparkTable.getSparkQueryRequest());
     SparkQueryRequest sparkQueryRequest =
-        sparkMetricTable.getSparkQueryRequest();
+        sparkTable.getSparkQueryRequest();
     assertEquals("select 1", sparkQueryRequest.getSql());
   }
 
   @Test
   void testMixedArgumentTypes() {
-    SqlTableFunctionResolver sqlTableFunctionResolver
-        = new SqlTableFunctionResolver(client);
+    SparkSqlTableFunctionResolver sqlTableFunctionResolver
+        = new SparkSqlTableFunctionResolver(client);
     FunctionName functionName = FunctionName.of("sql");
     List<Expression> expressions
         = List.of(DSL.namedArgument("query", DSL.literal("select 1")),
@@ -118,8 +118,8 @@ public class SqlTableFunctionResolverTest {
 
   @Test
   void testWrongArgumentsSizeWhenPassedByName() {
-    SqlTableFunctionResolver sqlTableFunctionResolver
-        = new SqlTableFunctionResolver(client);
+    SparkSqlTableFunctionResolver sqlTableFunctionResolver
+        = new SparkSqlTableFunctionResolver(client);
     FunctionName functionName = FunctionName.of("sql");
     List<Expression> expressions
         = List.of();

@@ -8,10 +8,7 @@ package org.opensearch.sql.spark.functions.resolver;
 import static org.opensearch.sql.data.type.ExprCoreType.STRING;
 
 import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
-import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.tuple.Pair;
@@ -23,13 +20,13 @@ import org.opensearch.sql.expression.function.FunctionName;
 import org.opensearch.sql.expression.function.FunctionResolver;
 import org.opensearch.sql.expression.function.FunctionSignature;
 import org.opensearch.sql.spark.client.SparkClient;
-import org.opensearch.sql.spark.functions.implementation.SqlFunctionImplementation;
+import org.opensearch.sql.spark.functions.implementation.SparkSqlFunctionImplementation;
 
 /**
  * Function resolver for sql function of spark connector.
  */
 @RequiredArgsConstructor
-public class SqlTableFunctionResolver implements FunctionResolver {
+public class SparkSqlTableFunctionResolver implements FunctionResolver {
   private final SparkClient sparkClient;
 
   public static final String SQL = "sql";
@@ -63,9 +60,9 @@ public class SqlTableFunctionResolver implements FunctionResolver {
           namedArguments.add(new NamedArgumentExpression(argumentNames.get(i),
               ((NamedArgumentExpression) arguments.get(i)).getValue()));
         }
-        return new SqlFunctionImplementation(functionName, namedArguments, sparkClient);
+        return new SparkSqlFunctionImplementation(functionName, namedArguments, sparkClient);
       }
-      return new SqlFunctionImplementation(functionName, arguments, sparkClient);
+      return new SparkSqlFunctionImplementation(functionName, arguments, sparkClient);
     };
     return Pair.of(functionSignature, functionBuilder);
   }
