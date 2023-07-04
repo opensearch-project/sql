@@ -16,7 +16,7 @@ import org.opensearch.sql.storage.read.TableScanBuilder;
  * TableScanBuilder for sql function of spark connector.
  */
 @AllArgsConstructor
-public class SqlFunctionTableScanBuilder extends TableScanBuilder {
+public class SparkSqlFunctionTableScanBuilder extends TableScanBuilder {
 
   private final SparkClient sparkClient;
 

@@ -28,59 +28,59 @@ import org.opensearch.sql.data.type.ExprType;
 import org.opensearch.sql.expression.NamedExpression;
 import org.opensearch.sql.planner.physical.PhysicalPlan;
 import org.opensearch.sql.spark.client.SparkClient;
-import org.opensearch.sql.spark.functions.scan.SqlFunctionTableScanBuilder;
+import org.opensearch.sql.spark.functions.scan.SparkSqlFunctionTableScanBuilder;
 import org.opensearch.sql.spark.request.SparkQueryRequest;
 import org.opensearch.sql.storage.read.TableScanBuilder;
 
 @ExtendWith(MockitoExtension.class)
-public class SparkMetricTableTest {
+public class SparkTableTest {
   @Mock
   private SparkClient client;
 
   @Test
   void testUnsupportedOperation() {
     SparkQueryRequest sparkQueryRequest = new SparkQueryRequest();
-    SparkMetricTable sparkMetricTable =
-        new SparkMetricTable(client, sparkQueryRequest);
+    SparkTable sparkTable =
+        new SparkTable(client, sparkQueryRequest);
 
-    assertThrows(UnsupportedOperationException.class, sparkMetricTable::exists);
+    assertThrows(UnsupportedOperationException.class, sparkTable::exists);
     assertThrows(UnsupportedOperationException.class,
-        () -> sparkMetricTable.create(Collections.emptyMap()));
+        () -> sparkTable.create(Collections.emptyMap()));
   }
 
   @Test
   void testCreateScanBuilderWithSqlTableFunction() {
     SparkQueryRequest sparkQueryRequest = new SparkQueryRequest();
     sparkQueryRequest.setSql("select 1");
-    SparkMetricTable sparkMetricTable =
-        new SparkMetricTable(client, sparkQueryRequest);
-    TableScanBuilder tableScanBuilder = sparkMetricTable.createScanBuilder();
+    SparkTable sparkTable =
+        new SparkTable(client, sparkQueryRequest);
+    TableScanBuilder tableScanBuilder = sparkTable.createScanBuilder();
     Assertions.assertNotNull(tableScanBuilder);
-    Assertions.assertTrue(tableScanBuilder instanceof SqlFunctionTableScanBuilder);
+    Assertions.assertTrue(tableScanBuilder instanceof SparkSqlFunctionTableScanBuilder);
   }
 
   @Test
   @SneakyThrows
   void testGetFieldTypesFromSparkQueryRequest() {
-    SparkMetricTable sparkMetricTable
-        = new SparkMetricTable(client, new SparkQueryRequest());
+    SparkTable sparkTable
+        = new SparkTable(client, new SparkQueryRequest());
     Map<String, ExprType> expectedFieldTypes = new HashMap<>();
-    Map<String, ExprType> fieldTypes = sparkMetricTable.getFieldTypes();
+    Map<String, ExprType> fieldTypes = sparkTable.getFieldTypes();
 
     assertEquals(expectedFieldTypes, fieldTypes);
     verifyNoMoreInteractions(client);
-    assertNotNull(sparkMetricTable.getSparkQueryRequest());
+    assertNotNull(sparkTable.getSparkQueryRequest());
   }
 
   @Test
   void testImplementWithSqlFunction() {
     SparkQueryRequest sparkQueryRequest = new SparkQueryRequest();
     sparkQueryRequest.setSql("select 1");
-    SparkMetricTable sparkMetricTable =
-        new SparkMetricTable(client, sparkQueryRequest);
+    SparkTable sparkTable =
+        new SparkTable(client, sparkQueryRequest);
     List<NamedExpression> finalProjectList = new ArrayList<>();
-    PhysicalPlan plan = sparkMetricTable.implement(
-        project(relation("sql", sparkMetricTable),
+    PhysicalPlan plan = sparkTable.implement(
+        project(relation("sql", sparkTable),
             finalProjectList, null));
     assertNull(plan);
   }

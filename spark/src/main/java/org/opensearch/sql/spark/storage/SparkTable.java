@@ -13,7 +13,7 @@ import org.opensearch.sql.data.type.ExprType;
 import org.opensearch.sql.planner.logical.LogicalPlan;
 import org.opensearch.sql.planner.physical.PhysicalPlan;
 import org.opensearch.sql.spark.client.SparkClient;
-import org.opensearch.sql.spark.functions.scan.SqlFunctionTableScanBuilder;
+import org.opensearch.sql.spark.functions.scan.SparkSqlFunctionTableScanBuilder;
 import org.opensearch.sql.spark.request.SparkQueryRequest;
 import org.opensearch.sql.storage.Table;
 import org.opensearch.sql.storage.read.TableScanBuilder;
@@ -22,7 +22,7 @@ import org.opensearch.sql.storage.read.TableScanBuilder;
  * Spark table implementation.
  * This can be constructed from SparkQueryRequest.
  */
-public class SparkMetricTable implements Table {
+public class SparkTable implements Table {
 
   private final SparkClient sparkClient;
 
@@ -32,8 +32,8 @@ public class SparkMetricTable implements Table {
   /**
    * Constructor for entire Sql Request.
    */
-  public SparkMetricTable(SparkClient sparkService,
-                          @Nonnull SparkQueryRequest sparkQueryRequest) {
+  public SparkTable(SparkClient sparkService,
+                    @Nonnull SparkQueryRequest sparkQueryRequest) {
     this.sparkClient = sparkService;
     this.sparkQueryRequest = sparkQueryRequest;
   }
@@ -63,6 +63,6 @@ public class SparkMetricTable implements Table {
 
   @Override
   public TableScanBuilder createScanBuilder() {
-    return new SqlFunctionTableScanBuilder(sparkClient, sparkQueryRequest);
+    return new SparkSqlFunctionTableScanBuilder(sparkClient, sparkQueryRequest);
   }
 }

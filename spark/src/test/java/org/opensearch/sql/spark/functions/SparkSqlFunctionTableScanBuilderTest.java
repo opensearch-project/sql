@@ -10,11 +10,11 @@ import org.junit.jupiter.api.Test;
 import org.mockito.Mock;
 import org.opensearch.sql.planner.logical.LogicalProject;
 import org.opensearch.sql.spark.client.SparkClient;
-import org.opensearch.sql.spark.functions.scan.SqlFunctionTableScanBuilder;
+import org.opensearch.sql.spark.functions.scan.SparkSqlFunctionTableScanBuilder;
 import org.opensearch.sql.spark.request.SparkQueryRequest;
 import org.opensearch.sql.storage.TableScanOperator;
 
-public class SqlFunctionTableScanBuilderTest {
+public class SparkSqlFunctionTableScanBuilderTest {
   @Mock
   private SparkClient sparkClient;
 
@@ -26,10 +26,10 @@ public class SqlFunctionTableScanBuilderTest {
     SparkQueryRequest sparkQueryRequest = new SparkQueryRequest();
     sparkQueryRequest.setSql("select 1");
 
-    SqlFunctionTableScanBuilder sqlFunctionTableScanBuilder
-        = new SqlFunctionTableScanBuilder(sparkClient, sparkQueryRequest);
+    SparkSqlFunctionTableScanBuilder sparkSqlFunctionTableScanBuilder
+        = new SparkSqlFunctionTableScanBuilder(sparkClient, sparkQueryRequest);
     TableScanOperator sqlFunctionTableScanOperator
-        = sqlFunctionTableScanBuilder.build();
+        = sparkSqlFunctionTableScanBuilder.build();
     Assertions.assertNull(sqlFunctionTableScanOperator);
   }
 
@@ -38,8 +38,8 @@ public class SqlFunctionTableScanBuilderTest {
     SparkQueryRequest sparkQueryRequest = new SparkQueryRequest();
     sparkQueryRequest.setSql("select 1");
 
-    SqlFunctionTableScanBuilder sqlFunctionTableScanBuilder
-        = new SqlFunctionTableScanBuilder(sparkClient, sparkQueryRequest);
-    Assertions.assertTrue(sqlFunctionTableScanBuilder.pushDownProject(logicalProject));
+    SparkSqlFunctionTableScanBuilder sparkSqlFunctionTableScanBuilder
+        = new SparkSqlFunctionTableScanBuilder(sparkClient, sparkQueryRequest);
+    Assertions.assertTrue(sparkSqlFunctionTableScanBuilder.pushDownProject(logicalProject));
   }
 }

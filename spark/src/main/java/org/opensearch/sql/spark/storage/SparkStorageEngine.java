@@ -11,7 +11,7 @@ import lombok.RequiredArgsConstructor;
 import org.opensearch.sql.DataSourceSchemaName;
 import org.opensearch.sql.expression.function.FunctionResolver;
 import org.opensearch.sql.spark.client.SparkClient;
-import org.opensearch.sql.spark.functions.resolver.SqlTableFunctionResolver;
+import org.opensearch.sql.spark.functions.resolver.SparkSqlTableFunctionResolver;
 import org.opensearch.sql.storage.StorageEngine;
 import org.opensearch.sql.storage.Table;
 
@@ -25,7 +25,7 @@ public class SparkStorageEngine implements StorageEngine {
   @Override
   public Collection<FunctionResolver> getFunctions() {
     return Collections.singletonList(
-        new SqlTableFunctionResolver(sparkClient));
+        new SparkSqlTableFunctionResolver(sparkClient));
   }
 
   @Override
