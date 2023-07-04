@@ -18,13 +18,7 @@ import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.datasource.model.DataSource;
 import org.opensearch.sql.datasource.model.DataSourceMetadata;
 import org.opensearch.sql.datasource.model.DataSourceType;
-import org.opensearch.sql.spark.client.EmrClientImpl;
-import org.opensearch.sql.spark.helper.EMRHelper;
-import org.opensearch.sql.spark.helper.FlintHelper;
 import org.opensearch.sql.storage.StorageEngine;
-
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 public class SparkStorageFactoryTest {
@@ -79,6 +73,20 @@ public class SparkStorageFactoryTest {
     IllegalArgumentException exception = Assertions.assertThrows(IllegalArgumentException.class,
         () -> sparkStorageFactory.getStorageEngine(properties));
     Assertions.assertEquals("EMR config properties are missing.",
+        exception.getMessage());
+  }
+
+  @Test
+  @SneakyThrows
+  void testUnsupportedEmrAuth() {
+    HashMap<String, String> properties = new HashMap<>();
+    properties.put("spark.connector", "emr");
+    properties.put("emr.cluster", "j-abc123");
+    properties.put("emr.auth.type", "basic");
+    SparkStorageFactory sparkStorageFactory = new SparkStorageFactory(client, settings);
+    IllegalArgumentException exception = Assertions.assertThrows(IllegalArgumentException.class,
+        () -> sparkStorageFactory.getStorageEngine(properties));
+    Assertions.assertEquals("Invalid auth type.",
         exception.getMessage());
   }
 

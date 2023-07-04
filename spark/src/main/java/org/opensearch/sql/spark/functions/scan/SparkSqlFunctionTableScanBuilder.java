@@ -24,7 +24,7 @@ public class SparkSqlFunctionTableScanBuilder extends TableScanBuilder {
 
   @Override
   public TableScanOperator build() {
-    return new SqlFunctionTableScanOperator(sparkClient, sparkQueryRequest);
+    return new SparkSqlFunctionTableScanOperator(sparkClient, sparkQueryRequest);
   }
 
   @Override

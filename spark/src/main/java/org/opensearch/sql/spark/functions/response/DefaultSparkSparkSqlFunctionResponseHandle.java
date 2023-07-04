@@ -29,9 +29,9 @@ import org.opensearch.sql.data.type.ExprType;
 import org.opensearch.sql.executor.ExecutionEngine;
 
 /**
- * Default implementation of SqlFunctionResponseHandle.
+ * Default implementation of SparkSqlFunctionResponseHandle.
  */
-public class DefaultSqlFunctionResponseHandle implements SqlFunctionResponseHandle {
+public class DefaultSparkSparkSqlFunctionResponseHandle implements SparkSqlFunctionResponseHandle {
 
   private final JSONObject responseObject;
   private Iterator<ExprValue> responseIterator;
@@ -42,7 +42,7 @@ public class DefaultSqlFunctionResponseHandle implements SqlFunctionResponseHand
    *
    * @param responseObject Spark responseObject.
    */
-  public DefaultSqlFunctionResponseHandle(JSONObject responseObject) {
+  public DefaultSparkSparkSqlFunctionResponseHandle(JSONObject responseObject) {
     this.responseObject = responseObject;
     constructIteratorAndSchema();
   }

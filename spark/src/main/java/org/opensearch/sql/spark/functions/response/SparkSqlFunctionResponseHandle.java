@@ -11,7 +11,7 @@ import org.opensearch.sql.executor.ExecutionEngine;
 /**
  * Handle Spark response.
  */
-public interface SqlFunctionResponseHandle {
+public interface SparkSqlFunctionResponseHandle {
 
   /**
    * Return true if Spark response has more result.

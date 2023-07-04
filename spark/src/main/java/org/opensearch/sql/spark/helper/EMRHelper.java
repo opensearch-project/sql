@@ -16,6 +16,13 @@ public class EMRHelper {
   @Getter
   private AmazonElasticMapReduce emrClient;
 
+  /** Arguments required for connecting to EMR cluster.
+   *
+   * @param emrCluster    EMR cluster id
+   * @param emrAccessKey  AWS access key
+   * @param emrSecretKey  AWS secret key
+   * @param emrRegion     AWS region
+   */
   public EMRHelper(String emrCluster, String emrAccessKey, String emrSecretKey, String emrRegion) {
     this.emrCluster = emrCluster;
     this.emrClient = AmazonElasticMapReduceClientBuilder.standard()

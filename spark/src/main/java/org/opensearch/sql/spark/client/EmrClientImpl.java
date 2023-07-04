@@ -10,10 +10,6 @@ import static org.opensearch.sql.spark.data.constants.SparkConstants.SPARK_APPLI
 import static org.opensearch.sql.spark.data.constants.SparkConstants.SPARK_INDEX_NAME;
 import static org.opensearch.sql.spark.data.constants.SparkConstants.STEP_ID_FIELD;
 
-import com.amazonaws.auth.AWSStaticCredentialsProvider;
-import com.amazonaws.auth.BasicAWSCredentials;
-import com.amazonaws.services.elasticmapreduce.AmazonElasticMapReduce;
-import com.amazonaws.services.elasticmapreduce.AmazonElasticMapReduceClientBuilder;
 import com.amazonaws.services.elasticmapreduce.model.ActionOnFailure;
 import com.amazonaws.services.elasticmapreduce.model.AddJobFlowStepsRequest;
 import com.amazonaws.services.elasticmapreduce.model.AddJobFlowStepsResult;
@@ -21,9 +17,8 @@ import com.amazonaws.services.elasticmapreduce.model.DescribeStepRequest;
 import com.amazonaws.services.elasticmapreduce.model.HadoopJarStepConfig;
 import com.amazonaws.services.elasticmapreduce.model.StepConfig;
 import com.amazonaws.services.elasticmapreduce.model.StepStatus;
-import java.io.IOException;
-
 import com.google.common.annotations.VisibleForTesting;
+import java.io.IOException;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.json.JSONObject;

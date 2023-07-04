@@ -24,7 +24,7 @@ import org.opensearch.sql.data.type.ExprType;
 import org.opensearch.sql.planner.physical.PhysicalPlan;
 import org.opensearch.sql.spark.client.SparkClient;
 import org.opensearch.sql.spark.functions.scan.SparkSqlFunctionTableScanBuilder;
-import org.opensearch.sql.spark.functions.scan.SqlFunctionTableScanOperator;
+import org.opensearch.sql.spark.functions.scan.SparkSqlFunctionTableScanOperator;
 import org.opensearch.sql.spark.request.SparkQueryRequest;
 import org.opensearch.sql.storage.read.TableScanBuilder;
 
@@ -76,6 +76,6 @@ public class SparkTableTest {
         new SparkTable(client, sparkQueryRequest);
     PhysicalPlan plan = sparkMetricTable.implement(
         new SparkSqlFunctionTableScanBuilder(client, sparkQueryRequest));
-    assertTrue(plan instanceof SqlFunctionTableScanOperator);
+    assertTrue(plan instanceof SparkSqlFunctionTableScanOperator);
   }
 }

@@ -8,7 +8,6 @@ package org.opensearch.sql.spark.client;
 import static org.mockito.Mockito.any;
 import static org.mockito.Mockito.when;
 
-import com.amazonaws.services.elasticmapreduce.AmazonElasticMapReduce;
 import com.amazonaws.services.elasticmapreduce.model.AddJobFlowStepsResult;
 import com.amazonaws.services.elasticmapreduce.model.DescribeStepResult;
 import com.amazonaws.services.elasticmapreduce.model.Step;
@@ -23,8 +22,6 @@ import org.opensearch.client.Client;
 import org.opensearch.sql.spark.helper.EMRHelper;
 import org.opensearch.sql.spark.helper.FlintHelper;
 
-import java.security.InvalidParameterException;
-
 @ExtendWith(MockitoExtension.class)
 public class EmrClientImplTest {
 
@@ -38,9 +35,6 @@ public class EmrClientImplTest {
   @Test
   @SneakyThrows
   void testRunEmrApplication() {
-
-    EmrClientImpl emrClientImpl = new EmrClientImpl(client,  emr, flint);
-
     AddJobFlowStepsResult addStepsResult = new AddJobFlowStepsResult().withStepIds("j-123");
     when(emr.addStep(any())).thenReturn(addStepsResult);
 
@@ -51,15 +45,14 @@ public class EmrClientImplTest {
     DescribeStepResult describeStepResult = new DescribeStepResult();
     describeStepResult.setStep(step);
     when(emr.getStepStatus(any())).thenReturn(stepStatus);
+
+    EmrClientImpl emrClientImpl = new EmrClientImpl(client, emr, flint);
     emrClientImpl.runEmrApplication("select 1");
   }
 
   @Test
   @SneakyThrows
   void testRunEmrApplicationFailed() {
-
-    EmrClientImpl emrClientImpl = new EmrClientImpl(client,  emr, flint);
-
     AddJobFlowStepsResult addStepsResult = new AddJobFlowStepsResult().withStepIds("j-123");
     when(emr.addStep(any())).thenReturn(addStepsResult);
 
@@ -71,6 +64,7 @@ public class EmrClientImplTest {
     describeStepResult.setStep(step);
     when(emr.getStepStatus(any())).thenReturn(stepStatus);
 
+    EmrClientImpl emrClientImpl = new EmrClientImpl(client, emr, flint);
     RuntimeException exception = Assertions.assertThrows(RuntimeException.class,
         () -> emrClientImpl.runEmrApplication("select 1"));
     Assertions.assertEquals("Spark SQL application failed.",
@@ -80,9 +74,6 @@ public class EmrClientImplTest {
   @Test
   @SneakyThrows
   void testRunEmrApplicationCancelled() {
-
-    EmrClientImpl emrClientImpl = new EmrClientImpl(client,  emr, flint);
-
     AddJobFlowStepsResult addStepsResult = new AddJobFlowStepsResult().withStepIds("j-123");
     when(emr.addStep(any())).thenReturn(addStepsResult);
 
@@ -94,6 +85,7 @@ public class EmrClientImplTest {
     describeStepResult.setStep(step);
     when(emr.getStepStatus(any())).thenReturn(stepStatus);
 
+    EmrClientImpl emrClientImpl = new EmrClientImpl(client, emr, flint);
     RuntimeException exception = Assertions.assertThrows(RuntimeException.class,
         () -> emrClientImpl.runEmrApplication("select 1"));
     Assertions.assertEquals("Spark SQL application failed.",

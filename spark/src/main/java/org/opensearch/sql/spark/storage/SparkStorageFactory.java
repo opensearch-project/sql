@@ -95,6 +95,7 @@ public class SparkStorageFactory implements DataSourceFactory {
     }
     return new SparkStorageEngine(sparkClient);
   }
+
   private void validateEMRConfigProperties(Map<String, String> dataSourceMetadataConfig)
       throws IllegalArgumentException {
     if (dataSourceMetadataConfig.get(EMR_CLUSTER) == null
@@ -105,6 +106,9 @@ public class SparkStorageFactory implements DataSourceFactory {
         && (dataSourceMetadataConfig.get(EMR_ACCESS_KEY) == null
         || dataSourceMetadataConfig.get(EMR_SECRET_KEY) == null)) {
       throw new IllegalArgumentException("EMR auth keys are missing.");
+    } else if (!dataSourceMetadataConfig.get(EMR_AUTH_TYPE)
+        .equals(AuthenticationType.AWSSIGV4AUTH.getName())) {
+      throw new IllegalArgumentException("Invalid auth type.");
     }
   }
 }

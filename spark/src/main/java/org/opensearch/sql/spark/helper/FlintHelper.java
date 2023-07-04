@@ -1,12 +1,17 @@
-package org.opensearch.sql.spark.helper;
+/*
+ * Copyright OpenSearch Contributors
+ * SPDX-License-Identifier: Apache-2.0
+ */
 
-import lombok.Getter;
+package org.opensearch.sql.spark.helper;
 
 import static org.opensearch.sql.spark.data.constants.SparkConstants.FLINT_DEFAULT_AUTH;
 import static org.opensearch.sql.spark.data.constants.SparkConstants.FLINT_DEFAULT_HOST;
 import static org.opensearch.sql.spark.data.constants.SparkConstants.FLINT_DEFAULT_PORT;
 import static org.opensearch.sql.spark.data.constants.SparkConstants.FLINT_DEFAULT_REGION;
 import static org.opensearch.sql.spark.data.constants.SparkConstants.FLINT_DEFAULT_SCHEME;
+
+import lombok.Getter;
 
 public class FlintHelper {
   @Getter
@@ -20,7 +25,20 @@ public class FlintHelper {
   @Getter
   private final String flintRegion;
 
-  public FlintHelper(String flintHost, String flintPort, String flintScheme, String flintAuth, String flintRegion) {
+  /** Arguments required to write data to opensearch index using flint integration.
+   *
+   * @param flintHost   Opensearch host for flint
+   * @param flintPort   Opensearch port for flint integration
+   * @param flintScheme Opensearch scheme for flint integration
+   * @param flintAuth   Opensearch auth for flint integration
+   * @param flintRegion Opensearch region for flint integration
+   */
+  public FlintHelper(
+      String flintHost,
+      String flintPort,
+      String flintScheme,
+      String flintAuth,
+      String flintRegion) {
     this.flintHost = flintHost != null ? flintHost : FLINT_DEFAULT_HOST;
     this.flintPort = flintPort != null ? flintPort : FLINT_DEFAULT_PORT;
     this.flintScheme = flintScheme != null ? flintScheme : FLINT_DEFAULT_SCHEME;

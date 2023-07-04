@@ -11,7 +11,7 @@ import org.mockito.Mock;
 import org.opensearch.sql.planner.logical.LogicalProject;
 import org.opensearch.sql.spark.client.SparkClient;
 import org.opensearch.sql.spark.functions.scan.SparkSqlFunctionTableScanBuilder;
-import org.opensearch.sql.spark.functions.scan.SqlFunctionTableScanOperator;
+import org.opensearch.sql.spark.functions.scan.SparkSqlFunctionTableScanOperator;
 import org.opensearch.sql.spark.request.SparkQueryRequest;
 import org.opensearch.sql.storage.TableScanOperator;
 
@@ -32,7 +32,7 @@ public class SparkSqlFunctionTableScanBuilderTest {
     TableScanOperator sqlFunctionTableScanOperator
         = sparkSqlFunctionTableScanBuilder.build();
     Assertions.assertTrue(sqlFunctionTableScanOperator
-        instanceof SqlFunctionTableScanOperator);
+        instanceof SparkSqlFunctionTableScanOperator);
   }
 
   @Test

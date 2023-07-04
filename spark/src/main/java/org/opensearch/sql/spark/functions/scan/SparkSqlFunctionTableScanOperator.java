@@ -16,8 +16,8 @@ import org.json.JSONObject;
 import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.executor.ExecutionEngine;
 import org.opensearch.sql.spark.client.SparkClient;
-import org.opensearch.sql.spark.functions.response.DefaultSqlFunctionResponseHandle;
-import org.opensearch.sql.spark.functions.response.SqlFunctionResponseHandle;
+import org.opensearch.sql.spark.functions.response.DefaultSparkSparkSqlFunctionResponseHandle;
+import org.opensearch.sql.spark.functions.response.SparkSqlFunctionResponseHandle;
 import org.opensearch.sql.spark.request.SparkQueryRequest;
 import org.opensearch.sql.storage.TableScanOperator;
 
@@ -25,20 +25,20 @@ import org.opensearch.sql.storage.TableScanOperator;
  * This a table scan operator to handle sql table function.
  */
 @RequiredArgsConstructor
-public class SqlFunctionTableScanOperator extends TableScanOperator {
+public class SparkSqlFunctionTableScanOperator extends TableScanOperator {
   private final SparkClient sparkClient;
   private final SparkQueryRequest request;
-  private SqlFunctionResponseHandle sparkResponseHandle;
+  private SparkSqlFunctionResponseHandle sparkResponseHandle;
   private static final Logger LOG = LogManager.getLogger();
 
   @Override
   public void open() {
     super.open();
     this.sparkResponseHandle = AccessController.doPrivileged(
-        (PrivilegedAction<SqlFunctionResponseHandle>) () -> {
+        (PrivilegedAction<SparkSqlFunctionResponseHandle>) () -> {
           try {
             JSONObject responseObject = sparkClient.sql(request.getSql());
-            return new DefaultSqlFunctionResponseHandle(responseObject);
+            return new DefaultSparkSparkSqlFunctionResponseHandle(responseObject);
           } catch (IOException e) {
             LOG.error(e.getMessage());
             throw new RuntimeException(
