@@ -36,9 +36,6 @@
       "geo_point_value": {
         "type": "geo_point"
       },
-      "geo_point_hash_value": {
-        "type": "geo_point"
-      },
       "geo_shape_value": {
         "type": "geo_shape"
       },
@@ -60,6 +57,9 @@
       },
       "unsigned_long_value" : {
         "type" : "unsigned_long"
+      },
+      "flat_object_value": {
+        "type": "flat_object"
       }
     }
   }
