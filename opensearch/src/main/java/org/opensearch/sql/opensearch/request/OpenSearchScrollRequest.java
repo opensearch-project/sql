@@ -52,6 +52,12 @@ public class OpenSearchScrollRequest implements OpenSearchRequest {
    */
   private final IndexName indexName;
 
+  /**
+   * Routing Ids used for the request
+   * {@link OpenSearchRequest.IndexName}.
+   */
+  private final IndexName routingId;
+
   /** Index name. */
   @EqualsAndHashCode.Exclude
   @ToString.Exclude
@@ -75,14 +81,17 @@ public class OpenSearchScrollRequest implements OpenSearchRequest {
 
   /** Constructor. */
   public OpenSearchScrollRequest(IndexName indexName,
+                                 IndexName routingId,
                                  TimeValue scrollTimeout,
                                  SearchSourceBuilder sourceBuilder,
                                  OpenSearchExprValueFactory exprValueFactory) {
     this.indexName = indexName;
+    this.routingId = routingId;
     this.scrollTimeout = scrollTimeout;
     this.exprValueFactory = exprValueFactory;
     this.initialSearchRequest = new SearchRequest()
         .indices(indexName.getIndexNames())
+        .routing(routingId.getIndexNames())
         .scroll(scrollTimeout)
         .source(sourceBuilder);
 
@@ -168,6 +177,7 @@ public class OpenSearchScrollRequest implements OpenSearchRequest {
     out.writeString(scrollId);
     out.writeStringCollection(includes);
     indexName.writeTo(out);
+    routingId.writeTo(out);
   }
 
   /**
@@ -183,7 +193,11 @@ public class OpenSearchScrollRequest implements OpenSearchRequest {
     scrollId = in.readString();
     includes = in.readStringList();
     indexName = new IndexName(in);
-    OpenSearchIndex index = (OpenSearchIndex) engine.getTable(null, indexName.toString());
+    routingId = new IndexName(in);
+    OpenSearchIndex index = (OpenSearchIndex) engine.getTable(
+        null,
+        indexName.toString(),
+        routingId.toString());
     exprValueFactory = new OpenSearchExprValueFactory(index.getFieldOpenSearchTypes());
   }
 }

@@ -67,6 +67,12 @@ public class OpenSearchIndex implements Table {
   private final OpenSearchRequest.IndexName indexName;
 
   /**
+   * Stores the routing id for the request
+   * {@link OpenSearchRequest.IndexName}.
+   */
+  private final OpenSearchRequest.IndexName routingId;
+
+  /**
    * The cached mapping of field and type in index.
    */
   private Map<String, OpenSearchDataType> cachedFieldOpenSearchTypes = null;
@@ -84,10 +90,11 @@ public class OpenSearchIndex implements Table {
   /**
    * Constructor.
    */
-  public OpenSearchIndex(OpenSearchClient client, Settings settings, String indexName) {
+  public OpenSearchIndex(OpenSearchClient client, Settings settings, String indexName, String routingId) {
     this.client = client;
     this.settings = settings;
     this.indexName = new OpenSearchRequest.IndexName(indexName);
+    this.routingId = new OpenSearchRequest.IndexName(routingId);
   }
 
   @Override
@@ -180,7 +187,7 @@ public class OpenSearchIndex implements Table {
         createExprValueFactory());
     Function<OpenSearchRequestBuilder, OpenSearchIndexScan> createScanOperator =
         requestBuilder -> new OpenSearchIndexScan(client, requestBuilder.getMaxResponseSize(),
-        requestBuilder.build(indexName, getMaxResultWindow(), cursorKeepAlive));
+        requestBuilder.build(indexName, routingId, getMaxResultWindow(), cursorKeepAlive));
     return new OpenSearchIndexScanBuilder(builder, createScanOperator);
   }
 

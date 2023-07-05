@@ -148,7 +148,7 @@ public class RestSqlAction extends BaseRestHandler {
 
             // Route request to new query engine if it's supported already
             SQLQueryRequest newSqlRequest = new SQLQueryRequest(sqlRequest.getJsonContent(),
-                sqlRequest.getSql(), request.path(), request.params(), sqlRequest.cursor());
+                sqlRequest.getSql(), request.path(), request.params(), sqlRequest.cursor(), sqlRequest.routingIds());
             return newSqlQueryHandler.prepareRequest(newSqlRequest,
                     (restChannel, exception) -> {
                         try{

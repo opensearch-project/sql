@@ -54,6 +54,9 @@ class OpenSearchScrollRequestTest {
 
   public static final OpenSearchRequest.IndexName INDEX_NAME
       = new OpenSearchRequest.IndexName("test");
+
+  public static final OpenSearchRequest.IndexName ROUTING_ID
+      = new OpenSearchRequest.IndexName("shard");
   public static final TimeValue SCROLL_TIMEOUT = TimeValue.timeValueMinutes(1);
   @Mock
   private SearchResponse searchResponse;
@@ -72,13 +75,13 @@ class OpenSearchScrollRequestTest {
 
   private final SearchSourceBuilder searchSourceBuilder = new SearchSourceBuilder();
   private final OpenSearchScrollRequest request = new OpenSearchScrollRequest(
-      INDEX_NAME, SCROLL_TIMEOUT,
+      INDEX_NAME, ROUTING_ID, SCROLL_TIMEOUT,
       searchSourceBuilder, factory);
 
   @Test
   void constructor() {
     searchSourceBuilder.fetchSource(new String[] {"test"}, null);
-    var request = new OpenSearchScrollRequest(INDEX_NAME, SCROLL_TIMEOUT,
+    var request = new OpenSearchScrollRequest(INDEX_NAME, ROUTING_ID, SCROLL_TIMEOUT,
         searchSourceBuilder, factory);
     assertNotEquals(List.of(), request.getIncludes());
   }
@@ -86,7 +89,7 @@ class OpenSearchScrollRequestTest {
   @Test
   void constructor2() {
     searchSourceBuilder.fetchSource(new String[]{"test"}, null);
-    var request = new OpenSearchScrollRequest(INDEX_NAME, SCROLL_TIMEOUT, searchSourceBuilder,
+    var request = new OpenSearchScrollRequest(INDEX_NAME, ROUTING_ID, SCROLL_TIMEOUT, searchSourceBuilder,
         factory);
     assertNotEquals(List.of(), request.getIncludes());
   }
@@ -98,6 +101,7 @@ class OpenSearchScrollRequestTest {
       assertEquals(
         new SearchRequest()
           .indices("test")
+          .routing("shard")
           .scroll(TimeValue.timeValueMinutes(1))
           .source(new SearchSourceBuilder().query(QueryBuilders.termQuery("name", "John"))),
           searchRequest);
@@ -132,6 +136,7 @@ class OpenSearchScrollRequestTest {
   void search() {
     OpenSearchScrollRequest request = new OpenSearchScrollRequest(
         new OpenSearchRequest.IndexName("test"),
+        new OpenSearchRequest.IndexName("shard"),
         TimeValue.timeValueMinutes(1),
         sourceBuilder,
         factory
@@ -148,6 +153,7 @@ class OpenSearchScrollRequestTest {
   void search_without_context() {
     OpenSearchScrollRequest request = new OpenSearchScrollRequest(
         new OpenSearchRequest.IndexName("test"),
+        new OpenSearchRequest.IndexName("shard"),
         TimeValue.timeValueMinutes(1),
         sourceBuilder,
         factory
@@ -167,6 +173,7 @@ class OpenSearchScrollRequestTest {
     // Steps: serialize a not used request, deserialize it, then use
     OpenSearchScrollRequest request = new OpenSearchScrollRequest(
         new OpenSearchRequest.IndexName("test"),
+        ROUTING_ID,
         TimeValue.timeValueMinutes(1),
         sourceBuilder,
         factory
@@ -177,7 +184,7 @@ class OpenSearchScrollRequestTest {
     var inStream = new BytesStreamInput(outStream.bytes().toBytesRef().bytes);
     var indexMock = mock(OpenSearchIndex.class);
     var engine = mock(OpenSearchStorageEngine.class);
-    when(engine.getTable(any(), any())).thenReturn(indexMock);
+    when(engine.getTable(any(), any(), any())).thenReturn(indexMock);
     var request2 = new OpenSearchScrollRequest(inStream, engine);
     assertAll(
         () -> assertFalse(request2.isScroll()),
@@ -191,6 +198,7 @@ class OpenSearchScrollRequestTest {
   void search_withoutIncludes() {
     OpenSearchScrollRequest request = new OpenSearchScrollRequest(
         new OpenSearchRequest.IndexName("test"),
+        ROUTING_ID,
         TimeValue.timeValueMinutes(1),
         sourceBuilder,
         factory
@@ -286,7 +294,7 @@ class OpenSearchScrollRequestTest {
     var inStream = new BytesStreamInput(stream.bytes().toBytesRef().bytes);
     var indexMock = mock(OpenSearchIndex.class);
     var engine = mock(OpenSearchStorageEngine.class);
-    when(engine.getTable(any(), any())).thenReturn(indexMock);
+    when(engine.getTable(any(), any(), any())).thenReturn(indexMock);
     var newRequest = new OpenSearchScrollRequest(inStream, engine);
     assertEquals(request, newRequest);
     assertEquals("", newRequest.getScrollId());
@@ -309,7 +317,7 @@ class OpenSearchScrollRequestTest {
     var inStream = new BytesStreamInput(stream.bytes().toBytesRef().bytes);
     var indexMock = mock(OpenSearchIndex.class);
     var engine = mock(OpenSearchStorageEngine.class);
-    when(engine.getTable(any(), any())).thenReturn(indexMock);
+    when(engine.getTable(any(), any(), any())).thenReturn(indexMock);
     var newRequest = new OpenSearchScrollRequest(inStream, engine);
     assertEquals(request, newRequest);
     assertEquals("", newRequest.getScrollId());
@@ -336,6 +344,6 @@ class OpenSearchScrollRequestTest {
 
   void assertIncludes(List<String> expected, SearchSourceBuilder sourceBuilder) {
     assertEquals(expected, new OpenSearchScrollRequest(
-        INDEX_NAME, SCROLL_TIMEOUT, sourceBuilder, factory).getIncludes());
+        INDEX_NAME, ROUTING_ID, SCROLL_TIMEOUT, sourceBuilder, factory).getIncludes());
   }
 }

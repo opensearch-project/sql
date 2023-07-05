@@ -96,24 +96,25 @@ public class OpenSearchRequestBuilder {
    * @return query request or scroll request
    */
   public OpenSearchRequest build(OpenSearchRequest.IndexName indexName,
+                                 OpenSearchRequest.IndexName routingId,
                                  int maxResultWindow, TimeValue scrollTimeout) {
     int size = requestedTotalSize;
     if (pageSize == null) {
       if (startFrom + size > maxResultWindow) {
         sourceBuilder.size(maxResultWindow - startFrom);
         return new OpenSearchScrollRequest(
-            indexName, scrollTimeout, sourceBuilder, exprValueFactory);
+            indexName, routingId, scrollTimeout, sourceBuilder, exprValueFactory);
       } else {
         sourceBuilder.from(startFrom);
         sourceBuilder.size(requestedTotalSize);
-        return new OpenSearchQueryRequest(indexName, sourceBuilder, exprValueFactory);
+        return new OpenSearchQueryRequest(indexName, routingId, sourceBuilder, exprValueFactory);
       }
     } else {
       if (startFrom != 0) {
         throw new UnsupportedOperationException("Non-zero offset is not supported with pagination");
       }
       sourceBuilder.size(pageSize);
-      return new OpenSearchScrollRequest(indexName, scrollTimeout,
+      return new OpenSearchScrollRequest(indexName, routingId, scrollTimeout,
           sourceBuilder, exprValueFactory);
     }
   }

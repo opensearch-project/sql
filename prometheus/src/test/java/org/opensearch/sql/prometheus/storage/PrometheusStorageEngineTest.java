@@ -33,7 +33,7 @@ class PrometheusStorageEngineTest {
   @Test
   public void getTable() {
     PrometheusStorageEngine engine = new PrometheusStorageEngine(client);
-    Table table = engine.getTable(new DataSourceSchemaName("prometheus", "default"), "test");
+    Table table = engine.getTable(new DataSourceSchemaName("prometheus", "default"), "test", null);
     assertNotNull(table);
     assertTrue(table instanceof PrometheusMetricTable);
   }
@@ -52,7 +52,7 @@ class PrometheusStorageEngineTest {
   @Test
   public void getSystemTable() {
     PrometheusStorageEngine engine = new PrometheusStorageEngine(client);
-    Table table = engine.getTable(new DataSourceSchemaName("prometheus", "default"), TABLE_INFO);
+    Table table = engine.getTable(new DataSourceSchemaName("prometheus", "default"), TABLE_INFO, "ignored");
     assertNotNull(table);
     assertTrue(table instanceof PrometheusSystemTable);
   }
@@ -61,7 +61,7 @@ class PrometheusStorageEngineTest {
   public void getSystemTableForAllTablesInfo() {
     PrometheusStorageEngine engine = new PrometheusStorageEngine(client);
     Table table
-        = engine.getTable(new DataSourceSchemaName("prometheus", "information_schema"), "tables");
+        = engine.getTable(new DataSourceSchemaName("prometheus", "information_schema"), "tables", "ignored");
     assertNotNull(table);
     assertTrue(table instanceof PrometheusSystemTable);
   }
@@ -71,7 +71,7 @@ class PrometheusStorageEngineTest {
     PrometheusStorageEngine engine = new PrometheusStorageEngine(client);
     SemanticCheckException exception = assertThrows(SemanticCheckException.class,
         () -> engine.getTable(new DataSourceSchemaName("prometheus", "information_schema"),
-            "test"));
+            "test", "ignored"));
     assertEquals("Information Schema doesn't contain test table", exception.getMessage());
   }
 

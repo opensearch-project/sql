@@ -143,6 +143,7 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
   @Override
   public LogicalPlan visitRelation(Relation node, AnalysisContext context) {
     QualifiedName qualifiedName = node.getTableQualifiedName();
+    String partitionName = node.getTablePartitionKeys();
     DataSourceSchemaIdentifierNameResolver dataSourceSchemaIdentifierNameResolver
         = new DataSourceSchemaIdentifierNameResolver(dataSourceService, qualifiedName.getParts());
     String tableName = dataSourceSchemaIdentifierNameResolver.getIdentifierName();
@@ -156,9 +157,11 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
           .getDataSource(dataSourceSchemaIdentifierNameResolver.getDataSourceName())
           .getStorageEngine()
           .getTable(new DataSourceSchemaName(
-              dataSourceSchemaIdentifierNameResolver.getDataSourceName(),
-              dataSourceSchemaIdentifierNameResolver.getSchemaName()),
-              dataSourceSchemaIdentifierNameResolver.getIdentifierName());
+                dataSourceSchemaIdentifierNameResolver.getDataSourceName(),
+                dataSourceSchemaIdentifierNameResolver.getSchemaName()
+              ),
+              dataSourceSchemaIdentifierNameResolver.getIdentifierName(),
+              partitionName);
     }
     table.getFieldTypes().forEach((k, v) -> curEnv.define(new Symbol(Namespace.FIELD_NAME, k), v));
     table.getReservedFieldTypes().forEach(

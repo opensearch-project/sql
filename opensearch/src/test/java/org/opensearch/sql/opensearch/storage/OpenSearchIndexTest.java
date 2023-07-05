@@ -66,6 +66,9 @@ class OpenSearchIndexTest {
   public static final OpenSearchRequest.IndexName INDEX_NAME
       = new OpenSearchRequest.IndexName("test");
 
+  public static final OpenSearchRequest.IndexName PARTITION_KEY
+      = new OpenSearchRequest.IndexName("key");
+
   @Mock
   private OpenSearchClient client;
 
@@ -82,7 +85,7 @@ class OpenSearchIndexTest {
 
   @BeforeEach
   void setUp() {
-    this.index = new OpenSearchIndex(client, settings, "test");
+    this.index = new OpenSearchIndex(client, settings, "test", "routing");
   }
 
   @Test
@@ -162,7 +165,7 @@ class OpenSearchIndexTest {
     when(client.getIndexMappings("test")).thenReturn(
         ImmutableMap.of("test", mapping));
 
-    OpenSearchIndex index = new OpenSearchIndex(client, settings, "test");
+    OpenSearchIndex index = new OpenSearchIndex(client, settings, "test", "routing");
     assertThat(index.getFieldTypes(), allOf(
         aMapWithSize(1),
         hasEntry("name", STRING)));
@@ -204,8 +207,10 @@ class OpenSearchIndexTest {
     LogicalPlan plan = index.createScanBuilder();
     Integer maxResultWindow = index.getMaxResultWindow();
     final var requestBuilder = new OpenSearchRequestBuilder(QUERY_SIZE_LIMIT, exprValueFactory);
-    assertEquals(new OpenSearchIndexScan(client,
-        200, requestBuilder.build(INDEX_NAME, maxResultWindow, SCROLL_TIMEOUT)),
+    assertEquals(new OpenSearchIndexScan(
+        client,
+        200,
+        requestBuilder.build(INDEX_NAME, PARTITION_KEY, maxResultWindow, SCROLL_TIMEOUT)),
         index.implement(index.optimize(plan)));
   }
 
@@ -217,7 +222,8 @@ class OpenSearchIndexTest {
     Integer maxResultWindow = index.getMaxResultWindow();
     final var requestBuilder = new OpenSearchRequestBuilder(QUERY_SIZE_LIMIT, exprValueFactory);
     assertEquals(new OpenSearchIndexScan(client, 200,
-        requestBuilder.build(INDEX_NAME, maxResultWindow, SCROLL_TIMEOUT)), index.implement(plan));
+        requestBuilder.build(
+            INDEX_NAME, PARTITION_KEY, maxResultWindow, SCROLL_TIMEOUT)), index.implement(plan));
   }
 
   @Test
@@ -258,9 +264,15 @@ class OpenSearchIndexTest {
                     PhysicalPlanDSL.eval(
                         PhysicalPlanDSL.remove(
                             PhysicalPlanDSL.rename(
-                              new OpenSearchIndexScan(client,
-                                QUERY_SIZE_LIMIT, requestBuilder.build(INDEX_NAME, maxResultWindow,
-                                  SCROLL_TIMEOUT)),
+                                new OpenSearchIndexScan(client,
+                                    QUERY_SIZE_LIMIT,
+                                    requestBuilder.build(
+                                        INDEX_NAME,
+                                        PARTITION_KEY,
+                                        maxResultWindow,
+                                        SCROLL_TIMEOUT
+                                    )
+                                ),
                                 mappings),
                             exclude),
                         newEvalField),

@@ -11,6 +11,7 @@ import static org.junit.Assert.fail;
 import static org.opensearch.sql.legacy.plugin.RestSqlAction.QUERY_API_ENDPOINT;
 
 import java.io.IOException;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -98,8 +99,9 @@ public class RestSQLQueryActionCursorFallbackTest extends BaseRestHandler {
     builder.endObject();
     JSONObject jsonContent = new JSONObject(Strings.toString(builder));
 
+    // TODO pass through
     return  new SQLQueryRequest(jsonContent, query, QUERY_API_ENDPOINT,
-        Map.of("format", "jdbc"), cursorId.orElse(""));
+        Map.of("format", "jdbc"), cursorId.orElse(""), List.of());
   }
 
   boolean doesQueryFallback(SQLQueryRequest request) throws Exception {

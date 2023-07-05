@@ -8,6 +8,7 @@ package org.opensearch.sql.storage;
 
 import java.util.Collection;
 import java.util.Collections;
+import javax.annotation.Nullable;
 import org.opensearch.sql.DataSourceSchemaName;
 import org.opensearch.sql.expression.function.FunctionResolver;
 
@@ -19,7 +20,7 @@ public interface StorageEngine {
   /**
    * Get {@link Table} from storage engine.
    */
-  Table getTable(DataSourceSchemaName dataSourceSchemaName, String tableName);
+  Table getTable(DataSourceSchemaName dataSourceSchemaName, String tableName, @Nullable String partition);
 
   /**
    * Get list of datasource related functions.

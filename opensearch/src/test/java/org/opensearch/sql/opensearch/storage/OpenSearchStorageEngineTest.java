@@ -35,7 +35,7 @@ class OpenSearchStorageEngineTest {
   public void getTable() {
     OpenSearchStorageEngine engine = new OpenSearchStorageEngine(client, settings);
     Table table = engine.getTable(new DataSourceSchemaName(DEFAULT_DATASOURCE_NAME, "default"),
-        "test");
+        "test", "shard_test");
     assertAll(
         () -> assertNotNull(table),
         () -> assertTrue(table instanceof OpenSearchIndex)
@@ -46,7 +46,7 @@ class OpenSearchStorageEngineTest {
   public void getSystemTable() {
     OpenSearchStorageEngine engine = new OpenSearchStorageEngine(client, settings);
     Table table = engine.getTable(new DataSourceSchemaName(DEFAULT_DATASOURCE_NAME, "default"),
-        TABLE_INFO);
+        TABLE_INFO, "shard_test");
     assertAll(
         () -> assertNotNull(table),
         () -> assertTrue(table instanceof OpenSearchSystemIndex)

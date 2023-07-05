@@ -13,6 +13,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doAnswer;
 import static org.opensearch.sql.executor.ExecutionEngine.QueryResponse;
 
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import org.json.JSONObject;
@@ -80,7 +81,7 @@ class SQLServiceTest {
   @Test
   public void can_execute_cursor_query() {
     sqlService.execute(
-        new SQLQueryRequest(new JSONObject(), null, QUERY, Map.of("format", "jdbc"), "n:cursor"),
+        new SQLQueryRequest(new JSONObject(), null, QUERY, Map.of("format", "jdbc"), "n:cursor", List.of()),
         new ResponseListener<>() {
           @Override
           public void onResponse(QueryResponse response) {
@@ -98,7 +99,7 @@ class SQLServiceTest {
   public void can_execute_close_cursor_query() {
     sqlService.execute(
         new SQLQueryRequest(new JSONObject(), null, QUERY + "/close",
-            Map.of("format", "jdbc"), "n:cursor"),
+            Map.of("format", "jdbc"), "n:cursor", List.of()),
         new ResponseListener<>() {
           @Override
           public void onResponse(QueryResponse response) {
@@ -154,7 +155,7 @@ class SQLServiceTest {
   @Test
   public void cannot_explain_cursor_query() {
     sqlService.explain(new SQLQueryRequest(new JSONObject(), null, EXPLAIN,
-            Map.of("format", "jdbc"), "n:cursor"),
+            Map.of("format", "jdbc"), "n:cursor", List.of()),
         new ResponseListener<ExplainResponse>() {
           @Override
           public void onResponse(ExplainResponse response) {

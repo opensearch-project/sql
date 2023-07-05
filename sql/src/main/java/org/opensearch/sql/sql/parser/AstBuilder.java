@@ -21,8 +21,11 @@ import static org.opensearch.sql.utils.SystemIndexUtils.mappingTable;
 
 import com.google.common.collect.ImmutableList;
 import java.util.Collections;
+import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
+import org.antlr.v4.runtime.RuleContext;
 import org.antlr.v4.runtime.tree.ParseTree;
 import org.opensearch.sql.ast.expression.Alias;
 import org.opensearch.sql.ast.expression.AllFields;
@@ -188,7 +191,16 @@ public class AstBuilder extends OpenSearchSQLParserBaseVisitor<UnresolvedPlan> {
   public UnresolvedPlan visitTableAsRelation(TableAsRelationContext ctx) {
     String tableAlias = (ctx.alias() == null) ? null
         : StringUtils.unquoteIdentifier(ctx.alias().getText());
-    return new Relation(visitAstExpression(ctx.tableName()), tableAlias);
+    if(ctx.partitionRelationClause() == null) {
+      return new Relation(visitAstExpression(ctx.tableName()), tableAlias);
+    }
+    return new Relation(
+        visitAstExpression(ctx.tableName()),
+        tableAlias,
+        ctx.partitionRelationClause().functionArgs().functionArg().stream()
+            .map(RuleContext::getText)
+            .collect(Collectors.toList())
+    );
   }
 
   @Override
