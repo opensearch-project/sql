@@ -1074,6 +1074,29 @@ Example::
     +----------------------------+
 
 
+MINUTE_OF_DAY
+------
+
+Description
+>>>>>>>>>>>
+
+Usage: minute(time) returns the amount of minutes in the day, in the range of 0 to 1439.
+
+Argument type: STRING/TIME/DATETIME/TIMESTAMP
+
+Return type: INTEGER
+
+Example::
+
+    os> source=people | eval `MINUTE_OF_DAY(TIME('01:02:03'))` = MINUTE_OF_DAY(TIME('01:02:03')) | fields `MINUTE_OF_DAY(TIME('01:02:03'))`
+    fetched rows / total rows = 1/1
+    +-----------------------------------+
+    | MINUTE_OF_DAY(TIME('01:02:03'))   |
+    |-----------------------------------|
+    | 62                                |
+    +-----------------------------------+
+
+
 MINUTE_OF_HOUR
 --------------
 
@@ -1097,29 +1120,6 @@ Example::
     |------------------------------------|
     | 2                                  |
     +------------------------------------+
-
-
-MINUTE_OF_DAY
-------
-
-Description
->>>>>>>>>>>
-
-Usage: minute(time) returns the amount of minutes in the day, in the range of 0 to 1439.
-
-Argument type: STRING/TIME/DATETIME/TIMESTAMP
-
-Return type: INTEGER
-
-Example::
-
-    os> source=people | eval `MINUTE_OF_DAY(TIME('01:02:03'))` = MINUTE_OF_DAY(TIME('01:02:03')) | fields `MINUTE_OF_DAY(TIME('01:02:03'))`
-    fetched rows / total rows = 1/1
-    +-----------------------------------+
-    | MINUTE_OF_DAY(TIME('01:02:03'))   |
-    |-----------------------------------|
-    | 62                                |
-    +-----------------------------------+
 
 
 MONTH
