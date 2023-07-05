@@ -81,6 +81,7 @@ import org.opensearch.sql.plugin.transport.PPLQueryAction;
 import org.opensearch.sql.plugin.transport.TransportPPLQueryAction;
 import org.opensearch.sql.plugin.transport.TransportPPLQueryResponse;
 import org.opensearch.sql.prometheus.storage.PrometheusStorageFactory;
+import org.opensearch.sql.spark.storage.SparkStorageFactory;
 import org.opensearch.sql.storage.DataSourceFactory;
 import org.opensearch.threadpool.ExecutorBuilder;
 import org.opensearch.threadpool.FixedExecutorBuilder;
@@ -221,6 +222,7 @@ public class SQLPlugin extends Plugin implements ActionPlugin, ScriptPlugin {
             .add(new OpenSearchDataSourceFactory(
                 new OpenSearchNodeClient(this.client), pluginSettings))
             .add(new PrometheusStorageFactory(pluginSettings))
+            .add(new SparkStorageFactory(this.client, pluginSettings))
             .build(),
         dataSourceMetadataStorage,
         dataSourceUserAuthorizationHelper);
