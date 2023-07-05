@@ -40,8 +40,4 @@ public class EMRHelper {
     return emrClient.describeStep(stepRequest).getStep().getStatus();
   }
 
-  public void close() {
-    emrClient.shutdown();
-  }
-
 }

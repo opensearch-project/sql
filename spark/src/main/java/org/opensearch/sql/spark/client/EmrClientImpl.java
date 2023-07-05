@@ -92,8 +92,6 @@ public class EmrClientImpl implements SparkClient {
 
     waitForStepExecution(stepRequest);
 
-    // Close the EMR client
-    emr.close();
     return stepId;
   }
 
