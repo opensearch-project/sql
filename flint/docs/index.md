@@ -126,6 +126,8 @@ ON <object>
 WHERE <filter_predicate>
 WITH (auto_refresh = (true|false))
 
+REFRESH SKIPPING INDEX ON <object>
+
 DESCRIBE SKIPPING INDEX ON <object>
 
 DROP SKIPPING INDEX ON <object>
@@ -147,6 +149,8 @@ CREATE SKIPPING INDEX ON alb_logs
   elb_status_code VALUE_SET
 )
 WHERE time > '2023-04-01 00:00:00'
+
+REFRESH SKIPPING INDEX ON alb_logs
 
 DESCRIBE SKIPPING INDEX ON alb_logs
 

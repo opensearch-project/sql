@@ -89,6 +89,9 @@ class FlintSpark(val spark: SparkSession) {
     }
 
     mode match {
+      case FULL if isIncrementalRefreshing(indexName) =>
+        throw new IllegalStateException(
+          s"Index $indexName is incremental refreshing and cannot be manual refreshed")
       case FULL =>
         writeFlintIndex(
           spark.read
@@ -144,6 +147,9 @@ class FlintSpark(val spark: SparkSession) {
       false
     }
   }
+
+  private def isIncrementalRefreshing(indexName: String): Boolean =
+    spark.streams.active.exists(_.name == indexName)
 
   // TODO: Remove all parsing logic below once Flint spec finalized and FlintMetadata strong typed
   private def getSourceTableName(index: FlintSparkIndex): String = {
