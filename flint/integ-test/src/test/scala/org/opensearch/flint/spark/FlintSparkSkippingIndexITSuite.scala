@@ -26,7 +26,7 @@ import org.apache.spark.sql.flint.config.FlintSparkConf._
 import org.apache.spark.sql.functions.col
 import org.apache.spark.sql.streaming.StreamTest
 
-class FlintSparkSkippingIndexSuite
+class FlintSparkSkippingIndexITSuite
     extends QueryTest
     with FlintSuite
     with OpenSearchSuite

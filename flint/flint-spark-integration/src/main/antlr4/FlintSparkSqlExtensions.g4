@@ -28,6 +28,7 @@ skippingIndexStatement
 createSkippingIndexStatement
     : CREATE SKIPPING INDEX ON tableName=multipartIdentifier
         LEFT_PAREN indexColTypeList RIGHT_PAREN
+        (WITH LEFT_PAREN propertyList RIGHT_PAREN)?
     ;
 
 refreshSkippingIndexStatement

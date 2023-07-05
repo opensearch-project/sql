@@ -101,6 +101,7 @@ class FlintSpark(val spark: SparkSession) {
         val job = spark.readStream
           .table(tableName)
           .writeStream
+          .queryName(indexName)
           .outputMode(Append())
           .foreachBatch { (batchDF: DataFrame, _: Long) =>
             writeFlintIndex(batchDF)

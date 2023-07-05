@@ -9,8 +9,8 @@ import org.opensearch.flint.spark.FlintSpark.RefreshMode
 import org.opensearch.flint.spark.skipping.FlintSparkSkippingIndex
 import org.opensearch.flint.spark.skipping.FlintSparkSkippingIndex.getSkippingIndexName
 import org.opensearch.flint.spark.skipping.FlintSparkSkippingStrategy.SkippingKind
-import org.opensearch.flint.spark.skipping.FlintSparkSkippingStrategy.SkippingKind._
-import org.opensearch.flint.spark.sql.FlintSparkSqlExtensionsParser.{CreateSkippingIndexStatementContext, DescribeSkippingIndexStatementContext, DropSkippingIndexStatementContext, RefreshSkippingIndexStatementContext}
+import org.opensearch.flint.spark.skipping.FlintSparkSkippingStrategy.SkippingKind.{MIN_MAX, PARTITION, VALUE_SET}
+import org.opensearch.flint.spark.sql.FlintSparkSqlExtensionsParser._
 
 import org.apache.spark.sql.Row
 import org.apache.spark.sql.catalyst.expressions.AttributeReference
@@ -25,6 +25,7 @@ class FlintSparkSqlAstBuilder extends FlintSparkSqlExtensionsBaseVisitor[Command
   override def visitCreateSkippingIndexStatement(
       ctx: CreateSkippingIndexStatementContext): Command =
     FlintSparkSqlCommand() { flint =>
+      // Create skipping index
       val indexBuilder = flint
         .skippingIndex()
         .onTable(ctx.tableName.getText)
@@ -32,7 +33,6 @@ class FlintSparkSqlAstBuilder extends FlintSparkSqlExtensionsBaseVisitor[Command
       ctx.indexColTypeList().indexColType().forEach { colTypeCtx =>
         val colName = colTypeCtx.identifier().getText
         val skipType = SkippingKind.withName(colTypeCtx.skipType.getText)
-
         skipType match {
           case PARTITION => indexBuilder.addPartitions(colName)
           case VALUE_SET => indexBuilder.addValueSet(colName)
@@ -40,6 +40,12 @@ class FlintSparkSqlAstBuilder extends FlintSparkSqlExtensionsBaseVisitor[Command
         }
       }
       indexBuilder.create()
+
+      // Trigger auto refresh if enabled
+      if (isAutoRefreshEnabled(ctx.propertyList())) {
+        val indexName = getSkippingIndexName(ctx.tableName.getText)
+        flint.refreshIndex(indexName, RefreshMode.INCREMENTAL)
+      }
       Seq.empty
     }
 
@@ -77,6 +83,21 @@ class FlintSparkSqlAstBuilder extends FlintSparkSqlExtensionsBaseVisitor[Command
       flint.deleteIndex(indexName)
       Seq.empty
     }
+
+  private def isAutoRefreshEnabled(ctx: PropertyListContext): Boolean = {
+    if (ctx == null) {
+      false
+    } else {
+      ctx
+        .property()
+        .forEach(p => {
+          if (p.key.getText == "auto_refresh") {
+            return p.value.getText.toBoolean
+          }
+        })
+      false
+    }
+  }
 
   override def aggregateResult(aggregate: Command, nextResult: Command): Command =
     if (nextResult != null) nextResult else aggregate

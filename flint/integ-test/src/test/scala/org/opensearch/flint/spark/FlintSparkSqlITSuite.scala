@@ -16,8 +16,13 @@ import org.apache.spark.FlintSuite
 import org.apache.spark.sql.{QueryTest, Row}
 import org.apache.spark.sql.flint.FlintDataSourceV2.FLINT_DATASOURCE
 import org.apache.spark.sql.flint.config.FlintSparkConf.{HOST_ENDPOINT, HOST_PORT, REFRESH_POLICY}
+import org.apache.spark.sql.streaming.StreamTest
 
-class FlintSparkSqlITSuite extends QueryTest with FlintSuite with OpenSearchSuite {
+class FlintSparkSqlITSuite
+    extends QueryTest
+    with FlintSuite
+    with OpenSearchSuite
+    with StreamTest {
 
   /** Flint Spark high level API for assertion */
   private lazy val flint: FlintSpark = new FlintSpark(spark)
@@ -73,6 +78,36 @@ class FlintSparkSqlITSuite extends QueryTest with FlintSuite with OpenSearchSuit
   protected override def afterEach(): Unit = {
     super.afterEach()
     flint.deleteIndex(testIndex)
+
+    // Stop all streaming jobs if any
+    spark.streams.active.foreach { job =>
+      job.stop()
+      job.awaitTermination()
+    }
+  }
+
+  test("create skipping index with auto refresh") {
+    flint.deleteIndex(testIndex)
+    sql(s"""
+           | CREATE SKIPPING INDEX ON $testTable
+           | (
+           |   year PARTITION,
+           |   name VALUE_SET,
+           |   age MIN_MAX
+           | )
+           | WITH (auto_refresh = true)
+           | """.stripMargin)
+
+    // Wait for streaming job complete current micro batch
+    val job = spark.streams.active.find(_.name == testIndex)
+    job shouldBe defined
+    failAfter(streamingTimeout) {
+      job.get.processAllAvailable()
+    }
+
+    val indexData = spark.read.format(FLINT_DATASOURCE).load(testIndex)
+    flint.describeIndex(testIndex) shouldBe defined
+    indexData.count() shouldBe 1
   }
 
   test("create skipping index with manual refresh") {
@@ -86,7 +121,7 @@ class FlintSparkSqlITSuite extends QueryTest with FlintSuite with OpenSearchSuit
          | )
          | """.stripMargin)
 
-    val indexData = spark.read.format(FLINT_DATASOURCE).options(openSearchOptions).load(testIndex)
+    val indexData = spark.read.format(FLINT_DATASOURCE).load(testIndex)
 
     flint.describeIndex(testIndex) shouldBe defined
     indexData.count() shouldBe 0
