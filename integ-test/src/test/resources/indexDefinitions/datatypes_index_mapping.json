@@ -57,6 +57,9 @@
       "date_range_value" : {
         "type" : "date_range",
         "format" : "strict_year_month_day"
+      },
+      "unsigned_long_value" : {
+        "type" : "unsigned_long"
       }
     }
   }
