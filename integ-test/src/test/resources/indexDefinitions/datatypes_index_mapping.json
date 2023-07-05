@@ -35,6 +35,28 @@
       },
       "geo_point_value": {
         "type": "geo_point"
+      },
+      "geo_point_hash_value": {
+        "type": "geo_point"
+      },
+      "geo_shape_value": {
+        "type": "geo_shape"
+      },
+      "integer_range_value": {
+        "type": "integer_range"
+      },
+      "long_range_value": {
+        "type": "long_range"
+      },
+      "ip_range_value": {
+        "type": "ip_range"
+      },
+      "ip_cidr_range_value": {
+        "type": "ip_range"
+      },
+      "date_range_value" : {
+        "type" : "date_range",
+        "format" : "strict_year_month_day"
       }
     }
   }
