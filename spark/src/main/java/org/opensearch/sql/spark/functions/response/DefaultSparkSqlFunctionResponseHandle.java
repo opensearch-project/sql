@@ -31,7 +31,7 @@ import org.opensearch.sql.executor.ExecutionEngine;
 /**
  * Default implementation of SparkSqlFunctionResponseHandle.
  */
-public class DefaultSparkSparkSqlFunctionResponseHandle implements SparkSqlFunctionResponseHandle {
+public class DefaultSparkSqlFunctionResponseHandle implements SparkSqlFunctionResponseHandle {
 
   private final JSONObject responseObject;
   private Iterator<ExprValue> responseIterator;
@@ -42,7 +42,7 @@ public class DefaultSparkSparkSqlFunctionResponseHandle implements SparkSqlFunct
    *
    * @param responseObject Spark responseObject.
    */
-  public DefaultSparkSparkSqlFunctionResponseHandle(JSONObject responseObject) {
+  public DefaultSparkSqlFunctionResponseHandle(JSONObject responseObject) {
     this.responseObject = responseObject;
     constructIteratorAndSchema();
   }
@@ -136,8 +136,9 @@ public class DefaultSparkSparkSqlFunctionResponseHandle implements SparkSqlFunct
       case "string":
       case "varchar":
       case "char":
-      default:
         return ExprCoreType.STRING;
+      default:
+        return ExprCoreType.UNKNOWN;
     }
   }
 
