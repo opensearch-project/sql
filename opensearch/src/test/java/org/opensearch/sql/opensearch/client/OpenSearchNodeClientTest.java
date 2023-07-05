@@ -59,7 +59,6 @@ import org.opensearch.client.node.NodeClient;
 import org.opensearch.cluster.metadata.AliasMetadata;
 import org.opensearch.cluster.metadata.IndexMetadata;
 import org.opensearch.cluster.metadata.MappingMetadata;
-import org.opensearch.common.collect.ImmutableOpenMap;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.common.unit.TimeValue;
 import org.opensearch.common.util.concurrent.ThreadContext;
@@ -453,10 +452,8 @@ class OpenSearchNodeClientTest {
     GetSettingsResponse mockResponse = mock(GetSettingsResponse.class);
     when(nodeClient.admin().indices().prepareGetSettings(any()).setLocal(anyBoolean()).get())
         .thenReturn(mockResponse);
-    ImmutableOpenMap<String, Settings> metadata =
-        new ImmutableOpenMap.Builder<String, Settings>()
-            .fPut(indexName, IndexMetadata.fromXContent(createParser(indexMetadata)).getSettings())
-            .build();
+    Map<String, Settings> metadata = Map.of(indexName,
+        IndexMetadata.fromXContent(createParser(indexMetadata)).getSettings());
 
     when(mockResponse.getIndexToSettings()).thenReturn(metadata);
   }
