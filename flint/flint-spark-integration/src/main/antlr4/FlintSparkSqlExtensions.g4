@@ -19,7 +19,12 @@ statement
     ;
 
 skippingIndexStatement
-    : dropSkippingIndexStatement
+    : describeSkippingIndexStatement
+    | dropSkippingIndexStatement
+    ;
+
+describeSkippingIndexStatement
+    : (DESC | DESCRIBE) SKIPPING INDEX ON tableName=multipartIdentifier
     ;
 
 dropSkippingIndexStatement
