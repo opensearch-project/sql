@@ -8,6 +8,7 @@ package org.opensearch.sql.spark.storage;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.Collection;
@@ -40,7 +41,8 @@ public class SparkStorageEngineTest {
   @Test
   public void getTable() {
     SparkStorageEngine engine = new SparkStorageEngine(client);
-    Table table = engine.getTable(new DataSourceSchemaName("spark", "default"), "");
-    assertNull(table);
+    RuntimeException exception = assertThrows(RuntimeException.class,
+        () -> engine.getTable(new DataSourceSchemaName("spark", "default"), ""));
+    assertEquals("Unable to get table from storage engine.", exception.getMessage());
   }
 }
