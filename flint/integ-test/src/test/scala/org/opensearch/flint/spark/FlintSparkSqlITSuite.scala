@@ -17,7 +17,7 @@ import org.apache.spark.sql.{QueryTest, Row}
 import org.apache.spark.sql.flint.FlintDataSourceV2.FLINT_DATASOURCE
 import org.apache.spark.sql.flint.config.FlintSparkConf.{HOST_ENDPOINT, HOST_PORT, REFRESH_POLICY}
 
-class FlintSparkSqlSuite extends QueryTest with FlintSuite with OpenSearchSuite {
+class FlintSparkSqlITSuite extends QueryTest with FlintSuite with OpenSearchSuite {
 
   /** Flint Spark high level API for assertion */
   private lazy val flint: FlintSpark = new FlintSpark(spark)
@@ -101,9 +101,9 @@ class FlintSparkSqlSuite extends QueryTest with FlintSuite with OpenSearchSuite 
     checkAnswer(
       result,
       Seq(
-        Row("year", "int", "Partition"),
-        Row("name", "string", "ValuesSet"),
-        Row("age", "int", "MinMax")))
+        Row("year", "int", "PARTITION"),
+        Row("name", "string", "VALUE_SET"),
+        Row("age", "int", "MIN_MAX")))
   }
 
   test("should return empty if no skipping index to describe") {

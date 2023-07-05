@@ -108,22 +108,22 @@ class FlintSparkSkippingIndexSuite
         |     "kind": "skipping",
         |     "indexedColumns": [
         |     {
-        |        "kind": "Partition",
+        |        "kind": "PARTITION",
         |        "columnName": "year",
         |        "columnType": "int"
         |     },
         |     {
-        |        "kind": "Partition",
+        |        "kind": "PARTITION",
         |        "columnName": "month",
         |        "columnType": "int"
         |     },
         |     {
-        |        "kind": "ValuesSet",
+        |        "kind": "VALUE_SET",
         |        "columnName": "address",
         |        "columnType": "string"
         |     },
         |     {
-        |        "kind": "MinMax",
+        |        "kind": "MIN_MAX",
         |        "columnName": "age",
         |        "columnType": "int"
         |     }],

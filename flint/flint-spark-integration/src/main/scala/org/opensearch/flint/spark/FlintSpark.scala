@@ -15,7 +15,7 @@ import org.opensearch.flint.spark.FlintSpark.RefreshMode.{FULL, INCREMENTAL, Ref
 import org.opensearch.flint.spark.skipping.{FlintSparkSkippingIndex, FlintSparkSkippingStrategy}
 import org.opensearch.flint.spark.skipping.FlintSparkSkippingIndex.SKIPPING_INDEX_TYPE
 import org.opensearch.flint.spark.skipping.FlintSparkSkippingStrategy.{SkippingKind, SkippingKindSerializer}
-import org.opensearch.flint.spark.skipping.FlintSparkSkippingStrategy.SkippingKind.{MinMax, Partition, ValuesSet}
+import org.opensearch.flint.spark.skipping.FlintSparkSkippingStrategy.SkippingKind.{MIN_MAX, PARTITION, VALUE_SET}
 import org.opensearch.flint.spark.skipping.minmax.MinMaxSkippingStrategy
 import org.opensearch.flint.spark.skipping.partition.PartitionSkippingStrategy
 import org.opensearch.flint.spark.skipping.valueset.ValueSetSkippingStrategy
@@ -170,11 +170,11 @@ class FlintSpark(val spark: SparkSession) {
           val columnType = (colInfo \ "columnType").extract[String]
 
           skippingKind match {
-            case Partition =>
+            case PARTITION =>
               PartitionSkippingStrategy(columnName = columnName, columnType = columnType)
-            case ValuesSet =>
+            case VALUE_SET =>
               ValueSetSkippingStrategy(columnName = columnName, columnType = columnType)
-            case MinMax =>
+            case MIN_MAX =>
               MinMaxSkippingStrategy(columnName = columnName, columnType = columnType)
             case other =>
               throw new IllegalStateException(s"Unknown skipping strategy: $other")

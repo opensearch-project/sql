@@ -6,7 +6,7 @@
 package org.opensearch.flint.spark.skipping.minmax
 
 import org.opensearch.flint.spark.skipping.FlintSparkSkippingStrategy
-import org.opensearch.flint.spark.skipping.FlintSparkSkippingStrategy.SkippingKind.{MinMax, SkippingKind}
+import org.opensearch.flint.spark.skipping.FlintSparkSkippingStrategy.SkippingKind.{MIN_MAX, SkippingKind}
 
 import org.apache.spark.sql.Column
 import org.apache.spark.sql.catalyst.expressions.{AttributeReference, EqualTo, Literal, Predicate}
@@ -17,7 +17,7 @@ import org.apache.spark.sql.functions.col
  * Skipping strategy based on min-max boundary of column values.
  */
 case class MinMaxSkippingStrategy(
-    override val kind: SkippingKind = MinMax,
+    override val kind: SkippingKind = MIN_MAX,
     override val columnName: String,
     override val columnType: String)
     extends FlintSparkSkippingStrategy {

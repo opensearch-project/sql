@@ -5,11 +5,11 @@
 
 package org.opensearch.flint.spark.sql
 
-import java.util.Locale
-
 import org.opensearch.flint.spark.FlintSpark.RefreshMode
 import org.opensearch.flint.spark.skipping.FlintSparkSkippingIndex
 import org.opensearch.flint.spark.skipping.FlintSparkSkippingIndex.getSkippingIndexName
+import org.opensearch.flint.spark.skipping.FlintSparkSkippingStrategy.SkippingKind
+import org.opensearch.flint.spark.skipping.FlintSparkSkippingStrategy.SkippingKind._
 import org.opensearch.flint.spark.sql.FlintSparkSqlExtensionsParser.{CreateSkippingIndexStatementContext, DescribeSkippingIndexStatementContext, DropSkippingIndexStatementContext, RefreshSkippingIndexStatementContext}
 
 import org.apache.spark.sql.Row
@@ -31,12 +31,12 @@ class FlintSparkSqlAstBuilder extends FlintSparkSqlExtensionsBaseVisitor[Command
 
       ctx.indexColTypeList().indexColType().forEach { colTypeCtx =>
         val colName = colTypeCtx.identifier().getText
-        val skipType = colTypeCtx.skipType.getText.toLowerCase(Locale.ROOT)
+        val skipType = SkippingKind.withName(colTypeCtx.skipType.getText)
 
         skipType match {
-          case "partition" => indexBuilder.addPartitions(colName)
-          case "value_set" => indexBuilder.addValueSet(colName)
-          case "min_max" => indexBuilder.addMinMax(colName)
+          case PARTITION => indexBuilder.addPartitions(colName)
+          case VALUE_SET => indexBuilder.addValueSet(colName)
+          case MIN_MAX => indexBuilder.addMinMax(colName)
         }
       }
       indexBuilder.create()
