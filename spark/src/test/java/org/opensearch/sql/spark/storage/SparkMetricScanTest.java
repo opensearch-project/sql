@@ -7,6 +7,7 @@ package org.opensearch.sql.spark.storage;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.opensearch.sql.spark.constants.TestConstants.QUERY;
 
 import lombok.SneakyThrows;
 import org.junit.jupiter.api.Assertions;
@@ -25,7 +26,7 @@ public class SparkMetricScanTest {
   @SneakyThrows
   void testQueryResponseIteratorForQueryRangeFunction() {
     SparkMetricScan sparkMetricScan = new SparkMetricScan(sparkClient);
-    sparkMetricScan.getRequest().setSql("select 1");
+    sparkMetricScan.getRequest().setSql(QUERY);
     Assertions.assertFalse(sparkMetricScan.hasNext());
     assertNull(sparkMetricScan.next());
   }
@@ -34,7 +35,7 @@ public class SparkMetricScanTest {
   @SneakyThrows
   void testExplain() {
     SparkMetricScan sparkMetricScan = new SparkMetricScan(sparkClient);
-    sparkMetricScan.getRequest().setSql("select 1");
+    sparkMetricScan.getRequest().setSql(QUERY);
     assertEquals(
         "SparkQueryRequest(sql=select 1)",
         sparkMetricScan.explain());

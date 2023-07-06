@@ -5,6 +5,8 @@
 
 package org.opensearch.sql.spark.storage;
 
+import static org.opensearch.sql.spark.constants.TestConstants.EMR_CLUSTER_ID;
+
 import java.security.InvalidParameterException;
 import java.util.HashMap;
 import lombok.SneakyThrows;
@@ -40,7 +42,7 @@ public class SparkStorageFactoryTest {
   void testGetStorageEngine() {
     HashMap<String, String> properties = new HashMap<>();
     properties.put("spark.connector", "emr");
-    properties.put("emr.cluster", "j-abc123");
+    properties.put("emr.cluster", EMR_CLUSTER_ID);
     properties.put("emr.auth.type", "awssigv4");
     properties.put("emr.auth.access_key", "access_key");
     properties.put("emr.auth.secret_key", "secret_key");
@@ -68,7 +70,7 @@ public class SparkStorageFactoryTest {
   void testMissingAuth() {
     HashMap<String, String> properties = new HashMap<>();
     properties.put("spark.connector", "emr");
-    properties.put("emr.cluster", "j-abc123");
+    properties.put("emr.cluster", EMR_CLUSTER_ID);
     SparkStorageFactory sparkStorageFactory = new SparkStorageFactory(client, settings);
     IllegalArgumentException exception = Assertions.assertThrows(IllegalArgumentException.class,
         () -> sparkStorageFactory.getStorageEngine(properties));
@@ -81,7 +83,7 @@ public class SparkStorageFactoryTest {
   void testUnsupportedEmrAuth() {
     HashMap<String, String> properties = new HashMap<>();
     properties.put("spark.connector", "emr");
-    properties.put("emr.cluster", "j-abc123");
+    properties.put("emr.cluster", EMR_CLUSTER_ID);
     properties.put("emr.auth.type", "basic");
     SparkStorageFactory sparkStorageFactory = new SparkStorageFactory(client, settings);
     IllegalArgumentException exception = Assertions.assertThrows(IllegalArgumentException.class,
@@ -108,7 +110,7 @@ public class SparkStorageFactoryTest {
   void testMissingAuthKeys() {
     HashMap<String, String> properties = new HashMap<>();
     properties.put("spark.connector", "emr");
-    properties.put("emr.cluster", "j-abc123");
+    properties.put("emr.cluster", EMR_CLUSTER_ID);
     properties.put("emr.auth.type", "awssigv4");
     SparkStorageFactory sparkStorageFactory = new SparkStorageFactory(client, settings);
     IllegalArgumentException exception = Assertions.assertThrows(IllegalArgumentException.class,
@@ -122,7 +124,7 @@ public class SparkStorageFactoryTest {
   void testMissingAuthSecretKey() {
     HashMap<String, String> properties = new HashMap<>();
     properties.put("spark.connector", "emr");
-    properties.put("emr.cluster", "j-abc123");
+    properties.put("emr.cluster", EMR_CLUSTER_ID);
     properties.put("emr.auth.type", "awssigv4");
     properties.put("emr.auth.access_key", "test");
     SparkStorageFactory sparkStorageFactory = new SparkStorageFactory(client, settings);
@@ -136,7 +138,7 @@ public class SparkStorageFactoryTest {
   void createDataSourceSuccess() {
     HashMap<String, String> properties = new HashMap<>();
     properties.put("spark.connector", "emr");
-    properties.put("emr.cluster", "j-abc123");
+    properties.put("emr.cluster", EMR_CLUSTER_ID);
     properties.put("emr.auth.type", "awssigv4");
     properties.put("emr.auth.access_key", "access_key");
     properties.put("emr.auth.secret_key", "secret_key");

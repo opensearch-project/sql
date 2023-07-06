@@ -10,6 +10,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
+import static org.opensearch.sql.spark.constants.TestConstants.QUERY;
 import static org.opensearch.sql.spark.utils.TestUtils.getJson;
 
 import java.io.IOException;
@@ -34,7 +35,6 @@ import org.opensearch.sql.data.model.ExprStringValue;
 import org.opensearch.sql.data.model.ExprTimestampValue;
 import org.opensearch.sql.data.model.ExprTupleValue;
 import org.opensearch.sql.data.type.ExprCoreType;
-import org.opensearch.sql.exception.ExpressionEvaluationException;
 import org.opensearch.sql.executor.ExecutionEngine;
 import org.opensearch.sql.spark.client.SparkClient;
 import org.opensearch.sql.spark.functions.scan.SparkSqlFunctionTableScanOperator;
@@ -50,7 +50,7 @@ public class SparkSqlFunctionTableScanOperatorTest {
   @SneakyThrows
   void testEmptyQueryWithException() {
     SparkQueryRequest sparkQueryRequest = new SparkQueryRequest();
-    sparkQueryRequest.setSql("select 1");
+    sparkQueryRequest.setSql(QUERY);
 
     SparkSqlFunctionTableScanOperator sparkSqlFunctionTableScanOperator
         = new SparkSqlFunctionTableScanOperator(sparkClient, sparkQueryRequest);
@@ -67,7 +67,7 @@ public class SparkSqlFunctionTableScanOperatorTest {
   @SneakyThrows
   void testClose() {
     SparkQueryRequest sparkQueryRequest = new SparkQueryRequest();
-    sparkQueryRequest.setSql("select 1");
+    sparkQueryRequest.setSql(QUERY);
 
     SparkSqlFunctionTableScanOperator sparkSqlFunctionTableScanOperator
         = new SparkSqlFunctionTableScanOperator(sparkClient, sparkQueryRequest);
@@ -78,7 +78,7 @@ public class SparkSqlFunctionTableScanOperatorTest {
   @SneakyThrows
   void testExplain() {
     SparkQueryRequest sparkQueryRequest = new SparkQueryRequest();
-    sparkQueryRequest.setSql("select 1");
+    sparkQueryRequest.setSql(QUERY);
 
     SparkSqlFunctionTableScanOperator sparkSqlFunctionTableScanOperator
         = new SparkSqlFunctionTableScanOperator(sparkClient, sparkQueryRequest);
@@ -91,17 +91,13 @@ public class SparkSqlFunctionTableScanOperatorTest {
   @SneakyThrows
   void testQueryResponseIterator() {
     SparkQueryRequest sparkQueryRequest = new SparkQueryRequest();
-    sparkQueryRequest.setSql("select 1");
+    sparkQueryRequest.setSql(QUERY);
 
     SparkSqlFunctionTableScanOperator sparkSqlFunctionTableScanOperator
         = new SparkSqlFunctionTableScanOperator(sparkClient, sparkQueryRequest);
 
     when(sparkClient.sql(any()))
-        .thenReturn(new JSONObject("{\"data\":{"
-            + "\"result\":[\"{'1':1}\"],"
-            + "\"schema\":[\"{'column_name':'1','data_type':'integer'}\"],"
-            + "\"stepId\":\"s-02952063MI629IEUP2P8\","
-            + "\"applicationId\":\"application-abc\"}}"));
+        .thenReturn(new JSONObject(getJson("select_query_response.json")));
     sparkSqlFunctionTableScanOperator.open();
     assertTrue(sparkSqlFunctionTableScanOperator.hasNext());
     ExprTupleValue firstRow = new ExprTupleValue(new LinkedHashMap<>() {
@@ -117,17 +113,13 @@ public class SparkSqlFunctionTableScanOperatorTest {
   @SneakyThrows
   void testEmptyDataWithException() {
     SparkQueryRequest sparkQueryRequest = new SparkQueryRequest();
-    sparkQueryRequest.setSql("select 1");
+    sparkQueryRequest.setSql(QUERY);
 
     SparkSqlFunctionTableScanOperator sparkSqlFunctionTableScanOperator
         = new SparkSqlFunctionTableScanOperator(sparkClient, sparkQueryRequest);
 
     when(sparkClient.sql(any()))
-        .thenReturn(new JSONObject("{\"content\":{"
-            + "\"result\":[\"{'name':'Tom'}\"],"
-            + "\"schema\":[\"{'column_name':'name','data_type':'string'}\"],"
-            + "\"stepId\":\"s-02952063MI629IEUP2P8\","
-            + "\"applicationId\":\"application-abc\"}}"));
+        .thenReturn(new JSONObject(getJson("invalid_response.json")));
     RuntimeException exception = assertThrows(
         RuntimeException.class, sparkSqlFunctionTableScanOperator::open);
     assertEquals("Unexpected result during spark sql query execution", exception.getMessage());
@@ -137,7 +129,7 @@ public class SparkSqlFunctionTableScanOperatorTest {
   @SneakyThrows
   void testQueryResponseAllTypes() {
     SparkQueryRequest sparkQueryRequest = new SparkQueryRequest();
-    sparkQueryRequest.setSql("select 1");
+    sparkQueryRequest.setSql(QUERY);
 
     SparkSqlFunctionTableScanOperator sparkSqlFunctionTableScanOperator
         = new SparkSqlFunctionTableScanOperator(sparkClient, sparkQueryRequest);
@@ -169,7 +161,7 @@ public class SparkSqlFunctionTableScanOperatorTest {
   @SneakyThrows
   void testQueryResponseInvalidDataType() {
     SparkQueryRequest sparkQueryRequest = new SparkQueryRequest();
-    sparkQueryRequest.setSql("select 1");
+    sparkQueryRequest.setSql(QUERY);
 
     SparkSqlFunctionTableScanOperator sparkSqlFunctionTableScanOperator
         = new SparkSqlFunctionTableScanOperator(sparkClient, sparkQueryRequest);
@@ -187,18 +179,14 @@ public class SparkSqlFunctionTableScanOperatorTest {
   @SneakyThrows
   void testQuerySchema() {
     SparkQueryRequest sparkQueryRequest = new SparkQueryRequest();
-    sparkQueryRequest.setSql("select 1");
+    sparkQueryRequest.setSql(QUERY);
 
     SparkSqlFunctionTableScanOperator sparkSqlFunctionTableScanOperator
         = new SparkSqlFunctionTableScanOperator(sparkClient, sparkQueryRequest);
 
     when(sparkClient.sql(any()))
         .thenReturn(
-            new JSONObject(
-                "{\"data\":{\"result\":[\"{'1':1}\"],"
-                    + "\"schema\":[\"{'column_name':'1','data_type':'integer'}\"],"
-                    + "\"stepId\":\"s-02952063MI629IEUP2P8\","
-                    + "\"applicationId\":\"application-abc\"}}"));
+            new JSONObject(getJson("select_query_response.json")));
     sparkSqlFunctionTableScanOperator.open();
     ArrayList<ExecutionEngine.Schema.Column> columns = new ArrayList<>();
     columns.add(new ExecutionEngine.Schema.Column("1", "1", ExprCoreType.INTEGER));

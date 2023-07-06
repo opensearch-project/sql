@@ -8,6 +8,7 @@ package org.opensearch.sql.spark.functions;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.opensearch.sql.spark.constants.TestConstants.QUERY;
 
 import java.util.List;
 import org.junit.jupiter.api.Test;
@@ -33,7 +34,7 @@ public class SparkSqlFunctionImplementationTest {
   void testValueOfAndTypeToString() {
     FunctionName functionName = new FunctionName("sql");
     List<Expression> namedArgumentExpressionList
-        = List.of(DSL.namedArgument("query", DSL.literal("select 1")));
+        = List.of(DSL.namedArgument("query", DSL.literal(QUERY)));
     SparkSqlFunctionImplementation sparkSqlFunctionImplementation
         = new SparkSqlFunctionImplementation(functionName, namedArgumentExpressionList, client);
     UnsupportedOperationException exception = assertThrows(UnsupportedOperationException.class,
@@ -49,7 +50,7 @@ public class SparkSqlFunctionImplementationTest {
   void testApplyArguments() {
     FunctionName functionName = new FunctionName("sql");
     List<Expression> namedArgumentExpressionList
-        = List.of(DSL.namedArgument("query", DSL.literal("select 1")));
+        = List.of(DSL.namedArgument("query", DSL.literal(QUERY)));
     SparkSqlFunctionImplementation sparkSqlFunctionImplementation
         = new SparkSqlFunctionImplementation(functionName, namedArgumentExpressionList, client);
     SparkTable sparkTable
@@ -57,14 +58,14 @@ public class SparkSqlFunctionImplementationTest {
     assertNotNull(sparkTable.getSparkQueryRequest());
     SparkQueryRequest sparkQueryRequest
         = sparkTable.getSparkQueryRequest();
-    assertEquals("select 1", sparkQueryRequest.getSql());
+    assertEquals(QUERY, sparkQueryRequest.getSql());
   }
 
   @Test
   void testApplyArgumentsException() {
     FunctionName functionName = new FunctionName("sql");
     List<Expression> namedArgumentExpressionList
-        = List.of(DSL.namedArgument("query", DSL.literal("select 1")),
+        = List.of(DSL.namedArgument("query", DSL.literal(QUERY)),
         DSL.namedArgument("tmp", DSL.literal(12345)));
     SparkSqlFunctionImplementation sparkSqlFunctionImplementation
         = new SparkSqlFunctionImplementation(functionName, namedArgumentExpressionList, client);

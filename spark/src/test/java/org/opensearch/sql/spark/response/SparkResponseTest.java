@@ -8,6 +8,7 @@ package org.opensearch.sql.spark.response;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.when;
+import static org.opensearch.sql.spark.constants.TestConstants.EMR_CLUSTER_ID;
 import static org.opensearch.sql.spark.data.constants.SparkConstants.SPARK_INDEX_NAME;
 
 import java.util.Map;
@@ -49,9 +50,9 @@ public class SparkResponseTest {
                 new TotalHits(1, TotalHits.Relation.EQUAL_TO),
                 1.0F));
     Mockito.when(searchHit.getSourceAsMap())
-        .thenReturn(Map.of("stepId", "s-123456789"));
+        .thenReturn(Map.of("stepId", EMR_CLUSTER_ID));
 
-    SparkResponse sparkResponse = new SparkResponse(client, "s-123456789", "stepId");
+    SparkResponse sparkResponse = new SparkResponse(client, EMR_CLUSTER_ID, "stepId");
     assertFalse(sparkResponse.getResultFromOpensearchIndex().isEmpty());
 
   }
@@ -62,7 +63,7 @@ public class SparkResponseTest {
     when(searchResponseActionFuture.actionGet()).thenReturn(searchResponse);
     when(searchResponse.status()).thenReturn(RestStatus.NO_CONTENT);
 
-    SparkResponse sparkResponse = new SparkResponse(client, "s-123456789", "stepId");
+    SparkResponse sparkResponse = new SparkResponse(client, EMR_CLUSTER_ID, "stepId");
     RuntimeException exception = assertThrows(RuntimeException.class,
         () -> sparkResponse.getResultFromOpensearchIndex());
     Assertions.assertEquals(
@@ -74,7 +75,7 @@ public class SparkResponseTest {
   @Test
   public void testSearchFailure() {
     when(client.search(ArgumentMatchers.any())).thenThrow(RuntimeException.class);
-    SparkResponse sparkResponse = new SparkResponse(client, "s-123456789", "stepId");
+    SparkResponse sparkResponse = new SparkResponse(client, EMR_CLUSTER_ID, "stepId");
     assertThrows(RuntimeException.class, () -> sparkResponse.getResultFromOpensearchIndex());
   }
 }
