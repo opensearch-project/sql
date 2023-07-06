@@ -10,10 +10,13 @@ import static org.opensearch.sql.spark.data.constants.SparkConstants.FLINT_DEFAU
 import static org.opensearch.sql.spark.data.constants.SparkConstants.FLINT_DEFAULT_PORT;
 import static org.opensearch.sql.spark.data.constants.SparkConstants.FLINT_DEFAULT_REGION;
 import static org.opensearch.sql.spark.data.constants.SparkConstants.FLINT_DEFAULT_SCHEME;
+import static org.opensearch.sql.spark.data.constants.SparkConstants.FLINT_INTEGRATION_JAR;
 
 import lombok.Getter;
 
 public class FlintHelper {
+  @Getter
+  private final String flintIntegrationJar;
   @Getter
   private final String flintHost;
   @Getter
@@ -34,11 +37,14 @@ public class FlintHelper {
    * @param flintRegion Opensearch region for flint integration
    */
   public FlintHelper(
+      String flintIntegrationJar,
       String flintHost,
       String flintPort,
       String flintScheme,
       String flintAuth,
       String flintRegion) {
+    this.flintIntegrationJar =
+        flintIntegrationJar == null ? FLINT_INTEGRATION_JAR : flintIntegrationJar;
     this.flintHost = flintHost != null ? flintHost : FLINT_DEFAULT_HOST;
     this.flintPort = flintPort != null ? flintPort : FLINT_DEFAULT_PORT;
     this.flintScheme = flintScheme != null ? flintScheme : FLINT_DEFAULT_SCHEME;

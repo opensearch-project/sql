@@ -76,7 +76,6 @@ public class SparkStorageFactory implements DataSourceFactory {
    * @return spark storage engine object
    */
   StorageEngine getStorageEngine(Map<String, String> requiredConfig) {
-    setSparkJars(requiredConfig.get(SPARK_SQL_APPLICATION), requiredConfig.get(FLINT_INTEGRATION));
     SparkClient sparkClient;
     if (requiredConfig.get(CONNECTOR_TYPE).equals(EMR)) {
       sparkClient =
@@ -84,21 +83,19 @@ public class SparkStorageFactory implements DataSourceFactory {
             validateEMRConfigProperties(requiredConfig);
             return new EmrClientImpl(
                 new EMRHelper(
-                requiredConfig.get(EMR_CLUSTER),
-                requiredConfig.get(EMR_ACCESS_KEY),
-                requiredConfig.get(EMR_SECRET_KEY),
-                requiredConfig.get(EMR_REGION)),
+                  requiredConfig.get(EMR_CLUSTER),
+                  requiredConfig.get(EMR_ACCESS_KEY),
+                  requiredConfig.get(EMR_SECRET_KEY),
+                  requiredConfig.get(EMR_REGION)),
                 new FlintHelper(
-                requiredConfig.get(FLINT_HOST),
-                requiredConfig.get(FLINT_PORT),
-                requiredConfig.get(FLINT_SCHEME),
-                requiredConfig.get(FLINT_AUTH),
-                requiredConfig.get(FLINT_REGION)),
-                new SparkResponse(
-                    client,
-                    null,
-                    STEP_ID_FIELD
-                ));
+                  requiredConfig.get(FLINT_INTEGRATION),
+                  requiredConfig.get(FLINT_HOST),
+                  requiredConfig.get(FLINT_PORT),
+                  requiredConfig.get(FLINT_SCHEME),
+                  requiredConfig.get(FLINT_AUTH),
+                  requiredConfig.get(FLINT_REGION)),
+                new SparkResponse(client, null, STEP_ID_FIELD),
+                requiredConfig.get(SPARK_SQL_APPLICATION));
           });
     } else {
       throw new InvalidParameterException("Spark connector type is invalid.");
@@ -119,15 +116,6 @@ public class SparkStorageFactory implements DataSourceFactory {
     } else if (!dataSourceMetadataConfig.get(EMR_AUTH_TYPE)
         .equals(AuthenticationType.AWSSIGV4AUTH.getName())) {
       throw new IllegalArgumentException("Invalid auth type.");
-    }
-  }
-
-  private void setSparkJars(String sparkApplicationJar, String flintIntegrationJar) {
-    if(sparkApplicationJar != null) {
-      SparkConstants.SPARK_SQL_APPLICATION_JAR = sparkApplicationJar;
-    }
-    if(flintIntegrationJar != null) {
-      SparkConstants.FLINT_INTEGRATION_JAR = flintIntegrationJar;
     }
   }
 }

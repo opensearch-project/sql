@@ -24,6 +24,8 @@ Spark Connector Properties.
 
 * ``spark.connector`` [Required].
     * This parameters provides the spark client information for connection.
+* ``spark.sql.application`` [Optional].
+    * This parameters provides the spark sql application jar. Default value is ``s3://spark-datasource/sql-job.jar``.
 * ``emr.cluster`` [Required].
     * This parameters provides the emr cluster id information.
 * ``emr.auth.type`` [Required]
@@ -32,6 +34,8 @@ Spark Connector Properties.
         * ``emr.auth.region``, ``emr.auth.access_key`` and ``emr.auth.secret_key``
 * ``spark.datasource.flint.*`` [Optional]
     * This parameters provides the Opensearch domain host information for flint integration.
+    * ``spark.datasource.flint.integration`` [Optional]
+        * Default value for integration jar is ``s3://spark-datasource/flint-spark-integration-assembly-0.1.0-SNAPSHOT.jar``.
     * ``spark.datasource.flint.host`` [Optional]
         * Default value for host is ``localhost``.
     * ``spark.datasource.flint.port`` [Optional]

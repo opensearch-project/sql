@@ -55,7 +55,7 @@ public class EmrClientImplTest {
     describeStepResult.setStep(step);
     when(emr.getStepStatus(any())).thenReturn(stepStatus);
 
-    EmrClientImpl emrClientImpl = new EmrClientImpl(emr, flint, sparkResponse);
+    EmrClientImpl emrClientImpl = new EmrClientImpl(emr, flint, sparkResponse, null);
     emrClientImpl.runEmrApplication(QUERY);
   }
 
@@ -73,7 +73,7 @@ public class EmrClientImplTest {
     describeStepResult.setStep(step);
     when(emr.getStepStatus(any())).thenReturn(stepStatus);
 
-    EmrClientImpl emrClientImpl = new EmrClientImpl(emr, flint, sparkResponse);
+    EmrClientImpl emrClientImpl = new EmrClientImpl(emr, flint, sparkResponse, null);
     RuntimeException exception = Assertions.assertThrows(RuntimeException.class,
         () -> emrClientImpl.runEmrApplication(QUERY));
     Assertions.assertEquals("Spark SQL application failed.",
@@ -94,7 +94,7 @@ public class EmrClientImplTest {
     describeStepResult.setStep(step);
     when(emr.getStepStatus(any())).thenReturn(stepStatus);
 
-    EmrClientImpl emrClientImpl = new EmrClientImpl(emr, flint, sparkResponse);
+    EmrClientImpl emrClientImpl = new EmrClientImpl(emr, flint, sparkResponse, null);
     RuntimeException exception = Assertions.assertThrows(RuntimeException.class,
         () -> emrClientImpl.runEmrApplication(QUERY));
     Assertions.assertEquals("Spark SQL application failed.",
@@ -121,7 +121,7 @@ public class EmrClientImplTest {
     describeStepResult.setStep(runningStep);
     when(emr.getStepStatus(any())).thenReturn(runningStatus).thenReturn(completedStatus);
 
-    EmrClientImpl emrClientImpl = new EmrClientImpl(emr, flint, sparkResponse);
+    EmrClientImpl emrClientImpl = new EmrClientImpl(emr, flint, sparkResponse, null);
     emrClientImpl.runEmrApplication(QUERY);
   }
 
@@ -145,9 +145,10 @@ public class EmrClientImplTest {
     describeStepResult.setStep(runningStep);
     when(emr.getStepStatus(any())).thenReturn(runningStatus).thenReturn(completedStatus);
 
-    when(sparkResponse.getResultFromOpensearchIndex()).thenReturn(new JSONObject(getJson("select_query_response.json")));
+    when(sparkResponse.getResultFromOpensearchIndex())
+        .thenReturn(new JSONObject(getJson("select_query_response.json")));
 
-    EmrClientImpl emrClientImpl = new EmrClientImpl(emr, flint, sparkResponse);
+    EmrClientImpl emrClientImpl = new EmrClientImpl(emr, flint, sparkResponse, null);
     emrClientImpl.sql(QUERY);
 
   }

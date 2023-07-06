@@ -29,6 +29,7 @@ import org.opensearch.sql.spark.response.SparkResponse;
 public class EmrClientImpl implements SparkClient {
   private final EMRHelper emr;
   private final FlintHelper flint;
+  private final String sparkApplicationJar;
   private static final Logger logger = LogManager.getLogger(EmrClientImpl.class);
   private SparkResponse sparkResponse;
 
@@ -39,10 +40,13 @@ public class EmrClientImpl implements SparkClient {
    * @param flint   Opensearch args for flint integration jar
    * @param sparkResponse Response object to help with retrieving results from Opensearch index
    */
-  public EmrClientImpl(EMRHelper emr, FlintHelper flint, SparkResponse sparkResponse) {
+  public EmrClientImpl(EMRHelper emr, FlintHelper flint,
+                       SparkResponse sparkResponse, String sparkApplicationJar) {
     this.emr = emr;
     this.flint = flint;
     this.sparkResponse = sparkResponse;
+    this.sparkApplicationJar =
+        sparkApplicationJar == null ? SPARK_SQL_APPLICATION_JAR : sparkApplicationJar;
   }
 
   @Override
@@ -58,8 +62,9 @@ public class EmrClientImpl implements SparkClient {
         .withJar("command-runner.jar")
         .withArgs("spark-submit",
             "--class","org.opensearch.sql.SQLJob",
-            "--jars",FLINT_INTEGRATION_JAR,
-            SPARK_SQL_APPLICATION_JAR,
+            "--jars",
+            flint.getFlintIntegrationJar(),
+            sparkApplicationJar,
             query,
             SPARK_INDEX_NAME,
             flint.getFlintHost(),

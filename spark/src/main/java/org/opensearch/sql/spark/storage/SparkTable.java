@@ -7,7 +7,6 @@ package org.opensearch.sql.spark.storage;
 
 import java.util.HashMap;
 import java.util.Map;
-
 import lombok.Getter;
 import org.opensearch.sql.data.type.ExprType;
 import org.opensearch.sql.planner.logical.LogicalPlan;
