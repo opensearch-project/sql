@@ -17,10 +17,10 @@ import org.apache.spark.sql.types.StructType
  *
  * @param baseFileIndex
  *   original file index
- * @param filterByIndex
- *   pushed down filtering on index data
+ * @param queryIndex
+ *   query skipping index DF with pushed down filters
  */
-case class FlintSparkSkippingFileIndex(baseFileIndex: FileIndex, filterByIndex: DataFrame)
+case class FlintSparkSkippingFileIndex(baseFileIndex: FileIndex, queryIndex: DataFrame)
     extends FileIndex {
 
   override def listFiles(
@@ -28,7 +28,7 @@ case class FlintSparkSkippingFileIndex(baseFileIndex: FileIndex, filterByIndex: 
       dataFilters: Seq[Expression]): Seq[PartitionDirectory] = {
 
     val selectedFiles =
-      filterByIndex.collect
+      queryIndex.collect
         .map(_.getString(0))
         .toSet
 

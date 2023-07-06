@@ -333,7 +333,7 @@ class FlintSparkSkippingIndexSuite
   // Custom matcher to check if FlintSparkSkippingFileIndex has expected filter condition
   def hasIndexFilter(expect: Column): Matcher[FlintSparkSkippingFileIndex] = {
     Matcher { (fileIndex: FlintSparkSkippingFileIndex) =>
-      val plan = fileIndex.filterByIndex.queryExecution.logical
+      val plan = fileIndex.queryIndex.queryExecution.logical
       val hasExpectedFilter = plan.find {
         case Filter(actual, _) =>
           actual.semanticEquals(expect.expr)
