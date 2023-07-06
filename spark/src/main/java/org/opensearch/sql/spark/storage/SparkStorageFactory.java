@@ -6,6 +6,7 @@
 package org.opensearch.sql.spark.storage;
 
 import static org.opensearch.sql.spark.data.constants.SparkConstants.EMR;
+import static org.opensearch.sql.spark.data.constants.SparkConstants.STEP_ID_FIELD;
 
 import java.security.AccessController;
 import java.security.InvalidParameterException;
@@ -22,6 +23,7 @@ import org.opensearch.sql.spark.client.EmrClientImpl;
 import org.opensearch.sql.spark.client.SparkClient;
 import org.opensearch.sql.spark.helper.EMRHelper;
 import org.opensearch.sql.spark.helper.FlintHelper;
+import org.opensearch.sql.spark.response.SparkResponse;
 import org.opensearch.sql.storage.DataSourceFactory;
 import org.opensearch.sql.storage.StorageEngine;
 
@@ -77,7 +79,6 @@ public class SparkStorageFactory implements DataSourceFactory {
           AccessController.doPrivileged((PrivilegedAction<EmrClientImpl>) () -> {
             validateEMRConfigProperties(requiredConfig);
             return new EmrClientImpl(
-                client,
                 new EMRHelper(
                 requiredConfig.get(EMR_CLUSTER),
                 requiredConfig.get(EMR_ACCESS_KEY),
@@ -88,7 +89,12 @@ public class SparkStorageFactory implements DataSourceFactory {
                 requiredConfig.get(FLINT_PORT),
                 requiredConfig.get(FLINT_SCHEME),
                 requiredConfig.get(FLINT_AUTH),
-                requiredConfig.get(FLINT_REGION)));
+                requiredConfig.get(FLINT_REGION)),
+                new SparkResponse(
+                    client,
+                    null,
+                    STEP_ID_FIELD
+                ));
           });
     } else {
       throw new InvalidParameterException("Spark connector type is invalid.");

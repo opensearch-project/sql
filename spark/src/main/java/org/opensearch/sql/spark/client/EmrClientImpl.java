@@ -29,30 +29,28 @@ import org.opensearch.sql.spark.helper.FlintHelper;
 import org.opensearch.sql.spark.response.SparkResponse;
 
 public class EmrClientImpl implements SparkClient {
-  private final Client client;
   private final EMRHelper emr;
   private final FlintHelper flint;
-  private final String field = STEP_ID_FIELD;
   private static final Logger logger = LogManager.getLogger(EmrClientImpl.class);
+  private SparkResponse sparkResponse;
 
   /**
    * Constructor for EMR Client Implementation.
    *
-   * @param client  Opensearch client
    * @param emr     EMR helper
    * @param flint   Opensearch args for flint integration jar
+   * @param sparkResponse Response object to help with retrieving results from Opensearch index
    */
-  public EmrClientImpl(
-      Client client, EMRHelper emr, FlintHelper flint) {
-    this.client = client;
+  public EmrClientImpl(EMRHelper emr, FlintHelper flint, SparkResponse sparkResponse) {
     this.emr = emr;
     this.flint = flint;
+    this.sparkResponse = sparkResponse;
   }
 
   @Override
   public JSONObject sql(String query) throws IOException {
-    return new SparkResponse(
-        client, runEmrApplication(query), field).getResultFromOpensearchIndex();
+    runEmrApplication(query);
+    return sparkResponse.getResultFromOpensearchIndex();
   }
 
   @VisibleForTesting
@@ -91,6 +89,7 @@ public class EmrClientImpl implements SparkClient {
         .withStepId(stepId);
 
     waitForStepExecution(stepRequest);
+    sparkResponse.setValue(stepId);
 
     return stepId;
   }
@@ -116,4 +115,5 @@ public class EmrClientImpl implements SparkClient {
       }
     }
   }
+
 }

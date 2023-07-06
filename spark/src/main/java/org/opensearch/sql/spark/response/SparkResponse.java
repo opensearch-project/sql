@@ -7,6 +7,9 @@ package org.opensearch.sql.spark.response;
 
 import static org.opensearch.sql.spark.data.constants.SparkConstants.SPARK_INDEX_NAME;
 
+import lombok.Data;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 import org.json.JSONObject;
 import org.opensearch.action.ActionFuture;
 import org.opensearch.action.search.SearchRequest;
@@ -18,9 +21,10 @@ import org.opensearch.index.query.QueryBuilders;
 import org.opensearch.search.SearchHit;
 import org.opensearch.search.builder.SearchSourceBuilder;
 
+@Data
 public class SparkResponse {
   private final Client client;
-  private final String value;
+  private String value;
   private final String field;
 
   /**
@@ -65,4 +69,5 @@ public class SparkResponse {
       return data;
     }
   }
+
 }
