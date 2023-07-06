@@ -30,6 +30,6 @@ public class SparkStorageEngine implements StorageEngine {
 
   @Override
   public Table getTable(DataSourceSchemaName dataSourceSchemaName, String tableName) {
-    return null;
+    throw new RuntimeException("Unable to get table from storage engine.");
   }
 }
