@@ -9,7 +9,6 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
-import org.jetbrains.annotations.NotNull;
 import org.json.JSONArray;
 import org.json.JSONObject;
 import org.opensearch.sql.data.model.ExprBooleanValue;
@@ -32,8 +31,6 @@ import org.opensearch.sql.executor.ExecutionEngine;
  * Default implementation of SparkSqlFunctionResponseHandle.
  */
 public class DefaultSparkSqlFunctionResponseHandle implements SparkSqlFunctionResponseHandle {
-
-  private final JSONObject responseObject;
   private Iterator<ExprValue> responseIterator;
   private ExecutionEngine.Schema schema;
 
@@ -43,11 +40,10 @@ public class DefaultSparkSqlFunctionResponseHandle implements SparkSqlFunctionRe
    * @param responseObject Spark responseObject.
    */
   public DefaultSparkSqlFunctionResponseHandle(JSONObject responseObject) {
-    this.responseObject = responseObject;
-    constructIteratorAndSchema();
+    constructIteratorAndSchema(responseObject);
   }
 
-  private void constructIteratorAndSchema() {
+  private void constructIteratorAndSchema(JSONObject responseObject) {
     List<ExprValue> result = new ArrayList<>();
     List<ExecutionEngine.Schema.Column> columnList;
     if (responseObject.has("data")) {
@@ -66,14 +62,13 @@ public class DefaultSparkSqlFunctionResponseHandle implements SparkSqlFunctionRe
     this.responseIterator = result.iterator();
   }
 
-  @NotNull
   private static LinkedHashMap<String, ExprValue> extractRow(
       JSONObject row, List<ExecutionEngine.Schema.Column> columnList) {
     LinkedHashMap<String, ExprValue> linkedHashMap = new LinkedHashMap<>();
     for (ExecutionEngine.Schema.Column column : columnList) {
       ExprType type = column.getExprType();
       if (type == ExprCoreType.BOOLEAN) {
-        linkedHashMap.put(column.getName(), new ExprBooleanValue(row.getBoolean(column.getName())));
+        linkedHashMap.put(column.getName(), ExprBooleanValue.of(row.getBoolean(column.getName())));
       } else if (type == ExprCoreType.LONG) {
         linkedHashMap.put(column.getName(), new ExprLongValue(row.getLong(column.getName())));
       } else if (type == ExprCoreType.INTEGER) {

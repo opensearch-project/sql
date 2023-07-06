@@ -6,9 +6,8 @@
 package org.opensearch.sql.spark.client;
 
 import static org.opensearch.sql.spark.data.constants.SparkConstants.FLINT_INTEGRATION_JAR;
-import static org.opensearch.sql.spark.data.constants.SparkConstants.SPARK_APPLICATION_JAR;
 import static org.opensearch.sql.spark.data.constants.SparkConstants.SPARK_INDEX_NAME;
-import static org.opensearch.sql.spark.data.constants.SparkConstants.STEP_ID_FIELD;
+import static org.opensearch.sql.spark.data.constants.SparkConstants.SPARK_SQL_APPLICATION_JAR;
 
 import com.amazonaws.services.elasticmapreduce.model.ActionOnFailure;
 import com.amazonaws.services.elasticmapreduce.model.AddJobFlowStepsRequest;
@@ -23,7 +22,6 @@ import lombok.SneakyThrows;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.json.JSONObject;
-import org.opensearch.client.Client;
 import org.opensearch.sql.spark.helper.EMRHelper;
 import org.opensearch.sql.spark.helper.FlintHelper;
 import org.opensearch.sql.spark.response.SparkResponse;
@@ -61,7 +59,7 @@ public class EmrClientImpl implements SparkClient {
         .withArgs("spark-submit",
             "--class","org.opensearch.sql.SQLJob",
             "--jars",FLINT_INTEGRATION_JAR,
-            SPARK_APPLICATION_JAR,
+            SPARK_SQL_APPLICATION_JAR,
             query,
             SPARK_INDEX_NAME,
             flint.getFlintHost(),

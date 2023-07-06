@@ -18,26 +18,26 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.opensearch.sql.spark.client.SparkClient;
 
 @ExtendWith(MockitoExtension.class)
-public class SparkMetricScanTest {
+public class SparkScanTest {
   @Mock
   private SparkClient sparkClient;
 
   @Test
   @SneakyThrows
   void testQueryResponseIteratorForQueryRangeFunction() {
-    SparkMetricScan sparkMetricScan = new SparkMetricScan(sparkClient);
-    sparkMetricScan.getRequest().setSql(QUERY);
-    Assertions.assertFalse(sparkMetricScan.hasNext());
-    assertNull(sparkMetricScan.next());
+    SparkScan sparkScan = new SparkScan(sparkClient);
+    sparkScan.getRequest().setSql(QUERY);
+    Assertions.assertFalse(sparkScan.hasNext());
+    assertNull(sparkScan.next());
   }
 
   @Test
   @SneakyThrows
   void testExplain() {
-    SparkMetricScan sparkMetricScan = new SparkMetricScan(sparkClient);
-    sparkMetricScan.getRequest().setSql(QUERY);
+    SparkScan sparkScan = new SparkScan(sparkClient);
+    sparkScan.getRequest().setSql(QUERY);
     assertEquals(
         "SparkQueryRequest(sql=select 1)",
-        sparkMetricScan.explain());
+        sparkScan.explain());
   }
 }

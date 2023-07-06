@@ -21,6 +21,7 @@ import org.opensearch.sql.datasource.model.DataSourceType;
 import org.opensearch.sql.datasources.auth.AuthenticationType;
 import org.opensearch.sql.spark.client.EmrClientImpl;
 import org.opensearch.sql.spark.client.SparkClient;
+import org.opensearch.sql.spark.data.constants.SparkConstants;
 import org.opensearch.sql.spark.helper.EMRHelper;
 import org.opensearch.sql.spark.helper.FlintHelper;
 import org.opensearch.sql.spark.response.SparkResponse;
@@ -37,6 +38,7 @@ public class SparkStorageFactory implements DataSourceFactory {
 
   // Spark datasource configuration properties
   public static final String CONNECTOR_TYPE = "spark.connector";
+  public static final String SPARK_SQL_APPLICATION = "spark.sql.application";
 
   // EMR configuration properties
   public static final String EMR_CLUSTER = "emr.cluster";
@@ -47,6 +49,7 @@ public class SparkStorageFactory implements DataSourceFactory {
   public static final String EMR_SECRET_KEY = "emr.auth.secret_key";
 
   // Flint integration jar configuration properties
+  public static final String FLINT_INTEGRATION = "spark.datasource.flint.integration";
   public static final String FLINT_HOST = "spark.datasource.flint.host";
   public static final String FLINT_PORT = "spark.datasource.flint.port";
   public static final String FLINT_SCHEME = "spark.datasource.flint.scheme";
@@ -73,6 +76,7 @@ public class SparkStorageFactory implements DataSourceFactory {
    * @return spark storage engine object
    */
   StorageEngine getStorageEngine(Map<String, String> requiredConfig) {
+    setSparkJars(requiredConfig.get(SPARK_SQL_APPLICATION), requiredConfig.get(FLINT_INTEGRATION));
     SparkClient sparkClient;
     if (requiredConfig.get(CONNECTOR_TYPE).equals(EMR)) {
       sparkClient =
@@ -115,6 +119,15 @@ public class SparkStorageFactory implements DataSourceFactory {
     } else if (!dataSourceMetadataConfig.get(EMR_AUTH_TYPE)
         .equals(AuthenticationType.AWSSIGV4AUTH.getName())) {
       throw new IllegalArgumentException("Invalid auth type.");
+    }
+  }
+
+  private void setSparkJars(String sparkApplicationJar, String flintIntegrationJar) {
+    if(sparkApplicationJar != null) {
+      SparkConstants.SPARK_SQL_APPLICATION_JAR = sparkApplicationJar;
+    }
+    if(flintIntegrationJar != null) {
+      SparkConstants.FLINT_INTEGRATION_JAR = flintIntegrationJar;
     }
   }
 }

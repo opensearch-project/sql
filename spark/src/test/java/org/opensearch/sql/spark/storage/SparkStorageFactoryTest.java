@@ -135,7 +135,7 @@ public class SparkStorageFactoryTest {
   }
 
   @Test
-  void createDataSourceSuccess() {
+  void testCreateDataSourceSuccess() {
     HashMap<String, String> properties = new HashMap<>();
     properties.put("spark.connector", "emr");
     properties.put("emr.cluster", EMR_CLUSTER_ID);
@@ -148,6 +148,27 @@ public class SparkStorageFactoryTest {
     properties.put("spark.datasource.flint.scheme", "http");
     properties.put("spark.datasource.flint.auth", "false");
     properties.put("spark.datasource.flint.region", "us-west-2");
+
+    DataSourceMetadata metadata = new DataSourceMetadata();
+    metadata.setName("spark");
+    metadata.setConnector(DataSourceType.SPARK);
+    metadata.setProperties(properties);
+
+    DataSource dataSource = new SparkStorageFactory(client, settings).createDataSource(metadata);
+    Assertions.assertTrue(dataSource.getStorageEngine() instanceof SparkStorageEngine);
+  }
+
+  @Test
+  void testSetSparkJars() {
+    HashMap<String, String> properties = new HashMap<>();
+    properties.put("spark.connector", "emr");
+    properties.put("spark.sql.application", "s3://spark/spark-sql-job.jar");
+    properties.put("emr.cluster", EMR_CLUSTER_ID);
+    properties.put("emr.auth.type", "awssigv4");
+    properties.put("emr.auth.access_key", "access_key");
+    properties.put("emr.auth.secret_key", "secret_key");
+    properties.put("emr.auth.region", "region");
+    properties.put("spark.datasource.flint.integration", "s3://spark/flint-spark-integration.jar");
 
     DataSourceMetadata metadata = new DataSourceMetadata();
     metadata.setName("spark");

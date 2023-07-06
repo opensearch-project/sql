@@ -5,7 +5,6 @@
 
 package org.opensearch.sql.spark.client;
 
-import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.any;
 import static org.mockito.Mockito.when;
 import static org.opensearch.sql.spark.constants.TestConstants.EMR_CLUSTER_ID;
@@ -146,10 +145,10 @@ public class EmrClientImplTest {
     describeStepResult.setStep(runningStep);
     when(emr.getStepStatus(any())).thenReturn(runningStatus).thenReturn(completedStatus);
 
-    when(sparkResponse.getResultFromOpensearchIndex())
-        .thenReturn(new JSONObject(getJson("select_query_response.json")));
+    when(sparkResponse.getResultFromOpensearchIndex()).thenReturn(new JSONObject(getJson("select_query_response.json")));
 
     EmrClientImpl emrClientImpl = new EmrClientImpl(emr, flint, sparkResponse);
     emrClientImpl.sql(QUERY);
+
   }
 }

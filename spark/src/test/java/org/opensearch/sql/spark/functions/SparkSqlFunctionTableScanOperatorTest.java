@@ -140,7 +140,7 @@ public class SparkSqlFunctionTableScanOperatorTest {
     assertTrue(sparkSqlFunctionTableScanOperator.hasNext());
     ExprTupleValue firstRow = new ExprTupleValue(new LinkedHashMap<>() {
       {
-        put("boolean", new ExprBooleanValue(true));
+        put("boolean", ExprBooleanValue.of(true));
         put("long", new ExprLongValue(922337203));
         put("integer", new ExprIntegerValue(2147483647));
         put("short", new ExprShortValue(32767));
