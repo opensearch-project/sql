@@ -5,7 +5,6 @@
 
 package org.opensearch.sql.spark.client;
 
-import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.any;
 import static org.mockito.Mockito.when;
 
@@ -14,7 +13,6 @@ import com.amazonaws.services.elasticmapreduce.model.DescribeStepResult;
 import com.amazonaws.services.elasticmapreduce.model.Step;
 import com.amazonaws.services.elasticmapreduce.model.StepStatus;
 import lombok.SneakyThrows;
-import org.json.JSONObject;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -34,9 +32,6 @@ public class EmrClientImplTest {
   private FlintHelper flint;
   @Mock
   private Client client;
-
-  @Mock
-  private SparkResponse sparkResponse;
 
   @Test
   @SneakyThrows
@@ -98,18 +93,28 @@ public class EmrClientImplTest {
         exception.getMessage());
   }
 
-/*  @Test
+  @Test
   @SneakyThrows
-  void testSql() {
+  void testRunEmrApplicationRunnning() {
+    AddJobFlowStepsResult addStepsResult = new AddJobFlowStepsResult().withStepIds("j-123");
+    when(emr.addStep(any())).thenReturn(addStepsResult);
+
+    StepStatus runningStatus = new StepStatus();
+    runningStatus.setState("RUNNING");
+    Step runningStep = new Step();
+    runningStep.setStatus(runningStatus);
+
+    StepStatus completedStatus = new StepStatus();
+    completedStatus.setState("COMPLETED");
+    Step completedStep = new Step();
+    completedStep.setStatus(completedStatus);
+
+    DescribeStepResult describeStepResult = new DescribeStepResult();
+    describeStepResult.setStep(runningStep);
+    when(emr.getStepStatus(any())).thenReturn(runningStatus).thenReturn(completedStatus);
 
     EmrClientImpl emrClientImpl = new EmrClientImpl(client, emr, flint);
-    when(emrClientImpl.runEmrApplication(anyString())).thenReturn("step-id");
-    when(sparkResponse.getResultFromOpensearchIndex()).thenReturn(new JSONObject("{\"data\":{"
-        + "\"result\":[\"{'1':1}\"],"
-        + "\"schema\":[\"{'column_name':'1','data_type':'integer'}\"],"
-        + "\"stepId\":\"s-02952063MI629IEUP2P8\","
-        + "\"applicationId\":\"application-abc\"}}"));
-    emrClientImpl.sql("select 1");
-  }*/
+    emrClientImpl.runEmrApplication("select 1");
+  }
 
 }

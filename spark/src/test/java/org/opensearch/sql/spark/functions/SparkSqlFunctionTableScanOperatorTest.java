@@ -16,8 +16,6 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import lombok.SneakyThrows;
-import org.json.JSONArray;
-import org.json.JSONException;
 import org.json.JSONObject;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
@@ -106,7 +104,8 @@ public class SparkSqlFunctionTableScanOperatorTest {
             + "\"applicationId\":\"application-abc\"}}"));
     sparkSqlFunctionTableScanOperator.open();
     assertTrue(sparkSqlFunctionTableScanOperator.hasNext());
-    ExprTupleValue firstRow = new ExprTupleValue(new LinkedHashMap<>() {{
+    ExprTupleValue firstRow = new ExprTupleValue(new LinkedHashMap<>() {
+      {
         put("1", new ExprIntegerValue(1));
       }
     });
@@ -129,7 +128,8 @@ public class SparkSqlFunctionTableScanOperatorTest {
             + "\"schema\":[\"{'column_name':'name','data_type':'string'}\"],"
             + "\"stepId\":\"s-02952063MI629IEUP2P8\","
             + "\"applicationId\":\"application-abc\"}}"));
-    RuntimeException exception = assertThrows(RuntimeException.class, sparkSqlFunctionTableScanOperator::open);
+    RuntimeException exception = assertThrows(
+        RuntimeException.class, sparkSqlFunctionTableScanOperator::open);
     assertEquals("Unexpected result during spark sql query execution", exception.getMessage());
   }
 
@@ -146,19 +146,20 @@ public class SparkSqlFunctionTableScanOperatorTest {
         .thenReturn(new JSONObject(getJson("all_data_type.json")));
     sparkSqlFunctionTableScanOperator.open();
     assertTrue(sparkSqlFunctionTableScanOperator.hasNext());
-    ExprTupleValue firstRow = new ExprTupleValue(new LinkedHashMap<>() {{
-      put("boolean", new ExprBooleanValue(true));
-      put("long", new ExprLongValue(922337203));
-      put("integer", new ExprIntegerValue(2147483647));
-      put("short", new ExprShortValue(32767));
-      put("byte", new ExprByteValue(127));
-      put("double", new ExprDoubleValue(9223372036854.775807));
-      put("float", new ExprFloatValue(21474.83647));
-      put("timestamp", new ExprDateValue("2023-07-01 10:31:30"));
-      put("date", new ExprTimestampValue("2023-07-01 10:31:30"));
-      put("string", new ExprStringValue("ABC"));
-      put("char", new ExprStringValue("A"));
-    }
+    ExprTupleValue firstRow = new ExprTupleValue(new LinkedHashMap<>() {
+      {
+        put("boolean", new ExprBooleanValue(true));
+        put("long", new ExprLongValue(922337203));
+        put("integer", new ExprIntegerValue(2147483647));
+        put("short", new ExprShortValue(32767));
+        put("byte", new ExprByteValue(127));
+        put("double", new ExprDoubleValue(9223372036854.775807));
+        put("float", new ExprFloatValue(21474.83647));
+        put("timestamp", new ExprDateValue("2023-07-01 10:31:30"));
+        put("date", new ExprTimestampValue("2023-07-01 10:31:30"));
+        put("string", new ExprStringValue("ABC"));
+        put("char", new ExprStringValue("A"));
+      }
     });
     assertEquals(firstRow, sparkSqlFunctionTableScanOperator.next());
     Assertions.assertFalse(sparkSqlFunctionTableScanOperator.hasNext());

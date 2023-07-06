@@ -47,9 +47,10 @@ public class SparkResponse {
     searchSourceBuilder.query(query);
     searchRequest.source(searchSourceBuilder);
     ActionFuture<SearchResponse> searchResponseActionFuture;
-    try (ThreadContext.StoredContext ignored = client.threadPool().getThreadContext()
-        .stashContext()) {
+    try {
       searchResponseActionFuture = client.search(searchRequest);
+    } catch (Exception e) {
+      throw new RuntimeException(e);
     }
     SearchResponse searchResponse = searchResponseActionFuture.actionGet();
     if (searchResponse.status().getStatus() != 200) {

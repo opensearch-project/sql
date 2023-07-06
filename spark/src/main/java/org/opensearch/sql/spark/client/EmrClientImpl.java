@@ -19,6 +19,7 @@ import com.amazonaws.services.elasticmapreduce.model.StepConfig;
 import com.amazonaws.services.elasticmapreduce.model.StepStatus;
 import com.google.common.annotations.VisibleForTesting;
 import java.io.IOException;
+import lombok.SneakyThrows;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.json.JSONObject;
@@ -31,7 +32,6 @@ public class EmrClientImpl implements SparkClient {
   private final Client client;
   private final EMRHelper emr;
   private final FlintHelper flint;
-
   private final String field = STEP_ID_FIELD;
   private static final Logger logger = LogManager.getLogger(EmrClientImpl.class);
 
@@ -95,6 +95,7 @@ public class EmrClientImpl implements SparkClient {
     return stepId;
   }
 
+  @SneakyThrows
   private void waitForStepExecution(DescribeStepRequest stepRequest) {
     // Wait for the step to complete
     boolean completed = false;
@@ -111,15 +112,9 @@ public class EmrClientImpl implements SparkClient {
         throw new RuntimeException("Spark SQL application failed.");
       } else {
         // Sleep for some time before checking the status again
-        try {
-          Thread.sleep(2500);
-        } catch (InterruptedException e) {
-          e.printStackTrace();
-        }
+        Thread.sleep(2500);
       }
     }
   }
-
-
 
 }
