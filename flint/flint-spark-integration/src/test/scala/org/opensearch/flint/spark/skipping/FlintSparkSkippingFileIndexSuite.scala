@@ -17,19 +17,80 @@ import org.apache.spark.sql.{Column, DataFrame, Row}
 import org.apache.spark.sql.catalyst.InternalRow
 import org.apache.spark.sql.catalyst.expressions.{Literal, Predicate}
 import org.apache.spark.sql.execution.datasources.{FileIndex, PartitionDirectory}
+import org.apache.spark.sql.flint.config.FlintSparkConf.HYBRID_SCAN_ENABLED
 import org.apache.spark.sql.functions.col
 import org.apache.spark.sql.types._
 
 class FlintSparkSkippingFileIndexSuite extends FlintSuite with Matchers {
 
-  test("should skip unknown source files in non-hybrid-scan mode") {
+  /** Test source partition data. */
+  private val partition1 = "partition-1" -> Seq("file-1", "file-2")
+  private val partition2 = "partition-2" -> Seq("file-3")
+
+  /** Test index data schema. */
+  private val schema = Map((FILE_PATH_COLUMN, StringType), ("year", IntegerType))
+
+  test("should keep files returned from index") {
     assertFlintFileIndex()
-      .withSourceFiles(Map("partition-1" -> Seq("file-1", "file-2")))
-      .withIndexData(
-        Map((FILE_PATH_COLUMN, StringType), ("year", IntegerType)),
-        Seq(Row("file-1", 2023), Row("file-2", 2022)))
+      .withSourceFiles(Map(partition1))
+      .withIndexData(schema, Seq(Row("file-1", 2023), Row("file-2", 2022)))
       .withIndexFilter(col("year") === 2023)
       .shouldScanSourceFiles(Map("partition-1" -> Seq("file-1")))
+  }
+
+  test("should keep files of multiple partitions returned from index") {
+    assertFlintFileIndex()
+      .withSourceFiles(Map(partition1, partition2))
+      .withIndexData(schema, Seq(Row("file-1", 2023), Row("file-2", 2022), Row("file-3", 2023)))
+      .withIndexFilter(col("year") === 2023)
+      .shouldScanSourceFiles(Map("partition-1" -> Seq("file-1"), "partition-2" -> Seq("file-3")))
+  }
+
+  test("should skip unrefreshed source files by default") {
+    assertFlintFileIndex()
+      .withSourceFiles(Map(partition1))
+      .withIndexData(
+        schema,
+        Seq(Row("file-1", 2023)) // file-2 is not refreshed to index yet
+      )
+      .withIndexFilter(col("year") === 2023)
+      .shouldScanSourceFiles(Map("partition-1" -> Seq("file-1")))
+  }
+
+  test("should not skip unrefreshed source files in hybrid-scan mode") {
+    withHybridScanEnabled {
+      assertFlintFileIndex()
+        .withSourceFiles(Map(partition1))
+        .withIndexData(
+          schema,
+          Seq(Row("file-1", 2023)) // file-2 is not refreshed to index yet
+        )
+        .withIndexFilter(col("year") === 2023)
+        .shouldScanSourceFiles(Map("partition-1" -> Seq("file-1", "file-2")))
+    }
+  }
+
+  test("should not skip unrefreshed source files of multiple partitions in hybrid-scan mode") {
+    withHybridScanEnabled {
+      assertFlintFileIndex()
+        .withSourceFiles(Map(partition1, partition2))
+        .withIndexData(
+          schema,
+          Seq(Row("file-1", 2023)) // file-2 is not refreshed to index yet
+        )
+        .withIndexFilter(col("year") === 2023)
+        .shouldScanSourceFiles(
+          Map("partition-1" -> Seq("file-1", "file-2"), "partition-2" -> Seq("file-3")))
+    }
+  }
+
+  private def withHybridScanEnabled(block: => Unit): Unit = {
+    setFlintSparkConf(HYBRID_SCAN_ENABLED, "true")
+    try {
+      block
+    } finally {
+      setFlintSparkConf(HYBRID_SCAN_ENABLED, "false")
+    }
   }
 
   private def assertFlintFileIndex(): AssertionHelper = {
