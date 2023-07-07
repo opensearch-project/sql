@@ -8,6 +8,10 @@ package org.opensearch.sql.spark.storage;
 import static org.opensearch.sql.spark.data.constants.SparkConstants.EMR;
 import static org.opensearch.sql.spark.data.constants.SparkConstants.STEP_ID_FIELD;
 
+import com.amazonaws.auth.AWSStaticCredentialsProvider;
+import com.amazonaws.auth.BasicAWSCredentials;
+import com.amazonaws.services.elasticmapreduce.AmazonElasticMapReduce;
+import com.amazonaws.services.elasticmapreduce.AmazonElasticMapReduceClientBuilder;
 import java.security.AccessController;
 import java.security.InvalidParameterException;
 import java.security.PrivilegedAction;
@@ -21,8 +25,6 @@ import org.opensearch.sql.datasource.model.DataSourceType;
 import org.opensearch.sql.datasources.auth.AuthenticationType;
 import org.opensearch.sql.spark.client.EmrClientImpl;
 import org.opensearch.sql.spark.client.SparkClient;
-import org.opensearch.sql.spark.data.constants.SparkConstants;
-import org.opensearch.sql.spark.helper.EMRHelper;
 import org.opensearch.sql.spark.helper.FlintHelper;
 import org.opensearch.sql.spark.response.SparkResponse;
 import org.opensearch.sql.storage.DataSourceFactory;
@@ -82,11 +84,11 @@ public class SparkStorageFactory implements DataSourceFactory {
           AccessController.doPrivileged((PrivilegedAction<EmrClientImpl>) () -> {
             validateEMRConfigProperties(requiredConfig);
             return new EmrClientImpl(
-                new EMRHelper(
-                  requiredConfig.get(EMR_CLUSTER),
+                getEMRClient(
                   requiredConfig.get(EMR_ACCESS_KEY),
                   requiredConfig.get(EMR_SECRET_KEY),
                   requiredConfig.get(EMR_REGION)),
+                requiredConfig.get(EMR_CLUSTER),
                 new FlintHelper(
                   requiredConfig.get(FLINT_INTEGRATION),
                   requiredConfig.get(FLINT_HOST),
@@ -117,5 +119,14 @@ public class SparkStorageFactory implements DataSourceFactory {
         .equals(AuthenticationType.AWSSIGV4AUTH.getName())) {
       throw new IllegalArgumentException("Invalid auth type.");
     }
+  }
+
+  private AmazonElasticMapReduce getEMRClient(
+      String emrAccessKey, String emrSecretKey, String emrRegion) {
+    return AmazonElasticMapReduceClientBuilder.standard()
+        .withCredentials(new AWSStaticCredentialsProvider(
+            new BasicAWSCredentials(emrAccessKey, emrSecretKey)))
+        .withRegion(emrRegion)
+        .build();
   }
 }

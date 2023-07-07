@@ -9,12 +9,12 @@ import java.util.HashMap;
 import java.util.Map;
 import lombok.Getter;
 import org.opensearch.sql.data.type.ExprType;
+import org.opensearch.sql.planner.DefaultImplementor;
 import org.opensearch.sql.planner.logical.LogicalPlan;
 import org.opensearch.sql.planner.physical.PhysicalPlan;
 import org.opensearch.sql.spark.client.SparkClient;
 import org.opensearch.sql.spark.functions.scan.SparkSqlFunctionTableScanBuilder;
 import org.opensearch.sql.spark.request.SparkQueryRequest;
-import org.opensearch.sql.spark.storage.implementor.SparkDefaultImplementor;
 import org.opensearch.sql.storage.Table;
 import org.opensearch.sql.storage.read.TableScanBuilder;
 
@@ -59,7 +59,7 @@ public class SparkTable implements Table {
     SparkScan metricScan =
         new SparkScan(sparkClient);
     metricScan.setRequest(sparkQueryRequest);
-    return plan.accept(new SparkDefaultImplementor(), metricScan);
+    return plan.accept(new DefaultImplementor<SparkScan>(), metricScan);
   }
 
   @Override

@@ -46,17 +46,13 @@ public class DefaultSparkSqlFunctionResponseHandle implements SparkSqlFunctionRe
   private void constructIteratorAndSchema(JSONObject responseObject) {
     List<ExprValue> result = new ArrayList<>();
     List<ExecutionEngine.Schema.Column> columnList;
-    if (responseObject.has("data")) {
-      JSONObject items = responseObject.getJSONObject("data");
-      columnList = getColumnList(items.getJSONArray("schema"));
-      for (int i = 0; i < items.getJSONArray("result").length(); i++) {
-        JSONObject row = new JSONObject(
-            items.getJSONArray("result").get(i).toString().replace("'", "\""));
-        LinkedHashMap<String, ExprValue> linkedHashMap = extractRow(row, columnList);
-        result.add(new ExprTupleValue(linkedHashMap));
-      }
-    } else {
-      throw new RuntimeException("Unexpected result during spark sql query execution");
+    JSONObject items = responseObject.getJSONObject("data");
+    columnList = getColumnList(items.getJSONArray("schema"));
+    for (int i = 0; i < items.getJSONArray("result").length(); i++) {
+      JSONObject row = new JSONObject(
+          items.getJSONArray("result").get(i).toString().replace("'", "\""));
+      LinkedHashMap<String, ExprValue> linkedHashMap = extractRow(row, columnList);
+      result.add(new ExprTupleValue(linkedHashMap));
     }
     this.schema = new ExecutionEngine.Schema(columnList);
     this.responseIterator = result.iterator();

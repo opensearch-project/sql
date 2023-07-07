@@ -111,22 +111,6 @@ public class SparkSqlFunctionTableScanOperatorTest {
 
   @Test
   @SneakyThrows
-  void testEmptyDataWithException() {
-    SparkQueryRequest sparkQueryRequest = new SparkQueryRequest();
-    sparkQueryRequest.setSql(QUERY);
-
-    SparkSqlFunctionTableScanOperator sparkSqlFunctionTableScanOperator
-        = new SparkSqlFunctionTableScanOperator(sparkClient, sparkQueryRequest);
-
-    when(sparkClient.sql(any()))
-        .thenReturn(new JSONObject(getJson("invalid_response.json")));
-    RuntimeException exception = assertThrows(
-        RuntimeException.class, sparkSqlFunctionTableScanOperator::open);
-    assertEquals("Unexpected result during spark sql query execution", exception.getMessage());
-  }
-
-  @Test
-  @SneakyThrows
   void testQueryResponseAllTypes() {
     SparkQueryRequest sparkQueryRequest = new SparkQueryRequest();
     sparkQueryRequest.setSql(QUERY);

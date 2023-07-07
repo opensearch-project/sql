@@ -48,11 +48,6 @@ public class SparkSqlFunctionTableScanOperator extends TableScanOperator {
   }
 
   @Override
-  public void close() {
-    super.close();
-  }
-
-  @Override
   public boolean hasNext() {
     return this.sparkResponseHandle.hasNext();
   }
