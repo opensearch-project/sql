@@ -298,6 +298,9 @@ integTest {
 
     // Exclude JDBC related tests
     exclude 'org/opensearch/sql/jdbc/**'
+
+    // Exclude this IT until running IT with security plugin enabled is ready
+    exclude 'org/opensearch/sql/ppl/CrossClusterSearchIT.class'
 }
 
 
