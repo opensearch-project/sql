@@ -9,6 +9,8 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.json.JSONArray;
 import org.json.JSONObject;
 import org.opensearch.sql.data.model.ExprBooleanValue;
@@ -33,6 +35,8 @@ import org.opensearch.sql.executor.ExecutionEngine;
 public class DefaultSparkSqlFunctionResponseHandle implements SparkSqlFunctionResponseHandle {
   private Iterator<ExprValue> responseIterator;
   private ExecutionEngine.Schema schema;
+  private static final Logger logger =
+      LogManager.getLogger(DefaultSparkSqlFunctionResponseHandle.class);
 
   /**
    * Constructor.
@@ -47,6 +51,7 @@ public class DefaultSparkSqlFunctionResponseHandle implements SparkSqlFunctionRe
     List<ExprValue> result = new ArrayList<>();
     List<ExecutionEngine.Schema.Column> columnList;
     JSONObject items = responseObject.getJSONObject("data");
+    logger.info("Spark Application ID: " + items.getString("applicationId"));
     columnList = getColumnList(items.getJSONArray("schema"));
     for (int i = 0; i < items.getJSONArray("result").length(); i++) {
       JSONObject row = new JSONObject(

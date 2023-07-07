@@ -85,7 +85,7 @@ public class EmrClientImpl implements SparkClient {
         .withSteps(emrstep);
 
     AddJobFlowStepsResult result = emr.addJobFlowSteps(request);
-    logger.info("Spark application step IDs: " + result.getStepIds());
+    logger.info("EMR step ID: " + result.getStepIds());
 
     String stepId = result.getStepIds().get(0);
     DescribeStepRequest stepRequest = new DescribeStepRequest()
