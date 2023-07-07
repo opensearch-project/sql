@@ -59,12 +59,12 @@ case class FlintSparkSkippingFileIndex(
   override def partitionSchema: StructType = baseFileIndex.partitionSchema
 
   /*
-   * Left join source partitions and index data to keep unrefreshed source files:
+   * Left join source partitions and index data to keep unknown source files:
    * Express the logic in SQL:
    *   SELECT left.file_path
    *   FROM partitions AS left
-   *   LEFT OUTER JOIN indexScan AS right
-   *   ON left.file_path = right.file_path
+   *   LEFT JOIN indexScan AS right
+   *     ON left.file_path = right.file_path
    *   WHERE right.file_path IS NULL
    *     OR [indexFilter]
    */
@@ -73,7 +73,7 @@ case class FlintSparkSkippingFileIndex(
     import sparkSession.implicits._
 
     partitions
-      .flatMap(_.files.map(f => f.getPath.toString))
+      .flatMap(_.files.map(f => f.getPath.toUri.toString))
       .toDF(FILE_PATH_COLUMN)
       .join(indexScan, Seq(FILE_PATH_COLUMN), "left")
       .filter(isnull(indexScan(FILE_PATH_COLUMN)) || new Column(indexFilter))

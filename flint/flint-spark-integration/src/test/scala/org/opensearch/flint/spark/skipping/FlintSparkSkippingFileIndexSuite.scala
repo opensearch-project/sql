@@ -17,7 +17,6 @@ import org.apache.spark.sql.{Column, DataFrame, Row}
 import org.apache.spark.sql.catalyst.InternalRow
 import org.apache.spark.sql.catalyst.expressions.{Literal, Predicate}
 import org.apache.spark.sql.execution.datasources.{FileIndex, PartitionDirectory}
-import org.apache.spark.sql.flint.config.FlintSparkConf.HYBRID_SCAN_ENABLED
 import org.apache.spark.sql.functions.col
 import org.apache.spark.sql.types._
 
@@ -46,7 +45,7 @@ class FlintSparkSkippingFileIndexSuite extends FlintSuite with Matchers {
       .shouldScanSourceFiles(Map("partition-1" -> Seq("file-1"), "partition-2" -> Seq("file-3")))
   }
 
-  test("should skip unrefreshed source files by default") {
+  test("should skip unknown source files by default") {
     assertFlintFileIndex()
       .withSourceFiles(Map(partition1))
       .withIndexData(
@@ -57,7 +56,7 @@ class FlintSparkSkippingFileIndexSuite extends FlintSuite with Matchers {
       .shouldScanSourceFiles(Map("partition-1" -> Seq("file-1")))
   }
 
-  test("should not skip unrefreshed source files in hybrid-scan mode") {
+  test("should not skip unknown source files in hybrid-scan mode") {
     withHybridScanEnabled {
       assertFlintFileIndex()
         .withSourceFiles(Map(partition1))
@@ -70,7 +69,7 @@ class FlintSparkSkippingFileIndexSuite extends FlintSuite with Matchers {
     }
   }
 
-  test("should not skip unrefreshed source files of multiple partitions in hybrid-scan mode") {
+  test("should not skip unknown source files of multiple partitions in hybrid-scan mode") {
     withHybridScanEnabled {
       assertFlintFileIndex()
         .withSourceFiles(Map(partition1, partition2))
@@ -81,15 +80,6 @@ class FlintSparkSkippingFileIndexSuite extends FlintSuite with Matchers {
         .withIndexFilter(col("year") === 2023)
         .shouldScanSourceFiles(
           Map("partition-1" -> Seq("file-1", "file-2"), "partition-2" -> Seq("file-3")))
-    }
-  }
-
-  private def withHybridScanEnabled(block: => Unit): Unit = {
-    setFlintSparkConf(HYBRID_SCAN_ENABLED, "true")
-    try {
-      block
-    } finally {
-      setFlintSparkConf(HYBRID_SCAN_ENABLED, "false")
     }
   }
 
