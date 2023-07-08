@@ -45,6 +45,7 @@ import lombok.Getter;
 import lombok.Setter;
 import org.opensearch.common.time.DateFormatter;
 import org.opensearch.common.time.DateFormatters;
+import org.opensearch.common.time.FormatNames;
 import org.opensearch.sql.data.model.ExprBooleanValue;
 import org.opensearch.sql.data.model.ExprByteValue;
 import org.opensearch.sql.data.model.ExprCollectionValue;
@@ -60,6 +61,7 @@ import org.opensearch.sql.data.model.ExprTimeValue;
 import org.opensearch.sql.data.model.ExprTimestampValue;
 import org.opensearch.sql.data.model.ExprTupleValue;
 import org.opensearch.sql.data.model.ExprValue;
+import org.opensearch.sql.data.type.ExprCoreType;
 import org.opensearch.sql.data.type.ExprType;
 import org.opensearch.sql.opensearch.data.type.OpenSearchBinaryType;
 import org.opensearch.sql.opensearch.data.type.OpenSearchDataType;
@@ -82,7 +84,7 @@ public class OpenSearchExprValueFactory {
 
   /**
    * Extend existing mapping by new data without overwrite.
-   * Called from aggregation only {@link AggregationQueryBuilder#buildTypeMapping}.
+   * Called from aggregation only {@see AggregationQueryBuilder#buildTypeMapping}.
    * @param typeMapping A data type mapping produced by aggregation.
    */
   public void extendTypeMapping(Map<String, OpenSearchDataType> typeMapping) {
@@ -124,14 +126,10 @@ public class OpenSearchExprValueFactory {
           .put(OpenSearchDataType.of(OpenSearchDataType.MappingType.Boolean),
               (c, dt) -> ExprBooleanValue.of(c.booleanValue()))
           //Handles the creation of DATE, TIME & DATETIME
-          .put(OpenSearchDateType.of(TIME),
-              this::createOpenSearchDateType)
-          .put(OpenSearchDateType.of(DATE),
-              this::createOpenSearchDateType)
-          .put(OpenSearchDateType.of(TIMESTAMP),
-              this::createOpenSearchDateType)
-          .put(OpenSearchDateType.of(DATETIME),
-              this::createOpenSearchDateType)
+          .put(OpenSearchDateType.of(TIME), this::createOpenSearchDateType)
+          .put(OpenSearchDateType.of(DATE), this::createOpenSearchDateType)
+          .put(OpenSearchDateType.of(TIMESTAMP), this::createOpenSearchDateType)
+          .put(OpenSearchDateType.of(DATETIME), this::createOpenSearchDateType)
           .put(OpenSearchDataType.of(OpenSearchDataType.MappingType.Ip),
               (c, dt) -> new OpenSearchExprIpValue(c.stringValue()))
           .put(OpenSearchDataType.of(OpenSearchDataType.MappingType.GeoPoint),
@@ -225,38 +223,34 @@ public class OpenSearchExprValueFactory {
    */
   private ExprValue parseTimestampString(String value, OpenSearchDateType dateType) {
     Instant parsed = null;
-    for (DateFormatter formatter : dateType.getAllNamedFormatters()) {
+    List<DateFormatter> formatters = dateType.getAllNamedFormatters();
+    formatters.addAll(dateType.getAllCustomFormatters());
+
+    for (DateFormatter formatter : formatters) {
       try {
         TemporalAccessor accessor = formatter.parse(value);
         ZonedDateTime zonedDateTime = DateFormatters.from(accessor);
         // remove the Zone
-        parsed = zonedDateTime.withZoneSameLocal(ZoneId.of("Z")).toInstant();
+        parsed = zonedDateTime.withZoneSameLocal(UTC_ZONE_ID).toInstant();
+        return new ExprTimestampValue(parsed);
       } catch (IllegalArgumentException ignored) {
         // nothing to do, try another format
       }
     }
 
-    // FOLLOW-UP PR: Check custom formatters too
-
-    // if no named formatters are available, use the default
-    if (dateType.getAllNamedFormatters().size() == 0
-        || dateType.getAllCustomFormatters().size() > 0) {
-      try {
-        parsed = DateFormatters.from(DATE_TIME_FORMATTER.parse(value)).toInstant();
-      } catch (DateTimeParseException e) {
-        // ignored
-      }
+    // if no formatters are available, try the default formatter
+    try {
+      parsed = DateFormatters.from(DATE_TIME_FORMATTER.parse(value)).toInstant();
+      return new ExprTimestampValue(parsed);
+    } catch (DateTimeParseException ignored) {
+      // ignored
     }
 
-    if (parsed == null) {
-      // otherwise, throw an error that no formatters worked
-      throw new IllegalArgumentException(
-          String.format(
-              "Construct ExprTimestampValue from \"%s\" failed, unsupported date format.", value)
-      );
-    }
-
-    return new ExprTimestampValue(parsed);
+    // otherwise, throw an error that no formatters worked
+    throw new IllegalArgumentException(
+        String.format(
+            "Construct ExprTimestampValue from \"%s\" failed, unsupported date format.", value)
+    );
   }
 
   /**
@@ -267,26 +261,28 @@ public class OpenSearchExprValueFactory {
    * @return time without timezone
    */
   private ExprValue parseTimeString(String value, OpenSearchDateType dateType) {
-    for (DateFormatter formatter : dateType.getAllNamedFormatters()) {
+    List<DateFormatter> formatters = dateType.getAllNamedFormatters();
+    formatters.addAll(dateType.getAllCustomFormatters());
+
+    for (DateFormatter formatter : formatters) {
       try {
         TemporalAccessor accessor = formatter.parse(value);
         ZonedDateTime zonedDateTime = DateFormatters.from(accessor);
         return new ExprTimeValue(
-            zonedDateTime.withZoneSameLocal(ZoneId.of("Z")).toLocalTime());
-      } catch (IllegalArgumentException  ignored) {
+            zonedDateTime.withZoneSameLocal(UTC_ZONE_ID).toLocalTime());
+      } catch (IllegalArgumentException ignored) {
         // nothing to do, try another format
       }
     }
 
-    // if no named formatters are available, use the default
-    if (dateType.getAllNamedFormatters().size() == 0) {
-      try {
-        return new ExprTimeValue(
-            DateFormatters.from(STRICT_HOUR_MINUTE_SECOND_FORMATTER.parse(value)).toLocalTime());
-      } catch (DateTimeParseException e) {
-        // ignored
-      }
+    // if no formatters are available, try the default formatter
+    try {
+      return new ExprTimeValue(
+          DateFormatters.from(STRICT_HOUR_MINUTE_SECOND_FORMATTER.parse(value)).toLocalTime());
+    } catch (DateTimeParseException ignored) {
+      // ignored
     }
+
     throw new IllegalArgumentException("Construct ExprTimeValue from \"" + value
         + "\" failed, unsupported time format.");
   }
@@ -299,27 +295,29 @@ public class OpenSearchExprValueFactory {
    * @return date without timezone
    */
   private ExprValue parseDateString(String value, OpenSearchDateType dateType) {
-    for (DateFormatter formatter : dateType.getAllNamedFormatters()) {
+    List<DateFormatter> formatters = dateType.getAllNamedFormatters();
+    formatters.addAll(dateType.getAllCustomFormatters());
+
+    for (DateFormatter formatter : formatters) {
       try {
         TemporalAccessor accessor = formatter.parse(value);
         ZonedDateTime zonedDateTime = DateFormatters.from(accessor);
         // return the first matching formatter as a date without timezone
         return new ExprDateValue(
-            zonedDateTime.withZoneSameLocal(ZoneId.of("Z")).toLocalDate());
-      } catch (IllegalArgumentException  ignored) {
+            zonedDateTime.withZoneSameLocal(UTC_ZONE_ID).toLocalDate());
+      } catch (IllegalArgumentException ignored) {
         // nothing to do, try another format
       }
     }
 
-    // if no named formatters are available, use the default
-    if (dateType.getAllNamedFormatters().size() == 0) {
-      try {
-        return new ExprDateValue(
-            DateFormatters.from(STRICT_YEAR_MONTH_DAY_FORMATTER.parse(value)).toLocalDate());
-      } catch (DateTimeParseException e) {
-        // ignored
-      }
+    // if no formatters are available, use the default formatter
+    try {
+      return new ExprDateValue(
+          DateFormatters.from(STRICT_YEAR_MONTH_DAY_FORMATTER.parse(value)).toLocalDate());
+    } catch (DateTimeParseException ignored) {
+      // ignored
     }
+
     throw new IllegalArgumentException("Construct ExprDateValue from \"" + value
         + "\" failed, unsupported date format.");
   }
@@ -328,15 +326,31 @@ public class OpenSearchExprValueFactory {
     OpenSearchDateType dt = (OpenSearchDateType) type;
     ExprType returnFormat = dt.getExprType();
 
-    if (value.isNumber()) {
-      Instant epochMillis = Instant.ofEpochMilli(value.longValue());
-      if (returnFormat == TIME) {
-        return new ExprTimeValue(LocalTime.from(epochMillis.atZone(UTC_ZONE_ID)));
+    if (value.isNumber()) { // isNumber
+      var numFormatters = dt.getNumericNamedFormatters();
+      if (numFormatters.size() > 0 || !dt.hasFormats()) {
+        long epochMillis = 0;
+        if (numFormatters.contains(DateFormatter.forPattern(
+            FormatNames.EPOCH_SECOND.getSnakeCaseName()))) {
+          // no CamelCase for `EPOCH_*` formats
+          epochMillis = value.longValue() * 1000;
+        } else /* EPOCH_MILLIS */ {
+          epochMillis = value.longValue();
+        }
+        Instant instant = Instant.ofEpochMilli(epochMillis);
+        switch ((ExprCoreType) returnFormat) {
+          case TIME: return new ExprTimeValue(LocalTime.from(instant.atZone(UTC_ZONE_ID)));
+          case DATE: return new ExprDateValue(LocalDate.ofInstant(instant, UTC_ZONE_ID));
+          default: return new ExprTimestampValue(instant);
+        }
+      } else {
+        // custom format
+        switch ((ExprCoreType) returnFormat) {
+          case TIME: return parseTimeString(value.stringValue(), dt);
+          case DATE: return parseDateString(value.stringValue(), dt);
+          default: return parseTimestampString(value.stringValue(), dt);
+        }
       }
-      if (returnFormat == DATE) {
-        return new ExprDateValue(LocalDate.ofInstant(epochMillis, UTC_ZONE_ID));
-      }
-      return new ExprTimestampValue(Instant.ofEpochMilli(value.longValue()));
     }
 
     if (value.isString()) {
