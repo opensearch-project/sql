@@ -113,7 +113,8 @@ public class OpenSearchSettings extends Settings {
       ENCYRPTION_MASTER_KEY.getKeyValue(),
       "0000000000000000",
       Setting.Property.NodeScope,
-      Setting.Property.Final);
+      Setting.Property.Final,
+      Setting.Property.Filtered);
 
   public static final Setting<String> DATASOURCE_URI_ALLOW_HOSTS = Setting.simpleString(
       Key.DATASOURCES_URI_ALLOWHOSTS.getKeyValue(),
