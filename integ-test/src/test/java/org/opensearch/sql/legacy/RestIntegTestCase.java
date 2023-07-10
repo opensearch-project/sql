@@ -6,6 +6,7 @@
 
 package org.opensearch.sql.legacy;
 
+import static org.opensearch.core.common.Strings.isNullOrEmpty;
 import static org.opensearch.sql.legacy.TestUtils.createIndexByRestClient;
 import static org.opensearch.sql.legacy.TestUtils.getAccountIndexMapping;
 import static org.opensearch.sql.legacy.TestUtils.getBankIndexMapping;
@@ -98,7 +99,7 @@ public abstract class RestIntegTestCase extends OpenSearchSQLRestTestCase {
     // jacoco.dir is set in sqlplugin-coverage.gradle, if it doesn't exist we don't
     // want to collect coverage so we can return early
     String jacocoBuildPath = System.getProperty("jacoco.dir");
-    if (Strings.isNullOrEmpty(jacocoBuildPath)) {
+    if (isNullOrEmpty(jacocoBuildPath)) {
       return;
     }
 
