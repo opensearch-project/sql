@@ -217,6 +217,8 @@ public class OpenSearchDataSourceMetadataStorage implements DataSourceMetadataSt
     searchSourceBuilder.query(query);
     searchSourceBuilder.size(DATASOURCE_QUERY_RESULT_SIZE);
     searchRequest.source(searchSourceBuilder);
+    // strongly consistent reads is requred. more info https://github.com/opensearch-project/sql/issues/1801.
+    searchRequest.preference("_primary");
     ActionFuture<SearchResponse> searchResponseActionFuture;
     try (ThreadContext.StoredContext ignored = client.threadPool().getThreadContext()
         .stashContext()) {
