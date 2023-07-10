@@ -8,8 +8,7 @@ package org.opensearch.flint.spark.skipping.minmax
 import org.opensearch.flint.spark.skipping.FlintSparkSkippingStrategy
 import org.opensearch.flint.spark.skipping.FlintSparkSkippingStrategy.SkippingKind.{MinMax, SkippingKind}
 
-import org.apache.spark.sql.Column
-import org.apache.spark.sql.catalyst.expressions.{AttributeReference, EqualTo, Literal, Predicate}
+import org.apache.spark.sql.catalyst.expressions.{AttributeReference, EqualTo, GreaterThan, GreaterThanOrEqual, In, LessThan, LessThanOrEqual, Literal, Or, Predicate}
 import org.apache.spark.sql.catalyst.expressions.aggregate.{AggregateFunction, Max, Min}
 import org.apache.spark.sql.functions.col
 
@@ -33,10 +32,20 @@ case class MinMaxSkippingStrategy(
     Seq(Min(col(columnName).expr), Max(col(columnName).expr))
 
   override def rewritePredicate(predicate: Predicate): Option[Predicate] =
-    predicate.collect { case EqualTo(AttributeReference(`columnName`, _, _, _), value: Literal) =>
-      rewriteTo(col(minColName) <= value && col(maxColName) >= value)
+    predicate.collect {
+      case EqualTo(AttributeReference(`columnName`, _, _, _), value: Literal) =>
+        convertToPredicate(col(minColName) <= value && col(maxColName) >= value)
+      case LessThan(AttributeReference(`columnName`, _, _, _), value: Literal) =>
+        convertToPredicate(col(minColName) < value)
+      case LessThanOrEqual(AttributeReference(`columnName`, _, _, _), value: Literal) =>
+        convertToPredicate(col(minColName) <= value)
+      case GreaterThan(AttributeReference(`columnName`, _, _, _), value: Literal) =>
+        convertToPredicate(col(maxColName) > value)
+      case GreaterThanOrEqual(AttributeReference(`columnName`, _, _, _), value: Literal) =>
+        convertToPredicate(col(maxColName) >= value)
+      case In(AttributeReference(`columnName`, _, _, _), values: Seq[Literal]) =>
+        values
+          .map(value => convertToPredicate(col(minColName) <= value && col(maxColName) >= value))
+          .reduceLeft(Or)
     }.headOption
-
-  // Convert a column to predicate
-  private def rewriteTo(col: Column): Predicate = col.expr.asInstanceOf[Predicate]
 }
