@@ -353,8 +353,8 @@ class OpenSearchExprValueFactoryTest {
         assertThrows(IllegalArgumentException.class,
             () -> constructFromObject("customFormatV", "2015-01-01 12-10-30"));
     assertEquals(
-        "Construct ExprTimestampValue from \"2015-01-01 12-10-30\" failed, "
-            + "unsupported date format.",
+        "Construct TIMESTAMP from \"2015-01-01 12-10-30\" failed, "
+            + "unsupported format.",
         exception.getMessage());
 
     assertEquals(
@@ -372,8 +372,8 @@ class OpenSearchExprValueFactoryTest {
         assertThrows(IllegalArgumentException.class,
             () -> constructFromObject("timestampV", "2015-01-01 12:10"));
     assertEquals(
-        "Construct ExprTimestampValue from \"2015-01-01 12:10\" failed, "
-            + "unsupported date format.",
+        "Construct TIMESTAMP from \"2015-01-01 12:10\" failed, "
+            + "unsupported format.",
         exception.getMessage());
 
     // fail with missing seconds
@@ -381,8 +381,8 @@ class OpenSearchExprValueFactoryTest {
         assertThrows(IllegalArgumentException.class,
             () -> constructFromObject("dateOrEpochMillisV", "2015-01-01 12:10"));
     assertEquals(
-        "Construct ExprTimestampValue from \"2015-01-01 12:10\" failed, "
-            + "unsupported date format.",
+        "Construct TIMESTAMP from \"2015-01-01 12:10\" failed, "
+            + "unsupported format.",
         exception.getMessage());
   }
 
@@ -391,15 +391,15 @@ class OpenSearchExprValueFactoryTest {
     IllegalArgumentException exception = assertThrows(
         IllegalArgumentException.class, () -> constructFromObject("timeV", "2015-01-01"));
     assertEquals(
-        "Construct ExprTimeValue from \"2015-01-01\" failed, "
-            + "unsupported time format.",
+        "Construct TIME from \"2015-01-01\" failed, "
+            + "unsupported format.",
         exception.getMessage());
 
     exception = assertThrows(
         IllegalArgumentException.class, () -> constructFromObject("timeStringV", "10:10"));
     assertEquals(
-        "Construct ExprTimeValue from \"10:10\" failed, "
-            + "unsupported time format.",
+        "Construct TIME from \"10:10\" failed, "
+            + "unsupported format.",
         exception.getMessage());
   }
 
@@ -408,15 +408,15 @@ class OpenSearchExprValueFactoryTest {
     IllegalArgumentException exception = assertThrows(
         IllegalArgumentException.class, () -> constructFromObject("dateV", "12:10:10"));
     assertEquals(
-        "Construct ExprDateValue from \"12:10:10\" failed, "
-            + "unsupported date format.",
+        "Construct DATE from \"12:10:10\" failed, "
+            + "unsupported format.",
         exception.getMessage());
 
     exception = assertThrows(
         IllegalArgumentException.class, () -> constructFromObject("dateStringV", "abc"));
     assertEquals(
-        "Construct ExprDateValue from \"abc\" failed, "
-            + "unsupported date format.",
+        "Construct DATE from \"abc\" failed, "
+            + "unsupported format.",
         exception.getMessage());
   }
 

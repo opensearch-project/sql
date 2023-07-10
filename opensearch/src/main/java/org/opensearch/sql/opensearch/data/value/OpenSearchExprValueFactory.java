@@ -215,61 +215,30 @@ public class OpenSearchExprValueFactory {
   }
 
   /**
-   * Parses value with the first matching formatter as an Instant to UTF.
-   *
-   * @param value - timestamp as string
-   * @param dateType - field type
-   * @return Instant without timezone
-   */
-  private ExprValue parseTimestampString(String value, OpenSearchDateType dateType) {
-    Instant parsed = null;
-    List<DateFormatter> formatters = dateType.getAllNamedFormatters();
-    formatters.addAll(dateType.getAllCustomFormatters());
-
-    for (DateFormatter formatter : formatters) {
-      try {
-        TemporalAccessor accessor = formatter.parse(value);
-        ZonedDateTime zonedDateTime = DateFormatters.from(accessor);
-        // remove the Zone
-        parsed = zonedDateTime.withZoneSameLocal(UTC_ZONE_ID).toInstant();
-        return new ExprTimestampValue(parsed);
-      } catch (IllegalArgumentException ignored) {
-        // nothing to do, try another format
-      }
-    }
-
-    // if no formatters are available, try the default formatter
-    try {
-      parsed = DateFormatters.from(DATE_TIME_FORMATTER.parse(value)).toInstant();
-      return new ExprTimestampValue(parsed);
-    } catch (DateTimeParseException ignored) {
-      // ignored
-    }
-
-    // otherwise, throw an error that no formatters worked
-    throw new IllegalArgumentException(
-        String.format(
-            "Construct ExprTimestampValue from \"%s\" failed, unsupported date format.", value)
-    );
-  }
-
-  /**
-   * return the first matching formatter as a time without timezone.
+   * Parse value with the first matching formatter into {@link ExprValue}
+   * with corresponding {@link ExprCoreType}.
    *
    * @param value - time as string
-   * @param dateType - field data type
-   * @return time without timezone
+   * @param dataType - field data type
+   * @return Parsed value
    */
-  private ExprValue parseTimeString(String value, OpenSearchDateType dateType) {
-    List<DateFormatter> formatters = dateType.getAllNamedFormatters();
-    formatters.addAll(dateType.getAllCustomFormatters());
+  private ExprValue parseDateTimeString(String value, OpenSearchDateType dataType) {
+    List<DateFormatter> formatters = dataType.getAllNamedFormatters();
+    formatters.addAll(dataType.getAllCustomFormatters());
+    ExprCoreType returnFormat = (ExprCoreType) dataType.getExprType();
 
     for (DateFormatter formatter : formatters) {
       try {
         TemporalAccessor accessor = formatter.parse(value);
         ZonedDateTime zonedDateTime = DateFormatters.from(accessor);
-        return new ExprTimeValue(
-            zonedDateTime.withZoneSameLocal(UTC_ZONE_ID).toLocalTime());
+        switch (returnFormat) {
+          case TIME: return new ExprTimeValue(
+              zonedDateTime.withZoneSameLocal(UTC_ZONE_ID).toLocalTime());
+          case DATE: return new ExprDateValue(
+              zonedDateTime.withZoneSameLocal(UTC_ZONE_ID).toLocalDate());
+          default: return new ExprTimestampValue(
+              zonedDateTime.withZoneSameLocal(UTC_ZONE_ID).toInstant());
+        }
       } catch (IllegalArgumentException ignored) {
         // nothing to do, try another format
       }
@@ -277,49 +246,20 @@ public class OpenSearchExprValueFactory {
 
     // if no formatters are available, try the default formatter
     try {
-      return new ExprTimeValue(
-          DateFormatters.from(STRICT_HOUR_MINUTE_SECOND_FORMATTER.parse(value)).toLocalTime());
-    } catch (DateTimeParseException ignored) {
-      // ignored
-    }
-
-    throw new IllegalArgumentException("Construct ExprTimeValue from \"" + value
-        + "\" failed, unsupported time format.");
-  }
-
-  /**
-   * return the first matching formatter as a date without timezone.
-   *
-   * @param value - date as string
-   * @param dateType - field data type
-   * @return date without timezone
-   */
-  private ExprValue parseDateString(String value, OpenSearchDateType dateType) {
-    List<DateFormatter> formatters = dateType.getAllNamedFormatters();
-    formatters.addAll(dateType.getAllCustomFormatters());
-
-    for (DateFormatter formatter : formatters) {
-      try {
-        TemporalAccessor accessor = formatter.parse(value);
-        ZonedDateTime zonedDateTime = DateFormatters.from(accessor);
-        // return the first matching formatter as a date without timezone
-        return new ExprDateValue(
-            zonedDateTime.withZoneSameLocal(UTC_ZONE_ID).toLocalDate());
-      } catch (IllegalArgumentException ignored) {
-        // nothing to do, try another format
+      switch (returnFormat) {
+        case TIME: return new ExprTimeValue(
+            DateFormatters.from(STRICT_HOUR_MINUTE_SECOND_FORMATTER.parse(value)).toLocalTime());
+        case DATE: return new ExprDateValue(
+            DateFormatters.from(STRICT_YEAR_MONTH_DAY_FORMATTER.parse(value)).toLocalDate());
+        default: return new ExprTimestampValue(
+            DateFormatters.from(DATE_TIME_FORMATTER.parse(value)).toInstant());
       }
-    }
-
-    // if no formatters are available, use the default formatter
-    try {
-      return new ExprDateValue(
-          DateFormatters.from(STRICT_YEAR_MONTH_DAY_FORMATTER.parse(value)).toLocalDate());
     } catch (DateTimeParseException ignored) {
       // ignored
     }
 
-    throw new IllegalArgumentException("Construct ExprDateValue from \"" + value
-        + "\" failed, unsupported date format.");
+    throw new IllegalArgumentException(String.format(
+        "Construct %s from \"%s\" failed, unsupported format.", returnFormat, value));
   }
 
   private ExprValue createOpenSearchDateType(Content value, ExprType type) {
@@ -345,23 +285,11 @@ public class OpenSearchExprValueFactory {
         }
       } else {
         // custom format
-        switch ((ExprCoreType) returnFormat) {
-          case TIME: return parseTimeString(value.stringValue(), dt);
-          case DATE: return parseDateString(value.stringValue(), dt);
-          default: return parseTimestampString(value.stringValue(), dt);
-        }
+        return parseDateTimeString(value.stringValue(), dt);
       }
     }
-
     if (value.isString()) {
-      if (returnFormat == TIME) {
-        return parseTimeString(value.stringValue(), dt);
-      }
-      if (returnFormat == DATE) {
-        return parseDateString(value.stringValue(), dt);
-      }
-      // else timestamp/datetime
-      return parseTimestampString(value.stringValue(), dt);
+      return parseDateTimeString(value.stringValue(), dt);
     }
 
     return new ExprTimestampValue((Instant) value.objectValue());
