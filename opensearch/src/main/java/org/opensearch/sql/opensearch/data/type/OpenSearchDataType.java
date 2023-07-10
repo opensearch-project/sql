@@ -32,7 +32,7 @@ public class OpenSearchDataType implements ExprType, Serializable {
     Text("text", ExprCoreType.UNKNOWN),
     Keyword("keyword", ExprCoreType.STRING),
     Ip("ip", ExprCoreType.UNKNOWN),
-    GeoPoint("geo_point", ExprCoreType.UNKNOWN),
+    GeoPoint("geo_point", ExprCoreType.STRUCT),
     Binary("binary", ExprCoreType.UNKNOWN),
     Date("date", ExprCoreType.TIMESTAMP),
     Object("object", ExprCoreType.STRUCT),
@@ -46,7 +46,7 @@ public class OpenSearchDataType implements ExprType, Serializable {
     ScaledFloat("scaled_float", ExprCoreType.DOUBLE),
     Double("double", ExprCoreType.DOUBLE),
     Boolean("boolean", ExprCoreType.BOOLEAN);
-    // TODO: ranges, geo shape, point, shape
+    // TODO: ranges, geo shape, shape
 
     private final String name;
 

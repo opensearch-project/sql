@@ -122,7 +122,7 @@ public class SymbolTable {
     final LinkedHashMap<String, ExprType> results = new LinkedHashMap<>();
     allSymbols.entrySet().stream().filter(entry -> {
       String symbolName = entry.getKey();
-      int lastDot = symbolName.lastIndexOf(".");
+      int lastDot = symbolName.lastIndexOf(":");
       return -1 == lastDot || !allSymbols.containsKey(symbolName.substring(0, lastDot));
     }).forEach(entry -> results.put(entry.getKey(), entry.getValue()));
     return results;

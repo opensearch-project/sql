@@ -195,7 +195,7 @@ public class OpenSearchExprValueFactory {
         || content.isArray()) {
       return parseArray(content, field, type, supportArrays);
     } else if (type.equals(OpenSearchDataType.of(OpenSearchDataType.MappingType.Object))
-        || type == STRUCT) {
+        || type == STRUCT || type.equals(OpenSearchDataType.of(OpenSearchDataType.MappingType.GeoPoint))) {
       return parseStruct(content, field, supportArrays);
     } else {
       if (typeActionMap.containsKey(type)) {
