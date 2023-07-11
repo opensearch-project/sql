@@ -42,3 +42,11 @@ trait FlintSparkIndex {
    */
   def build(df: DataFrame): DataFrame
 }
+
+object FlintSparkIndex {
+
+  /**
+   * ID column name.
+   */
+  val ID_COLUMN: String = "__id__"
+}
