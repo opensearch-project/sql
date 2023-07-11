@@ -219,6 +219,7 @@ In the index mapping, the `_meta` and `properties`field stores meta and schema i
   IMMEDIATE(true), WAIT_UNTIL(wait_for)]
 - `spark.datasource.flint.read.scroll_size`: default value is 100.
 - `spark.flint.optimizer.enabled`: default is true.
+- `spark.flint.index.hybridscan.enabled`: default is false.
 
 #### Data Type Mapping
 
