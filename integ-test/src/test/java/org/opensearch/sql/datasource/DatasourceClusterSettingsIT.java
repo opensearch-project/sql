@@ -37,7 +37,7 @@ public class DatasourceClusterSettingsIT extends PPLIntegTestCase {
     assertThat(resp.getInt("status"), equalTo(400));
     assertThat(resp.query("/error/root_cause/0/reason"),
         equalTo("final persistent setting [plugins.query.datasources.encryption.masterkey], not updateable"));
-    assertThat(resp.query("/error/type"), equalTo("settings_exception"));
+    assertThat(resp.query("/error/type"), equalTo("illegal_argument_exception"));
   }
 
 }
