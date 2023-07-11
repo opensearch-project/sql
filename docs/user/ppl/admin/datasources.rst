@@ -121,10 +121,14 @@ Only users mapped with roles having above actions are authorized to execute data
 Master Key config for encrypting credential information
 ========================================================
 * When users provide credentials for a data source, the system encrypts and securely stores them in the metadata index. System uses "AES/GCM/NoPadding" symmetric encryption algorithm.
-* Users can set up a master key to use with this encryption method by configuring the plugins.query.datasources.encryption.masterkey setting in the opensearch.yml file.
+* Master key is a required config and users can set this up by configuring the `plugins.query.datasources.encryption.masterkey` setting in the opensearch.yml file.
 * The master key must be 16, 24, or 32 characters long.
-* It's highly recommended that users configure a master key for better security.
-* If users don't provide a master key, the system will default to "0000000000000000".
+* Sample Bash Script to generate a 24 character master key ::
+
+    #!/bin/bash
+    # Generate a 24-character key
+    master_key=$(openssl rand -hex 12)
+    echo "Master Key: $master_key"
 * Sample python script to generate a 24 character master key ::
 
     import random
