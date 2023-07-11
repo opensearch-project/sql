@@ -9,6 +9,7 @@ package org.opensearch.sql.protocol.response;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
+import java.util.Locale;
 import java.util.Map;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
@@ -58,7 +59,7 @@ public class QueryResult implements Iterable<Object[]> {
     Map<String, String> colNameTypes = new LinkedHashMap<>();
     schema.getColumns().forEach(column -> colNameTypes.put(
         getColumnName(column),
-        column.getExprType().typeName().toLowerCase()));
+        column.getExprType().typeName().toLowerCase(Locale.ROOT)));
     return colNameTypes;
   }
 
