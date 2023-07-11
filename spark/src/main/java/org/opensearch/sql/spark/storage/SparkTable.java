@@ -7,9 +7,9 @@ package org.opensearch.sql.spark.storage;
 
 import java.util.HashMap;
 import java.util.Map;
-import javax.annotation.Nonnull;
 import lombok.Getter;
 import org.opensearch.sql.data.type.ExprType;
+import org.opensearch.sql.planner.DefaultImplementor;
 import org.opensearch.sql.planner.logical.LogicalPlan;
 import org.opensearch.sql.planner.physical.PhysicalPlan;
 import org.opensearch.sql.spark.client.SparkClient;
@@ -32,8 +32,7 @@ public class SparkTable implements Table {
   /**
    * Constructor for entire Sql Request.
    */
-  public SparkTable(SparkClient sparkService,
-                    @Nonnull SparkQueryRequest sparkQueryRequest) {
+  public SparkTable(SparkClient sparkService, SparkQueryRequest sparkQueryRequest) {
     this.sparkClient = sparkService;
     this.sparkQueryRequest = sparkQueryRequest;
   }
@@ -57,8 +56,10 @@ public class SparkTable implements Table {
 
   @Override
   public PhysicalPlan implement(LogicalPlan plan) {
-    //TODO: Add plan
-    return null;
+    SparkScan metricScan =
+        new SparkScan(sparkClient);
+    metricScan.setRequest(sparkQueryRequest);
+    return plan.accept(new DefaultImplementor<SparkScan>(), metricScan);
   }
 
   @Override
