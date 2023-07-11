@@ -19,10 +19,12 @@ dependencies {
 
     implementation group: 'org.opensearch', name: 'opensearch', version: "${opensearch_version}"
     implementation group: 'org.json', name: 'json', version: '20230227'
+    implementation group: 'com.amazonaws', name: 'aws-java-sdk-emr', version: '1.12.1'
 
     testImplementation('org.junit.jupiter:junit-jupiter:5.6.2')
-    testImplementation group: 'org.mockito', name: 'mockito-core', version: '3.12.4'
-    testImplementation group: 'org.mockito', name: 'mockito-junit-jupiter', version: '3.12.4'
+    testImplementation group: 'org.mockito', name: 'mockito-core', version: '5.2.0'
+    testImplementation group: 'org.mockito', name: 'mockito-junit-jupiter', version: '5.2.0'
+    testImplementation 'junit:junit:4.13.1'
 }
 
 test {

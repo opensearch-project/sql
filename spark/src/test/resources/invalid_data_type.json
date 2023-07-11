@@ -1,0 +1,12 @@
+{
+  "data": {
+    "result": [
+      "{'struct_column':'struct_value'}"
+    ],
+    "schema": [
+      "{'column_name':'struct_column','data_type':'struct'}"
+    ],
+    "stepId": "s-123456789",
+    "applicationId": "application-abc"
+  }
+}
