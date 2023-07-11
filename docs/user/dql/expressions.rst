@@ -151,7 +151,7 @@ Here is an example for different type of comparison operators::
     +---------+----------+---------+----------+----------+---------+
 
 It is possible to compare datetimes. When comparing different datetime types, for example `DATE` and `TIME`, both converted to `DATETIME`.
-The following rule is applied on coversion: a `TIME` applied to today's date; `DATE` is interpreted at midnight.
+The following rule is applied on coversion: a `TIME` applied to today's date; `DATE` is interpreted at midnight. See example below::
 
     os> SELECT current_time() > current_date() AS `now.time > today`, typeof(current_time()) AS `now.time.type`, typeof(current_date()) AS `now.date.type`;
     fetched rows / total rows = 1/1
