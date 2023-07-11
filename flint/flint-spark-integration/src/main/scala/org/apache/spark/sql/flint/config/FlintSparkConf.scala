@@ -92,6 +92,10 @@ object FlintSparkConf {
   val OPTIMIZER_RULE_ENABLED = FlintConfig("spark.flint.optimizer.enabled")
     .doc("Enable Flint optimizer rule for query rewrite with Flint index")
     .createWithDefault("true")
+
+  val HYBRID_SCAN_ENABLED = FlintConfig("spark.flint.index.hybridscan.enabled")
+    .doc("Enable hybrid scan to include latest source data not refreshed to index yet")
+    .createWithDefault("false")
 }
 
 /**
@@ -113,6 +117,8 @@ class FlintSparkConf(properties: JMap[String, String]) extends Serializable {
   }
 
   def isOptimizerEnabled: Boolean = OPTIMIZER_RULE_ENABLED.readFrom(reader).toBoolean
+
+  def isHybridScanEnabled: Boolean = HYBRID_SCAN_ENABLED.readFrom(reader).toBoolean
 
   /**
    * spark.sql.session.timeZone
