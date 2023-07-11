@@ -301,6 +301,32 @@ class FlintSparkSkippingIndexSuite
         hasIndexFilter(col("MinMax_age_0") <= 25 && col("MinMax_age_1") >= 25))
   }
 
+  test("should rewrite applicable query to scan latest source files in hybrid scan mode") {
+    flint
+      .skippingIndex()
+      .onTable(testTable)
+      .addPartitions("month")
+      .create()
+    flint.refreshIndex(testIndex, FULL)
+
+    // Generate a new source file which is not in index data
+    sql(s"""
+           | INSERT INTO $testTable
+           | PARTITION (year=2023, month=4)
+           | VALUES ('Hello', 35, 'Vancouver')
+           | """.stripMargin)
+
+    withHybridScanEnabled {
+      val query = sql(s"""
+                         | SELECT address
+                         | FROM $testTable
+                         | WHERE month = 4
+                         |""".stripMargin)
+
+      checkAnswer(query, Seq(Row("Seattle"), Row("Vancouver")))
+    }
+  }
+
   test("should return empty if describe index not exist") {
     flint.describeIndex("non-exist") shouldBe empty
   }
@@ -333,7 +359,7 @@ class FlintSparkSkippingIndexSuite
   // Custom matcher to check if FlintSparkSkippingFileIndex has expected filter condition
   def hasIndexFilter(expect: Column): Matcher[FlintSparkSkippingFileIndex] = {
     Matcher { (fileIndex: FlintSparkSkippingFileIndex) =>
-      val plan = fileIndex.filterByIndex.queryExecution.logical
+      val plan = fileIndex.indexScan.queryExecution.logical
       val hasExpectedFilter = plan.find {
         case Filter(actual, _) =>
           actual.semanticEquals(expect.expr)
