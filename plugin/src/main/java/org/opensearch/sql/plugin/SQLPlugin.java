@@ -15,6 +15,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 import java.util.function.Supplier;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.action.ActionRequest;
@@ -90,7 +91,8 @@ import org.opensearch.watcher.ResourceWatcherService;
 
 public class SQLPlugin extends Plugin implements ActionPlugin, ScriptPlugin {
 
-  private static final Logger LOG = LogManager.getLogger();
+  private static final Logger LOGGER = LogManager.getLogger(SQLPlugin.class);
+
   private ClusterService clusterService;
   /**
    * Settings should be inited when bootstrap the plugin.
@@ -212,6 +214,14 @@ public class SQLPlugin extends Plugin implements ActionPlugin, ScriptPlugin {
   private DataSourceServiceImpl createDataSourceService() {
     String masterKey = OpenSearchSettings
         .DATASOURCE_MASTER_SECRET_KEY.get(clusterService.getSettings());
+    if (StringUtils.isEmpty(masterKey)) {
+      LOGGER.warn("Master key is a required config for using create and update datasource APIs. "
+          + "Please set plugins.query.datasources.encryption.masterkey config "
+          + "in opensearch.yml in all the cluster nodes. "
+          + "More details can be found here: "
+          + "https://github.com/opensearch-project/sql/blob/main/docs/user/ppl/"
+          + "admin/datasources.rst#master-key-config-for-encrypting-credential-information");
+    }
     DataSourceMetadataStorage dataSourceMetadataStorage
         = new OpenSearchDataSourceMetadataStorage(client, clusterService,
             new EncryptorImpl(masterKey));
