@@ -15,6 +15,7 @@ import lombok.RequiredArgsConstructor;
 import org.opensearch.sql.ast.AbstractNodeVisitor;
 import org.opensearch.sql.ast.expression.Alias;
 import org.opensearch.sql.ast.expression.Function;
+import org.opensearch.sql.ast.expression.NestedAllTupleFields;
 import org.opensearch.sql.ast.expression.QualifiedName;
 import org.opensearch.sql.ast.expression.UnresolvedExpression;
 import org.opensearch.sql.expression.Expression;
@@ -46,6 +47,28 @@ public class NestedAnalyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisCon
   }
 
   @Override
+  public LogicalPlan visitNestedAllTupleFields(NestedAllTupleFields node, AnalysisContext context) {
+    List<Map<String, ReferenceExpression>> args = new ArrayList<>();
+    for (NamedExpression namedExpr : namedExpressions) {
+      if (isNestedFunction(namedExpr.getDelegated())) {
+        ReferenceExpression field =
+            (ReferenceExpression) ((FunctionExpression) namedExpr.getDelegated())
+                .getArguments().get(0);
+
+        // If path is same as NestedAllTupleFields path
+        if (field.getAttr().substring(0, field.getAttr().lastIndexOf("."))
+            .equalsIgnoreCase(node.getPath())) {
+          args.add(Map.of(
+              "field", field,
+              "path", new ReferenceExpression(node.getPath(), STRING)));
+        }
+      }
+    }
+
+    return mergeChildIfLogicalNested(args);
+  }
+
+  @Override
   public LogicalPlan visitFunction(Function node, AnalysisContext context) {
     if (node.getFuncName().equalsIgnoreCase(BuiltinFunctionName.NESTED.name())) {
 
@@ -54,6 +77,8 @@ public class NestedAnalyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisCon
       ReferenceExpression nestedField =
           (ReferenceExpression)expressionAnalyzer.analyze(expressions.get(0), context);
       Map<String, ReferenceExpression> args;
+
+      // Path parameter is supplied
       if (expressions.size() == 2) {
         args = Map.of(
             "field", nestedField,
@@ -65,14 +90,26 @@ public class NestedAnalyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisCon
             "path", generatePath(nestedField.toString())
         );
       }
-      if (child instanceof LogicalNested) {
-        ((LogicalNested)child).addFields(args);
-        return child;
-      } else {
-        return new LogicalNested(child, new ArrayList<>(Arrays.asList(args)), namedExpressions);
-      }
+
+      return mergeChildIfLogicalNested(new ArrayList<>(Arrays.asList(args)));
     }
     return null;
+  }
+
+  /**
+   * NestedAnalyzer visits all functions in SELECT clause, creates logical plans for each and
+   * merges them. This is to avoid another merge rule in LogicalPlanOptimizer:create().
+   * @param args field and path params to add to logical plan.
+   * @return child of logical nested with added args, or new LogicalNested.
+   */
+  private LogicalPlan mergeChildIfLogicalNested(List<Map<String, ReferenceExpression>> args) {
+    if (child instanceof LogicalNested) {
+      for (var arg : args) {
+        ((LogicalNested) child).addFields(arg);
+      }
+      return child;
+    }
+    return new LogicalNested(child, args, namedExpressions);
   }
 
   /**
