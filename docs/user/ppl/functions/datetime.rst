@@ -621,13 +621,13 @@ DAY
 Description
 >>>>>>>>>>>
 
-Usage: day(date) extracts the day of the month for date, in the range 1 to 31. The dates with value 0 such as '0000-00-00' or '2008-00-00' are invalid.
+Usage: day(date) extracts the day of the month for date, in the range 1 to 31.
 
 Argument type: STRING/DATE/DATETIME/TIMESTAMP
 
 Return type: INTEGER
 
-Synonyms: `DAYOFMONTH`_
+Synonyms: `DAYOFMONTH`_, `DAY_OF_MONTH`_
 
 Example::
 
@@ -669,13 +669,13 @@ DAYOFMONTH
 Description
 >>>>>>>>>>>
 
-Usage: dayofmonth(date) extracts the day of the month for date, in the range 1 to 31. The dates with value 0 such as '0000-00-00' or '2008-00-00' are invalid.
+Usage: dayofmonth(date) extracts the day of the month for date, in the range 1 to 31.
 
 Argument type: STRING/DATE/DATETIME/TIMESTAMP
 
 Return type: INTEGER
 
-Synonyms: DAY
+Synonyms: `DAY`_, `DAY_OF_MONTH`_
 
 Example::
 
@@ -686,6 +686,31 @@ Example::
     |----------------------------------|
     | 26                               |
     +----------------------------------+
+
+
+DAY_OF_MONTH
+------------
+
+Description
+>>>>>>>>>>>
+
+Usage: day_of_month(date) extracts the day of the month for date, in the range 1 to 31.
+
+Argument type: STRING/DATE/DATETIME/TIMESTAMP
+
+Return type: INTEGER
+
+Synonyms: `DAY`_, `DAYOFMONTH`_
+
+Example::
+
+    os> source=people | eval `DAY_OF_MONTH(DATE('2020-08-26'))` = DAY_OF_MONTH(DATE('2020-08-26')) | fields `DAY_OF_MONTH(DATE('2020-08-26'))`
+    fetched rows / total rows = 1/1
+    +------------------------------------+
+    | DAY_OF_MONTH(DATE('2020-08-26'))   |
+    |------------------------------------|
+    | 26                                 |
+    +------------------------------------+
 
 
 DAYOFWEEK
@@ -700,6 +725,8 @@ Argument type: STRING/DATE/DATETIME/TIMESTAMP
 
 Return type: INTEGER
 
+Synonyms: `DAY_OF_WEEK`_
+
 Example::
 
     os> source=people | eval `DAYOFWEEK(DATE('2020-08-26'))` = DAYOFWEEK(DATE('2020-08-26')) | fields `DAYOFWEEK(DATE('2020-08-26'))`
@@ -710,6 +737,30 @@ Example::
     | 4                               |
     +---------------------------------+
 
+
+DAY_OF_WEEK
+-----------
+
+Description
+>>>>>>>>>>>
+
+Usage: day_of_week(date) returns the weekday index for date (1 = Sunday, 2 = Monday, ..., 7 = Saturday).
+
+Argument type: STRING/DATE/DATETIME/TIMESTAMP
+
+Return type: INTEGER
+
+Synonyms: `DAYOFWEEK`_
+
+Example::
+
+    os> source=people | eval `DAYOFWEEK(DATE('2020-08-26'))` = DAYOFWEEK(DATE('2020-08-26')) | fields `DAYOFWEEK(DATE('2020-08-26'))`
+    fetched rows / total rows = 1/1
+    +---------------------------------+
+    | DAYOFWEEK(DATE('2020-08-26'))   |
+    |---------------------------------|
+    | 4                               |
+    +---------------------------------+
 
 
 DAYOFYEAR
@@ -724,6 +775,8 @@ Argument type: STRING/DATE/DATETIME/TIMESTAMP
 
 Return type: INTEGER
 
+Synonyms: `DAY_OF_YEAR`_
+
 Example::
 
     os> source=people | eval `DAYOFYEAR(DATE('2020-08-26'))` = DAYOFYEAR(DATE('2020-08-26')) | fields `DAYOFYEAR(DATE('2020-08-26'))`
@@ -733,6 +786,31 @@ Example::
     |---------------------------------|
     | 239                             |
     +---------------------------------+
+
+
+DAY_OF_YEAR
+-----------
+
+Description
+>>>>>>>>>>>
+
+Usage:  day_of_year(date) returns the day of the year for date, in the range 1 to 366.
+
+Argument type: STRING/DATE/DATETIME/TIMESTAMP
+
+Return type: INTEGER
+
+Synonyms: `DAYOFYEAR`_
+
+Example::
+
+    os> source=people | eval `DAY_OF_YEAR(DATE('2020-08-26'))` = DAY_OF_YEAR(DATE('2020-08-26')) | fields `DAY_OF_YEAR(DATE('2020-08-26'))`
+    fetched rows / total rows = 1/1
+    +-----------------------------------+
+    | DAY_OF_YEAR(DATE('2020-08-26'))   |
+    |-----------------------------------|
+    | 239                               |
+    +-----------------------------------+
 
 
 FROM_DAYS
@@ -806,6 +884,8 @@ Argument type: STRING/TIME/DATETIME/TIMESTAMP
 
 Return type: INTEGER
 
+Synonyms: `HOUR_OF_DAY`_
+
 Example::
 
     os> source=people | eval `HOUR(TIME('01:02:03'))` = HOUR(TIME('01:02:03')) | fields `HOUR(TIME('01:02:03'))`
@@ -815,6 +895,31 @@ Example::
     |--------------------------|
     | 1                        |
     +--------------------------+
+
+
+HOUR_OF_DAY
+-----------
+
+Description
+>>>>>>>>>>>
+
+Usage: hour_of_day(time) extracts the hour value for time. Different from the time of day value, the time value has a large range and can be greater than 23, so the return value of hour_of_day(time) can be also greater than 23.
+
+Argument type: STRING/TIME/DATETIME/TIMESTAMP
+
+Return type: INTEGER
+
+Synonyms: `HOUR`_
+
+Example::
+
+    os> source=people | eval `HOUR_OF_DAY(TIME('01:02:03'))` = HOUR_OF_DAY(TIME('01:02:03')) | fields `HOUR_OF_DAY(TIME('01:02:03'))`
+    fetched rows / total rows = 1/1
+    +---------------------------------+
+    | HOUR_OF_DAY(TIME('01:02:03'))   |
+    |---------------------------------|
+    | 1                               |
+    +---------------------------------+
 
 
 LOCALTIMESTAMP
@@ -956,6 +1061,8 @@ Argument type: STRING/TIME/DATETIME/TIMESTAMP
 
 Return type: INTEGER
 
+Synonyms: `MINUTE_OF_HOUR`_
+
 Example::
 
     os> source=people | eval `MINUTE(TIME('01:02:03'))` =  MINUTE(TIME('01:02:03')) | fields `MINUTE(TIME('01:02:03'))`
@@ -967,17 +1074,68 @@ Example::
     +----------------------------+
 
 
+MINUTE_OF_DAY
+------
+
+Description
+>>>>>>>>>>>
+
+Usage: minute(time) returns the amount of minutes in the day, in the range of 0 to 1439.
+
+Argument type: STRING/TIME/DATETIME/TIMESTAMP
+
+Return type: INTEGER
+
+Example::
+
+    os> source=people | eval `MINUTE_OF_DAY(TIME('01:02:03'))` = MINUTE_OF_DAY(TIME('01:02:03')) | fields `MINUTE_OF_DAY(TIME('01:02:03'))`
+    fetched rows / total rows = 1/1
+    +-----------------------------------+
+    | MINUTE_OF_DAY(TIME('01:02:03'))   |
+    |-----------------------------------|
+    | 62                                |
+    +-----------------------------------+
+
+
+MINUTE_OF_HOUR
+--------------
+
+Description
+>>>>>>>>>>>
+
+Usage: minute(time) returns the minute for time, in the range 0 to 59.
+
+Argument type: STRING/TIME/DATETIME/TIMESTAMP
+
+Return type: INTEGER
+
+Synonyms: `MINUTE`_
+
+Example::
+
+    os> source=people | eval `MINUTE_OF_HOUR(TIME('01:02:03'))` =  MINUTE_OF_HOUR(TIME('01:02:03')) | fields `MINUTE_OF_HOUR(TIME('01:02:03'))`
+    fetched rows / total rows = 1/1
+    +------------------------------------+
+    | MINUTE_OF_HOUR(TIME('01:02:03'))   |
+    |------------------------------------|
+    | 2                                  |
+    +------------------------------------+
+
+
 MONTH
 -----
 
 Description
 >>>>>>>>>>>
 
-Usage: month(date) returns the month for date, in the range 1 to 12 for January to December. The dates with value 0 such as '0000-00-00' or '2008-00-00' are invalid.
+Usage: month(date) returns the month for date, in the range 1 to 12 for January to December.
 
 Argument type: STRING/DATE/DATETIME/TIMESTAMP
 
 Return type: INTEGER
+
+Synonyms: `MONTH_OF_YEAR`_
+
 
 Example::
 
@@ -988,6 +1146,31 @@ Example::
     |-----------------------------|
     | 8                           |
     +-----------------------------+
+
+
+MONTH_OF_YEAR
+-------------
+
+Description
+>>>>>>>>>>>
+
+Usage: month_of_year(date) returns the month for date, in the range 1 to 12 for January to December.
+
+Argument type: STRING/DATE/DATETIME/TIMESTAMP
+
+Return type: INTEGER
+
+Synonyms: `MONTH`_
+
+Example::
+
+    os> source=people | eval `MONTH_OF_YEAR(DATE('2020-08-26'))` =  MONTH_OF_YEAR(DATE('2020-08-26')) | fields `MONTH_OF_YEAR(DATE('2020-08-26'))`
+    fetched rows / total rows = 1/1
+    +-------------------------------------+
+    | MONTH_OF_YEAR(DATE('2020-08-26'))   |
+    |-------------------------------------|
+    | 8                                   |
+    +-------------------------------------+
 
 
 MONTHNAME
@@ -1118,6 +1301,8 @@ Argument type: STRING/TIME/DATETIME/TIMESTAMP
 
 Return type: INTEGER
 
+Synonyms: `SECOND_OF_MINUTE`_
+
 Example::
 
     os> source=people | eval `SECOND(TIME('01:02:03'))` = SECOND(TIME('01:02:03')) | fields `SECOND(TIME('01:02:03'))`
@@ -1127,6 +1312,31 @@ Example::
     |----------------------------|
     | 3                          |
     +----------------------------+
+
+
+SECOND_OF_MINUTE
+----------------
+
+Description
+>>>>>>>>>>>
+
+Usage: second_of_minute(time) returns the second for time, in the range 0 to 59.
+
+Argument type: STRING/TIME/DATETIME/TIMESTAMP
+
+Return type: INTEGER
+
+Synonyms: `SECOND`_
+
+Example::
+
+    os> source=people | eval `SECOND_OF_MINUTE(TIME('01:02:03'))` = SECOND_OF_MINUTE(TIME('01:02:03')) | fields `SECOND_OF_MINUTE(TIME('01:02:03'))`
+    fetched rows / total rows = 1/1
+    +--------------------------------------+
+    | SECOND_OF_MINUTE(TIME('01:02:03'))   |
+    |--------------------------------------|
+    | 3                                    |
+    +--------------------------------------+
 
 
 SUBDATE
@@ -1296,6 +1506,61 @@ Example::
     |----------------------------|
     | 13:49:00                   |
     +----------------------------+
+
+
+TIME_FORMAT
+-----------
+
+Description
+>>>>>>>>>>>
+
+Usage: time_format(time, format) formats the time argument using the specifiers in the format argument.
+This supports a subset of the time format specifiers available for the `date_format`_ function.
+Using date format specifiers supported by `date_format`_ will return 0 or null.
+Acceptable format specifiers are listed in the table below.
+If an argument of type DATE is passed in, it is treated as a DATETIME at midnight (i.e., 00:00:00).
+
+.. list-table:: The following table describes the available specifier arguments.
+   :widths: 20 80
+   :header-rows: 1
+
+   * - Specifier
+     - Description
+   * - %f
+     - Microseconds (000000..999999)
+   * - %H
+     - Hour (00..23)
+   * - %h
+     - Hour (01..12)
+   * - %I
+     - Hour (01..12)
+   * - %i
+     - Minutes, numeric (00..59)
+   * - %p
+     - AM or PM
+   * - %r
+     - Time, 12-hour (hh:mm:ss followed by AM or PM)
+   * - %S
+     - Seconds (00..59)
+   * - %s
+     - Seconds (00..59)
+   * - %T
+     - Time, 24-hour (hh:mm:ss)
+
+
+Argument type: STRING/DATE/DATETIME/TIME/TIMESTAMP, STRING
+
+Return type: STRING
+
+Example::
+
+    os> source=people | eval `TIME_FORMAT('1998-01-31 13:14:15.012345', '%f %H %h %I %i %p %r %S %s %T')` = TIME_FORMAT('1998-01-31 13:14:15.012345', '%f %H %h %I %i %p %r %S %s %T') | fields `TIME_FORMAT('1998-01-31 13:14:15.012345', '%f %H %h %I %i %p %r %S %s %T')`
+    fetched rows / total rows = 1/1
+    +------------------------------------------------------------------------------+
+    | TIME_FORMAT('1998-01-31 13:14:15.012345', '%f %H %h %I %i %p %r %S %s %T')   |
+    |------------------------------------------------------------------------------|
+    | 012345 13 01 01 14 PM 01:14:15 PM 15 15 13:14:15                             |
+    +------------------------------------------------------------------------------+
 
 
 TIME_TO_SEC
@@ -1543,6 +1808,8 @@ Argument type: DATE/DATETIME/TIMESTAMP/STRING
 
 Return type: INTEGER
 
+Synonyms: `WEEK_OF_YEAR`_
+
 Example::
 
     os> source=people | eval `WEEK(DATE('2008-02-20'))` = WEEK(DATE('2008-02-20')), `WEEK(DATE('2008-02-20'), 1)` = WEEK(DATE('2008-02-20'), 1) | fields `WEEK(DATE('2008-02-20'))`, `WEEK(DATE('2008-02-20'), 1)`
@@ -1552,6 +1819,72 @@ Example::
     |----------------------------+-------------------------------|
     | 7                          | 8                             |
     +----------------------------+-------------------------------+
+
+
+WEEK_OF_YEAR
+------------
+
+Description
+>>>>>>>>>>>
+
+Usage: week_of_year(date[, mode]) returns the week number for date. If the mode argument is omitted, the default mode 0 is used.
+
+.. list-table:: The following table describes how the mode argument works.
+   :widths: 25 50 25 75
+   :header-rows: 1
+
+   * - Mode
+     - First day of week
+     - Range
+     - Week 1 is the first week ...
+   * - 0
+     - Sunday
+     - 0-53
+     - with a Sunday in this year
+   * - 1
+     - Monday
+     - 0-53
+     - with 4 or more days this year
+   * - 2
+     - Sunday
+     - 1-53
+     - with a Sunday in this year
+   * - 3
+     - Monday
+     - 1-53
+     - with 4 or more days this year
+   * - 4
+     - Sunday
+     - 0-53
+     - with 4 or more days this year
+   * - 5
+     - Monday
+     - 0-53
+     - with a Monday in this year
+   * - 6
+     - Sunday
+     - 1-53
+     - with 4 or more days this year
+   * - 7
+     - Monday
+     - 1-53
+     - with a Monday in this year
+
+Argument type: DATE/DATETIME/TIMESTAMP/STRING
+
+Return type: INTEGER
+
+Synonyms: `WEEK`_
+
+Example::
+
+    os> source=people | eval `WEEK_OF_YEAR(DATE('2008-02-20'))` = WEEK(DATE('2008-02-20')), `WEEK_OF_YEAR(DATE('2008-02-20'), 1)` = WEEK_OF_YEAR(DATE('2008-02-20'), 1) | fields `WEEK_OF_YEAR(DATE('2008-02-20'))`, `WEEK_OF_YEAR(DATE('2008-02-20'), 1)`
+    fetched rows / total rows = 1/1
+    +------------------------------------+---------------------------------------+
+    | WEEK_OF_YEAR(DATE('2008-02-20'))   | WEEK_OF_YEAR(DATE('2008-02-20'), 1)   |
+    |------------------------------------+---------------------------------------|
+    | 7                                  | 8                                     |
+    +------------------------------------+---------------------------------------+
 
 
 YEAR
