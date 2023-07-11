@@ -289,9 +289,9 @@
         "type" : "date",
         "format": "yyyy-MM-dd"
       },
-      "HH:mm:ss" : {
+      "custom_time" : {
         "type" : "date",
-        "format": "HH:mm:ss"
+        "format": "hh:mm:ss a"
       },
       "yyyy-MM-dd_OR_epoch_millis" : {
         "type" : "date",
@@ -300,6 +300,62 @@
       "hour_minute_second_OR_t_time" : {
         "type" : "date",
         "format": "hour_minute_second||t_time"
+      },
+      "custom_timestamp" : {
+        "type" : "date",
+        "format": "yyyy-MM-dd hh:mm:ss ---- a"
+      },
+      "custom_date_or_date" : {
+        "type" : "date",
+        "format": "yyyy-MM-dd||date"
+      },
+      "custom_date_or_custom_time" : {
+        "type" : "date",
+        "format" : "yyyy-MM-dd || HH:mm:ss"
+      },
+      "custom_time_parser_check" : {
+        "type" : "date",
+        "format" : "::: k-A || A    "
+      },
+      "incomplete_1" : {
+          "type" : "date",
+          "format" : "year"
+      },
+      "incomplete_2" : {
+          "type" : "date",
+          "format" : "E-w"
+      },
+      "incomplete_custom_date" : {
+          "type" : "date",
+          "format" : "uuuu"
+      },
+      "incomplete_custom_time" : {
+          "type" : "date",
+          "format" : "HH"
+      },
+      "incorrect" : {
+          "type" : "date",
+          "format" : "'___'"
+      },
+      "epoch_sec" : {
+          "type" : "date",
+          "format" : "epoch_second"
+      },
+      "epoch_milli" : {
+          "type" : "date",
+          "format" : "epoch_millis"
+      },
+      "custom_no_delimiter_date" : {
+          "type" : "date",
+          "format" : "uuuuMMdd"
+      },
+      "custom_no_delimiter_time" : {
+          "type" : "date",
+          "format" : "HHmmss"
+      },
+      "custom_no_delimiter_ts" : {
+          "type" : "date",
+          "format" : "uuuuMMddHHmmss"
       }
     }
   }
