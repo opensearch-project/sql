@@ -32,7 +32,7 @@ object SQLJob {
     val region = args(6)
 
     // Create a SparkSession
-    val spark = SparkSession.builder().appName("SQLJob").getOrCreate()
+    val spark = SparkSession.builder().appName("SQLJob").enableHiveSupport().getOrCreate()
 
     try {
       // Execute SQL query
