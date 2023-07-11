@@ -10,6 +10,7 @@ import static org.opensearch.sql.opensearch.storage.OpenSearchIndex.METADATAFIEL
 import static org.opensearch.sql.opensearch.storage.OpenSearchIndex.METADATA_FIELD_ID;
 import static org.opensearch.sql.opensearch.storage.OpenSearchIndex.METADATA_FIELD_INDEX;
 import static org.opensearch.sql.opensearch.storage.OpenSearchIndex.METADATA_FIELD_MAXSCORE;
+import static org.opensearch.sql.opensearch.storage.OpenSearchIndex.METADATA_FIELD_ROUTING;
 import static org.opensearch.sql.opensearch.storage.OpenSearchIndex.METADATA_FIELD_SCORE;
 import static org.opensearch.sql.opensearch.storage.OpenSearchIndex.METADATA_FIELD_SORT;
 
@@ -185,8 +186,10 @@ public class OpenSearchResponse implements Iterable<ExprValue> {
         if (maxScore != null) {
           builder.put(METADATA_FIELD_MAXSCORE, maxScore);
         }
-      } else { // if (metaDataField.equals(METADATA_FIELD_SORT)) {
+      } else if (metaDataField.equals(METADATA_FIELD_SORT)) {
         builder.put(METADATA_FIELD_SORT, new ExprLongValue(hit.getSeqNo()));
+      } else { // if (metaDataField.equals(METADATA_FIELD_ROUTING)){
+        builder.put(METADATA_FIELD_ROUTING, new ExprStringValue(hit.getShard().toString()));
       }
     });
   }
