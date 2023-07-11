@@ -247,7 +247,8 @@ public class RestDataSourceQueryAction extends BaseRestHandler {
   private static boolean isClientError(Exception e) {
     return e instanceof NullPointerException
         // NPE is hard to differentiate but more likely caused by bad query
-        || e instanceof IllegalArgumentException;
+        || e instanceof IllegalArgumentException
+        || e instanceof IllegalStateException;
   }
 
 }
