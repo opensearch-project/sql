@@ -6,6 +6,8 @@
 
 package org.opensearch.sql.opensearch.storage.script.filter.lucene;
 
+import static org.opensearch.sql.analysis.NestedAnalyzer.isNestedFunction;
+
 import com.google.common.collect.ImmutableMap;
 import java.util.Map;
 import java.util.function.Function;
@@ -62,10 +64,7 @@ public abstract class LuceneQuery {
    * @return return true if function has supported nested function expression.
    */
   public boolean isNestedPredicate(FunctionExpression func) {
-    return ((func.getArguments().get(0) instanceof FunctionExpression
-        && ((FunctionExpression)func.getArguments().get(0))
-        .getFunctionName().getFunctionName().equalsIgnoreCase(BuiltinFunctionName.NESTED.name()))
-      );
+    return isNestedFunction(func.getArguments().get(0));
   }
 
   /**

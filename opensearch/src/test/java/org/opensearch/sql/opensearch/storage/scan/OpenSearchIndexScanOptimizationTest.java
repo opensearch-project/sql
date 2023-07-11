@@ -19,6 +19,7 @@ import static org.opensearch.sql.data.type.ExprCoreType.DOUBLE;
 import static org.opensearch.sql.data.type.ExprCoreType.INTEGER;
 import static org.opensearch.sql.data.type.ExprCoreType.LONG;
 import static org.opensearch.sql.data.type.ExprCoreType.STRING;
+import static org.opensearch.sql.expression.DSL.literal;
 import static org.opensearch.sql.planner.logical.LogicalPlanDSL.aggregation;
 import static org.opensearch.sql.planner.logical.LogicalPlanDSL.filter;
 import static org.opensearch.sql.planner.logical.LogicalPlanDSL.highlight;
@@ -58,6 +59,7 @@ import org.opensearch.search.aggregations.AggregationBuilder;
 import org.opensearch.search.aggregations.AggregationBuilders;
 import org.opensearch.search.aggregations.bucket.composite.CompositeAggregationBuilder;
 import org.opensearch.search.aggregations.bucket.composite.TermsValuesSourceBuilder;
+import org.opensearch.search.sort.NestedSortBuilder;
 import org.opensearch.search.sort.SortBuilder;
 import org.opensearch.search.sort.SortBuilders;
 import org.opensearch.search.sort.SortOrder;
@@ -570,6 +572,76 @@ class OpenSearchIndexScanOptimizationTest {
                 DSL.named("s", DSL.ref("stringV", STRING))
             ),
             DSL.named("i", DSL.ref("intV", INTEGER))
+        )
+    );
+  }
+
+  @Test
+  void test_nested_sort_filter_push_down() {
+    assertEqualsAfterOptimization(
+        project(
+            indexScanBuilder(
+                withFilterPushedDown(QueryBuilders.termQuery("intV", 1)),
+                withSortPushedDown(
+                    SortBuilders.fieldSort("message.info")
+                        .order(SortOrder.ASC)
+                        .setNestedSort(new NestedSortBuilder("message")))),
+            DSL.named("intV", DSL.ref("intV", INTEGER))
+        ),
+        project(
+                sort(
+                    filter(
+                        relation("schema", table),
+                        DSL.equal(DSL.ref("intV", INTEGER), DSL.literal(integerValue(1)))
+                    ),
+                    Pair.of(
+                        SortOption.DEFAULT_ASC, DSL.nested(DSL.ref("message.info", STRING))
+                    )
+                ),
+            DSL.named("intV", DSL.ref("intV", INTEGER))
+        )
+    );
+  }
+
+  @Test
+  void test_function_expression_sort_returns_optimized_logical_sort() {
+    // Invalid use case coverage OpenSearchIndexScanBuilder::sortByFieldsOnly returns false
+    assertEqualsAfterOptimization(
+        sort(
+            indexScanBuilder(),
+            Pair.of(
+                SortOption.DEFAULT_ASC,
+                DSL.match(DSL.namedArgument("field", literal("message")))
+            )
+        ),
+        sort(
+            relation("schema", table),
+            Pair.of(
+                SortOption.DEFAULT_ASC,
+                DSL.match(DSL.namedArgument("field", literal("message"))
+                )
+            )
+        )
+    );
+  }
+
+  @Test
+  void test_non_field_sort_returns_optimized_logical_sort() {
+    // Invalid use case coverage OpenSearchIndexScanBuilder::sortByFieldsOnly returns false
+    assertEqualsAfterOptimization(
+        sort(
+            indexScanBuilder(),
+            Pair.of(
+                SortOption.DEFAULT_ASC,
+                DSL.literal("field")
+            )
+        ),
+        sort(
+            relation("schema", table),
+            Pair.of(
+                SortOption.DEFAULT_ASC,
+                DSL.literal("field")
+            )
         )
     );
   }

@@ -1,10 +1,10 @@
 {"index":{"_id":"1"}}
-{"name":"abbas","age":24,"address":[{"city":"New york city","state":"NY"},{"city":"bellevue","state":"WA"},{"city":"seattle","state":"WA"},{"city":"chicago","state":"IL"}]}
+{"name":"abbas","age":24,"address":[{"city":"New york city","state":"NY","moveInDate":{"dateAndTime":"19840412T090742.000Z"}},{"city":"bellevue","state":"WA","moveInDate":[{"dateAndTime":"20230503T080742.000Z"},{"dateAndTime":"20011111T040744.000Z"}]},{"city":"seattle","state":"WA","moveInDate":{"dateAndTime":"19660319T030455.000Z"}},{"city":"chicago","state":"IL","moveInDate":{"dateAndTime":"20110601T010142.000Z"}}]}
 {"index":{"_id":"2"}}
-{"name":"chen","age":32,"address":[{"city":"Miami","state":"Florida"},{"city":"los angeles","state":"CA"}]}
+{"name":"chen","age":32,"address":[{"city":"Miami","state":"Florida","moveInDate":{"dateAndTime":"19010811T040333.000Z"}},{"city":"los angeles","state":"CA","moveInDate":{"dateAndTime":"20230503T080742.000Z"}}]}
 {"index":{"_id":"3"}}
-{"name":"peng","age":26,"address":[{"city":"san diego","state":"CA"},{"city":"austin","state":"TX"}]}
+{"name":"peng","age":26,"address":[{"city":"san diego","state":"CA","moveInDate":{"dateAndTime":"20011111T040744.000Z"}},{"city":"austin","state":"TX","moveInDate":{"dateAndTime":"19770713T090441.000Z"}}]}
 {"index":{"_id":"4"}}
-{"name":"andy","age":19,"id":4,"address":[{"city":"houston","state":"TX"}]}
+{"name":"andy","age":19,"id":4,"address":[{"city":"houston","state":"TX","moveInDate":{"dateAndTime":"19331212T050545.000Z"}}]}
 {"index":{"_id":"5"}}
-{"name":"david","age":25,"address":[{"city":"raleigh","state":"NC"},{"city":"charlotte","state":"SC"}]}
+{"name":"david","age":25,"address":[{"city":"raleigh","state":"NC","moveInDate":{"dateAndTime":"19090617T010421.000Z"}},{"city":"charlotte","state":"SC","moveInDate":[{"dateAndTime":"20011111T040744.000Z"}]}]}

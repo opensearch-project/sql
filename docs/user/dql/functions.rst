@@ -4458,6 +4458,17 @@ Example with ``field`` and ``path`` parameters::
     | b                               |
     +---------------------------------+
 
+Example with ``field.*`` used in SELECT clause::
+
+    os> SELECT nested(message.*) FROM nested;
+    fetched rows / total rows = 2/2
+    +--------------------------+-----------------------------+------------------------+
+    | nested(message.author)   | nested(message.dayOfWeek)   | nested(message.info)   |
+    |--------------------------+-----------------------------+------------------------|
+    | e                        | 1                           | a                      |
+    | f                        | 2                           | b                      |
+    +--------------------------+-----------------------------+------------------------+
+
 
 Example with ``field`` and ``path`` parameters in the SELECT and WHERE clause::
 
@@ -4467,6 +4478,17 @@ Example with ``field`` and ``path`` parameters in the SELECT and WHERE clause::
     | nested(message.info, message)   |
     |---------------------------------|
     | b                               |
+    +---------------------------------+
+
+Example with ``field`` and ``path`` parameters in the SELECT and ORDER BY clause::
+
+    os> SELECT nested(message.info, message) FROM nested ORDER BY nested(message.info, message) DESC;
+    fetched rows / total rows = 2/2
+    +---------------------------------+
+    | nested(message.info, message)   |
+    |---------------------------------|
+    | b                               |
+    | a                               |
     +---------------------------------+
 
 

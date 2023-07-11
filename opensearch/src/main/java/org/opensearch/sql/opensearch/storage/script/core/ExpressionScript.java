@@ -118,7 +118,11 @@ public class ExpressionScript {
     Map<Expression, ExprValue> valueEnv = new HashMap<>();
     for (ReferenceExpression field : fields) {
       String fieldName = field.getAttr();
-      ExprValue exprValue = valueFactory.construct(fieldName, getDocValue(field, docProvider));
+      ExprValue exprValue = valueFactory.construct(
+          fieldName,
+          getDocValue(field, docProvider),
+          false
+      );
       valueEnv.put(field, exprValue);
     }
     // Encapsulate map data structure into anonymous Environment class
