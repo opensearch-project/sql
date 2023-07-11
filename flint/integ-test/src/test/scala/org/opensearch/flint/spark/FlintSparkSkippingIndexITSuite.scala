@@ -175,6 +175,19 @@ class FlintSparkSkippingIndexITSuite
     indexData should have size 2
   }
 
+  test("should fail to manual refresh an incremental refreshing index") {
+    flint
+      .skippingIndex()
+      .onTable(testTable)
+      .addPartitions("year", "month")
+      .create()
+    flint.refreshIndex(testIndex, INCREMENTAL)
+
+    assertThrows[IllegalStateException] {
+      flint.refreshIndex(testIndex, FULL)
+    }
+  }
+
   test("incremental refresh skipping index successfully") {
     // Create Flint index and wait for complete
     flint
@@ -199,19 +212,6 @@ class FlintSparkSkippingIndexITSuite
         .collect()
         .toSet
     indexData should have size 2
-  }
-
-  test("should fail to manual refresh an incremental refreshing index") {
-    flint
-      .skippingIndex()
-      .onTable(testTable)
-      .addPartitions("year", "month")
-      .create()
-    flint.refreshIndex(testIndex, INCREMENTAL)
-
-    assertThrows[IllegalStateException] {
-      flint.refreshIndex(testIndex, FULL)
-    }
   }
 
   test("can have only 1 skipping index on a table") {
