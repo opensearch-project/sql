@@ -7,7 +7,6 @@ package org.opensearch.sql.spark.storage;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -20,7 +19,6 @@ import org.opensearch.sql.DataSourceSchemaName;
 import org.opensearch.sql.expression.function.FunctionResolver;
 import org.opensearch.sql.spark.client.SparkClient;
 import org.opensearch.sql.spark.functions.resolver.SparkSqlTableFunctionResolver;
-import org.opensearch.sql.storage.Table;
 
 @ExtendWith(MockitoExtension.class)
 public class SparkStorageEngineTest {
