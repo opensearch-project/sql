@@ -32,8 +32,10 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.opensearch.action.search.SearchResponse;
 import org.opensearch.common.bytes.BytesArray;
 import org.opensearch.common.text.Text;
+import org.opensearch.index.shard.ShardId;
 import org.opensearch.search.SearchHit;
 import org.opensearch.search.SearchHits;
+import org.opensearch.search.SearchShardTarget;
 import org.opensearch.search.aggregations.Aggregations;
 import org.opensearch.search.fetch.subphase.highlight.HighlightField;
 import org.opensearch.sql.data.model.ExprFloatValue;
@@ -148,9 +150,13 @@ class OpenSearchResponseTest {
                 new TotalHits(1L, TotalHits.Relation.EQUAL_TO),
                 3.75F));
 
+    ShardId shardId = new ShardId("index", "indexUUID", 42);
+    SearchShardTarget shardTarget = new SearchShardTarget("node", shardId, null, null);
+
     when(searchHit1.getSourceAsString()).thenReturn("{\"id1\", 1}");
     when(searchHit1.getId()).thenReturn("testId");
     when(searchHit1.getIndex()).thenReturn("testIndex");
+    when(searchHit1.getShard()).thenReturn(shardTarget);
     when(searchHit1.getScore()).thenReturn(3.75F);
     when(searchHit1.getSeqNo()).thenReturn(123456L);
 
@@ -160,11 +166,12 @@ class OpenSearchResponseTest {
         "id1", new ExprIntegerValue(1),
         "_index", new ExprStringValue("testIndex"),
         "_id", new ExprStringValue("testId"),
+        "_routing", new ExprStringValue(shardTarget.toString()),
         "_sort", new ExprLongValue(123456L),
         "_score", new ExprFloatValue(3.75F),
         "_maxscore", new ExprFloatValue(3.75F)
     ));
-    List includes = List.of("id1", "_index", "_id", "_sort", "_score", "_maxscore");
+    List includes = List.of("id1", "_index", "_id", "_routing", "_sort", "_score", "_maxscore");
     int i = 0;
     for (ExprValue hit : new OpenSearchResponse(searchResponse, factory, includes)) {
       if (i == 0) {
