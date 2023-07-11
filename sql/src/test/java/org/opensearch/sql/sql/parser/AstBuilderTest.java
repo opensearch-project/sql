@@ -39,6 +39,7 @@ import org.opensearch.sql.ast.dsl.AstDSL;
 import org.opensearch.sql.ast.expression.AllFields;
 import org.opensearch.sql.ast.expression.DataType;
 import org.opensearch.sql.ast.expression.Literal;
+import org.opensearch.sql.ast.expression.NestedAllTupleFields;
 import org.opensearch.sql.common.antlr.SyntaxCheckException;
 
 class AstBuilderTest extends AstBuilderTestBase {
@@ -84,6 +85,19 @@ class AstBuilderTest extends AstBuilderTestBase {
     );
 
     assertThrows(SyntaxCheckException.class, () -> buildAST("SELECT *"));
+  }
+
+  @Test
+  public void can_build_nested_select_all() {
+    assertEquals(
+        project(
+            relation("test"),
+            alias("nested(field.*)",
+                new NestedAllTupleFields("field")
+            )
+        ),
+        buildAST("SELECT nested(field.*) FROM test")
+    );
   }
 
   @Test

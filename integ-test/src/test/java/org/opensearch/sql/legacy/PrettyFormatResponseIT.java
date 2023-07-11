@@ -53,6 +53,9 @@ public class PrettyFormatResponseIT extends SQLIntegTestCase {
   private static final Set<String> messageFields = Sets.newHashSet(
       "message.dayOfWeek", "message.info", "message.author");
 
+  private static final Set<String> messageFieldsWithNestedFunction = Sets.newHashSet(
+      "nested(message.dayOfWeek)", "nested(message.info)", "nested(message.author)");
+
   private static final Set<String> commentFields = Sets.newHashSet("comment.data", "comment.likes");
 
   private static final List<String> nameFields = Arrays.asList("firstname", "lastname");
@@ -211,7 +214,7 @@ public class PrettyFormatResponseIT extends SQLIntegTestCase {
         String.format(Locale.ROOT, "SELECT nested(message.*) FROM %s",
             TestsConstants.TEST_INDEX_NESTED_TYPE));
 
-    assertContainsColumnsInAnyOrder(getSchema(response), messageFields);
+    assertContainsColumnsInAnyOrder(getSchema(response), messageFieldsWithNestedFunction);
     assertContainsData(getDataRows(response), messageFields);
   }
 
