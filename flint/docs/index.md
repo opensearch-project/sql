@@ -301,3 +301,7 @@ val df = new SQLContext(sc).read
 ## Benchmarks
 
 TODO
+
+## Limitations
+
+Manual refreshing a table which already has skipping index being auto-refreshed, will be prevented. However, this assumption relies on the condition that the incremental refresh job is actively running in the same Spark cluster, which can be identified when performing the check.
