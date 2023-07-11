@@ -432,7 +432,7 @@ Querying such index will provide a response with ``schema`` block as shown below
 String Data Types
 =================
 
-A string is a sequence of characters enclosed in either single or double quotes. For example, both 'text' and "text" will be treated as string literal. To use quote characters in a string literal, you can use two quotes of the same type as the enclosing quotes or a backslash symbol (``\``)::
+A string is a sequence of characters enclosed in either single or double quotes. For example, both 'text' and "text" will be treated as string literal. To use quote characters in a string literal, you can use two quotes of the same type as the enclosing quotes::
 
     os> SELECT 'hello', "world", '"hello"', "'world'", '''hello''', """world"""
     fetched rows / total rows = 1/1
