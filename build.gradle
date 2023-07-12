@@ -81,6 +81,7 @@ repositories {
 }
 
 spotless {
+    ratchetFrom
     java {
         target fileTree('.') {
             include '**/*.java'
