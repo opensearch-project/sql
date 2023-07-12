@@ -65,7 +65,7 @@ plugins {
     id 'checkstyle'
     id "io.freefair.lombok" version "6.4.0"
     id 'jacoco'
-    id 'com.diffplug.spotless' version '6.19.0' apply false
+    id 'com.diffplug.spotless' version '6.19.0'
 }
 
 // import versions defined in https://github.com/opensearch-project/OpenSearch/blob/main/buildSrc/src/main/java/org/opensearch/gradle/OpenSearchJavaPlugin.java#L94
@@ -82,7 +82,6 @@ repositories {
 
 // Spotless checks will be added as PRs are applied to resolve each style issue is approved.
 spotless {
-    ratchetFrom
     java {
         target fileTree('.') {
             include '**/*.java'
