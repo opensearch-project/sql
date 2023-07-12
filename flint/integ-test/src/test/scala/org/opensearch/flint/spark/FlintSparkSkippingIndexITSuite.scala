@@ -207,7 +207,12 @@ class FlintSparkSkippingIndexITSuite
       .onTable(testTable)
       .addPartitions("year", "month")
       .create()
-    flint.refreshIndex(testIndex, INCREMENTAL)
+
+    val jobId = flint.refreshIndex(testIndex, INCREMENTAL)
+    val job = spark.streams.get(jobId.get)
+    failAfter(streamingTimeout) {
+      job.processAllAvailable()
+    }
 
     assertThrows[IllegalStateException] {
       flint.refreshIndex(testIndex, FULL)
