@@ -120,11 +120,11 @@ testClusters.all {
     if (System.getProperty("debugJVM") != null) {
         jvmArgs '-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:5005'
     }
-    setting "plugins.query.datasources.encryption.masterkey", "1234567812345678"
 }
 
 testClusters.integTest {
     plugin ":opensearch-sql-plugin"
+    setting "plugins.query.datasources.encryption.masterkey", "1234567812345678"
 }
 
 testClusters {
