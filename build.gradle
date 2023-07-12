@@ -82,6 +82,7 @@ repositories {
 
 // Spotless checks will be added as PRs are applied to resolve each style issue is approved.
 spotless {
+    ratchetFrom
     java {
         target fileTree('.') {
             include '**/*.java'
