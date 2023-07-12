@@ -18,7 +18,7 @@ import org.opensearch.flint.spark.FlintSparkIndex.ID_COLUMN
 import org.opensearch.flint.spark.skipping.{FlintSparkSkippingIndex, FlintSparkSkippingStrategy}
 import org.opensearch.flint.spark.skipping.FlintSparkSkippingIndex.SKIPPING_INDEX_TYPE
 import org.opensearch.flint.spark.skipping.FlintSparkSkippingStrategy.{SkippingKind, SkippingKindSerializer}
-import org.opensearch.flint.spark.skipping.FlintSparkSkippingStrategy.SkippingKind.{MinMax, Partition, ValuesSet}
+import org.opensearch.flint.spark.skipping.FlintSparkSkippingStrategy.SkippingKind.{MIN_MAX, PARTITION, VALUE_SET}
 import org.opensearch.flint.spark.skipping.minmax.MinMaxSkippingStrategy
 import org.opensearch.flint.spark.skipping.partition.PartitionSkippingStrategy
 import org.opensearch.flint.spark.skipping.valueset.ValueSetSkippingStrategy
@@ -101,6 +101,9 @@ class FlintSpark(val spark: SparkSession) {
     }
 
     mode match {
+      case FULL if isIncrementalRefreshing(indexName) =>
+        throw new IllegalStateException(
+          s"Index $indexName is incremental refreshing and cannot be manual refreshed")
       case FULL =>
         writeFlintIndex(
           spark.read
@@ -113,6 +116,7 @@ class FlintSpark(val spark: SparkSession) {
         val job = spark.readStream
           .table(tableName)
           .writeStream
+          .queryName(indexName)
           .outputMode(Append())
           .foreachBatch { (batchDF: DataFrame, _: Long) =>
             writeFlintIndex(batchDF)
@@ -156,6 +160,9 @@ class FlintSpark(val spark: SparkSession) {
     }
   }
 
+  private def isIncrementalRefreshing(indexName: String): Boolean =
+    spark.streams.active.exists(_.name == indexName)
+
   // TODO: Remove all parsing logic below once Flint spec finalized and FlintMetadata strong typed
   private def getSourceTableName(index: FlintSparkIndex): String = {
     val json = parse(index.metadata().getContent)
@@ -182,11 +189,11 @@ class FlintSpark(val spark: SparkSession) {
           val columnType = (colInfo \ "columnType").extract[String]
 
           skippingKind match {
-            case Partition =>
+            case PARTITION =>
               PartitionSkippingStrategy(columnName = columnName, columnType = columnType)
-            case ValuesSet =>
+            case VALUE_SET =>
               ValueSetSkippingStrategy(columnName = columnName, columnType = columnType)
-            case MinMax =>
+            case MIN_MAX =>
               MinMaxSkippingStrategy(columnName = columnName, columnType = columnType)
             case other =>
               throw new IllegalStateException(s"Unknown skipping strategy: $other")

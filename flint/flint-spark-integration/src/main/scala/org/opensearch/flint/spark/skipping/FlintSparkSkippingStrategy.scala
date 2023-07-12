@@ -65,7 +65,7 @@ object FlintSparkSkippingStrategy {
     type SkippingKind = Value
 
     // Use Value[s]Set because ValueSet already exists in Enumeration
-    val Partition, ValuesSet, MinMax = Value
+    val PARTITION, VALUE_SET, MIN_MAX = Value
   }
 
   /** json4s doesn't serialize Enum by default */

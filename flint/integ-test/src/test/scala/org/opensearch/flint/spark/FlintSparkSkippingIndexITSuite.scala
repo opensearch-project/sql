@@ -108,22 +108,22 @@ class FlintSparkSkippingIndexITSuite
         |     "kind": "skipping",
         |     "indexedColumns": [
         |     {
-        |        "kind": "Partition",
+        |        "kind": "PARTITION",
         |        "columnName": "year",
         |        "columnType": "int"
         |     },
         |     {
-        |        "kind": "Partition",
+        |        "kind": "PARTITION",
         |        "columnName": "month",
         |        "columnType": "int"
         |     },
         |     {
-        |        "kind": "ValuesSet",
+        |        "kind": "VALUE_SET",
         |        "columnName": "address",
         |        "columnType": "string"
         |     },
         |     {
-        |        "kind": "MinMax",
+        |        "kind": "MIN_MAX",
         |        "columnName": "age",
         |        "columnType": "int"
         |     }],
@@ -199,6 +199,24 @@ class FlintSparkSkippingIndexITSuite
         .collect()
         .toSet
     indexData should have size 2
+  }
+
+  test("should fail to manual refresh an incremental refreshing index") {
+    flint
+      .skippingIndex()
+      .onTable(testTable)
+      .addPartitions("year", "month")
+      .create()
+
+    val jobId = flint.refreshIndex(testIndex, INCREMENTAL)
+    val job = spark.streams.get(jobId.get)
+    failAfter(streamingTimeout) {
+      job.processAllAvailable()
+    }
+
+    assertThrows[IllegalStateException] {
+      flint.refreshIndex(testIndex, FULL)
+    }
   }
 
   test("can have only 1 skipping index on a table") {

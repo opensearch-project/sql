@@ -6,7 +6,7 @@
 package org.opensearch.flint.spark.skipping.valueset
 
 import org.opensearch.flint.spark.skipping.FlintSparkSkippingStrategy
-import org.opensearch.flint.spark.skipping.FlintSparkSkippingStrategy.SkippingKind.{SkippingKind, ValuesSet}
+import org.opensearch.flint.spark.skipping.FlintSparkSkippingStrategy.SkippingKind.{SkippingKind, VALUE_SET}
 
 import org.apache.spark.sql.catalyst.expressions.{AttributeReference, EqualTo, Literal, Predicate}
 import org.apache.spark.sql.catalyst.expressions.aggregate.{AggregateFunction, CollectSet}
@@ -16,7 +16,7 @@ import org.apache.spark.sql.functions.col
  * Skipping strategy based on unique column value set.
  */
 case class ValueSetSkippingStrategy(
-    override val kind: SkippingKind = ValuesSet,
+    override val kind: SkippingKind = VALUE_SET,
     override val columnName: String,
     override val columnType: String)
     extends FlintSparkSkippingStrategy {

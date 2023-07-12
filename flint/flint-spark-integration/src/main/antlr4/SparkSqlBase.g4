@@ -85,6 +85,31 @@ grammar SparkSqlBase;
 }
 
 
+propertyList
+    : property (COMMA property)*
+    ;
+
+property
+    : key=propertyKey (EQ? value=propertyValue)?
+    ;
+
+propertyKey
+    : identifier (DOT identifier)*
+    | STRING
+    ;
+
+propertyValue
+    : INTEGER_VALUE
+    | DECIMAL_VALUE
+    | booleanValue
+    | STRING
+    ;
+
+booleanValue
+    : TRUE | FALSE
+    ;
+
+
 multipartIdentifier
     : parts+=identifier (DOT parts+=identifier)*
     ;
@@ -106,20 +131,46 @@ nonReserved
 
 // Flint lexical tokens
 
-SKIPPING : 'SKIPPING';
+MIN_MAX: 'MIN_MAX';
+SKIPPING: 'SKIPPING';
+VALUE_SET: 'VALUE_SET';
 
 
 // Spark lexical tokens
 
 SEMICOLON: ';';
 
+LEFT_PAREN: '(';
+RIGHT_PAREN: ')';
+COMMA: ',';
+DOT: '.';
+
+
+CREATE: 'CREATE';
 DESC: 'DESC';
 DESCRIBE: 'DESCRIBE';
-DOT: '.';
 DROP: 'DROP';
+FALSE: 'FALSE';
 INDEX: 'INDEX';
-MINUS: '-';
 ON: 'ON';
+PARTITION: 'PARTITION';
+REFRESH: 'REFRESH';
+STRING: 'STRING';
+TRUE: 'TRUE';
+WITH: 'WITH';
+
+
+EQ  : '=' | '==';
+MINUS: '-';
+
+
+INTEGER_VALUE
+    : DIGIT+
+    ;
+
+DECIMAL_VALUE
+    : DECIMAL_DIGITS {isValidDecimal()}?
+    ;
 
 IDENTIFIER
     : (LETTER | DIGIT | '_')+
@@ -127,6 +178,11 @@ IDENTIFIER
 
 BACKQUOTED_IDENTIFIER
     : '`' ( ~'`' | '``' )* '`'
+    ;
+
+fragment DECIMAL_DIGITS
+    : DIGIT+ '.' DIGIT*
+    | '.' DIGIT+
     ;
 
 fragment DIGIT
