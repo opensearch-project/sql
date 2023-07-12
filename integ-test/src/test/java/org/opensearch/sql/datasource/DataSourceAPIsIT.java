@@ -50,7 +50,10 @@ public class DataSourceAPIsIT extends PPLIntegTestCase {
     //create datasource
     DataSourceMetadata createDSM =
         new DataSourceMetadata("create_prometheus", DataSourceType.PROMETHEUS,
-            ImmutableList.of(), ImmutableMap.of("prometheus.uri", "https://localhost:9090"));
+            ImmutableList.of(), ImmutableMap.of("prometheus.uri", "https://localhost:9090",
+            "prometheus.auth.type","basicauth",
+            "prometheus.auth.username", "username",
+            "prometheus.auth.password", "password"));
     Request createRequest = getCreateDataSourceRequest(createDSM);
     Response response = client().performRequest(createRequest);
     Assert.assertEquals(201, response.getStatusLine().getStatusCode());
