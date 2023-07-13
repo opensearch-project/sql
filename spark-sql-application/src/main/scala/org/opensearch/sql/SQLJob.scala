@@ -84,13 +84,15 @@ object SQLJob {
     val schema = StructType(Seq(
       StructField("result", ArrayType(StringType, containsNull = true), nullable = true),
       StructField("schema", ArrayType(StringType, containsNull = true), nullable = true),
-      StructField("stepId", StringType, nullable = true)))
+      StructField("stepId", StringType, nullable = true),
+      StructField("applicationId", StringType, nullable = true)))
 
     // Create the data rows
     val rows = Seq((
       result.toJSON.collect.toList.map(_.replaceAll("\"", "'")),
       resultSchema.toJSON.collect.toList.map(_.replaceAll("\"", "'")),
-      sys.env.getOrElse("EMR_STEP_ID", "")))
+      sys.env.getOrElse("EMR_STEP_ID", "unknown"),
+      spark.sparkContext.applicationId))
 
     // Create the DataFrame for data
     spark.createDataFrame(rows).toDF(schema.fields.map(_.name): _*)

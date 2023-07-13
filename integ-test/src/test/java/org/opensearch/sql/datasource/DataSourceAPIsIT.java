@@ -17,14 +17,10 @@ import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.List;
 import lombok.SneakyThrows;
-import org.apache.commons.lang3.StringUtils;
 import org.junit.AfterClass;
 import org.junit.Assert;
-import org.junit.BeforeClass;
 import org.junit.Test;
-import org.opensearch.action.update.UpdateRequest;
 import org.opensearch.client.Request;
-import org.opensearch.client.RequestOptions;
 import org.opensearch.client.Response;
 import org.opensearch.client.ResponseException;
 import org.opensearch.sql.datasource.model.DataSourceMetadata;
@@ -54,7 +50,10 @@ public class DataSourceAPIsIT extends PPLIntegTestCase {
     //create datasource
     DataSourceMetadata createDSM =
         new DataSourceMetadata("create_prometheus", DataSourceType.PROMETHEUS,
-            ImmutableList.of(), ImmutableMap.of("prometheus.uri", "https://localhost:9090"));
+            ImmutableList.of(), ImmutableMap.of("prometheus.uri", "https://localhost:9090",
+            "prometheus.auth.type","basicauth",
+            "prometheus.auth.username", "username",
+            "prometheus.auth.password", "password"));
     Request createRequest = getCreateDataSourceRequest(createDSM);
     Response response = client().performRequest(createRequest);
     Assert.assertEquals(201, response.getStatusLine().getStatusCode());
