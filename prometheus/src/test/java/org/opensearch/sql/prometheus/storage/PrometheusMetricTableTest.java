@@ -112,32 +112,6 @@ class PrometheusMetricTableTest {
   }
 
   @Test
-  void testImplementWithQueryRangeFunction() {
-    PrometheusQueryRequest prometheusQueryRequest = new PrometheusQueryRequest();
-    prometheusQueryRequest.setPromQl("test");
-    prometheusQueryRequest.setStep("15m");
-    PrometheusMetricTable prometheusMetricTable =
-        new PrometheusMetricTable(client, prometheusQueryRequest);
-    List<NamedExpression> finalProjectList = new ArrayList<>();
-    finalProjectList.add(DSL.named(VALUE, DSL.ref(VALUE, STRING)));
-    finalProjectList.add(DSL.named(TIMESTAMP, DSL.ref(TIMESTAMP, ExprCoreType.TIMESTAMP)));
-    PhysicalPlan plan = prometheusMetricTable.implement(
-        project(relation("query_range", prometheusMetricTable),
-            finalProjectList, null));
-
-
-    assertTrue(plan instanceof ProjectOperator);
-    List<NamedExpression> projectList = ((ProjectOperator) plan).getProjectList();
-    List<String> outputFields
-        = projectList.stream().map(NamedExpression::getName).collect(Collectors.toList());
-    assertEquals(List.of(VALUE, TIMESTAMP), outputFields);
-    assertTrue(((ProjectOperator) plan).getInput() instanceof PrometheusMetricScan);
-    PrometheusMetricScan prometheusMetricScan =
-        (PrometheusMetricScan) ((ProjectOperator) plan).getInput();
-    assertEquals(prometheusQueryRequest, prometheusMetricScan.getRequest());
-  }
-
-  @Test
   void testImplementWithBasicMetricQuery() {
     PrometheusMetricTable prometheusMetricTable =
         new PrometheusMetricTable(client, "prometheus_http_requests_total");

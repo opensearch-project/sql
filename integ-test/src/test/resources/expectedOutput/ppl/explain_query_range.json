@@ -1,0 +1,9 @@
+{
+    "root": {
+        "name": "QueryRangeFunctionTableScanOperator",
+        "description": {
+            "request": "query_range(prometheus_http_requests_total, 1689281439, 1689291439, 14)"
+        },
+        "children": []
+    }
+}
