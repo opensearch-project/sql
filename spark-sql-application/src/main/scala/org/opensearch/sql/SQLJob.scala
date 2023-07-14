@@ -99,7 +99,7 @@ object SQLJob {
 
     // Create the data rows
     val rows = Seq((
-      result.toJSON.collect.toList.map(_.replaceAll("\"", "'")),
+      result.toJSON.collect.toList.map(_.replaceAll("'", "\\\\'").replaceAll("\"", "'")),
       resultSchema.toJSON.collect.toList.map(_.replaceAll("\"", "'")),
       sys.env.getOrElse("EMR_STEP_ID", "unknown"),
       spark.sparkContext.applicationId))
