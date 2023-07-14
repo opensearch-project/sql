@@ -10,7 +10,6 @@ import com.google.common.base.Strings;
 import java.util.HashMap;
 import java.util.Map;
 import org.opensearch.common.document.DocumentField;
-import org.opensearch.common.text.Text;
 import org.opensearch.index.mapper.MapperService;
 import org.opensearch.search.SearchHit;
 import org.opensearch.sql.legacy.query.planner.physical.Row;

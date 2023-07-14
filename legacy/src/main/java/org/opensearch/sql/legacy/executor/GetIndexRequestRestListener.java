@@ -19,7 +19,7 @@ import org.opensearch.core.xcontent.XContentBuilder;
 import org.opensearch.rest.BytesRestResponse;
 import org.opensearch.rest.RestChannel;
 import org.opensearch.rest.RestResponse;
-import org.opensearch.rest.RestStatus;
+import org.opensearch.core.rest.RestStatus;
 import org.opensearch.rest.action.RestBuilderListener;
 import org.opensearch.sql.legacy.antlr.semantic.SemanticAnalysisException;
 
