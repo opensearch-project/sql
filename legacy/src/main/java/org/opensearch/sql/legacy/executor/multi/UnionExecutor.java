@@ -16,7 +16,6 @@ import org.apache.lucene.search.TotalHits.Relation;
 import org.opensearch.action.search.SearchResponse;
 import org.opensearch.client.Client;
 import org.opensearch.common.document.DocumentField;
-import org.opensearch.common.text.Text;
 import org.opensearch.index.mapper.MapperService;
 import org.opensearch.search.SearchHit;
 import org.opensearch.search.SearchHits;

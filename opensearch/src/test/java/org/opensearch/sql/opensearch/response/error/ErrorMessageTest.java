@@ -7,8 +7,8 @@
 package org.opensearch.sql.opensearch.response.error;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.opensearch.rest.RestStatus.BAD_REQUEST;
-import static org.opensearch.rest.RestStatus.SERVICE_UNAVAILABLE;
+import static org.opensearch.core.rest.RestStatus.BAD_REQUEST;
+import static org.opensearch.core.rest.RestStatus.SERVICE_UNAVAILABLE;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
