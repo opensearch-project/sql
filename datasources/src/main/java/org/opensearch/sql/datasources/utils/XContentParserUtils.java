@@ -5,7 +5,7 @@
 
 package org.opensearch.sql.datasources.utils;
 
-import static org.opensearch.common.xcontent.XContentParserUtils.ensureExpectedToken;
+import static org.opensearch.core.xcontent.XContentParserUtils.ensureExpectedToken;
 
 import java.io.IOException;
 import java.util.ArrayList;

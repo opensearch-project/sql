@@ -7,13 +7,13 @@
 
 package org.opensearch.sql.datasources.rest;
 
+import static org.opensearch.core.rest.RestStatus.BAD_REQUEST;
+import static org.opensearch.core.rest.RestStatus.NOT_FOUND;
+import static org.opensearch.core.rest.RestStatus.SERVICE_UNAVAILABLE;
 import static org.opensearch.rest.RestRequest.Method.DELETE;
 import static org.opensearch.rest.RestRequest.Method.GET;
 import static org.opensearch.rest.RestRequest.Method.POST;
 import static org.opensearch.rest.RestRequest.Method.PUT;
-import static org.opensearch.rest.RestStatus.BAD_REQUEST;
-import static org.opensearch.rest.RestStatus.NOT_FOUND;
-import static org.opensearch.rest.RestStatus.SERVICE_UNAVAILABLE;
 
 import com.google.common.collect.ImmutableList;
 import java.io.IOException;
@@ -24,11 +24,11 @@ import org.apache.logging.log4j.Logger;
 import org.opensearch.OpenSearchException;
 import org.opensearch.action.ActionListener;
 import org.opensearch.client.node.NodeClient;
+import org.opensearch.core.rest.RestStatus;
 import org.opensearch.rest.BaseRestHandler;
 import org.opensearch.rest.BytesRestResponse;
 import org.opensearch.rest.RestChannel;
 import org.opensearch.rest.RestRequest;
-import org.opensearch.rest.RestStatus;
 import org.opensearch.sql.datasource.model.DataSourceMetadata;
 import org.opensearch.sql.datasources.exceptions.DataSourceNotFoundException;
 import org.opensearch.sql.datasources.exceptions.ErrorMessage;

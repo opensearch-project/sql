@@ -6,7 +6,7 @@
 
 package org.opensearch.sql.legacy.plugin;
 
-import static org.opensearch.rest.RestStatus.OK;
+import static org.opensearch.core.rest.RestStatus.OK;
 import static org.opensearch.sql.executor.ExecutionEngine.QueryResponse;
 import static org.opensearch.sql.protocol.response.format.JsonResponseFormatter.Style.PRETTY;
 
@@ -20,7 +20,7 @@ import org.opensearch.rest.BaseRestHandler;
 import org.opensearch.rest.BytesRestResponse;
 import org.opensearch.rest.RestChannel;
 import org.opensearch.rest.RestRequest;
-import org.opensearch.rest.RestStatus;
+import org.opensearch.core.rest.RestStatus;
 import org.opensearch.sql.common.antlr.SyntaxCheckException;
 import org.opensearch.sql.common.response.ResponseListener;
 import org.opensearch.sql.common.utils.QueryContext;

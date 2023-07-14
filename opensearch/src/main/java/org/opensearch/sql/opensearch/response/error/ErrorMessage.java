@@ -8,7 +8,7 @@ package org.opensearch.sql.opensearch.response.error;
 
 import lombok.Getter;
 import org.json.JSONObject;
-import org.opensearch.rest.RestStatus;
+import org.opensearch.core.rest.RestStatus;
 
 /**
  * Error Message.

@@ -5,7 +5,7 @@
 
 package org.opensearch.sql.plugin.rest;
 
-import static org.opensearch.rest.RestStatus.INTERNAL_SERVER_ERROR;
+import static org.opensearch.core.rest.RestStatus.INTERNAL_SERVER_ERROR;
 
 import com.google.common.collect.ImmutableList;
 import java.io.IOException;
