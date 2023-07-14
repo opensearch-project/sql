@@ -1062,4 +1062,85 @@ public class DateTimeFunctionIT extends PPLIntegTestCase {
     verifySchema(result, schema("f", null, "time"));
     verifySome(result.getJSONArray("datarows"), rows("10:59:59"));
   }
+
+  @Test
+  public void testGetFormat() throws IOException{
+    var result = executeQuery(String.format("source=%s | eval f = date_format('2003-10-03', get_format(DATE,'USA')) | fields f", TEST_INDEX_DATE));
+    verifySchema(result, schema("f", null, "string"));
+    verifySome(result.getJSONArray("datarows"), rows("10.03.2003"));
+  }
+
+  @Test
+  public void testLastDay() throws IOException{
+    var result = executeQuery(String.format("source=%s | eval f = last_day('2003-10-03') | fields f", TEST_INDEX_DATE));
+    verifySchema(result, schema("f", null, "date"));
+    verifySome(result.getJSONArray("datarows"), rows("2003-10-31"));
+  }
+
+  @Test
+  public void testSecToTime() throws IOException{
+    var result = executeQuery(String.format("source=%s | eval f = sec_to_time(123456) | fields f", TEST_INDEX_DATE));
+    verifySchema(result, schema("f", null, "time"));
+    verifySome(result.getJSONArray("datarows"), rows("10:17:36"));
+  }
+
+  @Test
+  public void testYearWeek() throws IOException{
+    var result = executeQuery(String.format("source=%s | eval f1 = yearweek('2003-10-03') | eval f2 = yearweek('2003-10-03', 3) | fields f1, f2", TEST_INDEX_DATE));
+    verifySchema(result,
+            schema("f1", null, "integer"),
+            schema("f2", null, "integer"));
+    verifySome(result.getJSONArray("datarows"), rows(200339, 200340));
+  }
+
+  @Test
+  public void testWeekDay() throws IOException{
+    var result = executeQuery(String.format("source=%s | eval f = weekday('2003-10-03') | fields f", TEST_INDEX_DATE));
+    verifySchema(result, schema("f", null, "integer"));
+    verifySome(result.getJSONArray("datarows"), rows(4));
+  }
+
+  @Test
+  public void testToSeconds() throws IOException{
+    var result = executeQuery(String.format("source=%s | eval f1 = to_seconds(date('2008-10-07')) | " +
+            "eval f2 = to_seconds('2020-09-16 07:40:00') | " +
+            "eval f3 = to_seconds(DATETIME('2020-09-16 07:40:00')) | fields f1, f2, f3", TEST_INDEX_DATE));
+    verifySchema(result,
+            schema("f1", null, "long"),
+            schema("f2", null, "long"),
+            schema("f3", null, "long"));
+    verifySome(result.getJSONArray("datarows"), rows(63390556800L, 63767461200L, 63767461200L));
+  }
+
+  @Test
+  public void testStrToDate() throws IOException{
+    var result = executeQuery(String.format("source=%s | eval f = str_to_date('01,5,2013', '%s') | fields f", TEST_INDEX_DATE, "%d,%m,%Y"));
+    verifySchema(result, schema("f", null, "datetime"));
+    verifySome(result.getJSONArray("datarows"), rows("2013-05-01 00:00:00"));
+  }
+
+  @Test
+  public void testTimeStampAdd() throws IOException{
+    var result = executeQuery(String.format("source=%s | eval f = timestampadd(YEAR, 15, '2001-03-06 00:00:00') | fields f", TEST_INDEX_DATE));
+    verifySchema(result, schema("f", null, "datetime"));
+    verifySome(result.getJSONArray("datarows"), rows("2016-03-06 00:00:00"));
+  }
+
+  @Test
+  public void testTimestampDiff() throws IOException{
+    var result = executeQuery(String.format("source=%s | eval f = timestampdiff(YEAR, '1997-01-01 00:00:00', '2001-03-06 00:00:00') | fields f", TEST_INDEX_DATE));
+    verifySchema(result, schema("f", null, "datetime"));
+    verifySome(result.getJSONArray("datarows"), rows(4));
+  }
+
+  @Test
+  public void testExtract() throws IOException{
+    var result = executeQuery(String.format("source=%s | eval f1 = extract(YEAR FROM '1997-01-01 00:00:00') | eval f2 = extract(MINUTE FROM time('10:17:36')) | fields f1, f2", TEST_INDEX_DATE));
+    verifySchema(result,
+            schema("f1", null, "long"),
+            schema("f2", null, "long"));
+    verifySome(result.getJSONArray("datarows"), rows(1997L, 17L));
+  }
+
+
 }

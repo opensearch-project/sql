@@ -9,8 +9,8 @@ import java.io.IOException;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import org.opensearch.action.ActionResponse;
-import org.opensearch.common.io.stream.StreamInput;
-import org.opensearch.common.io.stream.StreamOutput;
+import org.opensearch.core.common.io.stream.StreamInput;
+import org.opensearch.core.common.io.stream.StreamOutput;
 
 @RequiredArgsConstructor
 public class TransportPPLQueryResponse extends ActionResponse {

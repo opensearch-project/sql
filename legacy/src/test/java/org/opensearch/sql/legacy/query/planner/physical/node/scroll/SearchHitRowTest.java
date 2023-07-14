@@ -10,7 +10,7 @@ import static org.opensearch.sql.legacy.query.planner.physical.Row.RowKey;
 
 import com.google.common.collect.ImmutableMap;
 import org.junit.Test;
-import org.opensearch.common.bytes.BytesArray;
+import org.opensearch.core.common.bytes.BytesArray;
 import org.opensearch.search.SearchHit;
 
 public class SearchHitRowTest {

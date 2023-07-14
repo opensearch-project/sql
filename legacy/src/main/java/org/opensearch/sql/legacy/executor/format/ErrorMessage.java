@@ -7,7 +7,7 @@
 package org.opensearch.sql.legacy.executor.format;
 
 import org.json.JSONObject;
-import org.opensearch.rest.RestStatus;
+import org.opensearch.core.rest.RestStatus;
 
 public class ErrorMessage<E extends Exception> {
 

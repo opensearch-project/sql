@@ -10,7 +10,7 @@ package org.opensearch.sql.legacy.query.join;
 import java.io.IOException;
 import org.json.JSONObject;
 import org.json.JSONStringer;
-import org.opensearch.common.bytes.BytesReference;
+import org.opensearch.core.common.bytes.BytesReference;
 import org.opensearch.common.xcontent.XContentFactory;
 import org.opensearch.common.xcontent.XContentType;
 import org.opensearch.core.xcontent.ToXContent;
