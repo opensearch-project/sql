@@ -11,7 +11,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import org.junit.jupiter.api.Test;
 import org.opensearch.OpenSearchException;
-import org.opensearch.rest.RestStatus;
+import org.opensearch.core.rest.RestStatus;
 
 public class ErrorMessageFactoryTest {
   private Throwable nonOpenSearchThrowable = new Throwable();
