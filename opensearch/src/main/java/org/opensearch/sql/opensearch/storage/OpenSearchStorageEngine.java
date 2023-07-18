@@ -34,7 +34,7 @@ public class OpenSearchStorageEngine implements StorageEngine {
       // TODO: handle routingId on system tables too?
       return new OpenSearchSystemIndex(client, name);
     } else {
-      return new OpenSearchIndex(client, settings, name, routingId == null ? "" : routingId);
+      return new OpenSearchIndex(client, settings, name, routingId);
     }
   }
 }

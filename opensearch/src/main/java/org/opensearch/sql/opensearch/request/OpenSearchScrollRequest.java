@@ -91,9 +91,11 @@ public class OpenSearchScrollRequest implements OpenSearchRequest {
     this.exprValueFactory = exprValueFactory;
     this.initialSearchRequest = new SearchRequest()
         .indices(indexName.getIndexNames())
-        .routing(routingId.getIndexNames())
         .scroll(scrollTimeout)
         .source(sourceBuilder);
+    if (routingId != null) {
+      this.initialSearchRequest.routing(routingId.getIndexNames());
+    }
 
     includes = sourceBuilder.fetchSource() == null
         ? List.of()

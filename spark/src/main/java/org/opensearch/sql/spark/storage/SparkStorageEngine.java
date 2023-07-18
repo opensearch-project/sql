@@ -29,7 +29,7 @@ public class SparkStorageEngine implements StorageEngine {
   }
 
   @Override
-  public Table getTable(DataSourceSchemaName dataSourceSchemaName, String tableName) {
+  public Table getTable(DataSourceSchemaName dataSourceSchemaName, String tableName, String parition) {
     throw new RuntimeException("Unable to get table from storage engine.");
   }
 }

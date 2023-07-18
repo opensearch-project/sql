@@ -189,7 +189,10 @@ public class OpenSearchResponse implements Iterable<ExprValue> {
       } else if (metaDataField.equals(METADATA_FIELD_SORT)) {
         builder.put(METADATA_FIELD_SORT, new ExprLongValue(hit.getSeqNo()));
       } else { // if (metaDataField.equals(METADATA_FIELD_ROUTING)){
-        builder.put(METADATA_FIELD_ROUTING, new ExprStringValue(hit.getShard().toString()));
+        var routing = hit.getFields().getOrDefault("_routing", null);
+        if (routing != null) {
+          builder.put(METADATA_FIELD_ROUTING, new ExprStringValue(routing.getValue()));
+        }
       }
     });
   }

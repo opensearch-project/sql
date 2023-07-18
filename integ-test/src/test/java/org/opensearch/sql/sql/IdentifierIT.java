@@ -103,9 +103,14 @@ public class IdentifierIT extends SQLIntegTestCase {
 
   @Test
   public void testMetafieldIdentifierRoutingSelectTest() throws IOException {
-    // create an index, but the contents doesn't really matter
+    // create an index with routing required
     String index = "test.routing_select";
-    String mapping = "{\"_routing\": {\"required\": true }}";
+
+    final String mapping = "{ " +
+        "\"mappings\" : {" +
+        "  \"_routing\": { \"required\": true }," +
+        "  \"properties\" : { " +
+        "    \"age\" : { \"type\" : \"long\" } } } }";
     new Index(index, mapping)
         .addDocWithShardId("{\"age\": 31}", "test0", "test0")
         .addDocWithShardId("{\"age\": 31}", "test1", "test1")
@@ -140,10 +145,55 @@ public class IdentifierIT extends SQLIntegTestCase {
   }
 
   @Test
+  public void testMetafieldIdentifierRoutingPartitionTest() throws IOException {
+    // create an index with routing required
+    String index = "test.routing_partition";
+    final String mapping = "{ " +
+        "\"mappings\" : {" +
+        "  \"_routing\": { \"required\": true }," +
+        "  \"properties\" : { " +
+        "    \"age\" : { \"type\" : \"long\" } } } }";
+    new Index(index, mapping)
+        .addDocWithShardId("{\"age\": 31}", "test0", "test0")
+        .addDocWithShardId("{\"age\": 31}", "test1", "test1")
+        .addDocWithShardId("{\"age\": 32}", "test2", "test2")
+        .addDocWithShardId("{\"age\": 33}", "test3", "test3")
+        .addDocWithShardId("{\"age\": 34}", "test4", "test4")
+        .addDocWithShardId("{\"age\": 35}", "test5", "test5");
+
+    // Execute using field metadata values filtering on the routing shard hash id
+    String query = "SELECT age, _id, _index, _routing "
+        + "FROM " + index + " PARTITION(test4,test5)";
+    final JSONObject result = new JSONObject(executeQuery(query, "jdbc"));
+
+    // Verify that the metadata values are returned when requested
+    verifySchema(result,
+        schema("age", null, "long"),
+        schema("_id", null, "keyword"),
+        schema("_index", null, "keyword"),
+        schema("_routing", null, "keyword"));
+    assertTrue(result.getJSONArray("schema").length() == 4);
+
+    var datarows = result.getJSONArray("datarows");
+    assertEquals(2, datarows.length());
+
+    // note that _routing in the SELECT clause returns the shard
+    for (int i = 0; i < 2; i++) {
+      assertEquals("test" + i, datarows.getJSONArray(i).getString(1));
+      assertEquals(index, datarows.getJSONArray(i).getString(2));
+      assertTrue(datarows.getJSONArray(i).getString(3).contains("[" + index + "]"));
+    }
+  }
+
+  @Test
   public void testMetafieldIdentifierRoutingFilterTest() throws IOException {
     // create an index, but the contents doesn't really matter
     String index = "test.routing_filter";
-    String mapping = "{\"_routing\": {\"required\": true }}";
+    final String mapping = "{ " +
+        "\"mappings\" : {" +
+        "  \"_routing\": { \"required\": true }," +
+        "  \"properties\" : { " +
+        "    \"age\" : { \"type\" : \"long\" } } } }";
     new Index(index, mapping)
         .addDocWithShardId("{\"age\": 31}", "test1", "test1")
         .addDocWithShardId("{\"age\": 32}", "test2", "test2")
@@ -233,7 +283,7 @@ public class IdentifierIT extends SQLIntegTestCase {
 
       Request createIndex = new Request("PUT", "/" + indexName);
       createIndex.setJsonEntity(mapping);
-      executeRequest(new Request("PUT", "/" + indexName));
+      executeRequest(createIndex);
     }
 
     void addDoc(String doc) {

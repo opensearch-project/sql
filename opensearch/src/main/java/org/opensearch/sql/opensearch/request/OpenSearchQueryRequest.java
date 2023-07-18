@@ -112,11 +112,14 @@ public class OpenSearchQueryRequest implements OpenSearchRequest {
       return new OpenSearchResponse(SearchHits.empty(), exprValueFactory, includes);
     } else {
       searchDone = true;
+      SearchRequest searchRequest = new SearchRequest()
+          .indices(indexName.getIndexNames())
+          .source(sourceBuilder);
+      if (getRoutingId() != null) {
+        searchRequest.routing(getRoutingId().getIndexNames());
+      }
       return new OpenSearchResponse(
-          searchAction.apply(new SearchRequest()
-              .indices(indexName.getIndexNames())
-              .source(sourceBuilder)
-              .routing(getRoutingId().getIndexNames())), exprValueFactory, includes);
+          searchAction.apply(searchRequest), exprValueFactory, includes);
     }
   }
 

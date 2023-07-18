@@ -4,7 +4,7 @@
  */
 
 
-package org.opensearch.sql.ppl;
+package org.opensearch.sql.multiClusterSearch;
 
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_ACCOUNT;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_BANK;
@@ -20,6 +20,7 @@ import org.junit.Rule;
 import org.junit.jupiter.api.Test;
 import org.junit.rules.ExpectedException;
 import org.opensearch.client.ResponseException;
+import org.opensearch.sql.ppl.PPLIntegTestCase;
 
 public class CrossClusterSearchIT extends PPLIntegTestCase {
 
@@ -33,7 +34,7 @@ public class CrossClusterSearchIT extends PPLIntegTestCase {
 
   @Override
   public void init() throws IOException {
-    configureMultiClusters(REMOTE_CLUSTER);
+    configureMultiClusters(MULTI_REMOTE_CLUSTER);
     loadIndex(Index.BANK);
     loadIndex(Index.BANK, remoteClient());
     loadIndex(Index.DOG);

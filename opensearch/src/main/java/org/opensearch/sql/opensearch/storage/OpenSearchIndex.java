@@ -94,7 +94,7 @@ public class OpenSearchIndex implements Table {
     this.client = client;
     this.settings = settings;
     this.indexName = new OpenSearchRequest.IndexName(indexName);
-    this.routingId = new OpenSearchRequest.IndexName(routingId);
+    this.routingId = routingId == null ? null : new OpenSearchRequest.IndexName(routingId);
   }
 
   @Override

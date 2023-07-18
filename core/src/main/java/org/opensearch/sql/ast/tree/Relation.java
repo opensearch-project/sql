@@ -102,10 +102,10 @@ public class Relation extends UnresolvedPlan {
   /**
    * Retrieve the partition keys associated with the table/relation
    *
-   * @return TablePartitionKeys.
+   * @return TablePartitionKeys | null
    */
   public String getTablePartitionKeys() {
-    return String.join(COMMA, partitionKeys);
+    return partitionKeys == null ? null : String.join(COMMA, partitionKeys);
   }
 
   @Override

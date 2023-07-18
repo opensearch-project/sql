@@ -50,6 +50,8 @@ public abstract class OpenSearchSQLRestTestCase extends OpenSearchRestTestCase {
 
   private static final Logger LOG = LogManager.getLogger();
   public static final String REMOTE_CLUSTER = "remoteCluster";
+
+  public static final String MULTI_REMOTE_CLUSTER = "multiClusterSearch";
   public static final String MATCH_ALL_REMOTE_CLUSTER = "*";
 
   private static RestClient remoteClient;
@@ -105,10 +107,10 @@ public abstract class OpenSearchSQLRestTestCase extends OpenSearchRestTestCase {
   }
 
   // Modified from initClient in OpenSearchRestTestCase
-  public void initRemoteClient() throws IOException {
+  public void initRemoteClient(String clusterName) throws IOException {
     if (remoteClient == null) {
       assert remoteAdminClient == null;
-      String cluster = getTestRestCluster(REMOTE_CLUSTER);
+      String cluster = getTestRestCluster(clusterName);
       String[] stringUrls = cluster.split(",");
       List<HttpHost> hosts = new ArrayList<>(stringUrls.length);
       for (String stringUrl : stringUrls) {
@@ -252,14 +254,14 @@ public abstract class OpenSearchSQLRestTestCase extends OpenSearchRestTestCase {
    * Initialize rest client to remote cluster,
    * and create a connection to it from the coordinating cluster.
    */
-  public void configureMultiClusters() throws IOException {
-    initRemoteClient();
+  public void configureMultiClusters(String clusterName) throws IOException {
+    initRemoteClient(clusterName);
 
     Request connectionRequest = new Request("PUT", "_cluster/settings");
     String connectionSetting = "{\"persistent\": {\"cluster\": {\"remote\": {\""
-        + REMOTE_CLUSTER
+        + clusterName
         + "\": {\"seeds\": [\""
-        + getTestTransportCluster(REMOTE_CLUSTER).split(",")[0]
+        + getTestTransportCluster(clusterName).split(",")[0]
         + "\"]}}}}}";
     connectionRequest.setJsonEntity(connectionSetting);
     adminClient().performRequest(connectionRequest);
