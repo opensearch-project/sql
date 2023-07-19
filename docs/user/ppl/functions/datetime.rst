@@ -754,13 +754,13 @@ Synonyms: `DAYOFWEEK`_
 
 Example::
 
-    os> source=people | eval `DAYOFWEEK(DATE('2020-08-26'))` = DAYOFWEEK(DATE('2020-08-26')) | fields `DAYOFWEEK(DATE('2020-08-26'))`
+    os> source=people | eval `DAY_OF_WEEK(DATE('2020-08-26'))` = DAY_OF_WEEK(DATE('2020-08-26')) | fields `DAY_OF_WEEK(DATE('2020-08-26'))`
     fetched rows / total rows = 1/1
-    +---------------------------------+
-    | DAYOFWEEK(DATE('2020-08-26'))   |
-    |---------------------------------|
-    | 4                               |
-    +---------------------------------+
+    +-----------------------------------+
+    | DAY_OF_WEEK(DATE('2020-08-26'))   |
+    |-----------------------------------|
+    | 4                                 |
+    +-----------------------------------+
 
 
 DAYOFYEAR
