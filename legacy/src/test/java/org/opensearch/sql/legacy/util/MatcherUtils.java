@@ -227,14 +227,14 @@ public class MatcherUtils {
             protected boolean matchesSafely(JSONObject jsonObject) {
                 return ((String)jsonObject.query("/name")).matches(regex);
             }
-            
+
             @Override
             public void describeTo(Description description) {
                 description.appendText(String.format("(column_pattern=%s)", regex));
             }
         };
     }
-    
+
     public static TypeSafeMatcher<JSONObject> columnName(String name) {
         return new TypeSafeMatcher<JSONObject>() {
             @Override

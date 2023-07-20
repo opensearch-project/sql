@@ -1485,7 +1485,7 @@ public class MathematicalFunctionTest extends ExpressionTestBase {
         signum.valueOf(valueEnv()),
         allOf(hasType(INTEGER), hasValue((int) Math.signum(value))));
     assertEquals(String.format("signum(%s)", value), signum.toString());
-  }  
+  }
 
   /**
    * Test sinh with byte value.
