@@ -12,8 +12,6 @@ import static org.opensearch.sql.util.MatcherUtils.verifyDataRows;
 
 import java.io.IOException;
 import org.json.JSONObject;
-import org.junit.Ignore;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 public class MatchPhraseIT extends PPLIntegTestCase {

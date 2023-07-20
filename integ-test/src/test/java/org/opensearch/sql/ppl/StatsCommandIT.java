@@ -15,10 +15,6 @@ import static org.opensearch.sql.util.MatcherUtils.verifyDataRows;
 import static org.opensearch.sql.util.MatcherUtils.verifySchema;
 
 import java.io.IOException;
-import java.time.LocalDate;
-import java.time.ZoneId;
-import java.time.ZonedDateTime;
-import java.time.format.DateTimeFormatter;
 import org.json.JSONObject;
 import org.junit.jupiter.api.Test;
 

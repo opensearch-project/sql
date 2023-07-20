@@ -20,7 +20,6 @@ import java.util.TimeZone;
 
 import com.carrotsearch.randomizedtesting.annotations.Name;
 import com.carrotsearch.randomizedtesting.annotations.ParametersFactory;
-import org.json.JSONObject;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.jupiter.api.Test;
