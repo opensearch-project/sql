@@ -10,7 +10,6 @@ import static org.opensearch.sql.util.TestUtils.getResourceFilePath;
 
 import com.carrotsearch.randomizedtesting.annotations.ThreadLeakScope;
 import com.google.common.collect.Maps;
-
 import java.net.URISyntaxException;
 import java.nio.file.Files;
 import java.nio.file.Path;

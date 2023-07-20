@@ -8,18 +8,17 @@ package org.opensearch.sql.legacy.executor;
 
 import java.io.IOException;
 import java.util.List;
-
 import org.opensearch.action.admin.indices.get.GetIndexRequest;
 import org.opensearch.action.admin.indices.get.GetIndexResponse;
 import org.opensearch.cluster.metadata.AliasMetadata;
 import org.opensearch.cluster.metadata.MappingMetadata;
 import org.opensearch.common.settings.Settings;
+import org.opensearch.core.rest.RestStatus;
 import org.opensearch.core.xcontent.ToXContent;
 import org.opensearch.core.xcontent.XContentBuilder;
 import org.opensearch.rest.BytesRestResponse;
 import org.opensearch.rest.RestChannel;
 import org.opensearch.rest.RestResponse;
-import org.opensearch.core.rest.RestStatus;
 import org.opensearch.rest.action.RestBuilderListener;
 import org.opensearch.sql.legacy.antlr.semantic.SemanticAnalysisException;
 
