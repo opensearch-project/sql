@@ -92,7 +92,7 @@ spotless {
 //                " * Copyright OpenSearch Contributors\n" +
 //                " * SPDX-License-Identifier: Apache-2.0\n" +
 //                " */\n\n\n")
-//        removeUnusedImports()
+        removeUnusedImports()
         trimTrailingWhitespace()
         endWithNewline()
 //        googleJavaFormat('1.17.0').reflowLongStrings().groupArtifact('com.google.googlejavaformat:google-java-format')
