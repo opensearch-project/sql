@@ -84,7 +84,7 @@ repositories {
 spotless {
     java {
 //        target fileTree('.') {
-//            include '**/*.java'
+//            include '**/*.java', 'src/*/java/**/*.java'
 //            exclude '**/build/**', '**/build-*/**'
 //        }
 //        importOrder()
@@ -95,7 +95,7 @@ spotless {
 //        removeUnusedImports()
 //        trimTrailingWhitespace()
 //        endWithNewline()
-//        googleJavaFormat()
+//        googleJavaFormat('1.17.0').reflowLongStrings().groupArtifact('com.google.googlejavaformat:google-java-format')
     }
 }
 
