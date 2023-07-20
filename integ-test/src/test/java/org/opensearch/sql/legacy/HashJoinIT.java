@@ -10,9 +10,7 @@ import static org.hamcrest.Matchers.equalTo;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_ACCOUNT;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_GAME_OF_THRONES;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_UNEXPANDED_OBJECT;
-import static org.opensearch.sql.util.MatcherUtils.columnName;
 import static org.opensearch.sql.util.MatcherUtils.rows;
-import static org.opensearch.sql.util.MatcherUtils.verifyColumn;
 import static org.opensearch.sql.util.MatcherUtils.verifyDataRows;
 
 import java.io.IOException;

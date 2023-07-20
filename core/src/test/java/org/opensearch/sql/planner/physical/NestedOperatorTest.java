@@ -8,7 +8,6 @@ package org.opensearch.sql.planner.physical;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.when;
 import static org.opensearch.sql.data.model.ExprValueUtils.collectionValue;
 import static org.opensearch.sql.data.model.ExprValueUtils.tupleValue;

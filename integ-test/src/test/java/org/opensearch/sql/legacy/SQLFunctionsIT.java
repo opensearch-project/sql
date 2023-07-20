@@ -34,7 +34,6 @@ import java.util.stream.IntStream;
 import org.hamcrest.collection.IsMapContaining;
 import org.json.JSONObject;
 import org.junit.Assert;
-import org.junit.Assume;
 import org.junit.Ignore;
 import org.junit.Test;
 import org.opensearch.action.search.SearchResponse;
