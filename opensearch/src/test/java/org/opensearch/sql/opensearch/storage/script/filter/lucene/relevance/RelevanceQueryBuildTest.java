@@ -3,6 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+
 package org.opensearch.sql.opensearch.storage.script.filter.lucene.relevance;
 
 import static org.junit.Assert.assertEquals;

@@ -3,6 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+
 package org.opensearch.sql.opensearch.storage.script.filter.lucene.relevance;
 
 import java.util.List;

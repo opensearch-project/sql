@@ -3,6 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+
 package org.opensearch.sql.plugin.rest;
 
 import static org.opensearch.core.rest.RestStatus.BAD_REQUEST;

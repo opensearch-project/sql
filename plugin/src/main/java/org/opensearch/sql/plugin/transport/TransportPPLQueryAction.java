@@ -3,6 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+
 package org.opensearch.sql.plugin.transport;
 
 import static org.opensearch.sql.protocol.response.format.JsonResponseFormatter.Style.PRETTY;

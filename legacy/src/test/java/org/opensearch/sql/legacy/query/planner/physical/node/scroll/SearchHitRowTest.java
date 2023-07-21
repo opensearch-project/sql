@@ -3,6 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+
 package org.opensearch.sql.legacy.query.planner.physical.node.scroll;
 
 import static org.junit.Assert.assertEquals;

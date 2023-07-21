@@ -3,6 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+
 package org.opensearch.sql.opensearch.setting;
 
 import static org.opensearch.common.unit.TimeValue.timeValueMinutes;

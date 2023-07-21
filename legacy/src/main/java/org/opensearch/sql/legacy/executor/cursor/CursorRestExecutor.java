@@ -4,7 +4,6 @@
  */
 
 
-
 package org.opensearch.sql.legacy.executor.cursor;
 
 import java.util.Map;

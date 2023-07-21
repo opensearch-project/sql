@@ -3,6 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+
 package org.opensearch.sql.plugin.config;
 
 import lombok.RequiredArgsConstructor;

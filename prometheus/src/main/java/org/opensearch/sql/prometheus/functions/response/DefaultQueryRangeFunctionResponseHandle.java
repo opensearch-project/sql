@@ -3,6 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+
 package org.opensearch.sql.prometheus.functions.response;
 
 import static org.opensearch.sql.prometheus.data.constants.PrometheusFieldConstants.VALUE;
