@@ -3,6 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+
 package org.opensearch.sql.spark.client;
 
 import static org.opensearch.sql.spark.data.constants.SparkConstants.SPARK_INDEX_NAME;

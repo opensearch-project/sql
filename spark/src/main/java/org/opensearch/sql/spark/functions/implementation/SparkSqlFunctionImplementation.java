@@ -3,6 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+
 package org.opensearch.sql.spark.functions.implementation;
 
 import static org.opensearch.sql.spark.functions.resolver.SparkSqlTableFunctionResolver.QUERY;

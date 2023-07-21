@@ -3,6 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+
 package org.opensearch.sql.sql.parser;
 
 import org.antlr.v4.runtime.tree.ParseTree;

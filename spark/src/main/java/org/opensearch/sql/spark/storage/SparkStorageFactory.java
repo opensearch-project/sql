@@ -3,6 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+
 package org.opensearch.sql.spark.storage;
 
 import static org.opensearch.sql.spark.data.constants.SparkConstants.EMR;

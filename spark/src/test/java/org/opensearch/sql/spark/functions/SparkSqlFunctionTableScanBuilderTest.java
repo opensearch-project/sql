@@ -3,6 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+
 package org.opensearch.sql.spark.functions;
 
 import static org.opensearch.sql.spark.constants.TestConstants.QUERY;
