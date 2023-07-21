@@ -3,6 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+
 package org.opensearch.sql.datasources.auth;
 
 import org.opensearch.sql.datasource.model.DataSourceMetadata;

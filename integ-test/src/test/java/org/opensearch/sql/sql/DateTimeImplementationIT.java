@@ -3,6 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+
 package org.opensearch.sql.sql;
 
 import static org.opensearch.sql.util.MatcherUtils.rows;
