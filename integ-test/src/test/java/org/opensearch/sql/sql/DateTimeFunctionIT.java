@@ -29,6 +29,7 @@ import org.junit.jupiter.api.Test;
 import org.opensearch.client.Request;
 import org.opensearch.client.RequestOptions;
 import org.opensearch.client.Response;
+import org.opensearch.client.ResponseException;
 import org.opensearch.sql.common.utils.StringUtils;
 import org.opensearch.sql.legacy.SQLIntegTestCase;
 
@@ -1359,22 +1360,7 @@ public class DateTimeFunctionIT extends SQLIntegTestCase {
   }
 
   private void queryFails(String query) {
-    Request request = new Request("POST", QUERY_API_ENDPOINT);
-    request.setJsonEntity(String.format(Locale.ROOT, "{\n" + "  \"query\": \"%s\"\n" + "}", query));
-
-    RequestOptions.Builder restOptionsBuilder = RequestOptions.DEFAULT.toBuilder();
-    restOptionsBuilder.addHeader("Content-Type", "application/json");
-    request.setOptions(restOptionsBuilder);
-
-    boolean fails = false;
-
-    try {
-      client().performRequest(request);
-    } catch(Exception ignored) {
-      fails = true;
-    }
-
-    assertTrue(fails);
+    assertThrows(ResponseException.class, ()->executeQuery(query));
   }
 
   @Test
@@ -1385,6 +1371,5 @@ public class DateTimeFunctionIT extends SQLIntegTestCase {
     queryFails("select {d 'failure'}");
     queryFails("select {timestamp 'failure'}");
     queryFails("select {ts 'failure'}");
-
   }
 }
