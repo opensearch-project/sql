@@ -1288,4 +1288,103 @@ public class DateTimeFunctionIT extends SQLIntegTestCase {
     Response response = client().performRequest(request);
     return new JSONObject(getResponseBody(response));
   }
+
+  @Test
+  public void testTimestampBracket() throws IOException {
+    JSONObject result = executeQuery("select {timestamp '2020-09-16 17:30:00'}");
+    verifySchema(result, schema("{timestamp '2020-09-16 17:30:00'}", null, "timestamp"));
+    verifyDataRows(result, rows("2020-09-16 17:30:00"));
+
+    result = executeQuery("select {ts '2020-09-16 17:30:00'}");
+    verifySchema(result, schema("{ts '2020-09-16 17:30:00'}", null, "timestamp"));
+    verifyDataRows(result, rows("2020-09-16 17:30:00"));
+
+    result = executeQuery("select {timestamp '2020-09-16 17:30:00.123'}");
+    verifySchema(result, schema("{timestamp '2020-09-16 17:30:00.123'}", null, "timestamp"));
+    verifyDataRows(result, rows("2020-09-16 17:30:00.123"));
+
+    result = executeQuery("select {ts '2020-09-16 17:30:00.123'}");
+    verifySchema(result, schema("{ts '2020-09-16 17:30:00.123'}", null, "timestamp"));
+    verifyDataRows(result, rows("2020-09-16 17:30:00.123"));
+  }
+
+  @Test
+  public void testTimeBracket() throws IOException {
+    JSONObject result = executeQuery("select {time '17:30:00'}");
+    verifySchema(result, schema("{time '17:30:00'}", null, "time"));
+    verifyDataRows(result, rows("17:30:00"));
+
+    result = executeQuery("select {t '17:30:00'}");
+    verifySchema(result, schema("{t '17:30:00'}", null, "time"));
+    verifyDataRows(result, rows("17:30:00"));
+
+    result = executeQuery("select {time '17:30:00'}");
+    verifySchema(result, schema("{time '17:30:00'}", null, "time"));
+    verifyDataRows(result, rows("17:30:00"));
+
+    result = executeQuery("select {t '17:30:00'}");
+    verifySchema(result, schema("{t '17:30:00'}", null, "time"));
+    verifyDataRows(result, rows("17:30:00"));
+  }
+
+  @Test
+  public void testDateBracket() throws IOException {
+    JSONObject result = executeQuery("select {date '2020-09-16'}");
+    verifySchema(result, schema("{date '2020-09-16'}", null, "date"));
+    verifyDataRows(result, rows("2020-09-16"));
+
+    result = executeQuery("select {d '2020-09-16'}");
+    verifySchema(result, schema("{d '2020-09-16'}", null, "date"));
+    verifyDataRows(result, rows("2020-09-16"));
+  }
+
+  private void compareBrackets(String query1, String query2, String datetime) throws IOException {
+    JSONObject result1 = executeQuery("select " + query1 + " '" + datetime + "'");
+    JSONObject result2 = executeQuery("select {" + query2 + " '" + datetime + "'}");
+
+    verifyDataRows(result1, rows(datetime));
+    verifyDataRows(result2, rows(datetime));
+  }
+
+  @Test
+  public void testBracketedEquivalent() throws IOException {
+    compareBrackets("timestamp", "timestamp", "2020-09-16 17:30:00");
+    compareBrackets("timestamp", "ts", "2020-09-16 17:30:00");
+    compareBrackets("timestamp", "timestamp", "2020-09-16 17:30:00.123");
+    compareBrackets("timestamp", "ts", "2020-09-16 17:30:00.123");
+    compareBrackets("date", "date", "2020-09-16");
+    compareBrackets("date", "d", "2020-09-16");
+    compareBrackets("time", "time", "17:30:00");
+    compareBrackets("time", "t", "17:30:00");
+  }
+
+  private void queryFails(String query) {
+    Request request = new Request("POST", QUERY_API_ENDPOINT);
+    request.setJsonEntity(String.format(Locale.ROOT, "{\n" + "  \"query\": \"%s\"\n" + "}", query));
+
+    RequestOptions.Builder restOptionsBuilder = RequestOptions.DEFAULT.toBuilder();
+    restOptionsBuilder.addHeader("Content-Type", "application/json");
+    request.setOptions(restOptionsBuilder);
+
+    boolean fails = false;
+
+    try {
+      client().performRequest(request);
+    } catch(Exception ignored) {
+      fails = true;
+    }
+
+    assertTrue(fails);
+  }
+
+  @Test
+  public void testBracketFails() {
+    queryFails("select {time 'failure'}");
+    queryFails("select {t 'failure'}");
+    queryFails("select {date 'failure'}");
+    queryFails("select {d 'failure'}");
+    queryFails("select {timestamp 'failure'}");
+    queryFails("select {ts 'failure'}");
+
+  }
 }
