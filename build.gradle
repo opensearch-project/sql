@@ -88,10 +88,10 @@ spotless {
             exclude '**/build/**', '**/build-*/**'
         }
         importOrder()
-        licenseHeader("/*\n" +
-                " * Copyright OpenSearch Contributors\n" +
-                " * SPDX-License-Identifier: Apache-2.0\n" +
-                " */\n\n\n")
+//        licenseHeader("/*\n" +
+//                " * Copyright OpenSearch Contributors\n" +
+//                " * SPDX-License-Identifier: Apache-2.0\n" +
+//                " */\n\n\n")
         removeUnusedImports()
         trimTrailingWhitespace()
         endWithNewline()
