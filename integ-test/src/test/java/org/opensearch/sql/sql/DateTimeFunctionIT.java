@@ -1358,18 +1358,14 @@ public class DateTimeFunctionIT extends SQLIntegTestCase {
     compareBrackets("time", "time", "17:30:00");
     compareBrackets("time", "t", "17:30:00");
   }
-
-  private void queryFails(String query) {
-    assertThrows(ResponseException.class, ()->executeQuery(query));
-  }
-
+  
   @Test
   public void testBracketFails() {
-    queryFails("select {time 'failure'}");
-    queryFails("select {t 'failure'}");
-    queryFails("select {date 'failure'}");
-    queryFails("select {d 'failure'}");
-    queryFails("select {timestamp 'failure'}");
-    queryFails("select {ts 'failure'}");
+    assertThrows(ResponseException.class, ()->executeQuery("select {time 'failure'}"));
+    assertThrows(ResponseException.class, ()->executeQuery("select {t 'failure'}"));
+    assertThrows(ResponseException.class, ()->executeQuery("select {date 'failure'}"));
+    assertThrows(ResponseException.class, ()->executeQuery("select {d 'failure'}"));
+    assertThrows(ResponseException.class, ()->executeQuery("select {timestamp 'failure'}"));
+    assertThrows(ResponseException.class, ()->executeQuery("select {ts 'failure'}"));
   }
 }
