@@ -3,6 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+
 package org.opensearch.sql.planner.streaming.windowing.assigner;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;

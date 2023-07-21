@@ -3,6 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+
 package org.opensearch.sql.planner.optimizer.rule.write;
 
 import static org.opensearch.sql.planner.optimizer.pattern.Patterns.writeTable;

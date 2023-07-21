@@ -3,6 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+
 package org.opensearch.sql.storage.split;
 
 import org.opensearch.sql.storage.StorageEngine;

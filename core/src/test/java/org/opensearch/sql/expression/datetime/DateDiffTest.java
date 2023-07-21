@@ -3,6 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+
 package org.opensearch.sql.expression.datetime;
 
 import static java.time.temporal.ChronoUnit.DAYS;

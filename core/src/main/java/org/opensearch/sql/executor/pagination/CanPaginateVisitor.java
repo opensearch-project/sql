@@ -3,6 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+
 package org.opensearch.sql.executor.pagination;
 
 import org.opensearch.sql.ast.AbstractNodeVisitor;

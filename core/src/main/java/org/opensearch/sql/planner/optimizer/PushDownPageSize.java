@@ -3,6 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+
 package org.opensearch.sql.planner.optimizer;
 
 import com.facebook.presto.matching.Captures;

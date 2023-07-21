@@ -3,6 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+
 package org.opensearch.sql.expression.function;
 
 import org.apache.commons.lang3.tuple.Pair;
