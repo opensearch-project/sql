@@ -19,6 +19,7 @@ import java.util.stream.Collectors;
 import lombok.experimental.UtilityClass;
 import org.apache.commons.lang3.tuple.Pair;
 import org.opensearch.sql.data.model.ExprIntegerValue;
+import org.opensearch.sql.data.model.ExprNullValue;
 import org.opensearch.sql.data.model.ExprStringValue;
 import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.data.model.ExprValueUtils;
@@ -359,7 +360,8 @@ public class TextFunction {
   }
 
   private static ExprValue exprAscii(ExprValue expr) {
-    return new ExprIntegerValue((int) expr.stringValue().charAt(0));
+    return new ExprIntegerValue(expr.stringValue().length() == 0 ? 0
+        : (int) expr.stringValue().charAt(0));
   }
 
   private static ExprValue exprLocate(ExprValue subStr, ExprValue str) {
