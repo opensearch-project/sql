@@ -1319,13 +1319,13 @@ public class DateTimeFunctionIT extends SQLIntegTestCase {
     verifySchema(result, schema("{t '17:30:00'}", null, "time"));
     verifyDataRows(result, rows("17:30:00"));
 
-    result = executeQuery("select {time '17:30:00'}");
-    verifySchema(result, schema("{time '17:30:00'}", null, "time"));
-    verifyDataRows(result, rows("17:30:00"));
+    result = executeQuery("select {time '17:30:00.123'}");
+    verifySchema(result, schema("{time '17:30:00.123'}", null, "time"));
+    verifyDataRows(result, rows("17:30:00.123"));
 
-    result = executeQuery("select {t '17:30:00'}");
-    verifySchema(result, schema("{t '17:30:00'}", null, "time"));
-    verifyDataRows(result, rows("17:30:00"));
+    result = executeQuery("select {t '17:30:00.123'}");
+    verifySchema(result, schema("{t '17:30:00.123'}", null, "time"));
+    verifyDataRows(result, rows("17:30:00.123"));
   }
 
   @Test
@@ -1361,11 +1361,13 @@ public class DateTimeFunctionIT extends SQLIntegTestCase {
   
   @Test
   public void testBracketFails() {
-    assertThrows(ResponseException.class, ()->executeQuery("select {time 'failure'}"));
-    assertThrows(ResponseException.class, ()->executeQuery("select {t 'failure'}"));
-    assertThrows(ResponseException.class, ()->executeQuery("select {date 'failure'}"));
-    assertThrows(ResponseException.class, ()->executeQuery("select {d 'failure'}"));
-    assertThrows(ResponseException.class, ()->executeQuery("select {timestamp 'failure'}"));
-    assertThrows(ResponseException.class, ()->executeQuery("select {ts 'failure'}"));
+    assertThrows(ResponseException.class, ()->executeQuery("select {time '2020-09-16'}"));
+    assertThrows(ResponseException.class, ()->executeQuery("select {t '2020-09-16'}"));
+    assertThrows(ResponseException.class, ()->executeQuery("select {date '17:30:00'}"));
+    assertThrows(ResponseException.class, ()->executeQuery("select {d '17:30:00'}"));
+    assertThrows(ResponseException.class, ()->executeQuery("select {timestamp '2020-09-16'}"));
+    assertThrows(ResponseException.class, ()->executeQuery("select {ts '2020-09-16'}"));
+    assertThrows(ResponseException.class, ()->executeQuery("select {timestamp '17:30:00'}"));
+    assertThrows(ResponseException.class, ()->executeQuery("select {ts '17:30:00'}"));
   }
 }
