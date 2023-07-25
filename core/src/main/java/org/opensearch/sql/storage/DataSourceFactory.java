@@ -19,9 +19,14 @@ import org.opensearch.sql.datasource.model.DataSourceType;
  * {@link DataSourceFactory}.
  */
 public interface DataSourceFactory {
-  /** Get {@link DataSourceType}. */
+  /**
+   * Get {@link DataSourceType}.
+   */
   DataSourceType getDataSourceType();
 
-  /** Create {@link DataSource}. */
+  /**
+   * Create {@link DataSource}.
+   */
   DataSource createDataSource(DataSourceMetadata metadata);
+
 }

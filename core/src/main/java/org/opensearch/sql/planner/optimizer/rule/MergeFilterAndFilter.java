@@ -3,6 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+
 package org.opensearch.sql.planner.optimizer.rule;
 
 import static com.facebook.presto.matching.Pattern.typeOf;
@@ -18,7 +19,9 @@ import org.opensearch.sql.planner.logical.LogicalFilter;
 import org.opensearch.sql.planner.logical.LogicalPlan;
 import org.opensearch.sql.planner.optimizer.Rule;
 
-/** Merge Filter --> Filter to the single Filter condition. */
+/**
+ * Merge Filter --> Filter to the single Filter condition.
+ */
 public class MergeFilterAndFilter implements Rule<LogicalFilter> {
 
   private final Capture<LogicalFilter> capture;
@@ -27,18 +30,22 @@ public class MergeFilterAndFilter implements Rule<LogicalFilter> {
   @Getter
   private final Pattern<LogicalFilter> pattern;
 
-  /** Constructor of MergeFilterAndFilter. */
+  /**
+   * Constructor of MergeFilterAndFilter.
+   */
   public MergeFilterAndFilter() {
     this.capture = Capture.newCapture();
-    this.pattern =
-        typeOf(LogicalFilter.class)
-            .with(source().matching(typeOf(LogicalFilter.class).capturedAs(capture)));
+    this.pattern = typeOf(LogicalFilter.class)
+        .with(source().matching(typeOf(LogicalFilter.class).capturedAs(capture)));
   }
 
   @Override
-  public LogicalPlan apply(LogicalFilter filter, Captures captures) {
+  public LogicalPlan apply(LogicalFilter filter,
+                           Captures captures) {
     LogicalFilter childFilter = captures.get(capture);
     return new LogicalFilter(
-        childFilter.getChild().get(0), DSL.and(filter.getCondition(), childFilter.getCondition()));
+        childFilter.getChild().get(0),
+        DSL.and(filter.getCondition(), childFilter.getCondition())
+    );
   }
 }

@@ -3,6 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+
 package org.opensearch.sql.planner.physical;
 
 import com.google.common.collect.ImmutableList;
@@ -17,15 +18,22 @@ import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.expression.Expression;
 import org.opensearch.sql.expression.LiteralExpression;
 
-/** Physical operator for Values. */
+/**
+ * Physical operator for Values.
+ */
 @ToString
 @EqualsAndHashCode(callSuper = false, of = "values")
 public class ValuesOperator extends PhysicalPlan {
 
-  /** Original values list for print and equality check. */
-  @Getter private final List<List<LiteralExpression>> values;
+  /**
+   * Original values list for print and equality check.
+   */
+  @Getter
+  private final List<List<LiteralExpression>> values;
 
-  /** Values iterator. */
+  /**
+   * Values iterator.
+   */
   private final Iterator<List<LiteralExpression>> valuesIterator;
 
   public ValuesOperator(List<List<LiteralExpression>> values) {
@@ -50,8 +58,10 @@ public class ValuesOperator extends PhysicalPlan {
 
   @Override
   public ExprValue next() {
-    List<ExprValue> values =
-        valuesIterator.next().stream().map(Expression::valueOf).collect(Collectors.toList());
+    List<ExprValue> values = valuesIterator.next().stream()
+                                           .map(Expression::valueOf)
+                                           .collect(Collectors.toList());
     return new ExprCollectionValue(values);
   }
+
 }

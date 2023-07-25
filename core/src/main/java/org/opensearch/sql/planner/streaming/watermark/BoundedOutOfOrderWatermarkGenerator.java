@@ -7,7 +7,9 @@ package org.opensearch.sql.planner.streaming.watermark;
 
 import lombok.RequiredArgsConstructor;
 
-/** Watermark generator that generates watermark with bounded out-of-order delay. */
+/**
+ * Watermark generator that generates watermark with bounded out-of-order delay.
+ */
 @RequiredArgsConstructor
 public class BoundedOutOfOrderWatermarkGenerator implements WatermarkGenerator {
 

@@ -18,7 +18,9 @@ import org.opensearch.sql.planner.physical.PhysicalPlan;
  */
 public abstract class TableWriteBuilder extends LogicalPlan {
 
-  /** Construct table write builder with child node. */
+  /**
+   * Construct table write builder with child node.
+   */
   public TableWriteBuilder(LogicalPlan child) {
     super(Collections.singletonList(child));
   }
@@ -26,7 +28,7 @@ public abstract class TableWriteBuilder extends LogicalPlan {
   /**
    * Build table write operator with given child node.
    *
-   * @param child child operator node
+   * @param child  child operator node
    * @return table write operator
    */
   public abstract TableWriteOperator build(PhysicalPlan child);

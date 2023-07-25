@@ -3,6 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+
 package org.opensearch.sql.planner.logical;
 
 import java.util.Collections;
@@ -23,10 +24,15 @@ import org.opensearch.sql.expression.ReferenceExpression;
 @EqualsAndHashCode(callSuper = true)
 public class LogicalEval extends LogicalPlan {
 
-  @Getter private final List<Pair<ReferenceExpression, Expression>> expressions;
+  @Getter
+  private final List<Pair<ReferenceExpression, Expression>> expressions;
 
-  /** Constructor of LogicalEval. */
-  public LogicalEval(LogicalPlan child, List<Pair<ReferenceExpression, Expression>> expressions) {
+  /**
+   * Constructor of LogicalEval.
+   */
+  public LogicalEval(
+      LogicalPlan child,
+      List<Pair<ReferenceExpression, Expression>> expressions) {
     super(Collections.singletonList(child));
     this.expressions = expressions;
   }

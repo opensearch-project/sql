@@ -3,6 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+
 package org.opensearch.sql.storage.bindingtuple;
 
 import org.opensearch.sql.data.model.ExprMissingValue;
@@ -13,19 +14,20 @@ import org.opensearch.sql.expression.ReferenceExpression;
 import org.opensearch.sql.expression.env.Environment;
 
 /**
- * BindingTuple represents the a relationship between bindingName and ExprValue. e.g. The operation
- * output column name is bindingName, the value is the ExprValue.
+ * BindingTuple represents the a relationship between bindingName and ExprValue.
+ * e.g. The operation output column name is bindingName, the value is the ExprValue.
  */
 public abstract class BindingTuple implements Environment<Expression, ExprValue> {
-  public static BindingTuple EMPTY =
-      new BindingTuple() {
-        @Override
-        public ExprValue resolve(ReferenceExpression ref) {
-          return ExprMissingValue.of();
-        }
-      };
+  public static BindingTuple EMPTY = new BindingTuple() {
+    @Override
+    public ExprValue resolve(ReferenceExpression ref) {
+      return ExprMissingValue.of();
+    }
+  };
 
-  /** Resolve {@link Expression} in the BindingTuple environment. */
+  /**
+   * Resolve {@link Expression} in the BindingTuple environment.
+   */
   @Override
   public ExprValue resolve(Expression var) {
     if (var instanceof ReferenceExpression) {
@@ -35,6 +37,8 @@ public abstract class BindingTuple implements Environment<Expression, ExprValue>
     }
   }
 
-  /** Resolve the {@link ReferenceExpression} in BindingTuple context. */
+  /**
+   * Resolve the {@link ReferenceExpression} in BindingTuple context.
+   */
   public abstract ExprValue resolve(ReferenceExpression ref);
 }

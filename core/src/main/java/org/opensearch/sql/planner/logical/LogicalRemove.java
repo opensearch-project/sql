@@ -3,6 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+
 package org.opensearch.sql.planner.logical;
 
 import java.util.Collections;
@@ -12,15 +13,22 @@ import lombok.Getter;
 import lombok.ToString;
 import org.opensearch.sql.expression.ReferenceExpression;
 
-/** Remove field specified by the {@link LogicalRemove#removeList}. */
+/**
+ * Remove field specified by the {@link LogicalRemove#removeList}.
+ */
 @ToString
 @EqualsAndHashCode(callSuper = true)
 public class LogicalRemove extends LogicalPlan {
 
-  @Getter private final Set<ReferenceExpression> removeList;
+  @Getter
+  private final Set<ReferenceExpression> removeList;
 
-  /** Constructor of LogicalRemove. */
-  public LogicalRemove(LogicalPlan child, Set<ReferenceExpression> removeList) {
+  /**
+   * Constructor of LogicalRemove.
+   */
+  public LogicalRemove(
+      LogicalPlan child,
+      Set<ReferenceExpression> removeList) {
     super(Collections.singletonList(child));
     this.removeList = removeList;
   }

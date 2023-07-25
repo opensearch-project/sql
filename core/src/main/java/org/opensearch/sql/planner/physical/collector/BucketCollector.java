@@ -21,29 +21,37 @@ import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.expression.NamedExpression;
 import org.opensearch.sql.storage.bindingtuple.BindingTuple;
 
-/** Collect Bucket from {@link BindingTuple}. */
+/**
+ * Collect Bucket from {@link BindingTuple}.
+ */
 @RequiredArgsConstructor
 public class BucketCollector implements Collector {
 
-  /** Bucket Expression. */
+  /**
+   * Bucket Expression.
+   */
   private final NamedExpression bucketExpr;
 
-  /** Collector Constructor. */
+  /**
+   * Collector Constructor.
+   */
   private final Supplier<Collector> supplier;
 
   /**
-   * Map from bucketKey to nested collector sorted by key to make sure final result is in order
-   * after traversal.
+   * Map from bucketKey to nested collector sorted by key to make sure
+   * final result is in order after traversal.
    */
   private final Map<ExprValue, Collector> collectorMap = new TreeMap<>();
 
-  /** Bucket Index. */
+  /**
+   * Bucket Index.
+   */
   private int bucketIndex = 0;
 
   /**
-   * Collect Bucket from {@link BindingTuple}. If bucket not exist, create new bucket and {@link
-   * Collector}. If bucket exist, let {@link Collector} in the bucket collect from {@link
-   * BindingTuple}.
+   * Collect Bucket from {@link BindingTuple}.
+   * If bucket not exist, create new bucket and {@link Collector}.
+   * If bucket exist, let {@link Collector} in the bucket collect from {@link BindingTuple}.
    *
    * @param input {@link BindingTuple}.
    */
@@ -56,7 +64,6 @@ public class BucketCollector implements Collector {
 
   /**
    * Bucket Key.
-   *
    * @param tuple {@link BindingTuple}.
    * @return Bucket Key.
    */

@@ -6,8 +6,8 @@
 package org.opensearch.sql.planner.streaming.watermark;
 
 /**
- * A watermark generator generates watermark timestamp based on some strategy which is defined in
- * implementation class.
+ * A watermark generator generates watermark timestamp based on some strategy which is defined
+ * in implementation class.
  */
 public interface WatermarkGenerator {
 
@@ -18,4 +18,5 @@ public interface WatermarkGenerator {
    * @return watermark timestamp in millisecond
    */
   long generate(long timestamp);
+
 }

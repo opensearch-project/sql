@@ -45,12 +45,13 @@ import org.opensearch.sql.storage.write.TableWriteBuilder;
 
 /**
  * Default implementor for implementing logical to physical translation. "Default" here means all
- * logical operator will be translated to correspondent physical operator to pipeline operations in
- * post-processing style in memory. Different storage can override methods here to optimize default
- * pipelining operator, for example a storage has the flexibility to override visitFilter and
- * visitRelation to push down filtering operation and return a single physical index scan operator.
+ * logical operator will be translated to correspondent physical operator to pipeline operations
+ * in post-processing style in memory.
+ * Different storage can override methods here to optimize default pipelining operator, for example
+ * a storage has the flexibility to override visitFilter and visitRelation to push down filtering
+ * operation and return a single physical index scan operator.
  *
- * @param <C> context type
+ * @param <C>   context type
  */
 public class DefaultImplementor<C> extends LogicalPlanNodeVisitor<PhysicalPlan, C> {
 
@@ -61,7 +62,8 @@ public class DefaultImplementor<C> extends LogicalPlanNodeVisitor<PhysicalPlan, 
         node.getCommandType(),
         node.getNoOfResults(),
         node.getFieldList(),
-        node.getGroupByList());
+        node.getGroupByList()
+    );
   }
 
   @Override
@@ -76,14 +78,16 @@ public class DefaultImplementor<C> extends LogicalPlanNodeVisitor<PhysicalPlan, 
 
   @Override
   public PhysicalPlan visitProject(LogicalProject node, C context) {
-    return new ProjectOperator(
-        visitChild(node, context), node.getProjectList(), node.getNamedParseExpressions());
+    return new ProjectOperator(visitChild(node, context), node.getProjectList(),
+        node.getNamedParseExpressions());
   }
 
   @Override
   public PhysicalPlan visitWindow(LogicalWindow node, C context) {
     return new WindowOperator(
-        visitChild(node, context), node.getWindowFunction(), node.getWindowDefinition());
+        visitChild(node, context),
+        node.getWindowFunction(),
+        node.getWindowDefinition());
   }
 
   @Override
@@ -144,9 +148,8 @@ public class DefaultImplementor<C> extends LogicalPlanNodeVisitor<PhysicalPlan, 
 
   @Override
   public PhysicalPlan visitRelation(LogicalRelation node, C context) {
-    throw new UnsupportedOperationException(
-        "Storage engine is responsible for "
-            + "implementing and optimizing logical plan with relation involved");
+    throw new UnsupportedOperationException("Storage engine is responsible for "
+        + "implementing and optimizing logical plan with relation involved");
   }
 
   @Override

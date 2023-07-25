@@ -3,6 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+
 package org.opensearch.sql.planner.physical;
 
 import static org.opensearch.sql.data.type.ExprCoreType.STRUCT;
@@ -33,15 +34,17 @@ import org.opensearch.sql.expression.env.Environment;
  * If the field name exist in the input, a new value will be put into to output.
  *
  * <p>The {@link EvalOperator#expressionList} are evaluated from left to right. It means you can
- * reference previous evaluated field. e.g. fields velocity = distance/time, doubleVelocity = 2 *
- * velocity
+ * reference previous evaluated field.
+ * e.g. fields velocity = distance/time, doubleVelocity = 2 * velocity
  */
 @ToString
 @EqualsAndHashCode(callSuper = false)
 @RequiredArgsConstructor
 public class EvalOperator extends PhysicalPlan {
-  @Getter private final PhysicalPlan input;
-  @Getter private final List<Pair<ReferenceExpression, Expression>> expressionList;
+  @Getter
+  private final PhysicalPlan input;
+  @Getter
+  private final List<Pair<ReferenceExpression, Expression>> expressionList;
 
   @Override
   public <R, C> R accept(PhysicalPlanNodeVisitor<R, C> visitor, C context) {
@@ -83,7 +86,6 @@ public class EvalOperator extends PhysicalPlan {
 
   /**
    * Evaluate the expression in the {@link EvalOperator#expressionList} with {@link Environment}.
-   *
    * @param env {@link Environment}
    * @return The mapping of reference and {@link ExprValue} for each expression.
    */

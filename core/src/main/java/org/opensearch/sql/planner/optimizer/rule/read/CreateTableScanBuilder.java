@@ -19,9 +19,9 @@ import org.opensearch.sql.storage.Table;
 import org.opensearch.sql.storage.read.TableScanBuilder;
 
 /**
- * Rule that replace logical relation operator to {@link TableScanBuilder} for later push down
- * optimization. All push down optimization rules that depends on table scan builder needs to run
- * after this.
+ * Rule that replace logical relation operator to {@link TableScanBuilder} for later
+ * push down optimization. All push down optimization rules that depends on table scan
+ * builder needs to run after this.
  */
 public class CreateTableScanBuilder implements Rule<LogicalRelation> {
 
@@ -33,10 +33,13 @@ public class CreateTableScanBuilder implements Rule<LogicalRelation> {
   @Getter
   private final Pattern<LogicalRelation> pattern;
 
-  /** Construct create table scan builder rule. */
+  /**
+   * Construct create table scan builder rule.
+   */
   public CreateTableScanBuilder() {
     this.capture = Capture.newCapture();
-    this.pattern = Pattern.typeOf(LogicalRelation.class).with(table().capturedAs(capture));
+    this.pattern = Pattern.typeOf(LogicalRelation.class)
+        .with(table().capturedAs(capture));
   }
 
   @Override

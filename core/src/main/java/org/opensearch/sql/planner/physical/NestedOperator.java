@@ -27,47 +27,58 @@ import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.expression.ReferenceExpression;
 
 /**
- * The NestedOperator evaluates the {@link NestedOperator#fields} and generates {@link
- * NestedOperator#nonNestedFields} to form the {@link NestedOperator#result} output. Resolve two
- * nested fields with differing paths will result in a cartesian product(inner join).
+ * The NestedOperator evaluates the {@link NestedOperator#fields} and
+ * generates {@link NestedOperator#nonNestedFields} to form the
+ * {@link NestedOperator#result} output. Resolve two nested fields
+ * with differing paths will result in a cartesian product(inner join).
  */
 @EqualsAndHashCode(callSuper = false)
 public class NestedOperator extends PhysicalPlan {
-  @Getter private final PhysicalPlan input;
-  @Getter private final Set<String> fields; // Needs to be a Set to match legacy implementation
-  @Getter private final Map<String, List<String>> groupedPathsAndFields;
-  @EqualsAndHashCode.Exclude private List<Map<String, ExprValue>> result = new ArrayList<>();
-  @EqualsAndHashCode.Exclude private List<String> nonNestedFields = new ArrayList<>();
-
+  @Getter
+  private final PhysicalPlan input;
+  @Getter
+  private final Set<String> fields; // Needs to be a Set to match legacy implementation
+  @Getter
+  private final Map<String, List<String>> groupedPathsAndFields;
+  @EqualsAndHashCode.Exclude
+  private List<Map<String, ExprValue>> result = new ArrayList<>();
+  @EqualsAndHashCode.Exclude
+  private List<String> nonNestedFields = new ArrayList<>();
   @EqualsAndHashCode.Exclude
   private ListIterator<Map<String, ExprValue>> flattenedResult = result.listIterator();
 
   /**
    * Constructor for NestedOperator with list of map as arg.
-   *
    * @param input : PhysicalPlan input.
    * @param fields : List of all fields and paths for nested fields.
    */
   public NestedOperator(PhysicalPlan input, List<Map<String, ReferenceExpression>> fields) {
     this.input = input;
-    this.fields = fields.stream().map(m -> m.get("field").toString()).collect(Collectors.toSet());
-    this.groupedPathsAndFields =
-        fields.stream()
-            .collect(
-                Collectors.groupingBy(
-                    m -> m.get("path").toString(),
-                    mapping(m -> m.get("field").toString(), toList())));
+    this.fields = fields.stream()
+        .map(m -> m.get("field").toString())
+        .collect(Collectors.toSet());
+    this.groupedPathsAndFields = fields.stream().collect(
+        Collectors.groupingBy(
+            m -> m.get("path").toString(),
+            mapping(
+                m -> m.get("field").toString(),
+                toList()
+            )
+        )
+    );
   }
 
   /**
    * Constructor for NestedOperator with Set of fields.
-   *
    * @param input : PhysicalPlan input.
    * @param fields : List of all fields for nested fields.
    * @param groupedPathsAndFields : Map of fields grouped by their path.
    */
   public NestedOperator(
-      PhysicalPlan input, Set<String> fields, Map<String, List<String>> groupedPathsAndFields) {
+      PhysicalPlan input,
+      Set<String> fields,
+      Map<String, List<String>> groupedPathsAndFields
+  ) {
     this.input = input;
     this.fields = fields;
     this.groupedPathsAndFields = groupedPathsAndFields;
@@ -117,16 +128,16 @@ public class NestedOperator extends PhysicalPlan {
   }
 
   /**
-   * Generate list of non-nested fields that are in inputMap, but not in the member variable fields
-   * list.
-   *
+   * Generate list of non-nested fields that are in inputMap, but not in the member variable
+   * fields list.
    * @param inputMap : Row to parse non-nested fields.
    */
   public void generateNonNestedFieldsMap(ExprValue inputMap) {
     for (Map.Entry<String, ExprValue> inputField : inputMap.tupleValue().entrySet()) {
       boolean foundNestedField =
-          this.fields.stream()
-              .anyMatch(field -> field.split("\\.")[0].equalsIgnoreCase(inputField.getKey()));
+          this.fields.stream().anyMatch(
+            field -> field.split("\\.")[0].equalsIgnoreCase(inputField.getKey())
+          );
 
       if (!foundNestedField) {
         this.nonNestedFields.add(inputField.getKey());
@@ -134,13 +145,20 @@ public class NestedOperator extends PhysicalPlan {
     }
   }
 
+
   /**
-   * Simplifies the structure of row's source Map by flattening it, making the full path of an
-   * object the key and the Object it refers to the value.
+   * Simplifies the structure of row's source Map by flattening it,
+   * making the full path of an object the key
+   * and the Object it refers to the value.
    *
-   * <p>Sample input: keys = ['comments.likes'] row = comments: { likes: 2 }
+   * <p>Sample input:
+   * keys = ['comments.likes']
+   * row = comments: {
+   * likes: 2
+   * }
    *
-   * <p>Return: flattenedRow = {comment.likes: 2}
+   * <p>Return:
+   * flattenedRow = {comment.likes: 2}
    *
    * @param nestedField : Field to query in row.
    * @param row : Row returned from OS.
@@ -148,7 +166,11 @@ public class NestedOperator extends PhysicalPlan {
    * @return : List of nested select items or cartesian product of nested calls.
    */
   private List<Map<String, ExprValue>> flatten(
-      String nestedField, ExprValue row, List<Map<String, ExprValue>> prevList) {
+      String nestedField,
+      ExprValue row,
+      List<Map<String,
+      ExprValue>> prevList
+  ) {
     List<Map<String, ExprValue>> copy = new ArrayList<>();
     List<Map<String, ExprValue>> newList = new ArrayList<>();
 
@@ -179,10 +201,11 @@ public class NestedOperator extends PhysicalPlan {
       // Generate cartesian product
       for (Map<String, ExprValue> prevMap : prevList) {
         for (Map<String, ExprValue> newMap : copy) {
-          newList.add(
-              Stream.of(newMap, prevMap)
-                  .flatMap(map -> map.entrySet().stream())
-                  .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue)));
+          newList.add(Stream.of(newMap, prevMap)
+              .flatMap(map -> map.entrySet().stream())
+              .collect(Collectors.toMap(
+                  Map.Entry::getKey,
+                  Map.Entry::getValue)));
         }
       }
       return newList;
@@ -191,7 +214,6 @@ public class NestedOperator extends PhysicalPlan {
 
   /**
    * Check if newMap field has any sharing paths in prevMap.
-   *
    * @param newMap : New map to add to result set.
    * @return : true if there is already a field added to result set with same path.
    */
@@ -221,11 +243,9 @@ public class NestedOperator extends PhysicalPlan {
    * @return : Object at current nested level.
    */
   private void getNested(
-      String field,
-      String nestedField,
-      ExprValue row,
-      List<Map<String, ExprValue>> ret,
-      ExprValue nestedObj) {
+      String field, String nestedField, ExprValue row,
+      List<Map<String, ExprValue>> ret, ExprValue nestedObj
+  ) {
     ExprValue currentObj = (nestedObj == null) ? row : nestedObj;
     String[] splitKeys = nestedField.split("\\.");
 
@@ -251,10 +271,12 @@ public class NestedOperator extends PhysicalPlan {
     // Return final nested result
     if (currentObj != null
         && (StringUtils.substringAfterLast(field, ".").equals(nestedField)
-            || !field.contains("."))) {
+            || !field.contains("."))
+    ) {
       ret.add(new LinkedHashMap<>(Map.of(field, currentObj)));
     } else if (currentObj != null) {
-      getNested(field, nestedField.substring(nestedField.indexOf(".") + 1), row, ret, currentObj);
+      getNested(field, nestedField.substring(nestedField.indexOf(".") + 1),
+          row, ret, currentObj);
     }
   }
 }

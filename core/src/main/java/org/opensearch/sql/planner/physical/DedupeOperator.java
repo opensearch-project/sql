@@ -3,6 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+
 package org.opensearch.sql.planner.physical;
 
 import com.google.common.collect.ImmutableList;
@@ -27,14 +28,21 @@ import org.opensearch.sql.storage.bindingtuple.BindingTuple;
 @Getter
 @EqualsAndHashCode(callSuper = false)
 public class DedupeOperator extends PhysicalPlan {
-  @Getter private final PhysicalPlan input;
-  @Getter private final List<Expression> dedupeList;
-  @Getter private final Integer allowedDuplication;
-  @Getter private final Boolean keepEmpty;
-  @Getter private final Boolean consecutive;
+  @Getter
+  private final PhysicalPlan input;
+  @Getter
+  private final List<Expression> dedupeList;
+  @Getter
+  private final Integer allowedDuplication;
+  @Getter
+  private final Boolean keepEmpty;
+  @Getter
+  private final Boolean consecutive;
 
-  @EqualsAndHashCode.Exclude private final Deduper<List<ExprValue>> deduper;
-  @EqualsAndHashCode.Exclude private ExprValue next;
+  @EqualsAndHashCode.Exclude
+  private final Deduper<List<ExprValue>> deduper;
+  @EqualsAndHashCode.Exclude
+  private ExprValue next;
 
   private static final Integer ALL_ONE_DUPLICATION = 1;
   private static final Boolean IGNORE_EMPTY = false;
@@ -49,7 +57,6 @@ public class DedupeOperator extends PhysicalPlan {
 
   /**
    * Dedup Constructor.
-   *
    * @param input input {@link PhysicalPlan}
    * @param dedupeList list of dedupe {@link Expression}
    * @param allowedDuplication max allowed duplication
@@ -133,7 +140,9 @@ public class DedupeOperator extends PhysicalPlan {
     private final BiFunction<Map<K, Integer>, K, Integer> seenFirstTime;
     private final Map<K, Integer> seenMap = new ConcurrentHashMap<>();
 
-    /** The Historical Deduper monitor the duplicated element with all the seen value. */
+    /**
+     * The Historical Deduper monitor the duplicated element with all the seen value.
+     */
     public static <K> Deduper<K> historicalDeduper() {
       return new Deduper<>(
           (map, key) -> {

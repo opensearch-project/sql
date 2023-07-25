@@ -3,6 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+
 package org.opensearch.sql.planner.logical;
 
 import java.util.Collections;
@@ -13,7 +14,9 @@ import lombok.ToString;
 import org.opensearch.sql.ast.tree.RareTopN.CommandType;
 import org.opensearch.sql.expression.Expression;
 
-/** Logical Rare and TopN Plan. */
+/**
+ * Logical Rare and TopN Plan.
+ */
 @Getter
 @ToString
 @EqualsAndHashCode(callSuper = true)
@@ -24,11 +27,12 @@ public class LogicalRareTopN extends LogicalPlan {
   private final List<Expression> fieldList;
   private final List<Expression> groupByList;
 
-  /** Constructor of LogicalRareTopN. */
+  /**
+   * Constructor of LogicalRareTopN.
+   */
   public LogicalRareTopN(
       LogicalPlan child,
-      CommandType commandType,
-      Integer noOfResults,
+      CommandType commandType, Integer noOfResults,
       List<Expression> fieldList,
       List<Expression> groupByList) {
     super(Collections.singletonList(child));

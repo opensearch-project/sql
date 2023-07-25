@@ -21,9 +21,9 @@ public class DateTimeUtils {
   /**
    * Util method to round the date/time with given unit.
    *
-   * @param utcMillis Date/time value to round, given in utc millis
-   * @param unitMillis Date/time interval unit in utc millis
-   * @return Rounded date/time value in utc millis
+   * @param utcMillis     Date/time value to round, given in utc millis
+   * @param unitMillis    Date/time interval unit in utc millis
+   * @return              Rounded date/time value in utc millis
    */
   public static long roundFloor(long utcMillis, long unitMillis) {
     return utcMillis - utcMillis % unitMillis;
@@ -32,9 +32,9 @@ public class DateTimeUtils {
   /**
    * Util method to round the date/time in week(s).
    *
-   * @param utcMillis Date/time value to round, given in utc millis
-   * @param interval Number of weeks as the rounding interval
-   * @return Rounded date/time value in utc millis
+   * @param utcMillis     Date/time value to round, given in utc millis
+   * @param interval      Number of weeks as the rounding interval
+   * @return              Rounded date/time value in utc millis
    */
   public static long roundWeek(long utcMillis, int interval) {
     return roundFloor(utcMillis + 259200000L, 604800000L * interval) - 259200000L;
@@ -43,18 +43,16 @@ public class DateTimeUtils {
   /**
    * Util method to round the date/time in month(s).
    *
-   * @param utcMillis Date/time value to round, given in utc millis
-   * @param interval Number of months as the rounding interval
-   * @return Rounded date/time value in utc millis
+   * @param utcMillis     Date/time value to round, given in utc millis
+   * @param interval      Number of months as the rounding interval
+   * @return              Rounded date/time value in utc millis
    */
   public static long roundMonth(long utcMillis, int interval) {
     ZonedDateTime initDateTime = ZonedDateTime.of(1970, 1, 1, 0, 0, 0, 0, UTC_ZONE_ID);
-    ZonedDateTime zonedDateTime =
-        Instant.ofEpochMilli(utcMillis).atZone(UTC_ZONE_ID).plusMonths(interval);
-    long monthDiff =
-        (zonedDateTime.getYear() - initDateTime.getYear()) * 12L
-            + zonedDateTime.getMonthValue()
-            - initDateTime.getMonthValue();
+    ZonedDateTime zonedDateTime = Instant.ofEpochMilli(utcMillis).atZone(UTC_ZONE_ID)
+        .plusMonths(interval);
+    long monthDiff = (zonedDateTime.getYear() - initDateTime.getYear()) * 12L + zonedDateTime
+        .getMonthValue() - initDateTime.getMonthValue();
     long monthToAdd = (monthDiff / interval - 1) * interval;
     return initDateTime.plusMonths(monthToAdd).toInstant().toEpochMilli();
   }
@@ -62,18 +60,16 @@ public class DateTimeUtils {
   /**
    * Util method to round the date/time in quarter(s).
    *
-   * @param utcMillis Date/time value to round, given in utc millis
-   * @param interval Number of quarters as the rounding interval
-   * @return Rounded date/time value in utc millis
+   * @param utcMillis     Date/time value to round, given in utc millis
+   * @param interval      Number of quarters as the rounding interval
+   * @return              Rounded date/time value in utc millis
    */
   public static long roundQuarter(long utcMillis, int interval) {
     ZonedDateTime initDateTime = ZonedDateTime.of(1970, 1, 1, 0, 0, 0, 0, UTC_ZONE_ID);
-    ZonedDateTime zonedDateTime =
-        Instant.ofEpochMilli(utcMillis).atZone(UTC_ZONE_ID).plusMonths(interval * 3L);
-    long monthDiff =
-        ((zonedDateTime.getYear() - initDateTime.getYear()) * 12L
-            + zonedDateTime.getMonthValue()
-            - initDateTime.getMonthValue());
+    ZonedDateTime zonedDateTime = Instant.ofEpochMilli(utcMillis).atZone(UTC_ZONE_ID)
+        .plusMonths(interval * 3L);
+    long monthDiff = ((zonedDateTime.getYear() - initDateTime.getYear()) * 12L + zonedDateTime
+        .getMonthValue() - initDateTime.getMonthValue());
     long monthToAdd = (monthDiff / (interval * 3L) - 1) * interval * 3;
     return initDateTime.plusMonths(monthToAdd).toInstant().toEpochMilli();
   }
@@ -81,9 +77,9 @@ public class DateTimeUtils {
   /**
    * Util method to round the date/time in year(s).
    *
-   * @param utcMillis Date/time value to round, given in utc millis
-   * @param interval Number of years as the rounding interval
-   * @return Rounded date/time value in utc millis
+   * @param utcMillis     Date/time value to round, given in utc millis
+   * @param interval      Number of years as the rounding interval
+   * @return              Rounded date/time value in utc millis
    */
   public static long roundYear(long utcMillis, int interval) {
     ZonedDateTime initDateTime = ZonedDateTime.of(1970, 1, 1, 0, 0, 0, 0, UTC_ZONE_ID);
@@ -128,25 +124,29 @@ public class DateTimeUtils {
     ZonedDateTime passedTzValidator =
         defaultDateTime.withZoneSameInstant(zone).withZoneSameLocal(defaultTz);
 
-    return (passedTzValidator.isBefore(maxTzValidator) || passedTzValidator.isEqual(maxTzValidator))
-        && (passedTzValidator.isAfter(minTzValidator) || passedTzValidator.isEqual(minTzValidator));
+    return (passedTzValidator.isBefore(maxTzValidator)
+        || passedTzValidator.isEqual(maxTzValidator))
+        && (passedTzValidator.isAfter(minTzValidator)
+        || passedTzValidator.isEqual(minTzValidator));
   }
 
   /**
-   * Extracts LocalDateTime from a datetime ExprValue. Uses `FunctionProperties` for
-   * `ExprTimeValue`.
+   * Extracts LocalDateTime from a datetime ExprValue.
+   * Uses `FunctionProperties` for `ExprTimeValue`.
    */
-  public static LocalDateTime extractDateTime(
-      ExprValue value, FunctionProperties functionProperties) {
+  public static LocalDateTime extractDateTime(ExprValue value,
+                                              FunctionProperties functionProperties) {
     return value instanceof ExprTimeValue
         ? ((ExprTimeValue) value).datetimeValue(functionProperties)
         : value.datetimeValue();
   }
 
   /**
-   * Extracts LocalDate from a datetime ExprValue. Uses `FunctionProperties` for `ExprTimeValue`.
+   * Extracts LocalDate from a datetime ExprValue.
+   * Uses `FunctionProperties` for `ExprTimeValue`.
    */
-  public static LocalDate extractDate(ExprValue value, FunctionProperties functionProperties) {
+  public static LocalDate extractDate(ExprValue value,
+                                      FunctionProperties functionProperties) {
     return value instanceof ExprTimeValue
         ? ((ExprTimeValue) value).dateValue(functionProperties)
         : value.dateValue();

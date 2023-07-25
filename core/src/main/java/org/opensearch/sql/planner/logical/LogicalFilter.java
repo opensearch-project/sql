@@ -3,6 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+
 package org.opensearch.sql.planner.logical;
 
 import java.util.Collections;
@@ -11,14 +12,19 @@ import lombok.Getter;
 import lombok.ToString;
 import org.opensearch.sql.expression.Expression;
 
-/** Logical Filter represent the filter relation. */
+/**
+ * Logical Filter represent the filter relation.
+ */
 @ToString
 @EqualsAndHashCode(callSuper = true)
 public class LogicalFilter extends LogicalPlan {
 
-  @Getter private final Expression condition;
+  @Getter
+  private final Expression condition;
 
-  /** Constructor of LogicalFilter. */
+  /**
+   * Constructor of LogicalFilter.
+   */
   public LogicalFilter(LogicalPlan child, Expression condition) {
     super(Collections.singletonList(child));
     this.condition = condition;

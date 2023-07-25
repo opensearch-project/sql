@@ -22,9 +22,11 @@ import org.opensearch.sql.datasource.model.DataSourceMetadata;
 import org.opensearch.sql.storage.TableScanOperator;
 
 /**
- * This class handles table scan of data source table. Right now these are derived from
- * dataSourceService thorough static fields. In future this might scan data from underlying
- * datastore if we start persisting datasource info somewhere.
+ * This class handles table scan of data source table.
+ * Right now these are derived from dataSourceService thorough static fields.
+ * In future this might scan data from underlying datastore if we start
+ * persisting datasource info somewhere.
+ *
  */
 public class DataSourceTableScan extends TableScanOperator {
 
@@ -45,16 +47,15 @@ public class DataSourceTableScan extends TableScanOperator {
   @Override
   public void open() {
     List<ExprValue> exprValues = new ArrayList<>();
-    Set<DataSourceMetadata> dataSourceMetadataSet = dataSourceService.getDataSourceMetadata(true);
+    Set<DataSourceMetadata> dataSourceMetadataSet
+        = dataSourceService.getDataSourceMetadata(true);
     for (DataSourceMetadata dataSourceMetadata : dataSourceMetadataSet) {
       exprValues.add(
-          new ExprTupleValue(
-              new LinkedHashMap<>(
-                  ImmutableMap.of(
-                      "DATASOURCE_NAME",
-                      ExprValueUtils.stringValue(dataSourceMetadata.getName()),
-                      "CONNECTOR_TYPE",
-                      ExprValueUtils.stringValue(dataSourceMetadata.getConnector().name())))));
+          new ExprTupleValue(new LinkedHashMap<>(ImmutableMap.of(
+              "DATASOURCE_NAME",
+              ExprValueUtils.stringValue(dataSourceMetadata.getName()),
+              "CONNECTOR_TYPE",
+              ExprValueUtils.stringValue(dataSourceMetadata.getConnector().name())))));
     }
     iterator = exprValues.iterator();
   }
@@ -68,4 +69,5 @@ public class DataSourceTableScan extends TableScanOperator {
   public ExprValue next() {
     return iterator.next();
   }
+
 }

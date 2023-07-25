@@ -8,7 +8,9 @@ package org.opensearch.sql.planner.streaming.windowing.trigger;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 
-/** Result determined by a trigger for what should happen to the window. */
+/**
+ * Result determined by a trigger for what should happen to the window.
+ */
 @Getter
 @RequiredArgsConstructor
 public enum TriggerResult {

@@ -3,6 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+
 package org.opensearch.sql.storage;
 
 import java.util.Map;
@@ -14,7 +15,9 @@ import org.opensearch.sql.planner.physical.PhysicalPlan;
 import org.opensearch.sql.storage.read.TableScanBuilder;
 import org.opensearch.sql.storage.write.TableWriteBuilder;
 
-/** Table. */
+/**
+ * Table.
+ */
 public interface Table {
 
   /**
@@ -35,10 +38,14 @@ public interface Table {
     throw new UnsupportedOperationException("Unsupported Operation");
   }
 
-  /** Get the {@link ExprType} for each field in the table. */
+  /**
+   * Get the {@link ExprType} for each field in the table.
+   */
   Map<String, ExprType> getFieldTypes();
 
-  /** Get the {@link ExprType} for each meta-field (reserved fields) in the table. */
+  /**
+   * Get the {@link ExprType} for each meta-field (reserved fields) in the table.
+   */
   default Map<String, ExprType> getReservedFieldTypes() {
     return Map.of();
   }
@@ -54,8 +61,8 @@ public interface Table {
   PhysicalPlan implement(LogicalPlan plan);
 
   /**
-   * Optimize the {@link LogicalPlan} by storage engine rule. The default optimize solution is no
-   * optimization.
+   * Optimize the {@link LogicalPlan} by storage engine rule.
+   * The default optimize solution is no optimization.
    *
    * @param plan logical plan.
    * @return logical plan.
@@ -82,11 +89,15 @@ public interface Table {
    * @return table write builder
    */
   default TableWriteBuilder createWriteBuilder(LogicalWrite plan) {
-    throw new UnsupportedOperationException("Write operation is not supported on current table");
+    throw new UnsupportedOperationException(
+        "Write operation is not supported on current table");
   }
 
-  /** Translate {@link Table} to {@link StreamingSource} if possible. */
+  /**
+   * Translate {@link Table} to {@link StreamingSource} if possible.
+   */
   default StreamingSource asStreamingSource() {
     throw new UnsupportedOperationException();
   }
+
 }

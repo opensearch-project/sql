@@ -3,6 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+
 package org.opensearch.sql.planner.physical;
 
 import com.google.common.collect.ImmutableList;
@@ -14,15 +15,15 @@ import lombok.ToString;
 import org.opensearch.sql.data.model.ExprValue;
 
 /**
- * The limit operator sets a window, to and block the rows out of the window and allow only the
- * result subset within this window to the output.
+ * The limit operator sets a window, to and block the rows out of the window
+ * and allow only the result subset within this window to the output.
  *
- * <p>The result subset is enframed from original result with {@link LimitOperator#offset} as the
- * offset and {@link LimitOperator#limit} as the size, thus the output is the subset of the original
- * result set that has indices from {index + 1} to {index + limit}. Special cases might occur where
- * the result subset has a size smaller than expected {limit}, it occurs when the original result
- * set has a size smaller than {index + limit}, or even not greater than the offset. The latter
- * results in an empty output.
+ * <p>The result subset is enframed from original result with {@link LimitOperator#offset}
+ * as the offset and {@link LimitOperator#limit} as the size, thus the output
+ * is the subset of the original result set that has indices from {index + 1} to {index + limit}.
+ * Special cases might occur where the result subset has a size smaller than expected {limit},
+ * it occurs when the original result set has a size smaller than {index + limit},
+ * or even not greater than the offset. The latter results in an empty output.</p>
  */
 @RequiredArgsConstructor
 @Getter
@@ -65,4 +66,5 @@ public class LimitOperator extends PhysicalPlan {
   public List<PhysicalPlan> getChild() {
     return ImmutableList.of(input);
   }
+
 }

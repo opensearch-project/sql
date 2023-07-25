@@ -3,6 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+
 package org.opensearch.sql.planner.physical;
 
 import java.util.Collections;
@@ -16,6 +17,7 @@ import org.opensearch.sql.expression.Expression;
 import org.opensearch.sql.expression.NamedExpression;
 import org.opensearch.sql.expression.aggregation.Aggregator;
 import org.opensearch.sql.expression.aggregation.NamedAggregator;
+import org.opensearch.sql.expression.span.SpanExpression;
 import org.opensearch.sql.planner.physical.collector.Collector;
 import org.opensearch.sql.storage.bindingtuple.BindingTuple;
 
@@ -26,26 +28,30 @@ import org.opensearch.sql.storage.bindingtuple.BindingTuple;
 @EqualsAndHashCode(callSuper = false)
 @ToString
 public class AggregationOperator extends PhysicalPlan {
-  @Getter private final PhysicalPlan input;
-  @Getter private final List<NamedAggregator> aggregatorList;
-  @Getter private final List<NamedExpression> groupByExprList;
+  @Getter
+  private final PhysicalPlan input;
+  @Getter
+  private final List<NamedAggregator> aggregatorList;
+  @Getter
+  private final List<NamedExpression> groupByExprList;
 
-  /** {@link BindingTuple} Collector. */
-  @EqualsAndHashCode.Exclude private final Collector collector;
-
-  @EqualsAndHashCode.Exclude private Iterator<ExprValue> iterator;
+  /**
+   * {@link BindingTuple} Collector.
+   */
+  @EqualsAndHashCode.Exclude
+  private final Collector collector;
+  @EqualsAndHashCode.Exclude
+  private Iterator<ExprValue> iterator;
 
   /**
    * AggregationOperator Constructor.
    *
-   * @param input Input {@link PhysicalPlan}
-   * @param aggregatorList List of {@link Aggregator}
+   * @param input           Input {@link PhysicalPlan}
+   * @param aggregatorList  List of {@link Aggregator}
    * @param groupByExprList List of group by {@link Expression}
    */
-  public AggregationOperator(
-      PhysicalPlan input,
-      List<NamedAggregator> aggregatorList,
-      List<NamedExpression> groupByExprList) {
+  public AggregationOperator(PhysicalPlan input, List<NamedAggregator> aggregatorList,
+                             List<NamedExpression> groupByExprList) {
     this.input = input;
     this.aggregatorList = aggregatorList;
     this.groupByExprList = groupByExprList;
@@ -61,6 +67,7 @@ public class AggregationOperator extends PhysicalPlan {
   public List<PhysicalPlan> getChild() {
     return Collections.singletonList(input);
   }
+
 
   @Override
   public boolean hasNext() {

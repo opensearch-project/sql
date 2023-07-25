@@ -11,9 +11,9 @@ import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.executor.ExecutionEngine;
 
 /**
- * A plan node which blocks issuing a request in {@link #open} and getting results in {@link
- * #hasNext}, but doesn't block releasing resources in {@link #close}. Designed to be on top of the
- * deserialized tree.
+ * A plan node which blocks issuing a request in {@link #open} and
+ * getting results in {@link #hasNext}, but doesn't block releasing resources in {@link #close}.
+ * Designed to be on top of the deserialized tree.
  */
 @RequiredArgsConstructor
 public class CursorCloseOperator extends PhysicalPlan {
@@ -41,7 +41,9 @@ public class CursorCloseOperator extends PhysicalPlan {
     return List.of(input);
   }
 
-  /** Provides an empty schema, because this plan node is always located on the top of the tree. */
+  /**
+   * Provides an empty schema, because this plan node is always located on the top of the tree.
+   */
   @Override
   public ExecutionEngine.Schema schema() {
     return new ExecutionEngine.Schema(List.of());

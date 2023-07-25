@@ -3,6 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+
 package org.opensearch.sql.planner.physical;
 
 import com.google.common.collect.ImmutableMap;
@@ -20,34 +21,43 @@ import org.opensearch.sql.expression.window.WindowDefinition;
 import org.opensearch.sql.expression.window.WindowFunctionExpression;
 import org.opensearch.sql.expression.window.frame.WindowFrame;
 
-/** Physical operator for window function computation. */
+/**
+ * Physical operator for window function computation.
+ */
 @EqualsAndHashCode(callSuper = false)
 @ToString
 public class WindowOperator extends PhysicalPlan {
-  @Getter private final PhysicalPlan input;
+  @Getter
+  private final PhysicalPlan input;
 
-  @Getter private final NamedExpression windowFunction;
+  @Getter
+  private final NamedExpression windowFunction;
 
-  @Getter private final WindowDefinition windowDefinition;
+  @Getter
+  private final WindowDefinition windowDefinition;
 
-  @EqualsAndHashCode.Exclude @ToString.Exclude private final WindowFrame windowFrame;
+  @EqualsAndHashCode.Exclude
+  @ToString.Exclude
+  private final WindowFrame windowFrame;
 
   /**
-   * Peeking iterator that can peek next element which is required by window frame such as peer
-   * frame to prefetch all rows related to same peer (of same sorting key).
+   * Peeking iterator that can peek next element which is required
+   * by window frame such as peer frame to prefetch all rows related
+   * to same peer (of same sorting key).
    */
-  @EqualsAndHashCode.Exclude @ToString.Exclude
+  @EqualsAndHashCode.Exclude
+  @ToString.Exclude
   private final PeekingIterator<ExprValue> peekingIterator;
 
   /**
    * Initialize window operator.
-   *
-   * @param input child operator
-   * @param windowFunction window function
-   * @param windowDefinition window definition
+   * @param input             child operator
+   * @param windowFunction    window function
+   * @param windowDefinition  window definition
    */
-  public WindowOperator(
-      PhysicalPlan input, NamedExpression windowFunction, WindowDefinition windowDefinition) {
+  public WindowOperator(PhysicalPlan input,
+                        NamedExpression windowFunction,
+                        WindowDefinition windowDefinition) {
     this.input = input;
     this.windowFunction = windowFunction;
     this.windowDefinition = windowDefinition;
@@ -97,4 +107,5 @@ public class WindowOperator extends PhysicalPlan {
     ExprValue exprValue = windowFunction.valueOf(windowFrame);
     mapBuilder.put(windowFunction.getName(), exprValue);
   }
+
 }

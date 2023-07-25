@@ -7,16 +7,17 @@ import lombok.Getter;
 import lombok.ToString;
 import org.opensearch.sql.ast.expression.Literal;
 
-/** ML logical plan. */
+/**
+ * ML logical plan.
+ */
 @Getter
 @ToString
 @EqualsAndHashCode(callSuper = true)
 public class LogicalML extends LogicalPlan {
-  private final Map<String, Literal> arguments;
+  private final  Map<String, Literal> arguments;
 
   /**
    * Constructor of LogicalML.
-   *
    * @param child child logical plan
    * @param arguments arguments of the algorithm
    */

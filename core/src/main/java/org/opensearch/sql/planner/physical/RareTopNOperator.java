@@ -3,6 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+
 package org.opensearch.sql.planner.physical;
 
 import com.google.common.annotations.VisibleForTesting;
@@ -35,38 +36,40 @@ import org.opensearch.sql.storage.bindingtuple.BindingTuple;
 @EqualsAndHashCode(callSuper = false)
 public class RareTopNOperator extends PhysicalPlan {
 
-  @Getter private final PhysicalPlan input;
-  @Getter private final CommandType commandType;
-  @Getter private final Integer noOfResults;
-  @Getter private final List<Expression> fieldExprList;
-  @Getter private final List<Expression> groupByExprList;
+  @Getter
+  private final PhysicalPlan input;
+  @Getter
+  private final CommandType commandType;
+  @Getter
+  private final Integer noOfResults;
+  @Getter
+  private final List<Expression> fieldExprList;
+  @Getter
+  private final List<Expression> groupByExprList;
 
-  @EqualsAndHashCode.Exclude private final Group group;
-  @EqualsAndHashCode.Exclude private Iterator<ExprValue> iterator;
+  @EqualsAndHashCode.Exclude
+  private final Group group;
+  @EqualsAndHashCode.Exclude
+  private Iterator<ExprValue> iterator;
 
   private static final Integer DEFAULT_NO_OF_RESULTS = 10;
 
-  public RareTopNOperator(
-      PhysicalPlan input,
-      CommandType commandType,
-      List<Expression> fieldExprList,
-      List<Expression> groupByExprList) {
+
+  public RareTopNOperator(PhysicalPlan input, CommandType commandType,
+      List<Expression> fieldExprList, List<Expression> groupByExprList) {
     this(input, commandType, DEFAULT_NO_OF_RESULTS, fieldExprList, groupByExprList);
   }
 
   /**
    * RareTopNOperator Constructor.
    *
-   * @param input Input {@link PhysicalPlan}
-   * @param commandType Enum for Rare/TopN command.
-   * @param noOfResults Number of results
-   * @param fieldExprList List of {@link Expression}
+   * @param input           Input {@link PhysicalPlan}
+   * @param commandType     Enum for Rare/TopN command.
+   * @param noOfResults     Number of results
+   * @param fieldExprList   List of {@link Expression}
    * @param groupByExprList List of group by {@link Expression}
    */
-  public RareTopNOperator(
-      PhysicalPlan input,
-      CommandType commandType,
-      int noOfResults,
+  public RareTopNOperator(PhysicalPlan input, CommandType commandType, int noOfResults,
       List<Expression> fieldExprList,
       List<Expression> groupByExprList) {
     this.input = input;
@@ -112,50 +115,48 @@ public class RareTopNOperator extends PhysicalPlan {
 
     private final Map<Key, Map<Key, Integer>> groupListMap = new HashMap<>();
 
-    /** Push the BindingTuple to Group. */
+    /**
+     * Push the BindingTuple to Group.
+     */
     public void push(ExprValue inputValue) {
       Key groupKey = new Key(inputValue, groupByExprList);
       Key fieldKey = new Key(inputValue, fieldExprList);
-      groupListMap.computeIfAbsent(
-          groupKey,
-          k -> {
-            Map<Key, Integer> map = new HashMap<>();
-            map.put(fieldKey, 1);
-            return map;
-          });
-      groupListMap.computeIfPresent(
-          groupKey,
-          (key, map) -> {
-            map.computeIfAbsent(fieldKey, f -> 1);
-            map.computeIfPresent(
-                fieldKey,
-                (field, count) -> {
-                  return count + 1;
-                });
-            return map;
-          });
+      groupListMap.computeIfAbsent(groupKey, k -> {
+        Map<Key, Integer> map = new HashMap<>();
+        map.put(fieldKey, 1);
+        return map;
+      });
+      groupListMap.computeIfPresent(groupKey, (key, map) -> {
+        map.computeIfAbsent(fieldKey, f -> 1);
+        map.computeIfPresent(fieldKey, (field, count) -> {
+          return count + 1;
+        });
+        return map;
+      });
     }
 
-    /** Get the list of {@link BindingTuple} for each group. */
+    /**
+     * Get the list of {@link BindingTuple} for each group.
+     */
     public List<ExprValue> result() {
       ImmutableList.Builder<ExprValue> resultBuilder = new ImmutableList.Builder<>();
 
-      groupListMap.forEach(
-          (groups, fieldMap) -> {
-            Map<String, ExprValue> map = new LinkedHashMap<>();
-            List<Key> result = find(fieldMap);
-            result.forEach(
-                field -> {
-                  map.putAll(groups.keyMap(groupByExprList));
-                  map.putAll(field.keyMap(fieldExprList));
-                  resultBuilder.add(ExprTupleValue.fromExprValueMap(map));
-                });
-          });
+      groupListMap.forEach((groups, fieldMap) -> {
+        Map<String, ExprValue> map = new LinkedHashMap<>();
+        List<Key> result = find(fieldMap);
+        result.forEach(field -> {
+          map.putAll(groups.keyMap(groupByExprList));
+          map.putAll(field.keyMap(fieldExprList));
+          resultBuilder.add(ExprTupleValue.fromExprValueMap(map));
+        });
+      });
 
       return resultBuilder.build();
     }
 
-    /** Get a list of result. */
+    /**
+     * Get a list of result.
+     */
     public List<Key> find(Map<Key, Integer> map) {
       Comparator<Map.Entry<Key, Integer>> valueComparator;
       if (CommandType.TOP.equals(commandType)) {
@@ -164,37 +165,40 @@ public class RareTopNOperator extends PhysicalPlan {
         valueComparator = Map.Entry.comparingByValue();
       }
 
-      return map.entrySet().stream()
-          .sorted(valueComparator)
-          .limit(noOfResults)
-          .map(Map.Entry::getKey)
-          .collect(Collectors.toList());
+      return map.entrySet().stream().sorted(valueComparator).limit(noOfResults)
+          .map(Map.Entry::getKey).collect(Collectors.toList());
     }
   }
 
-  /** Key. */
+  /**
+   * Key.
+   */
   @EqualsAndHashCode
   @VisibleForTesting
   public class Key {
 
     private final List<ExprValue> valueList;
 
-    /** Key constructor. */
+    /**
+     * Key constructor.
+     */
     public Key(ExprValue value, List<Expression> exprList) {
-      this.valueList =
-          exprList.stream()
-              .map(expr -> expr.valueOf(value.bindingTuples()))
-              .collect(Collectors.toList());
+      this.valueList = exprList.stream()
+          .map(expr -> expr.valueOf(value.bindingTuples())).collect(Collectors.toList());
     }
 
-    /** Return the Map of key and key value. */
+    /**
+     * Return the Map of key and key value.
+     */
     public Map<String, ExprValue> keyMap(List<Expression> exprList) {
 
       return Streams.zip(
-              exprList.stream().map(expression -> expression.toString()),
-              valueList.stream(),
-              AbstractMap.SimpleEntry::new)
-          .collect(Collectors.toMap(key -> key.getKey(), key -> key.getValue()));
+          exprList.stream().map(
+              expression -> expression.toString()),
+          valueList.stream(),
+          AbstractMap.SimpleEntry::new
+      ).collect(Collectors.toMap(key -> key.getKey(), key -> key.getValue()));
     }
   }
+
 }

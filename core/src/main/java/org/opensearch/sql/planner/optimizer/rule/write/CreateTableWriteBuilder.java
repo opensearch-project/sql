@@ -32,10 +32,13 @@ public class CreateTableWriteBuilder implements Rule<LogicalWrite> {
   @Getter
   private final Pattern<LogicalWrite> pattern;
 
-  /** Construct create table write builder rule. */
+  /**
+   * Construct create table write builder rule.
+   */
   public CreateTableWriteBuilder() {
     this.capture = Capture.newCapture();
-    this.pattern = Pattern.typeOf(LogicalWrite.class).with(writeTable().capturedAs(capture));
+    this.pattern = Pattern.typeOf(LogicalWrite.class)
+        .with(writeTable().capturedAs(capture));
   }
 
   @Override
