@@ -3,7 +3,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-
 package org.opensearch.sql.planner.logical;
 
 import java.util.Collections;
@@ -13,21 +12,15 @@ import lombok.Getter;
 import lombok.ToString;
 import org.opensearch.sql.expression.NamedExpression;
 
-/**
- * Project field specified by the {@link LogicalProject#projectList}.
- */
+/** Project field specified by the {@link LogicalProject#projectList}. */
 @ToString
 @EqualsAndHashCode(callSuper = true)
 public class LogicalProject extends LogicalPlan {
 
-  @Getter
-  private final List<NamedExpression> projectList;
-  @Getter
-  private final List<NamedExpression> namedParseExpressions;
+  @Getter private final List<NamedExpression> projectList;
+  @Getter private final List<NamedExpression> namedParseExpressions;
 
-  /**
-   * Constructor of LogicalProject.
-   */
+  /** Constructor of LogicalProject. */
   public LogicalProject(
       LogicalPlan child,
       List<NamedExpression> projectList,
