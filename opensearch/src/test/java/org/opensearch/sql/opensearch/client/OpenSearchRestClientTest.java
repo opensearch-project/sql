@@ -35,10 +35,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import lombok.SneakyThrows;
 import org.apache.commons.lang3.reflect.FieldUtils;
 import org.apache.lucene.search.TotalHits;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.DisplayNameGeneration;
-import org.junit.jupiter.api.DisplayNameGenerator;
-import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.*;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -102,6 +99,11 @@ class OpenSearchRestClientTest {
     client = new OpenSearchRestClient(restClient);
   }
 
+  @BeforeAll
+  static void setUpJSON() {
+    setDefaultMediaType(XContentType.JSON);
+  }
+
   @Test
   void is_index_exist() throws IOException {
     when(restClient.indices()
@@ -130,7 +132,6 @@ class OpenSearchRestClientTest {
   @Test
   void create_index() throws IOException {
     String indexName = "test";
-    setDefaultMediaType(XContentType.JSON);
     Map<String, Object> mappings = ImmutableMap.of(
         "properties",
         ImmutableMap.of("name", "text"));
@@ -144,7 +145,7 @@ class OpenSearchRestClientTest {
   @Test
   void create_index_with_IOException() throws IOException {
     when(restClient.indices().create(any(), any())).thenThrow(IOException.class);
-    setDefaultMediaType(XContentType.JSON);
+//    setDefaultMediaType(XContentType.JSON);
     assertThrows(IllegalStateException.class,
         () -> client.createIndex("test", ImmutableMap.of()));
   }
