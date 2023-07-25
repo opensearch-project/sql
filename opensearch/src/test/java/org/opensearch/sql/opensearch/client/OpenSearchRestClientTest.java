@@ -145,7 +145,6 @@ class OpenSearchRestClientTest {
   @Test
   void create_index_with_IOException() throws IOException {
     when(restClient.indices().create(any(), any())).thenThrow(IOException.class);
-//    setDefaultMediaType(XContentType.JSON);
     assertThrows(IllegalStateException.class,
         () -> client.createIndex("test", ImmutableMap.of()));
   }
