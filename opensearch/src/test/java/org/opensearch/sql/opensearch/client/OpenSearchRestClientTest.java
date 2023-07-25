@@ -19,6 +19,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.opensearch.core.xcontent.MediaTypeParserRegistry.setDefaultMediaType;
 import static org.opensearch.sql.opensearch.client.OpenSearchClient.META_CLUSTER_NAME;
 import static org.opensearch.sql.opensearch.data.type.OpenSearchDataType.MappingType;
 
@@ -129,6 +130,7 @@ class OpenSearchRestClientTest {
   @Test
   void create_index() throws IOException {
     String indexName = "test";
+    setDefaultMediaType(XContentType.JSON);
     Map<String, Object> mappings = ImmutableMap.of(
         "properties",
         ImmutableMap.of("name", "text"));
@@ -142,7 +144,7 @@ class OpenSearchRestClientTest {
   @Test
   void create_index_with_IOException() throws IOException {
     when(restClient.indices().create(any(), any())).thenThrow(IOException.class);
-
+    setDefaultMediaType(XContentType.JSON);
     assertThrows(IllegalStateException.class,
         () -> client.createIndex("test", ImmutableMap.of()));
   }
