@@ -3,7 +3,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-
 package org.opensearch.sql.planner.physical;
 
 import static org.opensearch.sql.data.type.ExprCoreType.STRUCT;
@@ -24,35 +23,30 @@ import org.opensearch.sql.expression.ReferenceExpression;
 import org.opensearch.sql.storage.bindingtuple.BindingTuple;
 
 /**
- * Rename the binding name in {@link BindingTuple}.
- * The mapping maintain the relation between source and target.
- * it means BindingTuple.resolve(target) = BindingTuple.resolve(source).
+ * Rename the binding name in {@link BindingTuple}. The mapping maintain the relation between source
+ * and target. it means BindingTuple.resolve(target) = BindingTuple.resolve(source).
  */
 @EqualsAndHashCode(callSuper = false)
 @ToString
 public class RenameOperator extends PhysicalPlan {
-  @Getter
-  private final PhysicalPlan input;
-  @Getter
-  private final Map<ReferenceExpression, ReferenceExpression> mapping;
+  @Getter private final PhysicalPlan input;
+  @Getter private final Map<ReferenceExpression, ReferenceExpression> mapping;
+
   /**
    * Todo. This is the temporary solution that add the mapping between string and ref. because when
    * rename the field from input, there we can only get the string field.
    */
-  @ToString.Exclude
-  @EqualsAndHashCode.Exclude
+  @ToString.Exclude @EqualsAndHashCode.Exclude
   private final Map<String, ReferenceExpression> nameMapping;
 
-  /**
-   * Constructor of RenameOperator.
-   */
-  public RenameOperator(PhysicalPlan input,
-                        Map<ReferenceExpression, ReferenceExpression> mapping) {
+  /** Constructor of RenameOperator. */
+  public RenameOperator(PhysicalPlan input, Map<ReferenceExpression, ReferenceExpression> mapping) {
     this.input = input;
     this.mapping = mapping;
     this.nameMapping =
-        mapping.entrySet().stream().collect(Collectors.toMap(entry -> entry.getKey().getAttr(),
-            entry -> entry.getValue()));
+        mapping.entrySet().stream()
+            .collect(
+                Collectors.toMap(entry -> entry.getKey().getAttr(), entry -> entry.getValue()));
   }
 
   @Override

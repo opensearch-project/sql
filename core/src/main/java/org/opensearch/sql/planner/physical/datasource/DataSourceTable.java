@@ -19,12 +19,9 @@ import org.opensearch.sql.planner.logical.LogicalRelation;
 import org.opensearch.sql.planner.physical.PhysicalPlan;
 import org.opensearch.sql.storage.Table;
 
-
 /**
- * Table implementation to handle show datasources command.
- * Since datasource information is not tied to any storage engine, this info
- * is handled via DataSource Table.
- *
+ * Table implementation to handle show datasources command. Since datasource information is not tied
+ * to any storage engine, this info is handled via DataSource Table.
  */
 @RequiredArgsConstructor
 @EqualsAndHashCode
@@ -44,8 +41,7 @@ public class DataSourceTable implements Table {
 
   @VisibleForTesting
   @RequiredArgsConstructor
-  public static class DataSourceTableDefaultImplementor
-      extends DefaultImplementor<Object> {
+  public static class DataSourceTableDefaultImplementor extends DefaultImplementor<Object> {
 
     private final DataSourceService dataSourceService;
 
@@ -54,5 +50,4 @@ public class DataSourceTable implements Table {
       return new DataSourceTableScan(dataSourceService);
     }
   }
-
 }

@@ -3,7 +3,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-
 package org.opensearch.sql.planner.optimizer;
 
 import static com.facebook.presto.matching.DefaultMatcher.DEFAULT_MATCHER;
@@ -20,56 +19,48 @@ import org.opensearch.sql.planner.optimizer.rule.read.TableScanPushDown;
 import org.opensearch.sql.planner.optimizer.rule.write.CreateTableWriteBuilder;
 
 /**
- * {@link LogicalPlan} Optimizer.
- * The Optimizer will run in the TopDown manner.
- * 1> Optimize the current node with all the rules.
- * 2> Optimize the all the child nodes with all the rules.
- * 3) In case the child node could change, Optimize the current node again.
+ * {@link LogicalPlan} Optimizer. The Optimizer will run in the TopDown manner. 1> Optimize the
+ * current node with all the rules. 2> Optimize the all the child nodes with all the rules. 3) In
+ * case the child node could change, Optimize the current node again.
  */
 public class LogicalPlanOptimizer {
 
   private final List<Rule<?>> rules;
 
-  /**
-   * Create {@link LogicalPlanOptimizer} with customized rules.
-   */
+  /** Create {@link LogicalPlanOptimizer} with customized rules. */
   public LogicalPlanOptimizer(List<Rule<?>> rules) {
     this.rules = rules;
   }
 
-  /**
-   * Create {@link LogicalPlanOptimizer} with pre-defined rules.
-   */
+  /** Create {@link LogicalPlanOptimizer} with pre-defined rules. */
   public static LogicalPlanOptimizer create() {
-    return new LogicalPlanOptimizer(Arrays.asList(
-        /*
-         * Phase 1: Transformations that rely on relational algebra equivalence
-         */
-        new MergeFilterAndFilter(),
-        new PushFilterUnderSort(),
-        /*
-         * Phase 2: Transformations that rely on data source push down capability
-         */
-        new CreateTableScanBuilder(),
-        TableScanPushDown.PUSH_DOWN_FILTER,
-        TableScanPushDown.PUSH_DOWN_AGGREGATION,
-        TableScanPushDown.PUSH_DOWN_SORT,
-        TableScanPushDown.PUSH_DOWN_LIMIT,
-        new PushDownPageSize(),
-        TableScanPushDown.PUSH_DOWN_HIGHLIGHT,
-        TableScanPushDown.PUSH_DOWN_NESTED,
-        TableScanPushDown.PUSH_DOWN_PROJECT,
-        new CreateTableWriteBuilder()));
+    return new LogicalPlanOptimizer(
+        Arrays.asList(
+            /*
+             * Phase 1: Transformations that rely on relational algebra equivalence
+             */
+            new MergeFilterAndFilter(),
+            new PushFilterUnderSort(),
+            /*
+             * Phase 2: Transformations that rely on data source push down capability
+             */
+            new CreateTableScanBuilder(),
+            TableScanPushDown.PUSH_DOWN_FILTER,
+            TableScanPushDown.PUSH_DOWN_AGGREGATION,
+            TableScanPushDown.PUSH_DOWN_SORT,
+            TableScanPushDown.PUSH_DOWN_LIMIT,
+            new PushDownPageSize(),
+            TableScanPushDown.PUSH_DOWN_HIGHLIGHT,
+            TableScanPushDown.PUSH_DOWN_NESTED,
+            TableScanPushDown.PUSH_DOWN_PROJECT,
+            new CreateTableWriteBuilder()));
   }
 
-  /**
-   * Optimize {@link LogicalPlan}.
-   */
+  /** Optimize {@link LogicalPlan}. */
   public LogicalPlan optimize(LogicalPlan plan) {
     LogicalPlan optimized = internalOptimize(plan);
     optimized.replaceChildPlans(
-        optimized.getChild().stream().map(this::optimize).collect(
-            Collectors.toList()));
+        optimized.getChild().stream().map(this::optimize).collect(Collectors.toList()));
     return internalOptimize(optimized);
   }
 

@@ -14,15 +14,12 @@ import org.opensearch.sql.planner.logical.LogicalPaginate;
 import org.opensearch.sql.planner.logical.LogicalPlan;
 import org.opensearch.sql.storage.read.TableScanBuilder;
 
-/**
- * A {@link LogicalPlanOptimizer} rule that pushes down page size
- * to table scan builder.
- */
+/** A {@link LogicalPlanOptimizer} rule that pushes down page size to table scan builder. */
 public class PushDownPageSize implements Rule<LogicalPaginate> {
   @Override
   public Pattern<LogicalPaginate> pattern() {
     return Pattern.typeOf(LogicalPaginate.class)
-      .matching(lp -> findTableScanBuilder(lp).isPresent());
+        .matching(lp -> findTableScanBuilder(lp).isPresent());
   }
 
   @Override
@@ -44,7 +41,7 @@ public class PushDownPageSize implements Rule<LogicalPaginate> {
       if (children.stream().anyMatch(TableScanBuilder.class::isInstance)) {
         if (children.size() > 1) {
           throw new UnsupportedOperationException(
-            "Unsupported plan: relation operator cannot have siblings");
+              "Unsupported plan: relation operator cannot have siblings");
         }
         return Optional.of((TableScanBuilder) children.get(0));
       }
