@@ -41,10 +41,6 @@ public class PrometheusMetricScan extends TableScanOperator {
   private Iterator<ExprValue> iterator;
 
   @Setter
-  @Getter
-  private Boolean isQueryRangeFunctionScan = Boolean.FALSE;
-
-  @Setter
   private PrometheusResponseFieldNames prometheusResponseFieldNames;
 
 
@@ -69,8 +65,7 @@ public class PrometheusMetricScan extends TableScanOperator {
         JSONObject responseObject = prometheusClient.queryRange(
             request.getPromQl(),
             request.getStartTime(), request.getEndTime(), request.getStep());
-        return new PrometheusResponse(responseObject, prometheusResponseFieldNames,
-            isQueryRangeFunctionScan).iterator();
+        return new PrometheusResponse(responseObject, prometheusResponseFieldNames).iterator();
       } catch (IOException e) {
         LOG.error(e.getMessage());
         throw new RuntimeException("Error fetching data from prometheus server. " + e.getMessage());
