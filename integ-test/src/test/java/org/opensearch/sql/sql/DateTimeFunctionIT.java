@@ -29,6 +29,7 @@ import org.junit.jupiter.api.Test;
 import org.opensearch.client.Request;
 import org.opensearch.client.RequestOptions;
 import org.opensearch.client.Response;
+import org.opensearch.client.ResponseException;
 import org.opensearch.sql.common.utils.StringUtils;
 import org.opensearch.sql.legacy.SQLIntegTestCase;
 
@@ -1287,5 +1288,86 @@ public class DateTimeFunctionIT extends SQLIntegTestCase {
 
     Response response = client().performRequest(request);
     return new JSONObject(getResponseBody(response));
+  }
+
+  @Test
+  public void testTimestampBracket() throws IOException {
+    JSONObject result = executeQuery("select {timestamp '2020-09-16 17:30:00'}");
+    verifySchema(result, schema("{timestamp '2020-09-16 17:30:00'}", null, "timestamp"));
+    verifyDataRows(result, rows("2020-09-16 17:30:00"));
+
+    result = executeQuery("select {ts '2020-09-16 17:30:00'}");
+    verifySchema(result, schema("{ts '2020-09-16 17:30:00'}", null, "timestamp"));
+    verifyDataRows(result, rows("2020-09-16 17:30:00"));
+
+    result = executeQuery("select {timestamp '2020-09-16 17:30:00.123'}");
+    verifySchema(result, schema("{timestamp '2020-09-16 17:30:00.123'}", null, "timestamp"));
+    verifyDataRows(result, rows("2020-09-16 17:30:00.123"));
+
+    result = executeQuery("select {ts '2020-09-16 17:30:00.123'}");
+    verifySchema(result, schema("{ts '2020-09-16 17:30:00.123'}", null, "timestamp"));
+    verifyDataRows(result, rows("2020-09-16 17:30:00.123"));
+  }
+
+  @Test
+  public void testTimeBracket() throws IOException {
+    JSONObject result = executeQuery("select {time '17:30:00'}");
+    verifySchema(result, schema("{time '17:30:00'}", null, "time"));
+    verifyDataRows(result, rows("17:30:00"));
+
+    result = executeQuery("select {t '17:30:00'}");
+    verifySchema(result, schema("{t '17:30:00'}", null, "time"));
+    verifyDataRows(result, rows("17:30:00"));
+
+    result = executeQuery("select {time '17:30:00.123'}");
+    verifySchema(result, schema("{time '17:30:00.123'}", null, "time"));
+    verifyDataRows(result, rows("17:30:00.123"));
+
+    result = executeQuery("select {t '17:30:00.123'}");
+    verifySchema(result, schema("{t '17:30:00.123'}", null, "time"));
+    verifyDataRows(result, rows("17:30:00.123"));
+  }
+
+  @Test
+  public void testDateBracket() throws IOException {
+    JSONObject result = executeQuery("select {date '2020-09-16'}");
+    verifySchema(result, schema("{date '2020-09-16'}", null, "date"));
+    verifyDataRows(result, rows("2020-09-16"));
+
+    result = executeQuery("select {d '2020-09-16'}");
+    verifySchema(result, schema("{d '2020-09-16'}", null, "date"));
+    verifyDataRows(result, rows("2020-09-16"));
+  }
+
+  private void compareBrackets(String query1, String query2, String datetime) throws IOException {
+    JSONObject result1 = executeQuery("select " + query1 + " '" + datetime + "'");
+    JSONObject result2 = executeQuery("select {" + query2 + " '" + datetime + "'}");
+
+    verifyDataRows(result1, rows(datetime));
+    verifyDataRows(result2, rows(datetime));
+  }
+
+  @Test
+  public void testBracketedEquivalent() throws IOException {
+    compareBrackets("timestamp", "timestamp", "2020-09-16 17:30:00");
+    compareBrackets("timestamp", "ts", "2020-09-16 17:30:00");
+    compareBrackets("timestamp", "timestamp", "2020-09-16 17:30:00.123");
+    compareBrackets("timestamp", "ts", "2020-09-16 17:30:00.123");
+    compareBrackets("date", "date", "2020-09-16");
+    compareBrackets("date", "d", "2020-09-16");
+    compareBrackets("time", "time", "17:30:00");
+    compareBrackets("time", "t", "17:30:00");
+  }
+  
+  @Test
+  public void testBracketFails() {
+    assertThrows(ResponseException.class, ()->executeQuery("select {time '2020-09-16'}"));
+    assertThrows(ResponseException.class, ()->executeQuery("select {t '2020-09-16'}"));
+    assertThrows(ResponseException.class, ()->executeQuery("select {date '17:30:00'}"));
+    assertThrows(ResponseException.class, ()->executeQuery("select {d '17:30:00'}"));
+    assertThrows(ResponseException.class, ()->executeQuery("select {timestamp '2020-09-16'}"));
+    assertThrows(ResponseException.class, ()->executeQuery("select {ts '2020-09-16'}"));
+    assertThrows(ResponseException.class, ()->executeQuery("select {timestamp '17:30:00'}"));
+    assertThrows(ResponseException.class, ()->executeQuery("select {ts '17:30:00'}"));
   }
 }
