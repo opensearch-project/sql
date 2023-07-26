@@ -8,9 +8,9 @@ package org.opensearch.sql.legacy;
 
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
-import static org.opensearch.rest.RestStatus.BAD_REQUEST;
-import static org.opensearch.rest.RestStatus.OK;
-import static org.opensearch.rest.RestStatus.SERVICE_UNAVAILABLE;
+import static org.opensearch.core.rest.RestStatus.BAD_REQUEST;
+import static org.opensearch.core.rest.RestStatus.OK;
+import static org.opensearch.core.rest.RestStatus.SERVICE_UNAVAILABLE;
 
 import java.io.IOException;
 import org.junit.Assert;
@@ -18,7 +18,7 @@ import org.junit.Test;
 import org.opensearch.client.Request;
 import org.opensearch.client.Response;
 import org.opensearch.client.ResponseException;
-import org.opensearch.rest.RestStatus;
+import org.opensearch.core.rest.RestStatus;
 import org.opensearch.sql.legacy.antlr.semantic.SemanticAnalysisException;
 import org.opensearch.sql.legacy.antlr.syntax.SyntaxAnalysisException;
 import org.opensearch.sql.legacy.exception.SqlFeatureNotImplementedException;

@@ -7,7 +7,7 @@
 package org.opensearch.sql.sql;
 
 import static org.hamcrest.Matchers.is;
-import static org.opensearch.rest.RestStatus.BAD_REQUEST;
+import static org.opensearch.core.rest.RestStatus.BAD_REQUEST;
 import static org.opensearch.sql.legacy.plugin.RestSqlAction.QUERY_API_ENDPOINT;
 import static org.opensearch.sql.util.MatcherUtils.featureValueOf;
 
@@ -21,7 +21,7 @@ import org.junit.rules.ExpectedException;
 import org.opensearch.client.Request;
 import org.opensearch.client.RequestOptions;
 import org.opensearch.client.ResponseException;
-import org.opensearch.rest.RestStatus;
+import org.opensearch.core.rest.RestStatus;
 import org.opensearch.sql.legacy.SQLIntegTestCase;
 
 /**
