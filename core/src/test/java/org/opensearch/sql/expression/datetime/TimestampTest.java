@@ -59,7 +59,7 @@ public class TimestampTest extends ExpressionTestBase {
     var exception = assertThrows(SemanticCheckException.class,
         () -> DSL.timestamp(functionProperties, DSL.literal(value)).valueOf());
     assertEquals(String.format("timestamp:%s in unsupported format, please "
-        + "use yyyy-MM-dd HH:mm:ss[.SSSSSSSSS]", value), exception.getMessage());
+        + "use 'yyyy-MM-dd HH:mm:ss[.SSSSSSSSS]'", value), exception.getMessage());
   }
 
   @Test

@@ -3,7 +3,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-
 package org.opensearch.sql.data.model;
 
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -58,71 +57,87 @@ public class ExprValueUtilsTest {
     testTuple.put("1", new ExprIntegerValue(1));
   }
 
-  private static List<ExprValue> numberValues = Stream.of((byte) 1, (short) 1, 1, 1L, 1f, 1D)
-      .map(ExprValueUtils::fromObjectValue).collect(Collectors.toList());
+  private static List<ExprValue> numberValues =
+      Stream.of((byte) 1, (short) 1, 1, 1L, 1f, 1D)
+          .map(ExprValueUtils::fromObjectValue)
+          .collect(Collectors.toList());
 
-  private static List<ExprValue> nonNumberValues = Arrays.asList(
-      new ExprStringValue("1"),
-      ExprBooleanValue.of(true),
-      new ExprCollectionValue(ImmutableList.of(new ExprIntegerValue(1))),
-      new ExprTupleValue(testTuple),
-      new ExprDateValue("2012-08-07"),
-      new ExprTimeValue("18:00:00"),
-      new ExprDatetimeValue("2012-08-07 18:00:00"),
-      new ExprTimestampValue("2012-08-07 18:00:00"),
-      new ExprIntervalValue(Duration.ofSeconds(100)));
+  private static List<ExprValue> nonNumberValues =
+      Arrays.asList(
+          new ExprStringValue("1"),
+          ExprBooleanValue.of(true),
+          new ExprCollectionValue(ImmutableList.of(new ExprIntegerValue(1))),
+          new ExprTupleValue(testTuple),
+          new ExprDateValue("2012-08-07"),
+          new ExprTimeValue("18:00:00"),
+          new ExprDatetimeValue("2012-08-07 18:00:00"),
+          new ExprTimestampValue("2012-08-07 18:00:00"),
+          new ExprIntervalValue(Duration.ofSeconds(100)));
 
   private static List<ExprValue> allValues =
       Lists.newArrayList(Iterables.concat(numberValues, nonNumberValues));
 
-  private static List<Function<ExprValue, Object>> numberValueExtractor = Arrays.asList(
-      ExprValueUtils::getByteValue,
-      ExprValueUtils::getShortValue,
-      ExprValueUtils::getIntegerValue,
-      ExprValueUtils::getLongValue,
-      ExprValueUtils::getFloatValue,
-      ExprValueUtils::getDoubleValue);
-  private static List<Function<ExprValue, Object>> nonNumberValueExtractor = Arrays.asList(
-      ExprValueUtils::getStringValue,
-      ExprValueUtils::getBooleanValue,
-      ExprValueUtils::getCollectionValue,
-      ExprValueUtils::getTupleValue
-  );
-  private static List<Function<ExprValue, Object>> dateAndTimeValueExtractor = Arrays.asList(
-      ExprValue::dateValue,
-      ExprValue::timeValue,
-      ExprValue::datetimeValue,
-      ExprValue::timestampValue,
-      ExprValue::intervalValue);
-  private static List<Function<ExprValue, Object>> allValueExtractor = Lists.newArrayList(
-      Iterables.concat(numberValueExtractor, nonNumberValueExtractor, dateAndTimeValueExtractor));
+  private static List<Function<ExprValue, Object>> numberValueExtractor =
+      Arrays.asList(
+          ExprValueUtils::getByteValue,
+          ExprValueUtils::getShortValue,
+          ExprValueUtils::getIntegerValue,
+          ExprValueUtils::getLongValue,
+          ExprValueUtils::getFloatValue,
+          ExprValueUtils::getDoubleValue);
+  private static List<Function<ExprValue, Object>> nonNumberValueExtractor =
+      Arrays.asList(
+          ExprValueUtils::getStringValue,
+          ExprValueUtils::getBooleanValue,
+          ExprValueUtils::getCollectionValue,
+          ExprValueUtils::getTupleValue);
+  private static List<Function<ExprValue, Object>> dateAndTimeValueExtractor =
+      Arrays.asList(
+          ExprValue::dateValue,
+          ExprValue::timeValue,
+          ExprValue::datetimeValue,
+          ExprValue::timestampValue,
+          ExprValue::intervalValue);
+  private static List<Function<ExprValue, Object>> allValueExtractor =
+      Lists.newArrayList(
+          Iterables.concat(
+              numberValueExtractor, nonNumberValueExtractor, dateAndTimeValueExtractor));
 
   private static List<ExprCoreType> numberTypes =
-      Arrays.asList(ExprCoreType.BYTE, ExprCoreType.SHORT, ExprCoreType.INTEGER, ExprCoreType.LONG,
-          ExprCoreType.FLOAT, ExprCoreType.DOUBLE);
-  private static List<ExprCoreType> nonNumberTypes =
-      Arrays.asList(STRING, BOOLEAN, ARRAY, STRUCT);
+      Arrays.asList(
+          ExprCoreType.BYTE,
+          ExprCoreType.SHORT,
+          ExprCoreType.INTEGER,
+          ExprCoreType.LONG,
+          ExprCoreType.FLOAT,
+          ExprCoreType.DOUBLE);
+  private static List<ExprCoreType> nonNumberTypes = Arrays.asList(STRING, BOOLEAN, ARRAY, STRUCT);
   private static List<ExprCoreType> dateAndTimeTypes =
       Arrays.asList(DATE, TIME, DATETIME, TIMESTAMP, INTERVAL);
   private static List<ExprCoreType> allTypes =
       Lists.newArrayList(Iterables.concat(numberTypes, nonNumberTypes, dateAndTimeTypes));
 
   private static Stream<Arguments> getValueTestArgumentStream() {
-    List<Object> expectedValues = Arrays.asList((byte) 1, (short) 1, 1, 1L, 1f, 1D, "1", true,
-        Arrays.asList(integerValue(1)),
-        ImmutableMap.of("1", integerValue(1)),
-        LocalDate.parse("2012-08-07"),
-        LocalTime.parse("18:00:00"),
-        LocalDateTime.parse("2012-08-07T18:00:00"),
-        ZonedDateTime.of(LocalDateTime.parse("2012-08-07T18:00:00"), UTC_ZONE_ID).toInstant(),
-        Duration.ofSeconds(100)
-    );
+    List<Object> expectedValues =
+        Arrays.asList(
+            (byte) 1,
+            (short) 1,
+            1,
+            1L,
+            1f,
+            1D,
+            "1",
+            true,
+            Arrays.asList(integerValue(1)),
+            ImmutableMap.of("1", integerValue(1)),
+            LocalDate.parse("2012-08-07"),
+            LocalTime.parse("18:00:00"),
+            LocalDateTime.parse("2012-08-07T18:00:00"),
+            ZonedDateTime.of(LocalDateTime.parse("2012-08-07T18:00:00"), UTC_ZONE_ID).toInstant(),
+            Duration.ofSeconds(100));
     Stream.Builder<Arguments> builder = Stream.builder();
     for (int i = 0; i < expectedValues.size(); i++) {
-      builder.add(Arguments.of(
-          allValues.get(i),
-          allValueExtractor.get(i),
-          expectedValues.get(i)));
+      builder.add(Arguments.of(allValues.get(i), allValueExtractor.get(i), expectedValues.get(i)));
     }
     return builder.build();
   }
@@ -130,16 +145,13 @@ public class ExprValueUtilsTest {
   private static Stream<Arguments> getTypeTestArgumentStream() {
     Stream.Builder<Arguments> builder = Stream.builder();
     for (int i = 0; i < allValues.size(); i++) {
-      builder.add(Arguments.of(
-          allValues.get(i),
-          allTypes.get(i)));
+      builder.add(Arguments.of(allValues.get(i), allTypes.get(i)));
     }
     return builder.build();
   }
 
   private static Stream<Arguments> invalidGetNumberValueArgumentStream() {
-    return Lists.cartesianProduct(nonNumberValues, numberValueExtractor)
-        .stream()
+    return Lists.cartesianProduct(nonNumberValues, numberValueExtractor).stream()
         .map(list -> Arguments.of(list.get(0), list.get(1)));
   }
 
@@ -151,23 +163,20 @@ public class ExprValueUtilsTest {
       extractorWithTypeList.add(
           new AbstractMap.SimpleEntry<>(nonNumberValueExtractor.get(i), nonNumberTypes.get(i)));
     }
-    return Lists.cartesianProduct(allValues, extractorWithTypeList)
-        .stream()
-        .filter(list -> {
-          ExprValue value = (ExprValue) list.get(0);
-          Map.Entry<Function<ExprValue, Object>, ExprCoreType> entry =
-              (Map.Entry<Function<ExprValue, Object>,
-                  ExprCoreType>) list
-                  .get(1);
-          return entry.getValue() != value.type();
-        })
-        .map(list -> {
-          Map.Entry<Function<ExprValue, Object>, ExprCoreType> entry =
-              (Map.Entry<Function<ExprValue, Object>,
-                  ExprCoreType>) list
-                  .get(1);
-          return Arguments.of(list.get(0), entry.getKey(), entry.getValue());
-        });
+    return Lists.cartesianProduct(allValues, extractorWithTypeList).stream()
+        .filter(
+            list -> {
+              ExprValue value = (ExprValue) list.get(0);
+              Map.Entry<Function<ExprValue, Object>, ExprCoreType> entry =
+                  (Map.Entry<Function<ExprValue, Object>, ExprCoreType>) list.get(1);
+              return entry.getValue() != value.type();
+            })
+        .map(
+            list -> {
+              Map.Entry<Function<ExprValue, Object>, ExprCoreType> entry =
+                  (Map.Entry<Function<ExprValue, Object>, ExprCoreType>) list.get(1);
+              return Arguments.of(list.get(0), entry.getKey(), entry.getValue());
+            });
   }
 
   @ParameterizedTest(name = "the value of ExprValue:{0} is: {2} ")
@@ -182,36 +191,33 @@ public class ExprValueUtilsTest {
     assertEquals(expectType, value.type());
   }
 
-  /**
-   * Test Invalid to get number.
-   */
+  /** Test Invalid to get number. */
   @ParameterizedTest(name = "invalid to get number value of ExprValue:{0}")
   @MethodSource("invalidGetNumberValueArgumentStream")
   public void invalidGetNumberValue(ExprValue value, Function<ExprValue, Object> extractor) {
-    Exception exception = assertThrows(ExpressionEvaluationException.class,
-        () -> extractor.apply(value));
+    Exception exception =
+        assertThrows(ExpressionEvaluationException.class, () -> extractor.apply(value));
     assertThat(exception.getMessage(), Matchers.containsString("invalid"));
   }
 
-  /**
-   * Test Invalid to convert.
-   */
+  /** Test Invalid to convert. */
   @ParameterizedTest(name = "invalid convert ExprValue:{0} to ExprType:{2}")
   @MethodSource("invalidConvert")
-  public void invalidConvertExprValue(ExprValue value, Function<ExprValue, Object> extractor,
-                                      ExprCoreType toType) {
-    Exception exception = assertThrows(ExpressionEvaluationException.class,
-        () -> extractor.apply(value));
+  public void invalidConvertExprValue(
+      ExprValue value, Function<ExprValue, Object> extractor, ExprCoreType toType) {
+    Exception exception =
+        assertThrows(ExpressionEvaluationException.class, () -> extractor.apply(value));
     assertThat(exception.getMessage(), Matchers.containsString("invalid"));
   }
 
   @Test
   public void unSupportedObject() {
-    Exception exception = assertThrows(ExpressionEvaluationException.class,
-        () -> ExprValueUtils.fromObjectValue(integerValue(1)));
+    Exception exception =
+        assertThrows(
+            ExpressionEvaluationException.class,
+            () -> ExprValueUtils.fromObjectValue(integerValue(1)));
     assertEquals(
-        "unsupported object "
-            + "class org.opensearch.sql.data.model.ExprIntegerValue",
+        "unsupported object " + "class org.opensearch.sql.data.model.ExprIntegerValue",
         exception.getMessage());
   }
 
@@ -228,13 +234,14 @@ public class ExprValueUtilsTest {
 
   @Test
   public void constructDateAndTimeValue() {
-    assertEquals(new ExprDateValue("2012-07-07"),
-        ExprValueUtils.fromObjectValue("2012-07-07", DATE));
-    assertEquals(new ExprTimeValue("01:01:01"),
-        ExprValueUtils.fromObjectValue("01:01:01", TIME));
-    assertEquals(new ExprDatetimeValue("2012-07-07 01:01:01"),
+    assertEquals(
+        new ExprDateValue("2012-07-07"), ExprValueUtils.fromObjectValue("2012-07-07", DATE));
+    assertEquals(new ExprTimeValue("01:01:01"), ExprValueUtils.fromObjectValue("01:01:01", TIME));
+    assertEquals(
+        new ExprDatetimeValue("2012-07-07 01:01:01"),
         ExprValueUtils.fromObjectValue("2012-07-07 01:01:01", DATETIME));
-    assertEquals(new ExprTimestampValue("2012-07-07 01:01:01"),
+    assertEquals(
+        new ExprTimestampValue("2012-07-07 01:01:01"),
         ExprValueUtils.fromObjectValue("2012-07-07 01:01:01", TIMESTAMP));
   }
 
@@ -244,17 +251,20 @@ public class ExprValueUtilsTest {
     assertEquals(new ExprShortValue(1).hashCode(), new ExprShortValue(1).hashCode());
     assertEquals(new ExprIntegerValue(1).hashCode(), new ExprIntegerValue(1).hashCode());
     assertEquals(new ExprStringValue("1").hashCode(), new ExprStringValue("1").hashCode());
-    assertEquals(new ExprCollectionValue(ImmutableList.of(new ExprIntegerValue(1))).hashCode(),
+    assertEquals(
+        new ExprCollectionValue(ImmutableList.of(new ExprIntegerValue(1))).hashCode(),
         new ExprCollectionValue(ImmutableList.of(new ExprIntegerValue(1))).hashCode());
-    assertEquals(new ExprTupleValue(testTuple).hashCode(),
-        new ExprTupleValue(testTuple).hashCode());
-    assertEquals(new ExprDateValue("2012-08-07").hashCode(),
-        new ExprDateValue("2012-08-07").hashCode());
-    assertEquals(new ExprTimeValue("18:00:00").hashCode(),
-        new ExprTimeValue("18:00:00").hashCode());
-    assertEquals(new ExprDatetimeValue("2012-08-07 18:00:00").hashCode(),
+    assertEquals(
+        new ExprTupleValue(testTuple).hashCode(), new ExprTupleValue(testTuple).hashCode());
+    assertEquals(
+        new ExprDateValue("2012-08-07").hashCode(), new ExprDateValue("2012-08-07").hashCode());
+    assertEquals(
+        new ExprTimeValue("18:00:00").hashCode(), new ExprTimeValue("18:00:00").hashCode());
+    assertEquals(
+        new ExprDatetimeValue("2012-08-07 18:00:00").hashCode(),
         new ExprDatetimeValue("2012-08-07 18:00:00").hashCode());
-    assertEquals(new ExprTimestampValue("2012-08-07 18:00:00").hashCode(),
+    assertEquals(
+        new ExprTimestampValue("2012-08-07 18:00:00").hashCode(),
         new ExprTimestampValue("2012-08-07 18:00:00").hashCode());
   }
 }

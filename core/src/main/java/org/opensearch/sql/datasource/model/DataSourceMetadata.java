@@ -5,7 +5,6 @@
 
 package org.opensearch.sql.datasource.model;
 
-
 import static org.opensearch.sql.analysis.DataSourceSchemaIdentifierNameResolver.DEFAULT_DATASOURCE_NAME;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
@@ -30,25 +29,25 @@ import org.opensearch.sql.datasource.DataSourceService;
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class DataSourceMetadata {
 
-  @JsonProperty
-  private String name;
+  @JsonProperty private String name;
 
   @JsonProperty
   @JsonFormat(with = JsonFormat.Feature.ACCEPT_CASE_INSENSITIVE_PROPERTIES)
   private DataSourceType connector;
 
-  @JsonProperty
-  private List<String> allowedRoles;
+  @JsonProperty private List<String> allowedRoles;
 
-  @JsonProperty
-  private Map<String, String> properties;
+  @JsonProperty private Map<String, String> properties;
 
   /**
    * Default OpenSearch {@link DataSourceMetadata}. Which is used to register default OpenSearch
    * {@link DataSource} to {@link DataSourceService}.
    */
   public static DataSourceMetadata defaultOpenSearchDataSourceMetadata() {
-    return new DataSourceMetadata(DEFAULT_DATASOURCE_NAME,
-        DataSourceType.OPENSEARCH, Collections.emptyList(), ImmutableMap.of());
+    return new DataSourceMetadata(
+        DEFAULT_DATASOURCE_NAME,
+        DataSourceType.OPENSEARCH,
+        Collections.emptyList(),
+        ImmutableMap.of());
   }
 }

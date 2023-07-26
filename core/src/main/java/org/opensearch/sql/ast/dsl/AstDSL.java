@@ -249,10 +249,10 @@ public class AstDSL {
   }
 
   /**
-   * CASE
-   *     WHEN search_condition THEN result_expr
-   *     [WHEN search_condition THEN result_expr] ...
-   *     [ELSE result_expr]
+   * CASE<br>
+   * &emsp; WHEN search_condition THEN result_expr<br>
+   * &emsp; [WHEN search_condition THEN result_expr] ...<br>
+   * &emsp; [ELSE result_expr]<br>
    * END
    */
   public UnresolvedExpression caseWhen(UnresolvedExpression elseClause,
@@ -261,10 +261,10 @@ public class AstDSL {
   }
 
   /**
-   * CASE case_value_expr
-   *     WHEN compare_expr THEN result_expr
-   *     [WHEN compare_expr THEN result_expr] ...
-   *     [ELSE result_expr]
+   * CASE case_value_expr<br>
+   * &emsp; WHEN compare_expr THEN result_expr<br>
+   * &emsp; [WHEN compare_expr THEN result_expr] ...<br>
+   * &emsp; [ELSE result_expr]<br>
    * END
    */
   public UnresolvedExpression caseWhen(UnresolvedExpression caseValueExpr,

@@ -3,7 +3,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-
 package org.opensearch.sql.ast.tree;
 
 import com.google.common.collect.ImmutableList;
@@ -16,9 +15,7 @@ import org.opensearch.sql.ast.AbstractNodeVisitor;
 import org.opensearch.sql.ast.Node;
 import org.opensearch.sql.ast.expression.Literal;
 
-/**
- * AST node class for a sequence of literal values.
- */
+/** AST node class for a sequence of literal values. */
 @ToString
 @Getter
 @EqualsAndHashCode(callSuper = false)
@@ -41,5 +38,4 @@ public class Values extends UnresolvedPlan {
   public List<? extends Node> getChild() {
     return ImmutableList.of();
   }
-
 }

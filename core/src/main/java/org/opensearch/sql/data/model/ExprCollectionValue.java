@@ -3,7 +3,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-
 package org.opensearch.sql.data.model;
 
 import com.google.common.base.Objects;
@@ -15,9 +14,7 @@ import lombok.RequiredArgsConstructor;
 import org.opensearch.sql.data.type.ExprCoreType;
 import org.opensearch.sql.data.type.ExprType;
 
-/**
- * Expression Collection Value.
- */
+/** Expression Collection Value. */
 @RequiredArgsConstructor
 public class ExprCollectionValue extends AbstractExprValue {
   private final List<ExprValue> valueList;
@@ -43,9 +40,7 @@ public class ExprCollectionValue extends AbstractExprValue {
 
   @Override
   public String toString() {
-    return valueList.stream()
-        .map(Object::toString)
-        .collect(Collectors.joining(", ", "[", "]"));
+    return valueList.stream().map(Object::toString).collect(Collectors.joining(", ", "[", "]"));
   }
 
   @Override
@@ -68,9 +63,7 @@ public class ExprCollectionValue extends AbstractExprValue {
     }
   }
 
-  /**
-   * Only compare the size of the list.
-   */
+  /** Only compare the size of the list. */
   @Override
   public int compare(ExprValue other) {
     return Integer.compare(valueList.size(), other.collectionValue().size());

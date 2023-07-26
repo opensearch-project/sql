@@ -3,7 +3,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-
 package org.opensearch.sql.data.model;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -52,8 +51,8 @@ class ExprTupleValueTest {
   @Test
   public void comparabilityTest() {
     ExprValue tupleValue = ExprValueUtils.tupleValue(ImmutableMap.of("integer_value", 2));
-    ExpressionEvaluationException exception = assertThrows(ExpressionEvaluationException.class,
-        () -> compare(tupleValue, tupleValue));
+    ExpressionEvaluationException exception =
+        assertThrows(ExpressionEvaluationException.class, () -> compare(tupleValue, tupleValue));
     assertEquals("ExprTupleValue instances are not comparable", exception.getMessage());
   }
 }
