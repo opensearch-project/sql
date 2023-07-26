@@ -754,13 +754,13 @@ Synonyms: `DAYOFWEEK`_
 
 Example::
 
-    os> source=people | eval `DAYOFWEEK(DATE('2020-08-26'))` = DAYOFWEEK(DATE('2020-08-26')) | fields `DAYOFWEEK(DATE('2020-08-26'))`
+    os> source=people | eval `DAY_OF_WEEK(DATE('2020-08-26'))` = DAY_OF_WEEK(DATE('2020-08-26')) | fields `DAY_OF_WEEK(DATE('2020-08-26'))`
     fetched rows / total rows = 1/1
-    +---------------------------------+
-    | DAYOFWEEK(DATE('2020-08-26'))   |
-    |---------------------------------|
-    | 4                               |
-    +---------------------------------+
+    +-----------------------------------+
+    | DAY_OF_WEEK(DATE('2020-08-26'))   |
+    |-----------------------------------|
+    | 4                                 |
+    +-----------------------------------+
 
 
 DAYOFYEAR
@@ -811,6 +811,77 @@ Example::
     |-----------------------------------|
     | 239                               |
     +-----------------------------------+
+
+
+EXTRACT
+-------
+
+Description
+>>>>>>>>>>>
+
+Usage: extract(part FROM date) returns a LONG with digits in order according to the given 'part' arguments.
+The specific format of the returned long is determined by the table below.
+
+Argument type: PART, where PART is one of the following tokens in the table below.
+
+The format specifiers found in this table are the same as those found in the `DATE_FORMAT`_ function.
+
+.. list-table:: The following table describes the mapping of a 'part' to a particular format.
+   :widths: 20 80
+   :header-rows: 1
+
+   * - Part
+     - Format
+   * - MICROSECOND
+     - %f
+   * - SECOND
+     - %s
+   * - MINUTE
+     - %i
+   * - HOUR
+     - %H
+   * - DAY
+     - %d
+   * - WEEK
+     - %X
+   * - MONTH
+     - %m
+   * - YEAR
+     - %V
+   * - SECOND_MICROSECOND
+     - %s%f
+   * - MINUTE_MICROSECOND
+     - %i%s%f
+   * - MINUTE_SECOND
+     - %i%s
+   * - HOUR_MICROSECOND
+     - %H%i%s%f
+   * - HOUR_SECOND
+     - %H%i%s
+   * - HOUR_MINUTE
+     - %H%i
+   * - DAY_MICROSECOND
+     - %d%H%i%s%f
+   * - DAY_SECOND
+     - %d%H%i%s
+   * - DAY_MINUTE
+     - %d%H%i
+   * - DAY_HOUR
+     - %d%H%
+   * - YEAR_MONTH
+     - %V%m
+
+Return type: LONG
+
+Example::
+
+    os> source=people | eval `extract(YEAR_MONTH FROM "2023-02-07 10:11:12")` = extract(YEAR_MONTH FROM "2023-02-07 10:11:12") | fields `extract(YEAR_MONTH FROM "2023-02-07 10:11:12")`
+    fetched rows / total rows = 1/1
+    +--------------------------------------------------+
+    | extract(YEAR_MONTH FROM "2023-02-07 10:11:12")   |
+    |--------------------------------------------------|
+    | 202302                                           |
+    +--------------------------------------------------+
 
 
 FROM_DAYS
@@ -872,6 +943,28 @@ Examples::
     +-----------------------------------+
 
 
+GET_FORMAT
+----------
+
+Description
+>>>>>>>>>>>
+
+Usage: Returns a string value containing string format specifiers based on the input arguments.
+
+Argument type: TYPE, STRING, where TYPE must be one of the following tokens: [DATE, TIME, DATETIME, TIMESTAMP], and
+STRING must be one of the following tokens: ["USA", "JIS", "ISO", "EUR", "INTERNAL"] (" can be replaced by ').
+
+Examples::
+
+    os> source=people | eval `GET_FORMAT(DATE, 'USA')` = GET_FORMAT(DATE, 'USA') | fields `GET_FORMAT(DATE, 'USA')`
+    fetched rows / total rows = 1/1
+    +---------------------------+
+    | GET_FORMAT(DATE, 'USA')   |
+    |---------------------------|
+    | %m.%d.%Y                  |
+    +---------------------------+
+
+
 HOUR
 ----
 
@@ -920,6 +1013,26 @@ Example::
     |---------------------------------|
     | 1                               |
     +---------------------------------+
+
+
+LAST_DAY
+--------
+
+Usage: Returns the last day of the month as a DATE for a valid argument.
+
+Argument type: DATE/DATETIME/STRING/TIMESTAMP/TIME
+
+Return type: DATE
+
+Example::
+
+    os> source=people | eval `last_day('2023-02-06')` = last_day('2023-02-06') | fields `last_day('2023-02-06')`
+    fetched rows / total rows = 1/1
+    +--------------------------+
+    | last_day('2023-02-06')   |
+    |--------------------------|
+    | 2023-02-28               |
+    +--------------------------+
 
 
 LOCALTIMESTAMP
@@ -1136,7 +1249,6 @@ Return type: INTEGER
 
 Synonyms: `MONTH_OF_YEAR`_
 
-
 Example::
 
     os> source=people | eval `MONTH(DATE('2020-08-26'))` =  MONTH(DATE('2020-08-26')) | fields `MONTH(DATE('2020-08-26'))`
@@ -1289,6 +1401,32 @@ Example::
     +-------------------------------+
 
 
+SEC_TO_TIME
+-----------
+
+Description
+>>>>>>>>>>>
+
+Usage: sec_to_time(number) returns the time in HH:mm:ssss[.nnnnnn] format.
+Note that the function returns a time between 00:00:00 and 23:59:59.
+If an input value is too large (greater than 86399), the function will wrap around and begin returning outputs starting from 00:00:00.
+If an input value is too small (less than 0), the function will wrap around and begin returning outputs counting down from 23:59:59.
+
+Argument type: INTEGER, LONG, DOUBLE, FLOAT
+
+Return type: TIME
+
+Example::
+
+    os> source=people | eval `SEC_TO_TIME(3601)` = SEC_TO_TIME(3601) | eval `SEC_TO_TIME(1234.123)` = SEC_TO_TIME(1234.123) | fields `SEC_TO_TIME(3601)`, `SEC_TO_TIME(1234.123)`
+    fetched rows / total rows = 1/1
+    +---------------------+-------------------------+
+    | SEC_TO_TIME(3601)   | SEC_TO_TIME(1234.123)   |
+    |---------------------+-------------------------|
+    | 01:00:01            | 00:20:34.123            |
+    +---------------------+-------------------------+
+
+
 SECOND
 ------
 
@@ -1337,6 +1475,32 @@ Example::
     |--------------------------------------|
     | 3                                    |
     +--------------------------------------+
+
+
+STR_TO_DATE
+-----------
+
+Description
+>>>>>>>>>>>
+
+Usage: str_to_date(string, string) is used to extract a DATETIME from the first argument string using the formats specified in the second argument string.
+The input argument must have enough information to be parsed as a DATE, DATETIME, or TIME.
+Acceptable string format specifiers are the same as those used in the `DATE_FORMAT`_ function.
+It returns NULL when a statement cannot be parsed due to an invalid pair of arguments, and when 0 is provided for any DATE field. Otherwise, it will return a DATETIME with the parsed values (as well as default values for any field that was not parsed).
+
+Argument type: STRING, STRING
+
+Return type: DATETIME
+
+Example::
+
+    OS> source=people | eval `str_to_date("01,5,2013", "%d,%m,%Y")` = str_to_date("01,5,2013", "%d,%m,%Y") | fields = `str_to_date("01,5,2013", "%d,%m,%Y")`
+    fetched rows / total rows = 1/1
+    +----------------------------------------+
+    | str_to_date("01,5,2013", "%d,%m,%Y")   |
+    |----------------------------------------|
+    | 2013-05-01 00:00:00                    |
+    +----------------------------------------+
 
 
 SUBDATE
@@ -1637,6 +1801,57 @@ Example::
     +------------------------------------+------------------------------------------------------+
 
 
+TIMESTAMPADD
+------------
+
+Description
+>>>>>>>>>>>
+
+Usage: Returns a DATETIME value based on a passed in DATE/DATETIME/TIME/TIMESTAMP/STRING argument and an INTERVAL and INTEGER argument which determine the amount of time to be added.
+If the third argument is a STRING, it must be formatted as a valid DATETIME. If only a TIME is provided, a DATETIME is still returned with the DATE portion filled in using the current date.
+If the third argument is a DATE, it will be automatically converted to a DATETIME.
+
+Argument type: INTERVAL, INTEGER, DATE/DATETIME/TIME/TIMESTAMP/STRING
+
+INTERVAL must be one of the following tokens: [MICROSECOND, SECOND, MINUTE, HOUR, DAY, WEEK, MONTH, QUARTER, YEAR]
+
+Examples::
+
+    os> source=people | eval `TIMESTAMPADD(DAY, 17, '2000-01-01 00:00:00')` = TIMESTAMPADD(DAY, 17, '2000-01-01 00:00:00') | eval `TIMESTAMPADD(QUARTER, -1, '2000-01-01 00:00:00')` = TIMESTAMPADD(QUARTER, -1, '2000-01-01 00:00:00') | fields `TIMESTAMPADD(DAY, 17, '2000-01-01 00:00:00')`, `TIMESTAMPADD(QUARTER, -1, '2000-01-01 00:00:00')`
+    fetched rows / total rows = 1/1
+    +------------------------------------------------+----------------------------------------------------+
+    | TIMESTAMPADD(DAY, 17, '2000-01-01 00:00:00')   | TIMESTAMPADD(QUARTER, -1, '2000-01-01 00:00:00')   |
+    |------------------------------------------------+----------------------------------------------------|
+    | 2000-01-18 00:00:00                            | 1999-10-01 00:00:00                                |
+    +------------------------------------------------+----------------------------------------------------+
+
+
+TIMESTAMPDIFF
+-------------
+
+Description
+>>>>>>>>>>>
+
+Usage: TIMESTAMPDIFF(interval, start, end) returns the difference between the start and end date/times in interval units.
+If a TIME is provided as an argument, it will be converted to a DATETIME with the DATE portion filled in using the current date.
+Arguments will be automatically converted to a DATETIME/TIME/TIMESTAMP when appropriate.
+Any argument that is a STRING must be formatted as a valid DATETIME.
+
+Argument type: INTERVAL, DATE/DATETIME/TIME/TIMESTAMP/STRING, DATE/DATETIME/TIME/TIMESTAMP/STRING
+
+INTERVAL must be one of the following tokens: [MICROSECOND, SECOND, MINUTE, HOUR, DAY, WEEK, MONTH, QUARTER, YEAR]
+
+Examples::
+
+    os> source=people | eval `TIMESTAMPDIFF(YEAR, '1997-01-01 00:00:00', '2001-03-06 00:00:00')` = TIMESTAMPDIFF(YEAR, '1997-01-01 00:00:00', '2001-03-06 00:00:00') | eval `TIMESTAMPDIFF(SECOND, time('00:00:23'), time('00:00:00'))` = TIMESTAMPDIFF(SECOND, time('00:00:23'), time('00:00:00')) | fields `TIMESTAMPDIFF(YEAR, '1997-01-01 00:00:00', '2001-03-06 00:00:00')`, `TIMESTAMPDIFF(SECOND, time('00:00:23'), time('00:00:00'))`
+    fetched rows / total rows = 1/1
+    +---------------------------------------------------------------------+-------------------------------------------------------------+
+    | TIMESTAMPDIFF(YEAR, '1997-01-01 00:00:00', '2001-03-06 00:00:00')   | TIMESTAMPDIFF(SECOND, time('00:00:23'), time('00:00:00'))   |
+    |---------------------------------------------------------------------+-------------------------------------------------------------|
+    | 4                                                                   | -23                                                         |
+    +---------------------------------------------------------------------+-------------------------------------------------------------+
+
+
 TO_DAYS
 -------
 
@@ -1658,6 +1873,30 @@ Example::
     |-------------------------------|
     | 733687                        |
     +-------------------------------+
+
+
+TO_SECONDS
+----------
+
+Description
+>>>>>>>>>>>
+
+Usage: to_seconds(date) returns the number of seconds since the year 0 of the given value. Returns NULL if value is invalid.
+An argument of a LONG type can be used. It must be formatted as YMMDD, YYMMDD, YYYMMDD or YYYYMMDD. Note that a LONG type argument cannot have leading 0s as it will be parsed using an octal numbering system.
+
+Argument type: STRING/LONG/DATE/DATETIME/TIME/TIMESTAMP
+
+Return type: LONG
+
+Example::
+
+    os> source=people | eval `TO_SECONDS(DATE('2008-10-07'))` = TO_SECONDS(DATE('2008-10-07')) | eval `TO_SECONDS(950228)` = TO_SECONDS(950228) | fields `TO_SECONDS(DATE('2008-10-07'))`, `TO_SECONDS(950228)`
+    fetched rows / total rows = 1/1
+    +----------------------------------+----------------------+
+    | TO_SECONDS(DATE('2008-10-07'))   | TO_SECONDS(950228)   |
+    |----------------------------------+----------------------|
+    | 63390556800                      | 62961148800          |
+    +----------------------------------+----------------------+
 
 
 UNIX_TIMESTAMP
@@ -1821,6 +2060,31 @@ Example::
     +----------------------------+-------------------------------+
 
 
+WEEKDAY
+-------
+
+Description
+>>>>>>>>>>>
+
+Usage: weekday(date) returns the weekday index for date (0 = Monday, 1 = Tuesday, ..., 6 = Sunday).
+
+It is similar to the `dayofweek`_ function, but returns different indexes for each day.
+
+Argument type: STRING/DATE/DATETIME/TIME/TIMESTAMP
+
+Return type: INTEGER
+
+Example::
+
+    os> source=people | eval `weekday(DATE('2020-08-26'))` = weekday(DATE('2020-08-26')) | eval `weekday(DATE('2020-08-27'))` = weekday(DATE('2020-08-27')) | fields `weekday(DATE('2020-08-26'))`, `weekday(DATE('2020-08-27'))`
+    fetched rows / total rows = 1/1
+    +-------------------------------+-------------------------------+
+    | weekday(DATE('2020-08-26'))   | weekday(DATE('2020-08-27'))   |
+    |-------------------------------+-------------------------------|
+    | 2                             | 3                             |
+    +-------------------------------+-------------------------------+
+
+
 WEEK_OF_YEAR
 ------------
 
@@ -1908,5 +2172,28 @@ Example::
     |----------------------------|
     | 2020                       |
     +----------------------------+
+
+
+YEARWEEK
+--------
+
+Description
+>>>>>>>>>>>
+
+Usage: yearweek(date) returns the year and week for date as an integer. It accepts and optional mode arguments aligned with those available for the `WEEK`_ function.
+
+Argument type: STRING/DATE/DATETIME/TIME/TIMESTAMP
+
+Return type: INTEGER
+
+Example::
+
+    os> source=people | eval `YEARWEEK('2020-08-26')` = YEARWEEK('2020-08-26') | eval `YEARWEEK('2019-01-05', 1)` = YEARWEEK('2019-01-05', 1) | fields `YEARWEEK('2020-08-26')`, `YEARWEEK('2019-01-05', 1)`
+    fetched rows / total rows = 1/1
+    +--------------------------+-----------------------------+
+    | YEARWEEK('2020-08-26')   | YEARWEEK('2019-01-05', 1)   |
+    |--------------------------+-----------------------------|
+    | 202034                   | 201901                      |
+    +--------------------------+-----------------------------+
 
 

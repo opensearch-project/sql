@@ -7,22 +7,28 @@
 
 package org.opensearch.sql.ppl;
 
+import static org.opensearch.sql.prometheus.data.constants.PrometheusFieldConstants.LABELS;
 import static org.opensearch.sql.prometheus.data.constants.PrometheusFieldConstants.TIMESTAMP;
 import static org.opensearch.sql.prometheus.data.constants.PrometheusFieldConstants.VALUE;
+import static org.opensearch.sql.util.MatcherUtils.assertJsonEquals;
 import static org.opensearch.sql.util.MatcherUtils.schema;
 import static org.opensearch.sql.util.MatcherUtils.verifySchema;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.io.Resources;
 import java.io.IOException;
+import java.net.URI;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.text.SimpleDateFormat;
 import java.util.Date;
+import lombok.Data;
 import lombok.SneakyThrows;
 import org.apache.commons.lang3.StringUtils;
 import org.json.JSONArray;
 import org.json.JSONObject;
 import org.junit.After;
-import org.junit.AfterClass;
 import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.jupiter.api.Assertions;
@@ -218,4 +224,33 @@ public class PrometheusDataSourceCommandsIT extends PPLIntegTestCase {
     }
   }
 
+
+  @Test
+  @SneakyThrows
+  public void testQueryRange() {
+    long currentTimestamp = new Date().getTime();
+    JSONObject response =
+        executeQuery("source=my_prometheus.query_range('prometheus_http_requests_total',"
+            + ((currentTimestamp/1000)-3600) + "," + currentTimestamp/1000 + ", " + 14 + ")" );
+    verifySchema(response,
+        schema(VALUE, "array"),
+        schema(TIMESTAMP,  "array"),
+        schema(LABELS,  "struct"));
+    Assertions.assertTrue(response.getInt("size") > 0);
+  }
+
+  @Test
+  public void explainQueryRange() throws Exception {
+    String expected = loadFromFile("expectedOutput/ppl/explain_query_range.json");
+    assertJsonEquals(
+        expected,
+        explainQueryToString("source = my_prometheus"
+            + ".query_range('prometheus_http_requests_total',1689281439,1689291439,14)")
+    );
+  }
+
+  String loadFromFile(String filename) throws Exception {
+    URI uri = Resources.getResource(filename).toURI();
+    return new String(Files.readAllBytes(Paths.get(uri)));
+  }
 }

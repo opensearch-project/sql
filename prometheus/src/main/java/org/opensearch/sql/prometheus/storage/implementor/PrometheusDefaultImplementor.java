@@ -94,14 +94,12 @@ public class PrometheusDefaultImplementor
   public PhysicalPlan visitRelation(LogicalRelation node,
                                     PrometheusMetricScan context) {
     PrometheusMetricTable prometheusMetricTable = (PrometheusMetricTable) node.getTable();
-    if (prometheusMetricTable.getMetricName() != null) {
-      String query = SeriesSelectionQueryBuilder.build(node.getRelationName(), null);
-      context.getRequest().setPromQl(query);
-      setTimeRangeParameters(null, context);
-      context.getRequest()
-          .setStep(StepParameterResolver.resolve(context.getRequest().getStartTime(),
-              context.getRequest().getEndTime(), null));
-    }
+    String query = SeriesSelectionQueryBuilder.build(node.getRelationName(), null);
+    context.getRequest().setPromQl(query);
+    setTimeRangeParameters(null, context);
+    context.getRequest()
+        .setStep(StepParameterResolver.resolve(context.getRequest().getStartTime(),
+            context.getRequest().getEndTime(), null));
     return context;
   }
 

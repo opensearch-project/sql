@@ -16,6 +16,7 @@ import static org.opensearch.sql.ast.dsl.AstDSL.argument;
 import static org.opensearch.sql.ast.dsl.AstDSL.booleanLiteral;
 import static org.opensearch.sql.ast.dsl.AstDSL.cast;
 import static org.opensearch.sql.ast.dsl.AstDSL.compare;
+import static org.opensearch.sql.ast.dsl.AstDSL.dateLiteral;
 import static org.opensearch.sql.ast.dsl.AstDSL.defaultFieldsArgs;
 import static org.opensearch.sql.ast.dsl.AstDSL.defaultSortFieldArgs;
 import static org.opensearch.sql.ast.dsl.AstDSL.defaultStatsArgs;
@@ -40,6 +41,7 @@ import static org.opensearch.sql.ast.dsl.AstDSL.qualifiedName;
 import static org.opensearch.sql.ast.dsl.AstDSL.relation;
 import static org.opensearch.sql.ast.dsl.AstDSL.sort;
 import static org.opensearch.sql.ast.dsl.AstDSL.stringLiteral;
+import static org.opensearch.sql.ast.dsl.AstDSL.timestampLiteral;
 import static org.opensearch.sql.ast.dsl.AstDSL.unresolvedArg;
 import static org.opensearch.sql.ast.dsl.AstDSL.xor;
 
@@ -867,6 +869,64 @@ public class AstExpressionBuilderTest extends AstBuilderTest {
                     field("index")
                 )),
             defaultStatsArgs()
+        ));
+  }
+
+  @Test
+  public void testExtractFunctionExpr() {
+    assertEqual("source=t | eval f=extract(day from '2001-05-07 10:11:12')",
+        eval(
+            relation("t"),
+            let(
+                field("f"),
+                function("extract",
+                    stringLiteral("day"), stringLiteral("2001-05-07 10:11:12"))
+            )
+        ));
+  }
+
+
+  @Test
+  public void testGet_FormatFunctionExpr() {
+    assertEqual("source=t | eval f=get_format(DATE,'USA')",
+        eval(
+            relation("t"),
+            let(
+                field("f"),
+                function("get_format",
+                    stringLiteral("DATE"), stringLiteral("USA"))
+            )
+        ));
+  }
+
+  @Test
+  public void testTimeStampAddFunctionExpr() {
+    assertEqual("source=t | eval f=timestampadd(YEAR, 15, '2001-03-06 00:00:00')",
+        eval(
+            relation("t"),
+            let(
+                field("f"),
+                function("timestampadd",
+                    stringLiteral("YEAR"),
+                    intLiteral(15),
+                    stringLiteral("2001-03-06 00:00:00"))
+            )
+        ));
+  }
+
+  @Test
+  public void testTimeStampDiffFunctionExpr() {
+    assertEqual("source=t | eval f=timestampdiff("
+        + "YEAR, '1997-01-01 00:00:00', '2001-03-06 00:00:00')",
+        eval(
+            relation("t"),
+            let(
+                field("f"),
+                function("timestampdiff",
+                    stringLiteral("YEAR"),
+                    stringLiteral("1997-01-01 00:00:00"),
+                    stringLiteral("2001-03-06 00:00:00"))
+            )
         ));
   }
 }
