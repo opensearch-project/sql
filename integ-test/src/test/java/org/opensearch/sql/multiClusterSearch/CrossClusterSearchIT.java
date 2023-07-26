@@ -27,10 +27,10 @@ public class CrossClusterSearchIT extends PPLIntegTestCase {
   @Rule
   public ExpectedException exceptionRule = ExpectedException.none();
 
-  private final static String TEST_INDEX_BANK_REMOTE = REMOTE_CLUSTER + ":" + TEST_INDEX_BANK;
-  private final static String TEST_INDEX_DOG_REMOTE = REMOTE_CLUSTER + ":" + TEST_INDEX_DOG;
+  private final static String TEST_INDEX_BANK_REMOTE = MULTI_REMOTE_CLUSTER + ":" + TEST_INDEX_BANK;
+  private final static String TEST_INDEX_DOG_REMOTE = MULTI_REMOTE_CLUSTER + ":" + TEST_INDEX_DOG;
   private final static String TEST_INDEX_DOG_MATCH_ALL_REMOTE = MATCH_ALL_REMOTE_CLUSTER + ":" + TEST_INDEX_DOG;
-  private final static String TEST_INDEX_ACCOUNT_REMOTE = REMOTE_CLUSTER + ":" + TEST_INDEX_ACCOUNT;
+  private final static String TEST_INDEX_ACCOUNT_REMOTE = MULTI_REMOTE_CLUSTER + ":" + TEST_INDEX_ACCOUNT;
 
   @Override
   public void init() throws IOException {
