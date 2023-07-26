@@ -9,7 +9,7 @@ package org.opensearch.sql.legacy.unittest;
 import org.junit.Assert;
 import org.junit.Test;
 import org.opensearch.OpenSearchException;
-import org.opensearch.rest.RestStatus;
+import org.opensearch.core.rest.RestStatus;
 import org.opensearch.sql.legacy.executor.format.ErrorMessage;
 import org.opensearch.sql.legacy.executor.format.ErrorMessageFactory;
 import org.opensearch.sql.legacy.executor.format.OpenSearchErrorMessage;

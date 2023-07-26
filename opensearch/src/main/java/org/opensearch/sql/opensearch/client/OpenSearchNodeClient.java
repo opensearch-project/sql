@@ -6,7 +6,6 @@
 
 package org.opensearch.sql.opensearch.client;
 
-import com.carrotsearch.hppc.cursors.ObjectObjectCursor;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import java.util.Arrays;

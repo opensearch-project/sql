@@ -38,7 +38,7 @@ import org.junit.Assert;
 import org.junit.Ignore;
 import org.junit.Test;
 import org.opensearch.client.ResponseException;
-import org.opensearch.rest.RestStatus;
+import org.opensearch.core.rest.RestStatus;
 import org.opensearch.sql.legacy.utils.StringUtils;
 
 public class QueryIT extends SQLIntegTestCase {

@@ -7,8 +7,8 @@
 package org.opensearch.sql.legacy.esdomain.mapping;
 
 import static java.util.Collections.emptyMap;
-import static org.hamcrest.Matchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.is;
 import static org.opensearch.action.admin.indices.mapping.get.GetFieldMappingsResponse.FieldMappingMetadata;
 
 import com.google.common.collect.ImmutableMap;
@@ -17,7 +17,7 @@ import java.util.Map;
 import java.util.stream.Collectors;
 import org.hamcrest.Matcher;
 import org.junit.Test;
-import org.opensearch.common.bytes.BytesArray;
+import org.opensearch.core.common.bytes.BytesArray;
 import org.opensearch.sql.legacy.domain.Field;
 import org.opensearch.sql.legacy.util.MatcherUtils;
 

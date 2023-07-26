@@ -14,7 +14,7 @@ import lombok.Getter;
 import org.apache.commons.lang3.StringUtils;
 import org.opensearch.action.ActionRequest;
 import org.opensearch.action.ActionRequestValidationException;
-import org.opensearch.common.io.stream.StreamInput;
+import org.opensearch.core.common.io.stream.StreamInput;
 
 public class DeleteDataSourceActionRequest extends ActionRequest {
 

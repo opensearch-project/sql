@@ -8,7 +8,6 @@ package org.opensearch.sql.legacy.unittest;
 
 import static java.util.Collections.emptyList;
 import static org.mockito.Mockito.doReturn;
-import static org.mockito.Mockito.spy;
 
 import org.junit.Assert;
 import org.junit.Before;
@@ -18,7 +17,7 @@ import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.runners.MockitoJUnitRunner;
-import org.opensearch.common.bytes.BytesArray;
+import org.opensearch.core.common.bytes.BytesArray;
 import org.opensearch.rest.RestRequest;
 import org.opensearch.sql.legacy.esdomain.LocalClusterState;
 import org.opensearch.sql.legacy.request.PreparedStatementRequest;
