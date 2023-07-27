@@ -8,6 +8,11 @@ package org.opensearch.sql.prometheus.response;
 import static org.opensearch.sql.data.type.ExprCoreType.INTEGER;
 import static org.opensearch.sql.data.type.ExprCoreType.LONG;
 import static org.opensearch.sql.prometheus.data.constants.PrometheusFieldConstants.LABELS;
+import static org.opensearch.sql.prometheus.data.constants.PrometheusFieldConstants.MATRIX_KEY;
+import static org.opensearch.sql.prometheus.data.constants.PrometheusFieldConstants.METRIC_KEY;
+import static org.opensearch.sql.prometheus.data.constants.PrometheusFieldConstants.RESULT_KEY;
+import static org.opensearch.sql.prometheus.data.constants.PrometheusFieldConstants.RESULT_TYPE_KEY;
+import static org.opensearch.sql.prometheus.data.constants.PrometheusFieldConstants.VALUES_KEY;
 
 import java.time.Instant;
 import java.util.ArrayList;
@@ -53,12 +58,12 @@ public class PrometheusResponse implements Iterable<ExprValue> {
   @Override
   public Iterator<ExprValue> iterator() {
     List<ExprValue> result = new ArrayList<>();
-    if ("matrix".equals(responseObject.getString("resultType"))) {
-      JSONArray itemArray = responseObject.getJSONArray("result");
+    if (MATRIX_KEY.equals(responseObject.getString(RESULT_TYPE_KEY))) {
+      JSONArray itemArray = responseObject.getJSONArray(RESULT_KEY);
       for (int i = 0; i < itemArray.length(); i++) {
         JSONObject item = itemArray.getJSONObject(i);
-        JSONObject metric = item.getJSONObject("metric");
-        JSONArray values = item.getJSONArray("values");
+        JSONObject metric = item.getJSONObject(METRIC_KEY);
+        JSONArray values = item.getJSONArray(VALUES_KEY);
         for (int j = 0; j < values.length(); j++) {
           LinkedHashMap<String, ExprValue> linkedHashMap = new LinkedHashMap<>();
           JSONArray val = values.getJSONArray(j);
@@ -73,7 +78,7 @@ public class PrometheusResponse implements Iterable<ExprValue> {
     } else {
       throw new RuntimeException(String.format("Unexpected Result Type: %s during Prometheus "
               + "Response Parsing. 'matrix' resultType is expected",
-          responseObject.getString("resultType")));
+          responseObject.getString(RESULT_TYPE_KEY)));
     }
     return result.iterator();
   }

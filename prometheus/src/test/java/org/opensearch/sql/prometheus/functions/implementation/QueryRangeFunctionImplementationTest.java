@@ -5,7 +5,7 @@
  *
  */
 
-package org.opensearch.sql.prometheus.functions;
+package org.opensearch.sql.prometheus.functions.implementation;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;

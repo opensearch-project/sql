@@ -18,7 +18,7 @@ import org.json.JSONObject;
 import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.executor.ExecutionEngine;
 import org.opensearch.sql.prometheus.client.PrometheusClient;
-import org.opensearch.sql.prometheus.functions.response.DefaultQueryRangeFunctionResponseHandle;
+import org.opensearch.sql.prometheus.functions.response.PrometheusFunctionResponseHandle;
 import org.opensearch.sql.prometheus.functions.response.QueryRangeFunctionResponseHandle;
 import org.opensearch.sql.prometheus.request.PrometheusQueryRequest;
 import org.opensearch.sql.storage.TableScanOperator;
@@ -32,7 +32,7 @@ public class QueryRangeFunctionTableScanOperator extends TableScanOperator {
   private final PrometheusClient prometheusClient;
 
   private final PrometheusQueryRequest request;
-  private QueryRangeFunctionResponseHandle prometheusResponseHandle;
+  private PrometheusFunctionResponseHandle prometheusResponseHandle;
 
   private static final Logger LOG = LogManager.getLogger();
 
@@ -40,12 +40,12 @@ public class QueryRangeFunctionTableScanOperator extends TableScanOperator {
   public void open() {
     super.open();
     this.prometheusResponseHandle
-        = AccessController.doPrivileged((PrivilegedAction<QueryRangeFunctionResponseHandle>) () -> {
+        = AccessController.doPrivileged((PrivilegedAction<PrometheusFunctionResponseHandle>) () -> {
           try {
             JSONObject responseObject = prometheusClient.queryRange(
                 request.getPromQl(),
                 request.getStartTime(), request.getEndTime(), request.getStep());
-            return new DefaultQueryRangeFunctionResponseHandle(responseObject);
+            return new QueryRangeFunctionResponseHandle(responseObject);
           } catch (IOException e) {
             LOG.error(e.getMessage());
             throw new RuntimeException(

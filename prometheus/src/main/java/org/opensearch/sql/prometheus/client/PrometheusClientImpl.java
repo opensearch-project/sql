@@ -83,6 +83,20 @@ public class PrometheusClientImpl implements PrometheusClient {
     return new ObjectMapper().readValue(jsonObject.getJSONObject("data").toString(), typeRef);
   }
 
+  @Override
+  public JSONArray queryExemplars(String query, Long start, Long end) throws IOException {
+    String queryUrl = String.format("%s/api/v1/query_exemplars?query=%s&start=%s&end=%s",
+        uri.toString().replaceAll("/$", ""), URLEncoder.encode(query, StandardCharsets.UTF_8),
+        start, end);
+    logger.debug("queryUrl: " + queryUrl);
+    Request request = new Request.Builder()
+        .url(queryUrl)
+        .build();
+    Response response = this.okHttpClient.newCall(request).execute();
+    JSONObject jsonObject = readResponse(response);
+    return jsonObject.getJSONArray("data");
+  }
+
   private List<String> toListOfLabels(JSONArray array) {
     List<String> result = new ArrayList<>();
     for (int i = 0; i < array.length(); i++) {
