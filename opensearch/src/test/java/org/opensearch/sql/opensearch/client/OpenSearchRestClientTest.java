@@ -163,9 +163,9 @@ class OpenSearchRestClientTest {
     var parsedTypes = OpenSearchDataType.traverseAndFlatten(mapping);
     assertAll(
         () -> assertEquals(1, indexMappings.size()),
-        // 10 types extended to 17 after flattening
+        // 10 types extended to 19 after flattening
         () -> assertEquals(10, mapping.size()),
-        () -> assertEquals(17, parsedTypes.size()),
+        () -> assertEquals(19, parsedTypes.size()),
         () -> assertEquals("TEXT", mapping.get("address").legacyTypeName()),
         () -> assertEquals(OpenSearchTextType.of(MappingType.Text),
             parsedTypes.get("address")),

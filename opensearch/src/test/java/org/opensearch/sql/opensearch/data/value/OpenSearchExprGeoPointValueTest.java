@@ -7,20 +7,15 @@
 package org.opensearch.sql.opensearch.data.value;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import com.google.common.collect.ImmutableMap;
+import java.util.LinkedHashMap;
 import org.junit.jupiter.api.Test;
 import org.opensearch.sql.opensearch.data.type.OpenSearchGeoPointType;
 
 class OpenSearchExprGeoPointValueTest {
 
-  private OpenSearchExprGeoPointValue geoPointValue = new OpenSearchExprGeoPointValue(1.0, 1.0);
-
-  @Test
-  void value() {
-    assertEquals(new OpenSearchExprGeoPointValue.GeoPoint(1.0, 1.0), geoPointValue.value());
-  }
+  private OpenSearchExprGeoPointValue geoPointValue = new OpenSearchExprGeoPointValue(1.0, 2.0);
 
   @Test
   void type() {
@@ -28,18 +23,8 @@ class OpenSearchExprGeoPointValueTest {
   }
 
   @Test
-  void compare() {
-    assertEquals(0, geoPointValue.compareTo(new OpenSearchExprGeoPointValue(1.0, 1.0)));
-    assertEquals(geoPointValue, new OpenSearchExprGeoPointValue(1.0, 1.0));
-  }
-
-  @Test
-  void equal() {
-    assertTrue(geoPointValue.equal(new OpenSearchExprGeoPointValue(1.0, 1.0)));
-  }
-
-  @Test
-  void testHashCode() {
-    assertNotNull(geoPointValue.hashCode());
+  void value() {
+    assertEquals(new LinkedHashMap<>(ImmutableMap.of("lat", 1.0, "lon", 2.0)),
+        geoPointValue.value());
   }
 }

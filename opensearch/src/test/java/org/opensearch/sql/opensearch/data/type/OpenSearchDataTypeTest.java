@@ -291,7 +291,7 @@ class OpenSearchDataTypeTest {
     var flattened = OpenSearchDataType.traverseAndFlatten(getSampleMapping());
     var objectType = OpenSearchDataType.of(MappingType.Object);
     assertAll(
-        () -> assertEquals(9, flattened.size()),
+        () -> assertEquals(11, flattened.size()),
         () -> assertTrue(flattened.get("mapping").getProperties().isEmpty()),
         () -> assertTrue(flattened.get("mapping.submapping").getProperties().isEmpty()),
         () -> assertTrue(
