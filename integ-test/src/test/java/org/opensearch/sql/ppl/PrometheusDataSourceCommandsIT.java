@@ -231,11 +231,11 @@ public class PrometheusDataSourceCommandsIT extends PPLIntegTestCase {
     long currentTimestamp = new Date().getTime();
     JSONObject response =
         executeQuery("source=my_prometheus.query_range('prometheus_http_requests_total',"
-            + ((currentTimestamp/1000)-3600) + "," + currentTimestamp/1000 + ", " + 14 + ")" );
+            + ((currentTimestamp/1000)-3600) + "," + currentTimestamp/1000 + ", " + "'14'" + ")" );
     verifySchema(response,
+        schema(LABELS,  "struct"),
         schema(VALUE, "array"),
-        schema(TIMESTAMP,  "array"),
-        schema(LABELS,  "struct"));
+        schema(TIMESTAMP,  "array"));
     Assertions.assertTrue(response.getInt("size") > 0);
   }
 
@@ -249,8 +249,19 @@ public class PrometheusDataSourceCommandsIT extends PPLIntegTestCase {
     );
   }
 
+    @Test
+  public void testExplainForQueryExemplars() throws Exception {
+    String expected = loadFromFile("expectedOutput/ppl/explain_query_exemplars.json");
+    assertJsonEquals(
+        expected,
+        explainQueryToString("source = my_prometheus."
+            + "query_exemplars('app_ads_ad_requests_total',1689228292,1689232299)")
+    );
+  }
+
   String loadFromFile(String filename) throws Exception {
     URI uri = Resources.getResource(filename).toURI();
     return new String(Files.readAllBytes(Paths.get(uri)));
   }
+
 }
