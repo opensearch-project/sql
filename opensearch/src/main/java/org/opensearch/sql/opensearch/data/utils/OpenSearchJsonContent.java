@@ -149,6 +149,7 @@ public class OpenSearchJsonContent implements Content {
       }
     }
 
+    // lat or lon can be null to support geopoint.lat query but both can't be null
     if (lat == null && lon == null) {
       throw new IllegalStateException("geo point must be in format of {\"lat\": number, \"lon\": "
           + "number}");

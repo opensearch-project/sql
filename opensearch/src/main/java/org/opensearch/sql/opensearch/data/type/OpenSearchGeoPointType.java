@@ -31,10 +31,6 @@ public class OpenSearchGeoPointType extends OpenSearchDataType {
     this.properties.put("lon", new OpenSearchDataType(ExprCoreType.DOUBLE));
   }
 
-  @Getter
-  @EqualsAndHashCode.Exclude
-  Map<String, OpenSearchDataType> properties;
-
   public static OpenSearchGeoPointType of() {
     return OpenSearchGeoPointType.instance;
   }
