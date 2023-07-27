@@ -465,11 +465,10 @@ Geopoint Data Types
 A geopoint has a latitude and a longitude property. Although OpenSearch `supports multiple formats <https://opensearch.org/docs/2.3/opensearch/supported-field-types/geo-point/>`_, the SQL plugin currently only supports the format :code:`{"lat": number, "lon": number}`. The geopoint object can be queried or lat and lon can be specified using dot notation. For example, ::
 
     os> SELECT geo_point_object, geo_point_object.lat, geo_point_object.lon FROM geopoint;
-    fetched rows / total rows = 3/3
+    fetched rows / total rows = 2/2
     +----------------------------------+------------------------+------------------------+
     | geo_point_object                 | geo_point_object.lat   | geo_point_object.lon   |
     |----------------------------------+------------------------+------------------------|
     | {'lat': 40.71, 'lon': 74.0}      | 40.71                  | 74.0                   |
     | {'lat': -33.852, 'lon': 151.216} | -33.852                | 151.216                |
-    | null                             | null                   | null                   |
     +----------------------------------+------------------------+------------------------+

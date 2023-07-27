@@ -38,17 +38,37 @@ public class GeoPointIT extends SQLIntegTestCase {
 
   @Test
   public void test_geo_point_unsupported_format() {
-    String query = "SELECT geo_point_geohash FROM " + TEST_INDEX_GEOPOINT;
-    Exception exception = assertThrows(RuntimeException.class,
-        () -> executeJdbcRequest(query));
-
-    assertTrue(exception.getMessage().contains(
-            "  \"error\": {\n" +
+    String exceptionMessage =
+        "  \"error\": {\n" +
             "    \"reason\": \"There was internal problem at backend\",\n" +
             "    \"details\": \"geo point must be in format of {\\\"lat\\\": number, \\\"lon\\\": number}\",\n" +
             "    \"type\": \"IllegalStateException\"\n" +
-            "  }"
-    ));
+            "  }";
+
+    String geohashQuery = "SELECT geo_point_geohash FROM " + TEST_INDEX_GEOPOINT;
+    Exception exception = assertThrows(RuntimeException.class,
+        () -> executeJdbcRequest(geohashQuery));
+    assertTrue(exception.getMessage().contains(exceptionMessage));
+
+    String geopointString = "SELECT geo_point_string FROM " + TEST_INDEX_GEOPOINT;
+    exception = assertThrows(RuntimeException.class,
+        () -> executeJdbcRequest(geopointString));
+    assertTrue(exception.getMessage().contains(exceptionMessage));
+
+    String geopointArray = "SELECT geo_point_array FROM " + TEST_INDEX_GEOPOINT;
+    exception = assertThrows(RuntimeException.class,
+        () -> executeJdbcRequest(geopointArray));
+    assertTrue(exception.getMessage().contains(exceptionMessage));
+
+    String geopointStringPoint = "SELECT geo_point_string_point FROM " + TEST_INDEX_GEOPOINT;
+    exception = assertThrows(RuntimeException.class,
+        () -> executeJdbcRequest(geopointStringPoint));
+    assertTrue(exception.getMessage().contains(exceptionMessage));
+
+    String geopointGeoJSON = "SELECT geo_point_geojson FROM " + TEST_INDEX_GEOPOINT;
+    exception = assertThrows(RuntimeException.class,
+        () -> executeJdbcRequest(geopointGeoJSON));
+    assertTrue(exception.getMessage().contains(exceptionMessage));
   }
 
   @Test
