@@ -5,7 +5,7 @@
  *
  */
 
-package org.opensearch.sql.prometheus.functions;
+package org.opensearch.sql.prometheus.functions.resolver;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -60,7 +60,7 @@ class QueryRangeTableFunctionResolverTest {
         = queryRangeTableFunctionResolver.resolve(functionSignature);
     assertEquals(functionName, resolution.getKey().getFunctionName());
     assertEquals(functionName, queryRangeTableFunctionResolver.getFunctionName());
-    assertEquals(List.of(STRING, LONG, LONG, LONG), resolution.getKey().getParamTypeList());
+    assertEquals(List.of(STRING, LONG, LONG, STRING), resolution.getKey().getParamTypeList());
     FunctionBuilder functionBuilder = resolution.getValue();
     TableFunctionImplementation functionImplementation
         = (TableFunctionImplementation) functionBuilder.apply(functionProperties, expressions);
@@ -94,7 +94,7 @@ class QueryRangeTableFunctionResolverTest {
 
     assertEquals(functionName, resolution.getKey().getFunctionName());
     assertEquals(functionName, queryRangeTableFunctionResolver.getFunctionName());
-    assertEquals(List.of(STRING, LONG, LONG, LONG), resolution.getKey().getParamTypeList());
+    assertEquals(List.of(STRING, LONG, LONG, STRING), resolution.getKey().getParamTypeList());
     FunctionBuilder functionBuilder = resolution.getValue();
     TableFunctionImplementation functionImplementation
         = (TableFunctionImplementation) functionBuilder.apply(functionProperties, expressions);
@@ -129,7 +129,7 @@ class QueryRangeTableFunctionResolverTest {
 
     assertEquals(functionName, resolution.getKey().getFunctionName());
     assertEquals(functionName, queryRangeTableFunctionResolver.getFunctionName());
-    assertEquals(List.of(STRING, LONG, LONG, LONG), resolution.getKey().getParamTypeList());
+    assertEquals(List.of(STRING, LONG, LONG, STRING), resolution.getKey().getParamTypeList());
     FunctionBuilder functionBuilder = resolution.getValue();
     TableFunctionImplementation functionImplementation
         = (TableFunctionImplementation) functionBuilder.apply(functionProperties, expressions);
@@ -162,7 +162,7 @@ class QueryRangeTableFunctionResolverTest {
 
     assertEquals(functionName, resolution.getKey().getFunctionName());
     assertEquals(functionName, queryRangeTableFunctionResolver.getFunctionName());
-    assertEquals(List.of(STRING, LONG, LONG, LONG), resolution.getKey().getParamTypeList());
+    assertEquals(List.of(STRING, LONG, LONG, STRING), resolution.getKey().getParamTypeList());
     SemanticCheckException exception = assertThrows(SemanticCheckException.class,
         () -> resolution.getValue().apply(functionProperties, expressions));
 
@@ -184,7 +184,7 @@ class QueryRangeTableFunctionResolverTest {
 
     assertEquals(functionName, resolution.getKey().getFunctionName());
     assertEquals(functionName, queryRangeTableFunctionResolver.getFunctionName());
-    assertEquals(List.of(STRING, LONG, LONG, LONG), resolution.getKey().getParamTypeList());
+    assertEquals(List.of(STRING, LONG, LONG, STRING), resolution.getKey().getParamTypeList());
     SemanticCheckException exception = assertThrows(SemanticCheckException.class,
         () -> resolution.getValue().apply(functionProperties, expressions));
 
@@ -206,7 +206,7 @@ class QueryRangeTableFunctionResolverTest {
 
     assertEquals(functionName, resolution.getKey().getFunctionName());
     assertEquals(functionName, queryRangeTableFunctionResolver.getFunctionName());
-    assertEquals(List.of(STRING, LONG, LONG, LONG), resolution.getKey().getParamTypeList());
+    assertEquals(List.of(STRING, LONG, LONG, STRING), resolution.getKey().getParamTypeList());
     SemanticCheckException exception = assertThrows(SemanticCheckException.class,
         () -> resolution.getValue().apply(functionProperties, expressions));
 

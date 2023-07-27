@@ -21,7 +21,7 @@ import org.opensearch.sql.prometheus.client.PrometheusClient;
 import org.opensearch.sql.prometheus.request.PrometheusQueryRequest;
 import org.opensearch.sql.storage.TableScanOperator;
 
-public class  QueryRangeFunctionTableScanBuilderTest {
+public class QueryRangeFunctionTableScanBuilderTest {
 
   @Mock
   private PrometheusClient prometheusClient;

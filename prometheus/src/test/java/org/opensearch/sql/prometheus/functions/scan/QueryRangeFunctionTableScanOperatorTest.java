@@ -134,9 +134,9 @@ class QueryRangeFunctionTableScanOperatorTest {
         .thenReturn(new JSONObject(getJson("query_range_result.json")));
     queryRangeFunctionTableScanOperator.open();
     ArrayList<ExecutionEngine.Schema.Column> columns = new ArrayList<>();
+    columns.add(new ExecutionEngine.Schema.Column(LABELS, LABELS, ExprCoreType.STRUCT));
     columns.add(new ExecutionEngine.Schema.Column(TIMESTAMP, TIMESTAMP, ExprCoreType.ARRAY));
     columns.add(new ExecutionEngine.Schema.Column(VALUE, VALUE, ExprCoreType.ARRAY));
-    columns.add(new ExecutionEngine.Schema.Column(LABELS, LABELS, ExprCoreType.STRUCT));
     ExecutionEngine.Schema expectedSchema = new ExecutionEngine.Schema(columns);
     assertEquals(expectedSchema, queryRangeFunctionTableScanOperator.schema());
   }
