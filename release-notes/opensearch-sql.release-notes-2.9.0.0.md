@@ -3,7 +3,7 @@ Compatible with OpenSearch and OpenSearch Dashboards Version 2.9.0
 ### Features
 
 * Enable Table Function and PromQL function ([#1719](https://github.com/opensearch-project/sql/pull/1719))
-* Add spark connector ([#1780](https://github.com/opensearch-project/sql/pull/1780))
+* Add Spark connector ([#1780](https://github.com/opensearch-project/sql/pull/1780))
 
 ### Enhancements
 
@@ -19,7 +19,7 @@ Compatible with OpenSearch and OpenSearch Dashboards Version 2.9.0
 * Add _routing to SQL includes list ([#1771](https://github.com/opensearch-project/sql/pull/1771))
 * Disable read of plugins.query.datasources.encryption.masterkey from cluster settings GET API ([#1825](https://github.com/opensearch-project/sql/pull/1825))
 * Add EMR client to spark connector ([#1790](https://github.com/opensearch-project/sql/pull/1790))
-* Improved error codes in case of data sourcde API security exception ([#1753](https://github.com/opensearch-project/sql/pull/1753))
+* Improved error codes in case of data source API security exception ([#1753](https://github.com/opensearch-project/sql/pull/1753))
 * Remove Default master encryption key from settings ([#1851](https://github.com/opensearch-project/sql/pull/1851))
 
 ### Bug Fixes
@@ -31,13 +31,14 @@ Compatible with OpenSearch and OpenSearch Dashboards Version 2.9.0
 
 * Updated documentation of round function return type ([#1725](https://github.com/opensearch-project/sql/pull/1725))
 * Updated `protocol.rst` with new wording for error message ([#1662](https://github.com/opensearch-project/sql/pull/1662))
+* Updated documentation for temporal data types ([#1826](https://github.com/opensearch-project/sql/pull/1826))
 
 ### Infrastructure
 
 * stopPrometheus task in doctest build.gradle now runs upon project failure in startOpenSearch ([#1747](https://github.com/opensearch-project/sql/pull/1747))
-* Upgrade guava to 32.0.1
+* Bump guava to 32.0.1 ([#1829](https://github.com/opensearch-project/sql/pull/1829))
 * Disable CrossClusterSearchIT test ([#1814](https://github.com/opensearch-project/sql/pull/1814))
-* fix flakytest when tests.locale=tr ([#1827](https://github.com/opensearch-project/sql/pull/1827))
+* Fix flakytest when tests.locale=tr ([#1827](https://github.com/opensearch-project/sql/pull/1827))
 
 ### Refactoring
 
