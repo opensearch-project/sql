@@ -35,8 +35,6 @@ public class PrometheusResponse implements Iterable<ExprValue> {
 
   private final PrometheusResponseFieldNames prometheusResponseFieldNames;
 
-  private final Boolean isQueryRangeFunctionScan;
-
   /**
    * Constructor.
    *
@@ -46,11 +44,9 @@ public class PrometheusResponse implements Iterable<ExprValue> {
    *                                     and timestamp fieldName.
    */
   public PrometheusResponse(JSONObject responseObject,
-                            PrometheusResponseFieldNames prometheusResponseFieldNames,
-                            Boolean isQueryRangeFunctionScan) {
+                            PrometheusResponseFieldNames prometheusResponseFieldNames) {
     this.responseObject = responseObject;
     this.prometheusResponseFieldNames = prometheusResponseFieldNames;
-    this.isQueryRangeFunctionScan = isQueryRangeFunctionScan;
   }
 
   @NonNull
@@ -70,24 +66,7 @@ public class PrometheusResponse implements Iterable<ExprValue> {
               new ExprTimestampValue(Instant.ofEpochMilli((long) (val.getDouble(0) * 1000))));
           linkedHashMap.put(prometheusResponseFieldNames.getValueFieldName(), getValue(val, 1,
               prometheusResponseFieldNames.getValueType()));
-          // Concept:
-          // {\"instance\":\"localhost:9090\",\"__name__\":\"up\",\"job\":\"prometheus\"}"
-          // This is the label string in the prometheus response.
-          // Q: how do we map this to columns in a table.
-          // For queries like source = prometheus.metric_name | ....
-          // we can get the labels list in prior as we know which metric we are working on.
-          // In case of commands  like source = prometheus.query_range('promQL');
-          // Any arbitrary command can be written and we don't know the labels
-          // in the prometheus response in prior.
-          // So for PPL like commands...output structure is @value, @timestamp
-          // and each label is treated as a separate column where as in case of query_range
-          // function irrespective of promQL, the output structure is
-          // @value, @timestamp, @labels [jsonfied string of all the labels for a data point]
-          if (isQueryRangeFunctionScan) {
-            linkedHashMap.put(LABELS, new ExprStringValue(metric.toString()));
-          } else {
-            insertLabels(linkedHashMap, metric);
-          }
+          insertLabels(linkedHashMap, metric);
           result.add(new ExprTupleValue(linkedHashMap));
         }
       }
