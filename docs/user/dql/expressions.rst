@@ -25,7 +25,7 @@ A literal is a symbol that represents a value. The most common literal values in
 1. Numeric literals: specify numeric values such as integer and floating-point numbers.
 2. String literals: specify a string enclosed by single or double quotes.
 3. Boolean literals: ``true`` or ``false``.
-4. Date and Time literals: DATE 'YYYY-MM-DD' represent the date, TIME 'hh:mm:ss' represent the time, TIMESTAMP 'YYYY-MM-DD hh:mm:ss' represent the timestamp.
+4. Date and Time literals: DATE 'YYYY-MM-DD' represent the date, TIME 'hh:mm:ss' represent the time, TIMESTAMP 'YYYY-MM-DD hh:mm:ss' represent the timestamp. You can also surround the literals with curly brackets, if you do, you can replace date with d, time with t, and timestamp with ts.
 
 Examples
 --------
@@ -39,6 +39,15 @@ Here is an example for different type of literals::
     |-------+-----------+---------+----------+---------------------+-------------------+-----------------------------------|
     | 123   | hello     | False   | -4.567   | 2020-07-07          | 01:01:01          | 2020-07-07 01:01:01               |
     +-------+-----------+---------+----------+---------------------+-------------------+-----------------------------------+
+
+
+    os> SELECT {DATE '2020-07-07'}, {D '2020-07-07'}, {TIME '01:01:01'}, {T '01:01:01'}, {TIMESTAMP '2020-07-07 01:01:01'}, {TS '2020-07-07 01:01:01'}
+    fetched rows / total rows = 1/1
+    +-----------------------+--------------------+---------------------+------------------+-------------------------------------+------------------------------+
+    | {DATE '2020-07-07'}   | {D '2020-07-07'}   | {TIME '01:01:01'}   | {T '01:01:01'}   | {TIMESTAMP '2020-07-07 01:01:01'}   | {TS '2020-07-07 01:01:01'}   |
+    |-----------------------+--------------------+---------------------+------------------+-------------------------------------+------------------------------|
+    | 2020-07-07            | 2020-07-07         | 01:01:01            | 01:01:01         | 2020-07-07 01:01:01                 | 2020-07-07 01:01:01          |
+    +-----------------------+--------------------+---------------------+------------------+-------------------------------------+------------------------------+
 
 Limitations
 -----------
