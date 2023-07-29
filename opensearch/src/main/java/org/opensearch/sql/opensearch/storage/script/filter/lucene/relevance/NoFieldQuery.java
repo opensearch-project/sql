@@ -14,6 +14,7 @@ import org.opensearch.sql.common.antlr.SyntaxCheckException;
 import org.opensearch.sql.exception.SemanticCheckException;
 import org.opensearch.sql.expression.FunctionExpression;
 import org.opensearch.sql.expression.NamedArgumentExpression;
+import org.opensearch.sql.opensearch.storage.script.filter.lucene.LuceneFunctionWrapper;
 
 /**
  * Base class to represent relevance queries that have no 'fields' array as an argument.
@@ -47,12 +48,12 @@ abstract class NoFieldQuery<T extends QueryBuilder> extends RelevanceQuery<T> {
    */
 
   @Override
-  public QueryBuilder build(FunctionExpression func) {
-    var arguments = func.getArguments().stream().map(
+  public QueryBuilder build(LuceneFunctionWrapper func) {
+    var arguments = func.getFunc().getArguments().stream().map(
         a -> (NamedArgumentExpression) a).collect(Collectors.toList());
     if (arguments.size() < 1) {
       throw new SyntaxCheckException(String.format(
-          "%s requires at least one parameter", func.getFunctionName()));
+          "%s requires at least one parameter", func.getFunc().getFunctionName()));
     }
 
     return loadArguments(arguments);

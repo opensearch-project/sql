@@ -18,6 +18,7 @@ import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.exception.SemanticCheckException;
 import org.opensearch.sql.expression.FunctionExpression;
 import org.opensearch.sql.expression.NamedArgumentExpression;
+import org.opensearch.sql.opensearch.storage.script.filter.lucene.LuceneFunctionWrapper;
 import org.opensearch.sql.opensearch.storage.script.filter.lucene.LuceneQuery;
 
 /**
@@ -73,8 +74,8 @@ public abstract class RelevanceQuery<T extends QueryBuilder> extends LuceneQuery
   }
 
   @Override
-  public QueryBuilder build(FunctionExpression func) {
-    var arguments = func.getArguments().stream()
+  public QueryBuilder build(LuceneFunctionWrapper func) {
+    var arguments = func.getFunc().getArguments().stream()
         .map(a -> (NamedArgumentExpression)a).collect(Collectors.toList());
     if (arguments.size() < 2) {
       throw new SyntaxCheckException(
@@ -82,7 +83,6 @@ public abstract class RelevanceQuery<T extends QueryBuilder> extends LuceneQuery
     }
 
     return loadArguments(arguments);
-
   }
 
   protected abstract T createQueryBuilder(List<NamedArgumentExpression> arguments);

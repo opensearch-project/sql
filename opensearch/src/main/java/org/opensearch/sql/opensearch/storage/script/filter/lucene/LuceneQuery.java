@@ -49,12 +49,11 @@ public abstract class LuceneQuery {
    * @param func    function
    * @return        return true if supported, otherwise false.
    */
-  public boolean canSupport(FunctionExpression func) {
-    return (func.getArguments().size() == 2)
-        && (func.getArguments().get(0) instanceof ReferenceExpression)
-        && (func.getArguments().get(1) instanceof LiteralExpression
-        || literalExpressionWrappedByCast(func))
-        || isMultiParameterQuery(func);
+  public boolean canSupport(LuceneFunctionWrapper func) {
+    return (func.getFunc().getArguments().size() == 2
+            && func.getReference() != null
+            && func.getLiteral() != null)
+        || func.isMultiParameterQuery();
   }
 
   /**
@@ -68,57 +67,23 @@ public abstract class LuceneQuery {
   }
 
   /**
-   * Check if the function expression has multiple named argument expressions as the parameters.
-   *
-   * @param func      function
-   * @return          return true if the expression is a multi-parameter function.
-   */
-  private boolean isMultiParameterQuery(FunctionExpression func) {
-    for (Expression expr : func.getArguments()) {
-      if (!(expr instanceof NamedArgumentExpression)) {
-        return false;
-      }
-    }
-    return true;
-  }
-
-  /**
-   * Check if the second argument of the function is a literal expression wrapped by cast function.
-   */
-  private boolean literalExpressionWrappedByCast(FunctionExpression func) {
-    if (func.getArguments().get(1) instanceof FunctionExpression) {
-      FunctionExpression expr = (FunctionExpression) func.getArguments().get(1);
-      return castMap.containsKey(expr.getFunctionName())
-          && expr.getArguments().get(0) instanceof LiteralExpression;
-    }
-    return false;
-  }
-
-  /**
    * Build Lucene query from function expression.
    * The cast function is converted to literal expressions before generating DSL.
    *
    * @param func  function
    * @return      query
    */
-  public QueryBuilder build(FunctionExpression func) {
-    ReferenceExpression ref = (ReferenceExpression) func.getArguments().get(0);
-    Expression expr = func.getArguments().get(1);
-    ExprValue literalValue = expr instanceof LiteralExpression ? expr
-        .valueOf() : cast((FunctionExpression) expr);
+  public QueryBuilder build(LuceneFunctionWrapper func) {
+    ReferenceExpression ref = func.getReference();
+    ExprValue literalValue = func.getLiteralValue();
     return doBuild(ref.getAttr(), ref.type(), literalValue);
-  }
-
-  private ExprValue cast(FunctionExpression castFunction) {
-    return castMap.get(castFunction.getFunctionName()).apply(
-        (LiteralExpression) castFunction.getArguments().get(0));
   }
 
   /**
    * Type converting map.
    */
-  private final Map<FunctionName, Function<LiteralExpression, ExprValue>> castMap = ImmutableMap
-      .<FunctionName, Function<LiteralExpression, ExprValue>>builder()
+  public static final Map<FunctionName, Function<LiteralExpression, ExprValue>> castMap =
+      ImmutableMap.<FunctionName, Function<LiteralExpression, ExprValue>>builder()
       .put(BuiltinFunctionName.CAST_TO_STRING.getName(), expr -> {
         if (!expr.type().equals(ExprCoreType.STRING)) {
           return new ExprStringValue(String.valueOf(expr.valueOf().value()));
