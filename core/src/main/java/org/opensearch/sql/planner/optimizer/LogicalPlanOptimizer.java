@@ -19,9 +19,13 @@ import org.opensearch.sql.planner.optimizer.rule.read.TableScanPushDown;
 import org.opensearch.sql.planner.optimizer.rule.write.CreateTableWriteBuilder;
 
 /**
- * {@link LogicalPlan} Optimizer. The Optimizer will run in the TopDown manner. 1> Optimize the
- * current node with all the rules. 2> Optimize the all the child nodes with all the rules. 3) In
- * case the child node could change, Optimize the current node again.
+ * {@link LogicalPlan} Optimizer.<br>
+ * The Optimizer will run in the TopDown manner.<br>
+ * <ol>
+ *     <li>Optimize the current node with all the rules.</li>
+ *     <li>Optimize the all the child nodes with all the rules.</li>
+ *     <li>In case the child node could change, Optimize the current node again.</li>
+ * </ol>
  */
 public class LogicalPlanOptimizer {
 

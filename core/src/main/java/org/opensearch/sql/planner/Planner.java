@@ -22,8 +22,8 @@ public class Planner {
 
   /**
    * Generate optimal physical plan for logical plan. If no table involved, translate logical plan
-   * to physical by default implementor. TODO: for now just delegate entire logical plan to storage
-   * engine.
+   * to physical by default implementor.<br>
+   * TODO: for now just delegate entire logical plan to storage engine.
    *
    * @param plan logical plan
    * @return optimal physical plan
