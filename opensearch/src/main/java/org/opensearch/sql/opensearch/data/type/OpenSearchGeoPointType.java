@@ -8,10 +8,9 @@ package org.opensearch.sql.opensearch.data.type;
 
 import static org.opensearch.sql.data.type.ExprCoreType.UNKNOWN;
 
-import java.util.HashMap;
-import java.util.Map;
+import com.google.common.collect.ImmutableMap;
+import java.util.LinkedHashMap;
 import lombok.EqualsAndHashCode;
-import lombok.Getter;
 import org.opensearch.sql.data.type.ExprCoreType;
 
 /**
@@ -26,9 +25,9 @@ public class OpenSearchGeoPointType extends OpenSearchDataType {
   private OpenSearchGeoPointType() {
     super(MappingType.GeoPoint);
     exprCoreType = UNKNOWN;
-    this.properties = new HashMap<>();
-    this.properties.put("lat", new OpenSearchDataType(ExprCoreType.DOUBLE));
-    this.properties.put("lon", new OpenSearchDataType(ExprCoreType.DOUBLE));
+    this.properties = new LinkedHashMap(ImmutableMap.of(
+        "lat", new OpenSearchDataType(ExprCoreType.DOUBLE),
+        "lon", new OpenSearchDataType(ExprCoreType.DOUBLE)));
   }
 
   public static OpenSearchGeoPointType of() {

@@ -727,7 +727,7 @@ class OpenSearchExprValueFactoryTest {
   }
 
   @Test
-  public void constructGeoPointLat() {
+  public void constructGeoPointLatLon() {
     assertEquals(doubleValue(42.60355556),
         tupleValue("{\"geoV\":{\"lat\":42.60355556}}").get("geoV").tupleValue().get("lat"));
     assertEquals(doubleValue(-97.25263889),
