@@ -19,7 +19,6 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
-import static org.opensearch.core.xcontent.MediaTypeRegistry.setDefaultMediaType;
 import static org.opensearch.sql.opensearch.client.OpenSearchClient.META_CLUSTER_NAME;
 import static org.opensearch.sql.opensearch.data.type.OpenSearchDataType.MappingType;
 
@@ -35,7 +34,6 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import lombok.SneakyThrows;
 import org.apache.commons.lang3.reflect.FieldUtils;
 import org.apache.lucene.search.TotalHits;
-import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayNameGeneration;
 import org.junit.jupiter.api.DisplayNameGenerator;
@@ -101,11 +99,6 @@ class OpenSearchRestClientTest {
   @BeforeEach
   void setUp() {
     client = new OpenSearchRestClient(restClient);
-  }
-
-  @BeforeAll
-  static void setUpJSON() {
-    setDefaultMediaType(XContentType.JSON);
   }
 
   @Test
