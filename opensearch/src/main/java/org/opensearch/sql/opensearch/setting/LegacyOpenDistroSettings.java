@@ -11,8 +11,8 @@ import com.google.common.collect.ImmutableList;
 import java.util.List;
 import lombok.experimental.UtilityClass;
 import org.opensearch.common.settings.Setting;
-import org.opensearch.common.unit.ByteSizeValue;
 import org.opensearch.common.unit.TimeValue;
+import org.opensearch.core.common.unit.ByteSizeValue;
 import org.opensearch.sql.common.setting.LegacySettings;
 
 @UtilityClass

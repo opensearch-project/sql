@@ -29,7 +29,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.opensearch.cluster.ClusterName;
 import org.opensearch.common.settings.ClusterSettings;
 import org.opensearch.common.settings.Setting;
-import org.opensearch.common.unit.ByteSizeValue;
+import org.opensearch.core.common.unit.ByteSizeValue;
 import org.opensearch.monitor.jvm.JvmInfo;
 import org.opensearch.sql.common.setting.LegacySettings;
 import org.opensearch.sql.common.setting.Settings;
