@@ -52,6 +52,14 @@ public class OpenSearchQueryRequest implements OpenSearchRequest {
   @ToString.Exclude
   private final OpenSearchExprValueFactory exprValueFactory;
 
+
+  /**
+   * List of includes expected in the response
+   */
+  @EqualsAndHashCode.Exclude
+  @ToString.Exclude
+  private final List<String> includes;
+
   /**
    * Indicate the search already done.
    */
@@ -61,40 +69,38 @@ public class OpenSearchQueryRequest implements OpenSearchRequest {
    * Constructor of OpenSearchQueryRequest.
    */
   public OpenSearchQueryRequest(String indexName, int size,
-                                OpenSearchExprValueFactory factory) {
-    this(new IndexName(indexName), size, factory);
+                                OpenSearchExprValueFactory factory, List<String> includes) {
+    this(new IndexName(indexName), size, factory, includes);
   }
 
   /**
    * Constructor of OpenSearchQueryRequest.
    */
   public OpenSearchQueryRequest(IndexName indexName, int size,
-      OpenSearchExprValueFactory factory) {
+      OpenSearchExprValueFactory factory, List<String> includes) {
     this.indexName = indexName;
     this.sourceBuilder = new SearchSourceBuilder();
     sourceBuilder.from(0);
     sourceBuilder.size(size);
     sourceBuilder.timeout(DEFAULT_QUERY_TIMEOUT);
     this.exprValueFactory = factory;
+    this.includes = includes;
   }
 
   /**
    * Constructor of OpenSearchQueryRequest.
    */
   public OpenSearchQueryRequest(IndexName indexName, SearchSourceBuilder sourceBuilder,
-                                OpenSearchExprValueFactory factory) {
+                                OpenSearchExprValueFactory factory, List<String> includes) {
     this.indexName = indexName;
     this.sourceBuilder = sourceBuilder;
     this.exprValueFactory = factory;
+    this.includes = includes;
   }
 
   @Override
   public OpenSearchResponse search(Function<SearchRequest, SearchResponse> searchAction,
                                    Function<SearchScrollRequest, SearchResponse> scrollAction) {
-    FetchSourceContext fetchSource = this.sourceBuilder.fetchSource();
-    List<String> includes = fetchSource != null && fetchSource.includes() != null
-            ? Arrays.asList(fetchSource.includes())
-            : List.of();
     if (searchDone) {
       return new OpenSearchResponse(SearchHits.empty(), exprValueFactory, includes);
     } else {
