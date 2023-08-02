@@ -140,7 +140,7 @@ public class TextFunction {
   /**
    * <b>Converts String to lowercase.</b><br>
    * Supports following signatures:<br>
-   * STRING -> STRING<br>
+   * STRING -> STRING
    */
   private DefaultFunctionResolver lower() {
     return define(
@@ -154,7 +154,7 @@ public class TextFunction {
   /**
    * <b>Converts String to uppercase.</b><br>
    * Supports following signatures:<br>
-   * STRING -> STRING<br>
+   * STRING -> STRING
    */
   private DefaultFunctionResolver upper() {
     return define(
