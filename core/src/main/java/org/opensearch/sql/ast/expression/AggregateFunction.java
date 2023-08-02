@@ -17,7 +17,7 @@ import org.opensearch.sql.ast.AbstractNodeVisitor;
 import org.opensearch.sql.common.utils.StringUtils;
 
 /**
- * Expression node of aggregate functions.
+ * Expression node of aggregate functions.<br>
  * Params include aggregate function name (AVG, SUM, MAX etc.) and the field to aggregate.
  */
 @Getter

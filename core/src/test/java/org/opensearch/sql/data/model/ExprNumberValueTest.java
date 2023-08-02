@@ -3,7 +3,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-
 package org.opensearch.sql.data.model;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -17,8 +16,9 @@ public class ExprNumberValueTest {
   @Test
   public void getShortValueFromIncompatibleExprValue() {
     ExprBooleanValue booleanValue = ExprBooleanValue.of(true);
-    ExpressionEvaluationException exception = Assertions
-        .assertThrows(ExpressionEvaluationException.class, () -> booleanValue.shortValue());
+    ExpressionEvaluationException exception =
+        Assertions.assertThrows(
+            ExpressionEvaluationException.class, () -> booleanValue.shortValue());
     assertEquals("invalid to get shortValue from value of type BOOLEAN", exception.getMessage());
   }
 

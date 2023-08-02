@@ -16,7 +16,7 @@ import org.opensearch.sql.ast.AbstractNodeVisitor;
 
 
 /**
- * Expression node of scalar function.
+ * Expression node of scalar function.<br>
  * Params include function name (@funcName) and function arguments (@funcArgs)
  */
 @Getter
