@@ -18,9 +18,7 @@ import org.opensearch.sql.planner.Planner;
 import org.opensearch.sql.planner.logical.LogicalPlan;
 import org.opensearch.sql.planner.physical.PhysicalPlan;
 
-/**
- * The low level interface of core engine.
- */
+/** The low level interface of core engine. */
 @RequiredArgsConstructor
 public class QueryService {
 
@@ -31,14 +29,14 @@ public class QueryService {
   private final Planner planner;
 
   /**
-   * Execute the {@link UnresolvedPlan}, using {@link ResponseListener} to get response.
-   * Todo. deprecated this interface after finalize {@link PlanContext}.
+   * Execute the {@link UnresolvedPlan}, using {@link ResponseListener} to get response. Todo.
+   * deprecated this interface after finalize {@link PlanContext}.
    *
-   * @param plan  {@link UnresolvedPlan}
+   * @param plan {@link UnresolvedPlan}
    * @param listener {@link ResponseListener}
    */
-  public void execute(UnresolvedPlan plan,
-                      ResponseListener<ExecutionEngine.QueryResponse> listener) {
+  public void execute(
+      UnresolvedPlan plan, ResponseListener<ExecutionEngine.QueryResponse> listener) {
     try {
       executePlan(analyze(plan), PlanContext.emptyPlanContext(), listener);
     } catch (Exception e) {
@@ -48,22 +46,24 @@ public class QueryService {
 
   /**
    * Execute the {@link UnresolvedPlan}, with {@link PlanContext} and using {@link ResponseListener}
-   * to get response.
+   * to get response.<br>
    * Todo. Pass split from PlanContext to ExecutionEngine in following PR.
    *
    * @param plan {@link LogicalPlan}
    * @param planContext {@link PlanContext}
    * @param listener {@link ResponseListener}
    */
-  public void executePlan(LogicalPlan plan,
-                          PlanContext planContext,
-                          ResponseListener<ExecutionEngine.QueryResponse> listener) {
+  public void executePlan(
+      LogicalPlan plan,
+      PlanContext planContext,
+      ResponseListener<ExecutionEngine.QueryResponse> listener) {
     try {
       planContext
           .getSplit()
           .ifPresentOrElse(
               split -> executionEngine.execute(plan(plan), new ExecutionContext(split), listener),
-              () -> executionEngine.execute(
+              () ->
+                  executionEngine.execute(
                       plan(plan), ExecutionContext.emptyExecutionContext(), listener));
     } catch (Exception e) {
       listener.onFailure(e);
@@ -71,14 +71,14 @@ public class QueryService {
   }
 
   /**
-   * Explain the query in {@link UnresolvedPlan} using {@link ResponseListener} to
-   * get and format explain response.
+   * Explain the query in {@link UnresolvedPlan} using {@link ResponseListener} to get and format
+   * explain response.
    *
    * @param plan {@link UnresolvedPlan}
    * @param listener {@link ResponseListener} for explain response
    */
-  public void explain(UnresolvedPlan plan,
-                      ResponseListener<ExecutionEngine.ExplainResponse> listener) {
+  public void explain(
+      UnresolvedPlan plan, ResponseListener<ExecutionEngine.ExplainResponse> listener) {
     try {
       executionEngine.explain(plan(analyze(plan)), listener);
     } catch (Exception e) {
@@ -86,16 +86,12 @@ public class QueryService {
     }
   }
 
-  /**
-   * Analyze {@link UnresolvedPlan}.
-   */
+  /** Analyze {@link UnresolvedPlan}. */
   public LogicalPlan analyze(UnresolvedPlan plan) {
     return analyzer.analyze(plan, new AnalysisContext());
   }
 
-  /**
-   * Translate {@link LogicalPlan} to {@link PhysicalPlan}.
-   */
+  /** Translate {@link LogicalPlan} to {@link PhysicalPlan}. */
   public PhysicalPlan plan(LogicalPlan plan) {
     return planner.plan(plan);
   }

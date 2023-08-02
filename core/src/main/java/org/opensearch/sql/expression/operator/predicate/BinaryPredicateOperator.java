@@ -31,7 +31,7 @@ import org.opensearch.sql.utils.OperatorUtils;
 /**
  * The definition of binary predicate function<br>
  * and, Accepts two Boolean values and produces a Boolean.<br>
- * or,  Accepts two Boolean values and produces a Boolean.<br>
+ * or, Accepts two Boolean values and produces a Boolean.<br>
  * xor, Accepts two Boolean values and produces a Boolean.<br>
  * equalTo, Compare the left expression and right expression and produces a Boolean.
  */
@@ -59,6 +59,7 @@ public class BinaryPredicateOperator {
 
   /**
    * The and logic.
+   *
    * <table>
    *   <tr>
    *     <th>A</th>
@@ -133,6 +134,7 @@ public class BinaryPredicateOperator {
 
   /**
    * The or logic.
+   *
    * <table>
    *   <tr>
    *     <th>A</th>
@@ -205,10 +207,9 @@ public class BinaryPredicateOperator {
           .put(LITERAL_MISSING, LITERAL_MISSING, LITERAL_MISSING)
           .build();
 
-
-
   /**
    * The xor logic.
+   *
    * <table>
    *   <tr>
    *     <th>A</th>

@@ -267,8 +267,8 @@ public class ArithmeticFunction {
    * Definition of multiply(x, y) function.<br>
    * Returns the number x multiplied by number y<br>
    * The supported signature of multiply function is<br>
-   * (x: BYTE/SHORT/INTEGER/LONG/FLOAT/DOUBLE, y: BYTE/SHORT/INTEGER/LONG/FLOAT/DOUBLE)<br></>
-   * -> wider type between types of x and y
+   * (x: BYTE/SHORT/INTEGER/LONG/FLOAT/DOUBLE, y: BYTE/SHORT/INTEGER/LONG/FLOAT/DOUBLE)<br>
+   * </> -> wider type between types of x and y
    */
   private static DefaultFunctionResolver multiplyBase(FunctionName functionName) {
     return define(

@@ -3,7 +3,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-
 package org.opensearch.sql.expression;
 
 import com.google.common.base.Strings;
@@ -16,8 +15,8 @@ import org.opensearch.sql.data.type.ExprType;
 import org.opensearch.sql.expression.env.Environment;
 
 /**
- * Named expression that represents expression with name.
- * Please see more details in associated unresolved expression operator
+ * Named expression that represents expression with name.<br>
+ * Please see more details in associated unresolved expression operator<br>
  * {@link org.opensearch.sql.ast.expression.Alias}.
  */
 @AllArgsConstructor
@@ -26,19 +25,13 @@ import org.opensearch.sql.expression.env.Environment;
 @RequiredArgsConstructor
 public class NamedExpression implements Expression {
 
-  /**
-   * Expression name.
-   */
+  /** Expression name. */
   private final String name;
 
-  /**
-   * Expression that being named.
-   */
+  /** Expression that being named. */
   private final Expression delegated;
 
-  /**
-   * Optional alias.
-   */
+  /** Optional alias. */
   private String alias;
 
   @Override
@@ -53,7 +46,8 @@ public class NamedExpression implements Expression {
 
   /**
    * Get expression name using name or its alias (if it's present).
-   * @return  expression name
+   *
+   * @return expression name
    */
   public String getNameOrAlias() {
     return Strings.isNullOrEmpty(alias) ? name : alias;
@@ -68,5 +62,4 @@ public class NamedExpression implements Expression {
   public String toString() {
     return getNameOrAlias();
   }
-
 }

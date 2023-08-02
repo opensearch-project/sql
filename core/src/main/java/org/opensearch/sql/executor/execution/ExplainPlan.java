@@ -12,21 +12,18 @@ import org.opensearch.sql.common.response.ResponseListener;
 import org.opensearch.sql.executor.ExecutionEngine;
 import org.opensearch.sql.executor.QueryId;
 
-/**
- * Explain plan.
- */
+/** Explain plan. */
 public class ExplainPlan extends AbstractPlan {
 
   private final AbstractPlan plan;
 
   private final ResponseListener<ExecutionEngine.ExplainResponse> explainListener;
 
-  /**
-   * Constructor.
-   */
-  public ExplainPlan(QueryId queryId,
-                     AbstractPlan plan,
-                     ResponseListener<ExecutionEngine.ExplainResponse> explainListener) {
+  /** Constructor. */
+  public ExplainPlan(
+      QueryId queryId,
+      AbstractPlan plan,
+      ResponseListener<ExecutionEngine.ExplainResponse> explainListener) {
     super(queryId);
     this.plan = plan;
     this.explainListener = explainListener;

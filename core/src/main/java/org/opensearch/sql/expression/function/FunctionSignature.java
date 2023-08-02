@@ -15,9 +15,7 @@ import lombok.RequiredArgsConstructor;
 import org.opensearch.sql.data.type.ExprType;
 import org.opensearch.sql.data.type.WideningTypeRule;
 
-/**
- * Function signature is composed by function name and arguments list.
- */
+/** Function signature is composed by function name and arguments list. */
 @Getter
 @RequiredArgsConstructor
 @EqualsAndHashCode
@@ -31,9 +29,10 @@ public class FunctionSignature {
   /**
    * calculate the function signature match degree.
    *
-   * @return  EXACTLY_MATCH: exactly match
-   *          NOT_MATCH: not match
-   *          By widening rule, the small number means better match
+   * @return<br>
+   * EXACTLY_MATCH: exactly match<br>
+   * NOT_MATCH: not match<br>
+   * By widening rule, the small number means better match
    */
   public int match(FunctionSignature functionSignature) {
     List<ExprType> functionTypeList = functionSignature.getParamTypeList();
@@ -60,18 +59,14 @@ public class FunctionSignature {
     return matchDegree;
   }
 
-  /**
-   * util function for formatted arguments list.
-   */
+  /** util function for formatted arguments list. */
   public String formatTypes() {
     return getParamTypeList().stream()
         .map(ExprType::typeName)
         .collect(Collectors.joining(",", "[", "]"));
   }
 
-  /**
-   * util function - returns true if function has variable arguments.
-   */
+  /** util function - returns true if function has variable arguments. */
   protected static boolean isVarArgFunction(List<ExprType> argTypes) {
     return argTypes.size() == 1 && argTypes.get(0) == ARRAY;
   }

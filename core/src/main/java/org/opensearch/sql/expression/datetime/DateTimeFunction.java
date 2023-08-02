@@ -327,13 +327,14 @@ public class DateTimeFunction {
   /**
    * A common signature for `date_add` and `date_sub`.<br>
    * Specify a start date and add/subtract a temporal amount to/from the date.<br>
-   * The return type depends on the date type and the interval unit. Detailed supported signatures:<br>
+   * The return type depends on the date type and the interval unit. Detailed supported signatures:
+   * <br>
    * (DATE/DATETIME/TIMESTAMP/TIME, INTERVAL) -> DATETIME<br>
    * MySQL has these signatures too<br>
-   * (DATE, INTERVAL) -> DATE                                     // when interval has no time part<br>
-   * (TIME, INTERVAL) -> TIME                                     // when interval has no date part<br>
-   * (STRING, INTERVAL) -> STRING         // when argument has date or datetime string,<br>
-   *                                      // result has date or datetime depending on interval type<br>
+   * (DATE, INTERVAL) -> DATE // when interval has no time part<br>
+   * (TIME, INTERVAL) -> TIME // when interval has no date part<br>
+   * (STRING, INTERVAL) -> STRING // when argument has date or datetime string,<br>
+   * // result has date or datetime depending on interval type<br>
    */
   private Stream<SerializableFunction<?, ?>> get_date_add_date_sub_signatures(
       SerializableTriFunction<FunctionProperties, ExprValue, ExprValue, ExprValue> function) {
@@ -376,9 +377,9 @@ public class DateTimeFunction {
    * (TIME, TIME/DATE/DATETIME/TIMESTAMP) -> TIME<br>
    * (DATE/DATETIME/TIMESTAMP, TIME/DATE/DATETIME/TIMESTAMP) -> DATETIME<br>
    * TODO: MySQL has these signatures too<br>
-   * (STRING, STRING/TIME) -> STRING               // second arg - string with time only<br>
-   * (x, STRING) -> NULL                           // second arg - string with timestamp<br>
-   * (x, STRING/DATE) -> x                         // second arg - string with date only
+   * (STRING, STRING/TIME) -> STRING // second arg - string with time only<br>
+   * (x, STRING) -> NULL // second arg - string with timestamp<br>
+   * (x, STRING/DATE) -> x // second arg - string with date only
    */
   private DefaultFunctionResolver addtime() {
     return define(
@@ -862,9 +863,9 @@ public class DateTimeFunction {
    * (TIME, TIME/DATE/DATETIME/TIMESTAMP) -> TIME<br>
    * (DATE/DATETIME/TIMESTAMP, TIME/DATE/DATETIME/TIMESTAMP) -> DATETIME<br>
    * TODO: MySQL has these signatures too<br>
-   * (STRING, STRING/TIME) -> STRING               // second arg - string with time only<br>
-   * (x, STRING) -> NULL                           // second arg - string with timestamp<br>
-   * (x, STRING/DATE) -> x                         // second arg - string with date only
+   * (STRING, STRING/TIME) -> STRING // second arg - string with time only<br>
+   * (x, STRING) -> NULL // second arg - string with timestamp<br>
+   * (x, STRING/DATE) -> x // second arg - string with date only
    */
   private DefaultFunctionResolver subtime() {
     return define(
@@ -970,12 +971,12 @@ public class DateTimeFunction {
    * Returns different between two times as a time.<br>
    * (TIME, TIME) -> TIME<br>
    * MySQL has these signatures too<br>
-   * (DATE, DATE) -> TIME                      // result is > 24 hours<br>
-   * (DATETIME, DATETIME) -> TIME              // result is > 24 hours<br>
-   * (TIMESTAMP, TIMESTAMP) -> TIME            // result is > 24 hours<br>
-   * (x, x) -> NULL                            // when args have different types<br>
-   * (STRING, STRING) -> TIME                  // argument strings contain same types only<br>
-   * (STRING, STRING) -> NULL                  // argument strings are different types
+   * (DATE, DATE) -> TIME // result is > 24 hours<br>
+   * (DATETIME, DATETIME) -> TIME // result is > 24 hours<br>
+   * (TIMESTAMP, TIMESTAMP) -> TIME // result is > 24 hours<br>
+   * (x, x) -> NULL // when args have different types<br>
+   * (STRING, STRING) -> TIME // argument strings contain same types only<br>
+   * (STRING, STRING) -> NULL // argument strings are different types
    */
   private DefaultFunctionResolver timediff() {
     return define(
@@ -1000,7 +1001,8 @@ public class DateTimeFunction {
    * Input strings may contain a timestamp only in format 'yyyy-MM-dd HH:mm:ss[.SSSSSSSSS]'<br>
    * STRING/DATE/TIME/DATETIME/TIMESTAMP -> TIMESTAMP<br>
    * STRING/DATE/TIME/DATETIME/TIMESTAMP, STRING/DATE/TIME/DATETIME/TIMESTAMP -> TIMESTAMP<br>
-   * All types are converted to TIMESTAMP actually before the function call - it is responsibility<br>
+   * All types are converted to TIMESTAMP actually before the function call - it is responsibility
+   * <br>
    * of the automatic cast mechanism defined in `ExprCoreType` and performed by `TypeCastOperator`.
    */
   private DefaultFunctionResolver timestamp() {
@@ -1017,12 +1019,13 @@ public class DateTimeFunction {
   }
 
   /**
-   * Adds an interval of time to the provided DATE/DATETIME/TIME/TIMESTAMP/STRING argument.
-   * The interval of time added is determined by the given first and second arguments.
-   * The first argument is an interval type, and must be one of the tokens below...
-   * [MICROSECOND, SECOND, MINUTE, HOUR, DAY, WEEK, MONTH, QUARTER, YEAR]
-   * The second argument is the amount of the interval type to be added.
-   * The third argument is the DATE/DATETIME/TIME/TIMESTAMP/STRING to add to.
+   * Adds an interval of time to the provided DATE/DATETIME/TIME/TIMESTAMP/STRING argument. The
+   * interval of time added is determined by the given first and second arguments. The first
+   * argument is an interval type, and must be one of the tokens below... [MICROSECOND, SECOND,
+   * MINUTE, HOUR, DAY, WEEK, MONTH, QUARTER, YEAR] The second argument is the amount of the
+   * interval type to be added. The third argument is the DATE/DATETIME/TIME/TIMESTAMP/STRING to add
+   * to.
+   *
    * @return The DATETIME representing the summed DATE/DATETIME/TIME/TIMESTAMP and interval.
    */
   private DefaultFunctionResolver timestampadd() {
@@ -1710,10 +1713,10 @@ public class DateTimeFunction {
   /**
    * Following MySQL, function receives arguments of type double and rounds them before use.<br>
    * Furthermore:<br>
-   *  - zero year interpreted as 2000<br>
-   *  - negative year is not accepted<br>
-   *  - @dayOfYear should be greater than 1<br>
-   *  - if @dayOfYear is greater than 365/366, calculation goes to the next year(s)<br>
+   * - zero year interpreted as 2000<br>
+   * - negative year is not accepted<br>
+   * - @dayOfYear should be greater than 1<br>
+   * - if @dayOfYear is greater than 365/366, calculation goes to the next year(s)<br>
    *
    * @param yearExpr year
    * @param dayOfYearExp day of the @year, starting from 1

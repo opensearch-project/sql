@@ -20,9 +20,7 @@ import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.exception.ExpressionEvaluationException;
 import org.opensearch.sql.expression.Expression;
 
-/**
- * GrokExpression with grok patterns.
- */
+/** GrokExpression with grok patterns. */
 @EqualsAndHashCode(callSuper = true)
 @ToString
 public class GrokExpression extends ParseExpression {
@@ -33,15 +31,14 @@ public class GrokExpression extends ParseExpression {
     grokCompiler.registerDefaultPatterns();
   }
 
-  @EqualsAndHashCode.Exclude
-  private final Grok grok;
+  @EqualsAndHashCode.Exclude private final Grok grok;
 
   /**
    * GrokExpression.
    *
    * @param sourceField source text field
-   * @param pattern     pattern used for parsing
-   * @param identifier  derived field
+   * @param pattern pattern used for parsing
+   * @param identifier derived field
    */
   public GrokExpression(Expression sourceField, Expression pattern, Expression identifier) {
     super("grok", sourceField, pattern, identifier);
@@ -69,7 +66,9 @@ public class GrokExpression extends ParseExpression {
    */
   public static List<String> getNamedGroupCandidates(String pattern) {
     Grok grok = grokCompiler.compile(pattern);
-    return grok.namedGroups.stream().map(grok::getNamedRegexCollectionById)
-        .filter(group -> !group.equals("UNWANTED")).collect(Collectors.toUnmodifiableList());
+    return grok.namedGroups.stream()
+        .map(grok::getNamedRegexCollectionById)
+        .filter(group -> !group.equals("UNWANTED"))
+        .collect(Collectors.toUnmodifiableList());
   }
 }

@@ -3,7 +3,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-
 package org.opensearch.sql.expression.conditional.cases;
 
 import com.google.common.collect.ImmutableList;
@@ -18,27 +17,19 @@ import org.opensearch.sql.expression.FunctionExpression;
 import org.opensearch.sql.expression.env.Environment;
 import org.opensearch.sql.expression.function.FunctionName;
 
-/**
- * WHEN clause that consists of a condition and a result corresponding.
- */
+/** WHEN clause that consists of a condition and a result corresponding. */
 @EqualsAndHashCode(callSuper = false)
 @Getter
 @ToString
 public class WhenClause extends FunctionExpression {
 
-  /**
-   * Condition that must be a predicate.
-   */
+  /** Condition that must be a predicate. */
   private final Expression condition;
 
-  /**
-   * Result to return if condition is evaluated to true.
-   */
+  /** Result to return if condition is evaluated to true. */
   private final Expression result;
 
-  /**
-   * Initialize when clause.
-   */
+  /** Initialize when clause. */
   public WhenClause(Expression condition, Expression result) {
     super(FunctionName.of("when"), ImmutableList.of(condition, result));
     this.condition = condition;
@@ -47,8 +38,9 @@ public class WhenClause extends FunctionExpression {
 
   /**
    * Evaluate when condition.
-   * @param valueEnv  value env
-   * @return          is condition satisfied
+   *
+   * @param valueEnv value env
+   * @return is condition satisfied
    */
   public boolean isTrue(Environment<Expression, ExprValue> valueEnv) {
     ExprValue result = condition.valueOf(valueEnv);
@@ -72,5 +64,4 @@ public class WhenClause extends FunctionExpression {
   public <T, C> T accept(ExpressionNodeVisitor<T, C> visitor, C context) {
     return visitor.visitWhen(this, context);
   }
-
 }
