@@ -3,7 +3,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-
 package org.opensearch.sql.expression.operator.arthmetic;
 
 import static org.opensearch.sql.data.type.ExprCoreType.BYTE;
@@ -30,11 +29,11 @@ import org.opensearch.sql.expression.function.DefaultFunctionResolver;
 import org.opensearch.sql.expression.function.FunctionName;
 
 /**
- * The definition of arithmetic function
- * add, Accepts two numbers and produces a number.
- * subtract, Accepts two numbers and produces a number.
- * multiply, Accepts two numbers and produces a number.
- * divide, Accepts two numbers and produces a number.
+ * The definition of arithmetic function<br>
+ * add, Accepts two numbers and produces a number.<br>
+ * subtract, Accepts two numbers and produces a number.<br>
+ * multiply, Accepts two numbers and produces a number.<br>
+ * divide, Accepts two numbers and produces a number.<br>
  * module, Accepts two numbers and produces a number.
  */
 @UtilityClass
@@ -59,33 +58,49 @@ public class ArithmeticFunction {
   }
 
   /**
-   * Definition of add(x, y) function.
-   * Returns the number x plus number y
-   * The supported signature of add function is
-   * (x: BYTE/SHORT/INTEGER/LONG/FLOAT/DOUBLE, y: BYTE/SHORT/INTEGER/LONG/FLOAT/DOUBLE)
+   * Definition of add(x, y) function.<br>
+   * Returns the number x plus number y<br>
+   * The supported signature of add function is<br>
+   * (x: BYTE/SHORT/INTEGER/LONG/FLOAT/DOUBLE, y: BYTE/SHORT/INTEGER/LONG/FLOAT/DOUBLE)<br>
    * -> wider type between types of x and y
    */
   private static DefaultFunctionResolver addBase(FunctionName functionName) {
-    return define(functionName,
-        impl(nullMissingHandling(
-            (v1, v2) -> new ExprByteValue(v1.byteValue() + v2.byteValue())),
-                BYTE, BYTE, BYTE),
-        impl(nullMissingHandling(
-            (v1, v2) -> new ExprShortValue(v1.shortValue() + v2.shortValue())),
-                SHORT, SHORT, SHORT),
-        impl(nullMissingHandling(
-            (v1, v2) -> new ExprIntegerValue(Math.addExact(v1.integerValue(), v2.integerValue()))),
-                INTEGER, INTEGER, INTEGER),
-        impl(nullMissingHandling(
-            (v1, v2) -> new ExprLongValue(Math.addExact(v1.longValue(), v2.longValue()))),
-                LONG, LONG, LONG),
-        impl(nullMissingHandling(
-            (v1, v2) -> new ExprFloatValue(v1.floatValue() + v2.floatValue())),
-                FLOAT, FLOAT, FLOAT),
-        impl(nullMissingHandling(
-            (v1, v2) -> new ExprDoubleValue(v1.doubleValue() + v2.doubleValue())),
-                DOUBLE, DOUBLE, DOUBLE)
-    );
+    return define(
+        functionName,
+        impl(
+            nullMissingHandling((v1, v2) -> new ExprByteValue(v1.byteValue() + v2.byteValue())),
+            BYTE,
+            BYTE,
+            BYTE),
+        impl(
+            nullMissingHandling((v1, v2) -> new ExprShortValue(v1.shortValue() + v2.shortValue())),
+            SHORT,
+            SHORT,
+            SHORT),
+        impl(
+            nullMissingHandling(
+                (v1, v2) ->
+                    new ExprIntegerValue(Math.addExact(v1.integerValue(), v2.integerValue()))),
+            INTEGER,
+            INTEGER,
+            INTEGER),
+        impl(
+            nullMissingHandling(
+                (v1, v2) -> new ExprLongValue(Math.addExact(v1.longValue(), v2.longValue()))),
+            LONG,
+            LONG,
+            LONG),
+        impl(
+            nullMissingHandling((v1, v2) -> new ExprFloatValue(v1.floatValue() + v2.floatValue())),
+            FLOAT,
+            FLOAT,
+            FLOAT),
+        impl(
+            nullMissingHandling(
+                (v1, v2) -> new ExprDoubleValue(v1.doubleValue() + v2.doubleValue())),
+            DOUBLE,
+            DOUBLE,
+            DOUBLE));
   }
 
   private static DefaultFunctionResolver add() {
@@ -97,39 +112,69 @@ public class ArithmeticFunction {
   }
 
   /**
-   * Definition of divide(x, y) function.
-   * Returns the number x divided by number y
-   * The supported signature of divide function is
-   * (x: BYTE/SHORT/INTEGER/LONG/FLOAT/DOUBLE, y: BYTE/SHORT/INTEGER/LONG/FLOAT/DOUBLE)
+   * Definition of divide(x, y) function.<br>
+   * Returns the number x divided by number y<br>
+   * The supported signature of divide function is<br>
+   * (x: BYTE/SHORT/INTEGER/LONG/FLOAT/DOUBLE, y: BYTE/SHORT/INTEGER/LONG/FLOAT/DOUBLE)<br>
    * -> wider type between types of x and y
    */
   private static DefaultFunctionResolver divideBase(FunctionName functionName) {
-    return define(functionName,
-        impl(nullMissingHandling(
-            (v1, v2) -> v2.byteValue() == 0 ? ExprNullValue.of() :
-                    new ExprByteValue(v1.byteValue() / v2.byteValue())),
-                BYTE, BYTE, BYTE),
-        impl(nullMissingHandling(
-            (v1, v2) -> v2.shortValue() == 0 ? ExprNullValue.of() :
-                    new ExprShortValue(v1.shortValue() / v2.shortValue())),
-                SHORT, SHORT, SHORT),
-        impl(nullMissingHandling(
-            (v1, v2) -> v2.integerValue() == 0 ? ExprNullValue.of() :
-                    new ExprIntegerValue(v1.integerValue() / v2.integerValue())),
-                INTEGER, INTEGER, INTEGER),
-        impl(nullMissingHandling(
-            (v1, v2) -> v2.longValue() == 0 ? ExprNullValue.of() :
-                    new ExprLongValue(v1.longValue() / v2.longValue())),
-                LONG, LONG, LONG),
-        impl(nullMissingHandling(
-            (v1, v2) -> v2.floatValue() == 0 ? ExprNullValue.of() :
-                    new ExprFloatValue(v1.floatValue() / v2.floatValue())),
-                FLOAT, FLOAT, FLOAT),
-        impl(nullMissingHandling(
-            (v1, v2) -> v2.doubleValue() == 0 ? ExprNullValue.of() :
-                    new ExprDoubleValue(v1.doubleValue() / v2.doubleValue())),
-                DOUBLE, DOUBLE, DOUBLE)
-    );
+    return define(
+        functionName,
+        impl(
+            nullMissingHandling(
+                (v1, v2) ->
+                    v2.byteValue() == 0
+                        ? ExprNullValue.of()
+                        : new ExprByteValue(v1.byteValue() / v2.byteValue())),
+            BYTE,
+            BYTE,
+            BYTE),
+        impl(
+            nullMissingHandling(
+                (v1, v2) ->
+                    v2.shortValue() == 0
+                        ? ExprNullValue.of()
+                        : new ExprShortValue(v1.shortValue() / v2.shortValue())),
+            SHORT,
+            SHORT,
+            SHORT),
+        impl(
+            nullMissingHandling(
+                (v1, v2) ->
+                    v2.integerValue() == 0
+                        ? ExprNullValue.of()
+                        : new ExprIntegerValue(v1.integerValue() / v2.integerValue())),
+            INTEGER,
+            INTEGER,
+            INTEGER),
+        impl(
+            nullMissingHandling(
+                (v1, v2) ->
+                    v2.longValue() == 0
+                        ? ExprNullValue.of()
+                        : new ExprLongValue(v1.longValue() / v2.longValue())),
+            LONG,
+            LONG,
+            LONG),
+        impl(
+            nullMissingHandling(
+                (v1, v2) ->
+                    v2.floatValue() == 0
+                        ? ExprNullValue.of()
+                        : new ExprFloatValue(v1.floatValue() / v2.floatValue())),
+            FLOAT,
+            FLOAT,
+            FLOAT),
+        impl(
+            nullMissingHandling(
+                (v1, v2) ->
+                    v2.doubleValue() == 0
+                        ? ExprNullValue.of()
+                        : new ExprDoubleValue(v1.doubleValue() / v2.doubleValue())),
+            DOUBLE,
+            DOUBLE,
+            DOUBLE));
   }
 
   private static DefaultFunctionResolver divide() {
@@ -141,39 +186,69 @@ public class ArithmeticFunction {
   }
 
   /**
-   * Definition of modulus(x, y) function.
-   * Returns the number x modulo by number y
-   * The supported signature of modulo function is
-   * (x: BYTE/SHORT/INTEGER/LONG/FLOAT/DOUBLE, y: BYTE/SHORT/INTEGER/LONG/FLOAT/DOUBLE)
+   * Definition of modulus(x, y) function.<br>
+   * Returns the number x modulo by number y<br>
+   * The supported signature of modulo function is<br>
+   * (x: BYTE/SHORT/INTEGER/LONG/FLOAT/DOUBLE, y: BYTE/SHORT/INTEGER/LONG/FLOAT/DOUBLE)<br>
    * -> wider type between types of x and y
    */
   private static DefaultFunctionResolver modulusBase(FunctionName functionName) {
-    return define(functionName,
-            impl(nullMissingHandling(
-                (v1, v2) -> v2.byteValue() == 0 ? ExprNullValue.of() :
-                        new ExprByteValue(v1.byteValue() % v2.byteValue())),
-                    BYTE, BYTE, BYTE),
-            impl(nullMissingHandling(
-                (v1, v2) -> v2.shortValue() == 0 ? ExprNullValue.of() :
-                        new ExprShortValue(v1.shortValue() % v2.shortValue())),
-                    SHORT, SHORT, SHORT),
-            impl(nullMissingHandling(
-                (v1, v2) -> v2.integerValue() == 0 ? ExprNullValue.of() :
-                        new ExprIntegerValue(v1.integerValue() % v2.integerValue())),
-                    INTEGER, INTEGER, INTEGER),
-            impl(nullMissingHandling(
-                (v1, v2) -> v2.longValue() == 0 ? ExprNullValue.of() :
-                        new ExprLongValue(v1.longValue() % v2.longValue())),
-                    LONG, LONG, LONG),
-            impl(nullMissingHandling(
-                (v1, v2) -> v2.floatValue() == 0 ? ExprNullValue.of() :
-                        new ExprFloatValue(v1.floatValue() % v2.floatValue())),
-                    FLOAT, FLOAT, FLOAT),
-            impl(nullMissingHandling(
-                (v1, v2) -> v2.doubleValue() == 0 ? ExprNullValue.of() :
-                        new ExprDoubleValue(v1.doubleValue() % v2.doubleValue())),
-                    DOUBLE, DOUBLE, DOUBLE)
-    );
+    return define(
+        functionName,
+        impl(
+            nullMissingHandling(
+                (v1, v2) ->
+                    v2.byteValue() == 0
+                        ? ExprNullValue.of()
+                        : new ExprByteValue(v1.byteValue() % v2.byteValue())),
+            BYTE,
+            BYTE,
+            BYTE),
+        impl(
+            nullMissingHandling(
+                (v1, v2) ->
+                    v2.shortValue() == 0
+                        ? ExprNullValue.of()
+                        : new ExprShortValue(v1.shortValue() % v2.shortValue())),
+            SHORT,
+            SHORT,
+            SHORT),
+        impl(
+            nullMissingHandling(
+                (v1, v2) ->
+                    v2.integerValue() == 0
+                        ? ExprNullValue.of()
+                        : new ExprIntegerValue(v1.integerValue() % v2.integerValue())),
+            INTEGER,
+            INTEGER,
+            INTEGER),
+        impl(
+            nullMissingHandling(
+                (v1, v2) ->
+                    v2.longValue() == 0
+                        ? ExprNullValue.of()
+                        : new ExprLongValue(v1.longValue() % v2.longValue())),
+            LONG,
+            LONG,
+            LONG),
+        impl(
+            nullMissingHandling(
+                (v1, v2) ->
+                    v2.floatValue() == 0
+                        ? ExprNullValue.of()
+                        : new ExprFloatValue(v1.floatValue() % v2.floatValue())),
+            FLOAT,
+            FLOAT,
+            FLOAT),
+        impl(
+            nullMissingHandling(
+                (v1, v2) ->
+                    v2.doubleValue() == 0
+                        ? ExprNullValue.of()
+                        : new ExprDoubleValue(v1.doubleValue() % v2.doubleValue())),
+            DOUBLE,
+            DOUBLE,
+            DOUBLE));
   }
 
   private static DefaultFunctionResolver mod() {
@@ -189,34 +264,49 @@ public class ArithmeticFunction {
   }
 
   /**
-   * Definition of multiply(x, y) function.
-   * Returns the number x multiplied by number y
-   * The supported signature of multiply function is
-   * (x: BYTE/SHORT/INTEGER/LONG/FLOAT/DOUBLE, y: BYTE/SHORT/INTEGER/LONG/FLOAT/DOUBLE)
+   * Definition of multiply(x, y) function.<br>
+   * Returns the number x multiplied by number y<br>
+   * The supported signature of multiply function is<br>
+   * (x: BYTE/SHORT/INTEGER/LONG/FLOAT/DOUBLE, y: BYTE/SHORT/INTEGER/LONG/FLOAT/DOUBLE)<br></>
    * -> wider type between types of x and y
    */
   private static DefaultFunctionResolver multiplyBase(FunctionName functionName) {
-    return define(functionName,
-            impl(nullMissingHandling(
-                (v1, v2) -> new ExprByteValue(v1.byteValue() * v2.byteValue())),
-                    BYTE, BYTE, BYTE),
-            impl(nullMissingHandling(
-                (v1, v2) -> new ExprShortValue(v1.shortValue() * v2.shortValue())),
-                    SHORT, SHORT, SHORT),
-            impl(nullMissingHandling(
-                (v1, v2) -> new ExprIntegerValue(Math.multiplyExact(v1.integerValue(),
-                        v2.integerValue()))),
-                    INTEGER, INTEGER, INTEGER),
-            impl(nullMissingHandling(
+    return define(
+        functionName,
+        impl(
+            nullMissingHandling((v1, v2) -> new ExprByteValue(v1.byteValue() * v2.byteValue())),
+            BYTE,
+            BYTE,
+            BYTE),
+        impl(
+            nullMissingHandling((v1, v2) -> new ExprShortValue(v1.shortValue() * v2.shortValue())),
+            SHORT,
+            SHORT,
+            SHORT),
+        impl(
+            nullMissingHandling(
+                (v1, v2) ->
+                    new ExprIntegerValue(Math.multiplyExact(v1.integerValue(), v2.integerValue()))),
+            INTEGER,
+            INTEGER,
+            INTEGER),
+        impl(
+            nullMissingHandling(
                 (v1, v2) -> new ExprLongValue(Math.multiplyExact(v1.longValue(), v2.longValue()))),
-                    LONG, LONG, LONG),
-            impl(nullMissingHandling(
-                (v1, v2) -> new ExprFloatValue(v1.floatValue() * v2.floatValue())),
-                    FLOAT, FLOAT, FLOAT),
-            impl(nullMissingHandling(
+            LONG,
+            LONG,
+            LONG),
+        impl(
+            nullMissingHandling((v1, v2) -> new ExprFloatValue(v1.floatValue() * v2.floatValue())),
+            FLOAT,
+            FLOAT,
+            FLOAT),
+        impl(
+            nullMissingHandling(
                 (v1, v2) -> new ExprDoubleValue(v1.doubleValue() * v2.doubleValue())),
-                    DOUBLE, DOUBLE, DOUBLE)
-    );
+            DOUBLE,
+            DOUBLE,
+            DOUBLE));
   }
 
   private static DefaultFunctionResolver multiply() {
@@ -228,34 +318,49 @@ public class ArithmeticFunction {
   }
 
   /**
-   * Definition of subtract(x, y) function.
-   * Returns the number x minus number y
-   * The supported signature of subtract function is
-   * (x: BYTE/SHORT/INTEGER/LONG/FLOAT/DOUBLE, y: BYTE/SHORT/INTEGER/LONG/FLOAT/DOUBLE)
+   * Definition of subtract(x, y) function.<br>
+   * Returns the number x minus number y<br>
+   * The supported signature of subtract function is<br>
+   * (x: BYTE/SHORT/INTEGER/LONG/FLOAT/DOUBLE, y: BYTE/SHORT/INTEGER/LONG/FLOAT/DOUBLE)<br>
    * -> wider type between types of x and y
    */
   private static DefaultFunctionResolver subtractBase(FunctionName functionName) {
-    return define(functionName,
-            impl(nullMissingHandling(
-                (v1, v2) -> new ExprByteValue(v1.byteValue() - v2.byteValue())),
-                    BYTE, BYTE, BYTE),
-            impl(nullMissingHandling(
-                (v1, v2) -> new ExprShortValue(v1.shortValue() - v2.shortValue())),
-                    SHORT, SHORT, SHORT),
-            impl(nullMissingHandling(
-                (v1, v2) -> new ExprIntegerValue(Math.subtractExact(v1.integerValue(),
-                        v2.integerValue()))),
-                    INTEGER, INTEGER, INTEGER),
-            impl(nullMissingHandling(
+    return define(
+        functionName,
+        impl(
+            nullMissingHandling((v1, v2) -> new ExprByteValue(v1.byteValue() - v2.byteValue())),
+            BYTE,
+            BYTE,
+            BYTE),
+        impl(
+            nullMissingHandling((v1, v2) -> new ExprShortValue(v1.shortValue() - v2.shortValue())),
+            SHORT,
+            SHORT,
+            SHORT),
+        impl(
+            nullMissingHandling(
+                (v1, v2) ->
+                    new ExprIntegerValue(Math.subtractExact(v1.integerValue(), v2.integerValue()))),
+            INTEGER,
+            INTEGER,
+            INTEGER),
+        impl(
+            nullMissingHandling(
                 (v1, v2) -> new ExprLongValue(Math.subtractExact(v1.longValue(), v2.longValue()))),
-                    LONG, LONG, LONG),
-            impl(nullMissingHandling(
-                (v1, v2) -> new ExprFloatValue(v1.floatValue() - v2.floatValue())),
-                    FLOAT, FLOAT, FLOAT),
-            impl(nullMissingHandling(
+            LONG,
+            LONG,
+            LONG),
+        impl(
+            nullMissingHandling((v1, v2) -> new ExprFloatValue(v1.floatValue() - v2.floatValue())),
+            FLOAT,
+            FLOAT,
+            FLOAT),
+        impl(
+            nullMissingHandling(
                 (v1, v2) -> new ExprDoubleValue(v1.doubleValue() - v2.doubleValue())),
-                    DOUBLE, DOUBLE, DOUBLE)
-    );
+            DOUBLE,
+            DOUBLE,
+            DOUBLE));
   }
 
   private static DefaultFunctionResolver subtract() {
