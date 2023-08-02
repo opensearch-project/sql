@@ -13,15 +13,17 @@ import org.opensearch.sql.expression.Expression;
 import org.opensearch.sql.expression.env.Environment;
 
 /**
- * Window frame that represents a subset of a window which is all data accessible to
- * the window function when calculation. Basically there are 3 types of window frame:
- *  <ol>
- *  <li>Entire window frame that holds all data of the window</li>
- *  <li>Cumulative window frame that accumulates one row by another</li>
- *  <li>Sliding window frame that maintains a sliding window of fixed size</li>
- *  </ol>
- * Note that which type of window frame is used is determined by both window function itself
- * and frame definition in a window definition.
+ * Window frame that represents a subset of a window which is all data accessible to the window
+ * function when calculation. Basically there are 3 types of window frame:
+ *
+ * <ol>
+ *   <li>Entire window frame that holds all data of the window
+ *   <li>Cumulative window frame that accumulates one row by another
+ *   <li>Sliding window frame that maintains a sliding window of fixed size
+ * </ol>
+ *
+ * Note that which type of window frame is used is determined by both window function itself and
+ * frame definition in a window definition.
  */
 public interface WindowFrame extends Environment<Expression, ExprValue>, Iterator<List<ExprValue>> {
 

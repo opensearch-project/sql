@@ -42,7 +42,11 @@ import org.opensearch.sql.expression.function.BuiltinFunctionName;
 
 /**
  * Use this unresolved plan visitor to check if a plan can be serialized by PaginatedPlanCache.<br>
- * If <pre>plan.accept(new CanPaginateVisitor(...))</pre> returns <em>true</em>,<br>
+ * If
+ *
+ * <pre>plan.accept(new CanPaginateVisitor(...))</pre>
+ *
+ * returns <em>true</em>,<br>
  * then PaginatedPlanCache.convertToCursor will succeed. Otherwise, it will fail.<br>
  * The purpose of this visitor is to activate legacy engine fallback mechanism.<br>
  * Currently, V2 engine does not support queries with:<br>

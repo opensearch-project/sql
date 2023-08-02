@@ -113,8 +113,8 @@ public class MathematicalFunction {
 
   /**
    * <b>Definition of abs() function.<\b><br>
-   * The supported signature of abs() function are INT -> INT LONG ->
-   * LONG FLOAT -> FLOAT DOUBLE -> DOUBLE
+   * The supported signature of abs() function are INT -> INT LONG -> LONG FLOAT -> FLOAT DOUBLE ->
+   * DOUBLE
    */
   private static DefaultFunctionResolver abs() {
     return define(
@@ -135,8 +135,8 @@ public class MathematicalFunction {
 
   /**
    * <b>Definition of ceil(x)/ceiling(x) function.<\b><br>
-   * Calculate the next highest integer that x rounds up
-   * to The supported signature of ceil/ceiling function is DOUBLE -> INTEGER
+   * Calculate the next highest integer that x rounds up to The supported signature of ceil/ceiling
+   * function is DOUBLE -> INTEGER
    */
   private static DefaultFunctionResolver ceil() {
     return define(
@@ -206,16 +206,18 @@ public class MathematicalFunction {
             STRING));
   }
 
-  /** <b>Definition of e() function.</b><br>
-   *  Get the Euler's number. () -> DOUBLE */
+  /**
+   * <b>Definition of e() function.</b><br>
+   * Get the Euler's number. () -> DOUBLE
+   */
   private static DefaultFunctionResolver euler() {
     return define(BuiltinFunctionName.E.getName(), impl(() -> new ExprDoubleValue(Math.E), DOUBLE));
   }
 
   /**
    * <b>Definition of exp(x) function.<b><br>
-   * Calculate exponent function e to the x The supported signature
-   * of exp function is INTEGER/LONG/FLOAT/DOUBLE -> DOUBLE
+   * Calculate exponent function e to the x The supported signature of exp function is
+   * INTEGER/LONG/FLOAT/DOUBLE -> DOUBLE
    */
   private static DefaultFunctionResolver exp() {
     return baseMathFunction(
@@ -226,8 +228,8 @@ public class MathematicalFunction {
 
   /**
    * <b>Definition of expm1(x) function.</b><br>
-   * Calculate exponent function e to the x, minus 1 The supported
-   * signature of exp function is INTEGER/LONG/FLOAT/DOUBLE -> DOUBLE
+   * Calculate exponent function e to the x, minus 1 The supported signature of exp function is
+   * INTEGER/LONG/FLOAT/DOUBLE -> DOUBLE
    */
   private static DefaultFunctionResolver expm1() {
     return baseMathFunction(
@@ -238,8 +240,8 @@ public class MathematicalFunction {
 
   /**
    * <b>Definition of floor(x) function.</b><br>
-   * Calculate the next nearest whole integer that x rounds down to
-   * The supported signature of floor function is DOUBLE -> INTEGER
+   * Calculate the next nearest whole integer that x rounds down to The supported signature of floor
+   * function is DOUBLE -> INTEGER
    */
   private static DefaultFunctionResolver floor() {
     return define(
@@ -266,9 +268,8 @@ public class MathematicalFunction {
 
   /**
    * <b>Definition of log(b, x) function.</b><br>
-   * Calculate the logarithm of x using b as the base The
-   * supported signature of log function is (b: INTEGER/LONG/FLOAT/DOUBLE, x:
-   * INTEGER/LONG/FLOAT/DOUBLE]) -> DOUBLE
+   * Calculate the logarithm of x using b as the base The supported signature of log function is (b:
+   * INTEGER/LONG/FLOAT/DOUBLE, x: INTEGER/LONG/FLOAT/DOUBLE]) -> DOUBLE
    */
   private static DefaultFunctionResolver log() {
     ImmutableList.Builder<
@@ -476,8 +477,10 @@ public class MathematicalFunction {
    * <b>Definition of rand() and rand(N) function.</b><br>
    * rand() returns a random floating-point value in the range 0 <= value < 1.0<br>
    * If integer N is specified, the seed is initialized prior to execution.<br>
-   * One implication of this behavior is with identical argument N,rand(N) returns the same value<br>
-   * each time, and thus produces a repeatable sequence of column values. The supported signature of<br>
+   * One implication of this behavior is with identical argument N,rand(N) returns the same value
+   * <br>
+   * each time, and thus produces a repeatable sequence of column values. The supported signature of
+   * <br>
    * rand function is ([INTEGER]) -> FLOAT
    */
   private static DefaultFunctionResolver rand() {
@@ -786,8 +789,8 @@ public class MathematicalFunction {
 
   /**
    * <b>Definition of atan2(y, x) function.</b><br>
-   * Calculates the arc tangent of y / x, except that the signs of both arguments
-   * are used to determine the quadrant of the result.<br>
+   * Calculates the arc tangent of y / x, except that the signs of both arguments are used to
+   * determine the quadrant of the result.<br>
    * The supported signature of atan2 function is<br>
    * (x: INTEGER/LONG/FLOAT/DOUBLE, y: INTEGER/LONG/FLOAT/DOUBLE) -> DOUBLE
    */
@@ -837,8 +840,8 @@ public class MathematicalFunction {
 
   /**
    * <b>Definition of cot(x) function.<\b><br>
-   * Calculates the cotangent of x The supported signature of cot
-   * function is INTEGER/LONG/FLOAT/DOUBLE -> DOUBLE
+   * Calculates the cotangent of x The supported signature of cot function is
+   * INTEGER/LONG/FLOAT/DOUBLE -> DOUBLE
    */
   private static DefaultFunctionResolver cot() {
     return define(
@@ -863,8 +866,8 @@ public class MathematicalFunction {
 
   /**
    * <b>Definition of degrees(x) function.</b><br>
-   * Converts x from radians to degrees The supported signature
-   * of degrees function is INTEGER/LONG/FLOAT/DOUBLE -> DOUBLE
+   * Converts x from radians to degrees The supported signature of degrees function is
+   * INTEGER/LONG/FLOAT/DOUBLE -> DOUBLE
    */
   private static DefaultFunctionResolver degrees() {
     return baseMathFunction(
@@ -875,8 +878,8 @@ public class MathematicalFunction {
 
   /**
    * <b>Definition of radians(x) function.</b><br>
-   * Converts x from degrees to radians The supported signature
-   * of radians function is INTEGER/LONG/FLOAT/DOUBLE -> DOUBLE
+   * Converts x from degrees to radians The supported signature of radians function is
+   * INTEGER/LONG/FLOAT/DOUBLE -> DOUBLE
    */
   private static DefaultFunctionResolver radians() {
     return baseMathFunction(
@@ -887,8 +890,8 @@ public class MathematicalFunction {
 
   /**
    * <b>Definition of sin(x) function.</b><br>
-   * Calculates the sine of x, where x is given in radians The
-   * supported signature of sin function is INTEGER/LONG/FLOAT/DOUBLE -> DOUBLE
+   * Calculates the sine of x, where x is given in radians The supported signature of sin function
+   * is INTEGER/LONG/FLOAT/DOUBLE -> DOUBLE
    */
   private static DefaultFunctionResolver sin() {
     return baseMathFunction(
@@ -899,8 +902,8 @@ public class MathematicalFunction {
 
   /**
    * <b>Definition of tan(x) function.</b><br>
-   * Calculates the tangent of x, where x is given in radians The
-   * supported signature of tan function is INTEGER/LONG/FLOAT/DOUBLE -> DOUBLE
+   * Calculates the tangent of x, where x is given in radians The supported signature of tan
+   * function is INTEGER/LONG/FLOAT/DOUBLE -> DOUBLE
    */
   private static DefaultFunctionResolver tan() {
     return baseMathFunction(

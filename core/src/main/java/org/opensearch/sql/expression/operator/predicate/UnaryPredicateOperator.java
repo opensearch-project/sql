@@ -50,6 +50,7 @@ public class UnaryPredicateOperator {
 
   /**
    * The not logic.
+   *
    * <table>
    *     <tr>
    *         <th>A</th>

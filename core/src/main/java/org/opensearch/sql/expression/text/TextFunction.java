@@ -206,7 +206,8 @@ public class TextFunction {
 
   /**
    * TODO: https://github.com/opendistro-for-elasticsearch/sql/issues/710<br>
-   * Extend to accept variable argument amounts.<br><br>
+   * Extend to accept variable argument amounts.<br>
+   * <br>
    * Concatenates a list of Strings with a separator string. Supports following<br>
    * signatures: (STRING, STRING, STRING) -> STRING
    */
@@ -244,15 +245,21 @@ public class TextFunction {
    * (STRING, STRING) -> INTEGER
    */
   private DefaultFunctionResolver strcmp() {
-    return define(BuiltinFunctionName.STRCMP.getName(),
-        impl(nullMissingHandling((str1, str2) ->
-            new ExprIntegerValue(Integer.compare(
-                str1.stringValue().compareTo(str2.stringValue()), 0))),
-            INTEGER, STRING, STRING));
+    return define(
+        BuiltinFunctionName.STRCMP.getName(),
+        impl(
+            nullMissingHandling(
+                (str1, str2) ->
+                    new ExprIntegerValue(
+                        Integer.compare(str1.stringValue().compareTo(str2.stringValue()), 0))),
+            INTEGER,
+            STRING,
+            STRING));
   }
 
   /**
-   * <b>Returns the rightmost len characters from the string str, or NULL if any argument is NULL.</b><br>
+   * <b>Returns the rightmost len characters from the string str, or NULL if any argument is
+   * NULL.</b><br>
    * Supports following signatures:<br>
    * (STRING, INTEGER) -> STRING
    */
@@ -263,7 +270,8 @@ public class TextFunction {
   }
 
   /**
-   * <b>Returns the leftmost len characters from the string str, or NULL if any argument is NULL.</b><br>
+   * <b>Returns the leftmost len characters from the string str, or NULL if any argument is
+   * NULL.</b><br>
    * Supports following signature:<br>
    * (STRING, INTEGER) -> STRING
    */
@@ -316,7 +324,8 @@ public class TextFunction {
   }
 
   /**
-   * <b>Returns the position of the first occurrence of a substring in a string starting from 1.</b><br>
+   * <b>Returns the position of the first occurrence of a substring in a string starting from 1.</b>
+   * <br>
    * Returns 0 if substring is not in string.<br>
    * Returns NULL if any argument is NULL.<br>
    * Supports following signature:<br>

@@ -40,7 +40,7 @@ public class SpanExpression implements Expression {
 
   /**
    * Return type follows the following table.
-
+   *
    * <table>
    *   <tr>
    *     <th>FIELD</th>
