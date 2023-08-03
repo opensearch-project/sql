@@ -3,14 +3,11 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-
 package org.opensearch.sql.planner;
 
 import java.util.List;
 
-/**
- * The definition of Plan Node.
- */
+/** The definition of Plan Node. */
 public interface PlanNode<T extends PlanNode> {
 
   /**

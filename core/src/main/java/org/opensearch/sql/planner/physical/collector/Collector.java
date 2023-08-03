@@ -13,9 +13,7 @@ import org.opensearch.sql.expression.NamedExpression;
 import org.opensearch.sql.expression.aggregation.NamedAggregator;
 import org.opensearch.sql.storage.bindingtuple.BindingTuple;
 
-/**
- * Interface of {@link BindingTuple} Collector.
- */
+/** Interface of {@link BindingTuple} Collector. */
 public interface Collector {
 
   /**
@@ -32,16 +30,12 @@ public interface Collector {
    */
   List<ExprValue> results();
 
-  /**
-   * {@link Collector} tree builder.
-   */
+  /** {@link Collector} tree builder. */
   @UtilityClass
   class Builder {
-    /**
-     * build {@link Collector}.
-     */
-    public static Collector build(List<NamedExpression> buckets,
-                                  List<NamedAggregator> aggregators) {
+    /** build {@link Collector}. */
+    public static Collector build(
+        List<NamedExpression> buckets, List<NamedAggregator> aggregators) {
       if (buckets.isEmpty()) {
         return new MetricCollector(aggregators);
       } else {

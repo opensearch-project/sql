@@ -83,10 +83,12 @@ repositories {
 // Spotless checks will be added as PRs are applied to resolve each style issue is approved.
 spotless {
     java {
-//        target fileTree('.') {
-//            include '**/*.java', 'src/*/java/**/*.java'
-//            exclude '**/build/**', '**/build-*/**'
-//        }
+        target fileTree('.') {
+            include 'core/src/main/java/org/opensearch/sql/planner/**/*.java',
+                    'core/src/main/java/org/opensearch/sql/storage/**/*.java',
+                    'core/src/main/java/org/opensearch/sql/utils/**/*.java'
+            exclude '**/build/**', '**/build-*/**'
+        }
 //        importOrder()
 //        licenseHeader("/*\n" +
 //                " * Copyright OpenSearch Contributors\n" +
@@ -95,7 +97,7 @@ spotless {
 //        removeUnusedImports()
 //        trimTrailingWhitespace()
 //        endWithNewline()
-//        googleJavaFormat('1.17.0').reflowLongStrings().groupArtifact('com.google.googlejavaformat:google-java-format')
+        googleJavaFormat('1.17.0').reflowLongStrings().groupArtifact('com.google.googlejavaformat:google-java-format')
     }
 }
 
