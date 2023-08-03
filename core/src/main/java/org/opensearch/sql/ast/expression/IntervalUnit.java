@@ -49,8 +49,8 @@ public enum  IntervalUnit {
    */
   public static IntervalUnit of(String unit) {
     return INTERVAL_UNITS.stream()
-            .filter(v -> unit.equalsIgnoreCase(v.name()))
-            .findFirst()
-            .orElse(IntervalUnit.UNKNOWN);
+        .filter(v -> unit.equalsIgnoreCase(v.name()))
+        .findFirst()
+        .orElse(IntervalUnit.UNKNOWN);
   }
 }

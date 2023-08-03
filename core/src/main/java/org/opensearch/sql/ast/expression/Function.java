@@ -39,8 +39,8 @@ public class Function extends UnresolvedExpression {
   @Override
   public String toString() {
     return String.format("%s(%s)", funcName,
-            funcArgs.stream()
-                    .map(Object::toString)
-                    .collect(Collectors.joining(", ")));
+        funcArgs.stream()
+            .map(Object::toString)
+            .collect(Collectors.joining(", ")));
   }
 }

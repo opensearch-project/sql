@@ -35,9 +35,9 @@ public class RelevanceFieldList extends UnresolvedExpression {
   @Override
   public String toString() {
     return fieldList
-            .entrySet()
-            .stream()
-            .map(e -> String.format("\"%s\" ^ %s", e.getKey(), e.getValue()))
-            .collect(Collectors.joining(", "));
+        .entrySet()
+        .stream()
+        .map(e -> String.format("\"%s\" ^ %s", e.getKey(), e.getValue()))
+        .collect(Collectors.joining(", "));
   }
 }

@@ -55,9 +55,9 @@ public enum SpanUnit {
         return m;
       default:
         return SPAN_UNITS.stream()
-                .filter(v -> unit.equalsIgnoreCase(v.name()))
-                .findFirst()
-                .orElse(UNKNOWN);
+            .filter(v -> unit.equalsIgnoreCase(v.name()))
+            .findFirst()
+            .orElse(UNKNOWN);
     }
   }
 

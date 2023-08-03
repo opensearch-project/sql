@@ -83,8 +83,8 @@ public class Relation extends UnresolvedPlan {
       return (QualifiedName) tableName.get(0);
     } else {
       return new QualifiedName(tableName.stream()
-              .map(UnresolvedExpression::toString)
-              .collect(Collectors.joining(COMMA)));
+          .map(UnresolvedExpression::toString)
+          .collect(Collectors.joining(COMMA)));
     }
   }
 

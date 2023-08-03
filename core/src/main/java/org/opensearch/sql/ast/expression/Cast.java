@@ -43,21 +43,21 @@ import org.opensearch.sql.expression.function.FunctionName;
 public class Cast extends UnresolvedExpression {
 
   private static final Map<String, FunctionName> CONVERTED_TYPE_FUNCTION_NAME_MAP =
-          new ImmutableMap.Builder<String, FunctionName>()
-                  .put("string", CAST_TO_STRING.getName())
-                  .put("byte", CAST_TO_BYTE.getName())
-                  .put("short", CAST_TO_SHORT.getName())
-                  .put("int", CAST_TO_INT.getName())
-                  .put("integer", CAST_TO_INT.getName())
-                  .put("long", CAST_TO_LONG.getName())
-                  .put("float", CAST_TO_FLOAT.getName())
-                  .put("double", CAST_TO_DOUBLE.getName())
-                  .put("boolean", CAST_TO_BOOLEAN.getName())
-                  .put("date", CAST_TO_DATE.getName())
-                  .put("time", CAST_TO_TIME.getName())
-                  .put("timestamp", CAST_TO_TIMESTAMP.getName())
-                  .put("datetime", CAST_TO_DATETIME.getName())
-                  .build();
+      new ImmutableMap.Builder<String, FunctionName>()
+          .put("string", CAST_TO_STRING.getName())
+          .put("byte", CAST_TO_BYTE.getName())
+          .put("short", CAST_TO_SHORT.getName())
+          .put("int", CAST_TO_INT.getName())
+          .put("integer", CAST_TO_INT.getName())
+          .put("long", CAST_TO_LONG.getName())
+          .put("float", CAST_TO_FLOAT.getName())
+          .put("double", CAST_TO_DOUBLE.getName())
+          .put("boolean", CAST_TO_BOOLEAN.getName())
+          .put("date", CAST_TO_DATE.getName())
+          .put("time", CAST_TO_TIME.getName())
+          .put("timestamp", CAST_TO_TIMESTAMP.getName())
+          .put("datetime", CAST_TO_DATETIME.getName())
+          .build();
 
   /**
    * The source expression cast from.
