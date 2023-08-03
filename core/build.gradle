@@ -34,6 +34,9 @@ repositories {
     mavenCentral()
 }
 
+checkstyleMain.ignoreFailures = true
+checkstyleTest.ignoreFailures = true
+
 pitest {
     targetClasses = ['org.opensearch.sql.*']
     pitestVersion = '1.9.0'

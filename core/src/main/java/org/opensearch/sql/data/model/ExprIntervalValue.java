@@ -3,7 +3,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-
 package org.opensearch.sql.data.model;
 
 import java.time.temporal.TemporalAmount;
@@ -27,7 +26,8 @@ public class ExprIntervalValue extends AbstractExprValue {
     TemporalAmount otherInterval = other.intervalValue();
     if (!interval.getClass().equals(other.intervalValue().getClass())) {
       throw new ExpressionEvaluationException(
-          String.format("invalid to compare intervals with units %s and %s",
+          String.format(
+              "invalid to compare intervals with units %s and %s",
               unit(), ((ExprIntervalValue) other).unit()));
     }
     return Long.compare(
@@ -49,12 +49,9 @@ public class ExprIntervalValue extends AbstractExprValue {
     return ExprCoreType.INTERVAL;
   }
 
-  /**
-   * Util method to get temporal unit stored locally.
-   */
+  /** Util method to get temporal unit stored locally. */
   public TemporalUnit unit() {
-    return interval.getUnits()
-        .stream()
+    return interval.getUnits().stream()
         .filter(v -> interval.get(v) != 0)
         .findAny()
         .orElse(interval.getUnits().get(0));

@@ -3,16 +3,13 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-
 package org.opensearch.sql.ast;
 
 import java.util.List;
 import lombok.EqualsAndHashCode;
 import lombok.ToString;
 
-/**
- * AST node.
- */
+/** AST node. */
 @EqualsAndHashCode
 @ToString
 public abstract class Node {

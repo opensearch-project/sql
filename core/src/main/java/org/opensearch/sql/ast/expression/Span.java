@@ -13,10 +13,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.ToString;
 import org.opensearch.sql.ast.AbstractNodeVisitor;
 
-/**
- * Span expression node.
- * Params include field expression and the span value.
- */
+/** Span expression node. Params include field expression and the span value. */
 @Getter
 @EqualsAndHashCode(callSuper = false)
 @RequiredArgsConstructor
@@ -35,5 +32,4 @@ public class Span extends UnresolvedExpression {
   public <R, C> R accept(AbstractNodeVisitor<R, C> nodeVisitor, C context) {
     return nodeVisitor.visitSpan(this, context);
   }
-
 }

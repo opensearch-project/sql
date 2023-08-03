@@ -3,7 +3,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-
 package org.opensearch.sql.data.model;
 
 import java.util.Iterator;
@@ -18,9 +17,7 @@ import org.opensearch.sql.data.type.ExprType;
 import org.opensearch.sql.storage.bindingtuple.BindingTuple;
 import org.opensearch.sql.storage.bindingtuple.LazyBindingTuple;
 
-/**
- * Expression Tuple Value.
- */
+/** Expression Tuple Value. */
 @RequiredArgsConstructor
 public class ExprTupleValue extends AbstractExprValue {
 
@@ -47,8 +44,7 @@ public class ExprTupleValue extends AbstractExprValue {
 
   @Override
   public String toString() {
-    return valueMap.entrySet()
-        .stream()
+    return valueMap.entrySet().stream()
         .map(entry -> String.format("%s:%s", entry.getKey(), entry.getValue()))
         .collect(Collectors.joining(",", "{", "}"));
   }
@@ -70,6 +66,7 @@ public class ExprTupleValue extends AbstractExprValue {
 
   /**
    * Override the equals method.
+   *
    * @return true for equal, otherwise false.
    */
   public boolean equal(ExprValue o) {
@@ -91,9 +88,7 @@ public class ExprTupleValue extends AbstractExprValue {
     }
   }
 
-  /**
-   * Only compare the size of the map.
-   */
+  /** Only compare the size of the map. */
   @Override
   public int compare(ExprValue other) {
     return Integer.compare(valueMap.size(), other.tupleValue().size());
