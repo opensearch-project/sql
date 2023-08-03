@@ -392,4 +392,3 @@ public class HavingTest {
         return hasFieldWithValue("script", "has script", is(new Script(expectedCode)));
     }
 }
-

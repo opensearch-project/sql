@@ -8,7 +8,6 @@ package org.opensearch.sql.legacy.unittest;
 
 import static java.util.Collections.emptyList;
 import static org.mockito.Mockito.doReturn;
-import static org.mockito.Mockito.spy;
 
 import org.junit.Assert;
 import org.junit.Before;

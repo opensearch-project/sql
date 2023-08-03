@@ -22,7 +22,6 @@ import org.opensearch.sql.expression.DSL;
 import org.opensearch.sql.expression.Expression;
 import org.opensearch.sql.expression.function.FunctionName;
 import org.opensearch.sql.prometheus.client.PrometheusClient;
-import org.opensearch.sql.prometheus.functions.implementation.QueryExemplarFunctionImplementation;
 import org.opensearch.sql.prometheus.request.PrometheusQueryExemplarsRequest;
 import org.opensearch.sql.prometheus.storage.QueryExemplarsTable;
 
@@ -89,4 +88,3 @@ class QueryExemplarsFunctionImplementationTest {
 
 
 }
-

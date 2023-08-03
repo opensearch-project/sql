@@ -379,4 +379,3 @@ public class TextFunction {
     return new ExprStringValue(new StringBuilder(str.stringValue()).reverse().toString());
   }
 }
-

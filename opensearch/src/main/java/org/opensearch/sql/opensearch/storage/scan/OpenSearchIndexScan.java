@@ -6,7 +6,6 @@
 
 package org.opensearch.sql.opensearch.storage.scan;
 
-import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;

@@ -31,7 +31,6 @@ import org.opensearch.sql.expression.function.FunctionSignature;
 import org.opensearch.sql.expression.function.TableFunctionImplementation;
 import org.opensearch.sql.prometheus.client.PrometheusClient;
 import org.opensearch.sql.prometheus.functions.implementation.QueryRangeFunctionImplementation;
-import org.opensearch.sql.prometheus.functions.resolver.QueryRangeTableFunctionResolver;
 import org.opensearch.sql.prometheus.request.PrometheusQueryRequest;
 import org.opensearch.sql.prometheus.storage.PrometheusMetricTable;
 
