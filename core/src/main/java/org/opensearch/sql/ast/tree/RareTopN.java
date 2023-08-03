@@ -57,3 +57,4 @@ public class RareTopN extends UnresolvedPlan {
     RARE
   }
 }
+
