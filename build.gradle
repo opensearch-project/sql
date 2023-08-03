@@ -91,7 +91,7 @@ spotless {
 //        licenseHeader("/*\n" +
 //                " * Copyright OpenSearch Contributors\n" +
 //                " * SPDX-License-Identifier: Apache-2.0\n" +
-//                " */\n\n\n")
+//                " */\n\n")
 //        removeUnusedImports()
         trimTrailingWhitespace()
         endWithNewline()
