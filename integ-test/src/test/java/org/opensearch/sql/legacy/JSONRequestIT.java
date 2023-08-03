@@ -11,16 +11,16 @@ import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.greaterThan;
 import static org.hamcrest.Matchers.lessThan;
 
+import com.fasterxml.jackson.core.JsonFactory;
 import java.io.IOException;
 import java.util.Map;
 import org.json.JSONObject;
 import org.junit.Test;
 import org.opensearch.action.search.SearchResponse;
 import org.opensearch.common.xcontent.LoggingDeprecationHandler;
-import org.opensearch.common.xcontent.XContentFactory;
+import org.opensearch.common.xcontent.json.JsonXContentParser;
 import org.opensearch.core.xcontent.NamedXContentRegistry;
 import org.opensearch.core.xcontent.XContentParser;
-import org.opensearch.common.xcontent.XContentType;
 import org.opensearch.search.SearchHit;
 import org.opensearch.search.SearchHits;
 
@@ -184,10 +184,10 @@ public class JSONRequestIT extends SQLIntegTestCase {
   private SearchHits query(String request) throws IOException {
     final JSONObject jsonObject = executeRequest(request);
 
-    final XContentParser parser = XContentFactory.xContent(XContentType.JSON).createParser(
+    final XContentParser parser = new JsonXContentParser(
         NamedXContentRegistry.EMPTY,
         LoggingDeprecationHandler.INSTANCE,
-        jsonObject.toString());
+        new JsonFactory().createParser(jsonObject.toString()));
     return SearchResponse.fromXContent(parser).getHits();
   }
 }

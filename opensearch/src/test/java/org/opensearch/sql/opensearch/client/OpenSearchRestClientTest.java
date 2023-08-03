@@ -142,7 +142,6 @@ class OpenSearchRestClientTest {
   @Test
   void create_index_with_IOException() throws IOException {
     when(restClient.indices().create(any(), any())).thenThrow(IOException.class);
-
     assertThrows(IllegalStateException.class,
         () -> client.createIndex("test", ImmutableMap.of()));
   }
