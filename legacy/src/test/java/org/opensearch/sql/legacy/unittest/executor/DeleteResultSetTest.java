@@ -31,7 +31,7 @@ public class DeleteResultSetTest {
 
     @Mock
     Delete deleteQuery;
-    
+
     @Test
     public void testDeleteResponseForJdbcFormat() throws IOException {
 

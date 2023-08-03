@@ -17,7 +17,6 @@ import org.opensearch.action.ActionResponse;
 import org.opensearch.action.search.SearchRequestBuilder;
 import org.opensearch.core.common.bytes.BytesReference;
 import org.opensearch.common.xcontent.XContentFactory;
-import org.opensearch.common.xcontent.XContentType;
 import org.opensearch.core.xcontent.ToXContent;
 import org.opensearch.core.xcontent.XContentBuilder;
 import org.opensearch.sql.legacy.domain.Field;

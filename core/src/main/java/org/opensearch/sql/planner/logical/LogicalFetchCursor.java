@@ -9,8 +9,6 @@ import java.util.List;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.ToString;
-import org.opensearch.sql.planner.logical.LogicalPlan;
-import org.opensearch.sql.planner.logical.LogicalPlanNodeVisitor;
 import org.opensearch.sql.storage.StorageEngine;
 
 /**
