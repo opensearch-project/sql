@@ -84,9 +84,9 @@ repositories {
 spotless {
     java {
         target fileTree('.') {
-            include 'core/src/main/java/org/opensearch/sql/planner/*.java',
-                    'core/src/main/java/org/opensearch/sql/storage/*.java',
-                    'core/src/main/java/org/opensearch/sql/utils/*.java'
+            include 'core/src/main/java/org/opensearch/sql/planner/**/*.java',
+                    'core/src/main/java/org/opensearch/sql/storage/**/*.java',
+                    'core/src/main/java/org/opensearch/sql/utils/**/*.java'
             exclude '**/build/**', '**/build-*/**'
         }
 //        importOrder()

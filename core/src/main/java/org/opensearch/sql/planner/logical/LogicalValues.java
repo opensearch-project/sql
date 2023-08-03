@@ -16,17 +16,19 @@ import org.opensearch.sql.expression.LiteralExpression;
  * Logical operator which is a sequence of literal rows (like a relation).<br>
  * Basically, Values operator is used to create rows of constant literals<br>
  * "out of nothing" which is corresponding with VALUES clause in SQL. <br>
- * Mostly all rows must have the same number of literals and each column should
- * have same type or can be converted implicitly. In particular, typical use cases include:
- * <ol>
- * <li>Project without relation involved.</li>
- * <li>Defining query or insertion without a relation.</li>
- * </ol>
- * Take the
- * following logical plan for example:
+ * Mostly all rows must have the same number of literals and each column should have same type or
+ * can be converted implicitly. In particular, typical use cases include:
  *
- *  LogicalProject(expr=[log(2),true,1+2])<br>
- *  &ensp; |_ LogicalValues([[]])  #an empty row so that Project can evaluate its expressions in next()
+ * <ol>
+ *   <li>Project without relation involved.
+ *   <li>Defining query or insertion without a relation.
+ * </ol>
+ *
+ * Take the following logical plan for example:
+ *
+ * <p>LogicalProject(expr=[log(2),true,1+2])<br>
+ * &ensp; |_ LogicalValues([[]]) #an empty row so that Project can evaluate its expressions in
+ * next()
  */
 @ToString
 @Getter
