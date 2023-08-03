@@ -84,12 +84,10 @@ repositories {
 spotless {
     java {
         target fileTree('.') {
-            include 'core/src/main/java/org/opensearch/sql/ast/*.java',
-                    'core/src/main/java/org/opensearch/sql/DataSourceSchemaName.java',
-                    'core/src/test/java/org/opensearch/sql/ast/*.java',
-                    'core/src/test/java/org/opensearch/sql/data/*.java',
-                    'core/src/test/java/org/opensearch/sql/config/*.java',
-                    'core/src/test/java/org/opensearch/sql/analysis/*.java'
+            include 'core/src/main/java/org/opensearch/sql/DataSourceSchemaName.java',
+                    'core/src/test/java/org/opensearch/sql/data/**/*.java',
+                    'core/src/test/java/org/opensearch/sql/config/**/*.java',
+                    'core/src/test/java/org/opensearch/sql/analysis/**/*.java'
             exclude '**/build/**', '**/build-*/**'
         }
 //        importOrder()
