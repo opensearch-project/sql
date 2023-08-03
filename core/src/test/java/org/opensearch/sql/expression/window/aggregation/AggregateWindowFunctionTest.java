@@ -3,7 +3,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-
 package org.opensearch.sql.expression.window.aggregation;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -27,9 +26,7 @@ import org.opensearch.sql.expression.ExpressionTestBase;
 import org.opensearch.sql.expression.aggregation.Aggregator;
 import org.opensearch.sql.expression.window.frame.PeerRowsWindowFrame;
 
-/**
- * Aggregate window function test collection.
- */
+/** Aggregate window function test collection. */
 @SuppressWarnings("unchecked")
 @DisplayNameGeneration(DisplayNameGenerator.ReplaceUnderscores.class)
 @ExtendWith(MockitoExtension.class)
@@ -56,15 +53,17 @@ class AggregateWindowFunctionTest extends ExpressionTestBase {
         new AggregateWindowFunction(DSL.sum(DSL.ref("age", INTEGER)));
 
     when(windowFrame.isNewPartition()).thenReturn(true);
-    when(windowFrame.next()).thenReturn(ImmutableList.of(
-        fromExprValueMap(ImmutableMap.of("age", new ExprIntegerValue(10))),
-        fromExprValueMap(ImmutableMap.of("age", new ExprIntegerValue(20)))));
+    when(windowFrame.next())
+        .thenReturn(
+            ImmutableList.of(
+                fromExprValueMap(ImmutableMap.of("age", new ExprIntegerValue(10))),
+                fromExprValueMap(ImmutableMap.of("age", new ExprIntegerValue(20)))));
     assertEquals(new ExprIntegerValue(30), windowFunction.valueOf(windowFrame));
 
     when(windowFrame.isNewPartition()).thenReturn(false);
-    when(windowFrame.next()).thenReturn(ImmutableList.of(
-        fromExprValueMap(ImmutableMap.of("age", new ExprIntegerValue(30)))));
+    when(windowFrame.next())
+        .thenReturn(
+            ImmutableList.of(fromExprValueMap(ImmutableMap.of("age", new ExprIntegerValue(30)))));
     assertEquals(new ExprIntegerValue(60), windowFunction.valueOf(windowFrame));
   }
-
 }

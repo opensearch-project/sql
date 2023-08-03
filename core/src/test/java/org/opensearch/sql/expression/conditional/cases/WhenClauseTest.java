@@ -3,7 +3,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-
 package org.opensearch.sql.expression.conditional.cases;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -59,5 +58,4 @@ class WhenClauseTest extends ExpressionTestBase {
     WhenClause whenClause = new WhenClause(DSL.literal(true), DSL.literal(30));
     assertEquals(ExprCoreType.INTEGER, whenClause.type());
   }
-
 }

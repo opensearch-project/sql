@@ -29,8 +29,8 @@ public abstract class AbstractExprValue implements ExprValue {
   }
 
   /**
-   * The customize equals logic.
-   * The table below list the NULL and MISSING handling logic.
+   * The customize equals logic. The table below list the NULL and MISSING handling logic.
+   *
    * <table>
    *   <tr>
    *     <th>A</th>

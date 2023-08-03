@@ -3,7 +3,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-
 package org.opensearch.sql.expression.text;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -36,45 +35,44 @@ import org.opensearch.sql.expression.env.Environment;
 
 @ExtendWith(MockitoExtension.class)
 public class TextFunctionTest extends ExpressionTestBase {
-  @Mock
-  Environment<Expression, ExprValue> env;
+  @Mock Environment<Expression, ExprValue> env;
 
-  @Mock
-  Expression nullRef;
+  @Mock Expression nullRef;
 
-  @Mock
-  Expression missingRef;
+  @Mock Expression missingRef;
 
-
-  private static List<SubstringInfo> SUBSTRING_STRINGS = ImmutableList.of(
-      new SubstringInfo("", 1, 1, ""),
-      new SubstringInfo("Quadratically", 5, null, "ratically"),
-      new SubstringInfo("foobarbar", 4, null, "barbar"),
-      new SubstringInfo("Quadratically", 5, 6, "ratica"),
-      new SubstringInfo("Quadratically", 5, 600, "ratically"),
-      new SubstringInfo("Quadratically", 500, 1, ""),
-      new SubstringInfo("Quadratically", 500, null, ""),
-      new SubstringInfo("Sakila", -3, null, "ila"),
-      new SubstringInfo("Sakila", -5, 3, "aki"),
-      new SubstringInfo("Sakila", -4, 2, "ki"),
-      new SubstringInfo("Quadratically", 0, null, ""),
-      new SubstringInfo("Sakila", 0, 2, ""),
-      new SubstringInfo("Sakila", 2, 0, ""),
-      new SubstringInfo("Sakila", 0, 0, ""));
-  private static List<String> UPPER_LOWER_STRINGS = ImmutableList.of(
-      "test", " test", "test ", " test ", "TesT", "TEST", " TEST", "TEST ", " TEST ", " ", "");
-  private static List<StringPatternPair> STRING_PATTERN_PAIRS = ImmutableList.of(
-      new StringPatternPair("Michael!", "Michael!"),
-      new StringPatternPair("hello", "world"),
-      new StringPatternPair("world", "hello"));
-  private static List<String> TRIM_STRINGS = ImmutableList.of(
-      " test", "     test", "test     ", "test", "     test    ", "", " ");
-  private static List<List<String>> CONCAT_STRING_LISTS = ImmutableList.of(
-      ImmutableList.of("hello", "world"),
-      ImmutableList.of("123", "5325"));
-  private static List<List<String>> CONCAT_STRING_LISTS_WITH_MANY_STRINGS = ImmutableList.of(
-      ImmutableList.of("he", "llo", "wo", "rld", "!"),
-      ImmutableList.of("0", "123", "53", "25", "7"));
+  private static List<SubstringInfo> SUBSTRING_STRINGS =
+      ImmutableList.of(
+          new SubstringInfo("", 1, 1, ""),
+          new SubstringInfo("Quadratically", 5, null, "ratically"),
+          new SubstringInfo("foobarbar", 4, null, "barbar"),
+          new SubstringInfo("Quadratically", 5, 6, "ratica"),
+          new SubstringInfo("Quadratically", 5, 600, "ratically"),
+          new SubstringInfo("Quadratically", 500, 1, ""),
+          new SubstringInfo("Quadratically", 500, null, ""),
+          new SubstringInfo("Sakila", -3, null, "ila"),
+          new SubstringInfo("Sakila", -5, 3, "aki"),
+          new SubstringInfo("Sakila", -4, 2, "ki"),
+          new SubstringInfo("Quadratically", 0, null, ""),
+          new SubstringInfo("Sakila", 0, 2, ""),
+          new SubstringInfo("Sakila", 2, 0, ""),
+          new SubstringInfo("Sakila", 0, 0, ""));
+  private static List<String> UPPER_LOWER_STRINGS =
+      ImmutableList.of(
+          "test", " test", "test ", " test ", "TesT", "TEST", " TEST", "TEST ", " TEST ", " ", "");
+  private static List<StringPatternPair> STRING_PATTERN_PAIRS =
+      ImmutableList.of(
+          new StringPatternPair("Michael!", "Michael!"),
+          new StringPatternPair("hello", "world"),
+          new StringPatternPair("world", "hello"));
+  private static List<String> TRIM_STRINGS =
+      ImmutableList.of(" test", "     test", "test     ", "test", "     test    ", "", " ");
+  private static List<List<String>> CONCAT_STRING_LISTS =
+      ImmutableList.of(ImmutableList.of("hello", "world"), ImmutableList.of("123", "5325"));
+  private static List<List<String>> CONCAT_STRING_LISTS_WITH_MANY_STRINGS =
+      ImmutableList.of(
+          ImmutableList.of("he", "llo", "wo", "rld", "!"),
+          ImmutableList.of("0", "123", "53", "25", "7"));
 
   interface SubstrSubstring {
     FunctionExpression getFunction(SubstringInfo strInfo);
@@ -86,9 +84,11 @@ public class TextFunctionTest extends ExpressionTestBase {
       if (strInfo.getLen() == null) {
         expr = DSL.substr(DSL.literal(strInfo.getExpr()), DSL.literal(strInfo.getStart()));
       } else {
-        expr = DSL.substr(DSL.literal(strInfo.getExpr()),
-            DSL.literal(strInfo.getStart()),
-            DSL.literal(strInfo.getLen()));
+        expr =
+            DSL.substr(
+                DSL.literal(strInfo.getExpr()),
+                DSL.literal(strInfo.getStart()),
+                DSL.literal(strInfo.getLen()));
       }
       return expr;
     }
@@ -100,9 +100,11 @@ public class TextFunctionTest extends ExpressionTestBase {
       if (strInfo.getLen() == null) {
         expr = DSL.substring(DSL.literal(strInfo.getExpr()), DSL.literal(strInfo.getStart()));
       } else {
-        expr = DSL.substring(DSL.literal(strInfo.getExpr()),
-            DSL.literal(strInfo.getStart()),
-            DSL.literal(strInfo.getLen()));
+        expr =
+            DSL.substring(
+                DSL.literal(strInfo.getExpr()),
+                DSL.literal(strInfo.getStart()),
+                DSL.literal(strInfo.getLen()));
       }
       return expr;
     }
@@ -235,15 +237,11 @@ public class TextFunctionTest extends ExpressionTestBase {
 
     when(nullRef.type()).thenReturn(STRING);
     when(missingRef.type()).thenReturn(STRING);
-    assertEquals(missingValue(), eval(
-            DSL.concat(missingRef, DSL.literal("1"))));
+    assertEquals(missingValue(), eval(DSL.concat(missingRef, DSL.literal("1"))));
     // If any of the expressions is a NULL value, it returns NULL.
-    assertEquals(nullValue(), eval(
-            DSL.concat(nullRef, DSL.literal("1"))));
-    assertEquals(missingValue(), eval(
-            DSL.concat(DSL.literal("1"), missingRef)));
-    assertEquals(nullValue(), eval(
-            DSL.concat(DSL.literal("1"), nullRef)));
+    assertEquals(nullValue(), eval(DSL.concat(nullRef, DSL.literal("1"))));
+    assertEquals(missingValue(), eval(DSL.concat(DSL.literal("1"), missingRef)));
+    assertEquals(nullValue(), eval(DSL.concat(DSL.literal("1"), nullRef)));
   }
 
   @Test
@@ -252,18 +250,15 @@ public class TextFunctionTest extends ExpressionTestBase {
 
     when(nullRef.type()).thenReturn(STRING);
     when(missingRef.type()).thenReturn(STRING);
-    assertEquals(missingValue(), eval(
-        DSL.concat_ws(missingRef, DSL.literal("1"), DSL.literal("1"))));
-    assertEquals(nullValue(), eval(
-        DSL.concat_ws(nullRef, DSL.literal("1"), DSL.literal("1"))));
-    assertEquals(missingValue(), eval(
-        DSL.concat_ws(DSL.literal("1"), missingRef, DSL.literal("1"))));
-    assertEquals(nullValue(), eval(
-        DSL.concat_ws(DSL.literal("1"), nullRef, DSL.literal("1"))));
-    assertEquals(missingValue(), eval(
-        DSL.concat_ws(DSL.literal("1"), DSL.literal("1"), missingRef)));
-    assertEquals(nullValue(), eval(
-        DSL.concat_ws(DSL.literal("1"), DSL.literal("1"), nullRef)));
+    assertEquals(
+        missingValue(), eval(DSL.concat_ws(missingRef, DSL.literal("1"), DSL.literal("1"))));
+    assertEquals(nullValue(), eval(DSL.concat_ws(nullRef, DSL.literal("1"), DSL.literal("1"))));
+    assertEquals(
+        missingValue(), eval(DSL.concat_ws(DSL.literal("1"), missingRef, DSL.literal("1"))));
+    assertEquals(nullValue(), eval(DSL.concat_ws(DSL.literal("1"), nullRef, DSL.literal("1"))));
+    assertEquals(
+        missingValue(), eval(DSL.concat_ws(DSL.literal("1"), DSL.literal("1"), missingRef)));
+    assertEquals(nullValue(), eval(DSL.concat_ws(DSL.literal("1"), DSL.literal("1"), nullRef)));
   }
 
   @Test
@@ -290,9 +285,9 @@ public class TextFunctionTest extends ExpressionTestBase {
 
   @Test
   void right() {
-    FunctionExpression expression = DSL.right(
-            DSL.literal(new ExprStringValue("foobarbar")),
-            DSL.literal(new ExprIntegerValue(4)));
+    FunctionExpression expression =
+        DSL.right(
+            DSL.literal(new ExprStringValue("foobarbar")), DSL.literal(new ExprIntegerValue(4)));
     assertEquals(STRING, expression.type());
     assertEquals("rbar", eval(expression).stringValue());
 
@@ -319,9 +314,9 @@ public class TextFunctionTest extends ExpressionTestBase {
 
   @Test
   void left() {
-    FunctionExpression expression = DSL.left(
-        DSL.literal(new ExprStringValue("helloworld")),
-        DSL.literal(new ExprIntegerValue(5)));
+    FunctionExpression expression =
+        DSL.left(
+            DSL.literal(new ExprStringValue("helloworld")), DSL.literal(new ExprIntegerValue(5)));
     assertEquals(STRING, expression.type());
     assertEquals("hello", eval(expression).stringValue());
 
@@ -360,16 +355,11 @@ public class TextFunctionTest extends ExpressionTestBase {
 
   @Test
   void locate() {
-    FunctionExpression expression = DSL.locate(
-        DSL.literal("world"),
-        DSL.literal("helloworld"));
+    FunctionExpression expression = DSL.locate(DSL.literal("world"), DSL.literal("helloworld"));
     assertEquals(INTEGER, expression.type());
     assertEquals(6, eval(expression).integerValue());
 
-    expression = DSL.locate(
-        DSL.literal("world"),
-        DSL.literal("helloworldworld"),
-        DSL.literal(7));
+    expression = DSL.locate(DSL.literal("world"), DSL.literal("helloworldworld"), DSL.literal(7));
     assertEquals(INTEGER, expression.type());
     assertEquals(11, eval(expression).integerValue());
 
@@ -378,21 +368,18 @@ public class TextFunctionTest extends ExpressionTestBase {
     assertEquals(nullValue(), eval(DSL.locate(nullRef, DSL.literal("hello"), DSL.literal(1))));
     when(missingRef.type()).thenReturn(STRING);
     assertEquals(missingValue(), eval(DSL.locate(missingRef, DSL.literal("hello"))));
-    assertEquals(missingValue(), eval(
-        DSL.locate(missingRef, DSL.literal("hello"), DSL.literal(1))));
+    assertEquals(
+        missingValue(), eval(DSL.locate(missingRef, DSL.literal("hello"), DSL.literal(1))));
   }
 
   @Test
   void position() {
-    FunctionExpression expression = DSL.position(
-        DSL.literal("world"),
-        DSL.literal("helloworldworld"));
+    FunctionExpression expression =
+        DSL.position(DSL.literal("world"), DSL.literal("helloworldworld"));
     assertEquals(INTEGER, expression.type());
     assertEquals(6, eval(expression).integerValue());
 
-    expression = DSL.position(
-            DSL.literal("abc"),
-            DSL.literal("hello world"));
+    expression = DSL.position(DSL.literal("abc"), DSL.literal("hello world"));
     assertEquals(INTEGER, expression.type());
     assertEquals(0, eval(expression).integerValue());
 
@@ -404,10 +391,8 @@ public class TextFunctionTest extends ExpressionTestBase {
 
   @Test
   void replace() {
-    FunctionExpression expression = DSL.replace(
-        DSL.literal("helloworld"),
-        DSL.literal("world"),
-        DSL.literal("opensearch"));
+    FunctionExpression expression =
+        DSL.replace(DSL.literal("helloworld"), DSL.literal("world"), DSL.literal("opensearch"));
     assertEquals(STRING, expression.type());
     assertEquals("helloopensearch", eval(expression).stringValue());
 
@@ -435,18 +420,17 @@ public class TextFunctionTest extends ExpressionTestBase {
       expected = String.join("", strings);
     }
 
-    FunctionExpression expression = DSL.concat(
-        DSL.literal(strings.get(0)), DSL.literal(strings.get(1)));
+    FunctionExpression expression =
+        DSL.concat(DSL.literal(strings.get(0)), DSL.literal(strings.get(1)));
     assertEquals(STRING, expression.type());
     assertEquals(expected, eval(expression).stringValue());
   }
 
   void testConcatString(List<String> strings, String delim) {
-    String expected = strings.stream()
-        .filter(Objects::nonNull).collect(Collectors.joining(","));
+    String expected = strings.stream().filter(Objects::nonNull).collect(Collectors.joining(","));
 
-    FunctionExpression expression = DSL.concat_ws(
-        DSL.literal(delim), DSL.literal(strings.get(0)), DSL.literal(strings.get(1)));
+    FunctionExpression expression =
+        DSL.concat_ws(DSL.literal(delim), DSL.literal(strings.get(0)), DSL.literal(strings.get(1)));
     assertEquals(STRING, expression.type());
     assertEquals(expected, eval(expression).stringValue());
   }
@@ -457,7 +441,8 @@ public class TextFunctionTest extends ExpressionTestBase {
       expected = String.join("", strings);
     }
 
-    FunctionExpression expression = DSL.concat(
+    FunctionExpression expression =
+        DSL.concat(
             DSL.literal(strings.get(0)),
             DSL.literal(strings.get(1)),
             DSL.literal(strings.get(2)),
@@ -474,7 +459,8 @@ public class TextFunctionTest extends ExpressionTestBase {
   }
 
   void testStcmpString(StringPatternPair stringPatternPair) {
-    FunctionExpression expression = DSL.strcmp(
+    FunctionExpression expression =
+        DSL.strcmp(
             DSL.literal(new ExprStringValue(stringPatternPair.getStr())),
             DSL.literal(new ExprStringValue(stringPatternPair.getPatt())));
     assertEquals(INTEGER, expression.type());

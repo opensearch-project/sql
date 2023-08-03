@@ -3,7 +3,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-
 package org.opensearch.sql.expression;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -54,13 +53,13 @@ class ReferenceExpressionTest extends ExpressionTestBase {
     assertEquals(doubleValue(1d), DSL.ref("double_value", DOUBLE).valueOf(valueEnv()));
     assertEquals(booleanValue(true), DSL.ref("boolean_value", BOOLEAN).valueOf(valueEnv()));
     assertEquals(stringValue("str"), DSL.ref("string_value", STRING).valueOf(valueEnv()));
-    assertEquals(tupleValue(ImmutableMap.of("str", 1)),
-        DSL.ref("struct_value", STRUCT).valueOf(valueEnv()));
-    assertEquals(collectionValue(ImmutableList.of(1)),
-        DSL.ref("array_value", ARRAY).valueOf(valueEnv()));
+    assertEquals(
+        tupleValue(ImmutableMap.of("str", 1)), DSL.ref("struct_value", STRUCT).valueOf(valueEnv()));
+    assertEquals(
+        collectionValue(ImmutableList.of(1)), DSL.ref("array_value", ARRAY).valueOf(valueEnv()));
     assertEquals(LITERAL_NULL, DSL.ref(BOOL_TYPE_NULL_VALUE_FIELD, BOOLEAN).valueOf(valueEnv()));
-    assertEquals(LITERAL_MISSING,
-        DSL.ref(BOOL_TYPE_MISSING_VALUE_FIELD, BOOLEAN).valueOf(valueEnv()));
+    assertEquals(
+        LITERAL_MISSING, DSL.ref(BOOL_TYPE_MISSING_VALUE_FIELD, BOOLEAN).valueOf(valueEnv()));
   }
 
   @Test
@@ -138,58 +137,33 @@ class ReferenceExpressionTest extends ExpressionTestBase {
   }
 
   /**
-   * {
-   *   "name": "bob smith"
-   *   "project.year": 1990,
-   *   "project": {
-   *     "year": 2020
-   *   },
-   *   "address": {
-   *     "state": "WA",
-   *     "city": "seattle"
-   *     "project.year": 1990
-   *   },
-   *   "address.local": {
-   *     "state": "WA",
-   *   },
-   *   "message": [
-   *     { "info": "message in array" },
-   *     { "info": "Only first index of array used" }
-   *   ]
-   * }
+   * { "name": "bob smith" "project.year": 1990, "project": { "year": 2020 }, "address": { "state":
+   * "WA", "city": "seattle" "project.year": 1990 }, "address.local": { "state": "WA", }, "message":
+   * [ { "info": "message in array" }, { "info": "Only first index of array used" } ] }
    */
   private ExprTupleValue tuple() {
     ExprValue address =
-        ExprValueUtils.tupleValue(ImmutableMap.of("state", "WA", "city", "seattle", "project"
-            + ".year", 1990));
-    ExprValue project =
-        ExprValueUtils.tupleValue(ImmutableMap.of("year", 2020));
-    ExprValue addressLocal =
-        ExprValueUtils.tupleValue(ImmutableMap.of("state", "WA"));
+        ExprValueUtils.tupleValue(
+            ImmutableMap.of("state", "WA", "city", "seattle", "project" + ".year", 1990));
+    ExprValue project = ExprValueUtils.tupleValue(ImmutableMap.of("year", 2020));
+    ExprValue addressLocal = ExprValueUtils.tupleValue(ImmutableMap.of("state", "WA"));
     ExprValue messageCollectionValue =
         new ExprCollectionValue(
             ImmutableList.of(
                 ExprValueUtils.tupleValue(
-                    ImmutableMap.of(
-                        "info", stringValue("First message in array")
-                    )
-                ),
+                    ImmutableMap.of("info", stringValue("First message in array"))),
                 ExprValueUtils.tupleValue(
-                    ImmutableMap.of(
-                        "info", stringValue("Only first index of array used")
-                    )
-                )
-            )
-        );
+                    ImmutableMap.of("info", stringValue("Only first index of array used")))));
 
-    ExprTupleValue tuple = ExprTupleValue.fromExprValueMap(ImmutableMap.of(
-        "name", new ExprStringValue("bob smith"),
-        "project.year", new ExprIntegerValue(1990),
-        "project", project,
-        "address", address,
-        "address.local", addressLocal,
-        "message", messageCollectionValue
-        ));
+    ExprTupleValue tuple =
+        ExprTupleValue.fromExprValueMap(
+            ImmutableMap.of(
+                "name", new ExprStringValue("bob smith"),
+                "project.year", new ExprIntegerValue(1990),
+                "project", project,
+                "address", address,
+                "address.local", addressLocal,
+                "message", messageCollectionValue));
     return tuple;
   }
 }

@@ -45,19 +45,12 @@ class MicroBatchStreamingExecutionTest {
 
   @Test
   void executedFailed() {
-    streamingQuery()
-        .addData()
-        .executeFailed()
-        .latestOffsetLogShouldBe(0L)
-        .noCommittedLog();
+    streamingQuery().addData().executeFailed().latestOffsetLogShouldBe(0L).noCommittedLog();
   }
 
   @Test
   void noDataInSource() {
-    streamingQuery()
-        .neverProcess()
-        .noOffsetLog()
-        .noCommittedLog();
+    streamingQuery().neverProcess().noOffsetLog().noCommittedLog();
   }
 
   @Test
@@ -170,8 +163,7 @@ class MicroBatchStreamingExecutionTest {
                 ResponseListener<ExecutionEngine.QueryResponse> listener =
                     invocation.getArgument(2);
                 listener.onResponse(
-                    new ExecutionEngine.QueryResponse(null, Collections.emptyList(),
-                        Cursor.None));
+                    new ExecutionEngine.QueryResponse(null, Collections.emptyList(), Cursor.None));
 
                 PlanContext planContext = invocation.getArgument(1);
                 assertTrue(planContext.getSplit().isPresent());
@@ -257,8 +249,8 @@ class MicroBatchStreamingExecutionTest {
     public Batch getBatch(Optional<Offset> start, Offset end) {
       return new Batch(
           new TestOffsetSplit(
-              start.map(v -> v.getOffset() + 1).orElse(0L), Long.min(offset.get(),
-              end.getOffset())));
+              start.map(v -> v.getOffset() + 1).orElse(0L),
+              Long.min(offset.get(), end.getOffset())));
     }
   }
 
