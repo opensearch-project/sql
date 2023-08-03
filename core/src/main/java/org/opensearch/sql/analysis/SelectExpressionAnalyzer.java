@@ -70,16 +70,18 @@ public class SelectExpressionAnalyzer
   }
 
   /**
-   * The Alias could be<br>
-   * 1. SELECT name, AVG(age) FROM s BY name -><br>
-   * Project(Alias("name", expr), Alias("AVG(age)", aggExpr))<br>
-   * Agg(Alias("AVG(age)", aggExpr))<br>
-   * 2. SELECT length(name), AVG(age) FROM s BY length(name)<br>
-   * Project(Alias("name", expr), Alias("AVG(age)", aggExpr))<br>
-   * Agg(Alias("AVG(age)", aggExpr))<br>
-   * 3. SELECT length(name) as l, AVG(age) FROM s BY l<br>
-   * Project(Alias("name", expr, l), Alias("AVG(age)", aggExpr))<br>
-   * Agg(Alias("AVG(age)", aggExpr), Alias("length(name)", groupExpr))<br>
+   * The Alias could be
+   * <ol>
+   *     <li>1. SELECT name, AVG(age) FROM s BY name ->
+   *     Project(Alias("name", expr), Alias("AVG(age)", aggExpr))
+   *     Agg(Alias("AVG(age)", aggExpr))</li>
+   *     <li>SELECT length(name), AVG(age) FROM s BY length(name)
+   *     Project(Alias("name", expr), Alias("AVG(age)", aggExpr))
+   *     Agg(Alias("AVG(age)", aggExpr))</li>
+   *     <li>SELECT length(name) as l, AVG(age) FROM s BY l
+   *     Project(Alias("name", expr, l), Alias("AVG(age)", aggExpr))
+   *     Agg(Alias("AVG(age)", aggExpr), Alias("length(name)", groupExpr))</li>
+   * </ol>
    */
   private Expression referenceIfSymbolDefined(Alias expr, AnalysisContext context) {
     UnresolvedExpression delegatedExpr = expr.getDelegated();

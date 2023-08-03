@@ -261,10 +261,10 @@ public class AstDSL {
   }
 
   /**
-   * CASE case_value_expr<br>
-   * &emsp; WHEN compare_expr THEN result_expr<br>
-   * &emsp; [WHEN compare_expr THEN result_expr] ...<br>
-   * &emsp; [ELSE result_expr]<br>
+   * CASE case_value_expr
+   *     WHEN compare_expr THEN result_expr
+   *     [WHEN compare_expr THEN result_expr] ...
+   *     [ELSE result_expr]
    * END
    */
   public UnresolvedExpression caseWhen(UnresolvedExpression caseValueExpr,
