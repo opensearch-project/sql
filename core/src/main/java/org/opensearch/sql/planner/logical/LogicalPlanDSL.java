@@ -3,7 +3,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-
 package org.opensearch.sql.planner.logical;
 
 import com.google.common.collect.ImmutableList;
@@ -25,9 +24,7 @@ import org.opensearch.sql.expression.window.WindowDefinition;
 import org.opensearch.sql.storage.StorageEngine;
 import org.opensearch.sql.storage.Table;
 
-/**
- * Logical Plan DSL.
- */
+/** Logical Plan DSL. */
 @UtilityClass
 public class LogicalPlanDSL {
 
@@ -57,7 +54,7 @@ public class LogicalPlanDSL {
     return new LogicalRename(input, renameMap);
   }
 
-  public  static LogicalPlan paginate(LogicalPlan input, int fetchSize) {
+  public static LogicalPlan paginate(LogicalPlan input, int fetchSize) {
     return new LogicalPaginate(fetchSize, List.of(input));
   }
 
@@ -65,22 +62,22 @@ public class LogicalPlanDSL {
     return new LogicalProject(input, Arrays.asList(fields), ImmutableList.of());
   }
 
-  public static LogicalPlan project(LogicalPlan input, List<NamedExpression> fields,
-                                    List<NamedExpression> namedParseExpressions) {
+  public static LogicalPlan project(
+      LogicalPlan input,
+      List<NamedExpression> fields,
+      List<NamedExpression> namedParseExpressions) {
     return new LogicalProject(input, fields, namedParseExpressions);
   }
 
-  public LogicalPlan window(LogicalPlan input,
-                            NamedExpression windowFunction,
-                            WindowDefinition windowDefinition) {
+  public LogicalPlan window(
+      LogicalPlan input, NamedExpression windowFunction, WindowDefinition windowDefinition) {
     return new LogicalWindow(input, windowFunction, windowDefinition);
   }
 
-  public LogicalPlan highlight(LogicalPlan input, Expression field,
-      Map<String, Literal> arguments) {
+  public LogicalPlan highlight(
+      LogicalPlan input, Expression field, Map<String, Literal> arguments) {
     return new LogicalHighlight(input, field, arguments);
   }
-
 
   public static LogicalPlan nested(
       LogicalPlan input,
@@ -116,13 +113,20 @@ public class LogicalPlanDSL {
         input, Arrays.asList(fields), allowedDuplication, keepEmpty, consecutive);
   }
 
-  public static LogicalPlan rareTopN(LogicalPlan input, CommandType commandType,
-                                     List<Expression> groupByList, Expression... fields) {
+  public static LogicalPlan rareTopN(
+      LogicalPlan input,
+      CommandType commandType,
+      List<Expression> groupByList,
+      Expression... fields) {
     return rareTopN(input, commandType, 10, groupByList, fields);
   }
 
-  public static LogicalPlan rareTopN(LogicalPlan input, CommandType commandType, int noOfResults,
-                                     List<Expression> groupByList, Expression... fields) {
+  public static LogicalPlan rareTopN(
+      LogicalPlan input,
+      CommandType commandType,
+      int noOfResults,
+      List<Expression> groupByList,
+      Expression... fields) {
     return new LogicalRareTopN(input, commandType, noOfResults, Arrays.asList(fields), groupByList);
   }
 
@@ -134,5 +138,4 @@ public class LogicalPlanDSL {
   public static LogicalPlan limit(LogicalPlan input, Integer limit, Integer offset) {
     return new LogicalLimit(input, limit, offset);
   }
-
 }
