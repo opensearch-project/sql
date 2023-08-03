@@ -6,14 +6,14 @@
 
 package org.opensearch.sql.legacy.request;
 
+import com.fasterxml.jackson.core.JsonFactory;
 import java.io.IOException;
 import java.util.Collections;
 import org.json.JSONException;
 import org.json.JSONObject;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.common.xcontent.LoggingDeprecationHandler;
-import org.opensearch.common.xcontent.XContentFactory;
-import org.opensearch.common.xcontent.XContentType;
+import org.opensearch.common.xcontent.json.JsonXContentParser;
 import org.opensearch.core.xcontent.NamedXContentRegistry;
 import org.opensearch.core.xcontent.XContentParser;
 import org.opensearch.index.query.BoolQueryBuilder;
@@ -90,10 +90,10 @@ public class SqlRequest {
         try {
             String filter = getFilterObjectAsString(jsonContent);
             SearchModule searchModule = new SearchModule(Settings.EMPTY,  Collections.emptyList());
-            XContentParser parser = XContentFactory.xContent(XContentType.JSON).
-                    createParser(new NamedXContentRegistry(searchModule.getNamedXContents()),
-                            LoggingDeprecationHandler.INSTANCE,
-                            filter);
+            XContentParser parser = new JsonXContentParser(
+                    new NamedXContentRegistry(searchModule.getNamedXContents()),
+                    LoggingDeprecationHandler.INSTANCE,
+                    new JsonFactory().createParser(filter));
 
             // nextToken is called before passing the parser to fromXContent since the fieldName will be null if the
             // first token it parses is START_OBJECT resulting in an exception
