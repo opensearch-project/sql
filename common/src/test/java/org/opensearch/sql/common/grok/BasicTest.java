@@ -33,8 +33,7 @@ import org.opensearch.sql.common.grok.exception.GrokException;
 @FixMethodOrder(MethodSorters.NAME_ASCENDING)
 public class BasicTest {
 
-  @Rule
-  public TemporaryFolder tempFolder = new TemporaryFolder();
+  @Rule public TemporaryFolder tempFolder = new TemporaryFolder();
 
   private GrokCompiler compiler;
 
@@ -111,8 +110,8 @@ public class BasicTest {
   public void test006_testLoadPatternFromFileIso_8859_1() throws IOException, GrokException {
     File temp = tempFolder.newFile("grok-tmp-pattern");
     try (FileOutputStream fis = new FileOutputStream(temp);
-         BufferedWriter bw = new BufferedWriter(
-             new OutputStreamWriter(fis, StandardCharsets.ISO_8859_1))) {
+        BufferedWriter bw =
+            new BufferedWriter(new OutputStreamWriter(fis, StandardCharsets.ISO_8859_1))) {
       bw.write("TEST \\u2022");
     }
 
@@ -130,5 +129,4 @@ public class BasicTest {
     Grok grok = compiler.compile("%{TEST}");
     assertEquals("(?<name0>\\u20AC)", grok.getNamedRegex());
   }
-
 }

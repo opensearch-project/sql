@@ -85,7 +85,8 @@ spotless {
     java {
         target fileTree('.') {
             include 'datasources/**/*.java',
-                    'core/**/*.java'
+                    'core/**/*.java',
+                    'common/**/*.java'
             exclude '**/build/**', '**/build-*/**'
         }
         importOrder()

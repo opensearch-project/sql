@@ -16,7 +16,6 @@ import org.assertj.core.api.Assertions;
 import org.junit.Test;
 import org.opensearch.sql.common.grok.exception.GrokException;
 
-
 public class MessagesTest {
 
   @Test
@@ -26,8 +25,9 @@ public class MessagesTest {
 
     Grok grok = compiler.compile("%{MESSAGESLOG}");
 
-    BufferedReader br = new BufferedReader(
-        new FileReader(Resources.getResource(ResourceManager.MESSAGES).getFile()));
+    BufferedReader br =
+        new BufferedReader(
+            new FileReader(Resources.getResource(ResourceManager.MESSAGES).getFile()));
     String line;
     System.out.println("Starting test with linux messages log -- may take a while");
     while ((line = br.readLine()) != null) {
@@ -38,5 +38,4 @@ public class MessagesTest {
     }
     br.close();
   }
-
 }
