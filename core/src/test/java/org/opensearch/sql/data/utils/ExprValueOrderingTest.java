@@ -3,7 +3,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-
 package org.opensearch.sql.data.utils;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -32,10 +31,8 @@ import org.opensearch.sql.exception.ExpressionEvaluationException;
 
 @ExtendWith(MockitoExtension.class)
 class ExprValueOrderingTest {
-  @Mock
-  ExprValue left;
-  @Mock
-  ExprValue right;
+  @Mock ExprValue left;
+  @Mock ExprValue right;
 
   @Test
   public void natural() {

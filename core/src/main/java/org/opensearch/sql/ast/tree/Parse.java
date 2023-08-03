@@ -3,7 +3,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-
 package org.opensearch.sql.ast.tree;
 
 import com.google.common.collect.ImmutableList;
@@ -20,9 +19,7 @@ import org.opensearch.sql.ast.expression.Literal;
 import org.opensearch.sql.ast.expression.ParseMethod;
 import org.opensearch.sql.ast.expression.UnresolvedExpression;
 
-/**
- * AST node represent Parse with regex operation.
- */
+/** AST node represent Parse with regex operation. */
 @Getter
 @Setter
 @ToString
@@ -30,29 +27,19 @@ import org.opensearch.sql.ast.expression.UnresolvedExpression;
 @RequiredArgsConstructor
 @AllArgsConstructor
 public class Parse extends UnresolvedPlan {
-  /**
-   * Method used to parse a field.
-   */
+  /** Method used to parse a field. */
   private final ParseMethod parseMethod;
 
-  /**
-   * Field.
-   */
+  /** Field. */
   private final UnresolvedExpression sourceField;
 
-  /**
-   * Pattern.
-   */
+  /** Pattern. */
   private final Literal pattern;
 
-  /**
-   * Optional arguments.
-   */
+  /** Optional arguments. */
   private final Map<String, Literal> arguments;
 
-  /**
-   * Child Plan.
-   */
+  /** Child Plan. */
   private UnresolvedPlan child;
 
   @Override
