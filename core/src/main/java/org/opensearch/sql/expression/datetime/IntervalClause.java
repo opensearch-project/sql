@@ -3,7 +3,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-
 package org.opensearch.sql.expression.datetime;
 
 import static org.opensearch.sql.data.model.ExprValueUtils.getIntegerValue;
@@ -45,7 +44,8 @@ public class IntervalClause {
   }
 
   private DefaultFunctionResolver interval() {
-    return define(BuiltinFunctionName.INTERVAL.getName(),
+    return define(
+        BuiltinFunctionName.INTERVAL.getName(),
         impl(nullMissingHandling(IntervalClause::interval), INTERVAL, INTEGER, STRING),
         impl(nullMissingHandling(IntervalClause::interval), INTERVAL, LONG, STRING));
   }

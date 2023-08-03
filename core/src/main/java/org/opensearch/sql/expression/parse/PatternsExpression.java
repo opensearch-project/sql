@@ -17,30 +17,28 @@ import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.exception.ExpressionEvaluationException;
 import org.opensearch.sql.expression.Expression;
 
-/**
- * PatternsExpression with regex filter.
- */
+/** PatternsExpression with regex filter. */
 @EqualsAndHashCode(callSuper = true)
 @ToString
 public class PatternsExpression extends ParseExpression {
-  /**
-   * Default name of the derived field.
-   */
+  /** Default name of the derived field. */
   public static final String DEFAULT_NEW_FIELD = "patterns_field";
 
-  private static final ImmutableSet<Character> DEFAULT_IGNORED_CHARS = ImmutableSet.copyOf(
-      "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789".chars()
-          .mapToObj(c -> (char) c).toArray(Character[]::new));
+  private static final ImmutableSet<Character> DEFAULT_IGNORED_CHARS =
+      ImmutableSet.copyOf(
+          "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
+              .chars()
+              .mapToObj(c -> (char) c)
+              .toArray(Character[]::new));
   private final boolean useCustomPattern;
-  @EqualsAndHashCode.Exclude
-  private Pattern pattern;
+  @EqualsAndHashCode.Exclude private Pattern pattern;
 
   /**
    * PatternsExpression.
    *
    * @param sourceField source text field
-   * @param pattern     pattern used for parsing
-   * @param identifier  derived field
+   * @param pattern pattern used for parsing
+   * @param identifier derived field
    */
   public PatternsExpression(Expression sourceField, Expression pattern, Expression identifier) {
     super("patterns", sourceField, pattern, identifier);

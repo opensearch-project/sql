@@ -87,14 +87,17 @@ spotless {
             include 'core/src/main/java/org/opensearch/sql/analysis/**/*.java',
                     'core/src/test/java/org/opensearch/sql/data/**/*.java',
                     'core/src/test/java/org/opensearch/sql/datasource/**/*.java',
-                    'core/src/test/java/org/opensearch/sql/ast/**/*.java'
+                    'core/src/test/java/org/opensearch/sql/ast/**/*.java',
+                    'core/src/main/java/org/opensearch/sql/monitor/**/*.java',
+                    'core/src/main/java/org/opensearch/sql/expression/**/*.java',
+                    'core/src/main/java/org/opensearch/sql/executor/**/*.java',
+                    'core/src/main/java/org/opensearch/sql/exception/**/*.java'
             exclude '**/build/**', '**/build-*/**'
         }
 //        importOrder()
 //        licenseHeader("/*\n" +
 //                " * Copyright OpenSearch Contributors\n" +
 //                " * SPDX-License-Identifier: Apache-2.0\n" +
-//                " */\n\n")
         removeUnusedImports()
         trimTrailingWhitespace()
         endWithNewline()

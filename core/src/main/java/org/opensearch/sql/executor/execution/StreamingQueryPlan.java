@@ -24,9 +24,7 @@ import org.opensearch.sql.planner.logical.LogicalPlan;
 import org.opensearch.sql.planner.logical.LogicalPlanNodeVisitor;
 import org.opensearch.sql.planner.logical.LogicalRelation;
 
-/**
- * Streaming Query Plan.
- */
+/** Streaming Query Plan. */
 public class StreamingQueryPlan extends QueryPlan {
 
   private static final Logger log = LogManager.getLogger(StreamingQueryPlan.class);
@@ -35,14 +33,13 @@ public class StreamingQueryPlan extends QueryPlan {
 
   private MicroBatchStreamingExecution streamingExecution;
 
-  /**
-   * constructor.
-   */
-  public StreamingQueryPlan(QueryId queryId,
-                            UnresolvedPlan plan,
-                            QueryService queryService,
-                            ResponseListener<ExecutionEngine.QueryResponse> listener,
-                            ExecutionStrategy executionStrategy) {
+  /** constructor. */
+  public StreamingQueryPlan(
+      QueryId queryId,
+      UnresolvedPlan plan,
+      QueryService queryService,
+      ResponseListener<ExecutionEngine.QueryResponse> listener,
+      ExecutionStrategy executionStrategy) {
     super(queryId, plan, queryService, listener);
 
     this.executionStrategy = executionStrategy;
@@ -70,15 +67,13 @@ public class StreamingQueryPlan extends QueryPlan {
   }
 
   interface ExecutionStrategy {
-    /**
-     * execute task.
-     */
+    /** execute task. */
     void execute(Runnable task) throws InterruptedException;
   }
 
   /**
-   * execute task with fixed interval.
-   * if task run time < interval, trigger next task on next interval.
+   * execute task with fixed interval.<br>
+   * if task run time < interval, trigger next task on next interval.<br>
    * if task run time >= interval, trigger next task immediately.
    */
   @RequiredArgsConstructor
