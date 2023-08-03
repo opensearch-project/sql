@@ -11,13 +11,14 @@ package org.opensearch.sql.executor;
 import org.opensearch.sql.executor.execution.AbstractPlan;
 
 /**
- * QueryManager is the high-level interface of core engine.
- * Frontend submit {@link AbstractPlan} to QueryManager.
+ * QueryManager is the high-level interface of core engine. Frontend submit {@link AbstractPlan} to
+ * QueryManager.
  */
 public interface QueryManager {
 
   /**
    * Submit {@link AbstractPlan}.
+   *
    * @param queryPlan {@link AbstractPlan}.
    * @return {@link QueryId}.
    */

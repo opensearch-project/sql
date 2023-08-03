@@ -3,7 +3,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-
 package org.opensearch.sql.expression.window;
 
 import static java.util.Collections.emptyList;
@@ -22,16 +21,14 @@ import org.opensearch.sql.expression.window.ranking.RankFunction;
 import org.opensearch.sql.expression.window.ranking.RankingWindowFunction;
 import org.opensearch.sql.expression.window.ranking.RowNumberFunction;
 
-/**
- * Window functions that register all window functions in function repository.
- */
+/** Window functions that register all window functions in function repository. */
 @UtilityClass
 public class WindowFunctions {
 
   /**
    * Register all window functions to function repository.
    *
-   * @param repository  function repository
+   * @param repository function repository
    */
   public void register(BuiltinFunctionRepository repository) {
     repository.register(rowNumber());
@@ -51,11 +48,11 @@ public class WindowFunctions {
     return rankingFunction(BuiltinFunctionName.DENSE_RANK.getName(), DenseRankFunction::new);
   }
 
-  private DefaultFunctionResolver rankingFunction(FunctionName functionName,
-                                                  Supplier<RankingWindowFunction> constructor) {
+  private DefaultFunctionResolver rankingFunction(
+      FunctionName functionName, Supplier<RankingWindowFunction> constructor) {
     FunctionSignature functionSignature = new FunctionSignature(functionName, emptyList());
     FunctionBuilder functionBuilder = (functionProperties, arguments) -> constructor.get();
-    return new DefaultFunctionResolver(functionName,
-        ImmutableMap.of(functionSignature, functionBuilder));
+    return new DefaultFunctionResolver(
+        functionName, ImmutableMap.of(functionSignature, functionBuilder));
   }
 }

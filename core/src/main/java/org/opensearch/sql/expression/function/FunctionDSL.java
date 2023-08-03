@@ -3,7 +3,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-
 package org.opensearch.sql.expression.function;
 
 import java.util.Arrays;
@@ -21,21 +20,19 @@ import org.opensearch.sql.expression.FunctionExpression;
 import org.opensearch.sql.expression.env.Environment;
 import org.opensearch.sql.expression.function.DefaultFunctionResolver.DefaultFunctionResolverBuilder;
 
-/**
- * Function Define Utility.
- */
+/** Function Define Utility. */
 @UtilityClass
 public class FunctionDSL {
   /**
    * Define overloaded function with implementation.
    *
    * @param functionName function name.
-   * @param functions    a list of function implementation.
+   * @param functions a list of function implementation.
    * @return FunctionResolver.
    */
-  public static DefaultFunctionResolver define(FunctionName functionName,
-               SerializableFunction<FunctionName, Pair<FunctionSignature,
-                FunctionBuilder>>... functions) {
+  public static DefaultFunctionResolver define(
+      FunctionName functionName,
+      SerializableFunction<FunctionName, Pair<FunctionSignature, FunctionBuilder>>... functions) {
     return define(functionName, List.of(functions));
   }
 
@@ -43,11 +40,13 @@ public class FunctionDSL {
    * Define overloaded function with implementation.
    *
    * @param functionName function name.
-   * @param functions    a list of function implementation.
+   * @param functions a list of function implementation.
    * @return FunctionResolver.
    */
-  public static DefaultFunctionResolver define(FunctionName functionName, List<
-      SerializableFunction<FunctionName, Pair<FunctionSignature, FunctionBuilder>>> functions) {
+  public static DefaultFunctionResolver define(
+      FunctionName functionName,
+      List<SerializableFunction<FunctionName, Pair<FunctionSignature, FunctionBuilder>>>
+          functions) {
 
     DefaultFunctionResolverBuilder builder = DefaultFunctionResolver.builder();
     builder.functionName(functionName);
@@ -58,7 +57,6 @@ public class FunctionDSL {
     return builder.build();
   }
 
-
   /**
    * Implementation of no args function that uses FunctionProperties.
    *
@@ -67,8 +65,8 @@ public class FunctionDSL {
    * @return no args function implementation.
    */
   public static SerializableFunction<FunctionName, Pair<FunctionSignature, FunctionBuilder>>
-      implWithProperties(SerializableFunction<FunctionProperties, ExprValue> function,
-                     ExprType returnType) {
+      implWithProperties(
+          SerializableFunction<FunctionProperties, ExprValue> function, ExprType returnType) {
     return functionName -> {
       FunctionSignature functionSignature =
           new FunctionSignature(functionName, Collections.emptyList());
@@ -95,53 +93,54 @@ public class FunctionDSL {
   }
 
   /**
-   * Implementation of a function that takes one argument, returns a value, and
-   * requires FunctionProperties to complete.
+   * Implementation of a function that takes one argument, returns a value, and requires
+   * FunctionProperties to complete.
    *
-   * @param function   {@link ExprValue} based unary function.
+   * @param function {@link ExprValue} based unary function.
    * @param returnType return type.
    * @param argsType argument type.
    * @return Unary Function Implementation.
    */
   public static SerializableFunction<FunctionName, Pair<FunctionSignature, FunctionBuilder>>
       implWithProperties(
-      SerializableBiFunction<FunctionProperties, ExprValue, ExprValue> function,
-      ExprType returnType,
-      ExprType argsType) {
+          SerializableBiFunction<FunctionProperties, ExprValue, ExprValue> function,
+          ExprType returnType,
+          ExprType argsType) {
 
     return functionName -> {
       FunctionSignature functionSignature =
           new FunctionSignature(functionName, Collections.singletonList(argsType));
       FunctionBuilder functionBuilder =
-          (functionProperties, arguments) -> new FunctionExpression(functionName, arguments) {
-            @Override
-            public ExprValue valueOf(Environment<Expression, ExprValue> valueEnv) {
-              ExprValue value = arguments.get(0).valueOf(valueEnv);
-              return function.apply(functionProperties, value);
-            }
+          (functionProperties, arguments) ->
+              new FunctionExpression(functionName, arguments) {
+                @Override
+                public ExprValue valueOf(Environment<Expression, ExprValue> valueEnv) {
+                  ExprValue value = arguments.get(0).valueOf(valueEnv);
+                  return function.apply(functionProperties, value);
+                }
 
-            @Override
-            public ExprType type() {
-              return returnType;
-            }
+                @Override
+                public ExprType type() {
+                  return returnType;
+                }
 
-            @Override
-            public String toString() {
-              return String.format("%s(%s)", functionName,
-                  arguments.stream()
-                      .map(Object::toString)
-                      .collect(Collectors.joining(", ")));
-            }
-          };
+                @Override
+                public String toString() {
+                  return String.format(
+                      "%s(%s)",
+                      functionName,
+                      arguments.stream().map(Object::toString).collect(Collectors.joining(", ")));
+                }
+              };
       return Pair.of(functionSignature, functionBuilder);
     };
   }
 
   /**
-   * Implementation of a function that takes two arguments, returns a value, and
-   * requires FunctionProperties to complete.
+   * Implementation of a function that takes two arguments, returns a value, and requires
+   * FunctionProperties to complete.
    *
-   * @param function   {@link ExprValue} based Binary function.
+   * @param function {@link ExprValue} based Binary function.
    * @param returnType return type.
    * @param args1Type first argument type.
    * @param args2Type second argument type.
@@ -149,45 +148,46 @@ public class FunctionDSL {
    */
   public static SerializableFunction<FunctionName, Pair<FunctionSignature, FunctionBuilder>>
       implWithProperties(
-      SerializableTriFunction<FunctionProperties, ExprValue, ExprValue, ExprValue> function,
-      ExprType returnType,
-      ExprType args1Type,
-      ExprType args2Type) {
+          SerializableTriFunction<FunctionProperties, ExprValue, ExprValue, ExprValue> function,
+          ExprType returnType,
+          ExprType args1Type,
+          ExprType args2Type) {
 
     return functionName -> {
       FunctionSignature functionSignature =
           new FunctionSignature(functionName, Arrays.asList(args1Type, args2Type));
       FunctionBuilder functionBuilder =
-          (functionProperties, arguments) -> new FunctionExpression(functionName, arguments) {
-            @Override
-            public ExprValue valueOf(Environment<Expression, ExprValue> valueEnv) {
-              ExprValue arg1 = arguments.get(0).valueOf(valueEnv);
-              ExprValue arg2 = arguments.get(1).valueOf(valueEnv);
-              return function.apply(functionProperties, arg1, arg2);
-            }
+          (functionProperties, arguments) ->
+              new FunctionExpression(functionName, arguments) {
+                @Override
+                public ExprValue valueOf(Environment<Expression, ExprValue> valueEnv) {
+                  ExprValue arg1 = arguments.get(0).valueOf(valueEnv);
+                  ExprValue arg2 = arguments.get(1).valueOf(valueEnv);
+                  return function.apply(functionProperties, arg1, arg2);
+                }
 
-            @Override
-            public ExprType type() {
-              return returnType;
-            }
+                @Override
+                public ExprType type() {
+                  return returnType;
+                }
 
-            @Override
-            public String toString() {
-              return String.format("%s(%s)", functionName,
-                  arguments.stream()
-                      .map(Object::toString)
-                      .collect(Collectors.joining(", ")));
-            }
-          };
+                @Override
+                public String toString() {
+                  return String.format(
+                      "%s(%s)",
+                      functionName,
+                      arguments.stream().map(Object::toString).collect(Collectors.joining(", ")));
+                }
+              };
       return Pair.of(functionSignature, functionBuilder);
     };
   }
 
   /**
-   * Implementation of a function that takes three arguments, returns a value, and
-   * requires FunctionProperties to complete.
+   * Implementation of a function that takes three arguments, returns a value, and requires
+   * FunctionProperties to complete.
    *
-   * @param function   {@link ExprValue} based Binary function.
+   * @param function {@link ExprValue} based Binary function.
    * @param returnType return type.
    * @param args1Type first argument type.
    * @param args2Type second argument type.
@@ -196,43 +196,40 @@ public class FunctionDSL {
    */
   public static SerializableFunction<FunctionName, Pair<FunctionSignature, FunctionBuilder>>
       implWithProperties(
-      SerializableQuadFunction<
-          FunctionProperties,
-          ExprValue,
-          ExprValue,
-          ExprValue,
-          ExprValue> function,
-      ExprType returnType,
-      ExprType args1Type,
-      ExprType args2Type,
-      ExprType args3Type) {
+          SerializableQuadFunction<FunctionProperties, ExprValue, ExprValue, ExprValue, ExprValue>
+              function,
+          ExprType returnType,
+          ExprType args1Type,
+          ExprType args2Type,
+          ExprType args3Type) {
 
     return functionName -> {
       FunctionSignature functionSignature =
           new FunctionSignature(functionName, Arrays.asList(args1Type, args2Type, args3Type));
       FunctionBuilder functionBuilder =
-          (functionProperties, arguments) -> new FunctionExpression(functionName, arguments) {
-            @Override
-            public ExprValue valueOf(Environment<Expression, ExprValue> valueEnv) {
-              ExprValue arg1 = arguments.get(0).valueOf(valueEnv);
-              ExprValue arg2 = arguments.get(1).valueOf(valueEnv);
-              ExprValue arg3 = arguments.get(2).valueOf(valueEnv);
-              return function.apply(functionProperties, arg1, arg2, arg3);
-            }
+          (functionProperties, arguments) ->
+              new FunctionExpression(functionName, arguments) {
+                @Override
+                public ExprValue valueOf(Environment<Expression, ExprValue> valueEnv) {
+                  ExprValue arg1 = arguments.get(0).valueOf(valueEnv);
+                  ExprValue arg2 = arguments.get(1).valueOf(valueEnv);
+                  ExprValue arg3 = arguments.get(2).valueOf(valueEnv);
+                  return function.apply(functionProperties, arg1, arg2, arg3);
+                }
 
-            @Override
-            public ExprType type() {
-              return returnType;
-            }
+                @Override
+                public ExprType type() {
+                  return returnType;
+                }
 
-            @Override
-            public String toString() {
-              return String.format("%s(%s)", functionName,
-                  arguments.stream()
-                      .map(Object::toString)
-                      .collect(Collectors.joining(", ")));
-            }
-          };
+                @Override
+                public String toString() {
+                  return String.format(
+                      "%s(%s)",
+                      functionName,
+                      arguments.stream().map(Object::toString).collect(Collectors.joining(", ")));
+                }
+              };
       return Pair.of(functionSignature, functionBuilder);
     };
   }
@@ -240,28 +237,25 @@ public class FunctionDSL {
   /**
    * No Arg Function Implementation.
    *
-   * @param function   {@link ExprValue} based unary function.
+   * @param function {@link ExprValue} based unary function.
    * @param returnType return type.
    * @return Unary Function Implementation.
    */
   public static SerializableFunction<FunctionName, Pair<FunctionSignature, FunctionBuilder>> impl(
-      SerializableNoArgFunction<ExprValue> function,
-      ExprType returnType) {
+      SerializableNoArgFunction<ExprValue> function, ExprType returnType) {
     return implWithProperties(fp -> function.get(), returnType);
   }
 
   /**
    * Unary Function Implementation.
    *
-   * @param function   {@link ExprValue} based unary function.
+   * @param function {@link ExprValue} based unary function.
    * @param returnType return type.
-   * @param argsType   argument type.
+   * @param argsType argument type.
    * @return Unary Function Implementation.
    */
   public static SerializableFunction<FunctionName, Pair<FunctionSignature, FunctionBuilder>> impl(
-      SerializableFunction<ExprValue, ExprValue> function,
-      ExprType returnType,
-      ExprType argsType) {
+      SerializableFunction<ExprValue, ExprValue> function, ExprType returnType, ExprType argsType) {
 
     return implWithProperties((fp, arg) -> function.apply(arg), returnType, argsType);
   }
@@ -269,10 +263,10 @@ public class FunctionDSL {
   /**
    * Binary Function Implementation.
    *
-   * @param function   {@link ExprValue} based unary function.
+   * @param function {@link ExprValue} based unary function.
    * @param returnType return type.
-   * @param args1Type   argument type.
-   * @param args2Type   argument type.
+   * @param args1Type argument type.
+   * @param args2Type argument type.
    * @return Binary Function Implementation.
    */
   public static SerializableFunction<FunctionName, Pair<FunctionSignature, FunctionBuilder>> impl(
@@ -281,17 +275,17 @@ public class FunctionDSL {
       ExprType args1Type,
       ExprType args2Type) {
 
-    return implWithProperties((fp, arg1, arg2) ->
-        function.apply(arg1, arg2), returnType, args1Type, args2Type);
+    return implWithProperties(
+        (fp, arg1, arg2) -> function.apply(arg1, arg2), returnType, args1Type, args2Type);
   }
 
   /**
    * Triple Function Implementation.
    *
-   * @param function   {@link ExprValue} based unary function.
+   * @param function {@link ExprValue} based unary function.
    * @param returnType return type.
-   * @param args1Type  argument type.
-   * @param args2Type  argument type.
+   * @param args1Type argument type.
+   * @param args2Type argument type.
    * @return Binary Function Implementation.
    */
   public static SerializableFunction<FunctionName, Pair<FunctionSignature, FunctionBuilder>> impl(
@@ -305,26 +299,31 @@ public class FunctionDSL {
       FunctionSignature functionSignature =
           new FunctionSignature(functionName, Arrays.asList(args1Type, args2Type, args3Type));
       FunctionBuilder functionBuilder =
-          (functionProperties, arguments) -> new FunctionExpression(functionName, arguments) {
-            @Override
-            public ExprValue valueOf(Environment<Expression, ExprValue> valueEnv) {
-              ExprValue arg1 = arguments.get(0).valueOf(valueEnv);
-              ExprValue arg2 = arguments.get(1).valueOf(valueEnv);
-              ExprValue arg3 = arguments.get(2).valueOf(valueEnv);
-              return function.apply(arg1, arg2, arg3);
-            }
+          (functionProperties, arguments) ->
+              new FunctionExpression(functionName, arguments) {
+                @Override
+                public ExprValue valueOf(Environment<Expression, ExprValue> valueEnv) {
+                  ExprValue arg1 = arguments.get(0).valueOf(valueEnv);
+                  ExprValue arg2 = arguments.get(1).valueOf(valueEnv);
+                  ExprValue arg3 = arguments.get(2).valueOf(valueEnv);
+                  return function.apply(arg1, arg2, arg3);
+                }
 
-            @Override
-            public ExprType type() {
-              return returnType;
-            }
+                @Override
+                public ExprType type() {
+                  return returnType;
+                }
 
-            @Override
-            public String toString() {
-              return String.format("%s(%s, %s, %s)", functionName, arguments.get(0).toString(),
-                  arguments.get(1).toString(), arguments.get(2).toString());
-            }
-          };
+                @Override
+                public String toString() {
+                  return String.format(
+                      "%s(%s, %s, %s)",
+                      functionName,
+                      arguments.get(0).toString(),
+                      arguments.get(1).toString(),
+                      arguments.get(2).toString());
+                }
+              };
       return Pair.of(functionSignature, functionBuilder);
     };
   }
@@ -332,11 +331,11 @@ public class FunctionDSL {
   /**
    * Quadruple Function Implementation.
    *
-   * @param function   {@link ExprValue} based unary function.
+   * @param function {@link ExprValue} based unary function.
    * @param returnType return type.
-   * @param args1Type  argument type.
-   * @param args2Type  argument type.
-   * @param args3Type  argument type.
+   * @param args1Type argument type.
+   * @param args2Type argument type.
+   * @param args3Type argument type.
    * @return Quadruple Function Implementation.
    */
   public static SerializableFunction<FunctionName, Pair<FunctionSignature, FunctionBuilder>> impl(
@@ -349,42 +348,41 @@ public class FunctionDSL {
 
     return functionName -> {
       FunctionSignature functionSignature =
-          new FunctionSignature(functionName, Arrays.asList(
-              args1Type,
-              args2Type,
-              args3Type,
-              args4Type));
+          new FunctionSignature(
+              functionName, Arrays.asList(args1Type, args2Type, args3Type, args4Type));
       FunctionBuilder functionBuilder =
-          (functionProperties, arguments) -> new FunctionExpression(functionName, arguments) {
-            @Override
-            public ExprValue valueOf(Environment<Expression, ExprValue> valueEnv) {
-              ExprValue arg1 = arguments.get(0).valueOf(valueEnv);
-              ExprValue arg2 = arguments.get(1).valueOf(valueEnv);
-              ExprValue arg3 = arguments.get(2).valueOf(valueEnv);
-              ExprValue arg4 = arguments.get(3).valueOf(valueEnv);
-              return function.apply(arg1, arg2, arg3, arg4);
-            }
+          (functionProperties, arguments) ->
+              new FunctionExpression(functionName, arguments) {
+                @Override
+                public ExprValue valueOf(Environment<Expression, ExprValue> valueEnv) {
+                  ExprValue arg1 = arguments.get(0).valueOf(valueEnv);
+                  ExprValue arg2 = arguments.get(1).valueOf(valueEnv);
+                  ExprValue arg3 = arguments.get(2).valueOf(valueEnv);
+                  ExprValue arg4 = arguments.get(3).valueOf(valueEnv);
+                  return function.apply(arg1, arg2, arg3, arg4);
+                }
 
-            @Override
-            public ExprType type() {
-              return returnType;
-            }
+                @Override
+                public ExprType type() {
+                  return returnType;
+                }
 
-            @Override
-            public String toString() {
-              return String.format("%s(%s, %s, %s, %s)", functionName, arguments.get(0).toString(),
-                  arguments.get(1).toString(),
-                  arguments.get(2).toString(),
-                  arguments.get(3).toString());
-            }
-          };
+                @Override
+                public String toString() {
+                  return String.format(
+                      "%s(%s, %s, %s, %s)",
+                      functionName,
+                      arguments.get(0).toString(),
+                      arguments.get(1).toString(),
+                      arguments.get(2).toString(),
+                      arguments.get(3).toString());
+                }
+              };
       return Pair.of(functionSignature, functionBuilder);
     };
   }
 
-  /**
-   * Wrapper the unary ExprValue function with default NULL and MISSING handling.
-   */
+  /** Wrapper the unary ExprValue function with default NULL and MISSING handling. */
   public static SerializableFunction<ExprValue, ExprValue> nullMissingHandling(
       SerializableFunction<ExprValue, ExprValue> function) {
     return value -> {
@@ -398,9 +396,7 @@ public class FunctionDSL {
     };
   }
 
-  /**
-   * Wrapper the binary ExprValue function with default NULL and MISSING handling.
-   */
+  /** Wrapper the binary ExprValue function with default NULL and MISSING handling. */
   public static SerializableBiFunction<ExprValue, ExprValue, ExprValue> nullMissingHandling(
       SerializableBiFunction<ExprValue, ExprValue, ExprValue> function) {
     return (v1, v2) -> {
@@ -414,9 +410,7 @@ public class FunctionDSL {
     };
   }
 
-  /**
-   * Wrapper the triple ExprValue function with default NULL and MISSING handling.
-   */
+  /** Wrapper the triple ExprValue function with default NULL and MISSING handling. */
   public SerializableTriFunction<ExprValue, ExprValue, ExprValue, ExprValue> nullMissingHandling(
       SerializableTriFunction<ExprValue, ExprValue, ExprValue, ExprValue> function) {
     return (v1, v2, v3) -> {
@@ -431,12 +425,12 @@ public class FunctionDSL {
   }
 
   /**
-   * Wrapper the unary ExprValue function that is aware of FunctionProperties,
-   * with default NULL and MISSING handling.
+   * Wrapper the unary ExprValue function that is aware of FunctionProperties, with default NULL and
+   * MISSING handling.
    */
   public static SerializableBiFunction<FunctionProperties, ExprValue, ExprValue>
-        nullMissingHandlingWithProperties(
-      SerializableBiFunction<FunctionProperties, ExprValue, ExprValue>  implementation) {
+      nullMissingHandlingWithProperties(
+          SerializableBiFunction<FunctionProperties, ExprValue, ExprValue> implementation) {
     return (functionProperties, v1) -> {
       if (v1.isMissing()) {
         return ExprValueUtils.missingValue();
@@ -453,8 +447,9 @@ public class FunctionDSL {
    * with default NULL and MISSING handling.
    */
   public static SerializableTriFunction<FunctionProperties, ExprValue, ExprValue, ExprValue>
-        nullMissingHandlingWithProperties(
-      SerializableTriFunction<FunctionProperties, ExprValue, ExprValue,ExprValue> implementation) {
+      nullMissingHandlingWithProperties(
+          SerializableTriFunction<FunctionProperties, ExprValue, ExprValue, ExprValue>
+              implementation) {
     return (functionProperties, v1, v2) -> {
       if (v1.isMissing() || v2.isMissing()) {
         return ExprValueUtils.missingValue();
@@ -471,18 +466,10 @@ public class FunctionDSL {
    * with default NULL and MISSING handling.
    */
   public static SerializableQuadFunction<
-      FunctionProperties,
-      ExprValue,
-      ExprValue,
-      ExprValue,
-      ExprValue>
+          FunctionProperties, ExprValue, ExprValue, ExprValue, ExprValue>
       nullMissingHandlingWithProperties(
-      SerializableQuadFunction<
-          FunctionProperties,
-          ExprValue,
-          ExprValue,
-          ExprValue,
-          ExprValue> implementation) {
+          SerializableQuadFunction<FunctionProperties, ExprValue, ExprValue, ExprValue, ExprValue>
+              implementation) {
     return (functionProperties, v1, v2, v3) -> {
       if (v1.isMissing() || v2.isMissing() || v3.isMissing()) {
         return ExprValueUtils.missingValue();
