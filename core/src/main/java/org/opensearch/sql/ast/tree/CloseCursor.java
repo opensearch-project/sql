@@ -9,10 +9,15 @@ import java.util.List;
 import org.opensearch.sql.ast.AbstractNodeVisitor;
 import org.opensearch.sql.ast.Node;
 
-/** AST node to represent close cursor operation. Actually a wrapper to the AST. */
+/**
+ * AST node to represent close cursor operation.
+ * Actually a wrapper to the AST.
+ */
 public class CloseCursor extends UnresolvedPlan {
 
-  /** An instance of {@link FetchCursor}. */
+  /**
+   * An instance of {@link FetchCursor}.
+   */
   private UnresolvedPlan cursor;
 
   @Override

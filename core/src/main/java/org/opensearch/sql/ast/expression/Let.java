@@ -3,6 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+
 package org.opensearch.sql.ast.expression;
 
 import com.google.common.collect.ImmutableList;
@@ -13,7 +14,9 @@ import lombok.RequiredArgsConstructor;
 import lombok.ToString;
 import org.opensearch.sql.ast.AbstractNodeVisitor;
 
-/** Represent the assign operation. e.g. velocity = distance/speed. */
+/**
+ * Represent the assign operation. e.g. velocity = distance/speed.
+ */
 @Getter
 @ToString
 @EqualsAndHashCode(callSuper = false)

@@ -16,7 +16,7 @@ import org.opensearch.sql.ast.AbstractNodeVisitor;
 
 
 /**
- * Expression node of scalar function.<br>
+ * Expression node of scalar function.
  * Params include function name (@funcName) and function arguments (@funcArgs)
  */
 @Getter
@@ -39,8 +39,8 @@ public class Function extends UnresolvedExpression {
   @Override
   public String toString() {
     return String.format("%s(%s)", funcName,
-        funcArgs.stream()
-            .map(Object::toString)
-            .collect(Collectors.joining(", ")));
+            funcArgs.stream()
+                    .map(Object::toString)
+                    .collect(Collectors.joining(", ")));
   }
 }

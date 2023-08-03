@@ -3,6 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+
 package org.opensearch.sql.ast.expression;
 
 import com.google.common.collect.ImmutableList;
@@ -13,8 +14,9 @@ import lombok.RequiredArgsConstructor;
 import org.opensearch.sql.ast.AbstractNodeVisitor;
 
 /**
- * Expression node of literal type Params include literal value (@value) and literal data type
- * (@type) which can be selected from {@link DataType}.
+ * Expression node of literal type
+ * Params include literal value (@value) and
+ * literal data type (@type) which can be selected from {@link DataType}.
  */
 @Getter
 @EqualsAndHashCode(callSuper = false)

@@ -3,6 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+
 package org.opensearch.sql.ast.tree;
 
 import static org.opensearch.sql.utils.MLCommonsConstants.ACTION;
@@ -65,7 +66,7 @@ public class ML extends UnresolvedPlan {
   }
 
   private String getAction() {
-    return (String) arguments.get(ACTION).getValue();
+    return  (String) arguments.get(ACTION).getValue();
   }
 
   /**
@@ -84,7 +85,7 @@ public class ML extends UnresolvedPlan {
         return getPredictOutputSchema();
       default:
         throw new IllegalArgumentException(
-            "Action error. Please indicate train, predict or trainandpredict.");
+                "Action error. Please indicate train, predict or trainandpredict.");
     }
   }
 
@@ -121,8 +122,8 @@ public class ML extends UnresolvedPlan {
    * @return the schema
    */
   public Map<String, ExprCoreType> getTrainOutputSchema() {
-    boolean isAsync =
-        arguments.containsKey(ASYNC) ? (boolean) arguments.get(ASYNC).getValue() : false;
+    boolean isAsync = arguments.containsKey(ASYNC)
+            ? (boolean) arguments.get(ASYNC).getValue() : false;
     Map<String, ExprCoreType> res = new HashMap<>(Map.of(STATUS, ExprCoreType.STRING));
     if (isAsync) {
       res.put(TASKID, ExprCoreType.STRING);

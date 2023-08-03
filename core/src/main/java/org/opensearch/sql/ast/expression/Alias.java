@@ -3,6 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+
 package org.opensearch.sql.ast.expression;
 
 import lombok.AllArgsConstructor;
@@ -13,10 +14,10 @@ import lombok.ToString;
 import org.opensearch.sql.ast.AbstractNodeVisitor;
 
 /**
- * Alias abstraction that associate an unnamed expression with a name and an optional alias. The
- * name and alias information preserved is useful for semantic analysis and response formatting
- * eventually. This can avoid restoring the info in toString() method which is inaccurate because
- * original info is already lost.
+ * Alias abstraction that associate an unnamed expression with a name and an optional alias.
+ * The name and alias information preserved is useful for semantic analysis and response
+ * formatting eventually. This can avoid restoring the info in toString() method which is
+ * inaccurate because original info is already lost.
  */
 @AllArgsConstructor
 @EqualsAndHashCode(callSuper = false)
@@ -25,13 +26,19 @@ import org.opensearch.sql.ast.AbstractNodeVisitor;
 @ToString
 public class Alias extends UnresolvedExpression {
 
-  /** Original field name. */
+  /**
+   * Original field name.
+   */
   private final String name;
 
-  /** Expression aliased. */
+  /**
+   * Expression aliased.
+   */
   private final UnresolvedExpression delegated;
 
-  /** Optional field alias. */
+  /**
+   * Optional field alias.
+   */
   private String alias;
 
   @Override

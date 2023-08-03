@@ -3,6 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+
 package org.opensearch.sql.ast.tree;
 
 import java.util.Collections;
@@ -18,7 +19,9 @@ import org.opensearch.sql.ast.expression.Argument;
 import org.opensearch.sql.ast.expression.Field;
 import org.opensearch.sql.ast.expression.UnresolvedExpression;
 
-/** AST node represent RareTopN operation. */
+/**
+ * AST node represent RareTopN operation.
+ */
 @Getter
 @Setter
 @ToString
@@ -54,3 +57,4 @@ public class RareTopN extends UnresolvedPlan {
     RARE
   }
 }
+

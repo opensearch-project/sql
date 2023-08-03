@@ -3,6 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+
 package org.opensearch.sql.ast.tree;
 
 import com.google.common.collect.ImmutableList;
@@ -16,7 +17,9 @@ import org.opensearch.sql.ast.AbstractNodeVisitor;
 import org.opensearch.sql.ast.expression.Argument;
 import org.opensearch.sql.ast.expression.UnresolvedExpression;
 
-/** Logical plan node of Aggregation, the interface for building aggregation actions in queries. */
+/**
+ * Logical plan node of Aggregation, the interface for building aggregation actions in queries.
+ */
 @Getter
 @Setter
 @ToString
@@ -29,21 +32,23 @@ public class Aggregation extends UnresolvedPlan {
   private List<Argument> argExprList;
   private UnresolvedPlan child;
 
-  /** Aggregation Constructor without span and argument. */
-  public Aggregation(
-      List<UnresolvedExpression> aggExprList,
-      List<UnresolvedExpression> sortExprList,
-      List<UnresolvedExpression> groupExprList) {
+  /**
+   * Aggregation Constructor without span and argument.
+   */
+  public Aggregation(List<UnresolvedExpression> aggExprList,
+                     List<UnresolvedExpression> sortExprList,
+                     List<UnresolvedExpression> groupExprList) {
     this(aggExprList, sortExprList, groupExprList, null, Collections.emptyList());
   }
 
-  /** Aggregation Constructor. */
-  public Aggregation(
-      List<UnresolvedExpression> aggExprList,
-      List<UnresolvedExpression> sortExprList,
-      List<UnresolvedExpression> groupExprList,
-      UnresolvedExpression span,
-      List<Argument> argExprList) {
+  /**
+   * Aggregation Constructor.
+   */
+  public Aggregation(List<UnresolvedExpression> aggExprList,
+                     List<UnresolvedExpression> sortExprList,
+                     List<UnresolvedExpression> groupExprList,
+                     UnresolvedExpression span,
+                     List<Argument> argExprList) {
     this.aggExprList = aggExprList;
     this.sortExprList = sortExprList;
     this.groupExprList = groupExprList;

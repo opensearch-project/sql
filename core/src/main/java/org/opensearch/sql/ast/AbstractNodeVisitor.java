@@ -3,6 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+
 package org.opensearch.sql.ast;
 
 import org.opensearch.sql.ast.expression.AggregateFunction;
@@ -61,7 +62,9 @@ import org.opensearch.sql.ast.tree.Sort;
 import org.opensearch.sql.ast.tree.TableFunction;
 import org.opensearch.sql.ast.tree.Values;
 
-/** AST nodes visitor Defines the traverse path. */
+/**
+ * AST nodes visitor Defines the traverse path.
+ */
 public abstract class AbstractNodeVisitor<T, C> {
 
   public T visit(Node node, C context) {
@@ -70,7 +73,6 @@ public abstract class AbstractNodeVisitor<T, C> {
 
   /**
    * Visit child node.
-   *
    * @param node {@link Node}
    * @param context Context
    * @return Return Type.

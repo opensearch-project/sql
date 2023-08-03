@@ -3,6 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+
 package org.opensearch.sql.ast.tree;
 
 import com.google.common.collect.ImmutableList;
@@ -13,7 +14,9 @@ import lombok.RequiredArgsConstructor;
 import lombok.ToString;
 import org.opensearch.sql.ast.AbstractNodeVisitor;
 
-/** Logical plan node of RelationSubquery. */
+/**
+ * Logical plan node of RelationSubquery.
+ */
 @AllArgsConstructor
 @EqualsAndHashCode(callSuper = false)
 @RequiredArgsConstructor
@@ -22,7 +25,9 @@ public class RelationSubquery extends UnresolvedPlan {
   private UnresolvedPlan query;
   private String alias;
 
-  /** Take subquery alias as table name. */
+  /**
+   * Take subquery alias as table name.
+   */
   public String getAliasAsTableName() {
     return alias;
   }

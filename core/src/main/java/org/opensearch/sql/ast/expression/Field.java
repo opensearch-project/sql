@@ -3,6 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+
 package org.opensearch.sql.ast.expression;
 
 import com.google.common.collect.ImmutableList;
@@ -22,12 +23,16 @@ public class Field extends UnresolvedExpression {
 
   private final List<Argument> fieldArgs;
 
-  /** Constructor of Field. */
+  /**
+   * Constructor of Field.
+   */
   public Field(UnresolvedExpression field) {
     this(field, Collections.emptyList());
   }
 
-  /** Constructor of Field. */
+  /**
+   * Constructor of Field.
+   */
   public Field(UnresolvedExpression field, List<Argument> fieldArgs) {
     this.field = field;
     this.fieldArgs = fieldArgs;

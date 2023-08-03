@@ -3,6 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+
 package org.opensearch.sql.ast.expression;
 
 import java.util.List;
@@ -12,11 +13,14 @@ import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import org.opensearch.sql.ast.AbstractNodeVisitor;
 
-/** Expression node that includes a list of RelevanceField nodes. */
+/**
+ * Expression node that includes a list of RelevanceField nodes.
+ */
 @EqualsAndHashCode(callSuper = false)
 @AllArgsConstructor
 public class RelevanceFieldList extends UnresolvedExpression {
-  @Getter private java.util.Map<String, Float> fieldList;
+  @Getter
+  private java.util.Map<String, Float> fieldList;
 
   @Override
   public List<UnresolvedExpression> getChild() {
@@ -30,8 +34,10 @@ public class RelevanceFieldList extends UnresolvedExpression {
 
   @Override
   public String toString() {
-    return fieldList.entrySet().stream()
-        .map(e -> String.format("\"%s\" ^ %s", e.getKey(), e.getValue()))
-        .collect(Collectors.joining(", "));
+    return fieldList
+            .entrySet()
+            .stream()
+            .map(e -> String.format("\"%s\" ^ %s", e.getKey(), e.getValue()))
+            .collect(Collectors.joining(", "));
   }
 }

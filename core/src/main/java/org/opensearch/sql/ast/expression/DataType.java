@@ -3,13 +3,17 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+
 package org.opensearch.sql.ast.expression;
 
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import org.opensearch.sql.data.type.ExprCoreType;
 
-/** The DataType defintion in AST. Question, could we use {@link ExprCoreType} directly in AST? */
+/**
+ * The DataType defintion in AST.
+ * Question, could we use {@link ExprCoreType} directly in AST?
+ */
 @RequiredArgsConstructor
 public enum DataType {
   TYPE_ERROR(ExprCoreType.UNKNOWN),
@@ -28,5 +32,6 @@ public enum DataType {
   TIMESTAMP(ExprCoreType.TIMESTAMP),
   INTERVAL(ExprCoreType.INTERVAL);
 
-  @Getter private final ExprCoreType coreType;
+  @Getter
+  private final ExprCoreType coreType;
 }

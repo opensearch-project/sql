@@ -3,6 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+
 package org.opensearch.sql.ast.expression;
 
 import lombok.Getter;
@@ -14,5 +15,6 @@ public enum ParseMethod {
   GROK("grok"),
   PATTERNS("patterns");
 
-  @Getter private final String name;
+  @Getter
+  private final String name;
 }

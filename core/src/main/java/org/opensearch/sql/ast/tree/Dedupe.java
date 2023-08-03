@@ -3,6 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+
 package org.opensearch.sql.ast.tree;
 
 import com.google.common.collect.ImmutableList;
@@ -17,7 +18,9 @@ import org.opensearch.sql.ast.AbstractNodeVisitor;
 import org.opensearch.sql.ast.expression.Argument;
 import org.opensearch.sql.ast.expression.Field;
 
-/** AST node represent Dedupe operation. */
+/**
+ * AST node represent Dedupe operation.
+ */
 @Getter
 @Setter
 @ToString

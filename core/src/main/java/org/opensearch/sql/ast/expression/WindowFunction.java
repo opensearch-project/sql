@@ -3,6 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+
 package org.opensearch.sql.ast.expression;
 
 import com.google.common.collect.ImmutableList;
@@ -41,4 +42,5 @@ public class WindowFunction extends UnresolvedExpression {
   public <T, C> T accept(AbstractNodeVisitor<T, C> nodeVisitor, C context) {
     return nodeVisitor.visitWindowFunction(this, context);
   }
+
 }

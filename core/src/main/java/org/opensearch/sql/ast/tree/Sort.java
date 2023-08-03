@@ -3,6 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+
 package org.opensearch.sql.ast.tree;
 
 import static org.opensearch.sql.ast.tree.Sort.NullOrder.NULL_FIRST;
@@ -21,7 +22,9 @@ import lombok.ToString;
 import org.opensearch.sql.ast.AbstractNodeVisitor;
 import org.opensearch.sql.ast.expression.Field;
 
-/** AST node for Sort {@link Sort#sortList} represent a list of sort expression and sort options. */
+/**
+ * AST node for Sort {@link Sort#sortList} represent a list of sort expression and sort options.
+ */
 @ToString
 @EqualsAndHashCode(callSuper = false)
 @Getter
@@ -47,14 +50,19 @@ public class Sort extends UnresolvedPlan {
     return nodeVisitor.visitSort(this, context);
   }
 
-  /** Sort Options. */
+  /**
+   * Sort Options.
+   */
   @Data
   public static class SortOption {
 
-    /** Default ascending sort option, null first. */
+    /**
+     * Default ascending sort option, null first.
+     */
     public static SortOption DEFAULT_ASC = new SortOption(ASC, NULL_FIRST);
-
-    /** Default descending sort option, null last. */
+    /**
+     * Default descending sort option, null last.
+     */
     public static SortOption DEFAULT_DESC = new SortOption(DESC, NULL_LAST);
 
     private final SortOrder sortOrder;

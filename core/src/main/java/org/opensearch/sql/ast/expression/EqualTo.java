@@ -3,6 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+
 package org.opensearch.sql.ast.expression;
 
 import java.util.Arrays;
@@ -13,13 +14,17 @@ import lombok.Getter;
 import lombok.ToString;
 import org.opensearch.sql.ast.AbstractNodeVisitor;
 
-/** Expression node of binary operator or comparison relation EQUAL. */
+/**
+ * Expression node of binary operator or comparison relation EQUAL.
+ */
 @ToString
 @EqualsAndHashCode(callSuper = false)
 @AllArgsConstructor
 public class EqualTo extends UnresolvedExpression {
-  @Getter private UnresolvedExpression left;
-  @Getter private UnresolvedExpression right;
+  @Getter
+  private UnresolvedExpression left;
+  @Getter
+  private UnresolvedExpression right;
 
   @Override
   public List<UnresolvedExpression> getChild() {

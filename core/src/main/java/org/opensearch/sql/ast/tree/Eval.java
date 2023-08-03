@@ -3,6 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+
 package org.opensearch.sql.ast.tree;
 
 import com.google.common.collect.ImmutableList;
@@ -15,7 +16,9 @@ import lombok.ToString;
 import org.opensearch.sql.ast.AbstractNodeVisitor;
 import org.opensearch.sql.ast.expression.Let;
 
-/** AST node represent Eval operation. */
+/**
+ * AST node represent Eval operation.
+ */
 @Getter
 @Setter
 @ToString

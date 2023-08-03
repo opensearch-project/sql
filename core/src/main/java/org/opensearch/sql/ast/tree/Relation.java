@@ -3,6 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+
 package org.opensearch.sql.ast.tree;
 
 import com.google.common.collect.ImmutableList;
@@ -17,7 +18,9 @@ import org.opensearch.sql.ast.AbstractNodeVisitor;
 import org.opensearch.sql.ast.expression.QualifiedName;
 import org.opensearch.sql.ast.expression.UnresolvedExpression;
 
-/** Logical plan node of Relation, the interface for building the searching sources. */
+/**
+ * Logical plan node of Relation, the interface for building the searching sources.
+ */
 @AllArgsConstructor
 @ToString
 @EqualsAndHashCode(callSuper = false)
@@ -36,7 +39,9 @@ public class Relation extends UnresolvedPlan {
     this.alias = alias;
   }
 
-  /** Optional alias name for the relation. */
+  /**
+   * Optional alias name for the relation.
+   */
   private String alias;
 
   /**
@@ -67,9 +72,9 @@ public class Relation extends UnresolvedPlan {
   }
 
   /**
-   * Get Qualified name preservs parts of the user given identifiers. This can later be utilized to
-   * determine DataSource,Schema and Table Name during Analyzer stage. So Passing QualifiedName
-   * directly to Analyzer Stage.
+   * Get Qualified name preservs parts of the user given identifiers.
+   * This can later be utilized to determine DataSource,Schema and Table Name during
+   * Analyzer stage. So Passing QualifiedName directly to Analyzer Stage.
    *
    * @return TableQualifiedName.
    */
@@ -77,8 +82,7 @@ public class Relation extends UnresolvedPlan {
     if (tableName.size() == 1) {
       return (QualifiedName) tableName.get(0);
     } else {
-      return new QualifiedName(
-          tableName.stream()
+      return new QualifiedName(tableName.stream()
               .map(UnresolvedExpression::toString)
               .collect(Collectors.joining(COMMA)));
     }
