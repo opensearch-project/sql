@@ -79,7 +79,7 @@ public class AstDSL {
 
   public UnresolvedPlan relation(List<String> tableNames) {
     return new Relation(
-        tableNames.stream().map(AstDSL::qualifiedName).collect(Collectors.toList()));
+            tableNames.stream().map(AstDSL::qualifiedName).collect(Collectors.toList()));
   }
 
   public UnresolvedPlan relation(QualifiedName tableName) {
@@ -103,26 +103,26 @@ public class AstDSL {
   }
 
   public static UnresolvedPlan projectWithArg(
-      UnresolvedPlan input, List<Argument> argList, UnresolvedExpression... projectList) {
+          UnresolvedPlan input, List<Argument> argList, UnresolvedExpression... projectList) {
     return new Project(Arrays.asList(projectList), argList).attach(input);
   }
 
   public static UnresolvedPlan agg(
-      UnresolvedPlan input,
-      List<UnresolvedExpression> aggList,
-      List<UnresolvedExpression> sortList,
-      List<UnresolvedExpression> groupList,
-      List<Argument> argList) {
+          UnresolvedPlan input,
+          List<UnresolvedExpression> aggList,
+          List<UnresolvedExpression> sortList,
+          List<UnresolvedExpression> groupList,
+          List<Argument> argList) {
     return new Aggregation(aggList, sortList, groupList, null, argList).attach(input);
   }
 
   public static UnresolvedPlan agg(
-      UnresolvedPlan input,
-      List<UnresolvedExpression> aggList,
-      List<UnresolvedExpression> sortList,
-      List<UnresolvedExpression> groupList,
-      UnresolvedExpression span,
-      List<Argument> argList) {
+          UnresolvedPlan input,
+          List<UnresolvedExpression> aggList,
+          List<UnresolvedExpression> sortList,
+          List<UnresolvedExpression> groupList,
+          UnresolvedExpression span,
+          List<Argument> argList) {
     return new Aggregation(aggList, sortList, groupList, span, argList).attach(input);
   }
 
@@ -145,7 +145,7 @@ public class AstDSL {
   }
 
   public static UnresolvedExpression equalTo(
-      UnresolvedExpression left, UnresolvedExpression right) {
+          UnresolvedExpression left, UnresolvedExpression right) {
     return new EqualTo(left, right);
   }
 
@@ -226,12 +226,12 @@ public class AstDSL {
   }
 
   public static UnresolvedExpression aggregate(
-      String func, UnresolvedExpression field, UnresolvedExpression... args) {
+          String func, UnresolvedExpression field, UnresolvedExpression... args) {
     return new AggregateFunction(func, field, Arrays.asList(args));
   }
 
   public static UnresolvedExpression filteredAggregate(
-      String func, UnresolvedExpression field, UnresolvedExpression condition) {
+          String func, UnresolvedExpression field, UnresolvedExpression condition) {
     return new AggregateFunction(func, field).condition(condition);
   }
 
@@ -240,7 +240,7 @@ public class AstDSL {
   }
 
   public static UnresolvedExpression filteredDistinctCount(
-      String func, UnresolvedExpression field, UnresolvedExpression condition) {
+          String func, UnresolvedExpression field, UnresolvedExpression condition) {
     return new AggregateFunction(func, field, true).condition(condition);
   }
 
@@ -249,10 +249,10 @@ public class AstDSL {
   }
 
   /**
-   * CASE<br>
-   *     WHEN search_condition THEN result_expr<br>
-   *     [WHEN search_condition THEN result_expr] ...<br>
-   *     [ELSE result_expr]<br>
+   * CASE
+   *     WHEN search_condition THEN result_expr
+   *     [WHEN search_condition THEN result_expr] ...
+   *     [ELSE result_expr]
    * END
    */
   public UnresolvedExpression caseWhen(UnresolvedExpression elseClause,
@@ -261,10 +261,10 @@ public class AstDSL {
   }
 
   /**
-   * CASE case_value_expr<br>
-   *     WHEN compare_expr THEN result_expr<br>
-   *     [WHEN compare_expr THEN result_expr] ...<br>
-   *     [ELSE result_expr]<br>
+   * CASE case_value_expr
+   *     WHEN compare_expr THEN result_expr
+   *     [WHEN compare_expr THEN result_expr] ...
+   *     [ELSE result_expr]
    * END
    */
   public UnresolvedExpression caseWhen(UnresolvedExpression caseValueExpr,
@@ -282,7 +282,7 @@ public class AstDSL {
   }
 
   public UnresolvedExpression highlight(UnresolvedExpression fieldName,
-      java.util.Map<String, Literal> arguments) {
+                                        java.util.Map<String, Literal> arguments) {
     return new HighlightFunction(fieldName, arguments);
   }
 
@@ -314,17 +314,17 @@ public class AstDSL {
   }
 
   public static UnresolvedExpression in(
-      UnresolvedExpression field, UnresolvedExpression... valueList) {
+          UnresolvedExpression field, UnresolvedExpression... valueList) {
     return new In(field, Arrays.asList(valueList));
   }
 
   public static UnresolvedExpression in(
-      UnresolvedExpression field, List<UnresolvedExpression> valueList) {
+          UnresolvedExpression field, List<UnresolvedExpression> valueList) {
     return new In(field, valueList);
   }
 
   public static UnresolvedExpression compare(
-      String operator, UnresolvedExpression left, UnresolvedExpression right) {
+          String operator, UnresolvedExpression left, UnresolvedExpression right) {
     return new Compare(operator, left, right);
   }
 
@@ -403,10 +403,10 @@ public class AstDSL {
    */
   public static List<Argument> defaultStatsArgs() {
     return exprList(
-        argument("partitions", intLiteral(1)),
-        argument("allnum", booleanLiteral(false)),
-        argument("delim", stringLiteral(" ")),
-        argument("dedupsplit", booleanLiteral(false)));
+            argument("partitions", intLiteral(1)),
+            argument("allnum", booleanLiteral(false)),
+            argument("delim", stringLiteral(" ")),
+            argument("dedupsplit", booleanLiteral(false)));
   }
 
   /**
@@ -414,9 +414,9 @@ public class AstDSL {
    */
   public static List<Argument> defaultDedupArgs() {
     return exprList(
-        argument("number", intLiteral(1)),
-        argument("keepempty", booleanLiteral(false)),
-        argument("consecutive", booleanLiteral(false)));
+            argument("number", intLiteral(1)),
+            argument("keepempty", booleanLiteral(false)),
+            argument("consecutive", booleanLiteral(false)));
   }
 
   public static List<Argument> sortOptions() {
@@ -451,7 +451,7 @@ public class AstDSL {
                                   List<Argument> noOfResults, List<UnresolvedExpression> groupList,
                                   Field... fields) {
     return new RareTopN(input, commandType, noOfResults, Arrays.asList(fields), groupList)
-        .attach(input);
+            .attach(input);
   }
 
   public static Limit limit(UnresolvedPlan input, Integer limit, Integer offset) {
@@ -459,9 +459,9 @@ public class AstDSL {
   }
 
   public static Parse parse(UnresolvedPlan input, ParseMethod parseMethod,
-                                  UnresolvedExpression sourceField,
-                                  Literal pattern,
-                                  java.util.Map<String, Literal> arguments) {
+                            UnresolvedExpression sourceField,
+                            Literal pattern,
+                            java.util.Map<String, Literal> arguments) {
     return new Parse(parseMethod, sourceField, pattern, arguments, input);
   }
 
