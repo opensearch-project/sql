@@ -17,7 +17,6 @@ import static org.opensearch.sql.plugin.rest.RestQuerySettingsAction.SETTINGS_AP
 import java.io.IOException;
 import org.json.JSONObject;
 import org.junit.Assert;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.opensearch.client.Request;
 import org.opensearch.client.RequestOptions;

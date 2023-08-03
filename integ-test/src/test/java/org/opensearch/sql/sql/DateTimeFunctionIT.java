@@ -1358,7 +1358,7 @@ public class DateTimeFunctionIT extends SQLIntegTestCase {
     compareBrackets("time", "time", "17:30:00");
     compareBrackets("time", "t", "17:30:00");
   }
-  
+
   @Test
   public void testBracketFails() {
     assertThrows(ResponseException.class, ()->executeQuery("select {time '2020-09-16'}"));

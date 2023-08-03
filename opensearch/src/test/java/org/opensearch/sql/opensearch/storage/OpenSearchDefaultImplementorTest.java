@@ -19,7 +19,6 @@ import org.opensearch.sql.planner.logical.LogicalAD;
 import org.opensearch.sql.planner.logical.LogicalML;
 import org.opensearch.sql.planner.logical.LogicalMLCommons;
 import org.opensearch.sql.planner.logical.LogicalPlan;
-import org.opensearch.sql.storage.Table;
 
 @ExtendWith(MockitoExtension.class)
 public class OpenSearchDefaultImplementorTest {

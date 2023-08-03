@@ -39,7 +39,7 @@ public class MathematicalFunctionIT extends SQLIntegTestCase {
             schema("PI()", null, "double"));
     verifyDataRows(result, rows(3.141592653589793));
   }
-  
+
   @Test
   public void testCeil() throws IOException {
     JSONObject result = executeQuery("select ceil(0)");

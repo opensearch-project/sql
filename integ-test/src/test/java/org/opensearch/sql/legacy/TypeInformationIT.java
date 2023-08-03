@@ -11,7 +11,6 @@ import static org.opensearch.sql.util.MatcherUtils.verifySchema;
 
 import org.json.JSONObject;
 
-import org.junit.Ignore;
 import org.junit.Test;
 
 public class TypeInformationIT extends SQLIntegTestCase {
