@@ -17,8 +17,7 @@ import org.opensearch.core.common.io.stream.StreamOutput;
 @RequiredArgsConstructor
 public class DeleteDataSourceActionResponse extends ActionResponse {
 
-  @Getter
-  private final String result;
+  @Getter private final String result;
 
   public DeleteDataSourceActionResponse(StreamInput in) throws IOException {
     super(in);
@@ -29,5 +28,4 @@ public class DeleteDataSourceActionResponse extends ActionResponse {
   public void writeTo(StreamOutput streamOutput) throws IOException {
     streamOutput.writeString(result);
   }
-
 }
