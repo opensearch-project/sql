@@ -3,7 +3,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-
 package org.opensearch.sql.data.model;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -29,8 +28,8 @@ public class ExprBooleanValueTest {
     ExprValue v2 = ExprBooleanValue.of(true);
     assertTrue(v1.equals(v2));
     assertTrue(v2.equals(v1));
-    assertEquals(0, ((ExprBooleanValue)v1).compare((ExprBooleanValue)v2));
-    assertEquals(0, ((ExprBooleanValue)v2).compare((ExprBooleanValue)v1));
+    assertEquals(0, ((ExprBooleanValue) v1).compare((ExprBooleanValue) v2));
+    assertEquals(0, ((ExprBooleanValue) v2).compare((ExprBooleanValue) v1));
   }
 
   @Test
@@ -44,7 +43,9 @@ public class ExprBooleanValueTest {
   @Test
   public void invalid_get_value() {
     ExprDateValue value = new ExprDateValue("2020-08-20");
-    assertThrows(ExpressionEvaluationException.class, value::booleanValue,
+    assertThrows(
+        ExpressionEvaluationException.class,
+        value::booleanValue,
         String.format("invalid to get booleanValue from value of type %s", value.type()));
   }
 

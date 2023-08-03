@@ -34,6 +34,11 @@ repositories {
     mavenCentral()
 }
 
+// Being ignored as a temporary measure before being removed in favour of
+// spotless https://github.com/opensearch-project/sql/issues/1101
+checkstyleTest.ignoreFailures = true
+checkstyleMain.ignoreFailures = true
+
 pitest {
     targetClasses = ['org.opensearch.sql.*']
     pitestVersion = '1.9.0'
