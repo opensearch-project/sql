@@ -7,13 +7,8 @@
 
 package org.opensearch.sql.analysis;
 
-import com.google.common.collect.ImmutableSet;
 import java.util.List;
-import java.util.Set;
-import java.util.stream.Collectors;
-import org.opensearch.sql.ast.expression.QualifiedName;
 import org.opensearch.sql.datasource.DataSourceService;
-import org.opensearch.sql.datasource.model.DataSourceMetadata;
 
 public class DataSourceSchemaIdentifierNameResolver {
 

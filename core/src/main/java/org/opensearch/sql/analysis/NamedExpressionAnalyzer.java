@@ -10,11 +10,9 @@ import lombok.RequiredArgsConstructor;
 import org.opensearch.sql.ast.AbstractNodeVisitor;
 import org.opensearch.sql.ast.expression.Alias;
 import org.opensearch.sql.ast.expression.QualifiedName;
-import org.opensearch.sql.ast.expression.Span;
 import org.opensearch.sql.ast.expression.UnresolvedExpression;
 import org.opensearch.sql.expression.DSL;
 import org.opensearch.sql.expression.NamedExpression;
-import org.opensearch.sql.expression.span.SpanExpression;
 
 /**
  * Analyze the Alias node in the {@link AnalysisContext} to construct the list of

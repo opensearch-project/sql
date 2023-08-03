@@ -25,13 +25,11 @@ import static org.opensearch.sql.utils.DateTimeUtils.UTC_ZONE_ID;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.google.common.collect.ImmutableMap;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalTime;
-import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeParseException;
 import java.time.temporal.TemporalAccessor;

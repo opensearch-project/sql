@@ -230,7 +230,7 @@ class MicroBatchStreamingExecutionTest {
    * StreamingSource impl only for testing.
    *
    * <p>initially, offset is -1, getLatestOffset() will return Optional.emtpy().
-   * 
+   *
    * <p>call addData() add offset by one.
    */
   static class TestStreamingSource implements StreamingSource {

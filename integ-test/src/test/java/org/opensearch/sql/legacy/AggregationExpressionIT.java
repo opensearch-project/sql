@@ -12,8 +12,6 @@ import static org.opensearch.sql.util.MatcherUtils.verifyDataRows;
 import static org.opensearch.sql.util.MatcherUtils.verifySchema;
 
 import org.json.JSONObject;
-import org.junit.Assume;
-import org.junit.Ignore;
 import org.junit.Test;
 
 public class AggregationExpressionIT extends SQLIntegTestCase {

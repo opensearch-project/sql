@@ -9,7 +9,6 @@ import static org.opensearch.sql.expression.function.FunctionDSL.impl;
 
 import java.util.List;
 import org.apache.commons.lang3.tuple.Pair;
-import org.junit.jupiter.api.BeforeEach;
 import org.opensearch.sql.expression.Expression;
 
 class FunctionDSLimplNoArgTest extends FunctionDSLimplTestBase {
