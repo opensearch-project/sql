@@ -11,7 +11,6 @@ import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_CALCS;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_ONLINE;
 
 import java.io.IOException;
-
 import lombok.SneakyThrows;
 import org.json.JSONArray;
 import org.json.JSONObject;

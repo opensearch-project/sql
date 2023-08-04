@@ -15,7 +15,6 @@ import static org.opensearch.sql.util.TestUtils.getResponseBody;
 
 import java.io.IOException;
 import java.util.Locale;
-
 import org.json.JSONObject;
 import org.junit.jupiter.api.Test;
 import org.opensearch.client.Request;
