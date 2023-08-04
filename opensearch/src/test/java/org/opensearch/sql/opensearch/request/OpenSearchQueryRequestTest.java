@@ -18,6 +18,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.opensearch.sql.opensearch.request.OpenSearchRequest.DEFAULT_QUERY_TIMEOUT;
 
+import java.util.List;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import org.apache.lucene.search.TotalHits;
@@ -68,27 +69,25 @@ public class OpenSearchQueryRequestTest {
   private OpenSearchExprValueFactory factory;
 
   private final OpenSearchQueryRequest request =
-      new OpenSearchQueryRequest("test", 200, factory);
+      new OpenSearchQueryRequest("test", 200, factory, List.of());
 
   private final OpenSearchQueryRequest remoteRequest =
-      new OpenSearchQueryRequest("ccs:test", 200, factory);
+      new OpenSearchQueryRequest("ccs:test", 200, factory, List.of());
 
   @Test
   void search() {
     OpenSearchQueryRequest request = new OpenSearchQueryRequest(
         new OpenSearchRequest.IndexName("test"),
         sourceBuilder,
-        factory
+        factory,
+        List.of()
     );
 
-    when(sourceBuilder.fetchSource()).thenReturn(fetchSourceContext);
-    when(fetchSourceContext.includes()).thenReturn(null);
     when(searchAction.apply(any())).thenReturn(searchResponse);
     when(searchResponse.getHits()).thenReturn(searchHits);
     when(searchHits.getHits()).thenReturn(new SearchHit[] {searchHit});
 
     OpenSearchResponse searchResponse = request.search(searchAction, scrollAction);
-    verify(fetchSourceContext, times(1)).includes();
     assertFalse(searchResponse.isEmpty());
     searchResponse = request.search(searchAction, scrollAction);
     assertTrue(searchResponse.isEmpty());
@@ -100,15 +99,14 @@ public class OpenSearchQueryRequestTest {
     OpenSearchQueryRequest request = new OpenSearchQueryRequest(
         new OpenSearchRequest.IndexName("test"),
         sourceBuilder,
-        factory
+        factory,
+        List.of()
     );
 
-    when(sourceBuilder.fetchSource()).thenReturn(null);
     when(searchAction.apply(any())).thenReturn(searchResponse);
     when(searchResponse.getHits()).thenReturn(searchHits);
     when(searchHits.getHits()).thenReturn(new SearchHit[] {searchHit});
     OpenSearchResponse searchResponse = request.search(searchAction, scrollAction);
-    verify(sourceBuilder, times(1)).fetchSource();
     assertFalse(searchResponse.isEmpty());
     assertFalse(request.hasAnotherBatch());
   }
@@ -118,18 +116,16 @@ public class OpenSearchQueryRequestTest {
     OpenSearchQueryRequest request = new OpenSearchQueryRequest(
         new OpenSearchRequest.IndexName("test"),
         sourceBuilder,
-        factory
+        factory,
+        List.of()
     );
 
     String[] includes = {"_id", "_index"};
-    when(sourceBuilder.fetchSource()).thenReturn(fetchSourceContext);
-    when(fetchSourceContext.includes()).thenReturn(includes);
     when(searchAction.apply(any())).thenReturn(searchResponse);
     when(searchResponse.getHits()).thenReturn(searchHits);
     when(searchHits.getHits()).thenReturn(new SearchHit[] {searchHit});
 
     OpenSearchResponse searchResponse = request.search(searchAction, scrollAction);
-    verify(fetchSourceContext, times(2)).includes();
     assertFalse(searchResponse.isEmpty());
 
     searchResponse = request.search(searchAction, scrollAction);

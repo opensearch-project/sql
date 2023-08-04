@@ -99,7 +99,7 @@ class OpenSearchRequestBuilderTest {
                 .size(limit)
                 .timeout(DEFAULT_QUERY_TIMEOUT)
                 .trackScores(true),
-            exprValueFactory),
+            exprValueFactory, List.of()),
         requestBuilder.build(indexName, MAX_RESULT_WINDOW, DEFAULT_QUERY_TIMEOUT));
   }
 
@@ -116,7 +116,7 @@ class OpenSearchRequestBuilderTest {
                 .from(offset)
                 .size(MAX_RESULT_WINDOW - offset)
                 .timeout(DEFAULT_QUERY_TIMEOUT),
-        exprValueFactory),
+        exprValueFactory, List.of()),
         requestBuilder.build(indexName, MAX_RESULT_WINDOW, DEFAULT_QUERY_TIMEOUT));
   }
 
@@ -257,6 +257,78 @@ class OpenSearchRequestBuilderTest {
             .timeout(DEFAULT_QUERY_TIMEOUT)
             .fetchSource(new String[]{"intA"}, new String[0]),
         requestBuilder);
+
+    assertEquals(
+        new OpenSearchQueryRequest(
+            new OpenSearchRequest.IndexName("test"),
+            new SearchSourceBuilder()
+                .from(DEFAULT_OFFSET)
+                .size(DEFAULT_LIMIT)
+                .timeout(DEFAULT_QUERY_TIMEOUT)
+                .fetchSource("intA", null),
+            exprValueFactory,
+            List.of("intA")),
+        requestBuilder.build(indexName, MAX_RESULT_WINDOW, DEFAULT_QUERY_TIMEOUT));
+  }
+
+  @Test
+  void test_push_down_project_limit() {
+    Set<ReferenceExpression> references = Set.of(DSL.ref("intA", INTEGER));
+    requestBuilder.pushDownProjects(references);
+
+    Integer limit = 200;
+    Integer offset = 0;
+    requestBuilder.pushDownLimit(limit, offset);
+
+    assertSearchSourceBuilder(
+        new SearchSourceBuilder()
+            .from(offset)
+            .size(limit)
+            .timeout(DEFAULT_QUERY_TIMEOUT)
+            .fetchSource(new String[]{"intA"}, new String[0]),
+        requestBuilder);
+
+    assertEquals(
+        new OpenSearchQueryRequest(
+            new OpenSearchRequest.IndexName("test"),
+            new SearchSourceBuilder()
+                .from(offset)
+                .size(limit)
+                .timeout(DEFAULT_QUERY_TIMEOUT)
+                .fetchSource("intA", null),
+            exprValueFactory,
+            List.of("intA")),
+        requestBuilder.build(indexName, MAX_RESULT_WINDOW, DEFAULT_QUERY_TIMEOUT));
+  }
+
+  @Test
+  void test_push_down_project_limit_and_offset() {
+    Set<ReferenceExpression> references = Set.of(DSL.ref("intA", INTEGER));
+    requestBuilder.pushDownProjects(references);
+
+    Integer limit = 200;
+    Integer offset = 10;
+    requestBuilder.pushDownLimit(limit, offset);
+
+    assertSearchSourceBuilder(
+        new SearchSourceBuilder()
+            .from(offset)
+            .size(limit)
+            .timeout(DEFAULT_QUERY_TIMEOUT)
+            .fetchSource(new String[]{"intA"}, new String[0]),
+        requestBuilder);
+
+    assertEquals(
+        new OpenSearchQueryRequest(
+            new OpenSearchRequest.IndexName("test"),
+            new SearchSourceBuilder()
+                .from(offset)
+                .size(limit)
+                .timeout(DEFAULT_QUERY_TIMEOUT)
+                .fetchSource("intA", null),
+            exprValueFactory,
+            List.of("intA")),
+        requestBuilder.build(indexName, MAX_RESULT_WINDOW, DEFAULT_QUERY_TIMEOUT));
   }
 
   @Test
