@@ -258,6 +258,8 @@ public class AstDSL {
   }
 
   /**
+   *
+   *
    * <pre>
    * CASE case_value_expr
    *     WHEN compare_expr THEN result_expr

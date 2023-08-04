@@ -75,6 +75,8 @@ public class QualifiedName extends UnresolvedExpression {
   }
 
   /**
+   *
+   *
    * <pre>
    * Get rest parts of the qualified name. Assume that there must be remaining parts so caller is
    * responsible for the check (first() or size() must be called first).
@@ -87,6 +89,7 @@ public class QualifiedName extends UnresolvedExpression {
    * }
    * }
    * </pre>
+   *
    * @return rest part(s)
    */
   public QualifiedName rest() {
