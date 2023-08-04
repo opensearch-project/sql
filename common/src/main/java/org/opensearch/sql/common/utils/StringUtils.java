@@ -13,9 +13,9 @@ public class StringUtils {
   /**
    * Unquote Identifier which has " or ' as mark. Strings quoted by ' or " with two of these quotes
    * appearing next to each other in the quote acts as an escape<br>
-   * Example: 'Test''s' will result in
-   * 'Test's', similar with those single quotes being replaced with double quote. Supports escaping
-   * quotes (single/double) and escape characters using the `\` characters.
+   * Example: 'Test''s' will result in 'Test's', similar with those single quotes being replaced
+   * with double quote. Supports escaping quotes (single/double) and escape characters using the `\`
+   * characters.
    *
    * @param text string
    * @return An unquoted string whose outer pair of (single/double) quotes have been removed
