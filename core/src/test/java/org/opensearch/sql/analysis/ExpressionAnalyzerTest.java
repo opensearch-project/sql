@@ -234,8 +234,8 @@ class ExpressionAnalyzerTest extends AnalyzerTestBase {
   public void qualified_name_with_reserved_symbol() {
     analysisContext.push();
 
-    analysisContext.peek().addReservedWord(new Symbol(Namespace.FIELD_NAME, "_reserved"), STRING);
-    analysisContext.peek().addReservedWord(new Symbol(Namespace.FIELD_NAME, "_priority"), FLOAT);
+    analysisContext.peek().define(new Symbol(Namespace.HIDDEN_FIELD_NAME, "_reserved"), STRING);
+    analysisContext.peek().define(new Symbol(Namespace.HIDDEN_FIELD_NAME, "_priority"), FLOAT);
     analysisContext.peek().define(new Symbol(Namespace.INDEX_NAME, "index_alias"), STRUCT);
     assertAnalyzeEqual(
         DSL.ref("_priority", FLOAT),
@@ -246,7 +246,7 @@ class ExpressionAnalyzerTest extends AnalyzerTestBase {
         qualifiedName("index_alias", "_reserved")
     );
 
-    // reserved fields take priority over symbol table
+    // cannot replace an existing field type
     analysisContext.peek().define(new Symbol(Namespace.FIELD_NAME, "_reserved"), LONG);
     assertAnalyzeEqual(
         DSL.ref("_reserved", STRING),

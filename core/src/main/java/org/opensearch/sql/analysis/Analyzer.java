@@ -161,7 +161,7 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
     }
     table.getFieldTypes().forEach((k, v) -> curEnv.define(new Symbol(Namespace.FIELD_NAME, k), v));
     table.getReservedFieldTypes().forEach(
-        (k, v) -> curEnv.addReservedWord(new Symbol(Namespace.FIELD_NAME, k), v)
+        (k, v) -> curEnv.define(new Symbol(Namespace.HIDDEN_FIELD_NAME, k), v)
     );
 
     // Put index name or its alias in index namespace on type environment so qualifier
@@ -207,7 +207,7 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
     Table table = tableFunctionImplementation.applyArguments();
     table.getFieldTypes().forEach((k, v) -> curEnv.define(new Symbol(Namespace.FIELD_NAME, k), v));
     table.getReservedFieldTypes().forEach(
-        (k, v) -> curEnv.addReservedWord(new Symbol(Namespace.FIELD_NAME, k), v)
+        (k, v) -> curEnv.define(new Symbol(Namespace.HIDDEN_FIELD_NAME, k), v)
     );
     curEnv.define(new Symbol(Namespace.INDEX_NAME,
             dataSourceSchemaIdentifierNameResolver.getIdentifierName()), STRUCT);
