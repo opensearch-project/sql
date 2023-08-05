@@ -46,16 +46,20 @@ import org.opensearch.sql.expression.function.BuiltinFunctionName;
  *
  * <pre>plan.accept(new CanPaginateVisitor(...))</pre>
  *
- * returns <em>true</em>,<br>
- * then PaginatedPlanCache.convertToCursor will succeed. Otherwise, it will fail.<br>
+ * returns <em>true</em>, <em>PaginatedPlanCache.convertToCursor</em> will succeed.<br>
+ * Otherwise, it will fail.<br>
  * The purpose of this visitor is to activate legacy engine fallback mechanism.<br>
  * Currently, V2 engine does not support queries with:<br>
- * - aggregation (GROUP BY clause or aggregation functions like min/max)<br>
- * - in memory aggregation (window function)<br>
- * - LIMIT/OFFSET clause(s)<br>
- * - without FROM clause<br>
- * - JOIN<br>
- * - a subquery<br>
+ *
+ * <ul>
+ *   <li>aggregation (GROUP BY clause or aggregation functions like min/max)
+ *   <li>in memory aggregation (window function)
+ *   <li>LIMIT/OFFSET clause(s)
+ *   <li>without FROM clause
+ *   <li>JOIN
+ *   <li>a subquery
+ * </ul>
+ *
  * V2 also requires that the table being queried should be an OpenSearch index.<br>
  * See PaginatedPlanCache.canConvertToCursor for usage.
  */

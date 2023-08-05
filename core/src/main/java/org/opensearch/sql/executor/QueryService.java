@@ -29,8 +29,8 @@ public class QueryService {
   private final Planner planner;
 
   /**
-   * Execute the {@link UnresolvedPlan}, using {@link ResponseListener} to get response. Todo.
-   * deprecated this interface after finalize {@link PlanContext}.
+   * Execute the {@link UnresolvedPlan}, using {@link ResponseListener} to get response.<br>
+   * Todo. deprecated this interface after finalize {@link PlanContext}.
    *
    * @param plan {@link UnresolvedPlan}
    * @param listener {@link ResponseListener}

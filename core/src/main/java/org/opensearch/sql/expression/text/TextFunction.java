@@ -209,7 +209,8 @@ public class TextFunction {
    * Extend to accept variable argument amounts.<br>
    * <br>
    * Concatenates a list of Strings with a separator string. Supports following<br>
-   * signatures: (STRING, STRING, STRING) -> STRING
+   * signatures:<br>
+   * (STRING, STRING, STRING) -> STRING
    */
   private DefaultFunctionResolver concat_ws() {
     return define(

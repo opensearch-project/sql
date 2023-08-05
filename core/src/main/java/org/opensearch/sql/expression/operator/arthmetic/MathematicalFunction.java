@@ -113,8 +113,8 @@ public class MathematicalFunction {
 
   /**
    * <b>Definition of abs() function.<\b><br>
-   * The supported signature of abs() function are INT -> INT LONG -> LONG FLOAT -> FLOAT DOUBLE ->
-   * DOUBLE
+   * The supported signature of abs() function are<br>
+   * INT -> INT LONG -> LONG FLOAT -> FLOAT DOUBLE -> DOUBLE
    */
   private static DefaultFunctionResolver abs() {
     return define(
@@ -268,8 +268,8 @@ public class MathematicalFunction {
 
   /**
    * <b>Definition of log(b, x) function.</b><br>
-   * Calculate the logarithm of x using b as the base The supported signature of log function is (b:
-   * INTEGER/LONG/FLOAT/DOUBLE, x: INTEGER/LONG/FLOAT/DOUBLE]) -> DOUBLE
+   * Calculate the logarithm of x using b as the base The supported signature of log function is<br>
+   * (b: INTEGER/LONG/FLOAT/DOUBLE, x: INTEGER/LONG/FLOAT/DOUBLE]) -> DOUBLE
    */
   private static DefaultFunctionResolver log() {
     ImmutableList.Builder<
@@ -891,7 +891,8 @@ public class MathematicalFunction {
   /**
    * <b>Definition of sin(x) function.</b><br>
    * Calculates the sine of x, where x is given in radians The supported signature of sin function
-   * is INTEGER/LONG/FLOAT/DOUBLE -> DOUBLE
+   * is<br>
+   * INTEGER/LONG/FLOAT/DOUBLE -> DOUBLE
    */
   private static DefaultFunctionResolver sin() {
     return baseMathFunction(
@@ -903,7 +904,8 @@ public class MathematicalFunction {
   /**
    * <b>Definition of tan(x) function.</b><br>
    * Calculates the tangent of x, where x is given in radians The supported signature of tan
-   * function is INTEGER/LONG/FLOAT/DOUBLE -> DOUBLE
+   * function is<br>
+   * INTEGER/LONG/FLOAT/DOUBLE -> DOUBLE
    */
   private static DefaultFunctionResolver tan() {
     return baseMathFunction(

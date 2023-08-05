@@ -138,10 +138,8 @@ class DateTimeFormatterUtil {
           .put("%Y", (date) -> "0000")
           .put("%y", (date) -> "00")
           .put("%D", (date) -> null)
-          .put(
-              "%f",
-              (date) -> // %f - Microseconds
-              String.format(NANO_SEC_FORMAT, (date.getNano() / 1000)))
+          // %f - Microseconds
+          .put("%f", (date) -> String.format(NANO_SEC_FORMAT, (date.getNano() / 1000)))
           .put("%w", (date) -> null)
           .put("%U", (date) -> null)
           .put("%u", (date) -> null)

@@ -810,7 +810,8 @@ public class DateTimeFunction {
 
   /**
    * Returns the number of months between periods P1 and P2. P1 and P2 should be in the format YYMM
-   * or YYYYMM. (INTEGER, INTEGER) -> INTEGER
+   * or YYYYMM.<br>
+   * (INTEGER, INTEGER) -> INTEGER
    */
   private DefaultFunctionResolver period_diff() {
     return define(
@@ -1713,10 +1714,13 @@ public class DateTimeFunction {
   /**
    * Following MySQL, function receives arguments of type double and rounds them before use.<br>
    * Furthermore:<br>
-   * - zero year interpreted as 2000<br>
-   * - negative year is not accepted<br>
-   * - @dayOfYear should be greater than 1<br>
-   * - if @dayOfYear is greater than 365/366, calculation goes to the next year(s)<br>
+   *
+   * <ul>
+   *   <li>zero year interpreted as 2000
+   *   <li>negative year is not accepted
+   *   <li>@dayOfYear should be greater than 1
+   *   <li>if @dayOfYear is greater than 365/366, calculation goes to the next year(s)
+   * </ul>
    *
    * @param yearExpr year
    * @param dayOfYearExp day of the @year, starting from 1
