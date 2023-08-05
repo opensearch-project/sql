@@ -135,13 +135,10 @@ public class NestedOperator extends PhysicalPlan {
   }
 
   /**
-   *
+   * Simplifies the structure of row's source Map by flattening it, making the full path of an
+   * object the key and the Object it refers to the value.
    *
    * <pre>
-   * Simplifies the structure of row's source Map by flattening it,
-   * making the full path of an object the key
-   * and the Object it refers to the value.
-   *
    * <p>Sample input:
    * keys = ['comments.likes']
    * row = comments: {

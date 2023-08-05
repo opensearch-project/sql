@@ -18,7 +18,10 @@ import org.opensearch.sql.planner.logical.LogicalPlan;
 import org.opensearch.sql.planner.logical.LogicalSort;
 import org.opensearch.sql.planner.optimizer.Rule;
 
-/** Push Filter under Sort. Filter - Sort - Child --> Sort - Filter - Child */
+/**
+ * Push Filter under Sort.<br>
+ * Filter - Sort - Child --> Sort - Filter - Child
+ */
 public class PushFilterUnderSort implements Rule<LogicalFilter> {
 
   private final Capture<LogicalSort> capture;
