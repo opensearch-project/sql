@@ -27,27 +27,23 @@ import org.opensearch.transport.TransportService;
 @ExtendWith(MockitoExtension.class)
 public class TransportCreateDataSourceActionTest {
 
-  @Mock
-  private TransportService transportService;
-  @Mock
-  private TransportCreateDataSourceAction action;
-  @Mock
-  private DataSourceServiceImpl dataSourceService;
-  @Mock
-  private Task task;
-  @Mock
-  private ActionListener<CreateDataSourceActionResponse> actionListener;
+  @Mock private TransportService transportService;
+  @Mock private TransportCreateDataSourceAction action;
+  @Mock private DataSourceServiceImpl dataSourceService;
+  @Mock private Task task;
+  @Mock private ActionListener<CreateDataSourceActionResponse> actionListener;
+
   @Captor
   private ArgumentCaptor<CreateDataSourceActionResponse>
       createDataSourceActionResponseArgumentCaptor;
 
-  @Captor
-  private ArgumentCaptor<Exception> exceptionArgumentCaptor;
+  @Captor private ArgumentCaptor<Exception> exceptionArgumentCaptor;
 
   @BeforeEach
   public void setUp() {
-    action = new TransportCreateDataSourceAction(transportService,
-        new ActionFilters(new HashSet<>()), dataSourceService);
+    action =
+        new TransportCreateDataSourceAction(
+            transportService, new ActionFilters(new HashSet<>()), dataSourceService);
   }
 
   @Test
@@ -61,10 +57,10 @@ public class TransportCreateDataSourceActionTest {
     verify(dataSourceService, times(1)).createDataSource(dataSourceMetadata);
     Mockito.verify(actionListener)
         .onResponse(createDataSourceActionResponseArgumentCaptor.capture());
-    CreateDataSourceActionResponse createDataSourceActionResponse
-        = createDataSourceActionResponseArgumentCaptor.getValue();
-    Assertions.assertEquals("Created DataSource with name test_datasource",
-        createDataSourceActionResponse.getResult());
+    CreateDataSourceActionResponse createDataSourceActionResponse =
+        createDataSourceActionResponseArgumentCaptor.getValue();
+    Assertions.assertEquals(
+        "Created DataSource with name test_datasource", createDataSourceActionResponse.getResult());
   }
 
   @Test
@@ -72,7 +68,8 @@ public class TransportCreateDataSourceActionTest {
     DataSourceMetadata dataSourceMetadata = new DataSourceMetadata();
     dataSourceMetadata.setName("test_datasource");
     dataSourceMetadata.setConnector(DataSourceType.PROMETHEUS);
-    doThrow(new RuntimeException("Error")).when(dataSourceService)
+    doThrow(new RuntimeException("Error"))
+        .when(dataSourceService)
         .createDataSource(dataSourceMetadata);
     CreateDataSourceActionRequest request = new CreateDataSourceActionRequest(dataSourceMetadata);
     action.doExecute(task, request, actionListener);
@@ -80,7 +77,6 @@ public class TransportCreateDataSourceActionTest {
     Mockito.verify(actionListener).onFailure(exceptionArgumentCaptor.capture());
     Exception exception = exceptionArgumentCaptor.getValue();
     Assertions.assertTrue(exception instanceof RuntimeException);
-    Assertions.assertEquals("Error",
-        exception.getMessage());
+    Assertions.assertEquals("Error", exception.getMessage());
   }
 }

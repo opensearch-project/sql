@@ -25,32 +25,40 @@ public class EncryptorImpl implements Encryptor {
   @Override
   public String encrypt(String plainText) {
     validate(masterKey);
-    final AwsCrypto crypto = AwsCrypto.builder()
-        .withCommitmentPolicy(CommitmentPolicy.RequireEncryptRequireDecrypt)
-        .build();
+    final AwsCrypto crypto =
+        AwsCrypto.builder()
+            .withCommitmentPolicy(CommitmentPolicy.RequireEncryptRequireDecrypt)
+            .build();
 
-    JceMasterKey jceMasterKey
-        = JceMasterKey.getInstance(new SecretKeySpec(masterKey.getBytes(), "AES"), "Custom",
-        "opensearch.config.master.key", "AES/GCM/NoPadding");
+    JceMasterKey jceMasterKey =
+        JceMasterKey.getInstance(
+            new SecretKeySpec(masterKey.getBytes(), "AES"),
+            "Custom",
+            "opensearch.config.master.key",
+            "AES/GCM/NoPadding");
 
-    final CryptoResult<byte[], JceMasterKey> encryptResult = crypto.encryptData(jceMasterKey,
-        plainText.getBytes(StandardCharsets.UTF_8));
+    final CryptoResult<byte[], JceMasterKey> encryptResult =
+        crypto.encryptData(jceMasterKey, plainText.getBytes(StandardCharsets.UTF_8));
     return Base64.getEncoder().encodeToString(encryptResult.getResult());
   }
 
   @Override
   public String decrypt(String encryptedText) {
     validate(masterKey);
-    final AwsCrypto crypto = AwsCrypto.builder()
-        .withCommitmentPolicy(CommitmentPolicy.RequireEncryptRequireDecrypt)
-        .build();
+    final AwsCrypto crypto =
+        AwsCrypto.builder()
+            .withCommitmentPolicy(CommitmentPolicy.RequireEncryptRequireDecrypt)
+            .build();
 
-    JceMasterKey jceMasterKey
-        = JceMasterKey.getInstance(new SecretKeySpec(masterKey.getBytes(), "AES"), "Custom",
-        "opensearch.config.master.key", "AES/GCM/NoPadding");
+    JceMasterKey jceMasterKey =
+        JceMasterKey.getInstance(
+            new SecretKeySpec(masterKey.getBytes(), "AES"),
+            "Custom",
+            "opensearch.config.master.key",
+            "AES/GCM/NoPadding");
 
-    final CryptoResult<byte[], JceMasterKey> decryptedResult
-        = crypto.decryptData(jceMasterKey, Base64.getDecoder().decode(encryptedText));
+    final CryptoResult<byte[], JceMasterKey> decryptedResult =
+        crypto.decryptData(jceMasterKey, Base64.getDecoder().decode(encryptedText));
     return new String(decryptedResult.getResult());
   }
 
@@ -65,6 +73,4 @@ public class EncryptorImpl implements Encryptor {
               + "admin/datasources.rst#master-key-config-for-encrypting-credential-information");
     }
   }
-
-
 }
