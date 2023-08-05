@@ -35,8 +35,8 @@ public class DateAddAndAddDateTest extends DateTimeTestBase {
 
   @Test
   public void date_add_returns_datetime_when_args_are_time_and_time_interval() {
-    var res = date_add(LocalTime.of(10, 20, 30),
-        Duration.ofHours(1).plusMinutes(2).plusSeconds(42));
+    var res =
+        date_add(LocalTime.of(10, 20, 30), Duration.ofHours(1).plusMinutes(2).plusSeconds(42));
     assertEquals(DATETIME, res.type());
     assertEquals(LocalTime.of(11, 23, 12).atDate(today()), res.datetimeValue());
   }
@@ -50,8 +50,8 @@ public class DateAddAndAddDateTest extends DateTimeTestBase {
 
   @Test
   public void date_add_time_limited_by_24_hours() {
-    var res = date_add(LocalTime.of(10, 20, 30),
-        Duration.ofHours(20).plusMinutes(50).plusSeconds(7));
+    var res =
+        date_add(LocalTime.of(10, 20, 30), Duration.ofHours(20).plusMinutes(50).plusSeconds(7));
     assertEquals(DATETIME, res.type());
     assertEquals(LocalTime.of(7, 10, 37), res.datetimeValue().toLocalTime());
   }
@@ -108,8 +108,9 @@ public class DateAddAndAddDateTest extends DateTimeTestBase {
 
   @Test
   public void date_add_returns_datetime_when_first_arg_is_timestamp() {
-    var res = date_add(LocalDateTime.of(1961, 4, 12, 9, 7).toInstant(ZoneOffset.UTC),
-        Duration.ofMinutes(108));
+    var res =
+        date_add(
+            LocalDateTime.of(1961, 4, 12, 9, 7).toInstant(ZoneOffset.UTC), Duration.ofMinutes(108));
     assertEquals(DATETIME, res.type());
     assertEquals(LocalDateTime.of(1961, 4, 12, 10, 55), res.datetimeValue());
   }
@@ -127,10 +128,13 @@ public class DateAddAndAddDateTest extends DateTimeTestBase {
     var res = adddate(LocalDateTime.of(1961, 4, 12, 9, 7), 100500);
     assertEquals(DATETIME, res.type());
 
-    var exception = assertThrows(ExpressionEvaluationException.class,
-        () -> date_add(LocalDateTime.of(1961, 4, 12, 9, 7), 100500));
-    assertEquals("date_add function expected {[DATE,INTERVAL],[DATETIME,INTERVAL],"
-        + "[TIMESTAMP,INTERVAL],[TIME,INTERVAL]}, but get [DATETIME,INTEGER]",
+    var exception =
+        assertThrows(
+            ExpressionEvaluationException.class,
+            () -> date_add(LocalDateTime.of(1961, 4, 12, 9, 7), 100500));
+    assertEquals(
+        "date_add function expected {[DATE,INTERVAL],[DATETIME,INTERVAL],"
+            + "[TIMESTAMP,INTERVAL],[TIME,INTERVAL]}, but get [DATETIME,INTEGER]",
         exception.getMessage());
   }
 
