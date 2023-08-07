@@ -45,7 +45,7 @@ dependencies {
     antlr "org.antlr:antlr4:4.7.1"
 
     compile "org.antlr:antlr4-runtime:4.7.1"
-    compile group: 'com.google.guava', name: 'guava', version: '31.0.1-jre'
+    compile group: 'com.google.guava', name: 'guava', version: '32.0.1-jre'
     compile group: 'org.opensearch', name: 'opensearch-x-content', version: "${opensearch_version}"
     compile group: 'org.json', name: 'json', version: '20230227'
     compile group: 'org.springframework', name: 'spring-context', version: "${spring_version}"
