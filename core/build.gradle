@@ -66,9 +66,6 @@ dependencies {
     testImplementation group: 'org.mockito', name: 'mockito-junit-jupiter', version: '3.12.4'
 }
 
-checkstyleMain.ignoreFailures = true
-checkstyleTest.ignoreFailures = true
-
 test {
     useJUnitPlatform()
     testLogging {
