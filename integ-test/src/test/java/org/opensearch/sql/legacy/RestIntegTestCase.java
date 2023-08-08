@@ -44,7 +44,6 @@ import org.junit.Assert;
 import org.junit.Before;
 import org.opensearch.client.Request;
 import org.opensearch.client.Response;
-import org.opensearch.common.Strings;
 import org.opensearch.common.xcontent.XContentFactory;
 import org.opensearch.core.rest.RestStatus;
 import org.opensearch.core.xcontent.XContentBuilder;
@@ -164,7 +163,7 @@ public abstract class RestIntegTestCase extends OpenSearchSQLRestTestCase {
         .endObject()
         .endObject();
     Request request = new Request("PUT", "_cluster/settings");
-    request.setJsonEntity(Strings.toString(builder));
+    request.setJsonEntity(builder.toString());
     Response response = client().performRequest(request);
     Assert
         .assertEquals(RestStatus.OK, RestStatus.fromCode(response.getStatusLine().getStatusCode()));
