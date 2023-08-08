@@ -3,7 +3,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-
 package org.opensearch.sql.expression.datetime;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -39,8 +38,8 @@ class DateTimeTest extends ExpressionTestBase {
 
   @Test
   public void positiveField1WrittenField2() {
-    FunctionExpression expr = DSL.datetime(DSL.literal("2008-05-15 22:00:00+01:00"),
-        DSL.literal("America/Los_Angeles"));
+    FunctionExpression expr =
+        DSL.datetime(DSL.literal("2008-05-15 22:00:00+01:00"), DSL.literal("America/Los_Angeles"));
     assertEquals(DATETIME, expr.type());
     assertEquals(new ExprDatetimeValue("2008-05-15 14:00:00"), expr.valueOf());
   }
@@ -53,42 +52,43 @@ class DateTimeTest extends ExpressionTestBase {
     String dt = "2008-05-15 22:00:00";
     String timeZone = "America/Los_Angeles";
     LocalDateTime timeConverted = LocalDateTime.parse(dt, formatter);
-    ZonedDateTime timeZoneLocal = timeConverted.atZone(ZoneId.of(TimeZone.getDefault().getID()))
-        .withZoneSameInstant(ZoneId.of(timeZone));
-    FunctionExpression expr = DSL.datetime(DSL.literal(dt),
-        DSL.literal(timeZone));
+    ZonedDateTime timeZoneLocal =
+        timeConverted
+            .atZone(ZoneId.of(TimeZone.getDefault().getID()))
+            .withZoneSameInstant(ZoneId.of(timeZone));
+    FunctionExpression expr = DSL.datetime(DSL.literal(dt), DSL.literal(timeZone));
     assertEquals(DATETIME, expr.type());
     assertEquals(new ExprDatetimeValue(timeZoneLocal.toLocalDateTime()), expr.valueOf());
   }
 
   @Test
   public void negativeField1WrittenField2() {
-    FunctionExpression expr = DSL.datetime(DSL.literal("2008-05-15 22:00:00-11:00"),
-        DSL.literal("America/Los_Angeles"));
+    FunctionExpression expr =
+        DSL.datetime(DSL.literal("2008-05-15 22:00:00-11:00"), DSL.literal("America/Los_Angeles"));
     assertEquals(DATETIME, expr.type());
     assertEquals(new ExprDatetimeValue("2008-05-16 02:00:00"), expr.valueOf());
   }
 
   @Test
   public void negativeField1PositiveField2() {
-    FunctionExpression expr = DSL.datetime(DSL.literal("2008-05-15 22:00:00-12:00"),
-        DSL.literal("+15:00"));
+    FunctionExpression expr =
+        DSL.datetime(DSL.literal("2008-05-15 22:00:00-12:00"), DSL.literal("+15:00"));
     assertEquals(DATETIME, expr.type());
     assertEquals(nullValue(), expr.valueOf());
   }
 
   @Test
   public void twentyFourHourDifference() {
-    FunctionExpression expr = DSL.datetime(DSL.literal("2008-05-15 22:00:00-14:00"),
-        DSL.literal("+10:00"));
+    FunctionExpression expr =
+        DSL.datetime(DSL.literal("2008-05-15 22:00:00-14:00"), DSL.literal("+10:00"));
     assertEquals(DATETIME, expr.type());
     assertEquals(nullValue(), expr.valueOf());
   }
 
   @Test
   public void negativeToNull() {
-    FunctionExpression expr = DSL.datetime(DSL.literal("2008-05-15 22:00:00-11:00"),
-        DSL.literal(nullValue()));
+    FunctionExpression expr =
+        DSL.datetime(DSL.literal("2008-05-15 22:00:00-11:00"), DSL.literal(nullValue()));
     assertEquals(DATETIME, expr.type());
     assertEquals(nullValue(), expr.valueOf());
   }

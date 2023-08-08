@@ -255,7 +255,6 @@ public class AstDSL {
    *    [WHEN search_condition THEN result_expr] ...
    *    [ELSE result_expr]
    * END
-   * </pre>
    */
   public UnresolvedExpression caseWhen(UnresolvedExpression elseClause,
                                        When... whenClauses) {
@@ -269,7 +268,6 @@ public class AstDSL {
    *     [WHEN compare_expr THEN result_expr] ...
    *     [ELSE result_expr]
    * END
-   * </pre>
    */
   public UnresolvedExpression caseWhen(UnresolvedExpression caseValueExpr,
                                        UnresolvedExpression elseClause,

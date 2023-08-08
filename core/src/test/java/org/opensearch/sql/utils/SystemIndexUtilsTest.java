@@ -3,7 +3,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-
 package org.opensearch.sql.utils;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -49,8 +48,8 @@ class SystemIndexUtilsTest {
 
   @Test
   void test_mapping_info_table_with_special_index_name() {
-    final SystemIndexUtils.SystemTable table
-        = systemTable("logs-2021.01.11.MAPPINGS_ODFE_SYS_TABLE");
+    final SystemIndexUtils.SystemTable table =
+        systemTable("logs-2021.01.11.MAPPINGS_ODFE_SYS_TABLE");
     assertTrue(table.isMetaInfoTable());
     assertFalse(table.isSystemInfoTable());
     assertEquals("logs-2021.01.11", table.getTableName());

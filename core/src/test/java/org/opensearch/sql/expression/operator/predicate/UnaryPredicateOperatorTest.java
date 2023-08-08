@@ -3,7 +3,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-
 package org.opensearch.sql.expression.operator.predicate;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -50,15 +49,15 @@ class UnaryPredicateOperatorTest extends ExpressionTestBase {
     expressions.add(DSL.literal(LITERAL_NULL));
 
     return Lists.cartesianProduct(expressions, expressions).stream()
-        .map(list -> {
-          Expression e1 = list.get(0);
-          if (e1.valueOf(valueEnv()).isNull()
-                  || e1.valueOf(valueEnv()).isMissing()) {
-            return Arguments.of(e1, DSL.literal(LITERAL_TRUE));
-          } else {
-            return Arguments.of(e1, DSL.literal(LITERAL_FALSE));
-          }
-        });
+        .map(
+            list -> {
+              Expression e1 = list.get(0);
+              if (e1.valueOf(valueEnv()).isNull() || e1.valueOf(valueEnv()).isMissing()) {
+                return Arguments.of(e1, DSL.literal(LITERAL_TRUE));
+              } else {
+                return Arguments.of(e1, DSL.literal(LITERAL_FALSE));
+              }
+            });
   }
 
   private static Stream<Arguments> ifNullArguments() {
@@ -69,16 +68,17 @@ class UnaryPredicateOperatorTest extends ExpressionTestBase {
     exprValueArrayList.add(DSL.literal(LITERAL_NULL));
 
     return Lists.cartesianProduct(exprValueArrayList, exprValueArrayList).stream()
-        .map(list -> {
-          Expression e1 = list.get(0);
-          Expression e2 = list.get(1);
-          if (e1.valueOf(valueEnv()).value() == LITERAL_NULL.value()
+        .map(
+            list -> {
+              Expression e1 = list.get(0);
+              Expression e2 = list.get(1);
+              if (e1.valueOf(valueEnv()).value() == LITERAL_NULL.value()
                   || e1.valueOf(valueEnv()).value() == LITERAL_MISSING) {
-            return Arguments.of(e1, e2, e2);
-          } else {
-            return Arguments.of(e1, e2, e1);
-          }
-        });
+                return Arguments.of(e1, e2, e2);
+              } else {
+                return Arguments.of(e1, e2, e1);
+              }
+            });
   }
 
   private static Stream<Arguments> nullIfArguments() {
@@ -87,16 +87,17 @@ class UnaryPredicateOperatorTest extends ExpressionTestBase {
     exprValueArrayList.add(DSL.literal(321));
 
     return Lists.cartesianProduct(exprValueArrayList, exprValueArrayList).stream()
-        .map(list -> {
-          Expression e1 = list.get(0);
-          Expression e2 = list.get(1);
+        .map(
+            list -> {
+              Expression e1 = list.get(0);
+              Expression e2 = list.get(1);
 
-          if (e1.equals(e2)) {
-            return Arguments.of(e1, e2, DSL.literal(LITERAL_NULL));
-          } else {
-            return Arguments.of(e1, e2, e1);
-          }
-        });
+              if (e1.equals(e2)) {
+                return Arguments.of(e1, e2, DSL.literal(LITERAL_NULL));
+              } else {
+                return Arguments.of(e1, e2, e1);
+              }
+            });
   }
 
   private static Stream<Arguments> ifArguments() {
@@ -107,14 +108,15 @@ class UnaryPredicateOperatorTest extends ExpressionTestBase {
     exprValueArrayList.add(DSL.literal(LITERAL_MISSING));
 
     return Lists.cartesianProduct(exprValueArrayList, exprValueArrayList).stream()
-        .map(list -> {
-          Expression e1 = list.get(0);
-          if (e1.valueOf(valueEnv()).value() == LITERAL_TRUE.value()) {
-            return Arguments.of(e1, DSL.literal("123"), DSL.literal("321"), DSL.literal("123"));
-          } else {
-            return Arguments.of(e1, DSL.literal("123"), DSL.literal("321"), DSL.literal("321"));
-          }
-        });
+        .map(
+            list -> {
+              Expression e1 = list.get(0);
+              if (e1.valueOf(valueEnv()).value() == LITERAL_TRUE.value()) {
+                return Arguments.of(e1, DSL.literal("123"), DSL.literal("321"), DSL.literal("123"));
+              } else {
+                return Arguments.of(e1, DSL.literal("123"), DSL.literal("321"), DSL.literal("321"));
+              }
+            });
   }
 
   private static Stream<Arguments> exprIfNullArguments() {
@@ -125,15 +127,16 @@ class UnaryPredicateOperatorTest extends ExpressionTestBase {
     exprValues.add(ExprValueUtils.integerValue(456));
 
     return Lists.cartesianProduct(exprValues, exprValues).stream()
-        .map(list -> {
-          ExprValue e1 = list.get(0);
-          ExprValue e2 = list.get(1);
-          if (e1.isNull() || e1.isMissing()) {
-            return Arguments.of(e1, e2, e2);
-          } else {
-            return Arguments.of(e1, e2, e1);
-          }
-        });
+        .map(
+            list -> {
+              ExprValue e1 = list.get(0);
+              ExprValue e2 = list.get(1);
+              if (e1.isNull() || e1.isMissing()) {
+                return Arguments.of(e1, e2, e2);
+              } else {
+                return Arguments.of(e1, e2, e1);
+              }
+            });
   }
 
   private static Stream<Arguments> exprNullIfArguments() {
@@ -143,15 +146,16 @@ class UnaryPredicateOperatorTest extends ExpressionTestBase {
     exprValues.add(ExprValueUtils.integerValue(123));
 
     return Lists.cartesianProduct(exprValues, exprValues).stream()
-        .map(list -> {
-          ExprValue e1 = list.get(0);
-          ExprValue e2 = list.get(1);
-          if (e1.equals(e2)) {
-            return Arguments.of(e1, e2, LITERAL_NULL);
-          } else {
-            return Arguments.of(e1, e2, e1);
-          }
-        });
+        .map(
+            list -> {
+              ExprValue e1 = list.get(0);
+              ExprValue e2 = list.get(1);
+              if (e1.equals(e2)) {
+                return Arguments.of(e1, e2, LITERAL_NULL);
+              } else {
+                return Arguments.of(e1, e2, e1);
+              }
+            });
   }
 
   @Test
@@ -225,5 +229,4 @@ class UnaryPredicateOperatorTest extends ExpressionTestBase {
   public void test_exprNullIf_predicate(ExprValue v1, ExprValue v2, ExprValue expected) {
     assertEquals(expected.value(), UnaryPredicateOperator.exprNullIf(v1, v2).value());
   }
-
 }

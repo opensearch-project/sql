@@ -3,7 +3,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-
 package org.opensearch.sql.planner.optimizer;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -61,117 +60,85 @@ import org.opensearch.sql.storage.write.TableWriteBuilder;
 @DisplayNameGeneration(DisplayNameGenerator.ReplaceUnderscores.class)
 class LogicalPlanOptimizerTest {
 
-  @Mock
-  private Table table;
+  @Mock private Table table;
 
-  @Spy
-  private TableScanBuilder tableScanBuilder;
+  @Spy private TableScanBuilder tableScanBuilder;
 
   @BeforeEach
   void setUp() {
     lenient().when(table.createScanBuilder()).thenReturn(tableScanBuilder);
   }
 
-  /**
-   * Filter - Filter --> Filter.
-   */
+  /** Filter - Filter --> Filter. */
   @Test
   void filter_merge_filter() {
     assertEquals(
         filter(
             tableScanBuilder,
-            DSL.and(DSL.equal(DSL.ref("integer_value", INTEGER), DSL.literal(integerValue(2))),
-                DSL.equal(DSL.ref("integer_value", INTEGER), DSL.literal(integerValue(1))))
-        ),
+            DSL.and(
+                DSL.equal(DSL.ref("integer_value", INTEGER), DSL.literal(integerValue(2))),
+                DSL.equal(DSL.ref("integer_value", INTEGER), DSL.literal(integerValue(1))))),
         optimize(
             filter(
                 filter(
                     relation("schema", table),
-                    DSL.equal(DSL.ref("integer_value", INTEGER), DSL.literal(integerValue(1)))
-                ),
-                DSL.equal(DSL.ref("integer_value", INTEGER), DSL.literal(integerValue(2)))
-            )
-        )
-    );
+                    DSL.equal(DSL.ref("integer_value", INTEGER), DSL.literal(integerValue(1)))),
+                DSL.equal(DSL.ref("integer_value", INTEGER), DSL.literal(integerValue(2))))));
   }
 
-  /**
-   * Filter - Sort --> Sort - Filter.
-   */
+  /** Filter - Sort --> Sort - Filter. */
   @Test
   void push_filter_under_sort() {
     assertEquals(
         sort(
             filter(
                 tableScanBuilder,
-                DSL.equal(DSL.ref("intV", INTEGER), DSL.literal(integerValue(1)))
-            ),
-            Pair.of(Sort.SortOption.DEFAULT_ASC, DSL.ref("longV", LONG))
-        ),
+                DSL.equal(DSL.ref("intV", INTEGER), DSL.literal(integerValue(1)))),
+            Pair.of(Sort.SortOption.DEFAULT_ASC, DSL.ref("longV", LONG))),
         optimize(
             filter(
                 sort(
                     relation("schema", table),
-                    Pair.of(Sort.SortOption.DEFAULT_ASC, DSL.ref("longV", LONG))
-                ),
-                DSL.equal(DSL.ref("intV", INTEGER), DSL.literal(integerValue(1)))
-            )
-        )
-    );
+                    Pair.of(Sort.SortOption.DEFAULT_ASC, DSL.ref("longV", LONG))),
+                DSL.equal(DSL.ref("intV", INTEGER), DSL.literal(integerValue(1))))));
   }
 
-  /**
-   * Filter - Sort --> Sort - Filter.
-   */
+  /** Filter - Sort --> Sort - Filter. */
   @Test
   void multiple_filter_should_eventually_be_merged() {
     assertEquals(
         sort(
             filter(
                 tableScanBuilder,
-                DSL.and(DSL.equal(DSL.ref("intV", INTEGER), DSL.literal(integerValue(1))),
-                    DSL.less(DSL.ref("longV", INTEGER), DSL.literal(longValue(1L))))
-            ),
-            Pair.of(Sort.SortOption.DEFAULT_ASC, DSL.ref("longV", LONG))
-        ),
+                DSL.and(
+                    DSL.equal(DSL.ref("intV", INTEGER), DSL.literal(integerValue(1))),
+                    DSL.less(DSL.ref("longV", INTEGER), DSL.literal(longValue(1L))))),
+            Pair.of(Sort.SortOption.DEFAULT_ASC, DSL.ref("longV", LONG))),
         optimize(
             filter(
                 sort(
                     filter(
                         relation("schema", table),
-                        DSL.less(DSL.ref("longV", INTEGER), DSL.literal(longValue(1L)))
-                    ),
-                    Pair.of(Sort.SortOption.DEFAULT_ASC, DSL.ref("longV", LONG))
-                ),
-                DSL.equal(DSL.ref("intV", INTEGER), DSL.literal(integerValue(1)))
-            )
-        )
-    );
+                        DSL.less(DSL.ref("longV", INTEGER), DSL.literal(longValue(1L)))),
+                    Pair.of(Sort.SortOption.DEFAULT_ASC, DSL.ref("longV", LONG))),
+                DSL.equal(DSL.ref("intV", INTEGER), DSL.literal(integerValue(1))))));
   }
 
   @Test
   void default_table_scan_builder_should_not_push_down_anything() {
     LogicalPlan[] plans = {
-        project(
-            relation("schema", table),
-            DSL.named("i", DSL.ref("intV", INTEGER))
-        ),
-        filter(
-            relation("schema", table),
-            DSL.equal(DSL.ref("intV", INTEGER), DSL.literal(integerValue(1)))
-        ),
-        aggregation(
-            relation("schema", table),
-            ImmutableList
-                .of(DSL.named("AVG(intV)",
-                    DSL.avg(DSL.ref("intV", INTEGER)))),
-            ImmutableList.of(DSL.named("longV", DSL.ref("longV", LONG)))),
-        sort(
-            relation("schema", table),
-            Pair.of(Sort.SortOption.DEFAULT_ASC, DSL.ref("intV", INTEGER))),
-        limit(
-            relation("schema", table),
-            1, 1)
+      project(relation("schema", table), DSL.named("i", DSL.ref("intV", INTEGER))),
+      filter(
+          relation("schema", table),
+          DSL.equal(DSL.ref("intV", INTEGER), DSL.literal(integerValue(1)))),
+      aggregation(
+          relation("schema", table),
+          ImmutableList.of(DSL.named("AVG(intV)", DSL.avg(DSL.ref("intV", INTEGER)))),
+          ImmutableList.of(DSL.named("longV", DSL.ref("longV", LONG)))),
+      sort(
+          relation("schema", table),
+          Pair.of(Sort.SortOption.DEFAULT_ASC, DSL.ref("intV", INTEGER))),
+      limit(relation("schema", table), 1, 1)
     };
 
     for (LogicalPlan plan : plans) {
@@ -185,12 +152,7 @@ class LogicalPlanOptimizerTest {
 
     assertEquals(
         tableScanBuilder,
-        optimize(
-            project(
-                relation("schema", table),
-                DSL.named("i", DSL.ref("intV", INTEGER)))
-        )
-    );
+        optimize(project(relation("schema", table), DSL.named("i", DSL.ref("intV", INTEGER)))));
   }
 
   @Test
@@ -202,9 +164,7 @@ class LogicalPlanOptimizerTest {
         optimize(
             filter(
                 relation("schema", table),
-                DSL.equal(DSL.ref("intV", INTEGER), DSL.literal(integerValue(1))))
-        )
-    );
+                DSL.equal(DSL.ref("intV", INTEGER), DSL.literal(integerValue(1))))));
   }
 
   @Test
@@ -216,12 +176,8 @@ class LogicalPlanOptimizerTest {
         optimize(
             aggregation(
                 relation("schema", table),
-                ImmutableList
-                    .of(DSL.named("AVG(intV)",
-                        DSL.avg(DSL.ref("intV", INTEGER)))),
-                ImmutableList.of(DSL.named("longV", DSL.ref("longV", LONG))))
-        )
-    );
+                ImmutableList.of(DSL.named("AVG(intV)", DSL.avg(DSL.ref("intV", INTEGER)))),
+                ImmutableList.of(DSL.named("longV", DSL.ref("longV", LONG))))));
   }
 
   @Test
@@ -233,23 +189,14 @@ class LogicalPlanOptimizerTest {
         optimize(
             sort(
                 relation("schema", table),
-                Pair.of(Sort.SortOption.DEFAULT_ASC, DSL.ref("intV", INTEGER)))
-        )
-    );
+                Pair.of(Sort.SortOption.DEFAULT_ASC, DSL.ref("intV", INTEGER)))));
   }
 
   @Test
   void table_scan_builder_support_limit_push_down_can_apply_its_rule() {
     when(tableScanBuilder.pushDownLimit(any())).thenReturn(true);
 
-    assertEquals(
-        tableScanBuilder,
-        optimize(
-            limit(
-                relation("schema", table),
-                1, 1)
-        )
-    );
+    assertEquals(tableScanBuilder, optimize(limit(relation("schema", table), 1, 1)));
   }
 
   @Test
@@ -258,13 +205,7 @@ class LogicalPlanOptimizerTest {
 
     assertEquals(
         tableScanBuilder,
-        optimize(
-            highlight(
-                relation("schema", table),
-                DSL.literal("*"),
-                Collections.emptyMap())
-        )
-    );
+        optimize(highlight(relation("schema", table), DSL.literal("*"), Collections.emptyMap())));
   }
 
   @Test
@@ -277,33 +218,27 @@ class LogicalPlanOptimizerTest {
             nested(
                 relation("schema", table),
                 List.of(Map.of("field", new ReferenceExpression("message.info", STRING))),
-                List.of(new NamedExpression(
-                    "message.info",
-                    DSL.nested(DSL.ref("message.info", STRING)),
-                    null))
-            )
-        )
-    );
+                List.of(
+                    new NamedExpression(
+                        "message.info", DSL.nested(DSL.ref("message.info", STRING)), null)))));
   }
 
   @Test
   void table_not_support_scan_builder_should_not_be_impact() {
-    Table table = new Table() {
-      @Override
-      public Map<String, ExprType> getFieldTypes() {
-        return null;
-      }
+    Table table =
+        new Table() {
+          @Override
+          public Map<String, ExprType> getFieldTypes() {
+            return null;
+          }
 
-      @Override
-      public PhysicalPlan implement(LogicalPlan plan) {
-        return null;
-      }
-    };
+          @Override
+          public PhysicalPlan implement(LogicalPlan plan) {
+            return null;
+          }
+        };
 
-    assertEquals(
-        relation("schema", table),
-        optimize(relation("schema", table))
-    );
+    assertEquals(relation("schema", table), optimize(relation("schema", table)));
   }
 
   @Test
@@ -311,28 +246,25 @@ class LogicalPlanOptimizerTest {
     TableWriteBuilder writeBuilder = Mockito.mock(TableWriteBuilder.class);
     when(table.createWriteBuilder(any())).thenReturn(writeBuilder);
 
-    assertEquals(
-        writeBuilder,
-        optimize(write(values(), table, Collections.emptyList()))
-    );
+    assertEquals(writeBuilder, optimize(write(values(), table, Collections.emptyList())));
   }
 
   @Test
   void table_not_support_write_builder_should_report_error() {
-    Table table = new Table() {
-      @Override
-      public Map<String, ExprType> getFieldTypes() {
-        return null;
-      }
+    Table table =
+        new Table() {
+          @Override
+          public Map<String, ExprType> getFieldTypes() {
+            return null;
+          }
 
-      @Override
-      public PhysicalPlan implement(LogicalPlan plan) {
-        return null;
-      }
-    };
+          @Override
+          public PhysicalPlan implement(LogicalPlan plan) {
+            return null;
+          }
+        };
 
-    assertThrows(UnsupportedOperationException.class,
-        () -> table.createWriteBuilder(null));
+    assertThrows(UnsupportedOperationException.class, () -> table.createWriteBuilder(null));
   }
 
   @Test
@@ -340,8 +272,7 @@ class LogicalPlanOptimizerTest {
     when(tableScanBuilder.pushDownPageSize(any())).thenReturn(true);
 
     var relation = relation("schema", table);
-    var optimized = LogicalPlanOptimizer.create()
-        .optimize(paginate(project(relation), 4));
+    var optimized = LogicalPlanOptimizer.create().optimize(paginate(project(relation), 4));
     verify(tableScanBuilder).pushDownPageSize(any());
 
     assertEquals(project(tableScanBuilder), optimized);
@@ -350,30 +281,29 @@ class LogicalPlanOptimizerTest {
   @Test
   void push_down_page_size_multiple_children() {
     var relation = relation("schema", table);
-    var twoChildrenPlan = new LogicalPlan(List.of(relation, relation)) {
-      @Override
-      public <R, C> R accept(LogicalPlanNodeVisitor<R, C> visitor, C context) {
-        return null;
-      }
-    };
+    var twoChildrenPlan =
+        new LogicalPlan(List.of(relation, relation)) {
+          @Override
+          public <R, C> R accept(LogicalPlanNodeVisitor<R, C> visitor, C context) {
+            return null;
+          }
+        };
     var queryPlan = paginate(twoChildrenPlan, 4);
     var optimizer = LogicalPlanOptimizer.create();
-    final var exception = assertThrows(UnsupportedOperationException.class,
-        () -> optimizer.optimize(queryPlan));
-    assertEquals("Unsupported plan: relation operator cannot have siblings",
-        exception.getMessage());
+    final var exception =
+        assertThrows(UnsupportedOperationException.class, () -> optimizer.optimize(queryPlan));
+    assertEquals(
+        "Unsupported plan: relation operator cannot have siblings", exception.getMessage());
   }
 
   @Test
   void push_down_page_size_push_failed() {
     when(tableScanBuilder.pushDownPageSize(any())).thenReturn(false);
 
-    var queryPlan = paginate(
-        project(
-            relation("schema", table)), 4);
+    var queryPlan = paginate(project(relation("schema", table)), 4);
     var optimizer = LogicalPlanOptimizer.create();
-    final var exception = assertThrows(IllegalStateException.class,
-        () -> optimizer.optimize(queryPlan));
+    final var exception =
+        assertThrows(IllegalStateException.class, () -> optimizer.optimize(queryPlan));
     assertEquals("Failed to push down LogicalPaginate", exception.getMessage());
   }
 
@@ -386,8 +316,7 @@ class LogicalPlanOptimizerTest {
   @Test
   void push_page_size_noop_if_no_sub_plans() {
     var paginate = new LogicalPaginate(42, List.of());
-    assertEquals(paginate,
-        LogicalPlanOptimizer.create().optimize(paginate));
+    assertEquals(paginate, LogicalPlanOptimizer.create().optimize(paginate));
   }
 
   @Test
@@ -395,8 +324,8 @@ class LogicalPlanOptimizerTest {
     when(tableScanBuilder.pushDownPageSize(any())).thenReturn(true);
 
     var relation = new LogicalRelation("schema", table);
-    var optimized = LogicalPlanOptimizer.create()
-        .optimize(new LogicalPaginate(42, List.of(project(relation))));
+    var optimized =
+        LogicalPlanOptimizer.create().optimize(new LogicalPaginate(42, List.of(project(relation))));
     // `optimized` structure: LogicalProject -> TableScanBuilder
     // LogicalRelation replaced by a TableScanBuilder instance
     assertEquals(project(tableScanBuilder), optimized);

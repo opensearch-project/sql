@@ -37,73 +37,52 @@ class QueryServiceTest {
 
   private QueryService queryService;
 
-  @Mock
-  private ExecutionEngine executionEngine;
+  @Mock private ExecutionEngine executionEngine;
 
-  @Mock
-  private Analyzer analyzer;
+  @Mock private Analyzer analyzer;
 
-  @Mock
-  private Planner planner;
+  @Mock private Planner planner;
 
-  @Mock
-  private UnresolvedPlan ast;
+  @Mock private UnresolvedPlan ast;
 
-  @Mock
-  private LogicalPlan logicalPlan;
+  @Mock private LogicalPlan logicalPlan;
 
-  @Mock
-  private PhysicalPlan plan;
+  @Mock private PhysicalPlan plan;
 
-  @Mock
-  private ExecutionEngine.Schema schema;
+  @Mock private ExecutionEngine.Schema schema;
 
-  @Mock
-  private PlanContext planContext;
+  @Mock private PlanContext planContext;
 
-  @Mock
-  private Split split;
+  @Mock private Split split;
 
   @Test
   public void executeWithoutContext() {
-    queryService()
-        .executeSuccess()
-        .handledByOnResponse();
+    queryService().executeSuccess().handledByOnResponse();
   }
 
   @Test
   public void executeWithContext() {
-    queryService()
-        .executeSuccess(split)
-        .handledByOnResponse();
+    queryService().executeSuccess(split).handledByOnResponse();
   }
 
   @Test
   public void testExplainShouldPass() {
-    queryService()
-        .explainSuccess()
-        .handledByExplainOnResponse();
+    queryService().explainSuccess().handledByExplainOnResponse();
   }
 
   @Test
   public void testExecuteWithExceptionShouldBeCaughtByHandler() {
-    queryService()
-        .executeFail()
-        .handledByOnFailure();
+    queryService().executeFail().handledByOnFailure();
   }
 
   @Test
   public void explainWithIllegalQueryShouldBeCaughtByHandler() {
-    queryService()
-        .explainFail()
-        .handledByExplainOnFailure();
+    queryService().explainFail().handledByExplainOnFailure();
   }
 
   @Test
   public void analyzeExceptionShouldBeCached() {
-    queryService()
-        .analyzeFail()
-        .handledByOnFailure();
+    queryService().analyzeFail().handledByOnFailure();
   }
 
   Helper queryService() {
@@ -130,13 +109,14 @@ class QueryServiceTest {
     Helper executeSuccess(Split split) {
       this.split = Optional.ofNullable(split);
       doAnswer(
-          invocation -> {
-            ResponseListener<ExecutionEngine.QueryResponse> listener = invocation.getArgument(2);
-            listener.onResponse(
-                new ExecutionEngine.QueryResponse(schema, Collections.emptyList(),
-                    Cursor.None));
-            return null;
-          })
+              invocation -> {
+                ResponseListener<ExecutionEngine.QueryResponse> listener =
+                    invocation.getArgument(2);
+                listener.onResponse(
+                    new ExecutionEngine.QueryResponse(
+                        schema, Collections.emptyList(), Cursor.None));
+                return null;
+              })
           .when(executionEngine)
           .execute(any(), any(), any());
       lenient().when(planContext.getSplit()).thenReturn(this.split);
@@ -145,9 +125,7 @@ class QueryServiceTest {
     }
 
     Helper analyzeFail() {
-      doThrow(new IllegalStateException("analyze exception"))
-          .when(analyzer)
-          .analyze(any(), any());
+      doThrow(new IllegalStateException("analyze exception")).when(analyzer).analyze(any(), any());
 
       return this;
     }
@@ -162,14 +140,14 @@ class QueryServiceTest {
 
     Helper explainSuccess() {
       doAnswer(
-          invocation -> {
-            ResponseListener<ExecutionEngine.ExplainResponse> listener =
-                invocation.getArgument(1);
-            listener.onResponse(
-                new ExecutionEngine.ExplainResponse(
-                    new ExecutionEngine.ExplainResponseNode("test")));
-            return null;
-          })
+              invocation -> {
+                ResponseListener<ExecutionEngine.ExplainResponse> listener =
+                    invocation.getArgument(1);
+                listener.onResponse(
+                    new ExecutionEngine.ExplainResponse(
+                        new ExecutionEngine.ExplainResponseNode("test")));
+                return null;
+              })
           .when(executionEngine)
           .explain(any(), any());
 
@@ -184,36 +162,37 @@ class QueryServiceTest {
       return this;
     }
 
-
     void handledByOnResponse() {
-      ResponseListener<ExecutionEngine.QueryResponse> responseListener = new ResponseListener<>() {
-        @Override
-        public void onResponse(ExecutionEngine.QueryResponse pplQueryResponse) {
-          assertNotNull(pplQueryResponse);
-        }
+      ResponseListener<ExecutionEngine.QueryResponse> responseListener =
+          new ResponseListener<>() {
+            @Override
+            public void onResponse(ExecutionEngine.QueryResponse pplQueryResponse) {
+              assertNotNull(pplQueryResponse);
+            }
 
-        @Override
-        public void onFailure(Exception e) {
-          fail();
-        }
-      };
+            @Override
+            public void onFailure(Exception e) {
+              fail();
+            }
+          };
       split.ifPresentOrElse(
           split -> queryService.executePlan(logicalPlan, planContext, responseListener),
           () -> queryService.execute(ast, responseListener));
     }
 
     void handledByOnFailure() {
-      ResponseListener<ExecutionEngine.QueryResponse> responseListener = new ResponseListener<>() {
-        @Override
-        public void onResponse(ExecutionEngine.QueryResponse pplQueryResponse) {
-          fail();
-        }
+      ResponseListener<ExecutionEngine.QueryResponse> responseListener =
+          new ResponseListener<>() {
+            @Override
+            public void onResponse(ExecutionEngine.QueryResponse pplQueryResponse) {
+              fail();
+            }
 
-        @Override
-        public void onFailure(Exception e) {
-          assertTrue(e instanceof IllegalStateException);
-        }
-      };
+            @Override
+            public void onFailure(Exception e) {
+              assertTrue(e instanceof IllegalStateException);
+            }
+          };
       split.ifPresentOrElse(
           split -> queryService.executePlan(logicalPlan, planContext, responseListener),
           () -> queryService.execute(ast, responseListener));
@@ -250,6 +229,5 @@ class QueryServiceTest {
             }
           });
     }
-
   }
 }

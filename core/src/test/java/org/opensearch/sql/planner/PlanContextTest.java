@@ -16,8 +16,7 @@ import org.opensearch.sql.storage.split.Split;
 @ExtendWith(MockitoExtension.class)
 class PlanContextTest {
 
-  @Mock
-  private Split split;
+  @Mock private Split split;
 
   @Test
   void createEmptyPlanContext() {

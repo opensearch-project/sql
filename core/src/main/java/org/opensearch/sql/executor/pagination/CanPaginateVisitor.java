@@ -88,8 +88,8 @@ public class CanPaginateVisitor extends AbstractNodeVisitor<Boolean, Object> {
   // https://github.com/opensearch-project/sql/issues/1471
   @Override
   public Boolean visitSort(Sort node, Object context) {
-    return node.getSortList().stream()
-            .allMatch(f -> f.getField() instanceof QualifiedName && visitField(f, context))
+    return node.getSortList().stream().allMatch(f -> f.getField() instanceof QualifiedName
+            && visitField(f, context))
         && canPaginate(node, context);
   }
 
@@ -124,8 +124,8 @@ public class CanPaginateVisitor extends AbstractNodeVisitor<Boolean, Object> {
 
   @Override
   public Boolean visitField(Field node, Object context) {
-    return canPaginate(node, context)
-        && node.getFieldArgs().stream().allMatch(n -> n.accept(this, context));
+    return canPaginate(node, context) && node.getFieldArgs().stream()
+        .allMatch(n -> n.accept(this, context));
   }
 
   @Override
@@ -200,8 +200,8 @@ public class CanPaginateVisitor extends AbstractNodeVisitor<Boolean, Object> {
 
   @Override
   public Boolean visitIn(In node, Object context) {
-    return canPaginate(node, context)
-        && node.getValueList().stream().allMatch(n -> n.accept(this, context));
+    return canPaginate(node, context) && node.getValueList().stream()
+        .allMatch(n -> n.accept(this, context));
   }
 
   @Override

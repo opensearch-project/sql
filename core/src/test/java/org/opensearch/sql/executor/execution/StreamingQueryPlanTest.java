@@ -49,9 +49,7 @@ class StreamingQueryPlanTest {
 
   @Test
   void executionSuccess() throws InterruptedException {
-    streamingQuery()
-        .streamingSource()
-        .shouldSuccess();
+    streamingQuery().streamingSource().shouldSuccess();
   }
 
   @Test
@@ -70,9 +68,7 @@ class StreamingQueryPlanTest {
 
   @Test
   void taskExecutionShouldNotCallListener() throws InterruptedException {
-    streamingQuery()
-        .streamingSource()
-        .taskExecutionShouldNotCallListener();
+    streamingQuery().streamingSource().taskExecutionShouldNotCallListener();
   }
 
   Helper streamingQuery() {
