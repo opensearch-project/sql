@@ -3,7 +3,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-
 package org.opensearch.sql.planner.optimizer.rule;
 
 import static com.facebook.presto.matching.Pattern.typeOf;
@@ -19,10 +18,7 @@ import org.opensearch.sql.planner.logical.LogicalPlan;
 import org.opensearch.sql.planner.logical.LogicalSort;
 import org.opensearch.sql.planner.optimizer.Rule;
 
-/**
- * Push Filter under Sort.
- * Filter - Sort - Child --> Sort - Filter - Child
- */
+/** Push Filter under Sort. Filter - Sort - Child --> Sort - Filter - Child */
 public class PushFilterUnderSort implements Rule<LogicalFilter> {
 
   private final Capture<LogicalSort> capture;
@@ -31,22 +27,17 @@ public class PushFilterUnderSort implements Rule<LogicalFilter> {
   @Getter
   private final Pattern<LogicalFilter> pattern;
 
-  /**
-   * Constructor of PushFilterUnderSort.
-   */
+  /** Constructor of PushFilterUnderSort. */
   public PushFilterUnderSort() {
     this.capture = Capture.newCapture();
-    this.pattern = typeOf(LogicalFilter.class)
-        .with(source().matching(typeOf(LogicalSort.class).capturedAs(capture)));
+    this.pattern =
+        typeOf(LogicalFilter.class)
+            .with(source().matching(typeOf(LogicalSort.class).capturedAs(capture)));
   }
 
   @Override
-  public LogicalPlan apply(LogicalFilter filter,
-                           Captures captures) {
+  public LogicalPlan apply(LogicalFilter filter, Captures captures) {
     LogicalSort sort = captures.get(capture);
-    return new LogicalSort(
-        filter.replaceChildPlans(sort.getChild()),
-        sort.getSortList()
-    );
+    return new LogicalSort(filter.replaceChildPlans(sort.getChild()), sort.getSortList());
   }
 }

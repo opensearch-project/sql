@@ -3,7 +3,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-
 package org.opensearch.sql.analysis;
 
 import static java.util.Collections.emptyList;
@@ -57,64 +56,50 @@ class ExpressionAnalyzerTest extends AnalyzerTestBase {
   public void equal() {
     assertAnalyzeEqual(
         DSL.equal(DSL.ref("integer_value", INTEGER), DSL.literal(integerValue(1))),
-        AstDSL.equalTo(AstDSL.unresolvedAttr("integer_value"), AstDSL.intLiteral(1))
-    );
+        AstDSL.equalTo(AstDSL.unresolvedAttr("integer_value"), AstDSL.intLiteral(1)));
   }
 
   @Test
   public void and() {
     assertAnalyzeEqual(
         DSL.and(DSL.ref("boolean_value", BOOLEAN), DSL.literal(LITERAL_TRUE)),
-        AstDSL.and(AstDSL.unresolvedAttr("boolean_value"), AstDSL.booleanLiteral(true))
-    );
+        AstDSL.and(AstDSL.unresolvedAttr("boolean_value"), AstDSL.booleanLiteral(true)));
   }
 
   @Test
   public void or() {
     assertAnalyzeEqual(
         DSL.or(DSL.ref("boolean_value", BOOLEAN), DSL.literal(LITERAL_TRUE)),
-        AstDSL.or(AstDSL.unresolvedAttr("boolean_value"), AstDSL.booleanLiteral(true))
-    );
+        AstDSL.or(AstDSL.unresolvedAttr("boolean_value"), AstDSL.booleanLiteral(true)));
   }
 
   @Test
   public void xor() {
     assertAnalyzeEqual(
         DSL.xor(DSL.ref("boolean_value", BOOLEAN), DSL.literal(LITERAL_TRUE)),
-        AstDSL.xor(AstDSL.unresolvedAttr("boolean_value"), AstDSL.booleanLiteral(true))
-    );
+        AstDSL.xor(AstDSL.unresolvedAttr("boolean_value"), AstDSL.booleanLiteral(true)));
   }
 
   @Test
   public void not() {
     assertAnalyzeEqual(
         DSL.not(DSL.ref("boolean_value", BOOLEAN)),
-        AstDSL.not(AstDSL.unresolvedAttr("boolean_value"))
-    );
+        AstDSL.not(AstDSL.unresolvedAttr("boolean_value")));
   }
 
   @Test
   public void qualified_name() {
-    assertAnalyzeEqual(
-        DSL.ref("integer_value", INTEGER),
-        qualifiedName("integer_value")
-    );
+    assertAnalyzeEqual(DSL.ref("integer_value", INTEGER), qualifiedName("integer_value"));
   }
 
   @Test
   public void between() {
     assertAnalyzeEqual(
         DSL.and(
-            DSL.gte(
-                DSL.ref("integer_value", INTEGER),
-                DSL.literal(20)),
-            DSL.lte(
-                DSL.ref("integer_value", INTEGER),
-                DSL.literal(30))),
+            DSL.gte(DSL.ref("integer_value", INTEGER), DSL.literal(20)),
+            DSL.lte(DSL.ref("integer_value", INTEGER), DSL.literal(30))),
         AstDSL.between(
-            qualifiedName("integer_value"),
-            AstDSL.intLiteral(20),
-            AstDSL.intLiteral(30)));
+            qualifiedName("integer_value"), AstDSL.intLiteral(20), AstDSL.intLiteral(30)));
   }
 
   @Test
@@ -149,36 +134,38 @@ class ExpressionAnalyzerTest extends AnalyzerTestBase {
         AstDSL.caseWhen(
             null,
             AstDSL.when(
-                AstDSL.function(">",
-                    qualifiedName("integer_value"),
-                    AstDSL.intLiteral(50)), AstDSL.stringLiteral("Fifty")),
+                AstDSL.function(">", qualifiedName("integer_value"), AstDSL.intLiteral(50)),
+                AstDSL.stringLiteral("Fifty")),
             AstDSL.when(
-                AstDSL.function(">",
-                    qualifiedName("integer_value"),
-                    AstDSL.intLiteral(30)), AstDSL.stringLiteral("Thirty"))));
+                AstDSL.function(">", qualifiedName("integer_value"), AstDSL.intLiteral(30)),
+                AstDSL.stringLiteral("Thirty"))));
   }
 
   @Test
   public void castAnalyzer() {
     assertAnalyzeEqual(
         DSL.castInt(DSL.ref("boolean_value", BOOLEAN)),
-        AstDSL.cast(AstDSL.unresolvedAttr("boolean_value"), AstDSL.stringLiteral("INT"))
-    );
+        AstDSL.cast(AstDSL.unresolvedAttr("boolean_value"), AstDSL.stringLiteral("INT")));
 
-    assertThrows(IllegalStateException.class, () -> analyze(AstDSL.cast(AstDSL.unresolvedAttr(
-        "boolean_value"), AstDSL.stringLiteral("INTERVAL"))));
+    assertThrows(
+        IllegalStateException.class,
+        () ->
+            analyze(
+                AstDSL.cast(
+                    AstDSL.unresolvedAttr("boolean_value"), AstDSL.stringLiteral("INTERVAL"))));
   }
 
   @Test
   public void case_with_default_result_type_different() {
-    UnresolvedExpression caseWhen = AstDSL.caseWhen(
-        qualifiedName("integer_value"),
-        AstDSL.intLiteral(60),
-        AstDSL.when(AstDSL.intLiteral(30), AstDSL.stringLiteral("Thirty")),
-        AstDSL.when(AstDSL.intLiteral(50), AstDSL.stringLiteral("Fifty")));
+    UnresolvedExpression caseWhen =
+        AstDSL.caseWhen(
+            qualifiedName("integer_value"),
+            AstDSL.intLiteral(60),
+            AstDSL.when(AstDSL.intLiteral(30), AstDSL.stringLiteral("Thirty")),
+            AstDSL.when(AstDSL.intLiteral(50), AstDSL.stringLiteral("Fifty")));
 
-    SemanticCheckException exception = assertThrows(
-        SemanticCheckException.class, () -> analyze(caseWhen));
+    SemanticCheckException exception =
+        assertThrows(SemanticCheckException.class, () -> analyze(caseWhen));
     assertEquals(
         "All result types of CASE clause must be the same, but found [STRING, STRING, INTEGER]",
         exception.getMessage());
@@ -187,8 +174,7 @@ class ExpressionAnalyzerTest extends AnalyzerTestBase {
   @Test
   public void scalar_window_function() {
     assertAnalyzeEqual(
-        DSL.rank(),
-        AstDSL.window(AstDSL.function("rank"), emptyList(), emptyList()));
+        DSL.rank(), AstDSL.window(AstDSL.function("rank"), emptyList(), emptyList()));
   }
 
   @SuppressWarnings("unchecked")
@@ -197,9 +183,7 @@ class ExpressionAnalyzerTest extends AnalyzerTestBase {
     assertAnalyzeEqual(
         new AggregateWindowFunction(DSL.avg(DSL.ref("integer_value", INTEGER))),
         AstDSL.window(
-            AstDSL.aggregate("avg", qualifiedName("integer_value")),
-            emptyList(),
-            emptyList()));
+            AstDSL.aggregate("avg", qualifiedName("integer_value")), emptyList(), emptyList()));
   }
 
   @Test
@@ -207,26 +191,24 @@ class ExpressionAnalyzerTest extends AnalyzerTestBase {
     analysisContext.push();
     analysisContext.peek().define(new Symbol(Namespace.INDEX_NAME, "index_alias"), STRUCT);
     assertAnalyzeEqual(
-        DSL.ref("integer_value", INTEGER),
-        qualifiedName("index_alias", "integer_value")
-    );
+        DSL.ref("integer_value", INTEGER), qualifiedName("index_alias", "integer_value"));
 
     analysisContext.peek().define(new Symbol(Namespace.FIELD_NAME, "object_field"), STRUCT);
-    analysisContext.peek().define(new Symbol(Namespace.FIELD_NAME, "object_field.integer_value"),
-        INTEGER);
+    analysisContext
+        .peek()
+        .define(new Symbol(Namespace.FIELD_NAME, "object_field.integer_value"), INTEGER);
     assertAnalyzeEqual(
         DSL.ref("object_field.integer_value", INTEGER),
-        qualifiedName("object_field", "integer_value")
-    );
+        qualifiedName("object_field", "integer_value"));
 
     SyntaxCheckException exception =
-        assertThrows(SyntaxCheckException.class,
+        assertThrows(
+            SyntaxCheckException.class,
             () -> analyze(qualifiedName("nested_field", "integer_value")));
     assertEquals(
         "The qualifier [nested_field] of qualified name [nested_field.integer_value] "
             + "must be an field name, index name or its alias",
-        exception.getMessage()
-    );
+        exception.getMessage());
     analysisContext.pop();
   }
 
@@ -237,21 +219,12 @@ class ExpressionAnalyzerTest extends AnalyzerTestBase {
     analysisContext.peek().addReservedWord(new Symbol(Namespace.FIELD_NAME, "_reserved"), STRING);
     analysisContext.peek().addReservedWord(new Symbol(Namespace.FIELD_NAME, "_priority"), FLOAT);
     analysisContext.peek().define(new Symbol(Namespace.INDEX_NAME, "index_alias"), STRUCT);
-    assertAnalyzeEqual(
-        DSL.ref("_priority", FLOAT),
-        qualifiedName("_priority")
-    );
-    assertAnalyzeEqual(
-        DSL.ref("_reserved", STRING),
-        qualifiedName("index_alias", "_reserved")
-    );
+    assertAnalyzeEqual(DSL.ref("_priority", FLOAT), qualifiedName("_priority"));
+    assertAnalyzeEqual(DSL.ref("_reserved", STRING), qualifiedName("index_alias", "_reserved"));
 
     // reserved fields take priority over symbol table
     analysisContext.peek().define(new Symbol(Namespace.FIELD_NAME, "_reserved"), LONG);
-    assertAnalyzeEqual(
-        DSL.ref("_reserved", STRING),
-        qualifiedName("index_alias", "_reserved")
-    );
+    assertAnalyzeEqual(DSL.ref("_reserved", STRING), qualifiedName("index_alias", "_reserved"));
 
     analysisContext.pop();
   }
@@ -265,9 +238,7 @@ class ExpressionAnalyzerTest extends AnalyzerTestBase {
 
   @Test
   public void all_fields() {
-    assertAnalyzeEqual(
-        DSL.literal("*"),
-        AllFields.of());
+    assertAnalyzeEqual(DSL.literal("*"), AllFields.of());
   }
 
   @Test
@@ -281,25 +252,30 @@ class ExpressionAnalyzerTest extends AnalyzerTestBase {
         AstDSL.caseWhen(
             AstDSL.nullLiteral(),
             AstDSL.when(
-                AstDSL.function("=",
-                    qualifiedName("integer_value"),
-                    AstDSL.intLiteral(30)),
+                AstDSL.function("=", qualifiedName("integer_value"), AstDSL.intLiteral(30)),
                 AstDSL.stringLiteral("test"))));
   }
 
   @Test
   public void undefined_var_semantic_check_failed() {
-    SemanticCheckException exception = assertThrows(SemanticCheckException.class,
-        () -> analyze(
-            AstDSL.and(AstDSL.unresolvedAttr("undefined_field"), AstDSL.booleanLiteral(true))));
-    assertEquals("can't resolve Symbol(namespace=FIELD_NAME, name=undefined_field) in type env",
+    SemanticCheckException exception =
+        assertThrows(
+            SemanticCheckException.class,
+            () ->
+                analyze(
+                    AstDSL.and(
+                        AstDSL.unresolvedAttr("undefined_field"), AstDSL.booleanLiteral(true))));
+    assertEquals(
+        "can't resolve Symbol(namespace=FIELD_NAME, name=undefined_field) in type env",
         exception.getMessage());
   }
 
   @Test
   public void undefined_aggregation_function() {
-    SemanticCheckException exception = assertThrows(SemanticCheckException.class,
-        () -> analyze(AstDSL.aggregate("ESTDC_ERROR", field("integer_value"))));
+    SemanticCheckException exception =
+        assertThrows(
+            SemanticCheckException.class,
+            () -> analyze(AstDSL.aggregate("ESTDC_ERROR", field("integer_value"))));
     assertEquals("Unsupported aggregation function ESTDC_ERROR", exception.getMessage());
   }
 
@@ -308,25 +284,24 @@ class ExpressionAnalyzerTest extends AnalyzerTestBase {
     assertAnalyzeEqual(
         DSL.avg(DSL.ref("integer_value", INTEGER))
             .condition(DSL.greater(DSL.ref("integer_value", INTEGER), DSL.literal(1))),
-        AstDSL.filteredAggregate("avg", qualifiedName("integer_value"),
-            function(">", qualifiedName("integer_value"), intLiteral(1)))
-    );
+        AstDSL.filteredAggregate(
+            "avg",
+            qualifiedName("integer_value"),
+            function(">", qualifiedName("integer_value"), intLiteral(1))));
   }
 
   @Test
   public void variance_mapto_varPop() {
     assertAnalyzeEqual(
         DSL.varPop(DSL.ref("integer_value", INTEGER)),
-        AstDSL.aggregate("variance", qualifiedName("integer_value"))
-    );
+        AstDSL.aggregate("variance", qualifiedName("integer_value")));
   }
 
   @Test
   public void distinct_count() {
     assertAnalyzeEqual(
         DSL.distinctCount(DSL.ref("integer_value", INTEGER)),
-        AstDSL.distinctAggregate("count", qualifiedName("integer_value"))
-    );
+        AstDSL.distinctAggregate("count", qualifiedName("integer_value")));
   }
 
   @Test
@@ -334,48 +309,49 @@ class ExpressionAnalyzerTest extends AnalyzerTestBase {
     assertAnalyzeEqual(
         DSL.distinctCount(DSL.ref("integer_value", INTEGER))
             .condition(DSL.greater(DSL.ref("integer_value", INTEGER), DSL.literal(1))),
-        AstDSL.filteredDistinctCount("count", qualifiedName("integer_value"), function(
-            ">", qualifiedName("integer_value"), intLiteral(1)))
-    );
+        AstDSL.filteredDistinctCount(
+            "count",
+            qualifiedName("integer_value"),
+            function(">", qualifiedName("integer_value"), intLiteral(1))));
   }
 
   @Test
   public void take_aggregation() {
     assertAnalyzeEqual(
         DSL.take(DSL.ref("string_value", STRING), DSL.literal(10)),
-        AstDSL.aggregate("take", qualifiedName("string_value"), intLiteral(10))
-    );
+        AstDSL.aggregate("take", qualifiedName("string_value"), intLiteral(10)));
   }
 
   @Test
   public void named_argument() {
     assertAnalyzeEqual(
         DSL.namedArgument("arg_name", DSL.literal("query")),
-        AstDSL.unresolvedArg("arg_name", stringLiteral("query"))
-    );
+        AstDSL.unresolvedArg("arg_name", stringLiteral("query")));
   }
 
   @Test
   public void named_parse_expression() {
     analysisContext.push();
     analysisContext.peek().define(new Symbol(Namespace.FIELD_NAME, "string_field"), STRING);
-    analysisContext.getNamedParseExpressions()
-        .add(DSL.named("group",
-            DSL.regex(ref("string_field", STRING), DSL.literal("(?<group>\\d+)"),
-            DSL.literal("group"))));
+    analysisContext
+        .getNamedParseExpressions()
+        .add(
+            DSL.named(
+                "group",
+                DSL.regex(
+                    ref("string_field", STRING),
+                    DSL.literal("(?<group>\\d+)"),
+                    DSL.literal("group"))));
     assertAnalyzeEqual(
-        DSL.regex(ref("string_field", STRING), DSL.literal("(?<group>\\d+)"),
-            DSL.literal("group")),
-        qualifiedName("group")
-    );
+        DSL.regex(ref("string_field", STRING), DSL.literal("(?<group>\\d+)"), DSL.literal("group")),
+        qualifiedName("group"));
   }
 
   @Test
   public void named_non_parse_expression() {
     analysisContext.push();
     analysisContext.peek().define(new Symbol(Namespace.FIELD_NAME, "string_field"), STRING);
-    analysisContext.getNamedParseExpressions()
-        .add(DSL.named("string_field", DSL.literal("123")));
+    analysisContext.getNamedParseExpressions().add(DSL.named("string_field", DSL.literal("123")));
     assertAnalyzeEqual(DSL.ref("string_field", STRING), qualifiedName("string_field"));
   }
 
@@ -385,25 +361,29 @@ class ExpressionAnalyzerTest extends AnalyzerTestBase {
         DSL.match_bool_prefix(
             DSL.namedArgument("field", DSL.literal("field_value1")),
             DSL.namedArgument("query", DSL.literal("sample query"))),
-        AstDSL.function("match_bool_prefix",
+        AstDSL.function(
+            "match_bool_prefix",
             AstDSL.unresolvedArg("field", stringLiteral("field_value1")),
             AstDSL.unresolvedArg("query", stringLiteral("sample query"))));
   }
 
   @Test
   void match_bool_prefix_wrong_expression() {
-    assertThrows(SemanticCheckException.class,
-        () -> analyze(AstDSL.function("match_bool_prefix",
-            AstDSL.unresolvedArg("field", stringLiteral("fieldA")),
-            AstDSL.unresolvedArg("query", floatLiteral(1.2f)))));
+    assertThrows(
+        SemanticCheckException.class,
+        () ->
+            analyze(
+                AstDSL.function(
+                    "match_bool_prefix",
+                    AstDSL.unresolvedArg("field", stringLiteral("fieldA")),
+                    AstDSL.unresolvedArg("query", floatLiteral(1.2f)))));
   }
 
   @Test
   void visit_span() {
     assertAnalyzeEqual(
         DSL.span(DSL.ref("integer_value", INTEGER), DSL.literal(1), ""),
-        AstDSL.span(qualifiedName("integer_value"), intLiteral(1), SpanUnit.NONE)
-    );
+        AstDSL.span(qualifiedName("integer_value"), intLiteral(1), SpanUnit.NONE));
   }
 
   @Test
@@ -425,13 +405,16 @@ class ExpressionAnalyzerTest extends AnalyzerTestBase {
   void multi_match_expression() {
     assertAnalyzeEqual(
         DSL.multi_match(
-            DSL.namedArgument("fields", DSL.literal(
-                new ExprTupleValue(new LinkedHashMap<>(ImmutableMap.of(
-                    "field_value1", ExprValueUtils.floatValue(1.F)))))),
+            DSL.namedArgument(
+                "fields",
+                DSL.literal(
+                    new ExprTupleValue(
+                        new LinkedHashMap<>(
+                            ImmutableMap.of("field_value1", ExprValueUtils.floatValue(1.F)))))),
             DSL.namedArgument("query", DSL.literal("sample query"))),
-        AstDSL.function("multi_match",
-            AstDSL.unresolvedArg("fields", new RelevanceFieldList(Map.of(
-                "field_value1", 1.F))),
+        AstDSL.function(
+            "multi_match",
+            AstDSL.unresolvedArg("fields", new RelevanceFieldList(Map.of("field_value1", 1.F))),
             AstDSL.unresolvedArg("query", stringLiteral("sample query"))));
   }
 
@@ -439,14 +422,17 @@ class ExpressionAnalyzerTest extends AnalyzerTestBase {
   void multi_match_expression_with_params() {
     assertAnalyzeEqual(
         DSL.multi_match(
-            DSL.namedArgument("fields", DSL.literal(
-                new ExprTupleValue(new LinkedHashMap<>(ImmutableMap.of(
-                    "field_value1", ExprValueUtils.floatValue(1.F)))))),
+            DSL.namedArgument(
+                "fields",
+                DSL.literal(
+                    new ExprTupleValue(
+                        new LinkedHashMap<>(
+                            ImmutableMap.of("field_value1", ExprValueUtils.floatValue(1.F)))))),
             DSL.namedArgument("query", DSL.literal("sample query")),
             DSL.namedArgument("analyzer", DSL.literal("keyword"))),
-        AstDSL.function("multi_match",
-            AstDSL.unresolvedArg("fields", new RelevanceFieldList(Map.of(
-                "field_value1", 1.F))),
+        AstDSL.function(
+            "multi_match",
+            AstDSL.unresolvedArg("fields", new RelevanceFieldList(Map.of("field_value1", 1.F))),
             AstDSL.unresolvedArg("query", stringLiteral("sample query")),
             AstDSL.unresolvedArg("analyzer", stringLiteral("keyword"))));
   }
@@ -455,14 +441,20 @@ class ExpressionAnalyzerTest extends AnalyzerTestBase {
   void multi_match_expression_two_fields() {
     assertAnalyzeEqual(
         DSL.multi_match(
-            DSL.namedArgument("fields", DSL.literal(
-                new ExprTupleValue(new LinkedHashMap<>(ImmutableMap.of(
-                    "field_value1", ExprValueUtils.floatValue(1.F),
-                    "field_value2", ExprValueUtils.floatValue(.3F)))))),
+            DSL.namedArgument(
+                "fields",
+                DSL.literal(
+                    new ExprTupleValue(
+                        new LinkedHashMap<>(
+                            ImmutableMap.of(
+                                "field_value1", ExprValueUtils.floatValue(1.F),
+                                "field_value2", ExprValueUtils.floatValue(.3F)))))),
             DSL.namedArgument("query", DSL.literal("sample query"))),
-        AstDSL.function("multi_match",
-            AstDSL.unresolvedArg("fields", new RelevanceFieldList(ImmutableMap.of(
-                "field_value1", 1.F, "field_value2", .3F))),
+        AstDSL.function(
+            "multi_match",
+            AstDSL.unresolvedArg(
+                "fields",
+                new RelevanceFieldList(ImmutableMap.of("field_value1", 1.F, "field_value2", .3F))),
             AstDSL.unresolvedArg("query", stringLiteral("sample query"))));
   }
 
@@ -470,13 +462,16 @@ class ExpressionAnalyzerTest extends AnalyzerTestBase {
   void simple_query_string_expression() {
     assertAnalyzeEqual(
         DSL.simple_query_string(
-            DSL.namedArgument("fields", DSL.literal(
-                new ExprTupleValue(new LinkedHashMap<>(ImmutableMap.of(
-                    "field_value1", ExprValueUtils.floatValue(1.F)))))),
+            DSL.namedArgument(
+                "fields",
+                DSL.literal(
+                    new ExprTupleValue(
+                        new LinkedHashMap<>(
+                            ImmutableMap.of("field_value1", ExprValueUtils.floatValue(1.F)))))),
             DSL.namedArgument("query", DSL.literal("sample query"))),
-        AstDSL.function("simple_query_string",
-            AstDSL.unresolvedArg("fields", new RelevanceFieldList(Map.of(
-                "field_value1", 1.F))),
+        AstDSL.function(
+            "simple_query_string",
+            AstDSL.unresolvedArg("fields", new RelevanceFieldList(Map.of("field_value1", 1.F))),
             AstDSL.unresolvedArg("query", stringLiteral("sample query"))));
   }
 
@@ -484,14 +479,17 @@ class ExpressionAnalyzerTest extends AnalyzerTestBase {
   void simple_query_string_expression_with_params() {
     assertAnalyzeEqual(
         DSL.simple_query_string(
-            DSL.namedArgument("fields", DSL.literal(
-                new ExprTupleValue(new LinkedHashMap<>(ImmutableMap.of(
-                    "field_value1", ExprValueUtils.floatValue(1.F)))))),
+            DSL.namedArgument(
+                "fields",
+                DSL.literal(
+                    new ExprTupleValue(
+                        new LinkedHashMap<>(
+                            ImmutableMap.of("field_value1", ExprValueUtils.floatValue(1.F)))))),
             DSL.namedArgument("query", DSL.literal("sample query")),
             DSL.namedArgument("analyzer", DSL.literal("keyword"))),
-        AstDSL.function("simple_query_string",
-            AstDSL.unresolvedArg("fields", new RelevanceFieldList(Map.of(
-                "field_value1", 1.F))),
+        AstDSL.function(
+            "simple_query_string",
+            AstDSL.unresolvedArg("fields", new RelevanceFieldList(Map.of("field_value1", 1.F))),
             AstDSL.unresolvedArg("query", stringLiteral("sample query")),
             AstDSL.unresolvedArg("analyzer", stringLiteral("keyword"))));
   }
@@ -500,37 +498,44 @@ class ExpressionAnalyzerTest extends AnalyzerTestBase {
   void simple_query_string_expression_two_fields() {
     assertAnalyzeEqual(
         DSL.simple_query_string(
-            DSL.namedArgument("fields", DSL.literal(
-                new ExprTupleValue(new LinkedHashMap<>(ImmutableMap.of(
-                    "field_value1", ExprValueUtils.floatValue(1.F),
-                    "field_value2", ExprValueUtils.floatValue(.3F)))))),
+            DSL.namedArgument(
+                "fields",
+                DSL.literal(
+                    new ExprTupleValue(
+                        new LinkedHashMap<>(
+                            ImmutableMap.of(
+                                "field_value1", ExprValueUtils.floatValue(1.F),
+                                "field_value2", ExprValueUtils.floatValue(.3F)))))),
             DSL.namedArgument("query", DSL.literal("sample query"))),
-        AstDSL.function("simple_query_string",
-            AstDSL.unresolvedArg("fields", new RelevanceFieldList(ImmutableMap.of(
-                "field_value1", 1.F, "field_value2", .3F))),
+        AstDSL.function(
+            "simple_query_string",
+            AstDSL.unresolvedArg(
+                "fields",
+                new RelevanceFieldList(ImmutableMap.of("field_value1", 1.F, "field_value2", .3F))),
             AstDSL.unresolvedArg("query", stringLiteral("sample query"))));
   }
 
   @Test
   void query_expression() {
     assertAnalyzeEqual(
-            DSL.query(
-                    DSL.namedArgument("query", DSL.literal("field:query"))),
-            AstDSL.function("query",
-                    AstDSL.unresolvedArg("query", stringLiteral("field:query"))));
+        DSL.query(DSL.namedArgument("query", DSL.literal("field:query"))),
+        AstDSL.function("query", AstDSL.unresolvedArg("query", stringLiteral("field:query"))));
   }
 
   @Test
   void query_string_expression() {
     assertAnalyzeEqual(
         DSL.query_string(
-            DSL.namedArgument("fields", DSL.literal(
-                new ExprTupleValue(new LinkedHashMap<>(ImmutableMap.of(
-                    "field_value1", ExprValueUtils.floatValue(1.F)))))),
+            DSL.namedArgument(
+                "fields",
+                DSL.literal(
+                    new ExprTupleValue(
+                        new LinkedHashMap<>(
+                            ImmutableMap.of("field_value1", ExprValueUtils.floatValue(1.F)))))),
             DSL.namedArgument("query", DSL.literal("query_value"))),
-        AstDSL.function("query_string",
-            AstDSL.unresolvedArg("fields", new RelevanceFieldList(Map.of(
-                "field_value1", 1.F))),
+        AstDSL.function(
+            "query_string",
+            AstDSL.unresolvedArg("fields", new RelevanceFieldList(Map.of("field_value1", 1.F))),
             AstDSL.unresolvedArg("query", stringLiteral("query_value"))));
   }
 
@@ -538,14 +543,17 @@ class ExpressionAnalyzerTest extends AnalyzerTestBase {
   void query_string_expression_with_params() {
     assertAnalyzeEqual(
         DSL.query_string(
-            DSL.namedArgument("fields", DSL.literal(
-                new ExprTupleValue(new LinkedHashMap<>(ImmutableMap.of(
-                    "field_value1", ExprValueUtils.floatValue(1.F)))))),
+            DSL.namedArgument(
+                "fields",
+                DSL.literal(
+                    new ExprTupleValue(
+                        new LinkedHashMap<>(
+                            ImmutableMap.of("field_value1", ExprValueUtils.floatValue(1.F)))))),
             DSL.namedArgument("query", DSL.literal("query_value")),
             DSL.namedArgument("escape", DSL.literal("false"))),
-        AstDSL.function("query_string",
-            AstDSL.unresolvedArg("fields", new RelevanceFieldList(Map.of(
-                "field_value1", 1.F))),
+        AstDSL.function(
+            "query_string",
+            AstDSL.unresolvedArg("fields", new RelevanceFieldList(Map.of("field_value1", 1.F))),
             AstDSL.unresolvedArg("query", stringLiteral("query_value")),
             AstDSL.unresolvedArg("escape", stringLiteral("false"))));
   }
@@ -554,14 +562,20 @@ class ExpressionAnalyzerTest extends AnalyzerTestBase {
   void query_string_expression_two_fields() {
     assertAnalyzeEqual(
         DSL.query_string(
-            DSL.namedArgument("fields", DSL.literal(
-                new ExprTupleValue(new LinkedHashMap<>(ImmutableMap.of(
-                    "field_value1", ExprValueUtils.floatValue(1.F),
-                    "field_value2", ExprValueUtils.floatValue(.3F)))))),
+            DSL.namedArgument(
+                "fields",
+                DSL.literal(
+                    new ExprTupleValue(
+                        new LinkedHashMap<>(
+                            ImmutableMap.of(
+                                "field_value1", ExprValueUtils.floatValue(1.F),
+                                "field_value2", ExprValueUtils.floatValue(.3F)))))),
             DSL.namedArgument("query", DSL.literal("query_value"))),
-        AstDSL.function("query_string",
-            AstDSL.unresolvedArg("fields", new RelevanceFieldList(ImmutableMap.of(
-                "field_value1", 1.F, "field_value2", .3F))),
+        AstDSL.function(
+            "query_string",
+            AstDSL.unresolvedArg(
+                "fields",
+                new RelevanceFieldList(ImmutableMap.of("field_value1", 1.F, "field_value2", .3F))),
             AstDSL.unresolvedArg("query", stringLiteral("query_value"))));
   }
 
@@ -571,7 +585,8 @@ class ExpressionAnalyzerTest extends AnalyzerTestBase {
         DSL.wildcard_query(
             DSL.namedArgument("field", DSL.literal("test")),
             DSL.namedArgument("query", DSL.literal("query_value*"))),
-        AstDSL.function("wildcard_query",
+        AstDSL.function(
+            "wildcard_query",
             unresolvedArg("field", stringLiteral("test")),
             unresolvedArg("query", stringLiteral("query_value*"))));
   }
@@ -585,7 +600,8 @@ class ExpressionAnalyzerTest extends AnalyzerTestBase {
             DSL.namedArgument("boost", DSL.literal("1.5")),
             DSL.namedArgument("case_insensitive", DSL.literal("true")),
             DSL.namedArgument("rewrite", DSL.literal("scoring_boolean"))),
-        AstDSL.function("wildcard_query",
+        AstDSL.function(
+            "wildcard_query",
             unresolvedArg("field", stringLiteral("test")),
             unresolvedArg("query", stringLiteral("query_value*")),
             unresolvedArg("boost", stringLiteral("1.5")),
@@ -603,154 +619,144 @@ class ExpressionAnalyzerTest extends AnalyzerTestBase {
             DSL.namedArgument("boost", "1.5"),
             DSL.namedArgument("analyzer", "standard"),
             DSL.namedArgument("max_expansions", "4"),
-            DSL.namedArgument("zero_terms_query", "NONE")
-            ),
-        AstDSL.function("match_phrase_prefix",
-          unresolvedArg("field", stringLiteral("field_value1")),
-          unresolvedArg("query", stringLiteral("search query")),
-          unresolvedArg("slop", stringLiteral("3")),
-          unresolvedArg("boost", stringLiteral("1.5")),
-          unresolvedArg("analyzer", stringLiteral("standard")),
-          unresolvedArg("max_expansions", stringLiteral("4")),
-          unresolvedArg("zero_terms_query", stringLiteral("NONE"))
-          )
-    );
+            DSL.namedArgument("zero_terms_query", "NONE")),
+        AstDSL.function(
+            "match_phrase_prefix",
+            unresolvedArg("field", stringLiteral("field_value1")),
+            unresolvedArg("query", stringLiteral("search query")),
+            unresolvedArg("slop", stringLiteral("3")),
+            unresolvedArg("boost", stringLiteral("1.5")),
+            unresolvedArg("analyzer", stringLiteral("standard")),
+            unresolvedArg("max_expansions", stringLiteral("4")),
+            unresolvedArg("zero_terms_query", stringLiteral("NONE"))));
   }
 
-  @Test void score_function_expression() {
+  @Test
+  void score_function_expression() {
     assertAnalyzeEqual(
-            DSL.score(
-                    DSL.namedArgument("RelevanceQuery",
-                            DSL.match_phrase_prefix(
-                                    DSL.namedArgument("field", "field_value1"),
-                                    DSL.namedArgument("query", "search query"),
-                                    DSL.namedArgument("slop", "3")
-                            )
-                    )),
-            AstDSL.function("score",
-                    unresolvedArg("RelevanceQuery",
-                            AstDSL.function("match_phrase_prefix",
-                                    unresolvedArg("field", stringLiteral("field_value1")),
-                                    unresolvedArg("query", stringLiteral("search query")),
-                                    unresolvedArg("slop", stringLiteral("3"))
-                            )
-                    )
-            )
-    );
+        DSL.score(
+            DSL.namedArgument(
+                "RelevanceQuery",
+                DSL.match_phrase_prefix(
+                    DSL.namedArgument("field", "field_value1"),
+                    DSL.namedArgument("query", "search query"),
+                    DSL.namedArgument("slop", "3")))),
+        AstDSL.function(
+            "score",
+            unresolvedArg(
+                "RelevanceQuery",
+                AstDSL.function(
+                    "match_phrase_prefix",
+                    unresolvedArg("field", stringLiteral("field_value1")),
+                    unresolvedArg("query", stringLiteral("search query")),
+                    unresolvedArg("slop", stringLiteral("3"))))));
   }
 
-  @Test void score_function_with_boost() {
+  @Test
+  void score_function_with_boost() {
     assertAnalyzeEqual(
-            DSL.score(
-                    DSL.namedArgument("RelevanceQuery",
-                            DSL.match_phrase_prefix(
-                                    DSL.namedArgument("field", "field_value1"),
-                                    DSL.namedArgument("query", "search query"),
-                                    DSL.namedArgument("boost", "3.0")
-                            )),
-                    DSL.namedArgument("boost", "2")
-                    ),
-            AstDSL.function("score",
-                    unresolvedArg("RelevanceQuery",
-                            AstDSL.function("match_phrase_prefix",
-                                    unresolvedArg("field", stringLiteral("field_value1")),
-                                    unresolvedArg("query", stringLiteral("search query")),
-                                    unresolvedArg("boost", stringLiteral("3.0"))
-                            )
-                    ),
-                    unresolvedArg("boost", stringLiteral("2"))
-            )
-    );
+        DSL.score(
+            DSL.namedArgument(
+                "RelevanceQuery",
+                DSL.match_phrase_prefix(
+                    DSL.namedArgument("field", "field_value1"),
+                    DSL.namedArgument("query", "search query"),
+                    DSL.namedArgument("boost", "3.0"))),
+            DSL.namedArgument("boost", "2")),
+        AstDSL.function(
+            "score",
+            unresolvedArg(
+                "RelevanceQuery",
+                AstDSL.function(
+                    "match_phrase_prefix",
+                    unresolvedArg("field", stringLiteral("field_value1")),
+                    unresolvedArg("query", stringLiteral("search query")),
+                    unresolvedArg("boost", stringLiteral("3.0")))),
+            unresolvedArg("boost", stringLiteral("2"))));
   }
 
-  @Test void score_query_function_expression() {
+  @Test
+  void score_query_function_expression() {
     assertAnalyzeEqual(
-            DSL.score_query(
-                    DSL.namedArgument("RelevanceQuery",
-                            DSL.wildcard_query(
-                                    DSL.namedArgument("field", "field_value1"),
-                                    DSL.namedArgument("query", "search query")
-                            )
-                    )),
-            AstDSL.function("score_query",
-                    unresolvedArg("RelevanceQuery",
-                            AstDSL.function("wildcard_query",
-                                    unresolvedArg("field", stringLiteral("field_value1")),
-                                    unresolvedArg("query", stringLiteral("search query"))
-                            )
-                    )
-            )
-    );
+        DSL.score_query(
+            DSL.namedArgument(
+                "RelevanceQuery",
+                DSL.wildcard_query(
+                    DSL.namedArgument("field", "field_value1"),
+                    DSL.namedArgument("query", "search query")))),
+        AstDSL.function(
+            "score_query",
+            unresolvedArg(
+                "RelevanceQuery",
+                AstDSL.function(
+                    "wildcard_query",
+                    unresolvedArg("field", stringLiteral("field_value1")),
+                    unresolvedArg("query", stringLiteral("search query"))))));
   }
 
-  @Test void score_query_function_with_boost() {
+  @Test
+  void score_query_function_with_boost() {
     assertAnalyzeEqual(
-            DSL.score_query(
-                    DSL.namedArgument("RelevanceQuery",
-                            DSL.wildcard_query(
-                                    DSL.namedArgument("field", "field_value1"),
-                                    DSL.namedArgument("query", "search query")
-                            )
-                    ),
-                    DSL.namedArgument("boost", "2.0")
-            ),
-            AstDSL.function("score_query",
-                    unresolvedArg("RelevanceQuery",
-                            AstDSL.function("wildcard_query",
-                                    unresolvedArg("field", stringLiteral("field_value1")),
-                                    unresolvedArg("query", stringLiteral("search query"))
-                            )
-                    ),
-                    unresolvedArg("boost", stringLiteral("2.0"))
-            )
-    );
+        DSL.score_query(
+            DSL.namedArgument(
+                "RelevanceQuery",
+                DSL.wildcard_query(
+                    DSL.namedArgument("field", "field_value1"),
+                    DSL.namedArgument("query", "search query"))),
+            DSL.namedArgument("boost", "2.0")),
+        AstDSL.function(
+            "score_query",
+            unresolvedArg(
+                "RelevanceQuery",
+                AstDSL.function(
+                    "wildcard_query",
+                    unresolvedArg("field", stringLiteral("field_value1")),
+                    unresolvedArg("query", stringLiteral("search query")))),
+            unresolvedArg("boost", stringLiteral("2.0"))));
   }
 
-  @Test void scorequery_function_expression() {
+  @Test
+  void scorequery_function_expression() {
     assertAnalyzeEqual(
-            DSL.scorequery(
-                    DSL.namedArgument("RelevanceQuery",
-                            DSL.simple_query_string(
-                                    DSL.namedArgument("field", "field_value1"),
-                                    DSL.namedArgument("query", "search query"),
-                                    DSL.namedArgument("slop", "3")
-                            )
-                    )),
-            AstDSL.function("scorequery",
-                    unresolvedArg("RelevanceQuery",
-                            AstDSL.function("simple_query_string",
-                                    unresolvedArg("field", stringLiteral("field_value1")),
-                                    unresolvedArg("query", stringLiteral("search query")),
-                                    unresolvedArg("slop", stringLiteral("3"))
-                            )
-                    )
-            )
-    );
+        DSL.scorequery(
+            DSL.namedArgument(
+                "RelevanceQuery",
+                DSL.simple_query_string(
+                    DSL.namedArgument("field", "field_value1"),
+                    DSL.namedArgument("query", "search query"),
+                    DSL.namedArgument("slop", "3")))),
+        AstDSL.function(
+            "scorequery",
+            unresolvedArg(
+                "RelevanceQuery",
+                AstDSL.function(
+                    "simple_query_string",
+                    unresolvedArg("field", stringLiteral("field_value1")),
+                    unresolvedArg("query", stringLiteral("search query")),
+                    unresolvedArg("slop", stringLiteral("3"))))));
   }
 
   @Test
   void scorequery_function_with_boost() {
     assertAnalyzeEqual(
-            DSL.scorequery(
-                    DSL.namedArgument("RelevanceQuery",
-                            DSL.simple_query_string(
-                                    DSL.namedArgument("field", "field_value1"),
-                                    DSL.namedArgument("query", "search query"),
-                                    DSL.namedArgument("slop", "3")
-                            )),
-                    DSL.namedArgument("boost", "2.0")
-                    ),
-            AstDSL.function("scorequery",
-                    unresolvedArg("RelevanceQuery",
-                            AstDSL.function("simple_query_string",
-                                    unresolvedArg("field", stringLiteral("field_value1")),
-                                    unresolvedArg("query", stringLiteral("search query")),
-                                    unresolvedArg("slop", stringLiteral("3"))
-                            )
-                    ),
-                    unresolvedArg("boost", stringLiteral("2.0"))
-            )
-    );
+        DSL.scorequery(
+            DSL.namedArgument(
+                "RelevanceQuery",
+                DSL.simple_query_string(
+                    DSL.namedArgument("field", "field_value1"),
+                    DSL.namedArgument("query", "search query"),
+                    DSL.namedArgument("slop", "3"))),
+            DSL.namedArgument("boost", "2.0")),
+        AstDSL.function(
+            "scorequery",
+            unresolvedArg(
+                "RelevanceQuery",
+                AstDSL.function(
+                    "simple_query_string",
+                    unresolvedArg("field", stringLiteral("field_value1")),
+                    unresolvedArg("query", stringLiteral("search query")),
+                    unresolvedArg("slop", stringLiteral("3")))),
+            unresolvedArg("boost", stringLiteral("2.0"))));
   }
 
   @Test
@@ -764,8 +770,12 @@ class ExpressionAnalyzerTest extends AnalyzerTestBase {
     // Even a function returns the same values - they are calculated on each call
     // `sysdate()` which returns `LocalDateTime.now()` shouldn't be cached and should return always
     // different values
-    var values = List.of(analyze(function("sysdate")), analyze(function("sysdate")),
-        analyze(function("sysdate")), analyze(function("sysdate")));
+    var values =
+        List.of(
+            analyze(function("sysdate")),
+            analyze(function("sysdate")),
+            analyze(function("sysdate")),
+            analyze(function("sysdate")));
     var referenceValue = analyze(function("sysdate")).valueOf();
     assertTrue(values.stream().noneMatch(v -> v.valueOf() == referenceValue));
   }
@@ -773,8 +783,12 @@ class ExpressionAnalyzerTest extends AnalyzerTestBase {
   @Test
   public void now_as_a_function_not_cached() {
     // // We can call `now()` as a function, in that case nothing should be cached
-    var values = List.of(analyze(function("now")), analyze(function("now")),
-        analyze(function("now")), analyze(function("now")));
+    var values =
+        List.of(
+            analyze(function("now")),
+            analyze(function("now")),
+            analyze(function("now")),
+            analyze(function("now")));
     var referenceValue = analyze(function("now")).valueOf();
     assertTrue(values.stream().noneMatch(v -> v.valueOf() == referenceValue));
   }
@@ -783,13 +797,12 @@ class ExpressionAnalyzerTest extends AnalyzerTestBase {
     return expressionAnalyzer.analyze(unresolvedExpression, analysisContext);
   }
 
-  protected void assertAnalyzeEqual(Expression expected,
-                                    UnresolvedExpression unresolvedExpression) {
+  protected void assertAnalyzeEqual(
+      Expression expected, UnresolvedExpression unresolvedExpression) {
     assertEquals(expected, analyze(unresolvedExpression));
   }
 
-  protected void assertAnalyzeEqual(Expression expected,
-                                    UnresolvedPlan unresolvedPlan) {
+  protected void assertAnalyzeEqual(Expression expected, UnresolvedPlan unresolvedPlan) {
     assertEquals(expected, analyze(unresolvedPlan));
   }
 }

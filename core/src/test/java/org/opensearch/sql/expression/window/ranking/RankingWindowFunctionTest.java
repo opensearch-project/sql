@@ -3,7 +3,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-
 package org.opensearch.sql.expression.window.ranking;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -31,57 +30,72 @@ import org.opensearch.sql.expression.ExpressionTestBase;
 import org.opensearch.sql.expression.window.WindowDefinition;
 import org.opensearch.sql.expression.window.frame.CurrentRowWindowFrame;
 
-/**
- * Rank window function test collection.
- */
+/** Rank window function test collection. */
 @DisplayNameGeneration(DisplayNameGenerator.ReplaceUnderscores.class)
 @ExtendWith(MockitoExtension.class)
 class RankingWindowFunctionTest extends ExpressionTestBase {
 
-  private final CurrentRowWindowFrame windowFrame1 = new CurrentRowWindowFrame(
-      new WindowDefinition(
-          ImmutableList.of(DSL.ref("state", STRING)),
-          ImmutableList.of(Pair.of(DEFAULT_ASC, DSL.ref("age", INTEGER)))));
+  private final CurrentRowWindowFrame windowFrame1 =
+      new CurrentRowWindowFrame(
+          new WindowDefinition(
+              ImmutableList.of(DSL.ref("state", STRING)),
+              ImmutableList.of(Pair.of(DEFAULT_ASC, DSL.ref("age", INTEGER)))));
 
-  private final CurrentRowWindowFrame windowFrame2 = new CurrentRowWindowFrame(
-      new WindowDefinition(
-          ImmutableList.of(DSL.ref("state", STRING)),
-          ImmutableList.of())); // No sort items defined
+  private final CurrentRowWindowFrame windowFrame2 =
+      new CurrentRowWindowFrame(
+          new WindowDefinition(
+              ImmutableList.of(DSL.ref("state", STRING)),
+              ImmutableList.of())); // No sort items defined
 
   private PeekingIterator<ExprValue> iterator1;
   private PeekingIterator<ExprValue> iterator2;
 
   @BeforeEach
   void set_up() {
-    iterator1 = Iterators.peekingIterator(Iterators.forArray(
-        fromExprValueMap(ImmutableMap.of(
-            "state", new ExprStringValue("WA"), "age", new ExprIntegerValue(30))),
-        fromExprValueMap(ImmutableMap.of(
-            "state", new ExprStringValue("WA"), "age", new ExprIntegerValue(30))),
-        fromExprValueMap(ImmutableMap.of(
-            "state", new ExprStringValue("WA"), "age", new ExprIntegerValue(40))),
-        fromExprValueMap(ImmutableMap.of(
-            "state", new ExprStringValue("CA"), "age", new ExprIntegerValue(20)))));
+    iterator1 =
+        Iterators.peekingIterator(
+            Iterators.forArray(
+                fromExprValueMap(
+                    ImmutableMap.of(
+                        "state", new ExprStringValue("WA"), "age", new ExprIntegerValue(30))),
+                fromExprValueMap(
+                    ImmutableMap.of(
+                        "state", new ExprStringValue("WA"), "age", new ExprIntegerValue(30))),
+                fromExprValueMap(
+                    ImmutableMap.of(
+                        "state", new ExprStringValue("WA"), "age", new ExprIntegerValue(40))),
+                fromExprValueMap(
+                    ImmutableMap.of(
+                        "state", new ExprStringValue("CA"), "age", new ExprIntegerValue(20)))));
 
-    iterator2 = Iterators.peekingIterator(Iterators.forArray(
-        fromExprValueMap(ImmutableMap.of(
-            "state", new ExprStringValue("WA"), "age", new ExprIntegerValue(30))),
-        fromExprValueMap(ImmutableMap.of(
-            "state", new ExprStringValue("WA"), "age", new ExprIntegerValue(30))),
-        fromExprValueMap(ImmutableMap.of(
-            "state", new ExprStringValue("WA"), "age", new ExprIntegerValue(50))),
-        fromExprValueMap(ImmutableMap.of(
-            "state", new ExprStringValue("WA"), "age", new ExprIntegerValue(55))),
-        fromExprValueMap(ImmutableMap.of(
-            "state", new ExprStringValue("CA"), "age", new ExprIntegerValue(15)))));
+    iterator2 =
+        Iterators.peekingIterator(
+            Iterators.forArray(
+                fromExprValueMap(
+                    ImmutableMap.of(
+                        "state", new ExprStringValue("WA"), "age", new ExprIntegerValue(30))),
+                fromExprValueMap(
+                    ImmutableMap.of(
+                        "state", new ExprStringValue("WA"), "age", new ExprIntegerValue(30))),
+                fromExprValueMap(
+                    ImmutableMap.of(
+                        "state", new ExprStringValue("WA"), "age", new ExprIntegerValue(50))),
+                fromExprValueMap(
+                    ImmutableMap.of(
+                        "state", new ExprStringValue("WA"), "age", new ExprIntegerValue(55))),
+                fromExprValueMap(
+                    ImmutableMap.of(
+                        "state", new ExprStringValue("CA"), "age", new ExprIntegerValue(15)))));
   }
 
   @Test
   void test_value_of() {
-    PeekingIterator<ExprValue> iterator = Iterators.peekingIterator(
-        Iterators.singletonIterator(
-            fromExprValueMap(ImmutableMap.of(
-                "state", new ExprStringValue("WA"), "age", new ExprIntegerValue(30)))));
+    PeekingIterator<ExprValue> iterator =
+        Iterators.peekingIterator(
+            Iterators.singletonIterator(
+                fromExprValueMap(
+                    ImmutableMap.of(
+                        "state", new ExprStringValue("WA"), "age", new ExprIntegerValue(30)))));
 
     RankingWindowFunction rowNumber = DSL.rowNumber();
 
@@ -165,18 +179,24 @@ class RankingWindowFunctionTest extends ExpressionTestBase {
 
   @Test
   void rank_should_always_return_1_if_no_sort_items_defined() {
-    PeekingIterator<ExprValue> iterator = Iterators.peekingIterator(
-        Iterators.forArray(
-            fromExprValueMap(ImmutableMap.of(
-                "state", new ExprStringValue("WA"), "age", new ExprIntegerValue(30))),
-            fromExprValueMap(ImmutableMap.of(
-                "state", new ExprStringValue("WA"), "age", new ExprIntegerValue(30))),
-            fromExprValueMap(ImmutableMap.of(
-                "state", new ExprStringValue("WA"), "age", new ExprIntegerValue(50))),
-            fromExprValueMap(ImmutableMap.of(
-                "state", new ExprStringValue("WA"), "age", new ExprIntegerValue(55))),
-            fromExprValueMap(ImmutableMap.of(
-                "state", new ExprStringValue("CA"), "age", new ExprIntegerValue(15)))));
+    PeekingIterator<ExprValue> iterator =
+        Iterators.peekingIterator(
+            Iterators.forArray(
+                fromExprValueMap(
+                    ImmutableMap.of(
+                        "state", new ExprStringValue("WA"), "age", new ExprIntegerValue(30))),
+                fromExprValueMap(
+                    ImmutableMap.of(
+                        "state", new ExprStringValue("WA"), "age", new ExprIntegerValue(30))),
+                fromExprValueMap(
+                    ImmutableMap.of(
+                        "state", new ExprStringValue("WA"), "age", new ExprIntegerValue(50))),
+                fromExprValueMap(
+                    ImmutableMap.of(
+                        "state", new ExprStringValue("WA"), "age", new ExprIntegerValue(55))),
+                fromExprValueMap(
+                    ImmutableMap.of(
+                        "state", new ExprStringValue("CA"), "age", new ExprIntegerValue(15)))));
 
     RankingWindowFunction rank = DSL.rank();
 
@@ -215,5 +235,4 @@ class RankingWindowFunctionTest extends ExpressionTestBase {
     windowFrame2.load(iterator2);
     assertEquals(1, denseRank.rank(windowFrame2));
   }
-
 }

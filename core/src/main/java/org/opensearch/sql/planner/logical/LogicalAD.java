@@ -18,6 +18,7 @@ public class LogicalAD extends LogicalPlan {
 
   /**
    * Constructor of LogicalAD.
+   *
    * @param child child logical plan
    * @param arguments arguments of the algorithm
    */

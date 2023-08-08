@@ -3,7 +3,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-
 package org.opensearch.sql.planner.physical;
 
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -64,9 +63,11 @@ class ProjectOperatorTest extends PhysicalPlanTestBase {
     when(inputPlan.hasNext()).thenReturn(true, false);
     when(inputPlan.next())
         .thenReturn(ExprValueUtils.tupleValue(ImmutableMap.of("action", "GET", "response", 200)));
-    PhysicalPlan plan = project(inputPlan,
-        DSL.named("response", DSL.ref("response", INTEGER)),
-        DSL.named("action", DSL.ref("action", STRING)));
+    PhysicalPlan plan =
+        project(
+            inputPlan,
+            DSL.named("response", DSL.ref("response", INTEGER)),
+            DSL.named("action", DSL.ref("action", STRING)));
     List<ExprValue> result = execute(plan);
 
     assertThat(
@@ -83,9 +84,11 @@ class ProjectOperatorTest extends PhysicalPlanTestBase {
     when(inputPlan.next())
         .thenReturn(ExprValueUtils.tupleValue(ImmutableMap.of("action", "GET", "response", 200)))
         .thenReturn(ExprValueUtils.tupleValue(ImmutableMap.of("action", "POST")));
-    PhysicalPlan plan = project(inputPlan,
-        DSL.named("response", DSL.ref("response", INTEGER)),
-        DSL.named("action", DSL.ref("action", STRING)));
+    PhysicalPlan plan =
+        project(
+            inputPlan,
+            DSL.named("response", DSL.ref("response", INTEGER)),
+            DSL.named("action", DSL.ref("action", STRING)));
     List<ExprValue> result = execute(plan);
 
     assertThat(
@@ -94,21 +97,23 @@ class ProjectOperatorTest extends PhysicalPlanTestBase {
             iterableWithSize(2),
             hasItems(
                 ExprValueUtils.tupleValue(ImmutableMap.of("response", 200, "action", "GET")),
-                ExprTupleValue.fromExprValueMap(ImmutableMap.of("response",
-                    LITERAL_MISSING,
-                    "action", stringValue("POST"))))));
+                ExprTupleValue.fromExprValueMap(
+                    ImmutableMap.of("response", LITERAL_MISSING, "action", stringValue("POST"))))));
   }
 
   @Test
   public void project_schema() {
-    PhysicalPlan project = project(inputPlan,
-        DSL.named("response", DSL.ref("response", INTEGER)),
-        DSL.named("action", DSL.ref("action", STRING), "act"));
+    PhysicalPlan project =
+        project(
+            inputPlan,
+            DSL.named("response", DSL.ref("response", INTEGER)),
+            DSL.named("action", DSL.ref("action", STRING), "act"));
 
-    assertThat(project.schema().getColumns(), contains(
-        new ExecutionEngine.Schema.Column("response", null, INTEGER),
-        new ExecutionEngine.Schema.Column("action", "act", STRING)
-    ));
+    assertThat(
+        project.schema().getColumns(),
+        contains(
+            new ExecutionEngine.Schema.Column("response", null, INTEGER),
+            new ExecutionEngine.Schema.Column("action", "act", STRING)));
   }
 
   @Test
@@ -117,16 +122,24 @@ class ProjectOperatorTest extends PhysicalPlanTestBase {
     when(inputPlan.next())
         .thenReturn(ExprValueUtils.tupleValue(ImmutableMap.of("response", "GET 200")));
     PhysicalPlan plan =
-        project(inputPlan, ImmutableList.of(DSL.named("action", DSL.ref("action", STRING)),
+        project(
+            inputPlan,
+            ImmutableList.of(
+                DSL.named("action", DSL.ref("action", STRING)),
                 DSL.named("response", DSL.ref("response", STRING))),
-            ImmutableList.of(DSL.named("action",
-                DSL.regex(DSL.ref("response", STRING),
-                    DSL.literal("(?<action>\\w+) (?<response>\\d+)"),
-                    DSL.literal("action"))), DSL.named("response",
-                DSL.regex(DSL.ref("response", STRING),
-                    DSL.literal("(?<action>\\w+) (?<response>\\d+)"),
-                    DSL.literal("response"))))
-        );
+            ImmutableList.of(
+                DSL.named(
+                    "action",
+                    DSL.regex(
+                        DSL.ref("response", STRING),
+                        DSL.literal("(?<action>\\w+) (?<response>\\d+)"),
+                        DSL.literal("action"))),
+                DSL.named(
+                    "response",
+                    DSL.regex(
+                        DSL.ref("response", STRING),
+                        DSL.literal("(?<action>\\w+) (?<response>\\d+)"),
+                        DSL.literal("response")))));
     List<ExprValue> result = execute(plan);
 
     assertThat(
@@ -143,20 +156,23 @@ class ProjectOperatorTest extends PhysicalPlanTestBase {
     when(inputPlan.next())
         .thenReturn(ExprValueUtils.tupleValue(ImmutableMap.of("response", "GET 200")));
     PhysicalPlan plan =
-        project(inputPlan, ImmutableList.of(DSL.named("response", DSL.ref("response", STRING))),
-            ImmutableList.of(DSL.named("ignored",
-                DSL.regex(DSL.ref("response", STRING),
-                    DSL.literal("(?<action>\\w+) (?<ignored>\\d+)"),
-                    DSL.literal("ignored"))))
-        );
+        project(
+            inputPlan,
+            ImmutableList.of(DSL.named("response", DSL.ref("response", STRING))),
+            ImmutableList.of(
+                DSL.named(
+                    "ignored",
+                    DSL.regex(
+                        DSL.ref("response", STRING),
+                        DSL.literal("(?<action>\\w+) (?<ignored>\\d+)"),
+                        DSL.literal("ignored")))));
     List<ExprValue> result = execute(plan);
 
     assertThat(
         result,
         allOf(
             iterableWithSize(1),
-            hasItems(
-                ExprValueUtils.tupleValue(ImmutableMap.of("response", "GET 200")))));
+            hasItems(ExprValueUtils.tupleValue(ImmutableMap.of("response", "GET 200")))));
   }
 
   @Test
@@ -166,14 +182,19 @@ class ProjectOperatorTest extends PhysicalPlanTestBase {
         .thenReturn(
             ExprValueUtils.tupleValue(ImmutableMap.of("response", "GET 200", "eval_field", 1)));
     PhysicalPlan plan =
-        project(inputPlan, ImmutableList.of(DSL.named("response", DSL.ref("response", STRING)),
+        project(
+            inputPlan,
+            ImmutableList.of(
+                DSL.named("response", DSL.ref("response", STRING)),
                 DSL.named("action", DSL.ref("action", STRING)),
                 DSL.named("eval_field", DSL.ref("eval_field", INTEGER))),
-            ImmutableList.of(DSL.named("action",
-                DSL.regex(DSL.ref("response", STRING),
-                    DSL.literal("(?<action>\\w+) (?<response>\\d+)"),
-                    DSL.literal("action"))))
-        );
+            ImmutableList.of(
+                DSL.named(
+                    "action",
+                    DSL.regex(
+                        DSL.ref("response", STRING),
+                        DSL.literal("(?<action>\\w+) (?<response>\\d+)"),
+                        DSL.literal("action")))));
     List<ExprValue> result = execute(plan);
 
     assertThat(
@@ -193,16 +214,24 @@ class ProjectOperatorTest extends PhysicalPlanTestBase {
             ExprValueUtils.tupleValue(ImmutableMap.of("action", "GET", "response", "GET 200")))
         .thenReturn(ExprValueUtils.tupleValue(ImmutableMap.of("action", "POST")));
     PhysicalPlan plan =
-        project(inputPlan, ImmutableList.of(DSL.named("action", DSL.ref("action", STRING)),
+        project(
+            inputPlan,
+            ImmutableList.of(
+                DSL.named("action", DSL.ref("action", STRING)),
                 DSL.named("response", DSL.ref("response", STRING))),
-            ImmutableList.of(DSL.named("action",
-                DSL.regex(DSL.ref("response", STRING),
-                    DSL.literal("(?<action>\\w+) (?<response>\\d+)"),
-                    DSL.literal("action"))), DSL.named("response",
-                DSL.regex(DSL.ref("response", STRING),
-                    DSL.literal("(?<action>\\w+) (?<response>\\d+)"),
-                    DSL.literal("response"))))
-        );
+            ImmutableList.of(
+                DSL.named(
+                    "action",
+                    DSL.regex(
+                        DSL.ref("response", STRING),
+                        DSL.literal("(?<action>\\w+) (?<response>\\d+)"),
+                        DSL.literal("action"))),
+                DSL.named(
+                    "response",
+                    DSL.regex(
+                        DSL.ref("response", STRING),
+                        DSL.literal("(?<action>\\w+) (?<response>\\d+)"),
+                        DSL.literal("response")))));
     List<ExprValue> result = execute(plan);
 
     assertThat(
@@ -225,8 +254,8 @@ class ProjectOperatorTest extends PhysicalPlanTestBase {
     objectOutput.writeObject(project);
     objectOutput.flush();
 
-    ObjectInputStream objectInput = new ObjectInputStream(
-        new ByteArrayInputStream(output.toByteArray()));
+    ObjectInputStream objectInput =
+        new ObjectInputStream(new ByteArrayInputStream(output.toByteArray()));
     var roundTripPlan = (ProjectOperator) objectInput.readObject();
     assertEquals(project, roundTripPlan);
   }

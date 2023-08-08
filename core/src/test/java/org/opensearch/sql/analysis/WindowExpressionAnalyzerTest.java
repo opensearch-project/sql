@@ -3,7 +3,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-
 package org.opensearch.sql.analysis;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -75,16 +74,12 @@ class WindowExpressionAnalyzerTest extends AnalyzerTestBase {
         LogicalPlanDSL.window(
             LogicalPlanDSL.relation("test", table),
             DSL.named("row_number", DSL.rowNumber()),
-            new WindowDefinition(
-                ImmutableList.of(),
-                ImmutableList.of())),
+            new WindowDefinition(ImmutableList.of(), ImmutableList.of())),
         analyzer.analyze(
             AstDSL.alias(
                 "row_number",
                 AstDSL.window(
-                    AstDSL.function("row_number"),
-                    ImmutableList.of(),
-                    ImmutableList.of())),
+                    AstDSL.function("row_number"), ImmutableList.of(), ImmutableList.of())),
             analysisContext));
   }
 
@@ -93,10 +88,7 @@ class WindowExpressionAnalyzerTest extends AnalyzerTestBase {
     assertEquals(
         child,
         analyzer.analyze(
-            AstDSL.alias(
-                "string_value",
-                AstDSL.qualifiedName("string_value")),
-            analysisContext));
+            AstDSL.alias("string_value", AstDSL.qualifiedName("string_value")), analysisContext));
   }
 
   @Test
@@ -114,20 +106,23 @@ class WindowExpressionAnalyzerTest extends AnalyzerTestBase {
             .put(new SortOption(DESC, NULL_LAST), DEFAULT_DESC)
             .build();
 
-    expects.forEach((option, expect) -> {
-      Alias ast = AstDSL.alias(
-          "row_number",
-          AstDSL.window(
-              AstDSL.function("row_number"),
-              Collections.emptyList(),
-              ImmutableList.of(
-                  ImmutablePair.of(option, AstDSL.qualifiedName("integer_value")))));
+    expects.forEach(
+        (option, expect) -> {
+          Alias ast =
+              AstDSL.alias(
+                  "row_number",
+                  AstDSL.window(
+                      AstDSL.function("row_number"),
+                      Collections.emptyList(),
+                      ImmutableList.of(
+                          ImmutablePair.of(option, AstDSL.qualifiedName("integer_value")))));
 
-      LogicalPlan plan = analyzer.analyze(ast, analysisContext);
-      LogicalSort sort = (LogicalSort) plan.getChild().get(0);
-      assertEquals(expect, sort.getSortList().get(0).getLeft(),
-          "Assertion failed on input option: " + option);
-    });
+          LogicalPlan plan = analyzer.analyze(ast, analysisContext);
+          LogicalSort sort = (LogicalSort) plan.getChild().get(0);
+          assertEquals(
+              expect,
+              sort.getSortList().get(0).getLeft(),
+              "Assertion failed on input option: " + option);
+        });
   }
-
 }

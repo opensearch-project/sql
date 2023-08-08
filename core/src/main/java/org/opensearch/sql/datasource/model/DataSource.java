@@ -12,9 +12,7 @@ import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import org.opensearch.sql.storage.StorageEngine;
 
-/**
- * Each user configured datasource mapping to one instance of DataSource per JVM.
- */
+/** Each user configured datasource mapping to one instance of DataSource per JVM. */
 @Getter
 @RequiredArgsConstructor
 @EqualsAndHashCode
@@ -24,7 +22,5 @@ public class DataSource {
 
   private final DataSourceType connectorType;
 
-  @EqualsAndHashCode.Exclude
-  private final StorageEngine storageEngine;
-
+  @EqualsAndHashCode.Exclude private final StorageEngine storageEngine;
 }

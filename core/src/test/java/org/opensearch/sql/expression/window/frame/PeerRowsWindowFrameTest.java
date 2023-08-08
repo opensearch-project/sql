@@ -3,7 +3,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-
 package org.opensearch.sql.expression.window.frame;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -34,15 +33,16 @@ import org.opensearch.sql.expression.window.WindowDefinition;
 @ExtendWith(MockitoExtension.class)
 class PeerRowsWindowFrameTest {
 
-  private final PeerRowsWindowFrame windowFrame = new PeerRowsWindowFrame(
-      new WindowDefinition(
-          ImmutableList.of(DSL.ref("state", STRING)),
-          ImmutableList.of(Pair.of(DEFAULT_ASC, DSL.ref("age", INTEGER)))));
+  private final PeerRowsWindowFrame windowFrame =
+      new PeerRowsWindowFrame(
+          new WindowDefinition(
+              ImmutableList.of(DSL.ref("state", STRING)),
+              ImmutableList.of(Pair.of(DEFAULT_ASC, DSL.ref("age", INTEGER)))));
 
   @Test
   void test_single_row() {
-    PeekingIterator<ExprValue> tuples = Iterators.peekingIterator(
-        Iterators.singletonIterator(tuple("WA", 10, 100)));
+    PeekingIterator<ExprValue> tuples =
+        Iterators.peekingIterator(Iterators.singletonIterator(tuple("WA", 10, 100)));
     windowFrame.load(tuples);
     assertTrue(windowFrame.isNewPartition());
     assertEquals(ImmutableList.of(tuple("WA", 10, 100)), windowFrame.next());
@@ -50,11 +50,9 @@ class PeerRowsWindowFrameTest {
 
   @Test
   void test_single_partition_with_no_more_rows_after_peers() {
-    PeekingIterator<ExprValue> tuples = Iterators.peekingIterator(
-        Iterators.forArray(
-            tuple("WA", 10, 100),
-            tuple("WA", 20, 200),
-            tuple("WA", 20, 50)));
+    PeekingIterator<ExprValue> tuples =
+        Iterators.peekingIterator(
+            Iterators.forArray(tuple("WA", 10, 100), tuple("WA", 20, 200), tuple("WA", 20, 50)));
 
     // Here we simulate how WindowFrame interacts with WindowOperator which calls load()
     // and WindowFunction which calls isNewPartition() and move()
@@ -64,9 +62,7 @@ class PeerRowsWindowFrameTest {
 
     windowFrame.load(tuples);
     assertFalse(windowFrame.isNewPartition());
-    assertEquals(
-        ImmutableList.of(tuple("WA", 20, 200), tuple("WA", 20, 50)),
-        windowFrame.next());
+    assertEquals(ImmutableList.of(tuple("WA", 20, 200), tuple("WA", 20, 50)), windowFrame.next());
 
     windowFrame.load(tuples);
     assertFalse(windowFrame.isNewPartition());
@@ -75,180 +71,124 @@ class PeerRowsWindowFrameTest {
 
   @Test
   void test_single_partition_with_more_rows_after_peers() {
-    PeekingIterator<ExprValue> tuples = Iterators.peekingIterator(
-        Iterators.forArray(
-            tuple("WA", 10, 100),
-            tuple("WA", 20, 200),
-            tuple("WA", 20, 50),
-            tuple("WA", 35, 150)));
+    PeekingIterator<ExprValue> tuples =
+        Iterators.peekingIterator(
+            Iterators.forArray(
+                tuple("WA", 10, 100),
+                tuple("WA", 20, 200),
+                tuple("WA", 20, 50),
+                tuple("WA", 35, 150)));
 
     windowFrame.load(tuples);
     assertTrue(windowFrame.isNewPartition());
-    assertEquals(
-        ImmutableList.of(
-            tuple("WA", 10, 100)),
-        windowFrame.next());
+    assertEquals(ImmutableList.of(tuple("WA", 10, 100)), windowFrame.next());
 
     windowFrame.load(tuples);
     assertFalse(windowFrame.isNewPartition());
-    assertEquals(
-        ImmutableList.of(
-            tuple("WA", 20, 200),
-            tuple("WA", 20, 50)),
-        windowFrame.next());
+    assertEquals(ImmutableList.of(tuple("WA", 20, 200), tuple("WA", 20, 50)), windowFrame.next());
 
     windowFrame.load(tuples);
     assertFalse(windowFrame.isNewPartition());
-    assertEquals(
-        ImmutableList.of(),
-        windowFrame.next());
+    assertEquals(ImmutableList.of(), windowFrame.next());
 
     windowFrame.load(tuples);
     assertFalse(windowFrame.isNewPartition());
-    assertEquals(
-        ImmutableList.of(
-            tuple("WA", 35, 150)),
-        windowFrame.next());
+    assertEquals(ImmutableList.of(tuple("WA", 35, 150)), windowFrame.next());
   }
 
   @Test
   void test_two_partitions_with_all_same_peers_in_second_partition() {
-    PeekingIterator<ExprValue> tuples = Iterators.peekingIterator(
-        Iterators.forArray(
-            tuple("WA", 10, 100),
-            tuple("CA", 18, 150),
-            tuple("CA", 18, 100)));
+    PeekingIterator<ExprValue> tuples =
+        Iterators.peekingIterator(
+            Iterators.forArray(tuple("WA", 10, 100), tuple("CA", 18, 150), tuple("CA", 18, 100)));
 
     windowFrame.load(tuples);
     assertTrue(windowFrame.isNewPartition());
-    assertEquals(
-        ImmutableList.of(
-            tuple("WA", 10, 100)),
-        windowFrame.next());
+    assertEquals(ImmutableList.of(tuple("WA", 10, 100)), windowFrame.next());
 
     windowFrame.load(tuples);
     assertTrue(windowFrame.isNewPartition());
-    assertEquals(
-        ImmutableList.of(
-            tuple("CA", 18, 150),
-            tuple("CA", 18, 100)),
-        windowFrame.next());
+    assertEquals(ImmutableList.of(tuple("CA", 18, 150), tuple("CA", 18, 100)), windowFrame.next());
 
     windowFrame.load(tuples);
     assertFalse(windowFrame.isNewPartition());
-    assertEquals(
-        ImmutableList.of(),
-        windowFrame.next());
+    assertEquals(ImmutableList.of(), windowFrame.next());
   }
 
   @Test
   void test_two_partitions_with_single_row_in_each_partition() {
-    PeekingIterator<ExprValue> tuples = Iterators.peekingIterator(
-        Iterators.forArray(
-            tuple("WA", 10, 100),
-            tuple("CA", 30, 200)));
+    PeekingIterator<ExprValue> tuples =
+        Iterators.peekingIterator(Iterators.forArray(tuple("WA", 10, 100), tuple("CA", 30, 200)));
 
     windowFrame.load(tuples);
     assertTrue(windowFrame.isNewPartition());
-    assertEquals(
-        ImmutableList.of(
-            tuple("WA", 10, 100)),
-        windowFrame.next());
+    assertEquals(ImmutableList.of(tuple("WA", 10, 100)), windowFrame.next());
 
     windowFrame.load(tuples);
     assertTrue(windowFrame.isNewPartition());
-    assertEquals(
-        ImmutableList.of(
-            tuple("CA", 30, 200)),
-        windowFrame.next());
+    assertEquals(ImmutableList.of(tuple("CA", 30, 200)), windowFrame.next());
   }
 
   @Test
   void test_window_definition_with_no_partition_by() {
-    PeerRowsWindowFrame windowFrame = new PeerRowsWindowFrame(
-        new WindowDefinition(
-            ImmutableList.of(),
-            ImmutableList.of(Pair.of(DEFAULT_ASC, DSL.ref("age", INTEGER)))));
+    PeerRowsWindowFrame windowFrame =
+        new PeerRowsWindowFrame(
+            new WindowDefinition(
+                ImmutableList.of(),
+                ImmutableList.of(Pair.of(DEFAULT_ASC, DSL.ref("age", INTEGER)))));
 
-    PeekingIterator<ExprValue> tuples = Iterators.peekingIterator(
-        Iterators.forArray(
-            tuple("WA", 10, 100),
-            tuple("CA", 30, 200)));
+    PeekingIterator<ExprValue> tuples =
+        Iterators.peekingIterator(Iterators.forArray(tuple("WA", 10, 100), tuple("CA", 30, 200)));
 
     windowFrame.load(tuples);
     assertTrue(windowFrame.isNewPartition());
-    assertEquals(
-        ImmutableList.of(
-            tuple("WA", 10, 100)),
-        windowFrame.next());
+    assertEquals(ImmutableList.of(tuple("WA", 10, 100)), windowFrame.next());
 
     windowFrame.load(tuples);
     assertFalse(windowFrame.isNewPartition());
-    assertEquals(
-        ImmutableList.of(
-            tuple("CA", 30, 200)),
-        windowFrame.next());
+    assertEquals(ImmutableList.of(tuple("CA", 30, 200)), windowFrame.next());
   }
 
   @Test
   void test_window_definition_with_no_order_by() {
-    PeerRowsWindowFrame windowFrame = new PeerRowsWindowFrame(
-        new WindowDefinition(
-            ImmutableList.of(DSL.ref("state", STRING)),
-            ImmutableList.of()));
+    PeerRowsWindowFrame windowFrame =
+        new PeerRowsWindowFrame(
+            new WindowDefinition(ImmutableList.of(DSL.ref("state", STRING)), ImmutableList.of()));
 
-    PeekingIterator<ExprValue> tuples = Iterators.peekingIterator(
-        Iterators.forArray(
-            tuple("WA", 10, 100),
-            tuple("CA", 30, 200)));
+    PeekingIterator<ExprValue> tuples =
+        Iterators.peekingIterator(Iterators.forArray(tuple("WA", 10, 100), tuple("CA", 30, 200)));
 
     windowFrame.load(tuples);
     assertTrue(windowFrame.isNewPartition());
-    assertEquals(
-        ImmutableList.of(
-            tuple("WA", 10, 100)),
-        windowFrame.next());
+    assertEquals(ImmutableList.of(tuple("WA", 10, 100)), windowFrame.next());
 
     windowFrame.load(tuples);
     assertTrue(windowFrame.isNewPartition());
-    assertEquals(
-        ImmutableList.of(
-            tuple("CA", 30, 200)),
-        windowFrame.next());
+    assertEquals(ImmutableList.of(tuple("CA", 30, 200)), windowFrame.next());
   }
 
   @Test
   void test_window_definition_with_no_partition_by_and_order_by() {
-    PeerRowsWindowFrame windowFrame = new PeerRowsWindowFrame(
-        new WindowDefinition(
-            ImmutableList.of(),
-            ImmutableList.of()));
+    PeerRowsWindowFrame windowFrame =
+        new PeerRowsWindowFrame(new WindowDefinition(ImmutableList.of(), ImmutableList.of()));
 
-    PeekingIterator<ExprValue> tuples = Iterators.peekingIterator(
-        Iterators.forArray(
-            tuple("WA", 10, 100),
-            tuple("CA", 30, 200)));
+    PeekingIterator<ExprValue> tuples =
+        Iterators.peekingIterator(Iterators.forArray(tuple("WA", 10, 100), tuple("CA", 30, 200)));
 
     windowFrame.load(tuples);
     assertTrue(windowFrame.isNewPartition());
-    assertEquals(
-        ImmutableList.of(
-            tuple("WA", 10, 100),
-            tuple("CA", 30, 200)),
-        windowFrame.next());
+    assertEquals(ImmutableList.of(tuple("WA", 10, 100), tuple("CA", 30, 200)), windowFrame.next());
 
     windowFrame.load(tuples);
     assertFalse(windowFrame.isNewPartition());
-    assertEquals(
-        ImmutableList.of(),
-        windowFrame.next());
+    assertEquals(ImmutableList.of(), windowFrame.next());
   }
 
   private ExprValue tuple(String state, int age, int balance) {
-    return fromExprValueMap(ImmutableMap.of(
-        "state", new ExprStringValue(state),
-        "age", new ExprIntegerValue(age),
-        "balance", new ExprIntegerValue(balance)));
+    return fromExprValueMap(
+        ImmutableMap.of(
+            "state", new ExprStringValue(state),
+            "age", new ExprIntegerValue(age),
+            "balance", new ExprIntegerValue(balance)));
   }
-
 }

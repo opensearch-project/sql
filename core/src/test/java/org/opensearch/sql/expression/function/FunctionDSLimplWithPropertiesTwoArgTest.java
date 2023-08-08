@@ -16,8 +16,8 @@ class FunctionDSLimplWithPropertiesTwoArgTest extends FunctionDSLimplTestBase {
   @Override
   SerializableFunction<FunctionName, Pair<FunctionSignature, FunctionBuilder>>
       getImplementationGenerator() {
-    SerializableTriFunction<FunctionProperties, ExprValue, ExprValue, ExprValue> functionBody
-        = (fp, arg1, arg2) -> ANY;
+    SerializableTriFunction<FunctionProperties, ExprValue, ExprValue, ExprValue> functionBody =
+        (fp, arg1, arg2) -> ANY;
     return FunctionDSL.implWithProperties(functionBody, ANY_TYPE, ANY_TYPE, ANY_TYPE);
   }
 

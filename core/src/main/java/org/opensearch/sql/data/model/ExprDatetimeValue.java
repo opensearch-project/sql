@@ -3,7 +3,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-
 package org.opensearch.sql.data.model;
 
 import static org.opensearch.sql.utils.DateTimeFormatters.DATE_TIME_FORMATTER_WITH_TZ;
@@ -23,20 +22,19 @@ import org.opensearch.sql.data.type.ExprCoreType;
 import org.opensearch.sql.data.type.ExprType;
 import org.opensearch.sql.exception.SemanticCheckException;
 
-
 @RequiredArgsConstructor
 public class ExprDatetimeValue extends AbstractExprValue {
   private final LocalDateTime datetime;
 
-  /**
-   * Constructor with datetime string as input.
-   */
+  /** Constructor with datetime string as input. */
   public ExprDatetimeValue(String datetime) {
     try {
       this.datetime = LocalDateTime.parse(datetime, DATE_TIME_FORMATTER_WITH_TZ);
     } catch (DateTimeParseException e) {
-      throw new SemanticCheckException(String.format("datetime:%s in unsupported format, please "
-          + "use yyyy-MM-dd HH:mm:ss[.SSSSSSSSS]", datetime));
+      throw new SemanticCheckException(
+          String.format(
+              "datetime:%s in unsupported format, please use 'yyyy-MM-dd HH:mm:ss[.SSSSSSSSS]'",
+              datetime));
     }
   }
 
@@ -77,9 +75,11 @@ public class ExprDatetimeValue extends AbstractExprValue {
 
   @Override
   public String value() {
-    return String.format("%s %s", DateTimeFormatter.ISO_DATE.format(datetime),
-        DateTimeFormatter.ISO_TIME.format((datetime.getNano() == 0)
-            ? datetime.truncatedTo(ChronoUnit.SECONDS) : datetime));
+    return String.format(
+        "%s %s",
+        DateTimeFormatter.ISO_DATE.format(datetime),
+        DateTimeFormatter.ISO_TIME.format(
+            (datetime.getNano() == 0) ? datetime.truncatedTo(ChronoUnit.SECONDS) : datetime));
   }
 
   @Override

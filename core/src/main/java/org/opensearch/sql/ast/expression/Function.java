@@ -3,7 +3,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-
 package org.opensearch.sql.ast.expression;
 
 import java.util.Collections;
@@ -14,10 +13,9 @@ import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import org.opensearch.sql.ast.AbstractNodeVisitor;
 
-
 /**
- * Expression node of scalar function.
- * Params include function name (@funcName) and function arguments (@funcArgs)
+ * Expression node of scalar function. Params include function name (@funcName) and function
+ * arguments (@funcArgs)
  */
 @Getter
 @EqualsAndHashCode(callSuper = false)
@@ -38,9 +36,8 @@ public class Function extends UnresolvedExpression {
 
   @Override
   public String toString() {
-    return String.format("%s(%s)", funcName,
-        funcArgs.stream()
-            .map(Object::toString)
-            .collect(Collectors.joining(", ")));
+    return String.format(
+        "%s(%s)",
+        funcName, funcArgs.stream().map(Object::toString).collect(Collectors.joining(", ")));
   }
 }

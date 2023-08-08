@@ -3,7 +3,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-
 package org.opensearch.sql.data.model;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -41,14 +40,18 @@ public class ExprIntervalValueTest {
   public void invalid_compare() {
     ExprIntervalValue v1 = new ExprIntervalValue(Period.ofYears(1));
     ExprIntervalValue v2 = new ExprIntervalValue(Duration.ofHours(1));
-    assertThrows(ExpressionEvaluationException.class, () -> v1.compare(v2),
+    assertThrows(
+        ExpressionEvaluationException.class,
+        () -> v1.compare(v2),
         String.format("invalid to compare intervals with units %s and %s", v1.unit(), v2.unit()));
   }
 
   @Test
   public void invalid_get_value() {
     ExprDateValue value = new ExprDateValue("2020-08-20");
-    assertThrows(ExpressionEvaluationException.class, value::intervalValue,
+    assertThrows(
+        ExpressionEvaluationException.class,
+        value::intervalValue,
         String.format("invalid to get intervalValue from value of type %s", value.type()));
   }
 

@@ -22,9 +22,7 @@ import org.opensearch.sql.expression.env.Environment;
 
 @UtilityClass
 public class OpenSearchFunctions {
-  /**
-   * Add functions specific to OpenSearch to repository.
-   */
+  /** Add functions specific to OpenSearch to repository. */
   public void register(BuiltinFunctionRepository repository) {
     repository.register(match_bool_prefix());
     repository.register(multi_match(BuiltinFunctionName.MULTI_MATCH));
@@ -101,19 +99,20 @@ public class OpenSearchFunctions {
       @Override
       public Pair<FunctionSignature, FunctionBuilder> resolve(
           FunctionSignature unresolvedSignature) {
-        return Pair.of(unresolvedSignature,
+        return Pair.of(
+            unresolvedSignature,
             (functionProperties, arguments) ->
-            new FunctionExpression(BuiltinFunctionName.NESTED.getName(), arguments) {
-              @Override
-              public ExprValue valueOf(Environment<Expression, ExprValue> valueEnv) {
-                return valueEnv.resolve(getArguments().get(0));
-              }
+                new FunctionExpression(BuiltinFunctionName.NESTED.getName(), arguments) {
+                  @Override
+                  public ExprValue valueOf(Environment<Expression, ExprValue> valueEnv) {
+                    return valueEnv.resolve(getArguments().get(0));
+                  }
 
-              @Override
-              public ExprType type() {
-                return getArguments().get(0).type();
-              }
-            });
+                  @Override
+                  public ExprType type() {
+                    return getArguments().get(0).type();
+                  }
+                });
       }
 
       @Override
@@ -122,9 +121,6 @@ public class OpenSearchFunctions {
       }
     };
   }
-
-
-
 
   private static FunctionResolver score(BuiltinFunctionName score) {
     FunctionName funcName = score.getName();
@@ -135,12 +131,11 @@ public class OpenSearchFunctions {
     private final FunctionName functionName;
     private final List<Expression> arguments;
 
-    @Getter
-    @Setter
-    private boolean isScoreTracked;
+    @Getter @Setter private boolean isScoreTracked;
 
     /**
      * Required argument constructor.
+     *
      * @param functionName name of the function
      * @param arguments a list of expressions
      */
@@ -153,9 +148,10 @@ public class OpenSearchFunctions {
 
     @Override
     public ExprValue valueOf(Environment<Expression, ExprValue> valueEnv) {
-      throw new UnsupportedOperationException(String.format(
-          "OpenSearch defined function [%s] is only supported in WHERE and HAVING clause.",
-          functionName));
+      throw new UnsupportedOperationException(
+          String.format(
+              "OpenSearch defined function [%s] is only supported in WHERE and HAVING clause.",
+              functionName));
     }
 
     @Override
@@ -165,10 +161,15 @@ public class OpenSearchFunctions {
 
     @Override
     public String toString() {
-      List<String> args = arguments.stream()
-          .map(arg -> String.format("%s=%s", ((NamedArgumentExpression) arg)
-              .getArgName(), ((NamedArgumentExpression) arg).getValue().toString()))
-          .collect(Collectors.toList());
+      List<String> args =
+          arguments.stream()
+              .map(
+                  arg ->
+                      String.format(
+                          "%s=%s",
+                          ((NamedArgumentExpression) arg).getArgName(),
+                          ((NamedArgumentExpression) arg).getValue().toString()))
+              .collect(Collectors.toList());
       return String.format("%s(%s)", functionName, String.join(", ", args));
     }
   }

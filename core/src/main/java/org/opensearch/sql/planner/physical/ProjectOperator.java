@@ -3,7 +3,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-
 package org.opensearch.sql.planner.physical;
 
 import com.google.common.collect.ImmutableMap;
@@ -27,19 +26,14 @@ import org.opensearch.sql.expression.NamedExpression;
 import org.opensearch.sql.expression.parse.ParseExpression;
 import org.opensearch.sql.planner.SerializablePlan;
 
-/**
- * Project the fields specified in {@link ProjectOperator#projectList} from input.
- */
+/** Project the fields specified in {@link ProjectOperator#projectList} from input. */
 @ToString
 @EqualsAndHashCode(callSuper = false)
 @AllArgsConstructor
 public class ProjectOperator extends PhysicalPlan implements SerializablePlan {
-  @Getter
-  private PhysicalPlan input;
-  @Getter
-  private List<NamedExpression> projectList;
-  @Getter
-  private List<NamedExpression> namedParseExpressions;
+  @Getter private PhysicalPlan input;
+  @Getter private List<NamedExpression> projectList;
+  @Getter private List<NamedExpression> namedParseExpressions;
 
   @Override
   public <R, C> R accept(PhysicalPlanNodeVisitor<R, C> visitor, C context) {
@@ -65,17 +59,20 @@ public class ProjectOperator extends PhysicalPlan implements SerializablePlan {
     // TODO needs a better implementation, see https://github.com/opensearch-project/sql/issues/458
     for (NamedExpression expr : projectList) {
       ExprValue exprValue = expr.valueOf(inputValue.bindingTuples());
-      Optional<NamedExpression> optionalParseExpression = namedParseExpressions.stream()
-          .filter(parseExpr -> parseExpr.getNameOrAlias().equals(expr.getNameOrAlias()))
-          .findFirst();
+      Optional<NamedExpression> optionalParseExpression =
+          namedParseExpressions.stream()
+              .filter(parseExpr -> parseExpr.getNameOrAlias().equals(expr.getNameOrAlias()))
+              .findFirst();
       if (optionalParseExpression.isEmpty()) {
         mapBuilder.put(expr.getNameOrAlias(), exprValue);
         continue;
       }
 
       NamedExpression parseExpression = optionalParseExpression.get();
-      ExprValue sourceFieldValue = inputValue.bindingTuples()
-          .resolve(((ParseExpression) parseExpression.getDelegated()).getSourceField());
+      ExprValue sourceFieldValue =
+          inputValue
+              .bindingTuples()
+              .resolve(((ParseExpression) parseExpression.getDelegated()).getSourceField());
       if (sourceFieldValue.isMissing()) {
         // source field will be missing after stats command, read from inputValue if it exists
         // otherwise do nothing since it should not appear as a field
@@ -94,15 +91,17 @@ public class ProjectOperator extends PhysicalPlan implements SerializablePlan {
 
   @Override
   public ExecutionEngine.Schema schema() {
-    return new ExecutionEngine.Schema(getProjectList().stream()
-        .map(expr -> new ExecutionEngine.Schema.Column(expr.getName(),
-            expr.getAlias(), expr.type())).collect(Collectors.toList()));
+    return new ExecutionEngine.Schema(
+        getProjectList().stream()
+            .map(
+                expr ->
+                    new ExecutionEngine.Schema.Column(expr.getName(), expr.getAlias(), expr.type()))
+            .collect(Collectors.toList()));
   }
 
   /** Don't use, it is for deserialization needs only. */
   @Deprecated
-  public ProjectOperator() {
-  }
+  public ProjectOperator() {}
 
   @SuppressWarnings("unchecked")
   @Override
