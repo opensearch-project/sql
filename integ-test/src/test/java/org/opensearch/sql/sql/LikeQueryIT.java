@@ -6,15 +6,14 @@
 
 package org.opensearch.sql.sql;
 
-import org.json.JSONObject;
-import org.junit.Test;
-import org.opensearch.sql.legacy.SQLIntegTestCase;
-
-import java.io.IOException;
-
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_WILDCARD;
 import static org.opensearch.sql.util.MatcherUtils.rows;
 import static org.opensearch.sql.util.MatcherUtils.verifyDataRows;
+
+import java.io.IOException;
+import org.json.JSONObject;
+import org.junit.Test;
+import org.opensearch.sql.legacy.SQLIntegTestCase;
 
 public class LikeQueryIT extends SQLIntegTestCase {
   @Override
