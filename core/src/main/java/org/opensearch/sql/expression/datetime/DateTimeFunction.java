@@ -1716,10 +1716,10 @@ public class DateTimeFunction {
    * Furthermore:<br>
    *
    * <ul>
-   *   <li>zero year interpreted as 2000</li>
-   *   <li>negative year is not accepted</li>
-   *   <li>@dayOfYear should be greater than 1</li>
-   *   <li>if @dayOfYear is greater than 365/366, calculation goes to the next year(s)</li>
+   *   <li>zero year interpreted as 2000
+   *   <li>negative year is not accepted
+   *   <li>@dayOfYear should be greater than 1
+   *   <li>if @dayOfYear is greater than 365/366, calculation goes to the next year(s)
    * </ul>
    *
    * @param yearExpr year
