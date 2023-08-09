@@ -7,7 +7,6 @@
 
 package org.opensearch.sql.analysis.model;
 
-
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
@@ -29,14 +28,12 @@ import org.opensearch.sql.datasource.DataSourceService;
 @ExtendWith(MockitoExtension.class)
 public class DataSourceSchemaIdentifierNameResolverTest {
 
-  @Mock
-  private DataSourceService dataSourceService;
+  @Mock private DataSourceService dataSourceService;
 
   @Test
   void testFullyQualifiedName() {
     when(dataSourceService.dataSourceExists("prom")).thenReturn(Boolean.TRUE);
-    identifierOf(
-            Arrays.asList("prom", "information_schema", "tables"), dataSourceService)
+    identifierOf(Arrays.asList("prom", "information_schema", "tables"), dataSourceService)
         .datasource("prom")
         .schema("information_schema")
         .name("tables");
@@ -68,8 +65,8 @@ public class DataSourceSchemaIdentifierNameResolverTest {
   static class Identifier {
     private final DataSourceSchemaIdentifierNameResolver resolver;
 
-    protected static Identifier identifierOf(List<String> parts,
-                                             DataSourceService dataSourceService) {
+    protected static Identifier identifierOf(
+        List<String> parts, DataSourceService dataSourceService) {
       return new Identifier(parts, dataSourceService);
     }
 
