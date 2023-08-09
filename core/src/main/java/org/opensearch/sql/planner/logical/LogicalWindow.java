@@ -3,7 +3,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-
 package org.opensearch.sql.planner.logical;
 
 import java.util.Collections;
@@ -25,13 +24,9 @@ public class LogicalWindow extends LogicalPlan {
   private final NamedExpression windowFunction;
   private final WindowDefinition windowDefinition;
 
-  /**
-   * Constructor of logical window.
-   */
+  /** Constructor of logical window. */
   public LogicalWindow(
-      LogicalPlan child,
-      NamedExpression windowFunction,
-      WindowDefinition windowDefinition) {
+      LogicalPlan child, NamedExpression windowFunction, WindowDefinition windowDefinition) {
     super(Collections.singletonList(child));
     this.windowFunction = windowFunction;
     this.windowDefinition = windowDefinition;
@@ -41,5 +36,4 @@ public class LogicalWindow extends LogicalPlan {
   public <R, C> R accept(LogicalPlanNodeVisitor<R, C> visitor, C context) {
     return visitor.visitWindow(this, context);
   }
-
 }

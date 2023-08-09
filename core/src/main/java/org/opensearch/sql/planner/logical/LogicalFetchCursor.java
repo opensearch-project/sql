@@ -11,21 +11,15 @@ import lombok.Getter;
 import lombok.ToString;
 import org.opensearch.sql.storage.StorageEngine;
 
-/**
- * A plan node which represents operation of fetching a next page from the cursor.
- */
+/** A plan node which represents operation of fetching a next page from the cursor. */
 @EqualsAndHashCode(callSuper = false)
 @ToString
 public class LogicalFetchCursor extends LogicalPlan {
-  @Getter
-  private final String cursor;
+  @Getter private final String cursor;
 
-  @Getter
-  private final StorageEngine engine;
+  @Getter private final StorageEngine engine;
 
-  /**
-   * LogicalCursor constructor. Does not have child plans.
-   */
+  /** LogicalCursor constructor. Does not have child plans. */
   public LogicalFetchCursor(String cursor, StorageEngine engine) {
     super(List.of());
     this.cursor = cursor;

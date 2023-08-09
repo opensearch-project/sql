@@ -3,16 +3,13 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-
 package org.opensearch.sql.planner.logical;
 
 import java.util.List;
 import lombok.EqualsAndHashCode;
 import org.opensearch.sql.planner.PlanNode;
 
-/**
- * The abstract base class for all the Logical Plan node.
- */
+/** The abstract base class for all the Logical Plan node. */
 @EqualsAndHashCode(callSuper = false)
 public abstract class LogicalPlan implements PlanNode<LogicalPlan> {
 
@@ -27,8 +24,8 @@ public abstract class LogicalPlan implements PlanNode<LogicalPlan> {
    *
    * @param visitor visitor.
    * @param context visitor context.
-   * @param <R>     returned object type.
-   * @param <C>     context type.
+   * @param <R> returned object type.
+   * @param <C> context type.
    * @return returned object.
    */
   public abstract <R, C> R accept(LogicalPlanNodeVisitor<R, C> visitor, C context);
@@ -37,7 +34,6 @@ public abstract class LogicalPlan implements PlanNode<LogicalPlan> {
     this.childPlans = childPlans;
     return this;
   }
-
 
   @Override
   public List<LogicalPlan> getChild() {

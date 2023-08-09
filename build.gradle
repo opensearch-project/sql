@@ -84,7 +84,10 @@ repositories {
 spotless {
     java {
         target fileTree('.') {
-            include 'core/src/main/java/org/opensearch/sql/monitor/**/*.java',
+            include 'core/src/main/java/org/opensearch/sql/planner/**/*.java',
+                    'core/src/main/java/org/opensearch/sql/storage/**/*.java',
+                    'core/src/main/java/org/opensearch/sql/utils/**/*.java',
+                    'core/src/main/java/org/opensearch/sql/monitor/**/*.java',
                     'core/src/main/java/org/opensearch/sql/expression/**/*.java',
                     'core/src/main/java/org/opensearch/sql/executor/**/*.java',
                     'core/src/main/java/org/opensearch/sql/exception/**/*.java',

@@ -3,7 +3,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-
 package org.opensearch.sql.planner.logical;
 
 import org.opensearch.sql.storage.read.TableScanBuilder;
