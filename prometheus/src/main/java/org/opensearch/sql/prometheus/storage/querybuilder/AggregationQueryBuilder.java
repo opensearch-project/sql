@@ -7,12 +7,10 @@
 
 package org.opensearch.sql.prometheus.storage.querybuilder;
 
-import java.sql.Ref;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 import lombok.NoArgsConstructor;
-import org.apache.commons.lang3.StringUtils;
 import org.opensearch.sql.expression.NamedExpression;
 import org.opensearch.sql.expression.ReferenceExpression;
 import org.opensearch.sql.expression.aggregation.NamedAggregator;

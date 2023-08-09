@@ -14,8 +14,6 @@ import static org.opensearch.sql.util.TestUtils.createHiddenIndexByRestClient;
 import static org.opensearch.sql.util.TestUtils.performRequest;
 
 import java.io.IOException;
-import java.util.ArrayList;
-import org.json.JSONArray;
 import org.json.JSONObject;
 import org.junit.jupiter.api.Test;
 import org.opensearch.client.Request;

@@ -6,8 +6,6 @@
 
 package org.opensearch.sql.legacy.esdomain;
 
-import static org.opensearch.common.settings.Settings.EMPTY;
-
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
 import java.io.IOException;
@@ -25,7 +23,6 @@ import org.opensearch.action.support.IndicesOptions;
 import org.opensearch.cluster.ClusterState;
 import org.opensearch.cluster.metadata.IndexNameExpressionResolver;
 import org.opensearch.cluster.service.ClusterService;
-import org.opensearch.common.collect.Tuple;
 import org.opensearch.common.settings.Setting;
 import org.opensearch.index.IndexNotFoundException;
 import org.opensearch.sql.common.setting.Settings;

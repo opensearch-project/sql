@@ -50,4 +50,3 @@ public class SQLOdbcExpr extends SQLCharExpr {
         visitor.endVisit(this);
     }
 }
-

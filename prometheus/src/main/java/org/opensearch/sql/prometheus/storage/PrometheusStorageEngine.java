@@ -12,7 +12,6 @@ import static org.opensearch.sql.utils.SystemIndexUtils.isSystemIndex;
 
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
 import lombok.RequiredArgsConstructor;
 import org.opensearch.sql.DataSourceSchemaName;
 import org.opensearch.sql.exception.SemanticCheckException;

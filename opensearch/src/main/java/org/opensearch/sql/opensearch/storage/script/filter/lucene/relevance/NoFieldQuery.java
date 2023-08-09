@@ -7,7 +7,6 @@ package org.opensearch.sql.opensearch.storage.script.filter.lucene.relevance;
 
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.stream.Collectors;
 import org.opensearch.index.query.QueryBuilder;
 import org.opensearch.sql.common.antlr.SyntaxCheckException;

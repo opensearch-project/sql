@@ -8,7 +8,6 @@ package org.opensearch.sql.sql;
 
 import static org.hamcrest.Matchers.equalTo;
 import static org.opensearch.sql.legacy.plugin.RestSqlAction.QUERY_API_ENDPOINT;
-import static org.opensearch.sql.util.MatcherUtils.assertJsonEquals;
 import static org.opensearch.sql.util.TestUtils.getResponseBody;
 
 import com.google.common.io.Resources;
@@ -17,7 +16,6 @@ import java.net.URI;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.Locale;
-
 import org.json.JSONArray;
 import org.json.JSONObject;
 import org.junit.Test;

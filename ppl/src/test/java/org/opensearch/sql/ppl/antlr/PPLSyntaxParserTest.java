@@ -324,4 +324,3 @@ public class PPLSyntaxParserTest {
             "SOURCE=test | eval k = TIMESTAMPDIFF(WEEK,'2003-01-02','2003-01-02')"));
   }
 }
-

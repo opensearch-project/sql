@@ -7,8 +7,6 @@
 
 package org.opensearch.sql.common.authinterceptors;
 
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
 
 import com.amazonaws.auth.AWSCredentialsProvider;
 import com.amazonaws.auth.AWSSessionCredentials;
@@ -26,7 +24,6 @@ import org.mockito.Captor;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.opensearch.sql.common.authinterceptors.AwsSigningInterceptor;
 
 @ExtendWith(MockitoExtension.class)
 public class AwsSigningInterceptorTest {

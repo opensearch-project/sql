@@ -21,7 +21,7 @@ import org.opensearch.sql.planner.PlanContext;
 import org.opensearch.sql.planner.logical.LogicalPlan;
 
 /**
- * Micro batch streaming execution. 
+ * Micro batch streaming execution.
  */
 public class MicroBatchStreamingExecution {
 

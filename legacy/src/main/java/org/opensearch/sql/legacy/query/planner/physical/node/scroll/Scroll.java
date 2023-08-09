@@ -9,7 +9,6 @@ package org.opensearch.sql.legacy.query.planner.physical.node.scroll;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Objects;
-
 import org.opensearch.action.search.ClearScrollResponse;
 import org.opensearch.action.search.SearchResponse;
 import org.opensearch.client.Client;

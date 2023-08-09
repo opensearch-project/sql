@@ -9,7 +9,6 @@ package org.opensearch.sql.ppl;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_BEER;
 
 import java.io.IOException;
-
 import org.json.JSONObject;
 import org.junit.Test;
 

@@ -6,6 +6,7 @@
 
 package org.opensearch.sql.legacy.util;
 
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.allOf;
 import static org.hamcrest.Matchers.arrayContaining;
 import static org.hamcrest.Matchers.arrayContainingInAnyOrder;
@@ -17,7 +18,6 @@ import static org.hamcrest.Matchers.greaterThan;
 import static org.hamcrest.Matchers.hasEntry;
 import static org.hamcrest.Matchers.hasItems;
 import static org.junit.Assert.assertEquals;
-import static org.hamcrest.MatcherAssert.assertThat;
 
 import com.google.common.base.Strings;
 import java.util.ArrayList;
@@ -227,14 +227,14 @@ public class MatcherUtils {
             protected boolean matchesSafely(JSONObject jsonObject) {
                 return ((String)jsonObject.query("/name")).matches(regex);
             }
-            
+
             @Override
             public void describeTo(Description description) {
                 description.appendText(String.format("(column_pattern=%s)", regex));
             }
         };
     }
-    
+
     public static TypeSafeMatcher<JSONObject> columnName(String name) {
         return new TypeSafeMatcher<JSONObject>() {
             @Override

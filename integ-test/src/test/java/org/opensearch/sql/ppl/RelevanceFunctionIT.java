@@ -6,15 +6,8 @@
 package org.opensearch.sql.ppl;
 
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_BEER;
-import static org.opensearch.sql.util.MatcherUtils.rows;
-import static org.opensearch.sql.util.MatcherUtils.schema;
-import static org.opensearch.sql.util.MatcherUtils.verifyDataRows;
-import static org.opensearch.sql.util.MatcherUtils.verifySchema;
-import static org.opensearch.sql.util.MatcherUtils.verifySome;
 
 import java.io.IOException;
-
-import org.json.JSONObject;
 import org.junit.Test;
 
 public class RelevanceFunctionIT extends PPLIntegTestCase {

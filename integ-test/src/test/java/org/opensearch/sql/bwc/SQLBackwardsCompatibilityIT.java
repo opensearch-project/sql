@@ -7,23 +7,6 @@
 package org.opensearch.sql.bwc;
 
 
-import org.json.JSONObject;
-import org.junit.Assert;
-import org.opensearch.client.Request;
-import org.opensearch.client.RequestOptions;
-import org.opensearch.client.Response;
-import org.opensearch.common.settings.Settings;
-import org.opensearch.sql.legacy.SQLIntegTestCase;
-import org.opensearch.sql.legacy.TestsConstants;
-import org.opensearch.test.rest.OpenSearchRestTestCase;
-
-import java.io.IOException;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
-import java.util.Set;
-import java.util.stream.Collectors;
-
 import static org.opensearch.sql.legacy.TestUtils.createIndexByRestClient;
 import static org.opensearch.sql.legacy.TestUtils.isIndexExist;
 import static org.opensearch.sql.legacy.TestUtils.loadDataByRestClient;
@@ -35,6 +18,22 @@ import static org.opensearch.sql.util.MatcherUtils.schema;
 import static org.opensearch.sql.util.MatcherUtils.verifyDataRows;
 import static org.opensearch.sql.util.MatcherUtils.verifySchema;
 import static org.opensearch.sql.util.TestUtils.getResponseBody;
+
+import java.io.IOException;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
+import org.json.JSONObject;
+import org.junit.Assert;
+import org.opensearch.client.Request;
+import org.opensearch.client.RequestOptions;
+import org.opensearch.client.Response;
+import org.opensearch.common.settings.Settings;
+import org.opensearch.sql.legacy.SQLIntegTestCase;
+import org.opensearch.sql.legacy.TestsConstants;
+import org.opensearch.test.rest.OpenSearchRestTestCase;
 
 public class SQLBackwardsCompatibilityIT extends SQLIntegTestCase {
 
