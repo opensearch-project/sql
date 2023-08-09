@@ -3,21 +3,17 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-
 package org.opensearch.sql.data.model;
 
 import java.util.Objects;
 import org.opensearch.sql.data.type.ExprCoreType;
 import org.opensearch.sql.data.type.ExprType;
 
-/**
- * Expression Missing Value.
- */
+/** Expression Missing Value. */
 public class ExprMissingValue extends AbstractExprValue {
   private static final ExprMissingValue instance = new ExprMissingValue();
 
-  private ExprMissingValue() {
-  }
+  private ExprMissingValue() {}
 
   public static ExprMissingValue of() {
     return instance;
@@ -40,13 +36,13 @@ public class ExprMissingValue extends AbstractExprValue {
 
   @Override
   public int compare(ExprValue other) {
-    throw new IllegalStateException(String.format("[BUG] Unreachable, Comparing with MISSING is "
-        + "undefined"));
+    throw new IllegalStateException(
+        String.format("[BUG] Unreachable, Comparing with MISSING is " + "undefined"));
   }
 
   /**
-   * Missing value is equal to Missing value.
-   * Notes, this function should only used for Java Object Compare.
+   * Missing value is equal to Missing value. Notes, this function should only used for Java Object
+   * Compare.
    */
   @Override
   public boolean equal(ExprValue other) {

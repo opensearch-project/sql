@@ -27,8 +27,8 @@ public class ExprStringValueTest {
     ExprValue v2 = ExprValueUtils.stringValue("str");
     assertTrue(v1.equals(v2));
     assertTrue(v2.equals(v1));
-    assertEquals(0, ((ExprStringValue)v1).compare((ExprStringValue)v2));
-    assertEquals(0, ((ExprStringValue)v2).compare((ExprStringValue)v1));
+    assertEquals(0, ((ExprStringValue) v1).compare((ExprStringValue) v2));
+    assertEquals(0, ((ExprStringValue) v2).compare((ExprStringValue) v1));
   }
 
   @Test
@@ -42,7 +42,9 @@ public class ExprStringValueTest {
   @Test
   public void invalid_get_value() {
     ExprDateValue value = new ExprDateValue("2020-08-20");
-    assertThrows(ExpressionEvaluationException.class, value::stringValue,
+    assertThrows(
+        ExpressionEvaluationException.class,
+        value::stringValue,
         String.format("invalid to get intervalValue from value of type %s", value.type()));
   }
 

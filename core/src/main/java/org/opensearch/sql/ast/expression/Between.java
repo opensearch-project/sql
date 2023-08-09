@@ -12,9 +12,7 @@ import lombok.EqualsAndHashCode;
 import org.opensearch.sql.ast.AbstractNodeVisitor;
 import org.opensearch.sql.ast.Node;
 
-/**
- * Unresolved expression for BETWEEN.
- */
+/** Unresolved expression for BETWEEN. */
 @Data
 @EqualsAndHashCode(callSuper = false)
 public class Between extends UnresolvedExpression {
