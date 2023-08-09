@@ -19,24 +19,20 @@ import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.exception.ExpressionEvaluationException;
 import org.opensearch.sql.expression.Expression;
 
-/**
- * RegexExpression with regex and named capture group.
- */
+/** RegexExpression with regex and named capture group. */
 @EqualsAndHashCode(callSuper = true)
 @ToString
 public class RegexExpression extends ParseExpression {
   private static final Logger log = LogManager.getLogger(RegexExpression.class);
   private static final Pattern GROUP_PATTERN = Pattern.compile("\\(\\?<([a-zA-Z][a-zA-Z0-9]*)>");
-  @Getter
-  @EqualsAndHashCode.Exclude
-  private final Pattern regexPattern;
+  @Getter @EqualsAndHashCode.Exclude private final Pattern regexPattern;
 
   /**
    * RegexExpression.
    *
    * @param sourceField source text field
-   * @param pattern     pattern used for parsing
-   * @param identifier  derived field
+   * @param pattern pattern used for parsing
+   * @param identifier derived field
    */
   public RegexExpression(Expression sourceField, Expression pattern, Expression identifier) {
     super("regex", sourceField, pattern, identifier);

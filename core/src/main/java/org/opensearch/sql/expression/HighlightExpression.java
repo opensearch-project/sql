@@ -20,9 +20,7 @@ import org.opensearch.sql.data.type.ExprType;
 import org.opensearch.sql.expression.env.Environment;
 import org.opensearch.sql.expression.function.BuiltinFunctionName;
 
-/**
- * Highlight Expression.
- */
+/** Highlight Expression. */
 @Getter
 public class HighlightExpression extends FunctionExpression {
   private final Expression highlightField;
@@ -30,17 +28,19 @@ public class HighlightExpression extends FunctionExpression {
 
   /**
    * HighlightExpression Constructor.
+   *
    * @param highlightField : Highlight field for expression.
    */
   public HighlightExpression(Expression highlightField) {
     super(BuiltinFunctionName.HIGHLIGHT.getName(), List.of(highlightField));
     this.highlightField = highlightField;
-    this.type = this.highlightField.toString().contains("*")
-        ? ExprCoreType.STRUCT : ExprCoreType.ARRAY;
+    this.type =
+        this.highlightField.toString().contains("*") ? ExprCoreType.STRUCT : ExprCoreType.ARRAY;
   }
 
   /**
    * Return collection value matching highlight field.
+   *
    * @param valueEnv : Dataset to parse value from.
    * @return : collection value of highlight fields.
    */
@@ -57,15 +57,15 @@ public class HighlightExpression extends FunctionExpression {
     // used in conjunction with other highlight calls, we need to ensure
     // only wildcard regex matching is mapped to wildcard call.
     if (this.type == ExprCoreType.STRUCT && value.type() == ExprCoreType.STRUCT) {
-      value = new ExprTupleValue(
-          new LinkedHashMap<String, ExprValue>(value.tupleValue()
-              .entrySet()
-              .stream()
-              .filter(s -> matchesHighlightRegex(s.getKey(),
-                  StringUtils.unquoteText(highlightField.toString())))
-              .collect(Collectors.toMap(
-                  e -> e.getKey(),
-                  e -> e.getValue()))));
+      value =
+          new ExprTupleValue(
+              new LinkedHashMap<String, ExprValue>(
+                  value.tupleValue().entrySet().stream()
+                      .filter(
+                          s ->
+                              matchesHighlightRegex(
+                                  s.getKey(), StringUtils.unquoteText(highlightField.toString())))
+                      .collect(Collectors.toMap(e -> e.getKey(), e -> e.getValue()))));
       if (value.tupleValue().isEmpty()) {
         value = ExprValueUtils.missingValue();
       }
@@ -76,6 +76,7 @@ public class HighlightExpression extends FunctionExpression {
 
   /**
    * Get type for HighlightExpression.
+   *
    * @return : Expression type.
    */
   @Override
@@ -90,6 +91,7 @@ public class HighlightExpression extends FunctionExpression {
 
   /**
    * Check if field matches the wildcard pattern used in highlight query.
+   *
    * @param field Highlight selected field for query
    * @param pattern Wildcard regex to match field against
    * @return True if field matches wildcard pattern

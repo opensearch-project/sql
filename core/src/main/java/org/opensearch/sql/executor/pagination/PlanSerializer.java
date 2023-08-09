@@ -24,8 +24,8 @@ import org.opensearch.sql.planner.physical.PhysicalPlan;
 import org.opensearch.sql.storage.StorageEngine;
 
 /**
- * This class is entry point to paged requests. It is responsible to cursor serialization
- * and deserialization.
+ * This class is entry point to paged requests. It is responsible to cursor serialization and
+ * deserialization.
  */
 @RequiredArgsConstructor
 public class PlanSerializer {
@@ -33,14 +33,11 @@ public class PlanSerializer {
 
   private final StorageEngine engine;
 
-
-  /**
-   * Converts a physical plan tree to a cursor.
-   */
+  /** Converts a physical plan tree to a cursor. */
   public Cursor convertToCursor(PhysicalPlan plan) {
     try {
-      return new Cursor(CURSOR_PREFIX
-          + serialize(((SerializablePlan) plan).getPlanForSerialization()));
+      return new Cursor(
+          CURSOR_PREFIX + serialize(((SerializablePlan) plan).getPlanForSerialization()));
       // ClassCastException thrown when a plan in the tree doesn't implement SerializablePlan
     } catch (NotSerializableException | ClassCastException | NoCursorException e) {
       return Cursor.None;
@@ -49,6 +46,7 @@ public class PlanSerializer {
 
   /**
    * Serializes and compresses the object.
+   *
    * @param object The object.
    * @return Encoded binary data.
    */
@@ -61,9 +59,12 @@ public class PlanSerializer {
 
       ByteArrayOutputStream out = new ByteArrayOutputStream();
       // GZIP provides 35-45%, lzma from apache commons-compress has few % better compression
-      GZIPOutputStream gzip = new GZIPOutputStream(out) { {
-          this.def.setLevel(Deflater.BEST_COMPRESSION);
-        } };
+      GZIPOutputStream gzip =
+          new GZIPOutputStream(out) {
+            {
+              this.def.setLevel(Deflater.BEST_COMPRESSION);
+            }
+          };
       gzip.write(output.toByteArray());
       gzip.close();
 
@@ -77,24 +78,23 @@ public class PlanSerializer {
 
   /**
    * Decompresses and deserializes the binary data.
+   *
    * @param code Encoded binary data.
    * @return An object.
    */
   protected Serializable deserialize(String code) {
     try {
-      GZIPInputStream gzip = new GZIPInputStream(
-          new ByteArrayInputStream(HashCode.fromString(code).asBytes()));
-      ObjectInputStream objectInput = new CursorDeserializationStream(
-          new ByteArrayInputStream(gzip.readAllBytes()));
+      GZIPInputStream gzip =
+          new GZIPInputStream(new ByteArrayInputStream(HashCode.fromString(code).asBytes()));
+      ObjectInputStream objectInput =
+          new CursorDeserializationStream(new ByteArrayInputStream(gzip.readAllBytes()));
       return (Serializable) objectInput.readObject();
     } catch (Exception e) {
       throw new IllegalStateException("Failed to deserialize object", e);
     }
   }
 
-  /**
-   * Converts a cursor to a physical plan tree.
-   */
+  /** Converts a cursor to a physical plan tree. */
   public PhysicalPlan convertToPlan(String cursor) {
     if (!cursor.startsWith(CURSOR_PREFIX)) {
       throw new UnsupportedOperationException("Unsupported cursor");
