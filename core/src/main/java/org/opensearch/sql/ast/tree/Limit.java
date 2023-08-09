@@ -3,7 +3,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-
 package org.opensearch.sql.ast.tree;
 
 import com.google.common.collect.ImmutableList;
@@ -38,5 +37,4 @@ public class Limit extends UnresolvedPlan {
   public <T, C> T accept(AbstractNodeVisitor<T, C> visitor, C context) {
     return visitor.visitLimit(this, context);
   }
-
 }

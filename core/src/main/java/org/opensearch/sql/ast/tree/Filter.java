@@ -3,7 +3,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-
 package org.opensearch.sql.ast.tree;
 
 import com.google.common.collect.ImmutableList;
@@ -14,9 +13,7 @@ import lombok.ToString;
 import org.opensearch.sql.ast.AbstractNodeVisitor;
 import org.opensearch.sql.ast.expression.UnresolvedExpression;
 
-/**
- * Logical plan node of Filter, the interface for building filters in queries.
- */
+/** Logical plan node of Filter, the interface for building filters in queries. */
 @ToString
 @EqualsAndHashCode(callSuper = false)
 @Getter

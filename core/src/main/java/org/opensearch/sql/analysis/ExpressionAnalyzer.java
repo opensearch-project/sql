@@ -3,7 +3,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-
 package org.opensearch.sql.analysis;
 
 import static org.opensearch.sql.ast.dsl.AstDSL.and;
@@ -78,19 +77,19 @@ import org.opensearch.sql.expression.window.aggregation.AggregateWindowFunction;
  * Expression}.
  */
 public class ExpressionAnalyzer extends AbstractNodeVisitor<Expression, AnalysisContext> {
-  @Getter
-  private final BuiltinFunctionRepository repository;
+  @Getter private final BuiltinFunctionRepository repository;
 
   @Override
   public Expression visitCast(Cast node, AnalysisContext context) {
     final Expression expression = node.getExpression().accept(this, context);
-    return (Expression) repository
-        .compile(context.getFunctionProperties(), node.convertFunctionName(),
+    return (Expression)
+        repository.compile(
+            context.getFunctionProperties(),
+            node.convertFunctionName(),
             Collections.singletonList(expression));
   }
 
-  public ExpressionAnalyzer(
-      BuiltinFunctionRepository repository) {
+  public ExpressionAnalyzer(BuiltinFunctionRepository repository) {
     this.repository = repository;
   }
 
@@ -113,8 +112,8 @@ public class ExpressionAnalyzer extends AbstractNodeVisitor<Expression, Analysis
 
   @Override
   public Expression visitLiteral(Literal node, AnalysisContext context) {
-    return DSL
-        .literal(ExprValueUtils.fromObjectValue(node.getValue(), node.getType().getCoreType()));
+    return DSL.literal(
+        ExprValueUtils.fromObjectValue(node.getValue(), node.getType().getCoreType()));
   }
 
   @Override
@@ -163,8 +162,12 @@ public class ExpressionAnalyzer extends AbstractNodeVisitor<Expression, Analysis
       for (UnresolvedExpression arg : node.getArgList()) {
         builder.add(arg.accept(this, context));
       }
-      Aggregator aggregator = (Aggregator) repository.compile(
-          context.getFunctionProperties(), builtinFunctionName.get().getName(), builder.build());
+      Aggregator aggregator =
+          (Aggregator)
+              repository.compile(
+                  context.getFunctionProperties(),
+                  builtinFunctionName.get().getName(),
+                  builder.build());
       aggregator.distinct(node.getDistinct());
       if (node.condition() != null) {
         aggregator.condition(analyze(node.condition(), context));
@@ -177,8 +180,8 @@ public class ExpressionAnalyzer extends AbstractNodeVisitor<Expression, Analysis
 
   @Override
   public Expression visitRelevanceFieldList(RelevanceFieldList node, AnalysisContext context) {
-    return new LiteralExpression(ExprValueUtils.tupleValue(
-        ImmutableMap.copyOf(node.getFieldList())));
+    return new LiteralExpression(
+        ExprValueUtils.tupleValue(ImmutableMap.copyOf(node.getFieldList())));
   }
 
   @Override
@@ -186,19 +189,19 @@ public class ExpressionAnalyzer extends AbstractNodeVisitor<Expression, Analysis
     FunctionName functionName = FunctionName.of(node.getFuncName());
     List<Expression> arguments =
         node.getFuncArgs().stream()
-            .map(unresolvedExpression -> {
-              var ret = analyze(unresolvedExpression, context);
-              if (ret == null) {
-                throw new UnsupportedOperationException(
-                    String.format("Invalid use of expression %s", unresolvedExpression)
-                );
-              } else {
-                return ret;
-              }
-            })
+            .map(
+                unresolvedExpression -> {
+                  var ret = analyze(unresolvedExpression, context);
+                  if (ret == null) {
+                    throw new UnsupportedOperationException(
+                        String.format("Invalid use of expression %s", unresolvedExpression));
+                  } else {
+                    return ret;
+                  }
+                })
             .collect(Collectors.toList());
-    return (Expression) repository.compile(context.getFunctionProperties(),
-        functionName, arguments);
+    return (Expression)
+        repository.compile(context.getFunctionProperties(), functionName, arguments);
   }
 
   @SuppressWarnings("unchecked")
@@ -220,18 +223,20 @@ public class ExpressionAnalyzer extends AbstractNodeVisitor<Expression, Analysis
 
   /**
    * visitScoreFunction removes the score function from the AST and replaces it with the child
-   * relevance function node. If the optional boost variable is provided, the boost argument
-   * of the relevance function is combined.
+   * relevance function node. If the optional boost variable is provided, the boost argument of the
+   * relevance function is combined.
    *
-   * @param node    score function node
+   * @param node score function node
    * @param context analysis context for the query
    * @return resolved relevance function
    */
   public Expression visitScoreFunction(ScoreFunction node, AnalysisContext context) {
     Literal boostArg = node.getRelevanceFieldWeight();
     if (!boostArg.getType().equals(DataType.DOUBLE)) {
-      throw new SemanticCheckException(String.format("Expected boost type '%s' but got '%s'",
-          DataType.DOUBLE.name(), boostArg.getType().name()));
+      throw new SemanticCheckException(
+          String.format(
+              "Expected boost type '%s' but got '%s'",
+              DataType.DOUBLE.name(), boostArg.getType().name()));
     }
     Double thisBoostValue = ((Double) boostArg.getValue());
 
@@ -249,10 +254,9 @@ public class ExpressionAnalyzer extends AbstractNodeVisitor<Expression, Analysis
         Literal boostArgLiteral = (Literal) ((UnresolvedArgument) expr).getValue();
         Double boostValue =
             Double.parseDouble((String) boostArgLiteral.getValue()) * thisBoostValue;
-        UnresolvedArgument newBoostArg = new UnresolvedArgument(
-                argumentName,
-                new Literal(boostValue.toString(), DataType.STRING)
-        );
+        UnresolvedArgument newBoostArg =
+            new UnresolvedArgument(
+                argumentName, new Literal(boostValue.toString(), DataType.STRING));
         updatedFuncArgs.add(newBoostArg);
       } else {
         updatedFuncArgs.add(expr);
@@ -261,18 +265,18 @@ public class ExpressionAnalyzer extends AbstractNodeVisitor<Expression, Analysis
 
     // since nothing was found, add an argument
     if (!doesFunctionContainBoostArgument) {
-      UnresolvedArgument newBoostArg = new UnresolvedArgument(
+      UnresolvedArgument newBoostArg =
+          new UnresolvedArgument(
               "boost", new Literal(Double.toString(thisBoostValue), DataType.STRING));
       updatedFuncArgs.add(newBoostArg);
     }
 
     // create a new function expression with boost argument and resolve it
-    Function updatedRelevanceQueryUnresolvedExpr = new Function(
-            relevanceQueryUnresolvedExpr.getFuncName(),
-            updatedFuncArgs);
+    Function updatedRelevanceQueryUnresolvedExpr =
+        new Function(relevanceQueryUnresolvedExpr.getFuncName(), updatedFuncArgs);
     OpenSearchFunctions.OpenSearchFunction relevanceQueryExpr =
-            (OpenSearchFunctions.OpenSearchFunction) updatedRelevanceQueryUnresolvedExpr
-                    .accept(this, context);
+        (OpenSearchFunctions.OpenSearchFunction)
+            updatedRelevanceQueryUnresolvedExpr.accept(this, context);
     relevanceQueryExpr.setScoreTracked(true);
     return relevanceQueryExpr;
   }
@@ -301,16 +305,16 @@ public class ExpressionAnalyzer extends AbstractNodeVisitor<Expression, Analysis
     Expression left = analyze(node.getLeft(), context);
     Expression right = analyze(node.getRight(), context);
     return (Expression)
-        repository.compile(context.getFunctionProperties(),
-            functionName, Arrays.asList(left, right));
+        repository.compile(
+            context.getFunctionProperties(), functionName, Arrays.asList(left, right));
   }
 
   @Override
   public Expression visitBetween(Between node, AnalysisContext context) {
     return and(
-        compare(">=", node.getValue(), node.getLowerBound()),
-        compare("<=", node.getValue(), node.getUpperBound())
-    ).accept(this, context);
+            compare(">=", node.getValue(), node.getLowerBound()),
+            compare("<=", node.getValue(), node.getUpperBound()))
+        .accept(this, context);
   }
 
   @Override
@@ -321,16 +325,18 @@ public class ExpressionAnalyzer extends AbstractNodeVisitor<Expression, Analysis
         whens.add((WhenClause) analyze(when, context));
       } else {
         // Merge case value and condition (compare value) into a single equal condition
-        whens.add((WhenClause) analyze(
-            new When(
-                new Function("=", Arrays.asList(node.getCaseValue(), when.getCondition())),
-                when.getResult()
-            ), context));
+        whens.add(
+            (WhenClause)
+                analyze(
+                    new When(
+                        new Function("=", Arrays.asList(node.getCaseValue(), when.getCondition())),
+                        when.getResult()),
+                    context));
       }
     }
 
-    Expression defaultResult = (node.getElseClause() == null)
-        ? null : analyze(node.getElseClause(), context);
+    Expression defaultResult =
+        (node.getElseClause() == null) ? null : analyze(node.getElseClause(), context);
     CaseClause caseClause = new CaseClause(whens, defaultResult);
 
     // To make this simple, require all result type same regardless of implicit convert
@@ -346,8 +352,7 @@ public class ExpressionAnalyzer extends AbstractNodeVisitor<Expression, Analysis
   @Override
   public Expression visitWhen(When node, AnalysisContext context) {
     return new WhenClause(
-        analyze(node.getCondition(), context),
-        analyze(node.getResult(), context));
+        analyze(node.getCondition(), context), analyze(node.getResult(), context));
   }
 
   @Override
@@ -371,16 +376,13 @@ public class ExpressionAnalyzer extends AbstractNodeVisitor<Expression, Analysis
     // check for reserved words in the identifier
     for (String part : node.getParts()) {
       for (TypeEnvironment typeEnv = context.peek();
-           typeEnv != null;
-           typeEnv = typeEnv.getParent()) {
-        Optional<ExprType> exprType = typeEnv.getReservedSymbolTable().lookup(
-            new Symbol(Namespace.FIELD_NAME, part));
+          typeEnv != null;
+          typeEnv = typeEnv.getParent()) {
+        Optional<ExprType> exprType =
+            typeEnv.getReservedSymbolTable().lookup(new Symbol(Namespace.FIELD_NAME, part));
         if (exprType.isPresent()) {
           return visitMetadata(
-              qualifierAnalyzer.unqualified(node),
-              (ExprCoreType) exprType.get(),
-              context
-          );
+              qualifierAnalyzer.unqualified(node), (ExprCoreType) exprType.get(), context);
         }
       }
     }
@@ -401,15 +403,15 @@ public class ExpressionAnalyzer extends AbstractNodeVisitor<Expression, Analysis
   }
 
   /**
-   * If QualifiedName is actually a reserved metadata field, return the expr type associated
-   * with the metadata field.
-   * @param ident   metadata field name
+   * If QualifiedName is actually a reserved metadata field, return the expr type associated with
+   * the metadata field.
+   *
+   * @param ident metadata field name
    * @param context analysis context
    * @return DSL reference
    */
-  private Expression visitMetadata(String ident,
-                                   ExprCoreType exprCoreType,
-                                   AnalysisContext context) {
+  private Expression visitMetadata(
+      String ident, ExprCoreType exprCoreType, AnalysisContext context) {
     return DSL.ref(ident, exprCoreType);
   }
 
@@ -422,8 +424,8 @@ public class ExpressionAnalyzer extends AbstractNodeVisitor<Expression, Analysis
     }
 
     TypeEnvironment typeEnv = context.peek();
-    ReferenceExpression ref = DSL.ref(ident,
-        typeEnv.resolve(new Symbol(Namespace.FIELD_NAME, ident)));
+    ReferenceExpression ref =
+        DSL.ref(ident, typeEnv.resolve(new Symbol(Namespace.FIELD_NAME, ident)));
 
     return ref;
   }

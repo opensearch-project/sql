@@ -3,7 +3,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-
 package org.opensearch.sql.ast.expression;
 
 import java.util.Collections;
@@ -15,14 +14,11 @@ import lombok.ToString;
 import org.opensearch.sql.ast.AbstractNodeVisitor;
 import org.opensearch.sql.ast.Node;
 
-/**
- * Represents all tuple fields used in nested function.
- */
+/** Represents all tuple fields used in nested function. */
 @RequiredArgsConstructor
 @EqualsAndHashCode(callSuper = false)
 public class NestedAllTupleFields extends UnresolvedExpression {
-  @Getter
-  private final String path;
+  @Getter private final String path;
 
   @Override
   public List<? extends Node> getChild() {

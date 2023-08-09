@@ -3,7 +3,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-
 package org.opensearch.sql.analysis;
 
 import lombok.RequiredArgsConstructor;
@@ -17,19 +16,15 @@ import org.opensearch.sql.expression.NamedExpression;
 import org.opensearch.sql.expression.span.SpanExpression;
 
 /**
- * Analyze the Alias node in the {@link AnalysisContext} to construct the list of
- * {@link NamedExpression}.
+ * Analyze the Alias node in the {@link AnalysisContext} to construct the list of {@link
+ * NamedExpression}.
  */
 @RequiredArgsConstructor
-public class NamedExpressionAnalyzer extends
-    AbstractNodeVisitor<NamedExpression, AnalysisContext> {
+public class NamedExpressionAnalyzer extends AbstractNodeVisitor<NamedExpression, AnalysisContext> {
   private final ExpressionAnalyzer expressionAnalyzer;
 
-  /**
-   * Analyze Select fields.
-   */
-  public NamedExpression analyze(UnresolvedExpression expression,
-                                       AnalysisContext analysisContext) {
+  /** Analyze Select fields. */
+  public NamedExpression analyze(UnresolvedExpression expression, AnalysisContext analysisContext) {
     return expression.accept(this, analysisContext);
   }
 

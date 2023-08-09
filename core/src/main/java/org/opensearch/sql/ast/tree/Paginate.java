@@ -13,16 +13,12 @@ import lombok.ToString;
 import org.opensearch.sql.ast.AbstractNodeVisitor;
 import org.opensearch.sql.ast.Node;
 
-/**
- * AST node to represent pagination operation.
- * Actually a wrapper to the AST.
- */
+/** AST node to represent pagination operation. Actually a wrapper to the AST. */
 @RequiredArgsConstructor
 @EqualsAndHashCode(callSuper = false)
 @ToString
 public class Paginate extends UnresolvedPlan {
-  @Getter
-  private final int pageSize;
+  @Getter private final int pageSize;
   private UnresolvedPlan child;
 
   public Paginate(int pageSize, UnresolvedPlan child) {

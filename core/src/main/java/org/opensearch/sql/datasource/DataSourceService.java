@@ -9,9 +9,7 @@ import java.util.Set;
 import org.opensearch.sql.datasource.model.DataSource;
 import org.opensearch.sql.datasource.model.DataSourceMetadata;
 
-/**
- * DataSource Service manage {@link DataSource}.
- */
+/** DataSource Service manage {@link DataSource}. */
 public interface DataSourceService {
 
   /**
@@ -22,21 +20,19 @@ public interface DataSourceService {
    */
   DataSource getDataSource(String dataSourceName);
 
-
   /**
-   * Returns all dataSource Metadata objects. The returned objects won't contain
-   * any of the credential info.
+   * Returns all dataSource Metadata objects. The returned objects won't contain any of the
+   * credential info.
    *
-   * @param isDefaultDataSourceRequired is used to specify
-   *      if default opensearch connector is required in the output list.
+   * @param isDefaultDataSourceRequired is used to specify if default opensearch connector is
+   *     required in the output list.
    * @return set of {@link DataSourceMetadata}.
    */
   Set<DataSourceMetadata> getDataSourceMetadata(boolean isDefaultDataSourceRequired);
 
-
   /**
-   * Returns dataSourceMetadata object with specific name.
-   * The returned objects won't contain any crendetial info.
+   * Returns dataSourceMetadata object with specific name. The returned objects won't contain any
+   * crendetial info.
    *
    * @param name name of the {@link DataSource}.
    * @return set of {@link DataSourceMetadata}.
@@ -57,7 +53,6 @@ public interface DataSourceService {
    */
   void updateDataSource(DataSourceMetadata dataSourceMetadata);
 
-
   /**
    * Deletes {@link DataSource} corresponding to the DataSource name.
    *
@@ -66,8 +61,8 @@ public interface DataSourceService {
   void deleteDataSource(String dataSourceName);
 
   /**
-   * Returns true {@link Boolean} if datasource with dataSourceName exists
-   * or else false {@link Boolean}.
+   * Returns true {@link Boolean} if datasource with dataSourceName exists or else false {@link
+   * Boolean}.
    *
    * @param dataSourceName name of the {@link DataSource}.
    */

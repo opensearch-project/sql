@@ -3,7 +3,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-
 package org.opensearch.sql.ast.expression;
 
 import java.util.Collections;
@@ -17,8 +16,8 @@ import org.opensearch.sql.ast.AbstractNodeVisitor;
 import org.opensearch.sql.common.utils.StringUtils;
 
 /**
- * Expression node of aggregate functions.
- * Params include aggregate function name (AVG, SUM, MAX etc.) and the field to aggregate.
+ * Expression node of aggregate functions. Params include aggregate function name (AVG, SUM, MAX
+ * etc.) and the field to aggregate.
  */
 @Getter
 @EqualsAndHashCode(callSuper = false)
@@ -27,13 +26,16 @@ public class AggregateFunction extends UnresolvedExpression {
   private final String funcName;
   private final UnresolvedExpression field;
   private final List<UnresolvedExpression> argList;
+
   @Setter
   @Accessors(fluent = true)
   private UnresolvedExpression condition;
+
   private Boolean distinct = false;
 
   /**
    * Constructor.
+   *
    * @param funcName function name.
    * @param field {@link UnresolvedExpression}.
    */
@@ -45,6 +47,7 @@ public class AggregateFunction extends UnresolvedExpression {
 
   /**
    * Constructor.
+   *
    * @param funcName function name.
    * @param field {@link UnresolvedExpression}.
    * @param distinct whether distinct field is specified or not.
