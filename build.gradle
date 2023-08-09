@@ -191,7 +191,7 @@ allprojects {
     apply plugin: 'checkstyle'
     checkstyle {
         configFile rootProject.file("config/checkstyle/google_checks.xml")
-        toolVersion "10.3.2"
+        toolVersion "10.12.2"
         configProperties = [
                 "org.checkstyle.google.suppressionfilter.config": rootProject.file("config/checkstyle/suppressions.xml")]
         ignoreFailures = false
