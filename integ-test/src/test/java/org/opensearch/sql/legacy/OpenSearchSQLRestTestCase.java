@@ -6,6 +6,8 @@
 
 package org.opensearch.sql.legacy;
 
+import static java.util.Collections.unmodifiableList;
+
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
@@ -39,8 +41,6 @@ import org.opensearch.common.unit.TimeValue;
 import org.opensearch.common.util.concurrent.ThreadContext;
 import org.opensearch.common.util.io.IOUtils;
 import org.opensearch.test.rest.OpenSearchRestTestCase;
-
-import static java.util.Collections.unmodifiableList;
 
 /**
  * OpenSearch SQL integration test base class to support both security disabled and enabled OpenSearch cluster.

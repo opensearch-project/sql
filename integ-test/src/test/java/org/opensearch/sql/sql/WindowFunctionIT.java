@@ -10,7 +10,6 @@ import static org.opensearch.sql.util.MatcherUtils.rows;
 import static org.opensearch.sql.util.MatcherUtils.verifyDataRows;
 import static org.opensearch.sql.util.MatcherUtils.verifyDataRowsInOrder;
 
-
 import org.json.JSONObject;
 import org.junit.Test;
 import org.opensearch.sql.legacy.SQLIntegTestCase;

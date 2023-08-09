@@ -3,7 +3,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-
 package org.opensearch.sql.planner.physical;
 
 import static org.opensearch.sql.ast.tree.Sort.NullOrder.NULL_FIRST;
@@ -28,30 +27,26 @@ import org.opensearch.sql.planner.physical.SortOperator.Sorter.SorterBuilder;
 
 /**
  * Sort Operator.The input data is sorted by the sort fields in the {@link SortOperator#sortList}.
- * The sort field is specified by the {@link Expression} with {@link SortOption}.
- * The count indicate how many sorted result should been return.
+ * The sort field is specified by the {@link Expression} with {@link SortOption}. The count indicate
+ * how many sorted result should been return.
  */
 @ToString
 @EqualsAndHashCode(callSuper = false)
 public class SortOperator extends PhysicalPlan {
-  @Getter
-  private final PhysicalPlan input;
+  @Getter private final PhysicalPlan input;
 
-  @Getter
-  private final List<Pair<SortOption, Expression>> sortList;
-  @EqualsAndHashCode.Exclude
-  private final Sorter sorter;
-  @EqualsAndHashCode.Exclude
-  private Iterator<ExprValue> iterator;
+  @Getter private final List<Pair<SortOption, Expression>> sortList;
+  @EqualsAndHashCode.Exclude private final Sorter sorter;
+  @EqualsAndHashCode.Exclude private Iterator<ExprValue> iterator;
 
   /**
    * Sort Operator Constructor.
+   *
    * @param input input {@link PhysicalPlan}
-   * @param sortList list of sort sort field.
-   *                 The sort field is specified by the {@link Expression} with {@link SortOption}
+   * @param sortList list of sort sort field. The sort field is specified by the {@link Expression}
+   *     with {@link SortOption}
    */
-  public SortOperator(
-      PhysicalPlan input, List<Pair<SortOption, Expression>> sortList) {
+  public SortOperator(PhysicalPlan input, List<Pair<SortOption, Expression>> sortList) {
     this.input = input;
     this.sortList = sortList;
     SorterBuilder sorterBuilder = Sorter.builder();
@@ -101,8 +96,7 @@ public class SortOperator extends PhysicalPlan {
 
   @Builder
   public static class Sorter implements Comparator<ExprValue> {
-    @Singular
-    private final List<Pair<Expression, Comparator<ExprValue>>> comparators;
+    @Singular private final List<Pair<Expression, Comparator<ExprValue>>> comparators;
 
     @Override
     public int compare(ExprValue o1, ExprValue o2) {

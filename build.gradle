@@ -84,13 +84,24 @@ repositories {
 spotless {
     java {
         target fileTree('.') {
-            include 'core/src/main/java/org/opensearch/sql/DataSourceSchemaName.java',
+                    'core/src/main/java/org/opensearch/sql/DataSourceSchemaName.java',
                     'core/src/test/java/org/opensearch/sql/data/**/*.java',
                     'core/src/test/java/org/opensearch/sql/config/**/*.java',
-                    'core/src/test/java/org/opensearch/sql/analysis/**/*.java'
+                    'core/src/test/java/org/opensearch/sql/analysis/**/*.java',
+                    'core/src/main/java/org/opensearch/sql/planner/**/*.java',
+                    'core/src/main/java/org/opensearch/sql/storage/**/*.java',
+                    'core/src/main/java/org/opensearch/sql/utils/**/*.java',
+                    'core/src/main/java/org/opensearch/sql/monitor/**/*.java',
+                    'core/src/main/java/org/opensearch/sql/expression/**/*.java',
+                    'core/src/main/java/org/opensearch/sql/executor/**/*.java',
+                    'core/src/main/java/org/opensearch/sql/exception/**/*.java',
+                    'core/src/main/java/org/opensearch/sql/analysis/**/*.java',
+                    'core/src/test/java/org/opensearch/sql/data/**/*.java',
+                    'core/src/test/java/org/opensearch/sql/datasource/**/*.java',
+                    'core/src/test/java/org/opensearch/sql/ast/**/*.java'
             exclude '**/build/**', '**/build-*/**'
         }
-//        importOrder()
+        importOrder()
 //        licenseHeader("/*\n" +
 //                " * Copyright OpenSearch Contributors\n" +
 //                " * SPDX-License-Identifier: Apache-2.0\n" +
@@ -99,7 +110,6 @@ spotless {
         trimTrailingWhitespace()
         endWithNewline()
         googleJavaFormat('1.17.0').reflowLongStrings().groupArtifact('com.google.googlejavaformat:google-java-format')
-
     }
 }
 

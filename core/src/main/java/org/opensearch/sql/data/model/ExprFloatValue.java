@@ -3,15 +3,12 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-
 package org.opensearch.sql.data.model;
 
 import org.opensearch.sql.data.type.ExprCoreType;
 import org.opensearch.sql.data.type.ExprType;
 
-/**
- * Expression Float Value.
- */
+/** Expression Float Value. */
 public class ExprFloatValue extends AbstractExprNumberValue {
 
   public ExprFloatValue(Number value) {

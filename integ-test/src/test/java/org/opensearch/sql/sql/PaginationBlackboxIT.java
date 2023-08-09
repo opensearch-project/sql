@@ -6,12 +6,11 @@
 
 package org.opensearch.sql.sql;
 
+import com.carrotsearch.randomizedtesting.annotations.Name;
+import com.carrotsearch.randomizedtesting.annotations.ParametersFactory;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
-
-import com.carrotsearch.randomizedtesting.annotations.Name;
-import com.carrotsearch.randomizedtesting.annotations.ParametersFactory;
 import lombok.SneakyThrows;
 import org.json.JSONArray;
 import org.json.JSONObject;

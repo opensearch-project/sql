@@ -3,7 +3,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-
 package org.opensearch.sql.expression.aggregation;
 
 import static java.time.temporal.ChronoUnit.MILLIS;
@@ -27,14 +26,14 @@ import org.opensearch.sql.expression.Expression;
 import org.opensearch.sql.expression.function.BuiltinFunctionName;
 
 /**
- * The average aggregator aggregate the value evaluated by the expression.
- * If the expression evaluated result is NULL or MISSING, then the result is NULL.
+ * The average aggregator aggregate the value evaluated by the expression. If the expression
+ * evaluated result is NULL or MISSING, then the result is NULL.
  */
 public class AvgAggregator extends Aggregator<AvgAggregator.AvgState> {
 
   /**
-   * To process by different ways different data types, we need to store the type.
-   * Input data has the same type as the result.
+   * To process by different ways different data types, we need to store the type. Input data has
+   * the same type as the result.
    */
   private final ExprCoreType dataType;
 
@@ -56,7 +55,7 @@ public class AvgAggregator extends Aggregator<AvgAggregator.AvgState> {
         return new TimeAvgState();
       case DOUBLE:
         return new DoubleAvgState();
-      default: //unreachable code - we don't expose signatures for unsupported types
+      default: // unreachable code - we don't expose signatures for unsupported types
         throw new IllegalArgumentException(
             String.format("avg aggregation over %s type is not supported", dataType));
     }
@@ -72,9 +71,7 @@ public class AvgAggregator extends Aggregator<AvgAggregator.AvgState> {
     return String.format(Locale.ROOT, "avg(%s)", format(getArguments()));
   }
 
-  /**
-   * Average State.
-   */
+  /** Average State. */
   protected abstract static class AvgState implements AggregationState {
     protected ExprValue count;
     protected ExprValue total;
@@ -117,15 +114,16 @@ public class AvgAggregator extends Aggregator<AvgAggregator.AvgState> {
       }
 
       return new ExprDateValue(
-          new ExprTimestampValue(Instant.ofEpochMilli(
-              DSL.divide(DSL.literal(total), DSL.literal(count)).valueOf().longValue()))
-                  .dateValue());
+          new ExprTimestampValue(
+                  Instant.ofEpochMilli(
+                      DSL.divide(DSL.literal(total), DSL.literal(count)).valueOf().longValue()))
+              .dateValue());
     }
 
     @Override
     protected AvgState iterate(ExprValue value) {
-      total = DSL.add(DSL.literal(total), DSL.literal(value.timestampValue().toEpochMilli()))
-          .valueOf();
+      total =
+          DSL.add(DSL.literal(total), DSL.literal(value.timestampValue().toEpochMilli())).valueOf();
       return super.iterate(value);
     }
   }
@@ -138,15 +136,16 @@ public class AvgAggregator extends Aggregator<AvgAggregator.AvgState> {
       }
 
       return new ExprDatetimeValue(
-          new ExprTimestampValue(Instant.ofEpochMilli(
-              DSL.divide(DSL.literal(total), DSL.literal(count)).valueOf().longValue()))
-                  .datetimeValue());
+          new ExprTimestampValue(
+                  Instant.ofEpochMilli(
+                      DSL.divide(DSL.literal(total), DSL.literal(count)).valueOf().longValue()))
+              .datetimeValue());
     }
 
     @Override
     protected AvgState iterate(ExprValue value) {
-      total = DSL.add(DSL.literal(total), DSL.literal(value.timestampValue().toEpochMilli()))
-          .valueOf();
+      total =
+          DSL.add(DSL.literal(total), DSL.literal(value.timestampValue().toEpochMilli())).valueOf();
       return super.iterate(value);
     }
   }
@@ -158,14 +157,15 @@ public class AvgAggregator extends Aggregator<AvgAggregator.AvgState> {
         return ExprNullValue.of();
       }
 
-      return new ExprTimestampValue(Instant.ofEpochMilli(
-          DSL.divide(DSL.literal(total), DSL.literal(count)).valueOf().longValue()));
+      return new ExprTimestampValue(
+          Instant.ofEpochMilli(
+              DSL.divide(DSL.literal(total), DSL.literal(count)).valueOf().longValue()));
     }
 
     @Override
     protected AvgState iterate(ExprValue value) {
-      total = DSL.add(DSL.literal(total), DSL.literal(value.timestampValue().toEpochMilli()))
-          .valueOf();
+      total =
+          DSL.add(DSL.literal(total), DSL.literal(value.timestampValue().toEpochMilli())).valueOf();
       return super.iterate(value);
     }
   }
@@ -177,14 +177,16 @@ public class AvgAggregator extends Aggregator<AvgAggregator.AvgState> {
         return ExprNullValue.of();
       }
 
-      return new ExprTimeValue(LocalTime.MIN.plus(
-          DSL.divide(DSL.literal(total), DSL.literal(count)).valueOf().longValue(), MILLIS));
+      return new ExprTimeValue(
+          LocalTime.MIN.plus(
+              DSL.divide(DSL.literal(total), DSL.literal(count)).valueOf().longValue(), MILLIS));
     }
 
     @Override
     protected AvgState iterate(ExprValue value) {
-      total = DSL.add(DSL.literal(total),
-          DSL.literal(MILLIS.between(LocalTime.MIN, value.timeValue()))).valueOf();
+      total =
+          DSL.add(DSL.literal(total), DSL.literal(MILLIS.between(LocalTime.MIN, value.timeValue())))
+              .valueOf();
       return super.iterate(value);
     }
   }

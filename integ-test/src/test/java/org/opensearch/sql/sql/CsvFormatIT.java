@@ -11,7 +11,6 @@ import static org.opensearch.sql.protocol.response.format.FlatResponseFormatter.
 
 import java.io.IOException;
 import java.util.Locale;
-
 import org.junit.Test;
 import org.opensearch.client.Request;
 import org.opensearch.client.Response;

@@ -34,9 +34,9 @@ import org.opensearch.action.search.SearchResponse;
 import org.opensearch.client.ResponseException;
 import org.opensearch.common.xcontent.LoggingDeprecationHandler;
 import org.opensearch.common.xcontent.json.JsonXContentParser;
+import org.opensearch.core.rest.RestStatus;
 import org.opensearch.core.xcontent.NamedXContentRegistry;
 import org.opensearch.core.xcontent.XContentParser;
-import org.opensearch.core.rest.RestStatus;
 import org.opensearch.search.SearchHit;
 
 /**

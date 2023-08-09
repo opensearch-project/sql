@@ -3,7 +3,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-
 package org.opensearch.sql.ast.expression;
 
 import java.util.Arrays;
@@ -15,10 +14,9 @@ import lombok.ToString;
 import org.opensearch.sql.ast.AbstractNodeVisitor;
 
 /**
- * Expression node of one-to-many mapping relation IN.
- * Params include the field expression and/or wildcard field expression,
- * nested field expression (@field).
- * And the values that the field is mapped to (@valueList).
+ * Expression node of one-to-many mapping relation IN. Params include the field expression and/or
+ * wildcard field expression, nested field expression (@field). And the values that the field is
+ * mapped to (@valueList).
  */
 @Getter
 @ToString

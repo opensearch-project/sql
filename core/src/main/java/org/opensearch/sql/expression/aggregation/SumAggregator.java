@@ -3,7 +3,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-
 package org.opensearch.sql.expression.aggregation;
 
 import static org.opensearch.sql.data.model.ExprValueUtils.doubleValue;
@@ -28,8 +27,8 @@ import org.opensearch.sql.expression.aggregation.SumAggregator.SumState;
 import org.opensearch.sql.expression.function.BuiltinFunctionName;
 
 /**
- * The sum aggregator aggregate the value evaluated by the expression.
- * If the expression evaluated result is NULL or MISSING, then the result is NULL.
+ * The sum aggregator aggregate the value evaluated by the expression. If the expression evaluated
+ * result is NULL or MISSING, then the result is NULL.
  */
 public class SumAggregator extends Aggregator<SumState> {
 
@@ -54,9 +53,7 @@ public class SumAggregator extends Aggregator<SumState> {
     return String.format(Locale.ROOT, "sum(%s)", format(getArguments()));
   }
 
-  /**
-   * Sum State.
-   */
+  /** Sum State. */
   protected static class SumState implements AggregationState {
 
     private final ExprCoreType type;
@@ -69,9 +66,7 @@ public class SumAggregator extends Aggregator<SumState> {
       isEmptyCollection = true;
     }
 
-    /**
-     * Add value to current sumResult.
-     */
+    /** Add value to current sumResult. */
     public void add(ExprValue value) {
       switch (type) {
         case INTEGER:

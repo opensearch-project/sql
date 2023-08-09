@@ -10,14 +10,11 @@ import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.ToString;
 
-/**
- * LogicalPaginate represents pagination operation for underlying plan.
- */
+/** LogicalPaginate represents pagination operation for underlying plan. */
 @ToString
 @EqualsAndHashCode(callSuper = false)
 public class LogicalPaginate extends LogicalPlan {
-  @Getter
-  private final int pageSize;
+  @Getter private final int pageSize;
 
   public LogicalPaginate(int pageSize, List<LogicalPlan> childPlans) {
     super(childPlans);

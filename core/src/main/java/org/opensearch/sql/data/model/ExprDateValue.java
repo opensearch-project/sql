@@ -3,7 +3,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-
 package org.opensearch.sql.data.model;
 
 import static org.opensearch.sql.utils.DateTimeFormatters.DATE_TIME_FORMATTER_VARIABLE_NANOS_OPTIONAL;
@@ -22,23 +21,19 @@ import org.opensearch.sql.data.type.ExprCoreType;
 import org.opensearch.sql.data.type.ExprType;
 import org.opensearch.sql.exception.SemanticCheckException;
 
-/**
- * Expression Date Value.
- */
+/** Expression Date Value. */
 @RequiredArgsConstructor
 public class ExprDateValue extends AbstractExprValue {
 
   private final LocalDate date;
 
-  /**
-   * Constructor of ExprDateValue.
-   */
+  /** Constructor of ExprDateValue. */
   public ExprDateValue(String date) {
     try {
       this.date = LocalDate.parse(date, DATE_TIME_FORMATTER_VARIABLE_NANOS_OPTIONAL);
     } catch (DateTimeParseException e) {
-      throw new SemanticCheckException(String.format("date:%s in unsupported format, please use "
-          + "yyyy-MM-dd", date));
+      throw new SemanticCheckException(
+          String.format("date:%s in unsupported format, please use 'yyyy-MM-dd'", date));
     }
   }
 
