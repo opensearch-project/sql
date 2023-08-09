@@ -52,12 +52,12 @@ import org.opensearch.sql.expression.function.BuiltinFunctionName;
  * Currently, V2 engine does not support queries with:<br>
  *
  * <ul>
- *   <li>aggregation (GROUP BY clause or aggregation functions like min/max)
- *   <li>in memory aggregation (window function)
- *   <li>LIMIT/OFFSET clause(s)
- *   <li>without FROM clause
- *   <li>JOIN
- *   <li>a subquery
+ *   <li>aggregation (GROUP BY clause or aggregation functions like min/max)</li>
+ *   <li>in memory aggregation (window function)</li>
+ *   <li>LIMIT/OFFSET clause(s)</li>
+ *   <li>without FROM clause</li>
+ *   <li>JOIN</li>
+ *   <li>a subquery</li>
  * </ul>
  *
  * V2 also requires that the table being queried should be an OpenSearch index.<br>

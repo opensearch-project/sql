@@ -114,7 +114,7 @@ public class MathematicalFunction {
   /**
    * <b>Definition of abs() function.<\b><br>
    * The supported signature of abs() function are<br>
-   * INT -> INT LONG -> LONG FLOAT -> FLOAT DOUBLE -> DOUBLE
+   * INT/LONG/FLOAT/DOUBLE -> INT/LONG/FLOAT/DOUBLE
    */
   private static DefaultFunctionResolver abs() {
     return define(
