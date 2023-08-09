@@ -7,7 +7,6 @@
 package org.opensearch.sql.opensearch.request;
 
 import java.io.IOException;
-import java.util.Arrays;
 import java.util.List;
 import java.util.function.Consumer;
 import java.util.function.Function;
@@ -20,7 +19,6 @@ import org.opensearch.action.search.SearchScrollRequest;
 import org.opensearch.core.common.io.stream.StreamOutput;
 import org.opensearch.search.SearchHits;
 import org.opensearch.search.builder.SearchSourceBuilder;
-import org.opensearch.search.fetch.subphase.FetchSourceContext;
 import org.opensearch.sql.opensearch.data.value.OpenSearchExprValueFactory;
 import org.opensearch.sql.opensearch.response.OpenSearchResponse;
 
