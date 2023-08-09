@@ -3,7 +3,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-
 package org.opensearch.sql.expression.aggregation;
 
 import static org.opensearch.sql.utils.ExpressionUtils.format;
@@ -18,8 +17,8 @@ import org.opensearch.sql.expression.Expression;
 import org.opensearch.sql.expression.function.BuiltinFunctionName;
 
 /**
- * The take aggregator keeps and returns the original values of a field.
- * If the field value is NULL or MISSING, then it is skipped.
+ * The take aggregator keeps and returns the original values of a field. If the field value is NULL
+ * or MISSING, then it is skipped.
  */
 public class TakeAggregator extends Aggregator<TakeAggregator.TakeState> {
 
@@ -43,9 +42,7 @@ public class TakeAggregator extends Aggregator<TakeAggregator.TakeState> {
     return String.format(Locale.ROOT, "take(%s)", format(getArguments()));
   }
 
-  /**
-   * Take State.
-   */
+  /** Take State. */
   protected static class TakeState implements AggregationState {
     protected int index;
     protected int size;

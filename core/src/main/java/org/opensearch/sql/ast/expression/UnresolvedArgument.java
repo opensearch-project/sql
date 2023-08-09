@@ -3,7 +3,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-
 package org.opensearch.sql.ast.expression;
 
 import java.util.Arrays;
@@ -13,9 +12,7 @@ import lombok.Getter;
 import lombok.ToString;
 import org.opensearch.sql.ast.AbstractNodeVisitor;
 
-/**
- * Argument.
- */
+/** Argument. */
 @Getter
 @ToString
 @EqualsAndHashCode(callSuper = false)

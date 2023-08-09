@@ -34,8 +34,8 @@ repositories {
     mavenCentral()
 }
 
-checkstyleTest.ignoreFailures = true
 checkstyleMain.ignoreFailures = true
+checkstyleTest.ignoreFailures = true
 
 pitest {
     targetClasses = ['org.opensearch.sql.*']
