@@ -3,7 +3,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-
 package org.opensearch.sql.ast.tree;
 
 import com.google.common.collect.ImmutableList;
@@ -17,15 +16,12 @@ import org.opensearch.sql.ast.AbstractNodeVisitor;
 import org.opensearch.sql.ast.expression.Argument;
 import org.opensearch.sql.ast.expression.UnresolvedExpression;
 
-/**
- * Logical plan node of Project, the interface for building the list of searching fields.
- */
+/** Logical plan node of Project, the interface for building the list of searching fields. */
 @ToString
 @Getter
 @EqualsAndHashCode(callSuper = false)
 public class Project extends UnresolvedPlan {
-  @Setter
-  private List<UnresolvedExpression> projectList;
+  @Setter private List<UnresolvedExpression> projectList;
   private List<Argument> argExprList;
   private UnresolvedPlan child;
 
@@ -43,9 +39,7 @@ public class Project extends UnresolvedPlan {
     return !argExprList.isEmpty();
   }
 
-  /**
-   * The Project could been used to exclude fields from the source.
-   */
+  /** The Project could been used to exclude fields from the source. */
   public boolean isExcluded() {
     if (hasArgument()) {
       Argument argument = argExprList.get(0);

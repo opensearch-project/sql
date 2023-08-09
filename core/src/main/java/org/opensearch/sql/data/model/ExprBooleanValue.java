@@ -3,16 +3,13 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-
 package org.opensearch.sql.data.model;
 
 import com.google.common.base.Objects;
 import org.opensearch.sql.data.type.ExprCoreType;
 import org.opensearch.sql.data.type.ExprType;
 
-/**
- * Expression Boolean Value.
- */
+/** Expression Boolean Value. */
 public class ExprBooleanValue extends AbstractExprValue {
   private static final ExprBooleanValue TRUE = new ExprBooleanValue(true);
   private static final ExprBooleanValue FALSE = new ExprBooleanValue(false);

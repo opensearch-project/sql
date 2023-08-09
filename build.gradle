@@ -84,7 +84,10 @@ repositories {
 spotless {
     java {
         target fileTree('.') {
-            include '**/*.java'
+            include 'core/src/main/java/org/opensearch/sql/analysis/**/*.java',
+                    'core/src/test/java/org/opensearch/sql/data/**/*.java',
+                    'core/src/test/java/org/opensearch/sql/datasource/**/*.java',
+                    'core/src/test/java/org/opensearch/sql/ast/**/*.java'
             exclude '**/build/**', '**/build-*/**'
         }
         importOrder()
@@ -95,7 +98,7 @@ spotless {
         removeUnusedImports()
         trimTrailingWhitespace()
         endWithNewline()
-//        googleJavaFormat('1.17.0').reflowLongStrings().groupArtifact('com.google.googlejavaformat:google-java-format')
+        googleJavaFormat('1.17.0').reflowLongStrings().groupArtifact('com.google.googlejavaformat:google-java-format')
     }
 }
 
