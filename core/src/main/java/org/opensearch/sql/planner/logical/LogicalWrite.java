@@ -12,9 +12,7 @@ import lombok.Getter;
 import lombok.ToString;
 import org.opensearch.sql.storage.Table;
 
-/**
- * Logical operator for insert statement.
- */
+/** Logical operator for insert statement. */
 @EqualsAndHashCode(callSuper = true)
 @Getter
 @ToString
@@ -26,9 +24,7 @@ public class LogicalWrite extends LogicalPlan {
   /** Optional column name list specified in insert statement. */
   private final List<String> columns;
 
-  /**
-   * Construct a logical write with given child node, table and column name list.
-   */
+  /** Construct a logical write with given child node, table and column name list. */
   public LogicalWrite(LogicalPlan child, Table table, List<String> columns) {
     super(Collections.singletonList(child));
     this.table = table;

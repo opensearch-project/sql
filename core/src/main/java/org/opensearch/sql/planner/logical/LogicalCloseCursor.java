@@ -10,8 +10,8 @@ import lombok.EqualsAndHashCode;
 import lombok.ToString;
 
 /**
- * A logical plan node which wraps {@link org.opensearch.sql.planner.LogicalCursor}
- * and represent a cursor close operation.
+ * A logical plan node which wraps {@link org.opensearch.sql.planner.LogicalCursor} and represent a
+ * cursor close operation.
  */
 @ToString
 @EqualsAndHashCode(callSuper = false)
