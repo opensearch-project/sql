@@ -20,9 +20,7 @@ import org.opensearch.sql.executor.QueryService;
 import org.opensearch.sql.planner.PlanContext;
 import org.opensearch.sql.planner.logical.LogicalPlan;
 
-/**
- * Micro batch streaming execution. 
- */
+/** Micro batch streaming execution. */
 public class MicroBatchStreamingExecution {
 
   private static final Logger log = LogManager.getLogger(MicroBatchStreamingExecution.class);

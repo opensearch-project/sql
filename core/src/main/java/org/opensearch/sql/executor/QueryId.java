@@ -12,18 +12,14 @@ import lombok.Getter;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.opensearch.sql.executor.execution.AbstractPlan;
 
-/**
- * Query id of {@link AbstractPlan}.
- */
+/** Query id of {@link AbstractPlan}. */
 public class QueryId {
-  /**
-   * Query id.
-   */
-  @Getter
-  private final String queryId;
+  /** Query id. */
+  @Getter private final String queryId;
 
   /**
    * Generate {@link QueryId}.
+   *
    * @return {@link QueryId}.
    */
   public static QueryId queryId() {

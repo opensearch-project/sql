@@ -3,7 +3,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-
 package org.opensearch.sql.expression.window.frame;
 
 import com.google.common.collect.PeekingIterator;
@@ -21,18 +20,17 @@ import org.opensearch.sql.expression.env.Environment;
 import org.opensearch.sql.expression.window.WindowDefinition;
 
 /**
- * Conceptually, cumulative window frame should hold all seen rows till next partition.
- * This class is actually an optimized version that only hold previous and current row. This is
- * efficient and sufficient for ranking and aggregate window function support for now, though need
- * to add "real" cumulative frame implementation in future as needed.
+ * Conceptually, cumulative window frame should hold all seen rows till next partition. This class
+ * is actually an optimized version that only hold previous and current row. This is efficient and
+ * sufficient for ranking and aggregate window function support for now, though need to add "real"
+ * cumulative frame implementation in future as needed.
  */
 @EqualsAndHashCode
 @RequiredArgsConstructor
 @ToString
 public class CurrentRowWindowFrame implements WindowFrame {
 
-  @Getter
-  private final WindowDefinition windowDefinition;
+  @Getter private final WindowDefinition windowDefinition;
 
   private ExprValue previous;
   private ExprValue current;
@@ -67,14 +65,12 @@ public class CurrentRowWindowFrame implements WindowFrame {
 
   private List<ExprValue> resolve(List<Expression> expressions, ExprValue row) {
     Environment<Expression, ExprValue> valueEnv = row.bindingTuples();
-    return expressions.stream()
-                      .map(expr -> expr.valueOf(valueEnv))
-                      .collect(Collectors.toList());
+    return expressions.stream().map(expr -> expr.valueOf(valueEnv)).collect(Collectors.toList());
   }
 
   /**
-   * Current row window frame won't pre-fetch any row ahead.
-   * So always return false as nothing "cached" in frame.
+   * Current row window frame won't pre-fetch any row ahead. So always return false as nothing
+   * "cached" in frame.
    */
   @Override
   public boolean hasNext() {
@@ -85,5 +81,4 @@ public class CurrentRowWindowFrame implements WindowFrame {
   public List<ExprValue> next() {
     return Collections.emptyList();
   }
-
 }
