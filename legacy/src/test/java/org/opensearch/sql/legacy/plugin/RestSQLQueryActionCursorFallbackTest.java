@@ -22,7 +22,6 @@ import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.MockitoJUnitRunner;
 import org.opensearch.client.node.NodeClient;
-import org.opensearch.common.Strings;
 import org.opensearch.common.inject.Injector;
 import org.opensearch.common.inject.ModulesBuilder;
 import org.opensearch.common.util.concurrent.ThreadContext;
@@ -96,7 +95,7 @@ public class RestSQLQueryActionCursorFallbackTest extends BaseRestHandler {
       builder.field("fetch_size").value(fetchSize.get());
     }
     builder.endObject();
-    JSONObject jsonContent = new JSONObject(Strings.toString(builder));
+    JSONObject jsonContent = new JSONObject(builder.toString());
 
     return  new SQLQueryRequest(jsonContent, query, QUERY_API_ENDPOINT,
         Map.of("format", "jdbc"), cursorId.orElse(""));
