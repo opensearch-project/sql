@@ -73,7 +73,7 @@ public class SelectExpressionAnalyzer
    * The Alias could be
    *
    * <ol>
-   *   <li>1. SELECT name, AVG(age) FROM s BY name -> Project(Alias("name", expr), Alias("AVG(age)",
+   *   <li>SELECT name, AVG(age) FROM s BY name -> Project(Alias("name", expr), Alias("AVG(age)",
    *       aggExpr)) Agg(Alias("AVG(age)", aggExpr))
    *   <li>SELECT length(name), AVG(age) FROM s BY length(name) Project(Alias("name", expr),
    *       Alias("AVG(age)", aggExpr)) Agg(Alias("AVG(age)", aggExpr))
