@@ -84,7 +84,7 @@ repositories {
 spotless {
     java {
         target fileTree('.') {
-                    'core/src/main/java/org/opensearch/sql/DataSourceSchemaName.java',
+            include 'core/src/main/java/org/opensearch/sql/DataSourceSchemaName.java',
                     'core/src/test/java/org/opensearch/sql/data/**/*.java',
                     'core/src/test/java/org/opensearch/sql/config/**/*.java',
                     'core/src/test/java/org/opensearch/sql/analysis/**/*.java',
