@@ -85,17 +85,7 @@ spotless {
     java {
         target fileTree('.') {
             include 'datasources/**/*.java',
-                    'core/**/*.java',
-                    'protocol/**/*.java',
-                    'prometheus/**/*.java',
-                    'sql/**/*.java',
-                    'common/**/*.java',
-                    'spark/**/*.java',
-                    'plugin/**/*.java',
-                    'ppl/**/*.java',
-                    'integ-test/**/*java',
-                    'core/**/*.java',
-                    'opensearch/**/*.java'
+                    'core/**/*.java'
             exclude '**/build/**', '**/build-*/**'
         }
         importOrder()
