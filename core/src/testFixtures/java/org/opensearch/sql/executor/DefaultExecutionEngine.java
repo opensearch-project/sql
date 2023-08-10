@@ -12,9 +12,7 @@ import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.executor.pagination.Cursor;
 import org.opensearch.sql.planner.physical.PhysicalPlan;
 
-/**
- * Used for testing purpose.
- */
+/** Used for testing purpose. */
 public class DefaultExecutionEngine implements ExecutionEngine {
   @Override
   public void execute(PhysicalPlan plan, ResponseListener<QueryResponse> listener) {
@@ -33,8 +31,8 @@ public class DefaultExecutionEngine implements ExecutionEngine {
       while (plan.hasNext()) {
         result.add(plan.next());
       }
-      QueryResponse response = new QueryResponse(new Schema(new ArrayList<>()), new ArrayList<>(),
-          Cursor.None);
+      QueryResponse response =
+          new QueryResponse(new Schema(new ArrayList<>()), new ArrayList<>(), Cursor.None);
       listener.onResponse(response);
     } catch (Exception e) {
       listener.onFailure(e);

@@ -22,8 +22,8 @@ public class RoundingTest {
   void time_rounding_illegal_span() {
     SpanExpression span = DSL.span(DSL.ref("time", TIME), DSL.literal(1), "d");
     Rounding rounding = Rounding.createRounding(span);
-    assertThrows(ExpressionEvaluationException.class,
-        () -> rounding.round(new ExprTimeValue("23:30:00")));
+    assertThrows(
+        ExpressionEvaluationException.class, () -> rounding.round(new ExprTimeValue("23:30:00")));
   }
 
   @Test
@@ -36,7 +36,8 @@ public class RoundingTest {
   @Test
   void resolve() {
     String illegalUnit = "illegal";
-    assertThrows(IllegalArgumentException.class,
+    assertThrows(
+        IllegalArgumentException.class,
         () -> Rounding.DateTimeUnit.resolve(illegalUnit),
         "Unable to resolve unit " + illegalUnit);
   }

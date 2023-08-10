@@ -3,7 +3,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-
 package org.opensearch.sql.expression.aggregation;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -83,16 +82,23 @@ public class MaxAggregatorTest extends AggregationTest {
 
   @Test
   public void test_max_arithmetic_expression() {
-    ExprValue result = aggregation(
-        DSL.max(DSL.add(DSL.ref("integer_value", INTEGER),
-            DSL.literal(ExprValueUtils.integerValue(0)))), tuples);
+    ExprValue result =
+        aggregation(
+            DSL.max(
+                DSL.add(
+                    DSL.ref("integer_value", INTEGER),
+                    DSL.literal(ExprValueUtils.integerValue(0)))),
+            tuples);
     assertEquals(4, result.value());
   }
 
   @Test
   public void filtered_max() {
-    ExprValue result = aggregation(DSL.max(DSL.ref("integer_value", INTEGER))
-        .condition(DSL.less(DSL.ref("integer_value", INTEGER), DSL.literal(4))), tuples);
+    ExprValue result =
+        aggregation(
+            DSL.max(DSL.ref("integer_value", INTEGER))
+                .condition(DSL.less(DSL.ref("integer_value", INTEGER), DSL.literal(4))),
+            tuples);
     assertEquals(3, result.value());
   }
 
@@ -119,8 +125,10 @@ public class MaxAggregatorTest extends AggregationTest {
 
   @Test
   public void test_value_of() {
-    ExpressionEvaluationException exception = assertThrows(ExpressionEvaluationException.class,
-        () -> DSL.max(DSL.ref("double_value", DOUBLE)).valueOf(valueEnv()));
+    ExpressionEvaluationException exception =
+        assertThrows(
+            ExpressionEvaluationException.class,
+            () -> DSL.max(DSL.ref("double_value", DOUBLE)).valueOf(valueEnv()));
     assertEquals("can't evaluate on aggregator: max", exception.getMessage());
   }
 
@@ -132,9 +140,12 @@ public class MaxAggregatorTest extends AggregationTest {
 
   @Test
   public void test_nested_to_string() {
-    Aggregator maxAggregator = DSL.max(DSL.add(DSL.ref("integer_value", INTEGER),
-        DSL.literal(ExprValueUtils.integerValue(10))));
-    assertEquals(String.format("max(+(%s, %d))", DSL.ref("integer_value", INTEGER), 10),
+    Aggregator maxAggregator =
+        DSL.max(
+            DSL.add(
+                DSL.ref("integer_value", INTEGER), DSL.literal(ExprValueUtils.integerValue(10))));
+    assertEquals(
+        String.format("max(+(%s, %d))", DSL.ref("integer_value", INTEGER), 10),
         maxAggregator.toString());
   }
 }

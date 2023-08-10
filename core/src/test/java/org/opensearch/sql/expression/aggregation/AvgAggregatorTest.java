@@ -3,7 +3,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-
 package org.opensearch.sql.expression.aggregation;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -37,16 +36,23 @@ class AvgAggregatorTest extends AggregationTest {
 
   @Test
   public void avg_arithmetic_expression() {
-    ExprValue result = aggregation(DSL.avg(
-        DSL.multiply(DSL.ref("integer_value", INTEGER),
-            DSL.literal(ExprValueUtils.integerValue(10)))), tuples);
+    ExprValue result =
+        aggregation(
+            DSL.avg(
+                DSL.multiply(
+                    DSL.ref("integer_value", INTEGER),
+                    DSL.literal(ExprValueUtils.integerValue(10)))),
+            tuples);
     assertEquals(25.0, result.value());
   }
 
   @Test
   public void filtered_avg() {
-    ExprValue result = aggregation(DSL.avg(DSL.ref("integer_value", INTEGER))
-        .condition(DSL.greater(DSL.ref("integer_value", INTEGER), DSL.literal(1))), tuples);
+    ExprValue result =
+        aggregation(
+            DSL.avg(DSL.ref("integer_value", INTEGER))
+                .condition(DSL.greater(DSL.ref("integer_value", INTEGER), DSL.literal(1))),
+            tuples);
     assertEquals(3.0, result.value());
   }
 
@@ -128,16 +134,17 @@ class AvgAggregatorTest extends AggregationTest {
 
   @Test
   public void valueOf() {
-    ExpressionEvaluationException exception = assertThrows(ExpressionEvaluationException.class,
-        () -> DSL.avg(DSL.ref("double_value", DOUBLE)).valueOf(valueEnv()));
+    ExpressionEvaluationException exception =
+        assertThrows(
+            ExpressionEvaluationException.class,
+            () -> DSL.avg(DSL.ref("double_value", DOUBLE)).valueOf(valueEnv()));
     assertEquals("can't evaluate on aggregator: avg", exception.getMessage());
   }
 
   @Test
   public void avg_on_unsupported_type() {
     var aggregator = new AvgAggregator(List.of(DSL.ref("string", STRING)), STRING);
-    var exception = assertThrows(IllegalArgumentException.class,
-        () -> aggregator.create());
+    var exception = assertThrows(IllegalArgumentException.class, () -> aggregator.create());
     assertEquals("avg aggregation over STRING type is not supported", exception.getMessage());
   }
 
@@ -149,9 +156,12 @@ class AvgAggregatorTest extends AggregationTest {
 
   @Test
   public void test_nested_to_string() {
-    Aggregator avgAggregator = DSL.avg(DSL.multiply(DSL.ref("integer_value", INTEGER),
-        DSL.literal(ExprValueUtils.integerValue(10))));
-    assertEquals(String.format("avg(*(%s, %d))", DSL.ref("integer_value", INTEGER), 10),
+    Aggregator avgAggregator =
+        DSL.avg(
+            DSL.multiply(
+                DSL.ref("integer_value", INTEGER), DSL.literal(ExprValueUtils.integerValue(10))));
+    assertEquals(
+        String.format("avg(*(%s, %d))", DSL.ref("integer_value", INTEGER), 10),
         avgAggregator.toString());
   }
 }

@@ -3,7 +3,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-
 package org.opensearch.sql.expression.aggregation;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -83,16 +82,23 @@ public class MinAggregatorTest extends AggregationTest {
 
   @Test
   public void test_min_arithmetic_expression() {
-    ExprValue result = aggregation(
-        DSL.min(DSL.add(DSL.ref("integer_value", INTEGER),
-            DSL.literal(ExprValueUtils.integerValue(0)))), tuples);
+    ExprValue result =
+        aggregation(
+            DSL.min(
+                DSL.add(
+                    DSL.ref("integer_value", INTEGER),
+                    DSL.literal(ExprValueUtils.integerValue(0)))),
+            tuples);
     assertEquals(1, result.value());
   }
 
   @Test
   public void filtered_min() {
-    ExprValue result = aggregation(DSL.min(DSL.ref("integer_value", INTEGER))
-        .condition(DSL.greater(DSL.ref("integer_value", INTEGER), DSL.literal(1))), tuples);
+    ExprValue result =
+        aggregation(
+            DSL.min(DSL.ref("integer_value", INTEGER))
+                .condition(DSL.greater(DSL.ref("integer_value", INTEGER), DSL.literal(1))),
+            tuples);
     assertEquals(2, result.value());
   }
 
@@ -119,8 +125,10 @@ public class MinAggregatorTest extends AggregationTest {
 
   @Test
   public void test_value_of() {
-    ExpressionEvaluationException exception = assertThrows(ExpressionEvaluationException.class,
-        () -> DSL.min(DSL.ref("double_value", DOUBLE)).valueOf(valueEnv()));
+    ExpressionEvaluationException exception =
+        assertThrows(
+            ExpressionEvaluationException.class,
+            () -> DSL.min(DSL.ref("double_value", DOUBLE)).valueOf(valueEnv()));
     assertEquals("can't evaluate on aggregator: min", exception.getMessage());
   }
 
@@ -132,9 +140,12 @@ public class MinAggregatorTest extends AggregationTest {
 
   @Test
   public void test_nested_to_string() {
-    Aggregator minAggregator = DSL.min(DSL.add(DSL.ref("integer_value", INTEGER),
-        DSL.literal(ExprValueUtils.integerValue(10))));
-    assertEquals(String.format("min(+(%s, %d))", DSL.ref("integer_value", INTEGER), 10),
+    Aggregator minAggregator =
+        DSL.min(
+            DSL.add(
+                DSL.ref("integer_value", INTEGER), DSL.literal(ExprValueUtils.integerValue(10))));
+    assertEquals(
+        String.format("min(+(%s, %d))", DSL.ref("integer_value", INTEGER), 10),
         minAggregator.toString());
   }
 }

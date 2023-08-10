@@ -3,7 +3,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-
 package org.opensearch.sql.planner;
 
 import static java.util.Collections.emptyList;
@@ -47,14 +46,11 @@ import org.opensearch.sql.storage.Table;
 
 @ExtendWith(MockitoExtension.class)
 public class PlannerTest extends PhysicalPlanTestBase {
-  @Mock
-  private PhysicalPlan scan;
+  @Mock private PhysicalPlan scan;
 
-  @Mock
-  private StorageEngine storageEngine;
+  @Mock private StorageEngine storageEngine;
 
-  @Mock
-  private LogicalPlanOptimizer optimizer;
+  @Mock private LogicalPlanOptimizer optimizer;
 
   @BeforeEach
   public void setUp() {
@@ -68,29 +64,22 @@ public class PlannerTest extends PhysicalPlanTestBase {
         PhysicalPlanDSL.rename(
             PhysicalPlanDSL.agg(
                 PhysicalPlanDSL.filter(
-                    scan,
-                    DSL.equal(DSL.ref("response", INTEGER), DSL.literal(10))
-                ),
+                    scan, DSL.equal(DSL.ref("response", INTEGER), DSL.literal(10))),
                 ImmutableList.of(DSL.named("avg(response)", DSL.avg(DSL.ref("response", INTEGER)))),
-                ImmutableList.of()
-            ),
-            ImmutableMap.of(DSL.ref("ivalue", INTEGER), DSL.ref("avg(response)", DOUBLE))
-        ),
+                ImmutableList.of()),
+            ImmutableMap.of(DSL.ref("ivalue", INTEGER), DSL.ref("avg(response)", DOUBLE))),
         LogicalPlanDSL.rename(
             LogicalPlanDSL.aggregation(
                 LogicalPlanDSL.filter(
-                    LogicalPlanDSL.relation("schema",
+                    LogicalPlanDSL.relation(
+                        "schema",
                         storageEngine.getTable(
                             new DataSourceSchemaName(DEFAULT_DATASOURCE_NAME, "default"),
-                        "schema")),
-                    DSL.equal(DSL.ref("response", INTEGER), DSL.literal(10))
-                ),
+                            "schema")),
+                    DSL.equal(DSL.ref("response", INTEGER), DSL.literal(10))),
                 ImmutableList.of(DSL.named("avg(response)", DSL.avg(DSL.ref("response", INTEGER)))),
-                ImmutableList.of()
-            ),
-            ImmutableMap.of(DSL.ref("ivalue", INTEGER), DSL.ref("avg(response)", DOUBLE))
-        )
-    );
+                ImmutableList.of()),
+            ImmutableMap.of(DSL.ref("ivalue", INTEGER), DSL.ref("avg(response)", DOUBLE))));
   }
 
   @Test
@@ -103,15 +92,12 @@ public class PlannerTest extends PhysicalPlanTestBase {
             PhysicalPlanDSL.values(emptyList()),
             DSL.named("123", DSL.literal(123)),
             DSL.named("hello", DSL.literal("hello")),
-            DSL.named("false", DSL.literal(false))
-        ),
+            DSL.named("false", DSL.literal(false))),
         LogicalPlanDSL.project(
             LogicalPlanDSL.values(emptyList()),
             DSL.named("123", DSL.literal(123)),
             DSL.named("hello", DSL.literal("hello")),
-            DSL.named("false", DSL.literal(false))
-        )
-    );
+            DSL.named("false", DSL.literal(false))));
   }
 
   protected void assertPhysicalPlan(PhysicalPlan expected, LogicalPlan logicalPlan) {
@@ -156,15 +142,15 @@ public class PlannerTest extends PhysicalPlanTestBase {
 
     @Override
     public PhysicalPlan visitAggregation(LogicalAggregation plan, Object context) {
-      return new AggregationOperator(plan.getChild().get(0).accept(this, context),
-          plan.getAggregatorList(), plan.getGroupByList()
-      );
+      return new AggregationOperator(
+          plan.getChild().get(0).accept(this, context),
+          plan.getAggregatorList(),
+          plan.getGroupByList());
     }
 
     @Override
     public PhysicalPlan visitRename(LogicalRename plan, Object context) {
-      return new RenameOperator(plan.getChild().get(0).accept(this, context),
-          plan.getRenameMap());
+      return new RenameOperator(plan.getChild().get(0).accept(this, context), plan.getRenameMap());
     }
   }
 }

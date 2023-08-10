@@ -27,13 +27,12 @@ import org.opensearch.sql.planner.physical.PhysicalPlan;
 @ExtendWith(MockitoExtension.class)
 public class DataSourceTableTest {
 
-  @Mock
-  private DataSourceService dataSourceService;
+  @Mock private DataSourceService dataSourceService;
 
   @Test
   void testGetFieldTypes() {
     DataSourceTable dataSourceTable = new DataSourceTable(dataSourceService);
-    Map<String, ExprType> fieldTypes =  dataSourceTable.getFieldTypes();
+    Map<String, ExprType> fieldTypes = dataSourceTable.getFieldTypes();
     Map<String, ExprType> expectedTypes = new HashMap<>();
     expectedTypes.put("DATASOURCE_NAME", ExprCoreType.STRING);
     expectedTypes.put("CONNECTOR_TYPE", ExprCoreType.STRING);
@@ -43,9 +42,8 @@ public class DataSourceTableTest {
   @Test
   void testImplement() {
     DataSourceTable dataSourceTable = new DataSourceTable(dataSourceService);
-    PhysicalPlan physicalPlan
-        = dataSourceTable.implement(
-            LogicalPlanDSL.relation(DATASOURCES_TABLE_NAME, dataSourceTable));
+    PhysicalPlan physicalPlan =
+        dataSourceTable.implement(LogicalPlanDSL.relation(DATASOURCES_TABLE_NAME, dataSourceTable));
     assertTrue(physicalPlan instanceof DataSourceTableScan);
   }
 
@@ -53,7 +51,8 @@ public class DataSourceTableTest {
   @Test
   void testExist() {
     UnsupportedOperationException exception =
-        assertThrows(UnsupportedOperationException.class,
+        assertThrows(
+            UnsupportedOperationException.class,
             () -> new DataSourceTable(dataSourceService).exists());
     assertEquals("Unsupported Operation", exception.getMessage());
   }
@@ -62,7 +61,8 @@ public class DataSourceTableTest {
   @Test
   void testCreateTable() {
     UnsupportedOperationException exception =
-        assertThrows(UnsupportedOperationException.class,
+        assertThrows(
+            UnsupportedOperationException.class,
             () -> new DataSourceTable(dataSourceService).create(new HashMap<>()));
     assertEquals("Unsupported Operation", exception.getMessage());
   }
