@@ -19,20 +19,23 @@ public class DataSourceUserAuthorizationHelperImpl implements DataSourceUserAuth
   private final Client client;
 
   private Boolean isAuthorizationRequired() {
-    String userString = client.threadPool()
-        .getThreadContext().getTransient(
-            ConfigConstants.OPENSEARCH_SECURITY_USER_INFO_THREAD_CONTEXT);
+    String userString =
+        client
+            .threadPool()
+            .getThreadContext()
+            .getTransient(ConfigConstants.OPENSEARCH_SECURITY_USER_INFO_THREAD_CONTEXT);
     return userString != null;
   }
 
   private List<String> getUserRoles() {
-    String userString = client.threadPool()
-        .getThreadContext().getTransient(
-            ConfigConstants.OPENSEARCH_SECURITY_USER_INFO_THREAD_CONTEXT);
+    String userString =
+        client
+            .threadPool()
+            .getThreadContext()
+            .getTransient(ConfigConstants.OPENSEARCH_SECURITY_USER_INFO_THREAD_CONTEXT);
     User user = User.parse(userString);
     return user.getRoles();
   }
-
 
   @Override
   public void authorizeDataSource(DataSourceMetadata dataSourceMetadata) {
@@ -40,15 +43,15 @@ public class DataSourceUserAuthorizationHelperImpl implements DataSourceUserAuth
         && !dataSourceMetadata.getName().equals(DEFAULT_DATASOURCE_NAME)) {
       boolean isAuthorized = false;
       for (String role : getUserRoles()) {
-        if (dataSourceMetadata.getAllowedRoles().contains(role)
-            || role.equals("all_access")) {
+        if (dataSourceMetadata.getAllowedRoles().contains(role) || role.equals("all_access")) {
           isAuthorized = true;
           break;
         }
       }
       if (!isAuthorized) {
         throw new SecurityException(
-            String.format("User is not authorized to access datasource %s. "
+            String.format(
+                "User is not authorized to access datasource %s. "
                     + "User should be mapped to any of the roles in %s for access.",
                 dataSourceMetadata.getName(), dataSourceMetadata.getAllowedRoles().toString()));
       }

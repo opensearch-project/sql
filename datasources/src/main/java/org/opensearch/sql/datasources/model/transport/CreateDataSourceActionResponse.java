@@ -15,11 +15,9 @@ import org.opensearch.core.common.io.stream.StreamInput;
 import org.opensearch.core.common.io.stream.StreamOutput;
 
 @RequiredArgsConstructor
-public class CreateDataSourceActionResponse
-    extends ActionResponse {
+public class CreateDataSourceActionResponse extends ActionResponse {
 
-  @Getter
-  private final String result;
+  @Getter private final String result;
 
   public CreateDataSourceActionResponse(StreamInput in) throws IOException {
     super(in);
