@@ -19,12 +19,9 @@ import org.opensearch.core.common.io.stream.StreamInput;
 @NoArgsConstructor
 public class GetDataSourceActionRequest extends ActionRequest {
 
-  @Getter
-  private String dataSourceName;
+  @Getter private String dataSourceName;
 
-  /**
-   * Constructor of GetDataSourceActionRequest from StreamInput.
-   */
+  /** Constructor of GetDataSourceActionRequest from StreamInput. */
   public GetDataSourceActionRequest(StreamInput in) throws IOException {
     super(in);
   }
@@ -37,13 +34,11 @@ public class GetDataSourceActionRequest extends ActionRequest {
   public ActionRequestValidationException validate() {
     if (this.dataSourceName != null && this.dataSourceName.equals(DEFAULT_DATASOURCE_NAME)) {
       ActionRequestValidationException exception = new ActionRequestValidationException();
-      exception
-          .addValidationError(
-              "Not allowed to fetch datasource with name : " + DEFAULT_DATASOURCE_NAME);
+      exception.addValidationError(
+          "Not allowed to fetch datasource with name : " + DEFAULT_DATASOURCE_NAME);
       return exception;
     } else {
       return null;
     }
   }
-
 }
