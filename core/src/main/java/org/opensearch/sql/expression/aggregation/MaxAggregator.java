@@ -3,7 +3,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-
 package org.opensearch.sql.expression.aggregation;
 
 import static org.opensearch.sql.data.model.ExprValueUtils.LITERAL_NULL;
@@ -45,9 +44,7 @@ public class MaxAggregator extends Aggregator<MaxAggregator.MaxState> {
     }
 
     public void max(ExprValue value) {
-      maxResult = maxResult.isNull() ? value
-          : (maxResult.compareTo(value) > 0)
-          ? maxResult : value;
+      maxResult = maxResult.isNull() ? value : (maxResult.compareTo(value) > 0) ? maxResult : value;
     }
 
     @Override

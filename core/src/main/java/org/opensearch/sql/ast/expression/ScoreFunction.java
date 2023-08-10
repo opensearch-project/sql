@@ -13,8 +13,8 @@ import lombok.ToString;
 import org.opensearch.sql.ast.AbstractNodeVisitor;
 
 /**
- * Expression node of Score function.
- * Score takes a relevance-search expression as an argument and returns it
+ * Expression node of Score function. Score takes a relevance-search expression as an argument and
+ * returns it
  */
 @AllArgsConstructor
 @EqualsAndHashCode(callSuper = false)

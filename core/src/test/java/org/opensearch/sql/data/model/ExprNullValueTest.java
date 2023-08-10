@@ -3,7 +3,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-
 package org.opensearch.sql.data.model;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -50,8 +49,9 @@ public class ExprNullValueTest {
 
   @Test
   public void comparabilityTest() {
-    ExpressionEvaluationException exception = assertThrows(ExpressionEvaluationException.class,
-        () -> compare(LITERAL_NULL, LITERAL_NULL));
+    ExpressionEvaluationException exception =
+        assertThrows(
+            ExpressionEvaluationException.class, () -> compare(LITERAL_NULL, LITERAL_NULL));
     assertEquals("invalid to call compare operation on null value", exception.getMessage());
   }
 }

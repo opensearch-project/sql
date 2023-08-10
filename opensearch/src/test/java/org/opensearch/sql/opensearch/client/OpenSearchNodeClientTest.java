@@ -322,7 +322,7 @@ class OpenSearchNodeClientTest {
     // Verify response for first scroll request
     OpenSearchScrollRequest request = new OpenSearchScrollRequest(
         new OpenSearchRequest.IndexName("test"), TimeValue.timeValueMinutes(1),
-        new SearchSourceBuilder(), factory);
+        new SearchSourceBuilder(), factory, List.of("id"));
     OpenSearchResponse response1 = client.search(request);
     assertFalse(response1.isEmpty());
 
@@ -357,7 +357,7 @@ class OpenSearchNodeClientTest {
 
     OpenSearchScrollRequest request = new OpenSearchScrollRequest(
         new OpenSearchRequest.IndexName("test"), TimeValue.timeValueMinutes(1),
-        new SearchSourceBuilder(), factory);
+        new SearchSourceBuilder(), factory, List.of());
     request.setScrollId("scroll123");
     // Enforce cleaning by setting a private field.
     FieldUtils.writeField(request, "needClean", true, true);
@@ -374,7 +374,7 @@ class OpenSearchNodeClientTest {
   void cleanup_without_scrollId() {
     OpenSearchScrollRequest request = new OpenSearchScrollRequest(
         new OpenSearchRequest.IndexName("test"), TimeValue.timeValueMinutes(1),
-        new SearchSourceBuilder(), factory);
+        new SearchSourceBuilder(), factory, List.of());
     client.cleanup(request);
     verify(nodeClient, never()).prepareClearScroll();
   }
@@ -386,7 +386,7 @@ class OpenSearchNodeClientTest {
 
     OpenSearchScrollRequest request = new OpenSearchScrollRequest(
         new OpenSearchRequest.IndexName("test"), TimeValue.timeValueMinutes(1),
-        new SearchSourceBuilder(), factory);
+        new SearchSourceBuilder(), factory, List.of());
     request.setScrollId("scroll123");
     // Enforce cleaning by setting a private field.
     FieldUtils.writeField(request, "needClean", true, true);

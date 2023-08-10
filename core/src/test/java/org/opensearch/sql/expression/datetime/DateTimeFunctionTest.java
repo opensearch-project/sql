@@ -3,7 +3,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-
 package org.opensearch.sql.expression.datetime;
 
 import static java.time.temporal.ChronoField.ALIGNED_WEEK_OF_YEAR;
@@ -51,79 +50,81 @@ import org.opensearch.sql.expression.LiteralExpression;
 
 class DateTimeFunctionTest extends ExpressionTestBase {
 
-  final List<DateFormatTester> dateFormatTesters = ImmutableList.of(
-      new DateFormatTester("1998-01-31 13:14:15.012345",
-          ImmutableList.of("%H","%I","%k","%l","%i","%p","%r","%S","%T"," %M",
-              "%W","%D","%Y","%y","%a","%b","%j","%m","%d","%h","%s","%w","%f",
-              "%q","%"),
-          ImmutableList.of("13","01","13","1","14","PM","01:14:15 PM","15","13:14:15"," January",
-              "Saturday","31st","1998","98","Sat","Jan","031","01","31","01","15","6","012345",
-              "q","%")
-      ),
-      new DateFormatTester("1999-12-01",
-          ImmutableList.of("%D"),
-          ImmutableList.of("1st")
-      ),
-      new DateFormatTester("1999-12-02",
-          ImmutableList.of("%D"),
-          ImmutableList.of("2nd")
-      ),
-      new DateFormatTester("1999-12-03",
-          ImmutableList.of("%D"),
-          ImmutableList.of("3rd")
-      ),
-      new DateFormatTester("1999-12-04",
-          ImmutableList.of("%D"),
-          ImmutableList.of("4th")
-      ),
-      new DateFormatTester("1999-12-11",
-          ImmutableList.of("%D"),
-          ImmutableList.of("11th")
-      ),
-      new DateFormatTester("1999-12-12",
-          ImmutableList.of("%D"),
-          ImmutableList.of("12th")
-      ),
-      new DateFormatTester("1999-12-13",
-          ImmutableList.of("%D"),
-          ImmutableList.of("13th")
-      ),
-      new DateFormatTester("1999-12-31",
-          ImmutableList.of("%x","%v","%X","%V","%u","%U"),
-          ImmutableList.of("1999", "52", "1999", "52", "52", "52")
-      ),
-      new DateFormatTester("2000-01-01",
-          ImmutableList.of("%x","%v","%X","%V","%u","%U"),
-          ImmutableList.of("1999", "52", "1999", "52", "0", "0")
-      ),
-      new DateFormatTester("1998-12-31",
-          ImmutableList.of("%x","%v","%X","%V","%u","%U"),
-          ImmutableList.of("1998", "52", "1998", "52", "52", "52")
-      ),
-      new DateFormatTester("1999-01-01",
-          ImmutableList.of("%x","%v","%X","%V","%u","%U"),
-          ImmutableList.of("1998", "52", "1998", "52", "0", "0")
-      ),
-      new DateFormatTester("2020-01-04",
-          ImmutableList.of("%x","%X"),
-          ImmutableList.of("2020", "2019")
-      ),
-      new DateFormatTester("2008-12-31",
-          ImmutableList.of("%v","%V","%u","%U"),
-          ImmutableList.of("53","52","53","52")
-      ),
-      new DateFormatTester("1998-01-31 13:14:15.012345",
-          ImmutableList.of("%Y-%m-%dT%TZ"),
-          ImmutableList.of("1998-01-31T13:14:15Z")
-      ),
-      new DateFormatTester("1998-01-31 13:14:15.012345",
-          ImmutableList.of("%Y-%m-%da %T a"),
-          ImmutableList.of("1998-01-31PM 13:14:15 PM")
-      ),
-      new DateFormatTester("1998-01-31 13:14:15.012345",
-          ImmutableList.of("%Y-%m-%db %T b"),
-          ImmutableList.of("1998-01-31b 13:14:15 b"))
-  );
+  final List<DateFormatTester> dateFormatTesters =
+      ImmutableList.of(
+          new DateFormatTester(
+              "1998-01-31 13:14:15.012345",
+              ImmutableList.of(
+                  "%H",
+                  "%I", "%k", "%l", "%i", "%p", "%r", "%S", "%T", " %M", "%W", "%D", "%Y", "%y",
+                  "%a", "%b", "%j", "%m", "%d", "%h", "%s", "%w", "%f", "%q", "%"),
+              ImmutableList.of(
+                  "13",
+                  "01",
+                  "13",
+                  "1",
+                  "14",
+                  "PM",
+                  "01:14:15 PM",
+                  "15",
+                  "13:14:15",
+                  " January",
+                  "Saturday",
+                  "31st",
+                  "1998",
+                  "98",
+                  "Sat",
+                  "Jan",
+                  "031",
+                  "01",
+                  "31",
+                  "01",
+                  "15",
+                  "6",
+                  "012345",
+                  "q",
+                  "%")),
+          new DateFormatTester("1999-12-01", ImmutableList.of("%D"), ImmutableList.of("1st")),
+          new DateFormatTester("1999-12-02", ImmutableList.of("%D"), ImmutableList.of("2nd")),
+          new DateFormatTester("1999-12-03", ImmutableList.of("%D"), ImmutableList.of("3rd")),
+          new DateFormatTester("1999-12-04", ImmutableList.of("%D"), ImmutableList.of("4th")),
+          new DateFormatTester("1999-12-11", ImmutableList.of("%D"), ImmutableList.of("11th")),
+          new DateFormatTester("1999-12-12", ImmutableList.of("%D"), ImmutableList.of("12th")),
+          new DateFormatTester("1999-12-13", ImmutableList.of("%D"), ImmutableList.of("13th")),
+          new DateFormatTester(
+              "1999-12-31",
+              ImmutableList.of("%x", "%v", "%X", "%V", "%u", "%U"),
+              ImmutableList.of("1999", "52", "1999", "52", "52", "52")),
+          new DateFormatTester(
+              "2000-01-01",
+              ImmutableList.of("%x", "%v", "%X", "%V", "%u", "%U"),
+              ImmutableList.of("1999", "52", "1999", "52", "0", "0")),
+          new DateFormatTester(
+              "1998-12-31",
+              ImmutableList.of("%x", "%v", "%X", "%V", "%u", "%U"),
+              ImmutableList.of("1998", "52", "1998", "52", "52", "52")),
+          new DateFormatTester(
+              "1999-01-01",
+              ImmutableList.of("%x", "%v", "%X", "%V", "%u", "%U"),
+              ImmutableList.of("1998", "52", "1998", "52", "0", "0")),
+          new DateFormatTester(
+              "2020-01-04", ImmutableList.of("%x", "%X"), ImmutableList.of("2020", "2019")),
+          new DateFormatTester(
+              "2008-12-31",
+              ImmutableList.of("%v", "%V", "%u", "%U"),
+              ImmutableList.of("53", "52", "53", "52")),
+          new DateFormatTester(
+              "1998-01-31 13:14:15.012345",
+              ImmutableList.of("%Y-%m-%dT%TZ"),
+              ImmutableList.of("1998-01-31T13:14:15Z")),
+          new DateFormatTester(
+              "1998-01-31 13:14:15.012345",
+              ImmutableList.of("%Y-%m-%da %T a"),
+              ImmutableList.of("1998-01-31PM 13:14:15 PM")),
+          new DateFormatTester(
+              "1998-01-31 13:14:15.012345",
+              ImmutableList.of("%Y-%m-%db %T b"),
+              ImmutableList.of("1998-01-31b 13:14:15 b")));
 
   @AllArgsConstructor
   private class DateFormatTester {
@@ -196,8 +197,8 @@ class DateTimeFunctionTest extends ExpressionTestBase {
 
   @Test
   public void dayOfMonth() {
-    FunctionExpression expression = DSL.dayofmonth(
-        functionProperties, DSL.literal(new ExprDateValue("2020-08-07")));
+    FunctionExpression expression =
+        DSL.dayofmonth(functionProperties, DSL.literal(new ExprDateValue("2020-08-07")));
     assertEquals(INTEGER, expression.type());
     assertEquals("dayofmonth(DATE '2020-08-07')", expression.toString());
     assertEquals(integerValue(7), eval(expression));
@@ -215,23 +216,21 @@ class DateTimeFunctionTest extends ExpressionTestBase {
 
   @Test
   public void dayOfMonthWithUnderscores() {
-    FunctionExpression expression1 = DSL.dayofmonth(
-        functionProperties, DSL.literal(new ExprDateValue("2020-08-07")));
+    FunctionExpression expression1 =
+        DSL.dayofmonth(functionProperties, DSL.literal(new ExprDateValue("2020-08-07")));
     FunctionExpression expression2 = DSL.dayofmonth(functionProperties, DSL.literal("2020-07-08"));
 
     assertAll(
         () -> testDayOfMonthWithUnderscores(expression1, 7),
         () -> assertEquals("dayofmonth(DATE '2020-08-07')", expression1.toString()),
-
         () -> testDayOfMonthWithUnderscores(expression2, 8),
-        () -> assertEquals("dayofmonth(\"2020-07-08\")", expression2.toString())
-    );
+        () -> assertEquals("dayofmonth(\"2020-07-08\")", expression2.toString()));
   }
 
   @Test
   public void testDayOfMonthWithTimeType() {
-    FunctionExpression expression = DSL.day_of_month(
-        functionProperties, DSL.literal(new ExprTimeValue("12:23:34")));
+    FunctionExpression expression =
+        DSL.day_of_month(functionProperties, DSL.literal(new ExprTimeValue("12:23:34")));
 
     assertEquals(INTEGER, eval(expression).type());
     assertEquals(
@@ -241,40 +240,35 @@ class DateTimeFunctionTest extends ExpressionTestBase {
   }
 
   private void testInvalidDayOfMonth(String date) {
-    FunctionExpression expression = DSL.day_of_month(
-        functionProperties, DSL.literal(new ExprDateValue(date)));
+    FunctionExpression expression =
+        DSL.day_of_month(functionProperties, DSL.literal(new ExprDateValue(date)));
     eval(expression);
   }
 
   @Test
   public void dayOfMonthWithUnderscoresLeapYear() {
-    //Feb. 29 of a leap year
-    testDayOfMonthWithUnderscores(DSL.day_of_month(
-        functionProperties, DSL.literal("2020-02-29")), 29);
+    // Feb. 29 of a leap year
+    testDayOfMonthWithUnderscores(
+        DSL.day_of_month(functionProperties, DSL.literal("2020-02-29")), 29);
 
-    //Feb. 29 of a non-leap year
+    // Feb. 29 of a non-leap year
     assertThrows(SemanticCheckException.class, () -> testInvalidDayOfMonth("2021-02-29"));
   }
 
   @Test
   public void dayOfMonthWithUnderscoresInvalidArguments() {
     assertAll(
-        //40th day of the month
-        () -> assertThrows(
-            SemanticCheckException.class, () -> testInvalidDayOfMonth("2021-02-40")),
-        //13th month of the year
-        () -> assertThrows(
-            SemanticCheckException.class, () -> testInvalidDayOfMonth("2021-13-40")),
-        //incorrect format
-        () -> assertThrows(
-            SemanticCheckException.class, () -> testInvalidDayOfMonth("asdfasdfasdf"))
-    );
+        // 40th day of the month
+        () -> assertThrows(SemanticCheckException.class, () -> testInvalidDayOfMonth("2021-02-40")),
+        // 13th month of the year
+        () -> assertThrows(SemanticCheckException.class, () -> testInvalidDayOfMonth("2021-13-40")),
+        // incorrect format
+        () ->
+            assertThrows(
+                SemanticCheckException.class, () -> testInvalidDayOfMonth("asdfasdfasdf")));
   }
 
-  private void dayOfWeekQuery(
-      FunctionExpression dateExpression,
-      int dayOfWeek,
-      String testExpr) {
+  private void dayOfWeekQuery(FunctionExpression dateExpression, int dayOfWeek, String testExpr) {
     assertEquals(INTEGER, dateExpression.type());
     assertEquals(integerValue(dayOfWeek), eval(dateExpression));
     assertEquals(testExpr, dateExpression.toString());
@@ -282,34 +276,23 @@ class DateTimeFunctionTest extends ExpressionTestBase {
 
   @Test
   public void dayOfWeek() {
-    FunctionExpression expression1 = DSL.dayofweek(
-        functionProperties,
-        DSL.literal(new ExprDateValue("2020-08-07")));
-    FunctionExpression expression2 = DSL.dayofweek(
-        functionProperties,
-        DSL.literal(new ExprDateValue("2020-08-09")));
-    FunctionExpression expression3 = DSL.dayofweek(
-        functionProperties,
-        DSL.literal("2020-08-09"));
-    FunctionExpression expression4 = DSL.dayofweek(
-        functionProperties,
-        DSL.literal("2020-08-09 01:02:03"));
+    FunctionExpression expression1 =
+        DSL.dayofweek(functionProperties, DSL.literal(new ExprDateValue("2020-08-07")));
+    FunctionExpression expression2 =
+        DSL.dayofweek(functionProperties, DSL.literal(new ExprDateValue("2020-08-09")));
+    FunctionExpression expression3 = DSL.dayofweek(functionProperties, DSL.literal("2020-08-09"));
+    FunctionExpression expression4 =
+        DSL.dayofweek(functionProperties, DSL.literal("2020-08-09 01:02:03"));
 
     assertAll(
         () -> dayOfWeekQuery(expression1, 6, "dayofweek(DATE '2020-08-07')"),
-
         () -> dayOfWeekQuery(expression2, 1, "dayofweek(DATE '2020-08-09')"),
-
         () -> dayOfWeekQuery(expression3, 1, "dayofweek(\"2020-08-09\")"),
-
-        () -> dayOfWeekQuery(expression4, 1, "dayofweek(\"2020-08-09 01:02:03\")")
-    );
+        () -> dayOfWeekQuery(expression4, 1, "dayofweek(\"2020-08-09 01:02:03\")"));
   }
 
   private void dayOfWeekWithUnderscoresQuery(
-      FunctionExpression dateExpression,
-      int dayOfWeek,
-      String testExpr) {
+      FunctionExpression dateExpression, int dayOfWeek, String testExpr) {
     assertEquals(INTEGER, dateExpression.type());
     assertEquals(integerValue(dayOfWeek), eval(dateExpression));
     assertEquals(testExpr, dateExpression.toString());
@@ -317,88 +300,80 @@ class DateTimeFunctionTest extends ExpressionTestBase {
 
   @Test
   public void dayOfWeekWithUnderscores() {
-    FunctionExpression expression1 = DSL.day_of_week(
-        functionProperties,
-        DSL.literal(new ExprDateValue("2020-08-07")));
-    FunctionExpression expression2 = DSL.day_of_week(
-        functionProperties,
-        DSL.literal(new ExprDateValue("2020-08-09")));
-    FunctionExpression expression3 = DSL.day_of_week(
-        functionProperties,
-        DSL.literal("2020-08-09"));
-    FunctionExpression expression4 = DSL.day_of_week(
-        functionProperties,
-        DSL.literal("2020-08-09 01:02:03"));
+    FunctionExpression expression1 =
+        DSL.day_of_week(functionProperties, DSL.literal(new ExprDateValue("2020-08-07")));
+    FunctionExpression expression2 =
+        DSL.day_of_week(functionProperties, DSL.literal(new ExprDateValue("2020-08-09")));
+    FunctionExpression expression3 = DSL.day_of_week(functionProperties, DSL.literal("2020-08-09"));
+    FunctionExpression expression4 =
+        DSL.day_of_week(functionProperties, DSL.literal("2020-08-09 01:02:03"));
 
     assertAll(
         () -> dayOfWeekWithUnderscoresQuery(expression1, 6, "day_of_week(DATE '2020-08-07')"),
-
         () -> dayOfWeekWithUnderscoresQuery(expression2, 1, "day_of_week(DATE '2020-08-09')"),
-
         () -> dayOfWeekWithUnderscoresQuery(expression3, 1, "day_of_week(\"2020-08-09\")"),
-
-        () -> dayOfWeekWithUnderscoresQuery(
-            expression4, 1, "day_of_week(\"2020-08-09 01:02:03\")")
-    );
+        () ->
+            dayOfWeekWithUnderscoresQuery(expression4, 1, "day_of_week(\"2020-08-09 01:02:03\")"));
   }
 
   @Test
   public void testDayOfWeekWithTimeType() {
-    FunctionExpression expression = DSL.day_of_week(
-        functionProperties, DSL.literal(new ExprTimeValue("12:23:34")));
+    FunctionExpression expression =
+        DSL.day_of_week(functionProperties, DSL.literal(new ExprTimeValue("12:23:34")));
 
     assertAll(
         () -> assertEquals(INTEGER, eval(expression).type()),
-        () -> assertEquals((
-            LocalDate.now(
-                functionProperties.getQueryStartClock()).getDayOfWeek().getValue() % 7) + 1,
-            eval(expression).integerValue()),
-        () -> assertEquals("day_of_week(TIME '12:23:34')", expression.toString())
-    );
+        () ->
+            assertEquals(
+                (LocalDate.now(functionProperties.getQueryStartClock()).getDayOfWeek().getValue()
+                        % 7)
+                    + 1,
+                eval(expression).integerValue()),
+        () -> assertEquals("day_of_week(TIME '12:23:34')", expression.toString()));
   }
 
   private void testInvalidDayOfWeek(String date) {
-    FunctionExpression expression = DSL.day_of_week(
-        functionProperties, DSL.literal(new ExprDateValue(date)));
+    FunctionExpression expression =
+        DSL.day_of_week(functionProperties, DSL.literal(new ExprDateValue(date)));
     eval(expression);
   }
 
   @Test
   public void dayOfWeekWithUnderscoresLeapYear() {
     assertAll(
-        //Feb. 29 of a leap year
-        () -> dayOfWeekWithUnderscoresQuery(DSL.day_of_week(
-            functionProperties,
-            DSL.literal("2020-02-29")), 7, "day_of_week(\"2020-02-29\")"),
-        //day after Feb. 29 of a leap year
-        () -> dayOfWeekWithUnderscoresQuery(DSL.day_of_week(
-            functionProperties,
-            DSL.literal("2020-03-01")), 1, "day_of_week(\"2020-03-01\")"),
-        //Feb. 28 of a non-leap year
-        () -> dayOfWeekWithUnderscoresQuery(DSL.day_of_week(
-            functionProperties,
-            DSL.literal("2021-02-28")), 1, "day_of_week(\"2021-02-28\")"),
-        //Feb. 29 of a non-leap year
-        () -> assertThrows(
-            SemanticCheckException.class, () ->  testInvalidDayOfWeek("2021-02-29"))
-    );
+        // Feb. 29 of a leap year
+        () ->
+            dayOfWeekWithUnderscoresQuery(
+                DSL.day_of_week(functionProperties, DSL.literal("2020-02-29")),
+                7,
+                "day_of_week(\"2020-02-29\")"),
+        // day after Feb. 29 of a leap year
+        () ->
+            dayOfWeekWithUnderscoresQuery(
+                DSL.day_of_week(functionProperties, DSL.literal("2020-03-01")),
+                1,
+                "day_of_week(\"2020-03-01\")"),
+        // Feb. 28 of a non-leap year
+        () ->
+            dayOfWeekWithUnderscoresQuery(
+                DSL.day_of_week(functionProperties, DSL.literal("2021-02-28")),
+                1,
+                "day_of_week(\"2021-02-28\")"),
+        // Feb. 29 of a non-leap year
+        () -> assertThrows(SemanticCheckException.class, () -> testInvalidDayOfWeek("2021-02-29")));
   }
 
   @Test
   public void dayOfWeekWithUnderscoresInvalidArgument() {
     assertAll(
-        //40th day of the month
-        () -> assertThrows(SemanticCheckException.class,
-            () ->  testInvalidDayOfWeek("2021-02-40")),
+        // 40th day of the month
+        () -> assertThrows(SemanticCheckException.class, () -> testInvalidDayOfWeek("2021-02-40")),
 
-        //13th month of the year
-        () -> assertThrows(SemanticCheckException.class,
-            () ->  testInvalidDayOfWeek("2021-13-29")),
+        // 13th month of the year
+        () -> assertThrows(SemanticCheckException.class, () -> testInvalidDayOfWeek("2021-13-29")),
 
-        //incorrect format
-        () -> assertThrows(SemanticCheckException.class,
-            () ->  testInvalidDayOfWeek("asdfasdf"))
-    );
+        // incorrect format
+        () -> assertThrows(SemanticCheckException.class, () -> testInvalidDayOfWeek("asdfasdf")));
   }
 
   @Test
@@ -421,40 +396,26 @@ class DateTimeFunctionTest extends ExpressionTestBase {
 
   private static Stream<Arguments> getTestDataForDayOfYear() {
     return Stream.of(
-        Arguments.of(DSL.literal(
-            new ExprDateValue("2020-08-07")),
-            "day_of_year(DATE '2020-08-07')",
-            220),
-        Arguments.of(DSL.literal(
-                new ExprDatetimeValue("2020-08-07 12:23:34")),
+        Arguments.of(
+            DSL.literal(new ExprDateValue("2020-08-07")), "day_of_year(DATE '2020-08-07')", 220),
+        Arguments.of(
+            DSL.literal(new ExprDatetimeValue("2020-08-07 12:23:34")),
             "day_of_year(DATETIME '2020-08-07 12:23:34')",
             220),
-        Arguments.of(DSL.literal(
-                new ExprTimestampValue("2020-08-07 12:23:34")),
+        Arguments.of(
+            DSL.literal(new ExprTimestampValue("2020-08-07 12:23:34")),
             "day_of_year(TIMESTAMP '2020-08-07 12:23:34')",
             220),
-        Arguments.of(DSL.literal(
-            "2020-08-07"),
-            "day_of_year(\"2020-08-07\")",
-            220),
-        Arguments.of(DSL.literal(
-            "2020-08-07 01:02:03"),
-            "day_of_year(\"2020-08-07 01:02:03\")",
-            220)
-    );
+        Arguments.of(DSL.literal("2020-08-07"), "day_of_year(\"2020-08-07\")", 220),
+        Arguments.of(
+            DSL.literal("2020-08-07 01:02:03"), "day_of_year(\"2020-08-07 01:02:03\")", 220));
   }
 
   @ParameterizedTest(name = "{0}")
   @MethodSource("getTestDataForDayOfYear")
   public void dayOfYearWithUnderscores(
-      LiteralExpression arg,
-      String expectedString,
-      int expectedResult) {
-    validateStringFormat(
-        DSL.day_of_year(functionProperties, arg),
-        expectedString,
-        expectedResult
-    );
+      LiteralExpression arg, String expectedString, int expectedResult) {
+    validateStringFormat(DSL.day_of_year(functionProperties, arg), expectedString, expectedResult);
   }
 
   @Test
@@ -466,98 +427,81 @@ class DateTimeFunctionTest extends ExpressionTestBase {
   }
 
   public void dayOfYearWithUnderscoresQuery(String date, int dayOfYear) {
-    FunctionExpression expression = DSL.day_of_year(
-        functionProperties,
-        DSL.literal(new ExprDateValue(date)));
+    FunctionExpression expression =
+        DSL.day_of_year(functionProperties, DSL.literal(new ExprDateValue(date)));
     assertAll(
         () -> assertEquals(INTEGER, expression.type()),
-        () -> assertEquals(integerValue(dayOfYear), eval(expression))
-    );
+        () -> assertEquals(integerValue(dayOfYear), eval(expression)));
   }
 
   @Test
   public void dayOfYearWithUnderscoresDifferentArgumentFormats() {
-    FunctionExpression expression1 = DSL.day_of_year(
-        functionProperties,
-        DSL.literal(new ExprDateValue("2020-08-07")));
-    FunctionExpression expression2 = DSL.day_of_year(
-        functionProperties,
-        DSL.literal("2020-08-07"));
-    FunctionExpression expression3 = DSL.day_of_year(
-        functionProperties,
-        DSL.literal("2020-08-07 01:02:03"));
+    FunctionExpression expression1 =
+        DSL.day_of_year(functionProperties, DSL.literal(new ExprDateValue("2020-08-07")));
+    FunctionExpression expression2 = DSL.day_of_year(functionProperties, DSL.literal("2020-08-07"));
+    FunctionExpression expression3 =
+        DSL.day_of_year(functionProperties, DSL.literal("2020-08-07 01:02:03"));
 
     assertAll(
         () -> dayOfYearWithUnderscoresQuery("2020-08-07", 220),
         () -> assertEquals("day_of_year(DATE '2020-08-07')", expression1.toString()),
-
         () -> dayOfYearWithUnderscoresQuery("2020-08-07", 220),
-        () ->     assertEquals("day_of_year(\"2020-08-07\")", expression2.toString()),
-
+        () -> assertEquals("day_of_year(\"2020-08-07\")", expression2.toString()),
         () -> dayOfYearWithUnderscoresQuery("2020-08-07 01:02:03", 220),
-        () ->     assertEquals("day_of_year(\"2020-08-07 01:02:03\")", expression3.toString())
-    );
+        () -> assertEquals("day_of_year(\"2020-08-07 01:02:03\")", expression3.toString()));
   }
 
   @Test
   public void dayOfYearWithUnderscoresCornerCaseDates() {
     assertAll(
-        //31st of December during non leap year (should be 365)
+        // 31st of December during non leap year (should be 365)
         () -> dayOfYearWithUnderscoresQuery("2019-12-31", 365),
-        //Year 1200
+        // Year 1200
         () -> dayOfYearWithUnderscoresQuery("1200-02-28", 59),
-        //Year 4000
-        () -> dayOfYearWithUnderscoresQuery("4000-02-28", 59)
-    );
+        // Year 4000
+        () -> dayOfYearWithUnderscoresQuery("4000-02-28", 59));
   }
 
   @Test
   public void dayOfYearWithUnderscoresLeapYear() {
     assertAll(
-        //28th of Feb
+        // 28th of Feb
         () -> dayOfYearWithUnderscoresQuery("2020-02-28", 59),
 
-        //29th of Feb during leap year
+        // 29th of Feb during leap year
         () -> dayOfYearWithUnderscoresQuery("2020-02-29 23:59:59", 60),
         () -> dayOfYearWithUnderscoresQuery("2020-02-29", 60),
 
-        //1st of March during leap year
+        // 1st of March during leap year
         () -> dayOfYearWithUnderscoresQuery("2020-03-01 00:00:00", 61),
         () -> dayOfYearWithUnderscoresQuery("2020-03-01", 61),
 
-        //1st of March during non leap year
+        // 1st of March during non leap year
         () -> dayOfYearWithUnderscoresQuery("2019-03-01", 60),
 
-        //31st of December during  leap year (should be 366)
-        () -> dayOfYearWithUnderscoresQuery("2020-12-31", 366)
-    );
+        // 31st of December during  leap year (should be 366)
+        () -> dayOfYearWithUnderscoresQuery("2020-12-31", 366));
   }
 
   private void invalidDayOfYearQuery(String date) {
-    FunctionExpression expression = DSL.day_of_year(
-        functionProperties,
-        DSL.literal(new ExprDateValue(date)));
+    FunctionExpression expression =
+        DSL.day_of_year(functionProperties, DSL.literal(new ExprDateValue(date)));
     eval(expression);
   }
 
   @Test
   public void invalidDayOfYearArgument() {
     assertAll(
-        //29th of Feb non-leapyear
-        () -> assertThrows(
-            SemanticCheckException.class,
-            () ->  invalidDayOfYearQuery("2019-02-29")),
+        // 29th of Feb non-leapyear
+        () -> assertThrows(SemanticCheckException.class, () -> invalidDayOfYearQuery("2019-02-29")),
 
-        //13th month
-        () -> assertThrows(
-            SemanticCheckException.class,
-            () ->  invalidDayOfYearQuery("2019-13-15")),
+        // 13th month
+        () -> assertThrows(SemanticCheckException.class, () -> invalidDayOfYearQuery("2019-13-15")),
 
-        //incorrect format for type
-        () -> assertThrows(
-            SemanticCheckException.class,
-            () ->  invalidDayOfYearQuery("asdfasdfasdf"))
-    );
+        // incorrect format for type
+        () ->
+            assertThrows(
+                SemanticCheckException.class, () -> invalidDayOfYearQuery("asdfasdfasdf")));
   }
 
   @Test
@@ -589,13 +533,11 @@ class DateTimeFunctionTest extends ExpressionTestBase {
         Arguments.of("TIMESTAMP", "JIS", "%Y-%m-%d %H:%i:%s"),
         Arguments.of("TIMESTAMP", "ISO", "%Y-%m-%d %H:%i:%s"),
         Arguments.of("TIMESTAMP", "EUR", "%Y-%m-%d %H.%i.%s"),
-        Arguments.of("TIMESTAMP", "INTERNAL", "%Y%m%d%H%i%s")
-    );
+        Arguments.of("TIMESTAMP", "INTERNAL", "%Y%m%d%H%i%s"));
   }
 
-  private void getFormatQuery(LiteralExpression argType,
-                               LiteralExpression namedFormat,
-                               String expectedResult) {
+  private void getFormatQuery(
+      LiteralExpression argType, LiteralExpression namedFormat, String expectedResult) {
     FunctionExpression expr = DSL.get_format(argType, namedFormat);
     assertEquals(STRING, expr.type());
     assertEquals(expectedResult, eval(expr).stringValue());
@@ -603,20 +545,13 @@ class DateTimeFunctionTest extends ExpressionTestBase {
 
   @ParameterizedTest(name = "{0}{1}")
   @MethodSource("getTestDataForGetFormat")
-  public void testGetFormat(String arg,
-                             String format,
-                             String expectedResult) {
-    getFormatQuery(
-        DSL.literal(arg),
-        DSL.literal(new ExprStringValue(format)),
-        expectedResult);
+  public void testGetFormat(String arg, String format, String expectedResult) {
+    getFormatQuery(DSL.literal(arg), DSL.literal(new ExprStringValue(format)), expectedResult);
   }
 
   @Test
   public void testGetFormatInvalidFormat() {
-    FunctionExpression expr = DSL.get_format(
-        DSL.literal("DATE"),
-        DSL.literal("1SA"));
+    FunctionExpression expr = DSL.get_format(DSL.literal("DATE"), DSL.literal("1SA"));
     assertEquals(nullValue(), eval(expr));
   }
 
@@ -655,25 +590,20 @@ class DateTimeFunctionTest extends ExpressionTestBase {
 
   @Test
   public void invalidMinuteOfDay() {
-    assertThrows(SemanticCheckException.class,
-        () ->  testInvalidMinuteOfDay("2022-12-14 12:23:3400"));
-    assertThrows(SemanticCheckException.class,
-        () ->  testInvalidMinuteOfDay("2022-12-14 12:2300:34"));
-    assertThrows(SemanticCheckException.class,
-        () ->  testInvalidMinuteOfDay("2022-12-14 1200:23:34"));
-    assertThrows(SemanticCheckException.class,
-        () ->  testInvalidMinuteOfDay("2022-12-1400 12:23:34"));
-    assertThrows(SemanticCheckException.class,
-        () ->  testInvalidMinuteOfDay("2022-1200-14 12:23:34"));
-    assertThrows(SemanticCheckException.class,
-        () ->  testInvalidMinuteOfDay("12:23:3400"));
-    assertThrows(SemanticCheckException.class,
-        () ->  testInvalidMinuteOfDay("12:2300:34"));
-    assertThrows(SemanticCheckException.class,
-        () ->  testInvalidMinuteOfDay("1200:23:34"));
-    assertThrows(SemanticCheckException.class,
-        () ->  testInvalidMinuteOfDay("asdfasdfasdf"));
-
+    assertThrows(
+        SemanticCheckException.class, () -> testInvalidMinuteOfDay("2022-12-14 12:23:3400"));
+    assertThrows(
+        SemanticCheckException.class, () -> testInvalidMinuteOfDay("2022-12-14 12:2300:34"));
+    assertThrows(
+        SemanticCheckException.class, () -> testInvalidMinuteOfDay("2022-12-14 1200:23:34"));
+    assertThrows(
+        SemanticCheckException.class, () -> testInvalidMinuteOfDay("2022-12-1400 12:23:34"));
+    assertThrows(
+        SemanticCheckException.class, () -> testInvalidMinuteOfDay("2022-1200-14 12:23:34"));
+    assertThrows(SemanticCheckException.class, () -> testInvalidMinuteOfDay("12:23:3400"));
+    assertThrows(SemanticCheckException.class, () -> testInvalidMinuteOfDay("12:2300:34"));
+    assertThrows(SemanticCheckException.class, () -> testInvalidMinuteOfDay("1200:23:34"));
+    assertThrows(SemanticCheckException.class, () -> testInvalidMinuteOfDay("asdfasdfasdf"));
   }
 
   private void hourOfDayQuery(FunctionExpression dateExpression, int hour) {
@@ -685,28 +615,23 @@ class DateTimeFunctionTest extends ExpressionTestBase {
   public void hourOfDay() {
     FunctionExpression expression1 = DSL.hour_of_day(DSL.literal(new ExprTimeValue("01:02:03")));
     FunctionExpression expression2 = DSL.hour_of_day(DSL.literal("01:02:03"));
-    FunctionExpression expression3 = DSL.hour_of_day(
-        DSL.literal(new ExprTimestampValue("2020-08-17 01:02:03")));
-    FunctionExpression expression4 = DSL.hour_of_day(
-        DSL.literal(new ExprDatetimeValue("2020-08-17 01:02:03")));
+    FunctionExpression expression3 =
+        DSL.hour_of_day(DSL.literal(new ExprTimestampValue("2020-08-17 01:02:03")));
+    FunctionExpression expression4 =
+        DSL.hour_of_day(DSL.literal(new ExprDatetimeValue("2020-08-17 01:02:03")));
     FunctionExpression expression5 = DSL.hour_of_day(DSL.literal("2020-08-17 01:02:03"));
 
     assertAll(
         () -> hourOfDayQuery(expression1, 1),
         () -> assertEquals("hour_of_day(TIME '01:02:03')", expression1.toString()),
-
         () -> hourOfDayQuery(expression2, 1),
         () -> assertEquals("hour_of_day(\"01:02:03\")", expression2.toString()),
-
         () -> hourOfDayQuery(expression3, 1),
         () -> assertEquals("hour_of_day(TIMESTAMP '2020-08-17 01:02:03')", expression3.toString()),
-
         () -> hourOfDayQuery(expression4, 1),
         () -> assertEquals("hour_of_day(DATETIME '2020-08-17 01:02:03')", expression4.toString()),
-
         () -> hourOfDayQuery(expression5, 1),
-        () -> assertEquals("hour_of_day(\"2020-08-17 01:02:03\")", expression5.toString())
-    );
+        () -> assertEquals("hour_of_day(\"2020-08-17 01:02:03\")", expression5.toString()));
   }
 
   private void invalidHourOfDayQuery(String time) {
@@ -717,24 +642,20 @@ class DateTimeFunctionTest extends ExpressionTestBase {
   @Test
   public void hourOfDayInvalidArguments() {
     assertAll(
-        //Invalid Seconds
+        // Invalid Seconds
         () -> assertThrows(SemanticCheckException.class, () -> invalidHourOfDayQuery("12:23:61")),
-        //Invalid Minutes
+        // Invalid Minutes
         () -> assertThrows(SemanticCheckException.class, () -> invalidHourOfDayQuery("12:61:34")),
 
-        //Invalid Hours
+        // Invalid Hours
         () -> assertThrows(SemanticCheckException.class, () -> invalidHourOfDayQuery("25:23:34")),
 
-        //incorrect format
-        () -> assertThrows(SemanticCheckException.class, () -> invalidHourOfDayQuery("asdfasdf"))
-    );
-
+        // incorrect format
+        () -> assertThrows(SemanticCheckException.class, () -> invalidHourOfDayQuery("asdfasdf")));
   }
 
   private void checkForExpectedDay(
-      FunctionExpression functionExpression,
-      String expectedDay,
-      String testExpr) {
+      FunctionExpression functionExpression, String expectedDay, String testExpr) {
     assertEquals(DATE, functionExpression.type());
     assertEquals(new ExprDateValue(expectedDay), eval(functionExpression));
     assertEquals(testExpr, functionExpression.toString());
@@ -743,9 +664,9 @@ class DateTimeFunctionTest extends ExpressionTestBase {
   private static Stream<Arguments> getTestDataForLastDay() {
     return Stream.of(
         Arguments.of(new ExprDateValue("2017-01-20"), "2017-01-31", "last_day(DATE '2017-01-20')"),
-        //Leap year
+        // Leap year
         Arguments.of(new ExprDateValue("2020-02-20"), "2020-02-29", "last_day(DATE '2020-02-20')"),
-        //Non leap year
+        // Non leap year
         Arguments.of(new ExprDateValue("2017-02-20"), "2017-02-28", "last_day(DATE '2017-02-20')"),
         Arguments.of(new ExprDateValue("2017-03-20"), "2017-03-31", "last_day(DATE '2017-03-20')"),
         Arguments.of(new ExprDateValue("2017-04-20"), "2017-04-30", "last_day(DATE '2017-04-20')"),
@@ -756,8 +677,7 @@ class DateTimeFunctionTest extends ExpressionTestBase {
         Arguments.of(new ExprDateValue("2017-09-20"), "2017-09-30", "last_day(DATE '2017-09-20')"),
         Arguments.of(new ExprDateValue("2017-10-20"), "2017-10-31", "last_day(DATE '2017-10-20')"),
         Arguments.of(new ExprDateValue("2017-11-20"), "2017-11-30", "last_day(DATE '2017-11-20')"),
-        Arguments.of(new ExprDateValue("2017-12-20"), "2017-12-31", "last_day(DATE '2017-12-20')")
-    );
+        Arguments.of(new ExprDateValue("2017-12-20"), "2017-12-31", "last_day(DATE '2017-12-20')"));
   }
 
   @ParameterizedTest(name = "{2}")
@@ -766,40 +686,37 @@ class DateTimeFunctionTest extends ExpressionTestBase {
     checkForExpectedDay(
         DSL.last_day(functionProperties, DSL.literal(testedDateTime)),
         expectedResult,
-        expectedQuery
-    );
+        expectedQuery);
   }
 
   @Test
   public void testLastDayWithTimeType() {
-    FunctionExpression expression = DSL.last_day(
-        functionProperties, DSL.literal(new ExprTimeValue("12:23:34")));
+    FunctionExpression expression =
+        DSL.last_day(functionProperties, DSL.literal(new ExprTimeValue("12:23:34")));
 
     LocalDate expected = LocalDate.now(functionProperties.getQueryStartClock());
     LocalDate result = eval(expression).dateValue();
 
-
     assertAll(
         () -> assertEquals((expected.lengthOfMonth()), result.getDayOfMonth()),
-        () -> assertEquals("last_day(TIME '12:23:34')", expression.toString())
-    );
+        () -> assertEquals("last_day(TIME '12:23:34')", expression.toString()));
   }
 
   private void lastDay(String date) {
-    FunctionExpression expression = DSL.day_of_week(
-        functionProperties, DSL.literal(new ExprDateValue(date)));
+    FunctionExpression expression =
+        DSL.day_of_week(functionProperties, DSL.literal(new ExprDateValue(date)));
     eval(expression);
   }
 
   @Test
   public void testLastDayInvalidArgument() {
-    assertThrows(SemanticCheckException.class, () ->  lastDay("asdfasdf"));
+    assertThrows(SemanticCheckException.class, () -> lastDay("asdfasdf"));
   }
 
   @Test
   public void microsecond() {
-    FunctionExpression expression = DSL
-        .microsecond(DSL.literal(new ExprTimeValue("01:02:03.123456")));
+    FunctionExpression expression =
+        DSL.microsecond(DSL.literal(new ExprTimeValue("01:02:03.123456")));
     assertEquals(INTEGER, expression.type());
     assertEquals(integerValue(123456), eval(expression));
     assertEquals("microsecond(TIME '01:02:03.123456')", expression.toString());
@@ -904,20 +821,14 @@ class DateTimeFunctionTest extends ExpressionTestBase {
     assertAll(
         () -> assertEquals(INTEGER, dateExpression.type()),
         () -> assertEquals(integerValue(minute), eval(dateExpression)),
-        () -> assertEquals(testExpr, dateExpression.toString())
-    );
+        () -> assertEquals(testExpr, dateExpression.toString()));
   }
 
   private static Stream<Arguments> getTestDataForMinuteOfHour() {
     return Stream.of(
         Arguments.of(
-            DSL.literal(new ExprTimeValue("01:02:03")),
-            2,
-            "minute_of_hour(TIME '01:02:03')"),
-        Arguments.of(
-            DSL.literal("01:02:03"),
-            2,
-            "minute_of_hour(\"01:02:03\")"),
+            DSL.literal(new ExprTimeValue("01:02:03")), 2, "minute_of_hour(TIME '01:02:03')"),
+        Arguments.of(DSL.literal("01:02:03"), 2, "minute_of_hour(\"01:02:03\")"),
         Arguments.of(
             DSL.literal(new ExprTimestampValue("2020-08-17 01:02:03")),
             2,
@@ -927,10 +838,7 @@ class DateTimeFunctionTest extends ExpressionTestBase {
             2,
             "minute_of_hour(DATETIME '2020-08-17 01:02:03')"),
         Arguments.of(
-            DSL.literal("2020-08-17 01:02:03"),
-            2,
-            "minute_of_hour(\"2020-08-17 01:02:03\")")
-    );
+            DSL.literal("2020-08-17 01:02:03"), 2, "minute_of_hour(\"2020-08-17 01:02:03\")"));
   }
 
   @ParameterizedTest(name = "{2}")
@@ -947,28 +855,22 @@ class DateTimeFunctionTest extends ExpressionTestBase {
   @Test
   public void minuteOfHourInvalidArguments() {
     assertAll(
-        //Invalid Seconds
-        () -> assertThrows(
-            SemanticCheckException.class,
-            () -> invalidMinuteOfHourQuery("12:23:61")),
+        // Invalid Seconds
+        () ->
+            assertThrows(SemanticCheckException.class, () -> invalidMinuteOfHourQuery("12:23:61")),
 
-        //Invalid Minutes
-        () -> assertThrows(
-            SemanticCheckException.class,
-            () -> invalidMinuteOfHourQuery("12:61:34")),
+        // Invalid Minutes
+        () ->
+            assertThrows(SemanticCheckException.class, () -> invalidMinuteOfHourQuery("12:61:34")),
 
-        //Invalid Hours
-        () -> assertThrows(
-            SemanticCheckException.class,
-            () -> invalidMinuteOfHourQuery("25:23:34")),
+        // Invalid Hours
+        () ->
+            assertThrows(SemanticCheckException.class, () -> invalidMinuteOfHourQuery("25:23:34")),
 
-        //incorrect format
-        () ->  assertThrows(
-            SemanticCheckException.class,
-            () -> invalidMinuteOfHourQuery("asdfasdf"))
-    );
+        // incorrect format
+        () ->
+            assertThrows(SemanticCheckException.class, () -> invalidMinuteOfHourQuery("asdfasdf")));
   }
-
 
   @Test
   public void month() {
@@ -991,9 +893,7 @@ class DateTimeFunctionTest extends ExpressionTestBase {
   private static Stream<Arguments> getTestDataForMonthOfYear() {
     return Stream.of(
         Arguments.of(
-            DSL.literal(new ExprDateValue("2020-08-07")),
-            "month_of_year(DATE '2020-08-07')",
-            8),
+            DSL.literal(new ExprDateValue("2020-08-07")), "month_of_year(DATE '2020-08-07')", 8),
         Arguments.of(
             DSL.literal(new ExprDatetimeValue("2020-08-07 12:23:34")),
             "month_of_year(DATETIME '2020-08-07 12:23:34')",
@@ -1002,25 +902,16 @@ class DateTimeFunctionTest extends ExpressionTestBase {
             DSL.literal(new ExprTimestampValue("2020-08-07 12:23:34")),
             "month_of_year(TIMESTAMP '2020-08-07 12:23:34')",
             8),
+        Arguments.of(DSL.literal("2020-08-07"), "month_of_year(\"2020-08-07\")", 8),
         Arguments.of(
-            DSL.literal("2020-08-07"),
-            "month_of_year(\"2020-08-07\")",
-            8),
-        Arguments.of(
-            DSL.literal("2020-08-07 01:02:03"),
-            "month_of_year(\"2020-08-07 01:02:03\")",
-            8)
-    );
+            DSL.literal("2020-08-07 01:02:03"), "month_of_year(\"2020-08-07 01:02:03\")", 8));
   }
 
   @ParameterizedTest(name = "{0}")
   @MethodSource("getTestDataForMonthOfYear")
   public void monthOfYear(LiteralExpression arg, String expectedString, int expectedResult) {
     validateStringFormat(
-        DSL.month_of_year(functionProperties, arg),
-        expectedString,
-        expectedResult
-    );
+        DSL.month_of_year(functionProperties, arg), expectedString, expectedResult);
   }
 
   @Test
@@ -1032,41 +923,34 @@ class DateTimeFunctionTest extends ExpressionTestBase {
   }
 
   private void invalidDatesQuery(String date) throws SemanticCheckException {
-    FunctionExpression expression = DSL.month_of_year(
-        functionProperties,
-        DSL.literal(new ExprDateValue(date)));
+    FunctionExpression expression =
+        DSL.month_of_year(functionProperties, DSL.literal(new ExprDateValue(date)));
     eval(expression);
   }
 
   @Test
   public void monthOfYearInvalidDates() {
     assertAll(
-        () -> assertThrows(SemanticCheckException.class, () ->  invalidDatesQuery("2019-01-50")),
-        () -> assertThrows(SemanticCheckException.class, () ->  invalidDatesQuery("2019-02-29")),
-        () -> assertThrows(SemanticCheckException.class, () ->  invalidDatesQuery("2019-02-31")),
-        () -> assertThrows(SemanticCheckException.class, () ->  invalidDatesQuery("2019-13-05"))
-    );
+        () -> assertThrows(SemanticCheckException.class, () -> invalidDatesQuery("2019-01-50")),
+        () -> assertThrows(SemanticCheckException.class, () -> invalidDatesQuery("2019-02-29")),
+        () -> assertThrows(SemanticCheckException.class, () -> invalidDatesQuery("2019-02-31")),
+        () -> assertThrows(SemanticCheckException.class, () -> invalidDatesQuery("2019-13-05")));
   }
 
   @Test
   public void monthOfYearAlternateArgumentSyntaxes() {
-    FunctionExpression expression = DSL.month_of_year(
-        functionProperties,
-        DSL.literal(new ExprDateValue("2020-08-07")));
+    FunctionExpression expression =
+        DSL.month_of_year(functionProperties, DSL.literal(new ExprDateValue("2020-08-07")));
     assertEquals(INTEGER, expression.type());
     assertEquals("month_of_year(DATE '2020-08-07')", expression.toString());
     assertEquals(integerValue(8), eval(expression));
 
-    expression = DSL.month_of_year(
-        functionProperties,
-        DSL.literal("2020-08-07"));
+    expression = DSL.month_of_year(functionProperties, DSL.literal("2020-08-07"));
     assertEquals(INTEGER, expression.type());
     assertEquals("month_of_year(\"2020-08-07\")", expression.toString());
     assertEquals(integerValue(8), eval(expression));
 
-    expression = DSL.month_of_year(
-        functionProperties,
-        DSL.literal("2020-08-07 01:02:03"));
+    expression = DSL.month_of_year(functionProperties, DSL.literal("2020-08-07 01:02:03"));
     assertEquals(INTEGER, expression.type());
     assertEquals("month_of_year(\"2020-08-07 01:02:03\")", expression.toString());
     assertEquals(integerValue(8), eval(expression));
@@ -1117,15 +1001,13 @@ class DateTimeFunctionTest extends ExpressionTestBase {
         Arguments.of(-169200, "01:00:00"),
         Arguments.of(3600, "01:00:00"),
         Arguments.of(90000, "01:00:00"),
-        Arguments.of(176400, "01:00:00")
-        );
+        Arguments.of(176400, "01:00:00"));
   }
 
   @ParameterizedTest(name = "{0}")
   @MethodSource("getTestDataForSecToTime")
   public void testSecToTime(int seconds, String expected) {
-    FunctionExpression expr = DSL.sec_to_time(
-        DSL.literal(new ExprIntegerValue(seconds)));
+    FunctionExpression expr = DSL.sec_to_time(DSL.literal(new ExprIntegerValue(seconds)));
 
     assertEquals(TIME, expr.type());
     assertEquals(new ExprTimeValue(expected), eval(expr));
@@ -1137,8 +1019,7 @@ class DateTimeFunctionTest extends ExpressionTestBase {
         Arguments.of(1.00123, "00:00:01.00123"),
         Arguments.of(1.001023, "00:00:01.001023"),
         Arguments.of(1.000000042, "00:00:01.000000042"),
-        Arguments.of(3.14, "00:00:03.14")
-    );
+        Arguments.of(3.14, "00:00:03.14"));
   }
 
   @ParameterizedTest(name = "{0}")
@@ -1187,28 +1068,18 @@ class DateTimeFunctionTest extends ExpressionTestBase {
   private static Stream<Arguments> getTestDataForSecondOfMinute() {
     return Stream.of(
         Arguments.of(
-            DSL.literal(new ExprTimeValue("01:02:03")),
-            3,
-            "second_of_minute(TIME '01:02:03')"),
+            DSL.literal(new ExprTimeValue("01:02:03")), 3, "second_of_minute(TIME '01:02:03')"),
+        Arguments.of(DSL.literal("01:02:03"), 3, "second_of_minute(\"01:02:03\")"),
         Arguments.of(
-            DSL.literal("01:02:03"),
-            3,
-            "second_of_minute(\"01:02:03\")"),
+            DSL.literal("2020-08-17 01:02:03"), 3, "second_of_minute(\"2020-08-17 01:02:03\")"),
         Arguments.of(
-            DSL.literal("2020-08-17 01:02:03"),
-            3,
-            "second_of_minute(\"2020-08-17 01:02:03\")"),
-        Arguments.of(
-
             DSL.literal(new ExprTimestampValue("2020-08-17 01:02:03")),
             3,
             "second_of_minute(TIMESTAMP '2020-08-17 01:02:03')"),
         Arguments.of(
-
             DSL.literal(new ExprDatetimeValue("2020-08-17 01:02:03")),
             3,
-            "second_of_minute(DATETIME '2020-08-17 01:02:03')")
-    );
+            "second_of_minute(DATETIME '2020-08-17 01:02:03')"));
   }
 
   @ParameterizedTest(name = "{2}")
@@ -1225,19 +1096,22 @@ class DateTimeFunctionTest extends ExpressionTestBase {
   @Test
   public void secondOfMinuteInvalidArguments() {
     assertAll(
-        //Invalid Seconds
-        () -> assertThrows(SemanticCheckException.class,
-            () -> invalidSecondOfMinuteQuery("12:23:61")),
-        //Invalid Minutes
-        () -> assertThrows(SemanticCheckException.class,
-            () -> invalidSecondOfMinuteQuery("12:61:34")),
-        //Invalid Hours
-        () -> assertThrows(SemanticCheckException.class,
-            () -> invalidSecondOfMinuteQuery("25:23:34")),
-        //incorrect format
-        () -> assertThrows(SemanticCheckException.class,
-            () -> invalidSecondOfMinuteQuery("asdfasdf"))
-    );
+        // Invalid Seconds
+        () ->
+            assertThrows(
+                SemanticCheckException.class, () -> invalidSecondOfMinuteQuery("12:23:61")),
+        // Invalid Minutes
+        () ->
+            assertThrows(
+                SemanticCheckException.class, () -> invalidSecondOfMinuteQuery("12:61:34")),
+        // Invalid Hours
+        () ->
+            assertThrows(
+                SemanticCheckException.class, () -> invalidSecondOfMinuteQuery("25:23:34")),
+        // incorrect format
+        () ->
+            assertThrows(
+                SemanticCheckException.class, () -> invalidSecondOfMinuteQuery("asdfasdf")));
   }
 
   @Test
@@ -1304,35 +1178,32 @@ class DateTimeFunctionTest extends ExpressionTestBase {
   }
 
   private void weekQuery(String date, int mode, int expectedResult) {
-    FunctionExpression expression = DSL
-        .week(functionProperties, DSL.literal(new ExprDateValue(date)), DSL.literal(mode));
+    FunctionExpression expression =
+        DSL.week(functionProperties, DSL.literal(new ExprDateValue(date)), DSL.literal(mode));
     assertEquals(INTEGER, expression.type());
     assertEquals(String.format("week(DATE '%s', %d)", date, mode), expression.toString());
     assertEquals(integerValue(expectedResult), eval(expression));
   }
 
   private void weekOfYearUnderscoresQuery(String date, int mode, int expectedResult) {
-    FunctionExpression expression = DSL
-        .week_of_year(
-            functionProperties,
-            DSL.literal(new ExprDateValue(date)), DSL.literal(mode));
+    FunctionExpression expression =
+        DSL.week_of_year(
+            functionProperties, DSL.literal(new ExprDateValue(date)), DSL.literal(mode));
     assertEquals(INTEGER, expression.type());
     assertEquals(String.format("week_of_year(DATE '%s', %d)", date, mode), expression.toString());
     assertEquals(integerValue(expectedResult), eval(expression));
   }
 
   private void weekOfYearQuery(String date, int mode, int expectedResult) {
-    FunctionExpression expression = DSL
-        .weekofyear(
-            functionProperties,
-            DSL.literal(new ExprDateValue(date)), DSL.literal(mode));
+    FunctionExpression expression =
+        DSL.weekofyear(functionProperties, DSL.literal(new ExprDateValue(date)), DSL.literal(mode));
     assertEquals(INTEGER, expression.type());
     assertEquals(String.format("weekofyear(DATE '%s', %d)", date, mode), expression.toString());
     assertEquals(integerValue(expectedResult), eval(expression));
   }
 
   private static Stream<Arguments> getTestDataForWeek() {
-    //Test the behavior of different modes passed into the 'week_of_year' function
+    // Test the behavior of different modes passed into the 'week_of_year' function
     return Stream.of(
         Arguments.of("2019-01-05", 0, 0),
         Arguments.of("2019-01-05", 1, 1),
@@ -1342,7 +1213,6 @@ class DateTimeFunctionTest extends ExpressionTestBase {
         Arguments.of("2019-01-05", 5, 0),
         Arguments.of("2019-01-05", 6, 1),
         Arguments.of("2019-01-05", 7, 53),
-
         Arguments.of("2019-01-06", 0, 1),
         Arguments.of("2019-01-06", 1, 1),
         Arguments.of("2019-01-06", 2, 1),
@@ -1351,7 +1221,6 @@ class DateTimeFunctionTest extends ExpressionTestBase {
         Arguments.of("2019-01-06", 5, 0),
         Arguments.of("2019-01-06", 6, 2),
         Arguments.of("2019-01-06", 7, 53),
-
         Arguments.of("2019-01-07", 0, 1),
         Arguments.of("2019-01-07", 1, 2),
         Arguments.of("2019-01-07", 2, 1),
@@ -1360,11 +1229,9 @@ class DateTimeFunctionTest extends ExpressionTestBase {
         Arguments.of("2019-01-07", 5, 1),
         Arguments.of("2019-01-07", 6, 2),
         Arguments.of("2019-01-07", 7, 1),
-
         Arguments.of("2000-01-01", 0, 0),
         Arguments.of("2000-01-01", 2, 52),
-        Arguments.of("1999-12-31", 0, 52)
-    );
+        Arguments.of("1999-12-31", 0, 52));
   }
 
   @ParameterizedTest(name = "{1}{2}")
@@ -1376,145 +1243,130 @@ class DateTimeFunctionTest extends ExpressionTestBase {
   }
 
   private void validateStringFormat(
-      FunctionExpression expr,
-      String expectedString,
-      int expectedResult) {
+      FunctionExpression expr, String expectedString, int expectedResult) {
     assertAll(
         () -> assertEquals(INTEGER, expr.type()),
         () -> assertEquals(expectedString, expr.toString()),
-        () -> assertEquals(integerValue(expectedResult), eval(expr))
-    );
+        () -> assertEquals(integerValue(expectedResult), eval(expr)));
   }
 
   private static Stream<Arguments> getTestDataForWeekFormats() {
     return Stream.of(
-        Arguments.of(DSL.literal(new ExprDateValue("2019-01-05")),
-            "DATE '2019-01-05'",
-            0),
-        Arguments.of(DSL.literal(new ExprDatetimeValue("2019-01-05 01:02:03")),
+        Arguments.of(DSL.literal(new ExprDateValue("2019-01-05")), "DATE '2019-01-05'", 0),
+        Arguments.of(
+            DSL.literal(new ExprDatetimeValue("2019-01-05 01:02:03")),
             "DATETIME '2019-01-05 01:02:03'",
             0),
-        Arguments.of(DSL.literal(new ExprTimestampValue("2019-01-05 01:02:03")),
+        Arguments.of(
+            DSL.literal(new ExprTimestampValue("2019-01-05 01:02:03")),
             "TIMESTAMP '2019-01-05 01:02:03'",
             0),
-        Arguments.of(
-            DSL.literal("2019-01-05"),
-            "\"2019-01-05\"",
-            0),
-        Arguments.of(
-            DSL.literal("2019-01-05 00:01:00"),
-            "\"2019-01-05 00:01:00\"",
-            0)
-    );
+        Arguments.of(DSL.literal("2019-01-05"), "\"2019-01-05\"", 0),
+        Arguments.of(DSL.literal("2019-01-05 00:01:00"), "\"2019-01-05 00:01:00\"", 0));
   }
 
   @ParameterizedTest(name = "{0}")
   @MethodSource("getTestDataForWeekFormats")
   public void testWeekFormats(
-      LiteralExpression arg,
-      String expectedString,
-      Integer expectedInteger) {
+      LiteralExpression arg, String expectedString, Integer expectedInteger) {
     validateStringFormat(
         DSL.week(functionProperties, arg),
-        String.format("week(%s)", expectedString), expectedInteger);
+        String.format("week(%s)", expectedString),
+        expectedInteger);
     validateStringFormat(
         DSL.week_of_year(functionProperties, arg),
-        String.format("week_of_year(%s)", expectedString), expectedInteger);
+        String.format("week_of_year(%s)", expectedString),
+        expectedInteger);
     validateStringFormat(
         DSL.weekofyear(functionProperties, arg),
-        String.format("weekofyear(%s)", expectedString), expectedInteger);
+        String.format("weekofyear(%s)", expectedString),
+        expectedInteger);
   }
 
   @Test
   public void testWeekOfYearWithTimeType() {
     assertAll(
-        () -> validateStringFormat(
-            DSL.week(
-                functionProperties,
-                DSL.literal(new ExprTimeValue("12:23:34")),
-                DSL.literal(0)),
-            "week(TIME '12:23:34', 0)",
-            LocalDate.now(functionProperties.getQueryStartClock()).get(ALIGNED_WEEK_OF_YEAR)),
-
-        () -> validateStringFormat(
-            DSL.week_of_year(functionProperties, DSL.literal(new ExprTimeValue("12:23:34"))),
-            "week_of_year(TIME '12:23:34')",
-            LocalDate.now(functionProperties.getQueryStartClock()).get(ALIGNED_WEEK_OF_YEAR)),
-
-        () -> validateStringFormat(
-            DSL.weekofyear(functionProperties, DSL.literal(new ExprTimeValue("12:23:34"))),
-            "weekofyear(TIME '12:23:34')",
-            LocalDate.now(functionProperties.getQueryStartClock()).get(ALIGNED_WEEK_OF_YEAR))
-    );
+        () ->
+            validateStringFormat(
+                DSL.week(
+                    functionProperties, DSL.literal(new ExprTimeValue("12:23:34")), DSL.literal(0)),
+                "week(TIME '12:23:34', 0)",
+                LocalDate.now(functionProperties.getQueryStartClock()).get(ALIGNED_WEEK_OF_YEAR)),
+        () ->
+            validateStringFormat(
+                DSL.week_of_year(functionProperties, DSL.literal(new ExprTimeValue("12:23:34"))),
+                "week_of_year(TIME '12:23:34')",
+                LocalDate.now(functionProperties.getQueryStartClock()).get(ALIGNED_WEEK_OF_YEAR)),
+        () ->
+            validateStringFormat(
+                DSL.weekofyear(functionProperties, DSL.literal(new ExprTimeValue("12:23:34"))),
+                "weekofyear(TIME '12:23:34')",
+                LocalDate.now(functionProperties.getQueryStartClock()).get(ALIGNED_WEEK_OF_YEAR)));
   }
 
   @Test
   public void modeInUnsupportedFormat() {
-    FunctionExpression expression1 = DSL
-        .week(functionProperties, DSL.literal(new ExprDateValue("2019-01-05")), DSL.literal(8));
+    FunctionExpression expression1 =
+        DSL.week(functionProperties, DSL.literal(new ExprDateValue("2019-01-05")), DSL.literal(8));
     SemanticCheckException exception =
         assertThrows(SemanticCheckException.class, () -> eval(expression1));
-    assertEquals("mode:8 is invalid, please use mode value between 0-7",
-        exception.getMessage());
+    assertEquals("mode:8 is invalid, please use mode value between 0-7", exception.getMessage());
 
-    FunctionExpression expression2 = DSL
-        .week(functionProperties, DSL.literal(new ExprDateValue("2019-01-05")), DSL.literal(-1));
+    FunctionExpression expression2 =
+        DSL.week(functionProperties, DSL.literal(new ExprDateValue("2019-01-05")), DSL.literal(-1));
     exception = assertThrows(SemanticCheckException.class, () -> eval(expression2));
-    assertEquals("mode:-1 is invalid, please use mode value between 0-7",
-        exception.getMessage());
+    assertEquals("mode:-1 is invalid, please use mode value between 0-7", exception.getMessage());
   }
 
   @Test
   public void testInvalidWeekOfYear() {
     assertAll(
-        //Test for WeekOfYear
-        //test invalid month
-        () -> assertThrows(
-            SemanticCheckException.class,
-            () -> weekOfYearQuery("2019-13-05 01:02:03", 0, 0)),
-        //test invalid day
-        () -> assertThrows(
-            SemanticCheckException.class,
-            () -> weekOfYearQuery("2019-01-50 01:02:03", 0, 0)),
-        //test invalid leap year
-        () -> assertThrows(
-            SemanticCheckException.class,
-            () -> weekOfYearQuery("2019-02-29 01:02:03", 0, 0)),
+        // Test for WeekOfYear
+        // test invalid month
+        () ->
+            assertThrows(
+                SemanticCheckException.class, () -> weekOfYearQuery("2019-13-05 01:02:03", 0, 0)),
+        // test invalid day
+        () ->
+            assertThrows(
+                SemanticCheckException.class, () -> weekOfYearQuery("2019-01-50 01:02:03", 0, 0)),
+        // test invalid leap year
+        () ->
+            assertThrows(
+                SemanticCheckException.class, () -> weekOfYearQuery("2019-02-29 01:02:03", 0, 0)),
 
-        //Test for Week_Of_Year
-        //test invalid month
-        () -> assertThrows(
-            SemanticCheckException.class,
-            () -> weekOfYearUnderscoresQuery("2019-13-05 01:02:03", 0, 0)),
-        //test invalid day
-        () -> assertThrows(
-            SemanticCheckException.class,
-            () -> weekOfYearUnderscoresQuery("2019-01-50 01:02:03", 0, 0)),
-        //test invalid leap year
-        () -> assertThrows(
-            SemanticCheckException.class,
-            () -> weekOfYearUnderscoresQuery("2019-02-29 01:02:03", 0, 0))
-    );
+        // Test for Week_Of_Year
+        // test invalid month
+        () ->
+            assertThrows(
+                SemanticCheckException.class,
+                () -> weekOfYearUnderscoresQuery("2019-13-05 01:02:03", 0, 0)),
+        // test invalid day
+        () ->
+            assertThrows(
+                SemanticCheckException.class,
+                () -> weekOfYearUnderscoresQuery("2019-01-50 01:02:03", 0, 0)),
+        // test invalid leap year
+        () ->
+            assertThrows(
+                SemanticCheckException.class,
+                () -> weekOfYearUnderscoresQuery("2019-02-29 01:02:03", 0, 0)));
   }
 
   @Test
   public void weekOfYearModeInUnsupportedFormat() {
-    FunctionExpression expression1 = DSL
-        .week_of_year(
-            functionProperties,
-            DSL.literal(new ExprDateValue("2019-01-05")), DSL.literal(8));
+    FunctionExpression expression1 =
+        DSL.week_of_year(
+            functionProperties, DSL.literal(new ExprDateValue("2019-01-05")), DSL.literal(8));
     SemanticCheckException exception =
         assertThrows(SemanticCheckException.class, () -> eval(expression1));
-    assertEquals("mode:8 is invalid, please use mode value between 0-7",
-        exception.getMessage());
+    assertEquals("mode:8 is invalid, please use mode value between 0-7", exception.getMessage());
 
-    FunctionExpression expression2 = DSL
-        .week_of_year(
-            functionProperties,
-            DSL.literal(new ExprDateValue("2019-01-05")), DSL.literal(-1));
+    FunctionExpression expression2 =
+        DSL.week_of_year(
+            functionProperties, DSL.literal(new ExprDateValue("2019-01-05")), DSL.literal(-1));
     exception = assertThrows(SemanticCheckException.class, () -> eval(expression2));
-    assertEquals("mode:-1 is invalid, please use mode value between 0-7",
-        exception.getMessage());
+    assertEquals("mode:-1 is invalid, please use mode value between 0-7", exception.getMessage());
   }
 
   @Test
@@ -1557,15 +1409,14 @@ class DateTimeFunctionTest extends ExpressionTestBase {
   public void date_format() {
     dateFormatTesters.forEach(this::testDateFormat);
     String timestamp = "1998-01-31 13:14:15.012345";
-    String timestampFormat = "%a %b %c %D %d %e %f %H %h %I %i %j %k %l %M "
-        + "%m %p %r %S %s %T %% %P";
-    String timestampFormatted = "Sat Jan 01 31st 31 31 012345 13 01 01 14 031 13 1 "
-        + "January 01 PM 01:14:15 PM 15 15 13:14:15 % P";
+    String timestampFormat =
+        "%a %b %c %D %d %e %f %H %h %I %i %j %k %l %M " + "%m %p %r %S %s %T %% %P";
+    String timestampFormatted =
+        "Sat Jan 01 31st 31 31 012345 13 01 01 14 031 13 1 "
+            + "January 01 PM 01:14:15 PM 15 15 13:14:15 % P";
 
-    FunctionExpression expr = DSL.date_format(
-        functionProperties,
-        DSL.literal(timestamp),
-        DSL.literal(timestampFormat));
+    FunctionExpression expr =
+        DSL.date_format(functionProperties, DSL.literal(timestamp), DSL.literal(timestampFormat));
     assertEquals(STRING, expr.type());
     assertEquals(timestampFormatted, eval(expr).stringValue());
   }
@@ -1578,108 +1429,55 @@ class DateTimeFunctionTest extends ExpressionTestBase {
 
   @Test
   public void testDateFormatWithTimeType() {
-    FunctionExpression expr = DSL.date_format(
-        functionProperties,
-        DSL.literal(new ExprTimeValue("12:23:34")),
-        DSL.literal(new ExprStringValue("%m %d")));
+    FunctionExpression expr =
+        DSL.date_format(
+            functionProperties,
+            DSL.literal(new ExprTimeValue("12:23:34")),
+            DSL.literal(new ExprStringValue("%m %d")));
 
+    assertEquals(expr.toString(), "date_format(TIME '12:23:34', \"%m %d\")");
     assertEquals(
-        expr.toString(),
-        "date_format(TIME '12:23:34', \"%m %d\")"
-    );
-    assertEquals(
-        LocalDateTime.now(
-            functionProperties.getQueryStartClock()).format(
-                DateTimeFormatter.ofPattern("\"MM dd\"")),
-        eval(expr).toString()
-    );
+        LocalDateTime.now(functionProperties.getQueryStartClock())
+            .format(DateTimeFormatter.ofPattern("\"MM dd\"")),
+        eval(expr).toString());
   }
 
   @Test
   public void testTimeFormatWithDateType() {
-    FunctionExpression expr = DSL.time_format(
-        functionProperties,
-        DSL.literal(new ExprDateValue("2023-01-16")),
-        DSL.literal(new ExprStringValue("%h %s")));
+    FunctionExpression expr =
+        DSL.time_format(
+            functionProperties,
+            DSL.literal(new ExprDateValue("2023-01-16")),
+            DSL.literal(new ExprStringValue("%h %s")));
 
-    assertEquals(
-        expr.toString(),
-        "time_format(DATE '2023-01-16', \"%h %s\")"
-    );
-    assertEquals(
-        "\"12 00\"",
-        eval(expr).toString()
-    );
+    assertEquals(expr.toString(), "time_format(DATE '2023-01-16', \"%h %s\")");
+    assertEquals("\"12 00\"", eval(expr).toString());
   }
 
   private static Stream<Arguments> getTestDataForTimeFormat() {
     return Stream.of(
-        Arguments.of(
-            DSL.literal("1998-01-31 13:14:15.012345"),
-            DSL.literal("%f"),
-            "012345"),
-        Arguments.of(
-            DSL.literal("1998-01-31 13:14:15.002345"),
-            DSL.literal("%f"),
-            "002345"),
-        Arguments.of(
-            DSL.literal("1998-01-31 13:14:15.012300"),
-            DSL.literal("%f"),
-            "012300"),
-        Arguments.of(
-            DSL.literal("1998-01-31 13:14:15.012345"),
-            DSL.literal("%H"),
-            "13"),
-        Arguments.of(
-            DSL.literal("1998-01-31 13:14:15.012345"),
-            DSL.literal("%h"),
-            "01"),
-        Arguments.of(
-            DSL.literal("1998-01-31 13:14:15.012345"),
-            DSL.literal("%I"),
-            "01"),
-        Arguments.of(
-            DSL.literal("1998-01-31 13:14:15.012345"),
-            DSL.literal("%i"),
-            "14"),
-        Arguments.of(
-            DSL.literal("1998-01-31 13:14:15.012345"),
-            DSL.literal("%k"),
-            "13"),
-        Arguments.of(
-            DSL.literal("1998-01-31 13:14:15.012345"),
-            DSL.literal("%l"),
-            "1"),
-        Arguments.of(
-            DSL.literal("1998-01-31 13:14:15.012345"),
-            DSL.literal("%p"),
-            "PM"),
-        Arguments.of(
-            DSL.literal("1998-01-31 13:14:15.012345"),
-            DSL.literal("%r"),
-            "01:14:15 PM"),
-        Arguments.of(
-            DSL.literal("1998-01-31 13:14:15.012345"),
-            DSL.literal("%S"),
-            "15"),
-        Arguments.of(
-            DSL.literal("1998-01-31 13:14:15.012345"),
-            DSL.literal("%s"),
-            "15"),
-        Arguments.of(
-            DSL.literal("1998-01-31 13:14:15.012345"),
-            DSL.literal("%T"),
-            "13:14:15"),
+        Arguments.of(DSL.literal("1998-01-31 13:14:15.012345"), DSL.literal("%f"), "012345"),
+        Arguments.of(DSL.literal("1998-01-31 13:14:15.002345"), DSL.literal("%f"), "002345"),
+        Arguments.of(DSL.literal("1998-01-31 13:14:15.012300"), DSL.literal("%f"), "012300"),
+        Arguments.of(DSL.literal("1998-01-31 13:14:15.012345"), DSL.literal("%H"), "13"),
+        Arguments.of(DSL.literal("1998-01-31 13:14:15.012345"), DSL.literal("%h"), "01"),
+        Arguments.of(DSL.literal("1998-01-31 13:14:15.012345"), DSL.literal("%I"), "01"),
+        Arguments.of(DSL.literal("1998-01-31 13:14:15.012345"), DSL.literal("%i"), "14"),
+        Arguments.of(DSL.literal("1998-01-31 13:14:15.012345"), DSL.literal("%k"), "13"),
+        Arguments.of(DSL.literal("1998-01-31 13:14:15.012345"), DSL.literal("%l"), "1"),
+        Arguments.of(DSL.literal("1998-01-31 13:14:15.012345"), DSL.literal("%p"), "PM"),
+        Arguments.of(DSL.literal("1998-01-31 13:14:15.012345"), DSL.literal("%r"), "01:14:15 PM"),
+        Arguments.of(DSL.literal("1998-01-31 13:14:15.012345"), DSL.literal("%S"), "15"),
+        Arguments.of(DSL.literal("1998-01-31 13:14:15.012345"), DSL.literal("%s"), "15"),
+        Arguments.of(DSL.literal("1998-01-31 13:14:15.012345"), DSL.literal("%T"), "13:14:15"),
         Arguments.of(
             DSL.literal("1998-01-31 13:14:15.012345"),
             DSL.literal("%f %H %h %I %i %k %l %p %r %S %s %T"),
-            "012345 13 01 01 14 13 1 PM 01:14:15 PM 15 15 13:14:15")
-    );
+            "012345 13 01 01 14 13 1 PM 01:14:15 PM 15 15 13:14:15"));
   }
 
-  private void timeFormatQuery(LiteralExpression arg,
-                               LiteralExpression format,
-                               String expectedResult) {
+  private void timeFormatQuery(
+      LiteralExpression arg, LiteralExpression format, String expectedResult) {
     FunctionExpression expr = DSL.time_format(functionProperties, arg, format);
     assertEquals(STRING, expr.type());
     assertEquals(expectedResult, eval(expr).stringValue());
@@ -1687,30 +1485,18 @@ class DateTimeFunctionTest extends ExpressionTestBase {
 
   @ParameterizedTest(name = "{0}{1}")
   @MethodSource("getTestDataForTimeFormat")
-  public void testTimeFormat(LiteralExpression arg,
-                             LiteralExpression format,
-                             String expectedResult) {
+  public void testTimeFormat(
+      LiteralExpression arg, LiteralExpression format, String expectedResult) {
     timeFormatQuery(arg, format, expectedResult);
   }
 
   private static Stream<Arguments> getInvalidTestDataForTimeFormat() {
     return Stream.of(
-        Arguments.of(
-            DSL.literal("asdfasdf"),
-            DSL.literal("%f")),
-        Arguments.of(
-            DSL.literal("12345"),
-            DSL.literal("%h")),
-        Arguments.of(
-            DSL.literal("10:11:61"),
-            DSL.literal("%h")),
-        Arguments.of(
-            DSL.literal("10:61:12"),
-            DSL.literal("%h")),
-        Arguments.of(
-            DSL.literal("61:11:12"),
-            DSL.literal("%h"))
-    );
+        Arguments.of(DSL.literal("asdfasdf"), DSL.literal("%f")),
+        Arguments.of(DSL.literal("12345"), DSL.literal("%h")),
+        Arguments.of(DSL.literal("10:11:61"), DSL.literal("%h")),
+        Arguments.of(DSL.literal("10:61:12"), DSL.literal("%h")),
+        Arguments.of(DSL.literal("61:11:12"), DSL.literal("%h")));
   }
 
   @ParameterizedTest(name = "{0}{1}")
@@ -1734,41 +1520,39 @@ class DateTimeFunctionTest extends ExpressionTestBase {
         Arguments.of("%V"),
         Arguments.of("%v"),
         Arguments.of("%X"),
-        Arguments.of("%x")
-    );
+        Arguments.of("%x"));
   }
 
   @ParameterizedTest(name = "{0}")
   @MethodSource("getInvalidTimeFormatHandlers")
   public void testTimeFormatWithInvalidHandlers(String handler) {
-    FunctionExpression expr = DSL.time_format(
-        functionProperties,
-        DSL.literal("12:23:34"),
-        DSL.literal(handler));
+    FunctionExpression expr =
+        DSL.time_format(functionProperties, DSL.literal("12:23:34"), DSL.literal(handler));
     assertEquals(ExprNullValue.of(), eval(expr));
   }
 
   @Test
   public void testTimeFormatWithDateHandlers() {
-    FunctionExpression expr = DSL.time_format(
-        functionProperties,
-        DSL.literal(new ExprDateValue("2023-01-17")),
-        DSL.literal("%c %d %e %m %Y %y"));
-    assertEquals(
-        "0 00 0 00 0000 00",
-        eval(expr).stringValue());
+    FunctionExpression expr =
+        DSL.time_format(
+            functionProperties,
+            DSL.literal(new ExprDateValue("2023-01-17")),
+            DSL.literal("%c %d %e %m %Y %y"));
+    assertEquals("0 00 0 00 0000 00", eval(expr).stringValue());
   }
 
   @Test
   public void testTimeFormatAndDateFormatReturnSameResult() {
-    FunctionExpression timeFormatExpr = DSL.time_format(
-        functionProperties,
-        DSL.literal(new ExprDateValue("1998-01-31 13:14:15.012345")),
-        DSL.literal("%f %H %h %I %i %k %l %p %r %S %s %T"));
-    FunctionExpression dateFormatExpr = DSL.date_format(
-        functionProperties,
-        DSL.literal(new ExprDateValue("1998-01-31 13:14:15.012345")),
-        DSL.literal("%f %H %h %I %i %k %l %p %r %S %s %T"));
+    FunctionExpression timeFormatExpr =
+        DSL.time_format(
+            functionProperties,
+            DSL.literal(new ExprDateValue("1998-01-31 13:14:15.012345")),
+            DSL.literal("%f %H %h %I %i %k %l %p %r %S %s %T"));
+    FunctionExpression dateFormatExpr =
+        DSL.date_format(
+            functionProperties,
+            DSL.literal(new ExprDateValue("1998-01-31 13:14:15.012345")),
+            DSL.literal("%f %H %h %I %i %k %l %p %r %S %s %T"));
 
     assertEquals(eval(dateFormatExpr), eval(timeFormatExpr));
   }

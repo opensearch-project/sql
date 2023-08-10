@@ -3,7 +3,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-
 package org.opensearch.sql.ast.expression;
 
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.CAST_TO_BOOLEAN;
@@ -33,9 +32,7 @@ import org.opensearch.sql.ast.Node;
 import org.opensearch.sql.data.type.ExprType;
 import org.opensearch.sql.expression.function.FunctionName;
 
-/**
- * AST node that represents Cast clause.
- */
+/** AST node that represents Cast clause. */
 @AllArgsConstructor
 @EqualsAndHashCode(callSuper = false)
 @Getter
@@ -59,19 +56,16 @@ public class Cast extends UnresolvedExpression {
           .put("datetime", CAST_TO_DATETIME.getName())
           .build();
 
-  /**
-   * The source expression cast from.
-   */
+  /** The source expression cast from. */
   private final UnresolvedExpression expression;
 
-  /**
-   * Expression that represents name of the target type.
-   */
+  /** Expression that represents name of the target type. */
   private final UnresolvedExpression convertedType;
 
   /**
    * Check if the given function name is a cast function or not.
-   * @param name  function name
+   *
+   * @param name function name
    * @return true if cast function, otherwise false.
    */
   public static boolean isCastFunction(FunctionName name) {
@@ -80,7 +74,8 @@ public class Cast extends UnresolvedExpression {
 
   /**
    * Get the cast function name for a given target data type.
-   * @param targetType  target data type
+   *
+   * @param targetType target data type
    * @return cast function name corresponding
    */
   public static FunctionName getCastFunctionName(ExprType targetType) {

@@ -35,11 +35,9 @@ import org.opensearch.sql.storage.StorageEngine;
 @ExtendWith(MockitoExtension.class)
 public class DataSourceTableScanTest {
 
-  @Mock
-  private DataSourceService dataSourceService;
+  @Mock private DataSourceService dataSourceService;
 
-  @Mock
-  private StorageEngine storageEngine;
+  @Mock private StorageEngine storageEngine;
 
   private DataSourceTableScan dataSourceTableScan;
 
@@ -58,10 +56,16 @@ public class DataSourceTableScanTest {
     Set<DataSource> dataSourceSet = new HashSet<>();
     dataSourceSet.add(new DataSource("prometheus", DataSourceType.PROMETHEUS, storageEngine));
     dataSourceSet.add(new DataSource("opensearch", DataSourceType.OPENSEARCH, storageEngine));
-    Set<DataSourceMetadata> dataSourceMetadata = dataSourceSet.stream()
-        .map(dataSource -> new DataSourceMetadata(dataSource.getName(),
-        dataSource.getConnectorType(), Collections.emptyList(), ImmutableMap.of()))
-        .collect(Collectors.toSet());
+    Set<DataSourceMetadata> dataSourceMetadata =
+        dataSourceSet.stream()
+            .map(
+                dataSource ->
+                    new DataSourceMetadata(
+                        dataSource.getName(),
+                        dataSource.getConnectorType(),
+                        Collections.emptyList(),
+                        ImmutableMap.of()))
+            .collect(Collectors.toSet());
     when(dataSourceService.getDataSourceMetadata(true)).thenReturn(dataSourceMetadata);
 
     assertFalse(dataSourceTableScan.hasNext());
@@ -74,11 +78,14 @@ public class DataSourceTableScanTest {
 
     Set<ExprValue> expectedExprTupleValues = new HashSet<>();
     for (DataSource dataSource : dataSourceSet) {
-      expectedExprTupleValues.add(new ExprTupleValue(new LinkedHashMap<>(ImmutableMap.of(
-          "DATASOURCE_NAME", ExprValueUtils.stringValue(dataSource.getName()),
-          "CONNECTOR_TYPE", ExprValueUtils.stringValue(dataSource.getConnectorType().name())))));
+      expectedExprTupleValues.add(
+          new ExprTupleValue(
+              new LinkedHashMap<>(
+                  ImmutableMap.of(
+                      "DATASOURCE_NAME", ExprValueUtils.stringValue(dataSource.getName()),
+                      "CONNECTOR_TYPE",
+                          ExprValueUtils.stringValue(dataSource.getConnectorType().name())))));
     }
     assertEquals(expectedExprTupleValues, exprTupleValues);
   }
-
 }

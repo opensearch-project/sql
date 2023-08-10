@@ -3,7 +3,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-
 package org.opensearch.sql.planner.physical;
 
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -29,8 +28,7 @@ import org.opensearch.sql.expression.DSL;
 
 @ExtendWith(MockitoExtension.class)
 class RemoveOperatorTest extends PhysicalPlanTestBase {
-  @Mock
-  private PhysicalPlan inputPlan;
+  @Mock private PhysicalPlan inputPlan;
 
   @Test
   public void remove_one_field() {

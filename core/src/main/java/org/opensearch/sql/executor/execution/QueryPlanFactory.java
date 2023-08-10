@@ -27,9 +27,7 @@ import org.opensearch.sql.executor.QueryId;
 import org.opensearch.sql.executor.QueryService;
 import org.opensearch.sql.executor.pagination.CanPaginateVisitor;
 
-/**
- * QueryExecution Factory.
- */
+/** QueryExecution Factory. */
 @RequiredArgsConstructor
 public class QueryPlanFactory
     extends AbstractNodeVisitor<
@@ -38,14 +36,12 @@ public class QueryPlanFactory
             Optional<ResponseListener<ExecutionEngine.QueryResponse>>,
             Optional<ResponseListener<ExecutionEngine.ExplainResponse>>>> {
 
-  /**
-   * Query Service.
-   */
+  /** Query Service. */
   private final QueryService queryService;
 
   /**
-   * NO_CONSUMER_RESPONSE_LISTENER should never be called. It is only used as constructor
-   * parameter of {@link QueryPlan}.
+   * NO_CONSUMER_RESPONSE_LISTENER should never be called. It is only used as constructor parameter
+   * of {@link QueryPlan}.
    */
   @VisibleForTesting
   protected static final ResponseListener<ExecutionEngine.QueryResponse>
@@ -64,9 +60,7 @@ public class QueryPlanFactory
             }
           };
 
-  /**
-   * Create QueryExecution from Statement.
-   */
+  /** Create QueryExecution from Statement. */
   public AbstractPlan create(
       Statement statement,
       Optional<ResponseListener<ExecutionEngine.QueryResponse>> queryListener,
@@ -74,12 +68,12 @@ public class QueryPlanFactory
     return statement.accept(this, Pair.of(queryListener, explainListener));
   }
 
-  /**
-   * Creates a QueryPlan from a cursor.
-   */
-  public AbstractPlan create(String cursor, boolean isExplain,
-                             ResponseListener<ExecutionEngine.QueryResponse> queryResponseListener,
-                             ResponseListener<ExecutionEngine.ExplainResponse> explainListener) {
+  /** Creates a QueryPlan from a cursor. */
+  public AbstractPlan create(
+      String cursor,
+      boolean isExplain,
+      ResponseListener<ExecutionEngine.QueryResponse> queryResponseListener,
+      ResponseListener<ExecutionEngine.ExplainResponse> explainListener) {
     QueryId queryId = QueryId.queryId();
     var plan = new QueryPlan(queryId, new FetchCursor(cursor), queryService, queryResponseListener);
     return isExplain ? new ExplainPlan(queryId, plan, explainListener) : plan;
@@ -89,27 +83,32 @@ public class QueryPlanFactory
     return plan.accept(new CanPaginateVisitor(), null);
   }
 
-  /**
-   * Creates a {@link CloseCursor} command on a cursor.
-   */
-  public AbstractPlan createCloseCursor(String cursor,
-      ResponseListener<ExecutionEngine.QueryResponse> queryResponseListener) {
-    return new CommandPlan(QueryId.queryId(), new CloseCursor().attach(new FetchCursor(cursor)),
-        queryService, queryResponseListener);
+  /** Creates a {@link CloseCursor} command on a cursor. */
+  public AbstractPlan createCloseCursor(
+      String cursor, ResponseListener<ExecutionEngine.QueryResponse> queryResponseListener) {
+    return new CommandPlan(
+        QueryId.queryId(),
+        new CloseCursor().attach(new FetchCursor(cursor)),
+        queryService,
+        queryResponseListener);
   }
 
   @Override
   public AbstractPlan visitQuery(
       Query node,
-      Pair<Optional<ResponseListener<ExecutionEngine.QueryResponse>>,
-           Optional<ResponseListener<ExecutionEngine.ExplainResponse>>>
+      Pair<
+              Optional<ResponseListener<ExecutionEngine.QueryResponse>>,
+              Optional<ResponseListener<ExecutionEngine.ExplainResponse>>>
           context) {
     Preconditions.checkArgument(
         context.getLeft().isPresent(), "[BUG] query listener must be not null");
 
     if (node.getFetchSize() > 0) {
       if (canConvertToCursor(node.getPlan())) {
-        return new QueryPlan(QueryId.queryId(), node.getPlan(), node.getFetchSize(),
+        return new QueryPlan(
+            QueryId.queryId(),
+            node.getPlan(),
+            node.getFetchSize(),
             queryService,
             context.getLeft().get());
       } else {
@@ -117,24 +116,24 @@ public class QueryPlanFactory
         throw new UnsupportedCursorRequestException();
       }
     } else {
-      return new QueryPlan(QueryId.queryId(), node.getPlan(), queryService,
-          context.getLeft().get());
+      return new QueryPlan(
+          QueryId.queryId(), node.getPlan(), queryService, context.getLeft().get());
     }
   }
 
   @Override
   public AbstractPlan visitExplain(
       Explain node,
-      Pair<Optional<ResponseListener<ExecutionEngine.QueryResponse>>,
-           Optional<ResponseListener<ExecutionEngine.ExplainResponse>>>
+      Pair<
+              Optional<ResponseListener<ExecutionEngine.QueryResponse>>,
+              Optional<ResponseListener<ExecutionEngine.ExplainResponse>>>
           context) {
     Preconditions.checkArgument(
         context.getRight().isPresent(), "[BUG] explain listener must be not null");
 
     return new ExplainPlan(
         QueryId.queryId(),
-        create(node.getStatement(),
-            Optional.of(NO_CONSUMER_RESPONSE_LISTENER), Optional.empty()),
+        create(node.getStatement(), Optional.of(NO_CONSUMER_RESPONSE_LISTENER), Optional.empty()),
         context.getRight().get());
   }
 }

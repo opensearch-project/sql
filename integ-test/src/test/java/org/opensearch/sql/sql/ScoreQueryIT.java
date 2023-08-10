@@ -5,20 +5,19 @@
 
 package org.opensearch.sql.sql;
 
-import org.json.JSONObject;
-import org.junit.Assert;
-import org.junit.Test;
-import org.opensearch.sql.legacy.SQLIntegTestCase;
-import org.opensearch.sql.legacy.TestsConstants;
-
-import java.io.IOException;
-import java.util.Locale;
-
 import static org.hamcrest.Matchers.containsString;
 import static org.opensearch.sql.util.MatcherUtils.rows;
 import static org.opensearch.sql.util.MatcherUtils.schema;
 import static org.opensearch.sql.util.MatcherUtils.verifyDataRows;
 import static org.opensearch.sql.util.MatcherUtils.verifySchema;
+
+import java.io.IOException;
+import java.util.Locale;
+import org.json.JSONObject;
+import org.junit.Assert;
+import org.junit.Test;
+import org.opensearch.sql.legacy.SQLIntegTestCase;
+import org.opensearch.sql.legacy.TestsConstants;
 
 public class ScoreQueryIT extends SQLIntegTestCase {
   @Override

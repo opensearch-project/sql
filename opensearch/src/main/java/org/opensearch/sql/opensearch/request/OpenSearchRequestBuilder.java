@@ -14,6 +14,7 @@ import static org.opensearch.search.sort.FieldSortBuilder.DOC_FIELD_NAME;
 import static org.opensearch.search.sort.SortOrder.ASC;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
@@ -98,15 +99,19 @@ public class OpenSearchRequestBuilder {
   public OpenSearchRequest build(OpenSearchRequest.IndexName indexName,
                                  int maxResultWindow, TimeValue scrollTimeout) {
     int size = requestedTotalSize;
+    FetchSourceContext fetchSource = this.sourceBuilder.fetchSource();
+    List<String> includes = fetchSource != null
+        ? Arrays.asList(fetchSource.includes())
+        : List.of();
     if (pageSize == null) {
       if (startFrom + size > maxResultWindow) {
         sourceBuilder.size(maxResultWindow - startFrom);
         return new OpenSearchScrollRequest(
-            indexName, scrollTimeout, sourceBuilder, exprValueFactory);
+            indexName, scrollTimeout, sourceBuilder, exprValueFactory, includes);
       } else {
         sourceBuilder.from(startFrom);
         sourceBuilder.size(requestedTotalSize);
-        return new OpenSearchQueryRequest(indexName, sourceBuilder, exprValueFactory);
+        return new OpenSearchQueryRequest(indexName, sourceBuilder, exprValueFactory, includes);
       }
     } else {
       if (startFrom != 0) {
@@ -114,7 +119,7 @@ public class OpenSearchRequestBuilder {
       }
       sourceBuilder.size(pageSize);
       return new OpenSearchScrollRequest(indexName, scrollTimeout,
-          sourceBuilder, exprValueFactory);
+          sourceBuilder, exprValueFactory, includes);
     }
   }
 

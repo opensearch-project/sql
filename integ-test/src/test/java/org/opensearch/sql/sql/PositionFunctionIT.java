@@ -5,15 +5,15 @@
 
 package org.opensearch.sql.sql;
 
-import org.json.JSONObject;
-import org.junit.Test;
-import org.opensearch.sql.legacy.SQLIntegTestCase;
-import org.opensearch.sql.legacy.TestsConstants;
-
 import static org.opensearch.sql.util.MatcherUtils.rows;
 import static org.opensearch.sql.util.MatcherUtils.schema;
 import static org.opensearch.sql.util.MatcherUtils.verifyDataRows;
 import static org.opensearch.sql.util.MatcherUtils.verifySchema;
+
+import org.json.JSONObject;
+import org.junit.Test;
+import org.opensearch.sql.legacy.SQLIntegTestCase;
+import org.opensearch.sql.legacy.TestsConstants;
 
 public class PositionFunctionIT extends SQLIntegTestCase {
 

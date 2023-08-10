@@ -3,7 +3,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-
 package org.opensearch.sql.planner.logical;
 
 import java.util.Collections;
@@ -18,9 +17,7 @@ public class LogicalLimit extends LogicalPlan {
   private final Integer limit;
   private final Integer offset;
 
-  /**
-   * Constructor of LogicalLimit.
-   */
+  /** Constructor of LogicalLimit. */
   public LogicalLimit(LogicalPlan input, Integer limit, Integer offset) {
     super(Collections.singletonList(input));
     this.limit = limit;
