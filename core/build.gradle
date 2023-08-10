@@ -38,6 +38,7 @@ repositories {
 // spotless https://github.com/opensearch-project/sql/issues/1101
 checkstyleTest.ignoreFailures = true
 checkstyleMain.ignoreFailures = true
+checkstyleTestFixtures.ignoreFailures = true
 
 pitest {
     targetClasses = ['org.opensearch.sql.*']
