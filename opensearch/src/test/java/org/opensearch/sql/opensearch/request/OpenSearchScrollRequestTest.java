@@ -9,7 +9,6 @@ package org.opensearch.sql.opensearch.request;
 import static org.junit.jupiter.api.Assertions.assertAll;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -17,8 +16,6 @@ import static org.junit.jupiter.api.Assertions.fail;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.opensearch.sql.opensearch.request.OpenSearchScrollRequest.NO_SCROLL_ID;
 
@@ -73,22 +70,13 @@ class OpenSearchScrollRequestTest {
   private final SearchSourceBuilder searchSourceBuilder = new SearchSourceBuilder();
   private final OpenSearchScrollRequest request = new OpenSearchScrollRequest(
       INDEX_NAME, SCROLL_TIMEOUT,
-      searchSourceBuilder, factory);
+      searchSourceBuilder, factory, List.of());
 
   @Test
   void constructor() {
-    searchSourceBuilder.fetchSource(new String[] {"test"}, null);
     var request = new OpenSearchScrollRequest(INDEX_NAME, SCROLL_TIMEOUT,
-        searchSourceBuilder, factory);
-    assertNotEquals(List.of(), request.getIncludes());
-  }
-
-  @Test
-  void constructor2() {
-    searchSourceBuilder.fetchSource(new String[]{"test"}, null);
-    var request = new OpenSearchScrollRequest(INDEX_NAME, SCROLL_TIMEOUT, searchSourceBuilder,
-        factory);
-    assertNotEquals(List.of(), request.getIncludes());
+        searchSourceBuilder, factory, List.of("test"));
+    assertEquals(List.of("test"), request.getIncludes());
   }
 
   @Test
@@ -134,7 +122,8 @@ class OpenSearchScrollRequestTest {
         new OpenSearchRequest.IndexName("test"),
         TimeValue.timeValueMinutes(1),
         sourceBuilder,
-        factory
+        factory,
+        List.of()
     );
 
     when(searchResponse.getHits()).thenReturn(searchHits);
@@ -150,14 +139,14 @@ class OpenSearchScrollRequestTest {
         new OpenSearchRequest.IndexName("test"),
         TimeValue.timeValueMinutes(1),
         sourceBuilder,
-        factory
+        factory,
+        List.of()
     );
 
     when(searchResponse.getHits()).thenReturn(searchHits);
     when(searchHits.getHits()).thenReturn(new SearchHit[] {searchHit});
 
     OpenSearchResponse response = request.search((sr) -> searchResponse, (sr) -> fail());
-    verify(sourceBuilder, times(1)).fetchSource();
     assertFalse(response.isEmpty());
   }
 
@@ -169,7 +158,8 @@ class OpenSearchScrollRequestTest {
         new OpenSearchRequest.IndexName("test"),
         TimeValue.timeValueMinutes(1),
         sourceBuilder,
-        factory
+        factory,
+        List.of()
     );
     var outStream = new BytesStreamOutput();
     request.writeTo(outStream);
@@ -193,7 +183,8 @@ class OpenSearchScrollRequestTest {
         new OpenSearchRequest.IndexName("test"),
         TimeValue.timeValueMinutes(1),
         sourceBuilder,
-        factory
+        factory,
+        List.of()
     );
 
     when(searchResponse.getHits()).thenReturn(searchHits);
@@ -319,23 +310,5 @@ class OpenSearchScrollRequestTest {
   void setScrollId() {
     request.setScrollId("test");
     assertEquals("test", request.getScrollId());
-  }
-
-  @Test
-  void includes() {
-
-    assertIncludes(List.of(), searchSourceBuilder);
-
-    searchSourceBuilder.fetchSource((String[])null, (String[])null);
-    assertIncludes(List.of(), searchSourceBuilder);
-
-    searchSourceBuilder.fetchSource(new String[] {"test"}, null);
-    assertIncludes(List.of("test"), searchSourceBuilder);
-
-  }
-
-  void assertIncludes(List<String> expected, SearchSourceBuilder sourceBuilder) {
-    assertEquals(expected, new OpenSearchScrollRequest(
-        INDEX_NAME, SCROLL_TIMEOUT, sourceBuilder, factory).getIncludes());
   }
 }

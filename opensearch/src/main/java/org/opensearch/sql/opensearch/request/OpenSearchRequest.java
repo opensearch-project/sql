@@ -24,6 +24,7 @@ import org.opensearch.sql.opensearch.response.OpenSearchResponse;
  * OpenSearch search request.
  */
 public interface OpenSearchRequest extends Writeable {
+
   /**
    * Default query timeout in minutes.
    */
