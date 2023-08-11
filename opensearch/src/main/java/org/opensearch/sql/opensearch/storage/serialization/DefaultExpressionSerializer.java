@@ -3,7 +3,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-
 package org.opensearch.sql.opensearch.storage.serialization;
 
 import java.io.ByteArrayInputStream;
@@ -14,9 +13,7 @@ import java.io.ObjectOutputStream;
 import java.util.Base64;
 import org.opensearch.sql.expression.Expression;
 
-/**
- * Default serializer that (de-)serialize expressions by JDK serialization.
- */
+/** Default serializer that (de-)serialize expressions by JDK serialization. */
 public class DefaultExpressionSerializer implements ExpressionSerializer {
 
   @Override
@@ -42,5 +39,4 @@ public class DefaultExpressionSerializer implements ExpressionSerializer {
       throw new IllegalStateException("Failed to deserialize expression code: " + code, e);
     }
   }
-
 }

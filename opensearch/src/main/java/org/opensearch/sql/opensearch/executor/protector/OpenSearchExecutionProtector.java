@@ -3,7 +3,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-
 package org.opensearch.sql.opensearch.executor.protector;
 
 import lombok.RequiredArgsConstructor;
@@ -28,15 +27,11 @@ import org.opensearch.sql.planner.physical.ValuesOperator;
 import org.opensearch.sql.planner.physical.WindowOperator;
 import org.opensearch.sql.storage.TableScanOperator;
 
-/**
- * OpenSearch Execution Protector.
- */
+/** OpenSearch Execution Protector. */
 @RequiredArgsConstructor
 public class OpenSearchExecutionProtector extends ExecutionProtector {
 
-  /**
-   * OpenSearch resource monitor.
-   */
+  /** OpenSearch resource monitor. */
   private final ResourceMonitor resourceMonitor;
 
   public PhysicalPlan protect(PhysicalPlan physicalPlan) {
@@ -44,8 +39,8 @@ public class OpenSearchExecutionProtector extends ExecutionProtector {
   }
 
   /**
-   * Don't protect {@link CursorCloseOperator} and entire nested tree, because
-   * {@link CursorCloseOperator} as designed as no-op.
+   * Don't protect {@link CursorCloseOperator} and entire nested tree, because {@link
+   * CursorCloseOperator} as designed as no-op.
    */
   @Override
   public PhysicalPlan visitCursorClose(CursorCloseOperator node, Object context) {
@@ -59,14 +54,18 @@ public class OpenSearchExecutionProtector extends ExecutionProtector {
 
   @Override
   public PhysicalPlan visitAggregation(AggregationOperator node, Object context) {
-    return new AggregationOperator(visitInput(node.getInput(), context), node.getAggregatorList(),
-        node.getGroupByExprList());
+    return new AggregationOperator(
+        visitInput(node.getInput(), context), node.getAggregatorList(), node.getGroupByExprList());
   }
 
   @Override
   public PhysicalPlan visitRareTopN(RareTopNOperator node, Object context) {
-    return new RareTopNOperator(visitInput(node.getInput(), context), node.getCommandType(),
-        node.getNoOfResults(), node.getFieldExprList(), node.getGroupByExprList());
+    return new RareTopNOperator(
+        visitInput(node.getInput(), context),
+        node.getCommandType(),
+        node.getNoOfResults(),
+        node.getFieldExprList(),
+        node.getGroupByExprList());
   }
 
   @Override
@@ -74,9 +73,7 @@ public class OpenSearchExecutionProtector extends ExecutionProtector {
     return new RenameOperator(visitInput(node.getInput(), context), node.getMapping());
   }
 
-  /**
-   * Decorate with {@link ResourceMonitorPlan}.
-   */
+  /** Decorate with {@link ResourceMonitorPlan}. */
   @Override
   public PhysicalPlan visitTableScan(TableScanOperator node, Object context) {
     return doProtect(node);
@@ -84,7 +81,9 @@ public class OpenSearchExecutionProtector extends ExecutionProtector {
 
   @Override
   public PhysicalPlan visitProject(ProjectOperator node, Object context) {
-    return new ProjectOperator(visitInput(node.getInput(), context), node.getProjectList(),
+    return new ProjectOperator(
+        visitInput(node.getInput(), context),
+        node.getProjectList(),
         node.getNamedParseExpressions());
   }
 
@@ -102,15 +101,19 @@ public class OpenSearchExecutionProtector extends ExecutionProtector {
   public PhysicalPlan visitNested(NestedOperator node, Object context) {
     return doProtect(
         new NestedOperator(
-            visitInput(node.getInput(), context), node.getFields(), node.getGroupedPathsAndFields()
-        )
-    );
+            visitInput(node.getInput(), context),
+            node.getFields(),
+            node.getGroupedPathsAndFields()));
   }
 
   @Override
   public PhysicalPlan visitDedupe(DedupeOperator node, Object context) {
-    return new DedupeOperator(visitInput(node.getInput(), context), node.getDedupeList(),
-        node.getAllowedDuplication(), node.getKeepEmpty(), node.getConsecutive());
+    return new DedupeOperator(
+        visitInput(node.getInput(), context),
+        node.getDedupeList(),
+        node.getAllowedDuplication(),
+        node.getKeepEmpty(),
+        node.getConsecutive());
   }
 
   @Override
@@ -121,20 +124,14 @@ public class OpenSearchExecutionProtector extends ExecutionProtector {
         node.getWindowDefinition());
   }
 
-  /**
-   * Decorate with {@link ResourceMonitorPlan}.
-   */
+  /** Decorate with {@link ResourceMonitorPlan}. */
   @Override
   public PhysicalPlan visitSort(SortOperator node, Object context) {
-    return doProtect(
-        new SortOperator(
-            visitInput(node.getInput(), context),
-            node.getSortList()));
+    return doProtect(new SortOperator(visitInput(node.getInput(), context), node.getSortList()));
   }
 
   /**
-   * Values are a sequence of rows of literal value in memory
-   * which doesn't need memory protection.
+   * Values are a sequence of rows of literal value in memory which doesn't need memory protection.
    */
   @Override
   public PhysicalPlan visitValues(ValuesOperator node, Object context) {
@@ -144,41 +141,38 @@ public class OpenSearchExecutionProtector extends ExecutionProtector {
   @Override
   public PhysicalPlan visitLimit(LimitOperator node, Object context) {
     return new LimitOperator(
-        visitInput(node.getInput(), context),
-        node.getLimit(),
-        node.getOffset());
+        visitInput(node.getInput(), context), node.getLimit(), node.getOffset());
   }
 
   @Override
   public PhysicalPlan visitMLCommons(PhysicalPlan node, Object context) {
     MLCommonsOperator mlCommonsOperator = (MLCommonsOperator) node;
     return doProtect(
-            new MLCommonsOperator(visitInput(mlCommonsOperator.getInput(), context),
-                    mlCommonsOperator.getAlgorithm(),
-                    mlCommonsOperator.getArguments(),
-                    mlCommonsOperator.getNodeClient())
-    );
+        new MLCommonsOperator(
+            visitInput(mlCommonsOperator.getInput(), context),
+            mlCommonsOperator.getAlgorithm(),
+            mlCommonsOperator.getArguments(),
+            mlCommonsOperator.getNodeClient()));
   }
 
   @Override
   public PhysicalPlan visitAD(PhysicalPlan node, Object context) {
     ADOperator adOperator = (ADOperator) node;
     return doProtect(
-            new ADOperator(visitInput(adOperator.getInput(), context),
-                    adOperator.getArguments(),
-                    adOperator.getNodeClient()
-                    )
-    );
+        new ADOperator(
+            visitInput(adOperator.getInput(), context),
+            adOperator.getArguments(),
+            adOperator.getNodeClient()));
   }
 
   @Override
   public PhysicalPlan visitML(PhysicalPlan node, Object context) {
     MLOperator mlOperator = (MLOperator) node;
     return doProtect(
-            new MLOperator(visitInput(mlOperator.getInput(), context),
-                    mlOperator.getArguments(),
-                    mlOperator.getNodeClient())
-    );
+        new MLOperator(
+            visitInput(mlOperator.getInput(), context),
+            mlOperator.getArguments(),
+            mlOperator.getNodeClient()));
   }
 
   PhysicalPlan visitInput(PhysicalPlan node, Object context) {
@@ -199,5 +193,4 @@ public class OpenSearchExecutionProtector extends ExecutionProtector {
   private boolean isProtected(PhysicalPlan node) {
     return (node instanceof ResourceMonitorPlan);
   }
-
 }

@@ -3,7 +3,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-
 package org.opensearch.sql.opensearch.response;
 
 import com.fasterxml.jackson.core.JsonFactory;
@@ -52,37 +51,45 @@ import org.opensearch.search.aggregations.pipeline.PercentilesBucketPipelineAggr
 
 public class AggregationResponseUtils {
   private static final List<NamedXContentRegistry.Entry> entryList =
-      new ImmutableMap.Builder<String, ContextParser<Object, ? extends Aggregation>>().put(
-          MinAggregationBuilder.NAME, (p, c) -> ParsedMin.fromXContent(p, (String) c))
-          .put(MaxAggregationBuilder.NAME, (p, c) -> ParsedMax.fromXContent(p, (String) c))
-          .put(SumAggregationBuilder.NAME, (p, c) -> ParsedSum.fromXContent(p, (String) c))
-          .put(AvgAggregationBuilder.NAME, (p, c) -> ParsedAvg.fromXContent(p, (String) c))
-          .put(ExtendedStatsAggregationBuilder.NAME,
-              (p, c) -> ParsedExtendedStats.fromXContent(p, (String) c))
-          .put(StringTerms.NAME, (p, c) -> ParsedStringTerms.fromXContent(p, (String) c))
-          .put(LongTerms.NAME, (p, c) -> ParsedLongTerms.fromXContent(p, (String) c))
-          .put(DoubleTerms.NAME, (p, c) -> ParsedDoubleTerms.fromXContent(p, (String) c))
-          .put(ValueCountAggregationBuilder.NAME,
-              (p, c) -> ParsedValueCount.fromXContent(p, (String) c))
-          .put(PercentilesBucketPipelineAggregationBuilder.NAME,
-              (p, c) -> ParsedPercentilesBucket.fromXContent(p, (String) c))
-          .put(DateHistogramAggregationBuilder.NAME,
-              (p, c) -> ParsedDateHistogram.fromXContent(p, (String) c))
-          .put(HistogramAggregationBuilder.NAME,
-              (p, c) -> ParsedHistogram.fromXContent(p, (String) c))
-          .put(CompositeAggregationBuilder.NAME,
-              (p, c) -> ParsedComposite.fromXContent(p, (String) c))
-          .put(FilterAggregationBuilder.NAME,
-              (p, c) -> ParsedFilter.fromXContent(p, (String) c))
-          .put(TopHitsAggregationBuilder.NAME,
-              (p, c) -> ParsedTopHits.fromXContent(p, (String) c))
-          .build()
-          .entrySet()
-          .stream()
-          .map(entry -> new NamedXContentRegistry.Entry(Aggregation.class,
-              new ParseField(entry.getKey()),
-              entry.getValue()))
-          .collect(Collectors.toList());
+      new ImmutableMap.Builder<String, ContextParser<Object, ? extends Aggregation>>()
+              .put(MinAggregationBuilder.NAME, (p, c) -> ParsedMin.fromXContent(p, (String) c))
+              .put(MaxAggregationBuilder.NAME, (p, c) -> ParsedMax.fromXContent(p, (String) c))
+              .put(SumAggregationBuilder.NAME, (p, c) -> ParsedSum.fromXContent(p, (String) c))
+              .put(AvgAggregationBuilder.NAME, (p, c) -> ParsedAvg.fromXContent(p, (String) c))
+              .put(
+                  ExtendedStatsAggregationBuilder.NAME,
+                  (p, c) -> ParsedExtendedStats.fromXContent(p, (String) c))
+              .put(StringTerms.NAME, (p, c) -> ParsedStringTerms.fromXContent(p, (String) c))
+              .put(LongTerms.NAME, (p, c) -> ParsedLongTerms.fromXContent(p, (String) c))
+              .put(DoubleTerms.NAME, (p, c) -> ParsedDoubleTerms.fromXContent(p, (String) c))
+              .put(
+                  ValueCountAggregationBuilder.NAME,
+                  (p, c) -> ParsedValueCount.fromXContent(p, (String) c))
+              .put(
+                  PercentilesBucketPipelineAggregationBuilder.NAME,
+                  (p, c) -> ParsedPercentilesBucket.fromXContent(p, (String) c))
+              .put(
+                  DateHistogramAggregationBuilder.NAME,
+                  (p, c) -> ParsedDateHistogram.fromXContent(p, (String) c))
+              .put(
+                  HistogramAggregationBuilder.NAME,
+                  (p, c) -> ParsedHistogram.fromXContent(p, (String) c))
+              .put(
+                  CompositeAggregationBuilder.NAME,
+                  (p, c) -> ParsedComposite.fromXContent(p, (String) c))
+              .put(
+                  FilterAggregationBuilder.NAME, (p, c) -> ParsedFilter.fromXContent(p, (String) c))
+              .put(
+                  TopHitsAggregationBuilder.NAME,
+                  (p, c) -> ParsedTopHits.fromXContent(p, (String) c))
+              .build()
+              .entrySet()
+              .stream()
+              .map(
+                  entry ->
+                      new NamedXContentRegistry.Entry(
+                          Aggregation.class, new ParseField(entry.getKey()), entry.getValue()))
+              .collect(Collectors.toList());
   private static final NamedXContentRegistry namedXContentRegistry =
       new NamedXContentRegistry(entryList);
 
@@ -94,10 +101,11 @@ public class AggregationResponseUtils {
    */
   public static Aggregations fromJson(String json) {
     try {
-      XContentParser contentParser = new JsonXContentParser(
-          namedXContentRegistry,
-          LoggingDeprecationHandler.INSTANCE,
-          new JsonFactory().createParser(json));
+      XContentParser contentParser =
+          new JsonXContentParser(
+              namedXContentRegistry,
+              LoggingDeprecationHandler.INSTANCE,
+              new JsonFactory().createParser(json));
       contentParser.nextToken();
       return Aggregations.fromXContent(contentParser);
     } catch (IOException e) {

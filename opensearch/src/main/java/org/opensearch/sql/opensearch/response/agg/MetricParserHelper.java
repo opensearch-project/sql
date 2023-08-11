@@ -23,9 +23,7 @@ import org.opensearch.search.aggregations.Aggregation;
 import org.opensearch.search.aggregations.Aggregations;
 import org.opensearch.sql.common.utils.StringUtils;
 
-/**
- * Parse multiple metrics in one bucket.
- */
+/** Parse multiple metrics in one bucket. */
 @EqualsAndHashCode
 @RequiredArgsConstructor
 public class MetricParserHelper {
@@ -49,8 +47,9 @@ public class MetricParserHelper {
       if (metricParserMap.containsKey(aggregation.getName())) {
         resultMap.putAll(metricParserMap.get(aggregation.getName()).parse(aggregation));
       } else {
-        throw new RuntimeException(StringUtils.format("couldn't parse field %s in aggregation "
-            + "response", aggregation.getName()));
+        throw new RuntimeException(
+            StringUtils.format(
+                "couldn't parse field %s in aggregation " + "response", aggregation.getName()));
       }
     }
     return resultMap;
