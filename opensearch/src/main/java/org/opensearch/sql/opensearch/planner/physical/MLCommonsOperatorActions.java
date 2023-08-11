@@ -15,6 +15,7 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
+import org.opensearch.common.action.ActionFuture;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Predicate;
@@ -220,7 +221,7 @@ public abstract class MLCommonsOperatorActions extends PhysicalPlan {
 
     return (MLPredictionOutput) machineLearningClient
             .trainAndPredict(mlinput)
-            .actionGet(30, TimeUnit.SECONDS);
+            .actionGet(30L, TimeUnit.SECONDS);
   }
 
   /**
@@ -246,7 +247,7 @@ public abstract class MLCommonsOperatorActions extends PhysicalPlan {
 
     return machineLearningClient
             .run(mlinput, arguments)
-            .actionGet(30, TimeUnit.SECONDS);
+            .actionGet(30L, TimeUnit.SECONDS);
   }
 
   /**
