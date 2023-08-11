@@ -3,7 +3,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-
 package org.opensearch.sql.opensearch.monitor;
 
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -20,11 +19,9 @@ import org.mockito.junit.jupiter.MockitoExtension;
 @ExtendWith(MockitoExtension.class)
 class OpenSearchMemoryHealthyTest {
 
-  @Mock
-  private OpenSearchMemoryHealthy.RandomFail randomFail;
+  @Mock private OpenSearchMemoryHealthy.RandomFail randomFail;
 
-  @Mock
-  private OpenSearchMemoryHealthy.MemoryUsage memoryUsage;
+  @Mock private OpenSearchMemoryHealthy.MemoryUsage memoryUsage;
 
   private OpenSearchMemoryHealthy monitor;
 
@@ -45,7 +42,8 @@ class OpenSearchMemoryHealthyTest {
     when(memoryUsage.usage()).thenReturn(10L);
     when(randomFail.shouldFail()).thenReturn(true);
 
-    assertThrows(OpenSearchMemoryHealthy.MemoryUsageExceedFastFailureException.class,
+    assertThrows(
+        OpenSearchMemoryHealthy.MemoryUsageExceedFastFailureException.class,
         () -> monitor.isMemoryHealthy(9L));
   }
 
@@ -54,7 +52,8 @@ class OpenSearchMemoryHealthyTest {
     when(memoryUsage.usage()).thenReturn(10L);
     when(randomFail.shouldFail()).thenReturn(false);
 
-    assertThrows(OpenSearchMemoryHealthy.MemoryUsageExceedException.class,
+    assertThrows(
+        OpenSearchMemoryHealthy.MemoryUsageExceedException.class,
         () -> monitor.isMemoryHealthy(9L));
   }
 
@@ -72,8 +71,7 @@ class OpenSearchMemoryHealthyTest {
 
   @Test
   void setMemoryUsage() {
-    OpenSearchMemoryHealthy.MemoryUsage usage =
-        new OpenSearchMemoryHealthy.MemoryUsage();
+    OpenSearchMemoryHealthy.MemoryUsage usage = new OpenSearchMemoryHealthy.MemoryUsage();
     assertTrue(usage.usage() > 0);
   }
 }

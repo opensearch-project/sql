@@ -3,7 +3,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-
 package org.opensearch.sql.opensearch.data.value;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;

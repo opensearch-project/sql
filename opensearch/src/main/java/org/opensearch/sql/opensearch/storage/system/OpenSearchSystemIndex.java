@@ -3,7 +3,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-
 package org.opensearch.sql.opensearch.storage.system;
 
 import static org.opensearch.sql.utils.SystemIndexUtils.systemTable;
@@ -24,17 +23,12 @@ import org.opensearch.sql.planner.physical.PhysicalPlan;
 import org.opensearch.sql.storage.Table;
 import org.opensearch.sql.utils.SystemIndexUtils;
 
-/**
- * OpenSearch System Index Table Implementation.
- */
+/** OpenSearch System Index Table Implementation. */
 public class OpenSearchSystemIndex implements Table {
-  /**
-   * System Index Name.
-   */
+  /** System Index Name. */
   private final Pair<OpenSearchSystemIndexSchema, OpenSearchSystemRequest> systemIndexBundle;
 
-  public OpenSearchSystemIndex(
-      OpenSearchClient client, String indexName) {
+  public OpenSearchSystemIndex(OpenSearchClient client, String indexName) {
     this.systemIndexBundle = buildIndexBundle(client, indexName);
   }
 
@@ -61,8 +55,7 @@ public class OpenSearchSystemIndex implements Table {
 
   @VisibleForTesting
   @RequiredArgsConstructor
-  public class OpenSearchSystemIndexDefaultImplementor
-      extends DefaultImplementor<Object> {
+  public class OpenSearchSystemIndexDefaultImplementor extends DefaultImplementor<Object> {
 
     @Override
     public PhysicalPlan visitRelation(LogicalRelation node, Object context) {
@@ -79,10 +72,11 @@ public class OpenSearchSystemIndex implements Table {
       OpenSearchClient client, String indexName) {
     SystemIndexUtils.SystemTable systemTable = systemTable(indexName);
     if (systemTable.isSystemInfoTable()) {
-      return Pair.of(OpenSearchSystemIndexSchema.SYS_TABLE_TABLES,
-          new OpenSearchCatIndicesRequest(client));
+      return Pair.of(
+          OpenSearchSystemIndexSchema.SYS_TABLE_TABLES, new OpenSearchCatIndicesRequest(client));
     } else {
-      return Pair.of(OpenSearchSystemIndexSchema.SYS_TABLE_MAPPINGS,
+      return Pair.of(
+          OpenSearchSystemIndexSchema.SYS_TABLE_MAPPINGS,
           new OpenSearchDescribeIndexRequest(client, systemTable.getTableName()));
     }
   }
