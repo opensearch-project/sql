@@ -220,7 +220,7 @@ public abstract class MLCommonsOperatorActions extends PhysicalPlan {
 
     return (MLPredictionOutput) machineLearningClient
             .trainAndPredict(mlinput)
-            .actionGet(30L, TimeUnit.SECONDS);
+            .actionGet(30, TimeUnit.SECONDS);
   }
 
   /**
@@ -246,7 +246,7 @@ public abstract class MLCommonsOperatorActions extends PhysicalPlan {
 
     return machineLearningClient
             .run(mlinput, arguments)
-            .actionGet(30L, TimeUnit.SECONDS);
+            .actionGet(30, TimeUnit.SECONDS);
   }
 
   /**
