@@ -7,11 +7,11 @@
 
 package org.opensearch.sql.datasources.transport;
 
-import org.opensearch.core.action.ActionListener;
 import org.opensearch.action.ActionType;
 import org.opensearch.action.support.ActionFilters;
 import org.opensearch.action.support.HandledTransportAction;
 import org.opensearch.common.inject.Inject;
+import org.opensearch.core.action.ActionListener;
 import org.opensearch.sql.datasource.DataSourceService;
 import org.opensearch.sql.datasources.model.transport.UpdateDataSourceActionRequest;
 import org.opensearch.sql.datasources.model.transport.UpdateDataSourceActionResponse;

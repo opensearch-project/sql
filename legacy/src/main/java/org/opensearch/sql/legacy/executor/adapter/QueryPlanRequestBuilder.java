@@ -10,7 +10,7 @@ import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.opensearch.action.ActionRequest;
 import org.opensearch.action.ActionRequestBuilder;
-import org.opensearch.core.action.ActionResponse;;
+import org.opensearch.core.action.ActionResponse;
 import org.opensearch.sql.legacy.expression.domain.BindingTuple;
 import org.opensearch.sql.legacy.query.SqlElasticRequestBuilder;
 import org.opensearch.sql.legacy.query.planner.core.BindingTupleQueryPlanner;

@@ -9,7 +9,6 @@ import static org.opensearch.sql.protocol.response.format.JsonResponseFormatter.
 
 import java.util.Locale;
 import java.util.Optional;
-import org.opensearch.core.action.ActionListener;
 import org.opensearch.action.ActionRequest;
 import org.opensearch.action.support.ActionFilters;
 import org.opensearch.action.support.HandledTransportAction;
@@ -18,6 +17,7 @@ import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.common.inject.Inject;
 import org.opensearch.common.inject.Injector;
 import org.opensearch.common.inject.ModulesBuilder;
+import org.opensearch.core.action.ActionListener;
 import org.opensearch.sql.common.response.ResponseListener;
 import org.opensearch.sql.common.utils.QueryContext;
 import org.opensearch.sql.datasource.DataSourceService;

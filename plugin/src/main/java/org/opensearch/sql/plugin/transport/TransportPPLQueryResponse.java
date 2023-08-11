@@ -8,7 +8,7 @@ package org.opensearch.sql.plugin.transport;
 import java.io.IOException;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
-import org.opensearch.core.action.ActionResponse;;
+import org.opensearch.core.action.ActionResponse;
 import org.opensearch.core.common.io.stream.StreamInput;
 import org.opensearch.core.common.io.stream.StreamOutput;
 
