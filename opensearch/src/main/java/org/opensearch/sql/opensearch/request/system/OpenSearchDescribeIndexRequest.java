@@ -3,6 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+
 package org.opensearch.sql.opensearch.request.system;
 
 import static org.opensearch.sql.data.model.ExprValueUtils.integerValue;
@@ -22,7 +23,9 @@ import org.opensearch.sql.opensearch.data.type.OpenSearchDataType;
 import org.opensearch.sql.opensearch.mapping.IndexMapping;
 import org.opensearch.sql.opensearch.request.OpenSearchRequest;
 
-/** Describe index meta data request. */
+/**
+ * Describe index meta data request.
+ */
 public class OpenSearchDescribeIndexRequest implements OpenSearchSystemRequest {
 
   private static final String DEFAULT_TABLE_CAT = "opensearch";
@@ -33,18 +36,22 @@ public class OpenSearchDescribeIndexRequest implements OpenSearchSystemRequest {
 
   private static final String DEFAULT_IS_AUTOINCREMENT = "NO";
 
-  /** OpenSearch client connection. */
+  /**
+   * OpenSearch client connection.
+   */
   private final OpenSearchClient client;
 
-  /** {@link OpenSearchRequest.IndexName}. */
+  /**
+   * {@link OpenSearchRequest.IndexName}.
+   */
   private final OpenSearchRequest.IndexName indexName;
 
   public OpenSearchDescribeIndexRequest(OpenSearchClient client, String indexName) {
     this(client, new OpenSearchRequest.IndexName(indexName));
   }
 
-  public OpenSearchDescribeIndexRequest(
-      OpenSearchClient client, OpenSearchRequest.IndexName indexName) {
+  public OpenSearchDescribeIndexRequest(OpenSearchClient client,
+      OpenSearchRequest.IndexName indexName) {
     this.client = client;
     this.indexName = indexName;
   }
@@ -59,13 +66,10 @@ public class OpenSearchDescribeIndexRequest implements OpenSearchSystemRequest {
     List<ExprValue> results = new ArrayList<>();
     Map<String, String> meta = client.meta();
     int pos = 0;
-    for (Map.Entry<String, OpenSearchDataType> entry :
-        OpenSearchDataType.traverseAndFlatten(getFieldTypes()).entrySet()) {
+    for (Map.Entry<String, OpenSearchDataType> entry
+        : OpenSearchDataType.traverseAndFlatten(getFieldTypes()).entrySet()) {
       results.add(
-          row(
-              entry.getKey(),
-              entry.getValue().legacyTypeName().toLowerCase(),
-              pos++,
+          row(entry.getKey(), entry.getValue().legacyTypeName().toLowerCase(), pos++,
               clusterName(meta)));
     }
     return results;
@@ -93,12 +97,8 @@ public class OpenSearchDescribeIndexRequest implements OpenSearchSystemRequest {
    * @return max result window
    */
   public Integer getMaxResultWindow() {
-    return client
-        .getIndexMaxResultWindows(getLocalIndexNames(indexName.getIndexNames()))
-        .values()
-        .stream()
-        .min(Integer::compare)
-        .get();
+    return client.getIndexMaxResultWindows(getLocalIndexNames(indexName.getIndexNames()))
+        .values().stream().min(Integer::compare).get();
   }
 
   private ExprTupleValue row(String fieldName, String fieldType, int position, String clusterName) {
@@ -122,8 +122,8 @@ public class OpenSearchDescribeIndexRequest implements OpenSearchSystemRequest {
   }
 
   /**
-   * Return index names without "{cluster}:" prefix. Without the prefix, they refer to the indices
-   * at the local cluster.
+   * Return index names without "{cluster}:" prefix.
+   * Without the prefix, they refer to the indices at the local cluster.
    *
    * @param indexNames a string array of index names
    * @return local cluster index names
