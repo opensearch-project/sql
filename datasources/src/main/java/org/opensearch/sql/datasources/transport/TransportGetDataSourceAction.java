@@ -8,7 +8,9 @@
 package org.opensearch.sql.datasources.transport;
 
 import java.util.Set;
-import org.opensearch.action.ActionListener;
+
+import org.opensearch.core.action.ActionListener;
+import org.opensearch.core.action.ActionResponse;
 import org.opensearch.action.ActionType;
 import org.opensearch.action.support.ActionFilters;
 import org.opensearch.action.support.HandledTransportAction;

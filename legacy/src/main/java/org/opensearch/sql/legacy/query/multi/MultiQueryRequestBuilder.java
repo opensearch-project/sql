@@ -13,7 +13,7 @@ import java.util.List;
 import java.util.Map;
 import org.opensearch.action.ActionRequest;
 import org.opensearch.action.ActionRequestBuilder;
-import org.opensearch.action.ActionResponse;
+import org.opensearch.core.action.ActionResponse;;
 import org.opensearch.action.search.SearchRequestBuilder;
 import org.opensearch.common.xcontent.XContentFactory;
 import org.opensearch.core.common.bytes.BytesReference;

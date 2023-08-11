@@ -9,7 +9,7 @@ package org.opensearch.sql.legacy.query.planner.physical.node.scroll;
 import java.util.Iterator;
 import lombok.RequiredArgsConstructor;
 import lombok.SneakyThrows;
-import org.opensearch.action.ActionResponse;
+import org.opensearch.core.action.ActionResponse;;
 import org.opensearch.action.search.SearchResponse;
 import org.opensearch.sql.legacy.exception.SqlParseException;
 import org.opensearch.sql.legacy.expression.domain.BindingTuple;

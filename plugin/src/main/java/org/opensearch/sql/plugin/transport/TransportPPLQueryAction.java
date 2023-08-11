@@ -9,7 +9,7 @@ import static org.opensearch.sql.protocol.response.format.JsonResponseFormatter.
 
 import java.util.Locale;
 import java.util.Optional;
-import org.opensearch.action.ActionListener;
+import org.opensearch.core.action.ActionListener;
 import org.opensearch.action.ActionRequest;
 import org.opensearch.action.support.ActionFilters;
 import org.opensearch.action.support.HandledTransportAction;
