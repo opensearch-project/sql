@@ -8,16 +8,14 @@ package org.opensearch.sql.opensearch.storage.script.filter.lucene.relevance;
 import org.opensearch.index.query.QueryBuilders;
 import org.opensearch.index.query.QueryStringQueryBuilder;
 
-/**
- * Class for Lucene query that builds the 'query' query.
- */
+/** Class for Lucene query that builds the 'query' query. */
 public class QueryQuery extends NoFieldQuery<QueryStringQueryBuilder> {
 
   private final String queryQueryName = "query";
 
   /**
-   * Default constructor for QueryQuery configures how RelevanceQuery.build() handles
-   * named arguments by calling the constructor of QueryStringQuery.
+   * Default constructor for QueryQuery configures how RelevanceQuery.build() handles named
+   * arguments by calling the constructor of QueryStringQuery.
    */
   public QueryQuery() {
     super(FunctionParameterRepository.QueryStringQueryBuildActions);

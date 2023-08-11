@@ -11,16 +11,16 @@ import org.opensearch.index.query.SimpleQueryStringBuilder;
 
 public class SimpleQueryStringQuery extends MultiFieldQuery<SimpleQueryStringBuilder> {
   /**
-   *  Default constructor for SimpleQueryString configures how RelevanceQuery.build() handles
-   * named arguments.
+   * Default constructor for SimpleQueryString configures how RelevanceQuery.build() handles named
+   * arguments.
    */
   public SimpleQueryStringQuery() {
     super(FunctionParameterRepository.SimpleQueryStringQueryBuildActions);
   }
 
   @Override
-  protected SimpleQueryStringBuilder createBuilder(ImmutableMap<String, Float> fields,
-                                                   String query) {
+  protected SimpleQueryStringBuilder createBuilder(
+      ImmutableMap<String, Float> fields, String query) {
     return QueryBuilders.simpleQueryStringQuery(query).fields(fields);
   }
 

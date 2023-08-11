@@ -3,7 +3,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-
 package org.opensearch.sql.opensearch.data.value;
 
 import static org.opensearch.sql.data.type.ExprCoreType.ARRAY;
@@ -71,18 +70,15 @@ import org.opensearch.sql.opensearch.data.utils.ObjectContent;
 import org.opensearch.sql.opensearch.data.utils.OpenSearchJsonContent;
 import org.opensearch.sql.opensearch.response.agg.OpenSearchAggregationResponseParser;
 
-/**
- * Construct ExprValue from OpenSearch response.
- */
+/** Construct ExprValue from OpenSearch response. */
 public class OpenSearchExprValueFactory {
-  /**
-   * The Mapping of Field and ExprType.
-   */
+  /** The Mapping of Field and ExprType. */
   private final Map<String, OpenSearchDataType> typeMapping;
 
   /**
-   * Extend existing mapping by new data without overwrite.
-   * Called from aggregation only {@see AggregationQueryBuilder#buildTypeMapping}.
+   * Extend existing mapping by new data without overwrite. Called from aggregation only {@see
+   * AggregationQueryBuilder#buildTypeMapping}.
+   *
    * @param typeMapping A data type mapping produced by aggregation.
    */
   public void extendTypeMapping(Map<String, OpenSearchDataType> typeMapping) {
@@ -95,9 +91,7 @@ public class OpenSearchExprValueFactory {
     }
   }
 
-  @Getter
-  @Setter
-  private OpenSearchAggregationResponseParser parser;
+  @Getter @Setter private OpenSearchAggregationResponseParser parser;
 
   private static final String TOP_PATH = "";
 
@@ -105,70 +99,81 @@ public class OpenSearchExprValueFactory {
 
   private static final Map<ExprType, BiFunction<Content, ExprType, ExprValue>> typeActionMap =
       new ImmutableMap.Builder<ExprType, BiFunction<Content, ExprType, ExprValue>>()
-          .put(OpenSearchDataType.of(OpenSearchDataType.MappingType.Integer),
+          .put(
+              OpenSearchDataType.of(OpenSearchDataType.MappingType.Integer),
               (c, dt) -> new ExprIntegerValue(c.intValue()))
-          .put(OpenSearchDataType.of(OpenSearchDataType.MappingType.Long),
+          .put(
+              OpenSearchDataType.of(OpenSearchDataType.MappingType.Long),
               (c, dt) -> new ExprLongValue(c.longValue()))
-          .put(OpenSearchDataType.of(OpenSearchDataType.MappingType.Short),
+          .put(
+              OpenSearchDataType.of(OpenSearchDataType.MappingType.Short),
               (c, dt) -> new ExprShortValue(c.shortValue()))
-          .put(OpenSearchDataType.of(OpenSearchDataType.MappingType.Byte),
+          .put(
+              OpenSearchDataType.of(OpenSearchDataType.MappingType.Byte),
               (c, dt) -> new ExprByteValue(c.byteValue()))
-          .put(OpenSearchDataType.of(OpenSearchDataType.MappingType.Float),
+          .put(
+              OpenSearchDataType.of(OpenSearchDataType.MappingType.Float),
               (c, dt) -> new ExprFloatValue(c.floatValue()))
-          .put(OpenSearchDataType.of(OpenSearchDataType.MappingType.Double),
+          .put(
+              OpenSearchDataType.of(OpenSearchDataType.MappingType.Double),
               (c, dt) -> new ExprDoubleValue(c.doubleValue()))
-          .put(OpenSearchDataType.of(OpenSearchDataType.MappingType.Text),
+          .put(
+              OpenSearchDataType.of(OpenSearchDataType.MappingType.Text),
               (c, dt) -> new OpenSearchExprTextValue(c.stringValue()))
-          .put(OpenSearchDataType.of(OpenSearchDataType.MappingType.Keyword),
+          .put(
+              OpenSearchDataType.of(OpenSearchDataType.MappingType.Keyword),
               (c, dt) -> new ExprStringValue(c.stringValue()))
-          .put(OpenSearchDataType.of(OpenSearchDataType.MappingType.Boolean),
+          .put(
+              OpenSearchDataType.of(OpenSearchDataType.MappingType.Boolean),
               (c, dt) -> ExprBooleanValue.of(c.booleanValue()))
-          //Handles the creation of DATE, TIME & DATETIME
+          // Handles the creation of DATE, TIME & DATETIME
           .put(OpenSearchDateType.of(TIME), OpenSearchExprValueFactory::createOpenSearchDateType)
           .put(OpenSearchDateType.of(DATE), OpenSearchExprValueFactory::createOpenSearchDateType)
-          .put(OpenSearchDateType.of(TIMESTAMP),
+          .put(
+              OpenSearchDateType.of(TIMESTAMP),
               OpenSearchExprValueFactory::createOpenSearchDateType)
-          .put(OpenSearchDateType.of(DATETIME),
-              OpenSearchExprValueFactory::createOpenSearchDateType)
-          .put(OpenSearchDataType.of(OpenSearchDataType.MappingType.Ip),
+          .put(
+              OpenSearchDateType.of(DATETIME), OpenSearchExprValueFactory::createOpenSearchDateType)
+          .put(
+              OpenSearchDataType.of(OpenSearchDataType.MappingType.Ip),
               (c, dt) -> new OpenSearchExprIpValue(c.stringValue()))
-          .put(OpenSearchDataType.of(OpenSearchDataType.MappingType.GeoPoint),
-              (c, dt) -> new OpenSearchExprGeoPointValue(c.geoValue().getLeft(),
-                  c.geoValue().getRight()))
-          .put(OpenSearchDataType.of(OpenSearchDataType.MappingType.Binary),
+          .put(
+              OpenSearchDataType.of(OpenSearchDataType.MappingType.GeoPoint),
+              (c, dt) ->
+                  new OpenSearchExprGeoPointValue(c.geoValue().getLeft(), c.geoValue().getRight()))
+          .put(
+              OpenSearchDataType.of(OpenSearchDataType.MappingType.Binary),
               (c, dt) -> new OpenSearchExprBinaryValue(c.stringValue()))
           .build();
 
-  /**
-   * Constructor of OpenSearchExprValueFactory.
-   */
+  /** Constructor of OpenSearchExprValueFactory. */
   public OpenSearchExprValueFactory(Map<String, OpenSearchDataType> typeMapping) {
     this.typeMapping = OpenSearchDataType.traverseAndFlatten(typeMapping);
   }
 
   /**
-   * The struct construction has the following assumption:
-   *  1. The field has OpenSearch Object data type.
-   *     See <a href="https://www.elastic.co/guide/en/elasticsearch/reference/current/object.html">
-   *       docs</a>
-   *  2. The deeper field is flattened in the typeMapping. e.g.
-   *     { "employ",       "STRUCT"  }
-   *     { "employ.id",    "INTEGER" }
-   *     { "employ.state", "STRING"  }
+   * The struct construction has the following assumption: 1. The field has OpenSearch Object data
+   * type. See <a
+   * href="https://www.elastic.co/guide/en/elasticsearch/reference/current/object.html">docs</a> 2.
+   * The deeper field is flattened in the typeMapping. e.g. { "employ", "STRUCT" } { "employ.id",
+   * "INTEGER" } { "employ.state", "STRING" }
    */
   public ExprValue construct(String jsonString, boolean supportArrays) {
     try {
-      return parse(new OpenSearchJsonContent(OBJECT_MAPPER.readTree(jsonString)), TOP_PATH,
-          Optional.of(STRUCT), supportArrays);
+      return parse(
+          new OpenSearchJsonContent(OBJECT_MAPPER.readTree(jsonString)),
+          TOP_PATH,
+          Optional.of(STRUCT),
+          supportArrays);
     } catch (JsonProcessingException e) {
       throw new IllegalStateException(String.format("invalid json: %s.", jsonString), e);
     }
   }
 
   /**
-   * Construct ExprValue from field and its value object. Throw exception if trying
-   * to construct from field of unsupported type.
-   * Todo, add IP, GeoPoint support after we have function implementation around it.
+   * Construct ExprValue from field and its value object. Throw exception if trying to construct
+   * from field of unsupported type. Todo, add IP, GeoPoint support after we have function
+   * implementation around it.
    *
    * @param field field name
    * @param value value object
@@ -179,11 +184,7 @@ public class OpenSearchExprValueFactory {
   }
 
   private ExprValue parse(
-      Content content,
-      String field,
-      Optional<ExprType> fieldType,
-      boolean supportArrays
-  ) {
+      Content content, String field, Optional<ExprType> fieldType, boolean supportArrays) {
     if (content.isNull() || !fieldType.isPresent()) {
       return ExprNullValue.of();
     }
@@ -207,16 +208,16 @@ public class OpenSearchExprValueFactory {
   }
 
   /**
-   * In OpenSearch, it is possible field doesn't have type definition in mapping.
-   * but has empty value. For example, {"empty_field": []}.
+   * In OpenSearch, it is possible field doesn't have type definition in mapping. but has empty
+   * value. For example, {"empty_field": []}.
    */
   private Optional<ExprType> type(String field) {
     return Optional.ofNullable(typeMapping.get(field));
   }
 
   /**
-   * Parse value with the first matching formatter into {@link ExprValue}
-   * with corresponding {@link ExprCoreType}.
+   * Parse value with the first matching formatter into {@link ExprValue} with corresponding {@link
+   * ExprCoreType}.
    *
    * @param value - time as string
    * @param dataType - field data type
@@ -232,12 +233,12 @@ public class OpenSearchExprValueFactory {
         TemporalAccessor accessor = formatter.parse(value);
         ZonedDateTime zonedDateTime = DateFormatters.from(accessor);
         switch (returnFormat) {
-          case TIME: return new ExprTimeValue(
-              zonedDateTime.withZoneSameLocal(UTC_ZONE_ID).toLocalTime());
-          case DATE: return new ExprDateValue(
-              zonedDateTime.withZoneSameLocal(UTC_ZONE_ID).toLocalDate());
-          default: return new ExprTimestampValue(
-              zonedDateTime.withZoneSameLocal(UTC_ZONE_ID).toInstant());
+          case TIME:
+            return new ExprTimeValue(zonedDateTime.withZoneSameLocal(UTC_ZONE_ID).toLocalTime());
+          case DATE:
+            return new ExprDateValue(zonedDateTime.withZoneSameLocal(UTC_ZONE_ID).toLocalDate());
+          default:
+            return new ExprTimestampValue(zonedDateTime.withZoneSameLocal(UTC_ZONE_ID).toInstant());
         }
       } catch (IllegalArgumentException ignored) {
         // nothing to do, try another format
@@ -247,19 +248,22 @@ public class OpenSearchExprValueFactory {
     // if no formatters are available, try the default formatter
     try {
       switch (returnFormat) {
-        case TIME: return new ExprTimeValue(
-            DateFormatters.from(STRICT_HOUR_MINUTE_SECOND_FORMATTER.parse(value)).toLocalTime());
-        case DATE: return new ExprDateValue(
-            DateFormatters.from(STRICT_YEAR_MONTH_DAY_FORMATTER.parse(value)).toLocalDate());
-        default: return new ExprTimestampValue(
-            DateFormatters.from(DATE_TIME_FORMATTER.parse(value)).toInstant());
+        case TIME:
+          return new ExprTimeValue(
+              DateFormatters.from(STRICT_HOUR_MINUTE_SECOND_FORMATTER.parse(value)).toLocalTime());
+        case DATE:
+          return new ExprDateValue(
+              DateFormatters.from(STRICT_YEAR_MONTH_DAY_FORMATTER.parse(value)).toLocalDate());
+        default:
+          return new ExprTimestampValue(
+              DateFormatters.from(DATE_TIME_FORMATTER.parse(value)).toInstant());
       }
     } catch (DateTimeParseException ignored) {
       // ignored
     }
 
-    throw new IllegalArgumentException(String.format(
-        "Construct %s from \"%s\" failed, unsupported format.", returnFormat, value));
+    throw new IllegalArgumentException(
+        String.format("Construct %s from \"%s\" failed, unsupported format.", returnFormat, value));
   }
 
   private static ExprValue createOpenSearchDateType(Content value, ExprType type) {
@@ -270,8 +274,8 @@ public class OpenSearchExprValueFactory {
       var numFormatters = dt.getNumericNamedFormatters();
       if (numFormatters.size() > 0 || !dt.hasFormats()) {
         long epochMillis = 0;
-        if (numFormatters.contains(DateFormatter.forPattern(
-            FormatNames.EPOCH_SECOND.getSnakeCaseName()))) {
+        if (numFormatters.contains(
+            DateFormatter.forPattern(FormatNames.EPOCH_SECOND.getSnakeCaseName()))) {
           // no CamelCase for `EPOCH_*` formats
           epochMillis = value.longValue() * 1000;
         } else /* EPOCH_MILLIS */ {
@@ -279,9 +283,12 @@ public class OpenSearchExprValueFactory {
         }
         Instant instant = Instant.ofEpochMilli(epochMillis);
         switch ((ExprCoreType) returnFormat) {
-          case TIME: return new ExprTimeValue(LocalTime.from(instant.atZone(UTC_ZONE_ID)));
-          case DATE: return new ExprDateValue(LocalDate.ofInstant(instant, UTC_ZONE_ID));
-          default: return new ExprTimestampValue(instant);
+          case TIME:
+            return new ExprTimeValue(LocalTime.from(instant.atZone(UTC_ZONE_ID)));
+          case DATE:
+            return new ExprDateValue(LocalDate.ofInstant(instant, UTC_ZONE_ID));
+          default:
+            return new ExprTimestampValue(instant);
         }
       } else {
         // custom format
@@ -297,6 +304,7 @@ public class OpenSearchExprValueFactory {
 
   /**
    * Parse struct content.
+   *
    * @param content Content to parse.
    * @param prefix Prefix for Level of object depth to parse.
    * @param supportArrays Parsing the whole array if array is type nested.
@@ -304,15 +312,23 @@ public class OpenSearchExprValueFactory {
    */
   private ExprValue parseStruct(Content content, String prefix, boolean supportArrays) {
     LinkedHashMap<String, ExprValue> result = new LinkedHashMap<>();
-    content.map().forEachRemaining(entry -> result.put(entry.getKey(),
-        parse(entry.getValue(),
-            makeField(prefix, entry.getKey()),
-            type(makeField(prefix, entry.getKey())), supportArrays)));
+    content
+        .map()
+        .forEachRemaining(
+            entry ->
+                result.put(
+                    entry.getKey(),
+                    parse(
+                        entry.getValue(),
+                        makeField(prefix, entry.getKey()),
+                        type(makeField(prefix, entry.getKey())),
+                        supportArrays)));
     return new ExprTupleValue(result);
   }
 
   /**
    * Parse array content. Can also parse nested which isn't necessarily an array.
+   *
    * @param content Content to parse.
    * @param prefix Prefix for Level of object depth to parse.
    * @param type Type of content parsing.
@@ -320,32 +336,31 @@ public class OpenSearchExprValueFactory {
    * @return Value parsed from content.
    */
   private ExprValue parseArray(
-      Content content,
-      String prefix,
-      ExprType type,
-      boolean supportArrays
-  ) {
+      Content content, String prefix, ExprType type, boolean supportArrays) {
     List<ExprValue> result = new ArrayList<>();
 
     // ARRAY is mapped to nested but can take the json structure of an Object.
     if (content.objectValue() instanceof ObjectNode) {
       result.add(parseStruct(content, prefix, supportArrays));
       // non-object type arrays are only supported when parsing inner_hits of OS response.
-    } else if (
-        !(type instanceof OpenSearchDataType
+    } else if (!(type instanceof OpenSearchDataType
             && ((OpenSearchDataType) type).getExprType().equals(ARRAY))
         && !supportArrays) {
       return parseInnerArrayValue(content.array().next(), prefix, type, supportArrays);
     } else {
-      content.array().forEachRemaining(v -> {
-        result.add(parseInnerArrayValue(v, prefix, type, supportArrays));
-      });
+      content
+          .array()
+          .forEachRemaining(
+              v -> {
+                result.add(parseInnerArrayValue(v, prefix, type, supportArrays));
+              });
     }
     return new ExprCollectionValue(result);
   }
 
   /**
    * Parse inner array value. Can be object type and recurse continues.
+   *
    * @param content Array index being parsed.
    * @param prefix Prefix for value.
    * @param type Type of inner array value.
@@ -353,11 +368,7 @@ public class OpenSearchExprValueFactory {
    * @return Inner array value.
    */
   private ExprValue parseInnerArrayValue(
-      Content content,
-      String prefix,
-      ExprType type,
-      boolean supportArrays
-  ) {
+      Content content, String prefix, ExprType type, boolean supportArrays) {
     if (type instanceof OpenSearchIpType
         || type instanceof OpenSearchBinaryType
         || type instanceof OpenSearchDateType
@@ -382,6 +393,7 @@ public class OpenSearchExprValueFactory {
 
   /**
    * Make complete path string for field.
+   *
    * @param path Path of field.
    * @param field Field to append to path.
    * @return Field appended to path level.
