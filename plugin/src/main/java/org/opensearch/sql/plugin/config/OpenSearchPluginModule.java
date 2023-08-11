@@ -41,8 +41,11 @@ import org.opensearch.sql.storage.StorageEngine;
 @RequiredArgsConstructor
 public class OpenSearchPluginModule extends AbstractModule {
 
-  private final BuiltinFunctionRepository functionRepository =
-      BuiltinFunctionRepository.getInstance();
+  private final BuiltinFunctionRepository functionRepository;
+
+  public OpenSearchPluginModule(DataSourceService dataSourceService) {
+    functionRepository = BuiltinFunctionRepository.getInstance(dataSourceService);
+  }
 
   @Override
   protected void configure() {

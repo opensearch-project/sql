@@ -22,6 +22,7 @@ import org.apache.commons.lang3.tuple.Pair;
 import org.opensearch.sql.common.utils.StringUtils;
 import org.opensearch.sql.data.type.ExprCoreType;
 import org.opensearch.sql.data.type.ExprType;
+import org.opensearch.sql.datasource.DataSourceService;
 import org.opensearch.sql.exception.ExpressionEvaluationException;
 import org.opensearch.sql.expression.Expression;
 import org.opensearch.sql.expression.aggregation.AggregatorFunction;
@@ -64,7 +65,7 @@ public class BuiltinFunctionRepository {
    *
    * @return singleton instance
    */
-  public static synchronized BuiltinFunctionRepository getInstance() {
+  public static synchronized BuiltinFunctionRepository getInstance(DataSourceService dataSourceService) {
     if (instance == null) {
       instance = new BuiltinFunctionRepository(new HashMap<>());
 
@@ -80,7 +81,20 @@ public class BuiltinFunctionRepository {
       TextFunction.register(instance);
       TypeCastOperator.register(instance);
       SystemFunctions.register(instance);
-      OpenSearchFunctions.register(instance);
+
+//      dataSourceService
+//          .getDataSourceMetadata(true)
+//          .stream()
+//          .forEach(dataSourceMetadata ->  dataSourceService.getDataSource(
+//              dataSourceMetadata.getName()).getStorageEngine().getFunctions().stream().
+//              forEach(function -> instance.register(function)));
+
+      if (dataSourceService != null) {
+        dataSourceService
+            .getDataSource("@opensearch").getStorageEngine().getFunctions().stream().
+            forEach(function -> instance.register(function));
+      }
+
     }
     return instance;
   }
