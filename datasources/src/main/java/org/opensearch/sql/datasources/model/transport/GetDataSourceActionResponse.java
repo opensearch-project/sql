@@ -10,7 +10,7 @@ package org.opensearch.sql.datasources.model.transport;
 import java.io.IOException;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
-import org.opensearch.action.ActionResponse;
+import org.opensearch.core.action.ActionResponse;
 import org.opensearch.core.common.io.stream.StreamInput;
 import org.opensearch.core.common.io.stream.StreamOutput;
 
