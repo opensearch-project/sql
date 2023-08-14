@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-package org.opensearch.sql.analysis;
+package org.opensearch.sql.opensearch.analysis;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.opensearch.sql.analysis.DataSourceSchemaIdentifierNameResolver.DEFAULT_DATASOURCE_NAME;
@@ -21,11 +21,14 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import org.apache.commons.lang3.tuple.Pair;
 import org.opensearch.sql.DataSourceSchemaName;
+import org.opensearch.sql.analysis.AnalysisContext;
+import org.opensearch.sql.analysis.Analyzer;
+import org.opensearch.sql.analysis.ExpressionAnalyzer;
+import org.opensearch.sql.analysis.TypeEnvironment;
 import org.opensearch.sql.analysis.symbol.Namespace;
 import org.opensearch.sql.analysis.symbol.Symbol;
 import org.opensearch.sql.analysis.symbol.SymbolTable;
 import org.opensearch.sql.ast.tree.UnresolvedPlan;
-import org.opensearch.sql.config.TestConfig;
 import org.opensearch.sql.data.type.ExprType;
 import org.opensearch.sql.datasource.DataSourceService;
 import org.opensearch.sql.datasource.model.DataSource;
@@ -41,10 +44,12 @@ import org.opensearch.sql.expression.function.FunctionName;
 import org.opensearch.sql.expression.function.FunctionResolver;
 import org.opensearch.sql.expression.function.FunctionSignature;
 import org.opensearch.sql.expression.function.TableFunctionImplementation;
+import org.opensearch.sql.opensearch.config.TestConfig;
 import org.opensearch.sql.planner.logical.LogicalPlan;
 import org.opensearch.sql.planner.physical.PhysicalPlan;
 import org.opensearch.sql.storage.StorageEngine;
 import org.opensearch.sql.storage.Table;
+
 
 public class AnalyzerTestBase {
 
@@ -52,6 +57,7 @@ public class AnalyzerTestBase {
     return TestConfig.typeMapping;
   }
 
+  // Make this add OpenSearchStorageEngine
   protected StorageEngine storageEngine() {
     return (dataSourceSchemaName, tableName) -> table;
   }
@@ -90,34 +96,31 @@ public class AnalyzerTestBase {
   }
 
   protected Table table() {
-    return Optional.ofNullable(table)
-        .orElseGet(
-            () ->
-                new Table() {
-                  @Override
-                  public boolean exists() {
-                    return true;
-                  }
+    return Optional.ofNullable(table).orElseGet(() -> new Table() {
+      @Override
+      public boolean exists() {
+        return true;
+      }
 
-                  @Override
-                  public void create(Map<String, ExprType> schema) {
-                    throw new UnsupportedOperationException("Create table is not supported");
-                  }
+      @Override
+      public void create(Map<String, ExprType> schema) {
+        throw new UnsupportedOperationException("Create table is not supported");
+      }
 
-                  @Override
-                  public Map<String, ExprType> getFieldTypes() {
-                    return typeMapping();
-                  }
+      @Override
+      public Map<String, ExprType> getFieldTypes() {
+        return typeMapping();
+      }
 
-                  @Override
-                  public PhysicalPlan implement(LogicalPlan plan) {
-                    throw new UnsupportedOperationException();
-                  }
+      @Override
+      public PhysicalPlan implement(LogicalPlan plan) {
+        throw new UnsupportedOperationException();
+      }
 
-                  public Map<String, ExprType> getReservedFieldTypes() {
-                    return ImmutableMap.of("_test", STRING);
-                  }
-                });
+      public Map<String, ExprType> getReservedFieldTypes() {
+        return ImmutableMap.of("_test", STRING);
+      }
+    });
   }
 
   protected DataSourceService dataSourceService() {
@@ -126,12 +129,10 @@ public class AnalyzerTestBase {
 
   protected SymbolTable symbolTable() {
     SymbolTable symbolTable = new SymbolTable();
-    typeMapping()
-        .entrySet()
+    typeMapping().entrySet()
         .forEach(
-            entry ->
-                symbolTable.store(
-                    new Symbol(Namespace.FIELD_NAME, entry.getKey()), entry.getValue()));
+            entry -> symbolTable
+                .store(new Symbol(Namespace.FIELD_NAME, entry.getKey()), entry.getValue()));
     return symbolTable;
   }
 
@@ -157,8 +158,8 @@ public class AnalyzerTestBase {
 
   protected Analyzer analyzer = analyzer(expressionAnalyzer(), dataSourceService);
 
-  protected Analyzer analyzer(
-      ExpressionAnalyzer expressionAnalyzer, DataSourceService dataSourceService) {
+  protected Analyzer analyzer(ExpressionAnalyzer expressionAnalyzer,
+                              DataSourceService dataSourceService) {
     BuiltinFunctionRepository functionRepository = BuiltinFunctionRepository.getInstance(dataSourceService);
     return new Analyzer(expressionAnalyzer, dataSourceService, functionRepository);
   }
@@ -185,22 +186,18 @@ public class AnalyzerTestBase {
 
   private class DefaultDataSourceService implements DataSourceService {
 
-    private final DataSource opensearchDataSource =
-        new DataSource(DEFAULT_DATASOURCE_NAME, DataSourceType.OPENSEARCH, storageEngine());
-    private final DataSource prometheusDataSource =
-        new DataSource("prometheus", DataSourceType.PROMETHEUS, prometheusStorageEngine());
+    private final DataSource opensearchDataSource = new DataSource(DEFAULT_DATASOURCE_NAME,
+        DataSourceType.OPENSEARCH, storageEngine());
+    private final DataSource prometheusDataSource
+        = new DataSource("prometheus", DataSourceType.PROMETHEUS, prometheusStorageEngine());
+
 
     @Override
     public Set<DataSourceMetadata> getDataSourceMetadata(boolean isDefaultDataSourceRequired) {
       return Stream.of(opensearchDataSource, prometheusDataSource)
-          .map(
-              ds ->
-                  new DataSourceMetadata(
-                      ds.getName(),
-                      ds.getConnectorType(),
-                      Collections.emptyList(),
-                      ImmutableMap.of()))
-          .collect(Collectors.toSet());
+          .map(ds -> new DataSourceMetadata(ds.getName(),
+              ds.getConnectorType(),Collections.emptyList(),
+              ImmutableMap.of())).collect(Collectors.toSet());
     }
 
     @Override
@@ -223,14 +220,18 @@ public class AnalyzerTestBase {
     }
 
     @Override
-    public void updateDataSource(DataSourceMetadata dataSourceMetadata) {}
+    public void updateDataSource(DataSourceMetadata dataSourceMetadata) {
+
+    }
 
     @Override
-    public void deleteDataSource(String dataSourceName) {}
+    public void deleteDataSource(String dataSourceName) {
+    }
 
     @Override
     public Boolean dataSourceExists(String dataSourceName) {
-      return dataSourceName.equals(DEFAULT_DATASOURCE_NAME) || dataSourceName.equals("prometheus");
+      return dataSourceName.equals(DEFAULT_DATASOURCE_NAME)
+          || dataSourceName.equals("prometheus");
     }
   }
 
@@ -242,8 +243,8 @@ public class AnalyzerTestBase {
 
     private Table table;
 
-    public TestTableFunctionImplementation(
-        FunctionName functionName, List<Expression> arguments, Table table) {
+    public TestTableFunctionImplementation(FunctionName functionName, List<Expression> arguments,
+                                           Table table) {
       this.functionName = functionName;
       this.arguments = arguments;
       this.table = table;

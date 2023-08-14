@@ -132,7 +132,7 @@ class ExpressionReferenceOptimizerTest extends AnalyzerTestBase {
   }
 
   Expression optimize(Expression expression, LogicalPlan logicalPlan) {
-    BuiltinFunctionRepository functionRepository = BuiltinFunctionRepository.getInstance();
+    BuiltinFunctionRepository functionRepository = BuiltinFunctionRepository.getInstance(null);
     final ExpressionReferenceOptimizer optimizer =
         new ExpressionReferenceOptimizer(functionRepository, logicalPlan);
     return optimizer.optimize(DSL.named(expression), new AnalysisContext());

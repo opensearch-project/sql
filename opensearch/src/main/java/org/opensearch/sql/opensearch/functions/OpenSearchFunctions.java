@@ -60,6 +60,7 @@ public class OpenSearchFunctions {
         );
   }
 
+<<<<<<< Updated upstream
   /**
    * Add functions specific to OpenSearch to repository.
    */
@@ -75,6 +76,8 @@ public class OpenSearchFunctions {
     repository.register(nested());
   }
 
+=======
+>>>>>>> Stashed changes
   private static FunctionResolver match_bool_prefix() {
     FunctionName name = BuiltinFunctionName.MATCH_BOOL_PREFIX.getName();
     return new RelevanceFunctionResolver(name);
