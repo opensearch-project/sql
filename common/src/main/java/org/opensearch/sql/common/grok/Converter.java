@@ -23,9 +23,7 @@ import java.util.function.Function;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
-/**
- * Convert String argument to the right type.
- */
+/** Convert String argument to the right type. */
 public class Converter {
 
   public enum Type {
@@ -51,13 +49,13 @@ public class Converter {
   private static final Pattern SPLITTER = Pattern.compile("[:;]");
 
   private static final Map<String, Type> TYPES =
-      Arrays.stream(Type.values())
-          .collect(Collectors.toMap(t -> t.name().toLowerCase(), t -> t));
+      Arrays.stream(Type.values()).collect(Collectors.toMap(t -> t.name().toLowerCase(), t -> t));
 
   private static final Map<String, Type> TYPE_ALIASES =
       Arrays.stream(Type.values())
-          .flatMap(type -> type.aliases.stream()
-              .map(alias -> new AbstractMap.SimpleEntry<>(alias, type)))
+          .flatMap(
+              type ->
+                  type.aliases.stream().map(alias -> new AbstractMap.SimpleEntry<>(alias, type)))
           .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
 
   private static Type getType(String key) {
@@ -69,34 +67,30 @@ public class Converter {
     return type;
   }
 
-  /**
-   * getConverters.
-   */
-  public static Map<String, IConverter<? extends Object>>
-      getConverters(Collection<String> groupNames, Object... params) {
+  /** getConverters. */
+  public static Map<String, IConverter<? extends Object>> getConverters(
+      Collection<String> groupNames, Object... params) {
     return groupNames.stream()
         .filter(Converter::containsDelimiter)
-        .collect(Collectors.toMap(Function.identity(), key -> {
-          String[] list = splitGrokPattern(key);
-          IConverter<? extends Object> converter = getType(list[1]).converter;
-          if (list.length == 3) {
-            converter = converter.newConverter(list[2], params);
-          }
-          return converter;
-        }));
+        .collect(
+            Collectors.toMap(
+                Function.identity(),
+                key -> {
+                  String[] list = splitGrokPattern(key);
+                  IConverter<? extends Object> converter = getType(list[1]).converter;
+                  if (list.length == 3) {
+                    converter = converter.newConverter(list[2], params);
+                  }
+                  return converter;
+                }));
   }
 
-  /**
-   * getGroupTypes.
-   */
+  /** getGroupTypes. */
   public static Map<String, Type> getGroupTypes(Collection<String> groupNames) {
     return groupNames.stream()
         .filter(Converter::containsDelimiter)
         .map(Converter::splitGrokPattern)
-        .collect(Collectors.toMap(
-            l -> l[0],
-            l -> getType(l[1])
-        ));
+        .collect(Collectors.toMap(l -> l[0], l -> getType(l[1])));
   }
 
   public static String extractKey(String key) {
@@ -120,7 +114,6 @@ public class Converter {
     }
   }
 
-
   static class DateConverter implements IConverter<Instant> {
 
     private final DateTimeFormatter formatter;
@@ -138,8 +131,12 @@ public class Converter {
 
     @Override
     public Instant convert(String value) {
-      TemporalAccessor dt = formatter
-          .parseBest(value.trim(), ZonedDateTime::from, LocalDateTime::from, OffsetDateTime::from,
+      TemporalAccessor dt =
+          formatter.parseBest(
+              value.trim(),
+              ZonedDateTime::from,
+              LocalDateTime::from,
+              OffsetDateTime::from,
               Instant::from,
               LocalDate::from);
       if (dt instanceof ZonedDateTime) {

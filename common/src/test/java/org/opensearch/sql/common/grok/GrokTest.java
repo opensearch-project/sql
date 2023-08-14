@@ -37,7 +37,6 @@ import org.junit.Test;
 import org.junit.runners.MethodSorters;
 import org.opensearch.sql.common.grok.exception.GrokException;
 
-
 @FixMethodOrder(MethodSorters.NAME_ASCENDING)
 public class GrokTest {
 
@@ -138,7 +137,6 @@ public class GrokTest {
     Match gm = grok.match("-42");
     Map<String, Object> map = gm.capture();
     assertEquals("{NUMBER=-42}", map.toString());
-
   }
 
   @Test
@@ -152,7 +150,6 @@ public class GrokTest {
     gm = grok.match("abc");
     map = gm.capture();
     assertEquals("{WORD=abc}", map.toString());
-
   }
 
   @Test
@@ -162,7 +159,6 @@ public class GrokTest {
     Match gm = grok.match("abc dc");
     Map<String, Object> map = gm.capture();
     assertEquals("{SPACE=}", map.toString());
-
   }
 
   @Test
@@ -172,7 +168,6 @@ public class GrokTest {
     Match gm = grok.match("Something costs $55.4!");
     Map<String, Object> map = gm.capture();
     assertEquals("{NUMBER=55.4}", map.toString());
-
   }
 
   @Test
@@ -182,7 +177,6 @@ public class GrokTest {
     Match gm = grok.match("abc dc");
     Map<String, Object> map = gm.capture();
     assertEquals("{NOTSPACE=abc}", map.toString());
-
   }
 
   @Test
@@ -209,7 +203,6 @@ public class GrokTest {
     gm = grok.match("03A8413C-F604-4D21-8F4D-24B19D98B5A7");
     map = gm.capture();
     assertEquals("{UUID=03A8413C-F604-4D21-8F4D-24B19D98B5A7}", map.toString());
-
   }
 
   @Test
@@ -219,7 +212,6 @@ public class GrokTest {
     Match gm = grok.match("5E:FF:56:A2:AF:15");
     Map<String, Object> map = gm.capture();
     assertEquals("{MAC=5E:FF:56:A2:AF:15}", map.toString());
-
   }
 
   @Test
@@ -241,10 +233,12 @@ public class GrokTest {
 
     Match gm = grok.match("www.google.fr:80");
     Map<String, Object> map = gm.capture();
-    assertEquals(ImmutableMap.of(
-        "HOSTPORT", "www.google.fr:80",
-        "IPORHOST", "www.google.fr",
-        "PORT", "80"), map);
+    assertEquals(
+        ImmutableMap.of(
+            "HOSTPORT", "www.google.fr:80",
+            "IPORHOST", "www.google.fr",
+            "PORT", "80"),
+        map);
   }
 
   @Test
@@ -267,10 +261,11 @@ public class GrokTest {
     assertEquals(map.get("TIME").toString(), "01:36:30");
 
     gm =
-        grok.match("112.169.19.192 - - [06/Mar/2013:01:36:30 +0900] \"GET "
-            + "/wp-content/plugins/easy-table/themes/default/style.css?ver=1.0 HTTP/1.1\" "
-            + "304 - \"http://www.nflabs.com/\" \"Mozilla/5.0 (Macintosh; Intel Mac OS X 10_8_2) "
-            + "AppleWebKit/537.22 (KHTML, like Gecko) Chrome/25.0.1364.152 Safari/537.22\"");
+        grok.match(
+            "112.169.19.192 - - [06/Mar/2013:01:36:30 +0900] \"GET"
+                + " /wp-content/plugins/easy-table/themes/default/style.css?ver=1.0 HTTP/1.1\" 304"
+                + " - \"http://www.nflabs.com/\" \"Mozilla/5.0 (Macintosh; Intel Mac OS X 10_8_2)"
+                + " AppleWebKit/537.22 (KHTML, like Gecko) Chrome/25.0.1364.152 Safari/537.22\"");
     map = gm.capture();
     assertEquals(
         map.get("agent").toString(),
@@ -278,7 +273,8 @@ public class GrokTest {
             + "Chrome/25.0.1364.152 Safari/537.22");
     assertEquals(map.get("clientip").toString(), "112.169.19.192");
     assertEquals(map.get("httpversion").toString(), "1.1");
-    assertEquals(map.get("request").toString(),
+    assertEquals(
+        map.get("request").toString(),
         "/wp-content/plugins/easy-table/themes/default/style.css?ver=1.0");
     assertEquals(map.get("TIME").toString(), "01:36:30");
   }
@@ -319,7 +315,7 @@ public class GrokTest {
     Grok grok = compiler.compile("%{IP}");
 
     try (FileReader fr = new FileReader(Resources.getResource(ResourceManager.IP).getFile());
-         BufferedReader br = new BufferedReader(fr)) {
+        BufferedReader br = new BufferedReader(fr)) {
       String line;
       System.out.println("Starting test with ip");
       while ((line = br.readLine()) != null) {
@@ -336,10 +332,31 @@ public class GrokTest {
 
     Grok grok = compiler.compile("%{MONTH}");
 
-    String[] months =
-        {"Jan", "January", "Feb", "February", "Mar", "March", "Apr", "April", "May", "Jun", "June",
-            "Jul", "July", "Aug", "August", "Sep", "September", "Oct", "October", "Nov",
-            "November", "Dec", "December"};
+    String[] months = {
+      "Jan",
+      "January",
+      "Feb",
+      "February",
+      "Mar",
+      "March",
+      "Apr",
+      "April",
+      "May",
+      "Jun",
+      "June",
+      "Jul",
+      "July",
+      "Aug",
+      "August",
+      "Sep",
+      "September",
+      "Oct",
+      "October",
+      "Nov",
+      "November",
+      "Dec",
+      "December"
+    };
     int counter = 0;
     for (String month : months) {
       Match match = grok.match(month);
@@ -355,20 +372,21 @@ public class GrokTest {
     Grok grok = compiler.compile("%{TIMESTAMP_ISO8601}");
 
     String[] times = {
-        "2001-01-01T00:00:00",
-        "1974-03-02T04:09:09",
-        "2010-05-03T08:18:18+00:00",
-        "2004-07-04T12:27:27-00:00",
-        "2001-09-05T16:36:36+0000",
-        "2001-11-06T20:45:45-0000",
-        "2001-12-07T23:54:54Z",
-        "2001-01-01T00:00:00.123456",
-        "1974-03-02T04:09:09.123456",
-        "2010-05-03T08:18:18.123456+00:00",
-        "2004-07-04T12:27:27.123456-00:00",
-        "2001-09-05T16:36:36.123456+0000",
-        "2001-11-06T20:45:45.123456-0000",
-        "2001-12-07T23:54:54.123456Z"};
+      "2001-01-01T00:00:00",
+      "1974-03-02T04:09:09",
+      "2010-05-03T08:18:18+00:00",
+      "2004-07-04T12:27:27-00:00",
+      "2001-09-05T16:36:36+0000",
+      "2001-11-06T20:45:45-0000",
+      "2001-12-07T23:54:54Z",
+      "2001-01-01T00:00:00.123456",
+      "1974-03-02T04:09:09.123456",
+      "2010-05-03T08:18:18.123456+00:00",
+      "2004-07-04T12:27:27.123456-00:00",
+      "2001-09-05T16:36:36.123456+0000",
+      "2001-11-06T20:45:45.123456-0000",
+      "2001-12-07T23:54:54.123456Z"
+    };
 
     int counter = 0;
     for (String time : times) {
@@ -385,33 +403,34 @@ public class GrokTest {
     Grok grok = compiler.compile("%{URI}");
 
     String[] uris = {
-        "http://www.google.com",
-        "telnet://helloworld",
-        "http://www.example.com/",
-        "http://www.example.com/test.html",
-        "http://www.example.com/test.html?foo=bar",
-        "http://www.example.com/test.html?foo=bar&fizzle=baz",
-        "http://www.example.com:80/test.html?foo=bar&fizzle=baz",
-        "https://www.example.com:443/test.html?foo=bar&fizzle=baz",
-        "https://user@www.example.com:443/test.html?foo=bar&fizzle=baz",
-        "https://user:pass@somehost/fetch.pl",
-        "puppet:///",
-        "http://www.foo.com",
-        "http://www.foo.com/",
-        "http://www.foo.com/?testing",
-        "http://www.foo.com/?one=two",
-        "http://www.foo.com/?one=two&foo=bar",
-        "foo://somehost.com:12345",
-        "foo://user@somehost.com:12345",
-        "foo://user@somehost.com:12345/",
-        "foo://user@somehost.com:12345/foo.bar/baz/fizz",
-        "foo://user@somehost.com:12345/foo.bar/baz/fizz?test",
-        "foo://user@somehost.com:12345/foo.bar/baz/fizz?test=1&sink&foo=4",
-        "http://www.google.com/search?hl=en&source=hp&q=hello+world+%5E%40%23%24&btnG=Google+Search",
-        "http://www.freebsd.org/cgi/url.cgi?ports/sysutils/grok/pkg-descr",
-        "http://www.google.com/search?q=CAPTCHA+ssh&start=0&ie=utf-8&oe=utf-8&client=firefox-a"
-            + "&rls=org.mozilla:en-US:official",
-        "svn+ssh://somehost:12345/testing"};
+      "http://www.google.com",
+      "telnet://helloworld",
+      "http://www.example.com/",
+      "http://www.example.com/test.html",
+      "http://www.example.com/test.html?foo=bar",
+      "http://www.example.com/test.html?foo=bar&fizzle=baz",
+      "http://www.example.com:80/test.html?foo=bar&fizzle=baz",
+      "https://www.example.com:443/test.html?foo=bar&fizzle=baz",
+      "https://user@www.example.com:443/test.html?foo=bar&fizzle=baz",
+      "https://user:pass@somehost/fetch.pl",
+      "puppet:///",
+      "http://www.foo.com",
+      "http://www.foo.com/",
+      "http://www.foo.com/?testing",
+      "http://www.foo.com/?one=two",
+      "http://www.foo.com/?one=two&foo=bar",
+      "foo://somehost.com:12345",
+      "foo://user@somehost.com:12345",
+      "foo://user@somehost.com:12345/",
+      "foo://user@somehost.com:12345/foo.bar/baz/fizz",
+      "foo://user@somehost.com:12345/foo.bar/baz/fizz?test",
+      "foo://user@somehost.com:12345/foo.bar/baz/fizz?test=1&sink&foo=4",
+      "http://www.google.com/search?hl=en&source=hp&q=hello+world+%5E%40%23%24&btnG=Google+Search",
+      "http://www.freebsd.org/cgi/url.cgi?ports/sysutils/grok/pkg-descr",
+      "http://www.google.com/search?q=CAPTCHA+ssh&start=0&ie=utf-8&oe=utf-8&client=firefox-a"
+          + "&rls=org.mozilla:en-US:official",
+      "svn+ssh://somehost:12345/testing"
+    };
 
     int counter = 0;
     for (String uri : uris) {
@@ -429,10 +448,7 @@ public class GrokTest {
     Grok grok = compiler.compile("%{URI}");
 
     String[] uris = {
-        "http://www.google.com",
-        "telnet://helloworld",
-        "",
-        "svn+ssh://somehost:12345/testing"
+      "http://www.google.com", "telnet://helloworld", "", "svn+ssh://somehost:12345/testing"
     };
 
     int counter = 0;
@@ -458,9 +474,7 @@ public class GrokTest {
     String text = "<< barfoobarfoo >>";
     Match match = grok.match(text);
     Map<String, Object> map = match.capture();
-    assertEquals("unable to parse: " + text,
-        text,
-        map.get("text"));
+    assertEquals("unable to parse: " + text, text, map.get("text"));
   }
 
   @Test
@@ -488,9 +502,7 @@ public class GrokTest {
   private void assertMatches(String description, Grok grok, String text) {
     Match match = grok.match(text);
     Map<String, Object> map = match.capture();
-    assertEquals(format("%s: unable to parse '%s'", description, text),
-        text,
-        map.get("text"));
+    assertEquals(format("%s: unable to parse '%s'", description, text), text, map.get("text"));
   }
 
   @Test
@@ -630,8 +642,8 @@ public class GrokTest {
     compiler.compile("%{USERNAME}", false);
   }
 
-  private void ensureAbortsWithDefinitionMissing(String pattern, String compilePattern,
-                                                 boolean namedOnly) {
+  private void ensureAbortsWithDefinitionMissing(
+      String pattern, String compilePattern, boolean namedOnly) {
     try {
       compiler.compile(pattern);
       compiler.compile(compilePattern, namedOnly);
@@ -643,10 +655,11 @@ public class GrokTest {
 
   @Test
   public void testGroupTypes() {
-    Grok grok = compiler.compile(
-        "%{HTTPDATE:timestamp;date;dd/MMM/yyyy:HH:mm:ss Z} %{USERNAME:username:text} "
-            + "%{IPORHOST:host}:%{POSINT:port:integer}",
-        true);
+    Grok grok =
+        compiler.compile(
+            "%{HTTPDATE:timestamp;date;dd/MMM/yyyy:HH:mm:ss Z} %{USERNAME:username:text} "
+                + "%{IPORHOST:host}:%{POSINT:port:integer}",
+            true);
     assertEquals(Converter.Type.DATETIME, grok.groupTypes.get("timestamp"));
     assertEquals(Converter.Type.STRING, grok.groupTypes.get("username"));
     assertEquals(Converter.Type.INT, grok.groupTypes.get("port"));
@@ -667,8 +680,8 @@ public class GrokTest {
     DateTimeFormatter dtf = DateTimeFormatter.ofPattern("MM/dd/yyyy HH:mm:ss");
     Grok grok = compiler.compile("%{DATESTAMP:timestamp;date;MM/dd/yyyy HH:mm:ss}", true);
     Instant instant = (Instant) grok.match(date).capture().get("timestamp");
-    assertEquals(ZonedDateTime.parse(date, dtf.withZone(ZoneOffset.systemDefault())).toInstant(),
-        instant);
+    assertEquals(
+        ZonedDateTime.parse(date, dtf.withZone(ZoneOffset.systemDefault())).toInstant(), instant);
 
     // set default timezone to PST
     ZoneId pst = ZoneId.of("PST", ZoneId.SHORT_IDS);
