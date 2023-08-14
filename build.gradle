@@ -115,8 +115,6 @@ allprojects {
         sourceCompatibility = targetCompatibility = "11"
     }
     configurations.all {
-        resolutionStrategy.force "org.jetbrains.kotlin:kotlin-stdlib:1.6.0"
-        resolutionStrategy.force "org.jetbrains.kotlin:kotlin-stdlib-common:1.6.0"
         resolutionStrategy.force "com.squareup.okio:okio:3.5.0"
     }
 }
