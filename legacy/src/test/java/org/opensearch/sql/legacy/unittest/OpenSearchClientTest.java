@@ -17,12 +17,12 @@ import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
-import org.opensearch.action.ActionFuture;
 import org.opensearch.action.search.MultiSearchRequest;
 import org.opensearch.action.search.MultiSearchResponse;
 import org.opensearch.action.search.SearchRequest;
 import org.opensearch.action.search.SearchResponse;
 import org.opensearch.client.Client;
+import org.opensearch.common.action.ActionFuture;
 import org.opensearch.sql.legacy.esdomain.OpenSearchClient;
 
 public class OpenSearchClientTest {
