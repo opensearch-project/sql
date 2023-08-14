@@ -18,6 +18,7 @@ public class PeriodFunctionsTest extends DateTimeTestBase {
 
   /**
    * Generate sample data for `PERIOD_ADD` function.
+   *
    * @return A data set.
    */
   public static Stream<Arguments> getTestDataForPeriodAdd() {
@@ -27,8 +28,7 @@ public class PeriodFunctionsTest extends DateTimeTestBase {
         Arguments.of(3, -1, 200002), // Mar 2000 - 1
         Arguments.of(12, 0, 200012), // Dec 2000 + 0
         Arguments.of(6104, 100, 206908), // Apr 2061 + 100m (8y4m)
-        Arguments.of(201510, 14, 201612)
-    );
+        Arguments.of(201510, 14, 201612));
   }
 
   @ParameterizedTest
@@ -39,6 +39,7 @@ public class PeriodFunctionsTest extends DateTimeTestBase {
 
   /**
    * Generate sample data for `PERIOD_DIFF` function.
+   *
    * @return A data set.
    */
   public static Stream<Arguments> getTestDataForPeriodDiff() {
@@ -51,7 +52,7 @@ public class PeriodFunctionsTest extends DateTimeTestBase {
         Arguments.of(200505, 7505, 360), // May 2005 - May 1975
         Arguments.of(6104, 8509, 907), // Apr 2061 - Sep 1985
         Arguments.of(207707, 7707, 1200) // Jul 2077 - Jul 1977
-    );
+        );
   }
 
   @ParameterizedTest
@@ -68,29 +69,30 @@ public class PeriodFunctionsTest extends DateTimeTestBase {
 
   /**
    * Generate invalid sample data for test.
+   *
    * @return A data set.
    */
   public static Stream<Arguments> getInvalidTestData() {
     return Stream.of(
-      Arguments.of(0),
-      Arguments.of(123),
-      Arguments.of(100),
-      Arguments.of(1234),
-      Arguments.of(1000),
-      Arguments.of(2020),
-      Arguments.of(12345),
-      Arguments.of(123456),
-      Arguments.of(1234567),
-      Arguments.of(200213),
-      Arguments.of(200300),
-      Arguments.of(-1),
-      Arguments.of(-1234),
-      Arguments.of(-123401)
-    );
+        Arguments.of(0),
+        Arguments.of(123),
+        Arguments.of(100),
+        Arguments.of(1234),
+        Arguments.of(1000),
+        Arguments.of(2020),
+        Arguments.of(12345),
+        Arguments.of(123456),
+        Arguments.of(1234567),
+        Arguments.of(200213),
+        Arguments.of(200300),
+        Arguments.of(-1),
+        Arguments.of(-1234),
+        Arguments.of(-123401));
   }
 
   /**
    * Check that `PERIOD_ADD` and `PERIOD_DIFF` return NULL on invalid input.
+   *
    * @param period An invalid data.
    */
   @ParameterizedTest

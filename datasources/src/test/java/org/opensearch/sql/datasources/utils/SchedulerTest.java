@@ -19,27 +19,24 @@ import org.opensearch.threadpool.ThreadPool;
 @ExtendWith(MockitoExtension.class)
 public class SchedulerTest {
 
-  @Mock
-  private NodeClient nodeClient;
+  @Mock private NodeClient nodeClient;
 
-  @Mock
-  private ThreadPool threadPool;
+  @Mock private ThreadPool threadPool;
 
   @Test
   public void testSchedule() {
     Mockito.when(nodeClient.threadPool()).thenReturn(threadPool);
 
     Mockito.doAnswer(
-        invocation -> {
-          Runnable task = invocation.getArgument(0);
-          task.run();
-          return null;
-        })
+            invocation -> {
+              Runnable task = invocation.getArgument(0);
+              task.run();
+              return null;
+            })
         .when(threadPool)
         .schedule(ArgumentMatchers.any(), ArgumentMatchers.any(), ArgumentMatchers.any());
     AtomicBoolean isRun = new AtomicBoolean(false);
     Scheduler.schedule(nodeClient, () -> isRun.set(true));
     Assert.assertTrue(isRun.get());
   }
-
 }

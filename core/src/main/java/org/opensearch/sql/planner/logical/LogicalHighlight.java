@@ -20,11 +20,9 @@ public class LogicalHighlight extends LogicalPlan {
   private final Expression highlightField;
   private final Map<String, Literal> arguments;
 
-  /**
-   * Constructor of LogicalHighlight.
-   */
-  public LogicalHighlight(LogicalPlan childPlan, Expression highlightField,
-      Map<String, Literal> arguments) {
+  /** Constructor of LogicalHighlight. */
+  public LogicalHighlight(
+      LogicalPlan childPlan, Expression highlightField, Map<String, Literal> arguments) {
     super(Collections.singletonList(childPlan));
     this.highlightField = highlightField;
     this.arguments = arguments;

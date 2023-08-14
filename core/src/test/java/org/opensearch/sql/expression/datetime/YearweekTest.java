@@ -3,7 +3,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-
 package org.opensearch.sql.expression.datetime;
 
 import static java.time.temporal.ChronoField.ALIGNED_WEEK_OF_YEAR;
@@ -32,20 +31,18 @@ import org.opensearch.sql.expression.FunctionExpression;
 class YearweekTest extends ExpressionTestBase {
 
   private void yearweekQuery(String date, int mode, int expectedResult) {
-    FunctionExpression expression = DSL
-        .yearweek(
-            functionProperties,
-            DSL.literal(new ExprDateValue(date)), DSL.literal(mode));
+    FunctionExpression expression =
+        DSL.yearweek(functionProperties, DSL.literal(new ExprDateValue(date)), DSL.literal(mode));
     assertAll(
         () -> assertEquals(INTEGER, expression.type()),
-        () -> assertEquals(
-            String.format("yearweek(DATE '%s', %d)", date, mode), expression.toString()),
-        () -> assertEquals(integerValue(expectedResult), eval(expression))
-    );
+        () ->
+            assertEquals(
+                String.format("yearweek(DATE '%s', %d)", date, mode), expression.toString()),
+        () -> assertEquals(integerValue(expectedResult), eval(expression)));
   }
 
   private static Stream<Arguments> getTestDataForYearweek() {
-    //Test the behavior of different modes passed into the 'yearweek' function
+    // Test the behavior of different modes passed into the 'yearweek' function
     return Stream.of(
         Arguments.of("2019-01-05", 0, 201852),
         Arguments.of("2019-01-05", 1, 201901),
@@ -78,8 +75,7 @@ class YearweekTest extends ExpressionTestBase {
         Arguments.of("1999-01-01", 1, 199852),
         Arguments.of("1999-01-01", 4, 199852),
         Arguments.of("1999-01-01", 5, 199852),
-        Arguments.of("1999-01-01", 6, 199852)
-    );
+        Arguments.of("1999-01-01", 6, 199852));
   }
 
   @ParameterizedTest(name = "{0} | {1}")
@@ -90,17 +86,13 @@ class YearweekTest extends ExpressionTestBase {
 
   @Test
   public void testYearweekWithoutMode() {
-    LocalDate date = LocalDate.of(2019,1,05);
+    LocalDate date = LocalDate.of(2019, 1, 05);
 
-    FunctionExpression expression = DSL
-        .yearweek(
-            functionProperties,
-            DSL.literal(new ExprDateValue(date)), DSL.literal(0));
+    FunctionExpression expression =
+        DSL.yearweek(functionProperties, DSL.literal(new ExprDateValue(date)), DSL.literal(0));
 
-    FunctionExpression expressionWithoutMode = DSL
-        .yearweek(
-            functionProperties,
-            DSL.literal(new ExprDateValue(date)));
+    FunctionExpression expressionWithoutMode =
+        DSL.yearweek(functionProperties, DSL.literal(new ExprDateValue(date)));
 
     assertEquals(eval(expression), eval(expressionWithoutMode));
   }
@@ -111,58 +103,53 @@ class YearweekTest extends ExpressionTestBase {
     int year = LocalDate.now(functionProperties.getQueryStartClock()).getYear();
     int expected = Integer.parseInt(String.format("%d%02d", year, week));
 
-    FunctionExpression expression = DSL
-        .yearweek(
-            functionProperties,
-            DSL.literal(new ExprTimeValue("10:11:12")), DSL.literal(0));
+    FunctionExpression expression =
+        DSL.yearweek(
+            functionProperties, DSL.literal(new ExprTimeValue("10:11:12")), DSL.literal(0));
 
-    FunctionExpression expressionWithoutMode = DSL
-        .yearweek(
-            functionProperties,
-            DSL.literal(new ExprTimeValue("10:11:12")));
+    FunctionExpression expressionWithoutMode =
+        DSL.yearweek(functionProperties, DSL.literal(new ExprTimeValue("10:11:12")));
 
     assertAll(
         () -> assertEquals(expected, eval(expression).integerValue()),
-        () -> assertEquals(expected, eval(expressionWithoutMode).integerValue())
-    );
+        () -> assertEquals(expected, eval(expressionWithoutMode).integerValue()));
   }
 
   @Test
   public void testInvalidYearWeek() {
     assertAll(
-        //test invalid month
-        () -> assertThrows(
-            SemanticCheckException.class,
-            () -> yearweekQuery("2019-13-05 01:02:03", 0, 0)),
-        //test invalid day
-        () -> assertThrows(
-            SemanticCheckException.class,
-            () -> yearweekQuery("2019-01-50 01:02:03", 0, 0)),
-        //test invalid leap year
-        () -> assertThrows(
-            SemanticCheckException.class,
-            () -> yearweekQuery("2019-02-29 01:02:03", 0, 0))
-    );
+        // test invalid month
+        () ->
+            assertThrows(
+                SemanticCheckException.class, () -> yearweekQuery("2019-13-05 01:02:03", 0, 0)),
+        // test invalid day
+        () ->
+            assertThrows(
+                SemanticCheckException.class, () -> yearweekQuery("2019-01-50 01:02:03", 0, 0)),
+        // test invalid leap year
+        () ->
+            assertThrows(
+                SemanticCheckException.class, () -> yearweekQuery("2019-02-29 01:02:03", 0, 0)));
   }
 
   @Test
   public void yearweekModeInUnsupportedFormat() {
-    FunctionExpression expression1 = DSL
-        .yearweek(
+    FunctionExpression expression1 =
+        DSL.yearweek(
             functionProperties,
-            DSL.literal(new ExprDatetimeValue("2019-01-05 10:11:12")), DSL.literal(8));
+            DSL.literal(new ExprDatetimeValue("2019-01-05 10:11:12")),
+            DSL.literal(8));
     SemanticCheckException exception =
         assertThrows(SemanticCheckException.class, () -> eval(expression1));
-    assertEquals("mode:8 is invalid, please use mode value between 0-7",
-        exception.getMessage());
+    assertEquals("mode:8 is invalid, please use mode value between 0-7", exception.getMessage());
 
-    FunctionExpression expression2 = DSL
-        .yearweek(
+    FunctionExpression expression2 =
+        DSL.yearweek(
             functionProperties,
-            DSL.literal(new ExprDatetimeValue("2019-01-05 10:11:12")), DSL.literal(-1));
+            DSL.literal(new ExprDatetimeValue("2019-01-05 10:11:12")),
+            DSL.literal(-1));
     exception = assertThrows(SemanticCheckException.class, () -> eval(expression2));
-    assertEquals("mode:-1 is invalid, please use mode value between 0-7",
-        exception.getMessage());
+    assertEquals("mode:-1 is invalid, please use mode value between 0-7", exception.getMessage());
   }
 
   private ExprValue eval(Expression expression) {

@@ -3,7 +3,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-
 package org.opensearch.sql.ast.expression;
 
 import com.google.common.collect.ImmutableList;
@@ -13,7 +12,7 @@ import lombok.RequiredArgsConstructor;
 
 @Getter
 @RequiredArgsConstructor
-public enum  IntervalUnit {
+public enum IntervalUnit {
   UNKNOWN,
 
   MICROSECOND,
@@ -44,9 +43,7 @@ public enum  IntervalUnit {
     INTERVAL_UNITS = builder.add(IntervalUnit.values()).build();
   }
 
-  /**
-   * Util method to get interval unit given the unit name.
-   */
+  /** Util method to get interval unit given the unit name. */
   public static IntervalUnit of(String unit) {
     return INTERVAL_UNITS.stream()
         .filter(v -> unit.equalsIgnoreCase(v.name()))

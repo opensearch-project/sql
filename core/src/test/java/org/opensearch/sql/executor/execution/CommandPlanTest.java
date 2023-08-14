@@ -47,8 +47,7 @@ public class CommandPlanTest {
   public void execute_with_error() {
     QueryService qs = mock(QueryService.class, withSettings().defaultAnswer(CALLS_REAL_METHODS));
     ResponseListener listener = mock(ResponseListener.class);
-    doThrow(new RuntimeException())
-        .when(qs).executePlan(any(LogicalPlan.class), any(), any());
+    doThrow(new RuntimeException()).when(qs).executePlan(any(LogicalPlan.class), any(), any());
 
     new CommandPlan(QueryId.queryId(), mock(UnresolvedPlan.class), qs, listener).execute();
 
@@ -62,9 +61,12 @@ public class CommandPlanTest {
     ResponseListener listener = mock(ResponseListener.class);
     ResponseListener explainListener = mock(ResponseListener.class);
 
-    var exception = assertThrows(Throwable.class, () ->
-        new CommandPlan(QueryId.queryId(), mock(UnresolvedPlan.class), qs, listener)
-            .explain(explainListener));
+    var exception =
+        assertThrows(
+            Throwable.class,
+            () ->
+                new CommandPlan(QueryId.queryId(), mock(UnresolvedPlan.class), qs, listener)
+                    .explain(explainListener));
     assertEquals("CommandPlan does not support explain", exception.getMessage());
 
     verify(listener, never()).onResponse(any());

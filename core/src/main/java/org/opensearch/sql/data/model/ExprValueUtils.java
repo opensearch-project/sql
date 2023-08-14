@@ -18,9 +18,7 @@ import lombok.experimental.UtilityClass;
 import org.opensearch.sql.data.type.ExprCoreType;
 import org.opensearch.sql.exception.ExpressionEvaluationException;
 
-/**
- * The definition of {@link ExprValue} factory.
- */
+/** The definition of {@link ExprValue} factory. */
 @UtilityClass
 public class ExprValueUtils {
   public static final ExprValue LITERAL_TRUE = ExprBooleanValue.of(true);
@@ -80,19 +78,15 @@ public class ExprValueUtils {
     return new ExprTimestampValue(value);
   }
 
-  /**
-   * {@link ExprTupleValue} constructor.
-   */
+  /** {@link ExprTupleValue} constructor. */
   public static ExprValue tupleValue(Map<String, Object> map) {
     LinkedHashMap<String, ExprValue> valueMap = new LinkedHashMap<>();
-    map.forEach((k, v) -> valueMap
-        .put(k, v instanceof ExprValue ? (ExprValue) v : fromObjectValue(v)));
+    map.forEach(
+        (k, v) -> valueMap.put(k, v instanceof ExprValue ? (ExprValue) v : fromObjectValue(v)));
     return new ExprTupleValue(valueMap);
   }
 
-  /**
-   * {@link ExprCollectionValue} constructor.
-   */
+  /** {@link ExprCollectionValue} constructor. */
   public static ExprValue collectionValue(List<Object> list) {
     List<ExprValue> valueList = new ArrayList<>();
     list.forEach(o -> valueList.add(fromObjectValue(o)));
@@ -107,9 +101,7 @@ public class ExprValueUtils {
     return ExprNullValue.of();
   }
 
-  /**
-   * Construct ExprValue from Object.
-   */
+  /** Construct ExprValue from Object. */
   public static ExprValue fromObjectValue(Object o) {
     if (null == o) {
       return LITERAL_NULL;
@@ -149,19 +141,17 @@ public class ExprValueUtils {
     }
   }
 
-  /**
-   * Construct ExprValue from Object with ExprCoreType.
-   */
+  /** Construct ExprValue from Object with ExprCoreType. */
   public static ExprValue fromObjectValue(Object o, ExprCoreType type) {
     switch (type) {
       case TIMESTAMP:
-        return new ExprTimestampValue((String)o);
+        return new ExprTimestampValue((String) o);
       case DATE:
-        return new ExprDateValue((String)o);
+        return new ExprDateValue((String) o);
       case TIME:
-        return new ExprTimeValue((String)o);
+        return new ExprTimeValue((String) o);
       case DATETIME:
-        return new ExprDatetimeValue((String)o);
+        return new ExprDatetimeValue((String) o);
       default:
         return fromObjectValue(o);
     }

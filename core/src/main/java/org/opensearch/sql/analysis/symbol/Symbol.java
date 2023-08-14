@@ -3,16 +3,13 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-
 package org.opensearch.sql.analysis.symbol;
 
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.ToString;
 
-/**
- * Symbol in the scope.
- */
+/** Symbol in the scope. */
 @ToString
 @Getter
 @RequiredArgsConstructor

@@ -26,26 +26,18 @@ import org.opensearch.sql.data.type.ExprCoreType;
 import org.opensearch.sql.expression.Expression;
 import org.opensearch.sql.expression.function.BuiltinFunctionName;
 
-/**
- * StandardDeviation Aggregator.
- */
+/** StandardDeviation Aggregator. */
 public class StdDevAggregator extends Aggregator<StdDevAggregator.StdDevState> {
 
   private final boolean isSampleStdDev;
 
-  /**
-   * Build Population Variance {@link VarianceAggregator}.
-   */
-  public static Aggregator stddevPopulation(List<Expression> arguments,
-                                              ExprCoreType returnType) {
+  /** Build Population Variance {@link VarianceAggregator}. */
+  public static Aggregator stddevPopulation(List<Expression> arguments, ExprCoreType returnType) {
     return new StdDevAggregator(false, arguments, returnType);
   }
 
-  /**
-   * Build Sample Variance {@link VarianceAggregator}.
-   */
-  public static Aggregator stddevSample(List<Expression> arguments,
-                                          ExprCoreType returnType) {
+  /** Build Sample Variance {@link VarianceAggregator}. */
+  public static Aggregator stddevSample(List<Expression> arguments, ExprCoreType returnType) {
     return new StdDevAggregator(true, arguments, returnType);
   }
 
@@ -53,7 +45,7 @@ public class StdDevAggregator extends Aggregator<StdDevAggregator.StdDevState> {
    * VarianceAggregator constructor.
    *
    * @param isSampleStdDev true for sample standard deviation aggregator, false for population
-   *                       standard deviation aggregator.
+   *     standard deviation aggregator.
    * @param arguments aggregator arguments.
    * @param returnType aggregator return types.
    */
@@ -74,8 +66,8 @@ public class StdDevAggregator extends Aggregator<StdDevAggregator.StdDevState> {
   }
 
   @Override
-  protected StdDevAggregator.StdDevState iterate(ExprValue value,
-                                                 StdDevAggregator.StdDevState state) {
+  protected StdDevAggregator.StdDevState iterate(
+      ExprValue value, StdDevAggregator.StdDevState state) {
     state.evaluate(value);
     return state;
   }

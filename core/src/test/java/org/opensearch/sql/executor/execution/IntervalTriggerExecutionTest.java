@@ -18,16 +18,12 @@ public class IntervalTriggerExecutionTest {
 
   @Test
   void executeTaskWithInterval() {
-    triggerTask(2)
-        .taskRun(1)
-        .aroundInterval();
+    triggerTask(2).taskRun(1).aroundInterval();
   }
 
   @Test
   void continueExecuteIfTaskRunningLongerThanInterval() {
-    triggerTask(1)
-        .taskRun(2)
-        .aroundTaskRuntime();
+    triggerTask(1).taskRun(2).aroundTaskRuntime();
   }
 
   Helper triggerTask(long interval) {

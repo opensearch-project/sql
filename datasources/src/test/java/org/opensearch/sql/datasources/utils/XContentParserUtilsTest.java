@@ -30,7 +30,8 @@ public class XContentParserUtilsTest {
 
     XContentBuilder contentBuilder = XContentParserUtils.convertToXContent(dataSourceMetadata);
     String contentString = BytesReference.bytes(contentBuilder).utf8ToString();
-    Assertions.assertEquals("{\"name\":\"testDS\",\"connector\":\"PROMETHEUS\",\"allowedRoles\":[\"prometheus_access\"],\"properties\":{\"prometheus.uri\":\"https://localhost:9090\"}}",
+    Assertions.assertEquals(
+        "{\"name\":\"testDS\",\"connector\":\"PROMETHEUS\",\"allowedRoles\":[\"prometheus_access\"],\"properties\":{\"prometheus.uri\":\"https://localhost:9090\"}}",
         contentString);
   }
 
@@ -49,7 +50,6 @@ public class XContentParserUtilsTest {
 
     Assertions.assertEquals(retrievedMetadata, dataSourceMetadata);
     Assertions.assertEquals("prometheus_access", retrievedMetadata.getAllowedRoles().get(0));
-
   }
 
   @SneakyThrows
@@ -62,9 +62,12 @@ public class XContentParserUtilsTest {
     Gson gson = new Gson();
     String json = gson.toJson(dataSourceMetadata);
 
-    IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> {
-      XContentParserUtils.toDataSourceMetadata(json);
-    });
+    IllegalArgumentException exception =
+        assertThrows(
+            IllegalArgumentException.class,
+            () -> {
+              XContentParserUtils.toDataSourceMetadata(json);
+            });
     Assertions.assertEquals("name and connector are required fields.", exception.getMessage());
   }
 
@@ -78,9 +81,12 @@ public class XContentParserUtilsTest {
     Gson gson = new Gson();
     String json = gson.toJson(dataSourceMetadata);
 
-    IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> {
-      XContentParserUtils.toDataSourceMetadata(json);
-    });
+    IllegalArgumentException exception =
+        assertThrows(
+            IllegalArgumentException.class,
+            () -> {
+              XContentParserUtils.toDataSourceMetadata(json);
+            });
     Assertions.assertEquals("name and connector are required fields.", exception.getMessage());
   }
 
@@ -92,10 +98,12 @@ public class XContentParserUtilsTest {
     Gson gson = new Gson();
     String json = gson.toJson(hashMap);
 
-    IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> {
-      XContentParserUtils.toDataSourceMetadata(json);
-    });
+    IllegalArgumentException exception =
+        assertThrows(
+            IllegalArgumentException.class,
+            () -> {
+              XContentParserUtils.toDataSourceMetadata(json);
+            });
     Assertions.assertEquals("Unknown field: test", exception.getMessage());
   }
-
 }

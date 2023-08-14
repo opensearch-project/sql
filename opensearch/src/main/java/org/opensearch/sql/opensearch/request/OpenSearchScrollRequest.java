@@ -7,7 +7,6 @@
 package org.opensearch.sql.opensearch.request;
 
 import java.io.IOException;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
 import java.util.function.Consumer;
@@ -71,13 +70,16 @@ public class OpenSearchScrollRequest implements OpenSearchRequest {
   private boolean needClean = true;
 
   @Getter
+  @EqualsAndHashCode.Exclude
+  @ToString.Exclude
   private final List<String> includes;
 
   /** Constructor. */
   public OpenSearchScrollRequest(IndexName indexName,
                                  TimeValue scrollTimeout,
                                  SearchSourceBuilder sourceBuilder,
-                                 OpenSearchExprValueFactory exprValueFactory) {
+                                 OpenSearchExprValueFactory exprValueFactory,
+                                 List<String> includes) {
     this.indexName = indexName;
     this.scrollTimeout = scrollTimeout;
     this.exprValueFactory = exprValueFactory;
@@ -86,9 +88,7 @@ public class OpenSearchScrollRequest implements OpenSearchRequest {
         .scroll(scrollTimeout)
         .source(sourceBuilder);
 
-    includes = sourceBuilder.fetchSource() == null
-        ? List.of()
-        : Arrays.asList(sourceBuilder.fetchSource().includes());
+    this.includes = includes;
   }
 
 
