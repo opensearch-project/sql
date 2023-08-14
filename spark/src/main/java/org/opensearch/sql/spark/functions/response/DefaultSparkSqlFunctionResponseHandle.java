@@ -12,6 +12,7 @@ import java.util.List;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.json.JSONArray;
+import org.json.JSONException;
 import org.json.JSONObject;
 import org.opensearch.sql.data.model.ExprBooleanValue;
 import org.opensearch.sql.data.model.ExprByteValue;
@@ -68,6 +69,7 @@ public class DefaultSparkSqlFunctionResponseHandle implements SparkSqlFunctionRe
     LinkedHashMap<String, ExprValue> linkedHashMap = new LinkedHashMap<>();
     for (ExecutionEngine.Schema.Column column : columnList) {
       ExprType type = column.getExprType();
+      try {
       if (type == ExprCoreType.BOOLEAN) {
         linkedHashMap.put(column.getName(), ExprBooleanValue.of(row.getBoolean(column.getName())));
       } else if (type == ExprCoreType.LONG) {
@@ -91,6 +93,8 @@ public class DefaultSparkSqlFunctionResponseHandle implements SparkSqlFunctionRe
         linkedHashMap.put(column.getName(), new ExprStringValue(row.getString(column.getName())));
       } else {
         throw new RuntimeException("Result contains invalid data type");
+      } } catch (JSONException e) {
+        linkedHashMap.put(column.getName(), new ExprStringValue("null"));
       }
     }
 
