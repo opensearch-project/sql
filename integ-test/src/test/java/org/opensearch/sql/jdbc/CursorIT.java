@@ -66,12 +66,14 @@ public class CursorIT extends SQLIntegTestCase {
   public static void initConnection() {
     var driverFile = System.getProperty("jdbcFile");
     if (driverFile != null) {
-      URLClassLoader loader = new URLClassLoader(
-              new URL[]{new File(driverFile).toURI().toURL()},
-              ClassLoader.getSystemClassLoader()
-      );
-      Driver driver = (Driver) Class.forName("org.opensearch.jdbc.Driver", true, loader)
-          .getDeclaredConstructor().newInstance();
+      URLClassLoader loader =
+          new URLClassLoader(
+              new URL[] {new File(driverFile).toURI().toURL()}, ClassLoader.getSystemClassLoader());
+      Driver driver =
+          (Driver)
+              Class.forName("org.opensearch.jdbc.Driver", true, loader)
+                  .getDeclaredConstructor()
+                  .newInstance();
       connection = driver.connect(getConnectionString(), null);
     } else {
       connection = DriverManager.getConnection(getConnectionString());
@@ -93,7 +95,8 @@ public class CursorIT extends SQLIntegTestCase {
   @SneakyThrows
   public void check_driver_version() {
     var version = System.getProperty("jdbcDriverVersion");
-    Assume.assumeTrue("Parameter `jdbcDriverVersion` is not given, test platform uses default driver version",
+    Assume.assumeTrue(
+        "Parameter `jdbcDriverVersion` is not given, test platform uses default driver version",
         version != null);
     assertEquals(version, connection.getMetaData().getDriverVersion());
   }
@@ -103,11 +106,13 @@ public class CursorIT extends SQLIntegTestCase {
   public void select_all_no_cursor() {
     Statement stmt = connection.createStatement();
 
-    for (var table : List.of(TEST_INDEX_CALCS, TEST_INDEX_ONLINE, TEST_INDEX_BANK, TEST_INDEX_ACCOUNT)) {
+    for (var table :
+        List.of(TEST_INDEX_CALCS, TEST_INDEX_ONLINE, TEST_INDEX_BANK, TEST_INDEX_ACCOUNT)) {
       var query = String.format("SELECT * FROM %s", table);
       ResultSet rs = stmt.executeQuery(query);
       int rows = 0;
-      for (; rs.next(); rows++) ;
+      for (; rs.next(); rows++)
+        ;
 
       var restResponse = executeRestQuery(query, null);
       assertEquals(rows, restResponse.getInt("total"));
@@ -119,11 +124,13 @@ public class CursorIT extends SQLIntegTestCase {
   public void select_count_all_no_cursor() {
     Statement stmt = connection.createStatement();
 
-    for (var table : List.of(TEST_INDEX_CALCS, TEST_INDEX_ONLINE, TEST_INDEX_BANK, TEST_INDEX_ACCOUNT)) {
+    for (var table :
+        List.of(TEST_INDEX_CALCS, TEST_INDEX_ONLINE, TEST_INDEX_BANK, TEST_INDEX_ACCOUNT)) {
       var query = String.format("SELECT COUNT(*) FROM %s", table);
       ResultSet rs = stmt.executeQuery(query);
       int rows = 0;
-      for (; rs.next(); rows++) ;
+      for (; rs.next(); rows++)
+        ;
 
       var restResponse = executeRestQuery(query, null);
       assertEquals(rows, restResponse.getInt("total"));
@@ -140,7 +147,8 @@ public class CursorIT extends SQLIntegTestCase {
       stmt.setFetchSize(200);
       ResultSet rs = stmt.executeQuery(query);
       int rows = 0;
-      for (; rs.next(); rows++) ;
+      for (; rs.next(); rows++)
+        ;
 
       var restResponse = executeRestQuery(query, null);
       assertEquals(rows, restResponse.getInt("total"));
@@ -157,7 +165,8 @@ public class CursorIT extends SQLIntegTestCase {
       stmt.setFetchSize(3);
       ResultSet rs = stmt.executeQuery(query);
       int rows = 0;
-      for (; rs.next(); rows++) ;
+      for (; rs.next(); rows++)
+        ;
 
       var restResponse = executeRestQuery(query, null);
       assertEquals(rows, restResponse.getInt("total"));
@@ -174,7 +183,8 @@ public class CursorIT extends SQLIntegTestCase {
       stmt.setFetchSize(10);
       ResultSet rs = stmt.executeQuery(query);
       int rows = 0;
-      for (; rs.next(); rows++) ;
+      for (; rs.next(); rows++)
+        ;
 
       var restResponse = executeRestQuery(query, null);
       assertEquals(rows, restResponse.getInt("total"));
@@ -191,16 +201,15 @@ public class CursorIT extends SQLIntegTestCase {
       stmt.setFetchSize(500);
       ResultSet rs = stmt.executeQuery(query);
       int rows = 0;
-      for (; rs.next(); rows++) ;
+      for (; rs.next(); rows++)
+        ;
 
       var restResponse = executeRestQuery(query, null);
       assertEquals(rows, restResponse.getInt("total"));
     }
   }
 
-  /**
-   * Use OpenSearch cluster initialized by OpenSearch Gradle task.
-   */
+  /** Use OpenSearch cluster initialized by OpenSearch Gradle task. */
   private static String getConnectionString() {
     // string like "[::1]:46751,127.0.0.1:34403"
     var clusterUrls = System.getProperty("tests.rest.cluster").split(",");
@@ -211,7 +220,8 @@ public class CursorIT extends SQLIntegTestCase {
   protected JSONObject executeRestQuery(String query, @Nullable Integer fetch_size) {
     Request request = new Request("POST", QUERY_API_ENDPOINT);
     if (fetch_size != null) {
-      request.setJsonEntity(String.format("{ \"query\": \"%s\", \"fetch_size\": %d }", query, fetch_size));
+      request.setJsonEntity(
+          String.format("{ \"query\": \"%s\", \"fetch_size\": %d }", query, fetch_size));
     } else {
       request.setJsonEntity(String.format("{ \"query\": \"%s\" }", query));
     }

@@ -3,7 +3,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-
 package org.opensearch.sql.correctness.tests;
 
 import static org.junit.Assert.assertEquals;
@@ -36,17 +35,13 @@ import org.opensearch.sql.correctness.runner.connection.JDBCConnection;
 import org.opensearch.sql.correctness.runner.resultset.DBResult;
 import org.opensearch.sql.correctness.runner.resultset.Type;
 
-/**
- * Tests for {@link JDBCConnection}
- */
+/** Tests for {@link JDBCConnection} */
 @RunWith(MockitoJUnitRunner.class)
 public class JDBCConnectionTest {
 
-  @Mock
-  private Connection connection;
+  @Mock private Connection connection;
 
-  @Mock
-  private Statement statement;
+  @Mock private Statement statement;
 
   private JDBCConnection conn;
 
@@ -60,7 +55,8 @@ public class JDBCConnectionTest {
 
   @Test
   public void testCreateTable() throws SQLException {
-    conn.create("test",
+    conn.create(
+        "test",
         "{\"mappings\":{\"properties\":{\"name\":{\"type\":\"keyword\"},\"age\":{\"type\":\"INT\"}}}}");
 
     ArgumentCaptor<String> argCap = ArgumentCaptor.forClass(String.class);
@@ -83,7 +79,9 @@ public class JDBCConnectionTest {
 
   @Test
   public void testInsertData() throws SQLException {
-    conn.insert("test", new String[] {"name", "age"},
+    conn.insert(
+        "test",
+        new String[] {"name", "age"},
         Arrays.asList(new String[] {"John", "25"}, new String[] {"Hank", "30"}));
 
     ArgumentCaptor<String> argCap = ArgumentCaptor.forClass(String.class);
@@ -93,18 +91,17 @@ public class JDBCConnectionTest {
     assertEquals(
         Arrays.asList(
             "INSERT INTO test(`name`,`age`) VALUES ('John','25')",
-            "INSERT INTO test(`name`,`age`) VALUES ('Hank','30')"
-        ), actual
-    );
+            "INSERT INTO test(`name`,`age`) VALUES ('Hank','30')"),
+        actual);
   }
 
   @Test
   public void testInsertNullData() throws SQLException {
-    conn.insert("test", new String[] {"name", "age"},
+    conn.insert(
+        "test",
+        new String[] {"name", "age"},
         Arrays.asList(
-            new Object[] {"John", null},
-            new Object[] {null, 25},
-            new Object[] {"Hank", 30}));
+            new Object[] {"John", null}, new Object[] {null, 25}, new Object[] {"Hank", 30}));
 
     ArgumentCaptor<String> argCap = ArgumentCaptor.forClass(String.class);
     verify(statement, times(3)).addBatch(argCap.capture());
@@ -114,9 +111,8 @@ public class JDBCConnectionTest {
         Arrays.asList(
             "INSERT INTO test(`name`,`age`) VALUES ('John',NULL)",
             "INSERT INTO test(`name`,`age`) VALUES (NULL,'25')",
-            "INSERT INTO test(`name`,`age`) VALUES ('Hank','30')"
-        ), actual
-    );
+            "INSERT INTO test(`name`,`age`) VALUES ('Hank','30')"),
+        actual);
   }
 
   @Test
@@ -129,19 +125,10 @@ public class JDBCConnectionTest {
     DBResult result = conn.select("SELECT * FROM test");
     assertEquals("Test DB", result.getDatabaseName());
     assertEquals(
-        Arrays.asList(
-            new Type("NAME", "VARCHAR"),
-            new Type("AGE", "INT")
-        ),
-        result.getSchema()
-    );
+        Arrays.asList(new Type("NAME", "VARCHAR"), new Type("AGE", "INT")), result.getSchema());
     assertEquals(
-        HashMultiset.create(ImmutableList.of(
-            Arrays.asList("John", 25),
-            Arrays.asList("Hank", 30)
-        )),
-        result.getDataRows()
-    );
+        HashMultiset.create(ImmutableList.of(Arrays.asList("John", 25), Arrays.asList("Hank", 30))),
+        result.getDataRows());
   }
 
   @Test
@@ -153,24 +140,18 @@ public class JDBCConnectionTest {
     when(resultSet.getMetaData()).thenReturn(metaData);
 
     DBResult result = conn.select("SELECT * FROM test");
-    assertEquals(
-        Arrays.asList(
-            new Type("N", "VARCHAR"),
-            new Type("A", "INT")
-        ),
-        result.getSchema()
-    );
+    assertEquals(Arrays.asList(new Type("N", "VARCHAR"), new Type("A", "INT")), result.getSchema());
   }
 
   @Test
   public void testSelectQueryWithFloatInResultSet() throws SQLException {
     ResultSetMetaData metaData =
         mockMetaData(ImmutableMap.of("name", "VARCHAR", "balance", "FLOAT"));
-    ResultSet resultSet = mockResultSet(
-        new Object[] {"John", 25.123},
-        new Object[] {"Hank", 30.456},
-        new Object[] {"Allen", 15.1}
-    );
+    ResultSet resultSet =
+        mockResultSet(
+            new Object[] {"John", 25.123},
+            new Object[] {"Hank", 30.456},
+            new Object[] {"Allen", 15.1});
     when(statement.executeQuery(anyString())).thenReturn(resultSet);
     when(resultSet.getMetaData()).thenReturn(metaData);
 
@@ -178,18 +159,15 @@ public class JDBCConnectionTest {
     assertEquals(
         Arrays.asList(
             new Type("NAME", "VARCHAR"),
-            new Type("BALANCE", "[FLOAT, DOUBLE, REAL, DOUBLE PRECISION, DECFLOAT]")
-        ),
-        result.getSchema()
-    );
+            new Type("BALANCE", "[FLOAT, DOUBLE, REAL, DOUBLE PRECISION, DECFLOAT]")),
+        result.getSchema());
     assertEquals(
-        HashMultiset.create(ImmutableList.of(
-            Arrays.asList("John", 25.13),
-            Arrays.asList("Hank", 30.46),
-            Arrays.asList("Allen", 15.1)
-        )),
-        result.getDataRows()
-    );
+        HashMultiset.create(
+            ImmutableList.of(
+                Arrays.asList("John", 25.13),
+                Arrays.asList("Hank", 30.46),
+                Arrays.asList("Allen", 15.1))),
+        result.getDataRows());
   }
 
   private ResultSet mockResultSet(Object[]... rows) throws SQLException {
@@ -233,5 +211,4 @@ public class JDBCConnectionTest {
     when(metaData.getColumnCount()).thenReturn(nameAndTypes.size());
     return metaData;
   }
-
 }

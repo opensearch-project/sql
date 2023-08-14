@@ -3,7 +3,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-
 package org.opensearch.sql.correctness.runner.resultset;
 
 import com.google.common.collect.HashMultiset;
@@ -20,53 +19,38 @@ import org.json.JSONPropertyName;
 import org.opensearch.sql.legacy.utils.StringUtils;
 
 /**
- * Query result for equality comparison. Based on different type of query, such as query with/without ORDER BY and
- * query with SELECT columns or just *, order of column and row may matter or not. So the internal data structure of this
- * class is passed in from outside either list or set, hash map or linked hash map etc.
+ * Query result for equality comparison. Based on different type of query, such as query
+ * with/without ORDER BY and query with SELECT columns or just *, order of column and row may matter
+ * or not. So the internal data structure of this class is passed in from outside either list or
+ * set, hash map or linked hash map etc.
  */
 @ToString
 public class DBResult {
 
-  /**
-   * Possible types for floating point number
-   * H2 2.x use DOUBLE PRECISION instead of DOUBLE.
-   */
+  /** Possible types for floating point number H2 2.x use DOUBLE PRECISION instead of DOUBLE. */
   private static final Set<String> FLOAT_TYPES =
       ImmutableSet.of("FLOAT", "DOUBLE", "REAL", "DOUBLE PRECISION", "DECFLOAT");
 
-  /**
-   * Possible types for varchar.
-   * H2 2.x use CHARACTER VARYING instead of VARCHAR.
-   */
+  /** Possible types for varchar. H2 2.x use CHARACTER VARYING instead of VARCHAR. */
   private static final Set<String> VARCHAR = ImmutableSet.of("CHARACTER VARYING", "VARCHAR");
 
-  /**
-   * Database name for display
-   */
+  /** Database name for display */
   private final String databaseName;
 
-  /**
-   * Column name and types from result set meta data
-   */
-  @Getter
-  private final Collection<Type> schema;
+  /** Column name and types from result set meta data */
+  @Getter private final Collection<Type> schema;
 
-  /**
-   * Data rows from result set
-   */
+  /** Data rows from result set */
   private final Collection<Row> dataRows;
 
-  /**
-   * In theory, a result set is a multi-set (bag) that allows duplicate and doesn't
-   * have order.
-   */
+  /** In theory, a result set is a multi-set (bag) that allows duplicate and doesn't have order. */
   public static DBResult result(String databaseName) {
     return new DBResult(databaseName, new ArrayList<>(), HashMultiset.create());
   }
 
   /**
-   * But for queries with ORDER BY clause, we want to preserve the original order of data rows
-   * so we can check if the order is correct.
+   * But for queries with ORDER BY clause, we want to preserve the original order of data rows so we
+   * can check if the order is correct.
    */
   public static DBResult resultInOrder(String databaseName) {
     return new DBResult(databaseName, new ArrayList<>(), new ArrayList<>());
@@ -103,21 +87,20 @@ public class DBResult {
     return databaseName;
   }
 
-  /**
-   * Flatten for simplifying json generated.
-   */
+  /** Flatten for simplifying json generated. */
   public Collection<Collection<Object>> getDataRows() {
-    Collection<Collection<Object>> values = isDataRowOrdered()
-        ? new ArrayList<>() : HashMultiset.create();
+    Collection<Collection<Object>> values =
+        isDataRowOrdered() ? new ArrayList<>() : HashMultiset.create();
     dataRows.stream().map(Row::getValues).forEach(values::add);
     return values;
   }
 
   /**
-   * Explain the difference between this and other DB result which is helpful for
-   * troubleshooting in final test report.
-   * @param other   other DB result
-   * @return        explain the difference
+   * Explain the difference between this and other DB result which is helpful for troubleshooting in
+   * final test report.
+   *
+   * @param other other DB result
+   * @return explain the difference
    */
   public String diff(DBResult other) {
     String result = diffSchema(other);
@@ -143,26 +126,27 @@ public class DBResult {
   }
 
   /**
-   * Check if two lists are same otherwise explain if size or any element
-   * is different at some position.
+   * Check if two lists are same otherwise explain if size or any element is different at some
+   * position.
    */
   private String diff(String name, List<?> thisList, List<?> otherList) {
     if (thisList.size() != otherList.size()) {
-      return StringUtils.format("%s size is different: this=[%d], other=[%d]",
-          name, thisList.size(), otherList.size());
+      return StringUtils.format(
+          "%s size is different: this=[%d], other=[%d]", name, thisList.size(), otherList.size());
     }
 
     int diff = findFirstDifference(thisList, otherList);
     if (diff >= 0) {
-      return StringUtils.format("%s at [%d] is different: this=[%s], other=[%s]",
+      return StringUtils.format(
+          "%s at [%d] is different: this=[%s], other=[%s]",
           name, diff, thisList.get(diff), otherList.get(diff));
     }
     return "";
   }
 
   /**
-   * Find first different element with assumption that the lists given have same size
-   * and there is no NULL element inside.
+   * Find first different element with assumption that the lists given have same size and there is
+   * no NULL element inside.
    */
   private static int findFirstDifference(List<?> list1, List<?> list2) {
     for (int i = 0; i < list1.size(); i++) {
@@ -174,16 +158,14 @@ public class DBResult {
   }
 
   /**
-   * Is data row a list that represent original order of data set
-   * which doesn't/shouldn't sort again.
+   * Is data row a list that represent original order of data set which doesn't/shouldn't sort
+   * again.
    */
   private boolean isDataRowOrdered() {
     return (dataRows instanceof List);
   }
 
-  /**
-   * Convert a collection to list and sort and return this new list.
-   */
+  /** Convert a collection to list and sort and return this new list. */
   private static <T extends Comparable<T>> List<T> sort(Collection<T> collection) {
     ArrayList<T> list = new ArrayList<>(collection);
     Collections.sort(list);
@@ -200,12 +182,16 @@ public class DBResult {
     final DBResult other = (DBResult) o;
     // H2 calculates the value before setting column name
     // for example, for query "select 1 + 1" it returns a column named "2" instead of "1 + 1"
-    boolean skipColumnNameCheck = databaseName.equalsIgnoreCase("h2") || other.databaseName.equalsIgnoreCase("h2");
+    boolean skipColumnNameCheck =
+        databaseName.equalsIgnoreCase("h2") || other.databaseName.equalsIgnoreCase("h2");
     if (!skipColumnNameCheck && !schema.equals(other.schema)) {
       return false;
     }
-    if (skipColumnNameCheck && !schema.stream().map(Type::getType).collect(Collectors.toList())
-                    .equals(other.schema.stream().map(Type::getType).collect(Collectors.toList()))) {
+    if (skipColumnNameCheck
+        && !schema.stream()
+            .map(Type::getType)
+            .collect(Collectors.toList())
+            .equals(other.schema.stream().map(Type::getType).collect(Collectors.toList()))) {
       return false;
     }
     return dataRows.equals(other.dataRows);

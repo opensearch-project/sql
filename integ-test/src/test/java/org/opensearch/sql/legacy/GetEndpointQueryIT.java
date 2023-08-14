@@ -3,7 +3,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-
 package org.opensearch.sql.legacy;
 
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_ACCOUNT;
@@ -14,13 +13,10 @@ import org.junit.Test;
 import org.junit.rules.ExpectedException;
 import org.opensearch.client.ResponseException;
 
-/**
- * Tests to cover requests with "?format=csv" parameter
- */
+/** Tests to cover requests with "?format=csv" parameter */
 public class GetEndpointQueryIT extends SQLIntegTestCase {
 
-  @Rule
-  public ExpectedException rule = ExpectedException.none();
+  @Rule public ExpectedException rule = ExpectedException.none();
 
   @Override
   protected void init() throws Exception {

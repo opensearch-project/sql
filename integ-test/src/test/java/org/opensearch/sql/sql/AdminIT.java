@@ -3,7 +3,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-
 package org.opensearch.sql.sql;
 
 import static org.hamcrest.Matchers.equalTo;
@@ -66,8 +65,10 @@ public class AdminIT extends SQLIntegTestCase {
   public void describeSingleIndexWildcard() throws IOException {
     JSONObject response1 = executeQuery("DESCRIBE TABLES LIKE \\\"%account\\\"");
     JSONObject response2 = executeQuery("DESCRIBE TABLES LIKE '%account'");
-    JSONObject response3 = executeQuery("DESCRIBE TABLES LIKE '%account' COLUMNS LIKE \\\"%name\\\"");
-    JSONObject response4 = executeQuery("DESCRIBE TABLES LIKE \\\"%account\\\" COLUMNS LIKE '%name'");
+    JSONObject response3 =
+        executeQuery("DESCRIBE TABLES LIKE '%account' COLUMNS LIKE \\\"%name\\\"");
+    JSONObject response4 =
+        executeQuery("DESCRIBE TABLES LIKE \\\"%account\\\" COLUMNS LIKE '%name'");
     // 11 rows in the output, each corresponds to a column in the table
     assertEquals(11, response1.getJSONArray("datarows").length());
     assertTrue(response1.similar(response2));
