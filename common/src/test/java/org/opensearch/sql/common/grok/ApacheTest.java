@@ -5,7 +5,6 @@
 
 package org.opensearch.sql.common.grok;
 
-
 import com.google.common.io.Resources;
 import java.io.BufferedReader;
 import java.io.File;
@@ -65,5 +64,4 @@ public class ApacheTest {
       br.close();
     }
   }
-
 }
