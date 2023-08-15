@@ -3,7 +3,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-
 package org.opensearch.sql.sql.parser;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -40,14 +39,11 @@ import org.opensearch.sql.sql.parser.context.QuerySpecification;
 @ExtendWith(MockitoExtension.class)
 class AstSortBuilderTest {
 
-  @Mock
-  private QuerySpecification querySpec;
+  @Mock private QuerySpecification querySpec;
 
-  @Mock
-  private OrderByClauseContext orderByClause;
+  @Mock private OrderByClauseContext orderByClause;
 
-  @Mock
-  private UnresolvedPlan child;
+  @Mock private UnresolvedPlan child;
 
   @Test
   void can_build_sort_node() {
@@ -56,32 +52,35 @@ class AstSortBuilderTest {
 
     ImmutableMap<SortOption, List<Argument>> expects =
         ImmutableMap.<SortOption, List<Argument>>builder()
-            .put(new SortOption(null, null),
-                ImmutableList.of(argument("asc", booleanLiteral(true))))
-            .put(new SortOption(ASC, null),
-                ImmutableList.of(argument("asc", booleanLiteral(true))))
-            .put(new SortOption(DESC, null),
+            .put(
+                new SortOption(null, null), ImmutableList.of(argument("asc", booleanLiteral(true))))
+            .put(new SortOption(ASC, null), ImmutableList.of(argument("asc", booleanLiteral(true))))
+            .put(
+                new SortOption(DESC, null),
                 ImmutableList.of(argument("asc", booleanLiteral(false))))
-            .put(new SortOption(null, NULL_LAST),
+            .put(
+                new SortOption(null, NULL_LAST),
                 ImmutableList.of(
                     argument("asc", booleanLiteral(true)),
                     argument("nullFirst", booleanLiteral(false))))
-            .put(new SortOption(DESC, NULL_FIRST),
+            .put(
+                new SortOption(DESC, NULL_FIRST),
                 ImmutableList.of(
                     argument("asc", booleanLiteral(false)),
                     argument("nullFirst", booleanLiteral(true))))
             .build();
 
-    expects.forEach((option, expect) -> {
-      when(querySpec.getOrderByOptions()).thenReturn(ImmutableList.of(option));
+    expects.forEach(
+        (option, expect) -> {
+          when(querySpec.getOrderByOptions()).thenReturn(ImmutableList.of(option));
 
-      AstSortBuilder sortBuilder = new AstSortBuilder(querySpec);
-      assertEquals(
-          new Sort(
-              child, // has to mock and attach child otherwise Guava ImmutableList NPE in getChild()
-              ImmutableList.of(field("name", expect))),
-          sortBuilder.visitOrderByClause(orderByClause).attach(child));
-    });
+          AstSortBuilder sortBuilder = new AstSortBuilder(querySpec);
+          assertEquals(
+              new Sort(
+                  child, // has to mock and attach child otherwise Guava ImmutableList NPE in
+                  // getChild()
+                  ImmutableList.of(field("name", expect))),
+              sortBuilder.visitOrderByClause(orderByClause).attach(child));
+        });
   }
-
 }
