@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-package org.opensearch.sql.planner.logical;
+package org.opensearch.sql.opensearch.planner.logical;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
@@ -35,6 +35,18 @@ import org.opensearch.sql.expression.NamedExpression;
 import org.opensearch.sql.expression.ReferenceExpression;
 import org.opensearch.sql.expression.aggregation.Aggregator;
 import org.opensearch.sql.expression.window.WindowDefinition;
+import org.opensearch.sql.opensearch.expression.OpenSearchDSL;
+import org.opensearch.sql.planner.logical.LogicalAggregation;
+import org.opensearch.sql.planner.logical.LogicalCloseCursor;
+import org.opensearch.sql.planner.logical.LogicalFetchCursor;
+import org.opensearch.sql.planner.logical.LogicalFilter;
+import org.opensearch.sql.planner.logical.LogicalNested;
+import org.opensearch.sql.planner.logical.LogicalPlan;
+import org.opensearch.sql.planner.logical.LogicalPlanDSL;
+import org.opensearch.sql.planner.logical.LogicalPlanNodeVisitor;
+import org.opensearch.sql.planner.logical.LogicalRareTopN;
+import org.opensearch.sql.planner.logical.LogicalRelation;
+import org.opensearch.sql.planner.logical.LogicalRename;
 import org.opensearch.sql.planner.physical.PhysicalPlan;
 import org.opensearch.sql.storage.StorageEngine;
 import org.opensearch.sql.storage.Table;
@@ -70,8 +82,8 @@ class LogicalPlanNodeVisitorTest {
                     CommandType.TOP,
                     ImmutableList.of(expression),
                     expression),
-                ImmutableList.of(DSL.named("avg", aggregator)),
-                ImmutableList.of(DSL.named("group", expression))),
+                ImmutableList.of(OpenSearchDSL.named("avg", aggregator)),
+                ImmutableList.of(OpenSearchDSL.named("group", expression))),
             ImmutableMap.of(ref, ref));
 
     Integer result = logicalPlan.accept(new NodesCount(), null);
@@ -100,31 +112,20 @@ class LogicalPlanNodeVisitorTest {
     LogicalPlan aggregation =
         LogicalPlanDSL.aggregation(
             filter,
-            ImmutableList.of(DSL.named("avg", aggregator)),
-            ImmutableList.of(DSL.named("group", expression)));
-    LogicalPlan rename = LogicalPlanDSL.rename(aggregation, ImmutableMap.of(ref, ref));
-    LogicalPlan project = LogicalPlanDSL.project(relation, named("ref", ref));
-    LogicalPlan remove = LogicalPlanDSL.remove(relation, ref);
-    LogicalPlan eval = LogicalPlanDSL.eval(relation, Pair.of(ref, expression));
-    LogicalPlan sort = LogicalPlanDSL.sort(relation, Pair.of(SortOption.DEFAULT_ASC, expression));
-    LogicalPlan dedup = LogicalPlanDSL.dedupe(relation, 1, false, false, expression);
-    LogicalPlan window =
-        LogicalPlanDSL.window(
-            relation,
-            named(expression),
-            new WindowDefinition(
-                ImmutableList.of(ref),
-                ImmutableList.of(Pair.of(SortOption.DEFAULT_ASC, expression))));
-    LogicalPlan rareTopN =
-        LogicalPlanDSL.rareTopN(
-            relation, CommandType.TOP, ImmutableList.of(expression), expression);
-    LogicalPlan highlight =
-        new LogicalHighlight(
-            filter, new LiteralExpression(ExprValueUtils.stringValue("fieldA")), Map.of());
-    LogicalPlan mlCommons = new LogicalMLCommons(relation, "kmeans", Map.of());
-    LogicalPlan ad = new LogicalAD(relation, Map.of());
-    LogicalPlan ml = new LogicalML(relation, Map.of());
-    LogicalPlan paginate = new LogicalPaginate(42, List.of(relation));
+            ImmutableList.of(OpenSearchDSL.named("avg", aggregator)),
+            ImmutableList.of(OpenSearchDSL.named("group", expression)));
+
+
+    List<Map<String, ReferenceExpression>> nestedArgs =
+        List.of(
+            Map.of(
+                "field", new ReferenceExpression("message.info", STRING),
+                "path", new ReferenceExpression("message", STRING)));
+    List<NamedExpression> projectList =
+        List.of(
+            new NamedExpression("message.info", OpenSearchDSL.nested(OpenSearchDSL.ref("message.info", STRING)), null));
+
+    LogicalNested nested = new LogicalNested(null, nestedArgs, projectList);
 
     LogicalFetchCursor cursor = new LogicalFetchCursor("n:test", mock(StorageEngine.class));
 
@@ -137,19 +138,7 @@ class LogicalPlanNodeVisitorTest {
             tableWriteBuilder,
             filter,
             aggregation,
-            rename,
-            project,
-            remove,
-            eval,
-            sort,
-            dedup,
-            window,
-            rareTopN,
-            highlight,
-            mlCommons,
-            ad,
-            ml,
-            paginate,
+            nested,
             cursor,
             closeCursor)
         .map(Arguments::of);
@@ -171,36 +160,36 @@ class LogicalPlanNodeVisitorTest {
     public Integer visitFilter(LogicalFilter plan, Object context) {
       return 1
           + plan.getChild().stream()
-              .map(child -> child.accept(this, context))
-              .mapToInt(Integer::intValue)
-              .sum();
+          .map(child -> child.accept(this, context))
+          .mapToInt(Integer::intValue)
+          .sum();
     }
 
     @Override
     public Integer visitAggregation(LogicalAggregation plan, Object context) {
       return 1
           + plan.getChild().stream()
-              .map(child -> child.accept(this, context))
-              .mapToInt(Integer::intValue)
-              .sum();
+          .map(child -> child.accept(this, context))
+          .mapToInt(Integer::intValue)
+          .sum();
     }
 
     @Override
     public Integer visitRename(LogicalRename plan, Object context) {
       return 1
           + plan.getChild().stream()
-              .map(child -> child.accept(this, context))
-              .mapToInt(Integer::intValue)
-              .sum();
+          .map(child -> child.accept(this, context))
+          .mapToInt(Integer::intValue)
+          .sum();
     }
 
     @Override
     public Integer visitRareTopN(LogicalRareTopN plan, Object context) {
       return 1
           + plan.getChild().stream()
-              .map(child -> child.accept(this, context))
-              .mapToInt(Integer::intValue)
-              .sum();
+          .map(child -> child.accept(this, context))
+          .mapToInt(Integer::intValue)
+          .sum();
     }
   }
 }

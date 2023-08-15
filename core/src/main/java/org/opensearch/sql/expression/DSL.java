@@ -28,7 +28,7 @@ import org.opensearch.sql.expression.window.ranking.RankingWindowFunction;
 
 public class DSL {
 
-  private DSL() {}
+  public DSL() {}
 
   public static LiteralExpression literal(Byte value) {
     return new LiteralExpression(ExprValueUtils.byteValue(value));
@@ -957,7 +957,7 @@ public class DSL {
   private static <T extends FunctionImplementation> T compile(
       FunctionProperties functionProperties, BuiltinFunctionName bfn, Expression... args) {
     return (T)
-        BuiltinFunctionRepository.getInstance()
+        BuiltinFunctionRepository.getInstance(null)
             .compile(functionProperties, bfn.getName(), Arrays.asList(args));
   }
 }

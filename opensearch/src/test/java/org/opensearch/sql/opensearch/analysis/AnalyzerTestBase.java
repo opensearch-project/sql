@@ -9,6 +9,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.opensearch.sql.analysis.DataSourceSchemaIdentifierNameResolver.DEFAULT_DATASOURCE_NAME;
 import static org.opensearch.sql.data.type.ExprCoreType.LONG;
 import static org.opensearch.sql.data.type.ExprCoreType.STRING;
+import static org.opensearch.sql.utils.SystemIndexUtils.isSystemIndex;
 
 import com.google.common.collect.ImmutableMap;
 import java.util.Collection;
@@ -19,7 +20,12 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+
+import lombok.Getter;
 import org.apache.commons.lang3.tuple.Pair;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.opensearch.sql.DataSourceSchemaName;
 import org.opensearch.sql.analysis.AnalysisContext;
 import org.opensearch.sql.analysis.Analyzer;
@@ -29,6 +35,7 @@ import org.opensearch.sql.analysis.symbol.Namespace;
 import org.opensearch.sql.analysis.symbol.Symbol;
 import org.opensearch.sql.analysis.symbol.SymbolTable;
 import org.opensearch.sql.ast.tree.UnresolvedPlan;
+import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.data.type.ExprType;
 import org.opensearch.sql.datasource.DataSourceService;
 import org.opensearch.sql.datasource.model.DataSource;
@@ -44,7 +51,9 @@ import org.opensearch.sql.expression.function.FunctionName;
 import org.opensearch.sql.expression.function.FunctionResolver;
 import org.opensearch.sql.expression.function.FunctionSignature;
 import org.opensearch.sql.expression.function.TableFunctionImplementation;
+import org.opensearch.sql.opensearch.client.OpenSearchClient;
 import org.opensearch.sql.opensearch.config.TestConfig;
+import org.opensearch.sql.opensearch.functions.OpenSearchFunctions;
 import org.opensearch.sql.planner.logical.LogicalPlan;
 import org.opensearch.sql.planner.physical.PhysicalPlan;
 import org.opensearch.sql.storage.StorageEngine;
@@ -58,39 +67,24 @@ public class AnalyzerTestBase {
   }
 
   // Make this add OpenSearchStorageEngine
+  @ExtendWith(MockitoExtension.class)
   protected StorageEngine storageEngine() {
-    return (dataSourceSchemaName, tableName) -> table;
-  }
-
-  protected StorageEngine prometheusStorageEngine() {
     return new StorageEngine() {
+      @Getter
+      @Mock
+      private OpenSearchClient client;
+      @Getter
+      @Mock
+      private Settings settings;
+
       @Override
-      public Collection<FunctionResolver> getFunctions() {
-        return Collections.singletonList(
-            new FunctionResolver() {
-
-              @Override
-              public Pair<FunctionSignature, FunctionBuilder> resolve(
-                  FunctionSignature unresolvedSignature) {
-                FunctionName functionName = FunctionName.of("query_range");
-                FunctionSignature functionSignature =
-                    new FunctionSignature(functionName, List.of(STRING, LONG, LONG, STRING));
-                return Pair.of(
-                    functionSignature,
-                    (functionProperties, args) ->
-                        new TestTableFunctionImplementation(functionName, args, table));
-              }
-
-              @Override
-              public FunctionName getFunctionName() {
-                return FunctionName.of("query_range");
-              }
-            });
+      public Table getTable(DataSourceSchemaName dataSourceSchemaName, String name) {
+        return table();
       }
 
       @Override
-      public Table getTable(DataSourceSchemaName dataSourceSchemaName, String tableName) {
-        return table;
+      public Collection<FunctionResolver> getFunctions() {
+        return OpenSearchFunctions.getResolvers();
       }
     };
   }
@@ -136,18 +130,6 @@ public class AnalyzerTestBase {
     return symbolTable;
   }
 
-  protected Environment<Expression, ExprType> typeEnv() {
-    return var -> {
-      if (var instanceof ReferenceExpression) {
-        ReferenceExpression refExpr = (ReferenceExpression) var;
-        if (typeMapping().containsKey(refExpr.getAttr())) {
-          return typeMapping().get(refExpr.getAttr());
-        }
-      }
-      throw new ExpressionEvaluationException("type resolved failed");
-    };
-  }
-
   protected AnalysisContext analysisContext = analysisContext(typeEnvironment(symbolTable()));
 
   protected ExpressionAnalyzer expressionAnalyzer = expressionAnalyzer();
@@ -188,13 +170,11 @@ public class AnalyzerTestBase {
 
     private final DataSource opensearchDataSource = new DataSource(DEFAULT_DATASOURCE_NAME,
         DataSourceType.OPENSEARCH, storageEngine());
-    private final DataSource prometheusDataSource
-        = new DataSource("prometheus", DataSourceType.PROMETHEUS, prometheusStorageEngine());
 
 
     @Override
     public Set<DataSourceMetadata> getDataSourceMetadata(boolean isDefaultDataSourceRequired) {
-      return Stream.of(opensearchDataSource, prometheusDataSource)
+      return Stream.of(opensearchDataSource)
           .map(ds -> new DataSourceMetadata(ds.getName(),
               ds.getConnectorType(),Collections.emptyList(),
               ImmutableMap.of())).collect(Collectors.toSet());
@@ -212,11 +192,7 @@ public class AnalyzerTestBase {
 
     @Override
     public DataSource getDataSource(String dataSourceName) {
-      if ("prometheus".equals(dataSourceName)) {
-        return prometheusDataSource;
-      } else {
-        return opensearchDataSource;
-      }
+      return opensearchDataSource;
     }
 
     @Override
@@ -232,37 +208,6 @@ public class AnalyzerTestBase {
     public Boolean dataSourceExists(String dataSourceName) {
       return dataSourceName.equals(DEFAULT_DATASOURCE_NAME)
           || dataSourceName.equals("prometheus");
-    }
-  }
-
-  private class TestTableFunctionImplementation implements TableFunctionImplementation {
-
-    private FunctionName functionName;
-
-    private List<Expression> arguments;
-
-    private Table table;
-
-    public TestTableFunctionImplementation(FunctionName functionName, List<Expression> arguments,
-                                           Table table) {
-      this.functionName = functionName;
-      this.arguments = arguments;
-      this.table = table;
-    }
-
-    @Override
-    public FunctionName getFunctionName() {
-      return functionName;
-    }
-
-    @Override
-    public List<Expression> getArguments() {
-      return this.arguments;
-    }
-
-    @Override
-    public Table applyArguments() {
-      return table;
     }
   }
 }

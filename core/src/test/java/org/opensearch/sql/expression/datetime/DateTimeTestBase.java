@@ -28,7 +28,7 @@ import org.opensearch.sql.expression.function.BuiltinFunctionRepository;
 public class DateTimeTestBase extends ExpressionTestBase {
 
   protected final BuiltinFunctionRepository functionRepository =
-      BuiltinFunctionRepository.getInstance();
+      BuiltinFunctionRepository.getInstance(null);
 
   protected ExprValue eval(Expression expression) {
     return expression.valueOf();

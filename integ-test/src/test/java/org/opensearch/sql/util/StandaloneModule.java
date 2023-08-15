@@ -50,7 +50,7 @@ public class StandaloneModule extends AbstractModule {
   private final DataSourceService dataSourceService;
 
   private final BuiltinFunctionRepository functionRepository =
-      BuiltinFunctionRepository.getInstance();
+      BuiltinFunctionRepository.getInstance(null);
 
   @Override
   protected void configure() {

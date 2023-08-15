@@ -22,10 +22,8 @@ import org.opensearch.sql.expression.function.FunctionName;
 import org.opensearch.sql.expression.function.FunctionResolver;
 import org.opensearch.sql.expression.function.FunctionSignature;
 
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
-import java.util.Set;
 import java.util.stream.Collectors;
 
 import static org.opensearch.sql.data.type.ExprCoreType.BOOLEAN;
@@ -60,24 +58,6 @@ public class OpenSearchFunctions {
         );
   }
 
-<<<<<<< Updated upstream
-  /**
-   * Add functions specific to OpenSearch to repository.
-   */
-  public void register(BuiltinFunctionRepository repository) {
-
-    repository.register(match_phrase_prefix());
-    repository.register(wildcard_query(BuiltinFunctionName.WILDCARD_QUERY));
-    repository.register(wildcard_query(BuiltinFunctionName.WILDCARDQUERY));
-    repository.register(score(BuiltinFunctionName.SCORE));
-    repository.register(score(BuiltinFunctionName.SCOREQUERY));
-    repository.register(score(BuiltinFunctionName.SCORE_QUERY));
-    // Functions supported in SELECT clause
-    repository.register(nested());
-  }
-
-=======
->>>>>>> Stashed changes
   private static FunctionResolver match_bool_prefix() {
     FunctionName name = BuiltinFunctionName.MATCH_BOOL_PREFIX.getName();
     return new RelevanceFunctionResolver(name);
