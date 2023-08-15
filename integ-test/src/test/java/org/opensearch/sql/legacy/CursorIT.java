@@ -43,7 +43,7 @@ public class CursorIT extends SQLIntegTestCase {
 
   /**
    * Acceptable fetch_size are positive numbers. For example 0, 24, 53.0, "110" (parsable string) ,
-   * "786.23" Negative values should throw 400
+   * "786.23". Negative values should throw 400.
    */
   @Test
   public void invalidNegativeFetchSize() throws IOException {

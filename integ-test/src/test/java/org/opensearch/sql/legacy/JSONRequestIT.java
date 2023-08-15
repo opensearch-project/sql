@@ -37,7 +37,7 @@ public class JSONRequestIT extends SQLIntegTestCase {
     SearchHits response =
         query(
             String.format(
-                "{\"query\":\"" + "SELECT * " + "FROM %s " + "WHERE age > %s " + "LIMIT 1000\"}",
+                "{\"query\":\"SELECT * FROM %s WHERE age > %s LIMIT 1000\"}",
                 TestsConstants.TEST_INDEX_ACCOUNT, ageToCompare));
     SearchHit[] hits = response.getHits();
     for (SearchHit hit : hits) {
