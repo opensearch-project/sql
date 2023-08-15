@@ -24,8 +24,9 @@ public class VisualizationFormatIT extends PPLIntegTestCase {
 
   @Test
   void format() throws IOException {
-    String result = executeVizQuery(
-        String.format(Locale.ROOT, "source=%s | fields firstname, age", TEST_INDEX_BANK), true);
+    String result =
+        executeVizQuery(
+            String.format(Locale.ROOT, "source=%s | fields firstname, age", TEST_INDEX_BANK), true);
     assertEquals(
         "{\n"
             + "  \"data\": {\n"
@@ -67,8 +68,10 @@ public class VisualizationFormatIT extends PPLIntegTestCase {
   }
 
   private String executeVizQuery(String query, boolean pretty) throws IOException {
-    Request request = buildRequest(query,
-        QUERY_API_ENDPOINT + String.format(Locale.ROOT, "?format=csv&pretty=%b", pretty));
+    Request request =
+        buildRequest(
+            query,
+            QUERY_API_ENDPOINT + String.format(Locale.ROOT, "?format=csv&pretty=%b", pretty));
     Response response = client().performRequest(request);
     Assert.assertEquals(200, response.getStatusLine().getStatusCode());
     return getResponseBody(response, true);

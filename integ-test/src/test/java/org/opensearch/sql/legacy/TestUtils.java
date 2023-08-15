@@ -3,7 +3,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-
 package org.opensearch.sql.legacy;
 
 import static com.google.common.base.Strings.isNullOrEmpty;
@@ -36,14 +35,14 @@ import org.opensearch.common.xcontent.XContentType;
 
 public class TestUtils {
 
-  private final static String MAPPING_FILE_PATH = "src/test/resources/indexDefinitions/";
+  private static final String MAPPING_FILE_PATH = "src/test/resources/indexDefinitions/";
 
   /**
    * Create test index by REST client.
    *
-   * @param client    client connection
+   * @param client client connection
    * @param indexName test index name
-   * @param mapping   test index mapping or null if no predefined mapping
+   * @param mapping test index mapping or null if no predefined mapping
    */
   public static void createIndexByRestClient(RestClient client, String indexName, String mapping) {
     Request request = new Request("PUT", "/" + indexName);
@@ -54,16 +53,16 @@ public class TestUtils {
   }
 
   /**
-   * https://github.com/elastic/elasticsearch/pull/49959
-   * Deprecate creation of dot-prefixed index names except for hidden and system indices.
-   * Create hidden index by REST client.
+   * https://github.com/elastic/elasticsearch/pull/49959<br>
+   * Deprecate creation of dot-prefixed index
+   * names except for hidden and system indices. Create hidden index by REST client.
    *
-   * @param client    client connection
+   * @param client client connection
    * @param indexName test index name
-   * @param mapping   test index mapping or null if no predefined mapping
+   * @param mapping test index mapping or null if no predefined mapping
    */
-  public static void createHiddenIndexByRestClient(RestClient client, String indexName,
-                                                   String mapping) {
+  public static void createHiddenIndexByRestClient(
+      RestClient client, String indexName, String mapping) {
     Request request = new Request("PUT", "/" + indexName);
     JSONObject jsonObject = isNullOrEmpty(mapping) ? new JSONObject() : new JSONObject(mapping);
     jsonObject.put("settings", new JSONObject("{\"index\":{\"hidden\":true}}"));
@@ -73,11 +72,10 @@ public class TestUtils {
   }
 
   /**
-   * Check if index already exists by OpenSearch index exists API which returns:
-   * 200 - specified indices or aliases exist
-   * 404 - one or more indices specified or aliases do not exist
+   * Check if index already exists by OpenSearch index exists API which returns: 200 - specified
+   * indices or aliases exist 404 - one or more indices specified or aliases do not exist
    *
-   * @param client    client connection
+   * @param client client connection
    * @param indexName index name
    * @return true for index exist
    */
@@ -93,13 +91,13 @@ public class TestUtils {
   /**
    * Load test data set by REST client.
    *
-   * @param client          client connection
-   * @param indexName       index name
+   * @param client client connection
+   * @param indexName index name
    * @param dataSetFilePath file path of test data set
    * @throws IOException
    */
-  public static void loadDataByRestClient(RestClient client, String indexName,
-                                          String dataSetFilePath) throws IOException {
+  public static void loadDataByRestClient(
+      RestClient client, String indexName, String dataSetFilePath) throws IOException {
     Path path = Paths.get(getResourceFilePath(dataSetFilePath));
     Request request = new Request("POST", "/" + indexName + "/_bulk?refresh=true");
     request.setJsonEntity(new String(Files.readAllBytes(path)));
@@ -109,7 +107,7 @@ public class TestUtils {
   /**
    * Perform a request by REST client.
    *
-   * @param client  client connection
+   * @param client client connection
    * @param request request object
    */
   public static Response performRequest(RestClient client, Request request) {
@@ -176,7 +174,6 @@ public class TestUtils {
     String mappingFile = "employee_nested_type_index_mapping.json";
     return getMappingFile(mappingFile);
   }
-
 
   public static String getNestedTypeIndexMapping() {
     String mappingFile = "nested_type_index_mapping.json";
@@ -255,8 +252,8 @@ public class TestUtils {
 
     BulkRequest bulkRequest = new BulkRequest();
     try (final InputStream stream = new FileInputStream(absJsonPath);
-         final Reader streamReader = new InputStreamReader(stream, StandardCharsets.UTF_8);
-         final BufferedReader br = new BufferedReader(streamReader)) {
+        final Reader streamReader = new InputStreamReader(stream, StandardCharsets.UTF_8);
+        final BufferedReader br = new BufferedReader(streamReader)) {
 
       while (true) {
 
@@ -285,8 +282,11 @@ public class TestUtils {
     BulkResponse bulkResponse = client.bulk(bulkRequest).actionGet();
 
     if (bulkResponse.hasFailures()) {
-      throw new Exception("Failed to load test data into index " + defaultIndex + ", " +
-          bulkResponse.buildFailureMessage());
+      throw new Exception(
+          "Failed to load test data into index "
+              + defaultIndex
+              + ", "
+              + bulkResponse.buildFailureMessage());
     }
     System.out.println(bulkResponse.getItems().length + " documents loaded.");
     // ensure the documents are searchable
@@ -312,8 +312,8 @@ public class TestUtils {
     final StringBuilder sb = new StringBuilder();
 
     try (final InputStream is = response.getEntity().getContent();
-         final BufferedReader br = new BufferedReader(
-             new InputStreamReader(is, StandardCharsets.UTF_8))) {
+        final BufferedReader br =
+            new BufferedReader(new InputStreamReader(is, StandardCharsets.UTF_8))) {
 
       String line;
       while ((line = br.readLine()) != null) {
@@ -326,15 +326,14 @@ public class TestUtils {
     return sb.toString();
   }
 
-  public static String fileToString(final String filePathFromProjectRoot,
-                                    final boolean removeNewLines)
-      throws IOException {
+  public static String fileToString(
+      final String filePathFromProjectRoot, final boolean removeNewLines) throws IOException {
 
     final String absolutePath = getResourceFilePath(filePathFromProjectRoot);
 
     try (final InputStream stream = new FileInputStream(absolutePath);
-         final Reader streamReader = new InputStreamReader(stream, StandardCharsets.UTF_8);
-         final BufferedReader br = new BufferedReader(streamReader)) {
+        final Reader streamReader = new InputStreamReader(stream, StandardCharsets.UTF_8);
+        final BufferedReader br = new BufferedReader(streamReader)) {
 
       final StringBuilder stringBuilder = new StringBuilder();
       String line = br.readLine();
@@ -388,12 +387,16 @@ public class TestUtils {
       }
 
       final String currentItem = items.get(i);
-      result.addAll(getPermutations(smallerSet).stream().map(smallerSetPermutation -> {
-        final List<String> permutation = new ArrayList<>();
-        permutation.add(currentItem);
-        permutation.addAll(smallerSetPermutation);
-        return permutation;
-      }).collect(Collectors.toCollection(LinkedList::new)));
+      result.addAll(
+          getPermutations(smallerSet).stream()
+              .map(
+                  smallerSetPermutation -> {
+                    final List<String> permutation = new ArrayList<>();
+                    permutation.add(currentItem);
+                    permutation.addAll(smallerSetPermutation);
+                    return permutation;
+                  })
+              .collect(Collectors.toCollection(LinkedList::new)));
     }
 
     return result;

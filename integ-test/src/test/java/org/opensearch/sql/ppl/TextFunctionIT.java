@@ -3,7 +3,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-
 package org.opensearch.sql.ppl;
 
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_STRINGS;
@@ -23,27 +22,45 @@ public class TextFunctionIT extends PPLIntegTestCase {
     loadIndex(Index.BANK_WITH_STRING_VALUES);
   }
 
-  void verifyQuery(String command, String initialArgs, String additionalArgs,
-                   String outputRow1, String outputRow2, String outputRow3) throws IOException {
-    String query = String.format(
-        "source=%s | eval f=%s(%sname%s) | fields f", TEST_INDEX_STRINGS, command, initialArgs, additionalArgs);
+  void verifyQuery(
+      String command,
+      String initialArgs,
+      String additionalArgs,
+      String outputRow1,
+      String outputRow2,
+      String outputRow3)
+      throws IOException {
+    String query =
+        String.format(
+            "source=%s | eval f=%s(%sname%s) | fields f",
+            TEST_INDEX_STRINGS, command, initialArgs, additionalArgs);
     JSONObject result = executeQuery(query);
     verifySchema(result, schema("f", null, "string"));
     verifyDataRows(result, rows(outputRow1), rows(outputRow2), rows(outputRow3));
   }
 
-  void verifyQuery(String command, String initialArgs, String additionalArgs,
-                   Integer outputRow1, Integer outputRow2, Integer outputRow3) throws IOException {
-    String query = String.format(
-        "source=%s | eval f=%s(%sname%s) | fields f", TEST_INDEX_STRINGS, command, initialArgs, additionalArgs);
+  void verifyQuery(
+      String command,
+      String initialArgs,
+      String additionalArgs,
+      Integer outputRow1,
+      Integer outputRow2,
+      Integer outputRow3)
+      throws IOException {
+    String query =
+        String.format(
+            "source=%s | eval f=%s(%sname%s) | fields f",
+            TEST_INDEX_STRINGS, command, initialArgs, additionalArgs);
     JSONObject result = executeQuery(query);
     verifySchema(result, schema("f", null, "integer"));
     verifyDataRows(result, rows(outputRow1), rows(outputRow2), rows(outputRow3));
   }
 
-  void verifyRegexQuery(String pattern, Integer outputRow1, Integer outputRow2, Integer outputRow3) throws IOException {
-    String query = String.format(
-        "source=%s | eval f=name regexp '%s' | fields f", TEST_INDEX_STRINGS, pattern);
+  void verifyRegexQuery(String pattern, Integer outputRow1, Integer outputRow2, Integer outputRow3)
+      throws IOException {
+    String query =
+        String.format(
+            "source=%s | eval f=name regexp '%s' | fields f", TEST_INDEX_STRINGS, pattern);
     JSONObject result = executeQuery(query);
     verifySchema(result, schema("f", null, "integer"));
     verifyDataRows(result, rows(outputRow1), rows(outputRow2), rows(outputRow3));
@@ -55,7 +72,7 @@ public class TextFunctionIT extends PPLIntegTestCase {
     verifyRegexQuery(".*", 1, 1, 1);
   }
 
- @Test
+  @Test
   public void testSubstr() throws IOException {
     verifyQuery("substr", "", ", 2", "ello", "orld", "elloworld");
     verifyQuery("substr", "", ", 2, 2", "el", "or", "el");
@@ -99,14 +116,19 @@ public class TextFunctionIT extends PPLIntegTestCase {
 
   @Test
   public void testConcat() throws IOException {
-    verifyQuery("concat", "", ", 'there', 'all', '!'",
-        "hellothereall!", "worldthereall!", "helloworldthereall!");
+    verifyQuery(
+        "concat",
+        "",
+        ", 'there', 'all', '!'",
+        "hellothereall!",
+        "worldthereall!",
+        "helloworldthereall!");
   }
 
   @Test
   public void testConcat_ws() throws IOException {
-    verifyQuery("concat_ws", "',', ", ", 'there'",
-        "hello,there", "world,there", "helloworld,there");
+    verifyQuery(
+        "concat_ws", "',', ", ", 'there'", "hello,there", "world,there", "helloworld,there");
   }
 
   @Test
@@ -137,7 +159,8 @@ public class TextFunctionIT extends PPLIntegTestCase {
 
   @Test
   public void testReplace() throws IOException {
-    verifyQuery("replace", "", ", 'world', ' opensearch'", "hello", " opensearch", "hello opensearch");
+    verifyQuery(
+        "replace", "", ", 'world', ' opensearch'", "hello", " opensearch", "hello opensearch");
   }
 
   @Test
