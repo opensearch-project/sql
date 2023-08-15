@@ -3,7 +3,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-
 package org.opensearch.sql.ppl;
 
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_BANK;
@@ -26,40 +25,28 @@ public class OperatorIT extends PPLIntegTestCase {
   @Test
   public void testAddOperator() throws IOException {
     JSONObject result =
-        executeQuery(
-            String.format(
-                "source=%s | where age = 31 + 1 | fields age",
-                TEST_INDEX_BANK));
+        executeQuery(String.format("source=%s | where age = 31 + 1 | fields age", TEST_INDEX_BANK));
     verifyDataRows(result, rows(32));
   }
 
   @Test
   public void testSubtractOperator() throws IOException {
     JSONObject result =
-        executeQuery(
-            String.format(
-                "source=%s | where age = 33 - 1 | fields age",
-                TEST_INDEX_BANK));
+        executeQuery(String.format("source=%s | where age = 33 - 1 | fields age", TEST_INDEX_BANK));
     verifyDataRows(result, rows(32));
   }
 
   @Test
   public void testMultiplyOperator() throws IOException {
     JSONObject result =
-        executeQuery(
-            String.format(
-                "source=%s | where age = 16 * 2 | fields age",
-                TEST_INDEX_BANK));
+        executeQuery(String.format("source=%s | where age = 16 * 2 | fields age", TEST_INDEX_BANK));
     verifyDataRows(result, rows(32));
   }
 
   @Test
   public void testDivideOperator() throws IOException {
     JSONObject result =
-        executeQuery(
-            String.format(
-                "source=%s | where age / 2 = 16 | fields age",
-                TEST_INDEX_BANK));
+        executeQuery(String.format("source=%s | where age / 2 = 16 | fields age", TEST_INDEX_BANK));
     verifyDataRows(result, rows(32), rows(33));
   }
 
@@ -67,9 +54,7 @@ public class OperatorIT extends PPLIntegTestCase {
   public void testModuleOperator() throws IOException {
     JSONObject result =
         executeQuery(
-            String.format(
-                "source=%s | where age %s 32 = 0 | fields age",
-                TEST_INDEX_BANK, "%"));
+            String.format("source=%s | where age %s 32 = 0 | fields age", TEST_INDEX_BANK, "%"));
     verifyDataRows(result, rows(32));
   }
 
@@ -78,11 +63,9 @@ public class OperatorIT extends PPLIntegTestCase {
     JSONObject result =
         executeQuery(
             String.format(
-                "source=%s | eval f = age + 0 | fields f",
-                TEST_INDEX_BANK_WITH_NULL_VALUES));
+                "source=%s | eval f = age + 0 | fields f", TEST_INDEX_BANK_WITH_NULL_VALUES));
     verifyDataRows(
-        result, rows(32), rows(36), rows(28), rows(33), rows(36), rows(JSONObject.NULL),
-        rows(34));
+        result, rows(32), rows(36), rows(28), rows(33), rows(36), rows(JSONObject.NULL), rows(34));
   }
 
   @Test
@@ -92,8 +75,14 @@ public class OperatorIT extends PPLIntegTestCase {
             String.format(
                 "source=%s | eval f = balance * 1 | fields f", TEST_INDEX_BANK_WITH_NULL_VALUES));
     verifyDataRows(
-        result, rows(39225), rows(32838), rows(4180), rows(48086), rows(JSONObject.NULL),
-        rows(JSONObject.NULL), rows(JSONObject.NULL));
+        result,
+        rows(39225),
+        rows(32838),
+        rows(4180),
+        rows(48086),
+        rows(JSONObject.NULL),
+        rows(JSONObject.NULL),
+        rows(JSONObject.NULL));
   }
 
   @Test
@@ -101,8 +90,7 @@ public class OperatorIT extends PPLIntegTestCase {
     JSONObject result =
         executeQuery(
             String.format(
-                "source=%s | where (age+2) * 3 / 2 - 1 = 50 | fields age",
-                TEST_INDEX_BANK));
+                "source=%s | where (age+2) * 3 / 2 - 1 = 50 | fields age", TEST_INDEX_BANK));
     verifyDataRows(result, rows(32));
   }
 
@@ -127,14 +115,12 @@ public class OperatorIT extends PPLIntegTestCase {
   public void testOrOperator() throws IOException {
     JSONObject result =
         executeQuery(
-            String.format(
-                "source=%s | where age=32 or age=34 | fields age", TEST_INDEX_BANK));
+            String.format("source=%s | where age=32 or age=34 | fields age", TEST_INDEX_BANK));
     verifyDataRows(result, rows(32), rows(34));
 
     result =
         executeQuery(
-            String.format(
-                "source=%s | where age=34 or age=32| fields age", TEST_INDEX_BANK));
+            String.format("source=%s | where age=34 or age=32| fields age", TEST_INDEX_BANK));
     verifyDataRows(result, rows(32), rows(34));
   }
 
@@ -158,92 +144,64 @@ public class OperatorIT extends PPLIntegTestCase {
   @Test
   public void testNotOperator() throws IOException {
     JSONObject result =
-        executeQuery(
-            String.format(
-                "source=%s not age > 32 | fields age",
-                TEST_INDEX_BANK));
+        executeQuery(String.format("source=%s not age > 32 | fields age", TEST_INDEX_BANK));
     verifyDataRows(result, rows(28), rows(32));
   }
 
   @Test
   public void testEqualOperator() throws IOException {
     JSONObject result =
-        executeQuery(
-            String.format(
-                "source=%s age = 32 | fields age",
-                TEST_INDEX_BANK));
+        executeQuery(String.format("source=%s age = 32 | fields age", TEST_INDEX_BANK));
     verifyDataRows(result, rows(32));
 
-    result =
-        executeQuery(
-            String.format(
-                "source=%s 32 = age | fields age",
-                TEST_INDEX_BANK));
+    result = executeQuery(String.format("source=%s 32 = age | fields age", TEST_INDEX_BANK));
     verifyDataRows(result, rows(32));
   }
 
   @Test
   public void testNotEqualOperator() throws IOException {
     JSONObject result =
-        executeQuery(
-            String.format(
-                "source=%s age != 32 | fields age",
-                TEST_INDEX_BANK));
+        executeQuery(String.format("source=%s age != 32 | fields age", TEST_INDEX_BANK));
     verifyDataRows(result, rows(28), rows(33), rows(34), rows(36), rows(36), rows(39));
 
-    result =
-        executeQuery(
-            String.format(
-                "source=%s 32 != age | fields age",
-                TEST_INDEX_BANK));
+    result = executeQuery(String.format("source=%s 32 != age | fields age", TEST_INDEX_BANK));
     verifyDataRows(result, rows(28), rows(33), rows(34), rows(36), rows(36), rows(39));
   }
 
   @Test
   public void testLessOperator() throws IOException {
     JSONObject result =
-        executeQuery(
-            String.format(
-                "source=%s age < 32 | fields age",
-                TEST_INDEX_BANK));
+        executeQuery(String.format("source=%s age < 32 | fields age", TEST_INDEX_BANK));
     verifyDataRows(result, rows(28));
   }
 
   @Test
   public void testLteOperator() throws IOException {
     JSONObject result =
-        executeQuery(
-            String.format(
-                "source=%s age <= 32 | fields age",
-                TEST_INDEX_BANK));
+        executeQuery(String.format("source=%s age <= 32 | fields age", TEST_INDEX_BANK));
     verifyDataRows(result, rows(28), rows(32));
   }
 
   @Test
   public void testGreaterOperator() throws IOException {
     JSONObject result =
-        executeQuery(
-            String.format(
-                "source=%s age > 36 | fields age",
-                TEST_INDEX_BANK));
+        executeQuery(String.format("source=%s age > 36 | fields age", TEST_INDEX_BANK));
     verifyDataRows(result, rows(39));
   }
 
   @Test
   public void testGteOperator() throws IOException {
     JSONObject result =
-        executeQuery(
-            String.format(
-                "source=%s age >= 36 | fields age",
-                TEST_INDEX_BANK));
+        executeQuery(String.format("source=%s age >= 36 | fields age", TEST_INDEX_BANK));
     verifyDataRows(result, rows(36), rows(36), rows(39));
   }
 
   @Test
   public void testLikeFunction() throws IOException {
     JSONObject result =
-        executeQuery(String.format("source=%s like(firstname, 'Hatti_') | fields firstname",
-            TEST_INDEX_BANK));
+        executeQuery(
+            String.format(
+                "source=%s like(firstname, 'Hatti_') | fields firstname", TEST_INDEX_BANK));
     verifyDataRows(result, rows("Hattie"));
   }
 
@@ -251,8 +209,8 @@ public class OperatorIT extends PPLIntegTestCase {
   public void testBinaryPredicateWithNullValue() throws IOException {
     JSONObject result =
         executeQuery(
-            String.format("source=%s | where age >= 36 | fields age",
-                TEST_INDEX_BANK_WITH_NULL_VALUES));
+            String.format(
+                "source=%s | where age >= 36 | fields age", TEST_INDEX_BANK_WITH_NULL_VALUES));
     verifyDataRows(result, rows(36), rows(36));
   }
 
@@ -260,7 +218,8 @@ public class OperatorIT extends PPLIntegTestCase {
   public void testBinaryPredicateWithMissingValue() throws IOException {
     JSONObject result =
         executeQuery(
-            String.format("source=%s | where balance > 40000 | fields balance",
+            String.format(
+                "source=%s | where balance > 40000 | fields balance",
                 TEST_INDEX_BANK_WITH_NULL_VALUES));
     verifyDataRows(result, rows(48086));
   }
@@ -269,12 +228,13 @@ public class OperatorIT extends PPLIntegTestCase {
       String query, String... errorMsgs) {
     try {
       executeQuery(query);
-      fail("Expected to throw ExpressionEvaluationException, but none was thrown for query: "
-          + query);
+      fail(
+          "Expected to throw ExpressionEvaluationException, but none was thrown for query: "
+              + query);
     } catch (ResponseException e) {
       String errorMsg = e.getMessage();
       assertTrue(errorMsg.contains("ExpressionEvaluationException"));
-      for (String msg: errorMsgs) {
+      for (String msg : errorMsgs) {
         assertTrue(errorMsg.contains(msg));
       }
     } catch (IOException e) {

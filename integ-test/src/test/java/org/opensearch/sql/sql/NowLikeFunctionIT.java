@@ -77,8 +77,7 @@ public class NowLikeFunctionIT extends SQLIntegTestCase {
       @Name("constValue") Boolean constValue,
       @Name("referenceGetter") Supplier<Temporal> referenceGetter,
       @Name("parser") BiFunction<CharSequence, DateTimeFormatter, Temporal> parser,
-      @Name("serializationPatternStr") String serializationPatternStr
-  ) {
+      @Name("serializationPatternStr") String serializationPatternStr) {
     this.name = name;
     this.hasFsp = hasFsp;
     this.hasShortcut = hasShortcut;
@@ -90,56 +89,104 @@ public class NowLikeFunctionIT extends SQLIntegTestCase {
 
   @ParametersFactory(argumentFormatting = "%1$s")
   public static Iterable<Object[]> compareTwoDates() {
-    return Arrays.asList($$(
-        $("now", false, false, true,
-            (Supplier<Temporal>) LocalDateTime::now,
-            (BiFunction<CharSequence, DateTimeFormatter, Temporal>) LocalDateTime::parse,
-            "uuuu-MM-dd HH:mm:ss"),
-        $("current_timestamp", false, false, true,
-            (Supplier<Temporal>) LocalDateTime::now,
-            (BiFunction<CharSequence, DateTimeFormatter, Temporal>) LocalDateTime::parse,
-            "uuuu-MM-dd HH:mm:ss"),
-        $("localtimestamp", false, false, true,
-            (Supplier<Temporal>) LocalDateTime::now,
-            (BiFunction<CharSequence, DateTimeFormatter, Temporal>) LocalDateTime::parse,
-            "uuuu-MM-dd HH:mm:ss"),
-        $("localtime", false, false, true,
-            (Supplier<Temporal>) LocalDateTime::now,
-            (BiFunction<CharSequence, DateTimeFormatter, Temporal>) LocalDateTime::parse,
-            "uuuu-MM-dd HH:mm:ss"),
-        $("sysdate", true, false, false,
-            (Supplier<Temporal>) LocalDateTime::now,
-            (BiFunction<CharSequence, DateTimeFormatter, Temporal>) LocalDateTime::parse,
-            "uuuu-MM-dd HH:mm:ss"),
-        $("curtime", false, false, false,
-            (Supplier<Temporal>) LocalTime::now,
-            (BiFunction<CharSequence, DateTimeFormatter, Temporal>) LocalTime::parse,
-            "HH:mm:ss"),
-        $("current_time", false, false, false,
-            (Supplier<Temporal>) LocalTime::now,
-            (BiFunction<CharSequence, DateTimeFormatter, Temporal>) LocalTime::parse,
-            "HH:mm:ss"),
-        $("curdate", false, false, false,
-            (Supplier<Temporal>) LocalDate::now,
-            (BiFunction<CharSequence, DateTimeFormatter, Temporal>) LocalDate::parse,
-            "uuuu-MM-dd"),
-        $("current_date", false, false, false,
-            (Supplier<Temporal>) LocalDate::now,
-            (BiFunction<CharSequence, DateTimeFormatter, Temporal>) LocalDate::parse,
-            "uuuu-MM-dd"),
-        $("utc_date", false, false, true,
-            (Supplier<Temporal>) (() -> utcDateTimeNow().toLocalDate()),
-            (BiFunction<CharSequence, DateTimeFormatter, Temporal>) LocalDate::parse,
-            "uuuu-MM-dd"),
-        $("utc_time", false, false, true,
-            (Supplier<Temporal>) (() -> utcDateTimeNow().toLocalTime()),
-            (BiFunction<CharSequence, DateTimeFormatter, Temporal>) LocalTime::parse,
-            "HH:mm:ss"),
-        $("utc_timestamp", false, false, true,
-            (Supplier<Temporal>) (NowLikeFunctionIT::utcDateTimeNow),
-            (BiFunction<CharSequence, DateTimeFormatter, Temporal>) LocalDateTime::parse,
-            "uuuu-MM-dd HH:mm:ss")
-    ));
+    return Arrays.asList(
+        $$(
+            $(
+                "now",
+                false,
+                false,
+                true,
+                (Supplier<Temporal>) LocalDateTime::now,
+                (BiFunction<CharSequence, DateTimeFormatter, Temporal>) LocalDateTime::parse,
+                "uuuu-MM-dd HH:mm:ss"),
+            $(
+                "current_timestamp",
+                false,
+                false,
+                true,
+                (Supplier<Temporal>) LocalDateTime::now,
+                (BiFunction<CharSequence, DateTimeFormatter, Temporal>) LocalDateTime::parse,
+                "uuuu-MM-dd HH:mm:ss"),
+            $(
+                "localtimestamp",
+                false,
+                false,
+                true,
+                (Supplier<Temporal>) LocalDateTime::now,
+                (BiFunction<CharSequence, DateTimeFormatter, Temporal>) LocalDateTime::parse,
+                "uuuu-MM-dd HH:mm:ss"),
+            $(
+                "localtime",
+                false,
+                false,
+                true,
+                (Supplier<Temporal>) LocalDateTime::now,
+                (BiFunction<CharSequence, DateTimeFormatter, Temporal>) LocalDateTime::parse,
+                "uuuu-MM-dd HH:mm:ss"),
+            $(
+                "sysdate",
+                true,
+                false,
+                false,
+                (Supplier<Temporal>) LocalDateTime::now,
+                (BiFunction<CharSequence, DateTimeFormatter, Temporal>) LocalDateTime::parse,
+                "uuuu-MM-dd HH:mm:ss"),
+            $(
+                "curtime",
+                false,
+                false,
+                false,
+                (Supplier<Temporal>) LocalTime::now,
+                (BiFunction<CharSequence, DateTimeFormatter, Temporal>) LocalTime::parse,
+                "HH:mm:ss"),
+            $(
+                "current_time",
+                false,
+                false,
+                false,
+                (Supplier<Temporal>) LocalTime::now,
+                (BiFunction<CharSequence, DateTimeFormatter, Temporal>) LocalTime::parse,
+                "HH:mm:ss"),
+            $(
+                "curdate",
+                false,
+                false,
+                false,
+                (Supplier<Temporal>) LocalDate::now,
+                (BiFunction<CharSequence, DateTimeFormatter, Temporal>) LocalDate::parse,
+                "uuuu-MM-dd"),
+            $(
+                "current_date",
+                false,
+                false,
+                false,
+                (Supplier<Temporal>) LocalDate::now,
+                (BiFunction<CharSequence, DateTimeFormatter, Temporal>) LocalDate::parse,
+                "uuuu-MM-dd"),
+            $(
+                "utc_date",
+                false,
+                false,
+                true,
+                (Supplier<Temporal>) (() -> utcDateTimeNow().toLocalDate()),
+                (BiFunction<CharSequence, DateTimeFormatter, Temporal>) LocalDate::parse,
+                "uuuu-MM-dd"),
+            $(
+                "utc_time",
+                false,
+                false,
+                true,
+                (Supplier<Temporal>) (() -> utcDateTimeNow().toLocalTime()),
+                (BiFunction<CharSequence, DateTimeFormatter, Temporal>) LocalTime::parse,
+                "HH:mm:ss"),
+            $(
+                "utc_timestamp",
+                false,
+                false,
+                true,
+                (Supplier<Temporal>) (NowLikeFunctionIT::utcDateTimeNow),
+                (BiFunction<CharSequence, DateTimeFormatter, Temporal>) LocalDateTime::parse,
+                "uuuu-MM-dd HH:mm:ss")));
   }
 
   private long getDiff(Temporal sample, Temporal reference) {
@@ -150,14 +197,14 @@ public class NowLikeFunctionIT extends SQLIntegTestCase {
   }
 
   public static LocalDateTime utcDateTimeNow() {
-    ZonedDateTime zonedDateTime =
-        LocalDateTime.now().atZone(TimeZone.getDefault().toZoneId());
+    ZonedDateTime zonedDateTime = LocalDateTime.now().atZone(TimeZone.getDefault().toZoneId());
     return zonedDateTime.withZoneSameInstant(ZoneId.of("UTC")).toLocalDateTime();
   }
 
   @Test
   public void testNowLikeFunctions() throws IOException {
-    var serializationPattern = new DateTimeFormatterBuilder()
+    var serializationPattern =
+        new DateTimeFormatterBuilder()
             .appendPattern(serializationPatternStr)
             .optionalStart()
             .appendFraction(ChronoField.NANO_OF_SECOND, 0, 9, true)
@@ -167,15 +214,16 @@ public class NowLikeFunctionIT extends SQLIntegTestCase {
     double delta = 2d; // acceptable time diff, secs
     if (reference instanceof LocalDate)
       delta = 1d; // Max date delta could be 1 if test runs on the very edge of two days
-                  // We ignore probability of a test run on edge of month or year to simplify the checks
+    // We ignore probability of a test run on edge of month or year to simplify the checks
 
-    var calls = new ArrayList<String>() {{
-      add(name + "()");
-    }};
-    if (hasShortcut)
-      calls.add(name);
-    if (hasFsp)
-      calls.add(name + "(0)");
+    var calls =
+        new ArrayList<String>() {
+          {
+            add(name + "()");
+          }
+        };
+    if (hasShortcut) calls.add(name);
+    if (hasFsp) calls.add(name + "(0)");
 
     // Column order is: func(), func, func(0)
     //                   shortcut ^    fsp ^
@@ -185,20 +233,25 @@ public class NowLikeFunctionIT extends SQLIntegTestCase {
     JSONArray firstRow = rows.getJSONArray(0);
     for (int i = 0; i < rows.length(); i++) {
       var row = rows.getJSONArray(i);
-      if (constValue)
-        assertTrue(firstRow.similar(row));
+      if (constValue) assertTrue(firstRow.similar(row));
 
       int column = 0;
-      assertEquals(0,
-          getDiff(reference, parser.apply(row.getString(column++), serializationPattern)), delta);
+      assertEquals(
+          0,
+          getDiff(reference, parser.apply(row.getString(column++), serializationPattern)),
+          delta);
 
       if (hasShortcut) {
-        assertEquals(0,
-            getDiff(reference, parser.apply(row.getString(column++), serializationPattern)), delta);
+        assertEquals(
+            0,
+            getDiff(reference, parser.apply(row.getString(column++), serializationPattern)),
+            delta);
       }
       if (hasFsp) {
-        assertEquals(0,
-            getDiff(reference, parser.apply(row.getString(column), serializationPattern)), delta);
+        assertEquals(
+            0,
+            getDiff(reference, parser.apply(row.getString(column), serializationPattern)),
+            delta);
       }
     }
   }

@@ -3,7 +3,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-
 package org.opensearch.sql.correctness.tests;
 
 import static org.junit.Assert.assertEquals;
@@ -30,14 +29,11 @@ import org.opensearch.client.Response;
 import org.opensearch.client.RestClient;
 import org.opensearch.sql.correctness.runner.connection.OpenSearchConnection;
 
-/**
- * Tests for {@link OpenSearchConnection}
- */
+/** Tests for {@link OpenSearchConnection} */
 @RunWith(MockitoJUnitRunner.class)
 public class OpenSearchConnectionTest {
 
-  @Mock
-  private RestClient client;
+  @Mock private RestClient client;
 
   private OpenSearchConnection conn;
 
@@ -63,36 +59,30 @@ public class OpenSearchConnectionTest {
 
   @Test
   public void testInsertData() throws IOException {
-    conn.insert("test", new String[] {"name"},
-        Arrays.asList(new String[] {"John"}, new String[] {"Hank"}));
+    conn.insert(
+        "test", new String[] {"name"}, Arrays.asList(new String[] {"John"}, new String[] {"Hank"}));
 
     Request actual = captureActualArg();
     assertEquals("POST", actual.getMethod());
     assertEquals("/test/_bulk?refresh=true", actual.getEndpoint());
     assertEquals(
-        "{\"index\":{}}\n"
-            + "{\"name\":\"John\"}\n"
-            + "{\"index\":{}}\n"
-            + "{\"name\":\"Hank\"}\n",
-        getBody(actual)
-    );
+        "{\"index\":{}}\n" + "{\"name\":\"John\"}\n" + "{\"index\":{}}\n" + "{\"name\":\"Hank\"}\n",
+        getBody(actual));
   }
 
   @Test
   public void testInsertNullData() throws IOException {
-    conn.insert("test", new String[] {"name", "age"},
+    conn.insert(
+        "test",
+        new String[] {"name", "age"},
         Arrays.asList(new Object[] {null, 30}, new Object[] {"Hank", null}));
 
     Request actual = captureActualArg();
     assertEquals("POST", actual.getMethod());
     assertEquals("/test/_bulk?refresh=true", actual.getEndpoint());
     assertEquals(
-        "{\"index\":{}}\n"
-            + "{\"age\":30}\n"
-            + "{\"index\":{}}\n"
-            + "{\"name\":\"Hank\"}\n",
-        getBody(actual)
-    );
+        "{\"index\":{}}\n" + "{\"age\":30}\n" + "{\"index\":{}}\n" + "{\"name\":\"Hank\"}\n",
+        getBody(actual));
   }
 
   @Test
@@ -114,5 +104,4 @@ public class OpenSearchConnectionTest {
     InputStream inputStream = request.getEntity().getContent();
     return CharStreams.toString(new InputStreamReader(inputStream));
   }
-
 }
