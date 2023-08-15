@@ -13,6 +13,7 @@ public enum Namespace {
 
   INDEX_NAME("Index"),
   FIELD_NAME("Field"),
+  HIDDEN_FIELD_NAME("HiddenField"),
   FUNCTION_NAME("Function");
 
   private final String name;
