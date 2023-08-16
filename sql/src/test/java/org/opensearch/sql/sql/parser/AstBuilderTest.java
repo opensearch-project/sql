@@ -108,7 +108,7 @@ class AstBuilderTest extends AstBuilderTestBase {
         project(
             relation("test"),
             alias("(age + 10)", function("+", qualifiedName("age"), intLiteral(10)), "Age_Expr")),
-        buildAST("SELECT" + " (age + 10) AS `Age_Expr` " + "FROM test"));
+        buildAST("SELECT (age + 10) AS `Age_Expr` FROM test"));
   }
 
   @Test

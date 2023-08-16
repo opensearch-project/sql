@@ -22,7 +22,7 @@ public class HighlightTest extends SQLParserTest {
 
   @Test
   void wildcard_test() {
-    acceptQuery("SELECT HIGHLIGHT('T*') FROM Index " + "WHERE MULTI_MATCH([Tags, Body], 'Time')");
+    acceptQuery("SELECT HIGHLIGHT('T*') FROM Index WHERE MULTI_MATCH([Tags, Body], 'Time')");
   }
 
   @Test
@@ -34,11 +34,11 @@ public class HighlightTest extends SQLParserTest {
   @Test
   void multiple_parameters_failure_test() {
     rejectQuery(
-        "SELECT HIGHLIGHT(Tags1, Tags2) FROM Index " + "WHERE MULTI_MATCH([Tags, Body], 'Time')");
+        "SELECT HIGHLIGHT(Tags1, Tags2) FROM Index WHERE MULTI_MATCH([Tags, Body], 'Time')");
   }
 
   @Test
   void no_parameters_failure_test() {
-    rejectQuery("SELECT HIGHLIGHT() FROM Index " + "WHERE MULTI_MATCH([Tags, Body], 'Time')");
+    rejectQuery("SELECT HIGHLIGHT() FROM Index WHERE MULTI_MATCH([Tags, Body], 'Time')");
   }
 }

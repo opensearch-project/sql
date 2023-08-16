@@ -105,7 +105,7 @@ class SQLSyntaxParserTest {
   public void canParseWhereClauseWithLogicalOperator() {
     assertNotNull(
         parser.parse(
-            "SELECT name FROM test " + "WHERE age = 10 AND name = 'John' OR NOT (balance > 1000)"));
+            "SELECT name FROM test WHERE age = 10 AND name = 'John' OR NOT (balance > 1000)"));
   }
 
   @Test
@@ -559,11 +559,8 @@ class SQLSyntaxParserTest {
   public void can_parse_minute_of_day_function() {
     assertNotNull(parser.parse("SELECT minute_of_day(\"12:23:34\");"));
     assertNotNull(parser.parse("SELECT minute_of_day('12:23:34');"));
-    ;
     assertNotNull(parser.parse("SELECT minute_of_day(\"2022-12-14 12:23:34\");"));
-    ;
     assertNotNull(parser.parse("SELECT minute_of_day('2022-12-14 12:23:34');"));
-    ;
   }
 
   @Test
