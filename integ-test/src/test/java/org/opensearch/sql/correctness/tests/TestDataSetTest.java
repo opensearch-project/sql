@@ -3,7 +3,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-
 package org.opensearch.sql.correctness.tests;
 
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -13,9 +12,7 @@ import static org.junit.Assert.assertEquals;
 import org.junit.Test;
 import org.opensearch.sql.correctness.testset.TestDataSet;
 
-/**
- * Tests for {@link TestDataSet}
- */
+/** Tests for {@link TestDataSet} */
 public class TestDataSetTest {
 
   @Test
@@ -40,9 +37,7 @@ public class TestDataSetTest {
             new Object[] {"field"},
             new Object[] {"hello"},
             new Object[] {"world"},
-            new Object[] {"123"}
-        )
-    );
+            new Object[] {"123"}));
   }
 
   @Test
@@ -61,16 +56,13 @@ public class TestDataSetTest {
             + "  }\n"
             + "}";
 
-    TestDataSet dataSet = new TestDataSet("test", mappings,
-        "field1,field2\nhello,123\nworld,456");
+    TestDataSet dataSet = new TestDataSet("test", mappings, "field1,field2\nhello,123\nworld,456");
     assertThat(
         dataSet.getDataRows(),
         contains(
             new Object[] {"field1", "field2"},
             new Object[] {"hello", 123},
-            new Object[] {"world", 456}
-        )
-    );
+            new Object[] {"world", 456}));
   }
 
   @Test
@@ -86,17 +78,15 @@ public class TestDataSetTest {
             + "  }\n"
             + "}";
 
-    TestDataSet dataSet = new TestDataSet("test", mappings,
-        "field\n\"hello,world,123\"\n123\n\"[abc,def,ghi]\"");
+    TestDataSet dataSet =
+        new TestDataSet("test", mappings, "field\n\"hello,world,123\"\n123\n\"[abc,def,ghi]\"");
     assertThat(
         dataSet.getDataRows(),
         contains(
             new Object[] {"field"},
             new Object[] {"hello,world,123"},
             new Object[] {"123"},
-            new Object[] {"[abc,def,ghi]"}
-        )
-    );
+            new Object[] {"[abc,def,ghi]"}));
   }
 
   @Test
@@ -115,17 +105,13 @@ public class TestDataSetTest {
             + "  }\n"
             + "}";
 
-    TestDataSet dataSet = new TestDataSet("test", mappings,
-        "field1,field2\n,123\nworld,\n,");
+    TestDataSet dataSet = new TestDataSet("test", mappings, "field1,field2\n,123\nworld,\n,");
     assertThat(
         dataSet.getDataRows(),
         contains(
             new Object[] {"field1", "field2"},
             new Object[] {null, 123},
             new Object[] {"world", null},
-            new Object[] {null, null}
-        )
-    );
+            new Object[] {null, null}));
   }
-
 }

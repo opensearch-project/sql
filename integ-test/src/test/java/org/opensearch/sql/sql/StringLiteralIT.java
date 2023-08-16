@@ -3,7 +3,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-
 package org.opensearch.sql.sql;
 
 import static org.opensearch.sql.util.MatcherUtils.rows;
@@ -15,8 +14,6 @@ import java.io.IOException;
 import org.json.JSONObject;
 import org.junit.Test;
 import org.opensearch.sql.legacy.SQLIntegTestCase;
-
-
 
 public class StringLiteralIT extends SQLIntegTestCase {
   @Test
