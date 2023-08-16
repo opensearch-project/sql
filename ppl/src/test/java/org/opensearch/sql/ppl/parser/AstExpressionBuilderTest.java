@@ -3,7 +3,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-
 package org.opensearch.sql.ppl.parser;
 
 import static java.util.Collections.emptyList;
@@ -58,464 +57,313 @@ public class AstExpressionBuilderTest extends AstBuilderTest {
 
   @Test
   public void testLogicalNotExpr() {
-    assertEqual("source=t not a=1",
-        filter(
-            relation("t"),
-            not(
-                compare("=", field("a"), intLiteral(1))
-            )
-        ));
+    assertEqual(
+        "source=t not a=1", filter(relation("t"), not(compare("=", field("a"), intLiteral(1)))));
   }
 
   @Test
   public void testLogicalOrExpr() {
-    assertEqual("source=t a=1 or b=2",
+    assertEqual(
+        "source=t a=1 or b=2",
         filter(
             relation("t"),
-            or(
-                compare("=", field("a"), intLiteral(1)),
-                compare("=", field("b"), intLiteral(2))
-            )
-        ));
+            or(compare("=", field("a"), intLiteral(1)), compare("=", field("b"), intLiteral(2)))));
   }
 
   @Test
   public void testLogicalAndExpr() {
-    assertEqual("source=t a=1 and b=2",
+    assertEqual(
+        "source=t a=1 and b=2",
         filter(
             relation("t"),
-            and(
-                compare("=", field("a"), intLiteral(1)),
-                compare("=", field("b"), intLiteral(2))
-            )
-        ));
+            and(compare("=", field("a"), intLiteral(1)), compare("=", field("b"), intLiteral(2)))));
   }
 
   @Test
   public void testLogicalAndExprWithoutKeywordAnd() {
-    assertEqual("source=t a=1 b=2",
+    assertEqual(
+        "source=t a=1 b=2",
         filter(
             relation("t"),
-            and(
-                compare("=", field("a"), intLiteral(1)),
-                compare("=", field("b"), intLiteral(2))
-            )
-        ));
+            and(compare("=", field("a"), intLiteral(1)), compare("=", field("b"), intLiteral(2)))));
   }
 
   @Test
   public void testLogicalXorExpr() {
-    assertEqual("source=t a=1 xor b=2",
+    assertEqual(
+        "source=t a=1 xor b=2",
         filter(
             relation("t"),
-            xor(
-                compare("=", field("a"), intLiteral(1)),
-                compare("=", field("b"), intLiteral(2))
-            )
-        ));
+            xor(compare("=", field("a"), intLiteral(1)), compare("=", field("b"), intLiteral(2)))));
   }
 
   @Test
   public void testLogicalLikeExpr() {
-    assertEqual("source=t like(a, '_a%b%c_d_')",
-        filter(
-            relation("t"),
-            function("like", field("a"), stringLiteral("_a%b%c_d_"))
-        ));
+    assertEqual(
+        "source=t like(a, '_a%b%c_d_')",
+        filter(relation("t"), function("like", field("a"), stringLiteral("_a%b%c_d_"))));
   }
 
   @Test
   public void testBooleanIsNullFunction() {
-    assertEqual("source=t isnull(a)",
-        filter(
-            relation("t"),
-            function("is null", field("a"))
-        ));
+    assertEqual("source=t isnull(a)", filter(relation("t"), function("is null", field("a"))));
   }
 
   @Test
   public void testBooleanIsNotNullFunction() {
-    assertEqual("source=t isnotnull(a)",
-        filter(
-            relation("t"),
-            function("is not null", field("a"))
-        ));
+    assertEqual(
+        "source=t isnotnull(a)", filter(relation("t"), function("is not null", field("a"))));
   }
 
-  /**
-   * Todo. search operator should not include functionCall, need to change antlr.
-   */
+  /** Todo. search operator should not include functionCall, need to change antlr. */
   @Ignore("search operator should not include functionCall, need to change antlr")
   public void testEvalExpr() {
-    assertEqual("source=t f=abs(a)",
-        filter(
-            relation("t"),
-            equalTo(
-                field("f"),
-                function("abs", field("a"))
-            )
-        ));
+    assertEqual(
+        "source=t f=abs(a)",
+        filter(relation("t"), equalTo(field("f"), function("abs", field("a")))));
   }
 
   @Test
   public void testEvalFunctionExpr() {
-    assertEqual("source=t | eval f=abs(a)",
-        eval(
-            relation("t"),
-            let(
-                field("f"),
-                function("abs", field("a"))
-            )
-        ));
+    assertEqual(
+        "source=t | eval f=abs(a)",
+        eval(relation("t"), let(field("f"), function("abs", field("a")))));
   }
 
   @Test
   public void testEvalFunctionExprNoArgs() {
-    assertEqual("source=t | eval f=PI()",
-        eval(
-            relation("t"),
-            let(
-                field("f"),
-                function("PI")
-            )
-        ));
+    assertEqual("source=t | eval f=PI()", eval(relation("t"), let(field("f"), function("PI"))));
   }
 
   @Test
   public void testPositionFunctionExpr() {
-    assertEqual("source=t | eval f=position('substr' IN 'str')",
+    assertEqual(
+        "source=t | eval f=position('substr' IN 'str')",
         eval(
             relation("t"),
-            let(
-                field("f"),
-                function("position",
-                        stringLiteral("substr"), stringLiteral("str"))
-            )
-        ));
+            let(field("f"), function("position", stringLiteral("substr"), stringLiteral("str")))));
   }
 
   @Test
   public void testEvalBinaryOperationExpr() {
-    assertEqual("source=t | eval f=a+b",
-        eval(
-            relation("t"),
-            let(
-                field("f"),
-                function("+", field("a"), field("b"))
-            )
-        ));
-    assertEqual("source=t | eval f=(a+b)",
-        eval(
-            relation("t"),
-            let(
-                field("f"),
-                function("+", field("a"), field("b"))
-            )
-        ));
+    assertEqual(
+        "source=t | eval f=a+b",
+        eval(relation("t"), let(field("f"), function("+", field("a"), field("b")))));
+    assertEqual(
+        "source=t | eval f=(a+b)",
+        eval(relation("t"), let(field("f"), function("+", field("a"), field("b")))));
   }
 
   @Test
   public void testLiteralValueBinaryOperationExpr() {
-    assertEqual("source=t | eval f=3+2",
-        eval(
-            relation("t"),
-            let(
-                field("f"),
-                function("+", intLiteral(3), intLiteral(2))
-            )
-        ));
+    assertEqual(
+        "source=t | eval f=3+2",
+        eval(relation("t"), let(field("f"), function("+", intLiteral(3), intLiteral(2)))));
   }
 
   @Test
   public void testBinaryOperationExprWithParentheses() {
-    assertEqual("source = t | where a = (1 + 2) * 3",
+    assertEqual(
+        "source = t | where a = (1 + 2) * 3",
         filter(
             relation("t"),
-            compare("=",
+            compare(
+                "=",
                 field("a"),
-                function("*",
-                    function("+", intLiteral(1), intLiteral(2)),
-                    intLiteral(3)))));
+                function("*", function("+", intLiteral(1), intLiteral(2)), intLiteral(3)))));
   }
 
   @Test
   public void testBinaryOperationExprPrecedence() {
-    assertEqual("source = t | where a = 1 + 2 * 3",
+    assertEqual(
+        "source = t | where a = 1 + 2 * 3",
         filter(
             relation("t"),
-            compare("=",
+            compare(
+                "=",
                 field("a"),
-                function("+",
-                    intLiteral(1),
-                    function("*", intLiteral(2), intLiteral(3))))));
+                function("+", intLiteral(1), function("*", intLiteral(2), intLiteral(3))))));
   }
 
   @Test
   public void testCompareExpr() {
-    assertEqual("source=t a='b'",
-        filter(
-            relation("t"),
-            compare("=", field("a"), stringLiteral("b"))
-        ));
+    assertEqual(
+        "source=t a='b'", filter(relation("t"), compare("=", field("a"), stringLiteral("b"))));
   }
 
   @Test
   public void testCompareFieldsExpr() {
-    assertEqual("source=t a>b",
-        filter(
-            relation("t"),
-            compare(">", field("a"), field("b"))
-        ));
+    assertEqual("source=t a>b", filter(relation("t"), compare(">", field("a"), field("b"))));
   }
 
   @Test
   public void testInExpr() {
-    assertEqual("source=t f in (1, 2, 3)",
-        filter(
-            relation("t"),
-            in(
-                field("f"),
-                intLiteral(1), intLiteral(2), intLiteral(3))
-        ));
+    assertEqual(
+        "source=t f in (1, 2, 3)",
+        filter(relation("t"), in(field("f"), intLiteral(1), intLiteral(2), intLiteral(3))));
   }
 
   @Test
   public void testFieldExpr() {
-    assertEqual("source=t | sort + f",
-        sort(
-            relation("t"),
-            field("f", defaultSortFieldArgs())
-        ));
+    assertEqual("source=t | sort + f", sort(relation("t"), field("f", defaultSortFieldArgs())));
   }
 
   @Test
   public void testSortFieldWithMinusKeyword() {
-    assertEqual("source=t | sort - f",
+    assertEqual(
+        "source=t | sort - f",
         sort(
             relation("t"),
-            field(
-                "f",
-                argument("asc", booleanLiteral(false)),
-                argument("type", nullLiteral())
-            )
-        ));
+            field("f", argument("asc", booleanLiteral(false)), argument("type", nullLiteral()))));
   }
 
   @Test
   public void testSortFieldWithBackticks() {
-    assertEqual("source=t | sort `f`",
-        sort(
-            relation("t"),
-            field("f", defaultSortFieldArgs())
-        ));
+    assertEqual("source=t | sort `f`", sort(relation("t"), field("f", defaultSortFieldArgs())));
   }
 
   @Test
   public void testSortFieldWithAutoKeyword() {
-    assertEqual("source=t | sort auto(f)",
+    assertEqual(
+        "source=t | sort auto(f)",
         sort(
             relation("t"),
             field(
                 "f",
                 argument("asc", booleanLiteral(true)),
-                argument("type", stringLiteral("auto"))
-            )
-        ));
+                argument("type", stringLiteral("auto")))));
   }
 
   @Test
   public void testSortFieldWithIpKeyword() {
-    assertEqual("source=t | sort ip(f)",
+    assertEqual(
+        "source=t | sort ip(f)",
         sort(
             relation("t"),
             field(
                 "f",
                 argument("asc", booleanLiteral(true)),
-                argument("type", stringLiteral("ip"))
-            )
-        ));
+                argument("type", stringLiteral("ip")))));
   }
 
   @Test
   public void testSortFieldWithNumKeyword() {
-    assertEqual("source=t | sort num(f)",
+    assertEqual(
+        "source=t | sort num(f)",
         sort(
             relation("t"),
             field(
                 "f",
                 argument("asc", booleanLiteral(true)),
-                argument("type", stringLiteral("num"))
-            )
-        ));
+                argument("type", stringLiteral("num")))));
   }
 
   @Test
   public void testSortFieldWithStrKeyword() {
-    assertEqual("source=t | sort str(f)",
+    assertEqual(
+        "source=t | sort str(f)",
         sort(
             relation("t"),
             field(
                 "f",
                 argument("asc", booleanLiteral(true)),
-                argument("type", stringLiteral("str"))
-            )
-        ));
+                argument("type", stringLiteral("str")))));
   }
 
   @Test
   public void testAggFuncCallExpr() {
-    assertEqual("source=t | stats avg(a) by b",
+    assertEqual(
+        "source=t | stats avg(a) by b",
         agg(
             relation("t"),
-            exprList(
-                alias(
-                    "avg(a)",
-                    aggregate("avg", field("a"))
-                )
-            ),
+            exprList(alias("avg(a)", aggregate("avg", field("a")))),
             emptyList(),
-            exprList(
-                alias(
-                    "b",
-                    field("b")
-                )),
-            defaultStatsArgs()
-        ));
+            exprList(alias("b", field("b"))),
+            defaultStatsArgs()));
   }
 
   @Test
   public void testVarAggregationShouldPass() {
-    assertEqual("source=t | stats var_samp(a) by b",
+    assertEqual(
+        "source=t | stats var_samp(a) by b",
         agg(
             relation("t"),
-            exprList(
-                alias(
-                    "var_samp(a)",
-                    aggregate("var_samp", field("a"))
-                )
-            ),
+            exprList(alias("var_samp(a)", aggregate("var_samp", field("a")))),
             emptyList(),
-            exprList(
-                alias(
-                    "b",
-                    field("b")
-                )),
-            defaultStatsArgs()
-        ));
+            exprList(alias("b", field("b"))),
+            defaultStatsArgs()));
   }
 
   @Test
   public void testVarpAggregationShouldPass() {
-    assertEqual("source=t | stats var_pop(a) by b",
+    assertEqual(
+        "source=t | stats var_pop(a) by b",
         agg(
             relation("t"),
-            exprList(
-                alias(
-                    "var_pop(a)",
-                    aggregate("var_pop", field("a"))
-                )
-            ),
+            exprList(alias("var_pop(a)", aggregate("var_pop", field("a")))),
             emptyList(),
-            exprList(
-                alias(
-                    "b",
-                    field("b")
-                )),
-            defaultStatsArgs()
-        ));
+            exprList(alias("b", field("b"))),
+            defaultStatsArgs()));
   }
 
   @Test
   public void testStdDevAggregationShouldPass() {
-    assertEqual("source=t | stats stddev_samp(a) by b",
+    assertEqual(
+        "source=t | stats stddev_samp(a) by b",
         agg(
             relation("t"),
-            exprList(
-                alias(
-                    "stddev_samp(a)",
-                    aggregate("stddev_samp", field("a"))
-                )
-            ),
+            exprList(alias("stddev_samp(a)", aggregate("stddev_samp", field("a")))),
             emptyList(),
-            exprList(
-                alias(
-                    "b",
-                    field("b")
-                )),
-            defaultStatsArgs()
-        ));
+            exprList(alias("b", field("b"))),
+            defaultStatsArgs()));
   }
 
   @Test
   public void testStdDevPAggregationShouldPass() {
-    assertEqual("source=t | stats stddev_pop(a) by b",
+    assertEqual(
+        "source=t | stats stddev_pop(a) by b",
         agg(
             relation("t"),
-            exprList(
-                alias(
-                    "stddev_pop(a)",
-                    aggregate("stddev_pop", field("a"))
-                )
-            ),
+            exprList(alias("stddev_pop(a)", aggregate("stddev_pop", field("a")))),
             emptyList(),
-            exprList(
-                alias(
-                    "b",
-                    field("b")
-                )),
-            defaultStatsArgs()
-        ));
+            exprList(alias("b", field("b"))),
+            defaultStatsArgs()));
   }
 
   @Test
   public void testPercentileAggFuncExpr() {
-    assertEqual("source=t | stats percentile<1>(a)",
+    assertEqual(
+        "source=t | stats percentile<1>(a)",
         agg(
             relation("t"),
             exprList(
-                alias("percentile<1>(a)",
-                    aggregate(
-                        "percentile",
-                        field("a"),
-                        argument("rank", intLiteral(1))
-                    )
-                )
-            ),
+                alias(
+                    "percentile<1>(a)",
+                    aggregate("percentile", field("a"), argument("rank", intLiteral(1))))),
             emptyList(),
             emptyList(),
-            defaultStatsArgs()
-        ));
+            defaultStatsArgs()));
   }
 
   @Test
   public void testCountFuncCallExpr() {
-    assertEqual("source=t | stats count() by b",
+    assertEqual(
+        "source=t | stats count() by b",
         agg(
             relation("t"),
-            exprList(
-                alias(
-                    "count()",
-                    aggregate("count", AllFields.of())
-                )
-            ),
+            exprList(alias("count()", aggregate("count", AllFields.of()))),
             emptyList(),
-            exprList(
-                alias(
-                    "b",
-                    field("b")
-                )),
-            defaultStatsArgs()
-        ));
+            exprList(alias("b", field("b"))),
+            defaultStatsArgs()));
   }
 
   @Test
   public void testDistinctCount() {
-    assertEqual("source=t | stats distinct_count(a)",
+    assertEqual(
+        "source=t | stats distinct_count(a)",
         agg(
             relation("t"),
-            exprList(
-                alias("distinct_count(a)",
-                    distinctAggregate("count", field("a")))),
+            exprList(alias("distinct_count(a)", distinctAggregate("count", field("a")))),
             emptyList(),
             emptyList(),
             defaultStatsArgs()));
@@ -523,168 +371,114 @@ public class AstExpressionBuilderTest extends AstBuilderTest {
 
   @Test
   public void testTakeAggregationNoArgsShouldPass() {
-    assertEqual("source=t | stats take(a)",
+    assertEqual(
+        "source=t | stats take(a)",
         agg(
             relation("t"),
-            exprList(alias("take(a)",
-                aggregate("take", field("a"), unresolvedArg("size", intLiteral(10))))),
+            exprList(
+                alias(
+                    "take(a)",
+                    aggregate("take", field("a"), unresolvedArg("size", intLiteral(10))))),
             emptyList(),
             emptyList(),
-            defaultStatsArgs()
-        ));
+            defaultStatsArgs()));
   }
 
   @Test
   public void testTakeAggregationWithArgsShouldPass() {
-    assertEqual("source=t | stats take(a, 5)",
+    assertEqual(
+        "source=t | stats take(a, 5)",
         agg(
             relation("t"),
-            exprList(alias("take(a, 5)",
-                aggregate("take", field("a"), unresolvedArg("size", intLiteral(5))))),
+            exprList(
+                alias(
+                    "take(a, 5)",
+                    aggregate("take", field("a"), unresolvedArg("size", intLiteral(5))))),
             emptyList(),
             emptyList(),
-            defaultStatsArgs()
-        ));
+            defaultStatsArgs()));
   }
-
 
   @Test
   public void testEvalFuncCallExpr() {
-    assertEqual("source=t | eval f=abs(a)",
-        eval(
-            relation("t"),
-            let(
-                field("f"),
-                function("abs", field("a"))
-            )
-        ));
+    assertEqual(
+        "source=t | eval f=abs(a)",
+        eval(relation("t"), let(field("f"), function("abs", field("a")))));
   }
 
   @Test
   public void testDataTypeFuncCall() {
-    assertEqual("source=t | eval f=cast(1 as string)",
-        eval(
-            relation("t"),
-            let(
-                field("f"),
-                cast(intLiteral(1), stringLiteral("string"))
-            )
-        ));
+    assertEqual(
+        "source=t | eval f=cast(1 as string)",
+        eval(relation("t"), let(field("f"), cast(intLiteral(1), stringLiteral("string")))));
   }
 
   @Test
   public void testNestedFieldName() {
-    assertEqual("source=t | fields field0.field1.field2",
+    assertEqual(
+        "source=t | fields field0.field1.field2",
         projectWithArg(
             relation("t"),
             defaultFieldsArgs(),
-            field(
-                qualifiedName("field0", "field1", "field2")
-            )
-        ));
+            field(qualifiedName("field0", "field1", "field2"))));
   }
 
   @Test
   public void testFieldNameWithSpecialChars() {
-    assertEqual("source=t | fields `field-0`",
-        projectWithArg(
-            relation("t"),
-            defaultFieldsArgs(),
-            field(
-                qualifiedName("field-0")
-            )
-        ));
+    assertEqual(
+        "source=t | fields `field-0`",
+        projectWithArg(relation("t"), defaultFieldsArgs(), field(qualifiedName("field-0"))));
   }
 
   @Test
   public void testNestedFieldNameWithSpecialChars() {
-    assertEqual("source=t | fields `field-0`.`field#1`.`field*2`",
+    assertEqual(
+        "source=t | fields `field-0`.`field#1`.`field*2`",
         projectWithArg(
             relation("t"),
             defaultFieldsArgs(),
-            field(
-                qualifiedName("field-0", "field#1", "field*2")
-            )
-        ));
+            field(qualifiedName("field-0", "field#1", "field*2"))));
   }
 
   @Test
   public void testStringLiteralExpr() {
-    assertEqual("source=t a=\"string\"",
-        filter(
-            relation("t"),
-            compare(
-                "=",
-                field("a"),
-                stringLiteral("string")
-            )
-        ));
+    assertEqual(
+        "source=t a=\"string\"",
+        filter(relation("t"), compare("=", field("a"), stringLiteral("string"))));
   }
 
   @Test
   public void testIntegerLiteralExpr() {
-    assertEqual("source=t a=1 b=-1",
+    assertEqual(
+        "source=t a=1 b=-1",
         filter(
             relation("t"),
             and(
-                compare(
-                    "=",
-                    field("a"),
-                    intLiteral(1)
-                ),
-                compare(
-                    "=",
-                    field("b"),
-                    intLiteral(-1)
-                )
-            )
-        ));
+                compare("=", field("a"), intLiteral(1)),
+                compare("=", field("b"), intLiteral(-1)))));
   }
 
   @Test
   public void testLongLiteralExpr() {
-    assertEqual("source=t a=1234567890123 b=-1234567890123",
+    assertEqual(
+        "source=t a=1234567890123 b=-1234567890123",
         filter(
             relation("t"),
             and(
-                compare(
-                    "=",
-                    field("a"),
-                    longLiteral(1234567890123L)
-                ),
-                compare(
-                    "=",
-                    field("b"),
-                    longLiteral(-1234567890123L)
-                )
-            )
-        ));
+                compare("=", field("a"), longLiteral(1234567890123L)),
+                compare("=", field("b"), longLiteral(-1234567890123L)))));
   }
 
   @Test
   public void testDoubleLiteralExpr() {
-    assertEqual("source=t b=0.1",
-        filter(
-            relation("t"),
-            compare(
-                "=",
-                field("b"),
-                doubleLiteral(0.1)
-            )
-        ));
+    assertEqual(
+        "source=t b=0.1", filter(relation("t"), compare("=", field("b"), doubleLiteral(0.1))));
   }
 
   @Test
   public void testBooleanLiteralExpr() {
-    assertEqual("source=t a=true",
-        filter(
-            relation("t"),
-            compare(
-                "=",
-                field("a"),
-                booleanLiteral(true)
-            )
-        ));
+    assertEqual(
+        "source=t a=true", filter(relation("t"), compare("=", field("a"), booleanLiteral(true))));
   }
 
   @Test
@@ -692,42 +486,23 @@ public class AstExpressionBuilderTest extends AstBuilderTest {
     assertEqual(
         "source=t a = interval 1 day",
         filter(
-            relation("t"),
-            compare(
-                "=",
-                field("a"),
-                intervalLiteral(1, DataType.INTEGER, "day")
-            )
-        ));
+            relation("t"), compare("=", field("a"), intervalLiteral(1, DataType.INTEGER, "day"))));
   }
 
   @Test
   public void testKeywordsAsIdentifiers() {
-    assertEqual(
-        "source=timestamp",
-        relation("timestamp")
-    );
+    assertEqual("source=timestamp", relation("timestamp"));
 
     assertEqual(
         "source=t | fields timestamp",
-        projectWithArg(
-            relation("t"),
-            defaultFieldsArgs(),
-            field("timestamp")
-        )
-    );
+        projectWithArg(relation("t"), defaultFieldsArgs(), field("timestamp")));
   }
 
   @Test
   public void canBuildKeywordsAsIdentInQualifiedName() {
     assertEqual(
         "source=test | fields timestamp",
-        projectWithArg(
-            relation("test"),
-            defaultFieldsArgs(),
-            field("timestamp")
-        )
-    );
+        projectWithArg(relation("test"), defaultFieldsArgs(), field("timestamp")));
   }
 
   @Test
@@ -740,10 +515,7 @@ public class AstExpressionBuilderTest extends AstBuilderTest {
                 "match",
                 unresolvedArg("field", qualifiedName("message")),
                 unresolvedArg("query", stringLiteral("test query")),
-                unresolvedArg("analyzer", stringLiteral("keyword"))
-            )
-        )
-    );
+                unresolvedArg("analyzer", stringLiteral("keyword")))));
   }
 
   @Test
@@ -755,13 +527,11 @@ public class AstExpressionBuilderTest extends AstBuilderTest {
             relation("test"),
             function(
                 "multi_match",
-                unresolvedArg("fields", new RelevanceFieldList(ImmutableMap.of(
-                    "field1", 1.F, "field2", 3.2F))),
+                unresolvedArg(
+                    "fields",
+                    new RelevanceFieldList(ImmutableMap.of("field1", 1.F, "field2", 3.2F))),
                 unresolvedArg("query", stringLiteral("test query")),
-                unresolvedArg("analyzer", stringLiteral("keyword"))
-            )
-        )
-    );
+                unresolvedArg("analyzer", stringLiteral("keyword")))));
   }
 
   @Test
@@ -773,13 +543,11 @@ public class AstExpressionBuilderTest extends AstBuilderTest {
             relation("test"),
             function(
                 "simple_query_string",
-                unresolvedArg("fields", new RelevanceFieldList(ImmutableMap.of(
-                    "field1", 1.F, "field2", 3.2F))),
+                unresolvedArg(
+                    "fields",
+                    new RelevanceFieldList(ImmutableMap.of("field1", 1.F, "field2", 3.2F))),
                 unresolvedArg("query", stringLiteral("test query")),
-                unresolvedArg("analyzer", stringLiteral("keyword"))
-            )
-        )
-    );
+                unresolvedArg("analyzer", stringLiteral("keyword")))));
   }
 
   @Test
@@ -791,13 +559,11 @@ public class AstExpressionBuilderTest extends AstBuilderTest {
             relation("test"),
             function(
                 "query_string",
-                unresolvedArg("fields", new RelevanceFieldList(ImmutableMap.of(
-                    "field1", 1.F, "field2", 3.2F))),
+                unresolvedArg(
+                    "fields",
+                    new RelevanceFieldList(ImmutableMap.of("field1", 1.F, "field2", 3.2F))),
                 unresolvedArg("query", stringLiteral("test query")),
-                unresolvedArg("analyzer", stringLiteral("keyword"))
-            )
-        )
-    );
+                unresolvedArg("analyzer", stringLiteral("keyword")))));
   }
 
   @Test
@@ -816,11 +582,10 @@ public class AstExpressionBuilderTest extends AstBuilderTest {
             + "| TIME_TO_SEC | TIMESTAMP | TO_DAYS | UNIX_TIMESTAMP | WEEK | YEAR");
     assertFunctionNameCouldBeId(
         "SUBSTR | SUBSTRING | TRIM | LTRIM | RTRIM | LOWER | UPPER | CONCAT | CONCAT_WS | LENGTH "
-            + "| STRCMP | RIGHT | LEFT | ASCII | LOCATE | REPLACE"
-    );
+            + "| STRCMP | RIGHT | LEFT | ASCII | LOCATE | REPLACE");
     assertFunctionNameCouldBeId(
         "ABS | CEIL | CEILING | CONV | CRC32 | E | EXP | FLOOR | LN | LOG"
-        + " | LOG10 | LOG2 | MOD | PI |POW | POWER | RAND | ROUND | SIGN | SQRT | TRUNCATE "
+            + " | LOG10 | LOG2 | MOD | PI |POW | POWER | RAND | ROUND | SIGN | SQRT | TRUNCATE "
             + "| ACOS | ASIN | ATAN | ATAN2 | COS | COT | DEGREES | RADIANS | SIN | TAN");
     assertFunctionNameCouldBeId(
         "SEARCH | DESCRIBE | SHOW | FROM | WHERE | FIELDS | RENAME | STATS "
@@ -831,100 +596,79 @@ public class AstExpressionBuilderTest extends AstBuilderTest {
 
   void assertFunctionNameCouldBeId(String antlrFunctionName) {
     List<String> functionList =
-        Arrays.stream(antlrFunctionName.split("\\|")).map(String::stripLeading)
-            .map(String::stripTrailing).collect(
-            Collectors.toList());
+        Arrays.stream(antlrFunctionName.split("\\|"))
+            .map(String::stripLeading)
+            .map(String::stripTrailing)
+            .collect(Collectors.toList());
 
     assertFalse(functionList.isEmpty());
     for (String functionName : functionList) {
-      assertEqual(String.format(Locale.ROOT, "source=t | fields %s", functionName),
-          projectWithArg(
-              relation("t"),
-              defaultFieldsArgs(),
-              field(
-                  qualifiedName(functionName)
-              )
-          ));
+      assertEqual(
+          String.format(Locale.ROOT, "source=t | fields %s", functionName),
+          projectWithArg(relation("t"), defaultFieldsArgs(), field(qualifiedName(functionName))));
     }
   }
 
   // https://github.com/opensearch-project/sql/issues/1318
   @Test
   public void indexCanBeId() {
-    assertEqual("source = index | stats count() by index",
+    assertEqual(
+        "source = index | stats count() by index",
         agg(
             relation("index"),
-            exprList(
-                alias(
-                    "count()",
-                    aggregate("count", AllFields.of())
-                )
-            ),
+            exprList(alias("count()", aggregate("count", AllFields.of()))),
             emptyList(),
-            exprList(
-                alias(
-                    "index",
-                    field("index")
-                )),
-            defaultStatsArgs()
-        ));
+            exprList(alias("index", field("index"))),
+            defaultStatsArgs()));
   }
 
   @Test
   public void testExtractFunctionExpr() {
-    assertEqual("source=t | eval f=extract(day from '2001-05-07 10:11:12')",
+    assertEqual(
+        "source=t | eval f=extract(day from '2001-05-07 10:11:12')",
         eval(
             relation("t"),
             let(
                 field("f"),
-                function("extract",
-                    stringLiteral("day"), stringLiteral("2001-05-07 10:11:12"))
-            )
-        ));
+                function("extract", stringLiteral("day"), stringLiteral("2001-05-07 10:11:12")))));
   }
-
 
   @Test
   public void testGet_FormatFunctionExpr() {
-    assertEqual("source=t | eval f=get_format(DATE,'USA')",
+    assertEqual(
+        "source=t | eval f=get_format(DATE,'USA')",
         eval(
             relation("t"),
-            let(
-                field("f"),
-                function("get_format",
-                    stringLiteral("DATE"), stringLiteral("USA"))
-            )
-        ));
+            let(field("f"), function("get_format", stringLiteral("DATE"), stringLiteral("USA")))));
   }
 
   @Test
   public void testTimeStampAddFunctionExpr() {
-    assertEqual("source=t | eval f=timestampadd(YEAR, 15, '2001-03-06 00:00:00')",
+    assertEqual(
+        "source=t | eval f=timestampadd(YEAR, 15, '2001-03-06 00:00:00')",
         eval(
             relation("t"),
             let(
                 field("f"),
-                function("timestampadd",
+                function(
+                    "timestampadd",
                     stringLiteral("YEAR"),
                     intLiteral(15),
-                    stringLiteral("2001-03-06 00:00:00"))
-            )
-        ));
+                    stringLiteral("2001-03-06 00:00:00")))));
   }
 
   @Test
   public void testTimeStampDiffFunctionExpr() {
-    assertEqual("source=t | eval f=timestampdiff("
-        + "YEAR, '1997-01-01 00:00:00', '2001-03-06 00:00:00')",
+    assertEqual(
+        "source=t | eval f=timestampdiff(YEAR, '1997-01-01 00:00:00', '2001-03-06 00:00:00')",
         eval(
             relation("t"),
             let(
                 field("f"),
-                function("timestampdiff",
+                function(
+                    "timestampdiff",
                     stringLiteral("YEAR"),
                     stringLiteral("1997-01-01 00:00:00"),
-                    stringLiteral("2001-03-06 00:00:00"))
-            )
-        ));
+                    stringLiteral("2001-03-06 00:00:00")))));
   }
 }

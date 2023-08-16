@@ -87,7 +87,8 @@ spotless {
             include 'datasources/**/*.java',
                     'core/**/*.java',
                     'sql/**/*.java',
-                    'common/**/*.java'
+                    'common/**/*.java',
+                    'ppl/**/*.java'
             exclude '**/build/**', '**/build-*/**'
         }
         importOrder()

@@ -24,9 +24,7 @@ import org.opensearch.client.Response;
 import org.opensearch.sql.legacy.SQLIntegTestCase;
 import org.opensearch.sql.legacy.utils.StringUtils;
 
-/**
- * For backward compatibility, check if legacy API endpoints are accessible.
- */
+/** For backward compatibility, check if legacy API endpoints are accessible. */
 public class LegacyAPICompatibilityIT extends SQLIntegTestCase {
 
   @Override
@@ -56,8 +54,8 @@ public class LegacyAPICompatibilityIT extends SQLIntegTestCase {
 
   @Test
   public void closeCursor() throws IOException {
-    String sql = StringUtils.format(
-        "SELECT firstname FROM %s WHERE balance > 100", TEST_INDEX_ACCOUNT);
+    String sql =
+        StringUtils.format("SELECT firstname FROM %s WHERE balance > 100", TEST_INDEX_ACCOUNT);
     JSONObject result = new JSONObject(executeFetchQuery(sql, 50, "jdbc"));
 
     Request request = new Request("POST", LEGACY_CURSOR_CLOSE_ENDPOINT);
@@ -76,44 +74,36 @@ public class LegacyAPICompatibilityIT extends SQLIntegTestCase {
 
   @Test
   public void legacySettingsLegacyEndpoint() throws IOException {
-    String requestBody = "{"
-        + "  \"persistent\": {"
-        + "    \"opendistro.sql.query.slowlog\": \"10\""
-        + "  }"
-        + "}";
+    String requestBody =
+        "{" + "  \"persistent\": {" + "    \"opendistro.sql.query.slowlog\": \"10\"" + "  }" + "}";
     Response response = updateSetting(LEGACY_SQL_SETTINGS_API_ENDPOINT, requestBody);
     Assert.assertEquals(200, response.getStatusLine().getStatusCode());
   }
 
   @Test
   public void legacySettingNewEndpoint() throws IOException {
-    String requestBody = "{"
-        + "  \"persistent\": {"
-        + "    \"opendistro.query.size_limit\": \"100\""
-        + "  }"
-        + "}";
+    String requestBody =
+        "{" + "  \"persistent\": {" + "    \"opendistro.query.size_limit\": \"100\"" + "  }" + "}";
     Response response = updateSetting(SETTINGS_API_ENDPOINT, requestBody);
     Assert.assertEquals(200, response.getStatusLine().getStatusCode());
   }
 
   @Test
   public void newSettingsLegacyEndpoint() throws IOException {
-    String requestBody = "{"
-        + "  \"persistent\": {"
-        + "    \"plugins.sql.slowlog\": \"10\""
-        + "  }"
-        + "}";
+    String requestBody =
+        "{" + "  \"persistent\": {" + "    \"plugins.sql.slowlog\": \"10\"" + "  }" + "}";
     Response response = updateSetting(LEGACY_SQL_SETTINGS_API_ENDPOINT, requestBody);
     Assert.assertEquals(200, response.getStatusLine().getStatusCode());
   }
 
   @Test
   public void newSettingNewEndpoint() throws IOException {
-    String requestBody = "{"
-        + "  \"persistent\": {"
-        + "    \"plugins.query.metrics.rolling_interval\": \"80\""
-        + "  }"
-        + "}";
+    String requestBody =
+        "{"
+            + "  \"persistent\": {"
+            + "    \"plugins.query.metrics.rolling_interval\": \"80\""
+            + "  }"
+            + "}";
     Response response = updateSetting(SETTINGS_API_ENDPOINT, requestBody);
     Assert.assertEquals(200, response.getStatusLine().getStatusCode());
   }
@@ -130,5 +120,4 @@ public class LegacyAPICompatibilityIT extends SQLIntegTestCase {
     restOptionsBuilder.addHeader("Content-Type", "application/json");
     return restOptionsBuilder;
   }
-
 }
