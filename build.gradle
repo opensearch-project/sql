@@ -91,9 +91,9 @@ spotless {
                     'doctest/**/*.java',
                     'relase-notes/**/*.java',
                     'spark/**/*.java',
-                    'ppl/**/*.java',
-                    'spark/**/*.java',
                     'plugin/**/*.java'
+                    'sql/**/*.java',
+                    'ppl/**/*.java'
             exclude '**/build/**', '**/build-*/**'
         }
         importOrder()

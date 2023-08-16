@@ -3,7 +3,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-
 package org.opensearch.sql.sql.domain;
 
 import static org.junit.jupiter.api.Assertions.assertAll;
@@ -32,21 +31,15 @@ public class SQLQueryRequestTest {
 
   @Test
   public void should_support_query_with_JDBC_format() {
-    SQLQueryRequest request = SQLQueryRequestBuilder.request("SELECT 1")
-                                                    .format("jdbc")
-                                                    .build();
+    SQLQueryRequest request = SQLQueryRequestBuilder.request("SELECT 1").format("jdbc").build();
     assertAll(
-        () -> assertTrue(request.isSupported()),
-        () -> assertEquals(request.format(), Format.JDBC)
-    );
+        () -> assertTrue(request.isSupported()), () -> assertEquals(request.format(), Format.JDBC));
   }
 
   @Test
   public void should_support_query_with_query_field_only() {
     SQLQueryRequest request =
-        SQLQueryRequestBuilder.request("SELECT 1")
-                              .jsonContent("{\"query\": \"SELECT 1\"}")
-                              .build();
+        SQLQueryRequestBuilder.request("SELECT 1").jsonContent("{\"query\": \"SELECT 1\"}").build();
     assertTrue(request.isSupported());
   }
 
@@ -57,21 +50,16 @@ public class SQLQueryRequestTest {
             .jsonContent("{\"query\": \"SELECT 1\", \"parameters\":[]}")
             .build();
     SQLQueryRequest requestWithParams =
-        SQLQueryRequestBuilder.request("SELECT 1")
-            .params(Map.of("one", "two"))
-            .build();
+        SQLQueryRequestBuilder.request("SELECT 1").params(Map.of("one", "two")).build();
     assertAll(
         () -> assertTrue(requestWithContent.isSupported()),
-        () -> assertTrue(requestWithParams.isSupported())
-    );
+        () -> assertTrue(requestWithParams.isSupported()));
   }
 
   @Test
   public void should_support_query_without_parameters() {
     SQLQueryRequest requestWithNoParams =
-        SQLQueryRequestBuilder.request("SELECT 1")
-            .params(Map.of())
-            .build();
+        SQLQueryRequestBuilder.request("SELECT 1").params(Map.of()).build();
     assertTrue(requestWithNoParams.isSupported());
   }
 
@@ -79,8 +67,8 @@ public class SQLQueryRequestTest {
   public void should_support_query_with_zero_fetch_size() {
     SQLQueryRequest request =
         SQLQueryRequestBuilder.request("SELECT 1")
-                              .jsonContent("{\"query\": \"SELECT 1\", \"fetch_size\": 0}")
-                              .build();
+            .jsonContent("{\"query\": \"SELECT 1\", \"fetch_size\": 0}")
+            .build();
     assertTrue(request.isSupported());
   }
 
@@ -96,52 +84,37 @@ public class SQLQueryRequestTest {
   @Test
   public void should_support_explain() {
     SQLQueryRequest explainRequest =
-        SQLQueryRequestBuilder.request("SELECT 1")
-                              .path("_plugins/_sql/_explain")
-                              .build();
+        SQLQueryRequestBuilder.request("SELECT 1").path("_plugins/_sql/_explain").build();
 
     assertAll(
         () -> assertTrue(explainRequest.isExplainRequest()),
-        () -> assertTrue(explainRequest.isSupported())
-    );
+        () -> assertTrue(explainRequest.isSupported()));
   }
 
   @Test
   public void should_support_cursor_request() {
     SQLQueryRequest fetchSizeRequest =
         SQLQueryRequestBuilder.request("SELECT 1")
-                              .jsonContent("{\"query\": \"SELECT 1\", \"fetch_size\": 5}")
-                              .build();
+            .jsonContent("{\"query\": \"SELECT 1\", \"fetch_size\": 5}")
+            .build();
 
     SQLQueryRequest cursorRequest =
-        SQLQueryRequestBuilder.request(null)
-                              .cursor("abcdefgh...")
-                              .build();
+        SQLQueryRequestBuilder.request(null).cursor("abcdefgh...").build();
 
     assertAll(
         () -> assertTrue(fetchSizeRequest.isSupported()),
-        () -> assertTrue(cursorRequest.isSupported())
-    );
+        () -> assertTrue(cursorRequest.isSupported()));
   }
 
   @Test
   public void should_support_cursor_close_request() {
     SQLQueryRequest closeRequest =
-        SQLQueryRequestBuilder.request(null)
-                              .cursor("pewpew")
-                              .path("_plugins/_sql/close")
-                              .build();
+        SQLQueryRequestBuilder.request(null).cursor("pewpew").path("_plugins/_sql/close").build();
 
     SQLQueryRequest emptyCloseRequest =
-        SQLQueryRequestBuilder.request(null)
-                              .cursor("")
-                              .path("_plugins/_sql/close")
-                              .build();
+        SQLQueryRequestBuilder.request(null).cursor("").path("_plugins/_sql/close").build();
 
-    SQLQueryRequest pagingRequest =
-        SQLQueryRequestBuilder.request(null)
-                              .cursor("pewpew")
-                              .build();
+    SQLQueryRequest pagingRequest = SQLQueryRequestBuilder.request(null).cursor("pewpew").build();
 
     assertAll(
         () -> assertTrue(closeRequest.isSupported()),
@@ -149,71 +122,52 @@ public class SQLQueryRequestTest {
         () -> assertTrue(pagingRequest.isSupported()),
         () -> assertFalse(pagingRequest.isCursorCloseRequest()),
         () -> assertFalse(emptyCloseRequest.isSupported()),
-        () -> assertTrue(emptyCloseRequest.isCursorCloseRequest())
-    );
+        () -> assertTrue(emptyCloseRequest.isCursorCloseRequest()));
   }
 
   @Test
   public void should_not_support_request_with_empty_cursor() {
     SQLQueryRequest requestWithEmptyCursor =
-        SQLQueryRequestBuilder.request(null)
-                              .cursor("")
-                              .build();
+        SQLQueryRequestBuilder.request(null).cursor("").build();
     SQLQueryRequest requestWithNullCursor =
-        SQLQueryRequestBuilder.request(null)
-                              .cursor(null)
-                              .build();
+        SQLQueryRequestBuilder.request(null).cursor(null).build();
     assertAll(
         () -> assertFalse(requestWithEmptyCursor.isSupported()),
-        () -> assertFalse(requestWithNullCursor.isSupported())
-    );
+        () -> assertFalse(requestWithNullCursor.isSupported()));
   }
 
   @Test
   public void should_not_support_request_with_unknown_field() {
     SQLQueryRequest request =
-        SQLQueryRequestBuilder.request("SELECT 1")
-                              .jsonContent("{\"pewpew\": 42}")
-                              .build();
+        SQLQueryRequestBuilder.request("SELECT 1").jsonContent("{\"pewpew\": 42}").build();
     assertFalse(request.isSupported());
   }
 
   @Test
   public void should_not_support_request_with_cursor_and_something_else() {
     SQLQueryRequest requestWithQuery =
-        SQLQueryRequestBuilder.request("SELECT 1")
-                              .cursor("n:12356")
-                              .build();
+        SQLQueryRequestBuilder.request("SELECT 1").cursor("n:12356").build();
     SQLQueryRequest requestWithParams =
-        SQLQueryRequestBuilder.request(null)
-                              .cursor("n:12356")
-                              .params(Map.of("one", "two"))
-                              .build();
+        SQLQueryRequestBuilder.request(null).cursor("n:12356").params(Map.of("one", "two")).build();
     SQLQueryRequest requestWithParamsWithFormat =
         SQLQueryRequestBuilder.request(null)
-                              .cursor("n:12356")
-                              .params(Map.of("format", "jdbc"))
-                              .build();
+            .cursor("n:12356")
+            .params(Map.of("format", "jdbc"))
+            .build();
     SQLQueryRequest requestWithParamsWithFormatAnd =
         SQLQueryRequestBuilder.request(null)
-                              .cursor("n:12356")
-                              .params(Map.of("format", "jdbc", "something", "else"))
-                              .build();
+            .cursor("n:12356")
+            .params(Map.of("format", "jdbc", "something", "else"))
+            .build();
     SQLQueryRequest requestWithFetchSize =
         SQLQueryRequestBuilder.request(null)
-                              .cursor("n:12356")
-                              .jsonContent("{\"fetch_size\": 5}")
-                              .build();
+            .cursor("n:12356")
+            .jsonContent("{\"fetch_size\": 5}")
+            .build();
     SQLQueryRequest requestWithNoParams =
-        SQLQueryRequestBuilder.request(null)
-                              .cursor("n:12356")
-                              .params(Map.of())
-                              .build();
+        SQLQueryRequestBuilder.request(null).cursor("n:12356").params(Map.of()).build();
     SQLQueryRequest requestWithNoContent =
-        SQLQueryRequestBuilder.request(null)
-                              .cursor("n:12356")
-                              .jsonContent("{}")
-                              .build();
+        SQLQueryRequestBuilder.request(null).cursor("n:12356").jsonContent("{}").build();
     assertAll(
         () -> assertFalse(requestWithQuery.isSupported()),
         () -> assertFalse(requestWithParams.isSupported()),
@@ -221,8 +175,7 @@ public class SQLQueryRequestTest {
         () -> assertTrue(requestWithNoParams.isSupported()),
         () -> assertTrue(requestWithParamsWithFormat.isSupported()),
         () -> assertFalse(requestWithParamsWithFormatAnd.isSupported()),
-        () -> assertTrue(requestWithNoContent.isSupported())
-    );
+        () -> assertTrue(requestWithNoContent.isSupported()));
   }
 
   @Test
@@ -234,15 +187,11 @@ public class SQLQueryRequestTest {
 
   @Test
   public void should_support_CSV_format_and_sanitize() {
-    SQLQueryRequest csvRequest =
-        SQLQueryRequestBuilder.request("SELECT 1")
-                              .format("csv")
-                              .build();
+    SQLQueryRequest csvRequest = SQLQueryRequestBuilder.request("SELECT 1").format("csv").build();
     assertAll(
         () -> assertTrue(csvRequest.isSupported()),
         () -> assertEquals(csvRequest.format(), Format.CSV),
-        () -> assertTrue(csvRequest.sanitize())
-    );
+        () -> assertTrue(csvRequest.sanitize()));
   }
 
   @Test
@@ -252,36 +201,28 @@ public class SQLQueryRequestTest {
     SQLQueryRequest csvRequest = SQLQueryRequestBuilder.request("SELECT 1").params(params).build();
     assertAll(
         () -> assertEquals(csvRequest.format(), Format.CSV),
-        () -> assertFalse(csvRequest.sanitize())
-    );
+        () -> assertFalse(csvRequest.sanitize()));
   }
 
   @Test
   public void should_not_support_other_format() {
-    SQLQueryRequest csvRequest =
-        SQLQueryRequestBuilder.request("SELECT 1")
-            .format("other")
-            .build();
+    SQLQueryRequest csvRequest = SQLQueryRequestBuilder.request("SELECT 1").format("other").build();
 
     assertAll(
         () -> assertFalse(csvRequest.isSupported()),
-        () -> assertEquals("response in other format is not supported.",
-            assertThrows(IllegalArgumentException.class, csvRequest::format).getMessage())
-    );
+        () ->
+            assertEquals(
+                "response in other format is not supported.",
+                assertThrows(IllegalArgumentException.class, csvRequest::format).getMessage()));
   }
 
   @Test
   public void should_support_raw_format() {
-    SQLQueryRequest csvRequest =
-            SQLQueryRequestBuilder.request("SELECT 1")
-                    .format("raw")
-                    .build();
+    SQLQueryRequest csvRequest = SQLQueryRequestBuilder.request("SELECT 1").format("raw").build();
     assertTrue(csvRequest.isSupported());
   }
 
-  /**
-   * SQL query request build helper to improve test data setup readability.
-   */
+  /** SQL query request build helper to improve test data setup readability. */
   private static class SQLQueryRequestBuilder {
     private String jsonContent;
     private String query;
@@ -325,9 +266,8 @@ public class SQLQueryRequestTest {
       if (format != null) {
         params.put("format", format);
       }
-      return new SQLQueryRequest(jsonContent == null ? null : new JSONObject(jsonContent),
-          query, path, params, cursor);
+      return new SQLQueryRequest(
+          jsonContent == null ? null : new JSONObject(jsonContent), query, path, params, cursor);
     }
   }
-
 }

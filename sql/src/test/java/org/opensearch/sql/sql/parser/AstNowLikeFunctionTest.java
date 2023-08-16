@@ -25,32 +25,29 @@ import org.opensearch.sql.ast.expression.AllFields;
 class AstNowLikeFunctionTest extends AstBuilderTestBase {
 
   private static Stream<Arguments> allFunctions() {
-    return Stream.of("curdate",
-        "current_date",
-        "current_time",
-        "current_timestamp",
-        "curtime",
-        "localtimestamp",
-        "localtime",
-        "now",
-        "sysdate",
-        "utc_date",
-        "utc_time",
-        "utc_timestamp")
+    return Stream.of(
+            "curdate",
+            "current_date",
+            "current_time",
+            "current_timestamp",
+            "curtime",
+            "localtimestamp",
+            "localtime",
+            "now",
+            "sysdate",
+            "utc_date",
+            "utc_time",
+            "utc_timestamp")
         .map(Arguments::of);
   }
 
   private static Stream<Arguments> supportFsp() {
-    return Stream.of("sysdate")
-        .map(Arguments::of);
+    return Stream.of("sysdate").map(Arguments::of);
   }
 
   private static Stream<Arguments> supportShortcut() {
-    return Stream.of("current_date",
-            "current_time",
-            "current_timestamp",
-            "localtimestamp",
-            "localtime")
+    return Stream.of(
+            "current_date", "current_time", "current_timestamp", "localtimestamp", "localtime")
         .map(Arguments::of);
   }
 
@@ -59,12 +56,7 @@ class AstNowLikeFunctionTest extends AstBuilderTestBase {
   void project_call(String name) {
     String call = name + "()";
     assertEquals(
-        project(
-            values(emptyList()),
-            alias(call, function(name))
-        ),
-        buildAST("SELECT " + call)
-    );
+        project(values(emptyList()), alias(call, function(name))), buildAST("SELECT " + call));
   }
 
   @ParameterizedTest
@@ -73,29 +65,16 @@ class AstNowLikeFunctionTest extends AstBuilderTestBase {
     String call = name + "()";
     assertEquals(
         project(
-            filter(
-                relation("test"),
-                function(
-                    "=",
-                    qualifiedName("data"),
-                    function(name))
-            ),
-            AllFields.of()
-        ),
-        buildAST("SELECT * FROM test WHERE data = " + call)
-    );
+            filter(relation("test"), function("=", qualifiedName("data"), function(name))),
+            AllFields.of()),
+        buildAST("SELECT * FROM test WHERE data = " + call));
   }
-
 
   @ParameterizedTest
   @MethodSource("supportFsp")
   void fsp(String name) {
     assertEquals(
-        project(
-            values(emptyList()),
-            alias(name + "(0)", function(name, intLiteral(0)))
-        ),
-        buildAST("SELECT " + name + "(0)")
-    );
+        project(values(emptyList()), alias(name + "(0)", function(name, intLiteral(0)))),
+        buildAST("SELECT " + name + "(0)"));
   }
 }
