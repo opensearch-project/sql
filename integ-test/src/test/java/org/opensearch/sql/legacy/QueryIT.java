@@ -1889,7 +1889,7 @@ public class QueryIT extends SQLIntegTestCase {
     String expected =
         executeQuery(
             StringUtils.format(
-                "SELECT b.lastname FROM %s " + "AS b ORDER BY age LIMIT 3",
+                "SELECT b.lastname FROM %s AS b ORDER BY age LIMIT 3",
                 TestsConstants.TEST_INDEX_BANK),
             "jdbc");
     String quotedFieldResult =
