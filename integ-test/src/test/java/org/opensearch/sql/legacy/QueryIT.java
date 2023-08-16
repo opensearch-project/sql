@@ -1674,7 +1674,7 @@ public class QueryIT extends SQLIntegTestCase {
         executeQuery(
             String.format(
                 Locale.ROOT,
-                "SELECT * " + "FROM %s " + "WHERE nested(message.info) = IN_TERMS('a', 'b')",
+                "SELECT * FROM %s WHERE nested(message.info) = IN_TERMS('a', 'b')",
                 TestsConstants.TEST_INDEX_NESTED_TYPE));
 
     Assert.assertEquals(3, getTotalHits(response));
