@@ -28,7 +28,7 @@ public class ObjectFieldOperateIT extends PPLIntegTestCase {
     JSONObject result =
         executeQuery(
             String.format(
-                "source=%s | " + "fields city.name, city.location.latitude",
+                "source=%s | fields city.name, city.location.latitude",
                 TEST_INDEX_DEEP_NESTED));
     verifySchema(result, schema("city.name", "string"), schema("city.location.latitude", "double"));
     verifyDataRows(result, rows("Seattle", 10.5));
@@ -51,7 +51,7 @@ public class ObjectFieldOperateIT extends PPLIntegTestCase {
   public void group_object_field_in_stats() throws IOException {
     JSONObject result =
         executeQuery(
-            String.format("source=%s " + "| stats count() by city.name", TEST_INDEX_DEEP_NESTED));
+            String.format("source=%s | stats count() by city.name", TEST_INDEX_DEEP_NESTED));
     verifySchema(result, schema("count()", "integer"), schema("city.name", "string"));
     verifyDataRows(result, rows(1, "Seattle"));
   }
@@ -61,7 +61,7 @@ public class ObjectFieldOperateIT extends PPLIntegTestCase {
     JSONObject result =
         executeQuery(
             String.format(
-                "source=%s " + "| sort city.name" + "| fields city.name, city.location.latitude",
+                "source=%s | sort city.name | fields city.name, city.location.latitude",
                 TEST_INDEX_DEEP_NESTED));
     verifySchema(result, schema("city.name", "string"), schema("city.location.latitude", "double"));
     verifyDataRows(result, rows("Seattle", 10.5));

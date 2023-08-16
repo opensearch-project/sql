@@ -813,7 +813,7 @@ public class SQLFunctionsIT extends SQLIntegTestCase {
 
   @Test
   public void literalWithDoubleValue() throws Exception {
-    String query = "SELECT 10.0 " + "from " + TEST_INDEX_ACCOUNT + " limit 1";
+    String query = "SELECT 10.0 from " + TEST_INDEX_ACCOUNT + " limit 1";
 
     final SearchHit[] hits = query(query).getHits();
     assertThat(hits[0].getFields(), hasValue(contains(10.0)));
@@ -821,7 +821,7 @@ public class SQLFunctionsIT extends SQLIntegTestCase {
 
   @Test
   public void literalWithAlias() throws Exception {
-    String query = "SELECT 10 as key " + "from " + TEST_INDEX_ACCOUNT + " limit 1";
+    String query = "SELECT 10 as key from " + TEST_INDEX_ACCOUNT + " limit 1";
     final SearchHit[] hits = query(query).getHits();
 
     assertThat(hits.length, is(1));

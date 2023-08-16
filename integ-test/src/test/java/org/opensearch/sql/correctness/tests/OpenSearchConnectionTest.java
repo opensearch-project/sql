@@ -66,7 +66,7 @@ public class OpenSearchConnectionTest {
     assertEquals("POST", actual.getMethod());
     assertEquals("/test/_bulk?refresh=true", actual.getEndpoint());
     assertEquals(
-        "{\"index\":{}}\n" + "{\"name\":\"John\"}\n" + "{\"index\":{}}\n" + "{\"name\":\"Hank\"}\n",
+        "{\"index\":{}}\n{\"name\":\"John\"}\n{\"index\":{}}\n{\"name\":\"Hank\"}\n",
         getBody(actual));
   }
 
@@ -81,7 +81,7 @@ public class OpenSearchConnectionTest {
     assertEquals("POST", actual.getMethod());
     assertEquals("/test/_bulk?refresh=true", actual.getEndpoint());
     assertEquals(
-        "{\"index\":{}}\n" + "{\"age\":30}\n" + "{\"index\":{}}\n" + "{\"name\":\"Hank\"}\n",
+        "{\"index\":{}}\n{\"age\":30}\n{\"index\":{}}\n{\"name\":\"Hank\"}\n",
         getBody(actual));
   }
 

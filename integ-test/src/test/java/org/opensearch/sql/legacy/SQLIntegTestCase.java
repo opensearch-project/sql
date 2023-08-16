@@ -142,8 +142,9 @@ public abstract class SQLIntegTestCase extends OpenSearchSQLRestTestCase {
   }
 
   /**
-   * As JUnit JavaDoc says: "The @AfterClass methods declared in superclasses will be run after
-   * those of the current class." So this method is supposed to run before closeClients() in parent
+   * As JUnit JavaDoc says:<br>
+    "The @AfterClass methods declared in superclasses will be run after those of the current class."<br>
+    So this method is supposed to run before closeClients() in parent class.
    * class.
    */
   @AfterClass

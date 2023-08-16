@@ -300,7 +300,7 @@ public class PrettyFormatResponseIT extends SQLIntegTestCase {
         executeQuery(
             String.format(
                 Locale.ROOT,
-                "SELECT * " + "FROM %s " + "WHERE balance > 30000 " + "LIMIT 5",
+                "SELECT * FROM %s WHERE balance > 30000 LIMIT 5",
                 TestsConstants.TEST_INDEX_ACCOUNT));
 
     JSONArray dataRows = getDataRows(response);
@@ -427,7 +427,7 @@ public class PrettyFormatResponseIT extends SQLIntegTestCase {
         executeQuery(
             String.format(
                 Locale.ROOT,
-                "SELECT gender " + "FROM %s " + "GROUP BY gender " + "HAVING count(*) > 500",
+                "SELECT gender FROM %s GROUP BY gender HAVING count(*) > 500",
                 TestsConstants.TEST_INDEX_ACCOUNT));
 
     String ageSum = "gender";
@@ -549,7 +549,7 @@ public class PrettyFormatResponseIT extends SQLIntegTestCase {
         executeQuery(
             String.format(
                 Locale.ROOT,
-                "SELECT b1.age " + "FROM %s b1 JOIN %s b2 ON b1.firstname = b2.firstname",
+                "SELECT b1.age FROM %s b1 JOIN %s b2 ON b1.firstname = b2.firstname",
                 TestsConstants.TEST_INDEX_ACCOUNT,
                 TestsConstants.TEST_INDEX_ACCOUNT));
 
@@ -583,7 +583,7 @@ public class PrettyFormatResponseIT extends SQLIntegTestCase {
     final String query =
         String.format(
             Locale.ROOT,
-            "SELECT %s FROM %s " + "WHERE email='amberduke@pyrami.com'",
+            "SELECT %s FROM %s WHERE email='amberduke@pyrami.com'",
             fields,
             TestsConstants.TEST_INDEX_ACCOUNT);
     final JSONObject result = executeQuery(query);

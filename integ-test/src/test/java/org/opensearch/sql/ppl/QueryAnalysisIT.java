@@ -108,7 +108,7 @@ public class QueryAnalysisIT extends PPLIntegTestCase {
   public void nonexistentFieldShouldFailSemanticCheck() {
     String query = String.format("search source=%s | fields name", TEST_INDEX_ACCOUNT);
     queryShouldThrowSemanticException(
-        query, "can't resolve Symbol(namespace=FIELD_NAME, " + "name=name) in type env");
+        query, "can't resolve Symbol(namespace=FIELD_NAME, name=name) in type env");
   }
 
   private void queryShouldPassSyntaxAndSemanticCheck(String query) {
