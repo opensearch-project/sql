@@ -806,7 +806,7 @@ public class SQLFunctionsIT extends SQLIntegTestCase {
 
   @Test
   public void literal() throws Exception {
-    String query = "SELECT 10 " + "from " + TEST_INDEX_ACCOUNT + " limit 1";
+    String query = "SELECT 10 from " + TEST_INDEX_ACCOUNT + " limit 1";
     final SearchHit[] hits = query(query).getHits();
     assertThat(hits[0].getFields(), hasValue(contains(10)));
   }
@@ -830,7 +830,7 @@ public class SQLFunctionsIT extends SQLIntegTestCase {
 
   @Test
   public void literalMultiField() throws Exception {
-    String query = "SELECT 1, 2 " + "from " + TEST_INDEX_ACCOUNT + " limit 1";
+    String query = "SELECT 1, 2 from " + TEST_INDEX_ACCOUNT + " limit 1";
     final SearchHit[] hits = query(query).getHits();
 
     assertThat(hits.length, is(1));
