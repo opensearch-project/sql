@@ -122,16 +122,12 @@ public class TestConfig {
         + "Tested Database  : "
         + openSearchHostUrlToString()
         + "\nOther Databases  :\n"
-        + "Other Databases  :\n"
         + otherDbConnectionInfoToString()
-        + '\n'
-        + "Test data set(s) :\n"
+        + "\nTest data set(s) :\n"
         + testDataSetsToString()
-        + '\n'
-        + "Test query set   : "
+        + "\nTest query set   : "
         + testQuerySet
-        + '\n'
-        + "=================================\n";
+        + "\n=================================\n";
   }
 
   private String testDataSetsToString() {
