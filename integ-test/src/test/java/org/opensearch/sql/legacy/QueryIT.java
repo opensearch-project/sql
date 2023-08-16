@@ -114,7 +114,7 @@ public class QueryIT extends SQLIntegTestCase {
     JSONObject response =
         executeQuery(
             StringUtils.format(
-                "SELECT *, age " + "FROM %s " + "LIMIT 5", TestsConstants.TEST_INDEX_BANK));
+                "SELECT *, age FROM %s LIMIT 5", TestsConstants.TEST_INDEX_BANK));
 
     checkSelectAllAndFieldResponseSize(response);
   }
