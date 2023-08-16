@@ -41,22 +41,21 @@ import org.opensearch.sql.prometheus.request.PrometheusQueryExemplarsRequest;
 
 @ExtendWith(MockitoExtension.class)
 public class QueryExemplarsFunctionTableScanOperatorTest {
-  @Mock
-  private PrometheusClient prometheusClient;
+  @Mock private PrometheusClient prometheusClient;
 
   @Test
   @SneakyThrows
   void testQueryResponseIterator() {
 
-    PrometheusQueryExemplarsRequest prometheusQueryExemplarsRequest
-        = new PrometheusQueryExemplarsRequest();
+    PrometheusQueryExemplarsRequest prometheusQueryExemplarsRequest =
+        new PrometheusQueryExemplarsRequest();
     prometheusQueryExemplarsRequest.setQuery(QUERY);
     prometheusQueryExemplarsRequest.setStartTime(STARTTIME);
     prometheusQueryExemplarsRequest.setEndTime(ENDTIME);
 
-    QueryExemplarsFunctionTableScanOperator queryExemplarsFunctionTableScanOperator
-        = new QueryExemplarsFunctionTableScanOperator(prometheusClient,
-        prometheusQueryExemplarsRequest);
+    QueryExemplarsFunctionTableScanOperator queryExemplarsFunctionTableScanOperator =
+        new QueryExemplarsFunctionTableScanOperator(
+            prometheusClient, prometheusQueryExemplarsRequest);
 
     when(prometheusClient.queryExemplars(any(), any(), any()))
         .thenReturn(new JSONArray(getJson("query_exemplars_result.json")));
@@ -68,24 +67,28 @@ public class QueryExemplarsFunctionTableScanOperatorTest {
     seriesLabelsHashMap.put("service", new ExprStringValue("bar"));
     seriesLabelsHashMap.put("job", new ExprStringValue("prometheus"));
     LinkedHashMap<String, ExprValue> exemplarMap = new LinkedHashMap<>();
-    exemplarMap.put("labels", new ExprTupleValue(new LinkedHashMap<>() {
-        {
-          put("traceID", new ExprStringValue("EpTxMJ40fUus7aGY"));
-        }
-      })
-    );
+    exemplarMap.put(
+        "labels",
+        new ExprTupleValue(
+            new LinkedHashMap<>() {
+              {
+                put("traceID", new ExprStringValue("EpTxMJ40fUus7aGY"));
+              }
+            }));
     exemplarMap.put("timestamp", new ExprTimestampValue(Instant.ofEpochMilli(1600096945479L)));
     exemplarMap.put("value", new ExprDoubleValue(6));
     List<ExprValue> exprValueList = new ArrayList<>();
     exprValueList.add(new ExprTupleValue(exemplarMap));
     ExprCollectionValue exemplars = new ExprCollectionValue(exprValueList);
     ExprTupleValue seriesLabels = new ExprTupleValue(seriesLabelsHashMap);
-    ExprTupleValue firstRow = new ExprTupleValue(new LinkedHashMap<>() {
-      {
-        put("seriesLabels", seriesLabels);
-        put("exemplars", exemplars);
-      }
-    });
+    ExprTupleValue firstRow =
+        new ExprTupleValue(
+            new LinkedHashMap<>() {
+              {
+                put("seriesLabels", seriesLabels);
+                put("exemplars", exemplars);
+              }
+            });
 
     assertEquals(firstRow, queryExemplarsFunctionTableScanOperator.next());
   }
@@ -93,15 +96,15 @@ public class QueryExemplarsFunctionTableScanOperatorTest {
   @Test
   @SneakyThrows
   void testEmptyQueryWithNoMatrixKeyInResultJson() {
-    PrometheusQueryExemplarsRequest prometheusQueryExemplarsRequest
-        = new PrometheusQueryExemplarsRequest();
+    PrometheusQueryExemplarsRequest prometheusQueryExemplarsRequest =
+        new PrometheusQueryExemplarsRequest();
     prometheusQueryExemplarsRequest.setQuery(QUERY);
     prometheusQueryExemplarsRequest.setStartTime(STARTTIME);
     prometheusQueryExemplarsRequest.setEndTime(ENDTIME);
 
-    QueryExemplarsFunctionTableScanOperator queryExemplarsFunctionTableScanOperator
-        = new QueryExemplarsFunctionTableScanOperator(prometheusClient,
-        prometheusQueryExemplarsRequest);
+    QueryExemplarsFunctionTableScanOperator queryExemplarsFunctionTableScanOperator =
+        new QueryExemplarsFunctionTableScanOperator(
+            prometheusClient, prometheusQueryExemplarsRequest);
 
     when(prometheusClient.queryExemplars(any(), any(), any()))
         .thenReturn(new JSONArray(getJson("query_exemplars_empty_result.json")));
@@ -113,15 +116,15 @@ public class QueryExemplarsFunctionTableScanOperatorTest {
   @SneakyThrows
   void testQuerySchema() {
 
-    PrometheusQueryExemplarsRequest prometheusQueryExemplarsRequest
-        = new PrometheusQueryExemplarsRequest();
+    PrometheusQueryExemplarsRequest prometheusQueryExemplarsRequest =
+        new PrometheusQueryExemplarsRequest();
     prometheusQueryExemplarsRequest.setQuery(QUERY);
     prometheusQueryExemplarsRequest.setStartTime(STARTTIME);
     prometheusQueryExemplarsRequest.setEndTime(ENDTIME);
 
-    QueryExemplarsFunctionTableScanOperator queryExemplarsFunctionTableScanOperator
-        = new QueryExemplarsFunctionTableScanOperator(prometheusClient,
-        prometheusQueryExemplarsRequest);
+    QueryExemplarsFunctionTableScanOperator queryExemplarsFunctionTableScanOperator =
+        new QueryExemplarsFunctionTableScanOperator(
+            prometheusClient, prometheusQueryExemplarsRequest);
 
     when(prometheusClient.queryExemplars(any(), any(), any()))
         .thenReturn(new JSONArray(getJson("query_exemplars_result.json")));
@@ -140,53 +143,53 @@ public class QueryExemplarsFunctionTableScanOperatorTest {
   @SneakyThrows
   void testEmptyQueryWithException() {
 
-    PrometheusQueryExemplarsRequest prometheusQueryExemplarsRequest
-        = new PrometheusQueryExemplarsRequest();
+    PrometheusQueryExemplarsRequest prometheusQueryExemplarsRequest =
+        new PrometheusQueryExemplarsRequest();
     prometheusQueryExemplarsRequest.setQuery(QUERY);
     prometheusQueryExemplarsRequest.setStartTime(STARTTIME);
     prometheusQueryExemplarsRequest.setEndTime(ENDTIME);
 
-    QueryExemplarsFunctionTableScanOperator queryExemplarsFunctionTableScanOperator
-        = new QueryExemplarsFunctionTableScanOperator(prometheusClient,
-        prometheusQueryExemplarsRequest);
+    QueryExemplarsFunctionTableScanOperator queryExemplarsFunctionTableScanOperator =
+        new QueryExemplarsFunctionTableScanOperator(
+            prometheusClient, prometheusQueryExemplarsRequest);
     when(prometheusClient.queryExemplars(any(), any(), any()))
         .thenThrow(new IOException("Error Message"));
-    RuntimeException runtimeException
-        = assertThrows(RuntimeException.class, queryExemplarsFunctionTableScanOperator::open);
-    assertEquals("Error fetching data from prometheus server: Error Message",
-        runtimeException.getMessage());
+    RuntimeException runtimeException =
+        assertThrows(RuntimeException.class, queryExemplarsFunctionTableScanOperator::open);
+    assertEquals(
+        "Error fetching data from prometheus server: Error Message", runtimeException.getMessage());
   }
-
 
   @Test
   @SneakyThrows
   void testExplain() {
 
-    PrometheusQueryExemplarsRequest prometheusQueryExemplarsRequest
-        = new PrometheusQueryExemplarsRequest();
+    PrometheusQueryExemplarsRequest prometheusQueryExemplarsRequest =
+        new PrometheusQueryExemplarsRequest();
     prometheusQueryExemplarsRequest.setQuery(QUERY);
     prometheusQueryExemplarsRequest.setStartTime(STARTTIME);
     prometheusQueryExemplarsRequest.setEndTime(ENDTIME);
 
-    QueryExemplarsFunctionTableScanOperator queryExemplarsFunctionTableScanOperator
-        = new QueryExemplarsFunctionTableScanOperator(prometheusClient,
-        prometheusQueryExemplarsRequest);
-    Assertions.assertEquals("query_exemplars(test_query, 1664767694133, 1664771294133)",
+    QueryExemplarsFunctionTableScanOperator queryExemplarsFunctionTableScanOperator =
+        new QueryExemplarsFunctionTableScanOperator(
+            prometheusClient, prometheusQueryExemplarsRequest);
+    Assertions.assertEquals(
+        "query_exemplars(test_query, 1664767694133, 1664771294133)",
         queryExemplarsFunctionTableScanOperator.explain());
   }
 
   @Test
   @SneakyThrows
   void testClose() {
-    PrometheusQueryExemplarsRequest prometheusQueryExemplarsRequest
-        = new PrometheusQueryExemplarsRequest();
+    PrometheusQueryExemplarsRequest prometheusQueryExemplarsRequest =
+        new PrometheusQueryExemplarsRequest();
     prometheusQueryExemplarsRequest.setQuery(QUERY);
     prometheusQueryExemplarsRequest.setStartTime(STARTTIME);
     prometheusQueryExemplarsRequest.setEndTime(ENDTIME);
 
-    QueryExemplarsFunctionTableScanOperator queryExemplarsFunctionTableScanOperator
-        = new QueryExemplarsFunctionTableScanOperator(prometheusClient,
-        prometheusQueryExemplarsRequest);
+    QueryExemplarsFunctionTableScanOperator queryExemplarsFunctionTableScanOperator =
+        new QueryExemplarsFunctionTableScanOperator(
+            prometheusClient, prometheusQueryExemplarsRequest);
     queryExemplarsFunctionTableScanOperator.close();
   }
 }

@@ -20,20 +20,16 @@ import org.opensearch.sql.storage.Table;
 import org.opensearch.sql.storage.read.TableScanBuilder;
 
 /**
- * This is {@link Table} for querying exemplars in prometheus Table.
- * Since {@link PrometheusMetricTable} is overloaded with query_range and normal
- * PPL metric queries. Created a separate table for handling
- * {@link PrometheusQueryExemplarsRequest}
+ * This is {@link Table} for querying exemplars in prometheus Table. Since {@link
+ * PrometheusMetricTable} is overloaded with query_range and normal PPL metric queries. Created a
+ * separate table for handling {@link PrometheusQueryExemplarsRequest}
  */
 @RequiredArgsConstructor
 public class QueryExemplarsTable implements Table {
 
-  @Getter
-  private final PrometheusClient prometheusClient;
+  @Getter private final PrometheusClient prometheusClient;
 
-  @Getter
-  private final PrometheusQueryExemplarsRequest exemplarsRequest;
-
+  @Getter private final PrometheusQueryExemplarsRequest exemplarsRequest;
 
   @Override
   public Map<String, ExprType> getFieldTypes() {
@@ -49,5 +45,4 @@ public class QueryExemplarsTable implements Table {
   public TableScanBuilder createScanBuilder() {
     return new QueryExemplarsFunctionTableScanBuilder(prometheusClient, exemplarsRequest);
   }
-
 }

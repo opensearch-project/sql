@@ -28,8 +28,8 @@ import org.opensearch.sql.prometheus.request.PrometheusQueryExemplarsRequest;
 import org.opensearch.sql.prometheus.storage.QueryExemplarsTable;
 import org.opensearch.sql.storage.Table;
 
-public class QueryExemplarFunctionImplementation extends FunctionExpression implements
-    TableFunctionImplementation {
+public class QueryExemplarFunctionImplementation extends FunctionExpression
+    implements TableFunctionImplementation {
 
   private final FunctionName functionName;
   private final List<Expression> arguments;
@@ -39,10 +39,10 @@ public class QueryExemplarFunctionImplementation extends FunctionExpression impl
    * Required argument constructor.
    *
    * @param functionName name of the function
-   * @param arguments    a list of arguments provided
+   * @param arguments a list of arguments provided
    */
-  public QueryExemplarFunctionImplementation(FunctionName functionName, List<Expression> arguments,
-                                          PrometheusClient prometheusClient) {
+  public QueryExemplarFunctionImplementation(
+      FunctionName functionName, List<Expression> arguments, PrometheusClient prometheusClient) {
     super(functionName, arguments);
     this.functionName = functionName;
     this.arguments = arguments;
@@ -51,10 +51,11 @@ public class QueryExemplarFunctionImplementation extends FunctionExpression impl
 
   @Override
   public ExprValue valueOf(Environment<Expression, ExprValue> valueEnv) {
-    throw new UnsupportedOperationException(String.format(
-        "Prometheus defined function [%s] is only "
-            + "supported in SOURCE clause with prometheus connector catalog",
-        functionName));
+    throw new UnsupportedOperationException(
+        String.format(
+            "Prometheus defined function [%s] is only "
+                + "supported in SOURCE clause with prometheus connector catalog",
+            functionName));
   }
 
   @Override
@@ -64,10 +65,15 @@ public class QueryExemplarFunctionImplementation extends FunctionExpression impl
 
   @Override
   public String toString() {
-    List<String> args = arguments.stream()
-        .map(arg -> String.format("%s=%s", ((NamedArgumentExpression) arg)
-            .getArgName(), ((NamedArgumentExpression) arg).getValue().toString()))
-        .collect(Collectors.toList());
+    List<String> args =
+        arguments.stream()
+            .map(
+                arg ->
+                    String.format(
+                        "%s=%s",
+                        ((NamedArgumentExpression) arg).getArgName(),
+                        ((NamedArgumentExpression) arg).getValue().toString()))
+            .collect(Collectors.toList());
     return String.format("%s(%s)", functionName, String.join(", ", args));
   }
 
@@ -79,27 +85,26 @@ public class QueryExemplarFunctionImplementation extends FunctionExpression impl
   private PrometheusQueryExemplarsRequest buildExemplarsQueryRequest(List<Expression> arguments) {
 
     PrometheusQueryExemplarsRequest request = new PrometheusQueryExemplarsRequest();
-    arguments.forEach(arg -> {
-      String argName = ((NamedArgumentExpression) arg).getArgName();
-      Expression argValue = ((NamedArgumentExpression) arg).getValue();
-      ExprValue literalValue = argValue.valueOf();
-      switch (argName) {
-        case QUERY:
-          request
-              .setQuery((String) literalValue.value());
-          break;
-        case STARTTIME:
-          request.setStartTime(((Number) literalValue.value()).longValue());
-          break;
-        case ENDTIME:
-          request.setEndTime(((Number) literalValue.value()).longValue());
-          break;
-        default:
-          throw new ExpressionEvaluationException(
-              String.format("Invalid Function Argument:%s", argName));
-      }
-    });
+    arguments.forEach(
+        arg -> {
+          String argName = ((NamedArgumentExpression) arg).getArgName();
+          Expression argValue = ((NamedArgumentExpression) arg).getValue();
+          ExprValue literalValue = argValue.valueOf();
+          switch (argName) {
+            case QUERY:
+              request.setQuery((String) literalValue.value());
+              break;
+            case STARTTIME:
+              request.setStartTime(((Number) literalValue.value()).longValue());
+              break;
+            case ENDTIME:
+              request.setEndTime(((Number) literalValue.value()).longValue());
+              break;
+            default:
+              throw new ExpressionEvaluationException(
+                  String.format("Invalid Function Argument:%s", argName));
+          }
+        });
     return request;
   }
-
 }

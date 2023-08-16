@@ -3,7 +3,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-
 package org.opensearch.sql.prometheus.planner.logical.rules;
 
 import static com.facebook.presto.matching.Pattern.typeOf;
@@ -18,21 +17,18 @@ import org.opensearch.sql.planner.logical.LogicalRelation;
 import org.opensearch.sql.planner.optimizer.Rule;
 import org.opensearch.sql.prometheus.planner.logical.PrometheusLogicalMetricScan;
 
-/**
- * Merge Filter -- Relation to LogicalMetricScan.
- */
+/** Merge Filter -- Relation to LogicalMetricScan. */
 public class MergeFilterAndRelation implements Rule<LogicalFilter> {
 
   private final Capture<LogicalRelation> relationCapture;
   private final Pattern<LogicalFilter> pattern;
 
-  /**
-   * Constructor of MergeFilterAndRelation.
-   */
+  /** Constructor of MergeFilterAndRelation. */
   public MergeFilterAndRelation() {
     this.relationCapture = Capture.newCapture();
-    this.pattern = typeOf(LogicalFilter.class)
-        .with(source().matching(typeOf(LogicalRelation.class).capturedAs(relationCapture)));
+    this.pattern =
+        typeOf(LogicalFilter.class)
+            .with(source().matching(typeOf(LogicalRelation.class).capturedAs(relationCapture)));
   }
 
   @Override
@@ -41,11 +37,9 @@ public class MergeFilterAndRelation implements Rule<LogicalFilter> {
   }
 
   @Override
-  public LogicalPlan apply(LogicalFilter filter,
-                           Captures captures) {
+  public LogicalPlan apply(LogicalFilter filter, Captures captures) {
     LogicalRelation relation = captures.get(relationCapture);
-    return PrometheusLogicalMetricScan
-        .builder()
+    return PrometheusLogicalMetricScan.builder()
         .metricName(relation.getRelationName())
         .filter(filter.getCondition())
         .build();

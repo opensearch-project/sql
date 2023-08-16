@@ -86,6 +86,7 @@ spotless {
         target fileTree('.') {
             include 'datasources/**/*.java',
                     'core/**/*.java',
+                    'prometheus/**/*.java',
                     'sql/**/*.java',
                     'common/**/*.java',
                     'ppl/**/*.java'
