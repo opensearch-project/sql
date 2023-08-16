@@ -7,7 +7,6 @@
 
 package org.opensearch.sql.common.authinterceptors;
 
-
 import com.amazonaws.auth.AWSCredentialsProvider;
 import com.amazonaws.auth.AWSSessionCredentials;
 import com.amazonaws.auth.AWSStaticCredentialsProvider;
@@ -28,37 +27,36 @@ import org.mockito.junit.jupiter.MockitoExtension;
 @ExtendWith(MockitoExtension.class)
 public class AwsSigningInterceptorTest {
 
-  @Mock
-  private Interceptor.Chain chain;
+  @Mock private Interceptor.Chain chain;
 
-  @Captor
-  ArgumentCaptor<Request> requestArgumentCaptor;
+  @Captor ArgumentCaptor<Request> requestArgumentCaptor;
 
-  @Mock
-  private STSAssumeRoleSessionCredentialsProvider stsAssumeRoleSessionCredentialsProvider;
+  @Mock private STSAssumeRoleSessionCredentialsProvider stsAssumeRoleSessionCredentialsProvider;
 
   @Test
   void testConstructors() {
-    Assertions.assertThrows(NullPointerException.class, () ->
-        new AwsSigningInterceptor(null, "us-east-1", "aps"));
-    Assertions.assertThrows(NullPointerException.class, () ->
-        new AwsSigningInterceptor(getStaticAWSCredentialsProvider("accessKey", "secretKey"), null,
-            "aps"));
-    Assertions.assertThrows(NullPointerException.class, () ->
-        new AwsSigningInterceptor(getStaticAWSCredentialsProvider("accessKey", "secretKey"),
-            "us-east-1", null));
+    Assertions.assertThrows(
+        NullPointerException.class, () -> new AwsSigningInterceptor(null, "us-east-1", "aps"));
+    Assertions.assertThrows(
+        NullPointerException.class,
+        () ->
+            new AwsSigningInterceptor(
+                getStaticAWSCredentialsProvider("accessKey", "secretKey"), null, "aps"));
+    Assertions.assertThrows(
+        NullPointerException.class,
+        () ->
+            new AwsSigningInterceptor(
+                getStaticAWSCredentialsProvider("accessKey", "secretKey"), "us-east-1", null));
   }
 
   @Test
   @SneakyThrows
   void testIntercept() {
-    Mockito.when(chain.request()).thenReturn(new Request.Builder()
-        .url("http://localhost:9090")
-        .build());
-    AwsSigningInterceptor awsSigningInterceptor
-        = new AwsSigningInterceptor(
-            getStaticAWSCredentialsProvider("testAccessKey", "testSecretKey"),
-            "us-east-1", "aps");
+    Mockito.when(chain.request())
+        .thenReturn(new Request.Builder().url("http://localhost:9090").build());
+    AwsSigningInterceptor awsSigningInterceptor =
+        new AwsSigningInterceptor(
+            getStaticAWSCredentialsProvider("testAccessKey", "testSecretKey"), "us-east-1", "aps");
     awsSigningInterceptor.intercept(chain);
     Mockito.verify(chain).proceed(requestArgumentCaptor.capture());
     Request request = requestArgumentCaptor.getValue();
@@ -66,32 +64,27 @@ public class AwsSigningInterceptorTest {
     Assertions.assertNotNull(request.headers("x-amz-date"));
     Assertions.assertNotNull(request.headers("host"));
   }
-
 
   @Test
   @SneakyThrows
   void testSTSCredentialsProviderInterceptor() {
-    Mockito.when(chain.request()).thenReturn(new Request.Builder()
-        .url("http://localhost:9090")
-        .build());
+    Mockito.when(chain.request())
+        .thenReturn(new Request.Builder().url("http://localhost:9090").build());
     Mockito.when(stsAssumeRoleSessionCredentialsProvider.getCredentials())
         .thenReturn(getAWSSessionCredentials());
-    AwsSigningInterceptor awsSigningInterceptor
-        = new AwsSigningInterceptor(stsAssumeRoleSessionCredentialsProvider,
-            "us-east-1", "aps");
+    AwsSigningInterceptor awsSigningInterceptor =
+        new AwsSigningInterceptor(stsAssumeRoleSessionCredentialsProvider, "us-east-1", "aps");
     awsSigningInterceptor.intercept(chain);
     Mockito.verify(chain).proceed(requestArgumentCaptor.capture());
     Request request = requestArgumentCaptor.getValue();
     Assertions.assertNotNull(request.headers("Authorization"));
     Assertions.assertNotNull(request.headers("x-amz-date"));
     Assertions.assertNotNull(request.headers("host"));
-    Assertions.assertEquals("session_token",
-        request.headers("x-amz-security-token").get(0));
+    Assertions.assertEquals("session_token", request.headers("x-amz-security-token").get(0));
   }
 
-
-  private AWSCredentialsProvider getStaticAWSCredentialsProvider(String accessKey,
-                                                                 String secretKey) {
+  private AWSCredentialsProvider getStaticAWSCredentialsProvider(
+      String accessKey, String secretKey) {
     return new AWSStaticCredentialsProvider(new BasicAWSCredentials(accessKey, secretKey));
   }
 
@@ -113,5 +106,4 @@ public class AwsSigningInterceptorTest {
       }
     };
   }
-
 }

@@ -31,13 +31,10 @@ public class GrokCompiler implements Serializable {
   // We don't want \n and commented line
   private static final Pattern patternLinePattern = Pattern.compile("^([A-z0-9_]+)\\s+(.*)$");
 
-  /**
-   * {@code Grok} patterns definitions.
-   */
+  /** {@code Grok} patterns definitions. */
   private final Map<String, String> grokPatternDefinitions = new HashMap<>();
 
-  private GrokCompiler() {
-  }
+  private GrokCompiler() {}
 
   public static GrokCompiler newInstance() {
     return new GrokCompiler();
@@ -50,10 +47,10 @@ public class GrokCompiler implements Serializable {
   /**
    * Registers a new pattern definition.
    *
-   * @param name    : Pattern Name
+   * @param name : Pattern Name
    * @param pattern : Regular expression Or {@code Grok} pattern
    * @throws GrokException runtime expt
-   **/
+   */
   public void register(String name, String pattern) {
     name = Objects.requireNonNull(name).trim();
     pattern = Objects.requireNonNull(pattern).trim();
@@ -63,9 +60,7 @@ public class GrokCompiler implements Serializable {
     }
   }
 
-  /**
-   * Registers multiple pattern definitions.
-   */
+  /** Registers multiple pattern definitions. */
   public void register(Map<String, String> patternDefinitions) {
     Objects.requireNonNull(patternDefinitions);
     patternDefinitions.forEach(this::register);
@@ -78,12 +73,9 @@ public class GrokCompiler implements Serializable {
     register(input, StandardCharsets.UTF_8);
   }
 
-  /**
-   * Registers multiple pattern definitions from a given inputStream.
-   */
+  /** Registers multiple pattern definitions from a given inputStream. */
   public void register(InputStream input, Charset charset) throws IOException {
-    try (
-        BufferedReader in = new BufferedReader(new InputStreamReader(input, charset))) {
+    try (BufferedReader in = new BufferedReader(new InputStreamReader(input, charset))) {
       in.lines()
           .map(patternLinePattern::matcher)
           .filter(Matcher::matches)
@@ -91,11 +83,10 @@ public class GrokCompiler implements Serializable {
     }
   }
 
-  /**
-   * Registers multiple pattern definitions from a given Reader.
-   */
+  /** Registers multiple pattern definitions from a given Reader. */
   public void register(Reader input) throws IOException {
-    new BufferedReader(input).lines()
+    new BufferedReader(input)
+        .lines()
         .map(patternLinePattern::matcher)
         .filter(Matcher::matches)
         .forEach(m -> register(m.group(1), m.group(2)));
@@ -109,9 +100,7 @@ public class GrokCompiler implements Serializable {
     registerPatternFromClasspath(path, StandardCharsets.UTF_8);
   }
 
-  /**
-   * registerPatternFromClasspath.
-   */
+  /** registerPatternFromClasspath. */
   public void registerPatternFromClasspath(String path, Charset charset) throws GrokException {
     final InputStream inputStream = this.getClass().getResourceAsStream(path);
     try (Reader reader = new InputStreamReader(inputStream, charset)) {
@@ -121,9 +110,7 @@ public class GrokCompiler implements Serializable {
     }
   }
 
-  /**
-   * Compiles a given Grok pattern and returns a Grok object which can parse the pattern.
-   */
+  /** Compiles a given Grok pattern and returns a Grok object which can parse the pattern. */
   public Grok compile(String pattern) throws IllegalArgumentException {
     return compile(pattern, false);
   }
@@ -135,11 +122,11 @@ public class GrokCompiler implements Serializable {
   /**
    * Compiles a given Grok pattern and returns a Grok object which can parse the pattern.
    *
-   * @param pattern         : Grok pattern (ex: %{IP})
-   * @param defaultTimeZone : time zone used to parse a timestamp when it doesn't contain
-   *                        the time zone
-   * @param namedOnly       : Whether to capture named expressions only or not (i.e. %{IP:ip}
-   *                        but not ${IP})
+   * @param pattern : Grok pattern (ex: %{IP})
+   * @param defaultTimeZone : time zone used to parse a timestamp when it doesn't contain the time
+   *     zone
+   * @param namedOnly : Whether to capture named expressions only or not (i.e. %{IP:ip} but not
+   *     ${IP})
    * @return a compiled pattern
    * @throws IllegalArgumentException when pattern definition is invalid
    */
@@ -184,14 +171,15 @@ public class GrokCompiler implements Serializable {
         for (int i = 0; i < count; i++) {
           String definitionOfPattern = patternDefinitions.get(group.get("pattern"));
           if (definitionOfPattern == null) {
-            throw new IllegalArgumentException(format("No definition for key '%s' found, aborting",
-                group.get("pattern")));
+            throw new IllegalArgumentException(
+                format("No definition for key '%s' found, aborting", group.get("pattern")));
           }
           String replacement = String.format("(?<name%d>%s)", index, definitionOfPattern);
           if (namedOnly && group.get("subname") == null) {
             replacement = String.format("(?:%s)", definitionOfPattern);
           }
-          namedRegexCollection.put("name" + index,
+          namedRegexCollection.put(
+              "name" + index,
               (group.get("subname") != null ? group.get("subname") : group.get("name")));
           namedRegex =
               StringUtils.replace(namedRegex, "%{" + group.get("name") + "}", replacement, 1);
@@ -205,12 +193,6 @@ public class GrokCompiler implements Serializable {
       throw new IllegalArgumentException("Pattern not found");
     }
 
-    return new Grok(
-        pattern,
-        namedRegex,
-        namedRegexCollection,
-        patternDefinitions,
-        defaultTimeZone
-    );
+    return new Grok(pattern, namedRegex, namedRegexCollection, patternDefinitions, defaultTimeZone);
   }
 }

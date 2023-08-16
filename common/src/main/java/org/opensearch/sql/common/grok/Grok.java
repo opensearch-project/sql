@@ -16,36 +16,29 @@ import java.util.regex.Pattern;
 import org.opensearch.sql.common.grok.Converter.IConverter;
 
 /**
- * {@code Grok} parse arbitrary text and structure it.
- * <br>
- * {@code Grok} is simple API that allows you to easily parse logs
- * and other files (single line). With {@code Grok},
- * you can turn unstructured log and event data into structured data.
+ * {@code Grok} parse arbitrary text and structure it. <br>
+ * {@code Grok} is simple API that allows you to easily parse logs and other files (single line).
+ * With {@code Grok}, you can turn unstructured log and event data into structured data.
  *
  * @since 0.0.1
  */
 public class Grok implements Serializable {
-  /**
-   * Named regex of the originalGrokPattern.
-   */
+  /** Named regex of the originalGrokPattern. */
   private final String namedRegex;
-  /**
-   * Map of the named regex of the originalGrokPattern
-   * with id = namedregexid and value = namedregex.
-   */
-  private final Map<String, String> namedRegexCollection;
-  /**
-   * Original {@code Grok} pattern (expl: %{IP}).
-   */
-  private final String originalGrokPattern;
-  /**
-   * Pattern of the namedRegex.
-   */
-  private final Pattern compiledNamedRegex;
 
   /**
-   * {@code Grok} patterns definition.
+   * Map of the named regex of the originalGrokPattern with id = namedregexid and value =
+   * namedregex.
    */
+  private final Map<String, String> namedRegexCollection;
+
+  /** Original {@code Grok} pattern (expl: %{IP}). */
+  private final String originalGrokPattern;
+
+  /** Pattern of the namedRegex. */
+  private final Pattern compiledNamedRegex;
+
+  /** {@code Grok} patterns definition. */
   private final Map<String, String> grokPatternDefinition;
 
   public final Set<String> namedGroups;
@@ -54,19 +47,16 @@ public class Grok implements Serializable {
 
   public final Map<String, IConverter<? extends Object>> converters;
 
-  /**
-   * only use in grok discovery.
-   */
+  /** only use in grok discovery. */
   private String savedPattern = "";
 
-  /**
-   * Grok.
-   */
-  public Grok(String pattern,
-              String namedRegex,
-              Map<String, String> namedRegexCollection,
-              Map<String, String> patternDefinitions,
-              ZoneId defaultTimeZone) {
+  /** Grok. */
+  public Grok(
+      String pattern,
+      String namedRegex,
+      Map<String, String> namedRegexCollection,
+      Map<String, String> patternDefinitions,
+      ZoneId defaultTimeZone) {
     this.originalGrokPattern = pattern;
     this.namedRegex = namedRegex;
     this.compiledNamedRegex = Pattern.compile(namedRegex);
@@ -132,8 +122,8 @@ public class Grok implements Serializable {
   }
 
   /**
-   * Match the given <tt>log</tt> with the named regex.
-   * And return the json representation of the matched element
+   * Match the given <tt>log</tt> with the named regex. And return the json representation of the
+   * matched element
    *
    * @param log : log to match
    * @return map containing matches
@@ -144,8 +134,8 @@ public class Grok implements Serializable {
   }
 
   /**
-   * Match the given list of <tt>log</tt> with the named regex
-   * and return the list of json representation of the matched elements.
+   * Match the given list of <tt>log</tt> with the named regex and return the list of json
+   * representation of the matched elements.
    *
    * @param logs : list of log
    * @return list of maps containing matches
@@ -159,8 +149,8 @@ public class Grok implements Serializable {
   }
 
   /**
-   * Match the given <tt>text</tt> with the named regex
-   * {@code Grok} will extract data from the string and get an extence of {@link Match}.
+   * Match the given <tt>text</tt> with the named regex {@code Grok} will extract data from the
+   * string and get an extence of {@link Match}.
    *
    * @param text : Single line of log
    * @return Grok Match
@@ -172,9 +162,7 @@ public class Grok implements Serializable {
 
     Matcher matcher = compiledNamedRegex.matcher(text);
     if (matcher.find()) {
-      return new Match(
-          text, this, matcher, matcher.start(0), matcher.end(0)
-      );
+      return new Match(text, this, matcher, matcher.start(0), matcher.end(0));
     }
 
     return Match.EMPTY;
