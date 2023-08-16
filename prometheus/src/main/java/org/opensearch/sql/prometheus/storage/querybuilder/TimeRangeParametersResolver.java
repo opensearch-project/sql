@@ -22,16 +22,14 @@ import org.opensearch.sql.expression.function.BuiltinFunctionName;
 @NoArgsConstructor
 public class TimeRangeParametersResolver extends ExpressionNodeVisitor<Void, Object> {
 
-
   private Long startTime;
   private Long endTime;
 
   /**
-   * Build Range Query Parameters from filter expression.
-   * If the filter condition consists of @timestamp, startTime and
-   * endTime are derived. or else it will be defaulted to now() and now()-1hr.
-   * If one of starttime and endtime are provided, the other will be derived from them
-   * by fixing the time range duration to 1hr.
+   * Build Range Query Parameters from filter expression. If the filter condition consists
+   * of @timestamp, startTime and endTime are derived. or else it will be defaulted to now() and
+   * now()-1hr. If one of starttime and endtime are provided, the other will be derived from them by
+   * fixing the time range duration to 1hr.
    *
    * @param filterCondition expression.
    * @return query string
@@ -72,13 +70,10 @@ public class TimeRangeParametersResolver extends ExpressionNodeVisitor<Void, Obj
         }
       }
     } else {
-      func.getArguments()
-          .stream()
+      func.getArguments().stream()
           .filter(arg -> arg instanceof FunctionExpression)
           .forEach(arg -> visitFunction((FunctionExpression) arg, context));
     }
     return null;
   }
-
-
 }

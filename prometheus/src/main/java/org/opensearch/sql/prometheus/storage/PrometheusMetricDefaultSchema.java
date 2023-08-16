@@ -20,12 +20,11 @@ import org.opensearch.sql.data.type.ExprType;
 @Getter
 @RequiredArgsConstructor
 public enum PrometheusMetricDefaultSchema {
-
-  DEFAULT_MAPPING(new ImmutableMap.Builder<String, ExprType>()
-      .put(TIMESTAMP, ExprCoreType.TIMESTAMP)
-      .put(VALUE, ExprCoreType.DOUBLE)
-      .build());
+  DEFAULT_MAPPING(
+      new ImmutableMap.Builder<String, ExprType>()
+          .put(TIMESTAMP, ExprCoreType.TIMESTAMP)
+          .put(VALUE, ExprCoreType.DOUBLE)
+          .build());
 
   private final Map<String, ExprType> mapping;
-
 }

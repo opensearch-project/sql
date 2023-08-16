@@ -3,7 +3,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-
 package org.opensearch.sql.prometheus.request;
 
 import lombok.AllArgsConstructor;
@@ -14,9 +13,7 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 import lombok.ToString;
 
-/**
- * Prometheus metric query request.
- */
+/** Prometheus metric query request. */
 @EqualsAndHashCode
 @Data
 @ToString
@@ -24,24 +21,15 @@ import lombok.ToString;
 @NoArgsConstructor
 public class PrometheusQueryRequest {
 
-  /**
-   * PromQL.
-   */
+  /** PromQL. */
   private String promQl;
 
-  /**
-   * startTime of the query.
-   */
+  /** startTime of the query. */
   private Long startTime;
 
-  /**
-   * endTime of the query.
-   */
+  /** endTime of the query. */
   private Long endTime;
 
-  /**
-   * step is the resolution required between startTime and endTime.
-   */
+  /** step is the resolution required between startTime and endTime. */
   private String step;
-
 }

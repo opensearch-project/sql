@@ -6,7 +6,7 @@
 
 buildscript {
     ext {
-        opensearch_version = System.getProperty("opensearch.version", "2.10.0-SNAPSHOT")
+        opensearch_version = System.getProperty("opensearch.version", "3.0.0-SNAPSHOT")
         isSnapshot = "true" == System.getProperty("build.snapshot", "true")
         buildVersionQualifier = System.getProperty("build.version_qualifier", "")
         version_tokens = opensearch_version.tokenize('-')
@@ -84,14 +84,12 @@ repositories {
 spotless {
     java {
         target fileTree('.') {
-            include 'core/src/main/java/org/opensearch/sql/DataSourceSchemaName.java',
-                    'core/src/test/java/org/opensearch/sql/data/**/*.java',
-                    'core/src/test/java/org/opensearch/sql/config/**/*.java',
-                    'core/src/test/java/org/opensearch/sql/analysis/**/*.java',
-                    'core/src/main/java/org/opensearch/sql/planner/**/*.java',
-                    'core/src/main/java/org/opensearch/sql/storage/**/*.java',
-                    'core/src/main/java/org/opensearch/sql/utils/**/*.java',
-                    'core/src/main/java/org/opensearch/sql/monitor/**/*.java'
+            include 'datasources/**/*.java',
+                    'core/**/*.java',
+                    'prometheus/**/*.java',
+                    'sql/**/*.java',
+                    'common/**/*.java',
+                    'ppl/**/*.java'
             exclude '**/build/**', '**/build-*/**'
         }
         importOrder()
@@ -224,5 +222,12 @@ task updateVersion {
         println "Setting version to ${newVersion}."
         // String tokenization to support -SNAPSHOT
         ant.replaceregexp(file:'build.gradle', match: '"opensearch.version", "\\d.*"', replace: '"opensearch.version", "' + newVersion.tokenize('-')[0] + '-SNAPSHOT"', flags:'g', byline:true)
+        ant.replaceregexp(match:'"version": "\\d+.\\d+.\\d+.\\d+', replace:'"version": ' + '"' + newVersion.tokenize('-')[0] + '.0', flags:'g', byline:true) {
+            fileset(dir: projectDir) {
+                include(name: "workbench/package.json")
+                include(name: "workbench/opensearch_dashboards.json")
+            }
+        }
+        ant.replaceregexp(file:'workbench/opensearch_dashboards.json', match:'"opensearchDashboardsVersion": "\\d+.\\d+.\\d+', replace:'"opensearchDashboardsVersion": ' + '"' + newVersion.tokenize('-')[0], flags:'g', byline:true)
     }
 }

@@ -3,7 +3,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-
 package org.opensearch.sql.prometheus.planner.logical.rules;
 
 import static com.facebook.presto.matching.Pattern.typeOf;
@@ -20,9 +19,7 @@ import org.opensearch.sql.planner.logical.LogicalRelation;
 import org.opensearch.sql.planner.optimizer.Rule;
 import org.opensearch.sql.prometheus.planner.logical.PrometheusLogicalMetricAgg;
 
-/**
- * Merge Aggregation -- Relation to IndexScanAggregation.
- */
+/** Merge Aggregation -- Relation to IndexScanAggregation. */
 public class MergeAggAndRelation implements Rule<LogicalAggregation> {
 
   private final Capture<LogicalRelation> relationCapture;
@@ -31,21 +28,18 @@ public class MergeAggAndRelation implements Rule<LogicalAggregation> {
   @Getter
   private final Pattern<LogicalAggregation> pattern;
 
-  /**
-   * Constructor of MergeAggAndRelation.
-   */
+  /** Constructor of MergeAggAndRelation. */
   public MergeAggAndRelation() {
     this.relationCapture = Capture.newCapture();
-    this.pattern = typeOf(LogicalAggregation.class)
-        .with(source().matching(typeOf(LogicalRelation.class).capturedAs(relationCapture)));
+    this.pattern =
+        typeOf(LogicalAggregation.class)
+            .with(source().matching(typeOf(LogicalRelation.class).capturedAs(relationCapture)));
   }
 
   @Override
-  public LogicalPlan apply(LogicalAggregation aggregation,
-                           Captures captures) {
+  public LogicalPlan apply(LogicalAggregation aggregation, Captures captures) {
     LogicalRelation relation = captures.get(relationCapture);
-    return PrometheusLogicalMetricAgg
-        .builder()
+    return PrometheusLogicalMetricAgg.builder()
         .metricName(relation.getRelationName())
         .aggregatorList(aggregation.getAggregatorList())
         .groupByList(aggregation.getGroupByList())

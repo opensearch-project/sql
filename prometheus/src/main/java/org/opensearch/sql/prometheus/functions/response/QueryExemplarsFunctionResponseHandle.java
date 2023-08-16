@@ -45,8 +45,8 @@ public class QueryExemplarsFunctionResponseHandle implements PrometheusFunctionR
   private void constructIteratorAndSchema(JSONArray responseArray) {
     List<ExecutionEngine.Schema.Column> columnList = new ArrayList<>();
     columnList.add(new ExecutionEngine.Schema.Column(SERIES_LABELS_KEY, SERIES_LABELS_KEY, STRUCT));
-    columnList.add(new ExecutionEngine.Schema.Column(EXEMPLARS_KEY, EXEMPLARS_KEY,
-        ExprCoreType.ARRAY));
+    columnList.add(
+        new ExecutionEngine.Schema.Column(EXEMPLARS_KEY, EXEMPLARS_KEY, ExprCoreType.ARRAY));
     this.schema = new ExecutionEngine.Schema(columnList);
     List<ExprValue> result = new ArrayList<>();
     for (int i = 0; i < responseArray.length(); i++) {
@@ -63,7 +63,8 @@ public class QueryExemplarsFunctionResponseHandle implements PrometheusFunctionR
 
   private ExprValue constructSeriesLabels(JSONObject seriesLabels) {
     LinkedHashMap<String, ExprValue> seriesLabelsMap = new LinkedHashMap<>();
-    seriesLabels.keySet()
+    seriesLabels
+        .keySet()
         .forEach(key -> seriesLabelsMap.put(key, new ExprStringValue(seriesLabels.getString(key))));
     return new ExprTupleValue(seriesLabelsMap);
   }
@@ -79,13 +80,13 @@ public class QueryExemplarsFunctionResponseHandle implements PrometheusFunctionR
 
   private ExprValue constructExemplar(JSONObject exemplarsJSONObject) {
     LinkedHashMap<String, ExprValue> exemplarHashMap = new LinkedHashMap<>();
-    exemplarHashMap.put(LABELS_KEY,
-        constructLabelsInExemplar(exemplarsJSONObject.getJSONObject(LABELS_KEY)));
-    exemplarHashMap.put(TIMESTAMP_KEY,
-        new ExprTimestampValue(Instant.ofEpochMilli((long)(
-            exemplarsJSONObject.getDouble(TIMESTAMP_KEY) * 1000))));
-    exemplarHashMap.put(VALUE_KEY,
-        new ExprDoubleValue(exemplarsJSONObject.getDouble(VALUE_KEY)));
+    exemplarHashMap.put(
+        LABELS_KEY, constructLabelsInExemplar(exemplarsJSONObject.getJSONObject(LABELS_KEY)));
+    exemplarHashMap.put(
+        TIMESTAMP_KEY,
+        new ExprTimestampValue(
+            Instant.ofEpochMilli((long) (exemplarsJSONObject.getDouble(TIMESTAMP_KEY) * 1000))));
+    exemplarHashMap.put(VALUE_KEY, new ExprDoubleValue(exemplarsJSONObject.getDouble(VALUE_KEY)));
     return new ExprTupleValue(exemplarHashMap);
   }
 
@@ -106,7 +107,6 @@ public class QueryExemplarsFunctionResponseHandle implements PrometheusFunctionR
   public ExprValue next() {
     return responseIterator.next();
   }
-
 
   @Override
   public ExecutionEngine.Schema schema() {
