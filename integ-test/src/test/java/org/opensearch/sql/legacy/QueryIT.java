@@ -1440,7 +1440,7 @@ public class QueryIT extends SQLIntegTestCase {
         executeQuery(
             String.format(
                 Locale.ROOT,
-                "SELECT name " + "FROM %s " + "WHERE nickname IS NULL " + "LIMIT 1000",
+                "SELECT name FROM %s WHERE nickname IS NULL LIMIT 1000",
                 TestsConstants.TEST_INDEX_GAME_OF_THRONES));
 
     Assert.assertEquals(6, getTotalHits(response));
