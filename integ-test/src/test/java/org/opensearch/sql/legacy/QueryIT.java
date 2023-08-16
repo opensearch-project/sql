@@ -1197,7 +1197,7 @@ public class QueryIT extends SQLIntegTestCase {
     JSONObject response =
         executeQuery(
             StringUtils.format(
-                "SELECT * " + "FROM %s " + "WHERE male IS false " + "GROUP BY balance " + "LIMIT 5",
+                "SELECT * FROM %s WHERE male IS false GROUP BY balance LIMIT 5",
                 TestsConstants.TEST_INDEX_BANK));
 
     checkAggregationResponseSize(response, BANK_INDEX_MALE_FALSE);
