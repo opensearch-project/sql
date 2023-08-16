@@ -7,7 +7,6 @@ package org.opensearch.sql.sql;
 
 import org.junit.Test;
 import org.opensearch.sql.legacy.SQLIntegTestCase;
-
 import java.io.IOException;
 
 import static org.opensearch.sql.util.MatcherUtils.rows;
