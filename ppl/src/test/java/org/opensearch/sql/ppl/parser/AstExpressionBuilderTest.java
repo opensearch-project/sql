@@ -660,7 +660,7 @@ public class AstExpressionBuilderTest extends AstBuilderTest {
   @Test
   public void testTimeStampDiffFunctionExpr() {
     assertEqual(
-        "source=t | eval f=timestampdiff(" + "YEAR, '1997-01-01 00:00:00', '2001-03-06 00:00:00')",
+        "source=t | eval f=timestampdiff(YEAR, '1997-01-01 00:00:00', '2001-03-06 00:00:00')",
         eval(
             relation("t"),
             let(
