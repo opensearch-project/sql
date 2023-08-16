@@ -3,7 +3,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-
 package org.opensearch.sql.ppl.domain;
 
 import java.util.Locale;
@@ -22,12 +21,9 @@ public class PPLQueryRequest {
   public static final PPLQueryRequest NULL = new PPLQueryRequest("", null, DEFAULT_PPL_PATH, "");
 
   private final String pplQuery;
-  @Getter
-  private final JSONObject jsonContent;
-  @Getter
-  private final String path;
-  @Getter
-  private String format = "";
+  @Getter private final JSONObject jsonContent;
+  @Getter private final String path;
+  @Getter private String format = "";
 
   @Setter
   @Getter
@@ -43,9 +39,7 @@ public class PPLQueryRequest {
     this(pplQuery, jsonContent, path, "");
   }
 
-  /**
-   * Constructor of PPLQueryRequest.
-   */
+  /** Constructor of PPLQueryRequest. */
   public PPLQueryRequest(String pplQuery, JSONObject jsonContent, String path, String format) {
     this.pplQuery = pplQuery;
     this.jsonContent = jsonContent;
@@ -59,23 +53,21 @@ public class PPLQueryRequest {
 
   /**
    * Check if request is to explain rather than execute the query.
-   * @return  true if it is a explain request
+   *
+   * @return true if it is a explain request
    */
   public boolean isExplainRequest() {
     return path.endsWith("/_explain");
   }
 
-  /**
-   * Decide on the formatter by the requested format.
-   */
+  /** Decide on the formatter by the requested format. */
   public Format format() {
     Optional<Format> optionalFormat = Format.of(format);
     if (optionalFormat.isPresent()) {
       return optionalFormat.get();
     } else {
       throw new IllegalArgumentException(
-          String.format(Locale.ROOT,"response in %s format is not supported.", format));
+          String.format(Locale.ROOT, "response in %s format is not supported.", format));
     }
   }
-
 }
