@@ -3,7 +3,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-
 package org.opensearch.sql.ppl.parser;
 
 import static org.junit.Assert.assertEquals;
@@ -31,6 +30,7 @@ public class AstNowLikeFunctionTest {
 
   /**
    * Set parameterized values used in test.
+   *
    * @param name Function name
    * @param hasFsp Whether function has fsp argument
    * @param hasShortcut Whether function has shortcut (call without `()`)
@@ -43,24 +43,26 @@ public class AstNowLikeFunctionTest {
 
   /**
    * Returns function data to test.
+   *
    * @return An iterable.
    */
   @Parameterized.Parameters(name = "{0}")
   public static Iterable<Object> functionNames() {
-    return List.of(new Object[][]{
-        {"now", false, false },
-        {"current_timestamp", false, false},
-        {"localtimestamp", false, false},
-        {"localtime", false, false},
-        {"sysdate", true, false},
-        {"curtime", false, false},
-        {"current_time", false, false},
-        {"curdate", false, false},
-        {"current_date", false, false},
-        {"utc_date", false, false},
-        {"utc_time", false, false},
-        {"utc_timestamp", false, false}
-    });
+    return List.of(
+        new Object[][] {
+          {"now", false, false},
+          {"current_timestamp", false, false},
+          {"localtimestamp", false, false},
+          {"localtime", false, false},
+          {"sysdate", true, false},
+          {"curtime", false, false},
+          {"current_time", false, false},
+          {"curdate", false, false},
+          {"current_date", false, false},
+          {"utc_date", false, false},
+          {"utc_time", false, false},
+          {"utc_timestamp", false, false}
+        });
   }
 
   private final String name;
@@ -70,26 +72,20 @@ public class AstNowLikeFunctionTest {
   @Test
   public void test_function_call_eval() {
     assertEqual(
-        eval(relation("t"), let(field("r"), function(name))),
-        "source=t | eval r=" + name + "()"
-    );
+        eval(relation("t"), let(field("r"), function(name))), "source=t | eval r=" + name + "()");
   }
 
   @Test
   public void test_shortcut_eval() {
     Assume.assumeTrue(hasShortcut);
-    assertEqual(
-        eval(relation("t"), let(field("r"), function(name))),
-        "source=t | eval r=" + name
-    );
+    assertEqual(eval(relation("t"), let(field("r"), function(name))), "source=t | eval r=" + name);
   }
 
   @Test
   public void test_function_call_where() {
     assertEqual(
         filter(relation("t"), compare("=", field("a"), function(name))),
-        "search source=t | where a=" + name + "()"
-    );
+        "search source=t | where a=" + name + "()");
   }
 
   @Test
@@ -97,18 +93,15 @@ public class AstNowLikeFunctionTest {
     Assume.assumeTrue(hasShortcut);
     assertEqual(
         filter(relation("t"), compare("=", field("a"), function(name))),
-        "search source=t | where a=" + name
-    );
+        "search source=t | where a=" + name);
   }
 
   @Test
   public void test_function_call_fsp() {
     Assume.assumeTrue(hasFsp);
-    assertEqual(filter(
-            relation("t"),
-            compare("=", field("a"), function(name, intLiteral(0)))
-        ), "search source=t | where a=" + name + "(0)"
-    );
+    assertEqual(
+        filter(relation("t"), compare("=", field("a"), function(name, intLiteral(0)))),
+        "search source=t | where a=" + name + "(0)");
   }
 
   protected void assertEqual(Node expectedPlan, String query) {
