@@ -43,8 +43,7 @@ import org.opensearch.sql.spark.request.SparkQueryRequest;
 @ExtendWith(MockitoExtension.class)
 public class SparkSqlFunctionTableScanOperatorTest {
 
-  @Mock
-  private SparkClient sparkClient;
+  @Mock private SparkClient sparkClient;
 
   @Test
   @SneakyThrows
@@ -52,15 +51,14 @@ public class SparkSqlFunctionTableScanOperatorTest {
     SparkQueryRequest sparkQueryRequest = new SparkQueryRequest();
     sparkQueryRequest.setSql(QUERY);
 
-    SparkSqlFunctionTableScanOperator sparkSqlFunctionTableScanOperator
-        = new SparkSqlFunctionTableScanOperator(sparkClient, sparkQueryRequest);
+    SparkSqlFunctionTableScanOperator sparkSqlFunctionTableScanOperator =
+        new SparkSqlFunctionTableScanOperator(sparkClient, sparkQueryRequest);
 
-    when(sparkClient.sql(any()))
-        .thenThrow(new IOException("Error Message"));
-    RuntimeException runtimeException
-        = assertThrows(RuntimeException.class, sparkSqlFunctionTableScanOperator::open);
-    assertEquals("Error fetching data from spark server: Error Message",
-        runtimeException.getMessage());
+    when(sparkClient.sql(any())).thenThrow(new IOException("Error Message"));
+    RuntimeException runtimeException =
+        assertThrows(RuntimeException.class, sparkSqlFunctionTableScanOperator::open);
+    assertEquals(
+        "Error fetching data from spark server: Error Message", runtimeException.getMessage());
   }
 
   @Test
@@ -69,8 +67,8 @@ public class SparkSqlFunctionTableScanOperatorTest {
     SparkQueryRequest sparkQueryRequest = new SparkQueryRequest();
     sparkQueryRequest.setSql(QUERY);
 
-    SparkSqlFunctionTableScanOperator sparkSqlFunctionTableScanOperator
-        = new SparkSqlFunctionTableScanOperator(sparkClient, sparkQueryRequest);
+    SparkSqlFunctionTableScanOperator sparkSqlFunctionTableScanOperator =
+        new SparkSqlFunctionTableScanOperator(sparkClient, sparkQueryRequest);
     sparkSqlFunctionTableScanOperator.close();
   }
 
@@ -80,11 +78,10 @@ public class SparkSqlFunctionTableScanOperatorTest {
     SparkQueryRequest sparkQueryRequest = new SparkQueryRequest();
     sparkQueryRequest.setSql(QUERY);
 
-    SparkSqlFunctionTableScanOperator sparkSqlFunctionTableScanOperator
-        = new SparkSqlFunctionTableScanOperator(sparkClient, sparkQueryRequest);
+    SparkSqlFunctionTableScanOperator sparkSqlFunctionTableScanOperator =
+        new SparkSqlFunctionTableScanOperator(sparkClient, sparkQueryRequest);
 
-    Assertions.assertEquals("sql(select 1)",
-        sparkSqlFunctionTableScanOperator.explain());
+    Assertions.assertEquals("sql(select 1)", sparkSqlFunctionTableScanOperator.explain());
   }
 
   @Test
@@ -93,18 +90,19 @@ public class SparkSqlFunctionTableScanOperatorTest {
     SparkQueryRequest sparkQueryRequest = new SparkQueryRequest();
     sparkQueryRequest.setSql(QUERY);
 
-    SparkSqlFunctionTableScanOperator sparkSqlFunctionTableScanOperator
-        = new SparkSqlFunctionTableScanOperator(sparkClient, sparkQueryRequest);
+    SparkSqlFunctionTableScanOperator sparkSqlFunctionTableScanOperator =
+        new SparkSqlFunctionTableScanOperator(sparkClient, sparkQueryRequest);
 
-    when(sparkClient.sql(any()))
-        .thenReturn(new JSONObject(getJson("select_query_response.json")));
+    when(sparkClient.sql(any())).thenReturn(new JSONObject(getJson("select_query_response.json")));
     sparkSqlFunctionTableScanOperator.open();
     assertTrue(sparkSqlFunctionTableScanOperator.hasNext());
-    ExprTupleValue firstRow = new ExprTupleValue(new LinkedHashMap<>() {
-      {
-        put("1", new ExprIntegerValue(1));
-      }
-    });
+    ExprTupleValue firstRow =
+        new ExprTupleValue(
+            new LinkedHashMap<>() {
+              {
+                put("1", new ExprIntegerValue(1));
+              }
+            });
     assertEquals(firstRow, sparkSqlFunctionTableScanOperator.next());
     Assertions.assertFalse(sparkSqlFunctionTableScanOperator.hasNext());
   }
@@ -115,28 +113,29 @@ public class SparkSqlFunctionTableScanOperatorTest {
     SparkQueryRequest sparkQueryRequest = new SparkQueryRequest();
     sparkQueryRequest.setSql(QUERY);
 
-    SparkSqlFunctionTableScanOperator sparkSqlFunctionTableScanOperator
-        = new SparkSqlFunctionTableScanOperator(sparkClient, sparkQueryRequest);
+    SparkSqlFunctionTableScanOperator sparkSqlFunctionTableScanOperator =
+        new SparkSqlFunctionTableScanOperator(sparkClient, sparkQueryRequest);
 
-    when(sparkClient.sql(any()))
-        .thenReturn(new JSONObject(getJson("all_data_type.json")));
+    when(sparkClient.sql(any())).thenReturn(new JSONObject(getJson("all_data_type.json")));
     sparkSqlFunctionTableScanOperator.open();
     assertTrue(sparkSqlFunctionTableScanOperator.hasNext());
-    ExprTupleValue firstRow = new ExprTupleValue(new LinkedHashMap<>() {
-      {
-        put("boolean", ExprBooleanValue.of(true));
-        put("long", new ExprLongValue(922337203));
-        put("integer", new ExprIntegerValue(2147483647));
-        put("short", new ExprShortValue(32767));
-        put("byte", new ExprByteValue(127));
-        put("double", new ExprDoubleValue(9223372036854.775807));
-        put("float", new ExprFloatValue(21474.83647));
-        put("timestamp", new ExprDateValue("2023-07-01 10:31:30"));
-        put("date", new ExprTimestampValue("2023-07-01 10:31:30"));
-        put("string", new ExprStringValue("ABC"));
-        put("char", new ExprStringValue("A"));
-      }
-    });
+    ExprTupleValue firstRow =
+        new ExprTupleValue(
+            new LinkedHashMap<>() {
+              {
+                put("boolean", ExprBooleanValue.of(true));
+                put("long", new ExprLongValue(922337203));
+                put("integer", new ExprIntegerValue(2147483647));
+                put("short", new ExprShortValue(32767));
+                put("byte", new ExprByteValue(127));
+                put("double", new ExprDoubleValue(9223372036854.775807));
+                put("float", new ExprFloatValue(21474.83647));
+                put("timestamp", new ExprDateValue("2023-07-01 10:31:30"));
+                put("date", new ExprTimestampValue("2023-07-01 10:31:30"));
+                put("string", new ExprStringValue("ABC"));
+                put("char", new ExprStringValue("A"));
+              }
+            });
     assertEquals(firstRow, sparkSqlFunctionTableScanOperator.next());
     Assertions.assertFalse(sparkSqlFunctionTableScanOperator.hasNext());
   }
@@ -147,16 +146,15 @@ public class SparkSqlFunctionTableScanOperatorTest {
     SparkQueryRequest sparkQueryRequest = new SparkQueryRequest();
     sparkQueryRequest.setSql(QUERY);
 
-    SparkSqlFunctionTableScanOperator sparkSqlFunctionTableScanOperator
-        = new SparkSqlFunctionTableScanOperator(sparkClient, sparkQueryRequest);
+    SparkSqlFunctionTableScanOperator sparkSqlFunctionTableScanOperator =
+        new SparkSqlFunctionTableScanOperator(sparkClient, sparkQueryRequest);
 
-    when(sparkClient.sql(any()))
-        .thenReturn(new JSONObject(getJson("invalid_data_type.json")));
+    when(sparkClient.sql(any())).thenReturn(new JSONObject(getJson("invalid_data_type.json")));
 
-    RuntimeException exception = Assertions.assertThrows(RuntimeException.class,
-        () -> sparkSqlFunctionTableScanOperator.open());
-    Assertions.assertEquals("Result contains invalid data type",
-        exception.getMessage());
+    RuntimeException exception =
+        Assertions.assertThrows(
+            RuntimeException.class, () -> sparkSqlFunctionTableScanOperator.open());
+    Assertions.assertEquals("Result contains invalid data type", exception.getMessage());
   }
 
   @Test
@@ -165,17 +163,14 @@ public class SparkSqlFunctionTableScanOperatorTest {
     SparkQueryRequest sparkQueryRequest = new SparkQueryRequest();
     sparkQueryRequest.setSql(QUERY);
 
-    SparkSqlFunctionTableScanOperator sparkSqlFunctionTableScanOperator
-        = new SparkSqlFunctionTableScanOperator(sparkClient, sparkQueryRequest);
+    SparkSqlFunctionTableScanOperator sparkSqlFunctionTableScanOperator =
+        new SparkSqlFunctionTableScanOperator(sparkClient, sparkQueryRequest);
 
-    when(sparkClient.sql(any()))
-        .thenReturn(
-            new JSONObject(getJson("select_query_response.json")));
+    when(sparkClient.sql(any())).thenReturn(new JSONObject(getJson("select_query_response.json")));
     sparkSqlFunctionTableScanOperator.open();
     ArrayList<ExecutionEngine.Schema.Column> columns = new ArrayList<>();
     columns.add(new ExecutionEngine.Schema.Column("1", "1", ExprCoreType.INTEGER));
     ExecutionEngine.Schema expectedSchema = new ExecutionEngine.Schema(columns);
     assertEquals(expectedSchema, sparkSqlFunctionTableScanOperator.schema());
   }
-
 }

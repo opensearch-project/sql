@@ -35,107 +35,106 @@ import org.opensearch.sql.spark.storage.SparkTable;
 
 @ExtendWith(MockitoExtension.class)
 public class SparkSqlTableFunctionResolverTest {
-  @Mock
-  private SparkClient client;
+  @Mock private SparkClient client;
 
-  @Mock
-  private FunctionProperties functionProperties;
+  @Mock private FunctionProperties functionProperties;
 
   @Test
   void testResolve() {
-    SparkSqlTableFunctionResolver sqlTableFunctionResolver
-        = new SparkSqlTableFunctionResolver(client);
+    SparkSqlTableFunctionResolver sqlTableFunctionResolver =
+        new SparkSqlTableFunctionResolver(client);
     FunctionName functionName = FunctionName.of("sql");
-    List<Expression> expressions
-        = List.of(DSL.namedArgument("query", DSL.literal(QUERY)));
-    FunctionSignature functionSignature = new FunctionSignature(functionName, expressions
-        .stream().map(Expression::type).collect(Collectors.toList()));
-    Pair<FunctionSignature, FunctionBuilder> resolution
-        = sqlTableFunctionResolver.resolve(functionSignature);
+    List<Expression> expressions = List.of(DSL.namedArgument("query", DSL.literal(QUERY)));
+    FunctionSignature functionSignature =
+        new FunctionSignature(
+            functionName, expressions.stream().map(Expression::type).collect(Collectors.toList()));
+    Pair<FunctionSignature, FunctionBuilder> resolution =
+        sqlTableFunctionResolver.resolve(functionSignature);
     assertEquals(functionName, resolution.getKey().getFunctionName());
     assertEquals(functionName, sqlTableFunctionResolver.getFunctionName());
     assertEquals(List.of(STRING), resolution.getKey().getParamTypeList());
     FunctionBuilder functionBuilder = resolution.getValue();
-    TableFunctionImplementation functionImplementation
-        = (TableFunctionImplementation) functionBuilder.apply(functionProperties, expressions);
+    TableFunctionImplementation functionImplementation =
+        (TableFunctionImplementation) functionBuilder.apply(functionProperties, expressions);
     assertTrue(functionImplementation instanceof SparkSqlFunctionImplementation);
-    SparkTable sparkTable
-        = (SparkTable) functionImplementation.applyArguments();
+    SparkTable sparkTable = (SparkTable) functionImplementation.applyArguments();
     assertNotNull(sparkTable.getSparkQueryRequest());
-    SparkQueryRequest sparkQueryRequest =
-        sparkTable.getSparkQueryRequest();
+    SparkQueryRequest sparkQueryRequest = sparkTable.getSparkQueryRequest();
     assertEquals(QUERY, sparkQueryRequest.getSql());
   }
 
   @Test
   void testArgumentsPassedByPosition() {
-    SparkSqlTableFunctionResolver sqlTableFunctionResolver
-        = new SparkSqlTableFunctionResolver(client);
+    SparkSqlTableFunctionResolver sqlTableFunctionResolver =
+        new SparkSqlTableFunctionResolver(client);
     FunctionName functionName = FunctionName.of("sql");
-    List<Expression> expressions
-        = List.of(DSL.namedArgument(null, DSL.literal(QUERY)));
-    FunctionSignature functionSignature = new FunctionSignature(functionName, expressions
-        .stream().map(Expression::type).collect(Collectors.toList()));
+    List<Expression> expressions = List.of(DSL.namedArgument(null, DSL.literal(QUERY)));
+    FunctionSignature functionSignature =
+        new FunctionSignature(
+            functionName, expressions.stream().map(Expression::type).collect(Collectors.toList()));
 
-    Pair<FunctionSignature, FunctionBuilder> resolution
-        = sqlTableFunctionResolver.resolve(functionSignature);
+    Pair<FunctionSignature, FunctionBuilder> resolution =
+        sqlTableFunctionResolver.resolve(functionSignature);
 
     assertEquals(functionName, resolution.getKey().getFunctionName());
     assertEquals(functionName, sqlTableFunctionResolver.getFunctionName());
     assertEquals(List.of(STRING), resolution.getKey().getParamTypeList());
     FunctionBuilder functionBuilder = resolution.getValue();
-    TableFunctionImplementation functionImplementation
-        = (TableFunctionImplementation) functionBuilder.apply(functionProperties, expressions);
+    TableFunctionImplementation functionImplementation =
+        (TableFunctionImplementation) functionBuilder.apply(functionProperties, expressions);
     assertTrue(functionImplementation instanceof SparkSqlFunctionImplementation);
-    SparkTable sparkTable
-        = (SparkTable) functionImplementation.applyArguments();
+    SparkTable sparkTable = (SparkTable) functionImplementation.applyArguments();
     assertNotNull(sparkTable.getSparkQueryRequest());
-    SparkQueryRequest sparkQueryRequest =
-        sparkTable.getSparkQueryRequest();
+    SparkQueryRequest sparkQueryRequest = sparkTable.getSparkQueryRequest();
     assertEquals(QUERY, sparkQueryRequest.getSql());
   }
 
   @Test
   void testMixedArgumentTypes() {
-    SparkSqlTableFunctionResolver sqlTableFunctionResolver
-        = new SparkSqlTableFunctionResolver(client);
+    SparkSqlTableFunctionResolver sqlTableFunctionResolver =
+        new SparkSqlTableFunctionResolver(client);
     FunctionName functionName = FunctionName.of("sql");
-    List<Expression> expressions
-        = List.of(DSL.namedArgument("query", DSL.literal(QUERY)),
-        DSL.namedArgument(null, DSL.literal(12345)));
-    FunctionSignature functionSignature = new FunctionSignature(functionName, expressions
-        .stream().map(Expression::type).collect(Collectors.toList()));
-    Pair<FunctionSignature, FunctionBuilder> resolution
-        = sqlTableFunctionResolver.resolve(functionSignature);
+    List<Expression> expressions =
+        List.of(
+            DSL.namedArgument("query", DSL.literal(QUERY)),
+            DSL.namedArgument(null, DSL.literal(12345)));
+    FunctionSignature functionSignature =
+        new FunctionSignature(
+            functionName, expressions.stream().map(Expression::type).collect(Collectors.toList()));
+    Pair<FunctionSignature, FunctionBuilder> resolution =
+        sqlTableFunctionResolver.resolve(functionSignature);
 
     assertEquals(functionName, resolution.getKey().getFunctionName());
     assertEquals(functionName, sqlTableFunctionResolver.getFunctionName());
     assertEquals(List.of(STRING), resolution.getKey().getParamTypeList());
-    SemanticCheckException exception = assertThrows(SemanticCheckException.class,
-        () -> resolution.getValue().apply(functionProperties, expressions));
+    SemanticCheckException exception =
+        assertThrows(
+            SemanticCheckException.class,
+            () -> resolution.getValue().apply(functionProperties, expressions));
 
     assertEquals("Arguments should be either passed by name or position", exception.getMessage());
   }
 
   @Test
   void testWrongArgumentsSizeWhenPassedByName() {
-    SparkSqlTableFunctionResolver sqlTableFunctionResolver
-        = new SparkSqlTableFunctionResolver(client);
+    SparkSqlTableFunctionResolver sqlTableFunctionResolver =
+        new SparkSqlTableFunctionResolver(client);
     FunctionName functionName = FunctionName.of("sql");
-    List<Expression> expressions
-        = List.of();
-    FunctionSignature functionSignature = new FunctionSignature(functionName, expressions
-        .stream().map(Expression::type).collect(Collectors.toList()));
-    Pair<FunctionSignature, FunctionBuilder> resolution
-        = sqlTableFunctionResolver.resolve(functionSignature);
+    List<Expression> expressions = List.of();
+    FunctionSignature functionSignature =
+        new FunctionSignature(
+            functionName, expressions.stream().map(Expression::type).collect(Collectors.toList()));
+    Pair<FunctionSignature, FunctionBuilder> resolution =
+        sqlTableFunctionResolver.resolve(functionSignature);
 
     assertEquals(functionName, resolution.getKey().getFunctionName());
     assertEquals(functionName, sqlTableFunctionResolver.getFunctionName());
     assertEquals(List.of(STRING), resolution.getKey().getParamTypeList());
-    SemanticCheckException exception = assertThrows(SemanticCheckException.class,
-        () -> resolution.getValue().apply(functionProperties, expressions));
+    SemanticCheckException exception =
+        assertThrows(
+            SemanticCheckException.class,
+            () -> resolution.getValue().apply(functionProperties, expressions));
 
     assertEquals("Missing arguments:[query]", exception.getMessage());
   }
-
 }

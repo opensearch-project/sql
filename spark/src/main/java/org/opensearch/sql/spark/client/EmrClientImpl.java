@@ -36,12 +36,16 @@ public class EmrClientImpl implements SparkClient {
   /**
    * Constructor for EMR Client Implementation.
    *
-   * @param emr     EMR helper
-   * @param flint   Opensearch args for flint integration jar
+   * @param emr EMR helper
+   * @param flint Opensearch args for flint integration jar
    * @param sparkResponse Response object to help with retrieving results from Opensearch index
    */
-  public EmrClientImpl(AmazonElasticMapReduce emr, String emrCluster, FlintHelper flint,
-                       SparkResponse sparkResponse, String sparkApplicationJar) {
+  public EmrClientImpl(
+      AmazonElasticMapReduce emr,
+      String emrCluster,
+      FlintHelper flint,
+      SparkResponse sparkResponse,
+      String sparkApplicationJar) {
     this.emr = emr;
     this.emrCluster = emrCluster;
     this.flint = flint;
@@ -59,38 +63,39 @@ public class EmrClientImpl implements SparkClient {
   @VisibleForTesting
   void runEmrApplication(String query) {
 
-    HadoopJarStepConfig stepConfig = new HadoopJarStepConfig()
-        .withJar("command-runner.jar")
-        .withArgs("spark-submit",
-            "--class","org.opensearch.sql.SQLJob",
-            "--jars",
-            flint.getFlintIntegrationJar(),
-            sparkApplicationJar,
-            query,
-            SPARK_INDEX_NAME,
-            flint.getFlintHost(),
-            flint.getFlintPort(),
-            flint.getFlintScheme(),
-            flint.getFlintAuth(),
-            flint.getFlintRegion()
-        );
+    HadoopJarStepConfig stepConfig =
+        new HadoopJarStepConfig()
+            .withJar("command-runner.jar")
+            .withArgs(
+                "spark-submit",
+                "--class",
+                "org.opensearch.sql.SQLJob",
+                "--jars",
+                flint.getFlintIntegrationJar(),
+                sparkApplicationJar,
+                query,
+                SPARK_INDEX_NAME,
+                flint.getFlintHost(),
+                flint.getFlintPort(),
+                flint.getFlintScheme(),
+                flint.getFlintAuth(),
+                flint.getFlintRegion());
 
-    StepConfig emrstep = new StepConfig()
-        .withName("Spark Application")
-        .withActionOnFailure(ActionOnFailure.CONTINUE)
-        .withHadoopJarStep(stepConfig);
+    StepConfig emrstep =
+        new StepConfig()
+            .withName("Spark Application")
+            .withActionOnFailure(ActionOnFailure.CONTINUE)
+            .withHadoopJarStep(stepConfig);
 
-    AddJobFlowStepsRequest request = new AddJobFlowStepsRequest()
-        .withJobFlowId(emrCluster)
-        .withSteps(emrstep);
+    AddJobFlowStepsRequest request =
+        new AddJobFlowStepsRequest().withJobFlowId(emrCluster).withSteps(emrstep);
 
     AddJobFlowStepsResult result = emr.addJobFlowSteps(request);
     logger.info("EMR step ID: " + result.getStepIds());
 
     String stepId = result.getStepIds().get(0);
-    DescribeStepRequest stepRequest = new DescribeStepRequest()
-        .withClusterId(emrCluster)
-        .withStepId(stepId);
+    DescribeStepRequest stepRequest =
+        new DescribeStepRequest().withClusterId(emrCluster).withStepId(stepId);
 
     waitForStepExecution(stepRequest);
     sparkResponse.setValue(stepId);
@@ -117,5 +122,4 @@ public class EmrClientImpl implements SparkClient {
       }
     }
   }
-
 }

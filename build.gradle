@@ -84,10 +84,16 @@ repositories {
 spotless {
     java {
         target fileTree('.') {
-            include 'common/**/*.java',
-                    'datasources/**/*.java',
+            include 'datasources/**/*.java',
                     'core/**/*.java',
-                    'ppl/**/*.java'
+                    'common/**/*.java',
+                    'docs/**/*.java',
+                    'doctest/**/*.java',
+                    'relase-notes/**/*.java',
+                    'spark/**/*.java',
+                    'ppl/**/*.java',
+                    'spark/**/*.java',
+                    'plugin/**/*.java'
             exclude '**/build/**', '**/build-*/**'
         }
         importOrder()
@@ -116,9 +122,8 @@ allprojects {
         sourceCompatibility = targetCompatibility = "11"
     }
     configurations.all {
-        resolutionStrategy.force "com.squareup.okio:okio:3.5.0"
-        resolutionStrategy.force "org.jetbrains.kotlin:kotlin-stdlib:1.9.0"
-        resolutionStrategy.force "org.jetbrains.kotlin:kotlin-stdlib-jdk7:1.9.0"
+        resolutionStrategy.force "org.jetbrains.kotlin:kotlin-stdlib:1.6.0"
+        resolutionStrategy.force "org.jetbrains.kotlin:kotlin-stdlib-common:1.6.0"
     }
 }
 

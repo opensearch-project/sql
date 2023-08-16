@@ -13,6 +13,9 @@ repositories {
     mavenCentral()
 }
 
+checkstyleTest.ignoreFailures = true
+checkstyleMain.ignoreFailures = true
+
 dependencies {
     api project(':core')
     implementation project(':datasources')
