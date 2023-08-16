@@ -37,6 +37,7 @@ import org.opensearch.sql.ast.tree.UnresolvedPlan;
 import org.opensearch.sql.ast.tree.Values;
 import org.opensearch.sql.common.antlr.SyntaxCheckException;
 import org.opensearch.sql.common.utils.StringUtils;
+import org.opensearch.sql.expression.function.BuiltinFunctionName;
 import org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParser;
 import org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParser.QuerySpecificationContext;
 import org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParserBaseVisitor;
@@ -151,6 +152,8 @@ public class AstBuilder extends OpenSearchSQLParserBaseVisitor<UnresolvedPlan> {
     }
 
     if (ctx.havingClause() != null) {
+      UnresolvedPlan havingPlan = visit(ctx.havingClause());
+      verifySupportsCondition(((Filter) havingPlan).getCondition());
       result = visit(ctx.havingClause()).attach(result);
     }
 
@@ -159,6 +162,26 @@ public class AstBuilder extends OpenSearchSQLParserBaseVisitor<UnresolvedPlan> {
       result = sortBuilder.visit(ctx.orderByClause()).attach(result);
     }
     return result;
+  }
+
+  /**
+   * Ensure NESTED function is not used in HAVING clause and fallback to legacy engine.
+   * Can remove when support is added for NESTED function in HAVING clause.
+   * @param func : Function in HAVING clause
+   */
+  private void verifySupportsCondition(UnresolvedExpression func) {
+    if (func instanceof Function) {
+      if (((Function) func).getFuncName().equalsIgnoreCase(
+          BuiltinFunctionName.NESTED.name()
+      )) {
+        throw new SyntaxCheckException(
+            "Falling back to legacy engine. Nested function is not supported in the HAVING clause."
+        );
+      }
+      ((Function)func).getFuncArgs().stream()
+          .forEach(e -> verifySupportsCondition(e)
+      );
+    }
   }
 
   @Override

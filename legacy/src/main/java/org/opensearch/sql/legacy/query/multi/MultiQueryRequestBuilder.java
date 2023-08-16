@@ -13,11 +13,10 @@ import java.util.List;
 import java.util.Map;
 import org.opensearch.action.ActionRequest;
 import org.opensearch.action.ActionRequestBuilder;
-import org.opensearch.action.ActionResponse;
 import org.opensearch.action.search.SearchRequestBuilder;
-import org.opensearch.common.bytes.BytesReference;
 import org.opensearch.common.xcontent.XContentFactory;
-import org.opensearch.common.xcontent.XContentType;
+import org.opensearch.core.action.ActionResponse;
+import org.opensearch.core.common.bytes.BytesReference;
 import org.opensearch.core.xcontent.ToXContent;
 import org.opensearch.core.xcontent.XContentBuilder;
 import org.opensearch.sql.legacy.domain.Field;
@@ -54,10 +53,10 @@ public class MultiQueryRequestBuilder implements SqlElasticRequestBuilder {
     public String explain() {
 
         try {
-            XContentBuilder firstBuilder = XContentFactory.contentBuilder(XContentType.JSON).prettyPrint();
+            XContentBuilder firstBuilder = XContentFactory.jsonBuilder().prettyPrint();
             this.firstSearchRequest.request().source().toXContent(firstBuilder, ToXContent.EMPTY_PARAMS);
 
-            XContentBuilder secondBuilder = XContentFactory.contentBuilder(XContentType.JSON).prettyPrint();
+            XContentBuilder secondBuilder = XContentFactory.jsonBuilder().prettyPrint();
             this.secondSearchRequest.request().source().toXContent(secondBuilder, ToXContent.EMPTY_PARAMS);
             return String.format("performing %s on :\n left query:\n%s\n right query:\n%s",
                     this.relation.name, BytesReference.bytes(firstBuilder).utf8ToString(),

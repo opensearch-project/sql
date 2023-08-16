@@ -6,17 +6,16 @@
 
 package org.opensearch.sql.opensearch.response;
 
+import com.fasterxml.jackson.core.JsonFactory;
 import com.google.common.collect.ImmutableMap;
 import java.io.IOException;
 import java.util.List;
 import java.util.stream.Collectors;
 import org.opensearch.common.xcontent.LoggingDeprecationHandler;
-import org.opensearch.common.xcontent.XContentFactory;
-import org.opensearch.common.xcontent.XContentType;
+import org.opensearch.common.xcontent.json.JsonXContentParser;
 import org.opensearch.core.ParseField;
 import org.opensearch.core.xcontent.ContextParser;
 import org.opensearch.core.xcontent.NamedXContentRegistry;
-import org.opensearch.core.xcontent.XContent;
 import org.opensearch.core.xcontent.XContentParser;
 import org.opensearch.search.aggregations.Aggregation;
 import org.opensearch.search.aggregations.Aggregations;
@@ -86,7 +85,6 @@ public class AggregationResponseUtils {
           .collect(Collectors.toList());
   private static final NamedXContentRegistry namedXContentRegistry =
       new NamedXContentRegistry(entryList);
-  private static final XContent xContent = XContentFactory.xContent(XContentType.JSON);
 
   /**
    * Populate {@link Aggregations} from JSON string.
@@ -96,8 +94,10 @@ public class AggregationResponseUtils {
    */
   public static Aggregations fromJson(String json) {
     try {
-      XContentParser contentParser =
-          xContent.createParser(namedXContentRegistry, LoggingDeprecationHandler.INSTANCE, json);
+      XContentParser contentParser = new JsonXContentParser(
+          namedXContentRegistry,
+          LoggingDeprecationHandler.INSTANCE,
+          new JsonFactory().createParser(json));
       contentParser.nextToken();
       return Aggregations.fromXContent(contentParser);
     } catch (IOException e) {

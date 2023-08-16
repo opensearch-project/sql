@@ -9,6 +9,7 @@ import java.util.ArrayList;
 import java.util.List;
 import org.opensearch.sql.common.response.ResponseListener;
 import org.opensearch.sql.data.model.ExprValue;
+import org.opensearch.sql.executor.pagination.Cursor;
 import org.opensearch.sql.planner.physical.PhysicalPlan;
 
 /**
@@ -32,7 +33,8 @@ public class DefaultExecutionEngine implements ExecutionEngine {
       while (plan.hasNext()) {
         result.add(plan.next());
       }
-      QueryResponse response = new QueryResponse(new Schema(new ArrayList<>()), new ArrayList<>());
+      QueryResponse response = new QueryResponse(new Schema(new ArrayList<>()), new ArrayList<>(),
+          Cursor.None);
       listener.onResponse(response);
     } catch (Exception e) {
       listener.onFailure(e);

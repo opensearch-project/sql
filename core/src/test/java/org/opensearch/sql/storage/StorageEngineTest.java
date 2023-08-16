@@ -13,11 +13,9 @@ import org.junit.jupiter.api.Test;
 
 public class StorageEngineTest {
 
-
   @Test
   void testFunctionsMethod() {
     StorageEngine k = (dataSourceSchemaName, tableName) -> null;
     Assertions.assertEquals(Collections.emptyList(), k.getFunctions());
   }
-
 }

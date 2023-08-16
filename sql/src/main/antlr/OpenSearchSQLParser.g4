@@ -190,7 +190,6 @@ constant
     // Doesn't support the following types for now
     //| BIT_STRING
     //| NOT? nullLiteral=(NULL_LITERAL | NULL_SPEC_LITERAL)
-    //| LEFT_BRACE dateType=(D | T | TS | DATE | TIME | TIMESTAMP) stringLiteral RIGHT_BRACE
     ;
 
 decimalLiteral
@@ -232,14 +231,17 @@ datetimeLiteral
 
 dateLiteral
     : DATE date=stringLiteral
+    | LEFT_BRACE (DATE | D) date=stringLiteral RIGHT_BRACE
     ;
 
 timeLiteral
     : TIME time=stringLiteral
+    | LEFT_BRACE (TIME | T) time=stringLiteral RIGHT_BRACE
     ;
 
 timestampLiteral
     : TIMESTAMP timestamp=stringLiteral
+    | LEFT_BRACE (TIMESTAMP | TS) timestamp=stringLiteral RIGHT_BRACE
     ;
 
 // Actually, these constants are shortcuts to the corresponding functions
@@ -333,7 +335,8 @@ nullNotnull
     ;
 
 functionCall
-    : scalarFunctionName LR_BRACKET functionArgs RR_BRACKET         #scalarFunctionCall
+    : nestedFunctionName LR_BRACKET allTupleFields RR_BRACKET       #nestedAllFunctionCall
+    | scalarFunctionName LR_BRACKET functionArgs RR_BRACKET         #scalarFunctionCall
     | specificFunction                                              #specificFunctionCall
     | windowFunctionClause                                          #windowFunctionCall
     | aggregateFunction                                             #aggregateFunctionCall
@@ -816,6 +819,10 @@ tableName
 
 columnName
     : qualifiedName
+    ;
+
+allTupleFields
+    : path=qualifiedName DOT STAR
     ;
 
 alias

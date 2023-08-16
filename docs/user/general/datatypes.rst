@@ -91,7 +91,7 @@ The table below list the mapping between OpenSearch Data Type, OpenSearch SQL Da
 +-----------------+---------------------+-----------+
 | text            | text                | VARCHAR   |
 +-----------------+---------------------+-----------+
-| date            | timestamp           | TIMESTAMP |
+| date*           | timestamp           | TIMESTAMP |
 +-----------------+---------------------+-----------+
 | date_nanos      | timestamp           | TIMESTAMP |
 +-----------------+---------------------+-----------+
@@ -104,7 +104,11 @@ The table below list the mapping between OpenSearch Data Type, OpenSearch SQL Da
 | nested          | array               | STRUCT    |
 +-----------------+---------------------+-----------+
 
-Notes: Not all the OpenSearch SQL Type has correspond OpenSearch Type. e.g. data and time. To use function which required such data type, user should explicitly convert the data type.
+Notes:
+* Not all the OpenSearch SQL Type has correspond OpenSearch Type. e.g. data and time. To use function which required such data type, user should explicitly convert the data type.
+* date*: Maps to `timestamp` by default. Based on the "format" property `date` can map to `date` or `time`. See list of supported named formats `here <https://opensearch.org/docs/latest/field-types/supported-field-types/date/>`_.
+For example, `basic_date` will map to a `date` type, and `basic_time` will map to a `time` type.
+
 
 Data Type Conversion
 ====================
@@ -151,15 +155,15 @@ The following matrix illustrates the conversions allowed by our query engine for
 +--------------+------+-------+---------+------+-------+--------+---------+--------------+------+--------+-----------+------+------+----------+----------+-----------+-----+--------+-----------+---------+
 |    STRING    |   E  |   E   |    E    |   E  |   E   |    E   |    IE   |       X      |   X  |   N/A  |     IE    |   IE |   IE |     IE   |     X    |     X     |  X  |    X   |     X     |    X    |
 +--------------+------+-------+---------+------+-------+--------+---------+--------------+------+--------+-----------+------+------+----------+----------+-----------+-----+--------+-----------+---------+
-|   TIMESTAMP  |   X  |   X   |    X    |   X  |   X   |    X   |    X    |       X      |   X  |    E   |    N/A    |      |      |     X    |     X    |     X     |  X  |    X   |     X     |    X    |
+|   TIMESTAMP  |   X  |   X   |    X    |   X  |   X   |    X   |    X    |       X      |   X  |    E   |    N/A    |   IE |   IE |     IE   |     X    |     X     |  X  |    X   |     X     |    X    |
 +--------------+------+-------+---------+------+-------+--------+---------+--------------+------+--------+-----------+------+------+----------+----------+-----------+-----+--------+-----------+---------+
-|     DATE     |   X  |   X   |    X    |   X  |   X   |    X   |    X    |       X      |   X  |    E   |           |  N/A |      |     X    |     X    |     X     |  X  |    X   |     X     |    X    |
+|     DATE     |   X  |   X   |    X    |   X  |   X   |    X   |    X    |       X      |   X  |    E   |     E     |  N/A |   IE |     E    |     X    |     X     |  X  |    X   |     X     |    X    |
 +--------------+------+-------+---------+------+-------+--------+---------+--------------+------+--------+-----------+------+------+----------+----------+-----------+-----+--------+-----------+---------+
-|     TIME     |   X  |   X   |    X    |   X  |   X   |    X   |    X    |       X      |   X  |    E   |           |      |  N/A |     X    |     X    |     X     |  X  |    X   |     X     |    X    |
+|     TIME     |   X  |   X   |    X    |   X  |   X   |    X   |    X    |       X      |   X  |    E   |     E     |   E  |  N/A |     E    |     X    |     X     |  X  |    X   |     X     |    X    |
 +--------------+------+-------+---------+------+-------+--------+---------+--------------+------+--------+-----------+------+------+----------+----------+-----------+-----+--------+-----------+---------+
-|   DATETIME   |   X  |   X   |    X    |   X  |   X   |    X   |    X    |       X      |   X  |    E   |           |      |      |    N/A   |     X    |     X     |  X  |    X   |     X     |    X    |
+|   DATETIME   |   X  |   X   |    X    |   X  |   X   |    X   |    X    |       X      |   X  |    E   |     E     |   E  |   E  |    N/A   |     X    |     X     |  X  |    X   |     X     |    X    |
 +--------------+------+-------+---------+------+-------+--------+---------+--------------+------+--------+-----------+------+------+----------+----------+-----------+-----+--------+-----------+---------+
-|   INTERVAL   |   X  |   X   |    X    |   X  |   X   |    X   |    X    |       X      |   X  |    E   |           |      |      |     X    |    N/A   |     X     |  X  |    X   |     X     |    X    |
+|   INTERVAL   |   X  |   X   |    X    |   X  |   X   |    X   |    X    |       X      |   X  |    E   |     X     |   X  |   X  |     X    |    N/A   |     X     |  X  |    X   |     X     |    X    |
 +--------------+------+-------+---------+------+-------+--------+---------+--------------+------+--------+-----------+------+------+----------+----------+-----------+-----+--------+-----------+---------+
 |   GEO_POINT  |   X  |   X   |    X    |   X  |   X   |    X   |    X    |       X      |   X  |        |     X     |   X  |   X  |     X    |     X    |    N/A    |  X  |    X   |     X     |    X    |
 +--------------+------+-------+---------+------+-------+--------+---------+--------------+------+--------+-----------+------+------+----------+----------+-----------+-----+--------+-----------+---------+
@@ -232,8 +236,7 @@ Numeric values ranged from -2147483648 to +2147483647 are recognized as integer 
 Date and Time Data Types
 ========================
 
-The date and time data types are the types that represent temporal values and SQL plugin supports types including DATE, TIME, DATETIME, TIMESTAMP and INTERVAL. By default, the OpenSearch DSL uses date type as the only date and time related type, which has contained all information about an absolute time point. To integrate with SQL language, each of the types other than timestamp is holding part of temporal or timezone information, and the usage to explicitly clarify the date and time types is reflected in the datetime functions (see `Functions <functions.rst>`_ for details), where some functions might have restrictions in the input argument type.
-
+The datetime types supported by the SQL plugin are ``DATE``, ``TIME``, ``DATETIME``, ``TIMESTAMP``, and ``INTERVAL``, with date and time being used to represent temporal values. By default, the OpenSearch DSL uses ``date`` type as the only date and time related type as it contains all information about an absolute time point. To integrate with SQL language each of the types other than timestamp hold part of the temporal or timezone information. This information can be used to explicitly clarify the date and time types reflected in the datetime functions (see `Functions <functions.rst>`_ for details), where some functions might have restrictions in the input argument type.
 
 Date
 ----
@@ -295,7 +298,7 @@ Interval data type represents a temporal duration or a period. The syntax is as 
 | Interval | INTERVAL expr unit |
 +----------+--------------------+
 
-The expr is any expression that can be iterated to a quantity value eventually, see `Expressions <expressions.rst>`_ for details. The unit represents the unit for interpreting the quantity, including MICROSECOND, SECOND, MINUTE, HOUR, DAY, WEEK, MONTH, QUARTER and YEAR.The INTERVAL keyword and the unit specifier are not case sensitive. Note that there are two classes of intervals. Year-week intervals can store years, quarters, months and weeks. Day-time intervals can store days, hours, minutes, seconds and microseconds. Year-week intervals are comparable only with another year-week intervals. These two types of intervals can only comparable with the same type of themselves.
+The expr is any expression that can be iterated to a quantity value eventually, see `Expressions <expressions.rst>`_ for details. The unit represents the unit for interpreting the quantity, including ``MICROSECOND``, ``SECOND``, ``MINUTE``, ``HOUR``, ``DAY``, ``WEEK``, ``MONTH``, ``QUARTER`` and ``YEAR``. The ``INTERVAL`` keyword and the unit specifier are not case sensitive. Note that there are two classes of intervals. Year-week intervals can store years, quarters, months and weeks. Day-time intervals can store days, hours, minutes, seconds and microseconds. Year-week intervals are comparable only with another year-week intervals. These two types of intervals can only comparable with the same type of themselves.
 
 
 Conversion between date and time types
@@ -316,7 +319,7 @@ Conversion from DATE
 Conversion from TIME
 >>>>>>>>>>>>>>>>>>>>
 
-- Time value cannot be converted to any other date and time types since it does not contain any date information, so it is not meaningful to give no date info to a date/datetime/timestamp instance.
+- When time value is converted to any other datetime types, the date part of the new value is filled up with today's date, like with the `CURDATE` function. For example, a time value X converted to a timestamp would produce today's date at time X.
 
 
 Conversion from DATETIME
@@ -349,6 +352,82 @@ A string can also represent and be converted to date and time types (except to i
     |------------------------------------------------------------+-------------------------------------+----------------------------------|
     | True                                                       | False                               | True                             |
     +------------------------------------------------------------+-------------------------------------+----------------------------------+
+
+Please, see `more examples here <../dql/expressions.rst#toc-entry-15>`_.
+
+Date formats
+------------
+
+SQL plugin supports all named formats for OpenSearch ``date`` data type, custom formats and their combination. Please, refer to `OpenSearch docs <https://opensearch.org/docs/latest/field-types/supported-field-types/date/>`_ for format description.
+Plugin detects which type of data is stored in ``date`` field according to formats given and returns results in the corresponding SQL types.
+Given an index with the following mapping.
+
+.. code-block:: json
+
+    {
+        "mappings" : {
+            "properties" : {
+                "date1" : {
+                    "type" : "date",
+                    "format": "yyyy-MM-dd"
+                },
+                "date2" : {
+                    "type" : "date",
+                    "format": "date_time_no_millis"
+                },
+                "date3" : {
+                    "type" : "date",
+                    "format": "hour_minute_second"
+                },
+                "date4" : {
+                    "type" : "date"
+                },
+                "date5" : {
+                    "type" : "date",
+                    "format": "yyyy-MM-dd || time"
+                }
+            }
+        }
+    }
+
+Querying such index will provide a response with ``schema`` block as shown below.
+
+.. code-block:: json
+
+    {
+        "query" : "SELECT * from date_formats LIMIT 0;"
+    }
+
+.. code-block:: json
+
+    {
+        "schema": [
+            {
+                "name": "date5",
+                "type": "timestamp"
+            },
+            {
+                "name": "date4",
+                "type": "timestamp"
+            },
+            {
+                "name": "date3",
+                "type": "time"
+            },
+            {
+                "name": "date2",
+                "type": "timestamp"
+            },
+            {
+                "name": "date1",
+                "type": "date"
+            },
+        ],
+        "datarows": [],
+        "total": 0,
+        "size": 0,
+        "status": 200
+    }
 
 String Data Types
 =================

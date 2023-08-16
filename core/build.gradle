@@ -34,7 +34,7 @@ repositories {
 }
 
 dependencies {
-    api group: 'com.google.guava', name: 'guava', version: '31.0.1-jre'
+    api group: 'com.google.guava', name: 'guava', version: '32.0.1-jre'
     api group: 'org.apache.commons', name: 'commons-lang3', version: '3.12.0'
     api group: 'com.facebook.presto', name: 'presto-matching', version: '0.240'
     api group: 'org.apache.commons', name: 'commons-math3', version: '3.6.1'
@@ -47,6 +47,7 @@ dependencies {
     testImplementation('org.junit.jupiter:junit-jupiter:5.6.2')
     testImplementation group: 'org.hamcrest', name: 'hamcrest-library', version: '2.1'
     testImplementation group: 'org.mockito', name: 'mockito-core', version: '3.12.4'
+    testImplementation group: 'org.mockito', name: 'mockito-inline', version: '3.12.4'
     testImplementation group: 'org.mockito', name: 'mockito-junit-jupiter', version: '3.12.4'
 }
 

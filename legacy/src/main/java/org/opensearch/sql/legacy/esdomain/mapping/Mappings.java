@@ -6,12 +6,10 @@
 
 package org.opensearch.sql.legacy.esdomain.mapping;
 
-import com.carrotsearch.hppc.cursors.ObjectObjectCursor;
-import com.google.common.collect.ImmutableMap;
 import java.util.Collection;
 import java.util.Map;
 import java.util.function.Function;
-import org.opensearch.common.collect.ImmutableOpenMap;
+import java.util.stream.Collectors;
 
 /**
  * Mappings interface to provide default implementation (minimal set of Map methods) for subclass in hierarchy.
@@ -47,13 +45,10 @@ public interface Mappings<T> {
     Map<String, T> data();
 
     /**
-     * Convert OpenSearch ImmutableOpenMap<String, X> to JDK Map<String, Y> by applying function: Y func(X)
+     * Build a map from an existing map by applying provided function to each value.
      */
-    default <X, Y> Map<String, Y> buildMappings(ImmutableOpenMap<String, X> mappings, Function<X, Y> func) {
-        ImmutableMap.Builder<String, Y> builder = ImmutableMap.builder();
-        for (ObjectObjectCursor<String, X> mapping : mappings) {
-            builder.put(mapping.key, func.apply(mapping.value));
-        }
-        return builder.build();
+    default <X, Y> Map<String, Y> buildMappings(Map<String, X> mappings, Function<X, Y> func) {
+        return mappings.entrySet().stream().collect(
+            Collectors.toUnmodifiableMap(Map.Entry::getKey, func.compose(Map.Entry::getValue)));
     }
 }

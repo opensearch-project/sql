@@ -3,7 +3,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-
 package org.opensearch.sql.opensearch.storage;
 
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -12,13 +11,13 @@ import static org.hamcrest.Matchers.allOf;
 import static org.hamcrest.Matchers.hasEntry;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.lenient;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
-import static org.opensearch.sql.data.type.ExprCoreType.DOUBLE;
 import static org.opensearch.sql.data.type.ExprCoreType.INTEGER;
 import static org.opensearch.sql.data.type.ExprCoreType.STRING;
-import static org.opensearch.sql.expression.DSL.literal;
 import static org.opensearch.sql.expression.DSL.named;
 import static org.opensearch.sql.expression.DSL.ref;
 import static org.opensearch.sql.opensearch.data.type.OpenSearchDataType.MappingType;
@@ -29,9 +28,7 @@ import static org.opensearch.sql.planner.logical.LogicalPlanDSL.rename;
 import static org.opensearch.sql.planner.logical.LogicalPlanDSL.sort;
 
 import com.google.common.collect.ImmutableMap;
-import java.util.Arrays;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 import org.apache.commons.lang3.tuple.ImmutablePair;
@@ -41,30 +38,33 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.opensearch.common.unit.TimeValue;
 import org.opensearch.sql.ast.tree.Sort;
 import org.opensearch.sql.common.setting.Settings;
-import org.opensearch.sql.data.model.ExprBooleanValue;
 import org.opensearch.sql.data.type.ExprCoreType;
 import org.opensearch.sql.data.type.ExprType;
 import org.opensearch.sql.expression.Expression;
 import org.opensearch.sql.expression.NamedExpression;
 import org.opensearch.sql.expression.ReferenceExpression;
-import org.opensearch.sql.expression.aggregation.AvgAggregator;
-import org.opensearch.sql.expression.aggregation.NamedAggregator;
 import org.opensearch.sql.opensearch.client.OpenSearchClient;
 import org.opensearch.sql.opensearch.data.type.OpenSearchDataType;
 import org.opensearch.sql.opensearch.data.type.OpenSearchTextType;
 import org.opensearch.sql.opensearch.data.value.OpenSearchExprValueFactory;
 import org.opensearch.sql.opensearch.mapping.IndexMapping;
+import org.opensearch.sql.opensearch.request.OpenSearchRequest;
+import org.opensearch.sql.opensearch.request.OpenSearchRequestBuilder;
+import org.opensearch.sql.opensearch.storage.scan.OpenSearchIndexScan;
 import org.opensearch.sql.planner.logical.LogicalPlan;
 import org.opensearch.sql.planner.logical.LogicalPlanDSL;
 import org.opensearch.sql.planner.physical.PhysicalPlanDSL;
-import org.opensearch.sql.storage.Table;
 
 @ExtendWith(MockitoExtension.class)
 class OpenSearchIndexTest {
 
-  private final String indexName = "test";
+  public static final int QUERY_SIZE_LIMIT = 200;
+  public static final TimeValue SCROLL_TIMEOUT = new TimeValue(1);
+  public static final OpenSearchRequest.IndexName INDEX_NAME
+      = new OpenSearchRequest.IndexName("test");
 
   @Mock
   private OpenSearchClient client;
@@ -76,39 +76,37 @@ class OpenSearchIndexTest {
   private Settings settings;
 
   @Mock
-  private Table table;
-
-  @Mock
   private IndexMapping mapping;
 
   private OpenSearchIndex index;
 
   @BeforeEach
   void setUp() {
-    this.index = new OpenSearchIndex(client, settings, indexName);
+    this.index = new OpenSearchIndex(client, settings, "test");
   }
 
   @Test
   void isExist() {
-    when(client.exists(indexName)).thenReturn(true);
+    when(client.exists("test")).thenReturn(true);
 
     assertTrue(index.exists());
   }
 
   @Test
   void createIndex() {
-    Map<String, Object> mappings = ImmutableMap.of(
+    Map<String, Object> mappings = Map.of(
         "properties",
-        ImmutableMap.of(
+        Map.of(
             "name", "text",
             "age", "integer"));
-    doNothing().when(client).createIndex(indexName, mappings);
+    doNothing().when(client).createIndex("test", mappings);
 
     Map<String, ExprType> schema = new HashMap<>();
     schema.put("name", OpenSearchTextType.of(Map.of("keyword",
         OpenSearchDataType.of(MappingType.Keyword))));
     schema.put("age", INTEGER);
     index.create(schema);
+    verify(client).createIndex(any(), any());
   }
 
   @Test
@@ -129,7 +127,7 @@ class OpenSearchIndexTest {
             .put("id2", MappingType.Short)
             .put("blob", MappingType.Binary)
             .build().entrySet().stream().collect(Collectors.toMap(
-                e -> e.getKey(), e -> OpenSearchDataType.of(e.getValue())
+            Map.Entry::getKey, e -> OpenSearchDataType.of(e.getValue())
             )));
     when(client.getIndexMappings("test")).thenReturn(ImmutableMap.of("test", mapping));
 
@@ -189,9 +187,10 @@ class OpenSearchIndexTest {
     assertThat(
         fieldTypes,
         allOf(
-            aMapWithSize(5),
+            aMapWithSize(6),
             hasEntry("_id", ExprCoreType.STRING),
             hasEntry("_index", ExprCoreType.STRING),
+            hasEntry("_routing", ExprCoreType.STRING),
             hasEntry("_sort", ExprCoreType.LONG),
             hasEntry("_score", ExprCoreType.FLOAT),
             hasEntry("_maxscore", ExprCoreType.FLOAT)
@@ -200,46 +199,38 @@ class OpenSearchIndexTest {
 
   @Test
   void implementRelationOperatorOnly() {
-    when(settings.getSettingValue(Settings.Key.QUERY_SIZE_LIMIT)).thenReturn(200);
     when(client.getIndexMaxResultWindows("test")).thenReturn(Map.of("test", 10000));
-
+    when(settings.getSettingValue(Settings.Key.QUERY_SIZE_LIMIT)).thenReturn(200);
     LogicalPlan plan = index.createScanBuilder();
     Integer maxResultWindow = index.getMaxResultWindow();
-    assertEquals(
-        new OpenSearchIndexScan(client, settings, indexName, maxResultWindow, exprValueFactory),
-        index.implement(plan));
-  }
-
-  @Test
-  void implementRelationOperatorWithOptimization() {
-    when(settings.getSettingValue(Settings.Key.QUERY_SIZE_LIMIT)).thenReturn(200);
-    when(client.getIndexMaxResultWindows("test")).thenReturn(Map.of("test", 10000));
-
-    LogicalPlan plan = index.createScanBuilder();
-    Integer maxResultWindow = index.getMaxResultWindow();
-    assertEquals(
-        new OpenSearchIndexScan(client, settings, indexName, maxResultWindow, exprValueFactory),
+    final var requestBuilder = new OpenSearchRequestBuilder(QUERY_SIZE_LIMIT, exprValueFactory);
+    assertEquals(new OpenSearchIndexScan(client,
+        200, requestBuilder.build(INDEX_NAME, maxResultWindow, SCROLL_TIMEOUT)),
         index.implement(index.optimize(plan)));
   }
 
   @Test
-  void implementOtherLogicalOperators() {
-    when(settings.getSettingValue(Settings.Key.QUERY_SIZE_LIMIT)).thenReturn(200);
+  void implementRelationOperatorWithOptimization() {
     when(client.getIndexMaxResultWindows("test")).thenReturn(Map.of("test", 10000));
+    when(settings.getSettingValue(Settings.Key.QUERY_SIZE_LIMIT)).thenReturn(200);
+    LogicalPlan plan = index.createScanBuilder();
+    Integer maxResultWindow = index.getMaxResultWindow();
+    final var requestBuilder = new OpenSearchRequestBuilder(QUERY_SIZE_LIMIT, exprValueFactory);
+    assertEquals(new OpenSearchIndexScan(client, 200,
+        requestBuilder.build(INDEX_NAME, maxResultWindow, SCROLL_TIMEOUT)), index.implement(plan));
+  }
 
+  @Test
+  void implementOtherLogicalOperators() {
+    when(client.getIndexMaxResultWindows("test")).thenReturn(Map.of("test", 10000));
+    when(settings.getSettingValue(Settings.Key.QUERY_SIZE_LIMIT)).thenReturn(200);
     NamedExpression include = named("age", ref("age", INTEGER));
     ReferenceExpression exclude = ref("name", STRING);
     ReferenceExpression dedupeField = ref("name", STRING);
-    Expression filterExpr = literal(ExprBooleanValue.of(true));
-    List<NamedExpression> groupByExprs = Arrays.asList(named("age", ref("age", INTEGER)));
-    List<NamedAggregator> aggregators =
-        Arrays.asList(named("avg(age)", new AvgAggregator(Arrays.asList(ref("age", INTEGER)),
-            DOUBLE)));
     Map<ReferenceExpression, ReferenceExpression> mappings =
         ImmutableMap.of(ref("name", STRING), ref("lastname", STRING));
     Pair<ReferenceExpression, Expression> newEvalField =
         ImmutablePair.of(ref("name1", STRING), ref("name", STRING));
-    Integer sortCount = 100;
     Pair<Sort.SortOption, Expression> sortField =
         ImmutablePair.of(Sort.SortOption.DEFAULT_ASC, ref("name1", STRING));
 
@@ -259,6 +250,7 @@ class OpenSearchIndexTest {
             include);
 
     Integer maxResultWindow = index.getMaxResultWindow();
+    final var requestBuilder = new OpenSearchRequestBuilder(QUERY_SIZE_LIMIT, exprValueFactory);
     assertEquals(
         PhysicalPlanDSL.project(
             PhysicalPlanDSL.dedupe(
@@ -266,8 +258,9 @@ class OpenSearchIndexTest {
                     PhysicalPlanDSL.eval(
                         PhysicalPlanDSL.remove(
                             PhysicalPlanDSL.rename(
-                                new OpenSearchIndexScan(client, settings, indexName,
-                                    maxResultWindow, exprValueFactory),
+                              new OpenSearchIndexScan(client,
+                                QUERY_SIZE_LIMIT, requestBuilder.build(INDEX_NAME, maxResultWindow,
+                                  SCROLL_TIMEOUT)),
                                 mappings),
                             exclude),
                         newEvalField),

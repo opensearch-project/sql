@@ -8,6 +8,9 @@
 
 package org.opensearch.sql.executor.execution;
 
+import java.util.Optional;
+import org.apache.commons.lang3.NotImplementedException;
+import org.opensearch.sql.ast.tree.Paginate;
 import org.opensearch.sql.ast.tree.UnresolvedPlan;
 import org.opensearch.sql.common.response.ResponseListener;
 import org.opensearch.sql.executor.ExecutionEngine;
@@ -15,9 +18,7 @@ import org.opensearch.sql.executor.QueryId;
 import org.opensearch.sql.executor.QueryService;
 
 /**
- * Query plan. Which includes.
- *
- * <p>select query.
+ * Query plan which includes a <em>select</em> query.
  */
 public class QueryPlan extends AbstractPlan {
 
@@ -33,7 +34,9 @@ public class QueryPlan extends AbstractPlan {
 
   protected final ResponseListener<ExecutionEngine.QueryResponse> listener;
 
-  /** constructor. */
+  protected final Optional<Integer> pageSize;
+
+  /** Constructor. */
   public QueryPlan(
       QueryId queryId,
       UnresolvedPlan plan,
@@ -43,15 +46,39 @@ public class QueryPlan extends AbstractPlan {
     this.plan = plan;
     this.queryService = queryService;
     this.listener = listener;
+    this.pageSize = Optional.empty();
+  }
+
+  /** Constructor with page size. */
+  public QueryPlan(
+      QueryId queryId,
+      UnresolvedPlan plan,
+      int pageSize,
+      QueryService queryService,
+      ResponseListener<ExecutionEngine.QueryResponse> listener) {
+    super(queryId);
+    this.plan = plan;
+    this.queryService = queryService;
+    this.listener = listener;
+    this.pageSize = Optional.of(pageSize);
   }
 
   @Override
   public void execute() {
-    queryService.execute(plan, listener);
+    if (pageSize.isPresent()) {
+      queryService.execute(new Paginate(pageSize.get(), plan), listener);
+    } else {
+      queryService.execute(plan, listener);
+    }
   }
 
   @Override
   public void explain(ResponseListener<ExecutionEngine.ExplainResponse> listener) {
-    queryService.explain(plan, listener);
+    if (pageSize.isPresent()) {
+      listener.onFailure(new NotImplementedException(
+          "`explain` feature for paginated requests is not implemented yet."));
+    } else {
+      queryService.explain(plan, listener);
+    }
   }
 }

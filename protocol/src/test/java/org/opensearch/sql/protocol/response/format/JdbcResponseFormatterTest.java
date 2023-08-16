@@ -31,6 +31,7 @@ import org.opensearch.OpenSearchException;
 import org.opensearch.sql.common.antlr.SyntaxCheckException;
 import org.opensearch.sql.data.model.ExprTupleValue;
 import org.opensearch.sql.exception.SemanticCheckException;
+import org.opensearch.sql.executor.pagination.Cursor;
 import org.opensearch.sql.opensearch.data.type.OpenSearchDataType;
 import org.opensearch.sql.opensearch.data.type.OpenSearchTextType;
 import org.opensearch.sql.protocol.response.QueryResult;
@@ -79,6 +80,37 @@ class JdbcResponseFormatterTest {
             + "20]],"
             + "\"total\":1,"
             + "\"size\":1,"
+            + "\"status\":200}",
+        formatter.format(response));
+  }
+
+  @Test
+  void format_response_with_cursor() {
+    QueryResult response = new QueryResult(
+        new Schema(ImmutableList.of(
+            new Column("name", "name", STRING),
+            new Column("address", "address", OpenSearchTextType.of()),
+            new Column("age", "age", INTEGER))),
+        ImmutableList.of(
+            tupleValue(ImmutableMap.<String, Object>builder()
+                    .put("name", "John")
+                    .put("address", "Seattle")
+                    .put("age", 20)
+                .build())),
+        new Cursor("test_cursor"));
+
+    assertJsonEquals(
+        "{"
+            + "\"schema\":["
+            + "{\"name\":\"name\",\"alias\":\"name\",\"type\":\"keyword\"},"
+            + "{\"name\":\"address\",\"alias\":\"address\",\"type\":\"text\"},"
+            + "{\"name\":\"age\",\"alias\":\"age\",\"type\":\"integer\"}"
+            + "],"
+            + "\"datarows\":["
+            + "[\"John\",\"Seattle\",20]],"
+            + "\"total\":1,"
+            + "\"size\":1,"
+            + "\"cursor\":\"test_cursor\","
             + "\"status\":200}",
         formatter.format(response));
   }

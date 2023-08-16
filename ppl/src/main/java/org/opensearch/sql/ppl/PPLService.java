@@ -90,6 +90,7 @@ public class PPLService {
         QueryContext.getRequestId(),
         anonymizer.anonymizeStatement(statement));
 
-    return queryExecutionFactory.create(statement, queryListener, explainListener);
+    return queryExecutionFactory.create(
+        statement, queryListener, explainListener);
   }
 }

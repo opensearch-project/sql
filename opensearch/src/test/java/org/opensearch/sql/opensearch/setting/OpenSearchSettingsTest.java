@@ -10,17 +10,26 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.mockito.AdditionalMatchers.not;
+import static org.mockito.AdditionalMatchers.or;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.when;
 import static org.opensearch.common.unit.TimeValue.timeValueMinutes;
+import static org.opensearch.sql.opensearch.setting.LegacyOpenDistroSettings.PPL_ENABLED_SETTING;
 import static org.opensearch.sql.opensearch.setting.LegacyOpenDistroSettings.legacySettings;
 
 import java.util.List;
+import java.util.Set;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.AdditionalMatchers;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.opensearch.cluster.ClusterName;
 import org.opensearch.common.settings.ClusterSettings;
 import org.opensearch.common.settings.Setting;
-import org.opensearch.common.unit.ByteSizeValue;
+import org.opensearch.core.common.unit.ByteSizeValue;
 import org.opensearch.monitor.jvm.JvmInfo;
 import org.opensearch.sql.common.setting.LegacySettings;
 import org.opensearch.sql.common.setting.Settings;
@@ -33,10 +42,27 @@ class OpenSearchSettingsTest {
 
   @Test
   void getSettingValue() {
+    when(clusterSettings.get(ClusterName.CLUSTER_NAME_SETTING)).thenReturn(ClusterName.DEFAULT);
+    when(clusterSettings.get(not((eq(ClusterName.CLUSTER_NAME_SETTING)))))
+        .thenReturn(null);
     OpenSearchSettings settings = new OpenSearchSettings(clusterSettings);
     ByteSizeValue sizeValue = settings.getSettingValue(Settings.Key.QUERY_MEMORY_LIMIT);
 
     assertNotNull(sizeValue);
+  }
+
+  @Test
+  void getSettingValueWithPresetValuesInYml() {
+    when(clusterSettings.get(ClusterName.CLUSTER_NAME_SETTING)).thenReturn(ClusterName.DEFAULT);
+    when(clusterSettings
+        .get((Setting<ByteSizeValue>) OpenSearchSettings.QUERY_MEMORY_LIMIT_SETTING))
+        .thenReturn(new ByteSizeValue(20));
+    when(clusterSettings.get(not(or(eq(ClusterName.CLUSTER_NAME_SETTING),
+        eq((Setting<ByteSizeValue>) OpenSearchSettings.QUERY_MEMORY_LIMIT_SETTING)))))
+        .thenReturn(null);
+    OpenSearchSettings settings = new OpenSearchSettings(clusterSettings);
+    ByteSizeValue sizeValue = settings.getSettingValue(Settings.Key.QUERY_MEMORY_LIMIT);
+    assertEquals(sizeValue, new ByteSizeValue(20));
   }
 
   @Test
@@ -47,13 +73,26 @@ class OpenSearchSettingsTest {
   }
 
   @Test
+  void pluginNonDynamicSettings() {
+    List<Setting<?>> settings = OpenSearchSettings.pluginNonDynamicSettings();
+
+    assertFalse(settings.isEmpty());
+  }
+
+  @Test
   void getSettings() {
+    when(clusterSettings.get(ClusterName.CLUSTER_NAME_SETTING)).thenReturn(ClusterName.DEFAULT);
+    when(clusterSettings.get(not((eq(ClusterName.CLUSTER_NAME_SETTING)))))
+        .thenReturn(null);
     OpenSearchSettings settings = new OpenSearchSettings(clusterSettings);
     assertFalse(settings.getSettings().isEmpty());
   }
 
   @Test
   void update() {
+    when(clusterSettings.get(ClusterName.CLUSTER_NAME_SETTING)).thenReturn(ClusterName.DEFAULT);
+    when(clusterSettings.get(not((eq(ClusterName.CLUSTER_NAME_SETTING)))))
+        .thenReturn(null);
     OpenSearchSettings settings = new OpenSearchSettings(clusterSettings);
     ByteSizeValue oldValue = settings.getSettingValue(Settings.Key.QUERY_MEMORY_LIMIT);
     OpenSearchSettings.Updater updater =
@@ -67,6 +106,9 @@ class OpenSearchSettingsTest {
 
   @Test
   void settingsFallback() {
+    when(clusterSettings.get(ClusterName.CLUSTER_NAME_SETTING)).thenReturn(ClusterName.DEFAULT);
+    when(clusterSettings.get(not((eq(ClusterName.CLUSTER_NAME_SETTING)))))
+        .thenReturn(null);
     OpenSearchSettings settings = new OpenSearchSettings(clusterSettings);
     assertEquals(
         settings.getSettingValue(Settings.Key.SQL_ENABLED),

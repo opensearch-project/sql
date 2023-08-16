@@ -27,6 +27,7 @@ import org.opensearch.sql.ast.tree.UnresolvedPlan;
 public class Query extends Statement {
 
   protected final UnresolvedPlan plan;
+  protected final int fetchSize;
 
   @Override
   public <R, C> R accept(AbstractNodeVisitor<R, C> visitor, C context) {

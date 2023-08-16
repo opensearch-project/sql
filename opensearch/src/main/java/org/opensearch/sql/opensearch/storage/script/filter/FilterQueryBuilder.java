@@ -19,6 +19,7 @@ import org.opensearch.index.query.QueryBuilder;
 import org.opensearch.index.query.QueryBuilders;
 import org.opensearch.index.query.ScriptQueryBuilder;
 import org.opensearch.script.Script;
+import org.opensearch.sql.common.antlr.SyntaxCheckException;
 import org.opensearch.sql.expression.Expression;
 import org.opensearch.sql.expression.ExpressionNodeVisitor;
 import org.opensearch.sql.expression.FunctionExpression;
@@ -26,6 +27,7 @@ import org.opensearch.sql.expression.function.BuiltinFunctionName;
 import org.opensearch.sql.expression.function.FunctionName;
 import org.opensearch.sql.opensearch.storage.script.filter.lucene.LikeQuery;
 import org.opensearch.sql.opensearch.storage.script.filter.lucene.LuceneQuery;
+import org.opensearch.sql.opensearch.storage.script.filter.lucene.NestedQuery;
 import org.opensearch.sql.opensearch.storage.script.filter.lucene.RangeQuery;
 import org.opensearch.sql.opensearch.storage.script.filter.lucene.RangeQuery.Comparison;
 import org.opensearch.sql.opensearch.storage.script.filter.lucene.TermQuery;
@@ -75,6 +77,7 @@ public class FilterQueryBuilder extends ExpressionNodeVisitor<QueryBuilder, Obje
           .put(BuiltinFunctionName.MATCH_PHRASE_PREFIX.getName(), new MatchPhrasePrefixQuery())
           .put(BuiltinFunctionName.WILDCARD_QUERY.getName(), new WildcardQuery())
           .put(BuiltinFunctionName.WILDCARDQUERY.getName(), new WildcardQuery())
+          .put(BuiltinFunctionName.NESTED.getName(), new NestedQuery())
           .build();
 
   /**
@@ -96,10 +99,20 @@ public class FilterQueryBuilder extends ExpressionNodeVisitor<QueryBuilder, Obje
         return buildBoolQuery(func, context, BoolQueryBuilder::should);
       case "not":
         return buildBoolQuery(func, context, BoolQueryBuilder::mustNot);
+      case "nested":
+        // TODO Fill in case when adding support for syntax - nested(path, condition)
+        throw new SyntaxCheckException(
+            "Invalid syntax used for nested function in WHERE clause: "
+                + "nested(field | field, path) OPERATOR LITERAL"
+        );
       default: {
         LuceneQuery query = luceneQueries.get(name);
         if (query != null && query.canSupport(func)) {
           return query.build(func);
+        } else if (query != null && query.isNestedPredicate(func)) {
+          NestedQuery nestedQuery = (NestedQuery) luceneQueries.get(
+              ((FunctionExpression)func.getArguments().get(0)).getFunctionName());
+          return nestedQuery.buildNested(func, query);
         }
         return buildScriptQuery(func);
       }

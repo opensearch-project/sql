@@ -39,7 +39,8 @@ public class AstStatementBuilderTest {
         "search source=t a=1",
         new Query(
             project(
-                filter(relation("t"), compare("=", field("a"), intLiteral(1))), AllFields.of())));
+                filter(relation("t"), compare("=", field("a"),
+                    intLiteral(1))), AllFields.of()), 0));
   }
 
   @Test
@@ -50,7 +51,7 @@ public class AstStatementBuilderTest {
             new Query(
                 project(
                     filter(relation("t"), compare("=", field("a"), intLiteral(1))),
-                    AllFields.of()))));
+                    AllFields.of()), 0)));
   }
 
   private void assertEqual(String query, Statement expectedStatement) {

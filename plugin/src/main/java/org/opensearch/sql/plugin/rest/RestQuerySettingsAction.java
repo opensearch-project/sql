@@ -5,7 +5,7 @@
 
 package org.opensearch.sql.plugin.rest;
 
-import static org.opensearch.rest.RestStatus.INTERNAL_SERVER_ERROR;
+import static org.opensearch.core.rest.RestStatus.INTERNAL_SERVER_ERROR;
 
 import com.google.common.collect.ImmutableList;
 import java.io.IOException;
@@ -17,10 +17,8 @@ import org.opensearch.OpenSearchGenerationException;
 import org.opensearch.action.admin.cluster.settings.ClusterUpdateSettingsRequest;
 import org.opensearch.client.Requests;
 import org.opensearch.client.node.NodeClient;
-import org.opensearch.common.Strings;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.common.xcontent.XContentFactory;
-import org.opensearch.common.xcontent.XContentType;
 import org.opensearch.core.xcontent.XContentBuilder;
 import org.opensearch.core.xcontent.XContentParser;
 import org.opensearch.rest.BaseRestHandler;
@@ -107,10 +105,10 @@ public class RestQuerySettingsAction extends BaseRestHandler {
 
   private Settings getAndFilterSettings(Map<String, ?> source) {
     try {
-      XContentBuilder builder = XContentFactory.contentBuilder(XContentType.JSON);
+      XContentBuilder builder = XContentFactory.jsonBuilder();
       builder.map(source);
       Settings.Builder settingsBuilder = Settings.builder()
-          .loadFromSource(Strings.toString(builder), builder.contentType());
+          .loadFromSource(builder.toString(), builder.contentType());
       settingsBuilder.keys().removeIf(key -> {
         for (String prefix : SETTINGS_PREFIX) {
           if (key.startsWith(prefix)) {

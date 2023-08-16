@@ -7,6 +7,9 @@
 package org.opensearch.sql.util;
 
 import static com.google.common.base.Strings.isNullOrEmpty;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
+import static org.opensearch.sql.executor.pagination.PlanSerializer.CURSOR_PREFIX;
 
 import java.io.BufferedReader;
 import java.io.File;
@@ -20,22 +23,21 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Locale;
 import java.util.stream.Collectors;
 import org.json.JSONObject;
-import org.junit.Assert;
 import org.opensearch.action.bulk.BulkRequest;
 import org.opensearch.action.bulk.BulkResponse;
 import org.opensearch.action.index.IndexRequest;
 import org.opensearch.client.Client;
 import org.opensearch.client.Request;
-import org.opensearch.client.RequestOptions;
 import org.opensearch.client.Response;
 import org.opensearch.client.RestClient;
 import org.opensearch.common.xcontent.XContentType;
-import org.opensearch.rest.RestStatus;
+import org.opensearch.sql.legacy.cursor.CursorType;
 
 public class TestUtils {
 
@@ -838,5 +840,29 @@ public class TestUtils {
     }
 
     return result;
+  }
+
+  public static void verifyIsV1Cursor(JSONObject response) {
+    var legacyCursorPrefixes = Arrays.stream(CursorType.values())
+        .map(c -> c.getId() + ":").collect(Collectors.toList());
+    verifyCursor(response, legacyCursorPrefixes, "v1");
+  }
+
+
+  public static void verifyIsV2Cursor(JSONObject response) {
+    verifyCursor(response, List.of(CURSOR_PREFIX), "v2");
+  }
+
+  private static void verifyCursor(JSONObject response, List<String> validCursorPrefix, String engineName) {
+      assertTrue("'cursor' property does not exist", response.has("cursor"));
+
+      var cursor = response.getString("cursor");
+      assertFalse("'cursor' property is empty", cursor.isEmpty());
+      assertTrue("The cursor '" + cursor.substring(0, 50) + "...' is not from " + engineName + " engine.",
+          validCursorPrefix.stream().anyMatch(cursor::startsWith));
+    }
+
+  public static void verifyNoCursor(JSONObject response) {
+    assertTrue(!response.has("cursor"));
   }
 }

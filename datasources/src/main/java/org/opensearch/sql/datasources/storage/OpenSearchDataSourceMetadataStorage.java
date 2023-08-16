@@ -18,7 +18,6 @@ import java.util.Optional;
 import org.apache.commons.io.IOUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.opensearch.action.ActionFuture;
 import org.opensearch.action.DocWriteRequest;
 import org.opensearch.action.DocWriteResponse;
 import org.opensearch.action.admin.indices.create.CreateIndexRequest;
@@ -34,6 +33,7 @@ import org.opensearch.action.update.UpdateRequest;
 import org.opensearch.action.update.UpdateResponse;
 import org.opensearch.client.Client;
 import org.opensearch.cluster.service.ClusterService;
+import org.opensearch.common.action.ActionFuture;
 import org.opensearch.common.util.concurrent.ThreadContext;
 import org.opensearch.common.xcontent.XContentType;
 import org.opensearch.index.engine.DocumentMissingException;
@@ -217,6 +217,8 @@ public class OpenSearchDataSourceMetadataStorage implements DataSourceMetadataSt
     searchSourceBuilder.query(query);
     searchSourceBuilder.size(DATASOURCE_QUERY_RESULT_SIZE);
     searchRequest.source(searchSourceBuilder);
+    // strongly consistent reads is requred. more info https://github.com/opensearch-project/sql/issues/1801.
+    searchRequest.preference("_primary");
     ActionFuture<SearchResponse> searchResponseActionFuture;
     try (ThreadContext.StoredContext ignored = client.threadPool().getThreadContext()
         .stashContext()) {

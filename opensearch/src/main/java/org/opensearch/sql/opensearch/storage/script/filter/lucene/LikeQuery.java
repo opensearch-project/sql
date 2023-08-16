@@ -9,20 +9,15 @@ import org.opensearch.index.query.QueryBuilder;
 import org.opensearch.index.query.QueryBuilders;
 import org.opensearch.index.query.WildcardQueryBuilder;
 import org.opensearch.sql.data.model.ExprValue;
-import org.opensearch.sql.expression.Expression;
-import org.opensearch.sql.expression.FunctionExpression;
-import org.opensearch.sql.expression.ReferenceExpression;
+import org.opensearch.sql.data.type.ExprType;
 import org.opensearch.sql.opensearch.data.type.OpenSearchTextType;
 import org.opensearch.sql.opensearch.storage.script.StringUtils;
 
 public class LikeQuery extends LuceneQuery {
   @Override
-  public QueryBuilder build(FunctionExpression func) {
-    ReferenceExpression ref = (ReferenceExpression) func.getArguments().get(0);
-    String field = OpenSearchTextType.convertTextToKeyword(ref.getAttr(), ref.type());
-    Expression expr = func.getArguments().get(1);
-    ExprValue literalValue = expr.valueOf();
-    return createBuilder(field, literalValue.stringValue());
+  public QueryBuilder doBuild(String fieldName, ExprType fieldType, ExprValue literal) {
+    String field = OpenSearchTextType.convertTextToKeyword(fieldName, fieldType);
+    return createBuilder(field, literal.stringValue());
   }
 
   /**

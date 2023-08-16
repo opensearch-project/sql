@@ -15,6 +15,7 @@ import static org.hamcrest.Matchers.is;
 import static org.opensearch.sql.util.MatcherUtils.hitAll;
 import static org.opensearch.sql.util.MatcherUtils.kvString;
 
+import com.fasterxml.jackson.core.JsonFactory;
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.util.ArrayList;
@@ -32,11 +33,10 @@ import org.junit.Test;
 import org.opensearch.action.search.SearchResponse;
 import org.opensearch.client.ResponseException;
 import org.opensearch.common.xcontent.LoggingDeprecationHandler;
-import org.opensearch.common.xcontent.XContentFactory;
-import org.opensearch.common.xcontent.XContentType;
+import org.opensearch.common.xcontent.json.JsonXContentParser;
 import org.opensearch.core.xcontent.NamedXContentRegistry;
 import org.opensearch.core.xcontent.XContentParser;
-import org.opensearch.rest.RestStatus;
+import org.opensearch.core.rest.RestStatus;
 import org.opensearch.search.SearchHit;
 
 /**
@@ -889,10 +889,10 @@ public class NestedFieldQueryIT extends SQLIntegTestCase {
   private SearchResponse execute(String sql) throws IOException {
     final JSONObject jsonObject = executeQuery(sql);
 
-    final XContentParser parser = XContentFactory.xContent(XContentType.JSON).createParser(
+    final XContentParser parser = new JsonXContentParser(
         NamedXContentRegistry.EMPTY,
         LoggingDeprecationHandler.INSTANCE,
-        jsonObject.toString());
+        new JsonFactory().createParser(jsonObject.toString()));
     return SearchResponse.fromXContent(parser);
   }
 

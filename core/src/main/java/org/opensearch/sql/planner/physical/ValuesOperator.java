@@ -15,6 +15,7 @@ import lombok.Getter;
 import lombok.ToString;
 import org.opensearch.sql.data.model.ExprCollectionValue;
 import org.opensearch.sql.data.model.ExprValue;
+import org.opensearch.sql.expression.Expression;
 import org.opensearch.sql.expression.LiteralExpression;
 
 /**
@@ -58,7 +59,7 @@ public class ValuesOperator extends PhysicalPlan {
   @Override
   public ExprValue next() {
     List<ExprValue> values = valuesIterator.next().stream()
-                                           .map(expr -> expr.valueOf())
+                                           .map(Expression::valueOf)
                                            .collect(Collectors.toList());
     return new ExprCollectionValue(values);
   }

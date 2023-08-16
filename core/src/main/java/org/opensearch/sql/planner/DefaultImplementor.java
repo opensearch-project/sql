@@ -3,15 +3,18 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-
 package org.opensearch.sql.planner;
 
+import org.opensearch.sql.executor.pagination.PlanSerializer;
 import org.opensearch.sql.planner.logical.LogicalAggregation;
+import org.opensearch.sql.planner.logical.LogicalCloseCursor;
 import org.opensearch.sql.planner.logical.LogicalDedupe;
 import org.opensearch.sql.planner.logical.LogicalEval;
+import org.opensearch.sql.planner.logical.LogicalFetchCursor;
 import org.opensearch.sql.planner.logical.LogicalFilter;
 import org.opensearch.sql.planner.logical.LogicalLimit;
 import org.opensearch.sql.planner.logical.LogicalNested;
+import org.opensearch.sql.planner.logical.LogicalPaginate;
 import org.opensearch.sql.planner.logical.LogicalPlan;
 import org.opensearch.sql.planner.logical.LogicalPlanNodeVisitor;
 import org.opensearch.sql.planner.logical.LogicalProject;
@@ -23,6 +26,7 @@ import org.opensearch.sql.planner.logical.LogicalSort;
 import org.opensearch.sql.planner.logical.LogicalValues;
 import org.opensearch.sql.planner.logical.LogicalWindow;
 import org.opensearch.sql.planner.physical.AggregationOperator;
+import org.opensearch.sql.planner.physical.CursorCloseOperator;
 import org.opensearch.sql.planner.physical.DedupeOperator;
 import org.opensearch.sql.planner.physical.EvalOperator;
 import org.opensearch.sql.planner.physical.FilterOperator;
@@ -148,9 +152,24 @@ public class DefaultImplementor<C> extends LogicalPlanNodeVisitor<PhysicalPlan, 
         + "implementing and optimizing logical plan with relation involved");
   }
 
+  @Override
+  public PhysicalPlan visitFetchCursor(LogicalFetchCursor plan, C context) {
+    return new PlanSerializer(plan.getEngine()).convertToPlan(plan.getCursor());
+  }
+
+  @Override
+  public PhysicalPlan visitCloseCursor(LogicalCloseCursor node, C context) {
+    return new CursorCloseOperator(visitChild(node, context));
+  }
+
+  // Called when paging query requested without `FROM` clause only
+  @Override
+  public PhysicalPlan visitPaginate(LogicalPaginate plan, C context) {
+    return visitChild(plan, context);
+  }
+
   protected PhysicalPlan visitChild(LogicalPlan node, C context) {
     // Logical operators visited here must have a single child
     return node.getChild().get(0).accept(this, context);
   }
-
 }

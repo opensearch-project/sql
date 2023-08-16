@@ -1,0 +1,362 @@
+{
+  "mappings" : {
+    "properties" : {
+      "epoch_millis" : {
+        "type" : "date",
+        "format" : "epoch_millis"
+      },
+      "epoch_second" : {
+        "type" : "date",
+        "format" : "epoch_second"
+      },
+      "date_optional_time" : {
+        "type" : "date",
+        "format" : "date_optional_time"
+      },
+      "strict_date_optional_time" : {
+        "type" : "date",
+        "format" : "strict_date_optional_time"
+      },
+      "strict_date_optional_time_nanos" : {
+        "type" : "date",
+        "format" : "strict_date_optional_time_nanos"
+      },
+      "basic_date" : {
+        "type" : "date",
+        "format" : "basic_date"
+      },
+      "basic_date_time" : {
+        "type" : "date",
+        "format" : "basic_date_time"
+      },
+      "basic_date_time_no_millis" : {
+        "type" : "date",
+        "format" : "basic_date_time_no_millis"
+      },
+      "basic_ordinal_date" : {
+        "type" : "date",
+        "format" : "basic_ordinal_date"
+      },
+      "basic_ordinal_date_time" : {
+        "type" : "date",
+        "format" : "basic_ordinal_date_time"
+      },
+      "basic_ordinal_date_time_no_millis" : {
+        "type" : "date",
+        "format" : "basic_ordinal_date_time_no_millis"
+      },
+      "basic_time" : {
+        "type" : "date",
+        "format" : "basic_time"
+      },
+      "basic_time_no_millis" : {
+        "type" : "date",
+        "format" : "basic_time_no_millis"
+      },
+      "basic_t_time" : {
+        "type" : "date",
+        "format" : "basic_t_time"
+      },
+      "basic_t_time_no_millis" : {
+        "type" : "date",
+        "format" : "basic_t_time_no_millis"
+      },
+      "basic_week_date" : {
+        "type" : "date",
+        "format" : "basic_week_date"
+      },
+      "strict_basic_week_date" : {
+        "type" : "date",
+        "format" : "strict_basic_week_date"
+      },
+      "basic_week_date_time" : {
+        "type" : "date",
+        "format" : "basic_week_date_time"
+      },
+      "strict_basic_week_date_time" : {
+        "type" : "date",
+        "format" : "strict_basic_week_date_time"
+      },
+      "basic_week_date_time_no_millis" : {
+        "type" : "date",
+        "format" : "basic_week_date_time_no_millis"
+      },
+      "strict_basic_week_date_time_no_millis" : {
+        "type" : "date",
+        "format" : "strict_basic_week_date_time_no_millis"
+      },
+      "date" : {
+        "type" : "date",
+        "format" : "date"
+      },
+      "strict_date" : {
+        "type" : "date",
+        "format" : "strict_date"
+      },
+      "date_hour" : {
+        "type" : "date",
+        "format" : "date_hour"
+      },
+      "strict_date_hour" : {
+        "type" : "date",
+        "format" : "strict_date_hour"
+      },
+      "date_hour_minute" : {
+        "type" : "date",
+        "format" : "date_hour_minute"
+      },
+      "strict_date_hour_minute" : {
+        "type" : "date",
+        "format" : "strict_date_hour_minute"
+      },
+      "date_hour_minute_second" : {
+        "type" : "date",
+        "format" : "date_hour_minute_second"
+      },
+      "strict_date_hour_minute_second" : {
+        "type" : "date",
+        "format" : "strict_date_hour_minute_second"
+      },
+      "date_hour_minute_second_fraction" : {
+        "type" : "date",
+        "format" : "date_hour_minute_second_fraction"
+      },
+      "strict_date_hour_minute_second_fraction" : {
+        "type" : "date",
+        "format" : "strict_date_hour_minute_second_fraction"
+      },
+      "date_hour_minute_second_millis" : {
+        "type" : "date",
+        "format" : "date_hour_minute_second_millis"
+      },
+      "strict_date_hour_minute_second_millis" : {
+        "type" : "date",
+        "format" : "strict_date_hour_minute_second_millis"
+      },
+      "date_time" : {
+        "type" : "date",
+        "format" : "date_time"
+      },
+      "strict_date_time" : {
+        "type" : "date",
+        "format" : "strict_date_time"
+      },
+      "date_time_no_millis" : {
+        "type" : "date",
+        "format" : "date_time_no_millis"
+      },
+      "strict_date_time_no_millis" : {
+        "type" : "date",
+        "format" : "strict_date_time_no_millis"
+      },
+      "hour" : {
+        "type" : "date",
+        "format" : "hour"
+      },
+      "strict_hour" : {
+        "type" : "date",
+        "format" : "strict_hour"
+      },
+      "hour_minute" : {
+        "type" : "date",
+        "format" : "hour_minute"
+      },
+      "strict_hour_minute" : {
+        "type" : "date",
+        "format" : "strict_hour_minute"
+      },
+      "hour_minute_second" : {
+        "type" : "date",
+        "format" : "hour_minute_second"
+      },
+      "strict_hour_minute_second" : {
+        "type" : "date",
+        "format" : "strict_hour_minute_second"
+      },
+      "hour_minute_second_fraction" : {
+        "type" : "date",
+        "format" : "hour_minute_second_fraction"
+      },
+      "strict_hour_minute_second_fraction" : {
+        "type" : "date",
+        "format" : "strict_hour_minute_second_fraction"
+      },
+      "hour_minute_second_millis" : {
+        "type" : "date",
+        "format" : "hour_minute_second_millis"
+      },
+      "strict_hour_minute_second_millis" : {
+        "type" : "date",
+        "format" : "strict_hour_minute_second_millis"
+      },
+      "ordinal_date" : {
+        "type" : "date",
+        "format" : "ordinal_date"
+      },
+      "strict_ordinal_date" : {
+        "type" : "date",
+        "format" : "strict_ordinal_date"
+      },
+      "ordinal_date_time" : {
+        "type" : "date",
+        "format" : "ordinal_date_time"
+      },
+      "strict_ordinal_date_time" : {
+        "type" : "date",
+        "format" : "strict_ordinal_date_time"
+      },
+      "ordinal_date_time_no_millis" : {
+        "type" : "date",
+        "format" : "ordinal_date_time_no_millis"
+      },
+      "strict_ordinal_date_time_no_millis" : {
+        "type" : "date",
+        "format" : "strict_ordinal_date_time_no_millis"
+      },
+      "time" : {
+        "type" : "date",
+        "format" : "time"
+      },
+      "strict_time" : {
+        "type" : "date",
+        "format" : "strict_time"
+      },
+      "time_no_millis" : {
+        "type" : "date",
+        "format" : "time_no_millis"
+      },
+      "strict_time_no_millis" : {
+        "type" : "date",
+        "format" : "strict_time_no_millis"
+      },
+      "t_time" : {
+        "type" : "date",
+        "format" : "t_time"
+      },
+      "strict_t_time" : {
+        "type" : "date",
+        "format" : "strict_t_time"
+      },
+      "t_time_no_millis" : {
+        "type" : "date",
+        "format" : "t_time_no_millis"
+      },
+      "strict_t_time_no_millis" : {
+        "type" : "date",
+        "format" : "strict_t_time_no_millis"
+      },
+      "week_date" : {
+        "type" : "date",
+        "format" : "week_date"
+      },
+      "strict_week_date" : {
+        "type" : "date",
+        "format" : "strict_week_date"
+      },
+      "week_date_time" : {
+        "type" : "date",
+        "format" : "week_date_time"
+      },
+      "strict_week_date_time" : {
+        "type" : "date",
+        "format" : "strict_week_date_time"
+      },
+      "week_date_time_no_millis" : {
+        "type" : "date",
+        "format" : "week_date_time_no_millis"
+      },
+      "strict_week_date_time_no_millis" : {
+        "type" : "date",
+        "format" : "strict_week_date_time_no_millis"
+      },
+      "weekyear_week_day" : {
+        "type" : "date",
+        "format" : "weekyear_week_day"
+      },
+      "strict_weekyear_week_day" : {
+        "type" : "date",
+        "format" : "strict_weekyear_week_day"
+      },
+      "year_month_day" : {
+        "type" : "date",
+        "format" : "year_month_day"
+      },
+      "strict_year_month_day" : {
+        "type" : "date",
+        "format" : "strict_year_month_day"
+      },
+      "yyyy-MM-dd" : {
+        "type" : "date",
+        "format": "yyyy-MM-dd"
+      },
+      "custom_time" : {
+        "type" : "date",
+        "format": "hh:mm:ss a"
+      },
+      "yyyy-MM-dd_OR_epoch_millis" : {
+        "type" : "date",
+        "format": "yyyy-MM-dd||epoch_millis"
+      },
+      "hour_minute_second_OR_t_time" : {
+        "type" : "date",
+        "format": "hour_minute_second||t_time"
+      },
+      "custom_timestamp" : {
+        "type" : "date",
+        "format": "yyyy-MM-dd hh:mm:ss ---- a"
+      },
+      "custom_date_or_date" : {
+        "type" : "date",
+        "format": "yyyy-MM-dd||date"
+      },
+      "custom_date_or_custom_time" : {
+        "type" : "date",
+        "format" : "yyyy-MM-dd || HH:mm:ss"
+      },
+      "custom_time_parser_check" : {
+        "type" : "date",
+        "format" : "::: k-A || A    "
+      },
+      "incomplete_1" : {
+          "type" : "date",
+          "format" : "year"
+      },
+      "incomplete_2" : {
+          "type" : "date",
+          "format" : "E-w"
+      },
+      "incomplete_custom_date" : {
+          "type" : "date",
+          "format" : "uuuu"
+      },
+      "incomplete_custom_time" : {
+          "type" : "date",
+          "format" : "HH"
+      },
+      "incorrect" : {
+          "type" : "date",
+          "format" : "'___'"
+      },
+      "epoch_sec" : {
+          "type" : "date",
+          "format" : "epoch_second"
+      },
+      "epoch_milli" : {
+          "type" : "date",
+          "format" : "epoch_millis"
+      },
+      "custom_no_delimiter_date" : {
+          "type" : "date",
+          "format" : "uuuuMMdd"
+      },
+      "custom_no_delimiter_time" : {
+          "type" : "date",
+          "format" : "HHmmss"
+      },
+      "custom_no_delimiter_ts" : {
+          "type" : "date",
+          "format" : "uuuuMMddHHmmss"
+      }
+    }
+  }
+}

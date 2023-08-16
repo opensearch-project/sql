@@ -901,7 +901,10 @@ Usage: ROUND(x, d) rounds the argument x to d decimal places, d defaults to 0 if
 Argument 1 type: INTEGER/LONG/FLOAT/DOUBLE
 Argument 2 type (optional): INTEGER
 
-Return type: LONG
+Return type map:
+
+(INTEGER/LONG[, INTEGER]) -> LONG
+(FLOAT/DOUBLE[, INTEGER]) -> DOUBLE
 
 Example::
 
@@ -4453,6 +4456,39 @@ Example with ``field`` and ``path`` parameters::
     |---------------------------------|
     | a                               |
     | b                               |
+    +---------------------------------+
+
+Example with ``field.*`` used in SELECT clause::
+
+    os> SELECT nested(message.*) FROM nested;
+    fetched rows / total rows = 2/2
+    +--------------------------+-----------------------------+------------------------+
+    | nested(message.author)   | nested(message.dayOfWeek)   | nested(message.info)   |
+    |--------------------------+-----------------------------+------------------------|
+    | e                        | 1                           | a                      |
+    | f                        | 2                           | b                      |
+    +--------------------------+-----------------------------+------------------------+
+
+
+Example with ``field`` and ``path`` parameters in the SELECT and WHERE clause::
+
+    os> SELECT nested(message.info, message) FROM nested WHERE nested(message.info, message) = 'b';
+    fetched rows / total rows = 1/1
+    +---------------------------------+
+    | nested(message.info, message)   |
+    |---------------------------------|
+    | b                               |
+    +---------------------------------+
+
+Example with ``field`` and ``path`` parameters in the SELECT and ORDER BY clause::
+
+    os> SELECT nested(message.info, message) FROM nested ORDER BY nested(message.info, message) DESC;
+    fetched rows / total rows = 2/2
+    +---------------------------------+
+    | nested(message.info, message)   |
+    |---------------------------------|
+    | b                               |
+    | a                               |
     +---------------------------------+
 
 

@@ -12,6 +12,7 @@ import org.opensearch.sql.opensearch.planner.physical.ADOperator;
 import org.opensearch.sql.opensearch.planner.physical.MLCommonsOperator;
 import org.opensearch.sql.opensearch.planner.physical.MLOperator;
 import org.opensearch.sql.planner.physical.AggregationOperator;
+import org.opensearch.sql.planner.physical.CursorCloseOperator;
 import org.opensearch.sql.planner.physical.DedupeOperator;
 import org.opensearch.sql.planner.physical.EvalOperator;
 import org.opensearch.sql.planner.physical.FilterOperator;
@@ -40,6 +41,15 @@ public class OpenSearchExecutionProtector extends ExecutionProtector {
 
   public PhysicalPlan protect(PhysicalPlan physicalPlan) {
     return physicalPlan.accept(this, null);
+  }
+
+  /**
+   * Don't protect {@link CursorCloseOperator} and entire nested tree, because
+   * {@link CursorCloseOperator} as designed as no-op.
+   */
+  @Override
+  public PhysicalPlan visitCursorClose(CursorCloseOperator node, Object context) {
+    return node;
   }
 
   @Override

@@ -10,9 +10,8 @@ package org.opensearch.sql.legacy.query.join;
 import java.io.IOException;
 import org.json.JSONObject;
 import org.json.JSONStringer;
-import org.opensearch.common.bytes.BytesReference;
+import org.opensearch.core.common.bytes.BytesReference;
 import org.opensearch.common.xcontent.XContentFactory;
-import org.opensearch.common.xcontent.XContentType;
 import org.opensearch.core.xcontent.ToXContent;
 import org.opensearch.core.xcontent.XContentBuilder;
 import org.opensearch.sql.legacy.domain.Condition;
@@ -95,7 +94,7 @@ public class NestedLoopsElasticRequestBuilder extends JoinRequestBuilder {
 
     private String explainQuery(TableInJoinRequestBuilder requestBuilder) {
         try {
-            XContentBuilder xContentBuilder = XContentFactory.contentBuilder(XContentType.JSON).prettyPrint();
+            XContentBuilder xContentBuilder = XContentFactory.jsonBuilder().prettyPrint();
             requestBuilder.getRequestBuilder().request().source().toXContent(xContentBuilder, ToXContent.EMPTY_PARAMS);
             return BytesReference.bytes(xContentBuilder).utf8ToString();
         } catch (IOException e) {

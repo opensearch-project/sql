@@ -383,17 +383,17 @@ public class AggregationIT extends SQLIntegTestCase {
 
   @Test
   public void testMaxDatePushedDown() throws IOException {
-    var response = executeQuery(String.format("SELECT max(CAST(date0 AS date))"
+    var response = executeQuery(String.format("SELECT max(date0)"
         + " from %s", TEST_INDEX_CALCS));
-    verifySchema(response, schema("max(CAST(date0 AS date))", null, "date"));
+    verifySchema(response, schema("max(date0)", null, "date"));
     verifyDataRows(response, rows("2004-06-19"));
   }
 
   @Test
   public void testAvgDatePushedDown() throws IOException {
-    var response = executeQuery(String.format("SELECT avg(CAST(date0 AS date))"
+    var response = executeQuery(String.format("SELECT avg(date0)"
         + " from %s", TEST_INDEX_CALCS));
-    verifySchema(response, schema("avg(CAST(date0 AS date))", null, "date"));
+    verifySchema(response, schema("avg(date0)", null, "date"));
     verifyDataRows(response, rows("1992-04-23"));
   }
 
@@ -423,25 +423,25 @@ public class AggregationIT extends SQLIntegTestCase {
 
   @Test
   public void testMinTimePushedDown() throws IOException {
-    var response = executeQuery(String.format("SELECT min(CAST(time1 AS time))"
+    var response = executeQuery(String.format("SELECT min(time1)"
         + " from %s", TEST_INDEX_CALCS));
-    verifySchema(response, schema("min(CAST(time1 AS time))", null, "time"));
+    verifySchema(response, schema("min(time1)", null, "time"));
     verifyDataRows(response, rows("00:05:57"));
   }
 
   @Test
   public void testMaxTimePushedDown() throws IOException {
-    var response = executeQuery(String.format("SELECT max(CAST(time1 AS time))"
+    var response = executeQuery(String.format("SELECT max(time1)"
         + " from %s", TEST_INDEX_CALCS));
-    verifySchema(response, schema("max(CAST(time1 AS time))", null, "time"));
+    verifySchema(response, schema("max(time1)", null, "time"));
     verifyDataRows(response, rows("22:50:16"));
   }
 
   @Test
   public void testAvgTimePushedDown() throws IOException {
-    var response = executeQuery(String.format("SELECT avg(CAST(time1 AS time))"
+    var response = executeQuery(String.format("SELECT avg(time1)"
         + " from %s", TEST_INDEX_CALCS));
-    verifySchema(response, schema("avg(CAST(time1 AS time))", null, "time"));
+    verifySchema(response, schema("avg(time1)", null, "time"));
     verifyDataRows(response, rows("13:06:36.25"));
   }
 
@@ -471,28 +471,28 @@ public class AggregationIT extends SQLIntegTestCase {
 
   @Test
   public void testMinDateInMemory() throws IOException {
-    var response = executeQuery(String.format("SELECT min(CAST(date0 AS date))"
+    var response = executeQuery(String.format("SELECT min(date0)"
         + " OVER(PARTITION BY datetime1) from %s", TEST_INDEX_CALCS));
     verifySchema(response,
-        schema("min(CAST(date0 AS date)) OVER(PARTITION BY datetime1)", null, "date"));
+        schema("min(date0) OVER(PARTITION BY datetime1)", null, "date"));
     verifySome(response.getJSONArray("datarows"), rows("1972-07-04"));
   }
 
   @Test
   public void testMaxDateInMemory() throws IOException {
-    var response = executeQuery(String.format("SELECT max(CAST(date0 AS date))"
+    var response = executeQuery(String.format("SELECT max(date0)"
         + " OVER(PARTITION BY datetime1) from %s", TEST_INDEX_CALCS));
     verifySchema(response,
-        schema("max(CAST(date0 AS date)) OVER(PARTITION BY datetime1)", null, "date"));
+        schema("max(date0) OVER(PARTITION BY datetime1)", null, "date"));
     verifySome(response.getJSONArray("datarows"), rows("2004-06-19"));
   }
 
   @Test
   public void testAvgDateInMemory() throws IOException {
-    var response = executeQuery(String.format("SELECT avg(CAST(date0 AS date))"
+    var response = executeQuery(String.format("SELECT avg(date0)"
         + " OVER(PARTITION BY datetime1) from %s", TEST_INDEX_CALCS));
     verifySchema(response,
-        schema("avg(CAST(date0 AS date)) OVER(PARTITION BY datetime1)", null, "date"));
+        schema("avg(date0) OVER(PARTITION BY datetime1)", null, "date"));
     verifySome(response.getJSONArray("datarows"), rows("1992-04-23"));
   }
 
@@ -525,28 +525,28 @@ public class AggregationIT extends SQLIntegTestCase {
 
   @Test
   public void testMinTimeInMemory() throws IOException {
-    var response = executeQuery(String.format("SELECT min(CAST(time1 AS time))"
+    var response = executeQuery(String.format("SELECT min(time1)"
         + " OVER(PARTITION BY datetime1) from %s", TEST_INDEX_CALCS));
     verifySchema(response,
-        schema("min(CAST(time1 AS time)) OVER(PARTITION BY datetime1)", null, "time"));
+        schema("min(time1) OVER(PARTITION BY datetime1)", null, "time"));
     verifySome(response.getJSONArray("datarows"), rows("00:05:57"));
   }
 
   @Test
   public void testMaxTimeInMemory() throws IOException {
-    var response = executeQuery(String.format("SELECT max(CAST(time1 AS time))"
+    var response = executeQuery(String.format("SELECT max(time1)"
         + " OVER(PARTITION BY datetime1) from %s", TEST_INDEX_CALCS));
     verifySchema(response,
-        schema("max(CAST(time1 AS time)) OVER(PARTITION BY datetime1)", null, "time"));
+        schema("max(time1) OVER(PARTITION BY datetime1)", null, "time"));
     verifySome(response.getJSONArray("datarows"), rows("22:50:16"));
   }
 
   @Test
   public void testAvgTimeInMemory() throws IOException {
-    var response = executeQuery(String.format("SELECT avg(CAST(time1 AS time))"
+    var response = executeQuery(String.format("SELECT avg(time1)"
         + " OVER(PARTITION BY datetime1) from %s", TEST_INDEX_CALCS));
     verifySchema(response,
-        schema("avg(CAST(time1 AS time)) OVER(PARTITION BY datetime1)", null, "time"));
+        schema("avg(time1) OVER(PARTITION BY datetime1)", null, "time"));
     verifySome(response.getJSONArray("datarows"), rows("13:06:36.25"));
   }
 

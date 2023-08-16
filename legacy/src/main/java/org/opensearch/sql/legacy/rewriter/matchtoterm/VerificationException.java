@@ -7,7 +7,7 @@
 package org.opensearch.sql.legacy.rewriter.matchtoterm;
 
 import org.opensearch.OpenSearchException;
-import org.opensearch.rest.RestStatus;
+import org.opensearch.core.rest.RestStatus;
 
 public class VerificationException extends OpenSearchException {
 

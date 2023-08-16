@@ -7,7 +7,7 @@
 package org.opensearch.sql.opensearch.storage.scan;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.reset;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -19,11 +19,13 @@ import static org.opensearch.sql.data.type.ExprCoreType.DOUBLE;
 import static org.opensearch.sql.data.type.ExprCoreType.INTEGER;
 import static org.opensearch.sql.data.type.ExprCoreType.LONG;
 import static org.opensearch.sql.data.type.ExprCoreType.STRING;
+import static org.opensearch.sql.expression.DSL.literal;
 import static org.opensearch.sql.planner.logical.LogicalPlanDSL.aggregation;
 import static org.opensearch.sql.planner.logical.LogicalPlanDSL.filter;
 import static org.opensearch.sql.planner.logical.LogicalPlanDSL.highlight;
 import static org.opensearch.sql.planner.logical.LogicalPlanDSL.limit;
 import static org.opensearch.sql.planner.logical.LogicalPlanDSL.nested;
+import static org.opensearch.sql.planner.logical.LogicalPlanDSL.paginate;
 import static org.opensearch.sql.planner.logical.LogicalPlanDSL.project;
 import static org.opensearch.sql.planner.logical.LogicalPlanDSL.relation;
 import static org.opensearch.sql.planner.logical.LogicalPlanDSL.sort;
@@ -53,11 +55,11 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.opensearch.index.query.QueryBuilder;
 import org.opensearch.index.query.QueryBuilders;
-import org.opensearch.index.query.SpanOrQueryBuilder;
 import org.opensearch.search.aggregations.AggregationBuilder;
 import org.opensearch.search.aggregations.AggregationBuilders;
 import org.opensearch.search.aggregations.bucket.composite.CompositeAggregationBuilder;
 import org.opensearch.search.aggregations.bucket.composite.TermsValuesSourceBuilder;
+import org.opensearch.search.sort.NestedSortBuilder;
 import org.opensearch.search.sort.SortBuilder;
 import org.opensearch.search.sort.SortBuilders;
 import org.opensearch.search.sort.SortOrder;
@@ -65,7 +67,6 @@ import org.opensearch.sql.ast.expression.Literal;
 import org.opensearch.sql.ast.tree.Sort.SortOption;
 import org.opensearch.sql.data.model.ExprTupleValue;
 import org.opensearch.sql.data.model.ExprValueUtils;
-import org.opensearch.sql.data.type.ExprCoreType;
 import org.opensearch.sql.data.type.ExprType;
 import org.opensearch.sql.expression.DSL;
 import org.opensearch.sql.expression.FunctionExpression;
@@ -78,15 +79,14 @@ import org.opensearch.sql.opensearch.request.OpenSearchRequestBuilder;
 import org.opensearch.sql.opensearch.response.agg.CompositeAggregationParser;
 import org.opensearch.sql.opensearch.response.agg.OpenSearchAggregationResponseParser;
 import org.opensearch.sql.opensearch.response.agg.SingleValueParser;
-import org.opensearch.sql.opensearch.storage.OpenSearchIndexScan;
 import org.opensearch.sql.opensearch.storage.script.aggregation.AggregationQueryBuilder;
-import org.opensearch.sql.planner.logical.LogicalFilter;
+import org.opensearch.sql.planner.logical.LogicalAggregation;
 import org.opensearch.sql.planner.logical.LogicalNested;
 import org.opensearch.sql.planner.logical.LogicalPlan;
 import org.opensearch.sql.planner.optimizer.LogicalPlanOptimizer;
+import org.opensearch.sql.planner.optimizer.PushDownPageSize;
 import org.opensearch.sql.planner.optimizer.rule.read.CreateTableScanBuilder;
 import org.opensearch.sql.storage.Table;
-
 
 @ExtendWith(MockitoExtension.class)
 class OpenSearchIndexScanOptimizationTest {
@@ -106,16 +106,15 @@ class OpenSearchIndexScanOptimizationTest {
 
   @BeforeEach
   void setUp() {
-    indexScanBuilder = new OpenSearchIndexScanBuilder(indexScan);
+    indexScanBuilder = new OpenSearchIndexScanBuilder(requestBuilder, requestBuilder -> indexScan);
     when(table.createScanBuilder()).thenReturn(indexScanBuilder);
-    when(indexScan.getRequestBuilder()).thenReturn(requestBuilder);
   }
 
   @Test
   void test_project_push_down() {
     assertEqualsAfterOptimization(
         project(
-            indexScanAggBuilder(
+            indexScanBuilder(
                 withProjectPushedDown(DSL.ref("intV", INTEGER))),
             DSL.named("i", DSL.ref("intV", INTEGER))
         ),
@@ -335,6 +334,21 @@ class OpenSearchIndexScanOptimizationTest {
             Pair.of(SortOption.DEFAULT_ASC, DSL.ref("intV", INTEGER))
         )
     );
+  }
+
+  @Test
+  void test_page_push_down() {
+    assertEqualsAfterOptimization(
+        project(
+          indexScanBuilder(
+            withPageSizePushDown(5)),
+          DSL.named("intV", DSL.ref("intV", INTEGER))
+        ),
+        paginate(project(
+            relation("schema", table),
+          DSL.named("intV", DSL.ref("intV", INTEGER))
+        ), 5
+      ));
   }
 
   @Test
@@ -563,6 +577,76 @@ class OpenSearchIndexScanOptimizationTest {
   }
 
   @Test
+  void test_nested_sort_filter_push_down() {
+    assertEqualsAfterOptimization(
+        project(
+            indexScanBuilder(
+                withFilterPushedDown(QueryBuilders.termQuery("intV", 1)),
+                withSortPushedDown(
+                    SortBuilders.fieldSort("message.info")
+                        .order(SortOrder.ASC)
+                        .setNestedSort(new NestedSortBuilder("message")))),
+            DSL.named("intV", DSL.ref("intV", INTEGER))
+        ),
+        project(
+                sort(
+                    filter(
+                        relation("schema", table),
+                        DSL.equal(DSL.ref("intV", INTEGER), DSL.literal(integerValue(1)))
+                    ),
+                    Pair.of(
+                        SortOption.DEFAULT_ASC, DSL.nested(DSL.ref("message.info", STRING))
+                    )
+                ),
+            DSL.named("intV", DSL.ref("intV", INTEGER))
+        )
+    );
+  }
+
+  @Test
+  void test_function_expression_sort_returns_optimized_logical_sort() {
+    // Invalid use case coverage OpenSearchIndexScanBuilder::sortByFieldsOnly returns false
+    assertEqualsAfterOptimization(
+        sort(
+            indexScanBuilder(),
+            Pair.of(
+                SortOption.DEFAULT_ASC,
+                DSL.match(DSL.namedArgument("field", literal("message")))
+            )
+        ),
+        sort(
+            relation("schema", table),
+            Pair.of(
+                SortOption.DEFAULT_ASC,
+                DSL.match(DSL.namedArgument("field", literal("message"))
+                )
+            )
+        )
+    );
+  }
+
+  @Test
+  void test_non_field_sort_returns_optimized_logical_sort() {
+    // Invalid use case coverage OpenSearchIndexScanBuilder::sortByFieldsOnly returns false
+    assertEqualsAfterOptimization(
+        sort(
+            indexScanBuilder(),
+            Pair.of(
+                SortOption.DEFAULT_ASC,
+                DSL.literal("field")
+            )
+        ),
+        sort(
+            relation("schema", table),
+            Pair.of(
+                SortOption.DEFAULT_ASC,
+                DSL.literal("field")
+            )
+        )
+    );
+  }
+
+  @Test
   void sort_with_expression_cannot_merge_with_relation() {
     assertEqualsAfterOptimization(
         sort(
@@ -679,16 +763,20 @@ class OpenSearchIndexScanOptimizationTest {
 
   private OpenSearchIndexScanBuilder indexScanBuilder(Runnable... verifyPushDownCalls) {
     this.verifyPushDownCalls = verifyPushDownCalls;
-    return new OpenSearchIndexScanBuilder(new OpenSearchIndexScanQueryBuilder(indexScan));
+    return new OpenSearchIndexScanBuilder(new OpenSearchIndexScanQueryBuilder(requestBuilder),
+        requestBuilder -> indexScan);
   }
 
   private OpenSearchIndexScanBuilder indexScanAggBuilder(Runnable... verifyPushDownCalls) {
     this.verifyPushDownCalls = verifyPushDownCalls;
-    return new OpenSearchIndexScanBuilder(new OpenSearchIndexScanAggregationBuilder(indexScan));
+    var aggregationBuilder = new OpenSearchIndexScanAggregationBuilder(
+        requestBuilder, mock(LogicalAggregation.class));
+    return new OpenSearchIndexScanBuilder(aggregationBuilder, builder -> indexScan);
   }
 
   private void assertEqualsAfterOptimization(LogicalPlan expected, LogicalPlan actual) {
-    assertEquals(expected, optimize(actual));
+    final var optimized = optimize(actual);
+    assertEquals(expected, optimized);
 
     // Trigger build to make sure all push down actually happened in scan builder
     indexScanBuilder.build();
@@ -702,7 +790,7 @@ class OpenSearchIndexScanOptimizationTest {
   }
 
   private Runnable withFilterPushedDown(QueryBuilder filteringCondition) {
-    return () -> verify(requestBuilder, times(1)).pushDown(filteringCondition);
+    return () -> verify(requestBuilder, times(1)).pushDownFilter(filteringCondition);
   }
 
   private Runnable withAggregationPushedDown(
@@ -760,6 +848,10 @@ class OpenSearchIndexScanOptimizationTest {
     return () -> verify(requestBuilder, times(1)).pushDownTrackedScore(trackScores);
   }
 
+  private Runnable withPageSizePushDown(int pageSize) {
+    return () -> verify(requestBuilder, times(1)).pushDownPageSize(pageSize);
+  }
+
   private static AggregationAssertHelper.AggregationAssertHelperBuilder aggregate(String aggName) {
     var aggBuilder = new AggregationAssertHelper.AggregationAssertHelperBuilder();
     aggBuilder.aggregateName = aggName;
@@ -785,6 +877,7 @@ class OpenSearchIndexScanOptimizationTest {
   private LogicalPlan optimize(LogicalPlan plan) {
     LogicalPlanOptimizer optimizer = new LogicalPlanOptimizer(List.of(
         new CreateTableScanBuilder(),
+        new PushDownPageSize(),
         PUSH_DOWN_FILTER,
         PUSH_DOWN_AGGREGATION,
         PUSH_DOWN_SORT,

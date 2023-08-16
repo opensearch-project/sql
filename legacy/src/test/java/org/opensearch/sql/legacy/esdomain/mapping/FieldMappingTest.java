@@ -17,7 +17,7 @@ import java.util.Map;
 import java.util.stream.Collectors;
 import org.hamcrest.Matcher;
 import org.junit.Test;
-import org.opensearch.common.bytes.BytesArray;
+import org.opensearch.core.common.bytes.BytesArray;
 import org.opensearch.sql.legacy.domain.Field;
 import org.opensearch.sql.legacy.util.MatcherUtils;
 

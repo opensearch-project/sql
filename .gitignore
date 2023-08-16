@@ -48,3 +48,5 @@ gen
 .java-version
 .worktrees
 http-client.env.json
+/doctest/sql-cli/
+.factorypath

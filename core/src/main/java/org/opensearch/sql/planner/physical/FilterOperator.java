@@ -17,8 +17,9 @@ import org.opensearch.sql.expression.operator.predicate.BinaryPredicateOperator;
 import org.opensearch.sql.storage.bindingtuple.BindingTuple;
 
 /**
- * The Filter operator use the conditions to evaluate the input {@link BindingTuple}.
- * The Filter operator only return the results that evaluated to true.
+ * The Filter operator represents WHERE clause and
+ * uses the conditions to evaluate the input {@link BindingTuple}.
+ * The Filter operator only returns the results that evaluated to true.
  * The NULL and MISSING are handled by the logic defined in {@link BinaryPredicateOperator}.
  */
 @EqualsAndHashCode(callSuper = false)
@@ -29,7 +30,8 @@ public class FilterOperator extends PhysicalPlan {
   private final PhysicalPlan input;
   @Getter
   private final Expression conditions;
-  @ToString.Exclude private ExprValue next = null;
+  @ToString.Exclude
+  private ExprValue next = null;
 
   @Override
   public <R, C> R accept(PhysicalPlanNodeVisitor<R, C> visitor, C context) {

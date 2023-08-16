@@ -17,18 +17,24 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+import lombok.RequiredArgsConstructor;
 import okhttp3.OkHttpClient;
+import org.apache.commons.validator.routines.DomainValidator;
+import org.opensearch.sql.common.authinterceptors.AwsSigningInterceptor;
+import org.opensearch.sql.common.authinterceptors.BasicAuthenticationInterceptor;
+import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.datasource.model.DataSource;
 import org.opensearch.sql.datasource.model.DataSourceMetadata;
 import org.opensearch.sql.datasource.model.DataSourceType;
 import org.opensearch.sql.datasources.auth.AuthenticationType;
-import org.opensearch.sql.prometheus.authinterceptors.AwsSigningInterceptor;
-import org.opensearch.sql.prometheus.authinterceptors.BasicAuthenticationInterceptor;
 import org.opensearch.sql.prometheus.client.PrometheusClient;
 import org.opensearch.sql.prometheus.client.PrometheusClientImpl;
 import org.opensearch.sql.storage.DataSourceFactory;
 import org.opensearch.sql.storage.StorageEngine;
 
+@RequiredArgsConstructor
 public class PrometheusStorageFactory implements DataSourceFactory {
 
   public static final String URI = "prometheus.uri";
@@ -38,8 +44,9 @@ public class PrometheusStorageFactory implements DataSourceFactory {
   public static final String REGION = "prometheus.auth.region";
   public static final String ACCESS_KEY = "prometheus.auth.access_key";
   public static final String SECRET_KEY = "prometheus.auth.secret_key";
-
   private static final Integer MAX_LENGTH_FOR_CONFIG_PROPERTY = 1000;
+
+  private final Settings settings;
 
   @Override
   public DataSourceType getDataSourceType() {
@@ -51,36 +58,39 @@ public class PrometheusStorageFactory implements DataSourceFactory {
     return new DataSource(
         metadata.getName(),
         DataSourceType.PROMETHEUS,
-        getStorageEngine(metadata.getName(), metadata.getProperties()));
+        getStorageEngine(metadata.getProperties()));
   }
 
 
-  private void validateDataSourceConfigProperties(Map<String, String> dataSourceMetadataConfig) {
+  //Need to refactor to a separate Validator class.
+  private void validateDataSourceConfigProperties(Map<String, String> dataSourceMetadataConfig)
+      throws URISyntaxException {
     if (dataSourceMetadataConfig.get(AUTH_TYPE) != null) {
       AuthenticationType authenticationType
           = AuthenticationType.get(dataSourceMetadataConfig.get(AUTH_TYPE));
       if (AuthenticationType.BASICAUTH.equals(authenticationType)) {
-        validateFields(dataSourceMetadataConfig, Set.of(URI, USERNAME, PASSWORD));
+        validateMissingFields(dataSourceMetadataConfig, Set.of(URI, USERNAME, PASSWORD));
       } else if (AuthenticationType.AWSSIGV4AUTH.equals(authenticationType)) {
-        validateFields(dataSourceMetadataConfig, Set.of(URI, ACCESS_KEY, SECRET_KEY,
+        validateMissingFields(dataSourceMetadataConfig, Set.of(URI, ACCESS_KEY, SECRET_KEY,
             REGION));
       }
     } else {
-      validateFields(dataSourceMetadataConfig, Set.of(URI));
+      validateMissingFields(dataSourceMetadataConfig, Set.of(URI));
     }
+    validateURI(dataSourceMetadataConfig);
   }
 
-  StorageEngine getStorageEngine(String catalogName, Map<String, String> requiredConfig) {
-    validateDataSourceConfigProperties(requiredConfig);
+  StorageEngine getStorageEngine(Map<String, String> requiredConfig) {
     PrometheusClient prometheusClient;
     prometheusClient =
         AccessController.doPrivileged((PrivilegedAction<PrometheusClientImpl>) () -> {
           try {
+            validateDataSourceConfigProperties(requiredConfig);
             return new PrometheusClientImpl(getHttpClient(requiredConfig),
                 new URI(requiredConfig.get(URI)));
           } catch (URISyntaxException e) {
-            throw new RuntimeException(
-                String.format("Prometheus Client creation failed due to: %s", e.getMessage()));
+            throw new IllegalArgumentException(
+                String.format("Invalid URI in prometheus properties: %s", e.getMessage()));
           }
         });
     return new PrometheusStorageEngine(prometheusClient);
@@ -110,7 +120,7 @@ public class PrometheusStorageFactory implements DataSourceFactory {
     return okHttpClient.build();
   }
 
-  private void validateFields(Map<String, String> config, Set<String> fields) {
+  private void validateMissingFields(Map<String, String> config, Set<String> fields) {
     Set<String> missingFields = new HashSet<>();
     Set<String> invalidLengthFields = new HashSet<>();
     for (String field : fields) {
@@ -135,5 +145,23 @@ public class PrometheusStorageFactory implements DataSourceFactory {
     }
   }
 
+  private void validateURI(Map<String, String> config) throws URISyntaxException {
+    URI uri = new URI(config.get(URI));
+    String host = uri.getHost();
+    if (host == null || (!(DomainValidator.getInstance().isValid(host)
+        || DomainValidator.getInstance().isValidLocalTld(host)))) {
+      throw new IllegalArgumentException(
+          String.format("Invalid hostname in the uri: %s", config.get(URI)));
+    } else {
+      Pattern allowHostsPattern =
+          Pattern.compile(settings.getSettingValue(Settings.Key.DATASOURCES_URI_ALLOWHOSTS));
+      Matcher matcher = allowHostsPattern.matcher(host);
+      if (!matcher.matches()) {
+        throw new IllegalArgumentException(
+            String.format("Disallowed hostname in the uri: %s. Validate with %s config",
+                config.get(URI), Settings.Key.DATASOURCES_URI_ALLOWHOSTS.getKeyValue()));
+      }
+    }
+  }
 
 }

@@ -30,9 +30,34 @@ public interface Content {
   boolean isNumber();
 
   /**
+   * Is float value.
+   */
+  boolean isFloat();
+
+  /**
+   * Is double value.
+   */
+  boolean isDouble();
+
+  /**
+   * Is long value.
+   */
+  boolean isLong();
+
+  /**
+   * Is boolean value.
+   */
+  boolean isBoolean();
+
+  /**
    * Is string value.
    */
   boolean isString();
+
+  /**
+   * Is array value.
+   */
+  boolean isArray();
 
   /**
    * Get integer value.

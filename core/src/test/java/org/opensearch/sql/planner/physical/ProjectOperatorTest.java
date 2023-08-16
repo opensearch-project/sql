@@ -11,6 +11,7 @@ import static org.hamcrest.Matchers.allOf;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.hasItems;
 import static org.hamcrest.Matchers.iterableWithSize;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.Mockito.when;
 import static org.opensearch.sql.data.model.ExprValueUtils.LITERAL_MISSING;
 import static org.opensearch.sql.data.model.ExprValueUtils.stringValue;
@@ -20,7 +21,12 @@ import static org.opensearch.sql.planner.physical.PhysicalPlanDSL.project;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
 import java.util.List;
+import lombok.SneakyThrows;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
@@ -30,11 +36,12 @@ import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.data.model.ExprValueUtils;
 import org.opensearch.sql.executor.ExecutionEngine;
 import org.opensearch.sql.expression.DSL;
+import org.opensearch.sql.utils.TestOperator;
 
 @ExtendWith(MockitoExtension.class)
 class ProjectOperatorTest extends PhysicalPlanTestBase {
 
-  @Mock
+  @Mock(serializable = true)
   private PhysicalPlan inputPlan;
 
   @Test
@@ -205,5 +212,22 @@ class ProjectOperatorTest extends PhysicalPlanTestBase {
             hasItems(
                 ExprValueUtils.tupleValue(ImmutableMap.of("action", "GET", "response", "200")),
                 ExprValueUtils.tupleValue(ImmutableMap.of("action", "POST")))));
+  }
+
+  @Test
+  @SneakyThrows
+  public void serializable() {
+    var projects = List.of(DSL.named("action", DSL.ref("action", STRING)));
+    var project = new ProjectOperator(new TestOperator(), projects, List.of());
+
+    ByteArrayOutputStream output = new ByteArrayOutputStream();
+    ObjectOutputStream objectOutput = new ObjectOutputStream(output);
+    objectOutput.writeObject(project);
+    objectOutput.flush();
+
+    ObjectInputStream objectInput = new ObjectInputStream(
+        new ByteArrayInputStream(output.toByteArray()));
+    var roundTripPlan = (ProjectOperator) objectInput.readObject();
+    assertEquals(project, roundTripPlan);
   }
 }

@@ -17,11 +17,10 @@ import org.apache.lucene.search.TotalHits.Relation;
 import org.opensearch.action.search.SearchRequestBuilder;
 import org.opensearch.action.search.SearchResponse;
 import org.opensearch.client.Client;
-import org.opensearch.common.bytes.BytesReference;
+import org.opensearch.core.common.bytes.BytesReference;
 import org.opensearch.common.io.stream.BytesStreamOutput;
 import org.opensearch.common.unit.TimeValue;
 import org.opensearch.common.xcontent.XContentFactory;
-import org.opensearch.common.xcontent.XContentType;
 import org.opensearch.core.xcontent.ToXContent.Params;
 import org.opensearch.core.xcontent.XContentBuilder;
 import org.opensearch.search.SearchHit;
@@ -78,7 +77,7 @@ public class ElasticUtils {
         ));
         hits.put("max_score", results.getMaxScore());
         hits.put("hits", searchHits);
-        XContentBuilder builder = XContentFactory.contentBuilder(XContentType.JSON).prettyPrint();
+        XContentBuilder builder = XContentFactory.jsonBuilder().prettyPrint();
         builder.startObject();
         builder.field("took", metaResults.getTookImMilli());
         builder.field("timed_out", metaResults.isTimedOut());
@@ -97,7 +96,7 @@ public class ElasticUtils {
                                                              ElasticJoinExecutor executor) throws IOException {
         BytesStreamOutput outputStream = new BytesStreamOutput();
 
-        XContentBuilder builder = XContentFactory.contentBuilder(XContentType.JSON, outputStream).prettyPrint();
+        XContentBuilder builder = XContentFactory.jsonBuilder(outputStream).prettyPrint();
         builder.startObject();
         builder.field("took", metaResults.getTookImMilli());
         builder.field("timed_out", metaResults.isTimedOut());

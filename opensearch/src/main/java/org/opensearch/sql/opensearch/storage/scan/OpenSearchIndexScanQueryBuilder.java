@@ -22,7 +22,7 @@ import org.opensearch.sql.expression.FunctionExpression;
 import org.opensearch.sql.expression.NamedExpression;
 import org.opensearch.sql.expression.ReferenceExpression;
 import org.opensearch.sql.expression.function.OpenSearchFunctions;
-import org.opensearch.sql.opensearch.storage.OpenSearchIndexScan;
+import org.opensearch.sql.opensearch.request.OpenSearchRequestBuilder;
 import org.opensearch.sql.opensearch.storage.script.filter.FilterQueryBuilder;
 import org.opensearch.sql.opensearch.storage.script.sort.SortQueryBuilder;
 import org.opensearch.sql.opensearch.storage.serialization.DefaultExpressionSerializer;
@@ -30,34 +30,22 @@ import org.opensearch.sql.planner.logical.LogicalFilter;
 import org.opensearch.sql.planner.logical.LogicalHighlight;
 import org.opensearch.sql.planner.logical.LogicalLimit;
 import org.opensearch.sql.planner.logical.LogicalNested;
+import org.opensearch.sql.planner.logical.LogicalPaginate;
 import org.opensearch.sql.planner.logical.LogicalProject;
 import org.opensearch.sql.planner.logical.LogicalSort;
-import org.opensearch.sql.storage.TableScanOperator;
-import org.opensearch.sql.storage.read.TableScanBuilder;
 
 /**
  * Index scan builder for simple non-aggregate query used by
  * {@link OpenSearchIndexScanBuilder} internally.
  */
 @VisibleForTesting
-class OpenSearchIndexScanQueryBuilder extends TableScanBuilder {
+@EqualsAndHashCode
+class OpenSearchIndexScanQueryBuilder implements PushDownQueryBuilder {
 
-  /** OpenSearch index scan to be optimized. */
-  @EqualsAndHashCode.Include
-  private final OpenSearchIndexScan indexScan;
+  OpenSearchRequestBuilder requestBuilder;
 
-  /**
-   * Initialize with given index scan and perform push-down optimization later.
-   *
-   * @param indexScan index scan not optimized yet
-   */
-  OpenSearchIndexScanQueryBuilder(OpenSearchIndexScan indexScan) {
-    this.indexScan = indexScan;
-  }
-
-  @Override
-  public TableScanOperator build() {
-    return indexScan;
+  public OpenSearchIndexScanQueryBuilder(OpenSearchRequestBuilder requestBuilder) {
+    this.requestBuilder = requestBuilder;
   }
 
   @Override
@@ -66,8 +54,8 @@ class OpenSearchIndexScanQueryBuilder extends TableScanBuilder {
         new DefaultExpressionSerializer());
     Expression queryCondition = filter.getCondition();
     QueryBuilder query = queryBuilder.build(queryCondition);
-    indexScan.getRequestBuilder().pushDown(query);
-    indexScan.getRequestBuilder().pushDownTrackedScore(
+    requestBuilder.pushDownFilter(query);
+    requestBuilder.pushDownTrackedScore(
         trackScoresFromOpenSearchFunction(queryCondition));
     return true;
   }
@@ -76,7 +64,7 @@ class OpenSearchIndexScanQueryBuilder extends TableScanBuilder {
   public boolean pushDownSort(LogicalSort sort) {
     List<Pair<Sort.SortOption, Expression>> sortList = sort.getSortList();
     final SortQueryBuilder builder = new SortQueryBuilder();
-    indexScan.getRequestBuilder().pushDownSort(sortList.stream()
+    requestBuilder.pushDownSort(sortList.stream()
         .map(sortItem -> builder.build(sortItem.getValue(), sortItem.getKey()))
         .collect(Collectors.toList()));
     return true;
@@ -84,13 +72,13 @@ class OpenSearchIndexScanQueryBuilder extends TableScanBuilder {
 
   @Override
   public boolean pushDownLimit(LogicalLimit limit) {
-    indexScan.getRequestBuilder().pushDownLimit(limit.getLimit(), limit.getOffset());
+    requestBuilder.pushDownLimit(limit.getLimit(), limit.getOffset());
     return true;
   }
 
   @Override
   public boolean pushDownProject(LogicalProject project) {
-    indexScan.getRequestBuilder().pushDownProjects(
+    requestBuilder.pushDownProjects(
         findReferenceExpressions(project.getProjectList()));
 
     // Return false intentionally to keep the original project operator
@@ -99,9 +87,15 @@ class OpenSearchIndexScanQueryBuilder extends TableScanBuilder {
 
   @Override
   public boolean pushDownHighlight(LogicalHighlight highlight) {
-    indexScan.getRequestBuilder().pushDownHighlight(
+    requestBuilder.pushDownHighlight(
         StringUtils.unquoteText(highlight.getHighlightField().toString()),
         highlight.getArguments());
+    return true;
+  }
+
+  @Override
+  public boolean pushDownPageSize(LogicalPaginate paginate) {
+    requestBuilder.pushDownPageSize(paginate.getPageSize());
     return true;
   }
 
@@ -119,8 +113,8 @@ class OpenSearchIndexScanQueryBuilder extends TableScanBuilder {
 
   @Override
   public boolean pushDownNested(LogicalNested nested) {
-    indexScan.getRequestBuilder().pushDownNested(nested.getFields());
-    indexScan.getRequestBuilder().pushDownProjects(
+    requestBuilder.pushDownNested(nested.getFields());
+    requestBuilder.pushDownProjects(
         findReferenceExpressions(nested.getProjectList()));
     // Return false intentionally to keep the original nested operator
     // Since we return false we need to pushDownProject here as it won't be
@@ -129,11 +123,16 @@ class OpenSearchIndexScanQueryBuilder extends TableScanBuilder {
     return false;
   }
 
+  @Override
+  public OpenSearchRequestBuilder build() {
+    return requestBuilder;
+  }
+
   /**
    * Find reference expression from expression.
    * @param expressions a list of expression.
    *
-   * @return a list of ReferenceExpression
+   * @return a set of ReferenceExpression
    */
   public static Set<ReferenceExpression> findReferenceExpressions(
       List<NamedExpression> expressions) {

@@ -40,6 +40,7 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.opensearch.sql.common.antlr.SyntaxCheckException;
 import org.opensearch.sql.common.utils.StringUtils;
 import org.opensearch.sql.data.model.ExprDateValue;
 import org.opensearch.sql.data.model.ExprDatetimeValue;
@@ -297,6 +298,131 @@ class FilterQueryBuilderTest {
                 ref("name", OpenSearchTextType.of(Map.of("words",
                     OpenSearchDataType.of(OpenSearchDataType.MappingType.Keyword)))),
                 literal("John%"))));
+  }
+
+  @Test
+  void should_build_term_query_predicate_expression_with_nested_function() {
+    assertJsonEquals(
+        "{\n"
+            + "  \"nested\" : {\n"
+            + "    \"query\" : {\n"
+            + "      \"term\" : {\n"
+            + "        \"message.info\" : {\n"
+            + "          \"value\" : \"string_value\",\n"
+            + "          \"boost\" : 1.0\n"
+            + "        }\n"
+            + "      }\n"
+            + "    },\n"
+            + "    \"path\" : \"message\",\n"
+            + "    \"ignore_unmapped\" : false,\n"
+            + "    \"score_mode\" : \"none\",\n"
+            + "    \"boost\" : 1.0\n"
+            + "  }\n"
+            + "}",
+        buildQuery(
+            DSL.equal(DSL.nested(
+                DSL.ref("message.info", STRING),
+                DSL.ref("message", STRING)),
+                literal("string_value")
+            )
+        )
+    );
+  }
+
+  @Test
+  void should_build_range_query_predicate_expression_with_nested_function() {
+    assertJsonEquals(
+        "{\n"
+            + "  \"nested\" : {\n"
+            + "    \"query\" : {\n"
+            + "      \"range\" : {\n"
+            + "        \"lottery.number.id\" : {\n"
+            + "          \"from\" : 1234,\n"
+            + "          \"to\" : null,\n"
+            + "          \"include_lower\" : false,\n"
+            + "          \"include_upper\" : true,\n"
+            + "          \"boost\" : 1.0\n"
+            + "        }\n"
+            + "      }\n"
+            + "    },\n"
+            + "    \"path\" : \"lottery.number\",\n"
+            + "    \"ignore_unmapped\" : false,\n"
+            + "    \"score_mode\" : \"none\",\n"
+            + "    \"boost\" : 1.0\n"
+            + "  }\n"
+            + "}",
+        buildQuery(
+            DSL.greater(DSL.nested(
+                DSL.ref("lottery.number.id", INTEGER)), literal(1234)
+            )
+        )
+    );
+  }
+
+  // TODO remove this test when alternate syntax is implemented for nested
+  //  function in WHERE clause: nested(path, condition)
+  @Test
+  void ensure_alternate_syntax_falls_back_to_legacy_engine() {
+    assertThrows(SyntaxCheckException.class, () ->
+        buildQuery(
+            DSL.nested(
+                DSL.ref("message", STRING),
+                DSL.equal(DSL.literal("message.info"), literal("a"))
+            )
+        )
+    );
+  }
+
+  @Test
+  void nested_filter_wrong_right_side_type_in_predicate_throws_exception() {
+    assertThrows(IllegalArgumentException.class, () ->
+        buildQuery(
+            DSL.equal(DSL.nested(
+                    DSL.ref("message.info", STRING),
+                    DSL.ref("message", STRING)),
+                DSL.ref("string_value", STRING)
+            )
+        )
+    );
+  }
+
+  @Test
+  void nested_filter_wrong_first_param_type_throws_exception() {
+    assertThrows(IllegalArgumentException.class, () ->
+        buildQuery(
+            DSL.equal(DSL.nested(
+                DSL.namedArgument("field", literal("message"))),
+                literal("string_value")
+            )
+        )
+    );
+  }
+
+  @Test
+  void nested_filter_wrong_second_param_type_throws_exception() {
+    assertThrows(IllegalArgumentException.class, () ->
+        buildQuery(
+            DSL.equal(DSL.nested(
+                    DSL.ref("message.info", STRING),
+                    DSL.literal(2)),
+                literal("string_value")
+            )
+        )
+    );
+  }
+
+  @Test
+  void nested_filter_too_many_params_throws_exception() {
+    assertThrows(IllegalArgumentException.class, () ->
+        buildQuery(
+            DSL.equal(DSL.nested(
+                DSL.ref("message.info", STRING),
+                DSL.ref("message", STRING),
+                DSL.ref("message", STRING)),
+                literal("string_value")
+            )
+        )
+    );
   }
 
   @Test

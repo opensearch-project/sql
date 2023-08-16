@@ -6,6 +6,7 @@
 
 package org.opensearch.sql.legacy;
 
+import static org.opensearch.core.common.Strings.isNullOrEmpty;
 import static org.opensearch.sql.legacy.TestUtils.createIndexByRestClient;
 import static org.opensearch.sql.legacy.TestUtils.getAccountIndexMapping;
 import static org.opensearch.sql.legacy.TestUtils.getBankIndexMapping;
@@ -43,10 +44,9 @@ import org.junit.Assert;
 import org.junit.Before;
 import org.opensearch.client.Request;
 import org.opensearch.client.Response;
-import org.opensearch.common.Strings;
-import org.opensearch.core.xcontent.XContentBuilder;
 import org.opensearch.common.xcontent.XContentFactory;
-import org.opensearch.rest.RestStatus;
+import org.opensearch.core.rest.RestStatus;
+import org.opensearch.core.xcontent.XContentBuilder;
 
 /**
  * SQL plugin integration test base class (migrated from SQLIntegTestCase)
@@ -98,7 +98,7 @@ public abstract class RestIntegTestCase extends OpenSearchSQLRestTestCase {
     // jacoco.dir is set in sqlplugin-coverage.gradle, if it doesn't exist we don't
     // want to collect coverage so we can return early
     String jacocoBuildPath = System.getProperty("jacoco.dir");
-    if (Strings.isNullOrEmpty(jacocoBuildPath)) {
+    if (isNullOrEmpty(jacocoBuildPath)) {
       return;
     }
 
@@ -163,7 +163,7 @@ public abstract class RestIntegTestCase extends OpenSearchSQLRestTestCase {
         .endObject()
         .endObject();
     Request request = new Request("PUT", "_cluster/settings");
-    request.setJsonEntity(Strings.toString(builder));
+    request.setJsonEntity(builder.toString());
     Response response = client().performRequest(request);
     Assert
         .assertEquals(RestStatus.OK, RestStatus.fromCode(response.getStatusLine().getStatusCode()));

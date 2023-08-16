@@ -113,8 +113,8 @@ Note that missing license header will be detected by Gradle license plugin and f
 Making Code Changes
 ===================
 
-Project Strucure
-----------------
+Project Structure
+-----------------
 
 The plugin codebase is in standard layout of Gradle project::
 
@@ -147,6 +147,7 @@ The plugin codebase is in standard layout of Gradle project::
    ├── plugin
    ├── protocol
    ├── ppl
+   ├── spark
    ├── sql
    ├── sql-cli
    ├── sql-jdbc
@@ -161,6 +162,7 @@ Here are sub-folders (Gradle modules) for plugin source code:
 - ``core``: core query engine.
 - ``opensearch``: OpenSearch storage engine.
 - ``prometheus``: Prometheus storage engine.
+- ``spark`` : Spark storage engine
 - ``protocol``: request/response protocol formatter.
 - ``common``: common util code.
 - ``integ-test``: integration and comparison test.
@@ -220,6 +222,12 @@ Most of the time you just need to run ./gradlew build which will make sure you p
      - Run all integration test (this takes time).
    * - ./gradlew build
      - Build plugin by run all tasks above (this takes time).
+   * - ./gradlew pitest
+     - Run PiTest mutation testing (see more info in `#1204 <https://github.com/opensearch-project/sql/pull/1204>`_)
+   * - ./gradlew spotlessCheck
+     - Runs Spotless to check for code style.
+   * - ./gradlew spotlessApply
+     - Automatically apply spotless code style changes.
 
 For integration test, you can use ``-Dtests.class`` “UT full path” to run a task individually. For example ``./gradlew :integ-test:integTest -Dtests.class="*QueryIT"``.
 

@@ -25,6 +25,7 @@ import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 import org.opensearch.client.Client;
+import org.opensearch.cluster.ClusterName;
 import org.opensearch.common.settings.ClusterSettings;
 import org.opensearch.rest.RestChannel;
 import org.opensearch.sql.legacy.esdomain.LocalClusterState;
@@ -62,6 +63,7 @@ public class AsyncRestExecutorTest {
     public void setUp() {
         when(client.threadPool()).thenReturn(mock(ThreadPool.class));
         when(action.getSqlRequest()).thenReturn(SqlRequest.NULL);
+        when(clusterSettings.get(ClusterName.CLUSTER_NAME_SETTING)).thenReturn(ClusterName.DEFAULT);
 
         OpenSearchSettings settings = spy(new OpenSearchSettings(clusterSettings));
         doReturn(emptyList()).when(settings).getSettings();

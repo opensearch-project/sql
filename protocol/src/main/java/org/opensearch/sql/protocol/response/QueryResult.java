@@ -9,6 +9,7 @@ package org.opensearch.sql.protocol.response;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
+import java.util.Locale;
 import java.util.Map;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
@@ -16,6 +17,7 @@ import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.data.model.ExprValueUtils;
 import org.opensearch.sql.executor.ExecutionEngine;
 import org.opensearch.sql.executor.ExecutionEngine.Schema.Column;
+import org.opensearch.sql.executor.pagination.Cursor;
 
 /**
  * Query response that encapsulates query results and isolate {@link ExprValue}
@@ -32,6 +34,12 @@ public class QueryResult implements Iterable<Object[]> {
    */
   private final Collection<ExprValue> exprValues;
 
+  @Getter
+  private final Cursor cursor;
+
+  public QueryResult(ExecutionEngine.Schema schema, Collection<ExprValue> exprValues) {
+    this(schema, exprValues, Cursor.None);
+  }
 
   /**
    * size of results.
@@ -51,7 +59,7 @@ public class QueryResult implements Iterable<Object[]> {
     Map<String, String> colNameTypes = new LinkedHashMap<>();
     schema.getColumns().forEach(column -> colNameTypes.put(
         getColumnName(column),
-        column.getExprType().typeName().toLowerCase()));
+        column.getExprType().typeName().toLowerCase(Locale.ROOT)));
     return colNameTypes;
   }
 

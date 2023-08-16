@@ -10,20 +10,21 @@ import static org.opensearch.sql.opensearch.storage.OpenSearchIndex.METADATAFIEL
 import static org.opensearch.sql.opensearch.storage.OpenSearchIndex.METADATA_FIELD_ID;
 import static org.opensearch.sql.opensearch.storage.OpenSearchIndex.METADATA_FIELD_INDEX;
 import static org.opensearch.sql.opensearch.storage.OpenSearchIndex.METADATA_FIELD_MAXSCORE;
+import static org.opensearch.sql.opensearch.storage.OpenSearchIndex.METADATA_FIELD_ROUTING;
 import static org.opensearch.sql.opensearch.storage.OpenSearchIndex.METADATA_FIELD_SCORE;
 import static org.opensearch.sql.opensearch.storage.OpenSearchIndex.METADATA_FIELD_SORT;
 
 import com.google.common.collect.ImmutableMap;
 import java.util.Arrays;
-import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.stream.Collectors;
 import lombok.EqualsAndHashCode;
 import lombok.ToString;
 import org.opensearch.action.search.SearchResponse;
+import org.opensearch.core.common.text.Text;
+import org.opensearch.search.SearchHit;
 import org.opensearch.search.SearchHits;
 import org.opensearch.search.aggregations.Aggregations;
 import org.opensearch.sql.data.model.ExprFloatValue;
@@ -57,13 +58,13 @@ public class OpenSearchResponse implements Iterable<ExprValue> {
   private final List<String> includes;
 
   /**
-   * ElasticsearchExprValueFactory used to build ExprValue from search result.
+   * OpenSearchExprValueFactory used to build ExprValue from search result.
    */
   @EqualsAndHashCode.Exclude
   private final OpenSearchExprValueFactory exprValueFactory;
 
   /**
-   * Constructor of ElasticsearchResponse.
+   * Constructor of OpenSearchResponse.
    */
   public OpenSearchResponse(SearchResponse searchResponse,
                             OpenSearchExprValueFactory exprValueFactory,
@@ -75,7 +76,7 @@ public class OpenSearchResponse implements Iterable<ExprValue> {
   }
 
   /**
-   * Constructor of ElasticsearchResponse with SearchHits.
+   * Constructor of OpenSearchResponse with SearchHits.
    */
   public OpenSearchResponse(SearchHits hits,
                             OpenSearchExprValueFactory exprValueFactory,
@@ -107,61 +108,110 @@ public class OpenSearchResponse implements Iterable<ExprValue> {
    */
   public Iterator<ExprValue> iterator() {
     if (isAggregationResponse()) {
-      return exprValueFactory.getParser().parse(aggregations).stream().map(entry -> {
-        ImmutableMap.Builder<String, ExprValue> builder = new ImmutableMap.Builder<>();
-        for (Map.Entry<String, Object> value : entry.entrySet()) {
-          builder.put(value.getKey(), exprValueFactory.construct(value.getKey(), value.getValue()));
-        }
-        return (ExprValue) ExprTupleValue.fromExprValueMap(builder.build());
-      }).iterator();
+      return handleAggregationResponse();
     } else {
-      List<String> metaDataFieldSet = includes.stream()
-          .filter(include -> METADATAFIELD_TYPE_MAP.containsKey(include))
-          .collect(Collectors.toList());
-      ExprFloatValue maxScore = Float.isNaN(hits.getMaxScore())
-          ? null : new ExprFloatValue(hits.getMaxScore());
       return Arrays.stream(hits.getHits())
           .map(hit -> {
-            String source = hit.getSourceAsString();
-            ExprValue docData = exprValueFactory.construct(source);
-
             ImmutableMap.Builder<String, ExprValue> builder = new ImmutableMap.Builder<>();
-            if (hit.getInnerHits() == null || hit.getInnerHits().isEmpty()) {
-              builder.putAll(docData.tupleValue());
-            } else {
-              Map<String, Object> rowSource = hit.getSourceAsMap();
-              builder.putAll(ExprValueUtils.tupleValue(rowSource).tupleValue());
-            }
-
-            metaDataFieldSet.forEach(metaDataField -> {
-              if (metaDataField.equals(METADATA_FIELD_INDEX)) {
-                builder.put(METADATA_FIELD_INDEX, new ExprStringValue(hit.getIndex()));
-              } else if (metaDataField.equals(METADATA_FIELD_ID)) {
-                builder.put(METADATA_FIELD_ID, new ExprStringValue(hit.getId()));
-              } else if (metaDataField.equals(METADATA_FIELD_SCORE)) {
-                if (!Float.isNaN(hit.getScore())) {
-                  builder.put(METADATA_FIELD_SCORE, new ExprFloatValue(hit.getScore()));
-                }
-              } else if (metaDataField.equals(METADATA_FIELD_MAXSCORE)) {
-                if (maxScore != null) {
-                  builder.put(METADATA_FIELD_MAXSCORE, maxScore);
-                }
-              } else { // if (metaDataField.equals(METADATA_FIELD_SORT)) {
-                builder.put(METADATA_FIELD_SORT, new ExprLongValue(hit.getSeqNo()));
-              }
-            });
-
-            if (!hit.getHighlightFields().isEmpty()) {
-              var hlBuilder = ImmutableMap.<String, ExprValue>builder();
-              for (var es : hit.getHighlightFields().entrySet()) {
-                hlBuilder.put(es.getKey(), ExprValueUtils.collectionValue(
-                    Arrays.stream(es.getValue().fragments()).map(
-                        t -> (t.toString())).collect(Collectors.toList())));
-              }
-              builder.put("_highlight", ExprTupleValue.fromExprValueMap(hlBuilder.build()));
-            }
+            addParsedHitsToBuilder(builder, hit);
+            addMetaDataFieldsToBuilder(builder, hit);
+            addHighlightsToBuilder(builder, hit);
             return (ExprValue) ExprTupleValue.fromExprValueMap(builder.build());
           }).iterator();
     }
+  }
+
+  /**
+   * Parse response for all hits to add to builder. Inner_hits supports arrays of objects
+   * with nested type.
+   * @param builder builder to build values from response.
+   * @param hit Search hit from response.
+   */
+  private void addParsedHitsToBuilder(
+      ImmutableMap.Builder<String, ExprValue> builder,
+      SearchHit hit
+  ) {
+    builder.putAll(
+        exprValueFactory.construct(
+            hit.getSourceAsString(),
+            !(hit.getInnerHits() == null || hit.getInnerHits().isEmpty())
+        ).tupleValue());
+  }
+
+  /**
+   * If highlight fields are present in response add the fields to the builder.
+   * @param builder builder to build values from response.
+   * @param hit Search hit from response.
+   */
+  private void addHighlightsToBuilder(
+      ImmutableMap.Builder<String, ExprValue> builder,
+      SearchHit hit
+  ) {
+    if (!hit.getHighlightFields().isEmpty()) {
+      var hlBuilder = ImmutableMap.<String, ExprValue>builder();
+      for (var es : hit.getHighlightFields().entrySet()) {
+        hlBuilder.put(es.getKey(), ExprValueUtils.collectionValue(
+            Arrays.stream(es.getValue().fragments()).map(
+                Text::toString).collect(Collectors.toList())));
+      }
+      builder.put("_highlight", ExprTupleValue.fromExprValueMap(hlBuilder.build()));
+    }
+  }
+
+  /**
+   * Add metadata fields to builder from response.
+   * @param builder builder to build values from response.
+   * @param hit Search hit from response.
+   */
+  private void addMetaDataFieldsToBuilder(
+      ImmutableMap.Builder<String, ExprValue> builder,
+      SearchHit hit
+  ) {
+    List<String> metaDataFieldSet = includes.stream()
+        .filter(METADATAFIELD_TYPE_MAP::containsKey)
+        .collect(Collectors.toList());
+    ExprFloatValue maxScore = Float.isNaN(hits.getMaxScore())
+        ? null : new ExprFloatValue(hits.getMaxScore());
+
+    metaDataFieldSet.forEach(metaDataField -> {
+      if (metaDataField.equals(METADATA_FIELD_INDEX)) {
+        builder.put(METADATA_FIELD_INDEX, new ExprStringValue(hit.getIndex()));
+      } else if (metaDataField.equals(METADATA_FIELD_ID)) {
+        builder.put(METADATA_FIELD_ID, new ExprStringValue(hit.getId()));
+      } else if (metaDataField.equals(METADATA_FIELD_SCORE)) {
+        if (!Float.isNaN(hit.getScore())) {
+          builder.put(METADATA_FIELD_SCORE, new ExprFloatValue(hit.getScore()));
+        }
+      } else if (metaDataField.equals(METADATA_FIELD_MAXSCORE)) {
+        if (maxScore != null) {
+          builder.put(METADATA_FIELD_MAXSCORE, maxScore);
+        }
+      } else if (metaDataField.equals(METADATA_FIELD_SORT)) {
+        builder.put(METADATA_FIELD_SORT, new ExprLongValue(hit.getSeqNo()));
+      } else { // if (metaDataField.equals(METADATA_FIELD_ROUTING)){
+        builder.put(METADATA_FIELD_ROUTING, new ExprStringValue(hit.getShard().toString()));
+      }
+    });
+  }
+
+  /**
+   * Handle an aggregation response.
+   * @return Parsed and built return values from response.
+   */
+  private Iterator<ExprValue> handleAggregationResponse() {
+    return exprValueFactory.getParser().parse(aggregations).stream().map(entry -> {
+      ImmutableMap.Builder<String, ExprValue> builder = new ImmutableMap.Builder<>();
+      for (Map.Entry<String, Object> value : entry.entrySet()) {
+        builder.put(
+            value.getKey(),
+            exprValueFactory.construct(
+                value.getKey(),
+                value.getValue(),
+                false
+            )
+        );
+      }
+      return (ExprValue) ExprTupleValue.fromExprValueMap(builder.build());
+    }).iterator();
   }
 }

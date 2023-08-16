@@ -183,7 +183,10 @@ mlArg
 fromClause
     : SOURCE EQUAL tableSourceClause
     | INDEX EQUAL tableSourceClause
+    | SOURCE EQUAL tableFunction
+    | INDEX EQUAL tableFunction
     ;
+
 
 tableSourceClause
     : tableSource (COMMA tableSource)*
@@ -284,6 +287,9 @@ valueExpression
             right=valueExpression                                   #binaryArithmetic
     | primaryExpression                                             #valueExpressionDefault
     | positionFunction                                              #positionFunctionCall
+    | extractFunction                                               #extractFunctionCall
+    | getFormatFunction                                             #getFormatFunctionCall
+    | timestampFunction                                             #timestampFunctionCall
     | LT_PRTHS valueExpression RT_PRTHS                             #parentheticValueExpr
     ;
 
@@ -512,52 +518,123 @@ dateTimeFunctionName
     : ADDDATE
     | ADDTIME
     | CONVERT_TZ
+    | CURDATE
     | CURRENT_DATE
     | CURRENT_TIME
     | CURRENT_TIMESTAMP
+    | CURTIME
     | DATE
+    | DATEDIFF
+    | DATETIME
     | DATE_ADD
     | DATE_FORMAT
     | DATE_SUB
-    | DATEDIFF
-    | DATETIME
     | DAY
     | DAYNAME
     | DAYOFMONTH
     | DAYOFWEEK
     | DAYOFYEAR
-    | CURDATE
-    | CURTIME
+    | DAY_OF_MONTH
+    | DAY_OF_WEEK
+    | DAY_OF_YEAR
     | FROM_DAYS
     | FROM_UNIXTIME
     | HOUR
+    | HOUR_OF_DAY
+    | LAST_DAY
     | LOCALTIME
     | LOCALTIMESTAMP
     | MAKEDATE
     | MAKETIME
     | MICROSECOND
     | MINUTE
+    | MINUTE_OF_DAY
+    | MINUTE_OF_HOUR
     | MONTH
     | MONTHNAME
+    | MONTH_OF_YEAR
     | NOW
     | PERIOD_ADD
     | PERIOD_DIFF
     | QUARTER
     | SECOND
+    | SECOND_OF_MINUTE
+    | SEC_TO_TIME
+    | STR_TO_DATE
     | SUBDATE
     | SUBTIME
     | SYSDATE
     | TIME
-    | TIME_TO_SEC
     | TIMEDIFF
     | TIMESTAMP
+    | TIME_FORMAT
+    | TIME_TO_SEC
     | TO_DAYS
+    | TO_SECONDS
     | UNIX_TIMESTAMP
     | UTC_DATE
     | UTC_TIME
     | UTC_TIMESTAMP
     | WEEK
+    | WEEKDAY
+    | WEEK_OF_YEAR
     | YEAR
+    | YEARWEEK
+    ;
+
+getFormatFunction
+    : GET_FORMAT LT_PRTHS getFormatType COMMA functionArg RT_PRTHS
+    ;
+
+getFormatType
+    : DATE
+    | DATETIME
+    | TIME
+    | TIMESTAMP
+    ;
+
+extractFunction
+    : EXTRACT LT_PRTHS datetimePart FROM functionArg RT_PRTHS
+    ;
+
+simpleDateTimePart
+    : MICROSECOND
+    | SECOND
+    | MINUTE
+    | HOUR
+    | DAY
+    | WEEK
+    | MONTH
+    | QUARTER
+    | YEAR
+    ;
+
+complexDateTimePart
+    : SECOND_MICROSECOND
+    | MINUTE_MICROSECOND
+    | MINUTE_SECOND
+    | HOUR_MICROSECOND
+    | HOUR_SECOND
+    | HOUR_MINUTE
+    | DAY_MICROSECOND
+    | DAY_SECOND
+    | DAY_MINUTE
+    | DAY_HOUR
+    | YEAR_MONTH
+    ;
+
+datetimePart
+    : simpleDateTimePart
+    | complexDateTimePart
+    ;
+
+timestampFunction
+    : timestampFunctionName LT_PRTHS simpleDateTimePart COMMA firstArg=functionArg COMMA secondArg=functionArg RT_PRTHS
+    ;
+
+timestampFunctionName
+    : TIMESTAMPADD
+    | TIMESTAMPDIFF
     ;
 
 /** condition function return boolean value */

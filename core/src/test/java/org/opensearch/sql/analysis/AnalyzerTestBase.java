@@ -70,7 +70,7 @@ public class AnalyzerTestBase {
                   FunctionSignature unresolvedSignature) {
                 FunctionName functionName = FunctionName.of("query_range");
                 FunctionSignature functionSignature =
-                    new FunctionSignature(functionName, List.of(STRING, LONG, LONG, LONG));
+                    new FunctionSignature(functionName, List.of(STRING, LONG, LONG, STRING));
                 return Pair.of(
                     functionSignature,
                     (functionProperties, args) ->

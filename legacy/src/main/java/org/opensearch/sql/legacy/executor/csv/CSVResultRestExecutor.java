@@ -12,7 +12,7 @@ import java.util.Map;
 import org.opensearch.client.Client;
 import org.opensearch.rest.BytesRestResponse;
 import org.opensearch.rest.RestChannel;
-import org.opensearch.rest.RestStatus;
+import org.opensearch.core.rest.RestStatus;
 import org.opensearch.sql.legacy.executor.QueryActionElasticExecutor;
 import org.opensearch.sql.legacy.executor.RestExecutor;
 import org.opensearch.sql.legacy.query.QueryAction;

@@ -55,7 +55,9 @@ import org.opensearch.sql.planner.physical.PhysicalPlan;
 import org.opensearch.sql.planner.physical.ProjectOperator;
 import org.opensearch.sql.prometheus.client.PrometheusClient;
 import org.opensearch.sql.prometheus.constants.TestConstants;
+import org.opensearch.sql.prometheus.functions.scan.QueryRangeFunctionTableScanBuilder;
 import org.opensearch.sql.prometheus.request.PrometheusQueryRequest;
+import org.opensearch.sql.storage.read.TableScanBuilder;
 
 @ExtendWith(MockitoExtension.class)
 class PrometheusMetricTableTest {
@@ -107,32 +109,6 @@ class PrometheusMetricTableTest {
     verifyNoMoreInteractions(client);
     assertNotNull(prometheusMetricTable.getPrometheusQueryRequest());
     assertNull(prometheusMetricTable.getMetricName());
-  }
-
-  @Test
-  void testImplementWithQueryRangeFunction() {
-    PrometheusQueryRequest prometheusQueryRequest = new PrometheusQueryRequest();
-    prometheusQueryRequest.setPromQl("test");
-    prometheusQueryRequest.setStep("15m");
-    PrometheusMetricTable prometheusMetricTable =
-        new PrometheusMetricTable(client, prometheusQueryRequest);
-    List<NamedExpression> finalProjectList = new ArrayList<>();
-    finalProjectList.add(DSL.named(VALUE, DSL.ref(VALUE, STRING)));
-    finalProjectList.add(DSL.named(TIMESTAMP, DSL.ref(TIMESTAMP, ExprCoreType.TIMESTAMP)));
-    PhysicalPlan plan = prometheusMetricTable.implement(
-        project(relation("query_range", prometheusMetricTable),
-            finalProjectList, null));
-
-
-    assertTrue(plan instanceof ProjectOperator);
-    List<NamedExpression> projectList = ((ProjectOperator) plan).getProjectList();
-    List<String> outputFields
-        = projectList.stream().map(NamedExpression::getName).collect(Collectors.toList());
-    assertEquals(List.of(VALUE, TIMESTAMP), outputFields);
-    assertTrue(((ProjectOperator) plan).getInput() instanceof PrometheusMetricScan);
-    PrometheusMetricScan prometheusMetricScan =
-        (PrometheusMetricScan) ((ProjectOperator) plan).getInput();
-    assertEquals(prometheusQueryRequest, prometheusMetricScan.getRequest());
   }
 
   @Test
@@ -900,5 +876,24 @@ class PrometheusMetricTableTest {
   }
 
 
+  @Test
+  void testCreateScanBuilderWithQueryRangeTableFunction() {
+    PrometheusQueryRequest prometheusQueryRequest = new PrometheusQueryRequest();
+    prometheusQueryRequest.setPromQl("test");
+    prometheusQueryRequest.setStep("15m");
+    PrometheusMetricTable prometheusMetricTable =
+        new PrometheusMetricTable(client, prometheusQueryRequest);
+    TableScanBuilder tableScanBuilder = prometheusMetricTable.createScanBuilder();
+    Assertions.assertNotNull(tableScanBuilder);
+    Assertions.assertTrue(tableScanBuilder instanceof QueryRangeFunctionTableScanBuilder);
+  }
+
+  @Test
+  void testCreateScanBuilderWithPPLQuery() {
+    PrometheusMetricTable prometheusMetricTable =
+        new PrometheusMetricTable(client, TestConstants.METRIC_NAME);
+    TableScanBuilder tableScanBuilder = prometheusMetricTable.createScanBuilder();
+    Assertions.assertNull(tableScanBuilder);
+  }
 
 }

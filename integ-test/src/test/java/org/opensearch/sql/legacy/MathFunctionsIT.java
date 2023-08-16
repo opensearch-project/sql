@@ -11,12 +11,12 @@ import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.greaterThanOrEqualTo;
 
+import com.fasterxml.jackson.core.JsonFactory;
 import java.io.IOException;
 import org.junit.Test;
 import org.opensearch.action.search.SearchResponse;
 import org.opensearch.common.xcontent.LoggingDeprecationHandler;
-import org.opensearch.common.xcontent.XContentFactory;
-import org.opensearch.common.xcontent.XContentType;
+import org.opensearch.common.xcontent.json.JsonXContentParser;
 import org.opensearch.core.xcontent.NamedXContentRegistry;
 import org.opensearch.core.xcontent.XContentParser;
 import org.opensearch.search.SearchHit;
@@ -238,10 +238,10 @@ public class MathFunctionsIT extends SQLIntegTestCase {
     final String response =
         executeQueryWithStringOutput(select + " " + FROM + " " + String.join(" ", statements));
 
-    final XContentParser parser = XContentFactory.xContent(XContentType.JSON).createParser(
+    final XContentParser parser = new JsonXContentParser(
         NamedXContentRegistry.EMPTY,
         LoggingDeprecationHandler.INSTANCE,
-        response);
+        new JsonFactory().createParser(response));
     return SearchResponse.fromXContent(parser).getHits().getHits();
   }
 

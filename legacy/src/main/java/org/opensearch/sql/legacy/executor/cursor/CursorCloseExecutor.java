@@ -6,7 +6,7 @@
 
 package org.opensearch.sql.legacy.executor.cursor;
 
-import static org.opensearch.rest.RestStatus.OK;
+import static org.opensearch.core.rest.RestStatus.OK;
 
 import java.util.Map;
 import org.apache.logging.log4j.LogManager;

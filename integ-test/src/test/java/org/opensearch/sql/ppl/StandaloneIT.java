@@ -41,28 +41,29 @@ import org.opensearch.sql.executor.ExecutionEngine.QueryResponse;
 import org.opensearch.sql.executor.QueryManager;
 import org.opensearch.sql.executor.QueryService;
 import org.opensearch.sql.executor.execution.QueryPlanFactory;
+import org.opensearch.sql.executor.pagination.PlanSerializer;
 import org.opensearch.sql.expression.function.BuiltinFunctionRepository;
 import org.opensearch.sql.monitor.AlwaysHealthyMonitor;
 import org.opensearch.sql.monitor.ResourceMonitor;
-import org.opensearch.sql.opensearch.client.OpenSearchClient;
-import org.opensearch.sql.opensearch.client.OpenSearchRestClient;
 import org.opensearch.sql.opensearch.executor.OpenSearchExecutionEngine;
 import org.opensearch.sql.opensearch.executor.protector.ExecutionProtector;
 import org.opensearch.sql.opensearch.executor.protector.OpenSearchExecutionProtector;
-import org.opensearch.sql.opensearch.security.SecurityAccess;
-import org.opensearch.sql.opensearch.storage.OpenSearchDataSourceFactory;
 import org.opensearch.sql.opensearch.storage.OpenSearchStorageEngine;
 import org.opensearch.sql.planner.Planner;
 import org.opensearch.sql.planner.optimizer.LogicalPlanOptimizer;
 import org.opensearch.sql.ppl.antlr.PPLSyntaxParser;
+import org.opensearch.sql.sql.SQLService;
+import org.opensearch.sql.sql.antlr.SQLSyntaxParser;
+import org.opensearch.sql.storage.StorageEngine;
+import org.opensearch.sql.util.ExecuteOnCallerThreadQueryManager;
+import org.opensearch.sql.opensearch.client.OpenSearchClient;
+import org.opensearch.sql.opensearch.client.OpenSearchRestClient;
+import org.opensearch.sql.opensearch.security.SecurityAccess;
+import org.opensearch.sql.opensearch.storage.OpenSearchDataSourceFactory;
 import org.opensearch.sql.ppl.domain.PPLQueryRequest;
 import org.opensearch.sql.protocol.response.QueryResult;
 import org.opensearch.sql.protocol.response.format.SimpleJsonResponseFormatter;
-import org.opensearch.sql.sql.SQLService;
-import org.opensearch.sql.sql.antlr.SQLSyntaxParser;
 import org.opensearch.sql.storage.DataSourceFactory;
-import org.opensearch.sql.storage.StorageEngine;
-import org.opensearch.sql.util.ExecuteOnCallerThreadQueryManager;
 
 /**
  * Run PPL with query engine outside OpenSearch cluster. This IT doesn't require our plugin
@@ -71,13 +72,11 @@ import org.opensearch.sql.util.ExecuteOnCallerThreadQueryManager;
  */
 public class StandaloneIT extends PPLIntegTestCase {
 
-  private RestHighLevelClient restClient;
-
   private PPLService pplService;
 
   @Override
   public void init() {
-    restClient = new InternalRestHighLevelClient(client());
+    RestHighLevelClient restClient = new InternalRestHighLevelClient(client());
     OpenSearchClient client = new OpenSearchRestClient(restClient);
     DataSourceService dataSourceService = new DataSourceServiceImpl(
         new ImmutableSet.Builder<DataSourceFactory>()
@@ -198,8 +197,9 @@ public class StandaloneIT extends PPLIntegTestCase {
     }
 
     @Provides
-    public ExecutionEngine executionEngine(OpenSearchClient client, ExecutionProtector protector) {
-      return new OpenSearchExecutionEngine(client, protector);
+    public ExecutionEngine executionEngine(OpenSearchClient client, ExecutionProtector protector,
+                                           PlanSerializer planSerializer) {
+      return new OpenSearchExecutionEngine(client, protector, planSerializer);
     }
 
     @Provides
@@ -229,17 +229,22 @@ public class StandaloneIT extends PPLIntegTestCase {
     }
 
     @Provides
+    public PlanSerializer planSerializer(StorageEngine storageEngine) {
+      return new PlanSerializer(storageEngine);
+    }
+
+    @Provides
     public QueryPlanFactory queryPlanFactory(ExecutionEngine executionEngine) {
       Analyzer analyzer =
           new Analyzer(
               new ExpressionAnalyzer(functionRepository), dataSourceService, functionRepository);
       Planner planner = new Planner(LogicalPlanOptimizer.create());
-      return new QueryPlanFactory(new QueryService(analyzer, executionEngine, planner));
+      QueryService queryService = new QueryService(analyzer, executionEngine, planner);
+      return new QueryPlanFactory(queryService);
     }
   }
 
-
-  private DataSourceMetadataStorage getDataSourceMetadataStorage() {
+  public static DataSourceMetadataStorage getDataSourceMetadataStorage() {
     return new DataSourceMetadataStorage() {
       @Override
       public List<DataSourceMetadata> getDataSourceMetadata() {
@@ -268,7 +273,7 @@ public class StandaloneIT extends PPLIntegTestCase {
     };
   }
 
-  private DataSourceUserAuthorizationHelper getDataSourceUserRoleHelper() {
+  public static DataSourceUserAuthorizationHelper getDataSourceUserRoleHelper() {
     return new DataSourceUserAuthorizationHelper() {
       @Override
       public void authorizeDataSource(DataSourceMetadata dataSourceMetadata) {
@@ -276,5 +281,4 @@ public class StandaloneIT extends PPLIntegTestCase {
       }
     };
   }
-
 }

@@ -65,7 +65,7 @@ public class Cast extends UnresolvedExpression {
   private final UnresolvedExpression expression;
 
   /**
-   * Expression that represents ELSE statement result.
+   * Expression that represents name of the target type.
    */
   private final UnresolvedExpression convertedType;
 

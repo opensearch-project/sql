@@ -3,12 +3,15 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-
 package org.opensearch.sql.planner;
 
 import static java.util.Collections.emptyList;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 import static org.opensearch.sql.data.type.ExprCoreType.INTEGER;
 import static org.opensearch.sql.data.type.ExprCoreType.STRING;
 import static org.opensearch.sql.expression.DSL.literal;
@@ -35,15 +38,17 @@ import java.util.Map;
 import java.util.Set;
 import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.apache.commons.lang3.tuple.Pair;
+import org.junit.jupiter.api.DisplayNameGeneration;
+import org.junit.jupiter.api.DisplayNameGenerator;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
-import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.opensearch.sql.ast.tree.RareTopN.CommandType;
 import org.opensearch.sql.ast.tree.Sort;
 import org.opensearch.sql.data.model.ExprBooleanValue;
 import org.opensearch.sql.data.type.ExprCoreType;
+import org.opensearch.sql.executor.pagination.PlanSerializer;
 import org.opensearch.sql.expression.DSL;
 import org.opensearch.sql.expression.Expression;
 import org.opensearch.sql.expression.NamedExpression;
@@ -52,28 +57,29 @@ import org.opensearch.sql.expression.aggregation.AvgAggregator;
 import org.opensearch.sql.expression.aggregation.NamedAggregator;
 import org.opensearch.sql.expression.window.WindowDefinition;
 import org.opensearch.sql.expression.window.ranking.RowNumberFunction;
+import org.opensearch.sql.planner.logical.LogicalCloseCursor;
+import org.opensearch.sql.planner.logical.LogicalPaginate;
 import org.opensearch.sql.planner.logical.LogicalPlan;
 import org.opensearch.sql.planner.logical.LogicalPlanDSL;
+import org.opensearch.sql.planner.logical.LogicalProject;
 import org.opensearch.sql.planner.logical.LogicalRelation;
+import org.opensearch.sql.planner.logical.LogicalValues;
+import org.opensearch.sql.planner.physical.CursorCloseOperator;
 import org.opensearch.sql.planner.physical.PhysicalPlan;
 import org.opensearch.sql.planner.physical.PhysicalPlanDSL;
+import org.opensearch.sql.planner.physical.ProjectOperator;
+import org.opensearch.sql.planner.physical.ValuesOperator;
+import org.opensearch.sql.storage.StorageEngine;
 import org.opensearch.sql.storage.Table;
 import org.opensearch.sql.storage.TableScanOperator;
 import org.opensearch.sql.storage.read.TableScanBuilder;
 import org.opensearch.sql.storage.write.TableWriteBuilder;
 import org.opensearch.sql.storage.write.TableWriteOperator;
+import org.opensearch.sql.utils.TestOperator;
 
 @ExtendWith(MockitoExtension.class)
+@DisplayNameGeneration(DisplayNameGenerator.ReplaceUnderscores.class)
 class DefaultImplementorTest {
-
-  @Mock
-  private Expression filter;
-
-  @Mock
-  private NamedAggregator aggregator;
-
-  @Mock
-  private NamedExpression groupBy;
 
   @Mock
   private Table table;
@@ -81,7 +87,7 @@ class DefaultImplementorTest {
   private final DefaultImplementor<Object> implementor = new DefaultImplementor<>();
 
   @Test
-  public void visitShouldReturnDefaultPhysicalOperator() {
+  public void visit_should_return_default_physical_operator() {
     String indexName = "test";
     NamedExpression include = named("age", ref("age", INTEGER));
     ReferenceExpression exclude = ref("name", STRING);
@@ -181,14 +187,14 @@ class DefaultImplementorTest {
   }
 
   @Test
-  public void visitRelationShouldThrowException() {
+  public void visitRelation_should_throw_an_exception() {
     assertThrows(UnsupportedOperationException.class,
         () -> new LogicalRelation("test", table).accept(implementor, null));
   }
 
   @SuppressWarnings({"rawtypes", "unchecked"})
   @Test
-  public void visitWindowOperatorShouldReturnPhysicalWindowOperator() {
+  public void visitWindowOperator_should_return_PhysicalWindowOperator() {
     NamedExpression windowFunction = named(new RowNumberFunction());
     WindowDefinition windowDefinition = new WindowDefinition(
         Collections.singletonList(ref("state", STRING)),
@@ -228,8 +234,18 @@ class DefaultImplementorTest {
   }
 
   @Test
-  public void visitTableScanBuilderShouldBuildTableScanOperator() {
-    TableScanOperator tableScanOperator = Mockito.mock(TableScanOperator.class);
+  void visitLogicalCursor_deserializes_it() {
+    var engine = mock(StorageEngine.class);
+
+    var physicalPlan = new TestOperator();
+    var logicalPlan = LogicalPlanDSL.fetchCursor(new PlanSerializer(engine)
+        .convertToCursor(physicalPlan).toString(), engine);
+    assertEquals(physicalPlan, logicalPlan.accept(implementor, null));
+  }
+
+  @Test
+  public void visitTableScanBuilder_should_build_TableScanOperator() {
+    TableScanOperator tableScanOperator = mock(TableScanOperator.class);
     TableScanBuilder tableScanBuilder = new TableScanBuilder() {
       @Override
       public TableScanOperator build() {
@@ -240,9 +256,9 @@ class DefaultImplementorTest {
   }
 
   @Test
-  public void visitTableWriteBuilderShouldBuildTableWriteOperator() {
+  public void visitTableWriteBuilder_should_build_TableWriteOperator() {
     LogicalPlan child = values();
-    TableWriteOperator tableWriteOperator = Mockito.mock(TableWriteOperator.class);
+    TableWriteOperator tableWriteOperator = mock(TableWriteOperator.class);
     TableWriteBuilder logicalPlan = new TableWriteBuilder(child) {
       @Override
       public TableWriteOperator build(PhysicalPlan child) {
@@ -250,5 +266,26 @@ class DefaultImplementorTest {
       }
     };
     assertEquals(tableWriteOperator, logicalPlan.accept(implementor, null));
+  }
+
+  @Test
+  public void visitCloseCursor_should_build_CursorCloseOperator() {
+    var logicalChild = mock(LogicalPlan.class);
+    var physicalChild = mock(PhysicalPlan.class);
+    when(logicalChild.accept(implementor, null)).thenReturn(physicalChild);
+    var logicalPlan = new LogicalCloseCursor(logicalChild);
+    var implemented = logicalPlan.accept(implementor, null);
+    assertTrue(implemented instanceof CursorCloseOperator);
+    assertSame(physicalChild, implemented.getChild().get(0));
+  }
+
+  @Test
+  public void visitPaginate_should_remove_it_from_tree() {
+    var logicalPlanTree = new LogicalPaginate(42, List.of(
+        new LogicalProject(
+            new LogicalValues(List.of(List.of())), List.of(), List.of())));
+    var physicalPlanTree = new ProjectOperator(
+        new ValuesOperator(List.of(List.of())), List.of(), List.of());
+    assertEquals(physicalPlanTree, logicalPlanTree.accept(implementor, null));
   }
 }

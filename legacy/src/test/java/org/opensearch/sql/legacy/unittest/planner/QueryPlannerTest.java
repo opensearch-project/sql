@@ -32,15 +32,15 @@ import org.mockito.Mockito;
 import org.mockito.MockitoAnnotations;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
-import org.opensearch.action.ActionFuture;
 import org.opensearch.action.search.ClearScrollRequestBuilder;
 import org.opensearch.action.search.ClearScrollResponse;
 import org.opensearch.action.search.SearchResponse;
 import org.opensearch.action.search.SearchScrollRequestBuilder;
 import org.opensearch.client.Client;
-import org.opensearch.common.bytes.BytesArray;
+import org.opensearch.cluster.ClusterName;
+import org.opensearch.common.action.ActionFuture;
+import org.opensearch.core.common.bytes.BytesArray;
 import org.opensearch.common.settings.ClusterSettings;
-import org.opensearch.common.settings.Settings;
 import org.opensearch.common.unit.TimeValue;
 import org.opensearch.search.SearchHit;
 import org.opensearch.search.SearchHits;
@@ -105,8 +105,9 @@ public abstract class QueryPlannerTest {
     @Before
     public void init() {
         MockitoAnnotations.initMocks(this);
-
+        when(clusterSettings.get(ClusterName.CLUSTER_NAME_SETTING)).thenReturn(ClusterName.DEFAULT);
         OpenSearchSettings settings = spy(new OpenSearchSettings(clusterSettings));
+
         // Force return empty list to avoid ClusterSettings be invoked which is a final class and hard to mock.
         // In this case, default value in Setting will be returned all the time.
         doReturn(emptyList()).when(settings).getSettings();

@@ -6,10 +6,8 @@
 
 package org.opensearch.sql.opensearch.client;
 
-import com.carrotsearch.hppc.cursors.ObjectObjectCursor;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.Streams;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
@@ -43,7 +41,7 @@ public class OpenSearchNodeClient implements OpenSearchClient {
   private final NodeClient client;
 
   /**
-   * Constructor of ElasticsearchNodeClient.
+   * Constructor of OpenSearchNodeClient.
    */
   public OpenSearchNodeClient(NodeClient client) {
     this.client = client;
@@ -89,9 +87,9 @@ public class OpenSearchNodeClient implements OpenSearchClient {
           .prepareGetMappings(indexExpression)
           .setLocal(true)
           .get();
-      return Streams.stream(mappingsResponse.mappings().iterator())
-          .collect(Collectors.toMap(cursor -> cursor.key,
-              cursor -> new IndexMapping(cursor.value)));
+      return mappingsResponse.mappings().entrySet().stream().collect(Collectors.toUnmodifiableMap(
+              Map.Entry::getKey,
+              cursor -> new IndexMapping(cursor.getValue())));
     } catch (IndexNotFoundException e) {
       // Re-throw directly to be treated as client error finally
       throw e;
@@ -113,11 +111,11 @@ public class OpenSearchNodeClient implements OpenSearchClient {
       GetSettingsResponse settingsResponse =
           client.admin().indices().prepareGetSettings(indexExpression).setLocal(true).get();
       ImmutableMap.Builder<String, Integer> result = ImmutableMap.builder();
-      for (ObjectObjectCursor<String, Settings> indexToSetting :
-          settingsResponse.getIndexToSettings()) {
-        Settings settings = indexToSetting.value;
+      for (Map.Entry<String, Settings> indexToSetting :
+          settingsResponse.getIndexToSettings().entrySet()) {
+        Settings settings = indexToSetting.getValue();
         result.put(
-            indexToSetting.key,
+            indexToSetting.getKey(),
             settings.getAsInt(
                 IndexSettings.MAX_RESULT_WINDOW_SETTING.getKey(),
                 IndexSettings.MAX_RESULT_WINDOW_SETTING.getDefault(settings)));
@@ -152,7 +150,7 @@ public class OpenSearchNodeClient implements OpenSearchClient {
         .setLocal(true)
         .get();
     final Stream<String> aliasStream =
-        ImmutableList.copyOf(indexResponse.aliases().valuesIt()).stream()
+        ImmutableList.copyOf(indexResponse.aliases().values()).stream()
             .flatMap(Collection::stream).map(AliasMetadata::alias);
 
     return Stream.concat(Arrays.stream(indexResponse.getIndices()), aliasStream)
@@ -172,7 +170,14 @@ public class OpenSearchNodeClient implements OpenSearchClient {
 
   @Override
   public void cleanup(OpenSearchRequest request) {
-    request.clean(scrollId -> client.prepareClearScroll().addScrollId(scrollId).get());
+    request.clean(scrollId -> {
+      try {
+        client.prepareClearScroll().addScrollId(scrollId).get();
+      } catch (Exception e) {
+        throw new IllegalStateException(
+            "Failed to clean up resources for search request " + request, e);
+      }
+    });
   }
 
   @Override

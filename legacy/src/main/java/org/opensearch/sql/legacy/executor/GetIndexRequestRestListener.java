@@ -6,26 +6,22 @@
 
 package org.opensearch.sql.legacy.executor;
 
-import com.carrotsearch.hppc.cursors.ObjectObjectCursor;
 import java.io.IOException;
 import java.util.List;
-import java.util.Map;
 
 import org.opensearch.action.admin.indices.get.GetIndexRequest;
 import org.opensearch.action.admin.indices.get.GetIndexResponse;
 import org.opensearch.cluster.metadata.AliasMetadata;
 import org.opensearch.cluster.metadata.MappingMetadata;
-import org.opensearch.common.collect.ImmutableOpenMap;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.core.xcontent.ToXContent;
 import org.opensearch.core.xcontent.XContentBuilder;
 import org.opensearch.rest.BytesRestResponse;
 import org.opensearch.rest.RestChannel;
 import org.opensearch.rest.RestResponse;
-import org.opensearch.rest.RestStatus;
+import org.opensearch.core.rest.RestStatus;
 import org.opensearch.rest.action.RestBuilderListener;
 import org.opensearch.sql.legacy.antlr.semantic.SemanticAnalysisException;
-import org.opensearch.sql.legacy.domain.Field;
 
 /**
  * Created by Eliran on 6/10/2015.

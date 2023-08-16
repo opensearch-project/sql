@@ -39,6 +39,7 @@ import org.opensearch.sql.ast.dsl.AstDSL;
 import org.opensearch.sql.ast.expression.AllFields;
 import org.opensearch.sql.ast.expression.DataType;
 import org.opensearch.sql.ast.expression.Literal;
+import org.opensearch.sql.ast.expression.NestedAllTupleFields;
 import org.opensearch.sql.common.antlr.SyntaxCheckException;
 
 class AstBuilderTest extends AstBuilderTestBase {
@@ -84,6 +85,19 @@ class AstBuilderTest extends AstBuilderTestBase {
     );
 
     assertThrows(SyntaxCheckException.class, () -> buildAST("SELECT *"));
+  }
+
+  @Test
+  public void can_build_nested_select_all() {
+    assertEquals(
+        project(
+            relation("test"),
+            alias("nested(field.*)",
+                new NestedAllTupleFields("field")
+            )
+        ),
+        buildAST("SELECT nested(field.*) FROM test")
+    );
   }
 
   @Test
@@ -463,17 +477,17 @@ class AstBuilderTest extends AstBuilderTestBase {
   }
 
   /**
-   * Ensure Nested function falls back to legacy engine when used in an ORDER BY clause.
+   * Ensure Nested function falls back to legacy engine when used in an HAVING clause.
    * TODO Remove this test when support is added.
    */
   @Test
-  public void nested_in_order_by_clause_throws_exception() {
+  public void nested_in_having_clause_throws_exception() {
     SyntaxCheckException exception = assertThrows(SyntaxCheckException.class,
-        () -> buildAST("SELECT * FROM test ORDER BY nested(message.info)")
+        () -> buildAST("SELECT count(*) FROM test HAVING nested(message.info)")
     );
 
     assertEquals(
-        "Falling back to legacy engine. Nested function is not supported in ORDER BY clause.",
+        "Falling back to legacy engine. Nested function is not supported in the HAVING clause.",
         exception.getMessage());
   }
 

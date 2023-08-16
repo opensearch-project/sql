@@ -8,6 +8,11 @@ package org.opensearch.sql.prometheus.response;
 import static org.opensearch.sql.data.type.ExprCoreType.INTEGER;
 import static org.opensearch.sql.data.type.ExprCoreType.LONG;
 import static org.opensearch.sql.prometheus.data.constants.PrometheusFieldConstants.LABELS;
+import static org.opensearch.sql.prometheus.data.constants.PrometheusFieldConstants.MATRIX_KEY;
+import static org.opensearch.sql.prometheus.data.constants.PrometheusFieldConstants.METRIC_KEY;
+import static org.opensearch.sql.prometheus.data.constants.PrometheusFieldConstants.RESULT_KEY;
+import static org.opensearch.sql.prometheus.data.constants.PrometheusFieldConstants.RESULT_TYPE_KEY;
+import static org.opensearch.sql.prometheus.data.constants.PrometheusFieldConstants.VALUES_KEY;
 
 import java.time.Instant;
 import java.util.ArrayList;
@@ -15,7 +20,6 @@ import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import lombok.NonNull;
-import org.apache.commons.lang3.StringUtils;
 import org.json.JSONArray;
 import org.json.JSONObject;
 import org.opensearch.sql.data.model.ExprDoubleValue;
@@ -36,8 +40,6 @@ public class PrometheusResponse implements Iterable<ExprValue> {
 
   private final PrometheusResponseFieldNames prometheusResponseFieldNames;
 
-  private final Boolean isQueryRangeFunctionScan;
-
   /**
    * Constructor.
    *
@@ -47,23 +49,21 @@ public class PrometheusResponse implements Iterable<ExprValue> {
    *                                     and timestamp fieldName.
    */
   public PrometheusResponse(JSONObject responseObject,
-                            PrometheusResponseFieldNames prometheusResponseFieldNames,
-                            Boolean isQueryRangeFunctionScan) {
+                            PrometheusResponseFieldNames prometheusResponseFieldNames) {
     this.responseObject = responseObject;
     this.prometheusResponseFieldNames = prometheusResponseFieldNames;
-    this.isQueryRangeFunctionScan = isQueryRangeFunctionScan;
   }
 
   @NonNull
   @Override
   public Iterator<ExprValue> iterator() {
     List<ExprValue> result = new ArrayList<>();
-    if ("matrix".equals(responseObject.getString("resultType"))) {
-      JSONArray itemArray = responseObject.getJSONArray("result");
+    if (MATRIX_KEY.equals(responseObject.getString(RESULT_TYPE_KEY))) {
+      JSONArray itemArray = responseObject.getJSONArray(RESULT_KEY);
       for (int i = 0; i < itemArray.length(); i++) {
         JSONObject item = itemArray.getJSONObject(i);
-        JSONObject metric = item.getJSONObject("metric");
-        JSONArray values = item.getJSONArray("values");
+        JSONObject metric = item.getJSONObject(METRIC_KEY);
+        JSONArray values = item.getJSONArray(VALUES_KEY);
         for (int j = 0; j < values.length(); j++) {
           LinkedHashMap<String, ExprValue> linkedHashMap = new LinkedHashMap<>();
           JSONArray val = values.getJSONArray(j);
@@ -71,31 +71,14 @@ public class PrometheusResponse implements Iterable<ExprValue> {
               new ExprTimestampValue(Instant.ofEpochMilli((long) (val.getDouble(0) * 1000))));
           linkedHashMap.put(prometheusResponseFieldNames.getValueFieldName(), getValue(val, 1,
               prometheusResponseFieldNames.getValueType()));
-          // Concept:
-          // {\"instance\":\"localhost:9090\",\"__name__\":\"up\",\"job\":\"prometheus\"}"
-          // This is the label string in the prometheus response.
-          // Q: how do we map this to columns in a table.
-          // For queries like source = prometheus.metric_name | ....
-          // we can get the labels list in prior as we know which metric we are working on.
-          // In case of commands  like source = prometheus.query_range('promQL');
-          // Any arbitrary command can be written and we don't know the labels
-          // in the prometheus response in prior.
-          // So for PPL like commands...output structure is @value, @timestamp
-          // and each label is treated as a separate column where as in case of query_range
-          // function irrespective of promQL, the output structure is
-          // @value, @timestamp, @labels [jsonfied string of all the labels for a data point]
-          if (isQueryRangeFunctionScan) {
-            linkedHashMap.put(LABELS, new ExprStringValue(metric.toString()));
-          } else {
-            insertLabels(linkedHashMap, metric);
-          }
+          insertLabels(linkedHashMap, metric);
           result.add(new ExprTupleValue(linkedHashMap));
         }
       }
     } else {
       throw new RuntimeException(String.format("Unexpected Result Type: %s during Prometheus "
               + "Response Parsing. 'matrix' resultType is expected",
-          responseObject.getString("resultType")));
+          responseObject.getString(RESULT_TYPE_KEY)));
     }
     return result.iterator();
   }

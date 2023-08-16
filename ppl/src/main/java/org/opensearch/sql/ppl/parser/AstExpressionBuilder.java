@@ -6,7 +6,6 @@
 
 package org.opensearch.sql.ppl.parser;
 
-import static org.opensearch.sql.ast.dsl.AstDSL.qualifiedName;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.IS_NOT_NULL;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.IS_NULL;
 import static org.opensearch.sql.expression.function.BuiltinFunctionName.POSITION;
@@ -182,7 +181,7 @@ public class AstExpressionBuilder extends OpenSearchPPLParserBaseVisitor<Unresol
   @Override
   public UnresolvedExpression visitSortField(SortFieldContext ctx) {
     return new Field(
-        qualifiedName(ctx.sortFieldExpression().fieldExpression().getText()),
+        visit(ctx.sortFieldExpression().fieldExpression().qualifiedName()),
         ArgumentFactory.getArgumentList(ctx)
     );
   }
@@ -296,6 +295,60 @@ public class AstExpressionBuilder extends OpenSearchPPLParserBaseVisitor<Unresol
             POSITION.getName().getFunctionName(),
             Arrays.asList(visitFunctionArg(ctx.functionArg(0)),
                     visitFunctionArg(ctx.functionArg(1))));
+  }
+
+  @Override
+  public UnresolvedExpression visitExtractFunctionCall(
+          OpenSearchPPLParser.ExtractFunctionCallContext ctx) {
+    return new Function(
+            ctx.extractFunction().EXTRACT().toString(),
+            getExtractFunctionArguments(ctx));
+  }
+
+  private List<UnresolvedExpression> getExtractFunctionArguments(
+          OpenSearchPPLParser.ExtractFunctionCallContext ctx) {
+    List<UnresolvedExpression> args = Arrays.asList(
+            new Literal(ctx.extractFunction().datetimePart().getText(), DataType.STRING),
+            visitFunctionArg(ctx.extractFunction().functionArg())
+    );
+    return args;
+  }
+
+  @Override
+  public UnresolvedExpression visitGetFormatFunctionCall(
+          OpenSearchPPLParser.GetFormatFunctionCallContext ctx) {
+    return new Function(
+            ctx.getFormatFunction().GET_FORMAT().toString(),
+            getFormatFunctionArguments(ctx));
+  }
+
+  private List<UnresolvedExpression> getFormatFunctionArguments(
+          OpenSearchPPLParser.GetFormatFunctionCallContext ctx) {
+    List<UnresolvedExpression> args = Arrays.asList(
+            new Literal(ctx.getFormatFunction().getFormatType().getText(), DataType.STRING),
+            visitFunctionArg(ctx.getFormatFunction().functionArg())
+    );
+    return args;
+  }
+
+  @Override
+  public UnresolvedExpression visitTimestampFunctionCall(
+          OpenSearchPPLParser.TimestampFunctionCallContext ctx) {
+    return new Function(
+            ctx.timestampFunction().timestampFunctionName().getText(),
+            timestampFunctionArguments(ctx));
+  }
+
+  private List<UnresolvedExpression> timestampFunctionArguments(
+          OpenSearchPPLParser.TimestampFunctionCallContext ctx) {
+    List<UnresolvedExpression> args = Arrays.asList(
+            new Literal(
+                    ctx.timestampFunction().simpleDateTimePart().getText(),
+                    DataType.STRING),
+            visitFunctionArg(ctx.timestampFunction().firstArg),
+            visitFunctionArg(ctx.timestampFunction().secondArg)
+    );
+    return args;
   }
 
   /**

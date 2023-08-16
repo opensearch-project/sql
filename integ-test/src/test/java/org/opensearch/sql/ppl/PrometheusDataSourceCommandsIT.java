@@ -7,22 +7,28 @@
 
 package org.opensearch.sql.ppl;
 
+import static org.opensearch.sql.prometheus.data.constants.PrometheusFieldConstants.LABELS;
 import static org.opensearch.sql.prometheus.data.constants.PrometheusFieldConstants.TIMESTAMP;
 import static org.opensearch.sql.prometheus.data.constants.PrometheusFieldConstants.VALUE;
+import static org.opensearch.sql.util.MatcherUtils.assertJsonEquals;
 import static org.opensearch.sql.util.MatcherUtils.schema;
 import static org.opensearch.sql.util.MatcherUtils.verifySchema;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.io.Resources;
 import java.io.IOException;
+import java.net.URI;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.text.SimpleDateFormat;
 import java.util.Date;
+import lombok.Data;
 import lombok.SneakyThrows;
 import org.apache.commons.lang3.StringUtils;
 import org.json.JSONArray;
 import org.json.JSONObject;
 import org.junit.After;
-import org.junit.AfterClass;
 import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.jupiter.api.Assertions;
@@ -113,8 +119,8 @@ public class PrometheusDataSourceCommandsIT extends PPLIntegTestCase {
     verifySchema(response,
         schema("agg",  "double"),
         schema("span(@timestamp,15s)", "timestamp"),
-        schema("`handler`", "string"),
-        schema("`job`", "string"));
+        schema("handler", "string"),
+        schema("job", "string"));
     Assertions.assertTrue(response.getInt("size") > 0);
     Assertions.assertEquals(4, response.getJSONArray("datarows").getJSONArray(0).length());
     JSONArray firstRow = response.getJSONArray("datarows").getJSONArray(0);
@@ -132,7 +138,7 @@ public class PrometheusDataSourceCommandsIT extends PPLIntegTestCase {
     verifySchema(response,
         schema("agg",  "double"),
         schema("span(@timestamp,15s)", "timestamp"),
-        schema("`handler`", "string"),
+        schema("handler", "string"),
         schema("job", "string"));
     Assertions.assertTrue(response.getInt("size") > 0);
     Assertions.assertEquals(4, response.getJSONArray("datarows").getJSONArray(0).length());
@@ -216,6 +222,46 @@ public class PrometheusDataSourceCommandsIT extends PPLIntegTestCase {
       Assertions.assertNotNull(firstRow.get(i));
       Assertions.assertTrue(StringUtils.isNotEmpty(firstRow.get(i).toString()));
     }
+  }
+
+
+  @Test
+  @SneakyThrows
+  public void testQueryRange() {
+    long currentTimestamp = new Date().getTime();
+    JSONObject response =
+        executeQuery("source=my_prometheus.query_range('prometheus_http_requests_total',"
+            + ((currentTimestamp/1000)-3600) + "," + currentTimestamp/1000 + ", " + "'14'" + ")" );
+    verifySchema(response,
+        schema(LABELS,  "struct"),
+        schema(VALUE, "array"),
+        schema(TIMESTAMP,  "array"));
+    Assertions.assertTrue(response.getInt("size") > 0);
+  }
+
+  @Test
+  public void explainQueryRange() throws Exception {
+    String expected = loadFromFile("expectedOutput/ppl/explain_query_range.json");
+    assertJsonEquals(
+        expected,
+        explainQueryToString("source = my_prometheus"
+            + ".query_range('prometheus_http_requests_total',1689281439,1689291439,14)")
+    );
+  }
+
+    @Test
+  public void testExplainForQueryExemplars() throws Exception {
+    String expected = loadFromFile("expectedOutput/ppl/explain_query_exemplars.json");
+    assertJsonEquals(
+        expected,
+        explainQueryToString("source = my_prometheus."
+            + "query_exemplars('app_ads_ad_requests_total',1689228292,1689232299)")
+    );
+  }
+
+  String loadFromFile(String filename) throws Exception {
+    URI uri = Resources.getResource(filename).toURI();
+    return new String(Files.readAllBytes(Paths.get(uri)));
   }
 
 }

@@ -23,10 +23,10 @@ import com.alibaba.druid.sql.parser.ParserException;
 import java.io.IOException;
 import java.sql.SQLFeatureNotSupportedException;
 import java.util.List;
+import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import org.mockito.stubbing.Answer;
-import org.opensearch.action.ActionFuture;
 import org.opensearch.action.admin.indices.mapping.get.GetFieldMappingsRequest;
 import org.opensearch.action.admin.indices.mapping.get.GetFieldMappingsResponse;
 import org.opensearch.action.search.SearchRequestBuilder;
@@ -36,10 +36,9 @@ import org.opensearch.client.IndicesAdminClient;
 import org.opensearch.cluster.ClusterState;
 import org.opensearch.cluster.metadata.IndexMetadata;
 import org.opensearch.cluster.metadata.IndexNameExpressionResolver;
-import org.opensearch.cluster.metadata.MappingMetadata;
 import org.opensearch.cluster.metadata.Metadata;
 import org.opensearch.cluster.service.ClusterService;
-import org.opensearch.common.collect.ImmutableOpenMap;
+import org.opensearch.common.action.ActionFuture;
 import org.opensearch.common.xcontent.XContentType;
 import org.opensearch.core.xcontent.DeprecationHandler;
 import org.opensearch.core.xcontent.NamedXContentRegistry;
@@ -227,9 +226,9 @@ public class CheckScriptContents {
         when(mockService.state()).thenReturn(mockState);
         when(mockState.metadata()).thenReturn(mockMetaData);
         try {
-            ImmutableOpenMap.Builder<String, MappingMetadata> builder = ImmutableOpenMap.builder();
-            builder.put(TestsConstants.TEST_INDEX_BANK, IndexMetadata.fromXContent(createParser(mappings)).mapping());
-            when(mockMetaData.findMappings(any(),  any())).thenReturn(builder.build());
+            when(mockMetaData.findMappings(any(),  any())).thenReturn(
+                Map.of(TestsConstants.TEST_INDEX_BANK, IndexMetadata.fromXContent(
+                    createParser(mappings)).mapping()));
         }
         catch (IOException e) {
             throw new IllegalStateException(e);

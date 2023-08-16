@@ -9,6 +9,7 @@ package org.opensearch.sql.opensearch.data.type;
 import static org.junit.jupiter.api.Assertions.assertAll;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNotSame;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
@@ -18,6 +19,7 @@ import static org.junit.jupiter.api.Assumptions.assumeFalse;
 import static org.opensearch.sql.data.type.ExprCoreType.ARRAY;
 import static org.opensearch.sql.data.type.ExprCoreType.BOOLEAN;
 import static org.opensearch.sql.data.type.ExprCoreType.BYTE;
+import static org.opensearch.sql.data.type.ExprCoreType.DATE;
 import static org.opensearch.sql.data.type.ExprCoreType.DOUBLE;
 import static org.opensearch.sql.data.type.ExprCoreType.FLOAT;
 import static org.opensearch.sql.data.type.ExprCoreType.INTEGER;
@@ -48,6 +50,10 @@ class OpenSearchDataTypeTest {
   private static final OpenSearchDataType textType = OpenSearchDataType.of(MappingType.Text);
   private static final OpenSearchDataType textKeywordType =
       OpenSearchTextType.of(Map.of("words", OpenSearchTextType.of(MappingType.Keyword)));
+
+  private static final String emptyFormatString = "";
+
+  private static final OpenSearchDateType dateType = OpenSearchDateType.of(emptyFormatString);
 
   @Test
   public void isCompatible() {
@@ -131,11 +137,13 @@ class OpenSearchDataTypeTest {
   public void of_ExprCoreType(ExprCoreType coreType) {
     assumeFalse(coreType == UNKNOWN);
     var type = OpenSearchDataType.of(coreType);
-    assertAll(
-        () -> assertEquals(coreType.toString(), type.typeName()),
-        () -> assertEquals(coreType.toString(), type.legacyTypeName()),
-        () -> assertEquals(coreType, type.getExprType())
-    );
+    if (type instanceof OpenSearchDateType) {
+      assertEquals(coreType, type.getExprType());
+    } else {
+      assertEquals(coreType.toString(), type.typeName());
+      assertEquals(coreType.toString(), type.legacyTypeName());
+      assertEquals(coreType, type.getExprType());
+    }
   }
 
   @ParameterizedTest(name = "{0}")
@@ -157,15 +165,20 @@ class OpenSearchDataTypeTest {
 
   @Test
   // All types without `fields` and `properties` are singletones unless cloned.
-  public void types_but_clones_are_singletones_and_cached() {
+  public void types_but_clones_are_singletons_and_cached() {
     var type = OpenSearchDataType.of(MappingType.Object);
     var alsoType = OpenSearchDataType.of(MappingType.Object);
-    var typeWithProperties = OpenSearchDataType.of(MappingType.Object,
-        Map.of("subfield", OpenSearchDataType.of(INTEGER)), Map.of());
-    var typeWithFields = OpenSearchDataType.of(MappingType.Text,
-        Map.of(), Map.of("subfield", OpenSearchDataType.of(INTEGER)));
-
+    Map<String, Object> properties = Map.of(
+        "properties",
+        Map.of("number", Map.of("type", "integer")));
+    var typeWithProperties = OpenSearchDataType.of(
+        MappingType.Object,
+        properties);
+    var typeWithFields = OpenSearchDataType.of(
+        MappingType.Text,
+        Map.of());
     var cloneType = type.cloneEmpty();
+
     assertAll(
         () -> assertSame(type, alsoType),
         () -> assertNotSame(type, cloneType),
@@ -173,6 +186,7 @@ class OpenSearchDataTypeTest {
         () -> assertNotSame(type, typeWithFields),
         () -> assertNotSame(typeWithProperties, typeWithProperties.cloneEmpty()),
         () -> assertNotSame(typeWithFields, typeWithFields.cloneEmpty()),
+        () -> assertNotSame(dateType, dateType.cloneEmpty()),
         () -> assertSame(OpenSearchDataType.of(MappingType.Text),
             OpenSearchTextType.of()),
         () -> assertSame(OpenSearchDataType.of(MappingType.Binary),
@@ -182,7 +196,7 @@ class OpenSearchDataTypeTest {
         () -> assertSame(OpenSearchDataType.of(MappingType.Ip),
             OpenSearchIpType.of()),
         () -> assertNotSame(OpenSearchTextType.of(),
-            OpenSearchTextType.of(Map.of("subfield", OpenSearchDataType.of(INTEGER)))),
+            OpenSearchTextType.of(Map.of("properties", OpenSearchDataType.of(INTEGER)))),
         () -> assertSame(OpenSearchDataType.of(INTEGER), OpenSearchDataType.of(INTEGER)),
         () -> assertSame(OpenSearchDataType.of(STRING), OpenSearchDataType.of(STRING)),
         () -> assertSame(OpenSearchDataType.of(STRUCT), OpenSearchDataType.of(STRUCT)),
@@ -213,26 +227,23 @@ class OpenSearchDataTypeTest {
   @Test
   // Test and type added for coverage only
   public void of_null_MappingType() {
-    assertThrows(IllegalArgumentException.class, () -> OpenSearchDataType.of(MappingType.Invalid));
+    assertNotNull(OpenSearchDataType.of(MappingType.Invalid));
   }
 
   @Test
   // cloneEmpty doesn't clone properties and fields.
   // Fields are cloned by OpenSearchTextType::cloneEmpty, because it is used in that type only.
   public void cloneEmpty() {
-    var type = OpenSearchDataType.of(MappingType.Object,
-        Map.of("val", OpenSearchDataType.of(INTEGER)),
-        Map.of("words", OpenSearchDataType.of(STRING)));
+    var type = OpenSearchDataType.of(
+        MappingType.Object,
+        Map.of("val", OpenSearchDataType.of(INTEGER))
+    );
     var clone = type.cloneEmpty();
     var textClone = textKeywordType.cloneEmpty();
 
     assertAll(
         // can compare because `properties` and `fields` are marked as @EqualsAndHashCode.Exclude
         () -> assertEquals(type, clone),
-        // read private field `fields`
-        () -> assertTrue(
-            ((Map<String, OpenSearchDataType>) FieldUtils.readField(clone, "fields", true))
-                .isEmpty()),
         () -> assertTrue(clone.getProperties().isEmpty()),
         () -> assertEquals(textKeywordType, textClone),
         () -> assertEquals(FieldUtils.readField(textKeywordType, "fields", true),
@@ -261,17 +272,17 @@ class OpenSearchDataTypeTest {
   // =================
   // as
   // =================
-  // type : Object
-  // type.subtype : Object
-  // type.subtype.subsubtype : Object
-  // type.subtype.subsubtype.textWithKeywordType : Text
+  // mapping : Object
+  // mapping.submapping : Object
+  // mapping.submapping.subsubmapping : Object
+  // mapping.submapping.subsubmapping.textWithKeywordType : Text
   //                                           |- keyword : Keyword
-  // type.subtype.subsubtype.INTEGER : INTEGER
-  // type.subtype.geo_point : GeoPoint
-  // type.subtype.textWithFieldsType: Text
+  // mapping.submapping.subsubmapping.INTEGER : INTEGER
+  // mapping.submapping.geo_point : GeoPoint
+  // mapping.submapping.textWithFieldsType: Text
   //                               |- words : Keyword
-  // type.text : Text
-  // type.keyword : Keyword
+  // mapping.text : Text
+  // mapping.keyword : Keyword
   // ==================
   // Objects are flattened by OpenSearch, but Texts aren't
   // TODO Arrays
@@ -281,28 +292,27 @@ class OpenSearchDataTypeTest {
     var objectType = OpenSearchDataType.of(MappingType.Object);
     assertAll(
         () -> assertEquals(9, flattened.size()),
-        () -> assertTrue(flattened.get("type").getProperties().isEmpty()),
-        () -> assertTrue(flattened.get("type.subtype").getProperties().isEmpty()),
-        () -> assertTrue(flattened.get("type.subtype.subsubtype").getProperties().isEmpty()),
+        () -> assertTrue(flattened.get("mapping").getProperties().isEmpty()),
+        () -> assertTrue(flattened.get("mapping.submapping").getProperties().isEmpty()),
+        () -> assertTrue(
+            flattened.get("mapping.submapping.subsubmapping").getProperties().isEmpty()),
 
-        () -> assertEquals(objectType, flattened.get("type")),
-        () -> assertEquals(objectType, flattened.get("type.subtype")),
-        () -> assertEquals(objectType, flattened.get("type.subtype.subsubtype")),
+        () -> assertEquals(objectType, flattened.get("mapping")),
+        () -> assertEquals(objectType, flattened.get("mapping.submapping")),
+        () -> assertEquals(objectType, flattened.get("mapping.submapping.subsubmapping")),
 
         () -> assertEquals(OpenSearchDataType.of(MappingType.Keyword),
-            flattened.get("type.keyword")),
+            flattened.get("mapping.keyword")),
         () -> assertEquals(OpenSearchDataType.of(MappingType.Text),
-            flattened.get("type.text")),
-
+            flattened.get("mapping.text")),
         () -> assertEquals(OpenSearchGeoPointType.of(),
-            flattened.get("type.subtype.geo_point")),
+            flattened.get("mapping.submapping.geo_point")),
         () -> assertEquals(OpenSearchTextType.of(),
-            flattened.get("type.subtype.textWithFieldsType")),
-
+            flattened.get("mapping.submapping.textWithFieldsType")),
         () -> assertEquals(OpenSearchTextType.of(),
-            flattened.get("type.subtype.subsubtype.textWithKeywordType")),
+            flattened.get("mapping.submapping.subsubmapping.texttype")),
         () -> assertEquals(OpenSearchDataType.of(INTEGER),
-            flattened.get("type.subtype.subsubtype.INTEGER"))
+            flattened.get("mapping.submapping.subsubmapping.INTEGER"))
     );
   }
 
@@ -313,13 +323,13 @@ class OpenSearchDataTypeTest {
     assertAll(
         () -> assertNull(OpenSearchDataType.resolve(mapping, "incorrect")),
         () -> assertEquals(OpenSearchDataType.of(MappingType.Object),
-            OpenSearchDataType.resolve(mapping, "type")),
+            OpenSearchDataType.resolve(mapping, "mapping")),
         () -> assertEquals(OpenSearchDataType.of(MappingType.Object),
-            OpenSearchDataType.resolve(mapping, "subtype")),
+            OpenSearchDataType.resolve(mapping, "submapping")),
         () -> assertEquals(OpenSearchDataType.of(MappingType.Object),
-            OpenSearchDataType.resolve(mapping, "subsubtype")),
+            OpenSearchDataType.resolve(mapping, "subsubmapping")),
         () -> assertEquals(OpenSearchDataType.of(MappingType.Text),
-            OpenSearchDataType.resolve(mapping, "textWithKeywordType")),
+            OpenSearchDataType.resolve(mapping, "texttype")),
         () -> assertEquals(OpenSearchDataType.of(MappingType.Text),
             OpenSearchDataType.resolve(mapping, "textWithFieldsType")),
         () -> assertEquals(OpenSearchDataType.of(MappingType.Text),
@@ -358,28 +368,31 @@ class OpenSearchDataTypeTest {
   }
 
   private Map<String, OpenSearchDataType> getSampleMapping() {
-    var textWithKeywordType = OpenSearchTextType.of(Map.of("keyword",
-        OpenSearchDataType.of(MappingType.Keyword)));
+    Map<String, Object> subsubmapping = Map.of(
+        "properties", Map.of(
+            "texttype", Map.of("type", "text"),
+            "INTEGER", Map.of("type", "integer")
+        )
+    );
 
-    var subsubsubtypes = Map.of(
-        "textWithKeywordType", textWithKeywordType,
-        "INTEGER", OpenSearchDataType.of(INTEGER));
+    Map<String, Object> submapping = Map.of(
+        "properties", Map.of(
+            "subsubmapping", subsubmapping,
+            "textWithFieldsType", Map.of("type", "text", "fieldsType", true),
+            "geo_point", Map.of("type", "geo_point")
+        )
+    );
 
-    var subsubtypes = Map.of(
-        "subsubtype", OpenSearchDataType.of(MappingType.Object,
-            subsubsubtypes, Map.of()),
-        "textWithFieldsType", OpenSearchDataType.of(MappingType.Text, Map.of(),
-            Map.of("words", OpenSearchDataType.of(MappingType.Keyword))),
-        "geo_point", OpenSearchGeoPointType.of());
+    Map<String, Object> types = Map.of(
+        "properties", Map.of(
+            "submapping", submapping,
+            "keyword", Map.of("type", "keyword"),
+            "text", Map.of("type", "text")
+        )
+    );
 
-    var subtypes = Map.of(
-        "subtype", OpenSearchDataType.of(MappingType.Object,
-            subsubtypes, Map.of()),
-        "keyword", OpenSearchDataType.of(MappingType.Keyword),
-        "text", OpenSearchDataType.of(MappingType.Text));
-
-    var type = OpenSearchDataType.of(MappingType.Object, subtypes, Map.of());
-    return Map.of("type", type);
+    var mapping = OpenSearchDataType.of(MappingType.Object, types);
+    return Map.of("mapping", mapping);
   }
 
   @Test
@@ -391,5 +404,10 @@ class OpenSearchDataTypeTest {
     assertEquals(DOUBLE, OpenSearchDataType.of(MappingType.Double).getExprType());
     assertEquals(DOUBLE, OpenSearchDataType.of(MappingType.ScaledFloat).getExprType());
     assertEquals(TIMESTAMP, OpenSearchDataType.of(MappingType.Date).getExprType());
+  }
+
+  @Test
+  public void test_shouldCastFunction() {
+    assertFalse(dateType.shouldCast(DATE));
   }
 }

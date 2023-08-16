@@ -84,4 +84,62 @@ public class EncryptorImplTest {
       encryptor2.decrypt(encrypted);
     });
   }
+
+  @Test
+  public void testEncryptionAndDecryptionWithNullMasterKey() {
+    String input = "This is a test input";
+    Encryptor encryptor = new EncryptorImpl(null);
+    IllegalStateException illegalStateException
+        = Assertions.assertThrows(IllegalStateException.class,
+              () -> encryptor.encrypt(input));
+    Assertions.assertEquals("Master key is a required config for using create and"
+            + " update datasource APIs."
+            + "Please set plugins.query.datasources.encryption.masterkey config "
+            + "in opensearch.yml in all the cluster nodes. "
+            + "More details can be found here: "
+            + "https://github.com/opensearch-project/sql/blob/main/docs/user/ppl/"
+            + "admin/datasources.rst#master-key-config-for-encrypting-credential-information",
+        illegalStateException.getMessage());
+    illegalStateException
+        = Assertions.assertThrows(IllegalStateException.class,
+              () -> encryptor.decrypt(input));
+    Assertions.assertEquals("Master key is a required config for using create and"
+            + " update datasource APIs."
+            + "Please set plugins.query.datasources.encryption.masterkey config "
+            + "in opensearch.yml in all the cluster nodes. "
+            + "More details can be found here: "
+            + "https://github.com/opensearch-project/sql/blob/main/docs/user/ppl/"
+            + "admin/datasources.rst#master-key-config-for-encrypting-credential-information",
+        illegalStateException.getMessage());
+  }
+
+  @Test
+  public void testEncryptionAndDecryptionWithEmptyMasterKey() {
+    String masterKey = "";
+    String input = "This is a test input";
+    Encryptor encryptor = new EncryptorImpl(masterKey);
+    IllegalStateException illegalStateException
+        = Assertions.assertThrows(IllegalStateException.class,
+              () -> encryptor.encrypt(input));
+    Assertions.assertEquals("Master key is a required config for using create and"
+            + " update datasource APIs."
+            + "Please set plugins.query.datasources.encryption.masterkey config "
+            + "in opensearch.yml in all the cluster nodes. "
+            + "More details can be found here: "
+            + "https://github.com/opensearch-project/sql/blob/main/docs/user/ppl/"
+            + "admin/datasources.rst#master-key-config-for-encrypting-credential-information",
+        illegalStateException.getMessage());
+    illegalStateException
+        = Assertions.assertThrows(IllegalStateException.class,
+              () -> encryptor.decrypt(input));
+    Assertions.assertEquals("Master key is a required config for using create and"
+            + " update datasource APIs."
+            + "Please set plugins.query.datasources.encryption.masterkey config "
+            + "in opensearch.yml in all the cluster nodes. "
+            + "More details can be found here: "
+            + "https://github.com/opensearch-project/sql/blob/main/docs/user/ppl/"
+            + "admin/datasources.rst#master-key-config-for-encrypting-credential-information",
+        illegalStateException.getMessage());
+  }
+
 }

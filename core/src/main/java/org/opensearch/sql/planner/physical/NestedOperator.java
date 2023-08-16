@@ -99,7 +99,6 @@ public class NestedOperator extends PhysicalPlan {
     return input.hasNext() || flattenedResult.hasNext();
   }
 
-
   @Override
   public ExprValue next() {
     if (!flattenedResult.hasNext()) {
@@ -232,7 +231,6 @@ public class NestedOperator extends PhysicalPlan {
     }
     return false;
   }
-
 
   /**
    * Retrieve nested field(s) in row.
