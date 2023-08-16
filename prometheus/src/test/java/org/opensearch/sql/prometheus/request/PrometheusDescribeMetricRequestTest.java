@@ -37,54 +37,61 @@ import org.opensearch.sql.prometheus.request.system.PrometheusDescribeMetricRequ
 @ExtendWith(MockitoExtension.class)
 public class PrometheusDescribeMetricRequestTest {
 
-  @Mock
-  private PrometheusClient prometheusClient;
+  @Mock private PrometheusClient prometheusClient;
 
   @Test
   @SneakyThrows
   void testGetFieldTypes() {
-    when(prometheusClient.getLabels(METRIC_NAME)).thenReturn(new ArrayList<String>() {{
-        add("call");
-        add("code");
-      }
-    });
-    Map<String, ExprType> expected = new HashMap<>() {{
-        put("call", ExprCoreType.STRING);
-        put("code", ExprCoreType.STRING);
-        put(VALUE, ExprCoreType.DOUBLE);
-        put(TIMESTAMP, ExprCoreType.TIMESTAMP);
-      }};
-    PrometheusDescribeMetricRequest prometheusDescribeMetricRequest
-        = new PrometheusDescribeMetricRequest(prometheusClient,
-                new DataSourceSchemaName("prometheus", "default"), METRIC_NAME);
+    when(prometheusClient.getLabels(METRIC_NAME))
+        .thenReturn(
+            new ArrayList<String>() {
+              {
+                add("call");
+                add("code");
+              }
+            });
+    Map<String, ExprType> expected =
+        new HashMap<>() {
+          {
+            put("call", ExprCoreType.STRING);
+            put("code", ExprCoreType.STRING);
+            put(VALUE, ExprCoreType.DOUBLE);
+            put(TIMESTAMP, ExprCoreType.TIMESTAMP);
+          }
+        };
+    PrometheusDescribeMetricRequest prometheusDescribeMetricRequest =
+        new PrometheusDescribeMetricRequest(
+            prometheusClient, new DataSourceSchemaName("prometheus", "default"), METRIC_NAME);
     assertEquals(expected, prometheusDescribeMetricRequest.getFieldTypes());
     verify(prometheusClient, times(1)).getLabels(METRIC_NAME);
   }
 
-
   @Test
   @SneakyThrows
   void testGetFieldTypesWithEmptyMetricName() {
-    Map<String, ExprType> expected = new HashMap<>() {{
-        put(VALUE, ExprCoreType.DOUBLE);
-        put(TIMESTAMP, ExprCoreType.TIMESTAMP);
-      }};
-    assertThrows(NullPointerException.class,
-        () -> new PrometheusDescribeMetricRequest(prometheusClient,
-            new DataSourceSchemaName("prometheus", "default"),
-             null));
+    Map<String, ExprType> expected =
+        new HashMap<>() {
+          {
+            put(VALUE, ExprCoreType.DOUBLE);
+            put(TIMESTAMP, ExprCoreType.TIMESTAMP);
+          }
+        };
+    assertThrows(
+        NullPointerException.class,
+        () ->
+            new PrometheusDescribeMetricRequest(
+                prometheusClient, new DataSourceSchemaName("prometheus", "default"), null));
   }
-
 
   @Test
   @SneakyThrows
   void testGetFieldTypesWhenException() {
     when(prometheusClient.getLabels(METRIC_NAME)).thenThrow(new RuntimeException("ERROR Message"));
-    PrometheusDescribeMetricRequest prometheusDescribeMetricRequest
-        = new PrometheusDescribeMetricRequest(prometheusClient,
-            new DataSourceSchemaName("prometheus", "default"), METRIC_NAME);
-    RuntimeException exception = assertThrows(RuntimeException.class,
-        prometheusDescribeMetricRequest::getFieldTypes);
+    PrometheusDescribeMetricRequest prometheusDescribeMetricRequest =
+        new PrometheusDescribeMetricRequest(
+            prometheusClient, new DataSourceSchemaName("prometheus", "default"), METRIC_NAME);
+    RuntimeException exception =
+        assertThrows(RuntimeException.class, prometheusDescribeMetricRequest::getFieldTypes);
     verify(prometheusClient, times(1)).getLabels(METRIC_NAME);
     assertEquals("ERROR Message", exception.getMessage());
   }
@@ -93,27 +100,30 @@ public class PrometheusDescribeMetricRequestTest {
   @SneakyThrows
   void testGetFieldTypesWhenIOException() {
     when(prometheusClient.getLabels(METRIC_NAME)).thenThrow(new IOException("ERROR Message"));
-    PrometheusDescribeMetricRequest prometheusDescribeMetricRequest
-        = new PrometheusDescribeMetricRequest(prometheusClient,
-            new DataSourceSchemaName("prometheus", "default"), METRIC_NAME);
-    RuntimeException exception = assertThrows(RuntimeException.class,
-        prometheusDescribeMetricRequest::getFieldTypes);
-    assertEquals("Error while fetching labels for http_requests_total"
-        + " from prometheus: ERROR Message", exception.getMessage());
+    PrometheusDescribeMetricRequest prometheusDescribeMetricRequest =
+        new PrometheusDescribeMetricRequest(
+            prometheusClient, new DataSourceSchemaName("prometheus", "default"), METRIC_NAME);
+    RuntimeException exception =
+        assertThrows(RuntimeException.class, prometheusDescribeMetricRequest::getFieldTypes);
+    assertEquals(
+        "Error while fetching labels for http_requests_total" + " from prometheus: ERROR Message",
+        exception.getMessage());
     verify(prometheusClient, times(1)).getLabels(METRIC_NAME);
   }
 
   @Test
   @SneakyThrows
   void testSearch() {
-    when(prometheusClient.getLabels(METRIC_NAME)).thenReturn(new ArrayList<>() {
-      {
-        add("call");
-      }
-    });
-    PrometheusDescribeMetricRequest prometheusDescribeMetricRequest
-        = new PrometheusDescribeMetricRequest(prometheusClient,
-            new DataSourceSchemaName("test", "default"), METRIC_NAME);
+    when(prometheusClient.getLabels(METRIC_NAME))
+        .thenReturn(
+            new ArrayList<>() {
+              {
+                add("call");
+              }
+            });
+    PrometheusDescribeMetricRequest prometheusDescribeMetricRequest =
+        new PrometheusDescribeMetricRequest(
+            prometheusClient, new DataSourceSchemaName("test", "default"), METRIC_NAME);
     List<ExprValue> result = prometheusDescribeMetricRequest.search();
     assertEquals(3, result.size());
     assertEquals(expectedRow(), result.get(0));
@@ -129,5 +139,4 @@ public class PrometheusDescribeMetricRequestTest {
     valueMap.put("DATA_TYPE", stringValue(ExprCoreType.STRING.legacyTypeName().toLowerCase()));
     return new ExprTupleValue(valueMap);
   }
-
 }

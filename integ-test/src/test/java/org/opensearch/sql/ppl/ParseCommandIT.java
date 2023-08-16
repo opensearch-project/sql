@@ -3,7 +3,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-
 package org.opensearch.sql.ppl;
 
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_BANK;
@@ -23,9 +22,10 @@ public class ParseCommandIT extends PPLIntegTestCase {
 
   @Test
   public void testParseCommand() throws IOException {
-    JSONObject result = executeQuery(
-        String.format("source=%s | parse email '.+@(?<host>.+)' | fields email, host",
-            TEST_INDEX_BANK));
+    JSONObject result =
+        executeQuery(
+            String.format(
+                "source=%s | parse email '.+@(?<host>.+)' | fields email, host", TEST_INDEX_BANK));
     verifyOrder(
         result,
         rows("amberduke@pyrami.com", "pyrami.com"),
@@ -39,8 +39,10 @@ public class ParseCommandIT extends PPLIntegTestCase {
 
   @Test
   public void testParseCommandReplaceOriginalField() throws IOException {
-    JSONObject result = executeQuery(
-        String.format("source=%s | parse email '.+@(?<email>.+)' | fields email", TEST_INDEX_BANK));
+    JSONObject result =
+        executeQuery(
+            String.format(
+                "source=%s | parse email '.+@(?<email>.+)' | fields email", TEST_INDEX_BANK));
     verifyOrder(
         result,
         rows("pyrami.com"),
@@ -54,8 +56,12 @@ public class ParseCommandIT extends PPLIntegTestCase {
 
   @Test
   public void testParseCommandWithOtherRunTimeFields() throws IOException {
-    JSONObject result = executeQuery(String.format("source=%s | parse email '.+@(?<host>.+)' | "
-        + "eval eval_result=1 | fields host, eval_result", TEST_INDEX_BANK));
+    JSONObject result =
+        executeQuery(
+            String.format(
+                "source=%s | parse email '.+@(?<host>.+)' | "
+                    + "eval eval_result=1 | fields host, eval_result",
+                TEST_INDEX_BANK));
     verifyOrder(
         result,
         rows("pyrami.com", 1),

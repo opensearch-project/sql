@@ -3,7 +3,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-
 package org.opensearch.sql.sql;
 
 import com.carrotsearch.randomizedtesting.annotations.Name;
@@ -27,8 +26,7 @@ public class PaginationBlackboxIT extends SQLIntegTestCase {
   private final Index index;
   private final Integer pageSize;
 
-  public PaginationBlackboxIT(@Name("index") Index index,
-                              @Name("pageSize") Integer pageSize) {
+  public PaginationBlackboxIT(@Name("index") Index index, @Name("pageSize") Integer pageSize) {
     this.index = index;
     this.pageSize = pageSize;
   }
@@ -45,7 +43,7 @@ public class PaginationBlackboxIT extends SQLIntegTestCase {
     var testData = new ArrayList<Object[]>();
     for (var index : indices) {
       for (var pageSize : pageSizes) {
-        testData.add(new Object[] { index, pageSize });
+        testData.add(new Object[] {index, pageSize});
       }
     }
     return testData;
@@ -64,14 +62,19 @@ public class PaginationBlackboxIT extends SQLIntegTestCase {
 
     var responseCounter = 1;
     this.logger.info(testReportPrefix + "first response");
-    response = new JSONObject(executeFetchQuery(
-      String.format("select * from %s", index.getName()), pageSize, "jdbc"));
+    response =
+        new JSONObject(
+            executeFetchQuery(
+                String.format("select * from %s", index.getName()), pageSize, "jdbc"));
 
-    var cursor = response.has("cursor")? response.getString("cursor") : "";
+    var cursor = response.has("cursor") ? response.getString("cursor") : "";
     do {
-      this.logger.info(testReportPrefix
-        + String.format("subsequent response %d/%d", responseCounter++, (indexSize / pageSize) + 1));
-      assertTrue("Paged response schema doesn't match to non-paged",
+      this.logger.info(
+          testReportPrefix
+              + String.format(
+                  "subsequent response %d/%d", responseCounter++, (indexSize / pageSize) + 1));
+      assertTrue(
+          "Paged response schema doesn't match to non-paged",
           schema.similar(response.getJSONArray("schema")));
 
       rowsReturned += response.getInt("size");
@@ -88,13 +91,17 @@ public class PaginationBlackboxIT extends SQLIntegTestCase {
         cursor = "";
       }
 
-    } while(!cursor.isEmpty());
-    assertTrue("Paged response schema doesn't match to non-paged",
+    } while (!cursor.isEmpty());
+    assertTrue(
+        "Paged response schema doesn't match to non-paged",
         schema.similar(response.getJSONArray("schema")));
 
-    assertEquals(testReportPrefix + "Paged responses return another row count that non-paged",
-        indexSize, rowsReturned);
-    assertTrue(testReportPrefix + "Paged accumulated result has other rows than non-paged",
+    assertEquals(
+        testReportPrefix + "Paged responses return another row count that non-paged",
+        indexSize,
+        rowsReturned);
+    assertTrue(
+        testReportPrefix + "Paged accumulated result has other rows than non-paged",
         rows.similar(rowsPaged));
   }
 }

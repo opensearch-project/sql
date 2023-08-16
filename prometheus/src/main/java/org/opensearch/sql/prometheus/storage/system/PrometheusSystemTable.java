@@ -5,7 +5,6 @@
 
 package org.opensearch.sql.prometheus.storage.system;
 
-
 import static org.opensearch.sql.utils.SystemIndexUtils.systemTable;
 
 import com.google.common.annotations.VisibleForTesting;
@@ -25,13 +24,9 @@ import org.opensearch.sql.prometheus.request.system.PrometheusSystemRequest;
 import org.opensearch.sql.storage.Table;
 import org.opensearch.sql.utils.SystemIndexUtils;
 
-/**
- * Prometheus System Table Implementation.
- */
+/** Prometheus System Table Implementation. */
 public class PrometheusSystemTable implements Table {
-  /**
-   * System Index Name.
-   */
+  /** System Index Name. */
   private final Pair<PrometheusSystemTableSchema, PrometheusSystemRequest> systemIndexBundle;
 
   private final DataSourceSchemaName dataSourceSchemaName;
@@ -54,8 +49,7 @@ public class PrometheusSystemTable implements Table {
 
   @VisibleForTesting
   @RequiredArgsConstructor
-  public class PrometheusSystemTableDefaultImplementor
-      extends DefaultImplementor<Object> {
+  public class PrometheusSystemTableDefaultImplementor extends DefaultImplementor<Object> {
 
     @Override
     public PhysicalPlan visitRelation(LogicalRelation node, Object context) {
@@ -67,12 +61,14 @@ public class PrometheusSystemTable implements Table {
       PrometheusClient client, String indexName) {
     SystemIndexUtils.SystemTable systemTable = systemTable(indexName);
     if (systemTable.isSystemInfoTable()) {
-      return Pair.of(PrometheusSystemTableSchema.SYS_TABLE_TABLES,
+      return Pair.of(
+          PrometheusSystemTableSchema.SYS_TABLE_TABLES,
           new PrometheusListMetricsRequest(client, dataSourceSchemaName));
     } else {
-      return Pair.of(PrometheusSystemTableSchema.SYS_TABLE_MAPPINGS,
-          new PrometheusDescribeMetricRequest(client,
-              dataSourceSchemaName, systemTable.getTableName()));
+      return Pair.of(
+          PrometheusSystemTableSchema.SYS_TABLE_MAPPINGS,
+          new PrometheusDescribeMetricRequest(
+              client, dataSourceSchemaName, systemTable.getTableName()));
     }
   }
 }

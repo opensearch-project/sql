@@ -3,7 +3,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-
 package org.opensearch.sql.ppl;
 
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_BANK;
@@ -26,17 +25,13 @@ public class SettingsIT extends PPLIntegTestCase {
   public void testQuerySizeLimit() throws IOException {
     // Default setting, fetch 200 rows from source
     JSONObject result =
-        executeQuery(
-            String.format(
-                "search source=%s age>35 | fields firstname", TEST_INDEX_BANK));
+        executeQuery(String.format("search source=%s age>35 | fields firstname", TEST_INDEX_BANK));
     verifyDataRows(result, rows("Hattie"), rows("Elinor"), rows("Virginia"));
 
     // Fetch 1 rows from source
     setQuerySizeLimit(1);
     result =
-        executeQuery(
-            String.format(
-                "search source=%s age>35 | fields firstname", TEST_INDEX_BANK));
+        executeQuery(String.format("search source=%s age>35 | fields firstname", TEST_INDEX_BANK));
     verifyDataRows(result, rows("Hattie"));
   }
 }

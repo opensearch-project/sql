@@ -15,9 +15,8 @@ import org.opensearch.sql.storage.TableScanOperator;
 import org.opensearch.sql.storage.read.TableScanBuilder;
 
 /**
- * TableScanBuilder for query_range table function of prometheus connector.
- * we can merge this when we refactor for existing
- * ppl queries based on prometheus connector.
+ * TableScanBuilder for query_range table function of prometheus connector. we can merge this when
+ * we refactor for existing ppl queries based on prometheus connector.
  */
 @AllArgsConstructor
 public class QueryRangeFunctionTableScanBuilder extends TableScanBuilder {

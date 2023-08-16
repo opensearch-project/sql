@@ -3,7 +3,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-
 package org.opensearch.sql.legacy;
 
 import java.io.IOException;
@@ -25,27 +24,34 @@ public class PreparedStatementIT extends SQLIntegTestCase {
   public void testPreparedStatement() throws IOException {
     int ageToCompare = 35;
 
-    JSONObject response = executeRequest(String.format("{\n" +
-        "  \"query\": \"SELECT * FROM %s WHERE age > ? AND state in (?, ?) LIMIT ?\",\n" +
-        "  \"parameters\": [\n" +
-        "    {\n" +
-        "      \"type\": \"integer\",\n" +
-        "      \"value\": \"" + ageToCompare + "\"\n" +
-        "    },\n" +
-        "    {\n" +
-        "      \"type\": \"string\",\n" +
-        "      \"value\": \"TN\"\n" +
-        "    },\n" +
-        "    {\n" +
-        "      \"type\": \"string\",\n" +
-        "      \"value\": \"UT\"\n" +
-        "    },\n" +
-        "    {\n" +
-        "      \"type\": \"integer\",\n" +
-        "      \"value\": \"20\"\n" +
-        "    }\n" +
-        "  ]\n" +
-        "}", TestsConstants.TEST_INDEX_ACCOUNT));
+    JSONObject response =
+        executeRequest(
+            String.format(
+                "{\n"
+                    + "  \"query\": \"SELECT * FROM %s WHERE age > ? AND state in (?, ?) LIMIT"
+                    + " ?\",\n"
+                    + "  \"parameters\": [\n"
+                    + "    {\n"
+                    + "      \"type\": \"integer\",\n"
+                    + "      \"value\": \""
+                    + ageToCompare
+                    + "\"\n"
+                    + "    },\n"
+                    + "    {\n"
+                    + "      \"type\": \"string\",\n"
+                    + "      \"value\": \"TN\"\n"
+                    + "    },\n"
+                    + "    {\n"
+                    + "      \"type\": \"string\",\n"
+                    + "      \"value\": \"UT\"\n"
+                    + "    },\n"
+                    + "    {\n"
+                    + "      \"type\": \"integer\",\n"
+                    + "      \"value\": \"20\"\n"
+                    + "    }\n"
+                    + "  ]\n"
+                    + "}",
+                TestsConstants.TEST_INDEX_ACCOUNT));
 
     Assert.assertTrue(response.has("hits"));
     Assert.assertTrue(response.getJSONObject("hits").has("hits"));
@@ -58,23 +64,23 @@ public class PreparedStatementIT extends SQLIntegTestCase {
     }
   }
 
-    /* currently the integ test case will fail if run using Intellj, have to run using gradle command
-     * because the integ test cluster created by IntellJ has http diabled, need to spend some time later to
-     * figure out how to configure the integ test cluster properly. Related online resources:
-     *     https://discuss.elastic.co/t/http-enabled-with-OpenSearchIntegTestCase/102032
-     *     https://discuss.elastic.co/t/help-with-OpenSearchIntegTestCase/105245
-    @Override
-    protected Collection<Class<? extends Plugin>> nodePlugins() {
-        return Arrays.asList(MockTcpTransportPlugin.class);
-    }
+  /* currently the integ test case will fail if run using Intellj, have to run using gradle command
+   * because the integ test cluster created by IntellJ has http diabled, need to spend some time later to
+   * figure out how to configure the integ test cluster properly. Related online resources:
+   *     https://discuss.elastic.co/t/http-enabled-with-OpenSearchIntegTestCase/102032
+   *     https://discuss.elastic.co/t/help-with-OpenSearchIntegTestCase/105245
+  @Override
+  protected Collection<Class<? extends Plugin>> nodePlugins() {
+      return Arrays.asList(MockTcpTransportPlugin.class);
+  }
 
-    @Override
-    protected Settings nodeSettings(int nodeOrdinal) {
-        return Settings.builder().put(super.nodeSettings(nodeOrdinal))
-                // .put("node.mode", "network")
-                .put("http.enabled", true)
-                //.put("http.type", "netty4")
-                .build();
-    }
-    */
+  @Override
+  protected Settings nodeSettings(int nodeOrdinal) {
+      return Settings.builder().put(super.nodeSettings(nodeOrdinal))
+              // .put("node.mode", "network")
+              .put("http.enabled", true)
+              //.put("http.type", "netty4")
+              .build();
+  }
+  */
 }

@@ -87,6 +87,7 @@ spotless {
             include 'datasources/**/*.java',
                     'core/**/*.java',
                     'protocol/**/*.java',
+                    'prometheus/**/*.java',
                     'sql/**/*.java',
                     'common/**/*.java',
                     'ppl/**/*.java'
