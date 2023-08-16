@@ -130,9 +130,7 @@ public class TestDataSet {
   @Override
   public String toString() {
     int total = dataRows.size();
-    return String.format(
-            "Test data set:\n Table name: %s\n Schema: %s\n Data rows (first 5 in %d):",
-            tableName, schema, total)
+    return String.format("Test data set:\n Table name: %s\n Schema: %s\n Data rows (first 5 in %d):", tableName, schema, total)
         + dataRows.stream().limit(5).map(Arrays::toString).collect(joining("\n ", "\n ", "\n"));
   }
 }

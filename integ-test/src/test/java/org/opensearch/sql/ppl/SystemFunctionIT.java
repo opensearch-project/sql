@@ -45,10 +45,11 @@ public class SystemFunctionIT extends PPLIntegTestCase {
                 "source=%s | eval "
                     + "`timestamp` = typeof(CAST('1961-04-12 09:07:00' AS TIMESTAMP)),"
                     + "`time` = typeof(CAST('09:07:00' AS TIME)),"
-                    + "`date` = typeof(CAST('1961-04-12' AS DATE))"
-                    + " | fields `timestamp`, `time`, `date`",
+                    + "`date` = typeof(CAST('1961-04-12' AS DATE)),"
+                    + "`datetime` = typeof(DATETIME('1961-04-12 09:07:00'))"
+                    + " | fields `timestamp`, `time`, `date`, `datetime`",
                 TEST_INDEX_DATATYPE_NUMERIC));
-    verifyDataRows(response, rows("TIMESTAMP", "TIME", "DATE"));
+    verifyDataRows(response, rows("TIMESTAMP", "TIME", "DATE", "DATETIME"));
   }
 
   @Test
@@ -69,28 +70,19 @@ public class SystemFunctionIT extends PPLIntegTestCase {
     response =
         executeQuery(
             String.format(
-                "source=%s | eval `text` = typeof(text_value), `date` = typeof(date_value),"
-                    + " `date_nanos` = typeof(date_nanos_value),`boolean` = typeof(boolean_value),"
-                    + " `object` = typeof(object_value),`keyword` = typeof(keyword_value), `ip` ="
-                    + " typeof(ip_value),`binary` = typeof(binary_value), `geo_point` ="
-                    + " typeof(geo_point_value)"
+                "source=%s | eval "
+                    + "`text` = typeof(text_value), `date` = typeof(date_value),"
+                    + "`boolean` = typeof(boolean_value), `object` = typeof(object_value),"
+                    + "`keyword` = typeof(keyword_value), `ip` = typeof(ip_value),"
+                    + "`binary` = typeof(binary_value), `geo_point` = typeof(geo_point_value)"
                     // TODO activate this test once `ARRAY` type supported, see
                     // ExpressionAnalyzer::isTypeNotSupported
                     // + ", `nested` = typeof(nested_value)"
-                    + " | fields `text`, `date`, `date_nanos`, `boolean`, `object`, `keyword`,"
-                    + " `ip`, `binary`, `geo_point`",
+                    + " | fields `text`, `date`, `boolean`, `object`, `keyword`, `ip`, `binary`,"
+                    + " `geo_point`",
                 TEST_INDEX_DATATYPE_NONNUMERIC));
     verifyDataRows(
         response,
-        rows(
-            "TEXT",
-            "TIMESTAMP",
-            "TIMESTAMP",
-            "BOOLEAN",
-            "OBJECT",
-            "KEYWORD",
-            "IP",
-            "BINARY",
-            "GEO_POINT"));
+        rows("TEXT", "TIMESTAMP", "BOOLEAN", "OBJECT", "KEYWORD", "IP", "BINARY", "GEO_POINT"));
   }
 }

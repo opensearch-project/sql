@@ -35,8 +35,9 @@ public class SystemFunctionIT extends SQLIntegTestCase {
             "SELECT"
                 + " typeof(CAST('1961-04-12 09:07:00' AS TIMESTAMP)),"
                 + " typeof(CAST('09:07:00' AS TIME)),"
-                + " typeof(CAST('1961-04-12' AS DATE))");
-    verifyDataRows(response, rows("TIMESTAMP", "TIME", "DATE"));
+                + " typeof(CAST('1961-04-12' AS DATE)),"
+                + " typeof(DATETIME('1961-04-12 09:07:00'))");
+    verifyDataRows(response, rows("TIMESTAMP", "TIME", "DATE", "DATETIME"));
   }
 
   @Test
@@ -54,10 +55,9 @@ public class SystemFunctionIT extends SQLIntegTestCase {
     response =
         executeJdbcRequest(
             String.format(
-                "SELECT typeof(text_value),typeof(date_value), typeof(date_nanos_value),"
-                    + " typeof(boolean_value), typeof(object_value),"
-                    + " typeof(keyword_value),typeof(ip_value), typeof(binary_value),"
-                    + " typeof(geo_point_value)"
+                "SELECT typeof(text_value),typeof(date_value), typeof(boolean_value),"
+                    + " typeof(object_value), typeof(keyword_value),typeof(ip_value),"
+                    + " typeof(binary_value), typeof(geo_point_value)"
                     // TODO activate this test once `ARRAY` type supported, see
                     // ExpressionAnalyzer::isTypeNotSupported
                     // + ", typeof(nested_value)"
@@ -65,15 +65,6 @@ public class SystemFunctionIT extends SQLIntegTestCase {
                 TEST_INDEX_DATATYPE_NONNUMERIC));
     verifyDataRows(
         response,
-        rows(
-            "TEXT",
-            "TIMESTAMP",
-            "TIMESTAMP",
-            "BOOLEAN",
-            "OBJECT",
-            "KEYWORD",
-            "IP",
-            "BINARY",
-            "GEO_POINT"));
+        rows("TEXT", "TIMESTAMP", "BOOLEAN", "OBJECT", "KEYWORD", "IP", "BINARY", "GEO_POINT"));
   }
 }

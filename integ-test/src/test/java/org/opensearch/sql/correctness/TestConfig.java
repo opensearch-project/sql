@@ -18,8 +18,6 @@ import org.opensearch.sql.correctness.testset.TestQuerySet;
 import org.opensearch.sql.legacy.utils.StringUtils;
 
 /**
- *
- *
  * <pre>
  * Test configuration parse the following information from command line arguments:
  * 1) Test schema and data
