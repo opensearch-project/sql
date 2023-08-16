@@ -3,7 +3,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-
 package org.opensearch.sql.ppl.utils;
 
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.BooleanLiteralContext;
@@ -24,9 +23,7 @@ import org.opensearch.sql.ast.expression.DataType;
 import org.opensearch.sql.ast.expression.Literal;
 import org.opensearch.sql.common.utils.StringUtils;
 
-/**
- * Util class to get all arguments as a list from the PPL command.
- */
+/** Util class to get all arguments as a list from the PPL command. */
 public class ArgumentFactory {
 
   /**
@@ -39,8 +36,7 @@ public class ArgumentFactory {
     return Collections.singletonList(
         ctx.MINUS() != null
             ? new Argument("exclude", new Literal(true, DataType.BOOLEAN))
-            : new Argument("exclude", new Literal(false, DataType.BOOLEAN))
-    );
+            : new Argument("exclude", new Literal(false, DataType.BOOLEAN)));
   }
 
   /**
@@ -62,8 +58,7 @@ public class ArgumentFactory {
             : new Argument("delim", new Literal(" ", DataType.STRING)),
         ctx.dedupsplit != null
             ? new Argument("dedupsplit", getArgumentValue(ctx.dedupsplit))
-            : new Argument("dedupsplit", new Literal(false, DataType.BOOLEAN))
-    );
+            : new Argument("dedupsplit", new Literal(false, DataType.BOOLEAN)));
   }
 
   /**
@@ -82,8 +77,7 @@ public class ArgumentFactory {
             : new Argument("keepempty", new Literal(false, DataType.BOOLEAN)),
         ctx.consecutive != null
             ? new Argument("consecutive", getArgumentValue(ctx.consecutive))
-            : new Argument("consecutive", new Literal(false, DataType.BOOLEAN))
-    );
+            : new Argument("consecutive", new Literal(false, DataType.BOOLEAN)));
   }
 
   /**
@@ -100,13 +94,12 @@ public class ArgumentFactory {
         ctx.sortFieldExpression().AUTO() != null
             ? new Argument("type", new Literal("auto", DataType.STRING))
             : ctx.sortFieldExpression().IP() != null
-            ? new Argument("type", new Literal("ip", DataType.STRING))
-            : ctx.sortFieldExpression().NUM() != null
-            ? new Argument("type", new Literal("num", DataType.STRING))
-            : ctx.sortFieldExpression().STR() != null
-            ? new Argument("type", new Literal("str", DataType.STRING))
-            : new Argument("type", new Literal(null, DataType.NULL))
-    );
+                ? new Argument("type", new Literal("ip", DataType.STRING))
+                : ctx.sortFieldExpression().NUM() != null
+                    ? new Argument("type", new Literal("num", DataType.STRING))
+                    : ctx.sortFieldExpression().STR() != null
+                        ? new Argument("type", new Literal("str", DataType.STRING))
+                        : new Argument("type", new Literal(null, DataType.NULL)));
   }
 
   /**
@@ -119,8 +112,7 @@ public class ArgumentFactory {
     return Collections.singletonList(
         ctx.number != null
             ? new Argument("noOfResults", getArgumentValue(ctx.number))
-            : new Argument("noOfResults", new Literal(10, DataType.INTEGER))
-    );
+            : new Argument("noOfResults", new Literal(10, DataType.INTEGER)));
   }
 
   /**
@@ -130,21 +122,21 @@ public class ArgumentFactory {
    * @return the list of argument with default number of results for the rare command
    */
   public static List<Argument> getArgumentList(RareCommandContext ctx) {
-    return Collections
-        .singletonList(new Argument("noOfResults", new Literal(10, DataType.INTEGER)));
+    return Collections.singletonList(
+        new Argument("noOfResults", new Literal(10, DataType.INTEGER)));
   }
 
   /**
    * parse argument value into Literal.
+   *
    * @param ctx ParserRuleContext instance
    * @return Literal
    */
   private static Literal getArgumentValue(ParserRuleContext ctx) {
     return ctx instanceof IntegerLiteralContext
-            ? new Literal(Integer.parseInt(ctx.getText()), DataType.INTEGER)
-            : ctx instanceof BooleanLiteralContext
+        ? new Literal(Integer.parseInt(ctx.getText()), DataType.INTEGER)
+        : ctx instanceof BooleanLiteralContext
             ? new Literal(Boolean.valueOf(ctx.getText()), DataType.BOOLEAN)
             : new Literal(StringUtils.unquoteText(ctx.getText()), DataType.STRING);
   }
-
 }

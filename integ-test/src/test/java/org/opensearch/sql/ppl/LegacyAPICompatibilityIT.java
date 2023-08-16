@@ -16,9 +16,7 @@ import org.opensearch.client.Request;
 import org.opensearch.client.RequestOptions;
 import org.opensearch.client.Response;
 
-/**
- * For backward compatibility, check if legacy API endpoints are accessible.
- */
+/** For backward compatibility, check if legacy API endpoints are accessible. */
 public class LegacyAPICompatibilityIT extends PPLIntegTestCase {
 
   @Override
@@ -51,22 +49,20 @@ public class LegacyAPICompatibilityIT extends PPLIntegTestCase {
 
   @Test
   public void legacySettingNewEndpoint() throws IOException {
-    String requestBody = "{"
-        + "  \"persistent\": {"
-        + "    \"opendistro.ppl.query.memory_limit\": \"80%\""
-        + "  }"
-        + "}";
+    String requestBody =
+        "{"
+            + "  \"persistent\": {"
+            + "    \"opendistro.ppl.query.memory_limit\": \"80%\""
+            + "  }"
+            + "}";
     Response response = updateSetting(SETTINGS_API_ENDPOINT, requestBody);
     Assert.assertEquals(200, response.getStatusLine().getStatusCode());
   }
 
   @Test
   public void newSettingNewEndpoint() throws IOException {
-    String requestBody = "{"
-        + "  \"persistent\": {"
-        + "    \"plugins.query.size_limit\": \"100\""
-        + "  }"
-        + "}";
+    String requestBody =
+        "{" + "  \"persistent\": {" + "    \"plugins.query.size_limit\": \"100\"" + "  }" + "}";
     Response response = updateSetting(SETTINGS_API_ENDPOINT, requestBody);
     Assert.assertEquals(200, response.getStatusLine().getStatusCode());
   }
@@ -83,5 +79,4 @@ public class LegacyAPICompatibilityIT extends PPLIntegTestCase {
     restOptionsBuilder.addHeader("Content-Type", "application/json");
     return restOptionsBuilder;
   }
-
 }
