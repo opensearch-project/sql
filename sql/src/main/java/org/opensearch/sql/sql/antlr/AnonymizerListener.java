@@ -3,7 +3,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-
 package org.opensearch.sql.sql.antlr;
 
 import static org.opensearch.sql.sql.antlr.parser.OpenSearchSQLLexer.BACKTICK_QUOTE_ID;
@@ -31,21 +30,17 @@ import org.antlr.v4.runtime.tree.ErrorNode;
 import org.antlr.v4.runtime.tree.ParseTreeListener;
 import org.antlr.v4.runtime.tree.TerminalNode;
 
-/**
- * Parse tree listener for anonymizing SQL requests.
- */
+/** Parse tree listener for anonymizing SQL requests. */
 public class AnonymizerListener implements ParseTreeListener {
   private String anonymizedQueryString = "";
   private static final int NO_TYPE = -1;
   private int previousType = NO_TYPE;
 
   @Override
-  public void enterEveryRule(ParserRuleContext ctx) {
-  }
+  public void enterEveryRule(ParserRuleContext ctx) {}
 
   @Override
-  public void exitEveryRule(ParserRuleContext ctx) {
-  }
+  public void exitEveryRule(ParserRuleContext ctx) {}
 
   @Override
   public void visitTerminal(TerminalNode node) {
@@ -57,10 +52,11 @@ public class AnonymizerListener implements ParseTreeListener {
     int token = node.getSymbol().getType();
     boolean isDotIdentifiers = token == DOT || previousType == DOT;
     boolean isComma = token == COMMA;
-    boolean isEqualComparison = ((token == EQUAL_SYMBOL)
+    boolean isEqualComparison =
+        ((token == EQUAL_SYMBOL)
             && (previousType == LESS_SYMBOL
-        || previousType == GREATER_SYMBOL
-        || previousType == EXCLAMATION_SYMBOL));
+                || previousType == GREATER_SYMBOL
+                || previousType == EXCLAMATION_SYMBOL));
     boolean isNotEqualComparisonAlternative =
         previousType == LESS_SYMBOL && token == GREATER_SYMBOL;
     if (!isDotIdentifiers && !isComma && !isEqualComparison && !isNotEqualComparisonAlternative) {
@@ -103,9 +99,7 @@ public class AnonymizerListener implements ParseTreeListener {
   }
 
   @Override
-  public void visitErrorNode(ErrorNode node) {
-
-  }
+  public void visitErrorNode(ErrorNode node) {}
 
   public String getAnonymizedQueryString() {
     return "(" + anonymizedQueryString + ")";

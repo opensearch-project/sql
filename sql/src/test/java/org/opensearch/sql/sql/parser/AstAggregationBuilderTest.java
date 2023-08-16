@@ -3,7 +3,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-
 package org.opensearch.sql.sql.parser;
 
 import static java.util.Collections.emptyList;
@@ -59,10 +58,9 @@ class AstAggregationBuilderTest {
         buildAggregation("SELECT ABS(age + 1) FROM test GROUP BY ABS(age + 1)"),
         allOf(
             hasGroupByItems(
-                alias("ABS(+(age, 1))", function("ABS",
-                    function("+",
-                        qualifiedName("age"),
-                        intLiteral(1))))),
+                alias(
+                    "ABS(+(age, 1))",
+                    function("ABS", function("+", qualifiedName("age"), intLiteral(1))))),
             hasAggregators()));
   }
 
@@ -79,9 +77,7 @@ class AstAggregationBuilderTest {
   void can_build_group_by_clause_without_aggregators() {
     assertThat(
         buildAggregation("SELECT state FROM test GROUP BY state"),
-        allOf(
-            hasGroupByItems(alias("state", qualifiedName("state"))),
-            hasAggregators()));
+        allOf(hasGroupByItems(alias("state", qualifiedName("state"))), hasAggregators()));
   }
 
   @Test
@@ -101,50 +97,43 @@ class AstAggregationBuilderTest {
         buildAggregation("SELECT true FROM test HAVING AVG(age) > 30"),
         allOf(
             hasGroupByItems(),
-            hasAggregators(
-                alias("AVG(age)", aggregate("AVG", qualifiedName("age"))))));
+            hasAggregators(alias("AVG(age)", aggregate("AVG", qualifiedName("age"))))));
 
     assertThat(
-            buildAggregation("SELECT PI() FROM test HAVING AVG(age) > 30"),
-            allOf(
-                    hasGroupByItems(),
-                    hasAggregators(
-                            alias("AVG(age)", aggregate("AVG", qualifiedName("age"))))));
+        buildAggregation("SELECT PI() FROM test HAVING AVG(age) > 30"),
+        allOf(
+            hasGroupByItems(),
+            hasAggregators(alias("AVG(age)", aggregate("AVG", qualifiedName("age"))))));
 
     assertThat(
-            buildAggregation("SELECT ABS(1.5) FROM test HAVING AVG(age) > 30"),
-            allOf(
-                    hasGroupByItems(),
-                    hasAggregators(
-                            alias("AVG(age)", aggregate("AVG", qualifiedName("age"))))));
+        buildAggregation("SELECT ABS(1.5) FROM test HAVING AVG(age) > 30"),
+        allOf(
+            hasGroupByItems(),
+            hasAggregators(alias("AVG(age)", aggregate("AVG", qualifiedName("age"))))));
 
     assertThat(
-            buildAggregation("SELECT ABS(ABS(1.5)) FROM test HAVING AVG(age) > 30"),
-            allOf(
-                    hasGroupByItems(),
-                    hasAggregators(
-                            alias("AVG(age)", aggregate("AVG", qualifiedName("age"))))));
+        buildAggregation("SELECT ABS(ABS(1.5)) FROM test HAVING AVG(age) > 30"),
+        allOf(
+            hasGroupByItems(),
+            hasAggregators(alias("AVG(age)", aggregate("AVG", qualifiedName("age"))))));
 
     assertThat(
         buildAggregation("SELECT INTERVAL 1 DAY FROM test HAVING AVG(age) > 30"),
         allOf(
             hasGroupByItems(),
-            hasAggregators(
-                alias("AVG(age)", aggregate("AVG", qualifiedName("age"))))));
+            hasAggregators(alias("AVG(age)", aggregate("AVG", qualifiedName("age"))))));
 
     assertThat(
         buildAggregation("SELECT CAST(1 AS LONG) FROM test HAVING AVG(age) > 30"),
         allOf(
             hasGroupByItems(),
-            hasAggregators(
-                alias("AVG(age)", aggregate("AVG", qualifiedName("age"))))));
+            hasAggregators(alias("AVG(age)", aggregate("AVG", qualifiedName("age"))))));
 
     assertThat(
         buildAggregation("SELECT CASE WHEN true THEN 1 ELSE 2 END FROM test HAVING AVG(age) > 30"),
         allOf(
             hasGroupByItems(),
-            hasAggregators(
-                alias("AVG(age)", aggregate("AVG", qualifiedName("age"))))));
+            hasAggregators(alias("AVG(age)", aggregate("AVG", qualifiedName("age"))))));
   }
 
   @Test
@@ -154,8 +143,7 @@ class AstAggregationBuilderTest {
         allOf(
             hasGroupByItems(alias("age", qualifiedName("age"))),
             hasAggregators(
-                alias("COUNT(DISTINCT name)", distinctAggregate("COUNT", qualifiedName(
-                    "name"))))));
+                alias("COUNT(DISTINCT name)", distinctAggregate("COUNT", qualifiedName("name"))))));
   }
 
   @Test
@@ -167,8 +155,8 @@ class AstAggregationBuilderTest {
   void should_replace_group_by_alias_by_expression_in_select_clause() {
     assertThat(
         buildAggregation("SELECT state AS s, name FROM test GROUP BY s, name"),
-        hasGroupByItems(alias("state", qualifiedName("state")),
-            alias("name", qualifiedName("name"))));
+        hasGroupByItems(
+            alias("state", qualifiedName("state")), alias("name", qualifiedName("name"))));
 
     assertThat(
         buildAggregation("SELECT ABS(age) AS a FROM test GROUP BY a"),
@@ -190,25 +178,30 @@ class AstAggregationBuilderTest {
 
   @Test
   void should_report_error_for_non_integer_ordinal_in_group_by() {
-    SemanticCheckException error = assertThrows(SemanticCheckException.class, () ->
-        buildAggregation("SELECT state AS s FROM test GROUP BY 1.5"));
-    assertEquals(
-        "Non-integer constant [1.5] found in ordinal",
-        error.getMessage());
+    SemanticCheckException error =
+        assertThrows(
+            SemanticCheckException.class,
+            () -> buildAggregation("SELECT state AS s FROM test GROUP BY 1.5"));
+    assertEquals("Non-integer constant [1.5] found in ordinal", error.getMessage());
   }
 
-  @Disabled("This validation is supposed to be in analyzing phase. This test should be enabled "
+  @Disabled(
+      "This validation is supposed to be in analyzing phase. This test should be enabled "
           + "once https://github.com/opensearch-project/sql/issues/910 has been resolved")
   @Test
   void should_report_error_for_mismatch_between_select_and_group_by_items() {
-    SemanticCheckException error1 = assertThrows(SemanticCheckException.class, () ->
-        buildAggregation("SELECT name FROM test GROUP BY state"));
+    SemanticCheckException error1 =
+        assertThrows(
+            SemanticCheckException.class,
+            () -> buildAggregation("SELECT name FROM test GROUP BY state"));
     assertEquals(
         "Expression [name] that contains non-aggregated column is not present in group by clause",
         error1.getMessage());
 
-    SemanticCheckException error2 = assertThrows(SemanticCheckException.class, () ->
-        buildAggregation("SELECT ABS(name + 1) FROM test GROUP BY name"));
+    SemanticCheckException error2 =
+        assertThrows(
+            SemanticCheckException.class,
+            () -> buildAggregation("SELECT ABS(name + 1) FROM test GROUP BY name"));
     assertEquals(
         "Expression [Function(funcName=ABS, funcArgs=[Function(funcName=+, "
             + "funcArgs=[name, Literal(value=1, type=INTEGER)])])] that contains "
@@ -218,15 +211,19 @@ class AstAggregationBuilderTest {
 
   @Test
   void should_report_error_for_non_aggregated_item_in_select_if_no_group_by() {
-    SemanticCheckException error1 = assertThrows(SemanticCheckException.class, () ->
-        buildAggregation("SELECT age, AVG(balance) FROM tests"));
+    SemanticCheckException error1 =
+        assertThrows(
+            SemanticCheckException.class,
+            () -> buildAggregation("SELECT age, AVG(balance) FROM tests"));
     assertEquals(
         "Explicit GROUP BY clause is required because expression [age] "
             + "contains non-aggregated column",
         error1.getMessage());
 
-    SemanticCheckException error2 = assertThrows(SemanticCheckException.class, () ->
-        buildAggregation("SELECT ABS(age + 1), AVG(balance) FROM tests"));
+    SemanticCheckException error2 =
+        assertThrows(
+            SemanticCheckException.class,
+            () -> buildAggregation("SELECT ABS(age + 1), AVG(balance) FROM tests"));
     assertEquals(
         "Explicit GROUP BY clause is required because expression [ABS(+(age, 1))] "
             + "contains non-aggregated column",
@@ -235,19 +232,25 @@ class AstAggregationBuilderTest {
 
   @Test
   void should_report_error_for_group_by_ordinal_out_of_bound_of_select_list() {
-    SemanticCheckException error1 = assertThrows(SemanticCheckException.class, () ->
-        buildAggregation("SELECT age, AVG(balance) FROM tests GROUP BY 0"));
+    SemanticCheckException error1 =
+        assertThrows(
+            SemanticCheckException.class,
+            () -> buildAggregation("SELECT age, AVG(balance) FROM tests GROUP BY 0"));
     assertEquals("Ordinal [0] is out of bound of select item list", error1.getMessage());
 
-    SemanticCheckException error2 = assertThrows(SemanticCheckException.class, () ->
-        buildAggregation("SELECT age, AVG(balance) FROM tests GROUP BY 3"));
+    SemanticCheckException error2 =
+        assertThrows(
+            SemanticCheckException.class,
+            () -> buildAggregation("SELECT age, AVG(balance) FROM tests GROUP BY 3"));
     assertEquals("Ordinal [3] is out of bound of select item list", error2.getMessage());
   }
 
   @Test
   void should_report_error_for_non_aggregated_item_in_select_if_only_having() {
-    SemanticCheckException error = assertThrows(SemanticCheckException.class, () ->
-        buildAggregation("SELECT age FROM tests HAVING AVG(balance) > 30"));
+    SemanticCheckException error =
+        assertThrows(
+            SemanticCheckException.class,
+            () -> buildAggregation("SELECT age FROM tests HAVING AVG(balance) > 30"));
     assertEquals(
         "Explicit GROUP BY clause is required because expression [age] "
             + "contains non-aggregated column",
@@ -262,10 +265,10 @@ class AstAggregationBuilderTest {
     return featureValueOf("aggregators", Aggregation::getAggExprList, exprs);
   }
 
-  private Matcher<UnresolvedPlan> featureValueOf(String name,
-                                                 Function<Aggregation,
-                                                     List<UnresolvedExpression>> getter,
-                                                 UnresolvedExpression... exprs) {
+  private Matcher<UnresolvedPlan> featureValueOf(
+      String name,
+      Function<Aggregation, List<UnresolvedExpression>> getter,
+      UnresolvedExpression... exprs) {
     Matcher<List<UnresolvedExpression>> subMatcher =
         (exprs.length == 0) ? equalTo(emptyList()) : equalTo(Arrays.asList(exprs));
     return new FeatureMatcher<UnresolvedPlan, List<UnresolvedExpression>>(subMatcher, name, "") {
@@ -295,5 +298,4 @@ class AstAggregationBuilderTest {
     parser.addErrorListener(new SyntaxAnalysisErrorListener());
     return parser.querySpecification();
   }
-
 }
