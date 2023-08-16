@@ -3,7 +3,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-
 package org.opensearch.sql.correctness.runner.connection;
 
 import static java.util.stream.Collectors.joining;
@@ -23,33 +22,23 @@ import org.opensearch.sql.correctness.runner.resultset.DBResult;
 import org.opensearch.sql.correctness.runner.resultset.Row;
 import org.opensearch.sql.legacy.utils.StringUtils;
 
-/**
- * Database connection by JDBC driver.
- */
+/** Database connection by JDBC driver. */
 public class JDBCConnection implements DBConnection {
 
   private static final String SINGLE_QUOTE = "'";
   private static final String DOUBLE_QUOTE = "''";
   private static final String BACKTICK = "`";
 
-  /**
-   * Database name for display
-   */
+  /** Database name for display */
   private final String databaseName;
 
-  /**
-   * Database connection URL
-   */
+  /** Database connection URL */
   private final String connectionUrl;
 
-  /**
-   * JDBC driver config properties.
-   */
+  /** JDBC driver config properties. */
   private final Properties properties;
 
-  /**
-   * Current live connection
-   */
+  /** Current live connection */
   private Connection connection;
 
   public JDBCConnection(String databaseName, String connectionUrl) {
@@ -58,9 +47,10 @@ public class JDBCConnection implements DBConnection {
 
   /**
    * Create a JDBC connection with parameters given (but not connect to database at the moment).
-   * @param databaseName    database name
-   * @param connectionUrl   connection URL
-   * @param properties      config properties
+   *
+   * @param databaseName database name
+   * @param connectionUrl connection URL
+   * @param properties config properties
    */
   public JDBCConnection(String databaseName, String connectionUrl, Properties properties) {
     this.databaseName = databaseName;
@@ -104,11 +94,11 @@ public class JDBCConnection implements DBConnection {
   @Override
   public void insert(String tableName, String[] columnNames, List<Object[]> batch) {
     try (Statement stmt = connection.createStatement()) {
-      String names =
-          Arrays.stream(columnNames).map(this::delimited).collect(joining(","));
+      String names = Arrays.stream(columnNames).map(this::delimited).collect(joining(","));
       for (Object[] fieldValues : batch) {
-        stmt.addBatch(StringUtils.format(
-            "INSERT INTO %s(%s) VALUES (%s)", tableName, names, getValueList(fieldValues)));
+        stmt.addBatch(
+            StringUtils.format(
+                "INSERT INTO %s(%s) VALUES (%s)", tableName, names, getValueList(fieldValues)));
       }
       stmt.executeBatch();
     } catch (SQLException e) {
@@ -120,8 +110,10 @@ public class JDBCConnection implements DBConnection {
   public DBResult select(String query) {
     try (Statement stmt = connection.createStatement()) {
       ResultSet resultSet = stmt.executeQuery(query);
-      DBResult result = isOrderByQuery(query)
-          ? DBResult.resultInOrder(databaseName) : DBResult.result(databaseName);
+      DBResult result =
+          isOrderByQuery(query)
+              ? DBResult.resultInOrder(databaseName)
+              : DBResult.result(databaseName);
       populateMetaData(resultSet, result);
       populateData(resultSet, result);
       return result;
@@ -140,20 +132,22 @@ public class JDBCConnection implements DBConnection {
   }
 
   /**
-   * Parse out type in schema json and convert to field name and type pairs for CREATE TABLE statement.
+   * Parse out type in schema json and convert to field name and type pairs for CREATE TABLE
+   * statement.
    */
   private String parseColumnNameAndTypesInSchemaJson(String schema) {
     JSONObject json = (JSONObject) new JSONObject(schema).query("/mappings/properties");
-    return json.keySet().stream().
-        map(colName -> delimited(colName) + " " + mapToJDBCType(json.getJSONObject(colName)
-            .getString("type")))
+    return json.keySet().stream()
+        .map(
+            colName ->
+                delimited(colName)
+                    + " "
+                    + mapToJDBCType(json.getJSONObject(colName).getString("type")))
         .collect(joining(","));
   }
 
   private String getValueList(Object[] fieldValues) {
-    return Arrays.stream(fieldValues).
-        map(this::convertValueObjectToString).
-        collect(joining(","));
+    return Arrays.stream(fieldValues).map(this::convertValueObjectToString).collect(joining(","));
   }
 
   private String convertValueObjectToString(Object value) {
@@ -209,9 +203,7 @@ public class JDBCConnection implements DBConnection {
     return query.trim().toUpperCase().contains("ORDER BY");
   }
 
-  /**
-   * Setter for unit test mock
-   */
+  /** Setter for unit test mock */
   public void setConnection(Connection connection) {
     this.connection = connection;
   }

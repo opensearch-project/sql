@@ -3,7 +3,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-
 package org.opensearch.sql.sql;
 
 import static java.util.Collections.emptyMap;
@@ -25,15 +24,13 @@ import org.opensearch.sql.legacy.RestIntegTestCase;
 import org.opensearch.sql.legacy.utils.StringUtils;
 
 /**
- * SQL integration test base class. This is very similar to CorrectnessIT though
- * enforce the success of all tests rather than report failures only.
+ * SQL integration test base class. This is very similar to CorrectnessIT though enforce the success
+ * of all tests rather than report failures only.
  */
 @ThreadLeakScope(ThreadLeakScope.Scope.NONE)
 public abstract class CorrectnessTestBase extends RestIntegTestCase {
 
-  /**
-   * Comparison test runner shared by all methods in this IT class.
-   */
+  /** Comparison test runner shared by all methods in this IT class. */
   private static ComparisonTest runner;
 
   @Override
@@ -43,8 +40,7 @@ public abstract class CorrectnessTestBase extends RestIntegTestCase {
     }
 
     TestConfig config = new TestConfig(emptyMap());
-    runner = new ComparisonTest(getOpenSearchConnection(),
-                                getOtherDBConnections(config));
+    runner = new ComparisonTest(getOpenSearchConnection(), getOtherDBConnections(config));
 
     runner.connect();
     for (TestDataSet dataSet : config.getTestDataSets()) {
@@ -52,9 +48,7 @@ public abstract class CorrectnessTestBase extends RestIntegTestCase {
     }
   }
 
-  /**
-   * Clean up test data and close other database connection.
-   */
+  /** Clean up test data and close other database connection. */
   @AfterClass
   public static void cleanUp() {
     if (runner == null) {
@@ -74,33 +68,29 @@ public abstract class CorrectnessTestBase extends RestIntegTestCase {
   }
 
   /**
-   * Execute the given queries and compare result with other database.
-   * The queries will be considered as one test batch.
+   * Execute the given queries and compare result with other database. The queries will be
+   * considered as one test batch.
    */
   protected void verify(String... queries) {
     TestReport result = runner.verify(new TestQuerySet(queries));
     TestSummary summary = result.getSummary();
-    Assert.assertEquals(StringUtils.format(
-        "Comparison test failed on queries: %s", new JSONObject(result).toString(2)),
-        0, summary.getFailure());
+    Assert.assertEquals(
+        StringUtils.format(
+            "Comparison test failed on queries: %s", new JSONObject(result).toString(2)),
+        0,
+        summary.getFailure());
   }
 
-  /**
-   * Use OpenSearch cluster initialized by OpenSearch Gradle task.
-   */
+  /** Use OpenSearch cluster initialized by OpenSearch Gradle task. */
   private DBConnection getOpenSearchConnection() {
     String openSearchHost = client().getNodes().get(0).getHost().toString();
     return new OpenSearchConnection("jdbc:opensearch://" + openSearchHost, client());
   }
 
-  /**
-   * Create database connection with database name and connect URL.
-   */
+  /** Create database connection with database name and connect URL. */
   private DBConnection[] getOtherDBConnections(TestConfig config) {
-    return config.getOtherDbConnectionNameAndUrls()
-                 .entrySet().stream()
-                 .map(e -> new JDBCConnection(e.getKey(), e.getValue()))
-                 .toArray(DBConnection[]::new);
+    return config.getOtherDbConnectionNameAndUrls().entrySet().stream()
+        .map(e -> new JDBCConnection(e.getKey(), e.getValue()))
+        .toArray(DBConnection[]::new);
   }
-
 }
