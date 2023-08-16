@@ -93,7 +93,7 @@ spotless {
                     'doctest/**/*.java',
                     'relase-notes/**/*.java',
                     'spark/**/*.java',
-                    'plugin/**/*.java'
+                    'plugin/**/*.java',
                     'sql/**/*.java',
                     'ppl/**/*.java'
             exclude '**/build/**', '**/build-*/**'
