@@ -12,8 +12,8 @@ import org.opensearch.sql.data.type.ExprType;
 import org.opensearch.sql.opensearch.data.type.OpenSearchBinaryType;
 
 /**
- * OpenSearch BinaryValue. Todo, add this to avoid the unknown value type exception, the
- * implementation will be changed.
+ * OpenSearch BinaryValue.<br>
+ * Todo, add this to avoid the unknown value type exception, the implementation will be changed.
  */
 @EqualsAndHashCode(callSuper = false)
 public class OpenSearchExprBinaryValue extends AbstractExprValue {

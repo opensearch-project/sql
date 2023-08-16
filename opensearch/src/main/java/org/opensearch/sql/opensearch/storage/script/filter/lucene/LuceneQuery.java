@@ -39,7 +39,9 @@ public abstract class LuceneQuery {
 
   /**
    * Check if function expression supported by current Lucene query. Default behavior is that report
-   * supported if: 1. Left is a reference 2. Right side is a literal
+   * supported if:<br>
+   * 1. Left is a reference<br>
+   * 2. Right side is a literal
    *
    * @param func function
    * @return return true if supported, otherwise false.

@@ -13,8 +13,8 @@ import org.opensearch.sql.data.type.ExprType;
 import org.opensearch.sql.opensearch.data.type.OpenSearchGeoPointType;
 
 /**
- * OpenSearch GeoPointValue. Todo, add this to avoid the unknown value type exception, the
- * implementation will be changed.
+ * OpenSearch GeoPointValue.<br>
+ * Todo, add this to avoid the unknown value type exception, the implementation will be changed.
  */
 public class OpenSearchExprGeoPointValue extends AbstractExprValue {
 
