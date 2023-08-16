@@ -3,7 +3,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-
 package org.opensearch.sql.correctness.tests;
 
 import static java.util.Arrays.asList;
@@ -29,37 +28,37 @@ import org.opensearch.sql.correctness.runner.resultset.Row;
 import org.opensearch.sql.correctness.runner.resultset.Type;
 import org.opensearch.sql.correctness.testset.TestQuerySet;
 
-/**
- * Tests for {@link ComparisonTest}
- */
+/** Tests for {@link ComparisonTest} */
 @RunWith(MockitoJUnitRunner.class)
 public class ComparisonTestTest {
 
-  @Mock
-  private DBConnection openSearchConnection;
+  @Mock private DBConnection openSearchConnection;
 
-  @Mock
-  private DBConnection otherDbConnection;
+  @Mock private DBConnection otherDbConnection;
 
   private ComparisonTest correctnessTest;
 
   @Before
   public void setUp() {
     when(otherDbConnection.getDatabaseName()).thenReturn("Other");
-    correctnessTest = new ComparisonTest(
-        openSearchConnection, new DBConnection[] {otherDbConnection}
-    );
+    correctnessTest =
+        new ComparisonTest(openSearchConnection, new DBConnection[] {otherDbConnection});
   }
 
   @Test
   public void testSuccess() {
-    when(openSearchConnection.select(anyString())).thenReturn(
-        new DBResult("OpenSearch", asList(new Type("firstname", "text")), asList(new Row(asList("John"))))
-    );
-    when(otherDbConnection.select(anyString())).thenReturn(
-        new DBResult("Other DB", asList(new Type("firstname", "text")),
-            asList(new Row(asList("John"))))
-    );
+    when(openSearchConnection.select(anyString()))
+        .thenReturn(
+            new DBResult(
+                "OpenSearch",
+                asList(new Type("firstname", "text")),
+                asList(new Row(asList("John")))));
+    when(otherDbConnection.select(anyString()))
+        .thenReturn(
+            new DBResult(
+                "Other DB",
+                asList(new Type("firstname", "text")),
+                asList(new Row(asList("John")))));
 
     TestReport expected = new TestReport();
     expected.addTestCase(new SuccessTestCase(1, "SELECT * FROM accounts"));
@@ -70,15 +69,18 @@ public class ComparisonTestTest {
   @Test
   public void testFailureDueToInconsistency() {
     DBResult openSearchResult =
-        new DBResult("OpenSearch", asList(new Type("firstname", "text")), asList(new Row(asList("John"))));
-    DBResult otherDbResult = new DBResult("Other DB", asList(new Type("firstname", "text")),
-        asList(new Row(asList("JOHN"))));
+        new DBResult(
+            "OpenSearch", asList(new Type("firstname", "text")), asList(new Row(asList("John"))));
+    DBResult otherDbResult =
+        new DBResult(
+            "Other DB", asList(new Type("firstname", "text")), asList(new Row(asList("JOHN"))));
     when(openSearchConnection.select(anyString())).thenReturn(openSearchResult);
     when(otherDbConnection.select(anyString())).thenReturn(otherDbResult);
 
     TestReport expected = new TestReport();
     expected.addTestCase(
-        new FailedTestCase(1, "SELECT * FROM accounts", asList(openSearchResult, otherDbResult), ""));
+        new FailedTestCase(
+            1, "SELECT * FROM accounts", asList(openSearchResult, otherDbResult), ""));
     TestReport actual = correctnessTest.verify(querySet("SELECT * FROM accounts"));
     assertEquals(expected, actual);
   }
@@ -87,16 +89,19 @@ public class ComparisonTestTest {
   public void testSuccessFinally() {
     DBConnection anotherDbConnection = mock(DBConnection.class);
     when(anotherDbConnection.getDatabaseName()).thenReturn("Another");
-    correctnessTest = new ComparisonTest(
-        openSearchConnection, new DBConnection[] {otherDbConnection, anotherDbConnection}
-    );
+    correctnessTest =
+        new ComparisonTest(
+            openSearchConnection, new DBConnection[] {otherDbConnection, anotherDbConnection});
 
     DBResult openSearchResult =
-        new DBResult("OpenSearch", asList(new Type("firstname", "text")), asList(new Row(asList("John"))));
-    DBResult otherDbResult = new DBResult("Other DB", asList(new Type("firstname", "text")),
-        asList(new Row(asList("JOHN"))));
-    DBResult anotherDbResult = new DBResult("Another DB", asList(new Type("firstname", "text")),
-        asList(new Row(asList("John"))));
+        new DBResult(
+            "OpenSearch", asList(new Type("firstname", "text")), asList(new Row(asList("John"))));
+    DBResult otherDbResult =
+        new DBResult(
+            "Other DB", asList(new Type("firstname", "text")), asList(new Row(asList("JOHN"))));
+    DBResult anotherDbResult =
+        new DBResult(
+            "Another DB", asList(new Type("firstname", "text")), asList(new Row(asList("John"))));
     when(openSearchConnection.select(anyString())).thenReturn(openSearchResult);
     when(anotherDbConnection.select(anyString())).thenReturn(anotherDbResult);
 
@@ -111,30 +116,38 @@ public class ComparisonTestTest {
     DBConnection anotherDbConnection = mock(DBConnection.class);
     when(anotherDbConnection.getDatabaseName())
         .thenReturn("ZZZ DB"); // Make sure this will be called after Other DB
-    correctnessTest = new ComparisonTest(
-        openSearchConnection, new DBConnection[] {otherDbConnection, anotherDbConnection}
-    );
+    correctnessTest =
+        new ComparisonTest(
+            openSearchConnection, new DBConnection[] {otherDbConnection, anotherDbConnection});
 
     DBResult openSearchResult =
-        new DBResult("OpenSearch", asList(new Type("firstname", "text")), asList(new Row(asList("John"))));
-    DBResult otherDbResult = new DBResult("Other DB", asList(new Type("firstname", "text")),
-        asList(new Row(asList("JOHN"))));
-    DBResult anotherDbResult = new DBResult("ZZZ DB", asList(new Type("firstname", "text")),
-        asList(new Row(asList("Hank"))));
+        new DBResult(
+            "OpenSearch", asList(new Type("firstname", "text")), asList(new Row(asList("John"))));
+    DBResult otherDbResult =
+        new DBResult(
+            "Other DB", asList(new Type("firstname", "text")), asList(new Row(asList("JOHN"))));
+    DBResult anotherDbResult =
+        new DBResult(
+            "ZZZ DB", asList(new Type("firstname", "text")), asList(new Row(asList("Hank"))));
     when(openSearchConnection.select(anyString())).thenReturn(openSearchResult);
     when(otherDbConnection.select(anyString())).thenReturn(otherDbResult);
     when(anotherDbConnection.select(anyString())).thenReturn(anotherDbResult);
 
     TestReport expected = new TestReport();
-    expected.addTestCase(new FailedTestCase(1, "SELECT * FROM accounts",
-        asList(openSearchResult, otherDbResult, anotherDbResult), ""));
+    expected.addTestCase(
+        new FailedTestCase(
+            1,
+            "SELECT * FROM accounts",
+            asList(openSearchResult, otherDbResult, anotherDbResult),
+            ""));
     TestReport actual = correctnessTest.verify(querySet("SELECT * FROM accounts"));
     assertEquals(expected, actual);
   }
 
   @Test
   public void testErrorDueToESException() {
-    when(openSearchConnection.select(anyString())).thenThrow(new RuntimeException("All shards failure"));
+    when(openSearchConnection.select(anyString()))
+        .thenThrow(new RuntimeException("All shards failure"));
 
     TestReport expected = new TestReport();
     expected.addTestCase(
@@ -145,15 +158,21 @@ public class ComparisonTestTest {
 
   @Test
   public void testErrorDueToNoOtherDBSupportThisQuery() {
-    when(openSearchConnection.select(anyString())).thenReturn(
-        new DBResult("OpenSearch", asList(new Type("firstname", "text")), asList(new Row(asList("John"))))
-    );
+    when(openSearchConnection.select(anyString()))
+        .thenReturn(
+            new DBResult(
+                "OpenSearch",
+                asList(new Type("firstname", "text")),
+                asList(new Row(asList("John")))));
     when(otherDbConnection.select(anyString()))
         .thenThrow(new RuntimeException("Unsupported feature"));
 
     TestReport expected = new TestReport();
-    expected.addTestCase(new ErrorTestCase(1, "SELECT * FROM accounts",
-        "No other databases support this query: Unsupported feature;"));
+    expected.addTestCase(
+        new ErrorTestCase(
+            1,
+            "SELECT * FROM accounts",
+            "No other databases support this query: Unsupported feature;"));
     TestReport actual = correctnessTest.verify(querySet("SELECT * FROM accounts"));
     assertEquals(expected, actual);
   }
@@ -162,17 +181,22 @@ public class ComparisonTestTest {
   public void testSuccessWhenOneDBSupportThisQuery() {
     DBConnection anotherDbConnection = mock(DBConnection.class);
     when(anotherDbConnection.getDatabaseName()).thenReturn("Another");
-    correctnessTest = new ComparisonTest(
-        openSearchConnection, new DBConnection[] {otherDbConnection, anotherDbConnection}
-    );
+    correctnessTest =
+        new ComparisonTest(
+            openSearchConnection, new DBConnection[] {otherDbConnection, anotherDbConnection});
 
-    when(openSearchConnection.select(anyString())).thenReturn(
-        new DBResult("OpenSearch", asList(new Type("firstname", "text")), asList(new Row(asList("John"))))
-    );
-    when(anotherDbConnection.select(anyString())).thenReturn(
-        new DBResult("Another DB", asList(new Type("firstname", "text")),
-            asList(new Row(asList("John"))))
-    );
+    when(openSearchConnection.select(anyString()))
+        .thenReturn(
+            new DBResult(
+                "OpenSearch",
+                asList(new Type("firstname", "text")),
+                asList(new Row(asList("John")))));
+    when(anotherDbConnection.select(anyString()))
+        .thenReturn(
+            new DBResult(
+                "Another DB",
+                asList(new Type("firstname", "text")),
+                asList(new Row(asList("John")))));
 
     TestReport expected = new TestReport();
     expected.addTestCase(new SuccessTestCase(1, "SELECT * FROM accounts"));
@@ -184,12 +208,13 @@ public class ComparisonTestTest {
   public void testFailureDueToInconsistencyAndExceptionMixed() {
     DBConnection otherDBConnection2 = mock(DBConnection.class);
     when(otherDBConnection2.getDatabaseName()).thenReturn("ZZZ DB");
-    correctnessTest = new ComparisonTest(
-        openSearchConnection, new DBConnection[] {otherDbConnection, otherDBConnection2}
-    );
+    correctnessTest =
+        new ComparisonTest(
+            openSearchConnection, new DBConnection[] {otherDbConnection, otherDBConnection2});
 
     DBResult openSearchResult =
-        new DBResult("OpenSearch", asList(new Type("firstname", "text")), asList(new Row(asList("John"))));
+        new DBResult(
+            "OpenSearch", asList(new Type("firstname", "text")), asList(new Row(asList("John"))));
     DBResult otherResult =
         new DBResult("Other", asList(new Type("firstname", "text")), Collections.emptyList());
 
@@ -199,8 +224,12 @@ public class ComparisonTestTest {
         .thenThrow(new RuntimeException("Unsupported feature"));
 
     TestReport expected = new TestReport();
-    expected.addTestCase(new FailedTestCase(1, "SELECT * FROM accounts",
-        asList(openSearchResult, otherResult), "Unsupported feature;"));
+    expected.addTestCase(
+        new FailedTestCase(
+            1,
+            "SELECT * FROM accounts",
+            asList(openSearchResult, otherResult),
+            "Unsupported feature;"));
     TestReport actual = correctnessTest.verify(querySet("SELECT * FROM accounts"));
     assertEquals(expected, actual);
   }
@@ -208,5 +237,4 @@ public class ComparisonTestTest {
   private TestQuerySet querySet(String query) {
     return new TestQuerySet(new String[] {query});
   }
-
 }

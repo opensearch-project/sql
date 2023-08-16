@@ -3,7 +3,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-
 package org.opensearch.sql.ppl;
 
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_PHRASE;
@@ -24,18 +23,20 @@ public class MatchPhraseIT extends PPLIntegTestCase {
   @Test
   public void test_match_phrase_function() throws IOException {
     JSONObject result =
-            executeQuery(
-                    String.format(
-                            "source=%s | where match_phrase(phrase, 'quick fox') | fields phrase", TEST_INDEX_PHRASE));
+        executeQuery(
+            String.format(
+                "source=%s | where match_phrase(phrase, 'quick fox') | fields phrase",
+                TEST_INDEX_PHRASE));
     verifyDataRows(result, rows("quick fox"), rows("quick fox here"));
   }
 
   @Test
   public void test_match_phrase_with_slop() throws IOException {
     JSONObject result =
-            executeQuery(
-                    String.format(
-                            "source=%s | where match_phrase(phrase, 'brown fox', slop = 2) | fields phrase", TEST_INDEX_PHRASE));
+        executeQuery(
+            String.format(
+                "source=%s | where match_phrase(phrase, 'brown fox', slop = 2) | fields phrase",
+                TEST_INDEX_PHRASE));
     verifyDataRows(result, rows("brown fox"), rows("fox brown"));
   }
 }

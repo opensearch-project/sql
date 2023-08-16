@@ -3,7 +3,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-
 package org.opensearch.sql.legacy;
 
 import static org.hamcrest.Matchers.both;
@@ -38,9 +37,7 @@ import org.opensearch.sql.legacy.utils.StringUtils;
 
 public class SubqueryIT extends SQLIntegTestCase {
 
-  @Rule
-  public ExpectedException exceptionRule = ExpectedException.none();
-
+  @Rule public ExpectedException exceptionRule = ExpectedException.none();
 
   @Override
   protected void init() throws Exception {
@@ -51,50 +48,55 @@ public class SubqueryIT extends SQLIntegTestCase {
 
   @Test
   public void testIN() throws IOException {
-    String query = String.format(Locale.ROOT,
-        "SELECT dog_name " +
-            "FROM %s A " +
-            "WHERE holdersName IN (SELECT firstname FROM %s B) " +
-            "AND dog_name <> 'babala'",
-        TEST_INDEX_DOGSUBQUERY, TEST_INDEX_ACCOUNT);
+    String query =
+        String.format(
+            Locale.ROOT,
+            "SELECT dog_name "
+                + "FROM %s A "
+                + "WHERE holdersName IN (SELECT firstname FROM %s B) "
+                + "AND dog_name <> 'babala'",
+            TEST_INDEX_DOGSUBQUERY,
+            TEST_INDEX_ACCOUNT);
 
     JSONObject response = executeQuery(query);
     assertThat(
         response,
         hitAll(
             kvString("/_source/A.dog_name", is("snoopy")),
-            kvString("/_source/A.dog_name", is("gogo"))
-        )
-    );
+            kvString("/_source/A.dog_name", is("gogo"))));
   }
 
   @Test
   public void testINWithAlias() throws IOException {
-    String query = String.format(Locale.ROOT,
-        "SELECT A.dog_name " +
-            "FROM %s A " +
-            "WHERE A.holdersName IN (SELECT B.firstname FROM %s B) " +
-            "AND A.dog_name <> 'babala'",
-        TEST_INDEX_DOGSUBQUERY, TEST_INDEX_ACCOUNT);
+    String query =
+        String.format(
+            Locale.ROOT,
+            "SELECT A.dog_name "
+                + "FROM %s A "
+                + "WHERE A.holdersName IN (SELECT B.firstname FROM %s B) "
+                + "AND A.dog_name <> 'babala'",
+            TEST_INDEX_DOGSUBQUERY,
+            TEST_INDEX_ACCOUNT);
 
     JSONObject response = executeQuery(query);
     assertThat(
         response,
         hitAll(
             kvString("/_source/A.dog_name", is("snoopy")),
-            kvString("/_source/A.dog_name", is("gogo"))
-        )
-    );
+            kvString("/_source/A.dog_name", is("gogo"))));
   }
 
   @Test
   public void testINSelectAll() throws IOException {
-    String query = String.format(Locale.ROOT,
-        "SELECT * " +
-            "FROM %s A " +
-            "WHERE holdersName IN (SELECT firstname FROM %s B) " +
-            "AND dog_name <> 'babala'",
-        TEST_INDEX_DOGSUBQUERY, TEST_INDEX_ACCOUNT);
+    String query =
+        String.format(
+            Locale.ROOT,
+            "SELECT * "
+                + "FROM %s A "
+                + "WHERE holdersName IN (SELECT firstname FROM %s B) "
+                + "AND dog_name <> 'babala'",
+            TEST_INDEX_DOGSUBQUERY,
+            TEST_INDEX_ACCOUNT);
 
     JSONObject response = executeQuery(query);
     assertThat(
@@ -105,39 +107,38 @@ public class SubqueryIT extends SQLIntegTestCase {
                 .and(kvInt("/_source/A.age", is(4))),
             both(kvString("/_source/A.dog_name", is("gogo")))
                 .and(kvString("/_source/A.holdersName", is("Gabrielle")))
-                .and(kvInt("/_source/A.age", is(6)))
-        )
-    );
+                .and(kvInt("/_source/A.age", is(6)))));
   }
 
   @Test
   public void testINWithInnerWhere() throws IOException {
-    String query = String.format(Locale.ROOT,
-        "SELECT dog_name " +
-            "FROM %s A " +
-            "WHERE holdersName IN (SELECT firstname FROM %s B WHERE age <> 36) " +
-            "AND dog_name <> 'babala'",
-        TEST_INDEX_DOGSUBQUERY, TEST_INDEX_ACCOUNT);
+    String query =
+        String.format(
+            Locale.ROOT,
+            "SELECT dog_name "
+                + "FROM %s A "
+                + "WHERE holdersName IN (SELECT firstname FROM %s B WHERE age <> 36) "
+                + "AND dog_name <> 'babala'",
+            TEST_INDEX_DOGSUBQUERY,
+            TEST_INDEX_ACCOUNT);
 
     JSONObject response = executeQuery(query);
-    assertThat(
-        response,
-        hitAll(
-            kvString("/_source/A.dog_name", is("gogo"))
-        )
-    );
+    assertThat(response, hitAll(kvString("/_source/A.dog_name", is("gogo"))));
   }
 
   @Test
   public void testNotSupportedQuery() throws IOException {
     exceptionRule.expect(ResponseException.class);
     exceptionRule.expectMessage("Unsupported subquery");
-    String query = String.format(Locale.ROOT,
-        "SELECT dog_name " +
-            "FROM %s A " +
-            "WHERE holdersName NOT IN (SELECT firstname FROM %s B WHERE age <> 36) " +
-            "AND dog_name <> 'babala'",
-        TEST_INDEX_DOGSUBQUERY, TEST_INDEX_ACCOUNT);
+    String query =
+        String.format(
+            Locale.ROOT,
+            "SELECT dog_name "
+                + "FROM %s A "
+                + "WHERE holdersName NOT IN (SELECT firstname FROM %s B WHERE age <> 36) "
+                + "AND dog_name <> 'babala'",
+            TEST_INDEX_DOGSUBQUERY,
+            TEST_INDEX_ACCOUNT);
     executeQuery(query);
   }
 
@@ -145,100 +146,91 @@ public class SubqueryIT extends SQLIntegTestCase {
   @Ignore
   @Test
   public void testINWithDuplicate() throws IOException {
-    String query = String.format(Locale.ROOT,
-        "SELECT dog_name " +
-            "FROM %s A " +
-            "WHERE holdersName IN (SELECT firstname FROM %s B)",
-        TEST_INDEX_DOGSUBQUERY, TEST_INDEX_ACCOUNT);
+    String query =
+        String.format(
+            Locale.ROOT,
+            "SELECT dog_name FROM %s A WHERE holdersName IN (SELECT firstname FROM %s B)",
+            TEST_INDEX_DOGSUBQUERY,
+            TEST_INDEX_ACCOUNT);
 
     JSONObject response = executeQuery(query);
     assertThat(
         response,
         hitAll(
             kvString("/_source/A.dog_name", is("snoopy")),
-            kvString("/_source/A.dog_name", is("babala"))
-        )
-    );
+            kvString("/_source/A.dog_name", is("babala"))));
   }
 
   @Test
   public void nonCorrelatedExists() throws IOException {
-    String query = String.format(Locale.ROOT,
-        "SELECT e.name " +
-            "FROM %s as e " +
-            "WHERE EXISTS (SELECT * FROM e.projects as p)",
-        TEST_INDEX_EMPLOYEE_NESTED);
+    String query =
+        String.format(
+            Locale.ROOT,
+            "SELECT e.name FROM %s as e WHERE EXISTS (SELECT * FROM e.projects as p)",
+            TEST_INDEX_EMPLOYEE_NESTED);
 
     JSONObject response = executeQuery(query);
     assertThat(
         response,
         hitAll(
             kvString("/_source/name", is("Bob Smith")),
-            kvString("/_source/name", is("Jane Smith"))
-        )
-    );
+            kvString("/_source/name", is("Jane Smith"))));
   }
 
   @Test
   public void nonCorrelatedExistsWhere() throws IOException {
-    String query = String.format(Locale.ROOT,
-        "SELECT e.name " +
-            "FROM %s as e " +
-            "WHERE EXISTS (SELECT * FROM e.projects as p WHERE p.name LIKE 'aurora')",
-        TEST_INDEX_EMPLOYEE_NESTED);
+    String query =
+        String.format(
+            Locale.ROOT,
+            "SELECT e.name "
+                + "FROM %s as e "
+                + "WHERE EXISTS (SELECT * FROM e.projects as p WHERE p.name LIKE 'aurora')",
+            TEST_INDEX_EMPLOYEE_NESTED);
 
     JSONObject response = executeQuery(query);
-    assertThat(
-        response,
-        hitAll(
-            kvString("/_source/name", is("Bob Smith"))
-        )
-    );
+    assertThat(response, hitAll(kvString("/_source/name", is("Bob Smith"))));
   }
 
   @Test
   public void nonCorrelatedExistsParentWhere() throws IOException {
-    String query = String.format(Locale.ROOT,
-        "SELECT e.name " +
-            "FROM %s as e " +
-            "WHERE EXISTS (SELECT * FROM e.projects as p WHERE p.name LIKE 'security') " +
-            "AND e.name LIKE 'jane'",
-        TEST_INDEX_EMPLOYEE_NESTED);
+    String query =
+        String.format(
+            Locale.ROOT,
+            "SELECT e.name "
+                + "FROM %s as e "
+                + "WHERE EXISTS (SELECT * FROM e.projects as p WHERE p.name LIKE 'security') "
+                + "AND e.name LIKE 'jane'",
+            TEST_INDEX_EMPLOYEE_NESTED);
 
     JSONObject response = executeQuery(query);
-    assertThat(
-        response,
-        hitAll(
-            kvString("/_source/name", is("Jane Smith"))
-        )
-    );
+    assertThat(response, hitAll(kvString("/_source/name", is("Jane Smith"))));
   }
 
   @Test
   public void nonCorrelatedNotExists() throws IOException {
-    String query = String.format(Locale.ROOT,
-        "SELECT e.name " +
-            "FROM %s as e " +
-            "WHERE NOT EXISTS (SELECT * FROM e.projects as p)",
-        TEST_INDEX_EMPLOYEE_NESTED);
+    String query =
+        String.format(
+            Locale.ROOT,
+            "SELECT e.name FROM %s as e WHERE NOT EXISTS (SELECT * FROM e.projects as p)",
+            TEST_INDEX_EMPLOYEE_NESTED);
 
     JSONObject response = executeQuery(query);
     assertThat(
         response,
         hitAll(
             kvString("/_source/name", is("Susan Smith")),
-            kvString("/_source/name", is("John Doe"))
-        )
-    );
+            kvString("/_source/name", is("John Doe"))));
   }
 
   @Test
   public void nonCorrelatedNotExistsWhere() throws IOException {
-    String query = String.format(Locale.ROOT,
-        "SELECT e.name " +
-            "FROM %s as e " +
-            "WHERE NOT EXISTS (SELECT * FROM e.projects as p WHERE p.name LIKE 'aurora')",
-        TEST_INDEX_EMPLOYEE_NESTED);
+    String query =
+        String.format(
+            Locale.ROOT,
+            "SELECT e.name "
+                + "FROM %s as e "
+                + "WHERE NOT EXISTS (SELECT * FROM e.projects as p WHERE p.name LIKE 'aurora')",
+            TEST_INDEX_EMPLOYEE_NESTED);
 
     JSONObject response = executeQuery(query);
     assertThat(
@@ -246,52 +238,55 @@ public class SubqueryIT extends SQLIntegTestCase {
         hitAll(
             kvString("/_source/name", is("Susan Smith")),
             kvString("/_source/name", is("Jane Smith")),
-            kvString("/_source/name", is("John Doe"))
-        )
-    );
+            kvString("/_source/name", is("John Doe"))));
   }
 
   @Test
   public void nonCorrelatedNotExistsParentWhere() throws IOException {
-    String query = String.format(Locale.ROOT,
-        "SELECT e.name " +
-            "FROM %s as e " +
-            "WHERE NOT EXISTS (SELECT * FROM e.projects as p WHERE p.name LIKE 'security') " +
-            "AND e.name LIKE 'smith'",
-        TEST_INDEX_EMPLOYEE_NESTED);
+    String query =
+        String.format(
+            Locale.ROOT,
+            "SELECT e.name "
+                + "FROM %s as e "
+                + "WHERE NOT EXISTS (SELECT * FROM e.projects as p WHERE p.name LIKE 'security') "
+                + "AND e.name LIKE 'smith'",
+            TEST_INDEX_EMPLOYEE_NESTED);
 
     JSONObject response = executeQuery(query);
-    assertThat(
-        response,
-        hitAll(
-            kvString("/_source/name", is("Susan Smith"))
-        )
-    );
+    assertThat(response, hitAll(kvString("/_source/name", is("Susan Smith"))));
   }
 
   @Test
   public void selectFromSubqueryWithCountShouldPass() throws IOException {
-    JSONObject result = executeQuery(
-        StringUtils.format("SELECT t.TEMP as count " +
-            "FROM (SELECT COUNT(*) as TEMP FROM %s) t", TEST_INDEX_ACCOUNT));
+    JSONObject result =
+        executeQuery(
+            StringUtils.format(
+                "SELECT t.TEMP as count FROM (SELECT COUNT(*) as TEMP FROM %s) t",
+                TEST_INDEX_ACCOUNT));
 
     assertThat(result.query("/aggregations/count/value"), equalTo(1000));
   }
 
   @Test
   public void selectFromSubqueryWithWhereAndCountShouldPass() throws IOException {
-    JSONObject result = executeQuery(
-        StringUtils.format("SELECT t.TEMP as count " +
-            "FROM (SELECT COUNT(*) as TEMP FROM %s WHERE age > 30) t", TEST_INDEX_ACCOUNT));
+    JSONObject result =
+        executeQuery(
+            StringUtils.format(
+                "SELECT t.TEMP as count "
+                    + "FROM (SELECT COUNT(*) as TEMP FROM %s WHERE age > 30) t",
+                TEST_INDEX_ACCOUNT));
 
     assertThat(result.query("/aggregations/count/value"), equalTo(502));
   }
 
   @Test
   public void selectFromSubqueryWithCountAndGroupByShouldPass() throws Exception {
-    JSONObject result = executeQuery(
-        StringUtils.format("SELECT t.TEMP as count " +
-            "FROM (SELECT COUNT(*) as TEMP FROM %s GROUP BY gender) t", TEST_INDEX_ACCOUNT));
+    JSONObject result =
+        executeQuery(
+            StringUtils.format(
+                "SELECT t.TEMP as count "
+                    + "FROM (SELECT COUNT(*) as TEMP FROM %s GROUP BY gender) t",
+                TEST_INDEX_ACCOUNT));
 
     assertThat(getTotalHits(result), equalTo(1000));
     JSONObject gender = (JSONObject) result.query("/aggregations/gender");
@@ -312,11 +307,12 @@ public class SubqueryIT extends SQLIntegTestCase {
 
   @Test
   public void selectFromSubqueryWithCountAndGroupByAndOrderByShouldPass() throws IOException {
-    JSONObject result = executeQuery(
-        StringUtils.format(
-            "SELECT t.TEMP as count " +
-                "FROM (SELECT COUNT(*) as TEMP FROM %s GROUP BY age ORDER BY TEMP) t",
-            TEST_INDEX_ACCOUNT));
+    JSONObject result =
+        executeQuery(
+            StringUtils.format(
+                "SELECT t.TEMP as count "
+                    + "FROM (SELECT COUNT(*) as TEMP FROM %s GROUP BY age ORDER BY TEMP) t",
+                TEST_INDEX_ACCOUNT));
     JSONArray buckets = (JSONArray) result.query("/aggregations/age/buckets");
     List<Integer> countList = new ArrayList<>();
     for (int i = 0; i < buckets.length(); ++i) {
@@ -328,44 +324,50 @@ public class SubqueryIT extends SQLIntegTestCase {
 
   @Test
   public void selectFromSubqueryWithCountAndGroupByAndHavingShouldPass() throws Exception {
-    JSONObject result = executeQuery(
-        StringUtils.format("SELECT t.T1 as g, t.T2 as c " +
-            "FROM (SELECT gender as T1, COUNT(*) as T2 " +
-            "      FROM %s " +
-            "      GROUP BY gender " +
-            "      HAVING T2 > 500) t", TEST_INDEX_ACCOUNT));
+    JSONObject result =
+        executeQuery(
+            StringUtils.format(
+                "SELECT t.T1 as g, t.T2 as c "
+                    + "FROM (SELECT gender as T1, COUNT(*) as T2 "
+                    + "      FROM %s "
+                    + "      GROUP BY gender "
+                    + "      HAVING T2 > 500) t",
+                TEST_INDEX_ACCOUNT));
     assertThat(result.query("/aggregations/g/buckets/0/c/value"), equalTo(507));
   }
 
   @Test
   public void selectFromSubqueryCountAndSum() throws IOException {
-    JSONObject result = executeQuery(
-        StringUtils.format(
-            "SELECT t.TEMP1 as count, t.TEMP2 as balance " +
-                "FROM (SELECT COUNT(*) as TEMP1, SUM(balance) as TEMP2 " +
-                "      FROM %s) t",
-            TEST_INDEX_ACCOUNT));
+    JSONObject result =
+        executeQuery(
+            StringUtils.format(
+                "SELECT t.TEMP1 as count, t.TEMP2 as balance "
+                    + "FROM (SELECT COUNT(*) as TEMP1, SUM(balance) as TEMP2 "
+                    + "      FROM %s) t",
+                TEST_INDEX_ACCOUNT));
 
     assertThat(result.query("/aggregations/count/value"), equalTo(1000));
-    assertThat(((BigDecimal) result.query("/aggregations/balance/value")).doubleValue(),
+    assertThat(
+        ((BigDecimal) result.query("/aggregations/balance/value")).doubleValue(),
         closeTo(25714837.0, 0.01));
   }
 
   @Test
   public void selectFromSubqueryWithoutAliasShouldPass() throws IOException {
-    JSONObject response = executeJdbcRequest(
-        StringUtils.format(
-            "SELECT a.firstname AS my_first, a.lastname AS my_last, a.age AS my_age " +
-                "FROM (SELECT firstname, lastname, age " +
-                "FROM %s " +
-                "WHERE age = 40 and account_number = 291) AS a",
-            TEST_INDEX_ACCOUNT));
+    JSONObject response =
+        executeJdbcRequest(
+            StringUtils.format(
+                "SELECT a.firstname AS my_first, a.lastname AS my_last, a.age AS my_age "
+                    + "FROM (SELECT firstname, lastname, age "
+                    + "FROM %s "
+                    + "WHERE age = 40 and account_number = 291) AS a",
+                TEST_INDEX_ACCOUNT));
 
-    verifySchema(response,
+    verifySchema(
+        response,
         schema("firstname", "my_first", "text"),
         schema("lastname", "my_last", "text"),
         schema("age", "my_age", "long"));
-    verifyDataRows(response,
-        rows("Lynn", "Pollard", 40));
+    verifyDataRows(response, rows("Lynn", "Pollard", 40));
   }
 }

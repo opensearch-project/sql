@@ -3,7 +3,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-
 package org.opensearch.sql.ppl;
 
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_ACCOUNT;
@@ -23,13 +22,13 @@ import org.opensearch.client.ResponseException;
 
 public class CrossClusterSearchIT extends PPLIntegTestCase {
 
-  @Rule
-  public ExpectedException exceptionRule = ExpectedException.none();
+  @Rule public ExpectedException exceptionRule = ExpectedException.none();
 
-  private final static String TEST_INDEX_BANK_REMOTE = REMOTE_CLUSTER + ":" + TEST_INDEX_BANK;
-  private final static String TEST_INDEX_DOG_REMOTE = REMOTE_CLUSTER + ":" + TEST_INDEX_DOG;
-  private final static String TEST_INDEX_DOG_MATCH_ALL_REMOTE = MATCH_ALL_REMOTE_CLUSTER + ":" + TEST_INDEX_DOG;
-  private final static String TEST_INDEX_ACCOUNT_REMOTE = REMOTE_CLUSTER + ":" + TEST_INDEX_ACCOUNT;
+  private static final String TEST_INDEX_BANK_REMOTE = REMOTE_CLUSTER + ":" + TEST_INDEX_BANK;
+  private static final String TEST_INDEX_DOG_REMOTE = REMOTE_CLUSTER + ":" + TEST_INDEX_DOG;
+  private static final String TEST_INDEX_DOG_MATCH_ALL_REMOTE =
+      MATCH_ALL_REMOTE_CLUSTER + ":" + TEST_INDEX_DOG;
+  private static final String TEST_INDEX_ACCOUNT_REMOTE = REMOTE_CLUSTER + ":" + TEST_INDEX_ACCOUNT;
 
   @Override
   public void init() throws IOException {
@@ -49,7 +48,8 @@ public class CrossClusterSearchIT extends PPLIntegTestCase {
 
   @Test
   public void testMatchAllCrossClusterSearchAllFields() throws IOException {
-    JSONObject result = executeQuery(String.format("search source=%s", TEST_INDEX_DOG_MATCH_ALL_REMOTE));
+    JSONObject result =
+        executeQuery(String.format("search source=%s", TEST_INDEX_DOG_MATCH_ALL_REMOTE));
     verifyColumn(result, columnName("dog_name"), columnName("holdersName"), columnName("age"));
   }
 
@@ -64,18 +64,21 @@ public class CrossClusterSearchIT extends PPLIntegTestCase {
 
   @Test
   public void testCrossClusterSearchCommandWithLogicalExpression() throws IOException {
-    JSONObject result = executeQuery(String.format(
-        "search source=%s firstname='Hattie' | fields firstname", TEST_INDEX_BANK_REMOTE));
+    JSONObject result =
+        executeQuery(
+            String.format(
+                "search source=%s firstname='Hattie' | fields firstname", TEST_INDEX_BANK_REMOTE));
     verifyDataRows(result, rows("Hattie"));
   }
 
   @Test
   public void testCrossClusterSearchMultiClusters() throws IOException {
-    JSONObject result = executeQuery(String.format(
-        "search source=%s,%s firstname='Hattie' | fields firstname", TEST_INDEX_BANK_REMOTE, TEST_INDEX_BANK));
-    verifyDataRows(result,
-        rows("Hattie"),
-        rows("Hattie"));
+    JSONObject result =
+        executeQuery(
+            String.format(
+                "search source=%s,%s firstname='Hattie' | fields firstname",
+                TEST_INDEX_BANK_REMOTE, TEST_INDEX_BANK));
+    verifyDataRows(result, rows("Hattie"), rows("Hattie"));
   }
 
   @Test
@@ -106,8 +109,7 @@ public class CrossClusterSearchIT extends PPLIntegTestCase {
         columnName("SCOPE_TABLE"),
         columnName("SOURCE_DATA_TYPE"),
         columnName("IS_AUTOINCREMENT"),
-        columnName("IS_GENERATEDCOLUMN")
-    );
+        columnName("IS_GENERATEDCOLUMN"));
   }
 
   @Test
@@ -138,7 +140,6 @@ public class CrossClusterSearchIT extends PPLIntegTestCase {
         columnName("SCOPE_TABLE"),
         columnName("SOURCE_DATA_TYPE"),
         columnName("IS_AUTOINCREMENT"),
-        columnName("IS_GENERATEDCOLUMN")
-    );
+        columnName("IS_GENERATEDCOLUMN"));
   }
 }
