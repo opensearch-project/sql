@@ -3,37 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-
 package org.opensearch.sql.legacy;
-
-import com.google.common.base.Strings;
-import com.google.gson.Gson;
-import org.apache.commons.lang3.StringUtils;
-import org.json.JSONArray;
-import org.json.JSONObject;
-import org.junit.AfterClass;
-import org.junit.Assert;
-import org.junit.Before;
-import org.opensearch.client.Request;
-import org.opensearch.client.RequestOptions;
-import org.opensearch.client.Response;
-import org.opensearch.client.RestClient;
-import org.opensearch.sql.common.setting.Settings;
-
-import javax.management.MBeanServerInvocationHandler;
-import javax.management.ObjectName;
-import javax.management.remote.JMXConnector;
-import javax.management.remote.JMXConnectorFactory;
-import javax.management.remote.JMXServiceURL;
-import java.io.IOException;
-import java.io.UnsupportedEncodingException;
-import java.net.URLEncoder;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.util.Locale;
-import org.opensearch.sql.datasource.model.DataSourceMetadata;
 
 import static com.google.common.base.Strings.isNullOrEmpty;
 import static org.opensearch.sql.legacy.TestUtils.createIndexByRestClient;
@@ -69,9 +39,35 @@ import static org.opensearch.sql.legacy.plugin.RestSqlAction.CURSOR_CLOSE_ENDPOI
 import static org.opensearch.sql.legacy.plugin.RestSqlAction.EXPLAIN_API_ENDPOINT;
 import static org.opensearch.sql.legacy.plugin.RestSqlAction.QUERY_API_ENDPOINT;
 
-/**
- * OpenSearch Rest integration test base for SQL testing
- */
+import com.google.common.base.Strings;
+import com.google.gson.Gson;
+import java.io.IOException;
+import java.io.UnsupportedEncodingException;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.Locale;
+import javax.management.MBeanServerInvocationHandler;
+import javax.management.ObjectName;
+import javax.management.remote.JMXConnector;
+import javax.management.remote.JMXConnectorFactory;
+import javax.management.remote.JMXServiceURL;
+import org.apache.commons.lang3.StringUtils;
+import org.json.JSONArray;
+import org.json.JSONObject;
+import org.junit.AfterClass;
+import org.junit.Assert;
+import org.junit.Before;
+import org.opensearch.client.Request;
+import org.opensearch.client.RequestOptions;
+import org.opensearch.client.Response;
+import org.opensearch.client.RestClient;
+import org.opensearch.sql.common.setting.Settings;
+import org.opensearch.sql.datasource.model.DataSourceMetadata;
+
+/** OpenSearch Rest integration test base for SQL testing */
 public abstract class SQLIntegTestCase extends OpenSearchSQLRestTestCase {
 
   public static final String PERSISTENT = "persistent";
@@ -103,12 +99,14 @@ public abstract class SQLIntegTestCase extends OpenSearchSQLRestTestCase {
   }
 
   /**
+   * <pre>
    * We need to be able to dump the jacoco coverage before cluster is shut down.
    * The new internal testing framework removed some of the gradle tasks we were listening to
    * to choose a good time to do it. This will dump the executionData to file after each test.
    * TODO: This is also currently just overwriting integTest.exec with the updated execData without
    * resetting after writing each time. This can be improved to either write an exec file per test
    * or by letting jacoco append to the file
+   * </pre>
    */
   public interface IProxy {
     byte[] getExecutionData(boolean reset);
@@ -129,10 +127,12 @@ public abstract class SQLIntegTestCase extends OpenSearchSQLRestTestCase {
 
     String serverUrl = "service:jmx:rmi:///jndi/rmi://127.0.0.1:7777/jmxrmi";
     try (JMXConnector connector = JMXConnectorFactory.connect(new JMXServiceURL(serverUrl))) {
-      IProxy proxy = MBeanServerInvocationHandler.newProxyInstance(
-          connector.getMBeanServerConnection(), new ObjectName("org.jacoco:type=Runtime"),
-          IProxy.class,
-          false);
+      IProxy proxy =
+          MBeanServerInvocationHandler.newProxyInstance(
+              connector.getMBeanServerConnection(),
+              new ObjectName("org.jacoco:type=Runtime"),
+              IProxy.class,
+              false);
 
       Path path = Paths.get(jacocoBuildPath + "/integTest.exec");
       Files.write(path, proxy.getExecutionData(false));
@@ -142,9 +142,10 @@ public abstract class SQLIntegTestCase extends OpenSearchSQLRestTestCase {
   }
 
   /**
-   * As JUnit JavaDoc says:
-   * "The @AfterClass methods declared in superclasses will be run after those of the current class."
-   * So this method is supposed to run before closeClients() in parent class.
+   * As JUnit JavaDoc says:<br>
+    "The @AfterClass methods declared in superclasses will be run after those of the current class."<br>
+    So this method is supposed to run before closeClients() in parent class.
+   * class.
    */
   @AfterClass
   public static void cleanUpIndices() throws IOException {
@@ -156,13 +157,16 @@ public abstract class SQLIntegTestCase extends OpenSearchSQLRestTestCase {
 
   protected void setQuerySizeLimit(Integer limit) throws IOException {
     updateClusterSettings(
-        new ClusterSetting("transient", Settings.Key.QUERY_SIZE_LIMIT.getKeyValue(), limit.toString()));
+        new ClusterSetting(
+            "transient", Settings.Key.QUERY_SIZE_LIMIT.getKeyValue(), limit.toString()));
   }
 
   protected void resetQuerySizeLimit() throws IOException {
     updateClusterSettings(
-        new ClusterSetting("transient", Settings.Key.QUERY_SIZE_LIMIT.getKeyValue(), DEFAULT_QUERY_SIZE_LIMIT
-            .toString()));
+        new ClusterSetting(
+            "transient",
+            Settings.Key.QUERY_SIZE_LIMIT.getKeyValue(),
+            DEFAULT_QUERY_SIZE_LIMIT.toString()));
   }
 
   protected static void wipeAllClusterSettings() throws IOException {
@@ -179,19 +183,16 @@ public abstract class SQLIntegTestCase extends OpenSearchSQLRestTestCase {
   }
 
   protected void resetMaxResultWindow(String indexName) throws IOException {
-    updateIndexSettings(indexName,
-        "{ \"index\": { \"max_result_window\": " + DEFAULT_MAX_RESULT_WINDOW + " } }");
+    updateIndexSettings(
+        indexName, "{ \"index\": { \"max_result_window\": " + DEFAULT_MAX_RESULT_WINDOW + " } }");
   }
 
-  /**
-   * Provide for each test to load test index, data and other setup work
-   */
-  protected void init() throws Exception {
-  }
+  /** Provide for each test to load test index, data and other setup work */
+  protected void init() throws Exception {}
 
   /**
-   * Make it thread-safe in case tests are running in parallel but does not guarantee
-   * if test like DeleteIT that mutates cluster running in parallel.
+   * Make it thread-safe in case tests are running in parallel but does not guarantee if test like
+   * DeleteIT that mutates cluster running in parallel.
    */
   protected synchronized void loadIndex(Index index, RestClient client) throws IOException {
     String indexName = index.getName();
@@ -305,8 +306,9 @@ public abstract class SQLIntegTestCase extends OpenSearchSQLRestTestCase {
       Assert.fail(utf8CharsetName + " not available");
     }
 
-    final String requestUrl = String.format(Locale.ROOT, "%s?sql=%s&format=%s", QUERY_API_ENDPOINT,
-        urlEncodedQuery, "json");
+    final String requestUrl =
+        String.format(
+            Locale.ROOT, "%s?sql=%s&format=%s", QUERY_API_ENDPOINT, urlEncodedQuery, "json");
     return new Request("GET", requestUrl);
   }
 
@@ -345,7 +347,8 @@ public abstract class SQLIntegTestCase extends OpenSearchSQLRestTestCase {
     return executeRequest(sqlRequest);
   }
 
-  protected static String executeRequest(final Request request, RestClient client) throws IOException {
+  protected static String executeRequest(final Request request, RestClient client)
+      throws IOException {
     Response response = client.performRequest(request);
     Assert.assertEquals(200, response.getStatusLine().getStatusCode());
     return getResponseBody(response);
@@ -374,10 +377,12 @@ public abstract class SQLIntegTestCase extends OpenSearchSQLRestTestCase {
     return new JSONObject(executeRequest(sqlRequest));
   }
 
-  protected static JSONObject updateClusterSettings(ClusterSetting setting, RestClient client) throws IOException {
+  protected static JSONObject updateClusterSettings(ClusterSetting setting, RestClient client)
+      throws IOException {
     Request request = new Request("PUT", "/_cluster/settings");
-    String persistentSetting = String.format(Locale.ROOT,
-        "{\"%s\": {\"%s\": %s}}", setting.type, setting.name, setting.value);
+    String persistentSetting =
+        String.format(
+            Locale.ROOT, "{\"%s\": {\"%s\": %s}}", setting.type, setting.name, setting.value);
     request.setJsonEntity(persistentSetting);
     RequestOptions.Builder restOptionsBuilder = RequestOptions.DEFAULT.toBuilder();
     restOptionsBuilder.addHeader("Content-Type", "application/json");
@@ -414,11 +419,7 @@ public abstract class SQLIntegTestCase extends OpenSearchSQLRestTestCase {
 
     @Override
     public String toString() {
-      return "ClusterSetting{" +
-          "type='" + type + '\'' +
-          ", path='" + name + '\'' +
-          ", value='" + value + '\'' +
-          '}';
+      return String.format("ClusterSetting{type='%s', path='%s', value='%s'}", type, name, value);
     }
   }
 
@@ -439,10 +440,8 @@ public abstract class SQLIntegTestCase extends OpenSearchSQLRestTestCase {
   }
 
   protected String makeRequest(String query, int fetch_size) {
-    return String.format("{\n" +
-        "  \"fetch_size\": \"%s\",\n" +
-        "  \"query\": \"%s\"\n" +
-        "}", fetch_size, query);
+    return String.format(
+            "{ \"fetch_size\": \"%s\", \"query\": \"%s\" }", fetch_size, query);
   }
 
   protected String makeFetchLessRequest(String query) {
@@ -501,7 +500,6 @@ public abstract class SQLIntegTestCase extends OpenSearchSQLRestTestCase {
     return request;
   }
 
-
   protected static Request getDeleteDataSourceRequest(String name) {
     Request request = new Request("DELETE", "/_plugins/_query/_datasources" + "/" + name);
     RequestOptions.Builder restOptionsBuilder = RequestOptions.DEFAULT.toBuilder();
@@ -510,175 +508,196 @@ public abstract class SQLIntegTestCase extends OpenSearchSQLRestTestCase {
     return request;
   }
 
-  /**
-   * Enum for associating test index with relevant mapping and data.
-   */
+  /** Enum for associating test index with relevant mapping and data. */
   public enum Index {
-    ONLINE(TestsConstants.TEST_INDEX_ONLINE,
-        "online",
-        null,
-        "src/test/resources/online.json"),
-    ACCOUNT(TestsConstants.TEST_INDEX_ACCOUNT,
+    ONLINE(TestsConstants.TEST_INDEX_ONLINE, "online", null, "src/test/resources/online.json"),
+    ACCOUNT(
+        TestsConstants.TEST_INDEX_ACCOUNT,
         "account",
         getAccountIndexMapping(),
         "src/test/resources/accounts.json"),
-    PHRASE(TestsConstants.TEST_INDEX_PHRASE,
+    PHRASE(
+        TestsConstants.TEST_INDEX_PHRASE,
         "phrase",
         getPhraseIndexMapping(),
         "src/test/resources/phrases.json"),
-    DOG(TestsConstants.TEST_INDEX_DOG,
-        "dog",
-        getDogIndexMapping(),
-        "src/test/resources/dogs.json"),
-    DOGS2(TestsConstants.TEST_INDEX_DOG2,
+    DOG(TestsConstants.TEST_INDEX_DOG, "dog", getDogIndexMapping(), "src/test/resources/dogs.json"),
+    DOGS2(
+        TestsConstants.TEST_INDEX_DOG2,
         "dog",
         getDogs2IndexMapping(),
         "src/test/resources/dogs2.json"),
-    DOGS3(TestsConstants.TEST_INDEX_DOG3,
+    DOGS3(
+        TestsConstants.TEST_INDEX_DOG3,
         "dog",
         getDogs3IndexMapping(),
         "src/test/resources/dogs3.json"),
-    DOGSSUBQUERY(TestsConstants.TEST_INDEX_DOGSUBQUERY,
+    DOGSSUBQUERY(
+        TestsConstants.TEST_INDEX_DOGSUBQUERY,
         "dog",
         getDogIndexMapping(),
         "src/test/resources/dogsubquery.json"),
-    PEOPLE(TestsConstants.TEST_INDEX_PEOPLE,
-        "people",
-        null,
-        "src/test/resources/peoples.json"),
-    PEOPLE2(TestsConstants.TEST_INDEX_PEOPLE2,
+    PEOPLE(TestsConstants.TEST_INDEX_PEOPLE, "people", null, "src/test/resources/peoples.json"),
+    PEOPLE2(
+        TestsConstants.TEST_INDEX_PEOPLE2,
         "people",
         getPeople2IndexMapping(),
         "src/test/resources/people2.json"),
-    GAME_OF_THRONES(TestsConstants.TEST_INDEX_GAME_OF_THRONES,
+    GAME_OF_THRONES(
+        TestsConstants.TEST_INDEX_GAME_OF_THRONES,
         "gotCharacters",
         getGameOfThronesIndexMapping(),
         "src/test/resources/game_of_thrones_complex.json"),
-    SYSTEM(TestsConstants.TEST_INDEX_SYSTEM,
-        "systems",
-        null,
-        "src/test/resources/systems.json"),
-    ODBC(TestsConstants.TEST_INDEX_ODBC,
+    SYSTEM(TestsConstants.TEST_INDEX_SYSTEM, "systems", null, "src/test/resources/systems.json"),
+    ODBC(
+        TestsConstants.TEST_INDEX_ODBC,
         "odbc",
         getOdbcIndexMapping(),
         "src/test/resources/odbc-date-formats.json"),
-    LOCATION(TestsConstants.TEST_INDEX_LOCATION,
+    LOCATION(
+        TestsConstants.TEST_INDEX_LOCATION,
         "location",
         getLocationIndexMapping(),
         "src/test/resources/locations.json"),
-    LOCATION_TWO(TestsConstants.TEST_INDEX_LOCATION2,
+    LOCATION_TWO(
+        TestsConstants.TEST_INDEX_LOCATION2,
         "location2",
         getLocationIndexMapping(),
         "src/test/resources/locations2.json"),
-    NESTED(TestsConstants.TEST_INDEX_NESTED_TYPE,
+    NESTED(
+        TestsConstants.TEST_INDEX_NESTED_TYPE,
         "nestedType",
         getNestedTypeIndexMapping(),
         "src/test/resources/nested_objects.json"),
-    NESTED_WITHOUT_ARRAYS(TestsConstants.TEST_INDEX_NESTED_TYPE_WITHOUT_ARRAYS,
+    NESTED_WITHOUT_ARRAYS(
+        TestsConstants.TEST_INDEX_NESTED_TYPE_WITHOUT_ARRAYS,
         "nestedTypeWithoutArrays",
         getNestedTypeIndexMapping(),
         "src/test/resources/nested_objects_without_arrays.json"),
-    NESTED_WITH_QUOTES(TestsConstants.TEST_INDEX_NESTED_WITH_QUOTES,
+    NESTED_WITH_QUOTES(
+        TestsConstants.TEST_INDEX_NESTED_WITH_QUOTES,
         "nestedType",
         getNestedTypeIndexMapping(),
         "src/test/resources/nested_objects_quotes_in_values.json"),
-    EMPLOYEE_NESTED(TestsConstants.TEST_INDEX_EMPLOYEE_NESTED,
+    EMPLOYEE_NESTED(
+        TestsConstants.TEST_INDEX_EMPLOYEE_NESTED,
         "_doc",
         getEmployeeNestedTypeIndexMapping(),
         "src/test/resources/employee_nested.json"),
-    JOIN(TestsConstants.TEST_INDEX_JOIN_TYPE,
+    JOIN(
+        TestsConstants.TEST_INDEX_JOIN_TYPE,
         "joinType",
         getJoinTypeIndexMapping(),
         "src/test/resources/join_objects.json"),
-    UNEXPANDED_OBJECT(TestsConstants.TEST_INDEX_UNEXPANDED_OBJECT,
+    UNEXPANDED_OBJECT(
+        TestsConstants.TEST_INDEX_UNEXPANDED_OBJECT,
         "unexpandedObject",
         getUnexpandedObjectIndexMapping(),
         "src/test/resources/unexpanded_objects.json"),
-    BANK(TestsConstants.TEST_INDEX_BANK,
+    BANK(
+        TestsConstants.TEST_INDEX_BANK,
         "account",
         getBankIndexMapping(),
         "src/test/resources/bank.json"),
-    BANK_TWO(TestsConstants.TEST_INDEX_BANK_TWO,
+    BANK_TWO(
+        TestsConstants.TEST_INDEX_BANK_TWO,
         "account_two",
         getBankIndexMapping(),
         "src/test/resources/bank_two.json"),
-    BANK_WITH_NULL_VALUES(TestsConstants.TEST_INDEX_BANK_WITH_NULL_VALUES,
+    BANK_WITH_NULL_VALUES(
+        TestsConstants.TEST_INDEX_BANK_WITH_NULL_VALUES,
         "account_null",
         getBankWithNullValuesIndexMapping(),
         "src/test/resources/bank_with_null_values.json"),
-    BANK_WITH_STRING_VALUES(TestsConstants.TEST_INDEX_STRINGS,
+    BANK_WITH_STRING_VALUES(
+        TestsConstants.TEST_INDEX_STRINGS,
         "strings",
         getStringIndexMapping(),
         "src/test/resources/strings.json"),
-    BANK_CSV_SANITIZE(TestsConstants.TEST_INDEX_BANK_CSV_SANITIZE,
+    BANK_CSV_SANITIZE(
+        TestsConstants.TEST_INDEX_BANK_CSV_SANITIZE,
         "account",
         getBankIndexMapping(),
         "src/test/resources/bank_csv_sanitize.json"),
-    BANK_RAW_SANITIZE(TestsConstants.TEST_INDEX_BANK_RAW_SANITIZE,
-            "account",
-            getBankIndexMapping(),
-            "src/test/resources/bank_raw_sanitize.json"),
-    ORDER(TestsConstants.TEST_INDEX_ORDER,
+    BANK_RAW_SANITIZE(
+        TestsConstants.TEST_INDEX_BANK_RAW_SANITIZE,
+        "account",
+        getBankIndexMapping(),
+        "src/test/resources/bank_raw_sanitize.json"),
+    ORDER(
+        TestsConstants.TEST_INDEX_ORDER,
         "_doc",
         getOrderIndexMapping(),
         "src/test/resources/order.json"),
-    WEBLOG(TestsConstants.TEST_INDEX_WEBLOG,
+    WEBLOG(
+        TestsConstants.TEST_INDEX_WEBLOG,
         "weblog",
         getWeblogsIndexMapping(),
         "src/test/resources/weblogs.json"),
-    DATE(TestsConstants.TEST_INDEX_DATE,
+    DATE(
+        TestsConstants.TEST_INDEX_DATE,
         "dates",
         getDateIndexMapping(),
         "src/test/resources/dates.json"),
-    DATETIME(TestsConstants.TEST_INDEX_DATE_TIME,
+    DATETIME(
+        TestsConstants.TEST_INDEX_DATE_TIME,
         "_doc",
         getDateTimeIndexMapping(),
         "src/test/resources/datetime.json"),
-    NESTED_SIMPLE(TestsConstants.TEST_INDEX_NESTED_SIMPLE,
+    NESTED_SIMPLE(
+        TestsConstants.TEST_INDEX_NESTED_SIMPLE,
         "_doc",
         getNestedSimpleIndexMapping(),
         "src/test/resources/nested_simple.json"),
-    DEEP_NESTED(TestsConstants.TEST_INDEX_DEEP_NESTED,
+    DEEP_NESTED(
+        TestsConstants.TEST_INDEX_DEEP_NESTED,
         "_doc",
         getDeepNestedIndexMapping(),
         "src/test/resources/deep_nested_index_data.json"),
-    DATA_TYPE_NUMERIC(TestsConstants.TEST_INDEX_DATATYPE_NUMERIC,
+    DATA_TYPE_NUMERIC(
+        TestsConstants.TEST_INDEX_DATATYPE_NUMERIC,
         "_doc",
         getDataTypeNumericIndexMapping(),
         "src/test/resources/datatypes_numeric.json"),
-    DATA_TYPE_NONNUMERIC(TestsConstants.TEST_INDEX_DATATYPE_NONNUMERIC,
+    DATA_TYPE_NONNUMERIC(
+        TestsConstants.TEST_INDEX_DATATYPE_NONNUMERIC,
         "_doc",
         getDataTypeNonnumericIndexMapping(),
         "src/test/resources/datatypes.json"),
-    BEER(TestsConstants.TEST_INDEX_BEER,
-        "beer",
-        null,
-        "src/test/resources/beer.stackexchange.json"),
-    NULL_MISSING(TestsConstants.TEST_INDEX_NULL_MISSING,
+    BEER(
+        TestsConstants.TEST_INDEX_BEER, "beer", null, "src/test/resources/beer.stackexchange.json"),
+    NULL_MISSING(
+        TestsConstants.TEST_INDEX_NULL_MISSING,
         "null_missing",
         getMappingFile("null_missing_index_mapping.json"),
         "src/test/resources/null_missing.json"),
-    CALCS(TestsConstants.TEST_INDEX_CALCS,
+    CALCS(
+        TestsConstants.TEST_INDEX_CALCS,
         "calcs",
         getMappingFile("calcs_index_mappings.json"),
         "src/test/resources/calcs.json"),
-    DATE_FORMATS(TestsConstants.TEST_INDEX_DATE_FORMATS,
+    DATE_FORMATS(
+        TestsConstants.TEST_INDEX_DATE_FORMATS,
         "date_formats",
         getMappingFile("date_formats_index_mapping.json"),
         "src/test/resources/date_formats.json"),
-    WILDCARD(TestsConstants.TEST_INDEX_WILDCARD,
+    WILDCARD(
+        TestsConstants.TEST_INDEX_WILDCARD,
         "wildcard",
         getMappingFile("wildcard_index_mappings.json"),
         "src/test/resources/wildcard.json"),
-    DATASOURCES(TestsConstants.DATASOURCES,
+    DATASOURCES(
+        TestsConstants.DATASOURCES,
         "datasource",
         getMappingFile("datasources_index_mappings.json"),
         "src/test/resources/datasources.json"),
-    MULTI_NESTED(TestsConstants.TEST_INDEX_MULTI_NESTED_TYPE,
+    MULTI_NESTED(
+        TestsConstants.TEST_INDEX_MULTI_NESTED_TYPE,
         "multi_nested",
         getMappingFile("multi_nested.json"),
         "src/test/resources/multi_nested_objects.json"),
-    NESTED_WITH_NULLS(TestsConstants.TEST_INDEX_NESTED_WITH_NULLS,
+    NESTED_WITH_NULLS(
+        TestsConstants.TEST_INDEX_NESTED_WITH_NULLS,
         "multi_nested",
         getNestedTypeIndexMapping(),
         "src/test/resources/nested_with_nulls.json");
@@ -710,7 +729,5 @@ public abstract class SQLIntegTestCase extends OpenSearchSQLRestTestCase {
     public String getDataSet() {
       return this.dataSet;
     }
-
-
   }
 }

@@ -3,7 +3,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-
 package org.opensearch.sql.ppl;
 
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_ACCOUNT;
@@ -80,10 +79,7 @@ public class QueryAnalysisIT extends PPLIntegTestCase {
     queryShouldPassSyntaxAndSemanticCheck(query);
   }
 
-  /**
-   * Commands that fail syntax analysis should throw
-   * {@link SyntaxCheckException}.
-   */
+  /** Commands that fail syntax analysis should throw {@link SyntaxCheckException}. */
   @Test
   public void queryNotStartingWithSearchCommandShouldFailSyntaxCheck() {
     String query = "fields firstname";
@@ -108,14 +104,12 @@ public class QueryAnalysisIT extends PPLIntegTestCase {
     queryShouldThrowSyntaxException(query, "Failed to parse query due to offending symbol");
   }
 
-  /**
-   * Commands that fail semantic analysis should throw {@link SemanticCheckException}.
-   */
+  /** Commands that fail semantic analysis should throw {@link SemanticCheckException}. */
   @Test
   public void nonexistentFieldShouldFailSemanticCheck() {
     String query = String.format("search source=%s | fields name", TEST_INDEX_ACCOUNT);
-    queryShouldThrowSemanticException(query, "can't resolve Symbol(namespace=FIELD_NAME, "
-        + "name=name) in type env");
+    queryShouldThrowSemanticException(
+        query, "can't resolve Symbol(namespace=FIELD_NAME, name=name) in type env");
   }
 
   private void queryShouldPassSyntaxAndSemanticCheck(String query) {
@@ -135,7 +129,7 @@ public class QueryAnalysisIT extends PPLIntegTestCase {
     } catch (ResponseException e) {
       String errorMsg = e.getMessage();
       assertTrue(errorMsg.contains("SyntaxCheckException"));
-      for (String msg: messages) {
+      for (String msg : messages) {
         assertTrue(errorMsg.contains(msg));
       }
     } catch (IOException e) {

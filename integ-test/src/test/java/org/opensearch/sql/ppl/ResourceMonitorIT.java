@@ -3,7 +3,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-
 package org.opensearch.sql.ppl;
 
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_DOG;
@@ -31,11 +30,11 @@ public class ResourceMonitorIT extends PPLIntegTestCase {
         new ClusterSetting("persistent", Settings.Key.QUERY_MEMORY_LIMIT.getKeyValue(), "1%"));
     String query = String.format("search source=%s age=20", TEST_INDEX_DOG);
 
-    ResponseException exception =
-        expectThrows(ResponseException.class, () -> executeQuery(query));
+    ResponseException exception = expectThrows(ResponseException.class, () -> executeQuery(query));
     assertEquals(503, exception.getResponse().getStatusLine().getStatusCode());
-    assertThat(exception.getMessage(), Matchers.containsString("resource is not enough to run the"
-        + " query, quit."));
+    assertThat(
+        exception.getMessage(),
+        Matchers.containsString("resource is not enough to run the" + " query, quit."));
 
     // update plugins.ppl.query.memory_limit to default value 85%
     updateClusterSettings(

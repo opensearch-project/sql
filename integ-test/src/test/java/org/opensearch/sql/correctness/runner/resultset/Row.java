@@ -3,7 +3,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-
 package org.opensearch.sql.correctness.runner.resultset;
 
 import java.math.BigDecimal;
@@ -15,9 +14,7 @@ import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.ToString;
 
-/**
- * Row in result set.
- */
+/** Row in result set. */
 @EqualsAndHashCode
 @ToString
 @Getter
@@ -77,5 +74,4 @@ public class Row implements Comparable<Row> {
     }
     return 0;
   }
-
 }

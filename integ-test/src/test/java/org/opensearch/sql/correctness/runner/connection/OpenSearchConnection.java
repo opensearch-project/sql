@@ -3,7 +3,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-
 package org.opensearch.sql.correctness.runner.connection;
 
 import java.io.IOException;
@@ -16,18 +15,15 @@ import org.opensearch.client.RestClient;
 import org.opensearch.sql.correctness.runner.resultset.DBResult;
 
 /**
- * OpenSearch database connection for insertion. This class wraps JDBCConnection to delegate query method.
+ * OpenSearch database connection for insertion. This class wraps JDBCConnection to delegate query
+ * method.
  */
 public class OpenSearchConnection implements DBConnection {
 
-  /**
-   * Connection via our OpenSearch JDBC driver
-   */
+  /** Connection via our OpenSearch JDBC driver */
   private final DBConnection connection;
 
-  /**
-   * Native OpenSearch REST client for operation unsupported by driver such as CREATE/INSERT
-   */
+  /** Native OpenSearch REST client for operation unsupported by driver such as CREATE/INSERT */
   private final RestClient client;
 
   public OpenSearchConnection(String connectionUrl, RestClient client) {
@@ -112,10 +108,8 @@ public class OpenSearchConnection implements DBConnection {
         }
       }
 
-      body.append("{\"index\":{}}\n").
-          append(json).append("\n");
+      body.append("{\"index\":{}}\n").append(json).append("\n");
     }
     return body.toString();
   }
-
 }
