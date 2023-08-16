@@ -84,10 +84,11 @@ repositories {
 spotless {
     java {
         target fileTree('.') {
-            include 'common/**/*.java',
-                    'datasources/**/*.java',
+            include 'datasources/**/*.java',
                     'core/**/*.java',
                     'protocol/**/*.java',
+                    'sql/**/*.java',
+                    'common/**/*.java',
                     'ppl/**/*.java'
             exclude '**/build/**', '**/build-*/**'
         }

@@ -3,7 +3,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-
 package org.opensearch.sql.sql;
 
 import static org.opensearch.sql.legacy.plugin.RestSqlAction.QUERY_API_ENDPOINT;
@@ -43,8 +42,7 @@ public class TextFunctionIT extends SQLIntegTestCase {
 
   void verifyQueryWithNullOutput(String query, String type) throws IOException {
     JSONObject result = executeQuery("select 'test null'," + query);
-    verifySchema(result, schema(query, null, type),
-            schema("'test null'", null, type));
+    verifySchema(result, schema(query, null, type), schema("'test null'", null, type));
     verifyDataRows(result, rows("test null", null));
   }
 
