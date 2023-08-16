@@ -32,60 +32,50 @@ import org.opensearch.sql.storage.Table;
 @ExtendWith(MockitoExtension.class)
 public class PrometheusLogicOptimizerTest {
 
-  @Mock
-  private Table table;
+  @Mock private Table table;
 
   @Test
   void project_filter_merge_with_relation() {
     assertEquals(
         project(
-            indexScan("prometheus_http_total_requests",
-                DSL.equal(DSL.ref("code", STRING), DSL.literal(stringValue("200"))))
-        ),
+            indexScan(
+                "prometheus_http_total_requests",
+                DSL.equal(DSL.ref("code", STRING), DSL.literal(stringValue("200"))))),
         optimize(
             project(
                 filter(
                     relation("prometheus_http_total_requests", table),
-                    DSL.equal(DSL.ref("code", STRING), DSL.literal(stringValue("200")))
-                ))
-        )
-    );
+                    DSL.equal(DSL.ref("code", STRING), DSL.literal(stringValue("200")))))));
   }
 
   @Test
   void aggregation_merge_relation() {
     assertEquals(
         project(
-            indexScanAgg("prometheus_http_total_requests", ImmutableList
-                    .of(DSL.named("AVG(@value)",
-                        DSL.avg(DSL.ref("@value", INTEGER)))),
+            indexScanAgg(
+                "prometheus_http_total_requests",
+                ImmutableList.of(DSL.named("AVG(@value)", DSL.avg(DSL.ref("@value", INTEGER)))),
                 ImmutableList.of(DSL.named("code", DSL.ref("code", STRING)))),
             DSL.named("AVG(intV)", DSL.ref("AVG(intV)", DOUBLE))),
         optimize(
             project(
                 aggregation(
                     relation("prometheus_http_total_requests", table),
-                    ImmutableList
-                        .of(DSL.named("AVG(@value)",
-                            DSL.avg(DSL.ref("@value", INTEGER)))),
-                    ImmutableList.of(DSL.named("code",
-                        DSL.ref("code", STRING)))),
-                DSL.named("AVG(intV)", DSL.ref("AVG(intV)", DOUBLE)))
-        )
-    );
+                    ImmutableList.of(DSL.named("AVG(@value)", DSL.avg(DSL.ref("@value", INTEGER)))),
+                    ImmutableList.of(DSL.named("code", DSL.ref("code", STRING)))),
+                DSL.named("AVG(intV)", DSL.ref("AVG(intV)", DOUBLE)))));
   }
-
 
   @Test
   void aggregation_merge_filter_relation() {
     assertEquals(
         project(
-            indexScanAgg("prometheus_http_total_requests",
-                DSL.and(DSL.equal(DSL.ref("code", STRING), DSL.literal(stringValue("200"))),
+            indexScanAgg(
+                "prometheus_http_total_requests",
+                DSL.and(
+                    DSL.equal(DSL.ref("code", STRING), DSL.literal(stringValue("200"))),
                     DSL.equal(DSL.ref("handler", STRING), DSL.literal(stringValue("/ready/")))),
-                ImmutableList
-                    .of(DSL.named("AVG(@value)",
-                        DSL.avg(DSL.ref("@value", INTEGER)))),
+                ImmutableList.of(DSL.named("AVG(@value)", DSL.avg(DSL.ref("@value", INTEGER)))),
                 ImmutableList.of(DSL.named("job", DSL.ref("job", STRING)))),
             DSL.named("AVG(@value)", DSL.ref("AVG(@value)", DOUBLE))),
         optimize(
@@ -94,25 +84,16 @@ public class PrometheusLogicOptimizerTest {
                     filter(
                         relation("prometheus_http_total_requests", table),
                         DSL.and(
-                            DSL.equal(DSL.ref("code", STRING),
-                                DSL.literal(stringValue("200"))),
-                            DSL.equal(DSL.ref("handler", STRING),
-                                DSL.literal(stringValue("/ready/"))))
-                    ),
-                    ImmutableList
-                        .of(DSL.named("AVG(@value)",
-                            DSL.avg(DSL.ref("@value", INTEGER)))),
-                    ImmutableList.of(DSL.named("job",
-                        DSL.ref("job", STRING)))),
-                DSL.named("AVG(@value)", DSL.ref("AVG(@value)", DOUBLE)))
-        )
-    );
+                            DSL.equal(DSL.ref("code", STRING), DSL.literal(stringValue("200"))),
+                            DSL.equal(
+                                DSL.ref("handler", STRING), DSL.literal(stringValue("/ready/"))))),
+                    ImmutableList.of(DSL.named("AVG(@value)", DSL.avg(DSL.ref("@value", INTEGER)))),
+                    ImmutableList.of(DSL.named("job", DSL.ref("job", STRING)))),
+                DSL.named("AVG(@value)", DSL.ref("AVG(@value)", DOUBLE)))));
   }
-
 
   private LogicalPlan optimize(LogicalPlan plan) {
     final LogicalPlanOptimizer optimizer = PrometheusLogicalPlanOptimizerFactory.create();
     return optimizer.optimize(plan);
   }
-
 }
