@@ -111,7 +111,8 @@ public class CursorIT extends SQLIntegTestCase {
       var query = String.format("SELECT * FROM %s", table);
       ResultSet rs = stmt.executeQuery(query);
       int rows = 0;
-      while (rs.next()) rows++;
+      while(rs.next())
+        rows++;
 
       var restResponse = executeRestQuery(query, null);
       assertEquals(rows, restResponse.getInt("total"));

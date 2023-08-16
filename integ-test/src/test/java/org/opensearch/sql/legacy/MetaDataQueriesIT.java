@@ -26,8 +26,6 @@ import org.opensearch.client.Request;
 import org.opensearch.sql.legacy.utils.StringUtils;
 
 /**
- *
- *
  * <pre>
  * The following are tests for SHOW/DESCRIBE query support under Pretty Format Response protocol using JDBC format.
  * <p>

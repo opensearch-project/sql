@@ -1,26 +1,28 @@
-/*
- * Copyright OpenSearch Contributors
- * SPDX-License-Identifier: Apache-2.0
- */
+  /*
+   * Copyright OpenSearch Contributors
+   * SPDX-License-Identifier: Apache-2.0
+   */
 
 package org.opensearch.sql.ppl;
 
-import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_DATE;
-import static org.opensearch.sql.util.MatcherUtils.rows;
-import static org.opensearch.sql.util.MatcherUtils.schema;
-import static org.opensearch.sql.util.MatcherUtils.verifySchema;
-import static org.opensearch.sql.util.MatcherUtils.verifySome;
+  import org.json.JSONObject;
+  import org.junit.Test;
 
-import java.io.IOException;
-import org.json.JSONObject;
-import org.junit.Test;
+  import java.io.IOException;
 
-public class ConvertTZFunctionIT extends PPLIntegTestCase {
+  import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_DATE;
+  import static org.opensearch.sql.util.MatcherUtils.rows;
+  import static org.opensearch.sql.util.MatcherUtils.schema;
+  import static org.opensearch.sql.util.MatcherUtils.verifySchema;
+  import static org.opensearch.sql.util.MatcherUtils.verifySome;
 
-  @Override
-  public void init() throws IOException {
-    loadIndex(Index.DATE);
-  }
+  public class ConvertTZFunctionIT extends PPLIntegTestCase {
+
+
+    @Override
+    public void init() throws IOException {
+      loadIndex(Index.DATE);
+    }
 
   @Test
   public void inRangeZeroToPositive() throws IOException {

@@ -40,9 +40,9 @@ public class DateFormatIT extends SQLIntegTestCase {
   }
 
   /**
-   * All the following tests use UTC as their date_format timezone as this is the same timezone of
-   * the data being queried. This is to prevent discrepancies in the OpenSearch query and the actual
-   * field data that is being checked for the integration tests.
+   * All the following tests use UTC as their date_format timezone as this is the same timezone
+   * of the data being queried. This is to prevent discrepancies in the OpenSearch query and the
+   * actual field data that is being checked for the integration tests.
    *
    * <p>Large LIMIT values were given for some of these queries since the default result size of the
    * query is 200 and this ends up excluding some of the expected values causing the assertion to

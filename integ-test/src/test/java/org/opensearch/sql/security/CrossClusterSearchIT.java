@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-package org.opensearch.sql.security;
+package org.opensearch.sql.ppl;
 
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_ACCOUNT;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_BANK;
@@ -14,30 +14,15 @@ import static org.opensearch.sql.util.MatcherUtils.verifyColumn;
 import static org.opensearch.sql.util.MatcherUtils.verifyDataRows;
 
 import java.io.IOException;
-import lombok.SneakyThrows;
 import org.json.JSONObject;
-import org.junit.jupiter.api.BeforeEach;
+import org.junit.Rule;
 import org.junit.jupiter.api.Test;
+import org.junit.rules.ExpectedException;
 import org.opensearch.client.ResponseException;
-import org.opensearch.sql.ppl.PPLIntegTestCase;
 
-/** Cross Cluster Search tests to be executed with security plugin. */
 public class CrossClusterSearchIT extends PPLIntegTestCase {
 
-  static {
-    // find a remote cluster
-    String[] clusterNames = System.getProperty("cluster.names").split(",");
-    var remote = "remoteCluster";
-    for (var cluster : clusterNames) {
-      if (cluster.startsWith("remote")) {
-        remote = cluster;
-        break;
-      }
-    }
-    REMOTE_CLUSTER = remote;
-  }
-
-  public static final String REMOTE_CLUSTER;
+  @Rule public ExpectedException exceptionRule = ExpectedException.none();
 
   private static final String TEST_INDEX_BANK_REMOTE = REMOTE_CLUSTER + ":" + TEST_INDEX_BANK;
   private static final String TEST_INDEX_DOG_REMOTE = REMOTE_CLUSTER + ":" + TEST_INDEX_DOG;
@@ -45,25 +30,14 @@ public class CrossClusterSearchIT extends PPLIntegTestCase {
       MATCH_ALL_REMOTE_CLUSTER + ":" + TEST_INDEX_DOG;
   private static final String TEST_INDEX_ACCOUNT_REMOTE = REMOTE_CLUSTER + ":" + TEST_INDEX_ACCOUNT;
 
-  private static boolean initialized = false;
-
-  @SneakyThrows
-  @BeforeEach
-  public void initialize() {
-    if (!initialized) {
-      setUpIndices();
-      initialized = true;
-    }
-  }
-
   @Override
-  protected void init() throws Exception {
-    configureMultiClusters(REMOTE_CLUSTER);
+  public void init() throws IOException {
+    configureMultiClusters();
     loadIndex(Index.BANK);
     loadIndex(Index.BANK, remoteClient());
     loadIndex(Index.DOG);
     loadIndex(Index.DOG, remoteClient());
-    loadIndex(Index.ACCOUNT);
+    loadIndex(Index.ACCOUNT, remoteClient());
   }
 
   @Test
@@ -81,13 +55,11 @@ public class CrossClusterSearchIT extends PPLIntegTestCase {
 
   @Test
   public void testCrossClusterSearchWithoutLocalFieldMappingShouldFail() throws IOException {
-    var exception =
-        assertThrows(
-            ResponseException.class,
-            () -> executeQuery(String.format("search source=%s", TEST_INDEX_ACCOUNT_REMOTE)));
-    assertTrue(
-        exception.getMessage().contains("IndexNotFoundException")
-            && exception.getMessage().contains("400 Bad Request"));
+    exceptionRule.expect(ResponseException.class);
+    exceptionRule.expectMessage("400 Bad Request");
+    exceptionRule.expectMessage("IndexNotFoundException");
+
+    executeQuery(String.format("search source=%s", TEST_INDEX_ACCOUNT_REMOTE));
   }
 
   @Test

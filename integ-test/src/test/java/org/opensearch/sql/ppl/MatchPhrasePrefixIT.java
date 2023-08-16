@@ -97,7 +97,8 @@ public class MatchPhrasePrefixIT extends PPLIntegTestCase {
   public void slop_is_2() throws IOException {
     // When slop is 2, the terms are matched exactly in the order specified.
     // 'open' is used to match prefix of the next term.
-    String query = "source = %s | where match_phrase_prefix(Tags, 'gas ta', slop=2) | fields Tags";
+    String query =
+        "source = %s | where match_phrase_prefix(Tags, 'gas ta', slop=2) | fields Tags";
     JSONObject result = executeQuery(String.format(query, TEST_INDEX_BEER));
     verifyDataRows(result, rows("taste gas"));
   }
@@ -105,7 +106,8 @@ public class MatchPhrasePrefixIT extends PPLIntegTestCase {
   @Test
   public void slop_is_3() throws IOException {
     // When slop is 3, results will include phrases where the query terms are transposed.
-    String query = "source = %s | where match_phrase_prefix(Tags, 'gas ta', slop=3) | fields Tags";
+    String query =
+        "source = %s | where match_phrase_prefix(Tags, 'gas ta', slop=3) | fields Tags";
     JSONObject result = executeQuery(String.format(query, TEST_INDEX_BEER));
     verifyDataRows(result, rows("taste draught gas"), rows("taste gas"));
   }

@@ -94,15 +94,15 @@ public class DateTimeFunctionIT extends SQLIntegTestCase {
     verifyDataRows(result, rows("2020-09-17"));
 
     result = executeQuery("select adddate(timestamp('2020-09-16 17:30:00'), 1)");
-    verifySchema(result, schema("adddate(timestamp('2020-09-16 17:30:00'), 1)", null, "timestamp"));
+    verifySchema(result, schema("adddate(timestamp('2020-09-16 17:30:00'), 1)", null, "datetime"));
     verifyDataRows(result, rows("2020-09-17 17:30:00"));
 
-    result = executeQuery("select adddate(TIMESTAMP('2020-09-16 07:40:00'), 1)");
-    verifySchema(result, schema("adddate(TIMESTAMP('2020-09-16 07:40:00'), 1)", null, "timestamp"));
+    result = executeQuery("select adddate(DATETIME('2020-09-16 07:40:00'), 1)");
+    verifySchema(result, schema("adddate(DATETIME('2020-09-16 07:40:00'), 1)", null, "datetime"));
     verifyDataRows(result, rows("2020-09-17 07:40:00"));
 
     result = executeQuery("select adddate(TIME('07:40:00'), 0)");
-    verifySchema(result, schema("adddate(TIME('07:40:00'), 0)", null, "timestamp"));
+    verifySchema(result, schema("adddate(TIME('07:40:00'), 0)", null, "datetime"));
     verifyDataRows(result, rows(LocalDate.now() + " 07:40:00"));
   }
 
@@ -112,19 +112,25 @@ public class DateTimeFunctionIT extends SQLIntegTestCase {
         executeQuery("select adddate(timestamp('2020-09-16 17:30:00'), interval 1 day)");
     verifySchema(
         result,
-        schema("adddate(timestamp('2020-09-16 17:30:00'), interval 1 day)", null, "timestamp"));
+        schema("adddate(timestamp('2020-09-16 17:30:00'), interval 1 day)", null, "datetime"));
+    verifyDataRows(result, rows("2020-09-17 17:30:00"));
+
+    result = executeQuery("select adddate(DATETIME('2020-09-16 17:30:00'), interval 1 day)");
+    verifySchema(
+        result,
+        schema("adddate(DATETIME('2020-09-16 17:30:00'), interval 1 day)", null, "datetime"));
     verifyDataRows(result, rows("2020-09-17 17:30:00"));
 
     result = executeQuery("select adddate(date('2020-09-16'), interval 1 day)");
-    verifySchema(result, schema("adddate(date('2020-09-16'), interval 1 day)", null, "timestamp"));
+    verifySchema(result, schema("adddate(date('2020-09-16'), interval 1 day)", null, "datetime"));
     verifyDataRows(result, rows("2020-09-17 00:00:00"));
 
     result = executeQuery("select adddate(date('2020-09-16'), interval 1 hour)");
-    verifySchema(result, schema("adddate(date('2020-09-16'), interval 1 hour)", null, "timestamp"));
+    verifySchema(result, schema("adddate(date('2020-09-16'), interval 1 hour)", null, "datetime"));
     verifyDataRows(result, rows("2020-09-16 01:00:00"));
 
     result = executeQuery("select adddate(TIME('07:40:00'), interval 1 day)");
-    verifySchema(result, schema("adddate(TIME('07:40:00'), interval 1 day)", null, "timestamp"));
+    verifySchema(result, schema("adddate(TIME('07:40:00'), interval 1 day)", null, "datetime"));
     verifyDataRows(
         result,
         rows(
@@ -135,7 +141,7 @@ public class DateTimeFunctionIT extends SQLIntegTestCase {
                 .format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"))));
 
     result = executeQuery("select adddate(TIME('07:40:00'), interval 1 hour)");
-    verifySchema(result, schema("adddate(TIME('07:40:00'), interval 1 hour)", null, "timestamp"));
+    verifySchema(result, schema("adddate(TIME('07:40:00'), interval 1 hour)", null, "datetime"));
     verifyDataRows(
         result,
         rows(
@@ -151,26 +157,25 @@ public class DateTimeFunctionIT extends SQLIntegTestCase {
         executeQuery("select date_add(timestamp('2020-09-16 17:30:00'), interval 1 day)");
     verifySchema(
         result,
-        schema("date_add(timestamp('2020-09-16 17:30:00'), interval 1 day)", null, "timestamp"));
+        schema("date_add(timestamp('2020-09-16 17:30:00'), interval 1 day)", null, "datetime"));
     verifyDataRows(result, rows("2020-09-17 17:30:00"));
 
-    result = executeQuery("select date_add(TIMESTAMP('2020-09-16 17:30:00'), interval 1 day)");
+    result = executeQuery("select date_add(DATETIME('2020-09-16 17:30:00'), interval 1 day)");
     verifySchema(
         result,
-        schema("date_add(TIMESTAMP('2020-09-16 17:30:00'), interval 1 day)", null, "timestamp"));
+        schema("date_add(DATETIME('2020-09-16 17:30:00'), interval 1 day)", null, "datetime"));
     verifyDataRows(result, rows("2020-09-17 17:30:00"));
 
     result = executeQuery("select date_add(date('2020-09-16'), interval 1 day)");
-    verifySchema(result, schema("date_add(date('2020-09-16'), interval 1 day)", null, "timestamp"));
+    verifySchema(result, schema("date_add(date('2020-09-16'), interval 1 day)", null, "datetime"));
     verifyDataRows(result, rows("2020-09-17 00:00:00"));
 
     result = executeQuery("select date_add(date('2020-09-16'), interval 1 hour)");
-    verifySchema(
-        result, schema("date_add(date('2020-09-16'), interval 1 hour)", null, "timestamp"));
+    verifySchema(result, schema("date_add(date('2020-09-16'), interval 1 hour)", null, "datetime"));
     verifyDataRows(result, rows("2020-09-16 01:00:00"));
 
     result = executeQuery("select date_add(TIME('07:40:00'), interval 1 day)");
-    verifySchema(result, schema("date_add(TIME('07:40:00'), interval 1 day)", null, "timestamp"));
+    verifySchema(result, schema("date_add(TIME('07:40:00'), interval 1 day)", null, "datetime"));
     verifyDataRows(
         result,
         rows(
@@ -181,7 +186,7 @@ public class DateTimeFunctionIT extends SQLIntegTestCase {
                 .format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"))));
 
     result = executeQuery("select date_add(TIME('07:40:00'), interval 1 hour)");
-    verifySchema(result, schema("date_add(TIME('07:40:00'), interval 1 hour)", null, "timestamp"));
+    verifySchema(result, schema("date_add(TIME('07:40:00'), interval 1 hour)", null, "datetime"));
     verifyDataRows(
         result,
         rows(
@@ -194,7 +199,7 @@ public class DateTimeFunctionIT extends SQLIntegTestCase {
         executeQuery(
             String.format("SELECT DATE_ADD(birthdate, INTERVAL 1 YEAR) FROM %s", TEST_INDEX_BANK));
 
-    verifySchema(result, schema("DATE_ADD(birthdate, INTERVAL 1 YEAR)", null, "timestamp"));
+    verifySchema(result, schema("DATE_ADD(birthdate, INTERVAL 1 YEAR)", null, "datetime"));
     verifyDataRows(
         result,
         rows("2018-10-23 00:00:00"),
@@ -212,26 +217,25 @@ public class DateTimeFunctionIT extends SQLIntegTestCase {
         executeQuery("select date_sub(timestamp('2020-09-16 17:30:00'), interval 1 day)");
     verifySchema(
         result,
-        schema("date_sub(timestamp('2020-09-16 17:30:00'), interval 1 day)", null, "timestamp"));
+        schema("date_sub(timestamp('2020-09-16 17:30:00'), interval 1 day)", null, "datetime"));
     verifyDataRows(result, rows("2020-09-15 17:30:00"));
 
-    result = executeQuery("select date_sub(TIMESTAMP('2020-09-16 17:30:00'), interval 1 day)");
+    result = executeQuery("select date_sub(DATETIME('2020-09-16 17:30:00'), interval 1 day)");
     verifySchema(
         result,
-        schema("date_sub(TIMESTAMP('2020-09-16 17:30:00'), interval 1 day)", null, "timestamp"));
+        schema("date_sub(DATETIME('2020-09-16 17:30:00'), interval 1 day)", null, "datetime"));
     verifyDataRows(result, rows("2020-09-15 17:30:00"));
 
     result = executeQuery("select date_sub(date('2020-09-16'), interval 1 day)");
-    verifySchema(result, schema("date_sub(date('2020-09-16'), interval 1 day)", null, "timestamp"));
+    verifySchema(result, schema("date_sub(date('2020-09-16'), interval 1 day)", null, "datetime"));
     verifyDataRows(result, rows("2020-09-15 00:00:00"));
 
     result = executeQuery("select date_sub(date('2020-09-16'), interval 1 hour)");
-    verifySchema(
-        result, schema("date_sub(date('2020-09-16'), interval 1 hour)", null, "timestamp"));
+    verifySchema(result, schema("date_sub(date('2020-09-16'), interval 1 hour)", null, "datetime"));
     verifyDataRows(result, rows("2020-09-15 23:00:00"));
 
     result = executeQuery("select date_sub(TIME('07:40:00'), interval 1 day)");
-    verifySchema(result, schema("date_sub(TIME('07:40:00'), interval 1 day)", null, "timestamp"));
+    verifySchema(result, schema("date_sub(TIME('07:40:00'), interval 1 day)", null, "datetime"));
     verifyDataRows(
         result,
         rows(
@@ -242,7 +246,7 @@ public class DateTimeFunctionIT extends SQLIntegTestCase {
                 .format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"))));
 
     result = executeQuery("select date_sub(TIME('07:40:00'), interval 1 hour)");
-    verifySchema(result, schema("date_sub(TIME('07:40:00'), interval 1 hour)", null, "timestamp"));
+    verifySchema(result, schema("date_sub(TIME('07:40:00'), interval 1 hour)", null, "datetime"));
     verifyDataRows(
         result,
         rows(
@@ -310,11 +314,11 @@ public class DateTimeFunctionIT extends SQLIntegTestCase {
     result1 =
         executeQuery(
             String.format(
-                "SELECT dayofmonth(timestamp(CAST(time0 AS STRING))) FROM %s", TEST_INDEX_CALCS));
+                "SELECT dayofmonth(datetime(CAST(time0 AS STRING))) FROM %s", TEST_INDEX_CALCS));
     result2 =
         executeQuery(
             String.format(
-                "SELECT day_of_month(timestamp(CAST(time0 AS STRING))) FROM %s", TEST_INDEX_CALCS));
+                "SELECT day_of_month(datetime(CAST(time0 AS STRING))) FROM %s", TEST_INDEX_CALCS));
     result1.getJSONArray("datarows").similar(result2.getJSONArray("datarows"));
 
     result1 =
@@ -367,11 +371,11 @@ public class DateTimeFunctionIT extends SQLIntegTestCase {
     result1 =
         executeQuery(
             String.format(
-                "SELECT dayofweek(timestamp(CAST(time0 AS STRING))) FROM %s", TEST_INDEX_CALCS));
+                "SELECT dayofweek(datetime(CAST(time0 AS STRING))) FROM %s", TEST_INDEX_CALCS));
     result2 =
         executeQuery(
             String.format(
-                "SELECT day_of_week(timestamp(CAST(time0 AS STRING))) FROM %s", TEST_INDEX_CALCS));
+                "SELECT day_of_week(datetime(CAST(time0 AS STRING))) FROM %s", TEST_INDEX_CALCS));
     result1.getJSONArray("datarows").similar(result2.getJSONArray("datarows"));
 
     result1 =
@@ -405,8 +409,8 @@ public class DateTimeFunctionIT extends SQLIntegTestCase {
     verifySchema(result, schema("day_of_year(date('2020-09-16'))", null, "integer"));
     verifyDataRows(result, rows(260));
 
-    result = executeQuery("select day_of_year(timestamp('2020-09-16 00:00:00'))");
-    verifySchema(result, schema("day_of_year(timestamp('2020-09-16 00:00:00'))", null, "integer"));
+    result = executeQuery("select day_of_year(datetime('2020-09-16 00:00:00'))");
+    verifySchema(result, schema("day_of_year(datetime('2020-09-16 00:00:00'))", null, "integer"));
     verifyDataRows(result, rows(260));
 
     result = executeQuery("select day_of_year(timestamp('2020-09-16 00:00:00'))");
@@ -432,11 +436,11 @@ public class DateTimeFunctionIT extends SQLIntegTestCase {
     result1 =
         executeQuery(
             String.format(
-                "SELECT dayofyear(timestamp(CAST(time0 AS STRING))) FROM %s", TEST_INDEX_CALCS));
+                "SELECT dayofyear(datetime(CAST(time0 AS STRING))) FROM %s", TEST_INDEX_CALCS));
     result2 =
         executeQuery(
             String.format(
-                "SELECT day_of_year(timestamp(CAST(time0 AS STRING))) FROM %s", TEST_INDEX_CALCS));
+                "SELECT day_of_year(datetime(CAST(time0 AS STRING))) FROM %s", TEST_INDEX_CALCS));
     result1.getJSONArray("datarows").similar(result2.getJSONArray("datarows"));
 
     result1 =
@@ -485,6 +489,10 @@ public class DateTimeFunctionIT extends SQLIntegTestCase {
     verifySchema(result, schema("hour_of_day(timestamp('2020-09-16 17:30:00'))", null, "integer"));
     verifyDataRows(result, rows(17));
 
+    result = executeQuery("select hour_of_day(datetime('2020-09-16 17:30:00'))");
+    verifySchema(result, schema("hour_of_day(datetime('2020-09-16 17:30:00'))", null, "integer"));
+    verifyDataRows(result, rows(17));
+
     result = executeQuery("select hour_of_day(time('17:30:00'))");
     verifySchema(result, schema("hour_of_day(time('17:30:00'))", null, "integer"));
     verifyDataRows(result, rows(17));
@@ -503,7 +511,7 @@ public class DateTimeFunctionIT extends SQLIntegTestCase {
     JSONObject datetimeResult =
         executeQuery(
             String.format(
-                "SELECT extract(DAY_SECOND FROM timestamp(cast(datetime0 AS STRING))) FROM %s LIMIT"
+                "SELECT extract(DAY_SECOND FROM datetime(cast(datetime0 AS STRING))) FROM %s LIMIT"
                     + " 1",
                 TEST_INDEX_CALCS));
     verifyDataRows(datetimeResult, rows(9101735));
@@ -553,11 +561,11 @@ public class DateTimeFunctionIT extends SQLIntegTestCase {
     result1 =
         executeQuery(
             String.format(
-                "SELECT hour(timestamp(CAST(time0 AS STRING))) FROM %s", TEST_INDEX_CALCS));
+                "SELECT hour(datetime(CAST(time0 AS STRING))) FROM %s", TEST_INDEX_CALCS));
     result2 =
         executeQuery(
             String.format(
-                "SELECT hour_of_day(timestamp(CAST(time0 AS STRING))) FROM %s", TEST_INDEX_CALCS));
+                "SELECT hour_of_day(datetime(CAST(time0 AS STRING))) FROM %s", TEST_INDEX_CALCS));
     result1.getJSONArray("datarows").similar(result2.getJSONArray("datarows"));
 
     result1 =
@@ -655,9 +663,8 @@ public class DateTimeFunctionIT extends SQLIntegTestCase {
         result, schema("minute_of_day(timestamp('2020-09-16 17:30:00'))", null, "integer"));
     verifyDataRows(result, rows(1050));
 
-    result = executeQuery("select minute_of_day(timestamp('2020-09-16 17:30:00'))");
-    verifySchema(
-        result, schema("minute_of_day(timestamp('2020-09-16 17:30:00'))", null, "integer"));
+    result = executeQuery("select minute_of_day(datetime('2020-09-16 17:30:00'))");
+    verifySchema(result, schema("minute_of_day(datetime('2020-09-16 17:30:00'))", null, "integer"));
     verifyDataRows(result, rows(1050));
 
     result = executeQuery("select minute_of_day(time('17:30:00'))");
@@ -703,11 +710,11 @@ public class DateTimeFunctionIT extends SQLIntegTestCase {
     result1 =
         executeQuery(
             String.format(
-                "SELECT minute(timestamp(CAST(time0 AS STRING))) FROM %s", TEST_INDEX_CALCS));
+                "SELECT minute(datetime(CAST(time0 AS STRING))) FROM %s", TEST_INDEX_CALCS));
     result2 =
         executeQuery(
             String.format(
-                "SELECT minute_of_hour(timestamp(CAST(time0 AS STRING))) FROM %s",
+                "SELECT minute_of_hour(datetime(CAST(time0 AS STRING))) FROM %s",
                 TEST_INDEX_CALCS));
     result1.getJSONArray("datarows").similar(result2.getJSONArray("datarows"));
 
@@ -743,9 +750,8 @@ public class DateTimeFunctionIT extends SQLIntegTestCase {
     verifySchema(result, schema("month_of_year(date('2020-09-16'))", null, "integer"));
     verifyDataRows(result, rows(9));
 
-    result = executeQuery("select month_of_year(timestamp('2020-09-16 00:00:00'))");
-    verifySchema(
-        result, schema("month_of_year(timestamp('2020-09-16 00:00:00'))", null, "integer"));
+    result = executeQuery("select month_of_year(datetime('2020-09-16 00:00:00'))");
+    verifySchema(result, schema("month_of_year(datetime('2020-09-16 00:00:00'))", null, "integer"));
     verifyDataRows(result, rows(9));
 
     result = executeQuery("select month_of_year(timestamp('2020-09-16 00:00:00'))");
@@ -772,12 +778,11 @@ public class DateTimeFunctionIT extends SQLIntegTestCase {
     result1 =
         executeQuery(
             String.format(
-                "SELECT month(timestamp(CAST(time0 AS STRING))) FROM %s", TEST_INDEX_CALCS));
+                "SELECT month(datetime(CAST(time0 AS STRING))) FROM %s", TEST_INDEX_CALCS));
     result2 =
         executeQuery(
             String.format(
-                "SELECT month_of_year(timestamp(CAST(time0 AS STRING))) FROM %s",
-                TEST_INDEX_CALCS));
+                "SELECT month_of_year(datetime(CAST(time0 AS STRING))) FROM %s", TEST_INDEX_CALCS));
     result1.getJSONArray("datarows").similar(result2.getJSONArray("datarows"));
 
     result1 =
@@ -871,11 +876,11 @@ public class DateTimeFunctionIT extends SQLIntegTestCase {
     result1 =
         executeQuery(
             String.format(
-                "SELECT second(timestamp(CAST(time0 AS STRING))) FROM %s", TEST_INDEX_CALCS));
+                "SELECT second(datetime(CAST(time0 AS STRING))) FROM %s", TEST_INDEX_CALCS));
     result2 =
         executeQuery(
             String.format(
-                "SELECT second_of_minute(timestamp(CAST(time0 AS STRING))) FROM %s",
+                "SELECT second_of_minute(datetime(CAST(time0 AS STRING))) FROM %s",
                 TEST_INDEX_CALCS));
     result1.getJSONArray("datarows").similar(result2.getJSONArray("datarows"));
 
@@ -929,15 +934,15 @@ public class DateTimeFunctionIT extends SQLIntegTestCase {
     verifyDataRows(result, rows("2020-09-15"));
 
     result = executeQuery("select subdate(timestamp('2020-09-16 17:30:00'), 1)");
-    verifySchema(result, schema("subdate(timestamp('2020-09-16 17:30:00'), 1)", null, "timestamp"));
+    verifySchema(result, schema("subdate(timestamp('2020-09-16 17:30:00'), 1)", null, "datetime"));
     verifyDataRows(result, rows("2020-09-15 17:30:00"));
 
-    result = executeQuery("select subdate(TIMESTAMP('2020-09-16 07:40:00'), 1)");
-    verifySchema(result, schema("subdate(TIMESTAMP('2020-09-16 07:40:00'), 1)", null, "timestamp"));
+    result = executeQuery("select subdate(DATETIME('2020-09-16 07:40:00'), 1)");
+    verifySchema(result, schema("subdate(DATETIME('2020-09-16 07:40:00'), 1)", null, "datetime"));
     verifyDataRows(result, rows("2020-09-15 07:40:00"));
 
     result = executeQuery("select subdate(TIME('07:40:00'), 0)");
-    verifySchema(result, schema("subdate(TIME('07:40:00'), 0)", null, "timestamp"));
+    verifySchema(result, schema("subdate(TIME('07:40:00'), 0)", null, "datetime"));
     verifyDataRows(result, rows(LocalDate.now() + " 07:40:00"));
   }
 
@@ -947,25 +952,25 @@ public class DateTimeFunctionIT extends SQLIntegTestCase {
         executeQuery("select subdate(timestamp('2020-09-16 17:30:00'), interval 1 day)");
     verifySchema(
         result,
-        schema("subdate(timestamp('2020-09-16 17:30:00'), interval 1 day)", null, "timestamp"));
+        schema("subdate(timestamp('2020-09-16 17:30:00'), interval 1 day)", null, "datetime"));
     verifyDataRows(result, rows("2020-09-15 17:30:00"));
 
-    result = executeQuery("select subdate(TIMESTAMP('2020-09-16 17:30:00'), interval 1 day)");
+    result = executeQuery("select subdate(DATETIME('2020-09-16 17:30:00'), interval 1 day)");
     verifySchema(
         result,
-        schema("subdate(TIMESTAMP('2020-09-16 17:30:00'), interval 1 day)", null, "timestamp"));
+        schema("subdate(DATETIME('2020-09-16 17:30:00'), interval 1 day)", null, "datetime"));
     verifyDataRows(result, rows("2020-09-15 17:30:00"));
 
     result = executeQuery("select subdate(date('2020-09-16'), interval 1 day)");
-    verifySchema(result, schema("subdate(date('2020-09-16'), interval 1 day)", null, "timestamp"));
+    verifySchema(result, schema("subdate(date('2020-09-16'), interval 1 day)", null, "datetime"));
     verifyDataRows(result, rows("2020-09-15 00:00:00"));
 
     result = executeQuery("select subdate(date('2020-09-16'), interval 1 hour)");
-    verifySchema(result, schema("subdate(date('2020-09-16'), interval 1 hour)", null, "timestamp"));
+    verifySchema(result, schema("subdate(date('2020-09-16'), interval 1 hour)", null, "datetime"));
     verifyDataRows(result, rows("2020-09-15 23:00:00"));
 
     result = executeQuery("select subdate(TIME('07:40:00'), interval 1 day)");
-    verifySchema(result, schema("subdate(TIME('07:40:00'), interval 1 day)", null, "timestamp"));
+    verifySchema(result, schema("subdate(TIME('07:40:00'), interval 1 day)", null, "datetime"));
     verifyDataRows(
         result,
         rows(
@@ -976,7 +981,7 @@ public class DateTimeFunctionIT extends SQLIntegTestCase {
                 .format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"))));
 
     result = executeQuery("select subdate(TIME('07:40:00'), interval 1 hour)");
-    verifySchema(result, schema("subdate(TIME('07:40:00'), interval 1 hour)", null, "timestamp"));
+    verifySchema(result, schema("subdate(TIME('07:40:00'), interval 1 hour)", null, "datetime"));
     verifyDataRows(
         result,
         rows(
@@ -1040,7 +1045,7 @@ public class DateTimeFunctionIT extends SQLIntegTestCase {
     result =
         executeQuery(
             String.format(
-                "SELECT to_seconds(timestamp(cast(datetime0 AS string))) FROM %s LIMIT 2",
+                "SELECT to_seconds(datetime(cast(datetime0 AS string))) FROM %s LIMIT 2",
                 TEST_INDEX_CALCS));
     verifyDataRows(result, rows(63256587455L), rows(63258064234L));
 
@@ -1137,7 +1142,7 @@ public class DateTimeFunctionIT extends SQLIntegTestCase {
     result1.getJSONArray("datarows").similar(result3.getJSONArray("datarows"));
 
     compareWeekResults("date0", TEST_INDEX_CALCS);
-    compareWeekResults("timestamp(CAST(time0 AS STRING))", TEST_INDEX_CALCS);
+    compareWeekResults("datetime(CAST(time0 AS STRING))", TEST_INDEX_CALCS);
     compareWeekResults("CAST(time0 AS STRING)", TEST_INDEX_CALCS);
     compareWeekResults("datetime0", TEST_INDEX_CALCS);
   }
@@ -1210,8 +1215,8 @@ public class DateTimeFunctionIT extends SQLIntegTestCase {
                 + "FROM_UNIXTIME(1662601316, '%T') f3");
     verifySchema(
         result,
-        schema("FROM_UNIXTIME(200300400)", "f1", "timestamp"),
-        schema("FROM_UNIXTIME(12224.12)", "f2", "timestamp"),
+        schema("FROM_UNIXTIME(200300400)", "f1", "datetime"),
+        schema("FROM_UNIXTIME(12224.12)", "f2", "datetime"),
         schema("FROM_UNIXTIME(1662601316, '%T')", "f3", "keyword"));
     verifySome(
         result.getJSONArray("datarows"),
@@ -1267,21 +1272,21 @@ public class DateTimeFunctionIT extends SQLIntegTestCase {
                 + " ADDTIME(TIME('23:59:59'), DATE('2004-01-01')) AS `'23:59:59' + 0`,"
                 + " ADDTIME(DATE('2004-01-01'), TIME('23:59:59')) AS `'2004-01-01' + '23:59:59'`,"
                 + " ADDTIME(TIME('10:20:30'), TIME('00:05:42')) AS `'10:20:30' + '00:05:42'`,"
-                + " ADDTIME(TIMESTAMP('1999-12-31 15:42:13'), TIMESTAMP('1961-04-12 09:07:00')) AS"
+                + " ADDTIME(TIMESTAMP('1999-12-31 15:42:13'), DATETIME('1961-04-12 09:07:00')) AS"
                 + " `'15:42:13' + '09:07:00'`");
     verifySchema(
         result,
-        schema("ADDTIME(DATE('2008-12-12'), DATE('2008-11-15'))", "'2008-12-12' + 0", "timestamp"),
+        schema("ADDTIME(DATE('2008-12-12'), DATE('2008-11-15'))", "'2008-12-12' + 0", "datetime"),
         schema("ADDTIME(TIME('23:59:59'), DATE('2004-01-01'))", "'23:59:59' + 0", "time"),
         schema(
             "ADDTIME(DATE('2004-01-01'), TIME('23:59:59'))",
             "'2004-01-01' + '23:59:59'",
-            "timestamp"),
+            "datetime"),
         schema("ADDTIME(TIME('10:20:30'), TIME('00:05:42'))", "'10:20:30' + '00:05:42'", "time"),
         schema(
-            "ADDTIME(TIMESTAMP('1999-12-31 15:42:13'), TIMESTAMP('1961-04-12 09:07:00'))",
+            "ADDTIME(TIMESTAMP('1999-12-31 15:42:13'), DATETIME('1961-04-12 09:07:00'))",
             "'15:42:13' + '09:07:00'",
-            "timestamp"));
+            "datetime"));
     verifyDataRows(
         result,
         rows(
@@ -1300,21 +1305,21 @@ public class DateTimeFunctionIT extends SQLIntegTestCase {
                 + " SUBTIME(TIME('23:59:59'), DATE('2004-01-01')) AS `'23:59:59' - 0`,"
                 + " SUBTIME(DATE('2004-01-01'), TIME('23:59:59')) AS `'2004-01-01' - '23:59:59'`,"
                 + " SUBTIME(TIME('10:20:30'), TIME('00:05:42')) AS `'10:20:30' - '00:05:42'`,"
-                + " SUBTIME(TIMESTAMP('1999-12-31 15:42:13'), TIMESTAMP('1961-04-12 09:07:00')) AS"
+                + " SUBTIME(TIMESTAMP('1999-12-31 15:42:13'), DATETIME('1961-04-12 09:07:00')) AS"
                 + " `'15:42:13' - '09:07:00'`");
     verifySchema(
         result,
-        schema("SUBTIME(DATE('2008-12-12'), DATE('2008-11-15'))", "'2008-12-12' - 0", "timestamp"),
+        schema("SUBTIME(DATE('2008-12-12'), DATE('2008-11-15'))", "'2008-12-12' - 0", "datetime"),
         schema("SUBTIME(TIME('23:59:59'), DATE('2004-01-01'))", "'23:59:59' - 0", "time"),
         schema(
             "SUBTIME(DATE('2004-01-01'), TIME('23:59:59'))",
             "'2004-01-01' - '23:59:59'",
-            "timestamp"),
+            "datetime"),
         schema("SUBTIME(TIME('10:20:30'), TIME('00:05:42'))", "'10:20:30' - '00:05:42'", "time"),
         schema(
-            "SUBTIME(TIMESTAMP('1999-12-31 15:42:13'), TIMESTAMP('1961-04-12 09:07:00'))",
+            "SUBTIME(TIMESTAMP('1999-12-31 15:42:13'), DATETIME('1961-04-12 09:07:00'))",
             "'15:42:13' - '09:07:00'",
-            "timestamp"));
+            "datetime"));
     verifyDataRows(
         result,
         rows(
@@ -1331,7 +1336,7 @@ public class DateTimeFunctionIT extends SQLIntegTestCase {
             "SELECT DATEDIFF(TIMESTAMP('2000-01-02 00:00:00'), TIMESTAMP('2000-01-01 23:59:59')) AS"
                 + " `'2000-01-02' - '2000-01-01'`, DATEDIFF(DATE('2001-02-01'),"
                 + " TIMESTAMP('2004-01-01 00:00:00')) AS `'2001-02-01' - '2004-01-01'`,"
-                + " DATEDIFF(TIMESTAMP('2004-01-01 00:00:00'), TIMESTAMP('2002-02-01 14:25:30')) AS"
+                + " DATEDIFF(TIMESTAMP('2004-01-01 00:00:00'), DATETIME('2002-02-01 14:25:30')) AS"
                 + " `'2004-01-01' - '2002-02-01'`, DATEDIFF(TIME('23:59:59'), TIME('00:00:00')) AS"
                 + " `today - today`");
     verifySchema(
@@ -1345,7 +1350,7 @@ public class DateTimeFunctionIT extends SQLIntegTestCase {
             "'2001-02-01' - '2004-01-01'",
             "long"),
         schema(
-            "DATEDIFF(TIMESTAMP('2004-01-01 00:00:00'), TIMESTAMP('2002-02-01 14:25:30'))",
+            "DATEDIFF(TIMESTAMP('2004-01-01 00:00:00'), DATETIME('2002-02-01 14:25:30'))",
             "'2004-01-01' - '2002-02-01'",
             "long"),
         schema("DATEDIFF(TIME('23:59:59'), TIME('00:00:00'))", "today - today", "long"));
@@ -1441,12 +1446,12 @@ public class DateTimeFunctionIT extends SQLIntegTestCase {
     verifyDataRows(result, rows("2020-09-16"));
   }
 
-  private void compareBrackets(String query1, String query2, String timestamp) throws IOException {
-    JSONObject result1 = executeQuery("select " + query1 + " '" + timestamp + "'");
-    JSONObject result2 = executeQuery("select {" + query2 + " '" + timestamp + "'}");
+  private void compareBrackets(String query1, String query2, String datetime) throws IOException {
+    JSONObject result1 = executeQuery("select " + query1 + " '" + datetime + "'");
+    JSONObject result2 = executeQuery("select {" + query2 + " '" + datetime + "'}");
 
-    verifyDataRows(result1, rows(timestamp));
-    verifyDataRows(result2, rows(timestamp));
+    verifyDataRows(result1, rows(datetime));
+    verifyDataRows(result2, rows(datetime));
   }
 
   @Test
