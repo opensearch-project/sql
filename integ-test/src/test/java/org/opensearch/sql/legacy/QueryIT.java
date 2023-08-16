@@ -1105,7 +1105,7 @@ public class QueryIT extends SQLIntegTestCase {
     JSONObject response =
         executeQuery(
             StringUtils.format(
-                "SELECT * " + "FROM %s " + "WHERE male = true " + "LIMIT 5",
+                "SELECT * FROM %s WHERE male = true LIMIT 5",
                 TestsConstants.TEST_INDEX_BANK));
 
     checkResponseSize(response, BANK_INDEX_MALE_TRUE);
@@ -1116,7 +1116,7 @@ public class QueryIT extends SQLIntegTestCase {
     JSONObject response =
         executeQuery(
             StringUtils.format(
-                "SELECT * " + "FROM %s " + "WHERE male = true " + "GROUP BY balance " + "LIMIT 5",
+                "SELECT * FROM %s WHERE male = true GROUP BY balance LIMIT 5",
                 TestsConstants.TEST_INDEX_BANK));
 
     checkAggregationResponseSize(response, BANK_INDEX_MALE_TRUE);
@@ -1127,7 +1127,7 @@ public class QueryIT extends SQLIntegTestCase {
     JSONObject response =
         executeQuery(
             StringUtils.format(
-                "SELECT * " + "FROM %s " + "WHERE male = true " + "ORDER BY age " + "LIMIT 5",
+                "SELECT * FROM %s WHERE male = true ORDER BY age LIMIT 5",
                 TestsConstants.TEST_INDEX_BANK));
 
     checkResponseSize(response, BANK_INDEX_MALE_TRUE);
@@ -1164,7 +1164,7 @@ public class QueryIT extends SQLIntegTestCase {
     JSONObject response =
         executeQuery(
             StringUtils.format(
-                "SELECT * " + "FROM %s " + "WHERE male = false " + "LIMIT 5",
+                "SELECT * FROM %s WHERE male = false LIMIT 5",
                 TestsConstants.TEST_INDEX_BANK));
 
     checkResponseSize(response, BANK_INDEX_MALE_FALSE);
@@ -1175,7 +1175,7 @@ public class QueryIT extends SQLIntegTestCase {
     JSONObject response =
         executeQuery(
             StringUtils.format(
-                "SELECT * " + "FROM %s " + "WHERE male = false " + "GROUP BY balance " + "LIMIT 5",
+                "SELECT * FROM %s WHERE male = false GROUP BY balance LIMIT 5",
                 TestsConstants.TEST_INDEX_BANK));
 
     checkAggregationResponseSize(response, BANK_INDEX_MALE_FALSE);
