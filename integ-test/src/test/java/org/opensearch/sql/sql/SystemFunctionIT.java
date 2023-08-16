@@ -55,8 +55,8 @@ public class SystemFunctionIT extends SQLIntegTestCase {
     response =
         executeJdbcRequest(
             String.format(
-                "SELECT typeof(text_value),typeof(date_value), typeof(boolean_value),"
-                    + " typeof(date_nanos_value), typeof(object_value),"
+                "SELECT typeof(text_value),typeof(date_value), typeof(date_nanos_value),"
+                    + " typeof(boolean_value), typeof(object_value),"
                     + " typeof(keyword_value),typeof(ip_value), typeof(binary_value),"
                     + " typeof(geo_point_value)"
                     // TODO activate this test once `ARRAY` type supported, see
