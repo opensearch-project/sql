@@ -3,7 +3,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-
 package org.opensearch.sql.prometheus.storage;
 
 import static org.opensearch.sql.prometheus.data.constants.PrometheusFieldConstants.LABELS;
@@ -26,40 +25,30 @@ import org.opensearch.sql.storage.Table;
 import org.opensearch.sql.storage.read.TableScanBuilder;
 
 /**
- * Prometheus table (metric) implementation.
- * This can be constructed from  a metric Name
- * or from PrometheusQueryRequest In case of query_range table function.
+ * Prometheus table (metric) implementation. This can be constructed from a metric Name or from
+ * PrometheusQueryRequest In case of query_range table function.
  */
 public class PrometheusMetricTable implements Table {
 
   private final PrometheusClient prometheusClient;
 
-  @Getter
-  private final String metricName;
+  @Getter private final String metricName;
 
-  @Getter
-  private final PrometheusQueryRequest prometheusQueryRequest;
+  @Getter private final PrometheusQueryRequest prometheusQueryRequest;
 
-
-  /**
-   * The cached mapping of field and type in index.
-   */
+  /** The cached mapping of field and type in index. */
   private Map<String, ExprType> cachedFieldTypes = null;
 
-  /**
-   * Constructor only with metric name.
-   */
+  /** Constructor only with metric name. */
   public PrometheusMetricTable(PrometheusClient prometheusService, @Nonnull String metricName) {
     this.prometheusClient = prometheusService;
     this.metricName = metricName;
     this.prometheusQueryRequest = null;
   }
 
-  /**
-   * Constructor for entire promQl Request.
-   */
-  public PrometheusMetricTable(PrometheusClient prometheusService,
-                               @Nonnull PrometheusQueryRequest prometheusQueryRequest) {
+  /** Constructor for entire promQl Request. */
+  public PrometheusMetricTable(
+      PrometheusClient prometheusService, @Nonnull PrometheusQueryRequest prometheusQueryRequest) {
     this.prometheusClient = prometheusService;
     this.metricName = null;
     this.prometheusQueryRequest = prometheusQueryRequest;
@@ -67,14 +56,12 @@ public class PrometheusMetricTable implements Table {
 
   @Override
   public boolean exists() {
-    throw new UnsupportedOperationException(
-        "Prometheus metric exists operation is not supported");
+    throw new UnsupportedOperationException("Prometheus metric exists operation is not supported");
   }
 
   @Override
   public void create(Map<String, ExprType> schema) {
-    throw new UnsupportedOperationException(
-        "Prometheus metric create operation is not supported");
+    throw new UnsupportedOperationException("Prometheus metric create operation is not supported");
   }
 
   @Override
@@ -82,11 +69,10 @@ public class PrometheusMetricTable implements Table {
     if (cachedFieldTypes == null) {
       if (metricName != null) {
         cachedFieldTypes =
-            new PrometheusDescribeMetricRequest(prometheusClient, null,
-                metricName).getFieldTypes();
+            new PrometheusDescribeMetricRequest(prometheusClient, null, metricName).getFieldTypes();
       } else {
-        cachedFieldTypes = new HashMap<>(PrometheusMetricDefaultSchema.DEFAULT_MAPPING
-            .getMapping());
+        cachedFieldTypes =
+            new HashMap<>(PrometheusMetricDefaultSchema.DEFAULT_MAPPING.getMapping());
         cachedFieldTypes.put(LABELS, ExprCoreType.STRING);
       }
     }
@@ -95,8 +81,7 @@ public class PrometheusMetricTable implements Table {
 
   @Override
   public PhysicalPlan implement(LogicalPlan plan) {
-    PrometheusMetricScan metricScan =
-        new PrometheusMetricScan(prometheusClient);
+    PrometheusMetricScan metricScan = new PrometheusMetricScan(prometheusClient);
     return plan.accept(new PrometheusDefaultImplementor(), metricScan);
   }
 
@@ -105,8 +90,8 @@ public class PrometheusMetricTable implements Table {
     return PrometheusLogicalPlanOptimizerFactory.create().optimize(plan);
   }
 
-  //Only handling query_range function for now.
-  //we need to move PPL implementations to ScanBuilder in future.
+  // Only handling query_range function for now.
+  // we need to move PPL implementations to ScanBuilder in future.
   @Override
   public TableScanBuilder createScanBuilder() {
     if (metricName == null) {

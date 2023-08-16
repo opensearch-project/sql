@@ -7,7 +7,6 @@
 
 package org.opensearch.sql.prometheus.functions.scan;
 
-
 import static org.opensearch.sql.prometheus.constants.TestConstants.ENDTIME;
 import static org.opensearch.sql.prometheus.constants.TestConstants.QUERY;
 import static org.opensearch.sql.prometheus.constants.TestConstants.STARTTIME;
@@ -23,11 +22,9 @@ import org.opensearch.sql.storage.TableScanOperator;
 
 public class QueryRangeFunctionTableScanBuilderTest {
 
-  @Mock
-  private PrometheusClient prometheusClient;
+  @Mock private PrometheusClient prometheusClient;
 
-  @Mock
-  private LogicalProject logicalProject;
+  @Mock private LogicalProject logicalProject;
 
   @Test
   void testBuild() {
@@ -37,13 +34,13 @@ public class QueryRangeFunctionTableScanBuilderTest {
     prometheusQueryRequest.setEndTime(ENDTIME);
     prometheusQueryRequest.setStep(STEP);
 
-    QueryRangeFunctionTableScanBuilder queryRangeFunctionTableScanBuilder
-        = new QueryRangeFunctionTableScanBuilder(prometheusClient, prometheusQueryRequest);
-    TableScanOperator queryRangeFunctionTableScanOperator
-        = queryRangeFunctionTableScanBuilder.build();
+    QueryRangeFunctionTableScanBuilder queryRangeFunctionTableScanBuilder =
+        new QueryRangeFunctionTableScanBuilder(prometheusClient, prometheusQueryRequest);
+    TableScanOperator queryRangeFunctionTableScanOperator =
+        queryRangeFunctionTableScanBuilder.build();
     Assertions.assertNotNull(queryRangeFunctionTableScanOperator);
-    Assertions.assertTrue(queryRangeFunctionTableScanOperator
-        instanceof QueryRangeFunctionTableScanOperator);
+    Assertions.assertTrue(
+        queryRangeFunctionTableScanOperator instanceof QueryRangeFunctionTableScanOperator);
   }
 
   @Test
@@ -54,8 +51,8 @@ public class QueryRangeFunctionTableScanBuilderTest {
     prometheusQueryRequest.setEndTime(ENDTIME);
     prometheusQueryRequest.setStep(STEP);
 
-    QueryRangeFunctionTableScanBuilder queryRangeFunctionTableScanBuilder
-        = new QueryRangeFunctionTableScanBuilder(prometheusClient, prometheusQueryRequest);
+    QueryRangeFunctionTableScanBuilder queryRangeFunctionTableScanBuilder =
+        new QueryRangeFunctionTableScanBuilder(prometheusClient, prometheusQueryRequest);
     Assertions.assertTrue(queryRangeFunctionTableScanBuilder.pushDownProject(logicalProject));
   }
 }

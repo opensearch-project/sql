@@ -73,12 +73,16 @@ public class PaginationIT extends SQLIntegTestCase {
     ResponseException exception =
         expectThrows(ResponseException.class, () -> executeCursorQuery(cursor));
     response = new JSONObject(TestUtils.getResponseBody(exception.getResponse()));
-    assertEquals(response.getJSONObject("error").getString("reason"),
+    assertEquals(
+        response.getJSONObject("error").getString("reason"),
         "Error occurred in OpenSearch engine: all shards failed");
-    assertTrue(response.getJSONObject("error").getString("details")
-        .contains("SearchContextMissingException[No search context found for id"));
-    assertEquals(response.getJSONObject("error").getString("type"),
-        "SearchPhaseExecutionException");
+    assertTrue(
+        response
+            .getJSONObject("error")
+            .getString("details")
+            .contains("SearchContextMissingException[No search context found for id"));
+    assertEquals(
+        response.getJSONObject("error").getString("type"), "SearchPhaseExecutionException");
 
     wipeAllClusterSettings();
   }
@@ -106,12 +110,16 @@ public class PaginationIT extends SQLIntegTestCase {
     ResponseException exception =
         expectThrows(ResponseException.class, () -> executeCursorQuery(cursor));
     response = new JSONObject(TestUtils.getResponseBody(exception.getResponse()));
-    assertEquals(response.getJSONObject("error").getString("reason"),
+    assertEquals(
+        response.getJSONObject("error").getString("reason"),
         "Error occurred in OpenSearch engine: all shards failed");
-    assertTrue(response.getJSONObject("error").getString("details")
-        .contains("SearchContextMissingException[No search context found for id"));
-    assertEquals(response.getJSONObject("error").getString("type"),
-        "SearchPhaseExecutionException");
+    assertTrue(
+        response
+            .getJSONObject("error")
+            .getString("details")
+            .contains("SearchContextMissingException[No search context found for id"));
+    assertEquals(
+        response.getJSONObject("error").getString("type"), "SearchPhaseExecutionException");
   }
 
   @Test
@@ -134,7 +142,8 @@ public class PaginationIT extends SQLIntegTestCase {
     var cursor = response.getString("cursor");
     do {
       assertTrue(cursor.isEmpty() || cursor.startsWith("n:"));
-      assertTrue("Paged response schema doesn't match to non-paged",
+      assertTrue(
+          "Paged response schema doesn't match to non-paged",
           schema.similar(response.getJSONArray("schema")));
 
       rowsReturnedAsc += response.getInt("size");
@@ -151,7 +160,7 @@ public class PaginationIT extends SQLIntegTestCase {
         cursor = "";
       }
 
-    } while(!cursor.isEmpty());
+    } while (!cursor.isEmpty());
 
     query = String.format("SELECT * from %s ORDER BY num1 DESC", TEST_INDEX_CALCS);
     response = new JSONObject(executeFetchQuery(query, 7, "jdbc"));
@@ -160,7 +169,8 @@ public class PaginationIT extends SQLIntegTestCase {
     cursor = response.getString("cursor");
     do {
       assertTrue(cursor.isEmpty() || cursor.startsWith("n:"));
-      assertTrue("Paged response schema doesn't match to non-paged",
+      assertTrue(
+          "Paged response schema doesn't match to non-paged",
           schema.similar(response.getJSONArray("schema")));
 
       rowsReturnedDesc += response.getInt("size");
@@ -177,19 +187,22 @@ public class PaginationIT extends SQLIntegTestCase {
         cursor = "";
       }
 
-    } while(!cursor.isEmpty());
+    } while (!cursor.isEmpty());
 
-    assertEquals("Paged responses return another row count that non-paged",
-        indexSize, rowsReturnedAsc);
-    assertEquals("Paged responses return another row count that non-paged",
-        indexSize, rowsReturnedDesc);
-    assertTrue("Paged accumulated result has other rows than non-paged",
+    assertEquals(
+        "Paged responses return another row count that non-paged", indexSize, rowsReturnedAsc);
+    assertEquals(
+        "Paged responses return another row count that non-paged", indexSize, rowsReturnedDesc);
+    assertTrue(
+        "Paged accumulated result has other rows than non-paged",
         rows.toList().containsAll(rowsPagedAsc.toList()));
-    assertTrue("Paged accumulated result has other rows than non-paged",
+    assertTrue(
+        "Paged accumulated result has other rows than non-paged",
         rows.toList().containsAll(rowsPagedDesc.toList()));
 
     for (int row = 0; row < indexSize; row++) {
-      assertTrue(String.format("Row %d: row order is incorrect", row),
+      assertTrue(
+          String.format("Row %d: row order is incorrect", row),
           rowsPagedAsc.getJSONArray(row).similar(rowsPagedDesc.getJSONArray(indexSize - row - 1)));
     }
   }

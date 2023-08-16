@@ -12,9 +12,7 @@ import org.opensearch.sql.prometheus.request.PrometheusQueryExemplarsRequest;
 import org.opensearch.sql.storage.TableScanOperator;
 import org.opensearch.sql.storage.read.TableScanBuilder;
 
-/**
- * TableScanBuilder for query_exemplars table function of prometheus connector.
- */
+/** TableScanBuilder for query_exemplars table function of prometheus connector. */
 @AllArgsConstructor
 public class QueryExemplarsFunctionTableScanBuilder extends TableScanBuilder {
 
@@ -24,8 +22,8 @@ public class QueryExemplarsFunctionTableScanBuilder extends TableScanBuilder {
 
   @Override
   public TableScanOperator build() {
-    return new QueryExemplarsFunctionTableScanOperator(prometheusClient,
-        prometheusQueryExemplarsRequest);
+    return new QueryExemplarsFunctionTableScanOperator(
+        prometheusClient, prometheusQueryExemplarsRequest);
   }
 
   // Since we are determining the schema after table scan,
@@ -34,5 +32,4 @@ public class QueryExemplarsFunctionTableScanBuilder extends TableScanBuilder {
   public boolean pushDownProject(LogicalProject project) {
     return true;
   }
-
 }
