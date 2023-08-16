@@ -1895,7 +1895,7 @@ public class QueryIT extends SQLIntegTestCase {
     String quotedFieldResult =
         executeQuery(
             StringUtils.format(
-                "SELECT b.`lastname` FROM %s " + "AS b ORDER BY age LIMIT 3",
+                "SELECT b.`lastname` FROM %s AS b ORDER BY age LIMIT 3",
                 TestsConstants.TEST_INDEX_BANK),
             "jdbc");
 
@@ -1907,19 +1907,19 @@ public class QueryIT extends SQLIntegTestCase {
     String expected =
         executeQuery(
             StringUtils.format(
-                "SELECT b.lastname FROM %s " + "AS b ORDER BY age LIMIT 3",
+                "SELECT b.lastname FROM %s AS b ORDER BY age LIMIT 3",
                 TestsConstants.TEST_INDEX_BANK),
             "jdbc");
     String quotedAliasResult =
         executeQuery(
             StringUtils.format(
-                "SELECT `b`.lastname FROM %s" + " AS `b` ORDER BY age LIMIT 3",
+                "SELECT `b`.lastname FROM %s AS `b` ORDER BY age LIMIT 3",
                 TestsConstants.TEST_INDEX_BANK),
             "jdbc");
     String quotedAliasAndFieldResult =
         executeQuery(
             StringUtils.format(
-                "SELECT `b`.`lastname` FROM %s " + "AS `b` ORDER BY age LIMIT 3",
+                "SELECT `b`.`lastname` FROM %s AS `b` ORDER BY age LIMIT 3",
                 TestsConstants.TEST_INDEX_BANK),
             "jdbc");
 
@@ -1932,13 +1932,13 @@ public class QueryIT extends SQLIntegTestCase {
     String expected =
         executeQuery(
             StringUtils.format(
-                "SELECT b.lastname FROM %s " + "AS b ORDER BY age LIMIT 3",
+                "SELECT b.lastname FROM %s AS b ORDER BY age LIMIT 3",
                 TestsConstants.TEST_INDEX_BANK),
             "jdbc");
     String specialCharAliasResult =
         executeQuery(
             StringUtils.format(
-                "SELECT `b k`.lastname FROM %s " + "AS `b k` ORDER BY age LIMIT 3",
+                "SELECT `b k`.lastname FROM %s AS `b k` ORDER BY age LIMIT 3",
                 TestsConstants.TEST_INDEX_BANK),
             "jdbc");
 
@@ -1949,7 +1949,7 @@ public class QueryIT extends SQLIntegTestCase {
   public void backticksQuotedAliasInJDBCResponseTest() {
     String query =
         StringUtils.format(
-            "SELECT `b`.`lastname` AS `name` FROM %s AS `b` " + "ORDER BY age LIMIT 3",
+            "SELECT `b`.`lastname` AS `name` FROM %s AS `b` ORDER BY age LIMIT 3",
             TestsConstants.TEST_INDEX_BANK);
     String response = executeQuery(query, "jdbc");
 
