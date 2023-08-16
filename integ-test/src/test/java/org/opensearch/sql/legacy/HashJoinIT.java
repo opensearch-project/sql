@@ -3,7 +3,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-
 package org.opensearch.sql.legacy;
 
 import static org.hamcrest.Matchers.equalTo;
@@ -22,35 +21,23 @@ import org.json.JSONObject;
 import org.junit.Assert;
 import org.junit.Test;
 
-/**
- * Test new hash join algorithm by comparison with old implementation.
- */
+/** Test new hash join algorithm by comparison with old implementation. */
 public class HashJoinIT extends SQLIntegTestCase {
 
-  /**
-   * Hint to use old join algorithm
-   */
+  /** Hint to use old join algorithm */
   private static final String USE_OLD_JOIN_ALGORITHM = "/*! USE_NL*/";
 
-  /**
-   * Set limit to 100% to bypass circuit break check
-   */
+  /** Set limit to 100% to bypass circuit break check */
   private static final String BYPASS_CIRCUIT_BREAK = "/*! JOIN_CIRCUIT_BREAK_LIMIT(100)*/";
 
-  /**
-   * Enable term filter optimization
-   */
+  /** Enable term filter optimization */
   private static final String ENABLE_TERMS_FILTER = "/*! HASH_WITH_TERMS_FILTER*/";
 
-  /**
-   * Default page size is greater than block size
-   */
+  /** Default page size is greater than block size */
   private static final String PAGE_SIZE_GREATER_THAN_BLOCK_SIZE =
       "/*! JOIN_ALGORITHM_BLOCK_SIZE(5)*/";
 
-  /**
-   * Page size is smaller than block size
-   */
+  /** Page size is smaller than block size */
   private static final String PAGE_SIZE_LESS_THAN_BLOCK_SIZE =
       "/*! JOIN_ALGORITHM_BLOCK_SIZE(5)*/ /*! JOIN_SCROLL_PAGE_SIZE(2)*/";
 
@@ -75,14 +62,16 @@ public class HashJoinIT extends SQLIntegTestCase {
 
   @Test
   public void innerJoinUnexpandedObjectField() {
-    String query = String.format(Locale.ROOT,
-        "SELECT " +
-            "a.id.serial, b.id.serial " +
-            "FROM %1$s AS a " +
-            "JOIN %1$s AS b " +
-            "ON a.id.serial = b.attributes.hardware.correlate_id " +
-            "WHERE b.attributes.hardware.platform = 'Linux' ",
-        TEST_INDEX_UNEXPANDED_OBJECT);
+    String query =
+        String.format(
+            Locale.ROOT,
+            "SELECT "
+                + "a.id.serial, b.id.serial "
+                + "FROM %1$s AS a "
+                + "JOIN %1$s AS b "
+                + "ON a.id.serial = b.attributes.hardware.correlate_id "
+                + "WHERE b.attributes.hardware.platform = 'Linux' ",
+            TEST_INDEX_UNEXPANDED_OBJECT);
 
     JSONObject response = executeJdbcRequest(query);
     verifyDataRows(response, rows(3, 1), rows(3, 3));
@@ -135,8 +124,8 @@ public class HashJoinIT extends SQLIntegTestCase {
     // TODO: reduce the balance threshold to 10000 when the memory circuit breaker issue
     //  (https://github.com/opendistro-for-elasticsearch/sql/issues/73) is fixed.
     final String querySuffixTemplate =
-        "a.firstname, a.lastname, b.city, b.state FROM %1$s a %2$s %1$s b " +
-            "ON b.age = a.age WHERE a.balance > 45000 AND b.age > 25 LIMIT 1000000";
+        "a.firstname, a.lastname, b.city, b.state FROM %1$s a %2$s %1$s b "
+            + "ON b.age = a.age WHERE a.balance > 45000 AND b.age > 25 LIMIT 1000000";
     final String querySuffix =
         String.format(Locale.ROOT, querySuffixTemplate, TEST_INDEX_ACCOUNT, join);
 
@@ -152,10 +141,11 @@ public class HashJoinIT extends SQLIntegTestCase {
 
     // TODO: reduce the balance threshold to 10000 when the memory circuit breaker issue
     //  (https://github.com/opendistro-for-elasticsearch/sql/issues/73) is fixed.
-    final String querySuffixTemplate = "c.name.firstname, c.name.lastname, f.hname, f.seat " +
-        "FROM %1$s c %2$s %1$s f ON f.gender.keyword = c.gender.keyword " +
-        "AND f.house.keyword = c.house.keyword " +
-        "WHERE c.gender = 'M' LIMIT 1000000";
+    final String querySuffixTemplate =
+        "c.name.firstname, c.name.lastname, f.hname, f.seat "
+            + "FROM %1$s c %2$s %1$s f ON f.gender.keyword = c.gender.keyword "
+            + "AND f.house.keyword = c.house.keyword "
+            + "WHERE c.gender = 'M' LIMIT 1000000";
     final String querySuffix =
         String.format(Locale.ROOT, querySuffixTemplate, TEST_INDEX_GAME_OF_THRONES, join);
 
@@ -180,14 +170,16 @@ public class HashJoinIT extends SQLIntegTestCase {
 
     Set<String> idsOld = new HashSet<>();
 
-    hitsOld.forEach(hitObj -> {
-      JSONObject hit = (JSONObject) hitObj;
-      idsOld.add(hit.getString("_id"));
-    });
+    hitsOld.forEach(
+        hitObj -> {
+          JSONObject hit = (JSONObject) hitObj;
+          idsOld.add(hit.getString("_id"));
+        });
 
-    hitsNew.forEach(hitObj -> {
-      JSONObject hit = (JSONObject) hitObj;
-      Assert.assertTrue(idsOld.contains(hit.getString("_id")));
-    });
+    hitsNew.forEach(
+        hitObj -> {
+          JSONObject hit = (JSONObject) hitObj;
+          Assert.assertTrue(idsOld.contains(hit.getString("_id")));
+        });
   }
 }

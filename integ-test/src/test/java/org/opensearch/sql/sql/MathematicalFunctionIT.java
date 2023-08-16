@@ -3,7 +3,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-
 package org.opensearch.sql.sql;
 
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_BANK;
@@ -34,9 +33,8 @@ public class MathematicalFunctionIT extends SQLIntegTestCase {
   @Test
   public void testPI() throws IOException {
     JSONObject result =
-            executeQuery(String.format("SELECT PI() FROM %s HAVING (COUNT(1) > 0)",TEST_INDEX_BANK) );
-    verifySchema(result,
-            schema("PI()", null, "double"));
+        executeQuery(String.format("SELECT PI() FROM %s HAVING (COUNT(1) > 0)", TEST_INDEX_BANK));
+    verifySchema(result, schema("PI()", null, "double"));
     verifyDataRows(result, rows(3.141592653589793));
   }
 
@@ -97,7 +95,8 @@ public class MathematicalFunctionIT extends SQLIntegTestCase {
 
   @Test
   public void testExpm1() throws IOException {
-    JSONObject result = executeQuery("select expm1(account_number) FROM " + TEST_INDEX_BANK + " LIMIT 2");
+    JSONObject result =
+        executeQuery("select expm1(account_number) FROM " + TEST_INDEX_BANK + " LIMIT 2");
     verifySchema(result, schema("expm1(account_number)", null, "double"));
     verifyDataRows(result, rows(Math.expm1(1)), rows(Math.expm1(6)));
   }
@@ -333,36 +332,28 @@ public class MathematicalFunctionIT extends SQLIntegTestCase {
   @Test
   public void testLnReturnsNull() throws IOException {
     JSONObject result = executeQuery("select ln(0), ln(-2)");
-    verifySchema(result,
-        schema("ln(0)", "double"),
-        schema("ln(-2)", "double"));
+    verifySchema(result, schema("ln(0)", "double"), schema("ln(-2)", "double"));
     verifyDataRows(result, rows(null, null));
   }
 
   @Test
   public void testLogReturnsNull() throws IOException {
     JSONObject result = executeQuery("select log(0), log(-2)");
-    verifySchema(result,
-        schema("log(0)", "double"),
-        schema("log(-2)", "double"));
+    verifySchema(result, schema("log(0)", "double"), schema("log(-2)", "double"));
     verifyDataRows(result, rows(null, null));
   }
 
   @Test
   public void testLog10ReturnsNull() throws IOException {
     JSONObject result = executeQuery("select log10(0), log10(-2)");
-    verifySchema(result,
-        schema("log10(0)", "double"),
-        schema("log10(-2)", "double"));
+    verifySchema(result, schema("log10(0)", "double"), schema("log10(-2)", "double"));
     verifyDataRows(result, rows(null, null));
   }
 
   @Test
   public void testLog2ReturnsNull() throws IOException {
     JSONObject result = executeQuery("select log2(0), log2(-2)");
-    verifySchema(result,
-        schema("log2(0)", "double"),
-        schema("log2(-2)", "double"));
+    verifySchema(result, schema("log2(0)", "double"), schema("log2(-2)", "double"));
     verifyDataRows(result, rows(null, null));
   }
 

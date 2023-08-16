@@ -3,7 +3,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-
 package org.opensearch.sql.ppl;
 
 import static org.opensearch.sql.util.MatcherUtils.assertJsonEquals;
@@ -35,8 +34,7 @@ public class ExplainIT extends PPLIntegTestCase {
                 + "| fields - city "
                 + "| eval age2 = avg_age + 2 "
                 + "| dedup age2 "
-                + "| fields age2")
-    );
+                + "| fields age2"));
   }
 
   @Test
@@ -50,8 +48,7 @@ public class ExplainIT extends PPLIntegTestCase {
                 + "| where age > 30 "
                 + "| where age < 40 "
                 + "| where balance > 10000 "
-                + "| fields age")
-    );
+                + "| fields age"));
   }
 
   @Test
@@ -63,8 +60,7 @@ public class ExplainIT extends PPLIntegTestCase {
         explainQueryToString(
             "source=opensearch-sql_test_index_account"
                 + "| where age > 30 "
-                + "| stats avg(age) AS avg_age by state, city")
-    );
+                + "| stats avg(age) AS avg_age by state, city"));
   }
 
   @Test
@@ -77,8 +73,7 @@ public class ExplainIT extends PPLIntegTestCase {
             "source=opensearch-sql_test_index_account"
                 + "| sort age "
                 + "| where age > 30"
-                + "| fields age")
-    );
+                + "| fields age"));
   }
 
   String loadFromFile(String filename) throws Exception {
