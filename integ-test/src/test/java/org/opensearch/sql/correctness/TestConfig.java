@@ -121,7 +121,7 @@ public class TestConfig {
     return "\n=================================\n"
         + "Tested Database  : "
         + openSearchHostUrlToString()
-        + '\n'
+        + "\nOther Databases  :\n"
         + "Other Databases  :\n"
         + otherDbConnectionInfoToString()
         + '\n'

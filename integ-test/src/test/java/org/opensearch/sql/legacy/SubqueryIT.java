@@ -149,7 +149,7 @@ public class SubqueryIT extends SQLIntegTestCase {
     String query =
         String.format(
             Locale.ROOT,
-            "SELECT dog_name " + "FROM %s A " + "WHERE holdersName IN (SELECT firstname FROM %s B)",
+            "SELECT dog_name FROM %s A WHERE holdersName IN (SELECT firstname FROM %s B)",
             TEST_INDEX_DOGSUBQUERY,
             TEST_INDEX_ACCOUNT);
 
@@ -166,7 +166,7 @@ public class SubqueryIT extends SQLIntegTestCase {
     String query =
         String.format(
             Locale.ROOT,
-            "SELECT e.name " + "FROM %s as e " + "WHERE EXISTS (SELECT * FROM e.projects as p)",
+            "SELECT e.name FROM %s as e WHERE EXISTS (SELECT * FROM e.projects as p)",
             TEST_INDEX_EMPLOYEE_NESTED);
 
     JSONObject response = executeQuery(query);
@@ -211,7 +211,7 @@ public class SubqueryIT extends SQLIntegTestCase {
     String query =
         String.format(
             Locale.ROOT,
-            "SELECT e.name " + "FROM %s as e " + "WHERE NOT EXISTS (SELECT * FROM e.projects as p)",
+            "SELECT e.name FROM %s as e WHERE NOT EXISTS (SELECT * FROM e.projects as p)",
             TEST_INDEX_EMPLOYEE_NESTED);
 
     JSONObject response = executeQuery(query);
@@ -261,7 +261,7 @@ public class SubqueryIT extends SQLIntegTestCase {
     JSONObject result =
         executeQuery(
             StringUtils.format(
-                "SELECT t.TEMP as count " + "FROM (SELECT COUNT(*) as TEMP FROM %s) t",
+                "SELECT t.TEMP as count FROM (SELECT COUNT(*) as TEMP FROM %s) t",
                 TEST_INDEX_ACCOUNT));
 
     assertThat(result.query("/aggregations/count/value"), equalTo(1000));
