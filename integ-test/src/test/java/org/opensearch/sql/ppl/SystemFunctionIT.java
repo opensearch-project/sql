@@ -59,16 +59,16 @@ public class SystemFunctionIT extends PPLIntegTestCase {
         rows("DOUBLE", "LONG", "INTEGER", "BYTE", "SHORT", "FLOAT", "FLOAT", "DOUBLE"));
 
     response = executeQuery(String.format("source=%s | eval "
-        + "`text` = typeof(text_value), `date` = typeof(date_value),"
+        + "`text` = typeof(text_value), `date` = typeof(date_value), `date_nanos` = typeof(date_nanos_value),"
         + "`boolean` = typeof(boolean_value), `object` = typeof(object_value),"
         + "`keyword` = typeof(keyword_value), `ip` = typeof(ip_value),"
         + "`binary` = typeof(binary_value), `geo_point` = typeof(geo_point_value)"
         // TODO activate this test once `ARRAY` type supported, see ExpressionAnalyzer::isTypeNotSupported
         //+ ", `nested` = typeof(nested_value)"
-        + " | fields `text`, `date`, `boolean`, `object`, `keyword`, `ip`, `binary`, `geo_point`",
+        + " | fields `text`, `date`, `date_nanos`, `boolean`, `object`, `keyword`, `ip`, `binary`, `geo_point`",
             TEST_INDEX_DATATYPE_NONNUMERIC));
     verifyDataRows(response,
-        rows("TEXT", "TIMESTAMP", "BOOLEAN", "OBJECT", "KEYWORD",
+        rows("TEXT", "TIMESTAMP", "TIMESTAMP", "BOOLEAN", "OBJECT", "KEYWORD",
                 "IP", "BINARY", "GEO_POINT"));
   }
 }
