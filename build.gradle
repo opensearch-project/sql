@@ -90,6 +90,8 @@ spotless {
                     'prometheus/**/*.java',
                     'sql/**/*.java',
                     'common/**/*.java',
+                    'spark/**/*.java',
+                    'plugin/**/*.java',
                     'ppl/**/*.java',
                     'integ-test/**/*java'
             exclude '**/build/**', '**/build-*/**'
