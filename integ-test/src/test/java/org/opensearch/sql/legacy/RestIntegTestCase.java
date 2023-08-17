@@ -83,10 +83,10 @@ public abstract class RestIntegTestCase extends OpenSearchSQLRestTestCase {
   /**
    * We need to be able to dump the jacoco coverage before cluster is shut down. The new internal
    * testing framework removed some of the gradle tasks we were listening to to choose a good time
-   * to do it. This will dump the executionData to file after each test. TODO: This is also
-   * currently just overwriting integTest.exec with the updated execData without resetting after
-   * writing each time. This can be improved to either write an exec file per test or by letting
-   * jacoco append to the file
+   * to do it. This will dump the executionData to file after each test.<br>
+   * TODO: This is also currently just overwriting integTest.exec with the updated execData without
+   * resetting after writing each time. This can be improved to either write an exec file per test
+   * or by letting jacoco append to the file
    */
   public interface IProxy {
     byte[] getExecutionData(boolean reset);
@@ -122,9 +122,9 @@ public abstract class RestIntegTestCase extends OpenSearchSQLRestTestCase {
   }
 
   /**
-   * As JUnit JavaDoc says: "The @AfterClass methods declared in superclasses will be run after
-   * those of the current class." So this method is supposed to run before closeClients() in parent
-   * class.
+   * As JUnit JavaDoc says:<br>
+   * "The @AfterClass methods declared in superclasses will be run after those of the current
+   * class." So this method is supposed to run before closeClients() in parent class.
    */
   @AfterClass
   public static void cleanUpIndices() throws IOException {

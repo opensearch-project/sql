@@ -140,7 +140,7 @@ public class SQLBackwardsCompatibilityIT extends SQLIntegTestCase {
     request.setJsonEntity(
         String.format(
             Locale.ROOT,
-            "{\n" + "  \"persistent\" : {\n" + "    \"%s\" : \"%s\"\n" + "  }\n" + "}",
+            "{\n" + "  \"persistent\" : {\n    \"%s\" : \"%s\"\n  }\n}",
             "opendistro.sql.cursor.keep_alive",
             "7m"));
 
@@ -193,7 +193,7 @@ public class SQLBackwardsCompatibilityIT extends SQLIntegTestCase {
 
   private JSONObject executeSQLQuery(String endpoint, String query) throws IOException {
     Request request = new Request("POST", endpoint);
-    request.setJsonEntity(String.format(Locale.ROOT, "{" + "  \"query\" : \"%s\"" + "}", query));
+    request.setJsonEntity(String.format(Locale.ROOT, "{  \"query\" : \"%s\"}", query));
 
     RequestOptions.Builder restOptionsBuilder = RequestOptions.DEFAULT.toBuilder();
     restOptionsBuilder.addHeader("Content-Type", "application/json");
