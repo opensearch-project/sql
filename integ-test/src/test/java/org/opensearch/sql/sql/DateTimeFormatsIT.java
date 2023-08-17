@@ -151,7 +151,7 @@ public class DateTimeFormatsIT extends SQLIntegTestCase {
         schema("hour_minute_second_OR_t_time", null, "time"));
     verifyDataRows(result,
         rows("09:07:42"),
-        rows("07:07:42"));
+        rows("07:07:42.123456789"));
   }
 
   @Test
@@ -195,7 +195,7 @@ public class DateTimeFormatsIT extends SQLIntegTestCase {
     verifySchema(result,
         schema("hour_minute_second_OR_t_time", null, "time"));
     verifyDataRows(result,
-        rows("07:07:42"));
+        rows("07:07:42.123456789"));
   }
 
   @Test
@@ -207,7 +207,7 @@ public class DateTimeFormatsIT extends SQLIntegTestCase {
     verifySchema(result,
         schema("hour_minute_second_OR_t_time", null, "time"));
     verifyDataRows(result,
-        rows("07:07:42"),
+        rows("07:07:42.123456789"),
         rows("09:07:42"));
   }
 
