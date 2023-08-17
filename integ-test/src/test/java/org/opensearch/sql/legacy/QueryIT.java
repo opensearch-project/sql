@@ -43,6 +43,8 @@ import org.opensearch.sql.legacy.utils.StringUtils;
 public class QueryIT extends SQLIntegTestCase {
 
   /**
+   *
+   *
    * <pre>
    * Currently commenting out tests related to JoinType index since there is an issue with mapping.
    * <p>
@@ -113,8 +115,7 @@ public class QueryIT extends SQLIntegTestCase {
   public void selectAllWithFieldReturnsAll() throws IOException {
     JSONObject response =
         executeQuery(
-            StringUtils.format(
-                "SELECT *, age FROM %s LIMIT 5", TestsConstants.TEST_INDEX_BANK));
+            StringUtils.format("SELECT *, age FROM %s LIMIT 5", TestsConstants.TEST_INDEX_BANK));
 
     checkSelectAllAndFieldResponseSize(response);
   }
@@ -123,8 +124,7 @@ public class QueryIT extends SQLIntegTestCase {
   public void selectAllWithFieldReverseOrder() throws IOException {
     JSONObject response =
         executeQuery(
-            StringUtils.format(
-                "SELECT *, age FROM %s LIMIT 5", TestsConstants.TEST_INDEX_BANK));
+            StringUtils.format("SELECT *, age FROM %s LIMIT 5", TestsConstants.TEST_INDEX_BANK));
 
     checkSelectAllAndFieldResponseSize(response);
   }
@@ -134,8 +134,7 @@ public class QueryIT extends SQLIntegTestCase {
     JSONObject response =
         executeQuery(
             StringUtils.format(
-                "SELECT *, age, address FROM %s LIMIT 5",
-                TestsConstants.TEST_INDEX_BANK));
+                "SELECT *, age, address FROM %s LIMIT 5", TestsConstants.TEST_INDEX_BANK));
 
     checkSelectAllAndFieldResponseSize(response);
   }
@@ -145,8 +144,7 @@ public class QueryIT extends SQLIntegTestCase {
     JSONObject response =
         executeQuery(
             StringUtils.format(
-                "SELECT *, age FROM %s ORDER BY age LIMIT 5",
-                TestsConstants.TEST_INDEX_BANK));
+                "SELECT *, age FROM %s ORDER BY age LIMIT 5", TestsConstants.TEST_INDEX_BANK));
 
     checkSelectAllAndFieldResponseSize(response);
   }
@@ -156,8 +154,7 @@ public class QueryIT extends SQLIntegTestCase {
     JSONObject response =
         executeQuery(
             StringUtils.format(
-                "SELECT *, age FROM %s GROUP BY age LIMIT 10",
-                TestsConstants.TEST_INDEX_BANK));
+                "SELECT *, age FROM %s GROUP BY age LIMIT 10", TestsConstants.TEST_INDEX_BANK));
 
     checkSelectAllAndFieldAggregationResponseSize(response, "age");
   }
@@ -167,8 +164,7 @@ public class QueryIT extends SQLIntegTestCase {
     JSONObject response =
         executeQuery(
             StringUtils.format(
-                "SELECT *, age FROM %s GROUP BY age LIMIT 10",
-                TestsConstants.TEST_INDEX_BANK));
+                "SELECT *, age FROM %s GROUP BY age LIMIT 10", TestsConstants.TEST_INDEX_BANK));
 
     checkSelectAllAndFieldAggregationResponseSize(response, "age");
   }
@@ -1105,8 +1101,7 @@ public class QueryIT extends SQLIntegTestCase {
     JSONObject response =
         executeQuery(
             StringUtils.format(
-                "SELECT * FROM %s WHERE male = true LIMIT 5",
-                TestsConstants.TEST_INDEX_BANK));
+                "SELECT * FROM %s WHERE male = true LIMIT 5", TestsConstants.TEST_INDEX_BANK));
 
     checkResponseSize(response, BANK_INDEX_MALE_TRUE);
   }
@@ -1164,8 +1159,7 @@ public class QueryIT extends SQLIntegTestCase {
     JSONObject response =
         executeQuery(
             StringUtils.format(
-                "SELECT * FROM %s WHERE male = false LIMIT 5",
-                TestsConstants.TEST_INDEX_BANK));
+                "SELECT * FROM %s WHERE male = false LIMIT 5", TestsConstants.TEST_INDEX_BANK));
 
     checkResponseSize(response, BANK_INDEX_MALE_FALSE);
   }

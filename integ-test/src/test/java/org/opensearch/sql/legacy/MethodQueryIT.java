@@ -27,6 +27,8 @@ public class MethodQueryIT extends SQLIntegTestCase {
   }
 
   /**
+   *
+   *
    * <pre>
    * query
    * "query" : {
@@ -35,6 +37,7 @@ public class MethodQueryIT extends SQLIntegTestCase {
    *   }
    * }
    * </pre>
+   *
    * @throws IOException
    */
   @Test
@@ -50,6 +53,8 @@ public class MethodQueryIT extends SQLIntegTestCase {
   }
 
   /**
+   *
+   *
    * <pre>
    * matchQuery
    * "query" : {
@@ -61,6 +66,7 @@ public class MethodQueryIT extends SQLIntegTestCase {
    *   }
    * }
    * </pre>
+   *
    * @throws IOException
    */
   @Test
@@ -77,6 +83,8 @@ public class MethodQueryIT extends SQLIntegTestCase {
   }
 
   /**
+   *
+   *
    * <pre>
    * matchQuery
    * {
@@ -118,6 +126,7 @@ public class MethodQueryIT extends SQLIntegTestCase {
    *   }
    * }
    * </pre>
+   *
    * @throws IOException
    */
   @Test
@@ -174,6 +183,8 @@ public class MethodQueryIT extends SQLIntegTestCase {
   }
 
   /**
+   *
+   *
    * <pre>
    * wildcardQuery
    * l*e means leae ltae ...
@@ -183,6 +194,7 @@ public class MethodQueryIT extends SQLIntegTestCase {
    *   }
    * }
    * </pre>
+   *
    * @throws IOException
    */
   @Test
@@ -198,6 +210,8 @@ public class MethodQueryIT extends SQLIntegTestCase {
   }
 
   /**
+   *
+   *
    * <pre>
    * matchPhraseQuery
    * "address" : {
@@ -205,6 +219,7 @@ public class MethodQueryIT extends SQLIntegTestCase {
    *   "type" : "phrase"
    * }
    * </pre>
+   *
    * @throws IOException
    */
   @Test

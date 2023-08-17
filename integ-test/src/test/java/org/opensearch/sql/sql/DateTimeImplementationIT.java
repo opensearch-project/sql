@@ -5,17 +5,16 @@
 
 package org.opensearch.sql.sql;
 
-import org.junit.Test;
-import org.opensearch.sql.legacy.SQLIntegTestCase;
-import java.io.IOException;
-
 import static org.opensearch.sql.util.MatcherUtils.rows;
 import static org.opensearch.sql.util.MatcherUtils.schema;
 import static org.opensearch.sql.util.MatcherUtils.verifyDataRows;
 import static org.opensearch.sql.util.MatcherUtils.verifySchema;
 
-public class DateTimeImplementationIT extends SQLIntegTestCase {
+import java.io.IOException;
+import org.junit.Test;
+import org.opensearch.sql.legacy.SQLIntegTestCase;
 
+public class DateTimeImplementationIT extends SQLIntegTestCase {
 
   @Override
   public void init() throws Exception {
@@ -135,10 +134,8 @@ public class DateTimeImplementationIT extends SQLIntegTestCase {
 
   @Test
   public void nullDateTimeInvalidDateValueMonth() throws IOException {
-    var result = executeJdbcRequest(
-        "SELECT DATETIME('2021-13-03 10:00:00')");
-    verifySchema(result,
-        schema("DATETIME('2021-13-03 10:00:00')", null, "datetime"));
-    verifyDataRows(result, rows(new Object[]{null}));
+    var result = executeJdbcRequest("SELECT DATETIME('2021-13-03 10:00:00')");
+    verifySchema(result, schema("DATETIME('2021-13-03 10:00:00')", null, "datetime"));
+    verifyDataRows(result, rows(new Object[] {null}));
   }
 }

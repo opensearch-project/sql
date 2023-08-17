@@ -52,8 +52,7 @@ public class TermQueryExplainIT extends SQLIntegTestCase {
   @Test
   public void testNonResolvingIndexPattern() throws IOException {
     try {
-      explainQuery(
-          "SELECT * FROM opensearch_sql_test_blah_blah* WHERE firstname = 'Leo'");
+      explainQuery("SELECT * FROM opensearch_sql_test_blah_blah* WHERE firstname = 'Leo'");
       Assert.fail("Expected ResponseException, but none was thrown");
 
     } catch (ResponseException e) {
@@ -265,8 +264,7 @@ public class TermQueryExplainIT extends SQLIntegTestCase {
   @Test
   public void testKeywordAliasOrderBy() throws IOException {
     String result =
-        explainQuery(
-            "SELECT * FROM opensearch-sql_test_index_bank ORDER BY state, lastname ");
+        explainQuery("SELECT * FROM opensearch-sql_test_index_bank ORDER BY state, lastname ");
     assertThat(result, containsString("\"state.keyword\":{\"order\":\"asc\""));
     assertThat(result, containsString("\"lastname\":{\"order\":\"asc\"}"));
   }

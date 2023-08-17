@@ -251,8 +251,7 @@ public class AggregationIT extends SQLIntegTestCase {
     JSONObject result =
         executeQuery(
             String.format(
-                "SELECT gender FROM %s GROUP BY gender HAVING COUNT(*) > 0",
-                TEST_INDEX_ACCOUNT));
+                "SELECT gender FROM %s GROUP BY gender HAVING COUNT(*) > 0", TEST_INDEX_ACCOUNT));
     assertResultForGroupByHavingTest(result);
   }
 
