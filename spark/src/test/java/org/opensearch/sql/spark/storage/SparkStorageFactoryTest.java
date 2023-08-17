@@ -24,17 +24,14 @@ import org.opensearch.sql.storage.StorageEngine;
 
 @ExtendWith(MockitoExtension.class)
 public class SparkStorageFactoryTest {
-  @Mock
-  private Settings settings;
+  @Mock private Settings settings;
 
-  @Mock
-  private Client client;
+  @Mock private Client client;
 
   @Test
   void testGetConnectorType() {
     SparkStorageFactory sparkStorageFactory = new SparkStorageFactory(client, settings);
-    Assertions.assertEquals(
-        DataSourceType.SPARK, sparkStorageFactory.getDataSourceType());
+    Assertions.assertEquals(DataSourceType.SPARK, sparkStorageFactory.getDataSourceType());
   }
 
   @Test
@@ -48,8 +45,7 @@ public class SparkStorageFactoryTest {
     properties.put("emr.auth.secret_key", "secret_key");
     properties.put("emr.auth.region", "region");
     SparkStorageFactory sparkStorageFactory = new SparkStorageFactory(client, settings);
-    StorageEngine storageEngine
-        = sparkStorageFactory.getStorageEngine(properties);
+    StorageEngine storageEngine = sparkStorageFactory.getStorageEngine(properties);
     Assertions.assertTrue(storageEngine instanceof SparkStorageEngine);
   }
 
@@ -59,10 +55,11 @@ public class SparkStorageFactoryTest {
     HashMap<String, String> properties = new HashMap<>();
     properties.put("spark.connector", "random");
     SparkStorageFactory sparkStorageFactory = new SparkStorageFactory(client, settings);
-    InvalidParameterException exception = Assertions.assertThrows(InvalidParameterException.class,
-        () -> sparkStorageFactory.getStorageEngine(properties));
-    Assertions.assertEquals("Spark connector type is invalid.",
-        exception.getMessage());
+    InvalidParameterException exception =
+        Assertions.assertThrows(
+            InvalidParameterException.class,
+            () -> sparkStorageFactory.getStorageEngine(properties));
+    Assertions.assertEquals("Spark connector type is invalid.", exception.getMessage());
   }
 
   @Test
@@ -72,10 +69,10 @@ public class SparkStorageFactoryTest {
     properties.put("spark.connector", "emr");
     properties.put("emr.cluster", EMR_CLUSTER_ID);
     SparkStorageFactory sparkStorageFactory = new SparkStorageFactory(client, settings);
-    IllegalArgumentException exception = Assertions.assertThrows(IllegalArgumentException.class,
-        () -> sparkStorageFactory.getStorageEngine(properties));
-    Assertions.assertEquals("EMR config properties are missing.",
-        exception.getMessage());
+    IllegalArgumentException exception =
+        Assertions.assertThrows(
+            IllegalArgumentException.class, () -> sparkStorageFactory.getStorageEngine(properties));
+    Assertions.assertEquals("EMR config properties are missing.", exception.getMessage());
   }
 
   @Test
@@ -86,10 +83,10 @@ public class SparkStorageFactoryTest {
     properties.put("emr.cluster", EMR_CLUSTER_ID);
     properties.put("emr.auth.type", "basic");
     SparkStorageFactory sparkStorageFactory = new SparkStorageFactory(client, settings);
-    IllegalArgumentException exception = Assertions.assertThrows(IllegalArgumentException.class,
-        () -> sparkStorageFactory.getStorageEngine(properties));
-    Assertions.assertEquals("Invalid auth type.",
-        exception.getMessage());
+    IllegalArgumentException exception =
+        Assertions.assertThrows(
+            IllegalArgumentException.class, () -> sparkStorageFactory.getStorageEngine(properties));
+    Assertions.assertEquals("Invalid auth type.", exception.getMessage());
   }
 
   @Test
@@ -99,10 +96,10 @@ public class SparkStorageFactoryTest {
     properties.put("spark.connector", "emr");
     properties.put("emr.auth.type", "awssigv4");
     SparkStorageFactory sparkStorageFactory = new SparkStorageFactory(client, settings);
-    IllegalArgumentException exception = Assertions.assertThrows(IllegalArgumentException.class,
-        () -> sparkStorageFactory.getStorageEngine(properties));
-    Assertions.assertEquals("EMR config properties are missing.",
-        exception.getMessage());
+    IllegalArgumentException exception =
+        Assertions.assertThrows(
+            IllegalArgumentException.class, () -> sparkStorageFactory.getStorageEngine(properties));
+    Assertions.assertEquals("EMR config properties are missing.", exception.getMessage());
   }
 
   @Test
@@ -113,10 +110,10 @@ public class SparkStorageFactoryTest {
     properties.put("emr.cluster", EMR_CLUSTER_ID);
     properties.put("emr.auth.type", "awssigv4");
     SparkStorageFactory sparkStorageFactory = new SparkStorageFactory(client, settings);
-    IllegalArgumentException exception = Assertions.assertThrows(IllegalArgumentException.class,
-        () -> sparkStorageFactory.getStorageEngine(properties));
-    Assertions.assertEquals("EMR auth keys are missing.",
-        exception.getMessage());
+    IllegalArgumentException exception =
+        Assertions.assertThrows(
+            IllegalArgumentException.class, () -> sparkStorageFactory.getStorageEngine(properties));
+    Assertions.assertEquals("EMR auth keys are missing.", exception.getMessage());
   }
 
   @Test
@@ -128,10 +125,10 @@ public class SparkStorageFactoryTest {
     properties.put("emr.auth.type", "awssigv4");
     properties.put("emr.auth.access_key", "test");
     SparkStorageFactory sparkStorageFactory = new SparkStorageFactory(client, settings);
-    IllegalArgumentException exception = Assertions.assertThrows(IllegalArgumentException.class,
-        () -> sparkStorageFactory.getStorageEngine(properties));
-    Assertions.assertEquals("EMR auth keys are missing.",
-        exception.getMessage());
+    IllegalArgumentException exception =
+        Assertions.assertThrows(
+            IllegalArgumentException.class, () -> sparkStorageFactory.getStorageEngine(properties));
+    Assertions.assertEquals("EMR auth keys are missing.", exception.getMessage());
   }
 
   @Test
@@ -178,5 +175,4 @@ public class SparkStorageFactoryTest {
     DataSource dataSource = new SparkStorageFactory(client, settings).createDataSource(metadata);
     Assertions.assertTrue(dataSource.getStorageEngine() instanceof SparkStorageEngine);
   }
-
 }

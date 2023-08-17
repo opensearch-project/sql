@@ -3,7 +3,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-
 package org.opensearch.sql.plugin.rest;
 
 import static org.opensearch.core.rest.RestStatus.SERVICE_UNAVAILABLE;
@@ -26,17 +25,14 @@ import org.opensearch.sql.common.utils.QueryContext;
 import org.opensearch.sql.legacy.executor.format.ErrorMessageFactory;
 import org.opensearch.sql.legacy.metrics.Metrics;
 
-/**
- * PPL Node level status.
- */
+/** PPL Node level status. */
 public class RestPPLStatsAction extends BaseRestHandler {
 
   private static final Logger LOG = LogManager.getLogger(RestPPLStatsAction.class);
 
-  /**
-   * API endpoint path.
-   */
+  /** API endpoint path. */
   public static final String PPL_STATS_API_ENDPOINT = "/_plugins/_ppl/stats";
+
   public static final String PPL_LEGACY_STATS_API_ENDPOINT = "/_opendistro/_ppl/stats";
 
   public RestPPLStatsAction(Settings settings, RestController restController) {
@@ -70,13 +66,18 @@ public class RestPPLStatsAction extends BaseRestHandler {
     QueryContext.addRequestId();
 
     try {
-      return channel -> channel.sendResponse(new BytesRestResponse(RestStatus.OK,
-          Metrics.getInstance().collectToJSON()));
+      return channel ->
+          channel.sendResponse(
+              new BytesRestResponse(RestStatus.OK, Metrics.getInstance().collectToJSON()));
     } catch (Exception e) {
       LOG.error("Failed during Query PPL STATS Action.", e);
 
-      return channel -> channel.sendResponse(new BytesRestResponse(SERVICE_UNAVAILABLE,
-          ErrorMessageFactory.createErrorMessage(e, SERVICE_UNAVAILABLE.getStatus()).toString()));
+      return channel ->
+          channel.sendResponse(
+              new BytesRestResponse(
+                  SERVICE_UNAVAILABLE,
+                  ErrorMessageFactory.createErrorMessage(e, SERVICE_UNAVAILABLE.getStatus())
+                      .toString()));
     }
   }
 

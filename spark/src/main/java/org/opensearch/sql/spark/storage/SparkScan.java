@@ -14,21 +14,14 @@ import org.opensearch.sql.spark.client.SparkClient;
 import org.opensearch.sql.spark.request.SparkQueryRequest;
 import org.opensearch.sql.storage.TableScanOperator;
 
-/**
- * Spark scan operator.
- */
+/** Spark scan operator. */
 @EqualsAndHashCode(onlyExplicitlyIncluded = true, callSuper = false)
 @ToString(onlyExplicitlyIncluded = true)
 public class SparkScan extends TableScanOperator {
 
   private final SparkClient sparkClient;
 
-  @EqualsAndHashCode.Include
-  @Getter
-  @Setter
-  @ToString.Include
-  private SparkQueryRequest request;
-
+  @EqualsAndHashCode.Include @Getter @Setter @ToString.Include private SparkQueryRequest request;
 
   /**
    * Constructor.
@@ -54,5 +47,4 @@ public class SparkScan extends TableScanOperator {
   public String explain() {
     return getRequest().toString();
   }
-
 }
