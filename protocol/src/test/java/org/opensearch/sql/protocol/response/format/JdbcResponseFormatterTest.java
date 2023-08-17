@@ -3,7 +3,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-
 package org.opensearch.sql.protocol.response.format;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -43,26 +42,35 @@ class JdbcResponseFormatterTest {
 
   @Test
   void format_response() {
-    QueryResult response = new QueryResult(
-        new Schema(ImmutableList.of(
-            new Column("name", "name", STRING),
-            new Column("address1", "address1", OpenSearchTextType.of()),
-            new Column("address2", "address2", OpenSearchTextType.of(Map.of("words",
-                OpenSearchDataType.of(OpenSearchDataType.MappingType.Keyword)))),
-            new Column("location", "location", STRUCT),
-            new Column("employer", "employer", ARRAY),
-            new Column("age", "age", INTEGER))),
-        ImmutableList.of(
-            tupleValue(ImmutableMap.<String, Object>builder()
-                    .put("name", "John")
-                    .put("address1", "Seattle")
-                    .put("address2", "WA")
-                    .put("location", ImmutableMap.of("x", "1", "y", "2"))
-                    .put("employments", ImmutableList.of(
-                        ImmutableMap.of("name", "Amazon"),
-                        ImmutableMap.of("name", "AWS")))
-                    .put("age", 20)
-                .build())));
+    QueryResult response =
+        new QueryResult(
+            new Schema(
+                ImmutableList.of(
+                    new Column("name", "name", STRING),
+                    new Column("address1", "address1", OpenSearchTextType.of()),
+                    new Column(
+                        "address2",
+                        "address2",
+                        OpenSearchTextType.of(
+                            Map.of(
+                                "words",
+                                OpenSearchDataType.of(OpenSearchDataType.MappingType.Keyword)))),
+                    new Column("location", "location", STRUCT),
+                    new Column("employer", "employer", ARRAY),
+                    new Column("age", "age", INTEGER))),
+            ImmutableList.of(
+                tupleValue(
+                    ImmutableMap.<String, Object>builder()
+                        .put("name", "John")
+                        .put("address1", "Seattle")
+                        .put("address2", "WA")
+                        .put("location", ImmutableMap.of("x", "1", "y", "2"))
+                        .put(
+                            "employments",
+                            ImmutableList.of(
+                                ImmutableMap.of("name", "Amazon"), ImmutableMap.of("name", "AWS")))
+                        .put("age", 20)
+                        .build())));
 
     assertJsonEquals(
         "{"
@@ -76,7 +84,8 @@ class JdbcResponseFormatterTest {
             + "],"
             + "\"datarows\":["
             + "[\"John\",\"Seattle\",\"WA\",{\"x\":\"1\",\"y\":\"2\"},"
-            + "[{\"name\":\"Amazon\"}," + "{\"name\":\"AWS\"}],"
+            + "[{\"name\":\"Amazon\"},"
+            + "{\"name\":\"AWS\"}],"
             + "20]],"
             + "\"total\":1,"
             + "\"size\":1,"
@@ -86,18 +95,21 @@ class JdbcResponseFormatterTest {
 
   @Test
   void format_response_with_cursor() {
-    QueryResult response = new QueryResult(
-        new Schema(ImmutableList.of(
-            new Column("name", "name", STRING),
-            new Column("address", "address", OpenSearchTextType.of()),
-            new Column("age", "age", INTEGER))),
-        ImmutableList.of(
-            tupleValue(ImmutableMap.<String, Object>builder()
-                    .put("name", "John")
-                    .put("address", "Seattle")
-                    .put("age", 20)
-                .build())),
-        new Cursor("test_cursor"));
+    QueryResult response =
+        new QueryResult(
+            new Schema(
+                ImmutableList.of(
+                    new Column("name", "name", STRING),
+                    new Column("address", "address", OpenSearchTextType.of()),
+                    new Column("age", "age", INTEGER))),
+            ImmutableList.of(
+                tupleValue(
+                    ImmutableMap.<String, Object>builder()
+                        .put("name", "John")
+                        .put("address", "Seattle")
+                        .put("age", 20)
+                        .build())),
+            new Cursor("test_cursor"));
 
     assertJsonEquals(
         "{"
@@ -119,9 +131,9 @@ class JdbcResponseFormatterTest {
   void format_response_with_missing_and_null_value() {
     QueryResult response =
         new QueryResult(
-            new Schema(ImmutableList.of(
-                new Column("name", null, STRING),
-                new Column("age", null, INTEGER))),
+            new Schema(
+                ImmutableList.of(
+                    new Column("name", null, STRING), new Column("age", null, INTEGER))),
             Arrays.asList(
                 ExprTupleValue.fromExprValueMap(
                     ImmutableMap.of("name", stringValue("John"), "age", LITERAL_MISSING)),
@@ -147,8 +159,7 @@ class JdbcResponseFormatterTest {
             + "\"details\":\"Invalid query syntax\""
             + "},"
             + "\"status\":400}",
-        formatter.format(new SyntaxCheckException("Invalid query syntax"))
-    );
+        formatter.format(new SyntaxCheckException("Invalid query syntax")));
   }
 
   @Test
@@ -161,8 +172,7 @@ class JdbcResponseFormatterTest {
             + "\"details\":\"Invalid query semantics\""
             + "},"
             + "\"status\":400}",
-        formatter.format(new SemanticCheckException("Invalid query semantics"))
-    );
+        formatter.format(new SemanticCheckException("Invalid query semantics")));
   }
 
   @Test
@@ -175,8 +185,7 @@ class JdbcResponseFormatterTest {
             + "\"details\":\"Execution error\""
             + "},"
             + "\"status\":503}",
-        formatter.format(new IllegalStateException("Execution error"))
-    );
+        formatter.format(new IllegalStateException("Execution error")));
   }
 
   @Test
@@ -193,15 +202,12 @@ class JdbcResponseFormatterTest {
             + "from OpenSearch engine.\""
             + "},"
             + "\"status\":503}",
-        formatter.format(new OpenSearchException("all shards failed",
-            new IllegalStateException("Execution error")))
-    );
+        formatter.format(
+            new OpenSearchException(
+                "all shards failed", new IllegalStateException("Execution error"))));
   }
 
   private static void assertJsonEquals(String expected, String actual) {
-    assertEquals(
-        JsonParser.parseString(expected),
-        JsonParser.parseString(actual));
+    assertEquals(JsonParser.parseString(expected), JsonParser.parseString(actual));
   }
-
 }

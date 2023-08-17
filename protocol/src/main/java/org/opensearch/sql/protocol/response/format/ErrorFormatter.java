@@ -3,7 +3,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-
 package org.opensearch.sql.protocol.response.format;
 
 import com.google.gson.Gson;
@@ -17,35 +16,28 @@ import lombok.experimental.UtilityClass;
 @UtilityClass
 public class ErrorFormatter {
 
-  private static final Gson PRETTY_PRINT_GSON = AccessController.doPrivileged(
-          (PrivilegedAction<Gson>) () -> new GsonBuilder()
-              .setPrettyPrinting()
-              .disableHtmlEscaping()
-              .create());
-  private static final Gson GSON = AccessController.doPrivileged(
-      (PrivilegedAction<Gson>) () -> new GsonBuilder().disableHtmlEscaping().create());
+  private static final Gson PRETTY_PRINT_GSON =
+      AccessController.doPrivileged(
+          (PrivilegedAction<Gson>)
+              () -> new GsonBuilder().setPrettyPrinting().disableHtmlEscaping().create());
+  private static final Gson GSON =
+      AccessController.doPrivileged(
+          (PrivilegedAction<Gson>) () -> new GsonBuilder().disableHtmlEscaping().create());
 
-  /**
-   * Util method to format {@link Throwable} response to JSON string in compact printing.
-   */
+  /** Util method to format {@link Throwable} response to JSON string in compact printing. */
   public static String compactFormat(Throwable t) {
-    JsonError error = new ErrorFormatter.JsonError(t.getClass().getSimpleName(),
-        t.getMessage());
+    JsonError error = new ErrorFormatter.JsonError(t.getClass().getSimpleName(), t.getMessage());
     return compactJsonify(error);
   }
 
-  /**
-   * Util method to format {@link Throwable} response to JSON string in pretty printing.
-   */
-  public static  String prettyFormat(Throwable t) {
-    JsonError error = new ErrorFormatter.JsonError(t.getClass().getSimpleName(),
-        t.getMessage());
+  /** Util method to format {@link Throwable} response to JSON string in pretty printing. */
+  public static String prettyFormat(Throwable t) {
+    JsonError error = new ErrorFormatter.JsonError(t.getClass().getSimpleName(), t.getMessage());
     return prettyJsonify(error);
   }
 
   public static String compactJsonify(Object jsonObject) {
-    return AccessController.doPrivileged(
-        (PrivilegedAction<String>) () -> GSON.toJson(jsonObject));
+    return AccessController.doPrivileged((PrivilegedAction<String>) () -> GSON.toJson(jsonObject));
   }
 
   public static String prettyJsonify(Object jsonObject) {
