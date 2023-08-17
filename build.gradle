@@ -89,7 +89,8 @@ spotless {
                     'prometheus/**/*.java',
                     'sql/**/*.java',
                     'common/**/*.java',
-                    'ppl/**/*.java'
+                    'ppl/**/*.java',
+                    'integ-test/**/*java'
             exclude '**/build/**', '**/build-*/**'
         }
         importOrder()

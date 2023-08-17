@@ -57,8 +57,8 @@ public class TestUtils {
 
   /**
    * https://github.com/elastic/elasticsearch/pull/49959<br>
-   * Deprecate creation of dot-prefixed index
-   * names except for hidden and system indices. Create hidden index by REST client.
+   * Deprecate creation of dot-prefixed index names except for hidden and system indices. Create
+   * hidden index by REST client.
    *
    * @param client client connection
    * @param indexName test index name
