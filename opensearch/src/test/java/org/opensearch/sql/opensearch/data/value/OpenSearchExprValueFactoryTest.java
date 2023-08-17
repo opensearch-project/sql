@@ -33,7 +33,6 @@ import static org.opensearch.sql.data.type.ExprCoreType.STRING;
 import static org.opensearch.sql.data.type.ExprCoreType.STRUCT;
 import static org.opensearch.sql.data.type.ExprCoreType.TIME;
 import static org.opensearch.sql.data.type.ExprCoreType.TIMESTAMP;
-import static org.opensearch.sql.utils.DateTimeUtils.UTC_ZONE_ID;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -41,6 +40,7 @@ import com.google.common.collect.ImmutableMap;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalTime;
+import java.time.ZoneOffset;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -245,7 +245,7 @@ class OpenSearchExprValueFactoryTest {
         () ->
             assertEquals(
                 new ExprDateValue(
-                    LocalDate.ofInstant(Instant.ofEpochMilli(450576000000L), UTC_ZONE_ID)),
+                    LocalDate.ofInstant(Instant.ofEpochMilli(450576000000L), ZoneOffset.UTC)),
                 constructFromObject("dateV", 450576000000L)),
         () ->
             assertEquals(
@@ -267,7 +267,7 @@ class OpenSearchExprValueFactoryTest {
         () ->
             assertEquals(
                 new ExprTimeValue(
-                    LocalTime.from(Instant.ofEpochMilli(1420070400001L).atZone(UTC_ZONE_ID))),
+                    LocalTime.from(Instant.ofEpochMilli(1420070400001L).atZone(ZoneOffset.UTC))),
                 constructFromObject("timeV", 1420070400001L)),
         () ->
             assertEquals(

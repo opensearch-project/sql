@@ -10,11 +10,11 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.opensearch.sql.data.model.ExprValueUtils.integerValue;
 import static org.opensearch.sql.data.type.ExprCoreType.TIME;
 import static org.opensearch.sql.data.type.ExprCoreType.TIMESTAMP;
-import static org.opensearch.sql.utils.DateTimeUtils.UTC_ZONE_ID;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.time.ZoneOffset;
 import java.time.ZonedDateTime;
 import org.junit.jupiter.api.Test;
 import org.opensearch.sql.exception.ExpressionEvaluationException;
@@ -45,9 +45,9 @@ public class DateTimeValueTest {
     assertEquals(today, timeValue.dateValue(functionProperties));
     assertEquals(
         today.atTime(1, 1, 1),
-        LocalDateTime.ofInstant(timeValue.timestampValue(functionProperties), UTC_ZONE_ID));
+        LocalDateTime.ofInstant(timeValue.timestampValue(functionProperties), ZoneOffset.UTC));
     assertEquals(
-        ZonedDateTime.of(LocalTime.parse("01:01:01").atDate(today), UTC_ZONE_ID).toInstant(),
+        ZonedDateTime.of(LocalTime.parse("01:01:01").atDate(today), ZoneOffset.UTC).toInstant(),
         timeValue.timestampValue(functionProperties));
 
     assertEquals("01:01:01", timeValue.value());
@@ -63,7 +63,7 @@ public class DateTimeValueTest {
 
     assertEquals(TIMESTAMP, timestampValue.type());
     assertEquals(
-        ZonedDateTime.of(LocalDateTime.parse("2020-07-07T01:01:01"), UTC_ZONE_ID).toInstant(),
+        ZonedDateTime.of(LocalDateTime.parse("2020-07-07T01:01:01"), ZoneOffset.UTC).toInstant(),
         timestampValue.timestampValue());
     assertEquals("2020-07-07 01:01:01", timestampValue.value());
     assertEquals("TIMESTAMP '2020-07-07 01:01:01'", timestampValue.toString());
@@ -71,7 +71,7 @@ public class DateTimeValueTest {
     assertEquals(LocalTime.parse("01:01:01"), timestampValue.timeValue());
     assertEquals(
         LocalDateTime.parse("2020-07-07T01:01:01"),
-        LocalDateTime.ofInstant(timestampValue.timestampValue(), UTC_ZONE_ID));
+        LocalDateTime.ofInstant(timestampValue.timestampValue(), ZoneOffset.UTC));
     assertThrows(
         ExpressionEvaluationException.class,
         () -> integerValue(1).timestampValue(),
@@ -86,9 +86,9 @@ public class DateTimeValueTest {
     assertEquals(LocalTime.parse("00:00:00"), dateValue.timeValue());
     assertEquals(
         LocalDateTime.parse("2012-07-07T00:00:00"),
-        LocalDateTime.ofInstant(dateValue.timestampValue(), UTC_ZONE_ID));
+        LocalDateTime.ofInstant(dateValue.timestampValue(), ZoneOffset.UTC));
     assertEquals(
-        ZonedDateTime.of(LocalDateTime.parse("2012-07-07T00:00:00"), UTC_ZONE_ID).toInstant(),
+        ZonedDateTime.of(LocalDateTime.parse("2012-07-07T00:00:00"), ZoneOffset.UTC).toInstant(),
         dateValue.timestampValue());
     ExpressionEvaluationException exception =
         assertThrows(ExpressionEvaluationException.class, () -> integerValue(1).dateValue());
@@ -188,7 +188,7 @@ public class DateTimeValueTest {
       String localDateTime = String.format("%sT%s", dateValue, timeWithNanos);
       assertEquals(
           LocalDateTime.parse(localDateTime),
-          LocalDateTime.ofInstant(timestampValue.timestampValue(), UTC_ZONE_ID));
+          LocalDateTime.ofInstant(timestampValue.timestampValue(), ZoneOffset.UTC));
     }
   }
 

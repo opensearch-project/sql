@@ -6,12 +6,12 @@
 package org.opensearch.sql.expression.datetime;
 
 import static org.opensearch.sql.data.model.ExprValueUtils.fromObjectValue;
-import static org.opensearch.sql.utils.DateTimeUtils.UTC_ZONE_OFFSET;
 
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.time.ZoneOffset;
 import java.time.temporal.Temporal;
 import java.util.List;
 import org.opensearch.sql.data.model.ExprDateValue;
@@ -92,7 +92,7 @@ public class DateTimeTestBase extends ExpressionTestBase {
 
   protected LocalDateTime fromUnixTime(Double value) {
     return LocalDateTime.ofInstant(
-        fromUnixTime(DSL.literal(value)).valueOf().timestampValue(), UTC_ZONE_OFFSET);
+        fromUnixTime(DSL.literal(value)).valueOf().timestampValue(), ZoneOffset.UTC);
   }
 
   protected FunctionExpression fromUnixTime(Expression value) {
@@ -111,7 +111,7 @@ public class DateTimeTestBase extends ExpressionTestBase {
 
   protected LocalDateTime fromUnixTime(Long value) {
     return LocalDateTime.ofInstant(
-        fromUnixTime(DSL.literal(value)).valueOf().timestampValue(), UTC_ZONE_OFFSET);
+        fromUnixTime(DSL.literal(value)).valueOf().timestampValue(), ZoneOffset.UTC);
   }
 
   protected String fromUnixTime(Long value, String format) {

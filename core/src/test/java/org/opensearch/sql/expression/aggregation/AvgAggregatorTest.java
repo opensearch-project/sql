@@ -14,11 +14,11 @@ import static org.opensearch.sql.data.type.ExprCoreType.INTEGER;
 import static org.opensearch.sql.data.type.ExprCoreType.STRING;
 import static org.opensearch.sql.data.type.ExprCoreType.TIME;
 import static org.opensearch.sql.data.type.ExprCoreType.TIMESTAMP;
-import static org.opensearch.sql.utils.DateTimeUtils.UTC_ZONE_ID;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.time.ZoneOffset;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.opensearch.sql.data.model.ExprValue;
@@ -119,7 +119,7 @@ class AvgAggregatorTest extends AggregationTest {
     assertEquals(TIMESTAMP, result.type());
     assertEquals(
         LocalDateTime.of(2012, 7, 2, 3, 30),
-        result.timestampValue().atZone(UTC_ZONE_ID).toLocalDateTime());
+        result.timestampValue().atZone(ZoneOffset.UTC).toLocalDateTime());
   }
 
   @Test

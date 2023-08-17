@@ -9,8 +9,6 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.opensearch.sql.data.type.ExprCoreType.DATE;
 import static org.opensearch.sql.data.type.ExprCoreType.TIMESTAMP;
-import static org.opensearch.sql.utils.DateTimeUtils.UTC_ZONE_ID;
-import static org.opensearch.sql.utils.DateTimeUtils.UTC_ZONE_OFFSET;
 
 import java.time.Duration;
 import java.time.Instant;
@@ -18,6 +16,8 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.Period;
+import java.time.ZoneOffset;
+
 import org.junit.jupiter.api.Test;
 import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.exception.ExpressionEvaluationException;
@@ -25,7 +25,7 @@ import org.opensearch.sql.exception.ExpressionEvaluationException;
 public class DateSubAndSubDateTest extends DateTimeTestBase {
 
   private LocalDateTime toLocalDateTime(ExprValue res) {
-    return res.timestampValue().atZone(UTC_ZONE_ID).toLocalDateTime();
+    return res.timestampValue().atZone(ZoneOffset.UTC).toLocalDateTime();
   }
 
   private LocalDate today() {
@@ -51,7 +51,7 @@ public class DateSubAndSubDateTest extends DateTimeTestBase {
   public void subdate_time_limited_by_24_hours() {
     var res = subdate(LocalTime.MIN, Duration.ofNanos(1));
     assertEquals(TIMESTAMP, res.type());
-    assertEquals(LocalTime.MAX, res.timestampValue().atZone(UTC_ZONE_ID).toLocalTime());
+    assertEquals(LocalTime.MAX, res.timestampValue().atZone(ZoneOffset.UTC).toLocalTime());
   }
 
   @Test
@@ -59,7 +59,7 @@ public class DateSubAndSubDateTest extends DateTimeTestBase {
     var res =
         date_sub(LocalTime.of(10, 20, 30), Duration.ofHours(20).plusMinutes(50).plusSeconds(7));
     assertEquals(TIMESTAMP, res.type());
-    assertEquals(LocalTime.of(13, 30, 23), res.timestampValue().atZone(UTC_ZONE_ID).toLocalTime());
+    assertEquals(LocalTime.of(13, 30, 23), res.timestampValue().atZone(ZoneOffset.UTC).toLocalTime());
   }
 
   @Test
@@ -116,7 +116,7 @@ public class DateSubAndSubDateTest extends DateTimeTestBase {
   public void date_sub_returns_datetime_when_first_arg_is_timestamp() {
     var res =
         date_sub(
-            LocalDateTime.of(1961, 4, 12, 9, 7).toInstant(UTC_ZONE_OFFSET),
+            LocalDateTime.of(1961, 4, 12, 9, 7).toInstant(ZoneOffset.UTC),
             Duration.ofMinutes(108));
     assertEquals(TIMESTAMP, res.type());
     assertEquals(LocalDateTime.of(1961, 4, 12, 7, 19), toLocalDateTime(res));

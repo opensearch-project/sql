@@ -8,12 +8,12 @@ package org.opensearch.sql.expression.datetime;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.opensearch.sql.data.type.ExprCoreType.TIME;
 import static org.opensearch.sql.data.type.ExprCoreType.TIMESTAMP;
-import static org.opensearch.sql.utils.DateTimeUtils.UTC_ZONE_ID;
 
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.time.ZoneOffset;
 import java.time.temporal.Temporal;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.Test;
@@ -135,10 +135,10 @@ public class AddTimeAndSubTimeTest extends DateTimeTestBase {
       LocalDateTime subTimeExpectedResult) {
     var res = addtime(arg1, arg2);
     assertEquals(TIMESTAMP, res.type());
-    assertEquals(addTimeExpectedResult, res.timestampValue().atZone(UTC_ZONE_ID).toLocalDateTime());
+    assertEquals(addTimeExpectedResult, res.timestampValue().atZone(ZoneOffset.UTC).toLocalDateTime());
 
     res = subtime(arg1, arg2);
     assertEquals(TIMESTAMP, res.type());
-    assertEquals(subTimeExpectedResult, res.timestampValue().atZone(UTC_ZONE_ID).toLocalDateTime());
+    assertEquals(subTimeExpectedResult, res.timestampValue().atZone(ZoneOffset.UTC).toLocalDateTime());
   }
 }

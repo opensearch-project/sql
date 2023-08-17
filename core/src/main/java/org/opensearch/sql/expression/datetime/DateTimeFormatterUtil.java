@@ -5,8 +5,6 @@
 
 package org.opensearch.sql.expression.datetime;
 
-import static org.opensearch.sql.utils.DateTimeUtils.UTC_ZONE_ID;
-
 import com.google.common.collect.ImmutableMap;
 import java.text.ParsePosition;
 import java.time.Clock;
@@ -14,6 +12,7 @@ import java.time.DateTimeException;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeFormatterBuilder;
 import java.time.format.ResolverStyle;
@@ -252,7 +251,7 @@ class DateTimeFormatterUtil {
    * @return Date formatted using format and returned as a String.
    */
   static ExprValue getFormattedDate(ExprValue dateExpr, ExprValue formatExpr) {
-    final LocalDateTime date = dateExpr.timestampValue().atZone(UTC_ZONE_ID).toLocalDateTime();
+    final LocalDateTime date = dateExpr.timestampValue().atZone(ZoneOffset.UTC).toLocalDateTime();
     return getFormattedString(formatExpr, DATE_HANDLERS, date);
   }
 

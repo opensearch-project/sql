@@ -7,10 +7,10 @@ package org.opensearch.sql.expression.datetime;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
-import static org.opensearch.sql.utils.DateTimeUtils.UTC_ZONE_OFFSET;
 
 import java.text.DecimalFormat;
 import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 import java.time.temporal.ChronoUnit;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.Test;
@@ -48,7 +48,7 @@ public class FromUnixTimeTest extends DateTimeTestBase {
         LocalDateTime.of(1970, 1, 1, 0, 0, 0).plus(value, ChronoUnit.SECONDS),
         LocalDateTime.ofInstant(
             eval(fromUnixTime(DSL.literal(new ExprLongValue(value)))).timestampValue(),
-            UTC_ZONE_OFFSET));
+                ZoneOffset.UTC));
   }
 
   private static Stream<Arguments> getDoubleSamples() {
@@ -73,14 +73,14 @@ public class FromUnixTimeTest extends DateTimeTestBase {
     var valueAsString = new DecimalFormat("0.#").format(value);
 
     assertEquals(
-        LocalDateTime.ofEpochSecond(intPart, (int) Math.round(fracPart * 1E9), UTC_ZONE_OFFSET),
+        LocalDateTime.ofEpochSecond(intPart, (int) Math.round(fracPart * 1E9), ZoneOffset.UTC),
         fromUnixTime(value),
         valueAsString);
     assertEquals(
-        LocalDateTime.ofEpochSecond(intPart, (int) Math.round(fracPart * 1E9), UTC_ZONE_OFFSET),
+        LocalDateTime.ofEpochSecond(intPart, (int) Math.round(fracPart * 1E9), ZoneOffset.UTC),
         LocalDateTime.ofInstant(
             eval(fromUnixTime(DSL.literal(new ExprDoubleValue(value)))).timestampValue(),
-            UTC_ZONE_OFFSET),
+                ZoneOffset.UTC),
         valueAsString);
   }
 

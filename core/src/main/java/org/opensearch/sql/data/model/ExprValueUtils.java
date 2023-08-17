@@ -5,12 +5,11 @@
 
 package org.opensearch.sql.data.model;
 
-import static org.opensearch.sql.utils.DateTimeUtils.UTC_ZONE_OFFSET;
-
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.time.ZoneOffset;
 import java.time.temporal.TemporalAmount;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -133,7 +132,7 @@ public class ExprValueUtils {
     } else if (o instanceof TemporalAmount) {
       return intervalValue((TemporalAmount) o);
     } else if (o instanceof LocalDateTime) {
-      return timestampValue(((LocalDateTime) o).toInstant(UTC_ZONE_OFFSET));
+      return timestampValue(((LocalDateTime) o).toInstant(ZoneOffset.UTC));
     } else {
       throw new ExpressionEvaluationException("unsupported object " + o.getClass());
     }

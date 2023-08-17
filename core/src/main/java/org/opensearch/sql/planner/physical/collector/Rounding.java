@@ -10,11 +10,11 @@ import static org.opensearch.sql.data.type.ExprCoreType.DOUBLE;
 import static org.opensearch.sql.data.type.ExprCoreType.LONG;
 import static org.opensearch.sql.data.type.ExprCoreType.TIME;
 import static org.opensearch.sql.data.type.ExprCoreType.TIMESTAMP;
-import static org.opensearch.sql.utils.DateTimeUtils.UTC_ZONE_ID;
 
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalTime;
+import java.time.ZoneOffset;
 import java.time.temporal.ChronoField;
 import java.util.Arrays;
 import java.util.concurrent.TimeUnit;
@@ -92,9 +92,9 @@ public abstract class Rounding<T> {
       Instant instant =
           Instant.ofEpochMilli(
               dateTimeUnit.round(
-                  var.dateValue().atStartOfDay().atZone(UTC_ZONE_ID).toInstant().toEpochMilli(),
+                  var.dateValue().atStartOfDay().atZone(ZoneOffset.UTC).toInstant().toEpochMilli(),
                   interval.integerValue()));
-      return new ExprDateValue(instant.atZone(UTC_ZONE_ID).toLocalDate());
+      return new ExprDateValue(instant.atZone(ZoneOffset.UTC).toLocalDate());
     }
   }
 
@@ -118,7 +118,7 @@ public abstract class Rounding<T> {
           Instant.ofEpochMilli(
               dateTimeUnit.round(
                   var.timeValue().getLong(ChronoField.MILLI_OF_DAY), interval.integerValue()));
-      return new ExprTimeValue(instant.atZone(UTC_ZONE_ID).toLocalTime());
+      return new ExprTimeValue(instant.atZone(ZoneOffset.UTC).toLocalTime());
     }
   }
 

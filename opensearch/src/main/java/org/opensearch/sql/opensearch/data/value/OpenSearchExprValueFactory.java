@@ -19,7 +19,6 @@ import static org.opensearch.sql.data.type.ExprCoreType.TIMESTAMP;
 import static org.opensearch.sql.utils.DateTimeFormatters.DATE_TIME_FORMATTER;
 import static org.opensearch.sql.utils.DateTimeFormatters.STRICT_HOUR_MINUTE_SECOND_FORMATTER;
 import static org.opensearch.sql.utils.DateTimeFormatters.STRICT_YEAR_MONTH_DAY_FORMATTER;
-import static org.opensearch.sql.utils.DateTimeUtils.UTC_ZONE_ID;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -28,6 +27,7 @@ import com.google.common.collect.ImmutableMap;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalTime;
+import java.time.ZoneOffset;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeParseException;
 import java.time.temporal.TemporalAccessor;
@@ -238,11 +238,11 @@ public class OpenSearchExprValueFactory {
         ZonedDateTime zonedDateTime = DateFormatters.from(accessor);
         switch (returnFormat) {
           case TIME:
-            return new ExprTimeValue(zonedDateTime.withZoneSameLocal(UTC_ZONE_ID).toLocalTime());
+            return new ExprTimeValue(zonedDateTime.withZoneSameLocal(ZoneOffset.UTC).toLocalTime());
           case DATE:
-            return new ExprDateValue(zonedDateTime.withZoneSameLocal(UTC_ZONE_ID).toLocalDate());
+            return new ExprDateValue(zonedDateTime.withZoneSameLocal(ZoneOffset.UTC).toLocalDate());
           default:
-            return new ExprTimestampValue(zonedDateTime.withZoneSameLocal(UTC_ZONE_ID).toInstant());
+            return new ExprTimestampValue(zonedDateTime.withZoneSameLocal(ZoneOffset.UTC).toInstant());
         }
       } catch (IllegalArgumentException ignored) {
         // nothing to do, try another format
@@ -288,9 +288,9 @@ public class OpenSearchExprValueFactory {
         Instant instant = Instant.ofEpochMilli(epochMillis);
         switch ((ExprCoreType) returnFormat) {
           case TIME:
-            return new ExprTimeValue(LocalTime.from(instant.atZone(UTC_ZONE_ID)));
+            return new ExprTimeValue(LocalTime.from(instant.atZone(ZoneOffset.UTC)));
           case DATE:
-            return new ExprDateValue(LocalDate.ofInstant(instant, UTC_ZONE_ID));
+            return new ExprDateValue(LocalDate.ofInstant(instant, ZoneOffset.UTC));
           default:
             return new ExprTimestampValue(instant);
         }

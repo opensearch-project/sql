@@ -9,8 +9,6 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.opensearch.sql.data.type.ExprCoreType.DATE;
 import static org.opensearch.sql.data.type.ExprCoreType.TIMESTAMP;
-import static org.opensearch.sql.utils.DateTimeUtils.UTC_ZONE_ID;
-import static org.opensearch.sql.utils.DateTimeUtils.UTC_ZONE_OFFSET;
 
 import java.time.Duration;
 import java.time.Instant;
@@ -18,6 +16,8 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.Period;
+import java.time.ZoneOffset;
+
 import org.junit.jupiter.api.Test;
 import org.opensearch.sql.exception.ExpressionEvaluationException;
 
@@ -33,7 +33,7 @@ public class DateAddAndAddDateTest extends DateTimeTestBase {
     assertEquals(TIMESTAMP, res.type());
     assertEquals(
         LocalTime.of(1, 2).atDate(today()),
-        res.timestampValue().atZone(UTC_ZONE_ID).toLocalDateTime());
+        res.timestampValue().atZone(ZoneOffset.UTC).toLocalDateTime());
   }
 
   @Test
@@ -43,14 +43,14 @@ public class DateAddAndAddDateTest extends DateTimeTestBase {
     assertEquals(TIMESTAMP, res.type());
     assertEquals(
         LocalTime.of(11, 23, 12).atDate(today()),
-        res.timestampValue().atZone(UTC_ZONE_ID).toLocalDateTime());
+        res.timestampValue().atZone(ZoneOffset.UTC).toLocalDateTime());
   }
 
   @Test
   public void adddate_time_limited_by_24_hours() {
     var res = adddate(LocalTime.MAX, Duration.ofNanos(1));
     assertEquals(TIMESTAMP, res.type());
-    assertEquals(LocalTime.MIN, res.timestampValue().atZone(UTC_ZONE_ID).toLocalTime());
+    assertEquals(LocalTime.MIN, res.timestampValue().atZone(ZoneOffset.UTC).toLocalTime());
   }
 
   @Test
@@ -58,7 +58,7 @@ public class DateAddAndAddDateTest extends DateTimeTestBase {
     var res =
         date_add(LocalTime.of(10, 20, 30), Duration.ofHours(20).plusMinutes(50).plusSeconds(7));
     assertEquals(TIMESTAMP, res.type());
-    assertEquals(LocalTime.of(7, 10, 37), res.timestampValue().atZone(UTC_ZONE_ID).toLocalTime());
+    assertEquals(LocalTime.of(7, 10, 37), res.timestampValue().atZone(ZoneOffset.UTC).toLocalTime());
   }
 
   @Test
@@ -67,7 +67,7 @@ public class DateAddAndAddDateTest extends DateTimeTestBase {
     assertEquals(TIMESTAMP, res.type());
     assertEquals(
         LocalDate.of(2024, 2, 10).atStartOfDay(),
-        res.timestampValue().atZone(UTC_ZONE_ID).toLocalDateTime());
+        res.timestampValue().atZone(ZoneOffset.UTC).toLocalDateTime());
   }
 
   @Test
@@ -76,7 +76,7 @@ public class DateAddAndAddDateTest extends DateTimeTestBase {
     assertEquals(TIMESTAMP, res.type());
     assertEquals(
         LocalDate.of(2015, 8, 1).atStartOfDay(),
-        res.timestampValue().atZone(UTC_ZONE_ID).toLocalDateTime());
+        res.timestampValue().atZone(ZoneOffset.UTC).toLocalDateTime());
   }
 
   @Test
@@ -85,7 +85,7 @@ public class DateAddAndAddDateTest extends DateTimeTestBase {
     assertEquals(TIMESTAMP, res.type());
     assertEquals(
         LocalDateTime.of(2020, 2, 20, 1, 2),
-        res.timestampValue().atZone(UTC_ZONE_ID).toLocalDateTime());
+        res.timestampValue().atZone(ZoneOffset.UTC).toLocalDateTime());
   }
 
   @Test
@@ -94,7 +94,7 @@ public class DateAddAndAddDateTest extends DateTimeTestBase {
     assertEquals(TIMESTAMP, res.type());
     assertEquals(
         LocalDateTime.of(1961, 4, 12, 9, 7),
-        res.timestampValue().atZone(UTC_ZONE_ID).toLocalDateTime());
+        res.timestampValue().atZone(ZoneOffset.UTC).toLocalDateTime());
   }
 
   @Test
@@ -104,7 +104,7 @@ public class DateAddAndAddDateTest extends DateTimeTestBase {
     assertEquals(TIMESTAMP, res.type());
     assertEquals(
         today().plusDays(1).atTime(LocalTime.of(1, 2, 0)),
-        res.timestampValue().atZone(UTC_ZONE_ID).toLocalDateTime());
+        res.timestampValue().atZone(ZoneOffset.UTC).toLocalDateTime());
   }
 
   @Test
@@ -112,7 +112,7 @@ public class DateAddAndAddDateTest extends DateTimeTestBase {
     var res = date_add(LocalTime.MIDNIGHT, Period.ofDays(0));
     assertEquals(TIMESTAMP, res.type());
     assertEquals(
-        today().atStartOfDay(), res.timestampValue().atZone(UTC_ZONE_ID).toLocalDateTime());
+        today().atStartOfDay(), res.timestampValue().atZone(ZoneOffset.UTC).toLocalDateTime());
   }
 
   @Test
@@ -121,19 +121,19 @@ public class DateAddAndAddDateTest extends DateTimeTestBase {
     assertEquals(TIMESTAMP, res.type());
     assertEquals(
         LocalDateTime.of(1961, 4, 12, 10, 55),
-        res.timestampValue().atZone(UTC_ZONE_ID).toLocalDateTime());
+        res.timestampValue().atZone(ZoneOffset.UTC).toLocalDateTime());
   }
 
   @Test
   public void date_add_returns_datetime_when_first_arg_is_timestamp() {
     var res =
         date_add(
-            LocalDateTime.of(1961, 4, 12, 9, 7).toInstant(UTC_ZONE_OFFSET),
+            LocalDateTime.of(1961, 4, 12, 9, 7).toInstant(ZoneOffset.UTC),
             Duration.ofMinutes(108));
     assertEquals(TIMESTAMP, res.type());
     assertEquals(
         LocalDateTime.of(1961, 4, 12, 10, 55),
-        res.timestampValue().atZone(UTC_ZONE_ID).toLocalDateTime());
+        res.timestampValue().atZone(ZoneOffset.UTC).toLocalDateTime());
   }
 
   @Test
@@ -142,7 +142,7 @@ public class DateAddAndAddDateTest extends DateTimeTestBase {
     assertEquals(TIMESTAMP, res.type());
     assertEquals(
         LocalDateTime.of(2020, 10, 10, 14, 42),
-        res.timestampValue().atZone(UTC_ZONE_ID).toLocalDateTime());
+        res.timestampValue().atZone(ZoneOffset.UTC).toLocalDateTime());
     assertEquals(subdate(LocalDateTime.of(2020, 10, 20, 14, 42), Duration.ofDays(10)), res);
   }
 
@@ -174,7 +174,7 @@ public class DateAddAndAddDateTest extends DateTimeTestBase {
     assertEquals(TIMESTAMP, res.type());
     assertEquals(
         LocalDateTime.of(2000, 1, 3, 0, 0),
-        res.timestampValue().atZone(UTC_ZONE_ID).toLocalDateTime());
+        res.timestampValue().atZone(ZoneOffset.UTC).toLocalDateTime());
 
     res = adddate(LocalTime.now(), 2);
     assertEquals(TIMESTAMP, res.type());
@@ -184,7 +184,7 @@ public class DateAddAndAddDateTest extends DateTimeTestBase {
     assertEquals(TIMESTAMP, res.type());
     assertEquals(
         LocalDateTime.of(1970, 1, 3, 0, 0, 42),
-        res.timestampValue().atZone(UTC_ZONE_ID).toLocalDateTime());
+        res.timestampValue().atZone(ZoneOffset.UTC).toLocalDateTime());
   }
 
   @Test
@@ -193,7 +193,7 @@ public class DateAddAndAddDateTest extends DateTimeTestBase {
     assertEquals(TIMESTAMP, res.type());
     assertEquals(
         LocalDateTime.of(2020, 10, 20, 8, 16, 32).minusDays(40),
-        res.timestampValue().atZone(UTC_ZONE_ID).toLocalDateTime());
+        res.timestampValue().atZone(ZoneOffset.UTC).toLocalDateTime());
     assertEquals(subdate(LocalDateTime.of(2020, 10, 20, 8, 16, 32), 40), res);
   }
 }
