@@ -21,9 +21,7 @@ import org.opensearch.sql.spark.functions.response.SparkSqlFunctionResponseHandl
 import org.opensearch.sql.spark.request.SparkQueryRequest;
 import org.opensearch.sql.storage.TableScanOperator;
 
-/**
- * This a table scan operator to handle sql table function.
- */
+/** This a table scan operator to handle sql table function. */
 @RequiredArgsConstructor
 public class SparkSqlFunctionTableScanOperator extends TableScanOperator {
   private final SparkClient sparkClient;
@@ -34,17 +32,19 @@ public class SparkSqlFunctionTableScanOperator extends TableScanOperator {
   @Override
   public void open() {
     super.open();
-    this.sparkResponseHandle = AccessController.doPrivileged(
-        (PrivilegedAction<SparkSqlFunctionResponseHandle>) () -> {
-          try {
-            JSONObject responseObject = sparkClient.sql(request.getSql());
-            return new DefaultSparkSqlFunctionResponseHandle(responseObject);
-          } catch (IOException e) {
-            LOG.error(e.getMessage());
-            throw new RuntimeException(
-                String.format("Error fetching data from spark server: %s", e.getMessage()));
-          }
-        });
+    this.sparkResponseHandle =
+        AccessController.doPrivileged(
+            (PrivilegedAction<SparkSqlFunctionResponseHandle>)
+                () -> {
+                  try {
+                    JSONObject responseObject = sparkClient.sql(request.getSql());
+                    return new DefaultSparkSqlFunctionResponseHandle(responseObject);
+                  } catch (IOException e) {
+                    LOG.error(e.getMessage());
+                    throw new RuntimeException(
+                        String.format("Error fetching data from spark server: %s", e.getMessage()));
+                  }
+                });
   }
 
   @Override

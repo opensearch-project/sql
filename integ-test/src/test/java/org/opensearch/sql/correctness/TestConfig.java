@@ -3,7 +3,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-
 package org.opensearch.sql.correctness;
 
 import static java.util.stream.Collectors.joining;
@@ -19,11 +18,15 @@ import org.opensearch.sql.correctness.testset.TestQuerySet;
 import org.opensearch.sql.legacy.utils.StringUtils;
 
 /**
+ *
+ *
+ * <pre>
  * Test configuration parse the following information from command line arguments:
  * 1) Test schema and data
  * 2) Test queries
  * 3) OpenSearch connection URL
  * 4) Other database connection URLs
+ * </pre>
  */
 public class TestConfig {
 
@@ -37,9 +40,7 @@ public class TestConfig {
 
   private final String openSearchHostUrl;
 
-  /**
-   * Test against some database rather than OpenSearch via our JDBC driver
-   */
+  /** Test against some database rather than OpenSearch via our JDBC driver */
   private final String dbConnectionUrl;
 
   private final Map<String, String> otherDbConnectionNameAndUrls = new HashMap<>();
@@ -75,12 +76,14 @@ public class TestConfig {
 
   private TestDataSet[] buildDefaultTestDataSet() {
     return new TestDataSet[] {
-        new TestDataSet("opensearch_dashboards_sample_data_flights",
-            readFile("opensearch_dashboards_sample_data_flights.json"),
-            readFile("opensearch_dashboards_sample_data_flights.csv")),
-        new TestDataSet("opensearch_dashboards_sample_data_ecommerce",
-            readFile("opensearch_dashboards_sample_data_ecommerce.json"),
-            readFile("opensearch_dashboards_sample_data_ecommerce.csv")),
+      new TestDataSet(
+          "opensearch_dashboards_sample_data_flights",
+          readFile("opensearch_dashboards_sample_data_flights.json"),
+          readFile("opensearch_dashboards_sample_data_flights.csv")),
+      new TestDataSet(
+          "opensearch_dashboards_sample_data_ecommerce",
+          readFile("opensearch_dashboards_sample_data_ecommerce.json"),
+          readFile("opensearch_dashboards_sample_data_ecommerce.csv")),
     };
   }
 
@@ -118,31 +121,33 @@ public class TestConfig {
   @Override
   public String toString() {
     return "\n=================================\n"
-        + "Tested Database  : " + openSearchHostUrlToString() + '\n'
-        + "Other Databases  :\n" + otherDbConnectionInfoToString() + '\n'
-        + "Test data set(s) :\n" + testDataSetsToString() + '\n'
-        + "Test query set   : " + testQuerySet + '\n'
-        + "=================================\n";
+        + "Tested Database  : "
+        + openSearchHostUrlToString()
+        + "\nOther Databases  :\n"
+        + otherDbConnectionInfoToString()
+        + "\nTest data set(s) :\n"
+        + testDataSetsToString()
+        + "\nTest query set   : "
+        + testQuerySet
+        + "\n=================================\n";
   }
 
   private String testDataSetsToString() {
-    return Arrays.stream(testDataSets).
-        map(TestDataSet::toString).
-        collect(joining("\n"));
+    return Arrays.stream(testDataSets).map(TestDataSet::toString).collect(joining("\n"));
   }
 
   private String openSearchHostUrlToString() {
     if (!dbConnectionUrl.isEmpty()) {
       return dbConnectionUrl;
     }
-    return openSearchHostUrl.isEmpty() ? "(Use internal OpenSearch in workspace)" :
-        openSearchHostUrl;
+    return openSearchHostUrl.isEmpty()
+        ? "(Use internal OpenSearch in workspace)"
+        : openSearchHostUrl;
   }
 
   private String otherDbConnectionInfoToString() {
-    return otherDbConnectionNameAndUrls.entrySet().stream().
-        map(e -> StringUtils.format(" %s = %s", e.getKey(), e.getValue())).
-        collect(joining("\n"));
+    return otherDbConnectionNameAndUrls.entrySet().stream()
+        .map(e -> StringUtils.format(" %s = %s", e.getKey(), e.getValue()))
+        .collect(joining("\n"));
   }
-
 }

@@ -19,43 +19,36 @@ import org.opensearch.sql.prometheus.planner.logical.PrometheusLogicalMetricScan
 
 public class LogicalPlanUtils {
 
-  /**
-   * Build PrometheusLogicalMetricScan.
-   */
+  /** Build PrometheusLogicalMetricScan. */
   public static LogicalPlan indexScan(String metricName, Expression filter) {
-    return PrometheusLogicalMetricScan.builder().metricName(metricName)
-        .filter(filter)
-        .build();
+    return PrometheusLogicalMetricScan.builder().metricName(metricName).filter(filter).build();
   }
 
-  /**
-   * Build PrometheusLogicalMetricAgg.
-   */
-  public static LogicalPlan indexScanAgg(String metricName, Expression filter,
-                                         List<NamedAggregator> aggregators,
-                                         List<NamedExpression> groupByList) {
-    return PrometheusLogicalMetricAgg.builder().metricName(metricName)
+  /** Build PrometheusLogicalMetricAgg. */
+  public static LogicalPlan indexScanAgg(
+      String metricName,
+      Expression filter,
+      List<NamedAggregator> aggregators,
+      List<NamedExpression> groupByList) {
+    return PrometheusLogicalMetricAgg.builder()
+        .metricName(metricName)
         .filter(filter)
         .aggregatorList(aggregators)
         .groupByList(groupByList)
         .build();
   }
 
-  /**
-   * Build PrometheusLogicalMetricAgg.
-   */
-  public static LogicalPlan indexScanAgg(String metricName,
-                                         List<NamedAggregator> aggregators,
-                                         List<NamedExpression> groupByList) {
-    return PrometheusLogicalMetricAgg.builder().metricName(metricName)
+  /** Build PrometheusLogicalMetricAgg. */
+  public static LogicalPlan indexScanAgg(
+      String metricName, List<NamedAggregator> aggregators, List<NamedExpression> groupByList) {
+    return PrometheusLogicalMetricAgg.builder()
+        .metricName(metricName)
         .aggregatorList(aggregators)
         .groupByList(groupByList)
         .build();
   }
 
-  /**
-   * Build PrometheusLogicalMetricAgg.
-   */
+  /** Build PrometheusLogicalMetricAgg. */
   public static LogicalPlan testLogicalPlanNode() {
     return new TestLogicalPlan();
   }
@@ -71,7 +64,4 @@ public class LogicalPlanUtils {
       return visitor.visitNode(this, null);
     }
   }
-
-
-
 }

@@ -13,22 +13,22 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
-
 @RunWith(Parameterized.class)
 public class PPLSyntaxParserMatchPhraseSamplesTest {
 
-
-  /** Returns sample queries that the PPLSyntaxParser is expected to parse successfully.
+  /**
+   * Returns sample queries that the PPLSyntaxParser is expected to parse successfully.
+   *
    * @return an Iterable of sample queries.
    */
   @Parameterized.Parameters(name = "{0}")
   public static Iterable<Object> sampleQueries() {
     return List.of(
-      "source=t a= 1 | where match_phrase(a, 'hello world')",
-      "source=t a = 1 | where match_phrase(a, 'hello world', slop = 3)",
-      "source=t a = 1 | where match_phrase(a, 'hello world', analyzer = 'standard',"
-        + "zero_terms_query = 'none', slop = 3)",
-      "source=t a = 1 | where match_phrase(a, 'hello world', zero_terms_query = all)");
+        "source=t a= 1 | where match_phrase(a, 'hello world')",
+        "source=t a = 1 | where match_phrase(a, 'hello world', slop = 3)",
+        "source=t a = 1 | where match_phrase(a, 'hello world', analyzer = 'standard',"
+            + "zero_terms_query = 'none', slop = 3)",
+        "source=t a = 1 | where match_phrase(a, 'hello world', zero_terms_query = all)");
   }
 
   private final String query;

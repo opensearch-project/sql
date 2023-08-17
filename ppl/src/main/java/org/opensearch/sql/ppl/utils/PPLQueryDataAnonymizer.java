@@ -3,7 +3,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-
 package org.opensearch.sql.ppl.utils;
 
 import com.google.common.base.Strings;
@@ -54,9 +53,7 @@ import org.opensearch.sql.planner.logical.LogicalRemove;
 import org.opensearch.sql.planner.logical.LogicalRename;
 import org.opensearch.sql.planner.logical.LogicalSort;
 
-/**
- * Utility class to mask sensitive information in incoming PPL queries.
- */
+/** Utility class to mask sensitive information in incoming PPL queries. */
 public class PPLQueryDataAnonymizer extends AbstractNodeVisitor<String, String> {
 
   private static final String MASK_LITERAL = "***";
@@ -68,8 +65,8 @@ public class PPLQueryDataAnonymizer extends AbstractNodeVisitor<String, String> 
   }
 
   /**
-   * This method is used to anonymize sensitive data in PPL query.
-   * Sensitive data includes user data.,
+   * This method is used to anonymize sensitive data in PPL query. Sensitive data includes user
+   * data.
    *
    * @return ppl query string with all user data replace with "***"
    */
@@ -81,9 +78,7 @@ public class PPLQueryDataAnonymizer extends AbstractNodeVisitor<String, String> 
     return plan.accept(this, null);
   }
 
-  /**
-   * Handle Query Statement.
-   */
+  /** Handle Query Statement. */
   @Override
   public String visitQuery(Query node, String context) {
     return node.getPlan().accept(this, null);
@@ -103,8 +98,9 @@ public class PPLQueryDataAnonymizer extends AbstractNodeVisitor<String, String> 
   public String visitTableFunction(TableFunction node, String context) {
     String arguments =
         node.getArguments().stream()
-            .map(unresolvedExpression
-                -> this.expressionAnalyzer.analyze(unresolvedExpression, context))
+            .map(
+                unresolvedExpression ->
+                    this.expressionAnalyzer.analyze(unresolvedExpression, context))
             .collect(Collectors.joining(","));
     return StringUtils.format("source=%s(%s)", node.getFunctionName().toString(), arguments);
   }
@@ -116,37 +112,34 @@ public class PPLQueryDataAnonymizer extends AbstractNodeVisitor<String, String> 
     return StringUtils.format("%s | where %s", child, condition);
   }
 
-  /**
-   * Build {@link LogicalRename}.
-   */
+  /** Build {@link LogicalRename}. */
   @Override
   public String visitRename(Rename node, String context) {
     String child = node.getChild().get(0).accept(this, context);
     ImmutableMap.Builder<String, String> renameMapBuilder = new ImmutableMap.Builder<>();
     for (Map renameMap : node.getRenameList()) {
-      renameMapBuilder.put(visitExpression(renameMap.getOrigin()),
+      renameMapBuilder.put(
+          visitExpression(renameMap.getOrigin()),
           ((Field) renameMap.getTarget()).getField().toString());
     }
     String renames =
-        renameMapBuilder.build().entrySet().stream().map(entry -> StringUtils.format("%s as %s",
-            entry.getKey(), entry.getValue())).collect(Collectors.joining(","));
+        renameMapBuilder.build().entrySet().stream()
+            .map(entry -> StringUtils.format("%s as %s", entry.getKey(), entry.getValue()))
+            .collect(Collectors.joining(","));
     return StringUtils.format("%s | rename %s", child, renames);
   }
 
-  /**
-   * Build {@link LogicalAggregation}.
-   */
+  /** Build {@link LogicalAggregation}. */
   @Override
   public String visitAggregation(Aggregation node, String context) {
     String child = node.getChild().get(0).accept(this, context);
     final String group = visitExpressionList(node.getGroupExprList());
-    return StringUtils.format("%s | stats %s", child,
-        String.join(" ", visitExpressionList(node.getAggExprList()), groupBy(group)).trim());
+    return StringUtils.format(
+        "%s | stats %s",
+        child, String.join(" ", visitExpressionList(node.getAggExprList()), groupBy(group)).trim());
   }
 
-  /**
-   * Build {@link LogicalRareTopN}.
-   */
+  /** Build {@link LogicalRareTopN}. */
   @Override
   public String visitRareTopN(RareTopN node, String context) {
     final String child = node.getChild().get(0).accept(this, context);
@@ -154,16 +147,15 @@ public class PPLQueryDataAnonymizer extends AbstractNodeVisitor<String, String> 
     Integer noOfResults = (Integer) options.get(0).getValue().getValue();
     String fields = visitFieldList(node.getFields());
     String group = visitExpressionList(node.getGroupExprList());
-    return StringUtils.format("%s | %s %d %s", child,
+    return StringUtils.format(
+        "%s | %s %d %s",
+        child,
         node.getCommandType().name().toLowerCase(),
         noOfResults,
-        String.join(" ", fields, groupBy(group)).trim()
-    );
+        String.join(" ", fields, groupBy(group)).trim());
   }
 
-  /**
-   * Build {@link LogicalProject} or {@link LogicalRemove} from {@link Field}.
-   */
+  /** Build {@link LogicalProject} or {@link LogicalRemove} from {@link Field}. */
   @Override
   public String visitProject(Project node, String context) {
     String child = node.getChild().get(0).accept(this, context);
@@ -180,9 +172,7 @@ public class PPLQueryDataAnonymizer extends AbstractNodeVisitor<String, String> 
     return StringUtils.format("%s | fields %s %s", child, arg, fields);
   }
 
-  /**
-   * Build {@link LogicalEval}.
-   */
+  /** Build {@link LogicalEval}. */
   @Override
   public String visitEval(Eval node, String context) {
     String child = node.getChild().get(0).accept(this, context);
@@ -192,14 +182,14 @@ public class PPLQueryDataAnonymizer extends AbstractNodeVisitor<String, String> 
       String target = let.getVar().getField().toString();
       expressionsBuilder.add(ImmutablePair.of(target, expression));
     }
-    String expressions = expressionsBuilder.build().stream().map(pair -> StringUtils.format("%s"
-        + "=%s", pair.getLeft(), pair.getRight())).collect(Collectors.joining(" "));
+    String expressions =
+        expressionsBuilder.build().stream()
+            .map(pair -> StringUtils.format("%s" + "=%s", pair.getLeft(), pair.getRight()))
+            .collect(Collectors.joining(" "));
     return StringUtils.format("%s | eval %s", child, expressions);
   }
 
-  /**
-   * Build {@link LogicalSort}.
-   */
+  /** Build {@link LogicalSort}. */
   @Override
   public String visitSort(Sort node, String context) {
     String child = node.getChild().get(0).accept(this, context);
@@ -208,9 +198,7 @@ public class PPLQueryDataAnonymizer extends AbstractNodeVisitor<String, String> 
     return StringUtils.format("%s | sort %s", child, sortList);
   }
 
-  /**
-   * Build {@link LogicalDedupe}.
-   */
+  /** Build {@link LogicalDedupe}. */
   @Override
   public String visitDedupe(Dedupe node, String context) {
     String child = node.getChild().get(0).accept(this, context);
@@ -220,10 +208,9 @@ public class PPLQueryDataAnonymizer extends AbstractNodeVisitor<String, String> 
     Boolean keepEmpty = (Boolean) options.get(1).getValue().getValue();
     Boolean consecutive = (Boolean) options.get(2).getValue().getValue();
 
-    return StringUtils
-        .format("%s | dedup %s %d keepempty=%b consecutive=%b", child, fields, allowedDuplication,
-            keepEmpty,
-            consecutive);
+    return StringUtils.format(
+        "%s | dedup %s %d keepempty=%b consecutive=%b",
+        child, fields, allowedDuplication, keepEmpty, consecutive);
   }
 
   @Override
@@ -238,8 +225,9 @@ public class PPLQueryDataAnonymizer extends AbstractNodeVisitor<String, String> 
   }
 
   private String visitExpressionList(List<UnresolvedExpression> expressionList) {
-    return expressionList.isEmpty() ? "" :
-        expressionList.stream().map(this::visitExpression).collect(Collectors.joining(","));
+    return expressionList.isEmpty()
+        ? ""
+        : expressionList.stream().map(this::visitExpression).collect(Collectors.joining(","));
   }
 
   private String visitExpression(UnresolvedExpression expression) {
@@ -250,11 +238,8 @@ public class PPLQueryDataAnonymizer extends AbstractNodeVisitor<String, String> 
     return Strings.isNullOrEmpty(groupBy) ? "" : StringUtils.format("by %s", groupBy);
   }
 
-  /**
-   * Expression Anonymizer.
-   */
-  private static class AnonymizerExpressionAnalyzer extends AbstractNodeVisitor<String,
-      String> {
+  /** Expression Anonymizer. */
+  private static class AnonymizerExpressionAnalyzer extends AbstractNodeVisitor<String, String> {
 
     public String analyze(UnresolvedExpression unresolved, String context) {
       return unresolved.accept(this, context);

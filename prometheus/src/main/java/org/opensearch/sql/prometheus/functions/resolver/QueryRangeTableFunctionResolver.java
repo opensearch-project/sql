@@ -39,11 +39,14 @@ public class QueryRangeTableFunctionResolver implements FunctionResolver {
     FunctionSignature functionSignature =
         new FunctionSignature(functionName, List.of(STRING, LONG, LONG, STRING));
     final List<String> argumentNames = List.of(QUERY, STARTTIME, ENDTIME, STEP);
-    FunctionBuilder functionBuilder = (functionProperties, arguments) -> {
-      validatePrometheusTableFunctionArguments(arguments, argumentNames);
-      List<Expression> namedArguments = getNamedArgumentsOfTableFunction(arguments, argumentNames);
-      return new QueryRangeFunctionImplementation(functionName, namedArguments, prometheusClient);
-    };
+    FunctionBuilder functionBuilder =
+        (functionProperties, arguments) -> {
+          validatePrometheusTableFunctionArguments(arguments, argumentNames);
+          List<Expression> namedArguments =
+              getNamedArgumentsOfTableFunction(arguments, argumentNames);
+          return new QueryRangeFunctionImplementation(
+              functionName, namedArguments, prometheusClient);
+        };
     return Pair.of(functionSignature, functionBuilder);
   }
 
@@ -51,5 +54,4 @@ public class QueryRangeTableFunctionResolver implements FunctionResolver {
   public FunctionName getFunctionName() {
     return FunctionName.of(QUERY_RANGE);
   }
-
 }

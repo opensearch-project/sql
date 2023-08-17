@@ -15,25 +15,20 @@ import static org.opensearch.sql.spark.data.constants.SparkConstants.FLINT_INTEG
 import lombok.Getter;
 
 public class FlintHelper {
-  @Getter
-  private final String flintIntegrationJar;
-  @Getter
-  private final String flintHost;
-  @Getter
-  private final String flintPort;
-  @Getter
-  private final String flintScheme;
-  @Getter
-  private final String flintAuth;
-  @Getter
-  private final String flintRegion;
+  @Getter private final String flintIntegrationJar;
+  @Getter private final String flintHost;
+  @Getter private final String flintPort;
+  @Getter private final String flintScheme;
+  @Getter private final String flintAuth;
+  @Getter private final String flintRegion;
 
-  /** Arguments required to write data to opensearch index using flint integration.
+  /**
+   * Arguments required to write data to opensearch index using flint integration.
    *
-   * @param flintHost   Opensearch host for flint
-   * @param flintPort   Opensearch port for flint integration
+   * @param flintHost Opensearch host for flint
+   * @param flintPort Opensearch port for flint integration
    * @param flintScheme Opensearch scheme for flint integration
-   * @param flintAuth   Opensearch auth for flint integration
+   * @param flintAuth Opensearch auth for flint integration
    * @param flintRegion Opensearch region for flint integration
    */
   public FlintHelper(

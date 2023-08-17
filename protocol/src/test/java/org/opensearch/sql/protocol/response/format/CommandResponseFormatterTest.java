@@ -29,32 +29,34 @@ public class CommandResponseFormatterTest {
   @Test
   public void produces_always_same_output_for_any_query_response() {
     var formatter = new CommandResponseFormatter();
-    assertEquals(formatter.format(mock(QueryResult.class)),
-        formatter.format(mock(QueryResult.class)));
+    assertEquals(
+        formatter.format(mock(QueryResult.class)), formatter.format(mock(QueryResult.class)));
 
-    QueryResult response = new QueryResult(
-        new ExecutionEngine.Schema(ImmutableList.of(
-            new ExecutionEngine.Schema.Column("name", "name", STRING),
-            new ExecutionEngine.Schema.Column("address", "address", OpenSearchTextType.of()),
-            new ExecutionEngine.Schema.Column("age", "age", INTEGER))),
-        ImmutableList.of(
-            tupleValue(ImmutableMap.<String, Object>builder()
-                    .put("name", "John")
-                    .put("address", "Seattle")
-                    .put("age", 20)
-                .build())),
-        new Cursor("test_cursor"));
+    QueryResult response =
+        new QueryResult(
+            new ExecutionEngine.Schema(
+                ImmutableList.of(
+                    new ExecutionEngine.Schema.Column("name", "name", STRING),
+                    new ExecutionEngine.Schema.Column(
+                        "address", "address", OpenSearchTextType.of()),
+                    new ExecutionEngine.Schema.Column("age", "age", INTEGER))),
+            ImmutableList.of(
+                tupleValue(
+                    ImmutableMap.<String, Object>builder()
+                        .put("name", "John")
+                        .put("address", "Seattle")
+                        .put("age", 20)
+                        .build())),
+            new Cursor("test_cursor"));
 
-    assertEquals("{\n"
-                + "  \"succeeded\": true\n"
-                + "}",
-        formatter.format(response));
+    assertEquals("{\n  \"succeeded\": true\n}", formatter.format(response));
   }
 
   @Test
   public void formats_error_as_default_formatter() {
     var exception = new Exception("pewpew", new RuntimeException("meow meow"));
-    assertEquals(new JdbcResponseFormatter(PRETTY).format(exception),
+    assertEquals(
+        new JdbcResponseFormatter(PRETTY).format(exception),
         new CommandResponseFormatter().format(exception));
   }
 

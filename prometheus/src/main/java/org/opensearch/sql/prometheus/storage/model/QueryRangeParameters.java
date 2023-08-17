@@ -21,5 +21,4 @@ public class QueryRangeParameters {
   private Long start;
   private Long end;
   private String step;
-
 }

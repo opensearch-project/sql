@@ -3,7 +3,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-
 package org.opensearch.sql.protocol.response.format;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -13,9 +12,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import java.util.Optional;
 import org.junit.jupiter.api.Test;
 
-/**
- * Unit test for {@link Format}.
- */
+/** Unit test for {@link Format}. */
 public class FormatTest {
 
   @Test
@@ -58,5 +55,4 @@ public class FormatTest {
     Optional<Format> format = Format.of("notsupport");
     assertFalse(format.isPresent());
   }
-
 }

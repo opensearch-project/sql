@@ -3,7 +3,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-
 package org.opensearch.sql.ppl;
 
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_BANK_CSV_SANITIZE;
@@ -22,29 +21,40 @@ public class CsvFormatIT extends PPLIntegTestCase {
 
   @Test
   public void sanitizeTest() throws IOException {
-    String result = executeCsvQuery(
-        String.format(Locale.ROOT, "source=%s | fields firstname, lastname", TEST_INDEX_BANK_CSV_SANITIZE));
-    assertEquals(StringUtils.format(
-        "firstname,lastname%n"
-            + "'+Amber JOHnny,Duke Willmington+%n"
-            + "'-Hattie,Bond-%n"
-            + "'=Nanette,Bates=%n"
-            + "'@Dale,Adams@%n"
-            + "\",Elinor\",\"Ratliff,,,\"%n"),
+    String result =
+        executeCsvQuery(
+            String.format(
+                Locale.ROOT,
+                "source=%s | fields firstname, lastname",
+                TEST_INDEX_BANK_CSV_SANITIZE));
+    assertEquals(
+        StringUtils.format(
+            "firstname,lastname%n"
+                + "'+Amber JOHnny,Duke Willmington+%n"
+                + "'-Hattie,Bond-%n"
+                + "'=Nanette,Bates=%n"
+                + "'@Dale,Adams@%n"
+                + "\",Elinor\",\"Ratliff,,,\"%n"),
         result);
   }
 
   @Test
   public void escapeSanitizeTest() throws IOException {
-    String result = executeCsvQuery(
-        String.format(Locale.ROOT, "source=%s | fields firstname, lastname", TEST_INDEX_BANK_CSV_SANITIZE), false);
-    assertEquals(StringUtils.format(
-        "firstname,lastname%n"
-            + "+Amber JOHnny,Duke Willmington+%n"
-            + "-Hattie,Bond-%n"
-            + "=Nanette,Bates=%n"
-            + "@Dale,Adams@%n"
-            + "\",Elinor\",\"Ratliff,,,\"%n"),
+    String result =
+        executeCsvQuery(
+            String.format(
+                Locale.ROOT,
+                "source=%s | fields firstname, lastname",
+                TEST_INDEX_BANK_CSV_SANITIZE),
+            false);
+    assertEquals(
+        StringUtils.format(
+            "firstname,lastname%n"
+                + "+Amber JOHnny,Duke Willmington+%n"
+                + "-Hattie,Bond-%n"
+                + "=Nanette,Bates=%n"
+                + "@Dale,Adams@%n"
+                + "\",Elinor\",\"Ratliff,,,\"%n"),
         result);
   }
 }

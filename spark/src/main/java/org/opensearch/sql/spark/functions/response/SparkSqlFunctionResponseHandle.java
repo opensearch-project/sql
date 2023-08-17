@@ -8,24 +8,18 @@ package org.opensearch.sql.spark.functions.response;
 import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.executor.ExecutionEngine;
 
-/**
- * Handle Spark response.
- */
+/** Handle Spark response. */
 public interface SparkSqlFunctionResponseHandle {
 
-  /**
-   * Return true if Spark response has more result.
-   */
+  /** Return true if Spark response has more result. */
   boolean hasNext();
 
   /**
-   * Return Spark response as {@link ExprValue}. Attention, the method must been called when
-   * hasNext return true.
+   * Return Spark response as {@link ExprValue}. Attention, the method must been called when hasNext
+   * return true.
    */
   ExprValue next();
 
-  /**
-   * Return ExecutionEngine.Schema of the Spark response.
-   */
+  /** Return ExecutionEngine.Schema of the Spark response. */
   ExecutionEngine.Schema schema();
 }

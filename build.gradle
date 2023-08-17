@@ -84,9 +84,16 @@ repositories {
 spotless {
     java {
         target fileTree('.') {
-            include 'common/**/*.java',
-                    'datasources/**/*.java',
-                    'core/**/*.java'
+            include 'datasources/**/*.java',
+                    'core/**/*.java',
+                    'protocol/**/*.java',
+                    'prometheus/**/*.java',
+                    'sql/**/*.java',
+                    'common/**/*.java',
+                    'spark/**/*.java',
+                    'plugin/**/*.java',
+                    'ppl/**/*.java',
+                    'integ-test/**/*java'
             exclude '**/build/**', '**/build-*/**'
         }
         importOrder()

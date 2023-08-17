@@ -3,7 +3,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-
 package org.opensearch.sql.sql.antlr;
 
 import org.junit.jupiter.api.Test;

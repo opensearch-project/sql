@@ -8,14 +8,10 @@ package org.opensearch.sql.prometheus.functions.response;
 import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.executor.ExecutionEngine;
 
-/**
- * Handle Prometheus response.
- */
+/** Handle Prometheus response. */
 public interface PrometheusFunctionResponseHandle {
 
-  /**
-   * Return true if Prometheus  response has more result.
-   */
+  /** Return true if Prometheus response has more result. */
   boolean hasNext();
 
   /**
@@ -24,8 +20,6 @@ public interface PrometheusFunctionResponseHandle {
    */
   ExprValue next();
 
-  /**
-   * Return ExecutionEngine.Schema of the Prometheus response.
-   */
+  /** Return ExecutionEngine.Schema of the Prometheus response. */
   ExecutionEngine.Schema schema();
 }

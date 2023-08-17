@@ -3,7 +3,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-
 package org.opensearch.sql.ppl;
 
 import static org.hamcrest.Matchers.equalTo;
@@ -44,9 +43,7 @@ public class MetricsIT extends PPLIntegTestCase {
   }
 
   private Request makeStatRequest() {
-    return new Request(
-        "GET", "/_plugins/_ppl/stats"
-    );
+    return new Request("GET", "/_plugins/_ppl/stats");
   }
 
   private int pplRequestTotal() throws IOException {
@@ -70,5 +67,4 @@ public class MetricsIT extends PPLIntegTestCase {
 
     return sb.toString();
   }
-
 }

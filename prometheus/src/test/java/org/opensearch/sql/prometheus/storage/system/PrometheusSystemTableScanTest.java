@@ -22,8 +22,7 @@ import org.opensearch.sql.prometheus.request.system.PrometheusSystemRequest;
 @ExtendWith(MockitoExtension.class)
 public class PrometheusSystemTableScanTest {
 
-  @Mock
-  private PrometheusSystemRequest request;
+  @Mock private PrometheusSystemRequest request;
 
   @Test
   public void queryData() {

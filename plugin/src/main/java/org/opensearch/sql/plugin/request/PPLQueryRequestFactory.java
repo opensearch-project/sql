@@ -3,7 +3,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-
 package org.opensearch.sql.plugin.request;
 
 import java.util.Map;
@@ -15,9 +14,7 @@ import org.opensearch.sql.ppl.domain.PPLQueryRequest;
 import org.opensearch.sql.protocol.response.format.Format;
 import org.opensearch.sql.protocol.response.format.JsonResponseFormatter;
 
-/**
- * Factory of {@link PPLQueryRequest}.
- */
+/** Factory of {@link PPLQueryRequest}. */
 public class PPLQueryRequestFactory {
   private static final String PPL_URL_PARAM_KEY = "ppl";
   private static final String PPL_FIELD_NAME = "query";
@@ -28,6 +25,7 @@ public class PPLQueryRequestFactory {
 
   /**
    * Build {@link PPLQueryRequest} from {@link RestRequest}.
+   *
    * @param request {@link PPLQueryRequest}
    * @return {@link RestRequest}
    */
@@ -63,8 +61,12 @@ public class PPLQueryRequestFactory {
     } catch (JSONException e) {
       throw new IllegalArgumentException("Failed to parse request payload", e);
     }
-    PPLQueryRequest pplRequest = new PPLQueryRequest(jsonContent.getString(PPL_FIELD_NAME),
-        jsonContent, restRequest.path(), format.getFormatName());
+    PPLQueryRequest pplRequest =
+        new PPLQueryRequest(
+            jsonContent.getString(PPL_FIELD_NAME),
+            jsonContent,
+            restRequest.path(),
+            format.getFormatName());
     // set sanitize option if csv format
     if (format.equals(Format.CSV)) {
       pplRequest.sanitize(getSanitizeOption(restRequest.params()));

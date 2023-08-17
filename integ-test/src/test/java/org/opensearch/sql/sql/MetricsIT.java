@@ -3,7 +3,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-
 package org.opensearch.sql.sql;
 
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_BANK;
@@ -40,9 +39,7 @@ public class MetricsIT extends SQLIntegTestCase {
   }
 
   private Request makeStatRequest() {
-    return new Request(
-        "GET", STATS_API_ENDPOINT
-    );
+    return new Request("GET", STATS_API_ENDPOINT);
   }
 
   private int requestTotal() throws IOException {
