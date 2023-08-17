@@ -144,97 +144,89 @@ public class DateTimeFormatsIT extends SQLIntegTestCase {
   @Test
   @SneakyThrows
   public void testDateNanosWithFormats() {
-    String query = String.format("SELECT hour_minute_second_OR_t_time"
-        + " FROM %s", TEST_INDEX_DATE_FORMATS);
+    String query =
+        String.format("SELECT hour_minute_second_OR_t_time" + " FROM %s", TEST_INDEX_DATE_FORMATS);
     JSONObject result = executeQuery(query);
-    verifySchema(result,
-        schema("hour_minute_second_OR_t_time", null, "time"));
-    verifyDataRows(result,
-        rows("09:07:42"),
-        rows("07:07:42.123456789"));
+    verifySchema(result, schema("hour_minute_second_OR_t_time", null, "time"));
+    verifyDataRows(result, rows("09:07:42"), rows("07:07:42.123456789"));
   }
 
   @Test
   @SneakyThrows
   public void testDateNanosWithFunctions() {
     // in memory funcs
-    String query = String.format(
-        "SELECT"
-            + " hour_minute_second_OR_t_time > TIME '08:07:00',"
-            + " hour_minute_second_OR_t_time < TIME '08:07:00',"
-            + " hour_minute_second_OR_t_time = t_time_no_millis,"
-            + " hour_minute_second_OR_t_time <> strict_t_time,"
-            + " hour_minute_second_OR_t_time >= t_time"
-            + " FROM %s",
-        TEST_INDEX_DATE_FORMATS);
+    String query =
+        String.format(
+            "SELECT"
+                + " hour_minute_second_OR_t_time > TIME '08:07:00',"
+                + " hour_minute_second_OR_t_time < TIME '08:07:00',"
+                + " hour_minute_second_OR_t_time = t_time_no_millis,"
+                + " hour_minute_second_OR_t_time <> strict_t_time,"
+                + " hour_minute_second_OR_t_time >= t_time"
+                + " FROM %s",
+            TEST_INDEX_DATE_FORMATS);
     JSONObject result = executeQuery(query);
-    verifySchema(result,
+    verifySchema(
+        result,
         schema("hour_minute_second_OR_t_time > TIME '08:07:00'", null, "boolean"),
         schema("hour_minute_second_OR_t_time < TIME '08:07:00'", null, "boolean"),
         schema("hour_minute_second_OR_t_time = t_time_no_millis", null, "boolean"),
         schema("hour_minute_second_OR_t_time <> strict_t_time", null, "boolean"),
         schema("hour_minute_second_OR_t_time >= t_time", null, "boolean"));
-    verifyDataRows(result,
-        rows(true, false, true, false, true),
-        rows(false, true, false, true, false));
+    verifyDataRows(
+        result, rows(true, false, true, false, true), rows(false, true, false, true, false));
     // push down
-    query = String.format(
-        "SELECT hour_minute_second_OR_t_time"
-            + " FROM %s WHERE hour_minute_second_OR_t_time > TIME '08:07:00'",
-        TEST_INDEX_DATE_FORMATS);
+    query =
+        String.format(
+            "SELECT hour_minute_second_OR_t_time"
+                + " FROM %s WHERE hour_minute_second_OR_t_time > TIME '08:07:00'",
+            TEST_INDEX_DATE_FORMATS);
     result = executeQuery(query);
-    verifySchema(result,
-        schema("hour_minute_second_OR_t_time", null, "time"));
-    verifyDataRows(result,
-        rows("09:07:42"));
-    query = String.format(
-        "SELECT hour_minute_second_OR_t_time"
-            + " FROM %s WHERE hour_minute_second_OR_t_time < TIME '08:07:00'",
-        TEST_INDEX_DATE_FORMATS);
+    verifySchema(result, schema("hour_minute_second_OR_t_time", null, "time"));
+    verifyDataRows(result, rows("09:07:42"));
+    query =
+        String.format(
+            "SELECT hour_minute_second_OR_t_time"
+                + " FROM %s WHERE hour_minute_second_OR_t_time < TIME '08:07:00'",
+            TEST_INDEX_DATE_FORMATS);
     result = executeQuery(query);
-    verifySchema(result,
-        schema("hour_minute_second_OR_t_time", null, "time"));
-    verifyDataRows(result,
-        rows("07:07:42.123456789"));
+    verifySchema(result, schema("hour_minute_second_OR_t_time", null, "time"));
+    verifyDataRows(result, rows("07:07:42.123456789"));
   }
 
   @Test
   @SneakyThrows
   public void testDateNanosOrderBy() {
-    String query = String.format("SELECT hour_minute_second_OR_t_time"
-        + " FROM %s ORDER BY hour_minute_second_OR_t_time ASC", TEST_INDEX_DATE_FORMATS);
+    String query =
+        String.format(
+            "SELECT hour_minute_second_OR_t_time"
+                + " FROM %s ORDER BY hour_minute_second_OR_t_time ASC",
+            TEST_INDEX_DATE_FORMATS);
     JSONObject result = executeQuery(query);
-    verifySchema(result,
-        schema("hour_minute_second_OR_t_time", null, "time"));
-    verifyDataRows(result,
-        rows("07:07:42.123456789"),
-        rows("09:07:42"));
+    verifySchema(result, schema("hour_minute_second_OR_t_time", null, "time"));
+    verifyDataRows(result, rows("07:07:42.123456789"), rows("09:07:42"));
   }
-
 
   @Test
   @SneakyThrows
   public void testDateNanosGroupBy() {
-    String query = String.format("SELECT count(*)"
-        + " FROM %s GROUP BY hour_minute_second_OR_t_time", TEST_INDEX_DATE_FORMATS);
+    String query =
+        String.format(
+            "SELECT count(*)" + " FROM %s GROUP BY hour_minute_second_OR_t_time",
+            TEST_INDEX_DATE_FORMATS);
     JSONObject result = executeQuery(query);
-    verifySchema(result,
-        schema("count(*)", null, "integer"));
-    verifyDataRows(result,
-        rows(1),
-        rows(1));
+    verifySchema(result, schema("count(*)", null, "integer"));
+    verifyDataRows(result, rows(1), rows(1));
   }
 
   @Test
   @SneakyThrows
   public void testDateNanosWithNanos() {
-    String query = String.format("SELECT date_nanos_value"
-        + " FROM %s", TEST_INDEX_DATATYPE_NONNUMERIC);
+    String query =
+        String.format("SELECT date_nanos_value" + " FROM %s", TEST_INDEX_DATATYPE_NONNUMERIC);
     JSONObject result = executeQuery(query);
-    verifySchema(result,
-        schema("date_nanos_value", null, "timestamp"));
-    verifyDataRows(result,
-        rows("2019-03-24 01:34:46.123456789"));
+    verifySchema(result, schema("date_nanos_value", null, "timestamp"));
+    verifyDataRows(result, rows("2019-03-24 01:34:46.123456789"));
   }
 
   protected JSONObject executeQuery(String query) throws IOException {
