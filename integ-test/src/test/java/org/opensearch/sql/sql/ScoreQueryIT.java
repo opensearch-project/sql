@@ -27,6 +27,8 @@ public class ScoreQueryIT extends SQLIntegTestCase {
   }
 
   /**
+   *
+   *
    * <pre>
    * "query" : {
    *   "from": 0,
@@ -86,6 +88,7 @@ public class ScoreQueryIT extends SQLIntegTestCase {
    *   "track_scores": true
    * }
    * </pre>
+   *
    * @throws IOException
    */
   @Test

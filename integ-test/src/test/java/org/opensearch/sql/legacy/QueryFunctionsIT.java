@@ -43,6 +43,8 @@ public class QueryFunctionsIT extends SQLIntegTestCase {
   private static final String FROM_PHRASE = "FROM " + TEST_INDEX_PHRASE;
 
   /**
+   *
+   *
    * <pre>
    * TODO Looks like Math/Date Functions test all use the same query() and execute() functions
    * TODO execute/featureValueOf/hits functions are the same as used in NestedFieldQueryIT, should refactor into util
@@ -168,6 +170,8 @@ public class QueryFunctionsIT extends SQLIntegTestCase {
   }
 
   /**
+   *
+   *
    * <pre>
    * Create Matchers for each field and its value
    * Only one of the Matchers need to match (per hit)
@@ -178,6 +182,7 @@ public class QueryFunctionsIT extends SQLIntegTestCase {
    * Then the value "Ayers" can be found in either the firstname or lastname field. Only one of these fields
    * need to satisfy the query value to be evaluated as correct expected output.
    * </pre>
+   *
    * @param value The value to match for a field in the sourceMap
    * @param fields A list of fields to match
    */
