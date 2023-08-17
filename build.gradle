@@ -91,7 +91,6 @@ spotless {
                     'common/**/*.java',
                     'spark/**/*.java',
                     'plugin/**/*.java',
-                    'sql/**/*.java',
                     'ppl/**/*.java'
             exclude '**/build/**', '**/build-*/**'
         }
