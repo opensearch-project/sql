@@ -76,8 +76,7 @@ public class OrderIT extends SQLIntegTestCase {
 
     // Another equivalent syntax
     assertThat(
-        explainQuery(
-            "SELECT * FROM opensearch-sql_test_index_order ORDER BY id IS NULL, id DESC"),
+        explainQuery("SELECT * FROM opensearch-sql_test_index_order ORDER BY id IS NULL, id DESC"),
         equalTo(
             explainQuery(
                 "SELECT * FROM opensearch-sql_test_index_order ORDER BY id IS NULL DESC")));

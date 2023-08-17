@@ -17,12 +17,10 @@ import org.junit.Test;
 
 public class DateTimeImplementationIT extends PPLIntegTestCase {
 
-
   @Override
   public void init() throws IOException {
     loadIndex(Index.DATE);
   }
-
 
   @Test
   public void inRangeZeroToStringTZ() throws IOException {
@@ -68,7 +66,6 @@ public class DateTimeImplementationIT extends PPLIntegTestCase {
     verifySchema(result, schema("f", null, "datetime"));
     verifySome(result.getJSONArray("datarows"), rows("2004-02-29 19:00:00"));
   }
-
 
   @Test
   public void inRangeYearChange() throws IOException {

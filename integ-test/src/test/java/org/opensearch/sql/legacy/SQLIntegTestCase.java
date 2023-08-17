@@ -99,6 +99,8 @@ public abstract class SQLIntegTestCase extends OpenSearchSQLRestTestCase {
   }
 
   /**
+   *
+   *
    * <pre>
    * We need to be able to dump the jacoco coverage before cluster is shut down.
    * The new internal testing framework removed some of the gradle tasks we were listening to
@@ -143,9 +145,9 @@ public abstract class SQLIntegTestCase extends OpenSearchSQLRestTestCase {
 
   /**
    * As JUnit JavaDoc says:<br>
-    "The @AfterClass methods declared in superclasses will be run after those of the current class."<br>
-    So this method is supposed to run before closeClients() in parent class.
-   * class.
+   * "The @AfterClass methods declared in superclasses will be run after those of the current
+   * class."<br>
+   * So this method is supposed to run before closeClients() in parent class. class.
    */
   @AfterClass
   public static void cleanUpIndices() throws IOException {
@@ -440,14 +442,11 @@ public abstract class SQLIntegTestCase extends OpenSearchSQLRestTestCase {
   }
 
   protected String makeRequest(String query, int fetch_size) {
-    return String.format(
-            "{ \"fetch_size\": \"%s\", \"query\": \"%s\" }", fetch_size, query);
+    return String.format("{ \"fetch_size\": \"%s\", \"query\": \"%s\" }", fetch_size, query);
   }
 
   protected String makeFetchLessRequest(String query) {
-    return String.format("{\n" +
-        "  \"query\": \"%s\"\n" +
-        "}", query);
+    return String.format("{\n" + "  \"query\": \"%s\"\n" + "}", query);
   }
 
   protected String makeCursorRequest(String cursor) {

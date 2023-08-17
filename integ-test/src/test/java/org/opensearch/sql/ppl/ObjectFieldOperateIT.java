@@ -28,8 +28,7 @@ public class ObjectFieldOperateIT extends PPLIntegTestCase {
     JSONObject result =
         executeQuery(
             String.format(
-                "source=%s | fields city.name, city.location.latitude",
-                TEST_INDEX_DEEP_NESTED));
+                "source=%s | fields city.name, city.location.latitude", TEST_INDEX_DEEP_NESTED));
     verifySchema(result, schema("city.name", "string"), schema("city.location.latitude", "double"));
     verifyDataRows(result, rows("Seattle", 10.5));
   }
