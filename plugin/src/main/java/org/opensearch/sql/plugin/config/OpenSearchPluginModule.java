@@ -104,9 +104,8 @@ public class OpenSearchPluginModule extends AbstractModule {
   @Provides
   public QueryPlanFactory queryPlanFactory(DataSourceService dataSourceService,
       ExecutionEngine executionEngine) {
-    Analyzer analyzer =
-        new Analyzer(
-            new ExpressionAnalyzer(functionRepository), dataSourceService, functionRepository);
+    Analyzer analyzer = dataSourceService.getDataSource("@opensearch")
+        .getStorageEngine().getAnalyzer(dataSourceService, functionRepository);
     Planner planner = new Planner(LogicalPlanOptimizer.create());
     QueryService queryService = new QueryService(
         analyzer, executionEngine, planner);

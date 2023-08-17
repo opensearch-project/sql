@@ -11,9 +11,14 @@ import static org.opensearch.sql.utils.SystemIndexUtils.isSystemIndex;
 import java.util.Collection;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
+import org.opensearch.Build;
 import org.opensearch.sql.DataSourceSchemaName;
+import org.opensearch.sql.analysis.Analyzer;
 import org.opensearch.sql.common.setting.Settings;
+import org.opensearch.sql.datasource.DataSourceService;
+import org.opensearch.sql.expression.function.BuiltinFunctionRepository;
 import org.opensearch.sql.expression.function.FunctionResolver;
+import org.opensearch.sql.opensearch.analysis.OpenSearchAnalyzer;
 import org.opensearch.sql.opensearch.client.OpenSearchClient;
 import org.opensearch.sql.opensearch.functions.OpenSearchFunctions;
 import org.opensearch.sql.opensearch.storage.system.OpenSearchSystemIndex;
@@ -42,5 +47,10 @@ public class OpenSearchStorageEngine implements StorageEngine {
   @Override
   public Collection<FunctionResolver> getFunctions() {
     return OpenSearchFunctions.getResolvers();
+  }
+
+  @Override
+  public Analyzer getAnalyzer(DataSourceService dataSourceService, BuiltinFunctionRepository repository){
+    return new OpenSearchAnalyzer(dataSourceService, repository);
   }
 }
