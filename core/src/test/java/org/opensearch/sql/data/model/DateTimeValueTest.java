@@ -127,6 +127,8 @@ public class DateTimeValueTest {
   public void stringDateValue() {
     ExprValue stringValue = new ExprStringValue("2020-08-17");
 
+    assertEquals(
+        ZonedDateTime.parse("2020-08-17T00:00:00Z").toInstant(), stringValue.timestampValue());
     assertEquals(LocalDate.parse("2020-08-17"), stringValue.dateValue());
     assertEquals("\"2020-08-17\"", stringValue.toString());
 
@@ -197,8 +199,8 @@ public class DateTimeValueTest {
             SemanticCheckException.class,
             () -> new ExprTimestampValue("2020-07-07 01:01:01.1234567890"));
     assertEquals(
-        "timestamp:2020-07-07 01:01:01.1234567890 in unsupported format, "
-            + "please use 'yyyy-MM-dd HH:mm:ss[.SSSSSSSSS]'",
+        "timestamp:2020-07-07 01:01:01.1234567890 in unsupported format, please use "
+            + "'yyyy-MM-dd HH:mm:ss[.SSSSSSSSS]'",
         exception.getMessage());
   }
 
