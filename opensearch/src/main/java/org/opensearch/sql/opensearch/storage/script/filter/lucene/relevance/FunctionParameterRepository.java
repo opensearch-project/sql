@@ -235,7 +235,7 @@ public class FunctionParameterRepository {
                   + "https://docs.oracle.com/javase/8/docs/api/java/time/ZoneId.html#of-java.lang.String-")
           .put(
               "fuzziness",
-              "Available values are: " + "'AUTO', 'AUTO:x,y' or z, where x, y, z - integer values.")
+              "Available values are: 'AUTO', 'AUTO:x,y' or z, where x, y, z - integer values.")
           .put(
               "operator",
               String.format(
