@@ -15,30 +15,52 @@ import static org.opensearch.sql.util.MatcherUtils.verifyColumn;
 import static org.opensearch.sql.util.MatcherUtils.verifyDataRows;
 
 import java.io.IOException;
+import lombok.SneakyThrows;
 import org.json.JSONObject;
-import org.junit.Rule;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.rules.ExpectedException;
 import org.opensearch.client.ResponseException;
 
 public class CrossClusterSearchIT extends PPLIntegTestCase {
 
-  @Rule
-  public ExpectedException exceptionRule = ExpectedException.none();
+  static {
+    // find a remote cluster
+    String[] clusterNames = System.getProperty("cluster.names").split(",");
+    var remote = "remoteCluster";
+    for (var cluster : clusterNames) {
+      if (cluster.startsWith("remote")) {
+         remote = cluster;
+      }
+    }
+    REMOTE_CLUSTER = remote;
+  }
+
+  public static final String REMOTE_CLUSTER;
 
   private final static String TEST_INDEX_BANK_REMOTE = REMOTE_CLUSTER + ":" + TEST_INDEX_BANK;
   private final static String TEST_INDEX_DOG_REMOTE = REMOTE_CLUSTER + ":" + TEST_INDEX_DOG;
   private final static String TEST_INDEX_DOG_MATCH_ALL_REMOTE = MATCH_ALL_REMOTE_CLUSTER + ":" + TEST_INDEX_DOG;
   private final static String TEST_INDEX_ACCOUNT_REMOTE = REMOTE_CLUSTER + ":" + TEST_INDEX_ACCOUNT;
 
+  private static boolean initialized = false;
+
+  @SneakyThrows
+  @BeforeEach
+  public void initialize() {
+    if (!initialized) {
+      setUpIndices();
+      initialized = true;
+    }
+  }
+
   @Override
-  public void init() throws IOException {
-    configureMultiClusters();
+  protected void init() throws Exception {
+    configureMultiClusters(REMOTE_CLUSTER);
     loadIndex(Index.BANK);
     loadIndex(Index.BANK, remoteClient());
     loadIndex(Index.DOG);
     loadIndex(Index.DOG, remoteClient());
-    loadIndex(Index.ACCOUNT, remoteClient());
+    loadIndex(Index.ACCOUNT);
   }
 
   @Test
@@ -55,11 +77,10 @@ public class CrossClusterSearchIT extends PPLIntegTestCase {
 
   @Test
   public void testCrossClusterSearchWithoutLocalFieldMappingShouldFail() throws IOException {
-    exceptionRule.expect(ResponseException.class);
-    exceptionRule.expectMessage("400 Bad Request");
-    exceptionRule.expectMessage("IndexNotFoundException");
-
-    executeQuery(String.format("search source=%s", TEST_INDEX_ACCOUNT_REMOTE));
+    var exception = assertThrows(ResponseException.class, () ->
+        executeQuery(String.format("search source=%s", TEST_INDEX_ACCOUNT_REMOTE)));
+    assertTrue(exception.getMessage().contains("IndexNotFoundException")
+        && exception.getMessage().contains("400 Bad Request"));
   }
 
   @Test
