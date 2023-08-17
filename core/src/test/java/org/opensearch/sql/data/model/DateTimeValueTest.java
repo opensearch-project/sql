@@ -38,8 +38,6 @@ public class DateTimeValueTest {
     assertEquals("invalid to get dateValue from value of type TIME", exception.getMessage());
     exception = assertThrows(ExpressionEvaluationException.class, timeValue::timestampValue);
     assertEquals("invalid to get timestampValue from value of type TIME", exception.getMessage());
-    exception = assertThrows(ExpressionEvaluationException.class, timeValue::timestampValue);
-    assertEquals("invalid to get timestampValue from value of type TIME", exception.getMessage());
 
     var functionProperties = new FunctionProperties();
     var today = LocalDate.now(functionProperties.getQueryStartClock());
@@ -129,7 +127,6 @@ public class DateTimeValueTest {
   public void stringDateValue() {
     ExprValue stringValue = new ExprStringValue("2020-08-17");
 
-    assertEquals(LocalDate.parse("2020-08-17"), stringValue.dateValue());
     assertEquals(LocalDate.parse("2020-08-17"), stringValue.dateValue());
     assertEquals("\"2020-08-17\"", stringValue.toString());
 

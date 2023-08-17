@@ -10,6 +10,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.opensearch.sql.data.type.ExprCoreType.DATE;
 import static org.opensearch.sql.data.type.ExprCoreType.TIMESTAMP;
 import static org.opensearch.sql.utils.DateTimeUtils.UTC_ZONE_ID;
+import static org.opensearch.sql.utils.DateTimeUtils.UTC_ZONE_OFFSET;
 
 import java.time.Duration;
 import java.time.Instant;
@@ -17,7 +18,6 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.Period;
-import java.time.ZoneOffset;
 import org.junit.jupiter.api.Test;
 import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.exception.ExpressionEvaluationException;
@@ -116,7 +116,8 @@ public class DateSubAndSubDateTest extends DateTimeTestBase {
   public void date_sub_returns_datetime_when_first_arg_is_timestamp() {
     var res =
         date_sub(
-            LocalDateTime.of(1961, 4, 12, 9, 7).toInstant(ZoneOffset.UTC), Duration.ofMinutes(108));
+            LocalDateTime.of(1961, 4, 12, 9, 7).toInstant(UTC_ZONE_OFFSET),
+            Duration.ofMinutes(108));
     assertEquals(TIMESTAMP, res.type());
     assertEquals(LocalDateTime.of(1961, 4, 12, 7, 19), toLocalDateTime(res));
   }

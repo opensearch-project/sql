@@ -7,12 +7,12 @@ package org.opensearch.sql.expression.datetime;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.opensearch.sql.utils.DateTimeUtils.UTC_ZONE_OFFSET;
 
 import java.text.DecimalFormat;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.time.ZoneOffset;
 import java.time.temporal.ChronoField;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.Test;
@@ -77,15 +77,15 @@ public class UnixTimeStampTest extends DateTimeTestBase {
   @ParameterizedTest
   @MethodSource("getDateTimeSamples")
   public void checkOfDateTime(LocalDateTime value) {
-    assertEquals(value.toEpochSecond(ZoneOffset.UTC), unixTimeStampOf(value));
+    assertEquals(value.toEpochSecond(UTC_ZONE_OFFSET), unixTimeStampOf(value));
     assertEquals(
-        value.toEpochSecond(ZoneOffset.UTC),
+        value.toEpochSecond(UTC_ZONE_OFFSET),
         eval(unixTimeStampOf(DSL.literal(new ExprTimestampValue(value)))).longValue());
   }
 
   private static Stream<Arguments> getInstantSamples() {
     return getDateTimeSamples()
-        .map(v -> Arguments.of(((LocalDateTime) v.get()[0]).toInstant(ZoneOffset.UTC)));
+        .map(v -> Arguments.of(((LocalDateTime) v.get()[0]).toInstant(UTC_ZONE_OFFSET)));
   }
 
   /**
@@ -126,9 +126,9 @@ public class UnixTimeStampTest extends DateTimeTestBase {
   public void checkOfDoubleFormats(Double valueAsDouble, LocalDateTime valueAsLDT) {
     var valueAsStr = new DecimalFormat("0.#").format(valueAsDouble);
     assertEquals(
-        valueAsLDT.toEpochSecond(ZoneOffset.UTC), unixTimeStampOf(valueAsDouble), 1d, valueAsStr);
+        valueAsLDT.toEpochSecond(UTC_ZONE_OFFSET), unixTimeStampOf(valueAsDouble), 1d, valueAsStr);
     assertEquals(
-        valueAsLDT.toEpochSecond(ZoneOffset.UTC),
+        valueAsLDT.toEpochSecond(UTC_ZONE_OFFSET),
         eval(unixTimeStampOf(DSL.literal(new ExprDoubleValue(valueAsDouble)))).longValue(),
         1d,
         valueAsStr);
@@ -139,7 +139,7 @@ public class UnixTimeStampTest extends DateTimeTestBase {
     // 19991231235959.99 passed ok, but 19991231235959.999999 rounded to ...60.0 which is incorrect
     // It is a double type limitation
     var valueDt = LocalDateTime.of(1999, 12, 31, 23, 59, 59, 999_999_999);
-    assertEquals(valueDt.toEpochSecond(ZoneOffset.UTC), unixTimeStampOf(19991231235959.99d), 1d);
+    assertEquals(valueDt.toEpochSecond(UTC_ZONE_OFFSET), unixTimeStampOf(19991231235959.99d), 1d);
   }
 
   @Test

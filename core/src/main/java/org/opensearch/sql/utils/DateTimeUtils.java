@@ -9,6 +9,7 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
+import java.time.ZoneOffset;
 import java.time.ZonedDateTime;
 import lombok.experimental.UtilityClass;
 import org.opensearch.sql.data.model.ExprTimeValue;
@@ -152,4 +153,5 @@ public class DateTimeUtils {
   }
 
   public static final ZoneId UTC_ZONE_ID = ZoneId.of("UTC");
+  public static final ZoneOffset UTC_ZONE_OFFSET = ZoneOffset.UTC;
 }

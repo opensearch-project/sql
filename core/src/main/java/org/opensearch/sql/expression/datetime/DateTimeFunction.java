@@ -41,6 +41,7 @@ import static org.opensearch.sql.utils.DateTimeFormatters.SHORT_DATE_LENGTH;
 import static org.opensearch.sql.utils.DateTimeFormatters.SINGLE_DIGIT_MONTH_DATE_LENGTH;
 import static org.opensearch.sql.utils.DateTimeFormatters.SINGLE_DIGIT_YEAR_DATE_LENGTH;
 import static org.opensearch.sql.utils.DateTimeUtils.UTC_ZONE_ID;
+import static org.opensearch.sql.utils.DateTimeUtils.UTC_ZONE_OFFSET;
 import static org.opensearch.sql.utils.DateTimeUtils.extractDate;
 import static org.opensearch.sql.utils.DateTimeUtils.extractTimestamp;
 
@@ -58,7 +59,6 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.ZoneId;
-import java.time.ZoneOffset;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
@@ -2004,7 +2004,7 @@ public class DateTimeFunction {
    */
   private ExprValue exprToSeconds(ExprValue date) {
     return new ExprLongValue(
-        date.timestampValue().atOffset(ZoneOffset.UTC).toEpochSecond()
+        date.timestampValue().atOffset(UTC_ZONE_OFFSET).toEpochSecond()
             + DAYS_0000_TO_1970 * SECONDS_PER_DAY);
   }
 
@@ -2064,7 +2064,7 @@ public class DateTimeFunction {
               String.valueOf(dateExpr.integerValue()), getFormatter(dateExpr.integerValue()));
 
       return new ExprLongValue(
-          date.toEpochSecond(LocalTime.MIN, ZoneOffset.UTC) + DAYS_0000_TO_1970 * SECONDS_PER_DAY);
+          date.toEpochSecond(LocalTime.MIN, UTC_ZONE_OFFSET) + DAYS_0000_TO_1970 * SECONDS_PER_DAY);
 
     } catch (DateTimeException ignored) {
       // Return null if parsing error
@@ -2118,7 +2118,7 @@ public class DateTimeFunction {
     //    The date argument may be a DATE, DATETIME, or TIMESTAMP ...
     switch ((ExprCoreType) value.type()) {
       case DATE:
-        return value.dateValue().toEpochSecond(LocalTime.MIN, ZoneOffset.UTC) + 0d;
+        return value.dateValue().toEpochSecond(LocalTime.MIN, UTC_ZONE_OFFSET) + 0d;
       case TIMESTAMP:
         return value.timestampValue().getEpochSecond() + value.timestampValue().getNano() / 1E9;
       default:
@@ -2140,25 +2140,25 @@ public class DateTimeFunction {
         }
         try {
           var res = LocalDateTime.parse(input, DATE_TIME_FORMATTER_SHORT_YEAR);
-          return res.toEpochSecond(ZoneOffset.UTC) + fraction;
+          return res.toEpochSecond(UTC_ZONE_OFFSET) + fraction;
         } catch (DateTimeParseException ignored) {
           // nothing to do, try another format
         }
         try {
           var res = LocalDateTime.parse(input, DATE_TIME_FORMATTER_LONG_YEAR);
-          return res.toEpochSecond(ZoneOffset.UTC) + fraction;
+          return res.toEpochSecond(UTC_ZONE_OFFSET) + fraction;
         } catch (DateTimeParseException ignored) {
           // nothing to do, try another format
         }
         try {
           var res = LocalDate.parse(input, DATE_FORMATTER_SHORT_YEAR);
-          return res.toEpochSecond(LocalTime.MIN, ZoneOffset.UTC) + 0d;
+          return res.toEpochSecond(LocalTime.MIN, UTC_ZONE_OFFSET) + 0d;
         } catch (DateTimeParseException ignored) {
           // nothing to do, try another format
         }
         try {
           var res = LocalDate.parse(input, DATE_FORMATTER_LONG_YEAR);
-          return res.toEpochSecond(LocalTime.MIN, ZoneOffset.UTC) + 0d;
+          return res.toEpochSecond(LocalTime.MIN, UTC_ZONE_OFFSET) + 0d;
         } catch (DateTimeParseException ignored) {
           return null;
         }

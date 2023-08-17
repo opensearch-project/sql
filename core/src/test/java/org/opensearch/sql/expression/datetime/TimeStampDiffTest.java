@@ -8,11 +8,11 @@ package org.opensearch.sql.expression.datetime;
 import static org.junit.jupiter.api.Assertions.assertAll;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.opensearch.sql.utils.DateTimeUtils.UTC_ZONE_OFFSET;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
-import java.time.ZoneOffset;
 import java.util.Arrays;
 import java.util.stream.Stream;
 import org.apache.commons.lang3.ArrayUtils;
@@ -76,7 +76,7 @@ class TimeStampDiffTest extends ExpressionTestBase {
       case "TIME":
         return new ExprTimeValue(arg.toLocalTime());
       case "TIMESTAMP":
-        return new ExprTimestampValue(arg.toInstant(ZoneOffset.UTC));
+        return new ExprTimestampValue(arg.toInstant(UTC_ZONE_OFFSET));
       case "DATE":
         return new ExprDateValue(arg.toLocalDate());
       case "STRING":

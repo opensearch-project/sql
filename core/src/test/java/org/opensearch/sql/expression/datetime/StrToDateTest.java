@@ -8,12 +8,12 @@ package org.opensearch.sql.expression.datetime;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.opensearch.sql.data.type.ExprCoreType.TIMESTAMP;
 import static org.opensearch.sql.data.type.ExprCoreType.UNDEFINED;
+import static org.opensearch.sql.utils.DateTimeUtils.UTC_ZONE_OFFSET;
 
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
-import java.time.ZoneOffset;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -113,7 +113,7 @@ class StrToDateTest extends ExpressionTestBase {
     assertEquals(TIMESTAMP, result.type());
     assertEquals(
         getExpectedTimeResult(9, 23, 11),
-        LocalDateTime.ofInstant(result.timestampValue(), ZoneOffset.UTC));
+        LocalDateTime.ofInstant(result.timestampValue(), UTC_ZONE_OFFSET));
   }
 
   @Test
@@ -161,7 +161,7 @@ class StrToDateTest extends ExpressionTestBase {
             DSL.literal(new ExprStringValue(timeFormatResult)),
             DSL.literal(new ExprStringValue(format)));
     LocalDateTime strToDateResult =
-        LocalDateTime.ofInstant(eval(strToDateExpr).timestampValue(), ZoneOffset.UTC);
+        LocalDateTime.ofInstant(eval(strToDateExpr).timestampValue(), UTC_ZONE_OFFSET);
 
     assertEquals(getExpectedTimeResult(HOURS, MINUTES, SECONDS), strToDateResult);
   }

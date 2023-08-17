@@ -12,11 +12,11 @@ import static org.opensearch.sql.data.type.ExprCoreType.DATE;
 import static org.opensearch.sql.data.type.ExprCoreType.TIME;
 import static org.opensearch.sql.data.type.ExprCoreType.TIMESTAMP;
 import static org.opensearch.sql.utils.DateTimeUtils.UTC_ZONE_ID;
+import static org.opensearch.sql.utils.DateTimeUtils.UTC_ZONE_OFFSET;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
-import java.time.ZoneOffset;
 import java.time.ZonedDateTime;
 import java.time.temporal.ChronoUnit;
 import java.time.temporal.Temporal;
@@ -251,7 +251,7 @@ class NowLikeFunctionTest extends ExpressionTestBase {
       case DATE:
         return func.valueOf().dateValue();
       case TIMESTAMP:
-        return LocalDateTime.ofInstant(func.valueOf().timestampValue(), ZoneOffset.UTC);
+        return LocalDateTime.ofInstant(func.valueOf().timestampValue(), UTC_ZONE_OFFSET);
       case TIME:
         return func.valueOf().timeValue();
         // unreachable code

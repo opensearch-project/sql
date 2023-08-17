@@ -80,10 +80,6 @@ public class ExprValueCompareTest extends ExpressionTestBase {
         0,
         extractTimestamp(left, functionProperties)
             .compareTo(extractTimestamp(right, functionProperties)));
-    assertEquals(
-        0,
-        extractTimestamp(right, functionProperties)
-            .compareTo(extractTimestamp(left, functionProperties)));
   }
 
   private static Stream<Arguments> getNotEqualDatetimeValuesOfDifferentTypes() {
@@ -113,10 +109,6 @@ public class ExprValueCompareTest extends ExpressionTestBase {
         0,
         extractTimestamp(left, functionProperties)
             .compareTo(extractTimestamp(right, functionProperties)));
-    assertNotEquals(
-        0,
-        extractTimestamp(right, functionProperties)
-            .compareTo(extractTimestamp(left, functionProperties)));
   }
 
   @Test
