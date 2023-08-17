@@ -14,8 +14,8 @@ import org.mockito.Captor;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.opensearch.action.ActionListener;
 import org.opensearch.action.support.ActionFilters;
+import org.opensearch.core.action.ActionListener;
 import org.opensearch.sql.datasources.model.transport.DeleteDataSourceActionRequest;
 import org.opensearch.sql.datasources.model.transport.DeleteDataSourceActionResponse;
 import org.opensearch.sql.datasources.service.DataSourceServiceImpl;
@@ -25,28 +25,23 @@ import org.opensearch.transport.TransportService;
 @ExtendWith(MockitoExtension.class)
 public class TransportDeleteDataSourceActionTest {
 
-  @Mock
-  private TransportService transportService;
-  @Mock
-  private TransportDeleteDataSourceAction action;
-  @Mock
-  private DataSourceServiceImpl dataSourceService;
-  @Mock
-  private Task task;
-  @Mock
-  private ActionListener<DeleteDataSourceActionResponse> actionListener;
+  @Mock private TransportService transportService;
+  @Mock private TransportDeleteDataSourceAction action;
+  @Mock private DataSourceServiceImpl dataSourceService;
+  @Mock private Task task;
+  @Mock private ActionListener<DeleteDataSourceActionResponse> actionListener;
 
   @Captor
   private ArgumentCaptor<DeleteDataSourceActionResponse>
       deleteDataSourceActionResponseArgumentCaptor;
-  @Captor
-  private ArgumentCaptor<Exception> exceptionArgumentCaptor;
 
+  @Captor private ArgumentCaptor<Exception> exceptionArgumentCaptor;
 
   @BeforeEach
   public void setUp() {
-    action = new TransportDeleteDataSourceAction(transportService,
-        new ActionFilters(new HashSet<>()), dataSourceService);
+    action =
+        new TransportDeleteDataSourceAction(
+            transportService, new ActionFilters(new HashSet<>()), dataSourceService);
   }
 
   @Test
@@ -57,10 +52,10 @@ public class TransportDeleteDataSourceActionTest {
     verify(dataSourceService, times(1)).deleteDataSource("test_datasource");
     Mockito.verify(actionListener)
         .onResponse(deleteDataSourceActionResponseArgumentCaptor.capture());
-    DeleteDataSourceActionResponse deleteDataSourceActionResponse
-        = deleteDataSourceActionResponseArgumentCaptor.getValue();
-    Assertions.assertEquals("Deleted DataSource with name test_datasource",
-        deleteDataSourceActionResponse.getResult());
+    DeleteDataSourceActionResponse deleteDataSourceActionResponse =
+        deleteDataSourceActionResponseArgumentCaptor.getValue();
+    Assertions.assertEquals(
+        "Deleted DataSource with name test_datasource", deleteDataSourceActionResponse.getResult());
   }
 
   @Test
@@ -72,7 +67,6 @@ public class TransportDeleteDataSourceActionTest {
     Mockito.verify(actionListener).onFailure(exceptionArgumentCaptor.capture());
     Exception exception = exceptionArgumentCaptor.getValue();
     Assertions.assertTrue(exception instanceof RuntimeException);
-    Assertions.assertEquals("Error",
-        exception.getMessage());
+    Assertions.assertEquals("Error", exception.getMessage());
   }
 }

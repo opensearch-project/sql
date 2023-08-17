@@ -24,29 +24,25 @@ import org.mockito.junit.jupiter.MockitoExtension;
 @ExtendWith(MockitoExtension.class)
 public class BasicAuthenticationInterceptorTest {
 
-  @Mock
-  private Interceptor.Chain chain;
+  @Mock private Interceptor.Chain chain;
 
-  @Captor
-  ArgumentCaptor<Request> requestArgumentCaptor;
+  @Captor ArgumentCaptor<Request> requestArgumentCaptor;
 
   @Test
   void testConstructors() {
-    Assertions.assertThrows(NullPointerException.class, () ->
-        new BasicAuthenticationInterceptor(null, "test"));
-    Assertions.assertThrows(NullPointerException.class, () ->
-        new BasicAuthenticationInterceptor("testAdmin", null));
+    Assertions.assertThrows(
+        NullPointerException.class, () -> new BasicAuthenticationInterceptor(null, "test"));
+    Assertions.assertThrows(
+        NullPointerException.class, () -> new BasicAuthenticationInterceptor("testAdmin", null));
   }
-
 
   @Test
   @SneakyThrows
   void testIntercept() {
-    Mockito.when(chain.request()).thenReturn(new Request.Builder()
-            .url("http://localhost:9090")
-            .build());
-    BasicAuthenticationInterceptor basicAuthenticationInterceptor
-        = new BasicAuthenticationInterceptor("testAdmin", "testPassword");
+    Mockito.when(chain.request())
+        .thenReturn(new Request.Builder().url("http://localhost:9090").build());
+    BasicAuthenticationInterceptor basicAuthenticationInterceptor =
+        new BasicAuthenticationInterceptor("testAdmin", "testPassword");
     basicAuthenticationInterceptor.intercept(chain);
     Mockito.verify(chain).proceed(requestArgumentCaptor.capture());
     Request request = requestArgumentCaptor.getValue();
@@ -54,5 +50,4 @@ public class BasicAuthenticationInterceptorTest {
         Collections.singletonList(Credentials.basic("testAdmin", "testPassword")),
         request.headers("Authorization"));
   }
-
 }

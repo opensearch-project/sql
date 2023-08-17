@@ -6,13 +6,9 @@
 
 package org.opensearch.sql.opensearch.mapping;
 
-import java.util.HashMap;
-import java.util.LinkedHashMap;
 import java.util.Map;
-import java.util.stream.Collectors;
 import lombok.Getter;
 import lombok.ToString;
-import org.apache.commons.lang3.EnumUtils;
 import org.opensearch.cluster.metadata.MappingMetadata;
 import org.opensearch.sql.opensearch.data.type.OpenSearchDataType;
 

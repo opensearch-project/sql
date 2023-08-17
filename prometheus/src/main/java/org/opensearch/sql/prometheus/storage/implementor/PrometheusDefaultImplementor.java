@@ -29,13 +29,9 @@ import org.opensearch.sql.prometheus.storage.querybuilder.SeriesSelectionQueryBu
 import org.opensearch.sql.prometheus.storage.querybuilder.StepParameterResolver;
 import org.opensearch.sql.prometheus.storage.querybuilder.TimeRangeParametersResolver;
 
-/**
- * Default Implementor of Logical plan for prometheus.
- */
+/** Default Implementor of Logical plan for prometheus. */
 @RequiredArgsConstructor
-public class PrometheusDefaultImplementor
-    extends DefaultImplementor<PrometheusMetricScan> {
-
+public class PrometheusDefaultImplementor extends DefaultImplementor<PrometheusMetricScan> {
 
   @Override
   public PhysicalPlan visitNode(LogicalPlan plan, PrometheusMetricScan context) {
@@ -44,64 +40,64 @@ public class PrometheusDefaultImplementor
     } else if (plan instanceof PrometheusLogicalMetricAgg) {
       return visitIndexAggregation((PrometheusLogicalMetricAgg) plan, context);
     } else {
-      throw new IllegalStateException(StringUtils.format("unexpected plan node type %s",
-          plan.getClass()));
+      throw new IllegalStateException(
+          StringUtils.format("unexpected plan node type %s", plan.getClass()));
     }
   }
 
-  /**
-   * Implement PrometheusLogicalMetricScan.
-   */
-  public PhysicalPlan visitIndexScan(PrometheusLogicalMetricScan node,
-                                     PrometheusMetricScan context) {
+  /** Implement PrometheusLogicalMetricScan. */
+  public PhysicalPlan visitIndexScan(
+      PrometheusLogicalMetricScan node, PrometheusMetricScan context) {
     String query = SeriesSelectionQueryBuilder.build(node.getMetricName(), node.getFilter());
 
     context.getRequest().setPromQl(query);
     setTimeRangeParameters(node.getFilter(), context);
-    context.getRequest()
-        .setStep(StepParameterResolver.resolve(context.getRequest().getStartTime(),
-            context.getRequest().getEndTime(), null));
+    context
+        .getRequest()
+        .setStep(
+            StepParameterResolver.resolve(
+                context.getRequest().getStartTime(), context.getRequest().getEndTime(), null));
     return context;
   }
 
-  /**
-   * Implement PrometheusLogicalMetricAgg.
-   */
-  public PhysicalPlan visitIndexAggregation(PrometheusLogicalMetricAgg node,
-                                            PrometheusMetricScan context) {
+  /** Implement PrometheusLogicalMetricAgg. */
+  public PhysicalPlan visitIndexAggregation(
+      PrometheusLogicalMetricAgg node, PrometheusMetricScan context) {
     setTimeRangeParameters(node.getFilter(), context);
-    context.getRequest()
-        .setStep(StepParameterResolver.resolve(context.getRequest().getStartTime(),
-            context.getRequest().getEndTime(), node.getGroupByList()));
+    context
+        .getRequest()
+        .setStep(
+            StepParameterResolver.resolve(
+                context.getRequest().getStartTime(),
+                context.getRequest().getEndTime(),
+                node.getGroupByList()));
     String step = context.getRequest().getStep();
-    String seriesSelectionQuery
-        = SeriesSelectionQueryBuilder.build(node.getMetricName(), node.getFilter());
+    String seriesSelectionQuery =
+        SeriesSelectionQueryBuilder.build(node.getMetricName(), node.getFilter());
 
-    String aggregateQuery
-        = AggregationQueryBuilder.build(node.getAggregatorList(),
-        node.getGroupByList());
+    String aggregateQuery =
+        AggregationQueryBuilder.build(node.getAggregatorList(), node.getGroupByList());
 
     String finalQuery = String.format(aggregateQuery, seriesSelectionQuery + "[" + step + "]");
     context.getRequest().setPromQl(finalQuery);
 
-    //Since prometheus response doesn't have any fieldNames in its output.
-    //the field names are sent to PrometheusResponse constructor via context.
+    // Since prometheus response doesn't have any fieldNames in its output.
+    // the field names are sent to PrometheusResponse constructor via context.
     setPrometheusResponseFieldNames(node, context);
     return context;
   }
 
   @Override
-  public PhysicalPlan visitRelation(LogicalRelation node,
-                                    PrometheusMetricScan context) {
+  public PhysicalPlan visitRelation(LogicalRelation node, PrometheusMetricScan context) {
     PrometheusMetricTable prometheusMetricTable = (PrometheusMetricTable) node.getTable();
-    if (prometheusMetricTable.getMetricName() != null) {
-      String query = SeriesSelectionQueryBuilder.build(node.getRelationName(), null);
-      context.getRequest().setPromQl(query);
-      setTimeRangeParameters(null, context);
-      context.getRequest()
-          .setStep(StepParameterResolver.resolve(context.getRequest().getStartTime(),
-              context.getRequest().getEndTime(), null));
-    }
+    String query = SeriesSelectionQueryBuilder.build(node.getRelationName(), null);
+    context.getRequest().setPromQl(query);
+    setTimeRangeParameters(null, context);
+    context
+        .getRequest()
+        .setStep(
+            StepParameterResolver.resolve(
+                context.getRequest().getStartTime(), context.getRequest().getEndTime(), null));
     return context;
   }
 
@@ -112,8 +108,8 @@ public class PrometheusDefaultImplementor
     context.getRequest().setEndTime(timeRange.getSecond());
   }
 
-  private void setPrometheusResponseFieldNames(PrometheusLogicalMetricAgg node,
-                                               PrometheusMetricScan context) {
+  private void setPrometheusResponseFieldNames(
+      PrometheusLogicalMetricAgg node, PrometheusMetricScan context) {
     Optional<NamedExpression> spanExpression = getSpanExpression(node.getGroupByList());
     if (spanExpression.isEmpty()) {
       throw new RuntimeException(
@@ -135,6 +131,4 @@ public class PrometheusDefaultImplementor
         .filter(expression -> expression.getDelegated() instanceof SpanExpression)
         .findFirst();
   }
-
-
 }

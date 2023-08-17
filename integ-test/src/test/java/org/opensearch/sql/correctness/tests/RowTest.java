@@ -3,7 +3,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-
 package org.opensearch.sql.correctness.tests;
 
 import static org.junit.Assert.assertEquals;
@@ -12,9 +11,7 @@ import static org.junit.Assert.assertNotEquals;
 import org.junit.Test;
 import org.opensearch.sql.correctness.runner.resultset.Row;
 
-/**
- * Unit test {@link Row}
- */
+/** Unit test {@link Row} */
 public class RowTest {
 
   @Test
@@ -47,5 +44,4 @@ public class RowTest {
     row2.add("world");
     assertEquals(1, row1.compareTo(row2));
   }
-
 }

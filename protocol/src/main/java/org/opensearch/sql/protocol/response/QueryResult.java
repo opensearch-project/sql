@@ -3,7 +3,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-
 package org.opensearch.sql.protocol.response;
 
 import java.util.Collection;
@@ -20,22 +19,18 @@ import org.opensearch.sql.executor.ExecutionEngine.Schema.Column;
 import org.opensearch.sql.executor.pagination.Cursor;
 
 /**
- * Query response that encapsulates query results and isolate {@link ExprValue}
- * related from formatter implementation.
+ * Query response that encapsulates query results and isolate {@link ExprValue} related from
+ * formatter implementation.
  */
 @RequiredArgsConstructor
 public class QueryResult implements Iterable<Object[]> {
 
-  @Getter
-  private final ExecutionEngine.Schema schema;
+  @Getter private final ExecutionEngine.Schema schema;
 
-  /**
-   * Results which are collection of expression.
-   */
+  /** Results which are collection of expression. */
   private final Collection<ExprValue> exprValues;
 
-  @Getter
-  private final Cursor cursor;
+  @Getter private final Cursor cursor;
 
   public QueryResult(ExecutionEngine.Schema schema, Collection<ExprValue> exprValues) {
     this(schema, exprValues, Cursor.None);
@@ -43,6 +38,7 @@ public class QueryResult implements Iterable<Object[]> {
 
   /**
    * size of results.
+   *
    * @return size of results
    */
   public int size() {
@@ -52,14 +48,18 @@ public class QueryResult implements Iterable<Object[]> {
   /**
    * Parse column name from results.
    *
-   * @return mapping from column names to its expression type.
-   *        note that column name could be original name or its alias if any.
+   * @return mapping from column names to its expression type. note that column name could be
+   *     original name or its alias if any.
    */
   public Map<String, String> columnNameTypes() {
     Map<String, String> colNameTypes = new LinkedHashMap<>();
-    schema.getColumns().forEach(column -> colNameTypes.put(
-        getColumnName(column),
-        column.getExprType().typeName().toLowerCase(Locale.ROOT)));
+    schema
+        .getColumns()
+        .forEach(
+            column ->
+                colNameTypes.put(
+                    getColumnName(column),
+                    column.getExprType().typeName().toLowerCase(Locale.ROOT)));
     return colNameTypes;
   }
 
@@ -78,9 +78,6 @@ public class QueryResult implements Iterable<Object[]> {
   }
 
   private Object[] convertExprValuesToValues(Collection<ExprValue> exprValues) {
-    return exprValues
-        .stream()
-        .map(ExprValue::value)
-        .toArray(Object[]::new);
+    return exprValues.stream().map(ExprValue::value).toArray(Object[]::new);
   }
 }

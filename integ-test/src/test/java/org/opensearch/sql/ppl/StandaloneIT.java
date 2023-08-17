@@ -3,7 +3,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-
 package org.opensearch.sql.ppl;
 
 import static org.opensearch.sql.datasource.model.DataSourceMetadata.defaultOpenSearchDataSourceMetadata;
@@ -31,11 +30,11 @@ import org.opensearch.sql.analysis.Analyzer;
 import org.opensearch.sql.analysis.ExpressionAnalyzer;
 import org.opensearch.sql.common.response.ResponseListener;
 import org.opensearch.sql.common.setting.Settings;
-import org.opensearch.sql.datasources.service.DataSourceMetadataStorage;
 import org.opensearch.sql.datasource.DataSourceService;
-import org.opensearch.sql.datasources.service.DataSourceServiceImpl;
-import org.opensearch.sql.datasources.auth.DataSourceUserAuthorizationHelper;
 import org.opensearch.sql.datasource.model.DataSourceMetadata;
+import org.opensearch.sql.datasources.auth.DataSourceUserAuthorizationHelper;
+import org.opensearch.sql.datasources.service.DataSourceMetadataStorage;
+import org.opensearch.sql.datasources.service.DataSourceServiceImpl;
 import org.opensearch.sql.executor.ExecutionEngine;
 import org.opensearch.sql.executor.ExecutionEngine.QueryResponse;
 import org.opensearch.sql.executor.QueryManager;
@@ -45,25 +44,25 @@ import org.opensearch.sql.executor.pagination.PlanSerializer;
 import org.opensearch.sql.expression.function.BuiltinFunctionRepository;
 import org.opensearch.sql.monitor.AlwaysHealthyMonitor;
 import org.opensearch.sql.monitor.ResourceMonitor;
+import org.opensearch.sql.opensearch.client.OpenSearchClient;
+import org.opensearch.sql.opensearch.client.OpenSearchRestClient;
 import org.opensearch.sql.opensearch.executor.OpenSearchExecutionEngine;
 import org.opensearch.sql.opensearch.executor.protector.ExecutionProtector;
 import org.opensearch.sql.opensearch.executor.protector.OpenSearchExecutionProtector;
+import org.opensearch.sql.opensearch.security.SecurityAccess;
+import org.opensearch.sql.opensearch.storage.OpenSearchDataSourceFactory;
 import org.opensearch.sql.opensearch.storage.OpenSearchStorageEngine;
 import org.opensearch.sql.planner.Planner;
 import org.opensearch.sql.planner.optimizer.LogicalPlanOptimizer;
 import org.opensearch.sql.ppl.antlr.PPLSyntaxParser;
-import org.opensearch.sql.sql.SQLService;
-import org.opensearch.sql.sql.antlr.SQLSyntaxParser;
-import org.opensearch.sql.storage.StorageEngine;
-import org.opensearch.sql.util.ExecuteOnCallerThreadQueryManager;
-import org.opensearch.sql.opensearch.client.OpenSearchClient;
-import org.opensearch.sql.opensearch.client.OpenSearchRestClient;
-import org.opensearch.sql.opensearch.security.SecurityAccess;
-import org.opensearch.sql.opensearch.storage.OpenSearchDataSourceFactory;
 import org.opensearch.sql.ppl.domain.PPLQueryRequest;
 import org.opensearch.sql.protocol.response.QueryResult;
 import org.opensearch.sql.protocol.response.format.SimpleJsonResponseFormatter;
+import org.opensearch.sql.sql.SQLService;
+import org.opensearch.sql.sql.antlr.SQLSyntaxParser;
 import org.opensearch.sql.storage.DataSourceFactory;
+import org.opensearch.sql.storage.StorageEngine;
+import org.opensearch.sql.util.ExecuteOnCallerThreadQueryManager;
 
 /**
  * Run PPL with query engine outside OpenSearch cluster. This IT doesn't require our plugin
@@ -78,17 +77,21 @@ public class StandaloneIT extends PPLIntegTestCase {
   public void init() {
     RestHighLevelClient restClient = new InternalRestHighLevelClient(client());
     OpenSearchClient client = new OpenSearchRestClient(restClient);
-    DataSourceService dataSourceService = new DataSourceServiceImpl(
-        new ImmutableSet.Builder<DataSourceFactory>()
-            .add(new OpenSearchDataSourceFactory(client, defaultSettings()))
-            .build(), getDataSourceMetadataStorage(), getDataSourceUserRoleHelper());
+    DataSourceService dataSourceService =
+        new DataSourceServiceImpl(
+            new ImmutableSet.Builder<DataSourceFactory>()
+                .add(new OpenSearchDataSourceFactory(client, defaultSettings()))
+                .build(),
+            getDataSourceMetadataStorage(),
+            getDataSourceUserRoleHelper());
     dataSourceService.createDataSource(defaultOpenSearchDataSourceMetadata());
 
     ModulesBuilder modules = new ModulesBuilder();
-    modules.add(new StandaloneModule(new InternalRestHighLevelClient(client()), defaultSettings(), dataSourceService));
+    modules.add(
+        new StandaloneModule(
+            new InternalRestHighLevelClient(client()), defaultSettings(), dataSourceService));
     Injector injector = modules.createInjector();
-    pplService =
-        SecurityAccess.doPrivileged(() -> injector.getInstance(PPLService.class));
+    pplService = SecurityAccess.doPrivileged(() -> injector.getInstance(PPLService.class));
   }
 
   @Test
@@ -146,9 +149,8 @@ public class StandaloneIT extends PPLIntegTestCase {
 
   private Settings defaultSettings() {
     return new Settings() {
-      private final Map<Key, Integer> defaultSettings = new ImmutableMap.Builder<Key, Integer>()
-          .put(Key.QUERY_SIZE_LIMIT, 200)
-          .build();
+      private final Map<Key, Integer> defaultSettings =
+          new ImmutableMap.Builder<Key, Integer>().put(Key.QUERY_SIZE_LIMIT, 200).build();
 
       @Override
       public <T> T getSettingValue(Key key) {
@@ -162,9 +164,7 @@ public class StandaloneIT extends PPLIntegTestCase {
     };
   }
 
-  /**
-   * Internal RestHighLevelClient only for testing purpose.
-   */
+  /** Internal RestHighLevelClient only for testing purpose. */
   static class InternalRestHighLevelClient extends RestHighLevelClient {
     public InternalRestHighLevelClient(RestClient restClient) {
       super(restClient, RestClient::close, Collections.emptyList());
@@ -197,8 +197,8 @@ public class StandaloneIT extends PPLIntegTestCase {
     }
 
     @Provides
-    public ExecutionEngine executionEngine(OpenSearchClient client, ExecutionProtector protector,
-                                           PlanSerializer planSerializer) {
+    public ExecutionEngine executionEngine(
+        OpenSearchClient client, ExecutionProtector protector, PlanSerializer planSerializer) {
       return new OpenSearchExecutionEngine(client, protector, planSerializer);
     }
 
@@ -257,28 +257,20 @@ public class StandaloneIT extends PPLIntegTestCase {
       }
 
       @Override
-      public void createDataSourceMetadata(DataSourceMetadata dataSourceMetadata) {
-
-      }
+      public void createDataSourceMetadata(DataSourceMetadata dataSourceMetadata) {}
 
       @Override
-      public void updateDataSourceMetadata(DataSourceMetadata dataSourceMetadata) {
-
-      }
+      public void updateDataSourceMetadata(DataSourceMetadata dataSourceMetadata) {}
 
       @Override
-      public void deleteDataSourceMetadata(String datasourceName) {
-
-      }
+      public void deleteDataSourceMetadata(String datasourceName) {}
     };
   }
 
   public static DataSourceUserAuthorizationHelper getDataSourceUserRoleHelper() {
     return new DataSourceUserAuthorizationHelper() {
       @Override
-      public void authorizeDataSource(DataSourceMetadata dataSourceMetadata) {
-
-      }
+      public void authorizeDataSource(DataSourceMetadata dataSourceMetadata) {}
     };
   }
 }

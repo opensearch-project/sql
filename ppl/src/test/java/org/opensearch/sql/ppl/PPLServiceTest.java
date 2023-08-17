@@ -3,7 +3,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-
 package org.opensearch.sql.ppl;
 
 import static org.mockito.ArgumentMatchers.any;
@@ -41,21 +40,17 @@ public class PPLServiceTest {
 
   private DefaultQueryManager queryManager;
 
-  @Mock
-  private QueryService queryService;
+  @Mock private QueryService queryService;
 
-  @Mock
-  private ExecutionEngine.Schema schema;
+  @Mock private ExecutionEngine.Schema schema;
 
-  /**
-   * Setup the test context.
-   */
+  /** Setup the test context. */
   @Before
   public void setUp() {
     queryManager = DefaultQueryManager.defaultQueryManager();
 
-    pplService = new PPLService(new PPLSyntaxParser(), queryManager,
-        new QueryPlanFactory(queryService));
+    pplService =
+        new PPLService(new PPLSyntaxParser(), queryManager, new QueryPlanFactory(queryService));
   }
 
   @After
@@ -65,18 +60,20 @@ public class PPLServiceTest {
 
   @Test
   public void testExecuteShouldPass() {
-    doAnswer(invocation -> {
-      ResponseListener<QueryResponse> listener = invocation.getArgument(1);
-      listener.onResponse(new QueryResponse(schema, Collections.emptyList(), Cursor.None));
-      return null;
-    }).when(queryService).execute(any(), any());
+    doAnswer(
+            invocation -> {
+              ResponseListener<QueryResponse> listener = invocation.getArgument(1);
+              listener.onResponse(new QueryResponse(schema, Collections.emptyList(), Cursor.None));
+              return null;
+            })
+        .when(queryService)
+        .execute(any(), any());
 
-    pplService.execute(new PPLQueryRequest("search source=t a=1", null, QUERY),
+    pplService.execute(
+        new PPLQueryRequest("search source=t a=1", null, QUERY),
         new ResponseListener<QueryResponse>() {
           @Override
-          public void onResponse(QueryResponse pplQueryResponse) {
-
-          }
+          public void onResponse(QueryResponse pplQueryResponse) {}
 
           @Override
           public void onFailure(Exception e) {
@@ -87,17 +84,20 @@ public class PPLServiceTest {
 
   @Test
   public void testExecuteCsvFormatShouldPass() {
-    doAnswer(invocation -> {
-      ResponseListener<QueryResponse> listener = invocation.getArgument(1);
-      listener.onResponse(new QueryResponse(schema, Collections.emptyList(), Cursor.None));
-      return null;
-    }).when(queryService).execute(any(), any());
+    doAnswer(
+            invocation -> {
+              ResponseListener<QueryResponse> listener = invocation.getArgument(1);
+              listener.onResponse(new QueryResponse(schema, Collections.emptyList(), Cursor.None));
+              return null;
+            })
+        .when(queryService)
+        .execute(any(), any());
 
-    pplService.execute(new PPLQueryRequest("search source=t a=1", null, QUERY, "csv"),
+    pplService.execute(
+        new PPLQueryRequest("search source=t a=1", null, QUERY, "csv"),
         new ResponseListener<QueryResponse>() {
           @Override
-          public void onResponse(QueryResponse pplQueryResponse) {
-          }
+          public void onResponse(QueryResponse pplQueryResponse) {}
 
           @Override
           public void onFailure(Exception e) {
@@ -108,17 +108,20 @@ public class PPLServiceTest {
 
   @Test
   public void testExplainShouldPass() {
-    doAnswer(invocation -> {
-      ResponseListener<ExplainResponse> listener = invocation.getArgument(1);
-      listener.onResponse(new ExplainResponse(new ExplainResponseNode("test")));
-      return null;
-    }).when(queryService).explain(any(), any());
+    doAnswer(
+            invocation -> {
+              ResponseListener<ExplainResponse> listener = invocation.getArgument(1);
+              listener.onResponse(new ExplainResponse(new ExplainResponseNode("test")));
+              return null;
+            })
+        .when(queryService)
+        .explain(any(), any());
 
-    pplService.explain(new PPLQueryRequest("search source=t a=1", null, EXPLAIN),
+    pplService.explain(
+        new PPLQueryRequest("search source=t a=1", null, EXPLAIN),
         new ResponseListener<ExplainResponse>() {
           @Override
-          public void onResponse(ExplainResponse pplQueryResponse) {
-          }
+          public void onResponse(ExplainResponse pplQueryResponse) {}
 
           @Override
           public void onFailure(Exception e) {
@@ -129,7 +132,8 @@ public class PPLServiceTest {
 
   @Test
   public void testExecuteWithIllegalQueryShouldBeCaughtByHandler() {
-    pplService.execute(new PPLQueryRequest("search", null, QUERY),
+    pplService.execute(
+        new PPLQueryRequest("search", null, QUERY),
         new ResponseListener<QueryResponse>() {
           @Override
           public void onResponse(QueryResponse pplQueryResponse) {
@@ -137,15 +141,14 @@ public class PPLServiceTest {
           }
 
           @Override
-          public void onFailure(Exception e) {
-
-          }
+          public void onFailure(Exception e) {}
         });
   }
 
   @Test
   public void testExplainWithIllegalQueryShouldBeCaughtByHandler() {
-    pplService.explain(new PPLQueryRequest("search", null, QUERY),
+    pplService.explain(
+        new PPLQueryRequest("search", null, QUERY),
         new ResponseListener<>() {
           @Override
           public void onResponse(ExplainResponse pplQueryResponse) {
@@ -153,26 +156,26 @@ public class PPLServiceTest {
           }
 
           @Override
-          public void onFailure(Exception e) {
-
-          }
+          public void onFailure(Exception e) {}
         });
   }
 
   @Test
   public void testPrometheusQuery() {
-    doAnswer(invocation -> {
-      ResponseListener<QueryResponse> listener = invocation.getArgument(1);
-      listener.onResponse(new QueryResponse(schema, Collections.emptyList(), Cursor.None));
-      return null;
-    }).when(queryService).execute(any(), any());
+    doAnswer(
+            invocation -> {
+              ResponseListener<QueryResponse> listener = invocation.getArgument(1);
+              listener.onResponse(new QueryResponse(schema, Collections.emptyList(), Cursor.None));
+              return null;
+            })
+        .when(queryService)
+        .execute(any(), any());
 
-    pplService.execute(new PPLQueryRequest("source = prometheus.http_requests_total", null, QUERY),
+    pplService.execute(
+        new PPLQueryRequest("source = prometheus.http_requests_total", null, QUERY),
         new ResponseListener<>() {
           @Override
-          public void onResponse(QueryResponse pplQueryResponse) {
-
-          }
+          public void onResponse(QueryResponse pplQueryResponse) {}
 
           @Override
           public void onFailure(Exception e) {
@@ -183,7 +186,8 @@ public class PPLServiceTest {
 
   @Test
   public void testInvalidPPLQuery() {
-    pplService.execute(new PPLQueryRequest("search", null, QUERY),
+    pplService.execute(
+        new PPLQueryRequest("search", null, QUERY),
         new ResponseListener<QueryResponse>() {
           @Override
           public void onResponse(QueryResponse pplQueryResponse) {
@@ -191,9 +195,7 @@ public class PPLServiceTest {
           }
 
           @Override
-          public void onFailure(Exception e) {
-
-          }
+          public void onFailure(Exception e) {}
         });
   }
 }

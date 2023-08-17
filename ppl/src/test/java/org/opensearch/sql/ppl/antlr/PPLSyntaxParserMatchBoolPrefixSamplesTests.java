@@ -13,26 +13,24 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
-
 @RunWith(Parameterized.class)
 public class PPLSyntaxParserMatchBoolPrefixSamplesTests {
 
-
-  /** Returns sample queries that the PPLSyntaxParser is expected to parse successfully.
+  /**
+   * Returns sample queries that the PPLSyntaxParser is expected to parse successfully.
+   *
    * @return an Iterable of sample queries.
    */
   @Parameterized.Parameters(name = "{0}")
   public static Iterable<Object> sampleQueries() {
     return List.of(
         "source=t a= 1 | where match_bool_prefix(a, 'hello world')",
-        "source=t a = 1 | where match_bool_prefix(a, 'hello world',"
-            + " minimum_should_match = 3)",
+        "source=t a = 1 | where match_bool_prefix(a, 'hello world'," + " minimum_should_match = 3)",
         "source=t a = 1 | where match_bool_prefix(a, 'hello world', fuzziness='AUTO')",
         "source=t a = 1 | where match_bool_prefix(a, 'hello world', fuzziness='AUTO:4,6')",
         "source=t a= 1 | where match_bool_prefix(a, 'hello world', prefix_length=0)",
         "source=t a= 1 | where match_bool_prefix(a, 'hello world', max_expansions=1)",
-        "source=t a= 1 | where match_bool_prefix(a, 'hello world',"
-            + " fuzzy_transpositions=true)",
+        "source=t a= 1 | where match_bool_prefix(a, 'hello world'," + " fuzzy_transpositions=true)",
         "source=t a= 1 | where match_bool_prefix(a, 'hello world',"
             + " fuzzy_rewrite=constant_score)",
         "source=t a= 1 | where match_bool_prefix(a, 'hello world',"
@@ -43,8 +41,7 @@ public class PPLSyntaxParserMatchBoolPrefixSamplesTests {
             + " fuzzy_rewrite=top_terms_blended_freqs_1)",
         "source=t a= 1 | where match_bool_prefix(a, 'hello world',"
             + " fuzzy_rewrite=top_terms_boost_1)",
-        "source=t a= 1 | where match_bool_prefix(a, 'hello world',"
-            + " fuzzy_rewrite=top_terms_1)",
+        "source=t a= 1 | where match_bool_prefix(a, 'hello world'," + " fuzzy_rewrite=top_terms_1)",
         "source=t a= 1 | where match_bool_prefix(a, 'hello world', boost=1)",
         "source=t a = 1 | where match_bool_prefix(a, 'hello world', analyzer = 'standard',"
             + "prefix_length = '0', boost = 1)");

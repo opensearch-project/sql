@@ -3,7 +3,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-
 package org.opensearch.sql.ppl;
 
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_ACCOUNT;
@@ -30,12 +29,8 @@ public class RareCommandIT extends PPLIntegTestCase {
 
   @Test
   public void testRareWithoutGroup() throws IOException {
-    JSONObject result =
-        executeQuery(String.format("source=%s | rare gender", TEST_INDEX_ACCOUNT));
-    verifyDataRows(
-        result,
-        rows("F"),
-        rows("M"));
+    JSONObject result = executeQuery(String.format("source=%s | rare gender", TEST_INDEX_ACCOUNT));
+    verifyDataRows(result, rows("F"), rows("M"));
   }
 
   @Test
@@ -65,6 +60,4 @@ public class RareCommandIT extends PPLIntegTestCase {
         rows("M", "KY"),
         rows("M", "IN"));
   }
-
-
 }

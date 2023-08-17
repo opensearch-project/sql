@@ -33,13 +33,13 @@ import org.opensearch.sql.data.type.ExprCoreType;
 import org.opensearch.sql.datasource.DataSourceService;
 import org.opensearch.sql.datasources.service.DataSourceServiceImpl;
 import org.opensearch.sql.executor.ExecutionEngine;
-import org.opensearch.sql.executor.pagination.PlanSerializer;
 import org.opensearch.sql.executor.QueryService;
+import org.opensearch.sql.executor.pagination.Cursor;
+import org.opensearch.sql.executor.pagination.PlanSerializer;
 import org.opensearch.sql.expression.DSL;
 import org.opensearch.sql.legacy.SQLIntegTestCase;
 import org.opensearch.sql.opensearch.client.OpenSearchClient;
 import org.opensearch.sql.opensearch.client.OpenSearchRestClient;
-import org.opensearch.sql.executor.pagination.Cursor;
 import org.opensearch.sql.opensearch.storage.OpenSearchDataSourceFactory;
 import org.opensearch.sql.opensearch.storage.OpenSearchIndex;
 import org.opensearch.sql.planner.PlanContext;
@@ -66,17 +66,19 @@ public class StandalonePaginationIT extends SQLIntegTestCase {
   public void init() {
     RestHighLevelClient restClient = new InternalRestHighLevelClient(client());
     client = new OpenSearchRestClient(restClient);
-    DataSourceService dataSourceService = new DataSourceServiceImpl(
-        new ImmutableSet.Builder<DataSourceFactory>()
-            .add(new OpenSearchDataSourceFactory(client, defaultSettings()))
-            .build(),
-        getDataSourceMetadataStorage(),
-        getDataSourceUserRoleHelper()
-        );
+    DataSourceService dataSourceService =
+        new DataSourceServiceImpl(
+            new ImmutableSet.Builder<DataSourceFactory>()
+                .add(new OpenSearchDataSourceFactory(client, defaultSettings()))
+                .build(),
+            getDataSourceMetadataStorage(),
+            getDataSourceUserRoleHelper());
     dataSourceService.createDataSource(defaultOpenSearchDataSourceMetadata());
 
     ModulesBuilder modules = new ModulesBuilder();
-    modules.add(new StandaloneModule(new InternalRestHighLevelClient(client()), defaultSettings(), dataSourceService));
+    modules.add(
+        new StandaloneModule(
+            new InternalRestHighLevelClient(client()), defaultSettings(), dataSourceService));
     Injector injector = modules.createInjector();
 
     queryService = injector.getInstance(QueryService.class);
@@ -85,10 +87,9 @@ public class StandalonePaginationIT extends SQLIntegTestCase {
 
   @Test
   public void test_pagination_whitebox() throws IOException {
-    class TestResponder
-        implements ResponseListener<ExecutionEngine.QueryResponse> {
-      @Getter
-      Cursor cursor = Cursor.None;
+    class TestResponder implements ResponseListener<ExecutionEngine.QueryResponse> {
+      @Getter Cursor cursor = Cursor.None;
+
       @Override
       public void onResponse(ExecutionEngine.QueryResponse response) {
         cursor = response.getCursor();
@@ -113,13 +114,16 @@ public class StandalonePaginationIT extends SQLIntegTestCase {
 
     // act 1, asserts in firstResponder
     var t = new OpenSearchIndex(client, defaultSettings(), "test");
-    LogicalPlan p = new LogicalPaginate(1, List.of(
-        new LogicalProject(
-          new LogicalRelation("test", t), List.of(
-                DSL.named("name", DSL.ref("name", ExprCoreType.STRING)),
-                DSL.named("age", DSL.ref("age", ExprCoreType.LONG))),
-                List.of()
-    )));
+    LogicalPlan p =
+        new LogicalPaginate(
+            1,
+            List.of(
+                new LogicalProject(
+                    new LogicalRelation("test", t),
+                    List.of(
+                        DSL.named("name", DSL.ref("name", ExprCoreType.STRING)),
+                        DSL.named("age", DSL.ref("age", ExprCoreType.LONG))),
+                    List.of())));
     var firstResponder = new TestResponder();
     queryService.executePlan(p, PlanContext.emptyPlanContext(), firstResponder);
 
@@ -139,24 +143,30 @@ public class StandalonePaginationIT extends SQLIntegTestCase {
     // Request should be rejected before index names are resolved
     request.setJsonEntity("{ \"query\": \"select * from something\", \"fetch_size\": 10 }");
     var exception = assertThrows(ResponseException.class, () -> client().performRequest(request));
-    var response = new JSONObject(new String(exception.getResponse().getEntity().getContent().readAllBytes()));
-    assertEquals("`explain` feature for paginated requests is not implemented yet.",
+    var response =
+        new JSONObject(new String(exception.getResponse().getEntity().getContent().readAllBytes()));
+    assertEquals(
+        "`explain` feature for paginated requests is not implemented yet.",
         response.getJSONObject("error").getString("details"));
 
     // Request should be rejected before cursor parsed
     request.setJsonEntity("{ \"cursor\" : \"n:0000\" }");
     exception = assertThrows(ResponseException.class, () -> client().performRequest(request));
-    response = new JSONObject(new String(exception.getResponse().getEntity().getContent().readAllBytes()));
-    assertEquals("Explain of a paged query continuation is not supported. Use `explain` for the initial query request.",
+    response =
+        new JSONObject(new String(exception.getResponse().getEntity().getContent().readAllBytes()));
+    assertEquals(
+        "Explain of a paged query continuation is not supported. Use `explain` for the initial"
+            + " query request.",
         response.getJSONObject("error").getString("details"));
   }
 
   private Settings defaultSettings() {
     return new Settings() {
-      private final Map<Key, Object> defaultSettings = new ImmutableMap.Builder<Key, Object>()
-          .put(Key.QUERY_SIZE_LIMIT, 200)
-          .put(Key.SQL_CURSOR_KEEP_ALIVE, TimeValue.timeValueMinutes(1))
-          .build();
+      private final Map<Key, Object> defaultSettings =
+          new ImmutableMap.Builder<Key, Object>()
+              .put(Key.QUERY_SIZE_LIMIT, 200)
+              .put(Key.SQL_CURSOR_KEEP_ALIVE, TimeValue.timeValueMinutes(1))
+              .build();
 
       @Override
       public <T> T getSettingValue(Key key) {

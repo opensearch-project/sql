@@ -17,5 +17,4 @@ public class DataSourceSchemaName {
   private final String dataSourceName;
 
   private final String schemaName;
-
 }

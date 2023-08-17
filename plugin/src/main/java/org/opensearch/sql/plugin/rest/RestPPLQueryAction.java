@@ -18,8 +18,8 @@ import java.util.Set;
 import java.util.function.Supplier;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.opensearch.action.ActionListener;
 import org.opensearch.client.node.NodeClient;
+import org.opensearch.core.action.ActionListener;
 import org.opensearch.core.rest.RestStatus;
 import org.opensearch.index.IndexNotFoundException;
 import org.opensearch.rest.BaseRestHandler;
@@ -102,14 +102,17 @@ public class RestPPLQueryAction extends BaseRestHandler {
   protected RestChannelConsumer prepareRequest(RestRequest request, NodeClient nodeClient) {
     // TODO: need move to transport Action
     if (!pplEnabled.get()) {
-      return channel -> reportError(channel, new IllegalAccessException(
-          "Either plugins.ppl.enabled or rest.action.multi.allow_explicit_index setting is false"),
-          BAD_REQUEST);
+      return channel ->
+          reportError(
+              channel,
+              new IllegalAccessException(
+                  "Either plugins.ppl.enabled or rest.action.multi.allow_explicit_index setting is"
+                      + " false"),
+              BAD_REQUEST);
     }
 
-    TransportPPLQueryRequest transportPPLQueryRequest = new TransportPPLQueryRequest(
-            PPLQueryRequestFactory.getPPLRequest(request)
-    );
+    TransportPPLQueryRequest transportPPLQueryRequest =
+        new TransportPPLQueryRequest(PPLQueryRequestFactory.getPPLRequest(request));
 
     return channel ->
         nodeClient.execute(

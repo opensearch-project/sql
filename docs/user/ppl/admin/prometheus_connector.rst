@@ -191,12 +191,11 @@ PromQL Support for prometheus Connector
 
 `query_range` Table Function
 ----------------------------
-Prometheus connector offers `query_range` table function. This table function can be used to query metrics in a specific time range using promQL.
-The function takes inputs similar to parameters mentioned for query range api mentioned here: https://prometheus.io/docs/prometheus/latest/querying/api/
-Arguments should be either passed by name or positionArguments should be either passed by name or position.
-`source=my_prometheus.query_range('prometheus_http_requests_total', 1686694425, 1686700130, 14)`
-or
-`source=my_prometheus.query_range(query='prometheus_http_requests_total', starttime=1686694425, endtime=1686700130, step=14)`
+* Prometheus connector offers `query_range` table function. This table function can be used to query metrics in a specific time range using promQL.
+* The function takes inputs similar to parameters mentioned for query range api mentioned here: https://prometheus.io/docs/prometheus/latest/querying/api/
+* Arguments should be either passed by name or positionArguments should be either passed by name or position.
+    - `source=my_prometheus.query_range('prometheus_http_requests_total', 1686694425, 1686700130, 14)`
+    - `source=my_prometheus.query_range(query='prometheus_http_requests_total', starttime=1686694425, endtime=1686700130, step=14)`
 Example::
 
     > source=my_prometheus.query_range('prometheus_http_requests_total', 1686694425, 1686700130, 14)
@@ -210,3 +209,71 @@ Example::
     | 9          | "2022-11-03 07:18:54"  | "/-/promql"                    | 400           | 192.15.2.1  | prometheus  |
     | 11         | "2022-11-03 07:18:64"  |"/-/metrics"                    | 500           | 192.15.2.1  | prometheus  |
     +------------+------------------------+--------------------------------+---------------+-------------+-------------+
+
+
+Prometheus Connector Table Functions
+==========================================
+
+`query_exemplars` Table Function
+----------------------------
+* This table function can be used to fetch exemplars of a query in a specific time range.
+* The function takes inputs similar to parameters mentioned for query exemplars api mentioned here: https://prometheus.io/docs/prometheus/latest/querying/api/
+* Arguments should be either passed by name or positionArguments should be either passed by name or position.
+    - `source=my_prometheus.query_exemplars('prometheus_http_requests_total', 1686694425, 1686700130)`
+    - `source=my_prometheus.query_exemplars(query='prometheus_http_requests_total', starttime=1686694425, endtime=1686700130)`
+Example::
+
+    > source=my_prometheus.query_exemplars('prometheus_http_requests_total', 1686694425, 1686700130)
+      "schema": [
+        {
+          "name": "seriesLabels",
+          "type": "struct"
+        },
+        {
+          "name": "exemplars",
+          "type": "array"
+        }
+      ],
+      "datarows": [
+        [
+          {
+            "instance": "localhost:8090",
+            "__name__": "test_exemplar_metric_total",
+            "service": "bar",
+            "job": "prometheus"
+          },
+          [
+            {
+              "labels": {
+                "traceID": "EpTxMJ40fUus7aGY"
+              },
+              "timestamp": "2020-09-14 15:22:25.479",
+              "value": 6.0
+            }
+          ]
+        ],
+        [
+          {
+            "instance": "localhost:8090",
+            "__name__": "test_exemplar_metric_total",
+            "service": "foo",
+            "job": "prometheus"
+          },
+          [
+            {
+              "labels": {
+                "traceID": "Olp9XHlq763ccsfa"
+              },
+              "timestamp": "2020-09-14 15:22:35.479",
+              "value": 19.0
+            },
+            {
+              "labels": {
+                "traceID": "hCtjygkIHwAN9vs4"
+              },
+              "timestamp": "2020-09-14 15:22:45.489",
+              "value": 20.0
+            }
+          ]
+        ]
+      ]

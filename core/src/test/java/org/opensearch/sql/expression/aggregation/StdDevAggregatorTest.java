@@ -40,14 +40,11 @@ import org.opensearch.sql.storage.bindingtuple.BindingTuple;
 @ExtendWith(MockitoExtension.class)
 public class StdDevAggregatorTest extends AggregationTest {
 
-  @Mock
-  Expression expression;
+  @Mock Expression expression;
 
-  @Mock
-  ExprValue tupleValue;
+  @Mock ExprValue tupleValue;
 
-  @Mock
-  BindingTuple tuple;
+  @Mock BindingTuple tuple;
 
   @Test
   public void stddev_sample_field_expression() {

@@ -3,7 +3,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-
 package org.opensearch.sql.legacy;
 
 import static org.hamcrest.Matchers.anyOf;
@@ -14,6 +13,7 @@ import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_ACCOUNT;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_NESTED_TYPE;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_PHRASE;
 
+import com.fasterxml.jackson.core.JsonFactory;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -29,8 +29,7 @@ import org.json.JSONObject;
 import org.junit.Test;
 import org.opensearch.action.search.SearchResponse;
 import org.opensearch.common.xcontent.LoggingDeprecationHandler;
-import org.opensearch.common.xcontent.XContentFactory;
-import org.opensearch.common.xcontent.XContentType;
+import org.opensearch.common.xcontent.json.JsonXContentParser;
 import org.opensearch.core.xcontent.NamedXContentRegistry;
 import org.opensearch.core.xcontent.XContentParser;
 import org.opensearch.search.SearchHit;
@@ -44,10 +43,13 @@ public class QueryFunctionsIT extends SQLIntegTestCase {
   private static final String FROM_PHRASE = "FROM " + TEST_INDEX_PHRASE;
 
   /**
+   *
+   *
+   * <pre>
    * TODO Looks like Math/Date Functions test all use the same query() and execute() functions
    * TODO execute/featureValueOf/hits functions are the same as used in NestedFieldQueryIT, should refactor into util
+   * </pre>
    */
-
   @Override
   protected void init() throws Exception {
     loadIndex(Index.ACCOUNT);
@@ -58,63 +60,39 @@ public class QueryFunctionsIT extends SQLIntegTestCase {
   @Test
   public void query() throws IOException {
     assertThat(
-        query(
-            "SELECT state",
-            FROM_ACCOUNTS,
-            "WHERE QUERY('CA')"
-        ),
-        hits(
-            hasValueForFields("CA", "state")
-        )
-    );
+        query("SELECT state", FROM_ACCOUNTS, "WHERE QUERY('CA')"),
+        hits(hasValueForFields("CA", "state")));
   }
 
   @Test
   public void matchQueryRegularField() throws IOException {
     assertThat(
-        query(
-            "SELECT firstname",
-            FROM_ACCOUNTS,
-            "WHERE MATCH_QUERY(firstname, 'Ayers')"
-        ),
-        hits(
-            hasValueForFields("Ayers", "firstname")
-        )
-    );
+        query("SELECT firstname", FROM_ACCOUNTS, "WHERE MATCH_QUERY(firstname, 'Ayers')"),
+        hits(hasValueForFields("Ayers", "firstname")));
   }
 
   @Test
   public void matchQueryNestedField() throws IOException {
     SearchHit[] hits =
         query("SELECT comment.data", FROM_NESTED, "WHERE MATCH_QUERY(NESTED(comment.data), 'aa')")
-            .getHits().getHits();
+            .getHits()
+            .getHits();
     Map<String, Object> source = hits[0].getSourceAsMap();
     // SearchHits innerHits = hits[0].getInnerHits().get("comment");
     assertThat(
-        query(
-            "SELECT comment.data",
-            FROM_NESTED,
-            "WHERE MATCH_QUERY(NESTED(comment.data), 'aa')"
-        ),
+        query("SELECT comment.data", FROM_NESTED, "WHERE MATCH_QUERY(NESTED(comment.data), 'aa')"),
         hits(
-            anyOf(hasNestedField("comment", "data", "aa"),
-                hasNestedArrayField("comment", "data", "aa"))
-        )
-    );
+            anyOf(
+                hasNestedField("comment", "data", "aa"),
+                hasNestedArrayField("comment", "data", "aa"))));
   }
 
   @Test
   public void scoreQuery() throws IOException {
     assertThat(
         query(
-            "SELECT firstname",
-            FROM_ACCOUNTS,
-            "WHERE SCORE(MATCH_QUERY(firstname, 'Ayers'), 10)"
-        ),
-        hits(
-            hasValueForFields("Ayers", "firstname")
-        )
-    );
+            "SELECT firstname", FROM_ACCOUNTS, "WHERE SCORE(MATCH_QUERY(firstname, 'Ayers'), 10)"),
+        hits(hasValueForFields("Ayers", "firstname")));
   }
 
   @Test
@@ -123,42 +101,24 @@ public class QueryFunctionsIT extends SQLIntegTestCase {
         query(
             "SELECT comment.data",
             FROM_NESTED,
-            "WHERE SCORE(MATCH_QUERY(NESTED(comment.data), 'ab'), 10)"
-        ),
+            "WHERE SCORE(MATCH_QUERY(NESTED(comment.data), 'ab'), 10)"),
         hits(
-            //hasValueForFields("ab", "comment.data")
-            hasNestedField("comment",
-                "data", "ab")
-        )
-    );
+            // hasValueForFields("ab", "comment.data")
+            hasNestedField("comment", "data", "ab")));
   }
 
   @Test
   public void wildcardQuery() throws IOException {
     assertThat(
-        query(
-            "SELECT city",
-            FROM_ACCOUNTS,
-            "WHERE WILDCARD_QUERY(city.keyword, 'B*')"
-        ),
-        hits(
-            hasFieldWithPrefix("city", "B")
-        )
-    );
+        query("SELECT city", FROM_ACCOUNTS, "WHERE WILDCARD_QUERY(city.keyword, 'B*')"),
+        hits(hasFieldWithPrefix("city", "B")));
   }
 
   @Test
   public void matchPhraseQuery() throws IOException {
     assertThat(
-        query(
-            "SELECT phrase",
-            FROM_PHRASE,
-            "WHERE MATCH_PHRASE(phrase, 'brown fox')"
-        ),
-        hits(
-            hasValueForFields("brown fox", "phrase")
-        )
-    );
+        query("SELECT phrase", FROM_PHRASE, "WHERE MATCH_PHRASE(phrase, 'brown fox')"),
+        hits(hasValueForFields("brown fox", "phrase")));
   }
 
   @Test
@@ -167,12 +127,8 @@ public class QueryFunctionsIT extends SQLIntegTestCase {
         query(
             "SELECT firstname",
             FROM_ACCOUNTS,
-            "WHERE MULTI_MATCH('query'='Ayers', 'fields'='firstname')"
-        ),
-        hits(
-            hasValueForFields("Ayers", "firstname")
-        )
-    );
+            "WHERE MULTI_MATCH('query'='Ayers', 'fields'='firstname')"),
+        hits(hasValueForFields("Ayers", "firstname")));
   }
 
   @Test
@@ -181,36 +137,30 @@ public class QueryFunctionsIT extends SQLIntegTestCase {
         query(
             "SELECT firstname, lastname",
             FROM_ACCOUNTS,
-            "WHERE MULTI_MATCH('query'='Bradshaw', 'fields'='*name')"
-        ),
-        hits(
-            hasValueForFields("Bradshaw", "firstname", "lastname")
-        )
-    );
+            "WHERE MULTI_MATCH('query'='Bradshaw', 'fields'='*name')"),
+        hits(hasValueForFields("Bradshaw", "firstname", "lastname")));
   }
 
   @Test
   public void numberLiteralInSelectField() {
     assertTrue(
-        executeQuery(StringUtils.format("SELECT 234234 AS number from %s", TEST_INDEX_ACCOUNT),
-            "jdbc")
-            .contains("234234")
-    );
+        executeQuery(
+                StringUtils.format("SELECT 234234 AS number from %s", TEST_INDEX_ACCOUNT), "jdbc")
+            .contains("234234"));
 
     assertTrue(
-        executeQuery(StringUtils.format("SELECT 2.34234 AS number FROM %s", TEST_INDEX_ACCOUNT),
-            "jdbc")
-            .contains("2.34234")
-    );
+        executeQuery(
+                StringUtils.format("SELECT 2.34234 AS number FROM %s", TEST_INDEX_ACCOUNT), "jdbc")
+            .contains("2.34234"));
   }
 
   private final Matcher<SearchResponse> hits(Matcher<SearchHit> subMatcher) {
-    return featureValueOf("hits", everyItem(subMatcher),
-        resp -> Arrays.asList(resp.getHits().getHits()));
+    return featureValueOf(
+        "hits", everyItem(subMatcher), resp -> Arrays.asList(resp.getHits().getHits()));
   }
 
-  private <T, U> FeatureMatcher<T, U> featureValueOf(String name, Matcher<U> subMatcher,
-                                                     Function<T, U> getter) {
+  private <T, U> FeatureMatcher<T, U> featureValueOf(
+      String name, Matcher<U> subMatcher, Function<T, U> getter) {
     return new FeatureMatcher<T, U>(subMatcher, name, name) {
       @Override
       protected U featureValueOf(T actual) {
@@ -220,6 +170,9 @@ public class QueryFunctionsIT extends SQLIntegTestCase {
   }
 
   /**
+   *
+   *
+   * <pre>
    * Create Matchers for each field and its value
    * Only one of the Matchers need to match (per hit)
    * <p>
@@ -228,36 +181,34 @@ public class QueryFunctionsIT extends SQLIntegTestCase {
    * <p>
    * Then the value "Ayers" can be found in either the firstname or lastname field. Only one of these fields
    * need to satisfy the query value to be evaluated as correct expected output.
+   * </pre>
    *
-   * @param value  The value to match for a field in the sourceMap
+   * @param value The value to match for a field in the sourceMap
    * @param fields A list of fields to match
    */
   @SafeVarargs
   private final Matcher<SearchHit> hasValueForFields(String value, String... fields) {
     return anyOf(
-        Arrays.asList(fields).
-            stream().
-            map(field -> kv(field, is(value))).
-            collect(Collectors.toList()));
+        Arrays.asList(fields).stream()
+            .map(field -> kv(field, is(value)))
+            .collect(Collectors.toList()));
   }
 
   private final Matcher<SearchHit> hasFieldWithPrefix(String field, String prefix) {
-    return featureValueOf(field, startsWith(prefix),
-        hit -> (String) hit.getSourceAsMap().get(field));
+    return featureValueOf(
+        field, startsWith(prefix), hit -> (String) hit.getSourceAsMap().get(field));
   }
 
   private final Matcher<SearchHit> hasNestedField(String path, String field, String value) {
-    return featureValueOf(field, is(value),
-        hit -> ((HashMap) hit.getSourceAsMap().get(path)).get(field));
+    return featureValueOf(
+        field, is(value), hit -> ((HashMap) hit.getSourceAsMap().get(path)).get(field));
   }
 
   private final Matcher<SearchHit> hasNestedArrayField(String path, String field, String value) {
 
     return new BaseMatcher<SearchHit>() {
       @Override
-      public void describeTo(Description description) {
-
-      }
+      public void describeTo(Description description) {}
 
       @Override
       public boolean matches(Object item) {
@@ -275,7 +226,7 @@ public class QueryFunctionsIT extends SQLIntegTestCase {
   }
 
   /***********************************************************
-   Query Utility to Fetch Response for SQL
+   * Query Utility to Fetch Response for SQL
    ***********************************************************/
 
   private SearchResponse query(String select, String from, String... statements)
@@ -286,10 +237,11 @@ public class QueryFunctionsIT extends SQLIntegTestCase {
   private SearchResponse execute(String sql) throws IOException {
     final JSONObject jsonObject = executeQuery(sql);
 
-    final XContentParser parser = XContentFactory.xContent(XContentType.JSON).createParser(
-        NamedXContentRegistry.EMPTY,
-        LoggingDeprecationHandler.INSTANCE,
-        jsonObject.toString());
+    final XContentParser parser =
+        new JsonXContentParser(
+            NamedXContentRegistry.EMPTY,
+            LoggingDeprecationHandler.INSTANCE,
+            new JsonFactory().createParser(jsonObject.toString()));
     return SearchResponse.fromXContent(parser);
   }
 }

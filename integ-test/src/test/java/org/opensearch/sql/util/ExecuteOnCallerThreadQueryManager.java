@@ -12,7 +12,7 @@ import org.opensearch.sql.executor.execution.AbstractPlan;
 /**
  * ONLY USED FOR TEST PURPOSE.
  *
- * Execute {@link AbstractPlan} on caller thread.
+ * <p>Execute {@link AbstractPlan} on caller thread.
  */
 public class ExecuteOnCallerThreadQueryManager implements QueryManager {
   @Override

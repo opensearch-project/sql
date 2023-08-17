@@ -59,9 +59,7 @@ public class TransportPPLQueryRequestTest {
 
   @Test
   public void testCustomizedNullJSONContentActionRequestFromActionRequest() {
-    TransportPPLQueryRequest request = new TransportPPLQueryRequest(
-            "source=t a=1", null, null
-    );
+    TransportPPLQueryRequest request = new TransportPPLQueryRequest("source=t a=1", null, null);
     ActionRequest actionRequest =
         new ActionRequest() {
           @Override

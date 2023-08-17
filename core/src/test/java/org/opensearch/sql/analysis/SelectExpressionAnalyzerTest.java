@@ -3,7 +3,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-
 package org.opensearch.sql.analysis;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -28,23 +27,20 @@ import org.opensearch.sql.expression.NamedExpression;
 @ExtendWith(MockitoExtension.class)
 public class SelectExpressionAnalyzerTest extends AnalyzerTestBase {
 
-  @Mock
-  private ExpressionReferenceOptimizer optimizer;
+  @Mock private ExpressionReferenceOptimizer optimizer;
 
   @Test
   public void named_expression() {
     assertAnalyzeEqual(
         DSL.named("integer_value", DSL.ref("integer_value", INTEGER)),
-        AstDSL.alias("integer_value", AstDSL.qualifiedName("integer_value"))
-    );
+        AstDSL.alias("integer_value", AstDSL.qualifiedName("integer_value")));
   }
 
   @Test
   public void named_expression_with_alias() {
     assertAnalyzeEqual(
         DSL.named("integer_value", DSL.ref("integer_value", INTEGER), "int"),
-        AstDSL.alias("integer_value", AstDSL.qualifiedName("integer_value"), "int")
-    );
+        AstDSL.alias("integer_value", AstDSL.qualifiedName("integer_value"), "int"));
   }
 
   @Test
@@ -52,9 +48,8 @@ public class SelectExpressionAnalyzerTest extends AnalyzerTestBase {
     analysisContext.peek().define(new Symbol(Namespace.INDEX_NAME, "index_alias"), STRUCT);
     assertAnalyzeEqual(
         DSL.named("integer_value", DSL.ref("integer_value", INTEGER)),
-        AstDSL.alias("integer_alias.integer_value",
-            AstDSL.qualifiedName("index_alias", "integer_value"))
-    );
+        AstDSL.alias(
+            "integer_alias.integer_value", AstDSL.qualifiedName("index_alias", "integer_value")));
   }
 
   @Test
@@ -62,9 +57,9 @@ public class SelectExpressionAnalyzerTest extends AnalyzerTestBase {
     analysisContext.peek().define(new Symbol(Namespace.INDEX_NAME, "index_alias"), STRUCT);
     assertAnalyzeEqual(
         DSL.named("integer_value", DSL.ref("integer_value", INTEGER)),
-        AstDSL.alias("`integer_alias`.integer_value", // qualifier in SELECT is quoted originally
-            AstDSL.qualifiedName("index_alias", "integer_value"))
-    );
+        AstDSL.alias(
+            "`integer_alias`.integer_value", // qualifier in SELECT is quoted originally
+            AstDSL.qualifiedName("index_alias", "integer_value")));
   }
 
   @Test
@@ -72,21 +67,21 @@ public class SelectExpressionAnalyzerTest extends AnalyzerTestBase {
     analysisContext.peek().define(new Symbol(Namespace.INDEX_NAME, "index_alias"), STRUCT);
     assertAnalyzeEqual(
         DSL.named("abs(index_alias.integer_value)", DSL.abs(DSL.ref("integer_value", INTEGER))),
-        AstDSL.alias("abs(index_alias.integer_value)",
-            AstDSL.function("abs", AstDSL.qualifiedName("index_alias", "integer_value")))
-    );
+        AstDSL.alias(
+            "abs(index_alias.integer_value)",
+            AstDSL.function("abs", AstDSL.qualifiedName("index_alias", "integer_value"))));
   }
 
   protected List<NamedExpression> analyze(UnresolvedExpression unresolvedExpression) {
-    doAnswer(invocation -> ((NamedExpression) invocation.getArgument(0))
-        .getDelegated()).when(optimizer).optimize(any(), any());
+    doAnswer(invocation -> ((NamedExpression) invocation.getArgument(0)).getDelegated())
+        .when(optimizer)
+        .optimize(any(), any());
     return new SelectExpressionAnalyzer(expressionAnalyzer)
-        .analyze(Arrays.asList(unresolvedExpression),
-            analysisContext, optimizer);
+        .analyze(Arrays.asList(unresolvedExpression), analysisContext, optimizer);
   }
 
-  protected void assertAnalyzeEqual(NamedExpression expected,
-                                    UnresolvedExpression unresolvedExpression) {
+  protected void assertAnalyzeEqual(
+      NamedExpression expected, UnresolvedExpression unresolvedExpression) {
     assertEquals(Arrays.asList(expected), analyze(unresolvedExpression));
   }
 }

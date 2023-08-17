@@ -25,13 +25,11 @@ import static org.opensearch.sql.utils.DateTimeUtils.UTC_ZONE_ID;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.google.common.collect.ImmutableMap;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalTime;
-import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeParseException;
 import java.time.temporal.TemporalAccessor;
@@ -105,7 +103,7 @@ public class OpenSearchExprValueFactory {
 
   private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
-  private final Map<ExprType, BiFunction<Content, ExprType, ExprValue>> typeActionMap =
+  private static final Map<ExprType, BiFunction<Content, ExprType, ExprValue>> typeActionMap =
       new ImmutableMap.Builder<ExprType, BiFunction<Content, ExprType, ExprValue>>()
           .put(OpenSearchDataType.of(OpenSearchDataType.MappingType.Integer),
               (c, dt) -> new ExprIntegerValue(c.intValue()))
@@ -126,10 +124,12 @@ public class OpenSearchExprValueFactory {
           .put(OpenSearchDataType.of(OpenSearchDataType.MappingType.Boolean),
               (c, dt) -> ExprBooleanValue.of(c.booleanValue()))
           //Handles the creation of DATE, TIME & DATETIME
-          .put(OpenSearchDateType.of(TIME), this::createOpenSearchDateType)
-          .put(OpenSearchDateType.of(DATE), this::createOpenSearchDateType)
-          .put(OpenSearchDateType.of(TIMESTAMP), this::createOpenSearchDateType)
-          .put(OpenSearchDateType.of(DATETIME), this::createOpenSearchDateType)
+          .put(OpenSearchDateType.of(TIME), OpenSearchExprValueFactory::createOpenSearchDateType)
+          .put(OpenSearchDateType.of(DATE), OpenSearchExprValueFactory::createOpenSearchDateType)
+          .put(OpenSearchDateType.of(TIMESTAMP),
+              OpenSearchExprValueFactory::createOpenSearchDateType)
+          .put(OpenSearchDateType.of(DATETIME),
+              OpenSearchExprValueFactory::createOpenSearchDateType)
           .put(OpenSearchDataType.of(OpenSearchDataType.MappingType.Ip),
               (c, dt) -> new OpenSearchExprIpValue(c.stringValue()))
           .put(OpenSearchDataType.of(OpenSearchDataType.MappingType.GeoPoint),
@@ -222,7 +222,7 @@ public class OpenSearchExprValueFactory {
    * @param dataType - field data type
    * @return Parsed value
    */
-  private ExprValue parseDateTimeString(String value, OpenSearchDateType dataType) {
+  private static ExprValue parseDateTimeString(String value, OpenSearchDateType dataType) {
     List<DateFormatter> formatters = dataType.getAllNamedFormatters();
     formatters.addAll(dataType.getAllCustomFormatters());
     ExprCoreType returnFormat = (ExprCoreType) dataType.getExprType();
@@ -262,7 +262,7 @@ public class OpenSearchExprValueFactory {
         "Construct %s from \"%s\" failed, unsupported format.", returnFormat, value));
   }
 
-  private ExprValue createOpenSearchDateType(Content value, ExprType type) {
+  private static ExprValue createOpenSearchDateType(Content value, ExprType type) {
     OpenSearchDateType dt = (OpenSearchDateType) type;
     ExprType returnFormat = dt.getExprType();
 

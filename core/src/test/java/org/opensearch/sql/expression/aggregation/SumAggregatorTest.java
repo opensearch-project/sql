@@ -3,7 +3,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-
 package org.opensearch.sql.expression.aggregation;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -53,9 +52,13 @@ class SumAggregatorTest extends AggregationTest {
 
   @Test
   public void sum_arithmetic_expression() {
-    ExprValue result = aggregation(DSL.sum(
-        DSL.multiply(DSL.ref("integer_value", INTEGER),
-            DSL.literal(ExprValueUtils.integerValue(10)))), tuples);
+    ExprValue result =
+        aggregation(
+            DSL.sum(
+                DSL.multiply(
+                    DSL.ref("integer_value", INTEGER),
+                    DSL.literal(ExprValueUtils.integerValue(10)))),
+            tuples);
     assertEquals(100, result.value());
   }
 
@@ -64,19 +67,23 @@ class SumAggregatorTest extends AggregationTest {
     SumAggregator sumAggregator =
         new SumAggregator(ImmutableList.of(DSL.ref("string_value", STRING)), ExprCoreType.STRING);
     SumState sumState = sumAggregator.create();
-    ExpressionEvaluationException exception = assertThrows(ExpressionEvaluationException.class,
-        () -> sumAggregator
-            .iterate(
-                ExprValueUtils.tupleValue(ImmutableMap.of("string_value", "m")).bindingTuples(),
-                sumState)
-    );
+    ExpressionEvaluationException exception =
+        assertThrows(
+            ExpressionEvaluationException.class,
+            () ->
+                sumAggregator.iterate(
+                    ExprValueUtils.tupleValue(ImmutableMap.of("string_value", "m")).bindingTuples(),
+                    sumState));
     assertEquals("unexpected type [STRING] in sum aggregation", exception.getMessage());
   }
 
   @Test
   public void filtered_sum() {
-    ExprValue result = aggregation(DSL.sum(DSL.ref("integer_value", INTEGER))
-        .condition(DSL.greater(DSL.ref("integer_value", INTEGER), DSL.literal(1))), tuples);
+    ExprValue result =
+        aggregation(
+            DSL.sum(DSL.ref("integer_value", INTEGER))
+                .condition(DSL.greater(DSL.ref("integer_value", INTEGER), DSL.literal(1))),
+            tuples);
     assertEquals(9, result.value());
   }
 
@@ -103,8 +110,10 @@ class SumAggregatorTest extends AggregationTest {
 
   @Test
   public void valueOf() {
-    ExpressionEvaluationException exception = assertThrows(ExpressionEvaluationException.class,
-        () -> DSL.sum(DSL.ref("double_value", DOUBLE)).valueOf(valueEnv()));
+    ExpressionEvaluationException exception =
+        assertThrows(
+            ExpressionEvaluationException.class,
+            () -> DSL.sum(DSL.ref("double_value", DOUBLE)).valueOf(valueEnv()));
     assertEquals("can't evaluate on aggregator: sum", exception.getMessage());
   }
 
@@ -116,9 +125,12 @@ class SumAggregatorTest extends AggregationTest {
 
   @Test
   public void test_nested_to_string() {
-    Aggregator sumAggregator = DSL.sum(DSL.multiply(DSL.ref("integer_value", INTEGER),
-        DSL.literal(ExprValueUtils.integerValue(10))));
-    assertEquals(String.format("sum(*(%s, %d))", DSL.ref("integer_value", INTEGER), 10),
+    Aggregator sumAggregator =
+        DSL.sum(
+            DSL.multiply(
+                DSL.ref("integer_value", INTEGER), DSL.literal(ExprValueUtils.integerValue(10))));
+    assertEquals(
+        String.format("sum(*(%s, %d))", DSL.ref("integer_value", INTEGER), 10),
         sumAggregator.toString());
   }
 }

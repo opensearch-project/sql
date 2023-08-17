@@ -31,15 +31,17 @@ public class AwsSigningInterceptor implements Interceptor {
   private static final Logger LOG = LogManager.getLogger();
 
   /**
-   * AwsSigningInterceptor which intercepts http requests
-   * and adds required headers for sigv4 authentication.
+   * AwsSigningInterceptor which intercepts http requests and adds required headers for sigv4
+   * authentication.
    *
    * @param awsCredentialsProvider awsCredentialsProvider.
    * @param region region.
    * @param serviceName serviceName.
    */
-  public AwsSigningInterceptor(@NonNull AWSCredentialsProvider awsCredentialsProvider,
-                               @NonNull String region, @NonNull String serviceName) {
+  public AwsSigningInterceptor(
+      @NonNull AWSCredentialsProvider awsCredentialsProvider,
+      @NonNull String region,
+      @NonNull String serviceName) {
     this.okHttpAwsV4Signer = new OkHttpAwsV4Signer(region, serviceName);
     this.awsCredentialsProvider = awsCredentialsProvider;
   }
@@ -48,25 +50,27 @@ public class AwsSigningInterceptor implements Interceptor {
   public Response intercept(Interceptor.Chain chain) throws IOException {
     Request request = chain.request();
 
-    DateTimeFormatter timestampFormat = DateTimeFormatter.ofPattern("yyyyMMdd'T'HHmmss'Z'")
-        .withZone(ZoneId.of("GMT"));
+    DateTimeFormatter timestampFormat =
+        DateTimeFormatter.ofPattern("yyyyMMdd'T'HHmmss'Z'").withZone(ZoneId.of("GMT"));
 
-
-    Request.Builder newRequestBuilder = request.newBuilder()
-        .addHeader("x-amz-date", timestampFormat.format(ZonedDateTime.now()))
-        .addHeader("host", request.url().host());
+    Request.Builder newRequestBuilder =
+        request
+            .newBuilder()
+            .addHeader("x-amz-date", timestampFormat.format(ZonedDateTime.now()))
+            .addHeader("host", request.url().host());
 
     AWSCredentials awsCredentials = awsCredentialsProvider.getCredentials();
     if (awsCredentialsProvider instanceof STSAssumeRoleSessionCredentialsProvider) {
-      newRequestBuilder.addHeader("x-amz-security-token",
+      newRequestBuilder.addHeader(
+          "x-amz-security-token",
           ((STSAssumeRoleSessionCredentialsProvider) awsCredentialsProvider)
               .getCredentials()
               .getSessionToken());
     }
     Request newRequest = newRequestBuilder.build();
-    Request signed = okHttpAwsV4Signer.sign(newRequest,
-        awsCredentials.getAWSAccessKeyId(), awsCredentials.getAWSSecretKey());
+    Request signed =
+        okHttpAwsV4Signer.sign(
+            newRequest, awsCredentials.getAWSAccessKeyId(), awsCredentials.getAWSSecretKey());
     return chain.proceed(signed);
   }
-
 }

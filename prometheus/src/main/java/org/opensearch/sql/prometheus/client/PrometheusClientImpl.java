@@ -38,16 +38,18 @@ public class PrometheusClientImpl implements PrometheusClient {
     this.uri = uri;
   }
 
-
   @Override
   public JSONObject queryRange(String query, Long start, Long end, String step) throws IOException {
-    String queryUrl = String.format("%s/api/v1/query_range?query=%s&start=%s&end=%s&step=%s",
-        uri.toString().replaceAll("/$", ""), URLEncoder.encode(query, StandardCharsets.UTF_8),
-        start, end, step);
+    String queryUrl =
+        String.format(
+            "%s/api/v1/query_range?query=%s&start=%s&end=%s&step=%s",
+            uri.toString().replaceAll("/$", ""),
+            URLEncoder.encode(query, StandardCharsets.UTF_8),
+            start,
+            end,
+            step);
     logger.debug("queryUrl: " + queryUrl);
-    Request request = new Request.Builder()
-        .url(queryUrl)
-        .build();
+    Request request = new Request.Builder().url(queryUrl).build();
     Response response = this.okHttpClient.newCall(request).execute();
     JSONObject jsonObject = readResponse(response);
     return jsonObject.getJSONObject("data");
@@ -55,14 +57,14 @@ public class PrometheusClientImpl implements PrometheusClient {
 
   @Override
   public List<String> getLabels(String metricName) throws IOException {
-    String queryUrl = String.format("%s/api/v1/labels?%s=%s",
-        uri.toString().replaceAll("/$", ""),
-        URLEncoder.encode("match[]", StandardCharsets.UTF_8),
-        URLEncoder.encode(metricName, StandardCharsets.UTF_8));
+    String queryUrl =
+        String.format(
+            "%s/api/v1/labels?%s=%s",
+            uri.toString().replaceAll("/$", ""),
+            URLEncoder.encode("match[]", StandardCharsets.UTF_8),
+            URLEncoder.encode(metricName, StandardCharsets.UTF_8));
     logger.debug("queryUrl: " + queryUrl);
-    Request request = new Request.Builder()
-        .url(queryUrl)
-        .build();
+    Request request = new Request.Builder().url(queryUrl).build();
     Response response = this.okHttpClient.newCall(request).execute();
     JSONObject jsonObject = readResponse(response);
     return toListOfLabels(jsonObject.getJSONArray("data"));
@@ -70,31 +72,42 @@ public class PrometheusClientImpl implements PrometheusClient {
 
   @Override
   public Map<String, List<MetricMetadata>> getAllMetrics() throws IOException {
-    String queryUrl = String.format("%s/api/v1/metadata",
-        uri.toString().replaceAll("/$", ""));
+    String queryUrl = String.format("%s/api/v1/metadata", uri.toString().replaceAll("/$", ""));
     logger.debug("queryUrl: " + queryUrl);
-    Request request = new Request.Builder()
-        .url(queryUrl)
-        .build();
+    Request request = new Request.Builder().url(queryUrl).build();
     Response response = this.okHttpClient.newCall(request).execute();
     JSONObject jsonObject = readResponse(response);
-    TypeReference<HashMap<String, List<MetricMetadata>>> typeRef
-        = new TypeReference<>() {};
+    TypeReference<HashMap<String, List<MetricMetadata>>> typeRef = new TypeReference<>() {};
     return new ObjectMapper().readValue(jsonObject.getJSONObject("data").toString(), typeRef);
+  }
+
+  @Override
+  public JSONArray queryExemplars(String query, Long start, Long end) throws IOException {
+    String queryUrl =
+        String.format(
+            "%s/api/v1/query_exemplars?query=%s&start=%s&end=%s",
+            uri.toString().replaceAll("/$", ""),
+            URLEncoder.encode(query, StandardCharsets.UTF_8),
+            start,
+            end);
+    logger.debug("queryUrl: " + queryUrl);
+    Request request = new Request.Builder().url(queryUrl).build();
+    Response response = this.okHttpClient.newCall(request).execute();
+    JSONObject jsonObject = readResponse(response);
+    return jsonObject.getJSONArray("data");
   }
 
   private List<String> toListOfLabels(JSONArray array) {
     List<String> result = new ArrayList<>();
     for (int i = 0; i < array.length(); i++) {
-      //__name__ is internal label in prometheus representing the metric name.
-      //Exempting this from labels list as it is not required in any of the operations.
+      // __name__ is internal label in prometheus representing the metric name.
+      // Exempting this from labels list as it is not required in any of the operations.
       if (!"__name__".equals(array.optString(i))) {
         result.add(array.optString(i));
       }
     }
     return result;
   }
-
 
   private JSONObject readResponse(Response response) throws IOException {
     if (response.isSuccessful()) {
@@ -106,10 +119,9 @@ public class PrometheusClientImpl implements PrometheusClient {
       }
     } else {
       throw new RuntimeException(
-          String.format("Request to Prometheus is Unsuccessful with : %s", Objects.requireNonNull(
-              response.body(), "Response body can't be null").string()));
+          String.format(
+              "Request to Prometheus is Unsuccessful with : %s",
+              Objects.requireNonNull(response.body(), "Response body can't be null").string()));
     }
   }
-
-
 }

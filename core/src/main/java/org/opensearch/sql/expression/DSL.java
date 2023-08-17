@@ -3,7 +3,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-
 package org.opensearch.sql.expression;
 
 import java.util.Arrays;
@@ -29,8 +28,7 @@ import org.opensearch.sql.expression.window.ranking.RankingWindowFunction;
 
 public class DSL {
 
-  private DSL() {
-  }
+  private DSL() {}
 
   public static LiteralExpression literal(Byte value) {
     return new LiteralExpression(ExprValueUtils.byteValue(value));
@@ -68,9 +66,7 @@ public class DSL {
     return new LiteralExpression(value);
   }
 
-  /**
-   * Wrap a number to {@link LiteralExpression}.
-   */
+  /** Wrap a number to {@link LiteralExpression}. */
   public static LiteralExpression literal(Number value) {
     if (value instanceof Integer) {
       return new LiteralExpression(ExprValueUtils.integerValue(value.intValue()));
@@ -88,21 +84,21 @@ public class DSL {
   }
 
   /**
-   * Wrap a named expression if not yet. The intent is that different languages may use
-   * Alias or not when building AST. This caused either named or unnamed expression
-   * is resolved by analyzer. To make unnamed expression acceptable for logical project,
-   * it is required to wrap it by named expression here before passing to logical project.
+   * Wrap a named expression if not yet. The intent is that different languages may use Alias or not
+   * when building AST. This caused either named or unnamed expression is resolved by analyzer. To
+   * make unnamed expression acceptable for logical project, it is required to wrap it by named
+   * expression here before passing to logical project.
    *
-   * @param expression  expression
-   * @return            expression if named already or expression wrapped by named expression.
+   * @param expression expression
+   * @return expression if named already or expression wrapped by named expression.
    */
   public static NamedExpression named(Expression expression) {
     if (expression instanceof NamedExpression) {
       return (NamedExpression) expression;
     }
     if (expression instanceof ParseExpression) {
-      return named(((ParseExpression) expression).getIdentifier().valueOf().stringValue(),
-          expression);
+      return named(
+          ((ParseExpression) expression).getIdentifier().valueOf().stringValue(), expression);
     }
     return named(expression.toString(), expression);
   }
@@ -127,18 +123,18 @@ public class DSL {
     return namedArgument(name, literal(value));
   }
 
-  public static GrokExpression grok(Expression sourceField, Expression pattern,
-                                    Expression identifier) {
+  public static GrokExpression grok(
+      Expression sourceField, Expression pattern, Expression identifier) {
     return new GrokExpression(sourceField, pattern, identifier);
   }
 
-  public static RegexExpression regex(Expression sourceField, Expression pattern,
-                                      Expression identifier) {
+  public static RegexExpression regex(
+      Expression sourceField, Expression pattern, Expression identifier) {
     return new RegexExpression(sourceField, pattern, identifier);
   }
 
-  public static PatternsExpression patterns(Expression sourceField, Expression pattern,
-                                            Expression identifier) {
+  public static PatternsExpression patterns(
+      Expression sourceField, Expression pattern, Expression identifier) {
     return new PatternsExpression(sourceField, pattern, identifier);
   }
 
@@ -268,7 +264,6 @@ public class DSL {
 
   public static FunctionExpression sinh(Expression... expressions) {
     return compile(FunctionProperties.None, BuiltinFunctionName.SINH, expressions);
-
   }
 
   public static FunctionExpression sqrt(Expression... expressions) {
@@ -364,8 +359,7 @@ public class DSL {
   }
 
   public static FunctionExpression dayofmonth(
-      FunctionProperties functionProperties,
-      Expression... expressions) {
+      FunctionProperties functionProperties, Expression... expressions) {
     return compile(functionProperties, BuiltinFunctionName.DAYOFMONTH, expressions);
   }
 
@@ -379,8 +373,7 @@ public class DSL {
   }
 
   public static FunctionExpression day_of_month(
-      FunctionProperties functionProperties,
-      Expression... expressions) {
+      FunctionProperties functionProperties, Expression... expressions) {
     return compile(functionProperties, BuiltinFunctionName.DAY_OF_MONTH, expressions);
   }
 
@@ -394,8 +387,8 @@ public class DSL {
     return compile(functionProperties, BuiltinFunctionName.DAY_OF_WEEK, expressions);
   }
 
-  public static FunctionExpression extract(FunctionProperties functionProperties,
-                                           Expression... expressions) {
+  public static FunctionExpression extract(
+      FunctionProperties functionProperties, Expression... expressions) {
     return compile(functionProperties, BuiltinFunctionName.EXTRACT, expressions);
   }
 
@@ -419,8 +412,8 @@ public class DSL {
     return compile(FunctionProperties.None, BuiltinFunctionName.HOUR_OF_DAY, expressions);
   }
 
-  public static FunctionExpression last_day(FunctionProperties functionProperties,
-                                            Expression... expressions) {
+  public static FunctionExpression last_day(
+      FunctionProperties functionProperties, Expression... expressions) {
     return compile(functionProperties, BuiltinFunctionName.LAST_DAY, expressions);
   }
 
@@ -477,14 +470,13 @@ public class DSL {
     return timestamp(FunctionProperties.None, expressions);
   }
 
-  public static FunctionExpression timestamp(FunctionProperties functionProperties,
-                                             Expression... expressions) {
+  public static FunctionExpression timestamp(
+      FunctionProperties functionProperties, Expression... expressions) {
     return compile(functionProperties, BuiltinFunctionName.TIMESTAMP, expressions);
   }
 
   public static FunctionExpression date_format(
-      FunctionProperties functionProperties,
-      Expression... expressions) {
+      FunctionProperties functionProperties, Expression... expressions) {
     return compile(functionProperties, BuiltinFunctionName.DATE_FORMAT, expressions);
   }
 
@@ -492,8 +484,8 @@ public class DSL {
     return compile(FunctionProperties.None, BuiltinFunctionName.TO_DAYS, expressions);
   }
 
-  public static FunctionExpression to_seconds(FunctionProperties functionProperties,
-                                              Expression... expressions) {
+  public static FunctionExpression to_seconds(
+      FunctionProperties functionProperties, Expression... expressions) {
     return compile(functionProperties, BuiltinFunctionName.TO_SECONDS, expressions);
   }
 
@@ -506,8 +498,8 @@ public class DSL {
     return compile(functionProperties, BuiltinFunctionName.WEEK, expressions);
   }
 
-  public static FunctionExpression weekday(FunctionProperties functionProperties,
-                                           Expression... expressions) {
+  public static FunctionExpression weekday(
+      FunctionProperties functionProperties, Expression... expressions) {
     return compile(functionProperties, BuiltinFunctionName.WEEKDAY, expressions);
   }
 
@@ -530,13 +522,13 @@ public class DSL {
     return compile(functionProperties, BuiltinFunctionName.YEARWEEK, expressions);
   }
 
-  public static FunctionExpression str_to_date(FunctionProperties functionProperties,
-                                               Expression... expressions) {
+  public static FunctionExpression str_to_date(
+      FunctionProperties functionProperties, Expression... expressions) {
     return compile(functionProperties, BuiltinFunctionName.STR_TO_DATE, expressions);
   }
-  
+
   public static FunctionExpression sec_to_time(Expression... expressions) {
-    return  compile(FunctionProperties.None, BuiltinFunctionName.SEC_TO_TIME, expressions);
+    return compile(FunctionProperties.None, BuiltinFunctionName.SEC_TO_TIME, expressions);
   }
 
   public static FunctionExpression substr(Expression... expressions) {
@@ -771,8 +763,7 @@ public class DSL {
     return compile(FunctionProperties.None, BuiltinFunctionName.IF, expressions);
   }
 
-  public static Expression cases(Expression defaultResult,
-                                 WhenClause... whenClauses) {
+  public static Expression cases(Expression defaultResult, WhenClause... whenClauses) {
     return new CaseClause(Arrays.asList(whenClauses), defaultResult);
   }
 
@@ -884,53 +875,52 @@ public class DSL {
     return compile(FunctionProperties.None, BuiltinFunctionName.SCORE_QUERY, args);
   }
 
-  public static FunctionExpression now(FunctionProperties functionProperties,
-                                       Expression... args) {
+  public static FunctionExpression now(FunctionProperties functionProperties, Expression... args) {
     return compile(functionProperties, BuiltinFunctionName.NOW, args);
   }
 
-  public static FunctionExpression current_timestamp(FunctionProperties functionProperties,
-                                                     Expression... args) {
+  public static FunctionExpression current_timestamp(
+      FunctionProperties functionProperties, Expression... args) {
     return compile(functionProperties, BuiltinFunctionName.CURRENT_TIMESTAMP, args);
   }
 
-  public static FunctionExpression localtimestamp(FunctionProperties functionProperties,
-                                                  Expression... args) {
+  public static FunctionExpression localtimestamp(
+      FunctionProperties functionProperties, Expression... args) {
     return compile(functionProperties, BuiltinFunctionName.LOCALTIMESTAMP, args);
   }
 
-  public static FunctionExpression localtime(FunctionProperties functionProperties,
-                                             Expression... args) {
+  public static FunctionExpression localtime(
+      FunctionProperties functionProperties, Expression... args) {
     return compile(functionProperties, BuiltinFunctionName.LOCALTIME, args);
   }
 
-  public static FunctionExpression sysdate(FunctionProperties functionProperties,
-                                           Expression... args) {
+  public static FunctionExpression sysdate(
+      FunctionProperties functionProperties, Expression... args) {
     return compile(functionProperties, BuiltinFunctionName.SYSDATE, args);
   }
 
-  public static FunctionExpression curtime(FunctionProperties functionProperties,
-                                           Expression... args) {
+  public static FunctionExpression curtime(
+      FunctionProperties functionProperties, Expression... args) {
     return compile(functionProperties, BuiltinFunctionName.CURTIME, args);
   }
 
-  public static FunctionExpression current_time(FunctionProperties functionProperties,
-                                                Expression... args) {
+  public static FunctionExpression current_time(
+      FunctionProperties functionProperties, Expression... args) {
     return compile(functionProperties, BuiltinFunctionName.CURRENT_TIME, args);
   }
 
-  public static FunctionExpression curdate(FunctionProperties functionProperties,
-                                           Expression... args) {
+  public static FunctionExpression curdate(
+      FunctionProperties functionProperties, Expression... args) {
     return compile(functionProperties, BuiltinFunctionName.CURDATE, args);
   }
 
-  public static FunctionExpression current_date(FunctionProperties functionProperties,
-                                                Expression... args) {
+  public static FunctionExpression current_date(
+      FunctionProperties functionProperties, Expression... args) {
     return compile(functionProperties, BuiltinFunctionName.CURRENT_DATE, args);
   }
 
-  public static FunctionExpression time_format(FunctionProperties functionProperties,
-                                               Expression... expressions) {
+  public static FunctionExpression time_format(
+      FunctionProperties functionProperties, Expression... expressions) {
     return compile(functionProperties, BuiltinFunctionName.TIME_FORMAT, expressions);
   }
 
@@ -938,38 +928,36 @@ public class DSL {
     return timestampadd(FunctionProperties.None, expressions);
   }
 
-  public static FunctionExpression timestampadd(FunctionProperties functionProperties,
-                                               Expression... expressions) {
+  public static FunctionExpression timestampadd(
+      FunctionProperties functionProperties, Expression... expressions) {
     return compile(functionProperties, BuiltinFunctionName.TIMESTAMPADD, expressions);
   }
 
-  public static FunctionExpression timestampdiff(FunctionProperties functionProperties,
-                                                Expression... expressions) {
+  public static FunctionExpression timestampdiff(
+      FunctionProperties functionProperties, Expression... expressions) {
     return compile(functionProperties, BuiltinFunctionName.TIMESTAMPDIFF, expressions);
   }
 
-
-  public static FunctionExpression utc_date(FunctionProperties functionProperties,
-                                                Expression... args) {
+  public static FunctionExpression utc_date(
+      FunctionProperties functionProperties, Expression... args) {
     return compile(functionProperties, BuiltinFunctionName.UTC_DATE, args);
   }
 
-  public static FunctionExpression utc_time(FunctionProperties functionProperties,
-                                                Expression... args) {
+  public static FunctionExpression utc_time(
+      FunctionProperties functionProperties, Expression... args) {
     return compile(functionProperties, BuiltinFunctionName.UTC_TIME, args);
   }
 
-  public static FunctionExpression utc_timestamp(FunctionProperties functionProperties,
-                                                Expression... args) {
+  public static FunctionExpression utc_timestamp(
+      FunctionProperties functionProperties, Expression... args) {
     return compile(functionProperties, BuiltinFunctionName.UTC_TIMESTAMP, args);
-
   }
 
   @SuppressWarnings("unchecked")
-  private static <T extends FunctionImplementation>
-      T compile(FunctionProperties functionProperties,
-                BuiltinFunctionName bfn, Expression... args) {
-    return (T) BuiltinFunctionRepository.getInstance().compile(functionProperties,
-        bfn.getName(), Arrays.asList(args));
+  private static <T extends FunctionImplementation> T compile(
+      FunctionProperties functionProperties, BuiltinFunctionName bfn, Expression... args) {
+    return (T)
+        BuiltinFunctionRepository.getInstance()
+            .compile(functionProperties, bfn.getName(), Arrays.asList(args));
   }
 }

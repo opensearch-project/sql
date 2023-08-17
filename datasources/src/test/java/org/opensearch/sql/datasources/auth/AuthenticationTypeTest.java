@@ -5,7 +5,6 @@
 
 package org.opensearch.sql.datasources.auth;
 
-
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 

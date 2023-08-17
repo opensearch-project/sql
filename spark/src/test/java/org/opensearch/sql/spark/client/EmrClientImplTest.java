@@ -29,12 +29,9 @@ import org.opensearch.sql.spark.response.SparkResponse;
 @ExtendWith(MockitoExtension.class)
 public class EmrClientImplTest {
 
-  @Mock
-  private AmazonElasticMapReduce emr;
-  @Mock
-  private FlintHelper flint;
-  @Mock
-  private SparkResponse sparkResponse;
+  @Mock private AmazonElasticMapReduce emr;
+  @Mock private FlintHelper flint;
+  @Mock private SparkResponse sparkResponse;
 
   @Test
   @SneakyThrows
@@ -50,8 +47,8 @@ public class EmrClientImplTest {
     describeStepResult.setStep(step);
     when(emr.describeStep(any())).thenReturn(describeStepResult);
 
-    EmrClientImpl emrClientImpl = new EmrClientImpl(
-        emr, EMR_CLUSTER_ID, flint, sparkResponse, null);
+    EmrClientImpl emrClientImpl =
+        new EmrClientImpl(emr, EMR_CLUSTER_ID, flint, sparkResponse, null);
     emrClientImpl.runEmrApplication(QUERY);
   }
 
@@ -69,12 +66,12 @@ public class EmrClientImplTest {
     describeStepResult.setStep(step);
     when(emr.describeStep(any())).thenReturn(describeStepResult);
 
-    EmrClientImpl emrClientImpl = new EmrClientImpl(
-        emr, EMR_CLUSTER_ID, flint, sparkResponse, null);
-    RuntimeException exception = Assertions.assertThrows(RuntimeException.class,
-        () -> emrClientImpl.runEmrApplication(QUERY));
-    Assertions.assertEquals("Spark SQL application failed.",
-        exception.getMessage());
+    EmrClientImpl emrClientImpl =
+        new EmrClientImpl(emr, EMR_CLUSTER_ID, flint, sparkResponse, null);
+    RuntimeException exception =
+        Assertions.assertThrows(
+            RuntimeException.class, () -> emrClientImpl.runEmrApplication(QUERY));
+    Assertions.assertEquals("Spark SQL application failed.", exception.getMessage());
   }
 
   @Test
@@ -91,12 +88,12 @@ public class EmrClientImplTest {
     describeStepResult.setStep(step);
     when(emr.describeStep(any())).thenReturn(describeStepResult);
 
-    EmrClientImpl emrClientImpl = new EmrClientImpl(
-        emr, EMR_CLUSTER_ID, flint, sparkResponse, null);
-    RuntimeException exception = Assertions.assertThrows(RuntimeException.class,
-        () -> emrClientImpl.runEmrApplication(QUERY));
-    Assertions.assertEquals("Spark SQL application failed.",
-        exception.getMessage());
+    EmrClientImpl emrClientImpl =
+        new EmrClientImpl(emr, EMR_CLUSTER_ID, flint, sparkResponse, null);
+    RuntimeException exception =
+        Assertions.assertThrows(
+            RuntimeException.class, () -> emrClientImpl.runEmrApplication(QUERY));
+    Assertions.assertEquals("Spark SQL application failed.", exception.getMessage());
   }
 
   @Test
@@ -119,11 +116,12 @@ public class EmrClientImplTest {
     DescribeStepResult completedDescribeStepResult = new DescribeStepResult();
     completedDescribeStepResult.setStep(completedStep);
 
-    when(emr.describeStep(any())).thenReturn(runningDescribeStepResult)
+    when(emr.describeStep(any()))
+        .thenReturn(runningDescribeStepResult)
         .thenReturn(completedDescribeStepResult);
 
-    EmrClientImpl emrClientImpl = new EmrClientImpl(
-        emr, EMR_CLUSTER_ID, flint, sparkResponse, null);
+    EmrClientImpl emrClientImpl =
+        new EmrClientImpl(emr, EMR_CLUSTER_ID, flint, sparkResponse, null);
     emrClientImpl.runEmrApplication(QUERY);
   }
 
@@ -147,14 +145,14 @@ public class EmrClientImplTest {
     DescribeStepResult completedDescribeStepResult = new DescribeStepResult();
     completedDescribeStepResult.setStep(completedStep);
 
-    when(emr.describeStep(any())).thenReturn(runningDescribeStepResult)
+    when(emr.describeStep(any()))
+        .thenReturn(runningDescribeStepResult)
         .thenReturn(completedDescribeStepResult);
     when(sparkResponse.getResultFromOpensearchIndex())
         .thenReturn(new JSONObject(getJson("select_query_response.json")));
 
-    EmrClientImpl emrClientImpl = new EmrClientImpl(
-        emr, EMR_CLUSTER_ID, flint, sparkResponse, null);
+    EmrClientImpl emrClientImpl =
+        new EmrClientImpl(emr, EMR_CLUSTER_ID, flint, sparkResponse, null);
     emrClientImpl.sql(QUERY);
-
   }
 }

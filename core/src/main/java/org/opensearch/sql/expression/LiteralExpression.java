@@ -3,7 +3,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-
 package org.opensearch.sql.expression;
 
 import lombok.EqualsAndHashCode;
@@ -12,9 +11,7 @@ import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.data.type.ExprType;
 import org.opensearch.sql.expression.env.Environment;
 
-/**
- * Literal Expression.
- */
+/** Literal Expression. */
 @EqualsAndHashCode
 @RequiredArgsConstructor
 public class LiteralExpression implements Expression {

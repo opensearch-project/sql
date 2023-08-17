@@ -3,7 +3,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-
 package org.opensearch.sql.ppl.utils;
 
 import static java.util.Collections.emptyList;
@@ -28,12 +27,10 @@ public class ArgumentFactoryTest extends AstBuilderTest {
 
   @Test
   public void testFieldsCommandArgument() {
-    assertEqual("source=t | fields - a",
+    assertEqual(
+        "source=t | fields - a",
         projectWithArg(
-            relation("t"),
-            exprList(argument("exclude", booleanLiteral(true))),
-            field("a")
-        ));
+            relation("t"), exprList(argument("exclude", booleanLiteral(true))), field("a")));
   }
 
   @Test
@@ -47,20 +44,14 @@ public class ArgumentFactoryTest extends AstBuilderTest {
         "source=t | stats partitions=1 allnum=false delim=',' avg(a) dedup_splitvalues=true",
         agg(
             relation("t"),
-            exprList(
-                alias(
-                    "avg(a)",
-                    aggregate("avg", field("a")))
-                ),
+            exprList(alias("avg(a)", aggregate("avg", field("a")))),
             emptyList(),
             emptyList(),
             exprList(
                 argument("partitions", intLiteral(1)),
                 argument("allnum", booleanLiteral(false)),
                 argument("delim", stringLiteral(",")),
-                argument("dedupsplit", booleanLiteral(true))
-            )
-        ));
+                argument("dedupsplit", booleanLiteral(true)))));
   }
 
   @Test
@@ -72,52 +63,43 @@ public class ArgumentFactoryTest extends AstBuilderTest {
 
   @Test
   public void testDedupCommandArgument() {
-    assertEqual("source=t | dedup 3 field0 keepempty=false consecutive=true",
+    assertEqual(
+        "source=t | dedup 3 field0 keepempty=false consecutive=true",
         dedupe(
             relation("t"),
             exprList(
                 argument("number", intLiteral(3)),
                 argument("keepempty", booleanLiteral(false)),
-                argument("consecutive", booleanLiteral(true))
-            ),
-            field("field0")
-        ));
+                argument("consecutive", booleanLiteral(true))),
+            field("field0")));
   }
 
   @Test
   public void testDedupCommandDefaultArgument() {
     assertEqual(
-        "source=t | dedup 1 field0 keepempty=false consecutive=false",
-        "source=t | dedup field0"
-    );
+        "source=t | dedup 1 field0 keepempty=false consecutive=false", "source=t | dedup field0");
   }
 
   @Test
   public void testSortCommandDefaultArgument() {
-    assertEqual(
-        "source=t | sort field0",
-        "source=t | sort field0"
-    );
+    assertEqual("source=t | sort field0", "source=t | sort field0");
   }
 
   @Test
   public void testSortFieldArgument() {
-    assertEqual("source=t | sort - auto(field0)",
+    assertEqual(
+        "source=t | sort - auto(field0)",
         sort(
             relation("t"),
             field(
                 "field0",
                 exprList(
                     argument("asc", booleanLiteral(false)),
-                    argument("type", stringLiteral("auto"))
-                )
-            )
-        ));
+                    argument("type", stringLiteral("auto"))))));
   }
 
   @Test
   public void testNoArgConstructorForArgumentFactoryShouldPass() {
     new ArgumentFactory();
   }
-
 }

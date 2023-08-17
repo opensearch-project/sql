@@ -12,7 +12,6 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -24,6 +23,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.ObjectOutputStream;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import lombok.SneakyThrows;
 import org.junit.jupiter.api.BeforeEach;
@@ -113,7 +113,7 @@ class OpenSearchIndexScanTest {
     when(engine.getClient()).thenReturn(client);
     when(engine.getTable(any(), any())).thenReturn(index);
     var request = new OpenSearchScrollRequest(
-        INDEX_NAME, CURSOR_KEEP_ALIVE, searchSourceBuilder, factory);
+        INDEX_NAME, CURSOR_KEEP_ALIVE, searchSourceBuilder, factory, List.of());
     request.setScrollId("valid-id");
     // make a response, so OpenSearchResponse::isEmpty would return true and unset needClean
     var response = mock(SearchResponse.class);
@@ -381,7 +381,7 @@ class OpenSearchIndexScanTest {
           .highlighter(highlight)
           .sort(DOC_FIELD_NAME, ASC);
       OpenSearchRequest request =
-          new OpenSearchQueryRequest(EMPLOYEES_INDEX, sourceBuilder, factory);
+          new OpenSearchQueryRequest(EMPLOYEES_INDEX, sourceBuilder, factory, List.of());
 
       when(client.search(request)).thenReturn(response);
       var indexScan = new OpenSearchIndexScan(client,
@@ -397,7 +397,8 @@ class OpenSearchIndexScanTest {
           .size(QUERY_SIZE)
           .timeout(CURSOR_KEEP_ALIVE)
           .sort(DOC_FIELD_NAME, ASC);
-      OpenSearchRequest request = new OpenSearchQueryRequest(EMPLOYEES_INDEX, builder, factory);
+      OpenSearchRequest request =
+          new OpenSearchQueryRequest(EMPLOYEES_INDEX, builder, factory, List.of());
       when(client.search(request)).thenReturn(response);
       var indexScan = new OpenSearchIndexScan(client,
           10000, requestBuilder.build(EMPLOYEES_INDEX, 10000, CURSOR_KEEP_ALIVE));

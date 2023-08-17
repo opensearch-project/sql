@@ -7,9 +7,7 @@ package org.opensearch.sql.executor.streaming;
 
 import java.util.Optional;
 
-/**
- * Streaming source.
- */
+/** Streaming source. */
 public interface StreamingSource {
   /**
    * Get current {@link Offset} of stream data.

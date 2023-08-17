@@ -56,23 +56,20 @@ public class PrometheusStorageFactory implements DataSourceFactory {
   @Override
   public DataSource createDataSource(DataSourceMetadata metadata) {
     return new DataSource(
-        metadata.getName(),
-        DataSourceType.PROMETHEUS,
-        getStorageEngine(metadata.getProperties()));
+        metadata.getName(), DataSourceType.PROMETHEUS, getStorageEngine(metadata.getProperties()));
   }
 
-
-  //Need to refactor to a separate Validator class.
+  // Need to refactor to a separate Validator class.
   private void validateDataSourceConfigProperties(Map<String, String> dataSourceMetadataConfig)
       throws URISyntaxException {
     if (dataSourceMetadataConfig.get(AUTH_TYPE) != null) {
-      AuthenticationType authenticationType
-          = AuthenticationType.get(dataSourceMetadataConfig.get(AUTH_TYPE));
+      AuthenticationType authenticationType =
+          AuthenticationType.get(dataSourceMetadataConfig.get(AUTH_TYPE));
       if (AuthenticationType.BASICAUTH.equals(authenticationType)) {
         validateMissingFields(dataSourceMetadataConfig, Set.of(URI, USERNAME, PASSWORD));
       } else if (AuthenticationType.AWSSIGV4AUTH.equals(authenticationType)) {
-        validateMissingFields(dataSourceMetadataConfig, Set.of(URI, ACCESS_KEY, SECRET_KEY,
-            REGION));
+        validateMissingFields(
+            dataSourceMetadataConfig, Set.of(URI, ACCESS_KEY, SECRET_KEY, REGION));
       }
     } else {
       validateMissingFields(dataSourceMetadataConfig, Set.of(URI));
@@ -83,19 +80,20 @@ public class PrometheusStorageFactory implements DataSourceFactory {
   StorageEngine getStorageEngine(Map<String, String> requiredConfig) {
     PrometheusClient prometheusClient;
     prometheusClient =
-        AccessController.doPrivileged((PrivilegedAction<PrometheusClientImpl>) () -> {
-          try {
-            validateDataSourceConfigProperties(requiredConfig);
-            return new PrometheusClientImpl(getHttpClient(requiredConfig),
-                new URI(requiredConfig.get(URI)));
-          } catch (URISyntaxException e) {
-            throw new IllegalArgumentException(
-                String.format("Invalid URI in prometheus properties: %s", e.getMessage()));
-          }
-        });
+        AccessController.doPrivileged(
+            (PrivilegedAction<PrometheusClientImpl>)
+                () -> {
+                  try {
+                    validateDataSourceConfigProperties(requiredConfig);
+                    return new PrometheusClientImpl(
+                        getHttpClient(requiredConfig), new URI(requiredConfig.get(URI)));
+                  } catch (URISyntaxException e) {
+                    throw new IllegalArgumentException(
+                        String.format("Invalid URI in prometheus properties: %s", e.getMessage()));
+                  }
+                });
     return new PrometheusStorageEngine(prometheusClient);
   }
-
 
   private OkHttpClient getHttpClient(Map<String, String> config) {
     OkHttpClient.Builder okHttpClient = new OkHttpClient.Builder();
@@ -104,16 +102,19 @@ public class PrometheusStorageFactory implements DataSourceFactory {
     if (config.get(AUTH_TYPE) != null) {
       AuthenticationType authenticationType = AuthenticationType.get(config.get(AUTH_TYPE));
       if (AuthenticationType.BASICAUTH.equals(authenticationType)) {
-        okHttpClient.addInterceptor(new BasicAuthenticationInterceptor(config.get(USERNAME),
-            config.get(PASSWORD)));
+        okHttpClient.addInterceptor(
+            new BasicAuthenticationInterceptor(config.get(USERNAME), config.get(PASSWORD)));
       } else if (AuthenticationType.AWSSIGV4AUTH.equals(authenticationType)) {
-        okHttpClient.addInterceptor(new AwsSigningInterceptor(
-            new AWSStaticCredentialsProvider(
-                new BasicAWSCredentials(config.get(ACCESS_KEY), config.get(SECRET_KEY))),
-            config.get(REGION), "aps"));
+        okHttpClient.addInterceptor(
+            new AwsSigningInterceptor(
+                new AWSStaticCredentialsProvider(
+                    new BasicAWSCredentials(config.get(ACCESS_KEY), config.get(SECRET_KEY))),
+                config.get(REGION),
+                "aps"));
       } else {
         throw new IllegalArgumentException(
-            String.format("AUTH Type : %s is not supported with Prometheus Connector",
+            String.format(
+                "AUTH Type : %s is not supported with Prometheus Connector",
                 config.get(AUTH_TYPE)));
       }
     }
@@ -132,13 +133,14 @@ public class PrometheusStorageFactory implements DataSourceFactory {
     }
     StringBuilder errorStringBuilder = new StringBuilder();
     if (missingFields.size() > 0) {
-      errorStringBuilder.append(String.format(
-          "Missing %s fields in the Prometheus connector properties.", missingFields));
+      errorStringBuilder.append(
+          String.format(
+              "Missing %s fields in the Prometheus connector properties.", missingFields));
     }
 
     if (invalidLengthFields.size() > 0) {
-      errorStringBuilder.append(String.format(
-          "Fields %s exceeds more than 1000 characters.", invalidLengthFields));
+      errorStringBuilder.append(
+          String.format("Fields %s exceeds more than 1000 characters.", invalidLengthFields));
     }
     if (errorStringBuilder.length() > 0) {
       throw new IllegalArgumentException(errorStringBuilder.toString());
@@ -148,8 +150,9 @@ public class PrometheusStorageFactory implements DataSourceFactory {
   private void validateURI(Map<String, String> config) throws URISyntaxException {
     URI uri = new URI(config.get(URI));
     String host = uri.getHost();
-    if (host == null || (!(DomainValidator.getInstance().isValid(host)
-        || DomainValidator.getInstance().isValidLocalTld(host)))) {
+    if (host == null
+        || (!(DomainValidator.getInstance().isValid(host)
+            || DomainValidator.getInstance().isValidLocalTld(host)))) {
       throw new IllegalArgumentException(
           String.format("Invalid hostname in the uri: %s", config.get(URI)));
     } else {
@@ -158,10 +161,10 @@ public class PrometheusStorageFactory implements DataSourceFactory {
       Matcher matcher = allowHostsPattern.matcher(host);
       if (!matcher.matches()) {
         throw new IllegalArgumentException(
-            String.format("Disallowed hostname in the uri: %s. Validate with %s config",
+            String.format(
+                "Disallowed hostname in the uri: %s. Validate with %s config",
                 config.get(URI), Settings.Key.DATASOURCES_URI_ALLOWHOSTS.getKeyValue()));
       }
     }
   }
-
 }

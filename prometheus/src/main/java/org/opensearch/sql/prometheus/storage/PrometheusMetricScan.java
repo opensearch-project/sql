@@ -23,30 +23,19 @@ import org.opensearch.sql.prometheus.response.PrometheusResponse;
 import org.opensearch.sql.prometheus.storage.model.PrometheusResponseFieldNames;
 import org.opensearch.sql.storage.TableScanOperator;
 
-/**
- * Prometheus metric scan operator.
- */
+/** Prometheus metric scan operator. */
 @EqualsAndHashCode(onlyExplicitlyIncluded = true, callSuper = false)
 @ToString(onlyExplicitlyIncluded = true)
 public class PrometheusMetricScan extends TableScanOperator {
 
   private final PrometheusClient prometheusClient;
 
-  @EqualsAndHashCode.Include
-  @Getter
-  @Setter
-  @ToString.Include
+  @EqualsAndHashCode.Include @Getter @Setter @ToString.Include
   private PrometheusQueryRequest request;
 
   private Iterator<ExprValue> iterator;
 
-  @Setter
-  @Getter
-  private Boolean isQueryRangeFunctionScan = Boolean.FALSE;
-
-  @Setter
-  private PrometheusResponseFieldNames prometheusResponseFieldNames;
-
+  @Setter private PrometheusResponseFieldNames prometheusResponseFieldNames;
 
   private static final Logger LOG = LogManager.getLogger();
 
@@ -64,18 +53,25 @@ public class PrometheusMetricScan extends TableScanOperator {
   @Override
   public void open() {
     super.open();
-    this.iterator = AccessController.doPrivileged((PrivilegedAction<Iterator<ExprValue>>) () -> {
-      try {
-        JSONObject responseObject = prometheusClient.queryRange(
-            request.getPromQl(),
-            request.getStartTime(), request.getEndTime(), request.getStep());
-        return new PrometheusResponse(responseObject, prometheusResponseFieldNames,
-            isQueryRangeFunctionScan).iterator();
-      } catch (IOException e) {
-        LOG.error(e.getMessage());
-        throw new RuntimeException("Error fetching data from prometheus server. " + e.getMessage());
-      }
-    });
+    this.iterator =
+        AccessController.doPrivileged(
+            (PrivilegedAction<Iterator<ExprValue>>)
+                () -> {
+                  try {
+                    JSONObject responseObject =
+                        prometheusClient.queryRange(
+                            request.getPromQl(),
+                            request.getStartTime(),
+                            request.getEndTime(),
+                            request.getStep());
+                    return new PrometheusResponse(responseObject, prometheusResponseFieldNames)
+                        .iterator();
+                  } catch (IOException e) {
+                    LOG.error(e.getMessage());
+                    throw new RuntimeException(
+                        "Error fetching data from prometheus server. " + e.getMessage());
+                  }
+                });
   }
 
   @Override

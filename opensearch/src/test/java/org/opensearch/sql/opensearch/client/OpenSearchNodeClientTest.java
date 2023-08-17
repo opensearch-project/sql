@@ -60,7 +60,6 @@ import org.opensearch.cluster.metadata.IndexMetadata;
 import org.opensearch.cluster.metadata.MappingMetadata;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.common.unit.TimeValue;
-import org.opensearch.common.util.concurrent.ThreadContext;
 import org.opensearch.common.xcontent.XContentType;
 import org.opensearch.core.xcontent.DeprecationHandler;
 import org.opensearch.core.xcontent.NamedXContentRegistry;
@@ -323,7 +322,7 @@ class OpenSearchNodeClientTest {
     // Verify response for first scroll request
     OpenSearchScrollRequest request = new OpenSearchScrollRequest(
         new OpenSearchRequest.IndexName("test"), TimeValue.timeValueMinutes(1),
-        new SearchSourceBuilder(), factory);
+        new SearchSourceBuilder(), factory, List.of("id"));
     OpenSearchResponse response1 = client.search(request);
     assertFalse(response1.isEmpty());
 
@@ -358,7 +357,7 @@ class OpenSearchNodeClientTest {
 
     OpenSearchScrollRequest request = new OpenSearchScrollRequest(
         new OpenSearchRequest.IndexName("test"), TimeValue.timeValueMinutes(1),
-        new SearchSourceBuilder(), factory);
+        new SearchSourceBuilder(), factory, List.of());
     request.setScrollId("scroll123");
     // Enforce cleaning by setting a private field.
     FieldUtils.writeField(request, "needClean", true, true);
@@ -375,7 +374,7 @@ class OpenSearchNodeClientTest {
   void cleanup_without_scrollId() {
     OpenSearchScrollRequest request = new OpenSearchScrollRequest(
         new OpenSearchRequest.IndexName("test"), TimeValue.timeValueMinutes(1),
-        new SearchSourceBuilder(), factory);
+        new SearchSourceBuilder(), factory, List.of());
     client.cleanup(request);
     verify(nodeClient, never()).prepareClearScroll();
   }
@@ -387,7 +386,7 @@ class OpenSearchNodeClientTest {
 
     OpenSearchScrollRequest request = new OpenSearchScrollRequest(
         new OpenSearchRequest.IndexName("test"), TimeValue.timeValueMinutes(1),
-        new SearchSourceBuilder(), factory);
+        new SearchSourceBuilder(), factory, List.of());
     request.setScrollId("scroll123");
     // Enforce cleaning by setting a private field.
     FieldUtils.writeField(request, "needClean", true, true);

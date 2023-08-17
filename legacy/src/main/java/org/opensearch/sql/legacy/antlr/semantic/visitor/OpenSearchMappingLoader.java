@@ -12,7 +12,6 @@ import static org.opensearch.sql.legacy.antlr.semantic.types.base.OpenSearchInde
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
-import java.util.stream.Collectors;
 import org.opensearch.sql.legacy.antlr.semantic.scope.Environment;
 import org.opensearch.sql.legacy.antlr.semantic.scope.Namespace;
 import org.opensearch.sql.legacy.antlr.semantic.scope.SemanticContext;
