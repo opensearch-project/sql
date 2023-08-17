@@ -73,7 +73,8 @@ public class TimestampTest extends ExpressionTestBase {
   public void timestamp_one_arg_time() {
     var expr = DSL.timestamp(functionProperties, DSL.time(DSL.literal("22:33:44")));
     assertEquals(TIMESTAMP, expr.type());
-    var refValue = LocalDate.now().atTime(LocalTime.of(22, 33, 44)).atZone(ZoneOffset.UTC).toInstant();
+    var refValue =
+        LocalDate.now().atTime(LocalTime.of(22, 33, 44)).atZone(ZoneOffset.UTC).toInstant();
     assertEquals(new ExprTimestampValue(refValue), expr.valueOf());
   }
 

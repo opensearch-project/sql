@@ -135,10 +135,12 @@ public class AddTimeAndSubTimeTest extends DateTimeTestBase {
       LocalDateTime subTimeExpectedResult) {
     var res = addtime(arg1, arg2);
     assertEquals(TIMESTAMP, res.type());
-    assertEquals(addTimeExpectedResult, res.timestampValue().atZone(ZoneOffset.UTC).toLocalDateTime());
+    assertEquals(
+        addTimeExpectedResult, res.timestampValue().atZone(ZoneOffset.UTC).toLocalDateTime());
 
     res = subtime(arg1, arg2);
     assertEquals(TIMESTAMP, res.type());
-    assertEquals(subTimeExpectedResult, res.timestampValue().atZone(ZoneOffset.UTC).toLocalDateTime());
+    assertEquals(
+        subTimeExpectedResult, res.timestampValue().atZone(ZoneOffset.UTC).toLocalDateTime());
   }
 }

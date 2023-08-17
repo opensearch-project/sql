@@ -92,6 +92,6 @@ public class UnixTwoWayConversionTest extends DateTimeTestBase {
         LocalDateTime.ofInstant(
             eval(fromUnixTime(unixTimeStampOf(DSL.literal(new ExprTimestampValue(value)))))
                 .timestampValue(),
-                ZoneOffset.UTC));
+            ZoneOffset.UTC));
   }
 }

@@ -1168,7 +1168,8 @@ public class DateTimeFunction {
       ExprValue datetime,
       TemporalAmount interval,
       Boolean isAdd) {
-    var dt = extractTimestamp(datetime, functionProperties).atZone(ZoneOffset.UTC).toLocalDateTime();
+    var dt =
+        extractTimestamp(datetime, functionProperties).atZone(ZoneOffset.UTC).toLocalDateTime();
     return new ExprTimestampValue(isAdd ? dt.plus(interval) : dt.minus(interval));
   }
 
@@ -1221,7 +1222,8 @@ public class DateTimeFunction {
       return new ExprDateValue(
           isAdd ? datetime.dateValue().plusDays(days) : datetime.dateValue().minusDays(days));
     }
-    var dt = extractTimestamp(datetime, functionProperties).atZone(ZoneOffset.UTC).toLocalDateTime();
+    var dt =
+        extractTimestamp(datetime, functionProperties).atZone(ZoneOffset.UTC).toLocalDateTime();
     return new ExprTimestampValue(isAdd ? dt.plusDays(days) : dt.minusDays(days));
   }
 
@@ -1857,7 +1859,8 @@ public class DateTimeFunction {
       ExprValue partExpr, ExprValue amountExpr, ExprValue datetimeExpr) {
     String part = partExpr.stringValue();
     int amount = amountExpr.integerValue();
-    LocalDateTime timestamp = datetimeExpr.timestampValue().atZone(ZoneOffset.UTC).toLocalDateTime();
+    LocalDateTime timestamp =
+        datetimeExpr.timestampValue().atZone(ZoneOffset.UTC).toLocalDateTime();
     ChronoUnit temporalUnit;
 
     switch (part) {
@@ -1981,7 +1984,8 @@ public class DateTimeFunction {
    */
   private ExprValue exprUtcTimeStamp(FunctionProperties functionProperties) {
     var zdt =
-        ZonedDateTime.now(functionProperties.getQueryStartClock()).withZoneSameInstant(ZoneOffset.UTC);
+        ZonedDateTime.now(functionProperties.getQueryStartClock())
+            .withZoneSameInstant(ZoneOffset.UTC);
     return new ExprTimestampValue(zdt.toLocalDateTime());
   }
 

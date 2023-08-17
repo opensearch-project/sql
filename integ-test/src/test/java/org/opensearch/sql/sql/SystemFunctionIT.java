@@ -30,12 +30,13 @@ public class SystemFunctionIT extends SQLIntegTestCase {
                 + "typeof(12345), typeof(1234567891011), typeof(INTERVAL 2 DAY);");
     verifyDataRows(response, rows("KEYWORD", "UNDEFINED", "DOUBLE", "INTEGER", "LONG", "INTERVAL"));
 
-    response = executeJdbcRequest("SELECT"
-        + " typeof(CAST('1961-04-12 09:07:00' AS TIMESTAMP)),"
-        + " typeof(CAST('09:07:00' AS TIME)),"
-        + " typeof(CAST('1961-04-12' AS DATE))");
-    verifyDataRows(response,
-        rows("TIMESTAMP", "TIME", "DATE"));
+    response =
+        executeJdbcRequest(
+            "SELECT"
+                + " typeof(CAST('1961-04-12 09:07:00' AS TIMESTAMP)),"
+                + " typeof(CAST('09:07:00' AS TIME)),"
+                + " typeof(CAST('1961-04-12' AS DATE))");
+    verifyDataRows(response, rows("TIMESTAMP", "TIME", "DATE"));
   }
 
   @Test

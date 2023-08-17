@@ -133,267 +133,267 @@ public class DateTimeComparisonIT extends PPLIntegTestCase {
   @ParametersFactory(argumentFormatting = "%1$s => %3$s")
   public static Iterable<Object[]> compareEqTimestampWithOtherTypes() {
     var today = LocalDate.now().toString();
-    return Arrays.asList($$(
-        $("TIMESTAMP('2020-09-16 00:00:00') = DATE('2020-09-16')", "ts_d_t", true),
-        $("DATE('2020-09-16') = TIMESTAMP('2020-09-16 00:00:00')", "d_ts_t", true),
-        $("TIMESTAMP('2020-09-16 10:20:30') = DATE('1961-04-12')", "ts_d_f", false),
-        $("DATE('1961-04-12') = TIMESTAMP('1984-12-15 22:15:07')", "d_ts_f", false),
-        $("TIMESTAMP('" + today + " 10:20:30') = TIME('10:20:30')", "ts_t_t", true),
-        $("TIME('10:20:30') = TIMESTAMP('" + today + " 10:20:30')", "t_ts_t", true),
-        $("TIMESTAMP('2020-09-16 10:20:30') = TIME('09:07:00')", "ts_t_f", false),
-        $("TIME('09:07:00') = TIMESTAMP('1984-12-15 22:15:07')", "t_ts_f", false)
-    ));
+    return Arrays.asList(
+        $$(
+            $("TIMESTAMP('2020-09-16 00:00:00') = DATE('2020-09-16')", "ts_d_t", true),
+            $("DATE('2020-09-16') = TIMESTAMP('2020-09-16 00:00:00')", "d_ts_t", true),
+            $("TIMESTAMP('2020-09-16 10:20:30') = DATE('1961-04-12')", "ts_d_f", false),
+            $("DATE('1961-04-12') = TIMESTAMP('1984-12-15 22:15:07')", "d_ts_f", false),
+            $("TIMESTAMP('" + today + " 10:20:30') = TIME('10:20:30')", "ts_t_t", true),
+            $("TIME('10:20:30') = TIMESTAMP('" + today + " 10:20:30')", "t_ts_t", true),
+            $("TIMESTAMP('2020-09-16 10:20:30') = TIME('09:07:00')", "ts_t_f", false),
+            $("TIME('09:07:00') = TIMESTAMP('1984-12-15 22:15:07')", "t_ts_f", false)));
   }
 
   @ParametersFactory(argumentFormatting = "%1$s => %3$s")
   public static Iterable<Object[]> compareEqDateWithOtherTypes() {
     var today = LocalDate.now().toString();
-    return Arrays.asList($$(
-        $("DATE('2020-09-16') = TIMESTAMP('2020-09-16 00:00:00')", "d_ts_t", true),
-        $("TIMESTAMP('2020-09-16 00:00:00') = DATE('2020-09-16')", "ts_d_t", true),
-        $("DATE('2020-09-16') = TIMESTAMP('1961-04-12 09:07:00')", "d_ts_f", false),
-        $("TIMESTAMP('1984-12-15 09:07:00') = DATE('1984-12-15')", "ts_d_f", false),
-        $("DATE('" + today + "') = TIME('00:00:00')", "d_t_t", true),
-        $("TIME('00:00:00') = DATE('" + today + "')", "t_d_t", true),
-        $("DATE('2020-09-16') = TIME('09:07:00')", "d_t_f", false),
-        $("TIME('09:07:00') = DATE('" + today + "')", "t_d_f", false)
-    ));
+    return Arrays.asList(
+        $$(
+            $("DATE('2020-09-16') = TIMESTAMP('2020-09-16 00:00:00')", "d_ts_t", true),
+            $("TIMESTAMP('2020-09-16 00:00:00') = DATE('2020-09-16')", "ts_d_t", true),
+            $("DATE('2020-09-16') = TIMESTAMP('1961-04-12 09:07:00')", "d_ts_f", false),
+            $("TIMESTAMP('1984-12-15 09:07:00') = DATE('1984-12-15')", "ts_d_f", false),
+            $("DATE('" + today + "') = TIME('00:00:00')", "d_t_t", true),
+            $("TIME('00:00:00') = DATE('" + today + "')", "t_d_t", true),
+            $("DATE('2020-09-16') = TIME('09:07:00')", "d_t_f", false),
+            $("TIME('09:07:00') = DATE('" + today + "')", "t_d_f", false)));
   }
 
   @ParametersFactory(argumentFormatting = "%1$s => %3$s")
   public static Iterable<Object[]> compareEqTimeWithOtherTypes() {
     var today = LocalDate.now().toString();
-    return Arrays.asList($$(
-        $("TIME('10:20:30') = TIMESTAMP('" + today + " 10:20:30')", "t_ts_t", true),
-        $("TIMESTAMP('" + today + " 10:20:30') = TIME('10:20:30')", "ts_t_t", true),
-        $("TIME('22:15:07') = TIMESTAMP('1984-12-15 22:15:07')", "t_ts_f", false),
-        $("TIMESTAMP('1984-12-15 10:20:30') = TIME('10:20:30')", "ts_t_f", false),
-        $("TIME('00:00:00') = DATE('" + today + "')", "t_d_t", true),
-        $("DATE('" + today + "') = TIME('00:00:00')", "d_t_t", true),
-        $("TIME('09:07:00') = DATE('" + today + "')", "t_d_f", false),
-        $("DATE('2020-09-16') = TIME('09:07:00')", "d_t_f", false)
-    ));
+    return Arrays.asList(
+        $$(
+            $("TIME('10:20:30') = TIMESTAMP('" + today + " 10:20:30')", "t_ts_t", true),
+            $("TIMESTAMP('" + today + " 10:20:30') = TIME('10:20:30')", "ts_t_t", true),
+            $("TIME('22:15:07') = TIMESTAMP('1984-12-15 22:15:07')", "t_ts_f", false),
+            $("TIMESTAMP('1984-12-15 10:20:30') = TIME('10:20:30')", "ts_t_f", false),
+            $("TIME('00:00:00') = DATE('" + today + "')", "t_d_t", true),
+            $("DATE('" + today + "') = TIME('00:00:00')", "d_t_t", true),
+            $("TIME('09:07:00') = DATE('" + today + "')", "t_d_f", false),
+            $("DATE('2020-09-16') = TIME('09:07:00')", "d_t_f", false)));
   }
 
   @ParametersFactory(argumentFormatting = "%1$s => %3$s")
   public static Iterable<Object[]> compareNeqTimestampWithOtherTypes() {
     var today = LocalDate.now().toString();
-    return Arrays.asList($$(
-        $("TIMESTAMP('2020-09-16 10:20:30') != DATE('1961-04-12')", "ts_d_t", true),
-        $("DATE('1961-04-12') != TIMESTAMP('1984-12-15 22:15:07')", "d_ts_t", true),
-        $("TIMESTAMP('2020-09-16 00:00:00') != DATE('2020-09-16')", "ts_d_f", false),
-        $("DATE('2020-09-16') != TIMESTAMP('2020-09-16 00:00:00')", "d_ts_f", false),
-        $("TIMESTAMP('2020-09-16 10:20:30') != TIME('09:07:00')", "ts_t_t", true),
-        $("TIME('09:07:00') != TIMESTAMP('1984-12-15 22:15:07')", "t_ts_t", true),
-        $("TIMESTAMP('" + today + " 10:20:30') != TIME('10:20:30')", "ts_t_f", false),
-        $("TIME('10:20:30') != TIMESTAMP('" + today + " 10:20:30')", "t_ts_f", false)
-    ));
+    return Arrays.asList(
+        $$(
+            $("TIMESTAMP('2020-09-16 10:20:30') != DATE('1961-04-12')", "ts_d_t", true),
+            $("DATE('1961-04-12') != TIMESTAMP('1984-12-15 22:15:07')", "d_ts_t", true),
+            $("TIMESTAMP('2020-09-16 00:00:00') != DATE('2020-09-16')", "ts_d_f", false),
+            $("DATE('2020-09-16') != TIMESTAMP('2020-09-16 00:00:00')", "d_ts_f", false),
+            $("TIMESTAMP('2020-09-16 10:20:30') != TIME('09:07:00')", "ts_t_t", true),
+            $("TIME('09:07:00') != TIMESTAMP('1984-12-15 22:15:07')", "t_ts_t", true),
+            $("TIMESTAMP('" + today + " 10:20:30') != TIME('10:20:30')", "ts_t_f", false),
+            $("TIME('10:20:30') != TIMESTAMP('" + today + " 10:20:30')", "t_ts_f", false)));
   }
 
   @ParametersFactory(argumentFormatting = "%1$s => %3$s")
   public static Iterable<Object[]> compareNeqDateWithOtherTypes() {
     var today = LocalDate.now().toString();
-    return Arrays.asList($$(
-        $("DATE('2020-09-16') != TIMESTAMP('1961-04-12 09:07:00')", "d_ts_t", true),
-        $("TIMESTAMP('1984-12-15 09:07:00') != DATE('1984-12-15')", "ts_d_t", true),
-        $("DATE('2020-09-16') != TIMESTAMP('2020-09-16 00:00:00')", "d_ts_f", false),
-        $("TIMESTAMP('2020-09-16 00:00:00') != DATE('2020-09-16')", "ts_d_f", false),
-        $("DATE('2020-09-16') != TIME('09:07:00')", "d_t_t", true),
-        $("TIME('09:07:00') != DATE('" + today + "')", "t_d_t", true),
-        $("DATE('" + today + "') != TIME('00:00:00')", "d_t_f", false),
-        $("TIME('00:00:00') != DATE('" + today + "')", "t_d_f", false)
-    ));
+    return Arrays.asList(
+        $$(
+            $("DATE('2020-09-16') != TIMESTAMP('1961-04-12 09:07:00')", "d_ts_t", true),
+            $("TIMESTAMP('1984-12-15 09:07:00') != DATE('1984-12-15')", "ts_d_t", true),
+            $("DATE('2020-09-16') != TIMESTAMP('2020-09-16 00:00:00')", "d_ts_f", false),
+            $("TIMESTAMP('2020-09-16 00:00:00') != DATE('2020-09-16')", "ts_d_f", false),
+            $("DATE('2020-09-16') != TIME('09:07:00')", "d_t_t", true),
+            $("TIME('09:07:00') != DATE('" + today + "')", "t_d_t", true),
+            $("DATE('" + today + "') != TIME('00:00:00')", "d_t_f", false),
+            $("TIME('00:00:00') != DATE('" + today + "')", "t_d_f", false)));
   }
 
   @ParametersFactory(argumentFormatting = "%1$s => %3$s")
   public static Iterable<Object[]> compareNeqTimeWithOtherTypes() {
     var today = LocalDate.now().toString();
-    return Arrays.asList($$(
-        $("TIME('22:15:07') != TIMESTAMP('1984-12-15 22:15:07')", "t_ts_t", true),
-        $("TIMESTAMP('1984-12-15 10:20:30') != TIME('10:20:30')", "ts_t_t", true),
-        $("TIME('10:20:30') != TIMESTAMP('" + today + " 10:20:30')", "t_ts_f", false),
-        $("TIMESTAMP('" + today + " 10:20:30') != TIME('10:20:30')", "ts_t_f", false),
-        $("TIME('09:07:00') != DATE('" + today + "')", "t_d_t", true),
-        $("DATE('2020-09-16') != TIME('09:07:00')", "d_t_t", true),
-        $("TIME('00:00:00') != DATE('" + today + "')", "t_d_f", false),
-        $("DATE('" + today + "') != TIME('00:00:00')", "d_t_f", false)
-    ));
+    return Arrays.asList(
+        $$(
+            $("TIME('22:15:07') != TIMESTAMP('1984-12-15 22:15:07')", "t_ts_t", true),
+            $("TIMESTAMP('1984-12-15 10:20:30') != TIME('10:20:30')", "ts_t_t", true),
+            $("TIME('10:20:30') != TIMESTAMP('" + today + " 10:20:30')", "t_ts_f", false),
+            $("TIMESTAMP('" + today + " 10:20:30') != TIME('10:20:30')", "ts_t_f", false),
+            $("TIME('09:07:00') != DATE('" + today + "')", "t_d_t", true),
+            $("DATE('2020-09-16') != TIME('09:07:00')", "d_t_t", true),
+            $("TIME('00:00:00') != DATE('" + today + "')", "t_d_f", false),
+            $("DATE('" + today + "') != TIME('00:00:00')", "d_t_f", false)));
   }
 
   @ParametersFactory(argumentFormatting = "%1$s => %3$s")
   public static Iterable<Object[]> compareLtTimestampWithOtherTypes() {
     var today = LocalDate.now().toString();
-    return Arrays.asList($$(
-        $("TIMESTAMP('2020-09-16 10:20:30') < DATE('2077-04-12')", "ts_d_t", true),
-        $("DATE('1961-04-12') < TIMESTAMP('1984-12-15 22:15:07')", "d_ts_t", true),
-        $("TIMESTAMP('2020-09-16 10:20:30') < DATE('1961-04-12')", "ts_d_f", false),
-        $("DATE('2020-09-16') < TIMESTAMP('2020-09-16 00:00:00')", "d_ts_f", false),
-        $("TIMESTAMP('2020-09-16 10:20:30') < TIME('09:07:00')", "ts_t_t", true),
-        $("TIME('09:07:00') < TIMESTAMP('3077-12-15 22:15:07')", "t_ts_t", true),
-        $("TIMESTAMP('" + today + " 10:20:30') < TIME('10:20:30')", "ts_t_f", false),
-        $("TIME('20:50:40') < TIMESTAMP('" + today + " 10:20:30')", "t_ts_f", false)
-    ));
+    return Arrays.asList(
+        $$(
+            $("TIMESTAMP('2020-09-16 10:20:30') < DATE('2077-04-12')", "ts_d_t", true),
+            $("DATE('1961-04-12') < TIMESTAMP('1984-12-15 22:15:07')", "d_ts_t", true),
+            $("TIMESTAMP('2020-09-16 10:20:30') < DATE('1961-04-12')", "ts_d_f", false),
+            $("DATE('2020-09-16') < TIMESTAMP('2020-09-16 00:00:00')", "d_ts_f", false),
+            $("TIMESTAMP('2020-09-16 10:20:30') < TIME('09:07:00')", "ts_t_t", true),
+            $("TIME('09:07:00') < TIMESTAMP('3077-12-15 22:15:07')", "t_ts_t", true),
+            $("TIMESTAMP('" + today + " 10:20:30') < TIME('10:20:30')", "ts_t_f", false),
+            $("TIME('20:50:40') < TIMESTAMP('" + today + " 10:20:30')", "t_ts_f", false)));
   }
 
   @ParametersFactory(argumentFormatting = "%1$s => %3$s")
   public static Iterable<Object[]> compareLtDateWithOtherTypes() {
-    return Arrays.asList($$(
-        $("DATE('2020-09-16') < TIMESTAMP('3077-04-12 09:07:00')", "d_ts_t", true),
-        $("TIMESTAMP('1961-04-12 09:07:00') < DATE('1984-12-15')", "ts_d_t", true),
-        $("DATE('2020-09-16') < TIMESTAMP('2020-09-16 00:00:00')", "d_ts_f", false),
-        $("TIMESTAMP('2077-04-12 09:07:00') < DATE('2020-09-16')", "ts_d_f", false),
-        $("DATE('2020-09-16') < TIME('09:07:00')", "d_t_t", true),
-        $("TIME('09:07:00') < DATE('3077-04-12')", "t_d_t", true),
-        $("DATE('3077-04-12') < TIME('00:00:00')", "d_t_f", false),
-        $("TIME('00:00:00') < DATE('2020-09-16')", "t_d_f", false)
-    ));
+    return Arrays.asList(
+        $$(
+            $("DATE('2020-09-16') < TIMESTAMP('3077-04-12 09:07:00')", "d_ts_t", true),
+            $("TIMESTAMP('1961-04-12 09:07:00') < DATE('1984-12-15')", "ts_d_t", true),
+            $("DATE('2020-09-16') < TIMESTAMP('2020-09-16 00:00:00')", "d_ts_f", false),
+            $("TIMESTAMP('2077-04-12 09:07:00') < DATE('2020-09-16')", "ts_d_f", false),
+            $("DATE('2020-09-16') < TIME('09:07:00')", "d_t_t", true),
+            $("TIME('09:07:00') < DATE('3077-04-12')", "t_d_t", true),
+            $("DATE('3077-04-12') < TIME('00:00:00')", "d_t_f", false),
+            $("TIME('00:00:00') < DATE('2020-09-16')", "t_d_f", false)));
   }
 
   @ParametersFactory(argumentFormatting = "%1$s => %3$s")
   public static Iterable<Object[]> compareLtTimeWithOtherTypes() {
     var today = LocalDate.now().toString();
-    return Arrays.asList($$(
-        $("TIME('22:15:07') < TIMESTAMP('3077-12-15 22:15:07')", "t_ts_t", true),
-        $("TIMESTAMP('1984-12-15 10:20:30') < TIME('10:20:30')", "ts_t_t", true),
-        $("TIME('10:20:30') < TIMESTAMP('" + today + " 10:20:30')", "t_ts_f", false),
-        $("TIMESTAMP('" + today + " 20:50:42') < TIME('10:20:30')", "ts_t_f", false),
-        $("TIME('09:07:00') < DATE('3077-04-12')", "t_d_t", true),
-        $("DATE('2020-09-16') < TIME('09:07:00')", "d_t_t", true),
-        $("TIME('00:00:00') < DATE('1961-04-12')", "t_d_f", false),
-        $("DATE('3077-04-12') < TIME('10:20:30')", "d_t_f", false)
-    ));
+    return Arrays.asList(
+        $$(
+            $("TIME('22:15:07') < TIMESTAMP('3077-12-15 22:15:07')", "t_ts_t", true),
+            $("TIMESTAMP('1984-12-15 10:20:30') < TIME('10:20:30')", "ts_t_t", true),
+            $("TIME('10:20:30') < TIMESTAMP('" + today + " 10:20:30')", "t_ts_f", false),
+            $("TIMESTAMP('" + today + " 20:50:42') < TIME('10:20:30')", "ts_t_f", false),
+            $("TIME('09:07:00') < DATE('3077-04-12')", "t_d_t", true),
+            $("DATE('2020-09-16') < TIME('09:07:00')", "d_t_t", true),
+            $("TIME('00:00:00') < DATE('1961-04-12')", "t_d_f", false),
+            $("DATE('3077-04-12') < TIME('10:20:30')", "d_t_f", false)));
   }
 
   @ParametersFactory(argumentFormatting = "%1$s => %3$s")
   public static Iterable<Object[]> compareGtTimestampWithOtherTypes() {
     var today = LocalDate.now().toString();
-    return Arrays.asList($$(
-        $("TIMESTAMP('2020-09-16 10:20:30') > DATE('1961-04-12')", "ts_d_t", true),
-        $("DATE('2020-09-16') > TIMESTAMP('2020-09-15 22:15:07')", "d_ts_t", true),
-        $("TIMESTAMP('2020-09-16 10:20:30') > DATE('2077-04-12')", "ts_d_f", false),
-        $("DATE('1961-04-12') > TIMESTAMP('1961-04-12 00:00:00')", "d_ts_f", false),
-        $("TIMESTAMP('3077-07-08 20:20:30') > TIME('10:20:30')", "ts_t_t", true),
-        $("TIME('20:50:40') > TIMESTAMP('" + today + " 10:20:30')", "t_ts_t", true),
-        $("TIMESTAMP('" + today + " 10:20:30') > TIME('10:20:30')", "ts_t_f", false),
-        $("TIME('09:07:00') > TIMESTAMP('3077-12-15 22:15:07')", "t_ts_f", false)
-    ));
+    return Arrays.asList(
+        $$(
+            $("TIMESTAMP('2020-09-16 10:20:30') > DATE('1961-04-12')", "ts_d_t", true),
+            $("DATE('2020-09-16') > TIMESTAMP('2020-09-15 22:15:07')", "d_ts_t", true),
+            $("TIMESTAMP('2020-09-16 10:20:30') > DATE('2077-04-12')", "ts_d_f", false),
+            $("DATE('1961-04-12') > TIMESTAMP('1961-04-12 00:00:00')", "d_ts_f", false),
+            $("TIMESTAMP('3077-07-08 20:20:30') > TIME('10:20:30')", "ts_t_t", true),
+            $("TIME('20:50:40') > TIMESTAMP('" + today + " 10:20:30')", "t_ts_t", true),
+            $("TIMESTAMP('" + today + " 10:20:30') > TIME('10:20:30')", "ts_t_f", false),
+            $("TIME('09:07:00') > TIMESTAMP('3077-12-15 22:15:07')", "t_ts_f", false)));
   }
 
   @ParametersFactory(argumentFormatting = "%1$s => %3$s")
   public static Iterable<Object[]> compareGtDateWithOtherTypes() {
-    return Arrays.asList($$(
-        $("DATE('2020-09-16') > TIMESTAMP('1961-04-12 09:07:00')", "d_ts_t", true),
-        $("TIMESTAMP('2077-04-12 09:07:00') > DATE('2020-09-16')", "ts_d_t", true),
-        $("DATE('2020-09-16') > TIMESTAMP('2020-09-16 00:00:00')", "d_ts_f", false),
-        $("TIMESTAMP('1961-04-12 09:07:00') > DATE('1984-12-15')", "ts_d_f", false),
-        $("DATE('3077-04-12') > TIME('00:00:00')", "d_t_t", true),
-        $("TIME('00:00:00') > DATE('2020-09-16')", "t_d_t", true),
-        $("DATE('2020-09-16') > TIME('09:07:00')", "d_t_f", false),
-        $("TIME('09:07:00') > DATE('3077-04-12')", "t_d_f", false)
-    ));
+    return Arrays.asList(
+        $$(
+            $("DATE('2020-09-16') > TIMESTAMP('1961-04-12 09:07:00')", "d_ts_t", true),
+            $("TIMESTAMP('2077-04-12 09:07:00') > DATE('2020-09-16')", "ts_d_t", true),
+            $("DATE('2020-09-16') > TIMESTAMP('2020-09-16 00:00:00')", "d_ts_f", false),
+            $("TIMESTAMP('1961-04-12 09:07:00') > DATE('1984-12-15')", "ts_d_f", false),
+            $("DATE('3077-04-12') > TIME('00:00:00')", "d_t_t", true),
+            $("TIME('00:00:00') > DATE('2020-09-16')", "t_d_t", true),
+            $("DATE('2020-09-16') > TIME('09:07:00')", "d_t_f", false),
+            $("TIME('09:07:00') > DATE('3077-04-12')", "t_d_f", false)));
   }
 
   @ParametersFactory(argumentFormatting = "%1$s => %3$s")
   public static Iterable<Object[]> compareGtTimeWithOtherTypes() {
     var today = LocalDate.now().toString();
-    return Arrays.asList($$(
-        $("TIME('22:15:07') > TIMESTAMP('1984-12-15 22:15:07')", "t_ts_t", true),
-        $("TIMESTAMP('" + today + " 20:50:42') > TIME('10:20:30')", "ts_t_t", true),
-        $("TIME('10:20:30') > TIMESTAMP('" + today + " 10:20:30')", "t_ts_f", false),
-        $("TIMESTAMP('1984-12-15 10:20:30') > TIME('10:20:30')", "ts_t_f", false),
-        $("TIME('00:00:00') > DATE('1961-04-12')", "t_d_t", true),
-        $("DATE('3077-04-12') > TIME('10:20:30')", "d_t_t", true),
-        $("TIME('09:07:00') > DATE('3077-04-12')", "t_d_f", false),
-        $("DATE('2020-09-16') > TIME('09:07:00')", "d_t_f", false)
-    ));
+    return Arrays.asList(
+        $$(
+            $("TIME('22:15:07') > TIMESTAMP('1984-12-15 22:15:07')", "t_ts_t", true),
+            $("TIMESTAMP('" + today + " 20:50:42') > TIME('10:20:30')", "ts_t_t", true),
+            $("TIME('10:20:30') > TIMESTAMP('" + today + " 10:20:30')", "t_ts_f", false),
+            $("TIMESTAMP('1984-12-15 10:20:30') > TIME('10:20:30')", "ts_t_f", false),
+            $("TIME('00:00:00') > DATE('1961-04-12')", "t_d_t", true),
+            $("DATE('3077-04-12') > TIME('10:20:30')", "d_t_t", true),
+            $("TIME('09:07:00') > DATE('3077-04-12')", "t_d_f", false),
+            $("DATE('2020-09-16') > TIME('09:07:00')", "d_t_f", false)));
   }
 
   @ParametersFactory(argumentFormatting = "%1$s => %3$s")
   public static Iterable<Object[]> compareLteTimestampWithOtherTypes() {
     var today = LocalDate.now().toString();
-    return Arrays.asList($$(
-        $("TIMESTAMP('2020-09-16 10:20:30') <= DATE('2077-04-12')", "ts_d_t", true),
-        $("DATE('2020-09-16') <= TIMESTAMP('2020-09-16 00:00:00')", "d_ts_t", true),
-        $("TIMESTAMP('2020-09-16 10:20:30') <= DATE('1961-04-12')", "ts_d_f", false),
-        $("DATE('2077-04-12') <= TIMESTAMP('1984-12-15 22:15:07')", "d_ts_f", false),
-        $("TIMESTAMP('" + today + " 10:20:30') <= TIME('10:20:30')", "ts_t_t", true),
-        $("TIME('09:07:00') <= TIMESTAMP('3077-12-15 22:15:07')", "t_ts_t", true),
-        $("TIMESTAMP('3077-09-16 10:20:30') <= TIME('09:07:00')", "ts_t_f", false),
-        $("TIME('20:50:40') <= TIMESTAMP('" + today + " 10:20:30')", "t_ts_f", false)
-    ));
+    return Arrays.asList(
+        $$(
+            $("TIMESTAMP('2020-09-16 10:20:30') <= DATE('2077-04-12')", "ts_d_t", true),
+            $("DATE('2020-09-16') <= TIMESTAMP('2020-09-16 00:00:00')", "d_ts_t", true),
+            $("TIMESTAMP('2020-09-16 10:20:30') <= DATE('1961-04-12')", "ts_d_f", false),
+            $("DATE('2077-04-12') <= TIMESTAMP('1984-12-15 22:15:07')", "d_ts_f", false),
+            $("TIMESTAMP('" + today + " 10:20:30') <= TIME('10:20:30')", "ts_t_t", true),
+            $("TIME('09:07:00') <= TIMESTAMP('3077-12-15 22:15:07')", "t_ts_t", true),
+            $("TIMESTAMP('3077-09-16 10:20:30') <= TIME('09:07:00')", "ts_t_f", false),
+            $("TIME('20:50:40') <= TIMESTAMP('" + today + " 10:20:30')", "t_ts_f", false)));
   }
 
   @ParametersFactory(argumentFormatting = "%1$s => %3$s")
   public static Iterable<Object[]> compareLteDateWithOtherTypes() {
-    return Arrays.asList($$(
-        $("DATE('2020-09-16') <= TIMESTAMP('2020-09-16 00:00:00')", "d_ts_t", true),
-        $("TIMESTAMP('1961-04-12 09:07:00') <= DATE('1984-12-15')", "ts_d_t", true),
-        $("DATE('2020-09-16') <= TIMESTAMP('1961-04-12 09:07:00')", "d_ts_f", false),
-        $("TIMESTAMP('2077-04-12 09:07:00') <= DATE('2020-09-16')", "ts_d_f", false),
-        $("DATE('2020-09-16') <= TIME('09:07:00')", "d_t_t", true),
-        $("TIME('09:07:00') <= DATE('3077-04-12')", "t_d_t", true),
-        $("DATE('3077-04-12') <= TIME('00:00:00')", "d_t_f", false),
-        $("TIME('00:00:00') <= DATE('2020-09-16')", "t_d_f", false)
-    ));
+    return Arrays.asList(
+        $$(
+            $("DATE('2020-09-16') <= TIMESTAMP('2020-09-16 00:00:00')", "d_ts_t", true),
+            $("TIMESTAMP('1961-04-12 09:07:00') <= DATE('1984-12-15')", "ts_d_t", true),
+            $("DATE('2020-09-16') <= TIMESTAMP('1961-04-12 09:07:00')", "d_ts_f", false),
+            $("TIMESTAMP('2077-04-12 09:07:00') <= DATE('2020-09-16')", "ts_d_f", false),
+            $("DATE('2020-09-16') <= TIME('09:07:00')", "d_t_t", true),
+            $("TIME('09:07:00') <= DATE('3077-04-12')", "t_d_t", true),
+            $("DATE('3077-04-12') <= TIME('00:00:00')", "d_t_f", false),
+            $("TIME('00:00:00') <= DATE('2020-09-16')", "t_d_f", false)));
   }
 
   @ParametersFactory(argumentFormatting = "%1$s => %3$s")
   public static Iterable<Object[]> compareLteTimeWithOtherTypes() {
     var today = LocalDate.now().toString();
-    return Arrays.asList($$(
-        $("TIME('10:20:30') <= TIMESTAMP('" + today + " 10:20:30')", "t_ts_t", true),
-        $("TIMESTAMP('1984-12-15 10:20:30') <= TIME('10:20:30')", "ts_t_t", true),
-        $("TIME('22:15:07') <= TIMESTAMP('1984-12-15 22:15:07')", "t_ts_f", false),
-        $("TIMESTAMP('" + today + " 20:50:42') <= TIME('10:20:30')", "ts_t_f", false),
-        $("TIME('09:07:00') <= DATE('3077-04-12')", "t_d_t", true),
-        $("DATE('2020-09-16') <= TIME('09:07:00')", "d_t_t", true),
-        $("TIME('00:00:00') <= DATE('1961-04-12')", "t_d_f", false),
-        $("DATE('3077-04-12') <= TIME('10:20:30')", "d_t_f", false)
-    ));
+    return Arrays.asList(
+        $$(
+            $("TIME('10:20:30') <= TIMESTAMP('" + today + " 10:20:30')", "t_ts_t", true),
+            $("TIMESTAMP('1984-12-15 10:20:30') <= TIME('10:20:30')", "ts_t_t", true),
+            $("TIME('22:15:07') <= TIMESTAMP('1984-12-15 22:15:07')", "t_ts_f", false),
+            $("TIMESTAMP('" + today + " 20:50:42') <= TIME('10:20:30')", "ts_t_f", false),
+            $("TIME('09:07:00') <= DATE('3077-04-12')", "t_d_t", true),
+            $("DATE('2020-09-16') <= TIME('09:07:00')", "d_t_t", true),
+            $("TIME('00:00:00') <= DATE('1961-04-12')", "t_d_f", false),
+            $("DATE('3077-04-12') <= TIME('10:20:30')", "d_t_f", false)));
   }
 
   @ParametersFactory(argumentFormatting = "%1$s => %3$s")
   public static Iterable<Object[]> compareGteTimestampWithOtherTypes() {
     var today = LocalDate.now().toString();
-    return Arrays.asList($$(
-        $("TIMESTAMP('2020-09-16 10:20:30') >= DATE('1961-04-12')", "ts_d_t", true),
-        $("DATE('2020-09-16') >= TIMESTAMP('2020-09-16 00:00:00')", "d_ts_t", true),
-        $("TIMESTAMP('2020-09-16 10:20:30') >= DATE('2077-04-12')", "ts_d_f", false),
-        $("DATE('1961-04-11') >= TIMESTAMP('1961-04-12 00:00:00')", "d_ts_f", false),
-        $("TIMESTAMP('" + today + " 10:20:30') >= TIME('10:20:30')", "ts_t_t", true),
-        $("TIME('20:50:40') >= TIMESTAMP('" + today + " 10:20:30')", "t_ts_t", true),
-        $("TIMESTAMP('1977-07-08 10:20:30') >= TIME('10:20:30')", "ts_t_f", false),
-        $("TIME('09:07:00') >= TIMESTAMP('3077-12-15 22:15:07')", "t_ts_f", false)
-    ));
+    return Arrays.asList(
+        $$(
+            $("TIMESTAMP('2020-09-16 10:20:30') >= DATE('1961-04-12')", "ts_d_t", true),
+            $("DATE('2020-09-16') >= TIMESTAMP('2020-09-16 00:00:00')", "d_ts_t", true),
+            $("TIMESTAMP('2020-09-16 10:20:30') >= DATE('2077-04-12')", "ts_d_f", false),
+            $("DATE('1961-04-11') >= TIMESTAMP('1961-04-12 00:00:00')", "d_ts_f", false),
+            $("TIMESTAMP('" + today + " 10:20:30') >= TIME('10:20:30')", "ts_t_t", true),
+            $("TIME('20:50:40') >= TIMESTAMP('" + today + " 10:20:30')", "t_ts_t", true),
+            $("TIMESTAMP('1977-07-08 10:20:30') >= TIME('10:20:30')", "ts_t_f", false),
+            $("TIME('09:07:00') >= TIMESTAMP('3077-12-15 22:15:07')", "t_ts_f", false)));
   }
 
   @ParametersFactory(argumentFormatting = "%1$s => %3$s")
   public static Iterable<Object[]> compareGteDateWithOtherTypes() {
-    return Arrays.asList($$(
-        $("DATE('2020-09-16') >= TIMESTAMP('2020-09-16 00:00:00')", "d_ts_t", true),
-        $("TIMESTAMP('2077-04-12 09:07:00') >= DATE('2020-09-16')", "ts_d_t", true),
-        $("DATE('1961-04-12') >= TIMESTAMP('1961-04-12 09:07:00')", "d_ts_f", false),
-        $("TIMESTAMP('1961-04-12 09:07:00') >= DATE('1984-12-15')", "ts_d_f", false),
-        $("DATE('3077-04-12') >= TIME('00:00:00')", "d_t_t", true),
-        $("TIME('00:00:00') >= DATE('2020-09-16')", "t_d_t", true),
-        $("DATE('2020-09-16') >= TIME('09:07:00')", "d_t_f", false),
-        $("TIME('09:07:00') >= DATE('3077-04-12')", "t_d_f", false)
-    ));
+    return Arrays.asList(
+        $$(
+            $("DATE('2020-09-16') >= TIMESTAMP('2020-09-16 00:00:00')", "d_ts_t", true),
+            $("TIMESTAMP('2077-04-12 09:07:00') >= DATE('2020-09-16')", "ts_d_t", true),
+            $("DATE('1961-04-12') >= TIMESTAMP('1961-04-12 09:07:00')", "d_ts_f", false),
+            $("TIMESTAMP('1961-04-12 09:07:00') >= DATE('1984-12-15')", "ts_d_f", false),
+            $("DATE('3077-04-12') >= TIME('00:00:00')", "d_t_t", true),
+            $("TIME('00:00:00') >= DATE('2020-09-16')", "t_d_t", true),
+            $("DATE('2020-09-16') >= TIME('09:07:00')", "d_t_f", false),
+            $("TIME('09:07:00') >= DATE('3077-04-12')", "t_d_f", false)));
   }
 
   @ParametersFactory(argumentFormatting = "%1$s => %3$s")
   public static Iterable<Object[]> compareGteTimeWithOtherTypes() {
     var today = LocalDate.now().toString();
-    return Arrays.asList($$(
-        $("TIME('10:20:30') >= TIMESTAMP('" + today + " 10:20:30')", "t_ts_t", true),
-        $("TIMESTAMP('" + today + " 20:50:42') >= TIME('10:20:30')", "ts_t_t", true),
-        $("TIME('22:15:07') >= TIMESTAMP('3077-12-15 22:15:07')", "t_ts_f", false),
-        $("TIMESTAMP('1984-12-15 10:20:30') >= TIME('10:20:30')", "ts_t_f", false),
-        $("TIME('00:00:00') >= DATE('1961-04-12')", "t_d_t", true),
-        $("DATE('3077-04-12') >= TIME('10:20:30')", "d_t_t", true),
-        $("TIME('09:07:00') >= DATE('3077-04-12')", "t_d_f", false),
-        $("DATE('2020-09-16') >= TIME('09:07:00')", "d_t_f", false)
-    ));
+    return Arrays.asList(
+        $$(
+            $("TIME('10:20:30') >= TIMESTAMP('" + today + " 10:20:30')", "t_ts_t", true),
+            $("TIMESTAMP('" + today + " 20:50:42') >= TIME('10:20:30')", "ts_t_t", true),
+            $("TIME('22:15:07') >= TIMESTAMP('3077-12-15 22:15:07')", "t_ts_f", false),
+            $("TIMESTAMP('1984-12-15 10:20:30') >= TIME('10:20:30')", "ts_t_f", false),
+            $("TIME('00:00:00') >= DATE('1961-04-12')", "t_d_t", true),
+            $("DATE('3077-04-12') >= TIME('10:20:30')", "d_t_t", true),
+            $("TIME('09:07:00') >= DATE('3077-04-12')", "t_d_f", false),
+            $("DATE('2020-09-16') >= TIME('09:07:00')", "d_t_f", false)));
   }
 
   @Test
