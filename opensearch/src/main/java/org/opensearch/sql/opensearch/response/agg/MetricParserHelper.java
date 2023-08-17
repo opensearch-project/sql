@@ -49,7 +49,7 @@ public class MetricParserHelper {
       } else {
         throw new RuntimeException(
             StringUtils.format(
-                "couldn't parse field %s in aggregation " + "response", aggregation.getName()));
+                "couldn't parse field %s in aggregation response", aggregation.getName()));
       }
     }
     return resultMap;
