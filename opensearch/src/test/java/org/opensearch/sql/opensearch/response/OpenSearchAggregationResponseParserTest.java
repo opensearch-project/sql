@@ -36,7 +36,12 @@ class OpenSearchAggregationResponseParserTest {
   /** SELECT MAX(age) as max FROM accounts. */
   @Test
   void no_bucket_one_metric_should_pass() {
-    String response = "{\n" + "  \"max#max\": {\n" + "    \"value\": 40\n" + "  }\n" + "}";
+    String response =
+        "{\n"
+            + "  \"max#max\": {\n"
+            + "    \"value\": 40\n"
+            + "  }\n"
+            + "}";
     NoBucketAggregationParser parser = new NoBucketAggregationParser(new SingleValueParser("max"));
     assertThat(parse(parser, response), contains(entry("max", 40d)));
   }
