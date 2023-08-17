@@ -132,19 +132,6 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
     this.repository = repository;
   }
 
-  public Analyzer(
-      ExpressionAnalyzer expressionAnalyzer,
-      SelectExpressionAnalyzer selectExpressionAnalyzer,
-      NamedExpressionAnalyzer namedExpressionAnalyzer,
-      DataSourceService dataSourceService,
-      BuiltinFunctionRepository repository) {
-    this.expressionAnalyzer = expressionAnalyzer;
-    this.dataSourceService = dataSourceService;
-    this.selectExpressionAnalyzer = selectExpressionAnalyzer;
-    this.namedExpressionAnalyzer = namedExpressionAnalyzer;
-    this.repository = repository;
-  }
-
   public LogicalPlan analyze(UnresolvedPlan unresolved, AnalysisContext context) {
     return unresolved.accept(this, context);
   }

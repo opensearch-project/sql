@@ -35,7 +35,7 @@ import org.opensearch.sql.expression.ReferenceExpression;
 @RequiredArgsConstructor
 public class SelectExpressionAnalyzer
     extends AbstractNodeVisitor<List<NamedExpression>, AnalysisContext> {
-  protected final ExpressionAnalyzer expressionAnalyzer;
+  private final ExpressionAnalyzer expressionAnalyzer;
 
   private ExpressionReferenceOptimizer optimizer;
 
@@ -59,6 +59,11 @@ public class SelectExpressionAnalyzer
 
   @Override
   public List<NamedExpression> visitAlias(Alias node, AnalysisContext context) {
+    // Expand all nested fields if used in SELECT clause
+    if (node.getDelegated() instanceof NestedAllTupleFields) {
+      return node.getDelegated().accept(this, context);
+    }
+
     Expression expr = referenceIfSymbolDefined(node, context);
     return Collections.singletonList(
         DSL.named(unqualifiedNameIfFieldOnly(node, context), expr, node.getAlias()));
@@ -77,7 +82,7 @@ public class SelectExpressionAnalyzer
    *       groupExpr))
    * </ol>
    */
-  protected Expression referenceIfSymbolDefined(Alias expr, AnalysisContext context) {
+  private Expression referenceIfSymbolDefined(Alias expr, AnalysisContext context) {
     UnresolvedExpression delegatedExpr = expr.getDelegated();
 
     // Pass named expression because expression like window function loses full name
@@ -100,6 +105,30 @@ public class SelectExpressionAnalyzer
         .collect(Collectors.toList());
   }
 
+  @Override
+  public List<NamedExpression> visitNestedAllTupleFields(
+      NestedAllTupleFields node, AnalysisContext context) {
+    TypeEnvironment environment = context.peek();
+    Map<String, ExprType> lookupAllTupleFields =
+        environment.lookupAllTupleFields(Namespace.FIELD_NAME);
+    environment.resolve(new Symbol(Namespace.FIELD_NAME, node.getPath()));
+
+    // Match all fields with same path as used in nested function.
+    Pattern p = Pattern.compile(node.getPath() + "\\.[^\\.]+$");
+    return lookupAllTupleFields.entrySet().stream()
+        .filter(field -> p.matcher(field.getKey()).find())
+        .map(
+            entry -> {
+              Expression nestedFunc =
+                  new Function(
+                          "nested",
+                          List.of(new QualifiedName(List.of(entry.getKey().split("\\.")))))
+                      .accept(expressionAnalyzer, context);
+              return DSL.named("nested(" + entry.getKey() + ")", nestedFunc);
+            })
+        .collect(Collectors.toList());
+  }
+
   /**
    * Get unqualified name if select item is just a field. For example, suppose an index named
    * "accounts", return "age" for "SELECT accounts.age". But do nothing for expression in "SELECT
@@ -108,7 +137,7 @@ public class SelectExpressionAnalyzer
    * this. Otherwise, what unqualified() returns will override Alias's name as NamedExpression's
    * name even though the QualifiedName doesn't have qualifier.
    */
-  protected String unqualifiedNameIfFieldOnly(Alias node, AnalysisContext context) {
+  private String unqualifiedNameIfFieldOnly(Alias node, AnalysisContext context) {
     UnresolvedExpression selectItem = node.getDelegated();
     if (selectItem instanceof QualifiedName) {
       QualifierAnalyzer qualifierAnalyzer = new QualifierAnalyzer(context);
