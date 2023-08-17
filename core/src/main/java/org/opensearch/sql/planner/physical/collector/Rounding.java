@@ -6,7 +6,6 @@
 package org.opensearch.sql.planner.physical.collector;
 
 import static org.opensearch.sql.data.type.ExprCoreType.DATE;
-import static org.opensearch.sql.data.type.ExprCoreType.DATETIME;
 import static org.opensearch.sql.data.type.ExprCoreType.DOUBLE;
 import static org.opensearch.sql.data.type.ExprCoreType.LONG;
 import static org.opensearch.sql.data.type.ExprCoreType.TIME;
@@ -15,7 +14,6 @@ import static org.opensearch.sql.utils.DateTimeUtils.UTC_ZONE_ID;
 
 import java.time.Instant;
 import java.time.LocalDate;
-import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.temporal.ChronoField;
 import java.util.Arrays;
@@ -24,7 +22,6 @@ import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import org.opensearch.sql.data.model.ExprDateValue;
-import org.opensearch.sql.data.model.ExprDatetimeValue;
 import org.opensearch.sql.data.model.ExprTimeValue;
 import org.opensearch.sql.data.model.ExprTimestampValue;
 import org.opensearch.sql.data.model.ExprValue;
@@ -48,9 +45,6 @@ public abstract class Rounding<T> {
     }
     if (DOUBLE.isCompatible(type)) {
       return new DoubleRounding(interval);
-    }
-    if (type.equals(DATETIME)) {
-      return new DatetimeRounding(interval, span.getUnit().getName());
     }
     if (type.equals(TIMESTAMP)) {
       return new TimestampRounding(interval, span.getUnit().getName());
@@ -81,26 +75,6 @@ public abstract class Rounding<T> {
           Instant.ofEpochMilli(
               dateTimeUnit.round(var.timestampValue().toEpochMilli(), interval.integerValue()));
       return new ExprTimestampValue(instant);
-    }
-  }
-
-  static class DatetimeRounding extends Rounding<LocalDateTime> {
-    private final ExprValue interval;
-    private final DateTimeUnit dateTimeUnit;
-
-    public DatetimeRounding(ExprValue interval, String unit) {
-      this.interval = interval;
-      this.dateTimeUnit = DateTimeUnit.resolve(unit);
-    }
-
-    @Override
-    public ExprValue round(ExprValue var) {
-      Instant instant =
-          Instant.ofEpochMilli(
-              dateTimeUnit.round(
-                  var.datetimeValue().atZone(UTC_ZONE_ID).toInstant().toEpochMilli(),
-                  interval.integerValue()));
-      return new ExprDatetimeValue(instant.atZone(UTC_ZONE_ID).toLocalDateTime());
     }
   }
 

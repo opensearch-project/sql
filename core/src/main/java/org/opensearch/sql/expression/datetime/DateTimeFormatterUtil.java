@@ -5,6 +5,8 @@
 
 package org.opensearch.sql.expression.datetime;
 
+import static org.opensearch.sql.utils.DateTimeUtils.UTC_ZONE_ID;
+
 import com.google.common.collect.ImmutableMap;
 import java.text.ParsePosition;
 import java.time.Clock;
@@ -21,9 +23,9 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import org.opensearch.sql.data.model.ExprDatetimeValue;
 import org.opensearch.sql.data.model.ExprNullValue;
 import org.opensearch.sql.data.model.ExprStringValue;
+import org.opensearch.sql.data.model.ExprTimestampValue;
 import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.expression.function.FunctionProperties;
 
@@ -245,12 +247,12 @@ class DateTimeFormatterUtil {
   /**
    * Format the date using the date format String.
    *
-   * @param dateExpr the date ExprValue of Date/Datetime/Timestamp/String type.
+   * @param dateExpr the date ExprValue of Date/Timestamp/String type.
    * @param formatExpr the format ExprValue of String type.
    * @return Date formatted using format and returned as a String.
    */
   static ExprValue getFormattedDate(ExprValue dateExpr, ExprValue formatExpr) {
-    final LocalDateTime date = dateExpr.datetimeValue();
+    final LocalDateTime date = dateExpr.timestampValue().atZone(UTC_ZONE_ID).toLocalDateTime();
     return getFormattedString(formatExpr, DATE_HANDLERS, date);
   }
 
@@ -364,7 +366,7 @@ class DateTimeFormatterUtil {
       output = LocalDateTime.of(year, month, day, hour, minute, second);
     }
 
-    return new ExprDatetimeValue(output);
+    return new ExprTimestampValue(output);
   }
 
   /**

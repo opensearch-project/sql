@@ -12,7 +12,6 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.opensearch.sql.data.type.ExprCoreType.ARRAY;
 import static org.opensearch.sql.data.type.ExprCoreType.BOOLEAN;
 import static org.opensearch.sql.data.type.ExprCoreType.DATE;
-import static org.opensearch.sql.data.type.ExprCoreType.DATETIME;
 import static org.opensearch.sql.data.type.ExprCoreType.DOUBLE;
 import static org.opensearch.sql.data.type.ExprCoreType.FLOAT;
 import static org.opensearch.sql.data.type.ExprCoreType.INTEGER;
@@ -45,7 +44,6 @@ class ExprTypeTest {
     assertTrue(TIMESTAMP.isCompatible(STRING));
     assertTrue(DATE.isCompatible(STRING));
     assertTrue(TIME.isCompatible(STRING));
-    assertTrue(DATETIME.isCompatible(STRING));
   }
 
   @Test

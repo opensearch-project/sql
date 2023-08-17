@@ -1145,15 +1145,15 @@ Description
 Usage: adddate(date, INTERVAL expr unit)/ adddate(date, expr) adds the time interval of second argument to date; adddate(date, days) adds the second argument as integer number of days to date.
 If first argument is TIME, today's date is used; if first argument is DATE, time at midnight is used.
 
-Argument type: DATE/DATETIME/TIMESTAMP/TIME, INTERVAL/LONG
+Argument type: DATE/TIMESTAMP/TIME, INTERVAL/LONG
 
 Return type map:
 
-(DATE/DATETIME/TIMESTAMP/TIME, INTERVAL) -> DATETIME
+(DATE/TIMESTAMP/TIME, INTERVAL) -> TIMESTAMP
 
 (DATE, LONG) -> DATE
 
-(DATETIME/TIMESTAMP/TIME, LONG) -> DATETIME
+(TIMESTAMP/TIME, LONG) -> TIMESTAMP
 
 Synonyms: `DATE_ADD`_ when invoked with the INTERVAL form of the second argument.
 
@@ -1178,13 +1178,13 @@ Description
 
 Usage: addtime(expr1, expr2) adds expr2 to expr1 and returns the result. If argument is TIME, today's date is used; if argument is DATE, time at midnight is used.
 
-Argument type: DATE/DATETIME/TIMESTAMP/TIME, DATE/DATETIME/TIMESTAMP/TIME
+Argument type: DATE/TIMESTAMP/TIME, DATE/TIMESTAMP/TIME
 
 Return type map:
 
-(DATE/DATETIME/TIMESTAMP, DATE/DATETIME/TIMESTAMP/TIME) -> DATETIME
+(DATE/TIMESTAMP, DATE/TIMESTAMP/TIME) -> TIMESTAMP
 
-(TIME, DATE/DATETIME/TIMESTAMP/TIME) -> TIME
+(TIME, DATE/TIMESTAMP/TIME) -> TIME
 
 Antonyms: `SUBTIME`_
 
@@ -1222,7 +1222,7 @@ Example::
     | 10:26:12                  |
     +---------------------------+
 
-    os> SELECT ADDTIME(TIMESTAMP('2007-02-28 10:20:30'), DATETIME('2002-03-04 20:40:50')) AS `'2007-02-28 10:20:30' + '20:40:50'`
+    os> SELECT ADDTIME(TIMESTAMP('2007-02-28 10:20:30'), TIMESTAMP('2002-03-04 20:40:50')) AS `'2007-02-28 10:20:30' + '20:40:50'`
     fetched rows / total rows = 1/1
     +--------------------------------------+
     | '2007-02-28 10:20:30' + '20:40:50'   |
@@ -1237,11 +1237,11 @@ CONVERT_TZ
 Description
 >>>>>>>>>>>
 
-Usage: convert_tz(datetime, from_timezone, to_timezone) constructs a datetime object converted from the from_timezone to the to_timezone.
+Usage: convert_tz(timestamp, from_timezone, to_timezone) constructs a timestamp object converted from the from_timezone to the to_timezone.
 
-Argument type: DATETIME, STRING, STRING
+Argument type: TIMESTAMP, STRING, STRING
 
-Return type: DATETIME
+Return type: TIMESTAMP
 
 Example::
 
@@ -1262,7 +1262,7 @@ Example::
     | 2010-10-09 23:10:10                                     |
     +---------------------------------------------------------+
 
-When the datedate, or either of the two time zone fields are invalid format, then the result is null. In this example any datetime that is not <yyyy-MM-dd HH:mm:ss> will result in null.
+When the datedate, or either of the two time zone fields are invalid format, then the result is null. In this example any timestamp that is not <yyyy-MM-dd HH:mm:ss> will result in null.
 Example::
 
   os> SELECT CONVERT_TZ("test", "+01:00", "-10:00")
@@ -1273,7 +1273,7 @@ Example::
       | null                                     |
       +------------------------------------------+
 
-When the datetime, or either of the two time zone fields are invalid format, then the result is null. In this example any timezone that is not <+HH:mm> or <-HH:mm> will result in null.
+When the timestamp, or either of the two time zone fields are invalid format, then the result is null. In this example any timezone that is not <+HH:mm> or <-HH:mm> will result in null.
 Example::
 
   os> SELECT CONVERT_TZ("2010-10-10 10:10:10", "test", "-10:00")
@@ -1440,9 +1440,9 @@ DATE
 Description
 >>>>>>>>>>>
 
-Usage: date(expr) constructs a date type with the input string expr as a date. If the argument is of date/datetime/timestamp, it extracts the date value part from the expression.
+Usage: date(expr) constructs a date type with the input string expr as a date. If the argument is of date/timestamp, it extracts the date value part from the expression.
 
-Argument type: STRING/DATE/DATETIME/TIMESTAMP
+Argument type: STRING/DATE/TIMESTAMP
 
 Return type: DATE
 
@@ -1463,15 +1463,15 @@ DATETIME
 Description
 >>>>>>>>>>>
 
-Usage: datetime(datetime)/ datetime(date, to_timezone) Converts the datetime to a new timezone
+Usage: datetime(timestamp)/ datetime(timestamp, to_timezone) Converts the timestamp to a new timezone
 
-Argument type: DATETIME/STRING
+Argument type: TIMESTAMP/STRING
 
 Return type map:
 
-(DATETIME, STRING) -> DATETIME
+(TIMESTAMP, STRING) -> TIMESTAMP
 
-(DATETIME) -> DATETIME
+(TIMESTAMP) -> TIMESTAMP
 
 Example::
 
@@ -1560,9 +1560,9 @@ Description
 
 Usage: date_add(date, INTERVAL expr unit) adds the interval expr to date. If first argument is TIME, today's date is used; if first argument is DATE, time at midnight is used.
 
-Argument type: DATE/DATETIME/TIMESTAMP/TIME, INTERVAL
+Argument type: DATE/TIMESTAMP/TIME, INTERVAL
 
-Return type: DATETIME
+Return type: TIMESTAMP
 
 Synonyms: `ADDDATE`_
 
@@ -1663,7 +1663,7 @@ If an argument of type TIME is provided, the local date is used.
    * - x
      - x, for any smallcase/uppercase alphabet except [aydmshiHIMYDSEL]
 
-Argument type: STRING/DATE/DATETIME/TIME/TIMESTAMP, STRING
+Argument type: STRING/DATE/TIME/TIMESTAMP, STRING
 
 Return type: STRING
 
@@ -1686,9 +1686,9 @@ Description
 
 Usage: date_sub(date, INTERVAL expr unit) subtracts the interval expr from date. If first argument is TIME, today's date is used; if first argument is DATE, time at midnight is used.
 
-Argument type: DATE/DATETIME/TIMESTAMP/TIME, INTERVAL
+Argument type: DATE/TIMESTAMP/TIME, INTERVAL
 
-Return type: DATETIME
+Return type: TIMESTAMP
 
 Synonyms: `SUBDATE`_
 
@@ -1710,7 +1710,7 @@ DATEDIFF
 
 Usage: Calculates the difference of date parts of the given values. If the first argument is time, today's date is used.
 
-Argument type: DATE/DATETIME/TIMESTAMP/TIME, DATE/DATETIME/TIMESTAMP/TIME
+Argument type: DATE/TIMESTAMP/TIME, DATE/TIMESTAMP/TIME
 
 Return type: LONG
 
@@ -1733,7 +1733,7 @@ Description
 
 Usage: day(date) extracts the day of the month for date, in the range 1 to 31.
 
-Argument type: STRING/DATE/DATETIME/TIME/TIMESTAMP
+Argument type: STRING/DATE/TIME/TIMESTAMP
 
 Return type: INTEGER
 
@@ -1758,7 +1758,7 @@ Description
 
 Usage: dayname(date) returns the name of the weekday for date, including Monday, Tuesday, Wednesday, Thursday, Friday, Saturday and Sunday.
 
-Argument type: STRING/DATE/DATETIME/TIMESTAMP
+Argument type: STRING/DATE/TIMESTAMP
 
 Return type: STRING
 
@@ -1781,7 +1781,7 @@ Description
 
 Usage: dayofmonth(date) extracts the day of the month for date, in the range 1 to 31.
 
-Argument type: STRING/DATE/DATETIME/TIME/TIMESTAMP
+Argument type: STRING/DATE/TIME/TIMESTAMP
 
 Return type: INTEGER
 
@@ -1806,7 +1806,7 @@ Description
 
 Usage: day_of_month(date) extracts the day of the month for date, in the range 1 to 31.
 
-Argument type: STRING/DATE/TIME/DATETIME/TIMESTAMP
+Argument type: STRING/DATE/TIME/TIMESTAMP
 
 Return type: INTEGER
 
@@ -1833,7 +1833,7 @@ Usage: dayofweek(date) returns the weekday index for date (1 = Sunday, 2 = Monda
 
 The `day_of_week` function is also provided as an alias.
 
-Argument type: STRING/DATE/DATETIME/TIMESTAMP
+Argument type: STRING/DATE/TIMESTAMP
 
 Return type: INTEGER
 
@@ -1858,7 +1858,7 @@ Usage:  dayofyear(date) returns the day of the year for date, in the range 1 to 
 If an argument of type `TIME` is given, the function will use the current date.
 The function `day_of_year`_ is also provided as an alias.
 
-Argument type: STRING/DATE/DATETIME/TIME/TIMESTAMP
+Argument type: STRING/DATE/TIME/TIMESTAMP
 
 Return type: INTEGER
 
@@ -1871,14 +1871,6 @@ Example::
     |---------------------------------|
     | 239                             |
     +---------------------------------+
-
-    os> SELECT DAYOFYEAR(DATETIME('2020-08-26 00:00:00'))
-    fetched rows / total rows = 1/1
-    +----------------------------------------------+
-    | DAYOFYEAR(DATETIME('2020-08-26 00:00:00'))   |
-    |----------------------------------------------|
-    | 239                                          |
-    +----------------------------------------------+
 
     os> SELECT DAYOFYEAR(TIMESTAMP('2020-08-26 00:00:00'))
     fetched rows / total rows = 1/1
@@ -1898,7 +1890,7 @@ Description
 If an argument of type `TIME` is given, the function will use the current date.
 This function is an alias to the `dayofyear`_ function
 
-Argument type: STRING/DATE/DATETIME/TIME/TIMESTAMP
+Argument type: STRING/DATE/TIME/TIMESTAMP
 
 Return type: INTEGER
 
@@ -1911,14 +1903,6 @@ Example::
     |-----------------------------------|
     | 239                               |
     +-----------------------------------+
-
-    os> SELECT DAY_OF_YEAR(DATETIME('2020-08-26 00:00:00'))
-    fetched rows / total rows = 1/1
-    +------------------------------------------------+
-    | DAY_OF_YEAR(DATETIME('2020-08-26 00:00:00'))   |
-    |------------------------------------------------|
-    | 239                                            |
-    +------------------------------------------------+
 
     os> SELECT DAY_OF_YEAR(TIMESTAMP('2020-08-26 00:00:00'))
     fetched rows / total rows = 1/1
@@ -2030,7 +2014,7 @@ FROM_UNIXTIME
 Description
 >>>>>>>>>>>
 
-Usage: Returns a representation of the argument given as a datetime or character string value. Perform reverse conversion for `UNIX_TIMESTAMP`_ function.
+Usage: Returns a representation of the argument given as a timestamp or character string value. Perform reverse conversion for `UNIX_TIMESTAMP`_ function.
 If second argument is provided, it is used to format the result in the same way as the format string used for the `DATE_FORMAT`_ function.
 If timestamp is outside of range 1970-01-01 00:00:00 - 3001-01-18 23:59:59.999999 (0 to 32536771199.999999 epoch time), function returns NULL.
 
@@ -2038,7 +2022,7 @@ Argument type: DOUBLE, STRING
 
 Return type map:
 
-DOUBLE -> DATETIME
+DOUBLE -> TIMESTAMP
 
 DOUBLE, STRING -> STRING
 
@@ -2070,7 +2054,7 @@ Description
 Usage: Returns a string value containing string format specifiers based on the input arguments.
 
 Argument type: TYPE, STRING
-TYPE must be one of the following tokens: [DATE, TIME, DATETIME, TIMESTAMP].
+TYPE must be one of the following tokens: [DATE, TIME, TIMESTAMP].
 STRING must be one of the following tokens: ["USA", "JIS", "ISO", "EUR", "INTERNAL"] (" can be replaced by ').
 
 Examples::
@@ -2093,7 +2077,7 @@ Description
 Usage: hour(time) extracts the hour value for time. Different from the time of day value, the time value has a large range and can be greater than 23, so the return value of hour(time) can be also greater than 23.
 The function `hour_of_day` is also provided as an alias.
 
-Argument type: STRING/TIME/DATETIME/TIMESTAMP
+Argument type: STRING/TIME/TIMESTAMP
 
 Return type: INTEGER
 
@@ -2113,7 +2097,7 @@ LAST_DAY
 
 Usage: Returns the last day of the month as a DATE for a valid argument.
 
-Argument type: DATE/DATETIME/STRING/TIMESTAMP/TIME
+Argument type: DATE/STRING/TIMESTAMP/TIME
 
 Return type: DATE
 
@@ -2238,9 +2222,9 @@ MICROSECOND
 Description
 >>>>>>>>>>>
 
-Usage: microsecond(expr) returns the microseconds from the time or datetime expression expr as a number in the range from 0 to 999999.
+Usage: microsecond(expr) returns the microseconds from the time or timestamp expression expr as a number in the range from 0 to 999999.
 
-Argument type: STRING/TIME/DATETIME/TIMESTAMP
+Argument type: STRING/TIME/TIMESTAMP
 
 Return type: INTEGER
 
@@ -2264,7 +2248,7 @@ Description
 Usage: minute(time) returns the minute for time, in the range 0 to 59.
 The `minute_of_hour` function is provided as an alias.
 
-Argument type: STRING/TIME/DATETIME/TIMESTAMP
+Argument type: STRING/TIME/TIMESTAMP
 
 Return type: INTEGER
 
@@ -2287,7 +2271,7 @@ Description
 
 Usage: minute_of_day(time) returns the minute value for time within a 24 hour day, in the range 0 to 1439.
 
-Argument type: STRING/TIME/DATETIME/TIMESTAMP
+Argument type: STRING/TIME/TIMESTAMP
 
 Return type: INTEGER
 
@@ -2312,7 +2296,7 @@ Usage: month(date) returns the month for date, in the range 1 to 12 for January 
 If an argument of type `TIME` is given, the function will use the current date.
 The function `month_of_year` is also provided as an alias.
 
-Argument type: STRING/DATE/DATETIME/TIME/TIMESTAMP
+Argument type: STRING/DATE/TIME/TIMESTAMP
 
 Return type: INTEGER
 
@@ -2344,7 +2328,7 @@ Description
 
 Usage: monthname(date) returns the full name of the month for date.
 
-Argument type: STRING/DATE/DATETIME/TIMESTAMP
+Argument type: STRING/DATE/TIMESTAMP
 
 Return type: STRING
 
@@ -2368,9 +2352,9 @@ Description
 Returns the current date and time as a value in 'YYYY-MM-DD hh:mm:ss' format. The value is expressed in the cluster time zone.
 `NOW()` returns a constant time that indicates the time at which the statement began to execute. This differs from the behavior for `SYSDATE() <#sysdate>`_, which returns the exact time at which it executes.
 
-Return type: DATETIME
+Return type: TIMESTAMP
 
-Specification: NOW() -> DATETIME
+Specification: NOW() -> TIMESTAMP
 
 Example::
 
@@ -2437,7 +2421,7 @@ Description
 
 Usage: quarter(date) returns the quarter of the year for date, in the range 1 to 4.
 
-Argument type: STRING/DATE/DATETIME/TIMESTAMP
+Argument type: STRING/DATE/TIMESTAMP
 
 Return type: INTEGER
 
@@ -2503,7 +2487,7 @@ Description
 Usage: second(time) returns the second for time, in the range 0 to 59.
 The function `second_of_minute` is provided as an alias
 
-Argument type: STRING/TIME/DATETIME/TIMESTAMP
+Argument type: STRING/TIME/TIMESTAMP
 
 Return type: INTEGER
 
@@ -2532,14 +2516,14 @@ STR_TO_DATE
 Description
 >>>>>>>>>>>
 
-Usage: str_to_date(string, string) is used to extract a DATETIME from the first argument string using the formats specified in the second argument string.
-The input argument must have enough information to be parsed as a DATE, DATETIME, or TIME.
+Usage: str_to_date(string, string) is used to extract a TIMESTAMP from the first argument string using the formats specified in the second argument string.
+The input argument must have enough information to be parsed as a DATE, TIMESTAMP, or TIME.
 Acceptable string format specifiers are the same as those used in the `DATE_FORMAT`_ function.
-It returns NULL when a statement cannot be parsed due to an invalid pair of arguments, and when 0 is provided for any DATE field. Otherwise, it will return a DATETIME with the parsed values (as well as default values for any field that was not parsed).
+It returns NULL when a statement cannot be parsed due to an invalid pair of arguments, and when 0 is provided for any DATE field. Otherwise, it will return a TIMESTAMP with the parsed values (as well as default values for any field that was not parsed).
 
 Argument type: STRING, STRING
 
-Return type: DATETIME
+Return type: TIMESTAMP
 
 Example::
 
@@ -2561,15 +2545,15 @@ Description
 Usage: subdate(date, INTERVAL expr unit) / subdate(date, days) subtracts the time interval expr from date; subdate(date, days) subtracts the second argument as integer number of days from date.
 If first argument is TIME, today's date is used; if first argument is DATE, time at midnight is used.
 
-Argument type: DATE/DATETIME/TIMESTAMP/TIME, INTERVAL/LONG
+Argument type: DATE/TIMESTAMP/TIME, INTERVAL/LONG
 
 Return type map:
 
-(DATE/DATETIME/TIMESTAMP/TIME, INTERVAL) -> DATETIME
+(DATE/TIMESTAMP/TIME, INTERVAL) -> TIMESTAMP
 
 (DATE, LONG) -> DATE
 
-(DATETIME/TIMESTAMP/TIME, LONG) -> DATETIME
+(TIMESTAMP/TIME, LONG) -> TIMESTAMP
 
 Synonyms: `DATE_SUB`_ when invoked with the INTERVAL form of the second argument.
 
@@ -2594,13 +2578,13 @@ Description
 
 Usage: subtime(expr1, expr2) subtracts expr2 from expr1 and returns the result. If argument is TIME, today's date is used; if argument is DATE, time at midnight is used.
 
-Argument type: DATE/DATETIME/TIMESTAMP/TIME, DATE/DATETIME/TIMESTAMP/TIME
+Argument type: DATE/TIMESTAMP/TIME, DATE/TIMESTAMP/TIME
 
 Return type map:
 
-(DATE/DATETIME/TIMESTAMP, DATE/DATETIME/TIMESTAMP/TIME) -> DATETIME
+(DATE/TIMESTAMP, DATE/TIMESTAMP/TIME) -> TIMESTAMP
 
-(TIME, DATE/DATETIME/TIMESTAMP/TIME) -> TIME
+(TIME, DATE/TIMESTAMP/TIME) -> TIME
 
 Antonyms: `ADDTIME`_
 
@@ -2638,7 +2622,7 @@ Example::
     | 10:14:48                  |
     +---------------------------+
 
-    os> SELECT SUBTIME(TIMESTAMP('2007-03-01 10:20:30'), DATETIME('2002-03-04 20:40:50')) AS `'2007-03-01 10:20:30' - '20:40:50'`
+    os> SELECT SUBTIME(TIMESTAMP('2007-03-01 10:20:30'), TIMESTAMP('2002-03-04 20:40:50')) AS `'2007-03-01 10:20:30' - '20:40:50'`
     fetched rows / total rows = 1/1
     +--------------------------------------+
     | '2007-03-01 10:20:30' - '20:40:50'   |
@@ -2659,9 +2643,9 @@ If the argument is given, it specifies a fractional seconds precision from 0 to 
 
 Optional argument type: INTEGER
 
-Return type: DATETIME
+Return type: TIMESTAMP
 
-Specification: SYSDATE([INTEGER]) -> DATETIME
+Specification: SYSDATE([INTEGER]) -> TIMESTAMP
 
 Example::
 
@@ -2680,9 +2664,9 @@ TIME
 Description
 >>>>>>>>>>>
 
-Usage: time(expr) constructs a time type with the input string expr as a time. If the argument is of date/datetime/time/timestamp, it extracts the time value part from the expression.
+Usage: time(expr) constructs a time type with the input string expr as a time. If the argument is of date/time/timestamp, it extracts the time value part from the expression.
 
-Argument type: STRING/DATE/DATETIME/TIME/TIMESTAMP
+Argument type: STRING/DATE/TIME/TIMESTAMP
 
 Return type: TIME
 
@@ -2706,7 +2690,7 @@ Usage: time_format(time, format) formats the time argument using the specifiers 
 This supports a subset of the time format specifiers available for the `date_format`_ function.
 Using date format specifiers supported by `date_format`_ will return 0 or null.
 Acceptable format specifiers are listed in the table below.
-If an argument of type DATE is passed in, it is treated as a DATETIME at midnight (i.e., 00:00:00).
+If an argument of type DATE is passed in, it is treated as a TIMESTAMP at midnight (i.e., 00:00:00).
 
 .. list-table:: The following table describes the available specifier arguments.
    :widths: 20 80
@@ -2736,7 +2720,7 @@ If an argument of type DATE is passed in, it is treated as a DATETIME at midnigh
      - Time, 24-hour (hh:mm:ss)
 
 
-Argument type: STRING/DATE/DATETIME/TIME/TIMESTAMP, STRING
+Argument type: STRING/DATE/TIME/TIMESTAMP, STRING
 
 Return type: STRING
 
@@ -2759,7 +2743,7 @@ Description
 
 Usage: time_to_sec(time) returns the time argument, converted to seconds.
 
-Argument type: STRING/TIME/DATETIME/TIMESTAMP
+Argument type: STRING/TIME/TIMESTAMP
 
 Return type: LONG
 
@@ -2804,15 +2788,15 @@ Description
 >>>>>>>>>>>
 
 Usage: timestamp(expr) constructs a timestamp type with the input string `expr` as an timestamp. If the argument is not a string, it casts `expr` to timestamp type with default timezone UTC. If argument is a time, it applies today's date before cast.
-With two arguments `timestamp(expr1, expr2)` adds the time expression `expr2` to the date or datetime expression `expr1` and returns the result as a timestamp value.
+With two arguments `timestamp(expr1, expr2)` adds the time expression `expr2` to the date or timestamp expression `expr1` and returns the result as a timestamp value.
 
-Argument type: STRING/DATE/TIME/DATETIME/TIMESTAMP
+Argument type: STRING/DATE/TIME/TIMESTAMP
 
 Return type map:
 
-(STRING/DATE/TIME/DATETIME/TIMESTAMP) -> TIMESTAMP
+(STRING/DATE/TIME/TIMESTAMP) -> TIMESTAMP
 
-(STRING/DATE/TIME/DATETIME/TIMESTAMP, STRING/DATE/TIME/DATETIME/TIMESTAMP) -> TIMESTAMP
+(STRING/DATE/TIME/TIMESTAMP, STRING/DATE/TIME/TIMESTAMP) -> TIMESTAMP
 
 Example::
 
@@ -2831,11 +2815,11 @@ TIMESTAMPADD
 Description
 >>>>>>>>>>>
 
-Usage: Returns a DATETIME value based on a passed in DATE/DATETIME/TIME/TIMESTAMP/STRING argument and an INTERVAL and INTEGER argument which determine the amount of time to be added.
-If the third argument is a STRING, it must be formatted as a valid DATETIME. If only a TIME is provided, a DATETIME is still returned with the DATE portion filled in using the current date.
-If the third argument is a DATE, it will be automatically converted to a DATETIME.
+Usage: Returns a TIMESTAMP value based on a passed in DATE/TIME/TIMESTAMP/STRING argument and an INTERVAL and INTEGER argument which determine the amount of time to be added.
+If the third argument is a STRING, it must be formatted as a valid TIMESTAMP. If only a TIME is provided, a TIMESTAMP is still returned with the DATE portion filled in using the current date.
+If the third argument is a DATE, it will be automatically converted to a TIMESTAMP.
 
-Argument type: INTERVAL, INTEGER, DATE/DATETIME/TIME/TIMESTAMP/STRING
+Argument type: INTERVAL, INTEGER, DATE/TIME/TIMESTAMP/STRING
 INTERVAL must be one of the following tokens: [MICROSECOND, SECOND, MINUTE, HOUR, DAY, WEEK, MONTH, QUARTER, YEAR]
 
 Examples::
@@ -2856,11 +2840,11 @@ Description
 >>>>>>>>>>>
 
 Usage: TIMESTAMPDIFF(interval, start, end) returns the difference between the start and end date/times in interval units.
-If a TIME is provided as an argument, it will be converted to a DATETIME with the DATE portion filled in using the current date.
-Arguments will be automatically converted to a DATETIME/TIME/TIMESTAMP when appropriate.
-Any argument that is a STRING must be formatted as a valid DATETIME.
+If a TIME is provided as an argument, it will be converted to a TIMESTAMP with the DATE portion filled in using the current date.
+Arguments will be automatically converted to a TIME/TIMESTAMP when appropriate.
+Any argument that is a STRING must be formatted as a valid TIMESTAMP.
 
-Argument type: INTERVAL, DATE/DATETIME/TIME/TIMESTAMP/STRING, DATE/DATETIME/TIME/TIMESTAMP/STRING
+Argument type: INTERVAL, DATE/TIME/TIMESTAMP/STRING, DATE/TIME/TIMESTAMP/STRING
 INTERVAL must be one of the following tokens: [MICROSECOND, SECOND, MINUTE, HOUR, DAY, WEEK, MONTH, QUARTER, YEAR]
 
 Examples::
@@ -2882,7 +2866,7 @@ Description
 
 Usage: to_days(date) returns the day number (the number of days since year 0) of the given date. Returns NULL if date is invalid.
 
-Argument type: STRING/DATE/DATETIME/TIMESTAMP
+Argument type: STRING/DATE/TIMESTAMP
 
 Return type: LONG
 
@@ -2906,7 +2890,7 @@ Description
 Usage: to_seconds(date) returns the number of seconds since the year 0 of the given value. Returns NULL if value is invalid.
 An argument of a LONG type can be used. It must be formatted as YMMDD, YYMMDD, YYYMMDD or YYYYMMDD. Note that a LONG type argument cannot have leading 0s as it will be parsed using an octal numbering system.
 
-Argument type: STRING/LONG/DATE/DATETIME/TIME/TIMESTAMP
+Argument type: STRING/LONG/DATE/TIME/TIMESTAMP
 
 Return type: LONG
 
@@ -2928,11 +2912,11 @@ Description
 >>>>>>>>>>>
 
 Usage: Converts given argument to Unix time (seconds since January 1st, 1970 at 00:00:00 UTC). If no argument given, it returns current Unix time.
-The date argument may be a DATE, DATETIME, or TIMESTAMP string, or a number in YYMMDD, YYMMDDhhmmss, YYYYMMDD, or YYYYMMDDhhmmss format. If the argument includes a time part, it may optionally include a fractional seconds part.
+The date argument may be a DATE, TIMESTAMP, or TIMESTAMP string, or a number in YYMMDD, YYMMDDhhmmss, YYYYMMDD, or YYYYMMDDhhmmss format. If the argument includes a time part, it may optionally include a fractional seconds part.
 If argument is in invalid format or outside of range 1970-01-01 00:00:00 - 3001-01-18 23:59:59.999999 (0 to 32536771199.999999 epoch time), function returns NULL.
 You can use `FROM_UNIXTIME`_ to do reverse conversion.
 
-Argument type: <NONE>/DOUBLE/DATE/DATETIME/TIMESTAMP
+Argument type: <NONE>/DOUBLE/DATE/TIMESTAMP
 
 Return type: DOUBLE
 
@@ -3009,9 +2993,9 @@ Description
 
 Returns the current UTC timestamp as a value in 'YYYY-MM-DD hh:mm:ss'.
 
-Return type: DATETIME
+Return type: TIMESTAMP
 
-Specification: UTC_TIMESTAMP() -> DATETIME
+Specification: UTC_TIMESTAMP() -> TIMESTAMP
 
 Example::
 
@@ -3075,7 +3059,7 @@ The functions `weekofyear` and `week_of_year` is also provided as an alias.
      - 1-53
      - with a Monday in this year
 
-Argument type: DATE/DATETIME/TIME/TIMESTAMP/STRING
+Argument type: DATE/TIME/TIMESTAMP/STRING
 
 Return type: INTEGER
 
@@ -3100,7 +3084,7 @@ Usage: weekday(date) returns the weekday index for date (0 = Monday, 1 = Tuesday
 
 It is similar to the `dayofweek`_ function, but returns different indexes for each day.
 
-Argument type: STRING/DATE/DATETIME/TIME/TIMESTAMP
+Argument type: STRING/DATE/TIME/TIMESTAMP
 
 Return type: INTEGER
 
@@ -3124,7 +3108,7 @@ Description
 The week_of_year function is a synonym for the `week`_ function.
 If an argument of type `TIME` is given, the function will use the current date.
 
-Argument type: DATE/DATETIME/TIME/TIMESTAMP/STRING
+Argument type: DATE/TIME/TIMESTAMP/STRING
 
 Return type: INTEGER
 
@@ -3148,7 +3132,7 @@ Description
 The weekofyear function is a synonym for the `week`_ function.
 If an argument of type `TIME` is given, the function will use the current date.
 
-Argument type: DATE/DATETIME/TIME/TIMESTAMP/STRING
+Argument type: DATE/TIME/TIMESTAMP/STRING
 
 Return type: INTEGER
 
@@ -3171,7 +3155,7 @@ Description
 
 Usage: year(date) returns the year for date, in the range 1000 to 9999, or 0 for the “zero” date.
 
-Argument type: STRING/DATE/DATETIME/TIMESTAMP
+Argument type: STRING/DATE/TIMESTAMP
 
 Return type: INTEGER
 
@@ -3194,7 +3178,7 @@ Description
 
 Usage: yearweek(date) returns the year and week for date as an integer. It accepts and optional mode arguments aligned with those available for the `WEEK`_ function.
 
-Argument type: STRING/DATE/DATETIME/TIME/TIMESTAMP
+Argument type: STRING/DATE/TIME/TIMESTAMP
 
 Return type: INTEGER
 
@@ -4514,6 +4498,6 @@ Example::
     +----------------+---------------+-----------------+------------------+
     | typeof(date)   | typeof(int)   | typeof(now())   | typeof(column)   |
     |----------------+---------------+-----------------+------------------|
-    | DATE           | INTEGER       | DATETIME        | OBJECT           |
+    | DATE           | INTEGER       | TIMESTAMP       | OBJECT           |
     +----------------+---------------+-----------------+------------------+
 

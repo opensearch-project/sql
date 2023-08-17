@@ -8,7 +8,6 @@ package org.opensearch.sql.expression.operator.convert;
 import static org.opensearch.sql.data.type.ExprCoreType.BOOLEAN;
 import static org.opensearch.sql.data.type.ExprCoreType.BYTE;
 import static org.opensearch.sql.data.type.ExprCoreType.DATE;
-import static org.opensearch.sql.data.type.ExprCoreType.DATETIME;
 import static org.opensearch.sql.data.type.ExprCoreType.DOUBLE;
 import static org.opensearch.sql.data.type.ExprCoreType.FLOAT;
 import static org.opensearch.sql.data.type.ExprCoreType.INTEGER;
@@ -29,7 +28,6 @@ import lombok.experimental.UtilityClass;
 import org.opensearch.sql.data.model.ExprBooleanValue;
 import org.opensearch.sql.data.model.ExprByteValue;
 import org.opensearch.sql.data.model.ExprDateValue;
-import org.opensearch.sql.data.model.ExprDatetimeValue;
 import org.opensearch.sql.data.model.ExprDoubleValue;
 import org.opensearch.sql.data.model.ExprFloatValue;
 import org.opensearch.sql.data.model.ExprIntegerValue;
@@ -58,7 +56,6 @@ public class TypeCastOperator {
     repository.register(castToDate());
     repository.register(castToTime());
     repository.register(castToTimestamp());
-    repository.register(castToDatetime());
   }
 
   private static DefaultFunctionResolver castToString() {
@@ -66,8 +63,7 @@ public class TypeCastOperator {
         BuiltinFunctionName.CAST_TO_STRING.getName(),
         Stream.concat(
                 Arrays.asList(
-                        BYTE, SHORT, INTEGER, LONG, FLOAT, DOUBLE, BOOLEAN, TIME, DATE, TIMESTAMP,
-                        DATETIME)
+                        BYTE, SHORT, INTEGER, LONG, FLOAT, DOUBLE, BOOLEAN, TIME, DATE, TIMESTAMP)
                     .stream()
                     .map(
                         type ->
@@ -180,7 +176,6 @@ public class TypeCastOperator {
     return FunctionDSL.define(
         BuiltinFunctionName.CAST_TO_DATE.getName(),
         impl(nullMissingHandling((v) -> new ExprDateValue(v.stringValue())), DATE, STRING),
-        impl(nullMissingHandling((v) -> new ExprDateValue(v.dateValue())), DATE, DATETIME),
         impl(nullMissingHandling((v) -> new ExprDateValue(v.dateValue())), DATE, TIMESTAMP),
         impl(nullMissingHandling((v) -> v), DATE, DATE));
   }
@@ -189,21 +184,16 @@ public class TypeCastOperator {
     return FunctionDSL.define(
         BuiltinFunctionName.CAST_TO_TIME.getName(),
         impl(nullMissingHandling((v) -> new ExprTimeValue(v.stringValue())), TIME, STRING),
-        impl(nullMissingHandling((v) -> new ExprTimeValue(v.timeValue())), TIME, DATETIME),
         impl(nullMissingHandling((v) -> new ExprTimeValue(v.timeValue())), TIME, TIMESTAMP),
         impl(nullMissingHandling((v) -> v), TIME, TIME));
   }
 
-  // `DATE`/`TIME`/`DATETIME` -> `DATETIME`/TIMESTAMP` cast tested in BinaryPredicateOperatorTest
+  // `DATE`/`TIME` -> `TIMESTAMP` cast tested in BinaryPredicateOperatorTest
   private static DefaultFunctionResolver castToTimestamp() {
     return FunctionDSL.define(
         BuiltinFunctionName.CAST_TO_TIMESTAMP.getName(),
         impl(
             nullMissingHandling((v) -> new ExprTimestampValue(v.stringValue())), TIMESTAMP, STRING),
-        impl(
-            nullMissingHandling((v) -> new ExprTimestampValue(v.timestampValue())),
-            TIMESTAMP,
-            DATETIME),
         impl(
             nullMissingHandling((v) -> new ExprTimestampValue(v.timestampValue())),
             TIMESTAMP,
@@ -214,22 +204,5 @@ public class TypeCastOperator {
             TIMESTAMP,
             TIME),
         impl(nullMissingHandling((v) -> v), TIMESTAMP, TIMESTAMP));
-  }
-
-  private static DefaultFunctionResolver castToDatetime() {
-    return FunctionDSL.define(
-        BuiltinFunctionName.CAST_TO_DATETIME.getName(),
-        impl(nullMissingHandling((v) -> new ExprDatetimeValue(v.stringValue())), DATETIME, STRING),
-        impl(
-            nullMissingHandling((v) -> new ExprDatetimeValue(v.datetimeValue())),
-            DATETIME,
-            TIMESTAMP),
-        impl(nullMissingHandling((v) -> new ExprDatetimeValue(v.datetimeValue())), DATETIME, DATE),
-        implWithProperties(
-            nullMissingHandlingWithProperties(
-                (fp, v) -> new ExprDatetimeValue(((ExprTimeValue) v).datetimeValue(fp))),
-            DATETIME,
-            TIME),
-        impl(nullMissingHandling((v) -> v), DATETIME, DATETIME));
   }
 }

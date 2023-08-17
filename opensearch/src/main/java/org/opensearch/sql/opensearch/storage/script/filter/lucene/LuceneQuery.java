@@ -14,7 +14,6 @@ import org.opensearch.index.query.QueryBuilder;
 import org.opensearch.sql.data.model.ExprBooleanValue;
 import org.opensearch.sql.data.model.ExprByteValue;
 import org.opensearch.sql.data.model.ExprDateValue;
-import org.opensearch.sql.data.model.ExprDatetimeValue;
 import org.opensearch.sql.data.model.ExprDoubleValue;
 import org.opensearch.sql.data.model.ExprFloatValue;
 import org.opensearch.sql.data.model.ExprIntegerValue;
@@ -223,15 +222,6 @@ public abstract class LuceneQuery {
                   return new ExprTimeValue(expr.valueOf().stringValue());
                 } else {
                   return new ExprTimeValue(expr.valueOf().timeValue());
-                }
-              })
-          .put(
-              BuiltinFunctionName.CAST_TO_DATETIME.getName(),
-              expr -> {
-                if (expr.type().equals(ExprCoreType.STRING)) {
-                  return new ExprDatetimeValue(expr.valueOf().stringValue());
-                } else {
-                  return new ExprDatetimeValue(expr.valueOf().datetimeValue());
                 }
               })
           .put(

@@ -13,7 +13,6 @@ import static org.mockito.Mockito.doAnswer;
 import static org.opensearch.sql.data.type.ExprCoreType.BOOLEAN;
 import static org.opensearch.sql.data.type.ExprCoreType.BYTE;
 import static org.opensearch.sql.data.type.ExprCoreType.DATE;
-import static org.opensearch.sql.data.type.ExprCoreType.DATETIME;
 import static org.opensearch.sql.data.type.ExprCoreType.DOUBLE;
 import static org.opensearch.sql.data.type.ExprCoreType.FLOAT;
 import static org.opensearch.sql.data.type.ExprCoreType.INTEGER;
@@ -42,7 +41,6 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.opensearch.sql.common.antlr.SyntaxCheckException;
 import org.opensearch.sql.common.utils.StringUtils;
 import org.opensearch.sql.data.model.ExprDateValue;
-import org.opensearch.sql.data.model.ExprDatetimeValue;
 import org.opensearch.sql.data.model.ExprTimeValue;
 import org.opensearch.sql.data.model.ExprTimestampValue;
 import org.opensearch.sql.data.model.ExprTupleValue;
@@ -1787,7 +1785,7 @@ class FilterQueryBuilderTest {
         buildQuery(
             DSL.equal(
                 ref("date_value", DATE),
-                DSL.castDate(literal(new ExprDatetimeValue("2021-11-08 17:00:00"))))));
+                DSL.castDate(literal(new ExprTimestampValue("2021-11-08 17:00:00"))))));
   }
 
   @Test
@@ -1815,32 +1813,6 @@ class FilterQueryBuilderTest {
             DSL.equal(
                 ref("time_value", TIME),
                 DSL.castTime(literal(new ExprTimestampValue("2021-11-08 17:00:00"))))));
-  }
-
-  @Test
-  void cast_to_datetime_in_filter() {
-    String json =
-        "{\n"
-            + "  \"term\" : {\n"
-            + "    \"datetime_value\" : {\n"
-            + "      \"value\" : \"2021-11-08 17:00:00\",\n"
-            + "      \"boost\" : 1.0\n"
-            + "    }\n"
-            + "  }\n"
-            + "}";
-
-    assertJsonEquals(
-        json,
-        buildQuery(
-            DSL.equal(
-                ref("datetime_value", DATETIME),
-                DSL.castDatetime(literal("2021-11-08 17:00:00")))));
-    assertJsonEquals(
-        json,
-        buildQuery(
-            DSL.equal(
-                ref("datetime_value", DATETIME),
-                DSL.castDatetime(literal(new ExprTimestampValue("2021-11-08 17:00:00"))))));
   }
 
   @Test

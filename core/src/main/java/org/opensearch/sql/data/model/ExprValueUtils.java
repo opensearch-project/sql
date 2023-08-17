@@ -9,6 +9,7 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.time.ZoneOffset;
 import java.time.temporal.TemporalAmount;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -64,10 +65,6 @@ public class ExprValueUtils {
 
   public static ExprValue dateValue(LocalDate value) {
     return new ExprDateValue(value);
-  }
-
-  public static ExprValue datetimeValue(LocalDateTime value) {
-    return new ExprDatetimeValue(value);
   }
 
   public static ExprValue timeValue(LocalTime value) {
@@ -128,14 +125,14 @@ public class ExprValueUtils {
       return floatValue((Float) o);
     } else if (o instanceof LocalDate) {
       return dateValue((LocalDate) o);
-    } else if (o instanceof LocalDateTime) {
-      return datetimeValue((LocalDateTime) o);
     } else if (o instanceof LocalTime) {
       return timeValue((LocalTime) o);
     } else if (o instanceof Instant) {
       return timestampValue((Instant) o);
     } else if (o instanceof TemporalAmount) {
       return intervalValue((TemporalAmount) o);
+    } else if (o instanceof LocalDateTime) {
+      return timestampValue(((LocalDateTime) o).toInstant(ZoneOffset.UTC));
     } else {
       throw new ExpressionEvaluationException("unsupported object " + o.getClass());
     }
@@ -150,8 +147,6 @@ public class ExprValueUtils {
         return new ExprDateValue((String) o);
       case TIME:
         return new ExprTimeValue((String) o);
-      case DATETIME:
-        return new ExprDatetimeValue((String) o);
       default:
         return fromObjectValue(o);
     }

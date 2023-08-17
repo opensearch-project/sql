@@ -39,7 +39,9 @@ public class TimestampTest extends ExpressionTestBase {
 
     expr = DSL.timestamp(functionProperties, DSL.literal("1961-04-12 09:07:00.123456"));
     assertEquals(TIMESTAMP, expr.type());
-    assertEquals(LocalDateTime.of(1961, 4, 12, 9, 7, 0, 123456000), expr.valueOf().datetimeValue());
+    assertEquals(
+        LocalDateTime.of(1961, 4, 12, 9, 7, 0, 123456000),
+        expr.valueOf().timestampValue().atZone(UTC_ZONE_ID).toLocalDateTime());
   }
 
   /**
@@ -81,13 +83,6 @@ public class TimestampTest extends ExpressionTestBase {
     assertEquals(TIMESTAMP, expr.type());
     var refValue = LocalDate.of(2077, 12, 15).atStartOfDay().atZone(UTC_ZONE_ID).toInstant();
     assertEquals(new ExprTimestampValue(refValue), expr.valueOf());
-  }
-
-  @Test
-  public void timestamp_one_arg_datetime() {
-    var expr = DSL.timestamp(functionProperties, DSL.datetime(DSL.literal("1961-04-12 09:07:00")));
-    assertEquals(TIMESTAMP, expr.type());
-    assertEquals(LocalDateTime.of(1961, 4, 12, 9, 7, 0), expr.valueOf().datetimeValue());
   }
 
   @Test

@@ -18,7 +18,6 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.opensearch.sql.data.model.ExprDateValue;
-import org.opensearch.sql.data.model.ExprDatetimeValue;
 import org.opensearch.sql.data.model.ExprIntegerValue;
 import org.opensearch.sql.data.model.ExprNullValue;
 import org.opensearch.sql.data.model.ExprStringValue;
@@ -42,12 +41,6 @@ class TimeStampAddTest extends ExpressionTestBase {
         // Date
         Arguments.of("MINUTE", 1, new ExprDateValue("2003-01-02"), "2003-01-02 00:01:00"),
         Arguments.of("WEEK", 1, new ExprDateValue("2003-01-02"), "2003-01-09 00:00:00"),
-
-        // Datetime
-        Arguments.of(
-            "MINUTE", 1, new ExprDatetimeValue("2003-01-02 00:00:00"), "2003-01-02 00:01:00"),
-        Arguments.of(
-            "WEEK", 1, new ExprDatetimeValue("2003-01-02 00:00:00"), "2003-01-09 00:00:00"),
 
         // Timestamp
         Arguments.of(
@@ -125,7 +118,7 @@ class TimeStampAddTest extends ExpressionTestBase {
   @MethodSource("getTestDataForTimestampAdd")
   public void testTimestampadd(String unit, int amount, ExprValue datetimeExpr, String expected) {
     FunctionExpression expr = timestampaddQuery(unit, amount, datetimeExpr);
-    assertEquals(new ExprDatetimeValue(expected), eval(expr));
+    assertEquals(new ExprTimestampValue(expected), eval(expr));
   }
 
   private static Stream<Arguments> getTestDataForTestAddingDatePartToTime() {
@@ -165,7 +158,7 @@ class TimeStampAddTest extends ExpressionTestBase {
 
     LocalDateTime expected1 = LocalDateTime.of(expectedDate, LocalTime.parse(timeArg));
 
-    assertEquals(new ExprDatetimeValue(expected1), eval(expr));
+    assertEquals(new ExprTimestampValue(expected1), eval(expr));
   }
 
   @Test
@@ -184,7 +177,7 @@ class TimeStampAddTest extends ExpressionTestBase {
     LocalDateTime expected =
         LocalDateTime.of(LocalDate.now(), LocalTime.parse(timeArg).plusMinutes(addedInterval));
 
-    assertEquals(new ExprDatetimeValue(expected), eval(expr));
+    assertEquals(new ExprTimestampValue(expected), eval(expr));
   }
 
   @Test
@@ -196,15 +189,11 @@ class TimeStampAddTest extends ExpressionTestBase {
     FunctionExpression stringExpr =
         timestampaddQuery(part, amount, new ExprStringValue("2000-01-01 00:00:00"));
 
-    FunctionExpression datetimeExpr =
-        timestampaddQuery(part, amount, new ExprDatetimeValue("2000-01-01 00:00:00"));
-
     FunctionExpression timestampExpr =
         timestampaddQuery(part, amount, new ExprTimestampValue("2000-01-01 00:00:00"));
 
     assertAll(
         () -> assertEquals(eval(dateExpr), eval(stringExpr)),
-        () -> assertEquals(eval(dateExpr), eval(datetimeExpr)),
         () -> assertEquals(eval(dateExpr), eval(timestampExpr)));
   }
 

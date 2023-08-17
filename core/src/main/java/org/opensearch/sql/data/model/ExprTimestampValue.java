@@ -42,6 +42,11 @@ public class ExprTimestampValue extends AbstractExprValue {
     }
   }
 
+  /** localDateTime Constructor. */
+  public ExprTimestampValue(LocalDateTime localDateTime) {
+    this.timestamp = localDateTime.atZone(UTC_ZONE_ID).toInstant();
+  }
+
   @Override
   public String value() {
     return timestamp.getNano() == 0
@@ -69,11 +74,6 @@ public class ExprTimestampValue extends AbstractExprValue {
   @Override
   public LocalTime timeValue() {
     return timestamp.atZone(UTC_ZONE_ID).toLocalTime();
-  }
-
-  @Override
-  public LocalDateTime datetimeValue() {
-    return timestamp.atZone(UTC_ZONE_ID).toLocalDateTime();
   }
 
   @Override

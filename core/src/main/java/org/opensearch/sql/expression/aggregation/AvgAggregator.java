@@ -13,7 +13,6 @@ import java.time.LocalTime;
 import java.util.List;
 import java.util.Locale;
 import org.opensearch.sql.data.model.ExprDateValue;
-import org.opensearch.sql.data.model.ExprDatetimeValue;
 import org.opensearch.sql.data.model.ExprDoubleValue;
 import org.opensearch.sql.data.model.ExprIntegerValue;
 import org.opensearch.sql.data.model.ExprNullValue;
@@ -47,8 +46,6 @@ public class AvgAggregator extends Aggregator<AvgAggregator.AvgState> {
     switch (dataType) {
       case DATE:
         return new DateAvgState();
-      case DATETIME:
-        return new DateTimeAvgState();
       case TIMESTAMP:
         return new TimestampAvgState();
       case TIME:
@@ -118,28 +115,6 @@ public class AvgAggregator extends Aggregator<AvgAggregator.AvgState> {
                   Instant.ofEpochMilli(
                       DSL.divide(DSL.literal(total), DSL.literal(count)).valueOf().longValue()))
               .dateValue());
-    }
-
-    @Override
-    protected AvgState iterate(ExprValue value) {
-      total =
-          DSL.add(DSL.literal(total), DSL.literal(value.timestampValue().toEpochMilli())).valueOf();
-      return super.iterate(value);
-    }
-  }
-
-  protected static class DateTimeAvgState extends AvgState {
-    @Override
-    public ExprValue result() {
-      if (0 == count.integerValue()) {
-        return ExprNullValue.of();
-      }
-
-      return new ExprDatetimeValue(
-          new ExprTimestampValue(
-                  Instant.ofEpochMilli(
-                      DSL.divide(DSL.literal(total), DSL.literal(count)).valueOf().longValue()))
-              .datetimeValue());
     }
 
     @Override

@@ -45,11 +45,10 @@ public class SystemFunctionIT extends PPLIntegTestCase {
                 "source=%s | eval "
                     + "`timestamp` = typeof(CAST('1961-04-12 09:07:00' AS TIMESTAMP)),"
                     + "`time` = typeof(CAST('09:07:00' AS TIME)),"
-                    + "`date` = typeof(CAST('1961-04-12' AS DATE)),"
-                    + "`datetime` = typeof(DATETIME('1961-04-12 09:07:00'))"
-                    + " | fields `timestamp`, `time`, `date`, `datetime`",
+                    + "`date` = typeof(CAST('1961-04-12' AS DATE))"
+                    + " | fields `timestamp`, `time`, `date`",
                 TEST_INDEX_DATATYPE_NUMERIC));
-    verifyDataRows(response, rows("TIMESTAMP", "TIME", "DATE", "DATETIME"));
+    verifyDataRows(response, rows("TIMESTAMP", "TIME", "DATE"));
   }
 
   @Test

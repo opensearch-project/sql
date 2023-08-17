@@ -11,7 +11,6 @@ import static org.opensearch.sql.utils.DateTimeUtils.UTC_ZONE_ID;
 
 import java.time.Instant;
 import java.time.LocalDate;
-import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeParseException;
@@ -55,10 +54,6 @@ public class ExprTimeValue extends AbstractExprValue {
 
   public LocalDate dateValue(FunctionProperties functionProperties) {
     return LocalDate.now(functionProperties.getQueryStartClock());
-  }
-
-  public LocalDateTime datetimeValue(FunctionProperties functionProperties) {
-    return LocalDateTime.of(dateValue(functionProperties), timeValue());
   }
 
   public Instant timestampValue(FunctionProperties functionProperties) {
