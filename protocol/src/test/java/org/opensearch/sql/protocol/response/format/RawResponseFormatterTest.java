@@ -67,7 +67,7 @@ public class RawResponseFormatterTest {
                         "Seattle",
                         "@age",
                         20))));
-    String expected = "=firstname|+lastname|-city|@age%n" + "John|Smith|Seattle|20";
+    String expected = "=firstname|+lastname|-city|@age%nJohn|Smith|Seattle|20";
     assertEquals(format(expected), rawFormatter.format(response));
   }
 
@@ -108,7 +108,7 @@ public class RawResponseFormatterTest {
         new QueryResult(
             schema,
             Arrays.asList(tupleValue(ImmutableMap.of("na|me", "John|Smith", "||age", "30|||"))));
-    String expected = "\"na|me\"|\"||age\"%n" + "\"John|Smith\"|\"30|||\"";
+    String expected = "\"na|me\"|\"||age\"%n\"John|Smith\"|\"30|||\"";
     assertEquals(format(expected), rawFormatter.format(response));
   }
 
@@ -132,7 +132,7 @@ public class RawResponseFormatterTest {
             Arrays.asList(
                 tupleValue(ImmutableMap.of("city", "=Seattle")),
                 tupleValue(ImmutableMap.of("city", "||Seattle"))));
-    String expected = "city%n" + "=Seattle%n" + "\"||Seattle\"";
+    String expected = "city%n=Seattle%n\"||Seattle\"";
     assertEquals(format(expected), escapeFormatter.format(response));
   }
 
@@ -147,7 +147,7 @@ public class RawResponseFormatterTest {
             Arrays.asList(
                 tupleValue(ImmutableMap.of("city", "@Seattle")),
                 tupleValue(ImmutableMap.of("city", "++Seattle"))));
-    String expected = "city%n" + "@Seattle%n" + "++Seattle";
+    String expected = "city%n@Seattle%n++Seattle";
     assertEquals(format(expected), rawFormatter.format(response));
   }
 
@@ -163,7 +163,7 @@ public class RawResponseFormatterTest {
             Arrays.asList(
                 tupleValue(ImmutableMap.of("city", "@Seattle")),
                 tupleValue(ImmutableMap.of("city", "++Seattle|||"))));
-    String expected = "city%n" + "@Seattle%n" + "\"++Seattle|||\"";
+    String expected = "city%n@Seattle%n\"++Seattle|||\"";
     assertEquals(format(expected), testFormater.format(response));
   }
 
@@ -183,7 +183,7 @@ public class RawResponseFormatterTest {
                     ImmutableMap.of("firstname", LITERAL_NULL, "city", stringValue("Seattle"))),
                 ExprTupleValue.fromExprValueMap(
                     ImmutableMap.of("firstname", stringValue("John"), "city", LITERAL_MISSING))));
-    String expected = "name|city%n" + "John|Seattle%n" + "|Seattle%n" + "John|";
+    String expected = "name|city%nJohn|Seattle%n|Seattle%nJohn|";
     assertEquals(format(expected), rawFormatter.format(response));
   }
 

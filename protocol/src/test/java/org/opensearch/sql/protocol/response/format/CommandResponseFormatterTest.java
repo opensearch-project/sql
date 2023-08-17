@@ -49,7 +49,7 @@ public class CommandResponseFormatterTest {
                         .build())),
             new Cursor("test_cursor"));
 
-    assertEquals("{\n" + "  \"succeeded\": true\n" + "}", formatter.format(response));
+    assertEquals("{\n  \"succeeded\": true\n}", formatter.format(response));
   }
 
   @Test
