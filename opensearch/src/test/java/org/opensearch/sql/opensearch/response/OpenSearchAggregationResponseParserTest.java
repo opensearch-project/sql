@@ -141,7 +141,11 @@ class OpenSearchAggregationResponseParserTest {
   @Test
   void unsupported_aggregation_should_fail() {
     String response =
-        "{\n" + "  \"date_histogram#date_histogram\": {\n" + "    \"value\": 40\n" + "  }\n" + "}";
+        "{\n"
+            + "  \"date_histogram#date_histogram\": {\n"
+            + "    \"value\": 40\n"
+            + "  }\n"
+            + "}";
     NoBucketAggregationParser parser = new NoBucketAggregationParser(new SingleValueParser("max"));
     RuntimeException exception =
         assertThrows(RuntimeException.class, () -> parse(parser, response));
