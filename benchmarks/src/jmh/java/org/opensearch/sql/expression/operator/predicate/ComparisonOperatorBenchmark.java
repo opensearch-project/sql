@@ -38,7 +38,7 @@ import org.opensearch.sql.expression.FunctionExpression;
 @Fork(value = 1)
 public class ComparisonOperatorBenchmark {
 
-  @Param(value = { "int", "string", "date" })
+  @Param(value = {"int", "string", "date"})
   private String testDataType;
 
   private final Map<String, ExprValue> params =
@@ -65,9 +65,7 @@ public class ComparisonOperatorBenchmark {
 
   private void run(Function<Expression[], FunctionExpression> dsl) {
     ExprValue param = params.get(testDataType);
-    FunctionExpression func = dsl.apply(new Expression[] {
-        literal(param), literal(param)
-    });
+    FunctionExpression func = dsl.apply(new Expression[] {literal(param), literal(param)});
     func.valueOf();
   }
 }

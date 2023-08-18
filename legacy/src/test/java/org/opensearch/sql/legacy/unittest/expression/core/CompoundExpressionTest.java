@@ -3,7 +3,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-
 package org.opensearch.sql.legacy.unittest.expression.core;
 
 import static org.junit.Assert.assertEquals;
@@ -16,10 +15,12 @@ import org.opensearch.sql.legacy.expression.core.operator.ScalarOperation;
 
 public class CompoundExpressionTest extends ExpressionTest {
 
-    @Test
-    public void absAndAddShouldPass() {
-        assertEquals(2.0d, apply(ScalarOperation.ABS, of(ScalarOperation.ADD,
-                                                         literal(doubleValue(-1.0d)),
-                                                         literal(integerValue(-1)))));
-    }
+  @Test
+  public void absAndAddShouldPass() {
+    assertEquals(
+        2.0d,
+        apply(
+            ScalarOperation.ABS,
+            of(ScalarOperation.ADD, literal(doubleValue(-1.0d)), literal(integerValue(-1)))));
+  }
 }
