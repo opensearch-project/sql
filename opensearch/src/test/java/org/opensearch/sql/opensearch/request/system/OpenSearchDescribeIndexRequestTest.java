@@ -3,7 +3,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-
 package org.opensearch.sql.opensearch.request.system;
 
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -28,46 +27,47 @@ import org.opensearch.sql.opensearch.mapping.IndexMapping;
 @ExtendWith(MockitoExtension.class)
 class OpenSearchDescribeIndexRequestTest {
 
-  @Mock
-  private OpenSearchClient client;
+  @Mock private OpenSearchClient client;
 
-  @Mock
-  private IndexMapping mapping;
+  @Mock private IndexMapping mapping;
 
   @Test
   void testSearch() {
-    when(mapping.getFieldMappings()).thenReturn(
-        Map.of("name", OpenSearchDataType.of(OpenSearchDataType.MappingType.Keyword)));
+    when(mapping.getFieldMappings())
+        .thenReturn(Map.of("name", OpenSearchDataType.of(OpenSearchDataType.MappingType.Keyword)));
     when(client.getIndexMappings("index")).thenReturn(ImmutableMap.of("test", mapping));
 
     final List<ExprValue> results = new OpenSearchDescribeIndexRequest(client, "index").search();
     assertEquals(1, results.size());
-    assertThat(results.get(0).tupleValue(), anyOf(
-        hasEntry("TABLE_NAME", stringValue("index")),
-        hasEntry("COLUMN_NAME", stringValue("name")),
-        hasEntry("TYPE_NAME", stringValue("STRING"))
-    ));
+    assertThat(
+        results.get(0).tupleValue(),
+        anyOf(
+            hasEntry("TABLE_NAME", stringValue("index")),
+            hasEntry("COLUMN_NAME", stringValue("name")),
+            hasEntry("TYPE_NAME", stringValue("STRING"))));
   }
 
   @Test
   void testCrossClusterShouldSearchLocal() {
-    when(mapping.getFieldMappings()).thenReturn(
-        Map.of("name", OpenSearchDataType.of(OpenSearchDataType.MappingType.Keyword)));
+    when(mapping.getFieldMappings())
+        .thenReturn(Map.of("name", OpenSearchDataType.of(OpenSearchDataType.MappingType.Keyword)));
     when(client.getIndexMappings("index")).thenReturn(ImmutableMap.of("test", mapping));
 
     final List<ExprValue> results =
         new OpenSearchDescribeIndexRequest(client, "ccs:index").search();
     assertEquals(1, results.size());
-    assertThat(results.get(0).tupleValue(), anyOf(
-        hasEntry("TABLE_NAME", stringValue("index")),
-        hasEntry("COLUMN_NAME", stringValue("name")),
-        hasEntry("TYPE_NAME", stringValue("STRING"))
-    ));
+    assertThat(
+        results.get(0).tupleValue(),
+        anyOf(
+            hasEntry("TABLE_NAME", stringValue("index")),
+            hasEntry("COLUMN_NAME", stringValue("name")),
+            hasEntry("TYPE_NAME", stringValue("STRING"))));
   }
 
   @Test
   void testToString() {
-    assertEquals("OpenSearchDescribeIndexRequest{indexName='index'}",
+    assertEquals(
+        "OpenSearchDescribeIndexRequest{indexName='index'}",
         new OpenSearchDescribeIndexRequest(client, "index").toString());
   }
 }

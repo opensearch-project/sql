@@ -3,7 +3,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-
 package org.opensearch.sql.opensearch.storage.script;
 
 import static java.util.Collections.emptyMap;
@@ -34,8 +33,7 @@ import org.opensearch.sql.opensearch.storage.serialization.ExpressionSerializer;
 @ExtendWith(MockitoExtension.class)
 class ExpressionScriptEngineTest {
 
-  @Mock
-  private ExpressionSerializer serializer;
+  @Mock private ExpressionSerializer serializer;
 
   private ScriptEngine scriptEngine;
 
@@ -55,19 +53,20 @@ class ExpressionScriptEngineTest {
   void can_initialize_filter_script_factory_by_compiled_script() {
     when(serializer.deserialize("test code")).thenReturn(expression);
 
-    assertThat(scriptEngine.getSupportedContexts(),
+    assertThat(
+        scriptEngine.getSupportedContexts(),
         contains(FilterScript.CONTEXT, AggregationScript.CONTEXT));
 
-    Object actualFactory = scriptEngine.compile(
-        "test", "test code", FilterScript.CONTEXT, emptyMap());
+    Object actualFactory =
+        scriptEngine.compile("test", "test code", FilterScript.CONTEXT, emptyMap());
     assertEquals(new ExpressionFilterScriptFactory(expression), actualFactory);
   }
 
   @Test
   void should_throw_exception_for_unsupported_script_context() {
     ScriptContext<?> unknownCtx = mock(ScriptContext.class);
-    assertThrows(IllegalStateException.class, () ->
-        scriptEngine.compile("test", "test code", unknownCtx, emptyMap()));
+    assertThrows(
+        IllegalStateException.class,
+        () -> scriptEngine.compile("test", "test code", unknownCtx, emptyMap()));
   }
-
 }

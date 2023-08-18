@@ -57,29 +57,27 @@ import org.opensearch.sql.planner.physical.PhysicalPlanNodeVisitor;
 @MockitoSettings(strictness = Strictness.LENIENT)
 @RunWith(MockitoJUnitRunner.Silent.class)
 public class MLOperatorTest {
-  @Mock
-  private PhysicalPlan input;
+  @Mock private PhysicalPlan input;
 
-  @Mock
-  PlainActionFuture<MLOutput> actionFuture;
+  @Mock PlainActionFuture<MLOutput> actionFuture;
 
-  @Mock(answer =  Answers.RETURNS_DEEP_STUBS)
+  @Mock(answer = Answers.RETURNS_DEEP_STUBS)
   private NodeClient nodeClient;
 
   private MLOperator mlOperator;
   Map<String, Literal> arguments = new HashMap<>();
 
-  @Mock(answer =  Answers.RETURNS_DEEP_STUBS)
+  @Mock(answer = Answers.RETURNS_DEEP_STUBS)
   private MachineLearningNodeClient machineLearningNodeClient;
 
   void setUp(boolean isPredict) {
-    arguments.put("k1",AstDSL.intLiteral(3));
-    arguments.put("k2",AstDSL.stringLiteral("v1"));
-    arguments.put("k3",AstDSL.booleanLiteral(true));
-    arguments.put("k4",AstDSL.doubleLiteral(2.0D));
-    arguments.put("k5",AstDSL.shortLiteral((short)2));
-    arguments.put("k6",AstDSL.longLiteral(2L));
-    arguments.put("k7",AstDSL.floatLiteral(2F));
+    arguments.put("k1", AstDSL.intLiteral(3));
+    arguments.put("k2", AstDSL.stringLiteral("v1"));
+    arguments.put("k3", AstDSL.booleanLiteral(true));
+    arguments.put("k4", AstDSL.doubleLiteral(2.0D));
+    arguments.put("k5", AstDSL.shortLiteral((short) 2));
+    arguments.put("k6", AstDSL.longLiteral(2L));
+    arguments.put("k7", AstDSL.floatLiteral(2F));
 
     mlOperator = new MLOperator(input, arguments, nodeClient);
     when(input.hasNext()).thenReturn(true).thenReturn(false);
@@ -87,49 +85,50 @@ public class MLOperatorTest {
     resultBuilder.put("k1", new ExprIntegerValue(2));
     when(input.next()).thenReturn(ExprTupleValue.fromExprValueMap(resultBuilder.build()));
 
-    DataFrame dataFrame = DataFrameBuilder
-            .load(Collections.singletonList(
-                    ImmutableMap.<String, Object>builder().put("result-k1", 2D)
-                            .put("result-k2", 1)
-                            .put("result-k3", "v3")
-                            .put("result-k4", true)
-                            .put("result-k5", (short)2)
-                            .put("result-k6", 2L)
-                            .put("result-k7", 2F)
-                            .build())
-            );
+    DataFrame dataFrame =
+        DataFrameBuilder.load(
+            Collections.singletonList(
+                ImmutableMap.<String, Object>builder()
+                    .put("result-k1", 2D)
+                    .put("result-k2", 1)
+                    .put("result-k3", "v3")
+                    .put("result-k4", true)
+                    .put("result-k5", (short) 2)
+                    .put("result-k6", 2L)
+                    .put("result-k7", 2F)
+                    .build()));
 
     MLOutput mlOutput;
     if (isPredict) {
-      mlOutput = MLPredictionOutput.builder()
+      mlOutput =
+          MLPredictionOutput.builder()
               .taskId("test_task_id")
               .status("test_status")
               .predictionResult(dataFrame)
               .build();
     } else {
-      mlOutput = MLTrainingOutput.builder()
+      mlOutput =
+          MLTrainingOutput.builder()
               .taskId("test_task_id")
               .status("test_status")
               .modelId("test_model_id")
               .build();
     }
 
-    when(actionFuture.actionGet(anyLong(), eq(TimeUnit.SECONDS)))
-            .thenReturn(mlOutput);
-    when(machineLearningNodeClient.run(any(MLInput.class), any()))
-            .thenReturn(actionFuture);
+    when(actionFuture.actionGet(anyLong(), eq(TimeUnit.SECONDS))).thenReturn(mlOutput);
+    when(machineLearningNodeClient.run(any(MLInput.class), any())).thenReturn(actionFuture);
   }
 
   void setUpPredict() {
-    arguments.put(ACTION,AstDSL.stringLiteral(PREDICT));
-    arguments.put(ALGO,AstDSL.stringLiteral(KMEANS));
-    arguments.put("modelid",AstDSL.stringLiteral("dummyID"));
+    arguments.put(ACTION, AstDSL.stringLiteral(PREDICT));
+    arguments.put(ALGO, AstDSL.stringLiteral(KMEANS));
+    arguments.put("modelid", AstDSL.stringLiteral("dummyID"));
     setUp(true);
   }
 
   void setUpTrain() {
-    arguments.put(ACTION,AstDSL.stringLiteral(TRAIN));
-    arguments.put(ALGO,AstDSL.stringLiteral(KMEANS));
+    arguments.put(ACTION, AstDSL.stringLiteral(TRAIN));
+    arguments.put(ALGO, AstDSL.stringLiteral(KMEANS));
     setUp(false);
   }
 
@@ -162,10 +161,9 @@ public class MLOperatorTest {
     setUpPredict();
     try (MockedStatic<MLClient> mlClientMockedStatic = Mockito.mockStatic(MLClient.class)) {
       when(MLClient.getMLClient(any(NodeClient.class))).thenReturn(machineLearningNodeClient);
-      PhysicalPlanNodeVisitor physicalPlanNodeVisitor
-              = new PhysicalPlanNodeVisitor<Integer, Object>() {};
+      PhysicalPlanNodeVisitor physicalPlanNodeVisitor =
+          new PhysicalPlanNodeVisitor<Integer, Object>() {};
       assertNull(mlOperator.accept(physicalPlanNodeVisitor, null));
     }
   }
-
 }

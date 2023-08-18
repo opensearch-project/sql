@@ -3,7 +3,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-
 package org.opensearch.sql.opensearch.storage.script.aggregation;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -31,14 +30,11 @@ import org.opensearch.sql.expression.Expression;
 @ExtendWith(MockitoExtension.class)
 class ExpressionAggregationScriptFactoryTest {
 
-  @Mock
-  private SearchLookup searchLookup;
+  @Mock private SearchLookup searchLookup;
 
-  @Mock
-  private LeafSearchLookup leafSearchLookup;
+  @Mock private LeafSearchLookup leafSearchLookup;
 
-  @Mock
-  private LeafReaderContext leafReaderContext;
+  @Mock private LeafReaderContext leafReaderContext;
 
   private final Expression expression = DSL.literal(true);
 
@@ -63,7 +59,6 @@ class ExpressionAggregationScriptFactoryTest {
 
     assertEquals(
         new ExpressionAggregationScript(expression, searchLookup, leafReaderContext, params),
-        actualScript
-    );
+        actualScript);
   }
 }

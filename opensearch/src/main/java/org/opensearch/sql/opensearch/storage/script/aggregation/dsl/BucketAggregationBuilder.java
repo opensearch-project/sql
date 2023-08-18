@@ -26,29 +26,24 @@ import org.opensearch.sql.expression.NamedExpression;
 import org.opensearch.sql.expression.span.SpanExpression;
 import org.opensearch.sql.opensearch.storage.serialization.ExpressionSerializer;
 
-/**
- * Bucket Aggregation Builder.
- */
+/** Bucket Aggregation Builder. */
 public class BucketAggregationBuilder {
 
   private final AggregationBuilderHelper helper;
 
-  public BucketAggregationBuilder(
-      ExpressionSerializer serializer) {
+  public BucketAggregationBuilder(ExpressionSerializer serializer) {
     this.helper = new AggregationBuilderHelper(serializer);
   }
 
-  /**
-   * Build the list of CompositeValuesSourceBuilder.
-   */
+  /** Build the list of CompositeValuesSourceBuilder. */
   public List<CompositeValuesSourceBuilder<?>> build(
       List<Triple<NamedExpression, SortOrder, MissingOrder>> groupList) {
     ImmutableList.Builder<CompositeValuesSourceBuilder<?>> resultBuilder =
         new ImmutableList.Builder<>();
     for (Triple<NamedExpression, SortOrder, MissingOrder> groupPair : groupList) {
       resultBuilder.add(
-          buildCompositeValuesSourceBuilder(groupPair.getLeft(),
-              groupPair.getMiddle(), groupPair.getRight()));
+          buildCompositeValuesSourceBuilder(
+              groupPair.getLeft(), groupPair.getMiddle(), groupPair.getRight()));
     }
     return resultBuilder.build();
   }

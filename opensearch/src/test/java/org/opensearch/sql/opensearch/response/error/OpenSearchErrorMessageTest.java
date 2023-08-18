@@ -3,7 +3,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-
 package org.opensearch.sql.opensearch.response.error;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -21,14 +20,11 @@ import org.opensearch.action.search.ShardSearchFailure;
 @ExtendWith(MockitoExtension.class)
 class OpenSearchErrorMessageTest {
 
-  @Mock
-  private OpenSearchException openSearchException;
+  @Mock private OpenSearchException openSearchException;
 
-  @Mock
-  private SearchPhaseExecutionException searchPhaseExecutionException;
+  @Mock private SearchPhaseExecutionException searchPhaseExecutionException;
 
-  @Mock
-  private ShardSearchFailure shardSearchFailure;
+  @Mock private ShardSearchFailure shardSearchFailure;
 
   @Test
   public void fetchReason() {
@@ -45,7 +41,8 @@ class OpenSearchErrorMessageTest {
 
     OpenSearchErrorMessage errorMessage =
         new OpenSearchErrorMessage(openSearchException, SERVICE_UNAVAILABLE.getStatus());
-    assertEquals("detail error\n"
+    assertEquals(
+        "detail error\n"
             + "For more details, please send request for "
             + "Json format to see the raw response from OpenSearch engine.",
         errorMessage.fetchDetails());
@@ -59,9 +56,9 @@ class OpenSearchErrorMessageTest {
     when(shardSearchFailure.getCause()).thenReturn(new IllegalStateException("illegal state"));
 
     OpenSearchErrorMessage errorMessage =
-        new OpenSearchErrorMessage(searchPhaseExecutionException,
-            SERVICE_UNAVAILABLE.getStatus());
-    assertEquals("Shard[1]: java.lang.IllegalStateException: illegal state\n"
+        new OpenSearchErrorMessage(searchPhaseExecutionException, SERVICE_UNAVAILABLE.getStatus());
+    assertEquals(
+        "Shard[1]: java.lang.IllegalStateException: illegal state\n"
             + "\n"
             + "For more details, please send request for Json format to see the "
             + "raw response from OpenSearch engine.",

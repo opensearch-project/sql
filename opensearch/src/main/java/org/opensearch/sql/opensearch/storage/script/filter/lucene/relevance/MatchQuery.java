@@ -8,13 +8,11 @@ package org.opensearch.sql.opensearch.storage.script.filter.lucene.relevance;
 import org.opensearch.index.query.MatchQueryBuilder;
 import org.opensearch.index.query.QueryBuilders;
 
-/**
- * Initializes MatchQueryBuilder from a FunctionExpression.
- */
+/** Initializes MatchQueryBuilder from a FunctionExpression. */
 public class MatchQuery extends SingleFieldQuery<MatchQueryBuilder> {
   /**
-   *  Default constructor for MatchQuery configures how RelevanceQuery.build() handles
-   * named arguments.
+   * Default constructor for MatchQuery configures how RelevanceQuery.build() handles named
+   * arguments.
    */
   public MatchQuery() {
     super(FunctionParameterRepository.MatchQueryBuildActions);

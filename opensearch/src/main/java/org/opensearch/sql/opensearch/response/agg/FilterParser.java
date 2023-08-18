@@ -21,9 +21,8 @@ import org.opensearch.search.aggregations.Aggregation;
 import org.opensearch.search.aggregations.bucket.filter.Filter;
 
 /**
- * {@link Filter} Parser.
- * The current use case is filter aggregation, e.g. avg(age) filter(balance>0). The filter parser
- * do nothing and return the result from metricsParser.
+ * {@link Filter} Parser. The current use case is filter aggregation, e.g. avg(age)
+ * filter(balance>0). The filter parser do nothing and return the result from metricsParser.
  */
 @Builder
 @EqualsAndHashCode

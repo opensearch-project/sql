@@ -3,7 +3,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-
 package org.opensearch.sql.opensearch.storage.script.aggregation.dsl;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -48,8 +47,7 @@ import org.opensearch.sql.opensearch.storage.serialization.ExpressionSerializer;
 @ExtendWith(MockitoExtension.class)
 class BucketAggregationBuilderTest {
 
-  @Mock
-  private ExpressionSerializer serializer;
+  @Mock private ExpressionSerializer serializer;
 
   private BucketAggregationBuilder aggregationBuilder;
 
@@ -69,9 +67,7 @@ class BucketAggregationBuilderTest {
             + "    \"order\" : \"asc\"\n"
             + "  }\n"
             + "}",
-        buildQuery(
-            Arrays.asList(
-                asc(named("age", ref("age", INTEGER))))));
+        buildQuery(Arrays.asList(asc(named("age", ref("age", INTEGER))))));
   }
 
   @Test
@@ -90,9 +86,7 @@ class BucketAggregationBuilderTest {
             + "    \"order\" : \"asc\"\n"
             + "  }\n"
             + "}",
-        buildQuery(
-            Arrays.asList(
-                asc(named(literal)))));
+        buildQuery(Arrays.asList(asc(named(literal)))));
   }
 
   @Test
@@ -108,8 +102,16 @@ class BucketAggregationBuilderTest {
             + "}",
         buildQuery(
             Arrays.asList(
-                asc(named("name", ref("name", OpenSearchTextType.of(Map.of("words",
-                    OpenSearchDataType.of(OpenSearchDataType.MappingType.Keyword)))))))));
+                asc(
+                    named(
+                        "name",
+                        ref(
+                            "name",
+                            OpenSearchTextType.of(
+                                Map.of(
+                                    "words",
+                                    OpenSearchDataType.of(
+                                        OpenSearchDataType.MappingType.Keyword)))))))));
   }
 
   @Test
@@ -129,13 +131,13 @@ class BucketAggregationBuilderTest {
             + "    \"order\" : \"asc\"\n"
             + "  }\n"
             + "}",
-        buildQuery(
-            Arrays.asList(
-                asc(named("name", parseExpression)))));
+        buildQuery(Arrays.asList(asc(named("name", parseExpression)))));
   }
 
   @ParameterizedTest(name = "{0}")
-  @EnumSource(value = ExprCoreType.class, names = {"TIMESTAMP", "TIME", "DATE", "DATETIME"})
+  @EnumSource(
+      value = ExprCoreType.class,
+      names = {"TIMESTAMP", "TIME", "DATE", "DATETIME"})
   void terms_bucket_for_datetime_types_uses_long(ExprType dataType) {
     assertEquals(
         "{\n"
@@ -147,9 +149,7 @@ class BucketAggregationBuilderTest {
             + "    \"order\" : \"asc\"\n"
             + "  }\n"
             + "}",
-        buildQuery(
-            Arrays.asList(
-                asc(named("date", ref("date", dataType))))));
+        buildQuery(Arrays.asList(asc(named("date", ref("date", dataType))))));
   }
 
   @SneakyThrows
