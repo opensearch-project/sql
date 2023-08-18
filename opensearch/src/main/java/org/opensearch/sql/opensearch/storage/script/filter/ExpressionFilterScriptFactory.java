@@ -3,7 +3,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-
 package org.opensearch.sql.opensearch.storage.script.filter;
 
 import java.util.Map;
@@ -12,15 +11,11 @@ import org.opensearch.script.FilterScript;
 import org.opensearch.search.lookup.SearchLookup;
 import org.opensearch.sql.expression.Expression;
 
-/**
- * Expression script factory that generates leaf factory.
- */
+/** Expression script factory that generates leaf factory. */
 @EqualsAndHashCode
 public class ExpressionFilterScriptFactory implements FilterScript.Factory {
 
-  /**
-   * Expression to execute.
-   */
+  /** Expression to execute. */
   private final Expression expression;
 
   public ExpressionFilterScriptFactory(Expression expression) {
@@ -37,5 +32,4 @@ public class ExpressionFilterScriptFactory implements FilterScript.Factory {
   public FilterScript.LeafFactory newFactory(Map<String, Object> params, SearchLookup lookup) {
     return new ExpressionFilterScriptLeafFactory(expression, params, lookup);
   }
-
 }

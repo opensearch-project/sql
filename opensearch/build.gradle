@@ -26,6 +26,7 @@ plugins {
     id 'java-library'
     id "io.freefair.lombok"
     id 'jacoco'
+    id 'info.solidsoft.pitest' version '1.9.0'
 }
 
 dependencies {
@@ -46,6 +47,9 @@ dependencies {
     testImplementation group: 'org.opensearch.client', name: 'opensearch-rest-high-level-client', version: "${opensearch_version}"
     testImplementation group: 'org.opensearch.test', name: 'framework', version: "${opensearch_version}"
 }
+
+checkstyleTest.ignoreFailures = true
+checkstyleMain.ignoreFailures = true
 
 test {
     useJUnitPlatform()

@@ -3,7 +3,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-
 package org.opensearch.sql.opensearch.storage.script.aggregation;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -28,10 +27,12 @@ class GroupSortOrderTest {
 
   private final AggregationQueryBuilder.GroupSortOrder groupSortOrder =
       new AggregationQueryBuilder.GroupSortOrder(
-          sort(ref("name", STRING), Sort.SortOption.DEFAULT_DESC,
-              ref("age", INTEGER), Sort.SortOption.DEFAULT_ASC));
-  @Mock
-  private ReferenceExpression ref;
+          sort(
+              ref("name", STRING),
+              Sort.SortOption.DEFAULT_DESC,
+              ref("age", INTEGER),
+              Sort.SortOption.DEFAULT_ASC));
+  @Mock private ReferenceExpression ref;
 
   @Test
   void both_expression_in_sort_list() {

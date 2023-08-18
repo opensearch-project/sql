@@ -3,7 +3,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-
 package org.opensearch.sql.opensearch.client;
 
 import java.util.List;
@@ -14,9 +13,8 @@ import org.opensearch.sql.opensearch.request.OpenSearchRequest;
 import org.opensearch.sql.opensearch.response.OpenSearchResponse;
 
 /**
- * OpenSearch client abstraction to wrap different OpenSearch client implementation. For
- * example, implementation by node client for OpenSearch plugin or by REST client for
- * standalone mode.
+ * OpenSearch client abstraction to wrap different OpenSearch client implementation. For example,
+ * implementation by node client for OpenSearch plugin or by REST client for standalone mode.
  */
 public interface OpenSearchClient {
 
@@ -24,6 +22,7 @@ public interface OpenSearchClient {
 
   /**
    * Check if the given index exists.
+   *
    * @param indexName index name
    * @return true if exists, otherwise false
    */
@@ -31,8 +30,9 @@ public interface OpenSearchClient {
 
   /**
    * Create OpenSearch index based on the given mappings.
+   *
    * @param indexName index name
-   * @param mappings  index mappings
+   * @param mappings index mappings
    */
   void createIndex(String indexName, Map<String, Object> mappings);
 

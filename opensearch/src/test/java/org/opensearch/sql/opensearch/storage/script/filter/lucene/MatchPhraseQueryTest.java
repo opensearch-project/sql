@@ -5,7 +5,6 @@
 
 package org.opensearch.sql.opensearch.storage.script.filter.lucene;
 
-
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.util.List;
@@ -37,256 +36,259 @@ public class MatchPhraseQueryTest {
   @Test
   public void test_SyntaxCheckException_when_no_arguments() {
     List<Expression> arguments = List.of();
-    assertThrows(SyntaxCheckException.class,
+    assertThrows(
+        SyntaxCheckException.class,
         () -> matchPhraseQuery.build(new MatchPhraseExpression(arguments)));
   }
 
   @Test
   public void test_SyntaxCheckException_when_one_argument() {
-    List<Expression> arguments = List.of(DSL.namedArgument("field",
-        new ReferenceExpression("test", OpenSearchTextType.of())));
-    assertThrows(SyntaxCheckException.class,
+    List<Expression> arguments =
+        List.of(
+            DSL.namedArgument("field", new ReferenceExpression("test", OpenSearchTextType.of())));
+    assertThrows(
+        SyntaxCheckException.class,
         () -> matchPhraseQuery.build(new MatchPhraseExpression(arguments)));
   }
 
   @Test
   public void test_SyntaxCheckException_when_invalid_parameter() {
-    List<Expression> arguments = List.of(
-        DSL.namedArgument("field",
-            new ReferenceExpression("test", OpenSearchTextType.of())),
-        DSL.namedArgument("query", "test2"),
-        DSL.namedArgument("unsupported", "3"));
-    Assertions.assertThrows(SemanticCheckException.class,
+    List<Expression> arguments =
+        List.of(
+            DSL.namedArgument("field", new ReferenceExpression("test", OpenSearchTextType.of())),
+            DSL.namedArgument("query", "test2"),
+            DSL.namedArgument("unsupported", "3"));
+    Assertions.assertThrows(
+        SemanticCheckException.class,
         () -> matchPhraseQuery.build(new MatchPhraseExpression(arguments)));
   }
 
   @Test
   public void test_analyzer_parameter() {
-    List<Expression> arguments = List.of(
-        DSL.namedArgument("field",
-            new ReferenceExpression("t1", OpenSearchTextType.of())),
-        DSL.namedArgument("query", "t2"),
-        DSL.namedArgument("analyzer", "standard")
-    );
+    List<Expression> arguments =
+        List.of(
+            DSL.namedArgument("field", new ReferenceExpression("t1", OpenSearchTextType.of())),
+            DSL.namedArgument("query", "t2"),
+            DSL.namedArgument("analyzer", "standard"));
     Assertions.assertNotNull(matchPhraseQuery.build(new MatchPhraseExpression(arguments)));
   }
 
   @Test
   public void build_succeeds_with_two_arguments() {
-    List<Expression> arguments = List.of(
-        DSL.namedArgument("field",
-            new ReferenceExpression("test", OpenSearchTextType.of())),
-        DSL.namedArgument("query", "test2"));
+    List<Expression> arguments =
+        List.of(
+            DSL.namedArgument("field", new ReferenceExpression("test", OpenSearchTextType.of())),
+            DSL.namedArgument("query", "test2"));
     Assertions.assertNotNull(matchPhraseQuery.build(new MatchPhraseExpression(arguments)));
   }
 
   @Test
   public void test_slop_parameter() {
-    List<Expression> arguments = List.of(
-        DSL.namedArgument("field",
-            new ReferenceExpression("t1", OpenSearchTextType.of())),
-        DSL.namedArgument("query", "t2"),
-        DSL.namedArgument("slop", "2")
-    );
+    List<Expression> arguments =
+        List.of(
+            DSL.namedArgument("field", new ReferenceExpression("t1", OpenSearchTextType.of())),
+            DSL.namedArgument("query", "t2"),
+            DSL.namedArgument("slop", "2"));
     Assertions.assertNotNull(matchPhraseQuery.build(new MatchPhraseExpression(arguments)));
   }
 
   @Test
   public void test_zero_terms_query_parameter() {
-    List<Expression> arguments = List.of(
-        DSL.namedArgument("field",
-            new ReferenceExpression("t1", OpenSearchTextType.of())),
-        DSL.namedArgument("query", "t2"),
-        DSL.namedArgument("zero_terms_query", "ALL")
-    );
+    List<Expression> arguments =
+        List.of(
+            DSL.namedArgument("field", new ReferenceExpression("t1", OpenSearchTextType.of())),
+            DSL.namedArgument("query", "t2"),
+            DSL.namedArgument("zero_terms_query", "ALL"));
     Assertions.assertNotNull(matchPhraseQuery.build(new MatchPhraseExpression(arguments)));
   }
 
   @Test
   public void test_zero_terms_query_parameter_lower_case() {
-    List<Expression> arguments = List.of(
-        DSL.namedArgument("field",
-            new ReferenceExpression("t1", OpenSearchTextType.of())),
-        DSL.namedArgument("query", "t2"),
-        DSL.namedArgument("zero_terms_query", "all")
-    );
+    List<Expression> arguments =
+        List.of(
+            DSL.namedArgument("field", new ReferenceExpression("t1", OpenSearchTextType.of())),
+            DSL.namedArgument("query", "t2"),
+            DSL.namedArgument("zero_terms_query", "all"));
     Assertions.assertNotNull(matchPhraseQuery.build(new MatchPhraseExpression(arguments)));
   }
 
   @Test
   public void test_SyntaxCheckException_when_no_arguments_match_phrase_syntax() {
     List<Expression> arguments = List.of();
-    assertThrows(SyntaxCheckException.class,
-        () -> matchPhraseQuery.build(new MatchPhraseExpression(
-            arguments, matchPhraseWithUnderscoreName)));
+    assertThrows(
+        SyntaxCheckException.class,
+        () ->
+            matchPhraseQuery.build(
+                new MatchPhraseExpression(arguments, matchPhraseWithUnderscoreName)));
   }
 
   @Test
   public void test_SyntaxCheckException_when_one_argument_match_phrase_syntax() {
-    List<Expression> arguments = List.of(DSL.namedArgument("field",
-        new ReferenceExpression("test", OpenSearchTextType.of())));
-    assertThrows(SyntaxCheckException.class,
-        () -> matchPhraseQuery.build(new MatchPhraseExpression(
-            arguments, matchPhraseWithUnderscoreName)));
-
+    List<Expression> arguments =
+        List.of(
+            DSL.namedArgument("field", new ReferenceExpression("test", OpenSearchTextType.of())));
+    assertThrows(
+        SyntaxCheckException.class,
+        () ->
+            matchPhraseQuery.build(
+                new MatchPhraseExpression(arguments, matchPhraseWithUnderscoreName)));
   }
 
   @Test
   public void test_SyntaxCheckException_when_invalid_parameter_match_phrase_syntax() {
-    List<Expression> arguments = List.of(
-        DSL.namedArgument("field",
-            new ReferenceExpression("test", OpenSearchTextType.of())),
-        DSL.namedArgument("query", "test2"),
-        DSL.namedArgument("unsupported", "3"));
-    Assertions.assertThrows(SemanticCheckException.class,
-        () -> matchPhraseQuery.build(new MatchPhraseExpression(
-            arguments, matchPhraseWithUnderscoreName)));
+    List<Expression> arguments =
+        List.of(
+            DSL.namedArgument("field", new ReferenceExpression("test", OpenSearchTextType.of())),
+            DSL.namedArgument("query", "test2"),
+            DSL.namedArgument("unsupported", "3"));
+    Assertions.assertThrows(
+        SemanticCheckException.class,
+        () ->
+            matchPhraseQuery.build(
+                new MatchPhraseExpression(arguments, matchPhraseWithUnderscoreName)));
   }
 
   @Test
   public void test_analyzer_parameter_match_phrase_syntax() {
-    List<Expression> arguments = List.of(
-        DSL.namedArgument("field",
-            new ReferenceExpression("t1", OpenSearchTextType.of())),
-        DSL.namedArgument("query", "t2"),
-        DSL.namedArgument("analyzer", "standard")
-    );
-    Assertions.assertNotNull(matchPhraseQuery.build(new MatchPhraseExpression(
-            arguments, matchPhraseWithUnderscoreName)));
+    List<Expression> arguments =
+        List.of(
+            DSL.namedArgument("field", new ReferenceExpression("t1", OpenSearchTextType.of())),
+            DSL.namedArgument("query", "t2"),
+            DSL.namedArgument("analyzer", "standard"));
+    Assertions.assertNotNull(
+        matchPhraseQuery.build(
+            new MatchPhraseExpression(arguments, matchPhraseWithUnderscoreName)));
   }
 
   @Test
   public void build_succeeds_with_two_arguments_match_phrase_syntax() {
-    List<Expression> arguments = List.of(
-        DSL.namedArgument("field",
-            new ReferenceExpression("test", OpenSearchTextType.of())),
-        DSL.namedArgument("query", "test2"));
-    Assertions.assertNotNull(matchPhraseQuery.build(new MatchPhraseExpression(
-        arguments, matchPhraseWithUnderscoreName)));
+    List<Expression> arguments =
+        List.of(
+            DSL.namedArgument("field", new ReferenceExpression("test", OpenSearchTextType.of())),
+            DSL.namedArgument("query", "test2"));
+    Assertions.assertNotNull(
+        matchPhraseQuery.build(
+            new MatchPhraseExpression(arguments, matchPhraseWithUnderscoreName)));
   }
 
   @Test
   public void test_slop_parameter_match_phrase_syntax() {
-    List<Expression> arguments = List.of(
-        DSL.namedArgument("field",
-            new ReferenceExpression("t1", OpenSearchTextType.of())),
-        DSL.namedArgument("query", "t2"),
-        DSL.namedArgument("slop", "2")
-    );
-    Assertions.assertNotNull(matchPhraseQuery.build(new MatchPhraseExpression(
-        arguments, matchPhraseWithUnderscoreName)));
+    List<Expression> arguments =
+        List.of(
+            DSL.namedArgument("field", new ReferenceExpression("t1", OpenSearchTextType.of())),
+            DSL.namedArgument("query", "t2"),
+            DSL.namedArgument("slop", "2"));
+    Assertions.assertNotNull(
+        matchPhraseQuery.build(
+            new MatchPhraseExpression(arguments, matchPhraseWithUnderscoreName)));
   }
 
   @Test
   public void test_zero_terms_query_parameter_match_phrase_syntax() {
-    List<Expression> arguments = List.of(
-        DSL.namedArgument("field",
-            new ReferenceExpression("t1", OpenSearchTextType.of())),
-        DSL.namedArgument("query", "t2"),
-        DSL.namedArgument("zero_terms_query", "ALL")
-    );
-    Assertions.assertNotNull(matchPhraseQuery.build(new MatchPhraseExpression(
-        arguments, matchPhraseWithUnderscoreName)));
+    List<Expression> arguments =
+        List.of(
+            DSL.namedArgument("field", new ReferenceExpression("t1", OpenSearchTextType.of())),
+            DSL.namedArgument("query", "t2"),
+            DSL.namedArgument("zero_terms_query", "ALL"));
+    Assertions.assertNotNull(
+        matchPhraseQuery.build(
+            new MatchPhraseExpression(arguments, matchPhraseWithUnderscoreName)));
   }
 
   @Test
   public void test_zero_terms_query_parameter_lower_case_match_phrase_syntax() {
-    List<Expression> arguments = List.of(
-        DSL.namedArgument("field",
-            new ReferenceExpression("t1", OpenSearchTextType.of())),
-        DSL.namedArgument("query", "t2"),
-        DSL.namedArgument("zero_terms_query", "all")
-    );
-    Assertions.assertNotNull(matchPhraseQuery.build(new MatchPhraseExpression(
-        arguments, matchPhraseWithUnderscoreName)));
+    List<Expression> arguments =
+        List.of(
+            DSL.namedArgument("field", new ReferenceExpression("t1", OpenSearchTextType.of())),
+            DSL.namedArgument("query", "t2"),
+            DSL.namedArgument("zero_terms_query", "all"));
+    Assertions.assertNotNull(
+        matchPhraseQuery.build(
+            new MatchPhraseExpression(arguments, matchPhraseWithUnderscoreName)));
   }
 
   @Test
   public void test_SyntaxCheckException_when_no_arguments_matchphrase_syntax() {
     List<Expression> arguments = List.of();
-    assertThrows(SyntaxCheckException.class,
-        () -> matchPhraseQuery.build(new MatchPhraseExpression(
-            arguments, matchPhraseQueryName)));
+    assertThrows(
+        SyntaxCheckException.class,
+        () -> matchPhraseQuery.build(new MatchPhraseExpression(arguments, matchPhraseQueryName)));
   }
 
   @Test
   public void test_SyntaxCheckException_when_one_argument_matchphrase_syntax() {
-    List<Expression> arguments = List.of(DSL.namedArgument("field",
-        new ReferenceExpression("test", OpenSearchTextType.of())));
-    assertThrows(SyntaxCheckException.class,
-        () -> matchPhraseQuery.build(new MatchPhraseExpression(
-            arguments, matchPhraseQueryName)));
-
+    List<Expression> arguments =
+        List.of(
+            DSL.namedArgument("field", new ReferenceExpression("test", OpenSearchTextType.of())));
+    assertThrows(
+        SyntaxCheckException.class,
+        () -> matchPhraseQuery.build(new MatchPhraseExpression(arguments, matchPhraseQueryName)));
   }
 
   @Test
   public void test_SyntaxCheckException_when_invalid_parameter_matchphrase_syntax() {
-    List<Expression> arguments = List.of(
-        DSL.namedArgument("field",
-            new ReferenceExpression("test", OpenSearchTextType.of())),
-        DSL.namedArgument("query", "test2"),
-        DSL.namedArgument("unsupported", "3"));
-    Assertions.assertThrows(SemanticCheckException.class,
-        () -> matchPhraseQuery.build(new MatchPhraseExpression(
-            arguments, matchPhraseQueryName)));
+    List<Expression> arguments =
+        List.of(
+            DSL.namedArgument("field", new ReferenceExpression("test", OpenSearchTextType.of())),
+            DSL.namedArgument("query", "test2"),
+            DSL.namedArgument("unsupported", "3"));
+    Assertions.assertThrows(
+        SemanticCheckException.class,
+        () -> matchPhraseQuery.build(new MatchPhraseExpression(arguments, matchPhraseQueryName)));
   }
 
   @Test
   public void test_analyzer_parameter_matchphrase_syntax() {
-    List<Expression> arguments = List.of(
-        DSL.namedArgument("field",
-            new ReferenceExpression("t1", OpenSearchTextType.of())),
-        DSL.namedArgument("query", "t2"),
-        DSL.namedArgument("analyzer", "standard")
-    );
-    Assertions.assertNotNull(matchPhraseQuery.build(new MatchPhraseExpression(
-        arguments, matchPhraseQueryName)));
+    List<Expression> arguments =
+        List.of(
+            DSL.namedArgument("field", new ReferenceExpression("t1", OpenSearchTextType.of())),
+            DSL.namedArgument("query", "t2"),
+            DSL.namedArgument("analyzer", "standard"));
+    Assertions.assertNotNull(
+        matchPhraseQuery.build(new MatchPhraseExpression(arguments, matchPhraseQueryName)));
   }
 
   @Test
   public void build_succeeds_with_two_arguments_matchphrase_syntax() {
-    List<Expression> arguments = List.of(
-        DSL.namedArgument("field",
-            new ReferenceExpression("test", OpenSearchTextType.of())),
-        DSL.namedArgument("query", "test2"));
-    Assertions.assertNotNull(matchPhraseQuery.build(new MatchPhraseExpression(
-        arguments, matchPhraseQueryName)));
+    List<Expression> arguments =
+        List.of(
+            DSL.namedArgument("field", new ReferenceExpression("test", OpenSearchTextType.of())),
+            DSL.namedArgument("query", "test2"));
+    Assertions.assertNotNull(
+        matchPhraseQuery.build(new MatchPhraseExpression(arguments, matchPhraseQueryName)));
   }
 
   @Test
   public void test_slop_parameter_matchphrase_syntax() {
-    List<Expression> arguments = List.of(
-        DSL.namedArgument("field",
-            new ReferenceExpression("t1", OpenSearchTextType.of())),
-        DSL.namedArgument("query", "t2"),
-        DSL.namedArgument("slop", "2")
-    );
-    Assertions.assertNotNull(matchPhraseQuery.build(new MatchPhraseExpression(
-        arguments, matchPhraseQueryName)));
+    List<Expression> arguments =
+        List.of(
+            DSL.namedArgument("field", new ReferenceExpression("t1", OpenSearchTextType.of())),
+            DSL.namedArgument("query", "t2"),
+            DSL.namedArgument("slop", "2"));
+    Assertions.assertNotNull(
+        matchPhraseQuery.build(new MatchPhraseExpression(arguments, matchPhraseQueryName)));
   }
 
   @Test
   public void test_zero_terms_query_parameter_matchphrase_syntax() {
-    List<Expression> arguments = List.of(
-        DSL.namedArgument("field",
-            new ReferenceExpression("t1", OpenSearchTextType.of())),
-        DSL.namedArgument("query", "t2"),
-        DSL.namedArgument("zero_terms_query", "ALL")
-    );
-    Assertions.assertNotNull(matchPhraseQuery.build(new MatchPhraseExpression(
-        arguments, matchPhraseQueryName)));
+    List<Expression> arguments =
+        List.of(
+            DSL.namedArgument("field", new ReferenceExpression("t1", OpenSearchTextType.of())),
+            DSL.namedArgument("query", "t2"),
+            DSL.namedArgument("zero_terms_query", "ALL"));
+    Assertions.assertNotNull(
+        matchPhraseQuery.build(new MatchPhraseExpression(arguments, matchPhraseQueryName)));
   }
 
   @Test
   public void test_zero_terms_query_parameter_lower_case_matchphrase_syntax() {
-    List<Expression> arguments = List.of(
-        DSL.namedArgument("field",
-            new ReferenceExpression("t1", OpenSearchTextType.of())),
-        DSL.namedArgument("query", "t2"),
-        DSL.namedArgument("zero_terms_query", "all")
-    );
-    Assertions.assertNotNull(matchPhraseQuery.build(new MatchPhraseExpression(
-        arguments, matchPhraseQueryName)));
+    List<Expression> arguments =
+        List.of(
+            DSL.namedArgument("field", new ReferenceExpression("t1", OpenSearchTextType.of())),
+            DSL.namedArgument("query", "t2"),
+            DSL.namedArgument("zero_terms_query", "all"));
+    Assertions.assertNotNull(
+        matchPhraseQuery.build(new MatchPhraseExpression(arguments, matchPhraseQueryName)));
   }
 
   private class MatchPhraseExpression extends FunctionExpression {

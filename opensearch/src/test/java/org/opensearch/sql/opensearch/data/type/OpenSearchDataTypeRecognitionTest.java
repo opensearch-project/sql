@@ -35,8 +35,7 @@ public class OpenSearchDataTypeRecognitionTest {
         Arguments.of("BINARY", new OpenSearchExprBinaryValue("A"), "binary"),
         Arguments.of("IP", new OpenSearchExprIpValue("A"), "ip"),
         Arguments.of("TEXT", new TestTextWithFieldValue("Hello World"), "text with fields"),
-        Arguments.of("GEO_POINT", new OpenSearchExprGeoPointValue(0d, 0d), "geo point")
-    );
+        Arguments.of("GEO_POINT", new OpenSearchExprGeoPointValue(0d, 0d), "geo point"));
   }
 
   private String typeofGetValue(ExprValue input) {
@@ -50,8 +49,8 @@ public class OpenSearchDataTypeRecognitionTest {
 
     @Override
     public ExprType type() {
-      return OpenSearchTextType.of(Map.of("words",
-          OpenSearchDataType.of(OpenSearchDataType.MappingType.Keyword)));
+      return OpenSearchTextType.of(
+          Map.of("words", OpenSearchDataType.of(OpenSearchDataType.MappingType.Keyword)));
     }
   }
 }

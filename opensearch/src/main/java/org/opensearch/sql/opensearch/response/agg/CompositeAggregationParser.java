@@ -22,9 +22,7 @@ import lombok.EqualsAndHashCode;
 import org.opensearch.search.aggregations.Aggregations;
 import org.opensearch.search.aggregations.bucket.composite.CompositeAggregation;
 
-/**
- * Composite Aggregation Parser which include composite aggregation and metric parsers.
- */
+/** Composite Aggregation Parser which include composite aggregation and metric parsers. */
 @EqualsAndHashCode
 public class CompositeAggregationParser implements OpenSearchAggregationResponseParser {
 
