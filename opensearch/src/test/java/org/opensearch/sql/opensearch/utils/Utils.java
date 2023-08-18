@@ -3,7 +3,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-
 package org.opensearch.sql.opensearch.utils;
 
 import com.google.common.collect.ImmutableSet;
@@ -36,15 +35,13 @@ public class Utils {
     return Arrays.asList(exprs);
   }
 
-  public static List<Pair<Sort.SortOption, Expression>> sort(Expression expr1,
-                                                             Sort.SortOption option1) {
+  public static List<Pair<Sort.SortOption, Expression>> sort(
+      Expression expr1, Sort.SortOption option1) {
     return Collections.singletonList(Pair.of(option1, expr1));
   }
 
-  public static List<Pair<Sort.SortOption, Expression>> sort(Expression expr1,
-                                                             Sort.SortOption option1,
-                                                             Expression expr2,
-                                                             Sort.SortOption option2) {
+  public static List<Pair<Sort.SortOption, Expression>> sort(
+      Expression expr1, Sort.SortOption option1, Expression expr2, Sort.SortOption option2) {
     return Arrays.asList(Pair.of(option1, expr1), Pair.of(option2, expr2));
   }
 

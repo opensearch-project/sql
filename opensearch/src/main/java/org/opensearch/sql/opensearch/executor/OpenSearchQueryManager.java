@@ -18,9 +18,7 @@ import org.opensearch.sql.executor.QueryManager;
 import org.opensearch.sql.executor.execution.AbstractPlan;
 import org.opensearch.threadpool.ThreadPool;
 
-/**
- * QueryManager implemented in OpenSearch cluster.
- */
+/** QueryManager implemented in OpenSearch cluster. */
 @RequiredArgsConstructor
 public class OpenSearchQueryManager implements QueryManager {
 

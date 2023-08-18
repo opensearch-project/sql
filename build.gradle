@@ -93,7 +93,9 @@ spotless {
                     'spark/**/*.java',
                     'plugin/**/*.java',
                     'ppl/**/*.java',
-                    'integ-test/**/*java'
+                    'integ-test/**/*java',
+                    'core/**/*.java',
+                    'opensearch/**/*.java'
             exclude '**/build/**', '**/build-*/**'
         }
         importOrder()

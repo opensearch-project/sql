@@ -3,7 +3,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-
 package org.opensearch.sql.opensearch.client;
 
 import com.google.common.collect.ImmutableList;
@@ -49,8 +48,7 @@ public class OpenSearchRestClient implements OpenSearchClient {
   @Override
   public boolean exists(String indexName) {
     try {
-      return client.indices().exists(
-          new GetIndexRequest(indexName), RequestOptions.DEFAULT);
+      return client.indices().exists(new GetIndexRequest(indexName), RequestOptions.DEFAULT);
     } catch (IOException e) {
       throw new IllegalStateException("Failed to check if index [" + indexName + "] exist", e);
     }
@@ -59,8 +57,9 @@ public class OpenSearchRestClient implements OpenSearchClient {
   @Override
   public void createIndex(String indexName, Map<String, Object> mappings) {
     try {
-      client.indices().create(
-          new CreateIndexRequest(indexName).mapping(mappings), RequestOptions.DEFAULT);
+      client
+          .indices()
+          .create(new CreateIndexRequest(indexName).mapping(mappings), RequestOptions.DEFAULT);
     } catch (IOException e) {
       throw new IllegalStateException("Failed to create index [" + indexName + "]", e);
     }
@@ -80,27 +79,29 @@ public class OpenSearchRestClient implements OpenSearchClient {
 
   @Override
   public Map<String, Integer> getIndexMaxResultWindows(String... indexExpression) {
-    GetSettingsRequest request = new GetSettingsRequest()
-        .indices(indexExpression).includeDefaults(true);
+    GetSettingsRequest request =
+        new GetSettingsRequest().indices(indexExpression).includeDefaults(true);
     try {
       GetSettingsResponse response = client.indices().getSettings(request, RequestOptions.DEFAULT);
       Map<String, Settings> settings = response.getIndexToSettings();
       Map<String, Settings> defaultSettings = response.getIndexToDefaultSettings();
       Map<String, Integer> result = new HashMap<>();
 
-      defaultSettings.forEach((key, value) -> {
-        Integer maxResultWindow = value.getAsInt("index.max_result_window", null);
-        if (maxResultWindow != null) {
-          result.put(key, maxResultWindow);
-        }
-      });
+      defaultSettings.forEach(
+          (key, value) -> {
+            Integer maxResultWindow = value.getAsInt("index.max_result_window", null);
+            if (maxResultWindow != null) {
+              result.put(key, maxResultWindow);
+            }
+          });
 
-      settings.forEach((key, value) -> {
-        Integer maxResultWindow = value.getAsInt("index.max_result_window", null);
-        if (maxResultWindow != null) {
-          result.put(key, maxResultWindow);
-        }
-      });
+      settings.forEach(
+          (key, value) -> {
+            Integer maxResultWindow = value.getAsInt("index.max_result_window", null);
+            if (maxResultWindow != null) {
+              result.put(key, maxResultWindow);
+            }
+          });
 
       return result;
     } catch (IOException e) {
@@ -126,8 +127,7 @@ public class OpenSearchRestClient implements OpenSearchClient {
             throw new IllegalStateException(
                 "Failed to perform scroll operation with request " + req, e);
           }
-        }
-    );
+        });
   }
 
   /**
@@ -142,7 +142,8 @@ public class OpenSearchRestClient implements OpenSearchClient {
           client.indices().get(new GetIndexRequest(), RequestOptions.DEFAULT);
       final Stream<String> aliasStream =
           ImmutableList.copyOf(indexResponse.getAliases().values()).stream()
-              .flatMap(Collection::stream).map(AliasMetadata::alias);
+              .flatMap(Collection::stream)
+              .map(AliasMetadata::alias);
       return Stream.concat(Arrays.stream(indexResponse.getIndices()), aliasStream)
           .collect(Collectors.toList());
     } catch (IOException e) {
@@ -173,16 +174,17 @@ public class OpenSearchRestClient implements OpenSearchClient {
 
   @Override
   public void cleanup(OpenSearchRequest request) {
-    request.clean(scrollId -> {
-      try {
-        ClearScrollRequest clearRequest = new ClearScrollRequest();
-        clearRequest.addScrollId(scrollId);
-        client.clearScroll(clearRequest, RequestOptions.DEFAULT);
-      } catch (IOException e) {
-        throw new IllegalStateException(
-            "Failed to clean up resources for search request " + request, e);
-      }
-    });
+    request.clean(
+        scrollId -> {
+          try {
+            ClearScrollRequest clearRequest = new ClearScrollRequest();
+            clearRequest.addScrollId(scrollId);
+            client.clearScroll(clearRequest, RequestOptions.DEFAULT);
+          } catch (IOException e) {
+            throw new IllegalStateException(
+                "Failed to clean up resources for search request " + request, e);
+          }
+        });
   }
 
   @Override

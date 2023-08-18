@@ -3,7 +3,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-
 package org.opensearch.sql.opensearch.request;
 
 import static org.junit.Assert.assertThrows;
@@ -71,11 +70,10 @@ class OpenSearchRequestBuilderTest {
   private static final Integer DEFAULT_LIMIT = 200;
   private static final Integer MAX_RESULT_WINDOW = 500;
 
-  private static final OpenSearchRequest.IndexName indexName
-      = new OpenSearchRequest.IndexName("test");
+  private static final OpenSearchRequest.IndexName indexName =
+      new OpenSearchRequest.IndexName("test");
 
-  @Mock
-  private OpenSearchExprValueFactory exprValueFactory;
+  @Mock private OpenSearchExprValueFactory exprValueFactory;
 
   private OpenSearchRequestBuilder requestBuilder;
 
@@ -99,7 +97,8 @@ class OpenSearchRequestBuilderTest {
                 .size(limit)
                 .timeout(DEFAULT_QUERY_TIMEOUT)
                 .trackScores(true),
-            exprValueFactory, List.of()),
+            exprValueFactory,
+            List.of()),
         requestBuilder.build(indexName, MAX_RESULT_WINDOW, DEFAULT_QUERY_TIMEOUT));
   }
 
@@ -111,12 +110,14 @@ class OpenSearchRequestBuilderTest {
 
     assertEquals(
         new OpenSearchScrollRequest(
-            new OpenSearchRequest.IndexName("test"), TimeValue.timeValueMinutes(1),
+            new OpenSearchRequest.IndexName("test"),
+            TimeValue.timeValueMinutes(1),
             new SearchSourceBuilder()
                 .from(offset)
                 .size(MAX_RESULT_WINDOW - offset)
                 .timeout(DEFAULT_QUERY_TIMEOUT),
-        exprValueFactory, List.of()),
+            exprValueFactory,
+            List.of()),
         requestBuilder.build(indexName, MAX_RESULT_WINDOW, DEFAULT_QUERY_TIMEOUT));
   }
 
@@ -126,33 +127,32 @@ class OpenSearchRequestBuilderTest {
     requestBuilder.pushDownFilter(query);
 
     var r = requestBuilder.build(indexName, MAX_RESULT_WINDOW, DEFAULT_QUERY_TIMEOUT);
-    Function<SearchRequest, SearchResponse> querySearch = searchRequest -> {
-      assertEquals(
-        new SearchSourceBuilder()
-          .from(DEFAULT_OFFSET)
-          .size(DEFAULT_LIMIT)
-          .timeout(DEFAULT_QUERY_TIMEOUT)
-          .query(query)
-          .sort(DOC_FIELD_NAME, ASC),
-          searchRequest.source()
-      );
-      return mock();
-    };
-    Function<SearchScrollRequest, SearchResponse> scrollSearch = searchScrollRequest -> {
-      throw new UnsupportedOperationException();
-    };
+    Function<SearchRequest, SearchResponse> querySearch =
+        searchRequest -> {
+          assertEquals(
+              new SearchSourceBuilder()
+                  .from(DEFAULT_OFFSET)
+                  .size(DEFAULT_LIMIT)
+                  .timeout(DEFAULT_QUERY_TIMEOUT)
+                  .query(query)
+                  .sort(DOC_FIELD_NAME, ASC),
+              searchRequest.source());
+          return mock();
+        };
+    Function<SearchScrollRequest, SearchResponse> scrollSearch =
+        searchScrollRequest -> {
+          throw new UnsupportedOperationException();
+        };
     r.search(querySearch, scrollSearch);
-
   }
 
   @Test
   void test_push_down_aggregation() {
-    AggregationBuilder aggBuilder = AggregationBuilders.composite(
-        "composite_buckets",
-        Collections.singletonList(new TermsValuesSourceBuilder("longA")));
+    AggregationBuilder aggBuilder =
+        AggregationBuilders.composite(
+            "composite_buckets", Collections.singletonList(new TermsValuesSourceBuilder("longA")));
     OpenSearchAggregationResponseParser responseParser =
-        new CompositeAggregationParser(
-            new SingleValueParser("AVG(intA)"));
+        new CompositeAggregationParser(new SingleValueParser("AVG(intA)"));
     requestBuilder.pushDownAggregation(Pair.of(List.of(aggBuilder), responseParser));
 
     assertEquals(
@@ -161,8 +161,7 @@ class OpenSearchRequestBuilderTest {
             .size(0)
             .timeout(DEFAULT_QUERY_TIMEOUT)
             .aggregation(aggBuilder),
-        requestBuilder.getSourceBuilder()
-    );
+        requestBuilder.getSourceBuilder());
     verify(exprValueFactory).setParser(responseParser);
   }
 
@@ -184,21 +183,25 @@ class OpenSearchRequestBuilderTest {
         requestBuilder);
   }
 
-  void assertSearchSourceBuilder(SearchSourceBuilder expected,
-                                 OpenSearchRequestBuilder requestBuilder)
+  void assertSearchSourceBuilder(
+      SearchSourceBuilder expected, OpenSearchRequestBuilder requestBuilder)
       throws UnsupportedOperationException {
-    Function<SearchRequest, SearchResponse> querySearch = searchRequest -> {
-      assertEquals(expected, searchRequest.source());
-      return when(mock(SearchResponse.class).getHits())
-          .thenReturn(new SearchHits(new SearchHit[0], new TotalHits(0,
-              TotalHits.Relation.EQUAL_TO), 0.0f))
-          .getMock();
-    };
-    Function<SearchScrollRequest, SearchResponse> scrollSearch = searchScrollRequest -> {
-      throw new UnsupportedOperationException();
-    };
-    requestBuilder.build(indexName, MAX_RESULT_WINDOW, DEFAULT_QUERY_TIMEOUT).search(
-        querySearch, scrollSearch);
+    Function<SearchRequest, SearchResponse> querySearch =
+        searchRequest -> {
+          assertEquals(expected, searchRequest.source());
+          return when(mock(SearchResponse.class).getHits())
+              .thenReturn(
+                  new SearchHits(
+                      new SearchHit[0], new TotalHits(0, TotalHits.Relation.EQUAL_TO), 0.0f))
+              .getMock();
+        };
+    Function<SearchScrollRequest, SearchResponse> scrollSearch =
+        searchScrollRequest -> {
+          throw new UnsupportedOperationException();
+        };
+    requestBuilder
+        .build(indexName, MAX_RESULT_WINDOW, DEFAULT_QUERY_TIMEOUT)
+        .search(querySearch, scrollSearch);
   }
 
   @Test
@@ -231,9 +234,8 @@ class OpenSearchRequestBuilderTest {
 
   @Test
   void test_push_down_multiple_sort() {
-    requestBuilder.pushDownSort(List.of(
-        SortBuilders.fieldSort("intA"),
-        SortBuilders.fieldSort("intB")));
+    requestBuilder.pushDownSort(
+        List.of(SortBuilders.fieldSort("intA"), SortBuilders.fieldSort("intB")));
 
     assertSearchSourceBuilder(
         new SearchSourceBuilder()
@@ -255,7 +257,7 @@ class OpenSearchRequestBuilderTest {
             .from(DEFAULT_OFFSET)
             .size(DEFAULT_LIMIT)
             .timeout(DEFAULT_QUERY_TIMEOUT)
-            .fetchSource(new String[]{"intA"}, new String[0]),
+            .fetchSource(new String[] {"intA"}, new String[0]),
         requestBuilder);
 
     assertEquals(
@@ -285,7 +287,7 @@ class OpenSearchRequestBuilderTest {
             .from(offset)
             .size(limit)
             .timeout(DEFAULT_QUERY_TIMEOUT)
-            .fetchSource(new String[]{"intA"}, new String[0]),
+            .fetchSource(new String[] {"intA"}, new String[0]),
         requestBuilder);
 
     assertEquals(
@@ -315,7 +317,7 @@ class OpenSearchRequestBuilderTest {
             .from(offset)
             .size(limit)
             .timeout(DEFAULT_QUERY_TIMEOUT)
-            .fetchSource(new String[]{"intA"}, new String[0]),
+            .fetchSource(new String[] {"intA"}, new String[0]),
         requestBuilder);
 
     assertEquals(
@@ -333,24 +335,25 @@ class OpenSearchRequestBuilderTest {
 
   @Test
   void test_push_down_nested() {
-    List<Map<String, ReferenceExpression>> args = List.of(
-        Map.of(
-            "field", new ReferenceExpression("message.info", STRING),
-            "path", new ReferenceExpression("message", STRING)
-        )
-    );
+    List<Map<String, ReferenceExpression>> args =
+        List.of(
+            Map.of(
+                "field", new ReferenceExpression("message.info", STRING),
+                "path", new ReferenceExpression("message", STRING)));
 
     List<NamedExpression> projectList =
         List.of(
-            new NamedExpression("message.info", DSL.nested(DSL.ref("message.info", STRING)), null)
-        );
+            new NamedExpression("message.info", DSL.nested(DSL.ref("message.info", STRING)), null));
 
     LogicalNested nested = new LogicalNested(null, args, projectList);
     requestBuilder.pushDownNested(nested.getFields());
 
-    NestedQueryBuilder nestedQuery = nestedQuery("message", matchAllQuery(), ScoreMode.None)
-        .innerHit(new InnerHitBuilder().setFetchSourceContext(
-          new FetchSourceContext(true, new String[]{"message.info"}, null)));
+    NestedQueryBuilder nestedQuery =
+        nestedQuery("message", matchAllQuery(), ScoreMode.None)
+            .innerHit(
+                new InnerHitBuilder()
+                    .setFetchSourceContext(
+                        new FetchSourceContext(true, new String[] {"message.info"}, null)));
 
     assertSearchSourceBuilder(
         new SearchSourceBuilder()
@@ -363,28 +366,29 @@ class OpenSearchRequestBuilderTest {
 
   @Test
   void test_push_down_multiple_nested_with_same_path() {
-    List<Map<String, ReferenceExpression>> args = List.of(
-        Map.of(
-            "field", new ReferenceExpression("message.info", STRING),
-            "path", new ReferenceExpression("message", STRING)
-        ),
-        Map.of(
-            "field", new ReferenceExpression("message.from", STRING),
-            "path", new ReferenceExpression("message", STRING)
-            )
-    );
+    List<Map<String, ReferenceExpression>> args =
+        List.of(
+            Map.of(
+                "field", new ReferenceExpression("message.info", STRING),
+                "path", new ReferenceExpression("message", STRING)),
+            Map.of(
+                "field", new ReferenceExpression("message.from", STRING),
+                "path", new ReferenceExpression("message", STRING)));
     List<NamedExpression> projectList =
         List.of(
             new NamedExpression("message.info", DSL.nested(DSL.ref("message.info", STRING)), null),
-            new NamedExpression("message.from", DSL.nested(DSL.ref("message.from", STRING)), null)
-        );
+            new NamedExpression("message.from", DSL.nested(DSL.ref("message.from", STRING)), null));
 
     LogicalNested nested = new LogicalNested(null, args, projectList);
     requestBuilder.pushDownNested(nested.getFields());
 
-    NestedQueryBuilder nestedQuery = nestedQuery("message", matchAllQuery(), ScoreMode.None)
-        .innerHit(new InnerHitBuilder().setFetchSourceContext(
-            new FetchSourceContext(true, new String[]{"message.info", "message.from"}, null)));
+    NestedQueryBuilder nestedQuery =
+        nestedQuery("message", matchAllQuery(), ScoreMode.None)
+            .innerHit(
+                new InnerHitBuilder()
+                    .setFetchSourceContext(
+                        new FetchSourceContext(
+                            true, new String[] {"message.info", "message.from"}, null)));
     assertSearchSourceBuilder(
         new SearchSourceBuilder()
             .query(QueryBuilders.boolQuery().filter(QueryBuilders.boolQuery().must(nestedQuery)))
@@ -396,35 +400,35 @@ class OpenSearchRequestBuilderTest {
 
   @Test
   void test_push_down_nested_with_filter() {
-    List<Map<String, ReferenceExpression>> args = List.of(
-        Map.of(
-            "field", new ReferenceExpression("message.info", STRING),
-            "path", new ReferenceExpression("message", STRING)
-        )
-    );
+    List<Map<String, ReferenceExpression>> args =
+        List.of(
+            Map.of(
+                "field", new ReferenceExpression("message.info", STRING),
+                "path", new ReferenceExpression("message", STRING)));
 
     List<NamedExpression> projectList =
         List.of(
-            new NamedExpression("message.info", DSL.nested(DSL.ref("message.info", STRING)), null)
-        );
+            new NamedExpression("message.info", DSL.nested(DSL.ref("message.info", STRING)), null));
 
     LogicalNested nested = new LogicalNested(null, args, projectList);
     requestBuilder.getSourceBuilder().query(QueryBuilders.rangeQuery("myNum").gt(3));
     requestBuilder.pushDownNested(nested.getFields());
 
-    NestedQueryBuilder nestedQuery = nestedQuery("message", matchAllQuery(), ScoreMode.None)
-        .innerHit(new InnerHitBuilder().setFetchSourceContext(
-            new FetchSourceContext(true, new String[]{"message.info"}, null)));
+    NestedQueryBuilder nestedQuery =
+        nestedQuery("message", matchAllQuery(), ScoreMode.None)
+            .innerHit(
+                new InnerHitBuilder()
+                    .setFetchSourceContext(
+                        new FetchSourceContext(true, new String[] {"message.info"}, null)));
 
     assertSearchSourceBuilder(
         new SearchSourceBuilder()
             .query(
-                QueryBuilders.boolQuery().filter(
-                    QueryBuilders.boolQuery()
-                      .must(QueryBuilders.rangeQuery("myNum").gt(3))
-                      .must(nestedQuery)
-                )
-            )
+                QueryBuilders.boolQuery()
+                    .filter(
+                        QueryBuilders.boolQuery()
+                            .must(QueryBuilders.rangeQuery("myNum").gt(3))
+                            .must(nestedQuery)))
             .from(DEFAULT_OFFSET)
             .size(DEFAULT_LIMIT)
             .timeout(DEFAULT_QUERY_TIMEOUT),
@@ -433,17 +437,15 @@ class OpenSearchRequestBuilderTest {
 
   @Test
   void testPushDownNestedWithNestedFilter() {
-    List<Map<String, ReferenceExpression>> args = List.of(
-        Map.of(
-            "field", new ReferenceExpression("message.info", STRING),
-            "path", new ReferenceExpression("message", STRING)
-        )
-    );
+    List<Map<String, ReferenceExpression>> args =
+        List.of(
+            Map.of(
+                "field", new ReferenceExpression("message.info", STRING),
+                "path", new ReferenceExpression("message", STRING)));
 
     List<NamedExpression> projectList =
         List.of(
-            new NamedExpression("message.info", DSL.nested(DSL.ref("message.info", STRING)), null)
-        );
+            new NamedExpression("message.info", DSL.nested(DSL.ref("message.info", STRING)), null));
 
     QueryBuilder innerFilterQuery = QueryBuilders.rangeQuery("myNum").gt(3);
     QueryBuilder filterQuery =
@@ -452,20 +454,20 @@ class OpenSearchRequestBuilderTest {
     requestBuilder.getSourceBuilder().query(filterQuery);
     requestBuilder.pushDownNested(nested.getFields());
 
-    NestedQueryBuilder nestedQuery = nestedQuery("message", matchAllQuery(), ScoreMode.None)
-        .innerHit(new InnerHitBuilder().setFetchSourceContext(
-            new FetchSourceContext(true, new String[]{"message.info"}, null)));
+    NestedQueryBuilder nestedQuery =
+        nestedQuery("message", matchAllQuery(), ScoreMode.None)
+            .innerHit(
+                new InnerHitBuilder()
+                    .setFetchSourceContext(
+                        new FetchSourceContext(true, new String[] {"message.info"}, null)));
 
-    assertSearchSourceBuilder(new SearchSourceBuilder()
-        .query(
-          QueryBuilders.boolQuery().filter(
-            QueryBuilders.boolQuery()
-              .must(filterQuery)
-        )
-      )
-        .from(DEFAULT_OFFSET)
-        .size(DEFAULT_LIMIT)
-        .timeout(DEFAULT_QUERY_TIMEOUT), requestBuilder);
+    assertSearchSourceBuilder(
+        new SearchSourceBuilder()
+            .query(QueryBuilders.boolQuery().filter(QueryBuilders.boolQuery().must(filterQuery)))
+            .from(DEFAULT_OFFSET)
+            .size(DEFAULT_LIMIT)
+            .timeout(DEFAULT_QUERY_TIMEOUT),
+        requestBuilder);
   }
 
   @Test
@@ -479,8 +481,9 @@ class OpenSearchRequestBuilderTest {
   @Test
   void push_down_highlight_with_repeating_fields() {
     requestBuilder.pushDownHighlight("name", Map.of());
-    var exception = assertThrows(SemanticCheckException.class, () ->
-        requestBuilder.pushDownHighlight("name", Map.of()));
+    var exception =
+        assertThrows(
+            SemanticCheckException.class, () -> requestBuilder.pushDownHighlight("name", Map.of()));
     assertEquals("Duplicate field name in highlight", exception.getMessage());
   }
 
@@ -488,10 +491,7 @@ class OpenSearchRequestBuilderTest {
   void push_down_page_size() {
     requestBuilder.pushDownPageSize(3);
     assertSearchSourceBuilder(
-      new SearchSourceBuilder()
-        .from(DEFAULT_OFFSET)
-        .size(3)
-        .timeout(DEFAULT_QUERY_TIMEOUT),
+        new SearchSourceBuilder().from(DEFAULT_OFFSET).size(3).timeout(DEFAULT_QUERY_TIMEOUT),
         requestBuilder);
   }
 
@@ -499,7 +499,8 @@ class OpenSearchRequestBuilderTest {
   void exception_when_non_zero_offset_and_page_size() {
     requestBuilder.pushDownPageSize(3);
     requestBuilder.pushDownLimit(300, 2);
-    assertThrows(UnsupportedOperationException.class,
+    assertThrows(
+        UnsupportedOperationException.class,
         () -> requestBuilder.build(indexName, MAX_RESULT_WINDOW, DEFAULT_QUERY_TIMEOUT));
   }
 

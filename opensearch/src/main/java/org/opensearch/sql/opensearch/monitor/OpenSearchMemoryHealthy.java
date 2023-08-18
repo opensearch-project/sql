@@ -3,7 +3,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-
 package org.opensearch.sql.opensearch.monitor;
 
 import com.google.common.annotations.VisibleForTesting;
@@ -11,9 +10,7 @@ import java.util.concurrent.ThreadLocalRandom;
 import lombok.NoArgsConstructor;
 import lombok.extern.log4j.Log4j2;
 
-/**
- * OpenSearch Memory Monitor.
- */
+/** OpenSearch Memory Monitor. */
 @Log4j2
 public class OpenSearchMemoryHealthy {
   private final RandomFail randomFail;
@@ -25,16 +22,12 @@ public class OpenSearchMemoryHealthy {
   }
 
   @VisibleForTesting
-  public OpenSearchMemoryHealthy(
-      RandomFail randomFail,
-      MemoryUsage memoryUsage) {
+  public OpenSearchMemoryHealthy(RandomFail randomFail, MemoryUsage memoryUsage) {
     this.randomFail = randomFail;
     this.memoryUsage = memoryUsage;
   }
 
-  /**
-   * Is Memory Healthy. Calculate based on the current heap memory usage.
-   */
+  /** Is Memory Healthy. Calculate based on the current heap memory usage. */
   public boolean isMemoryHealthy(long limitBytes) {
     final long memoryUsage = this.memoryUsage.usage();
     log.debug("Memory usage:{}, limit:{}", memoryUsage, limitBytes);
@@ -66,12 +59,8 @@ public class OpenSearchMemoryHealthy {
   }
 
   @NoArgsConstructor
-  public static class MemoryUsageExceedFastFailureException extends RuntimeException {
-
-  }
+  public static class MemoryUsageExceedFastFailureException extends RuntimeException {}
 
   @NoArgsConstructor
-  public static class MemoryUsageExceedException extends RuntimeException {
-
-  }
+  public static class MemoryUsageExceedException extends RuntimeException {}
 }

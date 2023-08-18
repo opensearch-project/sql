@@ -3,7 +3,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-
 package org.opensearch.sql.opensearch.client;
 
 import com.google.common.collect.ImmutableList;
@@ -40,9 +39,7 @@ public class OpenSearchNodeClient implements OpenSearchClient {
   /** Node client provided by OpenSearch container. */
   private final NodeClient client;
 
-  /**
-   * Constructor of OpenSearchNodeClient.
-   */
+  /** Constructor of OpenSearchNodeClient. */
   public OpenSearchNodeClient(NodeClient client) {
     this.client = client;
   }
@@ -50,8 +47,8 @@ public class OpenSearchNodeClient implements OpenSearchClient {
   @Override
   public boolean exists(String indexName) {
     try {
-      IndicesExistsResponse checkExistResponse = client.admin().indices()
-          .exists(new IndicesExistsRequest(indexName)).actionGet();
+      IndicesExistsResponse checkExistResponse =
+          client.admin().indices().exists(new IndicesExistsRequest(indexName)).actionGet();
       return checkExistResponse.isExists();
     } catch (Exception e) {
       throw new IllegalStateException("Failed to check if index [" + indexName + "] exists", e);
@@ -83,13 +80,12 @@ public class OpenSearchNodeClient implements OpenSearchClient {
   @Override
   public Map<String, IndexMapping> getIndexMappings(String... indexExpression) {
     try {
-      GetMappingsResponse mappingsResponse = client.admin().indices()
-          .prepareGetMappings(indexExpression)
-          .setLocal(true)
-          .get();
-      return mappingsResponse.mappings().entrySet().stream().collect(Collectors.toUnmodifiableMap(
-              Map.Entry::getKey,
-              cursor -> new IndexMapping(cursor.getValue())));
+      GetMappingsResponse mappingsResponse =
+          client.admin().indices().prepareGetMappings(indexExpression).setLocal(true).get();
+      return mappingsResponse.mappings().entrySet().stream()
+          .collect(
+              Collectors.toUnmodifiableMap(
+                  Map.Entry::getKey, cursor -> new IndexMapping(cursor.getValue())));
     } catch (IndexNotFoundException e) {
       // Re-throw directly to be treated as client error finally
       throw e;
@@ -127,15 +123,11 @@ public class OpenSearchNodeClient implements OpenSearchClient {
     }
   }
 
-  /**
-   * TODO: Scroll doesn't work for aggregation. Support aggregation later.
-   */
+  /** TODO: Scroll doesn't work for aggregation. Support aggregation later. */
   @Override
   public OpenSearchResponse search(OpenSearchRequest request) {
     return request.search(
-        req -> client.search(req).actionGet(),
-        req -> client.searchScroll(req).actionGet()
-    );
+        req -> client.search(req).actionGet(), req -> client.searchScroll(req).actionGet());
   }
 
   /**
@@ -145,13 +137,12 @@ public class OpenSearchNodeClient implements OpenSearchClient {
    */
   @Override
   public List<String> indices() {
-    final GetIndexResponse indexResponse = client.admin().indices()
-        .prepareGetIndex()
-        .setLocal(true)
-        .get();
+    final GetIndexResponse indexResponse =
+        client.admin().indices().prepareGetIndex().setLocal(true).get();
     final Stream<String> aliasStream =
         ImmutableList.copyOf(indexResponse.aliases().values()).stream()
-            .flatMap(Collection::stream).map(AliasMetadata::alias);
+            .flatMap(Collection::stream)
+            .map(AliasMetadata::alias);
 
     return Stream.concat(Arrays.stream(indexResponse.getIndices()), aliasStream)
         .collect(Collectors.toList());
@@ -164,20 +155,20 @@ public class OpenSearchNodeClient implements OpenSearchClient {
    */
   @Override
   public Map<String, String> meta() {
-    return ImmutableMap.of(META_CLUSTER_NAME,
-        client.settings().get("cluster.name", "opensearch"));
+    return ImmutableMap.of(META_CLUSTER_NAME, client.settings().get("cluster.name", "opensearch"));
   }
 
   @Override
   public void cleanup(OpenSearchRequest request) {
-    request.clean(scrollId -> {
-      try {
-        client.prepareClearScroll().addScrollId(scrollId).get();
-      } catch (Exception e) {
-        throw new IllegalStateException(
-            "Failed to clean up resources for search request " + request, e);
-      }
-    });
+    request.clean(
+        scrollId -> {
+          try {
+            client.prepareClearScroll().addScrollId(scrollId).get();
+          } catch (Exception e) {
+            throw new IllegalStateException(
+                "Failed to clean up resources for search request " + request, e);
+          }
+        });
   }
 
   @Override

@@ -3,20 +3,17 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-
 package org.opensearch.sql.opensearch.storage.script.filter.lucene.relevance;
 
 import org.opensearch.index.query.QueryBuilders;
 import org.opensearch.index.query.WildcardQueryBuilder;
 import org.opensearch.sql.opensearch.storage.script.StringUtils;
 
-/**
- * Lucene query that builds wildcard query.
- */
+/** Lucene query that builds wildcard query. */
 public class WildcardQuery extends SingleFieldQuery<WildcardQueryBuilder> {
   /**
-   *  Default constructor for WildcardQuery configures how RelevanceQuery.build() handles
-   * named arguments.
+   * Default constructor for WildcardQuery configures how RelevanceQuery.build() handles named
+   * arguments.
    */
   public WildcardQuery() {
     super(FunctionParameterRepository.WildcardQueryBuildActions);
