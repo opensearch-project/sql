@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-package org.opensearch.sql.ppl;
+package org.opensearch.sql.security;
 
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_ACCOUNT;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_BANK;
@@ -19,7 +19,9 @@ import org.json.JSONObject;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.opensearch.client.ResponseException;
+import org.opensearch.sql.ppl.PPLIntegTestCase;
 
+/** Cross Cluster Search tests to be executed with security plugin. */
 public class CrossClusterSearchIT extends PPLIntegTestCase {
 
   static {

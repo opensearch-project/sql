@@ -115,12 +115,12 @@ ext {
             cluster.extraConfigFile file, local
         }
         [
+            // config copied from security plugin demo configuration
             'plugins.security.ssl.transport.pemcert_filepath' : 'esnode.pem',
             'plugins.security.ssl.transport.pemkey_filepath' : 'esnode-key.pem',
             'plugins.security.ssl.transport.pemtrustedcas_filepath' : 'root-ca.pem',
             'plugins.security.ssl.transport.enforce_hostname_verification' : 'false',
-            // https is disabled : because `OpenSearchCluster` is hardcoded to validate cluster health by http
-            // refer how IT framework implemented in security plugin and reuse/copy to activate https
+            // https is disabled to simplify test debugging
             'plugins.security.ssl.http.enabled' : 'false',
             'plugins.security.ssl.http.pemcert_filepath' : 'esnode.pem',
             'plugins.security.ssl.http.pemkey_filepath' : 'esnode-key.pem',
@@ -128,8 +128,7 @@ ext {
             'plugins.security.allow_unsafe_democertificates' : 'true',
 
             'plugins.security.allow_default_init_securityindex' : 'true',
-            //'plugins.security.authcz.admin_dn' : 'CN=kirk,OU=client,O=client,L=test,C=de',
-            'plugins.security.authcz.admin_dn' : 'CN=admin,OU=SSL,O=Test,L=Test,C=DE',
+            'plugins.security.authcz.admin_dn' : 'CN=kirk,OU=client,O=client,L=test,C=de',
             'plugins.security.audit.type' : 'internal_opensearch',
             'plugins.security.enable_snapshot_restore_privilege' : 'true',
             'plugins.security.check_snapshot_restore_write_privileges' : 'true',
@@ -365,7 +364,7 @@ task integTestWithSecurity(type: RestIntegTestTask) {
     // NOTE: this IT config discovers only junit5 (jupiter) tests.
     // https://github.com/opensearch-project/sql/issues/1974
     filter {
-        includeTestsMatching 'org.opensearch.sql.ppl.CrossClusterSearchIT'
+        includeTestsMatching 'org.opensearch.sql.security.CrossClusterSearchIT'
     }
 }
 
@@ -450,9 +449,6 @@ integTest {
 
     // Exclude JDBC related tests
     exclude 'org/opensearch/sql/jdbc/**'
-
-    // Exclude this IT until running IT with security plugin enabled is ready
-    exclude 'org/opensearch/sql/ppl/CrossClusterSearchIT.class'
 }
 
 
