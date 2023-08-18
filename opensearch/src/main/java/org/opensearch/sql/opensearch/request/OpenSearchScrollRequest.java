@@ -3,7 +3,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-
 package org.opensearch.sql.opensearch.request;
 
 import java.io.IOException;
@@ -41,62 +40,56 @@ public class OpenSearchScrollRequest implements OpenSearchRequest {
   /**
    * Search request used to initiate paged (scrolled) search. Not needed to get subsequent pages.
    */
-  @EqualsAndHashCode.Exclude
-  private final transient SearchRequest initialSearchRequest;
+  @EqualsAndHashCode.Exclude private final transient SearchRequest initialSearchRequest;
+
   /** Scroll context timeout. */
   private final TimeValue scrollTimeout;
 
-  /**
-   * {@link OpenSearchRequest.IndexName}.
-   */
+  /** {@link OpenSearchRequest.IndexName}. */
   private final IndexName indexName;
 
   /** Index name. */
-  @EqualsAndHashCode.Exclude
-  @ToString.Exclude
+  @EqualsAndHashCode.Exclude @ToString.Exclude
   private final OpenSearchExprValueFactory exprValueFactory;
 
   /**
    * Scroll id which is set after first request issued. Because OpenSearchClient is shared by
    * multiple threads so this state has to be maintained here.
    */
-  @Setter
-  @Getter
-  private String scrollId = NO_SCROLL_ID;
+  @Setter @Getter private String scrollId = NO_SCROLL_ID;
 
   public static final String NO_SCROLL_ID = "";
 
-  @EqualsAndHashCode.Exclude
-  private boolean needClean = true;
+  @EqualsAndHashCode.Exclude private boolean needClean = true;
 
-  @Getter
-  @EqualsAndHashCode.Exclude
-  @ToString.Exclude
-  private final List<String> includes;
+  @Getter @EqualsAndHashCode.Exclude @ToString.Exclude private final List<String> includes;
 
   /** Constructor. */
-  public OpenSearchScrollRequest(IndexName indexName,
-                                 TimeValue scrollTimeout,
-                                 SearchSourceBuilder sourceBuilder,
-                                 OpenSearchExprValueFactory exprValueFactory,
-                                 List<String> includes) {
+  public OpenSearchScrollRequest(
+      IndexName indexName,
+      TimeValue scrollTimeout,
+      SearchSourceBuilder sourceBuilder,
+      OpenSearchExprValueFactory exprValueFactory,
+      List<String> includes) {
     this.indexName = indexName;
     this.scrollTimeout = scrollTimeout;
     this.exprValueFactory = exprValueFactory;
-    this.initialSearchRequest = new SearchRequest()
-        .indices(indexName.getIndexNames())
-        .scroll(scrollTimeout)
-        .source(sourceBuilder);
+    this.initialSearchRequest =
+        new SearchRequest()
+            .indices(indexName.getIndexNames())
+            .scroll(scrollTimeout)
+            .source(sourceBuilder);
 
     this.includes = includes;
   }
 
-
-  /** Executes request using either {@param searchAction} or {@param scrollAction} as appropriate.
+  /**
+   * Executes request using either {@param searchAction} or {@param scrollAction} as appropriate.
    */
   @Override
-  public OpenSearchResponse search(Function<SearchRequest, SearchResponse> searchAction,
-                                   Function<SearchScrollRequest, SearchResponse> scrollAction) {
+  public OpenSearchResponse search(
+      Function<SearchRequest, SearchResponse> searchAction,
+      Function<SearchScrollRequest, SearchResponse> scrollAction) {
     SearchResponse openSearchResponse;
     if (isScroll()) {
       openSearchResponse = scrollAction.apply(scrollRequest());
@@ -172,6 +165,7 @@ public class OpenSearchScrollRequest implements OpenSearchRequest {
 
   /**
    * Constructs OpenSearchScrollRequest from serialized representation.
+   *
    * @param in stream to read data from.
    * @param engine OpenSearchSqlEngine to get node-specific context.
    * @throws IOException thrown if reading from input {@code in} fails.

@@ -3,7 +3,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-
 package org.opensearch.sql.opensearch.executor.protector;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -17,8 +16,7 @@ import org.opensearch.sql.planner.physical.PhysicalPlan;
 @ExtendWith(MockitoExtension.class)
 class NoopExecutionProtectorTest {
 
-  @Mock
-  private PhysicalPlan plan;
+  @Mock private PhysicalPlan plan;
 
   @Test
   void protect() {

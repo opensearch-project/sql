@@ -3,7 +3,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-
 package org.opensearch.sql.opensearch.executor;
 
 import static com.google.common.collect.ImmutableMap.of;
@@ -73,12 +72,12 @@ class OpenSearchExecutionEngineTest {
   @BeforeEach
   void setUp() {
     doAnswer(
-        invocation -> {
-          // Run task immediately
-          Runnable task = invocation.getArgument(0);
-          task.run();
-          return null;
-        })
+            invocation -> {
+              // Run task immediately
+              Runnable task = invocation.getArgument(0);
+              task.run();
+              return null;
+            })
         .when(client)
         .schedule(any());
   }
@@ -91,22 +90,22 @@ class OpenSearchExecutionEngineTest {
     FakePhysicalPlan plan = new FakePhysicalPlan(expected.iterator());
     when(protector.protect(plan)).thenReturn(plan);
 
-    OpenSearchExecutionEngine executor = new OpenSearchExecutionEngine(client, protector,
-        new PlanSerializer(null));
+    OpenSearchExecutionEngine executor =
+        new OpenSearchExecutionEngine(client, protector, new PlanSerializer(null));
     List<ExprValue> actual = new ArrayList<>();
     executor.execute(
         plan,
-      new ResponseListener<>() {
-        @Override
-        public void onResponse(QueryResponse response) {
-          actual.addAll(response.getResults());
-        }
+        new ResponseListener<>() {
+          @Override
+          public void onResponse(QueryResponse response) {
+            actual.addAll(response.getResults());
+          }
 
-        @Override
-        public void onFailure(Exception e) {
-          fail("Error occurred during execution", e);
-        }
-      });
+          @Override
+          public void onFailure(Exception e) {
+            fail("Error occurred during execution", e);
+          }
+        });
 
     assertTrue(plan.hasOpen);
     assertEquals(expected, actual);
@@ -121,23 +120,23 @@ class OpenSearchExecutionEngineTest {
     var plan = new FakePhysicalPlan(expected.iterator());
     when(protector.protect(plan)).thenReturn(plan);
 
-    OpenSearchExecutionEngine executor = new OpenSearchExecutionEngine(client, protector,
-        new PlanSerializer(null));
+    OpenSearchExecutionEngine executor =
+        new OpenSearchExecutionEngine(client, protector, new PlanSerializer(null));
     List<ExprValue> actual = new ArrayList<>();
     executor.execute(
         plan,
-      new ResponseListener<>() {
-        @Override
-        public void onResponse(QueryResponse response) {
-          actual.addAll(response.getResults());
-          assertTrue(response.getCursor().toString().startsWith("n:"));
-        }
+        new ResponseListener<>() {
+          @Override
+          public void onResponse(QueryResponse response) {
+            actual.addAll(response.getResults());
+            assertTrue(response.getCursor().toString().startsWith("n:"));
+          }
 
-        @Override
-        public void onFailure(Exception e) {
-          fail("Error occurred during execution", e);
-        }
-      });
+          @Override
+          public void onFailure(Exception e) {
+            fail("Error occurred during execution", e);
+          }
+        });
 
     assertEquals(expected, actual);
   }
@@ -149,78 +148,84 @@ class OpenSearchExecutionEngineTest {
     when(plan.hasNext()).thenThrow(expected);
     when(protector.protect(plan)).thenReturn(plan);
 
-    OpenSearchExecutionEngine executor = new OpenSearchExecutionEngine(client, protector,
-        new PlanSerializer(null));
+    OpenSearchExecutionEngine executor =
+        new OpenSearchExecutionEngine(client, protector, new PlanSerializer(null));
     AtomicReference<Exception> actual = new AtomicReference<>();
     executor.execute(
         plan,
-      new ResponseListener<>() {
-        @Override
-        public void onResponse(QueryResponse response) {
-          fail("Expected error didn't happen");
-        }
+        new ResponseListener<>() {
+          @Override
+          public void onResponse(QueryResponse response) {
+            fail("Expected error didn't happen");
+          }
 
-        @Override
-        public void onFailure(Exception e) {
-          actual.set(e);
-        }
-      });
+          @Override
+          public void onFailure(Exception e) {
+            actual.set(e);
+          }
+        });
     assertEquals(expected, actual.get());
     verify(plan).close();
   }
 
   @Test
   void explain_successfully() {
-    OpenSearchExecutionEngine executor = new OpenSearchExecutionEngine(client, protector,
-        new PlanSerializer(null));
+    OpenSearchExecutionEngine executor =
+        new OpenSearchExecutionEngine(client, protector, new PlanSerializer(null));
     Settings settings = mock(Settings.class);
-    when(settings.getSettingValue(SQL_CURSOR_KEEP_ALIVE))
-        .thenReturn(TimeValue.timeValueMinutes(1));
+    when(settings.getSettingValue(SQL_CURSOR_KEEP_ALIVE)).thenReturn(TimeValue.timeValueMinutes(1));
 
     OpenSearchExprValueFactory exprValueFactory = mock(OpenSearchExprValueFactory.class);
     final var name = new OpenSearchRequest.IndexName("test");
     final int defaultQuerySize = 100;
     final int maxResultWindow = 10000;
     final var requestBuilder = new OpenSearchRequestBuilder(defaultQuerySize, exprValueFactory);
-    PhysicalPlan plan = new OpenSearchIndexScan(mock(OpenSearchClient.class),
-        maxResultWindow, requestBuilder.build(name, maxResultWindow,
-        settings.getSettingValue(SQL_CURSOR_KEEP_ALIVE)));
+    PhysicalPlan plan =
+        new OpenSearchIndexScan(
+            mock(OpenSearchClient.class),
+            maxResultWindow,
+            requestBuilder.build(
+                name, maxResultWindow, settings.getSettingValue(SQL_CURSOR_KEEP_ALIVE)));
 
     AtomicReference<ExplainResponse> result = new AtomicReference<>();
-    executor.explain(plan, new ResponseListener<>() {
-      @Override
-      public void onResponse(ExplainResponse response) {
-        result.set(response);
-      }
+    executor.explain(
+        plan,
+        new ResponseListener<>() {
+          @Override
+          public void onResponse(ExplainResponse response) {
+            result.set(response);
+          }
 
-      @Override
-      public void onFailure(Exception e) {
-        fail(e);
-      }
-    });
+          @Override
+          public void onFailure(Exception e) {
+            fail(e);
+          }
+        });
 
     assertNotNull(result.get());
   }
 
   @Test
   void explain_with_failure() {
-    OpenSearchExecutionEngine executor = new OpenSearchExecutionEngine(client, protector,
-        new PlanSerializer(null));
+    OpenSearchExecutionEngine executor =
+        new OpenSearchExecutionEngine(client, protector, new PlanSerializer(null));
     PhysicalPlan plan = mock(PhysicalPlan.class);
     when(plan.accept(any(), any())).thenThrow(IllegalStateException.class);
 
     AtomicReference<Exception> result = new AtomicReference<>();
-    executor.explain(plan, new ResponseListener<>() {
-      @Override
-      public void onResponse(ExplainResponse response) {
-        fail("Should fail as expected");
-      }
+    executor.explain(
+        plan,
+        new ResponseListener<>() {
+          @Override
+          public void onResponse(ExplainResponse response) {
+            fail("Should fail as expected");
+          }
 
-      @Override
-      public void onFailure(Exception e) {
-        result.set(e);
-      }
-    });
+          @Override
+          public void onFailure(Exception e) {
+            result.set(e);
+          }
+        });
 
     assertNotNull(result.get());
   }
@@ -234,8 +239,8 @@ class OpenSearchExecutionEngineTest {
     when(protector.protect(plan)).thenReturn(plan);
     when(executionContext.getSplit()).thenReturn(Optional.of(split));
 
-    OpenSearchExecutionEngine executor = new OpenSearchExecutionEngine(client, protector,
-        new PlanSerializer(null));
+    OpenSearchExecutionEngine executor =
+        new OpenSearchExecutionEngine(client, protector, new PlanSerializer(null));
     List<ExprValue> actual = new ArrayList<>();
     executor.execute(
         plan,
@@ -266,12 +271,10 @@ class OpenSearchExecutionEngineTest {
     private boolean hasSplit;
 
     @Override
-    public void readExternal(ObjectInput in)  {
-    }
+    public void readExternal(ObjectInput in) {}
 
     @Override
-    public void writeExternal(ObjectOutput out) {
-    }
+    public void writeExternal(ObjectOutput out) {}
 
     @Override
     public void open() {

@@ -19,9 +19,7 @@ import java.util.List;
 import java.util.Map;
 import org.opensearch.search.aggregations.Aggregations;
 
-/**
- * No Bucket Aggregation Parser which include only metric parsers.
- */
+/** No Bucket Aggregation Parser which include only metric parsers. */
 public class NoBucketAggregationParser implements OpenSearchAggregationResponseParser {
 
   private final MetricParserHelper metricsParser;

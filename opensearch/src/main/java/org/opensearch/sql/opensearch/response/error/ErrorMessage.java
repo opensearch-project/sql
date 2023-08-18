@@ -3,34 +3,26 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-
 package org.opensearch.sql.opensearch.response.error;
 
 import lombok.Getter;
 import org.json.JSONObject;
 import org.opensearch.core.rest.RestStatus;
 
-/**
- * Error Message.
- */
+/** Error Message. */
 public class ErrorMessage {
 
   protected Throwable exception;
 
   private final int status;
 
-  @Getter
-  private final String type;
+  @Getter private final String type;
 
-  @Getter
-  private final String reason;
+  @Getter private final String reason;
 
-  @Getter
-  private final String details;
+  @Getter private final String details;
 
-  /**
-   * Error Message Constructor.
-   */
+  /** Error Message Constructor. */
   public ErrorMessage(Throwable exception, int status) {
     this.exception = exception;
     this.status = status;

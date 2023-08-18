@@ -3,7 +3,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-
 package org.opensearch.sql.opensearch.storage.script.aggregation.dsl;
 
 import static org.opensearch.sql.data.type.ExprCoreType.INTEGER;
@@ -33,18 +32,14 @@ import org.opensearch.sql.opensearch.response.agg.TopHitsParser;
 import org.opensearch.sql.opensearch.storage.script.filter.FilterQueryBuilder;
 import org.opensearch.sql.opensearch.storage.serialization.ExpressionSerializer;
 
-/**
- * Build the Metric Aggregation and List of {@link MetricParser} from {@link NamedAggregator}.
- */
+/** Build the Metric Aggregation and List of {@link MetricParser} from {@link NamedAggregator}. */
 public class MetricAggregationBuilder
     extends ExpressionNodeVisitor<Pair<AggregationBuilder, MetricParser>, Object> {
 
   private final AggregationBuilderHelper helper;
   private final FilterQueryBuilder filterBuilder;
 
-  /**
-   * Constructor.
-   */
+  /** Constructor. */
   public MetricAggregationBuilder(ExpressionSerializer serializer) {
     this.helper = new AggregationBuilderHelper(serializer);
     this.filterBuilder = new FilterQueryBuilder(serializer);
@@ -87,8 +82,9 @@ public class MetricAggregationBuilder
               name,
               new SingleValueParser(name));
         default:
-          throw new IllegalStateException(String.format(
-              "unsupported distinct aggregator %s", node.getFunctionName().getFunctionName()));
+          throw new IllegalStateException(
+              String.format(
+                  "unsupported distinct aggregator %s", node.getFunctionName().getFunctionName()));
       }
     }
 
@@ -186,14 +182,13 @@ public class MetricAggregationBuilder
     return Pair.of(aggregationBuilder, parser);
   }
 
-  /**
-   * Make {@link CardinalityAggregationBuilder} for distinct count aggregations.
-   */
-  private Pair<AggregationBuilder, MetricParser> make(CardinalityAggregationBuilder builder,
-                                                      Expression expression,
-                                                      Expression condition,
-                                                      String name,
-                                                      MetricParser parser) {
+  /** Make {@link CardinalityAggregationBuilder} for distinct count aggregations. */
+  private Pair<AggregationBuilder, MetricParser> make(
+      CardinalityAggregationBuilder builder,
+      Expression expression,
+      Expression condition,
+      String name,
+      MetricParser parser) {
     CardinalityAggregationBuilder aggregationBuilder =
         helper.build(expression, builder::field, builder::script);
     if (condition != null) {
@@ -204,15 +199,14 @@ public class MetricAggregationBuilder
     return Pair.of(aggregationBuilder, parser);
   }
 
-  /**
-   * Make {@link TopHitsAggregationBuilder} for take aggregations.
-   */
-  private Pair<AggregationBuilder, MetricParser> make(TopHitsAggregationBuilder builder,
-                                                      Expression expression,
-                                                      Expression size,
-                                                      Expression condition,
-                                                      String name,
-                                                      MetricParser parser) {
+  /** Make {@link TopHitsAggregationBuilder} for take aggregations. */
+  private Pair<AggregationBuilder, MetricParser> make(
+      TopHitsAggregationBuilder builder,
+      Expression expression,
+      Expression size,
+      Expression condition,
+      String name,
+      MetricParser parser) {
     String fieldName = ((ReferenceExpression) expression).getAttr();
     builder.fetchSource(fieldName, null);
     builder.size(size.valueOf().integerValue());
@@ -245,8 +239,8 @@ public class MetricAggregationBuilder
    * Make builder to build FilterAggregation for aggregations with filter in the bucket.
    *
    * @param subAggBuilder AggregationBuilder instance which the filter is applied to.
-   * @param condition     Condition expression in the filter.
-   * @param name          Name of the FilterAggregation instance to build.
+   * @param condition Condition expression in the filter.
+   * @param name Name of the FilterAggregation instance to build.
    * @return {@link FilterAggregationBuilder}.
    */
   private FilterAggregationBuilder makeFilterAggregation(

@@ -3,7 +3,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-
 package org.opensearch.sql.opensearch.storage.script.filter;
 
 import static java.util.Collections.emptyMap;
@@ -45,14 +44,10 @@ import org.opensearch.sql.opensearch.storage.serialization.ExpressionSerializer;
 @RequiredArgsConstructor
 public class FilterQueryBuilder extends ExpressionNodeVisitor<QueryBuilder, Object> {
 
-  /**
-   * Serializer that serializes expression for build DSL query.
-   */
+  /** Serializer that serializes expression for build DSL query. */
   private final ExpressionSerializer serializer;
 
-  /**
-   * Mapping from function name to lucene query builder.
-   */
+  /** Mapping from function name to lucene query builder. */
   private final Map<FunctionName, LuceneQuery> luceneQueries =
       ImmutableMap.<FunctionName, LuceneQuery>builder()
           .put(BuiltinFunctionName.EQUAL.getName(), new TermQuery())
@@ -82,8 +77,9 @@ public class FilterQueryBuilder extends ExpressionNodeVisitor<QueryBuilder, Obje
 
   /**
    * Build OpenSearch filter query from expression.
-   * @param expr  expression
-   * @return      query
+   *
+   * @param expr expression
+   * @return query
    */
   public QueryBuilder build(Expression expr) {
     return expr.accept(this, null);
@@ -103,26 +99,28 @@ public class FilterQueryBuilder extends ExpressionNodeVisitor<QueryBuilder, Obje
         // TODO Fill in case when adding support for syntax - nested(path, condition)
         throw new SyntaxCheckException(
             "Invalid syntax used for nested function in WHERE clause: "
-                + "nested(field | field, path) OPERATOR LITERAL"
-        );
-      default: {
-        LuceneQuery query = luceneQueries.get(name);
-        if (query != null && query.canSupport(func)) {
-          return query.build(func);
-        } else if (query != null && query.isNestedPredicate(func)) {
-          NestedQuery nestedQuery = (NestedQuery) luceneQueries.get(
-              ((FunctionExpression)func.getArguments().get(0)).getFunctionName());
-          return nestedQuery.buildNested(func, query);
+                + "nested(field | field, path) OPERATOR LITERAL");
+      default:
+        {
+          LuceneQuery query = luceneQueries.get(name);
+          if (query != null && query.canSupport(func)) {
+            return query.build(func);
+          } else if (query != null && query.isNestedPredicate(func)) {
+            NestedQuery nestedQuery =
+                (NestedQuery)
+                    luceneQueries.get(
+                        ((FunctionExpression) func.getArguments().get(0)).getFunctionName());
+            return nestedQuery.buildNested(func, query);
+          }
+          return buildScriptQuery(func);
         }
-        return buildScriptQuery(func);
-      }
     }
   }
 
-  private BoolQueryBuilder buildBoolQuery(FunctionExpression node,
-                                          Object context,
-                                          BiFunction<BoolQueryBuilder, QueryBuilder,
-                                              QueryBuilder> accumulator) {
+  private BoolQueryBuilder buildBoolQuery(
+      FunctionExpression node,
+      Object context,
+      BiFunction<BoolQueryBuilder, QueryBuilder, QueryBuilder> accumulator) {
     BoolQueryBuilder boolQuery = QueryBuilders.boolQuery();
     for (Expression arg : node.getArguments()) {
       accumulator.apply(boolQuery, arg.accept(this, context));
@@ -131,8 +129,8 @@ public class FilterQueryBuilder extends ExpressionNodeVisitor<QueryBuilder, Obje
   }
 
   private ScriptQueryBuilder buildScriptQuery(FunctionExpression node) {
-    return new ScriptQueryBuilder(new Script(
-        DEFAULT_SCRIPT_TYPE, EXPRESSION_LANG_NAME, serializer.serialize(node), emptyMap()));
+    return new ScriptQueryBuilder(
+        new Script(
+            DEFAULT_SCRIPT_TYPE, EXPRESSION_LANG_NAME, serializer.serialize(node), emptyMap()));
   }
-
 }
