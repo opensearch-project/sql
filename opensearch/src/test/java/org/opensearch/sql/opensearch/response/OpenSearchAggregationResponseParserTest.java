@@ -36,12 +36,7 @@ class OpenSearchAggregationResponseParserTest {
   /** SELECT MAX(age) as max FROM accounts. */
   @Test
   void no_bucket_one_metric_should_pass() {
-    String response =
-        "{\n"
-            + "  \"max#max\": {\n"
-            + "    \"value\": 40\n"
-            + "  }\n"
-            + "}";
+    String response = "{\n" + "  \"max#max\": {\n" + "    \"value\": 40\n" + "  }\n" + "}";
     NoBucketAggregationParser parser = new NoBucketAggregationParser(new SingleValueParser("max"));
     assertThat(parse(parser, response), contains(entry("max", 40d)));
   }
@@ -146,11 +141,7 @@ class OpenSearchAggregationResponseParserTest {
   @Test
   void unsupported_aggregation_should_fail() {
     String response =
-        "{\n"
-            + "  \"date_histogram#date_histogram\": {\n"
-            + "    \"value\": 40\n"
-            + "  }\n"
-            + "}";
+        "{\n" + "  \"date_histogram#date_histogram\": {\n" + "    \"value\": 40\n" + "  }\n" + "}";
     NoBucketAggregationParser parser = new NoBucketAggregationParser(new SingleValueParser("max"));
     RuntimeException exception =
         assertThrows(RuntimeException.class, () -> parse(parser, response));
