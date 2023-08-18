@@ -29,6 +29,7 @@ public class CrossClusterSearchIT extends PPLIntegTestCase {
     for (var cluster : clusterNames) {
       if (cluster.startsWith("remote")) {
         remote = cluster;
+        break;
       }
     }
     REMOTE_CLUSTER = remote;
