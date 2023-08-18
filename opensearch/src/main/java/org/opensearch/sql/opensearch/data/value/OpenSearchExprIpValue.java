@@ -13,8 +13,8 @@ import org.opensearch.sql.data.type.ExprType;
 import org.opensearch.sql.opensearch.data.type.OpenSearchIpType;
 
 /**
- * OpenSearch IP ExprValue. Todo, add this to avoid the unknown value type exception, the
- * implementation will be changed.
+ * OpenSearch IP ExprValue<br>
+ * Todo, add this to avoid the unknown value type exception, the implementation will be changed.
  */
 @RequiredArgsConstructor
 public class OpenSearchExprIpValue extends AbstractExprValue {

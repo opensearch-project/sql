@@ -67,8 +67,8 @@ public class OpenSearchTextType extends OpenSearchDataType {
   }
 
   /**
-   * Text field doesn't have doc value (exception thrown even when you call "get") Limitation:
-   * assume inner field name is always "keyword".
+   * Text field doesn't have doc value (exception thrown even when you call "get")<br>
+   * Limitation: assume inner field name is always "keyword".
    */
   public static String convertTextToKeyword(String fieldName, ExprType fieldType) {
     if (fieldType instanceof OpenSearchTextType

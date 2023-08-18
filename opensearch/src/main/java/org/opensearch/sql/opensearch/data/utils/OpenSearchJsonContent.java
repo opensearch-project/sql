@@ -140,7 +140,7 @@ public class OpenSearchJsonContent implements Content {
       return Pair.of(lat, lon);
     } else {
       throw new IllegalStateException(
-          "geo point must in format of {\"lat\": number, \"lon\": " + "number}");
+          "geo point must in format of {\"lat\": number, \"lon\": number}");
     }
   }
 

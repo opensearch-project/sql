@@ -152,11 +152,18 @@ public class OpenSearchExprValueFactory {
   }
 
   /**
-   * The struct construction has the following assumption: 1. The field has OpenSearch Object data
-   * type. See <a
-   * href="https://www.elastic.co/guide/en/elasticsearch/reference/current/object.html">docs</a> 2.
-   * The deeper field is flattened in the typeMapping. e.g. { "employ", "STRUCT" } { "employ.id",
-   * "INTEGER" } { "employ.state", "STRING" }
+   *
+   *
+   * <pre>
+   * The struct construction has the following assumption:
+   *  1. The field has OpenSearch Object data type.
+   *     See <a href="https://www.elastic.co/guide/en/elasticsearch/reference/current/object.html">
+   *       docs</a>
+   *  2. The deeper field is flattened in the typeMapping. e.g.
+   *     { "employ",       "STRUCT"  }
+   *     { "employ.id",    "INTEGER" }
+   *     { "employ.state", "STRING"  }
+   *  </pre>
    */
   public ExprValue construct(String jsonString, boolean supportArrays) {
     try {
@@ -172,8 +179,8 @@ public class OpenSearchExprValueFactory {
 
   /**
    * Construct ExprValue from field and its value object. Throw exception if trying to construct
-   * from field of unsupported type. Todo, add IP, GeoPoint support after we have function
-   * implementation around it.
+   * from field of unsupported type.<br>
+   * Todo, add IP, GeoPoint support after we have function implementation around it.
    *
    * @param field field name
    * @param value value object

@@ -16,7 +16,8 @@ import org.opensearch.sql.monitor.ResourceMonitor;
 
 /**
  * {@link ResourceMonitor} implementation on Elasticsearch. When the heap memory usage exceeds
- * certain threshold, the monitor is not healthy. Todo, add metrics.
+ * certain threshold, the monitor is not healthy.<br>
+ * Todo, add metrics.
  */
 @Log4j2
 public class OpenSearchResourceMonitor extends ResourceMonitor {
@@ -24,7 +25,7 @@ public class OpenSearchResourceMonitor extends ResourceMonitor {
   private final Retry retry;
   private final OpenSearchMemoryHealthy memoryMonitor;
 
-  /** Constructor of ElasticsearchCircuitBreaker. */
+  /** Constructor. */
   public OpenSearchResourceMonitor(Settings settings, OpenSearchMemoryHealthy memoryMonitor) {
     this.settings = settings;
     RetryConfig config =
