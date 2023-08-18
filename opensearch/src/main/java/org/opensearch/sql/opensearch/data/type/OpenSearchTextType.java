@@ -15,7 +15,7 @@ import lombok.EqualsAndHashCode;
 import org.opensearch.sql.data.type.ExprType;
 
 /**
- * The type of a text value. See <a
+ * The type of text value. See <a
  * href="https://opensearch.org/docs/latest/opensearch/supported-field-types/text/">doc</a>
  */
 public class OpenSearchTextType extends OpenSearchDataType {
@@ -67,8 +67,8 @@ public class OpenSearchTextType extends OpenSearchDataType {
   }
 
   /**
-   * Text field doesn't have doc value (exception thrown even when you call "get") Limitation:
-   * assume inner field name is always "keyword".
+   * Text field doesn't have doc value (exception thrown even when you call "get")<br>
+   * Limitation: assume inner field name is always "keyword".
    */
   public static String convertTextToKeyword(String fieldName, ExprType fieldType) {
     if (fieldType instanceof OpenSearchTextType
