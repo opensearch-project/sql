@@ -24,6 +24,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.opensearch.sql.common.response.ResponseListener;
+import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.executor.DefaultQueryManager;
 import org.opensearch.sql.executor.ExecutionEngine.ExplainResponse;
 import org.opensearch.sql.executor.ExecutionEngine.ExplainResponseNode;
@@ -46,11 +47,14 @@ class SQLServiceTest {
 
   @Mock private QueryService queryService;
 
+  @Mock private Settings settings;
+
   @BeforeEach
   public void setUp() {
     queryManager = DefaultQueryManager.defaultQueryManager();
     sqlService =
-        new SQLService(new SQLSyntaxParser(), queryManager, new QueryPlanFactory(queryService));
+        new SQLService(
+            new SQLSyntaxParser(), queryManager, new QueryPlanFactory(queryService, settings));
   }
 
   @AfterEach

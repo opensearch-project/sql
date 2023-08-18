@@ -108,7 +108,9 @@ public class JDBCConnection implements DBConnection {
 
   @Override
   public DBResult select(String query) {
-    try (Statement stmt = connection.createStatement()) {
+    try (Statement stmt =
+        connection.createStatement(ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY)) {
+      stmt.setFetchSize(5);
       ResultSet resultSet = stmt.executeQuery(query);
       DBResult result =
           isOrderByQuery(query)

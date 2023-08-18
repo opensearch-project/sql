@@ -392,7 +392,7 @@ public abstract class SQLIntegTestCase extends OpenSearchSQLRestTestCase {
     return new JSONObject(executeRequest(request, client));
   }
 
-  protected static JSONObject updateClusterSettings(ClusterSetting setting) throws IOException {
+  public static JSONObject updateClusterSettings(ClusterSetting setting) throws IOException {
     return updateClusterSettings(setting, client());
   }
 
@@ -404,7 +404,7 @@ public abstract class SQLIntegTestCase extends OpenSearchSQLRestTestCase {
     return new JSONObject(executeRequest(request));
   }
 
-  protected static class ClusterSetting {
+  public static class ClusterSetting {
     private final String type;
     private final String name;
     private final String value;

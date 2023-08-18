@@ -88,6 +88,12 @@ public class OpenSearchSettings extends Settings {
       Setting.Property.NodeScope,
       Setting.Property.Dynamic);
 
+  public static final Setting<?> IGNORE_UNSUPPORTED_PAGINATION_SETTING = Setting.boolSetting(
+      Key.IGNORE_UNSUPPORTED_PAGINATION.getKeyValue(),
+      true,
+      Setting.Property.NodeScope,
+      Setting.Property.Dynamic);
+
   public static final Setting<?> METRICS_ROLLING_WINDOW_SETTING = Setting.longSetting(
       Key.METRICS_ROLLING_WINDOW.getKeyValue(),
       LegacyOpenDistroSettings.METRICS_ROLLING_WINDOW_SETTING,
@@ -142,6 +148,8 @@ public class OpenSearchSettings extends Settings {
         QUERY_MEMORY_LIMIT_SETTING, new Updater(Key.QUERY_MEMORY_LIMIT));
     register(settingBuilder, clusterSettings, Key.QUERY_SIZE_LIMIT,
         QUERY_SIZE_LIMIT_SETTING, new Updater(Key.QUERY_SIZE_LIMIT));
+    register(settingBuilder, clusterSettings, Key.IGNORE_UNSUPPORTED_PAGINATION,
+        IGNORE_UNSUPPORTED_PAGINATION_SETTING, new Updater(Key.IGNORE_UNSUPPORTED_PAGINATION));
     register(settingBuilder, clusterSettings, Key.METRICS_ROLLING_WINDOW,
         METRICS_ROLLING_WINDOW_SETTING, new Updater(Key.METRICS_ROLLING_WINDOW));
     register(settingBuilder, clusterSettings, Key.METRICS_ROLLING_INTERVAL,
@@ -214,6 +222,7 @@ public class OpenSearchSettings extends Settings {
         .add(PPL_ENABLED_SETTING)
         .add(QUERY_MEMORY_LIMIT_SETTING)
         .add(QUERY_SIZE_LIMIT_SETTING)
+        .add(IGNORE_UNSUPPORTED_PAGINATION_SETTING)
         .add(METRICS_ROLLING_WINDOW_SETTING)
         .add(METRICS_ROLLING_INTERVAL_SETTING)
         .add(DATASOURCE_URI_ALLOW_HOSTS)

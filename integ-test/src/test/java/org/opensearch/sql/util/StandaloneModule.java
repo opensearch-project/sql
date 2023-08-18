@@ -105,7 +105,7 @@ public class StandaloneModule extends AbstractModule {
   @Provides
   public QueryPlanFactory queryPlanFactory(QueryService qs) {
 
-    return new QueryPlanFactory(qs);
+    return new QueryPlanFactory(qs, settings);
   }
 
   @Provides

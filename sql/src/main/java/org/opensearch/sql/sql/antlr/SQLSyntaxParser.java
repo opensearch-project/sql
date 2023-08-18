@@ -12,6 +12,7 @@ import org.apache.logging.log4j.Logger;
 import org.opensearch.sql.common.antlr.CaseInsensitiveCharStream;
 import org.opensearch.sql.common.antlr.Parser;
 import org.opensearch.sql.common.antlr.SyntaxAnalysisErrorListener;
+import org.opensearch.sql.common.utils.QueryContext;
 import org.opensearch.sql.sql.antlr.parser.OpenSearchSQLLexer;
 import org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParser;
 
@@ -35,7 +36,10 @@ public class SQLSyntaxParser implements Parser {
     parser.addParseListener(anonymizer);
 
     ParseTree parseTree = parser.root();
-    LOG.info("New Engine Request Query: {}", anonymizer.getAnonymizedQueryString());
+    LOG.info(
+        "[{}] New Engine Request Query: {}",
+        QueryContext.getRequestId(),
+        anonymizer.getAnonymizedQueryString());
 
     return parseTree;
   }

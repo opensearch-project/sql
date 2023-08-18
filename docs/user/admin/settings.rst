@@ -36,7 +36,7 @@ The opendistro.sql.query.analysis.semantic.threshold setting is deprecated and w
 
 opendistro.sql.query.response.format
 ------------------------------------
-The opendistro.sql.query.response.format setting is deprecated and will be removed then. From OpenSearch 1.0, the query response format is default to JDBC format. `You can change the format by using query parameters<../interfaces/protocol.rst>`_.
+The opendistro.sql.query.response.format setting is deprecated and will be removed then. From OpenSearch 1.0, the query response format is default to JDBC format. `You can change the format by using query parameters <../interfaces/protocol.rst>`_.
 
 opendistro.sql.cursor.enabled
 -----------------------------
@@ -47,7 +47,7 @@ opendistro.sql.cursor.fetch_size
 The opendistro.sql.cursor.fetch_size setting is deprecated and will be removed then. From OpenSearch 1.0, the fetch_size in query body will decide whether create the cursor context. No cursor will be created if the fetch_size = 0.
 
 plugins.sql.enabled
-======================
+===================
 
 Description
 -----------
@@ -64,7 +64,7 @@ Example 1
 
 You can update the setting with a new value like this.
 
-SQL query::
+Configuration request::
 
 	>> curl -H 'Content-Type: application/json' -X PUT localhost:9200/_plugins/_query/settings -d '{
 	  "transient" : {
@@ -72,7 +72,7 @@ SQL query::
 	  }
 	}'
 
-Result set::
+Response::
 
 	{
 	  "acknowledged" : true,
@@ -99,7 +99,7 @@ SQL query::
 	  "query" : "SELECT * FROM accounts"
 	}'
 
-Result set::
+Response::
 
 	{
 	  "error" : {
@@ -111,7 +111,7 @@ Result set::
 	}
 
 plugins.sql.slowlog
-============================
+===================
 
 Description
 -----------
@@ -128,7 +128,7 @@ Example
 
 You can update the setting with a new value like this.
 
-SQL query::
+Configuration request::
 
 	>> curl -H 'Content-Type: application/json' -X PUT localhost:9200/_plugins/_query/settings -d '{
 	  "transient" : {
@@ -136,7 +136,7 @@ SQL query::
 	  }
 	}'
 
-Result set::
+Response::
 
 	{
 	  "acknowledged" : true,
@@ -153,7 +153,7 @@ Result set::
 Note: the legacy settings of ``opendistro.sql.slowlog`` is deprecated, it will fallback to the new settings if you request an update with the legacy name.
 
 plugins.sql.cursor.keep_alive
-================================
+=============================
 
 Description
 -----------
@@ -170,7 +170,7 @@ Example
 
 You can update the setting with a new value like this.
 
-SQL query::
+Configuration request::
 
 	>> curl -H 'Content-Type: application/json' -X PUT localhost:9200/_plugins/_query/settings -d '{
 	  "transient" : {
@@ -178,7 +178,7 @@ SQL query::
 	  }
 	}'
 
-Result set::
+Response::
 
 	{
 	  "acknowledged" : true,
@@ -197,7 +197,7 @@ Result set::
 Note: the legacy settings of ``opendistro.sql.cursor.keep_alive`` is deprecated, it will fallback to the new settings if you request an update with the legacy name.
 
 plugins.query.size_limit
-===========================
+========================
 
 Description
 -----------
@@ -210,7 +210,7 @@ The new engine fetches a default size of index from OpenSearch set by this setti
 	  }
 	}'
 
-Result set::
+Response::
 
     {
       "acknowledged" : true,
@@ -240,25 +240,25 @@ You can set heap memory usage limit for the query engine. When query running, it
 	  }
 	}'
 
-Result set::
+Response::
 
     {
       "acknowledged": true,
-      "persistent": {
+      "persistent": { },
+      "transient": {
         "plugins": {
           "query": {
             "memory_limit": "80%"
           }
         }
-      },
-      "transient": {}
+      }
     }
 
 Note: the legacy settings of ``opendistro.ppl.query.memory_limit`` is deprecated, it will fallback to the new settings if you request an update with the legacy name.
 
 
 plugins.sql.delete.enabled
-======================
+==========================
 
 Description
 -----------
@@ -275,10 +275,10 @@ Example 1
 
 You can update the setting with a new value like this.
 
-SQL query::
+Configuration request::
 
     sh$ curl -sS -H 'Content-Type: application/json' -X PUT localhost:9200/_plugins/_query/settings \
-    ... -d '{"transient":{"plugins.sql.delete.enabled":"false"}}'
+    ... -d '{ "transient" : { "plugins.sql.delete.enabled" : false } }'
     {
       "acknowledged": true,
       "persistent": {},
@@ -311,3 +311,38 @@ SQL query::
       "status": 400
     }
 
+plugins.query.ignore_unsupported_pagination
+===========================================
+
+Description
+-----------
+
+This boolean settings defines how SQL plugin handles pagination requests with features which are not supported or not compatible with pagination in V2 engine.
+
+Please, refer to `V1/V2 limitations <https://opensearch.org/docs/latest/search-plugins/sql/limitation/#query-processing-engines>`_ and `pagination request <../interfaces/endpoint.rst#cursor>`_ info sections.
+
+1. This setting is set to ``true`` by default.
+2. When it is set to ``true``, such requests are performed without pagination.
+3. When it is set to ``false``, such requests are performed by V1 engine.
+
+Configuration request::
+
+	>> curl -H 'Content-Type: application/json' -X PUT localhost:9200/_plugins/_query/settings -d '{
+	  "transient" : {
+	    "plugins.query.ignore_unsupported_pagination" : false
+	  }
+	}'
+
+Response::
+
+    {
+      "acknowledged": true,
+      "persistent": { },
+      "transient": {
+        "plugins": {
+          "query": {
+            "ignore_unsupported_pagination": "false"
+          }
+        }
+      }
+    }
