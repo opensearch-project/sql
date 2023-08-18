@@ -449,6 +449,9 @@ integTest {
 
     // Exclude JDBC related tests
     exclude 'org/opensearch/sql/jdbc/**'
+
+    // Exclude this IT, because they executed in another task (:integTestWithSecurity)
+    exclude 'org/opensearch/sql/security/**'
 }
 
 
