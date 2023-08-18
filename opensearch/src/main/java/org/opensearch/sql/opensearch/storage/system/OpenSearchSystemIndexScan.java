@@ -3,7 +3,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-
 package org.opensearch.sql.opensearch.storage.system;
 
 import java.util.Iterator;
@@ -14,21 +13,15 @@ import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.opensearch.request.system.OpenSearchSystemRequest;
 import org.opensearch.sql.storage.TableScanOperator;
 
-/**
- * OpenSearch index scan operator.
- */
+/** OpenSearch index scan operator. */
 @RequiredArgsConstructor
 @EqualsAndHashCode(onlyExplicitlyIncluded = true, callSuper = false)
 @ToString(onlyExplicitlyIncluded = true)
 public class OpenSearchSystemIndexScan extends TableScanOperator {
-  /**
-   * OpenSearch request.
-   */
+  /** OpenSearch request. */
   private final OpenSearchSystemRequest request;
 
-  /**
-   * Search response for current batch.
-   */
+  /** Search response for current batch. */
   private Iterator<ExprValue> iterator;
 
   @Override

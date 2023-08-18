@@ -23,9 +23,7 @@ import lombok.RequiredArgsConstructor;
 import org.opensearch.search.aggregations.Aggregation;
 import org.opensearch.search.aggregations.metrics.NumericMetricsAggregation;
 
-/**
- * {@link NumericMetricsAggregation.SingleValue} metric parser.
- */
+/** {@link NumericMetricsAggregation.SingleValue} metric parser. */
 @EqualsAndHashCode
 @RequiredArgsConstructor
 public class SingleValueParser implements MetricParser {
@@ -35,7 +33,6 @@ public class SingleValueParser implements MetricParser {
   @Override
   public Map<String, Object> parse(Aggregation agg) {
     return Collections.singletonMap(
-        agg.getName(),
-        handleNanInfValue(((NumericMetricsAggregation.SingleValue) agg).value()));
+        agg.getName(), handleNanInfValue(((NumericMetricsAggregation.SingleValue) agg).value()));
   }
 }

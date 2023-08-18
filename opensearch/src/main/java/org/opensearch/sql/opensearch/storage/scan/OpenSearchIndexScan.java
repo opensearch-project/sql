@@ -3,7 +3,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-
 package org.opensearch.sql.opensearch.storage.scan;
 
 import java.io.ByteArrayOutputStream;
@@ -27,9 +26,7 @@ import org.opensearch.sql.opensearch.storage.OpenSearchStorageEngine;
 import org.opensearch.sql.planner.SerializablePlan;
 import org.opensearch.sql.storage.TableScanOperator;
 
-/**
- * OpenSearch index scan operator.
- */
+/** OpenSearch index scan operator. */
 @EqualsAndHashCode(onlyExplicitlyIncluded = true, callSuper = false)
 @ToString(onlyExplicitlyIncluded = true)
 public class OpenSearchIndexScan extends TableScanOperator implements SerializablePlan {
@@ -38,14 +35,10 @@ public class OpenSearchIndexScan extends TableScanOperator implements Serializab
   private OpenSearchClient client;
 
   /** Search request. */
-  @EqualsAndHashCode.Include
-  @ToString.Include
-  private OpenSearchRequest request;
+  @EqualsAndHashCode.Include @ToString.Include private OpenSearchRequest request;
 
   /** Largest number of rows allowed in the response. */
-  @EqualsAndHashCode.Include
-  @ToString.Include
-  private int maxResponseSize;
+  @EqualsAndHashCode.Include @ToString.Include private int maxResponseSize;
 
   /** Number of rows returned. */
   private Integer queryCount;
@@ -53,12 +46,9 @@ public class OpenSearchIndexScan extends TableScanOperator implements Serializab
   /** Search response for current batch. */
   private Iterator<ExprValue> iterator;
 
-  /**
-   * Creates index scan based on a provided OpenSearchRequestBuilder.
-   */
-  public OpenSearchIndexScan(OpenSearchClient client,
-                             int maxResponseSize,
-                             OpenSearchRequest request) {
+  /** Creates index scan based on a provided OpenSearchRequestBuilder. */
+  public OpenSearchIndexScan(
+      OpenSearchClient client, int maxResponseSize, OpenSearchRequest request) {
     this.client = client;
     this.maxResponseSize = maxResponseSize;
     this.request = request;
@@ -107,12 +97,13 @@ public class OpenSearchIndexScan extends TableScanOperator implements Serializab
     return request.toString();
   }
 
-  /** No-args constructor.
+  /**
+   * No-args constructor.
+   *
    * @deprecated Exists only to satisfy Java serialization API.
    */
   @Deprecated(since = "introduction")
-  public OpenSearchIndexScan() {
-  }
+  public OpenSearchIndexScan() {}
 
   @Override
   public void readExternal(ObjectInput in) throws IOException {
@@ -120,8 +111,9 @@ public class OpenSearchIndexScan extends TableScanOperator implements Serializab
     byte[] requestStream = new byte[reqSize];
     in.read(requestStream);
 
-    var engine = (OpenSearchStorageEngine) ((PlanSerializer.CursorDeserializationStream) in)
-        .resolveObject("engine");
+    var engine =
+        (OpenSearchStorageEngine)
+            ((PlanSerializer.CursorDeserializationStream) in).resolveObject("engine");
 
     try (BytesStreamInput bsi = new BytesStreamInput(requestStream)) {
       request = new OpenSearchScrollRequest(bsi, engine);

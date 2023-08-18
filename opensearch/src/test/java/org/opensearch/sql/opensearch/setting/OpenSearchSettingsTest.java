@@ -3,7 +3,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-
 package org.opensearch.sql.opensearch.setting;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -37,14 +36,12 @@ import org.opensearch.sql.common.setting.Settings;
 @ExtendWith(MockitoExtension.class)
 class OpenSearchSettingsTest {
 
-  @Mock
-  private ClusterSettings clusterSettings;
+  @Mock private ClusterSettings clusterSettings;
 
   @Test
   void getSettingValue() {
     when(clusterSettings.get(ClusterName.CLUSTER_NAME_SETTING)).thenReturn(ClusterName.DEFAULT);
-    when(clusterSettings.get(not((eq(ClusterName.CLUSTER_NAME_SETTING)))))
-        .thenReturn(null);
+    when(clusterSettings.get(not((eq(ClusterName.CLUSTER_NAME_SETTING))))).thenReturn(null);
     OpenSearchSettings settings = new OpenSearchSettings(clusterSettings);
     ByteSizeValue sizeValue = settings.getSettingValue(Settings.Key.QUERY_MEMORY_LIMIT);
 
@@ -54,11 +51,14 @@ class OpenSearchSettingsTest {
   @Test
   void getSettingValueWithPresetValuesInYml() {
     when(clusterSettings.get(ClusterName.CLUSTER_NAME_SETTING)).thenReturn(ClusterName.DEFAULT);
-    when(clusterSettings
-        .get((Setting<ByteSizeValue>) OpenSearchSettings.QUERY_MEMORY_LIMIT_SETTING))
+    when(clusterSettings.get(
+            (Setting<ByteSizeValue>) OpenSearchSettings.QUERY_MEMORY_LIMIT_SETTING))
         .thenReturn(new ByteSizeValue(20));
-    when(clusterSettings.get(not(or(eq(ClusterName.CLUSTER_NAME_SETTING),
-        eq((Setting<ByteSizeValue>) OpenSearchSettings.QUERY_MEMORY_LIMIT_SETTING)))))
+    when(clusterSettings.get(
+            not(
+                or(
+                    eq(ClusterName.CLUSTER_NAME_SETTING),
+                    eq((Setting<ByteSizeValue>) OpenSearchSettings.QUERY_MEMORY_LIMIT_SETTING)))))
         .thenReturn(null);
     OpenSearchSettings settings = new OpenSearchSettings(clusterSettings);
     ByteSizeValue sizeValue = settings.getSettingValue(Settings.Key.QUERY_MEMORY_LIMIT);
@@ -82,8 +82,7 @@ class OpenSearchSettingsTest {
   @Test
   void getSettings() {
     when(clusterSettings.get(ClusterName.CLUSTER_NAME_SETTING)).thenReturn(ClusterName.DEFAULT);
-    when(clusterSettings.get(not((eq(ClusterName.CLUSTER_NAME_SETTING)))))
-        .thenReturn(null);
+    when(clusterSettings.get(not((eq(ClusterName.CLUSTER_NAME_SETTING))))).thenReturn(null);
     OpenSearchSettings settings = new OpenSearchSettings(clusterSettings);
     assertFalse(settings.getSettings().isEmpty());
   }
@@ -91,12 +90,10 @@ class OpenSearchSettingsTest {
   @Test
   void update() {
     when(clusterSettings.get(ClusterName.CLUSTER_NAME_SETTING)).thenReturn(ClusterName.DEFAULT);
-    when(clusterSettings.get(not((eq(ClusterName.CLUSTER_NAME_SETTING)))))
-        .thenReturn(null);
+    when(clusterSettings.get(not((eq(ClusterName.CLUSTER_NAME_SETTING))))).thenReturn(null);
     OpenSearchSettings settings = new OpenSearchSettings(clusterSettings);
     ByteSizeValue oldValue = settings.getSettingValue(Settings.Key.QUERY_MEMORY_LIMIT);
-    OpenSearchSettings.Updater updater =
-        settings.new Updater(Settings.Key.QUERY_MEMORY_LIMIT);
+    OpenSearchSettings.Updater updater = settings.new Updater(Settings.Key.QUERY_MEMORY_LIMIT);
     updater.accept(new ByteSizeValue(0L));
 
     ByteSizeValue newValue = settings.getSettingValue(Settings.Key.QUERY_MEMORY_LIMIT);
@@ -107,8 +104,7 @@ class OpenSearchSettingsTest {
   @Test
   void settingsFallback() {
     when(clusterSettings.get(ClusterName.CLUSTER_NAME_SETTING)).thenReturn(ClusterName.DEFAULT);
-    when(clusterSettings.get(not((eq(ClusterName.CLUSTER_NAME_SETTING)))))
-        .thenReturn(null);
+    when(clusterSettings.get(not((eq(ClusterName.CLUSTER_NAME_SETTING))))).thenReturn(null);
     OpenSearchSettings settings = new OpenSearchSettings(clusterSettings);
     assertEquals(
         settings.getSettingValue(Settings.Key.SQL_ENABLED),
@@ -160,16 +156,16 @@ class OpenSearchSettingsTest {
 
     assertEquals(OpenSearchSettings.SQL_ENABLED_SETTING.get(settings), false);
     assertEquals(OpenSearchSettings.SQL_SLOWLOG_SETTING.get(settings), 10);
-    assertEquals(OpenSearchSettings.SQL_CURSOR_KEEP_ALIVE_SETTING.get(settings),
-        timeValueMinutes(1));
+    assertEquals(
+        OpenSearchSettings.SQL_CURSOR_KEEP_ALIVE_SETTING.get(settings), timeValueMinutes(1));
     assertEquals(OpenSearchSettings.PPL_ENABLED_SETTING.get(settings), true);
-    assertEquals(OpenSearchSettings.QUERY_MEMORY_LIMIT_SETTING.get(settings),
+    assertEquals(
+        OpenSearchSettings.QUERY_MEMORY_LIMIT_SETTING.get(settings),
         new ByteSizeValue((int) (JvmInfo.jvmInfo().getMem().getHeapMax().getBytes() * 0.2)));
     assertEquals(OpenSearchSettings.QUERY_SIZE_LIMIT_SETTING.get(settings), 100);
     assertEquals(OpenSearchSettings.METRICS_ROLLING_WINDOW_SETTING.get(settings), 2000L);
     assertEquals(OpenSearchSettings.METRICS_ROLLING_INTERVAL_SETTING.get(settings), 100L);
   }
-
 
   @Test
   void legacySettingsShouldBeDeprecatedBeforeRemove() {
