@@ -3,7 +3,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-
 package org.opensearch.sql.opensearch.storage.script.filter.lucene;
 
 import lombok.RequiredArgsConstructor;
@@ -14,19 +13,19 @@ import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.data.type.ExprCoreType;
 import org.opensearch.sql.data.type.ExprType;
 
-/**
- * Lucene query that builds range query for non-quality comparison.
- */
+/** Lucene query that builds range query for non-quality comparison. */
 @RequiredArgsConstructor
 public class RangeQuery extends LuceneQuery {
 
   public enum Comparison {
-    LT, GT, LTE, GTE, BETWEEN
+    LT,
+    GT,
+    LTE,
+    GTE,
+    BETWEEN
   }
 
-  /**
-   * Comparison that range query build for.
-   */
+  /** Comparison that range query build for. */
   private final Comparison comparison;
 
   @Override
@@ -55,5 +54,4 @@ public class RangeQuery extends LuceneQuery {
       return literal.value();
     }
   }
-
 }

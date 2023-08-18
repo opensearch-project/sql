@@ -3,7 +3,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-
 package org.opensearch.sql.opensearch.request;
 
 import static java.util.stream.Collectors.mapping;
@@ -47,47 +46,36 @@ import org.opensearch.sql.opensearch.data.type.OpenSearchDataType;
 import org.opensearch.sql.opensearch.data.value.OpenSearchExprValueFactory;
 import org.opensearch.sql.opensearch.response.agg.OpenSearchAggregationResponseParser;
 
-/**
- * OpenSearch search request builder.
- */
+/** OpenSearch search request builder. */
 @EqualsAndHashCode
 @Getter
 @ToString
 public class OpenSearchRequestBuilder {
 
-  /**
-   * Search request source builder.
-   */
+  /** Search request source builder. */
   private final SearchSourceBuilder sourceBuilder;
 
-  /**
-   * Query size of the request -- how many rows will be returned.
-   */
+  /** Query size of the request -- how many rows will be returned. */
   private int requestedTotalSize;
 
-  /**
-   * Size of each page request to return.
-   */
+  /** Size of each page request to return. */
   private Integer pageSize = null;
 
-  /**
-   * OpenSearchExprValueFactory.
-   */
-  @EqualsAndHashCode.Exclude
-  @ToString.Exclude
+  /** OpenSearchExprValueFactory. */
+  @EqualsAndHashCode.Exclude @ToString.Exclude
   private final OpenSearchExprValueFactory exprValueFactory;
+
   private int startFrom = 0;
 
-  /**
-   * Constructor.
-   */
-  public OpenSearchRequestBuilder(int requestedTotalSize,
-                                  OpenSearchExprValueFactory exprValueFactory) {
+  /** Constructor. */
+  public OpenSearchRequestBuilder(
+      int requestedTotalSize, OpenSearchExprValueFactory exprValueFactory) {
     this.requestedTotalSize = requestedTotalSize;
-    this.sourceBuilder = new SearchSourceBuilder()
-        .from(startFrom)
-        .timeout(OpenSearchRequest.DEFAULT_QUERY_TIMEOUT)
-        .trackScores(false);
+    this.sourceBuilder =
+        new SearchSourceBuilder()
+            .from(startFrom)
+            .timeout(OpenSearchRequest.DEFAULT_QUERY_TIMEOUT)
+            .trackScores(false);
     this.exprValueFactory = exprValueFactory;
   }
 
@@ -96,13 +84,11 @@ public class OpenSearchRequestBuilder {
    *
    * @return query request or scroll request
    */
-  public OpenSearchRequest build(OpenSearchRequest.IndexName indexName,
-                                 int maxResultWindow, TimeValue scrollTimeout) {
+  public OpenSearchRequest build(
+      OpenSearchRequest.IndexName indexName, int maxResultWindow, TimeValue scrollTimeout) {
     int size = requestedTotalSize;
     FetchSourceContext fetchSource = this.sourceBuilder.fetchSource();
-    List<String> includes = fetchSource != null
-        ? Arrays.asList(fetchSource.includes())
-        : List.of();
+    List<String> includes = fetchSource != null ? Arrays.asList(fetchSource.includes()) : List.of();
     if (pageSize == null) {
       if (startFrom + size > maxResultWindow) {
         sourceBuilder.size(maxResultWindow - startFrom);
@@ -118,11 +104,10 @@ public class OpenSearchRequestBuilder {
         throw new UnsupportedOperationException("Non-zero offset is not supported with pagination");
       }
       sourceBuilder.size(pageSize);
-      return new OpenSearchScrollRequest(indexName, scrollTimeout,
-          sourceBuilder, exprValueFactory, includes);
+      return new OpenSearchScrollRequest(
+          indexName, scrollTimeout, sourceBuilder, exprValueFactory, includes);
     }
   }
-
 
   boolean isBoolFilterQuery(QueryBuilder current) {
     return (current instanceof BoolQueryBuilder);
@@ -131,7 +116,7 @@ public class OpenSearchRequestBuilder {
   /**
    * Push down query to DSL request.
    *
-   * @param query  query request
+   * @param query query request
    */
   public void pushDownFilter(QueryBuilder query) {
     QueryBuilder current = sourceBuilder.query();
@@ -142,9 +127,7 @@ public class OpenSearchRequestBuilder {
       if (isBoolFilterQuery(current)) {
         ((BoolQueryBuilder) current).filter(query);
       } else {
-        sourceBuilder.query(QueryBuilders.boolQuery()
-            .filter(current)
-            .filter(query));
+        sourceBuilder.query(QueryBuilders.boolQuery().filter(current).filter(query));
       }
     }
 
@@ -181,9 +164,7 @@ public class OpenSearchRequestBuilder {
     }
   }
 
-  /**
-   * Pushdown size (limit) and from (offset) to DSL request.
-   */
+  /** Pushdown size (limit) and from (offset) to DSL request. */
   public void pushDownLimit(Integer limit, Integer offset) {
     requestedTotalSize = limit;
     startFrom = offset;
@@ -200,6 +181,7 @@ public class OpenSearchRequestBuilder {
 
   /**
    * Add highlight to DSL requests.
+   *
    * @param field name of the field to highlight
    */
   public void pushDownHighlight(String field, Map<String, Literal> arguments) {
@@ -208,32 +190,34 @@ public class OpenSearchRequestBuilder {
       // OS does not allow duplicates of highlight fields
       if (sourceBuilder.highlighter().fields().stream()
           .anyMatch(f -> f.name().equals(unquotedField))) {
-        throw new SemanticCheckException(String.format(
-            "Duplicate field %s in highlight", field));
+        throw new SemanticCheckException(String.format("Duplicate field %s in highlight", field));
       }
 
       sourceBuilder.highlighter().field(unquotedField);
     } else {
-      HighlightBuilder highlightBuilder =
-          new HighlightBuilder().field(unquotedField);
+      HighlightBuilder highlightBuilder = new HighlightBuilder().field(unquotedField);
       sourceBuilder.highlighter(highlightBuilder);
     }
 
     // lastFieldIndex denotes previously set highlighter with field parameter
     int lastFieldIndex = sourceBuilder.highlighter().fields().size() - 1;
     if (arguments.containsKey("pre_tags")) {
-      sourceBuilder.highlighter().fields().get(lastFieldIndex)
+      sourceBuilder
+          .highlighter()
+          .fields()
+          .get(lastFieldIndex)
           .preTags(arguments.get("pre_tags").toString());
     }
     if (arguments.containsKey("post_tags")) {
-      sourceBuilder.highlighter().fields().get(lastFieldIndex)
+      sourceBuilder
+          .highlighter()
+          .fields()
+          .get(lastFieldIndex)
           .postTags(arguments.get("post_tags").toString());
     }
   }
 
-  /**
-   * Push down project list to DSL requests.
-   */
+  /** Push down project list to DSL requests. */
   public void pushDownProjects(Set<ReferenceExpression> projects) {
     sourceBuilder.fetchSource(
         projects.stream().map(ReferenceExpression::getAttr).distinct().toArray(String[]::new),
@@ -254,21 +238,22 @@ public class OpenSearchRequestBuilder {
 
   /**
    * Push down nested to sourceBuilder.
+   *
    * @param nestedArgs : Nested arguments to push down.
    */
   public void pushDownNested(List<Map<String, ReferenceExpression>> nestedArgs) {
     initBoolQueryFilter();
     List<NestedQueryBuilder> nestedQueries = extractNestedQueries(query());
-    groupFieldNamesByPath(nestedArgs).forEach(
-        (path, fieldNames) ->
-            buildInnerHit(fieldNames, findNestedQueryWithSamePath(nestedQueries, path))
-    );
+    groupFieldNamesByPath(nestedArgs)
+        .forEach(
+            (path, fieldNames) ->
+                buildInnerHit(fieldNames, findNestedQueryWithSamePath(nestedQueries, path)));
   }
 
   /**
-   * InnerHit must be added to the NestedQueryBuilder. We need to extract
-   * the nested queries currently in the query if there is already a filter
-   * push down with nested query.
+   * InnerHit must be added to the NestedQueryBuilder. We need to extract the nested queries
+   * currently in the query if there is already a filter push down with nested query.
+   *
    * @param query : current query.
    * @return : grouped nested queries currently in query.
    */
@@ -289,9 +274,7 @@ public class OpenSearchRequestBuilder {
     return pageSize == null ? requestedTotalSize : pageSize;
   }
 
-  /**
-   * Initialize bool query for push down.
-   */
+  /** Initialize bool query for push down. */
   private void initBoolQueryFilter() {
     if (sourceBuilder.query() == null) {
       sourceBuilder.query(QueryBuilders.boolQuery());
@@ -304,44 +287,42 @@ public class OpenSearchRequestBuilder {
 
   /**
    * Map all field names in nested queries that use same path.
+   *
    * @param fields : Fields for nested queries.
    * @return : Map of path and associated field names.
    */
   private Map<String, List<String>> groupFieldNamesByPath(
       List<Map<String, ReferenceExpression>> fields) {
     // TODO filter out reverse nested when supported - .filter(not(isReverseNested()))
-    return fields.stream().collect(
-        Collectors.groupingBy(
-            m -> m.get("path").toString(),
-            mapping(
-                m -> m.get("field").toString(),
-                toList()
-            )
-        )
-    );
+    return fields.stream()
+        .collect(
+            Collectors.groupingBy(
+                m -> m.get("path").toString(), mapping(m -> m.get("field").toString(), toList())));
   }
 
   /**
    * Build inner hits portion to nested query.
+   *
    * @param paths : Set of all paths used in nested queries.
    * @param query : Current pushDown query.
    */
   private void buildInnerHit(List<String> paths, NestedQueryBuilder query) {
-    query.innerHit(new InnerHitBuilder().setFetchSourceContext(
-        new FetchSourceContext(true, paths.toArray(new String[0]), null)
-    ));
+    query.innerHit(
+        new InnerHitBuilder()
+            .setFetchSourceContext(
+                new FetchSourceContext(true, paths.toArray(new String[0]), null)));
   }
 
   /**
-   * We need to group nested queries with same path for adding new fields with same path of
-   * inner hits. If we try to add additional inner hits with same path we get an OS error.
+   * We need to group nested queries with same path for adding new fields with same path of inner
+   * hits. If we try to add additional inner hits with same path we get an OS error.
+   *
    * @param nestedQueries Current list of nested queries in query.
    * @param path path comparing with current nested queries.
    * @return Query with same path or new empty nested query.
    */
   private NestedQueryBuilder findNestedQueryWithSamePath(
-      List<NestedQueryBuilder> nestedQueries, String path
-  ) {
+      List<NestedQueryBuilder> nestedQueries, String path) {
     return nestedQueries.stream()
         .filter(query -> isSamePath(path, query))
         .findAny()
@@ -350,6 +331,7 @@ public class OpenSearchRequestBuilder {
 
   /**
    * Check if is nested query is of the same path value.
+   *
    * @param path Value of path to compare with nested query.
    * @param query nested query builder to compare with path.
    * @return true if nested query has same path.
@@ -358,9 +340,7 @@ public class OpenSearchRequestBuilder {
     return nestedQuery(path, query.query(), query.scoreMode()).equals(query);
   }
 
-  /**
-   * Create a nested query with match all filter to place inner hits.
-   */
+  /** Create a nested query with match all filter to place inner hits. */
   private Supplier<NestedQueryBuilder> createEmptyNestedQuery(String path) {
     return () -> {
       NestedQueryBuilder nestedQuery = nestedQuery(path, matchAllQuery(), ScoreMode.None);
@@ -371,6 +351,7 @@ public class OpenSearchRequestBuilder {
 
   /**
    * Return current query.
+   *
    * @return : Current source builder query.
    */
   private BoolQueryBuilder query() {

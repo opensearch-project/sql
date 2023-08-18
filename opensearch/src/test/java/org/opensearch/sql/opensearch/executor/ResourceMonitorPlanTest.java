@@ -3,7 +3,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-
 package org.opensearch.sql.opensearch.executor;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -27,17 +26,13 @@ import org.opensearch.sql.planner.physical.PhysicalPlanNodeVisitor;
 
 @ExtendWith(MockitoExtension.class)
 class ResourceMonitorPlanTest {
-  @Mock
-  private PhysicalPlan plan;
+  @Mock private PhysicalPlan plan;
 
-  @Mock
-  private ResourceMonitor resourceMonitor;
+  @Mock private ResourceMonitor resourceMonitor;
 
-  @Mock
-  private PhysicalPlanNodeVisitor visitor;
+  @Mock private PhysicalPlanNodeVisitor visitor;
 
-  @Mock
-  private Object context;
+  @Mock private Object context;
 
   private ResourceMonitorPlan monitorPlan;
 
