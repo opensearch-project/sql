@@ -3,7 +3,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-
 package org.opensearch.sql.legacy.query.planner.resource;
 
 import java.time.Duration;
@@ -18,55 +17,48 @@ import org.opensearch.sql.legacy.query.planner.core.Config;
 import org.opensearch.sql.legacy.query.planner.resource.monitor.Monitor;
 import org.opensearch.sql.legacy.query.planner.resource.monitor.TotalMemoryMonitor;
 
-/**
- * Aggregated resource monitor
- */
+/** Aggregated resource monitor */
 public class ResourceManager {
 
-    private static final Logger LOG = LogManager.getLogger();
+  private static final Logger LOG = LogManager.getLogger();
 
-    /**
-     * Actual resource monitor list
-     */
-    private final List<Monitor> monitors = new ArrayList<>();
+  /** Actual resource monitor list */
+  private final List<Monitor> monitors = new ArrayList<>();
 
-    /**
-     * Time out for the execution
-     */
-    private final int timeout;
-    private final Instant startTime;
+  /** Time out for the execution */
+  private final int timeout;
 
-    /**
-     * Meta result of the execution
-     */
-    private final MetaSearchResult metaResult;
+  private final Instant startTime;
 
-    public ResourceManager(Stats stats, Config config) {
-        this.monitors.add(new TotalMemoryMonitor(stats, config));
-        this.timeout = config.timeout();
-        this.startTime = Instant.now();
-        this.metaResult = new MetaSearchResult();
-    }
+  /** Meta result of the execution */
+  private final MetaSearchResult metaResult;
 
-    /**
-     * Is all resource monitor healthy with strategy.
-     *
-     * @return true for yes
-     */
-    public boolean isHealthy() {
-        return BackOffRetryStrategy.isHealthy();
-    }
+  public ResourceManager(Stats stats, Config config) {
+    this.monitors.add(new TotalMemoryMonitor(stats, config));
+    this.timeout = config.timeout();
+    this.startTime = Instant.now();
+    this.metaResult = new MetaSearchResult();
+  }
 
-    /**
-     * Is current execution time out?
-     *
-     * @return true for yes
-     */
-    public boolean isTimeout() {
-        return Duration.between(startTime, Instant.now()).getSeconds() >= timeout;
-    }
+  /**
+   * Is all resource monitor healthy with strategy.
+   *
+   * @return true for yes
+   */
+  public boolean isHealthy() {
+    return BackOffRetryStrategy.isHealthy();
+  }
 
-    public MetaSearchResult getMetaResult() {
-        return metaResult;
-    }
+  /**
+   * Is current execution time out?
+   *
+   * @return true for yes
+   */
+  public boolean isTimeout() {
+    return Duration.between(startTime, Instant.now()).getSeconds() >= timeout;
+  }
+
+  public MetaSearchResult getMetaResult() {
+    return metaResult;
+  }
 }

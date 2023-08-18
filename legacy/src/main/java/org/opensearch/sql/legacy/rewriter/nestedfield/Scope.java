@@ -3,7 +3,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-
 package org.opensearch.sql.legacy.rewriter.nestedfield;
 
 import static com.alibaba.druid.sql.ast.statement.SQLJoinTableSource.JoinType;
@@ -14,71 +13,68 @@ import java.util.IdentityHashMap;
 import java.util.Map;
 import java.util.Set;
 
-/**
- * Nested field information in current query being visited.
- */
+/** Nested field information in current query being visited. */
 class Scope {
 
-    /** Join Type as passed in the actual SQL subquery */
-    private JoinType actualJoinType;
+  /** Join Type as passed in the actual SQL subquery */
+  private JoinType actualJoinType;
 
-    /** Alias of parent such as alias "t" of parent table "team" in "FROM team t, t.employees e" */
+  /** Alias of parent such as alias "t" of parent table "team" in "FROM team t, t.employees e" */
+  private String parentAlias;
 
-    private String parentAlias;
+  /**
+   * Mapping from nested field path alias to path full name in FROM. eg. e in {e => employees} in
+   * "FROM t.employees e"
+   */
+  private Map<String, String> aliasFullPaths = new HashMap<>();
 
-    /**
-     * Mapping from nested field path alias to path full name in FROM.
-     * eg. e in {e => employees} in "FROM t.employees e"
-     */
-    private Map<String, String> aliasFullPaths = new HashMap<>();
+  /**
+   * Mapping from binary operation condition (in WHERE) to nested field tag (full path for nested,
+   * EMPTY for non-nested field)
+   */
+  private Map<SQLBinaryOpExpr, String> conditionTags = new IdentityHashMap<>();
 
-    /**
-     * Mapping from binary operation condition (in WHERE) to nested
-     * field tag (full path for nested, EMPTY for non-nested field)
-     */
-    private Map<SQLBinaryOpExpr, String> conditionTags = new IdentityHashMap<>();
+  String getParentAlias() {
+    return parentAlias;
+  }
 
-    String getParentAlias() {
-        return parentAlias;
+  void setParentAlias(String parentAlias) {
+    this.parentAlias = parentAlias;
+  }
+
+  void addAliasFullPath(String alias, String path) {
+    if (alias.isEmpty()) {
+      aliasFullPaths.put(path, path);
+    } else {
+      aliasFullPaths.put(alias, path);
     }
+  }
 
-    void setParentAlias(String parentAlias) {
-        this.parentAlias = parentAlias;
-    }
+  String getFullPath(String alias) {
+    return aliasFullPaths.getOrDefault(alias, "");
+  }
 
-    void addAliasFullPath(String alias, String path) {
-        if (alias.isEmpty()) {
-            aliasFullPaths.put(path, path);
-        } else {
-            aliasFullPaths.put(alias, path);
-        }
-    }
+  boolean isAnyNestedField() {
+    return !aliasFullPaths.isEmpty();
+  }
 
-    String getFullPath(String alias) {
-        return aliasFullPaths.getOrDefault(alias, "");
-    }
+  Set<String> getAliases() {
+    return aliasFullPaths.keySet();
+  }
 
-    boolean isAnyNestedField() {
-        return !aliasFullPaths.isEmpty();
-    }
+  String getConditionTag(SQLBinaryOpExpr expr) {
+    return conditionTags.getOrDefault(expr, "");
+  }
 
-    Set<String> getAliases() {
-        return aliasFullPaths.keySet();
-    }
+  void addConditionTag(SQLBinaryOpExpr expr, String tag) {
+    conditionTags.put(expr, tag);
+  }
 
-    String getConditionTag(SQLBinaryOpExpr expr) {
-        return conditionTags.getOrDefault(expr, "");
-    }
+  JoinType getActualJoinType() {
+    return actualJoinType;
+  }
 
-    void addConditionTag(SQLBinaryOpExpr expr, String tag) {
-        conditionTags.put(expr, tag);
-    }
-
-    JoinType getActualJoinType() {
-        return actualJoinType;
-    }
-
-    void setActualJoinType(JoinType joinType) {
-        actualJoinType = joinType;
-    }
+  void setActualJoinType(JoinType joinType) {
+    actualJoinType = joinType;
+  }
 }
