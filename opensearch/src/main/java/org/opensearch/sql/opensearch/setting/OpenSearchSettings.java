@@ -3,7 +3,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-
 package org.opensearch.sql.opensearch.setting;
 
 import static org.opensearch.common.settings.Settings.EMPTY;
@@ -27,137 +26,185 @@ import org.opensearch.common.unit.MemorySizeValue;
 import org.opensearch.sql.common.setting.LegacySettings;
 import org.opensearch.sql.common.setting.Settings;
 
-/**
- * Setting implementation on OpenSearch.
- */
+/** Setting implementation on OpenSearch. */
 @Log4j2
 public class OpenSearchSettings extends Settings {
-  /**
-   * Default settings.
-   */
+  /** Default settings. */
   private final Map<Settings.Key, Setting<?>> defaultSettings;
-  /**
-   * Latest setting value for each registered key. Thread-safe is required.
-   */
+
+  /** Latest setting value for each registered key. Thread-safe is required. */
   @VisibleForTesting
   private final Map<Settings.Key, Object> latestSettings = new ConcurrentHashMap<>();
 
-  public static final Setting<?> SQL_ENABLED_SETTING = Setting.boolSetting(
-      Key.SQL_ENABLED.getKeyValue(),
-      LegacyOpenDistroSettings.SQL_ENABLED_SETTING,
-      Setting.Property.NodeScope,
-      Setting.Property.Dynamic);
+  public static final Setting<?> SQL_ENABLED_SETTING =
+      Setting.boolSetting(
+          Key.SQL_ENABLED.getKeyValue(),
+          LegacyOpenDistroSettings.SQL_ENABLED_SETTING,
+          Setting.Property.NodeScope,
+          Setting.Property.Dynamic);
 
-  public static final Setting<?> SQL_SLOWLOG_SETTING = Setting.intSetting(
-      Key.SQL_SLOWLOG.getKeyValue(),
-      LegacyOpenDistroSettings.SQL_QUERY_SLOWLOG_SETTING,
-      0,
-      Setting.Property.NodeScope,
-      Setting.Property.Dynamic);
+  public static final Setting<?> SQL_SLOWLOG_SETTING =
+      Setting.intSetting(
+          Key.SQL_SLOWLOG.getKeyValue(),
+          LegacyOpenDistroSettings.SQL_QUERY_SLOWLOG_SETTING,
+          0,
+          Setting.Property.NodeScope,
+          Setting.Property.Dynamic);
 
-  public static final Setting<?> SQL_CURSOR_KEEP_ALIVE_SETTING = Setting.positiveTimeSetting(
-      Key.SQL_CURSOR_KEEP_ALIVE.getKeyValue(),
-      LegacyOpenDistroSettings.SQL_CURSOR_KEEPALIVE_SETTING,
-      Setting.Property.NodeScope,
-      Setting.Property.Dynamic);
+  public static final Setting<?> SQL_CURSOR_KEEP_ALIVE_SETTING =
+      Setting.positiveTimeSetting(
+          Key.SQL_CURSOR_KEEP_ALIVE.getKeyValue(),
+          LegacyOpenDistroSettings.SQL_CURSOR_KEEPALIVE_SETTING,
+          Setting.Property.NodeScope,
+          Setting.Property.Dynamic);
 
-  public static final Setting<?> SQL_DELETE_ENABLED_SETTING = Setting.boolSetting(
-      Key.SQL_DELETE_ENABLED.getKeyValue(),
-      false,
-      Setting.Property.NodeScope,
-      Setting.Property.Dynamic);
+  public static final Setting<?> SQL_DELETE_ENABLED_SETTING =
+      Setting.boolSetting(
+          Key.SQL_DELETE_ENABLED.getKeyValue(),
+          false,
+          Setting.Property.NodeScope,
+          Setting.Property.Dynamic);
 
-  public static final Setting<?> PPL_ENABLED_SETTING = Setting.boolSetting(
-      Key.PPL_ENABLED.getKeyValue(),
-      LegacyOpenDistroSettings.PPL_ENABLED_SETTING,
-      Setting.Property.NodeScope,
-      Setting.Property.Dynamic);
+  public static final Setting<?> PPL_ENABLED_SETTING =
+      Setting.boolSetting(
+          Key.PPL_ENABLED.getKeyValue(),
+          LegacyOpenDistroSettings.PPL_ENABLED_SETTING,
+          Setting.Property.NodeScope,
+          Setting.Property.Dynamic);
 
-  public static final Setting<?> QUERY_MEMORY_LIMIT_SETTING = new Setting<>(
-      Key.QUERY_MEMORY_LIMIT.getKeyValue(),
-      LegacyOpenDistroSettings.PPL_QUERY_MEMORY_LIMIT_SETTING,
-      (s) -> MemorySizeValue.parseBytesSizeValueOrHeapRatio(
-          s, LegacySettings.Key.PPL_QUERY_MEMORY_LIMIT.getKeyValue()),
-      Setting.Property.NodeScope,
-      Setting.Property.Dynamic);
+  public static final Setting<?> QUERY_MEMORY_LIMIT_SETTING =
+      new Setting<>(
+          Key.QUERY_MEMORY_LIMIT.getKeyValue(),
+          LegacyOpenDistroSettings.PPL_QUERY_MEMORY_LIMIT_SETTING,
+          (s) ->
+              MemorySizeValue.parseBytesSizeValueOrHeapRatio(
+                  s, LegacySettings.Key.PPL_QUERY_MEMORY_LIMIT.getKeyValue()),
+          Setting.Property.NodeScope,
+          Setting.Property.Dynamic);
 
-  public static final Setting<?> QUERY_SIZE_LIMIT_SETTING = Setting.intSetting(
-      Key.QUERY_SIZE_LIMIT.getKeyValue(),
-      LegacyOpenDistroSettings.QUERY_SIZE_LIMIT_SETTING,
-      0,
-      Setting.Property.NodeScope,
-      Setting.Property.Dynamic);
+  public static final Setting<?> QUERY_SIZE_LIMIT_SETTING =
+      Setting.intSetting(
+          Key.QUERY_SIZE_LIMIT.getKeyValue(),
+          LegacyOpenDistroSettings.QUERY_SIZE_LIMIT_SETTING,
+          0,
+          Setting.Property.NodeScope,
+          Setting.Property.Dynamic);
 
-  public static final Setting<?> IGNORE_UNSUPPORTED_PAGINATION_SETTING = Setting.boolSetting(
-      Key.IGNORE_UNSUPPORTED_PAGINATION.getKeyValue(),
-      true,
-      Setting.Property.NodeScope,
-      Setting.Property.Dynamic);
+  public static final Setting<?> IGNORE_UNSUPPORTED_PAGINATION_SETTING =
+      Setting.boolSetting(
+          Key.IGNORE_UNSUPPORTED_PAGINATION.getKeyValue(),
+          true,
+          Setting.Property.NodeScope,
+          Setting.Property.Dynamic);
 
-  public static final Setting<?> METRICS_ROLLING_WINDOW_SETTING = Setting.longSetting(
-      Key.METRICS_ROLLING_WINDOW.getKeyValue(),
-      LegacyOpenDistroSettings.METRICS_ROLLING_WINDOW_SETTING,
-      2L,
-      Setting.Property.NodeScope,
-      Setting.Property.Dynamic);
+  public static final Setting<?> METRICS_ROLLING_WINDOW_SETTING =
+      Setting.longSetting(
+          Key.METRICS_ROLLING_WINDOW.getKeyValue(),
+          LegacyOpenDistroSettings.METRICS_ROLLING_WINDOW_SETTING,
+          2L,
+          Setting.Property.NodeScope,
+          Setting.Property.Dynamic);
 
-  public static final Setting<?> METRICS_ROLLING_INTERVAL_SETTING = Setting.longSetting(
-      Key.METRICS_ROLLING_INTERVAL.getKeyValue(),
-      LegacyOpenDistroSettings.METRICS_ROLLING_INTERVAL_SETTING,
-      1L,
-      Setting.Property.NodeScope,
-      Setting.Property.Dynamic);
+  public static final Setting<?> METRICS_ROLLING_INTERVAL_SETTING =
+      Setting.longSetting(
+          Key.METRICS_ROLLING_INTERVAL.getKeyValue(),
+          LegacyOpenDistroSettings.METRICS_ROLLING_INTERVAL_SETTING,
+          1L,
+          Setting.Property.NodeScope,
+          Setting.Property.Dynamic);
 
   // we are keeping this to not break upgrades if the config is already present.
   // This will be completely removed in 3.0.
-  public static final Setting<InputStream> DATASOURCE_CONFIG = SecureSetting.secureFile(
-      "plugins.query.federation.datasources.config",
-      null,
-      Setting.Property.Deprecated);
+  public static final Setting<InputStream> DATASOURCE_CONFIG =
+      SecureSetting.secureFile(
+          "plugins.query.federation.datasources.config", null, Setting.Property.Deprecated);
 
-  public static final Setting<String> DATASOURCE_MASTER_SECRET_KEY = Setting.simpleString(
-      ENCYRPTION_MASTER_KEY.getKeyValue(),
-      Setting.Property.NodeScope,
-      Setting.Property.Final,
-      Setting.Property.Filtered);
+  public static final Setting<String> DATASOURCE_MASTER_SECRET_KEY =
+      Setting.simpleString(
+          ENCYRPTION_MASTER_KEY.getKeyValue(),
+          Setting.Property.NodeScope,
+          Setting.Property.Final,
+          Setting.Property.Filtered);
 
-  public static final Setting<String> DATASOURCE_URI_ALLOW_HOSTS = Setting.simpleString(
-      Key.DATASOURCES_URI_ALLOWHOSTS.getKeyValue(),
-      ".*",
-      Setting.Property.NodeScope,
-      Setting.Property.Dynamic);
+  public static final Setting<String> DATASOURCE_URI_ALLOW_HOSTS =
+      Setting.simpleString(
+          Key.DATASOURCES_URI_ALLOWHOSTS.getKeyValue(),
+          ".*",
+          Setting.Property.NodeScope,
+          Setting.Property.Dynamic);
 
-  /**
-   * Construct OpenSearchSetting.
-   * The OpenSearchSetting must be singleton.
-   */
+  /** Construct OpenSearchSetting. The OpenSearchSetting must be singleton. */
   @SuppressWarnings("unchecked")
   public OpenSearchSettings(ClusterSettings clusterSettings) {
     ImmutableMap.Builder<Key, Setting<?>> settingBuilder = new ImmutableMap.Builder<>();
-    register(settingBuilder, clusterSettings, Key.SQL_ENABLED,
-        SQL_ENABLED_SETTING, new Updater(Key.SQL_ENABLED));
-    register(settingBuilder, clusterSettings, Key.SQL_SLOWLOG,
-        SQL_SLOWLOG_SETTING, new Updater(Key.SQL_SLOWLOG));
-    register(settingBuilder, clusterSettings, Key.SQL_CURSOR_KEEP_ALIVE,
-        SQL_CURSOR_KEEP_ALIVE_SETTING, new Updater(Key.SQL_CURSOR_KEEP_ALIVE));
-    register(settingBuilder, clusterSettings, Key.SQL_DELETE_ENABLED,
-        SQL_DELETE_ENABLED_SETTING, new Updater(Key.SQL_DELETE_ENABLED));
-    register(settingBuilder, clusterSettings, Key.PPL_ENABLED,
-        PPL_ENABLED_SETTING, new Updater(Key.PPL_ENABLED));
-    register(settingBuilder, clusterSettings, Key.QUERY_MEMORY_LIMIT,
-        QUERY_MEMORY_LIMIT_SETTING, new Updater(Key.QUERY_MEMORY_LIMIT));
-    register(settingBuilder, clusterSettings, Key.QUERY_SIZE_LIMIT,
-        QUERY_SIZE_LIMIT_SETTING, new Updater(Key.QUERY_SIZE_LIMIT));
-    register(settingBuilder, clusterSettings, Key.IGNORE_UNSUPPORTED_PAGINATION,
-        IGNORE_UNSUPPORTED_PAGINATION_SETTING, new Updater(Key.IGNORE_UNSUPPORTED_PAGINATION));
-    register(settingBuilder, clusterSettings, Key.METRICS_ROLLING_WINDOW,
-        METRICS_ROLLING_WINDOW_SETTING, new Updater(Key.METRICS_ROLLING_WINDOW));
-    register(settingBuilder, clusterSettings, Key.METRICS_ROLLING_INTERVAL,
-        METRICS_ROLLING_INTERVAL_SETTING, new Updater(Key.METRICS_ROLLING_INTERVAL));
-    register(settingBuilder, clusterSettings, Key.DATASOURCES_URI_ALLOWHOSTS,
-        DATASOURCE_URI_ALLOW_HOSTS, new Updater(Key.DATASOURCES_URI_ALLOWHOSTS));
-    registerNonDynamicSettings(settingBuilder, clusterSettings, Key.CLUSTER_NAME,
-        ClusterName.CLUSTER_NAME_SETTING);
+    register(
+        settingBuilder,
+        clusterSettings,
+        Key.SQL_ENABLED,
+        SQL_ENABLED_SETTING,
+        new Updater(Key.SQL_ENABLED));
+    register(
+        settingBuilder,
+        clusterSettings,
+        Key.SQL_SLOWLOG,
+        SQL_SLOWLOG_SETTING,
+        new Updater(Key.SQL_SLOWLOG));
+    register(
+        settingBuilder,
+        clusterSettings,
+        Key.SQL_CURSOR_KEEP_ALIVE,
+        SQL_CURSOR_KEEP_ALIVE_SETTING,
+        new Updater(Key.SQL_CURSOR_KEEP_ALIVE));
+    register(
+        settingBuilder,
+        clusterSettings,
+        Key.SQL_DELETE_ENABLED,
+        SQL_DELETE_ENABLED_SETTING,
+        new Updater(Key.SQL_DELETE_ENABLED));
+    register(
+        settingBuilder,
+        clusterSettings,
+        Key.PPL_ENABLED,
+        PPL_ENABLED_SETTING,
+        new Updater(Key.PPL_ENABLED));
+    register(
+        settingBuilder,
+        clusterSettings,
+        Key.QUERY_MEMORY_LIMIT,
+        QUERY_MEMORY_LIMIT_SETTING,
+        new Updater(Key.QUERY_MEMORY_LIMIT));
+    register(
+        settingBuilder,
+        clusterSettings,
+        Key.QUERY_SIZE_LIMIT,
+        QUERY_SIZE_LIMIT_SETTING,
+        new Updater(Key.QUERY_SIZE_LIMIT));
+    register(
+        settingBuilder,
+        clusterSettings,
+        Key.IGNORE_UNSUPPORTED_PAGINATION,
+        IGNORE_UNSUPPORTED_PAGINATION_SETTING,
+        new Updater(Key.IGNORE_UNSUPPORTED_PAGINATION));
+    register(
+        settingBuilder,
+        clusterSettings,
+        Key.METRICS_ROLLING_WINDOW,
+        METRICS_ROLLING_WINDOW_SETTING,
+        new Updater(Key.METRICS_ROLLING_WINDOW));
+    register(
+        settingBuilder,
+        clusterSettings,
+        Key.METRICS_ROLLING_INTERVAL,
+        METRICS_ROLLING_INTERVAL_SETTING,
+        new Updater(Key.METRICS_ROLLING_INTERVAL));
+    register(
+        settingBuilder,
+        clusterSettings,
+        Key.DATASOURCES_URI_ALLOWHOSTS,
+        DATASOURCE_URI_ALLOW_HOSTS,
+        new Updater(Key.DATASOURCES_URI_ALLOWHOSTS));
+    registerNonDynamicSettings(
+        settingBuilder, clusterSettings, Key.CLUSTER_NAME, ClusterName.CLUSTER_NAME_SETTING);
     defaultSettings = settingBuilder.build();
   }
 
@@ -167,36 +214,33 @@ public class OpenSearchSettings extends Settings {
     return (T) latestSettings.getOrDefault(key, defaultSettings.get(key).getDefault(EMPTY));
   }
 
-  /**
-   * Register the pair of {key, setting}.
-   */
-  private void register(ImmutableMap.Builder<Key, Setting<?>> settingBuilder,
-                        ClusterSettings clusterSettings, Settings.Key key,
-                        Setting setting,
-                        Consumer<Object> updater) {
+  /** Register the pair of {key, setting}. */
+  private void register(
+      ImmutableMap.Builder<Key, Setting<?>> settingBuilder,
+      ClusterSettings clusterSettings,
+      Settings.Key key,
+      Setting setting,
+      Consumer<Object> updater) {
     if (clusterSettings.get(setting) != null) {
       latestSettings.put(key, clusterSettings.get(setting));
     }
     settingBuilder.put(key, setting);
-    clusterSettings
-        .addSettingsUpdateConsumer(setting, updater);
+    clusterSettings.addSettingsUpdateConsumer(setting, updater);
   }
 
-  /**
-   * Register Non Dynamic Settings without consumer.
-   */
+  /** Register Non Dynamic Settings without consumer. */
   private void registerNonDynamicSettings(
       ImmutableMap.Builder<Key, Setting<?>> settingBuilder,
-      ClusterSettings clusterSettings, Settings.Key key,
+      ClusterSettings clusterSettings,
+      Settings.Key key,
       Setting setting) {
     settingBuilder.put(key, setting);
     latestSettings.put(key, clusterSettings.get(setting));
   }
 
-
   /**
-   * Add the inner class only for UT coverage purpose.
-   * Lambda could be much elegant solution. But which is hard to test.
+   * Add the inner class only for UT coverage purpose. Lambda could be much elegant solution. But
+   * which is hard to test.
    */
   @VisibleForTesting
   @RequiredArgsConstructor
@@ -210,9 +254,7 @@ public class OpenSearchSettings extends Settings {
     }
   }
 
-  /**
-   * Used by Plugin to init Setting.
-   */
+  /** Used by Plugin to init Setting. */
   public static List<Setting<?>> pluginSettings() {
     return new ImmutableList.Builder<Setting<?>>()
         .add(SQL_ENABLED_SETTING)
@@ -229,9 +271,7 @@ public class OpenSearchSettings extends Settings {
         .build();
   }
 
-  /**
-   * Init Non Dynamic Plugin Settings.
-   */
+  /** Init Non Dynamic Plugin Settings. */
   public static List<Setting<?>> pluginNonDynamicSettings() {
     return new ImmutableList.Builder<Setting<?>>()
         .add(DATASOURCE_MASTER_SECRET_KEY)
@@ -239,9 +279,7 @@ public class OpenSearchSettings extends Settings {
         .build();
   }
 
-  /**
-   * Used by local cluster to get settings from a setting instance.
-   */
+  /** Used by local cluster to get settings from a setting instance. */
   public List<Setting<?>> getSettings() {
     return pluginSettings();
   }
