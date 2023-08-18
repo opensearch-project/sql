@@ -3,7 +3,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-
 package org.opensearch.sql.opensearch.data.value;
 
 import java.util.Objects;
@@ -37,7 +36,8 @@ public class OpenSearchExprGeoPointValue extends AbstractExprValue {
 
   @Override
   public int compare(ExprValue other) {
-    return geoPoint.toString()
+    return geoPoint
+        .toString()
         .compareTo((((OpenSearchExprGeoPointValue) other).geoPoint).toString());
   }
 

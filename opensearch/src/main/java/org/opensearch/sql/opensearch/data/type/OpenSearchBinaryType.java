@@ -3,7 +3,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-
 package org.opensearch.sql.opensearch.data.type;
 
 import static org.opensearch.sql.data.type.ExprCoreType.UNKNOWN;

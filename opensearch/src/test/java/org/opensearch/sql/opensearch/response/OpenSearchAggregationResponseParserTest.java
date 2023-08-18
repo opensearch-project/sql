@@ -3,7 +3,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-
 package org.opensearch.sql.opensearch.response;
 
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -34,24 +33,15 @@ import org.opensearch.sql.opensearch.response.agg.TopHitsParser;
 @DisplayNameGeneration(DisplayNameGenerator.ReplaceUnderscores.class)
 class OpenSearchAggregationResponseParserTest {
 
-  /**
-   * SELECT MAX(age) as max FROM accounts.
-   */
+  /** SELECT MAX(age) as max FROM accounts. */
   @Test
   void no_bucket_one_metric_should_pass() {
-    String response =
-        "{\n"
-            + "  \"max#max\": {\n"
-            + "    \"value\": 40\n"
-            + "  }\n"
-            + "}";
+    String response = "{\n" + "  \"max#max\": {\n" + "    \"value\": 40\n" + "  }\n" + "}";
     NoBucketAggregationParser parser = new NoBucketAggregationParser(new SingleValueParser("max"));
     assertThat(parse(parser, response), contains(entry("max", 40d)));
   }
 
-  /**
-   * SELECT MAX(age) as max, MIN(age) as min FROM accounts.
-   */
+  /** SELECT MAX(age) as max, MIN(age) as min FROM accounts. */
   @Test
   void no_bucket_two_metric_should_pass() {
     String response =
@@ -99,58 +89,59 @@ class OpenSearchAggregationResponseParserTest {
             + "  }\n"
             + "}";
 
-    OpenSearchAggregationResponseParser parser = new CompositeAggregationParser(
-            new SingleValueParser("avg"));
-    assertThat(parse(parser, response),
-        containsInAnyOrder(ImmutableMap.of("type", "cost", "avg", 20d),
+    OpenSearchAggregationResponseParser parser =
+        new CompositeAggregationParser(new SingleValueParser("avg"));
+    assertThat(
+        parse(parser, response),
+        containsInAnyOrder(
+            ImmutableMap.of("type", "cost", "avg", 20d),
             ImmutableMap.of("type", "sale", "avg", 105d)));
   }
 
   @Test
   void two_bucket_one_metric_should_pass() {
-    String response = "{\n"
-        + "  \"composite#composite_buckets\": {\n"
-        + "    \"after_key\": {\n"
-        + "      \"type\": \"sale\",\n"
-        + "      \"region\": \"us\"\n"
-        + "    },\n"
-        + "    \"buckets\": [\n"
-        + "      {\n"
-        + "        \"key\": {\n"
-        + "          \"type\": \"cost\",\n"
-        + "          \"region\": \"us\"\n"
-        + "        },\n"
-        + "        \"avg#avg\": {\n"
-        + "          \"value\": 20\n"
-        + "        }\n"
-        + "      },\n"
-        + "      {\n"
-        + "        \"key\": {\n"
-        + "          \"type\": \"sale\",\n"
-        + "          \"region\": \"uk\"\n"
-        + "        },\n"
-        + "        \"avg#avg\": {\n"
-        + "          \"value\": 130\n"
-        + "        }\n"
-        + "      }\n"
-        + "    ]\n"
-        + "  }\n"
-        + "}";
-    OpenSearchAggregationResponseParser parser = new CompositeAggregationParser(
-        new SingleValueParser("avg"));
-    assertThat(parse(parser, response),
-        containsInAnyOrder(ImmutableMap.of("type", "cost", "region", "us", "avg", 20d),
+    String response =
+        "{\n"
+            + "  \"composite#composite_buckets\": {\n"
+            + "    \"after_key\": {\n"
+            + "      \"type\": \"sale\",\n"
+            + "      \"region\": \"us\"\n"
+            + "    },\n"
+            + "    \"buckets\": [\n"
+            + "      {\n"
+            + "        \"key\": {\n"
+            + "          \"type\": \"cost\",\n"
+            + "          \"region\": \"us\"\n"
+            + "        },\n"
+            + "        \"avg#avg\": {\n"
+            + "          \"value\": 20\n"
+            + "        }\n"
+            + "      },\n"
+            + "      {\n"
+            + "        \"key\": {\n"
+            + "          \"type\": \"sale\",\n"
+            + "          \"region\": \"uk\"\n"
+            + "        },\n"
+            + "        \"avg#avg\": {\n"
+            + "          \"value\": 130\n"
+            + "        }\n"
+            + "      }\n"
+            + "    ]\n"
+            + "  }\n"
+            + "}";
+    OpenSearchAggregationResponseParser parser =
+        new CompositeAggregationParser(new SingleValueParser("avg"));
+    assertThat(
+        parse(parser, response),
+        containsInAnyOrder(
+            ImmutableMap.of("type", "cost", "region", "us", "avg", 20d),
             ImmutableMap.of("type", "sale", "region", "uk", "avg", 130d)));
   }
 
   @Test
   void unsupported_aggregation_should_fail() {
     String response =
-        "{\n"
-            + "  \"date_histogram#date_histogram\": {\n"
-            + "    \"value\": 40\n"
-            + "  }\n"
-            + "}";
+        "{\n" + "  \"date_histogram#date_histogram\": {\n" + "    \"value\": 40\n" + "  }\n" + "}";
     NoBucketAggregationParser parser = new NoBucketAggregationParser(new SingleValueParser("max"));
     RuntimeException exception =
         assertThrows(RuntimeException.class, () -> parse(parser, response));
@@ -167,14 +158,15 @@ class OpenSearchAggregationResponseParserTest {
 
   @Test
   void filter_aggregation_should_pass() {
-    String response = "{\n"
-        +     "    \"filter#filtered\" : {\n"
-        +     "      \"doc_count\" : 3,\n"
-        +     "      \"avg#filtered\" : {\n"
-        +     "        \"value\" : 37.0\n"
-        +     "      }\n"
-        +     "    }\n"
-        +     "  }";
+    String response =
+        "{\n"
+            + "    \"filter#filtered\" : {\n"
+            + "      \"doc_count\" : 3,\n"
+            + "      \"avg#filtered\" : {\n"
+            + "        \"value\" : 37.0\n"
+            + "      }\n"
+            + "    }\n"
+            + "  }";
     OpenSearchAggregationResponseParser parser =
         new NoBucketAggregationParser(
             FilterParser.builder()
@@ -186,132 +178,134 @@ class OpenSearchAggregationResponseParserTest {
 
   @Test
   void filter_aggregation_group_by_should_pass() {
-    String response = "{\n"
-        + "  \"composite#composite_buckets\":{\n"
-        + "    \"after_key\":{\n"
-        + "      \"gender\":\"m\"\n"
-        + "    },\n"
-        + "    \"buckets\":[\n"
-        + "      {\n"
-        + "        \"key\":{\n"
-        + "          \"gender\":\"f\"\n"
-        + "        },\n"
-        + "        \"doc_count\":3,\n"
-        + "        \"filter#filter\":{\n"
-        + "          \"doc_count\":1,\n"
-        + "          \"avg#avg\":{\n"
-        + "            \"value\":39.0\n"
-        + "          }\n"
-        + "        }\n"
-        + "      },\n"
-        + "      {\n"
-        + "        \"key\":{\n"
-        + "          \"gender\":\"m\"\n"
-        + "        },\n"
-        + "        \"doc_count\":4,\n"
-        + "        \"filter#filter\":{\n"
-        + "          \"doc_count\":2,\n"
-        + "          \"avg#avg\":{\n"
-        + "            \"value\":36.0\n"
-        + "          }\n"
-        + "        }\n"
-        + "      }\n"
-        + "    ]\n"
-        + "  }\n"
-        + "}";
-    OpenSearchAggregationResponseParser parser = new CompositeAggregationParser(
-        FilterParser.builder()
-            .name("filter")
-            .metricsParser(new SingleValueParser("avg"))
-            .build()
-    );
-    assertThat(parse(parser, response), containsInAnyOrder(
-        entry("gender", "f", "avg", 39.0),
-        entry("gender", "m", "avg", 36.0)));
+    String response =
+        "{\n"
+            + "  \"composite#composite_buckets\":{\n"
+            + "    \"after_key\":{\n"
+            + "      \"gender\":\"m\"\n"
+            + "    },\n"
+            + "    \"buckets\":[\n"
+            + "      {\n"
+            + "        \"key\":{\n"
+            + "          \"gender\":\"f\"\n"
+            + "        },\n"
+            + "        \"doc_count\":3,\n"
+            + "        \"filter#filter\":{\n"
+            + "          \"doc_count\":1,\n"
+            + "          \"avg#avg\":{\n"
+            + "            \"value\":39.0\n"
+            + "          }\n"
+            + "        }\n"
+            + "      },\n"
+            + "      {\n"
+            + "        \"key\":{\n"
+            + "          \"gender\":\"m\"\n"
+            + "        },\n"
+            + "        \"doc_count\":4,\n"
+            + "        \"filter#filter\":{\n"
+            + "          \"doc_count\":2,\n"
+            + "          \"avg#avg\":{\n"
+            + "            \"value\":36.0\n"
+            + "          }\n"
+            + "        }\n"
+            + "      }\n"
+            + "    ]\n"
+            + "  }\n"
+            + "}";
+    OpenSearchAggregationResponseParser parser =
+        new CompositeAggregationParser(
+            FilterParser.builder()
+                .name("filter")
+                .metricsParser(new SingleValueParser("avg"))
+                .build());
+    assertThat(
+        parse(parser, response),
+        containsInAnyOrder(entry("gender", "f", "avg", 39.0), entry("gender", "m", "avg", 36.0)));
   }
 
-  /**
-   * SELECT MAX(age) as max, STDDEV(age) as min FROM accounts.
-   */
+  /** SELECT MAX(age) as max, STDDEV(age) as min FROM accounts. */
   @Test
   void no_bucket_max_and_extended_stats() {
-    String response = "{\n"
-        + "  \"extended_stats#esField\": {\n"
-        + "    \"count\": 2033,\n"
-        + "    \"min\": 0,\n"
-        + "    \"max\": 360,\n"
-        + "    \"avg\": 45.47958681751107,\n"
-        + "    \"sum\": 92460,\n"
-        + "    \"sum_of_squares\": 22059450,\n"
-        + "    \"variance\": 8782.295820390027,\n"
-        + "    \"variance_population\": 8782.295820390027,\n"
-        + "    \"variance_sampling\": 8786.61781636463,\n"
-        + "    \"std_deviation\": 93.71390409320287,\n"
-        + "    \"std_deviation_population\": 93.71390409320287,\n"
-        + "    \"std_deviation_sampling\": 93.73696078049805,\n"
-        + "    \"std_deviation_bounds\": {\n"
-        + "      \"upper\": 232.9073950039168,\n"
-        + "      \"lower\": -141.94822136889468,\n"
-        + "      \"upper_population\": 232.9073950039168,\n"
-        + "      \"lower_population\": -141.94822136889468,\n"
-        + "      \"upper_sampling\": 232.95350837850717,\n"
-        + "      \"lower_sampling\": -141.99433474348504\n"
-        + "    }\n"
-        + "  },\n"
-        + "  \"max#maxField\": {\n"
-        + "    \"value\": 360\n"
-        + "  }\n"
-        + "}";
+    String response =
+        "{\n"
+            + "  \"extended_stats#esField\": {\n"
+            + "    \"count\": 2033,\n"
+            + "    \"min\": 0,\n"
+            + "    \"max\": 360,\n"
+            + "    \"avg\": 45.47958681751107,\n"
+            + "    \"sum\": 92460,\n"
+            + "    \"sum_of_squares\": 22059450,\n"
+            + "    \"variance\": 8782.295820390027,\n"
+            + "    \"variance_population\": 8782.295820390027,\n"
+            + "    \"variance_sampling\": 8786.61781636463,\n"
+            + "    \"std_deviation\": 93.71390409320287,\n"
+            + "    \"std_deviation_population\": 93.71390409320287,\n"
+            + "    \"std_deviation_sampling\": 93.73696078049805,\n"
+            + "    \"std_deviation_bounds\": {\n"
+            + "      \"upper\": 232.9073950039168,\n"
+            + "      \"lower\": -141.94822136889468,\n"
+            + "      \"upper_population\": 232.9073950039168,\n"
+            + "      \"lower_population\": -141.94822136889468,\n"
+            + "      \"upper_sampling\": 232.95350837850717,\n"
+            + "      \"lower_sampling\": -141.99433474348504\n"
+            + "    }\n"
+            + "  },\n"
+            + "  \"max#maxField\": {\n"
+            + "    \"value\": 360\n"
+            + "  }\n"
+            + "}";
 
-    NoBucketAggregationParser parser = new NoBucketAggregationParser(
-        new SingleValueParser("maxField"),
-        new StatsParser(ExtendedStats::getStdDeviation, "esField")
-    );
-    assertThat(parse(parser, response),
-        contains(entry("esField", 93.71390409320287, "maxField", 360D)));
+    NoBucketAggregationParser parser =
+        new NoBucketAggregationParser(
+            new SingleValueParser("maxField"),
+            new StatsParser(ExtendedStats::getStdDeviation, "esField"));
+    assertThat(
+        parse(parser, response), contains(entry("esField", 93.71390409320287, "maxField", 360D)));
   }
 
   @Test
   void top_hits_aggregation_should_pass() {
-    String response = "{\n"
-        + "  \"composite#composite_buckets\": {\n"
-        + "    \"buckets\": [\n"
-        + "      {\n"
-        + "        \"key\": {\n"
-        + "          \"type\": \"take\"\n"
-        + "        },\n"
-        + "        \"doc_count\": 2,\n"
-        + "        \"top_hits#take\": {\n"
-        + "          \"hits\": {\n"
-        + "            \"total\": { \"value\": 2, \"relation\": \"eq\" },\n"
-        + "            \"max_score\": 1.0,\n"
-        + "            \"hits\": [\n"
-        + "              {\n"
-        + "                \"_index\": \"accounts\",\n"
-        + "                \"_id\": \"1\",\n"
-        + "                \"_score\": 1.0,\n"
-        + "                \"_source\": {\n"
-        + "                  \"gender\": \"m\"\n"
-        + "                }\n"
-        + "              },\n"
-        + "              {\n"
-        + "                \"_index\": \"accounts\",\n"
-        + "                \"_id\": \"2\",\n"
-        + "                \"_score\": 1.0,\n"
-        + "                \"_source\": {\n"
-        + "                  \"gender\": \"f\"\n"
-        + "                }\n"
-        + "              }\n"
-        + "            ]\n"
-        + "          }\n"
-        + "        }\n"
-        + "      }\n"
-        + "    ]\n"
-        + "  }\n"
-        + "}";
+    String response =
+        "{\n"
+            + "  \"composite#composite_buckets\": {\n"
+            + "    \"buckets\": [\n"
+            + "      {\n"
+            + "        \"key\": {\n"
+            + "          \"type\": \"take\"\n"
+            + "        },\n"
+            + "        \"doc_count\": 2,\n"
+            + "        \"top_hits#take\": {\n"
+            + "          \"hits\": {\n"
+            + "            \"total\": { \"value\": 2, \"relation\": \"eq\" },\n"
+            + "            \"max_score\": 1.0,\n"
+            + "            \"hits\": [\n"
+            + "              {\n"
+            + "                \"_index\": \"accounts\",\n"
+            + "                \"_id\": \"1\",\n"
+            + "                \"_score\": 1.0,\n"
+            + "                \"_source\": {\n"
+            + "                  \"gender\": \"m\"\n"
+            + "                }\n"
+            + "              },\n"
+            + "              {\n"
+            + "                \"_index\": \"accounts\",\n"
+            + "                \"_id\": \"2\",\n"
+            + "                \"_score\": 1.0,\n"
+            + "                \"_source\": {\n"
+            + "                  \"gender\": \"f\"\n"
+            + "                }\n"
+            + "              }\n"
+            + "            ]\n"
+            + "          }\n"
+            + "        }\n"
+            + "      }\n"
+            + "    ]\n"
+            + "  }\n"
+            + "}";
     OpenSearchAggregationResponseParser parser =
         new CompositeAggregationParser(new TopHitsParser("take"));
-    assertThat(parse(parser, response),
+    assertThat(
+        parse(parser, response),
         contains(ImmutableMap.of("type", "take", "take", ImmutableList.of("m", "f"))));
   }
 
