@@ -412,8 +412,7 @@ class OpenSearchExprValueFactoryTest {
         assertThrows(
             IllegalArgumentException.class, () -> constructFromObject("timeV", "2015-01-01"));
     assertEquals(
-        "Construct TIME from \"2015-01-01\" failed, unsupported format.",
-        exception.getMessage());
+        "Construct TIME from \"2015-01-01\" failed, unsupported format.", exception.getMessage());
 
     exception =
         assertThrows(
@@ -428,14 +427,12 @@ class OpenSearchExprValueFactoryTest {
         assertThrows(
             IllegalArgumentException.class, () -> constructFromObject("dateV", "12:10:10"));
     assertEquals(
-        "Construct DATE from \"12:10:10\" failed, unsupported format.",
-        exception.getMessage());
+        "Construct DATE from \"12:10:10\" failed, unsupported format.", exception.getMessage());
 
     exception =
         assertThrows(
             IllegalArgumentException.class, () -> constructFromObject("dateStringV", "abc"));
-    assertEquals(
-        "Construct DATE from \"abc\" failed, unsupported format.", exception.getMessage());
+    assertEquals("Construct DATE from \"abc\" failed, unsupported format.", exception.getMessage());
   }
 
   @Test
@@ -481,23 +478,20 @@ class OpenSearchExprValueFactoryTest {
     assertEquals(
         new ExprCollectionValue(
             List.of(collectionValue(List.of("zz", "au")), collectionValue(List.of("ss")))),
-        tupleValueWithArraySupport("{\"stringV\":[ [\"zz\", \"au\"], [\"ss\"] ]}")
-            .get("stringV"));
+        tupleValueWithArraySupport("{\"stringV\":[ [\"zz\", \"au\"], [\"ss\"] ]}").get("stringV"));
   }
 
   @Test
   public void constructNestedArraysOfStringsReturnsFirstIndex() {
     assertEquals(
-        stringValue("zz"),
-        tupleValue("{\"stringV\":[[\"zz\", \"au\"],[\"ss\"]]}").get("stringV"));
+        stringValue("zz"), tupleValue("{\"stringV\":[[\"zz\", \"au\"],[\"ss\"]]}").get("stringV"));
   }
 
   @Test
   public void constructMultiNestedArraysOfStringsReturnsFirstIndex() {
     assertEquals(
         stringValue("z"),
-        tupleValue("{\"stringV\":" + "[\"z\",[\"s\"],[\"zz\", \"au\"]]}")
-            .get("stringV"));
+        tupleValue("{\"stringV\":" + "[\"z\",[\"s\"],[\"zz\", \"au\"]]}").get("stringV"));
   }
 
   @Test
