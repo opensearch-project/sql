@@ -107,6 +107,6 @@ public class OpenSearchQueryRequest implements OpenSearchRequest {
   @Override
   public void writeTo(StreamOutput out) throws IOException {
     throw new UnsupportedOperationException(
-        "OpenSearchQueryRequest serialization " + "is not implemented.");
+        "OpenSearchQueryRequest serialization is not implemented.");
   }
 }
