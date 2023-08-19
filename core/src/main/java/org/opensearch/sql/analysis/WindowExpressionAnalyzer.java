@@ -32,7 +32,7 @@ import org.opensearch.sql.planner.logical.LogicalWindow;
  * operator.
  */
 @RequiredArgsConstructor
-public class WindowExpressionAnalyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> {
+public class WindowExpressionAnalyzer implements AbstractNodeVisitor<LogicalPlan, AnalysisContext> {
 
   /** Expression analyzer. */
   private final ExpressionAnalyzer expressionAnalyzer;

@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-package org.opensearch.sql.analysis;
+package org.opensearch.sql.opensearch.analysis;
 
 import static org.opensearch.sql.data.type.ExprCoreType.STRING;
 
@@ -12,10 +12,10 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import lombok.RequiredArgsConstructor;
-import org.opensearch.sql.ast.AbstractNodeVisitor;
+import org.opensearch.sql.analysis.AnalysisContext;
+import org.opensearch.sql.analysis.ExpressionAnalyzer;
 import org.opensearch.sql.ast.expression.Alias;
 import org.opensearch.sql.ast.expression.Function;
-import org.opensearch.sql.ast.expression.NestedAllTupleFields;
 import org.opensearch.sql.ast.expression.QualifiedName;
 import org.opensearch.sql.ast.expression.UnresolvedExpression;
 import org.opensearch.sql.expression.Expression;
@@ -23,14 +23,15 @@ import org.opensearch.sql.expression.FunctionExpression;
 import org.opensearch.sql.expression.NamedExpression;
 import org.opensearch.sql.expression.ReferenceExpression;
 import org.opensearch.sql.expression.function.BuiltinFunctionName;
-import org.opensearch.sql.planner.logical.LogicalNested;
+import org.opensearch.sql.opensearch.ast.expression.NestedAllTupleFields;
+import org.opensearch.sql.opensearch.ast.logical.LogicalNested;
 import org.opensearch.sql.planner.logical.LogicalPlan;
 
 /**
  * Analyze the Nested Function in the {@link AnalysisContext} to construct the {@link LogicalPlan}.
  */
 @RequiredArgsConstructor
-public class NestedAnalyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> {
+public class NestedAnalyzer implements OpenSearchAbstractNodeVisitor<LogicalPlan, AnalysisContext> {
   private final List<NamedExpression> namedExpressions;
   private final ExpressionAnalyzer expressionAnalyzer;
   private final LogicalPlan child;
@@ -94,7 +95,7 @@ public class NestedAnalyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisCon
                 generatePath(nestedField.toString()));
       }
 
-      return mergeChildIfLogicalNested(new ArrayList<>(Arrays.asList(args)));
+      return mergeChildIfLogicalNested(List.of(args));
     }
     return null;
   }

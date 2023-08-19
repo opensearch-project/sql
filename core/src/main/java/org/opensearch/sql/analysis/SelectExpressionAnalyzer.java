@@ -18,8 +18,6 @@ import org.opensearch.sql.ast.AbstractNodeVisitor;
 import org.opensearch.sql.ast.expression.Alias;
 import org.opensearch.sql.ast.expression.AllFields;
 import org.opensearch.sql.ast.expression.Field;
-import org.opensearch.sql.ast.expression.Function;
-import org.opensearch.sql.ast.expression.NestedAllTupleFields;
 import org.opensearch.sql.ast.expression.QualifiedName;
 import org.opensearch.sql.ast.expression.UnresolvedExpression;
 import org.opensearch.sql.data.type.ExprType;
@@ -34,8 +32,8 @@ import org.opensearch.sql.expression.ReferenceExpression;
  */
 @RequiredArgsConstructor
 public class SelectExpressionAnalyzer
-    extends AbstractNodeVisitor<List<NamedExpression>, AnalysisContext> {
-  private final ExpressionAnalyzer expressionAnalyzer;
+    implements AbstractNodeVisitor<List<NamedExpression>, AnalysisContext> {
+  protected final ExpressionAnalyzer expressionAnalyzer;
 
   private ExpressionReferenceOptimizer optimizer;
 
@@ -59,11 +57,6 @@ public class SelectExpressionAnalyzer
 
   @Override
   public List<NamedExpression> visitAlias(Alias node, AnalysisContext context) {
-    // Expand all nested fields if used in SELECT clause
-    if (node.getDelegated() instanceof NestedAllTupleFields) {
-      return node.getDelegated().accept(this, context);
-    }
-
     Expression expr = referenceIfSymbolDefined(node, context);
     return Collections.singletonList(
         DSL.named(unqualifiedNameIfFieldOnly(node, context), expr, node.getAlias()));
@@ -102,30 +95,6 @@ public class SelectExpressionAnalyzer
             entry ->
                 DSL.named(
                     entry.getKey(), new ReferenceExpression(entry.getKey(), entry.getValue())))
-        .collect(Collectors.toList());
-  }
-
-  @Override
-  public List<NamedExpression> visitNestedAllTupleFields(
-      NestedAllTupleFields node, AnalysisContext context) {
-    TypeEnvironment environment = context.peek();
-    Map<String, ExprType> lookupAllTupleFields =
-        environment.lookupAllTupleFields(Namespace.FIELD_NAME);
-    environment.resolve(new Symbol(Namespace.FIELD_NAME, node.getPath()));
-
-    // Match all fields with same path as used in nested function.
-    Pattern p = Pattern.compile(node.getPath() + "\\.[^\\.]+$");
-    return lookupAllTupleFields.entrySet().stream()
-        .filter(field -> p.matcher(field.getKey()).find())
-        .map(
-            entry -> {
-              Expression nestedFunc =
-                  new Function(
-                          "nested",
-                          List.of(new QualifiedName(List.of(entry.getKey().split("\\.")))))
-                      .accept(expressionAnalyzer, context);
-              return DSL.named("nested(" + entry.getKey() + ")", nestedFunc);
-            })
         .collect(Collectors.toList());
   }
 

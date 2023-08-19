@@ -18,14 +18,12 @@ import org.opensearch.sql.ast.expression.Compare;
 import org.opensearch.sql.ast.expression.EqualTo;
 import org.opensearch.sql.ast.expression.Field;
 import org.opensearch.sql.ast.expression.Function;
-import org.opensearch.sql.ast.expression.HighlightFunction;
 import org.opensearch.sql.ast.expression.In;
 import org.opensearch.sql.ast.expression.Interval;
 import org.opensearch.sql.ast.expression.Literal;
 import org.opensearch.sql.ast.expression.Not;
 import org.opensearch.sql.ast.expression.Or;
 import org.opensearch.sql.ast.expression.QualifiedName;
-import org.opensearch.sql.ast.expression.RelevanceFieldList;
 import org.opensearch.sql.ast.expression.UnresolvedArgument;
 import org.opensearch.sql.ast.expression.UnresolvedAttribute;
 import org.opensearch.sql.ast.expression.When;
@@ -63,7 +61,7 @@ import org.opensearch.sql.expression.function.BuiltinFunctionName;
  * V2 also requires that the table being queried should be an OpenSearch index.<br>
  * See PaginatedPlanCache.canConvertToCursor for usage.
  */
-public class CanPaginateVisitor extends AbstractNodeVisitor<Boolean, Object> {
+public class CanPaginateVisitor implements AbstractNodeVisitor<Boolean, Object> {
 
   @Override
   public Boolean visitRelation(Relation node, Object context) {
@@ -83,14 +81,9 @@ public class CanPaginateVisitor extends AbstractNodeVisitor<Boolean, Object> {
     return Boolean.TRUE;
   }
 
-  // Only column references in ORDER BY clause are supported in pagination,
-  // because expressions can't be pushed down due to #1471.
-  // https://github.com/opensearch-project/sql/issues/1471
   @Override
   public Boolean visitSort(Sort node, Object context) {
-    return node.getSortList().stream()
-            .allMatch(f -> f.getField() instanceof QualifiedName && visitField(f, context))
-        && canPaginate(node, context);
+    return canPaginate(node, context);
   }
 
   // For queries with WHERE clause:
@@ -149,11 +142,6 @@ public class CanPaginateVisitor extends AbstractNodeVisitor<Boolean, Object> {
   }
 
   @Override
-  public Boolean visitRelevanceFieldList(RelevanceFieldList node, Object context) {
-    return canPaginate(node, context);
-  }
-
-  @Override
   public Boolean visitInterval(Interval node, Object context) {
     return canPaginate(node, context);
   }
@@ -190,11 +178,6 @@ public class CanPaginateVisitor extends AbstractNodeVisitor<Boolean, Object> {
 
   @Override
   public Boolean visitFunction(Function node, Object context) {
-    // https://github.com/opensearch-project/sql/issues/1718
-    if (node.getFuncName()
-        .equalsIgnoreCase(BuiltinFunctionName.NESTED.getName().getFunctionName())) {
-      return Boolean.FALSE;
-    }
     return canPaginate(node, context);
   }
 
@@ -222,11 +205,6 @@ public class CanPaginateVisitor extends AbstractNodeVisitor<Boolean, Object> {
   @Override
   public Boolean visitCast(Cast node, Object context) {
     return canPaginate(node, context) && node.getConvertedType().accept(this, context);
-  }
-
-  @Override
-  public Boolean visitHighlightFunction(HighlightFunction node, Object context) {
-    return canPaginate(node, context);
   }
 
   @Override

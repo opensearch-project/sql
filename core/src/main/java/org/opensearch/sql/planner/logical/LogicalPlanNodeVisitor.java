@@ -40,10 +40,6 @@ public abstract class LogicalPlanNodeVisitor<R, C> {
     return visitNode(plan, context);
   }
 
-  public R visitHighlight(LogicalHighlight plan, C context) {
-    return visitNode(plan, context);
-  }
-
   public R visitAggregation(LogicalAggregation plan, C context) {
     return visitNode(plan, context);
   }
@@ -69,10 +65,6 @@ public abstract class LogicalPlanNodeVisitor<R, C> {
   }
 
   public R visitEval(LogicalEval plan, C context) {
-    return visitNode(plan, context);
-  }
-
-  public R visitNested(LogicalNested plan, C context) {
     return visitNode(plan, context);
   }
 

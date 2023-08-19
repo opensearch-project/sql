@@ -32,6 +32,7 @@ import org.opensearch.sql.DataSourceSchemaName;
 import org.opensearch.sql.analysis.symbol.Namespace;
 import org.opensearch.sql.analysis.symbol.Symbol;
 import org.opensearch.sql.ast.AbstractNodeVisitor;
+import org.opensearch.sql.ast.Node;
 import org.opensearch.sql.ast.expression.Argument;
 import org.opensearch.sql.ast.expression.Field;
 import org.opensearch.sql.ast.expression.Let;
@@ -108,28 +109,43 @@ import org.opensearch.sql.utils.ParseUtils;
  * Analyze the {@link UnresolvedPlan} in the {@link AnalysisContext} to construct the {@link
  * LogicalPlan}.
  */
-public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> {
+// TODO make Analyzer abstract, don't create it
+public class Analyzer implements AbstractNodeVisitor<LogicalPlan, AnalysisContext> {
 
-  private final ExpressionAnalyzer expressionAnalyzer;
+  protected final ExpressionAnalyzer expressionAnalyzer;
 
-  private final SelectExpressionAnalyzer selectExpressionAnalyzer;
+  protected final SelectExpressionAnalyzer selectExpressionAnalyzer;
 
-  private final NamedExpressionAnalyzer namedExpressionAnalyzer;
+  protected final NamedExpressionAnalyzer namedExpressionAnalyzer;
 
-  private final DataSourceService dataSourceService;
+  protected final DataSourceService dataSourceService;
 
-  private final BuiltinFunctionRepository repository;
+  protected final BuiltinFunctionRepository repository;
+
+  protected Analyzer(
+      ExpressionAnalyzer expressionAnalyzer,
+      SelectExpressionAnalyzer selectExpressionAnalyzer,
+      NamedExpressionAnalyzer namedExpressionAnalyzer,
+      DataSourceService dataSourceService,
+      BuiltinFunctionRepository repository) {
+    this.expressionAnalyzer = expressionAnalyzer;
+    this.selectExpressionAnalyzer = selectExpressionAnalyzer;
+    this.namedExpressionAnalyzer = namedExpressionAnalyzer;
+    this.dataSourceService = dataSourceService;
+    this.repository = repository;
+  }
 
   /** Constructor. */
   public Analyzer(
       ExpressionAnalyzer expressionAnalyzer,
       DataSourceService dataSourceService,
       BuiltinFunctionRepository repository) {
-    this.expressionAnalyzer = expressionAnalyzer;
-    this.dataSourceService = dataSourceService;
-    this.selectExpressionAnalyzer = new SelectExpressionAnalyzer(expressionAnalyzer);
-    this.namedExpressionAnalyzer = new NamedExpressionAnalyzer(expressionAnalyzer);
-    this.repository = repository;
+    this(
+        expressionAnalyzer,
+        new SelectExpressionAnalyzer(expressionAnalyzer),
+        new NamedExpressionAnalyzer(expressionAnalyzer),
+        dataSourceService,
+        repository);
   }
 
   public LogicalPlan analyze(UnresolvedPlan unresolved, AnalysisContext context) {
@@ -240,28 +256,6 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
         new ExpressionReferenceOptimizer(expressionAnalyzer.getRepository(), child);
     Expression optimized = optimizer.optimize(condition, context);
     return new LogicalFilter(child, optimized);
-  }
-
-  /**
-   * Ensure NESTED function is not used in GROUP BY, and HAVING clauses. Fallback to legacy engine.
-   * Can remove when support is added for NESTED function in WHERE, GROUP BY, ORDER BY, and HAVING
-   * clauses.
-   *
-   * @param condition : Filter condition
-   */
-  private void verifySupportsCondition(Expression condition) {
-    if (condition instanceof FunctionExpression) {
-      if (((FunctionExpression) condition)
-          .getFunctionName()
-          .getFunctionName()
-          .equalsIgnoreCase(BuiltinFunctionName.NESTED.name())) {
-        throw new SyntaxCheckException(
-            "Falling back to legacy engine. Nested function is not supported in WHERE,"
-                + " GROUP BY, and HAVING clauses.");
-      }
-      ((FunctionExpression) condition)
-          .getArguments().stream().forEach(e -> verifySupportsCondition(e));
-    }
   }
 
   /** Build {@link LogicalRename}. */
@@ -389,30 +383,13 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
       }
     }
 
-    // For each unresolved window function, analyze it by "insert" a window and sort operator
-    // between project and its child.
-    for (UnresolvedExpression expr : node.getProjectList()) {
-      WindowExpressionAnalyzer windowAnalyzer =
-          new WindowExpressionAnalyzer(expressionAnalyzer, child);
-      child = windowAnalyzer.analyze(expr, context);
-    }
-
-    for (UnresolvedExpression expr : node.getProjectList()) {
-      HighlightAnalyzer highlightAnalyzer = new HighlightAnalyzer(expressionAnalyzer, child);
-      child = highlightAnalyzer.analyze(expr, context);
-    }
-
     List<NamedExpression> namedExpressions =
         selectExpressionAnalyzer.analyze(
             node.getProjectList(),
             context,
             new ExpressionReferenceOptimizer(expressionAnalyzer.getRepository(), child));
 
-    for (UnresolvedExpression expr : node.getProjectList()) {
-      NestedAnalyzer nestedAnalyzer =
-          new NestedAnalyzer(namedExpressions, expressionAnalyzer, child);
-      child = nestedAnalyzer.analyze(expr, context);
-    }
+    child = visitProjectList(node.getProjectList(), namedExpressions, child, context);
 
     // new context
     context.push();
@@ -422,6 +399,20 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
             newEnv.define(new Symbol(Namespace.FIELD_NAME, expr.getNameOrAlias()), expr.type()));
     List<NamedExpression> namedParseExpressions = context.getNamedParseExpressions();
     return new LogicalProject(child, namedExpressions, namedParseExpressions);
+  }
+
+  @Override
+  public LogicalPlan visitProjectList(
+      List<UnresolvedExpression> columns, List<NamedExpression> namedExpressions, LogicalPlan child, AnalysisContext context) {
+
+    // For each unresolved window function, analyze it by "insert" a window and sort operator
+    // between project and its child.
+    for (UnresolvedExpression expr : columns) {
+      WindowExpressionAnalyzer windowAnalyzer =
+          new WindowExpressionAnalyzer(expressionAnalyzer, child);
+      child = windowAnalyzer.analyze(expr, context);
+    }
+    return child;
   }
 
   /** Build {@link LogicalEval}. */
@@ -602,5 +593,24 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
       return new SortOption((asc ? ASC : DESC), (isNullFirst ? NULL_FIRST : NULL_LAST));
     }
     return asc ? SortOption.DEFAULT_ASC : SortOption.DEFAULT_DESC;
+  }
+
+  @Override
+  public LogicalPlan visit(Node node, AnalysisContext context) {
+    for (var metadata : dataSourceService.getDataSourceMetadata(true)) {
+      var analyzer = dataSourceService
+          .getDataSource(metadata.getName())
+          .getStorageEngine()
+          .getAnalyzer(dataSourceService, repository);
+      if (analyzer == null) {
+        continue;
+      }
+      var res = node.accept(analyzer, context);
+      if (res != null) {
+        return res;
+      }
+    }
+    throw new SemanticCheckException(String.format("Unknown node: %s", node));
+    //return null;
   }
 }

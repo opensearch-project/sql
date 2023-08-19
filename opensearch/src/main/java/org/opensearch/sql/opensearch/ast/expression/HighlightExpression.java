@@ -3,10 +3,11 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-package org.opensearch.sql.expression;
+package org.opensearch.sql.opensearch.ast.expression;
 
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -17,12 +18,15 @@ import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.data.model.ExprValueUtils;
 import org.opensearch.sql.data.type.ExprCoreType;
 import org.opensearch.sql.data.type.ExprType;
+import org.opensearch.sql.expression.DSL;
+import org.opensearch.sql.expression.Expression;
 import org.opensearch.sql.expression.env.Environment;
 import org.opensearch.sql.expression.function.BuiltinFunctionName;
+import org.opensearch.sql.opensearch.analysis.OpenSearchExpressionNodeVisitor;
 
 /** Highlight Expression. */
 @Getter
-public class HighlightExpression extends FunctionExpression {
+public class HighlightExpression extends OpenSearchFunctionExpression {
   private final Expression highlightField;
   private final ExprType type;
 
@@ -47,7 +51,7 @@ public class HighlightExpression extends FunctionExpression {
   @Override
   public ExprValue valueOf(Environment<Expression, ExprValue> valueEnv) {
     String refName = "_highlight";
-    // Not a wilcard expression
+    // Not a wildcard expression
     if (this.type == ExprCoreType.ARRAY) {
       refName += "." + StringUtils.unquoteText(getHighlightField().toString());
     }
@@ -59,13 +63,13 @@ public class HighlightExpression extends FunctionExpression {
     if (this.type == ExprCoreType.STRUCT && value.type() == ExprCoreType.STRUCT) {
       value =
           new ExprTupleValue(
-              new LinkedHashMap<String, ExprValue>(
+              new LinkedHashMap<>(
                   value.tupleValue().entrySet().stream()
                       .filter(
                           s ->
                               matchesHighlightRegex(
                                   s.getKey(), StringUtils.unquoteText(highlightField.toString())))
-                      .collect(Collectors.toMap(e -> e.getKey(), e -> e.getValue()))));
+                      .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue))));
       if (value.tupleValue().isEmpty()) {
         value = ExprValueUtils.missingValue();
       }
@@ -85,7 +89,7 @@ public class HighlightExpression extends FunctionExpression {
   }
 
   @Override
-  public <T, C> T accept(ExpressionNodeVisitor<T, C> visitor, C context) {
+  public <T, C> T accept(OpenSearchExpressionNodeVisitor<T, C> visitor, C context) {
     return visitor.visitHighlight(this, context);
   }
 

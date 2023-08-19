@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-package org.opensearch.sql.planner.physical;
+package org.opensearch.sql.opensearch.ast.physical;
 
 import static java.util.stream.Collectors.mapping;
 import static java.util.stream.Collectors.toList;
@@ -25,6 +25,7 @@ import org.opensearch.sql.data.model.ExprNullValue;
 import org.opensearch.sql.data.model.ExprTupleValue;
 import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.expression.ReferenceExpression;
+import org.opensearch.sql.planner.physical.PhysicalPlan;
 
 /**
  * The NestedOperator evaluates the {@link NestedOperator#fields} and generates {@link
@@ -32,7 +33,7 @@ import org.opensearch.sql.expression.ReferenceExpression;
  * nested fields with differing paths will result in a cartesian product(inner join).
  */
 @EqualsAndHashCode(callSuper = false)
-public class NestedOperator extends PhysicalPlan {
+public class NestedOperator extends OpenSearchPhysicalPlan {
   @Getter private final PhysicalPlan input;
   @Getter private final Set<String> fields; // Needs to be a Set to match legacy implementation
   @Getter private final Map<String, List<String>> groupedPathsAndFields;
@@ -74,7 +75,7 @@ public class NestedOperator extends PhysicalPlan {
   }
 
   @Override
-  public <R, C> R accept(PhysicalPlanNodeVisitor<R, C> visitor, C context) {
+  public <R, C> R accept(OpenSearchPhysicalPlanNodeVisitor<R, C> visitor, C context) {
     return visitor.visitNested(this, context);
   }
 

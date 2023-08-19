@@ -503,6 +503,7 @@ public class AstExpressionBuilder extends OpenSearchSQLParserBaseVisitor<Unresol
    * @param ctx the parse tree
    * @return children
    */
+  @Override
   public UnresolvedExpression visitScoreRelevanceFunction(ScoreRelevanceFunctionContext ctx) {
     Literal weight =
         ctx.weight == null

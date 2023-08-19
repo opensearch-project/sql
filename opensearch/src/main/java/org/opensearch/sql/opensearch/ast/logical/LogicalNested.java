@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-package org.opensearch.sql.planner.logical;
+package org.opensearch.sql.opensearch.ast.logical;
 
 import java.util.Collections;
 import java.util.List;
@@ -13,13 +13,14 @@ import lombok.Getter;
 import lombok.ToString;
 import org.opensearch.sql.expression.NamedExpression;
 import org.opensearch.sql.expression.ReferenceExpression;
+import org.opensearch.sql.planner.logical.LogicalPlan;
 
 /** Logical Nested plan. */
 @EqualsAndHashCode(callSuper = true)
 @Getter
 @ToString
-public class LogicalNested extends LogicalPlan {
-  private List<Map<String, ReferenceExpression>> fields;
+public class LogicalNested extends OpenSearchLogicalPlan {
+  private final List<Map<String, ReferenceExpression>> fields;
   private final List<NamedExpression> projectList;
 
   /** Constructor of LogicalNested. */
@@ -37,7 +38,7 @@ public class LogicalNested extends LogicalPlan {
   }
 
   @Override
-  public <R, C> R accept(LogicalPlanNodeVisitor<R, C> visitor, C context) {
+  public <R, C> R accept(OpenSearchLogicalPlanNodeVisitor<R, C> visitor, C context) {
     return visitor.visitNested(this, context);
   }
 }

@@ -57,7 +57,7 @@ import org.opensearch.sql.planner.logical.LogicalSort;
 /**
  * Utility class to mask sensitive information in incoming PPL queries.
  */
-public class PPLQueryDataAnonymizer extends AbstractNodeVisitor<String, String> {
+public class PPLQueryDataAnonymizer implements AbstractNodeVisitor<String, String> {
 
   private static final String MASK_LITERAL = "***";
 
@@ -253,7 +253,7 @@ public class PPLQueryDataAnonymizer extends AbstractNodeVisitor<String, String> 
   /**
    * Expression Anonymizer.
    */
-  private static class AnonymizerExpressionAnalyzer extends AbstractNodeVisitor<String,
+  private static class AnonymizerExpressionAnalyzer implements AbstractNodeVisitor<String,
       String> {
 
     public String analyze(UnresolvedExpression unresolved, String context) {

@@ -19,6 +19,7 @@ import org.opensearch.sql.executor.execution.QueryPlanFactory;
 import org.opensearch.sql.sql.antlr.SQLSyntaxParser;
 import org.opensearch.sql.sql.domain.SQLQueryRequest;
 import org.opensearch.sql.sql.parser.AstBuilder;
+import org.opensearch.sql.sql.parser.AstExpressionBuilder;
 import org.opensearch.sql.sql.parser.AstStatementBuilder;
 
 /**
@@ -84,7 +85,7 @@ public class SQLService {
       Statement statement =
           cst.accept(
               new AstStatementBuilder(
-                  new AstBuilder(request.getQuery()),
+                  new AstBuilder(new AstExpressionBuilder(), request.getQuery()),
                   AstStatementBuilder.StatementBuilderContext.builder()
                       .isExplain(isExplainRequest)
                       .fetchSize(request.getFetchSize())

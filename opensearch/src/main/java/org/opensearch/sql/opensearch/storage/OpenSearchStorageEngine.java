@@ -12,8 +12,14 @@ import java.util.Collection;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import org.opensearch.sql.DataSourceSchemaName;
+import org.opensearch.sql.analysis.Analyzer;
 import org.opensearch.sql.common.setting.Settings;
+import org.opensearch.sql.datasource.DataSourceService;
+import org.opensearch.sql.executor.pagination.CanPaginateVisitor;
+import org.opensearch.sql.expression.function.BuiltinFunctionRepository;
 import org.opensearch.sql.expression.function.FunctionResolver;
+import org.opensearch.sql.opensearch.analysis.OpenSearchAnalyzer;
+import org.opensearch.sql.opensearch.analysis.OpenSearchCanPaginateAnalyzer;
 import org.opensearch.sql.opensearch.client.OpenSearchClient;
 import org.opensearch.sql.opensearch.functions.OpenSearchFunctions;
 import org.opensearch.sql.opensearch.storage.system.OpenSearchSystemIndex;
@@ -42,5 +48,15 @@ public class OpenSearchStorageEngine implements StorageEngine {
   @Override
   public Collection<FunctionResolver> getFunctions() {
     return OpenSearchFunctions.getResolvers();
+  }
+
+  public Analyzer getAnalyzer(
+      DataSourceService dataSourceService, BuiltinFunctionRepository repository) {
+    return new OpenSearchAnalyzer(dataSourceService, repository);
+  }
+
+  @Override
+  public CanPaginateVisitor getPaginationAnalyzer() {
+    return new OpenSearchCanPaginateAnalyzer();
   }
 }

@@ -11,6 +11,7 @@ package org.opensearch.sql.executor.execution;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import java.util.Optional;
+import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import org.apache.commons.lang3.tuple.Pair;
 import org.opensearch.sql.ast.AbstractNodeVisitor;
@@ -21,6 +22,7 @@ import org.opensearch.sql.ast.tree.CloseCursor;
 import org.opensearch.sql.ast.tree.FetchCursor;
 import org.opensearch.sql.ast.tree.UnresolvedPlan;
 import org.opensearch.sql.common.response.ResponseListener;
+import org.opensearch.sql.datasource.DataSourceService;
 import org.opensearch.sql.exception.UnsupportedCursorRequestException;
 import org.opensearch.sql.executor.ExecutionEngine;
 import org.opensearch.sql.executor.QueryId;
@@ -30,7 +32,7 @@ import org.opensearch.sql.executor.pagination.CanPaginateVisitor;
 /** QueryExecution Factory. */
 @RequiredArgsConstructor
 public class QueryPlanFactory
-    extends AbstractNodeVisitor<
+    implements AbstractNodeVisitor<
         AbstractPlan,
         Pair<
             Optional<ResponseListener<ExecutionEngine.QueryResponse>>,
@@ -38,6 +40,9 @@ public class QueryPlanFactory
 
   /** Query Service. */
   private final QueryService queryService;
+
+  @Getter
+  private final DataSourceService dataSourceService;
 
   /**
    * NO_CONSUMER_RESPONSE_LISTENER should never be called. It is only used as constructor parameter
@@ -80,6 +85,22 @@ public class QueryPlanFactory
   }
 
   boolean canConvertToCursor(UnresolvedPlan plan) {
+    for (var metadata : dataSourceService.getDataSourceMetadata(true)) {
+      var analyzer = dataSourceService
+          .getDataSource(metadata.getName())
+          .getStorageEngine()
+          .getPaginationAnalyzer();
+      if (analyzer == null) {
+        continue;
+      }
+      // TODO what if query sent to one DS, but analyzer from another? :
+      //   keep response from all analyzers
+      var res = plan.accept(analyzer, null);
+      if (res != null) {
+        return res;
+      }
+    }
+    // if no response from DS-specific analyzers
     return plan.accept(new CanPaginateVisitor(), null);
   }
 

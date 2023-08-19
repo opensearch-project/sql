@@ -18,7 +18,7 @@ import org.opensearch.sql.expression.NamedExpression;
  * NamedExpression}.
  */
 @RequiredArgsConstructor
-public class NamedExpressionAnalyzer extends AbstractNodeVisitor<NamedExpression, AnalysisContext> {
+public class NamedExpressionAnalyzer implements AbstractNodeVisitor<NamedExpression, AnalysisContext> {
   private final ExpressionAnalyzer expressionAnalyzer;
 
   /** Analyze Select fields. */

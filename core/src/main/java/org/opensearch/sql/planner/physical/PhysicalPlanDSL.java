@@ -109,9 +109,4 @@ public class PhysicalPlanDSL {
   public static LimitOperator limit(PhysicalPlan input, Integer limit, Integer offset) {
     return new LimitOperator(input, limit, offset);
   }
-
-  public static NestedOperator nested(
-      PhysicalPlan input, Set<String> args, Map<String, List<String>> groupedFieldsByPath) {
-    return new NestedOperator(input, args, groupedFieldsByPath);
-  }
 }

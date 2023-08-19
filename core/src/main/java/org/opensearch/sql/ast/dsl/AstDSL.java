@@ -23,18 +23,15 @@ import org.opensearch.sql.ast.expression.DataType;
 import org.opensearch.sql.ast.expression.EqualTo;
 import org.opensearch.sql.ast.expression.Field;
 import org.opensearch.sql.ast.expression.Function;
-import org.opensearch.sql.ast.expression.HighlightFunction;
 import org.opensearch.sql.ast.expression.In;
 import org.opensearch.sql.ast.expression.Interval;
 import org.opensearch.sql.ast.expression.Let;
 import org.opensearch.sql.ast.expression.Literal;
 import org.opensearch.sql.ast.expression.Map;
-import org.opensearch.sql.ast.expression.NestedAllTupleFields;
 import org.opensearch.sql.ast.expression.Not;
 import org.opensearch.sql.ast.expression.Or;
 import org.opensearch.sql.ast.expression.ParseMethod;
 import org.opensearch.sql.ast.expression.QualifiedName;
-import org.opensearch.sql.ast.expression.ScoreFunction;
 import org.opensearch.sql.ast.expression.Span;
 import org.opensearch.sql.ast.expression.SpanUnit;
 import org.opensearch.sql.ast.expression.UnresolvedArgument;
@@ -285,16 +282,6 @@ public class AstDSL {
     return new When(condition, result);
   }
 
-  public UnresolvedExpression highlight(
-      UnresolvedExpression fieldName, java.util.Map<String, Literal> arguments) {
-    return new HighlightFunction(fieldName, arguments);
-  }
-
-  public UnresolvedExpression score(
-      UnresolvedExpression relevanceQuery, Literal relevanceFieldWeight) {
-    return new ScoreFunction(relevanceQuery, relevanceFieldWeight);
-  }
-
   public UnresolvedExpression window(
       UnresolvedExpression function,
       List<UnresolvedExpression> partitionByList,
@@ -382,10 +369,6 @@ public class AstDSL {
 
   public Alias alias(String name, UnresolvedExpression expr, String alias) {
     return new Alias(name, expr, alias);
-  }
-
-  public NestedAllTupleFields nestedAllTupleFields(String path) {
-    return new NestedAllTupleFields(path);
   }
 
   public static List<UnresolvedExpression> exprList(UnresolvedExpression... exprList) {

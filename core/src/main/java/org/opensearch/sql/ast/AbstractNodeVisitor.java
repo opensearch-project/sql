@@ -18,21 +18,18 @@ import org.opensearch.sql.ast.expression.Compare;
 import org.opensearch.sql.ast.expression.EqualTo;
 import org.opensearch.sql.ast.expression.Field;
 import org.opensearch.sql.ast.expression.Function;
-import org.opensearch.sql.ast.expression.HighlightFunction;
 import org.opensearch.sql.ast.expression.In;
 import org.opensearch.sql.ast.expression.Interval;
 import org.opensearch.sql.ast.expression.Let;
 import org.opensearch.sql.ast.expression.Literal;
 import org.opensearch.sql.ast.expression.Map;
-import org.opensearch.sql.ast.expression.NestedAllTupleFields;
 import org.opensearch.sql.ast.expression.Not;
 import org.opensearch.sql.ast.expression.Or;
 import org.opensearch.sql.ast.expression.QualifiedName;
-import org.opensearch.sql.ast.expression.RelevanceFieldList;
-import org.opensearch.sql.ast.expression.ScoreFunction;
 import org.opensearch.sql.ast.expression.Span;
 import org.opensearch.sql.ast.expression.UnresolvedArgument;
 import org.opensearch.sql.ast.expression.UnresolvedAttribute;
+import org.opensearch.sql.ast.expression.UnresolvedExpression;
 import org.opensearch.sql.ast.expression.When;
 import org.opensearch.sql.ast.expression.WindowFunction;
 import org.opensearch.sql.ast.expression.Xor;
@@ -60,11 +57,15 @@ import org.opensearch.sql.ast.tree.Rename;
 import org.opensearch.sql.ast.tree.Sort;
 import org.opensearch.sql.ast.tree.TableFunction;
 import org.opensearch.sql.ast.tree.Values;
+import org.opensearch.sql.expression.Expression;
+import org.opensearch.sql.expression.NamedExpression;
+
+import java.util.List;
 
 /** AST nodes visitor Defines the traverse path. */
-public abstract class AbstractNodeVisitor<T, C> {
+public interface AbstractNodeVisitor<T, C> {
 
-  public T visit(Node node, C context) {
+  default T visit(Node node, C context) {
     return null;
   }
 
@@ -75,7 +76,7 @@ public abstract class AbstractNodeVisitor<T, C> {
    * @param context Context
    * @return Return Type.
    */
-  public T visitChildren(Node node, C context) {
+  default T visitChildren(Node node, C context) {
     T result = defaultResult();
 
     for (Node child : node.getChild()) {
@@ -93,223 +94,214 @@ public abstract class AbstractNodeVisitor<T, C> {
     return nextResult;
   }
 
-  public T visitRelation(Relation node, C context) {
+  default T visitRelation(Relation node, C context) {
     return visitChildren(node, context);
   }
 
-  public T visitRelationSubquery(RelationSubquery node, C context) {
+  default T visitRelationSubquery(RelationSubquery node, C context) {
     return visitChildren(node, context);
   }
 
-  public T visitTableFunction(TableFunction node, C context) {
+  default T visitTableFunction(TableFunction node, C context) {
     return visitChildren(node, context);
   }
 
-  public T visitFilter(Filter node, C context) {
+  default T visitFilter(Filter node, C context) {
     return visitChildren(node, context);
   }
 
-  public T visitProject(Project node, C context) {
+  default T visitProject(Project node, C context) {
     return visitChildren(node, context);
   }
 
-  public T visitAggregation(Aggregation node, C context) {
+  // TODO maybe pass columns and namedExpressions thru context
+  default T visitProjectList(List<UnresolvedExpression> columns, List<NamedExpression> namedExpressions, T node, C context) {
+    return null;
+  }
+
+  default void verifySupportsCondition(Expression condition) {}
+
+  default T visitAggregation(Aggregation node, C context) {
     return visitChildren(node, context);
   }
 
-  public T visitEqualTo(EqualTo node, C context) {
+  default T visitEqualTo(EqualTo node, C context) {
     return visitChildren(node, context);
   }
 
-  public T visitLiteral(Literal node, C context) {
+  default T visitLiteral(Literal node, C context) {
     return visitChildren(node, context);
   }
 
-  public T visitRelevanceFieldList(RelevanceFieldList node, C context) {
+  default T visitUnresolvedAttribute(UnresolvedAttribute node, C context) {
     return visitChildren(node, context);
   }
 
-  public T visitUnresolvedAttribute(UnresolvedAttribute node, C context) {
+  default T visitAttributeList(AttributeList node, C context) {
     return visitChildren(node, context);
   }
 
-  public T visitAttributeList(AttributeList node, C context) {
+  default T visitMap(Map node, C context) {
     return visitChildren(node, context);
   }
 
-  public T visitMap(Map node, C context) {
+  default T visitNot(Not node, C context) {
     return visitChildren(node, context);
   }
 
-  public T visitNot(Not node, C context) {
+  default T visitOr(Or node, C context) {
     return visitChildren(node, context);
   }
 
-  public T visitOr(Or node, C context) {
+  default T visitAnd(And node, C context) {
     return visitChildren(node, context);
   }
 
-  public T visitAnd(And node, C context) {
+  default T visitXor(Xor node, C context) {
     return visitChildren(node, context);
   }
 
-  public T visitXor(Xor node, C context) {
+  default T visitAggregateFunction(AggregateFunction node, C context) {
     return visitChildren(node, context);
   }
 
-  public T visitAggregateFunction(AggregateFunction node, C context) {
+  default T visitFunction(Function node, C context) {
     return visitChildren(node, context);
   }
 
-  public T visitFunction(Function node, C context) {
+  default T visitWindowFunction(WindowFunction node, C context) {
     return visitChildren(node, context);
   }
 
-  public T visitWindowFunction(WindowFunction node, C context) {
+  default T visitIn(In node, C context) {
     return visitChildren(node, context);
   }
 
-  public T visitIn(In node, C context) {
+  default T visitCompare(Compare node, C context) {
     return visitChildren(node, context);
   }
 
-  public T visitCompare(Compare node, C context) {
+  default T visitBetween(Between node, C context) {
     return visitChildren(node, context);
   }
 
-  public T visitBetween(Between node, C context) {
+  default T visitArgument(Argument node, C context) {
     return visitChildren(node, context);
   }
 
-  public T visitArgument(Argument node, C context) {
+  default T visitField(Field node, C context) {
     return visitChildren(node, context);
   }
 
-  public T visitField(Field node, C context) {
+  default T visitQualifiedName(QualifiedName node, C context) {
     return visitChildren(node, context);
   }
 
-  public T visitQualifiedName(QualifiedName node, C context) {
+  default T visitRename(Rename node, C context) {
     return visitChildren(node, context);
   }
 
-  public T visitRename(Rename node, C context) {
+  default T visitEval(Eval node, C context) {
     return visitChildren(node, context);
   }
 
-  public T visitEval(Eval node, C context) {
+  default T visitParse(Parse node, C context) {
     return visitChildren(node, context);
   }
 
-  public T visitParse(Parse node, C context) {
+  default T visitLet(Let node, C context) {
     return visitChildren(node, context);
   }
 
-  public T visitLet(Let node, C context) {
+  default T visitSort(Sort node, C context) {
     return visitChildren(node, context);
   }
 
-  public T visitSort(Sort node, C context) {
+  default T visitDedupe(Dedupe node, C context) {
     return visitChildren(node, context);
   }
 
-  public T visitDedupe(Dedupe node, C context) {
+  default T visitHead(Head node, C context) {
     return visitChildren(node, context);
   }
 
-  public T visitHead(Head node, C context) {
+  default T visitRareTopN(RareTopN node, C context) {
     return visitChildren(node, context);
   }
 
-  public T visitRareTopN(RareTopN node, C context) {
+  default T visitValues(Values node, C context) {
     return visitChildren(node, context);
   }
 
-  public T visitValues(Values node, C context) {
+  default T visitAlias(Alias node, C context) {
     return visitChildren(node, context);
   }
 
-  public T visitAlias(Alias node, C context) {
+  default T visitAllFields(AllFields node, C context) {
     return visitChildren(node, context);
   }
 
-  public T visitAllFields(AllFields node, C context) {
+  default T visitInterval(Interval node, C context) {
     return visitChildren(node, context);
   }
 
-  public T visitNestedAllTupleFields(NestedAllTupleFields node, C context) {
+  default T visitCase(Case node, C context) {
     return visitChildren(node, context);
   }
 
-  public T visitInterval(Interval node, C context) {
+  default T visitWhen(When node, C context) {
     return visitChildren(node, context);
   }
 
-  public T visitCase(Case node, C context) {
+  default T visitCast(Cast node, C context) {
     return visitChildren(node, context);
   }
 
-  public T visitWhen(When node, C context) {
+  default T visitUnresolvedArgument(UnresolvedArgument node, C context) {
     return visitChildren(node, context);
   }
 
-  public T visitCast(Cast node, C context) {
+  default T visitLimit(Limit node, C context) {
     return visitChildren(node, context);
   }
 
-  public T visitUnresolvedArgument(UnresolvedArgument node, C context) {
+  default T visitSpan(Span node, C context) {
     return visitChildren(node, context);
   }
 
-  public T visitLimit(Limit node, C context) {
+  default T visitKmeans(Kmeans node, C context) {
     return visitChildren(node, context);
   }
 
-  public T visitSpan(Span node, C context) {
+  default T visitAD(AD node, C context) {
     return visitChildren(node, context);
   }
 
-  public T visitKmeans(Kmeans node, C context) {
+  default T visitML(ML node, C context) {
     return visitChildren(node, context);
   }
 
-  public T visitAD(AD node, C context) {
-    return visitChildren(node, context);
-  }
-
-  public T visitML(ML node, C context) {
-    return visitChildren(node, context);
-  }
-
-  public T visitHighlightFunction(HighlightFunction node, C context) {
-    return visitChildren(node, context);
-  }
-
-  public T visitScoreFunction(ScoreFunction node, C context) {
-    return visitChildren(node, context);
-  }
-
-  public T visitStatement(Statement node, C context) {
+  default T visitStatement(Statement node, C context) {
     return visit(node, context);
   }
 
-  public T visitQuery(Query node, C context) {
+  default T visitQuery(Query node, C context) {
     return visitStatement(node, context);
   }
 
-  public T visitExplain(Explain node, C context) {
+  default T visitExplain(Explain node, C context) {
     return visitStatement(node, context);
   }
 
-  public T visitPaginate(Paginate paginate, C context) {
+  default T visitPaginate(Paginate paginate, C context) {
     return visitChildren(paginate, context);
   }
 
-  public T visitFetchCursor(FetchCursor cursor, C context) {
+  default T visitFetchCursor(FetchCursor cursor, C context) {
     return visitChildren(cursor, context);
   }
 
-  public T visitCloseCursor(CloseCursor closeCursor, C context) {
+  default T visitCloseCursor(CloseCursor closeCursor, C context) {
     return visitChildren(closeCursor, context);
   }
 }
