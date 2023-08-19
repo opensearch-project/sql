@@ -491,7 +491,7 @@ class OpenSearchExprValueFactoryTest {
   public void constructMultiNestedArraysOfStringsReturnsFirstIndex() {
     assertEquals(
         stringValue("z"),
-        tupleValue("{\"stringV\":" + "[\"z\",[\"s\"],[\"zz\", \"au\"]]}").get("stringV"));
+        tupleValue("{\"stringV\":[\"z\",[\"s\"],[\"zz\", \"au\"]]}").get("stringV"));
   }
 
   @Test

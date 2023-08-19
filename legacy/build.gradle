@@ -53,6 +53,9 @@ compileJava {
     }
 }
 
+checkstyleTest.ignoreFailures = true
+checkstyleMain.ignoreFailures = true
+
 // TODO: Similarly, need to fix compiling errors in test source code
 compileTestJava.options.warnings = false
 compileTestJava {

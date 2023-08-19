@@ -15,7 +15,7 @@ import lombok.EqualsAndHashCode;
 import org.opensearch.sql.data.type.ExprType;
 
 /**
- * The type of text value. See <a
+ * The type of a text value. See <a
  * href="https://opensearch.org/docs/latest/opensearch/supported-field-types/text/">doc</a>
  */
 public class OpenSearchTextType extends OpenSearchDataType {
