@@ -33,7 +33,7 @@ import org.opensearch.sql.exception.QueryEngineException;
 import org.opensearch.sql.exception.SemanticCheckException;
 import org.opensearch.sql.legacy.metrics.MetricName;
 import org.opensearch.sql.legacy.metrics.Metrics;
-import org.opensearch.sql.opensearch.response.error.ErrorMessageFactory;
+import org.opensearch.sql.plugin.errorHandling.ErrorMessageFactory;
 import org.opensearch.sql.plugin.request.PPLQueryRequestFactory;
 import org.opensearch.sql.plugin.transport.PPLQueryAction;
 import org.opensearch.sql.plugin.transport.TransportPPLQueryRequest;

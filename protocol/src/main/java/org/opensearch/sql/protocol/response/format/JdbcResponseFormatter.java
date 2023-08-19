@@ -16,8 +16,6 @@ import org.opensearch.sql.data.type.ExprType;
 import org.opensearch.sql.exception.QueryEngineException;
 import org.opensearch.sql.executor.ExecutionEngine.Schema;
 import org.opensearch.sql.executor.pagination.Cursor;
-import org.opensearch.sql.opensearch.response.error.ErrorMessage;
-import org.opensearch.sql.opensearch.response.error.ErrorMessageFactory;
 import org.opensearch.sql.protocol.response.QueryResult;
 
 /**
@@ -53,11 +51,10 @@ public class JdbcResponseFormatter extends JsonResponseFormatter<QueryResult> {
   @Override
   public String format(Throwable t) {
     int status = getStatus(t);
-    ErrorMessage message = ErrorMessageFactory.createErrorMessage(t, status);
     Error error = new Error(
-        message.getType(),
-        message.getReason(),
-        message.getDetails());
+        t.getClass().getSimpleName(),
+        "Invalid Query",
+        t.getLocalizedMessage());
     return jsonify(new JdbcErrorResponse(error, status));
   }
 

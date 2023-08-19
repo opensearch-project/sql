@@ -17,8 +17,6 @@ import org.opensearch.sql.common.antlr.SyntaxCheckException;
 import org.opensearch.sql.data.type.ExprType;
 import org.opensearch.sql.exception.QueryEngineException;
 import org.opensearch.sql.executor.ExecutionEngine;
-import org.opensearch.sql.opensearch.response.error.ErrorMessage;
-import org.opensearch.sql.opensearch.response.error.ErrorMessageFactory;
 import org.opensearch.sql.protocol.response.QueryResult;
 
 /**
@@ -71,11 +69,11 @@ public class VisualizationResponseFormatter extends JsonResponseFormatter<QueryR
   @Override
   public String format(Throwable t) {
     int status = getStatus(t);
-    ErrorMessage message = ErrorMessageFactory.createErrorMessage(t, status);
-    VisualizationResponseFormatter.Error error = new Error(
-        message.getType(),
-        message.getReason(),
-        message.getDetails());
+    VisualizationResponseFormatter.Error error =
+        new Error(
+            t.getClass().getSimpleName(),
+            "Invalid Query",
+            t.getLocalizedMessage());
     return jsonify(new VisualizationErrorResponse(error, status));
   }
 

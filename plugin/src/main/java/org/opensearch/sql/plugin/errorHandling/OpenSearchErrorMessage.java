@@ -4,7 +4,7 @@
  */
 
 
-package org.opensearch.sql.opensearch.response.error;
+package org.opensearch.sql.plugin.errorHandling;
 
 import java.util.Locale;
 import org.opensearch.OpenSearchException;
