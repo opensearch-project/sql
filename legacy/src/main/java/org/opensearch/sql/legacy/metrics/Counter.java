@@ -3,16 +3,15 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-
 package org.opensearch.sql.legacy.metrics;
 
 public interface Counter<T> {
 
-    void increment();
+  void increment();
 
-    void add(long n);
+  void add(long n);
 
-    T getValue();
+  T getValue();
 
-    void reset();
+  void reset();
 }

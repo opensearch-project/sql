@@ -15,8 +15,8 @@ import lombok.EqualsAndHashCode;
 import org.opensearch.sql.data.type.ExprType;
 
 /**
- * The type of a text value. See
- * <a href="https://opensearch.org/docs/latest/opensearch/supported-field-types/text/">doc</a>
+ * The type of a text value. See <a
+ * href="https://opensearch.org/docs/latest/opensearch/supported-field-types/text/">doc</a>
  */
 public class OpenSearchTextType extends OpenSearchDataType {
 
@@ -24,8 +24,7 @@ public class OpenSearchTextType extends OpenSearchDataType {
 
   // text could have fields
   // a read-only collection
-  @EqualsAndHashCode.Exclude
-  Map<String, OpenSearchDataType> fields = ImmutableMap.of();
+  @EqualsAndHashCode.Exclude Map<String, OpenSearchDataType> fields = ImmutableMap.of();
 
   private OpenSearchTextType() {
     super(MappingType.Text);
@@ -34,6 +33,7 @@ public class OpenSearchTextType extends OpenSearchDataType {
 
   /**
    * Constructs a Text Type using the passed in fields argument.
+   *
    * @param fields The fields to be used to construct the text type.
    * @return A new OpenSeachTextTypeObject
    */
@@ -67,7 +67,7 @@ public class OpenSearchTextType extends OpenSearchDataType {
   }
 
   /**
-   * Text field doesn't have doc value (exception thrown even when you call "get")
+   * Text field doesn't have doc value (exception thrown even when you call "get")<br>
    * Limitation: assume inner field name is always "keyword".
    */
   public static String convertTextToKeyword(String fieldName, ExprType fieldType) {
