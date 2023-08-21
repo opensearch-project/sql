@@ -526,7 +526,7 @@ public class DSL {
       FunctionProperties functionProperties, Expression... expressions) {
     return compile(functionProperties, BuiltinFunctionName.STR_TO_DATE, expressions);
   }
-  
+
   public static FunctionExpression sec_to_time(Expression... expressions) {
     return compile(FunctionProperties.None, BuiltinFunctionName.SEC_TO_TIME, expressions);
   }

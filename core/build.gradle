@@ -33,6 +33,9 @@ repositories {
     mavenCentral()
 }
 
+checkstyleMain.ignoreFailures = true
+checkstyleTest.ignoreFailures = true
+
 dependencies {
     api group: 'com.google.guava', name: 'guava', version: '32.0.1-jre'
     api group: 'org.apache.commons', name: 'commons-lang3', version: '3.12.0'

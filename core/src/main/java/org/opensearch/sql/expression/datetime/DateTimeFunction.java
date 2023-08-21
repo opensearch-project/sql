@@ -1325,7 +1325,7 @@ public class DateTimeFunction {
     var dt = extractDateTime(datetime, functionProperties);
     return new ExprDatetimeValue(isAdd ? dt.plus(interval) : dt.minus(interval));
   }
-  
+
   /**
    * Formats date according to format specifier. First argument is time, second is format.<br>
    * Detailed supported signatures:<br>

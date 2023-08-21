@@ -44,9 +44,7 @@ public class MicroBatchStreamingExecution {
   /** keep track the latest commit batchId. */
   private final MetadataLog<Offset> committedLog;
 
-  /**
-   * Constructor.
-   */
+  /** Constructor. */
   public MicroBatchStreamingExecution(
       StreamingSource source,
       LogicalPlan batchPlan,
@@ -61,9 +59,7 @@ public class MicroBatchStreamingExecution {
     this.committedLog = committedLog;
   }
 
-  /**
-   * Pull the {@link Batch} from {@link StreamingSource} and execute the {@link Batch}.
-   */
+  /** Pull the {@link Batch} from {@link StreamingSource} and execute the {@link Batch}. */
   public void execute() {
     Long latestBatchId = offsetLog.getLatest().map(Pair::getKey).orElse(INITIAL_LATEST_BATCH_ID);
     Long latestCommittedBatchId =
