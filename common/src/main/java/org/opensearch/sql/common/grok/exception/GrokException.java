@@ -6,9 +6,8 @@
 package org.opensearch.sql.common.grok.exception;
 
 /**
- * Signals that an {@code Grok} exception of some sort has occurred.
- * This class is the general class of
- * exceptions produced by failed or interrupted Grok operations.
+ * Signals that an {@code Grok} exception of some sort has occurred. This class is the general class
+ * of exceptions produced by failed or interrupted Grok operations.
  *
  * @since 0.0.4
  */
@@ -16,9 +15,7 @@ public class GrokException extends RuntimeException {
 
   private static final long serialVersionUID = 1L;
 
-  /**
-   * Creates a new GrokException.
-   */
+  /** Creates a new GrokException. */
   public GrokException() {
     super();
   }
@@ -27,7 +24,7 @@ public class GrokException extends RuntimeException {
    * Constructs a new GrokException.
    *
    * @param message the reason for the exception
-   * @param cause   the underlying Throwable that caused this exception to be thrown.
+   * @param cause the underlying Throwable that caused this exception to be thrown.
    */
   public GrokException(String message, Throwable cause) {
     super(message, cause);
@@ -50,5 +47,4 @@ public class GrokException extends RuntimeException {
   public GrokException(Throwable cause) {
     super(cause);
   }
-
 }

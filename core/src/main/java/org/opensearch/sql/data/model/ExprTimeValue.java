@@ -3,17 +3,15 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-
 package org.opensearch.sql.data.model;
 
 import static java.time.format.DateTimeFormatter.ISO_LOCAL_TIME;
 import static org.opensearch.sql.utils.DateTimeFormatters.DATE_TIME_FORMATTER_VARIABLE_NANOS_OPTIONAL;
-import static org.opensearch.sql.utils.DateTimeUtils.UTC_ZONE_ID;
 
 import java.time.Instant;
 import java.time.LocalDate;
-import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.time.ZoneOffset;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeParseException;
 import java.util.Objects;
@@ -23,23 +21,19 @@ import org.opensearch.sql.data.type.ExprType;
 import org.opensearch.sql.exception.SemanticCheckException;
 import org.opensearch.sql.expression.function.FunctionProperties;
 
-/**
- * Expression Time Value.
- */
+/** Expression Time Value. */
 @RequiredArgsConstructor
 public class ExprTimeValue extends AbstractExprValue {
 
   private final LocalTime time;
 
-  /**
-   * Constructor of ExprTimeValue.
-   */
+  /** Constructor of ExprTimeValue. */
   public ExprTimeValue(String time) {
     try {
       this.time = LocalTime.parse(time, DATE_TIME_FORMATTER_VARIABLE_NANOS_OPTIONAL);
     } catch (DateTimeParseException e) {
-      throw new SemanticCheckException(String.format("time:%s in unsupported format, please use "
-          + "HH:mm:ss[.SSSSSSSSS]", time));
+      throw new SemanticCheckException(
+          String.format("time:%s in unsupported format, please use 'HH:mm:ss[.SSSSSSSSS]'", time));
     }
   }
 
@@ -62,13 +56,8 @@ public class ExprTimeValue extends AbstractExprValue {
     return LocalDate.now(functionProperties.getQueryStartClock());
   }
 
-  public LocalDateTime datetimeValue(FunctionProperties functionProperties) {
-    return LocalDateTime.of(dateValue(functionProperties), timeValue());
-  }
-
   public Instant timestampValue(FunctionProperties functionProperties) {
-    return ZonedDateTime.of(dateValue(functionProperties), timeValue(), UTC_ZONE_ID)
-        .toInstant();
+    return ZonedDateTime.of(dateValue(functionProperties), timeValue(), ZoneOffset.UTC).toInstant();
   }
 
   @Override

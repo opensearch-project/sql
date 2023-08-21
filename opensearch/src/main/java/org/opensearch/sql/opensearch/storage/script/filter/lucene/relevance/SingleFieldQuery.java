@@ -26,18 +26,20 @@ abstract class SingleFieldQuery<T extends QueryBuilder> extends RelevanceQuery<T
   @Override
   protected T createQueryBuilder(List<NamedArgumentExpression> arguments) {
     // Extract 'field' and 'query'
-    var field = arguments.stream()
-        .filter(a -> a.getArgName().equalsIgnoreCase("field"))
-        .findFirst()
-        .orElseThrow(() -> new SemanticCheckException("'field' parameter is missing."));
+    var field =
+        arguments.stream()
+            .filter(a -> a.getArgName().equalsIgnoreCase("field"))
+            .findFirst()
+            .orElseThrow(() -> new SemanticCheckException("'field' parameter is missing."));
 
-    var query = arguments.stream()
-        .filter(a -> a.getArgName().equalsIgnoreCase("query"))
-        .findFirst()
-        .orElseThrow(() -> new SemanticCheckException("'query' parameter is missing"));
+    var query =
+        arguments.stream()
+            .filter(a -> a.getArgName().equalsIgnoreCase("query"))
+            .findFirst()
+            .orElseThrow(() -> new SemanticCheckException("'query' parameter is missing"));
 
     return createBuilder(
-        ((ReferenceExpression)field.getValue()).getAttr(),
+        ((ReferenceExpression) field.getValue()).getAttr(),
         query.getValue().valueOf().stringValue());
   }
 

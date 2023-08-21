@@ -35,34 +35,34 @@ import org.opensearch.sql.prometheus.storage.QueryExemplarsTable;
 @ExtendWith(MockitoExtension.class)
 class QueryExemplarsTableFunctionResolverTest {
 
-  @Mock
-  private PrometheusClient client;
+  @Mock private PrometheusClient client;
 
-  @Mock
-  private FunctionProperties functionProperties;
+  @Mock private FunctionProperties functionProperties;
 
   @Test
   void testResolve() {
-    QueryExemplarsTableFunctionResolver queryExemplarsTableFunctionResolver
-        = new QueryExemplarsTableFunctionResolver(client);
+    QueryExemplarsTableFunctionResolver queryExemplarsTableFunctionResolver =
+        new QueryExemplarsTableFunctionResolver(client);
     FunctionName functionName = FunctionName.of("query_exemplars");
-    List<Expression> expressions
-        = List.of(DSL.namedArgument("query", DSL.literal("http_latency")),
-        DSL.namedArgument("starttime", DSL.literal(12345)),
-        DSL.namedArgument("endtime", DSL.literal(12345)));
-    FunctionSignature functionSignature = new FunctionSignature(functionName, expressions
-        .stream().map(Expression::type).collect(Collectors.toList()));
-    Pair<FunctionSignature, FunctionBuilder> resolution
-        = queryExemplarsTableFunctionResolver.resolve(functionSignature);
+    List<Expression> expressions =
+        List.of(
+            DSL.namedArgument("query", DSL.literal("http_latency")),
+            DSL.namedArgument("starttime", DSL.literal(12345)),
+            DSL.namedArgument("endtime", DSL.literal(12345)));
+    FunctionSignature functionSignature =
+        new FunctionSignature(
+            functionName, expressions.stream().map(Expression::type).collect(Collectors.toList()));
+    Pair<FunctionSignature, FunctionBuilder> resolution =
+        queryExemplarsTableFunctionResolver.resolve(functionSignature);
     assertEquals(functionName, resolution.getKey().getFunctionName());
     assertEquals(functionName, queryExemplarsTableFunctionResolver.getFunctionName());
     assertEquals(List.of(STRING, LONG, LONG), resolution.getKey().getParamTypeList());
     FunctionBuilder functionBuilder = resolution.getValue();
-    TableFunctionImplementation functionImplementation
-        = (TableFunctionImplementation) functionBuilder.apply(functionProperties, expressions);
+    TableFunctionImplementation functionImplementation =
+        (TableFunctionImplementation) functionBuilder.apply(functionProperties, expressions);
     assertTrue(functionImplementation instanceof QueryExemplarFunctionImplementation);
-    QueryExemplarsTable queryExemplarsTable
-        = (QueryExemplarsTable) functionImplementation.applyArguments();
+    QueryExemplarsTable queryExemplarsTable =
+        (QueryExemplarsTable) functionImplementation.applyArguments();
     assertNotNull(queryExemplarsTable.getExemplarsRequest());
     PrometheusQueryExemplarsRequest prometheusQueryExemplarsRequest =
         queryExemplarsTable.getExemplarsRequest();
@@ -70,6 +70,4 @@ class QueryExemplarsTableFunctionResolverTest {
     assertEquals(12345L, prometheusQueryExemplarsRequest.getStartTime());
     assertEquals(12345L, prometheusQueryExemplarsRequest.getEndTime());
   }
-
 }
-

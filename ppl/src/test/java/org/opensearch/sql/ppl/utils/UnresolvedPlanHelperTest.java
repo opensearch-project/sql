@@ -3,7 +3,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-
 package org.opensearch.sql.ppl.utils;
 
 import static org.hamcrest.MatcherAssert.assertThat;

@@ -6,17 +6,15 @@
 package org.opensearch.sql.planner.physical.collector;
 
 import static org.opensearch.sql.data.type.ExprCoreType.DATE;
-import static org.opensearch.sql.data.type.ExprCoreType.DATETIME;
 import static org.opensearch.sql.data.type.ExprCoreType.DOUBLE;
 import static org.opensearch.sql.data.type.ExprCoreType.LONG;
 import static org.opensearch.sql.data.type.ExprCoreType.TIME;
 import static org.opensearch.sql.data.type.ExprCoreType.TIMESTAMP;
-import static org.opensearch.sql.utils.DateTimeUtils.UTC_ZONE_ID;
 
 import java.time.Instant;
 import java.time.LocalDate;
-import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.time.ZoneOffset;
 import java.time.temporal.ChronoField;
 import java.util.Arrays;
 import java.util.concurrent.TimeUnit;
@@ -24,7 +22,6 @@ import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import org.opensearch.sql.data.model.ExprDateValue;
-import org.opensearch.sql.data.model.ExprDatetimeValue;
 import org.opensearch.sql.data.model.ExprTimeValue;
 import org.opensearch.sql.data.model.ExprTimestampValue;
 import org.opensearch.sql.data.model.ExprValue;
@@ -34,15 +31,11 @@ import org.opensearch.sql.exception.ExpressionEvaluationException;
 import org.opensearch.sql.expression.span.SpanExpression;
 import org.opensearch.sql.utils.DateTimeUtils;
 
-/**
- * Rounding.
- */
+/** Rounding. */
 @EqualsAndHashCode
 public abstract class Rounding<T> {
 
-  /**
-   * Create Rounding instance.
-   */
+  /** Create Rounding instance. */
   public static Rounding<?> createRounding(SpanExpression span) {
     ExprValue interval = span.getValue().valueOf();
     ExprType type = span.type();
@@ -52,9 +45,6 @@ public abstract class Rounding<T> {
     }
     if (DOUBLE.isCompatible(type)) {
       return new DoubleRounding(interval);
-    }
-    if (type.equals(DATETIME)) {
-      return new DatetimeRounding(interval, span.getUnit().getName());
     }
     if (type.equals(TIMESTAMP)) {
       return new TimestampRounding(interval, span.getUnit().getName());
@@ -70,7 +60,6 @@ public abstract class Rounding<T> {
 
   public abstract ExprValue round(ExprValue value);
 
-
   static class TimestampRounding extends Rounding<Instant> {
     private final ExprValue interval;
     private final DateTimeUnit dateTimeUnit;
@@ -82,30 +71,12 @@ public abstract class Rounding<T> {
 
     @Override
     public ExprValue round(ExprValue var) {
-      Instant instant = Instant.ofEpochMilli(dateTimeUnit.round(var.timestampValue()
-          .toEpochMilli(), interval.integerValue()));
+      Instant instant =
+          Instant.ofEpochMilli(
+              dateTimeUnit.round(var.timestampValue().toEpochMilli(), interval.integerValue()));
       return new ExprTimestampValue(instant);
     }
   }
-
-
-  static class DatetimeRounding extends Rounding<LocalDateTime> {
-    private final ExprValue interval;
-    private final DateTimeUnit dateTimeUnit;
-
-    public DatetimeRounding(ExprValue interval, String unit) {
-      this.interval = interval;
-      this.dateTimeUnit = DateTimeUnit.resolve(unit);
-    }
-
-    @Override
-    public ExprValue round(ExprValue var) {
-      Instant instant = Instant.ofEpochMilli(dateTimeUnit.round(var.datetimeValue()
-          .atZone(UTC_ZONE_ID).toInstant().toEpochMilli(), interval.integerValue()));
-      return new ExprDatetimeValue(instant.atZone(UTC_ZONE_ID).toLocalDateTime());
-    }
-  }
-
 
   static class DateRounding extends Rounding<LocalDate> {
     private final ExprValue interval;
@@ -118,9 +89,12 @@ public abstract class Rounding<T> {
 
     @Override
     public ExprValue round(ExprValue var) {
-      Instant instant = Instant.ofEpochMilli(dateTimeUnit.round(var.dateValue().atStartOfDay()
-          .atZone(UTC_ZONE_ID).toInstant().toEpochMilli(), interval.integerValue()));
-      return new ExprDateValue(instant.atZone(UTC_ZONE_ID).toLocalDate());
+      Instant instant =
+          Instant.ofEpochMilli(
+              dateTimeUnit.round(
+                  var.dateValue().atStartOfDay().atZone(ZoneOffset.UTC).toInstant().toEpochMilli(),
+                  interval.integerValue()));
+      return new ExprDateValue(instant.atZone(ZoneOffset.UTC).toLocalDate());
     }
   }
 
@@ -136,16 +110,17 @@ public abstract class Rounding<T> {
     @Override
     public ExprValue round(ExprValue var) {
       if (dateTimeUnit.id > 4) {
-        throw new ExpressionEvaluationException(String
-            .format("Unable to set span unit %s for TIME type", dateTimeUnit.getName()));
+        throw new ExpressionEvaluationException(
+            String.format("Unable to set span unit %s for TIME type", dateTimeUnit.getName()));
       }
 
-      Instant instant = Instant.ofEpochMilli(dateTimeUnit.round(var.timeValue().getLong(
-          ChronoField.MILLI_OF_DAY), interval.integerValue()));
-      return new ExprTimeValue(instant.atZone(UTC_ZONE_ID).toLocalTime());
+      Instant instant =
+          Instant.ofEpochMilli(
+              dateTimeUnit.round(
+                  var.timeValue().getLong(ChronoField.MILLI_OF_DAY), interval.integerValue()));
+      return new ExprTimeValue(instant.atZone(ZoneOffset.UTC).toLocalTime());
     }
   }
-
 
   static class LongRounding extends Rounding<Long> {
     private final Long longInterval;
@@ -161,7 +136,6 @@ public abstract class Rounding<T> {
     }
   }
 
-
   static class DoubleRounding extends Rounding<Double> {
     private final Double doubleInterval;
 
@@ -171,12 +145,11 @@ public abstract class Rounding<T> {
 
     @Override
     public ExprValue round(ExprValue value) {
-      double rounded = Double
-          .valueOf(value.doubleValue() / doubleInterval).intValue() * doubleInterval;
+      double rounded =
+          Double.valueOf(value.doubleValue() / doubleInterval).intValue() * doubleInterval;
       return ExprValueUtils.doubleValue(rounded);
     }
   }
-
 
   @RequiredArgsConstructor
   static class UnknownRounding extends Rounding<Object> {
@@ -186,43 +159,37 @@ public abstract class Rounding<T> {
     }
   }
 
-
   @RequiredArgsConstructor
   public enum DateTimeUnit {
-    MILLISECOND(1, "ms", true, ChronoField.MILLI_OF_SECOND
-        .getBaseUnit().getDuration().toMillis()) {
+    MILLISECOND(1, "ms", true, ChronoField.MILLI_OF_SECOND.getBaseUnit().getDuration().toMillis()) {
       @Override
       long round(long utcMillis, int interval) {
         return DateTimeUtils.roundFloor(utcMillis, ratio * interval);
       }
     },
 
-    SECOND(2, "s", true, ChronoField.SECOND_OF_MINUTE
-        .getBaseUnit().getDuration().toMillis()) {
+    SECOND(2, "s", true, ChronoField.SECOND_OF_MINUTE.getBaseUnit().getDuration().toMillis()) {
       @Override
       long round(long utcMillis, int interval) {
         return DateTimeUtils.roundFloor(utcMillis, ratio * interval);
       }
     },
 
-    MINUTE(3, "m", true, ChronoField.MINUTE_OF_HOUR
-        .getBaseUnit().getDuration().toMillis()) {
+    MINUTE(3, "m", true, ChronoField.MINUTE_OF_HOUR.getBaseUnit().getDuration().toMillis()) {
       @Override
       long round(long utcMillis, int interval) {
         return DateTimeUtils.roundFloor(utcMillis, ratio * interval);
       }
     },
 
-    HOUR(4, "h", true, ChronoField.HOUR_OF_DAY
-        .getBaseUnit().getDuration().toMillis()) {
+    HOUR(4, "h", true, ChronoField.HOUR_OF_DAY.getBaseUnit().getDuration().toMillis()) {
       @Override
       long round(long utcMillis, int interval) {
         return DateTimeUtils.roundFloor(utcMillis, ratio * interval);
       }
     },
 
-    DAY(5, "d", true, ChronoField.DAY_OF_MONTH
-        .getBaseUnit().getDuration().toMillis()) {
+    DAY(5, "d", true, ChronoField.DAY_OF_MONTH.getBaseUnit().getDuration().toMillis()) {
       @Override
       long round(long utcMillis, int interval) {
         return DateTimeUtils.roundFloor(utcMillis, ratio * interval);
@@ -257,18 +224,14 @@ public abstract class Rounding<T> {
       }
     };
 
-    @Getter
-    private final int id;
-    @Getter
-    private final String name;
+    @Getter private final int id;
+    @Getter private final String name;
     protected final boolean isMillisBased;
     protected final long ratio;
 
     abstract long round(long utcMillis, int interval);
 
-    /**
-     * Resolve the date time unit.
-     */
+    /** Resolve the date time unit. */
     public static Rounding.DateTimeUnit resolve(String name) {
       switch (name) {
         case "M":
@@ -283,5 +246,4 @@ public abstract class Rounding<T> {
       }
     }
   }
-
 }

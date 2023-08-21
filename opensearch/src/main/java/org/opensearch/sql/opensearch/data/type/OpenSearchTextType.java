@@ -12,8 +12,8 @@ import java.util.Map;
 import lombok.Getter;
 
 /**
- * The type of a text value. See
- * <a href="https://opensearch.org/docs/latest/opensearch/supported-field-types/text/">doc</a>
+ * The type of a text value. See <a
+ * href="https://opensearch.org/docs/latest/opensearch/supported-field-types/text/">doc</a>
  */
 public class OpenSearchTextType extends OpenSearchDataType {
 
@@ -21,8 +21,7 @@ public class OpenSearchTextType extends OpenSearchDataType {
 
   // text could have fields
   // a read-only collection
-  @Getter
-  Map<String, OpenSearchDataType> fields = ImmutableMap.of();
+  @Getter Map<String, OpenSearchDataType> fields = ImmutableMap.of();
 
   private OpenSearchTextType() {
     super(MappingType.Text);
@@ -31,6 +30,7 @@ public class OpenSearchTextType extends OpenSearchDataType {
 
   /**
    * Constructs a Text Type using the passed in fields argument.
+   *
    * @param fields The fields to be used to construct the text type.
    * @return A new OpenSearchTextType object
    */
@@ -56,11 +56,12 @@ public class OpenSearchTextType extends OpenSearchDataType {
     }
     // Pick first string subfield (if present) otherwise pick first subfield.
     // Multi-field text support requested in https://github.com/opensearch-project/sql/issues/1887
-    String subField = fields.entrySet().stream()
-        .filter(e -> e.getValue().getExprType().equals(STRING))
-        .map(Map.Entry::getKey)
-        .findFirst()
-        .orElseGet(() -> fields.keySet().toArray(String[]::new)[0]);
+    String subField =
+        fields.entrySet().stream()
+            .filter(e -> e.getValue().getExprType().equals(STRING))
+            .map(Map.Entry::getKey)
+            .findFirst()
+            .orElseGet(() -> fields.keySet().toArray(String[]::new)[0]);
     return String.format("%s.%s", fieldName, subField);
   }
 }

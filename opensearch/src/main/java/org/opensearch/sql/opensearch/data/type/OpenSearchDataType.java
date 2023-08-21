@@ -3,7 +3,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-
 package org.opensearch.sql.opensearch.data.type;
 
 import com.google.common.collect.ImmutableMap;
@@ -15,19 +14,16 @@ import java.util.Map;
 import java.util.function.BiConsumer;
 import lombok.Getter;
 import org.apache.commons.lang3.EnumUtils;
-import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.data.type.ExprCoreType;
 import org.opensearch.sql.data.type.ExprType;
 import org.opensearch.sql.data.type.WideningTypeRule;
 
-/**
- * The extension of ExprType in OpenSearch.
- */
+/** The extension of ExprType in OpenSearch. */
 public class OpenSearchDataType implements ExprType, Serializable {
 
   /**
-   * Redefine comparison operation: class (or derived) could be compared with ExprCoreType too.
-   * Used in {@link WideningTypeRule#distance(ExprType, ExprType)}.
+   * Redefine comparison operation: class (or derived) could be compared with ExprCoreType too. Used
+   * in {@link WideningTypeRule#distance(ExprType, ExprType)}.
    */
   @Override
   public boolean equals(final Object o) {
@@ -47,9 +43,7 @@ public class OpenSearchDataType implements ExprType, Serializable {
     return exprCoreType.equals(other.exprCoreType);
   }
 
-  /**
-   * Redefine hash calculation to enforce comparing using {@link #equals(Object)}.
-   */
+  /** Redefine hash calculation to enforce comparing using {@link #equals(Object)}. */
   @Override
   public int hashCode() {
     return 42 + exprCoreType.hashCode();
@@ -75,9 +69,7 @@ public class OpenSearchDataType implements ExprType, Serializable {
     return exprCoreType == ExprCoreType.UNKNOWN || exprCoreType.shouldCast(otherCoreType);
   }
 
-  /**
-   * The mapping (OpenSearch engine) type.
-   */
+  /** The mapping (OpenSearch engine) type. */
   public enum MappingType {
     Invalid(null, ExprCoreType.UNKNOWN),
     Text("text", ExprCoreType.STRING),
@@ -86,6 +78,7 @@ public class OpenSearchDataType implements ExprType, Serializable {
     GeoPoint("geo_point", ExprCoreType.UNKNOWN),
     Binary("binary", ExprCoreType.UNKNOWN),
     Date("date", ExprCoreType.TIMESTAMP),
+    DateNanos("date_nanos", ExprCoreType.TIMESTAMP),
     Object("object", ExprCoreType.STRUCT),
     Nested("nested", ExprCoreType.ARRAY),
     Byte("byte", ExprCoreType.BYTE),
@@ -102,8 +95,7 @@ public class OpenSearchDataType implements ExprType, Serializable {
     private final String name;
 
     // Associated `ExprCoreType`
-    @Getter
-    private final ExprCoreType exprCoreType;
+    @Getter private final ExprCoreType exprCoreType;
 
     MappingType(String name, ExprCoreType exprCoreType) {
       this.name = name;
@@ -115,15 +107,15 @@ public class OpenSearchDataType implements ExprType, Serializable {
     }
   }
 
-  @Getter
-  protected MappingType mappingType;
+  @Getter protected MappingType mappingType;
 
   // resolved ExprCoreType
   protected ExprCoreType exprCoreType;
 
   /**
-   * Get a simplified type {@link ExprCoreType} if possible.
-   * To avoid returning `UNKNOWN` for `OpenSearch*Type`s, e.g. for IP, returns itself.
+   * Get a simplified type {@link ExprCoreType} if possible. To avoid returning `UNKNOWN` for
+   * `OpenSearch*Type`s, e.g. for IP, returns itself.
+   *
    * @return An {@link ExprType}.
    */
   @Override
@@ -135,22 +127,23 @@ public class OpenSearchDataType implements ExprType, Serializable {
   }
 
   /**
-   * Simple instances of OpenSearchDataType are created once during entire SQL engine lifetime
-   * and cached there. This reduces memory usage and increases type comparison.
-   * Note: Types with non-empty fields and properties are not cached.
+   * Simple instances of OpenSearchDataType are created once during entire SQL engine lifetime and
+   * cached there. This reduces memory usage and increases type comparison. Note: Types with
+   * non-empty fields and properties are not cached.
    */
   private static final Map<String, OpenSearchDataType> instances = new HashMap<>();
 
   static {
     EnumUtils.getEnumList(MappingType.class).stream()
-        .filter(t -> t != MappingType.Invalid).forEach(t ->
-            instances.put(t.toString(), OpenSearchDataType.of(t)));
-    EnumUtils.getEnumList(ExprCoreType.class).forEach(t ->
-            instances.put(t.toString(), OpenSearchDataType.of(t)));
+        .filter(t -> t != MappingType.Invalid)
+        .forEach(t -> instances.put(t.toString(), OpenSearchDataType.of(t)));
+    EnumUtils.getEnumList(ExprCoreType.class)
+        .forEach(t -> instances.put(t.toString(), OpenSearchDataType.of(t)));
   }
 
   /**
    * Parses index mapping and maps it to a Data type in the SQL plugin.
+   *
    * @param indexMapping An input with keys and objects that need to be mapped to a data type.
    * @return The mapping.
    */
@@ -161,38 +154,36 @@ public class OpenSearchDataType implements ExprType, Serializable {
       return result;
     }
 
-    indexMapping.forEach((k, v) -> {
-      var innerMap = (Map<String, Object>)v;
-      // by default, the type is treated as an Object if "type" is not provided
-      var type = ((String) innerMap
-          .getOrDefault(
-              "type",
-              "object"))
-          .replace("_", "");
-      if (!EnumUtils.isValidEnumIgnoreCase(OpenSearchDataType.MappingType.class, type)) {
-        // unknown type, e.g. `alias`
-        // TODO resolve alias reference
-        return;
-      }
-      // create OpenSearchDataType
-      result.put(k, OpenSearchDataType.of(
-          EnumUtils.getEnumIgnoreCase(OpenSearchDataType.MappingType.class, type),
-          innerMap)
-      );
-    });
+    indexMapping.forEach(
+        (k, v) -> {
+          var innerMap = (Map<String, Object>) v;
+          // by default, the type is treated as an Object if "type" is not provided
+          var type = ((String) innerMap.getOrDefault("type", "object")).replace("_", "");
+          if (!EnumUtils.isValidEnumIgnoreCase(OpenSearchDataType.MappingType.class, type)) {
+            // unknown type, e.g. `alias`
+            // TODO resolve alias reference
+            return;
+          }
+          // create OpenSearchDataType
+          result.put(
+              k,
+              OpenSearchDataType.of(
+                  EnumUtils.getEnumIgnoreCase(OpenSearchDataType.MappingType.class, type),
+                  innerMap));
+        });
     return result;
   }
 
   /**
    * A constructor function which builds proper `OpenSearchDataType` for given mapping `Type`.
+   *
    * @param mappingType A mapping type.
    * @return An instance or inheritor of `OpenSearchDataType`.
    */
   @SuppressWarnings("unchecked")
   public static OpenSearchDataType of(MappingType mappingType, Map<String, Object> innerMap) {
-    OpenSearchDataType res = instances.getOrDefault(mappingType.toString(),
-        new OpenSearchDataType(mappingType)
-    );
+    OpenSearchDataType res =
+        instances.getOrDefault(mappingType.toString(), new OpenSearchDataType(mappingType));
     switch (mappingType) {
       case Object:
         // TODO: use Object type once it has been added
@@ -210,12 +201,17 @@ public class OpenSearchDataType implements ExprType, Serializable {
         Map<String, OpenSearchDataType> fields =
             parseMapping((Map<String, Object>) innerMap.getOrDefault("fields", Map.of()));
         return (!fields.isEmpty()) ? OpenSearchTextType.of(fields) : OpenSearchTextType.of();
-      case GeoPoint: return OpenSearchGeoPointType.of();
-      case Binary: return OpenSearchBinaryType.of();
-      case Ip: return OpenSearchIpType.of();
+      case GeoPoint:
+        return OpenSearchGeoPointType.of();
+      case Binary:
+        return OpenSearchBinaryType.of();
+      case Ip:
+        return OpenSearchIpType.of();
       case Date:
+      case DateNanos:
         // Default date formatter is used when "" is passed as the second parameter
-        return innerMap.isEmpty() ? OpenSearchDateType.of()
+        return innerMap.isEmpty()
+            ? OpenSearchDateType.of()
             : OpenSearchDateType.of((String) innerMap.getOrDefault("format", ""));
       default:
         return res;
@@ -225,6 +221,7 @@ public class OpenSearchDataType implements ExprType, Serializable {
   /**
    * A constructor function which builds proper `OpenSearchDataType` for given mapping `Type`.
    * Designed to be called by the mapping parser only (and tests).
+   *
    * @param mappingType A mapping type.
    * @return An instance or inheritor of `OpenSearchDataType`.
    */
@@ -234,6 +231,7 @@ public class OpenSearchDataType implements ExprType, Serializable {
 
   /**
    * A constructor function which builds proper `OpenSearchDataType` for given {@link ExprType}.
+   *
    * @param type A type.
    * @return An instance of `OpenSearchDataType`.
    */
@@ -263,8 +261,7 @@ public class OpenSearchDataType implements ExprType, Serializable {
 
   // For datatypes with properties (example: object and nested types)
   // a read-only collection
-  @Getter
-  Map<String, OpenSearchDataType> properties = ImmutableMap.of();
+  @Getter Map<String, OpenSearchDataType> properties = ImmutableMap.of();
 
   @Override
   // Called when building TypeEnvironment and when serializing PPL response
@@ -287,46 +284,52 @@ public class OpenSearchDataType implements ExprType, Serializable {
   }
 
   /**
-   * Clone type object without {@link #properties} - without info about nested object types.
-   * Note: Should be overriden by all derived classes for proper work.
+   * Clone type object without {@link #properties} - without info about nested object types. Note:
+   * Should be overriden by all derived classes for proper work.
+   *
    * @return A cloned object.
    */
   protected OpenSearchDataType cloneEmpty() {
     return this.mappingType == null
-        ? new OpenSearchDataType(this.exprCoreType) : new OpenSearchDataType(this.mappingType);
+        ? new OpenSearchDataType(this.exprCoreType)
+        : new OpenSearchDataType(this.mappingType);
   }
 
   /**
-   * Flattens mapping tree into a single layer list of objects (pairs of name-types actually),
-   * which don't have nested types.
-   * See <em>OpenSearchDataTypeTest::traverseAndFlatten()</em> test for example.
+   * Flattens mapping tree into a single layer list of objects (pairs of name-types actually), which
+   * don't have nested types. See <em>OpenSearchDataTypeTest::traverseAndFlatten()</em> test for
+   * example.
+   *
    * @param tree A list of `OpenSearchDataType`s - map between field name and its type.
    * @return A list of all `OpenSearchDataType`s from given map on the same nesting level (1).
-   *         Nested object names are prefixed by names of their host.
+   *     Nested object names are prefixed by names of their host.
    */
   public static Map<String, OpenSearchDataType> traverseAndFlatten(
       Map<String, OpenSearchDataType> tree) {
     final Map<String, OpenSearchDataType> result = new LinkedHashMap<>();
-    BiConsumer<Map<String, OpenSearchDataType>, String> visitLevel = new BiConsumer<>() {
-      @Override
-      public void accept(Map<String, OpenSearchDataType> subtree, String prefix) {
-        for (var entry : subtree.entrySet()) {
-          String entryKey = entry.getKey();
-          var nextPrefix = prefix.isEmpty() ? entryKey : String.format("%s.%s", prefix, entryKey);
-          result.put(nextPrefix, entry.getValue().cloneEmpty());
-          var nextSubtree = entry.getValue().getProperties();
-          if (!nextSubtree.isEmpty()) {
-            accept(nextSubtree, nextPrefix);
+    BiConsumer<Map<String, OpenSearchDataType>, String> visitLevel =
+        new BiConsumer<>() {
+          @Override
+          public void accept(Map<String, OpenSearchDataType> subtree, String prefix) {
+            for (var entry : subtree.entrySet()) {
+              String entryKey = entry.getKey();
+              var nextPrefix =
+                  prefix.isEmpty() ? entryKey : String.format("%s.%s", prefix, entryKey);
+              result.put(nextPrefix, entry.getValue().cloneEmpty());
+              var nextSubtree = entry.getValue().getProperties();
+              if (!nextSubtree.isEmpty()) {
+                accept(nextSubtree, nextPrefix);
+              }
+            }
           }
-        }
-      }
-    };
+        };
     visitLevel.accept(tree, "");
     return result;
   }
 
   /**
    * Resolve type of identified from parsed mapping tree.
+   *
    * @param tree Parsed mapping tree (not flattened).
    * @param id An identifier.
    * @return Resolved OpenSearchDataType or null if not found.

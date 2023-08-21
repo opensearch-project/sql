@@ -3,7 +3,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-
 package org.opensearch.sql.opensearch.storage;
 
 import static org.junit.jupiter.api.Assertions.assertAll;
@@ -25,31 +24,23 @@ import org.opensearch.sql.storage.Table;
 @ExtendWith(MockitoExtension.class)
 class OpenSearchStorageEngineTest {
 
-  @Mock
-  private OpenSearchClient client;
+  @Mock private OpenSearchClient client;
 
-  @Mock
-  private Settings settings;
+  @Mock private Settings settings;
 
   @Test
   public void getTable() {
     OpenSearchStorageEngine engine = new OpenSearchStorageEngine(client, settings);
-    Table table = engine.getTable(new DataSourceSchemaName(DEFAULT_DATASOURCE_NAME, "default"),
-        "test");
-    assertAll(
-        () -> assertNotNull(table),
-        () -> assertTrue(table instanceof OpenSearchIndex)
-    );
+    Table table =
+        engine.getTable(new DataSourceSchemaName(DEFAULT_DATASOURCE_NAME, "default"), "test");
+    assertAll(() -> assertNotNull(table), () -> assertTrue(table instanceof OpenSearchIndex));
   }
 
   @Test
   public void getSystemTable() {
     OpenSearchStorageEngine engine = new OpenSearchStorageEngine(client, settings);
-    Table table = engine.getTable(new DataSourceSchemaName(DEFAULT_DATASOURCE_NAME, "default"),
-        TABLE_INFO);
-    assertAll(
-        () -> assertNotNull(table),
-        () -> assertTrue(table instanceof OpenSearchSystemIndex)
-    );
+    Table table =
+        engine.getTable(new DataSourceSchemaName(DEFAULT_DATASOURCE_NAME, "default"), TABLE_INFO);
+    assertAll(() -> assertNotNull(table), () -> assertTrue(table instanceof OpenSearchSystemIndex));
   }
 }

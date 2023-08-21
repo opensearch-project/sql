@@ -7,7 +7,6 @@
 package org.opensearch.sql.legacy.rewriter.matchtoterm;
 
 import java.util.*;
-import java.util.stream.Collectors;
 import org.json.JSONObject;
 import org.opensearch.sql.legacy.esdomain.mapping.FieldMappings;
 import org.opensearch.sql.legacy.esdomain.mapping.IndexMappings;

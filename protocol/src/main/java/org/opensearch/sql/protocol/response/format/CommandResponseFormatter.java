@@ -7,13 +7,11 @@ package org.opensearch.sql.protocol.response.format;
 
 import lombok.Getter;
 import org.opensearch.sql.executor.execution.CommandPlan;
-import org.opensearch.sql.opensearch.response.error.ErrorMessage;
-import org.opensearch.sql.opensearch.response.error.ErrorMessageFactory;
 import org.opensearch.sql.protocol.response.QueryResult;
 
 /**
- * A simple response formatter which contains no data.
- * Supposed to use with {@link CommandPlan} only.
+ * A simple response formatter which contains no data. Supposed to use with {@link CommandPlan}
+ * only.
  */
 public class CommandResponseFormatter extends JsonResponseFormatter<QueryResult> {
 

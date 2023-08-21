@@ -26,14 +26,17 @@ import org.opensearch.sql.opensearch.data.type.OpenSearchTextType;
 class SingleFieldQueryTest {
   SingleFieldQuery query;
   private final String testQueryName = "test_query";
-  private final Map<String, RelevanceQuery.QueryBuilderStep> actionMap
-      = ImmutableMap.of("paramA", (o, v) -> o);
+  private final Map<String, RelevanceQuery.QueryBuilderStep> actionMap =
+      ImmutableMap.of("paramA", (o, v) -> o);
 
   @BeforeEach
   void setUp() {
-    query = mock(SingleFieldQuery.class,
-        Mockito.withSettings().useConstructor(actionMap)
-        .defaultAnswer(Mockito.CALLS_REAL_METHODS));
+    query =
+        mock(
+            SingleFieldQuery.class,
+            Mockito.withSettings()
+                .useConstructor(actionMap)
+                .defaultAnswer(Mockito.CALLS_REAL_METHODS));
     when(query.getQueryName()).thenReturn(testQueryName);
   }
 
@@ -42,15 +45,20 @@ class SingleFieldQueryTest {
     String sampleQuery = "sample query";
     String sampleField = "fieldA";
 
-    query.createQueryBuilder(List.of(DSL.namedArgument("field",
-            new ReferenceExpression(sampleField,
-                OpenSearchTextType.of(Map.of("words",
-                    OpenSearchDataType.of(OpenSearchDataType.MappingType.Keyword))))),
-        DSL.namedArgument("query",
-            new LiteralExpression(ExprValueUtils.stringValue(sampleQuery)))));
+    query.createQueryBuilder(
+        List.of(
+            DSL.namedArgument(
+                "field",
+                new ReferenceExpression(
+                    sampleField,
+                    OpenSearchTextType.of(
+                        Map.of(
+                            "words",
+                            OpenSearchDataType.of(OpenSearchDataType.MappingType.Keyword))))),
+            DSL.namedArgument(
+                "query", new LiteralExpression(ExprValueUtils.stringValue(sampleQuery)))));
 
-    verify(query).createBuilder(eq(sampleField),
-        eq(sampleQuery));
+    verify(query).createBuilder(eq(sampleField), eq(sampleQuery));
   }
 
   @Test
@@ -58,12 +66,13 @@ class SingleFieldQueryTest {
     String sampleQuery = "sample query";
     String sampleField = "fieldA";
 
-    query.createQueryBuilder(List.of(DSL.namedArgument("field",
-            new ReferenceExpression(sampleField, OpenSearchTextType.of())),
-        DSL.namedArgument("query",
-            new LiteralExpression(ExprValueUtils.stringValue(sampleQuery)))));
+    query.createQueryBuilder(
+        List.of(
+            DSL.namedArgument(
+                "field", new ReferenceExpression(sampleField, OpenSearchTextType.of())),
+            DSL.namedArgument(
+                "query", new LiteralExpression(ExprValueUtils.stringValue(sampleQuery)))));
 
-    verify(query).createBuilder(eq(sampleField),
-        eq(sampleQuery));
+    verify(query).createBuilder(eq(sampleField), eq(sampleQuery));
   }
 }

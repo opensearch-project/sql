@@ -22,37 +22,37 @@ import org.opensearch.sql.prometheus.request.PrometheusQueryExemplarsRequest;
 import org.opensearch.sql.storage.TableScanOperator;
 
 /**
- * This class is for QueryExemplars function {@link TableScanOperator}.
- * This takes care of getting exemplar data from prometheus by making
- * {@link PrometheusQueryExemplarsRequest}.
+ * This class is for QueryExemplars function {@link TableScanOperator}. This takes care of getting
+ * exemplar data from prometheus by making {@link PrometheusQueryExemplarsRequest}.
  */
 @RequiredArgsConstructor
 public class QueryExemplarsFunctionTableScanOperator extends TableScanOperator {
 
   private final PrometheusClient prometheusClient;
 
-  @Getter
-  private final PrometheusQueryExemplarsRequest request;
+  @Getter private final PrometheusQueryExemplarsRequest request;
   private QueryExemplarsFunctionResponseHandle queryExemplarsFunctionResponseHandle;
   private static final Logger LOG = LogManager.getLogger();
 
   @Override
   public void open() {
     super.open();
-    this.queryExemplarsFunctionResponseHandle
-        = AccessController
-          .doPrivileged((PrivilegedAction<QueryExemplarsFunctionResponseHandle>) () -> {
-            try {
-              JSONArray responseArray = prometheusClient.queryExemplars(
-                  request.getQuery(),
-                  request.getStartTime(), request.getEndTime());
-              return new QueryExemplarsFunctionResponseHandle(responseArray);
-            } catch (IOException e) {
-              LOG.error(e.getMessage());
-              throw new RuntimeException(
-                  String.format("Error fetching data from prometheus server: %s", e.getMessage()));
-            }
-          });
+    this.queryExemplarsFunctionResponseHandle =
+        AccessController.doPrivileged(
+            (PrivilegedAction<QueryExemplarsFunctionResponseHandle>)
+                () -> {
+                  try {
+                    JSONArray responseArray =
+                        prometheusClient.queryExemplars(
+                            request.getQuery(), request.getStartTime(), request.getEndTime());
+                    return new QueryExemplarsFunctionResponseHandle(responseArray);
+                  } catch (IOException e) {
+                    LOG.error(e.getMessage());
+                    throw new RuntimeException(
+                        String.format(
+                            "Error fetching data from prometheus server: %s", e.getMessage()));
+                  }
+                });
   }
 
   @Override
@@ -72,7 +72,9 @@ public class QueryExemplarsFunctionTableScanOperator extends TableScanOperator {
 
   @Override
   public String explain() {
-    return String.format(Locale.ROOT, "query_exemplars(%s, %s, %s)",
+    return String.format(
+        Locale.ROOT,
+        "query_exemplars(%s, %s, %s)",
         request.getQuery(),
         request.getStartTime(),
         request.getEndTime());

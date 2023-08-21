@@ -3,7 +3,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-
 package org.opensearch.sql.planner.physical;
 
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -26,10 +25,7 @@ class ValuesOperatorTest {
   @Test
   public void shouldHaveNoChild() {
     ValuesOperator values = values(ImmutableList.of(literal(1)));
-    assertThat(
-        values.getChild(),
-        is(empty())
-    );
+    assertThat(values.getChild(), is(empty()));
   }
 
   @Test
@@ -40,10 +36,6 @@ class ValuesOperatorTest {
       results.add(values.next());
     }
 
-    assertThat(
-        results,
-        contains(collectionValue(Arrays.asList(1, "abc")))
-    );
+    assertThat(results, contains(collectionValue(Arrays.asList(1, "abc"))));
   }
-
 }

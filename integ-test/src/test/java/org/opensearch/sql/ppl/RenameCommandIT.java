@@ -3,7 +3,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-
 package org.opensearch.sql.ppl;
 
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_ACCOUNT;
@@ -43,7 +42,9 @@ public class RenameCommandIT extends PPLIntegTestCase {
     verifyColumn(result, columnName("FIRSTNAME"), columnName("AGE"));
   }
 
-  @Ignore("Wildcard is unsupported yet. Enable once https://github.com/opensearch-project/sql/issues/787 is resolved.")
+  @Ignore(
+      "Wildcard is unsupported yet. Enable once"
+          + " https://github.com/opensearch-project/sql/issues/787 is resolved.")
   @Test
   public void testRenameWildcardFields() throws IOException {
     JSONObject result = executeQuery("source=" + TEST_INDEX_ACCOUNT + " | rename %name as %NAME");

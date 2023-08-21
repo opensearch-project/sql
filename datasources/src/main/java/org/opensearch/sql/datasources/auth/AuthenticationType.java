@@ -12,8 +12,8 @@ import java.util.HashMap;
 import java.util.Map;
 
 public enum AuthenticationType {
-
-  BASICAUTH("basicauth"), AWSSIGV4AUTH("awssigv4");
+  BASICAUTH("basicauth"),
+  AWSSIGV4AUTH("awssigv4");
 
   private String name;
 

@@ -3,7 +3,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-
 package org.opensearch.sql.expression.window.aggregation;
 
 import java.util.List;
@@ -21,9 +20,7 @@ import org.opensearch.sql.expression.window.WindowFunctionExpression;
 import org.opensearch.sql.expression.window.frame.PeerRowsWindowFrame;
 import org.opensearch.sql.expression.window.frame.WindowFrame;
 
-/**
- * Aggregate function adapter that adapts Aggregator for window operator use.
- */
+/** Aggregate function adapter that adapts Aggregator for window operator use. */
 @EqualsAndHashCode
 @RequiredArgsConstructor
 public class AggregateWindowFunction implements WindowFunctionExpression {
@@ -64,5 +61,4 @@ public class AggregateWindowFunction implements WindowFunctionExpression {
   public String toString() {
     return aggregator.toString();
   }
-
 }

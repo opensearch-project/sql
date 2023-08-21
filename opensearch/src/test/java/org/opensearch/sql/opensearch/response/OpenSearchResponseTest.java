@@ -3,7 +3,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-
 package org.opensearch.sql.opensearch.response;
 
 import static java.util.Collections.emptyList;
@@ -15,8 +14,6 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableMap;
@@ -51,31 +48,25 @@ import org.opensearch.sql.opensearch.response.agg.OpenSearchAggregationResponseP
 @ExtendWith(MockitoExtension.class)
 class OpenSearchResponseTest {
 
-  @Mock
-  private SearchResponse searchResponse;
+  @Mock private SearchResponse searchResponse;
 
-  @Mock
-  private OpenSearchExprValueFactory factory;
+  @Mock private OpenSearchExprValueFactory factory;
 
-  @Mock
-  private SearchHit searchHit1;
+  @Mock private SearchHit searchHit1;
 
-  @Mock
-  private SearchHit searchHit2;
+  @Mock private SearchHit searchHit2;
 
-  @Mock
-  private Aggregations aggregations;
+  @Mock private Aggregations aggregations;
 
   private List<String> includes = List.of();
 
-  @Mock
-  private OpenSearchAggregationResponseParser parser;
+  @Mock private OpenSearchAggregationResponseParser parser;
 
-  private ExprTupleValue exprTupleValue1 = ExprTupleValue.fromExprValueMap(ImmutableMap.of("id1",
-      new ExprIntegerValue(1)));
+  private ExprTupleValue exprTupleValue1 =
+      ExprTupleValue.fromExprValueMap(ImmutableMap.of("id1", new ExprIntegerValue(1)));
 
-  private ExprTupleValue exprTupleValue2 = ExprTupleValue.fromExprValueMap(ImmutableMap.of("id2",
-      new ExprIntegerValue(2)));
+  private ExprTupleValue exprTupleValue2 =
+      ExprTupleValue.fromExprValueMap(ImmutableMap.of("id2", new ExprIntegerValue(2)));
 
   @Test
   void isEmpty() {
@@ -121,7 +112,8 @@ class OpenSearchResponseTest {
     when(searchHit1.getInnerHits()).thenReturn(null);
     when(searchHit2.getInnerHits()).thenReturn(null);
     when(factory.construct(any(), anyBoolean()))
-        .thenReturn(exprTupleValue1).thenReturn(exprTupleValue2);
+        .thenReturn(exprTupleValue1)
+        .thenReturn(exprTupleValue2);
 
     int i = 0;
     for (ExprValue hit : new OpenSearchResponse(searchResponse, factory, List.of("id1"))) {
@@ -139,9 +131,8 @@ class OpenSearchResponseTest {
   @Test
   void iterator_metafields() {
 
-    ExprTupleValue exprTupleHit = ExprTupleValue.fromExprValueMap(ImmutableMap.of(
-        "id1", new ExprIntegerValue(1)
-    ));
+    ExprTupleValue exprTupleHit =
+        ExprTupleValue.fromExprValueMap(ImmutableMap.of("id1", new ExprIntegerValue(1)));
 
     when(searchResponse.getHits())
         .thenReturn(
@@ -162,15 +153,16 @@ class OpenSearchResponseTest {
 
     when(factory.construct(any(), anyBoolean())).thenReturn(exprTupleHit);
 
-    ExprTupleValue exprTupleResponse = ExprTupleValue.fromExprValueMap(ImmutableMap.of(
-        "id1", new ExprIntegerValue(1),
-        "_index", new ExprStringValue("testIndex"),
-        "_id", new ExprStringValue("testId"),
-        "_routing", new ExprStringValue(shardTarget.toString()),
-        "_sort", new ExprLongValue(123456L),
-        "_score", new ExprFloatValue(3.75F),
-        "_maxscore", new ExprFloatValue(3.75F)
-    ));
+    ExprTupleValue exprTupleResponse =
+        ExprTupleValue.fromExprValueMap(
+            ImmutableMap.of(
+                "id1", new ExprIntegerValue(1),
+                "_index", new ExprStringValue("testIndex"),
+                "_id", new ExprStringValue("testId"),
+                "_routing", new ExprStringValue(shardTarget.toString()),
+                "_sort", new ExprLongValue(123456L),
+                "_score", new ExprFloatValue(3.75F),
+                "_maxscore", new ExprFloatValue(3.75F)));
     List includes = List.of("id1", "_index", "_id", "_routing", "_sort", "_score", "_maxscore");
     int i = 0;
     for (ExprValue hit : new OpenSearchResponse(searchResponse, factory, includes)) {
@@ -186,9 +178,8 @@ class OpenSearchResponseTest {
   @Test
   void iterator_metafields_withoutIncludes() {
 
-    ExprTupleValue exprTupleHit = ExprTupleValue.fromExprValueMap(ImmutableMap.of(
-        "id1", new ExprIntegerValue(1)
-    ));
+    ExprTupleValue exprTupleHit =
+        ExprTupleValue.fromExprValueMap(ImmutableMap.of("id1", new ExprIntegerValue(1)));
 
     when(searchResponse.getHits())
         .thenReturn(
@@ -202,9 +193,8 @@ class OpenSearchResponseTest {
     when(factory.construct(any(), anyBoolean())).thenReturn(exprTupleHit);
 
     List includes = List.of("id1");
-    ExprTupleValue exprTupleResponse = ExprTupleValue.fromExprValueMap(ImmutableMap.of(
-        "id1", new ExprIntegerValue(1)
-    ));
+    ExprTupleValue exprTupleResponse =
+        ExprTupleValue.fromExprValueMap(ImmutableMap.of("id1", new ExprIntegerValue(1)));
     int i = 0;
     for (ExprValue hit : new OpenSearchResponse(searchResponse, factory, includes)) {
       if (i == 0) {
@@ -219,9 +209,8 @@ class OpenSearchResponseTest {
   @Test
   void iterator_metafields_scoreNaN() {
 
-    ExprTupleValue exprTupleHit = ExprTupleValue.fromExprValueMap(ImmutableMap.of(
-        "id1", new ExprIntegerValue(1)
-    ));
+    ExprTupleValue exprTupleHit =
+        ExprTupleValue.fromExprValueMap(ImmutableMap.of("id1", new ExprIntegerValue(1)));
 
     when(searchResponse.getHits())
         .thenReturn(
@@ -239,12 +228,13 @@ class OpenSearchResponseTest {
     when(factory.construct(any(), anyBoolean())).thenReturn(exprTupleHit);
 
     List includes = List.of("id1", "_index", "_id", "_sort", "_score", "_maxscore");
-    ExprTupleValue exprTupleResponse = ExprTupleValue.fromExprValueMap(ImmutableMap.of(
-        "id1", new ExprIntegerValue(1),
-        "_index", new ExprStringValue("testIndex"),
-        "_id", new ExprStringValue("testId"),
-        "_sort", new ExprLongValue(123456L)
-    ));
+    ExprTupleValue exprTupleResponse =
+        ExprTupleValue.fromExprValueMap(
+            ImmutableMap.of(
+                "id1", new ExprIntegerValue(1),
+                "_index", new ExprStringValue("testIndex"),
+                "_id", new ExprStringValue("testId"),
+                "_sort", new ExprLongValue(123456L)));
     int i = 0;
     for (ExprValue hit : new OpenSearchResponse(searchResponse, factory, includes)) {
       if (i == 0) {
@@ -264,13 +254,14 @@ class OpenSearchResponseTest {
                 new SearchHit[] {searchHit1},
                 new TotalHits(2L, TotalHits.Relation.EQUAL_TO),
                 1.0F));
-    when(searchHit1.getInnerHits()).thenReturn(
-        Map.of(
-            "innerHit",
-            new SearchHits(
-                new SearchHit[] {searchHit1},
-                new TotalHits(2L, TotalHits.Relation.EQUAL_TO),
-                1.0F)));
+    when(searchHit1.getInnerHits())
+        .thenReturn(
+            Map.of(
+                "innerHit",
+                new SearchHits(
+                    new SearchHit[] {searchHit1},
+                    new TotalHits(2L, TotalHits.Relation.EQUAL_TO),
+                    1.0F)));
 
     when(factory.construct(any(), anyBoolean())).thenReturn(exprTupleValue1);
 
@@ -323,18 +314,17 @@ class OpenSearchResponseTest {
   @Test
   void highlight_iterator() {
     SearchHit searchHit = new SearchHit(1);
-    searchHit.sourceRef(
-        new BytesArray("{\"name\":\"John\"}"));
-    Map<String, HighlightField> highlightMap = Map.of("highlights",
-        new HighlightField("Title", new Text[] {new Text("field")}));
-    searchHit.highlightFields(Map.of("highlights", new HighlightField("Title",
-        new Text[] {new Text("field")})));
+    searchHit.sourceRef(new BytesArray("{\"name\":\"John\"}"));
+    Map<String, HighlightField> highlightMap =
+        Map.of("highlights", new HighlightField("Title", new Text[] {new Text("field")}));
+    searchHit.highlightFields(
+        Map.of("highlights", new HighlightField("Title", new Text[] {new Text("field")})));
     ExprValue resultTuple = ExprValueUtils.tupleValue(searchHit.getSourceAsMap());
 
     when(searchResponse.getHits())
         .thenReturn(
             new SearchHits(
-                new SearchHit[]{searchHit1},
+                new SearchHit[] {searchHit1},
                 new TotalHits(1L, TotalHits.Relation.EQUAL_TO),
                 1.0F));
 
@@ -342,11 +332,12 @@ class OpenSearchResponseTest {
     when(factory.construct(any(), anyBoolean())).thenReturn(resultTuple);
 
     for (ExprValue resultHit : new OpenSearchResponse(searchResponse, factory, includes)) {
-      var expected = ExprValueUtils.collectionValue(
-          Arrays.stream(searchHit.getHighlightFields().get("highlights").getFragments())
-              .map(t -> (t.toString())).collect(Collectors.toList()));
-      var result = resultHit.tupleValue().get(
-          "_highlight").tupleValue().get("highlights");
+      var expected =
+          ExprValueUtils.collectionValue(
+              Arrays.stream(searchHit.getHighlightFields().get("highlights").getFragments())
+                  .map(t -> (t.toString()))
+                  .collect(Collectors.toList()));
+      var result = resultHit.tupleValue().get("_highlight").tupleValue().get("highlights");
       assertTrue(expected.equals(result));
     }
   }

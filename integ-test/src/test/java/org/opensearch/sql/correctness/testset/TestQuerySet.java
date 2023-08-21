@@ -3,7 +3,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-
 package org.opensearch.sql.correctness.testset;
 
 import static java.util.stream.Collectors.joining;
@@ -12,9 +11,7 @@ import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
 
-/**
- * Test query set including SQL queries for comparison testing.
- */
+/** Test query set including SQL queries for comparison testing. */
 public class TestQuerySet implements Iterable<String> {
 
   private List<String> queries;
@@ -49,10 +46,9 @@ public class TestQuerySet implements Iterable<String> {
   @Override
   public String toString() {
     int total = queries.size();
-    return "SQL queries (first 5 in " + total + "):"
-        + queries.stream().
-        limit(5).
-        collect(joining("\n ", "\n ", "\n"));
+    return "SQL queries (first 5 in "
+        + total
+        + "):"
+        + queries.stream().limit(5).collect(joining("\n ", "\n ", "\n"));
   }
-
 }

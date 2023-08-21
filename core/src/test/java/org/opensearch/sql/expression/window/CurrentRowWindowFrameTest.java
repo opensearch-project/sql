@@ -3,7 +3,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-
 package org.opensearch.sql.expression.window;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -29,10 +28,11 @@ import org.opensearch.sql.expression.window.frame.CurrentRowWindowFrame;
 
 class CurrentRowWindowFrameTest {
 
-  private final CurrentRowWindowFrame windowFrame = new CurrentRowWindowFrame(
-      new WindowDefinition(
-          ImmutableList.of(DSL.ref("state", STRING)),
-          ImmutableList.of(ImmutablePair.of(DEFAULT_ASC, DSL.ref("age", INTEGER)))));
+  private final CurrentRowWindowFrame windowFrame =
+      new CurrentRowWindowFrame(
+          new WindowDefinition(
+              ImmutableList.of(DSL.ref("state", STRING)),
+              ImmutableList.of(ImmutablePair.of(DEFAULT_ASC, DSL.ref("age", INTEGER)))));
 
   @Test
   void test_iterator_methods() {
@@ -42,17 +42,21 @@ class CurrentRowWindowFrameTest {
 
   @Test
   void should_return_new_partition_if_partition_by_field_value_changed() {
-    PeekingIterator<ExprValue> iterator = Iterators.peekingIterator(
-        Iterators.forArray(
-            ExprTupleValue.fromExprValueMap(ImmutableMap.of(
-                "state", new ExprStringValue("WA"),
-                "age", new ExprIntegerValue(20))),
-            ExprTupleValue.fromExprValueMap(ImmutableMap.of(
-                "state", new ExprStringValue("WA"),
-                "age", new ExprIntegerValue(30))),
-            ExprTupleValue.fromExprValueMap(ImmutableMap.of(
-                "state", new ExprStringValue("CA"),
-                "age", new ExprIntegerValue(18)))));
+    PeekingIterator<ExprValue> iterator =
+        Iterators.peekingIterator(
+            Iterators.forArray(
+                ExprTupleValue.fromExprValueMap(
+                    ImmutableMap.of(
+                        "state", new ExprStringValue("WA"),
+                        "age", new ExprIntegerValue(20))),
+                ExprTupleValue.fromExprValueMap(
+                    ImmutableMap.of(
+                        "state", new ExprStringValue("WA"),
+                        "age", new ExprIntegerValue(30))),
+                ExprTupleValue.fromExprValueMap(
+                    ImmutableMap.of(
+                        "state", new ExprStringValue("CA"),
+                        "age", new ExprIntegerValue(18)))));
 
     windowFrame.load(iterator);
     assertTrue(windowFrame.isNewPartition());
@@ -66,24 +70,28 @@ class CurrentRowWindowFrameTest {
 
   @Test
   void can_resolve_single_expression_value() {
-    windowFrame.load(Iterators.peekingIterator(
-        Iterators.singletonIterator(
-            ExprTupleValue.fromExprValueMap(ImmutableMap.of(
-            "state", new ExprStringValue("WA"),
-            "age", new ExprIntegerValue(20))))));
-    assertEquals(
-        new ExprIntegerValue(20),
-        windowFrame.resolve(DSL.ref("age", INTEGER)));
+    windowFrame.load(
+        Iterators.peekingIterator(
+            Iterators.singletonIterator(
+                ExprTupleValue.fromExprValueMap(
+                    ImmutableMap.of(
+                        "state", new ExprStringValue("WA"),
+                        "age", new ExprIntegerValue(20))))));
+    assertEquals(new ExprIntegerValue(20), windowFrame.resolve(DSL.ref("age", INTEGER)));
   }
 
   @Test
   void can_return_previous_and_current_row() {
-    ExprValue row1 = ExprTupleValue.fromExprValueMap(ImmutableMap.of(
-        "state", new ExprStringValue("WA"),
-        "age", new ExprIntegerValue(20)));
-    ExprValue row2 = ExprTupleValue.fromExprValueMap(ImmutableMap.of(
-        "state", new ExprStringValue("WA"),
-        "age", new ExprIntegerValue(30)));
+    ExprValue row1 =
+        ExprTupleValue.fromExprValueMap(
+            ImmutableMap.of(
+                "state", new ExprStringValue("WA"),
+                "age", new ExprIntegerValue(20)));
+    ExprValue row2 =
+        ExprTupleValue.fromExprValueMap(
+            ImmutableMap.of(
+                "state", new ExprStringValue("WA"),
+                "age", new ExprIntegerValue(30)));
     PeekingIterator<ExprValue> iterator = Iterators.peekingIterator(Iterators.forArray(row1, row2));
 
     windowFrame.load(iterator);
@@ -94,5 +102,4 @@ class CurrentRowWindowFrameTest {
     assertEquals(row1, windowFrame.previous());
     assertEquals(row2, windowFrame.current());
   }
-
 }

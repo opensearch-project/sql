@@ -10,9 +10,7 @@ package org.opensearch.sql.prometheus.request.system;
 import java.util.List;
 import org.opensearch.sql.data.model.ExprValue;
 
-/**
- * Prometheus system request query to get metadata Info.
- */
+/** Prometheus system request query to get metadata Info. */
 public interface PrometheusSystemRequest {
 
   /**
@@ -21,5 +19,4 @@ public interface PrometheusSystemRequest {
    * @return list of ExprValue.
    */
   List<ExprValue> search();
-
 }

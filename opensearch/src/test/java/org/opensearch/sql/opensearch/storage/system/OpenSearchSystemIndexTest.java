@@ -3,7 +3,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-
 package org.opensearch.sql.opensearch.storage.system;
 
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -35,29 +34,23 @@ import org.opensearch.sql.storage.Table;
 @ExtendWith(MockitoExtension.class)
 class OpenSearchSystemIndexTest {
 
-  @Mock
-  private OpenSearchClient client;
+  @Mock private OpenSearchClient client;
 
-  @Mock
-  private Table table;
+  @Mock private Table table;
 
   @Test
   void testGetFieldTypesOfMetaTable() {
     OpenSearchSystemIndex systemIndex = new OpenSearchSystemIndex(client, TABLE_INFO);
     final Map<String, ExprType> fieldTypes = systemIndex.getFieldTypes();
-    assertThat(fieldTypes, anyOf(
-        hasEntry("TABLE_CAT", STRING)
-    ));
+    assertThat(fieldTypes, anyOf(hasEntry("TABLE_CAT", STRING)));
   }
 
   @Test
   void testGetFieldTypesOfMappingTable() {
-    OpenSearchSystemIndex systemIndex = new OpenSearchSystemIndex(client, mappingTable(
-        "test_index"));
+    OpenSearchSystemIndex systemIndex =
+        new OpenSearchSystemIndex(client, mappingTable("test_index"));
     final Map<String, ExprType> fieldTypes = systemIndex.getFieldTypes();
-    assertThat(fieldTypes, anyOf(
-        hasEntry("COLUMN_NAME", STRING)
-    ));
+    assertThat(fieldTypes, anyOf(hasEntry("COLUMN_NAME", STRING)));
   }
 
   @Test
@@ -69,8 +62,7 @@ class OpenSearchSystemIndexTest {
   @Test
   void testCreateTable() {
     Table systemIndex = new OpenSearchSystemIndex(client, TABLE_INFO);
-    assertThrows(UnsupportedOperationException.class,
-        () -> systemIndex.create(ImmutableMap.of()));
+    assertThrows(UnsupportedOperationException.class, () -> systemIndex.create(ImmutableMap.of()));
   }
 
   @Test
@@ -78,11 +70,8 @@ class OpenSearchSystemIndexTest {
     OpenSearchSystemIndex systemIndex = new OpenSearchSystemIndex(client, TABLE_INFO);
     NamedExpression projectExpr = named("TABLE_NAME", ref("TABLE_NAME", STRING));
 
-    final PhysicalPlan plan = systemIndex.implement(
-        project(
-            relation(TABLE_INFO, table),
-            projectExpr
-        ));
+    final PhysicalPlan plan =
+        systemIndex.implement(project(relation(TABLE_INFO, table), projectExpr));
     assertTrue(plan instanceof ProjectOperator);
     assertTrue(plan.getChild().get(0) instanceof OpenSearchSystemIndexScan);
   }

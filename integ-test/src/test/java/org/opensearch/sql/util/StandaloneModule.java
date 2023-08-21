@@ -15,10 +15,10 @@ import org.opensearch.sql.analysis.ExpressionAnalyzer;
 import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.datasource.DataSourceService;
 import org.opensearch.sql.executor.ExecutionEngine;
-import org.opensearch.sql.executor.pagination.PlanSerializer;
 import org.opensearch.sql.executor.QueryManager;
 import org.opensearch.sql.executor.QueryService;
 import org.opensearch.sql.executor.execution.QueryPlanFactory;
+import org.opensearch.sql.executor.pagination.PlanSerializer;
 import org.opensearch.sql.expression.function.BuiltinFunctionRepository;
 import org.opensearch.sql.monitor.AlwaysHealthyMonitor;
 import org.opensearch.sql.monitor.ResourceMonitor;
@@ -37,8 +37,8 @@ import org.opensearch.sql.sql.antlr.SQLSyntaxParser;
 import org.opensearch.sql.storage.StorageEngine;
 
 /**
- * A utility class which registers SQL engine singletons as `OpenSearchPluginModule` does.
- * It is needed to get access to those instances in test and validate their behavior.
+ * A utility class which registers SQL engine singletons as `OpenSearchPluginModule` does. It is
+ * needed to get access to those instances in test and validate their behavior.
  */
 @RequiredArgsConstructor
 public class StandaloneModule extends AbstractModule {
@@ -53,8 +53,7 @@ public class StandaloneModule extends AbstractModule {
       BuiltinFunctionRepository.getInstance();
 
   @Override
-  protected void configure() {
-  }
+  protected void configure() {}
 
   @Provides
   public OpenSearchClient openSearchClient() {
@@ -67,8 +66,8 @@ public class StandaloneModule extends AbstractModule {
   }
 
   @Provides
-  public ExecutionEngine executionEngine(OpenSearchClient client, ExecutionProtector protector,
-                                         PlanSerializer planSerializer) {
+  public ExecutionEngine executionEngine(
+      OpenSearchClient client, ExecutionProtector protector, PlanSerializer planSerializer) {
     return new OpenSearchExecutionEngine(client, protector, planSerializer);
   }
 

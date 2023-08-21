@@ -3,7 +3,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-
 package org.opensearch.sql.opensearch.data.type;
 
 import static org.junit.jupiter.api.Assertions.assertAll;
@@ -33,8 +32,12 @@ public class OpenSearchTextTypeTest {
 
   @Test
   public void fields_is_readonly() {
-    assertThrows(Throwable.class, () -> OpenSearchTextType.of().getFields()
-        .put("1", OpenSearchDataType.of(MappingType.Keyword)));
+    assertThrows(
+        Throwable.class,
+        () ->
+            OpenSearchTextType.of()
+                .getFields()
+                .put("1", OpenSearchDataType.of(MappingType.Keyword)));
   }
 
   @Test
@@ -42,16 +45,14 @@ public class OpenSearchTextTypeTest {
     var fields = Map.of("1", OpenSearchDataType.of(MappingType.Keyword));
     assertAll(
         () -> assertNotSame(OpenSearchTextType.of(), OpenSearchTextType.of(Map.of())),
-        () -> assertEquals(fields, OpenSearchTextType.of(fields).getFields())
-    );
+        () -> assertEquals(fields, OpenSearchTextType.of(fields).getFields()));
   }
 
   @Test
   public void expr_type() {
     assertAll(
         () -> assertEquals(STRING, OpenSearchTextType.of().getExprType()),
-        () -> assertEquals(MappingType.Text, OpenSearchTextType.of().getMappingType())
-    );
+        () -> assertEquals(MappingType.Text, OpenSearchTextType.of().getMappingType()));
   }
 
   @Test
@@ -63,8 +64,7 @@ public class OpenSearchTextTypeTest {
         // `equals` falls back to `OpenSearchDataType`, which ignores `fields`
         () -> assertEquals(textType, clone),
         () -> assertTrue(clone instanceof OpenSearchTextType),
-        () -> assertEquals(textType.getFields(), ((OpenSearchTextType) clone).getFields())
-    );
+        () -> assertEquals(textType.getFields(), ((OpenSearchTextType) clone).getFields()));
   }
 
   @Test
@@ -77,11 +77,12 @@ public class OpenSearchTextTypeTest {
     assertAll(
         () -> assertFalse(OpenSearchTextType.of().shouldCast(STRING)),
         () -> assertTrue(OpenSearchTextType.of().shouldCast(DATE)),
-        () -> assertTrue(OpenSearchTextType.of()
-            .shouldCast(OpenSearchDataType.of(MappingType.Integer))),
-        () -> assertFalse(OpenSearchTextType.of()
-            .shouldCast(OpenSearchDataType.of(MappingType.Keyword)))
-    );
+        () ->
+            assertTrue(
+                OpenSearchTextType.of().shouldCast(OpenSearchDataType.of(MappingType.Integer))),
+        () ->
+            assertFalse(
+                OpenSearchTextType.of().shouldCast(OpenSearchDataType.of(MappingType.Keyword))));
   }
 
   @Test
@@ -89,19 +90,26 @@ public class OpenSearchTextTypeTest {
     var fieldsWithKeyword = Map.of("words", OpenSearchDataType.of(MappingType.Keyword));
     var fieldsWithNumber = Map.of("numbers", OpenSearchDataType.of(MappingType.Integer));
     // use ImmutableMap to avoid entry reordering
-    var fieldsWithMixed = ImmutableMap.of(
-        "numbers", OpenSearchDataType.of(MappingType.Integer),
-        "words", OpenSearchDataType.of(MappingType.Keyword));
+    var fieldsWithMixed =
+        ImmutableMap.of(
+            "numbers", OpenSearchDataType.of(MappingType.Integer),
+            "words", OpenSearchDataType.of(MappingType.Keyword));
     assertAll(
         () -> assertEquals("field", OpenSearchTextType.of().convertFieldForSearchQuery("field")),
-        () -> assertEquals("field",
-            OpenSearchTextType.of(Map.of()).convertFieldForSearchQuery("field")),
-        () -> assertEquals("field.words",
-            OpenSearchTextType.of(fieldsWithKeyword).convertFieldForSearchQuery("field")),
-        () -> assertEquals("field.numbers",
-            OpenSearchTextType.of(fieldsWithNumber).convertFieldForSearchQuery("field")),
-        () -> assertEquals("field.words",
-            OpenSearchTextType.of(fieldsWithMixed).convertFieldForSearchQuery("field"))
-    );
+        () ->
+            assertEquals(
+                "field", OpenSearchTextType.of(Map.of()).convertFieldForSearchQuery("field")),
+        () ->
+            assertEquals(
+                "field.words",
+                OpenSearchTextType.of(fieldsWithKeyword).convertFieldForSearchQuery("field")),
+        () ->
+            assertEquals(
+                "field.numbers",
+                OpenSearchTextType.of(fieldsWithNumber).convertFieldForSearchQuery("field")),
+        () ->
+            assertEquals(
+                "field.words",
+                OpenSearchTextType.of(fieldsWithMixed).convertFieldForSearchQuery("field")));
   }
 }

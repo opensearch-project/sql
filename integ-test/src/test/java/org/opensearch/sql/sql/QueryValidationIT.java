@@ -3,7 +3,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-
 package org.opensearch.sql.sql;
 
 import static org.hamcrest.Matchers.is;
@@ -25,28 +24,29 @@ import org.opensearch.core.rest.RestStatus;
 import org.opensearch.sql.legacy.SQLIntegTestCase;
 
 /**
- * The query validation IT only covers test for error cases that not doable in comparison test.
- * For all other tests, comparison test should be favored over manual written test like this.
+ * The query validation IT only covers test for error cases that not doable in comparison test. For
+ * all other tests, comparison test should be favored over manual written test like this.
  */
 public class QueryValidationIT extends SQLIntegTestCase {
 
-  @Rule
-  public ExpectedException exceptionRule = ExpectedException.none();
+  @Rule public ExpectedException exceptionRule = ExpectedException.none();
 
   @Override
   protected void init() throws Exception {
     loadIndex(Index.ACCOUNT);
   }
 
-  @Ignore("Will add this validation in analyzer later. This test should be enabled once " +
-          "https://github.com/opensearch-project/sql/issues/910 has been resolved")
+  @Ignore(
+      "Will add this validation in analyzer later. This test should be enabled once "
+          + "https://github.com/opensearch-project/sql/issues/910 has been resolved")
   @Test
   public void testNonAggregatedSelectColumnMissingInGroupByClause() throws IOException {
     expectResponseException()
         .hasStatusCode(BAD_REQUEST)
         .hasErrorType("SemanticCheckException")
-        .containsMessage("Expression [state] that contains non-aggregated column "
-                       + "is not present in group by clause")
+        .containsMessage(
+            "Expression [state] that contains non-aggregated column "
+                + "is not present in group by clause")
         .whenExecute("SELECT state FROM opensearch-sql_test_index_account GROUP BY age");
   }
 
@@ -55,8 +55,9 @@ public class QueryValidationIT extends SQLIntegTestCase {
     expectResponseException()
         .hasStatusCode(BAD_REQUEST)
         .hasErrorType("SemanticCheckException")
-        .containsMessage("Explicit GROUP BY clause is required because expression [state] "
-            + "contains non-aggregated column")
+        .containsMessage(
+            "Explicit GROUP BY clause is required because expression [state] "
+                + "contains non-aggregated column")
         .whenExecute("SELECT state, AVG(age) FROM opensearch-sql_test_index_account");
   }
 
@@ -87,8 +88,7 @@ public class QueryValidationIT extends SQLIntegTestCase {
 
   /**
    * Response exception assertion helper to assert property value in OpenSearch ResponseException
-   * and Response inside. This serves as syntax sugar to improve the readability of test
-   * code.
+   * and Response inside. This serves as syntax sugar to improve the readability of test code.
    */
   private static class ResponseExceptionAssertion {
     private final ExpectedException exceptionRule;
@@ -100,9 +100,12 @@ public class QueryValidationIT extends SQLIntegTestCase {
     }
 
     ResponseExceptionAssertion hasStatusCode(RestStatus code) {
-      exceptionRule.expect(featureValueOf("statusCode", is(code),
-          (Function<ResponseException, RestStatus>) e ->
-              RestStatus.fromCode(e.getResponse().getStatusLine().getStatusCode())));
+      exceptionRule.expect(
+          featureValueOf(
+              "statusCode",
+              is(code),
+              (Function<ResponseException, RestStatus>)
+                  e -> RestStatus.fromCode(e.getResponse().getStatusLine().getStatusCode())));
       return this;
     }
 
@@ -133,5 +136,4 @@ public class QueryValidationIT extends SQLIntegTestCase {
 
     client().performRequest(request);
   }
-
 }

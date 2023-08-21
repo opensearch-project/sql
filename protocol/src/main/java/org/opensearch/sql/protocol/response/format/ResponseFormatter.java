@@ -3,12 +3,9 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-
 package org.opensearch.sql.protocol.response.format;
 
-/**
- * Response formatter to format response to different formats.
- */
+/** Response formatter to format response to different formats. */
 public interface ResponseFormatter<R> {
 
   /**
@@ -33,5 +30,4 @@ public interface ResponseFormatter<R> {
    * @return string
    */
   String contentType();
-
 }

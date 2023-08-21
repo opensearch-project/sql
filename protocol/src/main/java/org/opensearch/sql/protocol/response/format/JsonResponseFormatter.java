@@ -3,7 +3,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-
 package org.opensearch.sql.protocol.response.format;
 
 import static org.opensearch.sql.protocol.response.format.ErrorFormatter.compactFormat;
@@ -24,16 +23,13 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public abstract class JsonResponseFormatter<R> implements ResponseFormatter<R> {
 
-  /**
-   * JSON format styles: pretty format or compact format without indent and space.
-   */
+  /** JSON format styles: pretty format or compact format without indent and space. */
   public enum Style {
-    PRETTY, COMPACT
+    PRETTY,
+    COMPACT
   }
 
-  /**
-   * JSON format style.
-   */
+  /** JSON format style. */
   private final Style style;
 
   public static final String CONTENT_TYPE = "application/json; charset=UTF-8";
@@ -45,8 +41,8 @@ public abstract class JsonResponseFormatter<R> implements ResponseFormatter<R> {
 
   @Override
   public String format(Throwable t) {
-    return AccessController.doPrivileged((PrivilegedAction<String>) () ->
-        (style == PRETTY) ? prettyFormat(t) : compactFormat(t));
+    return AccessController.doPrivileged(
+        (PrivilegedAction<String>) () -> (style == PRETTY) ? prettyFormat(t) : compactFormat(t));
   }
 
   public String contentType() {
@@ -62,7 +58,8 @@ public abstract class JsonResponseFormatter<R> implements ResponseFormatter<R> {
   protected abstract Object buildJsonObject(R response);
 
   protected String jsonify(Object jsonObject) {
-    return AccessController.doPrivileged((PrivilegedAction<String>) () ->
-        (style == PRETTY) ? prettyJsonify(jsonObject) : compactJsonify(jsonObject));
+    return AccessController.doPrivileged(
+        (PrivilegedAction<String>)
+            () -> (style == PRETTY) ? prettyJsonify(jsonObject) : compactJsonify(jsonObject));
   }
 }

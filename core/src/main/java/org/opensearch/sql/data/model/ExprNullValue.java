@@ -3,21 +3,17 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-
 package org.opensearch.sql.data.model;
 
 import java.util.Objects;
 import org.opensearch.sql.data.type.ExprCoreType;
 import org.opensearch.sql.data.type.ExprType;
 
-/**
- * Expression Null Value.
- */
+/** Expression Null Value. */
 public class ExprNullValue extends AbstractExprValue {
   private static final ExprNullValue instance = new ExprNullValue();
 
-  private ExprNullValue() {
-  }
+  private ExprNullValue() {}
 
   @Override
   public int hashCode() {
@@ -55,8 +51,8 @@ public class ExprNullValue extends AbstractExprValue {
   }
 
   /**
-   * NULL value is equal to NULL value.
-   * Notes, this function should only used for Java Object Compare.
+   * NULL value is equal to NULL value. Notes, this function should only used for Java Object
+   * Compare.
    */
   @Override
   public boolean equal(ExprValue other) {

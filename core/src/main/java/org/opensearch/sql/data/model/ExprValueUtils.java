@@ -9,6 +9,7 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.time.ZoneOffset;
 import java.time.temporal.TemporalAmount;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -18,9 +19,7 @@ import lombok.experimental.UtilityClass;
 import org.opensearch.sql.data.type.ExprCoreType;
 import org.opensearch.sql.exception.ExpressionEvaluationException;
 
-/**
- * The definition of {@link ExprValue} factory.
- */
+/** The definition of {@link ExprValue} factory. */
 @UtilityClass
 public class ExprValueUtils {
   public static final ExprValue LITERAL_TRUE = ExprBooleanValue.of(true);
@@ -68,10 +67,6 @@ public class ExprValueUtils {
     return new ExprDateValue(value);
   }
 
-  public static ExprValue datetimeValue(LocalDateTime value) {
-    return new ExprDatetimeValue(value);
-  }
-
   public static ExprValue timeValue(LocalTime value) {
     return new ExprTimeValue(value);
   }
@@ -80,19 +75,15 @@ public class ExprValueUtils {
     return new ExprTimestampValue(value);
   }
 
-  /**
-   * {@link ExprTupleValue} constructor.
-   */
+  /** {@link ExprTupleValue} constructor. */
   public static ExprValue tupleValue(Map<String, Object> map) {
     LinkedHashMap<String, ExprValue> valueMap = new LinkedHashMap<>();
-    map.forEach((k, v) -> valueMap
-        .put(k, v instanceof ExprValue ? (ExprValue) v : fromObjectValue(v)));
+    map.forEach(
+        (k, v) -> valueMap.put(k, v instanceof ExprValue ? (ExprValue) v : fromObjectValue(v)));
     return new ExprTupleValue(valueMap);
   }
 
-  /**
-   * {@link ExprCollectionValue} constructor.
-   */
+  /** {@link ExprCollectionValue} constructor. */
   public static ExprValue collectionValue(List<Object> list) {
     List<ExprValue> valueList = new ArrayList<>();
     list.forEach(o -> valueList.add(fromObjectValue(o)));
@@ -107,9 +98,7 @@ public class ExprValueUtils {
     return ExprNullValue.of();
   }
 
-  /**
-   * Construct ExprValue from Object.
-   */
+  /** Construct ExprValue from Object. */
   public static ExprValue fromObjectValue(Object o) {
     if (null == o) {
       return LITERAL_NULL;
@@ -136,32 +125,28 @@ public class ExprValueUtils {
       return floatValue((Float) o);
     } else if (o instanceof LocalDate) {
       return dateValue((LocalDate) o);
-    } else if (o instanceof LocalDateTime) {
-      return datetimeValue((LocalDateTime) o);
     } else if (o instanceof LocalTime) {
       return timeValue((LocalTime) o);
     } else if (o instanceof Instant) {
       return timestampValue((Instant) o);
     } else if (o instanceof TemporalAmount) {
       return intervalValue((TemporalAmount) o);
+    } else if (o instanceof LocalDateTime) {
+      return timestampValue(((LocalDateTime) o).toInstant(ZoneOffset.UTC));
     } else {
       throw new ExpressionEvaluationException("unsupported object " + o.getClass());
     }
   }
 
-  /**
-   * Construct ExprValue from Object with ExprCoreType.
-   */
+  /** Construct ExprValue from Object with ExprCoreType. */
   public static ExprValue fromObjectValue(Object o, ExprCoreType type) {
     switch (type) {
       case TIMESTAMP:
-        return new ExprTimestampValue((String)o);
+        return new ExprTimestampValue((String) o);
       case DATE:
-        return new ExprDateValue((String)o);
+        return new ExprDateValue((String) o);
       case TIME:
-        return new ExprTimeValue((String)o);
-      case DATETIME:
-        return new ExprDatetimeValue((String)o);
+        return new ExprTimeValue((String) o);
       default:
         return fromObjectValue(o);
     }

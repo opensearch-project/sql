@@ -3,14 +3,12 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-
 package org.opensearch.sql.expression.aggregation;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.opensearch.sql.data.type.ExprCoreType.DATE;
-import static org.opensearch.sql.data.type.ExprCoreType.DATETIME;
 import static org.opensearch.sql.data.type.ExprCoreType.DOUBLE;
 import static org.opensearch.sql.data.type.ExprCoreType.FLOAT;
 import static org.opensearch.sql.data.type.ExprCoreType.INTEGER;
@@ -64,12 +62,6 @@ public class MinAggregatorTest extends AggregationTest {
   }
 
   @Test
-  public void test_min_datetime() {
-    ExprValue result = aggregation(DSL.min(DSL.ref("datetime_value", DATETIME)), tuples);
-    assertEquals("1970-01-01 19:00:00", result.value());
-  }
-
-  @Test
   public void test_min_time() {
     ExprValue result = aggregation(DSL.min(DSL.ref("time_value", TIME)), tuples);
     assertEquals("00:00:00", result.value());
@@ -83,16 +75,23 @@ public class MinAggregatorTest extends AggregationTest {
 
   @Test
   public void test_min_arithmetic_expression() {
-    ExprValue result = aggregation(
-        DSL.min(DSL.add(DSL.ref("integer_value", INTEGER),
-            DSL.literal(ExprValueUtils.integerValue(0)))), tuples);
+    ExprValue result =
+        aggregation(
+            DSL.min(
+                DSL.add(
+                    DSL.ref("integer_value", INTEGER),
+                    DSL.literal(ExprValueUtils.integerValue(0)))),
+            tuples);
     assertEquals(1, result.value());
   }
 
   @Test
   public void filtered_min() {
-    ExprValue result = aggregation(DSL.min(DSL.ref("integer_value", INTEGER))
-        .condition(DSL.greater(DSL.ref("integer_value", INTEGER), DSL.literal(1))), tuples);
+    ExprValue result =
+        aggregation(
+            DSL.min(DSL.ref("integer_value", INTEGER))
+                .condition(DSL.greater(DSL.ref("integer_value", INTEGER), DSL.literal(1))),
+            tuples);
     assertEquals(2, result.value());
   }
 
@@ -119,8 +118,10 @@ public class MinAggregatorTest extends AggregationTest {
 
   @Test
   public void test_value_of() {
-    ExpressionEvaluationException exception = assertThrows(ExpressionEvaluationException.class,
-        () -> DSL.min(DSL.ref("double_value", DOUBLE)).valueOf(valueEnv()));
+    ExpressionEvaluationException exception =
+        assertThrows(
+            ExpressionEvaluationException.class,
+            () -> DSL.min(DSL.ref("double_value", DOUBLE)).valueOf(valueEnv()));
     assertEquals("can't evaluate on aggregator: min", exception.getMessage());
   }
 
@@ -132,9 +133,12 @@ public class MinAggregatorTest extends AggregationTest {
 
   @Test
   public void test_nested_to_string() {
-    Aggregator minAggregator = DSL.min(DSL.add(DSL.ref("integer_value", INTEGER),
-        DSL.literal(ExprValueUtils.integerValue(10))));
-    assertEquals(String.format("min(+(%s, %d))", DSL.ref("integer_value", INTEGER), 10),
+    Aggregator minAggregator =
+        DSL.min(
+            DSL.add(
+                DSL.ref("integer_value", INTEGER), DSL.literal(ExprValueUtils.integerValue(10))));
+    assertEquals(
+        String.format("min(+(%s, %d))", DSL.ref("integer_value", INTEGER), 10),
         minAggregator.toString());
   }
 }

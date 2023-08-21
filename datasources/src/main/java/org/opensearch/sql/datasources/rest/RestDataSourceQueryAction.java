@@ -22,8 +22,8 @@ import java.util.Locale;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.OpenSearchException;
-import org.opensearch.action.ActionListener;
 import org.opensearch.client.node.NodeClient;
+import org.opensearch.core.action.ActionListener;
 import org.opensearch.core.rest.RestStatus;
 import org.opensearch.rest.BaseRestHandler;
 import org.opensearch.rest.BytesRestResponse;
@@ -46,7 +46,6 @@ import org.opensearch.sql.datasources.transport.TransportGetDataSourceAction;
 import org.opensearch.sql.datasources.transport.TransportUpdateDataSourceAction;
 import org.opensearch.sql.datasources.utils.Scheduler;
 import org.opensearch.sql.datasources.utils.XContentParserUtils;
-
 
 public class RestDataSourceQueryAction extends BaseRestHandler {
 
@@ -83,8 +82,9 @@ public class RestDataSourceQueryAction extends BaseRestHandler {
          * Response body:
          * Ref [org.opensearch.sql.plugin.transport.datasource.model.GetDataSourceActionResponse]
          */
-        new Route(GET, String.format(Locale.ROOT, "%s/{%s}",
-            BASE_DATASOURCE_ACTION_URL, "dataSourceName")),
+        new Route(
+            GET,
+            String.format(Locale.ROOT, "%s/{%s}", BASE_DATASOURCE_ACTION_URL, "dataSourceName")),
         new Route(GET, BASE_DATASOURCE_ACTION_URL),
 
         /*
@@ -107,9 +107,9 @@ public class RestDataSourceQueryAction extends BaseRestHandler {
          * Response body: Ref
          * [org.opensearch.sql.plugin.transport.datasource.model.DeleteDataSourceActionResponse]
          */
-        new Route(DELETE, String.format(Locale.ROOT, "%s/{%s}",
-            BASE_DATASOURCE_ACTION_URL, "dataSourceName"))
-    );
+        new Route(
+            DELETE,
+            String.format(Locale.ROOT, "%s/{%s}", BASE_DATASOURCE_ACTION_URL, "dataSourceName")));
   }
 
   @Override
@@ -125,101 +125,125 @@ public class RestDataSourceQueryAction extends BaseRestHandler {
       case DELETE:
         return executeDeleteRequest(restRequest, nodeClient);
       default:
-        return restChannel
-            -> restChannel.sendResponse(new BytesRestResponse(RestStatus.METHOD_NOT_ALLOWED,
-            String.valueOf(restRequest.method())));
+        return restChannel ->
+            restChannel.sendResponse(
+                new BytesRestResponse(
+                    RestStatus.METHOD_NOT_ALLOWED, String.valueOf(restRequest.method())));
     }
   }
 
-  private RestChannelConsumer executePostRequest(RestRequest restRequest,
-                                                 NodeClient nodeClient) throws IOException {
+  private RestChannelConsumer executePostRequest(RestRequest restRequest, NodeClient nodeClient)
+      throws IOException {
 
-    DataSourceMetadata dataSourceMetadata
-        = XContentParserUtils.toDataSourceMetadata(restRequest.contentParser());
-    return restChannel -> Scheduler.schedule(nodeClient,
-        () -> nodeClient.execute(TransportCreateDataSourceAction.ACTION_TYPE,
-            new CreateDataSourceActionRequest(dataSourceMetadata),
-            new ActionListener<>() {
-              @Override
-              public void onResponse(
-                  CreateDataSourceActionResponse createDataSourceActionResponse) {
-                restChannel.sendResponse(
-                    new BytesRestResponse(RestStatus.CREATED, "application/json; charset=UTF-8",
-                        createDataSourceActionResponse.getResult()));
-              }
+    DataSourceMetadata dataSourceMetadata =
+        XContentParserUtils.toDataSourceMetadata(restRequest.contentParser());
+    return restChannel ->
+        Scheduler.schedule(
+            nodeClient,
+            () ->
+                nodeClient.execute(
+                    TransportCreateDataSourceAction.ACTION_TYPE,
+                    new CreateDataSourceActionRequest(dataSourceMetadata),
+                    new ActionListener<>() {
+                      @Override
+                      public void onResponse(
+                          CreateDataSourceActionResponse createDataSourceActionResponse) {
+                        restChannel.sendResponse(
+                            new BytesRestResponse(
+                                RestStatus.CREATED,
+                                "application/json; charset=UTF-8",
+                                createDataSourceActionResponse.getResult()));
+                      }
 
-              @Override
-              public void onFailure(Exception e) {
-                handleException(e, restChannel);
-              }
-            }));
+                      @Override
+                      public void onFailure(Exception e) {
+                        handleException(e, restChannel);
+                      }
+                    }));
   }
 
-  private RestChannelConsumer executeGetRequest(RestRequest restRequest,
-                                                NodeClient nodeClient) {
+  private RestChannelConsumer executeGetRequest(RestRequest restRequest, NodeClient nodeClient) {
     String dataSourceName = restRequest.param("dataSourceName");
-    return restChannel -> Scheduler.schedule(nodeClient,
-        () -> nodeClient.execute(TransportGetDataSourceAction.ACTION_TYPE,
-            new GetDataSourceActionRequest(dataSourceName),
-            new ActionListener<>() {
-              @Override
-              public void onResponse(GetDataSourceActionResponse getDataSourceActionResponse) {
-                restChannel.sendResponse(
-                    new BytesRestResponse(RestStatus.OK, "application/json; charset=UTF-8",
-                        getDataSourceActionResponse.getResult()));
-              }
+    return restChannel ->
+        Scheduler.schedule(
+            nodeClient,
+            () ->
+                nodeClient.execute(
+                    TransportGetDataSourceAction.ACTION_TYPE,
+                    new GetDataSourceActionRequest(dataSourceName),
+                    new ActionListener<>() {
+                      @Override
+                      public void onResponse(
+                          GetDataSourceActionResponse getDataSourceActionResponse) {
+                        restChannel.sendResponse(
+                            new BytesRestResponse(
+                                RestStatus.OK,
+                                "application/json; charset=UTF-8",
+                                getDataSourceActionResponse.getResult()));
+                      }
 
-              @Override
-              public void onFailure(Exception e) {
-                handleException(e, restChannel);
-              }
-            }));
+                      @Override
+                      public void onFailure(Exception e) {
+                        handleException(e, restChannel);
+                      }
+                    }));
   }
 
-  private RestChannelConsumer executeUpdateRequest(RestRequest restRequest,
-                                                   NodeClient nodeClient) throws IOException {
-    DataSourceMetadata dataSourceMetadata
-        = XContentParserUtils.toDataSourceMetadata(restRequest.contentParser());
-    return restChannel -> Scheduler.schedule(nodeClient,
-        () -> nodeClient.execute(TransportUpdateDataSourceAction.ACTION_TYPE,
-            new UpdateDataSourceActionRequest(dataSourceMetadata),
-            new ActionListener<>() {
-              @Override
-              public void onResponse(
-                  UpdateDataSourceActionResponse updateDataSourceActionResponse) {
-                restChannel.sendResponse(
-                    new BytesRestResponse(RestStatus.OK, "application/json; charset=UTF-8",
-                        updateDataSourceActionResponse.getResult()));
-              }
+  private RestChannelConsumer executeUpdateRequest(RestRequest restRequest, NodeClient nodeClient)
+      throws IOException {
+    DataSourceMetadata dataSourceMetadata =
+        XContentParserUtils.toDataSourceMetadata(restRequest.contentParser());
+    return restChannel ->
+        Scheduler.schedule(
+            nodeClient,
+            () ->
+                nodeClient.execute(
+                    TransportUpdateDataSourceAction.ACTION_TYPE,
+                    new UpdateDataSourceActionRequest(dataSourceMetadata),
+                    new ActionListener<>() {
+                      @Override
+                      public void onResponse(
+                          UpdateDataSourceActionResponse updateDataSourceActionResponse) {
+                        restChannel.sendResponse(
+                            new BytesRestResponse(
+                                RestStatus.OK,
+                                "application/json; charset=UTF-8",
+                                updateDataSourceActionResponse.getResult()));
+                      }
 
-              @Override
-              public void onFailure(Exception e) {
-                handleException(e, restChannel);
-              }
-            }));
+                      @Override
+                      public void onFailure(Exception e) {
+                        handleException(e, restChannel);
+                      }
+                    }));
   }
 
-  private RestChannelConsumer executeDeleteRequest(RestRequest restRequest,
-                                                   NodeClient nodeClient) {
+  private RestChannelConsumer executeDeleteRequest(RestRequest restRequest, NodeClient nodeClient) {
 
     String dataSourceName = restRequest.param("dataSourceName");
-    return restChannel -> Scheduler.schedule(nodeClient,
-        () -> nodeClient.execute(TransportDeleteDataSourceAction.ACTION_TYPE,
-            new DeleteDataSourceActionRequest(dataSourceName),
-            new ActionListener<>() {
-              @Override
-              public void onResponse(
-                  DeleteDataSourceActionResponse deleteDataSourceActionResponse) {
-                restChannel.sendResponse(
-                    new BytesRestResponse(RestStatus.NO_CONTENT, "application/json; charset=UTF-8",
-                        deleteDataSourceActionResponse.getResult()));
-              }
+    return restChannel ->
+        Scheduler.schedule(
+            nodeClient,
+            () ->
+                nodeClient.execute(
+                    TransportDeleteDataSourceAction.ACTION_TYPE,
+                    new DeleteDataSourceActionRequest(dataSourceName),
+                    new ActionListener<>() {
+                      @Override
+                      public void onResponse(
+                          DeleteDataSourceActionResponse deleteDataSourceActionResponse) {
+                        restChannel.sendResponse(
+                            new BytesRestResponse(
+                                RestStatus.NO_CONTENT,
+                                "application/json; charset=UTF-8",
+                                deleteDataSourceActionResponse.getResult()));
+                      }
 
-              @Override
-              public void onFailure(Exception e) {
-                handleException(e, restChannel);
-              }
-            }));
+                      @Override
+                      public void onFailure(Exception e) {
+                        handleException(e, restChannel);
+                      }
+                    }));
   }
 
   private void handleException(Exception e, RestChannel restChannel) {
@@ -240,8 +264,7 @@ public class RestDataSourceQueryAction extends BaseRestHandler {
 
   private void reportError(final RestChannel channel, final Exception e, final RestStatus status) {
     channel.sendResponse(
-        new BytesRestResponse(
-            status, new ErrorMessage(e, status.getStatus()).toString()));
+        new BytesRestResponse(status, new ErrorMessage(e, status.getStatus()).toString()));
   }
 
   private static boolean isClientError(Exception e) {
@@ -250,5 +273,4 @@ public class RestDataSourceQueryAction extends BaseRestHandler {
         || e instanceof IllegalArgumentException
         || e instanceof IllegalStateException;
   }
-
 }

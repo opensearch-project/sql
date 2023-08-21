@@ -3,7 +3,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-
 package org.opensearch.sql.expression.datetime;
 
 import com.google.common.collect.ImmutableList;
@@ -18,6 +17,7 @@ class CalendarLookup {
 
   /**
    * Get a calendar for the specific mode.
+   *
    * @param mode Mode to get calendar for.
    * @param date Date to get calendar for.
    */
@@ -38,6 +38,7 @@ class CalendarLookup {
 
   /**
    * Set first day of week, minimal days in first week and date in calendar.
+   *
    * @param firstDayOfWeek the given first day of the week.
    * @param minimalDaysInWeek the given minimal days required in the first week of the year.
    * @param date the given date.
@@ -52,6 +53,7 @@ class CalendarLookup {
 
   /**
    * Returns week number for date according to mode.
+   *
    * @param mode Integer for mode. Valid mode values are 0 to 7.
    * @param date LocalDate for date.
    */
@@ -68,6 +70,7 @@ class CalendarLookup {
 
   /**
    * Returns year for date according to mode.
+   *
    * @param mode Integer for mode. Valid mode values are 0 to 7.
    * @param date LocalDate for date.
    */

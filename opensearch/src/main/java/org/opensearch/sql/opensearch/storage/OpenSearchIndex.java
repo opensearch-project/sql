@@ -3,7 +3,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-
 package org.opensearch.sql.opensearch.storage;
 
 import com.google.common.annotations.VisibleForTesting;
@@ -47,43 +46,33 @@ public class OpenSearchIndex implements Table {
 
   public static final String METADATA_FIELD_ROUTING = "_routing";
 
-  public static final java.util.Map<String, ExprType> METADATAFIELD_TYPE_MAP = Map.of(
-      METADATA_FIELD_ID, ExprCoreType.STRING,
-      METADATA_FIELD_INDEX, ExprCoreType.STRING,
-      METADATA_FIELD_SCORE, ExprCoreType.FLOAT,
-      METADATA_FIELD_MAXSCORE, ExprCoreType.FLOAT,
-      METADATA_FIELD_SORT, ExprCoreType.LONG,
-      METADATA_FIELD_ROUTING, ExprCoreType.STRING
-  );
+  public static final java.util.Map<String, ExprType> METADATAFIELD_TYPE_MAP =
+      Map.of(
+          METADATA_FIELD_ID, ExprCoreType.STRING,
+          METADATA_FIELD_INDEX, ExprCoreType.STRING,
+          METADATA_FIELD_SCORE, ExprCoreType.FLOAT,
+          METADATA_FIELD_MAXSCORE, ExprCoreType.FLOAT,
+          METADATA_FIELD_SORT, ExprCoreType.LONG,
+          METADATA_FIELD_ROUTING, ExprCoreType.STRING);
 
   /** OpenSearch client connection. */
   private final OpenSearchClient client;
 
   private final Settings settings;
 
-  /**
-   * {@link OpenSearchRequest.IndexName}.
-   */
+  /** {@link OpenSearchRequest.IndexName}. */
   private final OpenSearchRequest.IndexName indexName;
 
-  /**
-   * The cached mapping of field and type in index.
-   */
+  /** The cached mapping of field and type in index. */
   private Map<String, OpenSearchDataType> cachedFieldOpenSearchTypes = null;
 
-  /**
-   * The cached ExprType of fields.
-   */
+  /** The cached ExprType of fields. */
   private Map<String, ExprType> cachedFieldTypes = null;
 
-  /**
-   * The cached max result window setting of index.
-   */
+  /** The cached max result window setting of index. */
   private Integer cachedMaxResultWindow = null;
 
-  /**
-   * Constructor.
-   */
+  /** Constructor. */
   public OpenSearchIndex(OpenSearchClient client, Settings settings, String indexName) {
     this.client = client;
     this.settings = settings;
@@ -113,22 +102,24 @@ public class OpenSearchIndex implements Table {
    *   or lazy evaluate when query engine pulls field type.
    */
   /**
-   * Get simplified parsed mapping info. Unlike {@link #getFieldOpenSearchTypes()}
-   * it returns a flattened map.
+   * Get simplified parsed mapping info. Unlike {@link #getFieldOpenSearchTypes()} it returns a
+   * flattened map.
+   *
    * @return A map between field names and matching `ExprCoreType`s.
    */
   @Override
   public Map<String, ExprType> getFieldTypes() {
     if (cachedFieldOpenSearchTypes == null) {
-      cachedFieldOpenSearchTypes = new OpenSearchDescribeIndexRequest(client, indexName)
-          .getFieldTypes();
+      cachedFieldOpenSearchTypes =
+          new OpenSearchDescribeIndexRequest(client, indexName).getFieldTypes();
     }
     if (cachedFieldTypes == null) {
-      cachedFieldTypes = OpenSearchDataType.traverseAndFlatten(cachedFieldOpenSearchTypes)
-          .entrySet().stream().collect(
-              LinkedHashMap::new,
-              (map, item) -> map.put(item.getKey(), item.getValue()),
-              Map::putAll);
+      cachedFieldTypes =
+          OpenSearchDataType.traverseAndFlatten(cachedFieldOpenSearchTypes).entrySet().stream()
+              .collect(
+                  LinkedHashMap::new,
+                  (map, item) -> map.put(item.getKey(), item.getValue()),
+                  Map::putAll);
     }
     return cachedFieldTypes;
   }
@@ -140,19 +131,18 @@ public class OpenSearchIndex implements Table {
 
   /**
    * Get parsed mapping info.
+   *
    * @return A complete map between field names and their types.
    */
   public Map<String, OpenSearchDataType> getFieldOpenSearchTypes() {
     if (cachedFieldOpenSearchTypes == null) {
-      cachedFieldOpenSearchTypes = new OpenSearchDescribeIndexRequest(client, indexName)
-          .getFieldTypes();
+      cachedFieldOpenSearchTypes =
+          new OpenSearchDescribeIndexRequest(client, indexName).getFieldTypes();
     }
     return cachedFieldOpenSearchTypes;
   }
 
-  /**
-   * Get the max result window setting of the table.
-   */
+  /** Get the max result window setting of the table. */
   public Integer getMaxResultWindow() {
     if (cachedMaxResultWindow == null) {
       cachedMaxResultWindow =
@@ -161,9 +151,7 @@ public class OpenSearchIndex implements Table {
     return cachedMaxResultWindow;
   }
 
-  /**
-   * TODO: Push down operations to index scan operator as much as possible in future.
-   */
+  /** TODO: Push down operations to index scan operator as much as possible in future. */
   @Override
   public PhysicalPlan implement(LogicalPlan plan) {
     // TODO: Leave it here to avoid impact Prometheus and AD operators. Need to move to Planner.
@@ -175,12 +163,13 @@ public class OpenSearchIndex implements Table {
     final int querySizeLimit = settings.getSettingValue(Settings.Key.QUERY_SIZE_LIMIT);
 
     final TimeValue cursorKeepAlive = settings.getSettingValue(Settings.Key.SQL_CURSOR_KEEP_ALIVE);
-    var builder = new OpenSearchRequestBuilder(
-        querySizeLimit,
-        createExprValueFactory());
+    var builder = new OpenSearchRequestBuilder(querySizeLimit, createExprValueFactory());
     Function<OpenSearchRequestBuilder, OpenSearchIndexScan> createScanOperator =
-        requestBuilder -> new OpenSearchIndexScan(client, requestBuilder.getMaxResponseSize(),
-        requestBuilder.build(indexName, getMaxResultWindow(), cursorKeepAlive));
+        requestBuilder ->
+            new OpenSearchIndexScan(
+                client,
+                requestBuilder.getMaxResponseSize(),
+                requestBuilder.build(indexName, getMaxResultWindow(), cursorKeepAlive));
     return new OpenSearchIndexScanBuilder(builder, createScanOperator);
   }
 
@@ -193,27 +182,27 @@ public class OpenSearchIndex implements Table {
 
   @VisibleForTesting
   @RequiredArgsConstructor
-  public static class OpenSearchDefaultImplementor
-      extends DefaultImplementor<OpenSearchIndexScan> {
+  public static class OpenSearchDefaultImplementor extends DefaultImplementor<OpenSearchIndexScan> {
 
     private final OpenSearchClient client;
 
     @Override
     public PhysicalPlan visitMLCommons(LogicalMLCommons node, OpenSearchIndexScan context) {
-      return new MLCommonsOperator(visitChild(node, context), node.getAlgorithm(),
-              node.getArguments(), client.getNodeClient());
+      return new MLCommonsOperator(
+          visitChild(node, context),
+          node.getAlgorithm(),
+          node.getArguments(),
+          client.getNodeClient());
     }
 
     @Override
     public PhysicalPlan visitAD(LogicalAD node, OpenSearchIndexScan context) {
-      return new ADOperator(visitChild(node, context),
-              node.getArguments(), client.getNodeClient());
+      return new ADOperator(visitChild(node, context), node.getArguments(), client.getNodeClient());
     }
 
     @Override
     public PhysicalPlan visitML(LogicalML node, OpenSearchIndexScan context) {
-      return new MLOperator(visitChild(node, context),
-              node.getArguments(), client.getNodeClient());
+      return new MLOperator(visitChild(node, context), node.getArguments(), client.getNodeClient());
     }
   }
 }

@@ -24,5 +24,4 @@ public interface Encryptor {
    * @return String plainText.
    */
   String decrypt(String encryptedText);
-
 }

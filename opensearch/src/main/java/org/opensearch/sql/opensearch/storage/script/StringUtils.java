@@ -3,7 +3,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-
 package org.opensearch.sql.opensearch.storage.script;
 
 import lombok.experimental.UtilityClass;
@@ -12,6 +11,7 @@ import lombok.experimental.UtilityClass;
 public class StringUtils {
   /**
    * Converts sql wildcard character % and _ to * and ?.
+   *
    * @param text string to be converted
    * @return converted string
    */

@@ -3,7 +3,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-
 package org.opensearch.sql.expression.operator.convert;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -11,7 +10,6 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.opensearch.sql.data.type.ExprCoreType.BOOLEAN;
 import static org.opensearch.sql.data.type.ExprCoreType.BYTE;
 import static org.opensearch.sql.data.type.ExprCoreType.DATE;
-import static org.opensearch.sql.data.type.ExprCoreType.DATETIME;
 import static org.opensearch.sql.data.type.ExprCoreType.DOUBLE;
 import static org.opensearch.sql.data.type.ExprCoreType.FLOAT;
 import static org.opensearch.sql.data.type.ExprCoreType.INTEGER;
@@ -28,7 +26,6 @@ import org.junit.jupiter.params.provider.MethodSource;
 import org.opensearch.sql.data.model.ExprBooleanValue;
 import org.opensearch.sql.data.model.ExprByteValue;
 import org.opensearch.sql.data.model.ExprDateValue;
-import org.opensearch.sql.data.model.ExprDatetimeValue;
 import org.opensearch.sql.data.model.ExprDoubleValue;
 import org.opensearch.sql.data.model.ExprFloatValue;
 import org.opensearch.sql.data.model.ExprIntegerValue;
@@ -44,8 +41,12 @@ import org.opensearch.sql.expression.FunctionExpression;
 class TypeCastOperatorTest {
 
   private static Stream<ExprValue> numberData() {
-    return Stream.of(new ExprByteValue(3), new ExprShortValue(3),
-        new ExprIntegerValue(3), new ExprLongValue(3L), new ExprFloatValue(3.14f),
+    return Stream.of(
+        new ExprByteValue(3),
+        new ExprShortValue(3),
+        new ExprIntegerValue(3),
+        new ExprLongValue(3L),
+        new ExprFloatValue(3.14f),
         new ExprDoubleValue(3.1415D));
   }
 
@@ -69,12 +70,8 @@ class TypeCastOperatorTest {
     return Stream.of(new ExprTimestampValue("2020-12-24 01:01:01"));
   }
 
-  private static Stream<ExprValue> datetime() {
-    return Stream.of(new ExprDatetimeValue("2020-12-24 01:01:01"));
-  }
-
   @ParameterizedTest(name = "castString({0})")
-  @MethodSource({"numberData", "stringData", "boolData", "date", "time", "timestamp", "datetime"})
+  @MethodSource({"numberData", "stringData", "boolData", "date", "time", "timestamp"})
   void castToString(ExprValue value) {
     FunctionExpression expression = DSL.castString(DSL.literal(value));
     assertEquals(STRING, expression.type());
@@ -296,7 +293,7 @@ class TypeCastOperatorTest {
     assertEquals(DATE, expression.type());
     assertEquals(new ExprDateValue("2012-08-07"), expression.valueOf());
 
-    expression = DSL.castDate(DSL.literal(new ExprDatetimeValue("2012-08-07 01:01:01")));
+    expression = DSL.castDate(DSL.literal(new ExprTimestampValue("2012-08-07 01:01:01")));
     assertEquals(DATE, expression.type());
     assertEquals(new ExprDateValue("2012-08-07"), expression.valueOf());
 
@@ -315,7 +312,7 @@ class TypeCastOperatorTest {
     assertEquals(TIME, expression.type());
     assertEquals(new ExprTimeValue("01:01:01"), expression.valueOf());
 
-    expression = DSL.castTime(DSL.literal(new ExprDatetimeValue("2012-08-07 01:01:01")));
+    expression = DSL.castTime(DSL.literal(new ExprTimestampValue("2012-08-07 01:01:01")));
     assertEquals(TIME, expression.type());
     assertEquals(new ExprTimeValue("01:01:01"), expression.valueOf());
 
@@ -334,7 +331,7 @@ class TypeCastOperatorTest {
     assertEquals(TIMESTAMP, expression.type());
     assertEquals(new ExprTimestampValue("2012-08-07 01:01:01"), expression.valueOf());
 
-    expression = DSL.castTimestamp(DSL.literal(new ExprDatetimeValue("2012-08-07 01:01:01")));
+    expression = DSL.castTimestamp(DSL.literal(new ExprTimestampValue("2012-08-07 01:01:01")));
     assertEquals(TIMESTAMP, expression.type());
     assertEquals(new ExprTimestampValue("2012-08-07 01:01:01"), expression.valueOf());
 
@@ -342,20 +339,4 @@ class TypeCastOperatorTest {
     assertEquals(TIMESTAMP, expression.type());
     assertEquals(new ExprTimestampValue("2012-08-07 01:01:01"), expression.valueOf());
   }
-
-  @Test
-  void castToDatetime() {
-    FunctionExpression expression = DSL.castDatetime(DSL.literal("2012-08-07 01:01:01"));
-    assertEquals(DATETIME, expression.type());
-    assertEquals(new ExprDatetimeValue("2012-08-07 01:01:01"), expression.valueOf());
-
-    expression = DSL.castDatetime(DSL.literal(new ExprTimestampValue("2012-08-07 01:01:01")));
-    assertEquals(DATETIME, expression.type());
-    assertEquals(new ExprDatetimeValue("2012-08-07 01:01:01"), expression.valueOf());
-
-    expression = DSL.castDatetime(DSL.literal(new ExprDateValue("2012-08-07")));
-    assertEquals(DATETIME, expression.type());
-    assertEquals(new ExprDatetimeValue("2012-08-07 00:00:00"), expression.valueOf());
-  }
-
 }

@@ -19,7 +19,6 @@ class FunctionDSLimplTwoArgTest extends FunctionDSLimplTestBase {
     return impl(twoArgs, ANY_TYPE, ANY_TYPE, ANY_TYPE);
   }
 
-
   @Override
   List<Expression> getSampleArguments() {
     return List.of(DSL.literal(ANY), DSL.literal(ANY));

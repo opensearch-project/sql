@@ -29,8 +29,8 @@ import org.opensearch.sql.prometheus.request.PrometheusQueryRequest;
 import org.opensearch.sql.prometheus.storage.PrometheusMetricTable;
 import org.opensearch.sql.storage.Table;
 
-public class QueryRangeFunctionImplementation extends FunctionExpression implements
-    TableFunctionImplementation {
+public class QueryRangeFunctionImplementation extends FunctionExpression
+    implements TableFunctionImplementation {
 
   private final FunctionName functionName;
   private final List<Expression> arguments;
@@ -40,10 +40,10 @@ public class QueryRangeFunctionImplementation extends FunctionExpression impleme
    * Required argument constructor.
    *
    * @param functionName name of the function
-   * @param arguments    a list of expressions
+   * @param arguments a list of expressions
    */
-  public QueryRangeFunctionImplementation(FunctionName functionName, List<Expression> arguments,
-                                          PrometheusClient prometheusClient) {
+  public QueryRangeFunctionImplementation(
+      FunctionName functionName, List<Expression> arguments, PrometheusClient prometheusClient) {
     super(functionName, arguments);
     this.functionName = functionName;
     this.arguments = arguments;
@@ -52,10 +52,11 @@ public class QueryRangeFunctionImplementation extends FunctionExpression impleme
 
   @Override
   public ExprValue valueOf(Environment<Expression, ExprValue> valueEnv) {
-    throw new UnsupportedOperationException(String.format(
-        "Prometheus defined function [%s] is only "
-            + "supported in SOURCE clause with prometheus connector catalog",
-        functionName));
+    throw new UnsupportedOperationException(
+        String.format(
+            "Prometheus defined function [%s] is only "
+                + "supported in SOURCE clause with prometheus connector catalog",
+            functionName));
   }
 
   @Override
@@ -65,10 +66,15 @@ public class QueryRangeFunctionImplementation extends FunctionExpression impleme
 
   @Override
   public String toString() {
-    List<String> args = arguments.stream()
-        .map(arg -> String.format("%s=%s", ((NamedArgumentExpression) arg)
-            .getArgName(), ((NamedArgumentExpression) arg).getValue().toString()))
-        .collect(Collectors.toList());
+    List<String> args =
+        arguments.stream()
+            .map(
+                arg ->
+                    String.format(
+                        "%s=%s",
+                        ((NamedArgumentExpression) arg).getArgName(),
+                        ((NamedArgumentExpression) arg).getValue().toString()))
+            .collect(Collectors.toList());
     return String.format("%s(%s)", functionName, String.join(", ", args));
   }
 
@@ -80,30 +86,29 @@ public class QueryRangeFunctionImplementation extends FunctionExpression impleme
   private PrometheusQueryRequest buildQueryFromQueryRangeFunction(List<Expression> arguments) {
 
     PrometheusQueryRequest prometheusQueryRequest = new PrometheusQueryRequest();
-    arguments.forEach(arg -> {
-      String argName = ((NamedArgumentExpression) arg).getArgName();
-      Expression argValue = ((NamedArgumentExpression) arg).getValue();
-      ExprValue literalValue = argValue.valueOf();
-      switch (argName) {
-        case QUERY:
-          prometheusQueryRequest
-              .setPromQl((String) literalValue.value());
-          break;
-        case STARTTIME:
-          prometheusQueryRequest.setStartTime(((Number) literalValue.value()).longValue());
-          break;
-        case ENDTIME:
-          prometheusQueryRequest.setEndTime(((Number) literalValue.value()).longValue());
-          break;
-        case STEP:
-          prometheusQueryRequest.setStep(literalValue.value().toString());
-          break;
-        default:
-          throw new ExpressionEvaluationException(
-              String.format("Invalid Function Argument:%s", argName));
-      }
-    });
+    arguments.forEach(
+        arg -> {
+          String argName = ((NamedArgumentExpression) arg).getArgName();
+          Expression argValue = ((NamedArgumentExpression) arg).getValue();
+          ExprValue literalValue = argValue.valueOf();
+          switch (argName) {
+            case QUERY:
+              prometheusQueryRequest.setPromQl((String) literalValue.value());
+              break;
+            case STARTTIME:
+              prometheusQueryRequest.setStartTime(((Number) literalValue.value()).longValue());
+              break;
+            case ENDTIME:
+              prometheusQueryRequest.setEndTime(((Number) literalValue.value()).longValue());
+              break;
+            case STEP:
+              prometheusQueryRequest.setStep(literalValue.value().toString());
+              break;
+            default:
+              throw new ExpressionEvaluationException(
+                  String.format("Invalid Function Argument:%s", argName));
+          }
+        });
     return prometheusQueryRequest;
   }
-
 }

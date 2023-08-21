@@ -3,7 +3,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-
 package org.opensearch.sql.planner.physical;
 
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -17,17 +16,12 @@ import static org.opensearch.sql.data.type.ExprCoreType.INTEGER;
 import com.google.common.collect.ImmutableMap;
 import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Map;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
 import org.junit.jupiter.api.DisplayNameGeneration;
 import org.junit.jupiter.api.DisplayNameGenerator;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.AdditionalAnswers;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.opensearch.sql.data.model.ExprIntegerValue;
 import org.opensearch.sql.data.model.ExprTupleValue;
 import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.data.model.ExprValueUtils;
@@ -36,20 +30,31 @@ import org.opensearch.sql.expression.DSL;
 @ExtendWith(MockitoExtension.class)
 @DisplayNameGeneration(DisplayNameGenerator.ReplaceUnderscores.class)
 class FilterOperatorTest extends PhysicalPlanTestBase {
-  @Mock
-  private PhysicalPlan inputPlan;
+  @Mock private PhysicalPlan inputPlan;
 
   @Test
   public void filter_test() {
-    FilterOperator plan = new FilterOperator(new TestScan(),
-        DSL.and(DSL.notequal(DSL.ref("response", INTEGER), DSL.literal(200)),
+    FilterOperator plan =
+        new FilterOperator(
+            new TestScan(),
+            DSL.and(
+                DSL.notequal(DSL.ref("response", INTEGER), DSL.literal(200)),
                 DSL.notequal(DSL.ref("response", INTEGER), DSL.literal(500))));
     List<ExprValue> result = execute(plan);
     assertEquals(1, result.size());
-    assertThat(result, containsInAnyOrder(ExprValueUtils
-        .tupleValue(ImmutableMap
-            .of("ip", "209.160.24.63", "action", "GET", "response", 404, "referer",
-                "www.amazon.com"))));
+    assertThat(
+        result,
+        containsInAnyOrder(
+            ExprValueUtils.tupleValue(
+                ImmutableMap.of(
+                    "ip",
+                    "209.160.24.63",
+                    "action",
+                    "GET",
+                    "response",
+                    404,
+                    "referer",
+                    "www.amazon.com"))));
   }
 
   @Test
@@ -59,8 +64,8 @@ class FilterOperatorTest extends PhysicalPlanTestBase {
     when(inputPlan.hasNext()).thenReturn(true, false);
     when(inputPlan.next()).thenReturn(new ExprTupleValue(value));
 
-    FilterOperator plan = new FilterOperator(inputPlan,
-        DSL.equal(DSL.ref("response", INTEGER), DSL.literal(404)));
+    FilterOperator plan =
+        new FilterOperator(inputPlan, DSL.equal(DSL.ref("response", INTEGER), DSL.literal(404)));
     List<ExprValue> result = execute(plan);
     assertEquals(0, result.size());
   }
@@ -72,8 +77,8 @@ class FilterOperatorTest extends PhysicalPlanTestBase {
     when(inputPlan.hasNext()).thenReturn(true, false);
     when(inputPlan.next()).thenReturn(new ExprTupleValue(value));
 
-    FilterOperator plan = new FilterOperator(inputPlan,
-        DSL.equal(DSL.ref("response", INTEGER), DSL.literal(404)));
+    FilterOperator plan =
+        new FilterOperator(inputPlan, DSL.equal(DSL.ref("response", INTEGER), DSL.literal(404)));
     List<ExprValue> result = execute(plan);
     assertEquals(0, result.size());
   }

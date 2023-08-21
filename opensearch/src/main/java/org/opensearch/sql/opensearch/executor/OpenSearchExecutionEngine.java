@@ -3,7 +3,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-
 package org.opensearch.sql.opensearch.executor;
 
 import java.util.ArrayList;
@@ -36,8 +35,10 @@ public class OpenSearchExecutionEngine implements ExecutionEngine {
   }
 
   @Override
-  public void execute(PhysicalPlan physicalPlan, ExecutionContext context,
-                      ResponseListener<QueryResponse> listener) {
+  public void execute(
+      PhysicalPlan physicalPlan,
+      ExecutionContext context,
+      ResponseListener<QueryResponse> listener) {
     PhysicalPlan plan = executionProtector.protect(physicalPlan);
     client.schedule(
         () -> {
@@ -51,8 +52,9 @@ public class OpenSearchExecutionEngine implements ExecutionEngine {
               result.add(plan.next());
             }
 
-            QueryResponse response = new QueryResponse(physicalPlan.schema(), result,
-                planSerializer.convertToCursor(plan));
+            QueryResponse response =
+                new QueryResponse(
+                    physicalPlan.schema(), result, planSerializer.convertToCursor(plan));
             listener.onResponse(response);
           } catch (Exception e) {
             listener.onFailure(e);
@@ -64,21 +66,27 @@ public class OpenSearchExecutionEngine implements ExecutionEngine {
 
   @Override
   public void explain(PhysicalPlan plan, ResponseListener<ExplainResponse> listener) {
-    client.schedule(() -> {
-      try {
-        Explain openSearchExplain = new Explain() {
-          @Override
-          public ExplainResponseNode visitTableScan(TableScanOperator node, Object context) {
-            return explain(node, context, explainNode -> {
-              explainNode.setDescription(Map.of("request", node.explain()));
-            });
-          }
-        };
+    client.schedule(
+        () -> {
+          try {
+            Explain openSearchExplain =
+                new Explain() {
+                  @Override
+                  public ExplainResponseNode visitTableScan(
+                      TableScanOperator node, Object context) {
+                    return explain(
+                        node,
+                        context,
+                        explainNode -> {
+                          explainNode.setDescription(Map.of("request", node.explain()));
+                        });
+                  }
+                };
 
-        listener.onResponse(openSearchExplain.apply(plan));
-      } catch (Exception e) {
-        listener.onFailure(e);
-      }
-    });
+            listener.onResponse(openSearchExplain.apply(plan));
+          } catch (Exception e) {
+            listener.onFailure(e);
+          }
+        });
   }
 }

@@ -3,7 +3,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-
 package org.opensearch.sql.sql;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -45,14 +44,13 @@ class SQLServiceTest {
 
   private DefaultQueryManager queryManager;
 
-  @Mock
-  private QueryService queryService;
+  @Mock private QueryService queryService;
 
   @BeforeEach
   public void setUp() {
     queryManager = DefaultQueryManager.defaultQueryManager();
-    sqlService = new SQLService(new SQLSyntaxParser(), queryManager,
-        new QueryPlanFactory(queryService));
+    sqlService =
+        new SQLService(new SQLSyntaxParser(), queryManager, new QueryPlanFactory(queryService));
   }
 
   @AfterEach
@@ -97,8 +95,8 @@ class SQLServiceTest {
   @Test
   public void can_execute_close_cursor_query() {
     sqlService.execute(
-        new SQLQueryRequest(new JSONObject(), null, QUERY + "/close",
-            Map.of("format", "jdbc"), "n:cursor"),
+        new SQLQueryRequest(
+            new JSONObject(), null, QUERY + "/close", Map.of("format", "jdbc"), "n:cursor"),
         new ResponseListener<>() {
           @Override
           public void onResponse(QueryResponse response) {
@@ -131,13 +129,17 @@ class SQLServiceTest {
 
   @Test
   public void can_explain_sql_query() {
-    doAnswer(invocation -> {
-      ResponseListener<ExplainResponse> listener = invocation.getArgument(1);
-      listener.onResponse(new ExplainResponse(new ExplainResponseNode("Test")));
-      return null;
-    }).when(queryService).explain(any(), any());
+    doAnswer(
+            invocation -> {
+              ResponseListener<ExplainResponse> listener = invocation.getArgument(1);
+              listener.onResponse(new ExplainResponse(new ExplainResponseNode("Test")));
+              return null;
+            })
+        .when(queryService)
+        .explain(any(), any());
 
-    sqlService.explain(new SQLQueryRequest(new JSONObject(), "SELECT 123", EXPLAIN, "csv"),
+    sqlService.explain(
+        new SQLQueryRequest(new JSONObject(), "SELECT 123", EXPLAIN, "csv"),
         new ResponseListener<ExplainResponse>() {
           @Override
           public void onResponse(ExplainResponse response) {
@@ -153,8 +155,8 @@ class SQLServiceTest {
 
   @Test
   public void cannot_explain_cursor_query() {
-    sqlService.explain(new SQLQueryRequest(new JSONObject(), null, EXPLAIN,
-            Map.of("format", "jdbc"), "n:cursor"),
+    sqlService.explain(
+        new SQLQueryRequest(new JSONObject(), null, EXPLAIN, Map.of("format", "jdbc"), "n:cursor"),
         new ResponseListener<ExplainResponse>() {
           @Override
           public void onResponse(ExplainResponse response) {
@@ -163,8 +165,10 @@ class SQLServiceTest {
 
           @Override
           public void onFailure(Exception e) {
-            assertEquals("Explain of a paged query continuation is not supported."
-                + " Use `explain` for the initial query request.", e.getMessage());
+            assertEquals(
+                "Explain of a paged query continuation is not supported."
+                    + " Use `explain` for the initial query request.",
+                e.getMessage());
           }
         });
   }

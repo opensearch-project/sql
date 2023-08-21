@@ -3,7 +3,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-
 package org.opensearch.sql.opensearch.storage.script.filter.lucene;
 
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -21,9 +20,10 @@ class RangeQueryTest {
   @Test
   void should_throw_exception_for_unsupported_comparison() {
     // Note that since we do switch check on enum comparison, this should be impossible
-    assertThrows(IllegalStateException.class, () ->
-        new RangeQuery(Comparison.BETWEEN)
-            .doBuild("name", STRING, ExprValueUtils.stringValue("John")));
+    assertThrows(
+        IllegalStateException.class,
+        () ->
+            new RangeQuery(Comparison.BETWEEN)
+                .doBuild("name", STRING, ExprValueUtils.stringValue("John")));
   }
-
 }

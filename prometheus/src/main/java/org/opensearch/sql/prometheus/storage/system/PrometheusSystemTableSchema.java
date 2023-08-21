@@ -18,22 +18,23 @@ import org.opensearch.sql.data.type.ExprType;
 @Getter
 @RequiredArgsConstructor
 public enum PrometheusSystemTableSchema {
-
-  SYS_TABLE_TABLES(new ImmutableMap.Builder<String, ExprType>()
-      .put("TABLE_CATALOG", STRING)
-      .put("TABLE_SCHEMA", STRING)
-      .put("TABLE_NAME", STRING)
-      .put("TABLE_TYPE", STRING)
-      .put("UNIT", STRING)
-      .put("REMARKS", STRING)
-      .build()),
-  SYS_TABLE_MAPPINGS(new ImmutableMap.Builder<String, ExprType>()
-      .put("TABLE_CATALOG", STRING)
-      .put("TABLE_SCHEMA", STRING)
-      .put("TABLE_NAME", STRING)
-      .put("COLUMN_NAME", STRING)
-      .put("DATA_TYPE", STRING)
-      .build());
+  SYS_TABLE_TABLES(
+      new ImmutableMap.Builder<String, ExprType>()
+          .put("TABLE_CATALOG", STRING)
+          .put("TABLE_SCHEMA", STRING)
+          .put("TABLE_NAME", STRING)
+          .put("TABLE_TYPE", STRING)
+          .put("UNIT", STRING)
+          .put("REMARKS", STRING)
+          .build()),
+  SYS_TABLE_MAPPINGS(
+      new ImmutableMap.Builder<String, ExprType>()
+          .put("TABLE_CATALOG", STRING)
+          .put("TABLE_SCHEMA", STRING)
+          .put("TABLE_NAME", STRING)
+          .put("COLUMN_NAME", STRING)
+          .put("DATA_TYPE", STRING)
+          .build());
 
   private final Map<String, ExprType> mapping;
 }

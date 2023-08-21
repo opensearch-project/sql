@@ -3,7 +3,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-
 package org.opensearch.sql.analysis;
 
 import static org.opensearch.sql.ast.dsl.AstDSL.argument;
@@ -44,8 +43,7 @@ public class SelectAnalyzeTest extends AnalyzerTestBase {
             DSL.named("double_value", DSL.ref("double_value", DOUBLE)),
             DSL.named("integer_value", DSL.ref("integer_value", INTEGER)),
             DSL.named("double_value", DSL.ref("double_value", DOUBLE)),
-            DSL.named("string_value", DSL.ref("string_value", STRING))
-        ),
+            DSL.named("string_value", DSL.ref("string_value", STRING))),
         AstDSL.projectWithArg(
             AstDSL.relation("schema"),
             AstDSL.defaultFieldsArgs(),
@@ -61,11 +59,9 @@ public class SelectAnalyzeTest extends AnalyzerTestBase {
             LogicalPlanDSL.project(
                 LogicalPlanDSL.relation("schema", table),
                 DSL.named("integer_value", DSL.ref("integer_value", INTEGER)),
-                DSL.named("double_value", DSL.ref("double_value", DOUBLE))
-            ),
+                DSL.named("double_value", DSL.ref("double_value", DOUBLE))),
             DSL.named("integer_value", DSL.ref("integer_value", INTEGER)),
-            DSL.named("double_value", DSL.ref("double_value", DOUBLE))
-        ),
+            DSL.named("double_value", DSL.ref("double_value", DOUBLE))),
         AstDSL.projectWithArg(
             AstDSL.projectWithArg(
                 AstDSL.relation("schema"),
@@ -73,8 +69,7 @@ public class SelectAnalyzeTest extends AnalyzerTestBase {
                 AstDSL.field("integer_value"),
                 AstDSL.field("double_value")),
             AstDSL.defaultFieldsArgs(),
-            AllFields.of()
-        ));
+            AllFields.of()));
   }
 
   @Test
@@ -84,10 +79,8 @@ public class SelectAnalyzeTest extends AnalyzerTestBase {
             LogicalPlanDSL.remove(
                 LogicalPlanDSL.relation("schema", table),
                 DSL.ref("integer_value", INTEGER),
-                DSL.ref("double_value", DOUBLE)
-            ),
-            DSL.named("string_value", DSL.ref("string_value", STRING))
-        ),
+                DSL.ref("double_value", DOUBLE)),
+            DSL.named("string_value", DSL.ref("string_value", STRING))),
         AstDSL.projectWithArg(
             AstDSL.projectWithArg(
                 AstDSL.relation("schema"),
@@ -95,8 +88,7 @@ public class SelectAnalyzeTest extends AnalyzerTestBase {
                 AstDSL.field("integer_value"),
                 AstDSL.field("double_value")),
             AstDSL.defaultFieldsArgs(),
-            AllFields.of()
-        ));
+            AllFields.of()));
   }
 
   @Test
@@ -105,20 +97,21 @@ public class SelectAnalyzeTest extends AnalyzerTestBase {
         LogicalPlanDSL.project(
             LogicalPlanDSL.aggregation(
                 LogicalPlanDSL.relation("schema", table),
-                ImmutableList.of(DSL
-                    .named("avg(integer_value)", DSL.avg(DSL.ref("integer_value", INTEGER)))),
+                ImmutableList.of(
+                    DSL.named("avg(integer_value)", DSL.avg(DSL.ref("integer_value", INTEGER)))),
                 ImmutableList.of(DSL.named("string_value", DSL.ref("string_value", STRING)))),
             DSL.named("avg(integer_value)", DSL.ref("avg(integer_value)", DOUBLE)),
-            DSL.named("string_value", DSL.ref("string_value", STRING))
-        ),
+            DSL.named("string_value", DSL.ref("string_value", STRING))),
         AstDSL.projectWithArg(
             AstDSL.agg(
                 AstDSL.relation("schema"),
-                AstDSL.exprList(AstDSL.alias("avg(integer_value)", AstDSL.aggregate("avg",
-                    field("integer_value")))),
+                AstDSL.exprList(
+                    AstDSL.alias(
+                        "avg(integer_value)", AstDSL.aggregate("avg", field("integer_value")))),
                 null,
                 ImmutableList.of(AstDSL.alias("string_value", field("string_value"))),
-                AstDSL.defaultStatsArgs()), AstDSL.defaultFieldsArgs(),
+                AstDSL.defaultStatsArgs()),
+            AstDSL.defaultFieldsArgs(),
             AllFields.of()));
   }
 
@@ -131,14 +124,12 @@ public class SelectAnalyzeTest extends AnalyzerTestBase {
                 ImmutableMap.of(DSL.ref("integer_value", INTEGER), DSL.ref("ivalue", INTEGER))),
             DSL.named("double_value", DSL.ref("double_value", DOUBLE)),
             DSL.named("string_value", DSL.ref("string_value", STRING)),
-            DSL.named("ivalue", DSL.ref("ivalue", INTEGER))
-        ),
+            DSL.named("ivalue", DSL.ref("ivalue", INTEGER))),
         AstDSL.projectWithArg(
             AstDSL.rename(
                 AstDSL.relation("schema"),
                 AstDSL.map(AstDSL.field("integer_value"), AstDSL.field("ivalue"))),
             AstDSL.defaultFieldsArgs(),
-            AllFields.of()
-        ));
+            AllFields.of()));
   }
 }

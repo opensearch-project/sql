@@ -3,7 +3,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-
 package org.opensearch.sql.opensearch.response.error;
 
 import lombok.experimental.UtilityClass;
@@ -12,11 +11,11 @@ import org.opensearch.OpenSearchException;
 @UtilityClass
 public class ErrorMessageFactory {
   /**
-   * Create error message based on the exception type.
-   * Exceptions of OpenSearch exception type and exceptions with wrapped OpenSearch exception causes
-   * should create {@link OpenSearchErrorMessage}
+   * Create error message based on the exception type. Exceptions of OpenSearch exception type and
+   * exceptions with wrapped OpenSearch exception causes should create {@link
+   * OpenSearchErrorMessage}
    *
-   * @param e      exception to create error message
+   * @param e exception to create error message
    * @param status exception status code
    * @return error message
    */

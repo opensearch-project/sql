@@ -3,7 +3,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-
 package org.opensearch.sql.ppl;
 
 import static org.hamcrest.Matchers.equalTo;
@@ -28,8 +27,7 @@ import org.opensearch.client.ResponseException;
 import org.opensearch.sql.util.TestUtils;
 
 public class PPLPluginIT extends PPLIntegTestCase {
-  @Rule
-  public ExpectedException exceptionRule = ExpectedException.none();
+  @Rule public ExpectedException exceptionRule = ExpectedException.none();
 
   private static final String PERSISTENT = "persistent";
 
@@ -86,9 +84,11 @@ public class PPLPluginIT extends PPLIntegTestCase {
     assertThat(result.getInt("status"), equalTo(400));
     JSONObject error = result.getJSONObject("error");
     assertThat(error.getString("reason"), equalTo("Invalid Query"));
-    assertThat(error.getString("details"), equalTo(
-        "Either plugins.ppl.enabled or rest.action.multi.allow_explicit_index setting is "
-            + "false"));
+    assertThat(
+        error.getString("details"),
+        equalTo(
+            "Either plugins.ppl.enabled or rest.action.multi.allow_explicit_index setting is "
+                + "false"));
     assertThat(error.getString("type"), equalTo("IllegalAccessException"));
 
     // reset the setting

@@ -3,7 +3,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-
 package org.opensearch.sql.protocol.response.format;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -25,9 +24,11 @@ import org.opensearch.sql.protocol.response.QueryResult;
 
 class SimpleJsonResponseFormatterTest {
 
-  private final ExecutionEngine.Schema schema = new ExecutionEngine.Schema(ImmutableList.of(
-      new ExecutionEngine.Schema.Column("firstname", null, STRING),
-      new ExecutionEngine.Schema.Column("age", null, INTEGER)));
+  private final ExecutionEngine.Schema schema =
+      new ExecutionEngine.Schema(
+          ImmutableList.of(
+              new ExecutionEngine.Schema.Column("firstname", null, STRING),
+              new ExecutionEngine.Schema.Column("age", null, INTEGER)));
 
   @Test
   void formatResponse() {
@@ -84,12 +85,12 @@ class SimpleJsonResponseFormatterTest {
 
   @Test
   void formatResponseSchemaWithAlias() {
-    ExecutionEngine.Schema schema = new ExecutionEngine.Schema(ImmutableList.of(
-        new ExecutionEngine.Schema.Column("firstname", "name", STRING)));
+    ExecutionEngine.Schema schema =
+        new ExecutionEngine.Schema(
+            ImmutableList.of(new ExecutionEngine.Schema.Column("firstname", "name", STRING)));
     QueryResult response =
         new QueryResult(
-            schema,
-            ImmutableList.of(tupleValue(ImmutableMap.of("name", "John", "age", 20))));
+            schema, ImmutableList.of(tupleValue(ImmutableMap.of("name", "John", "age", 20))));
     SimpleJsonResponseFormatter formatter = new SimpleJsonResponseFormatter(COMPACT);
     assertEquals(
         "{\"schema\":[{\"name\":\"name\",\"type\":\"string\"}],"
@@ -120,10 +121,13 @@ class SimpleJsonResponseFormatterTest {
         new QueryResult(
             schema,
             Arrays.asList(
-                tupleValue(ImmutableMap
-                    .of("name", "Smith",
-                        "address", ImmutableMap.of("state", "WA", "street",
-                            ImmutableMap.of("city", "seattle"))))));
+                tupleValue(
+                    ImmutableMap.of(
+                        "name",
+                        "Smith",
+                        "address",
+                        ImmutableMap.of(
+                            "state", "WA", "street", ImmutableMap.of("city", "seattle"))))));
     SimpleJsonResponseFormatter formatter = new SimpleJsonResponseFormatter(COMPACT);
 
     assertEquals(
@@ -140,11 +144,13 @@ class SimpleJsonResponseFormatterTest {
         new QueryResult(
             schema,
             Arrays.asList(
-                tupleValue(ImmutableMap
-                    .of("name", "Smith",
-                        "address", Arrays.asList(
-                            ImmutableMap.of("state", "WA"), ImmutableMap.of("state", "NYC")
-                        )))));
+                tupleValue(
+                    ImmutableMap.of(
+                        "name",
+                        "Smith",
+                        "address",
+                        Arrays.asList(
+                            ImmutableMap.of("state", "WA"), ImmutableMap.of("state", "NYC"))))));
     SimpleJsonResponseFormatter formatter = new SimpleJsonResponseFormatter(COMPACT);
     assertEquals(
         "{\"schema\":[{\"name\":\"firstname\",\"type\":\"string\"},"

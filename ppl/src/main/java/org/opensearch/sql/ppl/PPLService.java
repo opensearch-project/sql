@@ -3,7 +3,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-
 package org.opensearch.sql.ppl;
 
 import static org.opensearch.sql.executor.ExecutionEngine.QueryResponse;
@@ -27,9 +26,7 @@ import org.opensearch.sql.ppl.parser.AstExpressionBuilder;
 import org.opensearch.sql.ppl.parser.AstStatementBuilder;
 import org.opensearch.sql.ppl.utils.PPLQueryDataAnonymizer;
 
-/**
- * PPLService.
- */
+/** PPLService. */
 @RequiredArgsConstructor
 public class PPLService {
   private final PPLSyntaxParser parser;
@@ -45,7 +42,7 @@ public class PPLService {
   /**
    * Execute the {@link PPLQueryRequest}, using {@link ResponseListener} to get response.
    *
-   * @param request  {@link PPLQueryRequest}
+   * @param request {@link PPLQueryRequest}
    * @param listener {@link ResponseListener}
    */
   public void execute(PPLQueryRequest request, ResponseListener<QueryResponse> listener) {
@@ -57,10 +54,10 @@ public class PPLService {
   }
 
   /**
-   * Explain the query in {@link PPLQueryRequest} using {@link ResponseListener} to
-   * get and format explain response.
+   * Explain the query in {@link PPLQueryRequest} using {@link ResponseListener} to get and format
+   * explain response.
    *
-   * @param request  {@link PPLQueryRequest}
+   * @param request {@link PPLQueryRequest}
    * @param listener {@link ResponseListener} for explain response
    */
   public void explain(PPLQueryRequest request, ResponseListener<ExplainResponse> listener) {
@@ -90,7 +87,6 @@ public class PPLService {
         QueryContext.getRequestId(),
         anonymizer.anonymizeStatement(statement));
 
-    return queryExecutionFactory.create(
-        statement, queryListener, explainListener);
+    return queryExecutionFactory.create(statement, queryListener, explainListener);
   }
 }

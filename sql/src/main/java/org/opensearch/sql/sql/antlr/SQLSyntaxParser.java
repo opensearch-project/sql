@@ -3,7 +3,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-
 package org.opensearch.sql.sql.antlr;
 
 import org.antlr.v4.runtime.CommonTokenStream;
@@ -16,16 +15,15 @@ import org.opensearch.sql.common.antlr.SyntaxAnalysisErrorListener;
 import org.opensearch.sql.sql.antlr.parser.OpenSearchSQLLexer;
 import org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParser;
 
-/**
- * SQL syntax parser which encapsulates an ANTLR parser.
- */
+/** SQL syntax parser which encapsulates an ANTLR parser. */
 public class SQLSyntaxParser implements Parser {
   private static final Logger LOG = LogManager.getLogger(SQLSyntaxParser.class);
 
   /**
    * Parse a SQL query by ANTLR parser.
-   * @param query   a SQL query
-   * @return        parse tree root
+   *
+   * @param query a SQL query
+   * @return parse tree root
    */
   @Override
   public ParseTree parse(String query) {

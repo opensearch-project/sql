@@ -35,51 +35,41 @@ import org.opensearch.sql.storage.Table;
 @ExtendWith(MockitoExtension.class)
 public class PrometheusSystemTableTest {
 
-  @Mock
-  private PrometheusClient client;
+  @Mock private PrometheusClient client;
 
-  @Mock
-  private Table table;
+  @Mock private Table table;
 
   @Test
   void testGetFieldTypesOfMetaTable() {
-    PrometheusSystemTable systemIndex = new PrometheusSystemTable(client,
-        new DataSourceSchemaName("prometheus", "information_schema"), TABLE_INFO);
+    PrometheusSystemTable systemIndex =
+        new PrometheusSystemTable(
+            client, new DataSourceSchemaName("prometheus", "information_schema"), TABLE_INFO);
     final Map<String, ExprType> fieldTypes = systemIndex.getFieldTypes();
-    assertThat(fieldTypes, anyOf(
-        hasEntry("TABLE_CATALOG", STRING)
-    ));
-    assertThat(fieldTypes, anyOf(
-        hasEntry("UNIT", STRING)
-    ));
+    assertThat(fieldTypes, anyOf(hasEntry("TABLE_CATALOG", STRING)));
+    assertThat(fieldTypes, anyOf(hasEntry("UNIT", STRING)));
   }
 
   @Test
   void testGetFieldTypesOfMappingTable() {
-    PrometheusSystemTable systemIndex = new PrometheusSystemTable(client,
-        new DataSourceSchemaName("prometheus", "information_schema"), mappingTable(
-        "test_metric"));
+    PrometheusSystemTable systemIndex =
+        new PrometheusSystemTable(
+            client,
+            new DataSourceSchemaName("prometheus", "information_schema"),
+            mappingTable("test_metric"));
     final Map<String, ExprType> fieldTypes = systemIndex.getFieldTypes();
-    assertThat(fieldTypes, anyOf(
-        hasEntry("COLUMN_NAME", STRING)
-    ));
+    assertThat(fieldTypes, anyOf(hasEntry("COLUMN_NAME", STRING)));
   }
-
-
 
   @Test
   void implement() {
-    PrometheusSystemTable systemIndex = new PrometheusSystemTable(client,
-        new DataSourceSchemaName("prometheus", "information_schema"), TABLE_INFO);
+    PrometheusSystemTable systemIndex =
+        new PrometheusSystemTable(
+            client, new DataSourceSchemaName("prometheus", "information_schema"), TABLE_INFO);
     NamedExpression projectExpr = named("TABLE_NAME", ref("TABLE_NAME", STRING));
 
-    final PhysicalPlan plan = systemIndex.implement(
-        project(
-            relation(TABLE_INFO, table),
-            projectExpr
-        ));
+    final PhysicalPlan plan =
+        systemIndex.implement(project(relation(TABLE_INFO, table), projectExpr));
     assertTrue(plan instanceof ProjectOperator);
     assertTrue(plan.getChild().get(0) instanceof PrometheusSystemTableScan);
   }
-
 }

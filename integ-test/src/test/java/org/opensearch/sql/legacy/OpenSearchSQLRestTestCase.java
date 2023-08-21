@@ -3,7 +3,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-
 package org.opensearch.sql.legacy;
 
 import java.io.IOException;
@@ -40,30 +39,46 @@ import org.opensearch.common.util.concurrent.ThreadContext;
 import org.opensearch.common.util.io.IOUtils;
 import org.opensearch.test.rest.OpenSearchRestTestCase;
 
-import static java.util.Collections.unmodifiableList;
-
 /**
- * OpenSearch SQL integration test base class to support both security disabled and enabled OpenSearch cluster.
- * Allows interaction with multiple external test clusters using OpenSearch's {@link RestClient}.
+ * OpenSearch SQL integration test base class to support both security disabled and enabled
+ * OpenSearch cluster. Allows interaction with multiple external test clusters using OpenSearch's
+ * {@link RestClient}.
  */
 public abstract class OpenSearchSQLRestTestCase extends OpenSearchRestTestCase {
 
   private static final Logger LOG = LogManager.getLogger();
-  public static final String REMOTE_CLUSTER = "remoteCluster";
   public static final String MATCH_ALL_REMOTE_CLUSTER = "*";
+  // Requires to insert cluster name and cluster transport address (host:port)
+  public static final String REMOTE_CLUSTER_SETTING =
+      "{"
+          + "\"persistent\": {"
+          + "  \"cluster\": {"
+          + "    \"remote\": {"
+          + "      \"%s\": {"
+          + "        \"seeds\": ["
+          + "          \"%s\""
+          + "        ]"
+          + "      }"
+          + "    }"
+          + "  }"
+          + "}"
+          + "}";
 
   private static RestClient remoteClient;
+
   /**
-   * A client for the running remote OpenSearch cluster configured to take test administrative actions
-   * like remove all indexes after the test completes
+   * A client for the running remote OpenSearch cluster configured to take test administrative
+   * actions like remove all indexes after the test completes
    */
   private static RestClient remoteAdminClient;
 
   protected boolean isHttps() {
-    boolean isHttps = Optional.ofNullable(System.getProperty("https"))
-        .map("true"::equalsIgnoreCase).orElse(false);
+    boolean isHttps =
+        Optional.ofNullable(System.getProperty("https"))
+            .map("true"::equalsIgnoreCase)
+            .orElse(false);
     if (isHttps) {
-      //currently only external cluster is supported for security enabled testing
+      // currently only external cluster is supported for security enabled testing
       if (!Optional.ofNullable(System.getProperty("tests.rest.cluster")).isPresent()) {
         throw new RuntimeException(
             "external cluster url should be provided for security enabled testing");
@@ -77,16 +92,14 @@ public abstract class OpenSearchSQLRestTestCase extends OpenSearchRestTestCase {
     return isHttps() ? "https" : "http";
   }
 
-  /**
-   * Get the client to remote cluster used for ordinary api calls while writing a test.
-   */
+  /** Get the client to remote cluster used for ordinary api calls while writing a test. */
   protected static RestClient remoteClient() {
     return remoteClient;
   }
 
   /**
-   * Get the client to remote cluster used for test administrative actions.
-   * Do not use this while writing a test. Only use it for cleaning up after tests.
+   * Get the client to remote cluster used for test administrative actions. Do not use this while
+   * writing a test. Only use it for cleaning up after tests.
    */
   protected static RestClient remoteAdminClient() {
     return remoteAdminClient;
@@ -105,32 +118,27 @@ public abstract class OpenSearchSQLRestTestCase extends OpenSearchRestTestCase {
   }
 
   // Modified from initClient in OpenSearchRestTestCase
-  public void initRemoteClient() throws IOException {
-    if (remoteClient == null) {
-      assert remoteAdminClient == null;
-      String cluster = getTestRestCluster(REMOTE_CLUSTER);
-      String[] stringUrls = cluster.split(",");
-      List<HttpHost> hosts = new ArrayList<>(stringUrls.length);
-      for (String stringUrl : stringUrls) {
-        int portSeparator = stringUrl.lastIndexOf(':');
-        if (portSeparator < 0) {
-          throw new IllegalArgumentException("Illegal cluster url [" + stringUrl + "]");
-        }
-        String host = stringUrl.substring(0, portSeparator);
-        int port = Integer.valueOf(stringUrl.substring(portSeparator + 1));
-        hosts.add(buildHttpHost(host, port));
-      }
-      final List<HttpHost> clusterHosts = unmodifiableList(hosts);
-      remoteClient = buildClient(restClientSettings(), clusterHosts.toArray(new HttpHost[0]));
-      remoteAdminClient = buildClient(restAdminSettings(), clusterHosts.toArray(new HttpHost[0]));
-    }
-    assert remoteClient != null;
-    assert remoteAdminClient != null;
+  public void initRemoteClient(String clusterName) throws IOException {
+    remoteClient = remoteAdminClient = initClient(clusterName);
   }
 
-  /**
-   * Get a comma delimited list of [host:port] to which to send REST requests.
-   */
+  /** Configure http client for the given <b>cluster</b>. */
+  public RestClient initClient(String clusterName) throws IOException {
+    String[] stringUrls = getTestRestCluster(clusterName).split(",");
+    List<HttpHost> hosts = new ArrayList<>(stringUrls.length);
+    for (String stringUrl : stringUrls) {
+      int portSeparator = stringUrl.lastIndexOf(':');
+      if (portSeparator < 0) {
+        throw new IllegalArgumentException("Illegal cluster url [" + stringUrl + "]");
+      }
+      String host = stringUrl.substring(0, portSeparator);
+      int port = Integer.parseInt(stringUrl.substring(portSeparator + 1));
+      hosts.add(buildHttpHost(host, port));
+    }
+    return buildClient(restClientSettings(), hosts.toArray(new HttpHost[0]));
+  }
+
+  /** Get a comma delimited list of [host:port] to which to send REST requests. */
   protected String getTestRestCluster(String clusterName) {
     String cluster = System.getProperty("tests.rest." + clusterName + ".http_hosts");
     if (cluster == null) {
@@ -138,15 +146,12 @@ public abstract class OpenSearchSQLRestTestCase extends OpenSearchRestTestCase {
           "Must specify [tests.rest."
               + clusterName
               + ".http_hosts] system property with a comma delimited list of [host:port] "
-              + "to which to send REST requests"
-      );
+              + "to which to send REST requests");
     }
     return cluster;
   }
 
-  /**
-   * Get a comma delimited list of [host:port] for connections between clusters.
-   */
+  /** Get a comma delimited list of [host:port] for connections between clusters. */
   protected String getTestTransportCluster(String clusterName) {
     String cluster = System.getProperty("tests.rest." + clusterName + ".transport_hosts");
     if (cluster == null) {
@@ -154,8 +159,7 @@ public abstract class OpenSearchSQLRestTestCase extends OpenSearchRestTestCase {
           "Must specify [tests.rest."
               + clusterName
               + ".transport_hosts] system property with a comma delimited list of [host:port] "
-              + "for connections between clusters"
-      );
+              + "for connections between clusters");
     }
     return cluster;
   }
@@ -181,18 +185,22 @@ public abstract class OpenSearchSQLRestTestCase extends OpenSearchRestTestCase {
     // include all the indices, included hidden indices.
     // https://www.elastic.co/guide/en/elasticsearch/reference/current/cat-indices.html#cat-indices-api-query-params
     try {
-      Response response = client.performRequest(new Request("GET", "/_cat/indices?format=json&expand_wildcards=all"));
+      Response response =
+          client.performRequest(
+              new Request("GET", "/_cat/indices?format=json&expand_wildcards=all"));
       JSONArray jsonArray = new JSONArray(EntityUtils.toString(response.getEntity(), "UTF-8"));
       for (Object object : jsonArray) {
         JSONObject jsonObject = (JSONObject) object;
         String indexName = jsonObject.getString("index");
         try {
-          // System index, mostly named .opensearch-xxx or .opendistro-xxx, are not allowed to delete
+          // System index, mostly named .opensearch-xxx or .opendistro-xxx, are not allowed to
+          // delete
           if (!indexName.startsWith(".opensearch") && !indexName.startsWith(".opendistro")) {
             client.performRequest(new Request("DELETE", "/" + indexName));
           }
         } catch (Exception e) {
-          // TODO: Ignore index delete error for now. Remove this if strict check on system index added above.
+          // TODO: Ignore index delete error for now. Remove this if strict check on system index
+          // added above.
           LOG.warn("Failed to delete index: " + indexName, e);
         }
       }
@@ -201,9 +209,29 @@ public abstract class OpenSearchSQLRestTestCase extends OpenSearchRestTestCase {
     }
   }
 
-  protected static void configureHttpsClient(RestClientBuilder builder, Settings settings,
-                                             HttpHost httpHost)
+  /**
+   * Configure authentication and pass <b>builder</b> to superclass to configure other stuff.<br>
+   * By default, auth is configure when <b>https</b> is set only.
+   */
+  protected static void configureClient(RestClientBuilder builder, Settings settings)
       throws IOException {
+    String userName = System.getProperty("user");
+    String password = System.getProperty("password");
+    if (userName != null && password != null) {
+      builder.setHttpClientConfigCallback(
+          httpClientBuilder -> {
+            BasicCredentialsProvider credentialsProvider = new BasicCredentialsProvider();
+            credentialsProvider.setCredentials(
+                new AuthScope(null, -1),
+                new UsernamePasswordCredentials(userName, password.toCharArray()));
+            return httpClientBuilder.setDefaultCredentialsProvider(credentialsProvider);
+          });
+    }
+    OpenSearchRestTestCase.configureClient(builder, settings);
+  }
+
+  protected static void configureHttpsClient(
+      RestClientBuilder builder, Settings settings, HttpHost httpHost) throws IOException {
     Map<String, String> headers = ThreadContext.buildDefaultHeaders(settings);
     Header[] defaultHeaders = new Header[headers.size()];
     int i = 0;
@@ -211,56 +239,63 @@ public abstract class OpenSearchSQLRestTestCase extends OpenSearchRestTestCase {
       defaultHeaders[i++] = new BasicHeader(entry.getKey(), entry.getValue());
     }
     builder.setDefaultHeaders(defaultHeaders);
-    builder.setHttpClientConfigCallback(httpClientBuilder -> {
-      String userName = Optional.ofNullable(System.getProperty("user"))
-          .orElseThrow(() -> new RuntimeException("user name is missing"));
-      String password = Optional.ofNullable(System.getProperty("password"))
-          .orElseThrow(() -> new RuntimeException("password is missing"));
-      BasicCredentialsProvider credentialsProvider = new BasicCredentialsProvider();
-      credentialsProvider
-          .setCredentials(new AuthScope(httpHost), new UsernamePasswordCredentials(userName,
-              password.toCharArray()));
-      try {
-        final TlsStrategy tlsStrategy = ClientTlsStrategyBuilder.create()
-            .setSslContext(SSLContextBuilder.create()
-                .loadTrustMaterial(null, (chains, authType) -> true)
-                .build())
-            .setHostnameVerifier(NoopHostnameVerifier.INSTANCE)
-            .build();
+    builder.setHttpClientConfigCallback(
+        httpClientBuilder -> {
+          String userName =
+              Optional.ofNullable(System.getProperty("user"))
+                  .orElseThrow(() -> new RuntimeException("user name is missing"));
+          String password =
+              Optional.ofNullable(System.getProperty("password"))
+                  .orElseThrow(() -> new RuntimeException("password is missing"));
+          BasicCredentialsProvider credentialsProvider = new BasicCredentialsProvider();
+          credentialsProvider.setCredentials(
+              new AuthScope(httpHost),
+              new UsernamePasswordCredentials(userName, password.toCharArray()));
+          try {
+            final TlsStrategy tlsStrategy =
+                ClientTlsStrategyBuilder.create()
+                    .setSslContext(
+                        SSLContextBuilder.create()
+                            .loadTrustMaterial(null, (chains, authType) -> true)
+                            .build())
+                    .setHostnameVerifier(NoopHostnameVerifier.INSTANCE)
+                    .build();
 
-        return httpClientBuilder.setDefaultCredentialsProvider(credentialsProvider)
-            .setConnectionManager(PoolingAsyncClientConnectionManagerBuilder.create()
-                .setTlsStrategy(tlsStrategy)
-                .build());
-      } catch (Exception e) {
-        throw new RuntimeException(e);
-      }
-    });
+            return httpClientBuilder
+                .setDefaultCredentialsProvider(credentialsProvider)
+                .setConnectionManager(
+                    PoolingAsyncClientConnectionManagerBuilder.create()
+                        .setTlsStrategy(tlsStrategy)
+                        .build());
+          } catch (Exception e) {
+            throw new RuntimeException(e);
+          }
+        });
 
     final String socketTimeoutString = settings.get(CLIENT_SOCKET_TIMEOUT);
     final TimeValue socketTimeout =
-        TimeValue.parseTimeValue(socketTimeoutString == null ? "60s" : socketTimeoutString,
-            CLIENT_SOCKET_TIMEOUT);
+        TimeValue.parseTimeValue(
+            socketTimeoutString == null ? "60s" : socketTimeoutString, CLIENT_SOCKET_TIMEOUT);
     builder.setRequestConfigCallback(
-        conf -> conf.setResponseTimeout(Timeout.ofMilliseconds(Math.toIntExact(socketTimeout.getMillis()))));
+        conf ->
+            conf.setResponseTimeout(
+                Timeout.ofMilliseconds(Math.toIntExact(socketTimeout.getMillis()))));
     if (settings.hasValue(CLIENT_PATH_PREFIX)) {
       builder.setPathPrefix(settings.get(CLIENT_PATH_PREFIX));
     }
   }
 
   /**
-   * Initialize rest client to remote cluster,
-   * and create a connection to it from the coordinating cluster.
+   * Initialize rest client to remote cluster, and create a connection to it from the coordinating
+   * cluster.
    */
-  public void configureMultiClusters() throws IOException {
-    initRemoteClient();
+  public void configureMultiClusters(String remote) throws IOException {
+    initRemoteClient(remote);
 
     Request connectionRequest = new Request("PUT", "_cluster/settings");
-    String connectionSetting = "{\"persistent\": {\"cluster\": {\"remote\": {\""
-        + REMOTE_CLUSTER
-        + "\": {\"seeds\": [\""
-        + getTestTransportCluster(REMOTE_CLUSTER).split(",")[0]
-        + "\"]}}}}}";
+    String connectionSetting =
+        String.format(
+            REMOTE_CLUSTER_SETTING, remote, getTestTransportCluster(remote).split(",")[0]);
     connectionRequest.setJsonEntity(connectionSetting);
     adminClient().performRequest(connectionRequest);
   }

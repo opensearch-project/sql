@@ -3,7 +3,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-
 package org.opensearch.sql.protocol.response.format;
 
 import com.google.common.collect.ImmutableList;
@@ -48,9 +47,8 @@ public abstract class FlatResponseFormatter implements ResponseFormatter<QueryRe
   }
 
   /**
-   * Sanitize methods are migrated from legacy CSV result.
-   * Sanitize both headers and data lines by:
-   *  1) Second double quote entire cell if any comma is found.
+   * Sanitize methods are migrated from legacy CSV result. Sanitize both headers and data lines by:
+   * 1) Second double quote entire cell if any comma is found.
    */
   @Getter
   @RequiredArgsConstructor
@@ -84,29 +82,30 @@ public abstract class FlatResponseFormatter implements ResponseFormatter<QueryRe
 
     private List<List<String>> getData(QueryResult response, boolean sanitize) {
       ImmutableList.Builder<List<String>> dataLines = new ImmutableList.Builder<>();
-      response.iterator().forEachRemaining(row -> {
-        ImmutableList.Builder<String> line = new ImmutableList.Builder<>();
-        // replace null values with empty string
-        Arrays.asList(row).forEach(val -> line.add(val == null ? "" : val.toString()));
-        dataLines.add(line.build());
-      });
+      response
+          .iterator()
+          .forEachRemaining(
+              row -> {
+                ImmutableList.Builder<String> line = new ImmutableList.Builder<>();
+                // replace null values with empty string
+                Arrays.asList(row).forEach(val -> line.add(val == null ? "" : val.toString()));
+                dataLines.add(line.build());
+              });
       List<List<String>> result = dataLines.build();
       return sanitizeData(result);
     }
 
-    /**
-     * Sanitize headers because OpenSearch allows special character present in field names.
-     */
+    /** Sanitize headers because OpenSearch allows special character present in field names. */
     private List<String> sanitizeHeaders(List<String> headers) {
       if (sanitize) {
         return headers.stream()
-                .map(this::sanitizeCell)
-                .map(cell -> quoteIfRequired(INLINE_SEPARATOR, cell))
-                .collect(Collectors.toList());
+            .map(this::sanitizeCell)
+            .map(cell -> quoteIfRequired(INLINE_SEPARATOR, cell))
+            .collect(Collectors.toList());
       } else {
         return headers.stream()
-                .map(cell -> quoteIfRequired(INLINE_SEPARATOR, cell))
-                .collect(Collectors.toList());
+            .map(cell -> quoteIfRequired(INLINE_SEPARATOR, cell))
+            .collect(Collectors.toList());
       }
     }
 
@@ -114,14 +113,16 @@ public abstract class FlatResponseFormatter implements ResponseFormatter<QueryRe
       List<List<String>> result = new ArrayList<>();
       if (sanitize) {
         for (List<String> line : lines) {
-          result.add(line.stream()
+          result.add(
+              line.stream()
                   .map(this::sanitizeCell)
                   .map(cell -> quoteIfRequired(INLINE_SEPARATOR, cell))
                   .collect(Collectors.toList()));
         }
       } else {
         for (List<String> line : lines) {
-          result.add(line.stream()
+          result.add(
+              line.stream()
                   .map(cell -> quoteIfRequired(INLINE_SEPARATOR, cell))
                   .collect(Collectors.toList()));
         }
@@ -138,13 +139,11 @@ public abstract class FlatResponseFormatter implements ResponseFormatter<QueryRe
 
     private String quoteIfRequired(String separator, String cell) {
       final String quote = "\"";
-      return cell.contains(separator)
-              ? quote + cell.replaceAll("\"", "\"\"") + quote : cell;
+      return cell.contains(separator) ? quote + cell.replaceAll("\"", "\"\"") + quote : cell;
     }
 
     private boolean isStartWithSensitiveChar(String cell) {
       return SENSITIVE_CHAR.stream().anyMatch(cell::startsWith);
     }
   }
-
 }

@@ -188,4 +188,3 @@ public class Select extends Query {
         return selectAll;
     }
 }
-

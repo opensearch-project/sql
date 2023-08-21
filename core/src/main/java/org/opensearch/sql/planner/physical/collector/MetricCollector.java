@@ -22,9 +22,7 @@ import org.opensearch.sql.storage.bindingtuple.BindingTuple;
  */
 public class MetricCollector implements Collector {
 
-  /**
-   * List of {@link NamedAggregator}.
-   */
+  /** List of {@link NamedAggregator}. */
   private final List<Map.Entry<NamedAggregator, AggregationState>> aggregators;
 
   /**

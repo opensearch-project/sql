@@ -3,7 +3,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-
 package org.opensearch.sql.expression.function;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -20,8 +19,7 @@ class BuiltinFunctionNameTest {
 
   private static Stream<Arguments> ofArguments() {
     Stream.Builder<Arguments> builder = Stream.builder();
-    return Arrays.asList(BuiltinFunctionName.values())
-        .stream()
+    return Arrays.asList(BuiltinFunctionName.values()).stream()
         .map(functionName -> Arguments.of(functionName.getName().getFunctionName(), functionName));
   }
 

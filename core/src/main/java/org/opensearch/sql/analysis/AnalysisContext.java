@@ -3,7 +3,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-
 package org.opensearch.sql.analysis;
 
 import java.util.ArrayList;
@@ -13,19 +12,14 @@ import lombok.Getter;
 import org.opensearch.sql.expression.NamedExpression;
 import org.opensearch.sql.expression.function.FunctionProperties;
 
-/**
- * The context used for Analyzer.
- */
+/** The context used for Analyzer. */
 public class AnalysisContext {
-  /**
-   * Environment stack for symbol scope management.
-   */
+  /** Environment stack for symbol scope management. */
   private TypeEnvironment environment;
-  @Getter
-  private final List<NamedExpression> namedParseExpressions;
 
-  @Getter
-  private final FunctionProperties functionProperties;
+  @Getter private final List<NamedExpression> namedParseExpressions;
+
+  @Getter private final FunctionProperties functionProperties;
 
   public AnalysisContext() {
     this(new TypeEnvironment(null));
@@ -33,6 +27,7 @@ public class AnalysisContext {
 
   /**
    * Class CTOR.
+   *
    * @param environment Env to set to a new instance.
    */
   public AnalysisContext(TypeEnvironment environment) {
@@ -41,9 +36,7 @@ public class AnalysisContext {
     this.functionProperties = new FunctionProperties();
   }
 
-  /**
-   * Push a new environment.
-   */
+  /** Push a new environment. */
   public void push() {
     environment = new TypeEnvironment(environment);
   }

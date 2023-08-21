@@ -14,9 +14,7 @@ import lombok.ToString;
 import org.opensearch.sql.expression.NamedExpression;
 import org.opensearch.sql.expression.ReferenceExpression;
 
-/**
- * Logical Nested plan.
- */
+/** Logical Nested plan. */
 @EqualsAndHashCode(callSuper = true)
 @Getter
 @ToString
@@ -24,15 +22,11 @@ public class LogicalNested extends LogicalPlan {
   private List<Map<String, ReferenceExpression>> fields;
   private final List<NamedExpression> projectList;
 
-  /**
-   * Constructor of LogicalNested.
-   *
-   */
+  /** Constructor of LogicalNested. */
   public LogicalNested(
       LogicalPlan childPlan,
       List<Map<String, ReferenceExpression>> fields,
-      List<NamedExpression> projectList
-  ) {
+      List<NamedExpression> projectList) {
     super(Collections.singletonList(childPlan));
     this.fields = fields;
     this.projectList = projectList;

@@ -12,7 +12,6 @@ import static org.opensearch.sql.utils.SystemIndexUtils.isSystemIndex;
 
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
 import lombok.RequiredArgsConstructor;
 import org.opensearch.sql.DataSourceSchemaName;
 import org.opensearch.sql.exception.SemanticCheckException;
@@ -25,10 +24,7 @@ import org.opensearch.sql.storage.StorageEngine;
 import org.opensearch.sql.storage.Table;
 import org.opensearch.sql.utils.SystemIndexUtils;
 
-
-/**
- * Prometheus storage engine implementation.
- */
+/** Prometheus storage engine implementation. */
 @RequiredArgsConstructor
 public class PrometheusStorageEngine implements StorageEngine {
 
@@ -53,16 +49,14 @@ public class PrometheusStorageEngine implements StorageEngine {
     }
   }
 
-  private Table resolveInformationSchemaTable(DataSourceSchemaName dataSourceSchemaName,
-                                              String tableName) {
+  private Table resolveInformationSchemaTable(
+      DataSourceSchemaName dataSourceSchemaName, String tableName) {
     if (SystemIndexUtils.TABLE_NAME_FOR_TABLES_INFO.equals(tableName)) {
-      return new PrometheusSystemTable(prometheusClient,
-          dataSourceSchemaName, SystemIndexUtils.TABLE_INFO);
+      return new PrometheusSystemTable(
+          prometheusClient, dataSourceSchemaName, SystemIndexUtils.TABLE_INFO);
     } else {
       throw new SemanticCheckException(
           String.format("Information Schema doesn't contain %s table", tableName));
     }
   }
-
-
 }

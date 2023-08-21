@@ -6,8 +6,6 @@
 package org.opensearch.sql.legacy.plugin;
 
 import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
 import static org.opensearch.sql.legacy.plugin.RestSqlAction.QUERY_API_ENDPOINT;
 
 import java.io.IOException;
@@ -22,7 +20,6 @@ import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.MockitoJUnitRunner;
 import org.opensearch.client.node.NodeClient;
-import org.opensearch.common.Strings;
 import org.opensearch.common.inject.Injector;
 import org.opensearch.common.inject.ModulesBuilder;
 import org.opensearch.common.util.concurrent.ThreadContext;
@@ -30,7 +27,6 @@ import org.opensearch.common.xcontent.XContentFactory;
 import org.opensearch.rest.BaseRestHandler;
 import org.opensearch.rest.RestChannel;
 import org.opensearch.rest.RestRequest;
-import org.opensearch.sql.common.antlr.SyntaxCheckException;
 import org.opensearch.sql.executor.QueryManager;
 import org.opensearch.sql.executor.execution.QueryPlanFactory;
 import org.opensearch.sql.sql.SQLService;
@@ -96,7 +92,7 @@ public class RestSQLQueryActionCursorFallbackTest extends BaseRestHandler {
       builder.field("fetch_size").value(fetchSize.get());
     }
     builder.endObject();
-    JSONObject jsonContent = new JSONObject(Strings.toString(builder));
+    JSONObject jsonContent = new JSONObject(builder.toString());
 
     return  new SQLQueryRequest(jsonContent, query, QUERY_API_ENDPOINT,
         Map.of("format", "jdbc"), cursorId.orElse(""));

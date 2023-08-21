@@ -3,7 +3,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-
 package org.opensearch.sql.sql.parser.context;
 
 import static org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParser.FilteredAggregationFunctionCallContext;
@@ -42,6 +41,7 @@ import org.opensearch.sql.sql.parser.AstExpressionBuilder;
 
 /**
  * Query specification domain that collects basic info for a simple query.
+ *
  * <pre>
  * (I) What is the impact of this new abstraction?
  *  This abstraction and collecting process turns AST building process into two phases:
@@ -61,10 +61,9 @@ import org.opensearch.sql.sql.parser.AstExpressionBuilder;
 @ToString
 public class QuerySpecification {
 
-  /**
-   * Items in SELECT clause and mapping from alias to select item.
-   */
+  /** Items in SELECT clause and mapping from alias to select item. */
   private final List<UnresolvedExpression> selectItems = new ArrayList<>();
+
   private final Map<String, UnresolvedExpression> selectItemsByAlias = new HashMap<>();
 
   /**
@@ -74,31 +73,36 @@ public class QuerySpecification {
   private final Set<UnresolvedExpression> aggregators = new LinkedHashSet<>();
 
   /**
+   *
+   *
+   * <pre>
    * Items in GROUP BY clause that may be:
    *  1) Simple field name
    *  2) Field nested in scalar function call
    *  3) Ordinal that points to expression in SELECT
    *  4) Alias that points to expression in SELECT.
+   *  </pre>
    */
   private final List<UnresolvedExpression> groupByItems = new ArrayList<>();
 
-  /**
-   * Items in ORDER BY clause that may be different forms as above and its options.
-   */
+  /** Items in ORDER BY clause that may be different forms as above and its options. */
   private final List<UnresolvedExpression> orderByItems = new ArrayList<>();
+
   private final List<SortOption> orderByOptions = new ArrayList<>();
 
   /**
    * Collect all query information in the parse tree excluding info in sub-query).
-   * @param query   query spec node in parse tree
+   *
+   * @param query query spec node in parse tree
    */
   public void collect(QuerySpecificationContext query, String queryString) {
     query.accept(new QuerySpecificationCollector(queryString));
   }
 
   /**
-   * Replace unresolved expression if it's an alias or ordinal that represents
-   * an actual expression in SELECT list.
+   * Replace unresolved expression if it's an alias or ordinal that represents an actual expression
+   * in SELECT list.
+   *
    * @param expr item to be replaced
    * @return select item that the given expr represents
    */
@@ -118,8 +122,8 @@ public class QuerySpecification {
     }
 
     if (((Literal) expr).getType() != DataType.INTEGER) {
-      throw new SemanticCheckException(StringUtils.format(
-          "Non-integer constant [%s] found in ordinal", expr));
+      throw new SemanticCheckException(
+          StringUtils.format("Non-integer constant [%s] found in ordinal", expr));
     }
     return true;
   }
@@ -127,25 +131,26 @@ public class QuerySpecification {
   private UnresolvedExpression getSelectItemByOrdinal(UnresolvedExpression expr) {
     int ordinal = (Integer) ((Literal) expr).getValue();
     if (ordinal <= 0 || ordinal > selectItems.size()) {
-      throw new SemanticCheckException(StringUtils.format(
-          "Ordinal [%d] is out of bound of select item list", ordinal));
+      throw new SemanticCheckException(
+          StringUtils.format("Ordinal [%d] is out of bound of select item list", ordinal));
     }
     return selectItems.get(ordinal - 1);
   }
 
   /**
    * Check if an expression is a select alias.
-   * @param expr  expression
+   *
+   * @param expr expression
    * @return true if it's an alias
    */
   public boolean isSelectAlias(UnresolvedExpression expr) {
-    return (expr instanceof QualifiedName)
-        && (selectItemsByAlias.containsKey(expr.toString()));
+    return (expr instanceof QualifiedName) && (selectItemsByAlias.containsKey(expr.toString()));
   }
 
   /**
    * Get original expression aliased in SELECT clause.
-   * @param expr  alias
+   *
+   * @param expr alias
    * @return expression in SELECT
    */
   public UnresolvedExpression getSelectItemByAlias(UnresolvedExpression expr) {
@@ -223,8 +228,7 @@ public class QuerySpecification {
     @Override
     public Void visitFilteredAggregationFunctionCall(FilteredAggregationFunctionCallContext ctx) {
       UnresolvedExpression aggregateFunction = visitAstExpression(ctx);
-      aggregators.add(
-          AstDSL.alias(getTextInQuery(ctx, queryString), aggregateFunction));
+      aggregators.add(AstDSL.alias(getTextInQuery(ctx, queryString), aggregateFunction));
       return super.visitFilteredAggregationFunctionCall(ctx);
     }
 
@@ -236,5 +240,4 @@ public class QuerySpecification {
       return expressionBuilder.visit(tree);
     }
   }
-
 }
