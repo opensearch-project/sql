@@ -185,6 +185,19 @@ Note that other related project code has already merged into this single reposit
 Code Convention
 ---------------
 
+Java files in the OpenSearch codebase are formatted with the Eclipse JDT formatter, using the [Spotless Gradle](https://github.com/diffplug/spotless/tree/master/plugin-gradle) plugin. This plugin is configured in the project  `./gradle.properties`.
+
+The formatting check can be run explicitly with:
+./gradlew spotlessJavaCheck
+
+The code can be formatted with:
+./gradlew spotlessApply
+
+These tasks can also be run for specific modules, e.g.
+./gradlew server:spotlessJavaCheck
+
+For more information on the spotless for the OpenSearch project please see `https://github.com/opensearch-project/OpenSearch/blob/main/DEVELOPER_GUIDE.md#java-language-formatting-guidelines`_.
+
 Java files are formatted using `Spotless <https://github.com/diffplug/spotless>`_ conforming to `Google Java Format <https://github.com/google/google-java-format>`_.
    * - New line at end of file
    * - No unused import statements
@@ -194,13 +207,6 @@ Java files are formatted using `Spotless <https://github.com/diffplug/spotless>`
    * - Javadocs should be properly formatted in accordance to `Javadoc guidelines <https://www.oracle.com/ca-en/technical-resources/articles/java/javadoc-tool.html>`_
    * - Javadoc format can be maintained by wrapping javadoc with `<pre></pre>` HTML tags
    * - Strings can be formatted on multiple lines with a `+` with the correct indentation for the string.
-
-Spotless changes required can be run with:
-`./gradlew spotlessJavaCheck`
-Recommended changes can be applied automatically with:
-`./gradlew spotlessApply`
-
-For more information on Spotless in the OpenSearch-project, please refer to the opensearch-project `developers_guide.md <https://github.com/opensearch-project/OpenSearch/blob/main/DEVELOPER_GUIDE.md#java-language-formatting-guidelines>`_. Note, there are differences in the exact formatting rules applied by spotless.
 
 Building and Running Tests
 ==========================
