@@ -185,7 +185,7 @@ Note that other related project code has already merged into this single reposit
 Code Convention
 ---------------
 
-Java files in the OpenSearch codebase are formatted with the Eclipse JDT formatter, using the [Spotless Gradle](https://github.com/diffplug/spotless/tree/master/plugin-gradle) plugin. This plugin is configured in the project  `./gradle.properties`.
+Java files in the OpenSearch codebase are formatted with the Eclipse JDT formatter, using the `Spotless Gradle` <https://github.com/diffplug/spotless/tree/master/plugin-gradle>`_ plugin. This plugin is configured in the project  `./gradle.properties`.
 
 The formatting check can be run explicitly with:
 ./gradlew spotlessJavaCheck
