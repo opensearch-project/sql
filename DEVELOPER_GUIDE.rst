@@ -190,7 +190,8 @@ Java files in the OpenSearch codebase are formatted with the Eclipse JDT formatt
 The formatting check can be run explicitly with:
 ./gradlew spotlessJavaCheck
 
-The code can be formatted with:
+The code can be formatted with::
+
 ./gradlew spotlessApply
 
 These tasks can also be run for specific modules, e.g.::
