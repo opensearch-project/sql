@@ -9,13 +9,10 @@ import java.util.Optional;
 import lombok.Getter;
 import org.opensearch.sql.storage.split.Split;
 
-/**
- * Plan context hold planning related information.
- */
+/** Plan context hold planning related information. */
 public class PlanContext {
 
-  @Getter
-  private final Optional<Split> split;
+  @Getter private final Optional<Split> split;
 
   public PlanContext(Split split) {
     this.split = Optional.of(split);

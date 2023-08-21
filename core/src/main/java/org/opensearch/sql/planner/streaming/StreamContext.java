@@ -8,8 +8,8 @@ package org.opensearch.sql.planner.streaming;
 import lombok.Data;
 
 /**
- * Stream context required by stream processing components and can be
- * stored and restored between executions.
+ * Stream context required by stream processing components and can be stored and restored between
+ * executions.
  */
 @Data
 public class StreamContext {
