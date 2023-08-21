@@ -185,14 +185,31 @@ Note that other related project code has already merged into this single reposit
 Code Convention
 ---------------
 
-We’re integrated Checkstyle plugin into Gradle build: https://github.com/opensearch-project/sql/blob/main/config/checkstyle/google_checks.xml. So any violation will fail the build. You need to identify the offending code from Gradle error message and fix them and rerun the Gradle build. Here are the highlight of some Checkstyle rules:
+Java files in the OpenSearch codebase are formatted with the Eclipse JDT formatter, using the `Spotless Gradle <https://github.com/diffplug/spotless/tree/master/plugin-gradle>`_ plugin. This plugin is configured in the project  `./gradle.properties`.
 
-* 2 spaces indentation.
-* No line starts with tab character in source file.
-* Line width <= 100 characters.
-* Wildcard imports: You can enforce single import by configuring your IDE. Instructions for Intellij IDEA: https://www.jetbrains.com/help/idea/creating-and-optimizing-imports.html#disable-wildcard-imports.
-* Operator needs to wrap at next line.
+The formatting check can be run explicitly with::
 
+./gradlew spotlessJavaCheck
+
+The code can be formatted with::
+
+./gradlew spotlessApply
+
+These tasks can also be run for specific modules, e.g.::
+
+./gradlew server:spotlessJavaCheck
+
+For more information on the spotless for the OpenSearch project please see `https://github.com/opensearch-project/OpenSearch/blob/main/DEVELOPER_GUIDE.md#java-language-formatting-guidelines <https://github.com/opensearch-project/OpenSearch/blob/main/DEVELOPER_GUIDE.md#java-language-formatting-guidelines>`_.
+
+Java files are formatted using `Spotless <https://github.com/diffplug/spotless>`_ conforming to `Google Java Format <https://github.com/google/google-java-format>`_.
+   * - New line at end of file
+   * - No unused import statements
+   * - Fix import order to be alphabetical with static imports first (one block for static and one for non-static imports)
+   * - Max line length is 100 characters (does not apply to import statements)
+   * - Line spacing is 2 spaces
+   * - Javadocs should be properly formatted in accordance to `Javadoc guidelines <https://www.oracle.com/ca-en/technical-resources/articles/java/javadoc-tool.html>`_
+   * - Javadoc format can be maintained by wrapping javadoc with `<pre></pre>` HTML tags
+   * - Strings can be formatted on multiple lines with a `+` with the correct indentation for the string.
 
 Building and Running Tests
 ==========================

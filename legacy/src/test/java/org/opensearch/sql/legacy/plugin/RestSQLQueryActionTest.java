@@ -3,7 +3,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-
 package org.opensearch.sql.legacy.plugin;
 
 import static org.junit.Assert.assertTrue;
@@ -42,17 +41,13 @@ public class RestSQLQueryActionTest extends BaseRestHandler {
 
   private NodeClient nodeClient;
 
-  @Mock
-  private ThreadPool threadPool;
+  @Mock private ThreadPool threadPool;
 
-  @Mock
-  private QueryManager queryManager;
+  @Mock private QueryManager queryManager;
 
-  @Mock
-  private QueryPlanFactory factory;
+  @Mock private QueryPlanFactory factory;
 
-  @Mock
-  private RestChannel restChannel;
+  @Mock private RestChannel restChannel;
 
   private Injector injector;
 
@@ -60,88 +55,112 @@ public class RestSQLQueryActionTest extends BaseRestHandler {
   public void setup() {
     nodeClient = new NodeClient(org.opensearch.common.settings.Settings.EMPTY, threadPool);
     ModulesBuilder modules = new ModulesBuilder();
-    modules.add(b -> {
-      b.bind(SQLService.class).toInstance(new SQLService(new SQLSyntaxParser(), queryManager, factory));
-    });
+    modules.add(
+        b -> {
+          b.bind(SQLService.class)
+              .toInstance(new SQLService(new SQLSyntaxParser(), queryManager, factory));
+        });
     injector = modules.createInjector();
-    Mockito.lenient().when(threadPool.getThreadContext())
+    Mockito.lenient()
+        .when(threadPool.getThreadContext())
         .thenReturn(new ThreadContext(org.opensearch.common.settings.Settings.EMPTY));
   }
 
   @Test
   public void handleQueryThatCanSupport() throws Exception {
-    SQLQueryRequest request = new SQLQueryRequest(
-        new JSONObject("{\"query\": \"SELECT -123\"}"),
-        "SELECT -123",
-        QUERY_API_ENDPOINT,
-        "jdbc");
+    SQLQueryRequest request =
+        new SQLQueryRequest(
+            new JSONObject("{\"query\": \"SELECT -123\"}"),
+            "SELECT -123",
+            QUERY_API_ENDPOINT,
+            "jdbc");
 
     RestSQLQueryAction queryAction = new RestSQLQueryAction(injector);
-    queryAction.prepareRequest(request, (channel, exception) -> {
-      fail();
-    }, (channel, exception) -> {
-      fail();
-    }).accept(restChannel);
+    queryAction
+        .prepareRequest(
+            request,
+            (channel, exception) -> {
+              fail();
+            },
+            (channel, exception) -> {
+              fail();
+            })
+        .accept(restChannel);
   }
 
   @Test
   public void handleExplainThatCanSupport() throws Exception {
-    SQLQueryRequest request = new SQLQueryRequest(
-        new JSONObject("{\"query\": \"SELECT -123\"}"),
-        "SELECT -123",
-        EXPLAIN_API_ENDPOINT,
-        "jdbc");
+    SQLQueryRequest request =
+        new SQLQueryRequest(
+            new JSONObject("{\"query\": \"SELECT -123\"}"),
+            "SELECT -123",
+            EXPLAIN_API_ENDPOINT,
+            "jdbc");
 
     RestSQLQueryAction queryAction = new RestSQLQueryAction(injector);
-    queryAction.prepareRequest(request, (channel, exception) -> {
-      fail();
-    }, (channel, exception) -> {
-      fail();
-    }).accept(restChannel);
+    queryAction
+        .prepareRequest(
+            request,
+            (channel, exception) -> {
+              fail();
+            },
+            (channel, exception) -> {
+              fail();
+            })
+        .accept(restChannel);
   }
 
   @Test
   public void queryThatNotSupportIsHandledByFallbackHandler() throws Exception {
-    SQLQueryRequest request = new SQLQueryRequest(
-        new JSONObject(
-            "{\"query\": \"SELECT name FROM test1 JOIN test2 ON test1.name = test2.name\"}"),
-        "SELECT name FROM test1 JOIN test2 ON test1.name = test2.name",
-        QUERY_API_ENDPOINT,
-        "jdbc");
+    SQLQueryRequest request =
+        new SQLQueryRequest(
+            new JSONObject(
+                "{\"query\": \"SELECT name FROM test1 JOIN test2 ON test1.name = test2.name\"}"),
+            "SELECT name FROM test1 JOIN test2 ON test1.name = test2.name",
+            QUERY_API_ENDPOINT,
+            "jdbc");
 
     AtomicBoolean fallback = new AtomicBoolean(false);
     RestSQLQueryAction queryAction = new RestSQLQueryAction(injector);
-    queryAction.prepareRequest(request, (channel, exception) -> {
-      fallback.set(true);
-      assertTrue(exception instanceof SyntaxCheckException);
-    }, (channel, exception) -> {
-      fail();
-    }).accept(restChannel);
+    queryAction
+        .prepareRequest(
+            request,
+            (channel, exception) -> {
+              fallback.set(true);
+              assertTrue(exception instanceof SyntaxCheckException);
+            },
+            (channel, exception) -> {
+              fail();
+            })
+        .accept(restChannel);
 
     assertTrue(fallback.get());
   }
 
   @Test
   public void queryExecutionFailedIsHandledByExecutionErrorHandler() throws Exception {
-    SQLQueryRequest request = new SQLQueryRequest(
-        new JSONObject(
-            "{\"query\": \"SELECT -123\"}"),
-        "SELECT -123",
-        QUERY_API_ENDPOINT,
-        "jdbc");
+    SQLQueryRequest request =
+        new SQLQueryRequest(
+            new JSONObject("{\"query\": \"SELECT -123\"}"),
+            "SELECT -123",
+            QUERY_API_ENDPOINT,
+            "jdbc");
 
-    doThrow(new IllegalStateException("execution exception"))
-        .when(queryManager)
-        .submit(any());
+    doThrow(new IllegalStateException("execution exception")).when(queryManager).submit(any());
 
     AtomicBoolean executionErrorHandler = new AtomicBoolean(false);
     RestSQLQueryAction queryAction = new RestSQLQueryAction(injector);
-    queryAction.prepareRequest(request, (channel, exception) -> {
-      assertTrue(exception instanceof SyntaxCheckException);
-    }, (channel, exception) -> {
-      executionErrorHandler.set(true);
-      assertTrue(exception instanceof IllegalStateException);
-    }).accept(restChannel);
+    queryAction
+        .prepareRequest(
+            request,
+            (channel, exception) -> {
+              assertTrue(exception instanceof SyntaxCheckException);
+            },
+            (channel, exception) -> {
+              executionErrorHandler.set(true);
+              assertTrue(exception instanceof IllegalStateException);
+            })
+        .accept(restChannel);
 
     assertTrue(executionErrorHandler.get());
   }
