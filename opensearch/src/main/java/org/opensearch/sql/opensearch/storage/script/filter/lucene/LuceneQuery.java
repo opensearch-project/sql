@@ -225,15 +225,6 @@ public abstract class LuceneQuery {
                 }
               })
           .put(
-              BuiltinFunctionName.CAST_TO_DATETIME.getName(),
-              expr -> {
-                if (expr.type().equals(ExprCoreType.STRING)) {
-                  return new ExprTimestampValue(expr.valueOf().stringValue());
-                } else {
-                  return new ExprTimestampValue(expr.valueOf().timestampValue());
-                }
-              })
-          .put(
               BuiltinFunctionName.CAST_TO_TIMESTAMP.getName(),
               expr -> {
                 if (expr.type().equals(ExprCoreType.STRING)) {
