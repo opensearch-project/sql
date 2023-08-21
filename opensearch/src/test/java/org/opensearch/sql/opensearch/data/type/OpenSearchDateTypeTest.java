@@ -9,10 +9,12 @@ import static org.junit.jupiter.api.Assertions.assertAll;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 import static org.opensearch.sql.data.type.ExprCoreType.DATE;
 import static org.opensearch.sql.data.type.ExprCoreType.DATETIME;
+import static org.opensearch.sql.data.type.ExprCoreType.STRING;
 import static org.opensearch.sql.data.type.ExprCoreType.TIME;
 import static org.opensearch.sql.data.type.ExprCoreType.TIMESTAMP;
 import static org.opensearch.sql.opensearch.data.type.OpenSearchDateType.SUPPORTED_NAMED_DATETIME_FORMATS;
@@ -23,6 +25,7 @@ import static org.opensearch.sql.opensearch.data.type.OpenSearchDateType.SUPPORT
 import static org.opensearch.sql.opensearch.data.type.OpenSearchDateType.isDateTypeCompatible;
 
 import com.google.common.collect.Lists;
+import java.time.Instant;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.stream.Stream;
@@ -33,6 +36,8 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.opensearch.common.time.FormatNames;
+import org.opensearch.sql.data.model.ExprTimestampValue;
+import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.data.type.ExprCoreType;
 
 @DisplayNameGeneration(DisplayNameGenerator.ReplaceUnderscores.class)
@@ -89,10 +94,10 @@ class OpenSearchDateTypeTest {
   public void check_typeName() {
     assertAll(
         // always use the MappingType of "DATE"
-        () -> assertEquals("DATE", defaultDateType.typeName()),
-        () -> assertEquals("DATE", timeDateType.typeName()),
+        () -> assertEquals("TIMESTAMP", defaultDateType.typeName()),
+        () -> assertEquals("TIME", timeDateType.typeName()),
         () -> assertEquals("DATE", dateDateType.typeName()),
-        () -> assertEquals("DATE", datetimeDateType.typeName())
+        () -> assertEquals("TIMESTAMP", datetimeDateType.typeName())
     );
   }
 
@@ -100,10 +105,10 @@ class OpenSearchDateTypeTest {
   public void check_legacyTypeName() {
     assertAll(
         // always use the legacy "DATE" type
-        () -> assertEquals("DATE", defaultDateType.legacyTypeName()),
-        () -> assertEquals("DATE", timeDateType.legacyTypeName()),
+        () -> assertEquals("TIMESTAMP", defaultDateType.legacyTypeName()),
+        () -> assertEquals("TIME", timeDateType.legacyTypeName()),
         () -> assertEquals("DATE", dateDateType.legacyTypeName()),
-        () -> assertEquals("DATE", datetimeDateType.legacyTypeName())
+        () -> assertEquals("TIMESTAMP", datetimeDateType.legacyTypeName())
     );
   }
 
@@ -260,5 +265,23 @@ class OpenSearchDateTypeTest {
     assertTrue(isDateTypeCompatible(DATE));
     assertFalse(isDateTypeCompatible(OpenSearchDataType.of(
         OpenSearchDataType.MappingType.Text)));
+  }
+
+  @Test
+  public void throw_if_create_with_incompatible_type() {
+    assertThrows(IllegalArgumentException.class, () -> OpenSearchDateType.of(STRING));
+    assertThrows(IllegalArgumentException.class,
+        () -> OpenSearchDateType.of(OpenSearchTextType.of()));
+  }
+
+  @Test
+  public void convert_value() {
+    ExprValue value = new ExprTimestampValue(Instant.ofEpochMilli(42));
+    assertEquals(42L, OpenSearchDateType.of().convertValueForSearchQuery(value));
+  }
+
+  @Test
+  public void shouldCast() {
+    assertFalse(OpenSearchDateType.of().shouldCast(() -> null));
   }
 }

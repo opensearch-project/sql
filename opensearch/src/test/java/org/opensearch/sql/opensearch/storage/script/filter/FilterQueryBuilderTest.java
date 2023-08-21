@@ -268,7 +268,7 @@ class FilterQueryBuilderTest {
     assertJsonEquals(
         "{\n"
             + "  \"term\" : {\n"
-            + "    \"name.keyword\" : {\n"
+            + "    \"name.words\" : {\n"
             + "      \"value\" : \"John\",\n"
             + "      \"boost\" : 1.0\n"
             + "    }\n"
@@ -286,7 +286,7 @@ class FilterQueryBuilderTest {
     assertJsonEquals(
         "{\n"
             + "  \"wildcard\" : {\n"
-            + "    \"name.keyword\" : {\n"
+            + "    \"name.words\" : {\n"
             + "      \"wildcard\" : \"John*\",\n"
             + "      \"case_insensitive\" : true,\n"
             + "      \"boost\" : 1.0\n"
@@ -1681,10 +1681,12 @@ class FilterQueryBuilderTest {
         + "  }\n"
         + "}";
 
-    assertJsonEquals(json, buildQuery(DSL.equal(ref("timestamp_value", TIMESTAMP), DSL
-        .castTimestamp(literal("2021-11-08 17:00:00")))));
-    assertJsonEquals(json, buildQuery(DSL.equal(ref("timestamp_value", TIMESTAMP), DSL
-        .castTimestamp(literal(new ExprTimestampValue("2021-11-08 17:00:00"))))));
+    assertJsonEquals(json, buildQuery(DSL.equal(
+        ref("timestamp_value", OpenSearchDataType.of(TIMESTAMP)),
+        DSL.castTimestamp(literal("2021-11-08 17:00:00")))));
+    assertJsonEquals(json, buildQuery(DSL.equal(
+        ref("timestamp_value", OpenSearchDataType.of(TIMESTAMP)),
+        DSL.castTimestamp(literal(new ExprTimestampValue("2021-11-08 17:00:00"))))));
   }
 
   @Test

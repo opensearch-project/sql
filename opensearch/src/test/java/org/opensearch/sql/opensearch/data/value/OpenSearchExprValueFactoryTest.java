@@ -71,7 +71,10 @@ class OpenSearchExprValueFactoryTest {
           .put("longV", OpenSearchDataType.of(LONG))
           .put("floatV", OpenSearchDataType.of(FLOAT))
           .put("doubleV", OpenSearchDataType.of(DOUBLE))
+          .put("halfFloatV", OpenSearchDataType.of(OpenSearchDataType.MappingType.HalfFloat))
+          .put("scaledFloatV", OpenSearchDataType.of(OpenSearchDataType.MappingType.ScaledFloat))
           .put("stringV", OpenSearchDataType.of(STRING))
+          .put("keywordV", OpenSearchDataType.of(OpenSearchDataType.MappingType.Keyword))
           .put("dateV", OpenSearchDateType.of(DATE))
           .put("datetimeV", OpenSearchDateType.of(DATETIME))
           .put("timeV", OpenSearchDateType.of(TIME))
@@ -213,11 +216,37 @@ class OpenSearchExprValueFactoryTest {
   }
 
   @Test
+  public void constructHalfFloat() {
+    assertAll(
+        () -> assertEquals(floatValue(1f), tupleValue("{\"halfFloatV\":1.0}").get("halfFloatV")),
+        () -> assertEquals(floatValue(1f), constructFromObject("halfFloatV", 1f))
+    );
+  }
+
+  @Test
+  public void constructScaledFloat() {
+    assertAll(
+        () -> assertEquals(doubleValue(1d),
+            tupleValue("{\"scaledFloatV\":1.0}").get("scaledFloatV")),
+        () -> assertEquals(doubleValue(1d), constructFromObject("scaledFloatV", 1d))
+    );
+  }
+
+  @Test
   public void constructString() {
     assertAll(
         () -> assertEquals(stringValue("text"),
             tupleValue("{\"stringV\":\"text\"}").get("stringV")),
         () -> assertEquals(stringValue("text"), constructFromObject("stringV", "text"))
+    );
+  }
+
+  @Test
+  public void constructKeyword() {
+    assertAll(
+        () -> assertEquals(stringValue("text"),
+            tupleValue("{\"keywordV\":\"text\"}").get("keywordV")),
+        () -> assertEquals(stringValue("text"), constructFromObject("keywordV", "text"))
     );
   }
 

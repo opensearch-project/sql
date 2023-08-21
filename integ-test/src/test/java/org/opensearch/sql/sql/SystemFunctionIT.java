@@ -45,16 +45,14 @@ public class SystemFunctionIT extends SQLIntegTestCase {
         + "typeof(float_number), typeof(half_float_number), typeof(scaled_float_number)"
         + " from %s;", TEST_INDEX_DATATYPE_NUMERIC));
     verifyDataRows(response,
-        rows("DOUBLE", "LONG", "INTEGER", "BYTE", "SHORT", "FLOAT", "FLOAT", "DOUBLE"));
+        rows("DOUBLE", "LONG", "INTEGER", "BYTE", "SHORT", "FLOAT", "HALF_FLOAT", "SCALED_FLOAT"));
 
     response = executeJdbcRequest(String.format("SELECT typeof(text_value),"
         + "typeof(date_value), typeof(boolean_value), typeof(object_value), typeof(keyword_value),"
-        + "typeof(ip_value), typeof(binary_value), typeof(geo_point_value)"
-        // TODO activate this test once `ARRAY` type supported, see ExpressionAnalyzer::isTypeNotSupported
-        //+ ", typeof(nested_value)"
+        + "typeof(ip_value), typeof(binary_value), typeof(geo_point_value), typeof(nested_value)"
         + " from %s;", TEST_INDEX_DATATYPE_NONNUMERIC));
     verifyDataRows(response,
         rows("TEXT", "TIMESTAMP", "BOOLEAN", "OBJECT", "KEYWORD",
-                "IP", "BINARY", "GEO_POINT"));
+                "IP", "BINARY", "GEO_POINT", "NESTED"));
   }
 }

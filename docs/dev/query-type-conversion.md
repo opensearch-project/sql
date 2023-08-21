@@ -9,7 +9,7 @@ Type conversion means conversion from one data type to another which has two asp
 1. Whether the conversion is implicit or explicit (implicit conversion is often called coercion)
 2. Whether the data is converted within the family or reinterpreted as another data type outside
 
-It’s common that strong typed language only supports little implicit conversions and no data reinterpretation. While languages with weak typing allows many implicit conversions and flexible reinterpretation.
+It's common that strong typed language only supports little implicit conversions and no data reinterpretation. While languages with weak typing allows many implicit conversions and flexible reinterpretation.
 
 ### 1.2 Problem Statement
 
@@ -30,8 +30,8 @@ However, more general conversions for non-numeric types are missing, such as con
 
 The common use case and motivation include:
 
-1. *User-friendly*: Although it doesn’t matter for application or BI tool which can always follow the strict grammar rule, it’s more friendly and accessible to human by implicit type conversion, ex. `date > DATE('2020-06-01') => date > '2020-06-01'`
-2. *Schema-on-read*: More importantly, implicit conversion from string is required for schema on read (stored as raw string on write and extract field(s) on read), ex. `regex ‘...’ | abs(a)`
+1. *User-friendly*: Although it doesn't matter for application or BI tool which can always follow the strict grammar rule, it's more friendly and accessible to human by implicit type conversion, ex. `date > DATE('2020-06-01') => date > '2020-06-01'`
+2. *Schema-on-read*: More importantly, implicit conversion from string is required for schema on read (stored as raw string on write and extract field(s) on read), ex. `regex '...' | abs(a)`
 
 ### 2.2 Functionalities
 
@@ -50,7 +50,7 @@ Future:
 
 ### 3.1 Type Precedence
 
-Type precedence determines the direction of conversion when fields involved in an expression has different type from resolved signature. Before introducing it into our type system, let’s check how an expression is resolved to a function implementation and why type precedence is required.
+Type precedence determines the direction of conversion when fields involved in an expression has different type from resolved signature. Before introducing it into our type system, let's check how an expression is resolved to a function implementation and why type precedence is required.
 
 ```
 Compiling time:
@@ -60,7 +60,7 @@ Compiling time:
  Function builder: returns equal(DOUBLE, DOUBLE) impl
 ```
 
-Now let’s follow the same idea to add support for conversion from `BOOLEAN` to `STRING`. Because all boolean values can be converted to a string (in other word string is “wider”), String type is made the parent of Boolean. However, this leads to wrong semantic as the following expression `false = ‘FALSE’` for example:
+Now let's follow the same idea to add support for conversion from `BOOLEAN` to `STRING`. Because all boolean values can be converted to a string (in other word string is 'wider'), String type is made the parent of Boolean. However, this leads to wrong semantic as the following expression `false = 'FALSE'` for example:
 
 ```
 Compiling time:
@@ -74,9 +74,10 @@ Runtime:
  Evaluation result: *false*
 ```
 
-Therefore type precedence is supposed to be defined based on semantic expected rather than intuitive “width” of type. Now let’s reverse the direction and make Boolean the parent of String type.
+Therefore type precedence is supposed to be defined based on semantic expected rather than intuitive 'width' of type. Now let's reverse the direction and make Boolean the parent of String type.
 
 ![New type hierarchy](img/type-hierarchy-tree-with-implicit-cast.png)
+Note: type hierarchy structure shown on the picture below was implemented in [#166](https://github.com/opensearch-project/sql/pull/166), but was changed later.
 
 ```
 Compiling time:
@@ -147,15 +148,15 @@ public enum ExprCoreType implements ExprType {
   DOUBLE(FLOAT),
 
   STRING(UNDEFINED),
-  BOOLEAN(STRING), // PR: change STRING's parent to BOOLEAN
+  BOOLEAN(STRING), // #166 changes: STRING's parent to BOOLEAN
 
   /**
    * Date.
    */
-  TIMESTAMP(UNDEFINED),
-  DATE(UNDEFINED),
-  TIME(UNDEFINED),
-  DATETIME(UNDEFINED),
+  DATE(STRING),  // #171 changes: datetime types parent to STRING
+  TIME(STRING),
+  DATETIME(STRING, DATE, TIME), // #1196 changes: extend DATETIME and TIMESTAMP parent list
+  TIMESTAMP(STRING, DATETIME),
   INTERVAL(UNDEFINED),
 
   STRUCT(UNDEFINED),
@@ -170,3 +171,12 @@ As with examples in section 3.1, the implementation is:
 1. Define all possible conversions in CAST function family.
 2. Define implicit conversions by type hierarchy tree (auto implicit cast from child to parent)
 3. During compile time, wrap original function builder by a new one which cast arguments to target type.
+
+## Final type hierarchy scheme
+
+![Most relevant type hierarchy](img/type-hierarchy-tree-final.png)
+
+## References
+* [#166](https://github.com/opensearch-project/sql/pull/166): Add automatic `STRING` -> `BOOLEAN` cast
+* [#171](https://github.com/opensearch-project/sql/pull/171): Add automatic `STRING` -> `DATE`/`TIME`/`DATETIME`/`TIMESTAMP` cast
+* [#1196](https://github.com/opensearch-project/sql/pull/1196): Add automatic casts between datetime types `DATE`/`TIME`/`DATETIME` -> `DATE`/`TIME`/`DATETIME`/`TIMESTAMP`

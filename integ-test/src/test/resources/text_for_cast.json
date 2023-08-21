@@ -1,0 +1,14 @@
+{"index": {}}
+{ "TestName" : "bool", "Text" : "TRUE", "TextWithKeywords" : "true", "TextWithFielddata" : "TrUe", "TextWithFields" : "TRUE", "TextWithNumbers" : 42, "TextWithMixedFields": "trUE" }
+{"index": {}}
+{ "TestName" : "bool", "Text" : "FALSE", "TextWithKeywords" : "false", "TextWithFielddata" : "FaLSe", "TextWithFields" : "fAlsE", "TextWithNumbers" : 0, "TextWithMixedFields": 0 }
+{"index": {}}
+{ "TestName" : "int", "Text" : "0", "TextWithKeywords" : "1", "TextWithFielddata" : "-14", "TextWithFields" : "4096", "TextWithNumbers" : 100500, "TextWithMixedFields": 42 }
+{"index": {}}
+{ "TestName" : "double", "Text" : "0", "TextWithKeywords" : "1.", "TextWithFielddata" : "3.14", "TextWithFields" : ".223", "TextWithNumbers" : -333, "TextWithMixedFields": 42 }
+{"index": {}}
+{ "TestName" : "date", "Text" : "1961-04-12", "TextWithKeywords" : "1984-04-04", "TextWithFielddata" : "1999-10-20", "TextWithFields" : "2020-02-29", "TextWithNumbers" : "20111122", "TextWithMixedFields": "1977-07-17" }
+{"index": {}}
+{ "TestName" : "time", "Text" : "10:20:30", "TextWithKeywords" : "22:22", "TextWithFielddata" : "00:00:00", "TextWithFields" : "00:00:01", "TextWithNumbers" : "070809", "TextWithMixedFields": "07:17" }
+{"index": {}}
+{ "TestName" : "timestamp", "Text" : "1961-04-12 09:07:00", "TextWithKeywords" : "1984-04-04 10:20:30", "TextWithFielddata" : "1999-10-20 00:01:02", "TextWithFields" : "2020-02-29 00:00:00", "TextWithNumbers" : null, "TextWithMixedFields": "1977-07-17 01:02:03" }

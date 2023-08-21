@@ -1,0 +1,56 @@
+{
+  "mappings" : {
+    "properties" : {
+      "Keyword" : {
+        "type" : "keyword"
+      },
+      "TextWithKeywords" : {
+        "type" : "text",
+        "fields" : {
+          "keyword" : {
+            "type" : "keyword",
+            "ignore_above" : 25
+          }
+        }
+      },
+      "Text" : {
+        "type" : "text"
+      },
+      "TextWithFielddata" : {
+        "type" : "text",
+        "fielddata" : true
+      },
+      "TextWithFields" : {
+        "type" : "text",
+        "fields" : {
+          "words" : {
+            "type" : "keyword",
+            "ignore_above" : 25
+          }
+        }
+      },
+      "TextWithNumbers": {
+        "type": "text",
+        "fields": {
+          "values": {
+            "type": "integer"
+          }
+        }
+      },
+      "TextWithMixedFields" : {
+        "type" : "text",
+        "fields" : {
+          "numeric": {
+            "type": "double",
+            "ignore_malformed": true
+          },
+          "date": {
+            "type": "date",
+            "format": "dd.MM.uuuu",
+            "ignore_malformed": true
+          }
+        }
+      }
+    }
+  }
+}

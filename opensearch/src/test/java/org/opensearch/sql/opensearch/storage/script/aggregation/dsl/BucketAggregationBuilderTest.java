@@ -15,7 +15,6 @@ import static org.opensearch.sql.expression.DSL.literal;
 import static org.opensearch.sql.expression.DSL.named;
 import static org.opensearch.sql.expression.DSL.ref;
 
-import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import lombok.SneakyThrows;
@@ -70,7 +69,7 @@ class BucketAggregationBuilderTest {
             + "  }\n"
             + "}",
         buildQuery(
-            Arrays.asList(
+            List.of(
                 asc(named("age", ref("age", INTEGER))))));
   }
 
@@ -91,7 +90,7 @@ class BucketAggregationBuilderTest {
             + "  }\n"
             + "}",
         buildQuery(
-            Arrays.asList(
+            List.of(
                 asc(named(literal)))));
   }
 
@@ -100,14 +99,14 @@ class BucketAggregationBuilderTest {
     assertEquals(
         "{\n"
             + "  \"terms\" : {\n"
-            + "    \"field\" : \"name.keyword\",\n"
+            + "    \"field\" : \"name.words\",\n"
             + "    \"missing_bucket\" : true,\n"
             + "    \"missing_order\" : \"first\",\n"
             + "    \"order\" : \"asc\"\n"
             + "  }\n"
             + "}",
         buildQuery(
-            Arrays.asList(
+            List.of(
                 asc(named("name", ref("name", OpenSearchTextType.of(Map.of("words",
                     OpenSearchDataType.of(OpenSearchDataType.MappingType.Keyword)))))))));
   }
@@ -130,7 +129,7 @@ class BucketAggregationBuilderTest {
             + "  }\n"
             + "}",
         buildQuery(
-            Arrays.asList(
+            List.of(
                 asc(named("name", parseExpression)))));
   }
 
@@ -148,7 +147,7 @@ class BucketAggregationBuilderTest {
             + "  }\n"
             + "}",
         buildQuery(
-            Arrays.asList(
+            List.of(
                 asc(named("date", ref("date", dataType))))));
   }
 

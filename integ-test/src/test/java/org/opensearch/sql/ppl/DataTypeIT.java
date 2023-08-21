@@ -36,8 +36,8 @@ public class DataTypeIT extends PPLIntegTestCase {
         schema("byte_number", "byte"),
         schema("double_number", "double"),
         schema("float_number", "float"),
-        schema("half_float_number", "float"),
-        schema("scaled_float_number", "double"));
+        schema("half_float_number", "half_float"),
+        schema("scaled_float_number", "scaled_float"));
   }
 
   @Test
@@ -51,8 +51,8 @@ public class DataTypeIT extends PPLIntegTestCase {
         schema("binary_value", "binary"),
         schema("date_value", "timestamp"),
         schema("ip_value", "ip"),
-        schema("object_value", "struct"),
-        schema("nested_value", "array"),
+        schema("object_value", "object"),
+        schema("nested_value", "nested"),
         schema("geo_point_value", "geo_point"));
   }
 

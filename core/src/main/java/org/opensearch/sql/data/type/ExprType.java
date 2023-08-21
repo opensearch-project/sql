@@ -8,7 +8,6 @@ package org.opensearch.sql.data.type;
 
 import static org.opensearch.sql.data.type.ExprCoreType.UNKNOWN;
 
-import java.util.Arrays;
 import java.util.List;
 import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.expression.Expression;
@@ -21,7 +20,8 @@ public interface ExprType {
    * Is compatible with other types.
    */
   default boolean isCompatible(ExprType other) {
-    if (this.equals(other)) {
+    other = other.getExprType();
+    if (getExprType().equals(other)) {
       return true;
     } else {
       if (other.equals(UNKNOWN)) {
@@ -50,7 +50,7 @@ public interface ExprType {
    * Get the parent type.
    */
   default List<ExprType> getParent() {
-    return Arrays.asList(UNKNOWN);
+    return List.of(UNKNOWN);
   }
 
   /**
@@ -63,5 +63,26 @@ public interface ExprType {
    */
   default String legacyTypeName() {
     return typeName();
+  }
+
+  /**
+   * Perform field name conversion if needed before inserting it into a search query.
+   */
+  default String convertFieldForSearchQuery(String fieldName) {
+    return fieldName;
+  }
+
+  /**
+   * Perform value conversion if needed before inserting it into a search query.
+   */
+  default Object convertValueForSearchQuery(ExprValue value) {
+    return value.value();
+  }
+
+  /**
+   * Get a simplified type {@link ExprCoreType} if possible. Used in {@link #isCompatible}.
+   */
+  default ExprType getExprType() {
+    return this;
   }
 }

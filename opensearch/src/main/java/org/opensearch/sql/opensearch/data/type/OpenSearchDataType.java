@@ -10,26 +10,77 @@ import com.google.common.collect.ImmutableMap;
 import java.io.Serializable;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.function.BiConsumer;
-import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import org.apache.commons.lang3.EnumUtils;
+import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.data.type.ExprCoreType;
 import org.opensearch.sql.data.type.ExprType;
+import org.opensearch.sql.data.type.WideningTypeRule;
 
 /**
  * The extension of ExprType in OpenSearch.
  */
-@EqualsAndHashCode
 public class OpenSearchDataType implements ExprType, Serializable {
+
+  /**
+   * Redefine comparison operation: class (or derived) could be compared with ExprCoreType too.
+   * Used in {@link WideningTypeRule#distance(ExprType, ExprType)}.
+   */
+  @Override
+  public boolean equals(final Object o) {
+    if (o == this) {
+      return true;
+    }
+    if (o instanceof ExprCoreType) {
+      return exprCoreType.equals(o);
+    }
+    if (!(o instanceof OpenSearchDataType)) {
+      return false;
+    }
+    OpenSearchDataType other = (OpenSearchDataType) o;
+    if (mappingType != null && other.mappingType != null) {
+      return mappingType.equals(other.mappingType) && exprCoreType.equals(other.exprCoreType);
+    }
+    return exprCoreType.equals(other.exprCoreType);
+  }
+
+  /**
+   * Redefine hash calculation to enforce comparing using {@link #equals(Object)}.
+   */
+  @Override
+  public int hashCode() {
+    return 42 + exprCoreType.hashCode();
+  }
+
+  @Override
+  public List<ExprType> getParent() {
+    return exprCoreType.getParent();
+  }
+
+  @Override
+  public boolean shouldCast(ExprType other) {
+    ExprCoreType otherCoreType = ExprCoreType.UNKNOWN;
+    if (other instanceof ExprCoreType) {
+      otherCoreType = (ExprCoreType) other;
+    } else if (other instanceof OpenSearchDataType) {
+      otherCoreType = ((OpenSearchDataType) other).exprCoreType;
+    }
+    if (ExprCoreType.numberTypes().contains(exprCoreType)
+        && ExprCoreType.numberTypes().contains(otherCoreType)) {
+      return false;
+    }
+    return exprCoreType == ExprCoreType.UNKNOWN || exprCoreType.shouldCast(otherCoreType);
+  }
 
   /**
    * The mapping (OpenSearch engine) type.
    */
   public enum MappingType {
     Invalid(null, ExprCoreType.UNKNOWN),
-    Text("text", ExprCoreType.UNKNOWN),
+    Text("text", ExprCoreType.STRING),
     Keyword("keyword", ExprCoreType.STRING),
     Ip("ip", ExprCoreType.UNKNOWN),
     GeoPoint("geo_point", ExprCoreType.UNKNOWN),
@@ -64,7 +115,6 @@ public class OpenSearchDataType implements ExprType, Serializable {
     }
   }
 
-  @EqualsAndHashCode.Exclude
   @Getter
   protected MappingType mappingType;
 
@@ -76,6 +126,7 @@ public class OpenSearchDataType implements ExprType, Serializable {
    * To avoid returning `UNKNOWN` for `OpenSearch*Type`s, e.g. for IP, returns itself.
    * @return An {@link ExprType}.
    */
+  @Override
   public ExprType getExprType() {
     if (exprCoreType != ExprCoreType.UNKNOWN) {
       return exprCoreType;
@@ -137,6 +188,7 @@ public class OpenSearchDataType implements ExprType, Serializable {
    * @param mappingType A mapping type.
    * @return An instance or inheritor of `OpenSearchDataType`.
    */
+  @SuppressWarnings("unchecked")
   public static OpenSearchDataType of(MappingType mappingType, Map<String, Object> innerMap) {
     OpenSearchDataType res = instances.getOrDefault(mappingType.toString(),
         new OpenSearchDataType(mappingType)
@@ -154,7 +206,7 @@ public class OpenSearchDataType implements ExprType, Serializable {
         objectDataType.properties = properties;
         return objectDataType;
       case Text:
-        // TODO update these 2 below #1038 https://github.com/opensearch-project/sql/issues/1038
+        // don't parse `fielddata`, because it does not contain any info which could be used by SQL
         Map<String, OpenSearchDataType> fields =
             parseMapping((Map<String, Object>) innerMap.getOrDefault("fields", Map.of()));
         return (!fields.isEmpty()) ? OpenSearchTextType.of(fields) : OpenSearchTextType.of();
@@ -163,8 +215,8 @@ public class OpenSearchDataType implements ExprType, Serializable {
       case Ip: return OpenSearchIpType.of();
       case Date:
         // Default date formatter is used when "" is passed as the second parameter
-        String format = (String) innerMap.getOrDefault("format", "");
-        return OpenSearchDateType.of(format);
+        return innerMap.isEmpty() ? OpenSearchDateType.of()
+            : OpenSearchDateType.of((String) innerMap.getOrDefault("format", ""));
       default:
         return res;
     }
@@ -212,7 +264,6 @@ public class OpenSearchDataType implements ExprType, Serializable {
   // For datatypes with properties (example: object and nested types)
   // a read-only collection
   @Getter
-  @EqualsAndHashCode.Exclude
   Map<String, OpenSearchDataType> properties = ImmutableMap.of();
 
   @Override
@@ -220,7 +271,7 @@ public class OpenSearchDataType implements ExprType, Serializable {
   public String typeName() {
     // To avoid breaking changes return `string` for `typeName` call (PPL) and `text` for
     // `legacyTypeName` call (SQL). See more: https://github.com/opensearch-project/sql/issues/1296
-    if (legacyTypeName().equals("TEXT")) {
+    if (legacyTypeName().equals("TEXT") || legacyTypeName().equals("KEYWORD")) {
       return "STRING";
     }
     return legacyTypeName();
@@ -248,7 +299,7 @@ public class OpenSearchDataType implements ExprType, Serializable {
   /**
    * Flattens mapping tree into a single layer list of objects (pairs of name-types actually),
    * which don't have nested types.
-   * See {@link OpenSearchDataTypeTest#traverseAndFlatten() test} for example.
+   * See <em>OpenSearchDataTypeTest::traverseAndFlatten()</em> test for example.
    * @param tree A list of `OpenSearchDataType`s - map between field name and its type.
    * @return A list of all `OpenSearchDataType`s from given map on the same nesting level (1).
    *         Nested object names are prefixed by names of their host.

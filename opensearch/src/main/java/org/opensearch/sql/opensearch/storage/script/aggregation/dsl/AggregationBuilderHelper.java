@@ -17,7 +17,6 @@ import org.opensearch.sql.expression.Expression;
 import org.opensearch.sql.expression.FunctionExpression;
 import org.opensearch.sql.expression.LiteralExpression;
 import org.opensearch.sql.expression.ReferenceExpression;
-import org.opensearch.sql.opensearch.data.type.OpenSearchTextType;
 import org.opensearch.sql.opensearch.storage.serialization.ExpressionSerializer;
 
 /**
@@ -38,8 +37,7 @@ public class AggregationBuilderHelper {
                  Function<Script, T> scriptBuilder) {
     if (expression instanceof ReferenceExpression) {
       String fieldName = ((ReferenceExpression) expression).getAttr();
-      return fieldBuilder.apply(
-              OpenSearchTextType.convertTextToKeyword(fieldName, expression.type()));
+      return fieldBuilder.apply(expression.type().convertFieldForSearchQuery(fieldName));
     } else if (expression instanceof FunctionExpression
         || expression instanceof LiteralExpression) {
       return scriptBuilder.apply(new Script(

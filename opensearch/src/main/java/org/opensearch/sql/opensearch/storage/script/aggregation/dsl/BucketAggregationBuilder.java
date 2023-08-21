@@ -12,6 +12,7 @@ import static org.opensearch.sql.data.type.ExprCoreType.TIMESTAMP;
 
 import com.google.common.collect.ImmutableList;
 import java.util.List;
+import java.util.stream.Stream;
 import org.apache.commons.lang3.tuple.Triple;
 import org.opensearch.search.aggregations.bucket.composite.CompositeValuesSourceBuilder;
 import org.opensearch.search.aggregations.bucket.composite.DateHistogramValuesSourceBuilder;
@@ -71,7 +72,8 @@ public class BucketAggregationBuilder {
               .missingOrder(missingOrder)
               .order(sortOrder);
       // Time types values are converted to LONG in ExpressionAggregationScript::execute
-      if (List.of(TIMESTAMP, TIME, DATE, DATETIME).contains(expr.getDelegated().type())) {
+      if (Stream.of(TIMESTAMP, TIME, DATE, DATETIME)
+          .anyMatch(t -> expr.getDelegated().type().equals(t))) {
         sourceBuilder.userValuetypeHint(ValueType.LONG);
       }
       return helper.build(expr.getDelegated(), sourceBuilder::field, sourceBuilder::script);

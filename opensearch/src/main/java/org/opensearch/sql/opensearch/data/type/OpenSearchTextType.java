@@ -6,13 +6,10 @@
 package org.opensearch.sql.opensearch.data.type;
 
 import static org.opensearch.sql.data.type.ExprCoreType.STRING;
-import static org.opensearch.sql.data.type.ExprCoreType.UNKNOWN;
 
 import com.google.common.collect.ImmutableMap;
-import java.util.List;
 import java.util.Map;
-import lombok.EqualsAndHashCode;
-import org.opensearch.sql.data.type.ExprType;
+import lombok.Getter;
 
 /**
  * The type of a text value. See
@@ -24,18 +21,18 @@ public class OpenSearchTextType extends OpenSearchDataType {
 
   // text could have fields
   // a read-only collection
-  @EqualsAndHashCode.Exclude
+  @Getter
   Map<String, OpenSearchDataType> fields = ImmutableMap.of();
 
   private OpenSearchTextType() {
     super(MappingType.Text);
-    exprCoreType = UNKNOWN;
+    exprCoreType = STRING;
   }
 
   /**
    * Constructs a Text Type using the passed in fields argument.
    * @param fields The fields to be used to construct the text type.
-   * @return A new OpenSeachTextTypeObject
+   * @return A new OpenSearchTextType object
    */
   public static OpenSearchTextType of(Map<String, OpenSearchDataType> fields) {
     var res = new OpenSearchTextType();
@@ -48,33 +45,22 @@ public class OpenSearchTextType extends OpenSearchDataType {
   }
 
   @Override
-  public List<ExprType> getParent() {
-    return List.of(STRING);
-  }
-
-  @Override
-  public boolean shouldCast(ExprType other) {
-    return false;
-  }
-
-  public Map<String, OpenSearchDataType> getFields() {
-    return fields;
-  }
-
-  @Override
   protected OpenSearchDataType cloneEmpty() {
-    return OpenSearchTextType.of(Map.copyOf(this.fields));
+    return OpenSearchTextType.of(Map.copyOf(fields));
   }
 
-  /**
-   * Text field doesn't have doc value (exception thrown even when you call "get")
-   * Limitation: assume inner field name is always "keyword".
-   */
-  public static String convertTextToKeyword(String fieldName, ExprType fieldType) {
-    if (fieldType instanceof OpenSearchTextType
-        && ((OpenSearchTextType) fieldType).getFields().size() > 0) {
-      return fieldName + ".keyword";
+  @Override
+  public String convertFieldForSearchQuery(String fieldName) {
+    if (fields.size() == 0) {
+      return fieldName;
     }
-    return fieldName;
+    // Pick first string subfield (if present) otherwise pick first subfield.
+    // Multi-field text support requested in https://github.com/opensearch-project/sql/issues/1887
+    String subField = fields.entrySet().stream()
+        .filter(e -> e.getValue().getExprType().equals(STRING))
+        .map(Map.Entry::getKey)
+        .findFirst()
+        .orElseGet(() -> fields.keySet().toArray(String[]::new)[0]);
+    return String.format("%s.%s", fieldName, subField);
   }
 }

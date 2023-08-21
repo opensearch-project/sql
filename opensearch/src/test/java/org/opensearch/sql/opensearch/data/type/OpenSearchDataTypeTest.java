@@ -9,6 +9,7 @@ package org.opensearch.sql.opensearch.data.type;
 import static org.junit.jupiter.api.Assertions.assertAll;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNotSame;
 import static org.junit.jupiter.api.Assertions.assertNull;
@@ -19,7 +20,7 @@ import static org.junit.jupiter.api.Assumptions.assumeFalse;
 import static org.opensearch.sql.data.type.ExprCoreType.ARRAY;
 import static org.opensearch.sql.data.type.ExprCoreType.BOOLEAN;
 import static org.opensearch.sql.data.type.ExprCoreType.BYTE;
-import static org.opensearch.sql.data.type.ExprCoreType.DATE;
+import static org.opensearch.sql.data.type.ExprCoreType.DATETIME;
 import static org.opensearch.sql.data.type.ExprCoreType.DOUBLE;
 import static org.opensearch.sql.data.type.ExprCoreType.FLOAT;
 import static org.opensearch.sql.data.type.ExprCoreType.INTEGER;
@@ -41,6 +42,7 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.EnumSource;
 import org.junit.jupiter.params.provider.MethodSource;
+import org.opensearch.sql.data.model.ExprDoubleValue;
 import org.opensearch.sql.data.type.ExprCoreType;
 import org.opensearch.sql.data.type.ExprType;
 
@@ -55,41 +57,96 @@ class OpenSearchDataTypeTest {
 
   private static final OpenSearchDateType dateType = OpenSearchDateType.of(emptyFormatString);
 
+  public static class TestType extends OpenSearchDataType {
+
+    public TestType(MappingType mappingType, ExprCoreType type) {
+      super(mappingType);
+      exprCoreType = type;
+    }
+  }
+
+  @Test
+  public void equals() {
+    assertAll(
+        () -> assertEquals(textType, textType),
+        () -> assertEquals(OpenSearchDataType.of(INTEGER), INTEGER),
+        () -> assertNotEquals(textType, 42),
+        () -> assertEquals(OpenSearchDataType.of(MappingType.GeoPoint),
+            OpenSearchDataType.of(MappingType.GeoPoint)),
+        () -> assertNotEquals(OpenSearchDataType.of(MappingType.GeoPoint),
+            OpenSearchDataType.of(MappingType.Ip)),
+        () -> assertEquals(OpenSearchDataType.of(STRING), OpenSearchDataType.of(STRING)),
+        () -> assertEquals(OpenSearchDataType.of(DOUBLE),
+            OpenSearchDataType.of(MappingType.Double)),
+        () -> assertEquals(OpenSearchDataType.of(MappingType.Double),
+            OpenSearchDataType.of(DOUBLE)),
+        () -> assertEquals(OpenSearchDataType.of(DOUBLE), OpenSearchDataType.of(DOUBLE)),
+        () -> assertEquals(new TestType(MappingType.Double, DOUBLE),
+            new TestType(MappingType.Double, DOUBLE)),
+        () -> assertNotEquals(new TestType(MappingType.Ip, UNKNOWN),
+            new TestType(MappingType.Binary, UNKNOWN)),
+        () -> assertNotEquals(OpenSearchDataType.of(MappingType.Date),
+            OpenSearchDateType.of("date")),
+        () -> assertNotEquals(OpenSearchDataType.of(INTEGER), OpenSearchDataType.of(DOUBLE))
+    );
+  }
+
+  @Test
+  public void getParent() {
+    assertEquals(DATETIME.getParent(), OpenSearchDataType.of(DATETIME).getParent());
+  }
+
   @Test
   public void isCompatible() {
-    assertTrue(STRING.isCompatible(textType));
-    assertFalse(textType.isCompatible(STRING));
+    assertAll(
+        () -> assertTrue(STRING.isCompatible(textType)),
+        () -> assertTrue(textType.isCompatible(STRING)),
 
-    assertTrue(STRING.isCompatible(textKeywordType));
-    assertTrue(textType.isCompatible(textKeywordType));
+        () -> assertTrue(STRING.isCompatible(textKeywordType)),
+        () -> assertTrue(textType.isCompatible(textKeywordType))
+    );
   }
 
   // `typeName` and `legacyTypeName` return different things:
   // https://github.com/opensearch-project/sql/issues/1296
   @Test
   public void typeName() {
-    assertEquals("STRING", textType.typeName());
-    assertEquals("STRING", textKeywordType.typeName());
-    assertEquals("OBJECT", OpenSearchDataType.of(MappingType.Object).typeName());
-    assertEquals("DATE", OpenSearchDataType.of(MappingType.Date).typeName());
-    assertEquals("DOUBLE", OpenSearchDataType.of(MappingType.Double).typeName());
-    assertEquals("KEYWORD", OpenSearchDataType.of(MappingType.Keyword).typeName());
+    assertAll(
+        () -> assertEquals("STRING", textType.typeName()),
+        () -> assertEquals("STRING", textKeywordType.typeName()),
+        () -> assertEquals("OBJECT", OpenSearchDataType.of(MappingType.Object).typeName()),
+        () -> assertEquals("TIMESTAMP", OpenSearchDataType.of(MappingType.Date).typeName()),
+        () -> assertEquals("DOUBLE", OpenSearchDataType.of(MappingType.Double).typeName()),
+        () -> assertEquals("STRING", OpenSearchDataType.of(MappingType.Keyword).typeName())
+    );
   }
 
   @Test
   public void legacyTypeName() {
-    assertEquals("TEXT", textType.legacyTypeName());
-    assertEquals("TEXT", textKeywordType.legacyTypeName());
-    assertEquals("OBJECT", OpenSearchDataType.of(MappingType.Object).legacyTypeName());
-    assertEquals("DATE", OpenSearchDataType.of(MappingType.Date).legacyTypeName());
-    assertEquals("DOUBLE", OpenSearchDataType.of(MappingType.Double).legacyTypeName());
-    assertEquals("KEYWORD", OpenSearchDataType.of(MappingType.Keyword).legacyTypeName());
+    assertAll(
+        () -> assertEquals("TEXT", textType.legacyTypeName()),
+        () -> assertEquals("TEXT", textKeywordType.legacyTypeName()),
+        () -> assertEquals("OBJECT", OpenSearchDataType.of(MappingType.Object).legacyTypeName()),
+        () -> assertEquals("TIMESTAMP", OpenSearchDataType.of(MappingType.Date).legacyTypeName()),
+        () -> assertEquals("DOUBLE", OpenSearchDataType.of(MappingType.Double).legacyTypeName()),
+        () -> assertEquals("KEYWORD", OpenSearchDataType.of(MappingType.Keyword).legacyTypeName())
+    );
   }
 
   @Test
   public void shouldCast() {
-    assertFalse(textType.shouldCast(STRING));
-    assertFalse(textKeywordType.shouldCast(STRING));
+    assertAll(
+        () -> assertFalse(textType.shouldCast(STRING)),
+        () -> assertTrue(textType.shouldCast(INTEGER)),
+        () -> assertFalse(textKeywordType.shouldCast(STRING)),
+        () -> assertTrue(textType.shouldCast(() -> null)),
+        () -> assertFalse(OpenSearchDataType.of(MappingType.Keyword).shouldCast(STRING)),
+        () -> assertFalse(OpenSearchDataType.of(MappingType.Keyword).shouldCast(textType)),
+        () -> assertFalse(OpenSearchDataType.of(MappingType.Long).shouldCast(LONG)),
+        () -> assertTrue(OpenSearchDataType.of(MappingType.Long).shouldCast(STRING)),
+        () -> assertTrue(OpenSearchBinaryType.of().shouldCast(OpenSearchBinaryType.of())),
+        () -> assertTrue(OpenSearchBinaryType.of().shouldCast(STRING))
+    );
   }
 
   private static Stream<Arguments> getTestDataWithType() {
@@ -105,15 +162,12 @@ class OpenSearchDataTypeTest {
         Arguments.of(MappingType.ScaledFloat, "scaled_float", DOUBLE),
         Arguments.of(MappingType.Double, "double", DOUBLE),
         Arguments.of(MappingType.Boolean, "boolean", BOOLEAN),
-        Arguments.of(MappingType.Date, "date", TIMESTAMP),
+        Arguments.of(MappingType.Date, "timestamp", TIMESTAMP),
         Arguments.of(MappingType.Object, "object", STRUCT),
         Arguments.of(MappingType.Nested, "nested", ARRAY),
-        Arguments.of(MappingType.GeoPoint, "geo_point",
-            OpenSearchGeoPointType.of()),
-        Arguments.of(MappingType.Binary, "binary",
-            OpenSearchBinaryType.of()),
-        Arguments.of(MappingType.Ip, "ip",
-            OpenSearchIpType.of())
+        Arguments.of(MappingType.GeoPoint, "geo_point", OpenSearchGeoPointType.of()),
+        Arguments.of(MappingType.Binary, "binary", OpenSearchBinaryType.of()),
+        Arguments.of(MappingType.Ip, "ip", OpenSearchIpType.of())
     );
   }
 
@@ -124,7 +178,7 @@ class OpenSearchDataTypeTest {
     // For serialization of SQL and PPL different functions are used, and it was designed to return
     // different types. No clue why, but it should be fixed in #1296.
     var nameForSQL = name.toUpperCase();
-    var nameForPPL = name.equals("text") ? "STRING" : name.toUpperCase();
+    var nameForPPL = name.equals("text") || name.equals("keyword") ? "STRING" : name.toUpperCase();
     assertAll(
         () -> assertEquals(nameForPPL, type.typeName()),
         () -> assertEquals(nameForSQL, type.legacyTypeName()),
@@ -396,18 +450,15 @@ class OpenSearchDataTypeTest {
   }
 
   @Test
-  public void test_getExprType() {
-    assertEquals(OpenSearchTextType.of(),
-            OpenSearchDataType.of(MappingType.Text).getExprType());
-    assertEquals(FLOAT, OpenSearchDataType.of(MappingType.Float).getExprType());
-    assertEquals(FLOAT, OpenSearchDataType.of(MappingType.HalfFloat).getExprType());
-    assertEquals(DOUBLE, OpenSearchDataType.of(MappingType.Double).getExprType());
-    assertEquals(DOUBLE, OpenSearchDataType.of(MappingType.ScaledFloat).getExprType());
-    assertEquals(TIMESTAMP, OpenSearchDataType.of(MappingType.Date).getExprType());
-  }
-
-  @Test
-  public void test_shouldCastFunction() {
-    assertFalse(dateType.shouldCast(DATE));
+  public void getExprType() {
+    assertAll(
+        () -> assertEquals(OpenSearchTextType.of(),
+            OpenSearchDataType.of(MappingType.Text).getExprType()),
+        () -> assertEquals(FLOAT, OpenSearchDataType.of(MappingType.Float).getExprType()),
+        () -> assertEquals(FLOAT, OpenSearchDataType.of(MappingType.HalfFloat).getExprType()),
+        () -> assertEquals(DOUBLE, OpenSearchDataType.of(MappingType.Double).getExprType()),
+        () -> assertEquals(DOUBLE, OpenSearchDataType.of(MappingType.ScaledFloat).getExprType()),
+        () -> assertEquals(TIMESTAMP, OpenSearchDataType.of(MappingType.Date).getExprType())
+    );
   }
 }

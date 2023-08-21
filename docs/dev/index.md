@@ -44,6 +44,7 @@
 + **Query Analyzing**
   + [Semantic Analysis](query-semantic-analysis.md): performs semantic analysis to ensure semantic correctness
   + [Type Conversion](query-type-conversion.md): implement implicit data type conversion
+  + [`text` type](text-type.md): support for `text` data type
 + **Query Planning**
   + [Logical Optimization](query-optimizer-improvement.md): improvement on logical optimizer and physical implementer
 + **Query Execution**

@@ -8,8 +8,6 @@ package org.opensearch.sql.opensearch.data.value;
 
 import static org.junit.jupiter.api.Assertions.assertAll;
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.opensearch.sql.data.type.ExprCoreType.INTEGER;
-import static org.opensearch.sql.data.type.ExprCoreType.STRING;
 
 import java.util.Map;
 import org.junit.jupiter.api.DisplayNameGeneration;
@@ -35,46 +33,26 @@ class OpenSearchExprTextValueTest {
   }
 
   @Test
-  void non_text_types_arent_converted() {
-    assertAll(
-        () -> assertEquals("field", OpenSearchTextType.convertTextToKeyword("field",
-            OpenSearchDataType.of(INTEGER))),
-        () -> assertEquals("field", OpenSearchTextType.convertTextToKeyword("field",
-            OpenSearchDataType.of(STRING))),
-        () -> assertEquals("field", OpenSearchTextType.convertTextToKeyword("field",
-            OpenSearchDataType.of(OpenSearchDataType.MappingType.GeoPoint))),
-        () -> assertEquals("field", OpenSearchTextType.convertTextToKeyword("field",
-            OpenSearchDataType.of(OpenSearchDataType.MappingType.Keyword))),
-        () -> assertEquals("field", OpenSearchTextType.convertTextToKeyword("field",
-            OpenSearchDataType.of(OpenSearchDataType.MappingType.Integer))),
-        () -> assertEquals("field", OpenSearchTextType.convertTextToKeyword("field", STRING)),
-        () -> assertEquals("field", OpenSearchTextType.convertTextToKeyword("field", INTEGER))
-    );
-  }
-
-  @Test
-  void non_text_types_with_nested_objects_arent_converted() {
-    var objectType = OpenSearchDataType.of(OpenSearchDataType.MappingType.Object,
-        Map.of("subfield", OpenSearchDataType.of(STRING)));
-    var arrayType = OpenSearchDataType.of(OpenSearchDataType.MappingType.Nested,
-        Map.of("subfield", OpenSearchDataType.of(STRING)));
-    assertAll(
-        () -> assertEquals("field", OpenSearchTextType.convertTextToKeyword("field", objectType)),
-        () -> assertEquals("field", OpenSearchTextType.convertTextToKeyword("field", arrayType))
-    );
-  }
-
-  @Test
   void text_type_without_fields_isnt_converted() {
-    assertEquals("field", OpenSearchTextType.convertTextToKeyword("field",
-        OpenSearchDataType.of(OpenSearchDataType.MappingType.Text)));
+    assertEquals("field", OpenSearchDataType.of(OpenSearchDataType.MappingType.Text)
+        .convertFieldForSearchQuery("field"));
   }
 
   @Test
   void text_type_with_fields_is_converted() {
-    var textWithKeywordType = OpenSearchTextType.of(Map.of("keyword",
-        OpenSearchDataType.of(OpenSearchDataType.MappingType.Keyword)));
-    assertEquals("field.keyword",
-        OpenSearchTextType.convertTextToKeyword("field", textWithKeywordType));
+    assertAll(
+        () -> assertEquals("field.keyword",
+            OpenSearchTextType.of(Map.of("keyword",
+                OpenSearchDataType.of(OpenSearchDataType.MappingType.Keyword)))
+            .convertFieldForSearchQuery("field")),
+        () -> assertEquals("field.words",
+            OpenSearchTextType.of(Map.of("words",
+                OpenSearchDataType.of(OpenSearchDataType.MappingType.Keyword)))
+            .convertFieldForSearchQuery("field")),
+        () -> assertEquals("field.numbers",
+            OpenSearchTextType.of(Map.of("numbers",
+                OpenSearchDataType.of(OpenSearchDataType.MappingType.Integer)))
+            .convertFieldForSearchQuery("field"))
+    );
   }
 }

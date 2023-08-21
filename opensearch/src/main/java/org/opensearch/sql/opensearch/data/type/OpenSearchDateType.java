@@ -17,13 +17,13 @@ import java.util.stream.Collectors;
 import lombok.EqualsAndHashCode;
 import org.opensearch.common.time.DateFormatter;
 import org.opensearch.common.time.FormatNames;
+import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.data.type.ExprCoreType;
 import org.opensearch.sql.data.type.ExprType;
 
 /**
  * Date type with support for predefined and custom formats read from the index mapping.
  */
-@EqualsAndHashCode(callSuper = true)
 public class OpenSearchDateType extends OpenSearchDataType {
 
   private static final OpenSearchDateType instance = new OpenSearchDateType();
@@ -147,11 +147,6 @@ public class OpenSearchDateType extends OpenSearchDataType {
   private OpenSearchDateType(ExprCoreType exprCoreType) {
     this();
     this.exprCoreType = exprCoreType;
-  }
-
-  private OpenSearchDateType(ExprType exprType) {
-    this();
-    this.exprCoreType = (ExprCoreType) exprType;
   }
 
   private OpenSearchDateType(String format) {
@@ -374,12 +369,20 @@ public class OpenSearchDateType extends OpenSearchDataType {
     return new OpenSearchDateType(format);
   }
 
+  /** A public constructor replacement. */
   public static OpenSearchDateType of(ExprCoreType exprCoreType) {
+    if (!isDateTypeCompatible(exprCoreType)) {
+      throw new IllegalArgumentException(String.format("Not a date/time type: %s", exprCoreType));
+    }
     return new OpenSearchDateType(exprCoreType);
   }
 
+  /** A public constructor replacement. */
   public static OpenSearchDateType of(ExprType exprType) {
-    return new OpenSearchDateType(exprType);
+    if (!isDateTypeCompatible(exprType)) {
+      throw new IllegalArgumentException(String.format("Not a date/time type: %s", exprType));
+    }
+    return new OpenSearchDateType((ExprCoreType) exprType);
   }
 
   public static OpenSearchDateType of() {
@@ -387,12 +390,8 @@ public class OpenSearchDateType extends OpenSearchDataType {
   }
 
   @Override
-  public List<ExprType> getParent() {
-    return List.of(exprCoreType);
-  }
-
-  @Override
   public boolean shouldCast(ExprType other) {
+    // TODO override to fix for https://github.com/opensearch-project/sql/issues/1847
     return false;
   }
 
@@ -402,5 +401,21 @@ public class OpenSearchDateType extends OpenSearchDataType {
       return OpenSearchDateType.of(exprCoreType);
     }
     return OpenSearchDateType.of(String.join(" || ", formats));
+  }
+
+  @Override
+  public String typeName() {
+    return exprCoreType.toString();
+  }
+
+  @Override
+  public String legacyTypeName() {
+    return exprCoreType.toString();
+  }
+
+  @Override
+  public Object convertValueForSearchQuery(ExprValue value) {
+    // TODO add here fix for https://github.com/opensearch-project/sql/issues/1847
+    return value.timestampValue().toEpochMilli();
   }
 }

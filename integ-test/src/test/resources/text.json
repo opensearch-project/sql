@@ -1,0 +1,10 @@
+{"index": {}}
+{ "Keyword" : "K for Keyword", "TextWithKeywords" : "Text With Keywords", "TextWithFielddata" : "Text", "TextWithFields" : null, "TextWithMixedFields": "one two tree" }
+{"index": {}}
+{ "Keyword" : null, "Text" : "Text", "TextWithFielddata" : "Fielddata is the best!", "TextWithFields" : "Fields for freedom", "TextWithNumbers" : 42, "TextWithMixedFields": 42 }
+{"index": {}}
+{ "Keyword" : "ikiki", "TextWithKeywords" : "Another Text With Similar Keywords", "TextWithFielddata" : null, "TextWithNumbers" : "42", "TextWithMixedFields": "12.04.1961" }
+{"index": {}}
+{ "TextWithKeywords" : "", "Text" : "Some text", "TextWithFielddata" : "Text With Fielddata", "TextWithFields" : "Freedom for fields", "TextWithNumbers" : 100500, "TextWithMixedFields": null }
+{"index": {}}
+{ "Keyword" : "kokoko", "TextWithKeywords": null, "Text" : "A fairy tale about little mermaid", "TextWithFields" : "A Text with a Field", "TextWithNumbers" : null }

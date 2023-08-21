@@ -92,7 +92,7 @@ class ExpressionFilterScriptTest {
   @Test
   void can_execute_expression_with_text_keyword_field() {
     assertThat()
-        .docValues("name.keyword", "John")
+        .docValues("name.words", "John")
         .filterBy(
             DSL.equal(ref("name", OpenSearchTextType.of(Map.of("words",
                     OpenSearchDataType.of(OpenSearchDataType.MappingType.Keyword)))),

@@ -184,7 +184,7 @@ class OpenSearchNodeClientTest {
         () -> assertEquals("KEYWORD", mapping.get("city").legacyTypeName()),
         () -> assertEquals(OpenSearchTextType.of(MappingType.Keyword),
             parsedTypes.get("city")),
-        () -> assertEquals("DATE", mapping.get("birthday").legacyTypeName()),
+        () -> assertEquals("TIMESTAMP", mapping.get("birthday").legacyTypeName()),
         () -> assertEquals(OpenSearchTextType.of(MappingType.Date),
             parsedTypes.get("birthday")),
         () -> assertEquals("GEO_POINT", mapping.get("location").legacyTypeName()),
