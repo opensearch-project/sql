@@ -3,35 +3,32 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-
 package org.opensearch.sql.legacy.query.multi;
 
 import com.alibaba.druid.sql.ast.statement.SQLUnionOperator;
 import org.opensearch.sql.legacy.domain.Select;
 
-/**
- * Created by Eliran on 19/8/2016.
- */
+/** Created by Eliran on 19/8/2016. */
 public class MultiQuerySelect {
-    private SQLUnionOperator operation;
-    private Select firstSelect;
-    private Select secondSelect;
+  private SQLUnionOperator operation;
+  private Select firstSelect;
+  private Select secondSelect;
 
-    public MultiQuerySelect(SQLUnionOperator operation, Select firstSelect, Select secondSelect) {
-        this.operation = operation;
-        this.firstSelect = firstSelect;
-        this.secondSelect = secondSelect;
-    }
+  public MultiQuerySelect(SQLUnionOperator operation, Select firstSelect, Select secondSelect) {
+    this.operation = operation;
+    this.firstSelect = firstSelect;
+    this.secondSelect = secondSelect;
+  }
 
-    public SQLUnionOperator getOperation() {
-        return operation;
-    }
+  public SQLUnionOperator getOperation() {
+    return operation;
+  }
 
-    public Select getFirstSelect() {
-        return firstSelect;
-    }
+  public Select getFirstSelect() {
+    return firstSelect;
+  }
 
-    public Select getSecondSelect() {
-        return secondSelect;
-    }
+  public Select getSecondSelect() {
+    return secondSelect;
+  }
 }
