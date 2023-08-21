@@ -3,7 +3,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-
 package org.opensearch.sql.opensearch.storage.script.filter.lucene;
 
 import static org.opensearch.sql.analysis.NestedAnalyzer.isNestedFunction;
@@ -34,9 +33,7 @@ import org.opensearch.sql.expression.ReferenceExpression;
 import org.opensearch.sql.expression.function.BuiltinFunctionName;
 import org.opensearch.sql.expression.function.FunctionName;
 
-/**
- * Lucene query abstraction that builds Lucene query from function expression.
- */
+/** Lucene query abstraction that builds Lucene query from function expression. */
 public abstract class LuceneQuery {
 
   /**
@@ -53,15 +50,16 @@ public abstract class LuceneQuery {
    */
   public boolean canSupport(FunctionExpression func) {
     return (func.getArguments().size() == 2)
-        && (func.getArguments().get(0) instanceof ReferenceExpression)
-        && (func.getArguments().get(1) instanceof LiteralExpression
-        || literalExpressionWrappedByCast(func))
+            && (func.getArguments().get(0) instanceof ReferenceExpression)
+            && (func.getArguments().get(1) instanceof LiteralExpression
+                || literalExpressionWrappedByCast(func))
         || isMultiParameterQuery(func);
   }
 
   /**
    * Check if predicate expression has nested function on left side of predicate expression.
    * Validation for right side being a `LiteralExpression` is done in NestedQuery.
+   *
    * @param func function.
    * @return return true if function has supported nested function expression.
    */
@@ -72,8 +70,8 @@ public abstract class LuceneQuery {
   /**
    * Check if the function expression has multiple named argument expressions as the parameters.
    *
-   * @param func      function
-   * @return          return true if the expression is a multi-parameter function.
+   * @param func function
+   * @return return true if the expression is a multi-parameter function.
    */
   private boolean isMultiParameterQuery(FunctionExpression func) {
     for (Expression expr : func.getArguments()) {
@@ -97,23 +95,24 @@ public abstract class LuceneQuery {
   }
 
   /**
-   * Build Lucene query from function expression.
-   * The cast function is converted to literal expressions before generating DSL.
+   * Build Lucene query from function expression. The cast function is converted to literal
+   * expressions before generating DSL.
    *
-   * @param func  function
-   * @return      query
+   * @param func function
+   * @return query
    */
   public QueryBuilder build(FunctionExpression func) {
     ReferenceExpression ref = (ReferenceExpression) func.getArguments().get(0);
     Expression expr = func.getArguments().get(1);
-    ExprValue literalValue = expr instanceof LiteralExpression ? expr
-        .valueOf() : cast((FunctionExpression) expr);
+    ExprValue literalValue =
+        expr instanceof LiteralExpression ? expr.valueOf() : cast((FunctionExpression) expr);
     return doBuild(ref.getAttr(), ref.type(), literalValue);
   }
 
   private ExprValue cast(FunctionExpression castFunction) {
-    return castMap.get(castFunction.getFunctionName()).apply(
-        (LiteralExpression) castFunction.getArguments().get(0));
+    return castMap
+        .get(castFunction.getFunctionName())
+        .apply((LiteralExpression) castFunction.getArguments().get(0));
   }
 
   /** Type converting map. */
@@ -229,9 +228,9 @@ public abstract class LuceneQuery {
               BuiltinFunctionName.CAST_TO_DATETIME.getName(),
               expr -> {
                 if (expr.type().equals(ExprCoreType.STRING)) {
-                  return new ExprDatetimeValue(expr.valueOf().stringValue());
+                  return new ExprTimestampValue(expr.valueOf().stringValue());
                 } else {
-                  return new ExprDatetimeValue(expr.valueOf().datetimeValue());
+                  return new ExprTimestampValue(expr.valueOf().timestampValue());
                 }
               })
           .put(
@@ -246,13 +245,13 @@ public abstract class LuceneQuery {
           .build();
 
   /**
-   * Build method that subclass implements by default which is to build query
-   * from reference and literal in function arguments.
+   * Build method that subclass implements by default which is to build query from reference and
+   * literal in function arguments.
    *
-   * @param fieldName   field name
-   * @param fieldType   field type
-   * @param literal     field value literal
-   * @return            query
+   * @param fieldName field name
+   * @param fieldType field type
+   * @param literal field value literal
+   * @return query
    */
   protected QueryBuilder doBuild(String fieldName, ExprType fieldType, ExprValue literal) {
     throw new UnsupportedOperationException(
