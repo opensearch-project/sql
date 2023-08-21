@@ -3,7 +3,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-
 package org.opensearch.sql.planner.physical;
 
 import static org.opensearch.sql.data.type.ExprCoreType.STRUCT;
@@ -24,26 +23,19 @@ import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.data.model.ExprValueUtils;
 import org.opensearch.sql.expression.ReferenceExpression;
 
-/**
- * Remove the fields specified in {@link RemoveOperator#removeList} from input.
- */
+/** Remove the fields specified in {@link RemoveOperator#removeList} from input. */
 @ToString
 @EqualsAndHashCode(callSuper = false)
 public class RemoveOperator extends PhysicalPlan {
-  @Getter
-  private final PhysicalPlan input;
-  @Getter
-  private final Set<ReferenceExpression> removeList;
-  @ToString.Exclude
-  @EqualsAndHashCode.Exclude
-  private final Set<String> nameRemoveList;
+  @Getter private final PhysicalPlan input;
+  @Getter private final Set<ReferenceExpression> removeList;
+  @ToString.Exclude @EqualsAndHashCode.Exclude private final Set<String> nameRemoveList;
 
   /**
    * Todo. This is the temporary solution that add the mapping between string and ref. because when
    * rename the field from input, there we can only get the string field.
    */
-  public RemoveOperator(PhysicalPlan input,
-                        Set<ReferenceExpression> removeList) {
+  public RemoveOperator(PhysicalPlan input, Set<ReferenceExpression> removeList) {
     this.input = input;
     this.removeList = removeList;
     this.nameRemoveList =

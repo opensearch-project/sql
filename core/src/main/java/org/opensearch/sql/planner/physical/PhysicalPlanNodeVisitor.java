@@ -3,7 +3,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-
 package org.opensearch.sql.planner.physical;
 
 import org.opensearch.sql.storage.TableScanOperator;
@@ -72,7 +71,7 @@ public abstract class PhysicalPlanNodeVisitor<R, C> {
   public R visitSort(SortOperator node, C context) {
     return visitNode(node, context);
   }
-  
+
   public R visitRareTopN(RareTopNOperator node, C context) {
     return visitNode(node, context);
   }
