@@ -196,7 +196,7 @@ The code can be formatted with:
 These tasks can also be run for specific modules, e.g.
 ./gradlew server:spotlessJavaCheck
 
-For more information on the spotless for the OpenSearch project please see `https://github.com/opensearch-project/OpenSearch/blob/main/DEVELOPER_GUIDE.md#java-language-formatting-guidelines`_.
+For more information on the spotless for the OpenSearch project please see `https://github.com/opensearch-project/OpenSearch/blob/main/DEVELOPER_GUIDE.md#java-language-formatting-guidelines <https://github.com/opensearch-project/OpenSearch/blob/main/DEVELOPER_GUIDE.md#java-language-formatting-guidelines>`_.
 
 Java files are formatted using `Spotless <https://github.com/diffplug/spotless>`_ conforming to `Google Java Format <https://github.com/google/google-java-format>`_.
    * - New line at end of file
