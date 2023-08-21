@@ -124,7 +124,7 @@ public class DateTimeValueTest {
   }
 
   @Test
-  public void stringDateTimeValue() {
+  public void stringTimestampValue() {
     ExprValue stringValue = new ExprStringValue("2020-08-17 19:44:00");
 
     assertEquals(
@@ -213,29 +213,6 @@ public class DateTimeValueTest {
   }
 
   @Test
-  public void datetimeWithVariableNanoPrecision() {
-    String dateValue = "2020-08-17";
-    String timeWithNanosFormat = "10:11:12.%s";
-
-    // Check all lengths of nanosecond precision, up to max precision accepted
-    StringBuilder nanos = new StringBuilder();
-    for (int nanoPrecision = 1; nanoPrecision <= NANOS_PRECISION_MAX; nanoPrecision++) {
-      nanos.append(nanoPrecision);
-      String timeWithNanos = String.format(timeWithNanosFormat, nanos);
-
-      String datetimeString = String.format("%s %s", dateValue, timeWithNanos);
-      ExprValue datetimeValue = new ExprTimestampValue(datetimeString);
-
-      assertEquals(LocalDate.parse(dateValue), datetimeValue.dateValue());
-      assertEquals(LocalTime.parse(timeWithNanos), datetimeValue.timeValue());
-      String localDateTime = String.format("%sT%s", dateValue, timeWithNanos);
-      assertEquals(
-          LocalDateTime.parse(localDateTime).atZone(ZoneOffset.UTC).toInstant(),
-          datetimeValue.timestampValue());
-    }
-  }
-
-  @Test
   public void timestampOverMaxNanoPrecision() {
     SemanticCheckException exception =
         assertThrows(
@@ -244,18 +221,6 @@ public class DateTimeValueTest {
     assertEquals(
         "timestamp:2020-07-07 01:01:01.1234567890 in unsupported format, please use "
             + "'yyyy-MM-dd HH:mm:ss[.SSSSSSSSS]'",
-        exception.getMessage());
-  }
-
-  @Test
-  public void datetimeOverMaxNanoPrecision() {
-    SemanticCheckException exception =
-        assertThrows(
-            SemanticCheckException.class,
-            () -> new ExprTimestampValue("2020-07-07 01:01:01.1234567890"));
-    assertEquals(
-        "timestamp:2020-07-07 01:01:01.1234567890 in unsupported format, "
-            + "please use 'yyyy-MM-dd HH:mm:ss[.SSSSSSSSS]'",
         exception.getMessage());
   }
 
