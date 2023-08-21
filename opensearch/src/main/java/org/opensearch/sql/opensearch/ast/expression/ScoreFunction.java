@@ -11,6 +11,7 @@ import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.ToString;
 import org.opensearch.sql.ast.expression.Literal;
+import org.opensearch.sql.ast.expression.UnresolvedExpression;
 import org.opensearch.sql.opensearch.analysis.OpenSearchAbstractNodeVisitor;
 
 /**
@@ -22,7 +23,7 @@ import org.opensearch.sql.opensearch.analysis.OpenSearchAbstractNodeVisitor;
 @Getter
 @ToString
 public class ScoreFunction extends OpenSearchUnresolvedExpression {
-  private final OpenSearchUnresolvedExpression relevanceQuery;
+  private final UnresolvedExpression relevanceQuery;
   private final Literal relevanceFieldWeight;
 
   @Override
@@ -31,7 +32,7 @@ public class ScoreFunction extends OpenSearchUnresolvedExpression {
   }
 
   @Override
-  public List<OpenSearchUnresolvedExpression> getChild() {
+  public List<UnresolvedExpression> getChild() {
     return List.of(relevanceQuery);
   }
 }

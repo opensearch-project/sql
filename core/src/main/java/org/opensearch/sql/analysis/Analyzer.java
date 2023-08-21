@@ -109,7 +109,7 @@ import org.opensearch.sql.utils.ParseUtils;
  * Analyze the {@link UnresolvedPlan} in the {@link AnalysisContext} to construct the {@link
  * LogicalPlan}.
  */
-// TODO make Analyzer abstract, don't create it
+// TODO make Analyzer abstract, don't create it; delete `visit` function
 public class Analyzer implements AbstractNodeVisitor<LogicalPlan, AnalysisContext> {
 
   protected final ExpressionAnalyzer expressionAnalyzer;
@@ -378,7 +378,7 @@ public class Analyzer implements AbstractNodeVisitor<LogicalPlan, AnalysisContex
             node.getProjectList().stream()
                 .map(expr -> (ReferenceExpression) expressionAnalyzer.analyze(expr, context))
                 .collect(Collectors.toList());
-        referenceExpressions.forEach(ref -> curEnv.remove(ref));
+        referenceExpressions.forEach(curEnv::remove);
         return new LogicalRemove(child, ImmutableSet.copyOf(referenceExpressions));
       }
     }
@@ -597,6 +597,11 @@ public class Analyzer implements AbstractNodeVisitor<LogicalPlan, AnalysisContex
 
   @Override
   public LogicalPlan visit(Node node, AnalysisContext context) {
+    // TODO
+    //  actually would be never called for opensearch,
+    //  because it doesn't override any visit*(node, context) func
+    // TODO
+    //  rework: this code may call analyzers from different datasources while processing one tree (query)
     for (var metadata : dataSourceService.getDataSourceMetadata(true)) {
       var analyzer = dataSourceService
           .getDataSource(metadata.getName())

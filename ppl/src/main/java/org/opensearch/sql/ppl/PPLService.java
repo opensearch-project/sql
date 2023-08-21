@@ -80,7 +80,7 @@ public class PPLService {
     Statement statement =
         cst.accept(
             new AstStatementBuilder(
-                new AstBuilder(new AstExpressionBuilder(), request.getRequest()),
+                new AstBuilder(new AstExpressionBuilder(queryExecutionFactory.getDataSourceService()), request.getRequest()),
                 AstStatementBuilder.StatementBuilderContext.builder()
                     .isExplain(request.isExplainRequest())
                     .build()));

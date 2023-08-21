@@ -22,7 +22,7 @@ public abstract class OpenSearchLogicalPlan extends LogicalPlan {
     if (visitor instanceof OpenSearchLogicalPlanNodeVisitor) {
       return accept((OpenSearchLogicalPlanNodeVisitor<R, C>) visitor, context);
     }
-    return null;
+    throw new RuntimeException();
   }
 
   public abstract <R, C> R accept(OpenSearchLogicalPlanNodeVisitor<R, C> visitor, C context);

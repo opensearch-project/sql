@@ -39,4 +39,13 @@ public interface StorageEngine {
   default CanPaginateVisitor getPaginationAnalyzer() {
     return null;
   }
+
+  // TODO make it common for SQL and PPL
+  default org.opensearch.sql.sql.parser.AstExpressionBuilder getSqlAstExpressionBuilder() {
+    return null;
+  }
+
+  default org.opensearch.sql.ppl.parser.AstExpressionBuilder getPplAstExpressionBuilder() {
+    return null;
+  }
 }

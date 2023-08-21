@@ -20,7 +20,7 @@ public abstract class OpenSearchUnresolvedExpression extends UnresolvedExpressio
     if (nodeVisitor instanceof OpenSearchAbstractNodeVisitor) {
       return accept((OpenSearchAbstractNodeVisitor<T, C>) nodeVisitor, context);
     }
-    return null;
+    throw new RuntimeException();
   }
 
   public <T, C> T accept(OpenSearchAbstractNodeVisitor<T, C> nodeVisitor, C context) {

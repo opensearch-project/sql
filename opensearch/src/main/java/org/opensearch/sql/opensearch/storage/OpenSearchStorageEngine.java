@@ -20,6 +20,8 @@ import org.opensearch.sql.expression.function.BuiltinFunctionRepository;
 import org.opensearch.sql.expression.function.FunctionResolver;
 import org.opensearch.sql.opensearch.analysis.OpenSearchAnalyzer;
 import org.opensearch.sql.opensearch.analysis.OpenSearchCanPaginateAnalyzer;
+import org.opensearch.sql.opensearch.ast.expression.OpenSearchPplAstExpressionBuilder;
+import org.opensearch.sql.opensearch.ast.expression.OpenSearchSqlAstExpressionBuilder;
 import org.opensearch.sql.opensearch.client.OpenSearchClient;
 import org.opensearch.sql.opensearch.functions.OpenSearchFunctions;
 import org.opensearch.sql.opensearch.storage.system.OpenSearchSystemIndex;
@@ -58,5 +60,15 @@ public class OpenSearchStorageEngine implements StorageEngine {
   @Override
   public CanPaginateVisitor getPaginationAnalyzer() {
     return new OpenSearchCanPaginateAnalyzer();
+  }
+
+  @Override
+  public org.opensearch.sql.sql.parser.AstExpressionBuilder getSqlAstExpressionBuilder() {
+    return new OpenSearchSqlAstExpressionBuilder();
+  }
+
+  @Override
+  public org.opensearch.sql.ppl.parser.AstExpressionBuilder getPplAstExpressionBuilder() {
+    return new OpenSearchPplAstExpressionBuilder();
   }
 }

@@ -14,7 +14,7 @@ public abstract class OpenSearchPhysicalPlan extends PhysicalPlan {
     if (visitor instanceof OpenSearchPhysicalPlanNodeVisitor) {
       return accept((OpenSearchPhysicalPlanNodeVisitor<R, C>) visitor, context);
     }
-    return null;
+    throw new RuntimeException();
   }
 
   public abstract <R, C> R accept(OpenSearchPhysicalPlanNodeVisitor<R, C> visitor, C context);

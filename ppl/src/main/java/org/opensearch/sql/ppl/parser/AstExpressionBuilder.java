@@ -51,8 +51,11 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+
+import lombok.RequiredArgsConstructor;
 import org.antlr.v4.runtime.ParserRuleContext;
 import org.antlr.v4.runtime.RuleContext;
+import org.antlr.v4.runtime.tree.ParseTree;
 import org.opensearch.sql.ast.dsl.AstDSL;
 import org.opensearch.sql.ast.expression.AggregateFunction;
 import org.opensearch.sql.ast.expression.Alias;
@@ -78,6 +81,8 @@ import org.opensearch.sql.ast.expression.UnresolvedArgument;
 import org.opensearch.sql.ast.expression.UnresolvedExpression;
 import org.opensearch.sql.ast.expression.Xor;
 import org.opensearch.sql.common.utils.StringUtils;
+import org.opensearch.sql.datasource.DataSourceService;
+import org.opensearch.sql.exception.SemanticCheckException;
 import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser;
 import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParserBaseVisitor;
 import org.opensearch.sql.ppl.utils.ArgumentFactory;
@@ -85,7 +90,31 @@ import org.opensearch.sql.ppl.utils.ArgumentFactory;
 /**
  * Class of building AST Expression nodes.
  */
+@RequiredArgsConstructor
 public class AstExpressionBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedExpression> {
+
+  private final DataSourceService dataSourceService;
+
+  @Override
+  public UnresolvedExpression visit(ParseTree tree) {
+    // TODO
+    //  rework: this code may call analyzers from different datasources while processing one tree (query)
+    for (var metadata : dataSourceService.getDataSourceMetadata(true)) {
+      var astBuilder = dataSourceService
+          .getDataSource(metadata.getName())
+          .getStorageEngine()
+          .getPplAstExpressionBuilder();
+      if (astBuilder == null) {
+        continue;
+      }
+      var res = tree.accept(astBuilder);
+      if (res != null) {
+        return res;
+      }
+    }
+    throw new SemanticCheckException(String.format("Unknown node: %s", tree));
+    //return null;
+  }
 
   private static final int DEFAULT_TAKE_FUNCTION_SIZE_VALUE = 10;
 
@@ -263,22 +292,6 @@ public class AstExpressionBuilder extends OpenSearchPPLParserBaseVisitor<Unresol
   }
 
   @Override
-  public UnresolvedExpression visitSingleFieldRelevanceFunction(
-      SingleFieldRelevanceFunctionContext ctx) {
-    return new Function(
-        ctx.singleFieldRelevanceFunctionName().getText().toLowerCase(),
-        singleFieldRelevanceArguments(ctx));
-  }
-
-  @Override
-  public UnresolvedExpression visitMultiFieldRelevanceFunction(
-      MultiFieldRelevanceFunctionContext ctx) {
-    return new Function(
-        ctx.multiFieldRelevanceFunctionName().getText().toLowerCase(),
-        multiFieldRelevanceArguments(ctx));
-  }
-
-  @Override
   public UnresolvedExpression visitTableSource(TableSourceContext ctx) {
     if (ctx.getChild(0) instanceof IdentsAsTableQualifiedNameContext) {
       return visitIdentsAsTableQualifiedName((IdentsAsTableQualifiedNameContext) ctx.getChild(0));
@@ -423,40 +436,4 @@ public class AstExpressionBuilder extends OpenSearchPPLParserBaseVisitor<Unresol
             .collect(Collectors.toList())
     );
   }
-
-  private List<UnresolvedExpression> singleFieldRelevanceArguments(
-      SingleFieldRelevanceFunctionContext ctx) {
-    // all the arguments are defaulted to string values
-    // to skip environment resolving and function signature resolving
-    ImmutableList.Builder<UnresolvedExpression> builder = ImmutableList.builder();
-    builder.add(new UnresolvedArgument("field",
-        new QualifiedName(StringUtils.unquoteText(ctx.field.getText()))));
-    builder.add(new UnresolvedArgument("query",
-        new Literal(StringUtils.unquoteText(ctx.query.getText()), DataType.STRING)));
-    ctx.relevanceArg().forEach(v -> builder.add(new UnresolvedArgument(
-        v.relevanceArgName().getText().toLowerCase(), new Literal(StringUtils.unquoteText(
-        v.relevanceArgValue().getText()), DataType.STRING))));
-    return builder.build();
-  }
-
-  private List<UnresolvedExpression> multiFieldRelevanceArguments(
-      MultiFieldRelevanceFunctionContext ctx) {
-    // all the arguments are defaulted to string values
-    // to skip environment resolving and function signature resolving
-    ImmutableList.Builder<UnresolvedExpression> builder = ImmutableList.builder();
-    var fields = new RelevanceFieldList(ctx
-        .getRuleContexts(OpenSearchPPLParser.RelevanceFieldAndWeightContext.class)
-        .stream()
-        .collect(Collectors.toMap(
-            f -> StringUtils.unquoteText(f.field.getText()),
-            f -> (f.weight == null) ? 1F : Float.parseFloat(f.weight.getText()))));
-    builder.add(new UnresolvedArgument("fields", fields));
-    builder.add(new UnresolvedArgument("query",
-        new Literal(StringUtils.unquoteText(ctx.query.getText()), DataType.STRING)));
-    ctx.relevanceArg().forEach(v -> builder.add(new UnresolvedArgument(
-        v.relevanceArgName().getText().toLowerCase(), new Literal(StringUtils.unquoteText(
-        v.relevanceArgValue().getText()), DataType.STRING))));
-    return builder.build();
-  }
-
 }
