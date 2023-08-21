@@ -50,6 +50,7 @@ public class JDBCConnectionTest {
     conn = new JDBCConnection("Test DB", "jdbc:testdb://localhost:12345");
     conn.setConnection(connection);
 
+    when(connection.createStatement()).thenReturn(statement);
     when(connection.createStatement(ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY))
         .thenReturn(statement);
   }
