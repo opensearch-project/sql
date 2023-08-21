@@ -65,6 +65,7 @@ plugins {
     id 'checkstyle'
     id "io.freefair.lombok" version "6.4.0"
     id 'jacoco'
+    id 'com.diffplug.spotless' version '6.19.0'
 }
 
 // import versions defined in https://github.com/opensearch-project/OpenSearch/blob/main/buildSrc/src/main/java/org/opensearch/gradle/OpenSearchJavaPlugin.java#L94
@@ -83,19 +84,19 @@ repositories {
 spotless {
     java {
         target fileTree('.') {
-            include 'core/src/main/java/org/opensearch/sql/analysis/**/*.java',
-                    'core/src/test/java/org/opensearch/sql/data/**/*.java',
-                    'core/src/test/java/org/opensearch/sql/datasource/**/*.java',
-                    'core/src/test/java/org/opensearch/sql/ast/**/*.java'
+            include 'core/src/main/java/org/opensearch/sql/monitor/**/*.java',
+                    'core/src/main/java/org/opensearch/sql/expression/**/*.java',
+                    'core/src/main/java/org/opensearch/sql/executor/**/*.java',
+                    'core/src/main/java/org/opensearch/sql/exception/**/*.java'
             exclude '**/build/**', '**/build-*/**'
         }
-//        importOrder()
+        importOrder()
 //        licenseHeader("/*\n" +
 //                " * Copyright OpenSearch Contributors\n" +
 //                " * SPDX-License-Identifier: Apache-2.0\n" +
 //                " */\n\n")
-//        removeUnusedImports()
-//        trimTrailingWhitespace()
+        removeUnusedImports()
+        trimTrailingWhitespace()
         endWithNewline()
         googleJavaFormat('1.17.0').reflowLongStrings().groupArtifact('com.google.googlejavaformat:google-java-format')
     }
