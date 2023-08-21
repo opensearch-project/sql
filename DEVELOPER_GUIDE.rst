@@ -198,7 +198,9 @@ Java files are formatted using `Spotless <https://github.com/diffplug/spotless>`
 Spotless changes required can be run with:
 `./gradlew spotlessJavaCheck`
 Recommended changes can be applied automatically with:
-`./gradlew spotlessJavaApply`
+`./gradlew spotlessApply`
+
+For more information on Spotless in the OpenSearch-project, please refer to the opensearch-project [developers_guide.md](https://github.com/opensearch-project/OpenSearch/blob/main/DEVELOPER_GUIDE.md#java-language-formatting-guidelines). Note, there are differences in the exact formatting rules applied by spotless.
 
 Building and Running Tests
 ==========================
