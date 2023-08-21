@@ -99,32 +99,6 @@ public class DateTimeComparisonIT extends PPLIntegTestCase {
   }
 
   @ParametersFactory(argumentFormatting = "%1$s => %3$s")
-  public static Iterable<Object[]> compareTwoDateTimes() {
-    return Arrays.asList(
-        $$(
-            $("DATETIME('2020-09-16 10:20:30') = DATETIME('2020-09-16 10:20:30')", "eq1", true),
-            $("DATETIME('2020-09-16 10:20:30') = DATETIME('1961-04-12 09:07:00')", "eq2", false),
-            $("DATETIME('2020-09-16 10:20:30') != DATETIME('1984-12-15 22:15:07')", "neq1", true),
-            $("DATETIME('1984-12-15 22:15:08') != DATETIME('1984-12-15 22:15:07')", "neq2", true),
-            $("DATETIME('1961-04-12 09:07:00') != DATETIME('1961-04-12 09:07:00')", "neq3", false),
-            $("DATETIME('1984-12-15 22:15:07') > DATETIME('1961-04-12 22:15:07')", "gt1", true),
-            $("DATETIME('1984-12-15 22:15:07') > DATETIME('1984-12-15 22:15:06')", "gt2", true),
-            $("DATETIME('1984-12-15 22:15:07') > DATETIME('2020-09-16 10:20:30')", "gt3", false),
-            $("DATETIME('1961-04-12 09:07:00') < DATETIME('1984-12-15 09:07:00')", "lt1", true),
-            $("DATETIME('1984-12-15 22:15:07') < DATETIME('1984-12-15 22:15:08')", "lt2", true),
-            $("DATETIME('1984-12-15 22:15:07') < DATETIME('1961-04-12 09:07:00')", "lt3", false),
-            $("DATETIME('1984-12-15 22:15:07') >= DATETIME('1961-04-12 09:07:00')", "gte1", true),
-            $("DATETIME('1984-12-15 22:15:07') >= DATETIME('1984-12-15 22:15:07')", "gte2", true),
-            $("DATETIME('1984-12-15 22:15:07') >= DATETIME('2020-09-16 10:20:30')", "gte3", false),
-            $("DATETIME('1961-04-12 09:07:00') <= DATETIME('1984-12-15 22:15:07')", "lte1", true),
-            $("DATETIME('1961-04-12 09:07:00') <= DATETIME('1961-04-12 09:07:00')", "lte2", true),
-            $(
-                "DATETIME('2020-09-16 10:20:30') <= DATETIME('1961-04-12 09:07:00')",
-                "lte3",
-                false)));
-  }
-
-  @ParametersFactory(argumentFormatting = "%1$s => %3$s")
   public static Iterable<Object[]> compareTwoTimestamps() {
     return Arrays.asList(
         $$(
@@ -161,22 +135,6 @@ public class DateTimeComparisonIT extends PPLIntegTestCase {
     var today = LocalDate.now().toString();
     return Arrays.asList(
         $$(
-            $(
-                "TIMESTAMP('2020-09-16 10:20:30') = DATETIME('2020-09-16 10:20:30')",
-                "ts_dt_t",
-                true),
-            $(
-                "DATETIME('2020-09-16 10:20:30') = TIMESTAMP('2020-09-16 10:20:30')",
-                "dt_ts_t",
-                true),
-            $(
-                "TIMESTAMP('2020-09-16 10:20:30') = DATETIME('1961-04-12 09:07:00')",
-                "ts_dt_f",
-                false),
-            $(
-                "DATETIME('1961-04-12 09:07:00') = TIMESTAMP('1984-12-15 22:15:07')",
-                "dt_ts_f",
-                false),
             $("TIMESTAMP('2020-09-16 00:00:00') = DATE('2020-09-16')", "ts_d_t", true),
             $("DATE('2020-09-16') = TIMESTAMP('2020-09-16 00:00:00')", "d_ts_t", true),
             $("TIMESTAMP('2020-09-16 10:20:30') = DATE('1961-04-12')", "ts_d_f", false),
@@ -188,37 +146,6 @@ public class DateTimeComparisonIT extends PPLIntegTestCase {
   }
 
   @ParametersFactory(argumentFormatting = "%1$s => %3$s")
-  public static Iterable<Object[]> compareEqDateTimeWithOtherTypes() {
-    var today = LocalDate.now().toString();
-    return Arrays.asList(
-        $$(
-            $(
-                "DATETIME('2020-09-16 10:20:30') = TIMESTAMP('2020-09-16 10:20:30')",
-                "dt_ts_t",
-                true),
-            $(
-                "TIMESTAMP('2020-09-16 10:20:30') = DATETIME('2020-09-16 10:20:30')",
-                "ts_dt_t",
-                true),
-            $(
-                "DATETIME('2020-09-16 10:20:30') = TIMESTAMP('1961-04-12 09:07:00')",
-                "dt_ts_f",
-                false),
-            $(
-                "TIMESTAMP('1961-04-12 09:07:00') = DATETIME('1984-12-15 22:15:07')",
-                "ts_dt_f",
-                false),
-            $("DATETIME('2020-09-16 00:00:00') = DATE('2020-09-16')", "dt_d_t", true),
-            $("DATE('2020-09-16') = DATETIME('2020-09-16 00:00:00')", "d_dt_t", true),
-            $("DATETIME('2020-09-16 10:20:30') = DATE('1961-04-12')", "dt_d_f", false),
-            $("DATE('1961-04-12') = DATETIME('1984-12-15 22:15:07')", "d_dt_f", false),
-            $("DATETIME('" + today + " 10:20:30') = TIME('10:20:30')", "dt_t_t", true),
-            $("TIME('10:20:30') = DATETIME('" + today + " 10:20:30')", "t_dt_t", true),
-            $("DATETIME('2020-09-16 10:20:30') = TIME('09:07:00')", "dt_t_f", false),
-            $("TIME('09:07:00') = DATETIME('1984-12-15 22:15:07')", "t_dt_f", false)));
-  }
-
-  @ParametersFactory(argumentFormatting = "%1$s => %3$s")
   public static Iterable<Object[]> compareEqDateWithOtherTypes() {
     var today = LocalDate.now().toString();
     return Arrays.asList(
@@ -227,10 +154,6 @@ public class DateTimeComparisonIT extends PPLIntegTestCase {
             $("TIMESTAMP('2020-09-16 00:00:00') = DATE('2020-09-16')", "ts_d_t", true),
             $("DATE('2020-09-16') = TIMESTAMP('1961-04-12 09:07:00')", "d_ts_f", false),
             $("TIMESTAMP('1984-12-15 09:07:00') = DATE('1984-12-15')", "ts_d_f", false),
-            $("DATE('2020-09-16') = DATETIME('2020-09-16 00:00:00')", "d_dt_t", true),
-            $("DATETIME('2020-09-16 00:00:00') = DATE('2020-09-16')", "dt_d_t", true),
-            $("DATE('1961-04-12') = DATETIME('1984-12-15 22:15:07')", "d_dt_f", false),
-            $("DATETIME('1961-04-12 10:20:30') = DATE('1961-04-12')", "dt_d_f", false),
             $("DATE('" + today + "') = TIME('00:00:00')", "d_t_t", true),
             $("TIME('00:00:00') = DATE('" + today + "')", "t_d_t", true),
             $("DATE('2020-09-16') = TIME('09:07:00')", "d_t_f", false),
@@ -242,10 +165,6 @@ public class DateTimeComparisonIT extends PPLIntegTestCase {
     var today = LocalDate.now().toString();
     return Arrays.asList(
         $$(
-            $("TIME('10:20:30') = DATETIME('" + today + " 10:20:30')", "t_dt_t", true),
-            $("DATETIME('" + today + " 10:20:30') = TIME('10:20:30')", "dt_t_t", true),
-            $("TIME('09:07:00') = DATETIME('1961-04-12 09:07:00')", "t_dt_f", false),
-            $("DATETIME('" + today + " 09:07:00') = TIME('10:20:30')", "dt_t_f", false),
             $("TIME('10:20:30') = TIMESTAMP('" + today + " 10:20:30')", "t_ts_t", true),
             $("TIMESTAMP('" + today + " 10:20:30') = TIME('10:20:30')", "ts_t_t", true),
             $("TIME('22:15:07') = TIMESTAMP('1984-12-15 22:15:07')", "t_ts_f", false),
@@ -261,22 +180,6 @@ public class DateTimeComparisonIT extends PPLIntegTestCase {
     var today = LocalDate.now().toString();
     return Arrays.asList(
         $$(
-            $(
-                "TIMESTAMP('2020-09-16 10:20:30') != DATETIME('1961-04-12 09:07:00')",
-                "ts_dt_t",
-                true),
-            $(
-                "DATETIME('1961-04-12 09:07:00') != TIMESTAMP('1984-12-15 22:15:07')",
-                "dt_ts_t",
-                true),
-            $(
-                "TIMESTAMP('2020-09-16 10:20:30') != DATETIME('2020-09-16 10:20:30')",
-                "ts_dt_f",
-                false),
-            $(
-                "DATETIME('2020-09-16 10:20:30') != TIMESTAMP('2020-09-16 10:20:30')",
-                "dt_ts_f",
-                false),
             $("TIMESTAMP('2020-09-16 10:20:30') != DATE('1961-04-12')", "ts_d_t", true),
             $("DATE('1961-04-12') != TIMESTAMP('1984-12-15 22:15:07')", "d_ts_t", true),
             $("TIMESTAMP('2020-09-16 00:00:00') != DATE('2020-09-16')", "ts_d_f", false),
@@ -288,37 +191,6 @@ public class DateTimeComparisonIT extends PPLIntegTestCase {
   }
 
   @ParametersFactory(argumentFormatting = "%1$s => %3$s")
-  public static Iterable<Object[]> compareNeqDateTimeWithOtherTypes() {
-    var today = LocalDate.now().toString();
-    return Arrays.asList(
-        $$(
-            $(
-                "DATETIME('2020-09-16 10:20:30') != TIMESTAMP('1961-04-12 09:07:00')",
-                "dt_ts_t",
-                true),
-            $(
-                "TIMESTAMP('1961-04-12 09:07:00') != DATETIME('1984-12-15 22:15:07')",
-                "ts_dt_t",
-                true),
-            $(
-                "DATETIME('2020-09-16 10:20:30') != TIMESTAMP('2020-09-16 10:20:30')",
-                "dt_ts_f",
-                false),
-            $(
-                "TIMESTAMP('2020-09-16 10:20:30') != DATETIME('2020-09-16 10:20:30')",
-                "ts_dt_f",
-                false),
-            $("DATETIME('2020-09-16 10:20:30') != DATE('1961-04-12')", "dt_d_t", true),
-            $("DATE('1961-04-12') != DATETIME('1984-12-15 22:15:07')", "d_dt_t", true),
-            $("DATETIME('2020-09-16 00:00:00') != DATE('2020-09-16')", "dt_d_f", false),
-            $("DATE('2020-09-16') != DATETIME('2020-09-16 00:00:00')", "d_dt_f", false),
-            $("DATETIME('2020-09-16 10:20:30') != TIME('09:07:00')", "dt_t_t", true),
-            $("TIME('09:07:00') != DATETIME('1984-12-15 22:15:07')", "t_dt_t", true),
-            $("DATETIME('" + today + " 10:20:30') != TIME('10:20:30')", "dt_t_f", false),
-            $("TIME('10:20:30') != DATETIME('" + today + " 10:20:30')", "t_dt_f", false)));
-  }
-
-  @ParametersFactory(argumentFormatting = "%1$s => %3$s")
   public static Iterable<Object[]> compareNeqDateWithOtherTypes() {
     var today = LocalDate.now().toString();
     return Arrays.asList(
@@ -327,10 +199,6 @@ public class DateTimeComparisonIT extends PPLIntegTestCase {
             $("TIMESTAMP('1984-12-15 09:07:00') != DATE('1984-12-15')", "ts_d_t", true),
             $("DATE('2020-09-16') != TIMESTAMP('2020-09-16 00:00:00')", "d_ts_f", false),
             $("TIMESTAMP('2020-09-16 00:00:00') != DATE('2020-09-16')", "ts_d_f", false),
-            $("DATE('1961-04-12') != DATETIME('1984-12-15 22:15:07')", "d_dt_t", true),
-            $("DATETIME('1961-04-12 10:20:30') != DATE('1961-04-12')", "dt_d_t", true),
-            $("DATE('2020-09-16') != DATETIME('2020-09-16 00:00:00')", "d_dt_f", false),
-            $("DATETIME('2020-09-16 00:00:00') != DATE('2020-09-16')", "dt_d_f", false),
             $("DATE('2020-09-16') != TIME('09:07:00')", "d_t_t", true),
             $("TIME('09:07:00') != DATE('" + today + "')", "t_d_t", true),
             $("DATE('" + today + "') != TIME('00:00:00')", "d_t_f", false),
@@ -342,10 +210,6 @@ public class DateTimeComparisonIT extends PPLIntegTestCase {
     var today = LocalDate.now().toString();
     return Arrays.asList(
         $$(
-            $("TIME('09:07:00') != DATETIME('1961-04-12 09:07:00')", "t_dt_t", true),
-            $("DATETIME('" + today + " 09:07:00') != TIME('10:20:30')", "dt_t_t", true),
-            $("TIME('10:20:30') != DATETIME('" + today + " 10:20:30')", "t_dt_f", false),
-            $("DATETIME('" + today + " 10:20:30') != TIME('10:20:30')", "dt_t_f", false),
             $("TIME('22:15:07') != TIMESTAMP('1984-12-15 22:15:07')", "t_ts_t", true),
             $("TIMESTAMP('1984-12-15 10:20:30') != TIME('10:20:30')", "ts_t_t", true),
             $("TIME('10:20:30') != TIMESTAMP('" + today + " 10:20:30')", "t_ts_f", false),
@@ -361,22 +225,6 @@ public class DateTimeComparisonIT extends PPLIntegTestCase {
     var today = LocalDate.now().toString();
     return Arrays.asList(
         $$(
-            $(
-                "TIMESTAMP('2020-09-16 10:20:30') < DATETIME('2061-04-12 09:07:00')",
-                "ts_dt_t",
-                true),
-            $(
-                "DATETIME('1961-04-12 09:07:00') < TIMESTAMP('1984-12-15 22:15:07')",
-                "dt_ts_t",
-                true),
-            $(
-                "TIMESTAMP('2020-09-16 10:20:30') < DATETIME('2020-09-16 10:20:30')",
-                "ts_dt_f",
-                false),
-            $(
-                "DATETIME('2020-09-16 10:20:30') < TIMESTAMP('1961-04-12 09:07:00')",
-                "dt_ts_f",
-                false),
             $("TIMESTAMP('2020-09-16 10:20:30') < DATE('2077-04-12')", "ts_d_t", true),
             $("DATE('1961-04-12') < TIMESTAMP('1984-12-15 22:15:07')", "d_ts_t", true),
             $("TIMESTAMP('2020-09-16 10:20:30') < DATE('1961-04-12')", "ts_d_f", false),
@@ -388,37 +236,6 @@ public class DateTimeComparisonIT extends PPLIntegTestCase {
   }
 
   @ParametersFactory(argumentFormatting = "%1$s => %3$s")
-  public static Iterable<Object[]> compareLtDateTimeWithOtherTypes() {
-    var today = LocalDate.now().toString();
-    return Arrays.asList(
-        $$(
-            $(
-                "DATETIME('2020-09-16 10:20:30') < TIMESTAMP('2077-04-12 09:07:00')",
-                "dt_ts_t",
-                true),
-            $(
-                "TIMESTAMP('1961-04-12 09:07:00') < DATETIME('1984-12-15 22:15:07')",
-                "ts_dt_t",
-                true),
-            $(
-                "DATETIME('2020-09-16 10:20:30') < TIMESTAMP('2020-09-16 10:20:30')",
-                "dt_ts_f",
-                false),
-            $(
-                "TIMESTAMP('2020-09-16 10:20:30') < DATETIME('1984-12-15 22:15:07')",
-                "ts_dt_f",
-                false),
-            $("DATETIME('2020-09-16 10:20:30') < DATE('3077-04-12')", "dt_d_t", true),
-            $("DATE('1961-04-12') < DATETIME('1984-12-15 22:15:07')", "d_dt_t", true),
-            $("DATETIME('2020-09-16 00:00:00') < DATE('2020-09-16')", "dt_d_f", false),
-            $("DATE('2020-09-16') < DATETIME('1961-04-12 09:07:00')", "d_dt_f", false),
-            $("DATETIME('2020-09-16 10:20:30') < TIME('09:07:00')", "dt_t_t", true),
-            $("TIME('09:07:00') < DATETIME('3077-12-15 22:15:07')", "t_dt_t", true),
-            $("DATETIME('" + today + " 10:20:30') < TIME('10:20:30')", "dt_t_f", false),
-            $("TIME('20:40:50') < DATETIME('" + today + " 10:20:30')", "t_dt_f", false)));
-  }
-
-  @ParametersFactory(argumentFormatting = "%1$s => %3$s")
   public static Iterable<Object[]> compareLtDateWithOtherTypes() {
     return Arrays.asList(
         $$(
@@ -426,10 +243,6 @@ public class DateTimeComparisonIT extends PPLIntegTestCase {
             $("TIMESTAMP('1961-04-12 09:07:00') < DATE('1984-12-15')", "ts_d_t", true),
             $("DATE('2020-09-16') < TIMESTAMP('2020-09-16 00:00:00')", "d_ts_f", false),
             $("TIMESTAMP('2077-04-12 09:07:00') < DATE('2020-09-16')", "ts_d_f", false),
-            $("DATE('1961-04-12') < DATETIME('1984-12-15 22:15:07')", "d_dt_t", true),
-            $("DATETIME('1961-04-12 10:20:30') < DATE('1984-11-15')", "dt_d_t", true),
-            $("DATE('2020-09-16') < DATETIME('2020-09-16 00:00:00')", "d_dt_f", false),
-            $("DATETIME('2020-09-16 00:00:00') < DATE('1984-03-22')", "dt_d_f", false),
             $("DATE('2020-09-16') < TIME('09:07:00')", "d_t_t", true),
             $("TIME('09:07:00') < DATE('3077-04-12')", "t_d_t", true),
             $("DATE('3077-04-12') < TIME('00:00:00')", "d_t_f", false),
@@ -441,10 +254,6 @@ public class DateTimeComparisonIT extends PPLIntegTestCase {
     var today = LocalDate.now().toString();
     return Arrays.asList(
         $$(
-            $("TIME('09:07:00') < DATETIME('3077-04-12 09:07:00')", "t_dt_t", true),
-            $("DATETIME('" + today + " 09:07:00') < TIME('10:20:30')", "dt_t_t", true),
-            $("TIME('10:20:30') < DATETIME('" + today + " 10:20:30')", "t_dt_f", false),
-            $("DATETIME('" + today + " 20:40:50') < TIME('10:20:30')", "dt_t_f", false),
             $("TIME('22:15:07') < TIMESTAMP('3077-12-15 22:15:07')", "t_ts_t", true),
             $("TIMESTAMP('1984-12-15 10:20:30') < TIME('10:20:30')", "ts_t_t", true),
             $("TIME('10:20:30') < TIMESTAMP('" + today + " 10:20:30')", "t_ts_f", false),
@@ -460,22 +269,6 @@ public class DateTimeComparisonIT extends PPLIntegTestCase {
     var today = LocalDate.now().toString();
     return Arrays.asList(
         $$(
-            $(
-                "TIMESTAMP('2020-09-16 10:20:30') > DATETIME('2020-09-16 10:20:25')",
-                "ts_dt_t",
-                true),
-            $(
-                "DATETIME('2020-09-16 10:20:30') > TIMESTAMP('1961-04-12 09:07:00')",
-                "dt_ts_t",
-                true),
-            $(
-                "TIMESTAMP('2020-09-16 10:20:30') > DATETIME('2061-04-12 09:07:00')",
-                "ts_dt_f",
-                false),
-            $(
-                "DATETIME('1961-04-12 09:07:00') > TIMESTAMP('1984-12-15 09:07:00')",
-                "dt_ts_f",
-                false),
             $("TIMESTAMP('2020-09-16 10:20:30') > DATE('1961-04-12')", "ts_d_t", true),
             $("DATE('2020-09-16') > TIMESTAMP('2020-09-15 22:15:07')", "d_ts_t", true),
             $("TIMESTAMP('2020-09-16 10:20:30') > DATE('2077-04-12')", "ts_d_f", false),
@@ -487,37 +280,6 @@ public class DateTimeComparisonIT extends PPLIntegTestCase {
   }
 
   @ParametersFactory(argumentFormatting = "%1$s => %3$s")
-  public static Iterable<Object[]> compareGtDateTimeWithOtherTypes() {
-    var today = LocalDate.now().toString();
-    return Arrays.asList(
-        $$(
-            $(
-                "DATETIME('2020-09-16 10:20:31') > TIMESTAMP('2020-09-16 10:20:30')",
-                "dt_ts_t",
-                true),
-            $(
-                "TIMESTAMP('2020-09-16 10:20:30') > DATETIME('1984-12-15 22:15:07')",
-                "ts_dt_t",
-                true),
-            $(
-                "DATETIME('2020-09-16 10:20:30') > TIMESTAMP('2077-04-12 09:07:00')",
-                "dt_ts_f",
-                false),
-            $(
-                "TIMESTAMP('1961-04-12 09:07:00') > DATETIME('1961-04-12 09:07:00')",
-                "ts_dt_f",
-                false),
-            $("DATETIME('3077-04-12 10:20:30') > DATE('2020-09-16')", "dt_d_t", true),
-            $("DATE('2020-09-16') > DATETIME('1961-04-12 09:07:00')", "d_dt_t", true),
-            $("DATETIME('2020-09-16 00:00:00') > DATE('2020-09-16')", "dt_d_f", false),
-            $("DATE('1961-04-12') > DATETIME('1984-12-15 22:15:07')", "d_dt_f", false),
-            $("DATETIME('3077-04-12 10:20:30') > TIME('09:07:00')", "dt_t_t", true),
-            $("TIME('20:40:50') > DATETIME('" + today + " 10:20:30')", "t_dt_t", true),
-            $("DATETIME('" + today + " 10:20:30') > TIME('10:20:30')", "dt_t_f", false),
-            $("TIME('09:07:00') > DATETIME('3077-12-15 22:15:07')", "t_dt_f", false)));
-  }
-
-  @ParametersFactory(argumentFormatting = "%1$s => %3$s")
   public static Iterable<Object[]> compareGtDateWithOtherTypes() {
     return Arrays.asList(
         $$(
@@ -525,10 +287,6 @@ public class DateTimeComparisonIT extends PPLIntegTestCase {
             $("TIMESTAMP('2077-04-12 09:07:00') > DATE('2020-09-16')", "ts_d_t", true),
             $("DATE('2020-09-16') > TIMESTAMP('2020-09-16 00:00:00')", "d_ts_f", false),
             $("TIMESTAMP('1961-04-12 09:07:00') > DATE('1984-12-15')", "ts_d_f", false),
-            $("DATE('1984-12-15') > DATETIME('1961-04-12 09:07:00')", "d_dt_t", true),
-            $("DATETIME('2020-09-16 00:00:00') > DATE('1984-03-22')", "dt_d_t", true),
-            $("DATE('2020-09-16') > DATETIME('2020-09-16 00:00:00')", "d_dt_f", false),
-            $("DATETIME('1961-04-12 10:20:30') > DATE('1984-11-15')", "dt_d_f", false),
             $("DATE('3077-04-12') > TIME('00:00:00')", "d_t_t", true),
             $("TIME('00:00:00') > DATE('2020-09-16')", "t_d_t", true),
             $("DATE('2020-09-16') > TIME('09:07:00')", "d_t_f", false),
@@ -540,10 +298,6 @@ public class DateTimeComparisonIT extends PPLIntegTestCase {
     var today = LocalDate.now().toString();
     return Arrays.asList(
         $$(
-            $("TIME('09:07:00') > DATETIME('1961-04-12 09:07:00')", "t_dt_t", true),
-            $("DATETIME('" + today + " 20:40:50') > TIME('10:20:30')", "dt_t_t", true),
-            $("TIME('10:20:30') > DATETIME('" + today + " 10:20:30')", "t_dt_f", false),
-            $("DATETIME('" + today + " 09:07:00') > TIME('10:20:30')", "dt_t_f", false),
             $("TIME('22:15:07') > TIMESTAMP('1984-12-15 22:15:07')", "t_ts_t", true),
             $("TIMESTAMP('" + today + " 20:50:42') > TIME('10:20:30')", "ts_t_t", true),
             $("TIME('10:20:30') > TIMESTAMP('" + today + " 10:20:30')", "t_ts_f", false),
@@ -559,22 +313,6 @@ public class DateTimeComparisonIT extends PPLIntegTestCase {
     var today = LocalDate.now().toString();
     return Arrays.asList(
         $$(
-            $(
-                "TIMESTAMP('2020-09-16 10:20:30') <= DATETIME('2020-09-16 10:20:30')",
-                "ts_dt_t",
-                true),
-            $(
-                "DATETIME('1961-04-12 09:07:00') <= TIMESTAMP('1984-12-15 22:15:07')",
-                "dt_ts_t",
-                true),
-            $(
-                "TIMESTAMP('2020-09-16 10:20:30') <= DATETIME('1961-04-12 09:07:00')",
-                "ts_dt_f",
-                false),
-            $(
-                "DATETIME('2020-09-16 10:20:30') <= TIMESTAMP('1961-04-12 09:07:00')",
-                "dt_ts_f",
-                false),
             $("TIMESTAMP('2020-09-16 10:20:30') <= DATE('2077-04-12')", "ts_d_t", true),
             $("DATE('2020-09-16') <= TIMESTAMP('2020-09-16 00:00:00')", "d_ts_t", true),
             $("TIMESTAMP('2020-09-16 10:20:30') <= DATE('1961-04-12')", "ts_d_f", false),
@@ -586,37 +324,6 @@ public class DateTimeComparisonIT extends PPLIntegTestCase {
   }
 
   @ParametersFactory(argumentFormatting = "%1$s => %3$s")
-  public static Iterable<Object[]> compareLteDateTimeWithOtherTypes() {
-    var today = LocalDate.now().toString();
-    return Arrays.asList(
-        $$(
-            $(
-                "DATETIME('2020-09-16 10:20:30') <= TIMESTAMP('2020-09-16 10:20:30')",
-                "dt_ts_t",
-                true),
-            $(
-                "TIMESTAMP('1961-04-12 09:07:00') <= DATETIME('1984-12-15 22:15:07')",
-                "ts_dt_t",
-                true),
-            $(
-                "DATETIME('3077-09-16 10:20:30') <= TIMESTAMP('2077-04-12 09:07:00')",
-                "dt_ts_f",
-                false),
-            $(
-                "TIMESTAMP('2020-09-16 10:20:30') <= DATETIME('1984-12-15 22:15:07')",
-                "ts_dt_f",
-                false),
-            $("DATETIME('2020-09-16 00:00:00') <= DATE('2020-09-16')", "dt_d_t", true),
-            $("DATE('1961-04-12') <= DATETIME('1984-12-15 22:15:07')", "d_dt_t", true),
-            $("DATETIME('2020-09-16 10:20:30') <= DATE('1984-04-12')", "dt_d_f", false),
-            $("DATE('2020-09-16') <= DATETIME('1961-04-12 09:07:00')", "d_dt_f", false),
-            $("DATETIME('" + today + " 10:20:30') <= TIME('10:20:30')", "dt_t_t", true),
-            $("TIME('09:07:00') <= DATETIME('3077-12-15 22:15:07')", "t_dt_t", true),
-            $("DATETIME('3077-09-16 10:20:30') <= TIME('19:07:00')", "dt_t_f", false),
-            $("TIME('20:40:50') <= DATETIME('" + today + " 10:20:30')", "t_dt_f", false)));
-  }
-
-  @ParametersFactory(argumentFormatting = "%1$s => %3$s")
   public static Iterable<Object[]> compareLteDateWithOtherTypes() {
     return Arrays.asList(
         $$(
@@ -624,10 +331,6 @@ public class DateTimeComparisonIT extends PPLIntegTestCase {
             $("TIMESTAMP('1961-04-12 09:07:00') <= DATE('1984-12-15')", "ts_d_t", true),
             $("DATE('2020-09-16') <= TIMESTAMP('1961-04-12 09:07:00')", "d_ts_f", false),
             $("TIMESTAMP('2077-04-12 09:07:00') <= DATE('2020-09-16')", "ts_d_f", false),
-            $("DATE('2020-09-16') <= DATETIME('2020-09-16 00:00:00')", "d_dt_t", true),
-            $("DATETIME('1961-04-12 10:20:30') <= DATE('1984-11-15')", "dt_d_t", true),
-            $("DATE('2077-04-12') <= DATETIME('1984-12-15 22:15:07')", "d_dt_f", false),
-            $("DATETIME('2020-09-16 00:00:00') <= DATE('1984-03-22')", "dt_d_f", false),
             $("DATE('2020-09-16') <= TIME('09:07:00')", "d_t_t", true),
             $("TIME('09:07:00') <= DATE('3077-04-12')", "t_d_t", true),
             $("DATE('3077-04-12') <= TIME('00:00:00')", "d_t_f", false),
@@ -639,10 +342,6 @@ public class DateTimeComparisonIT extends PPLIntegTestCase {
     var today = LocalDate.now().toString();
     return Arrays.asList(
         $$(
-            $("TIME('10:20:30') <= DATETIME('" + today + " 10:20:30')", "t_dt_t", true),
-            $("DATETIME('" + today + " 09:07:00') <= TIME('10:20:30')", "dt_t_t", true),
-            $("TIME('09:07:00') <= DATETIME('1961-04-12 09:07:00')", "t_dt_f", false),
-            $("DATETIME('" + today + " 20:40:50') <= TIME('10:20:30')", "dt_t_f", false),
             $("TIME('10:20:30') <= TIMESTAMP('" + today + " 10:20:30')", "t_ts_t", true),
             $("TIMESTAMP('1984-12-15 10:20:30') <= TIME('10:20:30')", "ts_t_t", true),
             $("TIME('22:15:07') <= TIMESTAMP('1984-12-15 22:15:07')", "t_ts_f", false),
@@ -658,22 +357,6 @@ public class DateTimeComparisonIT extends PPLIntegTestCase {
     var today = LocalDate.now().toString();
     return Arrays.asList(
         $$(
-            $(
-                "TIMESTAMP('2020-09-16 10:20:30') >= DATETIME('2020-09-16 10:20:30')",
-                "ts_dt_t",
-                true),
-            $(
-                "DATETIME('2020-09-16 10:20:30') >= TIMESTAMP('1961-04-12 09:07:00')",
-                "dt_ts_t",
-                true),
-            $(
-                "TIMESTAMP('2020-09-16 10:20:30') >= DATETIME('2061-04-12 09:07:00')",
-                "ts_dt_f",
-                false),
-            $(
-                "DATETIME('1961-04-12 09:07:00') >= TIMESTAMP('1984-12-15 09:07:00')",
-                "dt_ts_f",
-                false),
             $("TIMESTAMP('2020-09-16 10:20:30') >= DATE('1961-04-12')", "ts_d_t", true),
             $("DATE('2020-09-16') >= TIMESTAMP('2020-09-16 00:00:00')", "d_ts_t", true),
             $("TIMESTAMP('2020-09-16 10:20:30') >= DATE('2077-04-12')", "ts_d_f", false),
@@ -685,37 +368,6 @@ public class DateTimeComparisonIT extends PPLIntegTestCase {
   }
 
   @ParametersFactory(argumentFormatting = "%1$s => %3$s")
-  public static Iterable<Object[]> compareGteDateTimeWithOtherTypes() {
-    var today = LocalDate.now().toString();
-    return Arrays.asList(
-        $$(
-            $(
-                "DATETIME('2020-09-16 10:20:30') >= TIMESTAMP('2020-09-16 10:20:30')",
-                "dt_ts_t",
-                true),
-            $(
-                "TIMESTAMP('2020-09-16 10:20:30') >= DATETIME('1984-12-15 22:15:07')",
-                "ts_dt_t",
-                true),
-            $(
-                "DATETIME('2020-09-16 10:20:30') >= TIMESTAMP('2077-04-12 09:07:00')",
-                "dt_ts_f",
-                false),
-            $(
-                "TIMESTAMP('1961-04-12 00:00:00') >= DATETIME('1961-04-12 09:07:00')",
-                "ts_dt_f",
-                false),
-            $("DATETIME('2020-09-16 00:00:00') >= DATE('2020-09-16')", "dt_d_t", true),
-            $("DATE('2020-09-16') >= DATETIME('1961-04-12 09:07:00')", "d_dt_t", true),
-            $("DATETIME('1961-04-12 09:07:00') >= DATE('2020-09-16')", "dt_d_f", false),
-            $("DATE('1961-04-12') >= DATETIME('1984-12-15 22:15:07')", "d_dt_f", false),
-            $("DATETIME('" + today + " 10:20:30') >= TIME('10:20:30')", "dt_t_t", true),
-            $("TIME('20:40:50') >= DATETIME('" + today + " 10:20:30')", "t_dt_t", true),
-            $("DATETIME('1961-04-12 09:07:00') >= TIME('09:07:00')", "dt_t_f", false),
-            $("TIME('09:07:00') >= DATETIME('3077-12-15 22:15:07')", "t_dt_f", false)));
-  }
-
-  @ParametersFactory(argumentFormatting = "%1$s => %3$s")
   public static Iterable<Object[]> compareGteDateWithOtherTypes() {
     return Arrays.asList(
         $$(
@@ -723,10 +375,6 @@ public class DateTimeComparisonIT extends PPLIntegTestCase {
             $("TIMESTAMP('2077-04-12 09:07:00') >= DATE('2020-09-16')", "ts_d_t", true),
             $("DATE('1961-04-12') >= TIMESTAMP('1961-04-12 09:07:00')", "d_ts_f", false),
             $("TIMESTAMP('1961-04-12 09:07:00') >= DATE('1984-12-15')", "ts_d_f", false),
-            $("DATE('2020-09-16') >= DATETIME('2020-09-16 00:00:00')", "d_dt_t", true),
-            $("DATETIME('2020-09-16 00:00:00') >= DATE('1984-03-22')", "dt_d_t", true),
-            $("DATE('1960-12-15') >= DATETIME('1961-04-12 09:07:00')", "d_dt_f", false),
-            $("DATETIME('1961-04-12 10:20:30') >= DATE('1984-11-15')", "dt_d_f", false),
             $("DATE('3077-04-12') >= TIME('00:00:00')", "d_t_t", true),
             $("TIME('00:00:00') >= DATE('2020-09-16')", "t_d_t", true),
             $("DATE('2020-09-16') >= TIME('09:07:00')", "d_t_f", false),
@@ -738,10 +386,6 @@ public class DateTimeComparisonIT extends PPLIntegTestCase {
     var today = LocalDate.now().toString();
     return Arrays.asList(
         $$(
-            $("TIME('10:20:30') >= DATETIME('" + today + " 10:20:30')", "t_dt_t", true),
-            $("DATETIME('" + today + " 20:40:50') >= TIME('10:20:30')", "dt_t_t", true),
-            $("TIME('09:07:00') >= DATETIME('3077-04-12 09:07:00')", "t_dt_f", false),
-            $("DATETIME('" + today + " 09:07:00') >= TIME('10:20:30')", "dt_t_f", false),
             $("TIME('10:20:30') >= TIMESTAMP('" + today + " 10:20:30')", "t_ts_t", true),
             $("TIMESTAMP('" + today + " 20:50:42') >= TIME('10:20:30')", "ts_t_t", true),
             $("TIME('22:15:07') >= TIMESTAMP('3077-12-15 22:15:07')", "t_ts_f", false),

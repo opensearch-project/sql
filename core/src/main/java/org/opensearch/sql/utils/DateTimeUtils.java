@@ -9,6 +9,7 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
+import java.time.ZoneOffset;
 import java.time.ZonedDateTime;
 import lombok.experimental.UtilityClass;
 import org.opensearch.sql.data.model.ExprTimeValue;
@@ -48,9 +49,9 @@ public class DateTimeUtils {
    * @return Rounded date/time value in utc millis
    */
   public static long roundMonth(long utcMillis, int interval) {
-    ZonedDateTime initDateTime = ZonedDateTime.of(1970, 1, 1, 0, 0, 0, 0, UTC_ZONE_ID);
+    ZonedDateTime initDateTime = ZonedDateTime.of(1970, 1, 1, 0, 0, 0, 0, ZoneOffset.UTC);
     ZonedDateTime zonedDateTime =
-        Instant.ofEpochMilli(utcMillis).atZone(UTC_ZONE_ID).plusMonths(interval);
+        Instant.ofEpochMilli(utcMillis).atZone(ZoneOffset.UTC).plusMonths(interval);
     long monthDiff =
         (zonedDateTime.getYear() - initDateTime.getYear()) * 12L
             + zonedDateTime.getMonthValue()
@@ -67,9 +68,9 @@ public class DateTimeUtils {
    * @return Rounded date/time value in utc millis
    */
   public static long roundQuarter(long utcMillis, int interval) {
-    ZonedDateTime initDateTime = ZonedDateTime.of(1970, 1, 1, 0, 0, 0, 0, UTC_ZONE_ID);
+    ZonedDateTime initDateTime = ZonedDateTime.of(1970, 1, 1, 0, 0, 0, 0, ZoneOffset.UTC);
     ZonedDateTime zonedDateTime =
-        Instant.ofEpochMilli(utcMillis).atZone(UTC_ZONE_ID).plusMonths(interval * 3L);
+        Instant.ofEpochMilli(utcMillis).atZone(ZoneOffset.UTC).plusMonths(interval * 3L);
     long monthDiff =
         ((zonedDateTime.getYear() - initDateTime.getYear()) * 12L
             + zonedDateTime.getMonthValue()
@@ -86,8 +87,8 @@ public class DateTimeUtils {
    * @return Rounded date/time value in utc millis
    */
   public static long roundYear(long utcMillis, int interval) {
-    ZonedDateTime initDateTime = ZonedDateTime.of(1970, 1, 1, 0, 0, 0, 0, UTC_ZONE_ID);
-    ZonedDateTime zonedDateTime = Instant.ofEpochMilli(utcMillis).atZone(UTC_ZONE_ID);
+    ZonedDateTime initDateTime = ZonedDateTime.of(1970, 1, 1, 0, 0, 0, 0, ZoneOffset.UTC);
+    ZonedDateTime zonedDateTime = Instant.ofEpochMilli(utcMillis).atZone(ZoneOffset.UTC);
     int yearDiff = zonedDateTime.getYear() - initDateTime.getYear();
     int yearToAdd = (yearDiff / interval) * interval;
     return initDateTime.plusYears(yearToAdd).toInstant().toEpochMilli();
@@ -136,11 +137,10 @@ public class DateTimeUtils {
    * Extracts LocalDateTime from a datetime ExprValue. Uses `FunctionProperties` for
    * `ExprTimeValue`.
    */
-  public static LocalDateTime extractDateTime(
-      ExprValue value, FunctionProperties functionProperties) {
+  public static Instant extractTimestamp(ExprValue value, FunctionProperties functionProperties) {
     return value instanceof ExprTimeValue
-        ? ((ExprTimeValue) value).datetimeValue(functionProperties)
-        : value.datetimeValue();
+        ? ((ExprTimeValue) value).timestampValue(functionProperties)
+        : value.timestampValue();
   }
 
   /**
@@ -151,6 +151,4 @@ public class DateTimeUtils {
         ? ((ExprTimeValue) value).dateValue(functionProperties)
         : value.dateValue();
   }
-
-  public static final ZoneId UTC_ZONE_ID = ZoneId.of("UTC");
 }

@@ -9,7 +9,6 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.opensearch.sql.data.type.ExprCoreType.DATE;
-import static org.opensearch.sql.data.type.ExprCoreType.DATETIME;
 import static org.opensearch.sql.data.type.ExprCoreType.DOUBLE;
 import static org.opensearch.sql.data.type.ExprCoreType.INTEGER;
 import static org.opensearch.sql.data.type.ExprCoreType.STRING;
@@ -19,6 +18,7 @@ import static org.opensearch.sql.data.type.ExprCoreType.TIMESTAMP;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.time.ZoneOffset;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.opensearch.sql.data.model.ExprValue;
@@ -90,12 +90,6 @@ class AvgAggregatorTest extends AggregationTest {
   }
 
   @Test
-  public void avg_datetime_no_values() {
-    ExprValue result = aggregation(DSL.avg(DSL.ref("dummy", DATETIME)), List.of());
-    assertTrue(result.isNull());
-  }
-
-  @Test
   public void avg_timestamp_no_values() {
     ExprValue result = aggregation(DSL.avg(DSL.ref("dummy", TIMESTAMP)), List.of());
     assertTrue(result.isNull());
@@ -114,12 +108,6 @@ class AvgAggregatorTest extends AggregationTest {
   }
 
   @Test
-  public void avg_datetime() {
-    var result = aggregation(DSL.avg(DSL.datetime(DSL.ref("datetime_value", STRING))), tuples);
-    assertEquals(LocalDateTime.of(2012, 7, 2, 3, 30), result.datetimeValue());
-  }
-
-  @Test
   public void avg_time() {
     ExprValue result = aggregation(DSL.avg(DSL.time(DSL.ref("time_value", STRING))), tuples);
     assertEquals(LocalTime.of(9, 30), result.timeValue());
@@ -129,7 +117,9 @@ class AvgAggregatorTest extends AggregationTest {
   public void avg_timestamp() {
     var result = aggregation(DSL.avg(DSL.timestamp(DSL.ref("timestamp_value", STRING))), tuples);
     assertEquals(TIMESTAMP, result.type());
-    assertEquals(LocalDateTime.of(2012, 7, 2, 3, 30), result.datetimeValue());
+    assertEquals(
+        LocalDateTime.of(2012, 7, 2, 3, 30),
+        result.timestampValue().atZone(ZoneOffset.UTC).toLocalDateTime());
   }
 
   @Test

@@ -8,12 +8,12 @@ package org.opensearch.sql.expression.datetime;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.opensearch.sql.data.type.ExprCoreType.TIMESTAMP;
-import static org.opensearch.sql.utils.DateTimeUtils.UTC_ZONE_ID;
 
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.time.ZoneOffset;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.DisplayNameGeneration;
 import org.junit.jupiter.api.DisplayNameGenerator;
@@ -39,7 +39,9 @@ public class TimestampTest extends ExpressionTestBase {
 
     expr = DSL.timestamp(functionProperties, DSL.literal("1961-04-12 09:07:00.123456"));
     assertEquals(TIMESTAMP, expr.type());
-    assertEquals(LocalDateTime.of(1961, 4, 12, 9, 7, 0, 123456000), expr.valueOf().datetimeValue());
+    assertEquals(
+        LocalDateTime.of(1961, 4, 12, 9, 7, 0, 123456000),
+        expr.valueOf().timestampValue().atZone(ZoneOffset.UTC).toLocalDateTime());
   }
 
   /**
@@ -71,7 +73,8 @@ public class TimestampTest extends ExpressionTestBase {
   public void timestamp_one_arg_time() {
     var expr = DSL.timestamp(functionProperties, DSL.time(DSL.literal("22:33:44")));
     assertEquals(TIMESTAMP, expr.type());
-    var refValue = LocalDate.now().atTime(LocalTime.of(22, 33, 44)).atZone(UTC_ZONE_ID).toInstant();
+    var refValue =
+        LocalDate.now().atTime(LocalTime.of(22, 33, 44)).atZone(ZoneOffset.UTC).toInstant();
     assertEquals(new ExprTimestampValue(refValue), expr.valueOf());
   }
 
@@ -79,15 +82,8 @@ public class TimestampTest extends ExpressionTestBase {
   public void timestamp_one_arg_date() {
     var expr = DSL.timestamp(functionProperties, DSL.date(DSL.literal("2077-12-15")));
     assertEquals(TIMESTAMP, expr.type());
-    var refValue = LocalDate.of(2077, 12, 15).atStartOfDay().atZone(UTC_ZONE_ID).toInstant();
+    var refValue = LocalDate.of(2077, 12, 15).atStartOfDay().atZone(ZoneOffset.UTC).toInstant();
     assertEquals(new ExprTimestampValue(refValue), expr.valueOf());
-  }
-
-  @Test
-  public void timestamp_one_arg_datetime() {
-    var expr = DSL.timestamp(functionProperties, DSL.datetime(DSL.literal("1961-04-12 09:07:00")));
-    assertEquals(TIMESTAMP, expr.type());
-    assertEquals(LocalDateTime.of(1961, 4, 12, 9, 7, 0), expr.valueOf().datetimeValue());
   }
 
   @Test
@@ -100,7 +96,7 @@ public class TimestampTest extends ExpressionTestBase {
   }
 
   private static Instant dateTime2Instant(LocalDateTime dt) {
-    return dt.atZone(UTC_ZONE_ID).toInstant();
+    return dt.atZone(ZoneOffset.UTC).toInstant();
   }
 
   private static ExprTimestampValue dateTime2ExprTs(LocalDateTime dt) {

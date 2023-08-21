@@ -30,29 +30,24 @@ import org.opensearch.sql.storage.read.TableScanBuilder;
 public class OpenSearchIndexScanBuilder extends TableScanBuilder {
 
   private final Function<OpenSearchRequestBuilder, OpenSearchIndexScan> scanFactory;
-  /**
-   * Delegated index scan builder for non-aggregate or aggregate query.
-   */
-  @EqualsAndHashCode.Include
-  private PushDownQueryBuilder delegate;
+
+  /** Delegated index scan builder for non-aggregate or aggregate query. */
+  @EqualsAndHashCode.Include private PushDownQueryBuilder delegate;
 
   /** Is limit operator pushed down. */
   private boolean isLimitPushedDown = false;
 
-  /**
-   * Constructor used during query execution.
-   */
-  public OpenSearchIndexScanBuilder(OpenSearchRequestBuilder requestBuilder,
+  /** Constructor used during query execution. */
+  public OpenSearchIndexScanBuilder(
+      OpenSearchRequestBuilder requestBuilder,
       Function<OpenSearchRequestBuilder, OpenSearchIndexScan> scanFactory) {
     this.delegate = new OpenSearchIndexScanQueryBuilder(requestBuilder);
     this.scanFactory = scanFactory;
-
   }
 
-  /**
-   * Constructor used for unit tests.
-   */
-  protected OpenSearchIndexScanBuilder(PushDownQueryBuilder translator,
+  /** Constructor used for unit tests. */
+  protected OpenSearchIndexScanBuilder(
+      PushDownQueryBuilder translator,
       Function<OpenSearchRequestBuilder, OpenSearchIndexScan> scanFactory) {
     this.delegate = translator;
     this.scanFactory = scanFactory;
@@ -117,13 +112,16 @@ public class OpenSearchIndexScanBuilder extends TableScanBuilder {
 
   /**
    * Valid if sorting is only by fields.
+   *
    * @param sort Logical sort
    * @return True if sorting by fields only
    */
   private boolean sortByFieldsOnly(LogicalSort sort) {
     return sort.getSortList().stream()
-        .map(sortItem -> sortItem.getRight() instanceof ReferenceExpression
-        || isNestedFunction(sortItem.getRight()))
+        .map(
+            sortItem ->
+                sortItem.getRight() instanceof ReferenceExpression
+                    || isNestedFunction(sortItem.getRight()))
         .reduce(true, Boolean::logicalAnd);
   }
 }

@@ -3,7 +3,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-
 package org.opensearch.sql.legacy.query.planner.physical.node.join;
 
 import java.util.ArrayList;
@@ -19,28 +18,28 @@ import org.opensearch.sql.legacy.query.planner.physical.Row;
  */
 public class CombinedRow<T> {
 
-    private Row<T> rightRow;
-    private Collection<Row<T>> leftRows;
+  private Row<T> rightRow;
+  private Collection<Row<T>> leftRows;
 
-    public CombinedRow(Row<T> rightRow, Collection<Row<T>> leftRows) {
-        this.rightRow = rightRow;
-        this.leftRows = leftRows;
-    }
+  public CombinedRow(Row<T> rightRow, Collection<Row<T>> leftRows) {
+    this.rightRow = rightRow;
+    this.leftRows = leftRows;
+  }
 
-    public List<Row<T>> combine() {
-        List<Row<T>> combinedRows = new ArrayList<>();
-        for (Row<T> leftRow : leftRows) {
-            combinedRows.add(leftRow.combine(rightRow));
-        }
-        return combinedRows;
+  public List<Row<T>> combine() {
+    List<Row<T>> combinedRows = new ArrayList<>();
+    for (Row<T> leftRow : leftRows) {
+      combinedRows.add(leftRow.combine(rightRow));
     }
+    return combinedRows;
+  }
 
-    public Collection<Row<T>> leftMatchedRows() {
-        return Collections.unmodifiableCollection(leftRows);
-    }
+  public Collection<Row<T>> leftMatchedRows() {
+    return Collections.unmodifiableCollection(leftRows);
+  }
 
-    @Override
-    public String toString() {
-        return "CombinedRow{rightRow=" + rightRow + ", leftRows=" + leftRows + '}';
-    }
+  @Override
+  public String toString() {
+    return "CombinedRow{rightRow=" + rightRow + ", leftRows=" + leftRows + '}';
+  }
 }

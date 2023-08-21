@@ -287,13 +287,14 @@ public class AggregationIT extends SQLIntegTestCase {
     var response =
         executeQuery(
             String.format(
-                "SELECT " + "max(datetime(NULL)), min(datetime(NULL)), avg(datetime(NULL)) from %s",
+                "SELECT "
+                    + "max(timestamp(NULL)), min(timestamp(NULL)), avg(timestamp(NULL)) from %s",
                 TEST_INDEX_CALCS));
     verifySchema(
         response,
-        schema("max(datetime(NULL))", null, "datetime"),
-        schema("min(datetime(NULL))", null, "datetime"),
-        schema("avg(datetime(NULL))", null, "datetime"));
+        schema("max(timestamp(NULL))", null, "timestamp"),
+        schema("min(timestamp(NULL))", null, "timestamp"),
+        schema("avg(timestamp(NULL))", null, "timestamp"));
     verifyDataRows(response, rows(null, null, null));
   }
 
@@ -480,8 +481,8 @@ public class AggregationIT extends SQLIntegTestCase {
     var response =
         executeQuery(
             String.format(
-                "SELECT min(datetime(CAST(time0 AS STRING)))" + " from %s", TEST_INDEX_CALCS));
-    verifySchema(response, schema("min(datetime(CAST(time0 AS STRING)))", null, "datetime"));
+                "SELECT min(timestamp(CAST(time0 AS STRING)))" + " from %s", TEST_INDEX_CALCS));
+    verifySchema(response, schema("min(timestamp(CAST(time0 AS STRING)))", null, "timestamp"));
     verifyDataRows(response, rows("1899-12-30 21:07:32"));
   }
 
@@ -490,8 +491,8 @@ public class AggregationIT extends SQLIntegTestCase {
     var response =
         executeQuery(
             String.format(
-                "SELECT max(datetime(CAST(time0 AS STRING)))" + " from %s", TEST_INDEX_CALCS));
-    verifySchema(response, schema("max(datetime(CAST(time0 AS STRING)))", null, "datetime"));
+                "SELECT max(timestamp(CAST(time0 AS STRING)))" + " from %s", TEST_INDEX_CALCS));
+    verifySchema(response, schema("max(timestamp(CAST(time0 AS STRING)))", null, "timestamp"));
     verifyDataRows(response, rows("1900-01-01 20:36:00"));
   }
 
@@ -500,8 +501,8 @@ public class AggregationIT extends SQLIntegTestCase {
     var response =
         executeQuery(
             String.format(
-                "SELECT avg(datetime(CAST(time0 AS STRING)))" + " from %s", TEST_INDEX_CALCS));
-    verifySchema(response, schema("avg(datetime(CAST(time0 AS STRING)))", null, "datetime"));
+                "SELECT avg(timestamp(CAST(time0 AS STRING)))" + " from %s", TEST_INDEX_CALCS));
+    verifySchema(response, schema("avg(timestamp(CAST(time0 AS STRING)))", null, "timestamp"));
     verifyDataRows(response, rows("1900-01-01 03:35:00.236"));
   }
 
@@ -591,13 +592,15 @@ public class AggregationIT extends SQLIntegTestCase {
     var response =
         executeQuery(
             String.format(
-                "SELECT min(datetime(CAST(time0 AS STRING)))"
+                "SELECT min(timestamp(CAST(time0 AS STRING)))"
                     + " OVER(PARTITION BY datetime1) from %s",
                 TEST_INDEX_CALCS));
     verifySchema(
         response,
         schema(
-            "min(datetime(CAST(time0 AS STRING))) OVER(PARTITION BY datetime1)", null, "datetime"));
+            "min(timestamp(CAST(time0 AS STRING))) OVER(PARTITION BY datetime1)",
+            null,
+            "timestamp"));
     verifySome(response.getJSONArray("datarows"), rows("1899-12-30 21:07:32"));
   }
 
@@ -606,13 +609,15 @@ public class AggregationIT extends SQLIntegTestCase {
     var response =
         executeQuery(
             String.format(
-                "SELECT max(datetime(CAST(time0 AS STRING)))"
+                "SELECT max(timestamp(CAST(time0 AS STRING)))"
                     + " OVER(PARTITION BY datetime1) from %s",
                 TEST_INDEX_CALCS));
     verifySchema(
         response,
         schema(
-            "max(datetime(CAST(time0 AS STRING))) OVER(PARTITION BY datetime1)", null, "datetime"));
+            "max(timestamp(CAST(time0 AS STRING))) OVER(PARTITION BY datetime1)",
+            null,
+            "timestamp"));
     verifySome(response.getJSONArray("datarows"), rows("1900-01-01 20:36:00"));
   }
 
@@ -621,13 +626,15 @@ public class AggregationIT extends SQLIntegTestCase {
     var response =
         executeQuery(
             String.format(
-                "SELECT avg(datetime(CAST(time0 AS STRING)))"
+                "SELECT avg(timestamp(CAST(time0 AS STRING)))"
                     + " OVER(PARTITION BY datetime1) from %s",
                 TEST_INDEX_CALCS));
     verifySchema(
         response,
         schema(
-            "avg(datetime(CAST(time0 AS STRING))) OVER(PARTITION BY datetime1)", null, "datetime"));
+            "avg(timestamp(CAST(time0 AS STRING))) OVER(PARTITION BY datetime1)",
+            null,
+            "timestamp"));
     verifySome(response.getJSONArray("datarows"), rows("1900-01-01 03:35:00.236"));
   }
 

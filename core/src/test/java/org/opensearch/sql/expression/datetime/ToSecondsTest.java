@@ -20,7 +20,6 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.opensearch.sql.data.model.ExprDateValue;
-import org.opensearch.sql.data.model.ExprDatetimeValue;
 import org.opensearch.sql.data.model.ExprIntervalValue;
 import org.opensearch.sql.data.model.ExprLongValue;
 import org.opensearch.sql.data.model.ExprNullValue;
@@ -52,7 +51,6 @@ class ToSecondsTest extends ExpressionTestBase {
         Arguments.of(new ExprStringValue("2009-11-29 00:00:00"), new ExprLongValue(63426672000L)),
         Arguments.of(new ExprStringValue("2009-11-29 13:43:32"), new ExprLongValue(63426721412L)),
         Arguments.of(new ExprDateValue("2009-11-29"), new ExprLongValue(63426672000L)),
-        Arguments.of(new ExprDatetimeValue("2009-11-29 13:43:32"), new ExprLongValue(63426721412L)),
         Arguments.of(
             new ExprTimestampValue("2009-11-29 13:43:32"), new ExprLongValue(63426721412L)));
   }

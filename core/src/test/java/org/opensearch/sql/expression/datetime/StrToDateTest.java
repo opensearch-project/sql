@@ -6,21 +6,23 @@
 package org.opensearch.sql.expression.datetime;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.opensearch.sql.data.type.ExprCoreType.DATETIME;
+import static org.opensearch.sql.data.type.ExprCoreType.TIMESTAMP;
 import static org.opensearch.sql.data.type.ExprCoreType.UNDEFINED;
 
+import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.time.ZoneOffset;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
-import org.opensearch.sql.data.model.ExprDatetimeValue;
 import org.opensearch.sql.data.model.ExprNullValue;
 import org.opensearch.sql.data.model.ExprStringValue;
 import org.opensearch.sql.data.model.ExprTimeValue;
+import org.opensearch.sql.data.model.ExprTimestampValue;
 import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.data.type.ExprCoreType;
 import org.opensearch.sql.expression.DSL;
@@ -34,23 +36,23 @@ class StrToDateTest extends ExpressionTestBase {
     return Stream.of(
         // Date arguments
         Arguments.of(
-            "01,5,2013", "%d,%m,%Y", new ExprDatetimeValue("2013-05-01 00:00:00"), DATETIME),
+            "01,5,2013", "%d,%m,%Y", new ExprTimestampValue("2013-05-01 00:00:00"), TIMESTAMP),
         Arguments.of(
-            "May 1, 2013", "%M %d, %Y", new ExprDatetimeValue("2013-05-01 00:00:00"), DATETIME),
+            "May 1, 2013", "%M %d, %Y", new ExprTimestampValue("2013-05-01 00:00:00"), TIMESTAMP),
         Arguments.of(
             "May 1, 2013 - 9,23,11",
             "%M %d, %Y - %h,%i,%s",
-            new ExprDatetimeValue("2013-05-01 09:23:11"),
-            DATETIME),
+            new ExprTimestampValue("2013-05-01 09:23:11"),
+            TIMESTAMP),
         Arguments.of(
-            "2000,1,1", "%Y,%m,%d", new ExprDatetimeValue("2000-01-01 00:00:00"), DATETIME),
+            "2000,1,1", "%Y,%m,%d", new ExprTimestampValue("2000-01-01 00:00:00"), TIMESTAMP),
         Arguments.of(
-            "2000,1,1,10", "%Y,%m,%d,%h", new ExprDatetimeValue("2000-01-01 10:00:00"), DATETIME),
+            "2000,1,1,10", "%Y,%m,%d,%h", new ExprTimestampValue("2000-01-01 10:00:00"), TIMESTAMP),
         Arguments.of(
             "2000,1,1,10,11",
             "%Y,%m,%d,%h,%i",
-            new ExprDatetimeValue("2000-01-01 10:11:00"),
-            DATETIME),
+            new ExprTimestampValue("2000-01-01 10:11:00"),
+            TIMESTAMP),
 
         // Invalid Arguments (should return null)
         Arguments.of("a09:30:17", "a%h:%i:%s", ExprNullValue.of(), UNDEFINED),
@@ -108,20 +110,22 @@ class StrToDateTest extends ExpressionTestBase {
 
     ExprValue result = eval(expression);
 
-    assertEquals(DATETIME, result.type());
-    assertEquals(getExpectedTimeResult(9, 23, 11), result.datetimeValue());
+    assertEquals(TIMESTAMP, result.type());
+    assertEquals(
+        getExpectedTimeResult(9, 23, 11),
+        LocalDateTime.ofInstant(result.timestampValue(), ZoneOffset.UTC));
   }
 
   @Test
   public void test_str_to_date_with_date_format() {
 
-    LocalDateTime arg = LocalDateTime.of(2023, 2, 27, 10, 11, 12);
+    Instant arg = Instant.parse("2023-02-27T10:11:12Z");
     String format = "%Y,%m,%d %h,%i,%s";
 
     FunctionExpression dateFormatExpr =
         DSL.date_format(
             functionProperties,
-            DSL.literal(new ExprDatetimeValue(arg)),
+            DSL.literal(new ExprTimestampValue(arg)),
             DSL.literal(new ExprStringValue(format)));
     String dateFormatResult = eval(dateFormatExpr).stringValue();
 
@@ -130,7 +134,7 @@ class StrToDateTest extends ExpressionTestBase {
             functionProperties,
             DSL.literal(new ExprStringValue(dateFormatResult)),
             DSL.literal(new ExprStringValue(format)));
-    LocalDateTime strToDateResult = eval(strToDateExpr).datetimeValue();
+    Instant strToDateResult = eval(strToDateExpr).timestampValue();
 
     assertEquals(arg, strToDateResult);
   }
@@ -156,7 +160,8 @@ class StrToDateTest extends ExpressionTestBase {
             functionProperties,
             DSL.literal(new ExprStringValue(timeFormatResult)),
             DSL.literal(new ExprStringValue(format)));
-    LocalDateTime strToDateResult = eval(strToDateExpr).datetimeValue();
+    LocalDateTime strToDateResult =
+        LocalDateTime.ofInstant(eval(strToDateExpr).timestampValue(), ZoneOffset.UTC);
 
     assertEquals(getExpectedTimeResult(HOURS, MINUTES, SECONDS), strToDateResult);
   }

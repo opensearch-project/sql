@@ -13,13 +13,11 @@ import static org.opensearch.sql.data.model.ExprValueUtils.integerValue;
 import static org.opensearch.sql.data.type.ExprCoreType.ARRAY;
 import static org.opensearch.sql.data.type.ExprCoreType.BOOLEAN;
 import static org.opensearch.sql.data.type.ExprCoreType.DATE;
-import static org.opensearch.sql.data.type.ExprCoreType.DATETIME;
 import static org.opensearch.sql.data.type.ExprCoreType.INTERVAL;
 import static org.opensearch.sql.data.type.ExprCoreType.STRING;
 import static org.opensearch.sql.data.type.ExprCoreType.STRUCT;
 import static org.opensearch.sql.data.type.ExprCoreType.TIME;
 import static org.opensearch.sql.data.type.ExprCoreType.TIMESTAMP;
-import static org.opensearch.sql.utils.DateTimeUtils.UTC_ZONE_ID;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -29,6 +27,7 @@ import java.time.Duration;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.time.ZoneOffset;
 import java.time.ZonedDateTime;
 import java.util.AbstractMap;
 import java.util.ArrayList;
@@ -70,7 +69,6 @@ public class ExprValueUtilsTest {
           new ExprTupleValue(testTuple),
           new ExprDateValue("2012-08-07"),
           new ExprTimeValue("18:00:00"),
-          new ExprDatetimeValue("2012-08-07 18:00:00"),
           new ExprTimestampValue("2012-08-07 18:00:00"),
           new ExprIntervalValue(Duration.ofSeconds(100)));
 
@@ -95,7 +93,6 @@ public class ExprValueUtilsTest {
       Arrays.asList(
           ExprValue::dateValue,
           ExprValue::timeValue,
-          ExprValue::datetimeValue,
           ExprValue::timestampValue,
           ExprValue::intervalValue);
   private static List<Function<ExprValue, Object>> allValueExtractor =
@@ -113,7 +110,7 @@ public class ExprValueUtilsTest {
           ExprCoreType.DOUBLE);
   private static List<ExprCoreType> nonNumberTypes = Arrays.asList(STRING, BOOLEAN, ARRAY, STRUCT);
   private static List<ExprCoreType> dateAndTimeTypes =
-      Arrays.asList(DATE, TIME, DATETIME, TIMESTAMP, INTERVAL);
+      Arrays.asList(DATE, TIME, TIMESTAMP, INTERVAL);
   private static List<ExprCoreType> allTypes =
       Lists.newArrayList(Iterables.concat(numberTypes, nonNumberTypes, dateAndTimeTypes));
 
@@ -132,8 +129,8 @@ public class ExprValueUtilsTest {
             ImmutableMap.of("1", integerValue(1)),
             LocalDate.parse("2012-08-07"),
             LocalTime.parse("18:00:00"),
-            LocalDateTime.parse("2012-08-07T18:00:00"),
-            ZonedDateTime.of(LocalDateTime.parse("2012-08-07T18:00:00"), UTC_ZONE_ID).toInstant(),
+            ZonedDateTime.of(LocalDateTime.parse("2012-08-07T18:00:00"), ZoneOffset.UTC)
+                .toInstant(),
             Duration.ofSeconds(100));
     Stream.Builder<Arguments> builder = Stream.builder();
     for (int i = 0; i < expectedValues.size(); i++) {
@@ -238,9 +235,6 @@ public class ExprValueUtilsTest {
         new ExprDateValue("2012-07-07"), ExprValueUtils.fromObjectValue("2012-07-07", DATE));
     assertEquals(new ExprTimeValue("01:01:01"), ExprValueUtils.fromObjectValue("01:01:01", TIME));
     assertEquals(
-        new ExprDatetimeValue("2012-07-07 01:01:01"),
-        ExprValueUtils.fromObjectValue("2012-07-07 01:01:01", DATETIME));
-    assertEquals(
         new ExprTimestampValue("2012-07-07 01:01:01"),
         ExprValueUtils.fromObjectValue("2012-07-07 01:01:01", TIMESTAMP));
   }
@@ -260,9 +254,6 @@ public class ExprValueUtilsTest {
         new ExprDateValue("2012-08-07").hashCode(), new ExprDateValue("2012-08-07").hashCode());
     assertEquals(
         new ExprTimeValue("18:00:00").hashCode(), new ExprTimeValue("18:00:00").hashCode());
-    assertEquals(
-        new ExprDatetimeValue("2012-08-07 18:00:00").hashCode(),
-        new ExprDatetimeValue("2012-08-07 18:00:00").hashCode());
     assertEquals(
         new ExprTimestampValue("2012-08-07 18:00:00").hashCode(),
         new ExprTimestampValue("2012-08-07 18:00:00").hashCode());

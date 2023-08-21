@@ -21,7 +21,6 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.opensearch.sql.data.model.ExprDateValue;
-import org.opensearch.sql.data.model.ExprDatetimeValue;
 import org.opensearch.sql.data.model.ExprNullValue;
 import org.opensearch.sql.data.model.ExprStringValue;
 import org.opensearch.sql.data.model.ExprTimeValue;
@@ -80,8 +79,6 @@ class TimeStampDiffTest extends ExpressionTestBase {
         return new ExprTimestampValue(arg.toInstant(ZoneOffset.UTC));
       case "DATE":
         return new ExprDateValue(arg.toLocalDate());
-      case "DATETIME":
-        return new ExprDatetimeValue(arg);
       case "STRING":
         return new ExprStringValue(
             String.format(
@@ -118,7 +115,7 @@ class TimeStampDiffTest extends ExpressionTestBase {
     final String[] intervalTypes = ArrayUtils.addAll(timeIntervalTypes, dateIntervalTypes);
 
     // TIME type not included here as it is a special case handled by a different test
-    final String[] expressionTypes = {"DATE", "DATETIME", "TIMESTAMP", "STRING"};
+    final String[] expressionTypes = {"DATE", "TIMESTAMP", "STRING"};
 
     final LocalDateTime baseDateTime = LocalDateTime.of(2000, 1, 1, 0, 0, 0);
     final int intervalDifference = 5;
@@ -159,30 +156,30 @@ class TimeStampDiffTest extends ExpressionTestBase {
         // Test around Leap Year
         Arguments.of(
             "DAY",
-            new ExprDatetimeValue("2019-02-28 00:00:00"),
-            new ExprDatetimeValue("2019-03-01 00:00:00"),
+            new ExprTimestampValue("2019-02-28 00:00:00"),
+            new ExprTimestampValue("2019-03-01 00:00:00"),
             1),
         Arguments.of(
             "DAY",
-            new ExprDatetimeValue("2020-02-28 00:00:00"),
-            new ExprDatetimeValue("2020-03-01 00:00:00"),
+            new ExprTimestampValue("2020-02-28 00:00:00"),
+            new ExprTimestampValue("2020-03-01 00:00:00"),
             2),
 
         // Test around year change
         Arguments.of(
             "SECOND",
-            new ExprDatetimeValue("2019-12-31 23:59:59"),
-            new ExprDatetimeValue("2020-01-01 00:00:00"),
+            new ExprTimestampValue("2019-12-31 23:59:59"),
+            new ExprTimestampValue("2020-01-01 00:00:00"),
             1),
         Arguments.of(
             "DAY",
-            new ExprDatetimeValue("2019-12-31 23:59:59"),
-            new ExprDatetimeValue("2020-01-01 00:00:00"),
+            new ExprTimestampValue("2019-12-31 23:59:59"),
+            new ExprTimestampValue("2020-01-01 00:00:00"),
             0),
         Arguments.of(
             "DAY",
-            new ExprDatetimeValue("2019-12-31 00:00:00"),
-            new ExprDatetimeValue("2020-01-01 00:00:00"),
+            new ExprTimestampValue("2019-12-31 00:00:00"),
+            new ExprTimestampValue("2020-01-01 00:00:00"),
             1));
   }
 
@@ -295,13 +292,6 @@ class TimeStampDiffTest extends ExpressionTestBase {
             new ExprStringValue("2000-01-01 00:00:00"),
             new ExprStringValue("2000-01-02 00:00:00"));
 
-    FunctionExpression datetimeExpr =
-        timestampdiffQuery(
-            functionProperties,
-            part,
-            new ExprDatetimeValue("2000-01-01 00:00:00"),
-            new ExprDatetimeValue("2000-01-02 00:00:00"));
-
     FunctionExpression timestampExpr =
         timestampdiffQuery(
             functionProperties,
@@ -311,7 +301,6 @@ class TimeStampDiffTest extends ExpressionTestBase {
 
     assertAll(
         () -> assertEquals(eval(dateExpr), eval(stringExpr)),
-        () -> assertEquals(eval(dateExpr), eval(datetimeExpr)),
         () -> assertEquals(eval(dateExpr), eval(timestampExpr)));
   }
 

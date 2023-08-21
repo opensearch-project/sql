@@ -819,10 +819,6 @@ public class DSL {
     return compile(FunctionProperties.None, BuiltinFunctionName.CAST_TO_TIMESTAMP, value);
   }
 
-  public static FunctionExpression castDatetime(Expression value) {
-    return compile(FunctionProperties.None, BuiltinFunctionName.CAST_TO_DATETIME, value);
-  }
-
   public static FunctionExpression typeof(Expression value) {
     return compile(FunctionProperties.None, BuiltinFunctionName.TYPEOF, value);
   }

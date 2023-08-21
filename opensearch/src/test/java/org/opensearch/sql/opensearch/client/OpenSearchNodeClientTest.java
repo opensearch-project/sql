@@ -3,7 +3,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-
 package org.opensearch.sql.opensearch.client;
 
 import static org.junit.jupiter.api.Assertions.assertAll;
@@ -89,17 +88,14 @@ class OpenSearchNodeClientTest {
   @Mock(answer = RETURNS_DEEP_STUBS)
   private NodeClient nodeClient;
 
-  @Mock
-  private OpenSearchExprValueFactory factory;
+  @Mock private OpenSearchExprValueFactory factory;
 
-  @Mock
-  private SearchHit searchHit;
+  @Mock private SearchHit searchHit;
 
-  @Mock
-  private GetIndexResponse indexResponse;
+  @Mock private GetIndexResponse indexResponse;
 
-  private final ExprTupleValue exprTupleValue = ExprTupleValue.fromExprValueMap(
-      Map.of("id", new ExprIntegerValue(1)));
+  private final ExprTupleValue exprTupleValue =
+      ExprTupleValue.fromExprValueMap(Map.of("id", new ExprIntegerValue(1)));
 
   private OpenSearchClient client;
 
@@ -110,8 +106,7 @@ class OpenSearchNodeClientTest {
 
   @Test
   void is_index_exist() {
-    when(nodeClient.admin().indices()
-        .exists(any(IndicesExistsRequest.class)).actionGet())
+    when(nodeClient.admin().indices().exists(any(IndicesExistsRequest.class)).actionGet())
         .thenReturn(new IndicesExistsResponse(true));
 
     assertTrue(client.exists("test"));
@@ -120,8 +115,7 @@ class OpenSearchNodeClientTest {
   @Test
   void is_index_not_exist() {
     String indexName = "test";
-    when(nodeClient.admin().indices()
-        .exists(any(IndicesExistsRequest.class)).actionGet())
+    when(nodeClient.admin().indices().exists(any(IndicesExistsRequest.class)).actionGet())
         .thenReturn(new IndicesExistsResponse(false));
 
     assertFalse(client.exists(indexName));
@@ -137,11 +131,8 @@ class OpenSearchNodeClientTest {
   @Test
   void create_index() {
     String indexName = "test";
-    Map<String, Object> mappings = ImmutableMap.of(
-        "properties",
-        ImmutableMap.of("name", "text"));
-    when(nodeClient.admin().indices()
-        .create(any(CreateIndexRequest.class)).actionGet())
+    Map<String, Object> mappings = ImmutableMap.of("properties", ImmutableMap.of("name", "text"));
+    when(nodeClient.admin().indices().create(any(CreateIndexRequest.class)).actionGet())
         .thenReturn(new CreateIndexResponse(true, true, indexName));
 
     client.createIndex(indexName, mappings);
@@ -151,8 +142,7 @@ class OpenSearchNodeClientTest {
   void create_index_with_exception() {
     when(nodeClient.admin().indices().create(any())).thenThrow(RuntimeException.class);
 
-    assertThrows(IllegalStateException.class,
-        () -> client.createIndex("test", ImmutableMap.of()));
+    assertThrows(IllegalStateException.class, () -> client.createIndex("test", ImmutableMap.of()));
   }
 
   @Test
@@ -172,58 +162,57 @@ class OpenSearchNodeClientTest {
         () -> assertEquals(10, mapping.size()),
         () -> assertEquals(17, parsedTypes.size()),
         () -> assertEquals("TEXT", mapping.get("address").legacyTypeName()),
-        () -> assertEquals(OpenSearchTextType.of(MappingType.Text),
-            parsedTypes.get("address")),
+        () -> assertEquals(OpenSearchTextType.of(MappingType.Text), parsedTypes.get("address")),
         () -> assertEquals("INTEGER", mapping.get("age").legacyTypeName()),
-        () -> assertEquals(OpenSearchTextType.of(MappingType.Integer),
-            parsedTypes.get("age")),
+        () -> assertEquals(OpenSearchTextType.of(MappingType.Integer), parsedTypes.get("age")),
         () -> assertEquals("DOUBLE", mapping.get("balance").legacyTypeName()),
-        () -> assertEquals(OpenSearchTextType.of(MappingType.Double),
-            parsedTypes.get("balance")),
+        () -> assertEquals(OpenSearchTextType.of(MappingType.Double), parsedTypes.get("balance")),
         () -> assertEquals("KEYWORD", mapping.get("city").legacyTypeName()),
-        () -> assertEquals(OpenSearchTextType.of(MappingType.Keyword),
-            parsedTypes.get("city")),
+        () -> assertEquals(OpenSearchTextType.of(MappingType.Keyword), parsedTypes.get("city")),
         () -> assertEquals("DATE", mapping.get("birthday").legacyTypeName()),
-        () -> assertEquals(OpenSearchTextType.of(MappingType.Date),
-            parsedTypes.get("birthday")),
+        () -> assertEquals(OpenSearchTextType.of(MappingType.Date), parsedTypes.get("birthday")),
         () -> assertEquals("GEO_POINT", mapping.get("location").legacyTypeName()),
-        () -> assertEquals(OpenSearchTextType.of(MappingType.GeoPoint),
-            parsedTypes.get("location")),
+        () ->
+            assertEquals(OpenSearchTextType.of(MappingType.GeoPoint), parsedTypes.get("location")),
         // unknown type isn't parsed and ignored
         () -> assertFalse(mapping.containsKey("new_field")),
         () -> assertNull(parsedTypes.get("new_field")),
         () -> assertEquals("TEXT", mapping.get("field with spaces").legacyTypeName()),
-        () -> assertEquals(OpenSearchTextType.of(MappingType.Text),
-            parsedTypes.get("field with spaces")),
+        () ->
+            assertEquals(
+                OpenSearchTextType.of(MappingType.Text), parsedTypes.get("field with spaces")),
         () -> assertEquals("TEXT", mapping.get("employer").legacyTypeName()),
-        () -> assertEquals(OpenSearchTextType.of(MappingType.Text),
-            parsedTypes.get("employer")),
+        () -> assertEquals(OpenSearchTextType.of(MappingType.Text), parsedTypes.get("employer")),
         // `employer` is a `text` with `fields`
-        () -> assertTrue(((OpenSearchTextType)parsedTypes.get("employer")).getFields().size() > 0),
+        () -> assertTrue(((OpenSearchTextType) parsedTypes.get("employer")).getFields().size() > 0),
         () -> assertEquals("NESTED", mapping.get("projects").legacyTypeName()),
-        () -> assertEquals(OpenSearchTextType.of(MappingType.Nested),
-            parsedTypes.get("projects")),
-        () -> assertEquals(OpenSearchTextType.of(MappingType.Boolean),
-            parsedTypes.get("projects.active")),
-        () -> assertEquals(OpenSearchTextType.of(MappingType.Date),
-            parsedTypes.get("projects.release")),
-        () -> assertEquals(OpenSearchTextType.of(MappingType.Nested),
-            parsedTypes.get("projects.members")),
-        () -> assertEquals(OpenSearchTextType.of(MappingType.Text),
-            parsedTypes.get("projects.members.name")),
+        () -> assertEquals(OpenSearchTextType.of(MappingType.Nested), parsedTypes.get("projects")),
+        () ->
+            assertEquals(
+                OpenSearchTextType.of(MappingType.Boolean), parsedTypes.get("projects.active")),
+        () ->
+            assertEquals(
+                OpenSearchTextType.of(MappingType.Date), parsedTypes.get("projects.release")),
+        () ->
+            assertEquals(
+                OpenSearchTextType.of(MappingType.Nested), parsedTypes.get("projects.members")),
+        () ->
+            assertEquals(
+                OpenSearchTextType.of(MappingType.Text), parsedTypes.get("projects.members.name")),
         () -> assertEquals("OBJECT", mapping.get("manager").legacyTypeName()),
-        () -> assertEquals(OpenSearchTextType.of(MappingType.Object),
-                parsedTypes.get("manager")),
-        () -> assertEquals(OpenSearchTextType.of(MappingType.Text),
-            parsedTypes.get("manager.name")),
+        () -> assertEquals(OpenSearchTextType.of(MappingType.Object), parsedTypes.get("manager")),
+        () ->
+            assertEquals(OpenSearchTextType.of(MappingType.Text), parsedTypes.get("manager.name")),
         // `manager.name` is a `text` with `fields`
-        () -> assertTrue(((OpenSearchTextType)parsedTypes.get("manager.name"))
-                .getFields().size() > 0),
-        () -> assertEquals(OpenSearchTextType.of(MappingType.Keyword),
-            parsedTypes.get("manager.address")),
-        () -> assertEquals(OpenSearchTextType.of(MappingType.Long),
-            parsedTypes.get("manager.salary"))
-    );
+        () ->
+            assertTrue(
+                ((OpenSearchTextType) parsedTypes.get("manager.name")).getFields().size() > 0),
+        () ->
+            assertEquals(
+                OpenSearchTextType.of(MappingType.Keyword), parsedTypes.get("manager.address")),
+        () ->
+            assertEquals(
+                OpenSearchTextType.of(MappingType.Long), parsedTypes.get("manager.salary")));
   }
 
   @Test
@@ -247,11 +236,8 @@ class OpenSearchNodeClientTest {
 
   @Test
   void get_index_mappings_with_non_exist_index() {
-    when(nodeClient.admin().indices()
-        .prepareGetMappings(any())
-        .setLocal(anyBoolean())
-        .get()
-    ).thenThrow(IndexNotFoundException.class);
+    when(nodeClient.admin().indices().prepareGetMappings(any()).setLocal(anyBoolean()).get())
+        .thenThrow(IndexNotFoundException.class);
 
     assertThrows(IndexNotFoundException.class, () -> client.getIndexMappings("non_exist_index"));
   }
@@ -307,9 +293,7 @@ class OpenSearchNodeClientTest {
     when(searchResponse.getHits())
         .thenReturn(
             new SearchHits(
-                new SearchHit[] {searchHit},
-                new TotalHits(1L, TotalHits.Relation.EQUAL_TO),
-                1.0F));
+                new SearchHit[] {searchHit}, new TotalHits(1L, TotalHits.Relation.EQUAL_TO), 1.0F));
     when(searchHit.getSourceAsString()).thenReturn("{\"id\", 1}");
     when(searchHit.getInnerHits()).thenReturn(null);
     when(factory.construct(any(), anyBoolean())).thenReturn(exprTupleValue);
@@ -320,9 +304,13 @@ class OpenSearchNodeClientTest {
     when(scrollResponse.getHits()).thenReturn(SearchHits.empty());
 
     // Verify response for first scroll request
-    OpenSearchScrollRequest request = new OpenSearchScrollRequest(
-        new OpenSearchRequest.IndexName("test"), TimeValue.timeValueMinutes(1),
-        new SearchSourceBuilder(), factory, List.of("id"));
+    OpenSearchScrollRequest request =
+        new OpenSearchScrollRequest(
+            new OpenSearchRequest.IndexName("test"),
+            TimeValue.timeValueMinutes(1),
+            new SearchSourceBuilder(),
+            factory,
+            List.of("id"));
     OpenSearchResponse response1 = client.search(request);
     assertFalse(response1.isEmpty());
 
@@ -355,9 +343,13 @@ class OpenSearchNodeClientTest {
     when(requestBuilder.addScrollId(any())).thenReturn(requestBuilder);
     when(requestBuilder.get()).thenReturn(null);
 
-    OpenSearchScrollRequest request = new OpenSearchScrollRequest(
-        new OpenSearchRequest.IndexName("test"), TimeValue.timeValueMinutes(1),
-        new SearchSourceBuilder(), factory, List.of());
+    OpenSearchScrollRequest request =
+        new OpenSearchScrollRequest(
+            new OpenSearchRequest.IndexName("test"),
+            TimeValue.timeValueMinutes(1),
+            new SearchSourceBuilder(),
+            factory,
+            List.of());
     request.setScrollId("scroll123");
     // Enforce cleaning by setting a private field.
     FieldUtils.writeField(request, "needClean", true, true);
@@ -372,9 +364,13 @@ class OpenSearchNodeClientTest {
 
   @Test
   void cleanup_without_scrollId() {
-    OpenSearchScrollRequest request = new OpenSearchScrollRequest(
-        new OpenSearchRequest.IndexName("test"), TimeValue.timeValueMinutes(1),
-        new SearchSourceBuilder(), factory, List.of());
+    OpenSearchScrollRequest request =
+        new OpenSearchScrollRequest(
+            new OpenSearchRequest.IndexName("test"),
+            TimeValue.timeValueMinutes(1),
+            new SearchSourceBuilder(),
+            factory,
+            List.of());
     client.cleanup(request);
     verify(nodeClient, never()).prepareClearScroll();
   }
@@ -384,9 +380,13 @@ class OpenSearchNodeClientTest {
   void cleanup_rethrows_exception() {
     when(nodeClient.prepareClearScroll()).thenThrow(new RuntimeException());
 
-    OpenSearchScrollRequest request = new OpenSearchScrollRequest(
-        new OpenSearchRequest.IndexName("test"), TimeValue.timeValueMinutes(1),
-        new SearchSourceBuilder(), factory, List.of());
+    OpenSearchScrollRequest request =
+        new OpenSearchScrollRequest(
+            new OpenSearchRequest.IndexName("test"),
+            TimeValue.timeValueMinutes(1),
+            new SearchSourceBuilder(),
+            factory,
+            List.of());
     request.setScrollId("scroll123");
     // Enforce cleaning by setting a private field.
     FieldUtils.writeField(request, "needClean", true, true);
@@ -398,10 +398,8 @@ class OpenSearchNodeClientTest {
     AliasMetadata aliasMetadata = mock(AliasMetadata.class);
     final var openMap = Map.of("index", List.of(aliasMetadata));
     when(aliasMetadata.alias()).thenReturn("index_alias");
-    when(nodeClient.admin().indices()
-        .prepareGetIndex()
-        .setLocal(true)
-        .get()).thenReturn(indexResponse);
+    when(nodeClient.admin().indices().prepareGetIndex().setLocal(true).get())
+        .thenReturn(indexResponse);
     when(indexResponse.getIndices()).thenReturn(new String[] {"index"});
     when(indexResponse.aliases()).thenReturn(openMap);
 
@@ -427,10 +425,8 @@ class OpenSearchNodeClientTest {
   public void mockNodeClientIndicesMappings(String indexName, String mappings) {
     GetMappingsResponse mockResponse = mock(GetMappingsResponse.class);
     MappingMetadata emptyMapping = mock(MappingMetadata.class);
-    when(nodeClient.admin().indices()
-        .prepareGetMappings(any())
-        .setLocal(anyBoolean())
-        .get()).thenReturn(mockResponse);
+    when(nodeClient.admin().indices().prepareGetMappings(any()).setLocal(anyBoolean()).get())
+        .thenReturn(mockResponse);
     try {
       Map<String, MappingMetadata> metadata;
       if (mappings.isEmpty()) {
@@ -445,13 +441,12 @@ class OpenSearchNodeClientTest {
     }
   }
 
-  private void mockNodeClientSettings(String indexName, String indexMetadata)
-      throws IOException {
+  private void mockNodeClientSettings(String indexName, String indexMetadata) throws IOException {
     GetSettingsResponse mockResponse = mock(GetSettingsResponse.class);
     when(nodeClient.admin().indices().prepareGetSettings(any()).setLocal(anyBoolean()).get())
         .thenReturn(mockResponse);
-    Map<String, Settings> metadata = Map.of(indexName,
-        IndexMetadata.fromXContent(createParser(indexMetadata)).getSettings());
+    Map<String, Settings> metadata =
+        Map.of(indexName, IndexMetadata.fromXContent(createParser(indexMetadata)).getSettings());
 
     when(mockResponse.getIndexToSettings()).thenReturn(metadata);
   }

@@ -10,7 +10,6 @@ import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.containsInRelativeOrder;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.opensearch.sql.data.type.ExprCoreType.DATE;
-import static org.opensearch.sql.data.type.ExprCoreType.DATETIME;
 import static org.opensearch.sql.data.type.ExprCoreType.DOUBLE;
 import static org.opensearch.sql.data.type.ExprCoreType.FLOAT;
 import static org.opensearch.sql.data.type.ExprCoreType.INTEGER;
@@ -25,7 +24,6 @@ import java.util.Collections;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.opensearch.sql.data.model.ExprDateValue;
-import org.opensearch.sql.data.model.ExprDatetimeValue;
 import org.opensearch.sql.data.model.ExprStringValue;
 import org.opensearch.sql.data.model.ExprTimeValue;
 import org.opensearch.sql.data.model.ExprTimestampValue;
@@ -153,21 +151,21 @@ class AggregationOperatorTest extends PhysicalPlanTestBase {
     PhysicalPlan plan =
         new AggregationOperator(
             testScan(datetimeInputs),
-            Collections.singletonList(DSL.named("count", DSL.count(DSL.ref("minute", DATETIME)))),
+            Collections.singletonList(DSL.named("count", DSL.count(DSL.ref("minute", TIMESTAMP)))),
             Collections.singletonList(
-                DSL.named("span", DSL.span(DSL.ref("minute", DATETIME), DSL.literal(5), "m"))));
+                DSL.named("span", DSL.span(DSL.ref("minute", TIMESTAMP), DSL.literal(5), "m"))));
     List<ExprValue> result = execute(plan);
     assertEquals(3, result.size());
     assertThat(
         result,
         containsInRelativeOrder(
             ExprValueUtils.tupleValue(
-                ImmutableMap.of("span", new ExprDatetimeValue("2020-12-31 23:50:00"), "count", 1)),
+                ImmutableMap.of("span", new ExprTimestampValue("2020-12-31 23:50:00"), "count", 1)),
             ExprValueUtils.tupleValue(
-                ImmutableMap.of("span", new ExprDatetimeValue("2021-01-01 00:00:00"), "count", 3)),
+                ImmutableMap.of("span", new ExprTimestampValue("2021-01-01 00:00:00"), "count", 3)),
             ExprValueUtils.tupleValue(
                 ImmutableMap.of(
-                    "span", new ExprDatetimeValue("2021-01-01 00:05:00"), "count", 1))));
+                    "span", new ExprTimestampValue("2021-01-01 00:05:00"), "count", 1))));
 
     plan =
         new AggregationOperator(
@@ -296,23 +294,23 @@ class AggregationOperatorTest extends PhysicalPlanTestBase {
     plan =
         new AggregationOperator(
             testScan(dateInputs),
-            Collections.singletonList(DSL.named("count", DSL.count(DSL.ref("quarter", DATETIME)))),
+            Collections.singletonList(DSL.named("count", DSL.count(DSL.ref("quarter", TIMESTAMP)))),
             Collections.singletonList(
-                DSL.named("span", DSL.span(DSL.ref("quarter", DATETIME), DSL.literal(2), "M"))));
+                DSL.named("span", DSL.span(DSL.ref("quarter", TIMESTAMP), DSL.literal(2), "M"))));
     result = execute(plan);
     assertEquals(4, result.size());
     assertThat(
         result,
         containsInRelativeOrder(
             ExprValueUtils.tupleValue(
-                ImmutableMap.of("span", new ExprDatetimeValue("2020-09-01 00:00:00"), "count", 1)),
+                ImmutableMap.of("span", new ExprTimestampValue("2020-09-01 00:00:00"), "count", 1)),
             ExprValueUtils.tupleValue(
-                ImmutableMap.of("span", new ExprDatetimeValue("2020-11-01 00:00:00"), "count", 1)),
+                ImmutableMap.of("span", new ExprTimestampValue("2020-11-01 00:00:00"), "count", 1)),
             ExprValueUtils.tupleValue(
-                ImmutableMap.of("span", new ExprDatetimeValue("2021-01-01 00:00:00"), "count", 1)),
+                ImmutableMap.of("span", new ExprTimestampValue("2021-01-01 00:00:00"), "count", 1)),
             ExprValueUtils.tupleValue(
                 ImmutableMap.of(
-                    "span", new ExprDatetimeValue("2021-05-01 00:00:00"), "count", 2))));
+                    "span", new ExprTimestampValue("2021-05-01 00:00:00"), "count", 2))));
 
     plan =
         new AggregationOperator(
@@ -340,19 +338,19 @@ class AggregationOperatorTest extends PhysicalPlanTestBase {
     PhysicalPlan plan =
         new AggregationOperator(
             testScan(dateInputs),
-            Collections.singletonList(DSL.named("count", DSL.count(DSL.ref("quarter", DATETIME)))),
+            Collections.singletonList(DSL.named("count", DSL.count(DSL.ref("quarter", TIMESTAMP)))),
             Collections.singletonList(
-                DSL.named("span", DSL.span(DSL.ref("quarter", DATETIME), DSL.literal(2), "q"))));
+                DSL.named("span", DSL.span(DSL.ref("quarter", TIMESTAMP), DSL.literal(2), "q"))));
     List<ExprValue> result = execute(plan);
     assertEquals(2, result.size());
     assertThat(
         result,
         containsInRelativeOrder(
             ExprValueUtils.tupleValue(
-                ImmutableMap.of("span", new ExprDatetimeValue("2020-07-01 00:00:00"), "count", 2)),
+                ImmutableMap.of("span", new ExprTimestampValue("2020-07-01 00:00:00"), "count", 2)),
             ExprValueUtils.tupleValue(
                 ImmutableMap.of(
-                    "span", new ExprDatetimeValue("2021-01-01 00:00:00"), "count", 3))));
+                    "span", new ExprTimestampValue("2021-01-01 00:00:00"), "count", 3))));
 
     plan =
         new AggregationOperator(

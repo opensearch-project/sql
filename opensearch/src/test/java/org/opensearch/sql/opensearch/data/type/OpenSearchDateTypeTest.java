@@ -12,7 +12,6 @@ import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 import static org.opensearch.sql.data.type.ExprCoreType.DATE;
-import static org.opensearch.sql.data.type.ExprCoreType.DATETIME;
 import static org.opensearch.sql.data.type.ExprCoreType.TIME;
 import static org.opensearch.sql.data.type.ExprCoreType.TIMESTAMP;
 import static org.opensearch.sql.opensearch.data.type.OpenSearchDateType.SUPPORTED_NAMED_DATETIME_FORMATS;
@@ -43,14 +42,14 @@ class OpenSearchDateTypeTest {
 
   private static final String timeFormatString = "hourMinuteSecond";
 
-  private static final String datetimeFormatString = "basic_date_time";
+  private static final String timestampFormatString = "basic_date_time";
 
   private static final OpenSearchDateType defaultDateType =
       OpenSearchDateType.of(defaultFormatString);
   private static final OpenSearchDateType dateDateType = OpenSearchDateType.of(dateFormatString);
   private static final OpenSearchDateType timeDateType = OpenSearchDateType.of(timeFormatString);
   private static final OpenSearchDateType datetimeDateType =
-      OpenSearchDateType.of(datetimeFormatString);
+      OpenSearchDateType.of(timestampFormatString);
 
   @Test
   public void isCompatible() {
@@ -59,25 +58,16 @@ class OpenSearchDateTypeTest {
         () -> assertTrue(TIMESTAMP.isCompatible(defaultDateType)),
         () -> assertTrue(TIMESTAMP.isCompatible(dateDateType)),
         () -> assertTrue(TIMESTAMP.isCompatible(timeDateType)),
-        () -> assertTrue(TIMESTAMP.isCompatible(datetimeDateType)),
-
-        // datetime
-        () -> assertFalse(DATETIME.isCompatible(defaultDateType)),
-        () -> assertTrue(DATETIME.isCompatible(dateDateType)),
-        () -> assertTrue(DATETIME.isCompatible(timeDateType)),
-        () -> assertFalse(DATETIME.isCompatible(datetimeDateType)),
 
         // time type
         () -> assertFalse(TIME.isCompatible(defaultDateType)),
         () -> assertFalse(TIME.isCompatible(dateDateType)),
         () -> assertTrue(TIME.isCompatible(timeDateType)),
-        () -> assertFalse(TIME.isCompatible(datetimeDateType)),
 
         // date type
         () -> assertFalse(DATE.isCompatible(defaultDateType)),
         () -> assertTrue(DATE.isCompatible(dateDateType)),
-        () -> assertFalse(DATE.isCompatible(timeDateType)),
-        () -> assertFalse(DATE.isCompatible(datetimeDateType)));
+        () -> assertFalse(DATE.isCompatible(timeDateType)));
   }
 
   // `typeName` and `legacyTypeName` return the same thing for date objects:
@@ -88,8 +78,7 @@ class OpenSearchDateTypeTest {
         // always use the MappingType of "DATE"
         () -> assertEquals("DATE", defaultDateType.typeName()),
         () -> assertEquals("DATE", timeDateType.typeName()),
-        () -> assertEquals("DATE", dateDateType.typeName()),
-        () -> assertEquals("DATE", datetimeDateType.typeName()));
+        () -> assertEquals("DATE", dateDateType.typeName()));
   }
 
   @Test
@@ -98,8 +87,7 @@ class OpenSearchDateTypeTest {
         // always use the legacy "DATE" type
         () -> assertEquals("DATE", defaultDateType.legacyTypeName()),
         () -> assertEquals("DATE", timeDateType.legacyTypeName()),
-        () -> assertEquals("DATE", dateDateType.legacyTypeName()),
-        () -> assertEquals("DATE", datetimeDateType.legacyTypeName()));
+        () -> assertEquals("DATE", dateDateType.legacyTypeName()));
   }
 
   @Test
@@ -108,8 +96,7 @@ class OpenSearchDateTypeTest {
         // exprType changes based on type (no datetime):
         () -> assertEquals(TIMESTAMP, defaultDateType.getExprType()),
         () -> assertEquals(TIME, timeDateType.getExprType()),
-        () -> assertEquals(DATE, dateDateType.getExprType()),
-        () -> assertEquals(TIMESTAMP, datetimeDateType.getExprType()));
+        () -> assertEquals(DATE, dateDateType.getExprType()));
   }
 
   private static Stream<Arguments> getAllSupportedFormats() {
