@@ -11,7 +11,6 @@ on:
       - '!sql-jdbc/**'
       - '**gradle*'
       - '**lombok*'
-      - '**checkstyle*'
       - 'integ-test/**'
       - '**/*.jar'
       - '**/*.pom'

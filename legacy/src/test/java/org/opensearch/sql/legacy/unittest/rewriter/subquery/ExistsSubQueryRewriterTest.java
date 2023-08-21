@@ -18,13 +18,12 @@ public class ExistsSubQueryRewriterTest extends SubQueryRewriterTestBase {
   @Test
   public void nonCorrelatedExists() {
     assertEquals(
-        sqlString(
-            expr("SELECT e.name FROM employee e, e.projects p WHERE p IS NOT MISSING")),
+        sqlString(expr("SELECT e.name FROM employee e, e.projects p WHERE p IS NOT MISSING")),
         sqlString(
             rewrite(
                 expr(
-                    "SELECT e.name FROM employee as e WHERE EXISTS (SELECT * FROM e.projects as p)"
-                ))));
+                    "SELECT e.name FROM employee as e WHERE EXISTS (SELECT * FROM e.projects"
+                        + " as p)"))));
   }
 
   @Test

@@ -41,10 +41,11 @@ import org.opensearch.sql.sql.domain.SQLQueryRequest;
 
 /**
  * New SQL REST action handler. This will not be registered to OpenSearch unless:
+ *
  * <ol>
- *  <li>we want to test new SQL engine;
- *  <li>all old functionalities migrated to new query engine and legacy REST handler removed.
- *  </ol>
+ *   <li>we want to test new SQL engine;
+ *   <li>all old functionalities migrated to new query engine and legacy REST handler removed.
+ * </ol>
  */
 public class RestSQLQueryAction extends BaseRestHandler {
 

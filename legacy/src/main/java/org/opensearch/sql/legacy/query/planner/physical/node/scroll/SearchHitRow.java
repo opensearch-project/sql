@@ -14,6 +14,8 @@ import org.opensearch.search.SearchHit;
 import org.opensearch.sql.legacy.query.planner.physical.Row;
 
 /**
+ *
+ *
  * <pre>
  * Search hit row that implements basic accessor for SearchHit.
  * Encapsulate all OpenSearch specific knowledge: how to parse source including nested path.

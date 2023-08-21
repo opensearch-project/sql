@@ -109,29 +109,30 @@ public class NestedFieldProjection {
         .collect(groupingBy(Field::getNestedPath, mapping(Field::getName, toList())));
   }
 
-    /**
-     * Why search for NestedQueryBuilder recursively?
-     * Because
-     * <ol>
-     * <li>it was added and wrapped by BoolQuery when WHERE explained (far from here)
-     * <li>InnerHit must be added to the NestedQueryBuilder related
-     * </ol>
-     * <p>
-     * Either we store it to global data structure (which requires to be thread-safe or ThreadLocal)
-     * or we peel off BoolQuery to find it (the way we followed here because recursion tree should be very thin).
-     */
-    private List<NestedQueryBuilder> extractNestedQueries(QueryBuilder query) {
-        List<NestedQueryBuilder> result = new ArrayList<>();
-        if (query instanceof NestedQueryBuilder) {
-            result.add((NestedQueryBuilder) query);
-        } else if (query instanceof BoolQueryBuilder) {
-            BoolQueryBuilder boolQ = (BoolQueryBuilder) query;
-            Stream.of(boolQ.filter(), boolQ.must(), boolQ.should()).
-                    flatMap(Collection::stream).
-                    forEach(q -> result.addAll(extractNestedQueries(q)));
-        }
-        return result;
+  /**
+   * Why search for NestedQueryBuilder recursively? Because
+   *
+   * <ol>
+   *   <li>it was added and wrapped by BoolQuery when WHERE explained (far from here)
+   *   <li>InnerHit must be added to the NestedQueryBuilder related
+   * </ol>
+   *
+   * <p>Either we store it to global data structure (which requires to be thread-safe or
+   * ThreadLocal) or we peel off BoolQuery to find it (the way we followed here because recursion
+   * tree should be very thin).
+   */
+  private List<NestedQueryBuilder> extractNestedQueries(QueryBuilder query) {
+    List<NestedQueryBuilder> result = new ArrayList<>();
+    if (query instanceof NestedQueryBuilder) {
+      result.add((NestedQueryBuilder) query);
+    } else if (query instanceof BoolQueryBuilder) {
+      BoolQueryBuilder boolQ = (BoolQueryBuilder) query;
+      Stream.of(boolQ.filter(), boolQ.must(), boolQ.should())
+          .flatMap(Collection::stream)
+          .forEach(q -> result.addAll(extractNestedQueries(q)));
     }
+    return result;
+  }
 
   private void buildInnerHit(List<String> fieldNames, NestedQueryBuilder query) {
     query.innerHit(

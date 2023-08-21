@@ -31,11 +31,6 @@ repositories {
     mavenCentral()
 }
 
-// Being ignored as a temporary measure before being removed in favour of
-// spotless https://github.com/opensearch-project/sql/issues/1101
-checkstyleTest.ignoreFailures = true
-checkstyleMain.ignoreFailures = true
-
 dependencies {
     api "org.antlr:antlr4-runtime:4.7.1"
     api group: 'com.google.guava', name: 'guava', version: '32.0.1-jre'

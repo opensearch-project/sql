@@ -26,11 +26,12 @@ import org.opensearch.sql.legacy.parser.WhereParser;
 
 /**
  * Domain object for HAVING clause in SQL which covers both the parsing and explain logic.
- * <p>
- * Responsibilities:
+ *
+ * <p>Responsibilities:
+ *
  * <ol>
- * <li>Parsing: parse conditions out during initialization
- * <li>Explain: translate conditions to OpenSearch query DSL (Bucket Selector Aggregation)
+ *   <li>Parsing: parse conditions out during initialization
+ *   <li>Explain: translate conditions to OpenSearch query DSL (Bucket Selector Aggregation)
  * </ol>
  */
 public class Having {
@@ -126,32 +127,35 @@ public class Having {
     return new Script(doExplain(conditions));
   }
 
-    /**
-     * <pre>
-     * Explain conditions recursively.
-     * Example: HAVING c >= 2 OR NOT (a > 20 AND c <= 10 OR a < 1) OR a < 5
-     * Object: Where(?:
-     * [
-     * Condition(?:c>=2),
-     * Where(or:
-     * [
-     * Where(?:a<=20), Where(or:c>10), Where(and:a>=1)],
-     * ]),
-     * Condition(or:a<5)
-     * ])
-     * <p>
-     * Note: a) Where(connector : condition expression).
-     * b) Condition is a subclass of Where.
-     * c) connector=? means it doesn't matter for first condition in the list
-     * </pre>
-     * @param wheres conditions
-     * @return painless script string
-     * @throws SqlParseException unknown type of expression other than identifier and value
-     */
-    private String doExplain(List<Where> wheres) throws SqlParseException {
-        if (wheres == null || wheres.isEmpty()) {
-            return "";
-        }
+  /**
+   *
+   *
+   * <pre>
+   * Explain conditions recursively.
+   * Example: HAVING c >= 2 OR NOT (a > 20 AND c <= 10 OR a < 1) OR a < 5
+   * Object: Where(?:
+   * [
+   * Condition(?:c>=2),
+   * Where(or:
+   * [
+   * Where(?:a<=20), Where(or:c>10), Where(and:a>=1)],
+   * ]),
+   * Condition(or:a<5)
+   * ])
+   * <p>
+   * Note: a) Where(connector : condition expression).
+   * b) Condition is a subclass of Where.
+   * c) connector=? means it doesn't matter for first condition in the list
+   * </pre>
+   *
+   * @param wheres conditions
+   * @return painless script string
+   * @throws SqlParseException unknown type of expression other than identifier and value
+   */
+  private String doExplain(List<Where> wheres) throws SqlParseException {
+    if (wheres == null || wheres.isEmpty()) {
+      return "";
+    }
 
     StringBuilder script = new StringBuilder();
     for (Where cond : wheres) {

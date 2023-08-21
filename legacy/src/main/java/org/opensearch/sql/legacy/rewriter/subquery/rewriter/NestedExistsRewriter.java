@@ -19,6 +19,7 @@ import org.opensearch.sql.legacy.rewriter.subquery.RewriterContext;
 /**
  * Nested EXISTS SQL Rewriter. The EXISTS clause will be remove from the SQL. The translated SQL
  * will use ElasticSearch's nested query logic.
+ *
  * <pre>
  * For example,
  * <p>

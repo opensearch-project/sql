@@ -62,7 +62,6 @@ buildscript {
 plugins {
     id 'nebula.ospackage' version "8.3.0"
     id 'java-library'
-    id 'checkstyle'
     id "io.freefair.lombok" version "6.4.0"
     id 'jacoco'
     id 'com.diffplug.spotless' version '6.19.0'
@@ -84,18 +83,7 @@ repositories {
 spotless {
     java {
         target fileTree('.') {
-            include 'datasources/**/*.java',
-                    'core/**/*.java',
-                    'protocol/**/*.java',
-                    'prometheus/**/*.java',
-                    'sql/**/*.java',
-                    'common/**/*.java',
-                    'spark/**/*.java',
-                    'plugin/**/*.java',
-                    'ppl/**/*.java',
-                    'integ-test/**/*java',
-                    'core/**/*.java',
-                    'opensearch/**/*.java'
+            include '**/*.java'
             exclude '**/build/**', '**/build-*/**'
         }
         importOrder()
@@ -194,22 +182,6 @@ jacocoTestCoverageVerification {
 }
 check.dependsOn jacocoTestCoverageVerification
 
-// TODO: fix code style in main and test source code
-allprojects {
-    apply plugin: 'checkstyle'
-    checkstyle {
-        configFile rootProject.file("config/checkstyle/google_checks.xml")
-        toolVersion "10.3.2"
-        configProperties = [
-                "org.checkstyle.google.suppressionfilter.config": rootProject.file("config/checkstyle/suppressions.xml")]
-        ignoreFailures = false
-    }
-}
-checkstyle {
-    configFile file("config/checkstyle/checkstyle.xml")
-}
-checkstyleMain.ignoreFailures = false
-checkstyleTest.ignoreFailures = true
 
 configurations.all {
     resolutionStrategy.force 'junit:junit:4.13.2'

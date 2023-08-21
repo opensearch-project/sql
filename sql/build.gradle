@@ -58,11 +58,6 @@ dependencies {
     testImplementation(testFixtures(project(":core")))
 }
 
-// Being ignored as a temporary measure before being removed in favour of
-// spotless https://github.com/opensearch-project/sql/issues/1101
-checkstyleTest.ignoreFailures = true
-checkstyleMain.ignoreFailures = true
-
 test {
     useJUnitPlatform()
     testLogging {

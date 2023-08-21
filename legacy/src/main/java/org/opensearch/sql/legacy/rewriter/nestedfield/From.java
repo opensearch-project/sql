@@ -70,29 +70,31 @@ class From extends SQLClause<SQLTableSource> {
     left().expr.setParent(query);
   }
 
-    /**
-     * <pre>
-     * Collect path alias and full path mapping of nested field in FROM clause.
-     * Sample:
-     * FROM team t, t.employees e ...
-     * <p>
-     * Join
-     * /    \
-     * team t    Join
-     * /    \
-     * t.employees e  ...
-     * <p>
-     * t.employees is nested because path "t" == parentAlias "t"
-     * Save path alias to full path name mapping {"e": "employees"} to Scope
-     * </pre>
-     */
-    private void collectNestedFields(Scope scope) {
-        From clause = this;
-        for (; clause.isCommaJoin(); clause = clause.right()) {
-            clause.left().addIfNestedField(scope);
-        }
-        clause.addIfNestedField(scope);
+  /**
+   *
+   *
+   * <pre>
+   * Collect path alias and full path mapping of nested field in FROM clause.
+   * Sample:
+   * FROM team t, t.employees e ...
+   * <p>
+   * Join
+   * /    \
+   * team t    Join
+   * /    \
+   * t.employees e  ...
+   * <p>
+   * t.employees is nested because path "t" == parentAlias "t"
+   * Save path alias to full path name mapping {"e": "employees"} to Scope
+   * </pre>
+   */
+  private void collectNestedFields(Scope scope) {
+    From clause = this;
+    for (; clause.isCommaJoin(); clause = clause.right()) {
+      clause.left().addIfNestedField(scope);
     }
+    clause.addIfNestedField(scope);
+  }
 
   private boolean isCommaJoin() {
     return expr instanceof SQLJoinTableSource && ((SQLJoinTableSource) expr).getJoinType() == COMMA;

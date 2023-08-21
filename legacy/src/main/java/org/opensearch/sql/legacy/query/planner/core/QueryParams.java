@@ -23,17 +23,19 @@ public class QueryParams {
   /** Join type, ex. inner join, left join */
   private final SQLJoinTableSource.JoinType joinType;
 
-    /**
-     * <pre>
-     * Join conditions in ON clause grouped by OR.
-     * For example, "ON (a.name = b.id AND a.age = b.age) OR a.location = b.address"
-     * => list: [
-     * [ (a.name, b.id), (a.age, b.age) ],
-     * [ (a.location, b.address) ]
-     * ]
-     * </pre>
-     */
-    private final List<List<Map.Entry<Field, Field>>> joinConditions;
+  /**
+   *
+   *
+   * <pre>
+   * Join conditions in ON clause grouped by OR.
+   * For example, "ON (a.name = b.id AND a.age = b.age) OR a.location = b.address"
+   * => list: [
+   * [ (a.name, b.id), (a.age, b.age) ],
+   * [ (a.location, b.address) ]
+   * ]
+   * </pre>
+   */
+  private final List<List<Map.Entry<Field, Field>>> joinConditions;
 
   public QueryParams(
       TableInJoinRequestBuilder request1,

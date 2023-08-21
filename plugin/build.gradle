@@ -85,9 +85,6 @@ publishing {
     }
 }
 
-checkstyleTest.ignoreFailures = true
-checkstyleMain.ignoreFailures = true
-
 javadoc.enabled = false
 loggerUsageCheck.enabled = false
 dependencyLicenses.enabled = false
