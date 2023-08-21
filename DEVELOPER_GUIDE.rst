@@ -182,16 +182,16 @@ Note that other related project code has already merged into this single reposit
 - ``workbench``: query workbench UI.
 
 
-Code Convention (Spotless)
+Code Convention
 ---------------
 
-Java files are formatted using `Spotless <https://github.com/diffplug/spotless>` conforming to `Google Java Format <https://github.com/google/google-java-format>`.
+Java files are formatted using `Spotless <https://github.com/diffplug/spotless>`_ conforming to `Google Java Format <https://github.com/google/google-java-format>`_.
    * - New line at end of file
    * - No unused import statements
    * - Fix import order to be alphabetical with static imports first (one block for static and one for non-static imports)
    * - Max line length is 100 characters (does not apply to import statements)
    * - Line spacing is 2 spaces
-   * - Javadocs should be properly formatted in accordance to `Javadoc guidelines <https://www.oracle.com/ca-en/technical-resources/articles/java/javadoc-tool.html>`
+   * - Javadocs should be properly formatted in accordance to `Javadoc guidelines <https://www.oracle.com/ca-en/technical-resources/articles/java/javadoc-tool.html>`_
    * - Javadoc format can be maintained by wrapping javadoc with `<pre></pre>` HTML tags
    * - Strings can be formatted on multiple lines with a `+` with the correct indentation for the string.
 
