@@ -50,6 +50,7 @@ public class DataTypeIT extends PPLIntegTestCase {
         schema("text_value", "string"),
         schema("binary_value", "binary"),
         schema("date_value", "timestamp"),
+        schema("date_nanos_value", "timestamp"),
         schema("ip_value", "ip"),
         schema("object_value", "struct"),
         schema("nested_value", "array"),

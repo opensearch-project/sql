@@ -35,6 +35,7 @@ public class OpenSearchDataType implements ExprType, Serializable {
     GeoPoint("geo_point", ExprCoreType.UNKNOWN),
     Binary("binary", ExprCoreType.UNKNOWN),
     Date("date", ExprCoreType.TIMESTAMP),
+    DateNanos("date_nanos", ExprCoreType.TIMESTAMP),
     Object("object", ExprCoreType.STRUCT),
     Nested("nested", ExprCoreType.ARRAY),
     Byte("byte", ExprCoreType.BYTE),
@@ -137,6 +138,7 @@ public class OpenSearchDataType implements ExprType, Serializable {
    * @param mappingType A mapping type.
    * @return An instance or inheritor of `OpenSearchDataType`.
    */
+  @SuppressWarnings("unchecked")
   public static OpenSearchDataType of(MappingType mappingType, Map<String, Object> innerMap) {
     OpenSearchDataType res = instances.getOrDefault(mappingType.toString(),
         new OpenSearchDataType(mappingType)
@@ -162,6 +164,7 @@ public class OpenSearchDataType implements ExprType, Serializable {
       case Binary: return OpenSearchBinaryType.of();
       case Ip: return OpenSearchIpType.of();
       case Date:
+      case DateNanos:
         // Default date formatter is used when "" is passed as the second parameter
         String format = (String) innerMap.getOrDefault("format", "");
         return OpenSearchDateType.of(format);
