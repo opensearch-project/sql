@@ -50,7 +50,7 @@ public class JDBCConnectionTest {
     conn = new JDBCConnection("Test DB", "jdbc:testdb://localhost:12345");
     conn.setConnection(connection);
 
-    when(connection.createStatement()).thenReturn(statement);
+    when(connection.createStatement(anyInt(), anyInt())).thenReturn(statement);
   }
 
   @Test
