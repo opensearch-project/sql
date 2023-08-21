@@ -242,7 +242,8 @@ public class OpenSearchExprValueFactory {
           case DATE:
             return new ExprDateValue(zonedDateTime.withZoneSameLocal(ZoneOffset.UTC).toLocalDate());
           default:
-            return new ExprTimestampValue(zonedDateTime.withZoneSameLocal(ZoneOffset.UTC).toInstant());
+            return new ExprTimestampValue(
+                zonedDateTime.withZoneSameLocal(ZoneOffset.UTC).toInstant());
         }
       } catch (IllegalArgumentException ignored) {
         // nothing to do, try another format
