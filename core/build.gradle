@@ -37,15 +37,6 @@ repositories {
 checkstyleMain.ignoreFailures = true
 checkstyleTest.ignoreFailures = true
 
-pitest {
-    targetClasses = ['org.opensearch.sql.*']
-    pitestVersion = '1.9.0'
-    threads = 4
-    outputFormats = ['HTML', 'XML']
-    timestampedReports = false
-    junit5PluginVersion = '1.0.0'
-}
-
 dependencies {
     api group: 'com.google.guava', name: 'guava', version: '32.0.1-jre'
     api group: 'org.apache.commons', name: 'commons-lang3', version: '3.12.0'
