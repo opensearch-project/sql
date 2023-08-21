@@ -182,17 +182,23 @@ Note that other related project code has already merged into this single reposit
 - ``workbench``: query workbench UI.
 
 
-Code Convention
+Code Convention (Spotless)
 ---------------
 
-We’re integrated Checkstyle plugin into Gradle build: https://github.com/opensearch-project/sql/blob/main/config/checkstyle/google_checks.xml. So any violation will fail the build. You need to identify the offending code from Gradle error message and fix them and rerun the Gradle build. Here are the highlight of some Checkstyle rules:
+Java files are formatted using `Spotless <https://github.com/diffplug/spotless>` conforming to `Google Java Format <https://github.com/google/google-java-format>`.
+   * - New line at end of file
+   * - No unused import statements
+   * - Fix import order to be alphabetical with static imports first (one block for static and one for non-static imports)
+   * - Max line length is 100 characters (does not apply to import statements)
+   * - Line spacing is 2 spaces
+   * - Javadocs should be properly formatted in accordance to `Javadoc guidelines <https://www.oracle.com/ca-en/technical-resources/articles/java/javadoc-tool.html>`
+   * - Javadoc format can be maintained by wrapping javadoc with `<pre></pre>` HTML tags
+   * - Strings can be formatted on multiple lines with a `+` with the correct indentation for the string.
 
-* 2 spaces indentation.
-* No line starts with tab character in source file.
-* Line width <= 100 characters.
-* Wildcard imports: You can enforce single import by configuring your IDE. Instructions for Intellij IDEA: https://www.jetbrains.com/help/idea/creating-and-optimizing-imports.html#disable-wildcard-imports.
-* Operator needs to wrap at next line.
-
+Spotless changes required can be run with:
+`./gradlew spotlessJavaCheck`
+Recommended changes can be applied automatically with:
+`./gradlew spotlessJavaApply`
 
 Building and Running Tests
 ==========================
