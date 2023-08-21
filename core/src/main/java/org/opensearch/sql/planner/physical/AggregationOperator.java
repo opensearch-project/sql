@@ -16,7 +16,6 @@ import org.opensearch.sql.expression.Expression;
 import org.opensearch.sql.expression.NamedExpression;
 import org.opensearch.sql.expression.aggregation.Aggregator;
 import org.opensearch.sql.expression.aggregation.NamedAggregator;
-import org.opensearch.sql.expression.span.SpanExpression;
 import org.opensearch.sql.planner.physical.collector.Collector;
 import org.opensearch.sql.storage.bindingtuple.BindingTuple;
 
