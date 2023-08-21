@@ -9,13 +9,13 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.opensearch.sql.data.type.ExprCoreType.DATE;
-import static org.opensearch.sql.data.type.ExprCoreType.DATETIME;
 import static org.opensearch.sql.data.type.ExprCoreType.TIME;
-import static org.opensearch.sql.utils.DateTimeUtils.UTC_ZONE_ID;
+import static org.opensearch.sql.data.type.ExprCoreType.TIMESTAMP;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.time.ZoneOffset;
 import java.time.ZonedDateTime;
 import java.time.temporal.ChronoUnit;
 import java.time.temporal.Temporal;
@@ -45,7 +45,7 @@ class NowLikeFunctionTest extends ExpressionTestBase {
   void now() {
     test_now_like_functions(
         DSL::now,
-        DATETIME,
+        TIMESTAMP,
         false,
         () -> LocalDateTime.now(functionProperties.getQueryStartClock()));
   }
@@ -54,7 +54,7 @@ class NowLikeFunctionTest extends ExpressionTestBase {
   void current_timestamp() {
     test_now_like_functions(
         DSL::current_timestamp,
-        DATETIME,
+        TIMESTAMP,
         false,
         () -> LocalDateTime.now(functionProperties.getQueryStartClock()));
   }
@@ -63,7 +63,7 @@ class NowLikeFunctionTest extends ExpressionTestBase {
   void localtimestamp() {
     test_now_like_functions(
         DSL::localtimestamp,
-        DATETIME,
+        TIMESTAMP,
         false,
         () -> LocalDateTime.now(functionProperties.getQueryStartClock()));
   }
@@ -72,14 +72,14 @@ class NowLikeFunctionTest extends ExpressionTestBase {
   void localtime() {
     test_now_like_functions(
         DSL::localtime,
-        DATETIME,
+        TIMESTAMP,
         false,
         () -> LocalDateTime.now(functionProperties.getQueryStartClock()));
   }
 
   @Test
   void sysdate() {
-    test_now_like_functions(DSL::sysdate, DATETIME, true, LocalDateTime::now);
+    test_now_like_functions(DSL::sysdate, TIMESTAMP, true, LocalDateTime::now);
   }
 
   @Test
@@ -128,14 +128,14 @@ class NowLikeFunctionTest extends ExpressionTestBase {
   @Test
   void utc_timestamp() {
     test_now_like_functions(
-        DSL::utc_timestamp, DATETIME, false, () -> utcDateTimeNow(functionProperties));
+        DSL::utc_timestamp, TIMESTAMP, false, () -> utcDateTimeNow(functionProperties));
   }
 
   private static LocalDateTime utcDateTimeNow(FunctionProperties functionProperties) {
     ZonedDateTime zonedDateTime =
         LocalDateTime.now(functionProperties.getQueryStartClock())
             .atZone(TimeZone.getDefault().toZoneId());
-    return zonedDateTime.withZoneSameInstant(UTC_ZONE_ID).toLocalDateTime();
+    return zonedDateTime.withZoneSameInstant(ZoneOffset.UTC).toLocalDateTime();
   }
 
   /**
@@ -249,8 +249,8 @@ class NowLikeFunctionTest extends ExpressionTestBase {
     switch ((ExprCoreType) func.type()) {
       case DATE:
         return func.valueOf().dateValue();
-      case DATETIME:
-        return func.valueOf().datetimeValue();
+      case TIMESTAMP:
+        return LocalDateTime.ofInstant(func.valueOf().timestampValue(), ZoneOffset.UTC);
       case TIME:
         return func.valueOf().timeValue();
         // unreachable code

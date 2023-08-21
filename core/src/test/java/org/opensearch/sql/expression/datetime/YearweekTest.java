@@ -19,8 +19,8 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.opensearch.sql.data.model.ExprDateValue;
-import org.opensearch.sql.data.model.ExprDatetimeValue;
 import org.opensearch.sql.data.model.ExprTimeValue;
+import org.opensearch.sql.data.model.ExprTimestampValue;
 import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.exception.SemanticCheckException;
 import org.opensearch.sql.expression.DSL;
@@ -137,7 +137,7 @@ class YearweekTest extends ExpressionTestBase {
     FunctionExpression expression1 =
         DSL.yearweek(
             functionProperties,
-            DSL.literal(new ExprDatetimeValue("2019-01-05 10:11:12")),
+            DSL.literal(new ExprTimestampValue("2019-01-05 10:11:12")),
             DSL.literal(8));
     SemanticCheckException exception =
         assertThrows(SemanticCheckException.class, () -> eval(expression1));
@@ -146,7 +146,7 @@ class YearweekTest extends ExpressionTestBase {
     FunctionExpression expression2 =
         DSL.yearweek(
             functionProperties,
-            DSL.literal(new ExprDatetimeValue("2019-01-05 10:11:12")),
+            DSL.literal(new ExprTimestampValue("2019-01-05 10:11:12")),
             DSL.literal(-1));
     exception = assertThrows(SemanticCheckException.class, () -> eval(expression2));
     assertEquals("mode:-1 is invalid, please use mode value between 0-7", exception.getMessage());

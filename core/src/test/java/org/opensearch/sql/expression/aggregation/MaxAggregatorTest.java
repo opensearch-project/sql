@@ -9,7 +9,6 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.opensearch.sql.data.type.ExprCoreType.DATE;
-import static org.opensearch.sql.data.type.ExprCoreType.DATETIME;
 import static org.opensearch.sql.data.type.ExprCoreType.DOUBLE;
 import static org.opensearch.sql.data.type.ExprCoreType.FLOAT;
 import static org.opensearch.sql.data.type.ExprCoreType.INTEGER;
@@ -60,12 +59,6 @@ public class MaxAggregatorTest extends AggregationTest {
   public void test_max_date() {
     ExprValue result = aggregation(DSL.max(DSL.ref("date_value", DATE)), tuples);
     assertEquals("2040-01-01", result.value());
-  }
-
-  @Test
-  public void test_max_datetime() {
-    ExprValue result = aggregation(DSL.max(DSL.ref("datetime_value", DATETIME)), tuples);
-    assertEquals("2040-01-01 07:00:00", result.value());
   }
 
   @Test

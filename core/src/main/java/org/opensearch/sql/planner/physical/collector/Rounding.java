@@ -6,17 +6,15 @@
 package org.opensearch.sql.planner.physical.collector;
 
 import static org.opensearch.sql.data.type.ExprCoreType.DATE;
-import static org.opensearch.sql.data.type.ExprCoreType.DATETIME;
 import static org.opensearch.sql.data.type.ExprCoreType.DOUBLE;
 import static org.opensearch.sql.data.type.ExprCoreType.LONG;
 import static org.opensearch.sql.data.type.ExprCoreType.TIME;
 import static org.opensearch.sql.data.type.ExprCoreType.TIMESTAMP;
-import static org.opensearch.sql.utils.DateTimeUtils.UTC_ZONE_ID;
 
 import java.time.Instant;
 import java.time.LocalDate;
-import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.time.ZoneOffset;
 import java.time.temporal.ChronoField;
 import java.util.Arrays;
 import java.util.concurrent.TimeUnit;
@@ -24,7 +22,6 @@ import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import org.opensearch.sql.data.model.ExprDateValue;
-import org.opensearch.sql.data.model.ExprDatetimeValue;
 import org.opensearch.sql.data.model.ExprTimeValue;
 import org.opensearch.sql.data.model.ExprTimestampValue;
 import org.opensearch.sql.data.model.ExprValue;
@@ -48,9 +45,6 @@ public abstract class Rounding<T> {
     }
     if (DOUBLE.isCompatible(type)) {
       return new DoubleRounding(interval);
-    }
-    if (type.equals(DATETIME)) {
-      return new DatetimeRounding(interval, span.getUnit().getName());
     }
     if (type.equals(TIMESTAMP)) {
       return new TimestampRounding(interval, span.getUnit().getName());
@@ -84,26 +78,6 @@ public abstract class Rounding<T> {
     }
   }
 
-  static class DatetimeRounding extends Rounding<LocalDateTime> {
-    private final ExprValue interval;
-    private final DateTimeUnit dateTimeUnit;
-
-    public DatetimeRounding(ExprValue interval, String unit) {
-      this.interval = interval;
-      this.dateTimeUnit = DateTimeUnit.resolve(unit);
-    }
-
-    @Override
-    public ExprValue round(ExprValue var) {
-      Instant instant =
-          Instant.ofEpochMilli(
-              dateTimeUnit.round(
-                  var.datetimeValue().atZone(UTC_ZONE_ID).toInstant().toEpochMilli(),
-                  interval.integerValue()));
-      return new ExprDatetimeValue(instant.atZone(UTC_ZONE_ID).toLocalDateTime());
-    }
-  }
-
   static class DateRounding extends Rounding<LocalDate> {
     private final ExprValue interval;
     private final DateTimeUnit dateTimeUnit;
@@ -118,9 +92,9 @@ public abstract class Rounding<T> {
       Instant instant =
           Instant.ofEpochMilli(
               dateTimeUnit.round(
-                  var.dateValue().atStartOfDay().atZone(UTC_ZONE_ID).toInstant().toEpochMilli(),
+                  var.dateValue().atStartOfDay().atZone(ZoneOffset.UTC).toInstant().toEpochMilli(),
                   interval.integerValue()));
-      return new ExprDateValue(instant.atZone(UTC_ZONE_ID).toLocalDate());
+      return new ExprDateValue(instant.atZone(ZoneOffset.UTC).toLocalDate());
     }
   }
 
@@ -144,7 +118,7 @@ public abstract class Rounding<T> {
           Instant.ofEpochMilli(
               dateTimeUnit.round(
                   var.timeValue().getLong(ChronoField.MILLI_OF_DAY), interval.integerValue()));
-      return new ExprTimeValue(instant.atZone(UTC_ZONE_ID).toLocalTime());
+      return new ExprTimeValue(instant.atZone(ZoneOffset.UTC).toLocalTime());
     }
   }
 

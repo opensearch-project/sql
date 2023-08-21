@@ -35,9 +35,8 @@ public class SystemFunctionIT extends SQLIntegTestCase {
             "SELECT"
                 + " typeof(CAST('1961-04-12 09:07:00' AS TIMESTAMP)),"
                 + " typeof(CAST('09:07:00' AS TIME)),"
-                + " typeof(CAST('1961-04-12' AS DATE)),"
-                + " typeof(DATETIME('1961-04-12 09:07:00'))");
-    verifyDataRows(response, rows("TIMESTAMP", "TIME", "DATE", "DATETIME"));
+                + " typeof(CAST('1961-04-12' AS DATE))");
+    verifyDataRows(response, rows("TIMESTAMP", "TIME", "DATE"));
   }
 
   @Test

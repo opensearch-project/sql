@@ -9,7 +9,6 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.opensearch.sql.data.type.ExprCoreType.DATE;
-import static org.opensearch.sql.data.type.ExprCoreType.DATETIME;
 import static org.opensearch.sql.data.type.ExprCoreType.DOUBLE;
 import static org.opensearch.sql.data.type.ExprCoreType.FLOAT;
 import static org.opensearch.sql.data.type.ExprCoreType.INTEGER;
@@ -60,12 +59,6 @@ public class MinAggregatorTest extends AggregationTest {
   public void test_min_date() {
     ExprValue result = aggregation(DSL.min(DSL.ref("date_value", DATE)), tuples);
     assertEquals("1970-01-01", result.value());
-  }
-
-  @Test
-  public void test_min_datetime() {
-    ExprValue result = aggregation(DSL.min(DSL.ref("datetime_value", DATETIME)), tuples);
-    assertEquals("1970-01-01 19:00:00", result.value());
   }
 
   @Test

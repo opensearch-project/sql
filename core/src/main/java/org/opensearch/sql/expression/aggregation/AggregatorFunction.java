@@ -7,7 +7,6 @@ package org.opensearch.sql.expression.aggregation;
 
 import static org.opensearch.sql.data.type.ExprCoreType.ARRAY;
 import static org.opensearch.sql.data.type.ExprCoreType.DATE;
-import static org.opensearch.sql.data.type.ExprCoreType.DATETIME;
 import static org.opensearch.sql.data.type.ExprCoreType.DOUBLE;
 import static org.opensearch.sql.data.type.ExprCoreType.FLOAT;
 import static org.opensearch.sql.data.type.ExprCoreType.INTEGER;
@@ -71,9 +70,6 @@ public class AggregatorFunction {
             .put(
                 new FunctionSignature(functionName, Collections.singletonList(DATE)),
                 (functionProperties, arguments) -> new AvgAggregator(arguments, DATE))
-            .put(
-                new FunctionSignature(functionName, Collections.singletonList(DATETIME)),
-                (functionProperties, arguments) -> new AvgAggregator(arguments, DATETIME))
             .put(
                 new FunctionSignature(functionName, Collections.singletonList(TIME)),
                 (functionProperties, arguments) -> new AvgAggregator(arguments, TIME))
@@ -143,9 +139,6 @@ public class AggregatorFunction {
                 new FunctionSignature(functionName, Collections.singletonList(DATE)),
                 (functionProperties, arguments) -> new MinAggregator(arguments, DATE))
             .put(
-                new FunctionSignature(functionName, Collections.singletonList(DATETIME)),
-                (functionProperties, arguments) -> new MinAggregator(arguments, DATETIME))
-            .put(
                 new FunctionSignature(functionName, Collections.singletonList(TIME)),
                 (functionProperties, arguments) -> new MinAggregator(arguments, TIME))
             .put(
@@ -177,9 +170,6 @@ public class AggregatorFunction {
             .put(
                 new FunctionSignature(functionName, Collections.singletonList(DATE)),
                 (functionProperties, arguments) -> new MaxAggregator(arguments, DATE))
-            .put(
-                new FunctionSignature(functionName, Collections.singletonList(DATETIME)),
-                (functionProperties, arguments) -> new MaxAggregator(arguments, DATETIME))
             .put(
                 new FunctionSignature(functionName, Collections.singletonList(TIME)),
                 (functionProperties, arguments) -> new MaxAggregator(arguments, TIME))

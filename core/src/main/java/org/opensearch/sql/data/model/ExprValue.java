@@ -8,7 +8,6 @@ package org.opensearch.sql.data.model;
 import java.io.Serializable;
 import java.time.Instant;
 import java.time.LocalDate;
-import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.temporal.TemporalAmount;
 import java.util.List;
@@ -131,12 +130,6 @@ public interface ExprValue extends Serializable, Comparable<ExprValue> {
   default LocalDate dateValue() {
     throw new ExpressionEvaluationException(
         "invalid to get dateValue from value of type " + type());
-  }
-
-  /** Get datetime value. */
-  default LocalDateTime datetimeValue() {
-    throw new ExpressionEvaluationException(
-        "invalid to get datetimeValue from value of type " + type());
   }
 
   /** Get interval value. */
