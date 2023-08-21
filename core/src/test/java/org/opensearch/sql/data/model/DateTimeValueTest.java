@@ -124,6 +124,26 @@ public class DateTimeValueTest {
   }
 
   @Test
+  public void stringDateTimeValue() {
+    ExprValue stringValue = new ExprStringValue("2020-08-17 19:44:00");
+
+    assertEquals(
+        LocalDateTime.parse("2020-08-17T19:44:00").atZone(ZoneOffset.UTC).toInstant(),
+        stringValue.timestampValue());
+    assertEquals(LocalDate.parse("2020-08-17"), stringValue.dateValue());
+    assertEquals(LocalTime.parse("19:44:00"), stringValue.timeValue());
+    assertEquals("\"2020-08-17 19:44:00\"", stringValue.toString());
+
+    SemanticCheckException exception =
+        assertThrows(
+            SemanticCheckException.class,
+            () -> new ExprStringValue("2020-07-07T01:01:01Z").timestampValue());
+    assertEquals(
+        "date:2020-07-07T01:01:01Z in unsupported format, " + "please use 'yyyy-MM-dd'",
+        exception.getMessage());
+  }
+
+  @Test
   public void stringDateValue() {
     ExprValue stringValue = new ExprStringValue("2020-08-17");
 
@@ -189,6 +209,29 @@ public class DateTimeValueTest {
       assertEquals(
           LocalDateTime.parse(localDateTime),
           LocalDateTime.ofInstant(timestampValue.timestampValue(), ZoneOffset.UTC));
+    }
+  }
+
+  @Test
+  public void datetimeWithVariableNanoPrecision() {
+    String dateValue = "2020-08-17";
+    String timeWithNanosFormat = "10:11:12.%s";
+
+    // Check all lengths of nanosecond precision, up to max precision accepted
+    StringBuilder nanos = new StringBuilder();
+    for (int nanoPrecision = 1; nanoPrecision <= NANOS_PRECISION_MAX; nanoPrecision++) {
+      nanos.append(nanoPrecision);
+      String timeWithNanos = String.format(timeWithNanosFormat, nanos);
+
+      String datetimeString = String.format("%s %s", dateValue, timeWithNanos);
+      ExprValue datetimeValue = new ExprTimestampValue(datetimeString);
+
+      assertEquals(LocalDate.parse(dateValue), datetimeValue.dateValue());
+      assertEquals(LocalTime.parse(timeWithNanos), datetimeValue.timeValue());
+      String localDateTime = String.format("%sT%s", dateValue, timeWithNanos);
+      assertEquals(
+          LocalDateTime.parse(localDateTime).atZone(ZoneOffset.UTC).toInstant(),
+          datetimeValue.timestampValue());
     }
   }
 
