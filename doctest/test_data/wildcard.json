@@ -1,22 +1,11 @@
-{"index":{"_id":"0"}}
 {"Body":"test wildcard"}
-{"index":{"_id":"1"}}
 {"Body":"test wildcard in the end of the text%"}
-{"index":{"_id":"2"}}
 {"Body":"%test wildcard in the beginning of the text"}
-{"index":{"_id":"3"}}
 {"Body":"test wildcard in % the middle of the text"}
-{"index":{"_id":"4"}}
 {"Body":"test wildcard %% beside each other"}
-{"index":{"_id":"5"}}
 {"Body":"test wildcard in the end of the text_"}
-{"index":{"_id":"6"}}
 {"Body":"_test wildcard in the beginning of the text"}
-{"index":{"_id":"7"}}
 {"Body":"test wildcard in _ the middle of the text"}
-{"index":{"_id":"8"}}
 {"Body":"test wildcard __ beside each other"}
-{"index":{"_id":"9"}}
 {"Body":"test backslash wildcard \\_"}
-{"index":{"_id":"10"}}
 {"Body":"tEsT wIlDcArD sensitive cases"}

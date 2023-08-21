@@ -1,4 +1,2 @@
-{"index":{"_id":"1"}}
 {"message":{"info":"a","author":"e","dayOfWeek":1},"comment":{"data":"ab","likes":3},"myNum":1,"someField":"b"}
-{"index":{"_id":"2"}}
 {"message":{"info":"b","author":"f","dayOfWeek":2},"comment":{"data":"aa","likes":2},"myNum":2,"someField":"a"}
