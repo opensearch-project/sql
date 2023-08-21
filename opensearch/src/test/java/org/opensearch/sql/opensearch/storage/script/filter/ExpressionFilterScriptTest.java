@@ -15,7 +15,6 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 import static org.opensearch.sql.data.type.ExprCoreType.DATE;
-import static org.opensearch.sql.data.type.ExprCoreType.DATETIME;
 import static org.opensearch.sql.data.type.ExprCoreType.FLOAT;
 import static org.opensearch.sql.data.type.ExprCoreType.INTEGER;
 import static org.opensearch.sql.data.type.ExprCoreType.STRING;
@@ -113,15 +112,6 @@ class ExpressionFilterScriptTest {
     assertThat()
         .docValues("birthday", ZonedDateTime.parse("2020-08-04T10:00:00Z"))
         .filterBy(DSL.equal(ref("birthday", TIMESTAMP), new LiteralExpression(ts)))
-        .shouldMatch();
-  }
-
-  @Test
-  void can_execute_expression_with_datetime_field() {
-    ExprTimestampValue ts = new ExprTimestampValue("2020-08-04 10:00:00");
-    assertThat()
-        .docValues("birthday", ZonedDateTime.parse("2020-08-04T10:00:00Z"))
-        .filterBy(DSL.equal(ref("birthday", DATETIME), new LiteralExpression(ts)))
         .shouldMatch();
   }
 

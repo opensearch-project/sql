@@ -20,7 +20,7 @@ public class SearchHitRowTest {
     SearchHit hit = new SearchHit(1);
     hit.sourceRef(new BytesArray("{\"id\": {\"serial\": 3}}"));
     SearchHitRow row = new SearchHitRow(hit, "a");
-    RowKey key = row.key(new String[]{"id.serial"});
+    RowKey key = row.key(new String[] {"id.serial"});
 
     Object[] data = key.keys();
     assertEquals(1, data.length);
@@ -32,7 +32,7 @@ public class SearchHitRowTest {
     SearchHit hit = new SearchHit(1);
     hit.sourceRef(new BytesArray("{\"attributes.hardware.correlate_id\": 10}"));
     SearchHitRow row = new SearchHitRow(hit, "a");
-    RowKey key = row.key(new String[]{"attributes.hardware.correlate_id"});
+    RowKey key = row.key(new String[] {"attributes.hardware.correlate_id"});
 
     Object[] data = key.keys();
     assertEquals(1, data.length);

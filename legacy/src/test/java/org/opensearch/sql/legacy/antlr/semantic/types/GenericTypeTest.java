@@ -3,7 +3,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-
 package org.opensearch.sql.legacy.antlr.semantic.types;
 
 import static java.util.Collections.singletonList;
@@ -19,34 +18,31 @@ import static org.opensearch.sql.legacy.antlr.semantic.types.function.ScalarFunc
 
 import org.junit.Test;
 
-/**
- * Generic type test
- */
+/** Generic type test */
 public class GenericTypeTest {
 
-    @Test
-    public void passNumberArgToLogShouldReturnNumber() {
-        assertEquals(DOUBLE, LOG.construct(singletonList(NUMBER)));
-    }
+  @Test
+  public void passNumberArgToLogShouldReturnNumber() {
+    assertEquals(DOUBLE, LOG.construct(singletonList(NUMBER)));
+  }
 
-    @Test
-    public void passIntegerArgToLogShouldReturnDouble() {
-        assertEquals(DOUBLE, LOG.construct(singletonList(INTEGER)));
-    }
+  @Test
+  public void passIntegerArgToLogShouldReturnDouble() {
+    assertEquals(DOUBLE, LOG.construct(singletonList(INTEGER)));
+  }
 
-    @Test
-    public void passLongArgToLogShouldReturnDouble() {
-        assertEquals(DOUBLE, LOG.construct(singletonList(LONG)));
-    }
+  @Test
+  public void passLongArgToLogShouldReturnDouble() {
+    assertEquals(DOUBLE, LOG.construct(singletonList(LONG)));
+  }
 
-    @Test
-    public void passTextArgToLogShouldReturnTypeError() {
-        assertEquals(TYPE_ERROR, LOG.construct(singletonList(TEXT)));
-    }
+  @Test
+  public void passTextArgToLogShouldReturnTypeError() {
+    assertEquals(TYPE_ERROR, LOG.construct(singletonList(TEXT)));
+  }
 
-    @Test
-    public void passKeywordArgToLogShouldReturnTypeError() {
-        assertEquals(TYPE_ERROR, LOG.construct(singletonList(KEYWORD)));
-    }
-
+  @Test
+  public void passKeywordArgToLogShouldReturnTypeError() {
+    assertEquals(TYPE_ERROR, LOG.construct(singletonList(KEYWORD)));
+  }
 }

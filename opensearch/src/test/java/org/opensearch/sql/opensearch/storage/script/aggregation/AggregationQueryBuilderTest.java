@@ -13,7 +13,6 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doAnswer;
 import static org.opensearch.sql.common.utils.StringUtils.format;
 import static org.opensearch.sql.data.type.ExprCoreType.DATE;
-import static org.opensearch.sql.data.type.ExprCoreType.DATETIME;
 import static org.opensearch.sql.data.type.ExprCoreType.DOUBLE;
 import static org.opensearch.sql.data.type.ExprCoreType.INTEGER;
 import static org.opensearch.sql.data.type.ExprCoreType.STRING;
@@ -148,20 +147,6 @@ class AggregationQueryBuilderTest {
         containsInAnyOrder(
             map("avg(age)", OpenSearchDataType.of(INTEGER)),
             map("name", OpenSearchDataType.of(STRING))));
-  }
-
-  @Test
-  void should_build_type_mapping_for_datetime_type() {
-    assertThat(
-        buildTypeMapping(
-            Arrays.asList(
-                named(
-                    "avg(datetime)",
-                    new AvgAggregator(Arrays.asList(ref("datetime", DATETIME)), DATETIME))),
-            Arrays.asList(named("datetime", ref("datetime", DATETIME)))),
-        containsInAnyOrder(
-            map("avg(datetime)", OpenSearchDateType.of(DATETIME)),
-            map("datetime", OpenSearchDateType.of(DATETIME))));
   }
 
   @Test

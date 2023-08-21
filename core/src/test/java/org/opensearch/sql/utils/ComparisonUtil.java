@@ -10,7 +10,7 @@ import static org.opensearch.sql.data.model.ExprValueUtils.getFloatValue;
 import static org.opensearch.sql.data.model.ExprValueUtils.getIntegerValue;
 import static org.opensearch.sql.data.model.ExprValueUtils.getLongValue;
 import static org.opensearch.sql.data.model.ExprValueUtils.getStringValue;
-import static org.opensearch.sql.utils.DateTimeUtils.extractDateTime;
+import static org.opensearch.sql.utils.DateTimeUtils.extractTimestamp;
 
 import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.data.type.ExprCoreType;
@@ -29,8 +29,8 @@ public class ComparisonUtil {
     } else if (v1.isNull() || v2.isNull()) {
       throw new ExpressionEvaluationException("invalid to call compare operation on null value");
     } else if (v1.type() != v2.type() && v1.isDateTime() && v2.isDateTime()) {
-      return extractDateTime(v1, functionProperties)
-          .compareTo(extractDateTime(v2, functionProperties));
+      return extractTimestamp(v1, functionProperties)
+          .compareTo(extractTimestamp(v2, functionProperties));
     }
     return compare(v1, v2);
   }
@@ -67,8 +67,6 @@ public class ComparisonUtil {
         return v1.timeValue().compareTo(v2.timeValue());
       case DATE:
         return v1.dateValue().compareTo(v2.dateValue());
-      case DATETIME:
-        return v1.datetimeValue().compareTo(v2.datetimeValue());
       case TIMESTAMP:
         return v1.timestampValue().compareTo(v2.timestampValue());
       default:

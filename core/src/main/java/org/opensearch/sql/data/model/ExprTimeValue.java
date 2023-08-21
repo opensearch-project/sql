@@ -7,12 +7,11 @@ package org.opensearch.sql.data.model;
 
 import static java.time.format.DateTimeFormatter.ISO_LOCAL_TIME;
 import static org.opensearch.sql.utils.DateTimeFormatters.DATE_TIME_FORMATTER_VARIABLE_NANOS_OPTIONAL;
-import static org.opensearch.sql.utils.DateTimeUtils.UTC_ZONE_ID;
 
 import java.time.Instant;
 import java.time.LocalDate;
-import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.time.ZoneOffset;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeParseException;
 import java.util.Objects;
@@ -57,12 +56,8 @@ public class ExprTimeValue extends AbstractExprValue {
     return LocalDate.now(functionProperties.getQueryStartClock());
   }
 
-  public LocalDateTime datetimeValue(FunctionProperties functionProperties) {
-    return LocalDateTime.of(dateValue(functionProperties), timeValue());
-  }
-
   public Instant timestampValue(FunctionProperties functionProperties) {
-    return ZonedDateTime.of(dateValue(functionProperties), timeValue(), UTC_ZONE_ID).toInstant();
+    return ZonedDateTime.of(dateValue(functionProperties), timeValue(), ZoneOffset.UTC).toInstant();
   }
 
   @Override

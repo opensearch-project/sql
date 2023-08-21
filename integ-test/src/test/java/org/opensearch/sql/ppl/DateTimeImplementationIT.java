@@ -30,7 +30,7 @@ public class DateTimeImplementationIT extends PPLIntegTestCase {
                 "source=%s | eval f = DATETIME('2008-12-25 05:30:00+00:00', 'America/Los_Angeles')"
                     + " | fields f",
                 TEST_INDEX_DATE));
-    verifySchema(result, schema("f", null, "datetime"));
+    verifySchema(result, schema("f", null, "timestamp"));
     verifySome(result.getJSONArray("datarows"), rows("2008-12-24 21:30:00"));
   }
 
@@ -41,7 +41,7 @@ public class DateTimeImplementationIT extends PPLIntegTestCase {
             String.format(
                 "source=%s | eval f = DATETIME('2008-12-25 05:30:00+00:00', '+01:00') | fields f",
                 TEST_INDEX_DATE));
-    verifySchema(result, schema("f", null, "datetime"));
+    verifySchema(result, schema("f", null, "timestamp"));
     verifySome(result.getJSONArray("datarows"), rows("2008-12-25 06:30:00"));
   }
 
@@ -52,7 +52,7 @@ public class DateTimeImplementationIT extends PPLIntegTestCase {
             String.format(
                 "source=%s | eval f = DATETIME('2008-12-25 05:30:00-05:00', '+05:00') | fields f",
                 TEST_INDEX_DATE));
-    verifySchema(result, schema("f", null, "datetime"));
+    verifySchema(result, schema("f", null, "timestamp"));
     verifySome(result.getJSONArray("datarows"), rows("2008-12-25 15:30:00"));
   }
 
@@ -63,7 +63,7 @@ public class DateTimeImplementationIT extends PPLIntegTestCase {
             String.format(
                 "source=%s | eval f = DATETIME('2004-02-28 23:00:00-10:00', '+10:00') | fields f",
                 TEST_INDEX_DATE));
-    verifySchema(result, schema("f", null, "datetime"));
+    verifySchema(result, schema("f", null, "timestamp"));
     verifySome(result.getJSONArray("datarows"), rows("2004-02-29 19:00:00"));
   }
 
@@ -74,7 +74,7 @@ public class DateTimeImplementationIT extends PPLIntegTestCase {
             String.format(
                 "source=%s | eval f = DATETIME('2008-01-01 02:00:00+10:00', '-10:00') | fields f",
                 TEST_INDEX_DATE));
-    verifySchema(result, schema("f", null, "datetime"));
+    verifySchema(result, schema("f", null, "timestamp"));
     verifySome(result.getJSONArray("datarows"), rows("2007-12-31 06:00:00"));
   }
 
@@ -85,7 +85,7 @@ public class DateTimeImplementationIT extends PPLIntegTestCase {
             String.format(
                 "source=%s | eval f = DATETIME('2008-12-25 05:30:00+00:00', '+14:00') | fields f",
                 TEST_INDEX_DATE));
-    verifySchema(result, schema("f", null, "datetime"));
+    verifySchema(result, schema("f", null, "timestamp"));
     verifySome(result.getJSONArray("datarows"), rows("2008-12-25 19:30:00"));
   }
 
@@ -96,7 +96,7 @@ public class DateTimeImplementationIT extends PPLIntegTestCase {
             String.format(
                 "source=%s | eval f = DATETIME('2008-01-01 02:00:00+10:00') | fields f",
                 TEST_INDEX_DATE));
-    verifySchema(result, schema("f", null, "datetime"));
+    verifySchema(result, schema("f", null, "timestamp"));
     verifySome(result.getJSONArray("datarows"), rows("2008-01-01 02:00:00"));
   }
 
@@ -107,7 +107,7 @@ public class DateTimeImplementationIT extends PPLIntegTestCase {
             String.format(
                 "source=%s | eval f = DATETIME('2008-01-01 02:00:00') | fields f",
                 TEST_INDEX_DATE));
-    verifySchema(result, schema("f", null, "datetime"));
+    verifySchema(result, schema("f", null, "timestamp"));
     verifySome(result.getJSONArray("datarows"), rows("2008-01-01 02:00:00"));
   }
 
@@ -118,7 +118,7 @@ public class DateTimeImplementationIT extends PPLIntegTestCase {
             String.format(
                 "source=%s | eval f = DATETIME('2008-01-01 02:00:00+15:00', '-12:00') | fields f",
                 TEST_INDEX_DATE));
-    verifySchema(result, schema("f", null, "datetime"));
+    verifySchema(result, schema("f", null, "timestamp"));
     verifySome(result.getJSONArray("datarows"), rows(new Object[] {null}));
   }
 
@@ -129,7 +129,7 @@ public class DateTimeImplementationIT extends PPLIntegTestCase {
             String.format(
                 "source=%s | eval f = DATETIME('2008-01-01 02:00:00+10:00', '-14:00') | fields f",
                 TEST_INDEX_DATE));
-    verifySchema(result, schema("f", null, "datetime"));
+    verifySchema(result, schema("f", null, "timestamp"));
     verifySome(result.getJSONArray("datarows"), rows(new Object[] {null}));
   }
 
@@ -140,7 +140,7 @@ public class DateTimeImplementationIT extends PPLIntegTestCase {
             String.format(
                 "source=%s | eval f = DATETIME('2008-01-01 02:00:00', '+15:00') | fields f",
                 TEST_INDEX_DATE));
-    verifySchema(result, schema("f", null, "datetime"));
+    verifySchema(result, schema("f", null, "timestamp"));
     verifySome(result.getJSONArray("datarows"), rows(new Object[] {null}));
   }
 
@@ -151,7 +151,7 @@ public class DateTimeImplementationIT extends PPLIntegTestCase {
             String.format(
                 "source=%s | eval f = DATETIME('2021-02-30 10:00:00') | fields f",
                 TEST_INDEX_DATE));
-    verifySchema(result, schema("f", null, "datetime"));
+    verifySchema(result, schema("f", null, "timestamp"));
     verifySome(result.getJSONArray("datarows"), rows(new Object[] {null}));
   }
 
@@ -162,7 +162,7 @@ public class DateTimeImplementationIT extends PPLIntegTestCase {
             String.format(
                 "source=%s | eval f = DATETIME('2021-04-31 10:00:00') | fields f",
                 TEST_INDEX_DATE));
-    verifySchema(result, schema("f", null, "datetime"));
+    verifySchema(result, schema("f", null, "timestamp"));
     verifySome(result.getJSONArray("datarows"), rows(new Object[] {null}));
   }
 
@@ -173,7 +173,7 @@ public class DateTimeImplementationIT extends PPLIntegTestCase {
             String.format(
                 "source=%s | eval f = DATETIME('2021-13-03 10:00:00') | fields f",
                 TEST_INDEX_DATE));
-    verifySchema(result, schema("f", null, "datetime"));
+    verifySchema(result, schema("f", null, "timestamp"));
     verifySome(result.getJSONArray("datarows"), rows(new Object[] {null}));
   }
 }

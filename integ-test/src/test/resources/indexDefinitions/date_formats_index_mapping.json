@@ -298,7 +298,7 @@
         "format": "yyyy-MM-dd||epoch_millis"
       },
       "hour_minute_second_OR_t_time" : {
-        "type" : "date",
+        "type" : "date_nanos",
         "format": "hour_minute_second||t_time"
       },
       "custom_timestamp" : {

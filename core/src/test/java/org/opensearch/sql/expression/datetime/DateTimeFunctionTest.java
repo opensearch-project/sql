@@ -32,7 +32,6 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.opensearch.sql.data.model.ExprDateValue;
-import org.opensearch.sql.data.model.ExprDatetimeValue;
 import org.opensearch.sql.data.model.ExprDoubleValue;
 import org.opensearch.sql.data.model.ExprIntegerValue;
 import org.opensearch.sql.data.model.ExprLongValue;
@@ -399,10 +398,6 @@ class DateTimeFunctionTest extends ExpressionTestBase {
         Arguments.of(
             DSL.literal(new ExprDateValue("2020-08-07")), "day_of_year(DATE '2020-08-07')", 220),
         Arguments.of(
-            DSL.literal(new ExprDatetimeValue("2020-08-07 12:23:34")),
-            "day_of_year(DATETIME '2020-08-07 12:23:34')",
-            220),
-        Arguments.of(
             DSL.literal(new ExprTimestampValue("2020-08-07 12:23:34")),
             "day_of_year(TIMESTAMP '2020-08-07 12:23:34')",
             220),
@@ -519,11 +514,6 @@ class DateTimeFunctionTest extends ExpressionTestBase {
         Arguments.of("DATE", "ISO", "%Y-%m-%d"),
         Arguments.of("DATE", "EUR", "%d.%m.%Y"),
         Arguments.of("DATE", "INTERNAL", "%Y%m%d"),
-        Arguments.of("DATETIME", "USA", "%Y-%m-%d %H.%i.%s"),
-        Arguments.of("DATETIME", "JIS", "%Y-%m-%d %H:%i:%s"),
-        Arguments.of("DATETIME", "ISO", "%Y-%m-%d %H:%i:%s"),
-        Arguments.of("DATETIME", "EUR", "%Y-%m-%d %H.%i.%s"),
-        Arguments.of("DATETIME", "INTERNAL", "%Y%m%d%H%i%s"),
         Arguments.of("TIME", "USA", "%h:%i:%s %p"),
         Arguments.of("TIME", "JIS", "%H:%i:%s"),
         Arguments.of("TIME", "ISO", "%H:%i:%s"),
@@ -572,11 +562,6 @@ class DateTimeFunctionTest extends ExpressionTestBase {
     assertEquals(integerValue(1), expression.valueOf());
     assertEquals("hour(TIMESTAMP '2020-08-17 01:02:03')", expression.toString());
 
-    expression = DSL.hour(DSL.literal(new ExprDatetimeValue("2020-08-17 01:02:03")));
-    assertEquals(INTEGER, expression.type());
-    assertEquals(integerValue(1), expression.valueOf());
-    assertEquals("hour(DATETIME '2020-08-17 01:02:03')", expression.toString());
-
     expression = DSL.hour(DSL.literal("2020-08-17 01:02:03"));
     assertEquals(INTEGER, expression.type());
     assertEquals(integerValue(1), expression.valueOf());
@@ -617,9 +602,7 @@ class DateTimeFunctionTest extends ExpressionTestBase {
     FunctionExpression expression2 = DSL.hour_of_day(DSL.literal("01:02:03"));
     FunctionExpression expression3 =
         DSL.hour_of_day(DSL.literal(new ExprTimestampValue("2020-08-17 01:02:03")));
-    FunctionExpression expression4 =
-        DSL.hour_of_day(DSL.literal(new ExprDatetimeValue("2020-08-17 01:02:03")));
-    FunctionExpression expression5 = DSL.hour_of_day(DSL.literal("2020-08-17 01:02:03"));
+    FunctionExpression expression4 = DSL.hour_of_day(DSL.literal("2020-08-17 01:02:03"));
 
     assertAll(
         () -> hourOfDayQuery(expression1, 1),
@@ -629,9 +612,7 @@ class DateTimeFunctionTest extends ExpressionTestBase {
         () -> hourOfDayQuery(expression3, 1),
         () -> assertEquals("hour_of_day(TIMESTAMP '2020-08-17 01:02:03')", expression3.toString()),
         () -> hourOfDayQuery(expression4, 1),
-        () -> assertEquals("hour_of_day(DATETIME '2020-08-17 01:02:03')", expression4.toString()),
-        () -> hourOfDayQuery(expression5, 1),
-        () -> assertEquals("hour_of_day(\"2020-08-17 01:02:03\")", expression5.toString()));
+        () -> assertEquals("hour_of_day(\"2020-08-17 01:02:03\")", expression4.toString()));
   }
 
   private void invalidHourOfDayQuery(String time) {
@@ -731,15 +712,10 @@ class DateTimeFunctionTest extends ExpressionTestBase {
     assertEquals(integerValue(120000), eval(expression));
     assertEquals("microsecond(\"01:02:03.12\")", expression.toString());
 
-    expression = DSL.microsecond(DSL.literal(new ExprDatetimeValue("2020-08-17 01:02:03.000010")));
-    assertEquals(INTEGER, expression.type());
-    assertEquals(integerValue(10), expression.valueOf());
-    assertEquals("microsecond(DATETIME '2020-08-17 01:02:03.00001')", expression.toString());
-
-    expression = DSL.microsecond(DSL.literal(new ExprDatetimeValue("2020-08-17 01:02:03.123456")));
+    expression = DSL.microsecond(DSL.literal(new ExprTimestampValue("2020-08-17 01:02:03.123456")));
     assertEquals(INTEGER, expression.type());
     assertEquals(integerValue(123456), expression.valueOf());
-    assertEquals("microsecond(DATETIME '2020-08-17 01:02:03.123456')", expression.toString());
+    assertEquals("microsecond(TIMESTAMP '2020-08-17 01:02:03.123456')", expression.toString());
 
     expression = DSL.microsecond(DSL.literal("2020-08-17 01:02:03.123456"));
     assertEquals(INTEGER, expression.type());
@@ -768,11 +744,6 @@ class DateTimeFunctionTest extends ExpressionTestBase {
     assertEquals(INTEGER, expression.type());
     assertEquals(integerValue(2), expression.valueOf());
     assertEquals("minute(TIMESTAMP '2020-08-17 01:02:03')", expression.toString());
-
-    expression = DSL.minute(DSL.literal(new ExprDatetimeValue("2020-08-17 01:02:03")));
-    assertEquals(INTEGER, expression.type());
-    assertEquals(integerValue(2), expression.valueOf());
-    assertEquals("minute(DATETIME '2020-08-17 01:02:03')", expression.toString());
 
     expression = DSL.minute(DSL.literal("2020-08-17 01:02:03"));
     assertEquals(INTEGER, expression.type());
@@ -803,11 +774,6 @@ class DateTimeFunctionTest extends ExpressionTestBase {
     assertEquals(integerValue(62), expression.valueOf());
     assertEquals("minute_of_day(TIMESTAMP '2020-08-17 01:02:03')", expression.toString());
 
-    expression = DSL.minute_of_day(DSL.literal(new ExprDatetimeValue("2020-08-17 01:02:03")));
-    assertEquals(INTEGER, expression.type());
-    assertEquals(integerValue(62), expression.valueOf());
-    assertEquals("minute_of_day(DATETIME '2020-08-17 01:02:03')", expression.toString());
-
     expression = DSL.minute_of_day(DSL.literal("2020-08-17 01:02:03"));
     assertEquals(INTEGER, expression.type());
     assertEquals(integerValue(62), expression.valueOf());
@@ -833,10 +799,6 @@ class DateTimeFunctionTest extends ExpressionTestBase {
             DSL.literal(new ExprTimestampValue("2020-08-17 01:02:03")),
             2,
             "minute_of_hour(TIMESTAMP '2020-08-17 01:02:03')"),
-        Arguments.of(
-            DSL.literal(new ExprDatetimeValue("2020-08-17 01:02:03")),
-            2,
-            "minute_of_hour(DATETIME '2020-08-17 01:02:03')"),
         Arguments.of(
             DSL.literal("2020-08-17 01:02:03"), 2, "minute_of_hour(\"2020-08-17 01:02:03\")"));
   }
@@ -894,10 +856,6 @@ class DateTimeFunctionTest extends ExpressionTestBase {
     return Stream.of(
         Arguments.of(
             DSL.literal(new ExprDateValue("2020-08-07")), "month_of_year(DATE '2020-08-07')", 8),
-        Arguments.of(
-            DSL.literal(new ExprDatetimeValue("2020-08-07 12:23:34")),
-            "month_of_year(DATETIME '2020-08-07 12:23:34')",
-            8),
         Arguments.of(
             DSL.literal(new ExprTimestampValue("2020-08-07 12:23:34")),
             "month_of_year(TIMESTAMP '2020-08-07 12:23:34')",
@@ -1052,11 +1010,6 @@ class DateTimeFunctionTest extends ExpressionTestBase {
     assertEquals(INTEGER, expression.type());
     assertEquals(integerValue(3), expression.valueOf());
     assertEquals("second(TIMESTAMP '2020-08-17 01:02:03')", expression.toString());
-
-    expression = DSL.second(DSL.literal(new ExprDatetimeValue("2020-08-17 01:02:03")));
-    assertEquals(INTEGER, expression.type());
-    assertEquals(integerValue(3), expression.valueOf());
-    assertEquals("second(DATETIME '2020-08-17 01:02:03')", expression.toString());
   }
 
   private void secondOfMinuteQuery(FunctionExpression dateExpression, int second, String testExpr) {
@@ -1075,11 +1028,7 @@ class DateTimeFunctionTest extends ExpressionTestBase {
         Arguments.of(
             DSL.literal(new ExprTimestampValue("2020-08-17 01:02:03")),
             3,
-            "second_of_minute(TIMESTAMP '2020-08-17 01:02:03')"),
-        Arguments.of(
-            DSL.literal(new ExprDatetimeValue("2020-08-17 01:02:03")),
-            3,
-            "second_of_minute(DATETIME '2020-08-17 01:02:03')"));
+            "second_of_minute(TIMESTAMP '2020-08-17 01:02:03')"));
   }
 
   @ParameterizedTest(name = "{2}")
@@ -1253,10 +1202,6 @@ class DateTimeFunctionTest extends ExpressionTestBase {
   private static Stream<Arguments> getTestDataForWeekFormats() {
     return Stream.of(
         Arguments.of(DSL.literal(new ExprDateValue("2019-01-05")), "DATE '2019-01-05'", 0),
-        Arguments.of(
-            DSL.literal(new ExprDatetimeValue("2019-01-05 01:02:03")),
-            "DATETIME '2019-01-05 01:02:03'",
-            0),
         Arguments.of(
             DSL.literal(new ExprTimestampValue("2019-01-05 01:02:03")),
             "TIMESTAMP '2019-01-05 01:02:03'",

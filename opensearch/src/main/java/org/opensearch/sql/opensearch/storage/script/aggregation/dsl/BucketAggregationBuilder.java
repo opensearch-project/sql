@@ -6,7 +6,6 @@
 package org.opensearch.sql.opensearch.storage.script.aggregation.dsl;
 
 import static org.opensearch.sql.data.type.ExprCoreType.DATE;
-import static org.opensearch.sql.data.type.ExprCoreType.DATETIME;
 import static org.opensearch.sql.data.type.ExprCoreType.TIME;
 import static org.opensearch.sql.data.type.ExprCoreType.TIMESTAMP;
 
@@ -66,7 +65,7 @@ public class BucketAggregationBuilder {
               .missingOrder(missingOrder)
               .order(sortOrder);
       // Time types values are converted to LONG in ExpressionAggregationScript::execute
-      if (List.of(TIMESTAMP, TIME, DATE, DATETIME).contains(expr.getDelegated().type())) {
+      if (List.of(TIMESTAMP, TIME, DATE).contains(expr.getDelegated().type())) {
         sourceBuilder.userValuetypeHint(ValueType.LONG);
       }
       return helper.build(expr.getDelegated(), sourceBuilder::field, sourceBuilder::script);

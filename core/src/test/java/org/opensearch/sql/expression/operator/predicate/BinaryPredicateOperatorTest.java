@@ -18,7 +18,6 @@ import static org.opensearch.sql.data.model.ExprValueUtils.booleanValue;
 import static org.opensearch.sql.data.model.ExprValueUtils.fromObjectValue;
 import static org.opensearch.sql.data.type.ExprCoreType.ARRAY;
 import static org.opensearch.sql.data.type.ExprCoreType.BOOLEAN;
-import static org.opensearch.sql.data.type.ExprCoreType.DATETIME;
 import static org.opensearch.sql.data.type.ExprCoreType.INTEGER;
 import static org.opensearch.sql.data.type.ExprCoreType.STRUCT;
 import static org.opensearch.sql.data.type.ExprCoreType.TIMESTAMP;
@@ -472,11 +471,10 @@ class BinaryPredicateOperatorTest extends ExpressionTestBase {
     if (v1.type() == v2.type()) {
       assertEquals(String.format("%s(%s, %s)", function, v1, v2), functionExpression.toString());
     } else {
-      var widerType = v1.type() == TIMESTAMP || v2.type() == TIMESTAMP ? TIMESTAMP : DATETIME;
       assertEquals(
           String.format(
               "%s(%s, %s)",
-              function, getExpectedStringRepr(widerType, v1), getExpectedStringRepr(widerType, v2)),
+              function, getExpectedStringRepr(TIMESTAMP, v1), getExpectedStringRepr(TIMESTAMP, v2)),
           functionExpression.toString());
     }
   }

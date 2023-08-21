@@ -10,7 +10,6 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.opensearch.sql.data.type.ExprCoreType.ARRAY;
 import static org.opensearch.sql.data.type.ExprCoreType.BOOLEAN;
 import static org.opensearch.sql.data.type.ExprCoreType.DATE;
-import static org.opensearch.sql.data.type.ExprCoreType.DATETIME;
 import static org.opensearch.sql.data.type.ExprCoreType.DOUBLE;
 import static org.opensearch.sql.data.type.ExprCoreType.FLOAT;
 import static org.opensearch.sql.data.type.ExprCoreType.INTEGER;
@@ -60,12 +59,6 @@ class CountAggregatorTest extends AggregationTest {
   @Test
   public void count_timestamp_field_expression() {
     ExprValue result = aggregation(DSL.count(DSL.ref("timestamp_value", TIMESTAMP)), tuples);
-    assertEquals(4, result.value());
-  }
-
-  @Test
-  public void count_datetime_field_expression() {
-    ExprValue result = aggregation(DSL.count(DSL.ref("datetime_value", DATETIME)), tuples);
     assertEquals(4, result.value());
   }
 
