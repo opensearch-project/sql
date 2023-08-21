@@ -3,7 +3,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-
 package org.opensearch.sql.opensearch.storage;
 
 import static org.opensearch.sql.utils.SystemIndexUtils.isSystemIndex;
@@ -22,10 +21,9 @@ import org.opensearch.sql.storage.Table;
 public class OpenSearchStorageEngine implements StorageEngine {
 
   /** OpenSearch client connection. */
-  @Getter
-  private final OpenSearchClient client;
-  @Getter
-  private final Settings settings;
+  @Getter private final OpenSearchClient client;
+
+  @Getter private final Settings settings;
 
   @Override
   public Table getTable(DataSourceSchemaName dataSourceSchemaName, String name) {

@@ -1,6 +1,5 @@
 package org.opensearch.sql.opensearch.storage.scan;
 
-
 import static org.junit.jupiter.api.Assertions.assertAll;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.mockito.Mockito.mock;
@@ -21,12 +20,13 @@ import org.opensearch.sql.planner.logical.LogicalSort;
 class PushDownQueryBuilderTest {
   @Test
   void default_implementations() {
-    var sample = new PushDownQueryBuilder() {
-      @Override
-      public OpenSearchRequestBuilder build() {
-        return null;
-      }
-    };
+    var sample =
+        new PushDownQueryBuilder() {
+          @Override
+          public OpenSearchRequestBuilder build() {
+            return null;
+          }
+        };
     assertAll(
         () -> assertFalse(sample.pushDownFilter(mock(LogicalFilter.class))),
         () -> assertFalse(sample.pushDownProject(mock(LogicalProject.class))),
@@ -34,9 +34,6 @@ class PushDownQueryBuilderTest {
         () -> assertFalse(sample.pushDownSort(mock(LogicalSort.class))),
         () -> assertFalse(sample.pushDownNested(mock(LogicalNested.class))),
         () -> assertFalse(sample.pushDownLimit(mock(LogicalLimit.class))),
-        () -> assertFalse(sample.pushDownPageSize(mock(LogicalPaginate.class)))
-
-    );
+        () -> assertFalse(sample.pushDownPageSize(mock(LogicalPaginate.class))));
   }
-
 }

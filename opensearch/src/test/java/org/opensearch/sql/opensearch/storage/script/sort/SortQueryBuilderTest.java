@@ -3,7 +3,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-
 package org.opensearch.sql.opensearch.storage.script.sort;
 
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -32,10 +31,7 @@ class SortQueryBuilderTest {
   void build_sortbuilder_from_nested_function() {
     assertNotNull(
         sortQueryBuilder.build(
-            DSL.nested(DSL.ref("message.info", STRING)),
-            Sort.SortOption.DEFAULT_ASC
-        )
-    );
+            DSL.nested(DSL.ref("message.info", STRING)), Sort.SortOption.DEFAULT_ASC));
   }
 
   @Test
@@ -43,63 +39,56 @@ class SortQueryBuilderTest {
     assertNotNull(
         sortQueryBuilder.build(
             DSL.nested(DSL.ref("message.info", STRING), DSL.ref("message", STRING)),
-            Sort.SortOption.DEFAULT_ASC
-        )
-    );
+            Sort.SortOption.DEFAULT_ASC));
   }
 
   @Test
   void nested_with_too_many_args_throws_exception() {
     assertThrows(
         IllegalArgumentException.class,
-        () -> sortQueryBuilder.build(
-            DSL.nested(
-                DSL.ref("message.info", STRING),
-                DSL.ref("message", STRING),
-                DSL.ref("message", STRING)
-            ),
-            Sort.SortOption.DEFAULT_ASC
-        )
-    );
+        () ->
+            sortQueryBuilder.build(
+                DSL.nested(
+                    DSL.ref("message.info", STRING),
+                    DSL.ref("message", STRING),
+                    DSL.ref("message", STRING)),
+                Sort.SortOption.DEFAULT_ASC));
   }
 
   @Test
   void nested_with_too_few_args_throws_exception() {
     assertThrows(
         IllegalArgumentException.class,
-        () -> sortQueryBuilder.build(
-            DSL.nested(),
-            Sort.SortOption.DEFAULT_ASC
-        )
-    );
+        () -> sortQueryBuilder.build(DSL.nested(), Sort.SortOption.DEFAULT_ASC));
   }
 
   @Test
   void nested_with_invalid_arg_type_throws_exception() {
     assertThrows(
         IllegalArgumentException.class,
-        () -> sortQueryBuilder.build(
-            DSL.nested(
-                DSL.literal(1)
-            ),
-            Sort.SortOption.DEFAULT_ASC
-        )
-    );
+        () -> sortQueryBuilder.build(DSL.nested(DSL.literal(1)), Sort.SortOption.DEFAULT_ASC));
   }
 
   @Test
   void build_sortbuilder_from_expression_should_throw_exception() {
     final IllegalStateException exception =
-        assertThrows(IllegalStateException.class, () -> sortQueryBuilder.build(
-            new LiteralExpression(new ExprShortValue(1)), Sort.SortOption.DEFAULT_ASC));
+        assertThrows(
+            IllegalStateException.class,
+            () ->
+                sortQueryBuilder.build(
+                    new LiteralExpression(new ExprShortValue(1)), Sort.SortOption.DEFAULT_ASC));
     assertThat(exception.getMessage(), Matchers.containsString("unsupported expression"));
   }
 
   @Test
   void build_sortbuilder_from_function_should_throw_exception() {
     final IllegalStateException exception =
-        assertThrows(IllegalStateException.class, () -> sortQueryBuilder.build(DSL.equal(DSL.ref(
-            "intV", INTEGER), DSL.literal(1)), Sort.SortOption.DEFAULT_ASC));
+        assertThrows(
+            IllegalStateException.class,
+            () ->
+                sortQueryBuilder.build(
+                    DSL.equal(DSL.ref("intV", INTEGER), DSL.literal(1)),
+                    Sort.SortOption.DEFAULT_ASC));
     assertThat(exception.getMessage(), Matchers.containsString("unsupported expression"));
   }
 }

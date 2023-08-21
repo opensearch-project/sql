@@ -3,7 +3,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-
 package org.opensearch.sql.opensearch.data.utils;
 
 import com.fasterxml.jackson.databind.node.ArrayNode;
@@ -15,17 +14,15 @@ import java.util.function.Function;
 import lombok.RequiredArgsConstructor;
 import org.apache.commons.lang3.tuple.Pair;
 
-/**
- * The Implementation of Content to represent {@link Object}.
- */
+/** The Implementation of Content to represent {@link Object}. */
 @RequiredArgsConstructor
 public class ObjectContent implements Content {
 
   private final Object value;
 
   /**
-   * The parse method parses the value as double value,
-   * since the key values histogram buckets are defaulted to double.
+   * The parse method parses the value as double value, since the key values histogram buckets are
+   * defaulted to double.
    */
   @Override
   public Integer intValue() {
@@ -81,11 +78,14 @@ public class ObjectContent implements Content {
   @SuppressWarnings("unchecked")
   @Override
   public Iterator<Map.Entry<String, Content>> map() {
-    return ((Map<String, Object>) value).entrySet().stream()
-        .map(entry -> (Map.Entry<String, Content>) new AbstractMap.SimpleEntry<String, Content>(
-            entry.getKey(),
-            new ObjectContent(entry.getValue())))
-        .iterator();
+    return ((Map<String, Object>) value)
+        .entrySet().stream()
+            .map(
+                entry ->
+                    (Map.Entry<String, Content>)
+                        new AbstractMap.SimpleEntry<String, Content>(
+                            entry.getKey(), new ObjectContent(entry.getValue())))
+            .iterator();
   }
 
   @SuppressWarnings("unchecked")
@@ -140,8 +140,8 @@ public class ObjectContent implements Content {
     return Pair.of(Double.valueOf(split[0]), Double.valueOf(split[1]));
   }
 
-  private <T> T parseNumberValue(Object value, Function<String, T> stringTFunction,
-                                 Function<Number, T> numberTFunction) {
+  private <T> T parseNumberValue(
+      Object value, Function<String, T> stringTFunction, Function<Number, T> numberTFunction) {
     if (value instanceof String) {
       return stringTFunction.apply((String) value);
     } else {

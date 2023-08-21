@@ -47,10 +47,8 @@ class OpenSearchDateTypeTest {
 
   private static final OpenSearchDateType defaultDateType =
       OpenSearchDateType.of(defaultFormatString);
-  private static final OpenSearchDateType dateDateType =
-      OpenSearchDateType.of(dateFormatString);
-  private static final OpenSearchDateType timeDateType =
-      OpenSearchDateType.of(timeFormatString);
+  private static final OpenSearchDateType dateDateType = OpenSearchDateType.of(dateFormatString);
+  private static final OpenSearchDateType timeDateType = OpenSearchDateType.of(timeFormatString);
   private static final OpenSearchDateType datetimeDateType =
       OpenSearchDateType.of(datetimeFormatString);
 
@@ -79,8 +77,7 @@ class OpenSearchDateTypeTest {
         () -> assertFalse(DATE.isCompatible(defaultDateType)),
         () -> assertTrue(DATE.isCompatible(dateDateType)),
         () -> assertFalse(DATE.isCompatible(timeDateType)),
-        () -> assertFalse(DATE.isCompatible(datetimeDateType))
-    );
+        () -> assertFalse(DATE.isCompatible(datetimeDateType)));
   }
 
   // `typeName` and `legacyTypeName` return the same thing for date objects:
@@ -92,8 +89,7 @@ class OpenSearchDateTypeTest {
         () -> assertEquals("DATE", defaultDateType.typeName()),
         () -> assertEquals("DATE", timeDateType.typeName()),
         () -> assertEquals("DATE", dateDateType.typeName()),
-        () -> assertEquals("DATE", datetimeDateType.typeName())
-    );
+        () -> assertEquals("DATE", datetimeDateType.typeName()));
   }
 
   @Test
@@ -103,8 +99,7 @@ class OpenSearchDateTypeTest {
         () -> assertEquals("DATE", defaultDateType.legacyTypeName()),
         () -> assertEquals("DATE", timeDateType.legacyTypeName()),
         () -> assertEquals("DATE", dateDateType.legacyTypeName()),
-        () -> assertEquals("DATE", datetimeDateType.legacyTypeName())
-    );
+        () -> assertEquals("DATE", datetimeDateType.legacyTypeName()));
   }
 
   @Test
@@ -114,8 +109,7 @@ class OpenSearchDateTypeTest {
         () -> assertEquals(TIMESTAMP, defaultDateType.getExprType()),
         () -> assertEquals(TIME, timeDateType.getExprType()),
         () -> assertEquals(DATE, dateDateType.getExprType()),
-        () -> assertEquals(TIMESTAMP, datetimeDateType.getExprType())
-    );
+        () -> assertEquals(TIMESTAMP, datetimeDateType.getExprType()));
   }
 
   private static Stream<Arguments> getAllSupportedFormats() {
@@ -125,11 +119,12 @@ class OpenSearchDateTypeTest {
   @ParameterizedTest
   @MethodSource("getAllSupportedFormats")
   public void check_supported_format_names_coverage(FormatNames formatName) {
-    assertTrue(SUPPORTED_NAMED_NUMERIC_FORMATS.contains(formatName)
-          || SUPPORTED_NAMED_DATETIME_FORMATS.contains(formatName)
-          || SUPPORTED_NAMED_DATE_FORMATS.contains(formatName)
-          || SUPPORTED_NAMED_TIME_FORMATS.contains(formatName)
-          || SUPPORTED_NAMED_INCOMPLETE_DATE_FORMATS.contains(formatName),
+    assertTrue(
+        SUPPORTED_NAMED_NUMERIC_FORMATS.contains(formatName)
+            || SUPPORTED_NAMED_DATETIME_FORMATS.contains(formatName)
+            || SUPPORTED_NAMED_DATE_FORMATS.contains(formatName)
+            || SUPPORTED_NAMED_TIME_FORMATS.contains(formatName)
+            || SUPPORTED_NAMED_INCOMPLETE_DATE_FORMATS.contains(formatName),
         formatName + " not supported");
   }
 
@@ -142,17 +137,24 @@ class OpenSearchDateTypeTest {
   public void check_datetime_format_names(FormatNames datetimeFormat) {
     String camelCaseName = datetimeFormat.getCamelCaseName();
     if (camelCaseName != null && !camelCaseName.isEmpty()) {
-      OpenSearchDateType dateType =
-          OpenSearchDateType.of(camelCaseName);
-      assertSame(dateType.getExprType(), TIMESTAMP, camelCaseName
-          + " does not format to a TIMESTAMP type, instead got " + dateType.getExprType());
+      OpenSearchDateType dateType = OpenSearchDateType.of(camelCaseName);
+      assertSame(
+          dateType.getExprType(),
+          TIMESTAMP,
+          camelCaseName
+              + " does not format to a TIMESTAMP type, instead got "
+              + dateType.getExprType());
     }
 
     String snakeCaseName = datetimeFormat.getSnakeCaseName();
     if (snakeCaseName != null && !snakeCaseName.isEmpty()) {
       OpenSearchDateType dateType = OpenSearchDateType.of(snakeCaseName);
-      assertSame(dateType.getExprType(), TIMESTAMP, snakeCaseName
-          + " does not format to a TIMESTAMP type, instead got " + dateType.getExprType());
+      assertSame(
+          dateType.getExprType(),
+          TIMESTAMP,
+          snakeCaseName
+              + " does not format to a TIMESTAMP type, instead got "
+              + dateType.getExprType());
     } else {
       fail();
     }
@@ -168,15 +170,19 @@ class OpenSearchDateTypeTest {
     String camelCaseName = dateFormat.getCamelCaseName();
     if (camelCaseName != null && !camelCaseName.isEmpty()) {
       OpenSearchDateType dateType = OpenSearchDateType.of(camelCaseName);
-      assertSame(dateType.getExprType(), DATE, camelCaseName
-          + " does not format to a DATE type, instead got " + dateType.getExprType());
+      assertSame(
+          dateType.getExprType(),
+          DATE,
+          camelCaseName + " does not format to a DATE type, instead got " + dateType.getExprType());
     }
 
     String snakeCaseName = dateFormat.getSnakeCaseName();
     if (snakeCaseName != null && !snakeCaseName.isEmpty()) {
       OpenSearchDateType dateType = OpenSearchDateType.of(snakeCaseName);
-      assertSame(dateType.getExprType(), DATE, snakeCaseName
-          + " does not format to a DATE type, instead got " + dateType.getExprType());
+      assertSame(
+          dateType.getExprType(),
+          DATE,
+          snakeCaseName + " does not format to a DATE type, instead got " + dateType.getExprType());
     } else {
       fail();
     }
@@ -192,15 +198,19 @@ class OpenSearchDateTypeTest {
     String camelCaseName = timeFormat.getCamelCaseName();
     if (camelCaseName != null && !camelCaseName.isEmpty()) {
       OpenSearchDateType dateType = OpenSearchDateType.of(camelCaseName);
-      assertSame(dateType.getExprType(), TIME, camelCaseName
-          + " does not format to a TIME type, instead got " + dateType.getExprType());
+      assertSame(
+          dateType.getExprType(),
+          TIME,
+          camelCaseName + " does not format to a TIME type, instead got " + dateType.getExprType());
     }
 
     String snakeCaseName = timeFormat.getSnakeCaseName();
     if (snakeCaseName != null && !snakeCaseName.isEmpty()) {
       OpenSearchDateType dateType = OpenSearchDateType.of(snakeCaseName);
-      assertSame(dateType.getExprType(), TIME, snakeCaseName
-          + " does not format to a TIME type, instead got " + dateType.getExprType());
+      assertSame(
+          dateType.getExprType(),
+          TIME,
+          snakeCaseName + " does not format to a TIME type, instead got " + dateType.getExprType());
     } else {
       fail();
     }
@@ -237,8 +247,7 @@ class OpenSearchDateTypeTest {
         // D - day of year, N - nano of day
         Arguments.of(TIMESTAMP, List.of("dd.MM.yyyy N", "uuuu:D:HH:mm"), "custom datetime"),
         Arguments.of(DATE, List.of("dd.MM.yyyy", "uuuu:D"), "custom date"),
-        Arguments.of(TIME, List.of("HH:mm", "N"), "custom time")
-    );
+        Arguments.of(TIME, List.of("HH:mm", "N"), "custom time"));
   }
 
   @ParameterizedTest(name = "[{index}] {2}")
@@ -258,7 +267,6 @@ class OpenSearchDateTypeTest {
   @Test
   public void check_if_date_type_compatible() {
     assertTrue(isDateTypeCompatible(DATE));
-    assertFalse(isDateTypeCompatible(OpenSearchDataType.of(
-        OpenSearchDataType.MappingType.Text)));
+    assertFalse(isDateTypeCompatible(OpenSearchDataType.of(OpenSearchDataType.MappingType.Text)));
   }
 }

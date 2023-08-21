@@ -24,9 +24,7 @@ import lombok.RequiredArgsConstructor;
 import org.opensearch.search.aggregations.Aggregation;
 import org.opensearch.search.aggregations.metrics.ExtendedStats;
 
-/**
- * {@link ExtendedStats} metric parser.
- */
+/** {@link ExtendedStats} metric parser. */
 @EqualsAndHashCode
 @RequiredArgsConstructor
 public class StatsParser implements MetricParser {

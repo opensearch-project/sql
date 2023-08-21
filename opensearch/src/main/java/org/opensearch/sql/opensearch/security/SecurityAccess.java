@@ -3,7 +3,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-
 package org.opensearch.sql.opensearch.security;
 
 import java.security.AccessController;
@@ -17,9 +16,7 @@ import org.opensearch.SpecialPermission;
  */
 public class SecurityAccess {
 
-  /**
-   * Execute the operation in privileged mode.
-   */
+  /** Execute the operation in privileged mode. */
   public static <T> T doPrivileged(final PrivilegedExceptionAction<T> operation) {
     SpecialPermission.check();
     try {

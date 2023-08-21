@@ -3,7 +3,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-
 package org.opensearch.sql.opensearch.executor.protector;
 
 import static java.util.Collections.emptyList;
@@ -74,17 +73,13 @@ import org.opensearch.sql.planner.physical.PhysicalPlanDSL;
 @DisplayNameGeneration(DisplayNameGenerator.ReplaceUnderscores.class)
 class OpenSearchExecutionProtectorTest {
 
-  @Mock
-  private OpenSearchClient client;
+  @Mock private OpenSearchClient client;
 
-  @Mock
-  private ResourceMonitor resourceMonitor;
+  @Mock private ResourceMonitor resourceMonitor;
 
-  @Mock
-  private OpenSearchExprValueFactory exprValueFactory;
+  @Mock private OpenSearchExprValueFactory exprValueFactory;
 
-  @Mock
-  private OpenSearchSettings settings;
+  @Mock private OpenSearchSettings settings;
 
   private OpenSearchExecutionProtector executionProtector;
 
@@ -106,8 +101,7 @@ class OpenSearchExecutionProtectorTest {
     Expression filterExpr = literal(ExprBooleanValue.of(true));
     List<NamedExpression> groupByExprs = List.of(named("age", ref("age", INTEGER)));
     List<NamedAggregator> aggregators =
-        List.of(named("avg(age)", new AvgAggregator(List.of(ref("age", INTEGER)),
-        DOUBLE)));
+        List.of(named("avg(age)", new AvgAggregator(List.of(ref("age", INTEGER)), DOUBLE)));
     Map<ReferenceExpression, ReferenceExpression> mappings =
         ImmutableMap.of(ref("name", STRING), ref("lastname", STRING));
     Pair<ReferenceExpression, Expression> newEvalField =
@@ -118,9 +112,12 @@ class OpenSearchExecutionProtectorTest {
     Integer offset = 10;
 
     final var name = new OpenSearchRequest.IndexName(indexName);
-    final var request = new OpenSearchRequestBuilder(querySizeLimit, exprValueFactory)
-        .build(name, maxResultWindow,
-            settings.getSettingValue(Settings.Key.SQL_CURSOR_KEEP_ALIVE));
+    final var request =
+        new OpenSearchRequestBuilder(querySizeLimit, exprValueFactory)
+            .build(
+                name,
+                maxResultWindow,
+                settings.getSettingValue(Settings.Key.SQL_CURSOR_KEEP_ALIVE));
     assertEquals(
         PhysicalPlanDSL.project(
             PhysicalPlanDSL.limit(
@@ -134,8 +131,8 @@ class OpenSearchExecutionProtectorTest {
                                             PhysicalPlanDSL.agg(
                                                 filter(
                                                     resourceMonitor(
-                                                      new OpenSearchIndexScan(client,
-                                                        maxResultWindow, request)),
+                                                        new OpenSearchIndexScan(
+                                                            client, maxResultWindow, request)),
                                                     filterExpr),
                                                 aggregators,
                                                 groupByExprs),
@@ -161,8 +158,8 @@ class OpenSearchExecutionProtectorTest {
                                         PhysicalPlanDSL.rename(
                                             PhysicalPlanDSL.agg(
                                                 filter(
-                                                  new OpenSearchIndexScan(client,
-                                                    maxResultWindow, request),
+                                                    new OpenSearchIndexScan(
+                                                        client, maxResultWindow, request),
                                                     filterExpr),
                                                 aggregators,
                                                 groupByExprs),
@@ -189,21 +186,9 @@ class OpenSearchExecutionProtectorTest {
         new WindowDefinition(emptyList(), ImmutableList.of(sortItem));
 
     assertEquals(
-        window(
-            resourceMonitor(
-                sort(
-                    values(emptyList()),
-                    sortItem)),
-            rank,
-            windowDefinition),
+        window(resourceMonitor(sort(values(emptyList()), sortItem)), rank, windowDefinition),
         executionProtector.protect(
-            window(
-                sort(
-                    values(emptyList()),
-                    sortItem
-                ),
-                rank,
-                windowDefinition)));
+            window(sort(values(emptyList()), sortItem), rank, windowDefinition)));
   }
 
   @Test
@@ -212,16 +197,8 @@ class OpenSearchExecutionProtectorTest {
     WindowDefinition windowDefinition = mock(WindowDefinition.class);
 
     assertEquals(
-        window(
-            resourceMonitor(
-                values()),
-            avg,
-            windowDefinition),
-        executionProtector.protect(
-            window(
-                values(),
-                avg,
-                windowDefinition)));
+        window(resourceMonitor(values()), avg, windowDefinition),
+        executionProtector.protect(window(values(), avg, windowDefinition)));
   }
 
   @SuppressWarnings("unchecked")
@@ -234,20 +211,9 @@ class OpenSearchExecutionProtectorTest {
         new WindowDefinition(emptyList(), ImmutableList.of(sortItem));
 
     assertEquals(
-        window(
-            resourceMonitor(
-                sort(
-                    values(emptyList()),
-                    sortItem)),
-            avg,
-            windowDefinition),
+        window(resourceMonitor(sort(values(emptyList()), sortItem)), avg, windowDefinition),
         executionProtector.protect(
-            window(
-                sort(
-                    values(emptyList()),
-                    sortItem),
-                avg,
-                windowDefinition)));
+            window(sort(values(emptyList()), sortItem), avg, windowDefinition)));
   }
 
   @Test
@@ -255,85 +221,80 @@ class OpenSearchExecutionProtectorTest {
     Expression filterExpr = literal(ExprBooleanValue.of(true));
 
     assertEquals(
-        filter(
-            filter(null, filterExpr),
-            filterExpr),
-        executionProtector.protect(
-            filter(
-                filter(null, filterExpr),
-                filterExpr)
-        )
-    );
+        filter(filter(null, filterExpr), filterExpr),
+        executionProtector.protect(filter(filter(null, filterExpr), filterExpr)));
   }
 
   @Test
   void test_visitMLcommons() {
     NodeClient nodeClient = mock(NodeClient.class);
     MLCommonsOperator mlCommonsOperator =
-            new MLCommonsOperator(
-              values(emptyList()), "kmeans",
-                new HashMap<String, Literal>() {{
-                  put("centroids", new Literal(3, DataType.INTEGER));
-                  put("iterations", new Literal(2, DataType.INTEGER));
-                  put("distance_type", new Literal(null, DataType.STRING));
-                }},
-                nodeClient
-            );
+        new MLCommonsOperator(
+            values(emptyList()),
+            "kmeans",
+            new HashMap<String, Literal>() {
+              {
+                put("centroids", new Literal(3, DataType.INTEGER));
+                put("iterations", new Literal(2, DataType.INTEGER));
+                put("distance_type", new Literal(null, DataType.STRING));
+              }
+            },
+            nodeClient);
 
-    assertEquals(executionProtector.doProtect(mlCommonsOperator),
-            executionProtector.visitMLCommons(mlCommonsOperator, null));
+    assertEquals(
+        executionProtector.doProtect(mlCommonsOperator),
+        executionProtector.visitMLCommons(mlCommonsOperator, null));
   }
 
   @Test
   void test_visitAD() {
     NodeClient nodeClient = mock(NodeClient.class);
     ADOperator adOperator =
-            new ADOperator(
-                values(emptyList()),
-                new HashMap<String, Literal>() {{
-                  put("shingle_size", new Literal(8, DataType.INTEGER));
-                  put("time_decay", new Literal(0.0001, DataType.DOUBLE));
-                  put("time_field", new Literal(null, DataType.STRING));
-                }},
-                nodeClient
-            );
+        new ADOperator(
+            values(emptyList()),
+            new HashMap<String, Literal>() {
+              {
+                put("shingle_size", new Literal(8, DataType.INTEGER));
+                put("time_decay", new Literal(0.0001, DataType.DOUBLE));
+                put("time_field", new Literal(null, DataType.STRING));
+              }
+            },
+            nodeClient);
 
-    assertEquals(executionProtector.doProtect(adOperator),
-            executionProtector.visitAD(adOperator, null));
+    assertEquals(
+        executionProtector.doProtect(adOperator), executionProtector.visitAD(adOperator, null));
   }
 
   @Test
   void test_visitML() {
     NodeClient nodeClient = mock(NodeClient.class);
     MLOperator mlOperator =
-            new MLOperator(
-                values(emptyList()),
-                new HashMap<String, Literal>() {{
-                  put("action", new Literal("train", DataType.STRING));
-                  put("algorithm", new Literal("rcf", DataType.STRING));
-                  put("shingle_size", new Literal(8, DataType.INTEGER));
-                  put("time_decay", new Literal(0.0001, DataType.DOUBLE));
-                  put("time_field", new Literal(null, DataType.STRING));
-                }},
-                nodeClient
-            );
+        new MLOperator(
+            values(emptyList()),
+            new HashMap<String, Literal>() {
+              {
+                put("action", new Literal("train", DataType.STRING));
+                put("algorithm", new Literal("rcf", DataType.STRING));
+                put("shingle_size", new Literal(8, DataType.INTEGER));
+                put("time_decay", new Literal(0.0001, DataType.DOUBLE));
+                put("time_field", new Literal(null, DataType.STRING));
+              }
+            },
+            nodeClient);
 
-    assertEquals(executionProtector.doProtect(mlOperator),
-            executionProtector.visitML(mlOperator, null));
+    assertEquals(
+        executionProtector.doProtect(mlOperator), executionProtector.visitML(mlOperator, null));
   }
 
   @Test
   void test_visitNested() {
     Set<String> args = Set.of("message.info");
-    Map<String, List<String>> groupedFieldsByPath =
-        Map.of("message", List.of("message.info"));
+    Map<String, List<String>> groupedFieldsByPath = Map.of("message", List.of("message.info"));
     NestedOperator nestedOperator =
-        new NestedOperator(
-            values(emptyList()),
-            args,
-            groupedFieldsByPath);
+        new NestedOperator(values(emptyList()), args, groupedFieldsByPath);
 
-    assertEquals(executionProtector.doProtect(nestedOperator),
+    assertEquals(
+        executionProtector.doProtect(nestedOperator),
         executionProtector.visitNested(nestedOperator, values(emptyList())));
   }
 

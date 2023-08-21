@@ -3,7 +3,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-
 package org.opensearch.sql.opensearch.storage.script.aggregation;
 
 import java.util.Map;
@@ -12,9 +11,7 @@ import org.opensearch.script.AggregationScript;
 import org.opensearch.search.lookup.SearchLookup;
 import org.opensearch.sql.expression.Expression;
 
-/**
- * Aggregation Expression script factory that generates leaf factory.
- */
+/** Aggregation Expression script factory that generates leaf factory. */
 @EqualsAndHashCode
 public class ExpressionAggregationScriptFactory implements AggregationScript.Factory {
 

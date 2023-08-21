@@ -3,7 +3,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-
 package org.opensearch.sql.opensearch.storage.scan;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -91,16 +90,13 @@ import org.opensearch.sql.storage.Table;
 @ExtendWith(MockitoExtension.class)
 class OpenSearchIndexScanOptimizationTest {
 
-  @Mock
-  private Table table;
+  @Mock private Table table;
 
-  @Mock
-  private OpenSearchIndexScan indexScan;
+  @Mock private OpenSearchIndexScan indexScan;
 
   private OpenSearchIndexScanBuilder indexScanBuilder;
 
-  @Mock
-  private OpenSearchRequestBuilder requestBuilder;
+  @Mock private OpenSearchRequestBuilder requestBuilder;
 
   private Runnable[] verifyPushDownCalls = {};
 
@@ -114,72 +110,54 @@ class OpenSearchIndexScanOptimizationTest {
   void test_project_push_down() {
     assertEqualsAfterOptimization(
         project(
-            indexScanBuilder(
-                withProjectPushedDown(DSL.ref("intV", INTEGER))),
-            DSL.named("i", DSL.ref("intV", INTEGER))
-        ),
-        project(
-            relation("schema", table),
-            DSL.named("i", DSL.ref("intV", INTEGER)))
-    );
+            indexScanBuilder(withProjectPushedDown(DSL.ref("intV", INTEGER))),
+            DSL.named("i", DSL.ref("intV", INTEGER))),
+        project(relation("schema", table), DSL.named("i", DSL.ref("intV", INTEGER))));
   }
 
-  /**
-   * SELECT intV as i FROM schema WHERE intV = 1.
-   */
+  /** SELECT intV as i FROM schema WHERE intV = 1. */
   @Test
   void test_filter_push_down() {
     assertEqualsAfterOptimization(
         project(
             indexScanBuilder(
-                //withProjectPushedDown(DSL.ref("intV", INTEGER)),
-                withFilterPushedDown(QueryBuilders.termQuery("intV", 1))
-            ),
-            DSL.named("i", DSL.ref("intV", INTEGER))
-        ),
+                // withProjectPushedDown(DSL.ref("intV", INTEGER)),
+                withFilterPushedDown(QueryBuilders.termQuery("intV", 1))),
+            DSL.named("i", DSL.ref("intV", INTEGER))),
         project(
             filter(
                 relation("schema", table),
-                DSL.equal(DSL.ref("intV", INTEGER), DSL.literal(integerValue(1)))
-            ),
-            DSL.named("i", DSL.ref("intV", INTEGER))
-        )
-    );
+                DSL.equal(DSL.ref("intV", INTEGER), DSL.literal(integerValue(1)))),
+            DSL.named("i", DSL.ref("intV", INTEGER))));
   }
 
-  /**
-   * SELECT intV as i FROM schema WHERE query_string(["intV^1.5", "QUERY", boost=12.5).
-   */
+  /** SELECT intV as i FROM schema WHERE query_string(["intV^1.5", "QUERY", boost=12.5). */
   @Test
   void test_filter_on_opensearchfunction_with_trackedscores_push_down() {
     LogicalPlan expectedPlan =
         project(
             indexScanBuilder(
                 withFilterPushedDown(
-                    QueryBuilders.queryStringQuery("QUERY")
-                        .field("intV", 1.5F)
-                        .boost(12.5F)
-                ),
-                withTrackedScoresPushedDown(true)
-            ),
-            DSL.named("i", DSL.ref("intV", INTEGER))
-        );
-    FunctionExpression queryString = DSL.query_string(
-          DSL.namedArgument("fields", DSL.literal(
-              new ExprTupleValue(new LinkedHashMap<>(ImmutableMap.of(
-                  "intV", ExprValueUtils.floatValue(1.5F)))))),
-          DSL.namedArgument("query", "QUERY"),
-          DSL.namedArgument("boost", "12.5"));
+                    QueryBuilders.queryStringQuery("QUERY").field("intV", 1.5F).boost(12.5F)),
+                withTrackedScoresPushedDown(true)),
+            DSL.named("i", DSL.ref("intV", INTEGER)));
+    FunctionExpression queryString =
+        DSL.query_string(
+            DSL.namedArgument(
+                "fields",
+                DSL.literal(
+                    new ExprTupleValue(
+                        new LinkedHashMap<>(
+                            ImmutableMap.of("intV", ExprValueUtils.floatValue(1.5F)))))),
+            DSL.namedArgument("query", "QUERY"),
+            DSL.namedArgument("boost", "12.5"));
 
     ((OpenSearchFunctions.OpenSearchFunction) queryString).setScoreTracked(true);
 
-    LogicalPlan logicalPlan = project(
-        filter(
-            relation("schema", table),
-            queryString
-        ),
-        DSL.named("i", DSL.ref("intV", INTEGER))
-    );
+    LogicalPlan logicalPlan =
+        project(
+            filter(relation("schema", table), queryString),
+            DSL.named("i", DSL.ref("intV", INTEGER)));
     assertEqualsAfterOptimization(expectedPlan, logicalPlan);
   }
 
@@ -197,35 +175,36 @@ class OpenSearchIndexScanOptimizationTest {
                         .should(
                             QueryBuilders.queryStringQuery("QUERY")
                                 .field("intV", 1.5F)
-                                .boost(12.5F)
-                        )
-                ),
-                withTrackedScoresPushedDown(true)
-            ),
-            DSL.named("i", DSL.ref("intV", INTEGER))
-        );
-    FunctionExpression firstQueryString = DSL.query_string(
-        DSL.namedArgument("fields", DSL.literal(
-            new ExprTupleValue(new LinkedHashMap<>(ImmutableMap.of(
-                "intV", ExprValueUtils.floatValue(1.5F)))))),
-        DSL.namedArgument("query", "QUERY"),
-        DSL.namedArgument("boost", "12.5"));
+                                .boost(12.5F))),
+                withTrackedScoresPushedDown(true)),
+            DSL.named("i", DSL.ref("intV", INTEGER)));
+    FunctionExpression firstQueryString =
+        DSL.query_string(
+            DSL.namedArgument(
+                "fields",
+                DSL.literal(
+                    new ExprTupleValue(
+                        new LinkedHashMap<>(
+                            ImmutableMap.of("intV", ExprValueUtils.floatValue(1.5F)))))),
+            DSL.namedArgument("query", "QUERY"),
+            DSL.namedArgument("boost", "12.5"));
     ((OpenSearchFunctions.OpenSearchFunction) firstQueryString).setScoreTracked(false);
-    FunctionExpression secondQueryString = DSL.query_string(
-        DSL.namedArgument("fields", DSL.literal(
-            new ExprTupleValue(new LinkedHashMap<>(ImmutableMap.of(
-                "intV", ExprValueUtils.floatValue(1.5F)))))),
-        DSL.namedArgument("query", "QUERY"),
-        DSL.namedArgument("boost", "12.5"));
+    FunctionExpression secondQueryString =
+        DSL.query_string(
+            DSL.namedArgument(
+                "fields",
+                DSL.literal(
+                    new ExprTupleValue(
+                        new LinkedHashMap<>(
+                            ImmutableMap.of("intV", ExprValueUtils.floatValue(1.5F)))))),
+            DSL.namedArgument("query", "QUERY"),
+            DSL.namedArgument("boost", "12.5"));
     ((OpenSearchFunctions.OpenSearchFunction) secondQueryString).setScoreTracked(true);
 
-    LogicalPlan logicalPlan = project(
-        filter(
-            relation("schema", table),
-            DSL.or(firstQueryString, secondQueryString)
-        ),
-        DSL.named("i", DSL.ref("intV", INTEGER))
-    );
+    LogicalPlan logicalPlan =
+        project(
+            filter(relation("schema", table), DSL.or(firstQueryString, secondQueryString)),
+            DSL.named("i", DSL.ref("intV", INTEGER)));
     assertEqualsAfterOptimization(expectedPlan, logicalPlan);
   }
 
@@ -235,34 +214,28 @@ class OpenSearchIndexScanOptimizationTest {
         project(
             indexScanBuilder(
                 withFilterPushedDown(
-                    QueryBuilders.queryStringQuery("QUERY")
-                        .field("intV", 1.5F)
-                        .boost(12.5F)
-                ),
-                withTrackedScoresPushedDown(false)
-            ),
-            DSL.named("i", DSL.ref("intV", INTEGER))
-        );
-    FunctionExpression queryString = DSL.query_string(
-        DSL.namedArgument("fields", DSL.literal(
-            new ExprTupleValue(new LinkedHashMap<>(ImmutableMap.of(
-                "intV", ExprValueUtils.floatValue(1.5F)))))),
-        DSL.namedArgument("query", "QUERY"),
-        DSL.namedArgument("boost", "12.5"));
+                    QueryBuilders.queryStringQuery("QUERY").field("intV", 1.5F).boost(12.5F)),
+                withTrackedScoresPushedDown(false)),
+            DSL.named("i", DSL.ref("intV", INTEGER)));
+    FunctionExpression queryString =
+        DSL.query_string(
+            DSL.namedArgument(
+                "fields",
+                DSL.literal(
+                    new ExprTupleValue(
+                        new LinkedHashMap<>(
+                            ImmutableMap.of("intV", ExprValueUtils.floatValue(1.5F)))))),
+            DSL.namedArgument("query", "QUERY"),
+            DSL.namedArgument("boost", "12.5"));
 
-    LogicalPlan logicalPlan = project(
-        filter(
-            relation("schema", table),
-            queryString
-        ),
-        DSL.named("i", DSL.ref("intV", INTEGER))
-    );
+    LogicalPlan logicalPlan =
+        project(
+            filter(relation("schema", table), queryString),
+            DSL.named("i", DSL.ref("intV", INTEGER)));
     assertEqualsAfterOptimization(expectedPlan, logicalPlan);
   }
 
-  /**
-   * SELECT avg(intV) FROM schema GROUP BY string_value.
-   */
+  /** SELECT avg(intV) FROM schema GROUP BY string_value. */
   @Test
   void test_aggregation_push_down() {
     assertEqualsAfterOptimization(
@@ -272,20 +245,17 @@ class OpenSearchIndexScanOptimizationTest {
                     aggregate("AVG(intV)")
                         .aggregateBy("intV")
                         .groupBy("longV")
-                        .resultTypes(Map.of(
-                            "AVG(intV)", DOUBLE,
-                            "longV", LONG)))),
+                        .resultTypes(
+                            Map.of(
+                                "AVG(intV)", DOUBLE,
+                                "longV", LONG)))),
             DSL.named("AVG(intV)", DSL.ref("AVG(intV)", DOUBLE))),
         project(
             aggregation(
                 relation("schema", table),
-                ImmutableList
-                    .of(DSL.named("AVG(intV)",
-                        DSL.avg(DSL.ref("intV", INTEGER)))),
+                ImmutableList.of(DSL.named("AVG(intV)", DSL.avg(DSL.ref("intV", INTEGER)))),
                 ImmutableList.of(DSL.named("longV", DSL.ref("longV", LONG)))),
-            DSL.named("AVG(intV)", DSL.ref("AVG(intV)", DOUBLE))
-        )
-    );
+            DSL.named("AVG(intV)", DSL.ref("AVG(intV)", DOUBLE))));
   }
 
   /*
@@ -319,125 +289,79 @@ class OpenSearchIndexScanOptimizationTest {
   }
   */
 
-  /**
-   * Sort - Relation --> IndexScan.
-   */
+  /** Sort - Relation --> IndexScan. */
   @Test
   void test_sort_push_down() {
     assertEqualsAfterOptimization(
         indexScanBuilder(
             withSortPushedDown(
-                SortBuilders.fieldSort("intV").order(SortOrder.ASC).missing("_first"))
-        ),
-        sort(
-            relation("schema", table),
-            Pair.of(SortOption.DEFAULT_ASC, DSL.ref("intV", INTEGER))
-        )
-    );
+                SortBuilders.fieldSort("intV").order(SortOrder.ASC).missing("_first"))),
+        sort(relation("schema", table), Pair.of(SortOption.DEFAULT_ASC, DSL.ref("intV", INTEGER))));
   }
 
   @Test
   void test_page_push_down() {
     assertEqualsAfterOptimization(
         project(
-          indexScanBuilder(
-            withPageSizePushDown(5)),
-          DSL.named("intV", DSL.ref("intV", INTEGER))
-        ),
-        paginate(project(
-            relation("schema", table),
-          DSL.named("intV", DSL.ref("intV", INTEGER))
-        ), 5
-      ));
+            indexScanBuilder(withPageSizePushDown(5)), DSL.named("intV", DSL.ref("intV", INTEGER))),
+        paginate(
+            project(relation("schema", table), DSL.named("intV", DSL.ref("intV", INTEGER))), 5));
   }
 
   @Test
   void test_score_sort_push_down() {
     assertEqualsAfterOptimization(
-        indexScanBuilder(
-            withSortPushedDown(
-                SortBuilders.scoreSort().order(SortOrder.ASC)
-            )
-        ),
+        indexScanBuilder(withSortPushedDown(SortBuilders.scoreSort().order(SortOrder.ASC))),
         sort(
             relation("schema", table),
-            Pair.of(SortOption.DEFAULT_ASC, DSL.ref("_score", INTEGER))
-        )
-    );
+            Pair.of(SortOption.DEFAULT_ASC, DSL.ref("_score", INTEGER))));
   }
 
   @Test
   void test_limit_push_down() {
     assertEqualsAfterOptimization(
         project(
-            indexScanBuilder(
-                withLimitPushedDown(1, 1)),
-            DSL.named("intV", DSL.ref("intV", INTEGER))
-        ),
+            indexScanBuilder(withLimitPushedDown(1, 1)),
+            DSL.named("intV", DSL.ref("intV", INTEGER))),
         project(
-            limit(
-                relation("schema", table),
-                1, 1),
-            DSL.named("intV", DSL.ref("intV", INTEGER))
-        )
-    );
+            limit(relation("schema", table), 1, 1), DSL.named("intV", DSL.ref("intV", INTEGER))));
   }
 
   @Test
   void test_highlight_push_down() {
     assertEqualsAfterOptimization(
         project(
-            indexScanBuilder(
-                withHighlightPushedDown("*", Collections.emptyMap())),
-            DSL.named("highlight(*)",
-                new HighlightExpression(DSL.literal("*")))
-        ),
+            indexScanBuilder(withHighlightPushedDown("*", Collections.emptyMap())),
+            DSL.named("highlight(*)", new HighlightExpression(DSL.literal("*")))),
         project(
-            highlight(
-                relation("schema", table),
-                DSL.literal("*"), Collections.emptyMap()),
-                DSL.named("highlight(*)",
-                    new HighlightExpression(DSL.literal("*")))
-        )
-    );
+            highlight(relation("schema", table), DSL.literal("*"), Collections.emptyMap()),
+            DSL.named("highlight(*)", new HighlightExpression(DSL.literal("*")))));
   }
 
   @Test
   void test_nested_push_down() {
-    List<Map<String, ReferenceExpression>> args = List.of(
-        Map.of(
-            "field", new ReferenceExpression("message.info", STRING),
-            "path", new ReferenceExpression("message", STRING)
-        )
-    );
+    List<Map<String, ReferenceExpression>> args =
+        List.of(
+            Map.of(
+                "field", new ReferenceExpression("message.info", STRING),
+                "path", new ReferenceExpression("message", STRING)));
 
     List<NamedExpression> projectList =
         List.of(
-            new NamedExpression("message.info", DSL.nested(DSL.ref("message.info", STRING)), null)
-        );
+            new NamedExpression("message.info", DSL.nested(DSL.ref("message.info", STRING)), null));
 
     LogicalNested nested = new LogicalNested(null, args, projectList);
 
     assertEqualsAfterOptimization(
         project(
-            nested(
-            indexScanBuilder(
-                withNestedPushedDown(nested.getFields())), args, projectList),
-                DSL.named("message.info",
-                    DSL.nested(DSL.ref("message.info", STRING)))
-        ),
+            nested(indexScanBuilder(withNestedPushedDown(nested.getFields())), args, projectList),
+            DSL.named("message.info", DSL.nested(DSL.ref("message.info", STRING)))),
         project(
-            nested(
-                relation("schema", table), args, projectList),
-            DSL.named("message.info",
-                DSL.nested(DSL.ref("message.info", STRING)))
-        )
-    );
+            nested(relation("schema", table), args, projectList),
+            DSL.named("message.info", DSL.nested(DSL.ref("message.info", STRING)))));
   }
 
-  /**
-   * SELECT avg(intV) FROM schema WHERE intV = 1 GROUP BY string_value.
-   */
+  /** SELECT avg(intV) FROM schema WHERE intV = 1 GROUP BY string_value. */
   @Test
   void test_aggregation_filter_push_down() {
     assertEqualsAfterOptimization(
@@ -448,50 +372,37 @@ class OpenSearchIndexScanOptimizationTest {
                     aggregate("AVG(intV)")
                         .aggregateBy("intV")
                         .groupBy("longV")
-                        .resultTypes(Map.of(
-                            "AVG(intV)", DOUBLE,
-                            "longV", LONG)))),
-            DSL.named("AVG(intV)", DSL.ref("AVG(intV)", DOUBLE))
-        ),
+                        .resultTypes(
+                            Map.of(
+                                "AVG(intV)", DOUBLE,
+                                "longV", LONG)))),
+            DSL.named("AVG(intV)", DSL.ref("AVG(intV)", DOUBLE))),
         project(
             aggregation(
                 filter(
                     relation("schema", table),
-                    DSL.equal(DSL.ref("intV", INTEGER), DSL.literal(integerValue(1)))
-                ),
-                ImmutableList
-                    .of(DSL.named("AVG(intV)",
-                        DSL.avg(DSL.ref("intV", INTEGER)))),
+                    DSL.equal(DSL.ref("intV", INTEGER), DSL.literal(integerValue(1)))),
+                ImmutableList.of(DSL.named("AVG(intV)", DSL.avg(DSL.ref("intV", INTEGER)))),
                 ImmutableList.of(DSL.named("longV", DSL.ref("longV", LONG)))),
-            DSL.named("AVG(intV)", DSL.ref("AVG(intV)", DOUBLE))
-        )
-    );
+            DSL.named("AVG(intV)", DSL.ref("AVG(intV)", DOUBLE))));
   }
 
-  /**
-   * Sort - Filter - Relation --> IndexScan.
-   */
+  /** Sort - Filter - Relation --> IndexScan. */
   @Test
   void test_sort_filter_push_down() {
     assertEqualsAfterOptimization(
         indexScanBuilder(
             withFilterPushedDown(QueryBuilders.termQuery("intV", 1)),
             withSortPushedDown(
-                SortBuilders.fieldSort("longV").order(SortOrder.ASC).missing("_first"))
-        ),
+                SortBuilders.fieldSort("longV").order(SortOrder.ASC).missing("_first"))),
         sort(
             filter(
                 relation("schema", table),
-                DSL.equal(DSL.ref("intV", INTEGER), DSL.literal(integerValue(1)))
-            ),
-            Pair.of(SortOption.DEFAULT_ASC, DSL.ref("longV", LONG))
-        )
-    );
+                DSL.equal(DSL.ref("intV", INTEGER), DSL.literal(integerValue(1)))),
+            Pair.of(SortOption.DEFAULT_ASC, DSL.ref("longV", LONG))));
   }
 
-  /**
-   * SELECT avg(intV) FROM schema GROUP BY stringV ORDER BY stringV.
-   */
+  /** SELECT avg(intV) FROM schema GROUP BY stringV ORDER BY stringV. */
   @Test
   void test_sort_aggregation_push_down() {
     assertEqualsAfterOptimization(
@@ -502,22 +413,19 @@ class OpenSearchIndexScanOptimizationTest {
                         .aggregateBy("intV")
                         .groupBy("stringV")
                         .sortBy(SortOption.DEFAULT_DESC)
-                        .resultTypes(Map.of(
-                            "AVG(intV)", DOUBLE,
-                            "stringV", STRING)))),
+                        .resultTypes(
+                            Map.of(
+                                "AVG(intV)", DOUBLE,
+                                "stringV", STRING)))),
             DSL.named("AVG(intV)", DSL.ref("AVG(intV)", DOUBLE))),
         project(
             sort(
                 aggregation(
                     relation("schema", table),
-                    ImmutableList
-                        .of(DSL.named("AVG(intV)", DSL.avg(DSL.ref("intV", INTEGER)))),
+                    ImmutableList.of(DSL.named("AVG(intV)", DSL.avg(DSL.ref("intV", INTEGER)))),
                     ImmutableList.of(DSL.named("stringV", DSL.ref("stringV", STRING)))),
-                Pair.of(SortOption.DEFAULT_DESC, DSL.ref("stringV", STRING))
-            ),
-            DSL.named("AVG(intV)", DSL.ref("AVG(intV)", DOUBLE))
-        )
-    );
+                Pair.of(SortOption.DEFAULT_DESC, DSL.ref("stringV", STRING))),
+            DSL.named("AVG(intV)", DSL.ref("AVG(intV)", DOUBLE))));
   }
 
   @Test
@@ -529,21 +437,17 @@ class OpenSearchIndexScanOptimizationTest {
                 withSortPushedDown(
                     SortBuilders.fieldSort("longV").order(SortOrder.ASC).missing("_first")),
                 withLimitPushedDown(1, 1)),
-            DSL.named("intV", DSL.ref("intV", INTEGER))
-        ),
+            DSL.named("intV", DSL.ref("intV", INTEGER))),
         project(
             limit(
                 sort(
                     filter(
                         relation("schema", table),
-                        DSL.equal(DSL.ref("intV", INTEGER), DSL.literal(integerValue(1)))
-                    ),
-                    Pair.of(SortOption.DEFAULT_ASC, DSL.ref("longV", LONG))
-                ), 1, 1
-            ),
-            DSL.named("intV", DSL.ref("intV", INTEGER))
-        )
-    );
+                        DSL.equal(DSL.ref("intV", INTEGER), DSL.literal(integerValue(1)))),
+                    Pair.of(SortOption.DEFAULT_ASC, DSL.ref("longV", LONG))),
+                1,
+                1),
+            DSL.named("intV", DSL.ref("intV", INTEGER))));
   }
 
   /*
@@ -557,23 +461,16 @@ class OpenSearchIndexScanOptimizationTest {
         project(
             project(
                 indexScanBuilder(
-                    withProjectPushedDown(
-                        DSL.ref("intV", INTEGER),
-                        DSL.ref("stringV", STRING))),
+                    withProjectPushedDown(DSL.ref("intV", INTEGER), DSL.ref("stringV", STRING))),
                 DSL.named("i", DSL.ref("intV", INTEGER)),
-                DSL.named("s", DSL.ref("stringV", STRING))
-            ),
-            DSL.named("i", DSL.ref("intV", INTEGER))
-        ),
+                DSL.named("s", DSL.ref("stringV", STRING))),
+            DSL.named("i", DSL.ref("intV", INTEGER))),
         project(
             project(
                 relation("schema", table),
                 DSL.named("i", DSL.ref("intV", INTEGER)),
-                DSL.named("s", DSL.ref("stringV", STRING))
-            ),
-            DSL.named("i", DSL.ref("intV", INTEGER))
-        )
-    );
+                DSL.named("s", DSL.ref("stringV", STRING))),
+            DSL.named("i", DSL.ref("intV", INTEGER))));
   }
 
   @Test
@@ -586,21 +483,14 @@ class OpenSearchIndexScanOptimizationTest {
                     SortBuilders.fieldSort("message.info")
                         .order(SortOrder.ASC)
                         .setNestedSort(new NestedSortBuilder("message")))),
-            DSL.named("intV", DSL.ref("intV", INTEGER))
-        ),
+            DSL.named("intV", DSL.ref("intV", INTEGER))),
         project(
-                sort(
-                    filter(
-                        relation("schema", table),
-                        DSL.equal(DSL.ref("intV", INTEGER), DSL.literal(integerValue(1)))
-                    ),
-                    Pair.of(
-                        SortOption.DEFAULT_ASC, DSL.nested(DSL.ref("message.info", STRING))
-                    )
-                ),
-            DSL.named("intV", DSL.ref("intV", INTEGER))
-        )
-    );
+            sort(
+                filter(
+                    relation("schema", table),
+                    DSL.equal(DSL.ref("intV", INTEGER), DSL.literal(integerValue(1)))),
+                Pair.of(SortOption.DEFAULT_ASC, DSL.nested(DSL.ref("message.info", STRING)))),
+            DSL.named("intV", DSL.ref("intV", INTEGER))));
   }
 
   @Test
@@ -610,54 +500,30 @@ class OpenSearchIndexScanOptimizationTest {
         sort(
             indexScanBuilder(),
             Pair.of(
-                SortOption.DEFAULT_ASC,
-                DSL.match(DSL.namedArgument("field", literal("message")))
-            )
-        ),
+                SortOption.DEFAULT_ASC, DSL.match(DSL.namedArgument("field", literal("message"))))),
         sort(
             relation("schema", table),
             Pair.of(
                 SortOption.DEFAULT_ASC,
-                DSL.match(DSL.namedArgument("field", literal("message"))
-                )
-            )
-        )
-    );
+                DSL.match(DSL.namedArgument("field", literal("message"))))));
   }
 
   @Test
   void test_non_field_sort_returns_optimized_logical_sort() {
     // Invalid use case coverage OpenSearchIndexScanBuilder::sortByFieldsOnly returns false
     assertEqualsAfterOptimization(
-        sort(
-            indexScanBuilder(),
-            Pair.of(
-                SortOption.DEFAULT_ASC,
-                DSL.literal("field")
-            )
-        ),
-        sort(
-            relation("schema", table),
-            Pair.of(
-                SortOption.DEFAULT_ASC,
-                DSL.literal("field")
-            )
-        )
-    );
+        sort(indexScanBuilder(), Pair.of(SortOption.DEFAULT_ASC, DSL.literal("field"))),
+        sort(relation("schema", table), Pair.of(SortOption.DEFAULT_ASC, DSL.literal("field"))));
   }
 
   @Test
   void sort_with_expression_cannot_merge_with_relation() {
     assertEqualsAfterOptimization(
         sort(
-            indexScanBuilder(),
-            Pair.of(SortOption.DEFAULT_ASC, DSL.abs(DSL.ref("intV", INTEGER)))
-        ),
+            indexScanBuilder(), Pair.of(SortOption.DEFAULT_ASC, DSL.abs(DSL.ref("intV", INTEGER)))),
         sort(
             relation("schema", table),
-            Pair.of(SortOption.DEFAULT_ASC, DSL.abs(DSL.ref("intV", INTEGER)))
-        )
-    );
+            Pair.of(SortOption.DEFAULT_ASC, DSL.abs(DSL.ref("intV", INTEGER)))));
   }
 
   @Test
@@ -669,20 +535,17 @@ class OpenSearchIndexScanOptimizationTest {
                     aggregate("AVG(intV)")
                         .aggregateBy("intV")
                         .groupBy("stringV")
-                        .resultTypes(Map.of(
-                            "AVG(intV)", DOUBLE,
-                            "stringV", STRING)))),
-            Pair.of(SortOption.DEFAULT_ASC, DSL.abs(DSL.ref("intV", INTEGER)))
-        ),
+                        .resultTypes(
+                            Map.of(
+                                "AVG(intV)", DOUBLE,
+                                "stringV", STRING)))),
+            Pair.of(SortOption.DEFAULT_ASC, DSL.abs(DSL.ref("intV", INTEGER)))),
         sort(
             aggregation(
                 relation("schema", table),
-                ImmutableList
-                    .of(DSL.named("AVG(intV)", DSL.avg(DSL.ref("intV", INTEGER)))),
+                ImmutableList.of(DSL.named("AVG(intV)", DSL.avg(DSL.ref("intV", INTEGER)))),
                 ImmutableList.of(DSL.named("stringV", DSL.ref("stringV", STRING)))),
-            Pair.of(SortOption.DEFAULT_ASC, DSL.abs(DSL.ref("intV", INTEGER)))
-        )
-    );
+            Pair.of(SortOption.DEFAULT_ASC, DSL.abs(DSL.ref("intV", INTEGER)))));
   }
 
   @Test
@@ -690,30 +553,21 @@ class OpenSearchIndexScanOptimizationTest {
     assertEqualsAfterOptimization(
         project(
             aggregation(
-                indexScanBuilder(
-                    withLimitPushedDown(10, 0)),
-                ImmutableList
-                    .of(DSL.named("AVG(intV)",
-                        DSL.avg(DSL.ref("intV", INTEGER)))),
-                ImmutableList.of(DSL.named("longV",
-                    DSL.abs(DSL.ref("longV", LONG))))),
+                indexScanBuilder(withLimitPushedDown(10, 0)),
+                ImmutableList.of(DSL.named("AVG(intV)", DSL.avg(DSL.ref("intV", INTEGER)))),
+                ImmutableList.of(DSL.named("longV", DSL.abs(DSL.ref("longV", LONG))))),
             DSL.named("AVG(intV)", DSL.ref("AVG(intV)", DOUBLE))),
         project(
             aggregation(
-                limit(
-                    relation("schema", table),
-                    10, 0),
-                ImmutableList
-                    .of(DSL.named("AVG(intV)",
-                        DSL.avg(DSL.ref("intV", INTEGER)))),
-                ImmutableList.of(DSL.named("longV",
-                    DSL.abs(DSL.ref("longV", LONG))))),
+                limit(relation("schema", table), 10, 0),
+                ImmutableList.of(DSL.named("AVG(intV)", DSL.avg(DSL.ref("intV", INTEGER)))),
+                ImmutableList.of(DSL.named("longV", DSL.abs(DSL.ref("longV", LONG))))),
             DSL.named("AVG(intV)", DSL.ref("AVG(intV)", DOUBLE))));
   }
 
   /**
-   * Can't Optimize the following query.
-   * SELECT avg(intV) FROM schema GROUP BY stringV ORDER BY avg(intV).
+   * Can't Optimize the following query. SELECT avg(intV) FROM schema GROUP BY stringV ORDER BY
+   * avg(intV).
    */
   @Test
   void sort_refer_to_aggregator_should_not_merge_with_indexAgg() {
@@ -725,52 +579,39 @@ class OpenSearchIndexScanOptimizationTest {
                         aggregate("AVG(intV)")
                             .aggregateBy("intV")
                             .groupBy("stringV")
-                            .resultTypes(Map.of(
-                                "AVG(intV)", DOUBLE,
-                                "stringV", STRING)))),
-                Pair.of(SortOption.DEFAULT_ASC, DSL.ref("AVG(intV)", INTEGER))
-            ),
+                            .resultTypes(
+                                Map.of(
+                                    "AVG(intV)", DOUBLE,
+                                    "stringV", STRING)))),
+                Pair.of(SortOption.DEFAULT_ASC, DSL.ref("AVG(intV)", INTEGER))),
             DSL.named("AVG(intV)", DSL.ref("AVG(intV)", DOUBLE))),
         project(
             sort(
                 aggregation(
                     relation("schema", table),
-                    ImmutableList
-                        .of(DSL.named("AVG(intV)", DSL.avg(DSL.ref("intV", INTEGER)))),
+                    ImmutableList.of(DSL.named("AVG(intV)", DSL.avg(DSL.ref("intV", INTEGER)))),
                     ImmutableList.of(DSL.named("stringV", DSL.ref("stringV", STRING)))),
-                Pair.of(SortOption.DEFAULT_ASC, DSL.ref("AVG(intV)", INTEGER))
-            ),
-            DSL.named("AVG(intV)", DSL.ref("AVG(intV)", DOUBLE))
-        )
-    );
+                Pair.of(SortOption.DEFAULT_ASC, DSL.ref("AVG(intV)", INTEGER))),
+            DSL.named("AVG(intV)", DSL.ref("AVG(intV)", DOUBLE))));
   }
 
   @Test
   void project_literal_should_not_be_pushed_down() {
     assertEqualsAfterOptimization(
-        project(
-            indexScanBuilder(),
-            DSL.named("i", DSL.literal("str"))
-        ),
-        optimize(
-            project(
-                relation("schema", table),
-                DSL.named("i", DSL.literal("str"))
-            )
-        )
-    );
+        project(indexScanBuilder(), DSL.named("i", DSL.literal("str"))),
+        optimize(project(relation("schema", table), DSL.named("i", DSL.literal("str")))));
   }
 
   private OpenSearchIndexScanBuilder indexScanBuilder(Runnable... verifyPushDownCalls) {
     this.verifyPushDownCalls = verifyPushDownCalls;
-    return new OpenSearchIndexScanBuilder(new OpenSearchIndexScanQueryBuilder(requestBuilder),
-        requestBuilder -> indexScan);
+    return new OpenSearchIndexScanBuilder(
+        new OpenSearchIndexScanQueryBuilder(requestBuilder), requestBuilder -> indexScan);
   }
 
   private OpenSearchIndexScanBuilder indexScanAggBuilder(Runnable... verifyPushDownCalls) {
     this.verifyPushDownCalls = verifyPushDownCalls;
-    var aggregationBuilder = new OpenSearchIndexScanAggregationBuilder(
-        requestBuilder, mock(LogicalAggregation.class));
+    var aggregationBuilder =
+        new OpenSearchIndexScanAggregationBuilder(requestBuilder, mock(LogicalAggregation.class));
     return new OpenSearchIndexScanBuilder(aggregationBuilder, builder -> indexScan);
   }
 
@@ -797,29 +638,32 @@ class OpenSearchIndexScanOptimizationTest {
       AggregationAssertHelper.AggregationAssertHelperBuilder aggregation) {
 
     // Assume single term bucket and AVG metric in all tests in this suite
-    CompositeAggregationBuilder aggBuilder = AggregationBuilders.composite(
-        "composite_buckets",
-        Collections.singletonList(
-            new TermsValuesSourceBuilder(aggregation.groupBy)
-                .field(aggregation.groupBy)
-                .order(aggregation.sortBy.getSortOrder() == ASC ? "asc" : "desc")
-                .missingOrder(aggregation.sortBy.getNullOrder() == NULL_FIRST ? "first" : "last")
-                .missingBucket(true)))
-        .subAggregation(
-            AggregationBuilders.avg(aggregation.aggregateName)
-                .field(aggregation.aggregateBy))
-        .size(AggregationQueryBuilder.AGGREGATION_BUCKET_SIZE);
+    CompositeAggregationBuilder aggBuilder =
+        AggregationBuilders.composite(
+                "composite_buckets",
+                Collections.singletonList(
+                    new TermsValuesSourceBuilder(aggregation.groupBy)
+                        .field(aggregation.groupBy)
+                        .order(aggregation.sortBy.getSortOrder() == ASC ? "asc" : "desc")
+                        .missingOrder(
+                            aggregation.sortBy.getNullOrder() == NULL_FIRST ? "first" : "last")
+                        .missingBucket(true)))
+            .subAggregation(
+                AggregationBuilders.avg(aggregation.aggregateName).field(aggregation.aggregateBy))
+            .size(AggregationQueryBuilder.AGGREGATION_BUCKET_SIZE);
 
     List<AggregationBuilder> aggBuilders = Collections.singletonList(aggBuilder);
     OpenSearchAggregationResponseParser responseParser =
-        new CompositeAggregationParser(
-            new SingleValueParser(aggregation.aggregateName));
+        new CompositeAggregationParser(new SingleValueParser(aggregation.aggregateName));
 
     return () -> {
       verify(requestBuilder, times(1)).pushDownAggregation(Pair.of(aggBuilders, responseParser));
-      verify(requestBuilder, times(1)).pushTypeMapping(aggregation.resultTypes
-          .entrySet().stream().collect(Collectors.toMap(Map.Entry::getKey,
-                e -> OpenSearchDataType.of(e.getValue()))));
+      verify(requestBuilder, times(1))
+          .pushTypeMapping(
+              aggregation.resultTypes.entrySet().stream()
+                  .collect(
+                      Collectors.toMap(
+                          Map.Entry::getKey, e -> OpenSearchDataType.of(e.getValue()))));
     };
   }
 
@@ -832,8 +676,8 @@ class OpenSearchIndexScanOptimizationTest {
   }
 
   private Runnable withProjectPushedDown(ReferenceExpression... references) {
-    return () -> verify(requestBuilder, times(1)).pushDownProjects(
-        new HashSet<>(Arrays.asList(references)));
+    return () ->
+        verify(requestBuilder, times(1)).pushDownProjects(new HashSet<>(Arrays.asList(references)));
   }
 
   private Runnable withHighlightPushedDown(String field, Map<String, Literal> arguments) {
@@ -875,16 +719,18 @@ class OpenSearchIndexScanOptimizationTest {
   }
 
   private LogicalPlan optimize(LogicalPlan plan) {
-    LogicalPlanOptimizer optimizer = new LogicalPlanOptimizer(List.of(
-        new CreateTableScanBuilder(),
-        new PushDownPageSize(),
-        PUSH_DOWN_FILTER,
-        PUSH_DOWN_AGGREGATION,
-        PUSH_DOWN_SORT,
-        PUSH_DOWN_LIMIT,
-        PUSH_DOWN_HIGHLIGHT,
-        PUSH_DOWN_NESTED,
-        PUSH_DOWN_PROJECT));
+    LogicalPlanOptimizer optimizer =
+        new LogicalPlanOptimizer(
+            List.of(
+                new CreateTableScanBuilder(),
+                new PushDownPageSize(),
+                PUSH_DOWN_FILTER,
+                PUSH_DOWN_AGGREGATION,
+                PUSH_DOWN_SORT,
+                PUSH_DOWN_LIMIT,
+                PUSH_DOWN_HIGHLIGHT,
+                PUSH_DOWN_NESTED,
+                PUSH_DOWN_PROJECT));
     return optimizer.optimize(plan);
   }
 }
