@@ -46,9 +46,9 @@ public class StringUtils {
   }
 
   /**
-   * Converts all the characters in this {@code String} to upper case using the rules of the
-   * {@link Locale#ROOT} locale. This is equivalent to calling {@link String#toUpperCase(Locale)}
-   * with {@link Locale#ROOT}.
+   * Converts all the characters in this {@code String} to upper case using the rules of the {@link
+   * Locale#ROOT} locale. This is equivalent to calling {@link String#toUpperCase(Locale)} with
+   * {@link Locale#ROOT}.
    *
    * @param input the input String
    * @return the {@code String}, converted to uppercase

@@ -19,6 +19,8 @@ import java.util.ArrayDeque;
 import java.util.Deque;
 
 /**
+ *
+ *
  * <pre>
  * Add the alias for identifier the subquery query.
  * Use the table alias if it already has one, Auto generate if it doesn't has one.

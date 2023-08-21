@@ -9,6 +9,7 @@ import org.opensearch.client.Client;
 
 /**
  * Statistics collector collects from OpenSearch stats, JVM etc for other components:
+ *
  * <ol>
  *   <li>Resource monitor
  *   <li>Cost estimation

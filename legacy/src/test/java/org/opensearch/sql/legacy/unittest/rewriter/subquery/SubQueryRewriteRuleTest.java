@@ -53,8 +53,7 @@ public class SubQueryRewriteRuleTest {
 
   @Test
   public void moreThanOneInIsNotSupporeted() throws SQLFeatureNotSupportedException {
-    String sql =
-        "SELECT * FROM A WHERE a IN (SELECT b FROM B) and d IN (SELECT e FROM F)";
+    String sql = "SELECT * FROM A WHERE a IN (SELECT b FROM B) and d IN (SELECT e FROM F)";
     exceptionRule.expect(SQLFeatureNotSupportedException.class);
     exceptionRule.expectMessage("Unsupported subquery. Only one EXISTS or IN is supported");
     rewriteRule.match(SqlParserUtils.parse(sql));

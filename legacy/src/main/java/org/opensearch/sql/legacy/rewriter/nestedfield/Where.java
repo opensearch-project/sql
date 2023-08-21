@@ -70,52 +70,54 @@ class Where extends SQLClause<SQLBinaryOpExpr> {
     return new Where((SQLBinaryOpExpr) expr.getRight());
   }
 
-    /** <pre>
-     * There are 2 cases:
-     * 1) For a single condition, just wrap nested() function. That's it.
-     * <p>
-     * BinaryOp
-     * /       \
-     * Identifier       Value
-     * "employees.age"      "30"
-     * <p>
-     * to
-     * <p>
-     * BinaryOp
-     * /       \
-     * Method       Value
-     * "nested"       "30"
-     * |
-     * Identifier
-     * "employees.age"
-     * <p>
-     * 2) For multiple conditions, put entire BinaryOp to the parameter and add function name "nested()" first
-     * <p>
-     * BinaryOp (a)
-     * /       \
-     * BinaryOp   BinaryOp
-     * |         |
-     * ...       ...
-     * <p>
-     * to
-     * <p>
-     * Method
-     * "nested"
-     * |
-     * BinaryOp (a)
-     * /      \
-     * ...    ...
-     * </pre>
-     */
-    private void mergeNestedField(Scope scope) {
-        String tag = scope.getConditionTag(expr);
-        if (!tag.isEmpty()) {
-            if (isLeftChildCondition()) {
-                replaceByNestedFunction(expr).getParameters().add(0, new SQLCharExpr(tag));
-            } else {
-                replaceByNestedFunction(expr.getLeft(), pathFromIdentifier(expr.getLeft()));
-            }
-        }
+  /**
+   *
+   *
+   * <pre>
+   * There are 2 cases:
+   * 1) For a single condition, just wrap nested() function. That's it.
+   * <p>
+   * BinaryOp
+   * /       \
+   * Identifier       Value
+   * "employees.age"      "30"
+   * <p>
+   * to
+   * <p>
+   * BinaryOp
+   * /       \
+   * Method       Value
+   * "nested"       "30"
+   * |
+   * Identifier
+   * "employees.age"
+   * <p>
+   * 2) For multiple conditions, put entire BinaryOp to the parameter and add function name "nested()" first
+   * <p>
+   * BinaryOp (a)
+   * /       \
+   * BinaryOp   BinaryOp
+   * |         |
+   * ...       ...
+   * <p>
+   * to
+   * <p>
+   * Method
+   * "nested"
+   * |
+   * BinaryOp (a)
+   * /      \
+   * ...    ...
+   * </pre>
+   */
+  private void mergeNestedField(Scope scope) {
+    String tag = scope.getConditionTag(expr);
+    if (!tag.isEmpty()) {
+      if (isLeftChildCondition()) {
+        replaceByNestedFunction(expr).getParameters().add(0, new SQLCharExpr(tag));
+      } else {
+        replaceByNestedFunction(expr.getLeft(), pathFromIdentifier(expr.getLeft()));
+      }
     }
-
+  }
 }

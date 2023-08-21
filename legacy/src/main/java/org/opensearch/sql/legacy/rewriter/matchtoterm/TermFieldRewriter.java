@@ -194,21 +194,24 @@ public class TermFieldRewriter extends MySqlASTVisitorAdapter {
     return null;
   }
 
-    public boolean isValidIdentifierForTerm(SQLIdentifierExpr expr) {
-        /**
-         * <pre>
-         * Only for following conditions Identifier will be modified
-         *  Where:  WHERE identifier = 'something'
-         *  IN list: IN ('Tom', 'Dick', 'Harry')
-         *  IN subquery: IN (SELECT firstname from accounts/account where firstname = 'John')
-         *  Group by: GROUP BY state , employer , ...
-         *  Order by: ORDER BY firstname, lastname , ...
-         *
-         * NOTE: Does not impact fields on ON condition clause in JOIN as we skip visiting SQLJoinTableSource
-         * </pre>
-         */
-        return !expr.getName().startsWith("_") && (isValidIdentifier(expr) || checkIfNestedIdentifier(expr));
-    }
+  public boolean isValidIdentifierForTerm(SQLIdentifierExpr expr) {
+    /**
+     *
+     *
+     * <pre>
+     * Only for following conditions Identifier will be modified
+     *  Where:  WHERE identifier = 'something'
+     *  IN list: IN ('Tom', 'Dick', 'Harry')
+     *  IN subquery: IN (SELECT firstname from accounts/account where firstname = 'John')
+     *  Group by: GROUP BY state , employer , ...
+     *  Order by: ORDER BY firstname, lastname , ...
+     *
+     * NOTE: Does not impact fields on ON condition clause in JOIN as we skip visiting SQLJoinTableSource
+     * </pre>
+     */
+    return !expr.getName().startsWith("_")
+        && (isValidIdentifier(expr) || checkIfNestedIdentifier(expr));
+  }
 
   private boolean checkIfNestedIdentifier(SQLIdentifierExpr expr) {
     return expr.getParent() instanceof SQLMethodInvokeExpr
