@@ -26,7 +26,6 @@ plugins {
     id 'java-library'
     id "io.freefair.lombok"
     id 'jacoco'
-    id 'info.solidsoft.pitest' version '1.9.0'
     id 'java-test-fixtures'
 }
 
@@ -38,15 +37,6 @@ repositories {
 // spotless https://github.com/opensearch-project/sql/issues/1101
 checkstyleTest.ignoreFailures = true
 checkstyleMain.ignoreFailures = true
-
-pitest {
-    targetClasses = ['org.opensearch.sql.*']
-    pitestVersion = '1.9.0'
-    threads = 4
-    outputFormats = ['HTML', 'XML']
-    timestampedReports = false
-    junit5PluginVersion = '1.0.0'
-}
 
 dependencies {
     api group: 'com.google.guava', name: 'guava', version: '32.0.1-jre'
