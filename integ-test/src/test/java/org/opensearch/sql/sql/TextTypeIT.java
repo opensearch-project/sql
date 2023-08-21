@@ -63,21 +63,17 @@ public class TextTypeIT extends SQLIntegTestCase {
   }
 
   @Test
-  // TODO uncomment test ascii on TextWithKeywords after
-  // https://github.com/opensearch-project/sql/pull/1895
   public void test_ascii() {
-    // JSONObject result = executeQuery("select ascii(Keyword), ascii(TextWithKeywords),
-    // ascii(Text), ascii(TextWithFielddata), "
     JSONObject result =
         executeQuery(
-            "select ascii(Keyword), ascii(Text), ascii(TextWithFielddata), "
+            "select ascii(Keyword), ascii(TextWithKeywords), ascii(Text),ascii(TextWithFielddata),"
                 + "ascii(TextWithFields), ascii(TextWithNumbers), ascii(TextWithMixedFields) FROM "
                 + TEST_INDEX_TEXT);
 
     verifySchema(
         result,
         schema("ascii(Keyword)", null, "integer"),
-        // schema("ascii(TextWithKeywords)", null, "integer"),
+        schema("ascii(TextWithKeywords)", null, "integer"),
         schema("ascii(Text)", null, "integer"),
         schema("ascii(TextWithFielddata)", null, "integer"),
         schema("ascii(TextWithFields)", null, "integer"),
@@ -85,11 +81,11 @@ public class TextTypeIT extends SQLIntegTestCase {
         schema("ascii(TextWithMixedFields)", null, "integer"));
     verifyDataRows(
         result,
-        rows(75, /*84,*/ null, 84, null, null, 111),
-        rows(null, /*null,*/ 84, 70, 70, 52, 52),
-        rows(105, /*65,*/ null, null, null, 52, 49),
-        rows(null, /*0,*/ 83, 84, 70, 49, null),
-        rows(107, /*null,*/ 65, null, 65, null, null));
+        rows(75, 84, null, 84, null, null, 111),
+        rows(null, null, 84, 70, 70, 52, 52),
+        rows(105, 65, null, null, null, 52, 49),
+        rows(null, 0, 83, 84, 70, 49, null),
+        rows(107, null, 65, null, 65, null, null));
   }
 
   @Test
