@@ -193,7 +193,8 @@ The formatting check can be run explicitly with:
 The code can be formatted with:
 ./gradlew spotlessApply
 
-These tasks can also be run for specific modules, e.g.
+These tasks can also be run for specific modules, e.g.::
+
 ./gradlew server:spotlessJavaCheck
 
 For more information on the spotless for the OpenSearch project please see `https://github.com/opensearch-project/OpenSearch/blob/main/DEVELOPER_GUIDE.md#java-language-formatting-guidelines <https://github.com/opensearch-project/OpenSearch/blob/main/DEVELOPER_GUIDE.md#java-language-formatting-guidelines>`_.
