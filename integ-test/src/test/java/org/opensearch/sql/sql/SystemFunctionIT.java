@@ -55,9 +55,10 @@ public class SystemFunctionIT extends SQLIntegTestCase {
     response =
         executeJdbcRequest(
             String.format(
-                "SELECT typeof(text_value),typeof(date_value), typeof(boolean_value),"
-                    + " typeof(object_value), typeof(keyword_value),typeof(ip_value),"
-                    + " typeof(binary_value), typeof(geo_point_value)"
+                "SELECT typeof(text_value),typeof(date_value), typeof(date_nanos_value),"
+                    + " typeof(boolean_value), typeof(object_value),"
+                    + " typeof(keyword_value),typeof(ip_value), typeof(binary_value),"
+                    + " typeof(geo_point_value)"
                     // TODO activate this test once `ARRAY` type supported, see
                     // ExpressionAnalyzer::isTypeNotSupported
                     // + ", typeof(nested_value)"
@@ -65,6 +66,15 @@ public class SystemFunctionIT extends SQLIntegTestCase {
                 TEST_INDEX_DATATYPE_NONNUMERIC));
     verifyDataRows(
         response,
-        rows("TEXT", "TIMESTAMP", "BOOLEAN", "OBJECT", "KEYWORD", "IP", "BINARY", "GEO_POINT"));
+        rows(
+            "TEXT",
+            "TIMESTAMP",
+            "TIMESTAMP",
+            "BOOLEAN",
+            "OBJECT",
+            "KEYWORD",
+            "IP",
+            "BINARY",
+            "GEO_POINT"));
   }
 }
