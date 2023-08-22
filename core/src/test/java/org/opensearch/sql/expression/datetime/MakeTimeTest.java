@@ -3,7 +3,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-
 package org.opensearch.sql.expression.datetime;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -24,18 +23,27 @@ public class MakeTimeTest extends DateTimeTestBase {
 
   @Test
   public void checkEdgeCases() {
-    assertEquals(nullValue(), eval(maketime(DSL.literal(-1.), DSL.literal(42.), DSL.literal(42.))),
+    assertEquals(
+        nullValue(),
+        eval(maketime(DSL.literal(-1.), DSL.literal(42.), DSL.literal(42.))),
         "Negative hour doesn't produce NULL");
-    assertEquals(nullValue(), eval(maketime(DSL.literal(42.), DSL.literal(-1.), DSL.literal(42.))),
+    assertEquals(
+        nullValue(),
+        eval(maketime(DSL.literal(42.), DSL.literal(-1.), DSL.literal(42.))),
         "Negative minute doesn't produce NULL");
-    assertEquals(nullValue(), eval(maketime(DSL.literal(12.), DSL.literal(42.), DSL.literal(-1.))),
+    assertEquals(
+        nullValue(),
+        eval(maketime(DSL.literal(12.), DSL.literal(42.), DSL.literal(-1.))),
         "Negative second doesn't produce NULL");
 
-    assertThrows(DateTimeParseException.class,
+    assertThrows(
+        DateTimeParseException.class,
         () -> eval(maketime(DSL.literal(24.), DSL.literal(42.), DSL.literal(42.))));
-    assertThrows(DateTimeParseException.class,
+    assertThrows(
+        DateTimeParseException.class,
         () -> eval(maketime(DSL.literal(12.), DSL.literal(60.), DSL.literal(42.))));
-    assertThrows(DateTimeParseException.class,
+    assertThrows(
+        DateTimeParseException.class,
         () -> eval(maketime(DSL.literal(12.), DSL.literal(42.), DSL.literal(60.))));
 
     assertEquals(LocalTime.of(23, 59, 59), maketime(23., 59., 59.));
@@ -81,12 +89,12 @@ public class MakeTimeTest extends DateTimeTestBase {
         Arguments.of(7.494112, 9.761983, 17.444988),
         Arguments.of(17.867756, 10.313120, 36.391815),
         Arguments.of(19.712155, 3.197562, 6.607233),
-        Arguments.of(2.385090, 41.761568, 33.342590)
-    );
+        Arguments.of(2.385090, 41.761568, 33.342590));
   }
 
   /**
    * Test function with given pseudo-random values.
+   *
    * @param hour hour
    * @param minute minute
    * @param second second
@@ -95,11 +103,15 @@ public class MakeTimeTest extends DateTimeTestBase {
   @MethodSource("getTestData")
   public void checkRandomValues(double hour, double minute, double second) {
     // results could have 1 nanosec diff because of rounding FP
-    var expected = LocalTime.of((int)Math.round(hour), (int)Math.round(minute),
-        // pick fraction second part as nanos
-        (int)Math.floor(second)).withNano((int)((second % 1) * 1E9));
+    var expected =
+        LocalTime.of(
+                (int) Math.round(hour),
+                (int) Math.round(minute),
+                // pick fraction second part as nanos
+                (int) Math.floor(second))
+            .withNano((int) ((second % 1) * 1E9));
     var delta = Duration.between(expected, maketime(hour, minute, second)).getNano();
-    assertEquals(0, delta, 1,
-        String.format("hour = %f, minute = %f, second = %f", hour, minute, second));
+    assertEquals(
+        0, delta, 1, String.format("hour = %f, minute = %f, second = %f", hour, minute, second));
   }
 }

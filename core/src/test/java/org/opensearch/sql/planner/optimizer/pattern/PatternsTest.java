@@ -3,7 +3,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-
 package org.opensearch.sql.planner.optimizer.pattern;
 
 import static org.junit.jupiter.api.Assertions.assertAll;
@@ -29,8 +28,8 @@ class PatternsTest {
     when(plan.getChild()).thenReturn(Collections.emptyList());
     assertAll(
         () -> assertFalse(Patterns.source().getFunction().apply(plan).isPresent()),
-        () -> assertFalse(Patterns.source(null).getProperty().getFunction().apply(plan).isPresent())
-    );
+        () ->
+            assertFalse(Patterns.source(null).getProperty().getFunction().apply(plan).isPresent()));
   }
 
   @Test
@@ -38,7 +37,6 @@ class PatternsTest {
     var plan = mock(LogicalFilter.class);
     assertAll(
         () -> assertFalse(Patterns.table().getFunction().apply(plan).isPresent()),
-        () -> assertFalse(Patterns.writeTable().getFunction().apply(plan).isPresent())
-    );
+        () -> assertFalse(Patterns.writeTable().getFunction().apply(plan).isPresent()));
   }
 }

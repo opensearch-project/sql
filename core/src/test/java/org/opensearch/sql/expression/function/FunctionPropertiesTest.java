@@ -77,16 +77,17 @@ class FunctionPropertiesTest {
 
   @TestFactory
   Stream<DynamicTest> functionProperties_none_throws_on_access() {
-    Consumer<Executable> tb = tc -> {
-      RuntimeException e = assertThrows(FunctionProperties.UnexpectedCallException.class, tc);
-      assertEquals("FunctionProperties.None is a null object and not meant to be accessed.",
-          e.getMessage());
-    };
+    Consumer<Executable> tb =
+        tc -> {
+          RuntimeException e = assertThrows(FunctionProperties.UnexpectedCallException.class, tc);
+          assertEquals(
+              "FunctionProperties.None is a null object and not meant to be accessed.",
+              e.getMessage());
+        };
     return Stream.of(
-        DynamicTest.dynamicTest("getQueryStartClock",
-            () -> tb.accept(FunctionProperties.None::getQueryStartClock)),
-        DynamicTest.dynamicTest("getSystemClock",
-            () -> tb.accept(FunctionProperties.None::getSystemClock))
-    );
+        DynamicTest.dynamicTest(
+            "getQueryStartClock", () -> tb.accept(FunctionProperties.None::getQueryStartClock)),
+        DynamicTest.dynamicTest(
+            "getSystemClock", () -> tb.accept(FunctionProperties.None::getSystemClock)));
   }
 }

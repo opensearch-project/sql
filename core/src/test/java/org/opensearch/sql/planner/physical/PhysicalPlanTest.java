@@ -28,33 +28,32 @@ import org.opensearch.sql.storage.split.Split;
 @ExtendWith(MockitoExtension.class)
 @DisplayNameGeneration(DisplayNameGenerator.ReplaceUnderscores.class)
 class PhysicalPlanTest {
-  @Mock
-  Split split;
+  @Mock Split split;
 
-  @Mock
-  PhysicalPlan child;
+  @Mock PhysicalPlan child;
 
-  private PhysicalPlan testPlan = new PhysicalPlan() {
-    @Override
-    public <R, C> R accept(PhysicalPlanNodeVisitor<R, C> visitor, C context) {
-      throw new UnsupportedOperationException();
-    }
+  private PhysicalPlan testPlan =
+      new PhysicalPlan() {
+        @Override
+        public <R, C> R accept(PhysicalPlanNodeVisitor<R, C> visitor, C context) {
+          throw new UnsupportedOperationException();
+        }
 
-    @Override
-    public boolean hasNext() {
-      throw new UnsupportedOperationException();
-    }
+        @Override
+        public boolean hasNext() {
+          throw new UnsupportedOperationException();
+        }
 
-    @Override
-    public ExprValue next() {
-      throw new UnsupportedOperationException();
-    }
+        @Override
+        public ExprValue next() {
+          throw new UnsupportedOperationException();
+        }
 
-    @Override
-    public List<PhysicalPlan> getChild() {
-      return List.of(child);
-    }
-  };
+        @Override
+        public List<PhysicalPlan> getChild() {
+          return List.of(child);
+        }
+      };
 
   @Test
   void add_split_to_child_by_default() {

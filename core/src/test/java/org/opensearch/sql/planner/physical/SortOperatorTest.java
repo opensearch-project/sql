@@ -3,7 +3,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-
 package org.opensearch.sql.planner.physical;
 
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -27,8 +26,7 @@ import org.opensearch.sql.ast.tree.Sort.SortOption;
 
 @ExtendWith(MockitoExtension.class)
 class SortOperatorTest extends PhysicalPlanTestBase {
-  @Mock
-  private PhysicalPlan inputPlan;
+  @Mock private PhysicalPlan inputPlan;
 
   /**
    * construct the map which contain null value, because {@link ImmutableMap} doesn't support null
@@ -264,7 +262,6 @@ class SortOperatorTest extends PhysicalPlanTestBase {
 
     assertEquals(
         0,
-        execute(sort(inputPlan,
-            Pair.of(SortOption.DEFAULT_ASC, ref("response", INTEGER)))).size());
+        execute(sort(inputPlan, Pair.of(SortOption.DEFAULT_ASC, ref("response", INTEGER)))).size());
   }
 }

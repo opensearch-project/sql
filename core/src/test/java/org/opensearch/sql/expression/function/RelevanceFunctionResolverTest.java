@@ -38,18 +38,15 @@ class RelevanceFunctionResolverTest {
   void resolve_invalid_name_test() {
     var wrongFuncName = FunctionName.of("wrong_func");
     var sig = new FunctionSignature(wrongFuncName, List.of(STRING));
-    Exception exception = assertThrows(SemanticCheckException.class,
-        () -> resolver.resolve(sig));
-    assertEquals("Expected 'sample_function' but got 'wrong_func'",
-        exception.getMessage());
+    Exception exception = assertThrows(SemanticCheckException.class, () -> resolver.resolve(sig));
+    assertEquals("Expected 'sample_function' but got 'wrong_func'", exception.getMessage());
   }
 
   @Test
   void resolve_invalid_third_param_type_test() {
     var sig = new FunctionSignature(sampleFuncName, List.of(STRING, STRING, INTEGER, STRING));
-    Exception exception = assertThrows(SemanticCheckException.class,
-        () -> resolver.resolve(sig));
-    assertEquals("Expected type STRING instead of INTEGER for parameter #3",
-        exception.getMessage());
+    Exception exception = assertThrows(SemanticCheckException.class, () -> resolver.resolve(sig));
+    assertEquals(
+        "Expected type STRING instead of INTEGER for parameter #3", exception.getMessage());
   }
 }

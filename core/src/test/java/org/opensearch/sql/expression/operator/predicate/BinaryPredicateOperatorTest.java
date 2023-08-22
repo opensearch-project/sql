@@ -3,7 +3,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-
 package org.opensearch.sql.expression.operator.predicate;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -64,7 +63,8 @@ import org.opensearch.sql.expression.FunctionExpression;
 
 class BinaryPredicateOperatorTest extends ExpressionTestBase {
 
-  private static List<StringPatternPair> STRING_PATTERN_PAIRS = ImmutableList.of(
+  private static List<StringPatternPair> STRING_PATTERN_PAIRS =
+      ImmutableList.of(
           new StringPatternPair("Michael!", ".*"),
           new StringPatternPair("new*\\n*line", "new\\\\*.\\\\*line"),
           new StringPatternPair("a", "^[a-d]"),
@@ -107,8 +107,7 @@ class BinaryPredicateOperatorTest extends ExpressionTestBase {
         List.of(Instant.ofEpochSecond(100500), LocalDate.of(1961, 4, 12)),
         List.of(Instant.ofEpochSecond(100500), LocalTime.of(7, 40, 0)),
         List.of(LocalTime.of(7, 40, 0), LocalDateTime.of(1984, 10, 25, 7, 40)),
-        List.of(Instant.ofEpochSecond(42), LocalDateTime.of(1984, 10, 25, 7, 40))
-    );
+        List.of(Instant.ofEpochSecond(42), LocalDateTime.of(1984, 10, 25, 7, 40)));
   }
 
   private static Stream<Arguments> testEqualArguments() {
@@ -117,22 +116,33 @@ class BinaryPredicateOperatorTest extends ExpressionTestBase {
       builder.add(Arguments.of(fromObjectValue(argPair.get(0)), fromObjectValue(argPair.get(0))));
       builder.add(Arguments.of(fromObjectValue(argPair.get(1)), fromObjectValue(argPair.get(1))));
     }
-    builder.add(Arguments.of(fromObjectValue(LocalTime.of(7, 40, 0)),
-        fromObjectValue(LocalTime.of(7, 40, 0).atDate(LocalDate.now()))));
-    builder.add(Arguments.of(fromObjectValue(LocalDateTime.of(1970, 1, 1, 0, 0, 42)),
-        fromObjectValue(Instant.ofEpochSecond(42))));
-    builder.add(Arguments.of(fromObjectValue(LocalDate.of(1970, 1, 1)),
-        fromObjectValue(Instant.ofEpochSecond(0))));
-    builder.add(Arguments.of(fromObjectValue(LocalDate.of(1984, 10, 25)),
-        fromObjectValue(LocalDateTime.of(1984, 10, 25, 0, 0))));
-    builder.add(Arguments.of(fromObjectValue(LocalTime.of(0, 0, 0)),
-        fromObjectValue(LocalDate.now())));
-    builder.add(Arguments.of(fromObjectValue(LocalTime.of(0, 0, 0)),
-        fromObjectValue(LocalDate.now().atStartOfDay(ZoneId.of("UTC")).toInstant())));
-    builder.add(Arguments.of(fromObjectValue(ImmutableList.of(1)),
-        fromObjectValue(ImmutableList.of(1))));
-    builder.add(Arguments.of(fromObjectValue(ImmutableMap.of("str", 1)),
-        fromObjectValue(ImmutableMap.of("str", 1))));
+    builder.add(
+        Arguments.of(
+            fromObjectValue(LocalTime.of(7, 40, 0)),
+            fromObjectValue(LocalTime.of(7, 40, 0).atDate(LocalDate.now()))));
+    builder.add(
+        Arguments.of(
+            fromObjectValue(LocalDateTime.of(1970, 1, 1, 0, 0, 42)),
+            fromObjectValue(Instant.ofEpochSecond(42))));
+    builder.add(
+        Arguments.of(
+            fromObjectValue(LocalDate.of(1970, 1, 1)), fromObjectValue(Instant.ofEpochSecond(0))));
+    builder.add(
+        Arguments.of(
+            fromObjectValue(LocalDate.of(1984, 10, 25)),
+            fromObjectValue(LocalDateTime.of(1984, 10, 25, 0, 0))));
+    builder.add(
+        Arguments.of(fromObjectValue(LocalTime.of(0, 0, 0)), fromObjectValue(LocalDate.now())));
+    builder.add(
+        Arguments.of(
+            fromObjectValue(LocalTime.of(0, 0, 0)),
+            fromObjectValue(LocalDate.now().atStartOfDay(ZoneId.of("UTC")).toInstant())));
+    builder.add(
+        Arguments.of(fromObjectValue(ImmutableList.of(1)), fromObjectValue(ImmutableList.of(1))));
+    builder.add(
+        Arguments.of(
+            fromObjectValue(ImmutableMap.of("str", 1)),
+            fromObjectValue(ImmutableMap.of("str", 1))));
     return builder.build();
   }
 
@@ -142,24 +152,37 @@ class BinaryPredicateOperatorTest extends ExpressionTestBase {
       builder.add(Arguments.of(fromObjectValue(argPair.get(0)), fromObjectValue(argPair.get(1))));
       builder.add(Arguments.of(fromObjectValue(argPair.get(1)), fromObjectValue(argPair.get(0))));
     }
-    builder.add(Arguments.of(fromObjectValue(LocalTime.of(7, 40, 0)),
-        fromObjectValue(LocalDateTime.of(1984, 10, 25, 7, 40, 0))));
-    builder.add(Arguments.of(fromObjectValue(LocalDateTime.of(1984, 10, 25, 7, 40, 0)),
-        fromObjectValue(Instant.ofEpochSecond(42))));
-    builder.add(Arguments.of(fromObjectValue(LocalDate.of(1984, 10, 25)),
-        fromObjectValue(Instant.ofEpochSecond(42))));
-    builder.add(Arguments.of(fromObjectValue(LocalTime.of(7, 40, 0)),
-        fromObjectValue(Instant.ofEpochSecond(42))));
-    builder.add(Arguments.of(fromObjectValue(LocalDate.of(1984, 10, 25)),
-        fromObjectValue(LocalDateTime.of(1984, 10, 25, 7, 40))));
-    builder.add(Arguments.of(fromObjectValue(LocalDate.of(1984, 10, 25)),
-        fromObjectValue(LocalTime.of(7, 40, 0))));
-    builder.add(Arguments.of(fromObjectValue(ImmutableList.of(1)),
-        fromObjectValue(ImmutableList.of(1, 2))));
-    builder.add(Arguments.of(fromObjectValue(ImmutableList.of(1)),
-        fromObjectValue(ImmutableList.of(2))));
-    builder.add(Arguments.of(fromObjectValue(ImmutableMap.of("str", 1)),
-        fromObjectValue(ImmutableMap.of("str2", 2))));
+    builder.add(
+        Arguments.of(
+            fromObjectValue(LocalTime.of(7, 40, 0)),
+            fromObjectValue(LocalDateTime.of(1984, 10, 25, 7, 40, 0))));
+    builder.add(
+        Arguments.of(
+            fromObjectValue(LocalDateTime.of(1984, 10, 25, 7, 40, 0)),
+            fromObjectValue(Instant.ofEpochSecond(42))));
+    builder.add(
+        Arguments.of(
+            fromObjectValue(LocalDate.of(1984, 10, 25)),
+            fromObjectValue(Instant.ofEpochSecond(42))));
+    builder.add(
+        Arguments.of(
+            fromObjectValue(LocalTime.of(7, 40, 0)), fromObjectValue(Instant.ofEpochSecond(42))));
+    builder.add(
+        Arguments.of(
+            fromObjectValue(LocalDate.of(1984, 10, 25)),
+            fromObjectValue(LocalDateTime.of(1984, 10, 25, 7, 40))));
+    builder.add(
+        Arguments.of(
+            fromObjectValue(LocalDate.of(1984, 10, 25)), fromObjectValue(LocalTime.of(7, 40, 0))));
+    builder.add(
+        Arguments.of(
+            fromObjectValue(ImmutableList.of(1)), fromObjectValue(ImmutableList.of(1, 2))));
+    builder.add(
+        Arguments.of(fromObjectValue(ImmutableList.of(1)), fromObjectValue(ImmutableList.of(2))));
+    builder.add(
+        Arguments.of(
+            fromObjectValue(ImmutableMap.of("str", 1)),
+            fromObjectValue(ImmutableMap.of("str2", 2))));
     return builder.build();
   }
 
@@ -174,13 +197,17 @@ class BinaryPredicateOperatorTest extends ExpressionTestBase {
   }
 
   private static Stream<Arguments> testLikeArguments() {
-    List<List<String>> arguments = Arrays.asList(
-        Arrays.asList("foo", "foo"), Arrays.asList("notFoo", "foo"),
-        Arrays.asList("foobar", "%bar"), Arrays.asList("bar", "%bar"),
-        Arrays.asList("foo", "fo_"), Arrays.asList("foo", "foo_"),
-        Arrays.asList("foorbar", "%o_ar"), Arrays.asList("foobar", "%o_a%"),
-        Arrays.asList("fooba%_\\^$.*[]()|+r", "%\\%\\_\\\\\\^\\$\\.\\*\\[\\]\\(\\)\\|\\+_")
-    );
+    List<List<String>> arguments =
+        Arrays.asList(
+            Arrays.asList("foo", "foo"),
+            Arrays.asList("notFoo", "foo"),
+            Arrays.asList("foobar", "%bar"),
+            Arrays.asList("bar", "%bar"),
+            Arrays.asList("foo", "fo_"),
+            Arrays.asList("foo", "foo_"),
+            Arrays.asList("foorbar", "%o_ar"),
+            Arrays.asList("foobar", "%o_a%"),
+            Arrays.asList("fooba%_\\^$.*[]()|+r", "%\\%\\_\\\\\\^\\$\\.\\*\\[\\]\\(\\)\\|\\+_"));
     Stream.Builder<Arguments> builder = Stream.builder();
     for (List<String> argPair : arguments) {
       builder.add(Arguments.of(fromObjectValue(argPair.get(0)), fromObjectValue(argPair.get(1))));
@@ -191,8 +218,7 @@ class BinaryPredicateOperatorTest extends ExpressionTestBase {
   @ParameterizedTest(name = "and({0}, {1})")
   @MethodSource("binaryPredicateArguments")
   public void test_and(Boolean v1, Boolean v2) {
-    FunctionExpression and =
-        DSL.and(DSL.literal(booleanValue(v1)), DSL.literal(booleanValue(v2)));
+    FunctionExpression and = DSL.and(DSL.literal(booleanValue(v1)), DSL.literal(booleanValue(v2)));
     assertEquals(BOOLEAN, and.type());
     assertEquals(v1 && v2, ExprValueUtils.getBooleanValue(and.valueOf(valueEnv())));
     assertEquals(String.format("and(%s, %s)", v1.toString(), v2.toString()), and.toString());
@@ -240,23 +266,31 @@ class BinaryPredicateOperatorTest extends ExpressionTestBase {
 
   @Test
   public void test_null_and_missing() {
-    FunctionExpression and = DSL.and(DSL.ref(BOOL_TYPE_MISSING_VALUE_FIELD, BOOLEAN),
-        DSL.ref(BOOL_TYPE_MISSING_VALUE_FIELD, BOOLEAN));
+    FunctionExpression and =
+        DSL.and(
+            DSL.ref(BOOL_TYPE_MISSING_VALUE_FIELD, BOOLEAN),
+            DSL.ref(BOOL_TYPE_MISSING_VALUE_FIELD, BOOLEAN));
     assertEquals(BOOLEAN, and.type());
     assertEquals(LITERAL_MISSING, and.valueOf(valueEnv()));
 
-    and = DSL.and(DSL.ref(BOOL_TYPE_NULL_VALUE_FIELD, BOOLEAN),
-        DSL.ref(BOOL_TYPE_NULL_VALUE_FIELD, BOOLEAN));
+    and =
+        DSL.and(
+            DSL.ref(BOOL_TYPE_NULL_VALUE_FIELD, BOOLEAN),
+            DSL.ref(BOOL_TYPE_NULL_VALUE_FIELD, BOOLEAN));
     assertEquals(BOOLEAN, and.type());
     assertEquals(LITERAL_NULL, and.valueOf(valueEnv()));
 
-    and = DSL.and(DSL.ref(BOOL_TYPE_NULL_VALUE_FIELD, BOOLEAN),
-        DSL.ref(BOOL_TYPE_MISSING_VALUE_FIELD, BOOLEAN));
+    and =
+        DSL.and(
+            DSL.ref(BOOL_TYPE_NULL_VALUE_FIELD, BOOLEAN),
+            DSL.ref(BOOL_TYPE_MISSING_VALUE_FIELD, BOOLEAN));
     assertEquals(BOOLEAN, and.type());
     assertEquals(LITERAL_MISSING, and.valueOf(valueEnv()));
 
-    and = DSL.and(DSL.ref(BOOL_TYPE_MISSING_VALUE_FIELD, BOOLEAN),
-        DSL.ref(BOOL_TYPE_NULL_VALUE_FIELD, BOOLEAN));
+    and =
+        DSL.and(
+            DSL.ref(BOOL_TYPE_MISSING_VALUE_FIELD, BOOLEAN),
+            DSL.ref(BOOL_TYPE_NULL_VALUE_FIELD, BOOLEAN));
     assertEquals(BOOLEAN, and.type());
     assertEquals(LITERAL_MISSING, and.valueOf(valueEnv()));
   }
@@ -264,8 +298,7 @@ class BinaryPredicateOperatorTest extends ExpressionTestBase {
   @ParameterizedTest(name = "or({0}, {1})")
   @MethodSource("binaryPredicateArguments")
   public void test_or(Boolean v1, Boolean v2) {
-    FunctionExpression or =
-        DSL.or(DSL.literal(booleanValue(v1)), DSL.literal(booleanValue(v2)));
+    FunctionExpression or = DSL.or(DSL.literal(booleanValue(v1)), DSL.literal(booleanValue(v2)));
     assertEquals(BOOLEAN, or.type());
     assertEquals(v1 || v2, ExprValueUtils.getBooleanValue(or.valueOf(valueEnv())));
     assertEquals(String.format("or(%s, %s)", v1.toString(), v2.toString()), or.toString());
@@ -313,34 +346,39 @@ class BinaryPredicateOperatorTest extends ExpressionTestBase {
 
   @Test
   public void test_null_or_missing() {
-    FunctionExpression or = DSL.or(DSL.ref(BOOL_TYPE_MISSING_VALUE_FIELD, BOOLEAN),
-        DSL.ref(BOOL_TYPE_MISSING_VALUE_FIELD, BOOLEAN));
+    FunctionExpression or =
+        DSL.or(
+            DSL.ref(BOOL_TYPE_MISSING_VALUE_FIELD, BOOLEAN),
+            DSL.ref(BOOL_TYPE_MISSING_VALUE_FIELD, BOOLEAN));
     assertEquals(BOOLEAN, or.type());
     assertEquals(LITERAL_MISSING, or.valueOf(valueEnv()));
 
     or =
-        DSL.or(DSL.ref(BOOL_TYPE_NULL_VALUE_FIELD, BOOLEAN),
+        DSL.or(
+            DSL.ref(BOOL_TYPE_NULL_VALUE_FIELD, BOOLEAN),
             DSL.ref(BOOL_TYPE_NULL_VALUE_FIELD, BOOLEAN));
     assertEquals(BOOLEAN, or.type());
     assertEquals(LITERAL_NULL, or.valueOf(valueEnv()));
 
-    or = DSL.or(DSL.ref(BOOL_TYPE_NULL_VALUE_FIELD, BOOLEAN),
-        DSL.ref(BOOL_TYPE_MISSING_VALUE_FIELD, BOOLEAN));
+    or =
+        DSL.or(
+            DSL.ref(BOOL_TYPE_NULL_VALUE_FIELD, BOOLEAN),
+            DSL.ref(BOOL_TYPE_MISSING_VALUE_FIELD, BOOLEAN));
     assertEquals(BOOLEAN, or.type());
     assertEquals(LITERAL_NULL, or.valueOf(valueEnv()));
 
-    or = DSL.or(DSL.ref(BOOL_TYPE_MISSING_VALUE_FIELD, BOOLEAN),
-        DSL.ref(BOOL_TYPE_NULL_VALUE_FIELD, BOOLEAN));
+    or =
+        DSL.or(
+            DSL.ref(BOOL_TYPE_MISSING_VALUE_FIELD, BOOLEAN),
+            DSL.ref(BOOL_TYPE_NULL_VALUE_FIELD, BOOLEAN));
     assertEquals(BOOLEAN, or.type());
     assertEquals(LITERAL_NULL, or.valueOf(valueEnv()));
   }
 
-
   @ParameterizedTest(name = "xor({0}, {1})")
   @MethodSource("binaryPredicateArguments")
   public void test_xor(Boolean v1, Boolean v2) {
-    FunctionExpression xor =
-        DSL.xor(DSL.literal(booleanValue(v1)), DSL.literal(booleanValue(v2)));
+    FunctionExpression xor = DSL.xor(DSL.literal(booleanValue(v1)), DSL.literal(booleanValue(v2)));
     assertEquals(BOOLEAN, xor.type());
     assertEquals(v1 ^ v2, ExprValueUtils.getBooleanValue(xor.valueOf(valueEnv())));
     assertEquals(String.format("xor(%s, %s)", v1.toString(), v2.toString()), xor.toString());
@@ -388,23 +426,31 @@ class BinaryPredicateOperatorTest extends ExpressionTestBase {
 
   @Test
   public void test_null_xor_missing() {
-    FunctionExpression xor = DSL.xor(DSL.ref(BOOL_TYPE_MISSING_VALUE_FIELD, BOOLEAN),
-        DSL.ref(BOOL_TYPE_MISSING_VALUE_FIELD, BOOLEAN));
+    FunctionExpression xor =
+        DSL.xor(
+            DSL.ref(BOOL_TYPE_MISSING_VALUE_FIELD, BOOLEAN),
+            DSL.ref(BOOL_TYPE_MISSING_VALUE_FIELD, BOOLEAN));
     assertEquals(BOOLEAN, xor.type());
     assertEquals(LITERAL_MISSING, xor.valueOf(valueEnv()));
 
-    xor = DSL.xor(DSL.ref(BOOL_TYPE_NULL_VALUE_FIELD, BOOLEAN),
-        DSL.ref(BOOL_TYPE_NULL_VALUE_FIELD, BOOLEAN));
+    xor =
+        DSL.xor(
+            DSL.ref(BOOL_TYPE_NULL_VALUE_FIELD, BOOLEAN),
+            DSL.ref(BOOL_TYPE_NULL_VALUE_FIELD, BOOLEAN));
     assertEquals(BOOLEAN, xor.type());
     assertEquals(LITERAL_NULL, xor.valueOf(valueEnv()));
 
-    xor = DSL.xor(DSL.ref(BOOL_TYPE_NULL_VALUE_FIELD, BOOLEAN),
-        DSL.ref(BOOL_TYPE_MISSING_VALUE_FIELD, BOOLEAN));
+    xor =
+        DSL.xor(
+            DSL.ref(BOOL_TYPE_NULL_VALUE_FIELD, BOOLEAN),
+            DSL.ref(BOOL_TYPE_MISSING_VALUE_FIELD, BOOLEAN));
     assertEquals(BOOLEAN, xor.type());
     assertEquals(LITERAL_NULL, xor.valueOf(valueEnv()));
 
-    xor = DSL.xor(DSL.ref(BOOL_TYPE_MISSING_VALUE_FIELD, BOOLEAN),
-        DSL.ref(BOOL_TYPE_NULL_VALUE_FIELD, BOOLEAN));
+    xor =
+        DSL.xor(
+            DSL.ref(BOOL_TYPE_MISSING_VALUE_FIELD, BOOLEAN),
+            DSL.ref(BOOL_TYPE_NULL_VALUE_FIELD, BOOLEAN));
     assertEquals(BOOLEAN, xor.type());
     assertEquals(LITERAL_NULL, xor.valueOf(valueEnv()));
   }
@@ -415,24 +461,28 @@ class BinaryPredicateOperatorTest extends ExpressionTestBase {
     FunctionExpression equal = DSL.equal(functionProperties, DSL.literal(v1), DSL.literal(v2));
     assertEquals(BOOLEAN, equal.type());
     if (v1.type() == v2.type()) {
-      assertEquals(v1.value().equals(v2.value()),
-          ExprValueUtils.getBooleanValue(equal.valueOf(valueEnv())));
+      assertEquals(
+          v1.value().equals(v2.value()), ExprValueUtils.getBooleanValue(equal.valueOf(valueEnv())));
     }
     if (v1.type() != STRUCT && v1.type() != ARRAY) {
-      assertEquals(0 == compare(functionProperties, v1, v2),
+      assertEquals(
+          0 == compare(functionProperties, v1, v2),
           ExprValueUtils.getBooleanValue(equal.valueOf(valueEnv())));
     }
     assertStringRepr(v1, v2, "=", equal);
   }
 
-  private void assertStringRepr(ExprValue v1, ExprValue v2, String function,
-                                FunctionExpression functionExpression) {
+  private void assertStringRepr(
+      ExprValue v1, ExprValue v2, String function, FunctionExpression functionExpression) {
     if (v1.type() == v2.type()) {
       assertEquals(String.format("%s(%s, %s)", function, v1, v2), functionExpression.toString());
     } else {
       var widerType = v1.type() == TIMESTAMP || v2.type() == TIMESTAMP ? TIMESTAMP : DATETIME;
-      assertEquals(String.format("%s(%s, %s)", function, getExpectedStringRepr(widerType, v1),
-          getExpectedStringRepr(widerType, v2)), functionExpression.toString());
+      assertEquals(
+          String.format(
+              "%s(%s, %s)",
+              function, getExpectedStringRepr(widerType, v1), getExpectedStringRepr(widerType, v2)),
+          functionExpression.toString());
     }
   }
 
@@ -446,15 +496,17 @@ class BinaryPredicateOperatorTest extends ExpressionTestBase {
   @ParameterizedTest(name = "equal({0}, {1})")
   @MethodSource({"testEqualArguments", "testNotEqualArguments"})
   public void test_notequal(ExprValue v1, ExprValue v2) {
-    FunctionExpression notequal = DSL.notequal(functionProperties,
-        DSL.literal(v1), DSL.literal(v2));
+    FunctionExpression notequal =
+        DSL.notequal(functionProperties, DSL.literal(v1), DSL.literal(v2));
     assertEquals(BOOLEAN, notequal.type());
     if (v1.type() == v2.type()) {
-      assertEquals(!v1.value().equals(v2.value()),
+      assertEquals(
+          !v1.value().equals(v2.value()),
           ExprValueUtils.getBooleanValue(notequal.valueOf(valueEnv())));
     }
     if (v1.type() != STRUCT && v1.type() != ARRAY) {
-      assertEquals(0 != compare(functionProperties, v1, v2),
+      assertEquals(
+          0 != compare(functionProperties, v1, v2),
           ExprValueUtils.getBooleanValue(notequal.valueOf(valueEnv())));
     }
     assertStringRepr(v1, v2, "!=", notequal);
@@ -465,7 +517,8 @@ class BinaryPredicateOperatorTest extends ExpressionTestBase {
   public void test_less(ExprValue v1, ExprValue v2) {
     FunctionExpression less = DSL.less(functionProperties, DSL.literal(v1), DSL.literal(v2));
     assertEquals(BOOLEAN, less.type());
-    assertEquals(compare(functionProperties, v1, v2) < 0,
+    assertEquals(
+        compare(functionProperties, v1, v2) < 0,
         ExprValueUtils.getBooleanValue(less.valueOf(valueEnv())));
     assertStringRepr(v1, v2, "<", less);
   }
@@ -475,7 +528,8 @@ class BinaryPredicateOperatorTest extends ExpressionTestBase {
   public void test_lte(ExprValue v1, ExprValue v2) {
     FunctionExpression lte = DSL.lte(functionProperties, DSL.literal(v1), DSL.literal(v2));
     assertEquals(BOOLEAN, lte.type());
-    assertEquals(compare(functionProperties, v1, v2) <= 0,
+    assertEquals(
+        compare(functionProperties, v1, v2) <= 0,
         ExprValueUtils.getBooleanValue(lte.valueOf(valueEnv())));
     assertStringRepr(v1, v2, "<=", lte);
   }
@@ -485,7 +539,8 @@ class BinaryPredicateOperatorTest extends ExpressionTestBase {
   public void test_greater(ExprValue v1, ExprValue v2) {
     FunctionExpression greater = DSL.greater(functionProperties, DSL.literal(v1), DSL.literal(v2));
     assertEquals(BOOLEAN, greater.type());
-    assertEquals(compare(functionProperties, v1, v2) > 0,
+    assertEquals(
+        compare(functionProperties, v1, v2) > 0,
         ExprValueUtils.getBooleanValue(greater.valueOf(valueEnv())));
     assertStringRepr(v1, v2, ">", greater);
   }
@@ -495,7 +550,8 @@ class BinaryPredicateOperatorTest extends ExpressionTestBase {
   public void test_gte(ExprValue v1, ExprValue v2) {
     FunctionExpression gte = DSL.gte(functionProperties, DSL.literal(v1), DSL.literal(v2));
     assertEquals(BOOLEAN, gte.type());
-    assertEquals(compare(functionProperties, v1, v2) >= 0,
+    assertEquals(
+        compare(functionProperties, v1, v2) >= 0,
         ExprValueUtils.getBooleanValue(gte.valueOf(valueEnv())));
     assertStringRepr(v1, v2, ">=", gte);
   }
@@ -527,17 +583,15 @@ class BinaryPredicateOperatorTest extends ExpressionTestBase {
   }
 
   void testRegexpString(StringPatternPair stringPatternPair) {
-    FunctionExpression expression = DSL.regexp(
+    FunctionExpression expression =
+        DSL.regexp(
             DSL.literal(new ExprStringValue(stringPatternPair.getStr())),
             DSL.literal(new ExprStringValue(stringPatternPair.getPatt())));
     assertEquals(INTEGER, expression.type());
-    assertEquals(stringPatternPair.regExpTest(), expression
-        .valueOf(valueEnv()).integerValue());
+    assertEquals(stringPatternPair.regExpTest(), expression.valueOf(valueEnv()).integerValue());
   }
 
-  /**
-   * Todo. remove this test cases after script serilization implemented.
-   */
+  /** Todo. remove this test cases after script serilization implemented. */
   @Test
   public void serializationTest() throws Exception {
     Expression expression = DSL.equal(DSL.literal("v1"), DSL.literal("v2"));

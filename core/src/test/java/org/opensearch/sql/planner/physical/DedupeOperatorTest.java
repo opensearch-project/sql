@@ -3,7 +3,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-
 package org.opensearch.sql.planner.physical;
 
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -26,8 +25,7 @@ import org.opensearch.sql.planner.physical.DedupeOperator.Deduper;
 
 @ExtendWith(MockitoExtension.class)
 class DedupeOperatorTest extends PhysicalPlanTestBase {
-  @Mock
-  private PhysicalPlan inputPlan;
+  @Mock private PhysicalPlan inputPlan;
 
   /**
    * construct the map which contain null value, because {@link ImmutableMap} doesn't support null
@@ -182,8 +180,7 @@ class DedupeOperatorTest extends PhysicalPlanTestBase {
             tupleValue(ImmutableMap.of("region", "us-east-1", "action", "GET", "response", 200)))
         .thenReturn(
             tupleValue(ImmutableMap.of("region", "us-east-1", "action", "POST", "response", 200)))
-        .thenReturn(
-            tupleValue(ImmutableMap.of("action", "POST", "response", 200)))
+        .thenReturn(tupleValue(ImmutableMap.of("action", "POST", "response", 200)))
         .thenReturn(
             tupleValue(ImmutableMap.of("region", "us-east-1", "action", "GET", "response", 200)));
 
@@ -201,8 +198,7 @@ class DedupeOperatorTest extends PhysicalPlanTestBase {
             tupleValue(ImmutableMap.of("region", "us-east-1", "action", "GET", "response", 200)))
         .thenReturn(
             tupleValue(ImmutableMap.of("region", "us-east-1", "action", "POST", "response", 200)))
-        .thenReturn(
-            tupleValue(ImmutableMap.of("action", "POST", "response", 200)))
+        .thenReturn(tupleValue(ImmutableMap.of("action", "POST", "response", 200)))
         .thenReturn(
             tupleValue(ImmutableMap.of("region", "us-east-1", "action", "GET", "response", 200)));
 
@@ -221,8 +217,7 @@ class DedupeOperatorTest extends PhysicalPlanTestBase {
             tupleValue(ImmutableMap.of("region", "us-east-1", "action", "GET", "response", 200)))
         .thenReturn(
             tupleValue(ImmutableMap.of("region", "us-east-1", "action", "POST", "response", 200)))
-        .thenReturn(
-            tupleValue(NULL_MAP))
+        .thenReturn(tupleValue(NULL_MAP))
         .thenReturn(
             tupleValue(ImmutableMap.of("region", "us-east-1", "action", "GET", "response", 200)));
 

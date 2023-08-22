@@ -56,10 +56,15 @@ public class TimestampTest extends ExpressionTestBase {
   })
   public void timestamp_one_arg_string_invalid_format(String value, String testName) {
     // exception thrown from ExprTimestampValue(String) CTOR
-    var exception = assertThrows(SemanticCheckException.class,
-        () -> DSL.timestamp(functionProperties, DSL.literal(value)).valueOf());
-    assertEquals(String.format("timestamp:%s in unsupported format, please "
-        + "use 'yyyy-MM-dd HH:mm:ss[.SSSSSSSSS]'", value), exception.getMessage());
+    var exception =
+        assertThrows(
+            SemanticCheckException.class,
+            () -> DSL.timestamp(functionProperties, DSL.literal(value)).valueOf());
+    assertEquals(
+        String.format(
+            "timestamp:%s in unsupported format, please " + "use 'yyyy-MM-dd HH:mm:ss[.SSSSSSSSS]'",
+            value),
+        exception.getMessage());
   }
 
   @Test

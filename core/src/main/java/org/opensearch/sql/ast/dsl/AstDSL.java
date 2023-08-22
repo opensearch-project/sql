@@ -249,11 +249,13 @@ public class AstDSL {
   }
 
   /**
+   *
+   *
    * <pre>
    * CASE
-   *    WHEN search_condition THEN result_expr<br>
-   *    [WHEN search_condition THEN result_expr] ...
-   *    [ELSE result_expr]
+   *     WHEN search_condition THEN result_expr
+   *     [WHEN search_condition THEN result_expr] ...
+   *     [ELSE result_expr]
    * END
    * </pre>
    */
@@ -263,6 +265,8 @@ public class AstDSL {
   }
 
   /**
+   *
+   *
    * <pre>
    * CASE case_value_expr
    *     WHEN compare_expr THEN result_expr

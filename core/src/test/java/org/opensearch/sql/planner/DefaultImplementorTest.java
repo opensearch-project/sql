@@ -81,8 +81,7 @@ import org.opensearch.sql.utils.TestOperator;
 @DisplayNameGeneration(DisplayNameGenerator.ReplaceUnderscores.class)
 class DefaultImplementorTest {
 
-  @Mock
-  private Table table;
+  @Mock private Table table;
 
   private final DefaultImplementor<Object> implementor = new DefaultImplementor<>();
 
@@ -107,50 +106,43 @@ class DefaultImplementorTest {
         ImmutablePair.of(Sort.SortOption.DEFAULT_ASC, ref("name1", STRING));
     Integer limit = 1;
     Integer offset = 1;
-    List<Map<String, ReferenceExpression>> nestedArgs = List.of(
-        Map.of(
-            "field", new ReferenceExpression("message.info", STRING),
-            "path", new ReferenceExpression("message", STRING)
-        )
-    );
+    List<Map<String, ReferenceExpression>> nestedArgs =
+        List.of(
+            Map.of(
+                "field", new ReferenceExpression("message.info", STRING),
+                "path", new ReferenceExpression("message", STRING)));
     List<NamedExpression> nestedProjectList =
         List.of(
-            new NamedExpression(
-                "message.info",
-                DSL.nested(DSL.ref("message.info", STRING)),
-                null
-            )
-        );
+            new NamedExpression("message.info", DSL.nested(DSL.ref("message.info", STRING)), null));
     Set<String> nestedOperatorArgs = Set.of("message.info");
-    Map<String, List<String>> groupedFieldsByPath =
-        Map.of("message", List.of("message.info"));
-
+    Map<String, List<String>> groupedFieldsByPath = Map.of("message", List.of("message.info"));
 
     LogicalPlan plan =
         project(
             nested(
-              limit(
-                  LogicalPlanDSL.dedupe(
-                      rareTopN(
-                          sort(
-                              eval(
-                                  remove(
-                                      rename(
-                                          aggregation(
-                                              filter(values(emptyList()), filterExpr),
-                                              aggregators,
-                                              groupByExprs),
-                                          mappings),
-                                      exclude),
-                                  newEvalField),
-                              sortField),
-                          CommandType.TOP,
-                          topByExprs,
-                          rareTopNField),
-                      dedupeField),
-                  limit,
-                  offset),
-            nestedArgs, nestedProjectList),
+                limit(
+                    LogicalPlanDSL.dedupe(
+                        rareTopN(
+                            sort(
+                                eval(
+                                    remove(
+                                        rename(
+                                            aggregation(
+                                                filter(values(emptyList()), filterExpr),
+                                                aggregators,
+                                                groupByExprs),
+                                            mappings),
+                                        exclude),
+                                    newEvalField),
+                                sortField),
+                            CommandType.TOP,
+                            topByExprs,
+                            rareTopNField),
+                        dedupeField),
+                    limit,
+                    offset),
+                nestedArgs,
+                nestedProjectList),
             include);
 
     PhysicalPlan actual = plan.accept(implementor, null);
@@ -158,37 +150,39 @@ class DefaultImplementorTest {
     assertEquals(
         PhysicalPlanDSL.project(
             PhysicalPlanDSL.nested(
-              PhysicalPlanDSL.limit(
-                  PhysicalPlanDSL.dedupe(
-                      PhysicalPlanDSL.rareTopN(
-                          PhysicalPlanDSL.sort(
-                              PhysicalPlanDSL.eval(
-                                  PhysicalPlanDSL.remove(
-                                      PhysicalPlanDSL.rename(
-                                          PhysicalPlanDSL.agg(
-                                              PhysicalPlanDSL.filter(
-                                                  PhysicalPlanDSL.values(emptyList()),
-                                                  filterExpr),
-                                              aggregators,
-                                              groupByExprs),
-                                          mappings),
-                                      exclude),
-                                  newEvalField),
-                              sortField),
-                          CommandType.TOP,
-                          topByExprs,
-                          rareTopNField),
-                      dedupeField),
-                  limit,
-                  offset),
-                nestedOperatorArgs, groupedFieldsByPath),
+                PhysicalPlanDSL.limit(
+                    PhysicalPlanDSL.dedupe(
+                        PhysicalPlanDSL.rareTopN(
+                            PhysicalPlanDSL.sort(
+                                PhysicalPlanDSL.eval(
+                                    PhysicalPlanDSL.remove(
+                                        PhysicalPlanDSL.rename(
+                                            PhysicalPlanDSL.agg(
+                                                PhysicalPlanDSL.filter(
+                                                    PhysicalPlanDSL.values(emptyList()),
+                                                    filterExpr),
+                                                aggregators,
+                                                groupByExprs),
+                                            mappings),
+                                        exclude),
+                                    newEvalField),
+                                sortField),
+                            CommandType.TOP,
+                            topByExprs,
+                            rareTopNField),
+                        dedupeField),
+                    limit,
+                    offset),
+                nestedOperatorArgs,
+                groupedFieldsByPath),
             include),
         actual);
   }
 
   @Test
   public void visitRelation_should_throw_an_exception() {
-    assertThrows(UnsupportedOperationException.class,
+    assertThrows(
+        UnsupportedOperationException.class,
         () -> new LogicalRelation("test", table).accept(implementor, null));
   }
 
@@ -196,36 +190,27 @@ class DefaultImplementorTest {
   @Test
   public void visitWindowOperator_should_return_PhysicalWindowOperator() {
     NamedExpression windowFunction = named(new RowNumberFunction());
-    WindowDefinition windowDefinition = new WindowDefinition(
-        Collections.singletonList(ref("state", STRING)),
-        Collections.singletonList(
-            ImmutablePair.of(Sort.SortOption.DEFAULT_DESC, ref("age", INTEGER))));
+    WindowDefinition windowDefinition =
+        new WindowDefinition(
+            Collections.singletonList(ref("state", STRING)),
+            Collections.singletonList(
+                ImmutablePair.of(Sort.SortOption.DEFAULT_DESC, ref("age", INTEGER))));
 
     NamedExpression[] projectList = {
-        named("state", ref("state", STRING)),
-        named("row_number", ref("row_number", INTEGER))
+      named("state", ref("state", STRING)), named("row_number", ref("row_number", INTEGER))
     };
     Pair[] sortList = {
-        ImmutablePair.of(Sort.SortOption.DEFAULT_ASC, ref("state", STRING)),
-        ImmutablePair.of(Sort.SortOption.DEFAULT_DESC, ref("age", STRING))
+      ImmutablePair.of(Sort.SortOption.DEFAULT_ASC, ref("state", STRING)),
+      ImmutablePair.of(Sort.SortOption.DEFAULT_DESC, ref("age", STRING))
     };
 
     LogicalPlan logicalPlan =
-        project(
-            window(
-                sort(
-                    values(),
-                    sortList),
-                windowFunction,
-                windowDefinition),
-            projectList);
+        project(window(sort(values(), sortList), windowFunction, windowDefinition), projectList);
 
     PhysicalPlan physicalPlan =
         PhysicalPlanDSL.project(
             PhysicalPlanDSL.window(
-                PhysicalPlanDSL.sort(
-                    PhysicalPlanDSL.values(),
-                    sortList),
+                PhysicalPlanDSL.sort(PhysicalPlanDSL.values(), sortList),
                 windowFunction,
                 windowDefinition),
             projectList);
@@ -238,20 +223,22 @@ class DefaultImplementorTest {
     var engine = mock(StorageEngine.class);
 
     var physicalPlan = new TestOperator();
-    var logicalPlan = LogicalPlanDSL.fetchCursor(new PlanSerializer(engine)
-        .convertToCursor(physicalPlan).toString(), engine);
+    var logicalPlan =
+        LogicalPlanDSL.fetchCursor(
+            new PlanSerializer(engine).convertToCursor(physicalPlan).toString(), engine);
     assertEquals(physicalPlan, logicalPlan.accept(implementor, null));
   }
 
   @Test
   public void visitTableScanBuilder_should_build_TableScanOperator() {
     TableScanOperator tableScanOperator = mock(TableScanOperator.class);
-    TableScanBuilder tableScanBuilder = new TableScanBuilder() {
-      @Override
-      public TableScanOperator build() {
-        return tableScanOperator;
-      }
-    };
+    TableScanBuilder tableScanBuilder =
+        new TableScanBuilder() {
+          @Override
+          public TableScanOperator build() {
+            return tableScanOperator;
+          }
+        };
     assertEquals(tableScanOperator, tableScanBuilder.accept(implementor, null));
   }
 
@@ -259,12 +246,13 @@ class DefaultImplementorTest {
   public void visitTableWriteBuilder_should_build_TableWriteOperator() {
     LogicalPlan child = values();
     TableWriteOperator tableWriteOperator = mock(TableWriteOperator.class);
-    TableWriteBuilder logicalPlan = new TableWriteBuilder(child) {
-      @Override
-      public TableWriteOperator build(PhysicalPlan child) {
-        return tableWriteOperator;
-      }
-    };
+    TableWriteBuilder logicalPlan =
+        new TableWriteBuilder(child) {
+          @Override
+          public TableWriteOperator build(PhysicalPlan child) {
+            return tableWriteOperator;
+          }
+        };
     assertEquals(tableWriteOperator, logicalPlan.accept(implementor, null));
   }
 
@@ -281,11 +269,13 @@ class DefaultImplementorTest {
 
   @Test
   public void visitPaginate_should_remove_it_from_tree() {
-    var logicalPlanTree = new LogicalPaginate(42, List.of(
-        new LogicalProject(
-            new LogicalValues(List.of(List.of())), List.of(), List.of())));
-    var physicalPlanTree = new ProjectOperator(
-        new ValuesOperator(List.of(List.of())), List.of(), List.of());
+    var logicalPlanTree =
+        new LogicalPaginate(
+            42,
+            List.of(
+                new LogicalProject(new LogicalValues(List.of(List.of())), List.of(), List.of())));
+    var physicalPlanTree =
+        new ProjectOperator(new ValuesOperator(List.of(List.of())), List.of(), List.of());
     assertEquals(physicalPlanTree, logicalPlanTree.accept(implementor, null));
   }
 }
