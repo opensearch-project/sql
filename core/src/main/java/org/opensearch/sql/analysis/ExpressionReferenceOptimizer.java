@@ -25,12 +25,17 @@ import org.opensearch.sql.planner.logical.LogicalPlanNodeVisitor;
 import org.opensearch.sql.planner.logical.LogicalWindow;
 
 /**
- * The optimizer used to replace the expression referred in the SelectClause e.g. The query SELECT
- * abs(name), sum(age)-avg(age) FROM test GROUP BY abs(name). will be translated the AST
- * Project[abs(age), sub(sum(age), avg(age)) Agg(agg=[sum(age), avg(age)], group=[abs(age)]]
- * Relation The sum(age) and avg(age) in the Project could be replace by the analyzed reference, the
- * LogicalPlan should be LogicalProject[Ref("abs(age)"), sub(Ref("sum(age)"), Ref("avg(age)"))
- * LogicalAgg(agg=[sum(age), avg(age)], group=[abs(age)]] LogicalRelation
+ * The optimizer used to replace the expression referred in the SelectClause</br> e.g. The query
+ * SELECT abs(name), sum(age)-avg(age) FROM test GROUP BY abs(name).<br>
+ * will be translated the AST<br>
+ * Project[abs(age), sub(sum(age), avg(age))<br>
+ * &ensp Agg(agg=[sum(age), avg(age)], group=[abs(age)]]<br>
+ * &emsp Relation<br>
+ * The sum(age) and avg(age) in the Project could be replaced by the analyzed reference, the
+ * LogicalPlan should be<br>
+ * LogicalProject[Ref("abs(age)"), sub(Ref("sum(age)"), Ref("avg(age)"))<br>
+ * &ensp LogicalAgg(agg=[sum(age), avg(age)], group=[abs(age)]]<br>
+ * &emsp LogicalRelation
  */
 public class ExpressionReferenceOptimizer
     extends ExpressionNodeVisitor<Expression, AnalysisContext> {

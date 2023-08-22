@@ -16,9 +16,7 @@ import lombok.ToString;
 import org.opensearch.sql.ast.AbstractNodeVisitor;
 import org.opensearch.sql.ast.tree.UnresolvedPlan;
 
-/**
- * Query Statement.
- */
+/** Query Statement. */
 @Getter
 @Setter
 @ToString

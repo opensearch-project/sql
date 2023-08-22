@@ -3,15 +3,12 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-
 package org.opensearch.sql.data.model;
 
 import com.google.common.base.Objects;
 import lombok.RequiredArgsConstructor;
 
-/**
- * Expression Number Value.
- */
+/** Expression Number Value. */
 @RequiredArgsConstructor
 public abstract class AbstractExprNumberValue extends AbstractExprValue {
   private final Number value;

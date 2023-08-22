@@ -3,15 +3,12 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-
 package org.opensearch.sql.data.model;
 
 import org.opensearch.sql.data.type.ExprCoreType;
 import org.opensearch.sql.data.type.ExprType;
 
-/**
- * Expression Short Value.
- */
+/** Expression Short Value. */
 public class ExprShortValue extends AbstractExprNumberValue {
 
   public ExprShortValue(Number value) {

@@ -113,7 +113,7 @@ public class DateTimeValueTest {
     SemanticCheckException exception =
         assertThrows(SemanticCheckException.class, () -> new ExprDateValue("2020-07-07Z"));
     assertEquals(
-        "date:2020-07-07Z in unsupported format, please use yyyy-MM-dd", exception.getMessage());
+        "date:2020-07-07Z in unsupported format, please use 'yyyy-MM-dd'", exception.getMessage());
   }
 
   @Test
@@ -121,7 +121,7 @@ public class DateTimeValueTest {
     SemanticCheckException exception =
         assertThrows(SemanticCheckException.class, () -> new ExprTimeValue("01:01:0"));
     assertEquals(
-        "time:01:01:0 in unsupported format, please use HH:mm:ss[.SSSSSSSSS]",
+        "time:01:01:0 in unsupported format, please use 'HH:mm:ss[.SSSSSSSSS]'",
         exception.getMessage());
   }
 
@@ -132,7 +132,7 @@ public class DateTimeValueTest {
             SemanticCheckException.class, () -> new ExprTimestampValue("2020-07-07T01:01:01Z"));
     assertEquals(
         "timestamp:2020-07-07T01:01:01Z in unsupported format, "
-            + "please use yyyy-MM-dd HH:mm:ss[.SSSSSSSSS]",
+            + "please use 'yyyy-MM-dd HH:mm:ss[.SSSSSSSSS]'",
         exception.getMessage());
   }
 
@@ -143,7 +143,7 @@ public class DateTimeValueTest {
             SemanticCheckException.class, () -> new ExprDatetimeValue("2020-07-07T01:01:01Z"));
     assertEquals(
         "datetime:2020-07-07T01:01:01Z in unsupported format, "
-            + "please use yyyy-MM-dd HH:mm:ss[.SSSSSSSSS]",
+            + "please use 'yyyy-MM-dd HH:mm:ss[.SSSSSSSSS]'",
         exception.getMessage());
   }
 
@@ -162,7 +162,7 @@ public class DateTimeValueTest {
             () -> new ExprStringValue("2020-07-07T01:01:01Z").datetimeValue());
     assertEquals(
         "datetime:2020-07-07T01:01:01Z in unsupported format, "
-            + "please use yyyy-MM-dd HH:mm:ss[.SSSSSSSSS]",
+            + "please use 'yyyy-MM-dd HH:mm:ss[.SSSSSSSSS]'",
         exception.getMessage());
   }
 
@@ -178,7 +178,7 @@ public class DateTimeValueTest {
         assertThrows(
             SemanticCheckException.class, () -> new ExprStringValue("2020-07-07Z").dateValue());
     assertEquals(
-        "date:2020-07-07Z in unsupported format, please use yyyy-MM-dd", exception.getMessage());
+        "date:2020-07-07Z in unsupported format, please use 'yyyy-MM-dd'", exception.getMessage());
   }
 
   @Test
@@ -192,7 +192,7 @@ public class DateTimeValueTest {
         assertThrows(
             SemanticCheckException.class, () -> new ExprStringValue("01:01:0").timeValue());
     assertEquals(
-        "time:01:01:0 in unsupported format, please use HH:mm:ss[.SSSSSSSSS]",
+        "time:01:01:0 in unsupported format, please use 'HH:mm:ss[.SSSSSSSSS]'",
         exception.getMessage());
   }
 
@@ -260,8 +260,8 @@ public class DateTimeValueTest {
             SemanticCheckException.class,
             () -> new ExprTimestampValue("2020-07-07 01:01:01.1234567890"));
     assertEquals(
-        "timestamp:2020-07-07 01:01:01.1234567890 in unsupported format, "
-            + "please use yyyy-MM-dd HH:mm:ss[.SSSSSSSSS]",
+        "timestamp:2020-07-07 01:01:01.1234567890 in unsupported format, please use "
+            + "'yyyy-MM-dd HH:mm:ss[.SSSSSSSSS]'",
         exception.getMessage());
   }
 
@@ -273,7 +273,7 @@ public class DateTimeValueTest {
             () -> new ExprDatetimeValue("2020-07-07 01:01:01.1234567890"));
     assertEquals(
         "datetime:2020-07-07 01:01:01.1234567890 in unsupported format, "
-            + "please use yyyy-MM-dd HH:mm:ss[.SSSSSSSSS]",
+            + "please use 'yyyy-MM-dd HH:mm:ss[.SSSSSSSSS]'",
         exception.getMessage());
   }
 
@@ -282,7 +282,7 @@ public class DateTimeValueTest {
     SemanticCheckException exception =
         assertThrows(SemanticCheckException.class, () -> new ExprTimeValue("01:01:01.1234567890"));
     assertEquals(
-        "time:01:01:01.1234567890 in unsupported format, please use HH:mm:ss[.SSSSSSSSS]",
+        "time:01:01:01.1234567890 in unsupported format, please use 'HH:mm:ss[.SSSSSSSSS]'",
         exception.getMessage());
   }
 }
