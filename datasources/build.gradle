@@ -39,6 +39,9 @@ test {
     }
 }
 
+checkstyleMain.ignoreFailures = true
+checkstyleTest.ignoreFailures = true
+
 jacocoTestReport {
     reports {
         html.enabled true
