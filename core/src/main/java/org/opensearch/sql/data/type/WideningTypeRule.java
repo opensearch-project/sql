@@ -56,9 +56,8 @@ public class WideningTypeRule {
   }
 
   /**
-   * The max type among two types. The max is defined as follow if type1 could widen to type2, then
-   *
-   * <p>max is type2, vice versa if type1 couldn't widen to type2 and type2 could't widen to type1,
+   * The max type among two types. The max is defined as follows if type1 could widen to type2, then
+   * max is type2, vice versa if type1 couldn't widen to type2 and type2 could't widen to type1,
    * then throw {@link ExpressionEvaluationException}.
    *
    * @param type1 type1
