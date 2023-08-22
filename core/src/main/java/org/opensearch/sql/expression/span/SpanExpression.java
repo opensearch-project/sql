@@ -39,9 +39,40 @@ public class SpanExpression implements Expression {
   }
 
   /**
-   * Return type follows the following table. FIELD VALUE RETURN_TYPE int/long integer int/long
-   * (field type) int/long double double float/double integer float/double (field type) float/double
-   * double float/double (field type) other any field type
+   * Return type follows the following table.
+   *
+   * <table>
+   *   <tr>
+   *     <th>FIELD</th>
+   *     <th>VALUE</th>
+   *     <th>RETURN_TYPE</th>
+   *   </tr>
+   *   <tr>
+   *       <th>int/long</th>
+   *       <th>integer</th>
+   *       <th>int/long (field type)</th>
+   *   </tr>
+   *   <tr>
+   *       <th>int/long</th>
+   *       <th>double</th>
+   *       <th>double</th>
+   *   </tr>
+   *   <tr>
+   *       <th>float/double</th>
+   *       <th>integer</th>
+   *       <th>float/double (field type)</th>
+   *   </tr>
+   *   <tr>
+   *       <th>float/double</th>
+   *       <th>double</th>
+   *       <th>float/double (field type)</th>
+   *   </tr>
+   *   <tr>
+   *       <th>other</th>
+   *       <th>any</th>
+   *       <th>field type</th>
+   *   </tr>
+   *  </table>
    */
   @Override
   public ExprType type() {

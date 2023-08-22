@@ -29,8 +29,8 @@ public class QueryService {
   private final Planner planner;
 
   /**
-   * Execute the {@link UnresolvedPlan}, using {@link ResponseListener} to get response. Todo.
-   * deprecated this interface after finalize {@link PlanContext}.
+   * Execute the {@link UnresolvedPlan}, using {@link ResponseListener} to get response.<br>
+   * Todo. deprecated this interface after finalize {@link PlanContext}.
    *
    * @param plan {@link UnresolvedPlan}
    * @param listener {@link ResponseListener}
@@ -46,7 +46,8 @@ public class QueryService {
 
   /**
    * Execute the {@link UnresolvedPlan}, with {@link PlanContext} and using {@link ResponseListener}
-   * to get response. Todo. Pass split from PlanContext to ExecutionEngine in following PR.
+   * to get response.<br>
+   * Todo. Pass split from PlanContext to ExecutionEngine in following PR.
    *
    * @param plan {@link LogicalPlan}
    * @param planContext {@link PlanContext}

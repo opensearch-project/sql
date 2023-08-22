@@ -48,7 +48,32 @@ public class UnaryPredicateOperator {
         FunctionDSL.impl(UnaryPredicateOperator::not, BOOLEAN, BOOLEAN));
   }
 
-  /** The not logic. A NOT A TRUE FALSE FALSE TRUE NULL NULL MISSING MISSING */
+  /**
+   * The not logic.
+   *
+   * <table>
+   *     <tr>
+   *         <th>A</th>
+   *         <th>NOT A</th>
+   *     </tr>
+   *     <tr>
+   *         <th>TRUE</th>
+   *         <th>FALSE</th>
+   *     </tr>
+   *     <tr>
+   *         <th>FALSE</th>
+   *         <th>TRUE</th>
+   *     </tr>
+   *     <tr>
+   *         <th>NULL</th>
+   *         <th>NULL</th>
+   *     </tr>
+   *     <tr>
+   *         <th>MISSING</th>
+   *         <th>MISSING</th>
+   *     </tr>
+   * </table>
+   */
   public ExprValue not(ExprValue v) {
     if (v.isMissing() || v.isNull()) {
       return v;

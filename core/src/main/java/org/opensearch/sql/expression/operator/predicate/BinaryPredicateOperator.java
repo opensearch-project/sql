@@ -29,10 +29,11 @@ import org.opensearch.sql.expression.function.DefaultFunctionResolver;
 import org.opensearch.sql.utils.OperatorUtils;
 
 /**
- * The definition of binary predicate function and, Accepts two Boolean values and produces a
- * Boolean. or, Accepts two Boolean values and produces a Boolean. xor, Accepts two Boolean values
- * and produces a Boolean. equalTo, Compare the left expression and right expression and produces a
- * Boolean.
+ * The definition of binary predicate function<br>
+ * and, Accepts two Boolean values and produces a Boolean.<br>
+ * or, Accepts two Boolean values and produces a Boolean.<br>
+ * xor, Accepts two Boolean values and produces a Boolean.<br>
+ * equalTo, Compare the left expression and right expression and produces a Boolean.
  */
 @UtilityClass
 public class BinaryPredicateOperator {
@@ -57,9 +58,65 @@ public class BinaryPredicateOperator {
   }
 
   /**
-   * The and logic. A B A AND B TRUE TRUE TRUE TRUE FALSE FALSE TRUE NULL NULL TRUE MISSING MISSING
-   * FALSE FALSE FALSE FALSE NULL FALSE FALSE MISSING FALSE NULL NULL NULL NULL MISSING MISSING
-   * MISSING MISSING MISSING
+   * The and logic.
+   *
+   * <table>
+   *   <tr>
+   *     <th>A</th>
+   *     <th>B</th>
+   *     <th>A AND B</th>
+   *   </tr>
+   *   <tr>
+   *     <td>TRUE</td>
+   *     <td>TRUE</td>
+   *     <td>TRUE</td>
+   *   </tr>
+   *   <tr>
+   *     <td>TRUE</td>
+   *     <td>FALSE</td>
+   *     <td>FALSE</td>
+   *   </tr>
+   *   <tr>
+   *     <td>TRUE</td>
+   *     <td>NULL</td>
+   *     <td>NULL</td>
+   *   </tr>
+   *   <tr>
+   *     <td>TRUE</td>
+   *     <td>MISSING</td>
+   *     <td>MISSING</td>
+   *   </tr>
+   *   <tr>
+   *     <td>FALSE</td>
+   *     <td>FALSE</td>
+   *     <td>FALSE</td>
+   *   </tr>
+   *   <tr>
+   *     <td>FALSE</td>
+   *     <td>NULL</td>
+   *     <td>FALSE</td>
+   *   </tr>
+   *   <tr>
+   *     <td>FALSE</td>
+   *     <td>MISSING</td>
+   *     <td>FALSE</td>
+   *   </tr>
+   *   <tr>
+   *     <td>NULL</td>
+   *     <td>NULL</td>
+   *     <td>NULL</td>
+   *   </tr>
+   *   <tr>
+   *       <td>NULL</td>
+   *       <td>MISSING</td>
+   *       <td>MISSING</td>
+   *   </tr>
+   *   <tr>
+   *       <td>MISSING</td>
+   *       <td>MISSING</td>
+   *       <td>MISSING</td>
+   *   </tr>
+   * </table>
    */
   private static Table<ExprValue, ExprValue, ExprValue> andTable =
       new ImmutableTable.Builder<ExprValue, ExprValue, ExprValue>()
@@ -76,9 +133,65 @@ public class BinaryPredicateOperator {
           .build();
 
   /**
-   * The or logic. A B A AND B TRUE TRUE TRUE TRUE FALSE TRUE TRUE NULL TRUE TRUE MISSING TRUE FALSE
-   * FALSE FALSE FALSE NULL NULL FALSE MISSING MISSING NULL NULL NULL NULL MISSING NULL MISSING
-   * MISSING MISSING
+   * The or logic.
+   *
+   * <table>
+   *   <tr>
+   *     <th>A</th>
+   *     <th>B</th>
+   *     <th>A OR B</th>
+   *   </tr>
+   *   <tr>
+   *     <td>TRUE</td>
+   *     <td>TRUE</td>
+   *     <td>TRUE</td>
+   *   </tr>
+   *   <tr>
+   *     <td>TRUE</td>
+   *     <td>FALSE</td>
+   *     <td>TRUE</td>
+   *   </tr>
+   *   <tr>
+   *     <td>TRUE</td>
+   *     <td>NULL</td>
+   *     <td>TRUE</td>
+   *   </tr>
+   *   <tr>
+   *     <td>TRUE</td>
+   *     <td>MISSING</td>
+   *     <td>TRUE</td>
+   *   </tr>
+   *   <tr>
+   *     <td>FALSE</td>
+   *     <td>FALSE</td>
+   *     <td>FALSE</td>
+   *   </tr>
+   *   <tr>
+   *     <td>FALSE</td>
+   *     <td>NULL</td>
+   *     <td>NULL</td>
+   *   </tr>
+   *   <tr>
+   *     <td>FALSE</td>
+   *     <td>MISSING</td>
+   *     <td>MISSING</td>
+   *   </tr>
+   *   <tr>
+   *     <td>NULL</td>
+   *     <td>NULL</td>
+   *     <td>NULL</td>
+   *   </tr>
+   *   <tr>
+   *       <td>NULL</td>
+   *       <td>MISSING</td>
+   *       <td>NULL</td>
+   *   </tr>
+   *   <tr>
+   *       <td>MISSING</td>
+   *       <td>MISSING</td>
+   *       <td>MISSING</td>
+   *   </tr>
+   * </table>
    */
   private static Table<ExprValue, ExprValue, ExprValue> orTable =
       new ImmutableTable.Builder<ExprValue, ExprValue, ExprValue>()
@@ -95,9 +208,65 @@ public class BinaryPredicateOperator {
           .build();
 
   /**
-   * The xor logic. A B A AND B TRUE TRUE FALSE TRUE FALSE TRUE TRUE NULL TRUE TRUE MISSING TRUE
-   * FALSE FALSE FALSE FALSE NULL NULL FALSE MISSING MISSING NULL NULL NULL NULL MISSING NULL
-   * MISSING MISSING MISSING
+   * The xor logic.
+   *
+   * <table>
+   *   <tr>
+   *     <th>A</th>
+   *     <th>B</th>
+   *     <th>A XOR B</th>
+   *   </tr>
+   *   <tr>
+   *     <td>TRUE</td>
+   *     <td>TRUE</td>
+   *     <td>FALSE</td>
+   *   </tr>
+   *   <tr>
+   *     <td>TRUE</td>
+   *     <td>FALSE</td>
+   *     <td>TRUE</td>
+   *   </tr>
+   *   <tr>
+   *     <td>TRUE</td>
+   *     <td>NULL</td>
+   *     <td>TRUE</td>
+   *   </tr>
+   *   <tr>
+   *     <td>TRUE</td>
+   *     <td>MISSING</td>
+   *     <td>TRUE</td>
+   *   </tr>
+   *   <tr>
+   *     <td>FALSE</td>
+   *     <td>FALSE</td>
+   *     <td>FALSE</td>
+   *   </tr>
+   *   <tr>
+   *     <td>FALSE</td>
+   *     <td>NULL</td>
+   *     <td>NULL</td>
+   *   </tr>
+   *   <tr>
+   *     <td>FALSE</td>
+   *     <td>MISSING</td>
+   *     <td>MISSING</td>
+   *   </tr>
+   *   <tr>
+   *     <td>NULL</td>
+   *     <td>NULL</td>
+   *     <td>NULL</td>
+   *   </tr>
+   *   <tr>
+   *       <td>NULL</td>
+   *       <td>MISSING</td>
+   *       <td>NULL</td>
+   *   </tr>
+   *   <tr>
+   *       <td>MISSING</td>
+   *       <td>MISSING</td>
+   *       <td>MISSING</td>
+   *   </tr>
+   * </table>
    */
   private static Table<ExprValue, ExprValue, ExprValue> xorTable =
       new ImmutableTable.Builder<ExprValue, ExprValue, ExprValue>()

@@ -48,7 +48,7 @@ public class PeerRowsWindowFrame implements WindowFrame {
   /**
    * Move position and clear new partition flag. Note that because all peer rows have same result
    * from window function, this is only returned at first time to change window function state.
-   * Afterwards, empty list is returned to avoid changes until next peer loaded.
+   * Afterward, empty list is returned to avoid changes until next peer loaded.
    *
    * @return all rows for the peer
    */
@@ -75,8 +75,14 @@ public class PeerRowsWindowFrame implements WindowFrame {
   /**
    * Preload all peer rows if last peer rows done. Note that when no more data in peeking iterator,
    * there must be rows in frame (hasNext()=true), so no need to check it.hasNext() in this method.
-   * Load until: 1. Different peer found (row with different sort key) 2. Or new partition (row with
-   * different partition key) 3. Or no more rows
+   * <br>
+   * Load until:<br>
+   *
+   * <ol>
+   *   <li>Different peer found (row with different sort key)
+   *   <li>Or new partition (row with different partition key)
+   *   <li>Or no more rows
+   * </ol>
    *
    * @param it rows iterator
    */

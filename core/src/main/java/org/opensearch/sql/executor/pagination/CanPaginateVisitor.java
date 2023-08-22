@@ -41,16 +41,27 @@ import org.opensearch.sql.ast.tree.Values;
 import org.opensearch.sql.expression.function.BuiltinFunctionName;
 
 /**
- * Use this unresolved plan visitor to check if a plan can be serialized by PaginatedPlanCache. If
+ * Use this unresolved plan visitor to check if a plan can be serialized by PaginatedPlanCache.<br>
+ * If
  *
  * <pre>plan.accept(new CanPaginateVisitor(...))</pre>
  *
- * returns <em>true</em>, then PaginatedPlanCache.convertToCursor will succeed. Otherwise, it will
- * fail. The purpose of this visitor is to activate legacy engine fallback mechanism. Currently, V2
- * engine does not support queries with: - aggregation (GROUP BY clause or aggregation functions
- * like min/max) - in memory aggregation (window function) - LIMIT/OFFSET clause(s) - without FROM
- * clause - JOIN - a subquery V2 also requires that the table being queried should be an OpenSearch
- * index. See PaginatedPlanCache.canConvertToCursor for usage.
+ * returns <em>true</em>, <em>PaginatedPlanCache.convertToCursor</em> will succeed.<br>
+ * Otherwise, it will fail.<br>
+ * The purpose of this visitor is to activate legacy engine fallback mechanism.<br>
+ * Currently, V2 engine does not support queries with:<br>
+ *
+ * <ul>
+ *   <li>aggregation (GROUP BY clause or aggregation functions like min/max)
+ *   <li>in memory aggregation (window function)
+ *   <li>LIMIT/OFFSET clause(s)
+ *   <li>without FROM clause
+ *   <li>JOIN
+ *   <li>a subquery
+ * </ul>
+ *
+ * V2 also requires that the table being queried should be an OpenSearch index.<br>
+ * See PaginatedPlanCache.canConvertToCursor for usage.
  */
 public class CanPaginateVisitor extends AbstractNodeVisitor<Boolean, Object> {
 

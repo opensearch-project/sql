@@ -325,12 +325,16 @@ public class DateTimeFunction {
   }
 
   /**
-   * A common signature for `date_add` and `date_sub`. Specify a start date and add/subtract a
-   * temporal amount to/from the date. The return type depends on the date type and the interval
-   * unit. Detailed supported signatures: (DATE/DATETIME/TIMESTAMP/TIME, INTERVAL) -> DATETIME MySQL
-   * has these signatures too (DATE, INTERVAL) -> DATE // when interval has no time part (TIME,
-   * INTERVAL) -> TIME // when interval has no date part (STRING, INTERVAL) -> STRING // when
-   * argument has date or datetime string, // result has date or datetime depending on interval type
+   * A common signature for `date_add` and `date_sub`.<br>
+   * Specify a start date and add/subtract a temporal amount to/from the date.<br>
+   * The return type depends on the date type and the interval unit. Detailed supported signatures:
+   * <br>
+   * (DATE/DATETIME/TIMESTAMP/TIME, INTERVAL) -> DATETIME<br>
+   * MySQL has these signatures too<br>
+   * (DATE, INTERVAL) -> DATE // when interval has no time part<br>
+   * (TIME, INTERVAL) -> TIME // when interval has no date part<br>
+   * (STRING, INTERVAL) -> STRING // when argument has date or datetime string,<br>
+   * // result has date or datetime depending on interval type<br>
    */
   private Stream<SerializableFunction<?, ?>> get_date_add_date_sub_signatures(
       SerializableTriFunction<FunctionProperties, ExprValue, ExprValue, ExprValue> function) {
@@ -344,8 +348,10 @@ public class DateTimeFunction {
   }
 
   /**
-   * A common signature for `adddate` and `subdate`. Adds/subtracts an integer number of days
-   * to/from the first argument. (DATE, LONG) -> DATE (TIME/DATETIME/TIMESTAMP, LONG) -> DATETIME
+   * A common signature for `adddate` and `subdate`.<br>
+   * Adds/subtracts an integer number of days to/from the first argument.<br>
+   * (DATE, LONG) -> DATE<br>
+   * (TIME/DATETIME/TIMESTAMP, LONG) -> DATETIME
    */
   private Stream<SerializableFunction<?, ?>> get_adddate_subdate_signatures(
       SerializableTriFunction<FunctionProperties, ExprValue, ExprValue, ExprValue> function) {
@@ -367,11 +373,13 @@ public class DateTimeFunction {
   }
 
   /**
-   * Adds expr2 to expr1 and returns the result. (TIME, TIME/DATE/DATETIME/TIMESTAMP) -> TIME
-   * (DATE/DATETIME/TIMESTAMP, TIME/DATE/DATETIME/TIMESTAMP) -> DATETIME TODO: MySQL has these
-   * signatures too (STRING, STRING/TIME) -> STRING // second arg - string with time only (x,
-   * STRING) -> NULL // second arg - string with timestamp (x, STRING/DATE) -> x // second arg -
-   * string with date only
+   * Adds expr2 to expr1 and returns the result.<br>
+   * (TIME, TIME/DATE/DATETIME/TIMESTAMP) -> TIME<br>
+   * (DATE/DATETIME/TIMESTAMP, TIME/DATE/DATETIME/TIMESTAMP) -> DATETIME<br>
+   * TODO: MySQL has these signatures too<br>
+   * (STRING, STRING/TIME) -> STRING // second arg - string with time only<br>
+   * (x, STRING) -> NULL // second arg - string with timestamp<br>
+   * (x, STRING/DATE) -> x // second arg - string with date only
    */
   private DefaultFunctionResolver addtime() {
     return define(
@@ -444,8 +452,10 @@ public class DateTimeFunction {
   }
 
   /**
-   * Converts date/time from a specified timezone to another specified timezone. The supported
-   * signatures: (DATETIME, STRING, STRING) -> DATETIME (STRING, STRING, STRING) -> DATETIME
+   * Converts date/time from a specified timezone to another specified timezone.<br>
+   * The supported signatures:<br>
+   * (DATETIME, STRING, STRING) -> DATETIME<br>
+   * (STRING, STRING, STRING) -> DATETIME
    */
   private DefaultFunctionResolver convert_tz() {
     return define(
@@ -555,8 +565,10 @@ public class DateTimeFunction {
   }
 
   /**
-   * Specify a datetime with time zone field and a time zone to convert to. Returns a local date
-   * time. (STRING, STRING) -> DATETIME (STRING) -> DATETIME
+   * Specify a datetime with time zone field and a time zone to convert to.<br>
+   * Returns a local date time.<br>
+   * (STRING, STRING) -> DATETIME<br>
+   * (STRING) -> DATETIME
    */
   private FunctionResolver datetime() {
     return define(
@@ -798,7 +810,8 @@ public class DateTimeFunction {
 
   /**
    * Returns the number of months between periods P1 and P2. P1 and P2 should be in the format YYMM
-   * or YYYYMM. (INTEGER, INTEGER) -> INTEGER
+   * or YYYYMM.<br>
+   * (INTEGER, INTEGER) -> INTEGER
    */
   private DefaultFunctionResolver period_diff() {
     return define(
@@ -847,11 +860,13 @@ public class DateTimeFunction {
   }
 
   /**
-   * Subtracts expr2 from expr1 and returns the result. (TIME, TIME/DATE/DATETIME/TIMESTAMP) -> TIME
-   * (DATE/DATETIME/TIMESTAMP, TIME/DATE/DATETIME/TIMESTAMP) -> DATETIME TODO: MySQL has these
-   * signatures too (STRING, STRING/TIME) -> STRING // second arg - string with time only (x,
-   * STRING) -> NULL // second arg - string with timestamp (x, STRING/DATE) -> x // second arg -
-   * string with date only
+   * Subtracts expr2 from expr1 and returns the result.<br>
+   * (TIME, TIME/DATE/DATETIME/TIMESTAMP) -> TIME<br>
+   * (DATE/DATETIME/TIMESTAMP, TIME/DATE/DATETIME/TIMESTAMP) -> DATETIME<br>
+   * TODO: MySQL has these signatures too<br>
+   * (STRING, STRING/TIME) -> STRING // second arg - string with time only<br>
+   * (x, STRING) -> NULL // second arg - string with timestamp<br>
+   * (x, STRING/DATE) -> x // second arg - string with date only
    */
   private DefaultFunctionResolver subtime() {
     return define(
@@ -954,11 +969,15 @@ public class DateTimeFunction {
   }
 
   /**
-   * Returns different between two times as a time. (TIME, TIME) -> TIME MySQL has these signatures
-   * too (DATE, DATE) -> TIME // result is > 24 hours (DATETIME, DATETIME) -> TIME // result is > 24
-   * hours (TIMESTAMP, TIMESTAMP) -> TIME // result is > 24 hours (x, x) -> NULL // when args have
-   * different types (STRING, STRING) -> TIME // argument strings contain same types only (STRING,
-   * STRING) -> NULL // argument strings are different types
+   * Returns different between two times as a time.<br>
+   * (TIME, TIME) -> TIME<br>
+   * MySQL has these signatures too<br>
+   * (DATE, DATE) -> TIME // result is > 24 hours<br>
+   * (DATETIME, DATETIME) -> TIME // result is > 24 hours<br>
+   * (TIMESTAMP, TIMESTAMP) -> TIME // result is > 24 hours<br>
+   * (x, x) -> NULL // when args have different types<br>
+   * (STRING, STRING) -> TIME // argument strings contain same types only<br>
+   * (STRING, STRING) -> NULL // argument strings are different types
    */
   private DefaultFunctionResolver timediff() {
     return define(
@@ -979,11 +998,13 @@ public class DateTimeFunction {
   }
 
   /**
-   * Extracts the timestamp of a date and time value. Input strings may contain a timestamp only in
-   * format 'yyyy-MM-dd HH:mm:ss[.SSSSSSSSS]' STRING/DATE/TIME/DATETIME/TIMESTAMP -> TIMESTAMP
-   * STRING/DATE/TIME/DATETIME/TIMESTAMP, STRING/DATE/TIME/DATETIME/TIMESTAMP -> TIMESTAMP All types
-   * are converted to TIMESTAMP actually before the function call - it is responsibility of the
-   * automatic cast mechanism defined in `ExprCoreType` and performed by `TypeCastOperator`.
+   * Extracts the timestamp of a date and time value.<br>
+   * Input strings may contain a timestamp only in format 'yyyy-MM-dd HH:mm:ss[.SSSSSSSSS]'<br>
+   * STRING/DATE/TIME/DATETIME/TIMESTAMP -> TIMESTAMP<br>
+   * STRING/DATE/TIME/DATETIME/TIMESTAMP, STRING/DATE/TIME/DATETIME/TIMESTAMP -> TIMESTAMP<br>
+   * All types are converted to TIMESTAMP actually before the function call - it is responsibility
+   * <br>
+   * of the automatic cast mechanism defined in `ExprCoreType` and performed by `TypeCastOperator`.
    */
   private DefaultFunctionResolver timestamp() {
     return define(
@@ -1221,9 +1242,13 @@ public class DateTimeFunction {
   }
 
   /**
-   * Formats date according to format specifier. First argument is date, second is format. Detailed
-   * supported signatures: (STRING, STRING) -> STRING (DATE, STRING) -> STRING (DATETIME, STRING) ->
-   * STRING (TIME, STRING) -> STRING (TIMESTAMP, STRING) -> STRING
+   * Formats date according to format specifier. First argument is date, second is format.<br>
+   * Detailed supported signatures:<br>
+   * (STRING, STRING) -> STRING<br>
+   * (DATE, STRING) -> STRING<br>
+   * (DATETIME, STRING) -> STRING<br>
+   * (TIME, STRING) -> STRING<br>
+   * (TIMESTAMP, STRING) -> STRING
    */
   private DefaultFunctionResolver date_format() {
     return define(
@@ -1302,9 +1327,13 @@ public class DateTimeFunction {
   }
 
   /**
-   * Formats date according to format specifier. First argument is time, second is format. Detailed
-   * supported signatures: (STRING, STRING) -> STRING (DATE, STRING) -> STRING (DATETIME, STRING) ->
-   * STRING (TIME, STRING) -> STRING (TIMESTAMP, STRING) -> STRING
+   * Formats date according to format specifier. First argument is time, second is format.<br>
+   * Detailed supported signatures:<br>
+   * (STRING, STRING) -> STRING<br>
+   * (DATE, STRING) -> STRING<br>
+   * (DATETIME, STRING) -> STRING<br>
+   * (TIME, STRING) -> STRING<br>
+   * (TIMESTAMP, STRING) -> STRING
    */
   private DefaultFunctionResolver time_format() {
     return define(
@@ -1683,10 +1712,15 @@ public class DateTimeFunction {
   }
 
   /**
-   * Following MySQL, function receives arguments of type double and rounds them before use.
-   * Furthermore: - zero year interpreted as 2000 - negative year is not accepted - @dayOfYear
-   * should be greater than 1 - if @dayOfYear is greater than 365/366, calculation goes to the next
-   * year(s)
+   * Following MySQL, function receives arguments of type double and rounds them before use.<br>
+   * Furthermore:<br>
+   *
+   * <ul>
+   *   <li>zero year interpreted as 2000
+   *   <li>negative year is not accepted
+   *   <li>@dayOfYear should be greater than 1
+   *   <li>if @dayOfYear is greater than 365/366, calculation goes to the next year(s)
+   * </ul>
    *
    * @param yearExpr year
    * @param dayOfYearExp day of the @year, starting from 1

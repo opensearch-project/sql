@@ -12,7 +12,8 @@ import org.opensearch.sql.expression.ExpressionNodeVisitor;
 
 /**
  * NamedAggregator expression that represents expression with name. Please see more details in
- * associated unresolved expression operator {@link org.opensearch.sql.ast.expression.Alias}.
+ * associated unresolved expression operator<br>
+ * {@link org.opensearch.sql.ast.expression.Alias}.
  */
 @EqualsAndHashCode(callSuper = false)
 public class NamedAggregator extends Aggregator<AggregationState> {
