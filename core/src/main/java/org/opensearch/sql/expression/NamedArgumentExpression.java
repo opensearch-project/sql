@@ -13,9 +13,7 @@ import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.data.type.ExprType;
 import org.opensearch.sql.expression.env.Environment;
 
-/**
- * Named argument expression that represents function argument with name.
- */
+/** Named argument expression that represents function argument with name. */
 @RequiredArgsConstructor
 @Getter
 @EqualsAndHashCode

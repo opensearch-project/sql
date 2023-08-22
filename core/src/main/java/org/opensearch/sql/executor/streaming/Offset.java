@@ -7,9 +7,7 @@ package org.opensearch.sql.executor.streaming;
 
 import lombok.Data;
 
-/**
- * Offset.
- */
+/** Offset. */
 @Data
 public class Offset {
 
