@@ -3,7 +3,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-
 package org.opensearch.sql.expression.function;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -25,10 +24,8 @@ import org.opensearch.sql.data.type.ExprType;
 @DisplayNameGeneration(DisplayNameGenerator.ReplaceUnderscores.class)
 @ExtendWith(MockitoExtension.class)
 class FunctionSignatureTest {
-  @Mock
-  private FunctionSignature funcSignature;
-  @Mock
-  private List<ExprType> funcParamTypeList;
+  @Mock private FunctionSignature funcSignature;
+  @Mock private List<ExprType> funcParamTypeList;
 
   private FunctionName unresolvedFuncName = FunctionName.of("add");
   private List<ExprType> unresolvedParamTypeList =

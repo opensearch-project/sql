@@ -9,7 +9,7 @@ import java.util.List;
 import org.apache.commons.lang3.tuple.Pair;
 import org.opensearch.sql.expression.Expression;
 
-class FunctionDSLimplWithPropertiesNoArgsTest extends  FunctionDSLimplTestBase {
+class FunctionDSLimplWithPropertiesNoArgsTest extends FunctionDSLimplTestBase {
 
   @Override
   SerializableFunction<FunctionName, Pair<FunctionSignature, FunctionBuilder>>

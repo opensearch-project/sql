@@ -41,20 +41,15 @@ import org.opensearch.sql.executor.pagination.CanPaginateVisitor;
 @DisplayNameGeneration(DisplayNameGenerator.ReplaceUnderscores.class)
 class QueryPlanFactoryTest {
 
-  @Mock
-  private UnresolvedPlan plan;
+  @Mock private UnresolvedPlan plan;
 
-  @Mock
-  private QueryService queryService;
+  @Mock private QueryService queryService;
 
-  @Mock
-  private ResponseListener<ExecutionEngine.QueryResponse> queryListener;
+  @Mock private ResponseListener<ExecutionEngine.QueryResponse> queryListener;
 
-  @Mock
-  private ResponseListener<ExecutionEngine.ExplainResponse> explainListener;
+  @Mock private ResponseListener<ExecutionEngine.ExplainResponse> explainListener;
 
-  @Mock
-  private ExecutionEngine.QueryResponse queryResponse;
+  @Mock private ExecutionEngine.QueryResponse queryResponse;
 
   private QueryPlanFactory factory;
 
@@ -81,14 +76,11 @@ class QueryPlanFactoryTest {
 
   @Test
   public void create_from_cursor_should_success() {
-    AbstractPlan queryExecution = factory.create("", false,
-        queryListener, explainListener);
-    AbstractPlan explainExecution = factory.create("", true,
-        queryListener, explainListener);
+    AbstractPlan queryExecution = factory.create("", false, queryListener, explainListener);
+    AbstractPlan explainExecution = factory.create("", true, queryListener, explainListener);
     assertAll(
         () -> assertTrue(queryExecution instanceof QueryPlan),
-        () -> assertTrue(explainExecution instanceof ExplainPlan)
-    );
+        () -> assertTrue(explainExecution instanceof ExplainPlan));
   }
 
   @Test
@@ -96,8 +88,9 @@ class QueryPlanFactoryTest {
     Statement query = new Query(plan, 0);
 
     IllegalArgumentException exception =
-        assertThrows(IllegalArgumentException.class, () -> factory.create(
-            query, Optional.empty(), Optional.empty()));
+        assertThrows(
+            IllegalArgumentException.class,
+            () -> factory.create(query, Optional.empty(), Optional.empty()));
     assertEquals("[BUG] query listener must be not null", exception.getMessage());
   }
 
@@ -106,8 +99,9 @@ class QueryPlanFactoryTest {
     Statement query = new Explain(new Query(plan, 0));
 
     IllegalArgumentException exception =
-        assertThrows(IllegalArgumentException.class, () -> factory.create(
-            query, Optional.empty(), Optional.empty()));
+        assertThrows(
+            IllegalArgumentException.class,
+            () -> factory.create(query, Optional.empty(), Optional.empty()));
     assertEquals("[BUG] explain listener must be not null", exception.getMessage());
   }
 
@@ -143,9 +137,9 @@ class QueryPlanFactoryTest {
     when(plan.accept(any(CanPaginateVisitor.class), any())).thenReturn(Boolean.FALSE);
     factory = new QueryPlanFactory(queryService);
     Statement query = new Query(plan, 10);
-    assertThrows(UnsupportedCursorRequestException.class,
-        () -> factory.create(query,
-            Optional.of(queryListener), Optional.empty()));
+    assertThrows(
+        UnsupportedCursorRequestException.class,
+        () -> factory.create(query, Optional.of(queryListener), Optional.empty()));
   }
 
   @Test

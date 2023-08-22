@@ -3,7 +3,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-
 package org.opensearch.sql.expression.conditional.cases;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -29,8 +28,7 @@ import org.opensearch.sql.expression.ExpressionTestBase;
 @ExtendWith(MockitoExtension.class)
 class CaseClauseTest extends ExpressionTestBase {
 
-  @Mock
-  private WhenClause whenClause;
+  @Mock private WhenClause whenClause;
 
   @Test
   void should_return_when_clause_result_if_matched() {
@@ -93,8 +91,7 @@ class CaseClauseTest extends ExpressionTestBase {
 
     CaseClause caseClause = new CaseClause(ImmutableList.of(whenClause), defaultResult);
     assertEquals(
-        ImmutableList.of(ExprCoreType.INTEGER, ExprCoreType.STRING),
-        caseClause.allResultTypes());
+        ImmutableList.of(ExprCoreType.INTEGER, ExprCoreType.STRING), caseClause.allResultTypes());
   }
 
   @Test
@@ -104,9 +101,6 @@ class CaseClauseTest extends ExpressionTestBase {
     when(defaultResult.type()).thenReturn(ExprCoreType.UNDEFINED);
 
     CaseClause caseClause = new CaseClause(ImmutableList.of(whenClause), defaultResult);
-    assertEquals(
-        ImmutableList.of(),
-        caseClause.allResultTypes());
+    assertEquals(ImmutableList.of(), caseClause.allResultTypes());
   }
-
 }

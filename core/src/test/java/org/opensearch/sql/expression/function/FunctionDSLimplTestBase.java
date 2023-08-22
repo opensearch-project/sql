@@ -42,16 +42,16 @@ abstract class FunctionDSLimplTestBase extends FunctionDSLTestBase {
 
   @Test
   void implementation_functionBuilder_return_functionExpression() {
-    FunctionImplementation executable = getImplementation().getValue()
-        .apply(functionProperties, getSampleArguments());
+    FunctionImplementation executable =
+        getImplementation().getValue().apply(functionProperties, getSampleArguments());
     assertTrue(executable instanceof FunctionExpression);
   }
 
   @Test
   void implementation_functionExpression_valueOf() {
     FunctionExpression executable =
-        (FunctionExpression) getImplementation().getValue()
-            .apply(functionProperties, getSampleArguments());
+        (FunctionExpression)
+            getImplementation().getValue().apply(functionProperties, getSampleArguments());
 
     assertEquals(ANY, executable.valueOf(null));
   }
@@ -59,23 +59,20 @@ abstract class FunctionDSLimplTestBase extends FunctionDSLTestBase {
   @Test
   void implementation_functionExpression_type() {
     FunctionExpression executable =
-        (FunctionExpression) getImplementation().getValue()
-            .apply(functionProperties, getSampleArguments());
+        (FunctionExpression)
+            getImplementation().getValue().apply(functionProperties, getSampleArguments());
     assertEquals(ANY_TYPE, executable.type());
   }
 
   @Test
   void implementation_functionExpression_toString() {
     FunctionExpression executable =
-        (FunctionExpression) getImplementation().getValue()
-            .apply(functionProperties, getSampleArguments());
+        (FunctionExpression)
+            getImplementation().getValue().apply(functionProperties, getSampleArguments());
     assertEquals(getExpected_toString(), executable.toString());
   }
 
-  /**
-   * A lambda that takes a function name and returns an implementation
-   * of the function.
-   */
+  /** A lambda that takes a function name and returns an implementation of the function. */
   abstract SerializableFunction<FunctionName, Pair<FunctionSignature, FunctionBuilder>>
       getImplementationGenerator();
 

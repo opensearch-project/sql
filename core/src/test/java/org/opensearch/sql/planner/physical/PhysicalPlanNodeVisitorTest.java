@@ -3,7 +3,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-
 package org.opensearch.sql.planner.physical;
 
 import static java.util.Collections.emptyList;
@@ -49,16 +48,12 @@ import org.opensearch.sql.expression.DSL;
 import org.opensearch.sql.expression.ReferenceExpression;
 import org.opensearch.sql.expression.window.WindowDefinition;
 
-/**
- * Todo, testing purpose, delete later.
- */
+/** Todo, testing purpose, delete later. */
 @ExtendWith(MockitoExtension.class)
 @DisplayNameGeneration(DisplayNameGenerator.ReplaceUnderscores.class)
 class PhysicalPlanNodeVisitorTest extends PhysicalPlanTestBase {
-  @Mock
-  PhysicalPlan plan;
-  @Mock
-  ReferenceExpression ref;
+  @Mock PhysicalPlan plan;
+  @Mock ReferenceExpression ref;
 
   @Test
   public void print_physical_plan() {
@@ -69,16 +64,13 @@ class PhysicalPlanNodeVisitorTest extends PhysicalPlanTestBase {
                     agg(
                         rareTopN(
                             filter(
-                                limit(
-                                    new TestScan(),
-                                    1, 1
-                                ),
+                                limit(new TestScan(), 1, 1),
                                 DSL.equal(DSL.ref("response", INTEGER), DSL.literal(10))),
                             CommandType.TOP,
                             ImmutableList.of(),
                             DSL.ref("response", INTEGER)),
-                        ImmutableList
-                            .of(DSL.named("avg(response)", DSL.avg(DSL.ref("response", INTEGER)))),
+                        ImmutableList.of(
+                            DSL.named("avg(response)", DSL.avg(DSL.ref("response", INTEGER)))),
                         ImmutableList.of()),
                     ImmutableMap.of(DSL.ref("ivalue", INTEGER), DSL.ref("avg(response)", DOUBLE))),
                 named("ref", ref)),
@@ -104,17 +96,20 @@ class PhysicalPlanNodeVisitorTest extends PhysicalPlanTestBase {
         filter(new TestScan(), DSL.equal(DSL.ref("response", INTEGER), DSL.literal(10)));
 
     PhysicalPlan aggregation =
-        agg(filter, ImmutableList.of(DSL.named("avg(response)",
-                DSL.avg(DSL.ref("response", INTEGER)))), ImmutableList.of());
+        agg(
+            filter,
+            ImmutableList.of(DSL.named("avg(response)", DSL.avg(DSL.ref("response", INTEGER)))),
+            ImmutableList.of());
 
     PhysicalPlan rename =
-        rename(aggregation, ImmutableMap.of(DSL.ref("ivalue", INTEGER), DSL.ref("avg(response)",
-                DOUBLE)));
+        rename(
+            aggregation,
+            ImmutableMap.of(DSL.ref("ivalue", INTEGER), DSL.ref("avg(response)", DOUBLE)));
 
     PhysicalPlan project = project(plan, named("ref", ref));
 
-    PhysicalPlan window = window(plan, named(DSL.rowNumber()),
-        new WindowDefinition(emptyList(), emptyList()));
+    PhysicalPlan window =
+        window(plan, named(DSL.rowNumber()), new WindowDefinition(emptyList(), emptyList()));
 
     PhysicalPlan remove = remove(plan, ref);
 
@@ -136,26 +131,33 @@ class PhysicalPlanNodeVisitorTest extends PhysicalPlanTestBase {
 
     PhysicalPlan cursorClose = new CursorCloseOperator(plan);
 
-    return Stream.of(Arguments.of(filter, "filter"), Arguments.of(aggregation, "aggregation"),
-        Arguments.of(rename, "rename"), Arguments.of(project, "project"),
-        Arguments.of(window, "window"), Arguments.of(remove, "remove"),
-        Arguments.of(eval, "eval"), Arguments.of(sort, "sort"), Arguments.of(dedupe, "dedupe"),
-        Arguments.of(values, "values"), Arguments.of(rareTopN, "rareTopN"),
-        Arguments.of(limit, "limit"), Arguments.of(nested, "nested"),
+    return Stream.of(
+        Arguments.of(filter, "filter"),
+        Arguments.of(aggregation, "aggregation"),
+        Arguments.of(rename, "rename"),
+        Arguments.of(project, "project"),
+        Arguments.of(window, "window"),
+        Arguments.of(remove, "remove"),
+        Arguments.of(eval, "eval"),
+        Arguments.of(sort, "sort"),
+        Arguments.of(dedupe, "dedupe"),
+        Arguments.of(values, "values"),
+        Arguments.of(rareTopN, "rareTopN"),
+        Arguments.of(limit, "limit"),
+        Arguments.of(nested, "nested"),
         Arguments.of(cursorClose, "cursorClose"));
   }
 
   @ParameterizedTest(name = "{1}")
   @MethodSource("getPhysicalPlanForTest")
   public void test_PhysicalPlanVisitor_should_return_null(PhysicalPlan plan, String name) {
-    assertNull(plan.accept(new PhysicalPlanNodeVisitor<Integer, Object>() {
-    }, null));
+    assertNull(plan.accept(new PhysicalPlanNodeVisitor<Integer, Object>() {}, null));
   }
 
   @Test
   public void test_visitMLCommons() {
     PhysicalPlanNodeVisitor physicalPlanNodeVisitor =
-            new PhysicalPlanNodeVisitor<Integer, Object>() {};
+        new PhysicalPlanNodeVisitor<Integer, Object>() {};
 
     assertNull(physicalPlanNodeVisitor.visitMLCommons(plan, null));
   }
@@ -163,7 +165,7 @@ class PhysicalPlanNodeVisitorTest extends PhysicalPlanTestBase {
   @Test
   public void test_visitAD() {
     PhysicalPlanNodeVisitor physicalPlanNodeVisitor =
-            new PhysicalPlanNodeVisitor<Integer, Object>() {};
+        new PhysicalPlanNodeVisitor<Integer, Object>() {};
 
     assertNull(physicalPlanNodeVisitor.visitAD(plan, null));
   }
@@ -171,7 +173,7 @@ class PhysicalPlanNodeVisitorTest extends PhysicalPlanTestBase {
   @Test
   public void test_visitML() {
     PhysicalPlanNodeVisitor physicalPlanNodeVisitor =
-            new PhysicalPlanNodeVisitor<Integer, Object>() {};
+        new PhysicalPlanNodeVisitor<Integer, Object>() {};
 
     assertNull(physicalPlanNodeVisitor.visitML(plan, null));
   }

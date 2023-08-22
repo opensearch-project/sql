@@ -40,33 +40,26 @@ public class DateDiffTest extends DateTimeTestBase {
         Arguments.of(timeSample1, timeSample2, 0L),
         Arguments.of(timeSample1, dateNow, 0L),
         Arguments.of(timeSample1, LocalDateTime.now(), 0L),
-        Arguments.of(timeSample1,
-            Instant.now().plusMillis(TimeZone.getDefault().getRawOffset()), 0L),
-        Arguments.of(dateSample1, timeSample1,
-            -DAYS.between(dateSample1, dateNow)),
-        Arguments.of(dateSample1, dateSample3,
-            -DAYS.between(dateSample1, dateSample3)),
-        Arguments.of(dateSample1, dateTimeSample1,
-            -DAYS.between(dateSample1, dateSample2)),
-        Arguments.of(dateSample1, Instant.ofEpochSecond(42),
-            -DAYS.between(dateSample1, epochStart)),
-        Arguments.of(dateTimeSample1, LocalTime.now(),
-            -DAYS.between(dateSample2, dateNow)),
-        Arguments.of(dateTimeSample1, dateSample3,
-            -DAYS.between(dateSample2, dateSample3)),
-        Arguments.of(dateTimeSample1, dateTimeSample2,
-            -DAYS.between(dateSample2, dateSample3)),
-        Arguments.of(dateTimeSample1, Instant.ofEpochSecond(0),
-            -DAYS.between(dateSample2, epochStart)),
-        Arguments.of(Instant.ofEpochSecond(0), LocalTime.MAX,
-            -DAYS.between(epochStart, dateNow)),
-        Arguments.of(Instant.ofEpochSecond(0), dateSample3,
-            -DAYS.between(epochStart, dateSample3)),
-        Arguments.of(Instant.ofEpochSecond(0), dateTimeSample2,
-            -DAYS.between(epochStart, dateSample3)),
-        Arguments.of(Instant.ofEpochSecond(0), Instant.now(),
-            -DAYS.between(epochStart, LocalDateTime.now(ZoneId.of("UTC"))))
-      );
+        Arguments.of(
+            timeSample1, Instant.now().plusMillis(TimeZone.getDefault().getRawOffset()), 0L),
+        Arguments.of(dateSample1, timeSample1, -DAYS.between(dateSample1, dateNow)),
+        Arguments.of(dateSample1, dateSample3, -DAYS.between(dateSample1, dateSample3)),
+        Arguments.of(dateSample1, dateTimeSample1, -DAYS.between(dateSample1, dateSample2)),
+        Arguments.of(
+            dateSample1, Instant.ofEpochSecond(42), -DAYS.between(dateSample1, epochStart)),
+        Arguments.of(dateTimeSample1, LocalTime.now(), -DAYS.between(dateSample2, dateNow)),
+        Arguments.of(dateTimeSample1, dateSample3, -DAYS.between(dateSample2, dateSample3)),
+        Arguments.of(dateTimeSample1, dateTimeSample2, -DAYS.between(dateSample2, dateSample3)),
+        Arguments.of(
+            dateTimeSample1, Instant.ofEpochSecond(0), -DAYS.between(dateSample2, epochStart)),
+        Arguments.of(Instant.ofEpochSecond(0), LocalTime.MAX, -DAYS.between(epochStart, dateNow)),
+        Arguments.of(Instant.ofEpochSecond(0), dateSample3, -DAYS.between(epochStart, dateSample3)),
+        Arguments.of(
+            Instant.ofEpochSecond(0), dateTimeSample2, -DAYS.between(epochStart, dateSample3)),
+        Arguments.of(
+            Instant.ofEpochSecond(0),
+            Instant.now(),
+            -DAYS.between(epochStart, LocalDateTime.now(ZoneId.of("UTC")))));
   }
 
   @ParameterizedTest

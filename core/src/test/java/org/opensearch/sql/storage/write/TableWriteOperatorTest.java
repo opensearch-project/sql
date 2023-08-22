@@ -21,44 +21,47 @@ import org.opensearch.sql.planner.physical.PhysicalPlanNodeVisitor;
 @ExtendWith(MockitoExtension.class)
 class TableWriteOperatorTest {
 
-  @Mock
-  private PhysicalPlan child;
+  @Mock private PhysicalPlan child;
 
   private TableWriteOperator tableWrite;
 
   @BeforeEach
   void setUp() {
-    tableWrite = new TableWriteOperator(child) {
-      @Override
-      public String explain() {
-        return "explain";
-      }
+    tableWrite =
+        new TableWriteOperator(child) {
+          @Override
+          public String explain() {
+            return "explain";
+          }
 
-      @Override
-      public boolean hasNext() {
-        return false;
-      }
+          @Override
+          public boolean hasNext() {
+            return false;
+          }
 
-      @Override
-      public ExprValue next() {
-        return null;
-      }
-    };
+          @Override
+          public ExprValue next() {
+            return null;
+          }
+        };
   }
 
   @Test
   void testAccept() {
-    Boolean isVisited = tableWrite.accept(new PhysicalPlanNodeVisitor<>() {
-      @Override
-      protected Boolean visitNode(PhysicalPlan node, Object context) {
-        return (node instanceof TableWriteOperator);
-      }
+    Boolean isVisited =
+        tableWrite.accept(
+            new PhysicalPlanNodeVisitor<>() {
+              @Override
+              protected Boolean visitNode(PhysicalPlan node, Object context) {
+                return (node instanceof TableWriteOperator);
+              }
 
-      @Override
-      public Boolean visitTableWrite(TableWriteOperator node, Object context) {
-        return super.visitTableWrite(node, context);
-      }
-    }, null);
+              @Override
+              public Boolean visitTableWrite(TableWriteOperator node, Object context) {
+                return super.visitTableWrite(node, context);
+              }
+            },
+            null);
 
     assertTrue(isVisited);
   }

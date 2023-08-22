@@ -3,7 +3,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-
 package org.opensearch.sql.planner.physical;
 
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -29,8 +28,7 @@ import org.opensearch.sql.expression.DSL;
 
 @ExtendWith(MockitoExtension.class)
 class EvalOperatorTest extends PhysicalPlanTestBase {
-  @Mock
-  private PhysicalPlan inputPlan;
+  @Mock private PhysicalPlan inputPlan;
 
   @Test
   public void create_new_field_that_contain_the_result_of_a_calculation() {
@@ -63,8 +61,8 @@ class EvalOperatorTest extends PhysicalPlanTestBase {
         eval(
             inputPlan,
             ImmutablePair.of(
-                DSL.ref("velocity", DOUBLE), DSL.divide(DSL.ref("distance", INTEGER), DSL.ref(
-                    "time", INTEGER))),
+                DSL.ref("velocity", DOUBLE),
+                DSL.divide(DSL.ref("distance", INTEGER), DSL.ref("time", INTEGER))),
             ImmutablePair.of(
                 DSL.ref("doubleDistance", INTEGER),
                 DSL.multiply(DSL.ref("distance", INTEGER), DSL.literal(2))));
@@ -88,8 +86,8 @@ class EvalOperatorTest extends PhysicalPlanTestBase {
         eval(
             inputPlan,
             ImmutablePair.of(
-                DSL.ref("velocity", INTEGER), DSL.divide(DSL.ref("distance", INTEGER), DSL.ref(
-                    "time", INTEGER))),
+                DSL.ref("velocity", INTEGER),
+                DSL.divide(DSL.ref("distance", INTEGER), DSL.ref("time", INTEGER))),
             ImmutablePair.of(
                 DSL.ref("doubleVelocity", INTEGER),
                 DSL.multiply(DSL.ref("velocity", INTEGER), DSL.literal(2))));
@@ -126,8 +124,8 @@ class EvalOperatorTest extends PhysicalPlanTestBase {
   public void do_nothing_with_none_tuple_value() {
     when(inputPlan.hasNext()).thenReturn(true, false);
     when(inputPlan.next()).thenReturn(ExprValueUtils.integerValue(1));
-    PhysicalPlan plan = eval(inputPlan, ImmutablePair.of(DSL.ref("response", INTEGER),
-        DSL.ref("referer", STRING)));
+    PhysicalPlan plan =
+        eval(inputPlan, ImmutablePair.of(DSL.ref("response", INTEGER), DSL.ref("referer", STRING)));
     List<ExprValue> result = execute(plan);
 
     assertThat(result, allOf(iterableWithSize(1), hasItems(ExprValueUtils.integerValue(1))));

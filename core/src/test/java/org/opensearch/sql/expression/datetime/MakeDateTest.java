@@ -3,7 +3,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-
 package org.opensearch.sql.expression.datetime;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -22,21 +21,32 @@ public class MakeDateTest extends DateTimeTestBase {
 
   @Test
   public void checkEdgeCases() {
-    assertEquals(LocalDate.ofYearDay(2002, 1), makedate(2001., 366.),
+    assertEquals(
+        LocalDate.ofYearDay(2002, 1),
+        makedate(2001., 366.),
         "No switch to the next year on getting 366th day of a non-leap year");
-    assertEquals(LocalDate.ofYearDay(2005, 1), makedate(2004., 367.),
+    assertEquals(
+        LocalDate.ofYearDay(2005, 1),
+        makedate(2004., 367.),
         "No switch to the next year on getting 367th day of a leap year");
-    assertEquals(LocalDate.ofYearDay(2000, 42), makedate(0., 42.),
+    assertEquals(
+        LocalDate.ofYearDay(2000, 42),
+        makedate(0., 42.),
         "0 year is not interpreted as 2000 as in MySQL");
-    assertEquals(nullValue(), eval(makedate(DSL.literal(-1.), DSL.literal(42.))),
+    assertEquals(
+        nullValue(),
+        eval(makedate(DSL.literal(-1.), DSL.literal(42.))),
         "Negative year doesn't produce NULL");
-    assertEquals(nullValue(), eval(makedate(DSL.literal(42.), DSL.literal(-1.))),
+    assertEquals(
+        nullValue(),
+        eval(makedate(DSL.literal(42.), DSL.literal(-1.))),
         "Negative dayOfYear doesn't produce NULL");
-    assertEquals(nullValue(), eval(makedate(DSL.literal(42.), DSL.literal(0.))),
+    assertEquals(
+        nullValue(),
+        eval(makedate(DSL.literal(42.), DSL.literal(0.))),
         "Zero dayOfYear doesn't produce NULL");
 
-    assertEquals(LocalDate.of(1999, 3, 1), makedate(1999., 60.),
-        "Got Feb 29th of a non-lear year");
+    assertEquals(LocalDate.of(1999, 3, 1), makedate(1999., 60.), "Got Feb 29th of a non-lear year");
     assertEquals(LocalDate.of(1999, 12, 31), makedate(1999., 365.));
     assertEquals(LocalDate.of(2004, 12, 31), makedate(2004., 366.));
   }
@@ -73,12 +83,12 @@ public class MakeDateTest extends DateTimeTestBase {
         Arguments.of(3617.452566, 619.795467),
         Arguments.of(2210.322073, 106.914268),
         Arguments.of(675.757974, 147.702828),
-        Arguments.of(1101.801820, 40.055318)
-    );
+        Arguments.of(1101.801820, 40.055318));
   }
 
   /**
    * Test function with given pseudo-random values.
+   *
    * @param year year
    * @param dayOfYear day of year
    */
@@ -88,20 +98,20 @@ public class MakeDateTest extends DateTimeTestBase {
     LocalDate actual = makedate(year, dayOfYear);
     LocalDate expected = getReferenceValue(year, dayOfYear);
 
-    assertEquals(expected, actual,
-        String.format("year = %f, dayOfYear = %f", year, dayOfYear));
+    assertEquals(expected, actual, String.format("year = %f, dayOfYear = %f", year, dayOfYear));
   }
 
   /**
-   * Using another algorithm to get reference value.
-   * We should go to the next year until remaining @dayOfYear is bigger than 365/366.
+   * Using another algorithm to get reference value. We should go to the next year until
+   * remaining @dayOfYear is bigger than 365/366.
+   *
    * @param year Year.
    * @param dayOfYear Day of the year.
    * @return The calculated date.
    */
   private LocalDate getReferenceValue(double year, double dayOfYear) {
-    var yearL = (int)Math.round(year);
-    var dayL = (int)Math.round(dayOfYear);
+    var yearL = (int) Math.round(year);
+    var dayL = (int) Math.round(dayOfYear);
     while (true) {
       int daysInYear = Year.isLeap(yearL) ? 366 : 365;
       if (dayL > daysInYear) {
