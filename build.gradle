@@ -125,7 +125,7 @@ allprojects {
     }
     configurations.all {
         resolutionStrategy.force "com.squareup.okio:okio:3.5.0"
-        resolutionStrategy.force "org.jetbrains.kotlin:kotlin-stdlib:1.9.0"        
+        resolutionStrategy.force "org.jetbrains.kotlin:kotlin-stdlib:1.9.0"
         resolutionStrategy.force "org.jetbrains.kotlin:kotlin-stdlib-jdk7:1.9.0"
     }
 }
