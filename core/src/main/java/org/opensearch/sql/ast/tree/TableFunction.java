@@ -15,6 +15,7 @@ import org.opensearch.sql.ast.AbstractNodeVisitor;
 import org.opensearch.sql.ast.expression.QualifiedName;
 import org.opensearch.sql.ast.expression.UnresolvedExpression;
 
+
 /** ASTNode for Table Function. */
 @ToString
 @EqualsAndHashCode(callSuper = false)

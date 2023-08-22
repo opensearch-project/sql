@@ -33,7 +33,7 @@ public class ExprDatetimeValue extends AbstractExprValue {
     } catch (DateTimeParseException e) {
       throw new SemanticCheckException(
           String.format(
-              "datetime:%s in unsupported format, please " + "use yyyy-MM-dd HH:mm:ss[.SSSSSSSSS]",
+              "datetime:%s in unsupported format, please use 'yyyy-MM-dd HH:mm:ss[.SSSSSSSSS]'",
               datetime));
     }
   }

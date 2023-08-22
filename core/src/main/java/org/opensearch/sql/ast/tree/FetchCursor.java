@@ -10,7 +10,8 @@ import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import org.opensearch.sql.ast.AbstractNodeVisitor;
 
-/** An unresolved plan that represents fetching the next batch in paginationed plan. */
+/** An unresolved plan that represents fetching the next batch in paginated plan. */
+
 @RequiredArgsConstructor
 @EqualsAndHashCode(callSuper = false)
 public class FetchCursor extends UnresolvedPlan {
