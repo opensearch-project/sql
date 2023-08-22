@@ -3,7 +3,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-
 package org.opensearch.sql.expression.aggregation;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -72,9 +71,13 @@ class CountAggregatorTest extends AggregationTest {
 
   @Test
   public void count_arithmetic_expression() {
-    ExprValue result = aggregation(DSL.count(
-        DSL.multiply(DSL.ref("integer_value", INTEGER),
-            DSL.literal(ExprValueUtils.integerValue(10)))), tuples);
+    ExprValue result =
+        aggregation(
+            DSL.count(
+                DSL.multiply(
+                    DSL.ref("integer_value", INTEGER),
+                    DSL.literal(ExprValueUtils.integerValue(10)))),
+            tuples);
     assertEquals(4, result.value());
   }
 
@@ -104,51 +107,56 @@ class CountAggregatorTest extends AggregationTest {
 
   @Test
   public void filtered_count() {
-    ExprValue result = aggregation(DSL.count(DSL.ref("integer_value", INTEGER))
-        .condition(DSL.greater(DSL.ref("integer_value", INTEGER), DSL.literal(1))), tuples);
+    ExprValue result =
+        aggregation(
+            DSL.count(DSL.ref("integer_value", INTEGER))
+                .condition(DSL.greater(DSL.ref("integer_value", INTEGER), DSL.literal(1))),
+            tuples);
     assertEquals(3, result.value());
   }
 
   @Test
   public void distinct_count() {
-    ExprValue result = aggregation(DSL.distinctCount(DSL.ref("integer_value", INTEGER)),
-        tuples_with_duplicates);
+    ExprValue result =
+        aggregation(DSL.distinctCount(DSL.ref("integer_value", INTEGER)), tuples_with_duplicates);
     assertEquals(3, result.value());
   }
 
   @Test
   public void filtered_distinct_count() {
-    ExprValue result = aggregation(DSL.distinctCount(DSL.ref("integer_value", INTEGER))
-        .condition(DSL.greater(DSL.ref("double_value", DOUBLE), DSL.literal(1d))),
-        tuples_with_duplicates);
+    ExprValue result =
+        aggregation(
+            DSL.distinctCount(DSL.ref("integer_value", INTEGER))
+                .condition(DSL.greater(DSL.ref("double_value", DOUBLE), DSL.literal(1d))),
+            tuples_with_duplicates);
     assertEquals(2, result.value());
   }
 
   @Test
   public void distinct_count_map() {
-    ExprValue result = aggregation(DSL.distinctCount(DSL.ref("struct_value", STRUCT)),
-        tuples_with_duplicates);
+    ExprValue result =
+        aggregation(DSL.distinctCount(DSL.ref("struct_value", STRUCT)), tuples_with_duplicates);
     assertEquals(3, result.value());
   }
 
   @Test
   public void distinct_count_array() {
-    ExprValue result = aggregation(DSL.distinctCount(DSL.ref("array_value", ARRAY)),
-        tuples_with_duplicates);
+    ExprValue result =
+        aggregation(DSL.distinctCount(DSL.ref("array_value", ARRAY)), tuples_with_duplicates);
     assertEquals(3, result.value());
   }
 
   @Test
   public void count_with_missing() {
-    ExprValue result = aggregation(DSL.count(DSL.ref("integer_value", INTEGER)),
-        tuples_with_null_and_missing);
+    ExprValue result =
+        aggregation(DSL.count(DSL.ref("integer_value", INTEGER)), tuples_with_null_and_missing);
     assertEquals(2, result.value());
   }
 
   @Test
   public void count_with_null() {
-    ExprValue result = aggregation(DSL.count(DSL.ref("double_value", DOUBLE)),
-        tuples_with_null_and_missing);
+    ExprValue result =
+        aggregation(DSL.count(DSL.ref("double_value", DOUBLE)), tuples_with_null_and_missing);
     assertEquals(2, result.value());
   }
 
@@ -166,8 +174,10 @@ class CountAggregatorTest extends AggregationTest {
 
   @Test
   public void valueOf() {
-    ExpressionEvaluationException exception = assertThrows(ExpressionEvaluationException.class,
-        () -> DSL.count(DSL.ref("double_value", DOUBLE)).valueOf(valueEnv()));
+    ExpressionEvaluationException exception =
+        assertThrows(
+            ExpressionEvaluationException.class,
+            () -> DSL.count(DSL.ref("double_value", DOUBLE)).valueOf(valueEnv()));
     assertEquals("can't evaluate on aggregator: count", exception.getMessage());
   }
 
@@ -183,7 +193,8 @@ class CountAggregatorTest extends AggregationTest {
   @Test
   public void test_nested_to_string() {
     Aggregator countAggregator = DSL.count(DSL.abs(DSL.ref("integer_value", INTEGER)));
-    assertEquals(String.format("count(abs(%s))", DSL.ref("integer_value", INTEGER)),
+    assertEquals(
+        String.format("count(abs(%s))", DSL.ref("integer_value", INTEGER)),
         countAggregator.toString());
   }
 }

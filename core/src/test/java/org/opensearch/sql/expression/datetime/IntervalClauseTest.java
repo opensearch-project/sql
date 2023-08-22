@@ -3,7 +3,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-
 package org.opensearch.sql.expression.datetime;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -31,14 +30,11 @@ import org.opensearch.sql.expression.env.Environment;
 
 @ExtendWith(MockitoExtension.class)
 public class IntervalClauseTest extends ExpressionTestBase {
-  @Mock
-  Environment<Expression, ExprValue> env;
+  @Mock Environment<Expression, ExprValue> env;
 
-  @Mock
-  Expression nullRef;
+  @Mock Expression nullRef;
 
-  @Mock
-  Expression missingRef;
+  @Mock Expression missingRef;
 
   @Test
   public void microsecond() {
@@ -106,7 +102,9 @@ public class IntervalClauseTest extends ExpressionTestBase {
   @Test
   public void unsupported_unit() {
     FunctionExpression expr = DSL.interval(DSL.literal(1), DSL.literal("year_month"));
-    assertThrows(ExpressionEvaluationException.class, () -> expr.valueOf(env),
+    assertThrows(
+        ExpressionEvaluationException.class,
+        () -> expr.valueOf(env),
         "interval unit year_month is not supported");
   }
 

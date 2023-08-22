@@ -3,7 +3,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-
 package org.opensearch.sql.expression;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -55,11 +54,12 @@ class NamedExpressionTest extends ExpressionTestBase {
   @Test
   void name_a_parse_expression() {
     ParseExpression parse =
-        DSL.regex(DSL.ref("string_value", STRING), DSL.literal("(?<group>\\w{2})\\w"),
+        DSL.regex(
+            DSL.ref("string_value", STRING),
+            DSL.literal("(?<group>\\w{2})\\w"),
             DSL.literal("group"));
     NamedExpression named = DSL.named(parse);
     assertEquals(parse, named.getDelegated());
     assertEquals(parse.getIdentifier().valueOf().stringValue(), named.getName());
   }
-
 }

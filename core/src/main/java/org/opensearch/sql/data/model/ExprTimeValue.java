@@ -34,8 +34,7 @@ public class ExprTimeValue extends AbstractExprValue {
       this.time = LocalTime.parse(time, DATE_TIME_FORMATTER_VARIABLE_NANOS_OPTIONAL);
     } catch (DateTimeParseException e) {
       throw new SemanticCheckException(
-          String.format(
-              "time:%s in unsupported format, please use 'HH:mm:ss[.SSSSSSSSS]'", time));
+          String.format("time:%s in unsupported format, please use 'HH:mm:ss[.SSSSSSSSS]'", time));
     }
   }
 

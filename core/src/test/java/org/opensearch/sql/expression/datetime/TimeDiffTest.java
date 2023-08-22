@@ -22,12 +22,12 @@ public class TimeDiffTest extends DateTimeTestBase {
         Arguments.of(LocalTime.of(12, 42), LocalTime.of(7, 40), LocalTime.of(5, 2)),
         Arguments.of(LocalTime.of(7, 40), LocalTime.of(12, 42), LocalTime.of(18, 58)),
         Arguments.of(LocalTime.of(7, 40), LocalTime.of(7, 40), LocalTime.of(0, 0)),
-        Arguments.of(LocalTime.MAX, LocalTime.MIN, LocalTime.MAX)
-    );
+        Arguments.of(LocalTime.MAX, LocalTime.MIN, LocalTime.MAX));
   }
 
   /**
    * Test `TIME_DIFF` function with different data.
+   *
    * @param arg1 First argument.
    * @param arg2 Second argument.
    * @param expectedResult Expected result.
@@ -36,7 +36,9 @@ public class TimeDiffTest extends DateTimeTestBase {
   @MethodSource("getTestData")
   public void try_different_data(LocalTime arg1, LocalTime arg2, LocalTime expectedResult) {
     assertEquals(expectedResult, timediff(arg1, arg2));
-    assertEquals(expectedResult, eval(timediff(DSL.literal(new ExprTimeValue(arg1)),
-        DSL.literal(new ExprTimeValue(arg2)))).timeValue());
+    assertEquals(
+        expectedResult,
+        eval(timediff(DSL.literal(new ExprTimeValue(arg1)), DSL.literal(new ExprTimeValue(arg2))))
+            .timeValue());
   }
 }

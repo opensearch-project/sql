@@ -25,14 +25,11 @@ import org.opensearch.sql.executor.QueryId;
 
 @ExtendWith(MockitoExtension.class)
 public class ExplainPlanTest {
-  @Mock
-  private QueryId queryId;
+  @Mock private QueryId queryId;
 
-  @Mock
-  private QueryPlan queryPlan;
+  @Mock private QueryPlan queryPlan;
 
-  @Mock
-  private ResponseListener<ExecutionEngine.ExplainResponse> explainListener;
+  @Mock private ResponseListener<ExecutionEngine.ExplainResponse> explainListener;
 
   @Test
   public void execute() {

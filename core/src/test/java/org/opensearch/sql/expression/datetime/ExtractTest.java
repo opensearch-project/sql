@@ -3,7 +3,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-
 package org.opensearch.sql.expression.datetime;
 
 import static java.time.temporal.ChronoField.ALIGNED_WEEK_OF_YEAR;
@@ -38,8 +37,7 @@ class ExtractTest extends ExpressionTestBase {
         Arguments.of("DAY_MICROSECOND", 11101112123000L),
         Arguments.of("DAY_SECOND", 11101112),
         Arguments.of("DAY_MINUTE", 111011),
-        Arguments.of("DAY_HOUR", 1110)
-    );
+        Arguments.of("DAY_HOUR", 1110));
   }
 
   private static Stream<Arguments> getTimeResultsForExtractFunction() {
@@ -53,8 +51,7 @@ class ExtractTest extends ExpressionTestBase {
         Arguments.of("MINUTE_SECOND", 1112),
         Arguments.of("HOUR_MICROSECOND", 101112123000L),
         Arguments.of("HOUR_SECOND", 101112),
-        Arguments.of("HOUR_MINUTE", 1011)
-    );
+        Arguments.of("HOUR_MINUTE", 1011));
   }
 
   private static Stream<Arguments> getDateResultsForExtractFunction() {
@@ -64,19 +61,18 @@ class ExtractTest extends ExpressionTestBase {
         Arguments.of("MONTH", 2),
         Arguments.of("QUARTER", 1),
         Arguments.of("YEAR", 2023),
-        Arguments.of("YEAR_MONTH", 202302)
-    );
+        Arguments.of("YEAR_MONTH", 202302));
   }
 
   @ParameterizedTest(name = "{0}")
   @MethodSource({
-      "getDatetimeResultsForExtractFunction",
-      "getTimeResultsForExtractFunction",
-      "getDateResultsForExtractFunction"})
+    "getDatetimeResultsForExtractFunction",
+    "getTimeResultsForExtractFunction",
+    "getDateResultsForExtractFunction"
+  })
   public void testExtractWithDatetime(String part, long expected) {
-    FunctionExpression datetimeExpression = DSL.extract(
-        DSL.literal(part),
-        DSL.literal(new ExprDatetimeValue(datetimeInput)));
+    FunctionExpression datetimeExpression =
+        DSL.extract(DSL.literal(part), DSL.literal(new ExprDatetimeValue(datetimeInput)));
 
     assertEquals(LONG, datetimeExpression.type());
     assertEquals(expected, eval(datetimeExpression).longValue());
@@ -87,23 +83,17 @@ class ExtractTest extends ExpressionTestBase {
 
   private void datePartWithTimeArgQuery(String part, String time, long expected) {
     ExprTimeValue timeValue = new ExprTimeValue(time);
-    FunctionExpression datetimeExpression = DSL.extract(
-        functionProperties,
-        DSL.literal(part),
-        DSL.literal(timeValue));
+    FunctionExpression datetimeExpression =
+        DSL.extract(functionProperties, DSL.literal(part), DSL.literal(timeValue));
 
     assertEquals(LONG, datetimeExpression.type());
-    assertEquals(expected,
-        eval(datetimeExpression).longValue());
+    assertEquals(expected, eval(datetimeExpression).longValue());
   }
-
 
   @Test
   public void testExtractDatePartWithTimeType() {
     datePartWithTimeArgQuery(
-        "DAY",
-        timeInput,
-        LocalDate.now(functionProperties.getQueryStartClock()).getDayOfMonth());
+        "DAY", timeInput, LocalDate.now(functionProperties.getQueryStartClock()).getDayOfMonth());
 
     datePartWithTimeArgQuery(
         "WEEK",
@@ -111,43 +101,35 @@ class ExtractTest extends ExpressionTestBase {
         LocalDate.now(functionProperties.getQueryStartClock()).get(ALIGNED_WEEK_OF_YEAR));
 
     datePartWithTimeArgQuery(
-        "MONTH",
-        timeInput,
-        LocalDate.now(functionProperties.getQueryStartClock()).getMonthValue());
+        "MONTH", timeInput, LocalDate.now(functionProperties.getQueryStartClock()).getMonthValue());
 
     datePartWithTimeArgQuery(
-        "YEAR",
-        timeInput,
-        LocalDate.now(functionProperties.getQueryStartClock()).getYear());
+        "YEAR", timeInput, LocalDate.now(functionProperties.getQueryStartClock()).getYear());
   }
 
   @ParameterizedTest(name = "{0}")
   @MethodSource("getDateResultsForExtractFunction")
   public void testExtractWithDate(String part, long expected) {
-    FunctionExpression datetimeExpression = DSL.extract(
-        DSL.literal(part),
-        DSL.literal(new ExprDateValue(dateInput)));
+    FunctionExpression datetimeExpression =
+        DSL.extract(DSL.literal(part), DSL.literal(new ExprDateValue(dateInput)));
 
     assertEquals(LONG, datetimeExpression.type());
     assertEquals(expected, eval(datetimeExpression).longValue());
     assertEquals(
-        String.format("extract(\"%s\", DATE '2023-02-11')", part),
-        datetimeExpression.toString());
+        String.format("extract(\"%s\", DATE '2023-02-11')", part), datetimeExpression.toString());
   }
 
   @ParameterizedTest(name = "{0}")
   @MethodSource("getTimeResultsForExtractFunction")
   public void testExtractWithTime(String part, long expected) {
-    FunctionExpression datetimeExpression = DSL.extract(
-        functionProperties,
-        DSL.literal(part),
-        DSL.literal(new ExprTimeValue(timeInput)));
+    FunctionExpression datetimeExpression =
+        DSL.extract(
+            functionProperties, DSL.literal(part), DSL.literal(new ExprTimeValue(timeInput)));
 
     assertEquals(LONG, datetimeExpression.type());
     assertEquals(expected, eval(datetimeExpression).longValue());
     assertEquals(
-        String.format("extract(\"%s\", TIME '10:11:12.123')", part),
-        datetimeExpression.toString());
+        String.format("extract(\"%s\", TIME '10:11:12.123')", part), datetimeExpression.toString());
   }
 
   private ExprValue eval(Expression expression) {

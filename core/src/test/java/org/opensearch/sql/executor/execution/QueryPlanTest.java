@@ -34,20 +34,15 @@ import org.opensearch.sql.executor.QueryService;
 @DisplayNameGeneration(DisplayNameGenerator.ReplaceUnderscores.class)
 class QueryPlanTest {
 
-  @Mock
-  private QueryId queryId;
+  @Mock private QueryId queryId;
 
-  @Mock
-  private UnresolvedPlan plan;
+  @Mock private UnresolvedPlan plan;
 
-  @Mock
-  private QueryService queryService;
+  @Mock private QueryService queryService;
 
-  @Mock
-  private ResponseListener<ExecutionEngine.ExplainResponse> explainListener;
+  @Mock private ResponseListener<ExecutionEngine.ExplainResponse> explainListener;
 
-  @Mock
-  private ResponseListener<ExecutionEngine.QueryResponse> queryListener;
+  @Mock private ResponseListener<ExecutionEngine.QueryResponse> queryListener;
 
   @Test
   public void execute_no_page_size() {
@@ -67,53 +62,62 @@ class QueryPlanTest {
 
   @Test
   public void can_execute_paginated_plan() {
-    var listener = new ResponseListener<ExecutionEngine.QueryResponse>() {
-      @Override
-      public void onResponse(ExecutionEngine.QueryResponse response) {
-        assertNotNull(response);
-      }
+    var listener =
+        new ResponseListener<ExecutionEngine.QueryResponse>() {
+          @Override
+          public void onResponse(ExecutionEngine.QueryResponse response) {
+            assertNotNull(response);
+          }
 
-      @Override
-      public void onFailure(Exception e) {
-        fail();
-      }
-    };
-    var plan = new QueryPlan(QueryId.queryId(), mock(UnresolvedPlan.class), 10,
-        queryService, listener);
+          @Override
+          public void onFailure(Exception e) {
+            fail();
+          }
+        };
+    var plan =
+        new QueryPlan(QueryId.queryId(), mock(UnresolvedPlan.class), 10, queryService, listener);
     plan.execute();
   }
 
   @Test
   // Same as previous test, but with incomplete QueryService
   public void can_handle_error_while_executing_plan() {
-    var listener = new ResponseListener<ExecutionEngine.QueryResponse>() {
-      @Override
-      public void onResponse(ExecutionEngine.QueryResponse response) {
-        fail();
-      }
+    var listener =
+        new ResponseListener<ExecutionEngine.QueryResponse>() {
+          @Override
+          public void onResponse(ExecutionEngine.QueryResponse response) {
+            fail();
+          }
 
-      @Override
-      public void onFailure(Exception e) {
-        assertNotNull(e);
-      }
-    };
-    var plan = new QueryPlan(QueryId.queryId(), mock(UnresolvedPlan.class), 10,
-        new QueryService(null, new DefaultExecutionEngine(), null), listener);
+          @Override
+          public void onFailure(Exception e) {
+            assertNotNull(e);
+          }
+        };
+    var plan =
+        new QueryPlan(
+            QueryId.queryId(),
+            mock(UnresolvedPlan.class),
+            10,
+            new QueryService(null, new DefaultExecutionEngine(), null),
+            listener);
     plan.execute();
   }
 
   @Test
   public void explain_is_not_supported_for_pagination() {
-    new QueryPlan(null, null, 0, null, null).explain(new ResponseListener<>() {
-        @Override
-        public void onResponse(ExecutionEngine.ExplainResponse response) {
-          fail();
-        }
+    new QueryPlan(null, null, 0, null, null)
+        .explain(
+            new ResponseListener<>() {
+              @Override
+              public void onResponse(ExecutionEngine.ExplainResponse response) {
+                fail();
+              }
 
-        @Override
-        public void onFailure(Exception e) {
-          assertTrue(e instanceof NotImplementedException);
-        }
-      });
+              @Override
+              public void onFailure(Exception e) {
+                assertTrue(e instanceof NotImplementedException);
+              }
+            });
   }
 }

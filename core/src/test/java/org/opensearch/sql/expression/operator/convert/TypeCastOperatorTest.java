@@ -3,7 +3,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-
 package org.opensearch.sql.expression.operator.convert;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -44,8 +43,12 @@ import org.opensearch.sql.expression.FunctionExpression;
 class TypeCastOperatorTest {
 
   private static Stream<ExprValue> numberData() {
-    return Stream.of(new ExprByteValue(3), new ExprShortValue(3),
-        new ExprIntegerValue(3), new ExprLongValue(3L), new ExprFloatValue(3.14f),
+    return Stream.of(
+        new ExprByteValue(3),
+        new ExprShortValue(3),
+        new ExprIntegerValue(3),
+        new ExprLongValue(3L),
+        new ExprFloatValue(3.14f),
         new ExprDoubleValue(3.1415D));
   }
 
@@ -357,5 +360,4 @@ class TypeCastOperatorTest {
     assertEquals(DATETIME, expression.type());
     assertEquals(new ExprDatetimeValue("2012-08-07 00:00:00"), expression.valueOf());
   }
-
 }
