@@ -72,6 +72,7 @@ spotless {
             exclude '**/build/**', '**/build-*/**'
         }
         importOrder()
+// Needs https://github.com/opensearch-project/sql/issues/1893 to be addressed first
 //        licenseHeader("/*\n" +
 //                " * Copyright OpenSearch Contributors\n" +
 //                " * SPDX-License-Identifier: Apache-2.0\n" +
