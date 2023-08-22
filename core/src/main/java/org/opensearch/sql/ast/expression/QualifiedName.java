@@ -78,13 +78,9 @@ public class QualifiedName extends UnresolvedExpression {
    * Get rest parts of the qualified name. Assume that there must be remaining parts so caller is
    * responsible for the check (first() or size() must be called first).<br>
    * For example:<br>
-   * {@code<br>
-   * &nbsp; QualifiedName name = ...<br>
-   * &nbsp; Optional<String> first = name.first();<br>
-   * &nbsp; if (first.isPresent()) {<br>
-   * &ensp; name.rest() ...<br>
-   * &nbsp; }<br>
-   * }
+   * {@code<br> &nbsp; QualifiedName name = ...<br> &nbsp; Optional<String> first =
+   * name.first();<br> &nbsp; if (first.isPresent()) {<br> &ensp; name.rest() ...<br> &nbsp; }<br> }
+   *
    * @return rest part(s)
    */
   public QualifiedName rest() {

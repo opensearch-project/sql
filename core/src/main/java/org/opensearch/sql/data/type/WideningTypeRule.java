@@ -12,6 +12,7 @@ import org.opensearch.sql.exception.ExpressionEvaluationException;
 
 /**
  * The definition of widening type rule for expression value.
+ *
  * <table border="3">
  * <tr><th>ExprType</th><th>Widens to data types</th></tr>
  * <tr><td>INTEGER</td><td>LONG, FLOAT, DOUBLE</td></tr>
@@ -56,9 +57,9 @@ public class WideningTypeRule {
 
   /**
    * The max type among two types. The max is defined as follow if type1 could widen to type2, then
-
-   * max is type2, vice versa if type1 couldn't widen to type2 and type2 could't widen to type1, then
-   * throw {@link ExpressionEvaluationException}.
+   *
+   * <p>max is type2, vice versa if type1 couldn't widen to type2 and type2 could't widen to type1,
+   * then throw {@link ExpressionEvaluationException}.
    *
    * @param type1 type1
    * @param type2 type2
