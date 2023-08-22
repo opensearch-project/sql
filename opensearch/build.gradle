@@ -26,7 +26,6 @@ plugins {
     id 'java-library'
     id "io.freefair.lombok"
     id 'jacoco'
-    id 'info.solidsoft.pitest' version '1.9.0'
 }
 
 dependencies {
