@@ -53,7 +53,6 @@ dependencies {
 
 checkstyleMain.ignoreFailures = true
 checkstyleTest.ignoreFailures = true
-checkstyleTest.ignoreFailures = true
 
 configurations.all {
     resolutionStrategy.force "com.fasterxml.jackson.core:jackson-core:${versions.jackson}"
