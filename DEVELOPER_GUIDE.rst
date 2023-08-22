@@ -127,7 +127,7 @@ The plugin codebase is in standard layout of Gradle project::
    ├── THIRD-PARTY
    ├── build.gradle
    ├── config
-   │   └── checkstyle
+   │   └── spotless
    ├── docs
    │   ├── attributions.md
    │   ├── category.json
@@ -170,7 +170,7 @@ Here are sub-folders (Gradle modules) for plugin source code:
 Here are other files and sub-folders that you are likely to touch:
 
 - ``build.gradle``: Gradle build script.
-- ``config``: only Checkstyle configuration files for now.
+- ``config``: only Spotless configuration files for now.
 - ``docs``: documentation for developers and reference manual for users.
 - ``doc-test``: code that run .rst docs in ``docs`` folder by Python doctest library.
 
@@ -230,9 +230,7 @@ Most of the time you just need to run ./gradlew build which will make sure you p
    * - ./gradlew generateGrammarSource
      - (Re-)Generate ANTLR parser from grammar file.
    * - ./gradlew compileJava
-     - Compile all Java source files. 
-   * - ./gradlew checkstyle
-     - Run all checks according to Checkstyle configuration.
+     - Compile all Java source files.
    * - ./gradlew test
      - Run all unit tests.
    * - ./gradlew :integ-test:integTest
