@@ -43,7 +43,8 @@ import org.opensearch.sql.storage.read.TableScanBuilder;
 import org.opensearch.sql.storage.write.TableWriteBuilder;
 import org.opensearch.sql.storage.write.TableWriteOperator;
 
-/** Todo. Temporary added for UT coverage, Will be removed. */
+
+/** Added for UT coverage */
 @DisplayNameGeneration(DisplayNameGenerator.ReplaceUnderscores.class)
 class LogicalPlanNodeVisitorTest {
 

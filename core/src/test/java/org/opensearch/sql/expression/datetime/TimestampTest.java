@@ -62,7 +62,7 @@ public class TimestampTest extends ExpressionTestBase {
             () -> DSL.timestamp(functionProperties, DSL.literal(value)).valueOf());
     assertEquals(
         String.format(
-            "timestamp:%s in unsupported format, please " + "use yyyy-MM-dd HH:mm:ss[.SSSSSSSSS]",
+            "timestamp:%s in unsupported format, please " + "use 'yyyy-MM-dd HH:mm:ss[.SSSSSSSSS]'",
             value),
         exception.getMessage());
   }

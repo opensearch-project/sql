@@ -137,9 +137,29 @@ class ReferenceExpressionTest extends ExpressionTestBase {
   }
 
   /**
-   * { "name": "bob smith" "project.year": 1990, "project": { "year": 2020 }, "address": { "state":
-   * "WA", "city": "seattle" "project.year": 1990 }, "address.local": { "state": "WA", }, "message":
-   * [ { "info": "message in array" }, { "info": "Only first index of array used" } ] }
+   *
+   *
+   * <pre>
+   * {
+   *   "name": "bob smith"
+   *   "project.year": 1990,
+   *   "project": {
+   *     "year": 2020
+   *   },
+   *   "address": {
+   *     "state": "WA",
+   *     "city": "seattle"
+   *     "project.year": 1990
+   *   },
+   *   "address.local": {
+   *     "state": "WA",
+   *   },
+   *   "message": [
+   *     { "info": "message in array" },
+   *     { "info": "Only first index of array used" }
+   *   ]
+   * }
+   * </pre>
    */
   private ExprTupleValue tuple() {
     ExprValue address =
