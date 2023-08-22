@@ -31,6 +31,16 @@ jobs:
     - name: Run tests
       id: tests
       run: |
+        # Spotless
+        ./gradlew :opensearch:spotlessCheck              || echo "* Spotless failed for opensearch/src" > report.log
+        ./gradlew :sql:spotlessCheck                     || echo "* Spotless failed for sql/src" >> report.log
+        ./gradlew :ppl:spotlessCheck                     || echo "* Spotless failed for ppl/src" >> report.log
+        ./gradlew :core:spotlessCheck                    || echo "* Spotless failed for core/test" >> report.log
+        ./gradlew :common:spotlessCheck                  || echo "* Spotless failed for common/test" >> report.log
+        ./gradlew :legacy:spotlessCheck                  || echo "* Spotless failed for legacy/src" >> report.log
+        ./gradlew :protocol:spotlessCheck                || echo "* Spotless failed for protocol/src" >> report.log
+        ./gradlew :opensearch-sql-plugin:spotlessCheck   || echo "* Spotless failed for plugin/src" >> report.log
+        ./gradlew :integ-test:spotlessCheck              || echo "* Spotless failed for integ-test/src" >> report.log
         # Unit tests
         ./gradlew :opensearch:test                        || echo "* Unit tests failed for opensearch" >> report.log
         ./gradlew :ppl:test                               || echo "* Unit tests failed for sql" >> report.log
