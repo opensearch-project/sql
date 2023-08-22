@@ -416,7 +416,6 @@ public class MathematicalFunction {
   }
 
   /**
-
    * <b>Definition of pow(x, y)/power(x, y) function.</b><br>
    * Calculate the value of x raised to the power of y<br>
    * The supported signature of pow/power function is<br>
