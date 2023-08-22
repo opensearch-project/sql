@@ -809,7 +809,8 @@ public class DateTimeFunction {
   }
 
   /**
-   * Returns the number of months between periods P1 and P2. P1 and P2 should be in the format YYMM,<br>
+   * Returns the number of months between periods P1 and P2. P1 and P2 should be in the format YYMM,
+   * <br>
    * or YYYYMM.<br>
    * (INTEGER, INTEGER) -> INTEGER
    */
