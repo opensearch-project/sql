@@ -503,7 +503,7 @@ class DateTimeFunctionTest extends ExpressionTestBase {
             assertThrows(
                 SemanticCheckException.class, () -> invalidDayOfYearQuery("asdfasdfasdf")));
   }
-  
+
   @Test
   public void from_days() {
     FunctionExpression expression = DSL.from_days(DSL.literal(new ExprLongValue(730669)));
@@ -1498,7 +1498,7 @@ class DateTimeFunctionTest extends ExpressionTestBase {
         Arguments.of(DSL.literal("10:61:12"), DSL.literal("%h")),
         Arguments.of(DSL.literal("61:11:12"), DSL.literal("%h")));
   }
-  
+
   @ParameterizedTest(name = "{0}{1}")
   @MethodSource("getInvalidTestDataForTimeFormat")
   public void testInvalidTimeFormat(LiteralExpression arg, LiteralExpression format) {
