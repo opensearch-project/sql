@@ -3,7 +3,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-
 package org.opensearch.sql.analysis.symbol;
 
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -23,7 +22,6 @@ import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.opensearch.sql.data.type.ExprType;
-
 
 public class SymbolTableTest {
 
@@ -60,13 +58,7 @@ public class SymbolTableTest {
     Map<String, ExprType> typeByName =
         symbolTable.lookupByPrefix(new Symbol(Namespace.FIELD_NAME, "s.projects"));
 
-    assertThat(
-        typeByName,
-        allOf(
-            aMapWithSize(1),
-            hasEntry("s.projects.active", BOOLEAN)
-        )
-    );
+    assertThat(typeByName, allOf(aMapWithSize(1), hasEntry("s.projects.active", BOOLEAN)));
   }
 
   @Test
@@ -76,17 +68,11 @@ public class SymbolTableTest {
     symbolTable.store(new Symbol(Namespace.FIELD_NAME, "active.manager.name"), STRING);
     symbolTable.store(new Symbol(Namespace.FIELD_NAME, "s.address"), BOOLEAN);
 
-    Map<String, ExprType> typeByName =
-        symbolTable.lookupAllFields(Namespace.FIELD_NAME);
+    Map<String, ExprType> typeByName = symbolTable.lookupAllFields(Namespace.FIELD_NAME);
 
     assertThat(
         typeByName,
-        allOf(
-            aMapWithSize(2),
-            hasEntry("active", BOOLEAN),
-            hasEntry("s.address", BOOLEAN)
-        )
-    );
+        allOf(aMapWithSize(2), hasEntry("active", BOOLEAN), hasEntry("s.address", BOOLEAN)));
   }
 
   @Test
@@ -94,8 +80,8 @@ public class SymbolTableTest {
     symbolTable.store(new Symbol(Namespace.FUNCTION_NAME, "customFunction"), BOOLEAN);
     assertFalse(symbolTable.lookup(new Symbol(Namespace.FIELD_NAME, "s.projects")).isPresent());
 
-    assertThat(symbolTable.lookupByPrefix(new Symbol(Namespace.FIELD_NAME, "s.projects")),
-        anEmptyMap());
+    assertThat(
+        symbolTable.lookupByPrefix(new Symbol(Namespace.FIELD_NAME, "s.projects")), anEmptyMap());
   }
 
   @Test
@@ -111,5 +97,4 @@ public class SymbolTableTest {
     assertTrue(actualType.isPresent());
     assertEquals(expectedType, actualType.get());
   }
-
 }
