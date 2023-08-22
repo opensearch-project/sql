@@ -3,7 +3,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-
 package org.opensearch.sql.expression.operator.arthmetic;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -40,21 +39,34 @@ import org.opensearch.sql.expression.function.BuiltinFunctionName;
 @DisplayNameGeneration(DisplayNameGenerator.ReplaceUnderscores.class)
 class ArithmeticFunctionTest extends ExpressionTestBase {
   private static Stream<Arguments> arithmeticFunctionArguments() {
-    List<ExprValue> numberOp1 = Arrays.asList(new ExprByteValue(3), new ExprShortValue(3),
-        new ExprIntegerValue(3), new ExprLongValue(3L), new ExprFloatValue(3f),
-        new ExprDoubleValue(3D));
-    List<ExprValue> numberOp2 =
-        Arrays.asList(new ExprByteValue(2), new ExprShortValue(2), new ExprIntegerValue(2),
+    List<ExprValue> numberOp1 =
+        Arrays.asList(
+            new ExprByteValue(3),
+            new ExprShortValue(3),
+            new ExprIntegerValue(3),
             new ExprLongValue(3L),
-            new ExprFloatValue(2f), new ExprDoubleValue(2D));
+            new ExprFloatValue(3f),
+            new ExprDoubleValue(3D));
+    List<ExprValue> numberOp2 =
+        Arrays.asList(
+            new ExprByteValue(2),
+            new ExprShortValue(2),
+            new ExprIntegerValue(2),
+            new ExprLongValue(3L),
+            new ExprFloatValue(2f),
+            new ExprDoubleValue(2D));
     return Lists.cartesianProduct(numberOp1, numberOp2).stream()
         .map(list -> Arguments.of(list.get(0), list.get(1)));
   }
 
   private static Stream<Arguments> arithmeticOperatorArguments() {
-    return Stream
-        .of(BuiltinFunctionName.ADD, BuiltinFunctionName.SUBTRACT, BuiltinFunctionName.MULTIPLY,
-            BuiltinFunctionName.DIVIDE, BuiltinFunctionName.DIVIDE).map(Arguments::of);
+    return Stream.of(
+            BuiltinFunctionName.ADD,
+            BuiltinFunctionName.SUBTRACT,
+            BuiltinFunctionName.MULTIPLY,
+            BuiltinFunctionName.DIVIDE,
+            BuiltinFunctionName.DIVIDE)
+        .map(Arguments::of);
   }
 
   @ParameterizedTest(name = "add({1}, {2})")
@@ -73,10 +85,9 @@ class ArithmeticFunctionTest extends ExpressionTestBase {
     FunctionExpression expression = DSL.addFunction(literal(op1), literal(op2));
     ExprType expectedType = WideningTypeRule.max(op1.type(), op2.type());
     assertEquals(expectedType, expression.type());
-    assertValueEqual(BuiltinFunctionName.ADDFUNCTION,
-            expectedType, op1, op2, expression.valueOf());
-    assertEquals(String.format("add(%s, %s)",
-            op1.toString(), op2.toString()), expression.toString());
+    assertValueEqual(BuiltinFunctionName.ADDFUNCTION, expectedType, op1, op2, expression.valueOf());
+    assertEquals(
+        String.format("add(%s, %s)", op1.toString(), op2.toString()), expression.toString());
   }
 
   @ParameterizedTest(name = "subtract({1}, {2})")
@@ -85,10 +96,8 @@ class ArithmeticFunctionTest extends ExpressionTestBase {
     FunctionExpression expression = DSL.subtract(literal(op1), literal(op2));
     ExprType expectedType = WideningTypeRule.max(op1.type(), op2.type());
     assertEquals(expectedType, expression.type());
-    assertValueEqual(BuiltinFunctionName.SUBTRACT, expectedType, op1, op2,
-        expression.valueOf());
-    assertEquals(String.format("-(%s, %s)", op1.toString(), op2.toString()),
-        expression.toString());
+    assertValueEqual(BuiltinFunctionName.SUBTRACT, expectedType, op1, op2, expression.valueOf());
+    assertEquals(String.format("-(%s, %s)", op1.toString(), op2.toString()), expression.toString());
   }
 
   @ParameterizedTest(name = "subtractFunction({1}, {2})")
@@ -97,10 +106,10 @@ class ArithmeticFunctionTest extends ExpressionTestBase {
     FunctionExpression expression = DSL.subtractFunction(literal(op1), literal(op2));
     ExprType expectedType = WideningTypeRule.max(op1.type(), op2.type());
     assertEquals(expectedType, expression.type());
-    assertValueEqual(BuiltinFunctionName.SUBTRACTFUNCTION, expectedType, op1, op2,
-            expression.valueOf());
-    assertEquals(String.format("subtract(%s, %s)", op1.toString(), op2.toString()),
-            expression.toString());
+    assertValueEqual(
+        BuiltinFunctionName.SUBTRACTFUNCTION, expectedType, op1, op2, expression.valueOf());
+    assertEquals(
+        String.format("subtract(%s, %s)", op1.toString(), op2.toString()), expression.toString());
   }
 
   @ParameterizedTest(name = "mod({1}, {2})")
@@ -110,8 +119,8 @@ class ArithmeticFunctionTest extends ExpressionTestBase {
     ExprType expectedType = WideningTypeRule.max(op1.type(), op2.type());
     assertEquals(expectedType, expression.type());
     assertValueEqual(BuiltinFunctionName.MOD, expectedType, op1, op2, expression.valueOf());
-    assertEquals(String.format("mod(%s, %s)", op1.toString(), op2.toString()),
-            expression.toString());
+    assertEquals(
+        String.format("mod(%s, %s)", op1.toString(), op2.toString()), expression.toString());
 
     expression = DSL.mod(literal(op1), literal(new ExprByteValue(0)));
     assertTrue(expression.valueOf(valueEnv()).isNull());
@@ -125,8 +134,8 @@ class ArithmeticFunctionTest extends ExpressionTestBase {
     ExprType expectedType = WideningTypeRule.max(op1.type(), op2.type());
     assertEquals(expectedType, expression.type());
     assertValueEqual(BuiltinFunctionName.MODULUS, expectedType, op1, op2, expression.valueOf());
-    assertEquals(String.format("%%(%s, %s)", op1.toString(), op2.toString()),
-            expression.toString());
+    assertEquals(
+        String.format("%%(%s, %s)", op1.toString(), op2.toString()), expression.toString());
 
     expression = DSL.modulus(literal(op1), literal(new ExprByteValue(0)));
     assertTrue(expression.valueOf(valueEnv()).isNull());
@@ -139,10 +148,10 @@ class ArithmeticFunctionTest extends ExpressionTestBase {
     FunctionExpression expression = DSL.modulusFunction(literal(op1), literal(op2));
     ExprType expectedType = WideningTypeRule.max(op1.type(), op2.type());
     assertEquals(expectedType, expression.type());
-    assertValueEqual(BuiltinFunctionName.MODULUSFUNCTION,
-            expectedType, op1, op2, expression.valueOf());
-    assertEquals(String.format("modulus(%s, %s)", op1.toString(), op2.toString()),
-            expression.toString());
+    assertValueEqual(
+        BuiltinFunctionName.MODULUSFUNCTION, expectedType, op1, op2, expression.valueOf());
+    assertEquals(
+        String.format("modulus(%s, %s)", op1.toString(), op2.toString()), expression.toString());
 
     expression = DSL.modulusFunction(literal(op1), literal(new ExprByteValue(0)));
     assertTrue(expression.valueOf(valueEnv()).isNull());
@@ -155,10 +164,8 @@ class ArithmeticFunctionTest extends ExpressionTestBase {
     FunctionExpression expression = DSL.multiply(literal(op1), literal(op2));
     ExprType expectedType = WideningTypeRule.max(op1.type(), op2.type());
     assertEquals(expectedType, expression.type());
-    assertValueEqual(BuiltinFunctionName.MULTIPLY, expectedType, op1, op2,
-        expression.valueOf());
-    assertEquals(String.format("*(%s, %s)", op1.toString(), op2.toString()),
-        expression.toString());
+    assertValueEqual(BuiltinFunctionName.MULTIPLY, expectedType, op1, op2, expression.valueOf());
+    assertEquals(String.format("*(%s, %s)", op1.toString(), op2.toString()), expression.toString());
   }
 
   @ParameterizedTest(name = "multiplyFunction({1}, {2})")
@@ -167,10 +174,10 @@ class ArithmeticFunctionTest extends ExpressionTestBase {
     FunctionExpression expression = DSL.multiplyFunction(literal(op1), literal(op2));
     ExprType expectedType = WideningTypeRule.max(op1.type(), op2.type());
     assertEquals(expectedType, expression.type());
-    assertValueEqual(BuiltinFunctionName.MULTIPLYFUNCTION, expectedType, op1, op2,
-            expression.valueOf());
-    assertEquals(String.format("multiply(%s, %s)", op1.toString(), op2.toString()),
-            expression.toString());
+    assertValueEqual(
+        BuiltinFunctionName.MULTIPLYFUNCTION, expectedType, op1, op2, expression.valueOf());
+    assertEquals(
+        String.format("multiply(%s, %s)", op1.toString(), op2.toString()), expression.toString());
   }
 
   @ParameterizedTest(name = "divide({1}, {2})")
@@ -180,8 +187,7 @@ class ArithmeticFunctionTest extends ExpressionTestBase {
     ExprType expectedType = WideningTypeRule.max(op1.type(), op2.type());
     assertEquals(expectedType, expression.type());
     assertValueEqual(BuiltinFunctionName.DIVIDE, expectedType, op1, op2, expression.valueOf());
-    assertEquals(String.format("/(%s, %s)", op1.toString(), op2.toString()),
-        expression.toString());
+    assertEquals(String.format("/(%s, %s)", op1.toString(), op2.toString()), expression.toString());
 
     expression = DSL.divide(literal(op1), literal(new ExprByteValue(0)));
     assertTrue(expression.valueOf(valueEnv()).isNull());
@@ -194,10 +200,10 @@ class ArithmeticFunctionTest extends ExpressionTestBase {
     FunctionExpression expression = DSL.divideFunction(literal(op1), literal(op2));
     ExprType expectedType = WideningTypeRule.max(op1.type(), op2.type());
     assertEquals(expectedType, expression.type());
-    assertValueEqual(BuiltinFunctionName.DIVIDEFUNCTION,
-            expectedType, op1, op2, expression.valueOf());
-    assertEquals(String.format("divide(%s, %s)", op1.toString(), op2.toString()),
-            expression.toString());
+    assertValueEqual(
+        BuiltinFunctionName.DIVIDEFUNCTION, expectedType, op1, op2, expression.valueOf());
+    assertEquals(
+        String.format("divide(%s, %s)", op1.toString(), op2.toString()), expression.toString());
 
     expression = DSL.divideFunction(literal(op1), literal(new ExprByteValue(0)));
     assertTrue(expression.valueOf(valueEnv()).isNull());
@@ -207,38 +213,51 @@ class ArithmeticFunctionTest extends ExpressionTestBase {
   @ParameterizedTest(name = "multipleParameters({1},{2})")
   @MethodSource("arithmeticFunctionArguments")
   public void multipleParameters(ExprValue op1) {
-    assertThrows(ExpressionEvaluationException.class,
-            () -> DSL.add(literal(op1), literal(op1), literal(op1)));
-    assertThrows(ExpressionEvaluationException.class,
-            () -> DSL.addFunction(literal(op1), literal(op1), literal(op1)));
+    assertThrows(
+        ExpressionEvaluationException.class,
+        () -> DSL.add(literal(op1), literal(op1), literal(op1)));
+    assertThrows(
+        ExpressionEvaluationException.class,
+        () -> DSL.addFunction(literal(op1), literal(op1), literal(op1)));
 
-    assertThrows(ExpressionEvaluationException.class,
-            () -> DSL.subtract(literal(op1), literal(op1), literal(op1)));
-    assertThrows(ExpressionEvaluationException.class,
-            () -> DSL.subtractFunction(literal(op1), literal(op1), literal(op1)));
+    assertThrows(
+        ExpressionEvaluationException.class,
+        () -> DSL.subtract(literal(op1), literal(op1), literal(op1)));
+    assertThrows(
+        ExpressionEvaluationException.class,
+        () -> DSL.subtractFunction(literal(op1), literal(op1), literal(op1)));
 
-    assertThrows(ExpressionEvaluationException.class,
-            () -> DSL.multiply(literal(op1), literal(op1), literal(op1)));
-    assertThrows(ExpressionEvaluationException.class,
-            () -> DSL.multiplyFunction(literal(op1), literal(op1), literal(op1)));
+    assertThrows(
+        ExpressionEvaluationException.class,
+        () -> DSL.multiply(literal(op1), literal(op1), literal(op1)));
+    assertThrows(
+        ExpressionEvaluationException.class,
+        () -> DSL.multiplyFunction(literal(op1), literal(op1), literal(op1)));
 
-    assertThrows(ExpressionEvaluationException.class,
-            () -> DSL.divide(literal(op1), literal(op1), literal(op1)));
-    assertThrows(ExpressionEvaluationException.class,
-            () -> DSL.divideFunction(literal(op1), literal(op1), literal(op1)));
+    assertThrows(
+        ExpressionEvaluationException.class,
+        () -> DSL.divide(literal(op1), literal(op1), literal(op1)));
+    assertThrows(
+        ExpressionEvaluationException.class,
+        () -> DSL.divideFunction(literal(op1), literal(op1), literal(op1)));
 
-    assertThrows(ExpressionEvaluationException.class,
-            () -> DSL.mod(literal(op1), literal(op1), literal(op1)));
-    assertThrows(ExpressionEvaluationException.class,
-            () -> DSL.modulus(literal(op1), literal(op1), literal(op1)));
-    assertThrows(ExpressionEvaluationException.class,
-            () -> DSL.modulusFunction(literal(op1), literal(op1), literal(op1)));
+    assertThrows(
+        ExpressionEvaluationException.class,
+        () -> DSL.mod(literal(op1), literal(op1), literal(op1)));
+    assertThrows(
+        ExpressionEvaluationException.class,
+        () -> DSL.modulus(literal(op1), literal(op1), literal(op1)));
+    assertThrows(
+        ExpressionEvaluationException.class,
+        () -> DSL.modulusFunction(literal(op1), literal(op1), literal(op1)));
   }
 
-  protected void assertValueEqual(BuiltinFunctionName builtinFunctionName, ExprType type,
-                                  ExprValue op1,
-                                  ExprValue op2,
-                                  ExprValue actual) {
+  protected void assertValueEqual(
+      BuiltinFunctionName builtinFunctionName,
+      ExprType type,
+      ExprValue op1,
+      ExprValue op2,
+      ExprValue actual) {
     switch ((ExprCoreType) type) {
       case BYTE:
         Byte vb1 = op1.byteValue();

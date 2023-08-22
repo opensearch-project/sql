@@ -18,13 +18,10 @@ import org.opensearch.sql.planner.physical.PhysicalPlanNodeVisitor;
 
 public class TestOperator extends PhysicalPlan implements SerializablePlan {
   private int field;
-  @Setter
-  private boolean throwNoCursorOnWrite = false;
-  @Setter
-  private boolean throwIoOnWrite = false;
+  @Setter private boolean throwNoCursorOnWrite = false;
+  @Setter private boolean throwIoOnWrite = false;
 
-  public TestOperator() {
-  }
+  public TestOperator() {}
 
   public TestOperator(int value) {
     field = value;

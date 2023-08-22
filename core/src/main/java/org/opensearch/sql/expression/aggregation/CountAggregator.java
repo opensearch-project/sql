@@ -3,7 +3,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-
 package org.opensearch.sql.expression.aggregation;
 
 import static org.opensearch.sql.utils.ExpressionUtils.format;
@@ -43,9 +42,7 @@ public class CountAggregator extends Aggregator<CountState> {
         : String.format(Locale.ROOT, "count(%s)", format(getArguments()));
   }
 
-  /**
-   * Count State.
-   */
+  /** Count State. */
   protected static class CountState implements AggregationState {
     protected int count;
 

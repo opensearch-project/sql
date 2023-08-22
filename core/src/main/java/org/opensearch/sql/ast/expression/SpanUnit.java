@@ -42,9 +42,7 @@ public enum SpanUnit {
     SPAN_UNITS = builder.add(SpanUnit.values()).build();
   }
 
-  /**
-   * Util method to get span unit given the unit name.
-   */
+  /** Util method to get span unit given the unit name. */
   public static SpanUnit of(String unit) {
     switch (unit) {
       case "":
@@ -64,5 +62,4 @@ public enum SpanUnit {
   public static String getName(SpanUnit unit) {
     return unit.name;
   }
-
 }

@@ -17,9 +17,7 @@ import java.io.ObjectOutputStream;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneId;
-import java.util.concurrent.Callable;
 import java.util.function.Consumer;
-import java.util.function.Function;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DynamicTest;
@@ -77,16 +75,17 @@ class FunctionPropertiesTest {
 
   @TestFactory
   Stream<DynamicTest> functionProperties_none_throws_on_access() {
-    Consumer<Executable> tb = tc -> {
-      RuntimeException e = assertThrows(FunctionProperties.UnexpectedCallException.class, tc);
-      assertEquals("FunctionProperties.None is a null object and not meant to be accessed.",
-          e.getMessage());
-    };
+    Consumer<Executable> tb =
+        tc -> {
+          RuntimeException e = assertThrows(FunctionProperties.UnexpectedCallException.class, tc);
+          assertEquals(
+              "FunctionProperties.None is a null object and not meant to be accessed.",
+              e.getMessage());
+        };
     return Stream.of(
-        DynamicTest.dynamicTest("getQueryStartClock",
-            () -> tb.accept(FunctionProperties.None::getQueryStartClock)),
-        DynamicTest.dynamicTest("getSystemClock",
-            () -> tb.accept(FunctionProperties.None::getSystemClock))
-    );
+        DynamicTest.dynamicTest(
+            "getQueryStartClock", () -> tb.accept(FunctionProperties.None::getQueryStartClock)),
+        DynamicTest.dynamicTest(
+            "getSystemClock", () -> tb.accept(FunctionProperties.None::getSystemClock)));
   }
 }

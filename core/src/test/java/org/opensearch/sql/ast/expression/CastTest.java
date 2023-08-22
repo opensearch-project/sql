@@ -3,7 +3,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-
 package org.opensearch.sql.ast.expression;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -23,5 +22,4 @@ class CastTest {
         new Cast(booleanLiteral(true), stringLiteral("INT")).convertFunctionName(),
         new Cast(booleanLiteral(true), stringLiteral("INTEGER")).convertFunctionName());
   }
-
 }

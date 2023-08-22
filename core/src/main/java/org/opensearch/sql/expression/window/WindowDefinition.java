@@ -3,7 +3,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-
 package org.opensearch.sql.expression.window;
 
 import static org.opensearch.sql.ast.tree.Sort.SortOption;
@@ -16,9 +15,7 @@ import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.apache.commons.lang3.tuple.Pair;
 import org.opensearch.sql.expression.Expression;
 
-/**
- * Window definition that consists of partition and sort by information for a window.
- */
+/** Window definition that consists of partition and sort by information for a window. */
 @Data
 public class WindowDefinition {
 
@@ -27,7 +24,8 @@ public class WindowDefinition {
 
   /**
    * Return all items in partition by and sort list.
-   * @return  all sort items
+   *
+   * @return all sort items
    */
   public List<Pair<SortOption, Expression>> getAllSortItems() {
     List<Pair<SortOption, Expression>> allSorts = new ArrayList<>();
@@ -35,5 +33,4 @@ public class WindowDefinition {
     allSorts.addAll(sortList);
     return allSorts;
   }
-
 }

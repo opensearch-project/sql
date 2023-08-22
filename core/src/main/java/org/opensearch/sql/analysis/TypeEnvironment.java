@@ -3,7 +3,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-
 package org.opensearch.sql.analysis;
 
 import static org.opensearch.sql.analysis.symbol.Namespace.FIELD_NAME;
@@ -21,12 +20,9 @@ import org.opensearch.sql.expression.Expression;
 import org.opensearch.sql.expression.ReferenceExpression;
 import org.opensearch.sql.expression.env.Environment;
 
-/**
- * The definition of Type Environment.
- */
+/** The definition of Type Environment. */
 public class TypeEnvironment implements Environment<Symbol, ExprType> {
-  @Getter
-  private final TypeEnvironment parent;
+  @Getter private final TypeEnvironment parent;
   private final SymbolTable symbolTable;
 
   /**
@@ -64,15 +60,14 @@ public class TypeEnvironment implements Environment<Symbol, ExprType> {
         return typeOptional.get();
       }
     }
-    throw new SemanticCheckException(
-        String.format("can't resolve %s in type env", symbol));
+    throw new SemanticCheckException(String.format("can't resolve %s in type env", symbol));
   }
 
   /**
    * Resolve all fields in the current environment.
    *
-   * @param namespace     a namespace
-   * @return              all symbols in the namespace
+   * @param namespace a namespace
+   * @return all symbols in the namespace
    */
   public Map<String, ExprType> lookupAllFields(Namespace namespace) {
     Map<String, ExprType> result = new LinkedHashMap<>();
@@ -82,8 +77,9 @@ public class TypeEnvironment implements Environment<Symbol, ExprType> {
 
   /**
    * Resolve all fields in the current environment.
-   * @param namespace     a namespace
-   * @return              all symbols in the namespace
+   *
+   * @param namespace a namespace
+   * @return all symbols in the namespace
    */
   public Map<String, ExprType> lookupAllTupleFields(Namespace namespace) {
     Map<String, ExprType> result = new LinkedHashMap<>();
@@ -95,7 +91,7 @@ public class TypeEnvironment implements Environment<Symbol, ExprType> {
    * Define symbol with the type.
    *
    * @param symbol symbol to define
-   * @param type   type
+   * @param type type
    */
   public void define(Symbol symbol, ExprType type) {
     symbolTable.store(symbol, type);
@@ -114,18 +110,13 @@ public class TypeEnvironment implements Environment<Symbol, ExprType> {
     symbolTable.remove(symbol);
   }
 
-  /**
-   * Remove ref.
-   */
+  /** Remove ref. */
   public void remove(ReferenceExpression ref) {
     remove(new Symbol(FIELD_NAME, ref.getAttr()));
   }
 
-  /**
-   * Clear all fields in the current environment.
-   */
+  /** Clear all fields in the current environment. */
   public void clearAllFields() {
-    lookupAllFields(FIELD_NAME).keySet().forEach(
-        v -> remove(new Symbol(Namespace.FIELD_NAME, v)));
+    lookupAllFields(FIELD_NAME).keySet().forEach(v -> remove(new Symbol(Namespace.FIELD_NAME, v)));
   }
 }

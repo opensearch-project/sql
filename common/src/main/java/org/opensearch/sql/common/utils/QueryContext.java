@@ -5,9 +5,7 @@
 
 package org.opensearch.sql.common.utils;
 
-import java.time.LocalDateTime;
 import java.util.Map;
-import java.util.Optional;
 import java.util.UUID;
 import org.apache.logging.log4j.ThreadContext;
 

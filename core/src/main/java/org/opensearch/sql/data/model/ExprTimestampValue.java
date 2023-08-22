@@ -3,7 +3,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-
 package org.opensearch.sql.data.model;
 
 import static org.opensearch.sql.utils.DateTimeFormatters.DATE_TIME_FORMATTER_VARIABLE_NANOS;
@@ -22,33 +21,33 @@ import org.opensearch.sql.data.type.ExprCoreType;
 import org.opensearch.sql.data.type.ExprType;
 import org.opensearch.sql.exception.SemanticCheckException;
 
-/**
- * Expression Timestamp Value.
- */
+/** Expression Timestamp Value. */
 @RequiredArgsConstructor
 public class ExprTimestampValue extends AbstractExprValue {
 
   private final Instant timestamp;
 
-  /**
-   * Constructor.
-   */
+  /** Constructor. */
   public ExprTimestampValue(String timestamp) {
     try {
-      this.timestamp = LocalDateTime.parse(timestamp, DATE_TIME_FORMATTER_VARIABLE_NANOS)
-          .atZone(UTC_ZONE_ID)
-          .toInstant();
+      this.timestamp =
+          LocalDateTime.parse(timestamp, DATE_TIME_FORMATTER_VARIABLE_NANOS)
+              .atZone(UTC_ZONE_ID)
+              .toInstant();
     } catch (DateTimeParseException e) {
-      throw new SemanticCheckException(String.format("timestamp:%s in unsupported format, please "
-          + "use yyyy-MM-dd HH:mm:ss[.SSSSSSSSS]", timestamp));
+      throw new SemanticCheckException(
+          String.format(
+              "timestamp:%s in unsupported format, please " + "use yyyy-MM-dd HH:mm:ss[.SSSSSSSSS]",
+              timestamp));
     }
-
   }
 
   @Override
   public String value() {
-    return timestamp.getNano() == 0 ? DATE_TIME_FORMATTER_WITHOUT_NANO.withZone(UTC_ZONE_ID)
-        .format(timestamp.truncatedTo(ChronoUnit.SECONDS))
+    return timestamp.getNano() == 0
+        ? DATE_TIME_FORMATTER_WITHOUT_NANO
+            .withZone(UTC_ZONE_ID)
+            .format(timestamp.truncatedTo(ChronoUnit.SECONDS))
         : DATE_TIME_FORMATTER_VARIABLE_NANOS.withZone(UTC_ZONE_ID).format(timestamp);
   }
 

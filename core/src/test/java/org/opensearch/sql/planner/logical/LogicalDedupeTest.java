@@ -3,7 +3,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-
 package org.opensearch.sql.planner.logical;
 
 import static org.opensearch.sql.ast.dsl.AstDSL.argument;
@@ -30,10 +29,7 @@ class LogicalDedupeTest extends AnalyzerTestBase {
             DSL.ref("integer_value", INTEGER),
             DSL.ref("double_value", DOUBLE)),
         dedupe(
-            relation("schema"),
-            defaultDedupArgs(),
-            field("integer_value"), field("double_value")
-        ));
+            relation("schema"), defaultDedupArgs(), field("integer_value"), field("double_value")));
   }
 
   @Test
@@ -41,7 +37,9 @@ class LogicalDedupeTest extends AnalyzerTestBase {
     assertAnalyzeEqual(
         LogicalPlanDSL.dedupe(
             LogicalPlanDSL.relation("schema", table),
-            3, false, true,
+            3,
+            false,
+            true,
             DSL.ref("integer_value", INTEGER),
             DSL.ref("double_value", DOUBLE)),
         dedupe(
@@ -49,9 +47,8 @@ class LogicalDedupeTest extends AnalyzerTestBase {
             exprList(
                 argument("number", intLiteral(3)),
                 argument("keepempty", booleanLiteral(false)),
-                argument("consecutive", booleanLiteral(true))
-            ),
-            field("integer_value"), field("double_value")
-        ));
+                argument("consecutive", booleanLiteral(true))),
+            field("integer_value"),
+            field("double_value")));
   }
 }

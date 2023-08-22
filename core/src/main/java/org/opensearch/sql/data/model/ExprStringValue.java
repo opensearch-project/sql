@@ -3,7 +3,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-
 package org.opensearch.sql.data.model;
 
 import java.time.LocalDate;
@@ -15,9 +14,7 @@ import org.opensearch.sql.data.type.ExprCoreType;
 import org.opensearch.sql.data.type.ExprType;
 import org.opensearch.sql.exception.SemanticCheckException;
 
-/**
- * Expression String Value.
- */
+/** Expression String Value. */
 @RequiredArgsConstructor
 public class ExprStringValue extends AbstractExprValue {
   private final String value;
@@ -44,11 +41,14 @@ public class ExprStringValue extends AbstractExprValue {
     } catch (SemanticCheckException e) {
       try {
         return new ExprDatetimeValue(
-            LocalDateTime.of(new ExprDateValue(value).dateValue(), LocalTime.of(0, 0, 0)))
+                LocalDateTime.of(new ExprDateValue(value).dateValue(), LocalTime.of(0, 0, 0)))
             .datetimeValue();
       } catch (SemanticCheckException exception) {
-        throw new SemanticCheckException(String.format("datetime:%s in unsupported format, please "
-            + "use yyyy-MM-dd HH:mm:ss[.SSSSSSSSS]", value));
+        throw new SemanticCheckException(
+            String.format(
+                "datetime:%s in unsupported format, please "
+                    + "use yyyy-MM-dd HH:mm:ss[.SSSSSSSSS]",
+                value));
       }
     }
   }

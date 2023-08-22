@@ -3,7 +3,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-
 package org.opensearch.sql.analysis;
 
 import static org.opensearch.sql.ast.tree.Sort.SortOption.DEFAULT_ASC;
@@ -29,28 +28,25 @@ import org.opensearch.sql.planner.logical.LogicalSort;
 import org.opensearch.sql.planner.logical.LogicalWindow;
 
 /**
- * Window expression analyzer that analyzes window function expression in expression list
- * in project operator.
+ * Window expression analyzer that analyzes window function expression in expression list in project
+ * operator.
  */
 @RequiredArgsConstructor
 public class WindowExpressionAnalyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> {
 
-  /**
-   * Expression analyzer.
-   */
+  /** Expression analyzer. */
   private final ExpressionAnalyzer expressionAnalyzer;
 
-  /**
-   * Child node to be wrapped by a new window operator.
-   */
+  /** Child node to be wrapped by a new window operator. */
   private final LogicalPlan child;
 
   /**
-   * Analyze the given project item and return window operator (with child node inside)
-   * if the given project item is a window function.
-   * @param projectItem   project item
-   * @param context       analysis context
-   * @return              window operator or original child if not windowed
+   * Analyze the given project item and return window operator (with child node inside) if the given
+   * project item is a window function.
+   *
+   * @param projectItem project item
+   * @param context analysis context
+   * @return window operator or original child if not windowed
    */
   public LogicalPlan analyze(UnresolvedExpression projectItem, AnalysisContext context) {
     LogicalPlan window = projectItem.accept(this, context);
@@ -77,26 +73,24 @@ public class WindowExpressionAnalyzer extends AbstractNodeVisitor<LogicalPlan, A
       return new LogicalWindow(child, namedWindowFunction, windowDefinition);
     }
     return new LogicalWindow(
-        new LogicalSort(child, allSortItems),
-        namedWindowFunction,
-        windowDefinition);
+        new LogicalSort(child, allSortItems), namedWindowFunction, windowDefinition);
   }
 
   private List<Expression> analyzePartitionList(WindowFunction node, AnalysisContext context) {
-    return node.getPartitionByList()
-               .stream()
-               .map(expr -> expressionAnalyzer.analyze(expr, context))
-               .collect(Collectors.toList());
+    return node.getPartitionByList().stream()
+        .map(expr -> expressionAnalyzer.analyze(expr, context))
+        .collect(Collectors.toList());
   }
 
-  private List<Pair<SortOption, Expression>> analyzeSortList(WindowFunction node,
-                                                             AnalysisContext context) {
-    return node.getSortList()
-               .stream()
-               .map(pair -> ImmutablePair
-                   .of(analyzeSortOption(pair.getLeft()),
-                       expressionAnalyzer.analyze(pair.getRight(), context)))
-               .collect(Collectors.toList());
+  private List<Pair<SortOption, Expression>> analyzeSortList(
+      WindowFunction node, AnalysisContext context) {
+    return node.getSortList().stream()
+        .map(
+            pair ->
+                ImmutablePair.of(
+                    analyzeSortOption(pair.getLeft()),
+                    expressionAnalyzer.analyze(pair.getRight(), context)))
+        .collect(Collectors.toList());
   }
 
   /**
@@ -107,9 +101,6 @@ public class WindowExpressionAnalyzer extends AbstractNodeVisitor<LogicalPlan, A
     if (option.getNullOrder() == null) {
       return (option.getSortOrder() == DESC) ? DEFAULT_DESC : DEFAULT_ASC;
     }
-    return new SortOption(
-        (option.getSortOrder() == DESC) ? DESC : ASC,
-        option.getNullOrder());
+    return new SortOption((option.getSortOrder() == DESC) ? DESC : ASC, option.getNullOrder());
   }
-
 }
