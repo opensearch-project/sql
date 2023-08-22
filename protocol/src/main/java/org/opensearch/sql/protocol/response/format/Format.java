@@ -3,7 +3,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-
 package org.opensearch.sql.protocol.response.format;
 
 import com.google.common.base.Strings;
@@ -20,8 +19,7 @@ public enum Format {
   RAW("raw"),
   VIZ("viz");
 
-  @Getter
-  private final String formatName;
+  @Getter private final String formatName;
 
   private static final Map<String, Format> ALL_FORMATS;
 

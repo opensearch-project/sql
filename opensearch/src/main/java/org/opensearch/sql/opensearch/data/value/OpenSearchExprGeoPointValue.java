@@ -3,7 +3,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-
 package org.opensearch.sql.opensearch.data.value;
 
 import java.util.Objects;
@@ -14,8 +13,8 @@ import org.opensearch.sql.data.type.ExprType;
 import org.opensearch.sql.opensearch.data.type.OpenSearchGeoPointType;
 
 /**
- * OpenSearch GeoPointValue.
- * Todo, add this to avoid the unknown value type exception, the implementation will be changed.
+ * OpenSearch GeoPointValue. Todo, add this to avoid the unknown value type exception, the
+ * implementation will be changed.
  */
 public class OpenSearchExprGeoPointValue extends AbstractExprValue {
 
@@ -37,7 +36,8 @@ public class OpenSearchExprGeoPointValue extends AbstractExprValue {
 
   @Override
   public int compare(ExprValue other) {
-    return geoPoint.toString()
+    return geoPoint
+        .toString()
         .compareTo((((OpenSearchExprGeoPointValue) other).geoPoint).toString());
   }
 

@@ -17,7 +17,6 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.opensearch.cluster.ClusterName;
 import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.datasource.model.DataSource;
 import org.opensearch.sql.datasource.model.DataSourceMetadata;
@@ -27,8 +26,7 @@ import org.opensearch.sql.storage.StorageEngine;
 @ExtendWith(MockitoExtension.class)
 public class PrometheusStorageFactoryTest {
 
-  @Mock
-  private Settings settings;
+  @Mock private Settings settings;
 
   @Test
   void testGetConnectorType() {
@@ -47,8 +45,7 @@ public class PrometheusStorageFactoryTest {
     properties.put("prometheus.auth.type", "basicauth");
     properties.put("prometheus.auth.username", "admin");
     properties.put("prometheus.auth.password", "admin");
-    StorageEngine storageEngine
-        = prometheusStorageFactory.getStorageEngine(properties);
+    StorageEngine storageEngine = prometheusStorageFactory.getStorageEngine(properties);
     Assertions.assertTrue(storageEngine instanceof PrometheusStorageEngine);
   }
 
@@ -63,11 +60,9 @@ public class PrometheusStorageFactoryTest {
     properties.put("prometheus.auth.region", "us-east-1");
     properties.put("prometheus.auth.secret_key", "accessKey");
     properties.put("prometheus.auth.access_key", "secretKey");
-    StorageEngine storageEngine
-        = prometheusStorageFactory.getStorageEngine(properties);
+    StorageEngine storageEngine = prometheusStorageFactory.getStorageEngine(properties);
     Assertions.assertTrue(storageEngine instanceof PrometheusStorageEngine);
   }
-
 
   @Test
   @SneakyThrows
@@ -78,10 +73,12 @@ public class PrometheusStorageFactoryTest {
     properties.put("prometheus.auth.region", "us-east-1");
     properties.put("prometheus.auth.secret_key", "accessKey");
     properties.put("prometheus.auth.access_key", "secretKey");
-    IllegalArgumentException exception = Assertions.assertThrows(IllegalArgumentException.class,
-        () -> prometheusStorageFactory.getStorageEngine(properties));
-    Assertions.assertEquals("Missing [prometheus.uri] fields "
-            + "in the Prometheus connector properties.",
+    IllegalArgumentException exception =
+        Assertions.assertThrows(
+            IllegalArgumentException.class,
+            () -> prometheusStorageFactory.getStorageEngine(properties));
+    Assertions.assertEquals(
+        "Missing [prometheus.uri] fields " + "in the Prometheus connector properties.",
         exception.getMessage());
   }
 
@@ -94,13 +91,14 @@ public class PrometheusStorageFactoryTest {
     properties.put("prometheus.auth.type", "awssigv4");
     properties.put("prometheus.auth.secret_key", "accessKey");
     properties.put("prometheus.auth.access_key", "secretKey");
-    IllegalArgumentException exception = Assertions.assertThrows(IllegalArgumentException.class,
-        () -> prometheusStorageFactory.getStorageEngine(properties));
-    Assertions.assertEquals("Missing [prometheus.auth.region] fields in the "
-            + "Prometheus connector properties.",
+    IllegalArgumentException exception =
+        Assertions.assertThrows(
+            IllegalArgumentException.class,
+            () -> prometheusStorageFactory.getStorageEngine(properties));
+    Assertions.assertEquals(
+        "Missing [prometheus.auth.region] fields in the " + "Prometheus connector properties.",
         exception.getMessage());
   }
-
 
   @Test
   @SneakyThrows
@@ -111,9 +109,12 @@ public class PrometheusStorageFactoryTest {
     properties.put("prometheus.auth.type", "awssigv4");
     properties.put("prometheus.auth.secret_key", "accessKey");
     properties.put("prometheus.auth.access_key", "secretKey");
-    IllegalArgumentException exception = Assertions.assertThrows(IllegalArgumentException.class,
-        () -> prometheusStorageFactory.getStorageEngine(properties));
-    Assertions.assertEquals("Missing [prometheus.auth.region] fields in the "
+    IllegalArgumentException exception =
+        Assertions.assertThrows(
+            IllegalArgumentException.class,
+            () -> prometheusStorageFactory.getStorageEngine(properties));
+    Assertions.assertEquals(
+        "Missing [prometheus.auth.region] fields in the "
             + "Prometheus connector properties."
             + "Fields [prometheus.uri] exceeds more than 1000 characters.",
         exception.getMessage());
@@ -130,12 +131,13 @@ public class PrometheusStorageFactoryTest {
     properties.put("prometheus.auth.region", "us-east-1");
     properties.put("prometheus.auth.secret_key", "accessKey");
     properties.put("prometheus.auth.access_key", "secretKey");
-    IllegalArgumentException exception = Assertions.assertThrows(IllegalArgumentException.class,
-        () -> prometheusStorageFactory.getStorageEngine(properties));
-    Assertions.assertEquals("AUTH Type : random is not supported with Prometheus Connector",
-        exception.getMessage());
+    IllegalArgumentException exception =
+        Assertions.assertThrows(
+            IllegalArgumentException.class,
+            () -> prometheusStorageFactory.getStorageEngine(properties));
+    Assertions.assertEquals(
+        "AUTH Type : random is not supported with Prometheus Connector", exception.getMessage());
   }
-
 
   @Test
   @SneakyThrows
@@ -144,8 +146,7 @@ public class PrometheusStorageFactoryTest {
     PrometheusStorageFactory prometheusStorageFactory = new PrometheusStorageFactory(settings);
     HashMap<String, String> properties = new HashMap<>();
     properties.put("prometheus.uri", "https://test.com");
-    StorageEngine storageEngine
-        = prometheusStorageFactory.getStorageEngine(properties);
+    StorageEngine storageEngine = prometheusStorageFactory.getStorageEngine(properties);
     Assertions.assertTrue(storageEngine instanceof PrometheusStorageEngine);
   }
 
@@ -158,8 +159,9 @@ public class PrometheusStorageFactoryTest {
     properties.put("prometheus.auth.type", "basicauth");
     properties.put("prometheus.auth.username", "admin");
     properties.put("prometheus.auth.password", "admin");
-    RuntimeException exception = Assertions.assertThrows(RuntimeException.class,
-        () -> prometheusStorageFactory.getStorageEngine(properties));
+    RuntimeException exception =
+        Assertions.assertThrows(
+            RuntimeException.class, () -> prometheusStorageFactory.getStorageEngine(properties));
     Assertions.assertTrue(
         exception.getMessage().contains("Invalid URI in prometheus properties: "));
   }
@@ -214,10 +216,13 @@ public class PrometheusStorageFactoryTest {
     metadata.setProperties(properties);
 
     PrometheusStorageFactory prometheusStorageFactory = new PrometheusStorageFactory(settings);
-    RuntimeException exception = Assertions.assertThrows(RuntimeException.class,
-        () -> prometheusStorageFactory.createDataSource(metadata));
+    RuntimeException exception =
+        Assertions.assertThrows(
+            RuntimeException.class, () -> prometheusStorageFactory.createDataSource(metadata));
     Assertions.assertTrue(
-        exception.getMessage().contains("Invalid hostname in the uri: http://dummyprometheus:9090"));
+        exception
+            .getMessage()
+            .contains("Invalid hostname in the uri: http://dummyprometheus:9090"));
   }
 
   @Test
@@ -234,8 +239,9 @@ public class PrometheusStorageFactoryTest {
     metadata.setProperties(properties);
 
     PrometheusStorageFactory prometheusStorageFactory = new PrometheusStorageFactory(settings);
-    RuntimeException exception = Assertions.assertThrows(RuntimeException.class,
-        () -> prometheusStorageFactory.createDataSource(metadata));
+    RuntimeException exception =
+        Assertions.assertThrows(
+            RuntimeException.class, () -> prometheusStorageFactory.createDataSource(metadata));
     Assertions.assertTrue(
         exception.getMessage().contains("Invalid hostname in the uri: http://231.54.11.987:9090"));
   }
@@ -256,11 +262,15 @@ public class PrometheusStorageFactoryTest {
     metadata.setProperties(properties);
 
     PrometheusStorageFactory prometheusStorageFactory = new PrometheusStorageFactory(settings);
-    RuntimeException exception = Assertions.assertThrows(RuntimeException.class,
-        () -> prometheusStorageFactory.createDataSource(metadata));
+    RuntimeException exception =
+        Assertions.assertThrows(
+            RuntimeException.class, () -> prometheusStorageFactory.createDataSource(metadata));
     Assertions.assertTrue(
-        exception.getMessage().contains("Disallowed hostname in the uri: http://localhost.com:9090. "
-            + "Validate with plugins.query.datasources.uri.allowhosts config"));
+        exception
+            .getMessage()
+            .contains(
+                "Disallowed hostname in the uri: http://localhost.com:9090. "
+                    + "Validate with plugins.query.datasources.uri.allowhosts config"));
   }
 
   @Test
@@ -280,5 +290,4 @@ public class PrometheusStorageFactoryTest {
     DataSource dataSource = new PrometheusStorageFactory(settings).createDataSource(metadata);
     Assertions.assertTrue(dataSource.getStorageEngine() instanceof PrometheusStorageEngine);
   }
-
 }

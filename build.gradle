@@ -84,7 +84,7 @@ repositories {
 spotless {
     java {
         target fileTree('.') {
-            include 'core/**/*.java'
+            include '**/*.java'
             exclude '**/build/**', '**/build-*/**'
         }
         importOrder()

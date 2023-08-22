@@ -21,10 +21,9 @@ public class LikeQuery extends LuceneQuery {
   }
 
   /**
-   * Though WildcardQueryBuilder is required, LikeQuery needed its own class as
-   * it is not a relevance function which wildcard_query is. The arguments in
-   * LIKE are of type ReferenceExpression while wildcard_query are of type
-   * NamedArgumentExpression
+   * Though WildcardQueryBuilder is required, LikeQuery needed its own class as it is not a
+   * relevance function which wildcard_query is. The arguments in LIKE are of type
+   * ReferenceExpression while wildcard_query are of type NamedArgumentExpression
    */
   protected WildcardQueryBuilder createBuilder(String field, String query) {
     String matchText = StringUtils.convertSqlWildcardToLucene(query);

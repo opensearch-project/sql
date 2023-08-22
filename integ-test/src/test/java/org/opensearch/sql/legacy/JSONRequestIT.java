@@ -3,7 +3,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-
 package org.opensearch.sql.legacy;
 
 import static org.hamcrest.CoreMatchers.anyOf;
@@ -35,11 +34,11 @@ public class JSONRequestIT extends SQLIntegTestCase {
   @Test
   public void search() throws IOException {
     int ageToCompare = 25;
-    SearchHits response = query(String.format("{\"query\":\"" +
-        "SELECT * " +
-        "FROM %s " +
-        "WHERE age > %s " +
-        "LIMIT 1000\"}", TestsConstants.TEST_INDEX_ACCOUNT, ageToCompare));
+    SearchHits response =
+        query(
+            String.format(
+                "{\"query\":\"" + "SELECT * " + "FROM %s " + "WHERE age > %s " + "LIMIT 1000\"}",
+                TestsConstants.TEST_INDEX_ACCOUNT, ageToCompare));
     SearchHit[] hits = response.getHits();
     for (SearchHit hit : hits) {
       int age = (int) hit.getSourceAsMap().get("age");
@@ -63,11 +62,14 @@ public class JSONRequestIT extends SQLIntegTestCase {
      * }
      */
     int ageToCompare = 25;
-    SearchHits response = query(String.format("{\"query\":\"" +
-            "SELECT * " +
-            "FROM %s " +
-            "LIMIT 1000\",\"filter\":{\"range\":{\"age\":{\"gt\":%s}}}}",
-        TestsConstants.TEST_INDEX_ACCOUNT, ageToCompare));
+    SearchHits response =
+        query(
+            String.format(
+                "{\"query\":\""
+                    + "SELECT * "
+                    + "FROM %s "
+                    + "LIMIT 1000\",\"filter\":{\"range\":{\"age\":{\"gt\":%s}}}}",
+                TestsConstants.TEST_INDEX_ACCOUNT, ageToCompare));
     SearchHit[] hits = response.getHits();
     for (SearchHit hit : hits) {
       int age = (int) hit.getSourceAsMap().get("age");
@@ -92,12 +94,15 @@ public class JSONRequestIT extends SQLIntegTestCase {
      */
     int ageToCompare = 25;
     int balanceToCompare = 35000;
-    SearchHits response = query(String.format("{\"query\":\"" +
-            "SELECT * " +
-            "FROM %s " +
-            "WHERE age > %s " +
-            "LIMIT 1000\",\"filter\":{\"range\":{\"balance\":{\"lt\":%s}}}}",
-        TestsConstants.TEST_INDEX_ACCOUNT, ageToCompare, balanceToCompare));
+    SearchHits response =
+        query(
+            String.format(
+                "{\"query\":\""
+                    + "SELECT * "
+                    + "FROM %s "
+                    + "WHERE age > %s "
+                    + "LIMIT 1000\",\"filter\":{\"range\":{\"balance\":{\"lt\":%s}}}}",
+                TestsConstants.TEST_INDEX_ACCOUNT, ageToCompare, balanceToCompare));
     SearchHit[] hits = response.getHits();
     for (SearchHit hit : hits) {
       int age = (int) hit.getSourceAsMap().get("age");
@@ -109,8 +114,8 @@ public class JSONRequestIT extends SQLIntegTestCase {
 
   @Test
   /**
-   * Using TEST_INDEX_NESTED_TYPE here since term filter does not work properly on analyzed fields like text.
-   * The field 'someField' in TEST_INDEX_NESTED_TYPE is of type keyword.
+   * Using TEST_INDEX_NESTED_TYPE here since term filter does not work properly on analyzed fields
+   * like text. The field 'someField' in TEST_INDEX_NESTED_TYPE is of type keyword.
    */
   public void searchWithTermFilter() throws IOException {
     /*
@@ -126,12 +131,15 @@ public class JSONRequestIT extends SQLIntegTestCase {
      */
     int likesToCompare = 3;
     String fieldToCompare = "a";
-    SearchHits response = query(String.format("{\"query\":\"" +
-            "SELECT * " +
-            "FROM %s " +
-            "WHERE nested(comment.likes) < %s\"," +
-            "\"filter\":{\"term\":{\"someField\":\"%s\"}}}",
-        TestsConstants.TEST_INDEX_NESTED_TYPE, likesToCompare, fieldToCompare));
+    SearchHits response =
+        query(
+            String.format(
+                "{\"query\":\""
+                    + "SELECT * "
+                    + "FROM %s "
+                    + "WHERE nested(comment.likes) < %s\","
+                    + "\"filter\":{\"term\":{\"someField\":\"%s\"}}}",
+                TestsConstants.TEST_INDEX_NESTED_TYPE, likesToCompare, fieldToCompare));
     SearchHit[] hits = response.getHits();
     for (SearchHit hit : hits) {
       int likes = (int) ((Map) hit.getSourceAsMap().get("comment")).get("likes");
@@ -165,13 +173,16 @@ public class JSONRequestIT extends SQLIntegTestCase {
      */
     int likesToCompare = 1;
     String dataToCompare = "aa";
-    SearchHits response = query(String.format("{\"query\":\"" +
-            "SELECT * " +
-            "FROM %s " +
-            "WHERE nested(comment.likes) > %s\"," +
-            "\"filter\":{\"nested\":{\"path\":\"comment\"," +
-            "\"query\":{\"bool\":{\"must\":{\"term\":{\"comment.data\":\"%s\"}}}}}}}",
-        TestsConstants.TEST_INDEX_NESTED_TYPE, likesToCompare, dataToCompare));
+    SearchHits response =
+        query(
+            String.format(
+                "{\"query\":\""
+                    + "SELECT * "
+                    + "FROM %s "
+                    + "WHERE nested(comment.likes) > %s\","
+                    + "\"filter\":{\"nested\":{\"path\":\"comment\","
+                    + "\"query\":{\"bool\":{\"must\":{\"term\":{\"comment.data\":\"%s\"}}}}}}}",
+                TestsConstants.TEST_INDEX_NESTED_TYPE, likesToCompare, dataToCompare));
     SearchHit[] hits = response.getHits();
     for (SearchHit hit : hits) {
       int likes = (int) ((Map) hit.getSourceAsMap().get("comment")).get("likes");
@@ -184,10 +195,11 @@ public class JSONRequestIT extends SQLIntegTestCase {
   private SearchHits query(String request) throws IOException {
     final JSONObject jsonObject = executeRequest(request);
 
-    final XContentParser parser = new JsonXContentParser(
-        NamedXContentRegistry.EMPTY,
-        LoggingDeprecationHandler.INSTANCE,
-        new JsonFactory().createParser(jsonObject.toString()));
+    final XContentParser parser =
+        new JsonXContentParser(
+            NamedXContentRegistry.EMPTY,
+            LoggingDeprecationHandler.INSTANCE,
+            new JsonFactory().createParser(jsonObject.toString()));
     return SearchResponse.fromXContent(parser).getHits();
   }
 }

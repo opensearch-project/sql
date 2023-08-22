@@ -3,7 +3,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-
 package org.opensearch.sql.legacy.antlr;
 
 import static java.util.stream.Collectors.toList;
@@ -17,124 +16,115 @@ import org.junit.rules.ExpectedException;
 import org.opensearch.sql.legacy.antlr.syntax.SyntaxAnalysisException;
 
 /**
- * Test cases focused on illegal syntax testing (denylist) along with a few normal cases not covered previously.
- * All other normal cases should be covered in existing unit test and IT.
+ * Test cases focused on illegal syntax testing (denylist) along with a few normal cases not covered
+ * previously. All other normal cases should be covered in existing unit test and IT.
  */
 public class SyntaxAnalysisTest {
 
-    /** public accessor is required by @Rule annotation */
-    @Rule
-    public ExpectedException exception = ExpectedException.none();
+  /** public accessor is required by @Rule annotation */
+  @Rule public ExpectedException exception = ExpectedException.none();
 
-    private OpenSearchLegacySqlAnalyzer
-        analyzer = new OpenSearchLegacySqlAnalyzer(new SqlAnalysisConfig(true, true, 1000));
+  private OpenSearchLegacySqlAnalyzer analyzer =
+      new OpenSearchLegacySqlAnalyzer(new SqlAnalysisConfig(true, true, 1000));
 
-    /** In reality exception occurs before reaching new parser for now */
-    @Test
-    public void unsupportedKeywordShouldThrowException() {
-        expectValidationFailWithErrorMessage(
-            "INSERT INTO accounts VALUES ('a')",
-            "offending symbol [INSERT]"
+  /** In reality exception occurs before reaching new parser for now */
+  @Test
+  public void unsupportedKeywordShouldThrowException() {
+    expectValidationFailWithErrorMessage(
+        "INSERT INTO accounts VALUES ('a')", "offending symbol [INSERT]");
+  }
+
+  /**
+   * Why we need to let it go and verify in semantic analyzer? Parser treats LOG123 a valid column
+   * and stops at '(' which gives wrong location and expected token In this case it's hard for
+   * parser to figure out if this is a wrong function name indeed or not. So we let it pass as an
+   * UDF and fail in semantic analyzer with meaningful message.
+   */
+  @Test // (expected = SyntaxAnalysisException.class)
+  public void unsupportedFunctionShouldThrowException() {
+    validate("SELECT * FROM accounts WHERE LOG123(balance) = 1");
+  }
+
+  @Test
+  public void unsupportedOperatorShouldPassSyntaxCheck() {
+    expectValidationFailWithErrorMessage(
+        "SELECT * FROM accounts WHERE age <=> 1", "offending symbol [>]");
+  }
+
+  @Test
+  public void missingFromClauseShouldThrowException() {
+    expectValidationFailWithErrorMessage(
+        "SELECT 1", "offending symbol [<EOF>]" // parsing was unable to terminate normally
         );
-    }
+  }
 
-    /**
-     * Why we need to let it go and verify in semantic analyzer?
-     *  Parser treats LOG123 a valid column and stops at '(' which gives wrong location and expected token
-     *  In this case it's hard for parser to figure out if this is a wrong function name indeed or not.
-     *  So we let it pass as an UDF and fail in semantic analyzer with meaningful message.
-     */
-    @Test //(expected = SyntaxAnalysisException.class)
-    public void unsupportedFunctionShouldThrowException() {
-        validate("SELECT * FROM accounts WHERE LOG123(balance) = 1");
-    }
-
-    @Test
-    public void unsupportedOperatorShouldPassSyntaxCheck() {
-        expectValidationFailWithErrorMessage(
-            "SELECT * FROM accounts WHERE age <=> 1",
-            "offending symbol [>]"
+  @Test
+  public void missingWhereKeywordShouldThrowException() {
+    expectValidationFailWithErrorMessage(
+        "SELECT * FROM accounts age = 1",
+        "offending symbol [=]", // parser thought 'age' is alias of 'accounts' and failed at '='
+        "Expecting",
+        ";" // "Expecting tokens in {<EOF>, ';'}"
         );
-    }
+  }
 
-    @Test
-    public void missingFromClauseShouldThrowException() {
-        expectValidationFailWithErrorMessage(
-            "SELECT 1",
-            "offending symbol [<EOF>]" // parsing was unable to terminate normally
-        );
-    }
+  @Test
+  public void someKeywordsShouldBeAbleToUseAsIdentifier() {
+    validate("SELECT AVG(balance) AS avg FROM accounts");
+  }
 
-    @Test
-    public void missingWhereKeywordShouldThrowException() {
-        expectValidationFailWithErrorMessage(
-            "SELECT * FROM accounts age = 1",
-            "offending symbol [=]", // parser thought 'age' is alias of 'accounts' and failed at '='
-            "Expecting", ";"        // "Expecting tokens in {<EOF>, ';'}"
-        );
-    }
+  @Test
+  public void specialIndexNameShouldPass() {
+    validate("SELECT * FROM accounts/temp");
+    validate("SELECT * FROM account*");
+    validate("SELECT * FROM opensearch-accounts");
+    validate("SELECT * FROM opensearch-account*");
+  }
 
-    @Test
-    public void someKeywordsShouldBeAbleToUseAsIdentifier() {
-        validate("SELECT AVG(balance) AS avg FROM accounts");
-    }
+  @Test
+  public void typeNamePatternShouldThrowException() {
+    expectValidationFailWithErrorMessage("SELECT * FROM accounts/tem*", "offending symbol [*]");
+  }
 
-    @Test
-    public void specialIndexNameShouldPass() {
-        validate("SELECT * FROM accounts/temp");
-        validate("SELECT * FROM account*");
-        validate("SELECT * FROM opensearch-accounts");
-        validate("SELECT * FROM opensearch-account*");
-    }
+  @Test
+  public void systemIndexNameShouldPass() {
+    validate("SELECT * FROM .opensearch_dashboards");
+  }
 
-    @Test
-    public void typeNamePatternShouldThrowException() {
-        expectValidationFailWithErrorMessage(
-            "SELECT * FROM accounts/tem*",
-            "offending symbol [*]"
-        );
-    }
+  @Test
+  public void useMetadataFieldShouldPass() {
+    validate("SELECT @timestamp FROM accounts");
+  }
 
-    @Test
-    public void systemIndexNameShouldPass() {
-        validate("SELECT * FROM .opensearch_dashboards");
-    }
+  @Test
+  public void leftJoinOnNestedFieldWithoutOnClauseShouldPass() {
+    validate("SELECT * FROM accounts a LEFT JOIN a.projects p");
+  }
 
-    @Test
-    public void useMetadataFieldShouldPass() {
-        validate("SELECT @timestamp FROM accounts");
-    }
+  @Test
+  public void useDeepNestedFieldShouldPass() {
+    validate("SELECT a.projects.name FROM accounts a");
+  }
 
-    @Test
-    public void leftJoinOnNestedFieldWithoutOnClauseShouldPass() {
-        validate("SELECT * FROM accounts a LEFT JOIN a.projects p");
-    }
+  /** As the translation is not supported for now, check this in semantic analyzer */
+  @Test
+  public void arithmeticExpressionInWhereClauseShouldPass() {
+    validate("SELECT * FROM accounts WHERE age + 1 = 10");
+  }
 
-    @Test
-    public void useDeepNestedFieldShouldPass() {
-        validate("SELECT a.projects.name FROM accounts a");
-    }
+  @Test
+  public void queryEndWithSemiColonShouldPass() {
+    validate("SELECT * FROM accounts;");
+  }
 
-    /** As the translation is not supported for now, check this in semantic analyzer */
-    @Test
-    public void arithmeticExpressionInWhereClauseShouldPass() {
-        validate("SELECT * FROM accounts WHERE age + 1 = 10");
-    }
+  private void expectValidationFailWithErrorMessage(String query, String... messages) {
+    exception.expect(SyntaxAnalysisException.class);
+    exception.expectMessage(
+        allOf(Arrays.stream(messages).map(Matchers::containsString).collect(toList())));
+    validate(query);
+  }
 
-    @Test
-    public void queryEndWithSemiColonShouldPass() {
-        validate("SELECT * FROM accounts;");
-    }
-
-    private void expectValidationFailWithErrorMessage(String query, String... messages) {
-        exception.expect(SyntaxAnalysisException.class);
-        exception.expectMessage(allOf(Arrays.stream(messages).
-                                      map(Matchers::containsString).
-                                      collect(toList())));
-        validate(query);
-    }
-
-    private void validate(String sql) {
-        analyzer.analyzeSyntax(sql);
-    }
+  private void validate(String sql) {
+    analyzer.analyzeSyntax(sql);
+  }
 }

@@ -26,30 +26,36 @@ public class TransportGetDataSourceAction
     extends HandledTransportAction<GetDataSourceActionRequest, GetDataSourceActionResponse> {
 
   public static final String NAME = "cluster:admin/opensearch/ql/datasources/read";
-  public static final ActionType<GetDataSourceActionResponse>
-      ACTION_TYPE = new ActionType<>(NAME, GetDataSourceActionResponse::new);
+  public static final ActionType<GetDataSourceActionResponse> ACTION_TYPE =
+      new ActionType<>(NAME, GetDataSourceActionResponse::new);
 
   private DataSourceService dataSourceService;
 
   /**
    * TransportGetDataSourceAction action for getting datasource.
    *
-   * @param transportService  transportService.
-   * @param actionFilters     actionFilters.
+   * @param transportService transportService.
+   * @param actionFilters actionFilters.
    * @param dataSourceService dataSourceService.
    */
   @Inject
-  public TransportGetDataSourceAction(TransportService transportService,
-                                      ActionFilters actionFilters,
-                                      DataSourceServiceImpl dataSourceService) {
-    super(TransportGetDataSourceAction.NAME, transportService, actionFilters,
+  public TransportGetDataSourceAction(
+      TransportService transportService,
+      ActionFilters actionFilters,
+      DataSourceServiceImpl dataSourceService) {
+    super(
+        TransportGetDataSourceAction.NAME,
+        transportService,
+        actionFilters,
         GetDataSourceActionRequest::new);
     this.dataSourceService = dataSourceService;
   }
 
   @Override
-  protected void doExecute(Task task, GetDataSourceActionRequest request,
-                           ActionListener<GetDataSourceActionResponse> actionListener) {
+  protected void doExecute(
+      Task task,
+      GetDataSourceActionRequest request,
+      ActionListener<GetDataSourceActionResponse> actionListener) {
     try {
       String responseContent;
       if (request.getDataSourceName() == null) {
@@ -66,30 +72,27 @@ public class TransportGetDataSourceAction
 
   private String handleGetAllDataSourcesRequest() {
     String responseContent;
-    Set<DataSourceMetadata> dataSourceMetadataSet =
-        dataSourceService.getDataSourceMetadata(false);
-    responseContent = new JsonResponseFormatter<Set<DataSourceMetadata>>(
-        JsonResponseFormatter.Style.PRETTY) {
-      @Override
-      protected Object buildJsonObject(Set<DataSourceMetadata> response) {
-        return response;
-      }
-    }.format(dataSourceMetadataSet);
+    Set<DataSourceMetadata> dataSourceMetadataSet = dataSourceService.getDataSourceMetadata(false);
+    responseContent =
+        new JsonResponseFormatter<Set<DataSourceMetadata>>(JsonResponseFormatter.Style.PRETTY) {
+          @Override
+          protected Object buildJsonObject(Set<DataSourceMetadata> response) {
+            return response;
+          }
+        }.format(dataSourceMetadataSet);
     return responseContent;
   }
 
   private String handleSingleDataSourceRequest(String datasourceName) {
     String responseContent;
-    DataSourceMetadata dataSourceMetadata
-        = dataSourceService
-        .getDataSourceMetadata(datasourceName);
-    responseContent = new JsonResponseFormatter<DataSourceMetadata>(
-        JsonResponseFormatter.Style.PRETTY) {
-      @Override
-      protected Object buildJsonObject(DataSourceMetadata response) {
-        return response;
-      }
-    }.format(dataSourceMetadata);
+    DataSourceMetadata dataSourceMetadata = dataSourceService.getDataSourceMetadata(datasourceName);
+    responseContent =
+        new JsonResponseFormatter<DataSourceMetadata>(JsonResponseFormatter.Style.PRETTY) {
+          @Override
+          protected Object buildJsonObject(DataSourceMetadata response) {
+            return response;
+          }
+        }.format(dataSourceMetadata);
     return responseContent;
   }
 }

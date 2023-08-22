@@ -3,7 +3,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-
 package org.opensearch.sql.ppl;
 
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_BANK;
@@ -14,7 +13,6 @@ import static org.opensearch.sql.util.MatcherUtils.verifyOrder;
 
 import java.io.IOException;
 import org.json.JSONObject;
-import org.junit.Ignore;
 import org.junit.Test;
 
 public class SortCommandIT extends PPLIntegTestCase {

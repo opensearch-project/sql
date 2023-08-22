@@ -12,6 +12,7 @@ public class TestUtils {
 
   /**
    * Get Json document from the files in resources folder.
+   *
    * @param filename filename.
    * @return String.
    * @throws IOException IOException.
@@ -21,5 +22,4 @@ public class TestUtils {
     return new String(
         Objects.requireNonNull(classLoader.getResourceAsStream(filename)).readAllBytes());
   }
-
 }

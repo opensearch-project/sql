@@ -3,14 +3,12 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-
 package org.opensearch.sql.correctness;
 
 import static org.opensearch.sql.util.TestUtils.getResourceFilePath;
 
 import com.carrotsearch.randomizedtesting.annotations.ThreadLeakScope;
 import com.google.common.collect.Maps;
-
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -32,11 +30,12 @@ import org.opensearch.sql.correctness.runner.connection.OpenSearchConnection;
 import org.opensearch.sql.correctness.testset.TestDataSet;
 import org.opensearch.test.OpenSearchIntegTestCase;
 
-/**
- * Correctness integration test by performing comparison test with other databases.
- */
+/** Correctness integration test by performing comparison test with other databases. */
 @OpenSearchIntegTestCase.SuiteScopeTestCase
-@OpenSearchIntegTestCase.ClusterScope(scope = OpenSearchIntegTestCase.Scope.SUITE, numDataNodes = 3, supportsDedicatedMasters = false)
+@OpenSearchIntegTestCase.ClusterScope(
+    scope = OpenSearchIntegTestCase.Scope.SUITE,
+    numDataNodes = 3,
+    supportsDedicatedMasters = false)
 @ThreadLeakScope(ThreadLeakScope.Scope.NONE)
 public class CorrectnessIT extends OpenSearchIntegTestCase {
 
@@ -47,8 +46,8 @@ public class CorrectnessIT extends OpenSearchIntegTestCase {
     TestConfig config = new TestConfig(getCmdLineArgs());
     LOG.info("Starting comparison test {}", config);
 
-    try (ComparisonTest test = new ComparisonTest(getThisDBConnection(config),
-        getOtherDBConnections(config))) {
+    try (ComparisonTest test =
+        new ComparisonTest(getThisDBConnection(config), getOtherDBConnections(config))) {
       LOG.info("Loading test data set...");
       test.connect();
       for (TestDataSet dataSet : config.getTestDataSets()) {
@@ -81,9 +80,7 @@ public class CorrectnessIT extends OpenSearchIntegTestCase {
     return new JDBCConnection("DB Tested", dbUrl);
   }
 
-  /**
-   * Use OpenSearch cluster given on CLI arg or internal embedded in SQLIntegTestCase
-   */
+  /** Use OpenSearch cluster given on CLI arg or internal embedded in SQLIntegTestCase */
   private DBConnection getOpenSearchConnection(TestConfig config) {
     RestClient client;
     String openSearchHost = config.getOpenSearchHostUrl();
@@ -96,14 +93,11 @@ public class CorrectnessIT extends OpenSearchIntegTestCase {
     return new OpenSearchConnection("jdbc:opensearch://" + openSearchHost, client);
   }
 
-  /**
-   * Create database connection with database name and connect URL
-   */
+  /** Create database connection with database name and connect URL */
   private DBConnection[] getOtherDBConnections(TestConfig config) {
-    return config.getOtherDbConnectionNameAndUrls().
-        entrySet().stream().
-        map(e -> new JDBCConnection(e.getKey(), e.getValue())).
-        toArray(DBConnection[]::new);
+    return config.getOtherDbConnectionNameAndUrls().entrySet().stream()
+        .map(e -> new JDBCConnection(e.getKey(), e.getValue()))
+        .toArray(DBConnection[]::new);
   }
 
   private void store(TestReport report) {

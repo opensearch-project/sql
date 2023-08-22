@@ -16,7 +16,6 @@ import static org.opensearch.sql.prometheus.constants.TestConstants.ENDTIME;
 import static org.opensearch.sql.prometheus.constants.TestConstants.QUERY;
 import static org.opensearch.sql.prometheus.constants.TestConstants.STARTTIME;
 import static org.opensearch.sql.prometheus.constants.TestConstants.STEP;
-import static org.opensearch.sql.prometheus.data.constants.PrometheusFieldConstants.LABELS;
 import static org.opensearch.sql.prometheus.data.constants.PrometheusFieldConstants.TIMESTAMP;
 import static org.opensearch.sql.prometheus.data.constants.PrometheusFieldConstants.VALUE;
 import static org.opensearch.sql.prometheus.utils.TestUtils.getJson;
@@ -45,8 +44,7 @@ import org.opensearch.sql.prometheus.storage.model.PrometheusResponseFieldNames;
 @ExtendWith(MockitoExtension.class)
 public class PrometheusMetricScanTest {
 
-  @Mock
-  private PrometheusClient prometheusClient;
+  @Mock private PrometheusClient prometheusClient;
 
   @Test
   @SneakyThrows
@@ -61,24 +59,30 @@ public class PrometheusMetricScanTest {
         .thenReturn(new JSONObject(getJson("query_range_result.json")));
     prometheusMetricScan.open();
     Assertions.assertTrue(prometheusMetricScan.hasNext());
-    ExprTupleValue firstRow = new ExprTupleValue(new LinkedHashMap<>() {{
-        put(TIMESTAMP, new ExprTimestampValue(Instant.ofEpochMilli(1435781430781L)));
-        put(VALUE, new ExprDoubleValue(1));
-        put("instance", new ExprStringValue("localhost:9090"));
-        put("__name__", new ExprStringValue("up"));
-        put("job", new ExprStringValue("prometheus"));
-      }
-    });
+    ExprTupleValue firstRow =
+        new ExprTupleValue(
+            new LinkedHashMap<>() {
+              {
+                put(TIMESTAMP, new ExprTimestampValue(Instant.ofEpochMilli(1435781430781L)));
+                put(VALUE, new ExprDoubleValue(1));
+                put("instance", new ExprStringValue("localhost:9090"));
+                put("__name__", new ExprStringValue("up"));
+                put("job", new ExprStringValue("prometheus"));
+              }
+            });
     assertEquals(firstRow, prometheusMetricScan.next());
     Assertions.assertTrue(prometheusMetricScan.hasNext());
-    ExprTupleValue secondRow = new ExprTupleValue(new LinkedHashMap<>() {{
-        put("@timestamp", new ExprTimestampValue(Instant.ofEpochMilli(1435781430781L)));
-        put("@value", new ExprDoubleValue(0));
-        put("instance", new ExprStringValue("localhost:9091"));
-        put("__name__", new ExprStringValue("up"));
-        put("job", new ExprStringValue("node"));
-      }
-    });
+    ExprTupleValue secondRow =
+        new ExprTupleValue(
+            new LinkedHashMap<>() {
+              {
+                put("@timestamp", new ExprTimestampValue(Instant.ofEpochMilli(1435781430781L)));
+                put("@value", new ExprDoubleValue(0));
+                put("instance", new ExprStringValue("localhost:9091"));
+                put("__name__", new ExprStringValue("up"));
+                put("job", new ExprStringValue("node"));
+              }
+            });
     assertEquals(secondRow, prometheusMetricScan.next());
     Assertions.assertFalse(prometheusMetricScan.hasNext());
   }
@@ -86,8 +90,7 @@ public class PrometheusMetricScanTest {
   @Test
   @SneakyThrows
   void testQueryResponseIteratorWithGivenPrometheusResponseFieldNames() {
-    PrometheusResponseFieldNames prometheusResponseFieldNames
-        = new PrometheusResponseFieldNames();
+    PrometheusResponseFieldNames prometheusResponseFieldNames = new PrometheusResponseFieldNames();
     prometheusResponseFieldNames.setValueFieldName("count()");
     prometheusResponseFieldNames.setValueType(INTEGER);
     prometheusResponseFieldNames.setTimestampFieldName(TIMESTAMP);
@@ -102,34 +105,38 @@ public class PrometheusMetricScanTest {
         .thenReturn(new JSONObject(getJson("query_range_result.json")));
     prometheusMetricScan.open();
     Assertions.assertTrue(prometheusMetricScan.hasNext());
-    ExprTupleValue firstRow = new ExprTupleValue(new LinkedHashMap<>() {{
-        put(TIMESTAMP, new ExprTimestampValue(Instant.ofEpochMilli(1435781430781L)));
-        put("count()", new ExprIntegerValue(1));
-        put("instance", new ExprStringValue("localhost:9090"));
-        put("__name__", new ExprStringValue("up"));
-        put("job", new ExprStringValue("prometheus"));
-      }
-    });
+    ExprTupleValue firstRow =
+        new ExprTupleValue(
+            new LinkedHashMap<>() {
+              {
+                put(TIMESTAMP, new ExprTimestampValue(Instant.ofEpochMilli(1435781430781L)));
+                put("count()", new ExprIntegerValue(1));
+                put("instance", new ExprStringValue("localhost:9090"));
+                put("__name__", new ExprStringValue("up"));
+                put("job", new ExprStringValue("prometheus"));
+              }
+            });
     assertEquals(firstRow, prometheusMetricScan.next());
     Assertions.assertTrue(prometheusMetricScan.hasNext());
-    ExprTupleValue secondRow = new ExprTupleValue(new LinkedHashMap<>() {{
-        put(TIMESTAMP, new ExprTimestampValue(Instant.ofEpochMilli(1435781430781L)));
-        put("count()", new ExprIntegerValue(0));
-        put("instance", new ExprStringValue("localhost:9091"));
-        put("__name__", new ExprStringValue("up"));
-        put("job", new ExprStringValue("node"));
-      }
-    });
+    ExprTupleValue secondRow =
+        new ExprTupleValue(
+            new LinkedHashMap<>() {
+              {
+                put(TIMESTAMP, new ExprTimestampValue(Instant.ofEpochMilli(1435781430781L)));
+                put("count()", new ExprIntegerValue(0));
+                put("instance", new ExprStringValue("localhost:9091"));
+                put("__name__", new ExprStringValue("up"));
+                put("job", new ExprStringValue("node"));
+              }
+            });
     assertEquals(secondRow, prometheusMetricScan.next());
     Assertions.assertFalse(prometheusMetricScan.hasNext());
   }
 
-
   @Test
   @SneakyThrows
   void testQueryResponseIteratorWithGivenPrometheusResponseWithLongInAggType() {
-    PrometheusResponseFieldNames prometheusResponseFieldNames
-        = new PrometheusResponseFieldNames();
+    PrometheusResponseFieldNames prometheusResponseFieldNames = new PrometheusResponseFieldNames();
     prometheusResponseFieldNames.setValueFieldName("testAgg");
     prometheusResponseFieldNames.setValueType(LONG);
     prometheusResponseFieldNames.setTimestampFieldName(TIMESTAMP);
@@ -144,24 +151,30 @@ public class PrometheusMetricScanTest {
         .thenReturn(new JSONObject(getJson("query_range_result.json")));
     prometheusMetricScan.open();
     Assertions.assertTrue(prometheusMetricScan.hasNext());
-    ExprTupleValue firstRow = new ExprTupleValue(new LinkedHashMap<>() {{
-        put(TIMESTAMP, new ExprTimestampValue(Instant.ofEpochMilli(1435781430781L)));
-        put("testAgg", new ExprLongValue(1));
-        put("instance", new ExprStringValue("localhost:9090"));
-        put("__name__", new ExprStringValue("up"));
-        put("job", new ExprStringValue("prometheus"));
-      }
-    });
+    ExprTupleValue firstRow =
+        new ExprTupleValue(
+            new LinkedHashMap<>() {
+              {
+                put(TIMESTAMP, new ExprTimestampValue(Instant.ofEpochMilli(1435781430781L)));
+                put("testAgg", new ExprLongValue(1));
+                put("instance", new ExprStringValue("localhost:9090"));
+                put("__name__", new ExprStringValue("up"));
+                put("job", new ExprStringValue("prometheus"));
+              }
+            });
     assertEquals(firstRow, prometheusMetricScan.next());
     Assertions.assertTrue(prometheusMetricScan.hasNext());
-    ExprTupleValue secondRow = new ExprTupleValue(new LinkedHashMap<>() {{
-        put(TIMESTAMP, new ExprTimestampValue(Instant.ofEpochMilli(1435781430781L)));
-        put("testAgg", new ExprLongValue(0));
-        put("instance", new ExprStringValue("localhost:9091"));
-        put("__name__", new ExprStringValue("up"));
-        put("job", new ExprStringValue("node"));
-      }
-    });
+    ExprTupleValue secondRow =
+        new ExprTupleValue(
+            new LinkedHashMap<>() {
+              {
+                put(TIMESTAMP, new ExprTimestampValue(Instant.ofEpochMilli(1435781430781L)));
+                put("testAgg", new ExprLongValue(0));
+                put("instance", new ExprStringValue("localhost:9091"));
+                put("__name__", new ExprStringValue("up"));
+                put("job", new ExprStringValue("node"));
+              }
+            });
     assertEquals(secondRow, prometheusMetricScan.next());
     Assertions.assertFalse(prometheusMetricScan.hasNext());
   }
@@ -169,8 +182,7 @@ public class PrometheusMetricScanTest {
   @Test
   @SneakyThrows
   void testQueryResponseIteratorWithGivenPrometheusResponseWithBackQuotedFieldNames() {
-    PrometheusResponseFieldNames prometheusResponseFieldNames
-        = new PrometheusResponseFieldNames();
+    PrometheusResponseFieldNames prometheusResponseFieldNames = new PrometheusResponseFieldNames();
     prometheusResponseFieldNames.setValueFieldName("testAgg");
     prometheusResponseFieldNames.setValueType(LONG);
     prometheusResponseFieldNames.setTimestampFieldName(TIMESTAMP);
@@ -187,28 +199,33 @@ public class PrometheusMetricScanTest {
         .thenReturn(new JSONObject(getJson("query_range_result.json")));
     prometheusMetricScan.open();
     Assertions.assertTrue(prometheusMetricScan.hasNext());
-    ExprTupleValue firstRow = new ExprTupleValue(new LinkedHashMap<>() {{
-        put(TIMESTAMP, new ExprTimestampValue(Instant.ofEpochMilli(1435781430781L)));
-        put("testAgg", new ExprLongValue(1));
-        put("`instance`", new ExprStringValue("localhost:9090"));
-        put("__name__", new ExprStringValue("up"));
-        put("job", new ExprStringValue("prometheus"));
-      }
-    });
+    ExprTupleValue firstRow =
+        new ExprTupleValue(
+            new LinkedHashMap<>() {
+              {
+                put(TIMESTAMP, new ExprTimestampValue(Instant.ofEpochMilli(1435781430781L)));
+                put("testAgg", new ExprLongValue(1));
+                put("`instance`", new ExprStringValue("localhost:9090"));
+                put("__name__", new ExprStringValue("up"));
+                put("job", new ExprStringValue("prometheus"));
+              }
+            });
     assertEquals(firstRow, prometheusMetricScan.next());
     Assertions.assertTrue(prometheusMetricScan.hasNext());
-    ExprTupleValue secondRow = new ExprTupleValue(new LinkedHashMap<>() {{
-        put(TIMESTAMP, new ExprTimestampValue(Instant.ofEpochMilli(1435781430781L)));
-        put("testAgg", new ExprLongValue(0));
-        put("`instance`", new ExprStringValue("localhost:9091"));
-        put("__name__", new ExprStringValue("up"));
-        put("job", new ExprStringValue("node"));
-      }
-    });
+    ExprTupleValue secondRow =
+        new ExprTupleValue(
+            new LinkedHashMap<>() {
+              {
+                put(TIMESTAMP, new ExprTimestampValue(Instant.ofEpochMilli(1435781430781L)));
+                put("testAgg", new ExprLongValue(0));
+                put("`instance`", new ExprStringValue("localhost:9091"));
+                put("__name__", new ExprStringValue("up"));
+                put("job", new ExprStringValue("node"));
+              }
+            });
     assertEquals(secondRow, prometheusMetricScan.next());
     Assertions.assertFalse(prometheusMetricScan.hasNext());
   }
-
 
   @Test
   @SneakyThrows
@@ -236,11 +253,12 @@ public class PrometheusMetricScanTest {
 
     when(prometheusClient.queryRange(any(), any(), any(), any()))
         .thenReturn(new JSONObject(getJson("no_matrix_query_range_result.json")));
-    RuntimeException runtimeException
-        = Assertions.assertThrows(RuntimeException.class, prometheusMetricScan::open);
+    RuntimeException runtimeException =
+        Assertions.assertThrows(RuntimeException.class, prometheusMetricScan::open);
     assertEquals(
         "Unexpected Result Type: vector during Prometheus Response Parsing. "
-            + "'matrix' resultType is expected", runtimeException.getMessage());
+            + "'matrix' resultType is expected",
+        runtimeException.getMessage());
   }
 
   @Test
@@ -254,12 +272,11 @@ public class PrometheusMetricScanTest {
 
     when(prometheusClient.queryRange(any(), any(), any(), any()))
         .thenThrow(new IOException("Error Message"));
-    RuntimeException runtimeException
-        = assertThrows(RuntimeException.class, prometheusMetricScan::open);
-    assertEquals("Error fetching data from prometheus server. Error Message",
-        runtimeException.getMessage());
+    RuntimeException runtimeException =
+        assertThrows(RuntimeException.class, prometheusMetricScan::open);
+    assertEquals(
+        "Error fetching data from prometheus server. Error Message", runtimeException.getMessage());
   }
-
 
   @Test
   @SneakyThrows
@@ -274,5 +291,4 @@ public class PrometheusMetricScanTest {
             + "endTime=1664771294133, step=14)",
         prometheusMetricScan.explain());
   }
-
 }

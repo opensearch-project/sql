@@ -3,7 +3,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-
 package org.opensearch.sql.sql.parser;
 
 import static java.util.Collections.emptyList;
@@ -43,22 +42,18 @@ import org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParser.QuerySpecificatio
 import org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParserBaseVisitor;
 import org.opensearch.sql.sql.parser.context.ParsingContext;
 
-/**
- * Abstract syntax tree (AST) builder.
- */
+/** Abstract syntax tree (AST) builder. */
 @RequiredArgsConstructor
 public class AstBuilder extends OpenSearchSQLParserBaseVisitor<UnresolvedPlan> {
 
   private final AstExpressionBuilder expressionBuilder = new AstExpressionBuilder();
 
-  /**
-   * Parsing context stack that contains context for current query parsing.
-   */
+  /** Parsing context stack that contains context for current query parsing. */
   private final ParsingContext context = new ParsingContext();
 
   /**
-   * SQL query to get original token text. This is necessary because token.getText() returns
-   * text without whitespaces or other characters discarded by lexer.
+   * SQL query to get original token text. This is necessary because token.getText() returns text
+   * without whitespaces or other characters discarded by lexer.
    */
   private final String query;
 
@@ -91,8 +86,7 @@ public class AstBuilder extends OpenSearchSQLParserBaseVisitor<UnresolvedPlan> {
 
     if (queryContext.fromClause() == null) {
       Optional<UnresolvedExpression> allFields =
-          project.getProjectList().stream().filter(node -> node instanceof AllFields)
-              .findFirst();
+          project.getProjectList().stream().filter(node -> node instanceof AllFields).findFirst();
       if (allFields.isPresent()) {
         throw new SyntaxCheckException("No FROM clause found for select all");
       }
@@ -119,9 +113,8 @@ public class AstBuilder extends OpenSearchSQLParserBaseVisitor<UnresolvedPlan> {
 
   @Override
   public UnresolvedPlan visitSelectClause(SelectClauseContext ctx) {
-    ImmutableList.Builder<UnresolvedExpression> builder =
-        new ImmutableList.Builder<>();
-    if (ctx.selectElements().star != null) { //TODO: project operator should be required?
+    ImmutableList.Builder<UnresolvedExpression> builder = new ImmutableList.Builder<>();
+    if (ctx.selectElements().star != null) { // TODO: project operator should be required?
       builder.add(AllFields.of());
     }
     ctx.selectElements().selectElement().forEach(field -> builder.add(visitSelectItem(field)));
@@ -132,8 +125,7 @@ public class AstBuilder extends OpenSearchSQLParserBaseVisitor<UnresolvedPlan> {
   public UnresolvedPlan visitLimitClause(OpenSearchSQLParser.LimitClauseContext ctx) {
     return new Limit(
         Integer.parseInt(ctx.limit.getText()),
-        ctx.offset == null ? 0 : Integer.parseInt(ctx.offset.getText())
-    );
+        ctx.offset == null ? 0 : Integer.parseInt(ctx.offset.getText()));
   }
 
   @Override
@@ -165,29 +157,26 @@ public class AstBuilder extends OpenSearchSQLParserBaseVisitor<UnresolvedPlan> {
   }
 
   /**
-   * Ensure NESTED function is not used in HAVING clause and fallback to legacy engine.
-   * Can remove when support is added for NESTED function in HAVING clause.
+   * Ensure NESTED function is not used in HAVING clause and fallback to legacy engine. Can remove
+   * when support is added for NESTED function in HAVING clause.
+   *
    * @param func : Function in HAVING clause
    */
   private void verifySupportsCondition(UnresolvedExpression func) {
     if (func instanceof Function) {
-      if (((Function) func).getFuncName().equalsIgnoreCase(
-          BuiltinFunctionName.NESTED.name()
-      )) {
+      if (((Function) func).getFuncName().equalsIgnoreCase(BuiltinFunctionName.NESTED.name())) {
         throw new SyntaxCheckException(
-            "Falling back to legacy engine. Nested function is not supported in the HAVING clause."
-        );
+            "Falling back to legacy engine. Nested function is not supported in the HAVING"
+                + " clause.");
       }
-      ((Function)func).getFuncArgs().stream()
-          .forEach(e -> verifySupportsCondition(e)
-      );
+      ((Function) func).getFuncArgs().stream().forEach(e -> verifySupportsCondition(e));
     }
   }
 
   @Override
   public UnresolvedPlan visitTableAsRelation(TableAsRelationContext ctx) {
-    String tableAlias = (ctx.alias() == null) ? null
-        : StringUtils.unquoteIdentifier(ctx.alias().getText());
+    String tableAlias =
+        (ctx.alias() == null) ? null : StringUtils.unquoteIdentifier(ctx.alias().getText());
     return new Relation(visitAstExpression(ctx.tableName()), tableAlias);
   }
 
@@ -228,5 +217,4 @@ public class AstBuilder extends OpenSearchSQLParserBaseVisitor<UnresolvedPlan> {
       return new Alias(name, expr, alias);
     }
   }
-
 }

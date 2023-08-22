@@ -29,9 +29,7 @@ import org.opensearch.sql.data.type.ExprCoreType;
 import org.opensearch.sql.data.type.ExprType;
 import org.opensearch.sql.executor.ExecutionEngine;
 
-/**
- * Default implementation of SparkSqlFunctionResponseHandle.
- */
+/** Default implementation of SparkSqlFunctionResponseHandle. */
 public class DefaultSparkSqlFunctionResponseHandle implements SparkSqlFunctionResponseHandle {
   private Iterator<ExprValue> responseIterator;
   private ExecutionEngine.Schema schema;
@@ -54,8 +52,8 @@ public class DefaultSparkSqlFunctionResponseHandle implements SparkSqlFunctionRe
     logger.info("Spark Application ID: " + items.getString("applicationId"));
     columnList = getColumnList(items.getJSONArray("schema"));
     for (int i = 0; i < items.getJSONArray("result").length(); i++) {
-      JSONObject row = new JSONObject(
-          items.getJSONArray("result").get(i).toString().replace("'", "\""));
+      JSONObject row =
+          new JSONObject(items.getJSONArray("result").get(i).toString().replace("'", "\""));
       LinkedHashMap<String, ExprValue> linkedHashMap = extractRow(row, columnList);
       result.add(new ExprTupleValue(linkedHashMap));
     }
@@ -85,8 +83,8 @@ public class DefaultSparkSqlFunctionResponseHandle implements SparkSqlFunctionRe
       } else if (type == ExprCoreType.DATE) {
         linkedHashMap.put(column.getName(), new ExprDateValue(row.getString(column.getName())));
       } else if (type == ExprCoreType.TIMESTAMP) {
-        linkedHashMap.put(column.getName(),
-            new ExprTimestampValue(row.getString(column.getName())));
+        linkedHashMap.put(
+            column.getName(), new ExprTimestampValue(row.getString(column.getName())));
       } else if (type == ExprCoreType.STRING) {
         linkedHashMap.put(column.getName(), new ExprStringValue(row.getString(column.getName())));
       } else {
@@ -101,10 +99,11 @@ public class DefaultSparkSqlFunctionResponseHandle implements SparkSqlFunctionRe
     List<ExecutionEngine.Schema.Column> columnList = new ArrayList<>();
     for (int i = 0; i < schema.length(); i++) {
       JSONObject column = new JSONObject(schema.get(i).toString().replace("'", "\""));
-      columnList.add(new ExecutionEngine.Schema.Column(
-          column.get("column_name").toString(),
-          column.get("column_name").toString(),
-          getDataType(column.get("data_type").toString())));
+      columnList.add(
+          new ExecutionEngine.Schema.Column(
+              column.get("column_name").toString(),
+              column.get("column_name").toString(),
+              getDataType(column.get("data_type").toString())));
     }
     return columnList;
   }

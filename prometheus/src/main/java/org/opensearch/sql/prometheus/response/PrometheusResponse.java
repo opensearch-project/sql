@@ -7,7 +7,6 @@ package org.opensearch.sql.prometheus.response;
 
 import static org.opensearch.sql.data.type.ExprCoreType.INTEGER;
 import static org.opensearch.sql.data.type.ExprCoreType.LONG;
-import static org.opensearch.sql.prometheus.data.constants.PrometheusFieldConstants.LABELS;
 import static org.opensearch.sql.prometheus.data.constants.PrometheusFieldConstants.MATRIX_KEY;
 import static org.opensearch.sql.prometheus.data.constants.PrometheusFieldConstants.METRIC_KEY;
 import static org.opensearch.sql.prometheus.data.constants.PrometheusFieldConstants.RESULT_KEY;
@@ -43,13 +42,12 @@ public class PrometheusResponse implements Iterable<ExprValue> {
   /**
    * Constructor.
    *
-   * @param responseObject               Prometheus responseObject.
-   * @param prometheusResponseFieldNames data model which
-   *                                     contains field names for the metric measurement
-   *                                     and timestamp fieldName.
+   * @param responseObject Prometheus responseObject.
+   * @param prometheusResponseFieldNames data model which contains field names for the metric
+   *     measurement and timestamp fieldName.
    */
-  public PrometheusResponse(JSONObject responseObject,
-                            PrometheusResponseFieldNames prometheusResponseFieldNames) {
+  public PrometheusResponse(
+      JSONObject responseObject, PrometheusResponseFieldNames prometheusResponseFieldNames) {
     this.responseObject = responseObject;
     this.prometheusResponseFieldNames = prometheusResponseFieldNames;
   }
@@ -67,18 +65,22 @@ public class PrometheusResponse implements Iterable<ExprValue> {
         for (int j = 0; j < values.length(); j++) {
           LinkedHashMap<String, ExprValue> linkedHashMap = new LinkedHashMap<>();
           JSONArray val = values.getJSONArray(j);
-          linkedHashMap.put(prometheusResponseFieldNames.getTimestampFieldName(),
+          linkedHashMap.put(
+              prometheusResponseFieldNames.getTimestampFieldName(),
               new ExprTimestampValue(Instant.ofEpochMilli((long) (val.getDouble(0) * 1000))));
-          linkedHashMap.put(prometheusResponseFieldNames.getValueFieldName(), getValue(val, 1,
-              prometheusResponseFieldNames.getValueType()));
+          linkedHashMap.put(
+              prometheusResponseFieldNames.getValueFieldName(),
+              getValue(val, 1, prometheusResponseFieldNames.getValueType()));
           insertLabels(linkedHashMap, metric);
           result.add(new ExprTupleValue(linkedHashMap));
         }
       }
     } else {
-      throw new RuntimeException(String.format("Unexpected Result Type: %s during Prometheus "
-              + "Response Parsing. 'matrix' resultType is expected",
-          responseObject.getString(RESULT_TYPE_KEY)));
+      throw new RuntimeException(
+          String.format(
+              "Unexpected Result Type: %s during Prometheus "
+                  + "Response Parsing. 'matrix' resultType is expected",
+              responseObject.getString(RESULT_TYPE_KEY)));
     }
     return result.iterator();
   }
@@ -104,12 +106,11 @@ public class PrometheusResponse implements Iterable<ExprValue> {
     } else {
       return this.prometheusResponseFieldNames.getGroupByList().stream()
           .filter(expression -> expression.getDelegated() instanceof ReferenceExpression)
-          .filter(expression
-              -> ((ReferenceExpression) expression.getDelegated()).getAttr().equals(key))
+          .filter(
+              expression -> ((ReferenceExpression) expression.getDelegated()).getAttr().equals(key))
           .findFirst()
           .map(NamedExpression::getName)
           .orElse(key);
     }
   }
-
 }

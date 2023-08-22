@@ -3,7 +3,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-
 package org.opensearch.sql.correctness.report;
 
 import java.util.ArrayList;
@@ -12,9 +11,7 @@ import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.ToString;
 
-/**
- * Test report class to generate JSON report.
- */
+/** Test report class to generate JSON report. */
 @EqualsAndHashCode
 @ToString
 @Getter
@@ -37,5 +34,4 @@ public class TestReport {
       summary.addFailure();
     }
   }
-
 }

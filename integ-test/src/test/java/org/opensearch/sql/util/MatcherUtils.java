@@ -3,9 +3,9 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-
 package org.opensearch.sql.util;
 
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.allOf;
 import static org.hamcrest.Matchers.arrayContaining;
 import static org.hamcrest.Matchers.arrayContainingInAnyOrder;
@@ -17,7 +17,6 @@ import static org.hamcrest.Matchers.greaterThan;
 import static org.hamcrest.Matchers.hasEntry;
 import static org.hamcrest.Matchers.hasItems;
 import static org.junit.Assert.assertEquals;
-import static org.hamcrest.MatcherAssert.assertThat;
 
 import com.google.common.base.Strings;
 import com.google.gson.JsonParser;
@@ -45,16 +44,15 @@ public class MatcherUtils {
   /**
    * Assert field value in object by a custom matcher and getter to access the field.
    *
-   * @param name       description
+   * @param name description
    * @param subMatcher sub-matcher for field
-   * @param getter     getter function to access the field
-   * @param <T>        type of outer object
-   * @param <U>        type of inner field
+   * @param getter getter function to access the field
+   * @param <T> type of outer object
+   * @param <U> type of inner field
    * @return matcher
    */
-  public static <T, U> FeatureMatcher<T, U> featureValueOf(String name,
-                                                           Matcher<U> subMatcher,
-                                                           Function<T, U> getter) {
+  public static <T, U> FeatureMatcher<T, U> featureValueOf(
+      String name, Matcher<U> subMatcher, Function<T, U> getter) {
     return new FeatureMatcher<T, U>(subMatcher, name, name) {
       @Override
       protected U featureValueOf(T actual) {
@@ -68,8 +66,8 @@ public class MatcherUtils {
     if (hitMatchers.length == 0) {
       return featureValueOf("SearchHits", emptyArray(), SearchHits::getHits);
     }
-    return featureValueOf("SearchHits", arrayContainingInAnyOrder(hitMatchers),
-        SearchHits::getHits);
+    return featureValueOf(
+        "SearchHits", arrayContainingInAnyOrder(hitMatchers), SearchHits::getHits);
   }
 
   @SafeVarargs
@@ -92,14 +90,17 @@ public class MatcherUtils {
   }
 
   public static Matcher<JSONObject> hitAny(String query, Matcher<JSONObject>... matcher) {
-    return featureValueOf("SearchHits", hasItems(matcher), actual -> {
-      JSONArray array = (JSONArray) (actual.query(query));
-      List<JSONObject> results = new ArrayList<>(array.length());
-      for (Object element : array) {
-        results.add((JSONObject) element);
-      }
-      return results;
-    });
+    return featureValueOf(
+        "SearchHits",
+        hasItems(matcher),
+        actual -> {
+          JSONArray array = (JSONArray) (actual.query(query));
+          List<JSONObject> results = new ArrayList<>(array.length());
+          for (Object element : array) {
+            results.add((JSONObject) element);
+          }
+          return results;
+        });
   }
 
   public static Matcher<JSONObject> hitAny(Matcher<JSONObject>... matcher) {
@@ -107,14 +108,17 @@ public class MatcherUtils {
   }
 
   public static Matcher<JSONObject> hitAll(Matcher<JSONObject>... matcher) {
-    return featureValueOf("SearchHits", containsInAnyOrder(matcher), actual -> {
-      JSONArray array = (JSONArray) (actual.query("/hits/hits"));
-      List<JSONObject> results = new ArrayList<>(array.length());
-      for (Object element : array) {
-        results.add((JSONObject) element);
-      }
-      return results;
-    });
+    return featureValueOf(
+        "SearchHits",
+        containsInAnyOrder(matcher),
+        actual -> {
+          JSONArray array = (JSONArray) (actual.query("/hits/hits"));
+          List<JSONObject> results = new ArrayList<>(array.length());
+          for (Object element : array) {
+            results.add((JSONObject) element);
+          }
+          return results;
+        });
   }
 
   public static Matcher<JSONObject> kvString(String key, Matcher<String> matcher) {
@@ -122,7 +126,8 @@ public class MatcherUtils {
   }
 
   public static Matcher<JSONObject> kvDouble(String key, Matcher<Double> matcher) {
-    return featureValueOf("Json Match", matcher, actual -> ((BigDecimal) actual.query(key)).doubleValue());
+    return featureValueOf(
+        "Json Match", matcher, actual -> ((BigDecimal) actual.query(key)).doubleValue());
   }
 
   public static Matcher<JSONObject> kvInt(String key, Matcher<Integer> matcher) {
@@ -196,19 +201,18 @@ public class MatcherUtils {
     assertThat(objects, containsInRelativeOrder(matchers));
   }
 
-  public static TypeSafeMatcher<JSONObject> schema(String expectedName,
-                                                   String expectedType) {
+  public static TypeSafeMatcher<JSONObject> schema(String expectedName, String expectedType) {
     return schema(expectedName, null, expectedType);
   }
 
-  public static TypeSafeMatcher<JSONObject> schema(String expectedName, String expectedAlias,
-                                                   String expectedType) {
+  public static TypeSafeMatcher<JSONObject> schema(
+      String expectedName, String expectedAlias, String expectedType) {
     return new TypeSafeMatcher<JSONObject>() {
       @Override
       public void describeTo(Description description) {
         description.appendText(
-            String
-                .format("(name=%s, alias=%s, type=%s)", expectedName, expectedAlias, expectedType));
+            String.format(
+                "(name=%s, alias=%s, type=%s)", expectedName, expectedAlias, expectedType));
       }
 
       @Override
@@ -216,9 +220,9 @@ public class MatcherUtils {
         String actualName = (String) jsonObject.query("/name");
         String actualAlias = (String) jsonObject.query("/alias");
         String actualType = (String) jsonObject.query("/type");
-        return expectedName.equals(actualName) &&
-            (Strings.isNullOrEmpty(expectedAlias) || expectedAlias.equals(actualAlias)) &&
-            expectedType.equals(actualType);
+        return expectedName.equals(actualName)
+            && (Strings.isNullOrEmpty(expectedAlias) || expectedAlias.equals(actualAlias))
+            && expectedType.equals(actualType);
       }
     };
   }
@@ -288,10 +292,7 @@ public class MatcherUtils {
     };
   }
 
-
-  /**
-   * Tests if a string is equal to another string, ignore the case and whitespace.
-   */
+  /** Tests if a string is equal to another string, ignore the case and whitespace. */
   public static class IsEqualIgnoreCaseAndWhiteSpace extends TypeSafeMatcher<String> {
     private final String string;
 
@@ -314,7 +315,8 @@ public class MatcherUtils {
 
     @Override
     public void describeTo(Description description) {
-      description.appendText("a string equal to ")
+      description
+          .appendText("a string equal to ")
           .appendValue(string)
           .appendText(" ignore case and white space");
     }
@@ -334,13 +336,11 @@ public class MatcherUtils {
 
   /**
    * Compare two JSON string are equals.
+   *
    * @param expected expected JSON string.
    * @param actual actual JSON string.
    */
   public static void assertJsonEquals(String expected, String actual) {
-    assertEquals(
-        JsonParser.parseString(expected),
-        JsonParser.parseString(actual)
-    );
+    assertEquals(JsonParser.parseString(expected), JsonParser.parseString(actual));
   }
 }

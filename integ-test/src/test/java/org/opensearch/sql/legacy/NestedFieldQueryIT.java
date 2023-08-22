@@ -3,7 +3,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-
 package org.opensearch.sql.legacy;
 
 import static org.hamcrest.Matchers.allOf;
@@ -34,34 +33,27 @@ import org.opensearch.action.search.SearchResponse;
 import org.opensearch.client.ResponseException;
 import org.opensearch.common.xcontent.LoggingDeprecationHandler;
 import org.opensearch.common.xcontent.json.JsonXContentParser;
+import org.opensearch.core.rest.RestStatus;
 import org.opensearch.core.xcontent.NamedXContentRegistry;
 import org.opensearch.core.xcontent.XContentParser;
-import org.opensearch.core.rest.RestStatus;
 import org.opensearch.search.SearchHit;
 
 /**
  * Integration test cases for both rewriting and projection logic.
- * <p>
- * Test result:
- * 1) SELECT * or any field or aggregate function on any field
- * 2) WHERE single or multiple conditions on nested type
- * 3) GROUP BY regular field and aggregate on any field
- * 4) GROUP BY nested field and COUNT(*)
- * 5) UNION/MINUS but only SELECT nested field
- * <p>
- * Does NOT support:
- * 1) GROUP BY nested field and aggregate other than COUNT
- * 2) UNION/MINUS and SELECT nested field (need to flatten during set computation)
- * 3) JOIN (doesn't work if put alias before nested field name and may have similar problem as UNION/MINUS during computation)
- * 4) Subquery
- * 5) HAVING
- * 6) Verification for conditions mixed with regular and nested fields
+ *
+ * <p>Test result: 1) SELECT * or any field or aggregate function on any field 2) WHERE single or
+ * multiple conditions on nested type 3) GROUP BY regular field and aggregate on any field 4) GROUP
+ * BY nested field and COUNT(*) 5) UNION/MINUS but only SELECT nested field
+ *
+ * <p>Does NOT support: 1) GROUP BY nested field and aggregate other than COUNT 2) UNION/MINUS and
+ * SELECT nested field (need to flatten during set computation) 3) JOIN (doesn't work if put alias
+ * before nested field name and may have similar problem as UNION/MINUS during computation) 4)
+ * Subquery 5) HAVING 6) Verification for conditions mixed with regular and nested fields
  */
 public class NestedFieldQueryIT extends SQLIntegTestCase {
 
   private static final String FROM =
       "FROM " + TestsConstants.TEST_INDEX_NESTED_TYPE + " n, n.message m";
-
 
   @Override
   protected void init() throws Exception {
@@ -83,188 +75,71 @@ public class NestedFieldQueryIT extends SQLIntegTestCase {
     assertThat(
         query(sql),
         hits(
-            hit(
-                myNum(1),
-                someField("b"),
-                innerHits("message",
-                    hit(
-                        author("e"),
-                        info("a")
-                    )
-                )
-            ),
-            hit(
-                myNum(2),
-                someField("a"),
-                innerHits("message",
-                    hit(
-                        author("f"),
-                        info("b")
-                    )
-                )
-            ),
-            hit(
-                myNum(3),
-                someField("a"),
-                innerHits("message",
-                    hit(
-                        author("g"),
-                        info("c")
-                    )
-                )
-            ),
+            hit(myNum(1), someField("b"), innerHits("message", hit(author("e"), info("a")))),
+            hit(myNum(2), someField("a"), innerHits("message", hit(author("f"), info("b")))),
+            hit(myNum(3), someField("a"), innerHits("message", hit(author("g"), info("c")))),
             hit(
                 myNum(4),
                 someField("b"),
-                innerHits("message",
-                    hit(
-                        author("h"),
-                        info("c")
-                    ),
-                    hit(
-                        author("i"),
-                        info("a")
-                    )
-                )
-            ),
+                innerHits("message", hit(author("h"), info("c")), hit(author("i"), info("a")))),
             hit(
                 myNum(new int[] {3, 4}),
                 someField("a"),
-                innerHits("message",
-                    hit(
-                        author("zz"),
-                        info("zz")
-                    )
-                )
-            )
-        )
-    );
+                innerHits("message", hit(author("zz"), info("zz"))))));
   }
 
   @Test
   public void singleCondition() throws IOException {
     assertThat(
-        query(
-            "SELECT myNum, m.author, m.info",
-            "WHERE m.info = 'c'"
-        ),
+        query("SELECT myNum, m.author, m.info", "WHERE m.info = 'c'"),
         hits(
-            hit(
-                myNum(3),
-                innerHits("message",
-                    hit(
-                        author("g"),
-                        info("c")
-                    )
-                )
-            ),
-            hit(
-                myNum(4),
-                innerHits("message",
-                    hit(
-                        author("h"),
-                        info("c")
-                    )
-                )
-            )
-        )
-    );
+            hit(myNum(3), innerHits("message", hit(author("g"), info("c")))),
+            hit(myNum(4), innerHits("message", hit(author("h"), info("c"))))));
   }
 
   @Test
   public void multipleConditionsOfNestedField() throws IOException {
     assertThat(
-        query(
-            "SELECT someField, m.author, m.info",
-            "WHERE m.info = 'c' AND m.author = 'h'"
-        ),
-        hits(
-            hit(
-                someField("b"),
-                innerHits("message",
-                    hit(
-                        author("h"),
-                        info("c")
-                    )
-                )
-            )
-        )
-    );
+        query("SELECT someField, m.author, m.info", "WHERE m.info = 'c' AND m.author = 'h'"),
+        hits(hit(someField("b"), innerHits("message", hit(author("h"), info("c"))))));
   }
 
   @Test
   public void multipleConditionsOfNestedFieldNoMatch() throws IOException {
     assertThat(
-        query(
-            "SELECT someField, m.author, m.info",
-            "WHERE m.info = 'c' AND m.author = 'i'"
-        ),
-        hits()
-    );
+        query("SELECT someField, m.author, m.info", "WHERE m.info = 'c' AND m.author = 'i'"),
+        hits());
   }
 
   @Test
   public void multipleConditionsOfRegularAndNestedField() throws IOException {
     assertThat(
-        query(
-            "SELECT myNum, m.author, m.info",
-            "WHERE myNum = 3 AND m.info = 'c'"
-        ),
-        hits(
-            hit(
-                myNum(3),
-                innerHits("message",
-                    hit(
-                        author("g"),
-                        info("c")
-                    )
-                )
-            )
-        )
-    );
+        query("SELECT myNum, m.author, m.info", "WHERE myNum = 3 AND m.info = 'c'"),
+        hits(hit(myNum(3), innerHits("message", hit(author("g"), info("c"))))));
   }
 
   @Test
   public void multipleConditionsOfRegularOrNestedField() throws IOException {
     assertThat(
-        query(
-            "SELECT myNum, m.author, m.info",
-            "WHERE myNum = 2 OR m.info = 'c'"
-        ),
+        query("SELECT myNum, m.author, m.info", "WHERE myNum = 2 OR m.info = 'c'"),
         hits(
-            hit(
-                myNum(2)
-            ), // Note: no inner hit here because of no match in nested field
-            hit(
-                myNum(3),
-                innerHits("message",
-                    hit(
-                        author("g"),
-                        info("c")
-                    )
-                )
-            ),
-            hit(
-                myNum(4),
-                innerHits("message",
-                    hit(
-                        author("h"),
-                        info("c")
-                    )
-                )
-            )
-        )
-    );
+            hit(myNum(2)), // Note: no inner hit here because of no match in nested field
+            hit(myNum(3), innerHits("message", hit(author("g"), info("c")))),
+            hit(myNum(4), innerHits("message", hit(author("h"), info("c"))))));
   }
 
   @Test
   public void leftJoinSelectAll() throws IOException {
-    String sql = "SELECT * " +
-        "FROM opensearch-sql_test_index_employee_nested e " +
-        "LEFT JOIN e.projects p";
+    String sql =
+        "SELECT * "
+            + "FROM opensearch-sql_test_index_employee_nested e "
+            + "LEFT JOIN e.projects p";
     String explain = explainQuery(sql);
-    assertThat(explain, containsString("{\"bool\":{\"must_not\":[{\"nested\":{\"query\":" +
-        "{\"exists\":{\"field\":\"projects\",\"boost\":1.0}},\"path\":\"projects\""));
+    assertThat(
+        explain,
+        containsString(
+            "{\"bool\":{\"must_not\":[{\"nested\":{\"query\":"
+                + "{\"exists\":{\"field\":\"projects\",\"boost\":1.0}},\"path\":\"projects\""));
 
     assertThat(explain, containsString("\"_source\":{\"includes\":[\"projects.*\""));
 
@@ -274,41 +149,49 @@ public class NestedFieldQueryIT extends SQLIntegTestCase {
 
   @Test
   public void leftJoinSpecificFields() throws IOException {
-    String sql = "SELECT e.name, p.name, p.started_year " +
-        "FROM opensearch-sql_test_index_employee_nested e " +
-        "LEFT JOIN e.projects p";
+    String sql =
+        "SELECT e.name, p.name, p.started_year "
+            + "FROM opensearch-sql_test_index_employee_nested e "
+            + "LEFT JOIN e.projects p";
     String explain = explainQuery(sql);
-    assertThat(explain, containsString("{\"bool\":{\"must_not\":[{\"nested\":{\"query\":" +
-        "{\"exists\":{\"field\":\"projects\",\"boost\":1.0}},\"path\":\"projects\""));
+    assertThat(
+        explain,
+        containsString(
+            "{\"bool\":{\"must_not\":[{\"nested\":{\"query\":"
+                + "{\"exists\":{\"field\":\"projects\",\"boost\":1.0}},\"path\":\"projects\""));
     assertThat(explain, containsString("\"_source\":{\"includes\":[\"name\"],"));
-    assertThat(explain,
+    assertThat(
+        explain,
         containsString("\"_source\":{\"includes\":[\"projects.name\",\"projects.started_year\"]"));
 
     JSONObject results = executeQuery(sql);
     Assert.assertThat(getTotalHits(results), equalTo(4));
   }
 
-  @Ignore("Comma join in left join won't pass syntax check in new ANTLR parser. "
-      + "Ignore for now and require to change grammar too when we want to support this case.")
+  @Ignore(
+      "Comma join in left join won't pass syntax check in new ANTLR parser. "
+          + "Ignore for now and require to change grammar too when we want to support this case.")
   @Test
   public void leftJoinExceptionOnExtraNestedFields() throws IOException {
-    String sql = "SELECT * " +
-        "FROM opensearch-sql_test_index_employee_nested e " +
-        "LEFT JOIN e.projects p, e.comments c";
+    String sql =
+        "SELECT * "
+            + "FROM opensearch-sql_test_index_employee_nested e "
+            + "LEFT JOIN e.projects p, e.comments c";
 
     try {
       String explain = explainQuery(sql);
       Assert.fail("Expected ResponseException, but none was thrown");
     } catch (ResponseException e) {
-      assertThat(e.getResponse().getStatusLine().getStatusCode(),
+      assertThat(
+          e.getResponse().getStatusLine().getStatusCode(),
           equalTo(RestStatus.BAD_REQUEST.getStatus()));
       final String entity = TestUtils.getResponseBody(e.getResponse());
-      assertThat(entity,
+      assertThat(
+          entity,
           containsString("only single nested field is allowed as right table for LEFT JOIN"));
       assertThat(entity, containsString("\"type\":\"verification_exception\""));
     }
   }
-
 
   @Test
   public void aggregationWithoutGroupBy() throws IOException {
@@ -317,7 +200,9 @@ public class NestedFieldQueryIT extends SQLIntegTestCase {
     JSONObject result = executeQuery(sql);
     JSONObject aggregation = getAggregation(result, "message.dayOfWeek@NESTED");
 
-    Assert.assertThat(((BigDecimal) aggregation.query("/avgDay/value")).doubleValue(), closeTo(3.166666666, 0.01));
+    Assert.assertThat(
+        ((BigDecimal) aggregation.query("/avgDay/value")).doubleValue(),
+        closeTo(3.166666666, 0.01));
   }
 
   @Test
@@ -351,39 +236,36 @@ public class NestedFieldQueryIT extends SQLIntegTestCase {
     Assert.assertNotNull(msgInfoBuckets);
     Assert.assertThat(msgInfoBuckets.length(), equalTo(2));
     Assert.assertThat(msgInfoBuckets.query("/0/key"), equalTo("a"));
-    Assert.assertThat(((BigDecimal) msgInfoBuckets.query("/0/message.dayOfWeek@NESTED/sumDay/value")).doubleValue(),
+    Assert.assertThat(
+        ((BigDecimal) msgInfoBuckets.query("/0/message.dayOfWeek@NESTED/sumDay/value"))
+            .doubleValue(),
         closeTo(9.0, 0.01));
     Assert.assertThat(msgInfoBuckets.query("/1/key"), equalTo("b"));
-    Assert.assertThat(((BigDecimal) msgInfoBuckets.query("/1/message.dayOfWeek@NESTED/sumDay/value")).doubleValue(),
+    Assert.assertThat(
+        ((BigDecimal) msgInfoBuckets.query("/1/message.dayOfWeek@NESTED/sumDay/value"))
+            .doubleValue(),
         closeTo(10.0, 0.01));
   }
 
   @Test
   public void nestedFiledIsNotNull() throws IOException {
-    String sql = "SELECT e.name " +
-        "FROM opensearch-sql_test_index_employee_nested as e, e.projects as p " +
-        "WHERE p IS NOT NULL";
+    String sql =
+        "SELECT e.name "
+            + "FROM opensearch-sql_test_index_employee_nested as e, e.projects as p "
+            + "WHERE p IS NOT NULL";
 
     assertThat(
         executeQuery(sql),
         hitAll(
             kvString("/_source/name", Is.is("Bob Smith")),
-            kvString("/_source/name", Is.is("Jane Smith"))
-        )
-    );
+            kvString("/_source/name", Is.is("Jane Smith"))));
   }
 
   // Doesn't support: aggregate function other than COUNT()
   @SuppressWarnings("unused")
   public void groupByNestedFieldAndAvg() throws IOException {
-    query(
-        "SELECT m.info, AVG(m.dayOfWeek)",
-        "GROUP BY m.info"
-    );
-    query(
-        "SELECT m.info, AVG(myNum)",
-        "GROUP BY m.info"
-    );
+    query("SELECT m.info, AVG(m.dayOfWeek)", "GROUP BY m.info");
+    query("SELECT m.info, AVG(myNum)", "GROUP BY m.info");
   }
 
   @Test
@@ -418,10 +300,11 @@ public class NestedFieldQueryIT extends SQLIntegTestCase {
 
   @Test
   public void countAggWithoutWhere() throws IOException {
-    String sql = "SELECT e.name, COUNT(p) as c " +
-        "FROM opensearch-sql_test_index_employee_nested AS e, e.projects AS p " +
-        "GROUP BY e.name " +
-        "HAVING c > 1";
+    String sql =
+        "SELECT e.name, COUNT(p) as c "
+            + "FROM opensearch-sql_test_index_employee_nested AS e, e.projects AS p "
+            + "GROUP BY e.name "
+            + "HAVING c > 1";
 
     JSONObject result = executeQuery(sql);
     JSONObject aggregation = getAggregation(result, "name.keyword");
@@ -437,11 +320,12 @@ public class NestedFieldQueryIT extends SQLIntegTestCase {
 
   @Test
   public void countAggWithWhereOnParent() throws IOException {
-    String sql = "SELECT e.name, COUNT(p) as c " +
-        "FROM opensearch-sql_test_index_employee_nested AS e, e.projects AS p " +
-        "WHERE e.name like '%smith%' " +
-        "GROUP BY e.name " +
-        "HAVING c > 1";
+    String sql =
+        "SELECT e.name, COUNT(p) as c "
+            + "FROM opensearch-sql_test_index_employee_nested AS e, e.projects AS p "
+            + "WHERE e.name like '%smith%' "
+            + "GROUP BY e.name "
+            + "HAVING c > 1";
 
     JSONObject result = executeQuery(sql);
     JSONObject aggregation = getAggregation(result, "name.keyword");
@@ -457,11 +341,12 @@ public class NestedFieldQueryIT extends SQLIntegTestCase {
 
   @Test
   public void countAggWithWhereOnNested() throws IOException {
-    String sql = "SELECT e.name, COUNT(p) as c " +
-        "FROM opensearch-sql_test_index_employee_nested AS e, e.projects AS p " +
-        "WHERE p.name LIKE '%security%' " +
-        "GROUP BY e.name " +
-        "HAVING c > 1";
+    String sql =
+        "SELECT e.name, COUNT(p) as c "
+            + "FROM opensearch-sql_test_index_employee_nested AS e, e.projects AS p "
+            + "WHERE p.name LIKE '%security%' "
+            + "GROUP BY e.name "
+            + "HAVING c > 1";
 
     JSONObject result = executeQuery(sql);
     JSONObject aggregation = getAggregation(result, "name.keyword");
@@ -477,11 +362,12 @@ public class NestedFieldQueryIT extends SQLIntegTestCase {
 
   @Test
   public void countAggWithWhereOnParentOrNested() throws IOException {
-    String sql = "SELECT e.name, COUNT(p) as c " +
-        "FROM opensearch-sql_test_index_employee_nested AS e, e.projects AS p " +
-        "WHERE e.name like '%smith%' or p.name LIKE '%security%' " +
-        "GROUP BY e.name " +
-        "HAVING c > 1";
+    String sql =
+        "SELECT e.name, COUNT(p) as c "
+            + "FROM opensearch-sql_test_index_employee_nested AS e, e.projects AS p "
+            + "WHERE e.name like '%smith%' or p.name LIKE '%security%' "
+            + "GROUP BY e.name "
+            + "HAVING c > 1";
 
     JSONObject result = executeQuery(sql);
     JSONObject aggregation = getAggregation(result, "name.keyword");
@@ -497,11 +383,12 @@ public class NestedFieldQueryIT extends SQLIntegTestCase {
 
   @Test
   public void countAggWithWhereOnParentAndNested() throws IOException {
-    String sql = "SELECT e.name, COUNT(p) as c " +
-        "FROM opensearch-sql_test_index_employee_nested AS e, e.projects AS p " +
-        "WHERE e.name like '%smith%' AND p.name LIKE '%security%' " +
-        "GROUP BY e.name " +
-        "HAVING c > 1";
+    String sql =
+        "SELECT e.name, COUNT(p) as c "
+            + "FROM opensearch-sql_test_index_employee_nested AS e, e.projects AS p "
+            + "WHERE e.name like '%smith%' AND p.name LIKE '%security%' "
+            + "GROUP BY e.name "
+            + "HAVING c > 1";
 
     JSONObject result = executeQuery(sql);
     JSONObject aggregation = getAggregation(result, "name.keyword");
@@ -517,11 +404,12 @@ public class NestedFieldQueryIT extends SQLIntegTestCase {
 
   @Test
   public void countAggWithWhereOnNestedAndNested() throws IOException {
-    String sql = "SELECT e.name, COUNT(p) as c " +
-        "FROM opensearch-sql_test_index_employee_nested AS e, e.projects AS p " +
-        "WHERE p.started_year > 2000 AND p.name LIKE '%security%' " +
-        "GROUP BY e.name " +
-        "HAVING c > 0";
+    String sql =
+        "SELECT e.name, COUNT(p) as c "
+            + "FROM opensearch-sql_test_index_employee_nested AS e, e.projects AS p "
+            + "WHERE p.started_year > 2000 AND p.name LIKE '%security%' "
+            + "GROUP BY e.name "
+            + "HAVING c > 0";
 
     JSONObject result = executeQuery(sql);
     JSONObject aggregation = getAggregation(result, "name.keyword");
@@ -537,11 +425,12 @@ public class NestedFieldQueryIT extends SQLIntegTestCase {
 
   @Test
   public void countAggWithWhereOnNestedOrNested() throws IOException {
-    String sql = "SELECT e.name, COUNT(p) as c " +
-        "FROM opensearch-sql_test_index_employee_nested AS e, e.projects AS p " +
-        "WHERE p.started_year > 2000 OR p.name LIKE '%security%' " +
-        "GROUP BY e.name " +
-        "HAVING c > 1";
+    String sql =
+        "SELECT e.name, COUNT(p) as c "
+            + "FROM opensearch-sql_test_index_employee_nested AS e, e.projects AS p "
+            + "WHERE p.started_year > 2000 OR p.name LIKE '%security%' "
+            + "GROUP BY e.name "
+            + "HAVING c > 1";
 
     JSONObject result = executeQuery(sql);
     JSONObject aggregation = getAggregation(result, "name.keyword");
@@ -557,11 +446,12 @@ public class NestedFieldQueryIT extends SQLIntegTestCase {
 
   @Test
   public void countAggOnNestedInnerFieldWithoutWhere() throws IOException {
-    String sql = "SELECT e.name, COUNT(p.started_year) as count " +
-        "FROM opensearch-sql_test_index_employee_nested AS e, e.projects AS p " +
-        "WHERE p.name LIKE '%security%' " +
-        "GROUP BY e.name " +
-        "HAVING count > 0";
+    String sql =
+        "SELECT e.name, COUNT(p.started_year) as count "
+            + "FROM opensearch-sql_test_index_employee_nested AS e, e.projects AS p "
+            + "WHERE p.name LIKE '%security%' "
+            + "GROUP BY e.name "
+            + "HAVING count > 0";
 
     JSONObject result = executeQuery(sql);
     JSONObject aggregation = getAggregation(result, "name.keyword");
@@ -581,10 +471,11 @@ public class NestedFieldQueryIT extends SQLIntegTestCase {
 
   @Test
   public void maxAggOnNestedInnerFieldWithoutWhere() throws IOException {
-    String sql = "SELECT e.name, MAX(p.started_year) as max " +
-        "FROM opensearch-sql_test_index_employee_nested AS e, e.projects AS p " +
-        "WHERE p.name LIKE '%security%' " +
-        "GROUP BY e.name";
+    String sql =
+        "SELECT e.name, MAX(p.started_year) as max "
+            + "FROM opensearch-sql_test_index_employee_nested AS e, e.projects AS p "
+            + "WHERE p.name LIKE '%security%' "
+            + "GROUP BY e.name";
 
     JSONObject result = executeQuery(sql);
     JSONObject aggregation = getAggregation(result, "name.keyword");
@@ -594,20 +485,27 @@ public class NestedFieldQueryIT extends SQLIntegTestCase {
     Assert.assertThat(bucket.length(), equalTo(2));
     Assert.assertThat(bucket.query("/0/key"), equalTo("Bob Smith"));
     Assert.assertThat(
-        ((BigDecimal) bucket.query("/0/projects.started_year@NESTED/projects.started_year@FILTER/max/value")).doubleValue(),
+        ((BigDecimal)
+                bucket.query(
+                    "/0/projects.started_year@NESTED/projects.started_year@FILTER/max/value"))
+            .doubleValue(),
         closeTo(2015.0, 0.01));
     Assert.assertThat(bucket.query("/1/key"), equalTo("Jane Smith"));
     Assert.assertThat(
-        ((BigDecimal) bucket.query("/1/projects.started_year@NESTED/projects.started_year@FILTER/max/value")).doubleValue(),
+        ((BigDecimal)
+                bucket.query(
+                    "/1/projects.started_year@NESTED/projects.started_year@FILTER/max/value"))
+            .doubleValue(),
         closeTo(2015.0, 0.01));
   }
 
   @Test
   public void havingCountAggWithoutWhere() throws IOException {
-    String sql = "SELECT e.name " +
-        "FROM opensearch-sql_test_index_employee_nested AS e, e.projects AS p " +
-        "GROUP BY e.name " +
-        "HAVING COUNT(p) > 1";
+    String sql =
+        "SELECT e.name "
+            + "FROM opensearch-sql_test_index_employee_nested AS e, e.projects AS p "
+            + "GROUP BY e.name "
+            + "HAVING COUNT(p) > 1";
 
     JSONObject result = executeQuery(sql);
     JSONObject aggregation = getAggregation(result, "name.keyword");
@@ -623,11 +521,12 @@ public class NestedFieldQueryIT extends SQLIntegTestCase {
 
   @Test
   public void havingCountAggWithWhereOnParent() throws IOException {
-    String sql = "SELECT e.name " +
-        "FROM opensearch-sql_test_index_employee_nested AS e, e.projects AS p " +
-        "WHERE e.name like '%smith%' " +
-        "GROUP BY e.name " +
-        "HAVING COUNT(p) > 1";
+    String sql =
+        "SELECT e.name "
+            + "FROM opensearch-sql_test_index_employee_nested AS e, e.projects AS p "
+            + "WHERE e.name like '%smith%' "
+            + "GROUP BY e.name "
+            + "HAVING COUNT(p) > 1";
 
     JSONObject result = executeQuery(sql);
     JSONObject aggregation = getAggregation(result, "name.keyword");
@@ -643,11 +542,12 @@ public class NestedFieldQueryIT extends SQLIntegTestCase {
 
   @Test
   public void havingCountAggWithWhereOnNested() throws IOException {
-    String sql = "SELECT e.name " +
-        "FROM opensearch-sql_test_index_employee_nested AS e, e.projects AS p " +
-        "WHERE p.name LIKE '%security%' " +
-        "GROUP BY e.name " +
-        "HAVING COUNT(p) > 1";
+    String sql =
+        "SELECT e.name "
+            + "FROM opensearch-sql_test_index_employee_nested AS e, e.projects AS p "
+            + "WHERE p.name LIKE '%security%' "
+            + "GROUP BY e.name "
+            + "HAVING COUNT(p) > 1";
 
     JSONObject result = executeQuery(sql);
     JSONObject aggregation = getAggregation(result, "name.keyword");
@@ -663,11 +563,12 @@ public class NestedFieldQueryIT extends SQLIntegTestCase {
 
   @Test
   public void havingCountAggWithWhereOnParentOrNested() throws IOException {
-    String sql = "SELECT e.name " +
-        "FROM opensearch-sql_test_index_employee_nested AS e, e.projects AS p " +
-        "WHERE e.name like '%smith%' or p.name LIKE '%security%' " +
-        "GROUP BY e.name " +
-        "HAVING COUNT(p) > 1";
+    String sql =
+        "SELECT e.name "
+            + "FROM opensearch-sql_test_index_employee_nested AS e, e.projects AS p "
+            + "WHERE e.name like '%smith%' or p.name LIKE '%security%' "
+            + "GROUP BY e.name "
+            + "HAVING COUNT(p) > 1";
 
     JSONObject result = executeQuery(sql);
     JSONObject aggregation = getAggregation(result, "name.keyword");
@@ -683,11 +584,12 @@ public class NestedFieldQueryIT extends SQLIntegTestCase {
 
   @Test
   public void havingCountAggWithWhereOnParentAndNested() throws IOException {
-    String sql = "SELECT e.name " +
-        "FROM opensearch-sql_test_index_employee_nested AS e, e.projects AS p " +
-        "WHERE e.name like '%smith%' AND p.name LIKE '%security%' " +
-        "GROUP BY e.name " +
-        "HAVING COUNT(p) > 1";
+    String sql =
+        "SELECT e.name "
+            + "FROM opensearch-sql_test_index_employee_nested AS e, e.projects AS p "
+            + "WHERE e.name like '%smith%' AND p.name LIKE '%security%' "
+            + "GROUP BY e.name "
+            + "HAVING COUNT(p) > 1";
 
     JSONObject result = executeQuery(sql);
     JSONObject aggregation = getAggregation(result, "name.keyword");
@@ -703,11 +605,12 @@ public class NestedFieldQueryIT extends SQLIntegTestCase {
 
   @Test
   public void havingCountAggWithWhereOnNestedAndNested() throws IOException {
-    String sql = "SELECT e.name " +
-        "FROM opensearch-sql_test_index_employee_nested AS e, e.projects AS p " +
-        "WHERE p.started_year > 2000 AND p.name LIKE '%security%' " +
-        "GROUP BY e.name " +
-        "HAVING COUNT(p) > 0";
+    String sql =
+        "SELECT e.name "
+            + "FROM opensearch-sql_test_index_employee_nested AS e, e.projects AS p "
+            + "WHERE p.started_year > 2000 AND p.name LIKE '%security%' "
+            + "GROUP BY e.name "
+            + "HAVING COUNT(p) > 0";
 
     JSONObject result = executeQuery(sql);
     JSONObject aggregation = getAggregation(result, "name.keyword");
@@ -723,11 +626,12 @@ public class NestedFieldQueryIT extends SQLIntegTestCase {
 
   @Test
   public void havingCountAggWithWhereOnNestedOrNested() throws IOException {
-    String sql = "SELECT e.name " +
-        "FROM opensearch-sql_test_index_employee_nested AS e, e.projects AS p " +
-        "WHERE p.started_year > 2000 OR p.name LIKE '%security%' " +
-        "GROUP BY e.name " +
-        "HAVING COUNT(p) > 1";
+    String sql =
+        "SELECT e.name "
+            + "FROM opensearch-sql_test_index_employee_nested AS e, e.projects AS p "
+            + "WHERE p.started_year > 2000 OR p.name LIKE '%security%' "
+            + "GROUP BY e.name "
+            + "HAVING COUNT(p) > 1";
 
     JSONObject result = executeQuery(sql);
     JSONObject aggregation = getAggregation(result, "name.keyword");
@@ -743,11 +647,12 @@ public class NestedFieldQueryIT extends SQLIntegTestCase {
 
   @Test
   public void havingCountAggOnNestedInnerFieldWithoutWhere() throws IOException {
-    String sql = "SELECT e.name " +
-        "FROM opensearch-sql_test_index_employee_nested AS e, e.projects AS p " +
-        "WHERE p.name LIKE '%security%' " +
-        "GROUP BY e.name " +
-        "HAVING COUNT(p.started_year) > 0";
+    String sql =
+        "SELECT e.name "
+            + "FROM opensearch-sql_test_index_employee_nested AS e, e.projects AS p "
+            + "WHERE p.name LIKE '%security%' "
+            + "GROUP BY e.name "
+            + "HAVING COUNT(p.started_year) > 0";
 
     JSONObject result = executeQuery(sql);
     JSONObject aggregation = getAggregation(result, "name.keyword");
@@ -767,11 +672,12 @@ public class NestedFieldQueryIT extends SQLIntegTestCase {
 
   @Test
   public void havingMaxAggOnNestedInnerFieldWithoutWhere() throws IOException {
-    String sql = "SELECT e.name " +
-        "FROM opensearch-sql_test_index_employee_nested AS e, e.projects AS p " +
-        "WHERE p.name LIKE '%security%' " +
-        "GROUP BY e.name " +
-        "HAVING MAX(p.started_year) > 1990";
+    String sql =
+        "SELECT e.name "
+            + "FROM opensearch-sql_test_index_employee_nested AS e, e.projects AS p "
+            + "WHERE p.name LIKE '%security%' "
+            + "GROUP BY e.name "
+            + "HAVING MAX(p.started_year) > 1990";
 
     JSONObject result = executeQuery(sql);
     JSONObject aggregation = getAggregation(result, "name.keyword");
@@ -781,22 +687,28 @@ public class NestedFieldQueryIT extends SQLIntegTestCase {
     Assert.assertThat(bucket.length(), equalTo(2));
     Assert.assertThat(bucket.query("/0/key"), equalTo("Bob Smith"));
     Assert.assertThat(
-        ((BigDecimal) bucket.query("/0/projects.started_year@NESTED/projects.started_year@FILTER/max_0/value")).doubleValue(),
+        ((BigDecimal)
+                bucket.query(
+                    "/0/projects.started_year@NESTED/projects.started_year@FILTER/max_0/value"))
+            .doubleValue(),
         closeTo(2015.0, 0.01));
     Assert.assertThat(bucket.query("/1/key"), equalTo("Jane Smith"));
     Assert.assertThat(
-        ((BigDecimal) bucket.query("/1/projects.started_year@NESTED/projects.started_year@FILTER/max_0/value")).doubleValue(),
+        ((BigDecimal)
+                bucket.query(
+                    "/1/projects.started_year@NESTED/projects.started_year@FILTER/max_0/value"))
+            .doubleValue(),
         closeTo(2015.0, 0.01));
   }
 
   /***********************************************************
-   Matchers for Non-Aggregation Testing
+   * Matchers for Non-Aggregation Testing
    ***********************************************************/
 
   @SafeVarargs
   private final Matcher<SearchResponse> hits(Matcher<SearchHit>... subMatchers) {
-    return featureValueOf("hits", arrayContainingInAnyOrder(subMatchers),
-        resp -> resp.getHits().getHits());
+    return featureValueOf(
+        "hits", arrayContainingInAnyOrder(subMatchers), resp -> resp.getHits().getHits());
   }
 
   @SafeVarargs
@@ -834,8 +746,7 @@ public class NestedFieldQueryIT extends SQLIntegTestCase {
       }
 
       @Override
-      public void describeTo(Description description) {
-      }
+      public void describeTo(Description description) {}
     };
   }
 
@@ -860,16 +771,15 @@ public class NestedFieldQueryIT extends SQLIntegTestCase {
     return featureValueOf(
         "innerHits",
         arrayContainingInAnyOrder(innerHitMatchers),
-        hit -> hit.getInnerHits().get(path).getHits()
-    );
+        hit -> hit.getInnerHits().get(path).getHits());
   }
 
   /***********************************************************
-   Matchers for Aggregation Testing
+   * Matchers for Aggregation Testing
    ***********************************************************/
 
-  private <T, U> FeatureMatcher<T, U> featureValueOf(String name, Matcher<U> subMatcher,
-                                                     Function<T, U> getter) {
+  private <T, U> FeatureMatcher<T, U> featureValueOf(
+      String name, Matcher<U> subMatcher, Function<T, U> getter) {
     return new FeatureMatcher<T, U>(subMatcher, name, name) {
       @Override
       protected U featureValueOf(T actual) {
@@ -879,7 +789,7 @@ public class NestedFieldQueryIT extends SQLIntegTestCase {
   }
 
   /***********************************************************
-   Query Utility to Fetch Response for SQL
+   * Query Utility to Fetch Response for SQL
    ***********************************************************/
 
   private SearchResponse query(String select, String... statements) throws IOException {
@@ -889,10 +799,11 @@ public class NestedFieldQueryIT extends SQLIntegTestCase {
   private SearchResponse execute(String sql) throws IOException {
     final JSONObject jsonObject = executeQuery(sql);
 
-    final XContentParser parser = new JsonXContentParser(
-        NamedXContentRegistry.EMPTY,
-        LoggingDeprecationHandler.INSTANCE,
-        new JsonFactory().createParser(jsonObject.toString()));
+    final XContentParser parser =
+        new JsonXContentParser(
+            NamedXContentRegistry.EMPTY,
+            LoggingDeprecationHandler.INSTANCE,
+            new JsonFactory().createParser(jsonObject.toString()));
     return SearchResponse.fromXContent(parser);
   }
 
@@ -904,5 +815,4 @@ public class NestedFieldQueryIT extends SQLIntegTestCase {
     Assert.assertTrue(aggregations.has(aggregationName));
     return aggregations.getJSONObject(aggregationName);
   }
-
 }

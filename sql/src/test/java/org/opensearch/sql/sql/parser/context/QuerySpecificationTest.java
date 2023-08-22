@@ -3,7 +3,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-
 package org.opensearch.sql.sql.parser.context;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -35,32 +34,27 @@ class QuerySpecificationTest {
 
   @Test
   void can_collect_group_by_items_in_group_by_clause() {
-    QuerySpecification querySpec = collect(
-        "SELECT name, ABS(age) FROM test GROUP BY name, ABS(age)");
+    QuerySpecification querySpec =
+        collect("SELECT name, ABS(age) FROM test GROUP BY name, ABS(age)");
 
     assertEquals(
-        ImmutableList.of(
-            qualifiedName("name"),
-            function("ABS", qualifiedName("age"))),
+        ImmutableList.of(qualifiedName("name"), function("ABS", qualifiedName("age"))),
         querySpec.getGroupByItems());
   }
 
   @Test
   void can_collect_select_items_in_select_clause() {
-    QuerySpecification querySpec = collect(
-        "SELECT name, ABS(age) FROM test");
+    QuerySpecification querySpec = collect("SELECT name, ABS(age) FROM test");
 
     assertEquals(
-        ImmutableList.of(
-            qualifiedName("name"),
-            function("ABS", qualifiedName("age"))),
+        ImmutableList.of(qualifiedName("name"), function("ABS", qualifiedName("age"))),
         querySpec.getSelectItems());
   }
 
   @Test
   void can_collect_aggregators_in_select_clause() {
-    QuerySpecification querySpec = collect(
-        "SELECT name, AVG(age), SUM(balance) FROM test GROUP BY name");
+    QuerySpecification querySpec =
+        collect("SELECT name, AVG(age), SUM(balance) FROM test GROUP BY name");
 
     assertEquals(
         ImmutableSet.of(
@@ -71,29 +65,25 @@ class QuerySpecificationTest {
 
   @Test
   void can_collect_nested_aggregators_in_select_clause() {
-    QuerySpecification querySpec = collect(
-        "SELECT name, ABS(1 + AVG(age)) FROM test GROUP BY name");
+    QuerySpecification querySpec =
+        collect("SELECT name, ABS(1 + AVG(age)) FROM test GROUP BY name");
 
     assertEquals(
-        ImmutableSet.of(
-            alias("AVG(age)", aggregate("AVG", qualifiedName("age")))),
+        ImmutableSet.of(alias("AVG(age)", aggregate("AVG", qualifiedName("age")))),
         querySpec.getAggregators());
   }
 
   @Test
   void can_collect_alias_in_select_clause() {
-    QuerySpecification querySpec = collect(
-        "SELECT name AS n FROM test GROUP BY n");
+    QuerySpecification querySpec = collect("SELECT name AS n FROM test GROUP BY n");
 
-    assertEquals(
-        ImmutableMap.of("n", qualifiedName("name")),
-        querySpec.getSelectItemsByAlias());
+    assertEquals(ImmutableMap.of("n", qualifiedName("name")), querySpec.getSelectItemsByAlias());
   }
 
   @Test
   void should_deduplicate_same_aggregators() {
-    QuerySpecification querySpec = collect(
-        "SELECT AVG(age), AVG(balance), AVG(age) FROM test GROUP BY name");
+    QuerySpecification querySpec =
+        collect("SELECT AVG(age), AVG(balance), AVG(age) FROM test GROUP BY name");
 
     assertEquals(
         ImmutableSet.of(
@@ -119,20 +109,24 @@ class QuerySpecificationTest {
 
   @Test
   void should_skip_sort_items_in_window_function() {
-    assertEquals(1,
-        collect("SELECT name, RANK() OVER(ORDER BY age) "
-            + "FROM test ORDER BY name"
-        ).getOrderByOptions().size());
+    assertEquals(
+        1,
+        collect("SELECT name, RANK() OVER(ORDER BY age) " + "FROM test ORDER BY name")
+            .getOrderByOptions()
+            .size());
   }
 
   @Test
   void can_collect_filtered_aggregation() {
     assertEquals(
-        ImmutableSet.of(alias("AVG(age) FILTER(WHERE age > 20)",
-            filteredAggregate("AVG", qualifiedName("age"),
-                function(">", qualifiedName("age"), intLiteral(20))))),
-        collect("SELECT AVG(age) FILTER(WHERE age > 20) FROM test").getAggregators()
-    );
+        ImmutableSet.of(
+            alias(
+                "AVG(age) FILTER(WHERE age > 20)",
+                filteredAggregate(
+                    "AVG",
+                    qualifiedName("age"),
+                    function(">", qualifiedName("age"), intLiteral(20))))),
+        collect("SELECT AVG(age) FILTER(WHERE age > 20) FROM test").getAggregators());
   }
 
   private QuerySpecification collect(String query) {
@@ -147,5 +141,4 @@ class QuerySpecificationTest {
     parser.addErrorListener(new SyntaxAnalysisErrorListener());
     return parser.querySpecification();
   }
-
 }

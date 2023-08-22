@@ -3,7 +3,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-
 package org.opensearch.sql.opensearch.request.system;
 
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -25,8 +24,7 @@ import org.opensearch.sql.opensearch.client.OpenSearchClient;
 @ExtendWith(MockitoExtension.class)
 class OpenSearchCatIndicesRequestTest {
 
-  @Mock
-  private OpenSearchClient client;
+  @Mock private OpenSearchClient client;
 
   @Test
   void testSearch() {
@@ -34,14 +32,12 @@ class OpenSearchCatIndicesRequestTest {
 
     final List<ExprValue> results = new OpenSearchCatIndicesRequest(client).search();
     assertEquals(1, results.size());
-    assertThat(results.get(0).tupleValue(), anyOf(
-        hasEntry("TABLE_NAME", stringValue("index"))
-    ));
+    assertThat(results.get(0).tupleValue(), anyOf(hasEntry("TABLE_NAME", stringValue("index"))));
   }
 
   @Test
   void testToString() {
-    assertEquals("OpenSearchCatIndicesRequest{}",
-        new OpenSearchCatIndicesRequest(client).toString());
+    assertEquals(
+        "OpenSearchCatIndicesRequest{}", new OpenSearchCatIndicesRequest(client).toString());
   }
 }

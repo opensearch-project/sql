@@ -3,7 +3,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-
 package org.opensearch.sql.legacy.query.planner.physical;
 
 import java.util.Arrays;
@@ -17,106 +16,93 @@ import java.util.Objects;
  */
 public interface Row<T> {
 
-    Row NULL = null;
+  Row NULL = null;
 
-    /**
-     * Generate key to represent identity of the row.
-     *
-     * @param colNames column names as keys
-     * @return row key
-     */
-    RowKey key(String[] colNames);
+  /**
+   * Generate key to represent identity of the row.
+   *
+   * @param colNames column names as keys
+   * @return row key
+   */
+  RowKey key(String[] colNames);
 
+  /**
+   * Combine current row and another row together to generate a new combined row.
+   *
+   * @param otherRow another row
+   * @return combined row
+   */
+  Row<T> combine(Row<T> otherRow);
 
-    /**
-     * Combine current row and another row together to generate a new combined row.
-     *
-     * @param otherRow another row
-     * @return combined row
-     */
-    Row<T> combine(Row<T> otherRow);
+  /**
+   * Retain columns specified and rename to alias if any.
+   *
+   * @param colNameAlias column names to alias mapping
+   */
+  void retain(Map<String, String> colNameAlias);
 
+  /**
+   * @return raw data of row wrapped inside
+   */
+  T data();
 
-    /**
-     * Retain columns specified and rename to alias if any.
-     *
-     * @param colNameAlias column names to alias mapping
-     */
-    void retain(Map<String, String> colNameAlias);
+  /** Key that help Row be sorted or hashed. */
+  class RowKey implements Comparable<RowKey> {
 
+    /** Represent null key if any joined column value is NULL */
+    public static final RowKey NULL = null;
 
-    /**
-     * @return raw data of row wrapped inside
-     */
-    T data();
+    /** Values of row key */
+    private final Object[] keys;
 
+    /** Cached hash code since this class is intended to be used by hash table */
+    private final int hashCode;
 
-    /**
-     * Key that help Row be sorted or hashed.
-     */
-    class RowKey implements Comparable<RowKey> {
-
-        /**
-         * Represent null key if any joined column value is NULL
-         */
-        public static final RowKey NULL = null;
-
-        /**
-         * Values of row key
-         */
-        private final Object[] keys;
-
-        /**
-         * Cached hash code since this class is intended to be used by hash table
-         */
-        private final int hashCode;
-
-        public RowKey(Object... keys) {
-            this.keys = keys;
-            this.hashCode = Objects.hash(keys);
-        }
-
-        public Object[] keys() {
-            return keys;
-        }
-
-        @Override
-        public int hashCode() {
-            return hashCode;
-        }
-
-        @Override
-        public boolean equals(Object other) {
-            return other instanceof RowKey && Arrays.deepEquals(this.keys, ((RowKey) other).keys);
-        }
-
-        @SuppressWarnings("unchecked")
-        @Override
-        public int compareTo(RowKey other) {
-            for (int i = 0; i < keys.length; i++) {
-
-                /*
-                 * Only one is null, otherwise (both null or non-null) go ahead.
-                 * Always consider NULL is smaller value which means NULL comes last in ASC and first in DESC
-                 */
-                if (keys[i] == null ^ other.keys[i] == null) {
-                    return keys[i] == null ? 1 : -1;
-                }
-
-                if (keys[i] instanceof Comparable) {
-                    int result = ((Comparable) keys[i]).compareTo(other.keys[i]);
-                    if (result != 0) {
-                        return result;
-                    }
-                } // Ignore incomparable field silently?
-            }
-            return 0;
-        }
-
-        @Override
-        public String toString() {
-            return "RowKey: " + Arrays.toString(keys);
-        }
-
+    public RowKey(Object... keys) {
+      this.keys = keys;
+      this.hashCode = Objects.hash(keys);
     }
+
+    public Object[] keys() {
+      return keys;
+    }
+
+    @Override
+    public int hashCode() {
+      return hashCode;
+    }
+
+    @Override
+    public boolean equals(Object other) {
+      return other instanceof RowKey && Arrays.deepEquals(this.keys, ((RowKey) other).keys);
+    }
+
+    @SuppressWarnings("unchecked")
+    @Override
+    public int compareTo(RowKey other) {
+      for (int i = 0; i < keys.length; i++) {
+
+        /*
+         * Only one is null, otherwise (both null or non-null) go ahead.
+         * Always consider NULL is smaller value which means NULL comes last in ASC and first in DESC
+         */
+        if (keys[i] == null ^ other.keys[i] == null) {
+          return keys[i] == null ? 1 : -1;
+        }
+
+        if (keys[i] instanceof Comparable) {
+          int result = ((Comparable) keys[i]).compareTo(other.keys[i]);
+          if (result != 0) {
+            return result;
+          }
+        } // Ignore incomparable field silently?
+      }
+      return 0;
+    }
+
+    @Override
+    public String toString() {
+      return "RowKey: " + Arrays.toString(keys);
+    }
+  }
 }

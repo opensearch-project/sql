@@ -24,18 +24,21 @@ import org.opensearch.sql.executor.ExecutionEngine;
 import org.opensearch.sql.protocol.response.QueryResult;
 
 public class VisualizationResponseFormatterTest {
-  private final VisualizationResponseFormatter formatter = new VisualizationResponseFormatter(
-      JsonResponseFormatter.Style.COMPACT);
+  private final VisualizationResponseFormatter formatter =
+      new VisualizationResponseFormatter(JsonResponseFormatter.Style.COMPACT);
 
   @Test
   void formatResponse() {
-    QueryResult response = new QueryResult(
-        new ExecutionEngine.Schema(ImmutableList.of(
-            new ExecutionEngine.Schema.Column("name", "name", STRING),
-            new ExecutionEngine.Schema.Column("age", "age", INTEGER))),
-        ImmutableList.of(tupleValue(ImmutableMap.of("name", "John", "age", 20)),
-            tupleValue(ImmutableMap.of("name", "Amy", "age", 31)),
-            tupleValue(ImmutableMap.of("name", "Bob", "age", 28))));
+    QueryResult response =
+        new QueryResult(
+            new ExecutionEngine.Schema(
+                ImmutableList.of(
+                    new ExecutionEngine.Schema.Column("name", "name", STRING),
+                    new ExecutionEngine.Schema.Column("age", "age", INTEGER))),
+            ImmutableList.of(
+                tupleValue(ImmutableMap.of("name", "John", "age", 20)),
+                tupleValue(ImmutableMap.of("name", "Amy", "age", 31)),
+                tupleValue(ImmutableMap.of("name", "Bob", "age", 28))));
 
     assertJsonEquals(
         "{\"data\":{"
@@ -55,10 +58,12 @@ public class VisualizationResponseFormatterTest {
   void formatResponseWithNull() {
     QueryResult response =
         new QueryResult(
-            new ExecutionEngine.Schema(ImmutableList.of(
-                new ExecutionEngine.Schema.Column("name", null, STRING),
-                new ExecutionEngine.Schema.Column("age", null, INTEGER))),
-            ImmutableList.of(tupleValue(ImmutableMap.of("name", "John", "age", LITERAL_MISSING)),
+            new ExecutionEngine.Schema(
+                ImmutableList.of(
+                    new ExecutionEngine.Schema.Column("name", null, STRING),
+                    new ExecutionEngine.Schema.Column("age", null, INTEGER))),
+            ImmutableList.of(
+                tupleValue(ImmutableMap.of("name", "John", "age", LITERAL_MISSING)),
                 tupleValue(ImmutableMap.of("name", "Allen", "age", LITERAL_NULL)),
                 tupleValue(ImmutableMap.of("name", "Smith", "age", 30))));
 
@@ -73,8 +78,7 @@ public class VisualizationResponseFormatterTest {
             + "\"size\":3,"
             + "\"status\":200"
             + "}",
-        formatter.format(response)
-    );
+        formatter.format(response));
   }
 
   @Test
@@ -87,8 +91,7 @@ public class VisualizationResponseFormatterTest {
             + "\"details\":\"Invalid query syntax\""
             + "},"
             + "\"status\":400}",
-        formatter.format(new SyntaxCheckException("Invalid query syntax"))
-    );
+        formatter.format(new SyntaxCheckException("Invalid query syntax")));
   }
 
   @Test
@@ -101,8 +104,7 @@ public class VisualizationResponseFormatterTest {
             + "\"details\":\"Invalid query semantics\""
             + "},"
             + "\"status\":400}",
-        formatter.format(new SemanticCheckException("Invalid query semantics"))
-    );
+        formatter.format(new SemanticCheckException("Invalid query semantics")));
   }
 
   @Test
@@ -115,8 +117,7 @@ public class VisualizationResponseFormatterTest {
             + "\"details\":\"Execution error\""
             + "},"
             + "\"status\":503}",
-        formatter.format(new IllegalStateException("Execution error"))
-    );
+        formatter.format(new IllegalStateException("Execution error")));
   }
 
   @Test
@@ -133,22 +134,25 @@ public class VisualizationResponseFormatterTest {
             + "from OpenSearch engine.\""
             + "},"
             + "\"status\":503}",
-        formatter.format(new OpenSearchException("all shards failed",
-            new IllegalStateException("Execution error")))
-    );
+        formatter.format(
+            new OpenSearchException(
+                "all shards failed", new IllegalStateException("Execution error"))));
   }
 
   @Test
   void prettyStyle() {
-    VisualizationResponseFormatter prettyFormatter = new VisualizationResponseFormatter(
-        JsonResponseFormatter.Style.PRETTY);
-    QueryResult response = new QueryResult(
-        new ExecutionEngine.Schema(ImmutableList.of(
-            new ExecutionEngine.Schema.Column("name", "name", STRING),
-            new ExecutionEngine.Schema.Column("age", "age", INTEGER))),
-        ImmutableList.of(tupleValue(ImmutableMap.of("name", "John", "age", 20)),
-            tupleValue(ImmutableMap.of("name", "Amy", "age", 31)),
-            tupleValue(ImmutableMap.of("name", "Bob", "age", 28))));
+    VisualizationResponseFormatter prettyFormatter =
+        new VisualizationResponseFormatter(JsonResponseFormatter.Style.PRETTY);
+    QueryResult response =
+        new QueryResult(
+            new ExecutionEngine.Schema(
+                ImmutableList.of(
+                    new ExecutionEngine.Schema.Column("name", "name", STRING),
+                    new ExecutionEngine.Schema.Column("age", "age", INTEGER))),
+            ImmutableList.of(
+                tupleValue(ImmutableMap.of("name", "John", "age", 20)),
+                tupleValue(ImmutableMap.of("name", "Amy", "age", 31)),
+                tupleValue(ImmutableMap.of("name", "Bob", "age", 28))));
 
     assertJsonEquals(
         "{\n"
@@ -179,14 +183,11 @@ public class VisualizationResponseFormatterTest {
             + "  \"size\": 3,\n"
             + "  \"status\": 200\n"
             + "}",
-        prettyFormatter.format(response)
-    );
+        prettyFormatter.format(response));
   }
 
   private static void assertJsonEquals(String expected, String actual) {
-    assertEquals(
-        JsonParser.parseString(expected),
-        JsonParser.parseString(actual));
+    assertEquals(JsonParser.parseString(expected), JsonParser.parseString(actual));
   }
 
   @Test

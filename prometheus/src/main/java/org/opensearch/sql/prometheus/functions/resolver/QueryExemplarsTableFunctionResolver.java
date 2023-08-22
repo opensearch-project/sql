@@ -22,9 +22,9 @@ import org.opensearch.sql.prometheus.client.PrometheusClient;
 import org.opensearch.sql.prometheus.functions.implementation.QueryExemplarFunctionImplementation;
 
 /**
- * This class is for query_exemplars table function resolver {@link FunctionResolver}.
- * It takes care of validating function arguments and also creating
- * required {@link org.opensearch.sql.expression.function.TableFunctionImplementation} Class.
+ * This class is for query_exemplars table function resolver {@link FunctionResolver}. It takes care
+ * of validating function arguments and also creating required {@link
+ * org.opensearch.sql.expression.function.TableFunctionImplementation} Class.
  */
 @RequiredArgsConstructor
 public class QueryExemplarsTableFunctionResolver implements FunctionResolver {
@@ -41,13 +41,15 @@ public class QueryExemplarsTableFunctionResolver implements FunctionResolver {
     final FunctionName functionName = FunctionName.of(QUERY_EXEMPLARS);
     FunctionSignature functionSignature =
         new FunctionSignature(FunctionName.of(QUERY_EXEMPLARS), List.of(STRING, LONG, LONG));
-    FunctionBuilder functionBuilder =  (functionProperties, arguments) -> {
-      final List<String> argumentNames = List.of(QUERY, STARTTIME, ENDTIME);
-      validatePrometheusTableFunctionArguments(arguments, argumentNames);
-      List<Expression> namedArguments = getNamedArgumentsOfTableFunction(arguments, argumentNames);
-      return new QueryExemplarFunctionImplementation(functionName,
-          namedArguments, prometheusClient);
-    };
+    FunctionBuilder functionBuilder =
+        (functionProperties, arguments) -> {
+          final List<String> argumentNames = List.of(QUERY, STARTTIME, ENDTIME);
+          validatePrometheusTableFunctionArguments(arguments, argumentNames);
+          List<Expression> namedArguments =
+              getNamedArgumentsOfTableFunction(arguments, argumentNames);
+          return new QueryExemplarFunctionImplementation(
+              functionName, namedArguments, prometheusClient);
+        };
     return Pair.of(functionSignature, functionBuilder);
   }
 

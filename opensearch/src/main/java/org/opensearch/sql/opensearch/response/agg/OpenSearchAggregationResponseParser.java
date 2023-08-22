@@ -17,13 +17,12 @@ import java.util.List;
 import java.util.Map;
 import org.opensearch.search.aggregations.Aggregations;
 
-/**
- * OpenSearch Aggregation Response Parser.
- */
+/** OpenSearch Aggregation Response Parser. */
 public interface OpenSearchAggregationResponseParser {
 
   /**
    * Parse the OpenSearch Aggregation Response.
+   *
    * @param aggregations Aggregations.
    * @return aggregation result.
    */
