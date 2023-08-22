@@ -25,11 +25,9 @@ import org.opensearch.sql.storage.StorageEngine;
 @ExtendWith(MockitoExtension.class)
 class DataSourceLoaderCacheImplTest {
 
-  @Mock
-  private DataSourceFactory dataSourceFactory;
+  @Mock private DataSourceFactory dataSourceFactory;
 
-  @Mock
-  private StorageEngine storageEngine;
+  @Mock private StorageEngine storageEngine;
 
   @BeforeEach
   public void setup() {
@@ -55,8 +53,8 @@ class DataSourceLoaderCacheImplTest {
     dataSourceMetadata.setProperties(ImmutableMap.of());
     DataSource dataSource = dataSourceLoaderCache.getOrLoadDataSource(dataSourceMetadata);
     verify(dataSourceFactory, times(1)).createDataSource(dataSourceMetadata);
-    Assertions.assertEquals(dataSource,
-        dataSourceLoaderCache.getOrLoadDataSource(dataSourceMetadata));
+    Assertions.assertEquals(
+        dataSource, dataSourceLoaderCache.getOrLoadDataSource(dataSourceMetadata));
     verifyNoMoreInteractions(dataSourceFactory);
   }
 
@@ -81,5 +79,4 @@ class DataSourceLoaderCacheImplTest {
     dataSourceMetadata.setProperties(ImmutableMap.of());
     return dataSourceMetadata;
   }
-
 }

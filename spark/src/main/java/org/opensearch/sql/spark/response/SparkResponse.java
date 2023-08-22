@@ -9,8 +9,6 @@ import static org.opensearch.sql.spark.data.constants.SparkConstants.SPARK_INDEX
 
 import com.google.common.annotations.VisibleForTesting;
 import lombok.Data;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.json.JSONObject;
@@ -26,7 +24,6 @@ import org.opensearch.index.query.QueryBuilder;
 import org.opensearch.index.query.QueryBuilders;
 import org.opensearch.search.SearchHit;
 import org.opensearch.search.builder.SearchSourceBuilder;
-import org.opensearch.sql.datasources.exceptions.DataSourceNotFoundException;
 
 @Data
 public class SparkResponse {

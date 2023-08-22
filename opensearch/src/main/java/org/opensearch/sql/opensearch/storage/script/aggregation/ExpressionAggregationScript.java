@@ -8,8 +8,6 @@ package org.opensearch.sql.opensearch.storage.script.aggregation;
 import static java.time.temporal.ChronoUnit.MILLIS;
 
 import java.time.LocalTime;
-import java.time.ZoneId;
-import java.time.ZonedDateTime;
 import java.util.Map;
 import lombok.EqualsAndHashCode;
 import org.apache.lucene.index.LeafReaderContext;

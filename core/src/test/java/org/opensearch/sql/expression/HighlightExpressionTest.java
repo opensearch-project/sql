@@ -18,13 +18,13 @@ import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.data.model.ExprValueUtils;
 import org.opensearch.sql.expression.env.Environment;
 
-
 public class HighlightExpressionTest extends ExpressionTestBase {
 
   @Test
   public void single_highlight_test() {
-    Environment<Expression, ExprValue> hlTuple = ExprValueUtils.tupleValue(
-        ImmutableMap.of("_highlight.Title", "result value")).bindingTuples();
+    Environment<Expression, ExprValue> hlTuple =
+        ExprValueUtils.tupleValue(ImmutableMap.of("_highlight.Title", "result value"))
+            .bindingTuples();
     HighlightExpression expr = new HighlightExpression(DSL.literal("Title"));
     ExprValue resultVal = expr.valueOf(hlTuple);
 
@@ -34,8 +34,9 @@ public class HighlightExpressionTest extends ExpressionTestBase {
 
   @Test
   public void missing_highlight_test() {
-    Environment<Expression, ExprValue> hlTuple = ExprValueUtils.tupleValue(
-        ImmutableMap.of("_highlight.Title", "result value")).bindingTuples();
+    Environment<Expression, ExprValue> hlTuple =
+        ExprValueUtils.tupleValue(ImmutableMap.of("_highlight.Title", "result value"))
+            .bindingTuples();
 
     HighlightExpression expr = new HighlightExpression(DSL.literal("invalid"));
     ExprValue resultVal = expr.valueOf(hlTuple);
@@ -52,8 +53,8 @@ public class HighlightExpressionTest extends ExpressionTestBase {
     builder.put("_highlight", ExprTupleValue.fromExprValueMap(hlBuilder.build()));
 
     HighlightExpression hlExpr = new HighlightExpression(DSL.literal("invalid*"));
-    ExprValue resultVal = hlExpr.valueOf(
-        ExprTupleValue.fromExprValueMap(builder.build()).bindingTuples());
+    ExprValue resultVal =
+        hlExpr.valueOf(ExprTupleValue.fromExprValueMap(builder.build()).bindingTuples());
 
     assertTrue(resultVal.isMissing());
   }
@@ -67,20 +68,23 @@ public class HighlightExpressionTest extends ExpressionTestBase {
     builder.put("_highlight", ExprTupleValue.fromExprValueMap(hlBuilder.build()));
 
     HighlightExpression hlExpr = new HighlightExpression(DSL.literal("T*"));
-    ExprValue resultVal = hlExpr.valueOf(
-        ExprTupleValue.fromExprValueMap(builder.build()).bindingTuples());
+    ExprValue resultVal =
+        hlExpr.valueOf(ExprTupleValue.fromExprValueMap(builder.build()).bindingTuples());
 
     assertEquals(STRUCT, resultVal.type());
-    assertTrue(resultVal.tupleValue().containsValue(
-        ExprValueUtils.stringValue("correct result value")));
-    assertFalse(resultVal.tupleValue().containsValue(
-        ExprValueUtils.stringValue("secondary correct result value")));
+    assertTrue(
+        resultVal.tupleValue().containsValue(ExprValueUtils.stringValue("correct result value")));
+    assertFalse(
+        resultVal
+            .tupleValue()
+            .containsValue(ExprValueUtils.stringValue("secondary correct result value")));
   }
 
   @Test
   public void do_nothing_with_missing_value() {
-    Environment<Expression, ExprValue> hlTuple = ExprValueUtils.tupleValue(
-        ImmutableMap.of("NonHighlightField", "ResultValue")).bindingTuples();
+    Environment<Expression, ExprValue> hlTuple =
+        ExprValueUtils.tupleValue(ImmutableMap.of("NonHighlightField", "ResultValue"))
+            .bindingTuples();
     HighlightExpression expr = new HighlightExpression(DSL.literal("*"));
     ExprValue resultVal = expr.valueOf(hlTuple);
 
@@ -96,13 +100,13 @@ public class HighlightExpressionTest extends ExpressionTestBase {
     builder.put("_highlight", ExprTupleValue.fromExprValueMap(hlBuilder.build()));
 
     HighlightExpression hlExpr = new HighlightExpression(DSL.literal("T*"));
-    ExprValue resultVal = hlExpr.valueOf(
-        ExprTupleValue.fromExprValueMap(builder.build()).bindingTuples());
+    ExprValue resultVal =
+        hlExpr.valueOf(ExprTupleValue.fromExprValueMap(builder.build()).bindingTuples());
 
     assertEquals(STRUCT, resultVal.type());
-    assertTrue(resultVal.tupleValue().containsValue(
-        ExprValueUtils.stringValue("correct result value")));
-    assertFalse(resultVal.tupleValue().containsValue(
-        ExprValueUtils.stringValue("incorrect result value")));
+    assertTrue(
+        resultVal.tupleValue().containsValue(ExprValueUtils.stringValue("correct result value")));
+    assertFalse(
+        resultVal.tupleValue().containsValue(ExprValueUtils.stringValue("incorrect result value")));
   }
 }

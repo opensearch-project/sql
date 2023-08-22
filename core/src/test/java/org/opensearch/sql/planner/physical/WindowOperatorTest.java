@@ -3,7 +3,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-
 package org.opensearch.sql.planner.physical;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -43,21 +42,56 @@ class WindowOperatorTest extends PhysicalPlanTestBase {
     window(DSL.rank())
         .partitionBy(ref("action", STRING))
         .sortBy(DEFAULT_ASC, ref("response", INTEGER))
-        .expectNext(ImmutableMap.of(
-            "ip", "209.160.24.63", "action", "GET", "response", 200, "referer", "www.amazon.com",
-            "rank()", 1))
-        .expectNext(ImmutableMap.of(
-            "ip", "112.111.162.4", "action", "GET", "response", 200, "referer", "www.amazon.com",
-            "rank()", 1))
-        .expectNext(ImmutableMap.of(
-            "ip", "209.160.24.63", "action", "GET", "response", 404, "referer", "www.amazon.com",
-            "rank()", 3))
-        .expectNext(ImmutableMap.of(
-            "ip", "74.125.19.106", "action", "POST", "response", 200, "referer", "www.google.com",
-            "rank()", 1))
-        .expectNext(ImmutableMap.of(
-            "ip", "74.125.19.106", "action", "POST", "response", 500,
-            "rank()", 2))
+        .expectNext(
+            ImmutableMap.of(
+                "ip",
+                "209.160.24.63",
+                "action",
+                "GET",
+                "response",
+                200,
+                "referer",
+                "www.amazon.com",
+                "rank()",
+                1))
+        .expectNext(
+            ImmutableMap.of(
+                "ip",
+                "112.111.162.4",
+                "action",
+                "GET",
+                "response",
+                200,
+                "referer",
+                "www.amazon.com",
+                "rank()",
+                1))
+        .expectNext(
+            ImmutableMap.of(
+                "ip",
+                "209.160.24.63",
+                "action",
+                "GET",
+                "response",
+                404,
+                "referer",
+                "www.amazon.com",
+                "rank()",
+                3))
+        .expectNext(
+            ImmutableMap.of(
+                "ip",
+                "74.125.19.106",
+                "action",
+                "POST",
+                "response",
+                200,
+                "referer",
+                "www.google.com",
+                "rank()",
+                1))
+        .expectNext(
+            ImmutableMap.of("ip", "74.125.19.106", "action", "POST", "response", 500, "rank()", 2))
         .done();
   }
 
@@ -67,21 +101,57 @@ class WindowOperatorTest extends PhysicalPlanTestBase {
     window(new AggregateWindowFunction(DSL.sum(ref("response", INTEGER))))
         .partitionBy(ref("action", STRING))
         .sortBy(DEFAULT_ASC, ref("response", INTEGER))
-        .expectNext(ImmutableMap.of(
-            "ip", "209.160.24.63", "action", "GET", "response", 200, "referer", "www.amazon.com",
-            "sum(response)", 400))
-        .expectNext(ImmutableMap.of(
-            "ip", "112.111.162.4", "action", "GET", "response", 200, "referer", "www.amazon.com",
-            "sum(response)", 400))
-        .expectNext(ImmutableMap.of(
-            "ip", "209.160.24.63", "action", "GET", "response", 404, "referer", "www.amazon.com",
-            "sum(response)", 804))
-        .expectNext(ImmutableMap.of(
-            "ip", "74.125.19.106", "action", "POST", "response", 200, "referer", "www.google.com",
-            "sum(response)", 200))
-        .expectNext(ImmutableMap.of(
-            "ip", "74.125.19.106", "action", "POST", "response", 500,
-            "sum(response)", 700))
+        .expectNext(
+            ImmutableMap.of(
+                "ip",
+                "209.160.24.63",
+                "action",
+                "GET",
+                "response",
+                200,
+                "referer",
+                "www.amazon.com",
+                "sum(response)",
+                400))
+        .expectNext(
+            ImmutableMap.of(
+                "ip",
+                "112.111.162.4",
+                "action",
+                "GET",
+                "response",
+                200,
+                "referer",
+                "www.amazon.com",
+                "sum(response)",
+                400))
+        .expectNext(
+            ImmutableMap.of(
+                "ip",
+                "209.160.24.63",
+                "action",
+                "GET",
+                "response",
+                404,
+                "referer",
+                "www.amazon.com",
+                "sum(response)",
+                804))
+        .expectNext(
+            ImmutableMap.of(
+                "ip",
+                "74.125.19.106",
+                "action",
+                "POST",
+                "response",
+                200,
+                "referer",
+                "www.google.com",
+                "sum(response)",
+                200))
+        .expectNext(
+            ImmutableMap.of(
+                "ip", "74.125.19.106", "action", "POST", "response", 500, "sum(response)", 700))
         .done();
   }
 
@@ -89,21 +159,57 @@ class WindowOperatorTest extends PhysicalPlanTestBase {
   @Test
   void test_aggregate_window_function_without_sort_key() {
     window(new AggregateWindowFunction(DSL.sum(ref("response", INTEGER))))
-        .expectNext(ImmutableMap.of(
-            "ip", "209.160.24.63", "action", "GET", "response", 200, "referer", "www.amazon.com",
-            "sum(response)", 1504))
-        .expectNext(ImmutableMap.of(
-            "ip", "74.125.19.106", "action", "POST", "response", 500,
-            "sum(response)", 1504))
-        .expectNext(ImmutableMap.of(
-            "ip", "74.125.19.106", "action", "POST", "response", 200, "referer", "www.google.com",
-            "sum(response)", 1504))
-        .expectNext(ImmutableMap.of(
-            "ip", "112.111.162.4", "action", "GET", "response", 200, "referer", "www.amazon.com",
-            "sum(response)", 1504))
-        .expectNext(ImmutableMap.of(
-            "ip", "209.160.24.63", "action", "GET", "response", 404, "referer", "www.amazon.com",
-            "sum(response)", 1504))
+        .expectNext(
+            ImmutableMap.of(
+                "ip",
+                "209.160.24.63",
+                "action",
+                "GET",
+                "response",
+                200,
+                "referer",
+                "www.amazon.com",
+                "sum(response)",
+                1504))
+        .expectNext(
+            ImmutableMap.of(
+                "ip", "74.125.19.106", "action", "POST", "response", 500, "sum(response)", 1504))
+        .expectNext(
+            ImmutableMap.of(
+                "ip",
+                "74.125.19.106",
+                "action",
+                "POST",
+                "response",
+                200,
+                "referer",
+                "www.google.com",
+                "sum(response)",
+                1504))
+        .expectNext(
+            ImmutableMap.of(
+                "ip",
+                "112.111.162.4",
+                "action",
+                "GET",
+                "response",
+                200,
+                "referer",
+                "www.amazon.com",
+                "sum(response)",
+                1504))
+        .expectNext(
+            ImmutableMap.of(
+                "ip",
+                "209.160.24.63",
+                "action",
+                "GET",
+                "response",
+                404,
+                "referer",
+                "www.amazon.com",
+                "sum(response)",
+                1504))
         .done();
   }
 
@@ -136,10 +242,11 @@ class WindowOperatorTest extends PhysicalPlanTestBase {
     WindowOperatorAssertion expectNext(Map<String, Object> expected) {
       if (windowOperator == null) {
         WindowDefinition definition = new WindowDefinition(partitionByList, sortList);
-        windowOperator = new WindowOperator(
-            new SortOperator(new TestScan(), definition.getAllSortItems()),
-            windowFunction,
-            definition);
+        windowOperator =
+            new WindowOperator(
+                new SortOperator(new TestScan(), definition.getAllSortItems()),
+                windowFunction,
+                definition);
         windowOperator.open();
       }
 
@@ -153,7 +260,5 @@ class WindowOperatorTest extends PhysicalPlanTestBase {
       assertFalse(windowOperator.hasNext());
       windowOperator.close();
     }
-
   }
-
 }

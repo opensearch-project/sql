@@ -44,9 +44,14 @@ public class PlanSerializerTest {
   }
 
   @ParameterizedTest
-  @ValueSource(strings = {"pewpew", "asdkfhashdfjkgakgfwuigfaijkb", "ajdhfgajklghadfjkhgjkadhgad"
-      + "kadfhgadhjgfjklahdgqheygvskjfbvgsdklgfuirehiluANUIfgauighbahfuasdlhfnhaughsdlfhaughaggf"
-      + "and_some_other_funny_stuff_which_could_be_generated_while_sleeping_on_the_keyboard"})
+  @ValueSource(
+      strings = {
+        "pewpew",
+        "asdkfhashdfjkgakgfwuigfaijkb",
+        "ajdhfgajklghadfjkhgjkadhgad"
+            + "kadfhgadhjgfjklahdgqheygvskjfbvgsdklgfuirehiluANUIfgauighbahfuasdlhfnhaughsdlfhaughaggf"
+            + "and_some_other_funny_stuff_which_could_be_generated_while_sleeping_on_the_keyboard"
+      })
   void serialize_deserialize_str(String input) {
     var compressed = serialize(input);
     assertEquals(input, deserialize(compressed));
@@ -98,8 +103,7 @@ public class PlanSerializerTest {
         // from gzip - damaged header
         () -> assertThrows(Throwable.class, () -> deserialize("00")),
         // from HashCode::fromString
-        () -> assertThrows(Throwable.class, () -> deserialize("000"))
-    );
+        () -> assertThrows(Throwable.class, () -> deserialize("000")));
   }
 
   @Test
@@ -109,8 +113,7 @@ public class PlanSerializerTest {
     plan.setThrowNoCursorOnWrite(true);
     assertAll(
         () -> assertThrows(NoCursorException.class, () -> serialize(plan)),
-        () -> assertEquals(Cursor.None, planCache.convertToCursor(plan))
-    );
+        () -> assertEquals(Cursor.None, planCache.convertToCursor(plan)));
   }
 
   @Test
@@ -122,14 +125,14 @@ public class PlanSerializerTest {
 
   @Test
   void convertToPlan_throws_cursor_has_no_prefix() {
-    assertThrows(UnsupportedOperationException.class, () ->
-        planCache.convertToPlan("abc"));
+    assertThrows(UnsupportedOperationException.class, () -> planCache.convertToPlan("abc"));
   }
 
   @Test
   void convertToPlan_throws_if_failed_to_deserialize() {
-    assertThrows(UnsupportedOperationException.class, () ->
-        planCache.convertToPlan("n:" + serialize(mock(Serializable.class))));
+    assertThrows(
+        UnsupportedOperationException.class,
+        () -> planCache.convertToPlan("n:" + serialize(mock(Serializable.class))));
   }
 
   @Test
@@ -144,8 +147,8 @@ public class PlanSerializerTest {
   @Test
   void convertToCursor_and_convertToPlan() {
     var plan = new TestOperator(100500);
-    var roundTripPlan = (SerializablePlan)
-        planCache.convertToPlan(planCache.convertToCursor(plan).toString());
+    var roundTripPlan =
+        (SerializablePlan) planCache.convertToPlan(planCache.convertToCursor(plan).toString());
     assertEquals(plan, roundTripPlan);
     assertNotSame(plan, roundTripPlan);
   }
@@ -158,8 +161,8 @@ public class PlanSerializerTest {
     objectOutput.writeObject("Hello, world!");
     objectOutput.flush();
 
-    var cds = planCache.getCursorDeserializationStream(
-        new ByteArrayInputStream(output.toByteArray()));
+    var cds =
+        planCache.getCursorDeserializationStream(new ByteArrayInputStream(output.toByteArray()));
     assertEquals(storageEngine, cds.resolveObject("engine"));
     var object = new Object();
     assertSame(object, cds.resolveObject(object));

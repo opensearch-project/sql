@@ -3,7 +3,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-
 package org.opensearch.sql.expression.aggregation;
 
 import static org.opensearch.sql.data.model.ExprValueUtils.LITERAL_NULL;
@@ -16,15 +15,14 @@ import org.opensearch.sql.expression.Expression;
 import org.opensearch.sql.expression.function.BuiltinFunctionName;
 
 /**
- * The minimum aggregator aggregate the value evaluated by the expression.
- * If the expression evaluated result is NULL or MISSING, then the result is NULL.
+ * The minimum aggregator aggregate the value evaluated by the expression. If the expression
+ * evaluated result is NULL or MISSING, then the result is NULL.
  */
 public class MinAggregator extends Aggregator<MinAggregator.MinState> {
 
   public MinAggregator(List<Expression> arguments, ExprCoreType returnType) {
     super(BuiltinFunctionName.MIN.getName(), arguments, returnType);
   }
-
 
   @Override
   public MinState create() {
@@ -50,9 +48,7 @@ public class MinAggregator extends Aggregator<MinAggregator.MinState> {
     }
 
     public void min(ExprValue value) {
-      minResult = minResult.isNull() ? value
-          : (minResult.compareTo(value) < 0)
-          ? minResult : value;
+      minResult = minResult.isNull() ? value : (minResult.compareTo(value) < 0) ? minResult : value;
     }
 
     @Override

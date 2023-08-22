@@ -3,7 +3,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-
 package org.opensearch.sql.sql.parser;
 
 import static java.util.Collections.emptyList;
@@ -53,36 +52,20 @@ class AstBuilderTest extends AstBuilderTestBase {
             alias("'hello'", stringLiteral("hello")),
             alias("\"world\"", stringLiteral("world")),
             alias("false", booleanLiteral(false)),
-            alias("-4.567", doubleLiteral(-4.567))
-        ),
-        buildAST("SELECT 123, 'hello', \"world\", false, -4.567")
-    );
+            alias("-4.567", doubleLiteral(-4.567))),
+        buildAST("SELECT 123, 'hello', \"world\", false, -4.567"));
   }
 
   @Test
   public void can_build_select_function_call_with_alias() {
     assertEquals(
-        project(
-            relation("test"),
-            alias(
-                "ABS(age)",
-                function("ABS", qualifiedName("age")),
-                "a"
-            )
-        ),
-        buildAST("SELECT ABS(age) AS a FROM test")
-    );
+        project(relation("test"), alias("ABS(age)", function("ABS", qualifiedName("age")), "a")),
+        buildAST("SELECT ABS(age) AS a FROM test"));
   }
 
   @Test
   public void can_build_select_all_from_index() {
-    assertEquals(
-        project(
-            relation("test"),
-            AllFields.of()
-        ),
-        buildAST("SELECT * FROM test")
-    );
+    assertEquals(project(relation("test"), AllFields.of()), buildAST("SELECT * FROM test"));
 
     assertThrows(SyntaxCheckException.class, () -> buildAST("SELECT *"));
   }
@@ -90,14 +73,8 @@ class AstBuilderTest extends AstBuilderTestBase {
   @Test
   public void can_build_nested_select_all() {
     assertEquals(
-        project(
-            relation("test"),
-            alias("nested(field.*)",
-                new NestedAllTupleFields("field")
-            )
-        ),
-        buildAST("SELECT nested(field.*) FROM test")
-    );
+        project(relation("test"), alias("nested(field.*)", new NestedAllTupleFields("field"))),
+        buildAST("SELECT nested(field.*) FROM test"));
   }
 
   @Test
@@ -107,32 +84,22 @@ class AstBuilderTest extends AstBuilderTestBase {
             relation("test"),
             AllFields.of(),
             alias("age", qualifiedName("age")),
-            alias("age", qualifiedName("age"), "a")
-        ),
-        buildAST("SELECT *, age, age as a FROM test")
-    );
+            alias("age", qualifiedName("age"), "a")),
+        buildAST("SELECT *, age, age as a FROM test"));
   }
 
   @Test
   public void can_build_select_fields_from_index() {
     assertEquals(
-        project(
-            relation("test"),
-            alias("age", qualifiedName("age"))
-        ),
-        buildAST("SELECT age FROM test")
-    );
+        project(relation("test"), alias("age", qualifiedName("age"))),
+        buildAST("SELECT age FROM test"));
   }
 
   @Test
   public void can_build_select_fields_with_alias() {
     assertEquals(
-        project(
-            relation("test"),
-            alias("age", qualifiedName("age"), "a")
-        ),
-        buildAST("SELECT age AS a FROM test")
-    );
+        project(relation("test"), alias("age", qualifiedName("age"), "a")),
+        buildAST("SELECT age AS a FROM test"));
   }
 
   @Test
@@ -140,17 +107,8 @@ class AstBuilderTest extends AstBuilderTestBase {
     assertEquals(
         project(
             relation("test"),
-            alias(
-                "(age + 10)",
-                function("+", qualifiedName("age"), intLiteral(10)),
-                "Age_Expr"
-            )
-        ),
-        buildAST("SELECT"
-                + " (age + 10) AS `Age_Expr` "
-                + "FROM test"
-        )
-    );
+            alias("(age + 10)", function("+", qualifiedName("age"), intLiteral(10)), "Age_Expr")),
+        buildAST("SELECT" + " (age + 10) AS `Age_Expr` " + "FROM test"));
   }
 
   @Test
@@ -158,42 +116,27 @@ class AstBuilderTest extends AstBuilderTestBase {
     assertEquals(
         project(
             filter(
-                relation("test", "tt"),
-                function("=", qualifiedName("tt", "age"), intLiteral(30))),
-            alias("tt.name", qualifiedName("tt", "name"))
-        ),
-        buildAST("SELECT tt.name FROM test AS tt WHERE tt.age = 30")
-    );
+                relation("test", "tt"), function("=", qualifiedName("tt", "age"), intLiteral(30))),
+            alias("tt.name", qualifiedName("tt", "name"))),
+        buildAST("SELECT tt.name FROM test AS tt WHERE tt.age = 30"));
   }
 
   @Test
   public void can_build_from_index_with_alias_quoted() {
     assertEquals(
         project(
-            filter(
-                relation("test", "t"),
-                function("=", qualifiedName("t", "age"), intLiteral(30))),
-            alias("`t`.name", qualifiedName("t", "name"))
-        ),
-        buildAST("SELECT `t`.name FROM test `t` WHERE `t`.age = 30")
-    );
+            filter(relation("test", "t"), function("=", qualifiedName("t", "age"), intLiteral(30))),
+            alias("`t`.name", qualifiedName("t", "name"))),
+        buildAST("SELECT `t`.name FROM test `t` WHERE `t`.age = 30"));
   }
 
   @Test
   public void can_build_where_clause() {
     assertEquals(
         project(
-            filter(
-                relation("test"),
-                function(
-                    "=",
-                    qualifiedName("name"),
-                    stringLiteral("John"))
-            ),
-            alias("name", qualifiedName("name"))
-        ),
-        buildAST("SELECT name FROM test WHERE name = 'John'")
-    );
+            filter(relation("test"), function("=", qualifiedName("name"), stringLiteral("John"))),
+            alias("name", qualifiedName("name"))),
+        buildAST("SELECT name FROM test WHERE name = 'John'"));
   }
 
   @Test
@@ -202,8 +145,7 @@ class AstBuilderTest extends AstBuilderTestBase {
         project(
             agg(
                 relation("test"),
-                ImmutableList.of(
-                    alias("COUNT(1)", aggregate("COUNT", intLiteral(1)))),
+                ImmutableList.of(alias("COUNT(1)", aggregate("COUNT", intLiteral(1)))),
                 emptyList(),
                 emptyList(),
                 emptyList()),
@@ -217,8 +159,7 @@ class AstBuilderTest extends AstBuilderTestBase {
         project(
             agg(
                 relation("test"),
-                ImmutableList.of(
-                    alias("COUNT(*)", aggregate("COUNT", AllFields.of()))),
+                ImmutableList.of(alias("COUNT(*)", aggregate("COUNT", AllFields.of()))),
                 emptyList(),
                 emptyList(),
                 emptyList()),
@@ -328,9 +269,7 @@ class AstBuilderTest extends AstBuilderTestBase {
                     emptyList(),
                     ImmutableList.of(alias("name", qualifiedName("name"))),
                     emptyList()),
-                function(">",
-                    aggregate("MIN", qualifiedName("balance")),
-                    intLiteral(1000))),
+                function(">", aggregate("MIN", qualifiedName("balance")), intLiteral(1000))),
             alias("name", qualifiedName("name")),
             alias("AVG(age)", aggregate("AVG", qualifiedName("age")))),
         buildAST("SELECT name, AVG(age) FROM test GROUP BY name HAVING MIN(balance) > 1000"));
@@ -343,14 +282,11 @@ class AstBuilderTest extends AstBuilderTestBase {
             filter(
                 agg(
                     relation("test"),
-                    ImmutableList.of(
-                        alias("AVG(age)", aggregate("AVG", qualifiedName("age")))),
+                    ImmutableList.of(alias("AVG(age)", aggregate("AVG", qualifiedName("age")))),
                     emptyList(),
                     ImmutableList.of(alias("name", qualifiedName("name"))),
                     emptyList()),
-                function(">",
-                    aggregate("AVG", qualifiedName("age")),
-                    intLiteral(1000))),
+                function(">", aggregate("AVG", qualifiedName("age")), intLiteral(1000))),
             alias("name", qualifiedName("name")),
             alias("AVG(age)", aggregate("AVG", qualifiedName("age")), "a")),
         buildAST("SELECT name, AVG(age) AS a FROM test GROUP BY name HAVING a > 1000"));
@@ -360,9 +296,7 @@ class AstBuilderTest extends AstBuilderTestBase {
   public void can_build_order_by_field_name() {
     assertEquals(
         project(
-            sort(
-                relation("test"),
-                field("name", argument("asc", booleanLiteral(true)))),
+            sort(relation("test"), field("name", argument("asc", booleanLiteral(true)))),
             alias("name", qualifiedName("name"))),
         buildAST("SELECT name FROM test ORDER BY name"));
   }
@@ -374,8 +308,7 @@ class AstBuilderTest extends AstBuilderTestBase {
             sort(
                 relation("test"),
                 field(
-                    function("ABS", qualifiedName("name")),
-                    argument("asc", booleanLiteral(true)))),
+                    function("ABS", qualifiedName("name")), argument("asc", booleanLiteral(true)))),
             alias("name", qualifiedName("name"))),
         buildAST("SELECT name FROM test ORDER BY ABS(name)"));
   }
@@ -384,9 +317,7 @@ class AstBuilderTest extends AstBuilderTestBase {
   public void can_build_order_by_alias() {
     assertEquals(
         project(
-            sort(
-                relation("test"),
-                field("name", argument("asc", booleanLiteral(true)))),
+            sort(relation("test"), field("name", argument("asc", booleanLiteral(true)))),
             alias("name", qualifiedName("name"), "n")),
         buildAST("SELECT name AS n FROM test ORDER BY n ASC"));
   }
@@ -395,9 +326,7 @@ class AstBuilderTest extends AstBuilderTestBase {
   public void can_build_order_by_ordinal() {
     assertEquals(
         project(
-            sort(
-                relation("test"),
-                field("name", argument("asc", booleanLiteral(false)))),
+            sort(relation("test"), field("name", argument("asc", booleanLiteral(false)))),
             alias("name", qualifiedName("name"))),
         buildAST("SELECT name FROM test ORDER BY 1 DESC"));
   }
@@ -424,8 +353,7 @@ class AstBuilderTest extends AstBuilderTestBase {
                 emptyList(),
                 emptyList(),
                 ImmutableList.of(
-                    alias("name", qualifiedName("name")),
-                    alias("age", qualifiedName("age"))),
+                    alias("name", qualifiedName("name")), alias("age", qualifiedName("age"))),
                 emptyList()),
             alias("name", qualifiedName("name")),
             alias("age", qualifiedName("age"))),
@@ -441,26 +369,21 @@ class AstBuilderTest extends AstBuilderTestBase {
                 emptyList(),
                 emptyList(),
                 ImmutableList.of(
-                    alias("SUBSTRING(name, 1, 2)",
+                    alias(
+                        "SUBSTRING(name, 1, 2)",
                         function(
-                            "SUBSTRING",
-                            qualifiedName("name"),
-                            intLiteral(1), intLiteral(2)))),
+                            "SUBSTRING", qualifiedName("name"), intLiteral(1), intLiteral(2)))),
                 emptyList()),
-            alias("SUBSTRING(name, 1, 2)",
-                function(
-                    "SUBSTRING",
-                    qualifiedName("name"),
-                    intLiteral(1), intLiteral(2)))),
+            alias(
+                "SUBSTRING(name, 1, 2)",
+                function("SUBSTRING", qualifiedName("name"), intLiteral(1), intLiteral(2)))),
         buildAST("SELECT DISTINCT SUBSTRING(name, 1, 2) FROM test"));
   }
 
   @Test
   public void can_build_select_all_clause() {
     assertEquals(
-        buildAST("SELECT name, age FROM test"),
-        buildAST("SELECT ALL name, age FROM test")
-    );
+        buildAST("SELECT name, age FROM test"), buildAST("SELECT ALL name, age FROM test"));
   }
 
   @Test
@@ -469,22 +392,24 @@ class AstBuilderTest extends AstBuilderTestBase {
         project(
             sort(
                 relation("test"),
-                field("name",
+                field(
+                    "name",
                     argument("asc", booleanLiteral(true)),
                     argument("nullFirst", booleanLiteral(false)))),
-        alias("name", qualifiedName("name"))),
+            alias("name", qualifiedName("name"))),
         buildAST("SELECT name FROM test ORDER BY name NULLS LAST"));
   }
 
   /**
-   * Ensure Nested function falls back to legacy engine when used in an HAVING clause.
-   * TODO Remove this test when support is added.
+   * Ensure Nested function falls back to legacy engine when used in an HAVING clause. TODO Remove
+   * this test when support is added.
    */
   @Test
   public void nested_in_having_clause_throws_exception() {
-    SyntaxCheckException exception = assertThrows(SyntaxCheckException.class,
-        () -> buildAST("SELECT count(*) FROM test HAVING nested(message.info)")
-    );
+    SyntaxCheckException exception =
+        assertThrows(
+            SyntaxCheckException.class,
+            () -> buildAST("SELECT count(*) FROM test HAVING nested(message.info)"));
 
     assertEquals(
         "Falling back to legacy engine. Nested function is not supported in the HAVING clause.",
@@ -495,23 +420,15 @@ class AstBuilderTest extends AstBuilderTestBase {
   public void can_build_order_by_sort_order_keyword_insensitive() {
     assertEquals(
         project(
-            sort(
-                relation("test"),
-                field("age",
-                    argument("asc", booleanLiteral(true)))),
+            sort(relation("test"), field("age", argument("asc", booleanLiteral(true)))),
             alias("age", qualifiedName("age"))),
-        buildAST("SELECT age FROM test ORDER BY age ASC")
-    );
+        buildAST("SELECT age FROM test ORDER BY age ASC"));
 
     assertEquals(
         project(
-            sort(
-                relation("test"),
-                field("age",
-                    argument("asc", booleanLiteral(true)))),
+            sort(relation("test"), field("age", argument("asc", booleanLiteral(true)))),
             alias("age", qualifiedName("age"))),
-        buildAST("SELECT age FROM test ORDER BY age asc")
-    );
+        buildAST("SELECT age FROM test ORDER BY age asc"));
   }
 
   @Test
@@ -523,20 +440,15 @@ class AstBuilderTest extends AstBuilderTestBase {
                     project(
                         relation("test"),
                         alias("firstname", qualifiedName("firstname"), "firstName"),
-                        alias("lastname", qualifiedName("lastname"), "lastName")
-                    ),
-                    "a"
-                ),
-                function(">", qualifiedName("age"), intLiteral(20))
-            ),
+                        alias("lastname", qualifiedName("lastname"), "lastName")),
+                    "a"),
+                function(">", qualifiedName("age"), intLiteral(20))),
             alias("a.firstName", qualifiedName("a", "firstName")),
             alias("lastName", qualifiedName("lastName"))),
         buildAST(
             "SELECT a.firstName, lastName FROM ("
                 + "SELECT firstname AS firstName, lastname AS lastName FROM test"
-                + ") AS a where age > 20"
-        )
-    );
+                + ") AS a where age > 20"));
   }
 
   @Test
@@ -545,19 +457,15 @@ class AstBuilderTest extends AstBuilderTestBase {
         project(
             relationSubquery(
                 project(
-                    relation("test"),
-                    alias("firstname", qualifiedName("firstname"), "firstName")),
+                    relation("test"), alias("firstname", qualifiedName("firstname"), "firstName")),
                 "a"),
-            alias("a.firstName", qualifiedName("a", "firstName"))
-        ),
+            alias("a.firstName", qualifiedName("a", "firstName"))),
         buildAST(
             "SELECT a.firstName "
                 + "FROM ( "
                 + " SELECT `firstname` AS `firstName` "
                 + " FROM `test` "
-                + ") AS `a`"
-        )
-    );
+                + ") AS `a`"));
   }
 
   @Test
@@ -566,12 +474,9 @@ class AstBuilderTest extends AstBuilderTestBase {
         project(
             filter(
                 relation(TABLE_INFO),
-                function("like", qualifiedName("TABLE_NAME"), stringLiteral("%"))
-            ),
-            AllFields.of()
-        ),
-        buildAST("SHOW TABLES LIKE '%'")
-    );
+                function("like", qualifiedName("TABLE_NAME"), stringLiteral("%"))),
+            AllFields.of()),
+        buildAST("SHOW TABLES LIKE '%'"));
   }
 
   @Test
@@ -580,17 +485,14 @@ class AstBuilderTest extends AstBuilderTestBase {
         project(
             filter(
                 relation(TABLE_INFO),
-                function("like", qualifiedName("TABLE_NAME"), stringLiteral("a_c%"))
-            ),
-            AllFields.of()
-        ),
-        buildAST("SHOW TABLES LIKE 'a_c%'")
-    );
+                function("like", qualifiedName("TABLE_NAME"), stringLiteral("a_c%"))),
+            AllFields.of()),
+        buildAST("SHOW TABLES LIKE 'a_c%'"));
   }
 
   /**
-   * Todo, ideally the identifier (%) couldn't be used in LIKE operator, only the string literal
-   * is allowed.
+   * Todo, ideally the identifier (%) couldn't be used in LIKE operator, only the string literal is
+   * allowed.
    */
   @Test
   public void show_compatible_with_old_engine_syntax() {
@@ -598,34 +500,23 @@ class AstBuilderTest extends AstBuilderTestBase {
         project(
             filter(
                 relation(TABLE_INFO),
-                function("like", qualifiedName("TABLE_NAME"), stringLiteral("%"))
-            ),
-            AllFields.of()
-        ),
-        buildAST("SHOW TABLES LIKE %")
-    );
+                function("like", qualifiedName("TABLE_NAME"), stringLiteral("%"))),
+            AllFields.of()),
+        buildAST("SHOW TABLES LIKE %"));
   }
 
   @Test
   public void describe_compatible_with_old_engine_syntax() {
     assertEquals(
-        project(
-            relation(mappingTable("a_c%")),
-            AllFields.of()
-        ),
-        buildAST("DESCRIBE TABLES LIKE a_c%")
-    );
+        project(relation(mappingTable("a_c%")), AllFields.of()),
+        buildAST("DESCRIBE TABLES LIKE a_c%"));
   }
 
   @Test
   public void can_build_describe_selected_tables() {
     assertEquals(
-        project(
-            relation(mappingTable("a_c%")),
-            AllFields.of()
-        ),
-        buildAST("DESCRIBE TABLES LIKE 'a_c%'")
-    );
+        project(relation(mappingTable("a_c%")), AllFields.of()),
+        buildAST("DESCRIBE TABLES LIKE 'a_c%'"));
   }
 
   @Test
@@ -634,17 +525,14 @@ class AstBuilderTest extends AstBuilderTestBase {
         project(
             filter(
                 relation(mappingTable("a_c%")),
-                function("like", qualifiedName("COLUMN_NAME"), stringLiteral("name%"))
-            ),
-            AllFields.of()
-        ),
-        buildAST("DESCRIBE TABLES LIKE 'a_c%' COLUMNS LIKE 'name%'")
-    );
+                function("like", qualifiedName("COLUMN_NAME"), stringLiteral("name%"))),
+            AllFields.of()),
+        buildAST("DESCRIBE TABLES LIKE 'a_c%' COLUMNS LIKE 'name%'"));
   }
 
   /**
-   * Todo, ideally the identifier (%) couldn't be used in LIKE operator, only the string literal
-   * is allowed.
+   * Todo, ideally the identifier (%) couldn't be used in LIKE operator, only the string literal is
+   * allowed.
    */
   @Test
   public void describe_and_column_compatible_with_old_engine_syntax() {
@@ -652,23 +540,16 @@ class AstBuilderTest extends AstBuilderTestBase {
         project(
             filter(
                 relation(mappingTable("a_c%")),
-                function("like", qualifiedName("COLUMN_NAME"), stringLiteral("name%"))
-            ),
-            AllFields.of()
-        ),
-        buildAST("DESCRIBE TABLES LIKE a_c% COLUMNS LIKE name%")
-    );
+                function("like", qualifiedName("COLUMN_NAME"), stringLiteral("name%"))),
+            AllFields.of()),
+        buildAST("DESCRIBE TABLES LIKE a_c% COLUMNS LIKE name%"));
   }
 
   @Test
   public void can_build_alias_by_keywords() {
     assertEquals(
-        project(
-            relation("test"),
-            alias("avg_age", qualifiedName("avg_age"), "avg")
-        ),
-        buildAST("SELECT avg_age AS avg FROM test")
-    );
+        project(relation("test"), alias("avg_age", qualifiedName("avg_age"), "avg")),
+        buildAST("SELECT avg_age AS avg FROM test"));
   }
 
   @Test
@@ -676,42 +557,20 @@ class AstBuilderTest extends AstBuilderTestBase {
     assertEquals(
         project(
             limit(
-                sort(
-                    relation("test"),
-                    field("age", argument("asc", booleanLiteral(true)))
-                ),
-                10,
-                0
-            ),
+                sort(relation("test"), field("age", argument("asc", booleanLiteral(true)))), 10, 0),
             alias("name", qualifiedName("name")),
-            alias("age", qualifiedName("age"))
-        ),
-        buildAST("SELECT name, age FROM test ORDER BY age LIMIT 10")
-    );
+            alias("age", qualifiedName("age"))),
+        buildAST("SELECT name, age FROM test ORDER BY age LIMIT 10"));
   }
 
   @Test
   public void can_build_limit_clause_with_offset() {
     assertEquals(
-        project(
-            limit(
-                relation("test"),
-                10,
-                5
-            ),
-            alias("name", qualifiedName("name"))
-        ),
+        project(limit(relation("test"), 10, 5), alias("name", qualifiedName("name"))),
         buildAST("SELECT name FROM test LIMIT 10 OFFSET 5"));
 
     assertEquals(
-        project(
-            limit(
-                relation("test"),
-                10,
-                5
-            ),
-            alias("name", qualifiedName("name"))
-        ),
+        project(limit(relation("test"), 10, 5), alias("name", qualifiedName("name"))),
         buildAST("SELECT name FROM test LIMIT 5, 10"));
   }
 
@@ -719,11 +578,10 @@ class AstBuilderTest extends AstBuilderTestBase {
   public void can_build_qualified_name_highlight() {
     Map<String, Literal> args = new HashMap<>();
     assertEquals(
-        project(relation("test"),
-            alias("highlight(fieldA)",
-                highlight(AstDSL.qualifiedName("fieldA"), args))),
-        buildAST("SELECT highlight(fieldA) FROM test")
-    );
+        project(
+            relation("test"),
+            alias("highlight(fieldA)", highlight(AstDSL.qualifiedName("fieldA"), args))),
+        buildAST("SELECT highlight(fieldA) FROM test"));
   }
 
   @Test
@@ -732,22 +590,22 @@ class AstBuilderTest extends AstBuilderTestBase {
     args.put("pre_tags", new Literal("<mark>", DataType.STRING));
     args.put("post_tags", new Literal("</mark>", DataType.STRING));
     assertEquals(
-        project(relation("test"),
-            alias("highlight(fieldA, pre_tags='<mark>', post_tags='</mark>')",
+        project(
+            relation("test"),
+            alias(
+                "highlight(fieldA, pre_tags='<mark>', post_tags='</mark>')",
                 highlight(AstDSL.qualifiedName("fieldA"), args))),
-        buildAST("SELECT highlight(fieldA, pre_tags='<mark>', post_tags='</mark>') "
-            + "FROM test")
-    );
+        buildAST(
+            "SELECT highlight(fieldA, pre_tags='<mark>', post_tags='</mark>') " + "FROM test"));
   }
 
   @Test
   public void can_build_string_literal_highlight() {
     Map<String, Literal> args = new HashMap<>();
     assertEquals(
-        project(relation("test"),
-            alias("highlight(\"fieldA\")",
-                highlight(AstDSL.stringLiteral("fieldA"), args))),
-        buildAST("SELECT highlight(\"fieldA\") FROM test")
-    );
+        project(
+            relation("test"),
+            alias("highlight(\"fieldA\")", highlight(AstDSL.stringLiteral("fieldA"), args))),
+        buildAST("SELECT highlight(\"fieldA\") FROM test"));
   }
 }

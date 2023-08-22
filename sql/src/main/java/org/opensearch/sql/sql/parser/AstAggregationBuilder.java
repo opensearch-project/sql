@@ -3,7 +3,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-
 package org.opensearch.sql.sql.parser;
 
 import static java.util.Collections.emptyList;
@@ -27,6 +26,8 @@ import org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParserBaseVisitor;
 import org.opensearch.sql.sql.parser.context.QuerySpecification;
 
 /**
+ *
+ *
  * <pre>SelectExpressionAnalyzerTest
  * AST aggregation builder that builds AST aggregation node for the following scenarios:
  *
@@ -59,9 +60,7 @@ import org.opensearch.sql.sql.parser.context.QuerySpecification;
 @RequiredArgsConstructor
 public class AstAggregationBuilder extends OpenSearchSQLParserBaseVisitor<UnresolvedPlan> {
 
-  /**
-   * Query specification that contains info collected beforehand.
-   */
+  /** Query specification that contains info collected beforehand. */
   private final QuerySpecification querySpec;
 
   @Override
@@ -78,10 +77,7 @@ public class AstAggregationBuilder extends OpenSearchSQLParserBaseVisitor<Unreso
 
   private UnresolvedPlan buildExplicitAggregation() {
     List<UnresolvedExpression> groupByItems = replaceGroupByItemIfAliasOrOrdinal();
-    return new Aggregation(
-        new ArrayList<>(querySpec.getAggregators()),
-        emptyList(),
-        groupByItems);
+    return new Aggregation(new ArrayList<>(querySpec.getAggregators()), emptyList(), groupByItems);
   }
 
   private UnresolvedPlan buildImplicitAggregation() {
@@ -89,33 +85,32 @@ public class AstAggregationBuilder extends OpenSearchSQLParserBaseVisitor<Unreso
 
     if (invalidSelectItem.isPresent()) {
       // Report semantic error to avoid fall back to old engine again
-      throw new SemanticCheckException(StringUtils.format(
-          "Explicit GROUP BY clause is required because expression [%s] "
-              + "contains non-aggregated column", invalidSelectItem.get()));
+      throw new SemanticCheckException(
+          StringUtils.format(
+              "Explicit GROUP BY clause is required because expression [%s] "
+                  + "contains non-aggregated column",
+              invalidSelectItem.get()));
     }
 
     return new Aggregation(
-        new ArrayList<>(querySpec.getAggregators()),
-        emptyList(),
-        querySpec.getGroupByItems());
+        new ArrayList<>(querySpec.getAggregators()), emptyList(), querySpec.getGroupByItems());
   }
 
   private List<UnresolvedExpression> replaceGroupByItemIfAliasOrOrdinal() {
-    return querySpec.getGroupByItems()
-                    .stream()
-                    .map(querySpec::replaceIfAliasOrOrdinal)
-                    .map(expr -> new Alias(expr.toString(), expr))
-                    .collect(Collectors.toList());
+    return querySpec.getGroupByItems().stream()
+        .map(querySpec::replaceIfAliasOrOrdinal)
+        .map(expr -> new Alias(expr.toString(), expr))
+        .collect(Collectors.toList());
   }
 
   /**
-   * Find non-aggregate item in SELECT clause. Note that literal is special which is not required
-   * to be applied by aggregate function.
+   * Find non-aggregate item in SELECT clause. Note that literal is special which is not required to
+   * be applied by aggregate function.
    */
   private Optional<UnresolvedExpression> findNonAggregatedItemInSelect() {
     return querySpec.getSelectItems().stream()
-                                     .filter(this::isNonAggregateOrLiteralExpression)
-                                     .findFirst();
+        .filter(this::isNonAggregateOrLiteralExpression)
+        .findFirst();
   }
 
   private boolean isAggregatorNotFoundAnywhere() {
@@ -132,8 +127,7 @@ public class AstAggregationBuilder extends OpenSearchSQLParserBaseVisitor<Unreso
     }
 
     List<? extends Node> children = expr.getChild();
-    return children.stream().anyMatch(child ->
-        isNonAggregateOrLiteralExpression((UnresolvedExpression) child));
+    return children.stream()
+        .anyMatch(child -> isNonAggregateOrLiteralExpression((UnresolvedExpression) child));
   }
-
 }

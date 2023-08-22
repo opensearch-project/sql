@@ -5,7 +5,6 @@
 
 package org.opensearch.sql.common.grok;
 
-
 import static java.lang.String.format;
 
 import java.util.ArrayList;
@@ -31,9 +30,7 @@ public class Match {
   private boolean keepEmptyCaptures = true;
   private Map<String, Object> capture = Collections.emptyMap();
 
-  /**
-   * Create a new {@code Match} object.
-   */
+  /** Create a new {@code Match} object. */
   public Match(CharSequence subject, Grok grok, Matcher match, int start, int end) {
     this.subject = subject;
     this.grok = grok;
@@ -42,9 +39,7 @@ public class Match {
     this.end = end;
   }
 
-  /**
-   * Create Empty grok matcher.
-   */
+  /** Create Empty grok matcher. */
   public static final Match EMPTY = new Match("", null, null, 0, 0);
 
   public Matcher getMatch() {
@@ -59,9 +54,7 @@ public class Match {
     return end;
   }
 
-  /**
-   * Ignore empty captures.
-   */
+  /** Ignore empty captures. */
   public void setKeepEmptyCaptures(boolean ignore) {
     // clear any cached captures
     if (capture.size() > 0) {
@@ -97,8 +90,8 @@ public class Match {
    *
    * @param flattened will it flatten values.
    * @return the matched elements.
-   * @throws GrokException if a keys has multiple non-null values, but only if flattened is set
-   *                       to true.
+   * @throws GrokException if a keys has multiple non-null values, but only if flattened is set to
+   *     true.
    */
   private Map<String, Object> capture(boolean flattened) throws GrokException {
     if (match == null) {
@@ -116,70 +109,69 @@ public class Match {
 
     Map<String, String> mappedw = GrokUtils.namedGroups(this.match, this.grok.namedGroups);
 
-    mappedw.forEach((key, valueString) -> {
-      String id = this.grok.getNamedRegexCollectionById(key);
-      if (id != null && !id.isEmpty()) {
-        key = id;
-      }
-
-      if ("UNWANTED".equals(key)) {
-        return;
-      }
-
-      Object value = valueString;
-      if (valueString != null) {
-        IConverter<?> converter = grok.converters.get(key);
-
-        if (converter != null) {
-          key = Converter.extractKey(key);
-          try {
-            value = converter.convert(valueString);
-          } catch (Exception e) {
-            capture.put(key + "_grokfailure", e.toString());
+    mappedw.forEach(
+        (key, valueString) -> {
+          String id = this.grok.getNamedRegexCollectionById(key);
+          if (id != null && !id.isEmpty()) {
+            key = id;
           }
 
-          if (value instanceof String) {
-            value = cleanString((String) value);
+          if ("UNWANTED".equals(key)) {
+            return;
           }
-        } else {
-          value = cleanString(valueString);
-        }
-      } else if (!isKeepEmptyCaptures()) {
-        return;
-      }
 
-      if (capture.containsKey(key)) {
-        Object currentValue = capture.get(key);
+          Object value = valueString;
+          if (valueString != null) {
+            IConverter<?> converter = grok.converters.get(key);
 
-        if (flattened) {
-          if (currentValue == null && value != null) {
+            if (converter != null) {
+              key = Converter.extractKey(key);
+              try {
+                value = converter.convert(valueString);
+              } catch (Exception e) {
+                capture.put(key + "_grokfailure", e.toString());
+              }
+
+              if (value instanceof String) {
+                value = cleanString((String) value);
+              }
+            } else {
+              value = cleanString(valueString);
+            }
+          } else if (!isKeepEmptyCaptures()) {
+            return;
+          }
+
+          if (capture.containsKey(key)) {
+            Object currentValue = capture.get(key);
+
+            if (flattened) {
+              if (currentValue == null && value != null) {
+                capture.put(key, value);
+              }
+              if (currentValue != null && value != null) {
+                throw new GrokException(
+                    format(
+                        "key '%s' has multiple non-null values, this is not allowed in flattened"
+                            + " mode, values:'%s', '%s'",
+                        key, currentValue, value));
+              }
+            } else {
+              if (currentValue instanceof List) {
+                @SuppressWarnings("unchecked")
+                List<Object> cvl = (List<Object>) currentValue;
+                cvl.add(value);
+              } else {
+                List<Object> list = new ArrayList<Object>();
+                list.add(currentValue);
+                list.add(value);
+                capture.put(key, list);
+              }
+            }
+          } else {
             capture.put(key, value);
           }
-          if (currentValue != null && value != null) {
-            throw new GrokException(
-                format(
-                    "key '%s' has multiple non-null values, this is not allowed in flattened mode,"
-                        + " values:'%s', '%s'",
-                    key,
-                    currentValue,
-                    value));
-          }
-        } else {
-          if (currentValue instanceof List) {
-            @SuppressWarnings("unchecked")
-            List<Object> cvl = (List<Object>) currentValue;
-            cvl.add(value);
-          } else {
-            List<Object> list = new ArrayList<Object>();
-            list.add(currentValue);
-            list.add(value);
-            capture.put(key, list);
-          }
-        }
-      } else {
-        capture.put(key, value);
-      }
-    });
+        });
 
     capture = Collections.unmodifiableMap(capture);
 
@@ -189,13 +181,11 @@ public class Match {
   /**
    * Match to the <tt>subject</tt> the <tt>regex</tt> and save the matched element into a map
    *
-   * <p>Multiple values to the same key are flattened to one value: the sole non-null value will
-   * be captured.
-   * Should there be multiple non-null values a RuntimeException is being thrown.
+   * <p>Multiple values to the same key are flattened to one value: the sole non-null value will be
+   * captured. Should there be multiple non-null values a RuntimeException is being thrown.
    *
    * <p>This can be used in cases like: (foo (.*:message) bar|bar (.*:message) foo) where the regexp
-   * guarantees that only
-   * one value will be captured.
+   * guarantees that only one value will be captured.
    *
    * <p>See also {@link #capture} which returns multiple values of the same key as list.
    *
@@ -220,9 +210,7 @@ public class Match {
     char firstChar = value.charAt(0);
     char lastChar = value.charAt(value.length() - 1);
 
-    if (firstChar == lastChar
-        && (firstChar == '"' || firstChar == '\'')
-    ) {
+    if (firstChar == lastChar && (firstChar == '"' || firstChar == '\'')) {
       if (value.length() <= 2) {
         return "";
       } else {
@@ -249,5 +237,4 @@ public class Match {
   public Boolean isNull() {
     return this.match == null;
   }
-
 }

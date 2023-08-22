@@ -3,7 +3,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-
 package org.opensearch.sql.ppl;
 
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_ACCOUNT;
@@ -43,7 +42,9 @@ public class FieldsCommandIT extends PPLIntegTestCase {
     verifyColumn(result, columnName("firstname"), columnName("lastname"));
   }
 
-  @Ignore("Cannot resolve wildcard yet. Enable once https://github.com/opensearch-project/sql/issues/787 is resolved.")
+  @Ignore(
+      "Cannot resolve wildcard yet. Enable once"
+          + " https://github.com/opensearch-project/sql/issues/787 is resolved.")
   @Test
   public void testFieldsWildCard() throws IOException {
     JSONObject result =
@@ -57,14 +58,14 @@ public class FieldsCommandIT extends PPLIntegTestCase {
         executeQuery(String.format("source=%s | fields birthdate", TEST_INDEX_BANK));
     verifySchema(result, schema("birthdate", null, "timestamp"));
 
-    verifyDataRows(result,
+    verifyDataRows(
+        result,
         rows("2017-10-23 00:00:00"),
         rows("2017-11-20 00:00:00"),
         rows("2018-06-23 00:00:00"),
         rows("2018-11-13 23:33:20"),
         rows("2018-06-27 00:00:00"),
         rows("2018-08-19 00:00:00"),
-        rows("2018-08-11 00:00:00")
-    );
+        rows("2018-08-11 00:00:00"));
   }
 }

@@ -7,7 +7,6 @@ package org.opensearch.sql.prometheus.response;
 
 import static org.opensearch.sql.data.type.ExprCoreType.INTEGER;
 import static org.opensearch.sql.data.type.ExprCoreType.LONG;
-import static org.opensearch.sql.prometheus.data.constants.PrometheusFieldConstants.LABELS;
 import static org.opensearch.sql.prometheus.data.constants.PrometheusFieldConstants.MATRIX_KEY;
 import static org.opensearch.sql.prometheus.data.constants.PrometheusFieldConstants.METRIC_KEY;
 import static org.opensearch.sql.prometheus.data.constants.PrometheusFieldConstants.RESULT_KEY;

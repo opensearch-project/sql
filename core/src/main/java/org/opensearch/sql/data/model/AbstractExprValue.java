@@ -3,23 +3,18 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-
 package org.opensearch.sql.data.model;
 
 import org.opensearch.sql.exception.ExpressionEvaluationException;
 
-/**
- * Abstract ExprValue.
- */
+/** Abstract ExprValue. */
 public abstract class AbstractExprValue implements ExprValue {
-  /**
-   * The customize compareTo logic.
-   */
+  /** The customize compareTo logic. */
   @Override
   public int compareTo(ExprValue other) {
     if (this.isNull() || this.isMissing() || other.isNull() || other.isMissing()) {
       throw new IllegalStateException(
-           "[BUG] Unreachable, Comparing with NULL or MISSING is undefined");
+          "[BUG] Unreachable, Comparing with NULL or MISSING is undefined");
     }
     if ((this.isNumber() && other.isNumber())
         || (this.isDateTime() && other.isDateTime())
@@ -34,13 +29,8 @@ public abstract class AbstractExprValue implements ExprValue {
   }
 
   /**
-   * The customize equals logic.
-   * The table below list the NULL and MISSING handling logic.
-   * A       B       A == B
-   * NULL    NULL    TRUE
-   * NULL    MISSING FALSE
-   * MISSING NULL    FALSE
-   * MISSING MISSING TRUE
+   * The customize equals logic. The table below list the NULL and MISSING handling logic. A B A ==
+   * B NULL NULL TRUE NULL MISSING FALSE MISSING NULL FALSE MISSING MISSING TRUE
    */
   @Override
   public boolean equals(Object o) {
@@ -59,13 +49,9 @@ public abstract class AbstractExprValue implements ExprValue {
     }
   }
 
-  /**
-   * The expression value compare.
-   */
+  /** The expression value compare. */
   public abstract int compare(ExprValue other);
 
-  /**
-   * The expression value equal.
-   */
+  /** The expression value equal. */
   public abstract boolean equal(ExprValue other);
 }

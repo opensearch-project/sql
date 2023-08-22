@@ -62,27 +62,30 @@ public class SystemFunctionsTest {
     assertEquals("TIMESTAMP", typeofGetValue(new ExprTimestampValue(Instant.now())));
     assertEquals("UNDEFINED", typeofGetValue(ExprNullValue.of()));
     assertEquals("UNDEFINED", typeofGetValue(ExprMissingValue.of()));
-    assertEquals("UNKNOWN", typeofGetValue(new AbstractExprValue() {
-      @Override
-      public int compare(ExprValue other) {
-        return 0;
-      }
+    assertEquals(
+        "UNKNOWN",
+        typeofGetValue(
+            new AbstractExprValue() {
+              @Override
+              public int compare(ExprValue other) {
+                return 0;
+              }
 
-      @Override
-      public boolean equal(ExprValue other) {
-        return false;
-      }
+              @Override
+              public boolean equal(ExprValue other) {
+                return false;
+              }
 
-      @Override
-      public Object value() {
-        return null;
-      }
+              @Override
+              public Object value() {
+                return null;
+              }
 
-      @Override
-      public ExprType type() {
-        return ExprCoreType.UNKNOWN;
-      }
-    }));
+              @Override
+              public ExprType type() {
+                return ExprCoreType.UNKNOWN;
+              }
+            }));
   }
 
   private String typeofGetValue(ExprValue input) {

@@ -7,13 +7,8 @@
 
 package org.opensearch.sql.analysis;
 
-import com.google.common.collect.ImmutableSet;
 import java.util.List;
-import java.util.Set;
-import java.util.stream.Collectors;
-import org.opensearch.sql.ast.expression.QualifiedName;
 import org.opensearch.sql.datasource.DataSourceService;
-import org.opensearch.sql.datasource.model.DataSourceMetadata;
 
 public class DataSourceSchemaIdentifierNameResolver {
 
@@ -29,19 +24,17 @@ public class DataSourceSchemaIdentifierNameResolver {
   private static final String DOT = ".";
 
   /**
-   * Data model for capturing dataSourceName, schema and identifier from
-   * fully qualifiedName. In the current state, it is used to capture
-   * DataSourceSchemaTable name and DataSourceSchemaFunction in case of table
-   * functions.
+   * Data model for capturing dataSourceName, schema and identifier from fully qualifiedName. In the
+   * current state, it is used to capture DataSourceSchemaTable name and DataSourceSchemaFunction in
+   * case of table functions.
    *
    * @param dataSourceService {@link DataSourceService}.
-   * @param parts           parts of qualifiedName.
+   * @param parts parts of qualifiedName.
    */
-  public DataSourceSchemaIdentifierNameResolver(DataSourceService dataSourceService,
-                                                List<String> parts) {
+  public DataSourceSchemaIdentifierNameResolver(
+      DataSourceService dataSourceService, List<String> parts) {
     this.dataSourceService = dataSourceService;
-    List<String> remainingParts
-        = captureSchemaName(captureDataSourceName(parts));
+    List<String> remainingParts = captureSchemaName(captureDataSourceName(parts));
     identifierName = String.join(DOT, remainingParts);
   }
 
@@ -56,7 +49,6 @@ public class DataSourceSchemaIdentifierNameResolver {
   public String getSchemaName() {
     return schemaName;
   }
-
 
   // Capture datasource name and return remaining parts(schema name and table name)
   // from the fully qualified name.
@@ -74,12 +66,11 @@ public class DataSourceSchemaIdentifierNameResolver {
   private List<String> captureSchemaName(List<String> parts) {
     if (parts.size() > 1
         && (DEFAULT_SCHEMA_NAME.equals(parts.get(0))
-        || INFORMATION_SCHEMA_NAME.contains(parts.get(0)))) {
+            || INFORMATION_SCHEMA_NAME.contains(parts.get(0)))) {
       schemaName = parts.get(0);
       return parts.subList(1, parts.size());
     } else {
       return parts;
     }
   }
-
 }

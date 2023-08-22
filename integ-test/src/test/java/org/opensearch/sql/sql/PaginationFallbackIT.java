@@ -11,7 +11,6 @@ import static org.opensearch.sql.util.TestUtils.verifyIsV1Cursor;
 import static org.opensearch.sql.util.TestUtils.verifyIsV2Cursor;
 
 import java.io.IOException;
-import org.json.JSONObject;
 import org.junit.Test;
 import org.opensearch.sql.legacy.SQLIntegTestCase;
 import org.opensearch.sql.util.TestUtils;

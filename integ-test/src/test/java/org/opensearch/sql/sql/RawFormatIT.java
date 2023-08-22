@@ -5,7 +5,6 @@
 
 package org.opensearch.sql.sql;
 
-import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_BANK_CSV_SANITIZE;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_BANK_RAW_SANITIZE;
 import static org.opensearch.sql.protocol.response.format.FlatResponseFormatter.CONTENT_TYPE;
 

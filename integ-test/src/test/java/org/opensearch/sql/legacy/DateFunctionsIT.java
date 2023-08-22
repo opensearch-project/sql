@@ -3,7 +3,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-
 package org.opensearch.sql.legacy;
 
 import static org.hamcrest.Matchers.equalTo;
@@ -31,13 +30,13 @@ public class DateFunctionsIT extends SQLIntegTestCase {
   private static final String FROM = "FROM " + TestsConstants.TEST_INDEX_ONLINE;
 
   /**
-   * Some of the first few SQL functions are tested in both SELECT and WHERE cases for flexibility and the remainder
-   * are merely tested in SELECT for simplicity.
-   * <p>
-   * There is a limitation in all date SQL functions in that they expect a date field as input. In the future this
-   * can be expanded on by supporting CAST and casting dates given as Strings to TIMESTAMP (SQL's date type).
+   * Some of the first few SQL functions are tested in both SELECT and WHERE cases for flexibility
+   * and the remainder are merely tested in SELECT for simplicity.
+   *
+   * <p>There is a limitation in all date SQL functions in that they expect a date field as input.
+   * In the future this can be expanded on by supporting CAST and casting dates given as Strings to
+   * TIMESTAMP (SQL's date type).
    */
-
   @Override
   protected void init() throws Exception {
     loadIndex(Index.ONLINE);
@@ -45,9 +44,7 @@ public class DateFunctionsIT extends SQLIntegTestCase {
 
   @Test
   public void year() throws IOException {
-    SearchHit[] hits = query(
-        "SELECT YEAR(insert_time) as year"
-    );
+    SearchHit[] hits = query("SELECT YEAR(insert_time) as year");
     for (SearchHit hit : hits) {
       int year = (int) getField(hit, "year");
       DateTime insertTime = getDateFromSource(hit, "insert_time");
@@ -57,9 +54,7 @@ public class DateFunctionsIT extends SQLIntegTestCase {
 
   @Test
   public void monthOfYear() throws IOException {
-    SearchHit[] hits = query(
-        "SELECT MONTH_OF_YEAR(insert_time) as month_of_year"
-    );
+    SearchHit[] hits = query("SELECT MONTH_OF_YEAR(insert_time) as month_of_year");
     for (SearchHit hit : hits) {
       int monthOfYear = (int) getField(hit, "month_of_year");
       DateTime insertTime = getDateFromSource(hit, "insert_time");
@@ -69,9 +64,7 @@ public class DateFunctionsIT extends SQLIntegTestCase {
 
   @Test
   public void weekOfYearInSelect() throws IOException {
-    SearchHit[] hits = query(
-        "SELECT WEEK_OF_YEAR(insert_time) as week_of_year"
-    );
+    SearchHit[] hits = query("SELECT WEEK_OF_YEAR(insert_time) as week_of_year");
     for (SearchHit hit : hits) {
       int weekOfYear = (int) getField(hit, "week_of_year");
       DateTime insertTime = getDateFromSource(hit, "insert_time");
@@ -81,12 +74,12 @@ public class DateFunctionsIT extends SQLIntegTestCase {
 
   @Test
   public void weekOfYearInWhere() throws IOException {
-    SearchHit[] hits = query(
-        "SELECT insert_time",
-        "WHERE DATE_FORMAT(insert_time, 'YYYY-MM-dd') < '2014-08-19' AND " +
-            "WEEK_OF_YEAR(insert_time) > 33",
-        "LIMIT 2000"
-    );
+    SearchHit[] hits =
+        query(
+            "SELECT insert_time",
+            "WHERE DATE_FORMAT(insert_time, 'YYYY-MM-dd') < '2014-08-19' AND "
+                + "WEEK_OF_YEAR(insert_time) > 33",
+            "LIMIT 2000");
     for (SearchHit hit : hits) {
       DateTime insertTime = getDateFromSource(hit, "insert_time");
       assertThat(insertTime.weekOfWeekyear().get(), greaterThan(33));
@@ -95,9 +88,7 @@ public class DateFunctionsIT extends SQLIntegTestCase {
 
   @Test
   public void dayOfYearInSelect() throws IOException {
-    SearchHit[] hits = query(
-        "SELECT DAY_OF_YEAR(insert_time) as day_of_year", "LIMIT 2000"
-    );
+    SearchHit[] hits = query("SELECT DAY_OF_YEAR(insert_time) as day_of_year", "LIMIT 2000");
     for (SearchHit hit : hits) {
       int dayOfYear = (int) getField(hit, "day_of_year");
       DateTime insertTime = getDateFromSource(hit, "insert_time");
@@ -107,9 +98,8 @@ public class DateFunctionsIT extends SQLIntegTestCase {
 
   @Test
   public void dayOfYearInWhere() throws IOException {
-    SearchHit[] hits = query(
-        "SELECT insert_time", "WHERE DAY_OF_YEAR(insert_time) < 233", "LIMIT 10000"
-    );
+    SearchHit[] hits =
+        query("SELECT insert_time", "WHERE DAY_OF_YEAR(insert_time) < 233", "LIMIT 10000");
     for (SearchHit hit : hits) {
       DateTime insertTime = getDateFromSource(hit, "insert_time");
       assertThat(insertTime.dayOfYear().get(), lessThan(233));
@@ -118,9 +108,7 @@ public class DateFunctionsIT extends SQLIntegTestCase {
 
   @Test
   public void dayOfMonthInSelect() throws IOException {
-    SearchHit[] hits = query(
-        "SELECT DAY_OF_MONTH(insert_time) as day_of_month", "LIMIT 2000"
-    );
+    SearchHit[] hits = query("SELECT DAY_OF_MONTH(insert_time) as day_of_month", "LIMIT 2000");
     for (SearchHit hit : hits) {
       int dayOfMonth = (int) getField(hit, "day_of_month");
       DateTime insertTime = getDateFromSource(hit, "insert_time");
@@ -130,9 +118,8 @@ public class DateFunctionsIT extends SQLIntegTestCase {
 
   @Test
   public void dayOfMonthInWhere() throws IOException {
-    SearchHit[] hits = query(
-        "SELECT insert_time", "WHERE DAY_OF_MONTH(insert_time) < 21", "LIMIT 10000"
-    );
+    SearchHit[] hits =
+        query("SELECT insert_time", "WHERE DAY_OF_MONTH(insert_time) < 21", "LIMIT 10000");
     for (SearchHit hit : hits) {
       DateTime insertTime = getDateFromSource(hit, "insert_time");
       assertThat(insertTime.dayOfMonth().get(), lessThan(21));
@@ -141,9 +128,7 @@ public class DateFunctionsIT extends SQLIntegTestCase {
 
   @Test
   public void dayOfWeek() throws IOException {
-    SearchHit[] hits = query(
-        "SELECT DAY_OF_WEEK(insert_time) as day_of_week", "LIMIT 2000"
-    );
+    SearchHit[] hits = query("SELECT DAY_OF_WEEK(insert_time) as day_of_week", "LIMIT 2000");
     for (SearchHit hit : hits) {
       int dayOfWeek = (int) getField(hit, "day_of_week");
       DateTime insertTime = getDateFromSource(hit, "insert_time");
@@ -153,9 +138,7 @@ public class DateFunctionsIT extends SQLIntegTestCase {
 
   @Test
   public void hourOfDay() throws IOException {
-    SearchHit[] hits = query(
-        "SELECT HOUR_OF_DAY(insert_time) as hour_of_day", "LIMIT 1000"
-    );
+    SearchHit[] hits = query("SELECT HOUR_OF_DAY(insert_time) as hour_of_day", "LIMIT 1000");
     for (SearchHit hit : hits) {
       int hourOfDay = (int) getField(hit, "hour_of_day");
       DateTime insertTime = getDateFromSource(hit, "insert_time");
@@ -165,9 +148,7 @@ public class DateFunctionsIT extends SQLIntegTestCase {
 
   @Test
   public void minuteOfDay() throws IOException {
-    SearchHit[] hits = query(
-        "SELECT MINUTE_OF_DAY(insert_time) as minute_of_day", "LIMIT 500"
-    );
+    SearchHit[] hits = query("SELECT MINUTE_OF_DAY(insert_time) as minute_of_day", "LIMIT 500");
     for (SearchHit hit : hits) {
       int minuteOfDay = (int) getField(hit, "minute_of_day");
       DateTime insertTime = getDateFromSource(hit, "insert_time");
@@ -177,9 +158,7 @@ public class DateFunctionsIT extends SQLIntegTestCase {
 
   @Test
   public void minuteOfHour() throws IOException {
-    SearchHit[] hits = query(
-        "SELECT MINUTE_OF_HOUR(insert_time) as minute_of_hour", "LIMIT 500"
-    );
+    SearchHit[] hits = query("SELECT MINUTE_OF_HOUR(insert_time) as minute_of_hour", "LIMIT 500");
     for (SearchHit hit : hits) {
       int minuteOfHour = (int) getField(hit, "minute_of_hour");
       DateTime insertTime = getDateFromSource(hit, "insert_time");
@@ -189,9 +168,8 @@ public class DateFunctionsIT extends SQLIntegTestCase {
 
   @Test
   public void secondOfMinute() throws IOException {
-    SearchHit[] hits = query(
-        "SELECT SECOND_OF_MINUTE(insert_time) as second_of_minute", "LIMIT 500"
-    );
+    SearchHit[] hits =
+        query("SELECT SECOND_OF_MINUTE(insert_time) as second_of_minute", "LIMIT 500");
     for (SearchHit hit : hits) {
       int secondOfMinute = (int) getField(hit, "second_of_minute");
       DateTime insertTime = getDateFromSource(hit, "insert_time");
@@ -201,9 +179,7 @@ public class DateFunctionsIT extends SQLIntegTestCase {
 
   @Test
   public void month() throws IOException {
-    SearchHit[] hits = query(
-        "SELECT MONTH(insert_time) AS month", "LIMIT 500"
-    );
+    SearchHit[] hits = query("SELECT MONTH(insert_time) AS month", "LIMIT 500");
     for (SearchHit hit : hits) {
       int month = (int) getField(hit, "month");
       DateTime dateTime = getDateFromSource(hit, "insert_time");
@@ -213,9 +189,7 @@ public class DateFunctionsIT extends SQLIntegTestCase {
 
   @Test
   public void dayofmonth() throws IOException {
-    SearchHit[] hits = query(
-        "SELECT DAYOFMONTH(insert_time) AS dayofmonth", "LIMIT 500"
-    );
+    SearchHit[] hits = query("SELECT DAYOFMONTH(insert_time) AS dayofmonth", "LIMIT 500");
     for (SearchHit hit : hits) {
       int dayofmonth = (int) getField(hit, "dayofmonth");
       DateTime dateTime = getDateFromSource(hit, "insert_time");
@@ -225,9 +199,7 @@ public class DateFunctionsIT extends SQLIntegTestCase {
 
   @Test
   public void date() throws IOException {
-    SearchHit[] hits = query(
-        "SELECT DATE(insert_time) AS date", "LIMIT 500"
-    );
+    SearchHit[] hits = query("SELECT DATE(insert_time) AS date", "LIMIT 500");
     for (SearchHit hit : hits) {
       String date = (String) getField(hit, "date");
       DateTime dateTime = getDateFromSource(hit, "insert_time");
@@ -237,9 +209,7 @@ public class DateFunctionsIT extends SQLIntegTestCase {
 
   @Test
   public void monthname() throws IOException {
-    SearchHit[] hits = query(
-        "SELECT MONTHNAME(insert_time) AS monthname", "LIMIT 500"
-    );
+    SearchHit[] hits = query("SELECT MONTHNAME(insert_time) AS monthname", "LIMIT 500");
     for (SearchHit hit : hits) {
       String monthname = (String) getField(hit, "monthname");
       DateTime dateTime = getDateFromSource(hit, "insert_time");
@@ -249,9 +219,7 @@ public class DateFunctionsIT extends SQLIntegTestCase {
 
   @Test
   public void timestamp() throws IOException {
-    SearchHit[] hits = query(
-        "SELECT TIMESTAMP(insert_time) AS timestamp", "LIMIT 500"
-    );
+    SearchHit[] hits = query("SELECT TIMESTAMP(insert_time) AS timestamp", "LIMIT 500");
     for (SearchHit hit : hits) {
       String timastamp = (String) getField(hit, "timestamp");
       DateTime dateTime = getDateFromSource(hit, "insert_time");
@@ -284,14 +252,16 @@ public class DateFunctionsIT extends SQLIntegTestCase {
     return execute(select + " " + FROM + " " + String.join(" ", statements));
   }
 
-  // TODO: I think this code is now re-used in multiple classes, would be good to move to the base class.
+  // TODO: I think this code is now re-used in multiple classes, would be good to move to the base
+  // class.
   private SearchHit[] execute(String sqlRequest) throws IOException {
     final JSONObject jsonObject = executeRequest(makeRequest(sqlRequest));
 
-    final XContentParser parser = new JsonXContentParser(
-        NamedXContentRegistry.EMPTY,
-        LoggingDeprecationHandler.INSTANCE,
-        new JsonFactory().createParser(jsonObject.toString()));
+    final XContentParser parser =
+        new JsonXContentParser(
+            NamedXContentRegistry.EMPTY,
+            LoggingDeprecationHandler.INSTANCE,
+            new JsonFactory().createParser(jsonObject.toString()));
     return SearchResponse.fromXContent(parser).getHits().getHits();
   }
 

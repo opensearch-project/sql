@@ -11,18 +11,14 @@ import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.mockito.AdditionalMatchers.not;
 import static org.mockito.AdditionalMatchers.or;
-import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.when;
 import static org.opensearch.common.unit.TimeValue.timeValueMinutes;
-import static org.opensearch.sql.opensearch.setting.LegacyOpenDistroSettings.PPL_ENABLED_SETTING;
 import static org.opensearch.sql.opensearch.setting.LegacyOpenDistroSettings.legacySettings;
 
 import java.util.List;
-import java.util.Set;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.AdditionalMatchers;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.opensearch.cluster.ClusterName;

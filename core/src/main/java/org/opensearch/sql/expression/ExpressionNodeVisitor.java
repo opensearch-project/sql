@@ -3,7 +3,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-
 package org.opensearch.sql.expression;
 
 import org.opensearch.sql.expression.aggregation.Aggregator;
@@ -15,8 +14,9 @@ import org.opensearch.sql.expression.parse.ParseExpression;
 
 /**
  * Abstract visitor for expression tree nodes.
- * @param <T>   type of return value to accumulate when visiting.
- * @param <C>   type of context.
+ *
+ * @param <T> type of return value to accumulate when visiting.
+ * @param <C> type of context.
  */
 public abstract class ExpressionNodeVisitor<T, C> {
 
@@ -26,9 +26,10 @@ public abstract class ExpressionNodeVisitor<T, C> {
 
   /**
    * Visit children nodes in function arguments.
-   * @param node      function node
-   * @param context   context
-   * @return          result
+   *
+   * @param node function node
+   * @param context context
+   * @return result
    */
   public T visitChildren(FunctionImplementation node, C context) {
     T result = defaultResult();
@@ -81,10 +82,9 @@ public abstract class ExpressionNodeVisitor<T, C> {
   }
 
   /**
-   * Call visitFunction() by default rather than visitChildren().
-   * This makes CASE/WHEN able to be handled:
-   *  1) by visitFunction() if not overwritten: ex. FilterQueryBuilder
-   *  2) by visitCase/When() otherwise if any special logic: ex. ExprReferenceOptimizer
+   * Call visitFunction() by default rather than visitChildren(). This makes CASE/WHEN able to be
+   * handled: 1) by visitFunction() if not overwritten: ex. FilterQueryBuilder 2) by
+   * visitCase/When() otherwise if any special logic: ex. ExprReferenceOptimizer
    */
   public T visitCase(CaseClause node, C context) {
     return visitFunction(node, context);

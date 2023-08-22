@@ -41,13 +41,11 @@ public class DataSourceServiceImpl implements DataSourceService {
 
   private final DataSourceUserAuthorizationHelper dataSourceUserAuthorizationHelper;
 
-  /**
-   * Construct from the set of {@link DataSourceFactory} at bootstrap time.
-   */
-  public DataSourceServiceImpl(Set<DataSourceFactory> dataSourceFactories,
-                               DataSourceMetadataStorage dataSourceMetadataStorage,
-                               DataSourceUserAuthorizationHelper
-                                   dataSourceUserAuthorizationHelper) {
+  /** Construct from the set of {@link DataSourceFactory} at bootstrap time. */
+  public DataSourceServiceImpl(
+      Set<DataSourceFactory> dataSourceFactories,
+      DataSourceMetadataStorage dataSourceMetadataStorage,
+      DataSourceUserAuthorizationHelper dataSourceUserAuthorizationHelper) {
     this.dataSourceMetadataStorage = dataSourceMetadataStorage;
     this.dataSourceUserAuthorizationHelper = dataSourceUserAuthorizationHelper;
     this.dataSourceLoaderCache = new DataSourceLoaderCacheImpl(dataSourceFactories);
@@ -55,8 +53,8 @@ public class DataSourceServiceImpl implements DataSourceService {
 
   @Override
   public Set<DataSourceMetadata> getDataSourceMetadata(boolean isDefaultDataSourceRequired) {
-    List<DataSourceMetadata> dataSourceMetadataList
-        = this.dataSourceMetadataStorage.getDataSourceMetadata();
+    List<DataSourceMetadata> dataSourceMetadataList =
+        this.dataSourceMetadataStorage.getDataSourceMetadata();
     Set<DataSourceMetadata> dataSourceMetadataSet = new HashSet<>(dataSourceMetadataList);
     if (isDefaultDataSourceRequired) {
       dataSourceMetadataSet.add(DataSourceMetadata.defaultOpenSearchDataSourceMetadata());
@@ -67,28 +65,26 @@ public class DataSourceServiceImpl implements DataSourceService {
 
   @Override
   public DataSourceMetadata getDataSourceMetadata(String datasourceName) {
-    Optional<DataSourceMetadata> dataSourceMetadataOptional
-        = getDataSourceMetadataFromName(datasourceName);
+    Optional<DataSourceMetadata> dataSourceMetadataOptional =
+        getDataSourceMetadataFromName(datasourceName);
     if (dataSourceMetadataOptional.isEmpty()) {
-      throw new IllegalArgumentException("DataSource with name: " + datasourceName
-          + " doesn't exist.");
+      throw new IllegalArgumentException(
+          "DataSource with name: " + datasourceName + " doesn't exist.");
     }
     removeAuthInfo(dataSourceMetadataOptional.get());
     return dataSourceMetadataOptional.get();
   }
 
-
   @Override
   public DataSource getDataSource(String dataSourceName) {
-    Optional<DataSourceMetadata>
-        dataSourceMetadataOptional = getDataSourceMetadataFromName(dataSourceName);
+    Optional<DataSourceMetadata> dataSourceMetadataOptional =
+        getDataSourceMetadataFromName(dataSourceName);
     if (dataSourceMetadataOptional.isEmpty()) {
       throw new DataSourceNotFoundException(
           String.format("DataSource with name %s doesn't exist.", dataSourceName));
     } else {
       DataSourceMetadata dataSourceMetadata = dataSourceMetadataOptional.get();
-      this.dataSourceUserAuthorizationHelper
-          .authorizeDataSource(dataSourceMetadata);
+      this.dataSourceUserAuthorizationHelper.authorizeDataSource(dataSourceMetadata);
       return dataSourceLoaderCache.getOrLoadDataSource(dataSourceMetadata);
     }
   }
@@ -130,7 +126,6 @@ public class DataSourceServiceImpl implements DataSourceService {
         || this.dataSourceMetadataStorage.getDataSourceMetadata(dataSourceName).isPresent();
   }
 
-
   /**
    * This can be moved to a different validator class when we introduce more connectors.
    *
@@ -159,7 +154,6 @@ public class DataSourceServiceImpl implements DataSourceService {
     }
   }
 
-
   // It is advised to avoid sending any kind credential
   // info in api response from security point of view.
   private void removeAuthInfo(Set<DataSourceMetadata> dataSourceMetadataSet) {
@@ -167,11 +161,8 @@ public class DataSourceServiceImpl implements DataSourceService {
   }
 
   private void removeAuthInfo(DataSourceMetadata dataSourceMetadata) {
-    HashMap<String, String> safeProperties
-        = new HashMap<>(dataSourceMetadata.getProperties());
-    safeProperties
-        .entrySet()
-        .removeIf(entry -> entry.getKey().contains("auth"));
+    HashMap<String, String> safeProperties = new HashMap<>(dataSourceMetadata.getProperties());
+    safeProperties.entrySet().removeIf(entry -> entry.getKey().contains("auth"));
     dataSourceMetadata.setProperties(safeProperties);
   }
 }

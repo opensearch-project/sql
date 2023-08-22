@@ -4,8 +4,8 @@ import org.opensearch.sql.datasource.model.DataSource;
 import org.opensearch.sql.datasource.model.DataSourceMetadata;
 
 /**
- * Interface for DataSourceLoaderCache which provides methods for
- * fetch, loading and invalidating DataSource cache.
+ * Interface for DataSourceLoaderCache which provides methods for fetch, loading and invalidating
+ * DataSource cache.
  */
 public interface DataSourceLoaderCache {
 
@@ -16,5 +16,4 @@ public interface DataSourceLoaderCache {
    * @return {@link DataSource}
    */
   DataSource getOrLoadDataSource(DataSourceMetadata dataSourceMetadata);
-
 }

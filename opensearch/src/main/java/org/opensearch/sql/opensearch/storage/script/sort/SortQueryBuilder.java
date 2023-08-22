@@ -19,7 +19,6 @@ import org.opensearch.sql.ast.tree.Sort;
 import org.opensearch.sql.expression.Expression;
 import org.opensearch.sql.expression.FunctionExpression;
 import org.opensearch.sql.expression.ReferenceExpression;
-import org.opensearch.sql.expression.function.BuiltinFunctionName;
 import org.opensearch.sql.opensearch.data.type.OpenSearchTextType;
 
 /** Builder of {@link SortBuilder}. */

@@ -5,13 +5,12 @@
 
 package org.opensearch.sql.ppl;
 
-import org.junit.Test;
-
-import java.io.IOException;
-
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_CALCS;
 import static org.opensearch.sql.util.MatcherUtils.rows;
 import static org.opensearch.sql.util.MatcherUtils.verifyDataRows;
+
+import java.io.IOException;
+import org.junit.Test;
 
 public class PositionFunctionIT extends PPLIntegTestCase {
   @Override

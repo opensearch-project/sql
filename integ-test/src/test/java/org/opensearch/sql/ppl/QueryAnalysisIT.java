@@ -8,7 +8,6 @@ package org.opensearch.sql.ppl;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_ACCOUNT;
 
 import java.io.IOException;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.opensearch.client.ResponseException;
 import org.opensearch.sql.common.antlr.SyntaxCheckException;

@@ -3,7 +3,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-
 package org.opensearch.sql.sql.parser;
 
 import static org.opensearch.sql.ast.dsl.AstDSL.booleanLiteral;
@@ -27,8 +26,8 @@ import org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParserBaseVisitor;
 import org.opensearch.sql.sql.parser.context.QuerySpecification;
 
 /**
- * AST sort builder that builds Sort AST node from ORDER BY clause. During this process, the item
- * in order by may be replaced by item in project list if it's an alias or ordinal. This is same as
+ * AST sort builder that builds Sort AST node from ORDER BY clause. During this process, the item in
+ * order by may be replaced by item in project list if it's an alias or ordinal. This is same as
  * GROUP BY building process.
  */
 @RequiredArgsConstructor
@@ -38,9 +37,7 @@ public class AstSortBuilder extends OpenSearchSQLParserBaseVisitor<UnresolvedPla
 
   @Override
   public UnresolvedPlan visitOrderByClause(OrderByClauseContext ctx) {
-    return new Sort(
-        createSortFields()
-    );
+    return new Sort(createSortFields());
   }
 
   private List<Field> createSortFields() {
@@ -57,8 +54,8 @@ public class AstSortBuilder extends OpenSearchSQLParserBaseVisitor<UnresolvedPla
   }
 
   /**
-   * Argument "asc" is required.
-   * Argument "nullFirst" is optional and determined by Analyzer later if absent.
+   * Argument "asc" is required. Argument "nullFirst" is optional and determined by Analyzer later
+   * if absent.
    */
   private List<Argument> createSortArguments(SortOption option) {
     SortOrder sortOrder = option.getSortOrder();
@@ -71,5 +68,4 @@ public class AstSortBuilder extends OpenSearchSQLParserBaseVisitor<UnresolvedPla
     }
     return args.build();
   }
-
 }

@@ -10,7 +10,6 @@ import static org.opensearch.sql.prometheus.data.constants.PrometheusFieldConsta
 import static org.opensearch.sql.prometheus.data.constants.PrometheusFieldConstants.LABELS_KEY;
 import static org.opensearch.sql.prometheus.data.constants.PrometheusFieldConstants.SERIES_LABELS_KEY;
 import static org.opensearch.sql.prometheus.data.constants.PrometheusFieldConstants.TIMESTAMP_KEY;
-import static org.opensearch.sql.prometheus.data.constants.PrometheusFieldConstants.TRACE_ID_KEY;
 import static org.opensearch.sql.prometheus.data.constants.PrometheusFieldConstants.VALUE_KEY;
 
 import java.time.Instant;

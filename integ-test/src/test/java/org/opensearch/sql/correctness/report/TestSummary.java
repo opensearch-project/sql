@@ -3,16 +3,13 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-
 package org.opensearch.sql.correctness.report;
 
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.ToString;
 
-/**
- * Test summary section.
- */
+/** Test summary section. */
 @EqualsAndHashCode
 @ToString
 @Getter
@@ -33,5 +30,4 @@ public class TestSummary {
     failure++;
     total++;
   }
-
 }

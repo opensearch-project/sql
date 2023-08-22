@@ -38,10 +38,8 @@ import org.opensearch.sql.expression.window.WindowFunctions;
 import org.opensearch.sql.storage.StorageEngine;
 
 /**
- * Builtin Function Repository.
- * Repository registers datasource specific functions under datasource namespace and
- * universal functions under default namespace.
- *
+ * Builtin Function Repository. Repository registers datasource specific functions under datasource
+ * namespace and universal functions under default namespace.
  */
 public class BuiltinFunctionRepository {
 
@@ -96,23 +94,20 @@ public class BuiltinFunctionRepository {
     functionResolverMap.put(resolver.getFunctionName(), resolver);
   }
 
-  /**
-   * Compile FunctionExpression using core function resolver.
-   *
-   */
-  public FunctionImplementation compile(FunctionProperties functionProperties,
-                                        FunctionName functionName, List<Expression> expressions) {
+  /** Compile FunctionExpression using core function resolver. */
+  public FunctionImplementation compile(
+      FunctionProperties functionProperties,
+      FunctionName functionName,
+      List<Expression> expressions) {
     return compile(functionProperties, Collections.emptyList(), functionName, expressions);
   }
 
-
-  /**
-   * Compile FunctionExpression within {@link StorageEngine} provided {@link FunctionResolver}.
-   */
-  public FunctionImplementation compile(FunctionProperties functionProperties,
-                                        Collection<FunctionResolver> dataSourceFunctionResolver,
-                                        FunctionName functionName,
-                                        List<Expression> expressions) {
+  /** Compile FunctionExpression within {@link StorageEngine} provided {@link FunctionResolver}. */
+  public FunctionImplementation compile(
+      FunctionProperties functionProperties,
+      Collection<FunctionResolver> dataSourceFunctionResolver,
+      FunctionName functionName,
+      List<Expression> expressions) {
     FunctionBuilder resolvedFunctionBuilder =
         resolve(
             dataSourceFunctionResolver,
@@ -134,8 +129,9 @@ public class BuiltinFunctionRepository {
   public FunctionBuilder resolve(
       Collection<FunctionResolver> dataSourceFunctionResolver,
       FunctionSignature functionSignature) {
-    Map<FunctionName, FunctionResolver> dataSourceFunctionMap = dataSourceFunctionResolver.stream()
-        .collect(Collectors.toMap(FunctionResolver::getFunctionName, t -> t));
+    Map<FunctionName, FunctionResolver> dataSourceFunctionMap =
+        dataSourceFunctionResolver.stream()
+            .collect(Collectors.toMap(FunctionResolver::getFunctionName, t -> t));
 
     // first, resolve in datasource provide function resolver.
     // second, resolve in builtin function resolver.
@@ -171,14 +167,13 @@ public class BuiltinFunctionRepository {
   }
 
   /**
-   * Wrap resolved function builder's arguments by cast function to cast input expression value
-   * to value of target type at runtime. For example, suppose unresolved signature is
-   * equal(BOOL,STRING) and its resolved function builder is F with signature equal(BOOL,BOOL).
-   * In this case, wrap F and return equal(BOOL, cast_to_bool(STRING)).
+   * Wrap resolved function builder's arguments by cast function to cast input expression value to
+   * value of target type at runtime. For example, suppose unresolved signature is
+   * equal(BOOL,STRING) and its resolved function builder is F with signature equal(BOOL,BOOL). In
+   * this case, wrap F and return equal(BOOL, cast_to_bool(STRING)).
    */
-  private FunctionBuilder castArguments(List<ExprType> sourceTypes,
-                                        List<ExprType> targetTypes,
-                                        FunctionBuilder funcBuilder) {
+  private FunctionBuilder castArguments(
+      List<ExprType> sourceTypes, List<ExprType> targetTypes, FunctionBuilder funcBuilder) {
     return (fp, arguments) -> {
       List<Expression> argsCasted = new ArrayList<>();
       for (int i = 0; i < arguments.size(); i++) {
@@ -208,10 +203,10 @@ public class BuiltinFunctionRepository {
   private Function<FunctionProperties, Expression> cast(Expression arg, ExprType targetType) {
     FunctionName castFunctionName = getCastFunctionName(targetType);
     if (castFunctionName == null) {
-      throw new ExpressionEvaluationException(StringUtils.format(
-          "Type conversion to type %s is not supported", targetType));
+      throw new ExpressionEvaluationException(
+          StringUtils.format("Type conversion to type %s is not supported", targetType));
     }
-    return functionProperties -> (Expression) compile(functionProperties,
-        castFunctionName, List.of(arg));
+    return functionProperties ->
+        (Expression) compile(functionProperties, castFunctionName, List.of(arg));
   }
 }
