@@ -105,6 +105,7 @@ class OpenSearchDataTypeTest {
         Arguments.of(MappingType.Double, "double", DOUBLE),
         Arguments.of(MappingType.Boolean, "boolean", BOOLEAN),
         Arguments.of(MappingType.Date, "date", TIMESTAMP),
+        Arguments.of(MappingType.DateNanos, "date", TIMESTAMP),
         Arguments.of(MappingType.Object, "object", STRUCT),
         Arguments.of(MappingType.Nested, "nested", ARRAY),
         Arguments.of(MappingType.GeoPoint, "geo_point", OpenSearchGeoPointType.of()),
