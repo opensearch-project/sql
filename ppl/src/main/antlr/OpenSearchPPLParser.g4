@@ -52,9 +52,9 @@ commands
    ;
 
 searchCommand
-   : (SEARCH)? fromClause # searchFrom
-   | (SEARCH)? fromClause logicalExpression # searchFromFilter
-   | (SEARCH)? logicalExpression fromClause # searchFilterFrom
+   : (SEARCH)? fromClause                       # searchFrom
+   | (SEARCH)? fromClause logicalExpression     # searchFromFilter
+   | (SEARCH)? logicalExpression fromClause     # searchFilterFrom
    ;
 
 describeCommand
@@ -213,11 +213,11 @@ statsAggTerm
 
 // aggregation functions
 statsFunction
-   : statsFunctionName LT_PRTHS valueExpression RT_PRTHS # statsFunctionCall
-   | COUNT LT_PRTHS RT_PRTHS # countAllFunctionCall
-   | (DISTINCT_COUNT | DC) LT_PRTHS valueExpression RT_PRTHS # distinctCountFunctionCall
-   | percentileAggFunction # percentileAggFunctionCall
-   | takeAggFunction # takeAggFunctionCall
+   : statsFunctionName LT_PRTHS valueExpression RT_PRTHS        # statsFunctionCall
+   | COUNT LT_PRTHS RT_PRTHS                                    # countAllFunctionCall
+   | (DISTINCT_COUNT | DC) LT_PRTHS valueExpression RT_PRTHS    # distinctCountFunctionCall
+   | percentileAggFunction                                      # percentileAggFunctionCall
+   | takeAggFunction                                            # takeAggFunctionCall
    ;
 
 statsFunctionName
@@ -248,29 +248,29 @@ expression
    ;
 
 logicalExpression
-   : comparisonExpression # comparsion
-   | NOT logicalExpression # logicalNot
-   | left = logicalExpression OR right = logicalExpression # logicalOr
-   | left = logicalExpression (AND)? right = logicalExpression # logicalAnd
-   | left = logicalExpression XOR right = logicalExpression # logicalXor
-   | booleanExpression # booleanExpr
-   | relevanceExpression # relevanceExpr
+   : comparisonExpression                                       # comparsion
+   | NOT logicalExpression                                      # logicalNot
+   | left = logicalExpression OR right = logicalExpression      # logicalOr
+   | left = logicalExpression (AND)? right = logicalExpression  # logicalAnd
+   | left = logicalExpression XOR right = logicalExpression     # logicalXor
+   | booleanExpression                                          # booleanExpr
+   | relevanceExpression                                        # relevanceExpr
    ;
 
 comparisonExpression
-   : left = valueExpression comparisonOperator right = valueExpression # compareExpr
-   | valueExpression IN valueList # inExpr
+   : left = valueExpression comparisonOperator right = valueExpression  # compareExpr
+   | valueExpression IN valueList                                       # inExpr
    ;
 
 valueExpression
-   : left = valueExpression binaryOperator = (STAR | DIVIDE | MODULE) right = valueExpression # binaryArithmetic
-   | left = valueExpression binaryOperator = (PLUS | MINUS) right = valueExpression # binaryArithmetic
-   | primaryExpression # valueExpressionDefault
-   | positionFunction # positionFunctionCall
-   | extractFunction # extractFunctionCall
-   | getFormatFunction # getFormatFunctionCall
-   | timestampFunction # timestampFunctionCall
-   | LT_PRTHS valueExpression RT_PRTHS # parentheticValueExpr
+   : left = valueExpression binaryOperator = (STAR | DIVIDE | MODULE) right = valueExpression   # binaryArithmetic
+   | left = valueExpression binaryOperator = (PLUS | MINUS) right = valueExpression             # binaryArithmetic
+   | primaryExpression                                                                          # valueExpressionDefault
+   | positionFunction                                                                           # positionFunctionCall
+   | extractFunction                                                                            # extractFunctionCall
+   | getFormatFunction                                                                          # getFormatFunctionCall
+   | timestampFunction                                                                          # timestampFunctionCall
+   | LT_PRTHS valueExpression RT_PRTHS                                                          # parentheticValueExpr
    ;
 
 primaryExpression

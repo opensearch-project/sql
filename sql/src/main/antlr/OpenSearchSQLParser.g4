@@ -109,8 +109,8 @@ fromClause
    ;
 
 relation
-   : tableName (AS? alias)? # tableAsRelation
-   | LR_BRACKET subquery = querySpecification RR_BRACKET AS? alias # subqueryAsRelation
+   : tableName (AS? alias)?                                         # tableAsRelation
+   | LR_BRACKET subquery = querySpecification RR_BRACKET AS? alias  # subqueryAsRelation
    ;
 
 whereClause
@@ -152,8 +152,8 @@ windowFunctionClause
    ;
 
 windowFunction
-   : functionName = (ROW_NUMBER | RANK | DENSE_RANK) LR_BRACKET functionArgs? RR_BRACKET # scalarWindowFunction
-   | aggregateFunction # aggregateWindowFunction
+   : functionName = (ROW_NUMBER | RANK | DENSE_RANK) LR_BRACKET functionArgs? RR_BRACKET    # scalarWindowFunction
+   | aggregateFunction                                                                      # aggregateWindowFunction
    ;
 
 overClause
@@ -166,13 +166,13 @@ partitionByClause
 
 // Literals
 constant
-   : stringLiteral # string
-   | sign? decimalLiteral # signedDecimal
-   | sign? realLiteral # signedReal
-   | booleanLiteral # boolean
-   | datetimeLiteral # datetime
-   | intervalLiteral # interval
-   | nullLiteral # null
+   : stringLiteral          # string
+   | sign? decimalLiteral   # signedDecimal
+   | sign? realLiteral      # signedReal
+   | booleanLiteral         # boolean
+   | datetimeLiteral        # datetime
+   | intervalLiteral        # interval
+   | nullLiteral            # null
    // Doesn't support the following types for now
    //| BIT_STRING
    //| NOT? nullLiteral=(NULL_LITERAL | NULL_SPEC_LITERAL)
@@ -273,20 +273,20 @@ intervalUnit
 
 // Simplified approach for expression
 expression
-   : NOT expression # notExpression
-   | left = expression AND right = expression # andExpression
-   | left = expression OR right = expression # orExpression
-   | predicate # predicateExpression
+   : NOT expression                             # notExpression
+   | left = expression AND right = expression   # andExpression
+   | left = expression OR right = expression    # orExpression
+   | predicate                                  # predicateExpression
    ;
 
 predicate
-   : expressionAtom # expressionAtomPredicate
-   | left = predicate comparisonOperator right = predicate # binaryComparisonPredicate
-   | predicate IS nullNotnull # isNullPredicate
-   | predicate NOT? BETWEEN predicate AND predicate # betweenPredicate
-   | left = predicate NOT? LIKE right = predicate # likePredicate
-   | left = predicate REGEXP right = predicate # regexpPredicate
-   | predicate NOT? IN '(' expressions ')' # inPredicate
+   : expressionAtom                                         # expressionAtomPredicate
+   | left = predicate comparisonOperator right = predicate  # binaryComparisonPredicate
+   | predicate IS nullNotnull                               # isNullPredicate
+   | predicate NOT? BETWEEN predicate AND predicate         # betweenPredicate
+   | left = predicate NOT? LIKE right = predicate           # likePredicate
+   | left = predicate REGEXP right = predicate              # regexpPredicate
+   | predicate NOT? IN '(' expressions ')'                  # inPredicate
    ;
 
 expressions
@@ -294,12 +294,12 @@ expressions
    ;
 
 expressionAtom
-   : constant # constantExpressionAtom
-   | columnName # fullColumnNameExpressionAtom
-   | functionCall # functionCallExpressionAtom
-   | LR_BRACKET expression RR_BRACKET # nestedExpressionAtom
-   | left = expressionAtom mathOperator = (STAR | SLASH | MODULE) right = expressionAtom # mathExpressionAtom
-   | left = expressionAtom mathOperator = (PLUS | MINUS) right = expressionAtom # mathExpressionAtom
+   : constant                                                                               # constantExpressionAtom
+   | columnName                                                                             # fullColumnNameExpressionAtom
+   | functionCall                                                                           # functionCallExpressionAtom
+   | LR_BRACKET expression RR_BRACKET                                                       # nestedExpressionAtom
+   | left = expressionAtom mathOperator = (STAR | SLASH | MODULE) right = expressionAtom    # mathExpressionAtom
+   | left = expressionAtom mathOperator = (PLUS | MINUS) right = expressionAtom             # mathExpressionAtom
    ;
 
 comparisonOperator
@@ -317,19 +317,19 @@ nullNotnull
    ;
 
 functionCall
-   : nestedFunctionName LR_BRACKET allTupleFields RR_BRACKET # nestedAllFunctionCall
-   | scalarFunctionName LR_BRACKET functionArgs RR_BRACKET # scalarFunctionCall
-   | specificFunction # specificFunctionCall
-   | windowFunctionClause # windowFunctionCall
-   | aggregateFunction # aggregateFunctionCall
-   | aggregateFunction (orderByClause)? filterClause # filteredAggregationFunctionCall
-   | scoreRelevanceFunction # scoreRelevanceFunctionCall
-   | relevanceFunction # relevanceFunctionCall
-   | highlightFunction # highlightFunctionCall
-   | positionFunction # positionFunctionCall
-   | extractFunction # extractFunctionCall
-   | getFormatFunction # getFormatFunctionCall
-   | timestampFunction # timestampFunctionCall
+   : nestedFunctionName LR_BRACKET allTupleFields RR_BRACKET    # nestedAllFunctionCall
+   | scalarFunctionName LR_BRACKET functionArgs RR_BRACKET      # scalarFunctionCall
+   | specificFunction                                           # specificFunctionCall
+   | windowFunctionClause                                       # windowFunctionCall
+   | aggregateFunction                                          # aggregateFunctionCall
+   | aggregateFunction (orderByClause)? filterClause            # filteredAggregationFunctionCall
+   | scoreRelevanceFunction                                     # scoreRelevanceFunctionCall
+   | relevanceFunction                                          # relevanceFunctionCall
+   | highlightFunction                                          # highlightFunctionCall
+   | positionFunction                                           # positionFunctionCall
+   | extractFunction                                            # extractFunctionCall
+   | getFormatFunction                                          # getFormatFunctionCall
+   | timestampFunction                                          # timestampFunctionCall
    ;
 
 timestampFunction
@@ -409,9 +409,9 @@ scalarFunctionName
    ;
 
 specificFunction
-   : CASE expression caseFuncAlternative+ (ELSE elseArg = functionArg)? END # caseFunctionCall
-   | CASE caseFuncAlternative+ (ELSE elseArg = functionArg)? END # caseFunctionCall
-   | CAST '(' expression AS convertedDataType ')' # dataTypeFunctionCall
+   : CASE expression caseFuncAlternative+ (ELSE elseArg = functionArg)? END     # caseFunctionCall
+   | CASE caseFuncAlternative+ (ELSE elseArg = functionArg)? END                # caseFunctionCall
+   | CAST '(' expression AS convertedDataType ')'                               # dataTypeFunctionCall
    ;
 
 relevanceFunction
@@ -467,9 +467,9 @@ caseFuncAlternative
    ;
 
 aggregateFunction
-   : functionName = aggregationFunctionName LR_BRACKET functionArg RR_BRACKET # regularAggregateFunctionCall
-   | COUNT LR_BRACKET STAR RR_BRACKET # countStarFunctionCall
-   | COUNT LR_BRACKET DISTINCT functionArg RR_BRACKET # distinctCountFunctionCall
+   : functionName = aggregationFunctionName LR_BRACKET functionArg RR_BRACKET   # regularAggregateFunctionCall
+   | COUNT LR_BRACKET STAR RR_BRACKET                                           # countStarFunctionCall
+   | COUNT LR_BRACKET DISTINCT functionArg RR_BRACKET                           # distinctCountFunctionCall
    ;
 
 filterClause

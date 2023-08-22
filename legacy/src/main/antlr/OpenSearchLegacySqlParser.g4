@@ -55,10 +55,10 @@ dmlStatement
 
    // Primary DML Statements
 selectStatement
-   : querySpecification # simpleSelect
-   | queryExpression # parenthesisSelect
-   | querySpecification unionStatement+ orderByClause? limitClause? # unionSelect
-   | querySpecification minusStatement+ orderByClause? limitClause? # minusSelect
+   : querySpecification                                                 # simpleSelect
+   | queryExpression                                                    # parenthesisSelect
+   | querySpecification unionStatement+ orderByClause? limitClause?     # unionSelect
+   | querySpecification minusStatement+ orderByClause? limitClause?     # minusSelect
    ;
 
 deleteStatement
@@ -83,20 +83,20 @@ tableSources
    ;
 
 tableSource
-   : tableSourceItem joinPart* # tableSourceBase
-   | '(' tableSourceItem joinPart* ')' # tableSourceNested
+   : tableSourceItem joinPart*          # tableSourceBase
+   | '(' tableSourceItem joinPart* ')'  # tableSourceNested
    ;
 
 tableSourceItem
-   : tableName (AS? alias = uid)? # atomTableItem
-   | (selectStatement | '(' parenthesisSubquery = selectStatement ')') AS? alias = uid # subqueryTableItem
-   | '(' tableSources ')' # tableSourcesItem
+   : tableName (AS? alias = uid)?                                                       # atomTableItem
+   | (selectStatement | '(' parenthesisSubquery = selectStatement ')') AS? alias = uid  # subqueryTableItem
+   | '(' tableSources ')'                                                               # tableSourcesItem
    ;
 
 joinPart
-   : (INNER | CROSS)? JOIN tableSourceItem (ON expression | USING '(' uidList ')')? # innerJoin
-   | (LEFT | RIGHT) OUTER? JOIN tableSourceItem (ON expression | USING '(' uidList ')')? # outerJoin
-   | NATURAL ((LEFT | RIGHT) OUTER?)? JOIN tableSourceItem # naturalJoin
+   : (INNER | CROSS)? JOIN tableSourceItem (ON expression | USING '(' uidList ')')?         # innerJoin
+   | (LEFT | RIGHT) OUTER? JOIN tableSourceItem (ON expression | USING '(' uidList ')')?    # outerJoin
+   | NATURAL ((LEFT | RIGHT) OUTER?)? JOIN tableSourceItem                                  # naturalJoin
    ;
 
 // Select Statement's Details
@@ -126,10 +126,10 @@ selectElements
    ;
 
 selectElement
-   : fullId '.' '*' # selectStarElement
-   | fullColumnName (AS? uid)? # selectColumnElement
-   | functionCall (AS? uid)? # selectFunctionElement
-   | expression (AS? uid)? # selectExpressionElement
+   : fullId '.' '*'                 # selectStarElement
+   | fullColumnName (AS? uid)?      # selectColumnElement
+   | functionCall (AS? uid)?        # selectFunctionElement
+   | expression (AS? uid)?          # selectExpressionElement
    | NESTED '(' fullId DOT STAR ')' # selectNestedStarElement
    ;
 
@@ -183,8 +183,8 @@ fullId
    ;
 
 tableName
-   : fullId # simpleTableName
-   | uid STAR # tableNamePattern
+   : fullId         # simpleTableName
+   | uid STAR       # tableNamePattern
    | uid DIVIDE uid # tableAndTypeName
    ;
 
@@ -254,27 +254,27 @@ expressions
    ;
 
 aggregateFunction
-   : functionAsAggregatorFunction # functionAsAggregatorFunctionCall
-   | aggregateWindowedFunction # aggregateWindowedFunctionCall
+   : functionAsAggregatorFunction   # functionAsAggregatorFunctionCall
+   | aggregateWindowedFunction      # aggregateWindowedFunctionCall
    ;
 
 scalarFunction
    : scalarFunctionName '(' nestedFunctionArgs+ ')' # nestedFunctionCall
-   | scalarFunctionName '(' functionArgs? ')' # scalarFunctionCall
+   | scalarFunctionName '(' functionArgs? ')'       # scalarFunctionCall
    ;
 
 functionCall
-   : aggregateFunction # aggregateFunctionCall
-   | scalarFunctionName '(' aggregateWindowedFunction ')' # aggregationAsArgFunctionCall
-   | scalarFunction # scalarFunctionsCall
-   | specificFunction # specificFunctionCall
-   | fullId '(' functionArgs? ')' # udfFunctionCall
+   : aggregateFunction                                      # aggregateFunctionCall
+   | scalarFunctionName '(' aggregateWindowedFunction ')'   # aggregationAsArgFunctionCall
+   | scalarFunction                                         # scalarFunctionsCall
+   | specificFunction                                       # specificFunctionCall
+   | fullId '(' functionArgs? ')'                           # udfFunctionCall
    ;
 
 specificFunction
-   : CAST '(' expression AS convertedDataType ')' # dataTypeFunctionCall
-   | CASE expression caseFuncAlternative+ (ELSE elseArg = functionArg)? END # caseFunctionCall
-   | CASE caseFuncAlternative+ (ELSE elseArg = functionArg)? END # caseFunctionCall
+   : CAST '(' expression AS convertedDataType ')'                               # dataTypeFunctionCall
+   | CASE expression caseFuncAlternative+ (ELSE elseArg = functionArg)? END     # caseFunctionCall
+   | CASE caseFuncAlternative+ (ELSE elseArg = functionArg)? END                # caseFunctionCall
    ;
 
 caseFuncAlternative
@@ -363,33 +363,33 @@ nestedFunctionArgs
 
 // Simplified approach for expression
 expression
-   : notOperator = (NOT | '!') expression # notExpression
-   | expression logicalOperator expression # logicalExpression
-   | predicate IS NOT? testValue = (TRUE | FALSE | MISSING) # isExpression
-   | predicate # predicateExpression
+   : notOperator = (NOT | '!') expression                       # notExpression
+   | expression logicalOperator expression                      # logicalExpression
+   | predicate IS NOT? testValue = (TRUE | FALSE | MISSING)     # isExpression
+   | predicate                                                  # predicateExpression
    ;
 
 predicate
-   : predicate NOT? IN '(' (selectStatement | expressions) ')' # inPredicate
-   | predicate IS nullNotnull # isNullPredicate
-   | left = predicate comparisonOperator right = predicate # binaryComparisonPredicate
-   | predicate NOT? BETWEEN predicate AND predicate # betweenPredicate
-   | predicate NOT? LIKE predicate # likePredicate
-   | predicate NOT? regex = REGEXP predicate # regexpPredicate
-   | expressionAtom # expressionAtomPredicate
+   : predicate NOT? IN '(' (selectStatement | expressions) ')'  # inPredicate
+   | predicate IS nullNotnull                                   # isNullPredicate
+   | left = predicate comparisonOperator right = predicate      # binaryComparisonPredicate
+   | predicate NOT? BETWEEN predicate AND predicate             # betweenPredicate
+   | predicate NOT? LIKE predicate                              # likePredicate
+   | predicate NOT? regex = REGEXP predicate                    # regexpPredicate
+   | expressionAtom                                             # expressionAtomPredicate
    ;
 
 // Add in ASTVisitor nullNotnull in constant
 expressionAtom
-   : constant # constantExpressionAtom
-   | fullColumnName # fullColumnNameExpressionAtom
-   | functionCall # functionCallExpressionAtom
-   | unaryOperator expressionAtom # unaryExpressionAtom
-   | '(' expression (',' expression)* ')' # nestedExpressionAtom
-   | EXISTS '(' selectStatement ')' # existsExpessionAtom
-   | '(' selectStatement ')' # subqueryExpessionAtom
-   | left = expressionAtom bitOperator right = expressionAtom # bitExpressionAtom
-   | left = expressionAtom mathOperator right = expressionAtom # mathExpressionAtom
+   : constant                                                   # constantExpressionAtom
+   | fullColumnName                                             # fullColumnNameExpressionAtom
+   | functionCall                                               # functionCallExpressionAtom
+   | unaryOperator expressionAtom                               # unaryExpressionAtom
+   | '(' expression (',' expression)* ')'                       # nestedExpressionAtom
+   | EXISTS '(' selectStatement ')'                             # existsExpessionAtom
+   | '(' selectStatement ')'                                    # subqueryExpessionAtom
+   | left = expressionAtom bitOperator right = expressionAtom   # bitExpressionAtom
+   | left = expressionAtom mathOperator right = expressionAtom  # mathExpressionAtom
    ;
 
 unaryOperator
