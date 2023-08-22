@@ -52,4 +52,10 @@ class OpenSearchStorageEngineTest {
         () -> assertTrue(table instanceof OpenSearchSystemIndex)
     );
   }
+
+  @Test
+  public void getFunctions() {
+    OpenSearchStorageEngine engine = new OpenSearchStorageEngine(client, settings);
+    assertNotNull(engine.getFunctions());
+  }
 }

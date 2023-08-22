@@ -16,12 +16,15 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import org.apache.commons.lang3.tuple.Pair;
 import org.opensearch.sql.common.utils.StringUtils;
 import org.opensearch.sql.data.type.ExprCoreType;
 import org.opensearch.sql.data.type.ExprType;
+import org.opensearch.sql.datasource.DataSourceService;
+import org.opensearch.sql.datasource.model.DataSourceMetadata;
 import org.opensearch.sql.exception.ExpressionEvaluationException;
 import org.opensearch.sql.expression.Expression;
 import org.opensearch.sql.expression.aggregation.AggregatorFunction;
@@ -46,7 +49,7 @@ public class BuiltinFunctionRepository {
   private final Map<FunctionName, FunctionResolver> functionResolverMap;
 
   /** The singleton instance. */
-  private static BuiltinFunctionRepository instance;
+  private final static Map<Integer, BuiltinFunctionRepository> instance = new HashMap<>();
 
   /**
    * Construct a function repository with the given function registered. This is only used in test.
@@ -64,25 +67,42 @@ public class BuiltinFunctionRepository {
    *
    * @return singleton instance
    */
-  public static synchronized BuiltinFunctionRepository getInstance() {
-    if (instance == null) {
-      instance = new BuiltinFunctionRepository(new HashMap<>());
+  public static synchronized BuiltinFunctionRepository getInstance(DataSourceService dataSourceService) {
+    Set<DataSourceMetadata> dataSourceMetadataSet =
+        dataSourceService.getDataSourceMetadata(true);
+    Set<Integer> dataSourceServiceHashSet =
+        dataSourceMetadataSet.stream().map(metadata -> metadata.hashCode()).collect(Collectors.toSet());
+
+    // Creates new Repository for every dataSourceService
+    if (!dataSourceServiceHashSet.stream().anyMatch(hash -> instance.containsKey(hash))) {
+      BuiltinFunctionRepository repository = new BuiltinFunctionRepository(new HashMap<>());
 
       // Register all built-in functions
-      ArithmeticFunction.register(instance);
-      BinaryPredicateOperator.register(instance);
-      MathematicalFunction.register(instance);
-      UnaryPredicateOperator.register(instance);
-      AggregatorFunction.register(instance);
-      DateTimeFunction.register(instance);
-      IntervalClause.register(instance);
-      WindowFunctions.register(instance);
-      TextFunction.register(instance);
-      TypeCastOperator.register(instance);
-      SystemFunctions.register(instance);
-      OpenSearchFunctions.register(instance);
+      ArithmeticFunction.register(repository);
+      BinaryPredicateOperator.register(repository);
+      MathematicalFunction.register(repository);
+      UnaryPredicateOperator.register(repository);
+      AggregatorFunction.register(repository);
+      DateTimeFunction.register(repository);
+      IntervalClause.register(repository);
+      WindowFunctions.register(repository);
+      TextFunction.register(repository);
+      TypeCastOperator.register(repository);
+      SystemFunctions.register(repository);
+      // Temporary as part of https://github.com/opensearch-project/sql/issues/811
+      // TODO: remove this resolver when Analyzers are moved to opensearch module
+      repository.register(new NestedFunctionResolver());
+
+      for (DataSourceMetadata metadata : dataSourceMetadataSet) {
+        dataSourceService
+            .getDataSource(metadata.getName())
+            .getStorageEngine().getFunctions().
+            forEach(function -> repository.register(function));
+        instance.put(metadata.hashCode(), repository);
+      }
+      return repository;
     }
-    return instance;
+    return instance.get(dataSourceServiceHashSet.iterator().next());
   }
 
   /**

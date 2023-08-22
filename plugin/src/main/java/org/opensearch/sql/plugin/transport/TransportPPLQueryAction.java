@@ -58,7 +58,7 @@ public class TransportPPLQueryAction
     super(PPLQueryAction.NAME, transportService, actionFilters, TransportPPLQueryRequest::new);
 
     ModulesBuilder modules = new ModulesBuilder();
-    modules.add(new OpenSearchPluginModule());
+    modules.add(new OpenSearchPluginModule(dataSourceService));
     modules.add(
         b -> {
           b.bind(NodeClient.class).toInstance(client);

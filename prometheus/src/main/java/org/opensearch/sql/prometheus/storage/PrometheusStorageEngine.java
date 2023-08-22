@@ -62,6 +62,4 @@ public class PrometheusStorageEngine implements StorageEngine {
           String.format("Information Schema doesn't contain %s table", tableName));
     }
   }
-
-
 }

@@ -21,7 +21,7 @@ import org.opensearch.sql.expression.ExpressionNodeVisitor;
 import org.opensearch.sql.expression.FunctionExpression;
 import org.opensearch.sql.expression.NamedExpression;
 import org.opensearch.sql.expression.ReferenceExpression;
-import org.opensearch.sql.expression.function.OpenSearchFunctions;
+import org.opensearch.sql.expression.function.OpenSearchFunction;
 import org.opensearch.sql.opensearch.request.OpenSearchRequestBuilder;
 import org.opensearch.sql.opensearch.storage.script.filter.FilterQueryBuilder;
 import org.opensearch.sql.opensearch.storage.script.sort.SortQueryBuilder;
@@ -100,8 +100,8 @@ class OpenSearchIndexScanQueryBuilder implements PushDownQueryBuilder {
   }
 
   private boolean trackScoresFromOpenSearchFunction(Expression condition) {
-    if (condition instanceof OpenSearchFunctions.OpenSearchFunction
-        && ((OpenSearchFunctions.OpenSearchFunction) condition).isScoreTracked()) {
+    if (condition instanceof OpenSearchFunction
+        && ((OpenSearchFunction) condition).isScoreTracked()) {
       return true;
     }
     if (condition instanceof FunctionExpression) {

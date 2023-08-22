@@ -7,6 +7,7 @@
 package org.opensearch.sql.ppl;
 
 import static org.opensearch.sql.datasource.model.DataSourceMetadata.defaultOpenSearchDataSourceMetadata;
+import static org.opensearch.sql.datasource.model.EmptyDataSourceService.getEmptyDataSourceService;
 import static org.opensearch.sql.protocol.response.format.JsonResponseFormatter.Style.PRETTY;
 
 import com.google.common.collect.ImmutableMap;
@@ -181,7 +182,7 @@ public class StandaloneIT extends PPLIntegTestCase {
     private final DataSourceService dataSourceService;
 
     private final BuiltinFunctionRepository functionRepository =
-        BuiltinFunctionRepository.getInstance();
+        BuiltinFunctionRepository.getInstance(getEmptyDataSourceService());
 
     @Override
     protected void configure() {}

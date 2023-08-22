@@ -26,6 +26,7 @@ import org.opensearch.sql.expression.ReferenceExpression;
 import org.opensearch.sql.expression.env.Environment;
 import org.opensearch.sql.expression.function.FunctionName;
 import org.opensearch.sql.opensearch.data.type.OpenSearchTextType;
+import org.opensearch.sql.opensearch.expression.OpenSearchDSL;
 import org.opensearch.sql.opensearch.storage.script.filter.lucene.relevance.WildcardQuery;
 
 @DisplayNameGeneration(DisplayNameGenerator.ReplaceUnderscores.class)
@@ -38,10 +39,10 @@ class WildcardQueryTest {
         List.of(
             namedArgument("field",
                 new ReferenceExpression("title", OpenSearchTextType.of())),
-            namedArgument("query", "query_value*"),
-            namedArgument("boost", "0.7"),
-            namedArgument("case_insensitive", "false"),
-            namedArgument("rewrite", "constant_score_boolean")
+            OpenSearchDSL.namedArgument("query", "query_value*"),
+            OpenSearchDSL.namedArgument("boost", "0.7"),
+            OpenSearchDSL.namedArgument("case_insensitive", "false"),
+            OpenSearchDSL.namedArgument("rewrite", "constant_score_boolean")
         )
     );
   }
@@ -73,8 +74,8 @@ class WildcardQueryTest {
     List<Expression> arguments = List.of(
         namedArgument("field",
             new ReferenceExpression("title", OpenSearchTextType.of())),
-        namedArgument("query", "query_value*"),
-        namedArgument("unsupported", "unsupported_value"));
+        OpenSearchDSL.namedArgument("query", "query_value*"),
+        OpenSearchDSL.namedArgument("unsupported", "unsupported_value"));
     Assertions.assertThrows(SemanticCheckException.class,
         () -> wildcardQueryQuery.build(new WildcardQueryExpression(arguments)));
   }

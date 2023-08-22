@@ -10,6 +10,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.opensearch.sql.data.type.ExprCoreType.DOUBLE;
 import static org.opensearch.sql.data.type.ExprCoreType.INTEGER;
 import static org.opensearch.sql.data.type.ExprCoreType.STRING;
+import static org.opensearch.sql.datasource.model.EmptyDataSourceService.getEmptyDataSourceService;
 
 import com.google.common.collect.ImmutableList;
 import org.junit.jupiter.api.Test;
@@ -132,7 +133,7 @@ class ExpressionReferenceOptimizerTest extends AnalyzerTestBase {
   }
 
   Expression optimize(Expression expression, LogicalPlan logicalPlan) {
-    BuiltinFunctionRepository functionRepository = BuiltinFunctionRepository.getInstance();
+    BuiltinFunctionRepository functionRepository = BuiltinFunctionRepository.getInstance(getEmptyDataSourceService());
     final ExpressionReferenceOptimizer optimizer =
         new ExpressionReferenceOptimizer(functionRepository, logicalPlan);
     return optimizer.optimize(DSL.named(expression), new AnalysisContext());

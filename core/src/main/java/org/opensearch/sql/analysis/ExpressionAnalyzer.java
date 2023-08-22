@@ -66,7 +66,7 @@ import org.opensearch.sql.expression.conditional.cases.WhenClause;
 import org.opensearch.sql.expression.function.BuiltinFunctionName;
 import org.opensearch.sql.expression.function.BuiltinFunctionRepository;
 import org.opensearch.sql.expression.function.FunctionName;
-import org.opensearch.sql.expression.function.OpenSearchFunctions;
+import org.opensearch.sql.expression.function.OpenSearchFunction;
 import org.opensearch.sql.expression.parse.ParseExpression;
 import org.opensearch.sql.expression.span.SpanExpression;
 import org.opensearch.sql.expression.window.aggregation.AggregateWindowFunction;
@@ -273,8 +273,8 @@ public class ExpressionAnalyzer extends AbstractNodeVisitor<Expression, Analysis
     // create a new function expression with boost argument and resolve it
     Function updatedRelevanceQueryUnresolvedExpr =
         new Function(relevanceQueryUnresolvedExpr.getFuncName(), updatedFuncArgs);
-    OpenSearchFunctions.OpenSearchFunction relevanceQueryExpr =
-        (OpenSearchFunctions.OpenSearchFunction)
+    OpenSearchFunction relevanceQueryExpr =
+        (OpenSearchFunction)
             updatedRelevanceQueryUnresolvedExpr.accept(this, context);
     relevanceQueryExpr.setScoreTracked(true);
     return relevanceQueryExpr;

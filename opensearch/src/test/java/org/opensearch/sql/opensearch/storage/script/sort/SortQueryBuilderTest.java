@@ -18,6 +18,7 @@ import org.opensearch.sql.ast.tree.Sort;
 import org.opensearch.sql.data.model.ExprShortValue;
 import org.opensearch.sql.expression.DSL;
 import org.opensearch.sql.expression.LiteralExpression;
+import org.opensearch.sql.opensearch.expression.OpenSearchDSL;
 
 class SortQueryBuilderTest {
 
@@ -32,7 +33,7 @@ class SortQueryBuilderTest {
   void build_sortbuilder_from_nested_function() {
     assertNotNull(
         sortQueryBuilder.build(
-            DSL.nested(DSL.ref("message.info", STRING)),
+            OpenSearchDSL.nested(DSL.ref("message.info", STRING)),
             Sort.SortOption.DEFAULT_ASC
         )
     );
@@ -42,7 +43,7 @@ class SortQueryBuilderTest {
   void build_sortbuilder_from_nested_function_with_path_param() {
     assertNotNull(
         sortQueryBuilder.build(
-            DSL.nested(DSL.ref("message.info", STRING), DSL.ref("message", STRING)),
+            OpenSearchDSL.nested(DSL.ref("message.info", STRING), DSL.ref("message", STRING)),
             Sort.SortOption.DEFAULT_ASC
         )
     );
@@ -53,7 +54,7 @@ class SortQueryBuilderTest {
     assertThrows(
         IllegalArgumentException.class,
         () -> sortQueryBuilder.build(
-            DSL.nested(
+            OpenSearchDSL.nested(
                 DSL.ref("message.info", STRING),
                 DSL.ref("message", STRING),
                 DSL.ref("message", STRING)
@@ -68,7 +69,7 @@ class SortQueryBuilderTest {
     assertThrows(
         IllegalArgumentException.class,
         () -> sortQueryBuilder.build(
-            DSL.nested(),
+            OpenSearchDSL.nested(),
             Sort.SortOption.DEFAULT_ASC
         )
     );
@@ -79,7 +80,7 @@ class SortQueryBuilderTest {
     assertThrows(
         IllegalArgumentException.class,
         () -> sortQueryBuilder.build(
-            DSL.nested(
+            OpenSearchDSL.nested(
                 DSL.literal(1)
             ),
             Sort.SortOption.DEFAULT_ASC

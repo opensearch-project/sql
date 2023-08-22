@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-package org.opensearch.sql.expression.function;
+package org.opensearch.sql.opensearch.expression.function;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -17,75 +17,76 @@ import org.junit.jupiter.api.Test;
 import org.opensearch.sql.data.model.ExprTupleValue;
 import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.data.model.ExprValueUtils;
-import org.opensearch.sql.expression.DSL;
 import org.opensearch.sql.expression.Expression;
-import org.opensearch.sql.expression.ExpressionTestBase;
+import org.opensearch.sql.expression.function.BuiltinFunctionName;
+import org.opensearch.sql.opensearch.expression.ExpressionTestBase;
 import org.opensearch.sql.expression.FunctionExpression;
 import org.opensearch.sql.expression.NamedArgumentExpression;
 import org.opensearch.sql.expression.env.Environment;
+import org.opensearch.sql.opensearch.expression.OpenSearchDSL;
 
 public class OpenSearchFunctionsTest extends ExpressionTestBase {
   private final NamedArgumentExpression field =
-      new NamedArgumentExpression("field", DSL.literal("message"));
+      new NamedArgumentExpression("field", OpenSearchDSL.literal("message"));
   private final NamedArgumentExpression fields =
       new NamedArgumentExpression(
           "fields",
-          DSL.literal(
+          OpenSearchDSL.literal(
               new ExprTupleValue(
                   new LinkedHashMap<>(
                       Map.of(
                           "title", ExprValueUtils.floatValue(1.F),
                           "body", ExprValueUtils.floatValue(.3F))))));
   private final NamedArgumentExpression query =
-      new NamedArgumentExpression("query", DSL.literal("search query"));
+      new NamedArgumentExpression("query", OpenSearchDSL.literal("search query"));
   private final NamedArgumentExpression analyzer =
-      new NamedArgumentExpression("analyzer", DSL.literal("keyword"));
+      new NamedArgumentExpression("analyzer", OpenSearchDSL.literal("keyword"));
   private final NamedArgumentExpression autoGenerateSynonymsPhrase =
-      new NamedArgumentExpression("auto_generate_synonyms_phrase", DSL.literal("true"));
+      new NamedArgumentExpression("auto_generate_synonyms_phrase", OpenSearchDSL.literal("true"));
   private final NamedArgumentExpression fuzziness =
-      new NamedArgumentExpression("fuzziness", DSL.literal("AUTO"));
+      new NamedArgumentExpression("fuzziness", OpenSearchDSL.literal("AUTO"));
   private final NamedArgumentExpression maxExpansions =
-      new NamedArgumentExpression("max_expansions", DSL.literal("10"));
+      new NamedArgumentExpression("max_expansions", OpenSearchDSL.literal("10"));
   private final NamedArgumentExpression prefixLength =
-      new NamedArgumentExpression("prefix_length", DSL.literal("1"));
+      new NamedArgumentExpression("prefix_length", OpenSearchDSL.literal("1"));
   private final NamedArgumentExpression fuzzyTranspositions =
-      new NamedArgumentExpression("fuzzy_transpositions", DSL.literal("false"));
+      new NamedArgumentExpression("fuzzy_transpositions", OpenSearchDSL.literal("false"));
   private final NamedArgumentExpression fuzzyRewrite =
-      new NamedArgumentExpression("fuzzy_rewrite", DSL.literal("rewrite method"));
+      new NamedArgumentExpression("fuzzy_rewrite", OpenSearchDSL.literal("rewrite method"));
   private final NamedArgumentExpression lenient =
-      new NamedArgumentExpression("lenient", DSL.literal("true"));
+      new NamedArgumentExpression("lenient", OpenSearchDSL.literal("true"));
   private final NamedArgumentExpression operator =
-      new NamedArgumentExpression("operator", DSL.literal("OR"));
+      new NamedArgumentExpression("operator", OpenSearchDSL.literal("OR"));
   private final NamedArgumentExpression minimumShouldMatch =
-      new NamedArgumentExpression("minimum_should_match", DSL.literal("1"));
+      new NamedArgumentExpression("minimum_should_match", OpenSearchDSL.literal("1"));
   private final NamedArgumentExpression zeroTermsQueryAll =
-      new NamedArgumentExpression("zero_terms_query", DSL.literal("ALL"));
+      new NamedArgumentExpression("zero_terms_query", OpenSearchDSL.literal("ALL"));
   private final NamedArgumentExpression zeroTermsQueryNone =
-      new NamedArgumentExpression("zero_terms_query", DSL.literal("None"));
+      new NamedArgumentExpression("zero_terms_query", OpenSearchDSL.literal("None"));
   private final NamedArgumentExpression boost =
-      new NamedArgumentExpression("boost", DSL.literal("2.0"));
+      new NamedArgumentExpression("boost", OpenSearchDSL.literal("2.0"));
   private final NamedArgumentExpression slop =
-      new NamedArgumentExpression("slop", DSL.literal("3"));
+      new NamedArgumentExpression("slop", OpenSearchDSL.literal("3"));
 
   @Test
   void match() {
-    FunctionExpression expr = DSL.match(field, query);
+    FunctionExpression expr = OpenSearchDSL.match(field, query);
     assertEquals(BOOLEAN, expr.type());
 
-    expr = DSL.match(field, query, analyzer);
+    expr = OpenSearchDSL.match(field, query, analyzer);
     assertEquals(BOOLEAN, expr.type());
 
-    expr = DSL.match(field, query, analyzer, autoGenerateSynonymsPhrase);
+    expr = OpenSearchDSL.match(field, query, analyzer, autoGenerateSynonymsPhrase);
     assertEquals(BOOLEAN, expr.type());
 
-    expr = DSL.match(field, query, analyzer, autoGenerateSynonymsPhrase, fuzziness);
+    expr = OpenSearchDSL.match(field, query, analyzer, autoGenerateSynonymsPhrase, fuzziness);
     assertEquals(BOOLEAN, expr.type());
 
-    expr = DSL.match(field, query, analyzer, autoGenerateSynonymsPhrase, fuzziness, maxExpansions);
+    expr = OpenSearchDSL.match(field, query, analyzer, autoGenerateSynonymsPhrase, fuzziness, maxExpansions);
     assertEquals(BOOLEAN, expr.type());
 
     expr =
-        DSL.match(
+        OpenSearchDSL.match(
             field,
             query,
             analyzer,
@@ -96,7 +97,7 @@ public class OpenSearchFunctionsTest extends ExpressionTestBase {
     assertEquals(BOOLEAN, expr.type());
 
     expr =
-        DSL.match(
+        OpenSearchDSL.match(
             field,
             query,
             analyzer,
@@ -108,7 +109,7 @@ public class OpenSearchFunctionsTest extends ExpressionTestBase {
     assertEquals(BOOLEAN, expr.type());
 
     expr =
-        DSL.match(
+        OpenSearchDSL.match(
             field,
             query,
             analyzer,
@@ -121,7 +122,7 @@ public class OpenSearchFunctionsTest extends ExpressionTestBase {
     assertEquals(BOOLEAN, expr.type());
 
     expr =
-        DSL.match(
+        OpenSearchDSL.match(
             field,
             query,
             analyzer,
@@ -135,7 +136,7 @@ public class OpenSearchFunctionsTest extends ExpressionTestBase {
     assertEquals(BOOLEAN, expr.type());
 
     expr =
-        DSL.match(
+        OpenSearchDSL.match(
             field,
             query,
             analyzer,
@@ -150,7 +151,7 @@ public class OpenSearchFunctionsTest extends ExpressionTestBase {
     assertEquals(BOOLEAN, expr.type());
 
     expr =
-        DSL.match(
+        OpenSearchDSL.match(
             field,
             query,
             analyzer,
@@ -165,7 +166,7 @@ public class OpenSearchFunctionsTest extends ExpressionTestBase {
     assertEquals(BOOLEAN, expr.type());
 
     expr =
-        DSL.match(
+        OpenSearchDSL.match(
             field,
             query,
             analyzer,
@@ -181,7 +182,7 @@ public class OpenSearchFunctionsTest extends ExpressionTestBase {
     assertEquals(BOOLEAN, expr.type());
 
     expr =
-        DSL.match(
+        OpenSearchDSL.match(
             field,
             query,
             analyzer,
@@ -198,7 +199,7 @@ public class OpenSearchFunctionsTest extends ExpressionTestBase {
     assertEquals(BOOLEAN, expr.type());
 
     expr =
-        DSL.match(
+        OpenSearchDSL.match(
             field,
             query,
             analyzer,
@@ -225,14 +226,14 @@ public class OpenSearchFunctionsTest extends ExpressionTestBase {
 
   List<FunctionExpression> match_phrase_dsl_expressions() {
     return List.of(
-        DSL.match_phrase(field, query),
-        DSL.match_phrase(field, query, analyzer),
-        DSL.match_phrase(field, query, analyzer, zeroTermsQueryAll),
-        DSL.match_phrase(field, query, analyzer, zeroTermsQueryNone, slop));
+        OpenSearchDSL.match_phrase(field, query),
+        OpenSearchDSL.match_phrase(field, query, analyzer),
+        OpenSearchDSL.match_phrase(field, query, analyzer, zeroTermsQueryAll),
+        OpenSearchDSL.match_phrase(field, query, analyzer, zeroTermsQueryNone, slop));
   }
 
   List<FunctionExpression> match_phrase_prefix_dsl_expressions() {
-    return List.of(DSL.match_phrase_prefix(field, query));
+    return List.of(OpenSearchDSL.match_phrase_prefix(field, query));
   }
 
   @Test
@@ -244,7 +245,7 @@ public class OpenSearchFunctionsTest extends ExpressionTestBase {
 
   @Test
   void match_in_memory() {
-    FunctionExpression expr = DSL.match(field, query);
+    FunctionExpression expr = OpenSearchDSL.match(field, query);
     assertThrows(
         UnsupportedOperationException.class,
         () -> expr.valueOf(valueEnv()),
@@ -253,13 +254,13 @@ public class OpenSearchFunctionsTest extends ExpressionTestBase {
 
   @Test
   void match_to_string() {
-    FunctionExpression expr = DSL.match(field, query);
+    FunctionExpression expr = OpenSearchDSL.match(field, query);
     assertEquals("match(field=\"message\", query=\"search query\")", expr.toString());
   }
 
   @Test
   void multi_match() {
-    FunctionExpression expr = DSL.multi_match(fields, query);
+    FunctionExpression expr = OpenSearchDSL.multi_match(fields, query);
     assertEquals(
         String.format("multi_match(fields=%s, query=%s)", fields.getValue(), query.getValue()),
         expr.toString());
@@ -267,7 +268,7 @@ public class OpenSearchFunctionsTest extends ExpressionTestBase {
 
   @Test
   void simple_query_string() {
-    FunctionExpression expr = DSL.simple_query_string(fields, query);
+    FunctionExpression expr = OpenSearchDSL.simple_query_string(fields, query);
     assertEquals(
         String.format(
             "simple_query_string(fields=%s, query=%s)", fields.getValue(), query.getValue()),
@@ -276,13 +277,13 @@ public class OpenSearchFunctionsTest extends ExpressionTestBase {
 
   @Test
   void query() {
-    FunctionExpression expr = DSL.query(query);
+    FunctionExpression expr = OpenSearchDSL.query(query);
     assertEquals(String.format("query(query=%s)", query.getValue()), expr.toString());
   }
 
   @Test
   void query_string() {
-    FunctionExpression expr = DSL.query_string(fields, query);
+    FunctionExpression expr = OpenSearchDSL.query_string(fields, query);
     assertEquals(
         String.format("query_string(fields=%s, query=%s)", fields.getValue(), query.getValue()),
         expr.toString());
@@ -290,7 +291,7 @@ public class OpenSearchFunctionsTest extends ExpressionTestBase {
 
   @Test
   void wildcard_query() {
-    FunctionExpression expr = DSL.wildcard_query(field, query);
+    FunctionExpression expr = OpenSearchDSL.wildcard_query(field, query);
     assertEquals(
         String.format("wildcard_query(field=%s, query=%s)", field.getValue(), query.getValue()),
         expr.toString());
@@ -298,7 +299,7 @@ public class OpenSearchFunctionsTest extends ExpressionTestBase {
 
   @Test
   void nested_query() {
-    FunctionExpression expr = DSL.nested(DSL.ref("message.info", STRING));
+    FunctionExpression expr = OpenSearchDSL.nested(OpenSearchDSL.ref("message.info", STRING));
     assertEquals(
         String.format(
             "FunctionExpression(functionName=%s, arguments=[message.info])",

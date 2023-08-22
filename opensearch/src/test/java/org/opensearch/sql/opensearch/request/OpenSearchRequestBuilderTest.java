@@ -57,6 +57,7 @@ import org.opensearch.sql.expression.NamedExpression;
 import org.opensearch.sql.expression.ReferenceExpression;
 import org.opensearch.sql.opensearch.data.type.OpenSearchDataType;
 import org.opensearch.sql.opensearch.data.value.OpenSearchExprValueFactory;
+import org.opensearch.sql.opensearch.expression.OpenSearchDSL;
 import org.opensearch.sql.opensearch.response.agg.CompositeAggregationParser;
 import org.opensearch.sql.opensearch.response.agg.OpenSearchAggregationResponseParser;
 import org.opensearch.sql.opensearch.response.agg.SingleValueParser;
@@ -342,7 +343,7 @@ class OpenSearchRequestBuilderTest {
 
     List<NamedExpression> projectList =
         List.of(
-            new NamedExpression("message.info", DSL.nested(DSL.ref("message.info", STRING)), null)
+            new NamedExpression("message.info", OpenSearchDSL.nested(DSL.ref("message.info", STRING)), null)
         );
 
     LogicalNested nested = new LogicalNested(null, args, projectList);
@@ -375,8 +376,8 @@ class OpenSearchRequestBuilderTest {
     );
     List<NamedExpression> projectList =
         List.of(
-            new NamedExpression("message.info", DSL.nested(DSL.ref("message.info", STRING)), null),
-            new NamedExpression("message.from", DSL.nested(DSL.ref("message.from", STRING)), null)
+            new NamedExpression("message.info", OpenSearchDSL.nested(DSL.ref("message.info", STRING)), null),
+            new NamedExpression("message.from", OpenSearchDSL.nested(DSL.ref("message.from", STRING)), null)
         );
 
     LogicalNested nested = new LogicalNested(null, args, projectList);
@@ -405,7 +406,7 @@ class OpenSearchRequestBuilderTest {
 
     List<NamedExpression> projectList =
         List.of(
-            new NamedExpression("message.info", DSL.nested(DSL.ref("message.info", STRING)), null)
+            new NamedExpression("message.info", OpenSearchDSL.nested(DSL.ref("message.info", STRING)), null)
         );
 
     LogicalNested nested = new LogicalNested(null, args, projectList);
@@ -442,7 +443,7 @@ class OpenSearchRequestBuilderTest {
 
     List<NamedExpression> projectList =
         List.of(
-            new NamedExpression("message.info", DSL.nested(DSL.ref("message.info", STRING)), null)
+            new NamedExpression("message.info", OpenSearchDSL.nested(DSL.ref("message.info", STRING)), null)
         );
 
     QueryBuilder innerFilterQuery = QueryBuilders.rangeQuery("myNum").gt(3);

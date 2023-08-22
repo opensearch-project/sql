@@ -6,6 +6,7 @@
 package org.opensearch.sql.expression.datetime;
 
 import static org.opensearch.sql.data.model.ExprValueUtils.fromObjectValue;
+import static org.opensearch.sql.datasource.model.EmptyDataSourceService.getEmptyDataSourceService;
 
 import java.time.Instant;
 import java.time.LocalDate;
@@ -28,7 +29,7 @@ import org.opensearch.sql.expression.function.BuiltinFunctionRepository;
 public class DateTimeTestBase extends ExpressionTestBase {
 
   protected final BuiltinFunctionRepository functionRepository =
-      BuiltinFunctionRepository.getInstance();
+      BuiltinFunctionRepository.getInstance(getEmptyDataSourceService());
 
   protected ExprValue eval(Expression expression) {
     return expression.valueOf();

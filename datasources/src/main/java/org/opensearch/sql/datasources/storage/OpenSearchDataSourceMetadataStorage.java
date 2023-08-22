@@ -80,6 +80,9 @@ public class OpenSearchDataSourceMetadataStorage implements DataSourceMetadataSt
 
   @Override
   public List<DataSourceMetadata> getDataSourceMetadata() {
+    if (!this.clusterService.getClusterApplierService().isInitialClusterStateSet()) {
+      return Collections.emptyList();
+    }
     if (!this.clusterService.state().routingTable().hasIndex(DATASOURCE_INDEX_NAME)) {
       createDataSourcesIndex();
       return Collections.emptyList();

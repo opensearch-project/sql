@@ -20,6 +20,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.opensearch.sql.ast.expression.Function;
 import org.opensearch.sql.data.type.WideningTypeRule;
 import org.opensearch.sql.exception.ExpressionEvaluationException;
 
@@ -124,5 +125,11 @@ class DefaultFunctionResolverTest {
         assertThrows(
             ExpressionEvaluationException.class, () -> resolver.resolve(functionSignature));
     assertEquals("concat function expected 1-9 arguments, but got 10", exception.getMessage());
+  }
+
+  @Test
+  void resolve_nested_function() {
+    functionName = FunctionName.of("nested");
+
   }
 }

@@ -36,6 +36,8 @@ import org.opensearch.sql.sql.SQLService;
 import org.opensearch.sql.sql.antlr.SQLSyntaxParser;
 import org.opensearch.sql.storage.StorageEngine;
 
+import static org.opensearch.sql.datasource.model.EmptyDataSourceService.getEmptyDataSourceService;
+
 /**
  * A utility class which registers SQL engine singletons as `OpenSearchPluginModule` does.
  * It is needed to get access to those instances in test and validate their behavior.
@@ -50,7 +52,7 @@ public class StandaloneModule extends AbstractModule {
   private final DataSourceService dataSourceService;
 
   private final BuiltinFunctionRepository functionRepository =
-      BuiltinFunctionRepository.getInstance();
+      BuiltinFunctionRepository.getInstance(getEmptyDataSourceService());
 
   @Override
   protected void configure() {
