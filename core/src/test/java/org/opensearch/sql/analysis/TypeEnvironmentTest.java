@@ -3,7 +3,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-
 package org.opensearch.sql.analysis;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -21,9 +20,7 @@ import org.opensearch.sql.expression.ReferenceExpression;
 
 public class TypeEnvironmentTest {
 
-  /**
-   * Use context class for push/pop.
-   */
+  /** Use context class for push/pop. */
   private AnalysisContext context = new AnalysisContext();
 
   @Test
@@ -69,20 +66,24 @@ public class TypeEnvironmentTest {
     assertEquals(INTEGER, environment().resolve(toSymbol(age)));
     SemanticCheckException exception =
         assertThrows(SemanticCheckException.class, () -> environment().resolve(toSymbol(city)));
-    assertEquals("can't resolve Symbol(namespace=FIELD_NAME, name=s.city) in type env",
+    assertEquals(
+        "can't resolve Symbol(namespace=FIELD_NAME, name=s.city) in type env",
         exception.getMessage());
-    exception = assertThrows(SemanticCheckException.class,
-        () -> environment().resolve(toSymbol(manager)));
-    assertEquals("can't resolve Symbol(namespace=FIELD_NAME, name=s.manager) in type env",
+    exception =
+        assertThrows(SemanticCheckException.class, () -> environment().resolve(toSymbol(manager)));
+    assertEquals(
+        "can't resolve Symbol(namespace=FIELD_NAME, name=s.manager) in type env",
         exception.getMessage());
   }
 
   @Test
   public void resolveLiteralInEnvFailed() {
-    SemanticCheckException exception = assertThrows(SemanticCheckException.class,
-        () -> environment().resolve(new Symbol(Namespace.FIELD_NAME, "1")));
-    assertEquals("can't resolve Symbol(namespace=FIELD_NAME, name=1) in type env",
-        exception.getMessage());
+    SemanticCheckException exception =
+        assertThrows(
+            SemanticCheckException.class,
+            () -> environment().resolve(new Symbol(Namespace.FIELD_NAME, "1")));
+    assertEquals(
+        "can't resolve Symbol(namespace=FIELD_NAME, name=1) in type env", exception.getMessage());
   }
 
   private TypeEnvironment environment() {
@@ -92,5 +93,4 @@ public class TypeEnvironmentTest {
   private Symbol toSymbol(ReferenceExpression ref) {
     return new Symbol(Namespace.FIELD_NAME, ref.getAttr());
   }
-
 }

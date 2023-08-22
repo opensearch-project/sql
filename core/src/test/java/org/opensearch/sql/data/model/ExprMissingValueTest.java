@@ -3,7 +3,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-
 package org.opensearch.sql.data.model;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -18,7 +17,6 @@ import static org.opensearch.sql.utils.ComparisonUtil.compare;
 import org.junit.jupiter.api.Test;
 import org.opensearch.sql.data.type.ExprCoreType;
 import org.opensearch.sql.exception.ExpressionEvaluationException;
-
 
 class ExprMissingValueTest {
 
@@ -51,8 +49,9 @@ class ExprMissingValueTest {
 
   @Test
   public void comparabilityTest() {
-    ExpressionEvaluationException exception = assertThrows(ExpressionEvaluationException.class,
-        () -> compare(LITERAL_MISSING, LITERAL_MISSING));
+    ExpressionEvaluationException exception =
+        assertThrows(
+            ExpressionEvaluationException.class, () -> compare(LITERAL_MISSING, LITERAL_MISSING));
     assertEquals("invalid to call compare operation on missing value", exception.getMessage());
   }
 }
