@@ -14,8 +14,7 @@ import lombok.RequiredArgsConstructor;
 public class Cursor {
   public static final Cursor None = new Cursor(null);
 
-  @Getter
-  private final String data;
+  @Getter private final String data;
 
   public String toString() {
     return data;

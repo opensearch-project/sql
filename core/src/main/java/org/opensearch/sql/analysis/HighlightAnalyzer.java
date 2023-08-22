@@ -14,10 +14,7 @@ import org.opensearch.sql.expression.Expression;
 import org.opensearch.sql.planner.logical.LogicalHighlight;
 import org.opensearch.sql.planner.logical.LogicalPlan;
 
-/**
- * Analyze the highlight in the {@link AnalysisContext} to construct the {@link
- * LogicalPlan}.
- */
+/** Analyze the highlight in the {@link AnalysisContext} to construct the {@link LogicalPlan}. */
 @RequiredArgsConstructor
 public class HighlightAnalyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> {
   private final ExpressionAnalyzer expressionAnalyzer;

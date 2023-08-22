@@ -15,26 +15,25 @@ import org.opensearch.sql.executor.QueryId;
 import org.opensearch.sql.executor.QueryService;
 
 /**
- * Query plan which does not reflect a search query being executed.
- * It contains a command or an action, for example, a DDL query.
+ * Query plan which does not reflect a search query being executed. It contains a command or an
+ * action, for example, a DDL query.
  */
 public class CommandPlan extends AbstractPlan {
 
-  /**
-   * The query plan ast.
-   */
+  /** The query plan ast. */
   protected final UnresolvedPlan plan;
 
-  /**
-   * Query service.
-   */
+  /** Query service. */
   protected final QueryService queryService;
 
   protected final ResponseListener<ExecutionEngine.QueryResponse> listener;
 
   /** Constructor. */
-  public CommandPlan(QueryId queryId, UnresolvedPlan plan, QueryService queryService,
-                     ResponseListener<ExecutionEngine.QueryResponse> listener) {
+  public CommandPlan(
+      QueryId queryId,
+      UnresolvedPlan plan,
+      QueryService queryService,
+      ResponseListener<ExecutionEngine.QueryResponse> listener) {
     super(queryId);
     this.plan = plan;
     this.queryService = queryService;
