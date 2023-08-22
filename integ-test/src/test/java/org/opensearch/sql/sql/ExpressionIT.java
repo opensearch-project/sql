@@ -3,7 +3,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-
 package org.opensearch.sql.sql;
 
 import static org.hamcrest.Matchers.is;
@@ -23,15 +22,14 @@ import org.opensearch.client.ResponseException;
 import org.opensearch.sql.legacy.RestIntegTestCase;
 
 /**
- * Integration test for different type of expressions such as literals, arithmetic, predicate
- * and function expression. Since comparison test in {@link SQLCorrectnessIT} is enforced,
- * this kind of manual written IT class will be focused on anomaly case test.
+ * Integration test for different type of expressions such as literals, arithmetic, predicate and
+ * function expression. Since comparison test in {@link SQLCorrectnessIT} is enforced, this kind of
+ * manual written IT class will be focused on anomaly case test.
  */
 @Ignore
 public class ExpressionIT extends RestIntegTestCase {
 
-  @Rule
-  public ExpectedException exceptionRule = ExpectedException.none();
+  @Rule public ExpectedException exceptionRule = ExpectedException.none();
 
   @Override
   protected void init() throws Exception {
@@ -44,8 +42,7 @@ public class ExpressionIT extends RestIntegTestCase {
 
   /**
    * Response exception assertion helper to assert property value in OpenSearch ResponseException
-   * and Response inside. This serves as syntax sugar to improve the readability of test
-   * code.
+   * and Response inside. This serves as syntax sugar to improve the readability of test code.
    */
   private static class ResponseExceptionAssertion {
     private final ExpectedException exceptionRule;
@@ -57,9 +54,12 @@ public class ExpressionIT extends RestIntegTestCase {
     }
 
     ResponseExceptionAssertion hasStatusCode(int expected) {
-      exceptionRule.expect(featureValueOf("statusCode", is(expected),
-          (Function<ResponseException, Integer>) e ->
-              e.getResponse().getStatusLine().getStatusCode()));
+      exceptionRule.expect(
+          featureValueOf(
+              "statusCode",
+              is(expected),
+              (Function<ResponseException, Integer>)
+                  e -> e.getResponse().getStatusLine().getStatusCode()));
       return this;
     }
 
@@ -83,5 +83,4 @@ public class ExpressionIT extends RestIntegTestCase {
 
     return client().performRequest(request);
   }
-
 }

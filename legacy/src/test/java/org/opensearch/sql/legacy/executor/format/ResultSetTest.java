@@ -3,7 +3,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-
 package org.opensearch.sql.legacy.executor.format;
 
 import static org.junit.Assert.assertFalse;
@@ -13,19 +12,17 @@ import org.junit.Test;
 
 public class ResultSetTest {
 
-  private final ResultSet resultSet = new ResultSet() {
-    @Override
-    public Schema getSchema() {
-      return super.getSchema();
-    }
-  };
+  private final ResultSet resultSet =
+      new ResultSet() {
+        @Override
+        public Schema getSchema() {
+          return super.getSchema();
+        }
+      };
 
   /**
-   * Case #1:
-   * LIKE 'test%' is converted to:
-   *  1. Regex pattern: test.*
-   *  2. OpenSearch search pattern: test*
-   * In this case, what OpenSearch returns is the final result.
+   * Case #1: LIKE 'test%' is converted to: 1. Regex pattern: test.* 2. OpenSearch search pattern:
+   * test* In this case, what OpenSearch returns is the final result.
    */
   @Test
   public void testWildcardForZeroOrMoreCharacters() {
@@ -33,13 +30,10 @@ public class ResultSetTest {
   }
 
   /**
-   * Case #2:
-   * LIKE 'test_123' is converted to:
-   *  1. Regex pattern: test.123
-   *  2. OpenSearch search pattern: (all)
-   * Because OpenSearch doesn't support single wildcard character, in this case, none is passed
-   * as OpenSearch search pattern. So all index names are returned and need to be filtered by
-   * regex pattern again.
+   * Case #2: LIKE 'test_123' is converted to: 1. Regex pattern: test.123 2. OpenSearch search
+   * pattern: (all) Because OpenSearch doesn't support single wildcard character, in this case, none
+   * is passed as OpenSearch search pattern. So all index names are returned and need to be filtered
+   * by regex pattern again.
    */
   @Test
   public void testWildcardForSingleCharacter() {
@@ -49,12 +43,10 @@ public class ResultSetTest {
   }
 
   /**
-   * Case #3:
-   * LIKE 'acc' has same regex and OpenSearch pattern.
-   * In this case, only index name(s) aliased by 'acc' is returned.
-   * So regex match is skipped to avoid wrong empty result.
-   * The assumption here is OpenSearch won't return unrelated index names if
-   * LIKE pattern doesn't include any wildcard.
+   * Case #3: LIKE 'acc' has same regex and OpenSearch pattern. In this case, only index name(s)
+   * aliased by 'acc' is returned. So regex match is skipped to avoid wrong empty result. The
+   * assumption here is OpenSearch won't return unrelated index names if LIKE pattern doesn't
+   * include any wildcard.
    */
   @Test
   public void testIndexAlias() {
@@ -62,11 +54,9 @@ public class ResultSetTest {
   }
 
   /**
-   * Case #4:
-   * LIKE 'test.2020.10' has same regex pattern. Because it includes dot (wildcard),
-   * OpenSearch search pattern is all.
-   * In this case, all index names are returned. Because the pattern includes dot,
-   * it's treated as regex and regex match won't be skipped.
+   * Case #4: LIKE 'test.2020.10' has same regex pattern. Because it includes dot (wildcard),
+   * OpenSearch search pattern is all. In this case, all index names are returned. Because the
+   * pattern includes dot, it's treated as regex and regex match won't be skipped.
    */
   @Test
   public void testIndexNameWithDot() {
@@ -74,5 +64,4 @@ public class ResultSetTest {
     assertFalse(resultSet.matchesPatternIfRegex(".opensearch_dashboards", "test.2020.10"));
     assertTrue(resultSet.matchesPatternIfRegex("test.2020.10", "test.2020.10"));
   }
-
 }

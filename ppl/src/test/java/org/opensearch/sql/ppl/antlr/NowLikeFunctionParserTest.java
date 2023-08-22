@@ -3,7 +3,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-
 package org.opensearch.sql.ppl.antlr;
 
 import static org.junit.Assert.assertNotEquals;
@@ -21,6 +20,7 @@ public class NowLikeFunctionParserTest {
 
   /**
    * Set parameterized values used in test.
+   *
    * @param name Function name
    * @param hasFsp Whether function has fsp argument
    * @param hasShortcut Whether function has shortcut (call without `()`)
@@ -33,24 +33,26 @@ public class NowLikeFunctionParserTest {
 
   /**
    * Returns function data to test.
+   *
    * @return An iterable.
    */
   @Parameterized.Parameters(name = "{0}")
   public static Iterable<Object> functionNames() {
-    return List.of(new Object[][]{
-        {"now", true, false},
-        {"current_timestamp", true, true},
-        {"localtimestamp", true, true},
-        {"localtime", true, true},
-        {"sysdate", true, false},
-        {"curtime", true, false},
-        {"current_time", true, true},
-        {"curdate", false, false},
-        {"current_date", false, true},
-        {"utc_date", false, false},
-        {"utc_time", false, false},
-        {"utc_timestamp", false, false}
-    });
+    return List.of(
+        new Object[][] {
+          {"now", true, false},
+          {"current_timestamp", true, true},
+          {"localtimestamp", true, true},
+          {"localtime", true, true},
+          {"sysdate", true, false},
+          {"curtime", true, false},
+          {"current_time", true, true},
+          {"curdate", false, false},
+          {"current_date", false, true},
+          {"utc_date", false, false},
+          {"utc_time", false, false},
+          {"utc_timestamp", false, false}
+        });
   }
 
   private final String name;

@@ -3,7 +3,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-
 package org.opensearch.sql.legacy;
 
 import static org.hamcrest.Matchers.equalTo;
@@ -26,162 +25,44 @@ import org.junit.Test;
 import org.opensearch.client.Request;
 import org.opensearch.sql.legacy.utils.StringUtils;
 
-
 /**
- * The following are tests for SHOW/DESCRIBE query support under Pretty Format Response protocol using JDBC format.
- * <p>
- * Unlike SELECT queries, the JDBC format response of SHOW and DESCRIBE queries has determined "schema" fields.
- * <p>
- * Since these integration tests are receiving the JSON response as output, "datarows" values can't be validated by
- * key since it is a JSONArray, so the expected length of "schema" will be used instead as well as the expected
- * position of the field data in "datarows".
- * <p>
- * These are the outputs of "schema" for SHOW and DESCRIBE, the position of the value in "datarows" will match the
- * position of the field in "schema":
- * <p>
- * 1) SHOW query (based on the getTables() method listed here https://docs.oracle.com/javase/8/docs/api/java/sql/DatabaseMetaData.html)
- * "schema": [
- * {
- * "name": "TABLE_CAT",
- * "type": "keyword"
- * },
- * {
- * "name": "TABLE_SCHEM",
- * "type": "keyword"
- * },
- * {
- * "name": "TABLE_NAME",
- * "type": "keyword"
- * },
- * {
- * "name": "TABLE_TYPE",
- * "type": "keyword"
- * },
- * {
- * "name": "REMARKS",
- * "type": "keyword"
- * },
- * {
- * "name": "TYPE_CAT",
- * "type": "keyword"
- * },
- * {
- * "name": "TYPE_SCHEM",
- * "type": "keyword"
- * },
- * {
- * "name": "TYPE_NAME",
- * "type": "keyword"
- * },
- * {
- * "name": "SELF_REFERENCING_COL_NAME",
- * "type": "keyword"
- * },
- * {
- * "name": "REF_GENERATION",
- * "type": "keyword"
- * }
+ * The following are tests for SHOW/DESCRIBE query support under Pretty Format Response protocol
+ * using JDBC format.
+ *
+ * <p>Unlike SELECT queries, the JDBC format response of SHOW and DESCRIBE queries has determined
+ * "schema" fields.
+ *
+ * <p>Since these integration tests are receiving the JSON response as output, "datarows" values
+ * can't be validated by key since it is a JSONArray, so the expected length of "schema" will be
+ * used instead as well as the expected position of the field data in "datarows".
+ *
+ * <p>These are the outputs of "schema" for SHOW and DESCRIBE, the position of the value in
+ * "datarows" will match the position of the field in "schema":
+ *
+ * <p>1) SHOW query (based on the getTables() method listed here
+ * https://docs.oracle.com/javase/8/docs/api/java/sql/DatabaseMetaData.html) "schema": [ { "name":
+ * "TABLE_CAT", "type": "keyword" }, { "name": "TABLE_SCHEM", "type": "keyword" }, { "name":
+ * "TABLE_NAME", "type": "keyword" }, { "name": "TABLE_TYPE", "type": "keyword" }, { "name":
+ * "REMARKS", "type": "keyword" }, { "name": "TYPE_CAT", "type": "keyword" }, { "name":
+ * "TYPE_SCHEM", "type": "keyword" }, { "name": "TYPE_NAME", "type": "keyword" }, { "name":
+ * "SELF_REFERENCING_COL_NAME", "type": "keyword" }, { "name": "REF_GENERATION", "type": "keyword" }
  * ]
- * <p>
- * 2) DESCRIBE query (based on the getColumns() method listed here https://docs.oracle.com/javase/8/docs/api/java/sql/DatabaseMetaData.html)
- * "schema": [
- * {
- * "name": "TABLE_CAT",
- * "type": "keyword"
- * },
- * {
- * "name": "TABLE_SCHEM",
- * "type": "keyword"
- * },
- * {
- * "name": "TABLE_NAME",
- * "type": "keyword"
- * },
- * {
- * "name": "COLUMN_NAME",
- * "type": "keyword"
- * },
- * {
- * "name": "DATA_TYPE",
- * "type": "integer"
- * },
- * {
- * "name": "TYPE_NAME",
- * "type": "keyword"
- * },
- * {
- * "name": "COLUMN_SIZE",
- * "type": "integer"
- * },
- * {
- * "name": "BUFFER_LENGTH",
- * "type": "integer"
- * },
- * {
- * "name": "DECIMAL_DIGITS",
- * "type": "integer"
- * },
- * {
- * "name": "NUM_PREC_RADIX",
- * "type": "integer"
- * },
- * {
- * "name": "NULLABLE",
- * "type": "integer"
- * },
- * {
- * "name": "REMARKS",
- * "type": "keyword"
- * },
- * {
- * "name": "COLUMN_DEF",
- * "type": "keyword"
- * },
- * {
- * "name": "SQL_DATA_TYPE",
- * "type": "integer"
- * },
- * {
- * "name": "SQL_DATETIME_SUB",
- * "type": "integer"
- * },
- * {
- * "name": "CHAR_OCTET_LENGTH",
- * "type": "integer"
- * },
- * {
- * "name": "ORDINAL_POSITION",
- * "type": "integer"
- * },
- * {
- * "name": "IS_NULLABLE",
- * "type": "keyword"
- * },
- * {
- * "name": "SCOPE_CATALOG",
- * "type": "keyword"
- * },
- * {
- * "name": "SCOPE_SCHEMA",
- * "type": "keyword"
- * },
- * {
- * "name": "SCOPE_TABLE",
- * "type": "keyword"
- * },
- * {
- * "name": "SOURCE_DATA_TYPE",
- * "type": "short"
- * },
- * {
- * "name": "IS_AUTOINCREMENT",
- * "type": "keyword"
- * },
- * {
- * "name": "IS_GENERATEDCOLUMN",
- * "type": "keyword"
- * }
- * ]
+ *
+ * <p>2) DESCRIBE query (based on the getColumns() method listed here
+ * https://docs.oracle.com/javase/8/docs/api/java/sql/DatabaseMetaData.html) "schema": [ { "name":
+ * "TABLE_CAT", "type": "keyword" }, { "name": "TABLE_SCHEM", "type": "keyword" }, { "name":
+ * "TABLE_NAME", "type": "keyword" }, { "name": "COLUMN_NAME", "type": "keyword" }, { "name":
+ * "DATA_TYPE", "type": "integer" }, { "name": "TYPE_NAME", "type": "keyword" }, { "name":
+ * "COLUMN_SIZE", "type": "integer" }, { "name": "BUFFER_LENGTH", "type": "integer" }, { "name":
+ * "DECIMAL_DIGITS", "type": "integer" }, { "name": "NUM_PREC_RADIX", "type": "integer" }, { "name":
+ * "NULLABLE", "type": "integer" }, { "name": "REMARKS", "type": "keyword" }, { "name":
+ * "COLUMN_DEF", "type": "keyword" }, { "name": "SQL_DATA_TYPE", "type": "integer" }, { "name":
+ * "SQL_DATETIME_SUB", "type": "integer" }, { "name": "CHAR_OCTET_LENGTH", "type": "integer" }, {
+ * "name": "ORDINAL_POSITION", "type": "integer" }, { "name": "IS_NULLABLE", "type": "keyword" }, {
+ * "name": "SCOPE_CATALOG", "type": "keyword" }, { "name": "SCOPE_SCHEMA", "type": "keyword" }, {
+ * "name": "SCOPE_TABLE", "type": "keyword" }, { "name": "SOURCE_DATA_TYPE", "type": "short" }, {
+ * "name": "IS_AUTOINCREMENT", "type": "keyword" }, { "name": "IS_GENERATEDCOLUMN", "type":
+ * "keyword" } ]
  */
 public class MetaDataQueriesIT extends SQLIntegTestCase {
 
@@ -294,29 +175,27 @@ public class MetaDataQueriesIT extends SQLIntegTestCase {
   @Ignore("Breaking change, the new engine will return alias instead of index name")
   @Test
   public void showSingleIndexAlias() throws IOException {
-    client().performRequest(new Request("PUT",
-        TestsConstants.TEST_INDEX_ACCOUNT + "/_alias/acc"));
+    client().performRequest(new Request("PUT", TestsConstants.TEST_INDEX_ACCOUNT + "/_alias/acc"));
 
     JSONObject expected = executeQuery("SHOW TABLES LIKE " + TestsConstants.TEST_INDEX_ACCOUNT);
     JSONObject actual = executeQuery("SHOW TABLES LIKE acc");
 
     assertThat(getDataRows(actual).length(), equalTo(1));
-    assertTrue(StringUtils.format("Expected: %s, actual: %s", expected, actual),
-        expected.similar(actual));
+    assertTrue(
+        StringUtils.format("Expected: %s, actual: %s", expected, actual), expected.similar(actual));
   }
 
   @Ignore("Breaking change, the new engine will return alias instead of index name")
   @Test
   public void describeSingleIndexAlias() throws IOException {
-    client().performRequest(new Request("PUT",
-        TestsConstants.TEST_INDEX_ACCOUNT + "/_alias/acc"));
+    client().performRequest(new Request("PUT", TestsConstants.TEST_INDEX_ACCOUNT + "/_alias/acc"));
 
     JSONObject expected = executeQuery("DESCRIBE TABLES LIKE " + TestsConstants.TEST_INDEX_ACCOUNT);
     JSONObject actual = executeQuery("DESCRIBE TABLES LIKE acc");
 
     assertThat(getDataRows(actual).length(), greaterThan(0));
-    assertTrue(StringUtils.format("Expected: %s, actual: %s", expected, actual),
-        expected.similar(actual));
+    assertTrue(
+        StringUtils.format("Expected: %s, actual: %s", expected, actual), expected.similar(actual));
   }
 
   @Test
@@ -355,7 +234,8 @@ public class MetaDataQueriesIT extends SQLIntegTestCase {
     assertThat(dataRows.length(), greaterThan(0));
     assertThat(dataRows.getJSONArray(0).length(), equalTo(DESCRIBE_FIELD_LENGTH));
 
-    verifySome(dataRows,
+    verifySome(
+        dataRows,
         describeRow(TEST_INDEX_GAME_OF_THRONES, "nickname", "text"),
         describeRow(TEST_INDEX_GAME_OF_THRONES, "name", "object"),
         describeRow(TEST_INDEX_GAME_OF_THRONES, "name.firstname", "text"),
@@ -402,8 +282,10 @@ public class MetaDataQueriesIT extends SQLIntegTestCase {
 
   @Test
   public void describeWildcardColumn() throws IOException {
-    JSONObject response = executeQuery(String.format("DESCRIBE TABLES LIKE %s COLUMNS LIKE %%name",
-        TestsConstants.TEST_INDEX_ACCOUNT));
+    JSONObject response =
+        executeQuery(
+            String.format(
+                "DESCRIBE TABLES LIKE %s COLUMNS LIKE %%name", TestsConstants.TEST_INDEX_ACCOUNT));
 
     String pattern = ".*name";
     JSONArray dataRows = getDataRows(response);
@@ -418,8 +300,10 @@ public class MetaDataQueriesIT extends SQLIntegTestCase {
 
   @Test
   public void describeSingleCharacterWildcard() throws IOException {
-    JSONObject response = executeQuery(String.format("DESCRIBE TABLES LIKE %s COLUMNS LIKE %%na_e",
-        TestsConstants.TEST_INDEX_ACCOUNT));
+    JSONObject response =
+        executeQuery(
+            String.format(
+                "DESCRIBE TABLES LIKE %s COLUMNS LIKE %%na_e", TestsConstants.TEST_INDEX_ACCOUNT));
 
     String pattern = ".*na.e";
     JSONArray dataRows = getDataRows(response);

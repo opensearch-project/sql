@@ -3,7 +3,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-
 package org.opensearch.sql.legacy.unittest.rewriter;
 
 import static org.mockito.Mockito.never;
@@ -23,31 +22,29 @@ import org.opensearch.sql.legacy.rewriter.RewriteRuleExecutor;
 
 @RunWith(MockitoJUnitRunner.class)
 public class RewriteRuleExecutorTest {
-    @Mock
-    private RewriteRule<SQLQueryExpr> rewriter;
-    @Mock
-    private SQLQueryExpr expr;
+  @Mock private RewriteRule<SQLQueryExpr> rewriter;
+  @Mock private SQLQueryExpr expr;
 
-    private RewriteRuleExecutor<SQLQueryExpr> ruleExecutor;
+  private RewriteRuleExecutor<SQLQueryExpr> ruleExecutor;
 
-    @Before
-    public void setup() {
-        ruleExecutor = RewriteRuleExecutor.<SQLQueryExpr>builder().withRule(rewriter).build();
-    }
+  @Before
+  public void setup() {
+    ruleExecutor = RewriteRuleExecutor.<SQLQueryExpr>builder().withRule(rewriter).build();
+  }
 
-    @Test
-    public void optimize() throws SQLFeatureNotSupportedException {
-        when(rewriter.match(expr)).thenReturn(true);
+  @Test
+  public void optimize() throws SQLFeatureNotSupportedException {
+    when(rewriter.match(expr)).thenReturn(true);
 
-        ruleExecutor.executeOn(expr);
-        verify(rewriter, times(1)).rewrite(expr);
-    }
+    ruleExecutor.executeOn(expr);
+    verify(rewriter, times(1)).rewrite(expr);
+  }
 
-    @Test
-    public void noOptimize() throws SQLFeatureNotSupportedException {
-        when(rewriter.match(expr)).thenReturn(false);
+  @Test
+  public void noOptimize() throws SQLFeatureNotSupportedException {
+    when(rewriter.match(expr)).thenReturn(false);
 
-        ruleExecutor.executeOn(expr);
-        verify(rewriter, never()).rewrite(expr);
-    }
+    ruleExecutor.executeOn(expr);
+    verify(rewriter, never()).rewrite(expr);
+  }
 }

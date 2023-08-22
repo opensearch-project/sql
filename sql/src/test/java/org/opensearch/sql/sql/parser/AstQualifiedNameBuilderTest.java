@@ -3,7 +3,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-
 package org.opensearch.sql.sql.parser;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -66,9 +65,10 @@ public class AstQualifiedNameBuilderTest {
 
   void assertFunctionNameCouldBeId(String antlrFunctionName) {
     List<String> functionList =
-        Arrays.stream(antlrFunctionName.split("\\|")).map(String::stripLeading)
-            .map(String::stripTrailing).collect(
-            Collectors.toList());
+        Arrays.stream(antlrFunctionName.split("\\|"))
+            .map(String::stripLeading)
+            .map(String::stripTrailing)
+            .collect(Collectors.toList());
 
     assertFalse(functionList.isEmpty());
     for (String functionName : functionList) {
@@ -109,5 +109,4 @@ public class AstQualifiedNameBuilderTest {
       return parser;
     }
   }
-
 }

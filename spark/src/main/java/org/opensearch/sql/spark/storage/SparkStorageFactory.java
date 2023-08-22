@@ -30,9 +30,7 @@ import org.opensearch.sql.spark.response.SparkResponse;
 import org.opensearch.sql.storage.DataSourceFactory;
 import org.opensearch.sql.storage.StorageEngine;
 
-/**
- * Storage factory implementation for spark connector.
- */
+/** Storage factory implementation for spark connector. */
 @RequiredArgsConstructor
 public class SparkStorageFactory implements DataSourceFactory {
   private final Client client;
@@ -66,9 +64,7 @@ public class SparkStorageFactory implements DataSourceFactory {
   @Override
   public DataSource createDataSource(DataSourceMetadata metadata) {
     return new DataSource(
-        metadata.getName(),
-        DataSourceType.SPARK,
-        getStorageEngine(metadata.getProperties()));
+        metadata.getName(), DataSourceType.SPARK, getStorageEngine(metadata.getProperties()));
   }
 
   /**
@@ -81,24 +77,26 @@ public class SparkStorageFactory implements DataSourceFactory {
     SparkClient sparkClient;
     if (requiredConfig.get(CONNECTOR_TYPE).equals(EMR)) {
       sparkClient =
-          AccessController.doPrivileged((PrivilegedAction<EmrClientImpl>) () -> {
-            validateEMRConfigProperties(requiredConfig);
-            return new EmrClientImpl(
-                getEMRClient(
-                  requiredConfig.get(EMR_ACCESS_KEY),
-                  requiredConfig.get(EMR_SECRET_KEY),
-                  requiredConfig.get(EMR_REGION)),
-                requiredConfig.get(EMR_CLUSTER),
-                new FlintHelper(
-                  requiredConfig.get(FLINT_INTEGRATION),
-                  requiredConfig.get(FLINT_HOST),
-                  requiredConfig.get(FLINT_PORT),
-                  requiredConfig.get(FLINT_SCHEME),
-                  requiredConfig.get(FLINT_AUTH),
-                  requiredConfig.get(FLINT_REGION)),
-                new SparkResponse(client, null, STEP_ID_FIELD),
-                requiredConfig.get(SPARK_SQL_APPLICATION));
-          });
+          AccessController.doPrivileged(
+              (PrivilegedAction<EmrClientImpl>)
+                  () -> {
+                    validateEMRConfigProperties(requiredConfig);
+                    return new EmrClientImpl(
+                        getEMRClient(
+                            requiredConfig.get(EMR_ACCESS_KEY),
+                            requiredConfig.get(EMR_SECRET_KEY),
+                            requiredConfig.get(EMR_REGION)),
+                        requiredConfig.get(EMR_CLUSTER),
+                        new FlintHelper(
+                            requiredConfig.get(FLINT_INTEGRATION),
+                            requiredConfig.get(FLINT_HOST),
+                            requiredConfig.get(FLINT_PORT),
+                            requiredConfig.get(FLINT_SCHEME),
+                            requiredConfig.get(FLINT_AUTH),
+                            requiredConfig.get(FLINT_REGION)),
+                        new SparkResponse(client, null, STEP_ID_FIELD),
+                        requiredConfig.get(SPARK_SQL_APPLICATION));
+                  });
     } else {
       throw new InvalidParameterException("Spark connector type is invalid.");
     }
@@ -110,12 +108,14 @@ public class SparkStorageFactory implements DataSourceFactory {
     if (dataSourceMetadataConfig.get(EMR_CLUSTER) == null
         || dataSourceMetadataConfig.get(EMR_AUTH_TYPE) == null) {
       throw new IllegalArgumentException("EMR config properties are missing.");
-    } else if (dataSourceMetadataConfig.get(EMR_AUTH_TYPE)
-        .equals(AuthenticationType.AWSSIGV4AUTH.getName())
+    } else if (dataSourceMetadataConfig
+            .get(EMR_AUTH_TYPE)
+            .equals(AuthenticationType.AWSSIGV4AUTH.getName())
         && (dataSourceMetadataConfig.get(EMR_ACCESS_KEY) == null
-        || dataSourceMetadataConfig.get(EMR_SECRET_KEY) == null)) {
+            || dataSourceMetadataConfig.get(EMR_SECRET_KEY) == null)) {
       throw new IllegalArgumentException("EMR auth keys are missing.");
-    } else if (!dataSourceMetadataConfig.get(EMR_AUTH_TYPE)
+    } else if (!dataSourceMetadataConfig
+        .get(EMR_AUTH_TYPE)
         .equals(AuthenticationType.AWSSIGV4AUTH.getName())) {
       throw new IllegalArgumentException("Invalid auth type.");
     }
@@ -124,8 +124,8 @@ public class SparkStorageFactory implements DataSourceFactory {
   private AmazonElasticMapReduce getEMRClient(
       String emrAccessKey, String emrSecretKey, String emrRegion) {
     return AmazonElasticMapReduceClientBuilder.standard()
-        .withCredentials(new AWSStaticCredentialsProvider(
-            new BasicAWSCredentials(emrAccessKey, emrSecretKey)))
+        .withCredentials(
+            new AWSStaticCredentialsProvider(new BasicAWSCredentials(emrAccessKey, emrSecretKey)))
         .withRegion(emrRegion)
         .build();
   }

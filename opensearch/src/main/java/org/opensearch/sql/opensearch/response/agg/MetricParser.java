@@ -16,14 +16,10 @@ package org.opensearch.sql.opensearch.response.agg;
 import java.util.Map;
 import org.opensearch.search.aggregations.Aggregation;
 
-/**
- * Metric Aggregation Parser.
- */
+/** Metric Aggregation Parser. */
 public interface MetricParser {
 
-  /**
-   * Get the name of metric parser.
-   */
+  /** Get the name of metric parser. */
   String getName();
 
   /**

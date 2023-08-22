@@ -3,7 +3,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-
 package org.opensearch.sql.ppl.parser;
 
 import static java.util.Collections.emptyList;
@@ -62,353 +61,264 @@ import org.opensearch.sql.ppl.antlr.PPLSyntaxParser;
 
 public class AstBuilderTest {
 
-  @Rule
-  public ExpectedException exceptionRule = ExpectedException.none();
+  @Rule public ExpectedException exceptionRule = ExpectedException.none();
 
   private PPLSyntaxParser parser = new PPLSyntaxParser();
 
   @Test
   public void testSearchCommand() {
-    assertEqual("search source=t a=1",
-        filter(
-            relation("t"),
-            compare("=", field("a"), intLiteral(1))
-        )
-    );
+    assertEqual(
+        "search source=t a=1", filter(relation("t"), compare("=", field("a"), intLiteral(1))));
   }
 
   @Test
   public void testSearchCrossClusterCommand() {
-    assertEqual("search source=c:t",
-        relation(qualifiedName("c:t"))
-    );
+    assertEqual("search source=c:t", relation(qualifiedName("c:t")));
   }
 
   @Test
   public void testSearchMatchAllCrossClusterCommand() {
-    assertEqual("search source=*:t",
-        relation(qualifiedName("*:t"))
-    );
+    assertEqual("search source=*:t", relation(qualifiedName("*:t")));
   }
 
   @Test
   public void testPrometheusSearchCommand() {
-    assertEqual("search source = prometheus.http_requests_total",
-        relation(qualifiedName("prometheus", "http_requests_total"))
-    );
+    assertEqual(
+        "search source = prometheus.http_requests_total",
+        relation(qualifiedName("prometheus", "http_requests_total")));
   }
 
   @Test
   public void testSearchCommandWithDataSourceEscape() {
-    assertEqual("search source = `prometheus.http_requests_total`",
-        relation("prometheus.http_requests_total")
-    );
+    assertEqual(
+        "search source = `prometheus.http_requests_total`",
+        relation("prometheus.http_requests_total"));
   }
 
   @Test
   public void testSearchCommandWithDotInIndexName() {
-    assertEqual("search source = http_requests_total.test",
-        relation(qualifiedName("http_requests_total","test"))
-    );
+    assertEqual(
+        "search source = http_requests_total.test",
+        relation(qualifiedName("http_requests_total", "test")));
   }
 
   @Test
   public void testSearchWithPrometheusQueryRangeWithPositionedArguments() {
-    assertEqual("search source = prometheus.query_range(\"test{code='200'}\",1234, 12345, 3)",
-        tableFunction(Arrays.asList("prometheus", "query_range"),
+    assertEqual(
+        "search source = prometheus.query_range(\"test{code='200'}\",1234, 12345, 3)",
+        tableFunction(
+            Arrays.asList("prometheus", "query_range"),
             unresolvedArg(null, stringLiteral("test{code='200'}")),
             unresolvedArg(null, intLiteral(1234)),
             unresolvedArg(null, intLiteral(12345)),
-            unresolvedArg(null, intLiteral(3))
-    ));
+            unresolvedArg(null, intLiteral(3))));
   }
 
   @Test
   public void testSearchWithPrometheusQueryRangeWithNamedArguments() {
-    assertEqual("search source = prometheus.query_range(query = \"test{code='200'}\", "
+    assertEqual(
+        "search source = prometheus.query_range(query = \"test{code='200'}\", "
             + "starttime = 1234, step=3, endtime=12345)",
-        tableFunction(Arrays.asList("prometheus", "query_range"),
+        tableFunction(
+            Arrays.asList("prometheus", "query_range"),
             unresolvedArg("query", stringLiteral("test{code='200'}")),
             unresolvedArg("starttime", intLiteral(1234)),
             unresolvedArg("step", intLiteral(3)),
-            unresolvedArg("endtime", intLiteral(12345))
-        ));
+            unresolvedArg("endtime", intLiteral(12345))));
   }
 
   @Test
   public void testSearchCommandString() {
-    assertEqual("search source=t a=\"a\"",
-        filter(
-            relation("t"),
-            compare("=", field("a"), stringLiteral("a"))
-        )
-    );
+    assertEqual(
+        "search source=t a=\"a\"",
+        filter(relation("t"), compare("=", field("a"), stringLiteral("a"))));
   }
 
   @Test
   public void testSearchCommandWithoutSearch() {
-    assertEqual("source=t a=1",
-        filter(
-            relation("t"),
-            compare("=", field("a"), intLiteral(1))
-        )
-    );
+    assertEqual("source=t a=1", filter(relation("t"), compare("=", field("a"), intLiteral(1))));
   }
 
   @Test
   public void testSearchCommandWithFilterBeforeSource() {
-    assertEqual("search a=1 source=t",
-        filter(
-            relation("t"),
-            compare("=", field("a"), intLiteral(1))
-        ));
+    assertEqual(
+        "search a=1 source=t", filter(relation("t"), compare("=", field("a"), intLiteral(1))));
   }
 
   @Test
   public void testWhereCommand() {
-    assertEqual("search source=t | where a=1",
-        filter(
-            relation("t"),
-            compare("=", field("a"), intLiteral(1))
-        )
-    );
+    assertEqual(
+        "search source=t | where a=1",
+        filter(relation("t"), compare("=", field("a"), intLiteral(1))));
   }
 
   @Test
   public void testWhereCommandWithQualifiedName() {
-    assertEqual("search source=t | where a.v=1",
-        filter(
-            relation("t"),
-            compare("=", field(qualifiedName("a", "v")), intLiteral(1))
-        )
-    );
+    assertEqual(
+        "search source=t | where a.v=1",
+        filter(relation("t"), compare("=", field(qualifiedName("a", "v")), intLiteral(1))));
   }
 
   @Test
   public void testFieldsCommandWithoutArguments() {
-    assertEqual("source=t | fields f, g",
-        projectWithArg(
-            relation("t"),
-            defaultFieldsArgs(),
-            field("f"), field("g")
-        ));
+    assertEqual(
+        "source=t | fields f, g",
+        projectWithArg(relation("t"), defaultFieldsArgs(), field("f"), field("g")));
   }
 
   @Test
   public void testFieldsCommandWithIncludeArguments() {
-    assertEqual("source=t | fields + f, g",
-        projectWithArg(
-            relation("t"),
-            defaultFieldsArgs(),
-            field("f"), field("g")
-        ));
+    assertEqual(
+        "source=t | fields + f, g",
+        projectWithArg(relation("t"), defaultFieldsArgs(), field("f"), field("g")));
   }
 
   @Test
   public void testFieldsCommandWithExcludeArguments() {
-    assertEqual("source=t | fields - f, g",
+    assertEqual(
+        "source=t | fields - f, g",
         projectWithArg(
             relation("t"),
             exprList(argument("exclude", booleanLiteral(true))),
-            field("f"), field("g")
-        ));
+            field("f"),
+            field("g")));
   }
 
   @Test
   public void testSearchCommandWithQualifiedName() {
-    assertEqual("source=t | fields f.v, g.v",
+    assertEqual(
+        "source=t | fields f.v, g.v",
         projectWithArg(
             relation("t"),
             defaultFieldsArgs(),
-            field(qualifiedName("f", "v")), field(qualifiedName("g", "v"))
-        ));
+            field(qualifiedName("f", "v")),
+            field(qualifiedName("g", "v"))));
   }
 
   @Test
   public void testRenameCommand() {
-    assertEqual("source=t | rename f as g",
-        rename(
-            relation("t"),
-            map("f", "g")
-        ));
+    assertEqual("source=t | rename f as g", rename(relation("t"), map("f", "g")));
   }
 
   @Test
   public void testRenameCommandWithMultiFields() {
-    assertEqual("source=t | rename f as g, h as i, j as k",
-        rename(
-            relation("t"),
-            map("f", "g"),
-            map("h", "i"),
-            map("j", "k")
-        ));
+    assertEqual(
+        "source=t | rename f as g, h as i, j as k",
+        rename(relation("t"), map("f", "g"), map("h", "i"), map("j", "k")));
   }
 
   @Test
   public void testStatsCommand() {
-    assertEqual("source=t | stats count(a)",
+    assertEqual(
+        "source=t | stats count(a)",
         agg(
             relation("t"),
-            exprList(
-                alias(
-                    "count(a)",
-                    aggregate("count", field("a"))
-                )
-            ),
+            exprList(alias("count(a)", aggregate("count", field("a")))),
             emptyList(),
             emptyList(),
-            defaultStatsArgs()
-        ));
+            defaultStatsArgs()));
   }
 
   @Test
   public void testStatsCommandWithByClause() {
-    assertEqual("source=t | stats count(a) by b DEDUP_SPLITVALUES=false",
+    assertEqual(
+        "source=t | stats count(a) by b DEDUP_SPLITVALUES=false",
         agg(
             relation("t"),
-            exprList(
-                alias(
-                    "count(a)",
-                    aggregate("count", field("a"))
-                )
-            ),
+            exprList(alias("count(a)", aggregate("count", field("a")))),
             emptyList(),
-            exprList(
-                alias(
-                    "b",
-                    field("b")
-                )),
-            defaultStatsArgs()
-        ));
+            exprList(alias("b", field("b"))),
+            defaultStatsArgs()));
   }
 
   @Test
   public void testStatsCommandWithByClauseInBackticks() {
-    assertEqual("source=t | stats count(a) by `b` DEDUP_SPLITVALUES=false",
+    assertEqual(
+        "source=t | stats count(a) by `b` DEDUP_SPLITVALUES=false",
         agg(
             relation("t"),
-            exprList(
-                alias(
-                    "count(a)",
-                    aggregate("count", field("a"))
-                )
-            ),
+            exprList(alias("count(a)", aggregate("count", field("a")))),
             emptyList(),
-            exprList(
-                alias(
-                    "b",
-                    field("b")
-                )),
-            defaultStatsArgs()
-        ));
+            exprList(alias("b", field("b"))),
+            defaultStatsArgs()));
   }
 
   @Test
   public void testStatsCommandWithAlias() {
-    assertEqual("source=t | stats count(a) as alias",
+    assertEqual(
+        "source=t | stats count(a) as alias",
         agg(
             relation("t"),
-            exprList(
-                alias(
-                    "alias",
-                    aggregate("count", field("a"))
-                )
-            ),
+            exprList(alias("alias", aggregate("count", field("a")))),
             emptyList(),
             emptyList(),
-            defaultStatsArgs()
-        )
-    );
+            defaultStatsArgs()));
   }
 
   @Test
   public void testStatsCommandWithNestedFunctions() {
-    assertEqual("source=t | stats sum(a+b)",
+    assertEqual(
+        "source=t | stats sum(a+b)",
         agg(
             relation("t"),
-            exprList(
-                alias(
-                    "sum(a+b)",
-                    aggregate(
-                        "sum",
-                        function("+", field("a"), field("b"))
-                    ))
-            ),
+            exprList(alias("sum(a+b)", aggregate("sum", function("+", field("a"), field("b"))))),
             emptyList(),
             emptyList(),
-            defaultStatsArgs()
-        ));
-    assertEqual("source=t | stats sum(abs(a)/2)",
+            defaultStatsArgs()));
+    assertEqual(
+        "source=t | stats sum(abs(a)/2)",
         agg(
             relation("t"),
             exprList(
                 alias(
                     "sum(abs(a)/2)",
-                    aggregate(
-                        "sum",
-                        function(
-                            "/",
-                            function("abs", field("a")),
-                            intLiteral(2)
-                        )
-                    )
-                )
-            ),
+                    aggregate("sum", function("/", function("abs", field("a")), intLiteral(2))))),
             emptyList(),
             emptyList(),
-            defaultStatsArgs()
-        ));
+            defaultStatsArgs()));
   }
 
   @Test
   public void testStatsCommandWithSpan() {
-    assertEqual("source=t | stats avg(price) by span(timestamp, 1h)",
+    assertEqual(
+        "source=t | stats avg(price) by span(timestamp, 1h)",
         agg(
             relation("t"),
-            exprList(
-                alias("avg(price)", aggregate("avg", field("price")))
-            ),
+            exprList(alias("avg(price)", aggregate("avg", field("price")))),
             emptyList(),
             emptyList(),
             alias("span(timestamp,1h)", span(field("timestamp"), intLiteral(1), SpanUnit.H)),
-            defaultStatsArgs()
-        ));
+            defaultStatsArgs()));
 
-    assertEqual("source=t | stats count(a) by span(age, 10)",
+    assertEqual(
+        "source=t | stats count(a) by span(age, 10)",
         agg(
             relation("t"),
-            exprList(
-                alias("count(a)", aggregate("count", field("a")))
-            ),
+            exprList(alias("count(a)", aggregate("count", field("a")))),
             emptyList(),
             emptyList(),
             alias("span(age,10)", span(field("age"), intLiteral(10), SpanUnit.NONE)),
-            defaultStatsArgs()
-        ));
+            defaultStatsArgs()));
 
-    assertEqual("source=t | stats avg(price) by span(timestamp, 1h), b",
+    assertEqual(
+        "source=t | stats avg(price) by span(timestamp, 1h), b",
         agg(
             relation("t"),
-            exprList(
-                alias("avg(price)", aggregate("avg", field("price")))
-            ),
+            exprList(alias("avg(price)", aggregate("avg", field("price")))),
             emptyList(),
             exprList(alias("b", field("b"))),
             alias("span(timestamp,1h)", span(field("timestamp"), intLiteral(1), SpanUnit.H)),
-            defaultStatsArgs()
-        ));
+            defaultStatsArgs()));
 
-    assertEqual("source=t | stats avg(price) by span(timestamp, 1h), f1, f2",
+    assertEqual(
+        "source=t | stats avg(price) by span(timestamp, 1h), f1, f2",
         agg(
             relation("t"),
-            exprList(
-                alias("avg(price)", aggregate("avg", field("price")))
-            ),
+            exprList(alias("avg(price)", aggregate("avg", field("price")))),
             emptyList(),
             exprList(alias("f1", field("f1")), alias("f2", field("f2"))),
             alias("span(timestamp,1h)", span(field("timestamp"), intLiteral(1), SpanUnit.H)),
-            defaultStatsArgs()
-        ));
+            defaultStatsArgs()));
   }
 
   @Test(expected = org.opensearch.sql.common.antlr.SyntaxCheckException.class)
@@ -423,152 +333,128 @@ public class AstBuilderTest {
 
   @Test
   public void testStatsSpanWithAlias() {
-    assertEqual("source=t | stats avg(price) by span(timestamp, 1h) as time_span",
+    assertEqual(
+        "source=t | stats avg(price) by span(timestamp, 1h) as time_span",
         agg(
             relation("t"),
-            exprList(
-                alias("avg(price)", aggregate("avg", field("price")))
-            ),
+            exprList(alias("avg(price)", aggregate("avg", field("price")))),
             emptyList(),
             emptyList(),
-            alias("span(timestamp,1h)", span(
-                field("timestamp"), intLiteral(1), SpanUnit.H), "time_span"),
-            defaultStatsArgs()
-        ));
+            alias(
+                "span(timestamp,1h)",
+                span(field("timestamp"), intLiteral(1), SpanUnit.H),
+                "time_span"),
+            defaultStatsArgs()));
 
-    assertEqual("source=t | stats count(a) by span(age, 10) as numeric_span",
+    assertEqual(
+        "source=t | stats count(a) by span(age, 10) as numeric_span",
         agg(
             relation("t"),
-            exprList(
-                alias("count(a)", aggregate("count", field("a")))
-            ),
+            exprList(alias("count(a)", aggregate("count", field("a")))),
             emptyList(),
             emptyList(),
-            alias("span(age,10)", span(
-                field("age"), intLiteral(10), SpanUnit.NONE), "numeric_span"),
-            defaultStatsArgs()
-        ));
+            alias(
+                "span(age,10)", span(field("age"), intLiteral(10), SpanUnit.NONE), "numeric_span"),
+            defaultStatsArgs()));
   }
 
   @Test
   public void testDedupCommand() {
-    assertEqual("source=t | dedup f1, f2",
-        dedupe(
-            relation("t"),
-            defaultDedupArgs(),
-            field("f1"), field("f2")
-        ));
+    assertEqual(
+        "source=t | dedup f1, f2",
+        dedupe(relation("t"), defaultDedupArgs(), field("f1"), field("f2")));
   }
 
-  /**
-   * disable sortby from the dedup command syntax.
-   */
+  /** disable sortby from the dedup command syntax. */
   @Ignore(value = "disable sortby from the dedup command syntax")
   public void testDedupCommandWithSortby() {
-    assertEqual("source=t | dedup f1, f2 sortby f3",
+    assertEqual(
+        "source=t | dedup f1, f2 sortby f3",
         agg(
             relation("t"),
             exprList(field("f1"), field("f2")),
             exprList(field("f3", defaultSortFieldArgs())),
             null,
-            defaultDedupArgs()
-        ));
+            defaultDedupArgs()));
   }
 
   @Test
   public void testHeadCommand() {
-    assertEqual("source=t | head",
-        head(relation("t"), 10, 0));
+    assertEqual("source=t | head", head(relation("t"), 10, 0));
   }
 
   @Test
   public void testHeadCommandWithNumber() {
-    assertEqual("source=t | head 3",
-        head(relation("t"), 3, 0));
+    assertEqual("source=t | head 3", head(relation("t"), 3, 0));
   }
 
   @Test
   public void testHeadCommandWithNumberAndOffset() {
-    assertEqual("source=t | head 3 from 4",
-        head(relation("t"), 3, 4));
+    assertEqual("source=t | head 3 from 4", head(relation("t"), 3, 4));
   }
 
   @Test
   public void testSortCommand() {
-    assertEqual("source=t | sort f1, f2",
+    assertEqual(
+        "source=t | sort f1, f2",
         sort(
             relation("t"),
             field("f1", defaultSortFieldArgs()),
-            field("f2", defaultSortFieldArgs())
-        ));
+            field("f2", defaultSortFieldArgs())));
   }
 
   @Test
   public void testSortCommandWithOptions() {
-    assertEqual("source=t | sort - f1, + f2",
+    assertEqual(
+        "source=t | sort - f1, + f2",
         sort(
             relation("t"),
-            field("f1", exprList(argument("asc", booleanLiteral(false)),
-                argument("type", nullLiteral()))),
-            field("f2", defaultSortFieldArgs())
-        ));
+            field(
+                "f1",
+                exprList(argument("asc", booleanLiteral(false)), argument("type", nullLiteral()))),
+            field("f2", defaultSortFieldArgs())));
   }
 
   @Test
   public void testEvalCommand() {
-    assertEqual("source=t | eval r=abs(f)",
-        eval(
-            relation("t"),
-            let(
-                field("r"),
-                function("abs", field("f"))
-            )
-        ));
+    assertEqual(
+        "source=t | eval r=abs(f)",
+        eval(relation("t"), let(field("r"), function("abs", field("f")))));
   }
 
   @Test
   public void testIndexName() {
-    assertEqual("source=`log.2020.04.20.` a=1",
-        filter(
-            relation("log.2020.04.20."),
-            compare("=", field("a"), intLiteral(1))
-        ));
-    assertEqual("describe `log.2020.04.20.`",
-        relation(mappingTable("log.2020.04.20.")));
+    assertEqual(
+        "source=`log.2020.04.20.` a=1",
+        filter(relation("log.2020.04.20."), compare("=", field("a"), intLiteral(1))));
+    assertEqual("describe `log.2020.04.20.`", relation(mappingTable("log.2020.04.20.")));
   }
 
   @Test
   public void testIdentifierAsIndexNameStartWithDot() {
-    assertEqual("source=.opensearch_dashboards",
-        relation(".opensearch_dashboards"));
-    assertEqual("describe .opensearch_dashboards",
-        relation(mappingTable(".opensearch_dashboards")));
+    assertEqual("source=.opensearch_dashboards", relation(".opensearch_dashboards"));
+    assertEqual(
+        "describe .opensearch_dashboards", relation(mappingTable(".opensearch_dashboards")));
   }
 
   @Test
   public void testIdentifierAsIndexNameWithDotInTheMiddle() {
     assertEqual("source=log.2020.10.10", relation("log.2020.10.10"));
     assertEqual("source=log-7.10-2020.10.10", relation("log-7.10-2020.10.10"));
-    assertEqual("describe log.2020.10.10",
-        relation(mappingTable("log.2020.10.10")));
-    assertEqual("describe log-7.10-2020.10.10",
-        relation(mappingTable("log-7.10-2020.10.10")));
+    assertEqual("describe log.2020.10.10", relation(mappingTable("log.2020.10.10")));
+    assertEqual("describe log-7.10-2020.10.10", relation(mappingTable("log-7.10-2020.10.10")));
   }
 
   @Test
   public void testIdentifierAsIndexNameWithSlashInTheMiddle() {
-    assertEqual("source=log-2020",
-        relation("log-2020"));
-    assertEqual("describe log-2020",
-        relation(mappingTable("log-2020")));
+    assertEqual("source=log-2020", relation("log-2020"));
+    assertEqual("describe log-2020", relation(mappingTable("log-2020")));
   }
 
   @Test
   public void testIdentifierAsIndexNameContainStar() {
-    assertEqual("source=log-2020-10-*",
-        relation("log-2020-10-*"));
-    assertEqual("describe log-2020-10-*",
-        relation(mappingTable("log-2020-10-*")));
+    assertEqual("source=log-2020-10-*", relation("log-2020-10-*"));
+    assertEqual("describe log-2020-10-*", relation(mappingTable("log-2020-10-*")));
   }
 
   @Test
@@ -576,138 +462,132 @@ public class AstBuilderTest {
     assertEqual("source=log-2020.10.*", relation("log-2020.10.*"));
     assertEqual("source=log-2020.*.01", relation("log-2020.*.01"));
     assertEqual("source=log-2020.*.*", relation("log-2020.*.*"));
-    assertEqual("describe log-2020.10.*",
-        relation(mappingTable("log-2020.10.*")));
-    assertEqual("describe log-2020.*.01",
-        relation(mappingTable("log-2020.*.01")));
-    assertEqual("describe log-2020.*.*",
-        relation(mappingTable("log-2020.*.*")));
+    assertEqual("describe log-2020.10.*", relation(mappingTable("log-2020.10.*")));
+    assertEqual("describe log-2020.*.01", relation(mappingTable("log-2020.*.01")));
+    assertEqual("describe log-2020.*.*", relation(mappingTable("log-2020.*.*")));
   }
 
   @Test
   public void testIdentifierAsFieldNameStartWithAt() {
-    assertEqual("source=log-2020 | fields @timestamp",
-        projectWithArg(
-            relation("log-2020"),
-            defaultFieldsArgs(),
-            field("@timestamp")
-        ));
+    assertEqual(
+        "source=log-2020 | fields @timestamp",
+        projectWithArg(relation("log-2020"), defaultFieldsArgs(), field("@timestamp")));
   }
 
   @Test
   public void testRareCommand() {
-    assertEqual("source=t | rare a",
+    assertEqual(
+        "source=t | rare a",
         rareTopN(
             relation("t"),
             CommandType.RARE,
             exprList(argument("noOfResults", intLiteral(10))),
             emptyList(),
-            field("a")
-        ));
+            field("a")));
   }
 
   @Test
   public void testRareCommandWithGroupBy() {
-    assertEqual("source=t | rare a by b",
+    assertEqual(
+        "source=t | rare a by b",
         rareTopN(
             relation("t"),
             CommandType.RARE,
             exprList(argument("noOfResults", intLiteral(10))),
             exprList(field("b")),
-            field("a")
-        ));
+            field("a")));
   }
 
   @Test
   public void testRareCommandWithMultipleFields() {
-    assertEqual("source=t | rare `a`, `b` by `c`",
+    assertEqual(
+        "source=t | rare `a`, `b` by `c`",
         rareTopN(
             relation("t"),
             CommandType.RARE,
             exprList(argument("noOfResults", intLiteral(10))),
             exprList(field("c")),
             field("a"),
-            field("b")
-        ));
+            field("b")));
   }
 
   @Test
   public void testTopCommandWithN() {
-    assertEqual("source=t | top 1 a",
+    assertEqual(
+        "source=t | top 1 a",
         rareTopN(
             relation("t"),
             CommandType.TOP,
             exprList(argument("noOfResults", intLiteral(1))),
             emptyList(),
-            field("a")
-        ));
+            field("a")));
   }
 
   @Test
   public void testTopCommandWithoutNAndGroupBy() {
-    assertEqual("source=t | top a",
+    assertEqual(
+        "source=t | top a",
         rareTopN(
             relation("t"),
             CommandType.TOP,
             exprList(argument("noOfResults", intLiteral(10))),
             emptyList(),
-            field("a")
-        ));
+            field("a")));
   }
 
   @Test
   public void testTopCommandWithNAndGroupBy() {
-    assertEqual("source=t | top 1 a by b",
+    assertEqual(
+        "source=t | top 1 a by b",
         rareTopN(
             relation("t"),
             CommandType.TOP,
             exprList(argument("noOfResults", intLiteral(1))),
             exprList(field("b")),
-            field("a")
-        ));
+            field("a")));
   }
 
   @Test
   public void testTopCommandWithMultipleFields() {
-    assertEqual("source=t | top 1 `a`, `b` by `c`",
+    assertEqual(
+        "source=t | top 1 `a`, `b` by `c`",
         rareTopN(
             relation("t"),
             CommandType.TOP,
             exprList(argument("noOfResults", intLiteral(1))),
             exprList(field("c")),
             field("a"),
-            field("b")
-        ));
+            field("b")));
   }
 
   @Test
   public void testGrokCommand() {
-    assertEqual("source=t | grok raw \"pattern\"",
+    assertEqual(
+        "source=t | grok raw \"pattern\"",
         parse(
             relation("t"),
             ParseMethod.GROK,
             field("raw"),
             stringLiteral("pattern"),
-            ImmutableMap.of()
-        ));
+            ImmutableMap.of()));
   }
 
   @Test
   public void testParseCommand() {
-    assertEqual("source=t | parse raw \"pattern\"",
+    assertEqual(
+        "source=t | parse raw \"pattern\"",
         parse(
             relation("t"),
             ParseMethod.REGEX,
             field("raw"),
             stringLiteral("pattern"),
-            ImmutableMap.of()
-        ));
+            ImmutableMap.of()));
   }
 
   @Test
   public void testPatternsCommand() {
-    assertEqual("source=t | patterns new_field=\"custom_field\" "
-            + "pattern=\"custom_pattern\" raw",
+    assertEqual(
+        "source=t | patterns new_field=\"custom_field\" " + "pattern=\"custom_pattern\" raw",
         parse(
             relation("t"),
             ParseMethod.PATTERNS,
@@ -716,8 +596,7 @@ public class AstBuilderTest {
             ImmutableMap.<String, Literal>builder()
                 .put("new_field", stringLiteral("custom_field"))
                 .put("pattern", stringLiteral("custom_pattern"))
-                .build()
-        ));
+                .build()));
   }
 
   @Test
@@ -734,114 +613,118 @@ public class AstBuilderTest {
 
   @Test
   public void testKmeansCommand() {
-    assertEqual("source=t | kmeans centroids=3 iterations=2 distance_type='l1'",
-        new Kmeans(relation("t"), ImmutableMap.<String, Literal>builder()
-            .put("centroids", new Literal(3, DataType.INTEGER))
-            .put("iterations", new Literal(2, DataType.INTEGER))
-            .put("distance_type", new Literal("l1", DataType.STRING))
-            .build()
-        ));
+    assertEqual(
+        "source=t | kmeans centroids=3 iterations=2 distance_type='l1'",
+        new Kmeans(
+            relation("t"),
+            ImmutableMap.<String, Literal>builder()
+                .put("centroids", new Literal(3, DataType.INTEGER))
+                .put("iterations", new Literal(2, DataType.INTEGER))
+                .put("distance_type", new Literal("l1", DataType.STRING))
+                .build()));
   }
 
   @Test
   public void testKmeansCommandWithoutParameter() {
-    assertEqual("source=t | kmeans",
-        new Kmeans(relation("t"), ImmutableMap.of()));
+    assertEqual("source=t | kmeans", new Kmeans(relation("t"), ImmutableMap.of()));
   }
 
   @Test
   public void testMLCommand() {
-    assertEqual("source=t | ml action='trainandpredict' "
-                    + "algorithm='kmeans' centroid=3 iteration=2 dist_type='l1'",
-            new ML(relation("t"), ImmutableMap.<String, Literal>builder()
-                    .put("action", new Literal("trainandpredict", DataType.STRING))
-                    .put("algorithm", new Literal("kmeans", DataType.STRING))
-                    .put("centroid", new Literal(3, DataType.INTEGER))
-                    .put("iteration", new Literal(2, DataType.INTEGER))
-                    .put("dist_type", new Literal("l1", DataType.STRING))
-                    .build()
-            ));
+    assertEqual(
+        "source=t | ml action='trainandpredict' "
+            + "algorithm='kmeans' centroid=3 iteration=2 dist_type='l1'",
+        new ML(
+            relation("t"),
+            ImmutableMap.<String, Literal>builder()
+                .put("action", new Literal("trainandpredict", DataType.STRING))
+                .put("algorithm", new Literal("kmeans", DataType.STRING))
+                .put("centroid", new Literal(3, DataType.INTEGER))
+                .put("iteration", new Literal(2, DataType.INTEGER))
+                .put("dist_type", new Literal("l1", DataType.STRING))
+                .build()));
   }
 
   @Test
   public void testDescribeCommand() {
-    assertEqual("describe t",
-        relation(mappingTable("t")));
+    assertEqual("describe t", relation(mappingTable("t")));
   }
 
   @Test
   public void testDescribeMatchAllCrossClusterSearchCommand() {
-    assertEqual("describe *:t",
-        relation(mappingTable("*:t")));
+    assertEqual("describe *:t", relation(mappingTable("*:t")));
   }
 
   @Test
   public void testDescribeCommandWithMultipleIndices() {
-    assertEqual("describe t,u",
-        relation(mappingTable("t,u")));
+    assertEqual("describe t,u", relation(mappingTable("t,u")));
   }
 
   @Test
   public void testDescribeCommandWithFullyQualifiedTableName() {
-    assertEqual("describe prometheus.http_metric",
+    assertEqual(
+        "describe prometheus.http_metric",
         relation(qualifiedName("prometheus", mappingTable("http_metric"))));
-    assertEqual("describe prometheus.schema.http_metric",
+    assertEqual(
+        "describe prometheus.schema.http_metric",
         relation(qualifiedName("prometheus", "schema", mappingTable("http_metric"))));
   }
 
   @Test
   public void test_fitRCFADCommand_withoutDataFormat() {
-    assertEqual("source=t | AD shingle_size=10 time_decay=0.0001 time_field='timestamp' "
+    assertEqual(
+        "source=t | AD shingle_size=10 time_decay=0.0001 time_field='timestamp' "
             + "anomaly_rate=0.1 anomaly_score_threshold=0.1 sample_size=256 "
             + "number_of_trees=256 time_zone='PST' output_after=256 "
             + "training_data_size=256",
-        new AD(relation("t"), ImmutableMap.<String, Literal>builder()
-            .put("anomaly_rate", new Literal(0.1, DataType.DOUBLE))
-            .put("anomaly_score_threshold", new Literal(0.1, DataType.DOUBLE))
-            .put("sample_size", new Literal(256, DataType.INTEGER))
-            .put("number_of_trees", new Literal(256, DataType.INTEGER))
-            .put("time_zone", new Literal("PST", DataType.STRING))
-            .put("output_after", new Literal(256, DataType.INTEGER))
-            .put("shingle_size", new Literal(10, DataType.INTEGER))
-            .put("time_decay", new Literal(0.0001, DataType.DOUBLE))
-            .put("time_field", new Literal("timestamp", DataType.STRING))
-            .put("training_data_size", new Literal(256, DataType.INTEGER))
-            .build()
-        ));
+        new AD(
+            relation("t"),
+            ImmutableMap.<String, Literal>builder()
+                .put("anomaly_rate", new Literal(0.1, DataType.DOUBLE))
+                .put("anomaly_score_threshold", new Literal(0.1, DataType.DOUBLE))
+                .put("sample_size", new Literal(256, DataType.INTEGER))
+                .put("number_of_trees", new Literal(256, DataType.INTEGER))
+                .put("time_zone", new Literal("PST", DataType.STRING))
+                .put("output_after", new Literal(256, DataType.INTEGER))
+                .put("shingle_size", new Literal(10, DataType.INTEGER))
+                .put("time_decay", new Literal(0.0001, DataType.DOUBLE))
+                .put("time_field", new Literal("timestamp", DataType.STRING))
+                .put("training_data_size", new Literal(256, DataType.INTEGER))
+                .build()));
   }
 
   @Test
   public void test_fitRCFADCommand_withDataFormat() {
-    assertEqual("source=t | AD shingle_size=10 time_decay=0.0001 time_field='timestamp' "
+    assertEqual(
+        "source=t | AD shingle_size=10 time_decay=0.0001 time_field='timestamp' "
             + "anomaly_rate=0.1 anomaly_score_threshold=0.1 sample_size=256 "
             + "number_of_trees=256 time_zone='PST' output_after=256 "
             + "training_data_size=256 date_format='HH:mm:ss yyyy-MM-dd'",
-        new AD(relation("t"), ImmutableMap.<String, Literal>builder()
-            .put("anomaly_rate", new Literal(0.1, DataType.DOUBLE))
-            .put("anomaly_score_threshold", new Literal(0.1, DataType.DOUBLE))
-            .put("sample_size", new Literal(256, DataType.INTEGER))
-            .put("number_of_trees", new Literal(256, DataType.INTEGER))
-            .put("date_format", new Literal("HH:mm:ss yyyy-MM-dd", DataType.STRING))
-            .put("time_zone", new Literal("PST", DataType.STRING))
-            .put("output_after", new Literal(256, DataType.INTEGER))
-            .put("shingle_size", new Literal(10, DataType.INTEGER))
-            .put("time_decay", new Literal(0.0001, DataType.DOUBLE))
-            .put("time_field", new Literal("timestamp", DataType.STRING))
-            .put("training_data_size", new Literal(256, DataType.INTEGER))
-            .build()
-        ));
+        new AD(
+            relation("t"),
+            ImmutableMap.<String, Literal>builder()
+                .put("anomaly_rate", new Literal(0.1, DataType.DOUBLE))
+                .put("anomaly_score_threshold", new Literal(0.1, DataType.DOUBLE))
+                .put("sample_size", new Literal(256, DataType.INTEGER))
+                .put("number_of_trees", new Literal(256, DataType.INTEGER))
+                .put("date_format", new Literal("HH:mm:ss yyyy-MM-dd", DataType.STRING))
+                .put("time_zone", new Literal("PST", DataType.STRING))
+                .put("output_after", new Literal(256, DataType.INTEGER))
+                .put("shingle_size", new Literal(10, DataType.INTEGER))
+                .put("time_decay", new Literal(0.0001, DataType.DOUBLE))
+                .put("time_field", new Literal("timestamp", DataType.STRING))
+                .put("training_data_size", new Literal(256, DataType.INTEGER))
+                .build()));
   }
 
   @Test
   public void test_batchRCFADCommand() {
-    assertEqual("source=t | AD",
-        new AD(relation("t"), ImmutableMap.of()));
+    assertEqual("source=t | AD", new AD(relation("t"), ImmutableMap.of()));
   }
 
   @Test
   public void testShowDataSourcesCommand() {
-    assertEqual("show datasources",
-        relation(DATASOURCES_TABLE_NAME));
+    assertEqual("show datasources", relation(DATASOURCES_TABLE_NAME));
   }
 
   protected void assertEqual(String query, Node expectedPlan) {

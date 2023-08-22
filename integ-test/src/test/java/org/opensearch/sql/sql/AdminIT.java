@@ -3,7 +3,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-
 package org.opensearch.sql.sql;
 
 import static org.hamcrest.Matchers.equalTo;
@@ -63,10 +62,7 @@ public class AdminIT extends SQLIntegTestCase {
     String expected = loadFromFile("expectedOutput/sql/explain_show.json");
 
     final String actual = explainQuery("SHOW TABLES LIKE %");
-    assertJsonEquals(
-        expected,
-        explainQuery("SHOW TABLES LIKE %")
-    );
+    assertJsonEquals(expected, explainQuery("SHOW TABLES LIKE %"));
   }
 
   private void addAlias(String index, String alias) throws IOException {

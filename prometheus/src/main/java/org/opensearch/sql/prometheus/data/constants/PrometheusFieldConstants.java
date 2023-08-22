@@ -18,6 +18,6 @@ public class PrometheusFieldConstants {
   public static final String EXEMPLARS_KEY = "exemplars";
   public static final String TRACE_ID_KEY = "traceID";
   public static final String LABELS_KEY = "labels";
-  public static final String TIMESTAMP_KEY  = "timestamp";
-  public static final String VALUE_KEY  = "value";
+  public static final String TIMESTAMP_KEY = "timestamp";
+  public static final String VALUE_KEY = "value";
 }

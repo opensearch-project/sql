@@ -7,7 +7,6 @@
 
 package org.opensearch.sql.prometheus.storage.querybuilder;
 
-
 import static org.opensearch.sql.prometheus.data.constants.PrometheusFieldConstants.TIMESTAMP;
 
 import java.util.stream.Collectors;
@@ -19,13 +18,9 @@ import org.opensearch.sql.expression.FunctionExpression;
 import org.opensearch.sql.expression.ReferenceExpression;
 import org.opensearch.sql.expression.function.BuiltinFunctionName;
 
-/**
- * This class builds metric selection query from the filter condition
- * and metric name.
- */
+/** This class builds metric selection query from the filter condition and metric name. */
 @NoArgsConstructor
 public class SeriesSelectionQueryBuilder {
-
 
   /**
    * Build Prometheus series selector query from expression.
@@ -35,8 +30,8 @@ public class SeriesSelectionQueryBuilder {
    */
   public static String build(String metricName, Expression filterCondition) {
     if (filterCondition != null) {
-      SeriesSelectionExpressionNodeVisitor seriesSelectionExpressionNodeVisitor
-          = new SeriesSelectionExpressionNodeVisitor();
+      SeriesSelectionExpressionNodeVisitor seriesSelectionExpressionNodeVisitor =
+          new SeriesSelectionExpressionNodeVisitor();
       String selectorQuery = filterCondition.accept(seriesSelectionExpressionNodeVisitor, null);
       if (selectorQuery != null) {
         return metricName + "{" + selectorQuery + "}";
@@ -54,9 +49,9 @@ public class SeriesSelectionQueryBuilder {
             .filter(StringUtils::isNotEmpty)
             .collect(Collectors.joining(" , "));
       } else if ((BuiltinFunctionName.LTE.getName().equals(func.getFunctionName())
-             || BuiltinFunctionName.GTE.getName().equals(func.getFunctionName())
-          || BuiltinFunctionName.LESS.getName().equals(func.getFunctionName())
-          || BuiltinFunctionName.GREATER.getName().equals(func.getFunctionName()))
+              || BuiltinFunctionName.GTE.getName().equals(func.getFunctionName())
+              || BuiltinFunctionName.LESS.getName().equals(func.getFunctionName())
+              || BuiltinFunctionName.GREATER.getName().equals(func.getFunctionName()))
           && ((ReferenceExpression) func.getArguments().get(0)).getAttr().equals(TIMESTAMP)) {
         return null;
       } else if (BuiltinFunctionName.EQUAL.getName().equals(func.getFunctionName())) {
@@ -65,11 +60,10 @@ public class SeriesSelectionQueryBuilder {
             + func.getArguments().get(1);
       } else {
         throw new RuntimeException(
-            String.format("Prometheus Datasource doesn't support %s "
-                    + "in where command.",
+            String.format(
+                "Prometheus Datasource doesn't support %s " + "in where command.",
                 func.getFunctionName().getFunctionName()));
       }
     }
   }
-
 }

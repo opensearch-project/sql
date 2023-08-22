@@ -3,7 +3,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-
 package org.opensearch.sql.legacy;
 
 import static org.opensearch.core.common.Strings.isNullOrEmpty;
@@ -50,16 +49,14 @@ import org.opensearch.core.xcontent.XContentBuilder;
 
 /**
  * SQL plugin integration test base class (migrated from SQLIntegTestCase)
- * <p>
- * The execution of order is as follows:
- * <p>
- * OpenSearchRestTestCase:   1) initClient()                                       N+1) closeClient()
- * \                                                     /
- * SQLIntegTestCase:     2) setUpIndices() -&gt; 4) setUpIndices() ... -&gt; N) cleanUpIndices()
- * \                      \
- * XXXTIT:                  3) init()             5) init()
- * <p>
- * TODO: this base class should extends ODFERestTestCase
+ *
+ * <p>The execution of order is as follows:
+ *
+ * <p>OpenSearchRestTestCase: 1) initClient() N+1) closeClient() \ / SQLIntegTestCase: 2)
+ * setUpIndices() -&gt; 4) setUpIndices() ... -&gt; N) cleanUpIndices() \ \ XXXTIT: 3) init() 5)
+ * init()
+ *
+ * <p>TODO: this base class should extends ODFERestTestCase
  */
 public abstract class RestIntegTestCase extends OpenSearchSQLRestTestCase {
 
@@ -78,12 +75,12 @@ public abstract class RestIntegTestCase extends OpenSearchSQLRestTestCase {
   }
 
   /**
-   * We need to be able to dump the jacoco coverage before cluster is shut down.
-   * The new internal testing framework removed some of the gradle tasks we were listening to
-   * to choose a good time to do it. This will dump the executionData to file after each test.
-   * TODO: This is also currently just overwriting integTest.exec with the updated execData without
-   * resetting after writing each time. This can be improved to either write an exec file per test
-   * or by letting jacoco append to the file
+   * We need to be able to dump the jacoco coverage before cluster is shut down. The new internal
+   * testing framework removed some of the gradle tasks we were listening to to choose a good time
+   * to do it. This will dump the executionData to file after each test. TODO: This is also
+   * currently just overwriting integTest.exec with the updated execData without resetting after
+   * writing each time. This can be improved to either write an exec file per test or by letting
+   * jacoco append to the file
    */
   public interface IProxy {
     byte[] getExecutionData(boolean reset);
@@ -104,10 +101,12 @@ public abstract class RestIntegTestCase extends OpenSearchSQLRestTestCase {
 
     String serverUrl = "service:jmx:rmi:///jndi/rmi://127.0.0.1:7777/jmxrmi";
     try (JMXConnector connector = JMXConnectorFactory.connect(new JMXServiceURL(serverUrl))) {
-      IProxy proxy = MBeanServerInvocationHandler.newProxyInstance(
-          connector.getMBeanServerConnection(), new ObjectName("org.jacoco:type=Runtime"),
-          IProxy.class,
-          false);
+      IProxy proxy =
+          MBeanServerInvocationHandler.newProxyInstance(
+              connector.getMBeanServerConnection(),
+              new ObjectName("org.jacoco:type=Runtime"),
+              IProxy.class,
+              false);
 
       Path path = Paths.get(jacocoBuildPath + "/integTest.exec");
       Files.write(path, proxy.getExecutionData(false));
@@ -117,9 +116,9 @@ public abstract class RestIntegTestCase extends OpenSearchSQLRestTestCase {
   }
 
   /**
-   * As JUnit JavaDoc says:
-   * "The @AfterClass methods declared in superclasses will be run after those of the current class."
-   * So this method is supposed to run before closeClients() in parent class.
+   * As JUnit JavaDoc says: "The @AfterClass methods declared in superclasses will be run after
+   * those of the current class." So this method is supposed to run before closeClients() in parent
+   * class.
    */
   @AfterClass
   public static void cleanUpIndices() throws IOException {
@@ -128,8 +127,8 @@ public abstract class RestIntegTestCase extends OpenSearchSQLRestTestCase {
   }
 
   /**
-   * Make it thread-safe in case tests are running in parallel but does not guarantee
-   * if test like DeleteIT that mutates cluster running in parallel.
+   * Make it thread-safe in case tests are running in parallel but does not guarantee if test like
+   * DeleteIT that mutates cluster running in parallel.
    */
   protected synchronized void loadIndex(Index index) throws IOException {
     String indexName = index.getName();
@@ -142,11 +141,8 @@ public abstract class RestIntegTestCase extends OpenSearchSQLRestTestCase {
     }
   }
 
-  /**
-   * Provide for each test to load test index, data and other setup work
-   */
-  protected void init() throws Exception {
-  }
+  /** Provide for each test to load test index, data and other setup work */
+  protected void init() throws Exception {}
 
   protected static void updateClusterSetting(String settingKey, Object value) throws IOException {
     updateClusterSetting(settingKey, value, true);
@@ -155,18 +151,18 @@ public abstract class RestIntegTestCase extends OpenSearchSQLRestTestCase {
   protected static void updateClusterSetting(String settingKey, Object value, boolean persistent)
       throws IOException {
     String property = persistent ? PERSISTENT : TRANSIENT;
-    XContentBuilder builder = XContentFactory
-        .jsonBuilder()
-        .startObject()
-        .startObject(property)
-        .field(settingKey, value)
-        .endObject()
-        .endObject();
+    XContentBuilder builder =
+        XContentFactory.jsonBuilder()
+            .startObject()
+            .startObject(property)
+            .field(settingKey, value)
+            .endObject()
+            .endObject();
     Request request = new Request("PUT", "_cluster/settings");
     request.setJsonEntity(builder.toString());
     Response response = client().performRequest(request);
-    Assert
-        .assertEquals(RestStatus.OK, RestStatus.fromCode(response.getStatusLine().getStatusCode()));
+    Assert.assertEquals(
+        RestStatus.OK, RestStatus.fromCode(response.getStatusLine().getStatusCode()));
   }
 
   protected static void wipeAllClusterSettings() throws IOException {
@@ -174,103 +170,109 @@ public abstract class RestIntegTestCase extends OpenSearchSQLRestTestCase {
     updateClusterSetting("*", null, false);
   }
 
-  /**
-   * Enum for associating test index with relevant mapping and data.
-   */
+  /** Enum for associating test index with relevant mapping and data. */
   public enum Index {
-    ONLINE(TestsConstants.TEST_INDEX_ONLINE,
-        "online",
-        null,
-        "src/test/resources/online.json"),
-    ACCOUNT(TestsConstants.TEST_INDEX_ACCOUNT,
+    ONLINE(TestsConstants.TEST_INDEX_ONLINE, "online", null, "src/test/resources/online.json"),
+    ACCOUNT(
+        TestsConstants.TEST_INDEX_ACCOUNT,
         "account",
         getAccountIndexMapping(),
         "src/test/resources/accounts.json"),
-    PHRASE(TestsConstants.TEST_INDEX_PHRASE,
+    PHRASE(
+        TestsConstants.TEST_INDEX_PHRASE,
         "phrase",
         getPhraseIndexMapping(),
         "src/test/resources/phrases.json"),
-    DOG(TestsConstants.TEST_INDEX_DOG,
-        "dog",
-        getDogIndexMapping(),
-        "src/test/resources/dogs.json"),
-    DOGS2(TestsConstants.TEST_INDEX_DOG2,
+    DOG(TestsConstants.TEST_INDEX_DOG, "dog", getDogIndexMapping(), "src/test/resources/dogs.json"),
+    DOGS2(
+        TestsConstants.TEST_INDEX_DOG2,
         "dog",
         getDogs2IndexMapping(),
         "src/test/resources/dogs2.json"),
-    DOGS3(TestsConstants.TEST_INDEX_DOG3,
+    DOGS3(
+        TestsConstants.TEST_INDEX_DOG3,
         "dog",
         getDogs3IndexMapping(),
         "src/test/resources/dogs3.json"),
-    DOGSSUBQUERY(TestsConstants.TEST_INDEX_DOGSUBQUERY,
+    DOGSSUBQUERY(
+        TestsConstants.TEST_INDEX_DOGSUBQUERY,
         "dog",
         getDogIndexMapping(),
         "src/test/resources/dogsubquery.json"),
-    PEOPLE(TestsConstants.TEST_INDEX_PEOPLE,
-        "people",
-        null,
-        "src/test/resources/peoples.json"),
-    PEOPLE2(TestsConstants.TEST_INDEX_PEOPLE2,
+    PEOPLE(TestsConstants.TEST_INDEX_PEOPLE, "people", null, "src/test/resources/peoples.json"),
+    PEOPLE2(
+        TestsConstants.TEST_INDEX_PEOPLE2,
         "people",
         getPeople2IndexMapping(),
         "src/test/resources/people2.json"),
-    GAME_OF_THRONES(TestsConstants.TEST_INDEX_GAME_OF_THRONES,
+    GAME_OF_THRONES(
+        TestsConstants.TEST_INDEX_GAME_OF_THRONES,
         "gotCharacters",
         getGameOfThronesIndexMapping(),
         "src/test/resources/game_of_thrones_complex.json"),
-    SYSTEM(TestsConstants.TEST_INDEX_SYSTEM,
-        "systems",
-        null,
-        "src/test/resources/systems.json"),
-    ODBC(TestsConstants.TEST_INDEX_ODBC,
+    SYSTEM(TestsConstants.TEST_INDEX_SYSTEM, "systems", null, "src/test/resources/systems.json"),
+    ODBC(
+        TestsConstants.TEST_INDEX_ODBC,
         "odbc",
         getOdbcIndexMapping(),
         "src/test/resources/odbc-date-formats.json"),
-    LOCATION(TestsConstants.TEST_INDEX_LOCATION,
+    LOCATION(
+        TestsConstants.TEST_INDEX_LOCATION,
         "location",
         getLocationIndexMapping(),
         "src/test/resources/locations.json"),
-    LOCATION_TWO(TestsConstants.TEST_INDEX_LOCATION2,
+    LOCATION_TWO(
+        TestsConstants.TEST_INDEX_LOCATION2,
         "location2",
         getLocationIndexMapping(),
         "src/test/resources/locations2.json"),
-    NESTED(TestsConstants.TEST_INDEX_NESTED_TYPE,
+    NESTED(
+        TestsConstants.TEST_INDEX_NESTED_TYPE,
         "nestedType",
         getNestedTypeIndexMapping(),
         "src/test/resources/nested_objects.json"),
-    NESTED_WITH_QUOTES(TestsConstants.TEST_INDEX_NESTED_WITH_QUOTES,
+    NESTED_WITH_QUOTES(
+        TestsConstants.TEST_INDEX_NESTED_WITH_QUOTES,
         "nestedType",
         getNestedTypeIndexMapping(),
         "src/test/resources/nested_objects_quotes_in_values.json"),
-    EMPLOYEE_NESTED(TestsConstants.TEST_INDEX_EMPLOYEE_NESTED,
+    EMPLOYEE_NESTED(
+        TestsConstants.TEST_INDEX_EMPLOYEE_NESTED,
         "_doc",
         getEmployeeNestedTypeIndexMapping(),
         "src/test/resources/employee_nested.json"),
-    JOIN(TestsConstants.TEST_INDEX_JOIN_TYPE,
+    JOIN(
+        TestsConstants.TEST_INDEX_JOIN_TYPE,
         "joinType",
         getJoinTypeIndexMapping(),
         "src/test/resources/join_objects.json"),
-    BANK(TestsConstants.TEST_INDEX_BANK,
+    BANK(
+        TestsConstants.TEST_INDEX_BANK,
         "account",
         getBankIndexMapping(),
         "src/test/resources/bank.json"),
-    BANK_TWO(TestsConstants.TEST_INDEX_BANK_TWO,
+    BANK_TWO(
+        TestsConstants.TEST_INDEX_BANK_TWO,
         "account_two",
         getBankIndexMapping(),
         "src/test/resources/bank_two.json"),
-    BANK_WITH_NULL_VALUES(TestsConstants.TEST_INDEX_BANK_WITH_NULL_VALUES,
+    BANK_WITH_NULL_VALUES(
+        TestsConstants.TEST_INDEX_BANK_WITH_NULL_VALUES,
         "account_null",
         getBankWithNullValuesIndexMapping(),
         "src/test/resources/bank_with_null_values.json"),
-    ORDER(TestsConstants.TEST_INDEX_ORDER,
+    ORDER(
+        TestsConstants.TEST_INDEX_ORDER,
         "_doc",
         getOrderIndexMapping(),
         "src/test/resources/order.json"),
-    WEBLOG(TestsConstants.TEST_INDEX_WEBLOG,
+    WEBLOG(
+        TestsConstants.TEST_INDEX_WEBLOG,
         "weblog",
         getWeblogsIndexMapping(),
         "src/test/resources/weblogs.json"),
-    DATE(TestsConstants.TEST_INDEX_DATE,
+    DATE(
+        TestsConstants.TEST_INDEX_DATE,
         "dates",
         getDateIndexMapping(),
         "src/test/resources/dates.json");

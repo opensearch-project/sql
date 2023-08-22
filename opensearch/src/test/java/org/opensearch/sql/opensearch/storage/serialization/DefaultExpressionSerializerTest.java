@@ -3,7 +3,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-
 package org.opensearch.sql.opensearch.storage.serialization;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -57,23 +56,25 @@ class DefaultExpressionSerializerTest {
 
   @Test
   public void cannot_serialize_illegal_expression() {
-    Expression illegalExpr = new Expression() {
-      private final Object object = new Object(); // non-serializable
-      @Override
-      public ExprValue valueOf(Environment<Expression, ExprValue> valueEnv) {
-        return null;
-      }
+    Expression illegalExpr =
+        new Expression() {
+          private final Object object = new Object(); // non-serializable
 
-      @Override
-      public ExprType type() {
-        return null;
-      }
+          @Override
+          public ExprValue valueOf(Environment<Expression, ExprValue> valueEnv) {
+            return null;
+          }
 
-      @Override
-      public <T, C> T accept(ExpressionNodeVisitor<T, C> visitor, C context) {
-        return null;
-      }
-    };
+          @Override
+          public ExprType type() {
+            return null;
+          }
+
+          @Override
+          public <T, C> T accept(ExpressionNodeVisitor<T, C> visitor, C context) {
+            return null;
+          }
+        };
     assertThrows(IllegalStateException.class, () -> serializer.serialize(illegalExpr));
   }
 
@@ -81,5 +82,4 @@ class DefaultExpressionSerializerTest {
   public void cannot_deserialize_illegal_expression_code() {
     assertThrows(IllegalStateException.class, () -> serializer.deserialize("hello world"));
   }
-
 }

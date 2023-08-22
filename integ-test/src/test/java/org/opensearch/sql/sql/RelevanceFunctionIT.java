@@ -24,11 +24,15 @@ public class RelevanceFunctionIT extends SQLIntegTestCase {
    */
   @Test
   public void verify_flags_in_simple_query_string() throws IOException {
-    String query1 = "SELECT Id FROM "
-        + TEST_INDEX_BEER + " WHERE simple_query_string(['Body'], '-free', flags='NONE|PREFIX|ESCAPE')";
+    String query1 =
+        "SELECT Id FROM "
+            + TEST_INDEX_BEER
+            + " WHERE simple_query_string(['Body'], '-free', flags='NONE|PREFIX|ESCAPE')";
     var result1 = new JSONObject(executeQuery(query1, "jdbc"));
-    String query2 = "SELECT Id FROM "
-        + TEST_INDEX_BEER + " WHERE simple_query_string([Body], '-free', flags='NOT|AND|OR')";
+    String query2 =
+        "SELECT Id FROM "
+            + TEST_INDEX_BEER
+            + " WHERE simple_query_string([Body], '-free', flags='NOT|AND|OR')";
     var result2 = new JSONObject(executeQuery(query2, "jdbc"));
     assertNotEquals(result2.getInt("total"), result1.getInt("total"));
 
@@ -44,11 +48,11 @@ public class RelevanceFunctionIT extends SQLIntegTestCase {
    */
   @Test
   public void verify_escape_in_query_string() throws IOException {
-    String query1 = "SELECT Id FROM "
-        + TEST_INDEX_BEER + " WHERE query_string([Title], '?', escape=true);";
+    String query1 =
+        "SELECT Id FROM " + TEST_INDEX_BEER + " WHERE query_string([Title], '?', escape=true);";
     var result1 = new JSONObject(executeQuery(query1, "jdbc"));
-    String query2 = "SELECT Id FROM "
-        + TEST_INDEX_BEER + " WHERE query_string([Title], '?', escape=false);";
+    String query2 =
+        "SELECT Id FROM " + TEST_INDEX_BEER + " WHERE query_string([Title], '?', escape=false);";
     var result2 = new JSONObject(executeQuery(query2, "jdbc"));
     assertEquals(0, result1.getInt("total"));
     assertEquals(8, result2.getInt("total"));
@@ -61,11 +65,15 @@ public class RelevanceFunctionIT extends SQLIntegTestCase {
    */
   @Test
   public void verify_default_operator_in_query_string() throws IOException {
-    String query1 = "SELECT Id FROM "
-        + TEST_INDEX_BEER + " WHERE query_string([Title], 'beer taste', default_operator='OR')";
+    String query1 =
+        "SELECT Id FROM "
+            + TEST_INDEX_BEER
+            + " WHERE query_string([Title], 'beer taste', default_operator='OR')";
     var result1 = new JSONObject(executeQuery(query1, "jdbc"));
-    String query2 = "SELECT Id FROM "
-        + TEST_INDEX_BEER + " WHERE query_string([Title], 'beer taste', default_operator='AND')";
+    String query2 =
+        "SELECT Id FROM "
+            + TEST_INDEX_BEER
+            + " WHERE query_string([Title], 'beer taste', default_operator='AND')";
     var result2 = new JSONObject(executeQuery(query2, "jdbc"));
     assertEquals(16, result1.getInt("total"));
     assertEquals(4, result2.getInt("total"));
@@ -73,11 +81,15 @@ public class RelevanceFunctionIT extends SQLIntegTestCase {
 
   @Test
   public void verify_default_operator_in_simple_query_string() throws IOException {
-    String query1 = "SELECT Id FROM "
-        + TEST_INDEX_BEER + " WHERE simple_query_string([Title], 'beer taste', default_operator='OR')";
+    String query1 =
+        "SELECT Id FROM "
+            + TEST_INDEX_BEER
+            + " WHERE simple_query_string([Title], 'beer taste', default_operator='OR')";
     var result1 = new JSONObject(executeQuery(query1, "jdbc"));
-    String query2 = "SELECT Id FROM "
-        + TEST_INDEX_BEER + " WHERE simple_query_string([Title], 'beer taste', default_operator='AND')";
+    String query2 =
+        "SELECT Id FROM "
+            + TEST_INDEX_BEER
+            + " WHERE simple_query_string([Title], 'beer taste', default_operator='AND')";
     var result2 = new JSONObject(executeQuery(query2, "jdbc"));
     assertEquals(16, result1.getInt("total"));
     assertEquals(4, result2.getInt("total"));
@@ -85,11 +97,15 @@ public class RelevanceFunctionIT extends SQLIntegTestCase {
 
   @Test
   public void verify_default_operator_in_multi_match() throws IOException {
-    String query1 = "SELECT Id FROM "
-        + TEST_INDEX_BEER + " WHERE multi_match([Title], 'beer taste', operator='OR')";
+    String query1 =
+        "SELECT Id FROM "
+            + TEST_INDEX_BEER
+            + " WHERE multi_match([Title], 'beer taste', operator='OR')";
     var result1 = new JSONObject(executeQuery(query1, "jdbc"));
-    String query2 = "SELECT Id FROM "
-        + TEST_INDEX_BEER + " WHERE multi_match([Title], 'beer taste', operator='AND')";
+    String query2 =
+        "SELECT Id FROM "
+            + TEST_INDEX_BEER
+            + " WHERE multi_match([Title], 'beer taste', operator='AND')";
     var result2 = new JSONObject(executeQuery(query2, "jdbc"));
     assertEquals(16, result1.getInt("total"));
     assertEquals(4, result2.getInt("total"));
@@ -97,11 +113,11 @@ public class RelevanceFunctionIT extends SQLIntegTestCase {
 
   @Test
   public void verify_operator_in_match() throws IOException {
-    String query1 = "SELECT Id FROM "
-        + TEST_INDEX_BEER + " WHERE match(Title, 'beer taste', operator='OR')";
+    String query1 =
+        "SELECT Id FROM " + TEST_INDEX_BEER + " WHERE match(Title, 'beer taste', operator='OR')";
     var result1 = new JSONObject(executeQuery(query1, "jdbc"));
-    String query2 = "SELECT Id FROM "
-        + TEST_INDEX_BEER + " WHERE match(Title, 'beer taste', operator='AND')";
+    String query2 =
+        "SELECT Id FROM " + TEST_INDEX_BEER + " WHERE match(Title, 'beer taste', operator='AND')";
     var result2 = new JSONObject(executeQuery(query2, "jdbc"));
     assertEquals(16, result1.getInt("total"));
     assertEquals(4, result2.getInt("total"));

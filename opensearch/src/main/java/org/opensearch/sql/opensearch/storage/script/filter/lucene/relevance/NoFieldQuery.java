@@ -7,7 +7,6 @@ package org.opensearch.sql.opensearch.storage.script.filter.lucene.relevance;
 
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.stream.Collectors;
 import org.opensearch.index.query.QueryBuilder;
 import org.opensearch.sql.common.antlr.SyntaxCheckException;
@@ -34,36 +33,39 @@ abstract class NoFieldQuery<T extends QueryBuilder> extends RelevanceQuery<T> {
   protected void checkValidArguments(String argNormalized, T queryBuilder) {
     if (!getQueryBuildActions().containsKey(argNormalized)) {
       throw new SemanticCheckException(
-              String.format("Parameter %s is invalid for %s function.",
-                      argNormalized, getQueryName()));
+          String.format("Parameter %s is invalid for %s function.", argNormalized, getQueryName()));
     }
   }
+
   /**
-   * Override build function because RelevanceQuery requires 2 fields,
-   * but NoFieldQuery must have no fields.
+   * Override build function because RelevanceQuery requires 2 fields, but NoFieldQuery must have no
+   * fields.
    *
    * @param func : Contains function name and passed in arguments.
    * @return : QueryBuilder object
    */
-
   @Override
   public QueryBuilder build(FunctionExpression func) {
-    var arguments = func.getArguments().stream().map(
-        a -> (NamedArgumentExpression) a).collect(Collectors.toList());
+    var arguments =
+        func.getArguments().stream()
+            .map(a -> (NamedArgumentExpression) a)
+            .collect(Collectors.toList());
     if (arguments.size() < 1) {
-      throw new SyntaxCheckException(String.format(
-          "%s requires at least one parameter", func.getFunctionName()));
+      throw new SyntaxCheckException(
+          String.format("%s requires at least one parameter", func.getFunctionName()));
     }
 
     return loadArguments(arguments);
   }
 
-
   @Override
   public T createQueryBuilder(List<NamedArgumentExpression> arguments) {
     // Extract 'query'
-    var query = arguments.stream().filter(a -> a.getArgName().equalsIgnoreCase("query")).findFirst()
-        .orElseThrow(() -> new SemanticCheckException("'query' parameter is missing"));
+    var query =
+        arguments.stream()
+            .filter(a -> a.getArgName().equalsIgnoreCase("query"))
+            .findFirst()
+            .orElseThrow(() -> new SemanticCheckException("'query' parameter is missing"));
 
     return createBuilder(query.getValue().valueOf().stringValue());
   }

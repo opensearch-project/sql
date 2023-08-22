@@ -32,17 +32,13 @@ import org.opensearch.threadpool.ThreadPool;
 @ExtendWith(MockitoExtension.class)
 class OpenSearchQueryManagerTest {
 
-  @Mock
-  private QueryId queryId;
+  @Mock private QueryId queryId;
 
-  @Mock
-  private QueryService queryService;
+  @Mock private QueryService queryService;
 
-  @Mock
-  private UnresolvedPlan plan;
+  @Mock private UnresolvedPlan plan;
 
-  @Mock
-  private ResponseListener<ExecutionEngine.QueryResponse> listener;
+  @Mock private ResponseListener<ExecutionEngine.QueryResponse> listener;
 
   @Test
   public void submitQuery() {
@@ -51,19 +47,20 @@ class OpenSearchQueryManagerTest {
     when(nodeClient.threadPool()).thenReturn(threadPool);
 
     AtomicBoolean isRun = new AtomicBoolean(false);
-    AbstractPlan queryPlan = new QueryPlan(queryId, plan, queryService, listener) {
-      @Override
-      public void execute() {
-        isRun.set(true);
-      }
-    };
+    AbstractPlan queryPlan =
+        new QueryPlan(queryId, plan, queryService, listener) {
+          @Override
+          public void execute() {
+            isRun.set(true);
+          }
+        };
 
     doAnswer(
-        invocation -> {
-          Runnable task = invocation.getArgument(0);
-          task.run();
-          return null;
-        })
+            invocation -> {
+              Runnable task = invocation.getArgument(0);
+              task.run();
+              return null;
+            })
         .when(threadPool)
         .schedule(any(), any(), any());
     new OpenSearchQueryManager(nodeClient).submit(queryPlan);

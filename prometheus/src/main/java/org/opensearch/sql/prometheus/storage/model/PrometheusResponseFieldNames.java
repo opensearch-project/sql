@@ -17,7 +17,6 @@ import lombok.Setter;
 import org.opensearch.sql.data.type.ExprType;
 import org.opensearch.sql.expression.NamedExpression;
 
-
 @Getter
 @Setter
 public class PrometheusResponseFieldNames {
@@ -26,5 +25,4 @@ public class PrometheusResponseFieldNames {
   private ExprType valueType = DOUBLE;
   private String timestampFieldName = TIMESTAMP;
   private List<NamedExpression> groupByList;
-
 }

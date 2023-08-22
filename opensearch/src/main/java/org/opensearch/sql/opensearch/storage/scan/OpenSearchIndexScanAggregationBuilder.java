@@ -22,16 +22,9 @@ import org.opensearch.sql.opensearch.storage.script.aggregation.AggregationQuery
 import org.opensearch.sql.opensearch.storage.serialization.DefaultExpressionSerializer;
 import org.opensearch.sql.planner.logical.LogicalAggregation;
 import org.opensearch.sql.planner.logical.LogicalFilter;
-import org.opensearch.sql.planner.logical.LogicalHighlight;
-import org.opensearch.sql.planner.logical.LogicalLimit;
-import org.opensearch.sql.planner.logical.LogicalNested;
-import org.opensearch.sql.planner.logical.LogicalPaginate;
-import org.opensearch.sql.planner.logical.LogicalProject;
 import org.opensearch.sql.planner.logical.LogicalSort;
 
-/**
- * Index scan builder for aggregate query used by {@link OpenSearchIndexScanBuilder} internally.
- */
+/** Index scan builder for aggregate query used by {@link OpenSearchIndexScanBuilder} internally. */
 @EqualsAndHashCode
 class OpenSearchIndexScanAggregationBuilder implements PushDownQueryBuilder {
 
@@ -47,9 +40,8 @@ class OpenSearchIndexScanAggregationBuilder implements PushDownQueryBuilder {
   /** Sorting items pushed down. */
   private List<Pair<Sort.SortOption, Expression>> sortList;
 
-
-  OpenSearchIndexScanAggregationBuilder(OpenSearchRequestBuilder requestBuilder,
-                                        LogicalAggregation aggregation) {
+  OpenSearchIndexScanAggregationBuilder(
+      OpenSearchRequestBuilder requestBuilder, LogicalAggregation aggregation) {
     this.requestBuilder = requestBuilder;
     aggregatorList = aggregation.getAggregatorList();
     groupByList = aggregation.getGroupByList();
@@ -62,8 +54,7 @@ class OpenSearchIndexScanAggregationBuilder implements PushDownQueryBuilder {
     Pair<List<AggregationBuilder>, OpenSearchAggregationResponseParser> aggregationBuilder =
         builder.buildAggregationBuilder(aggregatorList, groupByList, sortList);
     requestBuilder.pushDownAggregation(aggregationBuilder);
-    requestBuilder.pushTypeMapping(
-        builder.buildTypeMapping(aggregatorList, groupByList));
+    requestBuilder.pushTypeMapping(builder.buildTypeMapping(aggregatorList, groupByList));
     return requestBuilder;
   }
 

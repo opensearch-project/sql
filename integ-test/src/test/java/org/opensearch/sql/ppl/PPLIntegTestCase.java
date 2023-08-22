@@ -3,7 +3,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-
 package org.opensearch.sql.ppl;
 
 import static org.opensearch.sql.legacy.TestUtils.getResponseBody;
@@ -20,9 +19,7 @@ import org.opensearch.client.RequestOptions;
 import org.opensearch.client.Response;
 import org.opensearch.sql.legacy.SQLIntegTestCase;
 
-/**
- * OpenSearch Rest integration test base for PPL testing.
- */
+/** OpenSearch Rest integration test base for PPL testing. */
 public abstract class PPLIntegTestCase extends SQLIntegTestCase {
 
   protected JSONObject executeQuery(String query) throws IOException {
@@ -42,8 +39,10 @@ public abstract class PPLIntegTestCase extends SQLIntegTestCase {
   }
 
   protected String executeCsvQuery(String query, boolean sanitize) throws IOException {
-    Request request = buildRequest(query,
-        QUERY_API_ENDPOINT + String.format(Locale.ROOT, "?format=csv&sanitize=%b", sanitize));
+    Request request =
+        buildRequest(
+            query,
+            QUERY_API_ENDPOINT + String.format(Locale.ROOT, "?format=csv&sanitize=%b", sanitize));
     Response response = client().performRequest(request);
     Assert.assertEquals(200, response.getStatusLine().getStatusCode());
     return getResponseBody(response, true);
@@ -65,8 +64,9 @@ public abstract class PPLIntegTestCase extends SQLIntegTestCase {
 
   protected static JSONObject updateClusterSettings(ClusterSetting setting) throws IOException {
     Request request = new Request("PUT", "/_cluster/settings");
-    String persistentSetting = String.format(Locale.ROOT,
-        "{\"%s\": {\"%s\": %s}}", setting.type, setting.name, setting.value);
+    String persistentSetting =
+        String.format(
+            Locale.ROOT, "{\"%s\": {\"%s\": %s}}", setting.type, setting.name, setting.value);
     request.setJsonEntity(persistentSetting);
     RequestOptions.Builder restOptionsBuilder = RequestOptions.DEFAULT.toBuilder();
     restOptionsBuilder.addHeader("Content-Type", "application/json");
@@ -92,9 +92,15 @@ public abstract class PPLIntegTestCase extends SQLIntegTestCase {
     @Override
     public String toString() {
       return "ClusterSetting{"
-          + "type='" + type + '\''
-          + ", path='" + name + '\''
-          + ", value='" + value + '\''
+          + "type='"
+          + type
+          + '\''
+          + ", path='"
+          + name
+          + '\''
+          + ", value='"
+          + value
+          + '\''
           + '}';
     }
   }

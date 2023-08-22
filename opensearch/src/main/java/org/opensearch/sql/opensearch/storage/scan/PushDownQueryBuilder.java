@@ -14,9 +14,7 @@ import org.opensearch.sql.planner.logical.LogicalPaginate;
 import org.opensearch.sql.planner.logical.LogicalProject;
 import org.opensearch.sql.planner.logical.LogicalSort;
 
-/**
- * Translates a logical query plan into OpenSearch DSL and an appropriate request.
- */
+/** Translates a logical query plan into OpenSearch DSL and an appropriate request. */
 public interface PushDownQueryBuilder {
   default boolean pushDownFilter(LogicalFilter filter) {
     return false;

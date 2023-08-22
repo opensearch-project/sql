@@ -5,7 +5,6 @@
 
 package org.opensearch.sql.common.grok;
 
-
 import static org.junit.Assert.assertEquals;
 
 import com.google.common.io.Resources;
@@ -42,12 +41,13 @@ public class ApacheDataTypeTest {
 
   @Test
   public void test002_httpd_access_semi() throws GrokException {
-    Grok grok = compiler.compile(
-        "%{IPORHOST:clientip} %{USER:ident;boolean} %{USER:auth} "
-            + "\\[%{HTTPDATE:timestamp;date;dd/MMM/yyyy:HH:mm:ss Z}\\] \"(?:%{WORD:verb;string} "
-            + "%{NOTSPACE:request}"
-            + "(?: HTTP/%{NUMBER:httpversion;float})?|%{DATA:rawrequest})\" %{NUMBER:response;int} "
-            + "(?:%{NUMBER:bytes;long}|-)");
+    Grok grok =
+        compiler.compile(
+            "%{IPORHOST:clientip} %{USER:ident;boolean} %{USER:auth}"
+                + " \\[%{HTTPDATE:timestamp;date;dd/MMM/yyyy:HH:mm:ss Z}\\]"
+                + " \"(?:%{WORD:verb;string} %{NOTSPACE:request}(?:"
+                + " HTTP/%{NUMBER:httpversion;float})?|%{DATA:rawrequest})\" %{NUMBER:response;int}"
+                + " (?:%{NUMBER:bytes;long}|-)");
 
     System.out.println(line);
     Match gm = grok.match(line);
@@ -61,17 +61,17 @@ public class ApacheDataTypeTest {
     assertEquals(map.get("httpversion"), 1.1f);
     assertEquals(map.get("bytes"), 12846L);
     assertEquals("GET", map.get("verb"));
-
   }
 
   @Test
   public void test002_httpd_access_colon() throws GrokException {
-    Grok grok = compiler.compile(
-        "%{IPORHOST:clientip} %{USER:ident:boolean} %{USER:auth} "
-            + "\\[%{HTTPDATE:timestamp:date:dd/MMM/yyyy:HH:mm:ss Z}\\] \"(?:%{WORD:verb:string} "
-            + "%{NOTSPACE:request}"
-            + "(?: HTTP/%{NUMBER:httpversion:float})?|%{DATA:rawrequest})\" %{NUMBER:response:int} "
-            + "(?:%{NUMBER:bytes:long}|-)");
+    Grok grok =
+        compiler.compile(
+            "%{IPORHOST:clientip} %{USER:ident:boolean} %{USER:auth}"
+                + " \\[%{HTTPDATE:timestamp:date:dd/MMM/yyyy:HH:mm:ss Z}\\]"
+                + " \"(?:%{WORD:verb:string} %{NOTSPACE:request}(?:"
+                + " HTTP/%{NUMBER:httpversion:float})?|%{DATA:rawrequest})\" %{NUMBER:response:int}"
+                + " (?:%{NUMBER:bytes:long}|-)");
 
     Match gm = grok.match(line);
     Map<String, Object> map = gm.capture();
@@ -85,6 +85,5 @@ public class ApacheDataTypeTest {
     assertEquals(map.get("httpversion"), 1.1f);
     assertEquals(map.get("bytes"), 12846L);
     assertEquals("GET", map.get("verb"));
-
   }
 }

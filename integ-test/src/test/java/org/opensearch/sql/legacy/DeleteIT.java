@@ -3,7 +3,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-
 package org.opensearch.sql.legacy;
 
 import static org.hamcrest.core.IsEqual.equalTo;
@@ -20,8 +19,8 @@ public class DeleteIT extends SQLIntegTestCase {
   protected void init() throws Exception {
     loadIndex(Index.ACCOUNT);
     loadIndex(Index.PHRASE);
-    updateClusterSettings(new ClusterSetting(PERSISTENT,
-        Settings.Key.SQL_DELETE_ENABLED.getKeyValue(), "true"));
+    updateClusterSettings(
+        new ClusterSetting(PERSISTENT, Settings.Key.SQL_DELETE_ENABLED.getKeyValue(), "true"));
   }
 
   @Test
@@ -34,7 +33,8 @@ public class DeleteIT extends SQLIntegTestCase {
     response = executeRequest(makeRequest(deleteQuery));
     assertThat(response.getInt("deleted"), equalTo(totalHits));
 
-    // The documents are not deleted immediately, causing the next search call to return all results.
+    // The documents are not deleted immediately, causing the next search call to return all
+    // results.
     // To prevent flakiness, the minimum value of 2000 msec works fine.
     Thread.sleep(2000);
 
@@ -44,20 +44,21 @@ public class DeleteIT extends SQLIntegTestCase {
 
   @Test
   public void deleteWithConditionTest() throws IOException, InterruptedException {
-    String selectQuery = StringUtils.format(
-        "SELECT * FROM %s WHERE match_phrase(phrase, 'quick fox here')",
-        TestsConstants.TEST_INDEX_PHRASE
-    );
+    String selectQuery =
+        StringUtils.format(
+            "SELECT * FROM %s WHERE match_phrase(phrase, 'quick fox here')",
+            TestsConstants.TEST_INDEX_PHRASE);
     JSONObject response = executeRequest(makeRequest(selectQuery));
     int totalHits = getTotalHits(response);
 
-    String deleteQuery = StringUtils.format(
-        "DELETE FROM %s WHERE match_phrase(phrase, 'quick fox here')",
-        TestsConstants.TEST_INDEX_PHRASE
-    );
+    String deleteQuery =
+        StringUtils.format(
+            "DELETE FROM %s WHERE match_phrase(phrase, 'quick fox here')",
+            TestsConstants.TEST_INDEX_PHRASE);
     response = executeRequest(makeRequest(deleteQuery));
     assertThat(response.getInt("deleted"), equalTo(totalHits));
-    // The documents are not deleted immediately, causing the next search call to return all results.
+    // The documents are not deleted immediately, causing the next search call to return all
+    // results.
     // To prevent flakiness, the minimum value of 2000 msec works fine.
     Thread.sleep(2000);
 
@@ -84,7 +85,8 @@ public class DeleteIT extends SQLIntegTestCase {
     assertThat(response.query("/status"), equalTo(200));
     assertThat(response.query("/size"), equalTo(1));
 
-    // The documents are not deleted immediately, causing the next search call to return all results.
+    // The documents are not deleted immediately, causing the next search call to return all
+    // results.
     // To prevent flakiness, the minimum value of 2000 msec works fine.
     Thread.sleep(2000);
 
@@ -98,18 +100,18 @@ public class DeleteIT extends SQLIntegTestCase {
 
   @Test
   public void deleteWithConditionTestJdbcFormat() throws IOException, InterruptedException {
-    String selectQuery = StringUtils.format(
-        "SELECT * FROM %s WHERE match_phrase(phrase, 'quick fox here')",
-        TestsConstants.TEST_INDEX_PHRASE
-    );
+    String selectQuery =
+        StringUtils.format(
+            "SELECT * FROM %s WHERE match_phrase(phrase, 'quick fox here')",
+            TestsConstants.TEST_INDEX_PHRASE);
 
     JSONObject response = executeRequest(makeRequest(selectQuery));
     int totalHits = getTotalHits(response);
 
-    String deleteQuery = StringUtils.format(
-        "DELETE FROM %s WHERE match_phrase(phrase, 'quick fox here')",
-        TestsConstants.TEST_INDEX_PHRASE
-    );
+    String deleteQuery =
+        StringUtils.format(
+            "DELETE FROM %s WHERE match_phrase(phrase, 'quick fox here')",
+            TestsConstants.TEST_INDEX_PHRASE);
 
     response = new JSONObject(executeQuery(deleteQuery, "jdbc"));
     System.out.println(response);
@@ -120,7 +122,8 @@ public class DeleteIT extends SQLIntegTestCase {
     assertThat(response.query("/status"), equalTo(200));
     assertThat(response.query("/size"), equalTo(1));
 
-    // The documents are not deleted immediately, causing the next search call to return all results.
+    // The documents are not deleted immediately, causing the next search call to return all
+    // results.
     // To prevent flakiness, the minimum value of 2000 msec works fine.
     Thread.sleep(2000);
 

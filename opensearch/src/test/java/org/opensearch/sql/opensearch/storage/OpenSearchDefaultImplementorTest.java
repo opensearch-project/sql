@@ -3,7 +3,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-
 package org.opensearch.sql.opensearch.storage;
 
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -19,18 +18,15 @@ import org.opensearch.sql.planner.logical.LogicalAD;
 import org.opensearch.sql.planner.logical.LogicalML;
 import org.opensearch.sql.planner.logical.LogicalMLCommons;
 import org.opensearch.sql.planner.logical.LogicalPlan;
-import org.opensearch.sql.storage.Table;
 
 @ExtendWith(MockitoExtension.class)
 public class OpenSearchDefaultImplementorTest {
 
-  @Mock
-  OpenSearchClient client;
+  @Mock OpenSearchClient client;
 
   @Test
   public void visitMachineLearning() {
-    LogicalMLCommons node = Mockito.mock(LogicalMLCommons.class,
-        Answers.RETURNS_DEEP_STUBS);
+    LogicalMLCommons node = Mockito.mock(LogicalMLCommons.class, Answers.RETURNS_DEEP_STUBS);
     Mockito.when(node.getChild().get(0)).thenReturn(Mockito.mock(LogicalPlan.class));
     OpenSearchIndex.OpenSearchDefaultImplementor implementor =
         new OpenSearchIndex.OpenSearchDefaultImplementor(client);
@@ -39,8 +35,7 @@ public class OpenSearchDefaultImplementorTest {
 
   @Test
   public void visitAD() {
-    LogicalAD node = Mockito.mock(LogicalAD.class,
-        Answers.RETURNS_DEEP_STUBS);
+    LogicalAD node = Mockito.mock(LogicalAD.class, Answers.RETURNS_DEEP_STUBS);
     Mockito.when(node.getChild().get(0)).thenReturn(Mockito.mock(LogicalPlan.class));
     OpenSearchIndex.OpenSearchDefaultImplementor implementor =
         new OpenSearchIndex.OpenSearchDefaultImplementor(client);
@@ -49,11 +44,10 @@ public class OpenSearchDefaultImplementorTest {
 
   @Test
   public void visitML() {
-    LogicalML node = Mockito.mock(LogicalML.class,
-            Answers.RETURNS_DEEP_STUBS);
+    LogicalML node = Mockito.mock(LogicalML.class, Answers.RETURNS_DEEP_STUBS);
     Mockito.when(node.getChild().get(0)).thenReturn(Mockito.mock(LogicalPlan.class));
     OpenSearchIndex.OpenSearchDefaultImplementor implementor =
-            new OpenSearchIndex.OpenSearchDefaultImplementor(client);
+        new OpenSearchIndex.OpenSearchDefaultImplementor(client);
     assertNotNull(implementor.visitML(node, null));
   }
 }

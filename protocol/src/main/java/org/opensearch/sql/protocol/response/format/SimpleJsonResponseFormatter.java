@@ -3,7 +3,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-
 package org.opensearch.sql.protocol.response.format;
 
 import java.util.List;
@@ -43,8 +42,7 @@ public class SimpleJsonResponseFormatter extends JsonResponseFormatter<QueryResu
   public Object buildJsonObject(QueryResult response) {
     JsonResponse.JsonResponseBuilder json = JsonResponse.builder();
 
-    json.total(response.size())
-        .size(response.size());
+    json.total(response.size()).size(response.size());
 
     response.columnNameTypes().forEach((name, type) -> json.column(new Column(name, type)));
 
@@ -61,9 +59,7 @@ public class SimpleJsonResponseFormatter extends JsonResponseFormatter<QueryResu
     return rows;
   }
 
-  /**
-   * org.json requires these inner data classes be public (and static)
-   */
+  /** org.json requires these inner data classes be public (and static) */
   @Builder
   @Getter
   public static class JsonResponse {
@@ -82,5 +78,4 @@ public class SimpleJsonResponseFormatter extends JsonResponseFormatter<QueryResu
     private final String name;
     private final String type;
   }
-
 }

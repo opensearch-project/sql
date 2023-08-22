@@ -3,7 +3,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-
 package org.opensearch.sql.common.setting;
 
 import com.google.common.base.Strings;
@@ -14,29 +13,21 @@ import java.util.Optional;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 
-/**
- * Setting.
- */
+/** Setting. */
 public abstract class Settings {
   @RequiredArgsConstructor
   public enum Key {
 
-    /**
-     * SQL Settings.
-     */
+    /** SQL Settings. */
     SQL_ENABLED("plugins.sql.enabled"),
     SQL_SLOWLOG("plugins.sql.slowlog"),
     SQL_CURSOR_KEEP_ALIVE("plugins.sql.cursor.keep_alive"),
     SQL_DELETE_ENABLED("plugins.sql.delete.enabled"),
 
-    /**
-     * PPL Settings.
-     */
+    /** PPL Settings. */
     PPL_ENABLED("plugins.ppl.enabled"),
 
-    /**
-     * Common Settings for SQL and PPL.
-     */
+    /** Common Settings for SQL and PPL. */
     QUERY_MEMORY_LIMIT("plugins.query.memory_limit"),
     QUERY_SIZE_LIMIT("plugins.query.size_limit"),
     ENCYRPTION_MASTER_KEY("plugins.query.datasources.encryption.masterkey"),
@@ -47,8 +38,7 @@ public abstract class Settings {
 
     CLUSTER_NAME("cluster.name");
 
-    @Getter
-    private final String keyValue;
+    @Getter private final String keyValue;
 
     private static final Map<String, Key> ALL_KEYS;
 
@@ -66,9 +56,7 @@ public abstract class Settings {
     }
   }
 
-  /**
-   * Get Setting Value.
-   */
+  /** Get Setting Value. */
   public abstract <T> T getSettingValue(Key key);
 
   public abstract List<?> getSettings();

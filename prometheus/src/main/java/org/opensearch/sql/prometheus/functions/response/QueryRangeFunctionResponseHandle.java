@@ -30,9 +30,7 @@ import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.data.type.ExprCoreType;
 import org.opensearch.sql.executor.ExecutionEngine;
 
-/**
- * Default implementation of QueryRangeFunctionResponseHandle.
- */
+/** Default implementation of QueryRangeFunctionResponseHandle. */
 public class QueryRangeFunctionResponseHandle implements PrometheusFunctionResponseHandle {
 
   private final JSONObject responseObject;
@@ -62,25 +60,26 @@ public class QueryRangeFunctionResponseHandle implements PrometheusFunctionRespo
         result.add(new ExprTupleValue(linkedHashMap));
       }
     } else {
-      throw new RuntimeException(String.format("Unexpected Result Type: %s during Prometheus "
-              + "Response Parsing. 'matrix' resultType is expected",
-          responseObject.getString("resultType")));
+      throw new RuntimeException(
+          String.format(
+              "Unexpected Result Type: %s during Prometheus "
+                  + "Response Parsing. 'matrix' resultType is expected",
+              responseObject.getString("resultType")));
     }
     this.responseIterator = result.iterator();
   }
 
-  private static void extractTimestampAndValues(JSONArray values,
-                                                LinkedHashMap<String, ExprValue> linkedHashMap) {
+  private static void extractTimestampAndValues(
+      JSONArray values, LinkedHashMap<String, ExprValue> linkedHashMap) {
     List<ExprValue> timestampList = new ArrayList<>();
     List<ExprValue> valueList = new ArrayList<>();
     for (int j = 0; j < values.length(); j++) {
       JSONArray value = values.getJSONArray(j);
-      timestampList.add(new ExprTimestampValue(
-          Instant.ofEpochMilli((long) (value.getDouble(0) * 1000))));
+      timestampList.add(
+          new ExprTimestampValue(Instant.ofEpochMilli((long) (value.getDouble(0) * 1000))));
       valueList.add(new ExprDoubleValue(value.getDouble(1)));
     }
-    linkedHashMap.put(TIMESTAMP,
-        new ExprCollectionValue(timestampList));
+    linkedHashMap.put(TIMESTAMP, new ExprCollectionValue(timestampList));
     linkedHashMap.put(VALUE, new ExprCollectionValue(valueList));
   }
 
@@ -90,11 +89,9 @@ public class QueryRangeFunctionResponseHandle implements PrometheusFunctionRespo
 
   private ExprValue extractLabels(JSONObject metric) {
     LinkedHashMap<String, ExprValue> labelsMap = new LinkedHashMap<>();
-    metric.keySet().forEach(key
-        -> labelsMap.put(key, new ExprStringValue(metric.getString(key))));
+    metric.keySet().forEach(key -> labelsMap.put(key, new ExprStringValue(metric.getString(key))));
     return new ExprTupleValue(labelsMap);
   }
-
 
   private List<ExecutionEngine.Schema.Column> getColumnList() {
     List<ExecutionEngine.Schema.Column> columnList = new ArrayList<>();

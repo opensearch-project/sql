@@ -34,27 +34,22 @@ import org.opensearch.transport.TransportService;
 @ExtendWith(MockitoExtension.class)
 public class TransportGetDataSourceActionTest {
 
-  @Mock
-  private TransportService transportService;
-  @Mock
-  private TransportGetDataSourceAction action;
-  @Mock
-  private DataSourceServiceImpl dataSourceService;
-  @Mock
-  private Task task;
-  @Mock
-  private ActionListener<GetDataSourceActionResponse> actionListener;
+  @Mock private TransportService transportService;
+  @Mock private TransportGetDataSourceAction action;
+  @Mock private DataSourceServiceImpl dataSourceService;
+  @Mock private Task task;
+  @Mock private ActionListener<GetDataSourceActionResponse> actionListener;
 
   @Captor
   private ArgumentCaptor<GetDataSourceActionResponse> getDataSourceActionResponseArgumentCaptor;
 
-  @Captor
-  private ArgumentCaptor<Exception> exceptionArgumentCaptor;
+  @Captor private ArgumentCaptor<Exception> exceptionArgumentCaptor;
 
   @BeforeEach
   public void setUp() {
-    action = new TransportGetDataSourceAction(transportService,
-        new ActionFilters(new HashSet<>()), dataSourceService);
+    action =
+        new TransportGetDataSourceAction(
+            transportService, new ActionFilters(new HashSet<>()), dataSourceService);
   }
 
   @Test
@@ -63,23 +58,22 @@ public class TransportGetDataSourceActionTest {
     dataSourceMetadata.setName("test_datasource");
     dataSourceMetadata.setConnector(DataSourceType.PROMETHEUS);
     GetDataSourceActionRequest request = new GetDataSourceActionRequest("test_datasource");
-    when(dataSourceService.getDataSourceMetadata("test_datasource"))
-        .thenReturn(dataSourceMetadata);
+    when(dataSourceService.getDataSourceMetadata("test_datasource")).thenReturn(dataSourceMetadata);
 
     action.doExecute(task, request, actionListener);
     verify(dataSourceService, times(1)).getDataSourceMetadata("test_datasource");
     Mockito.verify(actionListener).onResponse(getDataSourceActionResponseArgumentCaptor.capture());
-    GetDataSourceActionResponse getDataSourceActionResponse
-        = getDataSourceActionResponseArgumentCaptor.getValue();
+    GetDataSourceActionResponse getDataSourceActionResponse =
+        getDataSourceActionResponseArgumentCaptor.getValue();
     JsonResponseFormatter<DataSourceMetadata> dataSourceMetadataJsonResponseFormatter =
-        new JsonResponseFormatter<>(
-            JsonResponseFormatter.Style.PRETTY) {
+        new JsonResponseFormatter<>(JsonResponseFormatter.Style.PRETTY) {
           @Override
           protected Object buildJsonObject(DataSourceMetadata response) {
             return response;
           }
         };
-    Assertions.assertEquals(dataSourceMetadataJsonResponseFormatter.format(dataSourceMetadata),
+    Assertions.assertEquals(
+        dataSourceMetadataJsonResponseFormatter.format(dataSourceMetadata),
         getDataSourceActionResponse.getResult());
     DataSourceMetadata result =
         new Gson().fromJson(getDataSourceActionResponse.getResult(), DataSourceMetadata.class);
@@ -100,18 +94,16 @@ public class TransportGetDataSourceActionTest {
     action.doExecute(task, request, actionListener);
     verify(dataSourceService, times(1)).getDataSourceMetadata(false);
     Mockito.verify(actionListener).onResponse(getDataSourceActionResponseArgumentCaptor.capture());
-    GetDataSourceActionResponse getDataSourceActionResponse
-        = getDataSourceActionResponseArgumentCaptor.getValue();
+    GetDataSourceActionResponse getDataSourceActionResponse =
+        getDataSourceActionResponseArgumentCaptor.getValue();
     JsonResponseFormatter<Set<DataSourceMetadata>> dataSourceMetadataJsonResponseFormatter =
-        new JsonResponseFormatter<>(
-            JsonResponseFormatter.Style.PRETTY) {
+        new JsonResponseFormatter<>(JsonResponseFormatter.Style.PRETTY) {
           @Override
           protected Object buildJsonObject(Set<DataSourceMetadata> response) {
             return response;
           }
         };
-    Type setType = new TypeToken<Set<DataSourceMetadata>>() {
-    }.getType();
+    Type setType = new TypeToken<Set<DataSourceMetadata>>() {}.getType();
     Assertions.assertEquals(
         dataSourceMetadataJsonResponseFormatter.format(Collections.singleton(dataSourceMetadata)),
         getDataSourceActionResponse.getResult());
@@ -131,7 +123,6 @@ public class TransportGetDataSourceActionTest {
     Mockito.verify(actionListener).onFailure(exceptionArgumentCaptor.capture());
     Exception exception = exceptionArgumentCaptor.getValue();
     Assertions.assertTrue(exception instanceof RuntimeException);
-    Assertions.assertEquals("Error",
-        exception.getMessage());
+    Assertions.assertEquals("Error", exception.getMessage());
   }
 }

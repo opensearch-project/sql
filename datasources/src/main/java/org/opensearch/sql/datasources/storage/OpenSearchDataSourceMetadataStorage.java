@@ -55,8 +55,8 @@ public class OpenSearchDataSourceMetadataStorage implements DataSourceMetadataSt
   private static final String DATASOURCE_INDEX_MAPPING_FILE_NAME = "datasources-index-mapping.yml";
 
   private static final Integer DATASOURCE_QUERY_RESULT_SIZE = 10000;
-  private static final String DATASOURCE_INDEX_SETTINGS_FILE_NAME
-      = "datasources-index-settings.yml";
+  private static final String DATASOURCE_INDEX_SETTINGS_FILE_NAME =
+      "datasources-index-settings.yml";
   private static final Logger LOG = LogManager.getLogger();
   private final Client client;
   private final ClusterService clusterService;
@@ -64,15 +64,15 @@ public class OpenSearchDataSourceMetadataStorage implements DataSourceMetadataSt
   private final Encryptor encryptor;
 
   /**
-   * This class implements DataSourceMetadataStorage interface
-   * using OpenSearch as underlying storage.
+   * This class implements DataSourceMetadataStorage interface using OpenSearch as underlying
+   * storage.
    *
-   * @param client         opensearch NodeClient.
+   * @param client opensearch NodeClient.
    * @param clusterService ClusterService.
-   * @param encryptor      Encryptor.
+   * @param encryptor Encryptor.
    */
-  public OpenSearchDataSourceMetadataStorage(Client client, ClusterService clusterService,
-                                             Encryptor encryptor) {
+  public OpenSearchDataSourceMetadataStorage(
+      Client client, ClusterService clusterService, Encryptor encryptor) {
     this.client = client;
     this.clusterService = clusterService;
     this.encryptor = encryptor;
@@ -93,8 +93,7 @@ public class OpenSearchDataSourceMetadataStorage implements DataSourceMetadataSt
       createDataSourcesIndex();
       return Optional.empty();
     }
-    return searchInDataSourcesIndex(QueryBuilders.termQuery("name", datasourceName))
-        .stream()
+    return searchInDataSourcesIndex(QueryBuilders.termQuery("name", datasourceName)).stream()
         .findFirst()
         .map(x -> this.encryptDecryptAuthenticationData(x, false));
   }
@@ -111,14 +110,14 @@ public class OpenSearchDataSourceMetadataStorage implements DataSourceMetadataSt
     indexRequest.setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE);
     ActionFuture<IndexResponse> indexResponseActionFuture;
     IndexResponse indexResponse;
-    try (ThreadContext.StoredContext storedContext = client.threadPool().getThreadContext()
-        .stashContext()) {
+    try (ThreadContext.StoredContext storedContext =
+        client.threadPool().getThreadContext().stashContext()) {
       indexRequest.source(XContentParserUtils.convertToXContent(dataSourceMetadata));
       indexResponseActionFuture = client.index(indexRequest);
       indexResponse = indexResponseActionFuture.actionGet();
     } catch (VersionConflictEngineException exception) {
-      throw new IllegalArgumentException("A datasource already exists with name: "
-          + dataSourceMetadata.getName());
+      throw new IllegalArgumentException(
+          "A datasource already exists with name: " + dataSourceMetadata.getName());
     } catch (Exception e) {
       throw new RuntimeException(e);
     }
@@ -126,27 +125,27 @@ public class OpenSearchDataSourceMetadataStorage implements DataSourceMetadataSt
     if (indexResponse.getResult().equals(DocWriteResponse.Result.CREATED)) {
       LOG.debug("DatasourceMetadata : {}  successfully created", dataSourceMetadata.getName());
     } else {
-      throw new RuntimeException("Saving dataSource metadata information failed with result : "
-          + indexResponse.getResult().getLowercase());
+      throw new RuntimeException(
+          "Saving dataSource metadata information failed with result : "
+              + indexResponse.getResult().getLowercase());
     }
   }
 
   @Override
   public void updateDataSourceMetadata(DataSourceMetadata dataSourceMetadata) {
     encryptDecryptAuthenticationData(dataSourceMetadata, true);
-    UpdateRequest updateRequest
-        = new UpdateRequest(DATASOURCE_INDEX_NAME, dataSourceMetadata.getName());
+    UpdateRequest updateRequest =
+        new UpdateRequest(DATASOURCE_INDEX_NAME, dataSourceMetadata.getName());
     UpdateResponse updateResponse;
-    try (ThreadContext.StoredContext storedContext = client.threadPool().getThreadContext()
-        .stashContext()) {
+    try (ThreadContext.StoredContext storedContext =
+        client.threadPool().getThreadContext().stashContext()) {
       updateRequest.doc(XContentParserUtils.convertToXContent(dataSourceMetadata));
       updateRequest.setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE);
-      ActionFuture<UpdateResponse> updateResponseActionFuture
-          = client.update(updateRequest);
+      ActionFuture<UpdateResponse> updateResponseActionFuture = client.update(updateRequest);
       updateResponse = updateResponseActionFuture.actionGet();
     } catch (DocumentMissingException exception) {
-      throw new DataSourceNotFoundException("Datasource with name: "
-          + dataSourceMetadata.getName() + " doesn't exist");
+      throw new DataSourceNotFoundException(
+          "Datasource with name: " + dataSourceMetadata.getName() + " doesn't exist");
     } catch (Exception e) {
       throw new RuntimeException(e);
     }
@@ -155,8 +154,9 @@ public class OpenSearchDataSourceMetadataStorage implements DataSourceMetadataSt
         || updateResponse.getResult().equals(DocWriteResponse.Result.NOOP)) {
       LOG.debug("DatasourceMetadata : {}  successfully updated", dataSourceMetadata.getName());
     } else {
-      throw new RuntimeException("Saving dataSource metadata information failed with result : "
-          + updateResponse.getResult().getLowercase());
+      throw new RuntimeException(
+          "Saving dataSource metadata information failed with result : "
+              + updateResponse.getResult().getLowercase());
     }
   }
 
@@ -165,48 +165,54 @@ public class OpenSearchDataSourceMetadataStorage implements DataSourceMetadataSt
     DeleteRequest deleteRequest = new DeleteRequest(DATASOURCE_INDEX_NAME);
     deleteRequest.id(datasourceName);
     ActionFuture<DeleteResponse> deleteResponseActionFuture;
-    try (ThreadContext.StoredContext storedContext = client.threadPool().getThreadContext()
-        .stashContext()) {
+    try (ThreadContext.StoredContext storedContext =
+        client.threadPool().getThreadContext().stashContext()) {
       deleteResponseActionFuture = client.delete(deleteRequest);
     }
     DeleteResponse deleteResponse = deleteResponseActionFuture.actionGet();
     if (deleteResponse.getResult().equals(DocWriteResponse.Result.DELETED)) {
       LOG.debug("DatasourceMetadata : {}  successfully deleted", datasourceName);
     } else if (deleteResponse.getResult().equals(DocWriteResponse.Result.NOT_FOUND)) {
-      throw new DataSourceNotFoundException("Datasource with name: "
-          + datasourceName + " doesn't exist");
+      throw new DataSourceNotFoundException(
+          "Datasource with name: " + datasourceName + " doesn't exist");
     } else {
-      throw new RuntimeException("Deleting dataSource metadata information failed with result : "
-          + deleteResponse.getResult().getLowercase());
+      throw new RuntimeException(
+          "Deleting dataSource metadata information failed with result : "
+              + deleteResponse.getResult().getLowercase());
     }
   }
 
   private void createDataSourcesIndex() {
     try {
-      InputStream mappingFileStream = OpenSearchDataSourceMetadataStorage.class.getClassLoader()
-          .getResourceAsStream(DATASOURCE_INDEX_MAPPING_FILE_NAME);
-      InputStream settingsFileStream = OpenSearchDataSourceMetadataStorage.class.getClassLoader()
-          .getResourceAsStream(DATASOURCE_INDEX_SETTINGS_FILE_NAME);
+      InputStream mappingFileStream =
+          OpenSearchDataSourceMetadataStorage.class
+              .getClassLoader()
+              .getResourceAsStream(DATASOURCE_INDEX_MAPPING_FILE_NAME);
+      InputStream settingsFileStream =
+          OpenSearchDataSourceMetadataStorage.class
+              .getClassLoader()
+              .getResourceAsStream(DATASOURCE_INDEX_SETTINGS_FILE_NAME);
       CreateIndexRequest createIndexRequest = new CreateIndexRequest(DATASOURCE_INDEX_NAME);
-      createIndexRequest.mapping(IOUtils.toString(mappingFileStream, StandardCharsets.UTF_8),
-              XContentType.YAML)
-          .settings(IOUtils.toString(settingsFileStream, StandardCharsets.UTF_8),
-              XContentType.YAML);
+      createIndexRequest
+          .mapping(IOUtils.toString(mappingFileStream, StandardCharsets.UTF_8), XContentType.YAML)
+          .settings(
+              IOUtils.toString(settingsFileStream, StandardCharsets.UTF_8), XContentType.YAML);
       ActionFuture<CreateIndexResponse> createIndexResponseActionFuture;
-      try (ThreadContext.StoredContext ignored = client.threadPool().getThreadContext()
-          .stashContext()) {
+      try (ThreadContext.StoredContext ignored =
+          client.threadPool().getThreadContext().stashContext()) {
         createIndexResponseActionFuture = client.admin().indices().create(createIndexRequest);
       }
       CreateIndexResponse createIndexResponse = createIndexResponseActionFuture.actionGet();
       if (createIndexResponse.isAcknowledged()) {
         LOG.info("Index: {} creation Acknowledged", DATASOURCE_INDEX_NAME);
       } else {
-        throw new RuntimeException(
-            "Index creation is not acknowledged.");
+        throw new RuntimeException("Index creation is not acknowledged.");
       }
     } catch (Throwable e) {
       throw new RuntimeException(
-          "Internal server error while creating" + DATASOURCE_INDEX_NAME + " index:: "
+          "Internal server error while creating"
+              + DATASOURCE_INDEX_NAME
+              + " index:: "
               + e.getMessage());
     }
   }
@@ -218,17 +224,19 @@ public class OpenSearchDataSourceMetadataStorage implements DataSourceMetadataSt
     searchSourceBuilder.query(query);
     searchSourceBuilder.size(DATASOURCE_QUERY_RESULT_SIZE);
     searchRequest.source(searchSourceBuilder);
-    // strongly consistent reads is requred. more info https://github.com/opensearch-project/sql/issues/1801.
+    // strongly consistent reads is requred. more info
+    // https://github.com/opensearch-project/sql/issues/1801.
     searchRequest.preference("_primary");
     ActionFuture<SearchResponse> searchResponseActionFuture;
-    try (ThreadContext.StoredContext ignored = client.threadPool().getThreadContext()
-        .stashContext()) {
+    try (ThreadContext.StoredContext ignored =
+        client.threadPool().getThreadContext().stashContext()) {
       searchResponseActionFuture = client.search(searchRequest);
     }
     SearchResponse searchResponse = searchResponseActionFuture.actionGet();
     if (searchResponse.status().getStatus() != 200) {
-      throw new RuntimeException("Fetching dataSource metadata information failed with status : "
-          + searchResponse.status());
+      throw new RuntimeException(
+          "Fetching dataSource metadata information failed with status : "
+              + searchResponse.status());
     } else {
       List<DataSourceMetadata> list = new ArrayList<>();
       for (SearchHit searchHit : searchResponse.getHits().getHits()) {
@@ -246,14 +254,15 @@ public class OpenSearchDataSourceMetadataStorage implements DataSourceMetadataSt
   }
 
   @SuppressWarnings("missingswitchdefault")
-  private DataSourceMetadata encryptDecryptAuthenticationData(DataSourceMetadata dataSourceMetadata,
-                                                              Boolean isEncryption) {
+  private DataSourceMetadata encryptDecryptAuthenticationData(
+      DataSourceMetadata dataSourceMetadata, Boolean isEncryption) {
     Map<String, String> propertiesMap = dataSourceMetadata.getProperties();
-    Optional<AuthenticationType> authTypeOptional
-        = propertiesMap.keySet().stream().filter(s -> s.endsWith("auth.type"))
-        .findFirst()
-        .map(propertiesMap::get)
-        .map(AuthenticationType::get);
+    Optional<AuthenticationType> authTypeOptional =
+        propertiesMap.keySet().stream()
+            .filter(s -> s.endsWith("auth.type"))
+            .findFirst()
+            .map(propertiesMap::get)
+            .map(AuthenticationType::get);
     if (authTypeOptional.isPresent()) {
       switch (authTypeOptional.get()) {
         case BASICAUTH:
@@ -267,8 +276,8 @@ public class OpenSearchDataSourceMetadataStorage implements DataSourceMetadataSt
     return dataSourceMetadata;
   }
 
-  private void handleBasicAuthPropertiesEncryptionDecryption(Map<String, String> propertiesMap,
-                                                             Boolean isEncryption) {
+  private void handleBasicAuthPropertiesEncryptionDecryption(
+      Map<String, String> propertiesMap, Boolean isEncryption) {
     ArrayList<String> list = new ArrayList<>();
     propertiesMap.keySet().stream()
         .filter(s -> s.endsWith("auth.username"))
@@ -281,21 +290,19 @@ public class OpenSearchDataSourceMetadataStorage implements DataSourceMetadataSt
     encryptOrDecrypt(propertiesMap, isEncryption, list);
   }
 
-  private void encryptOrDecrypt(Map<String, String> propertiesMap, Boolean isEncryption,
-                                List<String> keyIdentifiers) {
+  private void encryptOrDecrypt(
+      Map<String, String> propertiesMap, Boolean isEncryption, List<String> keyIdentifiers) {
     for (String key : keyIdentifiers) {
       if (isEncryption) {
-        propertiesMap.put(key,
-            this.encryptor.encrypt(propertiesMap.get(key)));
+        propertiesMap.put(key, this.encryptor.encrypt(propertiesMap.get(key)));
       } else {
-        propertiesMap.put(key,
-            this.encryptor.decrypt(propertiesMap.get(key)));
+        propertiesMap.put(key, this.encryptor.decrypt(propertiesMap.get(key)));
       }
     }
   }
 
-  private void handleSigV4PropertiesEncryptionDecryption(Map<String, String> propertiesMap,
-                                                         Boolean isEncryption) {
+  private void handleSigV4PropertiesEncryptionDecryption(
+      Map<String, String> propertiesMap, Boolean isEncryption) {
     ArrayList<String> list = new ArrayList<>();
     propertiesMap.keySet().stream()
         .filter(s -> s.endsWith("auth.access_key"))
@@ -307,5 +314,4 @@ public class OpenSearchDataSourceMetadataStorage implements DataSourceMetadataSt
         .ifPresent(list::add);
     encryptOrDecrypt(propertiesMap, isEncryption, list);
   }
-
 }
