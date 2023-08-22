@@ -33,7 +33,7 @@ public class ExprDateValue extends AbstractExprValue {
       this.date = LocalDate.parse(date, DATE_TIME_FORMATTER_VARIABLE_NANOS_OPTIONAL);
     } catch (DateTimeParseException e) {
       throw new SemanticCheckException(
-          String.format("date:%s in unsupported format, please use " + "yyyy-MM-dd", date));
+          String.format("date:%s in unsupported format, please use 'yyyy-MM-dd'", date));
     }
   }
 

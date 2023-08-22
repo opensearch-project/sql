@@ -29,8 +29,35 @@ public abstract class AbstractExprValue implements ExprValue {
   }
 
   /**
-   * The customize equals logic. The table below list the NULL and MISSING handling logic. A B A ==
-   * B NULL NULL TRUE NULL MISSING FALSE MISSING NULL FALSE MISSING MISSING TRUE
+   * The customize equals logic.
+   * The table below list the NULL and MISSING handling logic.
+   * <table>
+   *   <tr>
+   *     <th>A</th>
+   *     <th>B</th>
+   *     <th>A == B</th>
+   *   </tr>
+   *   <tr>
+   *     <td>NULL</td>
+   *     <td>NULL</td>
+   *     <td>TRUE</td>
+   *   </tr>
+   *   <tr>
+   *     <td>NULL</td>
+   *     <td>MISSING</td>
+   *     <td>FALSE</td>
+   *   </tr>
+   *   <tr>
+   *     <td>MISSING</td>
+   *     <td>NULL</td>
+   *     <td>FALSE</td>
+   *   </tr>
+   *   <tr>
+   *     <td>MISSING</td>
+   *     <td>MISSING</td>
+   *     <td>TRUE</td>
+   *   </tr>
+   * </table>
    */
   @Override
   public boolean equals(Object o) {

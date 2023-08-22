@@ -11,9 +11,18 @@ import lombok.experimental.UtilityClass;
 import org.opensearch.sql.exception.ExpressionEvaluationException;
 
 /**
- * The definition of widening type rule for expression value. ExprType Widens to data types INTEGER
- * LONG, FLOAT, DOUBLE LONG FLOAT, DOUBLE FLOAT DOUBLE DOUBLE DOUBLE STRING STRING BOOLEAN BOOLEAN
- * ARRAY ARRAY STRUCT STRUCT
+ * The definition of widening type rule for expression value.
+ * <table border="3">
+ * <tr><th>ExprType</th><th>Widens to data types</th></tr>
+ * <tr><td>INTEGER</td><td>LONG, FLOAT, DOUBLE</td></tr>
+ * <tr><td>LONG</td><td>FLOAT, DOUBLE</td></tr>
+ * <tr><td>FLOAT</td><td>DOUBLE</td></tr>
+ * <tr><td>DOUBLE</td><td>DOUBLE</td></tr>
+ * <tr><td>STRING</td><td>STRING</td></tr>
+ * <tr><td>BOOLEAN</td><td>BOOLEAN</td></tr>
+ * <tr><td>ARRAY</td><td>ARRAY</td></tr>
+ * <tr><td>STRUCT</td><td>STRUCT</td></tr>
+ * </table>
  */
 @UtilityClass
 public class WideningTypeRule {
@@ -47,7 +56,8 @@ public class WideningTypeRule {
 
   /**
    * The max type among two types. The max is defined as follow if type1 could widen to type2, then
-   * max is type2, vice versa if type1 could't widen to type2 and type2 could't widen to type1, then
+
+   * max is type2, vice versa if type1 couldn't widen to type2 and type2 could't widen to type1, then
    * throw {@link ExpressionEvaluationException}.
    *
    * @param type1 type1
