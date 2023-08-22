@@ -120,23 +120,25 @@ public class AntlrSqlParseTreeVisitor<T extends Reducible>
     return visitJoin(ctx.children, ctx.tableSourceItem());
   }
 
-    /**
-     * <pre>
-     * Enforce visit order because ANTLR is generic and unaware.
-     *
-     * Visiting order is:
-     *  FROM
-     *  => WHERE
-     *   => SELECT
-     *    => GROUP BY
-     *     => HAVING
-     *      => ORDER BY
-     *       => LIMIT
-     *  </pre>
-     */
-     @Override
-    public T visitQuerySpecification(QuerySpecificationContext ctx) {
-        visitor.visitQuery();
+  /**
+   *
+   *
+   * <pre>
+   * Enforce visit order because ANTLR is generic and unaware.
+   *
+   * Visiting order is:
+   *  FROM
+   *  => WHERE
+   *   => SELECT
+   *    => GROUP BY
+   *     => HAVING
+   *      => ORDER BY
+   *       => LIMIT
+   *  </pre>
+   */
+  @Override
+  public T visitQuerySpecification(QuerySpecificationContext ctx) {
+    visitor.visitQuery();
 
     // Always visit FROM clause first to define symbols
     FromClauseContext fromClause = ctx.fromClause();

@@ -16,6 +16,8 @@ import com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlSelectQueryBlock;
 import org.opensearch.sql.legacy.rewriter.subquery.RewriterContext;
 
 /**
+ *
+ *
  * <pre>
  * IN Subquery Rewriter.
  * For example,
@@ -39,29 +41,31 @@ public class InRewriter implements Rewriter {
     return !inExpr.isNot();
   }
 
-    /**
-     * <pre>
-     * Build Where clause from input query.
-     * <p>
-     * With the input query.
-     *         Query
-     *      /    |     \
-     *  SELECT  FROM  WHERE
-     *  |        |    /   |  \
-     *  *         A  c>10 AND INSubquery
-     *                         /    \
-     *                        a    Query
-     *                        /      \
-     *                           SELECT FROM
-     *                             |     |
-     *                             b     B
-     * <p>
-     * </pre>
-     */
-    @Override
-    public void rewrite() {
-        SQLTableSource from = queryBlock.getFrom();
-        addJoinTable(from);
+  /**
+   *
+   *
+   * <pre>
+   * Build Where clause from input query.
+   * <p>
+   * With the input query.
+   *         Query
+   *      /    |     \
+   *  SELECT  FROM  WHERE
+   *  |        |    /   |  \
+   *  *         A  c>10 AND INSubquery
+   *                         /    \
+   *                        a    Query
+   *                        /      \
+   *                           SELECT FROM
+   *                             |     |
+   *                             b     B
+   * <p>
+   * </pre>
+   */
+  @Override
+  public void rewrite() {
+    SQLTableSource from = queryBlock.getFrom();
+    addJoinTable(from);
 
     SQLExpr where = queryBlock.getWhere();
     if (null == where) {
@@ -73,16 +77,16 @@ public class InRewriter implements Rewriter {
     }
   }
 
-    /**
-     * Build the Null check expression. For example,<br>
-     * SELECT * FROM A WHERE a IN (SELECT b FROM B)<br>
-     * should return B.b IS NOT NULL
-     */
-    private SQLBinaryOpExpr generateNullOp() {
-        SQLBinaryOpExpr binaryOpExpr = new SQLBinaryOpExpr();
-        binaryOpExpr.setLeft(fetchJoinExpr());
-        binaryOpExpr.setRight(new SQLNullExpr());
-        binaryOpExpr.setOperator(SQLBinaryOperator.IsNot);
+  /**
+   * Build the Null check expression. For example,<br>
+   * SELECT * FROM A WHERE a IN (SELECT b FROM B)<br>
+   * should return B.b IS NOT NULL
+   */
+  private SQLBinaryOpExpr generateNullOp() {
+    SQLBinaryOpExpr binaryOpExpr = new SQLBinaryOpExpr();
+    binaryOpExpr.setLeft(fetchJoinExpr());
+    binaryOpExpr.setRight(new SQLNullExpr());
+    binaryOpExpr.setOperator(SQLBinaryOperator.IsNot);
 
     return binaryOpExpr;
   }

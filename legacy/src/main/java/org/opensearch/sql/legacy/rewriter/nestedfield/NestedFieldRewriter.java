@@ -15,6 +15,8 @@ import java.util.ArrayDeque;
 import java.util.Deque;
 
 /**
+ *
+ *
  * <pre>
  * Visitor to rewrite AST (abstract syntax tree) for nested type fields to support implicit nested() function call.
  * Intuitively, the approach is to implement SQLIdentifier.visit() and wrap nested() function for nested field.

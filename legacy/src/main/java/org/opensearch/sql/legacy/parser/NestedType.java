@@ -116,26 +116,28 @@ public class NestedType {
     return bucketPath.getBucketPath();
   }
 
-    /**
-     * <pre>
-     * Return true if the filed is the nested filed.
-     * For example, the mapping
-     * {
-     * "projects":{
-     * "type": "nested"
-     * "properties": {
-     * "name": {
-     * "type": "text"
-     * }
-     * }
-     * }
-     * }
-     * <p>
-     * If the filed is projects, return true.
-     * If the filed is projects.name, return false.
-     * </pre>
-     */
-    public boolean isNestedField() {
-        return !field.contains(".") && field.equalsIgnoreCase(path);
-    }
+  /**
+   *
+   *
+   * <pre>
+   * Return true if the filed is the nested filed.
+   * For example, the mapping
+   * {
+   * "projects":{
+   * "type": "nested"
+   * "properties": {
+   * "name": {
+   * "type": "text"
+   * }
+   * }
+   * }
+   * }
+   * <p>
+   * If the filed is projects, return true.
+   * If the filed is projects.name, return false.
+   * </pre>
+   */
+  public boolean isNestedField() {
+    return !field.contains(".") && field.equalsIgnoreCase(path);
+  }
 }

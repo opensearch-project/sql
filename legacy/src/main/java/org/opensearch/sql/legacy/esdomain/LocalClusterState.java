@@ -31,11 +31,12 @@ import org.opensearch.sql.opensearch.setting.OpenSearchSettings;
 /**
  * Local cluster state information which may be stale but help avoid blocking operation in NIO
  * thread.
+ *
  * <ol>
- * <li>Why extending TransportAction doesn't work here? TransportAction enforce implementation to
- * be performed remotely but local cluster state read is expected here.
- * <li>Why injection by AbstractModule doesn't work here? Because this state needs to be used
- * across the plugin, ex. in rewriter, pretty formatter etc.
+ *   <li>Why extending TransportAction doesn't work here? TransportAction enforce implementation to
+ *       be performed remotely but local cluster state read is expected here.
+ *   <li>Why injection by AbstractModule doesn't work here? Because this state needs to be used
+ *       across the plugin, ex. in rewriter, pretty formatter etc.
  * </ol>
  */
 public class LocalClusterState {

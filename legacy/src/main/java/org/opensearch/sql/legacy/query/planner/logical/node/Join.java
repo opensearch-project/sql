@@ -71,23 +71,25 @@ public class Join implements LogicalOperator {
     return "Join [ conditions=" + condition + " type=" + type + " ]";
   }
 
-    /**
-     * <pre>
-     * Join condition in ON clause grouped by OR.
-     * <p>
-     * For example, "ON (a.name = b.id AND a.age = b.age) OR a.location = b.address"
-     * => input list: [
-     * [ (a.name, b.id), (a.age, b.age) ],
-     * [ (a.location, b.address) ]
-     * ]
-     * <p>
-     * => JoinCondition:
-     * leftTableAlias: "a", rightTableAlias: "b"
-     * leftColumnNames:  [ ["name", "age"], ["location"] ]
-     * rightColumnNames: [ ["id", "age"],   ["address" ] ]
-     * </pre>
-     */
-    public static class JoinCondition {
+  /**
+   *
+   *
+   * <pre>
+   * Join condition in ON clause grouped by OR.
+   * <p>
+   * For example, "ON (a.name = b.id AND a.age = b.age) OR a.location = b.address"
+   * => input list: [
+   * [ (a.name, b.id), (a.age, b.age) ],
+   * [ (a.location, b.address) ]
+   * ]
+   * <p>
+   * => JoinCondition:
+   * leftTableAlias: "a", rightTableAlias: "b"
+   * leftColumnNames:  [ ["name", "age"], ["location"] ]
+   * rightColumnNames: [ ["id", "age"],   ["address" ] ]
+   * </pre>
+   */
+  public static class JoinCondition {
 
     private final String leftTableAlias;
     private final String rightTableAlias;

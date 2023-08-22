@@ -25,16 +25,12 @@
 plugins {
     id 'java-library'
     id "io.freefair.lombok"
+    id 'com.diffplug.spotless' version '6.19.0'
 }
 
 repositories {
     mavenCentral()
 }
-
-// Being ignored as a temporary measure before being removed in favour of
-// spotless https://github.com/opensearch-project/sql/issues/1101
-checkstyleTest.ignoreFailures = true
-checkstyleMain.ignoreFailures = true
 
 dependencies {
     api "org.antlr:antlr4-runtime:4.7.1"
@@ -67,4 +63,23 @@ configurations.all {
     resolutionStrategy.force "org.apache.httpcomponents:httpcore:4.4.13"
     resolutionStrategy.force "joda-time:joda-time:2.10.12"
     resolutionStrategy.force "org.slf4j:slf4j-api:1.7.36"
+}
+
+spotless {
+    java {
+        target fileTree('.') {
+            include '**/*.java'
+            exclude '**/build/**', '**/build-*/**'
+        }
+        importOrder()
+// Needs https://github.com/opensearch-project/sql/issues/1893 to be addressed first
+//        licenseHeader("/*\n" +
+//                " * Copyright OpenSearch Contributors\n" +
+//                " * SPDX-License-Identifier: Apache-2.0\n" +
+//                " */\n\n")
+        removeUnusedImports()
+        trimTrailingWhitespace()
+        endWithNewline()
+        googleJavaFormat('1.17.0').reflowLongStrings().groupArtifact('com.google.googlejavaformat:google-java-format')
+    }
 }

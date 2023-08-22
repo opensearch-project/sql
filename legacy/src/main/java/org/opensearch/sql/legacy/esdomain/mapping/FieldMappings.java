@@ -14,6 +14,8 @@ import org.json.JSONObject;
 import org.opensearch.cluster.metadata.MappingMetadata;
 
 /**
+ *
+ *
  * <pre>
  * Field mappings in a specific type.
  * <p>

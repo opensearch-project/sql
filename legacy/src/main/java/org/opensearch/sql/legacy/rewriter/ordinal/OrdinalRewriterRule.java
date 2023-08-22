@@ -145,25 +145,26 @@ public class OrdinalRewriterRule implements RewriteRule<SQLQueryExpr> {
       return false;
     }
 
-        /**
-         * <pre>
-         * The second condition checks valid AST that meets ORDER BY IS NULL/NOT NULL condition
-         *
-         *            SQLSelectOrderByItem
-         *                      |
-         *             SQLBinaryOpExpr (Is || IsNot)
-         *                    /  \
-         *    SQLIdentifierExpr  SQLNullExpr
-         *  </pre>
-         */
-        return query.getOrderBy().getItems().stream().anyMatch(x ->
-            x.getExpr() instanceof SQLIntegerExpr
-            || (
-                x.getExpr() instanceof SQLBinaryOpExpr
-                && ((SQLBinaryOpExpr) x.getExpr()).getLeft() instanceof SQLIntegerExpr
-            )
-        );
-    }
+    /**
+     *
+     *
+     * <pre>
+     * The second condition checks valid AST that meets ORDER BY IS NULL/NOT NULL condition
+     *
+     *            SQLSelectOrderByItem
+     *                      |
+     *             SQLBinaryOpExpr (Is || IsNot)
+     *                    /  \
+     *    SQLIdentifierExpr  SQLNullExpr
+     *  </pre>
+     */
+    return query.getOrderBy().getItems().stream()
+        .anyMatch(
+            x ->
+                x.getExpr() instanceof SQLIntegerExpr
+                    || (x.getExpr() instanceof SQLBinaryOpExpr
+                        && ((SQLBinaryOpExpr) x.getExpr()).getLeft() instanceof SQLIntegerExpr));
+  }
 
   private SQLQueryExpr toSqlExpr() {
     SQLExprParser parser = new ElasticSqlExprParser(sql);

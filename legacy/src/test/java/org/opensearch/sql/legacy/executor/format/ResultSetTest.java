@@ -21,12 +21,13 @@ public class ResultSetTest {
       };
 
   /**
-   * Case #1:
-   * LIKE 'test%' is converted to:
+   * Case #1: LIKE 'test%' is converted to:
+   *
    * <ol>
-   *  <li>Regex pattern: test.*
-   *  <li>OpenSearch search pattern: test*
-   *  </ol>
+   *   <li>Regex pattern: test.*
+   *   <li>OpenSearch search pattern: test*
+   * </ol>
+   *
    * In this case, what OpenSearch returns is the final result.
    */
   @Test
@@ -35,15 +36,17 @@ public class ResultSetTest {
   }
 
   /**
-   * Case #2:
-   * LIKE 'test_123' is converted to:
-   * <ol>x
-   * <li>Regex pattern: test.123
-   * <li>OpenSearch search pattern: (all)
+   * Case #2: LIKE 'test_123' is converted to:
+   *
+   * <ol>
+   *   x
+   *   <li>Regex pattern: test.123
+   *   <li>OpenSearch search pattern: (all)
    * </ol>
-   * Because OpenSearch doesn't support single wildcard character, in this case, none is passed
-   * as OpenSearch search pattern. So all index names are returned and need to be filtered by
-   * regex pattern again.
+   *
+   * Because OpenSearch doesn't support single wildcard character, in this case, none is passed as
+   * OpenSearch search pattern. So all index names are returned and need to be filtered by regex
+   * pattern again.
    */
   @Test
   public void testWildcardForSingleCharacter() {

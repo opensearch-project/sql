@@ -9,6 +9,8 @@ import com.alibaba.druid.sql.ast.expr.SQLBinaryOpExpr;
 import com.alibaba.druid.sql.ast.expr.SQLIdentifierExpr;
 
 /**
+ *
+ *
  * <pre>
  * Identifier expression in SELECT, FROM, WHERE, GROUP BY, ORDER BY etc.
  *

@@ -27,6 +27,7 @@ plugins {
     id "io.freefair.lombok"
     id 'jacoco'
     id 'opensearch.opensearchplugin'
+    id 'com.diffplug.spotless' version '6.19.0'
 }
 
 apply plugin: 'opensearch.pluginzip'
@@ -85,9 +86,6 @@ publishing {
     }
 }
 
-checkstyleTest.ignoreFailures = true
-checkstyleMain.ignoreFailures = true
-
 javadoc.enabled = false
 loggerUsageCheck.enabled = false
 dependencyLicenses.enabled = false
@@ -117,6 +115,24 @@ compileJava {
 
 compileTestJava {
     options.compilerArgs.addAll(["-processor", 'lombok.launch.AnnotationProcessorHider$AnnotationProcessor'])
+}
+
+spotless {
+    java {
+        target fileTree('.') {
+            include '**/*.java'
+            exclude '**/build/**', '**/build-*/**'
+        }
+        importOrder()
+//        licenseHeader("/*\n" +
+//                " * Copyright OpenSearch Contributors\n" +
+//                " * SPDX-License-Identifier: Apache-2.0\n" +
+//                " */\n\n")
+        removeUnusedImports()
+        trimTrailingWhitespace()
+        endWithNewline()
+        googleJavaFormat('1.17.0').reflowLongStrings().groupArtifact('com.google.googlejavaformat:google-java-format')
+    }
 }
 
 dependencies {

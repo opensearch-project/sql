@@ -28,17 +28,18 @@ public class CSVResult {
     this.lines = lines;
   }
 
-    /**
-     * Sanitize both headers and data lines by:
-     * <ol>
-     *  <li>First prepend single quote if first char is sensitive (= - + @)
-     *  <li>Second double quote entire cell if any comma found
-     *  </ol>
-     */
-    public CSVResult(String separator, List<String> headers, List<List<String>> lines) {
-        this.headers = sanitizeHeaders(separator, headers);
-        this.lines = sanitizeLines(separator, lines);
-    }
+  /**
+   * Sanitize both headers and data lines by:
+   *
+   * <ol>
+   *   <li>First prepend single quote if first char is sensitive (= - + @)
+   *   <li>Second double quote entire cell if any comma found
+   * </ol>
+   */
+  public CSVResult(String separator, List<String> headers, List<List<String>> lines) {
+    this.headers = sanitizeHeaders(separator, headers);
+    this.lines = sanitizeLines(separator, lines);
+  }
 
   /**
    * Return CSV header names which are sanitized because OpenSearch allows special character present

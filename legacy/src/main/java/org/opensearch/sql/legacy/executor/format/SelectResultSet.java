@@ -721,29 +721,31 @@ public class SelectResultSet extends ResultSet {
     return data;
   }
 
-    /**
-     * <pre>
-     * Simplifies the structure of row's source Map by flattening it, making the full path of an object the key
-     * and the Object it refers to the value. This handles the case of regular object since nested objects will not
-     * be in hit.source but rather in hit.innerHits
-     * <p>
-     * Sample input:
-     * keys = ['comments.likes']
-     * row = comments: {
-     * likes: 2
-     * }
-     * <p>
-     * Return:
-     * flattenedRow = {comment.likes: 2}
-     * </pre>
-     */
-    @SuppressWarnings("unchecked")
-    private Map<String, Object> flatRow(List<String> keys, Map<String, Object> row) {
-        Map<String, Object> flattenedRow = new HashMap<>();
-        for (String key : keys) {
-            String[] splitKeys = key.split("\\.");
-            boolean found = true;
-            Object currentObj = row;
+  /**
+   *
+   *
+   * <pre>
+   * Simplifies the structure of row's source Map by flattening it, making the full path of an object the key
+   * and the Object it refers to the value. This handles the case of regular object since nested objects will not
+   * be in hit.source but rather in hit.innerHits
+   * <p>
+   * Sample input:
+   * keys = ['comments.likes']
+   * row = comments: {
+   * likes: 2
+   * }
+   * <p>
+   * Return:
+   * flattenedRow = {comment.likes: 2}
+   * </pre>
+   */
+  @SuppressWarnings("unchecked")
+  private Map<String, Object> flatRow(List<String> keys, Map<String, Object> row) {
+    Map<String, Object> flattenedRow = new HashMap<>();
+    for (String key : keys) {
+      String[] splitKeys = key.split("\\.");
+      boolean found = true;
+      Object currentObj = row;
 
       for (String splitKey : splitKeys) {
         // This check is made to prevent Cast Exception as an ArrayList of objects can be in the
@@ -770,31 +772,33 @@ public class SelectResultSet extends ResultSet {
     return flattenedRow;
   }
 
-    /**
-     * <pre>
-     * If innerHits associated with column name exists, flatten both the inner field name and the inner rows in it.
-     * <p>
-     * Sample input:
-     * newKeys = {'region', 'employees.age'}, row = {'region': 'US'}
-     * innerHits = employees: {
-     * hits: [{
-     * source: {
-     * age: 26,
-     * firstname: 'Hank'
-     * }
-     * },{
-     * source: {
-     * age: 30,
-     * firstname: 'John'
-     * }
-     * }]
-     * }
-     * </pre>
-     */
-    private List<DataRows.Row> flatNestedField(Set<String> newKeys, Map<String, Object> row,
-                                               Map<String, SearchHits> innerHits) {
-        List<DataRows.Row> result = new ArrayList<>();
-        result.add(new DataRows.Row(row));
+  /**
+   *
+   *
+   * <pre>
+   * If innerHits associated with column name exists, flatten both the inner field name and the inner rows in it.
+   * <p>
+   * Sample input:
+   * newKeys = {'region', 'employees.age'}, row = {'region': 'US'}
+   * innerHits = employees: {
+   * hits: [{
+   * source: {
+   * age: 26,
+   * firstname: 'Hank'
+   * }
+   * },{
+   * source: {
+   * age: 30,
+   * firstname: 'John'
+   * }
+   * }]
+   * }
+   * </pre>
+   */
+  private List<DataRows.Row> flatNestedField(
+      Set<String> newKeys, Map<String, Object> row, Map<String, SearchHits> innerHits) {
+    List<DataRows.Row> result = new ArrayList<>();
+    result.add(new DataRows.Row(row));
 
     if (innerHits == null) {
       return result;
@@ -819,37 +823,40 @@ public class SelectResultSet extends ResultSet {
     keys.remove(colName);
   }
 
-    /**
-     * <pre>
-     * Do Cartesian Product between current outer row and inner rows by nested loop and remove original outer row.
-     * <p>
-     * Sample input:
-     * colName = 'employees', rows = [{region: 'US'}]
-     * colValue= [{
-     * source: {
-     * age: 26,
-     * firstname: 'Hank'
-     * }
-     * },{
-     * source: {
-     * age: 30,
-     * firstname: 'John'
-     * }
-     * }]
-     * <p>
-     * Return:
-     * [
-     * {region:'US', employees.age:26, employees.firstname:'Hank'},
-     * {region:'US', employees.age:30, employees.firstname:'John'}
-     * ]
-     * </pre>
-     */
-    private List<DataRows.Row> doFlatNestedFieldValue(String colName, SearchHit[] colValue, List<DataRows.Row> rows) {
-        List<DataRows.Row> result = new ArrayList<>();
-        for (DataRows.Row row : rows) {
-            for (SearchHit hit : colValue) {
-                Map<String, Object> innerRow = hit.getSourceAsMap();
-                Map<String, Object> copy = new HashMap<>();
+  /**
+   *
+   *
+   * <pre>
+   * Do Cartesian Product between current outer row and inner rows by nested loop and remove original outer row.
+   * <p>
+   * Sample input:
+   * colName = 'employees', rows = [{region: 'US'}]
+   * colValue= [{
+   * source: {
+   * age: 26,
+   * firstname: 'Hank'
+   * }
+   * },{
+   * source: {
+   * age: 30,
+   * firstname: 'John'
+   * }
+   * }]
+   * <p>
+   * Return:
+   * [
+   * {region:'US', employees.age:26, employees.firstname:'Hank'},
+   * {region:'US', employees.age:30, employees.firstname:'John'}
+   * ]
+   * </pre>
+   */
+  private List<DataRows.Row> doFlatNestedFieldValue(
+      String colName, SearchHit[] colValue, List<DataRows.Row> rows) {
+    List<DataRows.Row> result = new ArrayList<>();
+    for (DataRows.Row row : rows) {
+      for (SearchHit hit : colValue) {
+        Map<String, Object> innerRow = hit.getSourceAsMap();
+        Map<String, Object> copy = new HashMap<>();
 
         for (String field : row.getContents().keySet()) {
           copy.put(field, row.getData(field));

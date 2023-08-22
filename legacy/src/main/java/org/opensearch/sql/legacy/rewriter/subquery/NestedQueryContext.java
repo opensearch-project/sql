@@ -14,9 +14,9 @@ import java.util.Map;
 
 /**
  * {@link NestedQueryContext} build the context with Query to detected the specified table is nested
- * or not.
- * <br>Todo current implementation doesn't rely on the index mapping which should be added after
- * the semantics is built.
+ * or not. <br>
+ * Todo current implementation doesn't rely on the index mapping which should be added after the
+ * semantics is built.
  */
 public class NestedQueryContext {
   private static final String SEPARATOR = ".";
@@ -54,17 +54,17 @@ public class NestedQueryContext {
     }
   }
 
-    /**
-     * Extract the parent alias from the tableName. For example<br>
-     * SELECT * FROM employee e, e.project as p,<br>
-     * For expr: employee, the parent alias is "".<br>
-     * For expr: e.project, the parent alias is e.
-     */
-    private String parent(SQLExprTableSource table) {
-        String tableName = table.getExpr().toString();
-        int index = tableName.indexOf(SEPARATOR);
-        return index == -1 ? EMPTY : tableName.substring(0, index);
-    }
+  /**
+   * Extract the parent alias from the tableName. For example<br>
+   * SELECT * FROM employee e, e.project as p,<br>
+   * For expr: employee, the parent alias is "".<br>
+   * For expr: e.project, the parent alias is e.
+   */
+  private String parent(SQLExprTableSource table) {
+    String tableName = table.getExpr().toString();
+    int index = tableName.indexOf(SEPARATOR);
+    return index == -1 ? EMPTY : tableName.substring(0, index);
+  }
 
   private String alias(SQLExprTableSource table) {
     if (Strings.isNullOrEmpty(table.getAlias())) {

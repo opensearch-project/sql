@@ -27,6 +27,8 @@ import org.opensearch.sql.legacy.rewriter.matchtoterm.VerificationException;
 import org.opensearch.sql.legacy.utils.StringUtils;
 
 /**
+ *
+ *
  * <pre>
  *  Rewrite rule to add table alias to columnNames for JOIN queries without table alias.
  * <p>

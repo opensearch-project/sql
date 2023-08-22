@@ -518,14 +518,13 @@ public class NestedFieldRewriterTest {
 
   /**
    * The intention for this assert method is:
+   *
    * <ol>
-   * <li>MySqlSelectQueryBlock.equals() doesn't call super.equals(). But select items, from, where
-   * and group by are all held by parent class SQLSelectQueryBlock.
-   *
-   * <li>SQLSelectGroupByClause doesn't implement equals() at all.. MySqlSelectGroupByExpr
-   * compares identity of expression..
-   *
-   * <li>MySqlUnionQuery doesn't implement equals() at all
+   *   <li>MySqlSelectQueryBlock.equals() doesn't call super.equals(). But select items, from, where
+   *       and group by are all held by parent class SQLSelectQueryBlock.
+   *   <li>SQLSelectGroupByClause doesn't implement equals() at all.. MySqlSelectGroupByExpr
+   *       compares identity of expression..
+   *   <li>MySqlUnionQuery doesn't implement equals() at all
    * </ol>
    */
   private void same(SQLQueryExpr actual, SQLQueryExpr expected) {

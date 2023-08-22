@@ -91,19 +91,22 @@ public abstract class JoinAlgorithm<T> extends BatchPhysicalOperator<T> {
     LOG.debug("Cleared all resources used by join");
   }
 
-    /**
-     * Build-probe left and right block by block to prefetch next matches (and mismatches if outer join).
-     * <ol>
-     * <li>Build hash table and open right side.
-     * <li>Keep probing right to find matched rows (meanwhile update mismatched set)
-     * <li>Check if any row in mismatched set to return in the case of outer join.
-     * <li>Nothing remained now, move on to next block of left. Go back to step 1.
-     * </ol>
-     * This is a new run AND no block from left means algorithm should stop and return empty.
-     */
-    @Override
-    protected Collection<Row<T>> prefetch() throws Exception {
-        while (!isNewRunButNoMoreBlockFromLeft()) {
+  /**
+   * Build-probe left and right block by block to prefetch next matches (and mismatches if outer
+   * join).
+   *
+   * <ol>
+   *   <li>Build hash table and open right side.
+   *   <li>Keep probing right to find matched rows (meanwhile update mismatched set)
+   *   <li>Check if any row in mismatched set to return in the case of outer join.
+   *   <li>Nothing remained now, move on to next block of left. Go back to step 1.
+   * </ol>
+   *
+   * This is a new run AND no block from left means algorithm should stop and return empty.
+   */
+  @Override
+  protected Collection<Row<T>> prefetch() throws Exception {
+    while (!isNewRunButNoMoreBlockFromLeft()) {
 
       // 1.Build hash table and (re-)open right side for the new run
       if (isNewRun()) {

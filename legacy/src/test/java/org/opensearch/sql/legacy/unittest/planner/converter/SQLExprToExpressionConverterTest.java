@@ -3,7 +3,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-
 package org.opensearch.sql.legacy.unittest.planner.converter;
 
 import static org.junit.Assert.assertEquals;
@@ -34,118 +33,125 @@ import org.opensearch.sql.legacy.query.planner.converter.SQLExprToExpressionConv
 
 @RunWith(MockitoJUnitRunner.class)
 public class SQLExprToExpressionConverterTest {
-    @Rule
-    public ExpectedException exceptionRule = ExpectedException.none();
+  @Rule public ExpectedException exceptionRule = ExpectedException.none();
 
-    private SQLExprToExpressionConverter converter;
-    private SQLAggregationParser.Context context;
-    private final SQLAggregateExpr maxA = new SQLAggregateExpr("MAX");
-    private final SQLAggregateExpr maxB = new SQLAggregateExpr("MAX");
-    private final SQLAggregateExpr minA = new SQLAggregateExpr("MIN");
-    private final SQLIdentifierExpr groupG = new SQLIdentifierExpr("A");
-    private final SQLIdentifierExpr aggA = new SQLIdentifierExpr("A");
-    private final SQLIdentifierExpr aggB = new SQLIdentifierExpr("B");
-    private final SQLIntegerExpr one = new SQLIntegerExpr(1);
+  private SQLExprToExpressionConverter converter;
+  private SQLAggregationParser.Context context;
+  private final SQLAggregateExpr maxA = new SQLAggregateExpr("MAX");
+  private final SQLAggregateExpr maxB = new SQLAggregateExpr("MAX");
+  private final SQLAggregateExpr minA = new SQLAggregateExpr("MIN");
+  private final SQLIdentifierExpr groupG = new SQLIdentifierExpr("A");
+  private final SQLIdentifierExpr aggA = new SQLIdentifierExpr("A");
+  private final SQLIdentifierExpr aggB = new SQLIdentifierExpr("B");
+  private final SQLIntegerExpr one = new SQLIntegerExpr(1);
 
-    @Before
-    public void setup() {
-        maxA.getArguments().add(aggA);
-        maxB.getArguments().add(aggB);
-        minA.getArguments().add(aggA);
-        context = new SQLAggregationParser.Context(ImmutableMap.of());
-        converter = new SQLExprToExpressionConverter(context);
-    }
+  @Before
+  public void setup() {
+    maxA.getArguments().add(aggA);
+    maxB.getArguments().add(aggB);
+    minA.getArguments().add(aggA);
+    context = new SQLAggregationParser.Context(ImmutableMap.of());
+    converter = new SQLExprToExpressionConverter(context);
+  }
 
-    @Test
-    public void identifierShouldReturnVarExpression() {
-        context.addGroupKeyExpr(groupG);
-        Expression expression = converter.convert(groupG);
+  @Test
+  public void identifierShouldReturnVarExpression() {
+    context.addGroupKeyExpr(groupG);
+    Expression expression = converter.convert(groupG);
 
-        assertEquals(ref("A").toString(), expression.toString());
-    }
+    assertEquals(ref("A").toString(), expression.toString());
+  }
 
-    @Test
-    public void binaryOperatorAddShouldReturnAddExpression() {
-        context.addAggregationExpr(maxA);
-        context.addAggregationExpr(minA);
+  @Test
+  public void binaryOperatorAddShouldReturnAddExpression() {
+    context.addAggregationExpr(maxA);
+    context.addAggregationExpr(minA);
 
-        Expression expression = converter.convert(new SQLBinaryOpExpr(maxA, SQLBinaryOperator.Add, minA));
-        assertEquals(add(ref("MAX_0"), ref("MIN_1")).toString(), expression.toString());
-    }
+    Expression expression =
+        converter.convert(new SQLBinaryOpExpr(maxA, SQLBinaryOperator.Add, minA));
+    assertEquals(add(ref("MAX_0"), ref("MIN_1")).toString(), expression.toString());
+  }
 
-    @Test
-    public void compoundBinaryOperatorShouldReturnCorrectExpression() {
-        context.addAggregationExpr(maxA);
-        context.addAggregationExpr(minA);
+  @Test
+  public void compoundBinaryOperatorShouldReturnCorrectExpression() {
+    context.addAggregationExpr(maxA);
+    context.addAggregationExpr(minA);
 
-        Expression expression = converter.convert(new SQLBinaryOpExpr(maxA, SQLBinaryOperator.Add,
-                                                                      new SQLBinaryOpExpr(maxA, SQLBinaryOperator.Add,
-                                                                                          minA)));
-        assertEquals(add(ref("MAX_0"), add(ref("MAX_0"), ref("MIN_1"))).toString(), expression.toString());
-    }
+    Expression expression =
+        converter.convert(
+            new SQLBinaryOpExpr(
+                maxA,
+                SQLBinaryOperator.Add,
+                new SQLBinaryOpExpr(maxA, SQLBinaryOperator.Add, minA)));
+    assertEquals(
+        add(ref("MAX_0"), add(ref("MAX_0"), ref("MIN_1"))).toString(), expression.toString());
+  }
 
-    @Test
-    public void functionOverCompoundBinaryOperatorShouldReturnCorrectExpression() {
-        context.addAggregationExpr(maxA);
-        context.addAggregationExpr(minA);
+  @Test
+  public void functionOverCompoundBinaryOperatorShouldReturnCorrectExpression() {
+    context.addAggregationExpr(maxA);
+    context.addAggregationExpr(minA);
 
-        SQLMethodInvokeExpr methodInvokeExpr = new SQLMethodInvokeExpr("LOG");
-        methodInvokeExpr.addParameter(new SQLBinaryOpExpr(maxA, SQLBinaryOperator.Add,
-                                                          new SQLBinaryOpExpr(maxA, SQLBinaryOperator.Add,
-                                                                              minA)));
+    SQLMethodInvokeExpr methodInvokeExpr = new SQLMethodInvokeExpr("LOG");
+    methodInvokeExpr.addParameter(
+        new SQLBinaryOpExpr(
+            maxA, SQLBinaryOperator.Add, new SQLBinaryOpExpr(maxA, SQLBinaryOperator.Add, minA)));
 
-        Expression expression = converter.convert(methodInvokeExpr);
-        assertEquals(log(add(ref("MAX_0"), add(ref("MAX_0"), ref("MIN_1")))).toString(), expression.toString());
-    }
+    Expression expression = converter.convert(methodInvokeExpr);
+    assertEquals(
+        log(add(ref("MAX_0"), add(ref("MAX_0"), ref("MIN_1")))).toString(), expression.toString());
+  }
 
-    @Test
-    public void functionOverGroupColumn() {
-        context.addAggregationExpr(maxA);
-        context.addAggregationExpr(minA);
+  @Test
+  public void functionOverGroupColumn() {
+    context.addAggregationExpr(maxA);
+    context.addAggregationExpr(minA);
 
-        SQLMethodInvokeExpr methodInvokeExpr = new SQLMethodInvokeExpr("LOG");
-        methodInvokeExpr.addParameter(new SQLBinaryOpExpr(maxA, SQLBinaryOperator.Add,
-                                                          new SQLBinaryOpExpr(maxA, SQLBinaryOperator.Add,
-                                                                              minA)));
+    SQLMethodInvokeExpr methodInvokeExpr = new SQLMethodInvokeExpr("LOG");
+    methodInvokeExpr.addParameter(
+        new SQLBinaryOpExpr(
+            maxA, SQLBinaryOperator.Add, new SQLBinaryOpExpr(maxA, SQLBinaryOperator.Add, minA)));
 
-        Expression expression = converter.convert(methodInvokeExpr);
-        assertEquals(log(add(ref("MAX_0"), add(ref("MAX_0"), ref("MIN_1")))).toString(), expression.toString());
-    }
+    Expression expression = converter.convert(methodInvokeExpr);
+    assertEquals(
+        log(add(ref("MAX_0"), add(ref("MAX_0"), ref("MIN_1")))).toString(), expression.toString());
+  }
 
-    @Test
-    public void binaryOperatorWithLiteralAddShouldReturnAddExpression() {
-        context.addAggregationExpr(maxA);
+  @Test
+  public void binaryOperatorWithLiteralAddShouldReturnAddExpression() {
+    context.addAggregationExpr(maxA);
 
-        Expression expression = converter.convert(new SQLBinaryOpExpr(maxA, SQLBinaryOperator.Add, one));
-        assertEquals(add(ref("MAX_0"), literal(integerValue(1))).toString(), expression.toString());
-    }
+    Expression expression =
+        converter.convert(new SQLBinaryOpExpr(maxA, SQLBinaryOperator.Add, one));
+    assertEquals(add(ref("MAX_0"), literal(integerValue(1))).toString(), expression.toString());
+  }
 
-    @Test
-    public void unknownIdentifierShouldThrowException() {
-        context.addAggregationExpr(maxA);
-        context.addAggregationExpr(minA);
+  @Test
+  public void unknownIdentifierShouldThrowException() {
+    context.addAggregationExpr(maxA);
+    context.addAggregationExpr(minA);
 
-        exceptionRule.expect(RuntimeException.class);
-        exceptionRule.expectMessage("unsupported expr");
-        converter.convert(new SQLBinaryOpExpr(maxA, SQLBinaryOperator.Add, maxB));
-    }
+    exceptionRule.expect(RuntimeException.class);
+    exceptionRule.expectMessage("unsupported expr");
+    converter.convert(new SQLBinaryOpExpr(maxA, SQLBinaryOperator.Add, maxB));
+  }
 
-    @Test
-    public void unsupportOperationShouldThrowException() {
-        exceptionRule.expect(UnsupportedOperationException.class);
-        exceptionRule.expectMessage("unsupported operator: cot");
+  @Test
+  public void unsupportOperationShouldThrowException() {
+    exceptionRule.expect(UnsupportedOperationException.class);
+    exceptionRule.expectMessage("unsupported operator: cot");
 
-        context.addAggregationExpr(maxA);
-        SQLMethodInvokeExpr methodInvokeExpr = new SQLMethodInvokeExpr("cot");
-        methodInvokeExpr.addParameter(maxA);
-        converter.convert(methodInvokeExpr);
-    }
+    context.addAggregationExpr(maxA);
+    SQLMethodInvokeExpr methodInvokeExpr = new SQLMethodInvokeExpr("cot");
+    methodInvokeExpr.addParameter(maxA);
+    converter.convert(methodInvokeExpr);
+  }
 
-    private Expression add(Expression... expressions) {
-        return of(ADD, Arrays.asList(expressions));
-    }
+  private Expression add(Expression... expressions) {
+    return of(ADD, Arrays.asList(expressions));
+  }
 
-    private Expression log(Expression... expressions) {
-        return of(LOG, Arrays.asList(expressions));
-    }
+  private Expression log(Expression... expressions) {
+    return of(LOG, Arrays.asList(expressions));
+  }
 }

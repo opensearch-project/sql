@@ -103,19 +103,22 @@ public class CursorResultExecutor implements CursorRestExecutor {
     int rowsLeft = (int) cursor.getRowsLeft();
     int fetch = cursor.getFetchSize();
 
-        if (rowsLeft < fetch && rowsLeft < searchHitArray.length) {
-            /**
-             * This condition implies we are on the last page, and we might need to truncate the result from SearchHit[]
-             * Avoid truncating in following two scenarios
-             * <ol>
-             * <li>number of rows to be sent equals fetchSize
-             * <li>size of SearchHit[] is already less that rows that needs to be sent
-             * </ol>
-             * Else truncate to desired number of rows
-             */
-            SearchHit[] newSearchHits = Arrays.copyOf(searchHitArray, rowsLeft);
-            searchHits = new SearchHits(newSearchHits, searchHits.getTotalHits(), searchHits.getMaxScore());
-        }
+    if (rowsLeft < fetch && rowsLeft < searchHitArray.length) {
+      /**
+       * This condition implies we are on the last page, and we might need to truncate the result
+       * from SearchHit[] Avoid truncating in following two scenarios
+       *
+       * <ol>
+       *   <li>number of rows to be sent equals fetchSize
+       *   <li>size of SearchHit[] is already less that rows that needs to be sent
+       * </ol>
+       *
+       * Else truncate to desired number of rows
+       */
+      SearchHit[] newSearchHits = Arrays.copyOf(searchHitArray, rowsLeft);
+      searchHits =
+          new SearchHits(newSearchHits, searchHits.getTotalHits(), searchHits.getMaxScore());
+    }
 
     rowsLeft = rowsLeft - fetch;
 

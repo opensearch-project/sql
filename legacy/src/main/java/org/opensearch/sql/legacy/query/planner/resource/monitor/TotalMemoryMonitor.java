@@ -3,7 +3,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-
 package org.opensearch.sql.legacy.query.planner.resource.monitor;
 
 import org.apache.logging.log4j.LogManager;
@@ -12,46 +11,39 @@ import org.opensearch.sql.legacy.query.planner.core.Config;
 import org.opensearch.sql.legacy.query.planner.resource.Stats;
 import org.opensearch.sql.legacy.query.planner.resource.Stats.MemStats;
 
-/**
- * Circuit breaker for total memory usage in JVM on current OpenSearch node.
- */
+/** Circuit breaker for total memory usage in JVM on current OpenSearch node. */
 public class TotalMemoryMonitor implements Monitor {
 
-    private static final Logger LOG = LogManager.getLogger();
+  private static final Logger LOG = LogManager.getLogger();
 
-    /**
-     * Statistic collector
-     */
-    private final Stats stats;
+  /** Statistic collector */
+  private final Stats stats;
 
-    /**
-     * Upper limit for memory usage percentage
-     */
-    private final int limit;
+  /** Upper limit for memory usage percentage */
+  private final int limit;
 
-    public TotalMemoryMonitor(Stats stats, Config config) {
-        this.stats = stats;
-        this.limit = config.circuitBreakLimit();
+  public TotalMemoryMonitor(Stats stats, Config config) {
+    this.stats = stats;
+    this.limit = config.circuitBreakLimit();
+  }
+
+  @Override
+  public boolean isHealthy() {
+    MemStats memStats = stats.collectMemStats();
+    int usage = percentage(memUsage(memStats));
+
+    if (LOG.isDebugEnabled()) {
+      LOG.debug("Memory usage and limit: {}%, {}%", usage, limit);
     }
 
-    @Override
-    public boolean isHealthy() {
-        MemStats memStats = stats.collectMemStats();
-        int usage = percentage(memUsage(memStats));
+    return usage < limit;
+  }
 
-        if (LOG.isDebugEnabled()) {
-            LOG.debug("Memory usage and limit: {}%, {}%", usage, limit);
-        }
+  private int percentage(double usage) {
+    return (int) Math.round(usage * 100);
+  }
 
-        return usage < limit;
-    }
-
-    private int percentage(double usage) {
-        return (int) Math.round(usage * 100);
-    }
-
-    private double memUsage(MemStats memStats) {
-        return (1.0 * (memStats.getTotal() - memStats.getFree())) / memStats.getTotal();
-    }
-
+  private double memUsage(MemStats memStats) {
+    return (1.0 * (memStats.getTotal() - memStats.getFree())) / memStats.getTotal();
+  }
 }

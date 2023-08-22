@@ -127,7 +127,6 @@ The plugin codebase is in standard layout of Gradle project::
    ├── THIRD-PARTY
    ├── build.gradle
    ├── config
-   │   └── checkstyle
    ├── docs
    │   ├── attributions.md
    │   ├── category.json
@@ -170,7 +169,6 @@ Here are sub-folders (Gradle modules) for plugin source code:
 Here are other files and sub-folders that you are likely to touch:
 
 - ``build.gradle``: Gradle build script.
-- ``config``: only Checkstyle configuration files for now.
 - ``docs``: documentation for developers and reference manual for users.
 - ``doc-test``: code that run .rst docs in ``docs`` folder by Python doctest library.
 
@@ -189,7 +187,7 @@ Java files in the OpenSearch codebase are formatted with the Eclipse JDT formatt
 
 The formatting check can be run explicitly with::
 
-./gradlew spotlessJavaCheck
+./gradlew spotlessCheck
 
 The code can be formatted with::
 
@@ -197,7 +195,7 @@ The code can be formatted with::
 
 These tasks can also be run for specific modules, e.g.::
 
-./gradlew server:spotlessJavaCheck
+./gradlew server:spotlessCheck
 
 For more information on the spotless for the OpenSearch project please see `https://github.com/opensearch-project/OpenSearch/blob/main/DEVELOPER_GUIDE.md#java-language-formatting-guidelines <https://github.com/opensearch-project/OpenSearch/blob/main/DEVELOPER_GUIDE.md#java-language-formatting-guidelines>`_.
 
@@ -230,9 +228,7 @@ Most of the time you just need to run ./gradlew build which will make sure you p
    * - ./gradlew generateGrammarSource
      - (Re-)Generate ANTLR parser from grammar file.
    * - ./gradlew compileJava
-     - Compile all Java source files. 
-   * - ./gradlew checkstyle
-     - Run all checks according to Checkstyle configuration.
+     - Compile all Java source files.
    * - ./gradlew test
      - Run all unit tests.
    * - ./gradlew :integ-test:integTest
