@@ -26,6 +26,7 @@ plugins {
     id 'java'
     id 'io.freefair.lombok'
     id 'antlr'
+    id 'com.diffplug.spotless' version '6.19.0'
 }
 
 generateGrammarSource {
@@ -50,6 +51,24 @@ compileJava {
         options.compilerArgs.remove('-Werror')
         // TODO: need to fix all java doc format
         options.compilerArgs.remove('-Xdoclint:all')
+    }
+}
+
+spotless {
+    java {
+        target fileTree('.') {
+            include '**/*.java'
+            exclude '**/build/**', '**/build-*/**'
+        }
+        importOrder()
+//        licenseHeader("/*\n" +
+//                " * Copyright OpenSearch Contributors\n" +
+//                " * SPDX-License-Identifier: Apache-2.0\n" +
+//                " */\n\n")
+        removeUnusedImports()
+        trimTrailingWhitespace()
+        endWithNewline()
+        googleJavaFormat('1.17.0').reflowLongStrings().groupArtifact('com.google.googlejavaformat:google-java-format')
     }
 }
 

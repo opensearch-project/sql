@@ -33,6 +33,7 @@ import java.util.stream.Collectors
 
 plugins {
     id "de.undercouch.download" version "5.3.0"
+    id 'com.diffplug.spotless' version '6.19.0'
 }
 
 apply plugin: 'opensearch.build'
@@ -523,6 +524,24 @@ List<Provider<RegularFile>> plugins = [
     })
 ]
 
+spotless {
+    java {
+        target fileTree('.') {
+            include '**/*.java'
+            exclude '**/build/**', '**/build-*/**'
+        }
+        importOrder()
+//        licenseHeader("/*\n" +
+//                " * Copyright OpenSearch Contributors\n" +
+//                " * SPDX-License-Identifier: Apache-2.0\n" +
+//                " */\n\n")
+        removeUnusedImports()
+        trimTrailingWhitespace()
+        endWithNewline()
+        googleJavaFormat('1.17.0').reflowLongStrings().groupArtifact('com.google.googlejavaformat:google-java-format')
+    }
+}
+
 // Creates 2 test clusters with 3 nodes of the old version.
 2.times { i ->
     task "${baseName}#oldVersionClusterTask$i"(type: StandaloneRestIntegTestTask) {
@@ -627,6 +646,24 @@ task bwcTestSuite(type: StandaloneRestIntegTestTask) {
 
 def opensearch_tmp_dir = rootProject.file('build/private/es_tmp').absoluteFile
 opensearch_tmp_dir.mkdirs()
+
+spotless {
+    java {
+        target fileTree('.') {
+            include '**/*.java'
+            exclude '**/build/**', '**/build-*/**'
+        }
+        importOrder()
+//        licenseHeader("/*\n" +
+//                " * Copyright OpenSearch Contributors\n" +
+//                " * SPDX-License-Identifier: Apache-2.0\n" +
+//                " */\n\n")
+        removeUnusedImports()
+        trimTrailingWhitespace()
+        endWithNewline()
+        googleJavaFormat('1.17.0').reflowLongStrings().groupArtifact('com.google.googlejavaformat:google-java-format')
+    }
+}
 
 task integTestRemote(type: RestIntegTestTask) {
     testLogging {
