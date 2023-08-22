@@ -20,8 +20,8 @@ import org.opensearch.sql.planner.physical.PhysicalPlan;
 public interface ExecutionEngine {
 
   /**
-   * Execute physical plan and call back response listener. Todo. deprecated this interface after
-   * finalize {@link ExecutionContext}.
+   * Execute physical plan and call back response listener.<br>
+   * Todo. deprecated this interface after finalize {@link ExecutionContext}.
    *
    * @param plan executable physical plan
    * @param listener response listener

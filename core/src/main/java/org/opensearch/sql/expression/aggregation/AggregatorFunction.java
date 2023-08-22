@@ -34,9 +34,11 @@ import org.opensearch.sql.expression.function.FunctionName;
 import org.opensearch.sql.expression.function.FunctionSignature;
 
 /**
- * The definition of aggregator function avg, Accepts two numbers and produces a number. sum,
- * Accepts two numbers and produces a number. max, Accepts two numbers and produces a number. min,
- * Accepts two numbers and produces a number. count, Accepts two numbers and produces a number.
+ * The definition of aggregator functions <em>avg</em>, <em>sum</em>, <em>min</em>, <em>max</em> and
+ * <em>count</em>.<br>
+ * All of them accept a list of numbers and produce a number. <em>avg</em>, <em>min</em> and
+ * <em>max</em> also accept datetime types.<br>
+ * <em>count</em> accepts values of all types.
  */
 @UtilityClass
 public class AggregatorFunction {

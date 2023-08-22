@@ -68,8 +68,9 @@ public class TextFunction {
   }
 
   /**
-   * Gets substring starting at given point, for optional given length. Form of this function using
-   * keywords instead of comma delimited variables is not supported. Supports following signatures:
+   * <b>Gets substring starting at given point, for optional given length.</b><br>
+   * Form of this function using keywords instead of comma delimited variables is not supported.<br>
+   * Supports following signatures:<br>
    * (STRING, INTEGER)/(STRING, INTEGER, INTEGER) -> STRING
    */
   private DefaultFunctionResolver substringSubstr(FunctionName functionName) {
@@ -92,7 +93,11 @@ public class TextFunction {
     return substringSubstr(BuiltinFunctionName.SUBSTR.getName());
   }
 
-  /** Removes leading whitespace from string. Supports following signatures: STRING -> STRING */
+  /**
+   * <b>Removes leading whitespace from string.</b><br>
+   * Supports following signatures:<br>
+   * STRING -> STRING
+   */
   private DefaultFunctionResolver ltrim() {
     return define(
         BuiltinFunctionName.LTRIM.getName(),
@@ -102,7 +107,11 @@ public class TextFunction {
             STRING));
   }
 
-  /** Removes trailing whitespace from string. Supports following signatures: STRING -> STRING */
+  /**
+   * <b>Removes trailing whitespace from string.</b><br>
+   * Supports following signatures:<br>
+   * STRING -> STRING
+   */
   private DefaultFunctionResolver rtrim() {
     return define(
         BuiltinFunctionName.RTRIM.getName(),
@@ -113,9 +122,11 @@ public class TextFunction {
   }
 
   /**
-   * Removes leading and trailing whitespace from string. Has option to specify a String to trim
-   * instead of whitespace but this is not yet supported. Supporting String specification requires
-   * finding keywords inside TRIM command. Supports following signatures: STRING -> STRING
+   * <b>Removes leading and trailing whitespace from string.</b><br>
+   * Has option to specify a String to trim instead of whitespace but this is not yet supported.<br>
+   * Supporting String specification requires finding keywords inside TRIM command.<br>
+   * Supports following signatures:<br>
+   * STRING -> STRING
    */
   private DefaultFunctionResolver trim() {
     return define(
@@ -126,7 +137,11 @@ public class TextFunction {
             STRING));
   }
 
-  /** Converts String to lowercase. Supports following signatures: STRING -> STRING */
+  /**
+   * <b>Converts String to lowercase.</b><br>
+   * Supports following signatures:<br>
+   * STRING -> STRING
+   */
   private DefaultFunctionResolver lower() {
     return define(
         BuiltinFunctionName.LOWER.getName(),
@@ -136,7 +151,11 @@ public class TextFunction {
             STRING));
   }
 
-  /** Converts String to uppercase. Supports following signatures: STRING -> STRING */
+  /**
+   * <b>Converts String to uppercase.</b><br>
+   * Supports following signatures:<br>
+   * STRING -> STRING
+   */
   private DefaultFunctionResolver upper() {
     return define(
         BuiltinFunctionName.UPPER.getName(),
@@ -147,8 +166,9 @@ public class TextFunction {
   }
 
   /**
-   * Concatenates a list of Strings. Supports following signatures: (STRING, STRING, ...., STRING)
-   * -> STRING
+   * <b>Concatenates a list of Strings.</b><br>
+   * Supports following signatures:<br>
+   * (STRING, STRING, ...., STRING) -> STRING
    */
   private DefaultFunctionResolver concat() {
     FunctionName concatFuncName = BuiltinFunctionName.CONCAT.getName();
@@ -185,9 +205,12 @@ public class TextFunction {
   }
 
   /**
-   * TODO: https://github.com/opendistro-for-elasticsearch/sql/issues/710 Extend to accept variable
-   * argument amounts. Concatenates a list of Strings with a separator string. Supports following
-   * signatures: (STRING, STRING, STRING) -> STRING
+   * TODO: https://github.com/opendistro-for-elasticsearch/sql/issues/710<br>
+   * Extend to accept variable argument amounts.<br>
+   * <br>
+   * Concatenates a list of Strings with a separator string. Supports following<br>
+   * signatures:<br>
+   * (STRING, STRING, STRING) -> STRING
    */
   private DefaultFunctionResolver concat_ws() {
     return define(
@@ -203,7 +226,11 @@ public class TextFunction {
             STRING));
   }
 
-  /** Calculates length of String in bytes. Supports following signatures: STRING -> INTEGER */
+  /**
+   * <b>Calculates length of String in bytes.</b><br>
+   * Supports following signatures:<br>
+   * STRING -> INTEGER
+   */
   private DefaultFunctionResolver length() {
     return define(
         BuiltinFunctionName.LENGTH.getName(),
@@ -214,7 +241,8 @@ public class TextFunction {
   }
 
   /**
-   * Does String comparison of two Strings and returns Integer value. Supports following signatures:
+   * <b>Does String comparison of two Strings and returns Integer value.</b><br>
+   * Supports following signatures:<br>
    * (STRING, STRING) -> INTEGER
    */
   private DefaultFunctionResolver strcmp() {
@@ -231,8 +259,10 @@ public class TextFunction {
   }
 
   /**
-   * Returns the rightmost len characters from the string str, or NULL if any argument is NULL.
-   * Supports following signatures: (STRING, INTEGER) -> STRING
+   * <b>Returns the rightmost len characters from the string str, or NULL if any argument is
+   * NULL.</b><br>
+   * Supports following signatures:<br>
+   * (STRING, INTEGER) -> STRING
    */
   private DefaultFunctionResolver right() {
     return define(
@@ -241,8 +271,10 @@ public class TextFunction {
   }
 
   /**
-   * Returns the leftmost len characters from the string str, or NULL if any argument is NULL.
-   * Supports following signature: (STRING, INTEGER) -> STRING
+   * <b>Returns the leftmost len characters from the string str, or NULL if any argument is
+   * NULL.</b><br>
+   * Supports following signature:<br>
+   * (STRING, INTEGER) -> STRING
    */
   private DefaultFunctionResolver left() {
     return define(
@@ -251,9 +283,11 @@ public class TextFunction {
   }
 
   /**
-   * Returns the numeric value of the leftmost character of the string str. Returns 0 if str is the
-   * empty string. Returns NULL if str is NULL. ASCII() works for 8-bit characters. Supports
-   * following signature: STRING -> INTEGER
+   * <b>Returns the numeric value of the leftmost character of the string str.</b><br>
+   * Returns 0 if str is the empty string. Returns NULL if str is NULL.<br>
+   * ASCII() works for 8-bit characters.<br>
+   * Supports following signature:<br>
+   * STRING -> INTEGER
    */
   private DefaultFunctionResolver ascii() {
     return define(
@@ -262,11 +296,14 @@ public class TextFunction {
   }
 
   /**
-   * LOCATE(substr, str) returns the position of the first occurrence of substring substr in string
-   * str. LOCATE(substr, str, pos) returns the position of the first occurrence of substring substr
-   * in string str, starting at position pos. Returns 0 if substr is not in str. Returns NULL if any
-   * argument is NULL. Supports following signature: (STRING, STRING) -> INTEGER (STRING, STRING,
-   * INTEGER) -> INTEGER
+   * <b>LOCATE(substr, str) returns the position of the first occurrence of substring substr</b><br>
+   * in string str. LOCATE(substr, str, pos) returns the position of the first occurrence<br>
+   * of substring substr in string str, starting at position pos.<br>
+   * Returns 0 if substr is not in str.<br>
+   * Returns NULL if any argument is NULL.<br>
+   * Supports following signature:<br>
+   * (STRING, STRING) -> INTEGER<br>
+   * (STRING, STRING, INTEGER) -> INTEGER
    */
   private DefaultFunctionResolver locate() {
     return define(
@@ -288,9 +325,12 @@ public class TextFunction {
   }
 
   /**
-   * Returns the position of the first occurrence of a substring in a string starting from 1.
-   * Returns 0 if substring is not in string. Returns NULL if any argument is NULL. Supports
-   * following signature: (STRING IN STRING) -> INTEGER
+   * <b>Returns the position of the first occurrence of a substring in a string starting from 1.</b>
+   * <br>
+   * Returns 0 if substring is not in string.<br>
+   * Returns NULL if any argument is NULL.<br>
+   * Supports following signature:<br>
+   * (STRING IN STRING) -> INTEGER
    */
   private DefaultFunctionResolver position() {
     return define(
@@ -304,9 +344,11 @@ public class TextFunction {
   }
 
   /**
-   * REPLACE(str, from_str, to_str) returns the string str with all occurrences of the string
-   * from_str replaced by the string to_str. REPLACE() performs a case-sensitive match when
-   * searching for from_str. Supports following signature: (STRING, STRING, STRING) -> STRING
+   * <b>REPLACE(str, from_str, to_str) returns the string str with all occurrences of<br>
+   * the string from_str replaced by the string to_str.</b><br>
+   * REPLACE() performs a case-sensitive match when searching for from_str.<br>
+   * Supports following signature:<br>
+   * (STRING, STRING, STRING) -> STRING
    */
   private DefaultFunctionResolver replace() {
     return define(
@@ -315,8 +357,10 @@ public class TextFunction {
   }
 
   /**
-   * REVERSE(str) returns reversed string of the string supplied as an argument Returns NULL if the
-   * argument is NULL. Supports the following signature: (STRING) -> STRING
+   * <b>REVERSE(str) returns reversed string of the string supplied as an argument</b></b><br>
+   * Returns NULL if the argument is NULL.<br>
+   * Supports the following signature:<br>
+   * (STRING) -> STRING
    */
   private DefaultFunctionResolver reverse() {
     return define(

@@ -112,8 +112,9 @@ public class MathematicalFunction {
   }
 
   /**
-   * Definition of abs() function. The supported signature of abs() function are INT -> INT LONG ->
-   * LONG FLOAT -> FLOAT DOUBLE -> DOUBLE
+   * <b>Definition of abs() function.<\b><br>
+   * The supported signature of abs() function are<br>
+   * INT/LONG/FLOAT/DOUBLE -> INT/LONG/FLOAT/DOUBLE
    */
   private static DefaultFunctionResolver abs() {
     return define(
@@ -133,8 +134,9 @@ public class MathematicalFunction {
   }
 
   /**
-   * Definition of ceil(x)/ceiling(x) function. Calculate the next highest integer that x rounds up
-   * to The supported signature of ceil/ceiling function is DOUBLE -> INTEGER
+   * <b>Definition of ceil(x)/ceiling(x) function.<\b><br>
+   * Calculate the next highest integer that x rounds up to The supported signature of ceil/ceiling
+   * function is DOUBLE -> INTEGER
    */
   private static DefaultFunctionResolver ceil() {
     return define(
@@ -151,9 +153,11 @@ public class MathematicalFunction {
   }
 
   /**
-   * Definition of conv(x, a, b) function. Convert number x from base a to base b The supported
-   * signature of floor function is (STRING, INTEGER, INTEGER) -> STRING (INTEGER, INTEGER, INTEGER)
-   * -> STRING
+   * <b>Definition of conv(x, a, b) function.<\b><br>
+   * Convert number x from base a to base b<br>
+   * The supported signature of floor function is<br>
+   * (STRING, INTEGER, INTEGER) -> STRING<br>
+   * (INTEGER, INTEGER, INTEGER) -> STRING
    */
   private static DefaultFunctionResolver conv() {
     return define(
@@ -183,8 +187,10 @@ public class MathematicalFunction {
   }
 
   /**
-   * Definition of crc32(x) function. Calculate a cyclic redundancy check value and returns a 32-bit
-   * unsigned value The supported signature of crc32 function is STRING -> LONG
+   * <b>Definition of crc32(x) function.<\b><br>
+   * Calculate a cyclic redundancy check value and returns a 32-bit unsigned value<br>
+   * The supported signature of crc32 function is<br>
+   * STRING -> LONG
    */
   private static DefaultFunctionResolver crc32() {
     return define(
@@ -200,14 +206,18 @@ public class MathematicalFunction {
             STRING));
   }
 
-  /** Definition of e() function. Get the Euler's number. () -> DOUBLE */
+  /**
+   * <b>Definition of e() function.</b><br>
+   * Get the Euler's number. () -> DOUBLE
+   */
   private static DefaultFunctionResolver euler() {
     return define(BuiltinFunctionName.E.getName(), impl(() -> new ExprDoubleValue(Math.E), DOUBLE));
   }
 
   /**
-   * Definition of exp(x) function. Calculate exponent function e to the x The supported signature
-   * of exp function is INTEGER/LONG/FLOAT/DOUBLE -> DOUBLE
+   * <b>Definition of exp(x) function.<b><br>
+   * Calculate exponent function e to the x The supported signature of exp function is
+   * INTEGER/LONG/FLOAT/DOUBLE -> DOUBLE
    */
   private static DefaultFunctionResolver exp() {
     return baseMathFunction(
@@ -217,8 +227,9 @@ public class MathematicalFunction {
   }
 
   /**
-   * Definition of expm1(x) function. Calculate exponent function e to the x, minus 1 The supported
-   * signature of exp function is INTEGER/LONG/FLOAT/DOUBLE -> DOUBLE
+   * <b>Definition of expm1(x) function.</b><br>
+   * Calculate exponent function e to the x, minus 1 The supported signature of exp function is
+   * INTEGER/LONG/FLOAT/DOUBLE -> DOUBLE
    */
   private static DefaultFunctionResolver expm1() {
     return baseMathFunction(
@@ -228,8 +239,9 @@ public class MathematicalFunction {
   }
 
   /**
-   * Definition of floor(x) function. Calculate the next nearest whole integer that x rounds down to
-   * The supported signature of floor function is DOUBLE -> INTEGER
+   * <b>Definition of floor(x) function.</b><br>
+   * Calculate the next nearest whole integer that x rounds down to The supported signature of floor
+   * function is DOUBLE -> INTEGER
    */
   private static DefaultFunctionResolver floor() {
     return define(
@@ -255,9 +267,9 @@ public class MathematicalFunction {
   }
 
   /**
-   * Definition of log(b, x) function. Calculate the logarithm of x using b as the base The
-   * supported signature of log function is (b: INTEGER/LONG/FLOAT/DOUBLE, x:
-   * INTEGER/LONG/FLOAT/DOUBLE]) -> DOUBLE
+   * <b>Definition of log(b, x) function.</b><br>
+   * Calculate the logarithm of x using b as the base The supported signature of log function is<br>
+   * (b: INTEGER/LONG/FLOAT/DOUBLE, x: INTEGER/LONG/FLOAT/DOUBLE]) -> DOUBLE
    */
   private static DefaultFunctionResolver log() {
     ImmutableList.Builder<
@@ -297,7 +309,8 @@ public class MathematicalFunction {
   }
 
   /**
-   * Definition of log10(x) function. Calculate base-10 logarithm of x The supported signature of
+   * <b>Definition of log10(x) function.</b><br>
+   * Calculate base-10 logarithm of x The supported signature of<br>
    * log function is SHORT/INTEGER/LONG/FLOAT/DOUBLE -> DOUBLE
    */
   private static DefaultFunctionResolver log10() {
@@ -311,7 +324,8 @@ public class MathematicalFunction {
   }
 
   /**
-   * Definition of log2(x) function. Calculate base-2 logarithm of x The supported signature of log
+   * <b>Definition of log2(x) function.</b><br>
+   * Calculate base-2 logarithm of x The supported signature of log<br>
    * function is SHORT/INTEGER/LONG/FLOAT/DOUBLE -> DOUBLE
    */
   private static DefaultFunctionResolver log2() {
@@ -325,9 +339,11 @@ public class MathematicalFunction {
   }
 
   /**
-   * Definition of mod(x, y) function. Calculate the remainder of x divided by y The supported
-   * signature of mod function is (x: INTEGER/LONG/FLOAT/DOUBLE, y: INTEGER/LONG/FLOAT/DOUBLE) ->
-   * wider type between types of x and y
+   * <b>Definition of mod(x, y) function.</b><br>
+   * Calculate the remainder of x divided by y<br>
+   * The supported signature of mod function is<br>
+   * (x: INTEGER/LONG/FLOAT/DOUBLE, y: INTEGER/LONG/FLOAT/DOUBLE)<br>
+   * -> wider type between types of x and y
    */
   private static DefaultFunctionResolver mod() {
     return define(
@@ -389,16 +405,24 @@ public class MathematicalFunction {
             DOUBLE));
   }
 
-  /** Definition of pi() function. Get the value of pi. () -> DOUBLE */
+  /**
+   * <b>Definition of pi() function.</b><br>
+   * Get the value of pi.<br>
+   * () -> DOUBLE
+   */
   private static DefaultFunctionResolver pi() {
     return define(
         BuiltinFunctionName.PI.getName(), impl(() -> new ExprDoubleValue(Math.PI), DOUBLE));
   }
 
   /**
-   * Definition of pow(x, y)/power(x, y) function. Calculate the value of x raised to the power of y
-   * The supported signature of pow/power function is (INTEGER, INTEGER) -> DOUBLE (LONG, LONG) ->
-   * DOUBLE (FLOAT, FLOAT) -> DOUBLE (DOUBLE, DOUBLE) -> DOUBLE
+   * <b>Definition of pow(x, y)/power(x, y) function.</b><br>
+   * Calculate the value of x raised to the power of y<br>
+   * The supported signature of pow/power function is<br>
+   * (INTEGER, INTEGER) -> DOUBLE<br>
+   * (LONG, LONG) -> DOUBLE<br>
+   * (FLOAT, FLOAT) -> DOUBLE<br>
+   * (DOUBLE, DOUBLE) -> DOUBLE
    */
   private static DefaultFunctionResolver pow() {
     return define(BuiltinFunctionName.POW.getName(), powerFunctionImpl());
@@ -450,10 +474,13 @@ public class MathematicalFunction {
   }
 
   /**
-   * Definition of rand() and rand(N) function. rand() returns a random floating-point value in the
-   * range 0 <= value < 1.0 If integer N is specified, the seed is initialized prior to execution.
+   * <b>Definition of rand() and rand(N) function.</b><br>
+   * rand() returns a random floating-point value in the range 0 <= value < 1.0<br>
+   * If integer N is specified, the seed is initialized prior to execution.<br>
    * One implication of this behavior is with identical argument N,rand(N) returns the same value
+   * <br>
    * each time, and thus produces a repeatable sequence of column values. The supported signature of
+   * <br>
    * rand function is ([INTEGER]) -> FLOAT
    */
   private static DefaultFunctionResolver rand() {
@@ -467,8 +494,10 @@ public class MathematicalFunction {
   }
 
   /**
-   * Definition of rint(x) function. Returns the closest whole integer value to x The supported
-   * signature is BYTE/SHORT/INTEGER/LONG/FLOAT/DOUBLE -> DOUBLE
+   * <b>Definition of rint(x) function.</b><br>
+   * Returns the closest whole integer value to x<br>
+   * The supported signature is<br>
+   * BYTE/SHORT/INTEGER/LONG/FLOAT/DOUBLE -> DOUBLE
    */
   private static DefaultFunctionResolver rint() {
     return baseMathFunction(
@@ -478,10 +507,13 @@ public class MathematicalFunction {
   }
 
   /**
-   * Definition of round(x)/round(x, d) function. Rounds the argument x to d decimal places, d
-   * defaults to 0 if not specified. The supported signature of round function is (x: INTEGER [, y:
-   * INTEGER]) -> INTEGER (x: LONG [, y: INTEGER]) -> LONG (x: FLOAT [, y: INTEGER]) -> FLOAT (x:
-   * DOUBLE [, y: INTEGER]) -> DOUBLE
+   * <b>Definition of round(x)/round(x, d) function.</b><br>
+   * Rounds the argument x to d decimal places, d defaults to 0 if not specified.<br>
+   * The supported signature of round function is<br>
+   * (x: INTEGER [, y: INTEGER]) -> INTEGER<br>
+   * (x: LONG [, y: INTEGER]) -> LONG<br>
+   * (x: FLOAT [, y: INTEGER]) -> FLOAT<br>
+   * (x: DOUBLE [, y: INTEGER]) -> DOUBLE
    */
   private static DefaultFunctionResolver round() {
     return define(
@@ -553,8 +585,10 @@ public class MathematicalFunction {
   }
 
   /**
-   * Definition of sign(x) function. Returns the sign of the argument as -1, 0, or 1 depending on
-   * whether x is negative, zero, or positive The supported signature is
+   * <b>Definition of sign(x) function.</b><br>
+   * Returns the sign of the argument as -1, 0, or 1<br>
+   * depending on whether x is negative, zero, or positive<br>
+   * The supported signature is<br>
    * SHORT/INTEGER/LONG/FLOAT/DOUBLE -> INTEGER
    */
   private static DefaultFunctionResolver sign() {
@@ -565,8 +599,10 @@ public class MathematicalFunction {
   }
 
   /**
-   * Definition of signum(x) function. Returns the sign of the argument as -1.0, 0, or 1.0 depending
-   * on whether x is negative, zero, or positive The supported signature is
+   * <b>Definition of signum(x) function.</b><br>
+   * Returns the sign of the argument as -1.0, 0, or 1.0<br>
+   * depending on whether x is negative, zero, or positive<br>
+   * The supported signature is<br>
    * BYTE/SHORT/INTEGER/LONG/FLOAT/DOUBLE -> INTEGER
    */
   private static DefaultFunctionResolver signum() {
@@ -577,8 +613,10 @@ public class MathematicalFunction {
   }
 
   /**
-   * Definition of sinh(x) function. Returns the hyperbolix sine of x, defined as (((e^x) -
-   * (e^(-x))) / 2) The supported signature is BYTE/SHORT/INTEGER/LONG/FLOAT/DOUBLE -> DOUBLE
+   * <b>Definition of sinh(x) function.</b><br>
+   * Returns the hyperbolix sine of x, defined as (((e^x) - (e^(-x))) / 2)<br>
+   * The supported signature is<br>
+   * BYTE/SHORT/INTEGER/LONG/FLOAT/DOUBLE -> DOUBLE
    */
   private static DefaultFunctionResolver sinh() {
     return baseMathFunction(
@@ -588,8 +626,10 @@ public class MathematicalFunction {
   }
 
   /**
-   * Definition of sqrt(x) function. Calculate the square root of a non-negative number x The
-   * supported signature is INTEGER/LONG/FLOAT/DOUBLE -> DOUBLE
+   * <b>Definition of sqrt(x) function.</b><br>
+   * Calculate the square root of a non-negative number x<br>
+   * The supported signature is<br>
+   * INTEGER/LONG/FLOAT/DOUBLE -> DOUBLE
    */
   private static DefaultFunctionResolver sqrt() {
     return baseMathFunction(
@@ -602,8 +642,10 @@ public class MathematicalFunction {
   }
 
   /**
-   * Definition of cbrt(x) function. Calculate the cube root of a number x The supported signature
-   * is INTEGER/LONG/FLOAT/DOUBLE -> DOUBLE
+   * <b>Definition of cbrt(x) function.</b><br>
+   * Calculate the cube root of a number x<br>
+   * The supported signature is<br>
+   * INTEGER/LONG/FLOAT/DOUBLE -> DOUBLE
    */
   private static DefaultFunctionResolver cbrt() {
     return baseMathFunction(
@@ -613,9 +655,13 @@ public class MathematicalFunction {
   }
 
   /**
-   * Definition of truncate(x, d) function. Returns the number x, truncated to d decimal places The
-   * supported signature of round function is (x: INTEGER, y: INTEGER) -> LONG (x: LONG, y: INTEGER)
-   * -> LONG (x: FLOAT, y: INTEGER) -> DOUBLE (x: DOUBLE, y: INTEGER) -> DOUBLE
+   * <b>Definition of truncate(x, d) function.</b><br>
+   * Returns the number x, truncated to d decimal places<br>
+   * The supported signature of round function is<br>
+   * (x: INTEGER, y: INTEGER) -> LONG<br>
+   * (x: LONG, y: INTEGER) -> LONG<br>
+   * (x: FLOAT, y: INTEGER) -> DOUBLE<br>
+   * (x: DOUBLE, y: INTEGER) -> DOUBLE
    */
   private static DefaultFunctionResolver truncate() {
     return define(
@@ -663,9 +709,11 @@ public class MathematicalFunction {
   }
 
   /**
-   * Definition of acos(x) function. Calculates the arc cosine of x, that is, the value whose cosine
-   * is x. Returns NULL if x is not in the range -1 to 1. The supported signature of acos function
-   * is INTEGER/LONG/FLOAT/DOUBLE -> DOUBLE
+   * <b>Definition of acos(x) function.</b><br>
+   * Calculates the arc cosine of x, that is, the value whose cosine is x.<br>
+   * Returns NULL if x is not in the range -1 to 1.<br>
+   * The supported signature of acos function is<br>
+   * INTEGER/LONG/FLOAT/DOUBLE -> DOUBLE
    */
   private static DefaultFunctionResolver acos() {
     return define(
@@ -685,9 +733,11 @@ public class MathematicalFunction {
   }
 
   /**
-   * Definition of asin(x) function. Calculates the arc sine of x, that is, the value whose sine is
-   * x. Returns NULL if x is not in the range -1 to 1. The supported signature of asin function is
-   * INTEGER/LONG/FLOAT/DOUBLE -> DOUBLE
+   * <b>Definition of asin(x) function.</b><br>
+   * Calculates the arc sine of x, that is, the value whose sine is x.<br>
+   * Returns NULL if x is not in the range -1 to 1.<br>
+   * The supported signature of asin function is<br>
+   * INTEGER/LONG/FLOAT/DOUBLE -> DOUBLE<br>
    */
   private static DefaultFunctionResolver asin() {
     return define(
@@ -707,11 +757,12 @@ public class MathematicalFunction {
   }
 
   /**
-   * Definition of atan(x) and atan(y, x) function. atan(x) calculates the arc tangent of x, that
-   * is, the value whose tangent is x. atan(y, x) calculates the arc tangent of y / x, except that
-   * the signs of both arguments are used to determine the quadrant of the result. The supported
-   * signature of atan function is (x: INTEGER/LONG/FLOAT/DOUBLE, y: INTEGER/LONG/FLOAT/DOUBLE) ->
-   * DOUBLE
+   * <b>Definition of atan(x) and atan(y, x) function.</b><br>
+   * atan(x) calculates the arc tangent of x, that is, the value whose tangent is x.<br>
+   * atan(y, x) calculates the arc tangent of y / x, except that the signs of both arguments<br>
+   * are used to determine the quadrant of the result.<br>
+   * The supported signature of atan function is<br>
+   * (x: INTEGER/LONG/FLOAT/DOUBLE, y: INTEGER/LONG/FLOAT/DOUBLE) -> DOUBLE
    */
   private static DefaultFunctionResolver atan() {
     ImmutableList.Builder<
@@ -737,9 +788,11 @@ public class MathematicalFunction {
   }
 
   /**
-   * Definition of atan2(y, x) function. Calculates the arc tangent of y / x, except that the signs
-   * of both arguments are used to determine the quadrant of the result. The supported signature of
-   * atan2 function is (x: INTEGER/LONG/FLOAT/DOUBLE, y: INTEGER/LONG/FLOAT/DOUBLE) -> DOUBLE
+   * <b>Definition of atan2(y, x) function.</b><br>
+   * Calculates the arc tangent of y / x, except that the signs of both arguments are used to
+   * determine the quadrant of the result.<br>
+   * The supported signature of atan2 function is<br>
+   * (x: INTEGER/LONG/FLOAT/DOUBLE, y: INTEGER/LONG/FLOAT/DOUBLE) -> DOUBLE
    */
   private static DefaultFunctionResolver atan2() {
     ImmutableList.Builder<
@@ -760,8 +813,10 @@ public class MathematicalFunction {
   }
 
   /**
-   * Definition of cos(x) function. Calculates the cosine of X, where X is given in radians The
-   * supported signature of cos function is INTEGER/LONG/FLOAT/DOUBLE -> DOUBLE
+   * <b>Definition of cos(x) function.</b><br>
+   * Calculates the cosine of X, where X is given in radians<br>
+   * The supported signature of cos function is<br>
+   * INTEGER/LONG/FLOAT/DOUBLE -> DOUBLE
    */
   private static DefaultFunctionResolver cos() {
     return baseMathFunction(
@@ -771,8 +826,10 @@ public class MathematicalFunction {
   }
 
   /**
-   * Definition of cosh(x) function. Returns the hyperbolic cosine of x, defined as (((e^x) +
-   * (e^(-x))) / 2) The supported signature is BYTE/SHORT/INTEGER/LONG/FLOAT/DOUBLE -> DOUBLE
+   * <b>Definition of cosh(x) function.</b><br>
+   * Returns the hyperbolic cosine of x, defined as (((e^x) + (e^(-x))) / 2)<br>
+   * The supported signature is<br>
+   * BYTE/SHORT/INTEGER/LONG/FLOAT/DOUBLE -> DOUBLE
    */
   private static DefaultFunctionResolver cosh() {
     return baseMathFunction(
@@ -782,8 +839,9 @@ public class MathematicalFunction {
   }
 
   /**
-   * Definition of cot(x) function. Calculates the cotangent of x The supported signature of cot
-   * function is INTEGER/LONG/FLOAT/DOUBLE -> DOUBLE
+   * <b>Definition of cot(x) function.<\b><br>
+   * Calculates the cotangent of x The supported signature of cot function is
+   * INTEGER/LONG/FLOAT/DOUBLE -> DOUBLE
    */
   private static DefaultFunctionResolver cot() {
     return define(
@@ -807,8 +865,9 @@ public class MathematicalFunction {
   }
 
   /**
-   * Definition of degrees(x) function. Converts x from radians to degrees The supported signature
-   * of degrees function is INTEGER/LONG/FLOAT/DOUBLE -> DOUBLE
+   * <b>Definition of degrees(x) function.</b><br>
+   * Converts x from radians to degrees The supported signature of degrees function is
+   * INTEGER/LONG/FLOAT/DOUBLE -> DOUBLE
    */
   private static DefaultFunctionResolver degrees() {
     return baseMathFunction(
@@ -818,8 +877,9 @@ public class MathematicalFunction {
   }
 
   /**
-   * Definition of radians(x) function. Converts x from degrees to radians The supported signature
-   * of radians function is INTEGER/LONG/FLOAT/DOUBLE -> DOUBLE
+   * <b>Definition of radians(x) function.</b><br>
+   * Converts x from degrees to radians The supported signature of radians function is
+   * INTEGER/LONG/FLOAT/DOUBLE -> DOUBLE
    */
   private static DefaultFunctionResolver radians() {
     return baseMathFunction(
@@ -829,8 +889,10 @@ public class MathematicalFunction {
   }
 
   /**
-   * Definition of sin(x) function. Calculates the sine of x, where x is given in radians The
-   * supported signature of sin function is INTEGER/LONG/FLOAT/DOUBLE -> DOUBLE
+   * <b>Definition of sin(x) function.</b><br>
+   * Calculates the sine of x, where x is given in radians The supported signature of sin function
+   * is<br>
+   * INTEGER/LONG/FLOAT/DOUBLE -> DOUBLE
    */
   private static DefaultFunctionResolver sin() {
     return baseMathFunction(
@@ -840,8 +902,10 @@ public class MathematicalFunction {
   }
 
   /**
-   * Definition of tan(x) function. Calculates the tangent of x, where x is given in radians The
-   * supported signature of tan function is INTEGER/LONG/FLOAT/DOUBLE -> DOUBLE
+   * <b>Definition of tan(x) function.</b><br>
+   * Calculates the tangent of x, where x is given in radians The supported signature of tan
+   * function is<br>
+   * INTEGER/LONG/FLOAT/DOUBLE -> DOUBLE
    */
   private static DefaultFunctionResolver tan() {
     return baseMathFunction(

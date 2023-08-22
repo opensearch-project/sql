@@ -29,8 +29,10 @@ public class FunctionSignature {
   /**
    * calculate the function signature match degree.
    *
-   * @return EXACTLY_MATCH: exactly match NOT_MATCH: not match By widening rule, the small number
-   *     means better match
+   * @return<br>
+   *     EXACTLY_MATCH: exactly match<br>
+   *     NOT_MATCH: not match<br>
+   *     By widening rule, the small number means better match
    */
   public int match(FunctionSignature functionSignature) {
     List<ExprType> functionTypeList = functionSignature.getParamTypeList();

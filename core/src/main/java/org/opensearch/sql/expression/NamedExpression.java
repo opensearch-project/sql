@@ -15,8 +15,9 @@ import org.opensearch.sql.data.type.ExprType;
 import org.opensearch.sql.expression.env.Environment;
 
 /**
- * Named expression that represents expression with name. Please see more details in associated
- * unresolved expression operator {@link org.opensearch.sql.ast.expression.Alias}.
+ * Named expression that represents expression with name.<br>
+ * Please see more details in associated unresolved expression operator<br>
+ * {@link org.opensearch.sql.ast.expression.Alias}.
  */
 @AllArgsConstructor
 @EqualsAndHashCode

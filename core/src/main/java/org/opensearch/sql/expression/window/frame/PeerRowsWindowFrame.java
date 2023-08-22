@@ -75,8 +75,14 @@ public class PeerRowsWindowFrame implements WindowFrame {
   /**
    * Preload all peer rows if last peer rows done. Note that when no more data in peeking iterator,
    * there must be rows in frame (hasNext()=true), so no need to check it.hasNext() in this method.
-   * Load until: 1. Different peer found (row with different sort key) 2. Or new partition (row with
-   * different partition key) 3. Or no more rows
+   * <br>
+   * Load until:<br>
+   *
+   * <ol>
+   *   <li>Different peer found (row with different sort key)
+   *   <li>Or new partition (row with different partition key)
+   *   <li>Or no more rows
+   * </ol>
    *
    * @param it rows iterator
    */
