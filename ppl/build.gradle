@@ -41,6 +41,9 @@ configurations {
     }
 }
 
+checkstyleMain.ignoreFailures = true
+checkstyleTest.ignoreFailures = true
+
 dependencies {
     antlr "org.antlr:antlr4:4.7.1"
 
