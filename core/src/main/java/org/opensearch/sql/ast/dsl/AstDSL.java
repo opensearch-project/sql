@@ -247,6 +247,8 @@ public class AstDSL {
   }
 
   /**
+   *
+   *
    * <pre>
    * CASE
    *    WHEN search_condition THEN result_expr<br>
@@ -260,6 +262,8 @@ public class AstDSL {
   }
 
   /**
+   *
+   *
    * <pre>
    * CASE case_value_expr
    *     WHEN compare_expr THEN result_expr
