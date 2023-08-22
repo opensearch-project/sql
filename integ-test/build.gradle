@@ -524,24 +524,6 @@ List<Provider<RegularFile>> plugins = [
     })
 ]
 
-spotless {
-    java {
-        target fileTree('.') {
-            include '**/*.java'
-            exclude '**/build/**', '**/build-*/**'
-        }
-        importOrder()
-//        licenseHeader("/*\n" +
-//                " * Copyright OpenSearch Contributors\n" +
-//                " * SPDX-License-Identifier: Apache-2.0\n" +
-//                " */\n\n")
-        removeUnusedImports()
-        trimTrailingWhitespace()
-        endWithNewline()
-        googleJavaFormat('1.17.0').reflowLongStrings().groupArtifact('com.google.googlejavaformat:google-java-format')
-    }
-}
-
 // Creates 2 test clusters with 3 nodes of the old version.
 2.times { i ->
     task "${baseName}#oldVersionClusterTask$i"(type: StandaloneRestIntegTestTask) {
