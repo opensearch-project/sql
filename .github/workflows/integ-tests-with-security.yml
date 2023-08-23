@@ -1,0 +1,43 @@
+name: Security Plugin IT
+
+on:
+  pull_request:
+  push:
+    branches-ignore:
+      - 'dependabot/**'
+    paths:
+      - 'integ-test/**'
+      - '.github/workflows/integ-tests-with-security.yml'
+
+jobs:
+  security-it:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ ubuntu-latest, windows-latest, macos-latest ]
+        java: [ 11, 17 ]
+
+    runs-on: ${{ matrix.os }}
+
+    steps:
+    - uses: actions/checkout@v3
+
+    - name: Set up JDK ${{ matrix.java }}
+      uses: actions/setup-java@v3
+      with:
+        distribution: 'temurin'
+        java-version: ${{ matrix.java }}
+
+    - name: Build with Gradle
+      run: ./gradlew integTestWithSecurity
+
+    - name: Upload test reports
+      if: ${{ always() }}
+      uses: actions/upload-artifact@v2
+      continue-on-error: true
+      with:
+        name: test-reports-${{ matrix.os }}-${{ matrix.java }}
+        path: |
+          integ-test/build/reports/**
+          integ-test/build/testclusters/*/logs/*
+          integ-test/build/testclusters/*/config/*
