@@ -87,6 +87,11 @@ class OpenSearchNodeClientTest {
   private static final String TEST_MAPPING_FILE = "mappings/accounts.json";
   private static final String TEST_MAPPING_SETTINGS_FILE = "mappings/accounts2.json";
 
+  private static final OpenSearchRequest.IndexName INDEX_NAME =
+      new OpenSearchRequest.IndexName("test");
+  private static final OpenSearchRequest.IndexName ROUTING_ID =
+      new OpenSearchRequest.IndexName("shard");
+
   @Mock(answer = RETURNS_DEEP_STUBS)
   private NodeClient nodeClient;
 
@@ -322,7 +327,7 @@ class OpenSearchNodeClientTest {
 
     // Verify response for first scroll request
     OpenSearchScrollRequest request = new OpenSearchScrollRequest(
-        new OpenSearchRequest.IndexName("test"), TimeValue.timeValueMinutes(1),
+        INDEX_NAME, ROUTING_ID, TimeValue.timeValueMinutes(1),
         new SearchSourceBuilder(), factory);
     OpenSearchResponse response1 = client.search(request);
     assertFalse(response1.isEmpty());
@@ -357,7 +362,7 @@ class OpenSearchNodeClientTest {
     when(requestBuilder.get()).thenReturn(null);
 
     OpenSearchScrollRequest request = new OpenSearchScrollRequest(
-        new OpenSearchRequest.IndexName("test"), TimeValue.timeValueMinutes(1),
+        INDEX_NAME, ROUTING_ID, TimeValue.timeValueMinutes(1),
         new SearchSourceBuilder(), factory);
     request.setScrollId("scroll123");
     // Enforce cleaning by setting a private field.
@@ -374,7 +379,7 @@ class OpenSearchNodeClientTest {
   @Test
   void cleanup_without_scrollId() {
     OpenSearchScrollRequest request = new OpenSearchScrollRequest(
-        new OpenSearchRequest.IndexName("test"), TimeValue.timeValueMinutes(1),
+        INDEX_NAME, ROUTING_ID, TimeValue.timeValueMinutes(1),
         new SearchSourceBuilder(), factory);
     client.cleanup(request);
     verify(nodeClient, never()).prepareClearScroll();
@@ -386,7 +391,7 @@ class OpenSearchNodeClientTest {
     when(nodeClient.prepareClearScroll()).thenThrow(new RuntimeException());
 
     OpenSearchScrollRequest request = new OpenSearchScrollRequest(
-        new OpenSearchRequest.IndexName("test"), TimeValue.timeValueMinutes(1),
+        INDEX_NAME, ROUTING_ID, TimeValue.timeValueMinutes(1),
         new SearchSourceBuilder(), factory);
     request.setScrollId("scroll123");
     // Enforce cleaning by setting a private field.

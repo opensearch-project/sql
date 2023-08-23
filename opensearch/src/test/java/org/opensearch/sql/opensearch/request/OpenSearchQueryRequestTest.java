@@ -68,15 +68,16 @@ public class OpenSearchQueryRequestTest {
   private OpenSearchExprValueFactory factory;
 
   private final OpenSearchQueryRequest request =
-      new OpenSearchQueryRequest("test", 200, factory);
+      new OpenSearchQueryRequest("test", "key", 200, factory);
 
   private final OpenSearchQueryRequest remoteRequest =
-      new OpenSearchQueryRequest("ccs:test", 200, factory);
+      new OpenSearchQueryRequest("ccs:test", "ccs:key", 200, factory);
 
   @Test
   void search() {
     OpenSearchQueryRequest request = new OpenSearchQueryRequest(
         new OpenSearchRequest.IndexName("test"),
+        new OpenSearchRequest.IndexName("key"),
         sourceBuilder,
         factory
     );
@@ -99,6 +100,7 @@ public class OpenSearchQueryRequestTest {
   void search_withoutContext() {
     OpenSearchQueryRequest request = new OpenSearchQueryRequest(
         new OpenSearchRequest.IndexName("test"),
+        null,
         sourceBuilder,
         factory
     );
@@ -117,11 +119,12 @@ public class OpenSearchQueryRequestTest {
   void search_withIncludes() {
     OpenSearchQueryRequest request = new OpenSearchQueryRequest(
         new OpenSearchRequest.IndexName("test"),
+        new OpenSearchRequest.IndexName("key"),
         sourceBuilder,
         factory
     );
 
-    String[] includes = {"_id", "_index"};
+    String[] includes = {"_id", "_index", "_routing"};
     when(sourceBuilder.fetchSource()).thenReturn(fetchSourceContext);
     when(fetchSourceContext.includes()).thenReturn(includes);
     when(searchAction.apply(any())).thenReturn(searchResponse);
@@ -150,6 +153,7 @@ public class OpenSearchQueryRequestTest {
 
     assertSearchRequest(new SearchRequest()
         .indices("test")
+        .routing("key")
         .source(new SearchSourceBuilder()
           .timeout(DEFAULT_QUERY_TIMEOUT)
           .from(0)
@@ -165,6 +169,7 @@ public class OpenSearchQueryRequestTest {
     assertSearchRequest(
         new SearchRequest()
             .indices("ccs:test")
+            .routing("ccs:key")
             .source(new SearchSourceBuilder()
                 .timeout(DEFAULT_QUERY_TIMEOUT)
                 .from(0)

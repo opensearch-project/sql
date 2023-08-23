@@ -40,7 +40,7 @@ public class SparkStorageEngineTest {
   public void getTable() {
     SparkStorageEngine engine = new SparkStorageEngine(client);
     RuntimeException exception = assertThrows(RuntimeException.class,
-        () -> engine.getTable(new DataSourceSchemaName("spark", "default"), ""));
+        () -> engine.getTable(new DataSourceSchemaName("spark", "default"), "", null));
     assertEquals("Unable to get table from storage engine.", exception.getMessage());
   }
 }

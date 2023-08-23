@@ -13,6 +13,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doAnswer;
 import static org.opensearch.sql.executor.ExecutionEngine.QueryResponse;
 
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import org.json.JSONObject;

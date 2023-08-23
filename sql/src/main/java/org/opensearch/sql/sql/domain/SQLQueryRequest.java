@@ -7,6 +7,7 @@
 package org.opensearch.sql.sql.domain;
 
 import java.util.Collections;
+import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
@@ -64,6 +65,7 @@ public class SQLQueryRequest {
   private boolean sanitize = true;
 
   private String cursor;
+
 
   /**
    * Constructor of SQLQueryRequest that passes request params.

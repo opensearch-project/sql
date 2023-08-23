@@ -74,6 +74,9 @@ class OpenSearchRequestBuilderTest {
   private static final OpenSearchRequest.IndexName indexName
       = new OpenSearchRequest.IndexName("test");
 
+  private static final OpenSearchRequest.IndexName partitionKey
+      = new OpenSearchRequest.IndexName("key");
+
   @Mock
   private OpenSearchExprValueFactory exprValueFactory;
 
@@ -94,13 +97,14 @@ class OpenSearchRequestBuilderTest {
     assertEquals(
         new OpenSearchQueryRequest(
             new OpenSearchRequest.IndexName("test"),
+            new OpenSearchRequest.IndexName("key"),
             new SearchSourceBuilder()
                 .from(offset)
                 .size(limit)
                 .timeout(DEFAULT_QUERY_TIMEOUT)
                 .trackScores(true),
             exprValueFactory),
-        requestBuilder.build(indexName, MAX_RESULT_WINDOW, DEFAULT_QUERY_TIMEOUT));
+        requestBuilder.build(indexName, partitionKey, MAX_RESULT_WINDOW, DEFAULT_QUERY_TIMEOUT));
   }
 
   @Test
@@ -111,13 +115,15 @@ class OpenSearchRequestBuilderTest {
 
     assertEquals(
         new OpenSearchScrollRequest(
-            new OpenSearchRequest.IndexName("test"), TimeValue.timeValueMinutes(1),
+            new OpenSearchRequest.IndexName("test"),
+            new OpenSearchRequest.IndexName("key"),
+            TimeValue.timeValueMinutes(1),
             new SearchSourceBuilder()
                 .from(offset)
                 .size(MAX_RESULT_WINDOW - offset)
                 .timeout(DEFAULT_QUERY_TIMEOUT),
         exprValueFactory),
-        requestBuilder.build(indexName, MAX_RESULT_WINDOW, DEFAULT_QUERY_TIMEOUT));
+        requestBuilder.build(indexName, partitionKey, MAX_RESULT_WINDOW, DEFAULT_QUERY_TIMEOUT));
   }
 
   @Test
@@ -125,7 +131,8 @@ class OpenSearchRequestBuilderTest {
     QueryBuilder query = QueryBuilders.termQuery("intA", 1);
     requestBuilder.pushDownFilter(query);
 
-    var r = requestBuilder.build(indexName, MAX_RESULT_WINDOW, DEFAULT_QUERY_TIMEOUT);
+    var r = requestBuilder.build(
+        indexName, partitionKey, MAX_RESULT_WINDOW, DEFAULT_QUERY_TIMEOUT);
     Function<SearchRequest, SearchResponse> querySearch = searchRequest -> {
       assertEquals(
         new SearchSourceBuilder()
@@ -197,8 +204,8 @@ class OpenSearchRequestBuilderTest {
     Function<SearchScrollRequest, SearchResponse> scrollSearch = searchScrollRequest -> {
       throw new UnsupportedOperationException();
     };
-    requestBuilder.build(indexName, MAX_RESULT_WINDOW, DEFAULT_QUERY_TIMEOUT).search(
-        querySearch, scrollSearch);
+    requestBuilder.build(indexName, partitionKey, MAX_RESULT_WINDOW, DEFAULT_QUERY_TIMEOUT)
+        .search(querySearch, scrollSearch);
   }
 
   @Test
@@ -428,7 +435,8 @@ class OpenSearchRequestBuilderTest {
     requestBuilder.pushDownPageSize(3);
     requestBuilder.pushDownLimit(300, 2);
     assertThrows(UnsupportedOperationException.class,
-        () -> requestBuilder.build(indexName, MAX_RESULT_WINDOW, DEFAULT_QUERY_TIMEOUT));
+        () -> requestBuilder.build(
+            indexName, partitionKey, MAX_RESULT_WINDOW, DEFAULT_QUERY_TIMEOUT));
   }
 
   @Test

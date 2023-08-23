@@ -285,6 +285,9 @@ integTest {
     exclude 'org/opensearch/sql/doctest/**/*IT.class'
     exclude 'org/opensearch/sql/correctness/**'
 
+    // Skip to run these IT tests on a different cluster
+    exclude 'org/opensearch/sql/multiClusterSearch/**'
+
     // Explain IT is dependent on internal implementation of old engine so it's not necessary
     // to run these with new engine and not necessary to make this consistent with old engine.
     exclude 'org/opensearch/sql/legacy/ExplainIT.class'
@@ -480,6 +483,68 @@ task bwcTestSuite(type: StandaloneRestIntegTestTask) {
     dependsOn tasks.named("${baseName}#rollingUpgradeClusterTask")
     dependsOn tasks.named("${baseName}#fullRestartClusterTask")
 }
+
+testClusters {
+    multiClusterSearch {
+        testDistribution = "ARCHIVE"
+        numberOfNodes = 3
+        plugin ":opensearch-sql-plugin"
+    }
+}
+
+task multiClusterSearch(type: RestIntegTestTask) {
+    useCluster testClusters.multiClusterSearch
+
+    testLogging {
+        events "passed", "skipped", "failed"
+    }
+
+    // Set properties for connection to clusters and between clusters
+    doFirst {
+        getClusters().forEach { cluster ->
+            String allTransportSocketURI = cluster.nodes.stream().flatMap { node ->
+                node.getAllTransportPortURI().stream()
+            }.collect(Collectors.joining(","))
+            String allHttpSocketURI = cluster.nodes.stream().flatMap { node ->
+                node.getAllHttpSocketURI().stream()
+            }.collect(Collectors.joining(","))
+
+            systemProperty "tests.rest.${cluster.name}.http_hosts", "${-> allHttpSocketURI}"
+            systemProperty "tests.rest.${cluster.name}.transport_hosts", "${-> allTransportSocketURI}"
+        }
+    }
+
+    dependsOn ':opensearch-sql-plugin:bundlePlugin'
+
+    systemProperty 'tests.security.manager', 'false'
+    systemProperty('project.root', project.projectDir.absolutePath)
+
+    systemProperty "https", System.getProperty("https")
+    systemProperty "user", System.getProperty("user")
+    systemProperty "password", System.getProperty("password")
+
+    // Set default query size limit
+    systemProperty 'defaultQuerySizeLimit', '10000'
+
+    // Tell the test JVM if the cluster JVM is running under a debugger so that tests can use longer timeouts for
+    // requests. The 'doFirst' delays reading the debug setting on the cluster till execution time.
+    doFirst {
+        if (System.getProperty("debug-jvm") != null) {
+            setDebug(true);
+        }
+        systemProperty 'cluster.debug', getDebug()
+    }
+
+
+    if (System.getProperty("test.debug") != null) {
+        jvmArgs '-agentlib:jdwp=transport=dt_socket,server=y,suspend=y,address=*:5006'
+    }
+
+    filter {
+        includeTestsMatching "org.opensearch.sql.multiClusterSearch.*IT"
+    }
+}
+
 
 def opensearch_tmp_dir = rootProject.file('build/private/es_tmp').absoluteFile
 opensearch_tmp_dir.mkdirs()

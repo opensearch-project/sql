@@ -46,6 +46,8 @@ public class OpenSearchIndexScanPaginationTest {
 
   public static final OpenSearchRequest.IndexName INDEX_NAME
       = new OpenSearchRequest.IndexName("test");
+  public static final OpenSearchRequest.IndexName ROUTING_ID
+      = new OpenSearchRequest.IndexName("shard");
   public static final int MAX_RESULT_WINDOW = 3;
   public static final TimeValue SCROLL_TIMEOUT = TimeValue.timeValueMinutes(4);
   @Mock
@@ -71,7 +73,7 @@ public class OpenSearchIndexScanPaginationTest {
     mockResponse(client);
     var builder = new OpenSearchRequestBuilder(QUERY_SIZE, exprValueFactory);
     try (var indexScan = new OpenSearchIndexScan(client, MAX_RESULT_WINDOW,
-          builder.build(INDEX_NAME, MAX_RESULT_WINDOW, SCROLL_TIMEOUT))) {
+          builder.build(INDEX_NAME, ROUTING_ID, MAX_RESULT_WINDOW, SCROLL_TIMEOUT))) {
       indexScan.open();
       assertFalse(indexScan.hasNext());
     }
@@ -90,11 +92,11 @@ public class OpenSearchIndexScanPaginationTest {
     OpenSearchRequestBuilder builder = mock();
     OpenSearchRequest request = mock();
     OpenSearchResponse response = mock();
-    when(builder.build(any(), anyInt(), any())).thenReturn(request);
+    when(builder.build(any(), any(), anyInt(), any())).thenReturn(request);
     when(client.search(any())).thenReturn(response);
     try (var indexScan
         = new OpenSearchIndexScan(client, MAX_RESULT_WINDOW,
-          builder.build(INDEX_NAME, MAX_RESULT_WINDOW, SCROLL_TIMEOUT))) {
+          builder.build(INDEX_NAME, ROUTING_ID, MAX_RESULT_WINDOW, SCROLL_TIMEOUT))) {
       indexScan.open();
 
       when(request.hasAnotherBatch()).thenReturn(false);

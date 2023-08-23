@@ -8,6 +8,7 @@ package org.opensearch.sql.config;
 
 import com.google.common.collect.ImmutableMap;
 import java.util.Map;
+import javax.annotation.Nullable;
 import org.opensearch.sql.DataSourceSchemaName;
 import org.opensearch.sql.analysis.symbol.Namespace;
 import org.opensearch.sql.analysis.symbol.Symbol;
@@ -66,7 +67,9 @@ public class TestConfig {
   protected StorageEngine storageEngine() {
     return new StorageEngine() {
       @Override
-      public Table getTable(DataSourceSchemaName dataSourceSchemaName, String name) {
+      public Table getTable(DataSourceSchemaName dataSourceSchemaName,
+                            String name,
+                            @Nullable String partition) {
         return new Table() {
           @Override
           public boolean exists() {

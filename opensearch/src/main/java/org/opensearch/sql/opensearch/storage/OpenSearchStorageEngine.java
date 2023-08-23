@@ -8,6 +8,7 @@ package org.opensearch.sql.opensearch.storage;
 
 import static org.opensearch.sql.utils.SystemIndexUtils.isSystemIndex;
 
+import javax.annotation.Nullable;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import org.opensearch.sql.DataSourceSchemaName;
@@ -28,11 +29,14 @@ public class OpenSearchStorageEngine implements StorageEngine {
   private final Settings settings;
 
   @Override
-  public Table getTable(DataSourceSchemaName dataSourceSchemaName, String name) {
+  public Table getTable(DataSourceSchemaName dataSourceSchemaName,
+                        String name,
+                        @Nullable String routingId) {
     if (isSystemIndex(name)) {
+      // TODO: handle routingId on system tables too?
       return new OpenSearchSystemIndex(client, name);
     } else {
-      return new OpenSearchIndex(client, settings, name);
+      return new OpenSearchIndex(client, settings, name, routingId);
     }
   }
 }

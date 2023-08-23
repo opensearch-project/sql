@@ -64,8 +64,9 @@ jobs:
         ./gradlew :core:jacocoTestCoverageVerification                   || echo "* Jacoco failed for core" >> report.log
         ./gradlew :protocol:jacocoTestCoverageVerification               || echo "* Jacoco failed for protocol" >> report.log
         ./gradlew :opensearch-sql-plugin:jacocoTestCoverageVerification  || echo "* Jacoco failed for plugin" >> report.log
-        # Misc tests
+        # Misc/Additional Integration tests
         ./gradlew :integ-test:integTest                   || echo "* Integration test failed" >> report.log
+        ./gradlew :integ-test:multiClusterSearch          || echo "* Multi-Cluster Search tests failed" >> report.log
         ./gradlew :doctest:doctest                        || echo "* Doctest failed" >> report.log
         ./scripts/bwctest.sh                              || echo "* Backward compatibility test failed" >> report.log
 

@@ -20,6 +20,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+import javax.annotation.Nullable;
 import org.apache.commons.lang3.tuple.Pair;
 import org.opensearch.sql.DataSourceSchemaName;
 import org.opensearch.sql.analysis.symbol.Namespace;
@@ -55,7 +56,7 @@ public class AnalyzerTestBase {
   }
 
   protected StorageEngine storageEngine() {
-    return (dataSourceSchemaName, tableName) -> table;
+    return (dataSourceSchemaName, tableName, partition) -> table;
   }
 
   protected StorageEngine prometheusStorageEngine() {
@@ -85,7 +86,9 @@ public class AnalyzerTestBase {
       }
 
       @Override
-      public Table getTable(DataSourceSchemaName dataSourceSchemaName, String tableName) {
+      public Table getTable(DataSourceSchemaName dataSourceSchemaName,
+                            String tableName,
+                            @Nullable String partition) {
         return table;
       }
     };

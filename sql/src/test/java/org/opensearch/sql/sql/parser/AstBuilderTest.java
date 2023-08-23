@@ -33,6 +33,7 @@ import static org.opensearch.sql.utils.SystemIndexUtils.mappingTable;
 
 import com.google.common.collect.ImmutableList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
 import org.opensearch.sql.ast.dsl.AstDSL;
@@ -121,6 +122,39 @@ class AstBuilderTest extends AstBuilderTestBase {
             alias("age", qualifiedName("age"))
         ),
         buildAST("SELECT age FROM test")
+    );
+  }
+
+  @Test
+  public void can_build_select_fields_from_index_with_partition() {
+    assertEquals(
+        project(
+            relation("test", null, List.of("key")),
+            alias("age", qualifiedName("age"))
+        ),
+        buildAST("SELECT age FROM test PARTITION(key)")
+    );
+  }
+
+  @Test
+  public void can_build_select_fields_from_index_with_multiple_partitions() {
+    assertEquals(
+        project(
+            relation("test", null, List.of("key1", "key2", "key3")),
+            alias("age", qualifiedName("age"))
+        ),
+        buildAST("SELECT age FROM test PARTITION(key1, key2, key3)")
+    );
+  }
+
+  @Test
+  public void can_build_select_fields_from_index_with_quoted_partitions() {
+    assertEquals(
+        project(
+            relation("test", null, List.of("'key1'", "\"key2\"", "`key3`")),
+            alias("age", qualifiedName("age"))
+        ),
+        buildAST("SELECT age FROM test PARTITION('key1', \"key2\", `key3`)")
     );
   }
 

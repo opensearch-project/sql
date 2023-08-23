@@ -52,6 +52,12 @@ public class OpenSearchScrollRequest implements OpenSearchRequest {
    */
   private final IndexName indexName;
 
+  /**
+   * Routing Ids used for the request
+   * {@link OpenSearchRequest.IndexName}.
+   */
+  private final IndexName routingId;
+
   /** Index name. */
   @EqualsAndHashCode.Exclude
   @ToString.Exclude
@@ -75,16 +81,21 @@ public class OpenSearchScrollRequest implements OpenSearchRequest {
 
   /** Constructor. */
   public OpenSearchScrollRequest(IndexName indexName,
+                                 IndexName routingId,
                                  TimeValue scrollTimeout,
                                  SearchSourceBuilder sourceBuilder,
                                  OpenSearchExprValueFactory exprValueFactory) {
     this.indexName = indexName;
+    this.routingId = routingId;
     this.scrollTimeout = scrollTimeout;
     this.exprValueFactory = exprValueFactory;
     this.initialSearchRequest = new SearchRequest()
         .indices(indexName.getIndexNames())
         .scroll(scrollTimeout)
         .source(sourceBuilder);
+    if (routingId != null) {
+      this.initialSearchRequest.routing(routingId.getIndexNames());
+    }
 
     includes = sourceBuilder.fetchSource() == null
         ? List.of()
@@ -168,6 +179,9 @@ public class OpenSearchScrollRequest implements OpenSearchRequest {
     out.writeString(scrollId);
     out.writeStringCollection(includes);
     indexName.writeTo(out);
+    if (routingId != null) {
+      routingId.writeTo(out);
+    }
   }
 
   /**
@@ -183,7 +197,11 @@ public class OpenSearchScrollRequest implements OpenSearchRequest {
     scrollId = in.readString();
     includes = in.readStringList();
     indexName = new IndexName(in);
-    OpenSearchIndex index = (OpenSearchIndex) engine.getTable(null, indexName.toString());
+    routingId = new IndexName(in);
+    OpenSearchIndex index = (OpenSearchIndex) engine.getTable(
+        null,
+        indexName.toString(),
+        routingId.toString());
     exprValueFactory = new OpenSearchExprValueFactory(index.getFieldOpenSearchTypes());
   }
 }

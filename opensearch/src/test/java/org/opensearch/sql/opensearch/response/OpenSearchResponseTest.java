@@ -15,8 +15,6 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableMap;
@@ -30,17 +28,17 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.opensearch.action.search.SearchResponse;
+import org.opensearch.common.document.DocumentField;
 import org.opensearch.core.common.bytes.BytesArray;
 import org.opensearch.core.common.text.Text;
-import org.opensearch.core.index.shard.ShardId;
 import org.opensearch.search.SearchHit;
 import org.opensearch.search.SearchHits;
-import org.opensearch.search.SearchShardTarget;
 import org.opensearch.search.aggregations.Aggregations;
 import org.opensearch.search.fetch.subphase.highlight.HighlightField;
 import org.opensearch.sql.data.model.ExprFloatValue;
 import org.opensearch.sql.data.model.ExprIntegerValue;
 import org.opensearch.sql.data.model.ExprLongValue;
+import org.opensearch.sql.data.model.ExprNullValue;
 import org.opensearch.sql.data.model.ExprStringValue;
 import org.opensearch.sql.data.model.ExprTupleValue;
 import org.opensearch.sql.data.model.ExprValue;
@@ -150,13 +148,12 @@ class OpenSearchResponseTest {
                 new TotalHits(1L, TotalHits.Relation.EQUAL_TO),
                 3.75F));
 
-    ShardId shardId = new ShardId("index", "indexUUID", 42);
-    SearchShardTarget shardTarget = new SearchShardTarget("node", shardId, null, null);
+    DocumentField routingField = new DocumentField("_routing", List.of("testShard"));
 
     when(searchHit1.getSourceAsString()).thenReturn("{\"id1\", 1}");
     when(searchHit1.getId()).thenReturn("testId");
     when(searchHit1.getIndex()).thenReturn("testIndex");
-    when(searchHit1.getShard()).thenReturn(shardTarget);
+    when(searchHit1.getFields()).thenReturn(Map.of("_routing", routingField));
     when(searchHit1.getScore()).thenReturn(3.75F);
     when(searchHit1.getSeqNo()).thenReturn(123456L);
 
@@ -166,7 +163,7 @@ class OpenSearchResponseTest {
         "id1", new ExprIntegerValue(1),
         "_index", new ExprStringValue("testIndex"),
         "_id", new ExprStringValue("testId"),
-        "_routing", new ExprStringValue(shardTarget.toString()),
+        "_routing", new ExprStringValue("testShard"),
         "_sort", new ExprLongValue(123456L),
         "_score", new ExprFloatValue(3.75F),
         "_maxscore", new ExprFloatValue(3.75F)
@@ -217,7 +214,7 @@ class OpenSearchResponseTest {
   }
 
   @Test
-  void iterator_metafields_scoreNaN() {
+  void iterator_metafields_nullNaN() {
 
     ExprTupleValue exprTupleHit = ExprTupleValue.fromExprValueMap(ImmutableMap.of(
         "id1", new ExprIntegerValue(1)
@@ -238,7 +235,7 @@ class OpenSearchResponseTest {
 
     when(factory.construct(any(), anyBoolean())).thenReturn(exprTupleHit);
 
-    List includes = List.of("id1", "_index", "_id", "_sort", "_score", "_maxscore");
+    List includes = List.of("id1", "_index", "_id", "_routing", "_sort", "_score", "_maxscore");
     ExprTupleValue exprTupleResponse = ExprTupleValue.fromExprValueMap(ImmutableMap.of(
         "id1", new ExprIntegerValue(1),
         "_index", new ExprStringValue("testIndex"),

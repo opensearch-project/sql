@@ -7,6 +7,7 @@ package org.opensearch.sql.spark.storage;
 
 import java.util.Collection;
 import java.util.Collections;
+import javax.annotation.Nullable;
 import lombok.RequiredArgsConstructor;
 import org.opensearch.sql.DataSourceSchemaName;
 import org.opensearch.sql.expression.function.FunctionResolver;
@@ -29,7 +30,9 @@ public class SparkStorageEngine implements StorageEngine {
   }
 
   @Override
-  public Table getTable(DataSourceSchemaName dataSourceSchemaName, String tableName) {
+  public Table getTable(DataSourceSchemaName dataSourceSchemaName,
+                        String tableName,
+                        @Nullable String ignored) {
     throw new RuntimeException("Unable to get table from storage engine.");
   }
 }

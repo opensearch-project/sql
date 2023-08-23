@@ -13,6 +13,7 @@ import static org.opensearch.sql.utils.SystemIndexUtils.isSystemIndex;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import javax.annotation.Nullable;
 import lombok.RequiredArgsConstructor;
 import org.opensearch.sql.DataSourceSchemaName;
 import org.opensearch.sql.exception.SemanticCheckException;
@@ -43,7 +44,9 @@ public class PrometheusStorageEngine implements StorageEngine {
   }
 
   @Override
-  public Table getTable(DataSourceSchemaName dataSourceSchemaName, String tableName) {
+  public Table getTable(DataSourceSchemaName dataSourceSchemaName,
+                        String tableName,
+                        @Nullable String ignored) {
     if (isSystemIndex(tableName)) {
       return new PrometheusSystemTable(prometheusClient, dataSourceSchemaName, tableName);
     } else if (INFORMATION_SCHEMA_NAME.equals(dataSourceSchemaName.getSchemaName())) {

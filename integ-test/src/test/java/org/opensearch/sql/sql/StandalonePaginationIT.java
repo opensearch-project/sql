@@ -112,7 +112,7 @@ public class StandalonePaginationIT extends SQLIntegTestCase {
     }
 
     // act 1, asserts in firstResponder
-    var t = new OpenSearchIndex(client, defaultSettings(), "test");
+    var t = new OpenSearchIndex(client, defaultSettings(), "test", "routingId");
     LogicalPlan p = new LogicalPaginate(1, List.of(
         new LogicalProject(
           new LogicalRelation("test", t), List.of(

@@ -58,7 +58,7 @@ public class PlannerTest extends PhysicalPlanTestBase {
 
   @BeforeEach
   public void setUp() {
-    when(storageEngine.getTable(any(), any())).thenReturn(new MockTable());
+    when(storageEngine.getTable(any(), any(), any())).thenReturn(new MockTable());
   }
 
   @Test
@@ -82,7 +82,7 @@ public class PlannerTest extends PhysicalPlanTestBase {
                     LogicalPlanDSL.relation("schema",
                         storageEngine.getTable(
                             new DataSourceSchemaName(DEFAULT_DATASOURCE_NAME, "default"),
-                        "schema")),
+                        "schema", "partition")),
                     DSL.equal(DSL.ref("response", INTEGER), DSL.literal(10))
                 ),
                 ImmutableList.of(DSL.named("avg(response)", DSL.avg(DSL.ref("response", INTEGER)))),

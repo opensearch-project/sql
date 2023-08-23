@@ -90,6 +90,10 @@ public class AstDSL {
     return new Relation(qualifiedName(tableName), alias);
   }
 
+  public UnresolvedPlan relation(String tableName, String alias, List<String> partitionKeys) {
+    return new Relation(qualifiedName(tableName), alias, partitionKeys);
+  }
+
   public UnresolvedPlan tableFunction(List<String> functionName, UnresolvedExpression... args) {
     return new TableFunction(new QualifiedName(functionName), Arrays.asList(args));
   }

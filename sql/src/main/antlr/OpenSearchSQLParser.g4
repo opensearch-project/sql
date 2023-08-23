@@ -115,8 +115,12 @@ fromClause
     ;
 
 relation
-    : tableName (AS? alias)?                                                #tableAsRelation
+    : tableName (AS? alias)? (partitionRelationClause)?                     #tableAsRelation
     | LR_BRACKET subquery=querySpecification RR_BRACKET AS? alias           #subqueryAsRelation
+    ;
+
+partitionRelationClause
+    : PARTITION LR_BRACKET functionArgs RR_BRACKET
     ;
 
 whereClause

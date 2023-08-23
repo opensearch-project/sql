@@ -4,7 +4,7 @@
  */
 
 
-package org.opensearch.sql.ppl;
+package org.opensearch.sql.multiClusterSearch;
 
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_ACCOUNT;
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_BANK;
@@ -20,20 +20,21 @@ import org.junit.Rule;
 import org.junit.jupiter.api.Test;
 import org.junit.rules.ExpectedException;
 import org.opensearch.client.ResponseException;
+import org.opensearch.sql.ppl.PPLIntegTestCase;
 
 public class CrossClusterSearchIT extends PPLIntegTestCase {
 
   @Rule
   public ExpectedException exceptionRule = ExpectedException.none();
 
-  private final static String TEST_INDEX_BANK_REMOTE = REMOTE_CLUSTER + ":" + TEST_INDEX_BANK;
-  private final static String TEST_INDEX_DOG_REMOTE = REMOTE_CLUSTER + ":" + TEST_INDEX_DOG;
+  private final static String TEST_INDEX_BANK_REMOTE = MULTI_REMOTE_CLUSTER + ":" + TEST_INDEX_BANK;
+  private final static String TEST_INDEX_DOG_REMOTE = MULTI_REMOTE_CLUSTER + ":" + TEST_INDEX_DOG;
   private final static String TEST_INDEX_DOG_MATCH_ALL_REMOTE = MATCH_ALL_REMOTE_CLUSTER + ":" + TEST_INDEX_DOG;
-  private final static String TEST_INDEX_ACCOUNT_REMOTE = REMOTE_CLUSTER + ":" + TEST_INDEX_ACCOUNT;
+  private final static String TEST_INDEX_ACCOUNT_REMOTE = MULTI_REMOTE_CLUSTER + ":" + TEST_INDEX_ACCOUNT;
 
   @Override
   public void init() throws IOException {
-    configureMultiClusters(REMOTE_CLUSTER);
+    configureMultiClusters(MULTI_REMOTE_CLUSTER);
     loadIndex(Index.BANK);
     loadIndex(Index.BANK, remoteClient());
     loadIndex(Index.DOG);

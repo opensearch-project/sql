@@ -363,6 +363,17 @@ SQL query::
 	{
 	  "query" : "SELECT account_number FROM accounts/account"
 	}
+Example 4: Selecting From Index using Partition Shard
+-----------------------------------------------------------
+
+You can also specify a specific shard or partition to target using a routing hash key in ``PARTITION``.  You can target multiple shards by providing a list separated by commas.
+
+SQL query::
+
+	POST /_plugins/_sql
+	{
+	  "query" : "SELECT account_number FROM account PARTITION(shard1, shard2)"
+	}
 
 WHERE
 =====

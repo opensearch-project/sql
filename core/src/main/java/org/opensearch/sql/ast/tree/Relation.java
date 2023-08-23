@@ -35,14 +35,32 @@ public class Relation extends UnresolvedPlan {
   }
 
   public Relation(UnresolvedExpression tableName, String alias) {
+    this(tableName, alias, null);
+  }
+
+  /**
+   * Constructor with Partition Keys for the relation.
+   *
+   * @param tableName - name of the name relation
+   * @param alias - alias name for the relation
+   * @param partitionKeys - partition or routing keys for the relation shard
+   */
+  public Relation(UnresolvedExpression tableName, String alias, List<String> partitionKeys) {
     this.tableName = Arrays.asList(tableName);
     this.alias = alias;
+    this.partitionKeys = partitionKeys;
   }
 
   /**
    * Optional alias name for the relation.
    */
   private String alias;
+
+
+  /**
+   * Optional partition key(s) for the relation.
+   */
+  private List<String> partitionKeys;
 
   /**
    * Return table name.
@@ -86,6 +104,16 @@ public class Relation extends UnresolvedPlan {
           .map(UnresolvedExpression::toString)
           .collect(Collectors.joining(COMMA)));
     }
+  }
+
+  /**
+   * Retrieve the partition keys associated with the table/relation.
+   *
+   * @return TablePartitionKeys | null
+   */
+  public String getTablePartitionKeys() {
+    return partitionKeys == null
+        ? null : String.join(COMMA, partitionKeys);
   }
 
   @Override

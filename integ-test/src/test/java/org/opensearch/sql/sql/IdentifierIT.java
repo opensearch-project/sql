@@ -103,9 +103,14 @@ public class IdentifierIT extends SQLIntegTestCase {
 
   @Test
   public void testMetafieldIdentifierRoutingSelectTest() throws IOException {
-    // create an index, but the contents doesn't really matter
+    // create an index with routing required
     String index = "test.routing_select";
-    String mapping = "{\"_routing\": {\"required\": true }}";
+
+    final String mapping = "{ " +
+        "\"mappings\" : {" +
+        "  \"_routing\": { \"required\": true }," +
+        "  \"properties\" : { " +
+        "    \"age\" : { \"type\" : \"long\" } } } }";
     new Index(index, mapping)
         .addDocWithShardId("{\"age\": 31}", "test0", "test0")
         .addDocWithShardId("{\"age\": 31}", "test1", "test1")
@@ -135,7 +140,7 @@ public class IdentifierIT extends SQLIntegTestCase {
     for (int i = 0; i < 6; i++) {
       assertEquals("test" + i, datarows.getJSONArray(i).getString(1));
       assertEquals(index, datarows.getJSONArray(i).getString(2));
-      assertTrue(datarows.getJSONArray(i).getString(3).contains("[" + index + "]"));
+      assertEquals("test" + i, datarows.getJSONArray(i).getString(3));
     }
   }
 
@@ -143,7 +148,11 @@ public class IdentifierIT extends SQLIntegTestCase {
   public void testMetafieldIdentifierRoutingFilterTest() throws IOException {
     // create an index, but the contents doesn't really matter
     String index = "test.routing_filter";
-    String mapping = "{\"_routing\": {\"required\": true }}";
+    final String mapping = "{ " +
+        "\"mappings\" : {" +
+        "  \"_routing\": { \"required\": true }," +
+        "  \"properties\" : { " +
+        "    \"age\" : { \"type\" : \"long\" } } } }";
     new Index(index, mapping)
         .addDocWithShardId("{\"age\": 31}", "test1", "test1")
         .addDocWithShardId("{\"age\": 32}", "test2", "test2")
@@ -170,9 +179,7 @@ public class IdentifierIT extends SQLIntegTestCase {
     assertEquals(1, datarows.length());
 
     assertEquals("test4", datarows.getJSONArray(0).getString(0));
-    // note that _routing in the SELECT clause returns the shard, not the routing hash id
-    assertTrue(datarows.getJSONArray(0).getString(2).contains("[" + index + "]"));
-
+    assertEquals("test4", datarows.getJSONArray(0).getString(2));
   }
 
   @Test
@@ -233,7 +240,7 @@ public class IdentifierIT extends SQLIntegTestCase {
 
       Request createIndex = new Request("PUT", "/" + indexName);
       createIndex.setJsonEntity(mapping);
-      executeRequest(new Request("PUT", "/" + indexName));
+      executeRequest(createIndex);
     }
 
     void addDoc(String doc) {

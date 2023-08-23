@@ -58,34 +58,47 @@ public class OpenSearchQueryRequest implements OpenSearchRequest {
   private boolean searchDone = false;
 
   /**
+   * Sharding or Routing ID for the OpenSearch request.
+   */
+  private final IndexName routingId;
+
+  /**
    * Constructor of OpenSearchQueryRequest.
    */
-  public OpenSearchQueryRequest(String indexName, int size,
+  public OpenSearchQueryRequest(String indexName,
+                                String routingId,
+                                int size,
                                 OpenSearchExprValueFactory factory) {
-    this(new IndexName(indexName), size, factory);
+    this(new IndexName(indexName), new IndexName(routingId), size, factory);
   }
 
   /**
    * Constructor of OpenSearchQueryRequest.
    */
-  public OpenSearchQueryRequest(IndexName indexName, int size,
-      OpenSearchExprValueFactory factory) {
+  public OpenSearchQueryRequest(IndexName indexName,
+                                IndexName routingId,
+                                int size,
+                                OpenSearchExprValueFactory factory) {
     this.indexName = indexName;
     this.sourceBuilder = new SearchSourceBuilder();
     sourceBuilder.from(0);
     sourceBuilder.size(size);
     sourceBuilder.timeout(DEFAULT_QUERY_TIMEOUT);
     this.exprValueFactory = factory;
+    this.routingId = routingId;
   }
 
   /**
    * Constructor of OpenSearchQueryRequest.
    */
-  public OpenSearchQueryRequest(IndexName indexName, SearchSourceBuilder sourceBuilder,
+  public OpenSearchQueryRequest(IndexName indexName,
+                                IndexName routingId,
+                                SearchSourceBuilder sourceBuilder,
                                 OpenSearchExprValueFactory factory) {
     this.indexName = indexName;
     this.sourceBuilder = sourceBuilder;
     this.exprValueFactory = factory;
+    this.routingId = routingId;
   }
 
   @Override
@@ -99,10 +112,14 @@ public class OpenSearchQueryRequest implements OpenSearchRequest {
       return new OpenSearchResponse(SearchHits.empty(), exprValueFactory, includes);
     } else {
       searchDone = true;
+      SearchRequest searchRequest = new SearchRequest()
+          .indices(indexName.getIndexNames())
+          .source(sourceBuilder);
+      if (getRoutingId() != null) {
+        searchRequest.routing(getRoutingId().getIndexNames());
+      }
       return new OpenSearchResponse(
-          searchAction.apply(new SearchRequest()
-            .indices(indexName.getIndexNames())
-            .source(sourceBuilder)), exprValueFactory, includes);
+          searchAction.apply(searchRequest), exprValueFactory, includes);
     }
   }
 
