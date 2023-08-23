@@ -26,24 +26,12 @@ import static org.opensearch.sql.opensearch.config.TestConfig.STRING_TYPE_NULL_V
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import java.util.List;
-import java.util.function.Function;
 import org.opensearch.sql.data.model.ExprValue;
-import org.opensearch.sql.data.type.ExprType;
-import org.opensearch.sql.expression.DSL;
 import org.opensearch.sql.expression.Expression;
-import org.opensearch.sql.expression.FunctionExpression;
 import org.opensearch.sql.expression.ReferenceExpression;
 import org.opensearch.sql.expression.env.Environment;
-import org.opensearch.sql.expression.function.BuiltinFunctionName;
-import org.opensearch.sql.expression.function.FunctionProperties;
 
 public class ExpressionTestBase {
-
-  protected FunctionProperties functionProperties = new FunctionProperties();
-
-  protected Environment<Expression, ExprType> typeEnv;
-
   protected static Environment<Expression, ExprValue> valueEnv() {
     return var -> {
       if (var instanceof ReferenceExpression) {
@@ -81,27 +69,5 @@ public class ExpressionTestBase {
         throw new IllegalArgumentException("var must be ReferenceExpression");
       }
     };
-  }
-
-  protected Environment<Expression, ExprType> typeEnv() {
-    return typeEnv;
-  }
-
-  protected Function<List<Expression>, FunctionExpression> functionMapping(
-      BuiltinFunctionName builtinFunctionName) {
-    switch (builtinFunctionName) {
-      case ADD:
-        return (expressions) -> DSL.add(expressions.get(0), expressions.get(1));
-      case SUBTRACT:
-        return (expressions) -> DSL.subtract(expressions.get(0), expressions.get(1));
-      case MULTIPLY:
-        return (expressions) -> DSL.multiply(expressions.get(0), expressions.get(1));
-      case DIVIDE:
-        return (expressions) -> DSL.divide(expressions.get(0), expressions.get(1));
-      case MODULUS:
-        return (expressions) -> DSL.modulus(expressions.get(0), expressions.get(1));
-      default:
-        throw new RuntimeException();
-    }
   }
 }

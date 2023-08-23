@@ -12,9 +12,7 @@ import org.opensearch.sql.expression.Expression;
 import org.opensearch.sql.expression.FunctionExpression;
 import org.opensearch.sql.expression.env.Environment;
 
-/**
- * Nested Function Resolver returns a builder to resolve nested function expressions
- */
+/** Nested Function Resolver returns a builder to resolve nested function expressions */
 public class NestedFunctionResolver implements FunctionResolver {
   @Override
   public Pair<FunctionSignature, FunctionBuilder> resolve(FunctionSignature unresolvedSignature) {
