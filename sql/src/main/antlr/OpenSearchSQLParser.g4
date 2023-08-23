@@ -79,13 +79,13 @@ tableFilter
    ;
 
 showDescribePattern
-    : oldID=compatibleID | stringLiteral
-    ;
+   : oldID=compatibleID | stringLiteral
+   ;
 
 compatibleID
-    : (MODULE | ID)+?
-    ;
+   : (MODULE | ID)+?
    ;
+
 
 // Select Statement's Details
 querySpecification
