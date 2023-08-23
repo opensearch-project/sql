@@ -125,9 +125,4 @@ class DefaultFunctionResolverTest {
             ExpressionEvaluationException.class, () -> resolver.resolve(functionSignature));
     assertEquals("concat function expected 1-9 arguments, but got 10", exception.getMessage());
   }
-
-  @Test
-  void resolve_nested_function() {
-    functionName = FunctionName.of("nested");
-  }
 }

@@ -18,10 +18,18 @@ import org.opensearch.sql.expression.FunctionExpression;
 import org.opensearch.sql.expression.NamedArgumentExpression;
 import org.opensearch.sql.expression.env.Environment;
 
+/**
+ * OpenSearch functions are FunctionExpression objects used by the core analyzer
+ * TODO: move to the OpenSearch module as part of the analyzer and optimizer refactor
+ */
 public class OpenSearchFunction extends FunctionExpression {
   private final FunctionName functionName;
   private final List<Expression> arguments;
 
+  /**
+   * Determines if SCORE needs to be tracked on the function for relevance-based search
+   * used by the planner for the OpenSearch request.
+   */
   @Getter @Setter private boolean isScoreTracked;
 
   /**
