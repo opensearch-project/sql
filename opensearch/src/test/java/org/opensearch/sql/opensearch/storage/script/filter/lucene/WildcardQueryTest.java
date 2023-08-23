@@ -37,14 +37,11 @@ class WildcardQueryTest {
   static Stream<List<Expression>> generateValidData() {
     return Stream.of(
         List.of(
-            namedArgument("field",
-                new ReferenceExpression("title", OpenSearchTextType.of())),
+            namedArgument("field", new ReferenceExpression("title", OpenSearchTextType.of())),
             OpenSearchDSL.namedArgument("query", "query_value*"),
             OpenSearchDSL.namedArgument("boost", "0.7"),
             OpenSearchDSL.namedArgument("case_insensitive", "false"),
-            OpenSearchDSL.namedArgument("rewrite", "constant_score_boolean")
-        )
-    );
+            OpenSearchDSL.namedArgument("rewrite", "constant_score_boolean")));
   }
 
   @ParameterizedTest
@@ -72,12 +69,13 @@ class WildcardQueryTest {
 
   @Test
   public void test_SemanticCheckException_when_invalid_parameter() {
-    List<Expression> arguments = List.of(
-        namedArgument("field",
-            new ReferenceExpression("title", OpenSearchTextType.of())),
-        OpenSearchDSL.namedArgument("query", "query_value*"),
-        OpenSearchDSL.namedArgument("unsupported", "unsupported_value"));
-    Assertions.assertThrows(SemanticCheckException.class,
+    List<Expression> arguments =
+        List.of(
+            namedArgument("field", new ReferenceExpression("title", OpenSearchTextType.of())),
+            OpenSearchDSL.namedArgument("query", "query_value*"),
+            OpenSearchDSL.namedArgument("unsupported", "unsupported_value"));
+    Assertions.assertThrows(
+        SemanticCheckException.class,
         () -> wildcardQueryQuery.build(new WildcardQueryExpression(arguments)));
   }
 

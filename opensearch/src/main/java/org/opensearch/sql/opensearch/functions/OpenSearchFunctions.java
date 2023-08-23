@@ -5,6 +5,8 @@
 
 package org.opensearch.sql.opensearch.functions;
 
+import java.util.Collection;
+import java.util.List;
 import lombok.experimental.UtilityClass;
 import org.apache.commons.lang3.tuple.Pair;
 import org.opensearch.sql.data.model.ExprValue;
@@ -17,9 +19,6 @@ import org.opensearch.sql.expression.function.FunctionBuilder;
 import org.opensearch.sql.expression.function.FunctionName;
 import org.opensearch.sql.expression.function.FunctionResolver;
 import org.opensearch.sql.expression.function.FunctionSignature;
-
-import java.util.Collection;
-import java.util.List;
 
 @UtilityClass
 public class OpenSearchFunctions {
@@ -47,8 +46,7 @@ public class OpenSearchFunctions {
         score(BuiltinFunctionName.SCORE),
         score(BuiltinFunctionName.SCOREQUERY),
         score(BuiltinFunctionName.SCORE_QUERY),
-        nested()
-        );
+        nested());
   }
 
   private static FunctionResolver match_bool_prefix() {
@@ -100,19 +98,20 @@ public class OpenSearchFunctions {
       @Override
       public Pair<FunctionSignature, FunctionBuilder> resolve(
           FunctionSignature unresolvedSignature) {
-        return Pair.of(unresolvedSignature,
+        return Pair.of(
+            unresolvedSignature,
             (functionProperties, arguments) ->
-            new FunctionExpression(BuiltinFunctionName.NESTED.getName(), arguments) {
-              @Override
-              public ExprValue valueOf(Environment<Expression, ExprValue> valueEnv) {
-                return valueEnv.resolve(getArguments().get(0));
-              }
+                new FunctionExpression(BuiltinFunctionName.NESTED.getName(), arguments) {
+                  @Override
+                  public ExprValue valueOf(Environment<Expression, ExprValue> valueEnv) {
+                    return valueEnv.resolve(getArguments().get(0));
+                  }
 
-              @Override
-              public ExprType type() {
-                return getArguments().get(0).type();
-              }
-            });
+                  @Override
+                  public ExprType type() {
+                    return getArguments().get(0).type();
+                  }
+                });
       }
 
       @Override

@@ -20,7 +20,6 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.opensearch.sql.ast.expression.Function;
 import org.opensearch.sql.data.type.WideningTypeRule;
 import org.opensearch.sql.exception.ExpressionEvaluationException;
 
@@ -130,6 +129,5 @@ class DefaultFunctionResolverTest {
   @Test
   void resolve_nested_function() {
     functionName = FunctionName.of("nested");
-
   }
 }

@@ -18,11 +18,11 @@ import org.opensearch.sql.data.model.ExprTupleValue;
 import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.data.model.ExprValueUtils;
 import org.opensearch.sql.expression.Expression;
-import org.opensearch.sql.expression.function.BuiltinFunctionName;
-import org.opensearch.sql.opensearch.expression.ExpressionTestBase;
 import org.opensearch.sql.expression.FunctionExpression;
 import org.opensearch.sql.expression.NamedArgumentExpression;
 import org.opensearch.sql.expression.env.Environment;
+import org.opensearch.sql.expression.function.BuiltinFunctionName;
+import org.opensearch.sql.opensearch.expression.ExpressionTestBase;
 import org.opensearch.sql.opensearch.expression.OpenSearchDSL;
 
 public class OpenSearchFunctionsTest extends ExpressionTestBase {
@@ -82,7 +82,9 @@ public class OpenSearchFunctionsTest extends ExpressionTestBase {
     expr = OpenSearchDSL.match(field, query, analyzer, autoGenerateSynonymsPhrase, fuzziness);
     assertEquals(BOOLEAN, expr.type());
 
-    expr = OpenSearchDSL.match(field, query, analyzer, autoGenerateSynonymsPhrase, fuzziness, maxExpansions);
+    expr =
+        OpenSearchDSL.match(
+            field, query, analyzer, autoGenerateSynonymsPhrase, fuzziness, maxExpansions);
     assertEquals(BOOLEAN, expr.type());
 
     expr =

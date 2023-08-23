@@ -42,7 +42,6 @@ import static org.opensearch.sql.data.type.ExprCoreType.LONG;
 import static org.opensearch.sql.data.type.ExprCoreType.STRING;
 import static org.opensearch.sql.data.type.ExprCoreType.TIMESTAMP;
 import static org.opensearch.sql.datasource.model.EmptyDataSourceService.getEmptyDataSourceService;
-import static org.opensearch.sql.expression.DSL.literal;
 import static org.opensearch.sql.utils.MLCommonsConstants.ACTION;
 import static org.opensearch.sql.utils.MLCommonsConstants.ALGO;
 import static org.opensearch.sql.utils.MLCommonsConstants.ASYNC;
@@ -67,7 +66,6 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-
 import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.apache.commons.lang3.tuple.Pair;
 import org.junit.jupiter.api.Disabled;
@@ -78,7 +76,6 @@ import org.opensearch.sql.ast.expression.DataType;
 import org.opensearch.sql.ast.expression.HighlightFunction;
 import org.opensearch.sql.ast.expression.Literal;
 import org.opensearch.sql.ast.expression.ParseMethod;
-import org.opensearch.sql.ast.expression.ScoreFunction;
 import org.opensearch.sql.ast.expression.SpanUnit;
 import org.opensearch.sql.ast.tree.AD;
 import org.opensearch.sql.ast.tree.CloseCursor;
@@ -106,12 +103,10 @@ import org.opensearch.sql.expression.function.BuiltinFunctionRepository;
 import org.opensearch.sql.expression.function.FunctionImplementation;
 import org.opensearch.sql.expression.function.FunctionName;
 import org.opensearch.sql.expression.function.FunctionProperties;
-import org.opensearch.sql.expression.function.OpenSearchFunction;
 import org.opensearch.sql.expression.window.WindowDefinition;
 import org.opensearch.sql.planner.logical.LogicalAD;
 import org.opensearch.sql.planner.logical.LogicalCloseCursor;
 import org.opensearch.sql.planner.logical.LogicalFetchCursor;
-import org.opensearch.sql.planner.logical.LogicalFilter;
 import org.opensearch.sql.planner.logical.LogicalMLCommons;
 import org.opensearch.sql.planner.logical.LogicalPaginate;
 import org.opensearch.sql.planner.logical.LogicalPlan;
@@ -442,13 +437,14 @@ class AnalyzerTest extends AnalyzerTestBase {
             new NamedExpression(
                 "nested(message.info)", DSL.nested(DSL.ref("message.info", STRING)), null));
 
-    UnresolvedPlan unresolvedPlan = AstDSL.projectWithArg(
-        AstDSL.relation("schema"),
-        AstDSL.defaultFieldsArgs(),
-        AstDSL.alias(
-            "nested(message.info)",
-            function("nested", qualifiedName("message", "info")),
-            null));
+    UnresolvedPlan unresolvedPlan =
+        AstDSL.projectWithArg(
+            AstDSL.relation("schema"),
+            AstDSL.defaultFieldsArgs(),
+            AstDSL.alias(
+                "nested(message.info)",
+                function("nested", qualifiedName("message", "info")),
+                null));
 
     assertAnalyzeEqual(
         LogicalPlanDSL.project(
@@ -465,7 +461,10 @@ class AnalyzerTest extends AnalyzerTestBase {
   void nested_query() {
     FunctionImplementation result =
         BuiltinFunctionRepository.getInstance(dataSourceService)
-            .compile(new FunctionProperties(), FunctionName.of("nested"), List.of(DSL.ref("message.info", STRING)));
+            .compile(
+                new FunctionProperties(),
+                FunctionName.of("nested"),
+                List.of(DSL.ref("message.info", STRING)));
     FunctionExpression expr = (FunctionExpression) result;
     assertEquals(
         String.format(
@@ -1016,7 +1015,7 @@ class AnalyzerTest extends AnalyzerTestBase {
   }
 
   /**
-   * Ensure  Nested function falls back to legacy engine when used in GROUP BY clause. TODO Remove
+   * Ensure Nested function falls back to legacy engine when used in GROUP BY clause. TODO Remove
    * this test when support is added.
    */
   @Test
@@ -1464,7 +1463,11 @@ class AnalyzerTest extends AnalyzerTestBase {
   @Test
   public void table_function_with_datasource_with_no_functions() {
     DataSourceService dataSourceService = getEmptyDataSourceService();
-    Analyzer analyzer = new Analyzer(super.expressionAnalyzer, dataSourceService, BuiltinFunctionRepository.getInstance(dataSourceService));
+    Analyzer analyzer =
+        new Analyzer(
+            super.expressionAnalyzer,
+            dataSourceService,
+            BuiltinFunctionRepository.getInstance(dataSourceService));
     ExpressionEvaluationException exception =
         assertThrows(
             ExpressionEvaluationException.class,
@@ -1475,7 +1478,8 @@ class AnalyzerTest extends AnalyzerTestBase {
                         unresolvedArg("query", stringLiteral("http_latency")),
                         unresolvedArg("", intLiteral(12345)),
                         unresolvedArg("", intLiteral(12345)),
-                        unresolvedArg(null, intLiteral(14))), new AnalysisContext()));
+                        unresolvedArg(null, intLiteral(14))),
+                    new AnalysisContext()));
     assertEquals("unsupported function name: query_range", exception.getMessage());
   }
 

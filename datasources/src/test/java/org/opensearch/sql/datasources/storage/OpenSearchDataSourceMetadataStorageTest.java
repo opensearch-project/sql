@@ -209,7 +209,8 @@ public class OpenSearchDataSourceMetadataStorageTest {
   @SneakyThrows
   @Test
   public void testGetDataSourceMetadataList() {
-    Mockito.when(clusterService.getClusterApplierService().isInitialClusterStateSet()).thenReturn(true);
+    Mockito.when(clusterService.getClusterApplierService().isInitialClusterStateSet())
+        .thenReturn(true);
     Mockito.when(clusterService.state().routingTable().hasIndex(DATASOURCE_INDEX_NAME))
         .thenReturn(true);
     Mockito.when(client.search(ArgumentMatchers.any())).thenReturn(searchResponseActionFuture);
@@ -234,7 +235,8 @@ public class OpenSearchDataSourceMetadataStorageTest {
   @SneakyThrows
   @Test
   public void testGetDataSourceMetadataListWithNoIndex() {
-    Mockito.when(clusterService.getClusterApplierService().isInitialClusterStateSet()).thenReturn(true);
+    Mockito.when(clusterService.getClusterApplierService().isInitialClusterStateSet())
+        .thenReturn(true);
     Mockito.when(clusterService.state().routingTable().hasIndex(DATASOURCE_INDEX_NAME))
         .thenReturn(Boolean.FALSE);
     Mockito.when(client.admin().indices().create(ArgumentMatchers.any()))
@@ -293,7 +295,8 @@ public class OpenSearchDataSourceMetadataStorageTest {
 
   @Test
   public void testCreateDataSourceMetadataUninitialized() {
-    Mockito.when(clusterService.getClusterApplierService().isInitialClusterStateSet()).thenReturn(false);
+    Mockito.when(clusterService.getClusterApplierService().isInitialClusterStateSet())
+        .thenReturn(false);
 
     List<DataSourceMetadata> dataSourceMetadataList =
         openSearchDataSourceMetadataStorage.getDataSourceMetadata();

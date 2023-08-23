@@ -183,31 +183,37 @@ class MultiMatchTest {
 
   @Test
   public void test_SemanticCheckException_when_invalid_parameter_multiMatch() {
-    List<Expression> arguments = List.of(
-        namedArgument("fields", fields_value),
-        namedArgument("query", query_value),
-        OpenSearchDSL.namedArgument("unsupported", "unsupported_value"));
-    Assertions.assertThrows(SemanticCheckException.class,
+    List<Expression> arguments =
+        List.of(
+            namedArgument("fields", fields_value),
+            namedArgument("query", query_value),
+            OpenSearchDSL.namedArgument("unsupported", "unsupported_value"));
+    Assertions.assertThrows(
+        SemanticCheckException.class,
         () -> multiMatchQuery.build(new MultiMatchExpression(arguments)));
   }
 
   @Test
   public void test_SemanticCheckException_when_invalid_parameter_multi_match() {
-    List<Expression> arguments = List.of(
-        namedArgument("fields", fields_value),
-        namedArgument("query", query_value),
-        OpenSearchDSL.namedArgument("unsupported", "unsupported_value"));
-    Assertions.assertThrows(SemanticCheckException.class,
+    List<Expression> arguments =
+        List.of(
+            namedArgument("fields", fields_value),
+            namedArgument("query", query_value),
+            OpenSearchDSL.namedArgument("unsupported", "unsupported_value"));
+    Assertions.assertThrows(
+        SemanticCheckException.class,
         () -> multiMatchQuery.build(new MultiMatchExpression(arguments, snakeCaseMultiMatchName)));
   }
 
   @Test
   public void test_SemanticCheckException_when_invalid_parameter_multiMatchQuery() {
-    List<Expression> arguments = List.of(
-        namedArgument("fields", fields_value),
-        namedArgument("query", query_value),
-        OpenSearchDSL.namedArgument("unsupported", "unsupported_value"));
-    Assertions.assertThrows(SemanticCheckException.class,
+    List<Expression> arguments =
+        List.of(
+            namedArgument("fields", fields_value),
+            namedArgument("query", query_value),
+            OpenSearchDSL.namedArgument("unsupported", "unsupported_value"));
+    Assertions.assertThrows(
+        SemanticCheckException.class,
         () -> multiMatchQuery.build(new MultiMatchExpression(arguments, multiMatchQueryName)));
   }
 

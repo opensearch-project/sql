@@ -5,6 +5,8 @@
 
 package org.opensearch.sql.util;
 
+import static org.opensearch.sql.datasource.model.EmptyDataSourceService.getEmptyDataSourceService;
+
 import lombok.RequiredArgsConstructor;
 import org.opensearch.client.RestHighLevelClient;
 import org.opensearch.common.inject.AbstractModule;
@@ -35,8 +37,6 @@ import org.opensearch.sql.ppl.antlr.PPLSyntaxParser;
 import org.opensearch.sql.sql.SQLService;
 import org.opensearch.sql.sql.antlr.SQLSyntaxParser;
 import org.opensearch.sql.storage.StorageEngine;
-
-import static org.opensearch.sql.datasource.model.EmptyDataSourceService.getEmptyDataSourceService;
 
 /**
  * A utility class which registers SQL engine singletons as `OpenSearchPluginModule` does. It is

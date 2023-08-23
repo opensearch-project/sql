@@ -139,20 +139,19 @@ class OpenSearchIndexScanOptimizationTest {
         project(
             indexScanBuilder(
                 withFilterPushedDown(
-                    QueryBuilders.queryStringQuery("QUERY")
-                        .field("intV", 1.5F)
-                        .boost(12.5F)
-                ),
-                withTrackedScoresPushedDown(true)
-            ),
-            DSL.named("i", DSL.ref("intV", INTEGER))
-        );
-    FunctionExpression queryString = OpenSearchDSL.query_string(
-          DSL.namedArgument("fields", DSL.literal(
-              new ExprTupleValue(new LinkedHashMap<>(ImmutableMap.of(
-                  "intV", ExprValueUtils.floatValue(1.5F)))))),
-          OpenSearchDSL.namedArgument("query", "QUERY"),
-        OpenSearchDSL.namedArgument("boost", "12.5"));
+                    QueryBuilders.queryStringQuery("QUERY").field("intV", 1.5F).boost(12.5F)),
+                withTrackedScoresPushedDown(true)),
+            DSL.named("i", DSL.ref("intV", INTEGER)));
+    FunctionExpression queryString =
+        OpenSearchDSL.query_string(
+            DSL.namedArgument(
+                "fields",
+                DSL.literal(
+                    new ExprTupleValue(
+                        new LinkedHashMap<>(
+                            ImmutableMap.of("intV", ExprValueUtils.floatValue(1.5F)))))),
+            OpenSearchDSL.namedArgument("query", "QUERY"),
+            OpenSearchDSL.namedArgument("boost", "12.5"));
 
     ((OpenSearchFunction) queryString).setScoreTracked(true);
 
@@ -177,26 +176,30 @@ class OpenSearchIndexScanOptimizationTest {
                         .should(
                             QueryBuilders.queryStringQuery("QUERY")
                                 .field("intV", 1.5F)
-                                .boost(12.5F)
-                        )
-                ),
-                withTrackedScoresPushedDown(true)
-            ),
-            DSL.named("i", DSL.ref("intV", INTEGER))
-        );
-    FunctionExpression firstQueryString = OpenSearchDSL.query_string(
-        DSL.namedArgument("fields", DSL.literal(
-            new ExprTupleValue(new LinkedHashMap<>(ImmutableMap.of(
-                "intV", ExprValueUtils.floatValue(1.5F)))))),
-        OpenSearchDSL.namedArgument("query", "QUERY"),
-        OpenSearchDSL.namedArgument("boost", "12.5"));
+                                .boost(12.5F))),
+                withTrackedScoresPushedDown(true)),
+            DSL.named("i", DSL.ref("intV", INTEGER)));
+    FunctionExpression firstQueryString =
+        OpenSearchDSL.query_string(
+            DSL.namedArgument(
+                "fields",
+                DSL.literal(
+                    new ExprTupleValue(
+                        new LinkedHashMap<>(
+                            ImmutableMap.of("intV", ExprValueUtils.floatValue(1.5F)))))),
+            OpenSearchDSL.namedArgument("query", "QUERY"),
+            OpenSearchDSL.namedArgument("boost", "12.5"));
     ((OpenSearchFunction) firstQueryString).setScoreTracked(false);
-    FunctionExpression secondQueryString = OpenSearchDSL.query_string(
-        DSL.namedArgument("fields", DSL.literal(
-            new ExprTupleValue(new LinkedHashMap<>(ImmutableMap.of(
-                "intV", ExprValueUtils.floatValue(1.5F)))))),
-        OpenSearchDSL.namedArgument("query", "QUERY"),
-        OpenSearchDSL.namedArgument("boost", "12.5"));
+    FunctionExpression secondQueryString =
+        OpenSearchDSL.query_string(
+            DSL.namedArgument(
+                "fields",
+                DSL.literal(
+                    new ExprTupleValue(
+                        new LinkedHashMap<>(
+                            ImmutableMap.of("intV", ExprValueUtils.floatValue(1.5F)))))),
+            OpenSearchDSL.namedArgument("query", "QUERY"),
+            OpenSearchDSL.namedArgument("boost", "12.5"));
     ((OpenSearchFunction) secondQueryString).setScoreTracked(true);
 
     LogicalPlan logicalPlan =
@@ -212,20 +215,19 @@ class OpenSearchIndexScanOptimizationTest {
         project(
             indexScanBuilder(
                 withFilterPushedDown(
-                    QueryBuilders.queryStringQuery("QUERY")
-                        .field("intV", 1.5F)
-                        .boost(12.5F)
-                ),
-                withTrackedScoresPushedDown(false)
-            ),
-            DSL.named("i", DSL.ref("intV", INTEGER))
-        );
-    FunctionExpression queryString = OpenSearchDSL.query_string(
-        DSL.namedArgument("fields", DSL.literal(
-            new ExprTupleValue(new LinkedHashMap<>(ImmutableMap.of(
-                "intV", ExprValueUtils.floatValue(1.5F)))))),
-        OpenSearchDSL.namedArgument("query", "QUERY"),
-        OpenSearchDSL.namedArgument("boost", "12.5"));
+                    QueryBuilders.queryStringQuery("QUERY").field("intV", 1.5F).boost(12.5F)),
+                withTrackedScoresPushedDown(false)),
+            DSL.named("i", DSL.ref("intV", INTEGER)));
+    FunctionExpression queryString =
+        OpenSearchDSL.query_string(
+            DSL.namedArgument(
+                "fields",
+                DSL.literal(
+                    new ExprTupleValue(
+                        new LinkedHashMap<>(
+                            ImmutableMap.of("intV", ExprValueUtils.floatValue(1.5F)))))),
+            OpenSearchDSL.namedArgument("query", "QUERY"),
+            OpenSearchDSL.namedArgument("boost", "12.5"));
 
     LogicalPlan logicalPlan =
         project(
@@ -347,26 +349,18 @@ class OpenSearchIndexScanOptimizationTest {
 
     List<NamedExpression> projectList =
         List.of(
-            new NamedExpression("message.info", OpenSearchDSL.nested(DSL.ref("message.info", STRING)), null)
-        );
+            new NamedExpression(
+                "message.info", OpenSearchDSL.nested(DSL.ref("message.info", STRING)), null));
 
     LogicalNested nested = new LogicalNested(null, args, projectList);
 
     assertEqualsAfterOptimization(
         project(
-            nested(
-            indexScanBuilder(
-                withNestedPushedDown(nested.getFields())), args, projectList),
-                DSL.named("message.info",
-                    OpenSearchDSL.nested(DSL.ref("message.info", STRING)))
-        ),
+            nested(indexScanBuilder(withNestedPushedDown(nested.getFields())), args, projectList),
+            DSL.named("message.info", OpenSearchDSL.nested(DSL.ref("message.info", STRING)))),
         project(
-            nested(
-                relation("schema", table), args, projectList),
-            DSL.named("message.info",
-                OpenSearchDSL.nested(DSL.ref("message.info", STRING)))
-        )
-    );
+            nested(relation("schema", table), args, projectList),
+            DSL.named("message.info", OpenSearchDSL.nested(DSL.ref("message.info", STRING)))));
   }
 
   /** SELECT avg(intV) FROM schema WHERE intV = 1 GROUP BY string_value. */
@@ -493,18 +487,13 @@ class OpenSearchIndexScanOptimizationTest {
                         .setNestedSort(new NestedSortBuilder("message")))),
             DSL.named("intV", DSL.ref("intV", INTEGER))),
         project(
-                sort(
-                    filter(
-                        relation("schema", table),
-                        DSL.equal(DSL.ref("intV", INTEGER), DSL.literal(integerValue(1)))
-                    ),
-                    Pair.of(
-                        SortOption.DEFAULT_ASC, OpenSearchDSL.nested(DSL.ref("message.info", STRING))
-                    )
-                ),
-            DSL.named("intV", DSL.ref("intV", INTEGER))
-        )
-    );
+            sort(
+                filter(
+                    relation("schema", table),
+                    DSL.equal(DSL.ref("intV", INTEGER), DSL.literal(integerValue(1)))),
+                Pair.of(
+                    SortOption.DEFAULT_ASC, OpenSearchDSL.nested(DSL.ref("message.info", STRING)))),
+            DSL.named("intV", DSL.ref("intV", INTEGER))));
   }
 
   @Test
@@ -515,18 +504,12 @@ class OpenSearchIndexScanOptimizationTest {
             indexScanBuilder(),
             Pair.of(
                 SortOption.DEFAULT_ASC,
-                OpenSearchDSL.match(DSL.namedArgument("field", literal("message")))
-            )
-        ),
+                OpenSearchDSL.match(DSL.namedArgument("field", literal("message"))))),
         sort(
             relation("schema", table),
             Pair.of(
                 SortOption.DEFAULT_ASC,
-                OpenSearchDSL.match(DSL.namedArgument("field", literal("message"))
-                )
-            )
-        )
-    );
+                OpenSearchDSL.match(DSL.namedArgument("field", literal("message"))))));
   }
 
   @Test

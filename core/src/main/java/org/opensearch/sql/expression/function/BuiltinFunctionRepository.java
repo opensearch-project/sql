@@ -49,7 +49,7 @@ public class BuiltinFunctionRepository {
   private final Map<FunctionName, FunctionResolver> functionResolverMap;
 
   /** The singleton instance. */
-  private final static Map<Integer, BuiltinFunctionRepository> instance = new HashMap<>();
+  private static final Map<Integer, BuiltinFunctionRepository> instance = new HashMap<>();
 
   /**
    * Construct a function repository with the given function registered. This is only used in test.
@@ -67,11 +67,13 @@ public class BuiltinFunctionRepository {
    *
    * @return singleton instance
    */
-  public static synchronized BuiltinFunctionRepository getInstance(DataSourceService dataSourceService) {
-    Set<DataSourceMetadata> dataSourceMetadataSet =
-        dataSourceService.getDataSourceMetadata(true);
+  public static synchronized BuiltinFunctionRepository getInstance(
+      DataSourceService dataSourceService) {
+    Set<DataSourceMetadata> dataSourceMetadataSet = dataSourceService.getDataSourceMetadata(true);
     Set<Integer> dataSourceServiceHashSet =
-        dataSourceMetadataSet.stream().map(metadata -> metadata.hashCode()).collect(Collectors.toSet());
+        dataSourceMetadataSet.stream()
+            .map(metadata -> metadata.hashCode())
+            .collect(Collectors.toSet());
 
     // Creates new Repository for every dataSourceService
     if (!dataSourceServiceHashSet.stream().anyMatch(hash -> instance.containsKey(hash))) {
@@ -96,8 +98,9 @@ public class BuiltinFunctionRepository {
       for (DataSourceMetadata metadata : dataSourceMetadataSet) {
         dataSourceService
             .getDataSource(metadata.getName())
-            .getStorageEngine().getFunctions().
-            forEach(function -> repository.register(function));
+            .getStorageEngine()
+            .getFunctions()
+            .forEach(function -> repository.register(function));
         instance.put(metadata.hashCode(), repository);
       }
       return repository;

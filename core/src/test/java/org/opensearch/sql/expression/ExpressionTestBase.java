@@ -26,12 +26,9 @@ import static org.opensearch.sql.data.model.ExprValueUtils.tupleValue;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import java.util.List;
-import java.util.function.Function;
 import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.data.type.ExprType;
 import org.opensearch.sql.expression.env.Environment;
-import org.opensearch.sql.expression.function.BuiltinFunctionName;
 import org.opensearch.sql.expression.function.FunctionProperties;
 
 public class ExpressionTestBase {

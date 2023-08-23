@@ -5,14 +5,6 @@
 
 package org.opensearch.sql.opensearch.expression;
 
-import static org.opensearch.sql.opensearch.config.TestConfig.BOOL_TYPE_MISSING_VALUE_FIELD;
-import static org.opensearch.sql.opensearch.config.TestConfig.BOOL_TYPE_NULL_VALUE_FIELD;
-import static org.opensearch.sql.opensearch.config.TestConfig.DOUBLE_TYPE_MISSING_VALUE_FIELD;
-import static org.opensearch.sql.opensearch.config.TestConfig.DOUBLE_TYPE_NULL_VALUE_FIELD;
-import static org.opensearch.sql.opensearch.config.TestConfig.INT_TYPE_MISSING_VALUE_FIELD;
-import static org.opensearch.sql.opensearch.config.TestConfig.INT_TYPE_NULL_VALUE_FIELD;
-import static org.opensearch.sql.opensearch.config.TestConfig.STRING_TYPE_MISSING_VALUE_FIELD;
-import static org.opensearch.sql.opensearch.config.TestConfig.STRING_TYPE_NULL_VALUE_FIELD;
 import static org.opensearch.sql.data.model.ExprValueUtils.booleanValue;
 import static org.opensearch.sql.data.model.ExprValueUtils.collectionValue;
 import static org.opensearch.sql.data.model.ExprValueUtils.doubleValue;
@@ -23,6 +15,14 @@ import static org.opensearch.sql.data.model.ExprValueUtils.missingValue;
 import static org.opensearch.sql.data.model.ExprValueUtils.nullValue;
 import static org.opensearch.sql.data.model.ExprValueUtils.stringValue;
 import static org.opensearch.sql.data.model.ExprValueUtils.tupleValue;
+import static org.opensearch.sql.opensearch.config.TestConfig.BOOL_TYPE_MISSING_VALUE_FIELD;
+import static org.opensearch.sql.opensearch.config.TestConfig.BOOL_TYPE_NULL_VALUE_FIELD;
+import static org.opensearch.sql.opensearch.config.TestConfig.DOUBLE_TYPE_MISSING_VALUE_FIELD;
+import static org.opensearch.sql.opensearch.config.TestConfig.DOUBLE_TYPE_NULL_VALUE_FIELD;
+import static org.opensearch.sql.opensearch.config.TestConfig.INT_TYPE_MISSING_VALUE_FIELD;
+import static org.opensearch.sql.opensearch.config.TestConfig.INT_TYPE_NULL_VALUE_FIELD;
+import static org.opensearch.sql.opensearch.config.TestConfig.STRING_TYPE_MISSING_VALUE_FIELD;
+import static org.opensearch.sql.opensearch.config.TestConfig.STRING_TYPE_NULL_VALUE_FIELD;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;

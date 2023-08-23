@@ -52,76 +52,72 @@ public class MatchPhrasePrefixQueryTest {
 
   @Test
   public void test_SyntaxCheckException_when_invalid_parameter() {
-    List<Expression> arguments = List.of(
-        DSL.namedArgument("field",
-            new ReferenceExpression("test", OpenSearchTextType.of())),
-        OpenSearchDSL.namedArgument("query", "test2"),
-        OpenSearchDSL.namedArgument("unsupported", "3"));
-    Assertions.assertThrows(SemanticCheckException.class,
+    List<Expression> arguments =
+        List.of(
+            DSL.namedArgument("field", new ReferenceExpression("test", OpenSearchTextType.of())),
+            OpenSearchDSL.namedArgument("query", "test2"),
+            OpenSearchDSL.namedArgument("unsupported", "3"));
+    Assertions.assertThrows(
+        SemanticCheckException.class,
         () -> matchPhrasePrefixQuery.build(new MatchPhraseExpression(arguments)));
   }
 
   @Test
   public void test_analyzer_parameter() {
-    List<Expression> arguments = List.of(
-        DSL.namedArgument("field",
-            new ReferenceExpression("t1", OpenSearchTextType.of())),
-        OpenSearchDSL.namedArgument("query", "t2"),
-        OpenSearchDSL.namedArgument("analyzer", "standard")
-    );
+    List<Expression> arguments =
+        List.of(
+            DSL.namedArgument("field", new ReferenceExpression("t1", OpenSearchTextType.of())),
+            OpenSearchDSL.namedArgument("query", "t2"),
+            OpenSearchDSL.namedArgument("analyzer", "standard"));
     Assertions.assertNotNull(matchPhrasePrefixQuery.build(new MatchPhraseExpression(arguments)));
   }
 
   @Test
   public void build_succeeds_with_two_arguments() {
-    List<Expression> arguments = List.of(
-        DSL.namedArgument("field",
-            new ReferenceExpression("test", OpenSearchTextType.of())),
-        OpenSearchDSL.namedArgument("query", "test2"));
+    List<Expression> arguments =
+        List.of(
+            DSL.namedArgument("field", new ReferenceExpression("test", OpenSearchTextType.of())),
+            OpenSearchDSL.namedArgument("query", "test2"));
     Assertions.assertNotNull(matchPhrasePrefixQuery.build(new MatchPhraseExpression(arguments)));
   }
 
   @Test
   public void test_slop_parameter() {
-    List<Expression> arguments = List.of(
-        DSL.namedArgument("field",
-            new ReferenceExpression("t1", OpenSearchTextType.of())),
-        OpenSearchDSL.namedArgument("query", "t2"),
-        OpenSearchDSL.namedArgument("slop", "2")
-    );
+    List<Expression> arguments =
+        List.of(
+            DSL.namedArgument("field", new ReferenceExpression("t1", OpenSearchTextType.of())),
+            OpenSearchDSL.namedArgument("query", "t2"),
+            OpenSearchDSL.namedArgument("slop", "2"));
     Assertions.assertNotNull(matchPhrasePrefixQuery.build(new MatchPhraseExpression(arguments)));
   }
 
   @Test
   public void test_zero_terms_query_parameter() {
-    List<Expression> arguments = List.of(
-        DSL.namedArgument("field",
-            new ReferenceExpression("t1", OpenSearchTextType.of())),
-        OpenSearchDSL.namedArgument("query", "t2"),
-        OpenSearchDSL.namedArgument("zero_terms_query", "ALL")
-    );
+    List<Expression> arguments =
+        List.of(
+            DSL.namedArgument("field", new ReferenceExpression("t1", OpenSearchTextType.of())),
+            OpenSearchDSL.namedArgument("query", "t2"),
+            OpenSearchDSL.namedArgument("zero_terms_query", "ALL"));
     Assertions.assertNotNull(matchPhrasePrefixQuery.build(new MatchPhraseExpression(arguments)));
   }
 
   @Test
   public void test_zero_terms_query_parameter_lower_case() {
-    List<Expression> arguments = List.of(
-        DSL.namedArgument("field",
-            new ReferenceExpression("t1", OpenSearchTextType.of())),
-        OpenSearchDSL.namedArgument("query", "t2"),
-        OpenSearchDSL.namedArgument("zero_terms_query", "all")
-    );
+    List<Expression> arguments =
+        List.of(
+            DSL.namedArgument("field", new ReferenceExpression("t1", OpenSearchTextType.of())),
+            OpenSearchDSL.namedArgument("query", "t2"),
+            OpenSearchDSL.namedArgument("zero_terms_query", "all"));
     Assertions.assertNotNull(matchPhrasePrefixQuery.build(new MatchPhraseExpression(arguments)));
   }
 
   @Test
   public void test_boost_parameter() {
-    List<Expression> arguments = List.of(
-        DSL.namedArgument("field",
-            new ReferenceExpression("test", OpenSearchTextType.of())),
-        OpenSearchDSL.namedArgument("query", "t2"),
-        OpenSearchDSL.namedArgument("boost", "0.1")
-    );
+    List<Expression> arguments =
+        List.of(
+            DSL.namedArgument("field", new ReferenceExpression("test", OpenSearchTextType.of())),
+            OpenSearchDSL.namedArgument("query", "t2"),
+            OpenSearchDSL.namedArgument("boost", "0.1"));
     Assertions.assertNotNull(matchPhrasePrefixQuery.build(new MatchPhraseExpression(arguments)));
   }
 

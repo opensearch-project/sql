@@ -32,10 +32,7 @@ class SortQueryBuilderTest {
   void build_sortbuilder_from_nested_function() {
     assertNotNull(
         sortQueryBuilder.build(
-            OpenSearchDSL.nested(DSL.ref("message.info", STRING)),
-            Sort.SortOption.DEFAULT_ASC
-        )
-    );
+            OpenSearchDSL.nested(DSL.ref("message.info", STRING)), Sort.SortOption.DEFAULT_ASC));
   }
 
   @Test
@@ -43,48 +40,36 @@ class SortQueryBuilderTest {
     assertNotNull(
         sortQueryBuilder.build(
             OpenSearchDSL.nested(DSL.ref("message.info", STRING), DSL.ref("message", STRING)),
-            Sort.SortOption.DEFAULT_ASC
-        )
-    );
+            Sort.SortOption.DEFAULT_ASC));
   }
 
   @Test
   void nested_with_too_many_args_throws_exception() {
     assertThrows(
         IllegalArgumentException.class,
-        () -> sortQueryBuilder.build(
-            OpenSearchDSL.nested(
-                DSL.ref("message.info", STRING),
-                DSL.ref("message", STRING),
-                DSL.ref("message", STRING)
-            ),
-            Sort.SortOption.DEFAULT_ASC
-        )
-    );
+        () ->
+            sortQueryBuilder.build(
+                OpenSearchDSL.nested(
+                    DSL.ref("message.info", STRING),
+                    DSL.ref("message", STRING),
+                    DSL.ref("message", STRING)),
+                Sort.SortOption.DEFAULT_ASC));
   }
 
   @Test
   void nested_with_too_few_args_throws_exception() {
     assertThrows(
         IllegalArgumentException.class,
-        () -> sortQueryBuilder.build(
-            OpenSearchDSL.nested(),
-            Sort.SortOption.DEFAULT_ASC
-        )
-    );
+        () -> sortQueryBuilder.build(OpenSearchDSL.nested(), Sort.SortOption.DEFAULT_ASC));
   }
 
   @Test
   void nested_with_invalid_arg_type_throws_exception() {
     assertThrows(
         IllegalArgumentException.class,
-        () -> sortQueryBuilder.build(
-            OpenSearchDSL.nested(
-                DSL.literal(1)
-            ),
-            Sort.SortOption.DEFAULT_ASC
-        )
-    );
+        () ->
+            sortQueryBuilder.build(
+                OpenSearchDSL.nested(DSL.literal(1)), Sort.SortOption.DEFAULT_ASC));
   }
 
   @Test

@@ -62,10 +62,11 @@ public class MatchBoolPrefixQueryTest {
 
   @Test
   public void test_valid_when_two_arguments() {
-    List<Expression> arguments = List.of(
-        DSL.namedArgument("field",
-            new ReferenceExpression("field_value", OpenSearchTextType.of())),
-        OpenSearchDSL.namedArgument("query", "query_value"));
+    List<Expression> arguments =
+        List.of(
+            DSL.namedArgument(
+                "field", new ReferenceExpression("field_value", OpenSearchTextType.of())),
+            OpenSearchDSL.namedArgument("query", "query_value"));
     Assertions.assertNotNull(matchBoolPrefixQuery.build(new MatchExpression(arguments)));
   }
 
@@ -80,18 +81,21 @@ public class MatchBoolPrefixQueryTest {
   @Test
   public void test_SyntaxCheckException_when_one_argument() {
     List<Expression> arguments = List.of(OpenSearchDSL.namedArgument("field", "field_value"));
-    assertThrows(SyntaxCheckException.class,
+    assertThrows(
+        SyntaxCheckException.class,
         () -> matchBoolPrefixQuery.build(new MatchExpression(arguments)));
   }
 
   @Test
   public void test_SemanticCheckException_when_invalid_argument() {
-    List<Expression> arguments = List.of(
-        DSL.namedArgument("field",
-            new ReferenceExpression("field_value", OpenSearchTextType.of())),
-        OpenSearchDSL.namedArgument("query", "query_value"),
-        OpenSearchDSL.namedArgument("unsupported", "unsupported_value"));
-    Assertions.assertThrows(SemanticCheckException.class,
+    List<Expression> arguments =
+        List.of(
+            DSL.namedArgument(
+                "field", new ReferenceExpression("field_value", OpenSearchTextType.of())),
+            OpenSearchDSL.namedArgument("query", "query_value"),
+            OpenSearchDSL.namedArgument("unsupported", "unsupported_value"));
+    Assertions.assertThrows(
+        SemanticCheckException.class,
         () -> matchBoolPrefixQuery.build(new MatchExpression(arguments)));
   }
 

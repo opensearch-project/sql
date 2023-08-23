@@ -12,16 +12,18 @@ import org.opensearch.sql.expression.Expression;
 import org.opensearch.sql.expression.FunctionExpression;
 import org.opensearch.sql.expression.env.Environment;
 
-public class NestedFunctionResolver implements FunctionResolver{
+public class NestedFunctionResolver implements FunctionResolver {
   @Override
   public Pair<FunctionSignature, FunctionBuilder> resolve(FunctionSignature unresolvedSignature) {
-    return Pair.of(unresolvedSignature,
+    return Pair.of(
+        unresolvedSignature,
         (functionProperties, arguments) ->
             new FunctionExpression(BuiltinFunctionName.NESTED.getName(), arguments) {
               @Override
               public ExprValue valueOf(Environment<Expression, ExprValue> valueEnv) {
                 return valueEnv.resolve(getArguments().get(0));
               }
+
               @Override
               public ExprType type() {
                 return getArguments().get(0).type();

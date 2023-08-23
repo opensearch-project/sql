@@ -10,16 +10,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
-import static org.opensearch.sql.ast.dsl.AstDSL.alias;
-import static org.opensearch.sql.ast.dsl.AstDSL.and;
-import static org.opensearch.sql.ast.dsl.AstDSL.filter;
-import static org.opensearch.sql.ast.dsl.AstDSL.function;
-import static org.opensearch.sql.ast.dsl.AstDSL.highlight;
-import static org.opensearch.sql.ast.dsl.AstDSL.project;
-import static org.opensearch.sql.ast.dsl.AstDSL.qualifiedName;
-import static org.opensearch.sql.ast.dsl.AstDSL.relation;
 import static org.opensearch.sql.ast.dsl.AstDSL.stringLiteral;
-import static org.opensearch.sql.ast.dsl.AstDSL.unresolvedArg;
 import static org.opensearch.sql.data.type.ExprCoreType.STRUCT;
 
 import java.util.LinkedHashMap;
@@ -47,8 +38,7 @@ import org.opensearch.sql.planner.logical.LogicalPlan;
 @ExtendWith(MockitoExtension.class)
 class OpenSearchAnalyzerTest extends AnalyzerTestBase {
 
-  @Mock
-  private BuiltinFunctionRepository builtinFunctionRepository;
+  @Mock private BuiltinFunctionRepository builtinFunctionRepository;
 
   @Override
   protected ExpressionAnalyzer expressionAnalyzer() {
@@ -65,8 +55,8 @@ class OpenSearchAnalyzerTest extends AnalyzerTestBase {
   public void analyze_filter_visit_score_function() {
 
     // setup
-    OpenSearchFunction scoreFunction = new OpenSearchFunction(
-        new FunctionName("match_phrase_prefix"), List.of());
+    OpenSearchFunction scoreFunction =
+        new OpenSearchFunction(new FunctionName("match_phrase_prefix"), List.of());
     when(builtinFunctionRepository.compile(any(), any(), any())).thenReturn(scoreFunction);
 
     UnresolvedPlan unresolvedPlan =
@@ -93,8 +83,8 @@ class OpenSearchAnalyzerTest extends AnalyzerTestBase {
   public void analyze_filter_visit_score_function_without_boost() {
 
     // setup
-    OpenSearchFunction scoreFunction = new OpenSearchFunction(
-        new FunctionName("match_phrase_prefix"), List.of());
+    OpenSearchFunction scoreFunction =
+        new OpenSearchFunction(new FunctionName("match_phrase_prefix"), List.of());
     when(builtinFunctionRepository.compile(any(), any(), any())).thenReturn(scoreFunction);
 
     UnresolvedPlan unresolvedPlan =
@@ -115,7 +105,6 @@ class OpenSearchAnalyzerTest extends AnalyzerTestBase {
     // verify
     assertEquals(true, relevanceQuery.isScoreTracked());
   }
-
 
   @Test
   public void analyze_filter_visit_score_function_with_unsupported_boost_SemanticCheckException() {
@@ -147,8 +136,11 @@ class OpenSearchAnalyzerTest extends AnalyzerTestBase {
     Expression relevanceFieldList = unresolvedPlan.accept(expressionAnalyzer, analysisContext);
     assertEquals(STRUCT, relevanceFieldList.type());
     assertTrue(relevanceFieldList.valueOf() instanceof ExprTupleValue);
-    assertEquals(tuple.get("Tags"), relevanceFieldList.valueOf().tupleValue().get("Tags").floatValue());
-    assertEquals(tuple.get("Body"), relevanceFieldList.valueOf().tupleValue().get("Body").floatValue());
-    assertEquals(tuple.get("Title"), relevanceFieldList.valueOf().tupleValue().get("Title").floatValue());
+    assertEquals(
+        tuple.get("Tags"), relevanceFieldList.valueOf().tupleValue().get("Tags").floatValue());
+    assertEquals(
+        tuple.get("Body"), relevanceFieldList.valueOf().tupleValue().get("Body").floatValue());
+    assertEquals(
+        tuple.get("Title"), relevanceFieldList.valueOf().tupleValue().get("Title").floatValue());
   }
 }

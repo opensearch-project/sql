@@ -36,18 +36,17 @@ import org.opensearch.sql.ast.tree.RareTopN.CommandType;
 import org.opensearch.sql.ast.tree.Sort;
 import org.opensearch.sql.data.model.ExprBooleanValue;
 import org.opensearch.sql.data.type.ExprCoreType;
-import org.opensearch.sql.opensearch.expression.OpenSearchDSL;
 import org.opensearch.sql.expression.Expression;
 import org.opensearch.sql.expression.NamedExpression;
 import org.opensearch.sql.expression.ReferenceExpression;
 import org.opensearch.sql.expression.aggregation.AvgAggregator;
 import org.opensearch.sql.expression.aggregation.NamedAggregator;
+import org.opensearch.sql.opensearch.expression.OpenSearchDSL;
 import org.opensearch.sql.planner.DefaultImplementor;
 import org.opensearch.sql.planner.logical.LogicalPlan;
 import org.opensearch.sql.planner.logical.LogicalPlanDSL;
 import org.opensearch.sql.planner.physical.PhysicalPlan;
 import org.opensearch.sql.planner.physical.PhysicalPlanDSL;
-
 
 class DefaultImplementorTest {
 
@@ -60,12 +59,14 @@ class DefaultImplementorTest {
     ReferenceExpression exclude = ref("name", STRING);
     ReferenceExpression dedupeField = ref("name", STRING);
     Expression filterExpr = literal(ExprBooleanValue.of(true));
-    List<NamedExpression> groupByExprs = Arrays.asList(OpenSearchDSL.named("age", ref("age", INTEGER)));
+    List<NamedExpression> groupByExprs =
+        Arrays.asList(OpenSearchDSL.named("age", ref("age", INTEGER)));
     List<Expression> aggExprs = Arrays.asList(ref("age", INTEGER));
     ReferenceExpression rareTopNField = ref("age", INTEGER);
     List<Expression> topByExprs = Arrays.asList(ref("age", INTEGER));
     List<NamedAggregator> aggregators =
-        Arrays.asList(OpenSearchDSL.named("avg(age)", new AvgAggregator(aggExprs, ExprCoreType.DOUBLE)));
+        Arrays.asList(
+            OpenSearchDSL.named("avg(age)", new AvgAggregator(aggExprs, ExprCoreType.DOUBLE)));
     Map<ReferenceExpression, ReferenceExpression> mappings =
         ImmutableMap.of(ref("name", STRING), ref("lastname", STRING));
     Pair<ReferenceExpression, Expression> newEvalField =
@@ -81,7 +82,10 @@ class DefaultImplementorTest {
                 "path", new ReferenceExpression("message", STRING)));
     List<NamedExpression> nestedProjectList =
         List.of(
-            new NamedExpression("message.info", OpenSearchDSL.nested(OpenSearchDSL.ref("message.info", STRING)), null));
+            new NamedExpression(
+                "message.info",
+                OpenSearchDSL.nested(OpenSearchDSL.ref("message.info", STRING)),
+                null));
     Set<String> nestedOperatorArgs = Set.of("message.info");
     Map<String, List<String>> groupedFieldsByPath = Map.of("message", List.of("message.info"));
 

@@ -274,8 +274,7 @@ public class ExpressionAnalyzer extends AbstractNodeVisitor<Expression, Analysis
     Function updatedRelevanceQueryUnresolvedExpr =
         new Function(relevanceQueryUnresolvedExpr.getFuncName(), updatedFuncArgs);
     OpenSearchFunction relevanceQueryExpr =
-        (OpenSearchFunction)
-            updatedRelevanceQueryUnresolvedExpr.accept(this, context);
+        (OpenSearchFunction) updatedRelevanceQueryUnresolvedExpr.accept(this, context);
     relevanceQueryExpr.setScoreTracked(true);
     return relevanceQueryExpr;
   }
