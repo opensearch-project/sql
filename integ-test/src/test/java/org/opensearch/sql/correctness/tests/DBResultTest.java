@@ -3,7 +3,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-
 package org.opensearch.sql.correctness.tests;
 
 import static java.util.Collections.emptyList;
@@ -19,9 +18,7 @@ import org.opensearch.sql.correctness.runner.resultset.DBResult;
 import org.opensearch.sql.correctness.runner.resultset.Row;
 import org.opensearch.sql.correctness.runner.resultset.Type;
 
-/**
- * Unit tests for {@link DBResult}
- */
+/** Unit tests for {@link DBResult} */
 public class DBResultTest {
 
   @Test
@@ -80,35 +77,45 @@ public class DBResultTest {
 
   @Test
   public void shouldExplainColumnTypeDifference() {
-    DBResult result1 = new DBResult("DB 1",
-        Arrays.asList(new Type("name", "VARCHAR"), new Type("age", "FLOAT")), emptyList());
-    DBResult result2 = new DBResult("DB 2",
-        Arrays.asList(new Type("name", "VARCHAR"), new Type("age", "INT")), emptyList());
+    DBResult result1 =
+        new DBResult(
+            "DB 1",
+            Arrays.asList(new Type("name", "VARCHAR"), new Type("age", "FLOAT")),
+            emptyList());
+    DBResult result2 =
+        new DBResult(
+            "DB 2",
+            Arrays.asList(new Type("name", "VARCHAR"), new Type("age", "INT")),
+            emptyList());
 
     assertEquals(
         "Schema type at [1] is different: "
             + "this=[Type(name=age, type=FLOAT)], other=[Type(name=age, type=INT)]",
-        result1.diff(result2)
-    );
+        result1.diff(result2));
   }
 
   @Test
   public void shouldExplainDataRowsDifference() {
-    DBResult result1 = new DBResult("DB 1", Arrays.asList(new Type("name", "VARCHAR")),
-        Sets.newHashSet(
-            new Row(Arrays.asList("hello")),
-            new Row(Arrays.asList("world")),
-            new Row(Lists.newArrayList((Object) null))));
-    DBResult result2 = new DBResult("DB 2",Arrays.asList(new Type("name", "VARCHAR")),
-        Sets.newHashSet(
-            new Row(Lists.newArrayList((Object) null)),
-            new Row(Arrays.asList("hello")),
-            new Row(Arrays.asList("world123"))));
+    DBResult result1 =
+        new DBResult(
+            "DB 1",
+            Arrays.asList(new Type("name", "VARCHAR")),
+            Sets.newHashSet(
+                new Row(Arrays.asList("hello")),
+                new Row(Arrays.asList("world")),
+                new Row(Lists.newArrayList((Object) null))));
+    DBResult result2 =
+        new DBResult(
+            "DB 2",
+            Arrays.asList(new Type("name", "VARCHAR")),
+            Sets.newHashSet(
+                new Row(Lists.newArrayList((Object) null)),
+                new Row(Arrays.asList("hello")),
+                new Row(Arrays.asList("world123"))));
 
     assertEquals(
         "Data row at [1] is different: this=[Row(values=[world])], other=[Row(values=[world123])]",
-        result1.diff(result2)
-    );
+        result1.diff(result2));
   }
 
   @Test
@@ -125,8 +132,6 @@ public class DBResultTest {
 
     assertEquals(
         "Data row at [0] is different: this=[Row(values=[hello])], other=[Row(values=[world])]",
-        result1.diff(result2)
-    );
+        result1.diff(result2));
   }
-
 }

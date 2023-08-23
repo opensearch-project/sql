@@ -16,8 +16,8 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.opensearch.sql.data.model.ExprDateValue;
-import org.opensearch.sql.data.model.ExprDatetimeValue;
 import org.opensearch.sql.data.model.ExprTimeValue;
+import org.opensearch.sql.data.model.ExprTimestampValue;
 import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.expression.DSL;
 import org.opensearch.sql.expression.Expression;
@@ -72,12 +72,12 @@ class ExtractTest extends ExpressionTestBase {
   })
   public void testExtractWithDatetime(String part, long expected) {
     FunctionExpression datetimeExpression =
-        DSL.extract(DSL.literal(part), DSL.literal(new ExprDatetimeValue(datetimeInput)));
+        DSL.extract(DSL.literal(part), DSL.literal(new ExprTimestampValue(datetimeInput)));
 
     assertEquals(LONG, datetimeExpression.type());
     assertEquals(expected, eval(datetimeExpression).longValue());
     assertEquals(
-        String.format("extract(\"%s\", DATETIME '2023-02-11 10:11:12.123')", part),
+        String.format("extract(\"%s\", TIMESTAMP '2023-02-11 10:11:12.123')", part),
         datetimeExpression.toString());
   }
 

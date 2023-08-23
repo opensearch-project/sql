@@ -3,7 +3,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-
 package org.opensearch.sql.opensearch.storage.script.aggregation;
 
 import static java.time.temporal.ChronoUnit.MILLIS;
@@ -22,20 +21,14 @@ import org.opensearch.sql.expression.env.Environment;
 import org.opensearch.sql.opensearch.data.type.OpenSearchDataType;
 import org.opensearch.sql.opensearch.storage.script.core.ExpressionScript;
 
-/**
- * Aggregation expression script that executed on each document.
- */
+/** Aggregation expression script that executed on each document. */
 @EqualsAndHashCode(callSuper = false)
 public class ExpressionAggregationScript extends AggregationScript {
 
-  /**
-   * Expression Script.
-   */
+  /** Expression Script. */
   private final ExpressionScript expressionScript;
 
-  /**
-   * Constructor of ExpressionAggregationScript.
-   */
+  /** Constructor of ExpressionAggregationScript. */
   public ExpressionAggregationScript(
       Expression expression,
       SearchLookup lookup,
@@ -51,12 +44,11 @@ public class ExpressionAggregationScript extends AggregationScript {
     if (expr.type() instanceof OpenSearchDataType) {
       return expr.value();
     }
-    switch ((ExprCoreType)expr.type()) {
+    switch ((ExprCoreType) expr.type()) {
       case TIME:
         // Can't get timestamp from `ExprTimeValue`
         return MILLIS.between(LocalTime.MIN, expr.timeValue());
       case DATE:
-      case DATETIME:
       case TIMESTAMP:
         return expr.timestampValue().toEpochMilli();
       default:
@@ -64,8 +56,8 @@ public class ExpressionAggregationScript extends AggregationScript {
     }
   }
 
-  private ExprValue evaluateExpression(Expression expression, Environment<Expression,
-                                       ExprValue> valueEnv) {
+  private ExprValue evaluateExpression(
+      Expression expression, Environment<Expression, ExprValue> valueEnv) {
     ExprValue result = expression.valueOf(valueEnv);
 
     // The missing value is treated as null value in doc_value, so we can't distinguish with them.

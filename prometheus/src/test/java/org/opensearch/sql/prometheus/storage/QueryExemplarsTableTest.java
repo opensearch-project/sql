@@ -30,14 +30,12 @@ import org.opensearch.sql.storage.read.TableScanBuilder;
 @ExtendWith(MockitoExtension.class)
 class QueryExemplarsTableTest {
 
-  @Mock
-  private PrometheusClient client;
+  @Mock private PrometheusClient client;
 
   @Test
   @SneakyThrows
   void testGetFieldTypes() {
-    PrometheusQueryExemplarsRequest exemplarsRequest
-        = new PrometheusQueryExemplarsRequest();
+    PrometheusQueryExemplarsRequest exemplarsRequest = new PrometheusQueryExemplarsRequest();
     exemplarsRequest.setQuery(QUERY);
     exemplarsRequest.setStartTime(STARTTIME);
     exemplarsRequest.setEndTime(ENDTIME);
@@ -50,8 +48,7 @@ class QueryExemplarsTableTest {
   @Test
   void testImplementWithBasicMetricQuery() {
 
-    PrometheusQueryExemplarsRequest exemplarsRequest
-        = new PrometheusQueryExemplarsRequest();
+    PrometheusQueryExemplarsRequest exemplarsRequest = new PrometheusQueryExemplarsRequest();
     exemplarsRequest.setQuery(QUERY);
     exemplarsRequest.setStartTime(STARTTIME);
     exemplarsRequest.setEndTime(ENDTIME);
@@ -67,8 +64,7 @@ class QueryExemplarsTableTest {
 
   @Test
   void testCreateScanBuilderWithQueryRangeTableFunction() {
-    PrometheusQueryExemplarsRequest exemplarsRequest
-        = new PrometheusQueryExemplarsRequest();
+    PrometheusQueryExemplarsRequest exemplarsRequest = new PrometheusQueryExemplarsRequest();
     exemplarsRequest.setQuery(QUERY);
     exemplarsRequest.setStartTime(STARTTIME);
     exemplarsRequest.setEndTime(ENDTIME);
@@ -77,5 +73,4 @@ class QueryExemplarsTableTest {
     Assertions.assertNotNull(tableScanBuilder);
     Assertions.assertTrue(tableScanBuilder instanceof QueryExemplarsFunctionTableScanBuilder);
   }
-
 }

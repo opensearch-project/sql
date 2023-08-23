@@ -3,7 +3,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-
 package org.opensearch.sql.opensearch.storage.script.aggregation.dsl;
 
 import static java.util.Collections.emptyMap;
@@ -20,9 +19,7 @@ import org.opensearch.sql.expression.ReferenceExpression;
 import org.opensearch.sql.opensearch.data.type.OpenSearchTextType;
 import org.opensearch.sql.opensearch.storage.serialization.ExpressionSerializer;
 
-/**
- * Abstract Aggregation Builder.
- */
+/** Abstract Aggregation Builder. */
 @RequiredArgsConstructor
 public class AggregationBuilderHelper {
 
@@ -34,20 +31,23 @@ public class AggregationBuilderHelper {
    * @param expression Expression
    * @return AggregationBuilder
    */
-  public <T> T build(Expression expression, Function<String, T> fieldBuilder,
-                 Function<Script, T> scriptBuilder) {
+  public <T> T build(
+      Expression expression, Function<String, T> fieldBuilder, Function<Script, T> scriptBuilder) {
     if (expression instanceof ReferenceExpression) {
       String fieldName = ((ReferenceExpression) expression).getAttr();
       return fieldBuilder.apply(
-              OpenSearchTextType.convertTextToKeyword(fieldName, expression.type()));
+          OpenSearchTextType.convertTextToKeyword(fieldName, expression.type()));
     } else if (expression instanceof FunctionExpression
         || expression instanceof LiteralExpression) {
-      return scriptBuilder.apply(new Script(
-          DEFAULT_SCRIPT_TYPE, EXPRESSION_LANG_NAME, serializer.serialize(expression),
-          emptyMap()));
+      return scriptBuilder.apply(
+          new Script(
+              DEFAULT_SCRIPT_TYPE,
+              EXPRESSION_LANG_NAME,
+              serializer.serialize(expression),
+              emptyMap()));
     } else {
-      throw new IllegalStateException(String.format("metric aggregation doesn't support "
-          + "expression %s", expression));
+      throw new IllegalStateException(
+          String.format("metric aggregation doesn't support " + "expression %s", expression));
     }
   }
 }

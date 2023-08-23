@@ -39,9 +39,14 @@ public class RestQuerySettingsAction extends BaseRestHandler {
   private static final String LEGACY_SQL_SETTINGS_PREFIX = "opendistro.sql.";
   private static final String LEGACY_PPL_SETTINGS_PREFIX = "opendistro.ppl.";
   private static final String LEGACY_COMMON_SETTINGS_PREFIX = "opendistro.query.";
-  private static final List<String> SETTINGS_PREFIX = ImmutableList.of(
-      SQL_SETTINGS_PREFIX, PPL_SETTINGS_PREFIX, COMMON_SETTINGS_PREFIX,
-      LEGACY_SQL_SETTINGS_PREFIX, LEGACY_PPL_SETTINGS_PREFIX, LEGACY_COMMON_SETTINGS_PREFIX);
+  private static final List<String> SETTINGS_PREFIX =
+      ImmutableList.of(
+          SQL_SETTINGS_PREFIX,
+          PPL_SETTINGS_PREFIX,
+          COMMON_SETTINGS_PREFIX,
+          LEGACY_SQL_SETTINGS_PREFIX,
+          LEGACY_PPL_SETTINGS_PREFIX,
+          LEGACY_COMMON_SETTINGS_PREFIX);
 
   public static final String SETTINGS_API_ENDPOINT = "/_plugins/_query/settings";
   public static final String LEGACY_SQL_SETTINGS_API_ENDPOINT = "/_opendistro/_sql/settings";
@@ -75,10 +80,11 @@ public class RestQuerySettingsAction extends BaseRestHandler {
     QueryContext.addRequestId();
     final ClusterUpdateSettingsRequest clusterUpdateSettingsRequest =
         Requests.clusterUpdateSettingsRequest();
-    clusterUpdateSettingsRequest.timeout(request.paramAsTime(
-        "timeout", clusterUpdateSettingsRequest.timeout()));
-    clusterUpdateSettingsRequest.clusterManagerNodeTimeout(request.paramAsTime(
-        "cluster_manager_timeout", clusterUpdateSettingsRequest.clusterManagerNodeTimeout()));
+    clusterUpdateSettingsRequest.timeout(
+        request.paramAsTime("timeout", clusterUpdateSettingsRequest.timeout()));
+    clusterUpdateSettingsRequest.clusterManagerNodeTimeout(
+        request.paramAsTime(
+            "cluster_manager_timeout", clusterUpdateSettingsRequest.clusterManagerNodeTimeout()));
     Map<String, Object> source;
     try (XContentParser parser = request.contentParser()) {
       source = parser.map();
@@ -86,20 +92,27 @@ public class RestQuerySettingsAction extends BaseRestHandler {
 
     try {
       if (source.containsKey(TRANSIENT)) {
-        clusterUpdateSettingsRequest.transientSettings(getAndFilterSettings(
-            (Map<String, ?>) source.get(TRANSIENT)));
+        clusterUpdateSettingsRequest.transientSettings(
+            getAndFilterSettings((Map<String, ?>) source.get(TRANSIENT)));
       }
       if (source.containsKey(PERSISTENT)) {
-        clusterUpdateSettingsRequest.persistentSettings(getAndFilterSettings(
-            (Map<String, ?>) source.get(PERSISTENT)));
+        clusterUpdateSettingsRequest.persistentSettings(
+            getAndFilterSettings((Map<String, ?>) source.get(PERSISTENT)));
       }
 
-      return channel -> client.admin().cluster().updateSettings(
-          clusterUpdateSettingsRequest, new RestToXContentListener<>(channel));
+      return channel ->
+          client
+              .admin()
+              .cluster()
+              .updateSettings(clusterUpdateSettingsRequest, new RestToXContentListener<>(channel));
     } catch (Exception e) {
       LOG.error("Error changing OpenSearch SQL plugin cluster settings", e);
-      return channel -> channel.sendResponse(new BytesRestResponse(INTERNAL_SERVER_ERROR,
-          ErrorMessageFactory.createErrorMessage(e, INTERNAL_SERVER_ERROR.getStatus()).toString()));
+      return channel ->
+          channel.sendResponse(
+              new BytesRestResponse(
+                  INTERNAL_SERVER_ERROR,
+                  ErrorMessageFactory.createErrorMessage(e, INTERNAL_SERVER_ERROR.getStatus())
+                      .toString()));
     }
   }
 
@@ -107,16 +120,19 @@ public class RestQuerySettingsAction extends BaseRestHandler {
     try {
       XContentBuilder builder = XContentFactory.jsonBuilder();
       builder.map(source);
-      Settings.Builder settingsBuilder = Settings.builder()
-          .loadFromSource(builder.toString(), builder.contentType());
-      settingsBuilder.keys().removeIf(key -> {
-        for (String prefix : SETTINGS_PREFIX) {
-          if (key.startsWith(prefix)) {
-            return false;
-          }
-        }
-        return true;
-      });
+      Settings.Builder settingsBuilder =
+          Settings.builder().loadFromSource(builder.toString(), builder.contentType());
+      settingsBuilder
+          .keys()
+          .removeIf(
+              key -> {
+                for (String prefix : SETTINGS_PREFIX) {
+                  if (key.startsWith(prefix)) {
+                    return false;
+                  }
+                }
+                return true;
+              });
       return settingsBuilder.build();
     } catch (IOException e) {
       throw new OpenSearchGenerationException("Failed to generate [" + source + "]", e);

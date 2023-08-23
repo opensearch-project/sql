@@ -46,7 +46,9 @@ public class FromUnixTimeTest extends DateTimeTestBase {
         LocalDateTime.of(1970, 1, 1, 0, 0, 0).plus(value, ChronoUnit.SECONDS), fromUnixTime(value));
     assertEquals(
         LocalDateTime.of(1970, 1, 1, 0, 0, 0).plus(value, ChronoUnit.SECONDS),
-        eval(fromUnixTime(DSL.literal(new ExprLongValue(value)))).datetimeValue());
+        LocalDateTime.ofInstant(
+            eval(fromUnixTime(DSL.literal(new ExprLongValue(value)))).timestampValue(),
+            ZoneOffset.UTC));
   }
 
   private static Stream<Arguments> getDoubleSamples() {
@@ -76,7 +78,9 @@ public class FromUnixTimeTest extends DateTimeTestBase {
         valueAsString);
     assertEquals(
         LocalDateTime.ofEpochSecond(intPart, (int) Math.round(fracPart * 1E9), ZoneOffset.UTC),
-        eval(fromUnixTime(DSL.literal(new ExprDoubleValue(value)))).datetimeValue(),
+        LocalDateTime.ofInstant(
+            eval(fromUnixTime(DSL.literal(new ExprDoubleValue(value)))).timestampValue(),
+            ZoneOffset.UTC),
         valueAsString);
   }
 

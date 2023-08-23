@@ -39,8 +39,6 @@ The PPL support the following data types.
 +---------------+
 | timestamp     |
 +---------------+
-| datetime      |
-+---------------+
 | date          |
 +---------------+
 | time          |
@@ -114,7 +112,7 @@ Numeric values ranged from -2147483648 to +2147483647 are recognized as integer 
 Date and Time Data Types
 ========================
 
-The date and time data types are the types that represent temporal values and PPL plugin supports types including DATE, TIME, DATETIME, TIMESTAMP and INTERVAL. By default, the OpenSearch DSL uses date type as the only date and time related type, which has contained all information about an absolute time point. To integrate with PPL language, each of the types other than timestamp is holding part of temporal or timezone information, and the usage to explicitly clarify the date and time types is reflected in the datetime functions (see `Functions <functions.rst>`_ for details), where some functions might have restrictions in the input argument type.
+The date and time data types are the types that represent temporal values and PPL plugin supports types including DATE, TIME, TIMESTAMP and INTERVAL. By default, the OpenSearch DSL uses date type as the only date and time related type, which has contained all information about an absolute time point. To integrate with PPL language, each of the types other than timestamp is holding part of temporal or timezone information, and the usage to explicitly clarify the date and time types is reflected in the datetime functions (see `Functions <functions.rst>`_ for details), where some functions might have restrictions in the input argument type.
 
 
 Date
@@ -139,19 +137,6 @@ Time represents the time on the clock or watch with no regard for which timezone
 +======+=======================+========================================+
 | Time | 'hh:mm:ss[.fraction]' | '00:00:00.000000' to '23:59:59.999999' |
 +------+-----------------------+----------------------------------------+
-
-
-Datetime
---------
-
-Datetime type is the combination of date and time. The conversion rule of date or time to datetime is described in `Conversion between date and time types`_. Datetime type does not contain timezone information. For an absolute time point that contains both date time and timezone information, see `Timestamp`_.
-
-+----------+----------------------------------+--------------------------------------------------------------+
-| Type     | Syntax                           | Range                                                        |
-+==========+==================================+==============================================================+
-| Datetime | 'yyyy-MM-dd hh:mm:ss[.fraction]' | '0001-01-01 00:00:00.000000' to '9999-12-31 23:59:59.999999' |
-+----------+----------------------------------+--------------------------------------------------------------+
-
 
 
 Timestamp
@@ -183,38 +168,26 @@ The expr is any expression that can be iterated to a quantity value eventually, 
 Conversion between date and time types
 --------------------------------------
 
-Basically the date and time types except interval can be converted to each other, but might suffer some alteration of the value or some information loss, for example extracting the time value from a datetime value, or convert a date value to a datetime value and so forth. Here lists the summary of the conversion rules that PPL plugin supports for each of the types:
+Basically the date and time types except interval can be converted to each other, but might suffer some alteration of the value or some information loss, for example extracting the time value from a timestamp value, or convert a date value to a timestamp value and so forth. Here lists the summary of the conversion rules that PPL plugin supports for each of the types:
 
 Conversion from DATE
 >>>>>>>>>>>>>>>>>>>>
 
 - Since the date value does not have any time information, conversion to `Time`_ type is not useful, and will always return a zero time value '00:00:00'.
 
-- Conversion from date to datetime has a data fill-up due to the lack of time information, and it attaches the time '00:00:00' to the original date by default and forms a datetime instance. For example, the result to covert date '2020-08-17' to datetime type is datetime '2020-08-17 00:00:00'.
-
-- Conversion to timestamp is to alternate both the time value and the timezone information, and it attaches the zero time value '00:00:00' and the session timezone (UTC by default) to the date. For example, the result to covert date '2020-08-17' to datetime type with session timezone UTC is datetime '2020-08-17 00:00:00' UTC.
+- Conversion to timestamp is to alternate both the time value and the timezone information, and it attaches the zero time value '00:00:00' and the session timezone (UTC by default) to the date. For example, the result to covert date '2020-08-17' to timestamp type with session timezone UTC is timestamp '2020-08-17 00:00:00' UTC.
 
 
 Conversion from TIME
 >>>>>>>>>>>>>>>>>>>>
 
-- Time value cannot be converted to any other date and time types since it does not contain any date information, so it is not meaningful to give no date info to a date/datetime/timestamp instance.
-
-
-Conversion from DATETIME
->>>>>>>>>>>>>>>>>>>>>>>>
-
-- Conversion from datetime to date is to extract the date part from the datetime value. For example, the result to convert datetime '2020-08-17 14:09:00' to date is date '2020-08-08'.
-
-- Conversion to time is to extract the time part from the datetime value. For example, the result to convert datetime '2020-08-17 14:09:00' to time is time '14:09:00'.
-
-- Since the datetime type does not contain timezone information, the conversion to timestamp needs to fill up the timezone part with the session timezone. For example, the result to convert datetime '2020-08-17 14:09:00' with system timezone of UTC, to timestamp is timestamp '2020-08-17 14:09:00' UTC.
+- Time value cannot be converted to any other date and time types since it does not contain any date information, so it is not meaningful to give no date info to a date/timestamp instance.
 
 
 Conversion from TIMESTAMP
 >>>>>>>>>>>>>>>>>>>>>>>>>
 
-- Conversion from timestamp is much more straightforward. To convert it to date is to extract the date value, and conversion to time is to extract the time value. Conversion to datetime, it will extracts the datetime value and leave the timezone information over. For example, the result to convert datetime '2020-08-17 14:09:00' UTC to date is date '2020-08-17', to time is '14:09:00' and to datetime is datetime '2020-08-17 14:09:00'.
+- Conversion from timestamp is much more straightforward. To convert it to date is to extract the date value, and conversion to time is to extract the time value. For example, the result to convert timestamp '2020-08-17 14:09:00' UTC to date is date '2020-08-17', to time is '14:09:00'.
 
 
 String Data Types

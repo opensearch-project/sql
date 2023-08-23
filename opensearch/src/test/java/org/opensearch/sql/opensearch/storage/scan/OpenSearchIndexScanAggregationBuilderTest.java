@@ -26,10 +26,8 @@ import org.opensearch.sql.planner.logical.LogicalSort;
 
 @ExtendWith(MockitoExtension.class)
 class OpenSearchIndexScanAggregationBuilderTest {
-  @Mock
-  OpenSearchRequestBuilder requestBuilder;
-  @Mock
-  LogicalAggregation logicalAggregation;
+  @Mock OpenSearchRequestBuilder requestBuilder;
+  @Mock LogicalAggregation logicalAggregation;
   OpenSearchIndexScanAggregationBuilder builder;
 
   @BeforeEach
@@ -71,5 +69,4 @@ class OpenSearchIndexScanAggregationBuilderTest {
   void pushDownNested() {
     assertFalse(builder.pushDownNested(mock(LogicalNested.class)));
   }
-
 }

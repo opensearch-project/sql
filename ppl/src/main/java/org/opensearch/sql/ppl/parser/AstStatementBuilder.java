@@ -21,9 +21,7 @@ import org.opensearch.sql.ast.tree.UnresolvedPlan;
 import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser;
 import org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParserBaseVisitor;
 
-/**
- * Build {@link Statement} from PPL Query.
- */
+/** Build {@link Statement} from PPL Query. */
 @RequiredArgsConstructor
 public class AstStatementBuilder extends OpenSearchPPLParserBaseVisitor<Statement> {
 

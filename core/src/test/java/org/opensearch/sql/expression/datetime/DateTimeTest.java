@@ -7,7 +7,7 @@ package org.opensearch.sql.expression.datetime;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.opensearch.sql.data.model.ExprValueUtils.nullValue;
-import static org.opensearch.sql.data.type.ExprCoreType.DATETIME;
+import static org.opensearch.sql.data.type.ExprCoreType.TIMESTAMP;
 
 import java.time.LocalDateTime;
 import java.time.ZoneId;
@@ -15,7 +15,7 @@ import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.TimeZone;
 import org.junit.jupiter.api.Test;
-import org.opensearch.sql.data.model.ExprDatetimeValue;
+import org.opensearch.sql.data.model.ExprTimestampValue;
 import org.opensearch.sql.expression.DSL;
 import org.opensearch.sql.expression.ExpressionTestBase;
 import org.opensearch.sql.expression.FunctionExpression;
@@ -25,23 +25,23 @@ class DateTimeTest extends ExpressionTestBase {
   @Test
   public void noTimeZoneNoField2() {
     FunctionExpression expr = DSL.datetime(DSL.literal("2008-05-15 22:00:00"));
-    assertEquals(DATETIME, expr.type());
-    assertEquals(new ExprDatetimeValue("2008-05-15 22:00:00"), expr.valueOf());
+    assertEquals(TIMESTAMP, expr.type());
+    assertEquals(new ExprTimestampValue("2008-05-15 22:00:00"), expr.valueOf());
   }
 
   @Test
   public void positiveTimeZoneNoField2() {
     FunctionExpression expr = DSL.datetime(DSL.literal("2008-05-15 22:00:00+01:00"));
-    assertEquals(DATETIME, expr.type());
-    assertEquals(new ExprDatetimeValue("2008-05-15 22:00:00"), expr.valueOf());
+    assertEquals(TIMESTAMP, expr.type());
+    assertEquals(new ExprTimestampValue("2008-05-15 22:00:00"), expr.valueOf());
   }
 
   @Test
   public void positiveField1WrittenField2() {
     FunctionExpression expr =
         DSL.datetime(DSL.literal("2008-05-15 22:00:00+01:00"), DSL.literal("America/Los_Angeles"));
-    assertEquals(DATETIME, expr.type());
-    assertEquals(new ExprDatetimeValue("2008-05-15 14:00:00"), expr.valueOf());
+    assertEquals(TIMESTAMP, expr.type());
+    assertEquals(new ExprTimestampValue("2008-05-15 14:00:00"), expr.valueOf());
   }
 
   // When no timezone argument is passed inside the datetime field, it assumes local time.
@@ -57,23 +57,23 @@ class DateTimeTest extends ExpressionTestBase {
             .atZone(ZoneId.of(TimeZone.getDefault().getID()))
             .withZoneSameInstant(ZoneId.of(timeZone));
     FunctionExpression expr = DSL.datetime(DSL.literal(dt), DSL.literal(timeZone));
-    assertEquals(DATETIME, expr.type());
-    assertEquals(new ExprDatetimeValue(timeZoneLocal.toLocalDateTime()), expr.valueOf());
+    assertEquals(TIMESTAMP, expr.type());
+    assertEquals(new ExprTimestampValue(timeZoneLocal.toLocalDateTime()), expr.valueOf());
   }
 
   @Test
   public void negativeField1WrittenField2() {
     FunctionExpression expr =
         DSL.datetime(DSL.literal("2008-05-15 22:00:00-11:00"), DSL.literal("America/Los_Angeles"));
-    assertEquals(DATETIME, expr.type());
-    assertEquals(new ExprDatetimeValue("2008-05-16 02:00:00"), expr.valueOf());
+    assertEquals(TIMESTAMP, expr.type());
+    assertEquals(new ExprTimestampValue("2008-05-16 02:00:00"), expr.valueOf());
   }
 
   @Test
   public void negativeField1PositiveField2() {
     FunctionExpression expr =
         DSL.datetime(DSL.literal("2008-05-15 22:00:00-12:00"), DSL.literal("+15:00"));
-    assertEquals(DATETIME, expr.type());
+    assertEquals(TIMESTAMP, expr.type());
     assertEquals(nullValue(), expr.valueOf());
   }
 
@@ -81,7 +81,7 @@ class DateTimeTest extends ExpressionTestBase {
   public void twentyFourHourDifference() {
     FunctionExpression expr =
         DSL.datetime(DSL.literal("2008-05-15 22:00:00-14:00"), DSL.literal("+10:00"));
-    assertEquals(DATETIME, expr.type());
+    assertEquals(TIMESTAMP, expr.type());
     assertEquals(nullValue(), expr.valueOf());
   }
 
@@ -89,14 +89,14 @@ class DateTimeTest extends ExpressionTestBase {
   public void negativeToNull() {
     FunctionExpression expr =
         DSL.datetime(DSL.literal("2008-05-15 22:00:00-11:00"), DSL.literal(nullValue()));
-    assertEquals(DATETIME, expr.type());
+    assertEquals(TIMESTAMP, expr.type());
     assertEquals(nullValue(), expr.valueOf());
   }
 
   @Test
   public void invalidDate() {
     FunctionExpression expr = DSL.datetime(DSL.literal("2008-04-31 22:00:00-11:00"));
-    assertEquals(DATETIME, expr.type());
+    assertEquals(TIMESTAMP, expr.type());
     assertEquals(nullValue(), expr.valueOf());
   }
 }

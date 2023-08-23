@@ -3,7 +3,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-
 package org.opensearch.sql.ppl.antlr;
 
 import static org.junit.Assert.assertNotEquals;
@@ -19,8 +18,7 @@ import org.opensearch.sql.common.antlr.SyntaxCheckException;
 
 public class PPLSyntaxParserTest {
 
-  @Rule
-  public ExpectedException exceptionRule = ExpectedException.none();
+  @Rule public ExpectedException exceptionRule = ExpectedException.none();
 
   @Test
   public void testSearchCommandShouldPass() {
@@ -140,99 +138,170 @@ public class PPLSyntaxParserTest {
 
   @Test
   public void testCanParseMultiMatchRelevanceFunction() {
-    assertNotEquals(null, new PPLSyntaxParser().parse(
-        "SOURCE=test | WHERE multi_match(['address'], 'query')"));
-    assertNotEquals(null, new PPLSyntaxParser().parse(
-        "SOURCE=test | WHERE multi_match(['address', 'notes'], 'query')"));
-    assertNotEquals(null, new PPLSyntaxParser().parse(
-        "SOURCE=test | WHERE multi_match([\"*\"], 'query')"));
-    assertNotEquals(null, new PPLSyntaxParser().parse(
-        "SOURCE=test | WHERE multi_match([\"address\"], 'query')"));
-    assertNotEquals(null, new PPLSyntaxParser().parse(
-        "SOURCE=test | WHERE multi_match([`address`], 'query')"));
-    assertNotEquals(null, new PPLSyntaxParser().parse(
-        "SOURCE=test | WHERE multi_match([address], 'query')"));
+    assertNotEquals(
+        null, new PPLSyntaxParser().parse("SOURCE=test | WHERE multi_match(['address'], 'query')"));
+    assertNotEquals(
+        null,
+        new PPLSyntaxParser()
+            .parse("SOURCE=test | WHERE multi_match(['address', 'notes'], 'query')"));
+    assertNotEquals(
+        null, new PPLSyntaxParser().parse("SOURCE=test | WHERE multi_match([\"*\"], 'query')"));
+    assertNotEquals(
+        null,
+        new PPLSyntaxParser().parse("SOURCE=test | WHERE multi_match([\"address\"], 'query')"));
+    assertNotEquals(
+        null, new PPLSyntaxParser().parse("SOURCE=test | WHERE multi_match([`address`], 'query')"));
+    assertNotEquals(
+        null, new PPLSyntaxParser().parse("SOURCE=test | WHERE multi_match([address], 'query')"));
 
-    assertNotEquals(null, new PPLSyntaxParser().parse(
-        "SOURCE=test | WHERE multi_match(['address' ^ 1.0, 'notes' ^ 2.2], 'query')"));
-    assertNotEquals(null, new PPLSyntaxParser().parse(
-        "SOURCE=test | WHERE multi_match(['address' ^ 1.1, 'notes'], 'query')"));
-    assertNotEquals(null, new PPLSyntaxParser().parse(
-        "SOURCE=test | WHERE multi_match(['address', 'notes' ^ 1.5], 'query')"));
-    assertNotEquals(null, new PPLSyntaxParser().parse(
-        "SOURCE=test | WHERE multi_match(['address', 'notes' 3], 'query')"));
-    assertNotEquals(null, new PPLSyntaxParser().parse(
-        "SOURCE=test | WHERE multi_match(['address' ^ .3, 'notes' 3], 'query')"));
+    assertNotEquals(
+        null,
+        new PPLSyntaxParser()
+            .parse("SOURCE=test | WHERE multi_match(['address' ^ 1.0, 'notes' ^ 2.2], 'query')"));
+    assertNotEquals(
+        null,
+        new PPLSyntaxParser()
+            .parse("SOURCE=test | WHERE multi_match(['address' ^ 1.1, 'notes'], 'query')"));
+    assertNotEquals(
+        null,
+        new PPLSyntaxParser()
+            .parse("SOURCE=test | WHERE multi_match(['address', 'notes' ^ 1.5], 'query')"));
+    assertNotEquals(
+        null,
+        new PPLSyntaxParser()
+            .parse("SOURCE=test | WHERE multi_match(['address', 'notes' 3], 'query')"));
+    assertNotEquals(
+        null,
+        new PPLSyntaxParser()
+            .parse("SOURCE=test | WHERE multi_match(['address' ^ .3, 'notes' 3], 'query')"));
 
-    assertNotEquals(null, new PPLSyntaxParser().parse(
-        "SOURCE=test | WHERE multi_match([\"Tags\" ^ 1.5, Title, `Body` 4.2], 'query')"));
-    assertNotEquals(null, new PPLSyntaxParser().parse(
-        "SOURCE=test | WHERE multi_match([\"Tags\" ^ 1.5, Title, `Body` 4.2], 'query',"
-            + "analyzer=keyword, quote_field_suffix=\".exact\", fuzzy_prefix_length = 4)"));
+    assertNotEquals(
+        null,
+        new PPLSyntaxParser()
+            .parse(
+                "SOURCE=test | WHERE multi_match([\"Tags\" ^ 1.5, Title, `Body` 4.2], 'query')"));
+    assertNotEquals(
+        null,
+        new PPLSyntaxParser()
+            .parse(
+                "SOURCE=test | WHERE multi_match([\"Tags\" ^ 1.5, Title, `Body` 4.2], 'query',"
+                    + "analyzer=keyword, quote_field_suffix=\".exact\", fuzzy_prefix_length = 4)"));
   }
 
   @Test
   public void testCanParseSimpleQueryStringRelevanceFunction() {
-    assertNotEquals(null, new PPLSyntaxParser().parse(
-        "SOURCE=test | WHERE simple_query_string(['address'], 'query')"));
-    assertNotEquals(null, new PPLSyntaxParser().parse(
-        "SOURCE=test | WHERE simple_query_string(['address', 'notes'], 'query')"));
-    assertNotEquals(null, new PPLSyntaxParser().parse(
-        "SOURCE=test | WHERE simple_query_string([\"*\"], 'query')"));
-    assertNotEquals(null, new PPLSyntaxParser().parse(
-        "SOURCE=test | WHERE simple_query_string([\"address\"], 'query')"));
-    assertNotEquals(null, new PPLSyntaxParser().parse(
-        "SOURCE=test | WHERE simple_query_string([`address`], 'query')"));
-    assertNotEquals(null, new PPLSyntaxParser().parse(
-        "SOURCE=test | WHERE simple_query_string([address], 'query')"));
+    assertNotEquals(
+        null,
+        new PPLSyntaxParser()
+            .parse("SOURCE=test | WHERE simple_query_string(['address'], 'query')"));
+    assertNotEquals(
+        null,
+        new PPLSyntaxParser()
+            .parse("SOURCE=test | WHERE simple_query_string(['address', 'notes'], 'query')"));
+    assertNotEquals(
+        null,
+        new PPLSyntaxParser().parse("SOURCE=test | WHERE simple_query_string([\"*\"], 'query')"));
+    assertNotEquals(
+        null,
+        new PPLSyntaxParser()
+            .parse("SOURCE=test | WHERE simple_query_string([\"address\"], 'query')"));
+    assertNotEquals(
+        null,
+        new PPLSyntaxParser()
+            .parse("SOURCE=test | WHERE simple_query_string([`address`], 'query')"));
+    assertNotEquals(
+        null,
+        new PPLSyntaxParser().parse("SOURCE=test | WHERE simple_query_string([address], 'query')"));
 
-    assertNotEquals(null, new PPLSyntaxParser().parse(
-        "SOURCE=test | WHERE simple_query_string(['address' ^ 1.0, 'notes' ^ 2.2], 'query')"));
-    assertNotEquals(null, new PPLSyntaxParser().parse(
-        "SOURCE=test | WHERE simple_query_string(['address' ^ 1.1, 'notes'], 'query')"));
-    assertNotEquals(null, new PPLSyntaxParser().parse(
-        "SOURCE=test | WHERE simple_query_string(['address', 'notes' ^ 1.5], 'query')"));
-    assertNotEquals(null, new PPLSyntaxParser().parse(
-        "SOURCE=test | WHERE simple_query_string(['address', 'notes' 3], 'query')"));
-    assertNotEquals(null, new PPLSyntaxParser().parse(
-        "SOURCE=test | WHERE simple_query_string(['address' ^ .3, 'notes' 3], 'query')"));
+    assertNotEquals(
+        null,
+        new PPLSyntaxParser()
+            .parse(
+                "SOURCE=test | WHERE simple_query_string(['address' ^ 1.0, 'notes' ^ 2.2],"
+                    + " 'query')"));
+    assertNotEquals(
+        null,
+        new PPLSyntaxParser()
+            .parse("SOURCE=test | WHERE simple_query_string(['address' ^ 1.1, 'notes'], 'query')"));
+    assertNotEquals(
+        null,
+        new PPLSyntaxParser()
+            .parse("SOURCE=test | WHERE simple_query_string(['address', 'notes' ^ 1.5], 'query')"));
+    assertNotEquals(
+        null,
+        new PPLSyntaxParser()
+            .parse("SOURCE=test | WHERE simple_query_string(['address', 'notes' 3], 'query')"));
+    assertNotEquals(
+        null,
+        new PPLSyntaxParser()
+            .parse(
+                "SOURCE=test | WHERE simple_query_string(['address' ^ .3, 'notes' 3], 'query')"));
 
-    assertNotEquals(null, new PPLSyntaxParser().parse(
-        "SOURCE=test | WHERE simple_query_string([\"Tags\" ^ 1.5, Title, `Body` 4.2], 'query')"));
-    assertNotEquals(null, new PPLSyntaxParser().parse(
-        "SOURCE=test | WHERE simple_query_string([\"Tags\" ^ 1.5, Title, `Body` 4.2], 'query',"
-            + "analyzer=keyword, quote_field_suffix=\".exact\", fuzzy_prefix_length = 4)"));
+    assertNotEquals(
+        null,
+        new PPLSyntaxParser()
+            .parse(
+                "SOURCE=test | WHERE simple_query_string([\"Tags\" ^ 1.5, Title, `Body` 4.2],"
+                    + " 'query')"));
+    assertNotEquals(
+        null,
+        new PPLSyntaxParser()
+            .parse(
+                "SOURCE=test | WHERE simple_query_string([\"Tags\" ^ 1.5, Title, `Body` 4.2],"
+                    + " 'query',analyzer=keyword, quote_field_suffix=\".exact\","
+                    + " fuzzy_prefix_length = 4)"));
   }
 
   @Test
   public void testCanParseQueryStringRelevanceFunction() {
-    assertNotEquals(null, new PPLSyntaxParser().parse(
-        "SOURCE=test | WHERE query_string(['address'], 'query')"));
-    assertNotEquals(null, new PPLSyntaxParser().parse(
-        "SOURCE=test | WHERE query_string(['address', 'notes'], 'query')"));
-    assertNotEquals(null, new PPLSyntaxParser().parse(
-        "SOURCE=test | WHERE query_string([\"*\"], 'query')"));
-    assertNotEquals(null, new PPLSyntaxParser().parse(
-        "SOURCE=test | WHERE query_string([\"address\"], 'query')"));
-    assertNotEquals(null, new PPLSyntaxParser().parse(
-        "SOURCE=test | WHERE query_string([`address`], 'query')"));
-    assertNotEquals(null, new PPLSyntaxParser().parse(
-        "SOURCE=test | WHERE query_string([address], 'query')"));
-    assertNotEquals(null, new PPLSyntaxParser().parse(
-        "SOURCE=test | WHERE query_string(['address' ^ 1.0, 'notes' ^ 2.2], 'query')"));
-    assertNotEquals(null, new PPLSyntaxParser().parse(
-        "SOURCE=test | WHERE query_string(['address' ^ 1.1, 'notes'], 'query')"));
-    assertNotEquals(null, new PPLSyntaxParser().parse(
-        "SOURCE=test | WHERE query_string(['address', 'notes' ^ 1.5], 'query')"));
-    assertNotEquals(null, new PPLSyntaxParser().parse(
-        "SOURCE=test | WHERE query_string(['address', 'notes' 3], 'query')"));
-    assertNotEquals(null, new PPLSyntaxParser().parse(
-        "SOURCE=test | WHERE query_string(['address' ^ .3, 'notes' 3], 'query')"));
-    assertNotEquals(null, new PPLSyntaxParser().parse(
-        "SOURCE=test | WHERE query_string([\"Tags\" ^ 1.5, Title, `Body` 4.2], 'query')"));
-    assertNotEquals(null, new PPLSyntaxParser().parse(
-        "SOURCE=test | WHERE query_string([\"Tags\" ^ 1.5, Title, `Body` 4.2], 'query',"
-            + "analyzer=keyword, quote_field_suffix=\".exact\", fuzzy_prefix_length = 4)"));
+    assertNotEquals(
+        null,
+        new PPLSyntaxParser().parse("SOURCE=test | WHERE query_string(['address'], 'query')"));
+    assertNotEquals(
+        null,
+        new PPLSyntaxParser()
+            .parse("SOURCE=test | WHERE query_string(['address', 'notes'], 'query')"));
+    assertNotEquals(
+        null, new PPLSyntaxParser().parse("SOURCE=test | WHERE query_string([\"*\"], 'query')"));
+    assertNotEquals(
+        null,
+        new PPLSyntaxParser().parse("SOURCE=test | WHERE query_string([\"address\"], 'query')"));
+    assertNotEquals(
+        null,
+        new PPLSyntaxParser().parse("SOURCE=test | WHERE query_string([`address`], 'query')"));
+    assertNotEquals(
+        null, new PPLSyntaxParser().parse("SOURCE=test | WHERE query_string([address], 'query')"));
+    assertNotEquals(
+        null,
+        new PPLSyntaxParser()
+            .parse("SOURCE=test | WHERE query_string(['address' ^ 1.0, 'notes' ^ 2.2], 'query')"));
+    assertNotEquals(
+        null,
+        new PPLSyntaxParser()
+            .parse("SOURCE=test | WHERE query_string(['address' ^ 1.1, 'notes'], 'query')"));
+    assertNotEquals(
+        null,
+        new PPLSyntaxParser()
+            .parse("SOURCE=test | WHERE query_string(['address', 'notes' ^ 1.5], 'query')"));
+    assertNotEquals(
+        null,
+        new PPLSyntaxParser()
+            .parse("SOURCE=test | WHERE query_string(['address', 'notes' 3], 'query')"));
+    assertNotEquals(
+        null,
+        new PPLSyntaxParser()
+            .parse("SOURCE=test | WHERE query_string(['address' ^ .3, 'notes' 3], 'query')"));
+    assertNotEquals(
+        null,
+        new PPLSyntaxParser()
+            .parse(
+                "SOURCE=test | WHERE query_string([\"Tags\" ^ 1.5, Title, `Body` 4.2], 'query')"));
+    assertNotEquals(
+        null,
+        new PPLSyntaxParser()
+            .parse(
+                "SOURCE=test | WHERE query_string([\"Tags\" ^ 1.5, Title, `Body` 4.2], 'query',"
+                    + "analyzer=keyword, quote_field_suffix=\".exact\", fuzzy_prefix_length = 4)"));
   }
 
   @Test
@@ -275,15 +344,35 @@ public class PPLSyntaxParserTest {
 
   @Test
   public void testCanParseExtractFunction() {
-    String[] parts = List.of("MICROSECOND", "SECOND", "MINUTE", "HOUR", "DAY",
-            "WEEK", "MONTH", "QUARTER", "YEAR", "SECOND_MICROSECOND",
-            "MINUTE_MICROSECOND", "MINUTE_SECOND", "HOUR_MICROSECOND",
-            "HOUR_SECOND", "HOUR_MINUTE", "DAY_MICROSECOND",
-            "DAY_SECOND", "DAY_MINUTE", "DAY_HOUR", "YEAR_MONTH").toArray(new String[0]);
+    String[] parts =
+        List.of(
+                "MICROSECOND",
+                "SECOND",
+                "MINUTE",
+                "HOUR",
+                "DAY",
+                "WEEK",
+                "MONTH",
+                "QUARTER",
+                "YEAR",
+                "SECOND_MICROSECOND",
+                "MINUTE_MICROSECOND",
+                "MINUTE_SECOND",
+                "HOUR_MICROSECOND",
+                "HOUR_SECOND",
+                "HOUR_MINUTE",
+                "DAY_MICROSECOND",
+                "DAY_SECOND",
+                "DAY_MINUTE",
+                "DAY_HOUR",
+                "YEAR_MONTH")
+            .toArray(new String[0]);
 
     for (String part : parts) {
-      assertNotNull(new PPLSyntaxParser().parse(
-              String.format("SOURCE=test | eval k = extract(%s FROM \"2023-02-06\")", part)));
+      assertNotNull(
+          new PPLSyntaxParser()
+              .parse(
+                  String.format("SOURCE=test | eval k = extract(%s FROM \"2023-02-06\")", part)));
     }
   }
 
@@ -294,8 +383,9 @@ public class PPLSyntaxParserTest {
 
     for (String type : types) {
       for (String format : formats) {
-        assertNotNull(new PPLSyntaxParser().parse(
-                String.format("SOURCE=test | eval k = get_format(%s, %s)", type, format)));
+        assertNotNull(
+            new PPLSyntaxParser()
+                .parse(String.format("SOURCE=test | eval k = get_format(%s, %s)", type, format)));
       }
     }
   }
@@ -303,24 +393,28 @@ public class PPLSyntaxParserTest {
   @Test
   public void testCannotParseGetFormatFunctionWithBadArg() {
     assertThrows(
-            SyntaxCheckException.class,
-            () -> new PPLSyntaxParser().parse(
-                    "SOURCE=test | eval k = GET_FORMAT(NONSENSE_ARG,'INTERNAL')"));
+        SyntaxCheckException.class,
+        () ->
+            new PPLSyntaxParser()
+                .parse("SOURCE=test | eval k = GET_FORMAT(NONSENSE_ARG,'INTERNAL')"));
   }
 
   @Test
   public void testCanParseTimestampaddFunction() {
-    assertNotNull(new PPLSyntaxParser().parse(
-            "SOURCE=test | eval k = TIMESTAMPADD(MINUTE, 1, '2003-01-02')"));
-    assertNotNull(new PPLSyntaxParser().parse(
-            "SOURCE=test | eval k = TIMESTAMPADD(WEEK,1,'2003-01-02')"));
+    assertNotNull(
+        new PPLSyntaxParser()
+            .parse("SOURCE=test | eval k = TIMESTAMPADD(MINUTE, 1, '2003-01-02')"));
+    assertNotNull(
+        new PPLSyntaxParser().parse("SOURCE=test | eval k = TIMESTAMPADD(WEEK,1,'2003-01-02')"));
   }
 
   @Test
   public void testCanParseTimestampdiffFunction() {
-    assertNotNull(new PPLSyntaxParser().parse(
-            "SOURCE=test | eval k = TIMESTAMPDIFF(MINUTE, '2003-01-02', '2003-01-02')"));
-    assertNotNull(new PPLSyntaxParser().parse(
-            "SOURCE=test | eval k = TIMESTAMPDIFF(WEEK,'2003-01-02','2003-01-02')"));
+    assertNotNull(
+        new PPLSyntaxParser()
+            .parse("SOURCE=test | eval k = TIMESTAMPDIFF(MINUTE, '2003-01-02', '2003-01-02')"));
+    assertNotNull(
+        new PPLSyntaxParser()
+            .parse("SOURCE=test | eval k = TIMESTAMPDIFF(WEEK,'2003-01-02','2003-01-02')"));
   }
 }

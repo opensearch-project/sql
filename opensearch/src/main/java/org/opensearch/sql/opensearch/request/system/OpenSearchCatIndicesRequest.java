@@ -3,7 +3,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-
 package org.opensearch.sql.opensearch.request.system;
 
 import static org.opensearch.sql.data.model.ExprValueUtils.stringValue;
@@ -18,9 +17,7 @@ import org.opensearch.sql.data.model.ExprTupleValue;
 import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.opensearch.client.OpenSearchClient;
 
-/**
- * Cat indices request.
- */
+/** Cat indices request. */
 @RequiredArgsConstructor
 public class OpenSearchCatIndicesRequest implements OpenSearchSystemRequest {
 

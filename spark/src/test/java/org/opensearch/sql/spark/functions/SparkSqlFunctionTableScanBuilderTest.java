@@ -18,23 +18,20 @@ import org.opensearch.sql.spark.request.SparkQueryRequest;
 import org.opensearch.sql.storage.TableScanOperator;
 
 public class SparkSqlFunctionTableScanBuilderTest {
-  @Mock
-  private SparkClient sparkClient;
+  @Mock private SparkClient sparkClient;
 
-  @Mock
-  private LogicalProject logicalProject;
+  @Mock private LogicalProject logicalProject;
 
   @Test
   void testBuild() {
     SparkQueryRequest sparkQueryRequest = new SparkQueryRequest();
     sparkQueryRequest.setSql(QUERY);
 
-    SparkSqlFunctionTableScanBuilder sparkSqlFunctionTableScanBuilder
-        = new SparkSqlFunctionTableScanBuilder(sparkClient, sparkQueryRequest);
-    TableScanOperator sqlFunctionTableScanOperator
-        = sparkSqlFunctionTableScanBuilder.build();
-    Assertions.assertTrue(sqlFunctionTableScanOperator
-        instanceof SparkSqlFunctionTableScanOperator);
+    SparkSqlFunctionTableScanBuilder sparkSqlFunctionTableScanBuilder =
+        new SparkSqlFunctionTableScanBuilder(sparkClient, sparkQueryRequest);
+    TableScanOperator sqlFunctionTableScanOperator = sparkSqlFunctionTableScanBuilder.build();
+    Assertions.assertTrue(
+        sqlFunctionTableScanOperator instanceof SparkSqlFunctionTableScanOperator);
   }
 
   @Test
@@ -42,8 +39,8 @@ public class SparkSqlFunctionTableScanBuilderTest {
     SparkQueryRequest sparkQueryRequest = new SparkQueryRequest();
     sparkQueryRequest.setSql(QUERY);
 
-    SparkSqlFunctionTableScanBuilder sparkSqlFunctionTableScanBuilder
-        = new SparkSqlFunctionTableScanBuilder(sparkClient, sparkQueryRequest);
+    SparkSqlFunctionTableScanBuilder sparkSqlFunctionTableScanBuilder =
+        new SparkSqlFunctionTableScanBuilder(sparkClient, sparkQueryRequest);
     Assertions.assertTrue(sparkSqlFunctionTableScanBuilder.pushDownProject(logicalProject));
   }
 }

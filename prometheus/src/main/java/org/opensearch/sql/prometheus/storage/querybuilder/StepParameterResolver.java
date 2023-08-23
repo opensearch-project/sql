@@ -15,25 +15,20 @@ import org.apache.commons.lang3.StringUtils;
 import org.opensearch.sql.expression.NamedExpression;
 import org.opensearch.sql.expression.span.SpanExpression;
 
-/**
- * This class resolves step parameter required for
- * query_range api of prometheus.
- */
+/** This class resolves step parameter required for query_range api of prometheus. */
 @NoArgsConstructor
 public class StepParameterResolver {
 
   /**
-   * Extract step from groupByList or apply heuristic arithmetic
-   * on endTime and startTime.
-   *
+   * Extract step from groupByList or apply heuristic arithmetic on endTime and startTime.
    *
    * @param startTime startTime.
    * @param endTime endTime.
    * @param groupByList groupByList.
    * @return Step String.
    */
-  public static String resolve(@NonNull Long startTime, @NonNull Long endTime,
-                        List<NamedExpression> groupByList) {
+  public static String resolve(
+      @NonNull Long startTime, @NonNull Long endTime, List<NamedExpression> groupByList) {
     Optional<SpanExpression> spanExpression = getSpanExpression(groupByList);
     if (spanExpression.isPresent()) {
       if (StringUtils.isEmpty(spanExpression.get().getUnit().getName())) {
@@ -48,7 +43,7 @@ public class StepParameterResolver {
   }
 
   private static Optional<SpanExpression> getSpanExpression(
-        List<NamedExpression> namedExpressionList) {
+      List<NamedExpression> namedExpressionList) {
     if (namedExpressionList == null) {
       return Optional.empty();
     }
@@ -57,7 +52,4 @@ public class StepParameterResolver {
         .map(expression -> (SpanExpression) expression.getDelegated())
         .findFirst();
   }
-
-
-
 }

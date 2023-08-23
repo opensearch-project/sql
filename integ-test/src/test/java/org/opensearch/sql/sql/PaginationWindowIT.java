@@ -40,10 +40,11 @@ public class PaginationWindowIT extends SQLIntegTestCase {
     } while (response.has("cursor"));
     numRows += response.getJSONArray("datarows").length();
 
-    var countRows = executeJdbcRequest("SELECT COUNT(*) FROM " + TEST_INDEX_PHRASE)
-        .getJSONArray("datarows")
-        .getJSONArray(0)
-        .get(0);
+    var countRows =
+        executeJdbcRequest("SELECT COUNT(*) FROM " + TEST_INDEX_PHRASE)
+            .getJSONArray("datarows")
+            .getJSONArray(0)
+            .get(0);
     assertEquals(countRows, numRows);
   }
 
@@ -62,10 +63,11 @@ public class PaginationWindowIT extends SQLIntegTestCase {
       response = executeCursorQuery(cursor);
     } while (response.has("cursor"));
     numRows += response.getJSONArray("datarows").length();
-    var countRows = executeJdbcRequest("SELECT COUNT(*) FROM " + TEST_INDEX_PHRASE)
-        .getJSONArray("datarows")
-        .getJSONArray(0)
-        .get(0);
+    var countRows =
+        executeJdbcRequest("SELECT COUNT(*) FROM " + TEST_INDEX_PHRASE)
+            .getJSONArray("datarows")
+            .getJSONArray(0)
+            .get(0);
     assertEquals(countRows, numRows);
     assertTrue(numRows > querySizeLimit);
   }
@@ -74,12 +76,10 @@ public class PaginationWindowIT extends SQLIntegTestCase {
   public void testQuerySizeLimitDoesNotEffectPageSize() throws IOException {
     setQuerySizeLimit(3);
     setMaxResultWindow(TEST_INDEX_PHRASE, 4);
-    var response
-        = executeQueryTemplate("SELECT * FROM %s", TEST_INDEX_PHRASE, 4);
+    var response = executeQueryTemplate("SELECT * FROM %s", TEST_INDEX_PHRASE, 4);
     assertEquals(4, response.getInt("size"));
 
-    var response2
-        = executeQueryTemplate("SELECT * FROM %s", TEST_INDEX_PHRASE, 2);
+    var response2 = executeQueryTemplate("SELECT * FROM %s", TEST_INDEX_PHRASE, 2);
     assertEquals(2, response2.getInt("size"));
   }
 
@@ -87,11 +87,9 @@ public class PaginationWindowIT extends SQLIntegTestCase {
   public void testFetchSizeLargerThanResultWindowFails() throws IOException {
     final int window = 2;
     setMaxResultWindow(TEST_INDEX_PHRASE, 2);
-    assertThrows(ResponseException.class,
-        () -> executeQueryTemplate("SELECT * FROM %s",
-            TEST_INDEX_PHRASE, window + 1));
+    assertThrows(
+        ResponseException.class,
+        () -> executeQueryTemplate("SELECT * FROM %s", TEST_INDEX_PHRASE, window + 1));
     resetMaxResultWindow(TEST_INDEX_PHRASE);
   }
-
-
 }

@@ -6,7 +6,6 @@
 package org.opensearch.sql.opensearch.storage.script.aggregation.dsl;
 
 import static org.opensearch.sql.data.type.ExprCoreType.DATE;
-import static org.opensearch.sql.data.type.ExprCoreType.DATETIME;
 import static org.opensearch.sql.data.type.ExprCoreType.TIME;
 import static org.opensearch.sql.data.type.ExprCoreType.TIMESTAMP;
 
@@ -26,29 +25,24 @@ import org.opensearch.sql.expression.NamedExpression;
 import org.opensearch.sql.expression.span.SpanExpression;
 import org.opensearch.sql.opensearch.storage.serialization.ExpressionSerializer;
 
-/**
- * Bucket Aggregation Builder.
- */
+/** Bucket Aggregation Builder. */
 public class BucketAggregationBuilder {
 
   private final AggregationBuilderHelper helper;
 
-  public BucketAggregationBuilder(
-      ExpressionSerializer serializer) {
+  public BucketAggregationBuilder(ExpressionSerializer serializer) {
     this.helper = new AggregationBuilderHelper(serializer);
   }
 
-  /**
-   * Build the list of CompositeValuesSourceBuilder.
-   */
+  /** Build the list of CompositeValuesSourceBuilder. */
   public List<CompositeValuesSourceBuilder<?>> build(
       List<Triple<NamedExpression, SortOrder, MissingOrder>> groupList) {
     ImmutableList.Builder<CompositeValuesSourceBuilder<?>> resultBuilder =
         new ImmutableList.Builder<>();
     for (Triple<NamedExpression, SortOrder, MissingOrder> groupPair : groupList) {
       resultBuilder.add(
-          buildCompositeValuesSourceBuilder(groupPair.getLeft(),
-              groupPair.getMiddle(), groupPair.getRight()));
+          buildCompositeValuesSourceBuilder(
+              groupPair.getLeft(), groupPair.getMiddle(), groupPair.getRight()));
     }
     return resultBuilder.build();
   }
@@ -71,7 +65,7 @@ public class BucketAggregationBuilder {
               .missingOrder(missingOrder)
               .order(sortOrder);
       // Time types values are converted to LONG in ExpressionAggregationScript::execute
-      if (List.of(TIMESTAMP, TIME, DATE, DATETIME).contains(expr.getDelegated().type())) {
+      if (List.of(TIMESTAMP, TIME, DATE).contains(expr.getDelegated().type())) {
         sourceBuilder.userValuetypeHint(ValueType.LONG);
       }
       return helper.build(expr.getDelegated(), sourceBuilder::field, sourceBuilder::script);

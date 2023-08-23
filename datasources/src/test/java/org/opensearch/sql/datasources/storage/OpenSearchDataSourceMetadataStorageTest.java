@@ -464,6 +464,24 @@ public class OpenSearchDataSourceMetadataStorageTest {
   }
 
   @Test
+  public void testUpdateDataSourceMetadataWithNOOP() {
+    Mockito.when(encryptor.encrypt("secret_key")).thenReturn("secret_key");
+    Mockito.when(encryptor.encrypt("access_key")).thenReturn("access_key");
+    Mockito.when(client.update(ArgumentMatchers.any())).thenReturn(updateResponseActionFuture);
+    Mockito.when(updateResponseActionFuture.actionGet()).thenReturn(updateResponse);
+    Mockito.when(updateResponse.getResult()).thenReturn(DocWriteResponse.Result.NOOP);
+    DataSourceMetadata dataSourceMetadata = getDataSourceMetadata();
+
+    this.openSearchDataSourceMetadataStorage.updateDataSourceMetadata(dataSourceMetadata);
+
+    Mockito.verify(encryptor, Mockito.times(1)).encrypt("secret_key");
+    Mockito.verify(encryptor, Mockito.times(1)).encrypt("access_key");
+    Mockito.verify(client.admin().indices(), Mockito.times(0)).create(ArgumentMatchers.any());
+    Mockito.verify(client, Mockito.times(1)).update(ArgumentMatchers.any());
+    Mockito.verify(client.threadPool().getThreadContext(), Mockito.times(1)).stashContext();
+  }
+
+  @Test
   public void testUpdateDataSourceMetadataWithNotFoundResult() {
     Mockito.when(encryptor.encrypt("secret_key")).thenReturn("secret_key");
     Mockito.when(encryptor.encrypt("access_key")).thenReturn("access_key");

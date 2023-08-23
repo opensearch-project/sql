@@ -19,8 +19,7 @@ import org.opensearch.sql.spark.client.SparkClient;
 
 @ExtendWith(MockitoExtension.class)
 public class SparkScanTest {
-  @Mock
-  private SparkClient sparkClient;
+  @Mock private SparkClient sparkClient;
 
   @Test
   @SneakyThrows
@@ -36,8 +35,6 @@ public class SparkScanTest {
   void testExplain() {
     SparkScan sparkScan = new SparkScan(sparkClient);
     sparkScan.getRequest().setSql(QUERY);
-    assertEquals(
-        "SparkQueryRequest(sql=select 1)",
-        sparkScan.explain());
+    assertEquals("SparkQueryRequest(sql=select 1)", sparkScan.explain());
   }
 }

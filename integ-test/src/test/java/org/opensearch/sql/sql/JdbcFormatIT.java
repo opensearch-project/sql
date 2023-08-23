@@ -3,7 +3,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-
 package org.opensearch.sql.sql;
 
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_BANK;
@@ -23,11 +22,16 @@ public class JdbcFormatIT extends SQLIntegTestCase {
 
   @Test
   public void testSimpleDataTypesInSchema() {
-    JSONObject response = new JSONObject(executeQuery(
-        "SELECT account_number, address, age, birthdate, city, male, state "
-            + "FROM " + TEST_INDEX_BANK, "jdbc"));
+    JSONObject response =
+        new JSONObject(
+            executeQuery(
+                "SELECT account_number, address, age, birthdate, city, male, state "
+                    + "FROM "
+                    + TEST_INDEX_BANK,
+                "jdbc"));
 
-    verifySchema(response,
+    verifySchema(
+        response,
         schema("account_number", "long"),
         schema("address", "text"),
         schema("age", "integer"),
@@ -39,10 +43,10 @@ public class JdbcFormatIT extends SQLIntegTestCase {
 
   @Test
   public void testAliasInSchema() {
-    JSONObject response = new JSONObject(executeQuery(
-        "SELECT account_number AS acc FROM " + TEST_INDEX_BANK, "jdbc"));
+    JSONObject response =
+        new JSONObject(
+            executeQuery("SELECT account_number AS acc FROM " + TEST_INDEX_BANK, "jdbc"));
 
     verifySchema(response, schema("account_number", "acc", "long"));
   }
-
 }

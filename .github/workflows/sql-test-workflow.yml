@@ -31,24 +31,16 @@ jobs:
     - name: Run tests
       id: tests
       run: |
-        # checkstyle
-        ./gradlew :opensearch:checkstyleMain              || echo "* Checkstyle failed for opensearch/src" > report.log
-        ./gradlew :opensearch:checkstyleTest              || echo "* Checkstyle failed for opensearch/test" >> report.log
-        ./gradlew :sql:checkstyleMain                     || echo "* Checkstyle failed for sql/src" >> report.log
-        ./gradlew :sql:checkstyleTest                     || echo "* Checkstyle failed for sql/test" >> report.log
-        ./gradlew :ppl:checkstyleMain                     || echo "* Checkstyle failed for ppl/src" >> report.log
-        ./gradlew :ppl:checkstyleTest                     || echo "* Checkstyle failed for ppl/test" >> report.log
-        ./gradlew :core:checkstyleMain                    || echo "* Checkstyle failed for core/src" >> report.log
-        ./gradlew :core:checkstyleTest                    || echo "* Checkstyle failed for core/test" >> report.log
-        ./gradlew :common:checkstyleMain                  || echo "* Checkstyle failed for common/src" >> report.log
-        ./gradlew :common:checkstyleTest                  || echo "* Checkstyle failed for common/test" >> report.log
-        ./gradlew :legacy:checkstyleMain                  || echo "* Checkstyle failed for legacy/src" >> report.log
-        ./gradlew :legacy:checkstyleTest                  || echo "* Checkstyle failed for legacy/test" >> report.log
-        ./gradlew :protocol:checkstyleMain                || echo "* Checkstyle failed for protocol/src" >> report.log
-        ./gradlew :protocol:checkstyleTest                || echo "* Checkstyle failed for protocol/test" >> report.log
-        ./gradlew :opensearch-sql-plugin:checkstyleMain   || echo "* Checkstyle failed for plugin/src" >> report.log
-        ./gradlew :opensearch-sql-plugin:checkstyleTest   || echo "* Checkstyle failed for plugin/test" >> report.log
-        # Add checkstyle for `integ-test` when fixed
+        # Spotless
+        ./gradlew :opensearch:spotlessCheck              || echo "* Spotless failed for opensearch" > report.log
+        ./gradlew :sql:spotlessCheck                     || echo "* Spotless failed for sql" >> report.log
+        ./gradlew :ppl:spotlessCheck                     || echo "* Spotless failed for ppl" >> report.log
+        ./gradlew :core:spotlessCheck                    || echo "* Spotless failed for core" >> report.log
+        ./gradlew :common:spotlessCheck                  || echo "* Spotless failed for common" >> report.log
+        ./gradlew :legacy:spotlessCheck                  || echo "* Spotless failed for legacy" >> report.log
+        ./gradlew :protocol:spotlessCheck                || echo "* Spotless failed for protocol" >> report.log
+        ./gradlew :opensearch-sql-plugin:spotlessCheck   || echo "* Spotless failed for plugin" >> report.log
+        ./gradlew :integ-test:spotlessCheck              || echo "* Spotless failed for integ-test" >> report.log
         # Unit tests
         ./gradlew :opensearch:test                        || echo "* Unit tests failed for opensearch" >> report.log
         ./gradlew :ppl:test                               || echo "* Unit tests failed for sql" >> report.log

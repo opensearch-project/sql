@@ -17,8 +17,8 @@ import org.opensearch.sql.planner.logical.LogicalPlan;
 import org.opensearch.sql.planner.logical.LogicalPlanNodeVisitor;
 
 /**
- * Prometheus Logical Metric Scan Operation.
- * In an optimized plan this node represents both Relation and Filter Operation.
+ * Prometheus Logical Metric Scan Operation. In an optimized plan this node represents both Relation
+ * and Filter Operation.
  */
 @Getter
 @ToString
@@ -27,9 +27,7 @@ public class PrometheusLogicalMetricScan extends LogicalPlan {
 
   private final String metricName;
 
-  /**
-   * Filter Condition.
-   */
+  /** Filter Condition. */
   private final Expression filter;
 
   /**
@@ -39,8 +37,7 @@ public class PrometheusLogicalMetricScan extends LogicalPlan {
    * @param filter filter.
    */
   @Builder
-  public PrometheusLogicalMetricScan(String metricName,
-      Expression filter) {
+  public PrometheusLogicalMetricScan(String metricName, Expression filter) {
     super(ImmutableList.of());
     this.metricName = metricName;
     this.filter = filter;
@@ -50,5 +47,4 @@ public class PrometheusLogicalMetricScan extends LogicalPlan {
   public <R, C> R accept(LogicalPlanNodeVisitor<R, C> visitor, C context) {
     return visitor.visitNode(this, context);
   }
-
 }

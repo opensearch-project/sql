@@ -40,8 +40,6 @@ The OpenSearch SQL Engine support the following data types.
 +---------------------+
 | timestamp           |
 +---------------------+
-| datetime            |
-+---------------------+
 | date                |
 +---------------------+
 | date_nanos          |
@@ -128,53 +126,51 @@ Type Conversion Matrix
 
 The following matrix illustrates the conversions allowed by our query engine for all the built-in data types as well as types provided by OpenSearch storage engine.
 
-+--------------+------------------------------------------------+---------+------------------------------+-----------------------------------------------+--------------------------+---------------------+
-|  Data Types  |               Numeric Type Family              | BOOLEAN |      String Type Family      |              Datetime Type Family             |  OpenSearch Type Family  | Complex Type Family |
-|              +------+-------+---------+------+-------+--------+---------+--------------+------+--------+-----------+------+------+----------+----------+-----------+-----+--------+-----------+---------+
-|              | BYTE | SHORT | INTEGER | LONG | FLOAT | DOUBLE | BOOLEAN | TEXT_KEYWORD | TEXT | STRING | TIMESTAMP | DATE | TIME | DATETIME | INTERVAL | GEO_POINT |  IP | BINARY |   STRUCT  |  ARRAY  |
-+==============+======+=======+=========+======+=======+========+=========+==============+======+========+===========+======+======+==========+==========+===========+=====+========+===========+=========+
-|   UNDEFINED  |  IE  |   IE  |    IE   |  IE  |   IE  |   IE   |    IE   |      IE      |  IE  |   IE   |     IE    |  IE  |  IE  |    IE    |    IE    |     IE    |  IE |   IE   |     IE    |    IE   |
-+--------------+------+-------+---------+------+-------+--------+---------+--------------+------+--------+-----------+------+------+----------+----------+-----------+-----+--------+-----------+---------+
-|     BYTE     |  N/A |   IE  |    IE   |  IE  |   IE  |   IE   |    X    |       X      |   X  |    E   |     X     |   X  |   X  |     X    |     X    |     X     |  X  |    X   |     X     |    X    |
-+--------------+------+-------+---------+------+-------+--------+---------+--------------+------+--------+-----------+------+------+----------+----------+-----------+-----+--------+-----------+---------+
-|     SHORT    |   E  |  N/A  |    IE   |  IE  |   IE  |   IE   |    X    |       X      |   X  |    E   |     X     |   X  |   X  |     X    |     X    |     X     |  X  |    X   |     X     |    X    |
-+--------------+------+-------+---------+------+-------+--------+---------+--------------+------+--------+-----------+------+------+----------+----------+-----------+-----+--------+-----------+---------+
-|    INTEGER   |   E  |   E   |   N/A   |  IE  |   IE  |   IE   |    X    |       X      |   X  |    E   |     X     |   X  |   X  |     X    |     X    |     X     |  X  |    X   |     X     |    X    |
-+--------------+------+-------+---------+------+-------+--------+---------+--------------+------+--------+-----------+------+------+----------+----------+-----------+-----+--------+-----------+---------+
-|     LONG     |   E  |   E   |    E    |  N/A |   IE  |   IE   |    X    |       X      |   X  |    E   |     X     |   X  |   X  |     X    |     X    |     X     |  X  |    X   |     X     |    X    |
-+--------------+------+-------+---------+------+-------+--------+---------+--------------+------+--------+-----------+------+------+----------+----------+-----------+-----+--------+-----------+---------+
-|     FLOAT    |   E  |   E   |    E    |   E  |  N/A  |   IE   |    X    |       X      |   X  |    E   |     X     |   X  |   X  |     X    |     X    |     X     |  X  |    X   |     X     |    X    |
-+--------------+------+-------+---------+------+-------+--------+---------+--------------+------+--------+-----------+------+------+----------+----------+-----------+-----+--------+-----------+---------+
-|    DOUBLE    |   E  |   E   |    E    |   E  |   E   |   N/A  |    X    |       X      |   X  |    E   |     X     |   X  |   X  |     X    |     X    |     X     |  X  |    X   |     X     |    X    |
-+--------------+------+-------+---------+------+-------+--------+---------+--------------+------+--------+-----------+------+------+----------+----------+-----------+-----+--------+-----------+---------+
-|    BOOLEAN   |   E  |   E   |    E    |   E  |   E   |    E   |   N/A   |       X      |   X  |    E   |     X     |   X  |   X  |     X    |     X    |     X     |  X  |    X   |     X     |    X    |
-+--------------+------+-------+---------+------+-------+--------+---------+--------------+------+--------+-----------+------+------+----------+----------+-----------+-----+--------+-----------+---------+
-| TEXT_KEYWORD |      |       |         |      |       |        |         |      N/A     |      |   IE   |           |      |      |     X    |     X    |     X     |  X  |    X   |     X     |    X    |
-+--------------+------+-------+---------+------+-------+--------+---------+--------------+------+--------+-----------+------+------+----------+----------+-----------+-----+--------+-----------+---------+
-|     TEXT     |      |       |         |      |       |        |         |              |  N/A |   IE   |           |      |      |     X    |     X    |     X     |  X  |    X   |     X     |    X    |
-+--------------+------+-------+---------+------+-------+--------+---------+--------------+------+--------+-----------+------+------+----------+----------+-----------+-----+--------+-----------+---------+
-|    STRING    |   E  |   E   |    E    |   E  |   E   |    E   |    IE   |       X      |   X  |   N/A  |     IE    |   IE |   IE |     IE   |     X    |     X     |  X  |    X   |     X     |    X    |
-+--------------+------+-------+---------+------+-------+--------+---------+--------------+------+--------+-----------+------+------+----------+----------+-----------+-----+--------+-----------+---------+
-|   TIMESTAMP  |   X  |   X   |    X    |   X  |   X   |    X   |    X    |       X      |   X  |    E   |    N/A    |   IE |   IE |     IE   |     X    |     X     |  X  |    X   |     X     |    X    |
-+--------------+------+-------+---------+------+-------+--------+---------+--------------+------+--------+-----------+------+------+----------+----------+-----------+-----+--------+-----------+---------+
-|     DATE     |   X  |   X   |    X    |   X  |   X   |    X   |    X    |       X      |   X  |    E   |     E     |  N/A |   IE |     E    |     X    |     X     |  X  |    X   |     X     |    X    |
-+--------------+------+-------+---------+------+-------+--------+---------+--------------+------+--------+-----------+------+------+----------+----------+-----------+-----+--------+-----------+---------+
-|     TIME     |   X  |   X   |    X    |   X  |   X   |    X   |    X    |       X      |   X  |    E   |     E     |   E  |  N/A |     E    |     X    |     X     |  X  |    X   |     X     |    X    |
-+--------------+------+-------+---------+------+-------+--------+---------+--------------+------+--------+-----------+------+------+----------+----------+-----------+-----+--------+-----------+---------+
-|   DATETIME   |   X  |   X   |    X    |   X  |   X   |    X   |    X    |       X      |   X  |    E   |     E     |   E  |   E  |    N/A   |     X    |     X     |  X  |    X   |     X     |    X    |
-+--------------+------+-------+---------+------+-------+--------+---------+--------------+------+--------+-----------+------+------+----------+----------+-----------+-----+--------+-----------+---------+
-|   INTERVAL   |   X  |   X   |    X    |   X  |   X   |    X   |    X    |       X      |   X  |    E   |     X     |   X  |   X  |     X    |    N/A   |     X     |  X  |    X   |     X     |    X    |
-+--------------+------+-------+---------+------+-------+--------+---------+--------------+------+--------+-----------+------+------+----------+----------+-----------+-----+--------+-----------+---------+
-|   GEO_POINT  |   X  |   X   |    X    |   X  |   X   |    X   |    X    |       X      |   X  |        |     X     |   X  |   X  |     X    |     X    |    N/A    |  X  |    X   |     X     |    X    |
-+--------------+------+-------+---------+------+-------+--------+---------+--------------+------+--------+-----------+------+------+----------+----------+-----------+-----+--------+-----------+---------+
-|      IP      |   X  |   X   |    X    |   X  |   X   |    X   |    X    |       X      |   X  |        |     X     |   X  |   X  |     X    |     X    |     X     | N/A |    X   |     X     |    X    |
-+--------------+------+-------+---------+------+-------+--------+---------+--------------+------+--------+-----------+------+------+----------+----------+-----------+-----+--------+-----------+---------+
-|    BINARY    |   X  |   X   |    X    |   X  |   X   |    X   |    X    |       X      |   X  |        |     X     |   X  |   X  |     X    |     X    |     X     |  X  |   N/A  |     X     |    X    |
-+--------------+------+-------+---------+------+-------+--------+---------+--------------+------+--------+-----------+------+------+----------+----------+-----------+-----+--------+-----------+---------+
-|    STRUCT    |   X  |   X   |    X    |   X  |   X   |    X   |    X    |       X      |   X  |        |     X     |   X  |   X  |     X    |     X    |     X     |  X  |    X   |    N/A    |    X    |
-+--------------+------+-------+---------+------+-------+--------+---------+--------------+------+--------+-----------+------+------+----------+----------+-----------+-----+--------+-----------+---------+
-|     ARRAY    |   X  |   X   |    X    |   X  |   X   |    X   |    X    |       X      |   X  |        |     X     |   X  |   X  |     X    |     X    |     X     |  X  |    X   |     X     |   N/A   |
-+--------------+------+-------+---------+------+-------+--------+---------+--------------+------+--------+-----------+------+------+----------+----------+-----------+-----+--------+-----------+---------+
++--------------+------------------------------------------------+---------+------------------------------+------------------------------------+--------------------------+---------------------+
+|  Data Types  |               Numeric Type Family              | BOOLEAN |      String Type Family      |        Datetime Type Family        |  OpenSearch Type Family  | Complex Type Family |
+|              +------+-------+---------+------+-------+--------+---------+--------------+------+--------+-----------+------+------+----------+-----------+-----+--------+-----------+---------+
+|              | BYTE | SHORT | INTEGER | LONG | FLOAT | DOUBLE | BOOLEAN | TEXT_KEYWORD | TEXT | STRING | TIMESTAMP | DATE | TIME | INTERVAL | GEO_POINT |  IP | BINARY |   STRUCT  |  ARRAY  |
++==============+======+=======+=========+======+=======+========+=========+==============+======+========+===========+======+======+==========+===========+=====+========+===========+=========+
+|   UNDEFINED  |  IE  |   IE  |    IE   |  IE  |   IE  |   IE   |    IE   |      IE      |  IE  |   IE   |     IE    |  IE  |  IE  |    IE    |     IE    |  IE |   IE   |     IE    |    IE   |
++--------------+------+-------+---------+------+-------+--------+---------+--------------+------+--------+-----------+------+------+----------+-----------+-----+--------+-----------+---------+
+|     BYTE     |  N/A |   IE  |    IE   |  IE  |   IE  |   IE   |    X    |       X      |   X  |    E   |     X     |   X  |   X  |     X    |     X     |  X  |    X   |     X     |    X    |
++--------------+------+-------+---------+------+-------+--------+---------+--------------+------+--------+-----------+------+------+----------+-----------+-----+--------+-----------+---------+
+|     SHORT    |   E  |  N/A  |    IE   |  IE  |   IE  |   IE   |    X    |       X      |   X  |    E   |     X     |   X  |   X  |     X    |     X     |  X  |    X   |     X     |    X    |
++--------------+------+-------+---------+------+-------+--------+---------+--------------+------+--------+-----------+------+------+----------+-----------+-----+--------+-----------+---------+
+|    INTEGER   |   E  |   E   |   N/A   |  IE  |   IE  |   IE   |    X    |       X      |   X  |    E   |     X     |   X  |   X  |     X    |     X     |  X  |    X   |     X     |    X    |
++--------------+------+-------+---------+------+-------+--------+---------+--------------+------+--------+-----------+------+------+----------+-----------+-----+--------+-----------+---------+
+|     LONG     |   E  |   E   |    E    |  N/A |   IE  |   IE   |    X    |       X      |   X  |    E   |     X     |   X  |   X  |     X    |     X     |  X  |    X   |     X     |    X    |
++--------------+------+-------+---------+------+-------+--------+---------+--------------+------+--------+-----------+------+------+----------+-----------+-----+--------+-----------+---------+
+|     FLOAT    |   E  |   E   |    E    |   E  |  N/A  |   IE   |    X    |       X      |   X  |    E   |     X     |   X  |   X  |     X    |     X     |  X  |    X   |     X     |    X    |
++--------------+------+-------+---------+------+-------+--------+---------+--------------+------+--------+-----------+------+------+----------+-----------+-----+--------+-----------+---------+
+|    DOUBLE    |   E  |   E   |    E    |   E  |   E   |   N/A  |    X    |       X      |   X  |    E   |     X     |   X  |   X  |     X    |     X     |  X  |    X   |     X     |    X    |
++--------------+------+-------+---------+------+-------+--------+---------+--------------+------+--------+-----------+------+------+----------+-----------+--------------+-----------+---------+
+|    BOOLEAN   |   E  |   E   |    E    |   E  |   E   |    E   |   N/A   |       X      |   X  |    E   |     X     |   X  |   X  |     X    |     X     |  X  |    X   |     X     |    X    |
++--------------+------+-------+---------+------+-------+--------+---------+--------------+------+--------+-----------+------+------+----------+-----------+-----+--------+-----------+---------+
+| TEXT_KEYWORD |      |       |         |      |       |        |         |      N/A     |      |   IE   |           |      |      |     X    |     X     |  X  |    X   |     X     |    X    |
++--------------+------+-------+---------+------+-------+--------+---------+--------------+------+--------+-----------+------+------+----------+-----------+-----+--------+-----------+---------+
+|     TEXT     |      |       |         |      |       |        |         |              |  N/A |   IE   |           |      |      |     X    |     X     |  X  |    X   |     X     |    X    |
++--------------+------+-------+---------+------+-------+--------+---------+--------------+------+--------+-----------+------+------+----------+-----------+-----+--------+-----------+---------+
+|    STRING    |   E  |   E   |    E    |   E  |   E   |    E   |    IE   |       X      |   X  |   N/A  |     IE    |   IE |   IE |     X    |     X     |  X  |    X   |     X     |    X    |
++--------------+------+-------+---------+------+-------+--------+---------+--------------+------+--------+-----------+------+------+----------+-----------+-----+--------+-----------+---------+
+|   TIMESTAMP  |   X  |   X   |    X    |   X  |   X   |    X   |    X    |       X      |   X  |    E   |    N/A    |   IE |   IE |     X    |     X     |  X  |    X   |     X     |    X    |
++--------------+------+-------+---------+------+-------+--------+---------+--------------+------+--------+-----------+------+------+----------+-----------+-----+--------+-----------+---------+
+|     DATE     |   X  |   X   |    X    |   X  |   X   |    X   |    X    |       X      |   X  |    E   |     E     |  N/A |   IE |     X    |     X     |  X  |    X   |     X     |    X    |
++--------------+------+-------+---------+------+-------+--------+---------+--------------+------+--------+-----------+------+------+----------+-----------+-----+--------+-----------+---------+
+|     TIME     |   X  |   X   |    X    |   X  |   X   |    X   |    X    |       X      |   X  |    E   |     E     |   E  |  N/A |     X    |     X     |  X  |    X   |     X     |    X    |
++--------------+------+-------+---------+------+-------+--------+---------+--------------+------+--------+-----------+------+------+----------+-----------+-----+--------+-----------+---------+
+|   INTERVAL   |   X  |   X   |    X    |   X  |   X   |    X   |    X    |       X      |   X  |    E   |     X     |   X  |   X  |    N/A   |     X     |  X  |    X   |     X     |    X    |
++--------------+------+-------+---------+------+-------+--------+---------+--------------+------+--------+-----------+------+------+----------+-----------+-----+--------+-----------+---------+
+|   GEO_POINT  |   X  |   X   |    X    |   X  |   X   |    X   |    X    |       X      |   X  |        |     X     |   X  |   X  |     X    |    N/A    |  X  |    X   |     X     |    X    |
++--------------+------+-------+---------+------+-------+--------+---------+--------------+------+--------+-----------+------+------+----------+-----------+-----+--------+-----------+---------+
+|      IP      |   X  |   X   |    X    |   X  |   X   |    X   |    X    |       X      |   X  |        |     X     |   X  |   X  |     X    |     X     | N/A |    X   |     X     |    X    |
++--------------+------+-------+---------+------+-------+--------+---------+--------------+------+--------+-----------+------+------+----------+-----------+-----+--------+-----------+---------+
+|    BINARY    |   X  |   X   |    X    |   X  |   X   |    X   |    X    |       X      |   X  |        |     X     |   X  |   X  |     X    |     X     |  X  |   N/A  |     X     |    X    |
++--------------+------+-------+---------+------+-------+--------+---------+--------------+------+--------+-----------+------+------+----------+-----------+-----+--------+-----------+---------+
+|    STRUCT    |   X  |   X   |    X    |   X  |   X   |    X   |    X    |       X      |   X  |        |     X     |   X  |   X  |     X    |     X     |  X  |    X   |    N/A    |    X    |
++--------------+------+-------+---------+------+-------+--------+---------+--------------+------+--------+-----------+------+------+----------+-----------+-----+--------+-----------+---------+
+|     ARRAY    |   X  |   X   |    X    |   X  |   X   |    X   |    X    |       X      |   X  |        |     X     |   X  |   X  |     X    |     X     |  X  |    X   |     X     |   N/A   |
++--------------+------+-------+---------+------+-------+--------+---------+--------------+------+--------+-----------+------+------+----------+-----------+-----+--------+-----------+---------+
 
 Note that:
 
@@ -236,7 +232,7 @@ Numeric values ranged from -2147483648 to +2147483647 are recognized as integer 
 Date and Time Data Types
 ========================
 
-The datetime types supported by the SQL plugin are ``DATE``, ``TIME``, ``DATETIME``, ``TIMESTAMP``, and ``INTERVAL``, with date and time being used to represent temporal values. By default, the OpenSearch DSL uses ``date`` type as the only date and time related type as it contains all information about an absolute time point. To integrate with SQL language each of the types other than timestamp hold part of the temporal or timezone information. This information can be used to explicitly clarify the date and time types reflected in the datetime functions (see `Functions <functions.rst>`_ for details), where some functions might have restrictions in the input argument type.
+The datetime types supported by the SQL plugin are ``DATE``, ``TIME``, ``TIMESTAMP``, and ``INTERVAL``, with date and time being used to represent temporal values. By default, the OpenSearch DSL uses ``date`` type as the only date and time related type as it contains all information about an absolute time point. To integrate with SQL language each of the types other than timestamp hold part of the temporal or timezone information. This information can be used to explicitly clarify the date and time types reflected in the datetime functions (see `Functions <functions.rst>`_ for details), where some functions might have restrictions in the input argument type.
 
 Date
 ----
@@ -260,19 +256,6 @@ Time represents the time on the clock or watch with no regard for which timezone
 +======+=======================+==============================================+
 | Time | 'hh:mm:ss[.fraction]' | '00:00:00.000000000' to '23:59:59.999999999' |
 +------+-----------------------+----------------------------------------------+
-
-
-Datetime
---------
-
-Datetime type is the combination of date and time. The conversion rule of date or time to datetime is described in `Conversion between date and time types`_. Datetime type does not contain timezone information. For an absolute time point that contains both date time and timezone information, see `Timestamp`_.
-
-+----------+----------------------------------+--------------------------------------------------------------------+
-| Type     | Syntax                           | Range                                                              |
-+==========+==================================+====================================================================+
-| Datetime | 'yyyy-MM-dd hh:mm:ss[.fraction]' | '0001-01-01 00:00:00.000000000' to '9999-12-31 23:59:59.999999999' |
-+----------+----------------------------------+--------------------------------------------------------------------+
-
 
 
 Timestamp
@@ -304,16 +287,14 @@ The expr is any expression that can be iterated to a quantity value eventually, 
 Conversion between date and time types
 --------------------------------------
 
-Basically the date and time types except interval can be converted to each other, but might suffer some alteration of the value or some information loss, for example extracting the time value from a datetime value, or convert a date value to a datetime value and so forth. Here lists the summary of the conversion rules that SQL plugin supports for each of the types:
+Basically the date and time types except interval can be converted to each other, but might suffer some alteration of the value or some information loss, for example extracting the time value from a timestamp value, or convert a date value to a timestamp value and so forth. Here lists the summary of the conversion rules that SQL plugin supports for each of the types:
 
 Conversion from DATE
 >>>>>>>>>>>>>>>>>>>>
 
 - Since the date value does not have any time information, conversion to `Time`_ type is not useful, and will always return a zero time value '00:00:00'.
 
-- Conversion from date to datetime has a data fill-up due to the lack of time information, and it attaches the time '00:00:00' to the original date by default and forms a datetime instance. For example, the result to covert date '2020-08-17' to datetime type is datetime '2020-08-17 00:00:00'.
-
-- Conversion to timestamp is to alternate both the time value and the timezone information, and it attaches the zero time value '00:00:00' and the session timezone (UTC by default) to the date. For example, the result to covert date '2020-08-17' to datetime type with session timezone UTC is datetime '2020-08-17 00:00:00' UTC.
+- Conversion to timestamp is to alternate both the time value and the timezone information, and it attaches the zero time value '00:00:00' and the session timezone (UTC by default) to the date. For example, the result to covert date '2020-08-17' to timestamp type with session timezone UTC is timestamp '2020-08-17 00:00:00' UTC.
 
 
 Conversion from TIME
@@ -322,20 +303,10 @@ Conversion from TIME
 - When time value is converted to any other datetime types, the date part of the new value is filled up with today's date, like with the `CURDATE` function. For example, a time value X converted to a timestamp would produce today's date at time X.
 
 
-Conversion from DATETIME
->>>>>>>>>>>>>>>>>>>>>>>>
-
-- Conversion from datetime to date is to extract the date part from the datetime value. For example, the result to convert datetime '2020-08-17 14:09:00' to date is date '2020-08-08'.
-
-- Conversion to time is to extract the time part from the datetime value. For example, the result to convert datetime '2020-08-17 14:09:00' to time is time '14:09:00'.
-
-- Since the datetime type does not contain timezone information, the conversion to timestamp needs to fill up the timezone part with the session timezone. For example, the result to convert datetime '2020-08-17 14:09:00' with system timezone of UTC, to timestamp is timestamp '2020-08-17 14:09:00' UTC.
-
-
 Conversion from TIMESTAMP
 >>>>>>>>>>>>>>>>>>>>>>>>>
 
-- Conversion from timestamp is much more straightforward. To convert it to date is to extract the date value, and conversion to time is to extract the time value. Conversion to datetime, it will extracts the datetime value and leave the timezone information over. For example, the result to convert datetime '2020-08-17 14:09:00' UTC to date is date '2020-08-17', to time is '14:09:00' and to datetime is datetime '2020-08-17 14:09:00'.
+- Conversion from timestamp is much more straightforward. To convert it to date is to extract the date value, and conversion to time is to extract the time value. For example, the result to convert timestamp '2020-08-17 14:09:00' UTC to date is date '2020-08-17', to time is '14:09:00'.
 
 Conversion from string to date and time types
 ---------------------------------------------

@@ -153,7 +153,8 @@ public class OpenSearchDataSourceMetadataStorage implements DataSourceMetadataSt
       throw new RuntimeException(e);
     }
 
-    if (updateResponse.getResult().equals(DocWriteResponse.Result.UPDATED)) {
+    if (updateResponse.getResult().equals(DocWriteResponse.Result.UPDATED)
+        || updateResponse.getResult().equals(DocWriteResponse.Result.NOOP)) {
       LOG.debug("DatasourceMetadata : {}  successfully updated", dataSourceMetadata.getName());
     } else {
       throw new RuntimeException(

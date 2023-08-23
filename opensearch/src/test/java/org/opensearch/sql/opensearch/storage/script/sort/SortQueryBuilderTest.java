@@ -3,7 +3,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-
 package org.opensearch.sql.opensearch.storage.script.sort;
 
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -91,16 +90,23 @@ class SortQueryBuilderTest {
   @Test
   void build_sortbuilder_from_expression_should_throw_exception() {
     final IllegalStateException exception =
-        assertThrows(IllegalStateException.class, () -> sortQueryBuilder.build(
-            new LiteralExpression(new ExprShortValue(1)), Sort.SortOption.DEFAULT_ASC));
+        assertThrows(
+            IllegalStateException.class,
+            () ->
+                sortQueryBuilder.build(
+                    new LiteralExpression(new ExprShortValue(1)), Sort.SortOption.DEFAULT_ASC));
     assertThat(exception.getMessage(), Matchers.containsString("unsupported expression"));
   }
 
   @Test
   void build_sortbuilder_from_function_should_throw_exception() {
     final IllegalStateException exception =
-        assertThrows(IllegalStateException.class, () -> sortQueryBuilder.build(DSL.equal(DSL.ref(
-            "intV", INTEGER), DSL.literal(1)), Sort.SortOption.DEFAULT_ASC));
+        assertThrows(
+            IllegalStateException.class,
+            () ->
+                sortQueryBuilder.build(
+                    DSL.equal(DSL.ref("intV", INTEGER), DSL.literal(1)),
+                    Sort.SortOption.DEFAULT_ASC));
     assertThat(exception.getMessage(), Matchers.containsString("unsupported expression"));
   }
 }

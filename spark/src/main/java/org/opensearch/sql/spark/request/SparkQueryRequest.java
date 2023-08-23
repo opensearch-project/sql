@@ -7,15 +7,10 @@ package org.opensearch.sql.spark.request;
 
 import lombok.Data;
 
-/**
- * Spark query request.
- */
+/** Spark query request. */
 @Data
 public class SparkQueryRequest {
 
-  /**
-   * SQL.
-   */
+  /** SQL. */
   private String sql;
-
 }

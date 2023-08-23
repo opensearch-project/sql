@@ -3,7 +3,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-
 package org.opensearch.sql.legacy;
 
 import static org.hamcrest.Matchers.equalTo;
@@ -47,9 +46,7 @@ public class MetricsIT extends SQLIntegTestCase {
   }
 
   private Request makeStatRequest() {
-    return new Request(
-        "GET", STATS_API_ENDPOINT
-    );
+    return new Request("GET", STATS_API_ENDPOINT);
   }
 
   private String executeStatRequest(final Request request) throws IOException {
@@ -69,5 +66,4 @@ public class MetricsIT extends SQLIntegTestCase {
 
     return sb.toString();
   }
-
 }

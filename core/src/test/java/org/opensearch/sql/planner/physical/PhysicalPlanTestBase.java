@@ -14,7 +14,6 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import org.opensearch.sql.data.model.ExprDateValue;
-import org.opensearch.sql.data.model.ExprDatetimeValue;
 import org.opensearch.sql.data.model.ExprTimeValue;
 import org.opensearch.sql.data.model.ExprTimestampValue;
 import org.opensearch.sql.data.model.ExprValue;
@@ -109,35 +108,35 @@ public class PhysicalPlanTestBase {
                   ImmutableMap.of(
                       "day", new ExprDateValue("2021-01-03"),
                       "month", new ExprDateValue("2021-02-04"),
-                      "quarter", new ExprDatetimeValue("2021-01-01 12:25:02"),
+                      "quarter", new ExprTimestampValue("2021-01-01 12:25:02"),
                       "year", new ExprTimestampValue("2013-01-01 12:25:02"))))
           .add(
               ExprValueUtils.tupleValue(
                   ImmutableMap.of(
                       "day", new ExprDateValue("2021-01-01"),
                       "month", new ExprDateValue("2021-03-17"),
-                      "quarter", new ExprDatetimeValue("2021-05-17 12:25:01"),
+                      "quarter", new ExprTimestampValue("2021-05-17 12:25:01"),
                       "year", new ExprTimestampValue("2021-01-01 12:25:02"))))
           .add(
               ExprValueUtils.tupleValue(
                   ImmutableMap.of(
                       "day", new ExprDateValue("2021-01-04"),
                       "month", new ExprDateValue("2021-02-08"),
-                      "quarter", new ExprDatetimeValue("2021-06-08 12:25:02"),
+                      "quarter", new ExprTimestampValue("2021-06-08 12:25:02"),
                       "year", new ExprTimestampValue("2016-01-01 12:25:02"))))
           .add(
               ExprValueUtils.tupleValue(
                   ImmutableMap.of(
                       "day", new ExprDateValue("2021-01-02"),
                       "month", new ExprDateValue("2020-12-12"),
-                      "quarter", new ExprDatetimeValue("2020-12-12 12:25:03"),
+                      "quarter", new ExprTimestampValue("2020-12-12 12:25:03"),
                       "year", new ExprTimestampValue("1999-01-01 12:25:02"))))
           .add(
               ExprValueUtils.tupleValue(
                   ImmutableMap.of(
                       "day", new ExprDateValue("2021-01-01"),
                       "month", new ExprDateValue("2021-02-28"),
-                      "quarter", new ExprDatetimeValue("2020-09-28 12:25:01"),
+                      "quarter", new ExprTimestampValue("2020-09-28 12:25:01"),
                       "year", new ExprTimestampValue("2018-01-01 12:25:02"))))
           .build();
 
@@ -147,31 +146,31 @@ public class PhysicalPlanTestBase {
               ExprValueUtils.tupleValue(
                   ImmutableMap.of(
                       "hour", new ExprTimeValue("17:17:00"),
-                      "minute", new ExprDatetimeValue("2020-12-31 23:54:12"),
+                      "minute", new ExprTimestampValue("2020-12-31 23:54:12"),
                       "second", new ExprTimestampValue("2021-01-01 00:00:05"))))
           .add(
               ExprValueUtils.tupleValue(
                   ImmutableMap.of(
                       "hour", new ExprTimeValue("18:17:00"),
-                      "minute", new ExprDatetimeValue("2021-01-01 00:05:12"),
+                      "minute", new ExprTimestampValue("2021-01-01 00:05:12"),
                       "second", new ExprTimestampValue("2021-01-01 00:00:12"))))
           .add(
               ExprValueUtils.tupleValue(
                   ImmutableMap.of(
                       "hour", new ExprTimeValue("17:15:00"),
-                      "minute", new ExprDatetimeValue("2021-01-01 00:03:12"),
+                      "minute", new ExprTimestampValue("2021-01-01 00:03:12"),
                       "second", new ExprTimestampValue("2021-01-01 00:00:17"))))
           .add(
               ExprValueUtils.tupleValue(
                   ImmutableMap.of(
                       "hour", new ExprTimeValue("19:01:00"),
-                      "minute", new ExprDatetimeValue("2021-01-01 00:02:12"),
+                      "minute", new ExprTimestampValue("2021-01-01 00:02:12"),
                       "second", new ExprTimestampValue("2021-01-01 00:00:03"))))
           .add(
               ExprValueUtils.tupleValue(
                   ImmutableMap.of(
                       "hour", new ExprTimeValue("18:50:00"),
-                      "minute", new ExprDatetimeValue("2021-01-01 00:00:12"),
+                      "minute", new ExprTimestampValue("2021-01-01 00:00:12"),
                       "second", new ExprTimestampValue("2021-01-01 00:00:13"))))
           .build();
 

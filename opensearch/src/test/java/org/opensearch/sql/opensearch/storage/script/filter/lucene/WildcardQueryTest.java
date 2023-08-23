@@ -50,22 +50,23 @@ class WildcardQueryTest {
   @ParameterizedTest
   @MethodSource("generateValidData")
   public void test_valid_parameters(List<Expression> validArgs) {
-    Assertions.assertNotNull(wildcardQueryQuery.build(
-        new WildcardQueryExpression(validArgs)));
+    Assertions.assertNotNull(wildcardQueryQuery.build(new WildcardQueryExpression(validArgs)));
   }
 
   @Test
   public void test_SyntaxCheckException_when_no_arguments() {
     List<Expression> arguments = List.of();
-    assertThrows(SyntaxCheckException.class,
+    assertThrows(
+        SyntaxCheckException.class,
         () -> wildcardQueryQuery.build(new WildcardQueryExpression(arguments)));
   }
 
   @Test
   public void test_SyntaxCheckException_when_one_argument() {
-    List<Expression> arguments = List.of(namedArgument("field",
-        new ReferenceExpression("title", OpenSearchTextType.of())));
-    assertThrows(SyntaxCheckException.class,
+    List<Expression> arguments =
+        List.of(namedArgument("field", new ReferenceExpression("title", OpenSearchTextType.of())));
+    assertThrows(
+        SyntaxCheckException.class,
         () -> wildcardQueryQuery.build(new WildcardQueryExpression(arguments)));
   }
 
@@ -87,14 +88,16 @@ class WildcardQueryTest {
 
     @Override
     public ExprValue valueOf(Environment<Expression, ExprValue> valueEnv) {
-      throw new UnsupportedOperationException("Invalid function call, "
-          + "valueOf function need implementation only to support Expression interface");
+      throw new UnsupportedOperationException(
+          "Invalid function call, "
+              + "valueOf function need implementation only to support Expression interface");
     }
 
     @Override
     public ExprType type() {
-      throw new UnsupportedOperationException("Invalid function call, "
-          + "type function need implementation only to support Expression interface");
+      throw new UnsupportedOperationException(
+          "Invalid function call, "
+              + "type function need implementation only to support Expression interface");
     }
   }
 }

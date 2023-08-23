@@ -35,8 +35,8 @@ import org.opensearch.sql.planner.logical.LogicalProject;
 import org.opensearch.sql.planner.logical.LogicalSort;
 
 /**
- * Index scan builder for simple non-aggregate query used by
- * {@link OpenSearchIndexScanBuilder} internally.
+ * Index scan builder for simple non-aggregate query used by {@link OpenSearchIndexScanBuilder}
+ * internally.
  */
 @VisibleForTesting
 @EqualsAndHashCode
@@ -50,13 +50,11 @@ class OpenSearchIndexScanQueryBuilder implements PushDownQueryBuilder {
 
   @Override
   public boolean pushDownFilter(LogicalFilter filter) {
-    FilterQueryBuilder queryBuilder = new FilterQueryBuilder(
-        new DefaultExpressionSerializer());
+    FilterQueryBuilder queryBuilder = new FilterQueryBuilder(new DefaultExpressionSerializer());
     Expression queryCondition = filter.getCondition();
     QueryBuilder query = queryBuilder.build(queryCondition);
     requestBuilder.pushDownFilter(query);
-    requestBuilder.pushDownTrackedScore(
-        trackScoresFromOpenSearchFunction(queryCondition));
+    requestBuilder.pushDownTrackedScore(trackScoresFromOpenSearchFunction(queryCondition));
     return true;
   }
 
@@ -64,9 +62,10 @@ class OpenSearchIndexScanQueryBuilder implements PushDownQueryBuilder {
   public boolean pushDownSort(LogicalSort sort) {
     List<Pair<Sort.SortOption, Expression>> sortList = sort.getSortList();
     final SortQueryBuilder builder = new SortQueryBuilder();
-    requestBuilder.pushDownSort(sortList.stream()
-        .map(sortItem -> builder.build(sortItem.getValue(), sortItem.getKey()))
-        .collect(Collectors.toList()));
+    requestBuilder.pushDownSort(
+        sortList.stream()
+            .map(sortItem -> builder.build(sortItem.getValue(), sortItem.getKey()))
+            .collect(Collectors.toList()));
     return true;
   }
 
@@ -78,8 +77,7 @@ class OpenSearchIndexScanQueryBuilder implements PushDownQueryBuilder {
 
   @Override
   public boolean pushDownProject(LogicalProject project) {
-    requestBuilder.pushDownProjects(
-        findReferenceExpressions(project.getProjectList()));
+    requestBuilder.pushDownProjects(findReferenceExpressions(project.getProjectList()));
 
     // Return false intentionally to keep the original project operator
     return false;
@@ -105,8 +103,8 @@ class OpenSearchIndexScanQueryBuilder implements PushDownQueryBuilder {
       return true;
     }
     if (condition instanceof FunctionExpression) {
-      return ((FunctionExpression) condition).getArguments().stream()
-          .anyMatch(this::trackScoresFromOpenSearchFunction);
+      return ((FunctionExpression) condition)
+          .getArguments().stream().anyMatch(this::trackScoresFromOpenSearchFunction);
     }
     return false;
   }
@@ -114,8 +112,7 @@ class OpenSearchIndexScanQueryBuilder implements PushDownQueryBuilder {
   @Override
   public boolean pushDownNested(LogicalNested nested) {
     requestBuilder.pushDownNested(nested.getFields());
-    requestBuilder.pushDownProjects(
-        findReferenceExpressions(nested.getProjectList()));
+    requestBuilder.pushDownProjects(findReferenceExpressions(nested.getProjectList()));
     // Return false intentionally to keep the original nested operator
     // Since we return false we need to pushDownProject here as it won't be
     // pushed down due to no matching push down rule.
@@ -130,8 +127,8 @@ class OpenSearchIndexScanQueryBuilder implements PushDownQueryBuilder {
 
   /**
    * Find reference expression from expression.
-   * @param expressions a list of expression.
    *
+   * @param expressions a list of expression.
    * @return a set of ReferenceExpression
    */
   public static Set<ReferenceExpression> findReferenceExpressions(
@@ -145,18 +142,20 @@ class OpenSearchIndexScanQueryBuilder implements PushDownQueryBuilder {
 
   /**
    * Find reference expression from expression.
-   * @param expression expression.
    *
+   * @param expression expression.
    * @return a list of ReferenceExpression
    */
   public static List<ReferenceExpression> findReferenceExpression(NamedExpression expression) {
     List<ReferenceExpression> results = new ArrayList<>();
-    expression.accept(new ExpressionNodeVisitor<>() {
-      @Override
-      public Object visitReference(ReferenceExpression node, Object context) {
-        return results.add(node);
-      }
-    }, null);
+    expression.accept(
+        new ExpressionNodeVisitor<>() {
+          @Override
+          public Object visitReference(ReferenceExpression node, Object context) {
+            return results.add(node);
+          }
+        },
+        null);
     return results;
   }
 }

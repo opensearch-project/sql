@@ -3,7 +3,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-
 package org.opensearch.sql.legacy;
 
 import static org.hamcrest.Matchers.containsString;
@@ -24,9 +23,7 @@ import org.opensearch.sql.legacy.antlr.syntax.SyntaxAnalysisException;
 import org.opensearch.sql.legacy.exception.SqlFeatureNotImplementedException;
 import org.opensearch.sql.legacy.utils.StringUtils;
 
-/**
- * Integration test for syntax and semantic analysis against query by new ANTLR parser.
- */
+/** Integration test for syntax and semantic analysis against query by new ANTLR parser. */
 public class QueryAnalysisIT extends SQLIntegTestCase {
 
   @Override
@@ -41,9 +38,7 @@ public class QueryAnalysisIT extends SQLIntegTestCase {
 
   @Test
   public void unsupportedOperatorShouldThrowSyntaxException() {
-    queryShouldThrowSyntaxException(
-        "SELECT * FROM opensearch-sql_test_index_bank WHERE age <=> 1"
-    );
+    queryShouldThrowSyntaxException("SELECT * FROM opensearch-sql_test_index_bank WHERE age <=> 1");
   }
 
   @Test
@@ -51,8 +46,8 @@ public class QueryAnalysisIT extends SQLIntegTestCase {
     queryShouldThrowSemanticException(
         "SELECT * FROM opensearch-sql_test_index_bank WHERE balance1 = 1000",
         "Field [balance1] cannot be found or used here."
-        //"Did you mean [balance]?"
-    );
+        // "Did you mean [balance]?"
+        );
   }
 
   @Test
@@ -60,16 +55,15 @@ public class QueryAnalysisIT extends SQLIntegTestCase {
     queryShouldThrowSemanticException(
         "SELECT * FROM opensearch-sql_test_index_bank b WHERE a.balance = 1000",
         "Field [a.balance] cannot be found or used here."
-        //"Did you mean [b.balance]?"
-    );
+        // "Did you mean [b.balance]?"
+        );
   }
 
   @Test
   public void indexJoinNonNestedFieldShouldThrowSemanticException() {
     queryShouldThrowSemanticException(
         "SELECT * FROM opensearch-sql_test_index_bank b1, b1.firstname f1",
-        "Operator [JOIN] cannot work with [INDEX, KEYWORD]."
-    );
+        "Operator [JOIN] cannot work with [INDEX, KEYWORD].");
   }
 
   @Test
@@ -77,8 +71,7 @@ public class QueryAnalysisIT extends SQLIntegTestCase {
     queryShouldThrowSemanticException(
         "SELECT * FROM opensearch-sql_test_index_bank WHERE ABSa(age) = 1",
         "Function [ABSA] cannot be found or used here.",
-        "Did you mean [ABS]?"
-    );
+        "Did you mean [ABS]?");
   }
 
   @Test
@@ -86,17 +79,16 @@ public class QueryAnalysisIT extends SQLIntegTestCase {
     queryShouldThrowSemanticException(
         "SELECT * FROM opensearch-sql_test_index_bank WHERE LOG(lastname) = 1",
         "Function [LOG] cannot work with [KEYWORD].",
-        "Usage: LOG(NUMBER T) -> DOUBLE or LOG(NUMBER T, NUMBER) -> DOUBLE"
-    );
+        "Usage: LOG(NUMBER T) -> DOUBLE or LOG(NUMBER T, NUMBER) -> DOUBLE");
   }
 
   @Test
   public void aggregateFunctionCallWithWrongNumberOfArgumentShouldThrowSemanticException() {
     queryShouldThrowSemanticException(
-        "SELECT city FROM opensearch-sql_test_index_bank GROUP BY city HAVING MAX(age, birthdate) > 1",
+        "SELECT city FROM opensearch-sql_test_index_bank GROUP BY city HAVING MAX(age, birthdate) >"
+            + " 1",
         "Function [MAX] cannot work with [INTEGER, DATE].",
-        "Usage: MAX(NUMBER T) -> T"
-    );
+        "Usage: MAX(NUMBER T) -> T");
   }
 
   @Test
@@ -104,8 +96,7 @@ public class QueryAnalysisIT extends SQLIntegTestCase {
     queryShouldThrowSemanticException(
         "SELECT * FROM opensearch-sql_test_index_bank b WHERE b.age IS FALSE",
         "Operator [IS] cannot work with [INTEGER, BOOLEAN].",
-        "Usage: Please use compatible types from each side."
-    );
+        "Usage: Please use compatible types from each side.");
   }
 
   @Test
@@ -113,8 +104,7 @@ public class QueryAnalysisIT extends SQLIntegTestCase {
     queryShouldThrowSemanticException(
         "SELECT * FROM opensearch-sql_test_index_bank b WHERE b.age >= 'test'",
         "Operator [>=] cannot work with [INTEGER, STRING].",
-        "Usage: Please use compatible types from each side."
-    );
+        "Usage: Please use compatible types from each side.");
   }
 
   @Test
@@ -122,43 +112,38 @@ public class QueryAnalysisIT extends SQLIntegTestCase {
     queryShouldThrowSemanticException(
         "SELECT * FROM opensearch-sql_test_index_bank b WHERE LOG(b.balance) != 'test'",
         "Operator [!=] cannot work with [DOUBLE, STRING].",
-        "Usage: Please use compatible types from each side."
-    );
+        "Usage: Please use compatible types from each side.");
   }
 
   @Test
   public void unionNumberFieldWithStringShouldThrowSemanticException() {
     queryShouldThrowSemanticException(
-        "SELECT age FROM opensearch-sql_test_index_bank" +
-            " UNION SELECT address FROM opensearch-sql_test_index_bank",
-        "Operator [UNION] cannot work with [INTEGER, TEXT]."
-    );
+        "SELECT age FROM opensearch-sql_test_index_bank"
+            + " UNION SELECT address FROM opensearch-sql_test_index_bank",
+        "Operator [UNION] cannot work with [INTEGER, TEXT].");
   }
 
   @Test
   public void minusBooleanFieldWithDateShouldThrowSemanticException() {
     queryShouldThrowSemanticException(
-        "SELECT male FROM opensearch-sql_test_index_bank" +
-            " MINUS SELECT birthdate FROM opensearch-sql_test_index_bank",
-        "Operator [MINUS] cannot work with [BOOLEAN, DATE]."
-    );
+        "SELECT male FROM opensearch-sql_test_index_bank"
+            + " MINUS SELECT birthdate FROM opensearch-sql_test_index_bank",
+        "Operator [MINUS] cannot work with [BOOLEAN, DATE].");
   }
 
   @Test
   public void useInClauseWithIncompatibleFieldTypesShouldFail() {
     queryShouldThrowSemanticException(
-        "SELECT * FROM opensearch-sql_test_index_bank WHERE male " +
-            " IN (SELECT 1 FROM opensearch-sql_test_index_bank)",
-        "Operator [IN] cannot work with [BOOLEAN, INTEGER]."
-    );
+        "SELECT * FROM opensearch-sql_test_index_bank WHERE male "
+            + " IN (SELECT 1 FROM opensearch-sql_test_index_bank)",
+        "Operator [IN] cannot work with [BOOLEAN, INTEGER].");
   }
 
   @Test
   public void queryWithNestedFunctionShouldFail() {
     queryShouldThrowFeatureNotImplementedException(
         "SELECT abs(log(balance)) FROM opensearch-sql_test_index_bank",
-        "Nested function calls like [abs(log(balance))] are not supported yet"
-    );
+        "Nested function calls like [abs(log(balance))] are not supported yet");
   }
 
   @Test
@@ -170,29 +155,24 @@ public class QueryAnalysisIT extends SQLIntegTestCase {
   public void aggregateWithFunctionAggregatorShouldFail() {
     queryShouldThrowFeatureNotImplementedException(
         "SELECT max(log(age)) FROM opensearch-sql_test_index_bank",
-        "Aggregation calls with function aggregator like [max(log(age))] are not supported yet"
-    );
+        "Aggregation calls with function aggregator like [max(log(age))] are not supported yet");
   }
 
   @Test
   public void queryWithUnsupportedFunctionShouldFail() {
     queryShouldThrowFeatureNotImplementedException(
         "SELECT balance DIV age FROM opensearch-sql_test_index_bank",
-        "Operator [DIV] is not supported yet"
-    );
+        "Operator [DIV] is not supported yet");
   }
 
   @Test
   public void useNegativeNumberConstantShouldPass() {
     queryShouldPassAnalysis(
-        "SELECT * FROM opensearch-sql_test_index_bank " +
-            "WHERE age > -1 AND balance < -123.456789"
-    );
+        "SELECT * FROM opensearch-sql_test_index_bank "
+            + "WHERE age > -1 AND balance < -123.456789");
   }
 
-  /**
-   * Run the query with cluster setting changed and cleaned after complete
-   */
+  /** Run the query with cluster setting changed and cleaned after complete */
   private void runWithClusterSetting(ClusterSetting setting, Runnable query) {
     try {
       updateClusterSettings(setting);
@@ -201,7 +181,8 @@ public class QueryAnalysisIT extends SQLIntegTestCase {
       throw new IllegalStateException(
           StringUtils.format("Exception raised when running with cluster setting [%s]", setting));
     } finally {
-      // Clean up or OpenSearch will throw java.lang.AssertionError: test leaves persistent cluster metadata behind
+      // Clean up or OpenSearch will throw java.lang.AssertionError: test leaves persistent cluster
+      // metadata behind
       try {
         updateClusterSettings(setting.nullify());
       } catch (IOException e) {
@@ -218,20 +199,19 @@ public class QueryAnalysisIT extends SQLIntegTestCase {
     queryShouldThrowException(query, SemanticAnalysisException.class, expectedMsgs);
   }
 
-  private void queryShouldThrowFeatureNotImplementedException(String query,
-                                                              String... expectedMsgs) {
-    queryShouldThrowExceptionWithRestStatus(query, SqlFeatureNotImplementedException.class,
-        SERVICE_UNAVAILABLE, expectedMsgs);
+  private void queryShouldThrowFeatureNotImplementedException(
+      String query, String... expectedMsgs) {
+    queryShouldThrowExceptionWithRestStatus(
+        query, SqlFeatureNotImplementedException.class, SERVICE_UNAVAILABLE, expectedMsgs);
   }
 
-  private <T> void queryShouldThrowException(String query, Class<T> exceptionType,
-                                             String... expectedMsgs) {
+  private <T> void queryShouldThrowException(
+      String query, Class<T> exceptionType, String... expectedMsgs) {
     queryShouldThrowExceptionWithRestStatus(query, exceptionType, BAD_REQUEST, expectedMsgs);
   }
 
-  private <T> void queryShouldThrowExceptionWithRestStatus(String query, Class<T> exceptionType,
-                                                           RestStatus status,
-                                                           String... expectedMsgs) {
+  private <T> void queryShouldThrowExceptionWithRestStatus(
+      String query, Class<T> exceptionType, RestStatus status, String... expectedMsgs) {
     try {
       executeQuery(query);
       Assert.fail("Expected ResponseException, but none was thrown for query: " + query);
@@ -244,8 +224,8 @@ public class QueryAnalysisIT extends SQLIntegTestCase {
       }
     } catch (IOException e) {
       throw new IllegalStateException(
-          "Unexpected IOException raised rather than expected AnalysisException for query: " +
-              query);
+          "Unexpected IOException raised rather than expected AnalysisException for query: "
+              + query);
     }
   }
 
@@ -285,5 +265,4 @@ public class QueryAnalysisIT extends SQLIntegTestCase {
       assertThat(body, containsString(content));
     }
   }
-
 }

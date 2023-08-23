@@ -20,7 +20,6 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.opensearch.sql.data.model.ExprDateValue;
-import org.opensearch.sql.data.model.ExprDatetimeValue;
 import org.opensearch.sql.data.model.ExprDoubleValue;
 import org.opensearch.sql.data.model.ExprNullValue;
 import org.opensearch.sql.data.model.ExprTimestampValue;
@@ -81,7 +80,7 @@ public class UnixTimeStampTest extends DateTimeTestBase {
     assertEquals(value.toEpochSecond(ZoneOffset.UTC), unixTimeStampOf(value));
     assertEquals(
         value.toEpochSecond(ZoneOffset.UTC),
-        eval(unixTimeStampOf(DSL.literal(new ExprDatetimeValue(value)))).longValue());
+        eval(unixTimeStampOf(DSL.literal(new ExprTimestampValue(value)))).longValue());
   }
 
   private static Stream<Arguments> getInstantSamples() {

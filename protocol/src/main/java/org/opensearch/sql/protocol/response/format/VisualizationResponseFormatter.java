@@ -72,21 +72,20 @@ public class VisualizationResponseFormatter extends JsonResponseFormatter<QueryR
   public String format(Throwable t) {
     int status = getStatus(t);
     ErrorMessage message = ErrorMessageFactory.createErrorMessage(t, status);
-    VisualizationResponseFormatter.Error error = new Error(
-        message.getType(),
-        message.getReason(),
-        message.getDetails());
+    VisualizationResponseFormatter.Error error =
+        new Error(message.getType(), message.getReason(), message.getDetails());
     return jsonify(new VisualizationErrorResponse(error, status));
   }
 
   private int getStatus(Throwable t) {
-    return (t instanceof SyntaxCheckException
-        || t instanceof QueryEngineException) ? 400 : 503;
+    return (t instanceof SyntaxCheckException || t instanceof QueryEngineException) ? 400 : 503;
   }
 
   private Map<String, List<Object>> fetchData(QueryResult response) {
     Map<String, List<Object>> columnMap = new LinkedHashMap<>();
-    response.getSchema().getColumns()
+    response
+        .getSchema()
+        .getColumns()
         .forEach(column -> columnMap.put(column.getName(), new LinkedList<>()));
 
     for (Object[] dataRow : response) {
@@ -107,16 +106,17 @@ public class VisualizationResponseFormatter extends JsonResponseFormatter<QueryR
   private List<Field> fetchFields(QueryResult response) {
     List<ExecutionEngine.Schema.Column> columns = response.getSchema().getColumns();
     ImmutableList.Builder<Field> fields = ImmutableList.builder();
-    columns.forEach(column -> {
-      Field field = new Field(column.getName(), convertToLegacyType(column.getExprType()));
-      fields.add(field);
-    });
+    columns.forEach(
+        column -> {
+          Field field = new Field(column.getName(), convertToLegacyType(column.getExprType()));
+          fields.add(field);
+        });
     return fields.build();
   }
 
   /**
-   * Convert type that exists in both legacy and new engine but has different name.
-   * Return old type name to avoid breaking impact on client-side.
+   * Convert type that exists in both legacy and new engine but has different name. Return old type
+   * name to avoid breaking impact on client-side.
    */
   private String convertToLegacyType(ExprType type) {
     return type.legacyTypeName().toLowerCase();

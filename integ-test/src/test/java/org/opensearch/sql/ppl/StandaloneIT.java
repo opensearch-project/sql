@@ -3,7 +3,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-
 package org.opensearch.sql.ppl;
 
 import static org.opensearch.sql.datasource.model.DataSourceMetadata.defaultOpenSearchDataSourceMetadata;
@@ -79,17 +78,21 @@ public class StandaloneIT extends PPLIntegTestCase {
   public void init() {
     RestHighLevelClient restClient = new InternalRestHighLevelClient(client());
     OpenSearchClient client = new OpenSearchRestClient(restClient);
-    DataSourceService dataSourceService = new DataSourceServiceImpl(
-        new ImmutableSet.Builder<DataSourceFactory>()
-            .add(new OpenSearchDataSourceFactory(client, defaultSettings()))
-            .build(), getDataSourceMetadataStorage(), getDataSourceUserRoleHelper());
+    DataSourceService dataSourceService =
+        new DataSourceServiceImpl(
+            new ImmutableSet.Builder<DataSourceFactory>()
+                .add(new OpenSearchDataSourceFactory(client, defaultSettings()))
+                .build(),
+            getDataSourceMetadataStorage(),
+            getDataSourceUserRoleHelper());
     dataSourceService.createDataSource(defaultOpenSearchDataSourceMetadata());
 
     ModulesBuilder modules = new ModulesBuilder();
-    modules.add(new StandaloneModule(new InternalRestHighLevelClient(client()), defaultSettings(), dataSourceService));
+    modules.add(
+        new StandaloneModule(
+            new InternalRestHighLevelClient(client()), defaultSettings(), dataSourceService));
     Injector injector = modules.createInjector();
-    pplService =
-        SecurityAccess.doPrivileged(() -> injector.getInstance(PPLService.class));
+    pplService = SecurityAccess.doPrivileged(() -> injector.getInstance(PPLService.class));
   }
 
   @Test
@@ -147,9 +150,8 @@ public class StandaloneIT extends PPLIntegTestCase {
 
   private Settings defaultSettings() {
     return new Settings() {
-      private final Map<Key, Integer> defaultSettings = new ImmutableMap.Builder<Key, Integer>()
-          .put(Key.QUERY_SIZE_LIMIT, 200)
-          .build();
+      private final Map<Key, Integer> defaultSettings =
+          new ImmutableMap.Builder<Key, Integer>().put(Key.QUERY_SIZE_LIMIT, 200).build();
 
       @Override
       public <T> T getSettingValue(Key key) {
@@ -163,9 +165,7 @@ public class StandaloneIT extends PPLIntegTestCase {
     };
   }
 
-  /**
-   * Internal RestHighLevelClient only for testing purpose.
-   */
+  /** Internal RestHighLevelClient only for testing purpose. */
   static class InternalRestHighLevelClient extends RestHighLevelClient {
     public InternalRestHighLevelClient(RestClient restClient) {
       super(restClient, RestClient::close, Collections.emptyList());
@@ -198,8 +198,8 @@ public class StandaloneIT extends PPLIntegTestCase {
     }
 
     @Provides
-    public ExecutionEngine executionEngine(OpenSearchClient client, ExecutionProtector protector,
-                                           PlanSerializer planSerializer) {
+    public ExecutionEngine executionEngine(
+        OpenSearchClient client, ExecutionProtector protector, PlanSerializer planSerializer) {
       return new OpenSearchExecutionEngine(client, protector, planSerializer);
     }
 
@@ -258,28 +258,20 @@ public class StandaloneIT extends PPLIntegTestCase {
       }
 
       @Override
-      public void createDataSourceMetadata(DataSourceMetadata dataSourceMetadata) {
-
-      }
+      public void createDataSourceMetadata(DataSourceMetadata dataSourceMetadata) {}
 
       @Override
-      public void updateDataSourceMetadata(DataSourceMetadata dataSourceMetadata) {
-
-      }
+      public void updateDataSourceMetadata(DataSourceMetadata dataSourceMetadata) {}
 
       @Override
-      public void deleteDataSourceMetadata(String datasourceName) {
-
-      }
+      public void deleteDataSourceMetadata(String datasourceName) {}
     };
   }
 
   public static DataSourceUserAuthorizationHelper getDataSourceUserRoleHelper() {
     return new DataSourceUserAuthorizationHelper() {
       @Override
-      public void authorizeDataSource(DataSourceMetadata dataSourceMetadata) {
-
-      }
+      public void authorizeDataSource(DataSourceMetadata dataSourceMetadata) {}
     };
   }
 }

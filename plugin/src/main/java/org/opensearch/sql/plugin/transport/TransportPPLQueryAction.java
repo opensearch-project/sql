@@ -139,8 +139,8 @@ public class TransportPPLQueryAction
       @Override
       public void onResponse(ExecutionEngine.QueryResponse response) {
         String responseContent =
-            formatter.format(new QueryResult(response.getSchema(), response.getResults(),
-                response.getCursor()));
+            formatter.format(
+                new QueryResult(response.getSchema(), response.getResults(), response.getCursor()));
         listener.onResponse(new TransportPPLQueryResponse(responseContent));
       }
 

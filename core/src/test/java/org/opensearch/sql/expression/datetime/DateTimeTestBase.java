@@ -12,10 +12,10 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.time.ZoneOffset;
 import java.time.temporal.Temporal;
 import java.util.List;
 import org.opensearch.sql.data.model.ExprDateValue;
-import org.opensearch.sql.data.model.ExprDatetimeValue;
 import org.opensearch.sql.data.model.ExprTimeValue;
 import org.opensearch.sql.data.model.ExprTimestampValue;
 import org.opensearch.sql.data.model.ExprValue;
@@ -92,7 +92,8 @@ public class DateTimeTestBase extends ExpressionTestBase {
   }
 
   protected LocalDateTime fromUnixTime(Double value) {
-    return fromUnixTime(DSL.literal(value)).valueOf().datetimeValue();
+    return LocalDateTime.ofInstant(
+        fromUnixTime(DSL.literal(value)).valueOf().timestampValue(), ZoneOffset.UTC);
   }
 
   protected FunctionExpression fromUnixTime(Expression value) {
@@ -110,7 +111,8 @@ public class DateTimeTestBase extends ExpressionTestBase {
   }
 
   protected LocalDateTime fromUnixTime(Long value) {
-    return fromUnixTime(DSL.literal(value)).valueOf().datetimeValue();
+    return LocalDateTime.ofInstant(
+        fromUnixTime(DSL.literal(value)).valueOf().timestampValue(), ZoneOffset.UTC);
   }
 
   protected String fromUnixTime(Long value, String format) {
@@ -224,7 +226,7 @@ public class DateTimeTestBase extends ExpressionTestBase {
   }
 
   protected Double unixTimeStampOf(LocalDateTime value) {
-    return unixTimeStampOf(DSL.literal(new ExprDatetimeValue(value))).valueOf().doubleValue();
+    return unixTimeStampOf(DSL.literal(new ExprTimestampValue(value))).valueOf().doubleValue();
   }
 
   protected Double unixTimeStampOf(Instant value) {

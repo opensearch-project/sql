@@ -25,8 +25,6 @@ public class TypeEnvironment implements Environment<Symbol, ExprType> {
   @Getter private final TypeEnvironment parent;
   private final SymbolTable symbolTable;
 
-  @Getter private final SymbolTable reservedSymbolTable;
-
   /**
    * Constructor with empty symbol tables.
    *
@@ -35,7 +33,6 @@ public class TypeEnvironment implements Environment<Symbol, ExprType> {
   public TypeEnvironment(TypeEnvironment parent) {
     this.parent = parent;
     this.symbolTable = new SymbolTable();
-    this.reservedSymbolTable = new SymbolTable();
   }
 
   /**
@@ -47,7 +44,6 @@ public class TypeEnvironment implements Environment<Symbol, ExprType> {
   public TypeEnvironment(TypeEnvironment parent, SymbolTable symbolTable) {
     this.parent = parent;
     this.symbolTable = symbolTable;
-    this.reservedSymbolTable = new SymbolTable();
   }
 
   /**
@@ -122,9 +118,5 @@ public class TypeEnvironment implements Environment<Symbol, ExprType> {
   /** Clear all fields in the current environment. */
   public void clearAllFields() {
     lookupAllFields(FIELD_NAME).keySet().forEach(v -> remove(new Symbol(Namespace.FIELD_NAME, v)));
-  }
-
-  public void addReservedWord(Symbol symbol, ExprType type) {
-    reservedSymbolTable.store(symbol, type);
   }
 }

@@ -98,7 +98,8 @@ public class CaptureTest {
     Map<String, Object> map = match.capture();
     assertEquals(1, map.size());
     assertEquals("Hello", map.get(subname).toString());
-    assertEquals("{abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_abcdef=Hello}",
+    assertEquals(
+        "{abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_abcdef=Hello}",
         map.toString());
   }
 
@@ -145,7 +146,8 @@ public class CaptureTest {
       m3.captureFlattened();
       fail("should report error due tu ambiguity");
     } catch (RuntimeException e) {
-      assertThat(e.getMessage(),
+      assertThat(
+          e.getMessage(),
           containsString("has multiple non-null values, this is not allowed in flattened mode"));
     }
   }

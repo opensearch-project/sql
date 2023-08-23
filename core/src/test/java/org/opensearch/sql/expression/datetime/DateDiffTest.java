@@ -33,7 +33,7 @@ public class DateDiffTest extends DateTimeTestBase {
   private static final LocalDateTime dateTimeSample2 = LocalDateTime.of(1993, 3, 4, 5, 6);
 
   // Function signature is:
-  // (DATE/DATETIME/TIMESTAMP/TIME, DATE/DATETIME/TIMESTAMP/TIME) -> LONG
+  // (DATE/TIMESTAMP/TIME, DATE/TIMESTAMP/TIME) -> LONG
   private static Stream<Arguments> getTestData() {
     // Arguments are: first argument for `DATE_DIFF` function, second argument and expected result.
     return Stream.of(

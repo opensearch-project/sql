@@ -3,7 +3,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-
 package org.opensearch.sql.legacy;
 
 import static org.hamcrest.Matchers.equalTo;
@@ -20,7 +19,8 @@ public class ShowIT extends SQLIntegTestCase {
 
   @Override
   protected void init() {
-    // Note: not using the existing TEST_INDEX_* indices, since underscore in the names causes issues
+    // Note: not using the existing TEST_INDEX_* indices, since underscore in the names causes
+    // issues
     createEmptyIndexIfNotExist("abcdefg");
     createEmptyIndexIfNotExist("abcdefghijk");
     createEmptyIndexIfNotExist("abcdijk");

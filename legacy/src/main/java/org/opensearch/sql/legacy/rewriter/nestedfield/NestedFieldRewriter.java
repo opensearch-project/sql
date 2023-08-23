@@ -3,7 +3,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-
 package org.opensearch.sql.legacy.rewriter.nestedfield;
 
 import static org.opensearch.sql.legacy.utils.Util.NESTED_JOIN_TYPE;
@@ -16,6 +15,9 @@ import java.util.ArrayDeque;
 import java.util.Deque;
 
 /**
+ *
+ *
+ * <pre>
  * Visitor to rewrite AST (abstract syntax tree) for nested type fields to support implicit nested() function call.
  * Intuitively, the approach is to implement SQLIdentifier.visit() and wrap nested() function for nested field.
  * The parsing result of FROM clause will be used to determine if an identifier is nested field.
@@ -47,66 +49,64 @@ import java.util.Deque;
  * 1) Manage environment in the case of subquery
  * 2) Add nested field to select for SELECT *
  * 3) Merge conditions of same nested field to single nested() call
+ * </pre>
  */
 public class NestedFieldRewriter extends MySqlASTVisitorAdapter {
 
-    /**
-     * Scope stack to record the state (nested field names etc) for current query.
-     * In the case of subquery, the active scope of current query is the top element of the stack.
-     */
-    private Deque<Scope> environment = new ArrayDeque<>();
+  /**
+   * Scope stack to record the state (nested field names etc) for current query. In the case of
+   * subquery, the active scope of current query is the top element of the stack.
+   */
+  private Deque<Scope> environment = new ArrayDeque<>();
 
-    /**
-     * Rewrite FROM here to make sure FROM statement always be visited before other statement in query.
-     * Note that return true anyway to continue visiting FROM in subquery if any.
-     */
-    @Override
-    public boolean visit(MySqlSelectQueryBlock query) {
-        environment.push(new Scope());
-        if (query.getFrom() == null) {
-            return false;
-        }
-
-        query.getFrom().setParent(query);
-        new From(query.getFrom()).rewrite(curScope());
-
-        if (curScope().isAnyNestedField() && isNotGroupBy(query)) {
-            new Select(query.getSelectList()).rewrite(curScope());
-        }
-
-        query.putAttribute(NESTED_JOIN_TYPE, curScope().getActualJoinType());
-        return true;
+  /**
+   * Rewrite FROM here to make sure FROM statement always be visited before other statement in
+   * query. Note that return true anyway to continue visiting FROM in subquery if any.
+   */
+  @Override
+  public boolean visit(MySqlSelectQueryBlock query) {
+    environment.push(new Scope());
+    if (query.getFrom() == null) {
+      return false;
     }
 
-    @Override
-    public boolean visit(SQLIdentifierExpr expr) {
-        if (curScope().isAnyNestedField()) {
-            new Identifier(expr).rewrite(curScope());
-        }
-        return true;
+    query.getFrom().setParent(query);
+    new From(query.getFrom()).rewrite(curScope());
+
+    if (curScope().isAnyNestedField() && isNotGroupBy(query)) {
+      new Select(query.getSelectList()).rewrite(curScope());
     }
 
-    @Override
-    public void endVisit(SQLBinaryOpExpr expr) {
-        if (curScope().isAnyNestedField()) {
-            new Where(expr).rewrite(curScope());
-        }
-    }
+    query.putAttribute(NESTED_JOIN_TYPE, curScope().getActualJoinType());
+    return true;
+  }
 
-    @Override
-    public void endVisit(MySqlSelectQueryBlock query) {
-        environment.pop();
+  @Override
+  public boolean visit(SQLIdentifierExpr expr) {
+    if (curScope().isAnyNestedField()) {
+      new Identifier(expr).rewrite(curScope());
     }
+    return true;
+  }
 
-    /**
-     * Current scope which is top of the stack
-     */
-    private Scope curScope() {
-        return environment.peek();
+  @Override
+  public void endVisit(SQLBinaryOpExpr expr) {
+    if (curScope().isAnyNestedField()) {
+      new Where(expr).rewrite(curScope());
     }
+  }
 
-    private boolean isNotGroupBy(MySqlSelectQueryBlock query) {
-        return query.getGroupBy() == null;
-    }
+  @Override
+  public void endVisit(MySqlSelectQueryBlock query) {
+    environment.pop();
+  }
 
+  /** Current scope which is top of the stack */
+  private Scope curScope() {
+    return environment.peek();
+  }
+
+  private boolean isNotGroupBy(MySqlSelectQueryBlock query) {
+    return query.getGroupBy() == null;
+  }
 }

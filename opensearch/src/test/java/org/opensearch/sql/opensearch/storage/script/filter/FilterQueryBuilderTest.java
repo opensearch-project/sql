@@ -3,7 +3,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-
 package org.opensearch.sql.opensearch.storage.script.filter;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -14,7 +13,6 @@ import static org.mockito.Mockito.doAnswer;
 import static org.opensearch.sql.data.type.ExprCoreType.BOOLEAN;
 import static org.opensearch.sql.data.type.ExprCoreType.BYTE;
 import static org.opensearch.sql.data.type.ExprCoreType.DATE;
-import static org.opensearch.sql.data.type.ExprCoreType.DATETIME;
 import static org.opensearch.sql.data.type.ExprCoreType.DOUBLE;
 import static org.opensearch.sql.data.type.ExprCoreType.FLOAT;
 import static org.opensearch.sql.data.type.ExprCoreType.INTEGER;
@@ -43,7 +41,6 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.opensearch.sql.common.antlr.SyntaxCheckException;
 import org.opensearch.sql.common.utils.StringUtils;
 import org.opensearch.sql.data.model.ExprDateValue;
-import org.opensearch.sql.data.model.ExprDatetimeValue;
 import org.opensearch.sql.data.model.ExprTimeValue;
 import org.opensearch.sql.data.model.ExprTimestampValue;
 import org.opensearch.sql.data.model.ExprTupleValue;
@@ -64,22 +61,42 @@ import org.opensearch.sql.opensearch.storage.serialization.ExpressionSerializer;
 class FilterQueryBuilderTest {
 
   private static Stream<LiteralExpression> numericCastSource() {
-    return Stream.of(literal((byte) 1), literal((short) -1), literal(
-        1), literal(21L), literal(3.14F), literal(3.1415D), literal(true), literal("1"));
+    return Stream.of(
+        literal((byte) 1),
+        literal((short) -1),
+        literal(1),
+        literal(21L),
+        literal(3.14F),
+        literal(3.1415D),
+        literal(true),
+        literal("1"));
   }
 
   private static Stream<LiteralExpression> booleanTrueCastSource() {
-    return Stream.of(literal((byte) 1), literal((short) -1), literal(
-        1), literal(42L), literal(3.14F), literal(3.1415D), literal(true), literal("true"));
+    return Stream.of(
+        literal((byte) 1),
+        literal((short) -1),
+        literal(1),
+        literal(42L),
+        literal(3.14F),
+        literal(3.1415D),
+        literal(true),
+        literal("true"));
   }
 
   private static Stream<LiteralExpression> booleanFalseCastSource() {
-    return Stream.of(literal((byte) 0), literal((short) 0), literal(
-        0), literal(0L), literal(0.0F), literal(0.0D), literal(false), literal("false"));
+    return Stream.of(
+        literal((byte) 0),
+        literal((short) 0),
+        literal(0),
+        literal(0L),
+        literal(0.0F),
+        literal(0.0D),
+        literal(false),
+        literal("false"));
   }
 
-  @Mock
-  private ExpressionSerializer serializer;
+  @Mock private ExpressionSerializer serializer;
 
   private FilterQueryBuilder filterQueryBuilder;
 
@@ -99,34 +116,42 @@ class FilterQueryBuilderTest {
             + "    }\n"
             + "  }\n"
             + "}",
-        buildQuery(
-            DSL.equal(
-                ref("name", STRING), literal("John"))));
+        buildQuery(DSL.equal(ref("name", STRING), literal("John"))));
   }
 
   @Test
   void should_build_range_query_for_comparison_expression() {
     Expression[] params = {ref("age", INTEGER), literal(30)};
-    Map<Expression, Object[]> ranges = ImmutableMap.of(
-        DSL.less(params), new Object[]{null, 30, true, false},
-        DSL.greater(params), new Object[]{30, null, false, true},
-        DSL.lte(params), new Object[]{null, 30, true, true},
-        DSL.gte(params), new Object[]{30, null, true, true});
+    Map<Expression, Object[]> ranges =
+        ImmutableMap.of(
+            DSL.less(params), new Object[] {null, 30, true, false},
+            DSL.greater(params), new Object[] {30, null, false, true},
+            DSL.lte(params), new Object[] {null, 30, true, true},
+            DSL.gte(params), new Object[] {30, null, true, true});
 
-    ranges.forEach((expr, range) ->
-        assertJsonEquals(
-            "{\n"
-                + "  \"range\" : {\n"
-                + "    \"age\" : {\n"
-                + "      \"from\" : " + range[0] + ",\n"
-                + "      \"to\" : " + range[1] + ",\n"
-                + "      \"include_lower\" : " + range[2] + ",\n"
-                + "      \"include_upper\" : " + range[3] + ",\n"
-                + "      \"boost\" : 1.0\n"
-                + "    }\n"
-                + "  }\n"
-                + "}",
-            buildQuery(expr)));
+    ranges.forEach(
+        (expr, range) ->
+            assertJsonEquals(
+                "{\n"
+                    + "  \"range\" : {\n"
+                    + "    \"age\" : {\n"
+                    + "      \"from\" : "
+                    + range[0]
+                    + ",\n"
+                    + "      \"to\" : "
+                    + range[1]
+                    + ",\n"
+                    + "      \"include_lower\" : "
+                    + range[2]
+                    + ",\n"
+                    + "      \"include_upper\" : "
+                    + range[3]
+                    + ",\n"
+                    + "      \"boost\" : 1.0\n"
+                    + "    }\n"
+                    + "  }\n"
+                    + "}",
+                buildQuery(expr)));
   }
 
   @Test
@@ -141,9 +166,7 @@ class FilterQueryBuilderTest {
             + "    }\n"
             + "  }\n"
             + "}",
-        buildQuery(
-            DSL.like(
-                ref("name", STRING), literal("%John_"))));
+        buildQuery(DSL.like(ref("name", STRING), literal("%John_"))));
   }
 
   @Test
@@ -159,8 +182,7 @@ class FilterQueryBuilderTest {
             + "    \"boost\" : 1.0\n"
             + "  }\n"
             + "}",
-        buildQuery(
-            DSL.isnotnull(ref("age", INTEGER))));
+        buildQuery(DSL.isnotnull(ref("age", INTEGER))));
   }
 
   @Test
@@ -176,9 +198,7 @@ class FilterQueryBuilderTest {
             + "    \"boost\" : 1.0\n"
             + "  }\n"
             + "}",
-        buildQuery(
-            DSL.equal(
-                DSL.abs(ref("age", INTEGER)), literal(30))));
+        buildQuery(DSL.equal(DSL.abs(ref("age", INTEGER)), literal(30))));
   }
 
   @Test
@@ -194,26 +214,23 @@ class FilterQueryBuilderTest {
             + "    \"boost\" : 1.0\n"
             + "  }\n"
             + "}",
-        buildQuery(
-            DSL.equal(
-                ref("age1", INTEGER), ref("age2", INTEGER))));
+        buildQuery(DSL.equal(ref("age1", INTEGER), ref("age2", INTEGER))));
   }
 
   @Test
   void should_build_bool_query_for_and_or_expression() {
-    String[] names = { "filter", "should" };
+    String[] names = {"filter", "should"};
     FunctionExpression expr1 = DSL.equal(ref("name", STRING), literal("John"));
     FunctionExpression expr2 = DSL.equal(ref("age", INTEGER), literal(30));
-    Expression[] exprs = {
-        DSL.and(expr1, expr2),
-        DSL.or(expr1, expr2)
-    };
+    Expression[] exprs = {DSL.and(expr1, expr2), DSL.or(expr1, expr2)};
 
     for (int i = 0; i < names.length; i++) {
       assertJsonEquals(
           "{\n"
               + "  \"bool\" : {\n"
-              + "    \"" + names[i] + "\" : [\n"
+              + "    \""
+              + names[i]
+              + "\" : [\n"
               + "      {\n"
               + "        \"term\" : {\n"
               + "          \"name\" : {\n"
@@ -258,10 +275,7 @@ class FilterQueryBuilderTest {
             + "    \"boost\" : 1.0\n"
             + "  }\n"
             + "}",
-        buildQuery(
-            DSL.not(
-                DSL.equal(
-                    ref("age", INTEGER), literal(30)))));
+        buildQuery(DSL.not(DSL.equal(ref("age", INTEGER), literal(30)))));
   }
 
   @Test
@@ -277,8 +291,12 @@ class FilterQueryBuilderTest {
             + "}",
         buildQuery(
             DSL.equal(
-                ref("name", OpenSearchTextType.of(Map.of("words",
-                    OpenSearchDataType.of(OpenSearchDataType.MappingType.Keyword)))),
+                ref(
+                    "name",
+                    OpenSearchTextType.of(
+                        Map.of(
+                            "words",
+                            OpenSearchDataType.of(OpenSearchDataType.MappingType.Keyword)))),
                 literal("John"))));
   }
 
@@ -296,8 +314,12 @@ class FilterQueryBuilderTest {
             + "}",
         buildQuery(
             DSL.like(
-                ref("name", OpenSearchTextType.of(Map.of("words",
-                    OpenSearchDataType.of(OpenSearchDataType.MappingType.Keyword)))),
+                ref(
+                    "name",
+                    OpenSearchTextType.of(
+                        Map.of(
+                            "words",
+                            OpenSearchDataType.of(OpenSearchDataType.MappingType.Keyword)))),
                 literal("John%"))));
   }
 
@@ -557,7 +579,7 @@ class FilterQueryBuilderTest {
   @Test
   void should_build_match_phrase_query_with_default_parameters() {
     assertJsonEquals(
-            "{\n"
+        "{\n"
             + "  \"match_phrase\" : {\n"
             + "    \"message\" : {\n"
             + "      \"query\" : \"search query\",\n"
@@ -576,7 +598,8 @@ class FilterQueryBuilderTest {
 
   @Test
   void should_build_multi_match_query_with_default_parameters_single_field() {
-    assertJsonEquals("{\n"
+    assertJsonEquals(
+        "{\n"
             + "  \"multi_match\" : {\n"
             + "    \"query\" : \"search query\",\n"
             + "    \"fields\" : [\n"
@@ -602,7 +625,8 @@ class FilterQueryBuilderTest {
 
   @Test
   void should_build_multi_match_query_with_default_parameters_all_fields() {
-    assertJsonEquals("{\n"
+    assertJsonEquals(
+        "{\n"
             + "  \"multi_match\" : {\n"
             + "    \"query\" : \"search query\",\n"
             + "    \"fields\" : [\n"
@@ -628,7 +652,8 @@ class FilterQueryBuilderTest {
 
   @Test
   void should_build_multi_match_query_with_default_parameters_no_fields() {
-    assertJsonEquals("{\n"
+    assertJsonEquals(
+        "{\n"
             + "  \"multi_match\" : {\n"
             + "    \"query\" : \"search query\",\n"
             + "    \"fields\" : [],\n"
@@ -653,7 +678,8 @@ class FilterQueryBuilderTest {
 
   @Test
   void should_build_multi_match_query_with_default_parameters_multiple_fields() {
-    var expected = "{\n"
+    var expected =
+        "{\n"
             + "  \"multi_match\" : {\n"
             + "    \"query\" : \"search query\",\n"
             + "    \"fields\" : [%s],\n"
@@ -677,14 +703,16 @@ class FilterQueryBuilderTest {
 
     var ex1 = String.format(expected, "\"field1^1.0\", \"field2^0.3\"");
     var ex2 = String.format(expected, "\"field2^0.3\", \"field1^1.0\"");
-    assertTrue(new JSONObject(ex1).similar(new JSONObject(actual))
-        || new JSONObject(ex2).similar(new JSONObject(actual)),
+    assertTrue(
+        new JSONObject(ex1).similar(new JSONObject(actual))
+            || new JSONObject(ex2).similar(new JSONObject(actual)),
         StringUtils.format("Actual %s doesn't match neither expected %s nor %s", actual, ex1, ex2));
   }
 
   @Test
   void should_build_multi_match_query_with_custom_parameters() {
-    var expected = "{\n"
+    var expected =
+        "{\n"
             + "  \"multi_match\" : {\n"
             + "    \"query\" : \"search query\",\n"
             + "    \"fields\" : [%s],\n"
@@ -728,8 +756,9 @@ class FilterQueryBuilderTest {
 
     var ex1 = String.format(expected, "\"field1^1.0\", \"field2^0.3\"");
     var ex2 = String.format(expected, "\"field2^0.3\", \"field1^1.0\"");
-    assertTrue(new JSONObject(ex1).similar(new JSONObject(actual))
-        || new JSONObject(ex2).similar(new JSONObject(actual)),
+    assertTrue(
+        new JSONObject(ex1).similar(new JSONObject(actual))
+            || new JSONObject(ex2).similar(new JSONObject(actual)),
         StringUtils.format("Actual %s doesn't match neither expected %s nor %s", actual, ex1, ex2));
   }
 
@@ -749,7 +778,7 @@ class FilterQueryBuilderTest {
   @Test
   void should_build_match_phrase_query_with_custom_parameters() {
     assertJsonEquals(
-            "{\n"
+        "{\n"
             + "  \"match_phrase\" : {\n"
             + "    \"message\" : {\n"
             + "      \"query\" : \"search query\",\n"
@@ -924,7 +953,8 @@ class FilterQueryBuilderTest {
 
   @Test
   void should_build_query_query_with_default_parameters() {
-    var expected = "{\n"
+    var expected =
+        "{\n"
             + "  \"query_string\" : {\n"
             + "    \"query\" : \"field1:query_value\",\n"
             + "    \"fields\" : [],\n"
@@ -949,7 +979,8 @@ class FilterQueryBuilderTest {
 
   @Test
   void should_build_query_query_with_custom_parameters() {
-    var expected = "{\n"
+    var expected =
+        "{\n"
             + "  \"query_string\" : {\n"
             + "    \"query\" : \"field1:query_value\",\n"
             + "    \"fields\" : [],\n"
@@ -1033,7 +1064,8 @@ class FilterQueryBuilderTest {
 
     var ex1 = String.format(expected, "\"field1^1.0\", \"field2^0.3\"");
     var ex2 = String.format(expected, "\"field2^0.3\", \"field1^1.0\"");
-    assertTrue(new JSONObject(ex1).similar(new JSONObject(actual))
+    assertTrue(
+        new JSONObject(ex1).similar(new JSONObject(actual))
             || new JSONObject(ex2).similar(new JSONObject(actual)),
         StringUtils.format("Actual %s doesn't match neither expected %s nor %s", actual, ex1, ex2));
   }
@@ -1083,14 +1115,16 @@ class FilterQueryBuilderTest {
 
     var ex1 = String.format(expected, "\"field1^1.0\", \"field2^0.3\"");
     var ex2 = String.format(expected, "\"field2^0.3\", \"field1^1.0\"");
-    assertTrue(new JSONObject(ex1).similar(new JSONObject(actual))
+    assertTrue(
+        new JSONObject(ex1).similar(new JSONObject(actual))
             || new JSONObject(ex2).similar(new JSONObject(actual)),
         StringUtils.format("Actual %s doesn't match neither expected %s nor %s", actual, ex1, ex2));
   }
 
   @Test
   void should_build_query_string_query_with_default_parameters_single_field() {
-    assertJsonEquals("{\n"
+    assertJsonEquals(
+        "{\n"
             + "  \"query_string\" : {\n"
             + "    \"query\" : \"query_value\",\n"
             + "    \"fields\" : [\n"
@@ -1123,7 +1157,8 @@ class FilterQueryBuilderTest {
   // 2) `flags` are printed by OpenSearch as an integer
   // 3) `minimum_should_match` printed as a string
   void should_build_simple_query_string_query_with_default_parameters_single_field() {
-    assertJsonEquals("{\n"
+    assertJsonEquals(
+        "{\n"
             + "  \"simple_query_string\" : {\n"
             + "    \"query\" : \"search query\",\n"
             + "    \"fields\" : [\n"
@@ -1148,7 +1183,8 @@ class FilterQueryBuilderTest {
 
   @Test
   void should_build_simple_query_string_query_with_default_parameters_multiple_fields() {
-    var expected = "{\n"
+    var expected =
+        "{\n"
             + "  \"simple_query_string\" : {\n"
             + "    \"query\" : \"search query\",\n"
             + "    \"fields\" : [%s],\n"
@@ -1171,14 +1207,16 @@ class FilterQueryBuilderTest {
 
     var ex1 = String.format(expected, "\"field1^1.0\", \"field2^0.3\"");
     var ex2 = String.format(expected, "\"field2^0.3\", \"field1^1.0\"");
-    assertTrue(new JSONObject(ex1).similar(new JSONObject(actual))
-        || new JSONObject(ex2).similar(new JSONObject(actual)),
+    assertTrue(
+        new JSONObject(ex1).similar(new JSONObject(actual))
+            || new JSONObject(ex2).similar(new JSONObject(actual)),
         StringUtils.format("Actual %s doesn't match neither expected %s nor %s", actual, ex1, ex2));
   }
 
   @Test
   void should_build_simple_query_string_query_with_custom_parameters() {
-    var expected = "{\n"
+    var expected =
+        "{\n"
             + "  \"simple_query_string\" : {\n"
             + "    \"query\" : \"search query\",\n"
             + "    \"fields\" : [%s],\n"
@@ -1214,8 +1252,9 @@ class FilterQueryBuilderTest {
 
     var ex1 = String.format(expected, "\"field1^1.0\", \"field2^0.3\"");
     var ex2 = String.format(expected, "\"field2^0.3\", \"field1^1.0\"");
-    assertTrue(new JSONObject(ex1).similar(new JSONObject(actual))
-        || new JSONObject(ex2).similar(new JSONObject(actual)),
+    assertTrue(
+        new JSONObject(ex1).similar(new JSONObject(actual))
+            || new JSONObject(ex2).similar(new JSONObject(actual)),
         StringUtils.format("Actual %s doesn't match neither expected %s nor %s", actual, ex1, ex2));
   }
 
@@ -1245,12 +1284,17 @@ class FilterQueryBuilderTest {
 
   @Test
   void relevancy_func_invalid_arg_values() {
-    final var field = DSL.namedArgument("field",
-        new ReferenceExpression("message", OpenSearchTextType.of()));
-    final var fields = DSL.namedArgument("fields", DSL.literal(
-        new ExprTupleValue(new LinkedHashMap<>(ImmutableMap.of(
-            "field1", ExprValueUtils.floatValue(1.F),
-            "field2", ExprValueUtils.floatValue(.3F))))));
+    final var field =
+        DSL.namedArgument("field", new ReferenceExpression("message", OpenSearchTextType.of()));
+    final var fields =
+        DSL.namedArgument(
+            "fields",
+            DSL.literal(
+                new ExprTupleValue(
+                    new LinkedHashMap<>(
+                        ImmutableMap.of(
+                            "field1", ExprValueUtils.floatValue(1.F),
+                            "field2", ExprValueUtils.floatValue(.3F))))));
     final var query = DSL.namedArgument("query", literal("search query"));
 
     var slopTest = OpenSearchDSL.match_phrase(field, query,
@@ -1401,30 +1445,31 @@ class FilterQueryBuilderTest {
 
   @Test
   void cast_to_string_in_filter() {
-    String json = "{\n"
-        + "  \"term\" : {\n"
-        + "    \"string_value\" : {\n"
-        + "      \"value\" : \"1\",\n"
-        + "      \"boost\" : 1.0\n"
-        + "    }\n"
-        + "  }\n"
-        + "}";
+    String json =
+        "{\n"
+            + "  \"term\" : {\n"
+            + "    \"string_value\" : {\n"
+            + "      \"value\" : \"1\",\n"
+            + "      \"boost\" : 1.0\n"
+            + "    }\n"
+            + "  }\n"
+            + "}";
 
-    assertJsonEquals(json, buildQuery(
-        DSL.equal(ref("string_value", STRING), DSL.castString(literal(1)))));
-    assertJsonEquals(json, buildQuery(
-        DSL.equal(ref("string_value", STRING), DSL.castString(literal("1")))));
+    assertJsonEquals(
+        json, buildQuery(DSL.equal(ref("string_value", STRING), DSL.castString(literal(1)))));
+    assertJsonEquals(
+        json, buildQuery(DSL.equal(ref("string_value", STRING), DSL.castString(literal("1")))));
   }
 
   private Float castToFloat(Object o) {
     if (o instanceof Number) {
-      return ((Number)o).floatValue();
+      return ((Number) o).floatValue();
     }
     if (o instanceof String) {
       return Float.parseFloat((String) o);
     }
     if (o instanceof Boolean) {
-      return ((Boolean)o) ? 1F : 0F;
+      return ((Boolean) o) ? 1F : 0F;
     }
     // unreachable code
     throw new IllegalArgumentException();
@@ -1432,13 +1477,13 @@ class FilterQueryBuilderTest {
 
   private Integer castToInteger(Object o) {
     if (o instanceof Number) {
-      return ((Number)o).intValue();
+      return ((Number) o).intValue();
     }
     if (o instanceof String) {
       return Integer.parseInt((String) o);
     }
     if (o instanceof Boolean) {
-      return ((Boolean)o) ? 1 : 0;
+      return ((Boolean) o) ? 1 : 0;
     }
     // unreachable code
     throw new IllegalArgumentException();
@@ -1447,75 +1492,85 @@ class FilterQueryBuilderTest {
   @ParameterizedTest(name = "castByte({0})")
   @MethodSource({"numericCastSource"})
   void cast_to_byte_in_filter(LiteralExpression expr) {
-    assertJsonEquals(String.format(
-        "{\n"
-            + "  \"term\" : {\n"
-            + "    \"byte_value\" : {\n"
-            + "      \"value\" : %d,\n"
-            + "      \"boost\" : 1.0\n"
-            + "    }\n"
-            + "  }\n"
-            + "}", castToInteger(expr.valueOf().value())),
+    assertJsonEquals(
+        String.format(
+            "{\n"
+                + "  \"term\" : {\n"
+                + "    \"byte_value\" : {\n"
+                + "      \"value\" : %d,\n"
+                + "      \"boost\" : 1.0\n"
+                + "    }\n"
+                + "  }\n"
+                + "}",
+            castToInteger(expr.valueOf().value())),
         buildQuery(DSL.equal(ref("byte_value", BYTE), DSL.castByte(expr))));
   }
 
   @ParameterizedTest(name = "castShort({0})")
   @MethodSource({"numericCastSource"})
   void cast_to_short_in_filter(LiteralExpression expr) {
-    assertJsonEquals(String.format(
-        "{\n"
-            + "  \"term\" : {\n"
-            + "    \"short_value\" : {\n"
-            + "      \"value\" : %d,\n"
-            + "      \"boost\" : 1.0\n"
-            + "    }\n"
-            + "  }\n"
-            + "}", castToInteger(expr.valueOf().value())),
+    assertJsonEquals(
+        String.format(
+            "{\n"
+                + "  \"term\" : {\n"
+                + "    \"short_value\" : {\n"
+                + "      \"value\" : %d,\n"
+                + "      \"boost\" : 1.0\n"
+                + "    }\n"
+                + "  }\n"
+                + "}",
+            castToInteger(expr.valueOf().value())),
         buildQuery(DSL.equal(ref("short_value", SHORT), DSL.castShort(expr))));
   }
 
   @ParameterizedTest(name = "castInt({0})")
   @MethodSource({"numericCastSource"})
   void cast_to_int_in_filter(LiteralExpression expr) {
-    assertJsonEquals(String.format(
-        "{\n"
-            + "  \"term\" : {\n"
-            + "    \"integer_value\" : {\n"
-            + "      \"value\" : %d,\n"
-            + "      \"boost\" : 1.0\n"
-            + "    }\n"
-            + "  }\n"
-            + "}", castToInteger(expr.valueOf().value())),
+    assertJsonEquals(
+        String.format(
+            "{\n"
+                + "  \"term\" : {\n"
+                + "    \"integer_value\" : {\n"
+                + "      \"value\" : %d,\n"
+                + "      \"boost\" : 1.0\n"
+                + "    }\n"
+                + "  }\n"
+                + "}",
+            castToInteger(expr.valueOf().value())),
         buildQuery(DSL.equal(ref("integer_value", INTEGER), DSL.castInt(expr))));
   }
 
   @ParameterizedTest(name = "castLong({0})")
   @MethodSource({"numericCastSource"})
   void cast_to_long_in_filter(LiteralExpression expr) {
-    assertJsonEquals(String.format(
-        "{\n"
-            + "  \"term\" : {\n"
-            + "    \"long_value\" : {\n"
-            + "      \"value\" : %d,\n"
-            + "      \"boost\" : 1.0\n"
-            + "    }\n"
-            + "  }\n"
-            + "}", castToInteger(expr.valueOf().value())),
+    assertJsonEquals(
+        String.format(
+            "{\n"
+                + "  \"term\" : {\n"
+                + "    \"long_value\" : {\n"
+                + "      \"value\" : %d,\n"
+                + "      \"boost\" : 1.0\n"
+                + "    }\n"
+                + "  }\n"
+                + "}",
+            castToInteger(expr.valueOf().value())),
         buildQuery(DSL.equal(ref("long_value", LONG), DSL.castLong(expr))));
   }
 
   @ParameterizedTest(name = "castFloat({0})")
   @MethodSource({"numericCastSource"})
   void cast_to_float_in_filter(LiteralExpression expr) {
-    assertJsonEquals(String.format(
-        "{\n"
-            + "  \"term\" : {\n"
-            + "    \"float_value\" : {\n"
-            + "      \"value\" : %f,\n"
-            + "      \"boost\" : 1.0\n"
-            + "    }\n"
-            + "  }\n"
-            + "}", castToFloat(expr.valueOf().value())),
+    assertJsonEquals(
+        String.format(
+            "{\n"
+                + "  \"term\" : {\n"
+                + "    \"float_value\" : {\n"
+                + "      \"value\" : %f,\n"
+                + "      \"boost\" : 1.0\n"
+                + "    }\n"
+                + "  }\n"
+                + "}",
+            castToFloat(expr.valueOf().value())),
         buildQuery(DSL.equal(ref("float_value", FLOAT), DSL.castFloat(expr))));
   }
 
@@ -1524,32 +1579,35 @@ class FilterQueryBuilderTest {
   void cast_to_double_in_filter(LiteralExpression expr) {
     // double values affected by floating point imprecision, so we can't compare them in json
     // (Double)(Float)3.14 -> 3.14000010490417
-    assertEquals(castToFloat(expr.valueOf().value()),
-        DSL.castDouble(expr).valueOf().doubleValue(), 0.00001);
+    assertEquals(
+        castToFloat(expr.valueOf().value()), DSL.castDouble(expr).valueOf().doubleValue(), 0.00001);
 
-    assertJsonEquals(String.format(
-        "{\n"
-            + "  \"term\" : {\n"
-            + "    \"double_value\" : {\n"
-            + "      \"value\" : %2.20f,\n"
-            + "      \"boost\" : 1.0\n"
-            + "    }\n"
-            + "  }\n"
-            + "}", DSL.castDouble(expr).valueOf().doubleValue()),
+    assertJsonEquals(
+        String.format(
+            "{\n"
+                + "  \"term\" : {\n"
+                + "    \"double_value\" : {\n"
+                + "      \"value\" : %2.20f,\n"
+                + "      \"boost\" : 1.0\n"
+                + "    }\n"
+                + "  }\n"
+                + "}",
+            DSL.castDouble(expr).valueOf().doubleValue()),
         buildQuery(DSL.equal(ref("double_value", DOUBLE), DSL.castDouble(expr))));
   }
 
   @ParameterizedTest(name = "castBooleanTrue({0})")
   @MethodSource({"booleanTrueCastSource"})
   void cast_to_boolean_true_in_filter(LiteralExpression expr) {
-    String json = "{\n"
-        + "  \"term\" : {\n"
-        + "    \"boolean_value\" : {\n"
-        + "      \"value\" : true,\n"
-        + "      \"boost\" : 1.0\n"
-        + "    }\n"
-        + "  }\n"
-        + "}";
+    String json =
+        "{\n"
+            + "  \"term\" : {\n"
+            + "    \"boolean_value\" : {\n"
+            + "      \"value\" : true,\n"
+            + "      \"boost\" : 1.0\n"
+            + "    }\n"
+            + "  }\n"
+            + "}";
 
     assertJsonEquals(
         json, buildQuery(DSL.equal(ref("boolean_value", BOOLEAN), DSL.castBoolean(expr))));
@@ -1558,14 +1616,15 @@ class FilterQueryBuilderTest {
   @ParameterizedTest(name = "castBooleanFalse({0})")
   @MethodSource({"booleanFalseCastSource"})
   void cast_to_boolean_false_in_filter(LiteralExpression expr) {
-    String json = "{\n"
-        + "  \"term\" : {\n"
-        + "    \"boolean_value\" : {\n"
-        + "      \"value\" : false,\n"
-        + "      \"boost\" : 1.0\n"
-        + "    }\n"
-        + "  }\n"
-        + "}";
+    String json =
+        "{\n"
+            + "  \"term\" : {\n"
+            + "    \"boolean_value\" : {\n"
+            + "      \"value\" : false,\n"
+            + "      \"boost\" : 1.0\n"
+            + "    }\n"
+            + "  }\n"
+            + "}";
 
     assertJsonEquals(
         json, buildQuery(DSL.equal(ref("boolean_value", BOOLEAN), DSL.castBoolean(expr))));
@@ -1574,118 +1633,127 @@ class FilterQueryBuilderTest {
   @Test
   void cast_from_boolean() {
     Expression booleanExpr = literal(false);
-    String json = "{\n"
-        + "  \"term\" : {\n"
-        + "    \"my_value\" : {\n"
-        + "      \"value\" : 0,\n"
-        + "      \"boost\" : 1.0\n"
-        + "    }\n"
-        + "  }\n"
-        + "}";
-    assertJsonEquals(json, buildQuery(
-        DSL.equal(ref("my_value", BYTE), DSL.castByte(booleanExpr))));
-    assertJsonEquals(json, buildQuery(
-        DSL.equal(ref("my_value", SHORT), DSL.castShort(booleanExpr))));
-    assertJsonEquals(json, buildQuery(
-        DSL.equal(ref("my_value", INTEGER), DSL.castInt(booleanExpr))));
-    assertJsonEquals(json, buildQuery(
-        DSL.equal(ref("my_value", LONG), DSL.castLong(booleanExpr))));
+    String json =
+        "{\n"
+            + "  \"term\" : {\n"
+            + "    \"my_value\" : {\n"
+            + "      \"value\" : 0,\n"
+            + "      \"boost\" : 1.0\n"
+            + "    }\n"
+            + "  }\n"
+            + "}";
+    assertJsonEquals(json, buildQuery(DSL.equal(ref("my_value", BYTE), DSL.castByte(booleanExpr))));
+    assertJsonEquals(
+        json, buildQuery(DSL.equal(ref("my_value", SHORT), DSL.castShort(booleanExpr))));
+    assertJsonEquals(
+        json, buildQuery(DSL.equal(ref("my_value", INTEGER), DSL.castInt(booleanExpr))));
+    assertJsonEquals(json, buildQuery(DSL.equal(ref("my_value", LONG), DSL.castLong(booleanExpr))));
 
-    json = "{\n"
-        + "  \"term\" : {\n"
-        + "    \"my_value\" : {\n"
-        + "      \"value\" : 0.0,\n"
-        + "      \"boost\" : 1.0\n"
-        + "    }\n"
-        + "  }\n"
-        + "}";
-    assertJsonEquals(json, buildQuery(
-        DSL.equal(ref("my_value", FLOAT), DSL.castFloat(booleanExpr))));
-    assertJsonEquals(json, buildQuery(
-        DSL.equal(ref("my_value", DOUBLE), DSL.castDouble(booleanExpr))));
+    json =
+        "{\n"
+            + "  \"term\" : {\n"
+            + "    \"my_value\" : {\n"
+            + "      \"value\" : 0.0,\n"
+            + "      \"boost\" : 1.0\n"
+            + "    }\n"
+            + "  }\n"
+            + "}";
+    assertJsonEquals(
+        json, buildQuery(DSL.equal(ref("my_value", FLOAT), DSL.castFloat(booleanExpr))));
+    assertJsonEquals(
+        json, buildQuery(DSL.equal(ref("my_value", DOUBLE), DSL.castDouble(booleanExpr))));
 
-    json = "{\n"
-        + "  \"term\" : {\n"
-        + "    \"my_value\" : {\n"
-        + "      \"value\" : \"false\",\n"
-        + "      \"boost\" : 1.0\n"
-        + "    }\n"
-        + "  }\n"
-        + "}";
-    assertJsonEquals(json, buildQuery(
-        DSL.equal(ref("my_value", STRING), DSL.castString(booleanExpr))));
+    json =
+        "{\n"
+            + "  \"term\" : {\n"
+            + "    \"my_value\" : {\n"
+            + "      \"value\" : \"false\",\n"
+            + "      \"boost\" : 1.0\n"
+            + "    }\n"
+            + "  }\n"
+            + "}";
+    assertJsonEquals(
+        json, buildQuery(DSL.equal(ref("my_value", STRING), DSL.castString(booleanExpr))));
   }
 
   @Test
   void cast_to_date_in_filter() {
-    String json = "{\n"
-        + "  \"term\" : {\n"
-        + "    \"date_value\" : {\n"
-        + "      \"value\" : \"2021-11-08\",\n"
-        + "      \"boost\" : 1.0\n"
-        + "    }\n"
-        + "  }\n"
-        + "}";
+    String json =
+        "{\n"
+            + "  \"term\" : {\n"
+            + "    \"date_value\" : {\n"
+            + "      \"value\" : \"2021-11-08\",\n"
+            + "      \"boost\" : 1.0\n"
+            + "    }\n"
+            + "  }\n"
+            + "}";
 
-    assertJsonEquals(json, buildQuery(DSL.equal(
-        ref("date_value", DATE), DSL.castDate(literal("2021-11-08")))));
-    assertJsonEquals(json, buildQuery(DSL.equal(
-        ref("date_value", DATE), DSL.castDate(literal(new ExprDateValue("2021-11-08"))))));
-    assertJsonEquals(json, buildQuery(DSL.equal(ref(
-        "date_value", DATE), DSL.castDate(literal(new ExprDatetimeValue("2021-11-08 17:00:00"))))));
+    assertJsonEquals(
+        json, buildQuery(DSL.equal(ref("date_value", DATE), DSL.castDate(literal("2021-11-08")))));
+    assertJsonEquals(
+        json,
+        buildQuery(
+            DSL.equal(
+                ref("date_value", DATE), DSL.castDate(literal(new ExprDateValue("2021-11-08"))))));
+    assertJsonEquals(
+        json,
+        buildQuery(
+            DSL.equal(
+                ref("date_value", DATE),
+                DSL.castDate(literal(new ExprTimestampValue("2021-11-08 17:00:00"))))));
   }
 
   @Test
   void cast_to_time_in_filter() {
-    String json = "{\n"
-        + "  \"term\" : {\n"
-        + "    \"time_value\" : {\n"
-        + "      \"value\" : \"17:00:00\",\n"
-        + "      \"boost\" : 1.0\n"
-        + "    }\n"
-        + "  }\n"
-        + "}";
+    String json =
+        "{\n"
+            + "  \"term\" : {\n"
+            + "    \"time_value\" : {\n"
+            + "      \"value\" : \"17:00:00\",\n"
+            + "      \"boost\" : 1.0\n"
+            + "    }\n"
+            + "  }\n"
+            + "}";
 
-    assertJsonEquals(json, buildQuery(DSL.equal(
-        ref("time_value", TIME), DSL.castTime(literal("17:00:00")))));
-    assertJsonEquals(json, buildQuery(DSL.equal(
-        ref("time_value", TIME), DSL.castTime(literal(new ExprTimeValue("17:00:00"))))));
-    assertJsonEquals(json, buildQuery(DSL.equal(ref("time_value", TIME), DSL
-        .castTime(literal(new ExprTimestampValue("2021-11-08 17:00:00"))))));
-  }
-
-  @Test
-  void cast_to_datetime_in_filter() {
-    String json = "{\n"
-        + "  \"term\" : {\n"
-        + "    \"datetime_value\" : {\n"
-        + "      \"value\" : \"2021-11-08 17:00:00\",\n"
-        + "      \"boost\" : 1.0\n"
-        + "    }\n"
-        + "  }\n"
-        + "}";
-
-    assertJsonEquals(json, buildQuery(DSL.equal(ref("datetime_value", DATETIME), DSL
-        .castDatetime(literal("2021-11-08 17:00:00")))));
-    assertJsonEquals(json, buildQuery(DSL.equal(ref("datetime_value", DATETIME), DSL
-        .castDatetime(literal(new ExprTimestampValue("2021-11-08 17:00:00"))))));
+    assertJsonEquals(
+        json, buildQuery(DSL.equal(ref("time_value", TIME), DSL.castTime(literal("17:00:00")))));
+    assertJsonEquals(
+        json,
+        buildQuery(
+            DSL.equal(
+                ref("time_value", TIME), DSL.castTime(literal(new ExprTimeValue("17:00:00"))))));
+    assertJsonEquals(
+        json,
+        buildQuery(
+            DSL.equal(
+                ref("time_value", TIME),
+                DSL.castTime(literal(new ExprTimestampValue("2021-11-08 17:00:00"))))));
   }
 
   @Test
   void cast_to_timestamp_in_filter() {
-    String json = "{\n"
-        + "  \"term\" : {\n"
-        + "    \"timestamp_value\" : {\n"
-        + "      \"value\" : 1636390800000,\n"
-        + "      \"boost\" : 1.0\n"
-        + "    }\n"
-        + "  }\n"
-        + "}";
+    String json =
+        "{\n"
+            + "  \"term\" : {\n"
+            + "    \"timestamp_value\" : {\n"
+            + "      \"value\" : 1636390800000,\n"
+            + "      \"boost\" : 1.0\n"
+            + "    }\n"
+            + "  }\n"
+            + "}";
 
-    assertJsonEquals(json, buildQuery(DSL.equal(ref("timestamp_value", TIMESTAMP), DSL
-        .castTimestamp(literal("2021-11-08 17:00:00")))));
-    assertJsonEquals(json, buildQuery(DSL.equal(ref("timestamp_value", TIMESTAMP), DSL
-        .castTimestamp(literal(new ExprTimestampValue("2021-11-08 17:00:00"))))));
+    assertJsonEquals(
+        json,
+        buildQuery(
+            DSL.equal(
+                ref("timestamp_value", TIMESTAMP),
+                DSL.castTimestamp(literal("2021-11-08 17:00:00")))));
+    assertJsonEquals(
+        json,
+        buildQuery(
+            DSL.equal(
+                ref("timestamp_value", TIMESTAMP),
+                DSL.castTimestamp(literal(new ExprTimestampValue("2021-11-08 17:00:00"))))));
   }
 
   @Test
@@ -1702,8 +1770,10 @@ class FilterQueryBuilderTest {
             + "    }\n"
             + "  }\n"
             + "}",
-        buildQuery(DSL.greater(ref("timestamp_value", TIMESTAMP), DSL
-            .castTimestamp(literal("2021-11-08 17:00:00")))));
+        buildQuery(
+            DSL.greater(
+                ref("timestamp_value", TIMESTAMP),
+                DSL.castTimestamp(literal("2021-11-08 17:00:00")))));
   }
 
   @Test
@@ -1719,9 +1789,9 @@ class FilterQueryBuilderTest {
             + "    \"boost\" : 1.0\n"
             + "  }\n"
             + "}",
-        buildQuery(DSL.equal(ref("string_value", STRING), DSL.castString(DSL
-            .add(literal(1), literal(0)))))
-    );
+        buildQuery(
+            DSL.equal(
+                ref("string_value", STRING), DSL.castString(DSL.add(literal(1), literal(0))))));
   }
 
   @Test
@@ -1737,13 +1807,13 @@ class FilterQueryBuilderTest {
             + "    \"boost\" : 1.0\n"
             + "  }\n"
             + "}",
-        buildQuery(DSL.equal(ref("integer_value", INTEGER), DSL.abs(DSL
-            .add(literal(1), literal(0)))))
-    );
+        buildQuery(
+            DSL.equal(ref("integer_value", INTEGER), DSL.abs(DSL.add(literal(1), literal(0))))));
   }
 
   private static void assertJsonEquals(String expected, String actual) {
-    assertTrue(new JSONObject(expected).similar(new JSONObject(actual)),
+    assertTrue(
+        new JSONObject(expected).similar(new JSONObject(actual)),
         StringUtils.format("Expected: %s, actual: %s", expected, actual));
   }
 
@@ -1752,10 +1822,12 @@ class FilterQueryBuilderTest {
   }
 
   private void mockToStringSerializer() {
-    doAnswer(invocation -> {
-      Expression expr = invocation.getArgument(0);
-      return expr.toString();
-    }).when(serializer).serialize(any());
+    doAnswer(
+            invocation -> {
+              Expression expr = invocation.getArgument(0);
+              return expr.toString();
+            })
+        .when(serializer)
+        .serialize(any());
   }
-
 }

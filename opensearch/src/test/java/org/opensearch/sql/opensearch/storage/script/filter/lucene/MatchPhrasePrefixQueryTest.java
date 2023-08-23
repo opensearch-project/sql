@@ -5,7 +5,6 @@
 
 package org.opensearch.sql.opensearch.storage.script.filter.lucene;
 
-
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.util.List;
@@ -28,7 +27,7 @@ import org.opensearch.sql.opensearch.expression.OpenSearchDSL;
 import org.opensearch.sql.opensearch.storage.script.filter.lucene.relevance.MatchPhrasePrefixQuery;
 
 @DisplayNameGeneration(DisplayNameGenerator.ReplaceUnderscores.class)
-public class MatchPhrasePrefixQueryTest  {
+public class MatchPhrasePrefixQueryTest {
 
   private final MatchPhrasePrefixQuery matchPhrasePrefixQuery = new MatchPhrasePrefixQuery();
   private final FunctionName matchPhrasePrefix = FunctionName.of("match_phrase_prefix");
@@ -36,15 +35,18 @@ public class MatchPhrasePrefixQueryTest  {
   @Test
   public void test_SyntaxCheckException_when_no_arguments() {
     List<Expression> arguments = List.of();
-    assertThrows(SyntaxCheckException.class,
+    assertThrows(
+        SyntaxCheckException.class,
         () -> matchPhrasePrefixQuery.build(new MatchPhraseExpression(arguments)));
   }
 
   @Test
   public void test_SyntaxCheckException_when_one_argument() {
-    List<Expression> arguments = List.of(DSL.namedArgument("field",
-        new ReferenceExpression("test", OpenSearchTextType.of())));
-    assertThrows(SyntaxCheckException.class,
+    List<Expression> arguments =
+        List.of(
+            DSL.namedArgument("field", new ReferenceExpression("test", OpenSearchTextType.of())));
+    assertThrows(
+        SyntaxCheckException.class,
         () -> matchPhrasePrefixQuery.build(new MatchPhraseExpression(arguments)));
   }
 

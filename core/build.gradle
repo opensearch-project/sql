@@ -28,17 +28,13 @@ plugins {
     id 'jacoco'
     id 'info.solidsoft.pitest' version '1.9.0'
     id 'java-test-fixtures'
+    id 'com.diffplug.spotless' version '6.19.0'
+
 }
 
 repositories {
     mavenCentral()
 }
-
-// Being ignored as a temporary measure before being removed in favour of
-// spotless https://github.com/opensearch-project/sql/issues/1101
-checkstyleTest.ignoreFailures = true
-checkstyleMain.ignoreFailures = true
-checkstyleTestFixtures.ignoreFailures = true
 
 pitest {
     targetClasses = ['org.opensearch.sql.*']
@@ -65,6 +61,24 @@ dependencies {
     testImplementation group: 'org.mockito', name: 'mockito-core', version: '3.12.4'
     testImplementation group: 'org.mockito', name: 'mockito-inline', version: '3.12.4'
     testImplementation group: 'org.mockito', name: 'mockito-junit-jupiter', version: '3.12.4'
+}
+
+spotless {
+    java {
+        target fileTree('.') {
+            include '**/*.java'
+            exclude '**/build/**', '**/build-*/**'
+        }
+        importOrder()
+//        licenseHeader("/*\n" +
+//                " * Copyright OpenSearch Contributors\n" +
+//                " * SPDX-License-Identifier: Apache-2.0\n" +
+//                " */\n\n")
+        removeUnusedImports()
+        trimTrailingWhitespace()
+        endWithNewline()
+        googleJavaFormat('1.17.0').reflowLongStrings().groupArtifact('com.google.googlejavaformat:google-java-format')
+    }
 }
 
 test {

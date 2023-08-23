@@ -102,14 +102,17 @@ public class RestPPLQueryAction extends BaseRestHandler {
   protected RestChannelConsumer prepareRequest(RestRequest request, NodeClient nodeClient) {
     // TODO: need move to transport Action
     if (!pplEnabled.get()) {
-      return channel -> reportError(channel, new IllegalAccessException(
-          "Either plugins.ppl.enabled or rest.action.multi.allow_explicit_index setting is false"),
-          BAD_REQUEST);
+      return channel ->
+          reportError(
+              channel,
+              new IllegalAccessException(
+                  "Either plugins.ppl.enabled or rest.action.multi.allow_explicit_index setting is"
+                      + " false"),
+              BAD_REQUEST);
     }
 
-    TransportPPLQueryRequest transportPPLQueryRequest = new TransportPPLQueryRequest(
-            PPLQueryRequestFactory.getPPLRequest(request)
-    );
+    TransportPPLQueryRequest transportPPLQueryRequest =
+        new TransportPPLQueryRequest(PPLQueryRequestFactory.getPPLRequest(request));
 
     return channel ->
         nodeClient.execute(

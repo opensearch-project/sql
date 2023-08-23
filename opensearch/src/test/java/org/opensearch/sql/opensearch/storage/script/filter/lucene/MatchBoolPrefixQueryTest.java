@@ -36,8 +36,8 @@ public class MatchBoolPrefixQueryTest {
   private final FunctionName matchBoolPrefix = FunctionName.of("match_bool_prefix");
 
   static Stream<List<Expression>> generateValidData() {
-    NamedArgumentExpression field = DSL.namedArgument("field",
-        new ReferenceExpression("field_value", OpenSearchTextType.of()));
+    NamedArgumentExpression field =
+        DSL.namedArgument("field", new ReferenceExpression("field_value", OpenSearchTextType.of()));
     NamedArgumentExpression query = DSL.namedArgument("query", DSL.literal("query_value"));
     return List.of(
             DSL.namedArgument("fuzziness", DSL.literal("AUTO")),
@@ -49,8 +49,9 @@ public class MatchBoolPrefixQueryTest {
             DSL.namedArgument("boost", DSL.literal("1")),
             DSL.namedArgument("analyzer", DSL.literal("simple")),
             DSL.namedArgument("operator", DSL.literal("Or")),
-            DSL.namedArgument("operator", DSL.literal("and"))
-        ).stream().map(arg -> List.of(field, query, arg));
+            DSL.namedArgument("operator", DSL.literal("and")))
+        .stream()
+        .map(arg -> List.of(field, query, arg));
   }
 
   @ParameterizedTest
@@ -71,7 +72,8 @@ public class MatchBoolPrefixQueryTest {
   @Test
   public void test_SyntaxCheckException_when_no_arguments() {
     List<Expression> arguments = List.of();
-    assertThrows(SyntaxCheckException.class,
+    assertThrows(
+        SyntaxCheckException.class,
         () -> matchBoolPrefixQuery.build(new MatchExpression(arguments)));
   }
 
@@ -100,14 +102,16 @@ public class MatchBoolPrefixQueryTest {
 
     @Override
     public ExprValue valueOf(Environment<Expression, ExprValue> valueEnv) {
-      throw new UnsupportedOperationException("Invalid function call, "
-          + "valueOf function need implementation only to support Expression interface");
+      throw new UnsupportedOperationException(
+          "Invalid function call, "
+              + "valueOf function need implementation only to support Expression interface");
     }
 
     @Override
     public ExprType type() {
-      throw new UnsupportedOperationException("Invalid function call, "
-          + "type function need implementation only to support Expression interface");
+      throw new UnsupportedOperationException(
+          "Invalid function call, "
+              + "type function need implementation only to support Expression interface");
     }
   }
 }

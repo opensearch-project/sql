@@ -27,51 +27,52 @@ import org.opensearch.sql.spark.storage.SparkTable;
 
 @ExtendWith(MockitoExtension.class)
 public class SparkSqlFunctionImplementationTest {
-  @Mock
-  private SparkClient client;
+  @Mock private SparkClient client;
 
   @Test
   void testValueOfAndTypeToString() {
     FunctionName functionName = new FunctionName("sql");
-    List<Expression> namedArgumentExpressionList
-        = List.of(DSL.namedArgument("query", DSL.literal(QUERY)));
-    SparkSqlFunctionImplementation sparkSqlFunctionImplementation
-        = new SparkSqlFunctionImplementation(functionName, namedArgumentExpressionList, client);
-    UnsupportedOperationException exception = assertThrows(UnsupportedOperationException.class,
-        () -> sparkSqlFunctionImplementation.valueOf());
-    assertEquals("Spark defined function [sql] is only "
-        + "supported in SOURCE clause with spark connector catalog", exception.getMessage());
-    assertEquals("sql(query=\"select 1\")",
-        sparkSqlFunctionImplementation.toString());
+    List<Expression> namedArgumentExpressionList =
+        List.of(DSL.namedArgument("query", DSL.literal(QUERY)));
+    SparkSqlFunctionImplementation sparkSqlFunctionImplementation =
+        new SparkSqlFunctionImplementation(functionName, namedArgumentExpressionList, client);
+    UnsupportedOperationException exception =
+        assertThrows(
+            UnsupportedOperationException.class, () -> sparkSqlFunctionImplementation.valueOf());
+    assertEquals(
+        "Spark defined function [sql] is only "
+            + "supported in SOURCE clause with spark connector catalog",
+        exception.getMessage());
+    assertEquals("sql(query=\"select 1\")", sparkSqlFunctionImplementation.toString());
     assertEquals(ExprCoreType.STRUCT, sparkSqlFunctionImplementation.type());
   }
 
   @Test
   void testApplyArguments() {
     FunctionName functionName = new FunctionName("sql");
-    List<Expression> namedArgumentExpressionList
-        = List.of(DSL.namedArgument("query", DSL.literal(QUERY)));
-    SparkSqlFunctionImplementation sparkSqlFunctionImplementation
-        = new SparkSqlFunctionImplementation(functionName, namedArgumentExpressionList, client);
-    SparkTable sparkTable
-        = (SparkTable) sparkSqlFunctionImplementation.applyArguments();
+    List<Expression> namedArgumentExpressionList =
+        List.of(DSL.namedArgument("query", DSL.literal(QUERY)));
+    SparkSqlFunctionImplementation sparkSqlFunctionImplementation =
+        new SparkSqlFunctionImplementation(functionName, namedArgumentExpressionList, client);
+    SparkTable sparkTable = (SparkTable) sparkSqlFunctionImplementation.applyArguments();
     assertNotNull(sparkTable.getSparkQueryRequest());
-    SparkQueryRequest sparkQueryRequest
-        = sparkTable.getSparkQueryRequest();
+    SparkQueryRequest sparkQueryRequest = sparkTable.getSparkQueryRequest();
     assertEquals(QUERY, sparkQueryRequest.getSql());
   }
 
   @Test
   void testApplyArgumentsException() {
     FunctionName functionName = new FunctionName("sql");
-    List<Expression> namedArgumentExpressionList
-        = List.of(DSL.namedArgument("query", DSL.literal(QUERY)),
-        DSL.namedArgument("tmp", DSL.literal(12345)));
-    SparkSqlFunctionImplementation sparkSqlFunctionImplementation
-        = new SparkSqlFunctionImplementation(functionName, namedArgumentExpressionList, client);
-    ExpressionEvaluationException exception = assertThrows(ExpressionEvaluationException.class,
-        () -> sparkSqlFunctionImplementation.applyArguments());
+    List<Expression> namedArgumentExpressionList =
+        List.of(
+            DSL.namedArgument("query", DSL.literal(QUERY)),
+            DSL.namedArgument("tmp", DSL.literal(12345)));
+    SparkSqlFunctionImplementation sparkSqlFunctionImplementation =
+        new SparkSqlFunctionImplementation(functionName, namedArgumentExpressionList, client);
+    ExpressionEvaluationException exception =
+        assertThrows(
+            ExpressionEvaluationException.class,
+            () -> sparkSqlFunctionImplementation.applyArguments());
     assertEquals("Invalid Function Argument:tmp", exception.getMessage());
   }
-
 }

@@ -3,7 +3,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-
 package org.opensearch.sql.legacy.antlr.semantic.scope;
 
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -25,65 +24,62 @@ import org.opensearch.sql.legacy.antlr.semantic.types.Type;
 import org.opensearch.sql.legacy.antlr.semantic.types.TypeExpression;
 import org.opensearch.sql.legacy.antlr.semantic.types.base.OpenSearchIndex;
 
-/**
- * Test cases for symbol table
- */
+/** Test cases for symbol table */
 public class SymbolTableTest {
 
-    private final SymbolTable symbolTable = new SymbolTable();
+  private final SymbolTable symbolTable = new SymbolTable();
 
-    @Test
-    public void defineFieldSymbolShouldBeAbleToResolve() {
-        defineSymbolShouldBeAbleToResolve(new Symbol(Namespace.FIELD_NAME, "birthday"), DATE);
-    }
+  @Test
+  public void defineFieldSymbolShouldBeAbleToResolve() {
+    defineSymbolShouldBeAbleToResolve(new Symbol(Namespace.FIELD_NAME, "birthday"), DATE);
+  }
 
-    @Test
-    public void defineFunctionSymbolShouldBeAbleToResolve() {
-        String funcName = "LOG";
-        Type expectedType = new TypeExpression() {
-            @Override
-            public String getName() {
-                return "Temp type expression with [NUMBER] -> NUMBER specification";
-            }
+  @Test
+  public void defineFunctionSymbolShouldBeAbleToResolve() {
+    String funcName = "LOG";
+    Type expectedType =
+        new TypeExpression() {
+          @Override
+          public String getName() {
+            return "Temp type expression with [NUMBER] -> NUMBER specification";
+          }
 
-            @Override
-            public TypeExpressionSpec[] specifications() {
-                return new TypeExpressionSpec[] {
-                    new TypeExpressionSpec().map(NUMBER).to(NUMBER)
-                };
-            }
+          @Override
+          public TypeExpressionSpec[] specifications() {
+            return new TypeExpressionSpec[] {new TypeExpressionSpec().map(NUMBER).to(NUMBER)};
+          }
         };
-        Symbol symbol = new Symbol(Namespace.FUNCTION_NAME, funcName);
-        defineSymbolShouldBeAbleToResolve(symbol, expectedType);
-    }
+    Symbol symbol = new Symbol(Namespace.FUNCTION_NAME, funcName);
+    defineSymbolShouldBeAbleToResolve(symbol, expectedType);
+  }
 
-    @Test
-    public void defineFieldSymbolShouldBeAbleToResolveByPrefix() {
-        symbolTable.store(new Symbol(Namespace.FIELD_NAME, "s.projects"), new OpenSearchIndex("s.projects", NESTED_FIELD));
-        symbolTable.store(new Symbol(Namespace.FIELD_NAME, "s.projects.release"), DATE);
-        symbolTable.store(new Symbol(Namespace.FIELD_NAME, "s.projects.active"), BOOLEAN);
-        symbolTable.store(new Symbol(Namespace.FIELD_NAME, "s.address"), TEXT);
-        symbolTable.store(new Symbol(Namespace.FIELD_NAME, "s.city"), KEYWORD);
-        symbolTable.store(new Symbol(Namespace.FIELD_NAME, "s.manager.name"), TEXT);
+  @Test
+  public void defineFieldSymbolShouldBeAbleToResolveByPrefix() {
+    symbolTable.store(
+        new Symbol(Namespace.FIELD_NAME, "s.projects"),
+        new OpenSearchIndex("s.projects", NESTED_FIELD));
+    symbolTable.store(new Symbol(Namespace.FIELD_NAME, "s.projects.release"), DATE);
+    symbolTable.store(new Symbol(Namespace.FIELD_NAME, "s.projects.active"), BOOLEAN);
+    symbolTable.store(new Symbol(Namespace.FIELD_NAME, "s.address"), TEXT);
+    symbolTable.store(new Symbol(Namespace.FIELD_NAME, "s.city"), KEYWORD);
+    symbolTable.store(new Symbol(Namespace.FIELD_NAME, "s.manager.name"), TEXT);
 
-        Map<String, Type> typeByName = symbolTable.lookupByPrefix(new Symbol(Namespace.FIELD_NAME, "s.projects"));
-        assertThat(
-            typeByName,
-            allOf(
-                aMapWithSize(3),
-                hasEntry("s.projects", (Type) new OpenSearchIndex("s.projects", NESTED_FIELD)),
-                hasEntry("s.projects.release", DATE),
-                hasEntry("s.projects.active", BOOLEAN)
-            )
-        );
-    }
+    Map<String, Type> typeByName =
+        symbolTable.lookupByPrefix(new Symbol(Namespace.FIELD_NAME, "s.projects"));
+    assertThat(
+        typeByName,
+        allOf(
+            aMapWithSize(3),
+            hasEntry("s.projects", (Type) new OpenSearchIndex("s.projects", NESTED_FIELD)),
+            hasEntry("s.projects.release", DATE),
+            hasEntry("s.projects.active", BOOLEAN)));
+  }
 
-    private void defineSymbolShouldBeAbleToResolve(Symbol symbol, Type expectedType) {
-        symbolTable.store(symbol, expectedType);
+  private void defineSymbolShouldBeAbleToResolve(Symbol symbol, Type expectedType) {
+    symbolTable.store(symbol, expectedType);
 
-        Optional<Type> actualType = symbolTable.lookup(symbol);
-        Assert.assertTrue(actualType.isPresent());
-        Assert.assertEquals(expectedType, actualType.get());
-    }
-
+    Optional<Type> actualType = symbolTable.lookup(symbol);
+    Assert.assertTrue(actualType.isPresent());
+    Assert.assertEquals(expectedType, actualType.get());
+  }
 }

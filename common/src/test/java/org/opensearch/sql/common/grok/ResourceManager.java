@@ -5,9 +5,7 @@
 
 package org.opensearch.sql.common.grok;
 
-/**
- * {@code ResourceManager} .
- */
+/** {@code ResourceManager} . */
 public final class ResourceManager {
 
   public static final String PATTERNS = "patterns/patterns";
