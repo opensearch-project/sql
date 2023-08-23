@@ -48,12 +48,17 @@ class RelevanceQueryBuildTest {
   private QueryBuilder queryBuilder;
   private final Map<String, RelevanceQuery.QueryBuilderStep<QueryBuilder>> queryBuildActions =
       ImmutableMap.<String, RelevanceQuery.QueryBuilderStep<QueryBuilder>>builder()
-         .put("boost", (k, v) -> k.boost(Float.parseFloat(v.stringValue()))).build();
+          .put("boost", (k, v) -> k.boost(Float.parseFloat(v.stringValue())))
+          .build();
 
   @BeforeEach
   public void setUp() {
-    query = mock(RelevanceQuery.class, withSettings().useConstructor(queryBuildActions)
-        .defaultAnswer(Mockito.CALLS_REAL_METHODS));
+    query =
+        mock(
+            RelevanceQuery.class,
+            withSettings()
+                .useConstructor(queryBuildActions)
+                .defaultAnswer(Mockito.CALLS_REAL_METHODS));
     queryBuilder = mock(QueryBuilder.class);
     when(query.createQueryBuilder(any())).thenReturn(queryBuilder);
     String queryName = "mock_query";
@@ -64,9 +69,13 @@ class RelevanceQueryBuildTest {
 
   @Test
   void throws_SemanticCheckException_when_same_argument_twice() {
-    FunctionExpression expr = createCall(List.of(FIELD_ARG, QUERY_ARG,
-        namedArgument("boost", "2.3"),
-        namedArgument("boost", "2.4")));
+    FunctionExpression expr =
+        createCall(
+            List.of(
+                FIELD_ARG,
+                QUERY_ARG,
+                namedArgument("boost", "2.3"),
+                namedArgument("boost", "2.4")));
     SemanticCheckException exception =
         assertThrows(SemanticCheckException.class, () -> query.build(expr));
     assertEquals("Parameter 'boost' can only be specified once.", exception.getMessage());
@@ -79,8 +88,7 @@ class RelevanceQueryBuildTest {
 
     SemanticCheckException exception =
         assertThrows(SemanticCheckException.class, () -> query.build(expr));
-    assertEquals("Parameter wrongarg is invalid for mock_query function.",
-        exception.getMessage());
+    assertEquals("Parameter wrongarg is invalid for mock_query function.", exception.getMessage());
   }
 
   @Test
@@ -95,14 +103,13 @@ class RelevanceQueryBuildTest {
   @ParameterizedTest
   @MethodSource("insufficientArguments")
   public void throws_SyntaxCheckException_when_no_required_arguments(List<Expression> arguments) {
-    SyntaxCheckException exception = assertThrows(SyntaxCheckException.class,
-        () -> query.build(createCall(arguments)));
+    SyntaxCheckException exception =
+        assertThrows(SyntaxCheckException.class, () -> query.build(createCall(arguments)));
     assertEquals("mock_query requires at least two parameters", exception.getMessage());
   }
 
   public static Stream<List<Expression>> insufficientArguments() {
-    return Stream.of(List.of(),
-        List.of(namedArgument("field", "field_A")));
+    return Stream.of(List.of(), List.of(namedArgument("field", "field_A")));
   }
 
   private static NamedArgumentExpression namedArgument(String field, String fieldValue) {

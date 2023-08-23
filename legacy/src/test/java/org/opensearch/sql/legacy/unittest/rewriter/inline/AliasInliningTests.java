@@ -3,7 +3,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-
 package org.opensearch.sql.legacy.unittest.rewriter.inline;
 
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -29,101 +28,111 @@ import org.opensearch.sql.legacy.request.SqlRequest;
 
 public class AliasInliningTests {
 
-    private static final String TEST_MAPPING_FILE = "mappings/semantics.json";
-    @Before
-    public void setUp() throws IOException {
-        URL url = Resources.getResource(TEST_MAPPING_FILE);
-        String mappings = Resources.toString(url, Charsets.UTF_8);
-        mockLocalClusterState(mappings);
-    }
+  private static final String TEST_MAPPING_FILE = "mappings/semantics.json";
 
-    @Test
-    public void orderByAliasedFieldTest() throws SqlParseException {
-        String originalQuery = "SELECT utc_time date " +
-                "FROM opensearch_dashboards_sample_data_logs " +
-                "ORDER BY date DESC";
-        String originalDsl = parseAsSimpleQuery(originalQuery);
+  @Before
+  public void setUp() throws IOException {
+    URL url = Resources.getResource(TEST_MAPPING_FILE);
+    String mappings = Resources.toString(url, Charsets.UTF_8);
+    mockLocalClusterState(mappings);
+  }
 
-        String rewrittenQuery =
-                "SELECT utc_time date " +
-                "FROM opensearch_dashboards_sample_data_logs " +
-                "ORDER BY utc_time DESC";
+  @Test
+  public void orderByAliasedFieldTest() throws SqlParseException {
+    String originalQuery =
+        "SELECT utc_time date "
+            + "FROM opensearch_dashboards_sample_data_logs "
+            + "ORDER BY date DESC";
+    String originalDsl = parseAsSimpleQuery(originalQuery);
 
-        String rewrittenDsl = parseAsSimpleQuery(rewrittenQuery);
+    String rewrittenQuery =
+        "SELECT utc_time date "
+            + "FROM opensearch_dashboards_sample_data_logs "
+            + "ORDER BY utc_time DESC";
 
-        assertThat(originalDsl, equalTo(rewrittenDsl));
-    }
+    String rewrittenDsl = parseAsSimpleQuery(rewrittenQuery);
 
-    @Test
-    public void orderByAliasedScriptedField() throws SqlParseException {
-        String originalDsl = parseAsSimpleQuery("SELECT date_format(birthday, 'dd-MM-YYYY') date " +
-                "FROM bank " +
-                "ORDER BY date");
-        String rewrittenQuery = "SELECT date_format(birthday, 'dd-MM-YYYY') date " +
-                "FROM bank " +
-                "ORDER BY date_format(birthday, 'dd-MM-YYYY')";
+    assertThat(originalDsl, equalTo(rewrittenDsl));
+  }
 
-        String rewrittenDsl = parseAsSimpleQuery(rewrittenQuery);
-        assertThat(originalDsl, equalTo(rewrittenDsl));
-    }
+  @Test
+  public void orderByAliasedScriptedField() throws SqlParseException {
+    String originalDsl =
+        parseAsSimpleQuery(
+            "SELECT date_format(birthday, 'dd-MM-YYYY') date " + "FROM bank " + "ORDER BY date");
+    String rewrittenQuery =
+        "SELECT date_format(birthday, 'dd-MM-YYYY') date "
+            + "FROM bank "
+            + "ORDER BY date_format(birthday, 'dd-MM-YYYY')";
 
-    @Test
-    public void groupByAliasedFieldTest() throws SqlParseException {
-        String originalQuery = "SELECT utc_time date " +
-                "FROM opensearch_dashboards_sample_data_logs " +
-                "GROUP BY date";
+    String rewrittenDsl = parseAsSimpleQuery(rewrittenQuery);
+    assertThat(originalDsl, equalTo(rewrittenDsl));
+  }
 
-        String originalDsl = parseAsAggregationQuery(originalQuery);
+  @Test
+  public void groupByAliasedFieldTest() throws SqlParseException {
+    String originalQuery =
+        "SELECT utc_time date " + "FROM opensearch_dashboards_sample_data_logs " + "GROUP BY date";
 
-        String rewrittenQuery = "SELECT utc_time date " +
-                "FROM opensearch_dashboards_sample_data_logs " +
-                "GROUP BY utc_time DESC";
+    String originalDsl = parseAsAggregationQuery(originalQuery);
 
-        String rewrittenDsl = parseAsAggregationQuery(rewrittenQuery);
+    String rewrittenQuery =
+        "SELECT utc_time date "
+            + "FROM opensearch_dashboards_sample_data_logs "
+            + "GROUP BY utc_time DESC";
 
-        assertThat(originalDsl, equalTo(rewrittenDsl));
-    }
+    String rewrittenDsl = parseAsAggregationQuery(rewrittenQuery);
 
-    @Test
-    public void groupAndSortBySameExprAlias() throws SqlParseException {
-        String query = "SELECT date_format(timestamp, 'yyyy-MM') opensearch-table.timestamp_tg, COUNT(*) count, COUNT(DistanceKilometers) opensearch-table.DistanceKilometers_count\n" +
-                "FROM opensearch_dashboards_sample_data_flights\n" +
-                "GROUP BY date_format(timestamp, 'yyyy-MM')\n" +
-                "ORDER BY date_format(timestamp, 'yyyy-MM') DESC\n" +
-                "LIMIT 2500";
-        String dsl = parseAsAggregationQuery(query);
+    assertThat(originalDsl, equalTo(rewrittenDsl));
+  }
 
-        JSONObject parseQuery = new JSONObject(dsl);
+  @Test
+  public void groupAndSortBySameExprAlias() throws SqlParseException {
+    String query =
+        "SELECT date_format(timestamp, 'yyyy-MM') opensearch-table.timestamp_tg, COUNT(*) count,"
+            + " COUNT(DistanceKilometers) opensearch-table.DistanceKilometers_count\n"
+            + "FROM opensearch_dashboards_sample_data_flights\n"
+            + "GROUP BY date_format(timestamp, 'yyyy-MM')\n"
+            + "ORDER BY date_format(timestamp, 'yyyy-MM') DESC\n"
+            + "LIMIT 2500";
+    String dsl = parseAsAggregationQuery(query);
 
-        assertThat(parseQuery.query("/aggregations/opensearch-table.timestamp_tg/terms/script"), notNullValue());
+    JSONObject parseQuery = new JSONObject(dsl);
 
-    }
+    assertThat(
+        parseQuery.query("/aggregations/opensearch-table.timestamp_tg/terms/script"),
+        notNullValue());
+  }
 
-    @Test
-    public void groupByAndSortAliased() throws SqlParseException {
-        String dsl = parseAsAggregationQuery(
-                "SELECT date_format(utc_time, 'dd-MM-YYYY') date " +
-                        "FROM opensearch_dashboards_sample_data_logs " +
-                        "GROUP BY date " +
-                        "ORDER BY date DESC");
+  @Test
+  public void groupByAndSortAliased() throws SqlParseException {
+    String dsl =
+        parseAsAggregationQuery(
+            "SELECT date_format(utc_time, 'dd-MM-YYYY') date "
+                + "FROM opensearch_dashboards_sample_data_logs "
+                + "GROUP BY date "
+                + "ORDER BY date DESC");
 
-        JSONObject parsedQuery = new JSONObject(dsl);
+    JSONObject parsedQuery = new JSONObject(dsl);
 
-        JSONObject query = (JSONObject)parsedQuery.query("/aggregations/date/terms/script");
+    JSONObject query = (JSONObject) parsedQuery.query("/aggregations/date/terms/script");
 
-        assertThat(query, notNullValue());
-    }
+    assertThat(query, notNullValue());
+  }
 
-    private String parseAsSimpleQuery(String originalQuery) throws SqlParseException {
-        SqlRequest sqlRequest = new SqlRequest(originalQuery, new JSONObject());
-        DefaultQueryAction defaultQueryAction = new DefaultQueryAction(mock(Client.class),
-                new SqlParser().parseSelect(parse(originalQuery)));
-        defaultQueryAction.setSqlRequest(sqlRequest);
-        return defaultQueryAction.explain().explain();
-    }
+  private String parseAsSimpleQuery(String originalQuery) throws SqlParseException {
+    SqlRequest sqlRequest = new SqlRequest(originalQuery, new JSONObject());
+    DefaultQueryAction defaultQueryAction =
+        new DefaultQueryAction(
+            mock(Client.class), new SqlParser().parseSelect(parse(originalQuery)));
+    defaultQueryAction.setSqlRequest(sqlRequest);
+    return defaultQueryAction.explain().explain();
+  }
 
-    private String parseAsAggregationQuery(String originalQuery) throws SqlParseException {
-        return new AggregationQueryAction(mock(Client.class),
-                new SqlParser().parseSelect(parse(originalQuery))).explain().explain();
-    }
+  private String parseAsAggregationQuery(String originalQuery) throws SqlParseException {
+    return new AggregationQueryAction(
+            mock(Client.class), new SqlParser().parseSelect(parse(originalQuery)))
+        .explain()
+        .explain();
+  }
 }

@@ -3,7 +3,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-
 package org.opensearch.sql.expression.window.ranking;
 
 import org.opensearch.sql.expression.function.BuiltinFunctionName;
@@ -25,5 +24,4 @@ public class RowNumberFunction extends RankingWindowFunction {
     }
     return rank++;
   }
-
 }

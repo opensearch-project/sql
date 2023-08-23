@@ -3,7 +3,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-
 package org.opensearch.sql.legacy.query.multi;
 
 import java.util.HashSet;
@@ -18,66 +17,68 @@ import org.opensearch.sql.legacy.query.DefaultQueryAction;
 import org.opensearch.sql.legacy.query.QueryAction;
 import org.opensearch.sql.legacy.query.SqlElasticRequestBuilder;
 
-/**
- * Created by Eliran on 19/8/2016.
- */
+/** Created by Eliran on 19/8/2016. */
 public class MultiQueryAction extends QueryAction {
-    private MultiQuerySelect multiQuerySelect;
+  private MultiQuerySelect multiQuerySelect;
 
-    public MultiQueryAction(Client client, MultiQuerySelect multiSelect) {
-        super(client, null);
-        this.multiQuerySelect = multiSelect;
+  public MultiQueryAction(Client client, MultiQuerySelect multiSelect) {
+    super(client, null);
+    this.multiQuerySelect = multiSelect;
+  }
+
+  @Override
+  public SqlElasticRequestBuilder explain() throws SqlParseException {
+    if (!isValidMultiSelectReturnFields()) {
+      throw new SqlParseException(
+          "on multi query fields/aliases of one table should be subset of other");
     }
+    MultiQueryRequestBuilder requestBuilder = new MultiQueryRequestBuilder(this.multiQuerySelect);
+    requestBuilder.setFirstSearchRequest(
+        createRequestBuilder(this.multiQuerySelect.getFirstSelect()));
+    requestBuilder.setSecondSearchRequest(
+        createRequestBuilder(this.multiQuerySelect.getSecondSelect()));
+    requestBuilder.fillTableAliases(
+        this.multiQuerySelect.getFirstSelect().getFields(),
+        this.multiQuerySelect.getSecondSelect().getFields());
 
-    @Override
-    public SqlElasticRequestBuilder explain() throws SqlParseException {
-        if (!isValidMultiSelectReturnFields()) {
-            throw new SqlParseException("on multi query fields/aliases of one table should be subset of other");
-        }
-        MultiQueryRequestBuilder requestBuilder = new MultiQueryRequestBuilder(this.multiQuerySelect);
-        requestBuilder.setFirstSearchRequest(createRequestBuilder(this.multiQuerySelect.getFirstSelect()));
-        requestBuilder.setSecondSearchRequest(createRequestBuilder(this.multiQuerySelect.getSecondSelect()));
-        requestBuilder.fillTableAliases(this.multiQuerySelect.getFirstSelect().getFields(),
-                this.multiQuerySelect.getSecondSelect().getFields());
+    return requestBuilder;
+  }
 
-        return requestBuilder;
+  private boolean isValidMultiSelectReturnFields() {
+    List<Field> firstQueryFields = multiQuerySelect.getFirstSelect().getFields();
+    List<Field> secondQueryFields = multiQuerySelect.getSecondSelect().getFields();
+    if (firstQueryFields.size() > secondQueryFields.size()) {
+      return isSubsetFields(firstQueryFields, secondQueryFields);
     }
+    return isSubsetFields(secondQueryFields, firstQueryFields);
+  }
 
-    private boolean isValidMultiSelectReturnFields() {
-        List<Field> firstQueryFields = multiQuerySelect.getFirstSelect().getFields();
-        List<Field> secondQueryFields = multiQuerySelect.getSecondSelect().getFields();
-        if (firstQueryFields.size() > secondQueryFields.size()) {
-            return isSubsetFields(firstQueryFields, secondQueryFields);
-        }
-        return isSubsetFields(secondQueryFields, firstQueryFields);
+  private boolean isSubsetFields(List<Field> bigGroup, List<Field> smallerGroup) {
+    Set<String> biggerGroup = new HashSet<>();
+    for (Field field : bigGroup) {
+      String fieldName = getNameOrAlias(field);
+      biggerGroup.add(fieldName);
     }
+    for (Field field : smallerGroup) {
+      String fieldName = getNameOrAlias(field);
+      if (!biggerGroup.contains(fieldName)) {
+        return false;
+      }
+    }
+    return true;
+  }
 
-    private boolean isSubsetFields(List<Field> bigGroup, List<Field> smallerGroup) {
-        Set<String> biggerGroup = new HashSet<>();
-        for (Field field : bigGroup) {
-            String fieldName = getNameOrAlias(field);
-            biggerGroup.add(fieldName);
-        }
-        for (Field field : smallerGroup) {
-            String fieldName = getNameOrAlias(field);
-            if (!biggerGroup.contains(fieldName)) {
-                return false;
-            }
-        }
-        return true;
+  private String getNameOrAlias(Field field) {
+    String fieldName = field.getName();
+    if (field.getAlias() != null && !field.getAlias().isEmpty()) {
+      fieldName = field.getAlias();
     }
+    return fieldName;
+  }
 
-    private String getNameOrAlias(Field field) {
-        String fieldName = field.getName();
-        if (field.getAlias() != null && !field.getAlias().isEmpty()) {
-            fieldName = field.getAlias();
-        }
-        return fieldName;
-    }
-
-    protected SearchRequestBuilder createRequestBuilder(Select select) throws SqlParseException {
-        DefaultQueryAction queryAction = new DefaultQueryAction(client, select);
-        queryAction.explain();
-        return queryAction.getRequestBuilder();
-    }
+  protected SearchRequestBuilder createRequestBuilder(Select select) throws SqlParseException {
+    DefaultQueryAction queryAction = new DefaultQueryAction(client, select);
+    queryAction.explain();
+    return queryAction.getRequestBuilder();
+  }
 }

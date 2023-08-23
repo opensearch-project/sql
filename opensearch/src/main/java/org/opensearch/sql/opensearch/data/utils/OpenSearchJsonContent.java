@@ -3,7 +3,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-
 package org.opensearch.sql.opensearch.data.utils;
 
 import com.fasterxml.jackson.databind.JsonNode;
@@ -14,9 +13,7 @@ import java.util.Map;
 import lombok.RequiredArgsConstructor;
 import org.apache.commons.lang3.tuple.Pair;
 
-/**
- * The Implementation of Content to represent {@link JsonNode}.
- */
+/** The Implementation of Content to represent {@link JsonNode}. */
 @RequiredArgsConstructor
 public class OpenSearchJsonContent implements Content {
 
@@ -68,8 +65,7 @@ public class OpenSearchJsonContent implements Content {
     final JsonNode mapValue = value();
     mapValue
         .fieldNames()
-        .forEachRemaining(
-            field -> map.put(field, new OpenSearchJsonContent(mapValue.get(field))));
+        .forEachRemaining(field -> map.put(field, new OpenSearchJsonContent(mapValue.get(field))));
     return map.entrySet().iterator();
   }
 
@@ -134,8 +130,7 @@ public class OpenSearchJsonContent implements Content {
         lat = extractDoubleValue(value.get("lat"));
       } catch (Exception exception) {
         throw new IllegalStateException(
-            "latitude must be number value, but got value: " + value.get(
-                "lat"));
+            "latitude must be number value, but got value: " + value.get("lat"));
       }
     }
 
@@ -144,30 +139,25 @@ public class OpenSearchJsonContent implements Content {
         lon = extractDoubleValue(value.get("lon"));
       } catch (Exception exception) {
         throw new IllegalStateException(
-            "longitude must be number value, but got value: " + value.get(
-                "lon"));
+            "longitude must be number value, but got value: " + value.get("lon"));
       }
     }
 
     // lat or lon can be null to support geopoint.lat query but both can't be null
     if (lat == null && lon == null) {
-      throw new IllegalStateException("geo point must be in format of {\"lat\": number, \"lon\": "
-          + "number}");
+      throw new IllegalStateException(
+          "geo point must be in format of {\"lat\": number, \"lon\": number}");
     }
 
     return Pair.of(lat, lon);
   }
 
-  /**
-   * Getter for value. If value is array the whole array is returned.
-   */
+  /** Getter for value. If value is array the whole array is returned. */
   private JsonNode value() {
     return value;
   }
 
-  /**
-   * Get doubleValue from JsonNode if possible.
-   */
+  /** Get doubleValue from JsonNode if possible. */
   private Double extractDoubleValue(JsonNode node) {
     if (node.isTextual()) {
       return Double.valueOf(node.textValue());

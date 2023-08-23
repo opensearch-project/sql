@@ -3,7 +3,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-
 package org.opensearch.sql.expression.datetime;
 
 import static org.junit.jupiter.api.Assertions.assertAll;
@@ -19,7 +18,6 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.opensearch.sql.data.model.ExprDateValue;
-import org.opensearch.sql.data.model.ExprDatetimeValue;
 import org.opensearch.sql.data.model.ExprIntegerValue;
 import org.opensearch.sql.data.model.ExprNullValue;
 import org.opensearch.sql.data.model.ExprStringValue;
@@ -36,106 +34,91 @@ class TimeStampAddTest extends ExpressionTestBase {
 
   private static Stream<Arguments> getTestDataForTimestampAdd() {
     return Stream.of(
-        Arguments.of("MINUTE", 1, new ExprStringValue("2003-01-02 00:00:00"),
-            "2003-01-02 00:01:00"),
-        Arguments.of("WEEK", 1, new ExprStringValue("2003-01-02 00:00:00"),
-            "2003-01-09 00:00:00"),
+        Arguments.of(
+            "MINUTE", 1, new ExprStringValue("2003-01-02 00:00:00"), "2003-01-02 00:01:00"),
+        Arguments.of("WEEK", 1, new ExprStringValue("2003-01-02 00:00:00"), "2003-01-09 00:00:00"),
 
-        //Date
-        Arguments.of("MINUTE", 1, new ExprDateValue("2003-01-02"),
-            "2003-01-02 00:01:00"),
-        Arguments.of("WEEK", 1, new ExprDateValue("2003-01-02"),
-            "2003-01-09 00:00:00"),
+        // Date
+        Arguments.of("MINUTE", 1, new ExprDateValue("2003-01-02"), "2003-01-02 00:01:00"),
+        Arguments.of("WEEK", 1, new ExprDateValue("2003-01-02"), "2003-01-09 00:00:00"),
 
-        //Datetime
-        Arguments.of("MINUTE", 1, new ExprDatetimeValue("2003-01-02 00:00:00"),
-            "2003-01-02 00:01:00"),
-        Arguments.of("WEEK", 1, new ExprDatetimeValue("2003-01-02 00:00:00"),
-            "2003-01-09 00:00:00"),
+        // Timestamp
+        Arguments.of(
+            "MINUTE", 1, new ExprTimestampValue("2003-01-02 00:00:00"), "2003-01-02 00:01:00"),
+        Arguments.of(
+            "WEEK", 1, new ExprTimestampValue("2003-01-02 00:00:00"), "2003-01-09 00:00:00"),
 
-        //Timestamp
-        Arguments.of("MINUTE", 1, new ExprTimestampValue("2003-01-02 00:00:00"),
-            "2003-01-02 00:01:00"),
-        Arguments.of("WEEK", 1, new ExprTimestampValue("2003-01-02 00:00:00"),
-            "2003-01-09 00:00:00"),
+        // Cases surrounding leap year
+        Arguments.of(
+            "SECOND", 1, new ExprTimestampValue("2020-02-28 23:59:59"), "2020-02-29 00:00:00"),
+        Arguments.of(
+            "MINUTE", 1, new ExprTimestampValue("2020-02-28 23:59:59"), "2020-02-29 00:00:59"),
+        Arguments.of(
+            "HOUR", 1, new ExprTimestampValue("2020-02-28 23:59:59"), "2020-02-29 00:59:59"),
+        Arguments.of(
+            "DAY", 1, new ExprTimestampValue("2020-02-28 23:59:59"), "2020-02-29 23:59:59"),
+        Arguments.of(
+            "WEEK", 1, new ExprTimestampValue("2020-02-28 23:59:59"), "2020-03-06 23:59:59"),
 
-        //Cases surrounding leap year
-        Arguments.of("SECOND", 1, new ExprTimestampValue("2020-02-28 23:59:59"),
-            "2020-02-29 00:00:00"),
-        Arguments.of("MINUTE", 1, new ExprTimestampValue("2020-02-28 23:59:59"),
-            "2020-02-29 00:00:59"),
-        Arguments.of("HOUR", 1, new ExprTimestampValue("2020-02-28 23:59:59"),
-            "2020-02-29 00:59:59"),
-        Arguments.of("DAY", 1, new ExprTimestampValue("2020-02-28 23:59:59"),
-            "2020-02-29 23:59:59"),
-        Arguments.of("WEEK", 1, new ExprTimestampValue("2020-02-28 23:59:59"),
-            "2020-03-06 23:59:59"),
+        // Cases surrounding end-of-year
+        Arguments.of(
+            "SECOND", 1, new ExprTimestampValue("2020-12-31 23:59:59"), "2021-01-01 00:00:00"),
+        Arguments.of(
+            "MINUTE", 1, new ExprTimestampValue("2020-12-31 23:59:59"), "2021-01-01 00:00:59"),
+        Arguments.of(
+            "HOUR", 1, new ExprTimestampValue("2020-12-31 23:59:59"), "2021-01-01 00:59:59"),
+        Arguments.of(
+            "DAY", 1, new ExprTimestampValue("2020-12-31 23:59:59"), "2021-01-01 23:59:59"),
+        Arguments.of(
+            "WEEK", 1, new ExprTimestampValue("2020-12-31 23:59:59"), "2021-01-07 23:59:59"),
 
-        //Cases surrounding end-of-year
-        Arguments.of("SECOND", 1, new ExprTimestampValue("2020-12-31 23:59:59"),
-            "2021-01-01 00:00:00"),
-        Arguments.of("MINUTE", 1, new ExprTimestampValue("2020-12-31 23:59:59"),
-            "2021-01-01 00:00:59"),
-        Arguments.of("HOUR", 1, new ExprTimestampValue("2020-12-31 23:59:59"),
-            "2021-01-01 00:59:59"),
-        Arguments.of("DAY", 1, new ExprTimestampValue("2020-12-31 23:59:59"),
-            "2021-01-01 23:59:59"),
-        Arguments.of("WEEK", 1, new ExprTimestampValue("2020-12-31 23:59:59"),
-            "2021-01-07 23:59:59"),
+        // Test adding a month (including special cases)
+        Arguments.of("MONTH", 1, new ExprStringValue("2003-01-02 00:00:00"), "2003-02-02 00:00:00"),
+        Arguments.of("MONTH", 1, new ExprDateValue("2024-03-30"), "2024-04-30 00:00:00"),
+        Arguments.of("MONTH", 1, new ExprDateValue("2024-03-31"), "2024-04-30 00:00:00"),
 
-        //Test adding a month (including special cases)
-        Arguments.of("MONTH", 1, new ExprStringValue("2003-01-02 00:00:00"),
-            "2003-02-02 00:00:00"),
-        Arguments.of("MONTH", 1, new ExprDateValue("2024-03-30"),
-            "2024-04-30 00:00:00"),
-        Arguments.of("MONTH", 1, new ExprDateValue("2024-03-31"),
-            "2024-04-30 00:00:00"),
-
-        //Test remaining interval types
-        Arguments.of("MICROSECOND", 123, new ExprStringValue("2003-01-02 00:00:00"),
+        // Test remaining interval types
+        Arguments.of(
+            "MICROSECOND",
+            123,
+            new ExprStringValue("2003-01-02 00:00:00"),
             "2003-01-02 00:00:00.000123"),
-        Arguments.of("QUARTER", 1, new ExprStringValue("2003-01-02 00:00:00"),
-            "2003-04-02 00:00:00"),
-        Arguments.of("YEAR", 1, new ExprStringValue("2003-01-02 00:00:00"),
-            "2004-01-02 00:00:00"),
+        Arguments.of(
+            "QUARTER", 1, new ExprStringValue("2003-01-02 00:00:00"), "2003-04-02 00:00:00"),
+        Arguments.of("YEAR", 1, new ExprStringValue("2003-01-02 00:00:00"), "2004-01-02 00:00:00"),
 
-        //Test negative value for amount (Test for all intervals)
-        Arguments.of("MICROSECOND", -1, new ExprStringValue("2000-01-01 00:00:00"),
+        // Test negative value for amount (Test for all intervals)
+        Arguments.of(
+            "MICROSECOND",
+            -1,
+            new ExprStringValue("2000-01-01 00:00:00"),
             "1999-12-31 23:59:59.999999"),
-        Arguments.of("SECOND", -1, new ExprStringValue("2000-01-01 00:00:00"),
-            "1999-12-31 23:59:59"),
-        Arguments.of("MINUTE", -1, new ExprStringValue("2000-01-01 00:00:00"),
-            "1999-12-31 23:59:00"),
-        Arguments.of("HOUR", -1, new ExprStringValue("2000-01-01 00:00:00"),
-            "1999-12-31 23:00:00"),
-        Arguments.of("DAY", -1, new ExprStringValue("2000-01-01 00:00:00"),
-            "1999-12-31 00:00:00"),
-        Arguments.of("WEEK", -1, new ExprStringValue("2000-01-01 00:00:00"),
-            "1999-12-25 00:00:00"),
-        Arguments.of("MONTH", -1, new ExprStringValue("2000-01-01 00:00:00"),
-            "1999-12-01 00:00:00"),
-        Arguments.of("QUARTER", -1, new ExprStringValue("2000-01-01 00:00:00"),
-            "1999-10-01 00:00:00"),
-        Arguments.of("YEAR", -1, new ExprStringValue("2000-01-01 00:00:00"),
-            "1999-01-01 00:00:00")
-    );
+        Arguments.of(
+            "SECOND", -1, new ExprStringValue("2000-01-01 00:00:00"), "1999-12-31 23:59:59"),
+        Arguments.of(
+            "MINUTE", -1, new ExprStringValue("2000-01-01 00:00:00"), "1999-12-31 23:59:00"),
+        Arguments.of("HOUR", -1, new ExprStringValue("2000-01-01 00:00:00"), "1999-12-31 23:00:00"),
+        Arguments.of("DAY", -1, new ExprStringValue("2000-01-01 00:00:00"), "1999-12-31 00:00:00"),
+        Arguments.of("WEEK", -1, new ExprStringValue("2000-01-01 00:00:00"), "1999-12-25 00:00:00"),
+        Arguments.of(
+            "MONTH", -1, new ExprStringValue("2000-01-01 00:00:00"), "1999-12-01 00:00:00"),
+        Arguments.of(
+            "QUARTER", -1, new ExprStringValue("2000-01-01 00:00:00"), "1999-10-01 00:00:00"),
+        Arguments.of(
+            "YEAR", -1, new ExprStringValue("2000-01-01 00:00:00"), "1999-01-01 00:00:00"));
   }
 
-  private static FunctionExpression timestampaddQuery(String unit,
-                                                      int amount,
-                                                      ExprValue datetimeExpr) {
+  private static FunctionExpression timestampaddQuery(
+      String unit, int amount, ExprValue datetimeExpr) {
     return DSL.timestampadd(
-        DSL.literal(unit),
-        DSL.literal(new ExprIntegerValue(amount)),
-        DSL.literal(datetimeExpr)
-    );
+        DSL.literal(unit), DSL.literal(new ExprIntegerValue(amount)), DSL.literal(datetimeExpr));
   }
 
   @ParameterizedTest
   @MethodSource("getTestDataForTimestampAdd")
   public void testTimestampadd(String unit, int amount, ExprValue datetimeExpr, String expected) {
     FunctionExpression expr = timestampaddQuery(unit, amount, datetimeExpr);
-    assertEquals(new ExprDatetimeValue(expected), eval(expr));
+    assertEquals(new ExprTimestampValue(expected), eval(expr));
   }
 
   private static Stream<Arguments> getTestDataForTestAddingDatePartToTime() {
@@ -159,26 +142,23 @@ class TimeStampAddTest extends ExpressionTestBase {
         Arguments.of("YEAR", 1, "10:11:12", LocalDate.now().plusYears(1)),
         Arguments.of("YEAR", 5, "10:11:12", LocalDate.now().plusYears(5)),
         Arguments.of("YEAR", 10, "10:11:12", LocalDate.now().plusYears(10)),
-        Arguments.of("YEAR", -10, "10:11:12", LocalDate.now().plusYears(-10))
-    );
+        Arguments.of("YEAR", -10, "10:11:12", LocalDate.now().plusYears(-10)));
   }
 
   @ParameterizedTest
   @MethodSource("getTestDataForTestAddingDatePartToTime")
-  public void testAddingDatePartToTime(String interval,
-                                       int addedInterval,
-                                       String timeArg,
-                                       LocalDate expectedDate) {
-    FunctionExpression expr = DSL.timestampadd(
-        functionProperties,
-        DSL.literal(interval),
-        DSL.literal(new ExprIntegerValue(addedInterval)),
-        DSL.literal(new ExprTimeValue(timeArg))
-    );
+  public void testAddingDatePartToTime(
+      String interval, int addedInterval, String timeArg, LocalDate expectedDate) {
+    FunctionExpression expr =
+        DSL.timestampadd(
+            functionProperties,
+            DSL.literal(interval),
+            DSL.literal(new ExprIntegerValue(addedInterval)),
+            DSL.literal(new ExprTimeValue(timeArg)));
 
     LocalDateTime expected1 = LocalDateTime.of(expectedDate, LocalTime.parse(timeArg));
 
-    assertEquals(new ExprDatetimeValue(expected1), eval(expr));
+    assertEquals(new ExprTimestampValue(expected1), eval(expr));
   }
 
   @Test
@@ -187,56 +167,40 @@ class TimeStampAddTest extends ExpressionTestBase {
     int addedInterval = 1;
     String timeArg = "10:11:12";
 
-    FunctionExpression expr = DSL.timestampadd(
-        functionProperties,
-        DSL.literal(interval),
-        DSL.literal(new ExprIntegerValue(addedInterval)),
-        DSL.literal(new ExprTimeValue(timeArg))
-    );
+    FunctionExpression expr =
+        DSL.timestampadd(
+            functionProperties,
+            DSL.literal(interval),
+            DSL.literal(new ExprIntegerValue(addedInterval)),
+            DSL.literal(new ExprTimeValue(timeArg)));
 
-    LocalDateTime expected = LocalDateTime.of(
-        LocalDate.now(),
-        LocalTime.parse(timeArg).plusMinutes(addedInterval));
+    LocalDateTime expected =
+        LocalDateTime.of(LocalDate.now(), LocalTime.parse(timeArg).plusMinutes(addedInterval));
 
-    assertEquals(new ExprDatetimeValue(expected), eval(expr));
+    assertEquals(new ExprTimestampValue(expected), eval(expr));
   }
 
   @Test
   public void testDifferentInputTypesHaveSameResult() {
     String part = "SECOND";
     int amount = 1;
-    FunctionExpression dateExpr = timestampaddQuery(
-        part,
-        amount,
-        new ExprDateValue("2000-01-01"));
+    FunctionExpression dateExpr = timestampaddQuery(part, amount, new ExprDateValue("2000-01-01"));
 
-    FunctionExpression stringExpr = timestampaddQuery(
-        part,
-        amount,
-        new ExprStringValue("2000-01-01 00:00:00"));
+    FunctionExpression stringExpr =
+        timestampaddQuery(part, amount, new ExprStringValue("2000-01-01 00:00:00"));
 
-    FunctionExpression datetimeExpr = timestampaddQuery(
-        part,
-        amount,
-        new ExprDatetimeValue("2000-01-01 00:00:00"));
-
-    FunctionExpression timestampExpr = timestampaddQuery(
-        part,
-        amount,
-        new ExprTimestampValue("2000-01-01 00:00:00"));
+    FunctionExpression timestampExpr =
+        timestampaddQuery(part, amount, new ExprTimestampValue("2000-01-01 00:00:00"));
 
     assertAll(
         () -> assertEquals(eval(dateExpr), eval(stringExpr)),
-        () -> assertEquals(eval(dateExpr), eval(datetimeExpr)),
-        () -> assertEquals(eval(dateExpr), eval(timestampExpr))
-    );
+        () -> assertEquals(eval(dateExpr), eval(timestampExpr)));
   }
 
   private static Stream<Arguments> getInvalidTestDataForTimestampAdd() {
     return Stream.of(
         Arguments.of("WEEK", 1, new ExprStringValue("2000-13-01")),
-        Arguments.of("WEEK", 1, new ExprStringValue("2000-01-40"))
-    );
+        Arguments.of("WEEK", 1, new ExprStringValue("2000-01-40")));
   }
 
   @ParameterizedTest

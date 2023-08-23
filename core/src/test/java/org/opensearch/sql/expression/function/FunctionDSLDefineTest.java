@@ -52,16 +52,15 @@ class FunctionDSLDefineTest extends FunctionDSLTestBase {
 
   static class SampleFunctionBuilder implements FunctionBuilder {
     @Override
-    public FunctionImplementation apply(FunctionProperties functionProperties,
-                                        List<Expression> arguments) {
+    public FunctionImplementation apply(
+        FunctionProperties functionProperties, List<Expression> arguments) {
       return new SampleFunctionImplementation(arguments);
     }
   }
 
   @RequiredArgsConstructor
   static class SampleFunctionImplementation implements FunctionImplementation {
-    @Getter
-    private final List<Expression> arguments;
+    @Getter private final List<Expression> arguments;
 
     @Override
     public FunctionName getFunctionName() {

@@ -3,7 +3,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-
 package org.opensearch.sql.ast.dsl;
 
 import java.util.Arrays;
@@ -63,9 +62,7 @@ import org.opensearch.sql.ast.tree.TableFunction;
 import org.opensearch.sql.ast.tree.UnresolvedPlan;
 import org.opensearch.sql.ast.tree.Values;
 
-/**
- * Class of static methods to create specific node instances.
- */
+/** Class of static methods to create specific node instances. */
 @UtilityClass
 public class AstDSL {
 
@@ -132,8 +129,9 @@ public class AstDSL {
 
   /**
    * Initialize Values node by rows of literals.
-   * @param values  rows in which each row is a list of literal values
-   * @return       Values node
+   *
+   * @param values rows in which each row is a list of literal values
+   * @return Values node
    */
   @SafeVarargs
   public UnresolvedPlan values(List<Literal>... values) {
@@ -249,27 +247,33 @@ public class AstDSL {
   }
 
   /**
+   *
+   *
+   * <pre>
    * CASE
-   *     WHEN search_condition THEN result_expr
-   *     [WHEN search_condition THEN result_expr] ...
-   *     [ELSE result_expr]
+   *    WHEN search_condition THEN result_expr<br>
+   *    [WHEN search_condition THEN result_expr] ...
+   *    [ELSE result_expr]
    * END
+   * </pre>
    */
-  public UnresolvedExpression caseWhen(UnresolvedExpression elseClause,
-                                       When... whenClauses) {
+  public UnresolvedExpression caseWhen(UnresolvedExpression elseClause, When... whenClauses) {
     return caseWhen(null, elseClause, whenClauses);
   }
 
   /**
+   *
+   *
+   * <pre>
    * CASE case_value_expr
    *     WHEN compare_expr THEN result_expr
    *     [WHEN compare_expr THEN result_expr] ...
    *     [ELSE result_expr]
    * END
+   * </pre>
    */
-  public UnresolvedExpression caseWhen(UnresolvedExpression caseValueExpr,
-                                       UnresolvedExpression elseClause,
-                                       When... whenClauses) {
+  public UnresolvedExpression caseWhen(
+      UnresolvedExpression caseValueExpr, UnresolvedExpression elseClause, When... whenClauses) {
     return new Case(caseValueExpr, Arrays.asList(whenClauses), elseClause);
   }
 
@@ -281,19 +285,20 @@ public class AstDSL {
     return new When(condition, result);
   }
 
-  public UnresolvedExpression highlight(UnresolvedExpression fieldName,
-      java.util.Map<String, Literal> arguments) {
+  public UnresolvedExpression highlight(
+      UnresolvedExpression fieldName, java.util.Map<String, Literal> arguments) {
     return new HighlightFunction(fieldName, arguments);
   }
 
-  public UnresolvedExpression score(UnresolvedExpression relevanceQuery,
-                                    Literal relevanceFieldWeight) {
+  public UnresolvedExpression score(
+      UnresolvedExpression relevanceQuery, Literal relevanceFieldWeight) {
     return new ScoreFunction(relevanceQuery, relevanceFieldWeight);
   }
 
-  public UnresolvedExpression window(UnresolvedExpression function,
-                                     List<UnresolvedExpression> partitionByList,
-                                     List<Pair<SortOption, UnresolvedExpression>> sortList) {
+  public UnresolvedExpression window(
+      UnresolvedExpression function,
+      List<UnresolvedExpression> partitionByList,
+      List<Pair<SortOption, UnresolvedExpression>> sortList) {
     return new WindowFunction(function, partitionByList, sortList);
   }
 
@@ -328,9 +333,10 @@ public class AstDSL {
     return new Compare(operator, left, right);
   }
 
-  public static UnresolvedExpression between(UnresolvedExpression value,
-                                             UnresolvedExpression lowerBound,
-                                             UnresolvedExpression upperBound) {
+  public static UnresolvedExpression between(
+      UnresolvedExpression value,
+      UnresolvedExpression lowerBound,
+      UnresolvedExpression upperBound) {
     return new Between(value, lowerBound, upperBound);
   }
 
@@ -398,9 +404,7 @@ public class AstDSL {
     return exprList(argument("exclude", booleanLiteral(false)));
   }
 
-  /**
-   * Default Stats Command Args.
-   */
+  /** Default Stats Command Args. */
   public static List<Argument> defaultStatsArgs() {
     return exprList(
         argument("partitions", intLiteral(1)),
@@ -409,9 +413,7 @@ public class AstDSL {
         argument("dedupsplit", booleanLiteral(false)));
   }
 
-  /**
-   * Default Dedup Command Args.
-   */
+  /** Default Dedup Command Args. */
   public static List<Argument> defaultDedupArgs() {
     return exprList(
         argument("number", intLiteral(1)),
@@ -447,9 +449,12 @@ public class AstDSL {
     return exprList(argument("noOfResults", intLiteral(10)));
   }
 
-  public static RareTopN rareTopN(UnresolvedPlan input, CommandType commandType,
-                                  List<Argument> noOfResults, List<UnresolvedExpression> groupList,
-                                  Field... fields) {
+  public static RareTopN rareTopN(
+      UnresolvedPlan input,
+      CommandType commandType,
+      List<Argument> noOfResults,
+      List<UnresolvedExpression> groupList,
+      Field... fields) {
     return new RareTopN(input, commandType, noOfResults, Arrays.asList(fields), groupList)
         .attach(input);
   }
@@ -458,11 +463,12 @@ public class AstDSL {
     return new Limit(limit, offset).attach(input);
   }
 
-  public static Parse parse(UnresolvedPlan input, ParseMethod parseMethod,
-                                  UnresolvedExpression sourceField,
-                                  Literal pattern,
-                                  java.util.Map<String, Literal> arguments) {
+  public static Parse parse(
+      UnresolvedPlan input,
+      ParseMethod parseMethod,
+      UnresolvedExpression sourceField,
+      Literal pattern,
+      java.util.Map<String, Literal> arguments) {
     return new Parse(parseMethod, sourceField, pattern, arguments, input);
   }
-
 }

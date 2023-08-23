@@ -15,17 +15,14 @@ import org.opensearch.sql.spark.functions.resolver.SparkSqlTableFunctionResolver
 import org.opensearch.sql.storage.StorageEngine;
 import org.opensearch.sql.storage.Table;
 
-/**
- * Spark storage engine implementation.
- */
+/** Spark storage engine implementation. */
 @RequiredArgsConstructor
 public class SparkStorageEngine implements StorageEngine {
   private final SparkClient sparkClient;
 
   @Override
   public Collection<FunctionResolver> getFunctions() {
-    return Collections.singletonList(
-        new SparkSqlTableFunctionResolver(sparkClient));
+    return Collections.singletonList(new SparkSqlTableFunctionResolver(sparkClient));
   }
 
   @Override

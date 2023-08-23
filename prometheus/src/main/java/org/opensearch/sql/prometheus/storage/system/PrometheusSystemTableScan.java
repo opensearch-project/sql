@@ -13,16 +13,13 @@ import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.prometheus.request.system.PrometheusSystemRequest;
 import org.opensearch.sql.storage.TableScanOperator;
 
-/**
- * Prometheus table scan operator.
- */
+/** Prometheus table scan operator. */
 @RequiredArgsConstructor
 @EqualsAndHashCode(onlyExplicitlyIncluded = true, callSuper = false)
 @ToString(onlyExplicitlyIncluded = true)
 public class PrometheusSystemTableScan extends TableScanOperator {
 
-  @EqualsAndHashCode.Include
-  private final PrometheusSystemRequest request;
+  @EqualsAndHashCode.Include private final PrometheusSystemRequest request;
 
   private Iterator<ExprValue> iterator;
 

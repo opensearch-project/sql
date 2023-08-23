@@ -11,8 +11,8 @@ import org.opensearch.index.query.QueryBuilders;
 
 public class MultiMatchQuery extends MultiFieldQuery<MultiMatchQueryBuilder> {
   /**
-   *  Default constructor for MultiMatch configures how RelevanceQuery.build() handles
-   * named arguments.
+   * Default constructor for MultiMatch configures how RelevanceQuery.build() handles named
+   * arguments.
    */
   public MultiMatchQuery() {
     super(FunctionParameterRepository.MultiMatchQueryBuildActions);

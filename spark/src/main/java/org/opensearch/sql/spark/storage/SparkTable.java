@@ -18,20 +18,14 @@ import org.opensearch.sql.spark.request.SparkQueryRequest;
 import org.opensearch.sql.storage.Table;
 import org.opensearch.sql.storage.read.TableScanBuilder;
 
-/**
- * Spark table implementation.
- * This can be constructed from SparkQueryRequest.
- */
+/** Spark table implementation. This can be constructed from SparkQueryRequest. */
 public class SparkTable implements Table {
 
   private final SparkClient sparkClient;
 
-  @Getter
-  private final SparkQueryRequest sparkQueryRequest;
+  @Getter private final SparkQueryRequest sparkQueryRequest;
 
-  /**
-   * Constructor for entire Sql Request.
-   */
+  /** Constructor for entire Sql Request. */
   public SparkTable(SparkClient sparkService, SparkQueryRequest sparkQueryRequest) {
     this.sparkClient = sparkService;
     this.sparkQueryRequest = sparkQueryRequest;
@@ -56,8 +50,7 @@ public class SparkTable implements Table {
 
   @Override
   public PhysicalPlan implement(LogicalPlan plan) {
-    SparkScan metricScan =
-        new SparkScan(sparkClient);
+    SparkScan metricScan = new SparkScan(sparkClient);
     metricScan.setRequest(sparkQueryRequest);
     return plan.accept(new DefaultImplementor<SparkScan>(), metricScan);
   }

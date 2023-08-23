@@ -3,7 +3,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-
 package org.opensearch.sql.prometheus.planner.logical.rules;
 
 import static com.facebook.presto.matching.Pattern.typeOf;
@@ -20,9 +19,7 @@ import org.opensearch.sql.planner.optimizer.Rule;
 import org.opensearch.sql.prometheus.planner.logical.PrometheusLogicalMetricAgg;
 import org.opensearch.sql.prometheus.planner.logical.PrometheusLogicalMetricScan;
 
-/**
- * Merge Aggregation -- Relation to MetricScanAggregation.
- */
+/** Merge Aggregation -- Relation to MetricScanAggregation. */
 public class MergeAggAndIndexScan implements Rule<LogicalAggregation> {
 
   private final Capture<PrometheusLogicalMetricScan> capture;
@@ -31,22 +28,18 @@ public class MergeAggAndIndexScan implements Rule<LogicalAggregation> {
   @Getter
   private final Pattern<LogicalAggregation> pattern;
 
-  /**
-   * Constructor of MergeAggAndIndexScan.
-   */
+  /** Constructor of MergeAggAndIndexScan. */
   public MergeAggAndIndexScan() {
     this.capture = Capture.newCapture();
-    this.pattern = typeOf(LogicalAggregation.class)
-        .with(source().matching(typeOf(PrometheusLogicalMetricScan.class)
-            .capturedAs(capture)));
+    this.pattern =
+        typeOf(LogicalAggregation.class)
+            .with(source().matching(typeOf(PrometheusLogicalMetricScan.class).capturedAs(capture)));
   }
 
   @Override
-  public LogicalPlan apply(LogicalAggregation aggregation,
-                           Captures captures) {
+  public LogicalPlan apply(LogicalAggregation aggregation, Captures captures) {
     PrometheusLogicalMetricScan indexScan = captures.get(capture);
-    return PrometheusLogicalMetricAgg
-        .builder()
+    return PrometheusLogicalMetricAgg.builder()
         .metricName(indexScan.getMetricName())
         .filter(indexScan.getFilter())
         .aggregatorList(aggregation.getAggregatorList())

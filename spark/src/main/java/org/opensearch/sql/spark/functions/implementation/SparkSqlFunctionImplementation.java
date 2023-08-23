@@ -24,9 +24,7 @@ import org.opensearch.sql.spark.request.SparkQueryRequest;
 import org.opensearch.sql.spark.storage.SparkTable;
 import org.opensearch.sql.storage.Table;
 
-/**
- * Spark SQL function implementation.
- */
+/** Spark SQL function implementation. */
 public class SparkSqlFunctionImplementation extends FunctionExpression
     implements TableFunctionImplementation {
 
@@ -38,8 +36,8 @@ public class SparkSqlFunctionImplementation extends FunctionExpression
    * Constructor for spark sql function.
    *
    * @param functionName name of the function
-   * @param arguments    a list of expressions
-   * @param sparkClient  spark client
+   * @param arguments a list of expressions
+   * @param sparkClient spark client
    */
   public SparkSqlFunctionImplementation(
       FunctionName functionName, List<Expression> arguments, SparkClient sparkClient) {
@@ -51,9 +49,11 @@ public class SparkSqlFunctionImplementation extends FunctionExpression
 
   @Override
   public ExprValue valueOf(Environment<Expression, ExprValue> valueEnv) {
-    throw new UnsupportedOperationException(String.format(
-        "Spark defined function [%s] is only "
-            + "supported in SOURCE clause with spark connector catalog", functionName));
+    throw new UnsupportedOperationException(
+        String.format(
+            "Spark defined function [%s] is only "
+                + "supported in SOURCE clause with spark connector catalog",
+            functionName));
   }
 
   @Override
@@ -63,11 +63,15 @@ public class SparkSqlFunctionImplementation extends FunctionExpression
 
   @Override
   public String toString() {
-    List<String> args = arguments.stream()
-        .map(arg -> String.format("%s=%s",
-            ((NamedArgumentExpression) arg).getArgName(),
-            ((NamedArgumentExpression) arg).getValue().toString()))
-        .collect(Collectors.toList());
+    List<String> args =
+        arguments.stream()
+            .map(
+                arg ->
+                    String.format(
+                        "%s=%s",
+                        ((NamedArgumentExpression) arg).getArgName(),
+                        ((NamedArgumentExpression) arg).getValue().toString()))
+            .collect(Collectors.toList());
     return String.format("%s(%s)", functionName, String.join(", ", args));
   }
 
@@ -80,23 +84,23 @@ public class SparkSqlFunctionImplementation extends FunctionExpression
    * This method builds a spark query request.
    *
    * @param arguments spark sql function arguments
-   * @return          spark query request
+   * @return spark query request
    */
   private SparkQueryRequest buildQueryFromSqlFunction(List<Expression> arguments) {
 
     SparkQueryRequest sparkQueryRequest = new SparkQueryRequest();
-    arguments.forEach(arg -> {
-      String argName = ((NamedArgumentExpression) arg).getArgName();
-      Expression argValue = ((NamedArgumentExpression) arg).getValue();
-      ExprValue literalValue = argValue.valueOf();
-      if (argName.equals(QUERY)) {
-        sparkQueryRequest.setSql((String) literalValue.value());
-      } else {
-        throw new ExpressionEvaluationException(
-            String.format("Invalid Function Argument:%s", argName));
-      }
-    });
+    arguments.forEach(
+        arg -> {
+          String argName = ((NamedArgumentExpression) arg).getArgName();
+          Expression argValue = ((NamedArgumentExpression) arg).getValue();
+          ExprValue literalValue = argValue.valueOf();
+          if (argName.equals(QUERY)) {
+            sparkQueryRequest.setSql((String) literalValue.value());
+          } else {
+            throw new ExpressionEvaluationException(
+                String.format("Invalid Function Argument:%s", argName));
+          }
+        });
     return sparkQueryRequest;
   }
-
 }

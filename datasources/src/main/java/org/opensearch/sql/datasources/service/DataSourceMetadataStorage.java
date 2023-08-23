@@ -13,28 +13,25 @@ import org.opensearch.sql.datasource.model.DataSource;
 import org.opensearch.sql.datasource.model.DataSourceMetadata;
 
 /**
- * Interface for DataSourceMetadata Storage
- * which will be only used by DataSourceService for Storage.
+ * Interface for DataSourceMetadata Storage which will be only used by DataSourceService for
+ * Storage.
  */
 public interface DataSourceMetadataStorage {
 
   /**
-   * Returns all dataSource Metadata objects. The returned objects won't contain
-   * any of the credential info.
+   * Returns all dataSource Metadata objects. The returned objects won't contain any of the
+   * credential info.
    *
    * @return list of {@link DataSourceMetadata}.
    */
   List<DataSourceMetadata> getDataSourceMetadata();
 
-
   /**
-   * Gets {@link DataSourceMetadata} corresponding to the
-   * datasourceName from underlying storage.
+   * Gets {@link DataSourceMetadata} corresponding to the datasourceName from underlying storage.
    *
    * @param datasourceName name of the {@link DataSource}.
    */
   Optional<DataSourceMetadata> getDataSourceMetadata(String datasourceName);
-
 
   /**
    * Stores {@link DataSourceMetadata} in underlying storage.
@@ -43,7 +40,6 @@ public interface DataSourceMetadataStorage {
    */
   void createDataSourceMetadata(DataSourceMetadata dataSourceMetadata);
 
-
   /**
    * Updates {@link DataSourceMetadata} in underlying storage.
    *
@@ -51,13 +47,10 @@ public interface DataSourceMetadataStorage {
    */
   void updateDataSourceMetadata(DataSourceMetadata dataSourceMetadata);
 
-
   /**
-   * Deletes {@link DataSourceMetadata} corresponding to the
-   * datasourceName from underlying storage.
+   * Deletes {@link DataSourceMetadata} corresponding to the datasourceName from underlying storage.
    *
    * @param datasourceName name of the {@link DataSource}.
    */
   void deleteDataSourceMetadata(String datasourceName);
-
 }

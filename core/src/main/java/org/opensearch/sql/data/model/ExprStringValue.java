@@ -3,9 +3,9 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-
 package org.opensearch.sql.data.model;
 
+import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
@@ -15,9 +15,7 @@ import org.opensearch.sql.data.type.ExprCoreType;
 import org.opensearch.sql.data.type.ExprType;
 import org.opensearch.sql.exception.SemanticCheckException;
 
-/**
- * Expression String Value.
- */
+/** Expression String Value. */
 @RequiredArgsConstructor
 public class ExprStringValue extends AbstractExprValue {
   private final String value;
@@ -38,25 +36,20 @@ public class ExprStringValue extends AbstractExprValue {
   }
 
   @Override
-  public LocalDateTime datetimeValue() {
+  public Instant timestampValue() {
     try {
-      return new ExprDatetimeValue(value).datetimeValue();
+      return new ExprTimestampValue(value).timestampValue();
     } catch (SemanticCheckException e) {
-      try {
-        return new ExprDatetimeValue(
-            LocalDateTime.of(new ExprDateValue(value).dateValue(), LocalTime.of(0, 0, 0)))
-            .datetimeValue();
-      } catch (SemanticCheckException exception) {
-        throw new SemanticCheckException(String.format("datetime:%s in unsupported format, please "
-            + "use yyyy-MM-dd HH:mm:ss[.SSSSSSSSS]", value));
-      }
+      return new ExprTimestampValue(
+              LocalDateTime.of(new ExprDateValue(value).dateValue(), LocalTime.of(0, 0, 0)))
+          .timestampValue();
     }
   }
 
   @Override
   public LocalDate dateValue() {
     try {
-      return new ExprDatetimeValue(value).dateValue();
+      return new ExprTimestampValue(value).dateValue();
     } catch (SemanticCheckException e) {
       return new ExprDateValue(value).dateValue();
     }
@@ -65,7 +58,7 @@ public class ExprStringValue extends AbstractExprValue {
   @Override
   public LocalTime timeValue() {
     try {
-      return new ExprDatetimeValue(value).timeValue();
+      return new ExprTimestampValue(value).timeValue();
     } catch (SemanticCheckException e) {
       return new ExprTimeValue(value).timeValue();
     }

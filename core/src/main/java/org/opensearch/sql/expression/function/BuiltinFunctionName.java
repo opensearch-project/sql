@@ -12,15 +12,11 @@ import java.util.Optional;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 
-/**
- * Builtin Function Name.
- */
+/** Builtin Function Name. */
 @Getter
 @RequiredArgsConstructor
 public enum BuiltinFunctionName {
-  /**
-   * Mathematical Functions.
-   */
+  /** Mathematical Functions. */
   ABS(FunctionName.of("abs")),
   CEIL(FunctionName.of("ceil")),
   CEILING(FunctionName.of("ceiling")),
@@ -59,9 +55,7 @@ public enum BuiltinFunctionName {
   SIN(FunctionName.of("sin")),
   TAN(FunctionName.of("tan")),
 
-  /**
-   * Date and Time Functions.
-   */
+  /** Date and Time Functions. */
   ADDDATE(FunctionName.of("adddate")),
   ADDTIME(FunctionName.of("addtime")),
   CONVERT_TZ(FunctionName.of("convert_tz")),
@@ -135,14 +129,10 @@ public enum BuiltinFunctionName {
   LOCALTIMESTAMP(FunctionName.of("localtimestamp")),
   SYSDATE(FunctionName.of("sysdate")),
 
-  /**
-   * Text Functions.
-   */
+  /** Text Functions. */
   TOSTRING(FunctionName.of("tostring")),
 
-  /**
-   * Arithmetic Operators.
-   */
+  /** Arithmetic Operators. */
   ADD(FunctionName.of("+")),
   ADDFUNCTION(FunctionName.of("add")),
   DIVIDE(FunctionName.of("/")),
@@ -155,9 +145,7 @@ public enum BuiltinFunctionName {
   SUBTRACT(FunctionName.of("-")),
   SUBTRACTFUNCTION(FunctionName.of("subtract")),
 
-  /**
-   * Boolean Operators.
-   */
+  /** Boolean Operators. */
   AND(FunctionName.of("and")),
   OR(FunctionName.of("or")),
   XOR(FunctionName.of("xor")),
@@ -171,9 +159,7 @@ public enum BuiltinFunctionName {
   LIKE(FunctionName.of("like")),
   NOT_LIKE(FunctionName.of("not like")),
 
-  /**
-   * Aggregation Function.
-   */
+  /** Aggregation Function. */
   AVG(FunctionName.of("avg")),
   SUM(FunctionName.of("sum")),
   COUNT(FunctionName.of("count")),
@@ -192,9 +178,7 @@ public enum BuiltinFunctionName {
   // Not always an aggregation query
   NESTED(FunctionName.of("nested")),
 
-  /**
-   * Text Functions.
-   */
+  /** Text Functions. */
   ASCII(FunctionName.of("ascii")),
   CONCAT(FunctionName.of("concat")),
   CONCAT_WS(FunctionName.of("concat_ws")),
@@ -215,9 +199,7 @@ public enum BuiltinFunctionName {
   TRIM(FunctionName.of("trim")),
   UPPER(FunctionName.of("upper")),
 
-  /**
-   * NULL Test.
-   */
+  /** NULL Test. */
   IS_NULL(FunctionName.of("is null")),
   IS_NOT_NULL(FunctionName.of("is not null")),
   IFNULL(FunctionName.of("ifnull")),
@@ -231,9 +213,7 @@ public enum BuiltinFunctionName {
 
   INTERVAL(FunctionName.of("interval")),
 
-  /**
-   * Data Type Convert Function.
-   */
+  /** Data Type Convert Function. */
   CAST_TO_STRING(FunctionName.of("cast_to_string")),
   CAST_TO_BYTE(FunctionName.of("cast_to_byte")),
   CAST_TO_SHORT(FunctionName.of("cast_to_short")),
@@ -248,9 +228,7 @@ public enum BuiltinFunctionName {
   CAST_TO_DATETIME(FunctionName.of("cast_to_datetime")),
   TYPEOF(FunctionName.of("typeof")),
 
-  /**
-   * Relevance Function.
-   */
+  /** Relevance Function. */
   MATCH(FunctionName.of("match")),
   SIMPLE_QUERY_STRING(FunctionName.of("simple_query_string")),
   MATCH_PHRASE(FunctionName.of("match_phrase")),
@@ -264,9 +242,7 @@ public enum BuiltinFunctionName {
   SCOREQUERY(FunctionName.of("scorequery")),
   SCORE_QUERY(FunctionName.of("score_query")),
 
-  /**
-   * Legacy Relevance Function.
-   */
+  /** Legacy Relevance Function. */
   QUERY(FunctionName.of("query")),
   MATCH_QUERY(FunctionName.of("match_query")),
   MATCHQUERY(FunctionName.of("matchquery")),

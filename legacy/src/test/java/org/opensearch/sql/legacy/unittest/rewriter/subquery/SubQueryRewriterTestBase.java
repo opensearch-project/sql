@@ -3,7 +3,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-
 package org.opensearch.sql.legacy.unittest.rewriter.subquery;
 
 import com.alibaba.druid.sql.SQLUtils;
@@ -14,19 +13,19 @@ import org.opensearch.sql.legacy.util.SqlParserUtils;
 
 public abstract class SubQueryRewriterTestBase {
 
-    SQLQueryExpr expr(String query) {
-        return SqlParserUtils.parse(query);
-    }
+  SQLQueryExpr expr(String query) {
+    return SqlParserUtils.parse(query);
+  }
 
-    SQLQueryExpr rewrite(SQLQueryExpr expr) {
-        new SubQueryRewriteRule().rewrite(expr);
-        return expr;
-    }
+  SQLQueryExpr rewrite(SQLQueryExpr expr) {
+    new SubQueryRewriteRule().rewrite(expr);
+    return expr;
+  }
 
-    String sqlString(SQLObject expr) {
-        return SQLUtils.toMySqlString(expr)
-                .replaceAll("\n", " ")
-                .replaceAll("\t", " ")
-                .replaceAll(" +", " ");
-    }
+  String sqlString(SQLObject expr) {
+    return SQLUtils.toMySqlString(expr)
+        .replaceAll("\n", " ")
+        .replaceAll("\t", " ")
+        .replaceAll(" +", " ");
+  }
 }

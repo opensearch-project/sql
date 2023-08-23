@@ -6,7 +6,6 @@
 package org.opensearch.sql.planner;
 
 import static org.junit.jupiter.api.Assertions.assertSame;
-import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Answers.CALLS_REAL_METHODS;
 
 import org.junit.jupiter.api.DisplayNameGeneration;

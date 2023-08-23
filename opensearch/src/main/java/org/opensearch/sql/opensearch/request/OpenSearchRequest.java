@@ -3,7 +3,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-
 package org.opensearch.sql.opensearch.request;
 
 import java.io.IOException;
@@ -20,13 +19,10 @@ import org.opensearch.core.common.io.stream.Writeable;
 import org.opensearch.sql.opensearch.data.value.OpenSearchExprValueFactory;
 import org.opensearch.sql.opensearch.response.OpenSearchResponse;
 
-/**
- * OpenSearch search request.
- */
+/** OpenSearch search request. */
 public interface OpenSearchRequest extends Writeable {
-  /**
-   * Default query timeout in minutes.
-   */
+
+  /** Default query timeout in minutes. */
   TimeValue DEFAULT_QUERY_TIMEOUT = TimeValue.timeValueMinutes(1L);
 
   /**
@@ -36,8 +32,9 @@ public interface OpenSearchRequest extends Writeable {
    * @param scrollAction scroll search action.
    * @return OpenSearchResponse.
    */
-  OpenSearchResponse search(Function<SearchRequest, SearchResponse> searchAction,
-                            Function<SearchScrollRequest, SearchResponse> scrollAction);
+  OpenSearchResponse search(
+      Function<SearchRequest, SearchResponse> searchAction,
+      Function<SearchScrollRequest, SearchResponse> scrollAction);
 
   /**
    * Apply the cleanAction on request.
@@ -48,21 +45,20 @@ public interface OpenSearchRequest extends Writeable {
 
   /**
    * Get the OpenSearchExprValueFactory.
+   *
    * @return OpenSearchExprValueFactory.
    */
   OpenSearchExprValueFactory getExprValueFactory();
 
   /**
    * Check if there is more data to get from OpenSearch.
-   * @return True if calling {@ref OpenSearchClient.search} with this request will
-   *        return non-empty response.
+   *
+   * @return True if calling {@ref OpenSearchClient.search} with this request will return non-empty
+   *     response.
    */
   boolean hasAnotherBatch();
 
-  /**
-   * OpenSearch Index Name.
-   * Indices are separated by ",".
-   */
+  /** OpenSearch Index Name. Indices are separated by ",". */
   @EqualsAndHashCode
   class IndexName implements Writeable {
     private static final String COMMA = ",";

@@ -3,7 +3,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-
 package org.opensearch.sql.opensearch.data.value;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -24,7 +23,7 @@ class OpenSearchExprGeoPointValueTest {
 
   @Test
   void value() {
-    assertEquals(new LinkedHashMap<>(ImmutableMap.of("lat", 1.0, "lon", 2.0)),
-        geoPointValue.value());
+    assertEquals(
+        new LinkedHashMap<>(ImmutableMap.of("lat", 1.0, "lon", 2.0)), geoPointValue.value());
   }
 }

@@ -63,20 +63,16 @@ class OpenSearchIndexTest {
 
   public static final int QUERY_SIZE_LIMIT = 200;
   public static final TimeValue SCROLL_TIMEOUT = new TimeValue(1);
-  public static final OpenSearchRequest.IndexName INDEX_NAME
-      = new OpenSearchRequest.IndexName("test");
+  public static final OpenSearchRequest.IndexName INDEX_NAME =
+      new OpenSearchRequest.IndexName("test");
 
-  @Mock
-  private OpenSearchClient client;
+  @Mock private OpenSearchClient client;
 
-  @Mock
-  private OpenSearchExprValueFactory exprValueFactory;
+  @Mock private OpenSearchExprValueFactory exprValueFactory;
 
-  @Mock
-  private Settings settings;
+  @Mock private Settings settings;
 
-  @Mock
-  private IndexMapping mapping;
+  @Mock private IndexMapping mapping;
 
   private OpenSearchIndex index;
 
@@ -94,16 +90,18 @@ class OpenSearchIndexTest {
 
   @Test
   void createIndex() {
-    Map<String, Object> mappings = Map.of(
-        "properties",
+    Map<String, Object> mappings =
         Map.of(
-            "name", "text",
-            "age", "integer"));
+            "properties",
+            Map.of(
+                "name", "text",
+                "age", "integer"));
     doNothing().when(client).createIndex("test", mappings);
 
     Map<String, ExprType> schema = new HashMap<>();
-    schema.put("name", OpenSearchTextType.of(Map.of("keyword",
-        OpenSearchDataType.of(MappingType.Keyword))));
+    schema.put(
+        "name",
+        OpenSearchTextType.of(Map.of("keyword", OpenSearchDataType.of(MappingType.Keyword))));
     schema.put("age", INTEGER);
     index.create(schema);
     verify(client).createIndex(any(), any());
@@ -111,24 +109,27 @@ class OpenSearchIndexTest {
 
   @Test
   void getFieldTypes() {
-    when(mapping.getFieldMappings()).thenReturn(
-        ImmutableMap.<String, MappingType>builder()
-            .put("name", MappingType.Keyword)
-            .put("address", MappingType.Text)
-            .put("age", MappingType.Integer)
-            .put("account_number", MappingType.Long)
-            .put("balance1", MappingType.Float)
-            .put("balance2", MappingType.Double)
-            .put("gender", MappingType.Boolean)
-            .put("family", MappingType.Nested)
-            .put("employer", MappingType.Object)
-            .put("birthday", MappingType.Date)
-            .put("id1", MappingType.Byte)
-            .put("id2", MappingType.Short)
-            .put("blob", MappingType.Binary)
-            .build().entrySet().stream().collect(Collectors.toMap(
-            Map.Entry::getKey, e -> OpenSearchDataType.of(e.getValue())
-            )));
+    when(mapping.getFieldMappings())
+        .thenReturn(
+            ImmutableMap.<String, MappingType>builder()
+                .put("name", MappingType.Keyword)
+                .put("address", MappingType.Text)
+                .put("age", MappingType.Integer)
+                .put("account_number", MappingType.Long)
+                .put("balance1", MappingType.Float)
+                .put("balance2", MappingType.Double)
+                .put("gender", MappingType.Boolean)
+                .put("family", MappingType.Nested)
+                .put("employer", MappingType.Object)
+                .put("birthday", MappingType.Date)
+                .put("id1", MappingType.Byte)
+                .put("id2", MappingType.Short)
+                .put("blob", MappingType.Binary)
+                .build()
+                .entrySet()
+                .stream()
+                .collect(
+                    Collectors.toMap(Map.Entry::getKey, e -> OpenSearchDataType.of(e.getValue()))));
     when(client.getIndexMappings("test")).thenReturn(ImmutableMap.of("test", mapping));
 
     // Run more than once to confirm caching logic is covered and can work
@@ -150,35 +151,30 @@ class OpenSearchIndexTest {
               hasEntry("birthday", ExprCoreType.TIMESTAMP),
               hasEntry("id1", ExprCoreType.BYTE),
               hasEntry("id2", ExprCoreType.SHORT),
-              hasEntry("blob", (ExprType) OpenSearchDataType.of(MappingType.Binary))
-          ));
+              hasEntry("blob", (ExprType) OpenSearchDataType.of(MappingType.Binary))));
     }
   }
 
   @Test
   void checkCacheUsedForFieldMappings() {
-    when(mapping.getFieldMappings()).thenReturn(
-        Map.of("name", OpenSearchDataType.of(MappingType.Keyword)));
-    when(client.getIndexMappings("test")).thenReturn(
-        ImmutableMap.of("test", mapping));
+    when(mapping.getFieldMappings())
+        .thenReturn(Map.of("name", OpenSearchDataType.of(MappingType.Keyword)));
+    when(client.getIndexMappings("test")).thenReturn(ImmutableMap.of("test", mapping));
 
     OpenSearchIndex index = new OpenSearchIndex(client, settings, "test");
-    assertThat(index.getFieldTypes(), allOf(
-        aMapWithSize(1),
-        hasEntry("name", STRING)));
-    assertThat(index.getFieldOpenSearchTypes(), allOf(
-        aMapWithSize(1),
-        hasEntry("name", OpenSearchDataType.of(STRING))));
+    assertThat(index.getFieldTypes(), allOf(aMapWithSize(1), hasEntry("name", STRING)));
+    assertThat(
+        index.getFieldOpenSearchTypes(),
+        allOf(aMapWithSize(1), hasEntry("name", OpenSearchDataType.of(STRING))));
 
-    lenient().when(mapping.getFieldMappings()).thenReturn(
-        Map.of("name", OpenSearchDataType.of(MappingType.Integer)));
+    lenient()
+        .when(mapping.getFieldMappings())
+        .thenReturn(Map.of("name", OpenSearchDataType.of(MappingType.Integer)));
 
-    assertThat(index.getFieldTypes(), allOf(
-        aMapWithSize(1),
-        hasEntry("name", STRING)));
-    assertThat(index.getFieldOpenSearchTypes(), allOf(
-        aMapWithSize(1),
-        hasEntry("name", OpenSearchDataType.of(STRING))));
+    assertThat(index.getFieldTypes(), allOf(aMapWithSize(1), hasEntry("name", STRING)));
+    assertThat(
+        index.getFieldOpenSearchTypes(),
+        allOf(aMapWithSize(1), hasEntry("name", OpenSearchDataType.of(STRING))));
   }
 
   @Test
@@ -193,8 +189,7 @@ class OpenSearchIndexTest {
             hasEntry("_routing", ExprCoreType.STRING),
             hasEntry("_sort", ExprCoreType.LONG),
             hasEntry("_score", ExprCoreType.FLOAT),
-            hasEntry("_maxscore", ExprCoreType.FLOAT)
-        ));
+            hasEntry("_maxscore", ExprCoreType.FLOAT)));
   }
 
   @Test
@@ -204,8 +199,9 @@ class OpenSearchIndexTest {
     LogicalPlan plan = index.createScanBuilder();
     Integer maxResultWindow = index.getMaxResultWindow();
     final var requestBuilder = new OpenSearchRequestBuilder(QUERY_SIZE_LIMIT, exprValueFactory);
-    assertEquals(new OpenSearchIndexScan(client,
-        200, requestBuilder.build(INDEX_NAME, maxResultWindow, SCROLL_TIMEOUT)),
+    assertEquals(
+        new OpenSearchIndexScan(
+            client, 200, requestBuilder.build(INDEX_NAME, maxResultWindow, SCROLL_TIMEOUT)),
         index.implement(index.optimize(plan)));
   }
 
@@ -216,8 +212,10 @@ class OpenSearchIndexTest {
     LogicalPlan plan = index.createScanBuilder();
     Integer maxResultWindow = index.getMaxResultWindow();
     final var requestBuilder = new OpenSearchRequestBuilder(QUERY_SIZE_LIMIT, exprValueFactory);
-    assertEquals(new OpenSearchIndexScan(client, 200,
-        requestBuilder.build(INDEX_NAME, maxResultWindow, SCROLL_TIMEOUT)), index.implement(plan));
+    assertEquals(
+        new OpenSearchIndexScan(
+            client, 200, requestBuilder.build(INDEX_NAME, maxResultWindow, SCROLL_TIMEOUT)),
+        index.implement(plan));
   }
 
   @Test
@@ -239,12 +237,7 @@ class OpenSearchIndexTest {
             LogicalPlanDSL.dedupe(
                 sort(
                     eval(
-                        remove(
-                            rename(
-                                index.createScanBuilder(),
-                                mappings),
-                            exclude),
-                        newEvalField),
+                        remove(rename(index.createScanBuilder(), mappings), exclude), newEvalField),
                     sortField),
                 dedupeField),
             include);
@@ -258,9 +251,11 @@ class OpenSearchIndexTest {
                     PhysicalPlanDSL.eval(
                         PhysicalPlanDSL.remove(
                             PhysicalPlanDSL.rename(
-                              new OpenSearchIndexScan(client,
-                                QUERY_SIZE_LIMIT, requestBuilder.build(INDEX_NAME, maxResultWindow,
-                                  SCROLL_TIMEOUT)),
+                                new OpenSearchIndexScan(
+                                    client,
+                                    QUERY_SIZE_LIMIT,
+                                    requestBuilder.build(
+                                        INDEX_NAME, maxResultWindow, SCROLL_TIMEOUT)),
                                 mappings),
                             exclude),
                         newEvalField),

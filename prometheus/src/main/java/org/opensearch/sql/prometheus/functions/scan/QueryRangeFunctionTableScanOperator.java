@@ -23,9 +23,7 @@ import org.opensearch.sql.prometheus.functions.response.QueryRangeFunctionRespon
 import org.opensearch.sql.prometheus.request.PrometheusQueryRequest;
 import org.opensearch.sql.storage.TableScanOperator;
 
-/**
- * This a table scan operator to handle Query Range table function.
- */
+/** This a table scan operator to handle Query Range table function. */
 @RequiredArgsConstructor
 public class QueryRangeFunctionTableScanOperator extends TableScanOperator {
 
@@ -39,19 +37,25 @@ public class QueryRangeFunctionTableScanOperator extends TableScanOperator {
   @Override
   public void open() {
     super.open();
-    this.prometheusResponseHandle
-        = AccessController.doPrivileged((PrivilegedAction<PrometheusFunctionResponseHandle>) () -> {
-          try {
-            JSONObject responseObject = prometheusClient.queryRange(
-                request.getPromQl(),
-                request.getStartTime(), request.getEndTime(), request.getStep());
-            return new QueryRangeFunctionResponseHandle(responseObject);
-          } catch (IOException e) {
-            LOG.error(e.getMessage());
-            throw new RuntimeException(
-                String.format("Error fetching data from prometheus server: %s", e.getMessage()));
-          }
-        });
+    this.prometheusResponseHandle =
+        AccessController.doPrivileged(
+            (PrivilegedAction<PrometheusFunctionResponseHandle>)
+                () -> {
+                  try {
+                    JSONObject responseObject =
+                        prometheusClient.queryRange(
+                            request.getPromQl(),
+                            request.getStartTime(),
+                            request.getEndTime(),
+                            request.getStep());
+                    return new QueryRangeFunctionResponseHandle(responseObject);
+                  } catch (IOException e) {
+                    LOG.error(e.getMessage());
+                    throw new RuntimeException(
+                        String.format(
+                            "Error fetching data from prometheus server: %s", e.getMessage()));
+                  }
+                });
   }
 
   @Override
@@ -71,7 +75,9 @@ public class QueryRangeFunctionTableScanOperator extends TableScanOperator {
 
   @Override
   public String explain() {
-    return String.format(Locale.ROOT, "query_range(%s, %s, %s, %s)",
+    return String.format(
+        Locale.ROOT,
+        "query_range(%s, %s, %s, %s)",
         request.getPromQl(),
         request.getStartTime(),
         request.getEndTime(),

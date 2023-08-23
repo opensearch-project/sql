@@ -22,9 +22,7 @@ import org.opensearch.core.xcontent.XContentParser;
 import org.opensearch.sql.datasource.model.DataSourceMetadata;
 import org.opensearch.sql.datasource.model.DataSourceType;
 
-/**
- * Utitlity class to serialize and deserialize objects in XContent.
- */
+/** Utitlity class to serialize and deserialize objects in XContent. */
 @UtilityClass
 public class XContentParserUtils {
   public static final String NAME_FIELD = "name";
@@ -87,9 +85,13 @@ public class XContentParserUtils {
    * @throws IOException IOException.
    */
   public static DataSourceMetadata toDataSourceMetadata(String json) throws IOException {
-    try (XContentParser parser = XContentType.JSON.xContent()
-        .createParser(NamedXContentRegistry.EMPTY, DeprecationHandler.THROW_UNSUPPORTED_OPERATION,
-            json)) {
+    try (XContentParser parser =
+        XContentType.JSON
+            .xContent()
+            .createParser(
+                NamedXContentRegistry.EMPTY,
+                DeprecationHandler.THROW_UNSUPPORTED_OPERATION,
+                json)) {
       return toDataSourceMetadata(parser);
     }
   }
@@ -116,6 +118,4 @@ public class XContentParserUtils {
     builder.endObject();
     return builder;
   }
-
-
 }

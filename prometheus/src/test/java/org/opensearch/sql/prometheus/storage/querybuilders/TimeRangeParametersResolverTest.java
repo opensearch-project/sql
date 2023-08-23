@@ -21,9 +21,11 @@ public class TimeRangeParametersResolverTest {
   @Test
   void testTimeRangeParametersWithoutTimestampFilter() {
     TimeRangeParametersResolver timeRangeParametersResolver = new TimeRangeParametersResolver();
-    Pair<Long, Long> result = timeRangeParametersResolver.resolve(
-        DSL.and(DSL.less(DSL.ref("code", STRING), DSL.literal(stringValue("200"))),
-            DSL.equal(DSL.ref("handler", STRING), DSL.literal(stringValue("/ready/")))));
+    Pair<Long, Long> result =
+        timeRangeParametersResolver.resolve(
+            DSL.and(
+                DSL.less(DSL.ref("code", STRING), DSL.literal(stringValue("200"))),
+                DSL.equal(DSL.ref("handler", STRING), DSL.literal(stringValue("/ready/")))));
     Assertions.assertNotNull(result);
     Assertions.assertEquals(3600, result.getSecond() - result.getFirst());
   }

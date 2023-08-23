@@ -3,156 +3,134 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-
 package org.opensearch.sql.legacy.query.planner.core;
 
 import org.opensearch.sql.legacy.query.planner.resource.blocksize.AdaptiveBlockSize;
 import org.opensearch.sql.legacy.query.planner.resource.blocksize.BlockSize;
 import org.opensearch.sql.legacy.query.planner.resource.blocksize.BlockSize.FixedBlockSize;
 
-/**
- * Query planner configuration
- */
+/** Query planner configuration */
 public class Config {
 
-    public static final int DEFAULT_BLOCK_SIZE = 10000;
-    public static final int DEFAULT_SCROLL_PAGE_SIZE = 10000;
-    public static final int DEFAULT_CIRCUIT_BREAK_LIMIT = 85;
-    public static final double[] DEFAULT_BACK_OFF_RETRY_INTERVALS = {4, 8 + 4, 16 + 4};
-    public static final int DEFAULT_TIME_OUT = 60;
+  public static final int DEFAULT_BLOCK_SIZE = 10000;
+  public static final int DEFAULT_SCROLL_PAGE_SIZE = 10000;
+  public static final int DEFAULT_CIRCUIT_BREAK_LIMIT = 85;
+  public static final double[] DEFAULT_BACK_OFF_RETRY_INTERVALS = {4, 8 + 4, 16 + 4};
+  public static final int DEFAULT_TIME_OUT = 60;
 
-    /**
-     * Block size for join algorithm
-     */
-    private BlockSize blockSize = new FixedBlockSize(DEFAULT_BLOCK_SIZE);
+  /** Block size for join algorithm */
+  private BlockSize blockSize = new FixedBlockSize(DEFAULT_BLOCK_SIZE);
 
-    /**
-     * Page size for scroll on each index
-     */
-    private Integer[] scrollPageSizes = {DEFAULT_SCROLL_PAGE_SIZE, DEFAULT_SCROLL_PAGE_SIZE};
+  /** Page size for scroll on each index */
+  private Integer[] scrollPageSizes = {DEFAULT_SCROLL_PAGE_SIZE, DEFAULT_SCROLL_PAGE_SIZE};
 
-    /**
-     * Circuit breaker trigger limit (percentage)
-     */
-    private Integer circuitBreakLimit = DEFAULT_CIRCUIT_BREAK_LIMIT;
+  /** Circuit breaker trigger limit (percentage) */
+  private Integer circuitBreakLimit = DEFAULT_CIRCUIT_BREAK_LIMIT;
 
-    /**
-     * Intervals for back off retry
-     */
-    private double[] backOffRetryIntervals = DEFAULT_BACK_OFF_RETRY_INTERVALS;
+  /** Intervals for back off retry */
+  private double[] backOffRetryIntervals = DEFAULT_BACK_OFF_RETRY_INTERVALS;
 
-    /**
-     * Total number of rows in final result specified by LIMIT
-     */
-    private int totalLimit;
+  /** Total number of rows in final result specified by LIMIT */
+  private int totalLimit;
 
-    /**
-     * Number of rows fetched from each table specified by JOIN_TABLES_LIMIT hint
-     */
-    private int tableLimit1;
-    private int tableLimit2;
+  /** Number of rows fetched from each table specified by JOIN_TABLES_LIMIT hint */
+  private int tableLimit1;
 
-    /**
-     * Push down column values in ON of first table to query against second table
-     */
-    private boolean isUseTermsFilterOptimization = false;
+  private int tableLimit2;
 
-    /**
-     * Total time out (seconds) for the execution
-     */
-    private int timeout = DEFAULT_TIME_OUT;
+  /** Push down column values in ON of first table to query against second table */
+  private boolean isUseTermsFilterOptimization = false;
 
+  /** Total time out (seconds) for the execution */
+  private int timeout = DEFAULT_TIME_OUT;
 
-    public BlockSize blockSize() {
-        return blockSize;
+  public BlockSize blockSize() {
+    return blockSize;
+  }
+
+  public void configureBlockSize(Object[] params) {
+    if (params.length > 0) {
+      Integer size = (Integer) params[0];
+      if (size > 0) {
+        blockSize = new FixedBlockSize(size);
+      } else {
+        blockSize = new AdaptiveBlockSize(0);
+      }
     }
+  }
 
-    public void configureBlockSize(Object[] params) {
-        if (params.length > 0) {
-            Integer size = (Integer) params[0];
-            if (size > 0) {
-                blockSize = new FixedBlockSize(size);
-            } else {
-                blockSize = new AdaptiveBlockSize(0);
-            }
-        }
-    }
+  public Integer[] scrollPageSize() {
+    return scrollPageSizes;
+  }
 
-    public Integer[] scrollPageSize() {
-        return scrollPageSizes;
+  public void configureScrollPageSize(Object[] params) {
+    if (params.length == 1) {
+      scrollPageSizes = new Integer[] {(Integer) params[0], (Integer) params[0]};
+    } else if (params.length >= 2) {
+      scrollPageSizes = (Integer[]) params;
     }
+  }
 
-    public void configureScrollPageSize(Object[] params) {
-        if (params.length == 1) {
-            scrollPageSizes = new Integer[]{
-                    (Integer) params[0],
-                    (Integer) params[0]
-            };
-        } else if (params.length >= 2) {
-            scrollPageSizes = (Integer[]) params;
-        }
-    }
+  public int circuitBreakLimit() {
+    return circuitBreakLimit;
+  }
 
-    public int circuitBreakLimit() {
-        return circuitBreakLimit;
+  public void configureCircuitBreakLimit(Object[] params) {
+    if (params.length > 0) {
+      circuitBreakLimit = (Integer) params[0];
     }
+  }
 
-    public void configureCircuitBreakLimit(Object[] params) {
-        if (params.length > 0) {
-            circuitBreakLimit = (Integer) params[0];
-        }
-    }
+  public double[] backOffRetryIntervals() {
+    return backOffRetryIntervals;
+  }
 
-    public double[] backOffRetryIntervals() {
-        return backOffRetryIntervals;
+  public void configureBackOffRetryIntervals(Object[] params) {
+    backOffRetryIntervals = new double[params.length];
+    for (int i = 0; i < params.length; i++) {
+      backOffRetryIntervals[i] = (Integer) params[i]; // Only support integer interval for now
     }
+  }
 
-    public void configureBackOffRetryIntervals(Object[] params) {
-        backOffRetryIntervals = new double[params.length];
-        for (int i = 0; i < params.length; i++) {
-            backOffRetryIntervals[i] = (Integer) params[i]; //Only support integer interval for now
-        }
+  public void configureLimit(Integer totalLimit, Integer tableLimit1, Integer tableLimit2) {
+    if (totalLimit != null) {
+      this.totalLimit = totalLimit;
     }
+    if (tableLimit1 != null) {
+      this.tableLimit1 = tableLimit1;
+    }
+    if (tableLimit2 != null) {
+      this.tableLimit2 = tableLimit2;
+    }
+  }
 
-    public void configureLimit(Integer totalLimit, Integer tableLimit1, Integer tableLimit2) {
-        if (totalLimit != null) {
-            this.totalLimit = totalLimit;
-        }
-        if (tableLimit1 != null) {
-            this.tableLimit1 = tableLimit1;
-        }
-        if (tableLimit2 != null) {
-            this.tableLimit2 = tableLimit2;
-        }
-    }
+  public int totalLimit() {
+    return totalLimit;
+  }
 
-    public int totalLimit() {
-        return totalLimit;
-    }
+  public int tableLimit1() {
+    return tableLimit1;
+  }
 
-    public int tableLimit1() {
-        return tableLimit1;
-    }
+  public int tableLimit2() {
+    return tableLimit2;
+  }
 
-    public int tableLimit2() {
-        return tableLimit2;
-    }
+  public void configureTermsFilterOptimization(boolean isUseTermFiltersOptimization) {
+    this.isUseTermsFilterOptimization = isUseTermFiltersOptimization;
+  }
 
-    public void configureTermsFilterOptimization(boolean isUseTermFiltersOptimization) {
-        this.isUseTermsFilterOptimization = isUseTermFiltersOptimization;
-    }
+  public boolean isUseTermsFilterOptimization() {
+    return isUseTermsFilterOptimization;
+  }
 
-    public boolean isUseTermsFilterOptimization() {
-        return isUseTermsFilterOptimization;
+  public void configureTimeOut(Object[] params) {
+    if (params.length > 0) {
+      timeout = (Integer) params[0];
     }
+  }
 
-    public void configureTimeOut(Object[] params) {
-        if (params.length > 0) {
-            timeout = (Integer) params[0];
-        }
-    }
-
-    public int timeout() {
-        return timeout;
-    }
+  public int timeout() {
+    return timeout;
+  }
 }

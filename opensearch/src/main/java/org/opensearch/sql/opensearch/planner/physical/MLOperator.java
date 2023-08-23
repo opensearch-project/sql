@@ -25,23 +25,19 @@ import org.opensearch.sql.planner.physical.PhysicalPlan;
 import org.opensearch.sql.planner.physical.PhysicalPlanNodeVisitor;
 
 /**
- * ml-commons Physical operator to call machine learning interface to get results for
- * algorithm execution.
+ * ml-commons Physical operator to call machine learning interface to get results for algorithm
+ * execution.
  */
 @RequiredArgsConstructor
 @EqualsAndHashCode(callSuper = false)
 public class MLOperator extends MLCommonsOperatorActions {
-  @Getter
-  private final PhysicalPlan input;
+  @Getter private final PhysicalPlan input;
 
-  @Getter
-  private final Map<String, Literal> arguments;
+  @Getter private final Map<String, Literal> arguments;
 
-  @Getter
-  private final NodeClient nodeClient;
+  @Getter private final NodeClient nodeClient;
 
-  @EqualsAndHashCode.Exclude
-  private Iterator<ExprValue> iterator;
+  @EqualsAndHashCode.Exclude private Iterator<ExprValue> iterator;
 
   @Override
   public void open() {
@@ -53,34 +49,36 @@ public class MLOperator extends MLCommonsOperatorActions {
     final Iterator<Row> inputRowIter = inputDataFrame.iterator();
     // Only need to check train here, as action should be already checked in ml client.
     final boolean isPrediction = ((String) args.get("action")).equals("train") ? false : true;
-    //For train, only one row to return.
-    final Iterator<String> trainIter = new ArrayList<String>() {
-      {
-        add("train");
-      }
-    }.iterator();
-    final Iterator<Row> resultRowIter = isPrediction
-            ? ((MLPredictionOutput) mlOutput).getPredictionResult().iterator()
-            : null;
-    iterator = new Iterator<ExprValue>() {
-      @Override
-      public boolean hasNext() {
-        if (isPrediction) {
-          return inputRowIter.hasNext();
-        } else {
-          boolean res = trainIter.hasNext();
-          if (res) {
-            trainIter.next();
+    // For train, only one row to return.
+    final Iterator<String> trainIter =
+        new ArrayList<String>() {
+          {
+            add("train");
           }
-          return res;
-        }
-      }
+        }.iterator();
+    final Iterator<Row> resultRowIter =
+        isPrediction ? ((MLPredictionOutput) mlOutput).getPredictionResult().iterator() : null;
+    iterator =
+        new Iterator<ExprValue>() {
+          @Override
+          public boolean hasNext() {
+            if (isPrediction) {
+              return inputRowIter.hasNext();
+            } else {
+              boolean res = trainIter.hasNext();
+              if (res) {
+                trainIter.next();
+              }
+              return res;
+            }
+          }
 
-      @Override
-      public ExprValue next() {
-        return buildPPLResult(isPrediction, inputRowIter, inputDataFrame, mlOutput, resultRowIter);
-      }
-    };
+          @Override
+          public ExprValue next() {
+            return buildPPLResult(
+                isPrediction, inputRowIter, inputDataFrame, mlOutput, resultRowIter);
+          }
+        };
   }
 
   @Override
@@ -109,4 +107,3 @@ public class MLOperator extends MLCommonsOperatorActions {
     return res;
   }
 }
-

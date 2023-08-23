@@ -21,29 +21,23 @@ import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.opensearch.ResourceNotFoundException;
-import org.opensearch.action.ActionFuture;
 import org.opensearch.action.DocWriteResponse;
 import org.opensearch.action.delete.DeleteResponse;
 import org.opensearch.action.search.SearchResponse;
 import org.opensearch.client.Client;
+import org.opensearch.common.action.ActionFuture;
 import org.opensearch.core.rest.RestStatus;
 import org.opensearch.search.SearchHit;
 import org.opensearch.search.SearchHits;
 
 @ExtendWith(MockitoExtension.class)
 public class SparkResponseTest {
-  @Mock
-  private Client client;
-  @Mock
-  private SearchResponse searchResponse;
-  @Mock
-  private DeleteResponse deleteResponse;
-  @Mock
-  private SearchHit searchHit;
-  @Mock
-  private ActionFuture<SearchResponse> searchResponseActionFuture;
-  @Mock
-  private ActionFuture<DeleteResponse> deleteResponseActionFuture;
+  @Mock private Client client;
+  @Mock private SearchResponse searchResponse;
+  @Mock private DeleteResponse deleteResponse;
+  @Mock private SearchHit searchHit;
+  @Mock private ActionFuture<SearchResponse> searchResponseActionFuture;
+  @Mock private ActionFuture<DeleteResponse> deleteResponseActionFuture;
 
   @Test
   public void testGetResultFromOpensearchIndex() {
@@ -53,12 +47,8 @@ public class SparkResponseTest {
     when(searchResponse.getHits())
         .thenReturn(
             new SearchHits(
-                new SearchHit[] {searchHit},
-                new TotalHits(1, TotalHits.Relation.EQUAL_TO),
-                1.0F));
-    Mockito.when(searchHit.getSourceAsMap())
-        .thenReturn(Map.of("stepId", EMR_CLUSTER_ID));
-
+                new SearchHit[] {searchHit}, new TotalHits(1, TotalHits.Relation.EQUAL_TO), 1.0F));
+    Mockito.when(searchHit.getSourceAsMap()).thenReturn(Map.of("stepId", EMR_CLUSTER_ID));
 
     when(client.delete(any())).thenReturn(deleteResponseActionFuture);
     when(deleteResponseActionFuture.actionGet()).thenReturn(deleteResponse);
@@ -75,11 +65,13 @@ public class SparkResponseTest {
     when(searchResponse.status()).thenReturn(RestStatus.NO_CONTENT);
 
     SparkResponse sparkResponse = new SparkResponse(client, EMR_CLUSTER_ID, "stepId");
-    RuntimeException exception = assertThrows(RuntimeException.class,
-        () -> sparkResponse.getResultFromOpensearchIndex());
+    RuntimeException exception =
+        assertThrows(RuntimeException.class, () -> sparkResponse.getResultFromOpensearchIndex());
     Assertions.assertEquals(
-        "Fetching result from " + SPARK_INDEX_NAME
-            + " index failed with status : " + RestStatus.NO_CONTENT,
+        "Fetching result from "
+            + SPARK_INDEX_NAME
+            + " index failed with status : "
+            + RestStatus.NO_CONTENT,
         exception.getMessage());
   }
 
@@ -104,8 +96,9 @@ public class SparkResponseTest {
     when(deleteResponse.getResult()).thenReturn(DocWriteResponse.Result.NOT_FOUND);
 
     SparkResponse sparkResponse = new SparkResponse(client, EMR_CLUSTER_ID, "stepId");
-    RuntimeException exception = assertThrows(ResourceNotFoundException.class,
-        () -> sparkResponse.deleteInSparkIndex("123"));
+    RuntimeException exception =
+        assertThrows(
+            ResourceNotFoundException.class, () -> sparkResponse.deleteInSparkIndex("123"));
     Assertions.assertEquals("Spark result with id 123 doesn't exist", exception.getMessage());
   }
 
@@ -116,8 +109,8 @@ public class SparkResponseTest {
     when(deleteResponse.getResult()).thenReturn(DocWriteResponse.Result.NOOP);
 
     SparkResponse sparkResponse = new SparkResponse(client, EMR_CLUSTER_ID, "stepId");
-    RuntimeException exception = assertThrows(RuntimeException.class,
-        () -> sparkResponse.deleteInSparkIndex("123"));
+    RuntimeException exception =
+        assertThrows(RuntimeException.class, () -> sparkResponse.deleteInSparkIndex("123"));
     Assertions.assertEquals(
         "Deleting spark result information failed with : noop", exception.getMessage());
   }

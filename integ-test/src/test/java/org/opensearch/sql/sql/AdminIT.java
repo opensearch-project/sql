@@ -3,12 +3,10 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-
 package org.opensearch.sql.sql;
 
 import static org.hamcrest.Matchers.equalTo;
 import static org.opensearch.sql.legacy.plugin.RestSqlAction.QUERY_API_ENDPOINT;
-import static org.opensearch.sql.util.MatcherUtils.assertJsonEquals;
 import static org.opensearch.sql.util.TestUtils.getResponseBody;
 
 import com.google.common.io.Resources;
@@ -17,7 +15,6 @@ import java.net.URI;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.Locale;
-
 import org.json.JSONArray;
 import org.json.JSONObject;
 import org.junit.Test;
@@ -68,8 +65,10 @@ public class AdminIT extends SQLIntegTestCase {
   public void describeSingleIndexWildcard() throws IOException {
     JSONObject response1 = executeQuery("DESCRIBE TABLES LIKE \\\"%account\\\"");
     JSONObject response2 = executeQuery("DESCRIBE TABLES LIKE '%account'");
-    JSONObject response3 = executeQuery("DESCRIBE TABLES LIKE '%account' COLUMNS LIKE \\\"%name\\\"");
-    JSONObject response4 = executeQuery("DESCRIBE TABLES LIKE \\\"%account\\\" COLUMNS LIKE '%name'");
+    JSONObject response3 =
+        executeQuery("DESCRIBE TABLES LIKE '%account' COLUMNS LIKE \\\"%name\\\"");
+    JSONObject response4 =
+        executeQuery("DESCRIBE TABLES LIKE \\\"%account\\\" COLUMNS LIKE '%name'");
     // 11 rows in the output, each corresponds to a column in the table
     assertEquals(11, response1.getJSONArray("datarows").length());
     assertTrue(response1.similar(response2));

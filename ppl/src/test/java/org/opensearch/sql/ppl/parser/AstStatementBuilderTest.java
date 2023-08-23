@@ -28,8 +28,7 @@ import org.opensearch.sql.ppl.antlr.PPLSyntaxParser;
 
 public class AstStatementBuilderTest {
 
-  @Rule
-  public ExpectedException exceptionRule = ExpectedException.none();
+  @Rule public ExpectedException exceptionRule = ExpectedException.none();
 
   private PPLSyntaxParser parser = new PPLSyntaxParser();
 
@@ -38,9 +37,8 @@ public class AstStatementBuilderTest {
     assertEqual(
         "search source=t a=1",
         new Query(
-            project(
-                filter(relation("t"), compare("=", field("a"),
-                    intLiteral(1))), AllFields.of()), 0));
+            project(filter(relation("t"), compare("=", field("a"), intLiteral(1))), AllFields.of()),
+            0));
   }
 
   @Test
@@ -50,8 +48,8 @@ public class AstStatementBuilderTest {
         new Explain(
             new Query(
                 project(
-                    filter(relation("t"), compare("=", field("a"), intLiteral(1))),
-                    AllFields.of()), 0)));
+                    filter(relation("t"), compare("=", field("a"), intLiteral(1))), AllFields.of()),
+                0)));
   }
 
   private void assertEqual(String query, Statement expectedStatement) {
@@ -66,7 +64,8 @@ public class AstStatementBuilderTest {
 
   private Node plan(String query, boolean isExplain) {
     final AstStatementBuilder builder =
-        new AstStatementBuilder(new AstBuilder(new AstExpressionBuilder(), query),
+        new AstStatementBuilder(
+            new AstBuilder(new AstExpressionBuilder(), query),
             AstStatementBuilder.StatementBuilderContext.builder().isExplain(isExplain).build());
     return builder.visit(parser.parse(query));
   }

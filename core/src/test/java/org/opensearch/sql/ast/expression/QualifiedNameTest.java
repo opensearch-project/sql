@@ -3,7 +3,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-
 package org.opensearch.sql.ast.expression;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -36,5 +35,4 @@ class QualifiedNameTest {
     assertFalse(name.first().isPresent());
     assertFalse(name.getPrefix().isPresent());
   }
-
 }

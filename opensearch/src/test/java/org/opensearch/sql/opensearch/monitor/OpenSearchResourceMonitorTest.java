@@ -3,7 +3,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-
 package org.opensearch.sql.opensearch.monitor;
 
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -18,17 +17,15 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.opensearch.common.unit.ByteSizeValue;
+import org.opensearch.core.common.unit.ByteSizeValue;
 import org.opensearch.sql.common.setting.Settings;
 
 @ExtendWith(MockitoExtension.class)
 class OpenSearchResourceMonitorTest {
 
-  @Mock
-  private Settings settings;
+  @Mock private Settings settings;
 
-  @Mock
-  private OpenSearchMemoryHealthy memoryMonitor;
+  @Mock private OpenSearchMemoryHealthy memoryMonitor;
 
   @BeforeEach
   public void setup() {
@@ -47,8 +44,8 @@ class OpenSearchResourceMonitorTest {
 
   @Test
   void notHealthyFastFailure() {
-    when(memoryMonitor.isMemoryHealthy(anyLong())).thenThrow(
-        OpenSearchMemoryHealthy.MemoryUsageExceedFastFailureException.class);
+    when(memoryMonitor.isMemoryHealthy(anyLong()))
+        .thenThrow(OpenSearchMemoryHealthy.MemoryUsageExceedFastFailureException.class);
 
     OpenSearchResourceMonitor resourceMonitor =
         new OpenSearchResourceMonitor(settings, memoryMonitor);
@@ -58,8 +55,8 @@ class OpenSearchResourceMonitorTest {
 
   @Test
   void notHealthyWithRetry() {
-    when(memoryMonitor.isMemoryHealthy(anyLong())).thenThrow(
-        OpenSearchMemoryHealthy.MemoryUsageExceedException.class);
+    when(memoryMonitor.isMemoryHealthy(anyLong()))
+        .thenThrow(OpenSearchMemoryHealthy.MemoryUsageExceedException.class);
 
     OpenSearchResourceMonitor resourceMonitor =
         new OpenSearchResourceMonitor(settings, memoryMonitor);
@@ -70,8 +67,9 @@ class OpenSearchResourceMonitorTest {
   @Test
   void healthyWithRetry() {
 
-    when(memoryMonitor.isMemoryHealthy(anyLong())).thenThrow(
-        OpenSearchMemoryHealthy.MemoryUsageExceedException.class).thenReturn(true);
+    when(memoryMonitor.isMemoryHealthy(anyLong()))
+        .thenThrow(OpenSearchMemoryHealthy.MemoryUsageExceedException.class)
+        .thenReturn(true);
 
     OpenSearchResourceMonitor resourceMonitor =
         new OpenSearchResourceMonitor(settings, memoryMonitor);

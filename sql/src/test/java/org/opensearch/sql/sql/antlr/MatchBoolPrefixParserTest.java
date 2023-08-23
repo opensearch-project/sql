@@ -25,14 +25,13 @@ public class MatchBoolPrefixParserTest extends SQLParserTest {
         new String("max_expansions=50"),
         new String("fuzzy_transpositions=true"),
         new String("fuzzy_rewrite=constant_score"),
-        new String("boost=1")
-    );
+        new String("boost=1"));
   }
 
   @ParameterizedTest
   @MethodSource("generateValidArguments")
   public void testValidArguments(String arg) {
-    acceptQuery("SELECT * FROM T WHERE MATCH_BOOL_PREFIX(message, 'query', " + arg  + ")");
+    acceptQuery("SELECT * FROM T WHERE MATCH_BOOL_PREFIX(message, 'query', " + arg + ")");
   }
 
   @Test

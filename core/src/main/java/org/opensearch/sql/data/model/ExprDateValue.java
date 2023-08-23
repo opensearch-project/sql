@@ -3,17 +3,15 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-
 package org.opensearch.sql.data.model;
 
 import static org.opensearch.sql.utils.DateTimeFormatters.DATE_TIME_FORMATTER_VARIABLE_NANOS_OPTIONAL;
-import static org.opensearch.sql.utils.DateTimeUtils.UTC_ZONE_ID;
 
 import com.google.common.base.Objects;
 import java.time.Instant;
 import java.time.LocalDate;
-import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.time.ZoneOffset;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
@@ -22,23 +20,19 @@ import org.opensearch.sql.data.type.ExprCoreType;
 import org.opensearch.sql.data.type.ExprType;
 import org.opensearch.sql.exception.SemanticCheckException;
 
-/**
- * Expression Date Value.
- */
+/** Expression Date Value. */
 @RequiredArgsConstructor
 public class ExprDateValue extends AbstractExprValue {
 
   private final LocalDate date;
 
-  /**
-   * Constructor of ExprDateValue.
-   */
+  /** Constructor of ExprDateValue. */
   public ExprDateValue(String date) {
     try {
       this.date = LocalDate.parse(date, DATE_TIME_FORMATTER_VARIABLE_NANOS_OPTIONAL);
     } catch (DateTimeParseException e) {
-      throw new SemanticCheckException(String.format("date:%s in unsupported format, please use "
-          + "yyyy-MM-dd", date));
+      throw new SemanticCheckException(
+          String.format("date:%s in unsupported format, please use 'yyyy-MM-dd'", date));
     }
   }
 
@@ -63,13 +57,8 @@ public class ExprDateValue extends AbstractExprValue {
   }
 
   @Override
-  public LocalDateTime datetimeValue() {
-    return LocalDateTime.of(date, timeValue());
-  }
-
-  @Override
   public Instant timestampValue() {
-    return ZonedDateTime.of(date, timeValue(), UTC_ZONE_ID).toInstant();
+    return ZonedDateTime.of(date, timeValue(), ZoneOffset.UTC).toInstant();
   }
 
   @Override

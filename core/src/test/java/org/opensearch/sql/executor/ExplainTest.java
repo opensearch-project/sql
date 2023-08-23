@@ -3,7 +3,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-
 package org.opensearch.sql.executor;
 
 import static java.util.Collections.emptyList;
@@ -68,36 +67,30 @@ class ExplainTest extends ExpressionTestBase {
             DSL.equal(ref("balance", INTEGER), literal(10000)),
             DSL.greater(ref("age", INTEGER), literal(30)));
     NamedExpression[] projectList = {
-        named("full_name", ref("full_name", STRING), "name"),
-        named("age", ref("age", INTEGER))
+      named("full_name", ref("full_name", STRING), "name"), named("age", ref("age", INTEGER))
     };
 
-    PhysicalPlan plan =
-        project(
-            filter(
-                tableScan,
-                filterExpr),
-            projectList);
+    PhysicalPlan plan = project(filter(tableScan, filterExpr), projectList);
 
     assertEquals(
         new ExplainResponse(
             new ExplainResponseNode(
                 "ProjectOperator",
                 Map.of("fields", "[name, age]"),
-                singletonList(new ExplainResponseNode(
-                    "FilterOperator",
-                    Map.of("conditions", "and(=(balance, 10000), >(age, 30))"),
-                    singletonList(tableScan.explainNode()))))),
+                singletonList(
+                    new ExplainResponseNode(
+                        "FilterOperator",
+                        Map.of("conditions", "and(=(balance, 10000), >(age, 30))"),
+                        singletonList(tableScan.explainNode()))))),
         explain.apply(plan));
   }
 
   @Test
   void can_explain_aggregations() {
     List<Expression> aggExprs = List.of(ref("balance", DOUBLE));
-    List<NamedAggregator> aggList = List.of(
-        named("avg(balance)", DSL.avg(aggExprs.toArray(new Expression[0]))));
-    List<NamedExpression> groupByList = List.of(
-        named("state", ref("state", STRING)));
+    List<NamedAggregator> aggList =
+        List.of(named("avg(balance)", DSL.avg(aggExprs.toArray(new Expression[0]))));
+    List<NamedExpression> groupByList = List.of(named("state", ref("state", STRING)));
 
     PhysicalPlan plan = agg(new FakeTableScan(), aggList, groupByList);
     assertEquals(
@@ -120,11 +113,7 @@ class ExplainTest extends ExpressionTestBase {
         new ExplainResponse(
             new ExplainResponseNode(
                 "RareTopNOperator",
-                Map.of(
-                    "commandType", TOP,
-                    "noOfResults", 10,
-                    "fields", "[state]",
-                    "groupBy", "[]"),
+                Map.of("commandType", TOP, "noOfResults", 10, "fields", "[state]", "groupBy", "[]"),
                 singletonList(tableScan.explainNode()))),
         explain.apply(plan));
   }
@@ -132,22 +121,27 @@ class ExplainTest extends ExpressionTestBase {
   @Test
   void can_explain_window() {
     List<Expression> partitionByList = List.of(DSL.ref("state", STRING));
-    List<Pair<Sort.SortOption, Expression>> sortList = List.of(
-        ImmutablePair.of(DEFAULT_ASC, ref("age", INTEGER)));
+    List<Pair<Sort.SortOption, Expression>> sortList =
+        List.of(ImmutablePair.of(DEFAULT_ASC, ref("age", INTEGER)));
 
-    PhysicalPlan plan = window(tableScan, named(DSL.rank()),
-        new WindowDefinition(partitionByList, sortList));
+    PhysicalPlan plan =
+        window(tableScan, named(DSL.rank()), new WindowDefinition(partitionByList, sortList));
 
     assertEquals(
         new ExplainResponse(
             new ExplainResponseNode(
                 "WindowOperator",
                 Map.of(
-                    "function", "rank()",
-                    "definition", Map.of(
-                        "partitionBy", "[state]",
-                        "sortList", Map.of(
-                            "age", Map.of(
+                    "function",
+                    "rank()",
+                    "definition",
+                    Map.of(
+                        "partitionBy",
+                        "[state]",
+                        "sortList",
+                        Map.of(
+                            "age",
+                            Map.of(
                                 "sortOrder", "ASC",
                                 "nullOrder", "NULL_FIRST")))),
                 singletonList(tableScan.explainNode()))),
@@ -157,60 +151,61 @@ class ExplainTest extends ExpressionTestBase {
   @Test
   void can_explain_other_operators() {
     ReferenceExpression[] removeList = {ref("state", STRING)};
-    Map<ReferenceExpression, ReferenceExpression> renameMapping = Map.of(
-        ref("state", STRING), ref("s", STRING));
-    Pair<ReferenceExpression, Expression> evalExprs = ImmutablePair.of(
-        ref("age", INTEGER), DSL.add(ref("age", INTEGER), literal(2)));
+    Map<ReferenceExpression, ReferenceExpression> renameMapping =
+        Map.of(ref("state", STRING), ref("s", STRING));
+    Pair<ReferenceExpression, Expression> evalExprs =
+        ImmutablePair.of(ref("age", INTEGER), DSL.add(ref("age", INTEGER), literal(2)));
     Expression[] dedupeList = {ref("age", INTEGER)};
-    Pair<Sort.SortOption, Expression> sortList = ImmutablePair.of(
-        DEFAULT_ASC, ref("age", INTEGER));
+    Pair<Sort.SortOption, Expression> sortList = ImmutablePair.of(DEFAULT_ASC, ref("age", INTEGER));
     List<LiteralExpression> values = List.of(literal("WA"), literal(30));
 
     PhysicalPlan plan =
         remove(
             rename(
-                eval(
-                    dedupe(
-                        sort(
-                            values(values),
-                            sortList),
-                        dedupeList),
-                    evalExprs),
-                renameMapping),
-        removeList);
+                eval(dedupe(sort(values(values), sortList), dedupeList), evalExprs), renameMapping),
+            removeList);
 
     assertEquals(
         new ExplainResponse(
             new ExplainResponseNode(
                 "RemoveOperator",
                 Map.of("removeList", "[state]"),
-                singletonList(new ExplainResponseNode(
-                    "RenameOperator",
-                    Map.of("mapping", Map.of("state", "s")),
-                    singletonList(new ExplainResponseNode(
-                        "EvalOperator",
-                        Map.of("expressions", Map.of("age", "+(age, 2)")),
-                        singletonList(new ExplainResponseNode(
-                            "DedupeOperator",
-                            Map.of(
-                                "dedupeList", "[age]",
-                                "allowedDuplication", 1,
-                                "keepEmpty", false,
-                                "consecutive", false),
-                            singletonList(new ExplainResponseNode(
-                                "SortOperator",
-                                Map.of(
-                                    "sortList", Map.of(
-                                        "age", Map.of(
-                                            "sortOrder", "ASC",
-                                            "nullOrder", "NULL_FIRST"))),
-                                singletonList(new ExplainResponseNode(
-                                    "ValuesOperator",
-                                    Map.of("values", List.of(values)),
-                                    emptyList())))))))))))
-        ),
-        explain.apply(plan)
-    );
+                singletonList(
+                    new ExplainResponseNode(
+                        "RenameOperator",
+                        Map.of("mapping", Map.of("state", "s")),
+                        singletonList(
+                            new ExplainResponseNode(
+                                "EvalOperator",
+                                Map.of("expressions", Map.of("age", "+(age, 2)")),
+                                singletonList(
+                                    new ExplainResponseNode(
+                                        "DedupeOperator",
+                                        Map.of(
+                                            "dedupeList",
+                                            "[age]",
+                                            "allowedDuplication",
+                                            1,
+                                            "keepEmpty",
+                                            false,
+                                            "consecutive",
+                                            false),
+                                        singletonList(
+                                            new ExplainResponseNode(
+                                                "SortOperator",
+                                                Map.of(
+                                                    "sortList",
+                                                    Map.of(
+                                                        "age",
+                                                        Map.of(
+                                                            "sortOrder", "ASC",
+                                                            "nullOrder", "NULL_FIRST"))),
+                                                singletonList(
+                                                    new ExplainResponseNode(
+                                                        "ValuesOperator",
+                                                        Map.of("values", List.of(values)),
+                                                        emptyList())))))))))))),
+        explain.apply(plan));
   }
 
   @Test
@@ -222,15 +217,13 @@ class ExplainTest extends ExpressionTestBase {
                 "LimitOperator",
                 Map.of("limit", 10, "offset", 5),
                 singletonList(tableScan.explainNode()))),
-        explain.apply(plan)
-    );
+        explain.apply(plan));
   }
 
   @Test
   void can_explain_nested() {
     Set<String> nestedOperatorArgs = Set.of("message.info", "message");
-    Map<String, List<String>> groupedFieldsByPath =
-        Map.of("message", List.of("message.info"));
+    Map<String, List<String>> groupedFieldsByPath = Map.of("message", List.of("message.info"));
     PhysicalPlan plan = nested(tableScan, nestedOperatorArgs, groupedFieldsByPath);
 
     assertEquals(
@@ -239,8 +232,7 @@ class ExplainTest extends ExpressionTestBase {
                 "NestedOperator",
                 Map.of("nested", Set.of("message.info", "message")),
                 singletonList(tableScan.explainNode()))),
-        explain.apply(plan)
-    );
+        explain.apply(plan));
   }
 
   private static class FakeTableScan extends TableScanOperator {
@@ -262,14 +254,11 @@ class ExplainTest extends ExpressionTestBase {
     /** Used to ignore table scan which is duplicate but required for each operator test. */
     public ExplainResponseNode explainNode() {
       return new ExplainResponseNode(
-          "FakeTableScan",
-          Map.of("request", "Fake DSL request"),
-          emptyList());
+          "FakeTableScan", Map.of("request", "Fake DSL request"), emptyList());
     }
 
     public String explain() {
       return "explain";
     }
   }
-
 }

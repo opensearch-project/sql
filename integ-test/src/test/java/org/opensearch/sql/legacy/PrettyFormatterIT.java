@@ -3,7 +3,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-
 package org.opensearch.sql.legacy;
 
 import static org.hamcrest.Matchers.equalTo;
@@ -29,16 +28,18 @@ public class PrettyFormatterIT extends SQLIntegTestCase {
   public void assertExplainPrettyFormatted() throws IOException {
     String query = StringUtils.format("SELECT firstname FROM %s", TEST_INDEX_ACCOUNT);
 
-    String notPrettyExplainOutputFilePath = TestUtils.getResourceFilePath(
-        "src/test/resources/expectedOutput/explainIT_format_not_pretty.json");
+    String notPrettyExplainOutputFilePath =
+        TestUtils.getResourceFilePath(
+            "src/test/resources/expectedOutput/explainIT_format_not_pretty.json");
     String notPrettyExplainOutput =
         Files.toString(new File(notPrettyExplainOutputFilePath), StandardCharsets.UTF_8);
 
     assertThat(executeExplainRequest(query, ""), equalTo(notPrettyExplainOutput));
     assertThat(executeExplainRequest(query, "pretty=false"), equalTo(notPrettyExplainOutput));
 
-    String prettyExplainOutputFilePath = TestUtils.getResourceFilePath(
-        "src/test/resources/expectedOutput/explainIT_format_pretty.json");
+    String prettyExplainOutputFilePath =
+        TestUtils.getResourceFilePath(
+            "src/test/resources/expectedOutput/explainIT_format_pretty.json");
     String prettyExplainOutput =
         Files.toString(new File(prettyExplainOutputFilePath), StandardCharsets.UTF_8);
 

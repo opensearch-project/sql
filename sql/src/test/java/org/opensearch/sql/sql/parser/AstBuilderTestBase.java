@@ -10,9 +10,7 @@ import org.opensearch.sql.ast.tree.UnresolvedPlan;
 import org.opensearch.sql.sql.antlr.SQLSyntaxParser;
 
 public class AstBuilderTestBase {
-  /**
-   * SQL syntax parser that helps prepare parse tree as AstBuilder input.
-   */
+  /** SQL syntax parser that helps prepare parse tree as AstBuilder input. */
   private final SQLSyntaxParser parser = new SQLSyntaxParser();
 
   protected UnresolvedPlan buildAST(String query) {

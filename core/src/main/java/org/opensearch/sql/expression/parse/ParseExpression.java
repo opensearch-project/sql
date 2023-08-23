@@ -21,29 +21,25 @@ import org.opensearch.sql.expression.FunctionExpression;
 import org.opensearch.sql.expression.env.Environment;
 import org.opensearch.sql.expression.function.FunctionName;
 
-/**
- * ParseExpression.
- */
+/** ParseExpression. */
 @EqualsAndHashCode(callSuper = false)
 @ToString
 public abstract class ParseExpression extends FunctionExpression {
-  @Getter
-  protected final Expression sourceField;
+  @Getter protected final Expression sourceField;
   protected final Expression pattern;
-  @Getter
-  protected final Expression identifier;
+  @Getter protected final Expression identifier;
   protected final String identifierStr;
 
   /**
    * ParseExpression.
    *
    * @param functionName name of function expression
-   * @param sourceField  source text field
-   * @param pattern      pattern used for parsing
-   * @param identifier   derived field
+   * @param sourceField source text field
+   * @param pattern pattern used for parsing
+   * @param identifier derived field
    */
-  public ParseExpression(String functionName, Expression sourceField, Expression pattern,
-                         Expression identifier) {
+  public ParseExpression(
+      String functionName, Expression sourceField, Expression pattern, Expression identifier) {
     super(FunctionName.of(functionName), ImmutableList.of(sourceField, pattern, identifier));
     this.sourceField = sourceField;
     this.pattern = pattern;

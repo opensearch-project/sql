@@ -3,7 +3,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-
 package org.opensearch.sql.sql;
 
 import static org.opensearch.sql.util.MatcherUtils.rows;
@@ -34,28 +33,22 @@ public class NullLiteralIT extends SQLIntegTestCase {
 
   @Test
   public void testNullLiteralInOperator() {
-    verifyDataRows(
-        query("SELECT NULL = NULL, NULL AND TRUE"),
-        rows(null, null));
+    verifyDataRows(query("SELECT NULL = NULL, NULL AND TRUE"), rows(null, null));
   }
 
   @Test
   public void testNullLiteralInFunction() {
-    verifyDataRows(
-        query("SELECT ABS(NULL), POW(2, FLOOR(NULL))"),
-        rows(null, null));
+    verifyDataRows(query("SELECT ABS(NULL), POW(2, FLOOR(NULL))"), rows(null, null));
   }
 
   @Test
   public void testNullLiteralInInterval() {
     verifyDataRows(
         query("SELECT INTERVAL NULL DAY, INTERVAL 60 * 60 * 24 * (NULL - FLOOR(NULL)) SECOND"),
-        rows(null, null)
-    );
+        rows(null, null));
   }
 
   private JSONObject query(String sql) {
     return new JSONObject(executeQuery(sql, "jdbc"));
   }
-
 }

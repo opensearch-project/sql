@@ -3,7 +3,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-
 package org.opensearch.sql.protocol.response.format;
 
 import java.util.List;
@@ -40,9 +39,7 @@ public class JdbcResponseFormatter extends JsonResponseFormatter<QueryResult> {
     json.datarows(fetchDataRows(response));
 
     // Populate other fields
-    json.total(response.size())
-        .size(response.size())
-        .status(200);
+    json.total(response.size()).size(response.size()).status(200);
     if (!response.getCursor().equals(Cursor.None)) {
       json.cursor(response.getCursor().toString());
     }
@@ -54,10 +51,7 @@ public class JdbcResponseFormatter extends JsonResponseFormatter<QueryResult> {
   public String format(Throwable t) {
     int status = getStatus(t);
     ErrorMessage message = ErrorMessageFactory.createErrorMessage(t, status);
-    Error error = new Error(
-        message.getType(),
-        message.getReason(),
-        message.getDetails());
+    Error error = new Error(message.getType(), message.getReason(), message.getDetails());
     return jsonify(new JdbcErrorResponse(error, status));
   }
 
@@ -66,8 +60,8 @@ public class JdbcResponseFormatter extends JsonResponseFormatter<QueryResult> {
   }
 
   /**
-   * Convert type that exists in both legacy and new engine but has different name.
-   * Return old type name to avoid breaking impact on client-side.
+   * Convert type that exists in both legacy and new engine but has different name. Return old type
+   * name to avoid breaking impact on client-side.
    */
   private String convertToLegacyType(ExprType type) {
     return type.legacyTypeName().toLowerCase();
@@ -83,18 +77,16 @@ public class JdbcResponseFormatter extends JsonResponseFormatter<QueryResult> {
   }
 
   private int getStatus(Throwable t) {
-    return (t instanceof SyntaxCheckException
-        || t instanceof QueryEngineException) ? 400 : 503;
+    return (t instanceof SyntaxCheckException || t instanceof QueryEngineException) ? 400 : 503;
   }
 
-  /**
-   * org.json requires these inner data classes be public (and static)
-   */
+  /** org.json requires these inner data classes be public (and static) */
   @Builder
   @Getter
   public static class JdbcResponse {
     @Singular("column")
     private final List<Column> schema;
+
     private final Object[][] datarows;
     private final long total;
     private final long size;
@@ -125,5 +117,4 @@ public class JdbcResponseFormatter extends JsonResponseFormatter<QueryResult> {
     private final String reason;
     private final String details;
   }
-
 }

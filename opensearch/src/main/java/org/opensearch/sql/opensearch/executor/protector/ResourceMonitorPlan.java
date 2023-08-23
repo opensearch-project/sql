@@ -3,7 +3,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-
 package org.opensearch.sql.opensearch.executor.protector;
 
 import java.io.IOException;
@@ -19,36 +18,23 @@ import org.opensearch.sql.planner.SerializablePlan;
 import org.opensearch.sql.planner.physical.PhysicalPlan;
 import org.opensearch.sql.planner.physical.PhysicalPlanNodeVisitor;
 
-/**
- * A PhysicalPlan which will run the delegate plan in resource protection manner.
- */
+/** A PhysicalPlan which will run the delegate plan in resource protection manner. */
 @ToString
 @RequiredArgsConstructor
 @EqualsAndHashCode(callSuper = false)
 public class ResourceMonitorPlan extends PhysicalPlan implements SerializablePlan {
 
-  /**
-   * How many method calls to delegate's next() to perform resource check once.
-   */
+  /** How many method calls to delegate's next() to perform resource check once. */
   public static final long NUMBER_OF_NEXT_CALL_TO_CHECK = 1000;
 
-  /**
-   * Delegated PhysicalPlan.
-   */
+  /** Delegated PhysicalPlan. */
   private final PhysicalPlan delegate;
 
-  /**
-   * ResourceMonitor.
-   */
-  @ToString.Exclude
-  private final ResourceMonitor monitor;
+  /** ResourceMonitor. */
+  @ToString.Exclude private final ResourceMonitor monitor;
 
-  /**
-   * Count how many calls to delegate's next() already.
-   */
-  @EqualsAndHashCode.Exclude
-  private long nextCallCount = 0L;
-
+  /** Count how many calls to delegate's next() already. */
+  @EqualsAndHashCode.Exclude private long nextCallCount = 0L;
 
   @Override
   public <R, C> R accept(PhysicalPlanNodeVisitor<R, C> visitor, C context) {

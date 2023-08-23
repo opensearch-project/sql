@@ -3,7 +3,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-
 package org.opensearch.sql.ppl;
 
 import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_DOG;
@@ -52,19 +51,17 @@ public class DescribeCommandIT extends PPLIntegTestCase {
         columnName("SCOPE_TABLE"),
         columnName("SOURCE_DATA_TYPE"),
         columnName("IS_AUTOINCREMENT"),
-        columnName("IS_GENERATEDCOLUMN")
-    );
+        columnName("IS_GENERATEDCOLUMN"));
   }
 
   @Test
   public void testDescribeFilterFields() throws IOException {
-    JSONObject result = executeQuery(String.format("describe %s | fields TABLE_NAME, COLUMN_NAME, TYPE_NAME", TEST_INDEX_DOG));
+    JSONObject result =
+        executeQuery(
+            String.format(
+                "describe %s | fields TABLE_NAME, COLUMN_NAME, TYPE_NAME", TEST_INDEX_DOG));
     verifyColumn(
-        result,
-        columnName("TABLE_NAME"),
-        columnName("COLUMN_NAME"),
-        columnName("TYPE_NAME")
-    );
+        result, columnName("TABLE_NAME"), columnName("COLUMN_NAME"), columnName("TYPE_NAME"));
   }
 
   @Test

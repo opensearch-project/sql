@@ -3,7 +3,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-
 package org.opensearch.sql.opensearch.storage.system;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -21,8 +20,7 @@ import org.opensearch.sql.opensearch.request.system.OpenSearchSystemRequest;
 @ExtendWith(MockitoExtension.class)
 class OpenSearchSystemIndexScanTest {
 
-  @Mock
-  private OpenSearchSystemRequest request;
+  @Mock private OpenSearchSystemRequest request;
 
   @Test
   public void queryData() {

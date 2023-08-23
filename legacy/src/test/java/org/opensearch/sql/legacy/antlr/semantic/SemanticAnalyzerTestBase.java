@@ -3,7 +3,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-
 package org.opensearch.sql.legacy.antlr.semantic;
 
 import static java.util.stream.Collectors.toList;
@@ -28,49 +27,45 @@ import org.opensearch.sql.legacy.antlr.SqlAnalysisConfig;
 import org.opensearch.sql.legacy.antlr.semantic.types.Type;
 import org.opensearch.sql.legacy.esdomain.LocalClusterState;
 
-/**
- * Test cases for semantic analysis focused on semantic check which was missing in the past.
- */
+/** Test cases for semantic analysis focused on semantic check which was missing in the past. */
 public abstract class SemanticAnalyzerTestBase {
 
-    private static final String TEST_MAPPING_FILE = "mappings/semantics.json";
+  private static final String TEST_MAPPING_FILE = "mappings/semantics.json";
 
-    /** public accessor is required by @Rule annotation */
-    @Rule
-    public ExpectedException exception = ExpectedException.none();
+  /** public accessor is required by @Rule annotation */
+  @Rule public ExpectedException exception = ExpectedException.none();
 
-    private OpenSearchLegacySqlAnalyzer
-        analyzer = new OpenSearchLegacySqlAnalyzer(new SqlAnalysisConfig(true, true, 1000));
+  private OpenSearchLegacySqlAnalyzer analyzer =
+      new OpenSearchLegacySqlAnalyzer(new SqlAnalysisConfig(true, true, 1000));
 
-    @SuppressWarnings("UnstableApiUsage")
-    @BeforeClass
-    public static void init() throws IOException {
-        URL url = Resources.getResource(TEST_MAPPING_FILE);
-        String mappings = Resources.toString(url, Charsets.UTF_8);
-        LocalClusterState.state(null);
-        mockLocalClusterState(mappings);
-    }
+  @SuppressWarnings("UnstableApiUsage")
+  @BeforeClass
+  public static void init() throws IOException {
+    URL url = Resources.getResource(TEST_MAPPING_FILE);
+    String mappings = Resources.toString(url, Charsets.UTF_8);
+    LocalClusterState.state(null);
+    mockLocalClusterState(mappings);
+  }
 
-    @AfterClass
-    public static void cleanUp() {
-        LocalClusterState.state(null);
-    }
+  @AfterClass
+  public static void cleanUp() {
+    LocalClusterState.state(null);
+  }
 
-    protected void expectValidationFailWithErrorMessages(String query, String... messages) {
-        exception.expect(SemanticAnalysisException.class);
-        exception.expectMessage(allOf(Arrays.stream(messages).
-                                      map(Matchers::containsString).
-                                      collect(toList())));
-        validate(query);
-    }
+  protected void expectValidationFailWithErrorMessages(String query, String... messages) {
+    exception.expect(SemanticAnalysisException.class);
+    exception.expectMessage(
+        allOf(Arrays.stream(messages).map(Matchers::containsString).collect(toList())));
+    validate(query);
+  }
 
-    protected void validate(String sql) {
-        analyzer.analyze(sql, LocalClusterState.state());
-    }
+  protected void validate(String sql) {
+    analyzer.analyze(sql, LocalClusterState.state());
+  }
 
-    protected void validateWithType(String sql, Type type) {
-        Optional<Type> analyze = analyzer.analyze(sql, LocalClusterState.state());
-        assertTrue(analyze.isPresent());
-        assertEquals(type, analyze.get());
-    }
+  protected void validateWithType(String sql, Type type) {
+    Optional<Type> analyze = analyzer.analyze(sql, LocalClusterState.state());
+    assertTrue(analyze.isPresent());
+    assertEquals(type, analyze.get());
+  }
 }

@@ -18,9 +18,11 @@ public class StepParameterResolverTest {
   @Test
   void testNullChecks() {
     StepParameterResolver stepParameterResolver = new StepParameterResolver();
-    Assertions.assertThrows(NullPointerException.class,
+    Assertions.assertThrows(
+        NullPointerException.class,
         () -> stepParameterResolver.resolve(null, new Date().getTime(), Collections.emptyList()));
-    Assertions.assertThrows(NullPointerException.class,
+    Assertions.assertThrows(
+        NullPointerException.class,
         () -> stepParameterResolver.resolve(new Date().getTime(), null, Collections.emptyList()));
   }
 }
