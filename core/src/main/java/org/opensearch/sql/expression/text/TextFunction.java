@@ -416,7 +416,8 @@ public class TextFunction {
   }
 
   private static ExprValue exprAscii(ExprValue expr) {
-    return new ExprIntegerValue((int) expr.stringValue().charAt(0));
+    return new ExprIntegerValue(
+        expr.stringValue().length() == 0 ? 0 : (int) expr.stringValue().charAt(0));
   }
 
   private static ExprValue exprLocate(ExprValue subStr, ExprValue str) {
