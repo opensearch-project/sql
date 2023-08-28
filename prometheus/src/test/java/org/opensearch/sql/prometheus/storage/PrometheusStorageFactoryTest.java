@@ -269,7 +269,7 @@ public class PrometheusStorageFactoryTest {
         exception
             .getMessage()
             .contains(
-                "Disallowed hostname in the uri: http://localhost.com:9090. "
+                "Disallowed hostname in the uri. "
                     + "Validate with plugins.query.datasources.uri.allowhosts config"));
   }
 

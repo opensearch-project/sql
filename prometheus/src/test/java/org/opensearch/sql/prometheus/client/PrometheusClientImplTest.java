@@ -35,6 +35,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.opensearch.sql.prometheus.exceptions.PrometheusClientException;
 import org.opensearch.sql.prometheus.request.system.model.MetricMetadata;
 
 @ExtendWith(MockitoExtension.class)
@@ -73,11 +74,30 @@ public class PrometheusClientImplTest {
             .addHeader("Content-Type", "application/json; charset=utf-8")
             .setBody(getJson("error_response.json"));
     mockWebServer.enqueue(mockResponse);
-    RuntimeException runtimeException =
+    PrometheusClientException prometheusClientException =
         assertThrows(
-            RuntimeException.class,
+            PrometheusClientException.class,
             () -> prometheusClient.queryRange(QUERY, STARTTIME, ENDTIME, STEP));
-    assertEquals("Error", runtimeException.getMessage());
+    assertEquals("Error", prometheusClientException.getMessage());
+    RecordedRequest recordedRequest = mockWebServer.takeRequest();
+    verifyQueryRangeCall(recordedRequest);
+  }
+
+  @Test
+  @SneakyThrows
+  void testQueryRangeWithNonJsonResponse() {
+    MockResponse mockResponse =
+        new MockResponse()
+            .addHeader("Content-Type", "application/json; charset=utf-8")
+            .setBody(getJson("non_json_response.json"));
+    mockWebServer.enqueue(mockResponse);
+    PrometheusClientException prometheusClientException =
+        assertThrows(
+            PrometheusClientException.class,
+            () -> prometheusClient.queryRange(QUERY, STARTTIME, ENDTIME, STEP));
+    assertEquals(
+        "Prometheus returned unexpected body, " + "please verify your prometheus server setup.",
+        prometheusClientException.getMessage());
     RecordedRequest recordedRequest = mockWebServer.takeRequest();
     verifyQueryRangeCall(recordedRequest);
   }
@@ -90,12 +110,14 @@ public class PrometheusClientImplTest {
             .addHeader("Content-Type", "application/json; charset=utf-8")
             .setResponseCode(400);
     mockWebServer.enqueue(mockResponse);
-    RuntimeException runtimeException =
+    PrometheusClientException prometheusClientException =
         assertThrows(
-            RuntimeException.class,
+            PrometheusClientException.class,
             () -> prometheusClient.queryRange(QUERY, STARTTIME, ENDTIME, STEP));
     assertTrue(
-        runtimeException.getMessage().contains("Request to Prometheus is Unsuccessful with :"));
+        prometheusClientException
+            .getMessage()
+            .contains("Request to Prometheus is Unsuccessful with :"));
     RecordedRequest recordedRequest = mockWebServer.takeRequest();
     verifyQueryRangeCall(recordedRequest);
   }
