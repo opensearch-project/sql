@@ -27,6 +27,7 @@ import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.data.type.ExprCoreType;
 import org.opensearch.sql.data.type.ExprType;
 import org.opensearch.sql.prometheus.client.PrometheusClient;
+import org.opensearch.sql.prometheus.exceptions.PrometheusClientException;
 import org.opensearch.sql.prometheus.storage.PrometheusMetricDefaultSchema;
 
 /**
@@ -80,7 +81,7 @@ public class PrometheusDescribeMetricRequest implements PrometheusSystemRequest 
                     "Error while fetching labels for {} from prometheus: {}",
                     metricName,
                     e.getMessage());
-                throw new RuntimeException(
+                throw new PrometheusClientException(
                     String.format(
                         "Error while fetching labels " + "for %s from prometheus: %s",
                         metricName, e.getMessage()));
