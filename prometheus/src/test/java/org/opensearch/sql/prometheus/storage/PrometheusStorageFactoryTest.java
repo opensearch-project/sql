@@ -259,8 +259,11 @@ public class PrometheusStorageFactoryTest {
     RuntimeException exception = Assertions.assertThrows(RuntimeException.class,
         () -> prometheusStorageFactory.createDataSource(metadata));
     Assertions.assertTrue(
-        exception.getMessage().contains("Disallowed hostname in the uri: http://localhost.com:9090. "
-            + "Validate with plugins.query.datasources.uri.allowhosts config"));
+        exception
+            .getMessage()
+            .contains(
+                "Disallowed hostname in the uri. "
+                    + "Validate with plugins.query.datasources.uri.allowhosts config"));
   }
 
   @Test

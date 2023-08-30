@@ -101,6 +101,7 @@ public class PrometheusStorageFactory implements DataSourceFactory {
     OkHttpClient.Builder okHttpClient = new OkHttpClient.Builder();
     okHttpClient.callTimeout(1, TimeUnit.MINUTES);
     okHttpClient.connectTimeout(30, TimeUnit.SECONDS);
+    okHttpClient.followRedirects(false);
     if (config.get(AUTH_TYPE) != null) {
       AuthenticationType authenticationType = AuthenticationType.get(config.get(AUTH_TYPE));
       if (AuthenticationType.BASICAUTH.equals(authenticationType)) {
@@ -158,8 +159,9 @@ public class PrometheusStorageFactory implements DataSourceFactory {
       Matcher matcher = allowHostsPattern.matcher(host);
       if (!matcher.matches()) {
         throw new IllegalArgumentException(
-            String.format("Disallowed hostname in the uri: %s. Validate with %s config",
-                config.get(URI), Settings.Key.DATASOURCES_URI_ALLOWHOSTS.getKeyValue()));
+            String.format(
+                "Disallowed hostname in the uri. Validate with %s config",
+                Settings.Key.DATASOURCES_URI_ALLOWHOSTS.getKeyValue()));
       }
     }
   }
