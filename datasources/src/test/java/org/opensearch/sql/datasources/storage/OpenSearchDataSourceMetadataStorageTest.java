@@ -32,6 +32,7 @@ import org.opensearch.action.index.IndexResponse;
 import org.opensearch.action.search.SearchResponse;
 import org.opensearch.action.update.UpdateResponse;
 import org.opensearch.client.Client;
+import org.opensearch.cluster.ClusterState;
 import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.common.action.ActionFuture;
 import org.opensearch.core.index.shard.ShardId;
@@ -101,6 +102,39 @@ public class OpenSearchDataSourceMetadataStorageTest {
         "username", dataSourceMetadata.getProperties().get("prometheus.auth.username"));
     Assertions.assertEquals(
         "basicauth", dataSourceMetadata.getProperties().get("prometheus.auth.type"));
+  }
+
+  @SneakyThrows
+  @Test
+  public void testGetDataSourceMetadataWithSegRepEnabled() {
+    Mockito.when(clusterService.state().routingTable().hasIndex(DATASOURCE_INDEX_NAME))
+            .thenReturn(true);
+    Mockito.when(clusterService.state().isSegmentReplicationEnabled(DATASOURCE_INDEX_NAME))
+            .thenReturn(true);
+    Mockito.when(client.search(ArgumentMatchers.any())).thenReturn(searchResponseActionFuture);
+    Mockito.when(searchResponseActionFuture.actionGet()).thenReturn(searchResponse);
+    Mockito.when(searchResponse.status()).thenReturn(RestStatus.OK);
+    Mockito.when(searchResponse.getHits())
+            .thenReturn(
+                    new SearchHits(
+                            new SearchHit[] {searchHit}, new TotalHits(21, TotalHits.Relation.EQUAL_TO), 1.0F));
+    Mockito.when(searchHit.getSourceAsString()).thenReturn(getBasicDataSourceMetadataString());
+    Mockito.when(encryptor.decrypt("password")).thenReturn("password");
+    Mockito.when(encryptor.decrypt("username")).thenReturn("username");
+
+    Optional<DataSourceMetadata> dataSourceMetadataOptional =
+            openSearchDataSourceMetadataStorage.getDataSourceMetadata(TEST_DATASOURCE_INDEX_NAME);
+
+    Assertions.assertFalse(dataSourceMetadataOptional.isEmpty());
+    DataSourceMetadata dataSourceMetadata = dataSourceMetadataOptional.get();
+    Assertions.assertEquals(TEST_DATASOURCE_INDEX_NAME, dataSourceMetadata.getName());
+    Assertions.assertEquals(DataSourceType.PROMETHEUS, dataSourceMetadata.getConnector());
+    Assertions.assertEquals(
+            "password", dataSourceMetadata.getProperties().get("prometheus.auth.password"));
+    Assertions.assertEquals(
+            "username", dataSourceMetadata.getProperties().get("prometheus.auth.username"));
+    Assertions.assertEquals(
+            "basicauth", dataSourceMetadata.getProperties().get("prometheus.auth.type"));
   }
 
   @SneakyThrows
