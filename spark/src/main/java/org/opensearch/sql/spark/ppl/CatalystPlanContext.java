@@ -6,9 +6,9 @@
 package org.opensearch.sql.spark.ppl;
 
 import lombok.Getter;
+import org.apache.spark.sql.catalyst.expressions.NamedExpression;
 import org.apache.spark.sql.catalyst.plans.logical.LogicalPlan;
 import org.opensearch.sql.analysis.TypeEnvironment;
-import org.opensearch.sql.expression.NamedExpression;
 import org.opensearch.sql.expression.function.FunctionProperties;
 
 import java.util.ArrayList;

@@ -10,6 +10,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.apache.commons.lang3.tuple.Pair;
+import org.apache.spark.sql.catalyst.analysis.UnresolvedAttribute$;
 import org.apache.spark.sql.catalyst.analysis.UnresolvedStar$;
 import org.apache.spark.sql.catalyst.analysis.UnresolvedTable;
 import org.apache.spark.sql.catalyst.expressions.NamedExpression;
@@ -182,6 +183,11 @@ public class CatalystQueryPlanVisitor extends AbstractNodeVisitor<String, Cataly
         String arg = "+";
         String fields = visitExpressionList(node.getProjectList(),context);
 
+        // Create an UnresolvedStar for all-fields projection
+        Seq<?> projectList = JavaConverters.asScalaBuffer(context.getNamedParseExpressions()).toSeq();
+        // Create a Project node with the UnresolvedStar
+        context.plan(new org.apache.spark.sql.catalyst.plans.logical.Project((Seq<NamedExpression>)projectList, context.getPlan()));
+
         if (node.hasArgument()) {
             Argument argument = node.getArgExprList().get(0);
             Boolean exclude = (Boolean) argument.getValue().getValue();
@@ -253,7 +259,8 @@ public class CatalystQueryPlanVisitor extends AbstractNodeVisitor<String, Cataly
     private String visitExpressionList(List<UnresolvedExpression> expressionList,CatalystPlanContext context) {
         return expressionList.isEmpty()
                 ? ""
-                : expressionList.stream().map(field->visitExpression(field,context)).collect(Collectors.joining(","));
+                : expressionList.stream().map(field->visitExpression(field,context))
+                    .collect(Collectors.joining(","));
     }
 
     private String visitExpression(UnresolvedExpression expression,CatalystPlanContext context) {
@@ -336,14 +343,13 @@ public class CatalystQueryPlanVisitor extends AbstractNodeVisitor<String, Cataly
 
         @Override
         public String visitField(Field node, CatalystPlanContext context) {
+            context.getNamedParseExpressions().add(UnresolvedAttribute$.MODULE$.apply(JavaConverters.asScalaBuffer(Collections.singletonList(node.getField().toString()))));
             return node.getField().toString();
         }
         @Override
         public String visitAllFields(AllFields node, CatalystPlanContext context) {
             // Create an UnresolvedStar for all-fields projection
-            Seq<?> projectList = JavaConverters.asScalaBuffer(Collections.singletonList((Object) UnresolvedStar$.MODULE$.apply(Option.<Seq<String>>empty()))).toSeq();
-            // Create a Project node with the UnresolvedStar
-            context.plan(new org.apache.spark.sql.catalyst.plans.logical.Project((Seq<NamedExpression>)projectList, context.getPlan()));
+            context.getNamedParseExpressions().add(UnresolvedStar$.MODULE$.apply(Option.<Seq<String>>empty()));
             return "*";
         }
 
