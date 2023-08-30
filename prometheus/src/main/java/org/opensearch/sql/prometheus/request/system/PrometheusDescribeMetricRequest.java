@@ -28,6 +28,7 @@ import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.data.type.ExprCoreType;
 import org.opensearch.sql.data.type.ExprType;
 import org.opensearch.sql.prometheus.client.PrometheusClient;
+import org.opensearch.sql.prometheus.exceptions.PrometheusClientException;
 import org.opensearch.sql.prometheus.storage.PrometheusMetricDefaultSchema;
 
 /**
@@ -73,18 +74,25 @@ public class PrometheusDescribeMetricRequest implements PrometheusSystemRequest 
    */
   public Map<String, ExprType> getFieldTypes() {
     Map<String, ExprType> fieldTypes = new HashMap<>();
-    AccessController.doPrivileged((PrivilegedAction<List<Void>>) () -> {
-      try {
-        prometheusClient.getLabels(metricName)
-            .forEach(label -> fieldTypes.put(label, ExprCoreType.STRING));
-      } catch (IOException e) {
-        LOG.error("Error while fetching labels for {} from prometheus: {}",
-            metricName, e.getMessage());
-        throw new RuntimeException(String.format("Error while fetching labels "
-            + "for %s from prometheus: %s", metricName, e.getMessage()));
-      }
-      return null;
-    });
+    AccessController.doPrivileged(
+        (PrivilegedAction<List<Void>>)
+            () -> {
+              try {
+                prometheusClient
+                    .getLabels(metricName)
+                    .forEach(label -> fieldTypes.put(label, ExprCoreType.STRING));
+              } catch (IOException e) {
+                LOG.error(
+                    "Error while fetching labels for {} from prometheus: {}",
+                    metricName,
+                    e.getMessage());
+                throw new PrometheusClientException(
+                    String.format(
+                        "Error while fetching labels " + "for %s from prometheus: %s",
+                        metricName, e.getMessage()));
+              }
+              return null;
+            });
     fieldTypes.putAll(PrometheusMetricDefaultSchema.DEFAULT_MAPPING.getMapping());
     return fieldTypes;
   }

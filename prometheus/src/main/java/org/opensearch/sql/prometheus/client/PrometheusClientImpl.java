@@ -22,7 +22,9 @@ import okhttp3.Response;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.json.JSONArray;
+import org.json.JSONException;
 import org.json.JSONObject;
+import org.opensearch.sql.prometheus.exceptions.PrometheusClientException;
 import org.opensearch.sql.prometheus.request.system.model.MetricMetadata;
 
 public class PrometheusClientImpl implements PrometheusClient {
@@ -98,16 +100,24 @@ public class PrometheusClientImpl implements PrometheusClient {
 
   private JSONObject readResponse(Response response) throws IOException {
     if (response.isSuccessful()) {
-      JSONObject jsonObject = new JSONObject(Objects.requireNonNull(response.body()).string());
+      JSONObject jsonObject;
+      try {
+        jsonObject = new JSONObject(Objects.requireNonNull(response.body()).string());
+      } catch (JSONException jsonException) {
+        throw new PrometheusClientException(
+            "Prometheus returned unexpected body, "
+                + "please verify your prometheus server setup.");
+      }
       if ("success".equals(jsonObject.getString("status"))) {
         return jsonObject;
       } else {
-        throw new RuntimeException(jsonObject.getString("error"));
+        throw new PrometheusClientException(jsonObject.getString("error"));
       }
     } else {
-      throw new RuntimeException(
-          String.format("Request to Prometheus is Unsuccessful with : %s", Objects.requireNonNull(
-              response.body(), "Response body can't be null").string()));
+      throw new PrometheusClientException(
+          String.format(
+              "Request to Prometheus is Unsuccessful with : %s",
+              Objects.requireNonNull(response.body(), "Response body can't be null").string()));
     }
   }
 

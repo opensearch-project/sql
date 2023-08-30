@@ -18,6 +18,7 @@ import java.util.Set;
 import java.util.function.Supplier;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.opensearch.OpenSearchSecurityException;
 import org.opensearch.action.ActionListener;
 import org.opensearch.client.node.NodeClient;
 import org.opensearch.index.IndexNotFoundException;
@@ -28,6 +29,7 @@ import org.opensearch.rest.RestRequest;
 import org.opensearch.rest.RestStatus;
 import org.opensearch.sql.common.antlr.SyntaxCheckException;
 import org.opensearch.sql.common.setting.Settings;
+import org.opensearch.sql.datasources.exceptions.DataSourceClientException;
 import org.opensearch.sql.exception.ExpressionEvaluationException;
 import org.opensearch.sql.exception.QueryEngineException;
 import org.opensearch.sql.exception.SemanticCheckException;
@@ -67,7 +69,9 @@ public class RestPPLQueryAction extends BaseRestHandler {
         || e instanceof SemanticCheckException
         || e instanceof ExpressionEvaluationException
         || e instanceof QueryEngineException
-        || e instanceof SyntaxCheckException;
+        || e instanceof SyntaxCheckException
+        || e instanceof DataSourceClientException
+        || e instanceof IllegalAccessException;
   }
 
   @Override
@@ -129,8 +133,9 @@ public class RestPPLQueryAction extends BaseRestHandler {
                       channel,
                       INTERNAL_SERVER_ERROR,
                       "Failed to explain the query due to error: " + e.getMessage());
-                } else if (e instanceof IllegalAccessException) {
-                  reportError(channel, e, BAD_REQUEST);
+                } else if (e instanceof OpenSearchSecurityException) {
+                  OpenSearchSecurityException exception = (OpenSearchSecurityException) e;
+                  reportError(channel, exception, exception.status());
                 } else {
                   LOG.error("Error happened during query handling", e);
                   if (isClientError(e)) {
