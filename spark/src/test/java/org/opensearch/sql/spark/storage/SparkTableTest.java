@@ -10,7 +10,7 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
-import static org.opensearch.sql.spark.constants.TestConstants.QUERY;
+import static org.opensearch.sql.spark.constants.TestConstants.SQL_QUERY;
 
 import java.util.Collections;
 import java.util.HashMap;
@@ -46,7 +46,7 @@ public class SparkTableTest {
   @Test
   void testCreateScanBuilderWithSqlTableFunction() {
     SparkQueryRequest sparkQueryRequest = new SparkQueryRequest();
-    sparkQueryRequest.setSql(QUERY);
+    sparkQueryRequest.setSql(SQL_QUERY);
     SparkTable sparkTable = new SparkTable(client, sparkQueryRequest);
     TableScanBuilder tableScanBuilder = sparkTable.createScanBuilder();
     Assertions.assertNotNull(tableScanBuilder);
@@ -68,7 +68,7 @@ public class SparkTableTest {
   @Test
   void testImplementWithSqlFunction() {
     SparkQueryRequest sparkQueryRequest = new SparkQueryRequest();
-    sparkQueryRequest.setSql(QUERY);
+    sparkQueryRequest.setSql(SQL_QUERY);
     SparkTable sparkMetricTable = new SparkTable(client, sparkQueryRequest);
     PhysicalPlan plan =
         sparkMetricTable.implement(new SparkSqlFunctionTableScanBuilder(client, sparkQueryRequest));

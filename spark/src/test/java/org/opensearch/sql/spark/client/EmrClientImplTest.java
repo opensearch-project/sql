@@ -8,7 +8,7 @@ package org.opensearch.sql.spark.client;
 import static org.mockito.Mockito.any;
 import static org.mockito.Mockito.when;
 import static org.opensearch.sql.spark.constants.TestConstants.EMR_CLUSTER_ID;
-import static org.opensearch.sql.spark.constants.TestConstants.QUERY;
+import static org.opensearch.sql.spark.constants.TestConstants.SQL_QUERY;
 import static org.opensearch.sql.spark.utils.TestUtils.getJson;
 
 import com.amazonaws.services.elasticmapreduce.AmazonElasticMapReduce;
@@ -49,7 +49,7 @@ public class EmrClientImplTest {
 
     EmrClientImpl emrClientImpl =
         new EmrClientImpl(emr, EMR_CLUSTER_ID, flint, sparkResponse, null);
-    emrClientImpl.runEmrApplication(QUERY);
+    emrClientImpl.runEmrApplication(SQL_QUERY);
   }
 
   @Test
@@ -70,7 +70,7 @@ public class EmrClientImplTest {
         new EmrClientImpl(emr, EMR_CLUSTER_ID, flint, sparkResponse, null);
     RuntimeException exception =
         Assertions.assertThrows(
-            RuntimeException.class, () -> emrClientImpl.runEmrApplication(QUERY));
+            RuntimeException.class, () -> emrClientImpl.runEmrApplication(SQL_QUERY));
     Assertions.assertEquals("Spark SQL application failed.", exception.getMessage());
   }
 
@@ -92,7 +92,7 @@ public class EmrClientImplTest {
         new EmrClientImpl(emr, EMR_CLUSTER_ID, flint, sparkResponse, null);
     RuntimeException exception =
         Assertions.assertThrows(
-            RuntimeException.class, () -> emrClientImpl.runEmrApplication(QUERY));
+            RuntimeException.class, () -> emrClientImpl.runEmrApplication(SQL_QUERY));
     Assertions.assertEquals("Spark SQL application failed.", exception.getMessage());
   }
 
@@ -122,7 +122,7 @@ public class EmrClientImplTest {
 
     EmrClientImpl emrClientImpl =
         new EmrClientImpl(emr, EMR_CLUSTER_ID, flint, sparkResponse, null);
-    emrClientImpl.runEmrApplication(QUERY);
+    emrClientImpl.runEmrApplication(SQL_QUERY);
   }
 
   @Test
@@ -153,6 +153,6 @@ public class EmrClientImplTest {
 
     EmrClientImpl emrClientImpl =
         new EmrClientImpl(emr, EMR_CLUSTER_ID, flint, sparkResponse, null);
-    emrClientImpl.sql(QUERY);
+    emrClientImpl.sql(SQL_QUERY);
   }
 }

@@ -8,7 +8,7 @@ package org.opensearch.sql.spark.functions;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.opensearch.sql.spark.constants.TestConstants.QUERY;
+import static org.opensearch.sql.spark.constants.TestConstants.SQL_QUERY;
 
 import java.util.List;
 import org.junit.jupiter.api.Test;
@@ -33,7 +33,7 @@ public class SparkSqlFunctionImplementationTest {
   void testValueOfAndTypeToString() {
     FunctionName functionName = new FunctionName("sql");
     List<Expression> namedArgumentExpressionList =
-        List.of(DSL.namedArgument("query", DSL.literal(QUERY)));
+        List.of(DSL.namedArgument("query", DSL.literal(SQL_QUERY)));
     SparkSqlFunctionImplementation sparkSqlFunctionImplementation =
         new SparkSqlFunctionImplementation(functionName, namedArgumentExpressionList, client);
     UnsupportedOperationException exception =
@@ -51,13 +51,13 @@ public class SparkSqlFunctionImplementationTest {
   void testApplyArguments() {
     FunctionName functionName = new FunctionName("sql");
     List<Expression> namedArgumentExpressionList =
-        List.of(DSL.namedArgument("query", DSL.literal(QUERY)));
+        List.of(DSL.namedArgument("query", DSL.literal(SQL_QUERY)));
     SparkSqlFunctionImplementation sparkSqlFunctionImplementation =
         new SparkSqlFunctionImplementation(functionName, namedArgumentExpressionList, client);
     SparkTable sparkTable = (SparkTable) sparkSqlFunctionImplementation.applyArguments();
     assertNotNull(sparkTable.getSparkQueryRequest());
     SparkQueryRequest sparkQueryRequest = sparkTable.getSparkQueryRequest();
-    assertEquals(QUERY, sparkQueryRequest.getSql());
+    assertEquals(SQL_QUERY, sparkQueryRequest.getSql());
   }
 
   @Test
@@ -65,7 +65,7 @@ public class SparkSqlFunctionImplementationTest {
     FunctionName functionName = new FunctionName("sql");
     List<Expression> namedArgumentExpressionList =
         List.of(
-            DSL.namedArgument("query", DSL.literal(QUERY)),
+            DSL.namedArgument("query", DSL.literal(SQL_QUERY)),
             DSL.namedArgument("tmp", DSL.literal(12345)));
     SparkSqlFunctionImplementation sparkSqlFunctionImplementation =
         new SparkSqlFunctionImplementation(functionName, namedArgumentExpressionList, client);

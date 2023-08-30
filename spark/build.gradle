@@ -16,10 +16,37 @@ repositories {
 dependencies {
     api project(':core')
     implementation project(':datasources')
+    implementation project(':ppl')
 
     implementation group: 'org.opensearch', name: 'opensearch', version: "${opensearch_version}"
     implementation group: 'org.json', name: 'json', version: '20230227'
     implementation group: 'com.amazonaws', name: 'aws-java-sdk-emr', version: '1.12.1'
+    implementation group: 'org.apache.spark', name: 'spark-catalyst_2.12', version: '3.4.0'
+   
+    implementation('com.fasterxml.jackson.core:jackson-annotations:2.15.2') {force = true}
+    implementation('com.fasterxml.jackson.module:jackson-module-scala_2.12:2.15.2') {force = true}
+    implementation('com.fasterxml.jackson.datatype:jackson-datatype-jsr310:2.15.2') {force = true}
+    implementation('org.apache.logging.log4j:log4j-api:2.20.0') {force = true}
+    implementation('org.apache.logging.log4j:log4j-core:2.20.0') {force = true}
+    implementation('com.google.protobuf:protobuf-java:3.22.3') {force = true}
+    implementation('com.google.code.findbugs:jsr305:3.0.2') {force = true}
+    implementation('org.objenesis:objenesis:3.2') {force = true}
+    implementation('org.antlr:antlr4-runtime:4.9.3') {force = true}
+    implementation('org.javassist:javassist:3.26.0-GA') {force = true}
+    implementation('com.github.luben:zstd-jni:1.5.5-5') {force = true}
+    implementation('org.scala-lang:scala-library:2.12.17') {force = true}
+    implementation('commons-io:commons-io:2.11.0') {force = true}
+    implementation('org.apache.zookeeper:zookeeper:3.6.3') {force = true}
+    implementation('org.apache.commons:commons-compress:1.22') {force = true}
+    implementation('org.xerial.snappy:snappy-java:1.1.9.1') {force = true}
+    implementation('io.netty:netty-transport-native-epoll:4.1.63.Final') {force = true}
+    implementation('io.netty:netty-handler:4.1.63.Final') {force = true}
+    implementation('io.netty:netty-buffer:4.1.63.Final') {force = true}
+    implementation('io.netty:netty-codec:4.1.63.Final') {force = true}
+    implementation('io.netty:netty-common:4.1.63.Final') {force = true}
+    implementation('io.netty:netty-transport-native-unix-common:4.1.63.Final') {force = true}
+    implementation('io.netty:netty-resolver:4.1.63.Final') {force = true}
+    implementation('io.netty:netty-transport:4.1.63.Final') {force = true}
 
     testImplementation('org.junit.jupiter:junit-jupiter:5.6.2')
     testImplementation group: 'org.mockito', name: 'mockito-core', version: '5.2.0'

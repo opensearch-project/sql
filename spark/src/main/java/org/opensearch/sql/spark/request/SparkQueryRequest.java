@@ -13,4 +13,6 @@ public class SparkQueryRequest {
 
   /** SQL. */
   private String sql;
+  /** PPL. */
+  private String ppl;
 }

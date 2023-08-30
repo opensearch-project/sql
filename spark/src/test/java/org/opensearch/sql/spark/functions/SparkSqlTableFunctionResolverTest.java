@@ -10,7 +10,7 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.opensearch.sql.data.type.ExprCoreType.STRING;
-import static org.opensearch.sql.spark.constants.TestConstants.QUERY;
+import static org.opensearch.sql.spark.constants.TestConstants.SQL_QUERY;
 
 import java.util.List;
 import java.util.stream.Collectors;
@@ -44,7 +44,7 @@ public class SparkSqlTableFunctionResolverTest {
     SparkSqlTableFunctionResolver sqlTableFunctionResolver =
         new SparkSqlTableFunctionResolver(client);
     FunctionName functionName = FunctionName.of("sql");
-    List<Expression> expressions = List.of(DSL.namedArgument("query", DSL.literal(QUERY)));
+    List<Expression> expressions = List.of(DSL.namedArgument("query", DSL.literal(SQL_QUERY)));
     FunctionSignature functionSignature =
         new FunctionSignature(
             functionName, expressions.stream().map(Expression::type).collect(Collectors.toList()));
@@ -60,7 +60,7 @@ public class SparkSqlTableFunctionResolverTest {
     SparkTable sparkTable = (SparkTable) functionImplementation.applyArguments();
     assertNotNull(sparkTable.getSparkQueryRequest());
     SparkQueryRequest sparkQueryRequest = sparkTable.getSparkQueryRequest();
-    assertEquals(QUERY, sparkQueryRequest.getSql());
+    assertEquals(SQL_QUERY, sparkQueryRequest.getSql());
   }
 
   @Test
@@ -68,7 +68,7 @@ public class SparkSqlTableFunctionResolverTest {
     SparkSqlTableFunctionResolver sqlTableFunctionResolver =
         new SparkSqlTableFunctionResolver(client);
     FunctionName functionName = FunctionName.of("sql");
-    List<Expression> expressions = List.of(DSL.namedArgument(null, DSL.literal(QUERY)));
+    List<Expression> expressions = List.of(DSL.namedArgument(null, DSL.literal(SQL_QUERY)));
     FunctionSignature functionSignature =
         new FunctionSignature(
             functionName, expressions.stream().map(Expression::type).collect(Collectors.toList()));
@@ -86,7 +86,7 @@ public class SparkSqlTableFunctionResolverTest {
     SparkTable sparkTable = (SparkTable) functionImplementation.applyArguments();
     assertNotNull(sparkTable.getSparkQueryRequest());
     SparkQueryRequest sparkQueryRequest = sparkTable.getSparkQueryRequest();
-    assertEquals(QUERY, sparkQueryRequest.getSql());
+    assertEquals(SQL_QUERY, sparkQueryRequest.getSql());
   }
 
   @Test
@@ -96,7 +96,7 @@ public class SparkSqlTableFunctionResolverTest {
     FunctionName functionName = FunctionName.of("sql");
     List<Expression> expressions =
         List.of(
-            DSL.namedArgument("query", DSL.literal(QUERY)),
+            DSL.namedArgument("query", DSL.literal(SQL_QUERY)),
             DSL.namedArgument(null, DSL.literal(12345)));
     FunctionSignature functionSignature =
         new FunctionSignature(

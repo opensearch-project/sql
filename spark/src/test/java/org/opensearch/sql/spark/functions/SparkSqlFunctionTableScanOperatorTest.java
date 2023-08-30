@@ -10,7 +10,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
-import static org.opensearch.sql.spark.constants.TestConstants.QUERY;
+import static org.opensearch.sql.spark.constants.TestConstants.SQL_QUERY;
 import static org.opensearch.sql.spark.utils.TestUtils.getJson;
 
 import java.io.IOException;
@@ -49,7 +49,7 @@ public class SparkSqlFunctionTableScanOperatorTest {
   @SneakyThrows
   void testEmptyQueryWithException() {
     SparkQueryRequest sparkQueryRequest = new SparkQueryRequest();
-    sparkQueryRequest.setSql(QUERY);
+    sparkQueryRequest.setSql(SQL_QUERY);
 
     SparkSqlFunctionTableScanOperator sparkSqlFunctionTableScanOperator =
         new SparkSqlFunctionTableScanOperator(sparkClient, sparkQueryRequest);
@@ -65,7 +65,7 @@ public class SparkSqlFunctionTableScanOperatorTest {
   @SneakyThrows
   void testClose() {
     SparkQueryRequest sparkQueryRequest = new SparkQueryRequest();
-    sparkQueryRequest.setSql(QUERY);
+    sparkQueryRequest.setSql(SQL_QUERY);
 
     SparkSqlFunctionTableScanOperator sparkSqlFunctionTableScanOperator =
         new SparkSqlFunctionTableScanOperator(sparkClient, sparkQueryRequest);
@@ -76,7 +76,7 @@ public class SparkSqlFunctionTableScanOperatorTest {
   @SneakyThrows
   void testExplain() {
     SparkQueryRequest sparkQueryRequest = new SparkQueryRequest();
-    sparkQueryRequest.setSql(QUERY);
+    sparkQueryRequest.setSql(SQL_QUERY);
 
     SparkSqlFunctionTableScanOperator sparkSqlFunctionTableScanOperator =
         new SparkSqlFunctionTableScanOperator(sparkClient, sparkQueryRequest);
@@ -88,7 +88,7 @@ public class SparkSqlFunctionTableScanOperatorTest {
   @SneakyThrows
   void testQueryResponseIterator() {
     SparkQueryRequest sparkQueryRequest = new SparkQueryRequest();
-    sparkQueryRequest.setSql(QUERY);
+    sparkQueryRequest.setSql(SQL_QUERY);
 
     SparkSqlFunctionTableScanOperator sparkSqlFunctionTableScanOperator =
         new SparkSqlFunctionTableScanOperator(sparkClient, sparkQueryRequest);
@@ -111,7 +111,7 @@ public class SparkSqlFunctionTableScanOperatorTest {
   @SneakyThrows
   void testQueryResponseAllTypes() {
     SparkQueryRequest sparkQueryRequest = new SparkQueryRequest();
-    sparkQueryRequest.setSql(QUERY);
+    sparkQueryRequest.setSql(SQL_QUERY);
 
     SparkSqlFunctionTableScanOperator sparkSqlFunctionTableScanOperator =
         new SparkSqlFunctionTableScanOperator(sparkClient, sparkQueryRequest);
@@ -144,7 +144,7 @@ public class SparkSqlFunctionTableScanOperatorTest {
   @SneakyThrows
   void testQueryResponseInvalidDataType() {
     SparkQueryRequest sparkQueryRequest = new SparkQueryRequest();
-    sparkQueryRequest.setSql(QUERY);
+    sparkQueryRequest.setSql(SQL_QUERY);
 
     SparkSqlFunctionTableScanOperator sparkSqlFunctionTableScanOperator =
         new SparkSqlFunctionTableScanOperator(sparkClient, sparkQueryRequest);
@@ -161,7 +161,7 @@ public class SparkSqlFunctionTableScanOperatorTest {
   @SneakyThrows
   void testQuerySchema() {
     SparkQueryRequest sparkQueryRequest = new SparkQueryRequest();
-    sparkQueryRequest.setSql(QUERY);
+    sparkQueryRequest.setSql(SQL_QUERY);
 
     SparkSqlFunctionTableScanOperator sparkSqlFunctionTableScanOperator =
         new SparkSqlFunctionTableScanOperator(sparkClient, sparkQueryRequest);

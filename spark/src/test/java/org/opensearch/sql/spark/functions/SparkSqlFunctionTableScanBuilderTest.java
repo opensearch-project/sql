@@ -5,7 +5,7 @@
 
 package org.opensearch.sql.spark.functions;
 
-import static org.opensearch.sql.spark.constants.TestConstants.QUERY;
+import static org.opensearch.sql.spark.constants.TestConstants.SQL_QUERY;
 
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
@@ -25,7 +25,7 @@ public class SparkSqlFunctionTableScanBuilderTest {
   @Test
   void testBuild() {
     SparkQueryRequest sparkQueryRequest = new SparkQueryRequest();
-    sparkQueryRequest.setSql(QUERY);
+    sparkQueryRequest.setSql(SQL_QUERY);
 
     SparkSqlFunctionTableScanBuilder sparkSqlFunctionTableScanBuilder =
         new SparkSqlFunctionTableScanBuilder(sparkClient, sparkQueryRequest);
@@ -37,7 +37,7 @@ public class SparkSqlFunctionTableScanBuilderTest {
   @Test
   void testPushProject() {
     SparkQueryRequest sparkQueryRequest = new SparkQueryRequest();
-    sparkQueryRequest.setSql(QUERY);
+    sparkQueryRequest.setSql(SQL_QUERY);
 
     SparkSqlFunctionTableScanBuilder sparkSqlFunctionTableScanBuilder =
         new SparkSqlFunctionTableScanBuilder(sparkClient, sparkQueryRequest);
