@@ -32,7 +32,6 @@ import org.opensearch.action.support.WriteRequest;
 import org.opensearch.action.update.UpdateRequest;
 import org.opensearch.action.update.UpdateResponse;
 import org.opensearch.client.Client;
-import org.opensearch.cluster.ClusterState;
 import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.common.action.ActionFuture;
 import org.opensearch.common.util.concurrent.ThreadContext;
@@ -85,7 +84,7 @@ public class OpenSearchDataSourceMetadataStorage implements DataSourceMetadataSt
       createDataSourcesIndex();
       return Collections.emptyList();
     }
-    return searchInDataSourcesIndex(this.clusterService.state(), QueryBuilders.matchAllQuery());
+    return searchInDataSourcesIndex(QueryBuilders.matchAllQuery());
   }
 
   @Override
@@ -94,7 +93,7 @@ public class OpenSearchDataSourceMetadataStorage implements DataSourceMetadataSt
       createDataSourcesIndex();
       return Optional.empty();
     }
-    return searchInDataSourcesIndex(this.clusterService.state(), QueryBuilders.termQuery("name", datasourceName)).stream()
+    return searchInDataSourcesIndex(QueryBuilders.termQuery("name", datasourceName)).stream()
         .findFirst()
         .map(x -> this.encryptDecryptAuthenticationData(x, false));
   }
@@ -218,7 +217,7 @@ public class OpenSearchDataSourceMetadataStorage implements DataSourceMetadataSt
     }
   }
 
-  private List<DataSourceMetadata> searchInDataSourcesIndex(ClusterState state, QueryBuilder query) {
+  private List<DataSourceMetadata> searchInDataSourcesIndex(QueryBuilder query) {
     SearchRequest searchRequest = new SearchRequest();
     searchRequest.indices(DATASOURCE_INDEX_NAME);
     SearchSourceBuilder searchSourceBuilder = new SearchSourceBuilder();
