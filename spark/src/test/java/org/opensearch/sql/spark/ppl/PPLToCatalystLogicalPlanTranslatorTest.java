@@ -58,6 +58,9 @@ public class PPLToCatalystLogicalPlanTranslatorTest {
     }
 
     @Test
+    /**
+     * test simple search with only one table and no explicit fields (defaults to all fields)
+     */
     void testSearchWithTableAllFieldsPlan() {
         Statement plan = plan("search source = table ", false);
         CatalystQueryPlanVisitor planVisitor = new CatalystQueryPlanVisitor();
@@ -68,6 +71,9 @@ public class PPLToCatalystLogicalPlanTranslatorTest {
     }
 
     @Test
+    /**
+     * test simple search with only one table and no explicit fields (defaults to all fields)
+     */
     void testSourceWithTableAllFieldsPlan() {
         Statement plan = plan("source = table ", false);
         CatalystQueryPlanVisitor planVisitor = new CatalystQueryPlanVisitor();
@@ -78,6 +84,9 @@ public class PPLToCatalystLogicalPlanTranslatorTest {
     }
 
     @Test
+    /**
+     * test simple search with only one table with one field projected
+     */
     void testSourceWithTableOneFieldPlan() {
         Statement plan = plan("source=table | fields A", false);
         CatalystQueryPlanVisitor planVisitor = new CatalystQueryPlanVisitor();
@@ -91,6 +100,9 @@ public class PPLToCatalystLogicalPlanTranslatorTest {
     }
 
     @Test
+    /**
+     * test simple search with only one table with one field literal filtered 
+     */
     void testSourceWithTableAndConditionPlan() {
         Statement plan = plan("source=t a = 1 ", false);
         CatalystQueryPlanVisitor planVisitor = new CatalystQueryPlanVisitor();
@@ -108,7 +120,7 @@ public class PPLToCatalystLogicalPlanTranslatorTest {
 
     @Test
     /**
-     *
+     * test simple search with only one table with two fields projected
      */
     void testSourceWithTableTwoFieldPlan() {
         Statement plan = plan("source=table | fields A, B", false);
@@ -147,6 +159,10 @@ public class PPLToCatalystLogicalPlanTranslatorTest {
      */
     void testFindAvgPricesForVariousPropertyTypes() {
         Statement plan = plan("source = housing_properties | stats avg(price) by property_type", false);
+        CatalystQueryPlanVisitor planVisitor = new CatalystQueryPlanVisitor();
+        planVisitor.visit(plan, context);
+        //todo add expected catalyst logical plan & compare
+        Assertions.assertEquals(false,true);
     }
 
    @Test
@@ -155,6 +171,10 @@ public class PPLToCatalystLogicalPlanTranslatorTest {
      */
     void testFindTopTenExpensivePropertiesCalifornia() {
         Statement plan = plan("source = housing_properties | where state = \"CA\" | fields address, price, city | sort - price | head 10", false);
+        CatalystQueryPlanVisitor planVisitor = new CatalystQueryPlanVisitor();
+        planVisitor.visit(plan, context);
+        //todo add expected catalyst logical plan & compare
+        Assertions.assertEquals(false,true);
     }
 
     @Test
@@ -163,6 +183,10 @@ public class PPLToCatalystLogicalPlanTranslatorTest {
      */
     void testFindAvgPricePerUnitByCity() {
         Statement plan = plan("source = housing_properties | where land_space > 0 | eval price_per_land_unit = price / land_space | stats avg(price_per_land_unit) by city", false);
+        CatalystQueryPlanVisitor planVisitor = new CatalystQueryPlanVisitor();
+        planVisitor.visit(plan, context);
+        //todo add expected catalyst logical plan & compare
+        Assertions.assertEquals(false,true);
     }
 
     @Test
@@ -171,6 +195,10 @@ public class PPLToCatalystLogicalPlanTranslatorTest {
      */
     void testFindHousesForSaleDuringLastMonth() {
         Statement plan = plan("search source=housing_properties | where listing_age >= 0 | where listing_age < 30 | stats count() by property_status", false);
+        CatalystQueryPlanVisitor planVisitor = new CatalystQueryPlanVisitor();
+        planVisitor.visit(plan, context);
+        //todo add expected catalyst logical plan & compare
+        Assertions.assertEquals(false,true);
     }
 
     @Test
@@ -179,6 +207,10 @@ public class PPLToCatalystLogicalPlanTranslatorTest {
      */
     void testFindHousesByDecreasePriceWithSpecificFields() {
         Statement plan = plan("source = housing_properties | where match( agency_name , \"Compass\" ) | fields address , agency_name , price | sort - price ", false);
+        CatalystQueryPlanVisitor planVisitor = new CatalystQueryPlanVisitor();
+        planVisitor.visit(plan, context);
+        //todo add expected catalyst logical plan & compare
+        Assertions.assertEquals(false,true);
     }    
     @Test
     /**
@@ -186,6 +218,10 @@ public class PPLToCatalystLogicalPlanTranslatorTest {
      */
     void testFindHousesByOwnedByZillowWithMinimumOfRoomsWithSpecificFields() {
         Statement plan = plan("source = housing_properties | where is_owned_by_zillow = 1 and bedroom_number >= 3 and bathroom_number >= 2 | fields address, price, city, listing_age", false);
+        CatalystQueryPlanVisitor planVisitor = new CatalystQueryPlanVisitor();
+        planVisitor.visit(plan, context);
+        //todo add expected catalyst logical plan & compare
+        Assertions.assertEquals(false,true);
     }
     @Test
     /**
@@ -193,6 +229,10 @@ public class PPLToCatalystLogicalPlanTranslatorTest {
      */
     void testFindCitiesInWAHavingLargeNumbrOfHouseForSale() {
         Statement plan = plan("source = housing_properties | where property_status = 'FOR_SALE' and state = 'WA' | stats count() as count by city | sort -count | head", false);
+        CatalystQueryPlanVisitor planVisitor = new CatalystQueryPlanVisitor();
+        planVisitor.visit(plan, context);
+        //todo add expected catalyst logical plan & compare
+        Assertions.assertEquals(false,true);
     }
     @Test
     /**
@@ -200,6 +240,10 @@ public class PPLToCatalystLogicalPlanTranslatorTest {
      */
     void testFindTopFiveReferrers() {
         Statement plan = plan("source = access_logs | where path = \"/\" | top 5 referer", false);
+        CatalystQueryPlanVisitor planVisitor = new CatalystQueryPlanVisitor();
+        planVisitor.visit(plan, context);
+        //todo add expected catalyst logical plan & compare
+        Assertions.assertEquals(false,true);
     }
     @Test
     /**
@@ -207,6 +251,10 @@ public class PPLToCatalystLogicalPlanTranslatorTest {
      */
     void testFindCountAccessLogsByStatusCode() {
         Statement plan = plan("source = access_logs | where status >= 400 | stats count() by path, status", false);
+        CatalystQueryPlanVisitor planVisitor = new CatalystQueryPlanVisitor();
+        planVisitor.visit(plan, context);
+        //todo add expected catalyst logical plan & compare
+        Assertions.assertEquals(false,true);
     }  
     @Test
     /**
@@ -214,6 +262,10 @@ public class PPLToCatalystLogicalPlanTranslatorTest {
      */
     void testFindMaxSizeOfNginxRequestsWithWindowTimeSpan() {
         Statement plan = plan("source = access_logs | stats max(size)  by span( request_time , 15m) ", false);
+        CatalystQueryPlanVisitor planVisitor = new CatalystQueryPlanVisitor();
+        planVisitor.visit(plan, context);
+        //todo add expected catalyst logical plan & compare
+        Assertions.assertEquals(false,true);
     }
     @Test
     /**
@@ -221,6 +273,10 @@ public class PPLToCatalystLogicalPlanTranslatorTest {
      */
     void testFindNginxLogsWithNon2XXStatusAndProductURL() {
         Statement plan = plan("source = sso_logs-nginx-* | where match(http.url, 'products') and http.response.status_code >= \"300\"", false);
+        CatalystQueryPlanVisitor planVisitor = new CatalystQueryPlanVisitor();
+        planVisitor.visit(plan, context);
+        //todo add expected catalyst logical plan & compare
+        Assertions.assertEquals(false,true);
     }   
     @Test
     /**
@@ -228,6 +284,10 @@ public class PPLToCatalystLogicalPlanTranslatorTest {
      */
     void testFindDetailsOfNginxLogsWithResponseAbove400() {
         Statement plan = plan("source = sso_logs-nginx-* | where http.response.status_code >= \"400\" | fields http.url, http.response.status_code, @timestamp, communication.source.address", false);
+        CatalystQueryPlanVisitor planVisitor = new CatalystQueryPlanVisitor();
+        planVisitor.visit(plan, context);
+        //todo add expected catalyst logical plan & compare
+        Assertions.assertEquals(false,true);
     }
     @Test
     /**
@@ -235,6 +295,10 @@ public class PPLToCatalystLogicalPlanTranslatorTest {
      */
     void testFindAvgAndMaxHttpResponseSizeGroupedBy() {
         Statement plan = plan("source = sso_logs-nginx-* | where event.name = \"access\" | stats avg(http.response.bytes), max(http.response.bytes) by http.request.method", false);
+        CatalystQueryPlanVisitor planVisitor = new CatalystQueryPlanVisitor();
+        planVisitor.visit(plan, context);
+        //todo add expected catalyst logical plan & compare
+        Assertions.assertEquals(false,true);
     }    
     @Test
     /**
@@ -242,6 +306,10 @@ public class PPLToCatalystLogicalPlanTranslatorTest {
      */
     void testFindFlightsWithCarrierHasLongestAvgDelayWithLongFlights() {
         Statement plan = plan("source = opensearch_dashboards_sample_data_flights | where DistanceMiles > 6000 | stats avg(FlightDelayMin) by Carrier | sort -`avg(FlightDelayMin)` | head 1", false);
+        CatalystQueryPlanVisitor planVisitor = new CatalystQueryPlanVisitor();
+        planVisitor.visit(plan, context);
+        //todo add expected catalyst logical plan & compare
+        Assertions.assertEquals(false,true);
     }
     
     @Test
@@ -250,6 +318,10 @@ public class PPLToCatalystLogicalPlanTranslatorTest {
      */
     void testFindAvgRamUsageOfWindowsMachineOverTime() {
         Statement plan = plan("source = opensearch_dashboards_sample_data_logs | where match(machine.os, 'win') | stats avg(machine.ram) by span(timestamp,1w)", false);
+        CatalystQueryPlanVisitor planVisitor = new CatalystQueryPlanVisitor();
+        planVisitor.visit(plan, context);
+        //todo add expected catalyst logical plan & compare
+        Assertions.assertEquals(false,true);
     }
 
 }
