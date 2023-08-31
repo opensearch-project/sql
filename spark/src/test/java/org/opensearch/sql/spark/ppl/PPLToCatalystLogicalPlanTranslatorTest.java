@@ -143,6 +143,14 @@ public class PPLToCatalystLogicalPlanTranslatorTest {
 
     @Test
     /**
+     * Find What are the average prices for different types of properties?
+     */
+    void testFindAvgPricesForVariousPropertyTypes() {
+        Statement plan = plan("source = housing_properties | stats avg(price) by property_type", false);
+    }
+
+   @Test
+    /**
      * Find the top 10 most expensive properties in California, including their addresses, prices, and cities
      */
     void testFindTopTenExpensivePropertiesCalifornia() {
@@ -171,6 +179,77 @@ public class PPLToCatalystLogicalPlanTranslatorTest {
      */
     void testFindHousesByDecreasePriceWithSpecificFields() {
         Statement plan = plan("source = housing_properties | where match( agency_name , \"Compass\" ) | fields address , agency_name , price | sort - price ", false);
+    }    
+    @Test
+    /**
+     * Find details of properties owned by Zillow with at least 3 bedrooms and 2 bathrooms
+     */
+    void testFindHousesByOwnedByZillowWithMinimumOfRoomsWithSpecificFields() {
+        Statement plan = plan("source = housing_properties | where is_owned_by_zillow = 1 and bedroom_number >= 3 and bathroom_number >= 2 | fields address, price, city, listing_age", false);
+    }
+    @Test
+    /**
+     * Find which cities in WA state have the largest number of houses for sale?
+     */
+    void testFindCitiesInWAHavingLargeNumbrOfHouseForSale() {
+        Statement plan = plan("source = housing_properties | where property_status = 'FOR_SALE' and state = 'WA' | stats count() as count by city | sort -count | head", false);
+    }
+    @Test
+    /**
+     * Find the top 5 referrers for the "/" path in apache access logs?
+     */
+    void testFindTopFiveReferrers() {
+        Statement plan = plan("source = access_logs | where path = \"/\" | top 5 referer", false);
+    }
+    @Test
+    /**
+     * Find access paths by status code. How many error responses (status code 400 or higher) are there for each access path in the Apache access logs?
+     */
+    void testFindCountAccessLogsByStatusCode() {
+        Statement plan = plan("source = access_logs | where status >= 400 | stats count() by path, status", false);
+    }  
+    @Test
+    /**
+     * Find max size of nginx access requests for every 15min.
+     */
+    void testFindMaxSizeOfNginxRequestsWithWindowTimeSpan() {
+        Statement plan = plan("source = access_logs | stats max(size)  by span( request_time , 15m) ", false);
+    }
+    @Test
+    /**
+     * Find nginx logs with non 2xx status code and url containing 'products'
+     */
+    void testFindNginxLogsWithNon2XXStatusAndProductURL() {
+        Statement plan = plan("source = sso_logs-nginx-* | where match(http.url, 'products') and http.response.status_code >= \"300\"", false);
+    }   
+    @Test
+    /**
+     * Find What are the details (URL, response status code, timestamp, source address) of events in the nginx logs where the response status code is 400 or higher?
+     */
+    void testFindDetailsOfNginxLogsWithResponseAbove400() {
+        Statement plan = plan("source = sso_logs-nginx-* | where http.response.status_code >= \"400\" | fields http.url, http.response.status_code, @timestamp, communication.source.address", false);
+    }
+    @Test
+    /**
+     * Find What are the average and max http response sizes, grouped by request method, for access events in the nginx logs?
+     */
+    void testFindAvgAndMaxHttpResponseSizeGroupedBy() {
+        Statement plan = plan("source = sso_logs-nginx-* | where event.name = \"access\" | stats avg(http.response.bytes), max(http.response.bytes) by http.request.method", false);
+    }    
+    @Test
+    /**
+     * Find flights from which carrier has the longest average delay for flights over 6k miles?
+     */
+    void testFindFlightsWithCarrierHasLongestAvgDelayWithLongFlights() {
+        Statement plan = plan("source = opensearch_dashboards_sample_data_flights | where DistanceMiles > 6000 | stats avg(FlightDelayMin) by Carrier | sort -`avg(FlightDelayMin)` | head 1", false);
+    }
+    
+    @Test
+    /**
+     * Find What's the average ram usage of windows machines over time aggregated by 1 week? 
+     */
+    void testFindAvgRamUsageOfWindowsMachineOverTime() {
+        Statement plan = plan("source = opensearch_dashboards_sample_data_logs | where match(machine.os, 'win') | stats avg(machine.ram) by span(timestamp,1w)", false);
     }
 
 }
