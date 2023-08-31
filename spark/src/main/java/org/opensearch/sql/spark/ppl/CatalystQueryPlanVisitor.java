@@ -68,11 +68,9 @@ import static scala.Option.empty;
 import static scala.collection.JavaConverters.asScalaBuffer;
 
 /**
- * Utility class to mask sensitive information in incoming PPL queries.
+ * Utility class to traverse PPL logical plan and translate it into catalyst logical plan
  */
 public class CatalystQueryPlanVisitor extends AbstractNodeVisitor<String, CatalystPlanContext> {
-
-    private static final String MASK_LITERAL = "***";
 
     private final ExpressionAnalyzer expressionAnalyzer;
 
@@ -282,7 +280,7 @@ public class CatalystQueryPlanVisitor extends AbstractNodeVisitor<String, Cataly
 
         @Override
         public String visitLiteral(Literal node, CatalystPlanContext context) {
-            return MASK_LITERAL;
+            return node.toString();
         }
 
         @Override

@@ -101,12 +101,15 @@ public class PPLToCatalystLogicalPlanTranslatorTest {
         );
         UnresolvedTable table = new UnresolvedTable(asScalaBuffer(of("table")).toSeq(), "source=table ", Option.<String>empty());
         // Create a Filter node for the condition 'a = 1'
-        EqualTo filterCondition = new EqualTo((Expression)projectList.get(0), Literal.create(1,IntegerType));
+        EqualTo filterCondition = new EqualTo((Expression) projectList.get(0), Literal.create(1, IntegerType));
         LogicalPlan filterPlan = new Filter(filterCondition, table);
         Assertions.assertEquals(context.getPlan().toString(), filterPlan.toString());
     }
 
     @Test
+    /**
+     *
+     */
     void testSourceWithTableTwoFieldPlan() {
         Statement plan = plan("source=table | fields A, B", false);
         CatalystQueryPlanVisitor planVisitor = new CatalystQueryPlanVisitor();
@@ -121,6 +124,9 @@ public class PPLToCatalystLogicalPlanTranslatorTest {
     }
 
     @Test
+    /**
+     * Search multiple tables - translated into union call
+     */
     void testSearchWithMultiTablesPlan() {
         Statement plan = plan("search source = table1, table2 ", false);
         CatalystQueryPlanVisitor planVisitor = new CatalystQueryPlanVisitor();
@@ -133,6 +139,38 @@ public class PPLToCatalystLogicalPlanTranslatorTest {
         // todo : parameterize the union options byName & allowMissingCol
         LogicalPlan unionPlan = new Union(unionChildren, true, false);
         Assertions.assertEquals(context.getPlan().toString(), unionPlan.toString());
+    }
+
+    @Test
+    /**
+     * Find the top 10 most expensive properties in California, including their addresses, prices, and cities
+     */
+    void testFindTopTenExpensivePropertiesCalifornia() {
+        Statement plan = plan("source = housing_properties | where state = \"CA\" | fields address, price, city | sort - price | head 10", false);
+    }
+
+    @Test
+    /**
+     * Find the average price per unit of land space for properties in different cities
+     */
+    void testFindAvgPricePerUnitByCity() {
+        Statement plan = plan("source = housing_properties | where land_space > 0 | eval price_per_land_unit = price / land_space | stats avg(price_per_land_unit) by city", false);
+    }
+
+    @Test
+    /**
+     * Find the houses posted in the last month, how many are still for sale
+     */
+    void testFindHousesForSaleDuringLastMonth() {
+        Statement plan = plan("search source=housing_properties | where listing_age >= 0 | where listing_age < 30 | stats count() by property_status", false);
+    }
+
+    @Test
+    /**
+     * Find all the houses listed by agency Compass in  decreasing price order. Also provide only price, address and agency name information.
+     */
+    void testFindHousesByDecreasePriceWithSpecificFields() {
+        Statement plan = plan("source = housing_properties | where match( agency_name , \"Compass\" ) | fields address , agency_name , price | sort - price ", false);
     }
 
 }

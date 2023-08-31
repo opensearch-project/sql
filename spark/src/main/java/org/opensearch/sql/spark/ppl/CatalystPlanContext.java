@@ -20,8 +20,10 @@ public class CatalystPlanContext {
   /** Environment stack for symbol scope management. */
   private TypeEnvironment environment;
 
+  /** Catalyst evolving logical plan **/
   @Getter private LogicalPlan plan;
-  
+
+  /** NamedExpression contextual parameters **/
   @Getter private final List<NamedExpression> namedParseExpressions;
 
   @Getter private final FunctionProperties functionProperties;
