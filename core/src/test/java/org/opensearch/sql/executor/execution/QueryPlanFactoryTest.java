@@ -10,6 +10,7 @@ package org.opensearch.sql.executor.execution;
 
 import static org.junit.jupiter.api.Assertions.assertAll;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
@@ -32,6 +33,7 @@ import org.opensearch.sql.ast.statement.Statement;
 import org.opensearch.sql.ast.tree.CloseCursor;
 import org.opensearch.sql.ast.tree.UnresolvedPlan;
 import org.opensearch.sql.common.response.ResponseListener;
+import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.exception.UnsupportedCursorRequestException;
 import org.opensearch.sql.executor.ExecutionEngine;
 import org.opensearch.sql.executor.QueryService;
@@ -51,11 +53,13 @@ class QueryPlanFactoryTest {
 
   @Mock private ExecutionEngine.QueryResponse queryResponse;
 
+  @Mock private Settings settings;
+
   private QueryPlanFactory factory;
 
   @BeforeEach
   void init() {
-    factory = new QueryPlanFactory(queryService);
+    factory = new QueryPlanFactory(queryService, settings);
   }
 
   @Test
@@ -125,17 +129,19 @@ class QueryPlanFactoryTest {
   @Test
   public void create_query_with_fetch_size_which_can_be_paged() {
     when(plan.accept(any(CanPaginateVisitor.class), any())).thenReturn(Boolean.TRUE);
-    factory = new QueryPlanFactory(queryService);
+    factory = new QueryPlanFactory(queryService, settings);
     Statement query = new Query(plan, 10);
     AbstractPlan queryExecution =
         factory.create(query, Optional.of(queryListener), Optional.empty());
     assertTrue(queryExecution instanceof QueryPlan);
+    assertEquals(10, ((QueryPlan) queryExecution).pageSize.get());
   }
 
   @Test
-  public void create_query_with_fetch_size_which_cannot_be_paged() {
+  public void create_query_with_fetch_size_which_cannot_be_paged_with_legacy_fallback() {
     when(plan.accept(any(CanPaginateVisitor.class), any())).thenReturn(Boolean.FALSE);
-    factory = new QueryPlanFactory(queryService);
+    when(settings.getSettingValue(Settings.Key.IGNORE_UNSUPPORTED_PAGINATION)).thenReturn(false);
+    factory = new QueryPlanFactory(queryService, settings);
     Statement query = new Query(plan, 10);
     assertThrows(
         UnsupportedCursorRequestException.class,
@@ -143,8 +149,20 @@ class QueryPlanFactoryTest {
   }
 
   @Test
+  public void create_query_with_fetch_size_which_cannot_be_paged_with_ignoring_paging() {
+    when(plan.accept(any(CanPaginateVisitor.class), any())).thenReturn(Boolean.FALSE);
+    when(settings.getSettingValue(Settings.Key.IGNORE_UNSUPPORTED_PAGINATION)).thenReturn(true);
+    factory = new QueryPlanFactory(queryService, settings);
+    Statement query = new Query(plan, 10);
+    AbstractPlan queryExecution =
+        factory.create(query, Optional.of(queryListener), Optional.empty());
+    assertTrue(queryExecution instanceof QueryPlan);
+    assertFalse(((QueryPlan) queryExecution).pageSize.isPresent());
+  }
+
+  @Test
   public void create_close_cursor() {
-    factory = new QueryPlanFactory(queryService);
+    factory = new QueryPlanFactory(queryService, settings);
     var plan = factory.createCloseCursor("pewpew", queryListener);
     assertTrue(plan instanceof CommandPlan);
     plan.execute();

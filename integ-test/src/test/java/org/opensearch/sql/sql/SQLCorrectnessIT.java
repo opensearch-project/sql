@@ -5,6 +5,9 @@
 
 package org.opensearch.sql.sql;
 
+import static org.opensearch.sql.legacy.SQLIntegTestCase.PERSISTENT;
+import static org.opensearch.sql.legacy.SQLIntegTestCase.updateClusterSettings;
+
 import com.google.common.io.Resources;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -12,6 +15,8 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.function.Function;
 import org.junit.Test;
+import org.opensearch.sql.common.setting.Settings;
+import org.opensearch.sql.legacy.SQLIntegTestCase;
 
 /** SQL integration test automated by comparison test framework. */
 public class SQLCorrectnessIT extends CorrectnessTestBase {
@@ -23,6 +28,9 @@ public class SQLCorrectnessIT extends CorrectnessTestBase {
   @Override
   protected void init() throws Exception {
     super.init();
+    updateClusterSettings(
+        new SQLIntegTestCase.ClusterSetting(
+            PERSISTENT, Settings.Key.IGNORE_UNSUPPORTED_PAGINATION.getKeyValue(), "true"));
   }
 
   @Test

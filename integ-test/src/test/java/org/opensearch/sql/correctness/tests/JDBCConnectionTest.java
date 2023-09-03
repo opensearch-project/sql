@@ -51,6 +51,8 @@ public class JDBCConnectionTest {
     conn.setConnection(connection);
 
     when(connection.createStatement()).thenReturn(statement);
+    when(connection.createStatement(ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY))
+        .thenReturn(statement);
   }
 
   @Test

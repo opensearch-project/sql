@@ -13,6 +13,8 @@ import com.google.common.base.Preconditions;
 import java.util.Optional;
 import lombok.RequiredArgsConstructor;
 import org.apache.commons.lang3.tuple.Pair;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.opensearch.sql.ast.AbstractNodeVisitor;
 import org.opensearch.sql.ast.statement.Explain;
 import org.opensearch.sql.ast.statement.Query;
@@ -21,6 +23,8 @@ import org.opensearch.sql.ast.tree.CloseCursor;
 import org.opensearch.sql.ast.tree.FetchCursor;
 import org.opensearch.sql.ast.tree.UnresolvedPlan;
 import org.opensearch.sql.common.response.ResponseListener;
+import org.opensearch.sql.common.setting.Settings;
+import org.opensearch.sql.common.utils.QueryContext;
 import org.opensearch.sql.exception.UnsupportedCursorRequestException;
 import org.opensearch.sql.executor.ExecutionEngine;
 import org.opensearch.sql.executor.QueryId;
@@ -38,6 +42,10 @@ public class QueryPlanFactory
 
   /** Query Service. */
   private final QueryService queryService;
+
+  private final Settings settings;
+
+  private static final Logger LOG = LogManager.getLogger(QueryPlanFactory.class);
 
   /**
    * NO_CONSUMER_RESPONSE_LISTENER should never be called. It is only used as constructor parameter
@@ -111,6 +119,10 @@ public class QueryPlanFactory
             node.getFetchSize(),
             queryService,
             context.getLeft().get());
+      } else if (settings.getSettingValue(Settings.Key.IGNORE_UNSUPPORTED_PAGINATION)) {
+        LOG.warn("[{}] Query executed without pagination.", QueryContext.getRequestId());
+        return new QueryPlan(
+            QueryId.queryId(), node.getPlan(), queryService, context.getLeft().get());
       } else {
         // This should be picked up by the legacy engine.
         throw new UnsupportedCursorRequestException();

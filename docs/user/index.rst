@@ -3,7 +3,7 @@
 OpenSearch SQL Reference Manual
 ===============================
 
-OpenSearch SQL enables you to extract insights out of OpenSearch using the familiar SQL query syntax. Please refer to the `technical documentation <https://docs-beta.opensearch.org/>`_ for detailed information on installing and configuring opendistro-elasticsearch-sql plugin. In this user reference manual, you can find many information for your reference. In each part, we try to make it clear by adding work example along with detailed description. Here is table of contents of the documentation:
+OpenSearch SQL enables you to extract insights out of OpenSearch using the familiar SQL query syntax. Please refer to the `technical documentation <https://opensearch.org/docs/latest/install-and-configure/plugins/>`_ for detailed information on installing and configuring SQL plugin. In this user reference manual, you can find many information for your reference. In each part, we try to make it clear by adding work example along with detailed description. Here is table of contents of the documentation:
 
 * **Interfaces**
 

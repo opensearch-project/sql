@@ -164,9 +164,8 @@ public class RestSqlAction extends BaseRestHandler {
                     "Request is falling back to old SQL engine due to: " + exception.getMessage());
               }
               LOG.info(
-                  "[{}] Request {} is not supported and falling back to old SQL engine",
-                  QueryContext.getRequestId(),
-                  newSqlRequest);
+                  "[{}] Request is not supported and falling back to old SQL engine",
+                  QueryContext.getRequestId());
               LOG.info("Request Query: {}", QueryDataAnonymizer.anonymizeData(sqlRequest.getSql()));
               QueryAction queryAction = explainRequest(client, sqlRequest, format);
               executeSqlRequest(request, queryAction, client, restChannel);
