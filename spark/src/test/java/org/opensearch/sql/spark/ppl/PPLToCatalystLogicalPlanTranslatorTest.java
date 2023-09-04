@@ -29,7 +29,6 @@ import org.opensearch.sql.spark.client.SparkClient;
 import scala.Option;
 import scala.collection.JavaConverters;
 import scala.collection.Seq;
-import scala.reflect.internal.Trees;
 
 import java.util.Arrays;
 import java.util.Collections;
@@ -41,9 +40,13 @@ import static scala.collection.JavaConverters.asScalaBuffer;
 
 
 public class PPLToCatalystLogicalPlanTranslatorTest {
+
     private PPLSyntaxParser parser = new PPLSyntaxParser();
     @Mock
     private SparkClient sparkClient;
+//    private Catalog catalog = mock(Catalog.class);
+//    private SQLConf sqlConf = mock(SQLConf.class);
+
 
     @Mock
     private LogicalProject logicalProject;
@@ -56,6 +59,14 @@ public class PPLToCatalystLogicalPlanTranslatorTest {
                         AstStatementBuilder.StatementBuilderContext.builder().isExplain(isExplain).build());
         return builder.visit(parser.parse(query));
     }
+
+    /*    
+    private LogicalPlan analyze(LogicalPlan logicalPlan) {
+        // Analyze plan
+        Analyzer analyzer = new Analyzer(spark.sessionState().catalog(), spark.sessionState().conf());
+        return analyzer.execute(logicalPlan);
+    }
+    */
 
     @Test
     /**
@@ -107,6 +118,28 @@ public class PPLToCatalystLogicalPlanTranslatorTest {
         Statement plan = plan("source=t a = 1 ", false);
         CatalystQueryPlanVisitor planVisitor = new CatalystQueryPlanVisitor();
         planVisitor.visit(plan, context);
+
+        Seq<?> projectList = JavaConverters.asScalaBuffer(Collections.singletonList((Object) UnresolvedStar$.MODULE$.apply(Option.<Seq<String>>empty()))).toSeq();
+        // Create a Project node for fields A and B
+        List<NamedExpression> filterField = Arrays.asList(
+                UnresolvedAttribute$.MODULE$.apply(JavaConverters.asScalaBuffer(Collections.singletonList("a")))
+        );
+        UnresolvedTable table = new UnresolvedTable(asScalaBuffer(of("table")).toSeq(), "source=table ", Option.<String>empty());
+        // Create a Filter node for the condition 'a = 1'
+        EqualTo filterCondition = new EqualTo((Expression) filterField.get(0), Literal.create(1, IntegerType));
+        LogicalPlan filterPlan = new Filter(filterCondition, table);
+        Project project = new Project((Seq<NamedExpression>) projectList, filterPlan);
+        Assertions.assertEquals(context.getPlan().toString(), project.toString());
+    }
+
+    @Test
+    /**
+     * test simple search with only one table with one field literal filtered and one field projected
+     */
+    void testSourceWithTableAndConditionWithOneFieldPlan() {
+        Statement plan = plan("source=t a = 1  | fields a", false);
+        CatalystQueryPlanVisitor planVisitor = new CatalystQueryPlanVisitor();
+        planVisitor.visit(plan, context);
         // Create a Project node for fields A and B
         List<NamedExpression> projectList = Arrays.asList(
                 UnresolvedAttribute$.MODULE$.apply(JavaConverters.asScalaBuffer(Collections.singletonList("a")))
@@ -115,7 +148,8 @@ public class PPLToCatalystLogicalPlanTranslatorTest {
         // Create a Filter node for the condition 'a = 1'
         EqualTo filterCondition = new EqualTo((Expression) projectList.get(0), Literal.create(1, IntegerType));
         LogicalPlan filterPlan = new Filter(filterCondition, table);
-        Assertions.assertEquals(context.getPlan().toString(), filterPlan.toString());
+        Project project = new Project(asScalaBuffer(projectList).toSeq(), filterPlan);
+        Assertions.assertEquals(context.getPlan().toString(), project.toString());
     }
 
     @Test
@@ -323,7 +357,6 @@ public class PPLToCatalystLogicalPlanTranslatorTest {
         //todo add expected catalyst logical plan & compare
         Assertions.assertEquals(false,true);
     }
-
 }
 
 

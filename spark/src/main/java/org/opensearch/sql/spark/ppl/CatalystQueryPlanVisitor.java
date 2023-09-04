@@ -334,6 +334,7 @@ public class CatalystQueryPlanVisitor extends AbstractNodeVisitor<String, Cataly
 
         @Override
         public String visitCompare(Compare node, CatalystPlanContext context) {
+            
             String left = analyze(node.getLeft(), context);
             String right = analyze(node.getRight(), context);
             return StringUtils.format("%s %s %s", left, node.getOperator(), right);
