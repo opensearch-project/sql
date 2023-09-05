@@ -13,6 +13,8 @@ import org.apache.commons.lang3.tuple.Pair;
 import org.apache.spark.sql.catalyst.analysis.UnresolvedAttribute$;
 import org.apache.spark.sql.catalyst.analysis.UnresolvedStar$;
 import org.apache.spark.sql.catalyst.analysis.UnresolvedTable;
+import org.apache.spark.sql.catalyst.expressions.BinaryComparison;
+import org.apache.spark.sql.catalyst.expressions.Expression;
 import org.apache.spark.sql.catalyst.expressions.NamedExpression;
 import org.opensearch.sql.ast.AbstractNodeVisitor;
 import org.opensearch.sql.ast.expression.AggregateFunction;
@@ -64,6 +66,7 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 import static java.util.List.of;
+import static org.opensearch.sql.spark.ppl.DataTypeTransformer.translate;
 import static scala.Option.empty;
 import static scala.collection.JavaConverters.asScalaBuffer;
 
@@ -120,6 +123,8 @@ public class CatalystQueryPlanVisitor extends AbstractNodeVisitor<String, Cataly
     public String visitFilter(Filter node, CatalystPlanContext context) {
         String child = node.getChild().get(0).accept(this, context);
         String condition = visitExpression(node.getCondition(),context);
+        Expression innerCondition = context.getNamedParseExpressions().pop();
+        context.plan(new org.apache.spark.sql.catalyst.plans.logical.Filter(innerCondition,context.getPlan()));
         return StringUtils.format("%s | where %s", child, condition);
     }
 
@@ -280,6 +285,7 @@ public class CatalystQueryPlanVisitor extends AbstractNodeVisitor<String, Cataly
 
         @Override
         public String visitLiteral(Literal node, CatalystPlanContext context) {
+            context.getNamedParseExpressions().add(new org.apache.spark.sql.catalyst.expressions.Literal(node.getValue(),translate(node.getType())));
             return node.toString();
         }
 
@@ -334,9 +340,9 @@ public class CatalystQueryPlanVisitor extends AbstractNodeVisitor<String, Cataly
 
         @Override
         public String visitCompare(Compare node, CatalystPlanContext context) {
-            
             String left = analyze(node.getLeft(), context);
             String right = analyze(node.getRight(), context);
+            context.getNamedParseExpressions().add(ComparatorTransformer.comparator(node, context));
             return StringUtils.format("%s %s %s", left, node.getOperator(), right);
         }
 

@@ -1,21 +1,30 @@
 package org.opensearch.sql.spark.ppl;
 
 import org.apache.spark.sql.catalyst.expressions.BinaryComparison;
+import org.apache.spark.sql.catalyst.expressions.EqualTo;
+import org.apache.spark.sql.catalyst.expressions.Expression;
 import org.opensearch.sql.ast.expression.Compare;
 import org.opensearch.sql.expression.function.BuiltinFunctionName;
 
 /**
  * Transform the PPL Logical comparator into catalyst comparator
  */
-public class ComparatorTransformer {
+public interface ComparatorTransformer {
     /**
-     * expression builder
+     * comparator expression builder building a catalyst binary comparator from PPL's compare logical step
      * @return
      */
-    public static BinaryComparison comparator(Compare expression) {
-        if(BuiltinFunctionName.of(expression.getOperator()).isEmpty())
+    static BinaryComparison comparator(Compare expression, CatalystPlanContext context) {
+        if (BuiltinFunctionName.of(expression.getOperator()).isEmpty())
             throw new IllegalStateException("Unexpected value: " + BuiltinFunctionName.of(expression.getOperator()));
-            
+
+        if (context.getNamedParseExpressions().isEmpty()) {
+            throw new IllegalStateException("Unexpected value: No operands found in expression");
+        }
+
+        Expression right = context.getNamedParseExpressions().pop();
+        Expression left = context.getNamedParseExpressions().isEmpty() ? null : context.getNamedParseExpressions().pop();
+
         switch (BuiltinFunctionName.of(expression.getOperator()).get()) {
             case ABS:
                 break;
@@ -262,8 +271,7 @@ public class ComparatorTransformer {
             case NOT:
                 break;
             case EQUAL:
-//                return new EqualTo()
-                break;
+                return new EqualTo(left,right);
             case NOTEQUAL:
                 break;
             case LESS:

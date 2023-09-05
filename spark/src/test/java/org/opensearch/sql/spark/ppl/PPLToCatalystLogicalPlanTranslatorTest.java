@@ -124,7 +124,7 @@ public class PPLToCatalystLogicalPlanTranslatorTest {
         List<NamedExpression> filterField = Arrays.asList(
                 UnresolvedAttribute$.MODULE$.apply(JavaConverters.asScalaBuffer(Collections.singletonList("a")))
         );
-        UnresolvedTable table = new UnresolvedTable(asScalaBuffer(of("table")).toSeq(), "source=table ", Option.<String>empty());
+        UnresolvedTable table = new UnresolvedTable(asScalaBuffer(of("t")).toSeq(), "source=t", Option.<String>empty());
         // Create a Filter node for the condition 'a = 1'
         EqualTo filterCondition = new EqualTo((Expression) filterField.get(0), Literal.create(1, IntegerType));
         LogicalPlan filterPlan = new Filter(filterCondition, table);
@@ -144,7 +144,7 @@ public class PPLToCatalystLogicalPlanTranslatorTest {
         List<NamedExpression> projectList = Arrays.asList(
                 UnresolvedAttribute$.MODULE$.apply(JavaConverters.asScalaBuffer(Collections.singletonList("a")))
         );
-        UnresolvedTable table = new UnresolvedTable(asScalaBuffer(of("table")).toSeq(), "source=table ", Option.<String>empty());
+        UnresolvedTable table = new UnresolvedTable(asScalaBuffer(of("t")).toSeq(), "source=t ", Option.<String>empty());
         // Create a Filter node for the condition 'a = 1'
         EqualTo filterCondition = new EqualTo((Expression) projectList.get(0), Literal.create(1, IntegerType));
         LogicalPlan filterPlan = new Filter(filterCondition, table);

@@ -6,6 +6,7 @@
 package org.opensearch.sql.spark.ppl;
 
 import lombok.Getter;
+import org.apache.spark.sql.catalyst.expressions.Expression;
 import org.apache.spark.sql.catalyst.expressions.NamedExpression;
 import org.apache.spark.sql.catalyst.plans.logical.LogicalPlan;
 import org.opensearch.sql.analysis.TypeEnvironment;
@@ -14,6 +15,7 @@ import org.opensearch.sql.expression.function.FunctionProperties;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+import java.util.Stack;
 
 /** The context used for Catalyst logical plan. */
 public class CatalystPlanContext {
@@ -24,7 +26,7 @@ public class CatalystPlanContext {
   @Getter private LogicalPlan plan;
 
   /** NamedExpression contextual parameters **/
-  @Getter private final List<NamedExpression> namedParseExpressions;
+  @Getter private final Stack<Expression> namedParseExpressions;
 
   @Getter private final FunctionProperties functionProperties;
 
@@ -39,7 +41,7 @@ public class CatalystPlanContext {
    */
   public CatalystPlanContext(TypeEnvironment environment) {
     this.environment = environment;
-    this.namedParseExpressions = new ArrayList<>();
+    this.namedParseExpressions = new Stack<>();
     this.functionProperties = new FunctionProperties();
   }
 
