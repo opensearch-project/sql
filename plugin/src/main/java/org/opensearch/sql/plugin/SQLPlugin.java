@@ -82,7 +82,16 @@ import org.opensearch.sql.plugin.transport.PPLQueryAction;
 import org.opensearch.sql.plugin.transport.TransportPPLQueryAction;
 import org.opensearch.sql.plugin.transport.TransportPPLQueryResponse;
 import org.opensearch.sql.prometheus.storage.PrometheusStorageFactory;
+import org.opensearch.sql.spark.rest.RestJobManagementAction;
 import org.opensearch.sql.spark.storage.SparkStorageFactory;
+import org.opensearch.sql.spark.transport.TransportCreateJobRequestAction;
+import org.opensearch.sql.spark.transport.TransportDeleteJobRequestAction;
+import org.opensearch.sql.spark.transport.TransportGetJobRequestAction;
+import org.opensearch.sql.spark.transport.TransportGetQueryResultRequestAction;
+import org.opensearch.sql.spark.transport.model.CreateJobActionResponse;
+import org.opensearch.sql.spark.transport.model.DeleteJobActionResponse;
+import org.opensearch.sql.spark.transport.model.GetJobActionResponse;
+import org.opensearch.sql.spark.transport.model.GetJobQueryResultActionResponse;
 import org.opensearch.sql.storage.DataSourceFactory;
 import org.opensearch.threadpool.ExecutorBuilder;
 import org.opensearch.threadpool.FixedExecutorBuilder;
@@ -131,7 +140,8 @@ public class SQLPlugin extends Plugin implements ActionPlugin, ScriptPlugin {
         new RestSqlStatsAction(settings, restController),
         new RestPPLStatsAction(settings, restController),
         new RestQuerySettingsAction(settings, restController),
-        new RestDataSourceQueryAction());
+        new RestDataSourceQueryAction(),
+        new RestJobManagementAction());
   }
 
   /** Register action and handler so that transportClient can find proxy for action. */
@@ -155,7 +165,20 @@ public class SQLPlugin extends Plugin implements ActionPlugin, ScriptPlugin {
         new ActionHandler<>(
             new ActionType<>(
                 TransportDeleteDataSourceAction.NAME, DeleteDataSourceActionResponse::new),
-            TransportDeleteDataSourceAction.class));
+            TransportDeleteDataSourceAction.class),
+        new ActionHandler<>(
+            new ActionType<>(TransportCreateJobRequestAction.NAME, CreateJobActionResponse::new),
+            TransportCreateJobRequestAction.class),
+        new ActionHandler<>(
+            new ActionType<>(TransportGetJobRequestAction.NAME, GetJobActionResponse::new),
+            TransportGetJobRequestAction.class),
+        new ActionHandler<>(
+            new ActionType<>(
+                TransportGetQueryResultRequestAction.NAME, GetJobQueryResultActionResponse::new),
+            TransportGetQueryResultRequestAction.class),
+        new ActionHandler<>(
+            new ActionType<>(TransportDeleteJobRequestAction.NAME, DeleteJobActionResponse::new),
+            TransportDeleteJobRequestAction.class));
   }
 
   @Override
