@@ -113,6 +113,7 @@ allprojects {
     configurations.all {
         resolutionStrategy.force "org.jetbrains.kotlin:kotlin-stdlib:1.6.0"
         resolutionStrategy.force "org.jetbrains.kotlin:kotlin-stdlib-common:1.6.0"
+        resolutionStrategy.force 'org.apache.commons:commons-lang3:3.13.0'
     }
 }
 
