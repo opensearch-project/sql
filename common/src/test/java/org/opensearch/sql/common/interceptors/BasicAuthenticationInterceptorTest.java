@@ -5,7 +5,7 @@
  *
  */
 
-package org.opensearch.sql.common.authinterceptors;
+package org.opensearch.sql.common.interceptors;
 
 import java.util.Collections;
 import lombok.SneakyThrows;
