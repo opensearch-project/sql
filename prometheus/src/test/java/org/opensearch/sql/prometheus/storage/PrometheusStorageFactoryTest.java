@@ -9,6 +9,7 @@ package org.opensearch.sql.prometheus.storage;
 
 import static org.mockito.Mockito.when;
 
+import java.util.Collections;
 import java.util.HashMap;
 import lombok.SneakyThrows;
 import org.apache.commons.lang3.RandomStringUtils;
@@ -38,10 +39,11 @@ public class PrometheusStorageFactoryTest {
   @Test
   @SneakyThrows
   void testGetStorageEngineWithBasicAuth() {
-    when(settings.getSettingValue(Settings.Key.DATASOURCES_URI_ALLOWHOSTS)).thenReturn(".*");
+    when(settings.getSettingValue(Settings.Key.DATASOURCES_URI_HOSTS_DENY_LIST))
+        .thenReturn(Collections.emptyList());
     PrometheusStorageFactory prometheusStorageFactory = new PrometheusStorageFactory(settings);
     HashMap<String, String> properties = new HashMap<>();
-    properties.put("prometheus.uri", "http://dummyprometheus.com:9090");
+    properties.put("prometheus.uri", "http://localhost:9090");
     properties.put("prometheus.auth.type", "basicauth");
     properties.put("prometheus.auth.username", "admin");
     properties.put("prometheus.auth.password", "admin");
@@ -52,10 +54,11 @@ public class PrometheusStorageFactoryTest {
   @Test
   @SneakyThrows
   void testGetStorageEngineWithAWSSigV4Auth() {
-    when(settings.getSettingValue(Settings.Key.DATASOURCES_URI_ALLOWHOSTS)).thenReturn(".*");
+    when(settings.getSettingValue(Settings.Key.DATASOURCES_URI_HOSTS_DENY_LIST))
+        .thenReturn(Collections.emptyList());
     PrometheusStorageFactory prometheusStorageFactory = new PrometheusStorageFactory(settings);
     HashMap<String, String> properties = new HashMap<>();
-    properties.put("prometheus.uri", "http://dummyprometheus.com:9090");
+    properties.put("prometheus.uri", "http://localhost:9090");
     properties.put("prometheus.auth.type", "awssigv4");
     properties.put("prometheus.auth.region", "us-east-1");
     properties.put("prometheus.auth.secret_key", "accessKey");
@@ -123,7 +126,8 @@ public class PrometheusStorageFactoryTest {
   @Test
   @SneakyThrows
   void testGetStorageEngineWithWrongAuthType() {
-    when(settings.getSettingValue(Settings.Key.DATASOURCES_URI_ALLOWHOSTS)).thenReturn(".*");
+    when(settings.getSettingValue(Settings.Key.DATASOURCES_URI_HOSTS_DENY_LIST))
+        .thenReturn(Collections.emptyList());
     PrometheusStorageFactory prometheusStorageFactory = new PrometheusStorageFactory(settings);
     HashMap<String, String> properties = new HashMap<>();
     properties.put("prometheus.uri", "https://test.com");
@@ -142,7 +146,8 @@ public class PrometheusStorageFactoryTest {
   @Test
   @SneakyThrows
   void testGetStorageEngineWithNONEAuthType() {
-    when(settings.getSettingValue(Settings.Key.DATASOURCES_URI_ALLOWHOSTS)).thenReturn(".*");
+    when(settings.getSettingValue(Settings.Key.DATASOURCES_URI_HOSTS_DENY_LIST))
+        .thenReturn(Collections.emptyList());
     PrometheusStorageFactory prometheusStorageFactory = new PrometheusStorageFactory(settings);
     HashMap<String, String> properties = new HashMap<>();
     properties.put("prometheus.uri", "https://test.com");
@@ -168,9 +173,10 @@ public class PrometheusStorageFactoryTest {
 
   @Test
   void createDataSourceSuccess() {
-    when(settings.getSettingValue(Settings.Key.DATASOURCES_URI_ALLOWHOSTS)).thenReturn(".*");
+    when(settings.getSettingValue(Settings.Key.DATASOURCES_URI_HOSTS_DENY_LIST))
+        .thenReturn(Collections.emptyList());
     HashMap<String, String> properties = new HashMap<>();
-    properties.put("prometheus.uri", "http://dummyprometheus.com:9090");
+    properties.put("prometheus.uri", "http://localhost:9090");
     properties.put("prometheus.auth.type", "basicauth");
     properties.put("prometheus.auth.username", "admin");
     properties.put("prometheus.auth.password", "admin");
@@ -186,7 +192,8 @@ public class PrometheusStorageFactoryTest {
 
   @Test
   void createDataSourceSuccessWithLocalhost() {
-    when(settings.getSettingValue(Settings.Key.DATASOURCES_URI_ALLOWHOSTS)).thenReturn(".*");
+    when(settings.getSettingValue(Settings.Key.DATASOURCES_URI_HOSTS_DENY_LIST))
+        .thenReturn(Collections.emptyList());
     HashMap<String, String> properties = new HashMap<>();
     properties.put("prometheus.uri", "http://localhost:9090");
     properties.put("prometheus.auth.type", "basicauth");
@@ -248,10 +255,10 @@ public class PrometheusStorageFactoryTest {
 
   @Test
   void createDataSourceWithHostnameNotMatchingWithAllowHostsConfig() {
-    when(settings.getSettingValue(Settings.Key.DATASOURCES_URI_ALLOWHOSTS))
-        .thenReturn("^dummy.*.com$");
+    when(settings.getSettingValue(Settings.Key.DATASOURCES_URI_HOSTS_DENY_LIST))
+        .thenReturn(Collections.singletonList("127.0.0.0/8"));
     HashMap<String, String> properties = new HashMap<>();
-    properties.put("prometheus.uri", "http://localhost.com:9090");
+    properties.put("prometheus.uri", "http://localhost:9090");
     properties.put("prometheus.auth.type", "basicauth");
     properties.put("prometheus.auth.username", "admin");
     properties.put("prometheus.auth.password", "admin");
@@ -265,29 +272,9 @@ public class PrometheusStorageFactoryTest {
     RuntimeException exception =
         Assertions.assertThrows(
             RuntimeException.class, () -> prometheusStorageFactory.createDataSource(metadata));
-    Assertions.assertTrue(
-        exception
-            .getMessage()
-            .contains(
-                "Disallowed hostname in the uri. "
-                    + "Validate with plugins.query.datasources.uri.allowhosts config"));
-  }
-
-  @Test
-  void createDataSourceSuccessWithHostnameRestrictions() {
-    when(settings.getSettingValue(Settings.Key.DATASOURCES_URI_ALLOWHOSTS))
-        .thenReturn("^dummy.*.com$");
-    HashMap<String, String> properties = new HashMap<>();
-    properties.put("prometheus.uri", "http://dummy.prometheus.com:9090");
-    properties.put("prometheus.auth.type", "basicauth");
-    properties.put("prometheus.auth.username", "admin");
-    properties.put("prometheus.auth.password", "admin");
-
-    DataSourceMetadata metadata = new DataSourceMetadata();
-    metadata.setName("prometheus");
-    metadata.setConnector(DataSourceType.PROMETHEUS);
-    metadata.setProperties(properties);
-    DataSource dataSource = new PrometheusStorageFactory(settings).createDataSource(metadata);
-    Assertions.assertTrue(dataSource.getStorageEngine() instanceof PrometheusStorageEngine);
+    Assertions.assertEquals(
+        "Disallowed hostname in the uri. "
+            + "Validate with plugins.query.datasources.uri.hosts.denylist config",
+        exception.getMessage());
   }
 }
