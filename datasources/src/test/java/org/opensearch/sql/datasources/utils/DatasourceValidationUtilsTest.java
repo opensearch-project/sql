@@ -62,7 +62,7 @@ public class DatasourceValidationUtilsTest {
                 DatasourceValidationUtils.validateLengthAndRequiredFields(
                     config, Set.of("s3.uri", "s3.auth.type")));
     Assertions.assertEquals(
-        "Missing [s3.auth.type] fields in the Prometheus connector properties.",
+        "Missing [s3.auth.type] fields in the connector properties.",
         illegalArgumentException.getMessage());
   }
 
@@ -77,7 +77,7 @@ public class DatasourceValidationUtilsTest {
                 DatasourceValidationUtils.validateLengthAndRequiredFields(
                     config, Set.of("s3.uri", "s3.auth.type")));
     Assertions.assertEquals(
-        "Missing [s3.auth.type] fields in the Prometheus connector properties.Fields "
+        "Missing [s3.auth.type] fields in the connector properties.Fields "
             + "[s3.uri] exceeds more than 1000 characters.",
         illegalArgumentException.getMessage());
   }
