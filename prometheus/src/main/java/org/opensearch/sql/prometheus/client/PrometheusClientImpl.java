@@ -128,9 +128,7 @@ public class PrometheusClientImpl implements PrometheusClient {
       }
     } else {
       throw new PrometheusClientException(
-          String.format(
-              "Request to Prometheus is Unsuccessful with : %s",
-              Objects.requireNonNull(response.body(), "Response body can't be null").string()));
+          String.format("Request to Prometheus is Unsuccessful with code : %s", response.code()));
     }
   }
 }

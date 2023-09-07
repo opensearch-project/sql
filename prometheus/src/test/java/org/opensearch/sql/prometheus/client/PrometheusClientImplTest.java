@@ -114,10 +114,9 @@ public class PrometheusClientImplTest {
         assertThrows(
             PrometheusClientException.class,
             () -> prometheusClient.queryRange(QUERY, STARTTIME, ENDTIME, STEP));
-    assertTrue(
-        prometheusClientException
-            .getMessage()
-            .contains("Request to Prometheus is Unsuccessful with :"));
+    assertEquals(
+        "Request to Prometheus is Unsuccessful with code : 400",
+        prometheusClientException.getMessage());
     RecordedRequest recordedRequest = mockWebServer.takeRequest();
     verifyQueryRangeCall(recordedRequest);
   }
