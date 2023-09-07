@@ -12,10 +12,12 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import java.io.InputStream;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Consumer;
+import java.util.function.Function;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.log4j.Log4j2;
 import org.opensearch.cluster.ClusterName;
@@ -119,10 +121,11 @@ public class OpenSearchSettings extends Settings {
           Setting.Property.Final,
           Setting.Property.Filtered);
 
-  public static final Setting<String> DATASOURCE_URI_ALLOW_HOSTS =
-      Setting.simpleString(
-          Key.DATASOURCES_URI_ALLOWHOSTS.getKeyValue(),
-          ".*",
+  public static final Setting<List<String>> DATASOURCE_URI_HOSTS_DENY_LIST =
+      Setting.listSetting(
+          Key.DATASOURCES_URI_HOSTS_DENY_LIST.getKeyValue(),
+          Collections.emptyList(),
+          Function.identity(),
           Setting.Property.NodeScope,
           Setting.Property.Dynamic);
 
@@ -187,9 +190,9 @@ public class OpenSearchSettings extends Settings {
     register(
         settingBuilder,
         clusterSettings,
-        Key.DATASOURCES_URI_ALLOWHOSTS,
-        DATASOURCE_URI_ALLOW_HOSTS,
-        new Updater(Key.DATASOURCES_URI_ALLOWHOSTS));
+        Key.DATASOURCES_URI_HOSTS_DENY_LIST,
+        DATASOURCE_URI_HOSTS_DENY_LIST,
+        new Updater(Key.DATASOURCES_URI_HOSTS_DENY_LIST));
     registerNonDynamicSettings(
         settingBuilder, clusterSettings, Key.CLUSTER_NAME, ClusterName.CLUSTER_NAME_SETTING);
     defaultSettings = settingBuilder.build();
@@ -253,7 +256,7 @@ public class OpenSearchSettings extends Settings {
         .add(QUERY_SIZE_LIMIT_SETTING)
         .add(METRICS_ROLLING_WINDOW_SETTING)
         .add(METRICS_ROLLING_INTERVAL_SETTING)
-        .add(DATASOURCE_URI_ALLOW_HOSTS)
+        .add(DATASOURCE_URI_HOSTS_DENY_LIST)
         .build();
   }
 
