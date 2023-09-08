@@ -16,6 +16,9 @@ buildscript {
         if (buildVersionQualifier) {
             opensearch_build += "-${buildVersionQualifier}"
         }
+        //this variable for always downloading snapshot version of security plugin.
+        //need to figure out more elegant solution for integ tests with security.
+        opensearch_build_snapshot = opensearch_build + '-SNAPSHOT'
         if (isSnapshot) {
             // 2.0.0-rc1-SNAPSHOT -> 2.0.0.0-rc1-SNAPSHOT (opensearch_build)
             opensearch_build += "-SNAPSHOT"
