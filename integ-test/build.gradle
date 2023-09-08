@@ -76,7 +76,8 @@ ext {
         return repo + "opensearch-security-${securitySnapshotVersion}.zip"
     }
 
-    File downloadedSecurityPlugin = null
+    var projectAbsPath = projectDir.getAbsolutePath()
+    File downloadedSecurityPlugin = Paths.get(projectAbsPath, 'bin', 'opensearch-security-snapshot.zip').toFile()
 
     configureSecurityPlugin = { OpenSearchCluster cluster ->
 
@@ -89,15 +90,14 @@ ext {
             }
         }
 
-        var projectAbsPath = projectDir.getAbsolutePath()
-
         // add a check to avoid re-downloading multiple times during single test run
-        if (downloadedSecurityPlugin == null) {
-            downloadedSecurityPlugin = Paths.get(projectAbsPath, 'bin', 'opensearch-security-snapshot.zip').toFile()
+        if (!downloadedSecurityPlugin.exists()) {
             download.run {
                 src getSecurityPluginDownloadLink()
                 dest downloadedSecurityPlugin
             }
+        } else {
+            println "Security Plugin File Already Exists"
         }
 
         // Config below including files are copied from security demo configuration
