@@ -40,8 +40,7 @@ public class DatasourceValidationUtils {
     StringBuilder errorStringBuilder = new StringBuilder();
     if (missingFields.size() > 0) {
       errorStringBuilder.append(
-          String.format(
-              "Missing %s fields in the Prometheus connector properties.", missingFields));
+          String.format("Missing %s fields in the connector properties.", missingFields));
     }
 
     if (invalidLengthFields.size() > 0) {

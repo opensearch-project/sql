@@ -81,7 +81,7 @@ public class PrometheusStorageFactoryTest {
             IllegalArgumentException.class,
             () -> prometheusStorageFactory.getStorageEngine(properties));
     Assertions.assertEquals(
-        "Missing [prometheus.uri] fields " + "in the Prometheus connector properties.",
+        "Missing [prometheus.uri] fields " + "in the connector properties.",
         exception.getMessage());
   }
 
@@ -99,7 +99,7 @@ public class PrometheusStorageFactoryTest {
             IllegalArgumentException.class,
             () -> prometheusStorageFactory.getStorageEngine(properties));
     Assertions.assertEquals(
-        "Missing [prometheus.auth.region] fields in the " + "Prometheus connector properties.",
+        "Missing [prometheus.auth.region] fields in the connector properties.",
         exception.getMessage());
   }
 
@@ -118,7 +118,7 @@ public class PrometheusStorageFactoryTest {
             () -> prometheusStorageFactory.getStorageEngine(properties));
     Assertions.assertEquals(
         "Missing [prometheus.auth.region] fields in the "
-            + "Prometheus connector properties."
+            + "connector properties."
             + "Fields [prometheus.uri] exceeds more than 1000 characters.",
         exception.getMessage());
   }

@@ -8,7 +8,9 @@ package org.opensearch.sql.datasource.model;
 public enum DataSourceType {
   PROMETHEUS("prometheus"),
   OPENSEARCH("opensearch"),
-  SPARK("spark");
+  SPARK("spark"),
+  S3GLUE("s3glue");
+
   private String text;
 
   DataSourceType(String text) {
