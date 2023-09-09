@@ -5,10 +5,16 @@
 
 package org.opensearch.sql.plugin;
 
+import static org.opensearch.sql.common.setting.Settings.Key.SPARK_EXECUTION_ENGINE_CONFIG;
 import static org.opensearch.sql.datasource.model.DataSourceMetadata.defaultOpenSearchDataSourceMetadata;
 
+import com.amazonaws.auth.DefaultAWSCredentialsProviderChain;
+import com.amazonaws.services.emrserverless.AWSEMRServerless;
+import com.amazonaws.services.emrserverless.AWSEMRServerlessClientBuilder;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
+import java.security.AccessController;
+import java.security.PrivilegedAction;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
@@ -83,6 +89,15 @@ import org.opensearch.sql.plugin.transport.PPLQueryAction;
 import org.opensearch.sql.plugin.transport.TransportPPLQueryAction;
 import org.opensearch.sql.plugin.transport.TransportPPLQueryResponse;
 import org.opensearch.sql.prometheus.storage.PrometheusStorageFactory;
+import org.opensearch.sql.spark.client.EmrServerlessClient;
+import org.opensearch.sql.spark.client.EmrServerlessClientImpl;
+import org.opensearch.sql.spark.config.SparkExecutionEngineConfig;
+import org.opensearch.sql.spark.dispatcher.SparkQueryDispatcher;
+import org.opensearch.sql.spark.jobs.JobExecutorService;
+import org.opensearch.sql.spark.jobs.JobExecutorServiceImpl;
+import org.opensearch.sql.spark.jobs.JobMetadataStorageService;
+import org.opensearch.sql.spark.jobs.OpensearchJobMetadataStorageService;
+import org.opensearch.sql.spark.response.JobExecutionResponseReader;
 import org.opensearch.sql.spark.rest.RestJobManagementAction;
 import org.opensearch.sql.spark.storage.SparkStorageFactory;
 import org.opensearch.sql.spark.transport.TransportCreateJobRequestAction;
@@ -110,6 +125,7 @@ public class SQLPlugin extends Plugin implements ActionPlugin, ScriptPlugin {
 
   private NodeClient client;
   private DataSourceServiceImpl dataSourceService;
+  private JobExecutorService jobExecutorService;
   private Injector injector;
 
   public String name() {
@@ -202,6 +218,16 @@ public class SQLPlugin extends Plugin implements ActionPlugin, ScriptPlugin {
     dataSourceService.createDataSource(defaultOpenSearchDataSourceMetadata());
     LocalClusterState.state().setClusterService(clusterService);
     LocalClusterState.state().setPluginSettings((OpenSearchSettings) pluginSettings);
+    if (StringUtils.isEmpty(this.pluginSettings.getSettingValue(SPARK_EXECUTION_ENGINE_CONFIG))) {
+      LOGGER.warn(
+          String.format(
+              "Job APIs are disabled as %s is not configured in cluster settings. "
+                  + "Please configure and restart the domain to enable JobAPIs",
+              SPARK_EXECUTION_ENGINE_CONFIG.getKeyValue()));
+      this.jobExecutorService = new JobExecutorServiceImpl();
+    } else {
+      this.jobExecutorService = createJobExecutorService();
+    }
 
     ModulesBuilder modules = new ModulesBuilder();
     modules.add(new OpenSearchPluginModule());
@@ -213,7 +239,7 @@ public class SQLPlugin extends Plugin implements ActionPlugin, ScriptPlugin {
         });
 
     injector = modules.createInjector();
-    return ImmutableList.of(dataSourceService);
+    return ImmutableList.of(dataSourceService, jobExecutorService);
   }
 
   @Override
@@ -269,5 +295,35 @@ public class SQLPlugin extends Plugin implements ActionPlugin, ScriptPlugin {
             .build(),
         dataSourceMetadataStorage,
         dataSourceUserAuthorizationHelper);
+  }
+
+  private JobExecutorService createJobExecutorService() {
+    JobMetadataStorageService jobMetadataStorageService =
+        new OpensearchJobMetadataStorageService(client, clusterService);
+    EmrServerlessClient emrServerlessClient = createEMRServerlessClient();
+    JobExecutionResponseReader jobExecutionResponseReader = new JobExecutionResponseReader(client);
+    SparkQueryDispatcher sparkQueryDispatcher =
+        new SparkQueryDispatcher(
+            emrServerlessClient, this.dataSourceService, jobExecutionResponseReader);
+    return new JobExecutorServiceImpl(
+        jobMetadataStorageService, sparkQueryDispatcher, pluginSettings);
+  }
+
+  private EmrServerlessClient createEMRServerlessClient() {
+    String sparkExecutionEngineConfigString =
+        this.pluginSettings.getSettingValue(SPARK_EXECUTION_ENGINE_CONFIG);
+    return AccessController.doPrivileged(
+        (PrivilegedAction<EmrServerlessClient>)
+            () -> {
+              SparkExecutionEngineConfig sparkExecutionEngineConfig =
+                  SparkExecutionEngineConfig.toSparkExecutionEngineConfig(
+                      sparkExecutionEngineConfigString);
+              AWSEMRServerless awsemrServerless =
+                  AWSEMRServerlessClientBuilder.standard()
+                      .withRegion(sparkExecutionEngineConfig.getRegion())
+                      .withCredentials(new DefaultAWSCredentialsProviderChain())
+                      .build();
+              return new EmrServerlessClientImpl(awsemrServerless);
+            });
   }
 }

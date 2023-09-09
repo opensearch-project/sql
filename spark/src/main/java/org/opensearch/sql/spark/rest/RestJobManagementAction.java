@@ -138,7 +138,7 @@ public class RestJobManagementAction extends BaseRestHandler {
                             new BytesRestResponse(
                                 RestStatus.CREATED,
                                 "application/json; charset=UTF-8",
-                                submitJobRequest.getQuery()));
+                                createJobActionResponse.getResult()));
                       }
 
                       @Override

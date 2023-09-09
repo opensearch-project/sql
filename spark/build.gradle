@@ -15,11 +15,14 @@ repositories {
 
 dependencies {
     api project(':core')
+    implementation project(':protocol')
     implementation project(':datasources')
 
     implementation group: 'org.opensearch', name: 'opensearch', version: "${opensearch_version}"
     implementation group: 'org.json', name: 'json', version: '20230227'
-    implementation group: 'com.amazonaws', name: 'aws-java-sdk-emr', version: '1.12.1'
+    api group: 'com.amazonaws', name: 'aws-java-sdk-emr', version: '1.12.545'
+    api group: 'com.amazonaws', name: 'aws-java-sdk-emrserverless', version: '1.12.545'
+    implementation group: 'commons-io', name: 'commons-io', version: '2.8.0'
 
     testImplementation('org.junit.jupiter:junit-jupiter:5.6.2')
     testImplementation group: 'org.mockito', name: 'mockito-core', version: '5.2.0'
@@ -56,7 +59,10 @@ jacocoTestCoverageVerification {
             excludes = [
                     'org.opensearch.sql.spark.data.constants.*',
                     'org.opensearch.sql.spark.rest.*',
-                    'org.opensearch.sql.spark.transport.model.*'
+                    'org.opensearch.sql.spark.transport.model.*',
+                    'org.opensearch.sql.spark.jobs.model.*',
+                    'org.opensearch.sql.spark.jobs.config.*',
+                    'org.opensearch.sql.spark.jobs.execution.*'
             ]
             limit {
                 counter = 'LINE'
