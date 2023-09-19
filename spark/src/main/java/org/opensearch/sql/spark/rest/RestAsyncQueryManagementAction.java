@@ -194,7 +194,7 @@ public class RestAsyncQueryManagementAction extends BaseRestHandler {
                           CancelAsyncQueryActionResponse cancelAsyncQueryActionResponse) {
                         restChannel.sendResponse(
                             new BytesRestResponse(
-                                RestStatus.OK,
+                                RestStatus.NO_CONTENT,
                                 "application/json; charset=UTF-8",
                                 cancelAsyncQueryActionResponse.getResult()));
                       }

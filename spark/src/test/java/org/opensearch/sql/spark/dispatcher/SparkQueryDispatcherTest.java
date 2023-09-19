@@ -14,6 +14,7 @@ import static org.opensearch.sql.spark.constants.TestConstants.EMRS_EXECUTION_RO
 import static org.opensearch.sql.spark.constants.TestConstants.EMR_JOB_ID;
 import static org.opensearch.sql.spark.constants.TestConstants.QUERY;
 
+import com.amazonaws.services.emrserverless.model.CancelJobRunResult;
 import com.amazonaws.services.emrserverless.model.GetJobRunResult;
 import com.amazonaws.services.emrserverless.model.JobRun;
 import com.amazonaws.services.emrserverless.model.JobRunState;
@@ -79,36 +80,17 @@ public class SparkQueryDispatcherTest {
         illegalArgumentException.getMessage());
   }
 
-  private DataSourceMetadata constructMyGlueDataSourceMetadata() {
-    DataSourceMetadata dataSourceMetadata = new DataSourceMetadata();
-    dataSourceMetadata.setName("my_glue");
-    dataSourceMetadata.setConnector(DataSourceType.S3GLUE);
-    Map<String, String> properties = new HashMap<>();
-    properties.put("glue.auth.type", "iam_role");
-    properties.put(
-        "glue.auth.role_arn", "arn:aws:iam::924196221507:role/FlintOpensearchServiceRole");
-    properties.put(
-        "glue.indexstore.opensearch.uri",
-        "https://search-flint-dp-benchmark-cf5crj5mj2kfzvgwdeynkxnefy.eu-west-1.es.amazonaws.com");
-    properties.put("glue.indexstore.opensearch.auth", "sigv4");
-    properties.put("glue.indexstore.opensearch.region", "eu-west-1");
-    dataSourceMetadata.setProperties(properties);
-    return dataSourceMetadata;
-  }
-
-  private DataSourceMetadata constructMyGlueDataSourceMetadataWithBadURISyntax() {
-    DataSourceMetadata dataSourceMetadata = new DataSourceMetadata();
-    dataSourceMetadata.setName("my_glue");
-    dataSourceMetadata.setConnector(DataSourceType.S3GLUE);
-    Map<String, String> properties = new HashMap<>();
-    properties.put("glue.auth.type", "iam_role");
-    properties.put(
-        "glue.auth.role_arn", "arn:aws:iam::924196221507:role/FlintOpensearchServiceRole");
-    properties.put("glue.indexstore.opensearch.uri", "http://localhost:9090? param");
-    properties.put("glue.indexstore.opensearch.auth", "sigv4");
-    properties.put("glue.indexstore.opensearch.region", "eu-west-1");
-    dataSourceMetadata.setProperties(properties);
-    return dataSourceMetadata;
+  @Test
+  void testCancelJob() {
+    SparkQueryDispatcher sparkQueryDispatcher =
+        new SparkQueryDispatcher(sparkJobClient, dataSourceService, jobExecutionResponseReader);
+    when(sparkJobClient.cancelJobRun(EMRS_APPLICATION_ID, EMR_JOB_ID))
+        .thenReturn(
+            new CancelJobRunResult()
+                .withJobRunId(EMR_JOB_ID)
+                .withApplicationId(EMRS_APPLICATION_ID));
+    String jobId = sparkQueryDispatcher.cancelJob(EMRS_APPLICATION_ID, EMR_JOB_ID);
+    Assertions.assertEquals(EMR_JOB_ID, jobId);
   }
 
   @Test
@@ -140,7 +122,7 @@ public class SparkQueryDispatcherTest {
     Assertions.assertEquals("SUCCESS", result.get("status"));
   }
 
-  String constructExpectedSparkSubmitParameterString() {
+  private String constructExpectedSparkSubmitParameterString() {
     return " --class org.opensearch.sql.FlintJob  --conf"
                + " spark.hadoop.fs.s3.customAWSCredentialsProvider=com.amazonaws.emr.AssumeRoleAWSCredentialsProvider"
                + "  --conf"
@@ -170,5 +152,37 @@ public class SparkQueryDispatcherTest {
                + "  --conf"
                + " spark.hive.metastore.glue.role.arn=arn:aws:iam::924196221507:role/FlintOpensearchServiceRole"
                + "  --conf spark.sql.catalog.my_glue=org.opensearch.sql.FlintDelegateCatalog ";
+  }
+
+  private DataSourceMetadata constructMyGlueDataSourceMetadata() {
+    DataSourceMetadata dataSourceMetadata = new DataSourceMetadata();
+    dataSourceMetadata.setName("my_glue");
+    dataSourceMetadata.setConnector(DataSourceType.S3GLUE);
+    Map<String, String> properties = new HashMap<>();
+    properties.put("glue.auth.type", "iam_role");
+    properties.put(
+        "glue.auth.role_arn", "arn:aws:iam::924196221507:role/FlintOpensearchServiceRole");
+    properties.put(
+        "glue.indexstore.opensearch.uri",
+        "https://search-flint-dp-benchmark-cf5crj5mj2kfzvgwdeynkxnefy.eu-west-1.es.amazonaws.com");
+    properties.put("glue.indexstore.opensearch.auth", "sigv4");
+    properties.put("glue.indexstore.opensearch.region", "eu-west-1");
+    dataSourceMetadata.setProperties(properties);
+    return dataSourceMetadata;
+  }
+
+  private DataSourceMetadata constructMyGlueDataSourceMetadataWithBadURISyntax() {
+    DataSourceMetadata dataSourceMetadata = new DataSourceMetadata();
+    dataSourceMetadata.setName("my_glue");
+    dataSourceMetadata.setConnector(DataSourceType.S3GLUE);
+    Map<String, String> properties = new HashMap<>();
+    properties.put("glue.auth.type", "iam_role");
+    properties.put(
+        "glue.auth.role_arn", "arn:aws:iam::924196221507:role/FlintOpensearchServiceRole");
+    properties.put("glue.indexstore.opensearch.uri", "http://localhost:9090? param");
+    properties.put("glue.indexstore.opensearch.auth", "sigv4");
+    properties.put("glue.indexstore.opensearch.region", "eu-west-1");
+    dataSourceMetadata.setProperties(properties);
+    return dataSourceMetadata;
   }
 }

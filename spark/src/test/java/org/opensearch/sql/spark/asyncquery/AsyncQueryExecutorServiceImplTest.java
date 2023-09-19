@@ -142,4 +142,34 @@ public class AsyncQueryExecutorServiceImplTest {
             + " to enable Async Query APIs",
         illegalArgumentException.getMessage());
   }
+
+  @Test
+  void testCancelJobWithJobNotFound() {
+    AsyncQueryExecutorService asyncQueryExecutorService =
+        new AsyncQueryExecutorServiceImpl(
+            asyncQueryJobMetadataStorageService, sparkQueryDispatcher, settings);
+    when(asyncQueryJobMetadataStorageService.getJobMetadata(EMR_JOB_ID))
+        .thenReturn(Optional.empty());
+    AsyncQueryNotFoundException asyncQueryNotFoundException =
+        Assertions.assertThrows(
+            AsyncQueryNotFoundException.class,
+            () -> asyncQueryExecutorService.cancelQuery(EMR_JOB_ID));
+    Assertions.assertEquals(
+        "QueryId: " + EMR_JOB_ID + " not found", asyncQueryNotFoundException.getMessage());
+    verifyNoInteractions(sparkQueryDispatcher);
+    verifyNoInteractions(settings);
+  }
+
+  @Test
+  void testCancelJob() {
+    AsyncQueryExecutorService asyncQueryExecutorService =
+        new AsyncQueryExecutorServiceImpl(
+            asyncQueryJobMetadataStorageService, sparkQueryDispatcher, settings);
+    when(asyncQueryJobMetadataStorageService.getJobMetadata(EMR_JOB_ID))
+        .thenReturn(Optional.of(new AsyncQueryJobMetadata(EMR_JOB_ID, EMRS_APPLICATION_ID)));
+    when(sparkQueryDispatcher.cancelJob(EMRS_APPLICATION_ID, EMR_JOB_ID)).thenReturn(EMR_JOB_ID);
+    String jobId = asyncQueryExecutorService.cancelQuery(EMR_JOB_ID);
+    Assertions.assertEquals(EMR_JOB_ID, jobId);
+    verifyNoInteractions(settings);
+  }
 }
