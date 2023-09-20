@@ -23,15 +23,15 @@ import lombok.AllArgsConstructor;
 import org.json.JSONObject;
 import org.opensearch.sql.datasource.DataSourceService;
 import org.opensearch.sql.datasource.model.DataSourceMetadata;
-import org.opensearch.sql.spark.client.EmrServerlessClient;
-import org.opensearch.sql.spark.jobs.model.S3GlueSparkSubmitParameters;
+import org.opensearch.sql.spark.asyncquery.model.S3GlueSparkSubmitParameters;
+import org.opensearch.sql.spark.client.SparkJobClient;
 import org.opensearch.sql.spark.response.JobExecutionResponseReader;
 
 /** This class takes care of understanding query and dispatching job query to emr serverless. */
 @AllArgsConstructor
 public class SparkQueryDispatcher {
 
-  private EmrServerlessClient emrServerlessClient;
+  private SparkJobClient sparkJobClient;
 
   private DataSourceService dataSourceService;
 
@@ -40,7 +40,7 @@ public class SparkQueryDispatcher {
   public String dispatch(String applicationId, String query, String executionRoleARN) {
     String datasourceName = getDataSourceName();
     try {
-      return emrServerlessClient.startJobRun(
+      return sparkJobClient.startJobRun(
           query,
           "flint-opensearch-query",
           applicationId,
@@ -53,11 +53,12 @@ public class SparkQueryDispatcher {
     }
   }
 
-  public JSONObject getQueryResponse(String applicationId, String jobId) {
-    GetJobRunResult getJobRunResult = emrServerlessClient.getJobRunResult(applicationId, jobId);
+  // TODO : Fetch from Result Index and then make call to EMR Serverless.
+  public JSONObject getQueryResponse(String applicationId, String queryId) {
+    GetJobRunResult getJobRunResult = sparkJobClient.getJobRunResult(applicationId, queryId);
     JSONObject result = new JSONObject();
     if (getJobRunResult.getJobRun().getState().equals(JobRunState.SUCCESS.toString())) {
-      result = jobExecutionResponseReader.getResultFromOpensearchIndex(jobId);
+      result = jobExecutionResponseReader.getResultFromOpensearchIndex(queryId);
     }
     result.put("status", getJobRunResult.getJobRun().getState());
     return result;
@@ -70,6 +71,7 @@ public class SparkQueryDispatcher {
     return "my_glue";
   }
 
+  // TODO: Analyze given query and get the role arn based on datasource type.
   private String getDataSourceRoleARN(DataSourceMetadata dataSourceMetadata) {
     return dataSourceMetadata.getProperties().get("glue.auth.role_arn");
   }

@@ -80,6 +80,7 @@ public class DefaultSparkSqlFunctionResponseHandle implements SparkSqlFunctionRe
       } else if (type == ExprCoreType.FLOAT) {
         linkedHashMap.put(column.getName(), new ExprFloatValue(row.getFloat(column.getName())));
       } else if (type == ExprCoreType.DATE) {
+        // TODO :: correct this to ExprTimestampValue
         linkedHashMap.put(column.getName(), new ExprStringValue(row.getString(column.getName())));
       } else if (type == ExprCoreType.TIMESTAMP) {
         linkedHashMap.put(

@@ -20,7 +20,7 @@ import java.security.PrivilegedAction;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-public class EmrServerlessClientImpl implements EmrServerlessClient {
+public class EmrServerlessClientImpl implements SparkJobClient {
 
   private final AWSEMRServerless emrServerless;
   private static final Logger logger = LogManager.getLogger(EmrServerlessClientImpl.class);

@@ -89,25 +89,23 @@ import org.opensearch.sql.plugin.transport.PPLQueryAction;
 import org.opensearch.sql.plugin.transport.TransportPPLQueryAction;
 import org.opensearch.sql.plugin.transport.TransportPPLQueryResponse;
 import org.opensearch.sql.prometheus.storage.PrometheusStorageFactory;
-import org.opensearch.sql.spark.client.EmrServerlessClient;
+import org.opensearch.sql.spark.asyncquery.AsyncQueryExecutorService;
+import org.opensearch.sql.spark.asyncquery.AsyncQueryExecutorServiceImpl;
+import org.opensearch.sql.spark.asyncquery.AsyncQueryJobMetadataStorageService;
+import org.opensearch.sql.spark.asyncquery.OpensearchAsyncQueryJobMetadataStorageService;
 import org.opensearch.sql.spark.client.EmrServerlessClientImpl;
+import org.opensearch.sql.spark.client.SparkJobClient;
 import org.opensearch.sql.spark.config.SparkExecutionEngineConfig;
 import org.opensearch.sql.spark.dispatcher.SparkQueryDispatcher;
-import org.opensearch.sql.spark.jobs.JobExecutorService;
-import org.opensearch.sql.spark.jobs.JobExecutorServiceImpl;
-import org.opensearch.sql.spark.jobs.JobMetadataStorageService;
-import org.opensearch.sql.spark.jobs.OpensearchJobMetadataStorageService;
 import org.opensearch.sql.spark.response.JobExecutionResponseReader;
-import org.opensearch.sql.spark.rest.RestJobManagementAction;
+import org.opensearch.sql.spark.rest.RestAsyncQueryManagementAction;
 import org.opensearch.sql.spark.storage.SparkStorageFactory;
-import org.opensearch.sql.spark.transport.TransportCreateJobRequestAction;
-import org.opensearch.sql.spark.transport.TransportDeleteJobRequestAction;
-import org.opensearch.sql.spark.transport.TransportGetJobRequestAction;
-import org.opensearch.sql.spark.transport.TransportGetQueryResultRequestAction;
-import org.opensearch.sql.spark.transport.model.CreateJobActionResponse;
-import org.opensearch.sql.spark.transport.model.DeleteJobActionResponse;
-import org.opensearch.sql.spark.transport.model.GetJobActionResponse;
-import org.opensearch.sql.spark.transport.model.GetJobQueryResultActionResponse;
+import org.opensearch.sql.spark.transport.TransportCancelAsyncQueryRequestAction;
+import org.opensearch.sql.spark.transport.TransportCreateAsyncQueryRequestAction;
+import org.opensearch.sql.spark.transport.TransportGetAsyncQueryResultAction;
+import org.opensearch.sql.spark.transport.model.CancelAsyncQueryActionResponse;
+import org.opensearch.sql.spark.transport.model.CreateAsyncQueryActionResponse;
+import org.opensearch.sql.spark.transport.model.GetAsyncQueryResultActionResponse;
 import org.opensearch.sql.storage.DataSourceFactory;
 import org.opensearch.threadpool.ExecutorBuilder;
 import org.opensearch.threadpool.FixedExecutorBuilder;
@@ -125,7 +123,7 @@ public class SQLPlugin extends Plugin implements ActionPlugin, ScriptPlugin {
 
   private NodeClient client;
   private DataSourceServiceImpl dataSourceService;
-  private JobExecutorService jobExecutorService;
+  private AsyncQueryExecutorService asyncQueryExecutorService;
   private Injector injector;
 
   public String name() {
@@ -158,7 +156,7 @@ public class SQLPlugin extends Plugin implements ActionPlugin, ScriptPlugin {
         new RestPPLStatsAction(settings, restController),
         new RestQuerySettingsAction(settings, restController),
         new RestDataSourceQueryAction(),
-        new RestJobManagementAction());
+        new RestAsyncQueryManagementAction());
   }
 
   /** Register action and handler so that transportClient can find proxy for action. */
@@ -184,18 +182,17 @@ public class SQLPlugin extends Plugin implements ActionPlugin, ScriptPlugin {
                 TransportDeleteDataSourceAction.NAME, DeleteDataSourceActionResponse::new),
             TransportDeleteDataSourceAction.class),
         new ActionHandler<>(
-            new ActionType<>(TransportCreateJobRequestAction.NAME, CreateJobActionResponse::new),
-            TransportCreateJobRequestAction.class),
-        new ActionHandler<>(
-            new ActionType<>(TransportGetJobRequestAction.NAME, GetJobActionResponse::new),
-            TransportGetJobRequestAction.class),
+            new ActionType<>(
+                TransportCreateAsyncQueryRequestAction.NAME, CreateAsyncQueryActionResponse::new),
+            TransportCreateAsyncQueryRequestAction.class),
         new ActionHandler<>(
             new ActionType<>(
-                TransportGetQueryResultRequestAction.NAME, GetJobQueryResultActionResponse::new),
-            TransportGetQueryResultRequestAction.class),
+                TransportGetAsyncQueryResultAction.NAME, GetAsyncQueryResultActionResponse::new),
+            TransportGetAsyncQueryResultAction.class),
         new ActionHandler<>(
-            new ActionType<>(TransportDeleteJobRequestAction.NAME, DeleteJobActionResponse::new),
-            TransportDeleteJobRequestAction.class));
+            new ActionType<>(
+                TransportCancelAsyncQueryRequestAction.NAME, CancelAsyncQueryActionResponse::new),
+            TransportCancelAsyncQueryRequestAction.class));
   }
 
   @Override
@@ -221,12 +218,12 @@ public class SQLPlugin extends Plugin implements ActionPlugin, ScriptPlugin {
     if (StringUtils.isEmpty(this.pluginSettings.getSettingValue(SPARK_EXECUTION_ENGINE_CONFIG))) {
       LOGGER.warn(
           String.format(
-              "Job APIs are disabled as %s is not configured in cluster settings. "
-                  + "Please configure and restart the domain to enable JobAPIs",
+              "Async Query APIs are disabled as %s is not configured in cluster settings. "
+                  + "Please configure and restart the domain to enable Async Query APIs",
               SPARK_EXECUTION_ENGINE_CONFIG.getKeyValue()));
-      this.jobExecutorService = new JobExecutorServiceImpl();
+      this.asyncQueryExecutorService = new AsyncQueryExecutorServiceImpl();
     } else {
-      this.jobExecutorService = createJobExecutorService();
+      this.asyncQueryExecutorService = createAsyncQueryExecutorService();
     }
 
     ModulesBuilder modules = new ModulesBuilder();
@@ -239,7 +236,7 @@ public class SQLPlugin extends Plugin implements ActionPlugin, ScriptPlugin {
         });
 
     injector = modules.createInjector();
-    return ImmutableList.of(dataSourceService, jobExecutorService);
+    return ImmutableList.of(dataSourceService, asyncQueryExecutorService);
   }
 
   @Override
@@ -297,23 +294,23 @@ public class SQLPlugin extends Plugin implements ActionPlugin, ScriptPlugin {
         dataSourceUserAuthorizationHelper);
   }
 
-  private JobExecutorService createJobExecutorService() {
-    JobMetadataStorageService jobMetadataStorageService =
-        new OpensearchJobMetadataStorageService(client, clusterService);
-    EmrServerlessClient emrServerlessClient = createEMRServerlessClient();
+  private AsyncQueryExecutorService createAsyncQueryExecutorService() {
+    AsyncQueryJobMetadataStorageService asyncQueryJobMetadataStorageService =
+        new OpensearchAsyncQueryJobMetadataStorageService(client, clusterService);
+    SparkJobClient sparkJobClient = createEMRServerlessClient();
     JobExecutionResponseReader jobExecutionResponseReader = new JobExecutionResponseReader(client);
     SparkQueryDispatcher sparkQueryDispatcher =
         new SparkQueryDispatcher(
-            emrServerlessClient, this.dataSourceService, jobExecutionResponseReader);
-    return new JobExecutorServiceImpl(
-        jobMetadataStorageService, sparkQueryDispatcher, pluginSettings);
+            sparkJobClient, this.dataSourceService, jobExecutionResponseReader);
+    return new AsyncQueryExecutorServiceImpl(
+        asyncQueryJobMetadataStorageService, sparkQueryDispatcher, pluginSettings);
   }
 
-  private EmrServerlessClient createEMRServerlessClient() {
+  private SparkJobClient createEMRServerlessClient() {
     String sparkExecutionEngineConfigString =
         this.pluginSettings.getSettingValue(SPARK_EXECUTION_ENGINE_CONFIG);
     return AccessController.doPrivileged(
-        (PrivilegedAction<EmrServerlessClient>)
+        (PrivilegedAction<SparkJobClient>)
             () -> {
               SparkExecutionEngineConfig sparkExecutionEngineConfig =
                   SparkExecutionEngineConfig.toSparkExecutionEngineConfig(

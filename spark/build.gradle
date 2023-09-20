@@ -60,9 +60,8 @@ jacocoTestCoverageVerification {
                     'org.opensearch.sql.spark.data.constants.*',
                     'org.opensearch.sql.spark.rest.*',
                     'org.opensearch.sql.spark.transport.model.*',
-                    'org.opensearch.sql.spark.jobs.model.*',
-                    'org.opensearch.sql.spark.jobs.config.*',
-                    'org.opensearch.sql.spark.jobs.execution.*'
+                    'org.opensearch.sql.spark.asyncquery.model.*',
+                    'org.opensearch.sql.spark.asyncquery.exceptions.*'
             ]
             limit {
                 counter = 'LINE'

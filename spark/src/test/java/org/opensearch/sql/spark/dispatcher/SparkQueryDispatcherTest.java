@@ -30,22 +30,21 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.opensearch.sql.datasource.DataSourceService;
 import org.opensearch.sql.datasource.model.DataSourceMetadata;
 import org.opensearch.sql.datasource.model.DataSourceType;
-import org.opensearch.sql.spark.client.EmrServerlessClient;
+import org.opensearch.sql.spark.client.SparkJobClient;
 import org.opensearch.sql.spark.response.JobExecutionResponseReader;
 
 @ExtendWith(MockitoExtension.class)
 public class SparkQueryDispatcherTest {
 
-  @Mock private EmrServerlessClient emrServerlessClient;
+  @Mock private SparkJobClient sparkJobClient;
   @Mock private DataSourceService dataSourceService;
   @Mock private JobExecutionResponseReader jobExecutionResponseReader;
 
   @Test
   void testDispatch() {
     SparkQueryDispatcher sparkQueryDispatcher =
-        new SparkQueryDispatcher(
-            emrServerlessClient, dataSourceService, jobExecutionResponseReader);
-    when(emrServerlessClient.startJobRun(
+        new SparkQueryDispatcher(sparkJobClient, dataSourceService, jobExecutionResponseReader);
+    when(sparkJobClient.startJobRun(
             QUERY,
             "flint-opensearch-query",
             EMRS_APPLICATION_ID,
@@ -55,7 +54,7 @@ public class SparkQueryDispatcherTest {
     when(dataSourceService.getRawDataSourceMetadata("my_glue"))
         .thenReturn(constructMyGlueDataSourceMetadata());
     String jobId = sparkQueryDispatcher.dispatch(EMRS_APPLICATION_ID, QUERY, EMRS_EXECUTION_ROLE);
-    verify(emrServerlessClient, times(1))
+    verify(sparkJobClient, times(1))
         .startJobRun(
             QUERY,
             "flint-opensearch-query",
@@ -68,8 +67,7 @@ public class SparkQueryDispatcherTest {
   @Test
   void testDispatchWithWrongURI() {
     SparkQueryDispatcher sparkQueryDispatcher =
-        new SparkQueryDispatcher(
-            emrServerlessClient, dataSourceService, jobExecutionResponseReader);
+        new SparkQueryDispatcher(sparkJobClient, dataSourceService, jobExecutionResponseReader);
     when(dataSourceService.getRawDataSourceMetadata("my_glue"))
         .thenReturn(constructMyGlueDataSourceMetadataWithBadURISyntax());
     IllegalArgumentException illegalArgumentException =
@@ -116,9 +114,8 @@ public class SparkQueryDispatcherTest {
   @Test
   void testGetQueryResponse() {
     SparkQueryDispatcher sparkQueryDispatcher =
-        new SparkQueryDispatcher(
-            emrServerlessClient, dataSourceService, jobExecutionResponseReader);
-    when(emrServerlessClient.getJobRunResult(EMRS_APPLICATION_ID, EMR_JOB_ID))
+        new SparkQueryDispatcher(sparkJobClient, dataSourceService, jobExecutionResponseReader);
+    when(sparkJobClient.getJobRunResult(EMRS_APPLICATION_ID, EMR_JOB_ID))
         .thenReturn(new GetJobRunResult().withJobRun(new JobRun().withState(JobRunState.PENDING)));
     JSONObject result = sparkQueryDispatcher.getQueryResponse(EMRS_APPLICATION_ID, EMR_JOB_ID);
     Assertions.assertEquals("PENDING", result.get("status"));
@@ -128,16 +125,15 @@ public class SparkQueryDispatcherTest {
   @Test
   void testGetQueryResponseWithSuccess() {
     SparkQueryDispatcher sparkQueryDispatcher =
-        new SparkQueryDispatcher(
-            emrServerlessClient, dataSourceService, jobExecutionResponseReader);
-    when(emrServerlessClient.getJobRunResult(EMRS_APPLICATION_ID, EMR_JOB_ID))
+        new SparkQueryDispatcher(sparkJobClient, dataSourceService, jobExecutionResponseReader);
+    when(sparkJobClient.getJobRunResult(EMRS_APPLICATION_ID, EMR_JOB_ID))
         .thenReturn(new GetJobRunResult().withJobRun(new JobRun().withState(JobRunState.SUCCESS)));
     JSONObject queryResult = new JSONObject();
     queryResult.put("data", "result");
     when(jobExecutionResponseReader.getResultFromOpensearchIndex(EMR_JOB_ID))
         .thenReturn(queryResult);
     JSONObject result = sparkQueryDispatcher.getQueryResponse(EMRS_APPLICATION_ID, EMR_JOB_ID);
-    verify(emrServerlessClient, times(1)).getJobRunResult(EMRS_APPLICATION_ID, EMR_JOB_ID);
+    verify(sparkJobClient, times(1)).getJobRunResult(EMRS_APPLICATION_ID, EMR_JOB_ID);
     verify(jobExecutionResponseReader, times(1)).getResultFromOpensearchIndex(EMR_JOB_ID);
     Assertions.assertEquals(new HashSet<>(Arrays.asList("data", "status")), result.keySet());
     Assertions.assertEquals("result", result.get("data"));
@@ -170,7 +166,7 @@ public class SparkQueryDispatcherTest {
                + "  --conf"
                + " spark.emr-serverless.driverEnv.ASSUME_ROLE_CREDENTIALS_ROLE_ARN=arn:aws:iam::924196221507:role/FlintOpensearchServiceRole"
                + "  --conf"
-               + " spark.emr-serverless.executorEnv.ASSUME_ROLE_CREDENTIALS_ROLE_ARN=arn:aws:iam::924196221507:role/FlintOpensearchServiceRole"
+               + " spark.executorEnv.ASSUME_ROLE_CREDENTIALS_ROLE_ARN=arn:aws:iam::924196221507:role/FlintOpensearchServiceRole"
                + "  --conf"
                + " spark.hive.metastore.glue.role.arn=arn:aws:iam::924196221507:role/FlintOpensearchServiceRole"
                + "  --conf spark.sql.catalog.my_glue=org.opensearch.sql.FlintDelegateCatalog ";
