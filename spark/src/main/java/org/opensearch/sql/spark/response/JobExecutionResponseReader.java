@@ -6,16 +6,11 @@
 package org.opensearch.sql.spark.response;
 
 import static org.opensearch.sql.spark.data.constants.SparkConstants.SPARK_RESPONSE_BUFFER_INDEX_NAME;
+import static org.opensearch.sql.spark.data.constants.SparkConstants.STEP_ID_FIELD;
 
-import com.google.common.annotations.VisibleForTesting;
-import lombok.Data;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.json.JSONObject;
-import org.opensearch.ResourceNotFoundException;
-import org.opensearch.action.DocWriteResponse;
-import org.opensearch.action.delete.DeleteRequest;
-import org.opensearch.action.delete.DeleteResponse;
 import org.opensearch.action.search.SearchRequest;
 import org.opensearch.action.search.SearchResponse;
 import org.opensearch.client.Client;
@@ -25,28 +20,21 @@ import org.opensearch.index.query.QueryBuilders;
 import org.opensearch.search.SearchHit;
 import org.opensearch.search.builder.SearchSourceBuilder;
 
-@Data
-public class SparkResponse {
+public class JobExecutionResponseReader {
   private final Client client;
-  private String value;
-  private final String field;
   private static final Logger LOG = LogManager.getLogger();
 
   /**
-   * Response for spark sql query.
+   * JobExecutionResponseReader for spark query.
    *
    * @param client Opensearch client
-   * @param value Identifier field value
-   * @param field Identifier field name
    */
-  public SparkResponse(Client client, String value, String field) {
+  public JobExecutionResponseReader(Client client) {
     this.client = client;
-    this.value = value;
-    this.field = field;
   }
 
-  public JSONObject getResultFromOpensearchIndex() {
-    return searchInSparkIndex(QueryBuilders.termQuery(field, value));
+  public JSONObject getResultFromOpensearchIndex(String jobId) {
+    return searchInSparkIndex(QueryBuilders.termQuery(STEP_ID_FIELD, jobId));
   }
 
   private JSONObject searchInSparkIndex(QueryBuilder query) {
@@ -72,31 +60,8 @@ public class SparkResponse {
       JSONObject data = new JSONObject();
       for (SearchHit searchHit : searchResponse.getHits().getHits()) {
         data.put("data", searchHit.getSourceAsMap());
-        deleteInSparkIndex(searchHit.getId());
       }
       return data;
-    }
-  }
-
-  @VisibleForTesting
-  void deleteInSparkIndex(String id) {
-    DeleteRequest deleteRequest = new DeleteRequest(SPARK_RESPONSE_BUFFER_INDEX_NAME);
-    deleteRequest.id(id);
-    ActionFuture<DeleteResponse> deleteResponseActionFuture;
-    try {
-      deleteResponseActionFuture = client.delete(deleteRequest);
-    } catch (Exception e) {
-      throw new RuntimeException(e);
-    }
-    DeleteResponse deleteResponse = deleteResponseActionFuture.actionGet();
-    if (deleteResponse.getResult().equals(DocWriteResponse.Result.DELETED)) {
-      LOG.debug("Spark result successfully deleted ", id);
-    } else if (deleteResponse.getResult().equals(DocWriteResponse.Result.NOT_FOUND)) {
-      throw new ResourceNotFoundException("Spark result with id " + id + " doesn't exist");
-    } else {
-      throw new RuntimeException(
-          "Deleting spark result information failed with : "
-              + deleteResponse.getResult().getLowercase());
     }
   }
 }

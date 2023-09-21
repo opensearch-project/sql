@@ -27,30 +27,27 @@ import org.opensearch.rest.RestChannel;
 import org.opensearch.rest.RestRequest;
 import org.opensearch.sql.datasources.exceptions.ErrorMessage;
 import org.opensearch.sql.datasources.utils.Scheduler;
-import org.opensearch.sql.spark.rest.model.CreateJobRequest;
-import org.opensearch.sql.spark.transport.TransportCreateJobRequestAction;
-import org.opensearch.sql.spark.transport.TransportDeleteJobRequestAction;
-import org.opensearch.sql.spark.transport.TransportGetJobRequestAction;
-import org.opensearch.sql.spark.transport.TransportGetQueryResultRequestAction;
-import org.opensearch.sql.spark.transport.model.CreateJobActionRequest;
-import org.opensearch.sql.spark.transport.model.CreateJobActionResponse;
-import org.opensearch.sql.spark.transport.model.DeleteJobActionRequest;
-import org.opensearch.sql.spark.transport.model.DeleteJobActionResponse;
-import org.opensearch.sql.spark.transport.model.GetJobActionRequest;
-import org.opensearch.sql.spark.transport.model.GetJobActionResponse;
-import org.opensearch.sql.spark.transport.model.GetJobQueryResultActionRequest;
-import org.opensearch.sql.spark.transport.model.GetJobQueryResultActionResponse;
+import org.opensearch.sql.spark.rest.model.CreateAsyncQueryRequest;
+import org.opensearch.sql.spark.transport.TransportCancelAsyncQueryRequestAction;
+import org.opensearch.sql.spark.transport.TransportCreateAsyncQueryRequestAction;
+import org.opensearch.sql.spark.transport.TransportGetAsyncQueryResultAction;
+import org.opensearch.sql.spark.transport.model.CancelAsyncQueryActionRequest;
+import org.opensearch.sql.spark.transport.model.CancelAsyncQueryActionResponse;
+import org.opensearch.sql.spark.transport.model.CreateAsyncQueryActionRequest;
+import org.opensearch.sql.spark.transport.model.CreateAsyncQueryActionResponse;
+import org.opensearch.sql.spark.transport.model.GetAsyncQueryResultActionRequest;
+import org.opensearch.sql.spark.transport.model.GetAsyncQueryResultActionResponse;
 
-public class RestJobManagementAction extends BaseRestHandler {
+public class RestAsyncQueryManagementAction extends BaseRestHandler {
 
-  public static final String JOB_ACTIONS = "job_actions";
-  public static final String BASE_JOB_ACTION_URL = "/_plugins/_query/_jobs";
+  public static final String ASYNC_QUERY_ACTIONS = "async_query_actions";
+  public static final String BASE_ASYNC_QUERY_ACTION_URL = "/_plugins/_async_query";
 
-  private static final Logger LOG = LogManager.getLogger(RestJobManagementAction.class);
+  private static final Logger LOG = LogManager.getLogger(RestAsyncQueryManagementAction.class);
 
   @Override
   public String getName() {
-    return JOB_ACTIONS;
+    return ASYNC_QUERY_ACTIONS;
   }
 
   @Override
@@ -59,47 +56,38 @@ public class RestJobManagementAction extends BaseRestHandler {
 
         /*
          *
-         * Create a new job with spark execution engine.
+         * Create a new async query using spark execution engine.
          * Request URL: POST
          * Request body:
-         * Ref [org.opensearch.sql.spark.transport.model.SubmitJobActionRequest]
+         * Ref [org.opensearch.sql.spark.transport.model.CreateAsyncQueryActionRequest]
          * Response body:
-         * Ref [org.opensearch.sql.spark.transport.model.SubmitJobActionResponse]
+         * Ref [org.opensearch.sql.spark.transport.model.CreateAsyncQueryActionResponse]
          */
-        new Route(POST, BASE_JOB_ACTION_URL),
+        new Route(POST, BASE_ASYNC_QUERY_ACTION_URL),
 
         /*
          *
-         * GET jobs with in spark execution engine.
+         * GET Async Query result with in spark execution engine.
          * Request URL: GET
          * Request body:
-         * Ref [org.opensearch.sql.spark.transport.model.SubmitJobActionRequest]
+         * Ref [org.opensearch.sql.spark.transport.model.GetAsyncQueryResultActionRequest]
          * Response body:
-         * Ref [org.opensearch.sql.spark.transport.model.SubmitJobActionResponse]
+         * Ref [org.opensearch.sql.spark.transport.model.GetAsyncQueryResultActionResponse]
          */
-        new Route(GET, String.format(Locale.ROOT, "%s/{%s}", BASE_JOB_ACTION_URL, "jobId")),
-        new Route(GET, BASE_JOB_ACTION_URL),
+        new Route(
+            GET, String.format(Locale.ROOT, "%s/{%s}", BASE_ASYNC_QUERY_ACTION_URL, "queryId")),
 
         /*
          *
          * Cancel a job within spark execution engine.
          * Request URL: DELETE
          * Request body:
-         * Ref [org.opensearch.sql.spark.transport.model.SubmitJobActionRequest]
+         * Ref [org.opensearch.sql.spark.transport.model.CancelAsyncQueryActionRequest]
          * Response body:
-         * Ref [org.opensearch.sql.spark.transport.model.SubmitJobActionResponse]
+         * Ref [org.opensearch.sql.spark.transport.model.CancelAsyncQueryActionResponse]
          */
-        new Route(DELETE, String.format(Locale.ROOT, "%s/{%s}", BASE_JOB_ACTION_URL, "jobId")),
-
-        /*
-         * GET query result from job {{jobId}} execution.
-         * Request URL: GET
-         * Request body:
-         * Ref [org.opensearch.sql.spark.transport.model.GetJobQueryResultActionRequest]
-         * Response body:
-         * Ref [org.opensearch.sql.spark.transport.model.GetJobQueryResultActionResponse]
-         */
-        new Route(GET, String.format(Locale.ROOT, "%s/{%s}/result", BASE_JOB_ACTION_URL, "jobId")));
+        new Route(
+            DELETE, String.format(Locale.ROOT, "%s/{%s}", BASE_ASYNC_QUERY_ACTION_URL, "queryId")));
   }
 
   @Override
@@ -109,7 +97,7 @@ public class RestJobManagementAction extends BaseRestHandler {
       case POST:
         return executePostRequest(restRequest, nodeClient);
       case GET:
-        return executeGetRequest(restRequest, nodeClient);
+        return executeGetAsyncQueryResultRequest(restRequest, nodeClient);
       case DELETE:
         return executeDeleteRequest(restRequest, nodeClient);
       default:
@@ -122,23 +110,24 @@ public class RestJobManagementAction extends BaseRestHandler {
 
   private RestChannelConsumer executePostRequest(RestRequest restRequest, NodeClient nodeClient)
       throws IOException {
-    CreateJobRequest submitJobRequest =
-        CreateJobRequest.fromXContentParser(restRequest.contentParser());
+    CreateAsyncQueryRequest submitJobRequest =
+        CreateAsyncQueryRequest.fromXContentParser(restRequest.contentParser());
     return restChannel ->
         Scheduler.schedule(
             nodeClient,
             () ->
                 nodeClient.execute(
-                    TransportCreateJobRequestAction.ACTION_TYPE,
-                    new CreateJobActionRequest(submitJobRequest),
+                    TransportCreateAsyncQueryRequestAction.ACTION_TYPE,
+                    new CreateAsyncQueryActionRequest(submitJobRequest),
                     new ActionListener<>() {
                       @Override
-                      public void onResponse(CreateJobActionResponse createJobActionResponse) {
+                      public void onResponse(
+                          CreateAsyncQueryActionResponse createAsyncQueryActionResponse) {
                         restChannel.sendResponse(
                             new BytesRestResponse(
                                 RestStatus.CREATED,
                                 "application/json; charset=UTF-8",
-                                submitJobRequest.getQuery()));
+                                createAsyncQueryActionResponse.getResult()));
                       }
 
                       @Override
@@ -148,60 +137,25 @@ public class RestJobManagementAction extends BaseRestHandler {
                     }));
   }
 
-  private RestChannelConsumer executeGetRequest(RestRequest restRequest, NodeClient nodeClient) {
-    Boolean isResultRequest = restRequest.rawPath().contains("result");
-    if (isResultRequest) {
-      return executeGetJobQueryResultRequest(nodeClient, restRequest);
-    } else {
-      return executeGetJobRequest(nodeClient, restRequest);
-    }
-  }
-
-  private RestChannelConsumer executeGetJobQueryResultRequest(
-      NodeClient nodeClient, RestRequest restRequest) {
-    String jobId = restRequest.param("jobId");
+  private RestChannelConsumer executeGetAsyncQueryResultRequest(
+      RestRequest restRequest, NodeClient nodeClient) {
+    String queryId = restRequest.param("queryId");
     return restChannel ->
         Scheduler.schedule(
             nodeClient,
             () ->
                 nodeClient.execute(
-                    TransportGetQueryResultRequestAction.ACTION_TYPE,
-                    new GetJobQueryResultActionRequest(jobId),
+                    TransportGetAsyncQueryResultAction.ACTION_TYPE,
+                    new GetAsyncQueryResultActionRequest(queryId),
                     new ActionListener<>() {
                       @Override
                       public void onResponse(
-                          GetJobQueryResultActionResponse getJobQueryResultActionResponse) {
+                          GetAsyncQueryResultActionResponse getAsyncQueryResultActionResponse) {
                         restChannel.sendResponse(
                             new BytesRestResponse(
                                 RestStatus.OK,
                                 "application/json; charset=UTF-8",
-                                getJobQueryResultActionResponse.getResult()));
-                      }
-
-                      @Override
-                      public void onFailure(Exception e) {
-                        handleException(e, restChannel);
-                      }
-                    }));
-  }
-
-  private RestChannelConsumer executeGetJobRequest(NodeClient nodeClient, RestRequest restRequest) {
-    String jobId = restRequest.param("jobId");
-    return restChannel ->
-        Scheduler.schedule(
-            nodeClient,
-            () ->
-                nodeClient.execute(
-                    TransportGetJobRequestAction.ACTION_TYPE,
-                    new GetJobActionRequest(jobId),
-                    new ActionListener<>() {
-                      @Override
-                      public void onResponse(GetJobActionResponse getJobActionResponse) {
-                        restChannel.sendResponse(
-                            new BytesRestResponse(
-                                RestStatus.OK,
-                                "application/json; charset=UTF-8",
-                                getJobActionResponse.getResult()));
+                                getAsyncQueryResultActionResponse.getResult()));
                       }
 
                       @Override
@@ -226,22 +180,23 @@ public class RestJobManagementAction extends BaseRestHandler {
   }
 
   private RestChannelConsumer executeDeleteRequest(RestRequest restRequest, NodeClient nodeClient) {
-    String jobId = restRequest.param("jobId");
+    String queryId = restRequest.param("queryId");
     return restChannel ->
         Scheduler.schedule(
             nodeClient,
             () ->
                 nodeClient.execute(
-                    TransportDeleteJobRequestAction.ACTION_TYPE,
-                    new DeleteJobActionRequest(jobId),
+                    TransportCancelAsyncQueryRequestAction.ACTION_TYPE,
+                    new CancelAsyncQueryActionRequest(queryId),
                     new ActionListener<>() {
                       @Override
-                      public void onResponse(DeleteJobActionResponse deleteJobActionResponse) {
+                      public void onResponse(
+                          CancelAsyncQueryActionResponse cancelAsyncQueryActionResponse) {
                         restChannel.sendResponse(
                             new BytesRestResponse(
                                 RestStatus.OK,
                                 "application/json; charset=UTF-8",
-                                deleteJobActionResponse.getResult()));
+                                cancelAsyncQueryActionResponse.getResult()));
                       }
 
                       @Override

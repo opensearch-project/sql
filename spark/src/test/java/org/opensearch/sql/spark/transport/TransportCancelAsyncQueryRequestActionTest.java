@@ -19,35 +19,37 @@ import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.opensearch.action.support.ActionFilters;
 import org.opensearch.core.action.ActionListener;
-import org.opensearch.sql.spark.transport.model.DeleteJobActionRequest;
-import org.opensearch.sql.spark.transport.model.DeleteJobActionResponse;
+import org.opensearch.sql.spark.transport.model.CancelAsyncQueryActionRequest;
+import org.opensearch.sql.spark.transport.model.CancelAsyncQueryActionResponse;
 import org.opensearch.tasks.Task;
 import org.opensearch.transport.TransportService;
 
 @ExtendWith(MockitoExtension.class)
-public class TransportDeleteJobRequestActionTest {
+public class TransportCancelAsyncQueryRequestActionTest {
 
   @Mock private TransportService transportService;
-  @Mock private TransportDeleteJobRequestAction action;
+  @Mock private TransportCancelAsyncQueryRequestAction action;
   @Mock private Task task;
-  @Mock private ActionListener<DeleteJobActionResponse> actionListener;
+  @Mock private ActionListener<CancelAsyncQueryActionResponse> actionListener;
 
-  @Captor private ArgumentCaptor<DeleteJobActionResponse> deleteJobActionResponseArgumentCaptor;
+  @Captor
+  private ArgumentCaptor<CancelAsyncQueryActionResponse> deleteJobActionResponseArgumentCaptor;
 
   @BeforeEach
   public void setUp() {
     action =
-        new TransportDeleteJobRequestAction(transportService, new ActionFilters(new HashSet<>()));
+        new TransportCancelAsyncQueryRequestAction(
+            transportService, new ActionFilters(new HashSet<>()));
   }
 
   @Test
   public void testDoExecute() {
-    DeleteJobActionRequest request = new DeleteJobActionRequest("jobId");
+    CancelAsyncQueryActionRequest request = new CancelAsyncQueryActionRequest("jobId");
 
     action.doExecute(task, request, actionListener);
     Mockito.verify(actionListener).onResponse(deleteJobActionResponseArgumentCaptor.capture());
-    DeleteJobActionResponse deleteJobActionResponse =
+    CancelAsyncQueryActionResponse cancelAsyncQueryActionResponse =
         deleteJobActionResponseArgumentCaptor.getValue();
-    Assertions.assertEquals("deleted_job", deleteJobActionResponse.getResult());
+    Assertions.assertEquals("deleted_job", cancelAsyncQueryActionResponse.getResult());
   }
 }

@@ -209,6 +209,11 @@ public class AnalyzerTestBase {
     }
 
     @Override
+    public DataSourceMetadata getRawDataSourceMetadata(String name) {
+      return null;
+    }
+
+    @Override
     public void createDataSource(DataSourceMetadata metadata) {
       throw new UnsupportedOperationException("unsupported operation");
     }

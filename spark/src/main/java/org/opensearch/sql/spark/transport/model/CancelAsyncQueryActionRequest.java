@@ -14,12 +14,12 @@ import org.opensearch.action.ActionRequestValidationException;
 import org.opensearch.core.common.io.stream.StreamInput;
 
 @AllArgsConstructor
-public class DeleteJobActionRequest extends ActionRequest {
+public class CancelAsyncQueryActionRequest extends ActionRequest {
 
-  private String jobId;
+  private String queryId;
 
   /** Constructor of SubmitJobActionRequest from StreamInput. */
-  public DeleteJobActionRequest(StreamInput in) throws IOException {
+  public CancelAsyncQueryActionRequest(StreamInput in) throws IOException {
     super(in);
   }
 

@@ -64,29 +64,17 @@ public class DataSourceServiceImpl implements DataSourceService {
   }
 
   @Override
-  public DataSourceMetadata getDataSourceMetadata(String datasourceName) {
-    Optional<DataSourceMetadata> dataSourceMetadataOptional =
-        getDataSourceMetadataFromName(datasourceName);
-    if (dataSourceMetadataOptional.isEmpty()) {
-      throw new IllegalArgumentException(
-          "DataSource with name: " + datasourceName + " doesn't exist.");
-    }
-    removeAuthInfo(dataSourceMetadataOptional.get());
-    return dataSourceMetadataOptional.get();
+  public DataSourceMetadata getDataSourceMetadata(String dataSourceName) {
+    DataSourceMetadata dataSourceMetadata = getRawDataSourceMetadata(dataSourceName);
+    removeAuthInfo(dataSourceMetadata);
+    return dataSourceMetadata;
   }
 
   @Override
   public DataSource getDataSource(String dataSourceName) {
-    Optional<DataSourceMetadata> dataSourceMetadataOptional =
-        getDataSourceMetadataFromName(dataSourceName);
-    if (dataSourceMetadataOptional.isEmpty()) {
-      throw new DataSourceNotFoundException(
-          String.format("DataSource with name %s doesn't exist.", dataSourceName));
-    } else {
-      DataSourceMetadata dataSourceMetadata = dataSourceMetadataOptional.get();
-      this.dataSourceUserAuthorizationHelper.authorizeDataSource(dataSourceMetadata);
-      return dataSourceLoaderCache.getOrLoadDataSource(dataSourceMetadata);
-    }
+    DataSourceMetadata dataSourceMetadata = getRawDataSourceMetadata(dataSourceName);
+    this.dataSourceUserAuthorizationHelper.authorizeDataSource(dataSourceMetadata);
+    return dataSourceLoaderCache.getOrLoadDataSource(dataSourceMetadata);
   }
 
   @Override
@@ -146,11 +134,20 @@ public class DataSourceServiceImpl implements DataSourceService {
             + " Properties are required parameters.");
   }
 
-  private Optional<DataSourceMetadata> getDataSourceMetadataFromName(String dataSourceName) {
+  @Override
+  public DataSourceMetadata getRawDataSourceMetadata(String dataSourceName) {
     if (dataSourceName.equals(DEFAULT_DATASOURCE_NAME)) {
-      return Optional.of(DataSourceMetadata.defaultOpenSearchDataSourceMetadata());
+      return DataSourceMetadata.defaultOpenSearchDataSourceMetadata();
+
     } else {
-      return this.dataSourceMetadataStorage.getDataSourceMetadata(dataSourceName);
+      Optional<DataSourceMetadata> dataSourceMetadataOptional =
+          this.dataSourceMetadataStorage.getDataSourceMetadata(dataSourceName);
+      if (dataSourceMetadataOptional.isEmpty()) {
+        throw new DataSourceNotFoundException(
+            String.format("DataSource with name %s doesn't exist.", dataSourceName));
+      } else {
+        return dataSourceMetadataOptional.get();
+      }
     }
   }
 

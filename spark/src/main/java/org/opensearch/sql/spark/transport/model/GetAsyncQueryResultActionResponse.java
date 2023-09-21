@@ -15,11 +15,11 @@ import org.opensearch.core.common.io.stream.StreamInput;
 import org.opensearch.core.common.io.stream.StreamOutput;
 
 @RequiredArgsConstructor
-public class GetJobQueryResultActionResponse extends ActionResponse {
+public class GetAsyncQueryResultActionResponse extends ActionResponse {
 
   @Getter private final String result;
 
-  public GetJobQueryResultActionResponse(StreamInput in) throws IOException {
+  public GetAsyncQueryResultActionResponse(StreamInput in) throws IOException {
     super(in);
     result = in.readString();
   }

@@ -15,12 +15,12 @@ import org.opensearch.action.ActionRequestValidationException;
 import org.opensearch.core.common.io.stream.StreamInput;
 
 @AllArgsConstructor
-public class GetJobQueryResultActionRequest extends ActionRequest {
+public class GetAsyncQueryResultActionRequest extends ActionRequest {
 
-  @Getter private String jobId;
+  @Getter private String queryId;
 
   /** Constructor of GetJobQueryResultActionRequest from StreamInput. */
-  public GetJobQueryResultActionRequest(StreamInput in) throws IOException {
+  public GetAsyncQueryResultActionRequest(StreamInput in) throws IOException {
     super(in);
   }
 
