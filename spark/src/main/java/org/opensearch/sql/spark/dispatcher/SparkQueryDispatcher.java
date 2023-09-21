@@ -15,6 +15,7 @@ import static org.opensearch.sql.spark.data.constants.SparkConstants.FLINT_INDEX
 import static org.opensearch.sql.spark.data.constants.SparkConstants.FLINT_INDEX_STORE_SCHEME_KEY;
 import static org.opensearch.sql.spark.data.constants.SparkConstants.HIVE_METASTORE_GLUE_ARN_KEY;
 
+import com.amazonaws.services.emrserverless.model.CancelJobRunResult;
 import com.amazonaws.services.emrserverless.model.GetJobRunResult;
 import com.amazonaws.services.emrserverless.model.JobRunState;
 import java.net.URI;
@@ -62,6 +63,11 @@ public class SparkQueryDispatcher {
     }
     result.put("status", getJobRunResult.getJobRun().getState());
     return result;
+  }
+
+  public String cancelJob(String applicationId, String jobId) {
+    CancelJobRunResult cancelJobRunResult = sparkJobClient.cancelJobRun(applicationId, jobId);
+    return cancelJobRunResult.getJobRunId();
   }
 
   // TODO: Analyze given query

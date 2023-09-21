@@ -9,11 +9,13 @@ package org.opensearch.sql.spark.transport.model;
 
 import java.io.IOException;
 import lombok.AllArgsConstructor;
+import lombok.Getter;
 import org.opensearch.action.ActionRequest;
 import org.opensearch.action.ActionRequestValidationException;
 import org.opensearch.core.common.io.stream.StreamInput;
 
 @AllArgsConstructor
+@Getter
 public class CancelAsyncQueryActionRequest extends ActionRequest {
 
   private String queryId;

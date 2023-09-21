@@ -12,6 +12,7 @@ import org.opensearch.action.support.ActionFilters;
 import org.opensearch.action.support.HandledTransportAction;
 import org.opensearch.common.inject.Inject;
 import org.opensearch.core.action.ActionListener;
+import org.opensearch.sql.spark.asyncquery.AsyncQueryExecutorServiceImpl;
 import org.opensearch.sql.spark.transport.model.CancelAsyncQueryActionRequest;
 import org.opensearch.sql.spark.transport.model.CancelAsyncQueryActionResponse;
 import org.opensearch.tasks.Task;
@@ -21,13 +22,17 @@ public class TransportCancelAsyncQueryRequestAction
     extends HandledTransportAction<CancelAsyncQueryActionRequest, CancelAsyncQueryActionResponse> {
 
   public static final String NAME = "cluster:admin/opensearch/ql/async_query/delete";
+  private final AsyncQueryExecutorServiceImpl asyncQueryExecutorService;
   public static final ActionType<CancelAsyncQueryActionResponse> ACTION_TYPE =
       new ActionType<>(NAME, CancelAsyncQueryActionResponse::new);
 
   @Inject
   public TransportCancelAsyncQueryRequestAction(
-      TransportService transportService, ActionFilters actionFilters) {
+      TransportService transportService,
+      ActionFilters actionFilters,
+      AsyncQueryExecutorServiceImpl asyncQueryExecutorService) {
     super(NAME, transportService, actionFilters, CancelAsyncQueryActionRequest::new);
+    this.asyncQueryExecutorService = asyncQueryExecutorService;
   }
 
   @Override
@@ -35,7 +40,13 @@ public class TransportCancelAsyncQueryRequestAction
       Task task,
       CancelAsyncQueryActionRequest request,
       ActionListener<CancelAsyncQueryActionResponse> listener) {
-    String responseContent = "deleted_job";
-    listener.onResponse(new CancelAsyncQueryActionResponse(responseContent));
+    try {
+      String jobId = asyncQueryExecutorService.cancelQuery(request.getQueryId());
+      listener.onResponse(
+          new CancelAsyncQueryActionResponse(
+              String.format("Deleted async query with id: %s", jobId)));
+    } catch (Exception e) {
+      listener.onFailure(e);
+    }
   }
 }

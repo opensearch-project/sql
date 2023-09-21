@@ -95,6 +95,17 @@ public class AsyncQueryExecutorServiceImpl implements AsyncQueryExecutorService 
     throw new AsyncQueryNotFoundException(String.format("QueryId: %s not found", queryId));
   }
 
+  @Override
+  public String cancelQuery(String queryId) {
+    Optional<AsyncQueryJobMetadata> asyncQueryJobMetadata =
+        asyncQueryJobMetadataStorageService.getJobMetadata(queryId);
+    if (asyncQueryJobMetadata.isPresent()) {
+      return sparkQueryDispatcher.cancelJob(
+          asyncQueryJobMetadata.get().getApplicationId(), queryId);
+    }
+    throw new AsyncQueryNotFoundException(String.format("QueryId: %s not found", queryId));
+  }
+
   private void validateSparkExecutionEngineSettings() {
     if (!isSparkJobExecutionEnabled) {
       throw new IllegalArgumentException(

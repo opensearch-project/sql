@@ -88,8 +88,7 @@ public class RestDataSourceQueryAction extends BaseRestHandler {
         new Route(GET, BASE_DATASOURCE_ACTION_URL),
 
         /*
-         * GET datasources
-         * Request URL: GET
+         * PUT datasources
          * Request body:
          * Ref
          * [org.opensearch.sql.plugin.transport.datasource.model.UpdateDataSourceActionRequest]
@@ -100,8 +99,7 @@ public class RestDataSourceQueryAction extends BaseRestHandler {
         new Route(PUT, BASE_DATASOURCE_ACTION_URL),
 
         /*
-         * GET datasources
-         * Request URL: GET
+         * DELETE datasources
          * Request body: Ref
          * [org.opensearch.sql.plugin.transport.datasource.model.DeleteDataSourceActionRequest]
          * Response body: Ref

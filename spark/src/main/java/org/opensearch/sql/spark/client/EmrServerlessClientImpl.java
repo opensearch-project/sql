@@ -9,12 +9,15 @@ import static org.opensearch.sql.spark.data.constants.SparkConstants.SPARK_RESPO
 import static org.opensearch.sql.spark.data.constants.SparkConstants.SPARK_SQL_APPLICATION_JAR;
 
 import com.amazonaws.services.emrserverless.AWSEMRServerless;
+import com.amazonaws.services.emrserverless.model.CancelJobRunRequest;
+import com.amazonaws.services.emrserverless.model.CancelJobRunResult;
 import com.amazonaws.services.emrserverless.model.GetJobRunRequest;
 import com.amazonaws.services.emrserverless.model.GetJobRunResult;
 import com.amazonaws.services.emrserverless.model.JobDriver;
 import com.amazonaws.services.emrserverless.model.SparkSubmit;
 import com.amazonaws.services.emrserverless.model.StartJobRunRequest;
 import com.amazonaws.services.emrserverless.model.StartJobRunResult;
+import com.amazonaws.services.emrserverless.model.ValidationException;
 import java.security.AccessController;
 import java.security.PrivilegedAction;
 import org.apache.logging.log4j.LogManager;
@@ -64,5 +67,22 @@ public class EmrServerlessClientImpl implements SparkJobClient {
             (PrivilegedAction<GetJobRunResult>) () -> emrServerless.getJobRun(request));
     logger.info("Job Run state: " + getJobRunResult.getJobRun().getState());
     return getJobRunResult;
+  }
+
+  @Override
+  public CancelJobRunResult cancelJobRun(String applicationId, String jobId) {
+    CancelJobRunRequest cancelJobRunRequest =
+        new CancelJobRunRequest().withJobRunId(jobId).withApplicationId(applicationId);
+    try {
+      CancelJobRunResult cancelJobRunResult =
+          AccessController.doPrivileged(
+              (PrivilegedAction<CancelJobRunResult>)
+                  () -> emrServerless.cancelJobRun(cancelJobRunRequest));
+      logger.info(String.format("Job : %s cancelled", cancelJobRunResult.getJobRunId()));
+      return cancelJobRunResult;
+    } catch (ValidationException e) {
+      throw new IllegalArgumentException(
+          String.format("Couldn't cancel the queryId: %s due to %s", jobId, e.getMessage()));
+    }
   }
 }
