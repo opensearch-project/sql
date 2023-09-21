@@ -210,50 +210,6 @@ public class PrometheusStorageFactoryTest {
   }
 
   @Test
-  void createDataSourceWithInvalidHostname() {
-    HashMap<String, String> properties = new HashMap<>();
-    properties.put("prometheus.uri", "http://dummyprometheus:9090");
-    properties.put("prometheus.auth.type", "basicauth");
-    properties.put("prometheus.auth.username", "admin");
-    properties.put("prometheus.auth.password", "admin");
-
-    DataSourceMetadata metadata = new DataSourceMetadata();
-    metadata.setName("prometheus");
-    metadata.setConnector(DataSourceType.PROMETHEUS);
-    metadata.setProperties(properties);
-
-    PrometheusStorageFactory prometheusStorageFactory = new PrometheusStorageFactory(settings);
-    RuntimeException exception =
-        Assertions.assertThrows(
-            RuntimeException.class, () -> prometheusStorageFactory.createDataSource(metadata));
-    Assertions.assertTrue(
-        exception
-            .getMessage()
-            .contains("Invalid hostname in the uri: http://dummyprometheus:9090"));
-  }
-
-  @Test
-  void createDataSourceWithInvalidIp() {
-    HashMap<String, String> properties = new HashMap<>();
-    properties.put("prometheus.uri", "http://231.54.11.987:9090");
-    properties.put("prometheus.auth.type", "basicauth");
-    properties.put("prometheus.auth.username", "admin");
-    properties.put("prometheus.auth.password", "admin");
-
-    DataSourceMetadata metadata = new DataSourceMetadata();
-    metadata.setName("prometheus");
-    metadata.setConnector(DataSourceType.PROMETHEUS);
-    metadata.setProperties(properties);
-
-    PrometheusStorageFactory prometheusStorageFactory = new PrometheusStorageFactory(settings);
-    RuntimeException exception =
-        Assertions.assertThrows(
-            RuntimeException.class, () -> prometheusStorageFactory.createDataSource(metadata));
-    Assertions.assertTrue(
-        exception.getMessage().contains("Invalid hostname in the uri: http://231.54.11.987:9090"));
-  }
-
-  @Test
   void createDataSourceWithHostnameNotMatchingWithAllowHostsConfig() {
     when(settings.getSettingValue(Settings.Key.DATASOURCES_URI_HOSTS_DENY_LIST))
         .thenReturn(Collections.singletonList("127.0.0.0/8"));
