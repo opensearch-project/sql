@@ -12,19 +12,19 @@ import lombok.Getter;
 import org.opensearch.action.ActionRequest;
 import org.opensearch.action.ActionRequestValidationException;
 import org.opensearch.core.common.io.stream.StreamInput;
-import org.opensearch.sql.spark.rest.model.CreateJobRequest;
+import org.opensearch.sql.spark.rest.model.CreateAsyncQueryRequest;
 
-public class CreateJobActionRequest extends ActionRequest {
+public class CreateAsyncQueryActionRequest extends ActionRequest {
 
-  @Getter private CreateJobRequest createJobRequest;
+  @Getter private CreateAsyncQueryRequest createAsyncQueryRequest;
 
   /** Constructor of CreateJobActionRequest from StreamInput. */
-  public CreateJobActionRequest(StreamInput in) throws IOException {
+  public CreateAsyncQueryActionRequest(StreamInput in) throws IOException {
     super(in);
   }
 
-  public CreateJobActionRequest(CreateJobRequest createJobRequest) {
-    this.createJobRequest = createJobRequest;
+  public CreateAsyncQueryActionRequest(CreateAsyncQueryRequest createAsyncQueryRequest) {
+    this.createAsyncQueryRequest = createAsyncQueryRequest;
   }
 
   @Override
