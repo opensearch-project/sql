@@ -51,6 +51,7 @@ public class DataSourceAPIsIT extends PPLIntegTestCase {
     DataSourceMetadata createDSM =
         new DataSourceMetadata(
             "create_prometheus",
+            "Prometheus Creation for Integ test",
             DataSourceType.PROMETHEUS,
             ImmutableList.of(),
             ImmutableMap.of(
@@ -79,6 +80,7 @@ public class DataSourceAPIsIT extends PPLIntegTestCase {
         new Gson().fromJson(getResponseString, DataSourceMetadata.class);
     Assert.assertEquals(
         "https://localhost:9090", dataSourceMetadata.getProperties().get("prometheus.uri"));
+    Assert.assertEquals("Prometheus Creation for Integ test", dataSourceMetadata.getDescription());
   }
 
   @SneakyThrows
@@ -142,6 +144,7 @@ public class DataSourceAPIsIT extends PPLIntegTestCase {
         new Gson().fromJson(getResponseString, DataSourceMetadata.class);
     Assert.assertEquals(
         "https://randomtest.com:9090", dataSourceMetadata.getProperties().get("prometheus.uri"));
+    Assert.assertEquals("", dataSourceMetadata.getDescription());
   }
 
   @SneakyThrows
