@@ -132,8 +132,8 @@ dependencies {
 
     testImplementation group: 'net.bytebuddy', name: 'byte-buddy-agent', version: '1.12.13'
     testImplementation group: 'org.hamcrest', name: 'hamcrest-library', version: '2.1'
-    testImplementation group: 'org.mockito', name: 'mockito-core', version: '5.4.0'
-    testImplementation group: 'org.mockito', name: 'mockito-junit-jupiter', version: '5.4.0'
+    testImplementation group: 'org.mockito', name: 'mockito-core', version: "${versions.mockito}"
+    testImplementation group: 'org.mockito', name: 'mockito-junit-jupiter', version: "${versions.mockito}"
     testImplementation 'org.junit.jupiter:junit-jupiter:5.6.2'
 }
 
