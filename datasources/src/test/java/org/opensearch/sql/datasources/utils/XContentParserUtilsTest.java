@@ -31,7 +31,7 @@ public class XContentParserUtilsTest {
     XContentBuilder contentBuilder = XContentParserUtils.convertToXContent(dataSourceMetadata);
     String contentString = BytesReference.bytes(contentBuilder).utf8ToString();
     Assertions.assertEquals(
-        "{\"name\":\"testDS\",\"connector\":\"PROMETHEUS\",\"allowedRoles\":[\"prometheus_access\"],\"properties\":{\"prometheus.uri\":\"https://localhost:9090\"}}",
+        "{\"name\":\"testDS\",\"description\":\"\",\"connector\":\"PROMETHEUS\",\"allowedRoles\":[\"prometheus_access\"],\"properties\":{\"prometheus.uri\":\"https://localhost:9090\"}}",
         contentString);
   }
 
