@@ -13,6 +13,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import lombok.experimental.UtilityClass;
+import org.apache.commons.lang3.StringUtils;
 import org.opensearch.common.xcontent.XContentFactory;
 import org.opensearch.common.xcontent.XContentType;
 import org.opensearch.core.xcontent.DeprecationHandler;
@@ -26,6 +27,7 @@ import org.opensearch.sql.datasource.model.DataSourceType;
 @UtilityClass
 public class XContentParserUtils {
   public static final String NAME_FIELD = "name";
+  public static final String DESCRIPTION_FIELD = "description";
   public static final String CONNECTOR_FIELD = "connector";
   public static final String PROPERTIES_FIELD = "properties";
   public static final String ALLOWED_ROLES_FIELD = "allowedRoles";
@@ -39,6 +41,7 @@ public class XContentParserUtils {
    */
   public static DataSourceMetadata toDataSourceMetadata(XContentParser parser) throws IOException {
     String name = null;
+    String description = StringUtils.EMPTY;
     DataSourceType connector = null;
     List<String> allowedRoles = new ArrayList<>();
     Map<String, String> properties = new HashMap<>();
@@ -49,6 +52,9 @@ public class XContentParserUtils {
       switch (fieldName) {
         case NAME_FIELD:
           name = parser.textOrNull();
+          break;
+        case DESCRIPTION_FIELD:
+          description = parser.textOrNull();
           break;
         case CONNECTOR_FIELD:
           connector = DataSourceType.fromString(parser.textOrNull());
@@ -74,7 +80,7 @@ public class XContentParserUtils {
     if (name == null || connector == null) {
       throw new IllegalArgumentException("name and connector are required fields.");
     }
-    return new DataSourceMetadata(name, connector, allowedRoles, properties);
+    return new DataSourceMetadata(name, description, connector, allowedRoles, properties);
   }
 
   /**
@@ -108,6 +114,7 @@ public class XContentParserUtils {
     XContentBuilder builder = XContentFactory.jsonBuilder();
     builder.startObject();
     builder.field(NAME_FIELD, metadata.getName());
+    builder.field(DESCRIPTION_FIELD, metadata.getDescription());
     builder.field(CONNECTOR_FIELD, metadata.getConnector().name());
     builder.field(ALLOWED_ROLES_FIELD, metadata.getAllowedRoles().toArray());
     builder.startObject(PROPERTIES_FIELD);
