@@ -37,20 +37,6 @@ public class DatasourceValidationUtilsTest {
                 "http://localhost:9090", Collections.singletonList("192.168.0.0/8")));
   }
 
-  @SneakyThrows
-  @Test
-  public void testValidateHostWithInvalidDomain() {
-    IllegalArgumentException illegalArgumentException =
-        Assertions.assertThrows(
-            IllegalArgumentException.class,
-            () ->
-                DatasourceValidationUtils.validateHost(
-                    "http:://prometheus:9090", Collections.singletonList("127.0.0.0/8")));
-    Assertions.assertEquals(
-        "Invalid hostname in the uri: http:://prometheus:9090",
-        illegalArgumentException.getMessage());
-  }
-
   @Test
   public void testValidateLengthAndRequiredFieldsWithAbsentField() {
     HashMap<String, String> config = new HashMap<>();

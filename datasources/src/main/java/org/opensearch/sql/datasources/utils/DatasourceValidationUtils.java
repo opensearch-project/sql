@@ -8,7 +8,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import lombok.experimental.UtilityClass;
-import org.apache.commons.validator.routines.DomainValidator;
 import org.opensearch.sql.common.utils.URIValidationUtils;
 
 /** Common Validation methods for all datasource connectors. */
@@ -19,7 +18,6 @@ public class DatasourceValidationUtils {
 
   public static void validateHost(String uriString, List<String> denyHostList)
       throws URISyntaxException, UnknownHostException {
-    validateDomain(uriString);
     if (!URIValidationUtils.validateURIHost(new URI(uriString).getHost(), denyHostList)) {
       throw new IllegalArgumentException(
           "Disallowed hostname in the uri. "
@@ -52,17 +50,6 @@ public class DatasourceValidationUtils {
     }
     if (errorStringBuilder.length() > 0) {
       throw new IllegalArgumentException(errorStringBuilder.toString());
-    }
-  }
-
-  private static void validateDomain(String uriString) throws URISyntaxException {
-    URI uri = new URI(uriString);
-    String host = uri.getHost();
-    if (host == null
-        || (!(DomainValidator.getInstance().isValid(host)
-            || DomainValidator.getInstance().isValidLocalTld(host)))) {
-      throw new IllegalArgumentException(
-          String.format("Invalid hostname in the uri: %s", uriString));
     }
   }
 }

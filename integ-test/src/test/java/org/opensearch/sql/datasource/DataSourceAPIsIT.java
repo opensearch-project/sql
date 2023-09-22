@@ -112,26 +112,6 @@ public class DataSourceAPIsIT extends PPLIntegTestCase {
     // Datasource is not immediately updated. so introducing a sleep of 2s.
     Thread.sleep(2000);
 
-    // update datasource with invalid URI
-    updateDSM =
-        new DataSourceMetadata(
-            "update_prometheus",
-            DataSourceType.PROMETHEUS,
-            ImmutableList.of(),
-            ImmutableMap.of("prometheus.uri", "https://randomtest:9090"));
-    final Request illFormedUpdateRequest = getUpdateDataSourceRequest(updateDSM);
-    ResponseException updateResponseException =
-        Assert.assertThrows(
-            ResponseException.class, () -> client().performRequest(illFormedUpdateRequest));
-    Assert.assertEquals(400, updateResponseException.getResponse().getStatusLine().getStatusCode());
-    updateResponseString = getResponseBody(updateResponseException.getResponse());
-    JsonObject errorMessage = new Gson().fromJson(updateResponseString, JsonObject.class);
-    Assert.assertEquals(
-        "Invalid hostname in the uri: https://randomtest:9090",
-        errorMessage.get("error").getAsJsonObject().get("details").getAsString());
-
-    Thread.sleep(2000);
-
     // get datasource to validate the modification.
     // get datasource
     Request getRequest = getFetchDataSourceRequest("update_prometheus");
