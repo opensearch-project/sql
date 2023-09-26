@@ -21,6 +21,7 @@ import org.opensearch.sql.datasource.model.DataSourceType;
 import org.opensearch.sql.datasources.model.transport.CreateDataSourceActionRequest;
 import org.opensearch.sql.datasources.model.transport.CreateDataSourceActionResponse;
 import org.opensearch.sql.datasources.service.DataSourceServiceImpl;
+import org.opensearch.sql.protocol.response.format.JsonResponseFormatter;
 import org.opensearch.tasks.Task;
 import org.opensearch.transport.TransportService;
 
@@ -59,8 +60,17 @@ public class TransportCreateDataSourceActionTest {
         .onResponse(createDataSourceActionResponseArgumentCaptor.capture());
     CreateDataSourceActionResponse createDataSourceActionResponse =
         createDataSourceActionResponseArgumentCaptor.getValue();
+    JsonResponseFormatter<CreateUpdateDatasourceResponse> jsonResponseFormatter =
+        new JsonResponseFormatter<>(JsonResponseFormatter.Style.PRETTY) {
+          @Override
+          protected Object buildJsonObject(CreateUpdateDatasourceResponse response) {
+            return response;
+          }
+        };
     Assertions.assertEquals(
-        "Created DataSource with name test_datasource", createDataSourceActionResponse.getResult());
+        jsonResponseFormatter.format(
+            new CreateUpdateDatasourceResponse("Created DataSource with name test_datasource")),
+        createDataSourceActionResponse.getResult());
   }
 
   @Test
