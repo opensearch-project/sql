@@ -93,8 +93,8 @@ import org.opensearch.sql.spark.asyncquery.AsyncQueryExecutorService;
 import org.opensearch.sql.spark.asyncquery.AsyncQueryExecutorServiceImpl;
 import org.opensearch.sql.spark.asyncquery.AsyncQueryJobMetadataStorageService;
 import org.opensearch.sql.spark.asyncquery.OpensearchAsyncQueryJobMetadataStorageService;
-import org.opensearch.sql.spark.client.EmrServerlessClientImpl;
-import org.opensearch.sql.spark.client.SparkJobClient;
+import org.opensearch.sql.spark.client.EMRServerlessClient;
+import org.opensearch.sql.spark.client.EmrServerlessClientImplEMR;
 import org.opensearch.sql.spark.config.SparkExecutionEngineConfig;
 import org.opensearch.sql.spark.dispatcher.SparkQueryDispatcher;
 import org.opensearch.sql.spark.response.JobExecutionResponseReader;
@@ -297,20 +297,23 @@ public class SQLPlugin extends Plugin implements ActionPlugin, ScriptPlugin {
   private AsyncQueryExecutorService createAsyncQueryExecutorService() {
     AsyncQueryJobMetadataStorageService asyncQueryJobMetadataStorageService =
         new OpensearchAsyncQueryJobMetadataStorageService(client, clusterService);
-    SparkJobClient sparkJobClient = createEMRServerlessClient();
+    EMRServerlessClient EMRServerlessClient = createEMRServerlessClient();
     JobExecutionResponseReader jobExecutionResponseReader = new JobExecutionResponseReader(client);
     SparkQueryDispatcher sparkQueryDispatcher =
         new SparkQueryDispatcher(
-            sparkJobClient, this.dataSourceService, jobExecutionResponseReader);
+            EMRServerlessClient,
+            this.dataSourceService,
+            new DataSourceUserAuthorizationHelperImpl(client),
+            jobExecutionResponseReader);
     return new AsyncQueryExecutorServiceImpl(
         asyncQueryJobMetadataStorageService, sparkQueryDispatcher, pluginSettings);
   }
 
-  private SparkJobClient createEMRServerlessClient() {
+  private EMRServerlessClient createEMRServerlessClient() {
     String sparkExecutionEngineConfigString =
         this.pluginSettings.getSettingValue(SPARK_EXECUTION_ENGINE_CONFIG);
     return AccessController.doPrivileged(
-        (PrivilegedAction<SparkJobClient>)
+        (PrivilegedAction<EMRServerlessClient>)
             () -> {
               SparkExecutionEngineConfig sparkExecutionEngineConfig =
                   SparkExecutionEngineConfig.toSparkExecutionEngineConfig(
@@ -320,7 +323,7 @@ public class SQLPlugin extends Plugin implements ActionPlugin, ScriptPlugin {
                       .withRegion(sparkExecutionEngineConfig.getRegion())
                       .withCredentials(new DefaultAWSCredentialsProviderChain())
                       .build();
-              return new EmrServerlessClientImpl(awsemrServerless);
+              return new EmrServerlessClientImplEMR(awsemrServerless);
             });
   }
 }

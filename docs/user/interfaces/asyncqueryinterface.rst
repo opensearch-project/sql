@@ -36,15 +36,16 @@ Async Query Creation API
 ======================================
 If security plugin is enabled, this API can only be invoked by users with permission ``cluster:admin/opensearch/ql/async_query/create``.
 
-HTTP URI: _plugins/_async_query
-HTTP VERB: POST
+HTTP URI: ``_plugins/_async_query``
+
+HTTP VERB: ``POST``
 
 Sample Request::
 
     curl --location 'http://localhost:9200/_plugins/_async_query' \
     --header 'Content-Type: application/json' \
     --data '{
-        "kind" : "sql",
+        "lang" : "sql",
         "query" : "select * from my_glue.default.http_logs limit 10"
     }'
 
@@ -60,8 +61,9 @@ Async Query Result API
 If security plugin is enabled, this API can only be invoked by users with permission ``cluster:admin/opensearch/ql/async_query/result``.
 Async Query Creation and Result Query permissions are orthogonal, so any user with result api permissions and queryId can query the corresponding query results irrespective of the user who created the async query.
 
-HTTP URI: _plugins/_async_query/{queryId}
-HTTP VERB: GET
+HTTP URI: ``_plugins/_async_query/{queryId}``
+
+HTTP VERB: ``GET``
 
 Sample Request BODY::
 
@@ -75,6 +77,7 @@ Sample Response if the Query is in Progress ::
 Sample Response If the Query is successful ::
 
     {
+        "status": "SUCCESS",
         "schema": [
             {
                 "name": "indexed_col_name",
@@ -105,8 +108,9 @@ Async Query Cancellation API
 ======================================
 If security plugin is enabled, this API can only be invoked by users with permission ``cluster:admin/opensearch/ql/jobs/delete``.
 
-HTTP URI: _plugins/_async_query/{queryId}
-HTTP VERB: DELETE
+HTTP URI: ``_plugins/_async_query/{queryId}``
+
+HTTP VERB: ``DELETE``
 
 Sample Request Body ::
 

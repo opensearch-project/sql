@@ -23,34 +23,31 @@ import java.security.PrivilegedAction;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-public class EmrServerlessClientImpl implements SparkJobClient {
+public class EmrServerlessClientImplEMR implements EMRServerlessClient {
 
   private final AWSEMRServerless emrServerless;
-  private static final Logger logger = LogManager.getLogger(EmrServerlessClientImpl.class);
+  private static final Logger logger = LogManager.getLogger(EmrServerlessClientImplEMR.class);
 
-  public EmrServerlessClientImpl(AWSEMRServerless emrServerless) {
+  public EmrServerlessClientImplEMR(AWSEMRServerless emrServerless) {
     this.emrServerless = emrServerless;
   }
 
   @Override
-  public String startJobRun(
-      String query,
-      String jobName,
-      String applicationId,
-      String executionRoleArn,
-      String sparkSubmitParams) {
+  public String startJobRun(StartJobRequest startJobRequest) {
     StartJobRunRequest request =
         new StartJobRunRequest()
-            .withName(jobName)
-            .withApplicationId(applicationId)
-            .withExecutionRoleArn(executionRoleArn)
+            .withName(startJobRequest.getJobName())
+            .withApplicationId(startJobRequest.getApplicationId())
+            .withExecutionRoleArn(startJobRequest.getExecutionRoleArn())
+            .withTags(startJobRequest.getTags())
             .withJobDriver(
                 new JobDriver()
                     .withSparkSubmit(
                         new SparkSubmit()
                             .withEntryPoint(SPARK_SQL_APPLICATION_JAR)
-                            .withEntryPointArguments(query, SPARK_RESPONSE_BUFFER_INDEX_NAME)
-                            .withSparkSubmitParameters(sparkSubmitParams)));
+                            .withEntryPointArguments(
+                                startJobRequest.getQuery(), SPARK_RESPONSE_BUFFER_INDEX_NAME)
+                            .withSparkSubmitParameters(startJobRequest.getSparkSubmitParams())));
     StartJobRunResult startJobRunResult =
         AccessController.doPrivileged(
             (PrivilegedAction<StartJobRunResult>) () -> emrServerless.startJobRun(request));

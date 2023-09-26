@@ -27,6 +27,7 @@ import org.opensearch.core.action.ActionListener;
 import org.opensearch.sql.spark.asyncquery.AsyncQueryExecutorServiceImpl;
 import org.opensearch.sql.spark.rest.model.CreateAsyncQueryRequest;
 import org.opensearch.sql.spark.rest.model.CreateAsyncQueryResponse;
+import org.opensearch.sql.spark.rest.model.LangType;
 import org.opensearch.sql.spark.transport.model.CreateAsyncQueryActionRequest;
 import org.opensearch.sql.spark.transport.model.CreateAsyncQueryActionResponse;
 import org.opensearch.tasks.Task;
@@ -56,7 +57,7 @@ public class TransportCreateAsyncQueryRequestActionTest {
   @Test
   public void testDoExecute() {
     CreateAsyncQueryRequest createAsyncQueryRequest =
-        new CreateAsyncQueryRequest("source = my_glue.default.alb_logs", "sql");
+        new CreateAsyncQueryRequest("source = my_glue.default.alb_logs", LangType.SQL);
     CreateAsyncQueryActionRequest request =
         new CreateAsyncQueryActionRequest(createAsyncQueryRequest);
     when(jobExecutorService.createAsyncQuery(createAsyncQueryRequest))
@@ -72,7 +73,7 @@ public class TransportCreateAsyncQueryRequestActionTest {
   @Test
   public void testDoExecuteWithException() {
     CreateAsyncQueryRequest createAsyncQueryRequest =
-        new CreateAsyncQueryRequest("source = my_glue.default.alb_logs", "sql");
+        new CreateAsyncQueryRequest("source = my_glue.default.alb_logs", LangType.SQL);
     CreateAsyncQueryActionRequest request =
         new CreateAsyncQueryActionRequest(createAsyncQueryRequest);
     doThrow(new RuntimeException("Error"))
