@@ -7,6 +7,8 @@
 
 package org.opensearch.sql.datasources.transport;
 
+import static org.opensearch.sql.protocol.response.format.JsonResponseFormatter.Style.PRETTY;
+
 import org.opensearch.action.ActionType;
 import org.opensearch.action.support.ActionFilters;
 import org.opensearch.action.support.HandledTransportAction;
@@ -19,8 +21,6 @@ import org.opensearch.sql.datasources.service.DataSourceServiceImpl;
 import org.opensearch.sql.protocol.response.format.JsonResponseFormatter;
 import org.opensearch.tasks.Task;
 import org.opensearch.transport.TransportService;
-
-import static org.opensearch.sql.protocol.response.format.JsonResponseFormatter.Style.PRETTY;
 
 public class TransportUpdateDataSourceAction
     extends HandledTransportAction<UpdateDataSourceActionRequest, UpdateDataSourceActionResponse> {
@@ -59,14 +59,15 @@ public class TransportUpdateDataSourceAction
     try {
       dataSourceService.updateDataSource(request.getDataSourceMetadata());
       String responseContent =
-              new JsonResponseFormatter<CreateUpdateDatasourceResponse>(PRETTY) {
-                @Override
-                protected Object buildJsonObject(CreateUpdateDatasourceResponse response) {
-                  return response;
-                }
-              }.format(new CreateUpdateDatasourceResponse("Updated DataSource with name " +  request.getDataSourceMetadata().getName()));
-      actionListener.onResponse(
-          new UpdateDataSourceActionResponse(responseContent));
+          new JsonResponseFormatter<CreateUpdateDatasourceResponse>(PRETTY) {
+            @Override
+            protected Object buildJsonObject(CreateUpdateDatasourceResponse response) {
+              return response;
+            }
+          }.format(
+              new CreateUpdateDatasourceResponse(
+                  "Updated DataSource with name " + request.getDataSourceMetadata().getName()));
+      actionListener.onResponse(new UpdateDataSourceActionResponse(responseContent));
     } catch (Exception e) {
       actionListener.onFailure(e);
     }
