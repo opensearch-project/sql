@@ -59,12 +59,12 @@ public class TransportUpdateDataSourceAction
     try {
       dataSourceService.updateDataSource(request.getDataSourceMetadata());
       String responseContent =
-              new JsonResponseFormatter<String>(PRETTY) {
+              new JsonResponseFormatter<CreateUpdateDatasourceResponse>(PRETTY) {
                 @Override
-                protected Object buildJsonObject(String response) {
+                protected Object buildJsonObject(CreateUpdateDatasourceResponse response) {
                   return response;
                 }
-              }.format("Updated DataSource with name " +  request.getDataSourceMetadata().getName());
+              }.format(new CreateUpdateDatasourceResponse("Updated DataSource with name " +  request.getDataSourceMetadata().getName()));
       actionListener.onResponse(
           new UpdateDataSourceActionResponse(responseContent));
     } catch (Exception e) {
