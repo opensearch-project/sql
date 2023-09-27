@@ -157,12 +157,12 @@ public class DataSourceAPIsIT extends PPLIntegTestCase {
         Assert.assertThrows(
             ResponseException.class, () -> client().performRequest(prometheusGetRequest));
     Assert.assertEquals(
-        400, prometheusGetResponseException.getResponse().getStatusLine().getStatusCode());
+        404, prometheusGetResponseException.getResponse().getStatusLine().getStatusCode());
     String prometheusGetResponseString =
         getResponseBody(prometheusGetResponseException.getResponse());
     JsonObject errorMessage = new Gson().fromJson(prometheusGetResponseString, JsonObject.class);
     Assert.assertEquals(
-        "DataSource with name: delete_prometheus doesn't exist.",
+        "DataSource with name delete_prometheus doesn't exist.",
         errorMessage.get("error").getAsJsonObject().get("details").getAsString());
   }
 

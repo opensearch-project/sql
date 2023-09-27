@@ -15,4 +15,13 @@ grant {
 
   // ml-commons client
   permission java.lang.RuntimePermission "setContextClassLoader";
+
+  // aws credentials
+  permission java.io.FilePermission "${user.home}${/}.aws${/}*", "read";
+
+  // Permissions for aws emr servless sdk
+  permission javax.management.MBeanServerPermission "createMBeanServer";
+  permission javax.management.MBeanServerPermission "findMBeanServer";
+  permission javax.management.MBeanPermission "com.amazonaws.metrics.*", "*";
+  permission javax.management.MBeanTrustPermission "register";
 };

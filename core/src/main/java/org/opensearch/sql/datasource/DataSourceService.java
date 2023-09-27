@@ -40,6 +40,15 @@ public interface DataSourceService {
   DataSourceMetadata getDataSourceMetadata(String name);
 
   /**
+   * Returns dataSourceMetadata object with specific name. The returned objects contain all the
+   * metadata information without any filtering.
+   *
+   * @param name name of the {@link DataSource}.
+   * @return set of {@link DataSourceMetadata}.
+   */
+  DataSourceMetadata getRawDataSourceMetadata(String name);
+
+  /**
    * Register {@link DataSource} defined by {@link DataSourceMetadata}.
    *
    * @param metadata {@link DataSourceMetadata}.
