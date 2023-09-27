@@ -7,13 +7,42 @@ plugins {
     id 'java-library'
     id "io.freefair.lombok"
     id 'jacoco'
+    id 'antlr'
 }
 
 repositories {
     mavenCentral()
 }
 
+tasks.register('downloadG4Files', Exec) {
+    description = 'Download remote .g4 files from GitHub'
+
+    executable 'curl'
+
+//    Need to add these back once the grammar issues with indexName and tableName is addressed in flint integration jar.
+//    args '-o', 'src/main/antlr/FlintSparkSqlExtensions.g4', 'https://raw.githubusercontent.com/opensearch-project/opensearch-spark/main/flint-spark-integration/src/main/antlr4/FlintSparkSqlExtensions.g4'
+//    args '-o', 'src/main/antlr/SparkSqlBase.g4', 'https://raw.githubusercontent.com/opensearch-project/opensearch-spark/main/flint-spark-integration/src/main/antlr4/SparkSqlBase.g4'
+    args '-o', 'src/main/antlr/SqlBaseParser.g4', 'https://raw.githubusercontent.com/apache/spark/master/sql/api/src/main/antlr4/org/apache/spark/sql/catalyst/parser/SqlBaseParser.g4'
+    args '-o', 'src/main/antlr/SqlBaseLexer.g4', 'https://raw.githubusercontent.com/apache/spark/master/sql/api/src/main/antlr4/org/apache/spark/sql/catalyst/parser/SqlBaseLexer.g4'
+}
+
+generateGrammarSource {
+    arguments += ['-visitor', '-package', 'org.opensearch.sql.spark.antlr.parser']
+    source = sourceSets.main.antlr
+    outputDirectory = file("build/generated-src/antlr/main/org/opensearch/sql/spark/antlr/parser")
+}
+configurations {
+    compile {
+        extendsFrom = extendsFrom.findAll { it != configurations.antlr }
+    }
+}
+
+// Make sure the downloadG4File task runs before the generateGrammarSource task
+generateGrammarSource.dependsOn downloadG4Files
+
 dependencies {
+    antlr "org.antlr:antlr4:4.7.1"
+
     api project(':core')
     implementation project(':protocol')
     implementation project(':datasources')
@@ -46,7 +75,7 @@ jacocoTestReport {
     }
     afterEvaluate {
         classDirectories.setFrom(files(classDirectories.files.collect {
-            fileTree(dir: it)
+            fileTree(dir: it, exclude: ['**/antlr/parser/**'])
         }))
     }
 }
@@ -61,7 +90,8 @@ jacocoTestCoverageVerification {
                     'org.opensearch.sql.spark.rest.*',
                     'org.opensearch.sql.spark.transport.model.*',
                     'org.opensearch.sql.spark.asyncquery.model.*',
-                    'org.opensearch.sql.spark.asyncquery.exceptions.*'
+                    'org.opensearch.sql.spark.asyncquery.exceptions.*',
+                    'org.opensearch.sql.spark.dispatcher.model.*'
             ]
             limit {
                 counter = 'LINE'
@@ -75,7 +105,7 @@ jacocoTestCoverageVerification {
     }
     afterEvaluate {
         classDirectories.setFrom(files(classDirectories.files.collect {
-            fileTree(dir: it)
+            fileTree(dir: it, exclude: ['**/antlr/parser/**'])
         }))
     }
 }

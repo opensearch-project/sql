@@ -20,6 +20,7 @@ import com.amazonaws.services.emrserverless.model.GetJobRunResult;
 import com.amazonaws.services.emrserverless.model.JobRun;
 import com.amazonaws.services.emrserverless.model.StartJobRunResult;
 import com.amazonaws.services.emrserverless.model.ValidationException;
+import java.util.HashMap;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -35,9 +36,15 @@ public class EmrServerlessClientImplTest {
     StartJobRunResult response = new StartJobRunResult();
     when(emrServerless.startJobRun(any())).thenReturn(response);
 
-    EmrServerlessClientImpl emrServerlessClient = new EmrServerlessClientImpl(emrServerless);
+    EmrServerlessClientImplEMR emrServerlessClient = new EmrServerlessClientImplEMR(emrServerless);
     emrServerlessClient.startJobRun(
-        QUERY, EMRS_JOB_NAME, EMRS_APPLICATION_ID, EMRS_EXECUTION_ROLE, SPARK_SUBMIT_PARAMETERS);
+        new StartJobRequest(
+            QUERY,
+            EMRS_JOB_NAME,
+            EMRS_APPLICATION_ID,
+            EMRS_EXECUTION_ROLE,
+            SPARK_SUBMIT_PARAMETERS,
+            new HashMap<>()));
   }
 
   @Test
@@ -47,7 +54,7 @@ public class EmrServerlessClientImplTest {
     GetJobRunResult response = new GetJobRunResult();
     response.setJobRun(jobRun);
     when(emrServerless.getJobRun(any())).thenReturn(response);
-    EmrServerlessClientImpl emrServerlessClient = new EmrServerlessClientImpl(emrServerless);
+    EmrServerlessClientImplEMR emrServerlessClient = new EmrServerlessClientImplEMR(emrServerless);
     emrServerlessClient.getJobRunResult(EMRS_APPLICATION_ID, "123");
   }
 
@@ -55,7 +62,7 @@ public class EmrServerlessClientImplTest {
   void testCancelJobRun() {
     when(emrServerless.cancelJobRun(any()))
         .thenReturn(new CancelJobRunResult().withJobRunId(EMR_JOB_ID));
-    EmrServerlessClientImpl emrServerlessClient = new EmrServerlessClientImpl(emrServerless);
+    EmrServerlessClientImplEMR emrServerlessClient = new EmrServerlessClientImplEMR(emrServerless);
     CancelJobRunResult cancelJobRunResult =
         emrServerlessClient.cancelJobRun(EMRS_APPLICATION_ID, EMR_JOB_ID);
     Assertions.assertEquals(EMR_JOB_ID, cancelJobRunResult.getJobRunId());
@@ -64,7 +71,7 @@ public class EmrServerlessClientImplTest {
   @Test
   void testCancelJobRunWithValidationException() {
     doThrow(new ValidationException("Error")).when(emrServerless).cancelJobRun(any());
-    EmrServerlessClientImpl emrServerlessClient = new EmrServerlessClientImpl(emrServerless);
+    EmrServerlessClientImplEMR emrServerlessClient = new EmrServerlessClientImplEMR(emrServerless);
     IllegalArgumentException illegalArgumentException =
         Assertions.assertThrows(
             IllegalArgumentException.class,

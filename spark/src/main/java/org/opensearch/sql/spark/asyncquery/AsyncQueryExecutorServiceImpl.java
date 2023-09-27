@@ -5,6 +5,7 @@
 
 package org.opensearch.sql.spark.asyncquery;
 
+import static org.opensearch.sql.common.setting.Settings.Key.CLUSTER_NAME;
 import static org.opensearch.sql.common.setting.Settings.Key.SPARK_EXECUTION_ENGINE_CONFIG;
 
 import com.amazonaws.services.emrserverless.model.JobRunState;
@@ -15,6 +16,7 @@ import java.util.List;
 import java.util.Optional;
 import lombok.AllArgsConstructor;
 import org.json.JSONObject;
+import org.opensearch.cluster.ClusterName;
 import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.spark.asyncquery.exceptions.AsyncQueryNotFoundException;
@@ -22,6 +24,7 @@ import org.opensearch.sql.spark.asyncquery.model.AsyncQueryExecutionResponse;
 import org.opensearch.sql.spark.asyncquery.model.AsyncQueryJobMetadata;
 import org.opensearch.sql.spark.config.SparkExecutionEngineConfig;
 import org.opensearch.sql.spark.dispatcher.SparkQueryDispatcher;
+import org.opensearch.sql.spark.dispatcher.model.DispatchQueryRequest;
 import org.opensearch.sql.spark.functions.response.DefaultSparkSqlFunctionResponseHandle;
 import org.opensearch.sql.spark.rest.model.CreateAsyncQueryRequest;
 import org.opensearch.sql.spark.rest.model.CreateAsyncQueryResponse;
@@ -60,11 +63,15 @@ public class AsyncQueryExecutorServiceImpl implements AsyncQueryExecutorService 
                 () ->
                     SparkExecutionEngineConfig.toSparkExecutionEngineConfig(
                         sparkExecutionEngineConfigString));
+    ClusterName clusterName = settings.getSettingValue(CLUSTER_NAME);
     String jobId =
         sparkQueryDispatcher.dispatch(
-            sparkExecutionEngineConfig.getApplicationId(),
-            createAsyncQueryRequest.getQuery(),
-            sparkExecutionEngineConfig.getExecutionRoleARN());
+            new DispatchQueryRequest(
+                sparkExecutionEngineConfig.getApplicationId(),
+                createAsyncQueryRequest.getQuery(),
+                createAsyncQueryRequest.getLang(),
+                sparkExecutionEngineConfig.getExecutionRoleARN(),
+                clusterName.value()));
     asyncQueryJobMetadataStorageService.storeJobMetadata(
         new AsyncQueryJobMetadata(jobId, sparkExecutionEngineConfig.getApplicationId()));
     return new CreateAsyncQueryResponse(jobId);
