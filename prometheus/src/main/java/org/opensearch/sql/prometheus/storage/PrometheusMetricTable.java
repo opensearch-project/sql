@@ -97,10 +97,6 @@ public class PrometheusMetricTable implements Table {
   public PhysicalPlan implement(LogicalPlan plan) {
     PrometheusMetricScan metricScan =
         new PrometheusMetricScan(prometheusClient);
-    if (prometheusQueryRequest != null) {
-      metricScan.setRequest(prometheusQueryRequest);
-      metricScan.setIsQueryRangeFunctionScan(Boolean.TRUE);
-    }
     return plan.accept(new PrometheusDefaultImplementor(), metricScan);
   }
 
