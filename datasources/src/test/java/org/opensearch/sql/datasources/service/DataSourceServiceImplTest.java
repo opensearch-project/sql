@@ -359,11 +359,11 @@ class DataSourceServiceImplTest {
   @Test
   void testGetDataSourceMetadataForNonExistingDataSource() {
     when(dataSourceMetadataStorage.getDataSourceMetadata("testDS")).thenReturn(Optional.empty());
-    IllegalArgumentException exception =
+    DataSourceNotFoundException exception =
         assertThrows(
-            IllegalArgumentException.class,
+            DataSourceNotFoundException.class,
             () -> dataSourceService.getDataSourceMetadata("testDS"));
-    assertEquals("DataSource with name: testDS doesn't exist.", exception.getMessage());
+    assertEquals("DataSource with name testDS doesn't exist.", exception.getMessage());
   }
 
   @Test
@@ -384,5 +384,29 @@ class DataSourceServiceImplTest {
     assertFalse(dataSourceMetadata.getProperties().containsKey("prometheus.auth.username"));
     assertFalse(dataSourceMetadata.getProperties().containsKey("prometheus.auth.password"));
     verify(dataSourceMetadataStorage, times(1)).getDataSourceMetadata("testDS");
+  }
+
+  @Test
+  void testGetRawDataSourceMetadata() {
+    HashMap<String, String> properties = new HashMap<>();
+    properties.put("prometheus.uri", "https://localhost:9090");
+    properties.put("prometheus.auth.type", "basicauth");
+    properties.put("prometheus.auth.username", "username");
+    properties.put("prometheus.auth.password", "password");
+    DataSourceMetadata dataSourceMetadata =
+        new DataSourceMetadata(
+            "testDS",
+            DataSourceType.PROMETHEUS,
+            Collections.singletonList("prometheus_access"),
+            properties);
+    when(dataSourceMetadataStorage.getDataSourceMetadata("testDS"))
+        .thenReturn(Optional.of(dataSourceMetadata));
+
+    DataSourceMetadata dataSourceMetadata1 = dataSourceService.getRawDataSourceMetadata("testDS");
+    assertEquals("testDS", dataSourceMetadata1.getName());
+    assertEquals(DataSourceType.PROMETHEUS, dataSourceMetadata1.getConnector());
+    assertTrue(dataSourceMetadata1.getProperties().containsKey("prometheus.auth.type"));
+    assertTrue(dataSourceMetadata1.getProperties().containsKey("prometheus.auth.username"));
+    assertTrue(dataSourceMetadata1.getProperties().containsKey("prometheus.auth.password"));
   }
 }

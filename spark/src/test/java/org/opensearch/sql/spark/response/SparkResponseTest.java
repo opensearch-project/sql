@@ -10,7 +10,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 import static org.opensearch.sql.spark.constants.TestConstants.EMR_CLUSTER_ID;
-import static org.opensearch.sql.spark.data.constants.SparkConstants.SPARK_INDEX_NAME;
+import static org.opensearch.sql.spark.data.constants.SparkConstants.SPARK_RESPONSE_BUFFER_INDEX_NAME;
 
 import java.util.Map;
 import org.apache.lucene.search.TotalHits;
@@ -69,7 +69,7 @@ public class SparkResponseTest {
         assertThrows(RuntimeException.class, () -> sparkResponse.getResultFromOpensearchIndex());
     Assertions.assertEquals(
         "Fetching result from "
-            + SPARK_INDEX_NAME
+            + SPARK_RESPONSE_BUFFER_INDEX_NAME
             + " index failed with status : "
             + RestStatus.NO_CONTENT,
         exception.getMessage());

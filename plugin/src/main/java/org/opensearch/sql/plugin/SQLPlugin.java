@@ -5,10 +5,16 @@
 
 package org.opensearch.sql.plugin;
 
+import static org.opensearch.sql.common.setting.Settings.Key.SPARK_EXECUTION_ENGINE_CONFIG;
 import static org.opensearch.sql.datasource.model.DataSourceMetadata.defaultOpenSearchDataSourceMetadata;
 
+import com.amazonaws.auth.DefaultAWSCredentialsProviderChain;
+import com.amazonaws.services.emrserverless.AWSEMRServerless;
+import com.amazonaws.services.emrserverless.AWSEMRServerlessClientBuilder;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
+import java.security.AccessController;
+import java.security.PrivilegedAction;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
@@ -51,6 +57,7 @@ import org.opensearch.sql.datasource.DataSourceService;
 import org.opensearch.sql.datasources.auth.DataSourceUserAuthorizationHelper;
 import org.opensearch.sql.datasources.auth.DataSourceUserAuthorizationHelperImpl;
 import org.opensearch.sql.datasources.encryptor.EncryptorImpl;
+import org.opensearch.sql.datasources.glue.GlueDataSourceFactory;
 import org.opensearch.sql.datasources.model.transport.CreateDataSourceActionResponse;
 import org.opensearch.sql.datasources.model.transport.DeleteDataSourceActionResponse;
 import org.opensearch.sql.datasources.model.transport.GetDataSourceActionResponse;
@@ -82,7 +89,23 @@ import org.opensearch.sql.plugin.transport.PPLQueryAction;
 import org.opensearch.sql.plugin.transport.TransportPPLQueryAction;
 import org.opensearch.sql.plugin.transport.TransportPPLQueryResponse;
 import org.opensearch.sql.prometheus.storage.PrometheusStorageFactory;
+import org.opensearch.sql.spark.asyncquery.AsyncQueryExecutorService;
+import org.opensearch.sql.spark.asyncquery.AsyncQueryExecutorServiceImpl;
+import org.opensearch.sql.spark.asyncquery.AsyncQueryJobMetadataStorageService;
+import org.opensearch.sql.spark.asyncquery.OpensearchAsyncQueryJobMetadataStorageService;
+import org.opensearch.sql.spark.client.EMRServerlessClient;
+import org.opensearch.sql.spark.client.EmrServerlessClientImplEMR;
+import org.opensearch.sql.spark.config.SparkExecutionEngineConfig;
+import org.opensearch.sql.spark.dispatcher.SparkQueryDispatcher;
+import org.opensearch.sql.spark.response.JobExecutionResponseReader;
+import org.opensearch.sql.spark.rest.RestAsyncQueryManagementAction;
 import org.opensearch.sql.spark.storage.SparkStorageFactory;
+import org.opensearch.sql.spark.transport.TransportCancelAsyncQueryRequestAction;
+import org.opensearch.sql.spark.transport.TransportCreateAsyncQueryRequestAction;
+import org.opensearch.sql.spark.transport.TransportGetAsyncQueryResultAction;
+import org.opensearch.sql.spark.transport.model.CancelAsyncQueryActionResponse;
+import org.opensearch.sql.spark.transport.model.CreateAsyncQueryActionResponse;
+import org.opensearch.sql.spark.transport.model.GetAsyncQueryResultActionResponse;
 import org.opensearch.sql.storage.DataSourceFactory;
 import org.opensearch.threadpool.ExecutorBuilder;
 import org.opensearch.threadpool.FixedExecutorBuilder;
@@ -100,6 +123,7 @@ public class SQLPlugin extends Plugin implements ActionPlugin, ScriptPlugin {
 
   private NodeClient client;
   private DataSourceServiceImpl dataSourceService;
+  private AsyncQueryExecutorService asyncQueryExecutorService;
   private Injector injector;
 
   public String name() {
@@ -131,7 +155,8 @@ public class SQLPlugin extends Plugin implements ActionPlugin, ScriptPlugin {
         new RestSqlStatsAction(settings, restController),
         new RestPPLStatsAction(settings, restController),
         new RestQuerySettingsAction(settings, restController),
-        new RestDataSourceQueryAction());
+        new RestDataSourceQueryAction(),
+        new RestAsyncQueryManagementAction());
   }
 
   /** Register action and handler so that transportClient can find proxy for action. */
@@ -155,7 +180,19 @@ public class SQLPlugin extends Plugin implements ActionPlugin, ScriptPlugin {
         new ActionHandler<>(
             new ActionType<>(
                 TransportDeleteDataSourceAction.NAME, DeleteDataSourceActionResponse::new),
-            TransportDeleteDataSourceAction.class));
+            TransportDeleteDataSourceAction.class),
+        new ActionHandler<>(
+            new ActionType<>(
+                TransportCreateAsyncQueryRequestAction.NAME, CreateAsyncQueryActionResponse::new),
+            TransportCreateAsyncQueryRequestAction.class),
+        new ActionHandler<>(
+            new ActionType<>(
+                TransportGetAsyncQueryResultAction.NAME, GetAsyncQueryResultActionResponse::new),
+            TransportGetAsyncQueryResultAction.class),
+        new ActionHandler<>(
+            new ActionType<>(
+                TransportCancelAsyncQueryRequestAction.NAME, CancelAsyncQueryActionResponse::new),
+            TransportCancelAsyncQueryRequestAction.class));
   }
 
   @Override
@@ -178,6 +215,16 @@ public class SQLPlugin extends Plugin implements ActionPlugin, ScriptPlugin {
     dataSourceService.createDataSource(defaultOpenSearchDataSourceMetadata());
     LocalClusterState.state().setClusterService(clusterService);
     LocalClusterState.state().setPluginSettings((OpenSearchSettings) pluginSettings);
+    if (StringUtils.isEmpty(this.pluginSettings.getSettingValue(SPARK_EXECUTION_ENGINE_CONFIG))) {
+      LOGGER.warn(
+          String.format(
+              "Async Query APIs are disabled as %s is not configured in cluster settings. "
+                  + "Please configure and restart the domain to enable Async Query APIs",
+              SPARK_EXECUTION_ENGINE_CONFIG.getKeyValue()));
+      this.asyncQueryExecutorService = new AsyncQueryExecutorServiceImpl();
+    } else {
+      this.asyncQueryExecutorService = createAsyncQueryExecutorService();
+    }
 
     ModulesBuilder modules = new ModulesBuilder();
     modules.add(new OpenSearchPluginModule());
@@ -189,7 +236,7 @@ public class SQLPlugin extends Plugin implements ActionPlugin, ScriptPlugin {
         });
 
     injector = modules.createInjector();
-    return ImmutableList.of(dataSourceService);
+    return ImmutableList.of(dataSourceService, asyncQueryExecutorService);
   }
 
   @Override
@@ -241,8 +288,42 @@ public class SQLPlugin extends Plugin implements ActionPlugin, ScriptPlugin {
                     new OpenSearchNodeClient(this.client), pluginSettings))
             .add(new PrometheusStorageFactory(pluginSettings))
             .add(new SparkStorageFactory(this.client, pluginSettings))
+            .add(new GlueDataSourceFactory(pluginSettings))
             .build(),
         dataSourceMetadataStorage,
         dataSourceUserAuthorizationHelper);
+  }
+
+  private AsyncQueryExecutorService createAsyncQueryExecutorService() {
+    AsyncQueryJobMetadataStorageService asyncQueryJobMetadataStorageService =
+        new OpensearchAsyncQueryJobMetadataStorageService(client, clusterService);
+    EMRServerlessClient EMRServerlessClient = createEMRServerlessClient();
+    JobExecutionResponseReader jobExecutionResponseReader = new JobExecutionResponseReader(client);
+    SparkQueryDispatcher sparkQueryDispatcher =
+        new SparkQueryDispatcher(
+            EMRServerlessClient,
+            this.dataSourceService,
+            new DataSourceUserAuthorizationHelperImpl(client),
+            jobExecutionResponseReader);
+    return new AsyncQueryExecutorServiceImpl(
+        asyncQueryJobMetadataStorageService, sparkQueryDispatcher, pluginSettings);
+  }
+
+  private EMRServerlessClient createEMRServerlessClient() {
+    String sparkExecutionEngineConfigString =
+        this.pluginSettings.getSettingValue(SPARK_EXECUTION_ENGINE_CONFIG);
+    return AccessController.doPrivileged(
+        (PrivilegedAction<EMRServerlessClient>)
+            () -> {
+              SparkExecutionEngineConfig sparkExecutionEngineConfig =
+                  SparkExecutionEngineConfig.toSparkExecutionEngineConfig(
+                      sparkExecutionEngineConfigString);
+              AWSEMRServerless awsemrServerless =
+                  AWSEMRServerlessClientBuilder.standard()
+                      .withRegion(sparkExecutionEngineConfig.getRegion())
+                      .withCredentials(new DefaultAWSCredentialsProviderChain())
+                      .build();
+              return new EmrServerlessClientImplEMR(awsemrServerless);
+            });
   }
 }
