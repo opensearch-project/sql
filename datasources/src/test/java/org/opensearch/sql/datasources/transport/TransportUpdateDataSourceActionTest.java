@@ -60,17 +60,16 @@ public class TransportUpdateDataSourceActionTest {
         .onResponse(updateDataSourceActionResponseArgumentCaptor.capture());
     UpdateDataSourceActionResponse updateDataSourceActionResponse =
         updateDataSourceActionResponseArgumentCaptor.getValue();
-
-    JsonResponseFormatter<CreateUpdateDatasourceResponse> jsonResponseFormatter =
+    JsonResponseFormatter<String> jsonResponseFormatter =
         new JsonResponseFormatter<>(JsonResponseFormatter.Style.PRETTY) {
           @Override
-          protected Object buildJsonObject(CreateUpdateDatasourceResponse response) {
+          protected Object buildJsonObject(String response) {
             return response;
           }
         };
+
     Assertions.assertEquals(
-        jsonResponseFormatter.format(
-            new CreateUpdateDatasourceResponse("Updated DataSource with name test_datasource")),
+        jsonResponseFormatter.format("Updated DataSource with name test_datasource"),
         updateDataSourceActionResponse.getResult());
   }
 
