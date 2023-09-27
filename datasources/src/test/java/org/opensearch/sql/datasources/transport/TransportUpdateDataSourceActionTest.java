@@ -21,7 +21,6 @@ import org.opensearch.sql.datasource.model.DataSourceType;
 import org.opensearch.sql.datasources.model.transport.UpdateDataSourceActionRequest;
 import org.opensearch.sql.datasources.model.transport.UpdateDataSourceActionResponse;
 import org.opensearch.sql.datasources.service.DataSourceServiceImpl;
-import org.opensearch.sql.protocol.response.format.JsonResponseFormatter;
 import org.opensearch.tasks.Task;
 import org.opensearch.transport.TransportService;
 
@@ -60,17 +59,9 @@ public class TransportUpdateDataSourceActionTest {
         .onResponse(updateDataSourceActionResponseArgumentCaptor.capture());
     UpdateDataSourceActionResponse updateDataSourceActionResponse =
         updateDataSourceActionResponseArgumentCaptor.getValue();
-    JsonResponseFormatter<String> jsonResponseFormatter =
-        new JsonResponseFormatter<>(JsonResponseFormatter.Style.PRETTY) {
-          @Override
-          protected Object buildJsonObject(String response) {
-            return response;
-          }
-        };
+    String responseAsJson = "\"Updated DataSource with name test_datasource\"";
 
-    Assertions.assertEquals(
-        jsonResponseFormatter.format("Updated DataSource with name test_datasource"),
-        updateDataSourceActionResponse.getResult());
+    Assertions.assertEquals(responseAsJson, updateDataSourceActionResponse.getResult());
   }
 
   @Test
