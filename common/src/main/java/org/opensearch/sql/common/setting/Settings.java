@@ -35,7 +35,7 @@ public abstract class Settings {
 
     METRICS_ROLLING_WINDOW("plugins.query.metrics.rolling_window"),
     METRICS_ROLLING_INTERVAL("plugins.query.metrics.rolling_interval"),
-
+    SPARK_EXECUTION_ENGINE_CONFIG("plugins.query.executionengine.spark.config"),
     CLUSTER_NAME("cluster.name");
 
     @Getter private final String keyValue;
