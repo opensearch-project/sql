@@ -11,6 +11,7 @@ import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 import static org.opensearch.sql.spark.constants.TestConstants.EMRS_APPLICATION_ID;
 import static org.opensearch.sql.spark.constants.TestConstants.EMR_JOB_ID;
+import static org.opensearch.sql.spark.constants.TestConstants.TEST_CLUSTER_NAME;
 import static org.opensearch.sql.spark.utils.TestUtils.getJson;
 
 import com.amazonaws.services.emrserverless.model.JobRunState;
@@ -23,13 +24,16 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.opensearch.cluster.ClusterName;
 import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.spark.asyncquery.exceptions.AsyncQueryNotFoundException;
 import org.opensearch.sql.spark.asyncquery.model.AsyncQueryExecutionResponse;
 import org.opensearch.sql.spark.asyncquery.model.AsyncQueryJobMetadata;
 import org.opensearch.sql.spark.dispatcher.SparkQueryDispatcher;
+import org.opensearch.sql.spark.dispatcher.model.DispatchQueryRequest;
 import org.opensearch.sql.spark.rest.model.CreateAsyncQueryRequest;
 import org.opensearch.sql.spark.rest.model.CreateAsyncQueryResponse;
+import org.opensearch.sql.spark.rest.model.LangType;
 
 @ExtendWith(MockitoExtension.class)
 public class AsyncQueryExecutorServiceImplTest {
@@ -44,25 +48,34 @@ public class AsyncQueryExecutorServiceImplTest {
         new AsyncQueryExecutorServiceImpl(
             asyncQueryJobMetadataStorageService, sparkQueryDispatcher, settings);
     CreateAsyncQueryRequest createAsyncQueryRequest =
-        new CreateAsyncQueryRequest("select * from my_glue.default.http_logs", "sql");
+        new CreateAsyncQueryRequest("select * from my_glue.default.http_logs", LangType.SQL);
     when(settings.getSettingValue(Settings.Key.SPARK_EXECUTION_ENGINE_CONFIG))
         .thenReturn(
             "{\"applicationId\":\"00fd775baqpu4g0p\",\"executionRoleARN\":\"arn:aws:iam::270824043731:role/emr-job-execution-role\",\"region\":\"eu-west-1\"}");
+    when(settings.getSettingValue(Settings.Key.CLUSTER_NAME))
+        .thenReturn(new ClusterName(TEST_CLUSTER_NAME));
     when(sparkQueryDispatcher.dispatch(
-            "00fd775baqpu4g0p",
-            "select * from my_glue.default.http_logs",
-            "arn:aws:iam::270824043731:role/emr-job-execution-role"))
+            new DispatchQueryRequest(
+                "00fd775baqpu4g0p",
+                "select * from my_glue.default.http_logs",
+                LangType.SQL,
+                "arn:aws:iam::270824043731:role/emr-job-execution-role",
+                TEST_CLUSTER_NAME)))
         .thenReturn(EMR_JOB_ID);
     CreateAsyncQueryResponse createAsyncQueryResponse =
         jobExecutorService.createAsyncQuery(createAsyncQueryRequest);
     verify(asyncQueryJobMetadataStorageService, times(1))
         .storeJobMetadata(new AsyncQueryJobMetadata(EMR_JOB_ID, "00fd775baqpu4g0p"));
     verify(settings, times(1)).getSettingValue(Settings.Key.SPARK_EXECUTION_ENGINE_CONFIG);
+    verify(settings, times(1)).getSettingValue(Settings.Key.CLUSTER_NAME);
     verify(sparkQueryDispatcher, times(1))
         .dispatch(
-            "00fd775baqpu4g0p",
-            "select * from my_glue.default.http_logs",
-            "arn:aws:iam::270824043731:role/emr-job-execution-role");
+            new DispatchQueryRequest(
+                "00fd775baqpu4g0p",
+                "select * from my_glue.default.http_logs",
+                LangType.SQL,
+                "arn:aws:iam::270824043731:role/emr-job-execution-role",
+                TEST_CLUSTER_NAME));
     Assertions.assertEquals(EMR_JOB_ID, createAsyncQueryResponse.getQueryId());
   }
 

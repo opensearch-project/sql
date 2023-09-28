@@ -17,23 +17,26 @@ import org.opensearch.core.xcontent.XContentParser;
 public class CreateAsyncQueryRequest {
 
   private String query;
-  private String lang;
+  private LangType lang;
 
   public static CreateAsyncQueryRequest fromXContentParser(XContentParser parser)
       throws IOException {
     String query = null;
-    String lang = null;
+    LangType lang = null;
     ensureExpectedToken(XContentParser.Token.START_OBJECT, parser.nextToken(), parser);
     while (parser.nextToken() != XContentParser.Token.END_OBJECT) {
       String fieldName = parser.currentName();
       parser.nextToken();
       if (fieldName.equals("query")) {
         query = parser.textOrNull();
-      } else if (fieldName.equals("kind")) {
-        lang = parser.textOrNull();
+      } else if (fieldName.equals("lang")) {
+        lang = LangType.fromString(parser.textOrNull());
       } else {
         throw new IllegalArgumentException("Unknown field: " + fieldName);
       }
+    }
+    if (lang == null || query == null) {
+      throw new IllegalArgumentException("lang and query are required fields.");
     }
     return new CreateAsyncQueryRequest(query, lang);
   }

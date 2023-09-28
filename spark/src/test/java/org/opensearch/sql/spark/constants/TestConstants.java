@@ -15,4 +15,5 @@ public class TestConstants {
   public static final String EMRS_DATASOURCE_ROLE = "datasource_role";
   public static final String EMRS_JOB_NAME = "job_name";
   public static final String SPARK_SUBMIT_PARAMETERS = "--conf org.flint.sql.SQLJob";
+  public static final String TEST_CLUSTER_NAME = "TEST_CLUSTER";
 }
