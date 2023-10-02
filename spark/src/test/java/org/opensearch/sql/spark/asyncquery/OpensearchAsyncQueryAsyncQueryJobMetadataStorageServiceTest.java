@@ -66,7 +66,7 @@ public class OpensearchAsyncQueryAsyncQueryJobMetadataStorageServiceTest {
     Mockito.when(indexResponseActionFuture.actionGet()).thenReturn(indexResponse);
     Mockito.when(indexResponse.getResult()).thenReturn(DocWriteResponse.Result.CREATED);
     AsyncQueryJobMetadata asyncQueryJobMetadata =
-        new AsyncQueryJobMetadata(EMR_JOB_ID, EMRS_APPLICATION_ID);
+        new AsyncQueryJobMetadata(EMR_JOB_ID, EMRS_APPLICATION_ID, null);
 
     this.opensearchJobMetadataStorageService.storeJobMetadata(asyncQueryJobMetadata);
 
@@ -83,7 +83,7 @@ public class OpensearchAsyncQueryAsyncQueryJobMetadataStorageServiceTest {
     Mockito.when(indexResponseActionFuture.actionGet()).thenReturn(indexResponse);
     Mockito.when(indexResponse.getResult()).thenReturn(DocWriteResponse.Result.CREATED);
     AsyncQueryJobMetadata asyncQueryJobMetadata =
-        new AsyncQueryJobMetadata(EMR_JOB_ID, EMRS_APPLICATION_ID);
+        new AsyncQueryJobMetadata(EMR_JOB_ID, EMRS_APPLICATION_ID, null);
 
     this.opensearchJobMetadataStorageService.storeJobMetadata(asyncQueryJobMetadata);
 
@@ -105,7 +105,7 @@ public class OpensearchAsyncQueryAsyncQueryJobMetadataStorageServiceTest {
         .thenThrow(new RuntimeException("error while indexing"));
 
     AsyncQueryJobMetadata asyncQueryJobMetadata =
-        new AsyncQueryJobMetadata(EMR_JOB_ID, EMRS_APPLICATION_ID);
+        new AsyncQueryJobMetadata(EMR_JOB_ID, EMRS_APPLICATION_ID, null);
     RuntimeException runtimeException =
         Assertions.assertThrows(
             RuntimeException.class,
@@ -129,7 +129,7 @@ public class OpensearchAsyncQueryAsyncQueryJobMetadataStorageServiceTest {
         .thenReturn(new CreateIndexResponse(false, false, JOB_METADATA_INDEX));
 
     AsyncQueryJobMetadata asyncQueryJobMetadata =
-        new AsyncQueryJobMetadata(EMR_JOB_ID, EMRS_APPLICATION_ID);
+        new AsyncQueryJobMetadata(EMR_JOB_ID, EMRS_APPLICATION_ID, null);
     RuntimeException runtimeException =
         Assertions.assertThrows(
             RuntimeException.class,
@@ -157,7 +157,7 @@ public class OpensearchAsyncQueryAsyncQueryJobMetadataStorageServiceTest {
     Mockito.when(indexResponse.getResult()).thenReturn(DocWriteResponse.Result.NOT_FOUND);
 
     AsyncQueryJobMetadata asyncQueryJobMetadata =
-        new AsyncQueryJobMetadata(EMR_JOB_ID, EMRS_APPLICATION_ID);
+        new AsyncQueryJobMetadata(EMR_JOB_ID, EMRS_APPLICATION_ID, null);
     RuntimeException runtimeException =
         Assertions.assertThrows(
             RuntimeException.class,
@@ -183,7 +183,7 @@ public class OpensearchAsyncQueryAsyncQueryJobMetadataStorageServiceTest {
             new SearchHits(
                 new SearchHit[] {searchHit}, new TotalHits(21, TotalHits.Relation.EQUAL_TO), 1.0F));
     AsyncQueryJobMetadata asyncQueryJobMetadata =
-        new AsyncQueryJobMetadata(EMRS_APPLICATION_ID, EMR_JOB_ID);
+        new AsyncQueryJobMetadata(EMRS_APPLICATION_ID, EMR_JOB_ID, null);
     Mockito.when(searchHit.getSourceAsString()).thenReturn(asyncQueryJobMetadata.toString());
 
     Optional<AsyncQueryJobMetadata> jobMetadataOptional =

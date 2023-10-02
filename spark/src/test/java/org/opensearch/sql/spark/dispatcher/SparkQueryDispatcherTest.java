@@ -5,6 +5,7 @@
 
 package org.opensearch.sql.spark.dispatcher;
 
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -14,9 +15,12 @@ import static org.opensearch.sql.spark.constants.TestConstants.EMRS_APPLICATION_
 import static org.opensearch.sql.spark.constants.TestConstants.EMRS_EXECUTION_ROLE;
 import static org.opensearch.sql.spark.constants.TestConstants.EMR_JOB_ID;
 import static org.opensearch.sql.spark.constants.TestConstants.TEST_CLUSTER_NAME;
+import static org.opensearch.sql.spark.data.constants.SparkConstants.DATA_FIELD;
+import static org.opensearch.sql.spark.data.constants.SparkConstants.ERROR_FIELD;
 import static org.opensearch.sql.spark.data.constants.SparkConstants.FLINT_INDEX_STORE_AUTH_PASSWORD;
 import static org.opensearch.sql.spark.data.constants.SparkConstants.FLINT_INDEX_STORE_AUTH_USERNAME;
 import static org.opensearch.sql.spark.data.constants.SparkConstants.FLINT_INDEX_STORE_AWSREGION_KEY;
+import static org.opensearch.sql.spark.data.constants.SparkConstants.STATUS_FIELD;
 
 import com.amazonaws.services.emrserverless.model.CancelJobRunResult;
 import com.amazonaws.services.emrserverless.model.GetJobRunResult;
@@ -85,7 +89,8 @@ public class SparkQueryDispatcherTest {
                       }
                     }),
                 tags,
-                false)))
+                false,
+                any())))
         .thenReturn(EMR_JOB_ID);
     DataSourceMetadata dataSourceMetadata = constructMyGlueDataSourceMetadata();
     when(dataSourceService.getRawDataSourceMetadata("my_glue")).thenReturn(dataSourceMetadata);
@@ -114,7 +119,8 @@ public class SparkQueryDispatcherTest {
                       }
                     }),
                 tags,
-                false));
+                false,
+                any()));
     Assertions.assertEquals(EMR_JOB_ID, dispatchQueryResponse.getJobId());
     Assertions.assertFalse(dispatchQueryResponse.isDropIndexQuery());
     verifyNoInteractions(flintIndexMetadataReader);
@@ -148,7 +154,8 @@ public class SparkQueryDispatcherTest {
                       }
                     }),
                 tags,
-                false)))
+                false,
+                any())))
         .thenReturn(EMR_JOB_ID);
     DataSourceMetadata dataSourceMetadata = constructMyGlueDataSourceMetadataWithBasicAuth();
     when(dataSourceService.getRawDataSourceMetadata("my_glue")).thenReturn(dataSourceMetadata);
@@ -178,7 +185,8 @@ public class SparkQueryDispatcherTest {
                       }
                     }),
                 tags,
-                false));
+                false,
+                any()));
     Assertions.assertEquals(EMR_JOB_ID, dispatchQueryResponse.getJobId());
     Assertions.assertFalse(dispatchQueryResponse.isDropIndexQuery());
     verifyNoInteractions(flintIndexMetadataReader);
@@ -210,7 +218,8 @@ public class SparkQueryDispatcherTest {
                       }
                     }),
                 tags,
-                false)))
+                false,
+                any())))
         .thenReturn(EMR_JOB_ID);
     DataSourceMetadata dataSourceMetadata = constructMyGlueDataSourceMetadataWithNoAuth();
     when(dataSourceService.getRawDataSourceMetadata("my_glue")).thenReturn(dataSourceMetadata);
@@ -238,7 +247,8 @@ public class SparkQueryDispatcherTest {
                       }
                     }),
                 tags,
-                false));
+                false,
+                any()));
     Assertions.assertEquals(EMR_JOB_ID, dispatchQueryResponse.getJobId());
     Assertions.assertFalse(dispatchQueryResponse.isDropIndexQuery());
     verifyNoInteractions(flintIndexMetadataReader);
@@ -277,7 +287,8 @@ public class SparkQueryDispatcherTest {
                           }
                         })),
                 tags,
-                true)))
+                true,
+                any())))
         .thenReturn(EMR_JOB_ID);
     DataSourceMetadata dataSourceMetadata = constructMyGlueDataSourceMetadata();
     when(dataSourceService.getRawDataSourceMetadata("my_glue")).thenReturn(dataSourceMetadata);
@@ -307,7 +318,8 @@ public class SparkQueryDispatcherTest {
                           }
                         })),
                 tags,
-                true));
+                true,
+                any()));
     Assertions.assertEquals(EMR_JOB_ID, dispatchQueryResponse.getJobId());
     Assertions.assertFalse(dispatchQueryResponse.isDropIndexQuery());
     verifyNoInteractions(flintIndexMetadataReader);
@@ -340,7 +352,8 @@ public class SparkQueryDispatcherTest {
                       }
                     }),
                 tags,
-                false)))
+                false,
+                any())))
         .thenReturn(EMR_JOB_ID);
     DataSourceMetadata dataSourceMetadata = constructMyGlueDataSourceMetadata();
     when(dataSourceService.getRawDataSourceMetadata("my_glue")).thenReturn(dataSourceMetadata);
@@ -369,7 +382,8 @@ public class SparkQueryDispatcherTest {
                       }
                     }),
                 tags,
-                false));
+                false,
+                any()));
     Assertions.assertEquals(EMR_JOB_ID, dispatchQueryResponse.getJobId());
     Assertions.assertFalse(dispatchQueryResponse.isDropIndexQuery());
     verifyNoInteractions(flintIndexMetadataReader);
@@ -402,7 +416,8 @@ public class SparkQueryDispatcherTest {
                       }
                     }),
                 tags,
-                false)))
+                false,
+                any())))
         .thenReturn(EMR_JOB_ID);
     DataSourceMetadata dataSourceMetadata = constructMyGlueDataSourceMetadata();
     when(dataSourceService.getRawDataSourceMetadata("my_glue")).thenReturn(dataSourceMetadata);
@@ -431,7 +446,8 @@ public class SparkQueryDispatcherTest {
                       }
                     }),
                 tags,
-                false));
+                false,
+                any()));
     Assertions.assertEquals(EMR_JOB_ID, dispatchQueryResponse.getJobId());
     Assertions.assertFalse(dispatchQueryResponse.isDropIndexQuery());
     verifyNoInteractions(flintIndexMetadataReader);
@@ -470,7 +486,8 @@ public class SparkQueryDispatcherTest {
                           }
                         })),
                 tags,
-                true)))
+                true,
+                any())))
         .thenReturn(EMR_JOB_ID);
     DataSourceMetadata dataSourceMetadata = constructMyGlueDataSourceMetadata();
     when(dataSourceService.getRawDataSourceMetadata("my_glue")).thenReturn(dataSourceMetadata);
@@ -500,7 +517,8 @@ public class SparkQueryDispatcherTest {
                           }
                         })),
                 tags,
-                true));
+                true,
+                any()));
     Assertions.assertEquals(EMR_JOB_ID, dispatchQueryResponse.getJobId());
     Assertions.assertFalse(dispatchQueryResponse.isDropIndexQuery());
     verifyNoInteractions(flintIndexMetadataReader);
@@ -579,7 +597,8 @@ public class SparkQueryDispatcherTest {
                 .withJobRunId(EMR_JOB_ID)
                 .withApplicationId(EMRS_APPLICATION_ID));
     String jobId =
-        sparkQueryDispatcher.cancelJob(new AsyncQueryJobMetadata(EMRS_APPLICATION_ID, EMR_JOB_ID));
+        sparkQueryDispatcher.cancelJob(
+            new AsyncQueryJobMetadata(EMRS_APPLICATION_ID, EMR_JOB_ID, null));
     Assertions.assertEquals(EMR_JOB_ID, jobId);
   }
 
@@ -596,7 +615,7 @@ public class SparkQueryDispatcherTest {
         .thenReturn(new GetJobRunResult().withJobRun(new JobRun().withState(JobRunState.PENDING)));
     JSONObject result =
         sparkQueryDispatcher.getQueryResponse(
-            new AsyncQueryJobMetadata(EMRS_APPLICATION_ID, EMR_JOB_ID));
+            new AsyncQueryJobMetadata(EMRS_APPLICATION_ID, EMR_JOB_ID, null));
     Assertions.assertEquals("PENDING", result.get("status"));
     verifyNoInteractions(jobExecutionResponseReader);
   }
@@ -613,17 +632,29 @@ public class SparkQueryDispatcherTest {
     when(emrServerlessClient.getJobRunResult(EMRS_APPLICATION_ID, EMR_JOB_ID))
         .thenReturn(new GetJobRunResult().withJobRun(new JobRun().withState(JobRunState.SUCCESS)));
     JSONObject queryResult = new JSONObject();
-    queryResult.put("data", "result");
-    when(jobExecutionResponseReader.getResultFromOpensearchIndex(EMR_JOB_ID))
+    Map<String, Object> resultMap = new HashMap<>();
+    resultMap.put(STATUS_FIELD, "SUCCESS");
+    resultMap.put(ERROR_FIELD, "");
+    queryResult.put(DATA_FIELD, resultMap);
+    when(jobExecutionResponseReader.getResultFromOpensearchIndex(EMR_JOB_ID, null))
         .thenReturn(queryResult);
     JSONObject result =
         sparkQueryDispatcher.getQueryResponse(
-            new AsyncQueryJobMetadata(EMRS_APPLICATION_ID, EMR_JOB_ID));
+            new AsyncQueryJobMetadata(EMRS_APPLICATION_ID, EMR_JOB_ID, null));
     verify(emrServerlessClient, times(1)).getJobRunResult(EMRS_APPLICATION_ID, EMR_JOB_ID);
-    verify(jobExecutionResponseReader, times(1)).getResultFromOpensearchIndex(EMR_JOB_ID);
-    Assertions.assertEquals(new HashSet<>(Arrays.asList("data", "status")), result.keySet());
-    Assertions.assertEquals("result", result.get("data"));
-    Assertions.assertEquals("SUCCESS", result.get("status"));
+    verify(jobExecutionResponseReader, times(1)).getResultFromOpensearchIndex(EMR_JOB_ID, null);
+    Assertions.assertEquals(
+        new HashSet<>(Arrays.asList(DATA_FIELD, STATUS_FIELD, ERROR_FIELD)), result.keySet());
+    JSONObject dataJson = new JSONObject();
+    dataJson.put(ERROR_FIELD, "");
+    dataJson.put(STATUS_FIELD, "SUCCESS");
+    // JSONObject.similar() compares if two JSON objects are the same, but having perhaps a
+    // different order of its attributes.
+    // The equals() will compare each string caracter, one-by-one checking if it is the same, having
+    // the same order.
+    // We need similar.
+    Assertions.assertTrue(dataJson.similar(result.get(DATA_FIELD)));
+    Assertions.assertEquals("SUCCESS", result.get(STATUS_FIELD));
   }
 
   @Test
@@ -738,7 +769,7 @@ public class SparkQueryDispatcherTest {
       authParamConfigBuilder.append(authParams.get(key));
       authParamConfigBuilder.append(" ");
     }
-    return " --class org.opensearch.sql.FlintJob  --conf"
+    return " --class org.apache.spark.sql.FlintJob  --conf"
                + " spark.hadoop.fs.s3.customAWSCredentialsProvider=com.amazonaws.emr.AssumeRoleAWSCredentialsProvider"
                + "  --conf"
                + " spark.hadoop.aws.catalog.credentials.provider.factory.class=com.amazonaws.glue.catalog.metastore.STSAssumeRoleSessionCredentialsProviderFactory"

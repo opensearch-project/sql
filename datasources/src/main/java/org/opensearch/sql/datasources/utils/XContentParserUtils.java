@@ -32,6 +32,8 @@ public class XContentParserUtils {
   public static final String PROPERTIES_FIELD = "properties";
   public static final String ALLOWED_ROLES_FIELD = "allowedRoles";
 
+  public static final String RESULT_INDEX_FIELD = "resultIndex";
+
   /**
    * Convert xcontent parser to DataSourceMetadata.
    *
@@ -45,6 +47,7 @@ public class XContentParserUtils {
     DataSourceType connector = null;
     List<String> allowedRoles = new ArrayList<>();
     Map<String, String> properties = new HashMap<>();
+    String resultIndex = null;
     ensureExpectedToken(XContentParser.Token.START_OBJECT, parser.nextToken(), parser);
     while (parser.nextToken() != XContentParser.Token.END_OBJECT) {
       String fieldName = parser.currentName();
@@ -73,6 +76,9 @@ public class XContentParserUtils {
             properties.put(key, value);
           }
           break;
+        case RESULT_INDEX_FIELD:
+          resultIndex = parser.textOrNull();
+          break;
         default:
           throw new IllegalArgumentException("Unknown field: " + fieldName);
       }
@@ -80,7 +86,8 @@ public class XContentParserUtils {
     if (name == null || connector == null) {
       throw new IllegalArgumentException("name and connector are required fields.");
     }
-    return new DataSourceMetadata(name, description, connector, allowedRoles, properties);
+    return new DataSourceMetadata(
+        name, description, connector, allowedRoles, properties, resultIndex);
   }
 
   /**
@@ -122,6 +129,7 @@ public class XContentParserUtils {
       builder.field(entry.getKey(), entry.getValue());
     }
     builder.endObject();
+    builder.field(RESULT_INDEX_FIELD, metadata.getResultIndex());
     builder.endObject();
     return builder;
   }

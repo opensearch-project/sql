@@ -64,7 +64,8 @@ public class DataSourceTableScanTest {
                         dataSource.getName(),
                         dataSource.getConnectorType(),
                         Collections.emptyList(),
-                        ImmutableMap.of()))
+                        ImmutableMap.of(),
+                        null))
             .collect(Collectors.toSet());
     when(dataSourceService.getDataSourceMetadata(false)).thenReturn(dataSourceMetadata);
 

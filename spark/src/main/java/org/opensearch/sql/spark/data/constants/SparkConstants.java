@@ -8,13 +8,22 @@ package org.opensearch.sql.spark.data.constants;
 public class SparkConstants {
   public static final String EMR = "emr";
   public static final String STEP_ID_FIELD = "stepId.keyword";
+
+  public static final String JOB_ID_FIELD = "jobRunId";
+
+  public static final String STATUS_FIELD = "status";
+
+  public static final String DATA_FIELD = "data";
+
+  public static final String ERROR_FIELD = "error";
+
   // TODO should be replaced with mvn jar.
   public static final String SPARK_SQL_APPLICATION_JAR =
       "s3://flint-data-dp-eu-west-1-beta/code/flint/sql-job.jar";
   public static final String SPARK_RESPONSE_BUFFER_INDEX_NAME = ".query_execution_result";
   // TODO should be replaced with mvn jar.
   public static final String FLINT_INTEGRATION_JAR =
-      "s3://spark-datasource/flint-spark-integration-assembly-0.1.0-SNAPSHOT.jar";
+      "s3://flint-data-dp-eu-west-1-beta/code/flint/sql-job.jar";
   // TODO should be replaced with mvn jar.
   public static final String GLUE_CATALOG_HIVE_JAR =
       "s3://flint-data-dp-eu-west-1-beta/code/flint/AWSGlueDataCatalogHiveMetaStoreAuth-1.0.jar";
@@ -26,7 +35,7 @@ public class SparkConstants {
   public static final String FLINT_DEFAULT_SCHEME = "http";
   public static final String FLINT_DEFAULT_AUTH = "noauth";
   public static final String FLINT_DEFAULT_REGION = "us-west-2";
-  public static final String DEFAULT_CLASS_NAME = "org.opensearch.sql.FlintJob";
+  public static final String DEFAULT_CLASS_NAME = "org.apache.spark.sql.FlintJob";
   public static final String S3_AWS_CREDENTIALS_PROVIDER_KEY =
       "spark.hadoop.fs.s3.customAWSCredentialsProvider";
   public static final String DRIVER_ENV_ASSUME_ROLE_ARN_KEY =
@@ -53,6 +62,7 @@ public class SparkConstants {
   public static final String FLINT_INDEX_STORE_AWSREGION_KEY = "spark.datasource.flint.region";
   public static final String FLINT_CREDENTIALS_PROVIDER_KEY =
       "spark.datasource.flint.customAWSCredentialsProvider";
+  public static final String FLINT_DATA_SOURCE_KEY = "spark.flint.datasource.name";
   public static final String SPARK_SQL_EXTENSIONS_KEY = "spark.sql.extensions";
   public static final String HIVE_METASTORE_CLASS_KEY =
       "spark.hadoop.hive.metastore.client.factory.class";

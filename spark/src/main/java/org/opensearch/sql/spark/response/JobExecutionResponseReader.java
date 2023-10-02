@@ -5,8 +5,9 @@
 
 package org.opensearch.sql.spark.response;
 
+import static org.opensearch.sql.spark.data.constants.SparkConstants.DATA_FIELD;
+import static org.opensearch.sql.spark.data.constants.SparkConstants.JOB_ID_FIELD;
 import static org.opensearch.sql.spark.data.constants.SparkConstants.SPARK_RESPONSE_BUFFER_INDEX_NAME;
-import static org.opensearch.sql.spark.data.constants.SparkConstants.STEP_ID_FIELD;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -33,13 +34,14 @@ public class JobExecutionResponseReader {
     this.client = client;
   }
 
-  public JSONObject getResultFromOpensearchIndex(String jobId) {
-    return searchInSparkIndex(QueryBuilders.termQuery(STEP_ID_FIELD, jobId));
+  public JSONObject getResultFromOpensearchIndex(String jobId, String resultIndex) {
+    return searchInSparkIndex(QueryBuilders.termQuery(JOB_ID_FIELD, jobId), resultIndex);
   }
 
-  private JSONObject searchInSparkIndex(QueryBuilder query) {
+  private JSONObject searchInSparkIndex(QueryBuilder query, String resultIndex) {
     SearchRequest searchRequest = new SearchRequest();
-    searchRequest.indices(SPARK_RESPONSE_BUFFER_INDEX_NAME);
+    String searchResultIndex = resultIndex == null ? SPARK_RESPONSE_BUFFER_INDEX_NAME : resultIndex;
+    searchRequest.indices(searchResultIndex);
     SearchSourceBuilder searchSourceBuilder = new SearchSourceBuilder();
     searchSourceBuilder.query(query);
     searchRequest.source(searchSourceBuilder);
@@ -53,13 +55,13 @@ public class JobExecutionResponseReader {
     if (searchResponse.status().getStatus() != 200) {
       throw new RuntimeException(
           "Fetching result from "
-              + SPARK_RESPONSE_BUFFER_INDEX_NAME
+              + searchResultIndex
               + " index failed with status : "
               + searchResponse.status());
     } else {
       JSONObject data = new JSONObject();
       for (SearchHit searchHit : searchResponse.getHits().getHits()) {
-        data.put("data", searchHit.getSourceAsMap());
+        data.put(DATA_FIELD, searchHit.getSourceAsMap());
       }
       return data;
     }

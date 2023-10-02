@@ -20,10 +20,10 @@ class StartJobRequestTest {
   }
 
   private StartJobRequest onDemandJob() {
-    return new StartJobRequest("", "", "", "", "", Map.of(), false);
+    return new StartJobRequest("", "", "", "", "", Map.of(), false, null);
   }
 
   private StartJobRequest streamingJob() {
-    return new StartJobRequest("", "", "", "", "", Map.of(), true);
+    return new StartJobRequest("", "", "", "", "", Map.of(), true, null);
   }
 }
