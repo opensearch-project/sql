@@ -12,6 +12,7 @@ import org.opensearch.sql.spark.rest.model.LangType;
 public class DispatchQueryRequest {
   private final String applicationId;
   private final String query;
+  private final String datasource;
   private final LangType langType;
   private final String executionRoleARN;
   private final String clusterName;

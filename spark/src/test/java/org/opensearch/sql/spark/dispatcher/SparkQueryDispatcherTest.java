@@ -42,7 +42,7 @@ import org.opensearch.sql.spark.rest.model.LangType;
 @ExtendWith(MockitoExtension.class)
 public class SparkQueryDispatcherTest {
 
-  @Mock private EMRServerlessClient EMRServerlessClient;
+  @Mock private EMRServerlessClient emrServerlessClient;
   @Mock private DataSourceService dataSourceService;
   @Mock private JobExecutionResponseReader jobExecutionResponseReader;
   @Mock private DataSourceUserAuthorizationHelperImpl dataSourceUserAuthorizationHelper;
@@ -51,20 +51,18 @@ public class SparkQueryDispatcherTest {
   void testDispatchSelectQuery() {
     SparkQueryDispatcher sparkQueryDispatcher =
         new SparkQueryDispatcher(
-            EMRServerlessClient,
+            emrServerlessClient,
             dataSourceService,
             dataSourceUserAuthorizationHelper,
             jobExecutionResponseReader);
     HashMap<String, String> tags = new HashMap<>();
     tags.put("datasource", "my_glue");
-    tags.put("table", "http_logs");
     tags.put("cluster", TEST_CLUSTER_NAME);
-    tags.put("schema", "default");
     String query = "select * from my_glue.default.http_logs";
-    when(EMRServerlessClient.startJobRun(
+    when(emrServerlessClient.startJobRun(
             new StartJobRequest(
                 query,
-                "TEST_CLUSTER:my_glue.default.http_logs",
+                "TEST_CLUSTER:non-index-query",
                 EMRS_APPLICATION_ID,
                 EMRS_EXECUTION_ROLE,
                 constructExpectedSparkSubmitParameterString(),
@@ -76,12 +74,17 @@ public class SparkQueryDispatcherTest {
     String jobId =
         sparkQueryDispatcher.dispatch(
             new DispatchQueryRequest(
-                EMRS_APPLICATION_ID, query, LangType.SQL, EMRS_EXECUTION_ROLE, TEST_CLUSTER_NAME));
-    verify(EMRServerlessClient, times(1))
+                EMRS_APPLICATION_ID,
+                query,
+                "my_glue",
+                LangType.SQL,
+                EMRS_EXECUTION_ROLE,
+                TEST_CLUSTER_NAME));
+    verify(emrServerlessClient, times(1))
         .startJobRun(
             new StartJobRequest(
                 query,
-                "TEST_CLUSTER:my_glue.default.http_logs",
+                "TEST_CLUSTER:non-index-query",
                 EMRS_APPLICATION_ID,
                 EMRS_EXECUTION_ROLE,
                 constructExpectedSparkSubmitParameterString(),
@@ -93,7 +96,7 @@ public class SparkQueryDispatcherTest {
   void testDispatchIndexQuery() {
     SparkQueryDispatcher sparkQueryDispatcher =
         new SparkQueryDispatcher(
-            EMRServerlessClient,
+            emrServerlessClient,
             dataSourceService,
             dataSourceUserAuthorizationHelper,
             jobExecutionResponseReader);
@@ -106,10 +109,10 @@ public class SparkQueryDispatcherTest {
     String query =
         "CREATE INDEX elb_and_requestUri ON my_glue.default.http_logs(l_orderkey, l_quantity) WITH"
             + " (auto_refresh = true)";
-    when(EMRServerlessClient.startJobRun(
+    when(emrServerlessClient.startJobRun(
             new StartJobRequest(
                 query,
-                "TEST_CLUSTER:my_glue.default.http_logs.elb_and_requestUri",
+                "TEST_CLUSTER:index-query",
                 EMRS_APPLICATION_ID,
                 EMRS_EXECUTION_ROLE,
                 constructExpectedSparkSubmitParameterString(),
@@ -121,12 +124,17 @@ public class SparkQueryDispatcherTest {
     String jobId =
         sparkQueryDispatcher.dispatch(
             new DispatchQueryRequest(
-                EMRS_APPLICATION_ID, query, LangType.SQL, EMRS_EXECUTION_ROLE, TEST_CLUSTER_NAME));
-    verify(EMRServerlessClient, times(1))
+                EMRS_APPLICATION_ID,
+                query,
+                "my_glue",
+                LangType.SQL,
+                EMRS_EXECUTION_ROLE,
+                TEST_CLUSTER_NAME));
+    verify(emrServerlessClient, times(1))
         .startJobRun(
             new StartJobRequest(
                 query,
-                "TEST_CLUSTER:my_glue.default.http_logs.elb_and_requestUri",
+                "TEST_CLUSTER:index-query",
                 EMRS_APPLICATION_ID,
                 EMRS_EXECUTION_ROLE,
                 constructExpectedSparkSubmitParameterString(),
@@ -136,124 +144,149 @@ public class SparkQueryDispatcherTest {
 
   @Test
   void testDispatchWithPPLQuery() {
+    HashMap<String, String> tags = new HashMap<>();
+    tags.put("datasource", "my_glue");
+    tags.put("cluster", TEST_CLUSTER_NAME);
     SparkQueryDispatcher sparkQueryDispatcher =
         new SparkQueryDispatcher(
-            EMRServerlessClient,
+            emrServerlessClient,
             dataSourceService,
             dataSourceUserAuthorizationHelper,
             jobExecutionResponseReader);
-    String query = "select * from my_glue.default.http_logs";
-    UnsupportedOperationException unsupportedOperationException =
-        Assertions.assertThrows(
-            UnsupportedOperationException.class,
-            () ->
-                sparkQueryDispatcher.dispatch(
-                    new DispatchQueryRequest(
-                        EMRS_APPLICATION_ID,
-                        query,
-                        LangType.PPL,
-                        EMRS_EXECUTION_ROLE,
-                        TEST_CLUSTER_NAME)));
-    Assertions.assertEquals(
-        "UnSupported Lang type:: PPL", unsupportedOperationException.getMessage());
-    verifyNoInteractions(EMRServerlessClient);
-    verifyNoInteractions(dataSourceService);
-    verifyNoInteractions(dataSourceUserAuthorizationHelper);
-    verifyNoInteractions(jobExecutionResponseReader);
+    String query = "source = my_glue.default.http_logs";
+    when(emrServerlessClient.startJobRun(
+            new StartJobRequest(
+                query,
+                "TEST_CLUSTER:non-index-query",
+                EMRS_APPLICATION_ID,
+                EMRS_EXECUTION_ROLE,
+                constructExpectedSparkSubmitParameterString(),
+                tags)))
+        .thenReturn(EMR_JOB_ID);
+    DataSourceMetadata dataSourceMetadata = constructMyGlueDataSourceMetadata();
+    when(dataSourceService.getRawDataSourceMetadata("my_glue")).thenReturn(dataSourceMetadata);
+    doNothing().when(dataSourceUserAuthorizationHelper).authorizeDataSource(dataSourceMetadata);
+    String jobId =
+        sparkQueryDispatcher.dispatch(
+            new DispatchQueryRequest(
+                EMRS_APPLICATION_ID,
+                query,
+                "my_glue",
+                LangType.PPL,
+                EMRS_EXECUTION_ROLE,
+                TEST_CLUSTER_NAME));
+    verify(emrServerlessClient, times(1))
+        .startJobRun(
+            new StartJobRequest(
+                query,
+                "TEST_CLUSTER:non-index-query",
+                EMRS_APPLICATION_ID,
+                EMRS_EXECUTION_ROLE,
+                constructExpectedSparkSubmitParameterString(),
+                tags));
+    Assertions.assertEquals(EMR_JOB_ID, jobId);
   }
 
   @Test
-  void testDispatchQueryWithoutATableName() {
+  void testDispatchQueryWithoutATableAndDataSourceName() {
+    HashMap<String, String> tags = new HashMap<>();
+    tags.put("datasource", "my_glue");
+    tags.put("cluster", TEST_CLUSTER_NAME);
     SparkQueryDispatcher sparkQueryDispatcher =
         new SparkQueryDispatcher(
-            EMRServerlessClient,
+            emrServerlessClient,
             dataSourceService,
             dataSourceUserAuthorizationHelper,
             jobExecutionResponseReader);
     String query = "show tables";
-    UnsupportedOperationException unsupportedOperationException =
-        Assertions.assertThrows(
-            UnsupportedOperationException.class,
-            () ->
-                sparkQueryDispatcher.dispatch(
-                    new DispatchQueryRequest(
-                        EMRS_APPLICATION_ID,
-                        query,
-                        LangType.SQL,
-                        EMRS_EXECUTION_ROLE,
-                        TEST_CLUSTER_NAME)));
-    Assertions.assertEquals(
-        "Missing datasource in the query syntax.", unsupportedOperationException.getMessage());
-    verifyNoInteractions(EMRServerlessClient);
-    verifyNoInteractions(dataSourceService);
-    verifyNoInteractions(dataSourceUserAuthorizationHelper);
-    verifyNoInteractions(jobExecutionResponseReader);
-  }
-
-  @Test
-  void testDispatchQueryWithoutADataSourceName() {
-    SparkQueryDispatcher sparkQueryDispatcher =
-        new SparkQueryDispatcher(
-            EMRServerlessClient,
-            dataSourceService,
-            dataSourceUserAuthorizationHelper,
-            jobExecutionResponseReader);
-    String query = "select * from default.http_logs";
-    UnsupportedOperationException unsupportedOperationException =
-        Assertions.assertThrows(
-            UnsupportedOperationException.class,
-            () ->
-                sparkQueryDispatcher.dispatch(
-                    new DispatchQueryRequest(
-                        EMRS_APPLICATION_ID,
-                        query,
-                        LangType.SQL,
-                        EMRS_EXECUTION_ROLE,
-                        TEST_CLUSTER_NAME)));
-    Assertions.assertEquals(
-        "Missing datasource in the query syntax.", unsupportedOperationException.getMessage());
-    verifyNoInteractions(EMRServerlessClient);
-    verifyNoInteractions(dataSourceService);
-    verifyNoInteractions(dataSourceUserAuthorizationHelper);
-    verifyNoInteractions(jobExecutionResponseReader);
+    when(emrServerlessClient.startJobRun(
+            new StartJobRequest(
+                query,
+                "TEST_CLUSTER:non-index-query",
+                EMRS_APPLICATION_ID,
+                EMRS_EXECUTION_ROLE,
+                constructExpectedSparkSubmitParameterString(),
+                tags)))
+        .thenReturn(EMR_JOB_ID);
+    DataSourceMetadata dataSourceMetadata = constructMyGlueDataSourceMetadata();
+    when(dataSourceService.getRawDataSourceMetadata("my_glue")).thenReturn(dataSourceMetadata);
+    doNothing().when(dataSourceUserAuthorizationHelper).authorizeDataSource(dataSourceMetadata);
+    String jobId =
+        sparkQueryDispatcher.dispatch(
+            new DispatchQueryRequest(
+                EMRS_APPLICATION_ID,
+                query,
+                "my_glue",
+                LangType.SQL,
+                EMRS_EXECUTION_ROLE,
+                TEST_CLUSTER_NAME));
+    verify(emrServerlessClient, times(1))
+        .startJobRun(
+            new StartJobRequest(
+                query,
+                "TEST_CLUSTER:non-index-query",
+                EMRS_APPLICATION_ID,
+                EMRS_EXECUTION_ROLE,
+                constructExpectedSparkSubmitParameterString(),
+                tags));
+    Assertions.assertEquals(EMR_JOB_ID, jobId);
   }
 
   @Test
   void testDispatchIndexQueryWithoutADatasourceName() {
+    HashMap<String, String> tags = new HashMap<>();
+    tags.put("datasource", "my_glue");
+    tags.put("table", "http_logs");
+    tags.put("index", "elb_and_requestUri");
+    tags.put("cluster", TEST_CLUSTER_NAME);
+    tags.put("schema", "default");
     SparkQueryDispatcher sparkQueryDispatcher =
         new SparkQueryDispatcher(
-            EMRServerlessClient,
+            emrServerlessClient,
             dataSourceService,
             dataSourceUserAuthorizationHelper,
             jobExecutionResponseReader);
     String query =
         "CREATE INDEX elb_and_requestUri ON default.http_logs(l_orderkey, l_quantity) WITH"
             + " (auto_refresh = true)";
-    UnsupportedOperationException unsupportedOperationException =
-        Assertions.assertThrows(
-            UnsupportedOperationException.class,
-            () ->
-                sparkQueryDispatcher.dispatch(
-                    new DispatchQueryRequest(
-                        EMRS_APPLICATION_ID,
-                        query,
-                        LangType.SQL,
-                        EMRS_EXECUTION_ROLE,
-                        TEST_CLUSTER_NAME)));
-    Assertions.assertEquals(
-        "Queries without a datasource are not supported",
-        unsupportedOperationException.getMessage());
-    verifyNoInteractions(EMRServerlessClient);
-    verifyNoInteractions(dataSourceService);
-    verifyNoInteractions(dataSourceUserAuthorizationHelper);
-    verifyNoInteractions(jobExecutionResponseReader);
+    when(emrServerlessClient.startJobRun(
+            new StartJobRequest(
+                query,
+                "TEST_CLUSTER:index-query",
+                EMRS_APPLICATION_ID,
+                EMRS_EXECUTION_ROLE,
+                constructExpectedSparkSubmitParameterString(),
+                tags)))
+        .thenReturn(EMR_JOB_ID);
+    DataSourceMetadata dataSourceMetadata = constructMyGlueDataSourceMetadata();
+    when(dataSourceService.getRawDataSourceMetadata("my_glue")).thenReturn(dataSourceMetadata);
+    doNothing().when(dataSourceUserAuthorizationHelper).authorizeDataSource(dataSourceMetadata);
+    String jobId =
+        sparkQueryDispatcher.dispatch(
+            new DispatchQueryRequest(
+                EMRS_APPLICATION_ID,
+                query,
+                "my_glue",
+                LangType.SQL,
+                EMRS_EXECUTION_ROLE,
+                TEST_CLUSTER_NAME));
+    verify(emrServerlessClient, times(1))
+        .startJobRun(
+            new StartJobRequest(
+                query,
+                "TEST_CLUSTER:index-query",
+                EMRS_APPLICATION_ID,
+                EMRS_EXECUTION_ROLE,
+                constructExpectedSparkSubmitParameterString(),
+                tags));
+    Assertions.assertEquals(EMR_JOB_ID, jobId);
   }
 
   @Test
   void testDispatchWithWrongURI() {
     SparkQueryDispatcher sparkQueryDispatcher =
         new SparkQueryDispatcher(
-            EMRServerlessClient,
+            emrServerlessClient,
             dataSourceService,
             dataSourceUserAuthorizationHelper,
             jobExecutionResponseReader);
@@ -268,6 +301,7 @@ public class SparkQueryDispatcherTest {
                     new DispatchQueryRequest(
                         EMRS_APPLICATION_ID,
                         query,
+                        "my_glue",
                         LangType.SQL,
                         EMRS_EXECUTION_ROLE,
                         TEST_CLUSTER_NAME)));
@@ -280,7 +314,7 @@ public class SparkQueryDispatcherTest {
   void testDispatchWithUnSupportedDataSourceType() {
     SparkQueryDispatcher sparkQueryDispatcher =
         new SparkQueryDispatcher(
-            EMRServerlessClient,
+            emrServerlessClient,
             dataSourceService,
             dataSourceUserAuthorizationHelper,
             jobExecutionResponseReader);
@@ -295,6 +329,7 @@ public class SparkQueryDispatcherTest {
                     new DispatchQueryRequest(
                         EMRS_APPLICATION_ID,
                         query,
+                        "my_prometheus",
                         LangType.SQL,
                         EMRS_EXECUTION_ROLE,
                         TEST_CLUSTER_NAME)));
@@ -307,11 +342,11 @@ public class SparkQueryDispatcherTest {
   void testCancelJob() {
     SparkQueryDispatcher sparkQueryDispatcher =
         new SparkQueryDispatcher(
-            EMRServerlessClient,
+            emrServerlessClient,
             dataSourceService,
             dataSourceUserAuthorizationHelper,
             jobExecutionResponseReader);
-    when(EMRServerlessClient.cancelJobRun(EMRS_APPLICATION_ID, EMR_JOB_ID))
+    when(emrServerlessClient.cancelJobRun(EMRS_APPLICATION_ID, EMR_JOB_ID))
         .thenReturn(
             new CancelJobRunResult()
                 .withJobRunId(EMR_JOB_ID)
@@ -324,11 +359,11 @@ public class SparkQueryDispatcherTest {
   void testGetQueryResponse() {
     SparkQueryDispatcher sparkQueryDispatcher =
         new SparkQueryDispatcher(
-            EMRServerlessClient,
+            emrServerlessClient,
             dataSourceService,
             dataSourceUserAuthorizationHelper,
             jobExecutionResponseReader);
-    when(EMRServerlessClient.getJobRunResult(EMRS_APPLICATION_ID, EMR_JOB_ID))
+    when(emrServerlessClient.getJobRunResult(EMRS_APPLICATION_ID, EMR_JOB_ID))
         .thenReturn(new GetJobRunResult().withJobRun(new JobRun().withState(JobRunState.PENDING)));
     JSONObject result = sparkQueryDispatcher.getQueryResponse(EMRS_APPLICATION_ID, EMR_JOB_ID);
     Assertions.assertEquals("PENDING", result.get("status"));
@@ -339,18 +374,18 @@ public class SparkQueryDispatcherTest {
   void testGetQueryResponseWithSuccess() {
     SparkQueryDispatcher sparkQueryDispatcher =
         new SparkQueryDispatcher(
-            EMRServerlessClient,
+            emrServerlessClient,
             dataSourceService,
             dataSourceUserAuthorizationHelper,
             jobExecutionResponseReader);
-    when(EMRServerlessClient.getJobRunResult(EMRS_APPLICATION_ID, EMR_JOB_ID))
+    when(emrServerlessClient.getJobRunResult(EMRS_APPLICATION_ID, EMR_JOB_ID))
         .thenReturn(new GetJobRunResult().withJobRun(new JobRun().withState(JobRunState.SUCCESS)));
     JSONObject queryResult = new JSONObject();
     queryResult.put("data", "result");
     when(jobExecutionResponseReader.getResultFromOpensearchIndex(EMR_JOB_ID))
         .thenReturn(queryResult);
     JSONObject result = sparkQueryDispatcher.getQueryResponse(EMRS_APPLICATION_ID, EMR_JOB_ID);
-    verify(EMRServerlessClient, times(1)).getJobRunResult(EMRS_APPLICATION_ID, EMR_JOB_ID);
+    verify(emrServerlessClient, times(1)).getJobRunResult(EMRS_APPLICATION_ID, EMR_JOB_ID);
     verify(jobExecutionResponseReader, times(1)).getResultFromOpensearchIndex(EMR_JOB_ID);
     Assertions.assertEquals(new HashSet<>(Arrays.asList("data", "status")), result.keySet());
     Assertions.assertEquals("result", result.get("data"));
