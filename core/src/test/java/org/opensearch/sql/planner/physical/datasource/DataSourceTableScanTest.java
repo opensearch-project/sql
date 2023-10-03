@@ -66,7 +66,7 @@ public class DataSourceTableScanTest {
                         Collections.emptyList(),
                         ImmutableMap.of()))
             .collect(Collectors.toSet());
-    when(dataSourceService.getDataSourceMetadata(true)).thenReturn(dataSourceMetadata);
+    when(dataSourceService.getDataSourceMetadata(false)).thenReturn(dataSourceMetadata);
 
     assertFalse(dataSourceTableScan.hasNext());
     dataSourceTableScan.open();
