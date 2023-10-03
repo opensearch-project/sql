@@ -103,9 +103,13 @@ public class SparkQueryDispatcher {
             dispatchQueryRequest.getApplicationId(),
             dispatchQueryRequest.getExecutionRoleARN(),
             SparkSubmitParameters.Builder.builder()
-                .dataSource(dataSourceService.getRawDataSourceMetadata(dispatchQueryRequest.getDatasource()))
-                .build().toString(),
-            tags, false);
+                .dataSource(
+                    dataSourceService.getRawDataSourceMetadata(
+                        dispatchQueryRequest.getDatasource()))
+                .build()
+                .toString(),
+            tags,
+            false);
     return startJobRequest;
   }
 
@@ -128,10 +132,14 @@ public class SparkQueryDispatcher {
             dispatchQueryRequest.getApplicationId(),
             dispatchQueryRequest.getExecutionRoleARN(),
             SparkSubmitParameters.Builder.builder()
-                .dataSource(dataSourceService.getRawDataSourceMetadata(dispatchQueryRequest.getDatasource()))
+                .dataSource(
+                    dataSourceService.getRawDataSourceMetadata(
+                        dispatchQueryRequest.getDatasource()))
                 .structuredStreaming()
-                .build().toString(),
-            tags, true);
+                .build()
+                .toString(),
+            tags,
+            true);
     return startJobRequest;
   }
 

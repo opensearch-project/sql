@@ -75,7 +75,8 @@ public class SparkQueryDispatcherTest {
                         put(FLINT_INDEX_STORE_AWSREGION_KEY, "eu-west-1");
                       }
                     }),
-                tags, false)))
+                tags,
+                false)))
         .thenReturn(EMR_JOB_ID);
     DataSourceMetadata dataSourceMetadata = constructMyGlueDataSourceMetadata();
     when(dataSourceService.getRawDataSourceMetadata("my_glue")).thenReturn(dataSourceMetadata);
@@ -103,7 +104,8 @@ public class SparkQueryDispatcherTest {
                         put(FLINT_INDEX_STORE_AWSREGION_KEY, "eu-west-1");
                       }
                     }),
-                tags, false));
+                tags,
+                false));
     Assertions.assertEquals(EMR_JOB_ID, jobId);
   }
 
@@ -133,7 +135,8 @@ public class SparkQueryDispatcherTest {
                         put(FLINT_INDEX_STORE_AUTH_PASSWORD, "password");
                       }
                     }),
-                tags, false)))
+                tags,
+                false)))
         .thenReturn(EMR_JOB_ID);
     DataSourceMetadata dataSourceMetadata = constructMyGlueDataSourceMetadataWithBasicAuth();
     when(dataSourceService.getRawDataSourceMetadata("my_glue")).thenReturn(dataSourceMetadata);
@@ -162,7 +165,8 @@ public class SparkQueryDispatcherTest {
                         put(FLINT_INDEX_STORE_AUTH_PASSWORD, "password");
                       }
                     }),
-                tags, false));
+                tags,
+                false));
     Assertions.assertEquals(EMR_JOB_ID, jobId);
   }
 
@@ -190,7 +194,8 @@ public class SparkQueryDispatcherTest {
                       {
                       }
                     }),
-                tags, false)))
+                tags,
+                false)))
         .thenReturn(EMR_JOB_ID);
     DataSourceMetadata dataSourceMetadata = constructMyGlueDataSourceMetadataWithNoAuth();
     when(dataSourceService.getRawDataSourceMetadata("my_glue")).thenReturn(dataSourceMetadata);
@@ -217,7 +222,8 @@ public class SparkQueryDispatcherTest {
                       {
                       }
                     }),
-                tags, false));
+                tags,
+                false));
     Assertions.assertEquals(EMR_JOB_ID, jobId);
   }
 
@@ -244,14 +250,16 @@ public class SparkQueryDispatcherTest {
                 "TEST_CLUSTER:index-query",
                 EMRS_APPLICATION_ID,
                 EMRS_EXECUTION_ROLE,
-                withStructuredStreaming(constructExpectedSparkSubmitParameterString(
-                    "sigv4",
-                    new HashMap<>() {
-                      {
-                        put(FLINT_INDEX_STORE_AWSREGION_KEY, "eu-west-1");
-                      }
-                    })),
-                tags, true)))
+                withStructuredStreaming(
+                    constructExpectedSparkSubmitParameterString(
+                        "sigv4",
+                        new HashMap<>() {
+                          {
+                            put(FLINT_INDEX_STORE_AWSREGION_KEY, "eu-west-1");
+                          }
+                        })),
+                tags,
+                true)))
         .thenReturn(EMR_JOB_ID);
     DataSourceMetadata dataSourceMetadata = constructMyGlueDataSourceMetadata();
     when(dataSourceService.getRawDataSourceMetadata("my_glue")).thenReturn(dataSourceMetadata);
@@ -272,14 +280,16 @@ public class SparkQueryDispatcherTest {
                 "TEST_CLUSTER:index-query",
                 EMRS_APPLICATION_ID,
                 EMRS_EXECUTION_ROLE,
-                withStructuredStreaming(constructExpectedSparkSubmitParameterString(
-                    "sigv4",
-                    new HashMap<>() {
-                      {
-                        put(FLINT_INDEX_STORE_AWSREGION_KEY, "eu-west-1");
-                      }
-                    })),
-                tags, true));
+                withStructuredStreaming(
+                    constructExpectedSparkSubmitParameterString(
+                        "sigv4",
+                        new HashMap<>() {
+                          {
+                            put(FLINT_INDEX_STORE_AWSREGION_KEY, "eu-west-1");
+                          }
+                        })),
+                tags,
+                true));
     Assertions.assertEquals(EMR_JOB_ID, jobId);
   }
 
@@ -308,7 +318,8 @@ public class SparkQueryDispatcherTest {
                         put(FLINT_INDEX_STORE_AWSREGION_KEY, "eu-west-1");
                       }
                     }),
-                tags, false)))
+                tags,
+                false)))
         .thenReturn(EMR_JOB_ID);
     DataSourceMetadata dataSourceMetadata = constructMyGlueDataSourceMetadata();
     when(dataSourceService.getRawDataSourceMetadata("my_glue")).thenReturn(dataSourceMetadata);
@@ -336,7 +347,8 @@ public class SparkQueryDispatcherTest {
                         put(FLINT_INDEX_STORE_AWSREGION_KEY, "eu-west-1");
                       }
                     }),
-                tags, false));
+                tags,
+                false));
     Assertions.assertEquals(EMR_JOB_ID, jobId);
   }
 
@@ -365,7 +377,8 @@ public class SparkQueryDispatcherTest {
                         put(FLINT_INDEX_STORE_AWSREGION_KEY, "eu-west-1");
                       }
                     }),
-                tags, false)))
+                tags,
+                false)))
         .thenReturn(EMR_JOB_ID);
     DataSourceMetadata dataSourceMetadata = constructMyGlueDataSourceMetadata();
     when(dataSourceService.getRawDataSourceMetadata("my_glue")).thenReturn(dataSourceMetadata);
@@ -393,7 +406,8 @@ public class SparkQueryDispatcherTest {
                         put(FLINT_INDEX_STORE_AWSREGION_KEY, "eu-west-1");
                       }
                     }),
-                tags, false));
+                tags,
+                false));
     Assertions.assertEquals(EMR_JOB_ID, jobId);
   }
 
@@ -420,14 +434,16 @@ public class SparkQueryDispatcherTest {
                 "TEST_CLUSTER:index-query",
                 EMRS_APPLICATION_ID,
                 EMRS_EXECUTION_ROLE,
-                withStructuredStreaming(constructExpectedSparkSubmitParameterString(
-                    "sigv4",
-                    new HashMap<>() {
-                      {
-                        put(FLINT_INDEX_STORE_AWSREGION_KEY, "eu-west-1");
-                      }
-                    })),
-                tags, true)))
+                withStructuredStreaming(
+                    constructExpectedSparkSubmitParameterString(
+                        "sigv4",
+                        new HashMap<>() {
+                          {
+                            put(FLINT_INDEX_STORE_AWSREGION_KEY, "eu-west-1");
+                          }
+                        })),
+                tags,
+                true)))
         .thenReturn(EMR_JOB_ID);
     DataSourceMetadata dataSourceMetadata = constructMyGlueDataSourceMetadata();
     when(dataSourceService.getRawDataSourceMetadata("my_glue")).thenReturn(dataSourceMetadata);
@@ -448,14 +464,16 @@ public class SparkQueryDispatcherTest {
                 "TEST_CLUSTER:index-query",
                 EMRS_APPLICATION_ID,
                 EMRS_EXECUTION_ROLE,
-                withStructuredStreaming(constructExpectedSparkSubmitParameterString(
-                    "sigv4",
-                    new HashMap<>() {
-                      {
-                        put(FLINT_INDEX_STORE_AWSREGION_KEY, "eu-west-1");
-                      }
-                    })),
-                tags, true));
+                withStructuredStreaming(
+                    constructExpectedSparkSubmitParameterString(
+                        "sigv4",
+                        new HashMap<>() {
+                          {
+                            put(FLINT_INDEX_STORE_AWSREGION_KEY, "eu-west-1");
+                          }
+                        })),
+                tags,
+                true));
     Assertions.assertEquals(EMR_JOB_ID, jobId);
   }
 

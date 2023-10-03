@@ -21,7 +21,6 @@ import static org.opensearch.sql.spark.data.constants.SparkConstants.FLINT_CREDE
 import static org.opensearch.sql.spark.data.constants.SparkConstants.FLINT_DEFAULT_AUTH;
 import static org.opensearch.sql.spark.data.constants.SparkConstants.FLINT_DEFAULT_HOST;
 import static org.opensearch.sql.spark.data.constants.SparkConstants.FLINT_DEFAULT_PORT;
-import static org.opensearch.sql.spark.data.constants.SparkConstants.FLINT_DEFAULT_REGION;
 import static org.opensearch.sql.spark.data.constants.SparkConstants.FLINT_DEFAULT_SCHEME;
 import static org.opensearch.sql.spark.data.constants.SparkConstants.FLINT_DELEGATE_CATALOG;
 import static org.opensearch.sql.spark.data.constants.SparkConstants.FLINT_INDEX_STORE_AUTH_KEY;
@@ -56,9 +55,7 @@ import org.opensearch.sql.datasource.model.DataSourceMetadata;
 import org.opensearch.sql.datasource.model.DataSourceType;
 import org.opensearch.sql.datasources.auth.AuthenticationType;
 
-/**
- * Define Spark Submit Parameters.
- */
+/** Define Spark Submit Parameters. */
 @RequiredArgsConstructor
 public class SparkSubmitParameters {
   public static final String SPACE = " ";
@@ -107,8 +104,9 @@ public class SparkSubmitParameters {
         config.put(HIVE_METASTORE_GLUE_ARN_KEY, roleArn);
         config.put("spark.sql.catalog." + metadata.getName(), FLINT_DELEGATE_CATALOG);
 
-        URI uri = parseUri(metadata.getProperties().get("glue.indexstore.opensearch.uri"),
-            metadata.getName());
+        URI uri =
+            parseUri(
+                metadata.getProperties().get("glue.indexstore.opensearch.uri"), metadata.getName());
         flintConfig(
             metadata,
             uri.getHost(),
@@ -119,12 +117,11 @@ public class SparkSubmitParameters {
       }
       throw new UnsupportedOperationException(
           String.format(
-              "UnSupported datasource type for async queries:: %s",
-              metadata.getConnector()));
+              "UnSupported datasource type for async queries:: %s", metadata.getConnector()));
     }
 
-    private void flintConfig(DataSourceMetadata metadata, String host, String port, String scheme,
-                             String auth) {
+    private void flintConfig(
+        DataSourceMetadata metadata, String host, String port, String scheme, String auth) {
       config.put(FLINT_INDEX_STORE_HOST_KEY, host);
       config.put(FLINT_INDEX_STORE_PORT_KEY, port);
       config.put(FLINT_INDEX_STORE_SCHEME_KEY, scheme);
@@ -132,8 +129,7 @@ public class SparkSubmitParameters {
     }
 
     private void setFlintIndexStoreAuthProperties(
-        DataSourceMetadata dataSourceMetadata,
-        String authType) {
+        DataSourceMetadata dataSourceMetadata, String authType) {
       if (AuthenticationType.get(authType).equals(AuthenticationType.BASICAUTH)) {
         config.put(FLINT_INDEX_STORE_AUTH_KEY, authType);
         String username =
