@@ -59,8 +59,8 @@ public class TransportCreateDataSourceActionTest {
         .onResponse(createDataSourceActionResponseArgumentCaptor.capture());
     CreateDataSourceActionResponse createDataSourceActionResponse =
         createDataSourceActionResponseArgumentCaptor.getValue();
-    Assertions.assertEquals(
-        "Created DataSource with name test_datasource", createDataSourceActionResponse.getResult());
+    String responseAsJson = "\"Created DataSource with name test_datasource\"";
+    Assertions.assertEquals(responseAsJson, createDataSourceActionResponse.getResult());
   }
 
   @Test

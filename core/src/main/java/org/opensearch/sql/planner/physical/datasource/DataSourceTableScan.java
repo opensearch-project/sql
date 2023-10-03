@@ -45,7 +45,7 @@ public class DataSourceTableScan extends TableScanOperator {
   @Override
   public void open() {
     List<ExprValue> exprValues = new ArrayList<>();
-    Set<DataSourceMetadata> dataSourceMetadataSet = dataSourceService.getDataSourceMetadata(true);
+    Set<DataSourceMetadata> dataSourceMetadataSet = dataSourceService.getDataSourceMetadata(false);
     for (DataSourceMetadata dataSourceMetadata : dataSourceMetadataSet) {
       exprValues.add(
           new ExprTupleValue(
