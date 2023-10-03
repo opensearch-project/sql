@@ -14,7 +14,7 @@ Async Query Interface Endpoints
 Introduction
 ============
 
-For supporting `S3Glue <../ppl/admin/connector/s3glue_connector.rst>`_ and Cloudwatch datasources connectors, we have introduced a new execution engine on top of Spark.
+For supporting `S3Glue <../ppl/admin/connectors/s3glue_connector.rst>`_ and Cloudwatch datasources connectors, we have introduced a new execution engine on top of Spark.
 All the queries to be executed on spark execution engine can only be submitted via Async Query APIs. Below sections will list all the new APIs introduced.
 
 
