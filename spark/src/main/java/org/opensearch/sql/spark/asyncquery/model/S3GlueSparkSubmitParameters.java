@@ -17,10 +17,8 @@ import static org.opensearch.sql.spark.data.constants.SparkConstants.FLINT_CREDE
 import static org.opensearch.sql.spark.data.constants.SparkConstants.FLINT_DEFAULT_AUTH;
 import static org.opensearch.sql.spark.data.constants.SparkConstants.FLINT_DEFAULT_HOST;
 import static org.opensearch.sql.spark.data.constants.SparkConstants.FLINT_DEFAULT_PORT;
-import static org.opensearch.sql.spark.data.constants.SparkConstants.FLINT_DEFAULT_REGION;
 import static org.opensearch.sql.spark.data.constants.SparkConstants.FLINT_DEFAULT_SCHEME;
 import static org.opensearch.sql.spark.data.constants.SparkConstants.FLINT_INDEX_STORE_AUTH_KEY;
-import static org.opensearch.sql.spark.data.constants.SparkConstants.FLINT_INDEX_STORE_AWSREGION_KEY;
 import static org.opensearch.sql.spark.data.constants.SparkConstants.FLINT_INDEX_STORE_HOST_KEY;
 import static org.opensearch.sql.spark.data.constants.SparkConstants.FLINT_INDEX_STORE_PORT_KEY;
 import static org.opensearch.sql.spark.data.constants.SparkConstants.FLINT_INDEX_STORE_SCHEME_KEY;
@@ -69,7 +67,6 @@ public class S3GlueSparkSubmitParameters {
     this.config.put(FLINT_INDEX_STORE_PORT_KEY, FLINT_DEFAULT_PORT);
     this.config.put(FLINT_INDEX_STORE_SCHEME_KEY, FLINT_DEFAULT_SCHEME);
     this.config.put(FLINT_INDEX_STORE_AUTH_KEY, FLINT_DEFAULT_AUTH);
-    this.config.put(FLINT_INDEX_STORE_AWSREGION_KEY, FLINT_DEFAULT_REGION);
     this.config.put(FLINT_CREDENTIALS_PROVIDER_KEY, EMR_ASSUME_ROLE_CREDENTIALS_PROVIDER);
     this.config.put(SPARK_SQL_EXTENSIONS_KEY, FLINT_SQL_EXTENSION);
     this.config.put(HIVE_METASTORE_CLASS_KEY, GLUE_HIVE_CATALOG_FACTORY_CLASS);

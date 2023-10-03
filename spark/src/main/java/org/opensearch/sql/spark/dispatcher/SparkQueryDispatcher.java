@@ -5,10 +5,16 @@
 
 package org.opensearch.sql.spark.dispatcher;
 
+import static org.opensearch.sql.datasources.glue.GlueDataSourceFactory.GLUE_INDEX_STORE_OPENSEARCH_AUTH;
+import static org.opensearch.sql.datasources.glue.GlueDataSourceFactory.GLUE_INDEX_STORE_OPENSEARCH_AUTH_PASSWORD;
+import static org.opensearch.sql.datasources.glue.GlueDataSourceFactory.GLUE_INDEX_STORE_OPENSEARCH_AUTH_USERNAME;
+import static org.opensearch.sql.datasources.glue.GlueDataSourceFactory.GLUE_INDEX_STORE_OPENSEARCH_REGION;
 import static org.opensearch.sql.spark.data.constants.SparkConstants.DRIVER_ENV_ASSUME_ROLE_ARN_KEY;
 import static org.opensearch.sql.spark.data.constants.SparkConstants.EXECUTOR_ENV_ASSUME_ROLE_ARN_KEY;
 import static org.opensearch.sql.spark.data.constants.SparkConstants.FLINT_DELEGATE_CATALOG;
 import static org.opensearch.sql.spark.data.constants.SparkConstants.FLINT_INDEX_STORE_AUTH_KEY;
+import static org.opensearch.sql.spark.data.constants.SparkConstants.FLINT_INDEX_STORE_AUTH_PASSWORD;
+import static org.opensearch.sql.spark.data.constants.SparkConstants.FLINT_INDEX_STORE_AUTH_USERNAME;
 import static org.opensearch.sql.spark.data.constants.SparkConstants.FLINT_INDEX_STORE_AWSREGION_KEY;
 import static org.opensearch.sql.spark.data.constants.SparkConstants.FLINT_INDEX_STORE_HOST_KEY;
 import static org.opensearch.sql.spark.data.constants.SparkConstants.FLINT_INDEX_STORE_PORT_KEY;
@@ -27,6 +33,7 @@ import org.json.JSONObject;
 import org.opensearch.sql.datasource.DataSourceService;
 import org.opensearch.sql.datasource.model.DataSourceMetadata;
 import org.opensearch.sql.datasource.model.DataSourceType;
+import org.opensearch.sql.datasources.auth.AuthenticationType;
 import org.opensearch.sql.datasources.auth.DataSourceUserAuthorizationHelperImpl;
 import org.opensearch.sql.spark.asyncquery.model.S3GlueSparkSubmitParameters;
 import org.opensearch.sql.spark.client.EMRServerlessClient;
@@ -120,17 +127,36 @@ public class SparkQueryDispatcher {
           String.format(
               "Bad URI in indexstore configuration of the : %s datasoure.", datasourceName));
     }
-    String auth = dataSourceMetadata.getProperties().get("glue.indexstore.opensearch.auth");
-    String region = dataSourceMetadata.getProperties().get("glue.indexstore.opensearch.region");
     s3GlueSparkSubmitParameters.addParameter(FLINT_INDEX_STORE_HOST_KEY, uri.getHost());
     s3GlueSparkSubmitParameters.addParameter(
         FLINT_INDEX_STORE_PORT_KEY, String.valueOf(uri.getPort()));
     s3GlueSparkSubmitParameters.addParameter(FLINT_INDEX_STORE_SCHEME_KEY, uri.getScheme());
-    s3GlueSparkSubmitParameters.addParameter(FLINT_INDEX_STORE_AUTH_KEY, auth);
-    s3GlueSparkSubmitParameters.addParameter(FLINT_INDEX_STORE_AWSREGION_KEY, region);
     s3GlueSparkSubmitParameters.addParameter(
         "spark.sql.catalog." + datasourceName, FLINT_DELEGATE_CATALOG);
+    String auth = dataSourceMetadata.getProperties().get(GLUE_INDEX_STORE_OPENSEARCH_AUTH);
+    setFlintIndexStoreAuthProperties(dataSourceMetadata, s3GlueSparkSubmitParameters, auth);
     return s3GlueSparkSubmitParameters.toString();
+  }
+
+  private static void setFlintIndexStoreAuthProperties(
+      DataSourceMetadata dataSourceMetadata,
+      S3GlueSparkSubmitParameters s3GlueSparkSubmitParameters,
+      String authType) {
+    if (AuthenticationType.get(authType).equals(AuthenticationType.BASICAUTH)) {
+      s3GlueSparkSubmitParameters.addParameter(FLINT_INDEX_STORE_AUTH_KEY, authType);
+      String username =
+          dataSourceMetadata.getProperties().get(GLUE_INDEX_STORE_OPENSEARCH_AUTH_USERNAME);
+      String password =
+          dataSourceMetadata.getProperties().get(GLUE_INDEX_STORE_OPENSEARCH_AUTH_PASSWORD);
+      s3GlueSparkSubmitParameters.addParameter(FLINT_INDEX_STORE_AUTH_USERNAME, username);
+      s3GlueSparkSubmitParameters.addParameter(FLINT_INDEX_STORE_AUTH_PASSWORD, password);
+    } else if (AuthenticationType.get(authType).equals(AuthenticationType.AWSSIGV4AUTH)) {
+      String region = dataSourceMetadata.getProperties().get(GLUE_INDEX_STORE_OPENSEARCH_REGION);
+      s3GlueSparkSubmitParameters.addParameter(FLINT_INDEX_STORE_AUTH_KEY, "sigv4");
+      s3GlueSparkSubmitParameters.addParameter(FLINT_INDEX_STORE_AWSREGION_KEY, region);
+    } else {
+      s3GlueSparkSubmitParameters.addParameter(FLINT_INDEX_STORE_AUTH_KEY, authType);
+    }
   }
 
   private StartJobRequest getStartJobRequestForNonIndexQueries(

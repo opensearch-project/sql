@@ -43,7 +43,6 @@ import org.opensearch.index.query.QueryBuilders;
 import org.opensearch.search.SearchHit;
 import org.opensearch.search.builder.SearchSourceBuilder;
 import org.opensearch.sql.datasource.model.DataSourceMetadata;
-import org.opensearch.sql.datasources.auth.AuthenticationType;
 import org.opensearch.sql.datasources.encryptor.Encryptor;
 import org.opensearch.sql.datasources.exceptions.DataSourceNotFoundException;
 import org.opensearch.sql.datasources.service.DataSourceMetadataStorage;
@@ -252,26 +251,13 @@ public class OpenSearchDataSourceMetadataStorage implements DataSourceMetadataSt
     }
   }
 
-  @SuppressWarnings("missingswitchdefault")
+  // Encrypt and Decrypt irrespective of auth type.If properties name ends in username, password,
+  // secret_key and access_key.
   private DataSourceMetadata encryptDecryptAuthenticationData(
       DataSourceMetadata dataSourceMetadata, Boolean isEncryption) {
     Map<String, String> propertiesMap = dataSourceMetadata.getProperties();
-    Optional<AuthenticationType> authTypeOptional =
-        propertiesMap.keySet().stream()
-            .filter(s -> s.endsWith("auth.type"))
-            .findFirst()
-            .map(propertiesMap::get)
-            .map(AuthenticationType::get);
-    if (authTypeOptional.isPresent()) {
-      switch (authTypeOptional.get()) {
-        case BASICAUTH:
-          handleBasicAuthPropertiesEncryptionDecryption(propertiesMap, isEncryption);
-          break;
-        case AWSSIGV4AUTH:
-          handleSigV4PropertiesEncryptionDecryption(propertiesMap, isEncryption);
-          break;
-      }
-    }
+    handleBasicAuthPropertiesEncryptionDecryption(propertiesMap, isEncryption);
+    handleSigV4PropertiesEncryptionDecryption(propertiesMap, isEncryption);
     return dataSourceMetadata;
   }
 
