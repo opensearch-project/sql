@@ -7,6 +7,8 @@
 
 package org.opensearch.sql.datasources.transport;
 
+import static org.opensearch.sql.protocol.response.format.JsonResponseFormatter.Style.PRETTY;
+
 import org.opensearch.action.ActionType;
 import org.opensearch.action.support.ActionFilters;
 import org.opensearch.action.support.HandledTransportAction;
@@ -17,6 +19,7 @@ import org.opensearch.sql.datasource.model.DataSourceMetadata;
 import org.opensearch.sql.datasources.model.transport.CreateDataSourceActionRequest;
 import org.opensearch.sql.datasources.model.transport.CreateDataSourceActionResponse;
 import org.opensearch.sql.datasources.service.DataSourceServiceImpl;
+import org.opensearch.sql.protocol.response.format.JsonResponseFormatter;
 import org.opensearch.tasks.Task;
 import org.opensearch.transport.TransportService;
 
@@ -56,9 +59,14 @@ public class TransportCreateDataSourceAction
     try {
       DataSourceMetadata dataSourceMetadata = request.getDataSourceMetadata();
       dataSourceService.createDataSource(dataSourceMetadata);
-      actionListener.onResponse(
-          new CreateDataSourceActionResponse(
-              "Created DataSource with name " + dataSourceMetadata.getName()));
+      String responseContent =
+          new JsonResponseFormatter<String>(PRETTY) {
+            @Override
+            protected Object buildJsonObject(String response) {
+              return response;
+            }
+          }.format("Created DataSource with name " + dataSourceMetadata.getName());
+      actionListener.onResponse(new CreateDataSourceActionResponse(responseContent));
     } catch (Exception e) {
       actionListener.onFailure(e);
     }

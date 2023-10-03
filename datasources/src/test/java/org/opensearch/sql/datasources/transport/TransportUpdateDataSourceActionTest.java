@@ -59,8 +59,9 @@ public class TransportUpdateDataSourceActionTest {
         .onResponse(updateDataSourceActionResponseArgumentCaptor.capture());
     UpdateDataSourceActionResponse updateDataSourceActionResponse =
         updateDataSourceActionResponseArgumentCaptor.getValue();
-    Assertions.assertEquals(
-        "Updated DataSource with name test_datasource", updateDataSourceActionResponse.getResult());
+    String responseAsJson = "\"Updated DataSource with name test_datasource\"";
+
+    Assertions.assertEquals(responseAsJson, updateDataSourceActionResponse.getResult());
   }
 
   @Test
