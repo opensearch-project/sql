@@ -158,14 +158,16 @@ CREATE: 'CREATE';
 DESC: 'DESC';
 DESCRIBE: 'DESCRIBE';
 DROP: 'DROP';
+EXISTS: 'EXISTS';
 FALSE: 'FALSE';
+IF: 'IF';
 INDEX: 'INDEX';
 INDEXES: 'INDEXES';
+NOT: 'NOT';
 ON: 'ON';
 PARTITION: 'PARTITION';
 REFRESH: 'REFRESH';
 SHOW: 'SHOW';
-STRING: 'STRING';
 TRUE: 'TRUE';
 WITH: 'WITH';
 
@@ -173,6 +175,13 @@ WITH: 'WITH';
 EQ  : '=' | '==';
 MINUS: '-';
 
+
+STRING
+    : '\'' ( ~('\''|'\\') | ('\\' .) )* '\''
+    | '"' ( ~('"'|'\\') | ('\\' .) )* '"'
+    | 'R\'' (~'\'')* '\''
+    | 'R"'(~'"')* '"'
+    ;
 
 INTEGER_VALUE
     : DIGIT+

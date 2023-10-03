@@ -27,7 +27,8 @@ skippingIndexStatement
     ;
 
 createSkippingIndexStatement
-    : CREATE SKIPPING INDEX ON tableName
+    : CREATE SKIPPING INDEX (IF NOT EXISTS)?
+        ON tableName
         LEFT_PAREN indexColTypeList RIGHT_PAREN
         (WITH LEFT_PAREN propertyList RIGHT_PAREN)?
     ;
@@ -53,7 +54,8 @@ coveringIndexStatement
     ;
 
 createCoveringIndexStatement
-    : CREATE INDEX indexName ON tableName
+    : CREATE INDEX (IF NOT EXISTS)? indexName
+        ON tableName
         LEFT_PAREN indexColumns=multipartIdentifierPropertyList RIGHT_PAREN
         (WITH LEFT_PAREN propertyList RIGHT_PAREN)?
     ;
