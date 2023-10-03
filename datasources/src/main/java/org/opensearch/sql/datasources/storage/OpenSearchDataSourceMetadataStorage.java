@@ -94,7 +94,8 @@ public class OpenSearchDataSourceMetadataStorage implements DataSourceMetadataSt
       return Optional.empty();
     }
     // todo, in case docId == datasourceName, could read doc directly.
-    return searchInDataSourcesIndex(QueryBuilders.termQuery("name.keyword", datasourceName)).stream()
+    return searchInDataSourcesIndex(QueryBuilders.termQuery("name.keyword", datasourceName))
+        .stream()
         .findFirst()
         .map(x -> this.encryptDecryptAuthenticationData(x, false));
   }
