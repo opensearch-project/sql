@@ -7,6 +7,8 @@
 
 package org.opensearch.sql.datasources.transport;
 
+import static org.opensearch.sql.protocol.response.format.JsonResponseFormatter.Style.PRETTY;
+
 import org.opensearch.action.ActionType;
 import org.opensearch.action.support.ActionFilters;
 import org.opensearch.action.support.HandledTransportAction;
@@ -16,6 +18,7 @@ import org.opensearch.sql.datasource.DataSourceService;
 import org.opensearch.sql.datasources.model.transport.UpdateDataSourceActionRequest;
 import org.opensearch.sql.datasources.model.transport.UpdateDataSourceActionResponse;
 import org.opensearch.sql.datasources.service.DataSourceServiceImpl;
+import org.opensearch.sql.protocol.response.format.JsonResponseFormatter;
 import org.opensearch.tasks.Task;
 import org.opensearch.transport.TransportService;
 
@@ -55,9 +58,14 @@ public class TransportUpdateDataSourceAction
       ActionListener<UpdateDataSourceActionResponse> actionListener) {
     try {
       dataSourceService.updateDataSource(request.getDataSourceMetadata());
-      actionListener.onResponse(
-          new UpdateDataSourceActionResponse(
-              "Updated DataSource with name " + request.getDataSourceMetadata().getName()));
+      String responseContent =
+          new JsonResponseFormatter<String>(PRETTY) {
+            @Override
+            protected Object buildJsonObject(String response) {
+              return response;
+            }
+          }.format("Updated DataSource with name " + request.getDataSourceMetadata().getName());
+      actionListener.onResponse(new UpdateDataSourceActionResponse(responseContent));
     } catch (Exception e) {
       actionListener.onFailure(e);
     }
