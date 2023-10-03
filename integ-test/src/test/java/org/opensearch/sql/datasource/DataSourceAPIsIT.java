@@ -220,7 +220,7 @@ public class DataSourceAPIsIT extends PPLIntegTestCase {
     Response response = client().performRequest(createRequest);
     Assert.assertEquals(201, response.getStatusLine().getStatusCode());
     String createResponseString = getResponseBody(response);
-    Assert.assertEquals("Created DataSource with name Create_Prometheus", createResponseString);
+    Assert.assertEquals("\"Created DataSource with name Create_Prometheus\"", createResponseString);
     // Datasource is not immediately created. so introducing a sleep of 2s.
     Thread.sleep(2000);
 
