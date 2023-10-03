@@ -39,9 +39,10 @@ Glue Connector Properties.
     * This parameters provides the Opensearch domain host information for glue connector. This opensearch instance is used for writing index data back and also
     * ``glue.indexstore.opensearch.uri`` [Required]
     * ``glue.indexstore.opensearch.auth`` [Required]
-        * Default value for auth is ``false``.
-    * ``glue.indexstore.opensearch.region`` [Required]
-        * Default value for auth is ``us-west-2``.
+        * Accepted values include ["noauth", "basicauth", "awssigv4"]
+        * Basic Auth required ``glue.indexstore.opensearch.auth.username`` and ``glue.indexstore.opensearch.auth.password``
+        * AWSSigV4 Auth requires ``glue.indexstore.opensearch.auth.region``  and ``glue.auth.role_arn``
+    * ``glue.indexstore.opensearch.region`` [Required for awssigv4 auth]
 
 Sample Glue dataSource configuration
 ========================================
@@ -55,11 +56,23 @@ Glue datasource configuration::
                 "glue.auth.type": "iam_role",
                 "glue.auth.role_arn": "role_arn",
                 "glue.indexstore.opensearch.uri": "http://localhost:9200",
-                "glue.indexstore.opensearch.auth" :"false",
-                "glue.indexstore.opensearch.region": "us-west-2"
+                "glue.indexstore.opensearch.auth" :"basicauth",
+                "glue.indexstore.opensearch.auth.username" :"username"
+                "glue.indexstore.opensearch.auth.password" :"password"
         }
     }]
 
+    [{
+        "name" : "my_glue",
+        "connector": "s3glue",
+        "properties" : {
+                "glue.auth.type": "iam_role",
+                "glue.auth.role_arn": "role_arn",
+                "glue.indexstore.opensearch.uri": "http://adsasdf.amazonopensearch.com:9200",
+                "glue.indexstore.opensearch.auth" :"awssigv4",
+                "glue.indexstore.opensearch.auth.region" :"awssigv4",
+        }
+    }]
 
 Sample s3Glue datasource queries
 ================================

@@ -43,7 +43,6 @@ public class PrometheusStorageFactory implements DataSourceFactory {
   public static final String REGION = "prometheus.auth.region";
   public static final String ACCESS_KEY = "prometheus.auth.access_key";
   public static final String SECRET_KEY = "prometheus.auth.secret_key";
-  private static final Integer MAX_LENGTH_FOR_CONFIG_PROPERTY = 1000;
 
   private final Settings settings;
 
