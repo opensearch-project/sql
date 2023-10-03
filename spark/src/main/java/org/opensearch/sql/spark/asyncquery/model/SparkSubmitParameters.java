@@ -5,6 +5,10 @@
 
 package org.opensearch.sql.spark.asyncquery.model;
 
+import static org.opensearch.sql.datasources.glue.GlueDataSourceFactory.GLUE_INDEX_STORE_OPENSEARCH_AUTH;
+import static org.opensearch.sql.datasources.glue.GlueDataSourceFactory.GLUE_INDEX_STORE_OPENSEARCH_AUTH_PASSWORD;
+import static org.opensearch.sql.datasources.glue.GlueDataSourceFactory.GLUE_INDEX_STORE_OPENSEARCH_AUTH_USERNAME;
+import static org.opensearch.sql.datasources.glue.GlueDataSourceFactory.GLUE_INDEX_STORE_OPENSEARCH_REGION;
 import static org.opensearch.sql.spark.data.constants.SparkConstants.AWS_SNAPSHOT_REPOSITORY;
 import static org.opensearch.sql.spark.data.constants.SparkConstants.DEFAULT_CLASS_NAME;
 import static org.opensearch.sql.spark.data.constants.SparkConstants.DEFAULT_GLUE_CATALOG_CREDENTIALS_PROVIDER_FACTORY_KEY;
@@ -21,6 +25,8 @@ import static org.opensearch.sql.spark.data.constants.SparkConstants.FLINT_DEFAU
 import static org.opensearch.sql.spark.data.constants.SparkConstants.FLINT_DEFAULT_SCHEME;
 import static org.opensearch.sql.spark.data.constants.SparkConstants.FLINT_DELEGATE_CATALOG;
 import static org.opensearch.sql.spark.data.constants.SparkConstants.FLINT_INDEX_STORE_AUTH_KEY;
+import static org.opensearch.sql.spark.data.constants.SparkConstants.FLINT_INDEX_STORE_AUTH_PASSWORD;
+import static org.opensearch.sql.spark.data.constants.SparkConstants.FLINT_INDEX_STORE_AUTH_USERNAME;
 import static org.opensearch.sql.spark.data.constants.SparkConstants.FLINT_INDEX_STORE_AWSREGION_KEY;
 import static org.opensearch.sql.spark.data.constants.SparkConstants.FLINT_INDEX_STORE_HOST_KEY;
 import static org.opensearch.sql.spark.data.constants.SparkConstants.FLINT_INDEX_STORE_PORT_KEY;
@@ -48,6 +54,7 @@ import java.util.Map;
 import lombok.RequiredArgsConstructor;
 import org.opensearch.sql.datasource.model.DataSourceMetadata;
 import org.opensearch.sql.datasource.model.DataSourceType;
+import org.opensearch.sql.datasources.auth.AuthenticationType;
 
 /**
  * Define Spark Submit Parameters.
@@ -82,7 +89,6 @@ public class SparkSubmitParameters {
       config.put(FLINT_INDEX_STORE_PORT_KEY, FLINT_DEFAULT_PORT);
       config.put(FLINT_INDEX_STORE_SCHEME_KEY, FLINT_DEFAULT_SCHEME);
       config.put(FLINT_INDEX_STORE_AUTH_KEY, FLINT_DEFAULT_AUTH);
-      config.put(FLINT_INDEX_STORE_AWSREGION_KEY, FLINT_DEFAULT_REGION);
       config.put(FLINT_CREDENTIALS_PROVIDER_KEY, EMR_ASSUME_ROLE_CREDENTIALS_PROVIDER);
       config.put(SPARK_SQL_EXTENSIONS_KEY, FLINT_SQL_EXTENSION);
       config.put(HIVE_METASTORE_CLASS_KEY, GLUE_HIVE_CATALOG_FACTORY_CLASS);
@@ -99,18 +105,16 @@ public class SparkSubmitParameters {
         config.put(DRIVER_ENV_ASSUME_ROLE_ARN_KEY, roleArn);
         config.put(EXECUTOR_ENV_ASSUME_ROLE_ARN_KEY, roleArn);
         config.put(HIVE_METASTORE_GLUE_ARN_KEY, roleArn);
+        config.put("spark.sql.catalog." + metadata.getName(), FLINT_DELEGATE_CATALOG);
 
         URI uri = parseUri(metadata.getProperties().get("glue.indexstore.opensearch.uri"),
             metadata.getName());
         flintConfig(
+            metadata,
             uri.getHost(),
             String.valueOf(uri.getPort()),
             uri.getScheme(),
-            metadata.getProperties().get("glue.indexstore.opensearch.auth"),
-            metadata.getProperties().get("glue.indexstore.opensearch.region"));
-
-        config.put("spark.sql.catalog." + metadata.getName(), FLINT_DELEGATE_CATALOG);
-
+            metadata.getProperties().get(GLUE_INDEX_STORE_OPENSEARCH_AUTH));
         return this;
       }
       throw new UnsupportedOperationException(
@@ -119,12 +123,32 @@ public class SparkSubmitParameters {
               metadata.getConnector()));
     }
 
-    private void flintConfig(String host, String port, String scheme, String auth, String region) {
+    private void flintConfig(DataSourceMetadata metadata, String host, String port, String scheme,
+                             String auth) {
       config.put(FLINT_INDEX_STORE_HOST_KEY, host);
       config.put(FLINT_INDEX_STORE_PORT_KEY, port);
       config.put(FLINT_INDEX_STORE_SCHEME_KEY, scheme);
-      config.put(FLINT_INDEX_STORE_AUTH_KEY, auth);
-      config.put(FLINT_INDEX_STORE_AWSREGION_KEY, region);
+      setFlintIndexStoreAuthProperties(metadata, auth);
+    }
+
+    private void setFlintIndexStoreAuthProperties(
+        DataSourceMetadata dataSourceMetadata,
+        String authType) {
+      if (AuthenticationType.get(authType).equals(AuthenticationType.BASICAUTH)) {
+        config.put(FLINT_INDEX_STORE_AUTH_KEY, authType);
+        String username =
+            dataSourceMetadata.getProperties().get(GLUE_INDEX_STORE_OPENSEARCH_AUTH_USERNAME);
+        String password =
+            dataSourceMetadata.getProperties().get(GLUE_INDEX_STORE_OPENSEARCH_AUTH_PASSWORD);
+        config.put(FLINT_INDEX_STORE_AUTH_USERNAME, username);
+        config.put(FLINT_INDEX_STORE_AUTH_PASSWORD, password);
+      } else if (AuthenticationType.get(authType).equals(AuthenticationType.AWSSIGV4AUTH)) {
+        String region = dataSourceMetadata.getProperties().get(GLUE_INDEX_STORE_OPENSEARCH_REGION);
+        config.put(FLINT_INDEX_STORE_AUTH_KEY, "sigv4");
+        config.put(FLINT_INDEX_STORE_AWSREGION_KEY, region);
+      } else {
+        config.put(FLINT_INDEX_STORE_AUTH_KEY, authType);
+      }
     }
 
     private URI parseUri(String opensearchUri, String datasourceName) {

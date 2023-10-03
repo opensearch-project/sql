@@ -36,7 +36,7 @@ The query start with search command and then flowing a set of command delimited 
 
   - `Datasource Settings <admin/datasources.rst>`_
 
-  - `Prometheus Connector <admin/prometheus_connector.rst>`_
+  - `Prometheus Connector <admin/connectors/prometheus_connector.rst>`_
 
   - `Cross-Cluster Search <admin/cross_cluster_search.rst>`_
 

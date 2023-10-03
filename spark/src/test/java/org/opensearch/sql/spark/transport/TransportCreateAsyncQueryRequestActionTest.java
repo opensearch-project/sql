@@ -57,7 +57,7 @@ public class TransportCreateAsyncQueryRequestActionTest {
   @Test
   public void testDoExecute() {
     CreateAsyncQueryRequest createAsyncQueryRequest =
-        new CreateAsyncQueryRequest("source = my_glue.default.alb_logs", LangType.SQL);
+        new CreateAsyncQueryRequest("source = my_glue.default.alb_logs", "my_glue", LangType.SQL);
     CreateAsyncQueryActionRequest request =
         new CreateAsyncQueryActionRequest(createAsyncQueryRequest);
     when(jobExecutorService.createAsyncQuery(createAsyncQueryRequest))
@@ -73,7 +73,7 @@ public class TransportCreateAsyncQueryRequestActionTest {
   @Test
   public void testDoExecuteWithException() {
     CreateAsyncQueryRequest createAsyncQueryRequest =
-        new CreateAsyncQueryRequest("source = my_glue.default.alb_logs", LangType.SQL);
+        new CreateAsyncQueryRequest("source = my_glue.default.alb_logs", "my_glue", LangType.SQL);
     CreateAsyncQueryActionRequest request =
         new CreateAsyncQueryActionRequest(createAsyncQueryRequest);
     doThrow(new RuntimeException("Error"))

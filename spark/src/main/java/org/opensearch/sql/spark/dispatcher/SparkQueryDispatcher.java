@@ -13,6 +13,8 @@ import java.util.Map;
 import lombok.AllArgsConstructor;
 import org.json.JSONObject;
 import org.opensearch.sql.datasource.DataSourceService;
+import org.opensearch.sql.datasource.model.DataSourceMetadata;
+import org.opensearch.sql.datasource.model.DataSourceType;
 import org.opensearch.sql.datasources.auth.DataSourceUserAuthorizationHelperImpl;
 import org.opensearch.sql.spark.asyncquery.model.SparkSubmitParameters;
 import org.opensearch.sql.spark.client.EMRServerlessClient;
@@ -24,9 +26,7 @@ import org.opensearch.sql.spark.response.JobExecutionResponseReader;
 import org.opensearch.sql.spark.rest.model.LangType;
 import org.opensearch.sql.spark.utils.SQLQueryUtils;
 
-/**
- * This class takes care of understanding query and dispatching job query to emr serverless.
- */
+/** This class takes care of understanding query and dispatching job query to emr serverless. */
 @AllArgsConstructor
 public class SparkQueryDispatcher {
 
@@ -36,7 +36,7 @@ public class SparkQueryDispatcher {
   public static final String TABLE_TAG_KEY = "table";
   public static final String CLUSTER_NAME_TAG_KEY = "cluster";
 
-  private EMRServerlessClient EMRServerlessClient;
+  private EMRServerlessClient emrServerlessClient;
 
   private DataSourceService dataSourceService;
 
@@ -45,12 +45,12 @@ public class SparkQueryDispatcher {
   private JobExecutionResponseReader jobExecutionResponseReader;
 
   public String dispatch(DispatchQueryRequest dispatchQueryRequest) {
-    return EMRServerlessClient.startJobRun(getStartJobRequest(dispatchQueryRequest));
+    return emrServerlessClient.startJobRun(getStartJobRequest(dispatchQueryRequest));
   }
 
   // TODO : Fetch from Result Index and then make call to EMR Serverless.
   public JSONObject getQueryResponse(String applicationId, String queryId) {
-    GetJobRunResult getJobRunResult = EMRServerlessClient.getJobRunResult(applicationId, queryId);
+    GetJobRunResult getJobRunResult = emrServerlessClient.getJobRunResult(applicationId, queryId);
     JSONObject result = new JSONObject();
     if (getJobRunResult.getJobRun().getState().equals(JobRunState.SUCCESS.toString())) {
       result = jobExecutionResponseReader.getResultFromOpensearchIndex(queryId);
@@ -60,39 +60,42 @@ public class SparkQueryDispatcher {
   }
 
   public String cancelJob(String applicationId, String jobId) {
-    CancelJobRunResult cancelJobRunResult = EMRServerlessClient.cancelJobRun(applicationId, jobId);
+    CancelJobRunResult cancelJobRunResult = emrServerlessClient.cancelJobRun(applicationId, jobId);
     return cancelJobRunResult.getJobRunId();
   }
 
+  // we currently don't support index queries in PPL language.
+  // so we are treating all of them as non-index queries which don't require any kind of query
+  // parsing.
   private StartJobRequest getStartJobRequest(DispatchQueryRequest dispatchQueryRequest) {
     if (LangType.SQL.equals(dispatchQueryRequest.getLangType())) {
-      if (SQLQueryUtils.isIndexQuery(dispatchQueryRequest.getQuery())) {
+      if (SQLQueryUtils.isIndexQuery(dispatchQueryRequest.getQuery()))
         return getStartJobRequestForIndexRequest(dispatchQueryRequest);
-      } else {
+      else {
         return getStartJobRequestForNonIndexQueries(dispatchQueryRequest);
       }
+    } else {
+      return getStartJobRequestForNonIndexQueries(dispatchQueryRequest);
+    }
+  }
+
+  private String getDataSourceRoleARN(DataSourceMetadata dataSourceMetadata) {
+    if (DataSourceType.S3GLUE.equals(dataSourceMetadata.getConnector())) {
+      return dataSourceMetadata.getProperties().get("glue.auth.role_arn");
     }
     throw new UnsupportedOperationException(
-        String.format("UnSupported Lang type:: %s", dispatchQueryRequest.getLangType()));
+        String.format(
+            "UnSupported datasource type for async queries:: %s",
+            dataSourceMetadata.getConnector()));
   }
 
   private StartJobRequest getStartJobRequestForNonIndexQueries(
       DispatchQueryRequest dispatchQueryRequest) {
     StartJobRequest startJobRequest;
-    FullyQualifiedTableName fullyQualifiedTableName =
-        SQLQueryUtils.extractFullyQualifiedTableName(dispatchQueryRequest.getQuery());
-    if (fullyQualifiedTableName.getDatasourceName() == null) {
-      throw new UnsupportedOperationException("Missing datasource in the query syntax.");
-    }
     dataSourceUserAuthorizationHelper.authorizeDataSource(
-        this.dataSourceService.getRawDataSourceMetadata(
-            fullyQualifiedTableName.getDatasourceName()));
-    String jobName =
-        dispatchQueryRequest.getClusterName()
-            + ":"
-            + fullyQualifiedTableName.getFullyQualifiedName();
-    Map<String, String> tags =
-        getDefaultTagsForJobSubmission(dispatchQueryRequest, fullyQualifiedTableName);
+        this.dataSourceService.getRawDataSourceMetadata(dispatchQueryRequest.getDatasource()));
+    String jobName = dispatchQueryRequest.getClusterName() + ":" + "non-index-query";
+    Map<String, String> tags = getDefaultTagsForJobSubmission(dispatchQueryRequest);
     startJobRequest =
         new StartJobRequest(
             dispatchQueryRequest.getQuery(),
@@ -100,7 +103,7 @@ public class SparkQueryDispatcher {
             dispatchQueryRequest.getApplicationId(),
             dispatchQueryRequest.getExecutionRoleARN(),
             SparkSubmitParameters.Builder.builder()
-                .dataSource(dataSourceService.getRawDataSourceMetadata(fullyQualifiedTableName.getDatasourceName()))
+                .dataSource(dataSourceService.getRawDataSourceMetadata(dispatchQueryRequest.getDatasource()))
                 .build().toString(),
             tags, false);
     return startJobRequest;
@@ -111,17 +114,13 @@ public class SparkQueryDispatcher {
     StartJobRequest startJobRequest;
     IndexDetails indexDetails = SQLQueryUtils.extractIndexDetails(dispatchQueryRequest.getQuery());
     FullyQualifiedTableName fullyQualifiedTableName = indexDetails.getFullyQualifiedTableName();
-    if (fullyQualifiedTableName.getDatasourceName() == null) {
-      throw new UnsupportedOperationException("Queries without a datasource are not supported");
-    }
     dataSourceUserAuthorizationHelper.authorizeDataSource(
-        this.dataSourceService.getRawDataSourceMetadata(
-            fullyQualifiedTableName.getDatasourceName()));
-    String jobName =
-        getJobNameForIndexQuery(dispatchQueryRequest, indexDetails, fullyQualifiedTableName);
-    Map<String, String> tags =
-        getDefaultTagsForJobSubmission(dispatchQueryRequest, fullyQualifiedTableName);
+        this.dataSourceService.getRawDataSourceMetadata(dispatchQueryRequest.getDatasource()));
+    String jobName = dispatchQueryRequest.getClusterName() + ":" + "index-query";
+    Map<String, String> tags = getDefaultTagsForJobSubmission(dispatchQueryRequest);
     tags.put(INDEX_TAG_KEY, indexDetails.getIndexName());
+    tags.put(TABLE_TAG_KEY, fullyQualifiedTableName.getTableName());
+    tags.put(SCHEMA_TAG_KEY, fullyQualifiedTableName.getSchemaName());
     startJobRequest =
         new StartJobRequest(
             dispatchQueryRequest.getQuery(),
@@ -129,7 +128,7 @@ public class SparkQueryDispatcher {
             dispatchQueryRequest.getApplicationId(),
             dispatchQueryRequest.getExecutionRoleARN(),
             SparkSubmitParameters.Builder.builder()
-                .dataSource(dataSourceService.getRawDataSourceMetadata(fullyQualifiedTableName.getDatasourceName()))
+                .dataSource(dataSourceService.getRawDataSourceMetadata(dispatchQueryRequest.getDatasource()))
                 .structuredStreaming()
                 .build().toString(),
             tags, true);
@@ -137,23 +136,10 @@ public class SparkQueryDispatcher {
   }
 
   private static Map<String, String> getDefaultTagsForJobSubmission(
-      DispatchQueryRequest dispatchQueryRequest, FullyQualifiedTableName fullyQualifiedTableName) {
+      DispatchQueryRequest dispatchQueryRequest) {
     Map<String, String> tags = new HashMap<>();
     tags.put(CLUSTER_NAME_TAG_KEY, dispatchQueryRequest.getClusterName());
-    tags.put(DATASOURCE_TAG_KEY, fullyQualifiedTableName.getDatasourceName());
-    tags.put(SCHEMA_TAG_KEY, fullyQualifiedTableName.getSchemaName());
-    tags.put(TABLE_TAG_KEY, fullyQualifiedTableName.getTableName());
+    tags.put(DATASOURCE_TAG_KEY, dispatchQueryRequest.getDatasource());
     return tags;
-  }
-
-  private static String getJobNameForIndexQuery(
-      DispatchQueryRequest dispatchQueryRequest,
-      IndexDetails indexDetails,
-      FullyQualifiedTableName fullyQualifiedTableName) {
-    return dispatchQueryRequest.getClusterName()
-        + ":"
-        + fullyQualifiedTableName.getFullyQualifiedName()
-        + "."
-        + indexDetails.getIndexName();
   }
 }
