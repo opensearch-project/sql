@@ -138,7 +138,7 @@ public class SparkSubmitParameters {
     }
 
     public Builder structuredStreaming() {
-      config.put("spark.flint.job.type", "wait");
+      config.put("spark.flint.job.type", "streaming");
 
       return this;
     }

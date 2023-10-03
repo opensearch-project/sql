@@ -390,7 +390,7 @@ public class SparkQueryDispatcherTest {
   }
 
   private String withStructuredStreaming(String parameters) {
-    return parameters + " --conf spark.flint.job.type=wait ";
+    return parameters + " --conf spark.flint.job.type=streaming ";
   }
 
   private DataSourceMetadata constructMyGlueDataSourceMetadata() {

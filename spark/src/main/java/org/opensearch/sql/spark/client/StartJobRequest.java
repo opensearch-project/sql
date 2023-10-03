@@ -14,6 +14,9 @@ import lombok.Data;
  */
 @Data
 public class StartJobRequest {
+
+  public static final Long DEFAULT_JOB_TIMEOUT = 120L;
+
   private final String query;
   private final String jobName;
   private final String applicationId;
@@ -27,6 +30,6 @@ public class StartJobRequest {
   private final boolean isStructuredStreaming;
 
   public Long executionTimeout() {
-    return isStructuredStreaming ? 0L : 60L;
+    return isStructuredStreaming ? 0L : DEFAULT_JOB_TIMEOUT;
   }
 }
