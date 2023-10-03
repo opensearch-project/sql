@@ -42,6 +42,10 @@ public class DataSourceAPIsIT extends PPLIntegTestCase {
     deleteRequest = getDeleteDataSourceRequest("get_all_prometheus");
     deleteResponse = client().performRequest(deleteRequest);
     Assert.assertEquals(204, deleteResponse.getStatusLine().getStatusCode());
+
+    deleteRequest = getDeleteDataSourceRequest("Create_Prometheus");
+    deleteResponse = client().performRequest(deleteRequest);
+    Assert.assertEquals(204, deleteResponse.getStatusLine().getStatusCode());
   }
 
   @SneakyThrows
@@ -190,5 +194,47 @@ public class DataSourceAPIsIT extends PPLIntegTestCase {
         new Gson().fromJson(getResponseString, listType);
     Assert.assertTrue(
         dataSourceMetadataList.stream().anyMatch(ds -> ds.getName().equals("get_all_prometheus")));
+  }
+
+  /**
+   * https://github.com/opensearch-project/sql/issues/2196
+   */
+  @SneakyThrows
+  @Test
+  public void issue2196() {
+    // create datasource
+    DataSourceMetadata createDSM =
+        new DataSourceMetadata(
+            "Create_Prometheus",
+            "Prometheus Creation for Integ test",
+            DataSourceType.PROMETHEUS,
+            ImmutableList.of(),
+            ImmutableMap.of(
+                "prometheus.uri",
+                "https://localhost:9090",
+                "prometheus.auth.type",
+                "basicauth",
+                "prometheus.auth.username",
+                "username",
+                "prometheus.auth.password",
+                "password"));
+    Request createRequest = getCreateDataSourceRequest(createDSM);
+    Response response = client().performRequest(createRequest);
+    Assert.assertEquals(201, response.getStatusLine().getStatusCode());
+    String createResponseString = getResponseBody(response);
+    Assert.assertEquals("Created DataSource with name Create_Prometheus", createResponseString);
+    // Datasource is not immediately created. so introducing a sleep of 2s.
+    Thread.sleep(2000);
+
+    // get datasource to validate the creation.
+    Request getRequest = getFetchDataSourceRequest("Create_Prometheus");
+    Response getResponse = client().performRequest(getRequest);
+    Assert.assertEquals(200, getResponse.getStatusLine().getStatusCode());
+    String getResponseString = getResponseBody(getResponse);
+    DataSourceMetadata dataSourceMetadata =
+        new Gson().fromJson(getResponseString, DataSourceMetadata.class);
+    Assert.assertEquals(
+        "https://localhost:9090", dataSourceMetadata.getProperties().get("prometheus.uri"));
+    Assert.assertEquals("Prometheus Creation for Integ test", dataSourceMetadata.getDescription());
   }
 }
