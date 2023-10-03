@@ -48,7 +48,8 @@ public class AsyncQueryExecutorServiceImplTest {
         new AsyncQueryExecutorServiceImpl(
             asyncQueryJobMetadataStorageService, sparkQueryDispatcher, settings);
     CreateAsyncQueryRequest createAsyncQueryRequest =
-        new CreateAsyncQueryRequest("select * from my_glue.default.http_logs", LangType.SQL);
+        new CreateAsyncQueryRequest(
+            "select * from my_glue.default.http_logs", "my_glue", LangType.SQL);
     when(settings.getSettingValue(Settings.Key.SPARK_EXECUTION_ENGINE_CONFIG))
         .thenReturn(
             "{\"applicationId\":\"00fd775baqpu4g0p\",\"executionRoleARN\":\"arn:aws:iam::270824043731:role/emr-job-execution-role\",\"region\":\"eu-west-1\"}");
@@ -58,6 +59,7 @@ public class AsyncQueryExecutorServiceImplTest {
             new DispatchQueryRequest(
                 "00fd775baqpu4g0p",
                 "select * from my_glue.default.http_logs",
+                "my_glue",
                 LangType.SQL,
                 "arn:aws:iam::270824043731:role/emr-job-execution-role",
                 TEST_CLUSTER_NAME)))
@@ -73,6 +75,7 @@ public class AsyncQueryExecutorServiceImplTest {
             new DispatchQueryRequest(
                 "00fd775baqpu4g0p",
                 "select * from my_glue.default.http_logs",
+                "my_glue",
                 LangType.SQL,
                 "arn:aws:iam::270824043731:role/emr-job-execution-role",
                 TEST_CLUSTER_NAME));
