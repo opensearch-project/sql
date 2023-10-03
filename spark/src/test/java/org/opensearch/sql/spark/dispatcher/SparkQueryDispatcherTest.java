@@ -68,7 +68,7 @@ public class SparkQueryDispatcherTest {
                 EMRS_APPLICATION_ID,
                 EMRS_EXECUTION_ROLE,
                 constructExpectedSparkSubmitParameterString(),
-                tags)))
+                tags, false)))
         .thenReturn(EMR_JOB_ID);
     DataSourceMetadata dataSourceMetadata = constructMyGlueDataSourceMetadata();
     when(dataSourceService.getRawDataSourceMetadata("my_glue")).thenReturn(dataSourceMetadata);
@@ -85,7 +85,7 @@ public class SparkQueryDispatcherTest {
                 EMRS_APPLICATION_ID,
                 EMRS_EXECUTION_ROLE,
                 constructExpectedSparkSubmitParameterString(),
-                tags));
+                tags, false));
     Assertions.assertEquals(EMR_JOB_ID, jobId);
   }
 
@@ -112,8 +112,8 @@ public class SparkQueryDispatcherTest {
                 "TEST_CLUSTER:my_glue.default.http_logs.elb_and_requestUri",
                 EMRS_APPLICATION_ID,
                 EMRS_EXECUTION_ROLE,
-                constructExpectedSparkSubmitParameterString(),
-                tags)))
+                withStructuredStreaming(constructExpectedSparkSubmitParameterString()),
+                tags, true)))
         .thenReturn(EMR_JOB_ID);
     DataSourceMetadata dataSourceMetadata = constructMyGlueDataSourceMetadata();
     when(dataSourceService.getRawDataSourceMetadata("my_glue")).thenReturn(dataSourceMetadata);
@@ -129,8 +129,8 @@ public class SparkQueryDispatcherTest {
                 "TEST_CLUSTER:my_glue.default.http_logs.elb_and_requestUri",
                 EMRS_APPLICATION_ID,
                 EMRS_EXECUTION_ROLE,
-                constructExpectedSparkSubmitParameterString(),
-                tags));
+                withStructuredStreaming(constructExpectedSparkSubmitParameterString()),
+                tags, true));
     Assertions.assertEquals(EMR_JOB_ID, jobId);
   }
 
@@ -387,6 +387,10 @@ public class SparkQueryDispatcherTest {
                + "  --conf"
                + " spark.hive.metastore.glue.role.arn=arn:aws:iam::924196221507:role/FlintOpensearchServiceRole"
                + "  --conf spark.sql.catalog.my_glue=org.opensearch.sql.FlintDelegateCatalog ";
+  }
+
+  private String withStructuredStreaming(String parameters) {
+    return parameters + " --conf spark.flint.job.type=wait ";
   }
 
   private DataSourceMetadata constructMyGlueDataSourceMetadata() {

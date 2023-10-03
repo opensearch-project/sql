@@ -20,4 +20,13 @@ public class StartJobRequest {
   private final String executionRoleArn;
   private final String sparkSubmitParams;
   private final Map<String, String> tags;
+
+  /**
+   * true if it is Spark Structured Streaming job.
+   */
+  private final boolean isStructuredStreaming;
+
+  public Long executionTimeout() {
+    return isStructuredStreaming ? 0L : 60L;
+  }
 }

@@ -44,7 +44,7 @@ public class EmrServerlessClientImplTest {
             EMRS_APPLICATION_ID,
             EMRS_EXECUTION_ROLE,
             SPARK_SUBMIT_PARAMETERS,
-            new HashMap<>()));
+            new HashMap<>(), false));
   }
 
   @Test
