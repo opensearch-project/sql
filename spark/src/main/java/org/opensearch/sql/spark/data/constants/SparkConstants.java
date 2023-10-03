@@ -24,7 +24,7 @@ public class SparkConstants {
   public static final String FLINT_DEFAULT_HOST = "localhost";
   public static final String FLINT_DEFAULT_PORT = "9200";
   public static final String FLINT_DEFAULT_SCHEME = "http";
-  public static final String FLINT_DEFAULT_AUTH = "-1";
+  public static final String FLINT_DEFAULT_AUTH = "noauth";
   public static final String FLINT_DEFAULT_REGION = "us-west-2";
   public static final String DEFAULT_CLASS_NAME = "org.opensearch.sql.FlintJob";
   public static final String S3_AWS_CREDENTIALS_PROVIDER_KEY =
@@ -46,6 +46,10 @@ public class SparkConstants {
   public static final String FLINT_INDEX_STORE_PORT_KEY = "spark.datasource.flint.port";
   public static final String FLINT_INDEX_STORE_SCHEME_KEY = "spark.datasource.flint.scheme";
   public static final String FLINT_INDEX_STORE_AUTH_KEY = "spark.datasource.flint.auth";
+  public static final String FLINT_INDEX_STORE_AUTH_USERNAME =
+      "spark.datasource.flint.auth.username";
+  public static final String FLINT_INDEX_STORE_AUTH_PASSWORD =
+      "spark.datasource.flint.auth.password";
   public static final String FLINT_INDEX_STORE_AWSREGION_KEY = "spark.datasource.flint.region";
   public static final String FLINT_CREDENTIALS_PROVIDER_KEY =
       "spark.datasource.flint.customAWSCredentialsProvider";
