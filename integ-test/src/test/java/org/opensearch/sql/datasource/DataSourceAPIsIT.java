@@ -196,9 +196,7 @@ public class DataSourceAPIsIT extends PPLIntegTestCase {
         dataSourceMetadataList.stream().anyMatch(ds -> ds.getName().equals("get_all_prometheus")));
   }
 
-  /**
-   * https://github.com/opensearch-project/sql/issues/2196
-   */
+  /** https://github.com/opensearch-project/sql/issues/2196 */
   @SneakyThrows
   @Test
   public void issue2196() {
