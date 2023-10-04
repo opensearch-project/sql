@@ -9,6 +9,8 @@ import static org.opensearch.sql.datasources.glue.GlueDataSourceFactory.GLUE_IND
 import static org.opensearch.sql.datasources.glue.GlueDataSourceFactory.GLUE_INDEX_STORE_OPENSEARCH_AUTH_PASSWORD;
 import static org.opensearch.sql.datasources.glue.GlueDataSourceFactory.GLUE_INDEX_STORE_OPENSEARCH_AUTH_USERNAME;
 import static org.opensearch.sql.datasources.glue.GlueDataSourceFactory.GLUE_INDEX_STORE_OPENSEARCH_REGION;
+import static org.opensearch.sql.datasources.glue.GlueDataSourceFactory.GLUE_INDEX_STORE_OPENSEARCH_URI;
+import static org.opensearch.sql.datasources.glue.GlueDataSourceFactory.GLUE_ROLE_ARN;
 import static org.opensearch.sql.spark.data.constants.SparkConstants.AWS_SNAPSHOT_REPOSITORY;
 import static org.opensearch.sql.spark.data.constants.SparkConstants.DEFAULT_CLASS_NAME;
 import static org.opensearch.sql.spark.data.constants.SparkConstants.DEFAULT_GLUE_CATALOG_CREDENTIALS_PROVIDER_FACTORY_KEY;
@@ -50,6 +52,7 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.function.Supplier;
 import lombok.RequiredArgsConstructor;
 import org.opensearch.sql.datasource.model.DataSourceMetadata;
 import org.opensearch.sql.datasource.model.DataSourceType;
@@ -97,22 +100,21 @@ public class SparkSubmitParameters {
 
     public Builder dataSource(DataSourceMetadata metadata) {
       if (DataSourceType.S3GLUE.equals(metadata.getConnector())) {
-        String roleArn = metadata.getProperties().get("glue.auth.role_arn");
+        String roleArn = metadata.getProperties().get(GLUE_ROLE_ARN);
 
         config.put(DRIVER_ENV_ASSUME_ROLE_ARN_KEY, roleArn);
         config.put(EXECUTOR_ENV_ASSUME_ROLE_ARN_KEY, roleArn);
         config.put(HIVE_METASTORE_GLUE_ARN_KEY, roleArn);
         config.put("spark.sql.catalog." + metadata.getName(), FLINT_DELEGATE_CATALOG);
 
-        URI uri =
+        setFlintIndexStoreHost(
             parseUri(
-                metadata.getProperties().get("glue.indexstore.opensearch.uri"), metadata.getName());
-        flintConfig(
-            metadata,
-            uri.getHost(),
-            String.valueOf(uri.getPort()),
-            uri.getScheme(),
-            metadata.getProperties().get(GLUE_INDEX_STORE_OPENSEARCH_AUTH));
+                metadata.getProperties().get(GLUE_INDEX_STORE_OPENSEARCH_URI), metadata.getName()));
+        setFlintIndexStoreAuthProperties(
+            metadata.getProperties().get(GLUE_INDEX_STORE_OPENSEARCH_AUTH),
+            () -> metadata.getProperties().get(GLUE_INDEX_STORE_OPENSEARCH_AUTH_USERNAME),
+            () -> metadata.getProperties().get(GLUE_INDEX_STORE_OPENSEARCH_AUTH_PASSWORD),
+            () -> metadata.getProperties().get(GLUE_INDEX_STORE_OPENSEARCH_REGION));
         return this;
       }
       throw new UnsupportedOperationException(
@@ -120,28 +122,24 @@ public class SparkSubmitParameters {
               "UnSupported datasource type for async queries:: %s", metadata.getConnector()));
     }
 
-    private void flintConfig(
-        DataSourceMetadata metadata, String host, String port, String scheme, String auth) {
-      config.put(FLINT_INDEX_STORE_HOST_KEY, host);
-      config.put(FLINT_INDEX_STORE_PORT_KEY, port);
-      config.put(FLINT_INDEX_STORE_SCHEME_KEY, scheme);
-      setFlintIndexStoreAuthProperties(metadata, auth);
+    private void setFlintIndexStoreHost(URI uri) {
+      config.put(FLINT_INDEX_STORE_HOST_KEY, uri.getHost());
+      config.put(FLINT_INDEX_STORE_PORT_KEY, String.valueOf(uri.getPort()));
+      config.put(FLINT_INDEX_STORE_SCHEME_KEY, uri.getScheme());
     }
 
     private void setFlintIndexStoreAuthProperties(
-        DataSourceMetadata dataSourceMetadata, String authType) {
+        String authType,
+        Supplier<String> userName,
+        Supplier<String> password,
+        Supplier<String> region) {
       if (AuthenticationType.get(authType).equals(AuthenticationType.BASICAUTH)) {
         config.put(FLINT_INDEX_STORE_AUTH_KEY, authType);
-        String username =
-            dataSourceMetadata.getProperties().get(GLUE_INDEX_STORE_OPENSEARCH_AUTH_USERNAME);
-        String password =
-            dataSourceMetadata.getProperties().get(GLUE_INDEX_STORE_OPENSEARCH_AUTH_PASSWORD);
-        config.put(FLINT_INDEX_STORE_AUTH_USERNAME, username);
-        config.put(FLINT_INDEX_STORE_AUTH_PASSWORD, password);
+        config.put(FLINT_INDEX_STORE_AUTH_USERNAME, userName.get());
+        config.put(FLINT_INDEX_STORE_AUTH_PASSWORD, password.get());
       } else if (AuthenticationType.get(authType).equals(AuthenticationType.AWSSIGV4AUTH)) {
-        String region = dataSourceMetadata.getProperties().get(GLUE_INDEX_STORE_OPENSEARCH_REGION);
         config.put(FLINT_INDEX_STORE_AUTH_KEY, "sigv4");
-        config.put(FLINT_INDEX_STORE_AWSREGION_KEY, region);
+        config.put(FLINT_INDEX_STORE_AWSREGION_KEY, region.get());
       } else {
         config.put(FLINT_INDEX_STORE_AUTH_KEY, authType);
       }
