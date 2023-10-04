@@ -10,6 +10,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
+import static org.opensearch.sql.data.model.ExprValueUtils.stringValue;
 import static org.opensearch.sql.spark.constants.TestConstants.QUERY;
 import static org.opensearch.sql.spark.utils.TestUtils.getJson;
 
@@ -172,5 +173,61 @@ public class SparkSqlFunctionTableScanOperatorTest {
     columns.add(new ExecutionEngine.Schema.Column("1", "1", ExprCoreType.INTEGER));
     ExecutionEngine.Schema expectedSchema = new ExecutionEngine.Schema(columns);
     assertEquals(expectedSchema, sparkSqlFunctionTableScanOperator.schema());
+  }
+
+  /** https://github.com/opensearch-project/sql/issues/2210. */
+  @Test
+  @SneakyThrows
+  void issue2210() {
+    SparkQueryRequest sparkQueryRequest = new SparkQueryRequest();
+    sparkQueryRequest.setSql(QUERY);
+
+    SparkSqlFunctionTableScanOperator sparkSqlFunctionTableScanOperator =
+        new SparkSqlFunctionTableScanOperator(sparkClient, sparkQueryRequest);
+
+    when(sparkClient.sql(any())).thenReturn(new JSONObject(getJson("issue2210.json")));
+    sparkSqlFunctionTableScanOperator.open();
+    assertTrue(sparkSqlFunctionTableScanOperator.hasNext());
+    assertEquals(
+        new ExprTupleValue(
+            new LinkedHashMap<>() {
+              {
+                put("col_name", stringValue("day"));
+                put("data_type", stringValue("int"));
+                put("comment", stringValue(""));
+              }
+            }),
+        sparkSqlFunctionTableScanOperator.next());
+    assertEquals(
+        new ExprTupleValue(
+            new LinkedHashMap<>() {
+              {
+                put("col_name", stringValue("# Partition Information"));
+                put("data_type", stringValue(""));
+                put("comment", stringValue(""));
+              }
+            }),
+        sparkSqlFunctionTableScanOperator.next());
+    assertEquals(
+        new ExprTupleValue(
+            new LinkedHashMap<>() {
+              {
+                put("col_name", stringValue("# col_name"));
+                put("data_type", stringValue("data_type"));
+                put("comment", stringValue("comment"));
+              }
+            }),
+        sparkSqlFunctionTableScanOperator.next());
+    assertEquals(
+        new ExprTupleValue(
+            new LinkedHashMap<>() {
+              {
+                put("col_name", stringValue("day"));
+                put("data_type", stringValue("int"));
+                put("comment", stringValue(""));
+              }
+            }),
+        sparkSqlFunctionTableScanOperator.next());
+    Assertions.assertFalse(sparkSqlFunctionTableScanOperator.hasNext());
   }
 }
