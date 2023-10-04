@@ -1,0 +1,3 @@
+{
+  "sparkSubmitParameters": "--conf spark.dynamicAllocation.enabled=false"
+}

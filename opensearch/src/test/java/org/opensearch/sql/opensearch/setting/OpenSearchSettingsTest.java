@@ -32,7 +32,8 @@ import org.opensearch.sql.common.setting.Settings;
 @ExtendWith(MockitoExtension.class)
 class OpenSearchSettingsTest {
 
-  @Mock private ClusterSettings clusterSettings;
+  @Mock
+  private ClusterSettings clusterSettings;
 
   @Test
   void getSettingValue() {
@@ -166,5 +167,18 @@ class OpenSearchSettingsTest {
   @Test
   void legacySettingsShouldBeDeprecatedBeforeRemove() {
     assertEquals(15, legacySettings().size());
+  }
+
+  @Test
+  void default_spark_execution_engine_config_setting() {
+    org.opensearch.common.settings.Settings settings =
+        org.opensearch.common.settings.Settings.builder()
+            .build();
+    assertEquals(
+        "{\n" +
+            "  \"sparkSubmitParameters\": \"--conf spark.dynamicAllocation.enabled=false\"\n" +
+            "}",
+        OpenSearchSettings.SPARK_EXECUTION_ENGINE_CONFIG.getDefault(settings)
+    );
   }
 }
