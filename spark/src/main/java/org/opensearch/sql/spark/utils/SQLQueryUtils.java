@@ -5,6 +5,7 @@
 
 package org.opensearch.sql.spark.utils;
 
+import java.util.Locale;
 import lombok.Getter;
 import lombok.experimental.UtilityClass;
 import org.antlr.v4.runtime.CommonTokenStream;
@@ -131,6 +132,57 @@ public class SQLQueryUtils {
     public Void visitTableName(FlintSparkSqlExtensionsParser.TableNameContext ctx) {
       indexDetails.setFullyQualifiedTableName(new FullyQualifiedTableName(ctx.getText()));
       return super.visitTableName(ctx);
+    }
+
+    @Override
+    public Void visitCreateSkippingIndexStatement(
+        FlintSparkSqlExtensionsParser.CreateSkippingIndexStatementContext ctx) {
+      visitPropertyList(ctx.propertyList());
+      return super.visitCreateSkippingIndexStatement(ctx);
+    }
+
+    @Override
+    public Void visitCreateCoveringIndexStatement(
+        FlintSparkSqlExtensionsParser.CreateCoveringIndexStatementContext ctx) {
+      visitPropertyList(ctx.propertyList());
+      return super.visitCreateCoveringIndexStatement(ctx);
+    }
+
+    @Override
+    public Void visitPropertyList(FlintSparkSqlExtensionsParser.PropertyListContext ctx) {
+      if (ctx != null) {
+        ctx.property()
+            .forEach(
+                property -> {
+                  // todo. Currently, we use contains() api to avoid unescape string. In future, we
+                  //  should leverage
+                  // https://github.com/apache/spark/blob/v3.5.0/sql/api/src/main/scala/org/apache/spark/sql/catalyst/util/SparkParserUtils.scala#L35 to unescape string literal
+                  if (propertyKey(property.key).toLowerCase(Locale.ROOT).contains("auto_refresh")) {
+                    if (propertyValue(property.value).toLowerCase(Locale.ROOT).contains("true")) {
+                      indexDetails.setAutoRefresh(true);
+                    }
+                  }
+                });
+      }
+      return null;
+    }
+
+    private String propertyKey(FlintSparkSqlExtensionsParser.PropertyKeyContext key) {
+      if (key.STRING() != null) {
+        return key.STRING().getText();
+      } else {
+        return key.getText();
+      }
+    }
+
+    private String propertyValue(FlintSparkSqlExtensionsParser.PropertyValueContext value) {
+      if (value.STRING() != null) {
+        return value.STRING().getText();
+      } else if (value.booleanValue() != null) {
+        return value.getText();
+      } else {
+        return value.getText();
+      }
     }
   }
 }
