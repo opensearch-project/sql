@@ -79,16 +79,6 @@ public class SparkQueryDispatcher {
     }
   }
 
-  private String getDataSourceRoleARN(DataSourceMetadata dataSourceMetadata) {
-    if (DataSourceType.S3GLUE.equals(dataSourceMetadata.getConnector())) {
-      return dataSourceMetadata.getProperties().get("glue.auth.role_arn");
-    }
-    throw new UnsupportedOperationException(
-        String.format(
-            "UnSupported datasource type for async queries:: %s",
-            dataSourceMetadata.getConnector()));
-  }
-
   private StartJobRequest getStartJobRequestForNonIndexQueries(
       DispatchQueryRequest dispatchQueryRequest) {
     StartJobRequest startJobRequest;
