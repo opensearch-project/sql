@@ -86,7 +86,7 @@ public class DefaultSparkSqlFunctionResponseHandle implements SparkSqlFunctionRe
         linkedHashMap.put(
             column.getName(), new ExprTimestampValue(row.getString(column.getName())));
       } else if (type == ExprCoreType.STRING) {
-        linkedHashMap.put(column.getName(), new ExprStringValue(row.getString(column.getName())));
+        linkedHashMap.put(column.getName(), new ExprStringValue(jsonString(row, column.getName())));
       } else {
         throw new RuntimeException("Result contains invalid data type");
       }
@@ -135,6 +135,10 @@ public class DefaultSparkSqlFunctionResponseHandle implements SparkSqlFunctionRe
       default:
         return ExprCoreType.UNKNOWN;
     }
+  }
+
+  private static String jsonString(JSONObject jsonObject, String key) {
+    return jsonObject.has(key) ? jsonObject.getString(key) : "";
   }
 
   @Override
