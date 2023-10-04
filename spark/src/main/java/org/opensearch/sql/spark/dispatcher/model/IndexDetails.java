@@ -12,4 +12,6 @@ import lombok.Data;
 public class IndexDetails {
   private String indexName;
   private FullyQualifiedTableName fullyQualifiedTableName;
+  // by default, auto_refresh = false;
+  private Boolean autoRefresh = false;
 }

@@ -127,7 +127,7 @@ public class SparkQueryDispatcher {
                 .build()
                 .toString(),
             tags,
-            true);
+            indexDetails.getAutoRefresh());
     return startJobRequest;
   }
 
