@@ -40,6 +40,7 @@ public class EmrServerlessClientImplEMR implements EMRServerlessClient {
             .withApplicationId(startJobRequest.getApplicationId())
             .withExecutionRoleArn(startJobRequest.getExecutionRoleArn())
             .withTags(startJobRequest.getTags())
+            .withExecutionTimeoutMinutes(startJobRequest.executionTimeout())
             .withJobDriver(
                 new JobDriver()
                     .withSparkSubmit(
