@@ -25,9 +25,6 @@ public class SparkConstants {
   public static final String FLINT_INTEGRATION_JAR =
       "s3://spark-datasource/flint-spark-integration-assembly-0.1.0-SNAPSHOT.jar";
   // TODO should be replaced with mvn jar.
-  public static final String GLUE_CATALOG_HIVE_JAR =
-      "s3://flint-data-dp-eu-west-1-beta/code/flint/AWSGlueDataCatalogHiveMetaStoreAuth-1.0.jar";
-  // TODO should be replaced with mvn jar.
   public static final String FLINT_CATALOG_JAR =
       "s3://flint-data-dp-eu-west-1-beta/code/flint/flint-catalog.jar";
   public static final String FLINT_DEFAULT_HOST = "localhost";
@@ -45,7 +42,6 @@ public class SparkConstants {
   public static final String HADOOP_CATALOG_CREDENTIALS_PROVIDER_FACTORY_KEY =
       "spark.hadoop.aws.catalog.credentials.provider.factory.class";
   public static final String HIVE_METASTORE_GLUE_ARN_KEY = "spark.hive.metastore.glue.role.arn";
-  public static final String SPARK_JARS_KEY = "spark.jars";
   public static final String SPARK_JAR_PACKAGES_KEY = "spark.jars.packages";
   public static final String SPARK_JAR_REPOSITORIES_KEY = "spark.jars.repositories";
   public static final String SPARK_DRIVER_ENV_JAVA_HOME_KEY =
@@ -74,6 +70,8 @@ public class SparkConstants {
       "org.opensearch:opensearch-spark-standalone_2.12:0.1.0-SNAPSHOT";
   public static final String SPARK_LAUNCHER_PACKAGE =
       "org.opensearch:opensearch-spark-sql-application_2.12:0.1.0-SNAPSHOT";
+  public static final String PPL_STANDALONE_PACKAGE =
+      "org.opensearch:opensearch-spark-ppl_2.12:0.1.0-SNAPSHOT";
   public static final String AWS_SNAPSHOT_REPOSITORY =
       "https://aws.oss.sonatype.org/content/repositories/snapshots";
   public static final String GLUE_HIVE_CATALOG_FACTORY_CLASS =
@@ -82,6 +80,9 @@ public class SparkConstants {
       "org.opensearch.sql.FlintDelegatingSessionCatalog";
   public static final String FLINT_SQL_EXTENSION =
       "org.opensearch.flint.spark.FlintSparkExtensions";
+  public static final String FLINT_PPL_EXTENSION =
+      "org.opensearch.flint.spark.FlintPPLSparkExtensions";
+
   public static final String EMR_ASSUME_ROLE_CREDENTIALS_PROVIDER =
       "com.amazonaws.emr.AssumeRoleAWSCredentialsProvider";
   public static final String JAVA_HOME_LOCATION = "/usr/lib/jvm/java-17-amazon-corretto.x86_64/";
