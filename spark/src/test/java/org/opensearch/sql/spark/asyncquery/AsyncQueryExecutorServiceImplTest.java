@@ -31,6 +31,7 @@ import org.opensearch.sql.spark.asyncquery.model.AsyncQueryExecutionResponse;
 import org.opensearch.sql.spark.asyncquery.model.AsyncQueryJobMetadata;
 import org.opensearch.sql.spark.dispatcher.SparkQueryDispatcher;
 import org.opensearch.sql.spark.dispatcher.model.DispatchQueryRequest;
+import org.opensearch.sql.spark.dispatcher.model.DispatchQueryResponse;
 import org.opensearch.sql.spark.rest.model.CreateAsyncQueryRequest;
 import org.opensearch.sql.spark.rest.model.CreateAsyncQueryResponse;
 import org.opensearch.sql.spark.rest.model.LangType;
@@ -63,11 +64,11 @@ public class AsyncQueryExecutorServiceImplTest {
                 LangType.SQL,
                 "arn:aws:iam::270824043731:role/emr-job-execution-role",
                 TEST_CLUSTER_NAME)))
-        .thenReturn(EMR_JOB_ID);
+        .thenReturn(new DispatchQueryResponse(EMR_JOB_ID, false));
     CreateAsyncQueryResponse createAsyncQueryResponse =
         jobExecutorService.createAsyncQuery(createAsyncQueryRequest);
     verify(asyncQueryJobMetadataStorageService, times(1))
-        .storeJobMetadata(new AsyncQueryJobMetadata(EMR_JOB_ID, "00fd775baqpu4g0p"));
+        .storeJobMetadata(new AsyncQueryJobMetadata("00fd775baqpu4g0p", EMR_JOB_ID));
     verify(settings, times(1)).getSettingValue(Settings.Key.SPARK_EXECUTION_ENGINE_CONFIG);
     verify(settings, times(1)).getSettingValue(Settings.Key.CLUSTER_NAME);
     verify(sparkQueryDispatcher, times(1))
@@ -105,10 +106,11 @@ public class AsyncQueryExecutorServiceImplTest {
         new AsyncQueryExecutorServiceImpl(
             asyncQueryJobMetadataStorageService, sparkQueryDispatcher, settings);
     when(asyncQueryJobMetadataStorageService.getJobMetadata(EMR_JOB_ID))
-        .thenReturn(Optional.of(new AsyncQueryJobMetadata(EMR_JOB_ID, EMRS_APPLICATION_ID)));
+        .thenReturn(Optional.of(new AsyncQueryJobMetadata(EMRS_APPLICATION_ID, EMR_JOB_ID)));
     JSONObject jobResult = new JSONObject();
     jobResult.put("status", JobRunState.PENDING.toString());
-    when(sparkQueryDispatcher.getQueryResponse(EMRS_APPLICATION_ID, EMR_JOB_ID))
+    when(sparkQueryDispatcher.getQueryResponse(
+            new AsyncQueryJobMetadata(EMRS_APPLICATION_ID, EMR_JOB_ID)))
         .thenReturn(jobResult);
     AsyncQueryExecutionResponse asyncQueryExecutionResponse =
         jobExecutorService.getAsyncQueryResults(EMR_JOB_ID);
@@ -122,10 +124,11 @@ public class AsyncQueryExecutorServiceImplTest {
   @Test
   void testGetAsyncQueryResultsWithSuccessJob() throws IOException {
     when(asyncQueryJobMetadataStorageService.getJobMetadata(EMR_JOB_ID))
-        .thenReturn(Optional.of(new AsyncQueryJobMetadata(EMR_JOB_ID, EMRS_APPLICATION_ID)));
+        .thenReturn(Optional.of(new AsyncQueryJobMetadata(EMRS_APPLICATION_ID, EMR_JOB_ID)));
     JSONObject jobResult = new JSONObject(getJson("select_query_response.json"));
     jobResult.put("status", JobRunState.SUCCESS.toString());
-    when(sparkQueryDispatcher.getQueryResponse(EMRS_APPLICATION_ID, EMR_JOB_ID))
+    when(sparkQueryDispatcher.getQueryResponse(
+            new AsyncQueryJobMetadata(EMRS_APPLICATION_ID, EMR_JOB_ID)))
         .thenReturn(jobResult);
 
     AsyncQueryExecutorServiceImpl jobExecutorService =
@@ -182,8 +185,9 @@ public class AsyncQueryExecutorServiceImplTest {
         new AsyncQueryExecutorServiceImpl(
             asyncQueryJobMetadataStorageService, sparkQueryDispatcher, settings);
     when(asyncQueryJobMetadataStorageService.getJobMetadata(EMR_JOB_ID))
-        .thenReturn(Optional.of(new AsyncQueryJobMetadata(EMR_JOB_ID, EMRS_APPLICATION_ID)));
-    when(sparkQueryDispatcher.cancelJob(EMRS_APPLICATION_ID, EMR_JOB_ID)).thenReturn(EMR_JOB_ID);
+        .thenReturn(Optional.of(new AsyncQueryJobMetadata(EMRS_APPLICATION_ID, EMR_JOB_ID)));
+    when(sparkQueryDispatcher.cancelJob(new AsyncQueryJobMetadata(EMRS_APPLICATION_ID, EMR_JOB_ID)))
+        .thenReturn(EMR_JOB_ID);
     String jobId = asyncQueryExecutorService.cancelQuery(EMR_JOB_ID);
     Assertions.assertEquals(EMR_JOB_ID, jobId);
     verifyNoInteractions(settings);

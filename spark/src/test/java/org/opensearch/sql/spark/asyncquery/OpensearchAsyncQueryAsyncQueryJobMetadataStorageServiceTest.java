@@ -183,7 +183,7 @@ public class OpensearchAsyncQueryAsyncQueryJobMetadataStorageServiceTest {
             new SearchHits(
                 new SearchHit[] {searchHit}, new TotalHits(21, TotalHits.Relation.EQUAL_TO), 1.0F));
     AsyncQueryJobMetadata asyncQueryJobMetadata =
-        new AsyncQueryJobMetadata(EMR_JOB_ID, EMRS_APPLICATION_ID);
+        new AsyncQueryJobMetadata(EMRS_APPLICATION_ID, EMR_JOB_ID);
     Mockito.when(searchHit.getSourceAsString()).thenReturn(asyncQueryJobMetadata.toString());
 
     Optional<AsyncQueryJobMetadata> jobMetadataOptional =

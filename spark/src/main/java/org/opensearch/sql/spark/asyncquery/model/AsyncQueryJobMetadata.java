@@ -13,6 +13,7 @@ import com.google.gson.Gson;
 import java.io.IOException;
 import lombok.AllArgsConstructor;
 import lombok.Data;
+import lombok.EqualsAndHashCode;
 import org.opensearch.common.xcontent.XContentFactory;
 import org.opensearch.common.xcontent.XContentType;
 import org.opensearch.core.xcontent.DeprecationHandler;
@@ -23,9 +24,17 @@ import org.opensearch.core.xcontent.XContentParser;
 /** This class models all the metadata required for a job. */
 @Data
 @AllArgsConstructor
+@EqualsAndHashCode
 public class AsyncQueryJobMetadata {
-  private String jobId;
   private String applicationId;
+  private String jobId;
+  private boolean isDropIndexQuery;
+
+  public AsyncQueryJobMetadata(String applicationId, String jobId) {
+    this.applicationId = applicationId;
+    this.jobId = jobId;
+    this.isDropIndexQuery = false;
+  }
 
   @Override
   public String toString() {
@@ -44,6 +53,7 @@ public class AsyncQueryJobMetadata {
     builder.startObject();
     builder.field("jobId", metadata.getJobId());
     builder.field("applicationId", metadata.getApplicationId());
+    builder.field("isDropIndexQuery", metadata.isDropIndexQuery());
     builder.endObject();
     return builder;
   }
@@ -77,6 +87,7 @@ public class AsyncQueryJobMetadata {
   public static AsyncQueryJobMetadata toJobMetadata(XContentParser parser) throws IOException {
     String jobId = null;
     String applicationId = null;
+    boolean isDropIndexQuery = false;
     ensureExpectedToken(XContentParser.Token.START_OBJECT, parser.nextToken(), parser);
     while (parser.nextToken() != XContentParser.Token.END_OBJECT) {
       String fieldName = parser.currentName();
@@ -88,6 +99,9 @@ public class AsyncQueryJobMetadata {
         case "applicationId":
           applicationId = parser.textOrNull();
           break;
+        case "isDropIndexQuery":
+          isDropIndexQuery = parser.booleanValue();
+          break;
         default:
           throw new IllegalArgumentException("Unknown field: " + fieldName);
       }
@@ -95,6 +109,6 @@ public class AsyncQueryJobMetadata {
     if (jobId == null || applicationId == null) {
       throw new IllegalArgumentException("jobId and applicationId are required fields.");
     }
-    return new AsyncQueryJobMetadata(jobId, applicationId);
+    return new AsyncQueryJobMetadata(applicationId, jobId, isDropIndexQuery);
   }
 }
