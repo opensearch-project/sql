@@ -155,9 +155,10 @@ public class SparkSubmitParameters {
       }
     }
 
-    public Builder structuredStreaming() {
-      config.put("spark.flint.job.type", "streaming");
-
+    public Builder structuredStreaming(Boolean isStructuredStreaming) {
+      if (isStructuredStreaming) {
+        config.put("spark.flint.job.type", "streaming");
+      }
       return this;
     }
 

@@ -123,11 +123,11 @@ public class SparkQueryDispatcher {
                 .dataSource(
                     dataSourceService.getRawDataSourceMetadata(
                         dispatchQueryRequest.getDatasource()))
-                .structuredStreaming()
+                .structuredStreaming(indexDetails.getAutoRefresh())
                 .build()
                 .toString(),
             tags,
-            true);
+            indexDetails.getAutoRefresh());
     return startJobRequest;
   }
 

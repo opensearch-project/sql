@@ -5,6 +5,10 @@
 
 package org.opensearch.sql.spark.utils;
 
+import static org.opensearch.sql.spark.utils.SQLQueryUtilsTest.IndexQuery.index;
+import static org.opensearch.sql.spark.utils.SQLQueryUtilsTest.IndexQuery.skippingIndex;
+
+import lombok.Getter;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -106,5 +110,75 @@ public class SQLQueryUtilsTest {
     Assertions.assertEquals("myS3", fullyQualifiedTableName.getDatasourceName());
     Assertions.assertEquals("default", fullyQualifiedTableName.getSchemaName());
     Assertions.assertEquals("alb_logs", fullyQualifiedTableName.getTableName());
+  }
+
+  /** https://github.com/opensearch-project/sql/issues/2206 */
+  @Test
+  void testAutoRefresh() {
+    Assertions.assertFalse(
+        SQLQueryUtils.extractIndexDetails(skippingIndex().getQuery()).getAutoRefresh());
+
+    Assertions.assertFalse(
+        SQLQueryUtils.extractIndexDetails(
+                skippingIndex().withProperty("auto_refresh", "false").getQuery())
+            .getAutoRefresh());
+
+    Assertions.assertTrue(
+        SQLQueryUtils.extractIndexDetails(
+                skippingIndex().withProperty("auto_refresh", "true").getQuery())
+            .getAutoRefresh());
+
+    Assertions.assertTrue(
+        SQLQueryUtils.extractIndexDetails(
+                skippingIndex().withProperty("\"auto_refresh\"", "true").getQuery())
+            .getAutoRefresh());
+
+    Assertions.assertTrue(
+        SQLQueryUtils.extractIndexDetails(
+                skippingIndex().withProperty("\"auto_refresh\"", "\"true\"").getQuery())
+            .getAutoRefresh());
+
+    Assertions.assertFalse(
+        SQLQueryUtils.extractIndexDetails(
+                skippingIndex().withProperty("auto_refresh", "1").getQuery())
+            .getAutoRefresh());
+
+    Assertions.assertFalse(
+        SQLQueryUtils.extractIndexDetails(skippingIndex().withProperty("interval", "1").getQuery())
+            .getAutoRefresh());
+
+    Assertions.assertFalse(SQLQueryUtils.extractIndexDetails(index().getQuery()).getAutoRefresh());
+
+    Assertions.assertFalse(
+        SQLQueryUtils.extractIndexDetails(index().withProperty("auto_refresh", "false").getQuery())
+            .getAutoRefresh());
+
+    Assertions.assertTrue(
+        SQLQueryUtils.extractIndexDetails(index().withProperty("auto_refresh", "true").getQuery())
+            .getAutoRefresh());
+  }
+
+  @Getter
+  protected static class IndexQuery {
+    private String query;
+
+    private IndexQuery(String query) {
+      this.query = query;
+    }
+
+    public static IndexQuery skippingIndex() {
+      return new IndexQuery(
+          "CREATE SKIPPING INDEX ON myS3.default.alb_logs" + "(l_orderkey VALUE_SET)");
+    }
+
+    public static IndexQuery index() {
+      return new IndexQuery(
+          "CREATE INDEX elb_and_requestUri ON myS3.default.alb_logs(l_orderkey, " + "l_quantity)");
+    }
+
+    public IndexQuery withProperty(String key, String value) {
+      query = String.format("%s with (%s = %s)", query, key, value);
+      return this;
+    }
   }
 }
