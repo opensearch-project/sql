@@ -1,0 +1,17 @@
+{
+  "data": {
+    "result": [
+      "{'col_name':'day','data_type':'int'}",
+      "{'col_name':'# Partition Information','data_type':'','comment':''}",
+      "{'col_name':'# col_name','data_type':'data_type','comment':'comment'}",
+      "{'col_name':'day','data_type':'int'}"
+    ],
+    "schema": [
+      "{'column_name':'col_name','data_type':'string'}",
+      "{'column_name':'data_type','data_type':'string'}",
+      "{'column_name':'comment','data_type':'string'}"
+    ],
+    "stepId": "s-123456789",
+    "applicationId": "application-abc"
+  }
+}
