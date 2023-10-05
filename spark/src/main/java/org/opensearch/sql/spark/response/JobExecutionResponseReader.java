@@ -50,13 +50,12 @@ public class JobExecutionResponseReader {
     JSONObject data = new JSONObject();
     try {
       searchResponseActionFuture = client.search(searchRequest);
-    } catch (Exception e) {
+    } catch (IndexNotFoundException e) {
       // if there is no result index (e.g., EMR-S hasn't created the index yet), we return empty
       // json
-      if (e instanceof IndexNotFoundException) {
-        LOG.info(resultIndex + " is not created yet.");
-        return data;
-      }
+      LOG.info(resultIndex + " is not created yet.");
+      return data;
+    } catch (Exception e) {
       throw new RuntimeException(e);
     }
     SearchResponse searchResponse = searchResponseActionFuture.actionGet();

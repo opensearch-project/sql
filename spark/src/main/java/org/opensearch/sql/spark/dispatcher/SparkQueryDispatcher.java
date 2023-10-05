@@ -82,7 +82,7 @@ public class SparkQueryDispatcher {
     if (result.has(DATA_FIELD)) {
       JSONObject items = result.getJSONObject(DATA_FIELD);
 
-      // If items have STATUS_FIELD, use it; otherwise, use jobState
+      // If items have STATUS_FIELD, use it; otherwise, mark failed
       String status = items.optString(STATUS_FIELD, JobRunState.FAILED.toString());
       result.put(STATUS_FIELD, status);
 
