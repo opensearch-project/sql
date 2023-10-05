@@ -23,7 +23,7 @@ public class SparkConstants {
   public static final String SPARK_RESPONSE_BUFFER_INDEX_NAME = ".query_execution_result";
   // TODO should be replaced with mvn jar.
   public static final String FLINT_INTEGRATION_JAR =
-      "s3://flint-data-dp-eu-west-1-beta/code/flint/sql-job.jar";
+      "s3://spark-datasource/flint-spark-integration-assembly-0.1.0-SNAPSHOT.jar";
   // TODO should be replaced with mvn jar.
   public static final String GLUE_CATALOG_HIVE_JAR =
       "s3://flint-data-dp-eu-west-1-beta/code/flint/AWSGlueDataCatalogHiveMetaStoreAuth-1.0.jar";
