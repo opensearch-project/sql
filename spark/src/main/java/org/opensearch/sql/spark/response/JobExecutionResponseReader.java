@@ -6,7 +6,6 @@
 package org.opensearch.sql.spark.response;
 
 import static org.opensearch.sql.spark.data.constants.SparkConstants.SPARK_RESPONSE_BUFFER_INDEX_NAME;
-import static org.opensearch.sql.spark.data.constants.SparkConstants.STEP_ID_FIELD;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -34,7 +33,7 @@ public class JobExecutionResponseReader {
   }
 
   public JSONObject getResultFromOpensearchIndex(String jobId) {
-    return searchInSparkIndex(QueryBuilders.termQuery(STEP_ID_FIELD, jobId));
+    return searchInSparkIndex(QueryBuilders.termQuery("jobRunId", jobId));
   }
 
   private JSONObject searchInSparkIndex(QueryBuilder query) {

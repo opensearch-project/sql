@@ -18,7 +18,6 @@ import static org.opensearch.sql.spark.data.constants.SparkConstants.DEFAULT_S3_
 import static org.opensearch.sql.spark.data.constants.SparkConstants.DRIVER_ENV_ASSUME_ROLE_ARN_KEY;
 import static org.opensearch.sql.spark.data.constants.SparkConstants.EMR_ASSUME_ROLE_CREDENTIALS_PROVIDER;
 import static org.opensearch.sql.spark.data.constants.SparkConstants.EXECUTOR_ENV_ASSUME_ROLE_ARN_KEY;
-import static org.opensearch.sql.spark.data.constants.SparkConstants.FLINT_CATALOG_JAR;
 import static org.opensearch.sql.spark.data.constants.SparkConstants.FLINT_CREDENTIALS_PROVIDER_KEY;
 import static org.opensearch.sql.spark.data.constants.SparkConstants.FLINT_DEFAULT_AUTH;
 import static org.opensearch.sql.spark.data.constants.SparkConstants.FLINT_DEFAULT_HOST;
@@ -45,6 +44,7 @@ import static org.opensearch.sql.spark.data.constants.SparkConstants.SPARK_EXECU
 import static org.opensearch.sql.spark.data.constants.SparkConstants.SPARK_JARS_KEY;
 import static org.opensearch.sql.spark.data.constants.SparkConstants.SPARK_JAR_PACKAGES_KEY;
 import static org.opensearch.sql.spark.data.constants.SparkConstants.SPARK_JAR_REPOSITORIES_KEY;
+import static org.opensearch.sql.spark.data.constants.SparkConstants.SPARK_LAUNCHER_PACKAGE;
 import static org.opensearch.sql.spark.data.constants.SparkConstants.SPARK_SQL_EXTENSIONS_KEY;
 import static org.opensearch.sql.spark.data.constants.SparkConstants.SPARK_STANDALONE_PACKAGE;
 
@@ -80,8 +80,8 @@ public class SparkSubmitParameters {
       config.put(
           HADOOP_CATALOG_CREDENTIALS_PROVIDER_FACTORY_KEY,
           DEFAULT_GLUE_CATALOG_CREDENTIALS_PROVIDER_FACTORY_KEY);
-      config.put(SPARK_JARS_KEY, GLUE_CATALOG_HIVE_JAR + "," + FLINT_CATALOG_JAR);
-      config.put(SPARK_JAR_PACKAGES_KEY, SPARK_STANDALONE_PACKAGE);
+      config.put(SPARK_JARS_KEY, GLUE_CATALOG_HIVE_JAR);
+      config.put(SPARK_JAR_PACKAGES_KEY, SPARK_STANDALONE_PACKAGE + "," + SPARK_LAUNCHER_PACKAGE);
       config.put(SPARK_JAR_REPOSITORIES_KEY, AWS_SNAPSHOT_REPOSITORY);
       config.put(SPARK_DRIVER_ENV_JAVA_HOME_KEY, JAVA_HOME_LOCATION);
       config.put(SPARK_EXECUTOR_ENV_JAVA_HOME_KEY, JAVA_HOME_LOCATION);
@@ -115,6 +115,7 @@ public class SparkSubmitParameters {
             () -> metadata.getProperties().get(GLUE_INDEX_STORE_OPENSEARCH_AUTH_USERNAME),
             () -> metadata.getProperties().get(GLUE_INDEX_STORE_OPENSEARCH_AUTH_PASSWORD),
             () -> metadata.getProperties().get(GLUE_INDEX_STORE_OPENSEARCH_REGION));
+        config.put("spark.flint.datasource.name", metadata.getName());
         return this;
       }
       throw new UnsupportedOperationException(

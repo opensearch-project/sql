@@ -597,14 +597,14 @@ public class SparkQueryDispatcherTest {
       authParamConfigBuilder.append(authParams.get(key));
       authParamConfigBuilder.append(" ");
     }
-    return " --class org.opensearch.sql.FlintJob  --conf"
+    return " --class org.apache.spark.sql.FlintJob  --conf"
                + " spark.hadoop.fs.s3.customAWSCredentialsProvider=com.amazonaws.emr.AssumeRoleAWSCredentialsProvider"
                + "  --conf"
                + " spark.hadoop.aws.catalog.credentials.provider.factory.class=com.amazonaws.glue.catalog.metastore.STSAssumeRoleSessionCredentialsProviderFactory"
                + "  --conf"
-               + " spark.jars=s3://flint-data-dp-eu-west-1-beta/code/flint/AWSGlueDataCatalogHiveMetaStoreAuth-1.0.jar,s3://flint-data-dp-eu-west-1-beta/code/flint/flint-catalog.jar"
+               + " spark.jars=s3://flint-data-dp-eu-west-1-beta/code/flint/AWSGlueDataCatalogHiveMetaStoreAuth-1.0.jar"
                + "  --conf"
-               + " spark.jars.packages=org.opensearch:opensearch-spark-standalone_2.12:0.1.0-SNAPSHOT"
+               + " spark.jars.packages=org.opensearch:opensearch-spark-standalone_2.12:0.1.0-SNAPSHOT,org.opensearch:opensearch-spark-sql-application_2.12:0.1.0-SNAPSHOT"
                + "  --conf"
                + " spark.jars.repositories=https://aws.oss.sonatype.org/content/repositories/snapshots"
                + "  --conf"
@@ -625,8 +625,9 @@ public class SparkQueryDispatcherTest {
         + " spark.executorEnv.ASSUME_ROLE_CREDENTIALS_ROLE_ARN=arn:aws:iam::924196221507:role/FlintOpensearchServiceRole"
         + "  --conf"
         + " spark.hive.metastore.glue.role.arn=arn:aws:iam::924196221507:role/FlintOpensearchServiceRole"
-        + "  --conf spark.sql.catalog.my_glue=org.opensearch.sql.FlintDelegateCatalog "
-        + authParamConfigBuilder;
+        + "  --conf spark.sql.catalog.my_glue=org.opensearch.sql.FlintDelegatingSessionCatalog "
+        + authParamConfigBuilder
+        + " --conf spark.flint.datasource.name=my_glue ";
   }
 
   private String withStructuredStreaming(String parameters) {
