@@ -25,6 +25,6 @@ public class SparkSubmitParametersTest {
         SparkSubmitParameters.Builder.builder().extraParameters("--conf A=1").build().toString();
 
     // Assert the conf is included with a space
-    assertTrue(params.contains(" --conf A=1"));
+    assertTrue(params.endsWith(" --conf A=1"));
   }
 }

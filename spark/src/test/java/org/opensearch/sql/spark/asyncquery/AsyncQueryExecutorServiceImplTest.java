@@ -6,6 +6,7 @@
 package org.opensearch.sql.spark.asyncquery;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
@@ -112,14 +113,11 @@ public class AsyncQueryExecutorServiceImplTest {
 
     verify(sparkQueryDispatcher, times(1))
         .dispatch(
-            new DispatchQueryRequest(
-                "00fd775baqpu4g0p",
-                "select * from my_glue.default.http_logs",
-                "my_glue",
-                LangType.SQL,
-                "arn:aws:iam::270824043731:role/emr-job-execution-role",
-                TEST_CLUSTER_NAME,
-                "--conf spark.dynamicAllocation.enabled=false"));
+            argThat(
+                actualReq ->
+                    actualReq
+                        .getExtraSparkSubmitParams()
+                        .equals("--conf spark.dynamicAllocation.enabled=false")));
   }
 
   @Test

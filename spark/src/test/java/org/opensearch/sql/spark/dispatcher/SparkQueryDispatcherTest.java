@@ -698,13 +698,16 @@ public class SparkQueryDispatcherTest {
 
     String extraParameters = "--conf spark.dynamicAllocation.enabled=false";
     DispatchQueryRequest[] requests = {
-      constructDispatchQueryRequest( // SQL direct query
+      // SQL direct query
+      constructDispatchQueryRequest(
           "select * from my_glue.default.http_logs", LangType.SQL, extraParameters),
-      constructDispatchQueryRequest( // SQL index query
+      // SQL index query
+      constructDispatchQueryRequest(
           "create skipping index on my_glue.default.http_logs (status VALUE_SET)",
           LangType.SQL,
           extraParameters),
-      constructDispatchQueryRequest( // PPL query
+      // PPL query
+      constructDispatchQueryRequest(
           "source = my_glue.default.http_logs", LangType.PPL, extraParameters)
     };
 
@@ -712,7 +715,6 @@ public class SparkQueryDispatcherTest {
       when(emrServerlessClient.startJobRun(any())).thenReturn(EMR_JOB_ID);
       sparkQueryDispatcher.dispatch(request);
 
-      // This test is only interested in Spark submit parameters
       verify(emrServerlessClient, times(1))
           .startJobRun(
               argThat(
