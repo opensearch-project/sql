@@ -253,16 +253,16 @@ public class OpenSearchSettings extends Settings {
 
   private static String loadDefaultSparkSubmitParameters() {
     return AccessController.doPrivileged(
-        (PrivilegedAction<String>) () -> {
-            try {
-              URL url = Resources.getResource(DEFAULT_SPARK_SUBMIT_PARAMETERS_FILE_NAME);
-              return Resources.toString(url, StandardCharsets.UTF_8);
-            } catch (IOException e) {
-              log.error("Failed to load default Spark submit parameters file", e);
-              throw new RuntimeException("Internal server error while" + e.getMessage());
-            }
-          }
-       );
+        (PrivilegedAction<String>)
+            () -> {
+              try {
+                URL url = Resources.getResource(DEFAULT_SPARK_SUBMIT_PARAMETERS_FILE_NAME);
+                return Resources.toString(url, StandardCharsets.UTF_8);
+              } catch (IOException e) {
+                log.error("Failed to load default Spark submit parameters file", e);
+                throw new RuntimeException("Internal server error while" + e.getMessage());
+              }
+            });
   }
 
   /**
