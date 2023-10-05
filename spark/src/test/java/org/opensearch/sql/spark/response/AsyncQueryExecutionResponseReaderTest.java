@@ -7,6 +7,7 @@ package org.opensearch.sql.spark.response;
 
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 import static org.opensearch.sql.spark.constants.TestConstants.EMR_JOB_ID;
@@ -24,6 +25,7 @@ import org.opensearch.action.search.SearchResponse;
 import org.opensearch.client.Client;
 import org.opensearch.common.action.ActionFuture;
 import org.opensearch.core.rest.RestStatus;
+import org.opensearch.index.IndexNotFoundException;
 import org.opensearch.search.SearchHit;
 import org.opensearch.search.SearchHits;
 
@@ -90,5 +92,13 @@ public class AsyncQueryExecutionResponseReaderTest {
     assertThrows(
         RuntimeException.class,
         () -> jobExecutionResponseReader.getResultFromOpensearchIndex(EMR_JOB_ID, null));
+  }
+
+  @Test
+  public void testIndexNotFoundException() {
+    when(client.search(any())).thenThrow(IndexNotFoundException.class);
+    JobExecutionResponseReader jobExecutionResponseReader = new JobExecutionResponseReader(client);
+    assertTrue(
+        jobExecutionResponseReader.getResultFromOpensearchIndex(EMR_JOB_ID, "foo").isEmpty());
   }
 }

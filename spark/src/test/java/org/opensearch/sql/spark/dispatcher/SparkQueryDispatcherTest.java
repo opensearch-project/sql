@@ -613,11 +613,14 @@ public class SparkQueryDispatcherTest {
             flintIndexMetadataReader);
     when(emrServerlessClient.getJobRunResult(EMRS_APPLICATION_ID, EMR_JOB_ID))
         .thenReturn(new GetJobRunResult().withJobRun(new JobRun().withState(JobRunState.PENDING)));
+
+    // simulate result index is not created yet
+    when(jobExecutionResponseReader.getResultFromOpensearchIndex(EMR_JOB_ID, null))
+        .thenReturn(new JSONObject());
     JSONObject result =
         sparkQueryDispatcher.getQueryResponse(
             new AsyncQueryJobMetadata(EMRS_APPLICATION_ID, EMR_JOB_ID, null));
     Assertions.assertEquals("PENDING", result.get("status"));
-    verifyNoInteractions(jobExecutionResponseReader);
   }
 
   @Test
@@ -629,8 +632,6 @@ public class SparkQueryDispatcherTest {
             dataSourceUserAuthorizationHelper,
             jobExecutionResponseReader,
             flintIndexMetadataReader);
-    when(emrServerlessClient.getJobRunResult(EMRS_APPLICATION_ID, EMR_JOB_ID))
-        .thenReturn(new GetJobRunResult().withJobRun(new JobRun().withState(JobRunState.SUCCESS)));
     JSONObject queryResult = new JSONObject();
     Map<String, Object> resultMap = new HashMap<>();
     resultMap.put(STATUS_FIELD, "SUCCESS");
@@ -641,7 +642,6 @@ public class SparkQueryDispatcherTest {
     JSONObject result =
         sparkQueryDispatcher.getQueryResponse(
             new AsyncQueryJobMetadata(EMRS_APPLICATION_ID, EMR_JOB_ID, null));
-    verify(emrServerlessClient, times(1)).getJobRunResult(EMRS_APPLICATION_ID, EMR_JOB_ID);
     verify(jobExecutionResponseReader, times(1)).getResultFromOpensearchIndex(EMR_JOB_ID, null);
     Assertions.assertEquals(
         new HashSet<>(Arrays.asList(DATA_FIELD, STATUS_FIELD, ERROR_FIELD)), result.keySet());
@@ -655,6 +655,7 @@ public class SparkQueryDispatcherTest {
     // We need similar.
     Assertions.assertTrue(dataJson.similar(result.get(DATA_FIELD)));
     Assertions.assertEquals("SUCCESS", result.get(STATUS_FIELD));
+    verifyNoInteractions(emrServerlessClient);
   }
 
   @Test
