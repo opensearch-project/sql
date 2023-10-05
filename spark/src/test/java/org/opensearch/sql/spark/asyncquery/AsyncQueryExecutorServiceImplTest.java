@@ -84,6 +84,46 @@ public class AsyncQueryExecutorServiceImplTest {
   }
 
   @Test
+  void testCreateAsyncQueryWithExtraSparkSubmitParameter() {
+    AsyncQueryExecutorService jobExecutorService =
+        new AsyncQueryExecutorServiceImpl(
+            asyncQueryJobMetadataStorageService, sparkQueryDispatcher, settings);
+    CreateAsyncQueryRequest createAsyncQueryRequest =
+        new CreateAsyncQueryRequest(
+            "select * from my_glue.default.http_logs", "my_glue", LangType.SQL);
+    when(settings.getSettingValue(Settings.Key.SPARK_EXECUTION_ENGINE_CONFIG))
+        .thenReturn(
+            "{\"applicationId\":\"00fd775baqpu4g0p\",\"executionRoleARN\":\"arn:aws:iam::270824043731:role/emr-job-execution-role\",\"region\":\"eu-west-1\"}");
+    when(settings.getSettingValue(Settings.Key.CLUSTER_NAME))
+        .thenReturn(new ClusterName(TEST_CLUSTER_NAME));
+    when(sparkQueryDispatcher.dispatch(
+        new DispatchQueryRequest(
+            "00fd775baqpu4g0p",
+            "select * from my_glue.default.http_logs",
+            "my_glue",
+            LangType.SQL,
+            "arn:aws:iam::270824043731:role/emr-job-execution-role",
+            TEST_CLUSTER_NAME)))
+        .thenReturn(new DispatchQueryResponse(EMR_JOB_ID, false, null));
+    CreateAsyncQueryResponse createAsyncQueryResponse =
+        jobExecutorService.createAsyncQuery(createAsyncQueryRequest);
+    verify(asyncQueryJobMetadataStorageService, times(1))
+        .storeJobMetadata(new AsyncQueryJobMetadata("00fd775baqpu4g0p", EMR_JOB_ID, null));
+    verify(settings, times(1)).getSettingValue(Settings.Key.SPARK_EXECUTION_ENGINE_CONFIG);
+    verify(settings, times(1)).getSettingValue(Settings.Key.CLUSTER_NAME);
+    verify(sparkQueryDispatcher, times(1))
+        .dispatch(
+            new DispatchQueryRequest(
+                "00fd775baqpu4g0p",
+                "select * from my_glue.default.http_logs",
+                "my_glue",
+                LangType.SQL,
+                "arn:aws:iam::270824043731:role/emr-job-execution-role",
+                TEST_CLUSTER_NAME));
+    Assertions.assertEquals(EMR_JOB_ID, createAsyncQueryResponse.getQueryId());
+  }
+
+  @Test
   void testGetAsyncQueryResultsWithJobNotFoundException() {
     AsyncQueryExecutorServiceImpl jobExecutorService =
         new AsyncQueryExecutorServiceImpl(
