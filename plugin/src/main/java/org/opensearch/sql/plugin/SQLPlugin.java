@@ -94,7 +94,7 @@ import org.opensearch.sql.spark.asyncquery.AsyncQueryExecutorServiceImpl;
 import org.opensearch.sql.spark.asyncquery.AsyncQueryJobMetadataStorageService;
 import org.opensearch.sql.spark.asyncquery.OpensearchAsyncQueryJobMetadataStorageService;
 import org.opensearch.sql.spark.client.EMRServerlessClient;
-import org.opensearch.sql.spark.client.EmrServerlessClientImplEMR;
+import org.opensearch.sql.spark.client.EmrServerlessClientImpl;
 import org.opensearch.sql.spark.config.SparkExecutionEngineConfig;
 import org.opensearch.sql.spark.dispatcher.SparkQueryDispatcher;
 import org.opensearch.sql.spark.flint.FlintIndexMetadataReaderImpl;
@@ -325,7 +325,7 @@ public class SQLPlugin extends Plugin implements ActionPlugin, ScriptPlugin {
                       .withRegion(sparkExecutionEngineConfig.getRegion())
                       .withCredentials(new DefaultAWSCredentialsProviderChain())
                       .build();
-              return new EmrServerlessClientImplEMR(awsemrServerless);
+              return new EmrServerlessClientImpl(awsemrServerless);
             });
   }
 }
