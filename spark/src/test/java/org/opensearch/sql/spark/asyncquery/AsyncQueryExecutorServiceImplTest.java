@@ -95,12 +95,12 @@ public class AsyncQueryExecutorServiceImplTest {
   void testCreateAsyncQueryWithExtraSparkSubmitParameter() {
     when(settings.getSettingValue(Settings.Key.SPARK_EXECUTION_ENGINE_CONFIG))
         .thenReturn(
-            "{" +
-                "\"applicationId\": \"00fd775baqpu4g0p\"," +
-                "\"executionRoleARN\": \"arn:aws:iam::270824043731:role/emr-job-execution-role\"," +
-                "\"region\": \"eu-west-1\"," +
-                "\"sparkSubmitParameters\": \"--conf spark.dynamicAllocation.enabled=false\"" +
-                "}");
+            "{"
+                + "\"applicationId\": \"00fd775baqpu4g0p\","
+                + "\"executionRoleARN\": \"arn:aws:iam::270824043731:role/emr-job-execution-role\","
+                + "\"region\": \"eu-west-1\","
+                + "\"sparkSubmitParameters\": \"--conf spark.dynamicAllocation.enabled=false\""
+                + "}");
     when(settings.getSettingValue(Settings.Key.CLUSTER_NAME))
         .thenReturn(new ClusterName(TEST_CLUSTER_NAME));
     when(sparkQueryDispatcher.dispatch(any()))
@@ -198,8 +198,7 @@ public class AsyncQueryExecutorServiceImplTest {
         .thenReturn(Optional.empty());
     AsyncQueryNotFoundException asyncQueryNotFoundException =
         Assertions.assertThrows(
-            AsyncQueryNotFoundException.class,
-            () -> jobExecutorService.cancelQuery(EMR_JOB_ID));
+            AsyncQueryNotFoundException.class, () -> jobExecutorService.cancelQuery(EMR_JOB_ID));
     Assertions.assertEquals(
         "QueryId: " + EMR_JOB_ID + " not found", asyncQueryNotFoundException.getMessage());
     verifyNoInteractions(sparkQueryDispatcher);

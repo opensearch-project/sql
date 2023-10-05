@@ -698,12 +698,14 @@ public class SparkQueryDispatcherTest {
 
     String extraParameters = "--conf spark.dynamicAllocation.enabled=false";
     DispatchQueryRequest[] requests = {
-        constructDispatchQueryRequest( // SQL direct query
-            "select * from my_glue.default.http_logs", LangType.SQL, extraParameters),
-        constructDispatchQueryRequest( // SQL index query
-            "create skipping index on my_glue.default.http_logs (status VALUE_SET)", LangType.SQL, extraParameters),
-        constructDispatchQueryRequest( // PPL query
-            "source = my_glue.default.http_logs", LangType.PPL, extraParameters)
+      constructDispatchQueryRequest( // SQL direct query
+          "select * from my_glue.default.http_logs", LangType.SQL, extraParameters),
+      constructDispatchQueryRequest( // SQL index query
+          "create skipping index on my_glue.default.http_logs (status VALUE_SET)",
+          LangType.SQL,
+          extraParameters),
+      constructDispatchQueryRequest( // PPL query
+          "source = my_glue.default.http_logs", LangType.PPL, extraParameters)
     };
 
     for (DispatchQueryRequest request : requests) {
@@ -711,9 +713,10 @@ public class SparkQueryDispatcherTest {
       sparkQueryDispatcher.dispatch(request);
 
       // This test is only interested in Spark submit parameters
-      verify(emrServerlessClient, times(1)).startJobRun(argThat(
-          actualReq -> actualReq.getSparkSubmitParams().endsWith(" " + extraParameters)
-      ));
+      verify(emrServerlessClient, times(1))
+          .startJobRun(
+              argThat(
+                  actualReq -> actualReq.getSparkSubmitParams().endsWith(" " + extraParameters)));
       reset(emrServerlessClient);
     }
   }
@@ -840,7 +843,8 @@ public class SparkQueryDispatcherTest {
     return dataSourceMetadata;
   }
 
-  private DispatchQueryRequest constructDispatchQueryRequest(String query, LangType langType, String extraParameters) {
+  private DispatchQueryRequest constructDispatchQueryRequest(
+      String query, LangType langType, String extraParameters) {
     return new DispatchQueryRequest(
         EMRS_APPLICATION_ID,
         query,
@@ -848,7 +852,6 @@ public class SparkQueryDispatcherTest {
         langType,
         EMRS_EXECUTION_ROLE,
         TEST_CLUSTER_NAME,
-        extraParameters
-    );
+        extraParameters);
   }
 }
