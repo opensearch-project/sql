@@ -6,7 +6,9 @@
 package org.opensearch.sql.spark.dispatcher;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.Mockito.doNothing;
+import static org.mockito.Mockito.reset;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
@@ -33,6 +35,7 @@ import java.util.Map;
 import org.apache.commons.lang3.StringUtils;
 import org.json.JSONObject;
 import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
@@ -62,15 +65,21 @@ public class SparkQueryDispatcherTest {
   @Mock private DataSourceUserAuthorizationHelperImpl dataSourceUserAuthorizationHelper;
   @Mock private FlintIndexMetadataReader flintIndexMetadataReader;
 
-  @Test
-  void testDispatchSelectQuery() {
-    SparkQueryDispatcher sparkQueryDispatcher =
+  private SparkQueryDispatcher sparkQueryDispatcher;
+
+  @BeforeEach
+  void setUp() {
+    sparkQueryDispatcher =
         new SparkQueryDispatcher(
             emrServerlessClient,
             dataSourceService,
             dataSourceUserAuthorizationHelper,
             jobExecutionResponseReader,
             flintIndexMetadataReader);
+  }
+
+  @Test
+  void testDispatchSelectQuery() {
     HashMap<String, String> tags = new HashMap<>();
     tags.put("datasource", "my_glue");
     tags.put("cluster", TEST_CLUSTER_NAME);
@@ -128,13 +137,6 @@ public class SparkQueryDispatcherTest {
 
   @Test
   void testDispatchSelectQueryWithBasicAuthIndexStoreDatasource() {
-    SparkQueryDispatcher sparkQueryDispatcher =
-        new SparkQueryDispatcher(
-            emrServerlessClient,
-            dataSourceService,
-            dataSourceUserAuthorizationHelper,
-            jobExecutionResponseReader,
-            flintIndexMetadataReader);
     HashMap<String, String> tags = new HashMap<>();
     tags.put("datasource", "my_glue");
     tags.put("cluster", TEST_CLUSTER_NAME);
@@ -194,13 +196,6 @@ public class SparkQueryDispatcherTest {
 
   @Test
   void testDispatchSelectQueryWithNoAuthIndexStoreDatasource() {
-    SparkQueryDispatcher sparkQueryDispatcher =
-        new SparkQueryDispatcher(
-            emrServerlessClient,
-            dataSourceService,
-            dataSourceUserAuthorizationHelper,
-            jobExecutionResponseReader,
-            flintIndexMetadataReader);
     HashMap<String, String> tags = new HashMap<>();
     tags.put("datasource", "my_glue");
     tags.put("cluster", TEST_CLUSTER_NAME);
@@ -256,13 +251,6 @@ public class SparkQueryDispatcherTest {
 
   @Test
   void testDispatchIndexQuery() {
-    SparkQueryDispatcher sparkQueryDispatcher =
-        new SparkQueryDispatcher(
-            emrServerlessClient,
-            dataSourceService,
-            dataSourceUserAuthorizationHelper,
-            jobExecutionResponseReader,
-            flintIndexMetadataReader);
     HashMap<String, String> tags = new HashMap<>();
     tags.put("datasource", "my_glue");
     tags.put("table", "http_logs");
@@ -330,13 +318,7 @@ public class SparkQueryDispatcherTest {
     HashMap<String, String> tags = new HashMap<>();
     tags.put("datasource", "my_glue");
     tags.put("cluster", TEST_CLUSTER_NAME);
-    SparkQueryDispatcher sparkQueryDispatcher =
-        new SparkQueryDispatcher(
-            emrServerlessClient,
-            dataSourceService,
-            dataSourceUserAuthorizationHelper,
-            jobExecutionResponseReader,
-            flintIndexMetadataReader);
+
     String query = "source = my_glue.default.http_logs";
     when(emrServerlessClient.startJobRun(
             new StartJobRequest(
@@ -394,13 +376,7 @@ public class SparkQueryDispatcherTest {
     HashMap<String, String> tags = new HashMap<>();
     tags.put("datasource", "my_glue");
     tags.put("cluster", TEST_CLUSTER_NAME);
-    SparkQueryDispatcher sparkQueryDispatcher =
-        new SparkQueryDispatcher(
-            emrServerlessClient,
-            dataSourceService,
-            dataSourceUserAuthorizationHelper,
-            jobExecutionResponseReader,
-            flintIndexMetadataReader);
+
     String query = "show tables";
     when(emrServerlessClient.startJobRun(
             new StartJobRequest(
@@ -461,13 +437,7 @@ public class SparkQueryDispatcherTest {
     tags.put("index", "elb_and_requestUri");
     tags.put("cluster", TEST_CLUSTER_NAME);
     tags.put("schema", "default");
-    SparkQueryDispatcher sparkQueryDispatcher =
-        new SparkQueryDispatcher(
-            emrServerlessClient,
-            dataSourceService,
-            dataSourceUserAuthorizationHelper,
-            jobExecutionResponseReader,
-            flintIndexMetadataReader);
+
     String query =
         "CREATE INDEX elb_and_requestUri ON default.http_logs(l_orderkey, l_quantity) WITH"
             + " (auto_refresh = true)";
@@ -526,13 +496,6 @@ public class SparkQueryDispatcherTest {
 
   @Test
   void testDispatchWithWrongURI() {
-    SparkQueryDispatcher sparkQueryDispatcher =
-        new SparkQueryDispatcher(
-            emrServerlessClient,
-            dataSourceService,
-            dataSourceUserAuthorizationHelper,
-            jobExecutionResponseReader,
-            flintIndexMetadataReader);
     when(dataSourceService.getRawDataSourceMetadata("my_glue"))
         .thenReturn(constructMyGlueDataSourceMetadataWithBadURISyntax());
     String query = "select * from my_glue.default.http_logs";
@@ -555,13 +518,6 @@ public class SparkQueryDispatcherTest {
 
   @Test
   void testDispatchWithUnSupportedDataSourceType() {
-    SparkQueryDispatcher sparkQueryDispatcher =
-        new SparkQueryDispatcher(
-            emrServerlessClient,
-            dataSourceService,
-            dataSourceUserAuthorizationHelper,
-            jobExecutionResponseReader,
-            flintIndexMetadataReader);
     when(dataSourceService.getRawDataSourceMetadata("my_prometheus"))
         .thenReturn(constructPrometheusDataSourceType());
     String query = "select * from my_prometheus.default.http_logs";
@@ -584,13 +540,6 @@ public class SparkQueryDispatcherTest {
 
   @Test
   void testCancelJob() {
-    SparkQueryDispatcher sparkQueryDispatcher =
-        new SparkQueryDispatcher(
-            emrServerlessClient,
-            dataSourceService,
-            dataSourceUserAuthorizationHelper,
-            jobExecutionResponseReader,
-            flintIndexMetadataReader);
     when(emrServerlessClient.cancelJobRun(EMRS_APPLICATION_ID, EMR_JOB_ID))
         .thenReturn(
             new CancelJobRunResult()
@@ -604,13 +553,6 @@ public class SparkQueryDispatcherTest {
 
   @Test
   void testGetQueryResponse() {
-    SparkQueryDispatcher sparkQueryDispatcher =
-        new SparkQueryDispatcher(
-            emrServerlessClient,
-            dataSourceService,
-            dataSourceUserAuthorizationHelper,
-            jobExecutionResponseReader,
-            flintIndexMetadataReader);
     when(emrServerlessClient.getJobRunResult(EMRS_APPLICATION_ID, EMR_JOB_ID))
         .thenReturn(new GetJobRunResult().withJobRun(new JobRun().withState(JobRunState.PENDING)));
 
@@ -632,6 +574,8 @@ public class SparkQueryDispatcherTest {
             dataSourceUserAuthorizationHelper,
             jobExecutionResponseReader,
             flintIndexMetadataReader);
+    when(emrServerlessClient.getJobRunResult(EMRS_APPLICATION_ID, EMR_JOB_ID))
+        .thenReturn(new GetJobRunResult().withJobRun(new JobRun().withState(JobRunState.SUCCESS)));
     JSONObject queryResult = new JSONObject();
     Map<String, Object> resultMap = new HashMap<>();
     resultMap.put(STATUS_FIELD, "SUCCESS");
@@ -660,13 +604,6 @@ public class SparkQueryDispatcherTest {
 
   @Test
   void testDropIndexQuery() {
-    SparkQueryDispatcher sparkQueryDispatcher =
-        new SparkQueryDispatcher(
-            emrServerlessClient,
-            dataSourceService,
-            dataSourceUserAuthorizationHelper,
-            jobExecutionResponseReader,
-            flintIndexMetadataReader);
     String query = "DROP INDEX size_year ON my_glue.default.http_logs";
     when(flintIndexMetadataReader.getJobIdFromFlintIndexMetadata(
             new IndexDetails(
@@ -711,13 +648,6 @@ public class SparkQueryDispatcherTest {
 
   @Test
   void testDropSkippingIndexQuery() {
-    SparkQueryDispatcher sparkQueryDispatcher =
-        new SparkQueryDispatcher(
-            emrServerlessClient,
-            dataSourceService,
-            dataSourceUserAuthorizationHelper,
-            jobExecutionResponseReader,
-            flintIndexMetadataReader);
     String query = "DROP SKIPPING INDEX ON my_glue.default.http_logs";
     when(flintIndexMetadataReader.getJobIdFromFlintIndexMetadata(
             new IndexDetails(
@@ -758,6 +688,34 @@ public class SparkQueryDispatcherTest {
     Assertions.assertTrue(StringUtils.isAlphanumeric(dispatchQueryResponse.getJobId()));
     Assertions.assertEquals(16, dispatchQueryResponse.getJobId().length());
     Assertions.assertTrue(dispatchQueryResponse.isDropIndexQuery());
+  }
+
+  @Test
+  void testDispatchQueryWithExtraSparkSubmitParameters() {
+    DataSourceMetadata dataSourceMetadata = constructMyGlueDataSourceMetadata();
+    when(dataSourceService.getRawDataSourceMetadata("my_glue")).thenReturn(dataSourceMetadata);
+    doNothing().when(dataSourceUserAuthorizationHelper).authorizeDataSource(dataSourceMetadata);
+
+    String extraParameters = "--conf spark.dynamicAllocation.enabled=false";
+    DispatchQueryRequest[] requests = {
+        constructDispatchQueryRequest( // SQL direct query
+            "select * from my_glue.default.http_logs", LangType.SQL, extraParameters),
+        constructDispatchQueryRequest( // SQL index query
+            "create skipping index on my_glue.default.http_logs (status VALUE_SET)", LangType.SQL, extraParameters),
+        constructDispatchQueryRequest( // PPL query
+            "source = my_glue.default.http_logs", LangType.PPL, extraParameters)
+    };
+
+    for (DispatchQueryRequest request : requests) {
+      when(emrServerlessClient.startJobRun(any())).thenReturn(EMR_JOB_ID);
+      sparkQueryDispatcher.dispatch(request);
+
+      // This test is only interested in Spark submit parameters
+      verify(emrServerlessClient, times(1)).startJobRun(argThat(
+          actualReq -> actualReq.getSparkSubmitParams().endsWith(" " + extraParameters)
+      ));
+      reset(emrServerlessClient);
+    }
   }
 
   private String constructExpectedSparkSubmitParameterString(
@@ -880,5 +838,17 @@ public class SparkQueryDispatcherTest {
     Map<String, String> properties = new HashMap<>();
     dataSourceMetadata.setProperties(properties);
     return dataSourceMetadata;
+  }
+
+  private DispatchQueryRequest constructDispatchQueryRequest(String query, LangType langType, String extraParameters) {
+    return new DispatchQueryRequest(
+        EMRS_APPLICATION_ID,
+        query,
+        "my_glue",
+        langType,
+        EMRS_EXECUTION_ROLE,
+        TEST_CLUSTER_NAME,
+        extraParameters
+    );
   }
 }

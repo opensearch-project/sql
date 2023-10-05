@@ -176,6 +176,6 @@ class OpenSearchSettingsTest {
         "{\n"
             + "  \"sparkSubmitParameters\": \"--conf spark.dynamicAllocation.enabled=false\"\n"
             + "}",
-        OpenSearchSettings.SPARK_EXECUTION_ENGINE_CONFIG.getDefault(settings));
+        OpenSearchSettings.SPARK_EXECUTION_ENGINE_CONFIG.get(settings));
   }
 }
