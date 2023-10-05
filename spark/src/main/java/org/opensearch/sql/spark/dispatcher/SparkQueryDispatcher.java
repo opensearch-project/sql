@@ -63,34 +63,38 @@ public class SparkQueryDispatcher {
     }
   }
 
-  // TODO : Fetch from Result Index and then make call to EMR Serverless.
   public JSONObject getQueryResponse(AsyncQueryJobMetadata asyncQueryJobMetadata) {
-    GetJobRunResult getJobRunResult =
-        emrServerlessClient.getJobRunResult(
-            asyncQueryJobMetadata.getApplicationId(), asyncQueryJobMetadata.getJobId());
-    String jobState = getJobRunResult.getJobRun().getState();
+    // either empty json when the result is not available or data with status
+    // Fetch from Result Index
     JSONObject result =
-        (jobState.equals(JobRunState.SUCCESS.toString()))
-            ? jobExecutionResponseReader.getResultFromOpensearchIndex(
-                asyncQueryJobMetadata.getJobId(), asyncQueryJobMetadata.getResultIndex())
-            : new JSONObject();
+        jobExecutionResponseReader.getResultFromOpensearchIndex(
+            asyncQueryJobMetadata.getJobId(), asyncQueryJobMetadata.getResultIndex());
 
     // if result index document has a status, we are gonna use the status directly; otherwise, we
-    // will use emr-s job status
-    // a job is successful does not mean there is no error in execution. For example, even if result
-    // index mapping
-    // is incorrect, we still write query result and let the job finish.
+    // will use emr-s job status.
+    // That a job is successful does not mean there is no error in execution. For example, even if
+    // result
+    // index mapping is incorrect, we still write query result and let the job finish.
+    // That a job is running does not mean the status is running. For example, index/streaming Query
+    // is a
+    // long-running job which runs forever. But we need to return success from the result index
+    // immediately.
     if (result.has(DATA_FIELD)) {
       JSONObject items = result.getJSONObject(DATA_FIELD);
 
       // If items have STATUS_FIELD, use it; otherwise, use jobState
-      String status = items.optString(STATUS_FIELD, jobState);
+      String status = items.optString(STATUS_FIELD, JobRunState.FAILED.toString());
       result.put(STATUS_FIELD, status);
 
       // If items have ERROR_FIELD, use it; otherwise, set empty string
       String error = items.optString(ERROR_FIELD, "");
       result.put(ERROR_FIELD, error);
     } else {
+      // make call to EMR Serverless when related result index documents are not available
+      GetJobRunResult getJobRunResult =
+          emrServerlessClient.getJobRunResult(
+              asyncQueryJobMetadata.getApplicationId(), asyncQueryJobMetadata.getJobId());
+      String jobState = getJobRunResult.getJobRun().getState();
       result.put(STATUS_FIELD, jobState);
       result.put(ERROR_FIELD, "");
     }

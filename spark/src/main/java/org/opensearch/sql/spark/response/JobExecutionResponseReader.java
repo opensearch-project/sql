@@ -16,6 +16,7 @@ import org.opensearch.action.search.SearchRequest;
 import org.opensearch.action.search.SearchResponse;
 import org.opensearch.client.Client;
 import org.opensearch.common.action.ActionFuture;
+import org.opensearch.index.IndexNotFoundException;
 import org.opensearch.index.query.QueryBuilder;
 import org.opensearch.index.query.QueryBuilders;
 import org.opensearch.search.SearchHit;
@@ -46,9 +47,16 @@ public class JobExecutionResponseReader {
     searchSourceBuilder.query(query);
     searchRequest.source(searchSourceBuilder);
     ActionFuture<SearchResponse> searchResponseActionFuture;
+    JSONObject data = new JSONObject();
     try {
       searchResponseActionFuture = client.search(searchRequest);
     } catch (Exception e) {
+      // if there is no result index (e.g., EMR-S hasn't created the index yet), we return empty
+      // json
+      if (e instanceof IndexNotFoundException) {
+        LOG.info(resultIndex + " is not created yet.");
+        return data;
+      }
       throw new RuntimeException(e);
     }
     SearchResponse searchResponse = searchResponseActionFuture.actionGet();
@@ -59,7 +67,6 @@ public class JobExecutionResponseReader {
               + " index failed with status : "
               + searchResponse.status());
     } else {
-      JSONObject data = new JSONObject();
       for (SearchHit searchHit : searchResponse.getHits().getHits()) {
         data.put(DATA_FIELD, searchHit.getSourceAsMap());
       }
