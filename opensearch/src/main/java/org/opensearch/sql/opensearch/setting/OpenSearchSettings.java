@@ -11,11 +11,7 @@ import static org.opensearch.sql.common.setting.Settings.Key.ENCYRPTION_MASTER_K
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.io.CharStreams;
-import java.io.IOException;
 import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.nio.charset.StandardCharsets;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -41,10 +37,6 @@ public class OpenSearchSettings extends Settings {
   /** Latest setting value for each registered key. Thread-safe is required. */
   @VisibleForTesting
   private final Map<Settings.Key, Object> latestSettings = new ConcurrentHashMap<>();
-
-  /** Default Spark execution engine config value */
-  private static final String DEFAULT_SPARK_EXECUTION_ENGINE_CONFIG_FILE_NAME =
-      "default-spark-execution-engine-config.json";
 
   public static final Setting<?> SQL_ENABLED_SETTING =
       Setting.boolSetting(
@@ -140,7 +132,6 @@ public class OpenSearchSettings extends Settings {
   public static final Setting<String> SPARK_EXECUTION_ENGINE_CONFIG =
       Setting.simpleString(
           Key.SPARK_EXECUTION_ENGINE_CONFIG.getKeyValue(),
-          loadDefaultSparkSubmitParameters(),
           Setting.Property.NodeScope,
           Setting.Property.Dynamic);
 
@@ -247,20 +238,6 @@ public class OpenSearchSettings extends Settings {
       Setting setting) {
     settingBuilder.put(key, setting);
     latestSettings.put(key, clusterSettings.get(setting));
-  }
-
-  private static String loadDefaultSparkSubmitParameters() {
-    try {
-      InputStream defaultConfigFile =
-          OpenSearchSettings.class
-              .getClassLoader()
-              .getResourceAsStream(DEFAULT_SPARK_EXECUTION_ENGINE_CONFIG_FILE_NAME);
-
-      return CharStreams.toString(new InputStreamReader(defaultConfigFile, StandardCharsets.UTF_8));
-    } catch (IOException e) {
-      log.error("Failed to load default Spark submit parameters file", e);
-      throw new RuntimeException("Internal server error while" + e.getMessage());
-    }
   }
 
   /**
