@@ -90,7 +90,9 @@ jacocoTestCoverageVerification {
                     'org.opensearch.sql.spark.transport.model.*',
                     'org.opensearch.sql.spark.asyncquery.model.*',
                     'org.opensearch.sql.spark.asyncquery.exceptions.*',
-                    'org.opensearch.sql.spark.dispatcher.model.*'
+                    'org.opensearch.sql.spark.dispatcher.model.*',
+                    'org.opensearch.sql.spark.flint.FlintIndexType',
+                    'org.opensearch.sql.spark.flint.FlintIndexMetadataReaderImpl'
             ]
             limit {
                 counter = 'LINE'

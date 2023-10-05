@@ -21,6 +21,7 @@ import org.opensearch.sql.spark.antlr.parser.SqlBaseParser;
 import org.opensearch.sql.spark.antlr.parser.SqlBaseParserBaseVisitor;
 import org.opensearch.sql.spark.dispatcher.model.FullyQualifiedTableName;
 import org.opensearch.sql.spark.dispatcher.model.IndexDetails;
+import org.opensearch.sql.spark.flint.FlintIndexType;
 
 /**
  * This util class parses spark sql query and provides util functions to identify indexName,
@@ -137,6 +138,8 @@ public class SQLQueryUtils {
     @Override
     public Void visitCreateSkippingIndexStatement(
         FlintSparkSqlExtensionsParser.CreateSkippingIndexStatementContext ctx) {
+      indexDetails.setDropIndex(false);
+      indexDetails.setIndexType(FlintIndexType.SKIPPING);
       visitPropertyList(ctx.propertyList());
       return super.visitCreateSkippingIndexStatement(ctx);
     }
@@ -144,8 +147,26 @@ public class SQLQueryUtils {
     @Override
     public Void visitCreateCoveringIndexStatement(
         FlintSparkSqlExtensionsParser.CreateCoveringIndexStatementContext ctx) {
+      indexDetails.setDropIndex(false);
+      indexDetails.setIndexType(FlintIndexType.COVERING);
       visitPropertyList(ctx.propertyList());
       return super.visitCreateCoveringIndexStatement(ctx);
+    }
+
+    @Override
+    public Void visitDropCoveringIndexStatement(
+        FlintSparkSqlExtensionsParser.DropCoveringIndexStatementContext ctx) {
+      indexDetails.setDropIndex(true);
+      indexDetails.setIndexType(FlintIndexType.COVERING);
+      return super.visitDropCoveringIndexStatement(ctx);
+    }
+
+    @Override
+    public Void visitDropSkippingIndexStatement(
+        FlintSparkSqlExtensionsParser.DropSkippingIndexStatementContext ctx) {
+      indexDetails.setDropIndex(true);
+      indexDetails.setIndexType(FlintIndexType.SKIPPING);
+      return super.visitDropSkippingIndexStatement(ctx);
     }
 
     @Override
