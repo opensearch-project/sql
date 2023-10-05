@@ -27,6 +27,8 @@ public class StartJobRequest {
   /** true if it is Spark Structured Streaming job. */
   private final boolean isStructuredStreaming;
 
+  private final String resultIndex;
+
   public Long executionTimeout() {
     return isStructuredStreaming ? 0L : DEFAULT_JOB_TIMEOUT;
   }

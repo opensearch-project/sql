@@ -45,7 +45,23 @@ public class AsyncQueryExecutionResponseReaderTest {
                 new SearchHit[] {searchHit}, new TotalHits(1, TotalHits.Relation.EQUAL_TO), 1.0F));
     Mockito.when(searchHit.getSourceAsMap()).thenReturn(Map.of("stepId", EMR_JOB_ID));
     JobExecutionResponseReader jobExecutionResponseReader = new JobExecutionResponseReader(client);
-    assertFalse(jobExecutionResponseReader.getResultFromOpensearchIndex(EMR_JOB_ID).isEmpty());
+    assertFalse(
+        jobExecutionResponseReader.getResultFromOpensearchIndex(EMR_JOB_ID, null).isEmpty());
+  }
+
+  @Test
+  public void testGetResultFromCustomIndex() {
+    when(client.search(any())).thenReturn(searchResponseActionFuture);
+    when(searchResponseActionFuture.actionGet()).thenReturn(searchResponse);
+    when(searchResponse.status()).thenReturn(RestStatus.OK);
+    when(searchResponse.getHits())
+        .thenReturn(
+            new SearchHits(
+                new SearchHit[] {searchHit}, new TotalHits(1, TotalHits.Relation.EQUAL_TO), 1.0F));
+    Mockito.when(searchHit.getSourceAsMap()).thenReturn(Map.of("stepId", EMR_JOB_ID));
+    JobExecutionResponseReader jobExecutionResponseReader = new JobExecutionResponseReader(client);
+    assertFalse(
+        jobExecutionResponseReader.getResultFromOpensearchIndex(EMR_JOB_ID, "foo").isEmpty());
   }
 
   @Test
@@ -58,7 +74,7 @@ public class AsyncQueryExecutionResponseReaderTest {
     RuntimeException exception =
         assertThrows(
             RuntimeException.class,
-            () -> jobExecutionResponseReader.getResultFromOpensearchIndex(EMR_JOB_ID));
+            () -> jobExecutionResponseReader.getResultFromOpensearchIndex(EMR_JOB_ID, null));
     Assertions.assertEquals(
         "Fetching result from "
             + SPARK_RESPONSE_BUFFER_INDEX_NAME
@@ -73,6 +89,6 @@ public class AsyncQueryExecutionResponseReaderTest {
     JobExecutionResponseReader jobExecutionResponseReader = new JobExecutionResponseReader(client);
     assertThrows(
         RuntimeException.class,
-        () -> jobExecutionResponseReader.getResultFromOpensearchIndex(EMR_JOB_ID));
+        () -> jobExecutionResponseReader.getResultFromOpensearchIndex(EMR_JOB_ID, null));
   }
 }

@@ -61,7 +61,8 @@ public class TransportGetAsyncQueryResultAction
                   asyncQueryExecutionResponse.getStatus(),
                   asyncQueryExecutionResponse.getSchema(),
                   asyncQueryExecutionResponse.getResults(),
-                  Cursor.None));
+                  Cursor.None,
+                  asyncQueryExecutionResponse.getError()));
       listener.onResponse(new GetAsyncQueryResultActionResponse(responseContent));
     } catch (Exception e) {
       listener.onFailure(e);

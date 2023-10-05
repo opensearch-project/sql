@@ -34,6 +34,10 @@ public class EmrServerlessClientImplEMR implements EMRServerlessClient {
 
   @Override
   public String startJobRun(StartJobRequest startJobRequest) {
+    String resultIndex =
+        startJobRequest.getResultIndex() == null
+            ? SPARK_RESPONSE_BUFFER_INDEX_NAME
+            : startJobRequest.getResultIndex();
     StartJobRunRequest request =
         new StartJobRunRequest()
             .withName(startJobRequest.getJobName())
@@ -46,8 +50,7 @@ public class EmrServerlessClientImplEMR implements EMRServerlessClient {
                     .withSparkSubmit(
                         new SparkSubmit()
                             .withEntryPoint(SPARK_SQL_APPLICATION_JAR)
-                            .withEntryPointArguments(
-                                startJobRequest.getQuery(), SPARK_RESPONSE_BUFFER_INDEX_NAME)
+                            .withEntryPointArguments(startJobRequest.getQuery(), resultIndex)
                             .withSparkSubmitParameters(startJobRequest.getSparkSubmitParams())));
     StartJobRunResult startJobRunResult =
         AccessController.doPrivileged(

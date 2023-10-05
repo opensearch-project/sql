@@ -344,7 +344,8 @@ class DataSourceServiceImplTest {
             "testDS",
             DataSourceType.PROMETHEUS,
             Collections.singletonList("prometheus_access"),
-            properties);
+            properties,
+            null);
     when(dataSourceMetadataStorage.getDataSourceMetadata("testDS"))
         .thenReturn(Optional.of(dataSourceMetadata));
 
@@ -398,7 +399,8 @@ class DataSourceServiceImplTest {
             "testDS",
             DataSourceType.PROMETHEUS,
             Collections.singletonList("prometheus_access"),
-            properties);
+            properties,
+            null);
     when(dataSourceMetadataStorage.getDataSourceMetadata("testDS"))
         .thenReturn(Optional.of(dataSourceMetadata));
 

@@ -46,7 +46,8 @@ public class ShowDataSourcesCommandIT extends PPLIntegTestCase {
             "my_prometheus",
             DataSourceType.PROMETHEUS,
             ImmutableList.of(),
-            ImmutableMap.of("prometheus.uri", "http://localhost:9090"));
+            ImmutableMap.of("prometheus.uri", "http://localhost:9090"),
+            null);
     Request createRequest = getCreateDataSourceRequest(createDSM);
     Response response = client().performRequest(createRequest);
     Assert.assertEquals(201, response.getStatusLine().getStatusCode());
