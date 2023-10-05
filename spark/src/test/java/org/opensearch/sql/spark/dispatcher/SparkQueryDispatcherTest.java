@@ -574,8 +574,6 @@ public class SparkQueryDispatcherTest {
             dataSourceUserAuthorizationHelper,
             jobExecutionResponseReader,
             flintIndexMetadataReader);
-    when(emrServerlessClient.getJobRunResult(EMRS_APPLICATION_ID, EMR_JOB_ID))
-        .thenReturn(new GetJobRunResult().withJobRun(new JobRun().withState(JobRunState.SUCCESS)));
     JSONObject queryResult = new JSONObject();
     Map<String, Object> resultMap = new HashMap<>();
     resultMap.put(STATUS_FIELD, "SUCCESS");
