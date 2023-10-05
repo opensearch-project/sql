@@ -14,9 +14,17 @@ S3Glue Connector
 Introduction
 ============
 
+Properties in DataSource Configuration
+
+* name: A unique identifier for the data source within a domain.
+* connector: Currently supports the following connectors: s3glue, spark, prometheus, and opensearch.
+* resultIndex: Stores the results of queries executed on the data source. If unavailable, it defaults to .query_execution_result.
+
+Glue Connector
+========================================================
+
 s3Glue connector provides a way to query s3 files using glue as metadata store and spark as execution engine.
 This page covers s3Glue datasource configuration and also how to query and s3Glue datasource.
-
 
 Required resources for s3 Glue Connector
 ===================================
@@ -27,8 +35,6 @@ Required resources for s3 Glue Connector
 
 We currently only support emr-serverless as spark execution engine and Glue as metadata store. we will add more support in future.
 
-Glue Connector Properties in DataSource Configuration
-========================================================
 Glue Connector Properties.
 
 * ``glue.auth.type`` [Required]
@@ -59,7 +65,8 @@ Glue datasource configuration::
                 "glue.indexstore.opensearch.auth" :"basicauth",
                 "glue.indexstore.opensearch.auth.username" :"username"
                 "glue.indexstore.opensearch.auth.password" :"password"
-        }
+        },
+        "resultIndex": "query_execution_result"
     }]
 
     [{
