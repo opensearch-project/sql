@@ -36,7 +36,7 @@ public class EmrServerlessClientImplTest {
     StartJobRunResult response = new StartJobRunResult();
     when(emrServerless.startJobRun(any())).thenReturn(response);
 
-    EmrServerlessClientImplEMR emrServerlessClient = new EmrServerlessClientImplEMR(emrServerless);
+    EmrServerlessClientImpl emrServerlessClient = new EmrServerlessClientImpl(emrServerless);
     emrServerlessClient.startJobRun(
         new StartJobRequest(
             QUERY,
@@ -54,7 +54,7 @@ public class EmrServerlessClientImplTest {
     StartJobRunResult response = new StartJobRunResult();
     when(emrServerless.startJobRun(any())).thenReturn(response);
 
-    EmrServerlessClientImplEMR emrServerlessClient = new EmrServerlessClientImplEMR(emrServerless);
+    EmrServerlessClientImpl emrServerlessClient = new EmrServerlessClientImpl(emrServerless);
     emrServerlessClient.startJobRun(
         new StartJobRequest(
             QUERY,
@@ -74,7 +74,7 @@ public class EmrServerlessClientImplTest {
     GetJobRunResult response = new GetJobRunResult();
     response.setJobRun(jobRun);
     when(emrServerless.getJobRun(any())).thenReturn(response);
-    EmrServerlessClientImplEMR emrServerlessClient = new EmrServerlessClientImplEMR(emrServerless);
+    EmrServerlessClientImpl emrServerlessClient = new EmrServerlessClientImpl(emrServerless);
     emrServerlessClient.getJobRunResult(EMRS_APPLICATION_ID, "123");
   }
 
@@ -82,7 +82,7 @@ public class EmrServerlessClientImplTest {
   void testCancelJobRun() {
     when(emrServerless.cancelJobRun(any()))
         .thenReturn(new CancelJobRunResult().withJobRunId(EMR_JOB_ID));
-    EmrServerlessClientImplEMR emrServerlessClient = new EmrServerlessClientImplEMR(emrServerless);
+    EmrServerlessClientImpl emrServerlessClient = new EmrServerlessClientImpl(emrServerless);
     CancelJobRunResult cancelJobRunResult =
         emrServerlessClient.cancelJobRun(EMRS_APPLICATION_ID, EMR_JOB_ID);
     Assertions.assertEquals(EMR_JOB_ID, cancelJobRunResult.getJobRunId());
@@ -91,7 +91,7 @@ public class EmrServerlessClientImplTest {
   @Test
   void testCancelJobRunWithValidationException() {
     doThrow(new ValidationException("Error")).when(emrServerless).cancelJobRun(any());
-    EmrServerlessClientImplEMR emrServerlessClient = new EmrServerlessClientImplEMR(emrServerless);
+    EmrServerlessClientImpl emrServerlessClient = new EmrServerlessClientImpl(emrServerless);
     IllegalArgumentException illegalArgumentException =
         Assertions.assertThrows(
             IllegalArgumentException.class,
