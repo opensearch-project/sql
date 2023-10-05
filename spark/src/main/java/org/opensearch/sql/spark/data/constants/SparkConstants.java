@@ -8,19 +8,13 @@ package org.opensearch.sql.spark.data.constants;
 public class SparkConstants {
   public static final String EMR = "emr";
   public static final String STEP_ID_FIELD = "stepId.keyword";
-  // TODO should be replaced with mvn jar.
+  // EMR-S will download JAR to local maven
   public static final String SPARK_SQL_APPLICATION_JAR =
-      "s3://flint-data-dp-eu-west-1-beta/code/flint/opensearch-spark-sql-application_2.12-0.1.0-SNAPSHOT.jar";
+      "file:///home/hadoop/.ivy2/jars/org.opensearch_opensearch-spark-sql-application_2.12-0.1.0-SNAPSHOT.jar";
   public static final String SPARK_RESPONSE_BUFFER_INDEX_NAME = ".query_execution_result";
   // TODO should be replaced with mvn jar.
   public static final String FLINT_INTEGRATION_JAR =
       "s3://spark-datasource/flint-spark-integration-assembly-0.1.0-SNAPSHOT.jar";
-  // TODO should be replaced with mvn jar.
-  public static final String GLUE_CATALOG_HIVE_JAR =
-      "s3://flint-data-dp-eu-west-1-beta/code/flint/AWSGlueDataCatalogHiveMetaStoreAuth-1.0.jar";
-  // TODO should be replaced with mvn jar.
-  public static final String FLINT_CATALOG_JAR =
-      "s3://flint-data-dp-eu-west-1-beta/code/flint/flint-catalog.jar";
   public static final String FLINT_DEFAULT_HOST = "localhost";
   public static final String FLINT_DEFAULT_PORT = "9200";
   public static final String FLINT_DEFAULT_SCHEME = "http";
