@@ -16,6 +16,9 @@ public class SparkExecutionEngineConfig {
   private String region;
   private String executionRoleARN;
 
+  /** Additional Spark submit parameters to append to request. */
+  private String sparkSubmitParameters;
+
   public static SparkExecutionEngineConfig toSparkExecutionEngineConfig(String jsonString) {
     return new Gson().fromJson(jsonString, SparkExecutionEngineConfig.class);
   }

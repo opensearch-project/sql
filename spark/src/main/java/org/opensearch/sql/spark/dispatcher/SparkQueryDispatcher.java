@@ -145,6 +145,7 @@ public class SparkQueryDispatcher {
                     dataSourceService.getRawDataSourceMetadata(
                         dispatchQueryRequest.getDatasource()))
                 .structuredStreaming(indexDetails.getAutoRefresh())
+                .extraParameters(dispatchQueryRequest.getExtraSparkSubmitParams())
                 .build()
                 .toString(),
             tags,
@@ -170,6 +171,7 @@ public class SparkQueryDispatcher {
                 .dataSource(
                     dataSourceService.getRawDataSourceMetadata(
                         dispatchQueryRequest.getDatasource()))
+                .extraParameters(dispatchQueryRequest.getExtraSparkSubmitParams())
                 .build()
                 .toString(),
             tags,

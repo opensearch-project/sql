@@ -43,7 +43,8 @@ public class OpenSearchSettings extends Settings {
   private final Map<Settings.Key, Object> latestSettings = new ConcurrentHashMap<>();
 
   /** Default Spark submit parameters setting value */
-  private static final String DEFAULT_SPARK_SUBMIT_PARAMETERS_FILE_NAME = "default-spark-submit-parameters.json";
+  private static final String DEFAULT_SPARK_SUBMIT_PARAMETERS_FILE_NAME =
+      "default-spark-submit-parameters.json";
 
   public static final Setting<?> SQL_ENABLED_SETTING =
       Setting.boolSetting(
