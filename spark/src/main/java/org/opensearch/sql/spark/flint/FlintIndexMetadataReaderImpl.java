@@ -16,7 +16,7 @@ public class FlintIndexMetadataReaderImpl implements FlintIndexMetadataReader {
 
   @Override
   public String getJobIdFromFlintIndexMetadata(IndexDetails indexDetails) {
-    String indexName = getIndexName(indexDetails).toLowerCase();
+    String indexName = getIndexName(indexDetails);
     GetMappingsResponse mappingsResponse =
         client.admin().indices().prepareGetMappings(indexName).get();
     try {
@@ -34,27 +34,31 @@ public class FlintIndexMetadataReaderImpl implements FlintIndexMetadataReader {
   private String getIndexName(IndexDetails indexDetails) {
     FullyQualifiedTableName fullyQualifiedTableName = indexDetails.getFullyQualifiedTableName();
     if (FlintIndexType.SKIPPING.equals(indexDetails.getIndexType())) {
-      return "flint"
-          + "_"
-          + fullyQualifiedTableName.getDatasourceName()
-          + "_"
-          + fullyQualifiedTableName.getSchemaName()
-          + "_"
-          + fullyQualifiedTableName.getTableName()
-          + "_"
-          + indexDetails.getIndexType().getName();
+      String indexName =
+          "flint"
+              + "_"
+              + fullyQualifiedTableName.getDatasourceName()
+              + "_"
+              + fullyQualifiedTableName.getSchemaName()
+              + "_"
+              + fullyQualifiedTableName.getTableName()
+              + "_"
+              + indexDetails.getIndexType().getSuffix();
+      return indexName.toLowerCase();
     } else if (FlintIndexType.COVERING.equals(indexDetails.getIndexType())) {
-      return "flint"
-          + "_"
-          + fullyQualifiedTableName.getDatasourceName()
-          + "_"
-          + fullyQualifiedTableName.getSchemaName()
-          + "_"
-          + fullyQualifiedTableName.getTableName()
-          + "_"
-          + indexDetails.getIndexName()
-          + "_"
-          + indexDetails.getIndexType().getName();
+      String indexName =
+          "flint"
+              + "_"
+              + fullyQualifiedTableName.getDatasourceName()
+              + "_"
+              + fullyQualifiedTableName.getSchemaName()
+              + "_"
+              + fullyQualifiedTableName.getTableName()
+              + "_"
+              + indexDetails.getIndexName()
+              + "_"
+              + indexDetails.getIndexType().getSuffix();
+      return indexName.toLowerCase();
     } else {
       throw new UnsupportedOperationException(
           String.format("Unsupported Index Type : %s", indexDetails.getIndexType()));

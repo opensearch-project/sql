@@ -13,7 +13,7 @@ import com.amazonaws.services.emrserverless.model.GetJobRunResult;
 /**
  * Client Interface for spark Job Submissions. Can have multiple implementations based on the
  * underlying spark infrastructure. Currently, we have one for EMRServerless {@link
- * EmrServerlessClientImplEMR}
+ * EmrServerlessClientImpl}
  */
 public interface EMRServerlessClient {
 
