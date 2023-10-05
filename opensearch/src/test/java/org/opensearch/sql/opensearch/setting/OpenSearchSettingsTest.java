@@ -15,6 +15,15 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.when;
 import static org.opensearch.common.unit.TimeValue.timeValueMinutes;
 import static org.opensearch.sql.opensearch.setting.LegacyOpenDistroSettings.legacySettings;
+import static org.opensearch.sql.opensearch.setting.OpenSearchSettings.METRICS_ROLLING_INTERVAL_SETTING;
+import static org.opensearch.sql.opensearch.setting.OpenSearchSettings.METRICS_ROLLING_WINDOW_SETTING;
+import static org.opensearch.sql.opensearch.setting.OpenSearchSettings.PPL_ENABLED_SETTING;
+import static org.opensearch.sql.opensearch.setting.OpenSearchSettings.QUERY_MEMORY_LIMIT_SETTING;
+import static org.opensearch.sql.opensearch.setting.OpenSearchSettings.QUERY_SIZE_LIMIT_SETTING;
+import static org.opensearch.sql.opensearch.setting.OpenSearchSettings.SPARK_EXECUTION_ENGINE_CONFIG;
+import static org.opensearch.sql.opensearch.setting.OpenSearchSettings.SQL_CURSOR_KEEP_ALIVE_SETTING;
+import static org.opensearch.sql.opensearch.setting.OpenSearchSettings.SQL_ENABLED_SETTING;
+import static org.opensearch.sql.opensearch.setting.OpenSearchSettings.SQL_SLOWLOG_SETTING;
 
 import java.util.List;
 import org.junit.jupiter.api.Test;
@@ -47,14 +56,13 @@ class OpenSearchSettingsTest {
   @Test
   void getSettingValueWithPresetValuesInYml() {
     when(clusterSettings.get(ClusterName.CLUSTER_NAME_SETTING)).thenReturn(ClusterName.DEFAULT);
-    when(clusterSettings.get(
-            (Setting<ByteSizeValue>) OpenSearchSettings.QUERY_MEMORY_LIMIT_SETTING))
+    when(clusterSettings.get((Setting<ByteSizeValue>) QUERY_MEMORY_LIMIT_SETTING))
         .thenReturn(new ByteSizeValue(20));
     when(clusterSettings.get(
             not(
                 or(
                     eq(ClusterName.CLUSTER_NAME_SETTING),
-                    eq((Setting<ByteSizeValue>) OpenSearchSettings.QUERY_MEMORY_LIMIT_SETTING)))))
+                    eq((Setting<ByteSizeValue>) QUERY_MEMORY_LIMIT_SETTING)))))
         .thenReturn(null);
     OpenSearchSettings settings = new OpenSearchSettings(clusterSettings);
     ByteSizeValue sizeValue = settings.getSettingValue(Settings.Key.QUERY_MEMORY_LIMIT);
@@ -150,21 +158,41 @@ class OpenSearchSettingsTest {
             .put(LegacySettings.Key.METRICS_ROLLING_INTERVAL.getKeyValue(), 100L)
             .build();
 
-    assertEquals(OpenSearchSettings.SQL_ENABLED_SETTING.get(settings), false);
-    assertEquals(OpenSearchSettings.SQL_SLOWLOG_SETTING.get(settings), 10);
+    assertEquals(SQL_ENABLED_SETTING.get(settings), false);
+    assertEquals(SQL_SLOWLOG_SETTING.get(settings), 10);
+    assertEquals(SQL_CURSOR_KEEP_ALIVE_SETTING.get(settings), timeValueMinutes(1));
+    assertEquals(PPL_ENABLED_SETTING.get(settings), true);
     assertEquals(
-        OpenSearchSettings.SQL_CURSOR_KEEP_ALIVE_SETTING.get(settings), timeValueMinutes(1));
-    assertEquals(OpenSearchSettings.PPL_ENABLED_SETTING.get(settings), true);
-    assertEquals(
-        OpenSearchSettings.QUERY_MEMORY_LIMIT_SETTING.get(settings),
+        QUERY_MEMORY_LIMIT_SETTING.get(settings),
         new ByteSizeValue((int) (JvmInfo.jvmInfo().getMem().getHeapMax().getBytes() * 0.2)));
-    assertEquals(OpenSearchSettings.QUERY_SIZE_LIMIT_SETTING.get(settings), 100);
-    assertEquals(OpenSearchSettings.METRICS_ROLLING_WINDOW_SETTING.get(settings), 2000L);
-    assertEquals(OpenSearchSettings.METRICS_ROLLING_INTERVAL_SETTING.get(settings), 100L);
+    assertEquals(QUERY_SIZE_LIMIT_SETTING.get(settings), 100);
+    assertEquals(METRICS_ROLLING_WINDOW_SETTING.get(settings), 2000L);
+    assertEquals(METRICS_ROLLING_INTERVAL_SETTING.get(settings), 100L);
   }
 
   @Test
   void legacySettingsShouldBeDeprecatedBeforeRemove() {
     assertEquals(15, legacySettings().size());
+  }
+
+  @Test
+  void getSparkExecutionEngineConfigSetting() {
+    // Default is empty string
+    assertEquals(
+        "",
+        SPARK_EXECUTION_ENGINE_CONFIG.get(
+            org.opensearch.common.settings.Settings.builder().build()));
+
+    // Configurable at runtime
+    String sparkConfig =
+        "{\n"
+            + "  \"sparkSubmitParameters\": \"--conf spark.dynamicAllocation.enabled=false\"\n"
+            + "}";
+    assertEquals(
+        sparkConfig,
+        SPARK_EXECUTION_ENGINE_CONFIG.get(
+            org.opensearch.common.settings.Settings.builder()
+                .put(SPARK_EXECUTION_ENGINE_CONFIG.getKey(), sparkConfig)
+                .build()));
   }
 }
