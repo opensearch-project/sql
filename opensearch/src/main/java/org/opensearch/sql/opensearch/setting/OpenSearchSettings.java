@@ -16,6 +16,8 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
+import java.security.AccessController;
+import java.security.PrivilegedAction;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -250,13 +252,17 @@ public class OpenSearchSettings extends Settings {
   }
 
   private static String loadDefaultSparkSubmitParameters() {
-    try {
-      URL url = Resources.getResource(DEFAULT_SPARK_SUBMIT_PARAMETERS_FILE_NAME);
-      return Resources.toString(url, StandardCharsets.UTF_8);
-    } catch (IOException e) {
-      log.error("Failed to load default Spark submit parameters file", e);
-      throw new RuntimeException("Internal server error while" + e.getMessage());
-    }
+    return AccessController.doPrivileged(
+        (PrivilegedAction<String>) () -> {
+            try {
+              URL url = Resources.getResource(DEFAULT_SPARK_SUBMIT_PARAMETERS_FILE_NAME);
+              return Resources.toString(url, StandardCharsets.UTF_8);
+            } catch (IOException e) {
+              log.error("Failed to load default Spark submit parameters file", e);
+              throw new RuntimeException("Internal server error while" + e.getMessage());
+            }
+          }
+       );
   }
 
   /**
