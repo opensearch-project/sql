@@ -14,22 +14,28 @@ Async Query Interface Endpoints
 Introduction
 ============
 
-For supporting `S3Glue <../ppl/admin/connectors/s3glue_connector.rst>`_ and Cloudwatch datasources connectors, we have introduced a new execution engine on top of Spark.
+For supporting `S3Glue <../ppl/admin/connectors/s3glue_connector.rst>`_  datasource connector, we have introduced a new execution engine on top of Spark.
 All the queries to be executed on spark execution engine can only be submitted via Async Query APIs. Below sections will list all the new APIs introduced.
 
 
-Configuration required for Async Query APIs
-======================================
-Currently, we only support AWS emr serverless as SPARK execution engine. The details of execution engine should be configured under
-``plugins.query.executionengine.spark.config`` cluster setting. The value should be a stringified json comprising of ``applicationId``, ``executionRoleARN``,``region``.
+Required Spark Execution Engine Config for Async Query APIs
+===========================================================
+Currently, we only support AWS EMRServerless as SPARK execution engine. The details of execution engine should be configured under
+``plugins.query.executionengine.spark.config`` in cluster settings. The value should be a stringified json comprising of ``applicationId``, ``executionRoleARN``,``region``, ``sparkSubmitParameter``.
 Sample Setting Value ::
 
-    plugins.query.executionengine.spark.config: '{"applicationId":"xxxxx", "executionRoleARN":"arn:aws:iam::***********:role/emr-job-execution-role","region":"eu-west-1"}'
-
-
+    plugins.query.executionengine.spark.config:
+    '{  "applicationId":"xxxxx",
+        "executionRoleARN":"arn:aws:iam::***********:role/emr-job-execution-role",
+        "region":"eu-west-1",
+        "sparkSubmitParameter": "--conf spark.dynamicAllocation.enabled=false"
+    }'
 If this setting is not configured during bootstrap, Async Query APIs will be disabled and it requires a cluster restart to enable them back again.
 We make use of default aws credentials chain to make calls to the emr serverless application and also make sure the default credentials
 have pass role permissions for emr-job-execution-role mentioned in the engine configuration.
+
+*  ``applicationId``, ``executionRoleARN`` and ``region`` are required parameters.
+*  ``sparkSubmitParameter`` is an optional parameter. It can take the form ``--conf A=1 --conf B=2 ...``.
 
 
 Async Query Creation API
