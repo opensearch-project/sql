@@ -29,12 +29,20 @@ public class AsyncQueryResultResponseFormatterTest {
             schema,
             Arrays.asList(
                 tupleValue(ImmutableMap.of("firstname", "John", "age", 20)),
-                tupleValue(ImmutableMap.of("firstname", "Smith", "age", 30))));
+                tupleValue(ImmutableMap.of("firstname", "Smith", "age", 30))),
+            null);
     AsyncQueryResultResponseFormatter formatter = new AsyncQueryResultResponseFormatter(COMPACT);
     assertEquals(
         "{\"status\":\"success\",\"schema\":[{\"name\":\"firstname\",\"type\":\"string\"},"
             + "{\"name\":\"age\",\"type\":\"integer\"}],\"datarows\":"
             + "[[\"John\",20],[\"Smith\",30]],\"total\":2,\"size\":2}",
         formatter.format(response));
+  }
+
+  @Test
+  void formatAsyncQueryError() {
+    AsyncQueryResult response = new AsyncQueryResult("FAILED", null, null, "foo");
+    AsyncQueryResultResponseFormatter formatter = new AsyncQueryResultResponseFormatter(COMPACT);
+    assertEquals("{\"status\":\"FAILED\",\"error\":\"foo\"}", formatter.format(response));
   }
 }

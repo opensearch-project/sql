@@ -7,6 +7,8 @@ package org.opensearch.sql.spark.asyncquery;
 
 import static org.opensearch.sql.common.setting.Settings.Key.CLUSTER_NAME;
 import static org.opensearch.sql.common.setting.Settings.Key.SPARK_EXECUTION_ENGINE_CONFIG;
+import static org.opensearch.sql.spark.data.constants.SparkConstants.ERROR_FIELD;
+import static org.opensearch.sql.spark.data.constants.SparkConstants.STATUS_FIELD;
 
 import com.amazonaws.services.emrserverless.model.JobRunState;
 import java.security.AccessController;
@@ -74,11 +76,13 @@ public class AsyncQueryExecutorServiceImpl implements AsyncQueryExecutorService 
                 createAsyncQueryRequest.getLang(),
                 sparkExecutionEngineConfig.getExecutionRoleARN(),
                 clusterName.value()));
+
     asyncQueryJobMetadataStorageService.storeJobMetadata(
         new AsyncQueryJobMetadata(
             sparkExecutionEngineConfig.getApplicationId(),
             dispatchQueryResponse.getJobId(),
-            dispatchQueryResponse.isDropIndexQuery()));
+            dispatchQueryResponse.isDropIndexQuery(),
+            dispatchQueryResponse.getResultIndex()));
     return new CreateAsyncQueryResponse(dispatchQueryResponse.getJobId());
   }
 
@@ -89,7 +93,7 @@ public class AsyncQueryExecutorServiceImpl implements AsyncQueryExecutorService 
         asyncQueryJobMetadataStorageService.getJobMetadata(queryId);
     if (jobMetadata.isPresent()) {
       JSONObject jsonObject = sparkQueryDispatcher.getQueryResponse(jobMetadata.get());
-      if (JobRunState.SUCCESS.toString().equals(jsonObject.getString("status"))) {
+      if (JobRunState.SUCCESS.toString().equals(jsonObject.getString(STATUS_FIELD))) {
         DefaultSparkSqlFunctionResponseHandle sparkSqlFunctionResponseHandle =
             new DefaultSparkSqlFunctionResponseHandle(jsonObject);
         List<ExprValue> result = new ArrayList<>();
@@ -97,9 +101,13 @@ public class AsyncQueryExecutorServiceImpl implements AsyncQueryExecutorService 
           result.add(sparkSqlFunctionResponseHandle.next());
         }
         return new AsyncQueryExecutionResponse(
-            JobRunState.SUCCESS.toString(), sparkSqlFunctionResponseHandle.schema(), result);
+            JobRunState.SUCCESS.toString(), sparkSqlFunctionResponseHandle.schema(), result, null);
       } else {
-        return new AsyncQueryExecutionResponse(jsonObject.getString("status"), null, null);
+        return new AsyncQueryExecutionResponse(
+            jsonObject.optString(STATUS_FIELD, JobRunState.FAILED.toString()),
+            null,
+            null,
+            jsonObject.optString(ERROR_FIELD, ""));
       }
     }
     throw new AsyncQueryNotFoundException(String.format("QueryId: %s not found", queryId));

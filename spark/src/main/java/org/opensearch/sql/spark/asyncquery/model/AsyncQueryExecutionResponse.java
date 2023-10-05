@@ -18,4 +18,5 @@ public class AsyncQueryExecutionResponse {
   private final String status;
   private final ExecutionEngine.Schema schema;
   private final List<ExprValue> results;
+  private final String error;
 }

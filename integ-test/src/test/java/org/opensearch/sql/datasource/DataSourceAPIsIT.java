@@ -66,7 +66,8 @@ public class DataSourceAPIsIT extends PPLIntegTestCase {
                 "prometheus.auth.username",
                 "username",
                 "prometheus.auth.password",
-                "password"));
+                "password"),
+            null);
     Request createRequest = getCreateDataSourceRequest(createDSM);
     Response response = client().performRequest(createRequest);
     Assert.assertEquals(201, response.getStatusLine().getStatusCode());
@@ -96,7 +97,8 @@ public class DataSourceAPIsIT extends PPLIntegTestCase {
             "update_prometheus",
             DataSourceType.PROMETHEUS,
             ImmutableList.of(),
-            ImmutableMap.of("prometheus.uri", "https://localhost:9090"));
+            ImmutableMap.of("prometheus.uri", "https://localhost:9090"),
+            null);
     Request createRequest = getCreateDataSourceRequest(createDSM);
     client().performRequest(createRequest);
     // Datasource is not immediately created. so introducing a sleep of 2s.
@@ -108,7 +110,8 @@ public class DataSourceAPIsIT extends PPLIntegTestCase {
             "update_prometheus",
             DataSourceType.PROMETHEUS,
             ImmutableList.of(),
-            ImmutableMap.of("prometheus.uri", "https://randomtest.com:9090"));
+            ImmutableMap.of("prometheus.uri", "https://randomtest.com:9090"),
+            null);
     Request updateRequest = getUpdateDataSourceRequest(updateDSM);
     Response updateResponse = client().performRequest(updateRequest);
     Assert.assertEquals(200, updateResponse.getStatusLine().getStatusCode());
@@ -141,7 +144,8 @@ public class DataSourceAPIsIT extends PPLIntegTestCase {
             "delete_prometheus",
             DataSourceType.PROMETHEUS,
             ImmutableList.of(),
-            ImmutableMap.of("prometheus.uri", "https://localhost:9090"));
+            ImmutableMap.of("prometheus.uri", "https://localhost:9090"),
+            null);
     Request createRequest = getCreateDataSourceRequest(createDSM);
     client().performRequest(createRequest);
     // Datasource is not immediately created. so introducing a sleep of 2s.
@@ -179,7 +183,8 @@ public class DataSourceAPIsIT extends PPLIntegTestCase {
             "get_all_prometheus",
             DataSourceType.PROMETHEUS,
             ImmutableList.of(),
-            ImmutableMap.of("prometheus.uri", "https://localhost:9090"));
+            ImmutableMap.of("prometheus.uri", "https://localhost:9090"),
+            null);
     Request createRequest = getCreateDataSourceRequest(createDSM);
     client().performRequest(createRequest);
     // Datasource is not immediately created. so introducing a sleep of 2s.
@@ -215,7 +220,8 @@ public class DataSourceAPIsIT extends PPLIntegTestCase {
                 "prometheus.auth.username",
                 "username",
                 "prometheus.auth.password",
-                "password"));
+                "password"),
+            null);
     Request createRequest = getCreateDataSourceRequest(createDSM);
     Response response = client().performRequest(createRequest);
     Assert.assertEquals(201, response.getStatusLine().getStatusCode());

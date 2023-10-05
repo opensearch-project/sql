@@ -29,11 +29,13 @@ public class AsyncQueryJobMetadata {
   private String applicationId;
   private String jobId;
   private boolean isDropIndexQuery;
+  private String resultIndex;
 
-  public AsyncQueryJobMetadata(String applicationId, String jobId) {
+  public AsyncQueryJobMetadata(String applicationId, String jobId, String resultIndex) {
     this.applicationId = applicationId;
     this.jobId = jobId;
     this.isDropIndexQuery = false;
+    this.resultIndex = resultIndex;
   }
 
   @Override
@@ -54,6 +56,7 @@ public class AsyncQueryJobMetadata {
     builder.field("jobId", metadata.getJobId());
     builder.field("applicationId", metadata.getApplicationId());
     builder.field("isDropIndexQuery", metadata.isDropIndexQuery());
+    builder.field("resultIndex", metadata.getResultIndex());
     builder.endObject();
     return builder;
   }
@@ -88,6 +91,7 @@ public class AsyncQueryJobMetadata {
     String jobId = null;
     String applicationId = null;
     boolean isDropIndexQuery = false;
+    String resultIndex = null;
     ensureExpectedToken(XContentParser.Token.START_OBJECT, parser.nextToken(), parser);
     while (parser.nextToken() != XContentParser.Token.END_OBJECT) {
       String fieldName = parser.currentName();
@@ -102,6 +106,9 @@ public class AsyncQueryJobMetadata {
         case "isDropIndexQuery":
           isDropIndexQuery = parser.booleanValue();
           break;
+        case "resultIndex":
+          resultIndex = parser.textOrNull();
+          break;
         default:
           throw new IllegalArgumentException("Unknown field: " + fieldName);
       }
@@ -109,6 +116,6 @@ public class AsyncQueryJobMetadata {
     if (jobId == null || applicationId == null) {
       throw new IllegalArgumentException("jobId and applicationId are required fields.");
     }
-    return new AsyncQueryJobMetadata(applicationId, jobId, isDropIndexQuery);
+    return new AsyncQueryJobMetadata(applicationId, jobId, isDropIndexQuery, resultIndex);
   }
 }

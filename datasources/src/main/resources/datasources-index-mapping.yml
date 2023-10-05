@@ -15,3 +15,5 @@ properties:
         type: keyword
   connector:
     type: keyword
+  resultIndex:
+    type: keyword
