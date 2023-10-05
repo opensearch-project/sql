@@ -11,19 +11,26 @@ import org.opensearch.sql.protocol.response.QueryResult;
 public class AsyncQueryResult extends QueryResult {
 
   @Getter private final String status;
+  @Getter private final String error;
 
   public AsyncQueryResult(
       String status,
       ExecutionEngine.Schema schema,
       Collection<ExprValue> exprValues,
-      Cursor cursor) {
+      Cursor cursor,
+      String error) {
     super(schema, exprValues, cursor);
     this.status = status;
+    this.error = error;
   }
 
   public AsyncQueryResult(
-      String status, ExecutionEngine.Schema schema, Collection<ExprValue> exprValues) {
+      String status,
+      ExecutionEngine.Schema schema,
+      Collection<ExprValue> exprValues,
+      String error) {
     super(schema, exprValues);
     this.status = status;
+    this.error = error;
   }
 }

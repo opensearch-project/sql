@@ -11,6 +11,7 @@ import java.util.stream.Collectors;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
+import org.opensearch.core.common.Strings;
 import org.opensearch.sql.protocol.response.QueryResult;
 import org.opensearch.sql.protocol.response.format.JsonResponseFormatter;
 import org.opensearch.sql.spark.asyncquery.model.AsyncQueryResult;
@@ -53,6 +54,10 @@ public class AsyncQueryResultResponseFormatter extends JsonResponseFormatter<Asy
       json.datarows(fetchDataRows(response));
     }
     json.status(response.getStatus());
+    if (!Strings.isEmpty(response.getError())) {
+      json.error(response.getError());
+    }
+
     return json.build();
   }
 
@@ -79,6 +84,7 @@ public class AsyncQueryResultResponseFormatter extends JsonResponseFormatter<Asy
 
     private Integer total;
     private Integer size;
+    private final String error;
   }
 
   @RequiredArgsConstructor

@@ -199,7 +199,8 @@ public class AnalyzerTestBase {
                       ds.getName(),
                       ds.getConnectorType(),
                       Collections.emptyList(),
-                      ImmutableMap.of()))
+                      ImmutableMap.of(),
+                      null))
           .collect(Collectors.toSet());
     }
 

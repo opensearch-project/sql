@@ -5,6 +5,10 @@
 
 package org.opensearch.sql.spark.dispatcher;
 
+import static org.opensearch.sql.spark.data.constants.SparkConstants.DATA_FIELD;
+import static org.opensearch.sql.spark.data.constants.SparkConstants.ERROR_FIELD;
+import static org.opensearch.sql.spark.data.constants.SparkConstants.STATUS_FIELD;
+
 import com.amazonaws.services.emrserverless.model.CancelJobRunResult;
 import com.amazonaws.services.emrserverless.model.GetJobRunResult;
 import com.amazonaws.services.emrserverless.model.JobRunState;
@@ -14,6 +18,7 @@ import lombok.AllArgsConstructor;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.json.JSONObject;
 import org.opensearch.sql.datasource.DataSourceService;
+import org.opensearch.sql.datasource.model.DataSourceMetadata;
 import org.opensearch.sql.datasources.auth.DataSourceUserAuthorizationHelperImpl;
 import org.opensearch.sql.spark.asyncquery.model.AsyncQueryJobMetadata;
 import org.opensearch.sql.spark.asyncquery.model.SparkSubmitParameters;
@@ -63,12 +68,33 @@ public class SparkQueryDispatcher {
     GetJobRunResult getJobRunResult =
         emrServerlessClient.getJobRunResult(
             asyncQueryJobMetadata.getApplicationId(), asyncQueryJobMetadata.getJobId());
-    JSONObject result = new JSONObject();
-    if (getJobRunResult.getJobRun().getState().equals(JobRunState.SUCCESS.toString())) {
-      result =
-          jobExecutionResponseReader.getResultFromOpensearchIndex(asyncQueryJobMetadata.getJobId());
+    String jobState = getJobRunResult.getJobRun().getState();
+    JSONObject result =
+        (jobState.equals(JobRunState.SUCCESS.toString()))
+            ? jobExecutionResponseReader.getResultFromOpensearchIndex(
+                asyncQueryJobMetadata.getJobId(), asyncQueryJobMetadata.getResultIndex())
+            : new JSONObject();
+
+    // if result index document has a status, we are gonna use the status directly; otherwise, we
+    // will use emr-s job status
+    // a job is successful does not mean there is no error in execution. For example, even if result
+    // index mapping
+    // is incorrect, we still write query result and let the job finish.
+    if (result.has(DATA_FIELD)) {
+      JSONObject items = result.getJSONObject(DATA_FIELD);
+
+      // If items have STATUS_FIELD, use it; otherwise, use jobState
+      String status = items.optString(STATUS_FIELD, jobState);
+      result.put(STATUS_FIELD, status);
+
+      // If items have ERROR_FIELD, use it; otherwise, set empty string
+      String error = items.optString(ERROR_FIELD, "");
+      result.put(ERROR_FIELD, error);
+    } else {
+      result.put(STATUS_FIELD, jobState);
+      result.put(ERROR_FIELD, "");
     }
-    result.put("status", getJobRunResult.getJobRun().getState());
+
     return result;
   }
 
@@ -96,8 +122,9 @@ public class SparkQueryDispatcher {
   private DispatchQueryResponse handleIndexQuery(
       DispatchQueryRequest dispatchQueryRequest, IndexDetails indexDetails) {
     FullyQualifiedTableName fullyQualifiedTableName = indexDetails.getFullyQualifiedTableName();
-    dataSourceUserAuthorizationHelper.authorizeDataSource(
-        this.dataSourceService.getRawDataSourceMetadata(dispatchQueryRequest.getDatasource()));
+    DataSourceMetadata dataSourceMetadata =
+        this.dataSourceService.getRawDataSourceMetadata(dispatchQueryRequest.getDatasource());
+    dataSourceUserAuthorizationHelper.authorizeDataSource(dataSourceMetadata);
     String jobName = dispatchQueryRequest.getClusterName() + ":" + "index-query";
     Map<String, String> tags = getDefaultTagsForJobSubmission(dispatchQueryRequest);
     tags.put(INDEX_TAG_KEY, indexDetails.getIndexName());
@@ -117,14 +144,16 @@ public class SparkQueryDispatcher {
                 .build()
                 .toString(),
             tags,
-            indexDetails.getAutoRefresh());
+            indexDetails.getAutoRefresh(),
+            dataSourceMetadata.getResultIndex());
     String jobId = emrServerlessClient.startJobRun(startJobRequest);
-    return new DispatchQueryResponse(jobId, false);
+    return new DispatchQueryResponse(jobId, false, dataSourceMetadata.getResultIndex());
   }
 
   private DispatchQueryResponse handleNonIndexQuery(DispatchQueryRequest dispatchQueryRequest) {
-    dataSourceUserAuthorizationHelper.authorizeDataSource(
-        this.dataSourceService.getRawDataSourceMetadata(dispatchQueryRequest.getDatasource()));
+    DataSourceMetadata dataSourceMetadata =
+        this.dataSourceService.getRawDataSourceMetadata(dispatchQueryRequest.getDatasource());
+    dataSourceUserAuthorizationHelper.authorizeDataSource(dataSourceMetadata);
     String jobName = dispatchQueryRequest.getClusterName() + ":" + "non-index-query";
     Map<String, String> tags = getDefaultTagsForJobSubmission(dispatchQueryRequest);
     StartJobRequest startJobRequest =
@@ -140,19 +169,22 @@ public class SparkQueryDispatcher {
                 .build()
                 .toString(),
             tags,
-            false);
+            false,
+            dataSourceMetadata.getResultIndex());
     String jobId = emrServerlessClient.startJobRun(startJobRequest);
-    return new DispatchQueryResponse(jobId, false);
+    return new DispatchQueryResponse(jobId, false, dataSourceMetadata.getResultIndex());
   }
 
   private DispatchQueryResponse handleDropIndexQuery(
       DispatchQueryRequest dispatchQueryRequest, IndexDetails indexDetails) {
-    dataSourceUserAuthorizationHelper.authorizeDataSource(
-        this.dataSourceService.getRawDataSourceMetadata(dispatchQueryRequest.getDatasource()));
+    DataSourceMetadata dataSourceMetadata =
+        this.dataSourceService.getRawDataSourceMetadata(dispatchQueryRequest.getDatasource());
+    dataSourceUserAuthorizationHelper.authorizeDataSource(dataSourceMetadata);
     String jobId = flintIndexMetadataReader.getJobIdFromFlintIndexMetadata(indexDetails);
     emrServerlessClient.cancelJobRun(dispatchQueryRequest.getApplicationId(), jobId);
     String dropIndexDummyJobId = RandomStringUtils.randomAlphanumeric(16);
-    return new DispatchQueryResponse(dropIndexDummyJobId, true);
+    return new DispatchQueryResponse(
+        dropIndexDummyJobId, true, dataSourceMetadata.getResultIndex());
   }
 
   private static Map<String, String> getDefaultTagsForJobSubmission(

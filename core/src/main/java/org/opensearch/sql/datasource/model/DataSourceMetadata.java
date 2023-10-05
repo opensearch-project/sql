@@ -42,16 +42,20 @@ public class DataSourceMetadata {
 
   @JsonProperty private Map<String, String> properties;
 
+  @JsonProperty private String resultIndex;
+
   public DataSourceMetadata(
       String name,
       DataSourceType connector,
       List<String> allowedRoles,
-      Map<String, String> properties) {
+      Map<String, String> properties,
+      String resultIndex) {
     this.name = name;
     this.connector = connector;
     this.description = StringUtils.EMPTY;
     this.properties = properties;
     this.allowedRoles = allowedRoles;
+    this.resultIndex = resultIndex;
   }
 
   public DataSourceMetadata() {
@@ -69,6 +73,7 @@ public class DataSourceMetadata {
         DEFAULT_DATASOURCE_NAME,
         DataSourceType.OPENSEARCH,
         Collections.emptyList(),
-        ImmutableMap.of());
+        ImmutableMap.of(),
+        null);
   }
 }

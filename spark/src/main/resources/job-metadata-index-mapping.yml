@@ -18,3 +18,8 @@ properties:
     fields:
       keyword:
         type: keyword
+  resultIndex:
+    type: text
+    fields:
+      keyword:
+        type: keyword

@@ -45,7 +45,26 @@ public class EmrServerlessClientImplTest {
             EMRS_EXECUTION_ROLE,
             SPARK_SUBMIT_PARAMETERS,
             new HashMap<>(),
-            false));
+            false,
+            null));
+  }
+
+  @Test
+  void testStartJobRunResultIndex() {
+    StartJobRunResult response = new StartJobRunResult();
+    when(emrServerless.startJobRun(any())).thenReturn(response);
+
+    EmrServerlessClientImplEMR emrServerlessClient = new EmrServerlessClientImplEMR(emrServerless);
+    emrServerlessClient.startJobRun(
+        new StartJobRequest(
+            QUERY,
+            EMRS_JOB_NAME,
+            EMRS_APPLICATION_ID,
+            EMRS_EXECUTION_ROLE,
+            SPARK_SUBMIT_PARAMETERS,
+            new HashMap<>(),
+            false,
+            "foo"));
   }
 
   @Test
