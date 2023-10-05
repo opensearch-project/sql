@@ -11,15 +11,19 @@ import com.amazonaws.services.emrserverless.model.JobRunState;
 import java.util.HashMap;
 import java.util.Map;
 import lombok.AllArgsConstructor;
+import org.apache.commons.lang3.RandomStringUtils;
 import org.json.JSONObject;
 import org.opensearch.sql.datasource.DataSourceService;
 import org.opensearch.sql.datasources.auth.DataSourceUserAuthorizationHelperImpl;
+import org.opensearch.sql.spark.asyncquery.model.AsyncQueryJobMetadata;
 import org.opensearch.sql.spark.asyncquery.model.SparkSubmitParameters;
 import org.opensearch.sql.spark.client.EMRServerlessClient;
 import org.opensearch.sql.spark.client.StartJobRequest;
 import org.opensearch.sql.spark.dispatcher.model.DispatchQueryRequest;
+import org.opensearch.sql.spark.dispatcher.model.DispatchQueryResponse;
 import org.opensearch.sql.spark.dispatcher.model.FullyQualifiedTableName;
 import org.opensearch.sql.spark.dispatcher.model.IndexDetails;
+import org.opensearch.sql.spark.flint.FlintIndexMetadataReader;
 import org.opensearch.sql.spark.response.JobExecutionResponseReader;
 import org.opensearch.sql.spark.rest.model.LangType;
 import org.opensearch.sql.spark.utils.SQLQueryUtils;
@@ -42,69 +46,55 @@ public class SparkQueryDispatcher {
 
   private JobExecutionResponseReader jobExecutionResponseReader;
 
-  public String dispatch(DispatchQueryRequest dispatchQueryRequest) {
-    return emrServerlessClient.startJobRun(getStartJobRequest(dispatchQueryRequest));
+  private FlintIndexMetadataReader flintIndexMetadataReader;
+
+  public DispatchQueryResponse dispatch(DispatchQueryRequest dispatchQueryRequest) {
+    if (LangType.SQL.equals(dispatchQueryRequest.getLangType())) {
+      return handleSQLQuery(dispatchQueryRequest);
+    } else {
+      // Since we don't need any extra handling for PPL, we are treating it as normal dispatch
+      // Query.
+      return handleNonIndexQuery(dispatchQueryRequest);
+    }
   }
 
   // TODO : Fetch from Result Index and then make call to EMR Serverless.
-  public JSONObject getQueryResponse(String applicationId, String queryId) {
-    GetJobRunResult getJobRunResult = emrServerlessClient.getJobRunResult(applicationId, queryId);
+  public JSONObject getQueryResponse(AsyncQueryJobMetadata asyncQueryJobMetadata) {
+    GetJobRunResult getJobRunResult =
+        emrServerlessClient.getJobRunResult(
+            asyncQueryJobMetadata.getApplicationId(), asyncQueryJobMetadata.getJobId());
     JSONObject result = new JSONObject();
     if (getJobRunResult.getJobRun().getState().equals(JobRunState.SUCCESS.toString())) {
-      result = jobExecutionResponseReader.getResultFromOpensearchIndex(queryId);
+      result =
+          jobExecutionResponseReader.getResultFromOpensearchIndex(asyncQueryJobMetadata.getJobId());
     }
     result.put("status", getJobRunResult.getJobRun().getState());
     return result;
   }
 
-  public String cancelJob(String applicationId, String jobId) {
-    CancelJobRunResult cancelJobRunResult = emrServerlessClient.cancelJobRun(applicationId, jobId);
+  public String cancelJob(AsyncQueryJobMetadata asyncQueryJobMetadata) {
+    CancelJobRunResult cancelJobRunResult =
+        emrServerlessClient.cancelJobRun(
+            asyncQueryJobMetadata.getApplicationId(), asyncQueryJobMetadata.getJobId());
     return cancelJobRunResult.getJobRunId();
   }
 
-  // we currently don't support index queries in PPL language.
-  // so we are treating all of them as non-index queries which don't require any kind of query
-  // parsing.
-  private StartJobRequest getStartJobRequest(DispatchQueryRequest dispatchQueryRequest) {
-    if (LangType.SQL.equals(dispatchQueryRequest.getLangType())) {
-      if (SQLQueryUtils.isIndexQuery(dispatchQueryRequest.getQuery()))
-        return getStartJobRequestForIndexRequest(dispatchQueryRequest);
-      else {
-        return getStartJobRequestForNonIndexQueries(dispatchQueryRequest);
+  private DispatchQueryResponse handleSQLQuery(DispatchQueryRequest dispatchQueryRequest) {
+    if (SQLQueryUtils.isIndexQuery(dispatchQueryRequest.getQuery())) {
+      IndexDetails indexDetails =
+          SQLQueryUtils.extractIndexDetails(dispatchQueryRequest.getQuery());
+      if (indexDetails.isDropIndex()) {
+        return handleDropIndexQuery(dispatchQueryRequest, indexDetails);
+      } else {
+        return handleIndexQuery(dispatchQueryRequest, indexDetails);
       }
     } else {
-      return getStartJobRequestForNonIndexQueries(dispatchQueryRequest);
+      return handleNonIndexQuery(dispatchQueryRequest);
     }
   }
 
-  private StartJobRequest getStartJobRequestForNonIndexQueries(
-      DispatchQueryRequest dispatchQueryRequest) {
-    StartJobRequest startJobRequest;
-    dataSourceUserAuthorizationHelper.authorizeDataSource(
-        this.dataSourceService.getRawDataSourceMetadata(dispatchQueryRequest.getDatasource()));
-    String jobName = dispatchQueryRequest.getClusterName() + ":" + "non-index-query";
-    Map<String, String> tags = getDefaultTagsForJobSubmission(dispatchQueryRequest);
-    startJobRequest =
-        new StartJobRequest(
-            dispatchQueryRequest.getQuery(),
-            jobName,
-            dispatchQueryRequest.getApplicationId(),
-            dispatchQueryRequest.getExecutionRoleARN(),
-            SparkSubmitParameters.Builder.builder()
-                .dataSource(
-                    dataSourceService.getRawDataSourceMetadata(
-                        dispatchQueryRequest.getDatasource()))
-                .build()
-                .toString(),
-            tags,
-            false);
-    return startJobRequest;
-  }
-
-  private StartJobRequest getStartJobRequestForIndexRequest(
-      DispatchQueryRequest dispatchQueryRequest) {
-    StartJobRequest startJobRequest;
-    IndexDetails indexDetails = SQLQueryUtils.extractIndexDetails(dispatchQueryRequest.getQuery());
+  private DispatchQueryResponse handleIndexQuery(
+      DispatchQueryRequest dispatchQueryRequest, IndexDetails indexDetails) {
     FullyQualifiedTableName fullyQualifiedTableName = indexDetails.getFullyQualifiedTableName();
     dataSourceUserAuthorizationHelper.authorizeDataSource(
         this.dataSourceService.getRawDataSourceMetadata(dispatchQueryRequest.getDatasource()));
@@ -113,7 +103,7 @@ public class SparkQueryDispatcher {
     tags.put(INDEX_TAG_KEY, indexDetails.getIndexName());
     tags.put(TABLE_TAG_KEY, fullyQualifiedTableName.getTableName());
     tags.put(SCHEMA_TAG_KEY, fullyQualifiedTableName.getSchemaName());
-    startJobRequest =
+    StartJobRequest startJobRequest =
         new StartJobRequest(
             dispatchQueryRequest.getQuery(),
             jobName,
@@ -128,7 +118,41 @@ public class SparkQueryDispatcher {
                 .toString(),
             tags,
             indexDetails.getAutoRefresh());
-    return startJobRequest;
+    String jobId = emrServerlessClient.startJobRun(startJobRequest);
+    return new DispatchQueryResponse(jobId, false);
+  }
+
+  private DispatchQueryResponse handleNonIndexQuery(DispatchQueryRequest dispatchQueryRequest) {
+    dataSourceUserAuthorizationHelper.authorizeDataSource(
+        this.dataSourceService.getRawDataSourceMetadata(dispatchQueryRequest.getDatasource()));
+    String jobName = dispatchQueryRequest.getClusterName() + ":" + "non-index-query";
+    Map<String, String> tags = getDefaultTagsForJobSubmission(dispatchQueryRequest);
+    StartJobRequest startJobRequest =
+        new StartJobRequest(
+            dispatchQueryRequest.getQuery(),
+            jobName,
+            dispatchQueryRequest.getApplicationId(),
+            dispatchQueryRequest.getExecutionRoleARN(),
+            SparkSubmitParameters.Builder.builder()
+                .dataSource(
+                    dataSourceService.getRawDataSourceMetadata(
+                        dispatchQueryRequest.getDatasource()))
+                .build()
+                .toString(),
+            tags,
+            false);
+    String jobId = emrServerlessClient.startJobRun(startJobRequest);
+    return new DispatchQueryResponse(jobId, false);
+  }
+
+  private DispatchQueryResponse handleDropIndexQuery(
+      DispatchQueryRequest dispatchQueryRequest, IndexDetails indexDetails) {
+    dataSourceUserAuthorizationHelper.authorizeDataSource(
+        this.dataSourceService.getRawDataSourceMetadata(dispatchQueryRequest.getDatasource()));
+    String jobId = flintIndexMetadataReader.getJobIdFromFlintIndexMetadata(indexDetails);
+    emrServerlessClient.cancelJobRun(dispatchQueryRequest.getApplicationId(), jobId);
+    String dropIndexDummyJobId = RandomStringUtils.randomAlphanumeric(16);
+    return new DispatchQueryResponse(dropIndexDummyJobId, true);
   }
 
   private static Map<String, String> getDefaultTagsForJobSubmission(

@@ -97,6 +97,7 @@ import org.opensearch.sql.spark.client.EMRServerlessClient;
 import org.opensearch.sql.spark.client.EmrServerlessClientImplEMR;
 import org.opensearch.sql.spark.config.SparkExecutionEngineConfig;
 import org.opensearch.sql.spark.dispatcher.SparkQueryDispatcher;
+import org.opensearch.sql.spark.flint.FlintIndexMetadataReaderImpl;
 import org.opensearch.sql.spark.response.JobExecutionResponseReader;
 import org.opensearch.sql.spark.rest.RestAsyncQueryManagementAction;
 import org.opensearch.sql.spark.storage.SparkStorageFactory;
@@ -297,14 +298,15 @@ public class SQLPlugin extends Plugin implements ActionPlugin, ScriptPlugin {
   private AsyncQueryExecutorService createAsyncQueryExecutorService() {
     AsyncQueryJobMetadataStorageService asyncQueryJobMetadataStorageService =
         new OpensearchAsyncQueryJobMetadataStorageService(client, clusterService);
-    EMRServerlessClient EMRServerlessClient = createEMRServerlessClient();
+    EMRServerlessClient emrServerlessClient = createEMRServerlessClient();
     JobExecutionResponseReader jobExecutionResponseReader = new JobExecutionResponseReader(client);
     SparkQueryDispatcher sparkQueryDispatcher =
         new SparkQueryDispatcher(
-            EMRServerlessClient,
+            emrServerlessClient,
             this.dataSourceService,
             new DataSourceUserAuthorizationHelperImpl(client),
-            jobExecutionResponseReader);
+            jobExecutionResponseReader,
+            new FlintIndexMetadataReaderImpl(client));
     return new AsyncQueryExecutorServiceImpl(
         asyncQueryJobMetadataStorageService, sparkQueryDispatcher, pluginSettings);
   }

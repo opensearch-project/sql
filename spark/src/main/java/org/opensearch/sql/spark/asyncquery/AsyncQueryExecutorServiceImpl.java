@@ -25,6 +25,7 @@ import org.opensearch.sql.spark.asyncquery.model.AsyncQueryJobMetadata;
 import org.opensearch.sql.spark.config.SparkExecutionEngineConfig;
 import org.opensearch.sql.spark.dispatcher.SparkQueryDispatcher;
 import org.opensearch.sql.spark.dispatcher.model.DispatchQueryRequest;
+import org.opensearch.sql.spark.dispatcher.model.DispatchQueryResponse;
 import org.opensearch.sql.spark.functions.response.DefaultSparkSqlFunctionResponseHandle;
 import org.opensearch.sql.spark.rest.model.CreateAsyncQueryRequest;
 import org.opensearch.sql.spark.rest.model.CreateAsyncQueryResponse;
@@ -64,7 +65,7 @@ public class AsyncQueryExecutorServiceImpl implements AsyncQueryExecutorService 
                     SparkExecutionEngineConfig.toSparkExecutionEngineConfig(
                         sparkExecutionEngineConfigString));
     ClusterName clusterName = settings.getSettingValue(CLUSTER_NAME);
-    String jobId =
+    DispatchQueryResponse dispatchQueryResponse =
         sparkQueryDispatcher.dispatch(
             new DispatchQueryRequest(
                 sparkExecutionEngineConfig.getApplicationId(),
@@ -74,8 +75,11 @@ public class AsyncQueryExecutorServiceImpl implements AsyncQueryExecutorService 
                 sparkExecutionEngineConfig.getExecutionRoleARN(),
                 clusterName.value()));
     asyncQueryJobMetadataStorageService.storeJobMetadata(
-        new AsyncQueryJobMetadata(jobId, sparkExecutionEngineConfig.getApplicationId()));
-    return new CreateAsyncQueryResponse(jobId);
+        new AsyncQueryJobMetadata(
+            sparkExecutionEngineConfig.getApplicationId(),
+            dispatchQueryResponse.getJobId(),
+            dispatchQueryResponse.isDropIndexQuery()));
+    return new CreateAsyncQueryResponse(dispatchQueryResponse.getJobId());
   }
 
   @Override
@@ -84,9 +88,7 @@ public class AsyncQueryExecutorServiceImpl implements AsyncQueryExecutorService 
     Optional<AsyncQueryJobMetadata> jobMetadata =
         asyncQueryJobMetadataStorageService.getJobMetadata(queryId);
     if (jobMetadata.isPresent()) {
-      JSONObject jsonObject =
-          sparkQueryDispatcher.getQueryResponse(
-              jobMetadata.get().getApplicationId(), jobMetadata.get().getJobId());
+      JSONObject jsonObject = sparkQueryDispatcher.getQueryResponse(jobMetadata.get());
       if (JobRunState.SUCCESS.toString().equals(jsonObject.getString("status"))) {
         DefaultSparkSqlFunctionResponseHandle sparkSqlFunctionResponseHandle =
             new DefaultSparkSqlFunctionResponseHandle(jsonObject);
@@ -108,8 +110,7 @@ public class AsyncQueryExecutorServiceImpl implements AsyncQueryExecutorService 
     Optional<AsyncQueryJobMetadata> asyncQueryJobMetadata =
         asyncQueryJobMetadataStorageService.getJobMetadata(queryId);
     if (asyncQueryJobMetadata.isPresent()) {
-      return sparkQueryDispatcher.cancelJob(
-          asyncQueryJobMetadata.get().getApplicationId(), queryId);
+      return sparkQueryDispatcher.cancelJob(asyncQueryJobMetadata.get());
     }
     throw new AsyncQueryNotFoundException(String.format("QueryId: %s not found", queryId));
   }
