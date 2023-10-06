@@ -12,6 +12,11 @@ import org.opensearch.sql.spark.dispatcher.model.IndexDetails;
 @AllArgsConstructor
 public class FlintIndexMetadataReaderImpl implements FlintIndexMetadataReader {
 
+  protected static final String META_KEY = "_meta";
+  protected static final String PROPERTIES_KEY = "properties";
+  protected static final String ENV_KEY = "env";
+  protected static final String JOB_ID_KEY = "SERVERLESS_EMR_JOB_ID";
+
   private final Client client;
 
   @Override
@@ -22,12 +27,12 @@ public class FlintIndexMetadataReaderImpl implements FlintIndexMetadataReader {
     try {
       MappingMetadata mappingMetadata = mappingsResponse.mappings().get(indexName);
       Map<String, Object> mappingSourceMap = mappingMetadata.getSourceAsMap();
-      Map<String, Object> metaMap = (Map<String, Object>) mappingSourceMap.get("_meta");
-      Map<String, Object> propertiesMap = (Map<String, Object>) metaMap.get("properties");
-      Map<String, Object> envMap = (Map<String, Object>) propertiesMap.get("env");
-      return (String) envMap.get("SERVERLESS_EMR_JOB_ID");
+      Map<String, Object> metaMap = (Map<String, Object>) mappingSourceMap.get(META_KEY);
+      Map<String, Object> propertiesMap = (Map<String, Object>) metaMap.get(PROPERTIES_KEY);
+      Map<String, Object> envMap = (Map<String, Object>) propertiesMap.get(ENV_KEY);
+      return (String) envMap.get(JOB_ID_KEY);
     } catch (NullPointerException npe) {
-      throw new IllegalArgumentException("Index doesn't exist");
+      throw new IllegalArgumentException("Provided Index doesn't exist");
     }
   }
 
