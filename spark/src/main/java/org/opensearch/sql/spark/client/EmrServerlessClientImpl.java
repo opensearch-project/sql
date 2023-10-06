@@ -23,12 +23,12 @@ import java.security.PrivilegedAction;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-public class EmrServerlessClientImplEMR implements EMRServerlessClient {
+public class EmrServerlessClientImpl implements EMRServerlessClient {
 
   private final AWSEMRServerless emrServerless;
-  private static final Logger logger = LogManager.getLogger(EmrServerlessClientImplEMR.class);
+  private static final Logger logger = LogManager.getLogger(EmrServerlessClientImpl.class);
 
-  public EmrServerlessClientImplEMR(AWSEMRServerless emrServerless) {
+  public EmrServerlessClientImpl(AWSEMRServerless emrServerless) {
     this.emrServerless = emrServerless;
   }
 
