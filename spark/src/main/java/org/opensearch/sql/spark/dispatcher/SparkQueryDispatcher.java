@@ -12,11 +12,22 @@ import static org.opensearch.sql.spark.data.constants.SparkConstants.STATUS_FIEL
 import com.amazonaws.services.emrserverless.model.CancelJobRunResult;
 import com.amazonaws.services.emrserverless.model.GetJobRunResult;
 import com.amazonaws.services.emrserverless.model.JobRunState;
+import java.nio.charset.StandardCharsets;
+import java.util.Base64;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.ExecutionException;
 import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.RequiredArgsConstructor;
 import org.apache.commons.lang3.RandomStringUtils;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+import org.json.JSONArray;
 import org.json.JSONObject;
+import org.opensearch.action.admin.indices.delete.DeleteIndexRequest;
+import org.opensearch.action.support.master.AcknowledgedResponse;
+import org.opensearch.client.Client;
 import org.opensearch.sql.datasource.DataSourceService;
 import org.opensearch.sql.datasource.model.DataSourceMetadata;
 import org.opensearch.sql.datasources.auth.DataSourceUserAuthorizationHelperImpl;
@@ -28,6 +39,7 @@ import org.opensearch.sql.spark.dispatcher.model.DispatchQueryRequest;
 import org.opensearch.sql.spark.dispatcher.model.DispatchQueryResponse;
 import org.opensearch.sql.spark.dispatcher.model.FullyQualifiedTableName;
 import org.opensearch.sql.spark.dispatcher.model.IndexDetails;
+import org.opensearch.sql.spark.flint.FlintIndexMetadata;
 import org.opensearch.sql.spark.flint.FlintIndexMetadataReader;
 import org.opensearch.sql.spark.response.JobExecutionResponseReader;
 import org.opensearch.sql.spark.rest.model.LangType;
@@ -36,6 +48,8 @@ import org.opensearch.sql.spark.utils.SQLQueryUtils;
 /** This class takes care of understanding query and dispatching job query to emr serverless. */
 @AllArgsConstructor
 public class SparkQueryDispatcher {
+
+  private static final Logger LOG = LogManager.getLogger();
 
   public static final String INDEX_TAG_KEY = "index";
   public static final String DATASOURCE_TAG_KEY = "datasource";
@@ -53,6 +67,8 @@ public class SparkQueryDispatcher {
 
   private FlintIndexMetadataReader flintIndexMetadataReader;
 
+  private Client client;
+
   public DispatchQueryResponse dispatch(DispatchQueryRequest dispatchQueryRequest) {
     if (LangType.SQL.equals(dispatchQueryRequest.getLangType())) {
       return handleSQLQuery(dispatchQueryRequest);
@@ -64,6 +80,11 @@ public class SparkQueryDispatcher {
   }
 
   public JSONObject getQueryResponse(AsyncQueryJobMetadata asyncQueryJobMetadata) {
+    // todo. refactor query process logic in plugin.
+    if (asyncQueryJobMetadata.isDropIndexQuery()) {
+      return DropIndexResult.fromJobId(asyncQueryJobMetadata.getJobId()).result();
+    }
+
     // either empty json when the result is not available or data with status
     // Fetch from Result Index
     JSONObject result =
@@ -186,11 +207,33 @@ public class SparkQueryDispatcher {
     DataSourceMetadata dataSourceMetadata =
         this.dataSourceService.getRawDataSourceMetadata(dispatchQueryRequest.getDatasource());
     dataSourceUserAuthorizationHelper.authorizeDataSource(dataSourceMetadata);
-    String jobId = flintIndexMetadataReader.getJobIdFromFlintIndexMetadata(indexDetails);
-    emrServerlessClient.cancelJobRun(dispatchQueryRequest.getApplicationId(), jobId);
-    String dropIndexDummyJobId = RandomStringUtils.randomAlphanumeric(16);
+    FlintIndexMetadata indexMetadata =
+        flintIndexMetadataReader.getJobIdFromFlintIndexMetadata(indexDetails);
+    // if index is created without auto refresh. there is no job to cancel.
+    String status = JobRunState.FAILED.toString();
+    String errorMsg = "E";
+    try {
+      if (indexMetadata.isAutoRefresh()) {
+        emrServerlessClient.cancelJobRun(
+            dispatchQueryRequest.getApplicationId(), indexMetadata.getJobId());
+      }
+    } finally {
+      String indexName = indexDetails.openSearchIndexName();
+      try {
+        AcknowledgedResponse response =
+            client.admin().indices().delete(new DeleteIndexRequest().indices(indexName)).get();
+        if (!response.isAcknowledged()) {
+          errorMsg = String.format("failed to delete index %s", indexName);
+          LOG.error(errorMsg);
+        }
+        status = JobRunState.SUCCESS.toString();
+      } catch (InterruptedException | ExecutionException e) {
+        errorMsg = String.format("failed to delete index %s", indexName);
+        LOG.error(errorMsg);
+      }
+    }
     return new DispatchQueryResponse(
-        dropIndexDummyJobId, true, dataSourceMetadata.getResultIndex());
+        new DropIndexResult(status, errorMsg).toJobId(), true, dataSourceMetadata.getResultIndex());
   }
 
   private static Map<String, String> getDefaultTagsForJobSubmission(
@@ -199,5 +242,45 @@ public class SparkQueryDispatcher {
     tags.put(CLUSTER_NAME_TAG_KEY, dispatchQueryRequest.getClusterName());
     tags.put(DATASOURCE_TAG_KEY, dispatchQueryRequest.getDatasource());
     return tags;
+  }
+
+  @Getter
+  @RequiredArgsConstructor
+  public static class DropIndexResult {
+    private static final int PREFIX_LEN = 4;
+    private static final String DELIMITER = ";";
+
+    private final String status;
+    private final String errorMsg;
+
+    public static DropIndexResult fromJobId(String jobId) {
+      String[] results =
+          new String(Base64.getDecoder().decode(jobId)).substring(PREFIX_LEN).split(DELIMITER);
+      return new DropIndexResult(results[0], results[1]);
+    }
+
+    public String toJobId() {
+      String queryId =
+          RandomStringUtils.randomAlphanumeric(PREFIX_LEN)
+              + String.join(DELIMITER, status, errorMsg);
+      return Base64.getEncoder().encodeToString(queryId.getBytes(StandardCharsets.UTF_8));
+    }
+
+    public JSONObject result() {
+      JSONObject result = new JSONObject();
+      if (JobRunState.SUCCESS.toString().equalsIgnoreCase(status)) {
+        result.put(STATUS_FIELD, status);
+        // todo. refactor response handling.
+        JSONObject dummyData = new JSONObject();
+        dummyData.put("result", new JSONArray());
+        dummyData.put("schema", new JSONArray());
+        dummyData.put("applicationId", "fakeDropId");
+        result.put(DATA_FIELD, dummyData);
+      } else {
+        result.put(STATUS_FIELD, status);
+        result.put(ERROR_FIELD, errorMsg);
+      }
+      return result;
+    }
   }
 }

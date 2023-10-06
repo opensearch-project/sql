@@ -306,7 +306,8 @@ public class SQLPlugin extends Plugin implements ActionPlugin, ScriptPlugin {
             this.dataSourceService,
             new DataSourceUserAuthorizationHelperImpl(client),
             jobExecutionResponseReader,
-            new FlintIndexMetadataReaderImpl(client));
+            new FlintIndexMetadataReaderImpl(client),
+            client);
     return new AsyncQueryExecutorServiceImpl(
         asyncQueryJobMetadataStorageService, sparkQueryDispatcher, pluginSettings);
   }

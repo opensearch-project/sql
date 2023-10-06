@@ -42,7 +42,7 @@ public class FlintIndexMetadataReaderImplTest {
     String indexName = "flint_my_glue_default_http_logs_size_year_covering_index";
     mockNodeClientIndicesMappings(indexName, mappings);
     FlintIndexMetadataReader flintIndexMetadataReader = new FlintIndexMetadataReaderImpl(client);
-    String jobId =
+    FlintIndexMetadata jobId =
         flintIndexMetadataReader.getJobIdFromFlintIndexMetadata(
             new IndexDetails(
                 "size_year",

@@ -11,5 +11,5 @@ public interface FlintIndexMetadataReader {
    * @param indexDetails indexDetails.
    * @return jobId.
    */
-  String getJobIdFromFlintIndexMetadata(IndexDetails indexDetails);
+  FlintIndexMetadata getJobIdFromFlintIndexMetadata(IndexDetails indexDetails);
 }
