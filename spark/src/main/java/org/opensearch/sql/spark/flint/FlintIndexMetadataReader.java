@@ -9,7 +9,7 @@ public interface FlintIndexMetadataReader {
    * Given Index details, get the streaming job Id.
    *
    * @param indexDetails indexDetails.
-   * @return jobId.
+   * @return FlintIndexMetadata.
    */
-  FlintIndexMetadata getJobIdFromFlintIndexMetadata(IndexDetails indexDetails);
+  FlintIndexMetadata getFlintIndexMetadata(IndexDetails indexDetails);
 }

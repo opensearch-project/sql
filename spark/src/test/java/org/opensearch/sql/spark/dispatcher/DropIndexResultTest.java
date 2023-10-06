@@ -20,7 +20,7 @@ public class DropIndexResultTest {
   public void successRespEncodeDecode() {
     // encode jobId
     String jobId =
-        new SparkQueryDispatcher.DropIndexResult(JobRunState.SUCCESS.toString(), "E").toJobId();
+        new SparkQueryDispatcher.DropIndexResult(JobRunState.SUCCESS.toString()).toJobId();
 
     // decode jobId
     SparkQueryDispatcher.DropIndexResult dropIndexResult =
@@ -29,7 +29,7 @@ public class DropIndexResultTest {
     JSONObject result = dropIndexResult.result();
     assertEquals(JobRunState.SUCCESS.toString(), result.get(STATUS_FIELD));
     assertEquals(
-        "{\"result\":[],\"schema\":[],\"applicationId\":\"fakeDropId\"}",
+        "{\"result\":[],\"schema\":[],\"applicationId\":\"fakeDropIndexApplicationId\"}",
         result.get(DATA_FIELD).toString());
   }
 
@@ -38,7 +38,7 @@ public class DropIndexResultTest {
   public void failedRespEncodeDecode() {
     // encode jobId
     String jobId =
-        new SparkQueryDispatcher.DropIndexResult(JobRunState.FAILED.toString(), "error").toJobId();
+        new SparkQueryDispatcher.DropIndexResult(JobRunState.FAILED.toString()).toJobId();
 
     // decode jobId
     SparkQueryDispatcher.DropIndexResult dropIndexResult =
@@ -46,6 +46,6 @@ public class DropIndexResultTest {
 
     JSONObject result = dropIndexResult.result();
     assertEquals(JobRunState.FAILED.toString(), result.get(STATUS_FIELD));
-    assertEquals("error", result.get(ERROR_FIELD));
+    assertEquals("failed to drop index", result.get(ERROR_FIELD));
   }
 }

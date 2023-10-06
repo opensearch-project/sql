@@ -207,11 +207,9 @@ public class SparkQueryDispatcher {
     DataSourceMetadata dataSourceMetadata =
         this.dataSourceService.getRawDataSourceMetadata(dispatchQueryRequest.getDatasource());
     dataSourceUserAuthorizationHelper.authorizeDataSource(dataSourceMetadata);
-    FlintIndexMetadata indexMetadata =
-        flintIndexMetadataReader.getJobIdFromFlintIndexMetadata(indexDetails);
+    FlintIndexMetadata indexMetadata = flintIndexMetadataReader.getFlintIndexMetadata(indexDetails);
     // if index is created without auto refresh. there is no job to cancel.
     String status = JobRunState.FAILED.toString();
-    String errorMsg = "E";
     try {
       if (indexMetadata.isAutoRefresh()) {
         emrServerlessClient.cancelJobRun(
@@ -223,17 +221,15 @@ public class SparkQueryDispatcher {
         AcknowledgedResponse response =
             client.admin().indices().delete(new DeleteIndexRequest().indices(indexName)).get();
         if (!response.isAcknowledged()) {
-          errorMsg = String.format("failed to delete index %s", indexName);
-          LOG.error(errorMsg);
+          LOG.error("failed to delete index");
         }
         status = JobRunState.SUCCESS.toString();
       } catch (InterruptedException | ExecutionException e) {
-        errorMsg = String.format("failed to delete index %s", indexName);
-        LOG.error(errorMsg);
+        LOG.error("failed to delete index");
       }
     }
     return new DispatchQueryResponse(
-        new DropIndexResult(status, errorMsg).toJobId(), true, dataSourceMetadata.getResultIndex());
+        new DropIndexResult(status).toJobId(), true, dataSourceMetadata.getResultIndex());
   }
 
   private static Map<String, String> getDefaultTagsForJobSubmission(
@@ -247,22 +243,17 @@ public class SparkQueryDispatcher {
   @Getter
   @RequiredArgsConstructor
   public static class DropIndexResult {
-    private static final int PREFIX_LEN = 4;
-    private static final String DELIMITER = ";";
+    private static final int PREFIX_LEN = 10;
 
     private final String status;
-    private final String errorMsg;
 
     public static DropIndexResult fromJobId(String jobId) {
-      String[] results =
-          new String(Base64.getDecoder().decode(jobId)).substring(PREFIX_LEN).split(DELIMITER);
-      return new DropIndexResult(results[0], results[1]);
+      String status = new String(Base64.getDecoder().decode(jobId)).substring(PREFIX_LEN);
+      return new DropIndexResult(status);
     }
 
     public String toJobId() {
-      String queryId =
-          RandomStringUtils.randomAlphanumeric(PREFIX_LEN)
-              + String.join(DELIMITER, status, errorMsg);
+      String queryId = RandomStringUtils.randomAlphanumeric(PREFIX_LEN) + status;
       return Base64.getEncoder().encodeToString(queryId.getBytes(StandardCharsets.UTF_8));
     }
 
@@ -274,11 +265,11 @@ public class SparkQueryDispatcher {
         JSONObject dummyData = new JSONObject();
         dummyData.put("result", new JSONArray());
         dummyData.put("schema", new JSONArray());
-        dummyData.put("applicationId", "fakeDropId");
+        dummyData.put("applicationId", "fakeDropIndexApplicationId");
         result.put(DATA_FIELD, dummyData);
       } else {
         result.put(STATUS_FIELD, status);
-        result.put(ERROR_FIELD, errorMsg);
+        result.put(ERROR_FIELD, "failed to drop index");
       }
       return result;
     }

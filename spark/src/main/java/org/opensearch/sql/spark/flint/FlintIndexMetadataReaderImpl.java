@@ -14,7 +14,7 @@ public class FlintIndexMetadataReaderImpl implements FlintIndexMetadataReader {
   private final Client client;
 
   @Override
-  public FlintIndexMetadata getJobIdFromFlintIndexMetadata(IndexDetails indexDetails) {
+  public FlintIndexMetadata getFlintIndexMetadata(IndexDetails indexDetails) {
     String indexName = indexDetails.openSearchIndexName();
     GetMappingsResponse mappingsResponse =
         client.admin().indices().prepareGetMappings(indexName).get();

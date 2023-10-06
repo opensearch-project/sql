@@ -626,7 +626,7 @@ public class SparkQueryDispatcherTest {
             openSearchClient);
 
     String jobId =
-        new SparkQueryDispatcher.DropIndexResult(JobRunState.SUCCESS.toString(), "E").toJobId();
+        new SparkQueryDispatcher.DropIndexResult(JobRunState.SUCCESS.toString()).toJobId();
 
     JSONObject result =
         sparkQueryDispatcher.getQueryResponse(
@@ -639,7 +639,7 @@ public class SparkQueryDispatcherTest {
   @Test
   void testDropIndexQuery() throws ExecutionException, InterruptedException {
     String query = "DROP INDEX size_year ON my_glue.default.http_logs";
-    when(flintIndexMetadataReader.getJobIdFromFlintIndexMetadata(
+    when(flintIndexMetadataReader.getFlintIndexMetadata(
             new IndexDetails(
                 "size_year",
                 new FullyQualifiedTableName("my_glue.default.http_logs"),
@@ -675,7 +675,7 @@ public class SparkQueryDispatcherTest {
     verify(emrServerlessClient, times(1)).cancelJobRun(EMRS_APPLICATION_ID, EMR_JOB_ID);
     verify(dataSourceUserAuthorizationHelper, times(1)).authorizeDataSource(dataSourceMetadata);
     verify(flintIndexMetadataReader, times(1))
-        .getJobIdFromFlintIndexMetadata(
+        .getFlintIndexMetadata(
             new IndexDetails(
                 "size_year",
                 new FullyQualifiedTableName("my_glue.default.http_logs"),
@@ -692,7 +692,7 @@ public class SparkQueryDispatcherTest {
   @Test
   void testDropSkippingIndexQuery() throws ExecutionException, InterruptedException {
     String query = "DROP SKIPPING INDEX ON my_glue.default.http_logs";
-    when(flintIndexMetadataReader.getJobIdFromFlintIndexMetadata(
+    when(flintIndexMetadataReader.getFlintIndexMetadata(
             new IndexDetails(
                 null,
                 new FullyQualifiedTableName("my_glue.default.http_logs"),
@@ -726,7 +726,7 @@ public class SparkQueryDispatcherTest {
     verify(emrServerlessClient, times(1)).cancelJobRun(EMRS_APPLICATION_ID, EMR_JOB_ID);
     verify(dataSourceUserAuthorizationHelper, times(1)).authorizeDataSource(dataSourceMetadata);
     verify(flintIndexMetadataReader, times(1))
-        .getJobIdFromFlintIndexMetadata(
+        .getFlintIndexMetadata(
             new IndexDetails(
                 null,
                 new FullyQualifiedTableName("my_glue.default.http_logs"),
@@ -743,7 +743,7 @@ public class SparkQueryDispatcherTest {
   void testDropSkippingIndexQueryAutoRefreshFalse()
       throws ExecutionException, InterruptedException {
     String query = "DROP SKIPPING INDEX ON my_glue.default.http_logs";
-    when(flintIndexMetadataReader.getJobIdFromFlintIndexMetadata(
+    when(flintIndexMetadataReader.getFlintIndexMetadata(
             new IndexDetails(
                 null,
                 new FullyQualifiedTableName("my_glue.default.http_logs"),
@@ -771,7 +771,7 @@ public class SparkQueryDispatcherTest {
     verify(emrServerlessClient, times(0)).cancelJobRun(EMRS_APPLICATION_ID, EMR_JOB_ID);
     verify(dataSourceUserAuthorizationHelper, times(1)).authorizeDataSource(dataSourceMetadata);
     verify(flintIndexMetadataReader, times(1))
-        .getJobIdFromFlintIndexMetadata(
+        .getFlintIndexMetadata(
             new IndexDetails(
                 null,
                 new FullyQualifiedTableName("my_glue.default.http_logs"),
@@ -788,7 +788,7 @@ public class SparkQueryDispatcherTest {
   void testDropSkippingIndexQueryDeleteIndexException()
       throws ExecutionException, InterruptedException {
     String query = "DROP SKIPPING INDEX ON my_glue.default.http_logs";
-    when(flintIndexMetadataReader.getJobIdFromFlintIndexMetadata(
+    when(flintIndexMetadataReader.getFlintIndexMetadata(
             new IndexDetails(
                 null,
                 new FullyQualifiedTableName("my_glue.default.http_logs"),
@@ -817,7 +817,7 @@ public class SparkQueryDispatcherTest {
     verify(emrServerlessClient, times(0)).cancelJobRun(EMRS_APPLICATION_ID, EMR_JOB_ID);
     verify(dataSourceUserAuthorizationHelper, times(1)).authorizeDataSource(dataSourceMetadata);
     verify(flintIndexMetadataReader, times(1))
-        .getJobIdFromFlintIndexMetadata(
+        .getFlintIndexMetadata(
             new IndexDetails(
                 null,
                 new FullyQualifiedTableName("my_glue.default.http_logs"),
@@ -828,8 +828,8 @@ public class SparkQueryDispatcherTest {
         SparkQueryDispatcher.DropIndexResult.fromJobId(dispatchQueryResponse.getJobId());
     Assertions.assertEquals(JobRunState.FAILED.toString(), dropIndexResult.getStatus());
     Assertions.assertEquals(
-        "failed to delete index flint_my_glue_default_http_logs_skipping_index",
-        dropIndexResult.getErrorMsg());
+        "{\"error\":\"failed to drop index\",\"status\":\"FAILED\"}",
+        dropIndexResult.result().toString());
     Assertions.assertTrue(dispatchQueryResponse.isDropIndexQuery());
   }
 
