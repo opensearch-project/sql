@@ -96,6 +96,8 @@ import org.opensearch.sql.spark.asyncquery.OpensearchAsyncQueryJobMetadataStorag
 import org.opensearch.sql.spark.client.EMRServerlessClient;
 import org.opensearch.sql.spark.client.EmrServerlessClientImpl;
 import org.opensearch.sql.spark.config.SparkExecutionEngineConfig;
+import org.opensearch.sql.spark.config.SparkExecutionEngineConfigSupplier;
+import org.opensearch.sql.spark.config.SparkExecutionEngineConfigSupplierImpl;
 import org.opensearch.sql.spark.dispatcher.SparkQueryDispatcher;
 import org.opensearch.sql.spark.flint.FlintIndexMetadataReaderImpl;
 import org.opensearch.sql.spark.response.JobExecutionResponseReader;
@@ -216,15 +218,21 @@ public class SQLPlugin extends Plugin implements ActionPlugin, ScriptPlugin {
     dataSourceService.createDataSource(defaultOpenSearchDataSourceMetadata());
     LocalClusterState.state().setClusterService(clusterService);
     LocalClusterState.state().setPluginSettings((OpenSearchSettings) pluginSettings);
-    if (StringUtils.isEmpty(this.pluginSettings.getSettingValue(SPARK_EXECUTION_ENGINE_CONFIG))) {
+    SparkExecutionEngineConfigSupplier sparkExecutionEngineConfigSupplier =
+        new SparkExecutionEngineConfigSupplierImpl(pluginSettings);
+    SparkExecutionEngineConfig sparkExecutionEngineConfig =
+        sparkExecutionEngineConfigSupplier.getSparkExecutionEngineConfig();
+    if (StringUtils.isEmpty(sparkExecutionEngineConfig.getRegion())) {
       LOGGER.warn(
           String.format(
-              "Async Query APIs are disabled as %s is not configured in cluster settings. "
+              "Async Query APIs are disabled as %s is not configured properly in cluster settings. "
                   + "Please configure and restart the domain to enable Async Query APIs",
               SPARK_EXECUTION_ENGINE_CONFIG.getKeyValue()));
       this.asyncQueryExecutorService = new AsyncQueryExecutorServiceImpl();
     } else {
-      this.asyncQueryExecutorService = createAsyncQueryExecutorService();
+      this.asyncQueryExecutorService =
+          createAsyncQueryExecutorService(
+              sparkExecutionEngineConfigSupplier, sparkExecutionEngineConfig);
     }
 
     ModulesBuilder modules = new ModulesBuilder();
@@ -295,10 +303,13 @@ public class SQLPlugin extends Plugin implements ActionPlugin, ScriptPlugin {
         dataSourceUserAuthorizationHelper);
   }
 
-  private AsyncQueryExecutorService createAsyncQueryExecutorService() {
+  private AsyncQueryExecutorService createAsyncQueryExecutorService(
+      SparkExecutionEngineConfigSupplier sparkExecutionEngineConfigSupplier,
+      SparkExecutionEngineConfig sparkExecutionEngineConfig) {
     AsyncQueryJobMetadataStorageService asyncQueryJobMetadataStorageService =
         new OpensearchAsyncQueryJobMetadataStorageService(client, clusterService);
-    EMRServerlessClient emrServerlessClient = createEMRServerlessClient();
+    EMRServerlessClient emrServerlessClient =
+        createEMRServerlessClient(sparkExecutionEngineConfig.getRegion());
     JobExecutionResponseReader jobExecutionResponseReader = new JobExecutionResponseReader(client);
     SparkQueryDispatcher sparkQueryDispatcher =
         new SparkQueryDispatcher(
@@ -308,21 +319,18 @@ public class SQLPlugin extends Plugin implements ActionPlugin, ScriptPlugin {
             jobExecutionResponseReader,
             new FlintIndexMetadataReaderImpl(client));
     return new AsyncQueryExecutorServiceImpl(
-        asyncQueryJobMetadataStorageService, sparkQueryDispatcher, pluginSettings);
+        asyncQueryJobMetadataStorageService,
+        sparkQueryDispatcher,
+        sparkExecutionEngineConfigSupplier);
   }
 
-  private EMRServerlessClient createEMRServerlessClient() {
-    String sparkExecutionEngineConfigString =
-        this.pluginSettings.getSettingValue(SPARK_EXECUTION_ENGINE_CONFIG);
+  private EMRServerlessClient createEMRServerlessClient(String region) {
     return AccessController.doPrivileged(
         (PrivilegedAction<EMRServerlessClient>)
             () -> {
-              SparkExecutionEngineConfig sparkExecutionEngineConfig =
-                  SparkExecutionEngineConfig.toSparkExecutionEngineConfig(
-                      sparkExecutionEngineConfigString);
               AWSEMRServerless awsemrServerless =
                   AWSEMRServerlessClientBuilder.standard()
-                      .withRegion(sparkExecutionEngineConfig.getRegion())
+                      .withRegion(region)
                       .withCredentials(new DefaultAWSCredentialsProviderChain())
                       .build();
               return new EmrServerlessClientImpl(awsemrServerless);
