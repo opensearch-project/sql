@@ -9,7 +9,7 @@ package org.opensearch.sql.spark.flint;
 public enum FlintIndexType {
   SKIPPING("skipping_index"),
   COVERING("index"),
-  MATERIALIZED("materialized_view");
+  MATERIALIZED_VIEW("materialized_view");
 
   private final String suffix;
 

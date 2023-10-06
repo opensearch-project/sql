@@ -12,6 +12,7 @@ import java.net.URL;
 import java.util.Map;
 import lombok.SneakyThrows;
 import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -31,26 +32,86 @@ public class FlintIndexMetadataReaderImplTest {
   @Mock(answer = RETURNS_DEEP_STUBS)
   private Client client;
 
-  // TODO FIX this
   @SneakyThrows
-  // @Test
-  void testGetJobIdFromFlintIndexMetadata() {
+  @Test
+  void testGetJobIdFromFlintSkippingIndexMetadata() {
     URL url =
         Resources.getResource(
-            "flint-index-mappings/flint_my_glue_default_http_logs_size_year_covering_index.json");
+            "flint-index-mappings/flint_mys3_default_http_logs_skipping_index.json");
     String mappings = Resources.toString(url, Charsets.UTF_8);
-    String indexName = "flint_my_glue_default_http_logs_size_year_covering_index";
+    String indexName = "flint_mys3_default_http_logs_skipping_index";
     mockNodeClientIndicesMappings(indexName, mappings);
     FlintIndexMetadataReader flintIndexMetadataReader = new FlintIndexMetadataReaderImpl(client);
     String jobId =
         flintIndexMetadataReader.getJobIdFromFlintIndexMetadata(
             new IndexDetails(
-                "size_year",
-                new FullyQualifiedTableName("my_glue.default.http_logs"),
+                null,
+                new FullyQualifiedTableName("mys3.default.http_logs"),
+                false,
+                true,
+                FlintIndexType.SKIPPING));
+    Assertions.assertEquals("00fdmvv9hp8u0o0q", jobId);
+  }
+
+  @SneakyThrows
+  @Test
+  void testGetJobIdFromFlintCoveringIndexMetadata() {
+    URL url =
+        Resources.getResource("flint-index-mappings/flint_mys3_default_http_logs_cv1_index.json");
+    String mappings = Resources.toString(url, Charsets.UTF_8);
+    String indexName = "flint_mys3_default_http_logs_cv1_index";
+    mockNodeClientIndicesMappings(indexName, mappings);
+    FlintIndexMetadataReader flintIndexMetadataReader = new FlintIndexMetadataReaderImpl(client);
+    String jobId =
+        flintIndexMetadataReader.getJobIdFromFlintIndexMetadata(
+            new IndexDetails(
+                "cv1",
+                new FullyQualifiedTableName("mys3.default.http_logs"),
                 false,
                 true,
                 FlintIndexType.COVERING));
-    Assertions.assertEquals("00fdlum58g9g1g0q", jobId);
+    Assertions.assertEquals("00fdmvv9hp8u0o0q", jobId);
+  }
+
+  @SneakyThrows
+  @Test
+  void testGetJobIDWithNPEException() {
+    URL url = Resources.getResource("flint-index-mappings/npe_mapping.json");
+    String mappings = Resources.toString(url, Charsets.UTF_8);
+    String indexName = "flint_mys3_default_http_logs_cv1_index";
+    mockNodeClientIndicesMappings(indexName, mappings);
+    FlintIndexMetadataReader flintIndexMetadataReader = new FlintIndexMetadataReaderImpl(client);
+    IllegalArgumentException illegalArgumentException =
+        Assertions.assertThrows(
+            IllegalArgumentException.class,
+            () ->
+                flintIndexMetadataReader.getJobIdFromFlintIndexMetadata(
+                    new IndexDetails(
+                        "cv1",
+                        new FullyQualifiedTableName("mys3.default.http_logs"),
+                        false,
+                        true,
+                        FlintIndexType.COVERING)));
+    Assertions.assertEquals("Provided Index doesn't exist", illegalArgumentException.getMessage());
+  }
+
+  @SneakyThrows
+  @Test
+  void testGetJobIdFromUnsupportedIndex() {
+    FlintIndexMetadataReader flintIndexMetadataReader = new FlintIndexMetadataReaderImpl(client);
+    UnsupportedOperationException unsupportedOperationException =
+        Assertions.assertThrows(
+            UnsupportedOperationException.class,
+            () ->
+                flintIndexMetadataReader.getJobIdFromFlintIndexMetadata(
+                    new IndexDetails(
+                        "cv1",
+                        new FullyQualifiedTableName("mys3.default.http_logs"),
+                        false,
+                        true,
+                        FlintIndexType.MATERIALIZED_VIEW)));
+    Assertions.assertEquals(
+        "Unsupported Index Type : MATERIALIZED_VIEW", unsupportedOperationException.getMessage());
   }
 
   @SneakyThrows
