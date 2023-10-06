@@ -97,7 +97,8 @@ public class OpensearchAsyncQueryJobMetadataStorageService
       createJobMetadataIndex();
       return Optional.empty();
     }
-    return searchInJobMetadataIndex(QueryBuilders.termQuery("jobId", jobId)).stream().findFirst();
+    return searchInJobMetadataIndex(QueryBuilders.termQuery("jobId.keyword", jobId)).stream()
+        .findFirst();
   }
 
   private void createJobMetadataIndex() {

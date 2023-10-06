@@ -42,15 +42,15 @@ public class FlintIndexMetadataReaderImplTest {
     String indexName = "flint_mys3_default_http_logs_skipping_index";
     mockNodeClientIndicesMappings(indexName, mappings);
     FlintIndexMetadataReader flintIndexMetadataReader = new FlintIndexMetadataReaderImpl(client);
-    String jobId =
-        flintIndexMetadataReader.getJobIdFromFlintIndexMetadata(
+    FlintIndexMetadata indexMetadata =
+        flintIndexMetadataReader.getFlintIndexMetadata(
             new IndexDetails(
                 null,
                 new FullyQualifiedTableName("mys3.default.http_logs"),
                 false,
                 true,
                 FlintIndexType.SKIPPING));
-    Assertions.assertEquals("00fdmvv9hp8u0o0q", jobId);
+    Assertions.assertEquals("00fdmvv9hp8u0o0q", indexMetadata.getJobId());
   }
 
   @SneakyThrows
@@ -62,15 +62,15 @@ public class FlintIndexMetadataReaderImplTest {
     String indexName = "flint_mys3_default_http_logs_cv1_index";
     mockNodeClientIndicesMappings(indexName, mappings);
     FlintIndexMetadataReader flintIndexMetadataReader = new FlintIndexMetadataReaderImpl(client);
-    String jobId =
-        flintIndexMetadataReader.getJobIdFromFlintIndexMetadata(
+    FlintIndexMetadata indexMetadata =
+        flintIndexMetadataReader.getFlintIndexMetadata(
             new IndexDetails(
                 "cv1",
                 new FullyQualifiedTableName("mys3.default.http_logs"),
                 false,
                 true,
                 FlintIndexType.COVERING));
-    Assertions.assertEquals("00fdmvv9hp8u0o0q", jobId);
+    Assertions.assertEquals("00fdmvv9hp8u0o0q", indexMetadata.getJobId());
   }
 
   @SneakyThrows
@@ -85,7 +85,7 @@ public class FlintIndexMetadataReaderImplTest {
         Assertions.assertThrows(
             IllegalArgumentException.class,
             () ->
-                flintIndexMetadataReader.getJobIdFromFlintIndexMetadata(
+                flintIndexMetadataReader.getFlintIndexMetadata(
                     new IndexDetails(
                         "cv1",
                         new FullyQualifiedTableName("mys3.default.http_logs"),
@@ -103,7 +103,7 @@ public class FlintIndexMetadataReaderImplTest {
         Assertions.assertThrows(
             UnsupportedOperationException.class,
             () ->
-                flintIndexMetadataReader.getJobIdFromFlintIndexMetadata(
+                flintIndexMetadataReader.getFlintIndexMetadata(
                     new IndexDetails(
                         "cv1",
                         new FullyQualifiedTableName("mys3.default.http_logs"),
