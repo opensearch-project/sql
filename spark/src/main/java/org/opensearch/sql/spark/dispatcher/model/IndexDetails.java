@@ -23,4 +23,38 @@ public class IndexDetails {
   private Boolean autoRefresh = false;
   private boolean isDropIndex;
   private FlintIndexType indexType;
+
+  public String openSearchIndexName() {
+    FullyQualifiedTableName fullyQualifiedTableName = getFullyQualifiedTableName();
+    if (FlintIndexType.SKIPPING.equals(getIndexType())) {
+      String indexName =
+          "flint"
+              + "_"
+              + fullyQualifiedTableName.getDatasourceName()
+              + "_"
+              + fullyQualifiedTableName.getSchemaName()
+              + "_"
+              + fullyQualifiedTableName.getTableName()
+              + "_"
+              + getIndexType().getSuffix();
+      return indexName.toLowerCase();
+    } else if (FlintIndexType.COVERING.equals(getIndexType())) {
+      String indexName =
+          "flint"
+              + "_"
+              + fullyQualifiedTableName.getDatasourceName()
+              + "_"
+              + fullyQualifiedTableName.getSchemaName()
+              + "_"
+              + fullyQualifiedTableName.getTableName()
+              + "_"
+              + getIndexName()
+              + "_"
+              + getIndexType().getSuffix();
+      return indexName.toLowerCase();
+    } else {
+      throw new UnsupportedOperationException(
+          String.format("Unsupported Index Type : %s", getIndexType()));
+    }
+  }
 }
