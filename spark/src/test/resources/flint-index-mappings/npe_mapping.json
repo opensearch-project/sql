@@ -1,0 +1,35 @@
+{
+  "flint_mys3_default_http_logs_cv1_index": {
+    "mappings": {
+      "_doc": {
+        "_meta": {
+          "kind": "skipping",
+          "indexedColumns": [
+            {
+              "columnType": "int",
+              "kind": "VALUE_SET",
+              "columnName": "status"
+            }
+          ],
+          "name": "flint_mys3_default_http_logs_cv1_index",
+          "options": {},
+          "source": "mys3.default.http_logs",
+          "version": "0.1.0"
+        }
+      }
+    },
+    "settings": {
+      "index": {
+        "number_of_shards": 5,
+        "number_of_replicas": 0,
+        "max_result_window": 100,
+        "version": {
+          "created": "6050399"
+        }
+      }
+    },
+    "mapping_version": "1",
+    "settings_version": "1",
+    "aliases_version": "1"
+  }
+}
