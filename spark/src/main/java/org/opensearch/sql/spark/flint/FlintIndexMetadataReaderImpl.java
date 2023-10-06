@@ -23,7 +23,7 @@ public class FlintIndexMetadataReaderImpl implements FlintIndexMetadataReader {
       Map<String, Object> mappingSourceMap = mappingMetadata.getSourceAsMap();
       return FlintIndexMetadata.fromMetatdata((Map<String, Object>) mappingSourceMap.get("_meta"));
     } catch (NullPointerException npe) {
-      throw new IllegalArgumentException("Index doesn't exist");
+      throw new IllegalArgumentException("Provided Index doesn't exist");
     }
   }
 }
