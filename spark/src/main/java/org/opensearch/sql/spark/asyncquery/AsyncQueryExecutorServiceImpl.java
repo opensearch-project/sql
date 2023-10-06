@@ -75,8 +75,8 @@ public class AsyncQueryExecutorServiceImpl implements AsyncQueryExecutorService 
                 createAsyncQueryRequest.getDatasource(),
                 createAsyncQueryRequest.getLang(),
                 sparkExecutionEngineConfig.getExecutionRoleARN(),
-                clusterName.value()));
-
+                clusterName.value(),
+                sparkExecutionEngineConfig.getSparkSubmitParameters()));
     asyncQueryJobMetadataStorageService.storeJobMetadata(
         new AsyncQueryJobMetadata(
             sparkExecutionEngineConfig.getApplicationId(),
