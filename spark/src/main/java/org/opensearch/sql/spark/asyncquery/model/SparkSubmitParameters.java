@@ -18,12 +18,14 @@ import java.net.URISyntaxException;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.function.Supplier;
+import lombok.AllArgsConstructor;
 import lombok.RequiredArgsConstructor;
 import org.opensearch.sql.datasource.model.DataSourceMetadata;
 import org.opensearch.sql.datasource.model.DataSourceType;
 import org.opensearch.sql.datasources.auth.AuthenticationType;
 
 /** Define Spark Submit Parameters. */
+@AllArgsConstructor
 @RequiredArgsConstructor
 public class SparkSubmitParameters {
   public static final String SPACE = " ";
@@ -32,10 +34,14 @@ public class SparkSubmitParameters {
   private final String className;
   private final Map<String, String> config;
 
+  /** Extra parameters to append finally */
+  private String extraParameters;
+
   public static class Builder {
 
     private final String className;
     private final Map<String, String> config;
+    private String extraParameters;
 
     private Builder() {
       className = DEFAULT_CLASS_NAME;
@@ -130,8 +136,13 @@ public class SparkSubmitParameters {
       return this;
     }
 
+    public Builder extraParameters(String params) {
+      extraParameters = params;
+      return this;
+    }
+
     public SparkSubmitParameters build() {
-      return new SparkSubmitParameters(className, config);
+      return new SparkSubmitParameters(className, config, extraParameters);
     }
   }
 
@@ -147,6 +158,10 @@ public class SparkSubmitParameters {
       stringBuilder.append(EQUALS);
       stringBuilder.append(config.get(key));
       stringBuilder.append(SPACE);
+    }
+
+    if (extraParameters != null) {
+      stringBuilder.append(extraParameters);
     }
     return stringBuilder.toString();
   }
