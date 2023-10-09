@@ -10,7 +10,7 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 
 import org.junit.jupiter.api.Test;
 
-public class SparkExecutionEngineConfigTest {
+public class SparkExecutionEngineConfigClusterSettingTest {
 
   @Test
   public void testToSparkExecutionEngineConfigWithoutAllFields() {
@@ -20,8 +20,8 @@ public class SparkExecutionEngineConfigTest {
             + "\"executionRoleARN\": \"role-1\","
             + "\"region\": \"us-west-1\""
             + "}";
-    SparkExecutionEngineConfig config =
-        SparkExecutionEngineConfig.toSparkExecutionEngineConfig(json);
+    SparkExecutionEngineConfigClusterSetting config =
+        SparkExecutionEngineConfigClusterSetting.toSparkExecutionEngineConfig(json);
 
     assertEquals("app-1", config.getApplicationId());
     assertEquals("role-1", config.getExecutionRoleARN());
@@ -38,8 +38,8 @@ public class SparkExecutionEngineConfigTest {
             + "\"region\": \"us-west-1\","
             + "\"sparkSubmitParameters\": \"--conf A=1\""
             + "}";
-    SparkExecutionEngineConfig config =
-        SparkExecutionEngineConfig.toSparkExecutionEngineConfig(json);
+    SparkExecutionEngineConfigClusterSetting config =
+        SparkExecutionEngineConfigClusterSetting.toSparkExecutionEngineConfig(json);
 
     assertEquals("app-1", config.getApplicationId());
     assertEquals("role-1", config.getExecutionRoleARN());
