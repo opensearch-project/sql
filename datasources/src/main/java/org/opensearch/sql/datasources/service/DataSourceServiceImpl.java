@@ -106,7 +106,7 @@ public class DataSourceServiceImpl implements DataSourceService {
       this.dataSourceMetadataStorage.updateDataSourceMetadata(dataSourceMetadata);
     } else {
       throw new UnsupportedOperationException(
-              "Not allowed to update default datasource :" + DEFAULT_DATASOURCE_NAME);
+          "Not allowed to update default datasource :" + DEFAULT_DATASOURCE_NAME);
     }
   }
 

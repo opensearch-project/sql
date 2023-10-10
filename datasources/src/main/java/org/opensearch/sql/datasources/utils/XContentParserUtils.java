@@ -90,6 +90,59 @@ public class XContentParserUtils {
         name, description, connector, allowedRoles, properties, resultIndex);
   }
 
+  public static Map<String, Object> toMap(XContentParser parser) throws IOException {
+    Map<String, Object> resultMap = new HashMap<>();
+    String name;
+    String description;
+    List<String> allowedRoles = new ArrayList<>();
+    Map<String, String> properties = new HashMap<>();
+    String resultIndex;
+    ensureExpectedToken(XContentParser.Token.START_OBJECT, parser.nextToken(), parser);
+    while (parser.nextToken() != XContentParser.Token.END_OBJECT) {
+      String fieldName = parser.currentName();
+      parser.nextToken();
+      switch (fieldName) {
+        case NAME_FIELD:
+          name = parser.textOrNull();
+          resultMap.put(NAME_FIELD, name);
+          break;
+        case DESCRIPTION_FIELD:
+          description = parser.textOrNull();
+          resultMap.put(DESCRIPTION_FIELD, description);
+          break;
+        case CONNECTOR_FIELD:
+          // no-op - datasource connector should not be modified
+          break;
+        case ALLOWED_ROLES_FIELD:
+          while (parser.nextToken() != XContentParser.Token.END_ARRAY) {
+            allowedRoles.add(parser.text());
+          }
+          resultMap.put(ALLOWED_ROLES_FIELD, allowedRoles);
+          break;
+        case PROPERTIES_FIELD:
+          ensureExpectedToken(XContentParser.Token.START_OBJECT, parser.currentToken(), parser);
+          while (parser.nextToken() != XContentParser.Token.END_OBJECT) {
+            String key = parser.currentName();
+            parser.nextToken();
+            String value = parser.textOrNull();
+            properties.put(key, value);
+          }
+          resultMap.put(PROPERTIES_FIELD, properties);
+          break;
+        case RESULT_INDEX_FIELD:
+          resultIndex = parser.textOrNull();
+          resultMap.put(RESULT_INDEX_FIELD, resultIndex);
+          break;
+        default:
+          throw new IllegalArgumentException("Unknown field: " + fieldName);
+      }
+    }
+    if (resultMap.get(NAME_FIELD) == null || resultMap.get(NAME_FIELD) == "") {
+      throw new IllegalArgumentException("Name is a required field.");
+    }
+    return resultMap;
+  }
+
   /**
    * Converts json string to DataSourceMetadata.
    *

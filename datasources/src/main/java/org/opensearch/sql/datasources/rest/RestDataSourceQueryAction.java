@@ -16,6 +16,7 @@ import com.google.common.collect.ImmutableList;
 import java.io.IOException;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.OpenSearchException;
@@ -85,17 +86,16 @@ public class RestDataSourceQueryAction extends BaseRestHandler {
          */
         new Route(PUT, BASE_DATASOURCE_ACTION_URL),
 
-            /*
-             * PATCH datasources
-             * Request body:
-             * Ref
-             * [org.opensearch.sql.plugin.transport.datasource.model.PatchDataSourceActionRequest]
-             * Response body:
-             * Ref
-             * [org.opensearch.sql.plugin.transport.datasource.model.PatchDataSourceActionResponse]
-             */
-
-            new Route(PATCH, BASE_DATASOURCE_ACTION_URL),
+        /*
+         * PATCH datasources
+         * Request body:
+         * Ref
+         * [org.opensearch.sql.plugin.transport.datasource.model.PatchDataSourceActionRequest]
+         * Response body:
+         * Ref
+         * [org.opensearch.sql.plugin.transport.datasource.model.PatchDataSourceActionResponse]
+         */
+        new Route(PATCH, BASE_DATASOURCE_ACTION_URL),
 
         /*
          * DELETE datasources
@@ -121,9 +121,9 @@ public class RestDataSourceQueryAction extends BaseRestHandler {
         return executeUpdateRequest(restRequest, nodeClient);
       case DELETE:
         return executeDeleteRequest(restRequest, nodeClient);
-        case PATCH:
-            return executePatchRequest(restRequest, nodeClient);
-        default:
+      case PATCH:
+        return executePatchRequest(restRequest, nodeClient);
+      default:
         return restChannel ->
             restChannel.sendResponse(
                 new BytesRestResponse(
@@ -217,34 +217,33 @@ public class RestDataSourceQueryAction extends BaseRestHandler {
                     }));
   }
 
-    private RestChannelConsumer executePatchRequest(RestRequest restRequest, NodeClient nodeClient)
-            throws IOException {
-        DataSourceMetadata dataSourceMetadata =
-                XContentParserUtils.toDataSourceMetadata(restRequest.contentParser());
-        return restChannel ->
-                Scheduler.schedule(
-                        nodeClient,
-                        () ->
-                                nodeClient.execute(
-                                        TransportPatchDataSourceAction.ACTION_TYPE,
-                                        new PatchDataSourceActionRequest(dataSourceMetadata),
-                                        new ActionListener<>() {
-                                            @Override
-                                            public void onResponse(
-                                                    PatchDataSourceActionResponse patchDataSourceActionResponse) {
-                                                restChannel.sendResponse(
-                                                        new BytesRestResponse(
-                                                                RestStatus.OK,
-                                                                "application/json; charset=UTF-8",
-                                                                patchDataSourceActionResponse.getResult()));
-                                            }
+  private RestChannelConsumer executePatchRequest(RestRequest restRequest, NodeClient nodeClient)
+      throws IOException {
+    Map<String, Object> dataSourceData = XContentParserUtils.toMap(restRequest.contentParser());
+    return restChannel ->
+        Scheduler.schedule(
+            nodeClient,
+            () ->
+                nodeClient.execute(
+                    TransportPatchDataSourceAction.ACTION_TYPE,
+                    new PatchDataSourceActionRequest(dataSourceData),
+                    new ActionListener<>() {
+                      @Override
+                      public void onResponse(
+                          PatchDataSourceActionResponse patchDataSourceActionResponse) {
+                        restChannel.sendResponse(
+                            new BytesRestResponse(
+                                RestStatus.OK,
+                                "application/json; charset=UTF-8",
+                                patchDataSourceActionResponse.getResult()));
+                      }
 
-                                            @Override
-                                            public void onFailure(Exception e) {
-                                                handleException(e, restChannel);
-                                            }
-                                        }));
-    }
+                      @Override
+                      public void onFailure(Exception e) {
+                        handleException(e, restChannel);
+                      }
+                    }));
+  }
 
   private RestChannelConsumer executeDeleteRequest(RestRequest restRequest, NodeClient nodeClient) {
 

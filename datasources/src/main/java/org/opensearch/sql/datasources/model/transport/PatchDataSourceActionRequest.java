@@ -7,32 +7,32 @@
 
 package org.opensearch.sql.datasources.model.transport;
 
+import static org.opensearch.sql.analysis.DataSourceSchemaIdentifierNameResolver.DEFAULT_DATASOURCE_NAME;
+import static org.opensearch.sql.datasources.utils.XContentParserUtils.NAME_FIELD;
+
+import java.io.IOException;
+import java.util.Map;
 import lombok.Getter;
 import org.opensearch.action.ActionRequest;
 import org.opensearch.action.ActionRequestValidationException;
 import org.opensearch.core.common.io.stream.StreamInput;
-import org.opensearch.sql.datasource.model.DataSourceMetadata;
-
-import java.io.IOException;
-
-import static org.opensearch.sql.analysis.DataSourceSchemaIdentifierNameResolver.DEFAULT_DATASOURCE_NAME;
 
 public class PatchDataSourceActionRequest extends ActionRequest {
 
-  @Getter private DataSourceMetadata dataSourceMetadata;
+  @Getter private Map<String, Object> dataSourceData;
 
   /** Constructor of UpdateDataSourceActionRequest from StreamInput. */
   public PatchDataSourceActionRequest(StreamInput in) throws IOException {
     super(in);
   }
 
-  public PatchDataSourceActionRequest(DataSourceMetadata dataSourceMetadata) {
-    this.dataSourceMetadata = dataSourceMetadata;
+  public PatchDataSourceActionRequest(Map<String, Object> dataSourceData) {
+    this.dataSourceData = dataSourceData;
   }
 
   @Override
   public ActionRequestValidationException validate() {
-    if (this.dataSourceMetadata.getName().equals(DEFAULT_DATASOURCE_NAME)) {
+    if (this.dataSourceData.get(NAME_FIELD).equals(DEFAULT_DATASOURCE_NAME)) {
       ActionRequestValidationException exception = new ActionRequestValidationException();
       exception.addValidationError(
           "Not allowed to update datasource with name : " + DEFAULT_DATASOURCE_NAME);
