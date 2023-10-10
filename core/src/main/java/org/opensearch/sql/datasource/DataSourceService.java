@@ -56,11 +56,18 @@ public interface DataSourceService {
   void createDataSource(DataSourceMetadata metadata);
 
   /**
-   * Updates {@link DataSource} corresponding to dataSourceMetadata.
+   * Updates {@link DataSource} corresponding to dataSourceMetadata (all fields needed).
    *
    * @param dataSourceMetadata {@link DataSourceMetadata}.
    */
   void updateDataSource(DataSourceMetadata dataSourceMetadata);
+
+  /**
+   * Patches {@link DataSource} corresponding to the given name (only fields to be changed needed).
+   *
+   * @param dataSourceMetadata {@link DataSourceMetadata}.
+   */
+  void patchDataSource(DataSourceMetadata dataSourceMetadata);
 
   /**
    * Deletes {@link DataSource} corresponding to the DataSource name.

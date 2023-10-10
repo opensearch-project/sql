@@ -99,6 +99,18 @@ public class DataSourceServiceImpl implements DataSourceService {
   }
 
   @Override
+  public void patchDataSource(DataSourceMetadata dataSourceMetadata) {
+    validateDataSourceMetaData(dataSourceMetadata);
+    if (!dataSourceMetadata.getName().equals(DEFAULT_DATASOURCE_NAME)) {
+      this.dataSourceLoaderCache.getOrLoadDataSource(dataSourceMetadata);
+      this.dataSourceMetadataStorage.updateDataSourceMetadata(dataSourceMetadata);
+    } else {
+      throw new UnsupportedOperationException(
+              "Not allowed to update default datasource :" + DEFAULT_DATASOURCE_NAME);
+    }
+  }
+
+  @Override
   public void deleteDataSource(String dataSourceName) {
     if (dataSourceName.equals(DEFAULT_DATASOURCE_NAME)) {
       throw new UnsupportedOperationException(

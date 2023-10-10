@@ -1,0 +1,44 @@
+/*
+ *
+ *  * Copyright OpenSearch Contributors
+ *  * SPDX-License-Identifier: Apache-2.0
+ *
+ */
+
+package org.opensearch.sql.datasources.model.transport;
+
+import lombok.Getter;
+import org.opensearch.action.ActionRequest;
+import org.opensearch.action.ActionRequestValidationException;
+import org.opensearch.core.common.io.stream.StreamInput;
+import org.opensearch.sql.datasource.model.DataSourceMetadata;
+
+import java.io.IOException;
+
+import static org.opensearch.sql.analysis.DataSourceSchemaIdentifierNameResolver.DEFAULT_DATASOURCE_NAME;
+
+public class PatchDataSourceActionRequest extends ActionRequest {
+
+  @Getter private DataSourceMetadata dataSourceMetadata;
+
+  /** Constructor of UpdateDataSourceActionRequest from StreamInput. */
+  public PatchDataSourceActionRequest(StreamInput in) throws IOException {
+    super(in);
+  }
+
+  public PatchDataSourceActionRequest(DataSourceMetadata dataSourceMetadata) {
+    this.dataSourceMetadata = dataSourceMetadata;
+  }
+
+  @Override
+  public ActionRequestValidationException validate() {
+    if (this.dataSourceMetadata.getName().equals(DEFAULT_DATASOURCE_NAME)) {
+      ActionRequestValidationException exception = new ActionRequestValidationException();
+      exception.addValidationError(
+          "Not allowed to update datasource with name : " + DEFAULT_DATASOURCE_NAME);
+      return exception;
+    } else {
+      return null;
+    }
+  }
+}

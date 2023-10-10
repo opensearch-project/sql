@@ -10,10 +10,7 @@ package org.opensearch.sql.datasources.rest;
 import static org.opensearch.core.rest.RestStatus.BAD_REQUEST;
 import static org.opensearch.core.rest.RestStatus.NOT_FOUND;
 import static org.opensearch.core.rest.RestStatus.SERVICE_UNAVAILABLE;
-import static org.opensearch.rest.RestRequest.Method.DELETE;
-import static org.opensearch.rest.RestRequest.Method.GET;
-import static org.opensearch.rest.RestRequest.Method.POST;
-import static org.opensearch.rest.RestRequest.Method.PUT;
+import static org.opensearch.rest.RestRequest.Method.*;
 
 import com.google.common.collect.ImmutableList;
 import java.io.IOException;
@@ -32,18 +29,8 @@ import org.opensearch.rest.RestRequest;
 import org.opensearch.sql.datasource.model.DataSourceMetadata;
 import org.opensearch.sql.datasources.exceptions.DataSourceNotFoundException;
 import org.opensearch.sql.datasources.exceptions.ErrorMessage;
-import org.opensearch.sql.datasources.model.transport.CreateDataSourceActionRequest;
-import org.opensearch.sql.datasources.model.transport.CreateDataSourceActionResponse;
-import org.opensearch.sql.datasources.model.transport.DeleteDataSourceActionRequest;
-import org.opensearch.sql.datasources.model.transport.DeleteDataSourceActionResponse;
-import org.opensearch.sql.datasources.model.transport.GetDataSourceActionRequest;
-import org.opensearch.sql.datasources.model.transport.GetDataSourceActionResponse;
-import org.opensearch.sql.datasources.model.transport.UpdateDataSourceActionRequest;
-import org.opensearch.sql.datasources.model.transport.UpdateDataSourceActionResponse;
-import org.opensearch.sql.datasources.transport.TransportCreateDataSourceAction;
-import org.opensearch.sql.datasources.transport.TransportDeleteDataSourceAction;
-import org.opensearch.sql.datasources.transport.TransportGetDataSourceAction;
-import org.opensearch.sql.datasources.transport.TransportUpdateDataSourceAction;
+import org.opensearch.sql.datasources.model.transport.*;
+import org.opensearch.sql.datasources.transport.*;
 import org.opensearch.sql.datasources.utils.Scheduler;
 import org.opensearch.sql.datasources.utils.XContentParserUtils;
 
@@ -98,6 +85,18 @@ public class RestDataSourceQueryAction extends BaseRestHandler {
          */
         new Route(PUT, BASE_DATASOURCE_ACTION_URL),
 
+            /*
+             * PATCH datasources
+             * Request body:
+             * Ref
+             * [org.opensearch.sql.plugin.transport.datasource.model.PatchDataSourceActionRequest]
+             * Response body:
+             * Ref
+             * [org.opensearch.sql.plugin.transport.datasource.model.PatchDataSourceActionResponse]
+             */
+
+            new Route(PATCH, BASE_DATASOURCE_ACTION_URL),
+
         /*
          * DELETE datasources
          * Request body: Ref
@@ -122,7 +121,9 @@ public class RestDataSourceQueryAction extends BaseRestHandler {
         return executeUpdateRequest(restRequest, nodeClient);
       case DELETE:
         return executeDeleteRequest(restRequest, nodeClient);
-      default:
+        case PATCH:
+            return executePatchRequest(restRequest, nodeClient);
+        default:
         return restChannel ->
             restChannel.sendResponse(
                 new BytesRestResponse(
@@ -215,6 +216,35 @@ public class RestDataSourceQueryAction extends BaseRestHandler {
                       }
                     }));
   }
+
+    private RestChannelConsumer executePatchRequest(RestRequest restRequest, NodeClient nodeClient)
+            throws IOException {
+        DataSourceMetadata dataSourceMetadata =
+                XContentParserUtils.toDataSourceMetadata(restRequest.contentParser());
+        return restChannel ->
+                Scheduler.schedule(
+                        nodeClient,
+                        () ->
+                                nodeClient.execute(
+                                        TransportPatchDataSourceAction.ACTION_TYPE,
+                                        new PatchDataSourceActionRequest(dataSourceMetadata),
+                                        new ActionListener<>() {
+                                            @Override
+                                            public void onResponse(
+                                                    PatchDataSourceActionResponse patchDataSourceActionResponse) {
+                                                restChannel.sendResponse(
+                                                        new BytesRestResponse(
+                                                                RestStatus.OK,
+                                                                "application/json; charset=UTF-8",
+                                                                patchDataSourceActionResponse.getResult()));
+                                            }
+
+                                            @Override
+                                            public void onFailure(Exception e) {
+                                                handleException(e, restChannel);
+                                            }
+                                        }));
+    }
 
   private RestChannelConsumer executeDeleteRequest(RestRequest restRequest, NodeClient nodeClient) {
 
