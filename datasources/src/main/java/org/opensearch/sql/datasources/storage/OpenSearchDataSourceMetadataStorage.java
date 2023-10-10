@@ -7,6 +7,9 @@
 
 package org.opensearch.sql.datasources.storage;
 
+import static org.opensearch.sql.datasources.utils.XContentParserUtils.NAME_FIELD;
+import static org.opensearch.sql.datasources.utils.XContentParserUtils.PROPERTIES_FIELD;
+
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
@@ -162,6 +165,35 @@ public class OpenSearchDataSourceMetadataStorage implements DataSourceMetadataSt
   }
 
   @Override
+  public void patchDataSourceMetadata(Map<String, Object> dataSourceData) {
+    encryptDecryptAuthenticationData(dataSourceData, true);
+    UpdateRequest updateRequest =
+        new UpdateRequest(DATASOURCE_INDEX_NAME, (String) dataSourceData.get(NAME_FIELD));
+    UpdateResponse updateResponse;
+    try (ThreadContext.StoredContext storedContext =
+        client.threadPool().getThreadContext().stashContext()) {
+      updateRequest.doc(XContentParserUtils.convertMapToXContent(dataSourceData));
+      updateRequest.setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE);
+      ActionFuture<UpdateResponse> updateResponseActionFuture = client.update(updateRequest);
+      updateResponse = updateResponseActionFuture.actionGet();
+    } catch (DocumentMissingException exception) {
+      throw new DataSourceNotFoundException(
+          "Datasource with name: " + dataSourceData.get(NAME_FIELD) + " doesn't exist");
+    } catch (Exception e) {
+      throw new RuntimeException(e);
+    }
+
+    if (updateResponse.getResult().equals(DocWriteResponse.Result.UPDATED)
+        || updateResponse.getResult().equals(DocWriteResponse.Result.NOOP)) {
+      LOG.debug("DatasourceMetadata : {}  successfully updated", dataSourceData.get(NAME_FIELD));
+    } else {
+      throw new RuntimeException(
+          "Saving dataSource metadata information failed with result : "
+              + updateResponse.getResult().getLowercase());
+    }
+  }
+
+  @Override
   public void deleteDataSourceMetadata(String datasourceName) {
     DeleteRequest deleteRequest = new DeleteRequest(DATASOURCE_INDEX_NAME);
     deleteRequest.id(datasourceName);
@@ -261,6 +293,16 @@ public class OpenSearchDataSourceMetadataStorage implements DataSourceMetadataSt
     handleBasicAuthPropertiesEncryptionDecryption(propertiesMap, isEncryption);
     handleSigV4PropertiesEncryptionDecryption(propertiesMap, isEncryption);
     return dataSourceMetadata;
+  }
+
+  // Encrypt and Decrypt irrespective of auth type.If properties name ends in username, password,
+  // secret_key and access_key.
+  private Map<String, Object> encryptDecryptAuthenticationData(
+      Map<String, Object> dataSourceData, Boolean isEncryption) {
+    Map<String, String> propertiesMap = (Map<String, String>) dataSourceData.get(PROPERTIES_FIELD);
+    handleBasicAuthPropertiesEncryptionDecryption(propertiesMap, isEncryption);
+    handleSigV4PropertiesEncryptionDecryption(propertiesMap, isEncryption);
+    return dataSourceData;
   }
 
   private void handleBasicAuthPropertiesEncryptionDecryption(

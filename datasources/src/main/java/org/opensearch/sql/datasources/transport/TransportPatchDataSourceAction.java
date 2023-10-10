@@ -7,6 +7,7 @@
 
 package org.opensearch.sql.datasources.transport;
 
+import static org.opensearch.sql.datasources.utils.XContentParserUtils.NAME_FIELD;
 import static org.opensearch.sql.protocol.response.format.JsonResponseFormatter.Style.PRETTY;
 
 import org.opensearch.action.ActionType;
@@ -57,14 +58,14 @@ public class TransportPatchDataSourceAction
       PatchDataSourceActionRequest request,
       ActionListener<PatchDataSourceActionResponse> actionListener) {
     try {
-      dataSourceService.updateDataSource(request.getDataSourceMetadata());
+      dataSourceService.patchDataSource(request.getDataSourceData());
       String responseContent =
           new JsonResponseFormatter<String>(PRETTY) {
             @Override
             protected Object buildJsonObject(String response) {
               return response;
             }
-          }.format("Updated DataSource with name " + request.getDataSourceMetadata().getName());
+          }.format("Updated DataSource with name " + request.getDataSourceData().get(NAME_FIELD));
       actionListener.onResponse(new PatchDataSourceActionResponse(responseContent));
     } catch (Exception e) {
       actionListener.onFailure(e);

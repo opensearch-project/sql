@@ -6,15 +6,11 @@
 package org.opensearch.sql.datasources.service;
 
 import static org.opensearch.sql.analysis.DataSourceSchemaIdentifierNameResolver.DEFAULT_DATASOURCE_NAME;
+import static org.opensearch.sql.datasources.utils.XContentParserUtils.NAME_FIELD;
 
 import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Objects;
-import java.util.Optional;
-import java.util.Set;
+import java.util.*;
 import org.opensearch.sql.common.utils.StringUtils;
 import org.opensearch.sql.datasource.DataSourceService;
 import org.opensearch.sql.datasource.model.DataSource;
@@ -99,11 +95,9 @@ public class DataSourceServiceImpl implements DataSourceService {
   }
 
   @Override
-  public void patchDataSource(DataSourceMetadata dataSourceMetadata) {
-    validateDataSourceMetaData(dataSourceMetadata);
-    if (!dataSourceMetadata.getName().equals(DEFAULT_DATASOURCE_NAME)) {
-      this.dataSourceLoaderCache.getOrLoadDataSource(dataSourceMetadata);
-      this.dataSourceMetadataStorage.updateDataSourceMetadata(dataSourceMetadata);
+  public void patchDataSource(Map<String, Object> dataSourceData) {
+    if (!dataSourceData.get(NAME_FIELD).equals(DEFAULT_DATASOURCE_NAME)) {
+      this.dataSourceMetadataStorage.patchDataSourceMetadata(dataSourceData);
     } else {
       throw new UnsupportedOperationException(
           "Not allowed to update default datasource :" + DEFAULT_DATASOURCE_NAME);
