@@ -233,7 +233,7 @@ class DataSourceServiceImplTest {
     assertEquals(1, dataSourceMetadataSet.size());
     DataSourceMetadata dataSourceMetadata = dataSourceMetadataSet.iterator().next();
     assertTrue(dataSourceMetadata.getProperties().containsKey("prometheus.uri"));
-    assertFalse(dataSourceMetadata.getProperties().containsKey("prometheus.auth.type"));
+    assertTrue(dataSourceMetadata.getProperties().containsKey("prometheus.auth.type"));
     assertFalse(dataSourceMetadata.getProperties().containsKey("prometheus.auth.username"));
     assertFalse(dataSourceMetadata.getProperties().containsKey("prometheus.auth.password"));
     assertFalse(
@@ -352,9 +352,70 @@ class DataSourceServiceImplTest {
     DataSourceMetadata dataSourceMetadata1 = dataSourceService.getDataSourceMetadata("testDS");
     assertEquals("testDS", dataSourceMetadata1.getName());
     assertEquals(DataSourceType.PROMETHEUS, dataSourceMetadata1.getConnector());
-    assertFalse(dataSourceMetadata1.getProperties().containsKey("prometheus.auth.type"));
+    assertTrue(dataSourceMetadata1.getProperties().containsKey("prometheus.auth.type"));
     assertFalse(dataSourceMetadata1.getProperties().containsKey("prometheus.auth.username"));
     assertFalse(dataSourceMetadata1.getProperties().containsKey("prometheus.auth.password"));
+  }
+
+  @Test
+  void testRemovalOfAuthorizationInfoForAccessKeyAndSecretKye() {
+    HashMap<String, String> properties = new HashMap<>();
+    properties.put("prometheus.uri", "https://localhost:9090");
+    properties.put("prometheus.auth.type", "awssigv4");
+    properties.put("prometheus.auth.access_key", "access_key");
+    properties.put("prometheus.auth.secret_key", "secret_key");
+    DataSourceMetadata dataSourceMetadata =
+        new DataSourceMetadata(
+            "testDS",
+            DataSourceType.PROMETHEUS,
+            Collections.singletonList("prometheus_access"),
+            properties,
+            null);
+    when(dataSourceMetadataStorage.getDataSourceMetadata("testDS"))
+        .thenReturn(Optional.of(dataSourceMetadata));
+
+    DataSourceMetadata dataSourceMetadata1 = dataSourceService.getDataSourceMetadata("testDS");
+    assertEquals("testDS", dataSourceMetadata1.getName());
+    assertEquals(DataSourceType.PROMETHEUS, dataSourceMetadata1.getConnector());
+    assertTrue(dataSourceMetadata1.getProperties().containsKey("prometheus.auth.type"));
+    assertFalse(dataSourceMetadata1.getProperties().containsKey("prometheus.auth.access_key"));
+    assertFalse(dataSourceMetadata1.getProperties().containsKey("prometheus.auth.secret_key"));
+  }
+
+  @Test
+  void testRemovalOfAuthorizationInfoForGlueWithRoleARN() {
+    HashMap<String, String> properties = new HashMap<>();
+    properties.put("glue.auth.type", "iam_role");
+    properties.put("glue.auth.role_arn", "role_arn");
+    properties.put("glue.indexstore.opensearch.uri", "http://localhost:9200");
+    properties.put("glue.indexstore.opensearch.auth", "basicauth");
+    properties.put("glue.indexstore.opensearch.auth.username", "username");
+    properties.put("glue.indexstore.opensearch.auth.password", "password");
+    DataSourceMetadata dataSourceMetadata =
+        new DataSourceMetadata(
+            "testGlue",
+            DataSourceType.S3GLUE,
+            Collections.singletonList("glue_access"),
+            properties,
+            null);
+    when(dataSourceMetadataStorage.getDataSourceMetadata("testGlue"))
+        .thenReturn(Optional.of(dataSourceMetadata));
+
+    DataSourceMetadata dataSourceMetadata1 = dataSourceService.getDataSourceMetadata("testGlue");
+    assertEquals("testGlue", dataSourceMetadata1.getName());
+    assertEquals(DataSourceType.S3GLUE, dataSourceMetadata1.getConnector());
+    assertTrue(dataSourceMetadata1.getProperties().containsKey("glue.auth.type"));
+    assertTrue(dataSourceMetadata1.getProperties().containsKey("glue.auth.role_arn"));
+    assertTrue(dataSourceMetadata1.getProperties().containsKey("glue.indexstore.opensearch.uri"));
+    assertTrue(dataSourceMetadata1.getProperties().containsKey("glue.indexstore.opensearch.auth"));
+    assertFalse(
+        dataSourceMetadata1
+            .getProperties()
+            .containsKey("glue.indexstore.opensearch.auth.username"));
+    assertFalse(
+        dataSourceMetadata1
+            .getProperties()
+            .containsKey("glue.indexstore.opensearch.auth.password"));
   }
 
   @Test
@@ -381,7 +442,7 @@ class DataSourceServiceImplTest {
                     "testDS", DataSourceType.PROMETHEUS, Collections.emptyList(), properties)));
     DataSourceMetadata dataSourceMetadata = this.dataSourceService.getDataSourceMetadata("testDS");
     assertTrue(dataSourceMetadata.getProperties().containsKey("prometheus.uri"));
-    assertFalse(dataSourceMetadata.getProperties().containsKey("prometheus.auth.type"));
+    assertTrue(dataSourceMetadata.getProperties().containsKey("prometheus.auth.type"));
     assertFalse(dataSourceMetadata.getProperties().containsKey("prometheus.auth.username"));
     assertFalse(dataSourceMetadata.getProperties().containsKey("prometheus.auth.password"));
     verify(dataSourceMetadataStorage, times(1)).getDataSourceMetadata("testDS");
