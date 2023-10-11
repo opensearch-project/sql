@@ -8,7 +8,6 @@
 package org.opensearch.sql.datasources.service;
 
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 import org.opensearch.sql.datasource.model.DataSource;
 import org.opensearch.sql.datasource.model.DataSourceMetadata;
@@ -47,13 +46,6 @@ public interface DataSourceMetadataStorage {
    * @param dataSourceMetadata {@link DataSourceMetadata}.
    */
   void updateDataSourceMetadata(DataSourceMetadata dataSourceMetadata);
-
-  /**
-   * Patches {@link DataSourceMetadata} in underlying storage.
-   *
-   * @param dataSourceData
-   */
-  void patchDataSourceMetadata(Map<String, Object> dataSourceData);
 
   /**
    * Deletes {@link DataSourceMetadata} corresponding to the datasourceName from underlying storage.

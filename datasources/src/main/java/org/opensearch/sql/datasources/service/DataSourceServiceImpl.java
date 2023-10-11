@@ -6,7 +6,7 @@
 package org.opensearch.sql.datasources.service;
 
 import static org.opensearch.sql.analysis.DataSourceSchemaIdentifierNameResolver.DEFAULT_DATASOURCE_NAME;
-import static org.opensearch.sql.datasources.utils.XContentParserUtils.NAME_FIELD;
+import static org.opensearch.sql.datasources.utils.XContentParserUtils.*;
 
 import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
@@ -86,7 +86,6 @@ public class DataSourceServiceImpl implements DataSourceService {
   public void updateDataSource(DataSourceMetadata dataSourceMetadata) {
     validateDataSourceMetaData(dataSourceMetadata);
     if (!dataSourceMetadata.getName().equals(DEFAULT_DATASOURCE_NAME)) {
-      this.dataSourceLoaderCache.getOrLoadDataSource(dataSourceMetadata);
       this.dataSourceMetadataStorage.updateDataSourceMetadata(dataSourceMetadata);
     } else {
       throw new UnsupportedOperationException(
@@ -97,6 +96,10 @@ public class DataSourceServiceImpl implements DataSourceService {
   @Override
   public void patchDataSource(Map<String, Object> dataSourceData) {
     if (!dataSourceData.get(NAME_FIELD).equals(DEFAULT_DATASOURCE_NAME)) {
+      DataSourceMetadata dataSourceMetadata =
+          getRawDataSourceMetadata((String) dataSourceData.get(NAME_FIELD));
+      replaceOldDatasourceMetadata(dataSourceData, dataSourceMetadata);
+      updateDataSource(dataSourceMetadata);
       this.dataSourceMetadataStorage.patchDataSourceMetadata(dataSourceData);
     } else {
       throw new UnsupportedOperationException(
@@ -138,6 +141,35 @@ public class DataSourceServiceImpl implements DataSourceService {
         !Objects.isNull(metadata.getProperties()),
         "Missing properties field in datasource configuration."
             + " Properties are required parameters.");
+  }
+
+  /**
+   * Replaces the fields in the map of the given metadata.
+   *
+   * @param dataSourceData
+   * @param metadata {@link DataSourceMetadata}.
+   */
+  private void replaceOldDatasourceMetadata(
+      Map<String, Object> dataSourceData, DataSourceMetadata metadata) {
+
+    for (String key : dataSourceData.keySet()) {
+      switch (key) {
+          // Name and connector should not be modified
+        case DESCRIPTION_FIELD:
+          metadata.setDescription((String) dataSourceData.get(DESCRIPTION_FIELD));
+          break;
+        case ALLOWED_ROLES_FIELD:
+          metadata.setAllowedRoles((List<String>) dataSourceData.get(ALLOWED_ROLES_FIELD));
+          break;
+        case PROPERTIES_FIELD:
+          Map<String, String> properties = new HashMap<>(metadata.getProperties());
+          properties.putAll(((Map<String, String>) dataSourceData.get(PROPERTIES_FIELD)));
+          break;
+        case NAME_FIELD:
+        case CONNECTOR_FIELD:
+          break;
+      }
+    }
   }
 
   @Override

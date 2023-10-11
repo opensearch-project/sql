@@ -7,7 +7,6 @@
 
 package org.opensearch.sql.datasources.storage;
 
-import static org.opensearch.sql.datasources.utils.XContentParserUtils.NAME_FIELD;
 import static org.opensearch.sql.datasources.utils.XContentParserUtils.PROPERTIES_FIELD;
 
 import java.io.IOException;
@@ -157,35 +156,6 @@ public class OpenSearchDataSourceMetadataStorage implements DataSourceMetadataSt
     if (updateResponse.getResult().equals(DocWriteResponse.Result.UPDATED)
         || updateResponse.getResult().equals(DocWriteResponse.Result.NOOP)) {
       LOG.debug("DatasourceMetadata : {}  successfully updated", dataSourceMetadata.getName());
-    } else {
-      throw new RuntimeException(
-          "Saving dataSource metadata information failed with result : "
-              + updateResponse.getResult().getLowercase());
-    }
-  }
-
-  @Override
-  public void patchDataSourceMetadata(Map<String, Object> dataSourceData) {
-    encryptDecryptAuthenticationData(dataSourceData, true);
-    UpdateRequest updateRequest =
-        new UpdateRequest(DATASOURCE_INDEX_NAME, (String) dataSourceData.get(NAME_FIELD));
-    UpdateResponse updateResponse;
-    try (ThreadContext.StoredContext storedContext =
-        client.threadPool().getThreadContext().stashContext()) {
-      updateRequest.doc(XContentParserUtils.convertMapToXContent(dataSourceData));
-      updateRequest.setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE);
-      ActionFuture<UpdateResponse> updateResponseActionFuture = client.update(updateRequest);
-      updateResponse = updateResponseActionFuture.actionGet();
-    } catch (DocumentMissingException exception) {
-      throw new DataSourceNotFoundException(
-          "Datasource with name: " + dataSourceData.get(NAME_FIELD) + " doesn't exist");
-    } catch (Exception e) {
-      throw new RuntimeException(e);
-    }
-
-    if (updateResponse.getResult().equals(DocWriteResponse.Result.UPDATED)
-        || updateResponse.getResult().equals(DocWriteResponse.Result.NOOP)) {
-      LOG.debug("DatasourceMetadata : {}  successfully updated", dataSourceData.get(NAME_FIELD));
     } else {
       throw new RuntimeException(
           "Saving dataSource metadata information failed with result : "
