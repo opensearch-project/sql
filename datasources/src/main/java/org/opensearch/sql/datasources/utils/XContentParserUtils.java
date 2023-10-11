@@ -186,38 +186,4 @@ public class XContentParserUtils {
     builder.endObject();
     return builder;
   }
-
-  /**
-   * Converts Map<String, Object> (partial DataSourceMetadata) to XContentBuilder.
-   *
-   * @param dataSourceData
-   * @return XContentBuilder {@link XContentBuilder}
-   * @throws Exception Exception.
-   */
-  public static XContentBuilder convertMapToXContent(Map<String, Object> dataSourceData)
-      throws Exception {
-
-    XContentBuilder builder = XContentFactory.jsonBuilder();
-    builder.startObject();
-    if (dataSourceData.containsKey(DESCRIPTION_FIELD)) {
-      builder.field(DESCRIPTION_FIELD, dataSourceData.get(DESCRIPTION_FIELD));
-    }
-    if (dataSourceData.containsKey(ALLOWED_ROLES_FIELD)) {
-      builder.field(
-          ALLOWED_ROLES_FIELD, ((List<String>) dataSourceData.get(ALLOWED_ROLES_FIELD)).toArray());
-    }
-    if (dataSourceData.containsKey(PROPERTIES_FIELD)) {
-      builder.startObject(PROPERTIES_FIELD);
-      for (Map.Entry<String, String> entry :
-          ((Map<String, String>) dataSourceData.get(PROPERTIES_FIELD)).entrySet()) {
-        builder.field(entry.getKey(), entry.getValue());
-      }
-      builder.endObject();
-    }
-    if (dataSourceData.containsKey(RESULT_INDEX_FIELD)) {
-      builder.field(RESULT_INDEX_FIELD, dataSourceData.get(RESULT_INDEX_FIELD));
-    }
-    builder.endObject();
-    return builder;
-  }
 }
