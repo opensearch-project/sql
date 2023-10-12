@@ -1,4 +1,4 @@
-Compatible with OpenSearch and OpenSearch Dashboards Version 2.10.0
+Compatible with OpenSearch and OpenSearch Dashboards Version 2.11.0
 
 ### Features
 
