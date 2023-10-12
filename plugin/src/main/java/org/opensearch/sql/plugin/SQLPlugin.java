@@ -180,6 +180,10 @@ public class SQLPlugin extends Plugin implements ActionPlugin, ScriptPlugin {
             TransportUpdateDataSourceAction.class),
         new ActionHandler<>(
             new ActionType<>(
+                TransportPatchDataSourceAction.NAME, PatchDataSourceActionResponse::new),
+            TransportPatchDataSourceAction.class),
+        new ActionHandler<>(
+            new ActionType<>(
                 TransportDeleteDataSourceAction.NAME, DeleteDataSourceActionResponse::new),
             TransportDeleteDataSourceAction.class),
         new ActionHandler<>(

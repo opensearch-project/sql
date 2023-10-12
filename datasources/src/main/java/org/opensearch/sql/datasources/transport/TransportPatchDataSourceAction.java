@@ -33,7 +33,7 @@ public class TransportPatchDataSourceAction
   private DataSourceService dataSourceService;
 
   /**
-   * TransportUpdateDataSourceAction action for updating datasource.
+   * TransportPatchDataSourceAction action for updating datasource.
    *
    * @param transportService transportService.
    * @param actionFilters actionFilters.
