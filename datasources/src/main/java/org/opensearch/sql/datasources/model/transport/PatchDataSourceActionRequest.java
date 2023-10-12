@@ -8,6 +8,7 @@
 package org.opensearch.sql.datasources.model.transport;
 
 import static org.opensearch.sql.analysis.DataSourceSchemaIdentifierNameResolver.DEFAULT_DATASOURCE_NAME;
+import static org.opensearch.sql.datasources.utils.XContentParserUtils.CONNECTOR_FIELD;
 import static org.opensearch.sql.datasources.utils.XContentParserUtils.NAME_FIELD;
 
 import java.io.IOException;
@@ -36,6 +37,10 @@ public class PatchDataSourceActionRequest extends ActionRequest {
       ActionRequestValidationException exception = new ActionRequestValidationException();
       exception.addValidationError(
           "Not allowed to update datasource with name : " + DEFAULT_DATASOURCE_NAME);
+      return exception;
+    } else if (this.dataSourceData.get(CONNECTOR_FIELD) != null) {
+      ActionRequestValidationException exception = new ActionRequestValidationException();
+      exception.addValidationError("Not allowed to update connector for datasource");
       return exception;
     } else {
       return null;

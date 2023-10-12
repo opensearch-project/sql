@@ -100,7 +100,6 @@ public class DataSourceServiceImpl implements DataSourceService {
           getRawDataSourceMetadata((String) dataSourceData.get(NAME_FIELD));
       replaceOldDatasourceMetadata(dataSourceData, dataSourceMetadata);
       updateDataSource(dataSourceMetadata);
-      this.dataSourceMetadataStorage.patchDataSourceMetadata(dataSourceData);
     } else {
       throw new UnsupportedOperationException(
           "Not allowed to update default datasource :" + DEFAULT_DATASOURCE_NAME);
