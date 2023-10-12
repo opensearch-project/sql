@@ -26,7 +26,7 @@ import org.opensearch.transport.TransportService;
 public class TransportPatchDataSourceAction
     extends HandledTransportAction<PatchDataSourceActionRequest, PatchDataSourceActionResponse> {
 
-  public static final String NAME = "cluster:admin/opensearch/ql/datasources/update";
+  public static final String NAME = "cluster:admin/opensearch/ql/datasources/patch";
   public static final ActionType<PatchDataSourceActionResponse> ACTION_TYPE =
       new ActionType<>(NAME, PatchDataSourceActionResponse::new);
 
