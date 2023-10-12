@@ -58,7 +58,7 @@ public class TransportPatchDataSourceActionTest {
         .onResponse(patchDataSourceActionResponseArgumentCaptor.capture());
     PatchDataSourceActionResponse patchDataSourceActionResponse =
         patchDataSourceActionResponseArgumentCaptor.getValue();
-    String responseAsJson = "\"Created DataSource with name test_datasource\"";
+    String responseAsJson = "\"Updated DataSource with name test_datasource\"";
     Assertions.assertEquals(responseAsJson, patchDataSourceActionResponse.getResult());
   }
 

@@ -141,10 +141,10 @@ public class DataSourceAPIsIT extends PPLIntegTestCase {
     Map<String, Object> updateDS =
         new HashMap<>(Map.of(NAME_FIELD, "update_prometheus", DESCRIPTION_FIELD, "test"));
     Request patchRequest = getPatchDataSourceRequest(updateDS);
-    Response patchResponse = client().performRequest(updateRequest);
+    Response patchResponse = client().performRequest(patchRequest);
     Assert.assertEquals(200, patchResponse.getStatusLine().getStatusCode());
     String patchResponseString = getResponseBody(updateResponse);
-    Assert.assertEquals("\"Updated DataSource with name update_prometheus\"", updateResponseString);
+    Assert.assertEquals("\"Updated DataSource with name update_prometheus\"", patchResponseString);
 
     // Datasource is not immediately updated. so introducing a sleep of 2s.
     Thread.sleep(2000);
@@ -152,11 +152,11 @@ public class DataSourceAPIsIT extends PPLIntegTestCase {
     // get datasource to validate the modification.
     // get datasource
     Request getRequestAfterPatch = getFetchDataSourceRequest("update_prometheus");
-    Response getResponseAfterPatch = client().performRequest(getRequest);
-    Assert.assertEquals(200, getResponse.getStatusLine().getStatusCode());
+    Response getResponseAfterPatch = client().performRequest(getRequestAfterPatch);
+    Assert.assertEquals(200, getResponseAfterPatch.getStatusLine().getStatusCode());
     String getResponseStringAfterPatch = getResponseBody(getResponse);
     DataSourceMetadata dataSourceMetadataAfterPatch =
-        new Gson().fromJson(getResponseString, DataSourceMetadata.class);
+        new Gson().fromJson(getResponseStringAfterPatch, DataSourceMetadata.class);
     Assert.assertEquals(
         "https://randomtest.com:9090",
         dataSourceMetadataAfterPatch.getProperties().get("prometheus.uri"));
