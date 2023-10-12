@@ -86,6 +86,7 @@ public class DataSourceServiceImpl implements DataSourceService {
   public void updateDataSource(DataSourceMetadata dataSourceMetadata) {
     validateDataSourceMetaData(dataSourceMetadata);
     if (!dataSourceMetadata.getName().equals(DEFAULT_DATASOURCE_NAME)) {
+      this.dataSourceLoaderCache.getOrLoadDataSource(dataSourceMetadata);
       this.dataSourceMetadataStorage.updateDataSourceMetadata(dataSourceMetadata);
     } else {
       throw new UnsupportedOperationException(
