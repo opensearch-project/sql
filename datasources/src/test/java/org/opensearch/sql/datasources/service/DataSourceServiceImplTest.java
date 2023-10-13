@@ -18,8 +18,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 import static org.opensearch.sql.analysis.DataSourceSchemaIdentifierNameResolver.DEFAULT_DATASOURCE_NAME;
-import static org.opensearch.sql.datasources.utils.XContentParserUtils.DESCRIPTION_FIELD;
-import static org.opensearch.sql.datasources.utils.XContentParserUtils.NAME_FIELD;
+import static org.opensearch.sql.datasources.utils.XContentParserUtils.*;
 
 import com.google.common.collect.ImmutableMap;
 import java.util.ArrayList;
@@ -307,7 +306,20 @@ class DataSourceServiceImplTest {
   void testPatchDataSourceSuccessCase() {
     // Tests that patch underlying implementation is to call update
     Map<String, Object> dataSourceData =
-        new HashMap<>(Map.of(NAME_FIELD, "testDS", DESCRIPTION_FIELD, "test"));
+        new HashMap<>(
+            Map.of(
+                NAME_FIELD,
+                "testDS",
+                DESCRIPTION_FIELD,
+                "test",
+                CONNECTOR_FIELD,
+                "PROMETHEUS",
+                ALLOWED_ROLES_FIELD,
+                new ArrayList<>(),
+                PROPERTIES_FIELD,
+                Map.of(),
+                RESULT_INDEX_FIELD,
+                ""));
     DataSourceMetadata getData =
         metadata("testDS", DataSourceType.OPENSEARCH, Collections.emptyList(), ImmutableMap.of());
     when(dataSourceMetadataStorage.getDataSourceMetadata("testDS"))
