@@ -28,9 +28,8 @@ public class SessionManager {
             .sessionId(newSessionId())
             .sessionStateStore(stateStore)
             .serverlessClient(emrServerlessClient)
-            .createSessionRequest(request)
             .build();
-    session.open();
+    session.open(request);
     return session;
   }
 

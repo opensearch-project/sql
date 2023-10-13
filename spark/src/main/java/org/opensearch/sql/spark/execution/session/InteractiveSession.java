@@ -29,12 +29,11 @@ public class InteractiveSession implements Session {
   private final SessionId sessionId;
   private final SessionStateStore sessionStateStore;
   private final EMRServerlessClient serverlessClient;
-  private final CreateSessionRequest createSessionRequest;
 
   private SessionModel sessionModel;
 
   @Override
-  public void open() {
+  public void open(CreateSessionRequest createSessionRequest) {
     try {
       String jobID = serverlessClient.startJobRun(createSessionRequest.getStartJobRequest());
       String applicationId = createSessionRequest.getStartJobRequest().getApplicationId();
