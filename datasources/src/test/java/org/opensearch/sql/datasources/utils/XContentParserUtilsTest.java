@@ -4,7 +4,6 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.opensearch.sql.datasources.utils.XContentParserUtils.*;
 
 import com.google.gson.Gson;
-
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -58,7 +57,21 @@ public class XContentParserUtilsTest {
   @SneakyThrows
   @Test
   public void testToMapFromJson() {
-    Map<String, Object> dataSourceData = new HashMap<>(Map.of(NAME_FIELD, "test_DS", DESCRIPTION_FIELD, "test", ALLOWED_ROLES_FIELD, new ArrayList<>(), PROPERTIES_FIELD, Map.of(), RESULT_INDEX_FIELD, ""));
+    Map<String, Object> dataSourceData =
+        new HashMap<>(
+            Map.of(
+                NAME_FIELD,
+                "test_DS",
+                DESCRIPTION_FIELD,
+                "test",
+                ALLOWED_ROLES_FIELD,
+                new ArrayList<>(),
+                PROPERTIES_FIELD,
+                Map.of(),
+                CONNECTOR_FIELD,
+                "PROMETHEUS",
+                RESULT_INDEX_FIELD,
+                ""));
     Gson gson = new Gson();
     String json = gson.toJson(dataSourceData);
 
@@ -95,11 +108,11 @@ public class XContentParserUtilsTest {
     String json = gson.toJson(dataSourceData);
 
     IllegalArgumentException exception =
-            assertThrows(
-                    IllegalArgumentException.class,
-                    () -> {
-                      XContentParserUtils.toMap(json);
-                    });
+        assertThrows(
+            IllegalArgumentException.class,
+            () -> {
+              XContentParserUtils.toMap(json);
+            });
     Assertions.assertEquals("Name is a required field.", exception.getMessage());
   }
 

@@ -266,8 +266,6 @@ class DataSourceServiceImplTest {
 
   @Test
   void testUpdateDataSourceSuccessCase() {
-    doNothing().when(dataSourceUserAuthorizationHelper).authorizeDataSource(any());
-
     DataSourceMetadata dataSourceMetadata =
         metadata("testDS", DataSourceType.OPENSEARCH, Collections.emptyList(), ImmutableMap.of());
     dataSourceService.updateDataSource(dataSourceMetadata);
@@ -295,15 +293,12 @@ class DataSourceServiceImplTest {
   @Test
   void testPatchDataSourceSuccessCase() {
     // Tests that patch underlying implementation is to call update
-    Map<String, Object> dataSourceData = new HashMap<>(Map.of(NAME_FIELD, "testDS", DESCRIPTION_FIELD, "test"));
-    DataSourceMetadata getData = metadata(
-            "testDS",
-            DataSourceType.OPENSEARCH,
-            Collections.emptyList(),
-            ImmutableMap.of());
+    Map<String, Object> dataSourceData =
+        new HashMap<>(Map.of(NAME_FIELD, "testDS", DESCRIPTION_FIELD, "test"));
+    DataSourceMetadata getData =
+        metadata("testDS", DataSourceType.OPENSEARCH, Collections.emptyList(), ImmutableMap.of());
     when(dataSourceMetadataStorage.getDataSourceMetadata("testDS"))
-            .thenReturn(
-                    Optional.ofNullable(getData));
+        .thenReturn(Optional.ofNullable(getData));
 
     dataSourceService.patchDataSource(dataSourceData);
     verify(dataSourceMetadataStorage, times(1)).updateDataSourceMetadata(any());

@@ -171,12 +171,12 @@ public class XContentParserUtils {
    */
   public static Map<String, Object> toMap(String json) throws IOException {
     try (XContentParser parser =
-                 XContentType.JSON
-                         .xContent()
-                         .createParser(
-                                 NamedXContentRegistry.EMPTY,
-                                 DeprecationHandler.THROW_UNSUPPORTED_OPERATION,
-                                 json)) {
+        XContentType.JSON
+            .xContent()
+            .createParser(
+                NamedXContentRegistry.EMPTY,
+                DeprecationHandler.THROW_UNSUPPORTED_OPERATION,
+                json)) {
       return toMap(parser);
     }
   }
