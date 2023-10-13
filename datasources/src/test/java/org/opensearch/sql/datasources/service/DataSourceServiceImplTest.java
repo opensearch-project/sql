@@ -18,6 +18,8 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 import static org.opensearch.sql.analysis.DataSourceSchemaIdentifierNameResolver.DEFAULT_DATASOURCE_NAME;
+import static org.opensearch.sql.datasources.utils.XContentParserUtils.DESCRIPTION_FIELD;
+import static org.opensearch.sql.datasources.utils.XContentParserUtils.NAME_FIELD;
 
 import com.google.common.collect.ImmutableMap;
 import java.util.ArrayList;
@@ -264,6 +266,7 @@ class DataSourceServiceImplTest {
 
   @Test
   void testUpdateDataSourceSuccessCase() {
+    doNothing().when(dataSourceUserAuthorizationHelper).authorizeDataSource(any());
 
     DataSourceMetadata dataSourceMetadata =
         metadata("testDS", DataSourceType.OPENSEARCH, Collections.emptyList(), ImmutableMap.of());
@@ -287,6 +290,14 @@ class DataSourceServiceImplTest {
     assertEquals(
         "Not allowed to update default datasource :" + DEFAULT_DATASOURCE_NAME,
         unsupportedOperationException.getMessage());
+  }
+
+  @Test
+  void testPatchDataSourceSuccessCase() {
+    Map<String, Object> dataSourceData = new HashMap<>(Map.of(NAME_FIELD, "test", DESCRIPTION_FIELD, "test"));
+
+    dataSourceService.patchDataSource(dataSourceData);
+    verify(dataSourceMetadataStorage, times(1)).updateDataSourceMetadata(any());
   }
 
   @Test

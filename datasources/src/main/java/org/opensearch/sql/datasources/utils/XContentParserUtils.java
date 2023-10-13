@@ -163,6 +163,25 @@ public class XContentParserUtils {
   }
 
   /**
+   * Converts json string to Map.
+   *
+   * @param json jsonstring.
+   * @return DataSourceData
+   * @throws IOException IOException.
+   */
+  public static Map<String, Object> toMap(String json) throws IOException {
+    try (XContentParser parser =
+                 XContentType.JSON
+                         .xContent()
+                         .createParser(
+                                 NamedXContentRegistry.EMPTY,
+                                 DeprecationHandler.THROW_UNSUPPORTED_OPERATION,
+                                 json)) {
+      return toMap(parser);
+    }
+  }
+
+  /**
    * Converts DataSourceMetadata to XContentBuilder.
    *
    * @param metadata metadata.
