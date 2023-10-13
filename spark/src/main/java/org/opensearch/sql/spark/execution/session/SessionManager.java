@@ -10,7 +10,7 @@ import static org.opensearch.sql.spark.execution.session.SessionId.newSessionId;
 import java.util.Optional;
 import lombok.RequiredArgsConstructor;
 import org.opensearch.sql.spark.client.EMRServerlessClient;
-import org.opensearch.sql.spark.execution.statestore.SessionStateStore;
+import org.opensearch.sql.spark.execution.statestore.StateStore;
 
 /**
  * Singleton Class
@@ -19,14 +19,14 @@ import org.opensearch.sql.spark.execution.statestore.SessionStateStore;
  */
 @RequiredArgsConstructor
 public class SessionManager {
-  private final SessionStateStore stateStore;
+  private final StateStore stateStore;
   private final EMRServerlessClient emrServerlessClient;
 
   public Session createSession(CreateSessionRequest request) {
     InteractiveSession session =
         InteractiveSession.builder()
             .sessionId(newSessionId())
-            .sessionStateStore(stateStore)
+            .stateStore(stateStore)
             .serverlessClient(emrServerlessClient)
             .createSessionRequest(request)
             .build();
@@ -35,12 +35,12 @@ public class SessionManager {
   }
 
   public Optional<Session> getSession(SessionId sid) {
-    Optional<SessionModel> model = stateStore.get(sid);
+    Optional<SessionModel> model = StateStore.getSession(stateStore).apply(sid.getSessionId());
     if (model.isPresent()) {
       InteractiveSession session =
           InteractiveSession.builder()
               .sessionId(sid)
-              .sessionStateStore(stateStore)
+              .stateStore(stateStore)
               .serverlessClient(emrServerlessClient)
               .sessionModel(model.get())
               .build();

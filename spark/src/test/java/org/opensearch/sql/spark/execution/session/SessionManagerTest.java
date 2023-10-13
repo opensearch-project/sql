@@ -5,15 +5,13 @@
 
 package org.opensearch.sql.spark.execution.session;
 
-import static org.junit.jupiter.api.Assertions.*;
-
 import org.junit.After;
 import org.junit.Before;
 import org.mockito.MockMakers;
 import org.mockito.MockSettings;
 import org.mockito.Mockito;
 import org.opensearch.action.admin.indices.delete.DeleteIndexRequest;
-import org.opensearch.sql.spark.execution.statestore.SessionStateStore;
+import org.opensearch.sql.spark.execution.statestore.StateStore;
 import org.opensearch.test.OpenSearchSingleNodeTestCase;
 
 class SessionManagerTest extends OpenSearchSingleNodeTestCase {
@@ -23,11 +21,11 @@ class SessionManagerTest extends OpenSearchSingleNodeTestCase {
   private static final MockSettings mockSettings =
       Mockito.withSettings().mockMaker(MockMakers.SUBCLASS);
 
-  private SessionStateStore stateStore;
+  private StateStore stateStore;
 
   @Before
   public void setup() {
-    stateStore = new SessionStateStore(indexName, client());
+    stateStore = new StateStore(indexName, client());
     createIndex(indexName);
   }
 
