@@ -57,7 +57,11 @@ public class InteractiveSessionTest extends OpenSearchSingleNodeTestCase {
 
     // open session
     TestSession testSession = testSession(session, stateStore);
-    testSession.open(new CreateSessionRequest(startJobRequest, "datasource")).assertSessionState(NOT_STARTED).assertAppId("appId").assertJobId("jobId");
+    testSession
+        .open(new CreateSessionRequest(startJobRequest, "datasource"))
+        .assertSessionState(NOT_STARTED)
+        .assertAppId("appId")
+        .assertJobId("jobId");
     emrsClient.startJobRunCalled(1);
 
     // close session
@@ -83,7 +87,9 @@ public class InteractiveSessionTest extends OpenSearchSingleNodeTestCase {
             .serverlessClient(emrsClient)
             .build();
     IllegalStateException exception =
-        assertThrows(IllegalStateException.class, () -> duplicateSession.open(new CreateSessionRequest(startJobRequest, "datasource")));
+        assertThrows(
+            IllegalStateException.class,
+            () -> duplicateSession.open(new CreateSessionRequest(startJobRequest, "datasource")));
     assertEquals("session already exist. sessionId=duplicate-session-id", exception.getMessage());
   }
 
