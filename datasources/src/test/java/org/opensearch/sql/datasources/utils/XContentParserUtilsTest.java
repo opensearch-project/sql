@@ -4,7 +4,6 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.opensearch.sql.datasources.utils.XContentParserUtils.*;
 
 import com.google.gson.Gson;
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -64,9 +63,9 @@ public class XContentParserUtilsTest {
             DESCRIPTION_FIELD,
             "test",
             ALLOWED_ROLES_FIELD,
-            new ArrayList<>(),
+            List.of("all_access"),
             PROPERTIES_FIELD,
-            Map.of(),
+            Map.of("prometheus.uri", "localhost:9090"),
             CONNECTOR_FIELD,
             "PROMETHEUS",
             RESULT_INDEX_FIELD,
@@ -79,9 +78,9 @@ public class XContentParserUtilsTest {
             DESCRIPTION_FIELD,
             "test",
             ALLOWED_ROLES_FIELD,
-            new ArrayList<>(),
+            List.of("all_access"),
             PROPERTIES_FIELD,
-            Map.of(),
+            Map.of("prometheus.uri", "localhost:9090"),
             RESULT_INDEX_FIELD,
             "");
 
