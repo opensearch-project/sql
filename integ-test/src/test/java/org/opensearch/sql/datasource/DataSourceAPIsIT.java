@@ -143,7 +143,7 @@ public class DataSourceAPIsIT extends PPLIntegTestCase {
     Request patchRequest = getPatchDataSourceRequest(updateDS);
     Response patchResponse = client().performRequest(patchRequest);
     Assert.assertEquals(200, patchResponse.getStatusLine().getStatusCode());
-    String patchResponseString = getResponseBody(updateResponse);
+    String patchResponseString = getResponseBody(patchResponse);
     Assert.assertEquals("\"Updated DataSource with name update_prometheus\"", patchResponseString);
 
     // Datasource is not immediately updated. so introducing a sleep of 2s.
