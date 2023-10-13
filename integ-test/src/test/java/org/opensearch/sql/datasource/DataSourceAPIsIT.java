@@ -85,6 +85,10 @@ public class DataSourceAPIsIT extends PPLIntegTestCase {
         new Gson().fromJson(getResponseString, DataSourceMetadata.class);
     Assert.assertEquals(
         "https://localhost:9090", dataSourceMetadata.getProperties().get("prometheus.uri"));
+    Assert.assertEquals(
+        "basicauth", dataSourceMetadata.getProperties().get("prometheus.auth.type"));
+    Assert.assertNull(dataSourceMetadata.getProperties().get("prometheus.auth.username"));
+    Assert.assertNull(dataSourceMetadata.getProperties().get("prometheus.auth.password"));
     Assert.assertEquals("Prometheus Creation for Integ test", dataSourceMetadata.getDescription());
   }
 
@@ -239,6 +243,10 @@ public class DataSourceAPIsIT extends PPLIntegTestCase {
         new Gson().fromJson(getResponseString, DataSourceMetadata.class);
     Assert.assertEquals(
         "https://localhost:9090", dataSourceMetadata.getProperties().get("prometheus.uri"));
+    Assert.assertEquals(
+        "basicauth", dataSourceMetadata.getProperties().get("prometheus.auth.type"));
+    Assert.assertNull(dataSourceMetadata.getProperties().get("prometheus.auth.username"));
+    Assert.assertNull(dataSourceMetadata.getProperties().get("prometheus.auth.password"));
     Assert.assertEquals("Prometheus Creation for Integ test", dataSourceMetadata.getDescription());
   }
 }

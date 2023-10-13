@@ -53,12 +53,11 @@ public class InteractiveSessionTest extends OpenSearchSingleNodeTestCase {
             .sessionId(SessionId.newSessionId())
             .stateStore(stateStore)
             .serverlessClient(emrsClient)
-            .createSessionRequest(new CreateSessionRequest(startJobRequest, "datasource"))
             .build();
 
     // open session
     TestSession testSession = testSession(session, stateStore);
-    testSession.open().assertSessionState(NOT_STARTED).assertAppId("appId").assertJobId("jobId");
+    testSession.open(new CreateSessionRequest(startJobRequest, "datasource")).assertSessionState(NOT_STARTED).assertAppId("appId").assertJobId("jobId");
     emrsClient.startJobRunCalled(1);
 
     // close session
@@ -74,19 +73,17 @@ public class InteractiveSessionTest extends OpenSearchSingleNodeTestCase {
             .sessionId(sessionId)
             .stateStore(stateStore)
             .serverlessClient(emrsClient)
-            .createSessionRequest(new CreateSessionRequest(startJobRequest, "datasource"))
             .build();
-    session.open();
+    session.open(new CreateSessionRequest(startJobRequest, "datasource"));
 
     InteractiveSession duplicateSession =
         InteractiveSession.builder()
             .sessionId(sessionId)
             .stateStore(stateStore)
             .serverlessClient(emrsClient)
-            .createSessionRequest(new CreateSessionRequest(startJobRequest, "datasource"))
             .build();
     IllegalStateException exception =
-        assertThrows(IllegalStateException.class, duplicateSession::open);
+        assertThrows(IllegalStateException.class, () -> duplicateSession.open(new CreateSessionRequest(startJobRequest, "datasource")));
     assertEquals("session already exist. sessionId=duplicate-session-id", exception.getMessage());
   }
 
@@ -98,9 +95,8 @@ public class InteractiveSessionTest extends OpenSearchSingleNodeTestCase {
             .sessionId(sessionId)
             .stateStore(stateStore)
             .serverlessClient(emrsClient)
-            .createSessionRequest(new CreateSessionRequest(startJobRequest, "datasource"))
             .build();
-    session.open();
+    session.open(new CreateSessionRequest(startJobRequest, "datasource"));
 
     client().delete(new DeleteRequest(indexName, sessionId.getSessionId())).actionGet();
 
@@ -168,8 +164,8 @@ public class InteractiveSessionTest extends OpenSearchSingleNodeTestCase {
       return this;
     }
 
-    public TestSession open() {
-      session.open();
+    public TestSession open(CreateSessionRequest req) {
+      session.open(req);
       return this;
     }
 

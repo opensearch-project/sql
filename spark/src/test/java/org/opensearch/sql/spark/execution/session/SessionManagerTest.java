@@ -7,19 +7,12 @@ package org.opensearch.sql.spark.execution.session;
 
 import org.junit.After;
 import org.junit.Before;
-import org.mockito.MockMakers;
-import org.mockito.MockSettings;
-import org.mockito.Mockito;
 import org.opensearch.action.admin.indices.delete.DeleteIndexRequest;
 import org.opensearch.sql.spark.execution.statestore.StateStore;
 import org.opensearch.test.OpenSearchSingleNodeTestCase;
 
 class SessionManagerTest extends OpenSearchSingleNodeTestCase {
   private static final String indexName = "mockindex";
-
-  // mock-maker-inline does not work with OpenSearchTestCase. make sure use mockSettings when mock.
-  private static final MockSettings mockSettings =
-      Mockito.withSettings().mockMaker(MockMakers.SUBCLASS);
 
   private StateStore stateStore;
 
