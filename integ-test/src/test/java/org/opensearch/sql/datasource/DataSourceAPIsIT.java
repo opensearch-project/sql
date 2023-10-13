@@ -154,7 +154,7 @@ public class DataSourceAPIsIT extends PPLIntegTestCase {
     Request getRequestAfterPatch = getFetchDataSourceRequest("update_prometheus");
     Response getResponseAfterPatch = client().performRequest(getRequestAfterPatch);
     Assert.assertEquals(200, getResponseAfterPatch.getStatusLine().getStatusCode());
-    String getResponseStringAfterPatch = getResponseBody(getResponse);
+    String getResponseStringAfterPatch = getResponseBody(getResponseAfterPatch);
     DataSourceMetadata dataSourceMetadataAfterPatch =
         new Gson().fromJson(getResponseStringAfterPatch, DataSourceMetadata.class);
     Assert.assertEquals(
