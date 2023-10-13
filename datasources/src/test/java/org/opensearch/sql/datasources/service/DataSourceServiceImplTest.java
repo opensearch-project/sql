@@ -291,6 +291,19 @@ class DataSourceServiceImplTest {
   }
 
   @Test
+  void testPatchDefaultDataSource() {
+    Map<String, Object> dataSourceData =
+        Map.of(NAME_FIELD, DEFAULT_DATASOURCE_NAME, DESCRIPTION_FIELD, "test");
+    UnsupportedOperationException unsupportedOperationException =
+        assertThrows(
+            UnsupportedOperationException.class,
+            () -> dataSourceService.patchDataSource(dataSourceData));
+    assertEquals(
+        "Not allowed to update default datasource :" + DEFAULT_DATASOURCE_NAME,
+        unsupportedOperationException.getMessage());
+  }
+
+  @Test
   void testPatchDataSourceSuccessCase() {
     // Tests that patch underlying implementation is to call update
     Map<String, Object> dataSourceData =
