@@ -21,6 +21,7 @@ public class SparkConstants {
   public static final String SPARK_SQL_APPLICATION_JAR =
       "file:///home/hadoop/.ivy2/jars/org.opensearch_opensearch-spark-sql-application_2.12-0.1.0-SNAPSHOT.jar";
   public static final String SPARK_RESPONSE_BUFFER_INDEX_NAME = ".query_execution_result";
+  public static final String SPARK_REQUEST_BUFFER_INDEX_NAME = ".query_execution_request";
   // TODO should be replaced with mvn jar.
   public static final String FLINT_INTEGRATION_JAR =
       "s3://spark-datasource/flint-spark-integration-assembly-0.1.0-SNAPSHOT.jar";

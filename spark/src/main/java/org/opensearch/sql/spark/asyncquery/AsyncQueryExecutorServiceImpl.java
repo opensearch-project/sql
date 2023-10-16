@@ -65,13 +65,15 @@ public class AsyncQueryExecutorServiceImpl implements AsyncQueryExecutorService 
                 createAsyncQueryRequest.getLang(),
                 sparkExecutionEngineConfig.getExecutionRoleARN(),
                 sparkExecutionEngineConfig.getClusterName(),
-                sparkExecutionEngineConfig.getSparkSubmitParameters()));
+                sparkExecutionEngineConfig.getSparkSubmitParameters(),
+                createAsyncQueryRequest.getSessionId()));
     asyncQueryJobMetadataStorageService.storeJobMetadata(
         new AsyncQueryJobMetadata(
             sparkExecutionEngineConfig.getApplicationId(),
             dispatchQueryResponse.getJobId(),
             dispatchQueryResponse.isDropIndexQuery(),
-            dispatchQueryResponse.getResultIndex()));
+            dispatchQueryResponse.getResultIndex(),
+            dispatchQueryResponse.getSessionId()));
     return new CreateAsyncQueryResponse(dispatchQueryResponse.getJobId());
   }
 
@@ -81,6 +83,7 @@ public class AsyncQueryExecutorServiceImpl implements AsyncQueryExecutorService 
     Optional<AsyncQueryJobMetadata> jobMetadata =
         asyncQueryJobMetadataStorageService.getJobMetadata(queryId);
     if (jobMetadata.isPresent()) {
+      String sessionId = jobMetadata.get().getSessionId();
       JSONObject jsonObject = sparkQueryDispatcher.getQueryResponse(jobMetadata.get());
       if (JobRunState.SUCCESS.toString().equals(jsonObject.getString(STATUS_FIELD))) {
         DefaultSparkSqlFunctionResponseHandle sparkSqlFunctionResponseHandle =
@@ -90,13 +93,18 @@ public class AsyncQueryExecutorServiceImpl implements AsyncQueryExecutorService 
           result.add(sparkSqlFunctionResponseHandle.next());
         }
         return new AsyncQueryExecutionResponse(
-            JobRunState.SUCCESS.toString(), sparkSqlFunctionResponseHandle.schema(), result, null);
+            JobRunState.SUCCESS.toString(),
+            sparkSqlFunctionResponseHandle.schema(),
+            result,
+            null,
+            sessionId);
       } else {
         return new AsyncQueryExecutionResponse(
             jsonObject.optString(STATUS_FIELD, JobRunState.FAILED.toString()),
             null,
             null,
-            jsonObject.optString(ERROR_FIELD, ""));
+            jsonObject.optString(ERROR_FIELD, ""),
+            sessionId);
       }
     }
     throw new AsyncQueryNotFoundException(String.format("QueryId: %s not found", queryId));

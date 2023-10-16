@@ -57,6 +57,9 @@ public class AsyncQueryResultResponseFormatter extends JsonResponseFormatter<Asy
     if (!Strings.isEmpty(response.getError())) {
       json.error(response.getError());
     }
+    if (response.getSessionId() != null) {
+      json.sessionId(response.getSessionId());
+    }
 
     return json.build();
   }
@@ -85,6 +88,7 @@ public class AsyncQueryResultResponseFormatter extends JsonResponseFormatter<Asy
     private Integer total;
     private Integer size;
     private final String error;
+    private final String sessionId;
   }
 
   @RequiredArgsConstructor

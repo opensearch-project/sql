@@ -16,6 +16,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.Base64;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.ExecutionException;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -39,6 +40,13 @@ import org.opensearch.sql.spark.dispatcher.model.DispatchQueryRequest;
 import org.opensearch.sql.spark.dispatcher.model.DispatchQueryResponse;
 import org.opensearch.sql.spark.dispatcher.model.FullyQualifiedTableName;
 import org.opensearch.sql.spark.dispatcher.model.IndexDetails;
+import org.opensearch.sql.spark.execution.session.CreateSessionRequest;
+import org.opensearch.sql.spark.execution.session.Session;
+import org.opensearch.sql.spark.execution.session.SessionId;
+import org.opensearch.sql.spark.execution.session.SessionManager;
+import org.opensearch.sql.spark.execution.statement.QueryRequest;
+import org.opensearch.sql.spark.execution.statement.Statement;
+import org.opensearch.sql.spark.execution.statement.StatementId;
 import org.opensearch.sql.spark.flint.FlintIndexMetadata;
 import org.opensearch.sql.spark.flint.FlintIndexMetadataReader;
 import org.opensearch.sql.spark.response.JobExecutionResponseReader;
@@ -68,6 +76,8 @@ public class SparkQueryDispatcher {
   private FlintIndexMetadataReader flintIndexMetadataReader;
 
   private Client client;
+
+  private SessionManager sessionManager;
 
   public DispatchQueryResponse dispatch(DispatchQueryRequest dispatchQueryRequest) {
     if (LangType.SQL.equals(dispatchQueryRequest.getLangType())) {
@@ -124,10 +134,28 @@ public class SparkQueryDispatcher {
   }
 
   public String cancelJob(AsyncQueryJobMetadata asyncQueryJobMetadata) {
-    CancelJobRunResult cancelJobRunResult =
-        emrServerlessClient.cancelJobRun(
-            asyncQueryJobMetadata.getApplicationId(), asyncQueryJobMetadata.getJobId());
-    return cancelJobRunResult.getJobRunId();
+    if (sessionManager.isEnabled() && asyncQueryJobMetadata.getSessionId() != null) {
+      SessionId sessionId = new SessionId(asyncQueryJobMetadata.getSessionId());
+      Optional<Session> session = sessionManager.getSession(sessionId);
+      if (session.isPresent()) {
+        // todo, statementId == jobId if statement running in session.
+        StatementId statementId = new StatementId(asyncQueryJobMetadata.getJobId());
+        Optional<Statement> statement = session.get().get(statementId);
+        if (statement.isPresent()) {
+          statement.get().cancel();
+          return statementId.getId();
+        } else {
+          throw new IllegalArgumentException("no statement found. " + statementId);
+        }
+      } else {
+        throw new IllegalArgumentException("no session found. " + sessionId);
+      }
+    } else {
+      CancelJobRunResult cancelJobRunResult =
+          emrServerlessClient.cancelJobRun(
+              asyncQueryJobMetadata.getApplicationId(), asyncQueryJobMetadata.getJobId());
+      return cancelJobRunResult.getJobRunId();
+    }
   }
 
   private DispatchQueryResponse handleSQLQuery(DispatchQueryRequest dispatchQueryRequest) {
@@ -173,7 +201,7 @@ public class SparkQueryDispatcher {
             indexDetails.getAutoRefresh(),
             dataSourceMetadata.getResultIndex());
     String jobId = emrServerlessClient.startJobRun(startJobRequest);
-    return new DispatchQueryResponse(jobId, false, dataSourceMetadata.getResultIndex());
+    return new DispatchQueryResponse(jobId, false, dataSourceMetadata.getResultIndex(), null);
   }
 
   private DispatchQueryResponse handleNonIndexQuery(DispatchQueryRequest dispatchQueryRequest) {
@@ -198,8 +226,35 @@ public class SparkQueryDispatcher {
             tags,
             false,
             dataSourceMetadata.getResultIndex());
-    String jobId = emrServerlessClient.startJobRun(startJobRequest);
-    return new DispatchQueryResponse(jobId, false, dataSourceMetadata.getResultIndex());
+    if (sessionManager.isEnabled()) {
+      Session session;
+      if (dispatchQueryRequest.getSessionId() != null) {
+        // get session from request
+        SessionId sessionId = new SessionId(dispatchQueryRequest.getSessionId());
+        Optional<Session> createdSession = sessionManager.getSession(sessionId);
+        if (createdSession.isEmpty()) {
+          throw new IllegalArgumentException("no session found. " + sessionId);
+        }
+        session = createdSession.get();
+      } else {
+        // create session if not exist
+        session =
+            sessionManager.createSession(
+                new CreateSessionRequest(startJobRequest, dataSourceMetadata.getName()));
+      }
+      StatementId statementId =
+          session.submit(
+              new QueryRequest(
+                  dispatchQueryRequest.getLangType(), dispatchQueryRequest.getQuery()));
+      return new DispatchQueryResponse(
+          statementId.getId(),
+          false,
+          dataSourceMetadata.getResultIndex(),
+          session.getSessionId().getSessionId());
+    } else {
+      String jobId = emrServerlessClient.startJobRun(startJobRequest);
+      return new DispatchQueryResponse(jobId, false, dataSourceMetadata.getResultIndex(), null);
+    }
   }
 
   private DispatchQueryResponse handleDropIndexQuery(
@@ -229,7 +284,7 @@ public class SparkQueryDispatcher {
       }
     }
     return new DispatchQueryResponse(
-        new DropIndexResult(status).toJobId(), true, dataSourceMetadata.getResultIndex());
+        new DropIndexResult(status).toJobId(), true, dataSourceMetadata.getResultIndex(), null);
   }
 
   private static Map<String, String> getDefaultTagsForJobSubmission(

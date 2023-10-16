@@ -20,6 +20,8 @@ public class CancelAsyncQueryActionRequest extends ActionRequest {
 
   private String queryId;
 
+  private String sessionId;
+
   /** Constructor of SubmitJobActionRequest from StreamInput. */
   public CancelAsyncQueryActionRequest(StreamInput in) throws IOException {
     super(in);
