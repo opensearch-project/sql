@@ -5,6 +5,8 @@
 
 package org.opensearch.sql.spark.execution.statement;
 
+import static org.opensearch.sql.spark.execution.session.SessionModel.APPLICATION_ID;
+import static org.opensearch.sql.spark.execution.session.SessionModel.JOB_ID;
 import static org.opensearch.sql.spark.execution.statement.StatementState.WAITING;
 
 import java.io.IOException;
@@ -40,6 +42,8 @@ public class StatementModel extends StateModel {
   private final StatementState statementState;
   private final StatementId statementId;
   private final SessionId sessionId;
+  private final String applicationId;
+  private final String jobId;
   private final LangType langType;
   private final String query;
   private final String queryId;
@@ -58,6 +62,8 @@ public class StatementModel extends StateModel {
         .field(STATEMENT_STATE, statementState.getState())
         .field(STATEMENT_ID, statementId.getId())
         .field(SESSION_ID, sessionId.getSessionId())
+        .field(APPLICATION_ID, applicationId)
+        .field(JOB_ID, jobId)
         .field(LANG, langType.getText())
         .field(QUERY, query)
         .field(QUERY_ID, queryId)
@@ -73,6 +79,8 @@ public class StatementModel extends StateModel {
         .statementState(copy.statementState)
         .statementId(copy.statementId)
         .sessionId(copy.sessionId)
+        .applicationId(copy.applicationId)
+        .jobId(copy.jobId)
         .langType(copy.langType)
         .query(copy.query)
         .queryId(copy.queryId)
@@ -90,6 +98,8 @@ public class StatementModel extends StateModel {
         .statementState(state)
         .statementId(copy.statementId)
         .sessionId(copy.sessionId)
+        .applicationId(copy.applicationId)
+        .jobId(copy.jobId)
         .langType(copy.langType)
         .query(copy.query)
         .queryId(copy.queryId)
@@ -124,6 +134,12 @@ public class StatementModel extends StateModel {
         case SESSION_ID:
           builder.sessionId(new SessionId(parser.text()));
           break;
+        case APPLICATION_ID:
+          builder.applicationId(parser.text());
+          break;
+        case JOB_ID:
+          builder.jobId(parser.text());
+          break;
         case LANG:
           builder.langType(LangType.fromString(parser.text()));
           break;
@@ -147,12 +163,20 @@ public class StatementModel extends StateModel {
   }
 
   public static StatementModel submitStatement(
-      SessionId sid, StatementId statementId, LangType langType, String query, String queryId) {
+      SessionId sid,
+      String applicationId,
+      String jobId,
+      StatementId statementId,
+      LangType langType,
+      String query,
+      String queryId) {
     return builder()
         .version("1.0")
         .statementState(WAITING)
         .statementId(statementId)
         .sessionId(sid)
+        .applicationId(applicationId)
+        .jobId(jobId)
         .langType(langType)
         .query(query)
         .queryId(queryId)
