@@ -5,26 +5,22 @@
 
 package org.opensearch.sql.spark.asyncquery;
 
-import static org.opensearch.sql.common.setting.Settings.Key.CLUSTER_NAME;
 import static org.opensearch.sql.common.setting.Settings.Key.SPARK_EXECUTION_ENGINE_CONFIG;
 import static org.opensearch.sql.spark.data.constants.SparkConstants.ERROR_FIELD;
 import static org.opensearch.sql.spark.data.constants.SparkConstants.STATUS_FIELD;
 
 import com.amazonaws.services.emrserverless.model.JobRunState;
-import java.security.AccessController;
-import java.security.PrivilegedAction;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import lombok.AllArgsConstructor;
 import org.json.JSONObject;
-import org.opensearch.cluster.ClusterName;
-import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.spark.asyncquery.exceptions.AsyncQueryNotFoundException;
 import org.opensearch.sql.spark.asyncquery.model.AsyncQueryExecutionResponse;
 import org.opensearch.sql.spark.asyncquery.model.AsyncQueryJobMetadata;
 import org.opensearch.sql.spark.config.SparkExecutionEngineConfig;
+import org.opensearch.sql.spark.config.SparkExecutionEngineConfigSupplier;
 import org.opensearch.sql.spark.dispatcher.SparkQueryDispatcher;
 import org.opensearch.sql.spark.dispatcher.model.DispatchQueryRequest;
 import org.opensearch.sql.spark.dispatcher.model.DispatchQueryResponse;
@@ -37,7 +33,7 @@ import org.opensearch.sql.spark.rest.model.CreateAsyncQueryResponse;
 public class AsyncQueryExecutorServiceImpl implements AsyncQueryExecutorService {
   private AsyncQueryJobMetadataStorageService asyncQueryJobMetadataStorageService;
   private SparkQueryDispatcher sparkQueryDispatcher;
-  private Settings settings;
+  private SparkExecutionEngineConfigSupplier sparkExecutionEngineConfigSupplier;
   private Boolean isSparkJobExecutionEnabled;
 
   public AsyncQueryExecutorServiceImpl() {
@@ -47,26 +43,19 @@ public class AsyncQueryExecutorServiceImpl implements AsyncQueryExecutorService 
   public AsyncQueryExecutorServiceImpl(
       AsyncQueryJobMetadataStorageService asyncQueryJobMetadataStorageService,
       SparkQueryDispatcher sparkQueryDispatcher,
-      Settings settings) {
+      SparkExecutionEngineConfigSupplier sparkExecutionEngineConfigSupplier) {
     this.isSparkJobExecutionEnabled = Boolean.TRUE;
     this.asyncQueryJobMetadataStorageService = asyncQueryJobMetadataStorageService;
     this.sparkQueryDispatcher = sparkQueryDispatcher;
-    this.settings = settings;
+    this.sparkExecutionEngineConfigSupplier = sparkExecutionEngineConfigSupplier;
   }
 
   @Override
   public CreateAsyncQueryResponse createAsyncQuery(
       CreateAsyncQueryRequest createAsyncQueryRequest) {
     validateSparkExecutionEngineSettings();
-    String sparkExecutionEngineConfigString =
-        settings.getSettingValue(SPARK_EXECUTION_ENGINE_CONFIG);
     SparkExecutionEngineConfig sparkExecutionEngineConfig =
-        AccessController.doPrivileged(
-            (PrivilegedAction<SparkExecutionEngineConfig>)
-                () ->
-                    SparkExecutionEngineConfig.toSparkExecutionEngineConfig(
-                        sparkExecutionEngineConfigString));
-    ClusterName clusterName = settings.getSettingValue(CLUSTER_NAME);
+        sparkExecutionEngineConfigSupplier.getSparkExecutionEngineConfig();
     DispatchQueryResponse dispatchQueryResponse =
         sparkQueryDispatcher.dispatch(
             new DispatchQueryRequest(
@@ -75,7 +64,7 @@ public class AsyncQueryExecutorServiceImpl implements AsyncQueryExecutorService 
                 createAsyncQueryRequest.getDatasource(),
                 createAsyncQueryRequest.getLang(),
                 sparkExecutionEngineConfig.getExecutionRoleARN(),
-                clusterName.value(),
+                sparkExecutionEngineConfig.getClusterName(),
                 sparkExecutionEngineConfig.getSparkSubmitParameters()));
     asyncQueryJobMetadataStorageService.storeJobMetadata(
         new AsyncQueryJobMetadata(

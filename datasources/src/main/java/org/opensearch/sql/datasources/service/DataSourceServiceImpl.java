@@ -30,6 +30,8 @@ import org.opensearch.sql.storage.DataSourceFactory;
 public class DataSourceServiceImpl implements DataSourceService {
 
   private static String DATASOURCE_NAME_REGEX = "[@*A-Za-z]+?[*a-zA-Z_\\-0-9]*";
+  public static final Set<String> CONFIDENTIAL_AUTH_KEYS =
+      Set.of("auth.username", "auth.password", "auth.access_key", "auth.secret_key");
 
   private final DataSourceLoaderCache dataSourceLoaderCache;
 
@@ -197,7 +199,12 @@ public class DataSourceServiceImpl implements DataSourceService {
 
   private void removeAuthInfo(DataSourceMetadata dataSourceMetadata) {
     HashMap<String, String> safeProperties = new HashMap<>(dataSourceMetadata.getProperties());
-    safeProperties.entrySet().removeIf(entry -> entry.getKey().contains("auth"));
+    safeProperties
+        .entrySet()
+        .removeIf(
+            entry ->
+                CONFIDENTIAL_AUTH_KEYS.stream()
+                    .anyMatch(confidentialKey -> entry.getKey().endsWith(confidentialKey)));
     dataSourceMetadata.setProperties(safeProperties);
   }
 }
