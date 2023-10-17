@@ -10,7 +10,6 @@ package org.opensearch.sql.spark.transport;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.when;
 import static org.opensearch.sql.spark.constants.TestConstants.EMR_JOB_ID;
-import static org.opensearch.sql.spark.constants.TestConstants.MOCK_SESSION_ID;
 
 import java.util.HashSet;
 import org.junit.jupiter.api.Assertions;
@@ -54,8 +53,7 @@ public class TransportCancelAsyncQueryRequestActionTest {
 
   @Test
   public void testDoExecute() {
-    CancelAsyncQueryActionRequest request =
-        new CancelAsyncQueryActionRequest(EMR_JOB_ID, MOCK_SESSION_ID);
+    CancelAsyncQueryActionRequest request = new CancelAsyncQueryActionRequest(EMR_JOB_ID);
     when(asyncQueryExecutorService.cancelQuery(EMR_JOB_ID)).thenReturn(EMR_JOB_ID);
     action.doExecute(task, request, actionListener);
     Mockito.verify(actionListener).onResponse(deleteJobActionResponseArgumentCaptor.capture());
@@ -67,8 +65,7 @@ public class TransportCancelAsyncQueryRequestActionTest {
 
   @Test
   public void testDoExecuteWithException() {
-    CancelAsyncQueryActionRequest request =
-        new CancelAsyncQueryActionRequest(EMR_JOB_ID, MOCK_SESSION_ID);
+    CancelAsyncQueryActionRequest request = new CancelAsyncQueryActionRequest(EMR_JOB_ID);
     doThrow(new RuntimeException("Error")).when(asyncQueryExecutorService).cancelQuery(EMR_JOB_ID);
     action.doExecute(task, request, actionListener);
     Mockito.verify(actionListener).onFailure(exceptionArgumentCaptor.capture());

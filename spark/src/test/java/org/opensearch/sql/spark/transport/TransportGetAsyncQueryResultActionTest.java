@@ -14,7 +14,6 @@ import static org.mockito.Mockito.when;
 import static org.opensearch.sql.data.model.ExprValueUtils.tupleValue;
 import static org.opensearch.sql.data.type.ExprCoreType.INTEGER;
 import static org.opensearch.sql.data.type.ExprCoreType.STRING;
-import static org.opensearch.sql.spark.constants.TestConstants.MOCK_SESSION_ID;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -62,8 +61,7 @@ public class TransportGetAsyncQueryResultActionTest {
 
   @Test
   public void testDoExecute() {
-    GetAsyncQueryResultActionRequest request =
-        new GetAsyncQueryResultActionRequest("jobId", MOCK_SESSION_ID);
+    GetAsyncQueryResultActionRequest request = new GetAsyncQueryResultActionRequest("jobId");
     AsyncQueryExecutionResponse asyncQueryExecutionResponse =
         new AsyncQueryExecutionResponse("IN_PROGRESS", null, null, null, null);
     when(jobExecutorService.getAsyncQueryResults("jobId")).thenReturn(asyncQueryExecutionResponse);
@@ -78,8 +76,7 @@ public class TransportGetAsyncQueryResultActionTest {
 
   @Test
   public void testDoExecuteWithSuccessResponse() {
-    GetAsyncQueryResultActionRequest request =
-        new GetAsyncQueryResultActionRequest("jobId", MOCK_SESSION_ID);
+    GetAsyncQueryResultActionRequest request = new GetAsyncQueryResultActionRequest("jobId");
     ExecutionEngine.Schema schema =
         new ExecutionEngine.Schema(
             ImmutableList.of(
@@ -130,8 +127,7 @@ public class TransportGetAsyncQueryResultActionTest {
 
   @Test
   public void testDoExecuteWithException() {
-    GetAsyncQueryResultActionRequest request =
-        new GetAsyncQueryResultActionRequest("123", MOCK_SESSION_ID);
+    GetAsyncQueryResultActionRequest request = new GetAsyncQueryResultActionRequest("123");
     doThrow(new AsyncQueryNotFoundException("JobId 123 not found"))
         .when(jobExecutorService)
         .getAsyncQueryResults("123");
@@ -141,21 +137,5 @@ public class TransportGetAsyncQueryResultActionTest {
     Exception exception = exceptionArgumentCaptor.getValue();
     Assertions.assertTrue(exception instanceof RuntimeException);
     Assertions.assertEquals("JobId 123 not found", exception.getMessage());
-  }
-
-  @Test
-  public void testDoExecuteWithSessionId() {
-    GetAsyncQueryResultActionRequest request =
-        new GetAsyncQueryResultActionRequest("jobId", MOCK_SESSION_ID);
-    AsyncQueryExecutionResponse asyncQueryExecutionResponse =
-        new AsyncQueryExecutionResponse("IN_PROGRESS", null, null, null, MOCK_SESSION_ID);
-    when(jobExecutorService.getAsyncQueryResults("jobId")).thenReturn(asyncQueryExecutionResponse);
-    action.doExecute(task, request, actionListener);
-    verify(actionListener).onResponse(createJobActionResponseArgumentCaptor.capture());
-    GetAsyncQueryResultActionResponse getAsyncQueryResultActionResponse =
-        createJobActionResponseArgumentCaptor.getValue();
-    Assertions.assertEquals(
-        "{\n" + "  \"status\": \"IN_PROGRESS\",\n" + "  \"sessionId\": \"s-0123456\"\n" + "}",
-        getAsyncQueryResultActionResponse.getResult());
   }
 }

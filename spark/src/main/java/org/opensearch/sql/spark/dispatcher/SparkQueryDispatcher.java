@@ -122,7 +122,7 @@ public class SparkQueryDispatcher {
       String error = items.optString(ERROR_FIELD, "");
       result.put(ERROR_FIELD, error);
     } else {
-      if (sessionManager.isEnabled() && asyncQueryJobMetadata.getSessionId() != null) {
+      if (asyncQueryJobMetadata.getSessionId() != null) {
         SessionId sessionId = new SessionId(asyncQueryJobMetadata.getSessionId());
         Optional<Session> session = sessionManager.getSession(sessionId);
         if (session.isPresent()) {
@@ -154,7 +154,7 @@ public class SparkQueryDispatcher {
   }
 
   public String cancelJob(AsyncQueryJobMetadata asyncQueryJobMetadata) {
-    if (sessionManager.isEnabled() && asyncQueryJobMetadata.getSessionId() != null) {
+    if (asyncQueryJobMetadata.getSessionId() != null) {
       SessionId sessionId = new SessionId(asyncQueryJobMetadata.getSessionId());
       Optional<Session> session = sessionManager.getSession(sessionId);
       if (session.isPresent()) {

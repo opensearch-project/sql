@@ -68,6 +68,7 @@ import org.opensearch.sql.spark.execution.session.SessionId;
 import org.opensearch.sql.spark.execution.session.SessionManager;
 import org.opensearch.sql.spark.execution.statement.Statement;
 import org.opensearch.sql.spark.execution.statement.StatementId;
+import org.opensearch.sql.spark.execution.statement.StatementState;
 import org.opensearch.sql.spark.flint.FlintIndexMetadata;
 import org.opensearch.sql.spark.flint.FlintIndexMetadataReader;
 import org.opensearch.sql.spark.flint.FlintIndexType;
@@ -662,7 +663,6 @@ public class SparkQueryDispatcherTest {
 
   @Test
   void testCancelQueryWithSession() {
-    doReturn(true).when(sessionManager).isEnabled();
     doReturn(Optional.of(session)).when(sessionManager).getSession(new SessionId(MOCK_SESSION_ID));
     doReturn(Optional.of(statement)).when(session).get(any());
     doNothing().when(statement).cancel();
@@ -678,7 +678,6 @@ public class SparkQueryDispatcherTest {
 
   @Test
   void testCancelQueryWithInvalidSession() {
-    doReturn(true).when(sessionManager).isEnabled();
     doReturn(Optional.empty()).when(sessionManager).getSession(new SessionId("invalid"));
 
     IllegalArgumentException exception =
@@ -696,7 +695,6 @@ public class SparkQueryDispatcherTest {
 
   @Test
   void testCancelQueryWithInvalidStatementId() {
-    doReturn(true).when(sessionManager).isEnabled();
     doReturn(Optional.of(session)).when(sessionManager).getSession(new SessionId(MOCK_SESSION_ID));
 
     IllegalArgumentException exception =
@@ -714,8 +712,6 @@ public class SparkQueryDispatcherTest {
 
   @Test
   void testCancelQueryWithNoSessionId() {
-    doReturn(true).when(sessionManager).isEnabled();
-
     when(emrServerlessClient.cancelJobRun(EMRS_APPLICATION_ID, EMR_JOB_ID))
         .thenReturn(
             new CancelJobRunResult()
@@ -739,6 +735,52 @@ public class SparkQueryDispatcherTest {
         sparkQueryDispatcher.getQueryResponse(
             new AsyncQueryJobMetadata(EMRS_APPLICATION_ID, EMR_JOB_ID, null));
     Assertions.assertEquals("PENDING", result.get("status"));
+  }
+
+  @Test
+  void testGetQueryResponseWithSession() {
+    doReturn(Optional.of(session)).when(sessionManager).getSession(new SessionId(MOCK_SESSION_ID));
+    doReturn(Optional.of(statement)).when(session).get(any());
+    doReturn(StatementState.WAITING).when(statement).getStatementState();
+
+    doReturn(new JSONObject()).when(jobExecutionResponseReader).getResultFromOpensearchIndex(eq(MOCK_STATEMENT_ID),
+        any());
+    JSONObject result = sparkQueryDispatcher
+        .getQueryResponse(asyncQueryJobMetadataWithSessionId(MOCK_STATEMENT_ID, MOCK_SESSION_ID));
+
+    verifyNoInteractions(emrServerlessClient);
+    Assertions.assertEquals("waiting", result.get("status"));
+  }
+
+  @Test
+  void testGetQueryResponseWithInvalidSession() {
+    doReturn(Optional.empty()).when(sessionManager).getSession(eq(new SessionId(MOCK_SESSION_ID)));
+    doReturn(new JSONObject()).when(jobExecutionResponseReader).getResultFromOpensearchIndex(eq(MOCK_STATEMENT_ID),
+        any());
+    IllegalArgumentException exception = Assertions.assertThrows(IllegalArgumentException.class,
+        () -> sparkQueryDispatcher
+            .getQueryResponse(
+                asyncQueryJobMetadataWithSessionId(MOCK_STATEMENT_ID, MOCK_SESSION_ID)));
+
+    verifyNoInteractions(emrServerlessClient);
+    Assertions.assertEquals(
+        "no session found. " + new SessionId(MOCK_SESSION_ID), exception.getMessage());
+  }
+
+  @Test
+  void testGetQueryResponseWithStatementNotExist() {
+    doReturn(Optional.of(session)).when(sessionManager).getSession(new SessionId(MOCK_SESSION_ID));
+    doReturn(Optional.empty()).when(session).get(any());
+    doReturn(new JSONObject()).when(jobExecutionResponseReader).getResultFromOpensearchIndex(eq(MOCK_STATEMENT_ID),
+        any());
+
+    IllegalArgumentException exception = Assertions.assertThrows(IllegalArgumentException.class,
+        () -> sparkQueryDispatcher
+            .getQueryResponse(
+                asyncQueryJobMetadataWithSessionId(MOCK_STATEMENT_ID, MOCK_SESSION_ID)));
+    verifyNoInteractions(emrServerlessClient);
+    Assertions.assertEquals(
+        "no statement found. " + new StatementId(MOCK_STATEMENT_ID), exception.getMessage());
   }
 
   @Test
