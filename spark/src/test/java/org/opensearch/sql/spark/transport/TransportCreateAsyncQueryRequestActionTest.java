@@ -74,7 +74,8 @@ public class TransportCreateAsyncQueryRequestActionTest {
   @Test
   public void testDoExecuteWithSessionId() {
     CreateAsyncQueryRequest createAsyncQueryRequest =
-        new CreateAsyncQueryRequest("source = my_glue.default.alb_logs", "my_glue", LangType.SQL);
+        new CreateAsyncQueryRequest(
+            "source = my_glue.default.alb_logs", "my_glue", LangType.SQL, MOCK_SESSION_ID);
     CreateAsyncQueryActionRequest request =
         new CreateAsyncQueryActionRequest(createAsyncQueryRequest);
     when(jobExecutorService.createAsyncQuery(createAsyncQueryRequest))

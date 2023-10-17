@@ -90,12 +90,13 @@ User could reuse the session by using ``sessionId`` query parameters.
 
 Sample Request::
 
-    curl --location 'http://localhost:9200/_plugins/_async_query?sessionId=1Giy65ZnzNlmsPAm' \
+    curl --location 'http://localhost:9200/_plugins/_async_query' \
     --header 'Content-Type: application/json' \
     --data '{
         "datasource" : "my_glue",
         "lang" : "sql",
-        "query" : "select * from my_glue.default.http_logs limit 10"
+        "query" : "select * from my_glue.default.http_logs limit 10",
+        "sessionId" : "1Giy65ZnzNlmsPAm"
     }'
 
 Sample Response::

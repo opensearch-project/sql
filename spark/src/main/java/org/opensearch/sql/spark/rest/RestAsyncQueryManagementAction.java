@@ -43,8 +43,6 @@ public class RestAsyncQueryManagementAction extends BaseRestHandler {
   public static final String ASYNC_QUERY_ACTIONS = "async_query_actions";
   public static final String BASE_ASYNC_QUERY_ACTION_URL = "/_plugins/_async_query";
 
-  public static final String PARAMS_SESSION_ID = "sessionId";
-
   private static final Logger LOG = LogManager.getLogger(RestAsyncQueryManagementAction.class);
 
   @Override
@@ -114,7 +112,6 @@ public class RestAsyncQueryManagementAction extends BaseRestHandler {
       throws IOException {
     CreateAsyncQueryRequest submitJobRequest =
         CreateAsyncQueryRequest.fromXContentParser(restRequest.contentParser());
-    submitJobRequest.setSessionId(restRequest.param(PARAMS_SESSION_ID, null));
     return restChannel ->
         Scheduler.schedule(
             nodeClient,
