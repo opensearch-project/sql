@@ -42,6 +42,10 @@ public class InteractiveSession implements Session {
   @Override
   public void open(CreateSessionRequest createSessionRequest) {
     try {
+      // append session id;
+      createSessionRequest
+          .getSparkSubmitParametersBuilder()
+          .sessionExecution(sessionId.getSessionId());
       String jobID = serverlessClient.startJobRun(createSessionRequest.getStartJobRequest());
       String applicationId = createSessionRequest.getStartJobRequest().getApplicationId();
 

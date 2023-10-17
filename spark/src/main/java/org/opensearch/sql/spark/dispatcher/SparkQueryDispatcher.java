@@ -7,6 +7,7 @@ package org.opensearch.sql.spark.dispatcher;
 
 import static org.opensearch.sql.spark.data.constants.SparkConstants.DATA_FIELD;
 import static org.opensearch.sql.spark.data.constants.SparkConstants.ERROR_FIELD;
+import static org.opensearch.sql.spark.data.constants.SparkConstants.FLINT_SESSION_CLASS_NAME;
 import static org.opensearch.sql.spark.data.constants.SparkConstants.STATUS_FIELD;
 
 import com.amazonaws.services.emrserverless.model.CancelJobRunResult;
@@ -230,22 +231,7 @@ public class SparkQueryDispatcher {
     dataSourceUserAuthorizationHelper.authorizeDataSource(dataSourceMetadata);
     String jobName = dispatchQueryRequest.getClusterName() + ":" + "non-index-query";
     Map<String, String> tags = getDefaultTagsForJobSubmission(dispatchQueryRequest);
-    StartJobRequest startJobRequest =
-        new StartJobRequest(
-            dispatchQueryRequest.getQuery(),
-            jobName,
-            dispatchQueryRequest.getApplicationId(),
-            dispatchQueryRequest.getExecutionRoleARN(),
-            SparkSubmitParameters.Builder.builder()
-                .dataSource(
-                    dataSourceService.getRawDataSourceMetadata(
-                        dispatchQueryRequest.getDatasource()))
-                .extraParameters(dispatchQueryRequest.getExtraSparkSubmitParams())
-                .build()
-                .toString(),
-            tags,
-            false,
-            dataSourceMetadata.getResultIndex());
+
     if (sessionManager.isEnabled()) {
       Session session;
       if (dispatchQueryRequest.getSessionId() != null) {
@@ -260,7 +246,19 @@ public class SparkQueryDispatcher {
         // create session if not exist
         session =
             sessionManager.createSession(
-                new CreateSessionRequest(startJobRequest, dataSourceMetadata.getName()));
+                new CreateSessionRequest(
+                    jobName,
+                    dispatchQueryRequest.getApplicationId(),
+                    dispatchQueryRequest.getExecutionRoleARN(),
+                    SparkSubmitParameters.Builder.builder()
+                        .className(FLINT_SESSION_CLASS_NAME)
+                        .dataSource(
+                            dataSourceService.getRawDataSourceMetadata(
+                                dispatchQueryRequest.getDatasource()))
+                        .extraParameters(dispatchQueryRequest.getExtraSparkSubmitParams()),
+                    tags,
+                    dataSourceMetadata.getResultIndex(),
+                    dataSourceMetadata.getName()));
       }
       StatementId statementId =
           session.submit(
@@ -272,6 +270,22 @@ public class SparkQueryDispatcher {
           dataSourceMetadata.getResultIndex(),
           session.getSessionId().getSessionId());
     } else {
+      StartJobRequest startJobRequest =
+          new StartJobRequest(
+              dispatchQueryRequest.getQuery(),
+              jobName,
+              dispatchQueryRequest.getApplicationId(),
+              dispatchQueryRequest.getExecutionRoleARN(),
+              SparkSubmitParameters.Builder.builder()
+                  .dataSource(
+                      dataSourceService.getRawDataSourceMetadata(
+                          dispatchQueryRequest.getDatasource()))
+                  .extraParameters(dispatchQueryRequest.getExtraSparkSubmitParams())
+                  .build()
+                  .toString(),
+              tags,
+              false,
+              dataSourceMetadata.getResultIndex());
       String jobId = emrServerlessClient.startJobRun(startJobRequest);
       return new DispatchQueryResponse(jobId, false, dataSourceMetadata.getResultIndex(), null);
     }

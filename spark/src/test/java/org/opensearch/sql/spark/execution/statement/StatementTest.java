@@ -5,6 +5,7 @@
 
 package org.opensearch.sql.spark.execution.statement;
 
+import static org.opensearch.sql.spark.execution.session.InteractiveSessionTest.createSessionRequest;
 import static org.opensearch.sql.spark.execution.session.SessionManagerTest.sessionSetting;
 import static org.opensearch.sql.spark.execution.statement.StatementState.CANCELLED;
 import static org.opensearch.sql.spark.execution.statement.StatementState.WAITING;
@@ -23,7 +24,6 @@ import org.opensearch.action.admin.indices.delete.DeleteIndexRequest;
 import org.opensearch.action.delete.DeleteRequest;
 import org.opensearch.sql.spark.client.StartJobRequest;
 import org.opensearch.sql.spark.data.constants.SparkConstants;
-import org.opensearch.sql.spark.execution.session.CreateSessionRequest;
 import org.opensearch.sql.spark.execution.session.InteractiveSessionTest;
 import org.opensearch.sql.spark.execution.session.Session;
 import org.opensearch.sql.spark.execution.session.SessionId;
@@ -200,7 +200,7 @@ public class StatementTest extends OpenSearchIntegTestCase {
   public void submitStatementInRunningSession() {
     Session session =
         new SessionManager(stateStore, emrsClient, sessionSetting(false))
-            .createSession(new CreateSessionRequest(startJobRequest, "datasource"));
+            .createSession(createSessionRequest());
 
     // App change state to running
     updateSessionState(stateStore).apply(session.getSessionModel(), SessionState.RUNNING);
@@ -213,7 +213,7 @@ public class StatementTest extends OpenSearchIntegTestCase {
   public void submitStatementInNotStartedState() {
     Session session =
         new SessionManager(stateStore, emrsClient, sessionSetting(false))
-            .createSession(new CreateSessionRequest(startJobRequest, "datasource"));
+            .createSession(createSessionRequest());
 
     StatementId statementId = session.submit(new QueryRequest(LangType.SQL, "select 1"));
     assertFalse(statementId.getId().isEmpty());
@@ -223,7 +223,7 @@ public class StatementTest extends OpenSearchIntegTestCase {
   public void failToSubmitStatementInDeadState() {
     Session session =
         new SessionManager(stateStore, emrsClient, sessionSetting(false))
-            .createSession(new CreateSessionRequest(startJobRequest, "datasource"));
+            .createSession(createSessionRequest());
 
     updateSessionState(stateStore).apply(session.getSessionModel(), SessionState.DEAD);
 
@@ -241,7 +241,7 @@ public class StatementTest extends OpenSearchIntegTestCase {
   public void failToSubmitStatementInFailState() {
     Session session =
         new SessionManager(stateStore, emrsClient, sessionSetting(false))
-            .createSession(new CreateSessionRequest(startJobRequest, "datasource"));
+            .createSession(createSessionRequest());
 
     updateSessionState(stateStore).apply(session.getSessionModel(), SessionState.FAIL);
 
@@ -259,7 +259,7 @@ public class StatementTest extends OpenSearchIntegTestCase {
   public void newStatementFieldAssert() {
     Session session =
         new SessionManager(stateStore, emrsClient, sessionSetting(false))
-            .createSession(new CreateSessionRequest(startJobRequest, "datasource"));
+            .createSession(createSessionRequest());
     StatementId statementId = session.submit(new QueryRequest(LangType.SQL, "select 1"));
     Optional<Statement> statement = session.get(statementId);
 
@@ -277,7 +277,7 @@ public class StatementTest extends OpenSearchIntegTestCase {
   public void failToSubmitStatementInDeletedSession() {
     Session session =
         new SessionManager(stateStore, emrsClient, sessionSetting(false))
-            .createSession(new CreateSessionRequest(startJobRequest, "datasource"));
+            .createSession(createSessionRequest());
 
     // other's delete session
     client()
@@ -295,7 +295,7 @@ public class StatementTest extends OpenSearchIntegTestCase {
   public void getStatementSuccess() {
     Session session =
         new SessionManager(stateStore, emrsClient, sessionSetting(false))
-            .createSession(new CreateSessionRequest(startJobRequest, "datasource"));
+            .createSession(createSessionRequest());
     // App change state to running
     updateSessionState(stateStore).apply(session.getSessionModel(), SessionState.RUNNING);
     StatementId statementId = session.submit(new QueryRequest(LangType.SQL, "select 1"));
@@ -310,7 +310,7 @@ public class StatementTest extends OpenSearchIntegTestCase {
   public void getStatementNotExist() {
     Session session =
         new SessionManager(stateStore, emrsClient, sessionSetting(false))
-            .createSession(new CreateSessionRequest(startJobRequest, "datasource"));
+            .createSession(createSessionRequest());
     // App change state to running
     updateSessionState(stateStore).apply(session.getSessionModel(), SessionState.RUNNING);
 

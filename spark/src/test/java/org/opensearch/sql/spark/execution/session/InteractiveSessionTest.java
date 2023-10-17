@@ -12,6 +12,7 @@ import static org.opensearch.sql.spark.execution.statestore.StateStore.getSessio
 
 import com.amazonaws.services.emrserverless.model.CancelJobRunResult;
 import com.amazonaws.services.emrserverless.model.GetJobRunResult;
+import com.google.common.collect.ImmutableMap;
 import java.util.HashMap;
 import java.util.Optional;
 import lombok.RequiredArgsConstructor;
@@ -20,6 +21,7 @@ import org.junit.Before;
 import org.junit.Test;
 import org.opensearch.action.admin.indices.delete.DeleteIndexRequest;
 import org.opensearch.action.delete.DeleteRequest;
+import org.opensearch.sql.spark.asyncquery.model.SparkSubmitParameters;
 import org.opensearch.sql.spark.client.EMRServerlessClient;
 import org.opensearch.sql.spark.client.StartJobRequest;
 import org.opensearch.sql.spark.data.constants.SparkConstants;
@@ -61,7 +63,7 @@ public class InteractiveSessionTest extends OpenSearchIntegTestCase {
     // open session
     TestSession testSession = testSession(session, stateStore);
     testSession
-        .open(new CreateSessionRequest(startJobRequest, "datasource"))
+        .open(createSessionRequest())
         .assertSessionState(NOT_STARTED)
         .assertAppId("appId")
         .assertJobId("jobId");
@@ -81,7 +83,7 @@ public class InteractiveSessionTest extends OpenSearchIntegTestCase {
             .stateStore(stateStore)
             .serverlessClient(emrsClient)
             .build();
-    session.open(new CreateSessionRequest(startJobRequest, "datasource"));
+    session.open(createSessionRequest());
 
     InteractiveSession duplicateSession =
         InteractiveSession.builder()
@@ -91,8 +93,7 @@ public class InteractiveSessionTest extends OpenSearchIntegTestCase {
             .build();
     IllegalStateException exception =
         assertThrows(
-            IllegalStateException.class,
-            () -> duplicateSession.open(new CreateSessionRequest(startJobRequest, "datasource")));
+            IllegalStateException.class, () -> duplicateSession.open(createSessionRequest()));
     assertEquals("session already exist. sessionId=duplicate-session-id", exception.getMessage());
   }
 
@@ -105,7 +106,7 @@ public class InteractiveSessionTest extends OpenSearchIntegTestCase {
             .stateStore(stateStore)
             .serverlessClient(emrsClient)
             .build();
-    session.open(new CreateSessionRequest(startJobRequest, "datasource"));
+    session.open(createSessionRequest());
 
     client().delete(new DeleteRequest(indexName, sessionId.getSessionId())).actionGet();
 
@@ -118,7 +119,7 @@ public class InteractiveSessionTest extends OpenSearchIntegTestCase {
   public void sessionManagerCreateSession() {
     Session session =
         new SessionManager(stateStore, emrsClient, sessionSetting(false))
-            .createSession(new CreateSessionRequest(startJobRequest, "datasource"));
+            .createSession(createSessionRequest());
 
     TestSession testSession = testSession(session, stateStore);
     testSession.assertSessionState(NOT_STARTED).assertAppId("appId").assertJobId("jobId");
@@ -128,8 +129,7 @@ public class InteractiveSessionTest extends OpenSearchIntegTestCase {
   public void sessionManagerGetSession() {
     SessionManager sessionManager =
         new SessionManager(stateStore, emrsClient, sessionSetting(false));
-    Session session =
-        sessionManager.createSession(new CreateSessionRequest(startJobRequest, "datasource"));
+    Session session = sessionManager.createSession(createSessionRequest());
 
     Optional<Session> managerSession = sessionManager.getSession(session.getSessionId());
     assertTrue(managerSession.isPresent());
@@ -184,6 +184,17 @@ public class InteractiveSessionTest extends OpenSearchIntegTestCase {
       session.close();
       return this;
     }
+  }
+
+  public static CreateSessionRequest createSessionRequest() {
+    return new CreateSessionRequest(
+        "jobName",
+        "appId",
+        "arn",
+        SparkSubmitParameters.Builder.builder(),
+        ImmutableMap.of(),
+        "resultIndex",
+        "datasource");
   }
 
   public static class TestEMRServerlessClient implements EMRServerlessClient {

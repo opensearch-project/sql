@@ -43,10 +43,11 @@ import org.opensearch.sql.spark.execution.statement.StatementState;
 
 @RequiredArgsConstructor
 public class StateStore {
-  public static Function<String, String> SETTINGS_FILE_NAME = indexName -> String.format(
-      "%s_settings.yml", indexName.substring(indexName.indexOf('.') + 1));
-  public static Function<String, String> MAPPING_FILE_NAME = indexName -> String.format(
-      "%s_mapping.yml", indexName.substring(indexName.indexOf('.') + 1));
+  public static Function<String, String> SETTINGS_FILE_NAME =
+      indexName ->
+          String.format("%s_settings.yml", indexName.substring(indexName.indexOf('.') + 1));
+  public static Function<String, String> MAPPING_FILE_NAME =
+      indexName -> String.format("%s_mapping.yml", indexName.substring(indexName.indexOf('.') + 1));
 
   private static final Logger LOG = LogManager.getLogger();
 
@@ -149,7 +150,7 @@ public class StateStore {
           .settings(loadConfigFromResource(SETTINGS_FILE_NAME), XContentType.YAML);
       ActionFuture<CreateIndexResponse> createIndexResponseActionFuture;
       try (ThreadContext.StoredContext ignored =
-               client.threadPool().getThreadContext().stashContext()) {
+          client.threadPool().getThreadContext().stashContext()) {
         createIndexResponseActionFuture = client.admin().indices().create(createIndexRequest);
       }
       CreateIndexResponse createIndexResponse = createIndexResponseActionFuture.actionGet();
@@ -160,19 +161,14 @@ public class StateStore {
       }
     } catch (Throwable e) {
       throw new RuntimeException(
-          "Internal server error while creating"
-              + indexName
-              + " index:: "
-              + e.getMessage());
+          "Internal server error while creating" + indexName + " index:: " + e.getMessage());
     }
   }
 
   private String loadConfigFromResource(Function<String, String> indexToResource)
       throws IOException {
     InputStream fileStream =
-        StateStore.class
-            .getClassLoader()
-            .getResourceAsStream(indexToResource.apply(indexName));
+        StateStore.class.getClassLoader().getResourceAsStream(indexToResource.apply(indexName));
     return IOUtils.toString(fileStream, StandardCharsets.UTF_8);
   }
 

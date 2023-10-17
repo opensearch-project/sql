@@ -39,7 +39,7 @@ public class SparkSubmitParameters {
 
   public static class Builder {
 
-    private final String className;
+    private String className;
     private final Map<String, String> config;
     private String extraParameters;
 
@@ -68,6 +68,11 @@ public class SparkSubmitParameters {
 
     public static Builder builder() {
       return new Builder();
+    }
+
+    public Builder className(String className) {
+      this.className = className;
+      return this;
     }
 
     public Builder dataSource(DataSourceMetadata metadata) {
@@ -138,6 +143,12 @@ public class SparkSubmitParameters {
 
     public Builder extraParameters(String params) {
       extraParameters = params;
+      return this;
+    }
+
+    public Builder sessionExecution(String sessionId) {
+      config.put(FLINT_JOB_REQUEST_INDEX, SPARK_REQUEST_BUFFER_INDEX_NAME);
+      config.put(FLINT_JOB_SESSION_ID, sessionId);
       return this;
     }
 

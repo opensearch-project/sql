@@ -6,6 +6,7 @@
 package org.opensearch.sql.spark.execution.statement;
 
 import java.util.Arrays;
+import java.util.Locale;
 import java.util.Map;
 import java.util.stream.Collectors;
 import lombok.Getter;
@@ -30,8 +31,10 @@ public enum StatementState {
           .collect(Collectors.toMap(t -> t.name().toLowerCase(), t -> t));
 
   public static StatementState fromString(String key) {
-    if (STATES.containsKey(key)) {
-      return STATES.get(key);
+    for (StatementState ss : StatementState.values()) {
+      if (ss.getState().toLowerCase(Locale.ROOT).equals(key)) {
+        return ss;
+      }
     }
     throw new IllegalArgumentException("Invalid statement state: " + key);
   }
