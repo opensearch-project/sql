@@ -74,7 +74,8 @@ public class AsyncQueryExecutorServiceImpl implements AsyncQueryExecutorService 
             dispatchQueryResponse.isDropIndexQuery(),
             dispatchQueryResponse.getResultIndex(),
             dispatchQueryResponse.getSessionId()));
-    return new CreateAsyncQueryResponse(dispatchQueryResponse.getJobId(), dispatchQueryResponse.getSessionId());
+    return new CreateAsyncQueryResponse(
+        dispatchQueryResponse.getJobId(), dispatchQueryResponse.getSessionId());
   }
 
   @Override

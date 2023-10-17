@@ -84,10 +84,8 @@ public class TransportCreateAsyncQueryRequestActionTest {
     CreateAsyncQueryActionResponse createAsyncQueryActionResponse =
         createJobActionResponseArgumentCaptor.getValue();
     Assertions.assertEquals(
-        "{\n" +
-            "  \"queryId\": \"123\",\n" +
-            "  \"sessionId\": \"s-0123456\"\n" +
-            "}", createAsyncQueryActionResponse.getResult());
+        "{\n" + "  \"queryId\": \"123\",\n" + "  \"sessionId\": \"s-0123456\"\n" + "}",
+        createAsyncQueryActionResponse.getResult());
   }
 
   @Test
