@@ -1,0 +1,32 @@
+{
+  "mappings": {
+    "properties": {
+      "geo_point_object": {
+        "type": "geo_point"
+      },
+      "object": {
+        "type": "object",
+        "properties": {
+          "geo_point_object": {
+            "type": "geo_point"
+          }
+        }
+      },
+      "geo_point_string": {
+        "type": "geo_point"
+      },
+      "geo_point_geohash": {
+        "type": "geo_point"
+      },
+      "geo_point_array": {
+        "type": "geo_point"
+      },
+      "geo_point_string_point": {
+        "type": "geo_point"
+      },
+      "geo_point_geojson": {
+        "type": "geo_point"
+      }
+    }
+  }
+}
