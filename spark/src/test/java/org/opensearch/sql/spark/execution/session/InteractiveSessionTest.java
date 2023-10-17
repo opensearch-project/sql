@@ -22,13 +22,14 @@ import org.opensearch.action.admin.indices.delete.DeleteIndexRequest;
 import org.opensearch.action.delete.DeleteRequest;
 import org.opensearch.sql.spark.client.EMRServerlessClient;
 import org.opensearch.sql.spark.client.StartJobRequest;
+import org.opensearch.sql.spark.data.constants.SparkConstants;
 import org.opensearch.sql.spark.execution.statestore.StateStore;
-import org.opensearch.test.OpenSearchSingleNodeTestCase;
+import org.opensearch.test.OpenSearchIntegTestCase;
 
 /** mock-maker-inline does not work with OpenSearchTestCase. */
-public class InteractiveSessionTest extends OpenSearchSingleNodeTestCase {
+public class InteractiveSessionTest extends OpenSearchIntegTestCase {
 
-  private static final String indexName = "mockindex";
+  private static final String indexName = SparkConstants.SPARK_REQUEST_BUFFER_INDEX_NAME;
 
   private TestEMRServerlessClient emrsClient;
   private StartJobRequest startJobRequest;
@@ -38,13 +39,14 @@ public class InteractiveSessionTest extends OpenSearchSingleNodeTestCase {
   public void setup() {
     emrsClient = new TestEMRServerlessClient();
     startJobRequest = new StartJobRequest("", "", "appId", "", "", new HashMap<>(), false, "");
-    stateStore = new StateStore(indexName, client());
-    createIndex(indexName);
+    stateStore = new StateStore(indexName, client(), clusterService());
   }
 
   @After
   public void clean() {
-    client().admin().indices().delete(new DeleteIndexRequest(indexName)).actionGet();
+    if (clusterService().state().routingTable().hasIndex(indexName)) {
+      client().admin().indices().delete(new DeleteIndexRequest(indexName)).actionGet();
+    }
   }
 
   @Test

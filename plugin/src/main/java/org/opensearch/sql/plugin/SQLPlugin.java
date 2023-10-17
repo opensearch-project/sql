@@ -323,7 +323,7 @@ public class SQLPlugin extends Plugin implements ActionPlugin, ScriptPlugin {
             new FlintIndexMetadataReaderImpl(client),
             client,
             new SessionManager(
-                new StateStore(SPARK_REQUEST_BUFFER_INDEX_NAME, client),
+                new StateStore(SPARK_REQUEST_BUFFER_INDEX_NAME, client, clusterService),
                 emrServerlessClient,
                 pluginSettings));
     return new AsyncQueryExecutorServiceImpl(

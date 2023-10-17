@@ -22,6 +22,7 @@ import org.junit.Test;
 import org.opensearch.action.admin.indices.delete.DeleteIndexRequest;
 import org.opensearch.action.delete.DeleteRequest;
 import org.opensearch.sql.spark.client.StartJobRequest;
+import org.opensearch.sql.spark.data.constants.SparkConstants;
 import org.opensearch.sql.spark.execution.session.CreateSessionRequest;
 import org.opensearch.sql.spark.execution.session.InteractiveSessionTest;
 import org.opensearch.sql.spark.execution.session.Session;
@@ -30,11 +31,11 @@ import org.opensearch.sql.spark.execution.session.SessionManager;
 import org.opensearch.sql.spark.execution.session.SessionState;
 import org.opensearch.sql.spark.execution.statestore.StateStore;
 import org.opensearch.sql.spark.rest.model.LangType;
-import org.opensearch.test.OpenSearchSingleNodeTestCase;
+import org.opensearch.test.OpenSearchIntegTestCase;
 
-public class StatementTest extends OpenSearchSingleNodeTestCase {
+public class StatementTest extends OpenSearchIntegTestCase {
 
-  private static final String indexName = "mockindex";
+  private static final String indexName = SparkConstants.SPARK_REQUEST_BUFFER_INDEX_NAME;
 
   private StartJobRequest startJobRequest;
   private StateStore stateStore;
@@ -44,13 +45,14 @@ public class StatementTest extends OpenSearchSingleNodeTestCase {
   @Before
   public void setup() {
     startJobRequest = new StartJobRequest("", "", "appId", "", "", new HashMap<>(), false, "");
-    stateStore = new StateStore(indexName, client());
-    createIndex(indexName);
+    stateStore = new StateStore(indexName, client(), clusterService());
   }
 
   @After
   public void clean() {
-    client().admin().indices().delete(new DeleteIndexRequest(indexName)).actionGet();
+    if (clusterService().state().routingTable().hasIndex(indexName)) {
+      client().admin().indices().delete(new DeleteIndexRequest(indexName)).actionGet();
+    }
   }
 
   @Test
@@ -125,7 +127,7 @@ public class StatementTest extends OpenSearchSingleNodeTestCase {
             .build();
     st.open();
 
-    client().delete(new DeleteRequest(indexName, stId.getId()));
+    client().delete(new DeleteRequest(indexName, stId.getId())).actionGet();
 
     IllegalStateException exception = assertThrows(IllegalStateException.class, st::cancel);
     assertEquals(

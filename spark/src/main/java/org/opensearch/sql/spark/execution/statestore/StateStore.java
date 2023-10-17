@@ -6,14 +6,19 @@
 package org.opensearch.sql.spark.execution.statestore;
 
 import java.io.IOException;
+import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
 import java.util.Locale;
 import java.util.Optional;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 import lombok.RequiredArgsConstructor;
+import org.apache.commons.io.IOUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.action.DocWriteResponse;
+import org.opensearch.action.admin.indices.create.CreateIndexRequest;
+import org.opensearch.action.admin.indices.create.CreateIndexResponse;
 import org.opensearch.action.get.GetRequest;
 import org.opensearch.action.get.GetResponse;
 import org.opensearch.action.index.IndexRequest;
@@ -22,6 +27,9 @@ import org.opensearch.action.support.WriteRequest;
 import org.opensearch.action.update.UpdateRequest;
 import org.opensearch.action.update.UpdateResponse;
 import org.opensearch.client.Client;
+import org.opensearch.cluster.service.ClusterService;
+import org.opensearch.common.action.ActionFuture;
+import org.opensearch.common.util.concurrent.ThreadContext;
 import org.opensearch.common.xcontent.LoggingDeprecationHandler;
 import org.opensearch.common.xcontent.XContentFactory;
 import org.opensearch.common.xcontent.XContentType;
@@ -35,13 +43,22 @@ import org.opensearch.sql.spark.execution.statement.StatementState;
 
 @RequiredArgsConstructor
 public class StateStore {
+  public static Function<String, String> SETTINGS_FILE_NAME = indexName -> String.format(
+      "%s_settings.yml", indexName.substring(indexName.indexOf('.') + 1));
+  public static Function<String, String> MAPPING_FILE_NAME = indexName -> String.format(
+      "%s_mapping.yml", indexName.substring(indexName.indexOf('.') + 1));
+
   private static final Logger LOG = LogManager.getLogger();
 
   private final String indexName;
   private final Client client;
+  private final ClusterService clusterService;
 
   protected <T extends StateModel> T create(T st, StateModel.CopyBuilder<T> builder) {
     try {
+      if (!this.clusterService.state().routingTable().hasIndex(indexName)) {
+        createIndex();
+      }
       IndexRequest indexRequest =
           new IndexRequest(indexName)
               .id(st.getId())
@@ -69,6 +86,10 @@ public class StateStore {
 
   protected <T extends StateModel> Optional<T> get(String sid, StateModel.FromXContent<T> builder) {
     try {
+      if (!this.clusterService.state().routingTable().hasIndex(indexName)) {
+        createIndex();
+        return Optional.empty();
+      }
       GetRequest getRequest = new GetRequest().index(indexName).id(sid);
       GetResponse getResponse = client.get(getRequest).actionGet();
       if (getResponse.isExists()) {
@@ -118,6 +139,41 @@ public class StateStore {
     } catch (IOException e) {
       throw new RuntimeException(e);
     }
+  }
+
+  private void createIndex() {
+    try {
+      CreateIndexRequest createIndexRequest = new CreateIndexRequest(indexName);
+      createIndexRequest
+          .mapping(loadConfigFromResource(MAPPING_FILE_NAME), XContentType.YAML)
+          .settings(loadConfigFromResource(SETTINGS_FILE_NAME), XContentType.YAML);
+      ActionFuture<CreateIndexResponse> createIndexResponseActionFuture;
+      try (ThreadContext.StoredContext ignored =
+               client.threadPool().getThreadContext().stashContext()) {
+        createIndexResponseActionFuture = client.admin().indices().create(createIndexRequest);
+      }
+      CreateIndexResponse createIndexResponse = createIndexResponseActionFuture.actionGet();
+      if (createIndexResponse.isAcknowledged()) {
+        LOG.info("Index: {} creation Acknowledged", indexName);
+      } else {
+        throw new RuntimeException("Index creation is not acknowledged.");
+      }
+    } catch (Throwable e) {
+      throw new RuntimeException(
+          "Internal server error while creating"
+              + indexName
+              + " index:: "
+              + e.getMessage());
+    }
+  }
+
+  private String loadConfigFromResource(Function<String, String> indexToResource)
+      throws IOException {
+    InputStream fileStream =
+        StateStore.class
+            .getClassLoader()
+            .getResourceAsStream(indexToResource.apply(indexName));
+    return IOUtils.toString(fileStream, StandardCharsets.UTF_8);
   }
 
   /** Helper Functions */
