@@ -52,15 +52,38 @@ dependencies {
     api group: 'com.amazonaws', name: 'aws-java-sdk-emrserverless', version: '1.12.545'
     implementation group: 'commons-io', name: 'commons-io', version: '2.8.0'
 
-    testImplementation('org.junit.jupiter:junit-jupiter:5.6.2')
+    testImplementation(platform("org.junit:junit-bom:5.6.2"))
+
+    testImplementation('org.junit.jupiter:junit-jupiter')
     testImplementation group: 'org.mockito', name: 'mockito-core', version: '5.2.0'
     testImplementation group: 'org.mockito', name: 'mockito-junit-jupiter', version: '5.2.0'
-    testImplementation 'junit:junit:4.13.1'
-    testImplementation "org.opensearch.test:framework:${opensearch_version}"
+
+    testCompileOnly('junit:junit:4.13.1') {
+        exclude group: 'org.hamcrest', module: 'hamcrest-core'
+    }
+    testRuntimeOnly("org.junit.vintage:junit-vintage-engine") {
+        exclude group: 'org.hamcrest', module: 'hamcrest-core'
+    }
+    testRuntimeOnly("org.junit.platform:junit-platform-launcher") {
+        because 'allows tests to run from IDEs that bundle older version of launcher'
+    }
+    testImplementation("org.opensearch.test:framework:${opensearch_version}")
 }
 
 test {
-    useJUnitPlatform()
+    useJUnitPlatform {
+        includeEngines("junit-jupiter")
+    }
+    testLogging {
+        events "failed"
+        exceptionFormat "full"
+    }
+}
+task junit4(type: Test) {
+    useJUnitPlatform {
+        includeEngines("junit-vintage")
+    }
+    systemProperty 'tests.security.manager', 'false'
     testLogging {
         events "failed"
         exceptionFormat "full"
@@ -68,6 +91,8 @@ test {
 }
 
 jacocoTestReport {
+    dependsOn test, junit4
+    executionData test, junit4
     reports {
         html.enabled true
         xml.enabled true
@@ -78,9 +103,10 @@ jacocoTestReport {
         }))
     }
 }
-test.finalizedBy(project.tasks.jacocoTestReport)
 
 jacocoTestCoverageVerification {
+    dependsOn test, junit4
+    executionData test, junit4
     violationRules {
         rule {
             element = 'CLASS'
@@ -92,6 +118,9 @@ jacocoTestCoverageVerification {
                     'org.opensearch.sql.spark.asyncquery.exceptions.*',
                     'org.opensearch.sql.spark.dispatcher.model.*',
                     'org.opensearch.sql.spark.flint.FlintIndexType',
+                    // ignore because XContext IOException
+                    'org.opensearch.sql.spark.execution.statestore.SessionStateStore',
+                    'org.opensearch.sql.spark.execution.session.SessionModel'
             ]
             limit {
                 counter = 'LINE'
