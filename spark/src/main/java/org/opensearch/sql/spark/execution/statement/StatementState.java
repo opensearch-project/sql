@@ -10,6 +10,7 @@ import java.util.Map;
 import java.util.stream.Collectors;
 import lombok.Getter;
 
+/** {@link Statement} State. */
 @Getter
 public enum StatementState {
   WAITING("waiting"),

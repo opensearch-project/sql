@@ -28,6 +28,8 @@ public class Statement {
   private static final Logger LOG = LogManager.getLogger();
 
   private final SessionId sessionId;
+  private final String applicationId;
+  private final String jobId;
   private final StatementId statementId;
   private final LangType langType;
   private final String query;
@@ -39,7 +41,8 @@ public class Statement {
   /** Open a statement. */
   public void open() {
     try {
-      statementModel = submitStatement(sessionId, statementId, langType, query, queryId);
+      statementModel =
+          submitStatement(sessionId, applicationId, jobId, statementId, langType, query, queryId);
       statementModel = createStatement(stateStore).apply(statementModel);
     } catch (VersionConflictEngineException e) {
       String errorMsg = "statement already exist. " + statementId;

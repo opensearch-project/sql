@@ -57,6 +57,8 @@ public class StatementTest extends OpenSearchSingleNodeTestCase {
     Statement st =
         Statement.builder()
             .sessionId(new SessionId("sessionId"))
+            .applicationId("appId")
+            .jobId("jobId")
             .statementId(new StatementId("statementId"))
             .langType(LangType.SQL)
             .query("query")
@@ -80,6 +82,8 @@ public class StatementTest extends OpenSearchSingleNodeTestCase {
     Statement st =
         Statement.builder()
             .sessionId(new SessionId("sessionId"))
+            .applicationId("appId")
+            .jobId("jobId")
             .statementId(new StatementId("statementId"))
             .langType(LangType.SQL)
             .query("query")
@@ -92,6 +96,8 @@ public class StatementTest extends OpenSearchSingleNodeTestCase {
     Statement dupSt =
         Statement.builder()
             .sessionId(new SessionId("sessionId"))
+            .applicationId("appId")
+            .jobId("jobId")
             .statementId(new StatementId("statementId"))
             .langType(LangType.SQL)
             .query("query")
@@ -108,6 +114,8 @@ public class StatementTest extends OpenSearchSingleNodeTestCase {
     Statement st =
         Statement.builder()
             .sessionId(new SessionId("sessionId"))
+            .applicationId("appId")
+            .jobId("jobId")
             .statementId(stId)
             .langType(LangType.SQL)
             .query("query")
@@ -130,6 +138,8 @@ public class StatementTest extends OpenSearchSingleNodeTestCase {
     Statement st =
         Statement.builder()
             .sessionId(new SessionId("sessionId"))
+            .applicationId("appId")
+            .jobId("jobId")
             .statementId(stId)
             .langType(LangType.SQL)
             .query("query")
@@ -157,6 +167,8 @@ public class StatementTest extends OpenSearchSingleNodeTestCase {
     Statement st =
         Statement.builder()
             .sessionId(new SessionId("sessionId"))
+            .applicationId("appId")
+            .jobId("jobId")
             .statementId(stId)
             .langType(LangType.SQL)
             .query("query")
@@ -195,19 +207,67 @@ public class StatementTest extends OpenSearchSingleNodeTestCase {
   }
 
   @Test
-  public void failToSubmitStatementInStartingSession() {
+  public void submitStatementInNotStartedState() {
     Session session =
         new SessionManager(stateStore, emrsClient)
             .createSession(new CreateSessionRequest(startJobRequest, "datasource"));
+
+    StatementId statementId = session.submit(new QueryRequest(LangType.SQL, "select 1"));
+    assertFalse(statementId.getId().isEmpty());
+  }
+
+  @Test
+  public void failToSubmitStatementInDeadState() {
+    Session session =
+        new SessionManager(stateStore, emrsClient)
+            .createSession(new CreateSessionRequest(startJobRequest, "datasource"));
+
+    updateSessionState(stateStore).apply(session.getSessionModel(), SessionState.DEAD);
 
     IllegalStateException exception =
         assertThrows(
             IllegalStateException.class,
             () -> session.submit(new QueryRequest(LangType.SQL, "select 1")));
     assertEquals(
-        "can't submit statement, session should in running state, current session state is:"
-            + " not_started",
+        "can't submit statement, session should not be in end state, current session state is:"
+            + " dead",
         exception.getMessage());
+  }
+
+  @Test
+  public void failToSubmitStatementInFailState() {
+    Session session =
+        new SessionManager(stateStore, emrsClient)
+            .createSession(new CreateSessionRequest(startJobRequest, "datasource"));
+
+    updateSessionState(stateStore).apply(session.getSessionModel(), SessionState.FAIL);
+
+    IllegalStateException exception =
+        assertThrows(
+            IllegalStateException.class,
+            () -> session.submit(new QueryRequest(LangType.SQL, "select 1")));
+    assertEquals(
+        "can't submit statement, session should not be in end state, current session state is:"
+            + " fail",
+        exception.getMessage());
+  }
+
+  @Test
+  public void newStatementFieldAssert() {
+    Session session =
+        new SessionManager(stateStore, emrsClient)
+            .createSession(new CreateSessionRequest(startJobRequest, "datasource"));
+    StatementId statementId = session.submit(new QueryRequest(LangType.SQL, "select 1"));
+    Optional<Statement> statement = session.get(statementId);
+
+    assertTrue(statement.isPresent());
+    assertEquals(session.getSessionId(), statement.get().getSessionId());
+    assertEquals("appId", statement.get().getApplicationId());
+    assertEquals("jobId", statement.get().getJobId());
+    assertEquals(statementId, statement.get().getStatementId());
+    assertEquals(WAITING, statement.get().getStatementState());
+    assertEquals(LangType.SQL, statement.get().getLangType());
+    assertEquals("select 1", statement.get().getQuery());
   }
 
   @Test

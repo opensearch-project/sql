@@ -6,6 +6,7 @@
 package org.opensearch.sql.spark.execution.session;
 
 import static org.opensearch.sql.spark.execution.session.SessionModel.initInteractiveSession;
+import static org.opensearch.sql.spark.execution.session.SessionState.END_STATE;
 import static org.opensearch.sql.spark.execution.statement.StatementId.newStatementId;
 import static org.opensearch.sql.spark.execution.statestore.StateStore.createSession;
 import static org.opensearch.sql.spark.execution.statestore.StateStore.getSession;
@@ -73,11 +74,13 @@ public class InteractiveSession implements Session {
       throw new IllegalStateException("session does not exist. " + sessionModel.getSessionId());
     } else {
       sessionModel = model.get();
-      if (sessionModel.getSessionState() == SessionState.RUNNING) {
+      if (!END_STATE.contains(sessionModel.getSessionState())) {
         StatementId statementId = newStatementId();
         Statement st =
             Statement.builder()
                 .sessionId(sessionId)
+                .applicationId(sessionModel.getApplicationId())
+                .jobId(sessionModel.getJobId())
                 .stateStore(stateStore)
                 .statementId(statementId)
                 .langType(LangType.SQL)
@@ -89,7 +92,7 @@ public class InteractiveSession implements Session {
       } else {
         String errMsg =
             String.format(
-                "can't submit statement, session should in running state, "
+                "can't submit statement, session should not be in end state, "
                     + "current session state is: %s",
                 sessionModel.getSessionState().getSessionState());
         LOG.debug(errMsg);
@@ -106,6 +109,8 @@ public class InteractiveSession implements Session {
             model ->
                 Statement.builder()
                     .sessionId(sessionId)
+                    .applicationId(model.getApplicationId())
+                    .jobId(model.getJobId())
                     .statementId(model.getStatementId())
                     .langType(model.getLangType())
                     .query(model.getQuery())
