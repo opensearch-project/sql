@@ -6,6 +6,10 @@
 package org.opensearch.sql.spark.execution.session;
 
 import static org.opensearch.sql.spark.execution.session.SessionModel.initInteractiveSession;
+import static org.opensearch.sql.spark.execution.session.SessionState.END_STATE;
+import static org.opensearch.sql.spark.execution.statement.StatementId.newStatementId;
+import static org.opensearch.sql.spark.execution.statestore.StateStore.createSession;
+import static org.opensearch.sql.spark.execution.statestore.StateStore.getSession;
 
 import java.util.Optional;
 import lombok.Builder;
@@ -14,7 +18,11 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.index.engine.VersionConflictEngineException;
 import org.opensearch.sql.spark.client.EMRServerlessClient;
-import org.opensearch.sql.spark.execution.statestore.SessionStateStore;
+import org.opensearch.sql.spark.execution.statement.QueryRequest;
+import org.opensearch.sql.spark.execution.statement.Statement;
+import org.opensearch.sql.spark.execution.statement.StatementId;
+import org.opensearch.sql.spark.execution.statestore.StateStore;
+import org.opensearch.sql.spark.rest.model.LangType;
 
 /**
  * Interactive session.
@@ -27,9 +35,8 @@ public class InteractiveSession implements Session {
   private static final Logger LOG = LogManager.getLogger();
 
   private final SessionId sessionId;
-  private final SessionStateStore sessionStateStore;
+  private final StateStore stateStore;
   private final EMRServerlessClient serverlessClient;
-
   private SessionModel sessionModel;
 
   @Override
@@ -41,7 +48,7 @@ public class InteractiveSession implements Session {
       sessionModel =
           initInteractiveSession(
               applicationId, jobID, sessionId, createSessionRequest.getDatasourceName());
-      sessionStateStore.create(sessionModel);
+      createSession(stateStore).apply(sessionModel);
     } catch (VersionConflictEngineException e) {
       String errorMsg = "session already exist. " + sessionId;
       LOG.error(errorMsg);
@@ -49,13 +56,67 @@ public class InteractiveSession implements Session {
     }
   }
 
+  /** todo. StatementSweeper will delete doc. */
   @Override
   public void close() {
-    Optional<SessionModel> model = sessionStateStore.get(sessionModel.getSessionId());
+    Optional<SessionModel> model = getSession(stateStore).apply(sessionModel.getId());
     if (model.isEmpty()) {
-      throw new IllegalStateException("session not exist. " + sessionModel.getSessionId());
+      throw new IllegalStateException("session does not exist. " + sessionModel.getSessionId());
     } else {
       serverlessClient.cancelJobRun(sessionModel.getApplicationId(), sessionModel.getJobId());
     }
+  }
+
+  /** Submit statement. If submit successfully, Statement in waiting state. */
+  public StatementId submit(QueryRequest request) {
+    Optional<SessionModel> model = getSession(stateStore).apply(sessionModel.getId());
+    if (model.isEmpty()) {
+      throw new IllegalStateException("session does not exist. " + sessionModel.getSessionId());
+    } else {
+      sessionModel = model.get();
+      if (!END_STATE.contains(sessionModel.getSessionState())) {
+        StatementId statementId = newStatementId();
+        Statement st =
+            Statement.builder()
+                .sessionId(sessionId)
+                .applicationId(sessionModel.getApplicationId())
+                .jobId(sessionModel.getJobId())
+                .stateStore(stateStore)
+                .statementId(statementId)
+                .langType(LangType.SQL)
+                .query(request.getQuery())
+                .queryId(statementId.getId())
+                .build();
+        st.open();
+        return statementId;
+      } else {
+        String errMsg =
+            String.format(
+                "can't submit statement, session should not be in end state, "
+                    + "current session state is: %s",
+                sessionModel.getSessionState().getSessionState());
+        LOG.debug(errMsg);
+        throw new IllegalStateException(errMsg);
+      }
+    }
+  }
+
+  @Override
+  public Optional<Statement> get(StatementId stID) {
+    return StateStore.getStatement(stateStore)
+        .apply(stID.getId())
+        .map(
+            model ->
+                Statement.builder()
+                    .sessionId(sessionId)
+                    .applicationId(model.getApplicationId())
+                    .jobId(model.getJobId())
+                    .statementId(model.getStatementId())
+                    .langType(model.getLangType())
+                    .query(model.getQuery())
+                    .queryId(model.getQueryId())
+                    .stateStore(stateStore)
+                    .statementModel(model)
+                    .build());
   }
 }
