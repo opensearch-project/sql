@@ -143,14 +143,13 @@ public class RestAsyncQueryManagementAction extends BaseRestHandler {
   private RestChannelConsumer executeGetAsyncQueryResultRequest(
       RestRequest restRequest, NodeClient nodeClient) {
     String queryId = restRequest.param("queryId");
-    String sessionId = restRequest.param(PARAMS_SESSION_ID, null);
     return restChannel ->
         Scheduler.schedule(
             nodeClient,
             () ->
                 nodeClient.execute(
                     TransportGetAsyncQueryResultAction.ACTION_TYPE,
-                    new GetAsyncQueryResultActionRequest(queryId, sessionId),
+                    new GetAsyncQueryResultActionRequest(queryId),
                     new ActionListener<>() {
                       @Override
                       public void onResponse(
@@ -185,14 +184,13 @@ public class RestAsyncQueryManagementAction extends BaseRestHandler {
 
   private RestChannelConsumer executeDeleteRequest(RestRequest restRequest, NodeClient nodeClient) {
     String queryId = restRequest.param("queryId");
-    String sessionId = restRequest.param(PARAMS_SESSION_ID, null);
     return restChannel ->
         Scheduler.schedule(
             nodeClient,
             () ->
                 nodeClient.execute(
                     TransportCancelAsyncQueryRequestAction.ACTION_TYPE,
-                    new CancelAsyncQueryActionRequest(queryId, sessionId),
+                    new CancelAsyncQueryActionRequest(queryId),
                     new ActionListener<>() {
                       @Override
                       public void onResponse(

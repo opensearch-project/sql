@@ -18,6 +18,7 @@ public class CreateAsyncQueryRequest {
   private String query;
   private String datasource;
   private LangType lang;
+  // optional sessionId
   private String sessionId;
 
   public CreateAsyncQueryRequest(String query, String datasource, LangType lang) {

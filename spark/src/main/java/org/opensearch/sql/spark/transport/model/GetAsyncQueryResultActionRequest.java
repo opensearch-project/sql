@@ -19,8 +19,6 @@ public class GetAsyncQueryResultActionRequest extends ActionRequest {
 
   @Getter private String queryId;
 
-  @Getter private String sessionId;
-
   /** Constructor of GetJobQueryResultActionRequest from StreamInput. */
   public GetAsyncQueryResultActionRequest(StreamInput in) throws IOException {
     super(in);
