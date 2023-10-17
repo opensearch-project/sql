@@ -47,6 +47,7 @@ import org.opensearch.sql.spark.execution.session.SessionManager;
 import org.opensearch.sql.spark.execution.statement.QueryRequest;
 import org.opensearch.sql.spark.execution.statement.Statement;
 import org.opensearch.sql.spark.execution.statement.StatementId;
+import org.opensearch.sql.spark.execution.statement.StatementState;
 import org.opensearch.sql.spark.flint.FlintIndexMetadata;
 import org.opensearch.sql.spark.flint.FlintIndexMetadataReader;
 import org.opensearch.sql.spark.response.JobExecutionResponseReader;
@@ -121,13 +122,32 @@ public class SparkQueryDispatcher {
       String error = items.optString(ERROR_FIELD, "");
       result.put(ERROR_FIELD, error);
     } else {
-      // make call to EMR Serverless when related result index documents are not available
-      GetJobRunResult getJobRunResult =
-          emrServerlessClient.getJobRunResult(
-              asyncQueryJobMetadata.getApplicationId(), asyncQueryJobMetadata.getJobId());
-      String jobState = getJobRunResult.getJobRun().getState();
-      result.put(STATUS_FIELD, jobState);
-      result.put(ERROR_FIELD, "");
+      if (sessionManager.isEnabled() && asyncQueryJobMetadata.getSessionId() != null) {
+        SessionId sessionId = new SessionId(asyncQueryJobMetadata.getSessionId());
+        Optional<Session> session = sessionManager.getSession(sessionId);
+        if (session.isPresent()) {
+          // todo, statementId == jobId if statement running in session.
+          StatementId statementId = new StatementId(asyncQueryJobMetadata.getJobId());
+          Optional<Statement> statement = session.get().get(statementId);
+          if (statement.isPresent()) {
+            StatementState statementState = statement.get().getStatementState();
+            result.put(STATUS_FIELD, statementState.getState());
+            result.put(ERROR_FIELD, "");
+          } else {
+            throw new IllegalArgumentException("no statement found. " + statementId);
+          }
+        } else {
+          throw new IllegalArgumentException("no session found. " + sessionId);
+        }
+      } else {
+        // make call to EMR Serverless when related result index documents are not available
+        GetJobRunResult getJobRunResult =
+            emrServerlessClient.getJobRunResult(
+                asyncQueryJobMetadata.getApplicationId(), asyncQueryJobMetadata.getJobId());
+        String jobState = getJobRunResult.getJobRun().getState();
+        result.put(STATUS_FIELD, jobState);
+        result.put(ERROR_FIELD, "");
+      }
     }
 
     return result;

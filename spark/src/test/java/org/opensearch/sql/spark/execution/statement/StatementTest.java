@@ -220,7 +220,7 @@ public class StatementTest extends OpenSearchSingleNodeTestCase {
   @Test
   public void failToSubmitStatementInDeadState() {
     Session session =
-        new SessionManager(stateStore, emrsClient)
+        new SessionManager(stateStore, emrsClient, sessionSetting(false))
             .createSession(new CreateSessionRequest(startJobRequest, "datasource"));
 
     updateSessionState(stateStore).apply(session.getSessionModel(), SessionState.DEAD);
@@ -238,7 +238,7 @@ public class StatementTest extends OpenSearchSingleNodeTestCase {
   @Test
   public void failToSubmitStatementInFailState() {
     Session session =
-        new SessionManager(stateStore, emrsClient)
+        new SessionManager(stateStore, emrsClient, sessionSetting(false))
             .createSession(new CreateSessionRequest(startJobRequest, "datasource"));
 
     updateSessionState(stateStore).apply(session.getSessionModel(), SessionState.FAIL);
@@ -256,7 +256,7 @@ public class StatementTest extends OpenSearchSingleNodeTestCase {
   @Test
   public void newStatementFieldAssert() {
     Session session =
-        new SessionManager(stateStore, emrsClient)
+        new SessionManager(stateStore, emrsClient, sessionSetting(false))
             .createSession(new CreateSessionRequest(startJobRequest, "datasource"));
     StatementId statementId = session.submit(new QueryRequest(LangType.SQL, "select 1"));
     Optional<Statement> statement = session.get(statementId);
