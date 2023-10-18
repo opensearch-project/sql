@@ -6,6 +6,7 @@
 package org.opensearch.sql.spark.execution.session;
 
 import static org.opensearch.sql.spark.execution.session.InteractiveSessionTest.TestSession.testSession;
+import static org.opensearch.sql.spark.execution.session.SessionManagerTest.sessionSetting;
 import static org.opensearch.sql.spark.execution.session.SessionState.NOT_STARTED;
 import static org.opensearch.sql.spark.execution.statestore.StateStore.getSession;
 
@@ -114,7 +115,7 @@ public class InteractiveSessionTest extends OpenSearchSingleNodeTestCase {
   @Test
   public void sessionManagerCreateSession() {
     Session session =
-        new SessionManager(stateStore, emrsClient)
+        new SessionManager(stateStore, emrsClient, sessionSetting(false))
             .createSession(new CreateSessionRequest(startJobRequest, "datasource"));
 
     TestSession testSession = testSession(session, stateStore);
@@ -123,7 +124,8 @@ public class InteractiveSessionTest extends OpenSearchSingleNodeTestCase {
 
   @Test
   public void sessionManagerGetSession() {
-    SessionManager sessionManager = new SessionManager(stateStore, emrsClient);
+    SessionManager sessionManager =
+        new SessionManager(stateStore, emrsClient, sessionSetting(false));
     Session session =
         sessionManager.createSession(new CreateSessionRequest(startJobRequest, "datasource"));
 
@@ -134,7 +136,8 @@ public class InteractiveSessionTest extends OpenSearchSingleNodeTestCase {
 
   @Test
   public void sessionManagerGetSessionNotExist() {
-    SessionManager sessionManager = new SessionManager(stateStore, emrsClient);
+    SessionManager sessionManager =
+        new SessionManager(stateStore, emrsClient, sessionSetting(false));
 
     Optional<Session> managerSession = sessionManager.getSession(new SessionId("no-exist"));
     assertTrue(managerSession.isEmpty());
