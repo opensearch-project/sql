@@ -13,7 +13,7 @@ public class SessionId {
   private final String sessionId;
 
   public static SessionId newSessionId() {
-    return new SessionId(RandomStringUtils.random(16, true, true));
+    return new SessionId(RandomStringUtils.randomAlphanumeric(16));
   }
 
   @Override
