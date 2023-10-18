@@ -10,11 +10,11 @@ import static org.opensearch.sql.spark.execution.session.SessionManagerTest.sess
 import static org.opensearch.sql.spark.execution.statement.StatementState.CANCELLED;
 import static org.opensearch.sql.spark.execution.statement.StatementState.WAITING;
 import static org.opensearch.sql.spark.execution.statement.StatementTest.TestStatement.testStatement;
+import static org.opensearch.sql.spark.execution.statestore.StateStore.DATASOURCE_TO_REQUEST_INDEX;
 import static org.opensearch.sql.spark.execution.statestore.StateStore.getStatement;
 import static org.opensearch.sql.spark.execution.statestore.StateStore.updateSessionState;
 import static org.opensearch.sql.spark.execution.statestore.StateStore.updateStatementState;
 
-import java.util.HashMap;
 import java.util.Optional;
 import lombok.RequiredArgsConstructor;
 import org.junit.After;
@@ -22,8 +22,6 @@ import org.junit.Before;
 import org.junit.Test;
 import org.opensearch.action.admin.indices.delete.DeleteIndexRequest;
 import org.opensearch.action.delete.DeleteRequest;
-import org.opensearch.sql.spark.client.StartJobRequest;
-import org.opensearch.sql.spark.data.constants.SparkConstants;
 import org.opensearch.sql.spark.execution.session.InteractiveSessionTest;
 import org.opensearch.sql.spark.execution.session.Session;
 import org.opensearch.sql.spark.execution.session.SessionId;
@@ -35,17 +33,16 @@ import org.opensearch.test.OpenSearchIntegTestCase;
 
 public class StatementTest extends OpenSearchIntegTestCase {
 
-  private static final String indexName = SparkConstants.SPARK_REQUEST_BUFFER_INDEX_NAME;
+  private static final String DS_NAME = "mys3";
+  private static final String indexName = DATASOURCE_TO_REQUEST_INDEX.apply(DS_NAME);
 
-  private StartJobRequest startJobRequest;
   private StateStore stateStore;
   private InteractiveSessionTest.TestEMRServerlessClient emrsClient =
       new InteractiveSessionTest.TestEMRServerlessClient();
 
   @Before
   public void setup() {
-    startJobRequest = new StartJobRequest("", "", "appId", "", "", new HashMap<>(), false, "");
-    stateStore = new StateStore(indexName, client(), clusterService());
+    stateStore = new StateStore(client(), clusterService());
   }
 
   @After
@@ -64,6 +61,7 @@ public class StatementTest extends OpenSearchIntegTestCase {
             .jobId("jobId")
             .statementId(new StatementId("statementId"))
             .langType(LangType.SQL)
+            .datasourceName(DS_NAME)
             .query("query")
             .queryId("statementId")
             .stateStore(stateStore)
@@ -89,6 +87,7 @@ public class StatementTest extends OpenSearchIntegTestCase {
             .jobId("jobId")
             .statementId(new StatementId("statementId"))
             .langType(LangType.SQL)
+            .datasourceName(DS_NAME)
             .query("query")
             .queryId("statementId")
             .stateStore(stateStore)
@@ -103,6 +102,7 @@ public class StatementTest extends OpenSearchIntegTestCase {
             .jobId("jobId")
             .statementId(new StatementId("statementId"))
             .langType(LangType.SQL)
+            .datasourceName(DS_NAME)
             .query("query")
             .queryId("statementId")
             .stateStore(stateStore)
@@ -121,6 +121,7 @@ public class StatementTest extends OpenSearchIntegTestCase {
             .jobId("jobId")
             .statementId(stId)
             .langType(LangType.SQL)
+            .datasourceName(DS_NAME)
             .query("query")
             .queryId("statementId")
             .stateStore(stateStore)
@@ -145,6 +146,7 @@ public class StatementTest extends OpenSearchIntegTestCase {
             .jobId("jobId")
             .statementId(stId)
             .langType(LangType.SQL)
+            .datasourceName(DS_NAME)
             .query("query")
             .queryId("statementId")
             .stateStore(stateStore)
@@ -152,7 +154,7 @@ public class StatementTest extends OpenSearchIntegTestCase {
     st.open();
 
     StatementModel running =
-        updateStatementState(stateStore).apply(st.getStatementModel(), CANCELLED);
+        updateStatementState(stateStore, DS_NAME).apply(st.getStatementModel(), CANCELLED);
 
     assertEquals(StatementState.CANCELLED, running.getStatementState());
 
@@ -174,6 +176,7 @@ public class StatementTest extends OpenSearchIntegTestCase {
             .jobId("jobId")
             .statementId(stId)
             .langType(LangType.SQL)
+            .datasourceName(DS_NAME)
             .query("query")
             .queryId("statementId")
             .stateStore(stateStore)
@@ -203,7 +206,7 @@ public class StatementTest extends OpenSearchIntegTestCase {
             .createSession(createSessionRequest());
 
     // App change state to running
-    updateSessionState(stateStore).apply(session.getSessionModel(), SessionState.RUNNING);
+    updateSessionState(stateStore, DS_NAME).apply(session.getSessionModel(), SessionState.RUNNING);
 
     StatementId statementId = session.submit(new QueryRequest(LangType.SQL, "select 1"));
     assertFalse(statementId.getId().isEmpty());
@@ -225,7 +228,7 @@ public class StatementTest extends OpenSearchIntegTestCase {
         new SessionManager(stateStore, emrsClient, sessionSetting(false))
             .createSession(createSessionRequest());
 
-    updateSessionState(stateStore).apply(session.getSessionModel(), SessionState.DEAD);
+    updateSessionState(stateStore, DS_NAME).apply(session.getSessionModel(), SessionState.DEAD);
 
     IllegalStateException exception =
         assertThrows(
@@ -243,7 +246,7 @@ public class StatementTest extends OpenSearchIntegTestCase {
         new SessionManager(stateStore, emrsClient, sessionSetting(false))
             .createSession(createSessionRequest());
 
-    updateSessionState(stateStore).apply(session.getSessionModel(), SessionState.FAIL);
+    updateSessionState(stateStore, DS_NAME).apply(session.getSessionModel(), SessionState.FAIL);
 
     IllegalStateException exception =
         assertThrows(
@@ -297,7 +300,7 @@ public class StatementTest extends OpenSearchIntegTestCase {
         new SessionManager(stateStore, emrsClient, sessionSetting(false))
             .createSession(createSessionRequest());
     // App change state to running
-    updateSessionState(stateStore).apply(session.getSessionModel(), SessionState.RUNNING);
+    updateSessionState(stateStore, DS_NAME).apply(session.getSessionModel(), SessionState.RUNNING);
     StatementId statementId = session.submit(new QueryRequest(LangType.SQL, "select 1"));
 
     Optional<Statement> statement = session.get(statementId);
@@ -312,7 +315,7 @@ public class StatementTest extends OpenSearchIntegTestCase {
         new SessionManager(stateStore, emrsClient, sessionSetting(false))
             .createSession(createSessionRequest());
     // App change state to running
-    updateSessionState(stateStore).apply(session.getSessionModel(), SessionState.RUNNING);
+    updateSessionState(stateStore, DS_NAME).apply(session.getSessionModel(), SessionState.RUNNING);
 
     Optional<Statement> statement = session.get(StatementId.newStatementId());
     assertFalse(statement.isPresent());
@@ -330,7 +333,8 @@ public class StatementTest extends OpenSearchIntegTestCase {
     public TestStatement assertSessionState(StatementState expected) {
       assertEquals(expected, st.getStatementModel().getStatementState());
 
-      Optional<StatementModel> model = getStatement(stateStore).apply(st.getStatementId().getId());
+      Optional<StatementModel> model =
+          getStatement(stateStore, DS_NAME).apply(st.getStatementId().getId());
       assertTrue(model.isPresent());
       assertEquals(expected, model.get().getStatementState());
 
@@ -340,7 +344,8 @@ public class StatementTest extends OpenSearchIntegTestCase {
     public TestStatement assertStatementId(StatementId expected) {
       assertEquals(expected, st.getStatementModel().getStatementId());
 
-      Optional<StatementModel> model = getStatement(stateStore).apply(st.getStatementId().getId());
+      Optional<StatementModel> model =
+          getStatement(stateStore, DS_NAME).apply(st.getStatementId().getId());
       assertTrue(model.isPresent());
       assertEquals(expected, model.get().getStatementId());
       return this;

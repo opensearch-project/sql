@@ -8,6 +8,7 @@ package org.opensearch.sql.spark.execution.session;
 import static org.opensearch.sql.spark.execution.session.InteractiveSessionTest.TestSession.testSession;
 import static org.opensearch.sql.spark.execution.session.SessionManagerTest.sessionSetting;
 import static org.opensearch.sql.spark.execution.session.SessionState.NOT_STARTED;
+import static org.opensearch.sql.spark.execution.statestore.StateStore.DATASOURCE_TO_REQUEST_INDEX;
 import static org.opensearch.sql.spark.execution.statestore.StateStore.getSession;
 
 import com.amazonaws.services.emrserverless.model.CancelJobRunResult;
@@ -24,14 +25,14 @@ import org.opensearch.action.delete.DeleteRequest;
 import org.opensearch.sql.spark.asyncquery.model.SparkSubmitParameters;
 import org.opensearch.sql.spark.client.EMRServerlessClient;
 import org.opensearch.sql.spark.client.StartJobRequest;
-import org.opensearch.sql.spark.data.constants.SparkConstants;
 import org.opensearch.sql.spark.execution.statestore.StateStore;
 import org.opensearch.test.OpenSearchIntegTestCase;
 
 /** mock-maker-inline does not work with OpenSearchTestCase. */
 public class InteractiveSessionTest extends OpenSearchIntegTestCase {
 
-  private static final String indexName = SparkConstants.SPARK_REQUEST_BUFFER_INDEX_NAME;
+  private static final String DS_NAME = "mys3";
+  private static final String indexName = DATASOURCE_TO_REQUEST_INDEX.apply(DS_NAME);
 
   private TestEMRServerlessClient emrsClient;
   private StartJobRequest startJobRequest;
@@ -41,7 +42,7 @@ public class InteractiveSessionTest extends OpenSearchIntegTestCase {
   public void setup() {
     emrsClient = new TestEMRServerlessClient();
     startJobRequest = new StartJobRequest("", "", "appId", "", "", new HashMap<>(), false, "");
-    stateStore = new StateStore(indexName, client(), clusterService());
+    stateStore = new StateStore(client(), clusterService());
   }
 
   @After
@@ -55,7 +56,7 @@ public class InteractiveSessionTest extends OpenSearchIntegTestCase {
   public void openCloseSession() {
     InteractiveSession session =
         InteractiveSession.builder()
-            .sessionId(SessionId.newSessionId())
+            .sessionId(SessionId.newSessionId(DS_NAME))
             .stateStore(stateStore)
             .serverlessClient(emrsClient)
             .build();
@@ -76,7 +77,7 @@ public class InteractiveSessionTest extends OpenSearchIntegTestCase {
 
   @Test
   public void openSessionFailedConflict() {
-    SessionId sessionId = new SessionId("duplicate-session-id");
+    SessionId sessionId = SessionId.newSessionId(DS_NAME);
     InteractiveSession session =
         InteractiveSession.builder()
             .sessionId(sessionId)
@@ -94,12 +95,12 @@ public class InteractiveSessionTest extends OpenSearchIntegTestCase {
     IllegalStateException exception =
         assertThrows(
             IllegalStateException.class, () -> duplicateSession.open(createSessionRequest()));
-    assertEquals("session already exist. sessionId=duplicate-session-id", exception.getMessage());
+    assertEquals("session already exist. " + sessionId, exception.getMessage());
   }
 
   @Test
   public void closeNotExistSession() {
-    SessionId sessionId = SessionId.newSessionId();
+    SessionId sessionId = SessionId.newSessionId(DS_NAME);
     InteractiveSession session =
         InteractiveSession.builder()
             .sessionId(sessionId)
@@ -141,7 +142,8 @@ public class InteractiveSessionTest extends OpenSearchIntegTestCase {
     SessionManager sessionManager =
         new SessionManager(stateStore, emrsClient, sessionSetting(false));
 
-    Optional<Session> managerSession = sessionManager.getSession(new SessionId("no-exist"));
+    Optional<Session> managerSession =
+        sessionManager.getSession(SessionId.newSessionId("no-exist"));
     assertTrue(managerSession.isEmpty());
   }
 
@@ -158,7 +160,7 @@ public class InteractiveSessionTest extends OpenSearchIntegTestCase {
       assertEquals(expected, session.getSessionModel().getSessionState());
 
       Optional<SessionModel> sessionStoreState =
-          getSession(stateStore).apply(session.getSessionModel().getId());
+          getSession(stateStore, DS_NAME).apply(session.getSessionModel().getId());
       assertTrue(sessionStoreState.isPresent());
       assertEquals(expected, sessionStoreState.get().getSessionState());
 
@@ -194,7 +196,7 @@ public class InteractiveSessionTest extends OpenSearchIntegTestCase {
         SparkSubmitParameters.Builder.builder(),
         ImmutableMap.of(),
         "resultIndex",
-        "datasource");
+        DS_NAME);
   }
 
   public static class TestEMRServerlessClient implements EMRServerlessClient {

@@ -15,6 +15,7 @@ import static org.opensearch.sql.spark.data.constants.SparkConstants.SPARK_RESPO
 import static org.opensearch.sql.spark.execution.session.SessionModel.SESSION_DOC_TYPE;
 import static org.opensearch.sql.spark.execution.statement.StatementModel.SESSION_ID;
 import static org.opensearch.sql.spark.execution.statement.StatementModel.STATEMENT_DOC_TYPE;
+import static org.opensearch.sql.spark.execution.statestore.StateStore.DATASOURCE_TO_REQUEST_INDEX;
 import static org.opensearch.sql.spark.execution.statestore.StateStore.getStatement;
 
 import com.amazonaws.services.emrserverless.model.CancelJobRunResult;
@@ -112,7 +113,7 @@ public class AsyncQueryExecutorServiceImplSpecTest extends OpenSearchIntegTestCa
                 "glue.indexstore.opensearch.auth",
                 "noauth"),
             null));
-    stateStore = new StateStore(SPARK_REQUEST_BUFFER_INDEX_NAME, client, clusterService);
+    stateStore = new StateStore(client, clusterService);
     createIndex(SPARK_RESPONSE_BUFFER_INDEX_NAME);
   }
 
@@ -202,7 +203,8 @@ public class AsyncQueryExecutorServiceImplSpecTest extends OpenSearchIntegTestCa
         asyncQueryExecutorService.createAsyncQuery(
             new CreateAsyncQueryRequest("select 1", DATASOURCE, LangType.SQL, null));
     assertNotNull(response.getSessionId());
-    Optional<StatementModel> statementModel = getStatement(stateStore).apply(response.getQueryId());
+    Optional<StatementModel> statementModel =
+        getStatement(stateStore, DATASOURCE).apply(response.getQueryId());
     assertTrue(statementModel.isPresent());
     assertEquals(StatementState.WAITING, statementModel.get().getStatementState());
 
@@ -254,12 +256,14 @@ public class AsyncQueryExecutorServiceImplSpecTest extends OpenSearchIntegTestCa
                 .must(QueryBuilders.termQuery("type", STATEMENT_DOC_TYPE))
                 .must(QueryBuilders.termQuery(SESSION_ID, first.getSessionId()))));
 
-    Optional<StatementModel> firstModel = getStatement(stateStore).apply(first.getQueryId());
+    Optional<StatementModel> firstModel =
+        getStatement(stateStore, DATASOURCE).apply(first.getQueryId());
     assertTrue(firstModel.isPresent());
     assertEquals(StatementState.WAITING, firstModel.get().getStatementState());
     assertEquals(first.getQueryId(), firstModel.get().getStatementId().getId());
     assertEquals(first.getQueryId(), firstModel.get().getQueryId());
-    Optional<StatementModel> secondModel = getStatement(stateStore).apply(second.getQueryId());
+    Optional<StatementModel> secondModel =
+        getStatement(stateStore, DATASOURCE).apply(second.getQueryId());
     assertEquals(StatementState.WAITING, secondModel.get().getStatementState());
     assertEquals(second.getQueryId(), secondModel.get().getStatementId().getId());
     assertEquals(second.getQueryId(), secondModel.get().getQueryId());
@@ -292,9 +296,7 @@ public class AsyncQueryExecutorServiceImplSpecTest extends OpenSearchIntegTestCa
             new FlintIndexMetadataReaderImpl(client),
             client,
             new SessionManager(
-                new StateStore(SPARK_REQUEST_BUFFER_INDEX_NAME, client, clusterService),
-                emrServerlessClient,
-                pluginSettings));
+                new StateStore(client, clusterService), emrServerlessClient, pluginSettings));
     return new AsyncQueryExecutorServiceImpl(
         asyncQueryJobMetadataStorageService,
         sparkQueryDispatcher,
@@ -361,7 +363,7 @@ public class AsyncQueryExecutorServiceImplSpecTest extends OpenSearchIntegTestCa
 
   int search(QueryBuilder query) {
     SearchRequest searchRequest = new SearchRequest();
-    searchRequest.indices(SPARK_REQUEST_BUFFER_INDEX_NAME);
+    searchRequest.indices(DATASOURCE_TO_REQUEST_INDEX.apply(DATASOURCE));
     SearchSourceBuilder searchSourceBuilder = new SearchSourceBuilder();
     searchSourceBuilder.query(query);
     searchRequest.source(searchSourceBuilder);
