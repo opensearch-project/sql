@@ -6,6 +6,7 @@
 package org.opensearch.sql.spark.rest.model;
 
 import static org.opensearch.core.xcontent.XContentParserUtils.ensureExpectedToken;
+import static org.opensearch.sql.spark.execution.session.SessionModel.SESSION_ID;
 
 import java.io.IOException;
 import lombok.Data;
@@ -18,6 +19,8 @@ public class CreateAsyncQueryRequest {
   private String query;
   private String datasource;
   private LangType lang;
+  // optional sessionId
+  private String sessionId;
 
   public CreateAsyncQueryRequest(String query, String datasource, LangType lang) {
     this.query = Validate.notNull(query, "Query can't be null");
@@ -25,11 +28,19 @@ public class CreateAsyncQueryRequest {
     this.lang = Validate.notNull(lang, "lang can't be null");
   }
 
+  public CreateAsyncQueryRequest(String query, String datasource, LangType lang, String sessionId) {
+    this.query = Validate.notNull(query, "Query can't be null");
+    this.datasource = Validate.notNull(datasource, "Datasource can't be null");
+    this.lang = Validate.notNull(lang, "lang can't be null");
+    this.sessionId = sessionId;
+  }
+
   public static CreateAsyncQueryRequest fromXContentParser(XContentParser parser)
       throws IOException {
     String query = null;
     LangType lang = null;
     String datasource = null;
+    String sessionId = null;
     ensureExpectedToken(XContentParser.Token.START_OBJECT, parser.nextToken(), parser);
     while (parser.nextToken() != XContentParser.Token.END_OBJECT) {
       String fieldName = parser.currentName();
@@ -41,10 +52,12 @@ public class CreateAsyncQueryRequest {
         lang = LangType.fromString(langString);
       } else if (fieldName.equals("datasource")) {
         datasource = parser.textOrNull();
+      } else if (fieldName.equals(SESSION_ID)) {
+        sessionId = parser.textOrNull();
       } else {
         throw new IllegalArgumentException("Unknown field: " + fieldName);
       }
     }
-    return new CreateAsyncQueryRequest(query, datasource, lang);
+    return new CreateAsyncQueryRequest(query, datasource, lang, sessionId);
   }
 }

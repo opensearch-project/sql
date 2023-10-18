@@ -311,3 +311,39 @@ SQL query::
       "status": 400
     }
 
+plugins.query.executionengine.spark.session.enabled
+===================================================
+
+Description
+-----------
+
+By default, execution engine is executed in job mode. You can enable session mode by this setting.
+
+1. The default value is false.
+2. This setting is node scope.
+3. This setting can be updated dynamically.
+
+You can update the setting with a new value like this.
+
+SQL query::
+
+    sh$ curl -sS -H 'Content-Type: application/json' -X PUT localhost:9200/_plugins/_query/settings \
+    ... -d '{"transient":{"plugins.query.executionengine.spark.session.enabled":"true"}}'
+    {
+      "acknowledged": true,
+      "persistent": {},
+      "transient": {
+        "plugins": {
+          "query": {
+            "executionengine": {
+              "spark": {
+                "session": {
+                  "enabled": "true"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+
