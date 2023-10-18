@@ -9,4 +9,5 @@ public class DispatchQueryResponse {
   private String jobId;
   private boolean isDropIndexQuery;
   private String resultIndex;
+  private String sessionId;
 }

@@ -23,4 +23,7 @@ public class DispatchQueryRequest {
 
   /** Optional extra Spark submit parameters to include in final request */
   private String extraSparkSubmitParams;
+
+  /** Optional sessionId. */
+  private String sessionId;
 }
