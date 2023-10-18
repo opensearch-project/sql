@@ -63,4 +63,9 @@ public abstract class Settings {
   public abstract <T> T getSettingValue(Key key);
 
   public abstract List<?> getSettings();
+
+  /** Helper class */
+  public static boolean isSparkExecutionSessionEnabled(Settings settings) {
+    return settings.getSettingValue(SPARK_EXECUTION_SESSION_ENABLED);
+  }
 }
