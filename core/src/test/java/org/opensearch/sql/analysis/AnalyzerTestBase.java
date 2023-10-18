@@ -232,6 +232,9 @@ public class AnalyzerTestBase {
     public void updateDataSource(DataSourceMetadata dataSourceMetadata) {}
 
     @Override
+    public void patchDataSource(Map<String, Object> dataSourceData) {}
+
+    @Override
     public void deleteDataSource(String dataSourceName) {}
 
     @Override
