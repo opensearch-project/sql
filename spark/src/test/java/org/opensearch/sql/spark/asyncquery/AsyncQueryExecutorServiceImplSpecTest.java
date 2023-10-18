@@ -68,7 +68,6 @@ import org.opensearch.sql.spark.rest.model.LangType;
 import org.opensearch.sql.storage.DataSourceFactory;
 import org.opensearch.test.OpenSearchIntegTestCase;
 
-
 public class AsyncQueryExecutorServiceImplSpecTest extends OpenSearchIntegTestCase {
   public static final String DATASOURCE = "mys3";
 
@@ -98,22 +97,34 @@ public class AsyncQueryExecutorServiceImplSpecTest extends OpenSearchIntegTestCa
     pluginSettings = new OpenSearchSettings(clusterSettings);
     client = (NodeClient) cluster().client();
     dataSourceService = createDataSourceService();
-    dataSourceService.createDataSource(new DataSourceMetadata(DATASOURCE, DataSourceType.S3GLUE,
-        ImmutableList.of(), ImmutableMap.of("glue.auth.type", "iam_role",
-        "glue.auth.role_arn", "arn:aws:iam::924196221507:role/FlintOpensearchServiceRole",
-        "glue.indexstore.opensearch.uri", "http://ec2-18-237-133-156.us-west-2.compute.amazonaws" +
-            ".com:9200",
-        "glue.indexstore.opensearch.auth", "noauth"), null));
+    dataSourceService.createDataSource(
+        new DataSourceMetadata(
+            DATASOURCE,
+            DataSourceType.S3GLUE,
+            ImmutableList.of(),
+            ImmutableMap.of(
+                "glue.auth.type",
+                "iam_role",
+                "glue.auth.role_arn",
+                "arn:aws:iam::924196221507:role/FlintOpensearchServiceRole",
+                "glue.indexstore.opensearch.uri",
+                "http://ec2-18-237-133-156.us-west-2.compute.amazonaws" + ".com:9200",
+                "glue.indexstore.opensearch.auth",
+                "noauth"),
+            null));
     stateStore = new StateStore(SPARK_REQUEST_BUFFER_INDEX_NAME, client, clusterService);
     createIndex(SPARK_RESPONSE_BUFFER_INDEX_NAME);
   }
 
   @After
   public void clean() {
-    client.admin()
+    client
+        .admin()
         .cluster()
         .prepareUpdateSettings()
-        .setTransientSettings(Settings.builder().putNull(SPARK_EXECUTION_SESSION_ENABLED_SETTING.getKey()).build()).get();
+        .setTransientSettings(
+            Settings.builder().putNull(SPARK_EXECUTION_SESSION_ENABLED_SETTING.getKey()).build())
+        .get();
   }
 
   @Test
@@ -126,9 +137,9 @@ public class AsyncQueryExecutorServiceImplSpecTest extends OpenSearchIntegTestCa
     enableSession(false);
 
     // 1. create async query.
-    CreateAsyncQueryResponse response = asyncQueryExecutorService
-        .createAsyncQuery(new CreateAsyncQueryRequest("select 1", DATASOURCE,
-            LangType.SQL, null));
+    CreateAsyncQueryResponse response =
+        asyncQueryExecutorService.createAsyncQuery(
+            new CreateAsyncQueryRequest("select 1", DATASOURCE, LangType.SQL, null));
     assertFalse(clusterService().state().routingTable().hasIndex(SPARK_REQUEST_BUFFER_INDEX_NAME));
     emrsClient.startJobRunCalled(1);
 
@@ -151,28 +162,30 @@ public class AsyncQueryExecutorServiceImplSpecTest extends OpenSearchIntegTestCa
         createAsyncQueryExecutorService(emrsClient);
 
     enableSession(false);
-    CreateAsyncQueryResponse response = asyncQueryExecutorService
-        .createAsyncQuery(new CreateAsyncQueryRequest("select 1", DATASOURCE,
-            LangType.SQL, null));
+    CreateAsyncQueryResponse response =
+        asyncQueryExecutorService.createAsyncQuery(
+            new CreateAsyncQueryRequest("select 1", DATASOURCE, LangType.SQL, null));
     String params = emrsClient.getJobRequest().getSparkSubmitParams();
     assertNull(response.getSessionId());
     assertTrue(params.contains(String.format("--class %s", DEFAULT_CLASS_NAME)));
-    assertFalse(params.contains(String.format("%s=%s",
-        FLINT_JOB_REQUEST_INDEX, SPARK_REQUEST_BUFFER_INDEX_NAME)));
-    assertFalse(params.contains(String.format("%s=%s",
-        FLINT_JOB_SESSION_ID, response.getSessionId())));
+    assertFalse(
+        params.contains(
+            String.format("%s=%s", FLINT_JOB_REQUEST_INDEX, SPARK_REQUEST_BUFFER_INDEX_NAME)));
+    assertFalse(
+        params.contains(String.format("%s=%s", FLINT_JOB_SESSION_ID, response.getSessionId())));
 
     // enable session
     enableSession(true);
-    response = asyncQueryExecutorService
-        .createAsyncQuery(new CreateAsyncQueryRequest("select 1", DATASOURCE,
-            LangType.SQL, null));
+    response =
+        asyncQueryExecutorService.createAsyncQuery(
+            new CreateAsyncQueryRequest("select 1", DATASOURCE, LangType.SQL, null));
     params = emrsClient.getJobRequest().getSparkSubmitParams();
     assertTrue(params.contains(String.format("--class %s", FLINT_SESSION_CLASS_NAME)));
-    assertTrue(params.contains(String.format("%s=%s",
-        FLINT_JOB_REQUEST_INDEX, SPARK_REQUEST_BUFFER_INDEX_NAME)));
-    assertTrue(params.contains(String.format("%s=%s",
-        FLINT_JOB_SESSION_ID, response.getSessionId())));
+    assertTrue(
+        params.contains(
+            String.format("%s=%s", FLINT_JOB_REQUEST_INDEX, SPARK_REQUEST_BUFFER_INDEX_NAME)));
+    assertTrue(
+        params.contains(String.format("%s=%s", FLINT_JOB_SESSION_ID, response.getSessionId())));
   }
 
   @Test
@@ -185,9 +198,9 @@ public class AsyncQueryExecutorServiceImplSpecTest extends OpenSearchIntegTestCa
     enableSession(true);
 
     // 1. create async query.
-    CreateAsyncQueryResponse response = asyncQueryExecutorService
-        .createAsyncQuery(new CreateAsyncQueryRequest("select 1", DATASOURCE,
-            LangType.SQL, null));
+    CreateAsyncQueryResponse response =
+        asyncQueryExecutorService.createAsyncQuery(
+            new CreateAsyncQueryRequest("select 1", DATASOURCE, LangType.SQL, null));
     assertNotNull(response.getSessionId());
     Optional<StatementModel> statementModel = getStatement(stateStore).apply(response.getQueryId());
     assertTrue(statementModel.isPresent());
@@ -213,26 +226,33 @@ public class AsyncQueryExecutorServiceImplSpecTest extends OpenSearchIntegTestCa
     enableSession(true);
 
     // 1. create async query.
-    CreateAsyncQueryResponse first = asyncQueryExecutorService
-        .createAsyncQuery(new CreateAsyncQueryRequest("select 1", DATASOURCE,
-            LangType.SQL, null));
+    CreateAsyncQueryResponse first =
+        asyncQueryExecutorService.createAsyncQuery(
+            new CreateAsyncQueryRequest("select 1", DATASOURCE, LangType.SQL, null));
     assertNotNull(first.getSessionId());
 
     // 2. reuse session id
-    CreateAsyncQueryResponse second = asyncQueryExecutorService
-        .createAsyncQuery(new CreateAsyncQueryRequest("select 1", DATASOURCE,
-            LangType.SQL, first.getSessionId()));
+    CreateAsyncQueryResponse second =
+        asyncQueryExecutorService.createAsyncQuery(
+            new CreateAsyncQueryRequest(
+                "select 1", DATASOURCE, LangType.SQL, first.getSessionId()));
 
     assertEquals(first.getSessionId(), second.getSessionId());
     assertNotEquals(first.getQueryId(), second.getQueryId());
     // one session doc.
-    assertEquals(1, search(QueryBuilders.boolQuery()
-        .must(QueryBuilders.termQuery("type", SESSION_DOC_TYPE))
-        .must(QueryBuilders.termQuery(SESSION_ID, first.getSessionId()))));
+    assertEquals(
+        1,
+        search(
+            QueryBuilders.boolQuery()
+                .must(QueryBuilders.termQuery("type", SESSION_DOC_TYPE))
+                .must(QueryBuilders.termQuery(SESSION_ID, first.getSessionId()))));
     // two statement docs has same sessionId.
-    assertEquals(2, search(QueryBuilders.boolQuery()
-        .must(QueryBuilders.termQuery("type", STATEMENT_DOC_TYPE))
-        .must(QueryBuilders.termQuery(SESSION_ID, first.getSessionId()))));
+    assertEquals(
+        2,
+        search(
+            QueryBuilders.boolQuery()
+                .must(QueryBuilders.termQuery("type", STATEMENT_DOC_TYPE))
+                .must(QueryBuilders.termQuery(SESSION_ID, first.getSessionId()))));
 
     Optional<StatementModel> firstModel = getStatement(stateStore).apply(first.getQueryId());
     assertTrue(firstModel.isPresent());
@@ -255,8 +275,7 @@ public class AsyncQueryExecutorServiceImplSpecTest extends OpenSearchIntegTestCa
             .add(new GlueDataSourceFactory(pluginSettings))
             .build(),
         dataSourceMetadataStorage,
-        meta -> {
-        });
+        meta -> {});
   }
 
   private AsyncQueryExecutorService createAsyncQueryExecutorService(
@@ -288,8 +307,7 @@ public class AsyncQueryExecutorServiceImplSpecTest extends OpenSearchIntegTestCa
     private int cancelJobRunCalled = 0;
     private int getJobResult = 0;
 
-    @Getter
-    private StartJobRequest jobRequest;
+    @Getter private StartJobRequest jobRequest;
 
     @Override
     public String startJobRun(StartJobRequest startJobRequest) {
@@ -330,10 +348,15 @@ public class AsyncQueryExecutorServiceImplSpecTest extends OpenSearchIntegTestCa
   }
 
   public void enableSession(boolean enabled) {
-    client.admin()
+    client
+        .admin()
         .cluster()
         .prepareUpdateSettings()
-        .setTransientSettings(Settings.builder().put(SPARK_EXECUTION_SESSION_ENABLED_SETTING.getKey(), enabled).build()).get();
+        .setTransientSettings(
+            Settings.builder()
+                .put(SPARK_EXECUTION_SESSION_ENABLED_SETTING.getKey(), enabled)
+                .build())
+        .get();
   }
 
   int search(QueryBuilder query) {
