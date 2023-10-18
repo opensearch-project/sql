@@ -13,7 +13,7 @@ public class StatementId {
   private final String id;
 
   public static StatementId newStatementId() {
-    return new StatementId(RandomStringUtils.random(10, true, true));
+    return new StatementId(RandomStringUtils.randomAlphanumeric(16));
   }
 
   @Override
