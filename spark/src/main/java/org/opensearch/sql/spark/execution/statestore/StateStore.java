@@ -91,7 +91,7 @@ public class StateStore {
         createIndex();
         return Optional.empty();
       }
-      GetRequest getRequest = new GetRequest().index(indexName).id(sid);
+      GetRequest getRequest = new GetRequest().index(indexName).id(sid).refresh(true);
       GetResponse getResponse = client.get(getRequest).actionGet();
       if (getResponse.isExists()) {
         XContentParser parser =
