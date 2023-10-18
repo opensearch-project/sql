@@ -328,7 +328,7 @@ You can update the setting with a new value like this.
 SQL query::
 
     sh$ curl -sS -H 'Content-Type: application/json' -X PUT localhost:9200/_plugins/_query/settings \
-    ... -d '{"transient":{"plugins.query.executionengine.spark.session.enabled":"false"}}'
+    ... -d '{"transient":{"plugins.query.executionengine.spark.session.enabled":"true"}}'
     {
       "acknowledged": true,
       "persistent": {},
@@ -338,7 +338,7 @@ SQL query::
             "executionengine": {
               "spark": {
                 "session": {
-                  "enabled": "false"
+                  "enabled": "true"
                 }
               }
             }
