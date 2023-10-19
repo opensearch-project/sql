@@ -45,7 +45,7 @@ public class InteractiveSession implements Session {
       // append session id;
       createSessionRequest
           .getSparkSubmitParametersBuilder()
-          .sessionExecution(sessionId.getSessionId());
+          .sessionExecution(sessionId.getSessionId(), createSessionRequest.getDatasourceName());
       String jobID = serverlessClient.startJobRun(createSessionRequest.getStartJobRequest());
       String applicationId = createSessionRequest.getStartJobRequest().getApplicationId();
 

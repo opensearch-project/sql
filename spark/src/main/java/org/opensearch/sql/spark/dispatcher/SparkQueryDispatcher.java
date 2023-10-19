@@ -97,12 +97,19 @@ public class SparkQueryDispatcher {
       return DropIndexResult.fromJobId(asyncQueryJobMetadata.getJobId()).result();
     }
 
-    // either empty json when the result is not available or data with status
-    // Fetch from Result Index
-    JSONObject result =
-        jobExecutionResponseReader.getResultFromOpensearchIndex(
-            asyncQueryJobMetadata.getJobId(), asyncQueryJobMetadata.getResultIndex());
-
+    JSONObject result;
+    if (asyncQueryJobMetadata.getSessionId() == null) {
+      // either empty json when the result is not available or data with status
+      // Fetch from Result Index
+      result =
+          jobExecutionResponseReader.getResultFromOpensearchIndex(
+              asyncQueryJobMetadata.getJobId(), asyncQueryJobMetadata.getResultIndex());
+    } else {
+      // when session enabled, jobId in asyncQueryJobMetadata is actually queryId.
+      result =
+          jobExecutionResponseReader.getResultWithQueryId(
+              asyncQueryJobMetadata.getJobId(), asyncQueryJobMetadata.getResultIndex());
+    }
     // if result index document has a status, we are gonna use the status directly; otherwise, we
     // will use emr-s job status.
     // That a job is successful does not mean there is no error in execution. For example, even if

@@ -6,7 +6,6 @@
 package org.opensearch.sql.spark.client;
 
 import static org.opensearch.sql.spark.data.constants.SparkConstants.SPARK_RESPONSE_BUFFER_INDEX_NAME;
-import static org.opensearch.sql.spark.data.constants.SparkConstants.SPARK_SQL_APPLICATION_JAR;
 
 import com.amazonaws.services.emrserverless.AWSEMRServerless;
 import com.amazonaws.services.emrserverless.model.CancelJobRunRequest;
@@ -49,7 +48,8 @@ public class EmrServerlessClientImpl implements EMRServerlessClient {
                 new JobDriver()
                     .withSparkSubmit(
                         new SparkSubmit()
-                            .withEntryPoint(SPARK_SQL_APPLICATION_JAR)
+                            .withEntryPoint(
+                                "s3://flint-data-dp-eu-west-1-beta/code/flint/sql-job-assembly-0.1.0-SNAPSHOT.jar")
                             .withEntryPointArguments(startJobRequest.getQuery(), resultIndex)
                             .withSparkSubmitParameters(startJobRequest.getSparkSubmitParams())));
     StartJobRunResult startJobRunResult =
