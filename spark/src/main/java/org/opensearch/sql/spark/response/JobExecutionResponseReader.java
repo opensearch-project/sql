@@ -39,6 +39,10 @@ public class JobExecutionResponseReader {
     return searchInSparkIndex(QueryBuilders.termQuery(JOB_ID_FIELD, jobId), resultIndex);
   }
 
+  public JSONObject getResultWithQueryId(String queryId, String resultIndex) {
+    return searchInSparkIndex(QueryBuilders.termQuery("queryId", queryId), resultIndex);
+  }
+
   private JSONObject searchInSparkIndex(QueryBuilder query, String resultIndex) {
     SearchRequest searchRequest = new SearchRequest();
     String searchResultIndex = resultIndex == null ? SPARK_RESPONSE_BUFFER_INDEX_NAME : resultIndex;
