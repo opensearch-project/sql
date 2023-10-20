@@ -18,6 +18,8 @@ properties:
     type: keyword
   sessionId:
     type: keyword
+  sessionType:
+    type: keyword
   error:
     type: text
   lang:
