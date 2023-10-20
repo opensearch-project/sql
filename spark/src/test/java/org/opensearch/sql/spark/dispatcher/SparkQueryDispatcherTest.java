@@ -726,7 +726,7 @@ public class SparkQueryDispatcherTest {
 
     doReturn(new JSONObject())
         .when(jobExecutionResponseReader)
-        .getResultFromOpensearchIndex(eq(MOCK_STATEMENT_ID), any());
+        .getResultWithQueryId(eq(MOCK_STATEMENT_ID), any());
     JSONObject result =
         sparkQueryDispatcher.getQueryResponse(
             asyncQueryJobMetadataWithSessionId(MOCK_STATEMENT_ID, MOCK_SESSION_ID));
@@ -740,7 +740,7 @@ public class SparkQueryDispatcherTest {
     doReturn(Optional.empty()).when(sessionManager).getSession(eq(new SessionId(MOCK_SESSION_ID)));
     doReturn(new JSONObject())
         .when(jobExecutionResponseReader)
-        .getResultFromOpensearchIndex(eq(MOCK_STATEMENT_ID), any());
+        .getResultWithQueryId(eq(MOCK_STATEMENT_ID), any());
     IllegalArgumentException exception =
         Assertions.assertThrows(
             IllegalArgumentException.class,
@@ -759,7 +759,7 @@ public class SparkQueryDispatcherTest {
     doReturn(Optional.empty()).when(session).get(any());
     doReturn(new JSONObject())
         .when(jobExecutionResponseReader)
-        .getResultFromOpensearchIndex(eq(MOCK_STATEMENT_ID), any());
+        .getResultWithQueryId(eq(MOCK_STATEMENT_ID), any());
 
     IllegalArgumentException exception =
         Assertions.assertThrows(
