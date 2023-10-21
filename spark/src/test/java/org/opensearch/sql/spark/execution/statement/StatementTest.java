@@ -5,15 +5,16 @@
 
 package org.opensearch.sql.spark.execution.statement;
 
+import static org.opensearch.sql.spark.execution.session.InteractiveSessionTest.createSessionRequest;
 import static org.opensearch.sql.spark.execution.session.SessionManagerTest.sessionSetting;
 import static org.opensearch.sql.spark.execution.statement.StatementState.CANCELLED;
 import static org.opensearch.sql.spark.execution.statement.StatementState.WAITING;
 import static org.opensearch.sql.spark.execution.statement.StatementTest.TestStatement.testStatement;
+import static org.opensearch.sql.spark.execution.statestore.StateStore.DATASOURCE_TO_REQUEST_INDEX;
 import static org.opensearch.sql.spark.execution.statestore.StateStore.getStatement;
 import static org.opensearch.sql.spark.execution.statestore.StateStore.updateSessionState;
 import static org.opensearch.sql.spark.execution.statestore.StateStore.updateStatementState;
 
-import java.util.HashMap;
 import java.util.Optional;
 import lombok.RequiredArgsConstructor;
 import org.junit.After;
@@ -21,8 +22,6 @@ import org.junit.Before;
 import org.junit.Test;
 import org.opensearch.action.admin.indices.delete.DeleteIndexRequest;
 import org.opensearch.action.delete.DeleteRequest;
-import org.opensearch.sql.spark.client.StartJobRequest;
-import org.opensearch.sql.spark.execution.session.CreateSessionRequest;
 import org.opensearch.sql.spark.execution.session.InteractiveSessionTest;
 import org.opensearch.sql.spark.execution.session.Session;
 import org.opensearch.sql.spark.execution.session.SessionId;
@@ -30,27 +29,27 @@ import org.opensearch.sql.spark.execution.session.SessionManager;
 import org.opensearch.sql.spark.execution.session.SessionState;
 import org.opensearch.sql.spark.execution.statestore.StateStore;
 import org.opensearch.sql.spark.rest.model.LangType;
-import org.opensearch.test.OpenSearchSingleNodeTestCase;
+import org.opensearch.test.OpenSearchIntegTestCase;
 
-public class StatementTest extends OpenSearchSingleNodeTestCase {
+public class StatementTest extends OpenSearchIntegTestCase {
 
-  private static final String indexName = "mockindex";
+  private static final String DS_NAME = "mys3";
+  private static final String indexName = DATASOURCE_TO_REQUEST_INDEX.apply(DS_NAME);
 
-  private StartJobRequest startJobRequest;
   private StateStore stateStore;
   private InteractiveSessionTest.TestEMRServerlessClient emrsClient =
       new InteractiveSessionTest.TestEMRServerlessClient();
 
   @Before
   public void setup() {
-    startJobRequest = new StartJobRequest("", "", "appId", "", "", new HashMap<>(), false, "");
-    stateStore = new StateStore(indexName, client());
-    createIndex(indexName);
+    stateStore = new StateStore(client(), clusterService());
   }
 
   @After
   public void clean() {
-    client().admin().indices().delete(new DeleteIndexRequest(indexName)).actionGet();
+    if (clusterService().state().routingTable().hasIndex(indexName)) {
+      client().admin().indices().delete(new DeleteIndexRequest(indexName)).actionGet();
+    }
   }
 
   @Test
@@ -62,6 +61,7 @@ public class StatementTest extends OpenSearchSingleNodeTestCase {
             .jobId("jobId")
             .statementId(new StatementId("statementId"))
             .langType(LangType.SQL)
+            .datasourceName(DS_NAME)
             .query("query")
             .queryId("statementId")
             .stateStore(stateStore)
@@ -87,6 +87,7 @@ public class StatementTest extends OpenSearchSingleNodeTestCase {
             .jobId("jobId")
             .statementId(new StatementId("statementId"))
             .langType(LangType.SQL)
+            .datasourceName(DS_NAME)
             .query("query")
             .queryId("statementId")
             .stateStore(stateStore)
@@ -101,6 +102,7 @@ public class StatementTest extends OpenSearchSingleNodeTestCase {
             .jobId("jobId")
             .statementId(new StatementId("statementId"))
             .langType(LangType.SQL)
+            .datasourceName(DS_NAME)
             .query("query")
             .queryId("statementId")
             .stateStore(stateStore)
@@ -119,13 +121,14 @@ public class StatementTest extends OpenSearchSingleNodeTestCase {
             .jobId("jobId")
             .statementId(stId)
             .langType(LangType.SQL)
+            .datasourceName(DS_NAME)
             .query("query")
             .queryId("statementId")
             .stateStore(stateStore)
             .build();
     st.open();
 
-    client().delete(new DeleteRequest(indexName, stId.getId()));
+    client().delete(new DeleteRequest(indexName, stId.getId())).actionGet();
 
     IllegalStateException exception = assertThrows(IllegalStateException.class, st::cancel);
     assertEquals(
@@ -143,6 +146,7 @@ public class StatementTest extends OpenSearchSingleNodeTestCase {
             .jobId("jobId")
             .statementId(stId)
             .langType(LangType.SQL)
+            .datasourceName(DS_NAME)
             .query("query")
             .queryId("statementId")
             .stateStore(stateStore)
@@ -150,7 +154,7 @@ public class StatementTest extends OpenSearchSingleNodeTestCase {
     st.open();
 
     StatementModel running =
-        updateStatementState(stateStore).apply(st.getStatementModel(), CANCELLED);
+        updateStatementState(stateStore, DS_NAME).apply(st.getStatementModel(), CANCELLED);
 
     assertEquals(StatementState.CANCELLED, running.getStatementState());
 
@@ -172,6 +176,7 @@ public class StatementTest extends OpenSearchSingleNodeTestCase {
             .jobId("jobId")
             .statementId(stId)
             .langType(LangType.SQL)
+            .datasourceName(DS_NAME)
             .query("query")
             .queryId("statementId")
             .stateStore(stateStore)
@@ -198,10 +203,10 @@ public class StatementTest extends OpenSearchSingleNodeTestCase {
   public void submitStatementInRunningSession() {
     Session session =
         new SessionManager(stateStore, emrsClient, sessionSetting(false))
-            .createSession(new CreateSessionRequest(startJobRequest, "datasource"));
+            .createSession(createSessionRequest());
 
     // App change state to running
-    updateSessionState(stateStore).apply(session.getSessionModel(), SessionState.RUNNING);
+    updateSessionState(stateStore, DS_NAME).apply(session.getSessionModel(), SessionState.RUNNING);
 
     StatementId statementId = session.submit(new QueryRequest(LangType.SQL, "select 1"));
     assertFalse(statementId.getId().isEmpty());
@@ -211,7 +216,7 @@ public class StatementTest extends OpenSearchSingleNodeTestCase {
   public void submitStatementInNotStartedState() {
     Session session =
         new SessionManager(stateStore, emrsClient, sessionSetting(false))
-            .createSession(new CreateSessionRequest(startJobRequest, "datasource"));
+            .createSession(createSessionRequest());
 
     StatementId statementId = session.submit(new QueryRequest(LangType.SQL, "select 1"));
     assertFalse(statementId.getId().isEmpty());
@@ -221,9 +226,9 @@ public class StatementTest extends OpenSearchSingleNodeTestCase {
   public void failToSubmitStatementInDeadState() {
     Session session =
         new SessionManager(stateStore, emrsClient, sessionSetting(false))
-            .createSession(new CreateSessionRequest(startJobRequest, "datasource"));
+            .createSession(createSessionRequest());
 
-    updateSessionState(stateStore).apply(session.getSessionModel(), SessionState.DEAD);
+    updateSessionState(stateStore, DS_NAME).apply(session.getSessionModel(), SessionState.DEAD);
 
     IllegalStateException exception =
         assertThrows(
@@ -239,9 +244,9 @@ public class StatementTest extends OpenSearchSingleNodeTestCase {
   public void failToSubmitStatementInFailState() {
     Session session =
         new SessionManager(stateStore, emrsClient, sessionSetting(false))
-            .createSession(new CreateSessionRequest(startJobRequest, "datasource"));
+            .createSession(createSessionRequest());
 
-    updateSessionState(stateStore).apply(session.getSessionModel(), SessionState.FAIL);
+    updateSessionState(stateStore, DS_NAME).apply(session.getSessionModel(), SessionState.FAIL);
 
     IllegalStateException exception =
         assertThrows(
@@ -257,7 +262,7 @@ public class StatementTest extends OpenSearchSingleNodeTestCase {
   public void newStatementFieldAssert() {
     Session session =
         new SessionManager(stateStore, emrsClient, sessionSetting(false))
-            .createSession(new CreateSessionRequest(startJobRequest, "datasource"));
+            .createSession(createSessionRequest());
     StatementId statementId = session.submit(new QueryRequest(LangType.SQL, "select 1"));
     Optional<Statement> statement = session.get(statementId);
 
@@ -275,7 +280,7 @@ public class StatementTest extends OpenSearchSingleNodeTestCase {
   public void failToSubmitStatementInDeletedSession() {
     Session session =
         new SessionManager(stateStore, emrsClient, sessionSetting(false))
-            .createSession(new CreateSessionRequest(startJobRequest, "datasource"));
+            .createSession(createSessionRequest());
 
     // other's delete session
     client()
@@ -293,9 +298,9 @@ public class StatementTest extends OpenSearchSingleNodeTestCase {
   public void getStatementSuccess() {
     Session session =
         new SessionManager(stateStore, emrsClient, sessionSetting(false))
-            .createSession(new CreateSessionRequest(startJobRequest, "datasource"));
+            .createSession(createSessionRequest());
     // App change state to running
-    updateSessionState(stateStore).apply(session.getSessionModel(), SessionState.RUNNING);
+    updateSessionState(stateStore, DS_NAME).apply(session.getSessionModel(), SessionState.RUNNING);
     StatementId statementId = session.submit(new QueryRequest(LangType.SQL, "select 1"));
 
     Optional<Statement> statement = session.get(statementId);
@@ -308,9 +313,9 @@ public class StatementTest extends OpenSearchSingleNodeTestCase {
   public void getStatementNotExist() {
     Session session =
         new SessionManager(stateStore, emrsClient, sessionSetting(false))
-            .createSession(new CreateSessionRequest(startJobRequest, "datasource"));
+            .createSession(createSessionRequest());
     // App change state to running
-    updateSessionState(stateStore).apply(session.getSessionModel(), SessionState.RUNNING);
+    updateSessionState(stateStore, DS_NAME).apply(session.getSessionModel(), SessionState.RUNNING);
 
     Optional<Statement> statement = session.get(StatementId.newStatementId());
     assertFalse(statement.isPresent());
@@ -328,7 +333,8 @@ public class StatementTest extends OpenSearchSingleNodeTestCase {
     public TestStatement assertSessionState(StatementState expected) {
       assertEquals(expected, st.getStatementModel().getStatementState());
 
-      Optional<StatementModel> model = getStatement(stateStore).apply(st.getStatementId().getId());
+      Optional<StatementModel> model =
+          getStatement(stateStore, DS_NAME).apply(st.getStatementId().getId());
       assertTrue(model.isPresent());
       assertEquals(expected, model.get().getStatementState());
 
@@ -338,7 +344,8 @@ public class StatementTest extends OpenSearchSingleNodeTestCase {
     public TestStatement assertStatementId(StatementId expected) {
       assertEquals(expected, st.getStatementModel().getStatementId());
 
-      Optional<StatementModel> model = getStatement(stateStore).apply(st.getStatementId().getId());
+      Optional<StatementModel> model =
+          getStatement(stateStore, DS_NAME).apply(st.getStatementId().getId());
       assertTrue(model.isPresent());
       assertEquals(expected, model.get().getStatementId());
       return this;

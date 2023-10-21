@@ -42,13 +42,17 @@ public class InteractiveSession implements Session {
   @Override
   public void open(CreateSessionRequest createSessionRequest) {
     try {
+      // append session id;
+      createSessionRequest
+          .getSparkSubmitParametersBuilder()
+          .sessionExecution(sessionId.getSessionId(), createSessionRequest.getDatasourceName());
       String jobID = serverlessClient.startJobRun(createSessionRequest.getStartJobRequest());
       String applicationId = createSessionRequest.getStartJobRequest().getApplicationId();
 
       sessionModel =
           initInteractiveSession(
               applicationId, jobID, sessionId, createSessionRequest.getDatasourceName());
-      createSession(stateStore).apply(sessionModel);
+      createSession(stateStore, sessionModel.getDatasourceName()).apply(sessionModel);
     } catch (VersionConflictEngineException e) {
       String errorMsg = "session already exist. " + sessionId;
       LOG.error(errorMsg);
@@ -59,7 +63,8 @@ public class InteractiveSession implements Session {
   /** todo. StatementSweeper will delete doc. */
   @Override
   public void close() {
-    Optional<SessionModel> model = getSession(stateStore).apply(sessionModel.getId());
+    Optional<SessionModel> model =
+        getSession(stateStore, sessionModel.getDatasourceName()).apply(sessionModel.getId());
     if (model.isEmpty()) {
       throw new IllegalStateException("session does not exist. " + sessionModel.getSessionId());
     } else {
@@ -69,7 +74,8 @@ public class InteractiveSession implements Session {
 
   /** Submit statement. If submit successfully, Statement in waiting state. */
   public StatementId submit(QueryRequest request) {
-    Optional<SessionModel> model = getSession(stateStore).apply(sessionModel.getId());
+    Optional<SessionModel> model =
+        getSession(stateStore, sessionModel.getDatasourceName()).apply(sessionModel.getId());
     if (model.isEmpty()) {
       throw new IllegalStateException("session does not exist. " + sessionModel.getSessionId());
     } else {
@@ -84,6 +90,7 @@ public class InteractiveSession implements Session {
                 .stateStore(stateStore)
                 .statementId(statementId)
                 .langType(LangType.SQL)
+                .datasourceName(sessionModel.getDatasourceName())
                 .query(request.getQuery())
                 .queryId(statementId.getId())
                 .build();
@@ -103,7 +110,7 @@ public class InteractiveSession implements Session {
 
   @Override
   public Optional<Statement> get(StatementId stID) {
-    return StateStore.getStatement(stateStore)
+    return StateStore.getStatement(stateStore, sessionModel.getDatasourceName())
         .apply(stID.getId())
         .map(
             model ->
