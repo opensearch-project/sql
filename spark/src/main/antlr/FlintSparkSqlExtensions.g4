@@ -17,6 +17,7 @@ singleStatement
 statement
     : skippingIndexStatement
     | coveringIndexStatement
+    | materializedViewStatement
     ;
 
 skippingIndexStatement
@@ -74,6 +75,39 @@ describeCoveringIndexStatement
 
 dropCoveringIndexStatement
     : DROP INDEX indexName ON tableName
+    ;
+
+materializedViewStatement
+    : createMaterializedViewStatement
+    | showMaterializedViewStatement
+    | describeMaterializedViewStatement
+    | dropMaterializedViewStatement
+    ;
+
+createMaterializedViewStatement
+    : CREATE MATERIALIZED VIEW (IF NOT EXISTS)? mvName=multipartIdentifier
+        AS query=materializedViewQuery
+        (WITH LEFT_PAREN propertyList RIGHT_PAREN)?
+    ;
+
+showMaterializedViewStatement
+    : SHOW MATERIALIZED (VIEW | VIEWS) IN catalogDb=multipartIdentifier
+    ;
+
+describeMaterializedViewStatement
+    : (DESC | DESCRIBE) MATERIALIZED VIEW mvName=multipartIdentifier
+    ;
+
+dropMaterializedViewStatement
+    : DROP MATERIALIZED VIEW mvName=multipartIdentifier
+    ;
+
+/*
+ * Match all remaining tokens in non-greedy way
+ * so WITH clause won't be captured by this rule.
+ */
+materializedViewQuery
+    : .+?
     ;
 
 indexColTypeList
