@@ -44,12 +44,12 @@ public class FlintIndexMetadataReaderImplTest {
     FlintIndexMetadataReader flintIndexMetadataReader = new FlintIndexMetadataReaderImpl(client);
     FlintIndexMetadata indexMetadata =
         flintIndexMetadataReader.getFlintIndexMetadata(
-            new IndexDetails(
-                null,
-                new FullyQualifiedTableName("mys3.default.http_logs"),
-                false,
-                true,
-                FlintIndexType.SKIPPING));
+            IndexDetails.builder()
+                .fullyQualifiedTableName(new FullyQualifiedTableName("mys3.default.http_logs"))
+                .autoRefresh(false)
+                .isDropIndex(true)
+                .indexType(FlintIndexType.SKIPPING)
+                .build());
     Assertions.assertEquals("00fdmvv9hp8u0o0q", indexMetadata.getJobId());
   }
 
@@ -64,12 +64,13 @@ public class FlintIndexMetadataReaderImplTest {
     FlintIndexMetadataReader flintIndexMetadataReader = new FlintIndexMetadataReaderImpl(client);
     FlintIndexMetadata indexMetadata =
         flintIndexMetadataReader.getFlintIndexMetadata(
-            new IndexDetails(
-                "cv1",
-                new FullyQualifiedTableName("mys3.default.http_logs"),
-                false,
-                true,
-                FlintIndexType.COVERING));
+            IndexDetails.builder()
+                .indexName("cv1")
+                .fullyQualifiedTableName(new FullyQualifiedTableName("mys3.default.http_logs"))
+                .autoRefresh(false)
+                .isDropIndex(true)
+                .indexType(FlintIndexType.COVERING)
+                .build());
     Assertions.assertEquals("00fdmvv9hp8u0o0q", indexMetadata.getJobId());
   }
 
@@ -86,32 +87,15 @@ public class FlintIndexMetadataReaderImplTest {
             IllegalArgumentException.class,
             () ->
                 flintIndexMetadataReader.getFlintIndexMetadata(
-                    new IndexDetails(
-                        "cv1",
-                        new FullyQualifiedTableName("mys3.default.http_logs"),
-                        false,
-                        true,
-                        FlintIndexType.COVERING)));
+                    IndexDetails.builder()
+                        .indexName("cv1")
+                        .fullyQualifiedTableName(
+                            new FullyQualifiedTableName("mys3.default.http_logs"))
+                        .autoRefresh(false)
+                        .isDropIndex(true)
+                        .indexType(FlintIndexType.COVERING)
+                        .build()));
     Assertions.assertEquals("Provided Index doesn't exist", illegalArgumentException.getMessage());
-  }
-
-  @SneakyThrows
-  @Test
-  void testGetJobIdFromUnsupportedIndex() {
-    FlintIndexMetadataReader flintIndexMetadataReader = new FlintIndexMetadataReaderImpl(client);
-    UnsupportedOperationException unsupportedOperationException =
-        Assertions.assertThrows(
-            UnsupportedOperationException.class,
-            () ->
-                flintIndexMetadataReader.getFlintIndexMetadata(
-                    new IndexDetails(
-                        "cv1",
-                        new FullyQualifiedTableName("mys3.default.http_logs"),
-                        false,
-                        true,
-                        FlintIndexType.MATERIALIZED_VIEW)));
-    Assertions.assertEquals(
-        "Unsupported Index Type : MATERIALIZED_VIEW", unsupportedOperationException.getMessage());
   }
 
   @SneakyThrows

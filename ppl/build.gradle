@@ -50,7 +50,7 @@ dependencies {
     implementation "org.antlr:antlr4-runtime:4.7.1"
     implementation group: 'com.google.guava', name: 'guava', version: '32.0.1-jre'
     api group: 'org.json', name: 'json', version: '20231013'
-    implementation group: 'org.apache.logging.log4j', name: 'log4j-core', version:'2.21.0'
+    implementation group: 'org.apache.logging.log4j', name: 'log4j-core', version:"${versions.log4j}"
     api project(':common')
     api project(':core')
     api project(':protocol')
