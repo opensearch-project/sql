@@ -81,7 +81,8 @@ public class InteractiveSession implements Session {
     } else {
       sessionModel = model.get();
       if (!END_STATE.contains(sessionModel.getSessionState())) {
-        StatementId statementId = newStatementId();
+        String qid = request.getQueryId().getId();
+        StatementId statementId = newStatementId(qid);
         Statement st =
             Statement.builder()
                 .sessionId(sessionId)
@@ -92,7 +93,7 @@ public class InteractiveSession implements Session {
                 .langType(LangType.SQL)
                 .datasourceName(sessionModel.getDatasourceName())
                 .query(request.getQuery())
-                .queryId(statementId.getId())
+                .queryId(qid)
                 .build();
         st.open();
         return statementId;
