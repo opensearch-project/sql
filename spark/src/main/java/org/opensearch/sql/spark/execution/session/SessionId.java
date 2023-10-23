@@ -5,10 +5,10 @@
 
 package org.opensearch.sql.spark.execution.session;
 
-import java.nio.charset.StandardCharsets;
-import java.util.Base64;
+import static org.opensearch.sql.spark.utils.IDUtils.decode;
+import static org.opensearch.sql.spark.utils.IDUtils.encode;
+
 import lombok.Data;
-import org.apache.commons.lang3.RandomStringUtils;
 
 @Data
 public class SessionId {
@@ -22,15 +22,6 @@ public class SessionId {
 
   public String getDataSourceName() {
     return decode(sessionId);
-  }
-
-  private static String decode(String sessionId) {
-    return new String(Base64.getDecoder().decode(sessionId)).substring(PREFIX_LEN);
-  }
-
-  private static String encode(String datasourceName) {
-    String randomId = RandomStringUtils.randomAlphanumeric(PREFIX_LEN) + datasourceName;
-    return Base64.getEncoder().encodeToString(randomId.getBytes(StandardCharsets.UTF_8));
   }
 
   @Override

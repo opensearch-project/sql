@@ -38,6 +38,7 @@ import org.opensearch.common.xcontent.XContentType;
 import org.opensearch.core.xcontent.NamedXContentRegistry;
 import org.opensearch.core.xcontent.ToXContent;
 import org.opensearch.core.xcontent.XContentParser;
+import org.opensearch.sql.spark.asyncquery.model.AsyncQueryJobMetadata;
 import org.opensearch.sql.spark.execution.session.SessionModel;
 import org.opensearch.sql.spark.execution.session.SessionState;
 import org.opensearch.sql.spark.execution.statement.StatementModel;
@@ -53,7 +54,6 @@ public class StateStore {
   public static String MAPPING_FILE_NAME = "query_execution_request_mapping.yml";
   public static Function<String, String> DATASOURCE_TO_REQUEST_INDEX =
       datasourceName -> String.format("%s_%s", SPARK_REQUEST_BUFFER_INDEX_NAME, datasourceName);
-  public static String ALL_REQUEST_INDEX = String.format("%s_*", SPARK_REQUEST_BUFFER_INDEX_NAME);
 
   private static final Logger LOG = LogManager.getLogger();
 
@@ -77,7 +77,6 @@ public class StateStore {
       try (ThreadContext.StoredContext ignored =
           client.threadPool().getThreadContext().stashContext()) {
         IndexResponse indexResponse = client.index(indexRequest).actionGet();
-        ;
         if (indexResponse.getResult().equals(DocWriteResponse.Result.CREATED)) {
           LOG.debug("Successfully created doc. id: {}", st.getId());
           return builder.of(st, indexResponse.getSeqNo(), indexResponse.getPrimaryTerm());
@@ -227,10 +226,6 @@ public class StateStore {
             docId, SessionModel::fromXContent, DATASOURCE_TO_REQUEST_INDEX.apply(datasourceName));
   }
 
-  public static Function<String, Optional<SessionModel>> searchSession(StateStore stateStore) {
-    return (docId) -> stateStore.get(docId, SessionModel::fromXContent, ALL_REQUEST_INDEX);
-  }
-
   public static BiFunction<SessionModel, SessionState, SessionModel> updateSessionState(
       StateStore stateStore, String datasourceName) {
     return (old, state) ->
@@ -241,8 +236,21 @@ public class StateStore {
             DATASOURCE_TO_REQUEST_INDEX.apply(datasourceName));
   }
 
-  public static Runnable createStateStoreIndex(StateStore stateStore, String datasourceName) {
-    String indexName = String.format("%s_%s", SPARK_REQUEST_BUFFER_INDEX_NAME, datasourceName);
-    return () -> stateStore.createIndex(indexName);
+  public static Function<AsyncQueryJobMetadata, AsyncQueryJobMetadata> createJobMetaData(
+      StateStore stateStore, String datasourceName) {
+    return (jobMetadata) ->
+        stateStore.create(
+            jobMetadata,
+            AsyncQueryJobMetadata::copy,
+            DATASOURCE_TO_REQUEST_INDEX.apply(datasourceName));
+  }
+
+  public static Function<String, Optional<AsyncQueryJobMetadata>> getJobMetaData(
+      StateStore stateStore, String datasourceName) {
+    return (docId) ->
+        stateStore.get(
+            docId,
+            AsyncQueryJobMetadata::fromXContent,
+            DATASOURCE_TO_REQUEST_INDEX.apply(datasourceName));
   }
 }
