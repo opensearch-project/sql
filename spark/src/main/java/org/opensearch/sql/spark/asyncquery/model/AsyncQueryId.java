@@ -10,9 +10,7 @@ import static org.opensearch.sql.spark.utils.IDUtils.encode;
 
 import lombok.Data;
 
-/**
- * Async query id.
- */
+/** Async query id. */
 @Data
 public class AsyncQueryId {
   private final String id;
