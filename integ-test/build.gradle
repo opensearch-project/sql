@@ -167,7 +167,7 @@ dependencies {
     testImplementation group: 'org.opensearch.client', name: 'opensearch-rest-client', version: "${opensearch_version}"
     testImplementation group: 'org.opensearch.driver', name: 'opensearch-sql-jdbc', version: System.getProperty("jdbcDriverVersion", '1.2.0.0')
     testImplementation group: 'org.hamcrest', name: 'hamcrest', version: '2.1'
-    implementation group: 'org.apache.logging.log4j', name: 'log4j-core', version:'2.20.0'
+    implementation group: 'org.apache.logging.log4j', name: 'log4j-core', version:'2.21.0'
     testImplementation project(':opensearch-sql-plugin')
     testImplementation project(':legacy')
     testImplementation('org.junit.jupiter:junit-jupiter-api:5.6.2')
