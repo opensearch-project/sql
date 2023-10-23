@@ -284,8 +284,9 @@ public class AsyncQueryExecutorServiceImplSpecTest extends OpenSearchIntegTestCa
 
   private AsyncQueryExecutorService createAsyncQueryExecutorService(
       EMRServerlessClient emrServerlessClient) {
+    StateStore stateStore = new StateStore(client, clusterService);
     AsyncQueryJobMetadataStorageService asyncQueryJobMetadataStorageService =
-        new OpensearchAsyncQueryJobMetadataStorageService(client, clusterService);
+        new OpensearchAsyncQueryJobMetadataStorageService(stateStore);
     JobExecutionResponseReader jobExecutionResponseReader = new JobExecutionResponseReader(client);
     SparkQueryDispatcher sparkQueryDispatcher =
         new SparkQueryDispatcher(
@@ -295,8 +296,7 @@ public class AsyncQueryExecutorServiceImplSpecTest extends OpenSearchIntegTestCa
             jobExecutionResponseReader,
             new FlintIndexMetadataReaderImpl(client),
             client,
-            new SessionManager(
-                new StateStore(client, clusterService), emrServerlessClient, pluginSettings));
+            new SessionManager(stateStore, emrServerlessClient, pluginSettings));
     return new AsyncQueryExecutorServiceImpl(
         asyncQueryJobMetadataStorageService,
         sparkQueryDispatcher,
