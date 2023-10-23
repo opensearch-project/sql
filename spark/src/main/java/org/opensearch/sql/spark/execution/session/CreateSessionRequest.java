@@ -31,18 +31,27 @@ public class CreateSessionRequest {
         resultIndex);
   }
 
-  static class InteractiveSessionStartJobRequest extends StartJobRequest{
-    public InteractiveSessionStartJobRequest(String query, String jobName, String applicationId,
-                                             String executionRoleArn, String sparkSubmitParams,
-                                             Map<String, String> tags,
-                                             String resultIndex) {
-      super(query, jobName, applicationId, executionRoleArn, sparkSubmitParams, tags,
-          false, resultIndex);
+  static class InteractiveSessionStartJobRequest extends StartJobRequest {
+    public InteractiveSessionStartJobRequest(
+        String query,
+        String jobName,
+        String applicationId,
+        String executionRoleArn,
+        String sparkSubmitParams,
+        Map<String, String> tags,
+        String resultIndex) {
+      super(
+          query,
+          jobName,
+          applicationId,
+          executionRoleArn,
+          sparkSubmitParams,
+          tags,
+          false,
+          resultIndex);
     }
 
-    /**
-     * Interactive query keep running.
-     */
+    /** Interactive query keep running. */
     @Override
     public Long executionTimeout() {
       return 0L;

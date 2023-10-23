@@ -314,8 +314,10 @@ public class AsyncQueryExecutorServiceImplSpecTest extends OpenSearchIntegTestCa
                 "http://ec2-18-237-133-156.us-west-2.compute.amazonaws" + ".com:9200",
                 "glue.indexstore.opensearch.auth",
                 "basicauth",
-                "glue.indexstore.opensearch.auth.username", "username",
-                "glue.indexstore.opensearch.auth.password","admin"),
+                "glue.indexstore.opensearch.auth.username",
+                "username",
+                "glue.indexstore.opensearch.auth.password",
+                "admin"),
             null));
     LocalEMRSClient emrsClient = new LocalEMRSClient();
     AsyncQueryExecutorService asyncQueryExecutorService =
@@ -327,15 +329,11 @@ public class AsyncQueryExecutorServiceImplSpecTest extends OpenSearchIntegTestCa
     asyncQueryExecutorService.createAsyncQuery(
         new CreateAsyncQueryRequest("select 1", "mybasicauth", LangType.SQL, null));
     String params = emrsClient.getJobRequest().getSparkSubmitParams();
+    assertTrue(params.contains(String.format("--conf spark.datasource.flint.auth=mybasicauth")));
     assertTrue(
-        params.contains(
-            String.format("--conf spark.datasource.flint.auth=mybasicauth")));
+        params.contains(String.format("--conf spark.datasource.flint.auth.username=username")));
     assertTrue(
-        params.contains(
-            String.format("--conf spark.datasource.flint.auth.username=username")));
-    assertTrue(
-        params.contains(
-            String.format("--conf spark.datasource.flint.auth.password=password")));
+        params.contains(String.format("--conf spark.datasource.flint.auth.password=password")));
   }
 
   @Test
@@ -360,24 +358,24 @@ public class AsyncQueryExecutorServiceImplSpecTest extends OpenSearchIntegTestCa
     // 2. fetch async query result. not result write to SPARK_RESPONSE_BUFFER_INDEX_NAME yet.
     // mock failed statement.
     StatementModel submitted = statementModel.get();
-    StatementModel mocked = StatementModel.builder()
-        .version("1.0")
-        .statementState(submitted.getStatementState())
-        .statementId(submitted.getStatementId())
-        .sessionId(submitted.getSessionId())
-        .applicationId(submitted.getApplicationId())
-        .jobId(submitted.getJobId())
-        .langType(submitted.getLangType())
-        .datasourceName(submitted.getDatasourceName())
-        .query(submitted.getQuery())
-        .queryId(submitted.getQueryId())
-        .submitTime(submitted.getSubmitTime())
-        .error("mock error")
-        .seqNo(submitted.getSeqNo())
-        .primaryTerm(submitted.getPrimaryTerm())
-        .build();
+    StatementModel mocked =
+        StatementModel.builder()
+            .version("1.0")
+            .statementState(submitted.getStatementState())
+            .statementId(submitted.getStatementId())
+            .sessionId(submitted.getSessionId())
+            .applicationId(submitted.getApplicationId())
+            .jobId(submitted.getJobId())
+            .langType(submitted.getLangType())
+            .datasourceName(submitted.getDatasourceName())
+            .query(submitted.getQuery())
+            .queryId(submitted.getQueryId())
+            .submitTime(submitted.getSubmitTime())
+            .error("mock error")
+            .seqNo(submitted.getSeqNo())
+            .primaryTerm(submitted.getPrimaryTerm())
+            .build();
     updateStatementState(stateStore, DATASOURCE).apply(mocked, StatementState.FAILED);
-
 
     AsyncQueryExecutionResponse asyncQueryResults =
         asyncQueryExecutorService.getAsyncQueryResults(response.getQueryId());
