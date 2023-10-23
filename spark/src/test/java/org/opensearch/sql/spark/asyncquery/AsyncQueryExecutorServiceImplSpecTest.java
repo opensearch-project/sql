@@ -27,7 +27,9 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import lombok.Getter;
 import org.junit.After;
@@ -110,7 +112,7 @@ public class AsyncQueryExecutorServiceImplSpecTest extends OpenSearchIntegTestCa
                 "glue.auth.role_arn",
                 "arn:aws:iam::924196221507:role/FlintOpensearchServiceRole",
                 "glue.indexstore.opensearch.uri",
-                "http://ec2-18-237-133-156.us-west-2.compute.amazonaws" + ".com:9200",
+                "http://localhost:9200",
                 "glue.indexstore.opensearch.auth",
                 "noauth"),
             null));
@@ -300,25 +302,18 @@ public class AsyncQueryExecutorServiceImplSpecTest extends OpenSearchIntegTestCa
 
   @Test
   public void datasourceWithBasicAuth() {
+    Map<String, String> properties = new HashMap<>();
+    properties.put("glue.auth.type", "iam_role");
+    properties.put(
+        "glue.auth.role_arn", "arn:aws:iam::924196221507:role/FlintOpensearchServiceRole");
+    properties.put("glue.indexstore.opensearch.uri", "http://localhost:9200");
+    properties.put("glue.indexstore.opensearch.auth", "basicauth");
+    properties.put("glue.indexstore.opensearch.auth.username", "username");
+    properties.put("glue.indexstore.opensearch.auth.password", "password");
+
     dataSourceService.createDataSource(
         new DataSourceMetadata(
-            "mybasicauth",
-            DataSourceType.S3GLUE,
-            ImmutableList.of(),
-            ImmutableMap.of(
-                "glue.auth.type",
-                "iam_role",
-                "glue.auth.role_arn",
-                "arn:aws:iam::924196221507:role/FlintOpensearchServiceRole",
-                "glue.indexstore.opensearch.uri",
-                "http://ec2-18-237-133-156.us-west-2.compute.amazonaws" + ".com:9200",
-                "glue.indexstore.opensearch.auth",
-                "basicauth",
-                "glue.indexstore.opensearch.auth.username",
-                "username",
-                "glue.indexstore.opensearch.auth.password",
-                "admin"),
-            null));
+            "mybasicauth", DataSourceType.S3GLUE, ImmutableList.of(), properties, null));
     LocalEMRSClient emrsClient = new LocalEMRSClient();
     AsyncQueryExecutorService asyncQueryExecutorService =
         createAsyncQueryExecutorService(emrsClient);
@@ -329,7 +324,7 @@ public class AsyncQueryExecutorServiceImplSpecTest extends OpenSearchIntegTestCa
     asyncQueryExecutorService.createAsyncQuery(
         new CreateAsyncQueryRequest("select 1", "mybasicauth", LangType.SQL, null));
     String params = emrsClient.getJobRequest().getSparkSubmitParams();
-    assertTrue(params.contains(String.format("--conf spark.datasource.flint.auth=mybasicauth")));
+    assertTrue(params.contains(String.format("--conf spark.datasource.flint.auth=basic")));
     assertTrue(
         params.contains(String.format("--conf spark.datasource.flint.auth.username=username")));
     assertTrue(
