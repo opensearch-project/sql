@@ -1,5 +1,6 @@
 package org.opensearch.sql.datasources.transport;
 
+import static org.junit.Assert.*;
 import static org.mockito.Mockito.*;
 import static org.opensearch.sql.datasources.utils.XContentParserUtils.*;
 
@@ -15,6 +16,7 @@ import org.mockito.Captor;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.opensearch.action.ActionRequestValidationException;
 import org.opensearch.action.support.ActionFilters;
 import org.opensearch.core.action.ActionListener;
 import org.opensearch.sql.datasources.model.transport.PatchDataSourceActionRequest;
@@ -75,5 +77,12 @@ public class TransportPatchDataSourceActionTest {
     Exception exception = exceptionArgumentCaptor.getValue();
     Assertions.assertTrue(exception instanceof RuntimeException);
     Assertions.assertEquals("Error", exception.getMessage());
+  }
+
+  @Test
+  public void testValidateFailsWhenPatchingRoleArn() {
+      PatchDataSourceActionRequest request = new PatchDataSourceActionRequest(Map.of(NAME_FIELD, "test", PROPERTIES_FIELD, Map.of("glue.auth.role_arn", "test_arn")));
+      assertNotNull(request.validate());
+      assertTrue(request.validate().getMessage().contains("Not allowed to update role_arn"));
   }
 }

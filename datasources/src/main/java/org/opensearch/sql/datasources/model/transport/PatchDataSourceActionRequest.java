@@ -8,8 +8,7 @@
 package org.opensearch.sql.datasources.model.transport;
 
 import static org.opensearch.sql.analysis.DataSourceSchemaIdentifierNameResolver.DEFAULT_DATASOURCE_NAME;
-import static org.opensearch.sql.datasources.utils.XContentParserUtils.CONNECTOR_FIELD;
-import static org.opensearch.sql.datasources.utils.XContentParserUtils.NAME_FIELD;
+import static org.opensearch.sql.datasources.utils.XContentParserUtils.*;
 
 import java.io.IOException;
 import java.util.Map;
@@ -42,7 +41,12 @@ public class PatchDataSourceActionRequest extends ActionRequest {
       ActionRequestValidationException exception = new ActionRequestValidationException();
       exception.addValidationError("Not allowed to update connector for datasource");
       return exception;
-    } else {
+    } else if (((Map<String, String>)this.dataSourceData.get(PROPERTIES_FIELD)).keySet().stream().anyMatch(key -> key.endsWith("role_arn"))) {
+      ActionRequestValidationException exception = new ActionRequestValidationException();
+      exception.addValidationError(
+              "Not allowed to update role_arn");
+      return exception;
+    }else {
       return null;
     }
   }
