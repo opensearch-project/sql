@@ -8,7 +8,9 @@
 package org.opensearch.sql.datasources.model.transport;
 
 import static org.opensearch.sql.analysis.DataSourceSchemaIdentifierNameResolver.DEFAULT_DATASOURCE_NAME;
-import static org.opensearch.sql.datasources.utils.XContentParserUtils.*;
+import static org.opensearch.sql.datasources.utils.XContentParserUtils.CONNECTOR_FIELD;
+import static org.opensearch.sql.datasources.utils.XContentParserUtils.NAME_FIELD;
+import static org.opensearch.sql.datasources.utils.XContentParserUtils.PROPERTIES_FIELD;
 
 import java.io.IOException;
 import java.util.Map;
