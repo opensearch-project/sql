@@ -38,8 +38,8 @@ import org.opensearch.sql.spark.client.EMRServerlessClient;
 import org.opensearch.sql.spark.client.StartJobRequest;
 import org.opensearch.sql.spark.dispatcher.model.DispatchQueryRequest;
 import org.opensearch.sql.spark.dispatcher.model.DispatchQueryResponse;
-import org.opensearch.sql.spark.dispatcher.model.FullyQualifiedTableName;
 import org.opensearch.sql.spark.dispatcher.model.IndexDetails;
+import org.opensearch.sql.spark.dispatcher.model.JobType;
 import org.opensearch.sql.spark.execution.session.CreateSessionRequest;
 import org.opensearch.sql.spark.execution.session.Session;
 import org.opensearch.sql.spark.execution.session.SessionId;
@@ -59,9 +59,8 @@ public class SparkQueryDispatcher {
 
   public static final String INDEX_TAG_KEY = "index";
   public static final String DATASOURCE_TAG_KEY = "datasource";
-  public static final String SCHEMA_TAG_KEY = "schema";
-  public static final String TABLE_TAG_KEY = "table";
   public static final String CLUSTER_NAME_TAG_KEY = "cluster";
+  public static final String JOB_TYPE_TAG_KEY = "job_type";
 
   private EMRServerlessClient emrServerlessClient;
 
@@ -111,6 +110,8 @@ public class SparkQueryDispatcher {
     if (SQLQueryUtils.isIndexQuery(dispatchQueryRequest.getQuery())) {
       IndexDetails indexDetails =
           SQLQueryUtils.extractIndexDetails(dispatchQueryRequest.getQuery());
+      fillMissingDetails(dispatchQueryRequest, indexDetails);
+
       if (indexDetails.isDropIndex()) {
         return handleDropIndexQuery(dispatchQueryRequest, indexDetails);
       } else {
@@ -121,17 +122,29 @@ public class SparkQueryDispatcher {
     }
   }
 
+  // TODO: Revisit this logic.
+  // Currently, Spark if datasource is not provided in query.
+  // Spark Assumes the datasource to be catalog.
+  // This is required to handle drop index case properly when datasource name is not provided.
+  private static void fillMissingDetails(
+      DispatchQueryRequest dispatchQueryRequest, IndexDetails indexDetails) {
+    if (indexDetails.getFullyQualifiedTableName() != null
+        && indexDetails.getFullyQualifiedTableName().getDatasourceName() == null) {
+      indexDetails
+          .getFullyQualifiedTableName()
+          .setDatasourceName(dispatchQueryRequest.getDatasource());
+    }
+  }
+
   private DispatchQueryResponse handleIndexQuery(
       DispatchQueryRequest dispatchQueryRequest, IndexDetails indexDetails) {
-    FullyQualifiedTableName fullyQualifiedTableName = indexDetails.getFullyQualifiedTableName();
     DataSourceMetadata dataSourceMetadata =
         this.dataSourceService.getRawDataSourceMetadata(dispatchQueryRequest.getDatasource());
     dataSourceUserAuthorizationHelper.authorizeDataSource(dataSourceMetadata);
     String jobName = dispatchQueryRequest.getClusterName() + ":" + "index-query";
     Map<String, String> tags = getDefaultTagsForJobSubmission(dispatchQueryRequest);
-    tags.put(INDEX_TAG_KEY, indexDetails.getIndexName());
-    tags.put(TABLE_TAG_KEY, fullyQualifiedTableName.getTableName());
-    tags.put(SCHEMA_TAG_KEY, fullyQualifiedTableName.getSchemaName());
+    tags.put(INDEX_TAG_KEY, indexDetails.openSearchIndexName());
+    tags.put(JOB_TYPE_TAG_KEY, JobType.STREAMING.getText());
     StartJobRequest startJobRequest =
         new StartJobRequest(
             dispatchQueryRequest.getQuery(),
@@ -142,12 +155,12 @@ public class SparkQueryDispatcher {
                 .dataSource(
                     dataSourceService.getRawDataSourceMetadata(
                         dispatchQueryRequest.getDatasource()))
-                .structuredStreaming(indexDetails.getAutoRefresh())
+                .structuredStreaming(indexDetails.isAutoRefresh())
                 .extraParameters(dispatchQueryRequest.getExtraSparkSubmitParams())
                 .build()
                 .toString(),
             tags,
-            indexDetails.getAutoRefresh(),
+            indexDetails.isAutoRefresh(),
             dataSourceMetadata.getResultIndex());
     String jobId = emrServerlessClient.startJobRun(startJobRequest);
     return new DispatchQueryResponse(
@@ -178,6 +191,7 @@ public class SparkQueryDispatcher {
         session = createdSession.get();
       } else {
         // create session if not exist
+        tags.put(JOB_TYPE_TAG_KEY, JobType.INTERACTIVE.getText());
         session =
             sessionManager.createSession(
                 new CreateSessionRequest(
@@ -204,6 +218,7 @@ public class SparkQueryDispatcher {
           dataSourceMetadata.getResultIndex(),
           session.getSessionId().getSessionId());
     } else {
+      tags.put(JOB_TYPE_TAG_KEY, JobType.BATCH.getText());
       StartJobRequest startJobRequest =
           new StartJobRequest(
               dispatchQueryRequest.getQuery(),

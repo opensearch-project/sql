@@ -6,6 +6,7 @@
 package org.opensearch.sql.spark.utils;
 
 import static org.opensearch.sql.spark.utils.SQLQueryUtilsTest.IndexQuery.index;
+import static org.opensearch.sql.spark.utils.SQLQueryUtilsTest.IndexQuery.mv;
 import static org.opensearch.sql.spark.utils.SQLQueryUtilsTest.IndexQuery.skippingIndex;
 
 import lombok.Getter;
@@ -112,50 +113,67 @@ public class SQLQueryUtilsTest {
     Assertions.assertEquals("alb_logs", fullyQualifiedTableName.getTableName());
   }
 
+  @Test
+  void testExtractionFromFlintMVQuery() {
+    String createCoveredIndexQuery =
+        "CREATE MATERIALIZED VIEW mv_1 AS query=select * from my_glue.default.logs WITH"
+            + " (auto_refresh = true)";
+    Assertions.assertTrue(SQLQueryUtils.isIndexQuery(createCoveredIndexQuery));
+    IndexDetails indexDetails = SQLQueryUtils.extractIndexDetails(createCoveredIndexQuery);
+    FullyQualifiedTableName fullyQualifiedTableName = indexDetails.getFullyQualifiedTableName();
+    Assertions.assertNull(indexDetails.getIndexName());
+    Assertions.assertNull(fullyQualifiedTableName);
+    Assertions.assertEquals("mv_1", indexDetails.getMvName());
+  }
+
   /** https://github.com/opensearch-project/sql/issues/2206 */
   @Test
   void testAutoRefresh() {
     Assertions.assertFalse(
-        SQLQueryUtils.extractIndexDetails(skippingIndex().getQuery()).getAutoRefresh());
+        SQLQueryUtils.extractIndexDetails(skippingIndex().getQuery()).isAutoRefresh());
 
     Assertions.assertFalse(
         SQLQueryUtils.extractIndexDetails(
                 skippingIndex().withProperty("auto_refresh", "false").getQuery())
-            .getAutoRefresh());
+            .isAutoRefresh());
 
     Assertions.assertTrue(
         SQLQueryUtils.extractIndexDetails(
                 skippingIndex().withProperty("auto_refresh", "true").getQuery())
-            .getAutoRefresh());
+            .isAutoRefresh());
 
     Assertions.assertTrue(
         SQLQueryUtils.extractIndexDetails(
                 skippingIndex().withProperty("\"auto_refresh\"", "true").getQuery())
-            .getAutoRefresh());
+            .isAutoRefresh());
 
     Assertions.assertTrue(
         SQLQueryUtils.extractIndexDetails(
                 skippingIndex().withProperty("\"auto_refresh\"", "\"true\"").getQuery())
-            .getAutoRefresh());
+            .isAutoRefresh());
 
     Assertions.assertFalse(
         SQLQueryUtils.extractIndexDetails(
                 skippingIndex().withProperty("auto_refresh", "1").getQuery())
-            .getAutoRefresh());
+            .isAutoRefresh());
 
     Assertions.assertFalse(
         SQLQueryUtils.extractIndexDetails(skippingIndex().withProperty("interval", "1").getQuery())
-            .getAutoRefresh());
+            .isAutoRefresh());
 
-    Assertions.assertFalse(SQLQueryUtils.extractIndexDetails(index().getQuery()).getAutoRefresh());
+    Assertions.assertFalse(SQLQueryUtils.extractIndexDetails(index().getQuery()).isAutoRefresh());
 
     Assertions.assertFalse(
         SQLQueryUtils.extractIndexDetails(index().withProperty("auto_refresh", "false").getQuery())
-            .getAutoRefresh());
+            .isAutoRefresh());
 
     Assertions.assertTrue(
         SQLQueryUtils.extractIndexDetails(index().withProperty("auto_refresh", "true").getQuery())
-            .getAutoRefresh());
+            .isAutoRefresh());
+
+    Assertions.assertTrue(
+        SQLQueryUtils.extractIndexDetails(mv().withProperty("auto_refresh", "true").getQuery())
+            .isAutoRefresh());
   }
 
   @Getter
@@ -174,6 +192,11 @@ public class SQLQueryUtilsTest {
     public static IndexQuery index() {
       return new IndexQuery(
           "CREATE INDEX elb_and_requestUri ON myS3.default.alb_logs(l_orderkey, " + "l_quantity)");
+    }
+
+    public static IndexQuery mv() {
+      return new IndexQuery(
+          "CREATE MATERIALIZED VIEW mv_1 AS query=select * from my_glue.default.logs");
     }
 
     public IndexQuery withProperty(String key, String value) {
