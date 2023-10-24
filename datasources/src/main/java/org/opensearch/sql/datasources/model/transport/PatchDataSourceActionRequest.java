@@ -41,12 +41,12 @@ public class PatchDataSourceActionRequest extends ActionRequest {
       ActionRequestValidationException exception = new ActionRequestValidationException();
       exception.addValidationError("Not allowed to update connector for datasource");
       return exception;
-    } else if (((Map<String, String>)this.dataSourceData.get(PROPERTIES_FIELD)).keySet().stream().anyMatch(key -> key.endsWith("role_arn"))) {
+    } else if (((Map<String, String>) this.dataSourceData.get(PROPERTIES_FIELD))
+        .keySet().stream().anyMatch(key -> key.endsWith("role_arn"))) {
       ActionRequestValidationException exception = new ActionRequestValidationException();
-      exception.addValidationError(
-              "Not allowed to update role_arn");
+      exception.addValidationError("Not allowed to update role_arn");
       return exception;
-    }else {
+    } else {
       return null;
     }
   }
