@@ -52,7 +52,7 @@ public class SQLQueryUtils {
         flintSparkSqlExtensionsParser.statement();
     FlintSQLIndexDetailsVisitor flintSQLIndexDetailsVisitor = new FlintSQLIndexDetailsVisitor();
     statementContext.accept(flintSQLIndexDetailsVisitor);
-    return flintSQLIndexDetailsVisitor.getIndexDetails();
+    return flintSQLIndexDetailsVisitor.getIndexDetailsBuilder().build();
   }
 
   public static boolean isIndexQuery(String sqlQuery) {
@@ -117,29 +117,29 @@ public class SQLQueryUtils {
 
   public static class FlintSQLIndexDetailsVisitor extends FlintSparkSqlExtensionsBaseVisitor<Void> {
 
-    @Getter private final IndexDetails indexDetails;
+    @Getter private final IndexDetails.IndexDetailsBuilder indexDetailsBuilder;
 
     public FlintSQLIndexDetailsVisitor() {
-      this.indexDetails = new IndexDetails();
+      this.indexDetailsBuilder = new IndexDetails.IndexDetailsBuilder();
     }
 
     @Override
     public Void visitIndexName(FlintSparkSqlExtensionsParser.IndexNameContext ctx) {
-      indexDetails.setIndexName(ctx.getText());
+      indexDetailsBuilder.indexName(ctx.getText());
       return super.visitIndexName(ctx);
     }
 
     @Override
     public Void visitTableName(FlintSparkSqlExtensionsParser.TableNameContext ctx) {
-      indexDetails.setFullyQualifiedTableName(new FullyQualifiedTableName(ctx.getText()));
+      indexDetailsBuilder.fullyQualifiedTableName(new FullyQualifiedTableName(ctx.getText()));
       return super.visitTableName(ctx);
     }
 
     @Override
     public Void visitCreateSkippingIndexStatement(
         FlintSparkSqlExtensionsParser.CreateSkippingIndexStatementContext ctx) {
-      indexDetails.setDropIndex(false);
-      indexDetails.setIndexType(FlintIndexType.SKIPPING);
+      indexDetailsBuilder.isDropIndex(false);
+      indexDetailsBuilder.indexType(FlintIndexType.SKIPPING);
       visitPropertyList(ctx.propertyList());
       return super.visitCreateSkippingIndexStatement(ctx);
     }
@@ -147,26 +147,45 @@ public class SQLQueryUtils {
     @Override
     public Void visitCreateCoveringIndexStatement(
         FlintSparkSqlExtensionsParser.CreateCoveringIndexStatementContext ctx) {
-      indexDetails.setDropIndex(false);
-      indexDetails.setIndexType(FlintIndexType.COVERING);
+      indexDetailsBuilder.isDropIndex(false);
+      indexDetailsBuilder.indexType(FlintIndexType.COVERING);
       visitPropertyList(ctx.propertyList());
       return super.visitCreateCoveringIndexStatement(ctx);
     }
 
     @Override
+    public Void visitCreateMaterializedViewStatement(
+        FlintSparkSqlExtensionsParser.CreateMaterializedViewStatementContext ctx) {
+      indexDetailsBuilder.isDropIndex(false);
+      indexDetailsBuilder.indexType(FlintIndexType.MATERIALIZED_VIEW);
+      indexDetailsBuilder.mvName(ctx.mvName.getText());
+      visitPropertyList(ctx.propertyList());
+      return super.visitCreateMaterializedViewStatement(ctx);
+    }
+
+    @Override
     public Void visitDropCoveringIndexStatement(
         FlintSparkSqlExtensionsParser.DropCoveringIndexStatementContext ctx) {
-      indexDetails.setDropIndex(true);
-      indexDetails.setIndexType(FlintIndexType.COVERING);
+      indexDetailsBuilder.isDropIndex(true);
+      indexDetailsBuilder.indexType(FlintIndexType.COVERING);
       return super.visitDropCoveringIndexStatement(ctx);
     }
 
     @Override
     public Void visitDropSkippingIndexStatement(
         FlintSparkSqlExtensionsParser.DropSkippingIndexStatementContext ctx) {
-      indexDetails.setDropIndex(true);
-      indexDetails.setIndexType(FlintIndexType.SKIPPING);
+      indexDetailsBuilder.isDropIndex(true);
+      indexDetailsBuilder.indexType(FlintIndexType.SKIPPING);
       return super.visitDropSkippingIndexStatement(ctx);
+    }
+
+    @Override
+    public Void visitDropMaterializedViewStatement(
+        FlintSparkSqlExtensionsParser.DropMaterializedViewStatementContext ctx) {
+      indexDetailsBuilder.isDropIndex(true);
+      indexDetailsBuilder.indexType(FlintIndexType.MATERIALIZED_VIEW);
+      indexDetailsBuilder.mvName(ctx.mvName.getText());
+      return super.visitDropMaterializedViewStatement(ctx);
     }
 
     @Override
@@ -180,7 +199,7 @@ public class SQLQueryUtils {
                   // https://github.com/apache/spark/blob/v3.5.0/sql/api/src/main/scala/org/apache/spark/sql/catalyst/util/SparkParserUtils.scala#L35 to unescape string literal
                   if (propertyKey(property.key).toLowerCase(Locale.ROOT).contains("auto_refresh")) {
                     if (propertyValue(property.value).toLowerCase(Locale.ROOT).contains("true")) {
-                      indexDetails.setAutoRefresh(true);
+                      indexDetailsBuilder.autoRefresh(true);
                     }
                   }
                 });
