@@ -63,11 +63,7 @@ import org.opensearch.sql.spark.asyncquery.model.AsyncQueryId;
 import org.opensearch.sql.spark.asyncquery.model.AsyncQueryJobMetadata;
 import org.opensearch.sql.spark.client.EMRServerlessClient;
 import org.opensearch.sql.spark.client.StartJobRequest;
-import org.opensearch.sql.spark.dispatcher.model.DispatchQueryRequest;
-import org.opensearch.sql.spark.dispatcher.model.DispatchQueryResponse;
-import org.opensearch.sql.spark.dispatcher.model.FullyQualifiedTableName;
-import org.opensearch.sql.spark.dispatcher.model.IndexDetails;
-import org.opensearch.sql.spark.dispatcher.model.JobType;
+import org.opensearch.sql.spark.dispatcher.model.*;
 import org.opensearch.sql.spark.execution.session.Session;
 import org.opensearch.sql.spark.execution.session.SessionId;
 import org.opensearch.sql.spark.execution.session.SessionManager;
@@ -126,7 +122,7 @@ public class SparkQueryDispatcherTest {
     HashMap<String, String> tags = new HashMap<>();
     tags.put("datasource", "my_glue");
     tags.put("cluster", TEST_CLUSTER_NAME);
-    tags.put("job_type", JobType.BATCH.getText());
+    tags.put("type", JobType.BATCH.getText());
     String query = "select * from my_glue.default.http_logs";
     String sparkSubmitParameters =
         constructExpectedSparkSubmitParameterString(
@@ -181,7 +177,7 @@ public class SparkQueryDispatcherTest {
     HashMap<String, String> tags = new HashMap<>();
     tags.put("datasource", "my_glue");
     tags.put("cluster", TEST_CLUSTER_NAME);
-    tags.put("job_type", JobType.BATCH.getText());
+    tags.put("type", JobType.BATCH.getText());
     String query = "select * from my_glue.default.http_logs";
     String sparkSubmitParameters =
         constructExpectedSparkSubmitParameterString(
@@ -237,7 +233,7 @@ public class SparkQueryDispatcherTest {
     HashMap<String, String> tags = new HashMap<>();
     tags.put("datasource", "my_glue");
     tags.put("cluster", TEST_CLUSTER_NAME);
-    tags.put("job_type", JobType.BATCH.getText());
+    tags.put("type", JobType.BATCH.getText());
     String query = "select * from my_glue.default.http_logs";
     String sparkSubmitParameters =
         constructExpectedSparkSubmitParameterString(
@@ -372,7 +368,7 @@ public class SparkQueryDispatcherTest {
     tags.put("datasource", "my_glue");
     tags.put("index", "flint_my_glue_default_http_logs_elb_and_requesturi_index");
     tags.put("cluster", TEST_CLUSTER_NAME);
-    tags.put("job_type", JobType.STREAMING.getText());
+    tags.put("type", JobType.STREAMING.getText());
     String query =
         "CREATE INDEX elb_and_requestUri ON my_glue.default.http_logs(l_orderkey, l_quantity) WITH"
             + " (auto_refresh = true)";
@@ -430,7 +426,7 @@ public class SparkQueryDispatcherTest {
     HashMap<String, String> tags = new HashMap<>();
     tags.put("datasource", "my_glue");
     tags.put("cluster", TEST_CLUSTER_NAME);
-    tags.put("job_type", JobType.BATCH.getText());
+    tags.put("type", JobType.BATCH.getText());
     String query = "source = my_glue.default.http_logs";
     String sparkSubmitParameters =
         constructExpectedSparkSubmitParameterString(
@@ -485,7 +481,7 @@ public class SparkQueryDispatcherTest {
     HashMap<String, String> tags = new HashMap<>();
     tags.put("datasource", "my_glue");
     tags.put("cluster", TEST_CLUSTER_NAME);
-    tags.put("job_type", JobType.BATCH.getText());
+    tags.put("type", JobType.BATCH.getText());
     String query = "show tables";
     String sparkSubmitParameters =
         constructExpectedSparkSubmitParameterString(
@@ -541,7 +537,7 @@ public class SparkQueryDispatcherTest {
     tags.put("datasource", "my_glue");
     tags.put("index", "flint_my_glue_default_http_logs_elb_and_requesturi_index");
     tags.put("cluster", TEST_CLUSTER_NAME);
-    tags.put("job_type", JobType.STREAMING.getText());
+    tags.put("type", JobType.STREAMING.getText());
     String query =
         "CREATE INDEX elb_and_requestUri ON default.http_logs(l_orderkey, l_quantity) WITH"
             + " (auto_refresh = true)";
@@ -600,7 +596,7 @@ public class SparkQueryDispatcherTest {
     tags.put("datasource", "my_glue");
     tags.put("index", "flint_mv_1");
     tags.put("cluster", TEST_CLUSTER_NAME);
-    tags.put("job_type", JobType.STREAMING.getText());
+    tags.put("type", JobType.STREAMING.getText());
     String query =
         "CREATE MATERIALIZED VIEW mv_1 AS query=select * from my_glue.default.logs WITH"
             + " (auto_refresh = true)";
@@ -646,6 +642,168 @@ public class SparkQueryDispatcherTest {
             sparkSubmitParameters,
             tags,
             true,
+            null);
+    Assertions.assertEquals(expected, startJobRequestArgumentCaptor.getValue());
+    Assertions.assertEquals(EMR_JOB_ID, dispatchQueryResponse.getJobId());
+    Assertions.assertFalse(dispatchQueryResponse.isDropIndexQuery());
+    verifyNoInteractions(flintIndexMetadataReader);
+  }
+
+  @Test
+  void testDispatchShowMVQuery() {
+    HashMap<String, String> tags = new HashMap<>();
+    tags.put("datasource", "my_glue");
+    tags.put("cluster", TEST_CLUSTER_NAME);
+    String query = "SHOW MATERIALIZED VIEW IN mys3.default";
+    String sparkSubmitParameters =
+        constructExpectedSparkSubmitParameterString(
+            "sigv4",
+            new HashMap<>() {
+              {
+                put(FLINT_INDEX_STORE_AWSREGION_KEY, "eu-west-1");
+              }
+            });
+    when(emrServerlessClient.startJobRun(
+            new StartJobRequest(
+                query,
+                "TEST_CLUSTER:index-query",
+                EMRS_APPLICATION_ID,
+                EMRS_EXECUTION_ROLE,
+                sparkSubmitParameters,
+                tags,
+                false,
+                any())))
+        .thenReturn(EMR_JOB_ID);
+    DataSourceMetadata dataSourceMetadata = constructMyGlueDataSourceMetadata();
+    when(dataSourceService.getRawDataSourceMetadata("my_glue")).thenReturn(dataSourceMetadata);
+    doNothing().when(dataSourceUserAuthorizationHelper).authorizeDataSource(dataSourceMetadata);
+    DispatchQueryResponse dispatchQueryResponse =
+        sparkQueryDispatcher.dispatch(
+            new DispatchQueryRequest(
+                EMRS_APPLICATION_ID,
+                query,
+                "my_glue",
+                LangType.SQL,
+                EMRS_EXECUTION_ROLE,
+                TEST_CLUSTER_NAME));
+    verify(emrServerlessClient, times(1)).startJobRun(startJobRequestArgumentCaptor.capture());
+    StartJobRequest expected =
+        new StartJobRequest(
+            query,
+            "TEST_CLUSTER:index-query",
+            EMRS_APPLICATION_ID,
+            EMRS_EXECUTION_ROLE,
+            sparkSubmitParameters,
+            tags,
+            false,
+            null);
+    Assertions.assertEquals(expected, startJobRequestArgumentCaptor.getValue());
+    Assertions.assertEquals(EMR_JOB_ID, dispatchQueryResponse.getJobId());
+    Assertions.assertFalse(dispatchQueryResponse.isDropIndexQuery());
+    verifyNoInteractions(flintIndexMetadataReader);
+  }
+
+  @Test
+  void testRefreshIndexQuery() {
+    HashMap<String, String> tags = new HashMap<>();
+    tags.put("datasource", "my_glue");
+    tags.put("cluster", TEST_CLUSTER_NAME);
+    String query = "REFRESH SKIPPING INDEX ON my_glue.default.http_logs";
+    String sparkSubmitParameters =
+        constructExpectedSparkSubmitParameterString(
+            "sigv4",
+            new HashMap<>() {
+              {
+                put(FLINT_INDEX_STORE_AWSREGION_KEY, "eu-west-1");
+              }
+            });
+    when(emrServerlessClient.startJobRun(
+            new StartJobRequest(
+                query,
+                "TEST_CLUSTER:index-query",
+                EMRS_APPLICATION_ID,
+                EMRS_EXECUTION_ROLE,
+                sparkSubmitParameters,
+                tags,
+                false,
+                any())))
+        .thenReturn(EMR_JOB_ID);
+    DataSourceMetadata dataSourceMetadata = constructMyGlueDataSourceMetadata();
+    when(dataSourceService.getRawDataSourceMetadata("my_glue")).thenReturn(dataSourceMetadata);
+    doNothing().when(dataSourceUserAuthorizationHelper).authorizeDataSource(dataSourceMetadata);
+    DispatchQueryResponse dispatchQueryResponse =
+        sparkQueryDispatcher.dispatch(
+            new DispatchQueryRequest(
+                EMRS_APPLICATION_ID,
+                query,
+                "my_glue",
+                LangType.SQL,
+                EMRS_EXECUTION_ROLE,
+                TEST_CLUSTER_NAME));
+    verify(emrServerlessClient, times(1)).startJobRun(startJobRequestArgumentCaptor.capture());
+    StartJobRequest expected =
+        new StartJobRequest(
+            query,
+            "TEST_CLUSTER:index-query",
+            EMRS_APPLICATION_ID,
+            EMRS_EXECUTION_ROLE,
+            sparkSubmitParameters,
+            tags,
+            false,
+            null);
+    Assertions.assertEquals(expected, startJobRequestArgumentCaptor.getValue());
+    Assertions.assertEquals(EMR_JOB_ID, dispatchQueryResponse.getJobId());
+    Assertions.assertFalse(dispatchQueryResponse.isDropIndexQuery());
+    verifyNoInteractions(flintIndexMetadataReader);
+  }
+
+  @Test
+  void testDispatchDescribeIndexQuery() {
+    HashMap<String, String> tags = new HashMap<>();
+    tags.put("datasource", "my_glue");
+    tags.put("cluster", TEST_CLUSTER_NAME);
+    String query = "DESCRIBE SKIPPING INDEX ON mys3.default.http_logs";
+    String sparkSubmitParameters =
+        constructExpectedSparkSubmitParameterString(
+            "sigv4",
+            new HashMap<>() {
+              {
+                put(FLINT_INDEX_STORE_AWSREGION_KEY, "eu-west-1");
+              }
+            });
+    when(emrServerlessClient.startJobRun(
+            new StartJobRequest(
+                query,
+                "TEST_CLUSTER:index-query",
+                EMRS_APPLICATION_ID,
+                EMRS_EXECUTION_ROLE,
+                sparkSubmitParameters,
+                tags,
+                false,
+                any())))
+        .thenReturn(EMR_JOB_ID);
+    DataSourceMetadata dataSourceMetadata = constructMyGlueDataSourceMetadata();
+    when(dataSourceService.getRawDataSourceMetadata("my_glue")).thenReturn(dataSourceMetadata);
+    doNothing().when(dataSourceUserAuthorizationHelper).authorizeDataSource(dataSourceMetadata);
+    DispatchQueryResponse dispatchQueryResponse =
+        sparkQueryDispatcher.dispatch(
+            new DispatchQueryRequest(
+                EMRS_APPLICATION_ID,
+                query,
+                "my_glue",
+                LangType.SQL,
+                EMRS_EXECUTION_ROLE,
+                TEST_CLUSTER_NAME));
+    verify(emrServerlessClient, times(1)).startJobRun(startJobRequestArgumentCaptor.capture());
+    StartJobRequest expected =
+        new StartJobRequest(
+            query,
+            "TEST_CLUSTER:index-query",
+            EMRS_APPLICATION_ID,
+            EMRS_EXECUTION_ROLE,
+            sparkSubmitParameters,
+            tags,
+            false,
             null);
     Assertions.assertEquals(expected, startJobRequestArgumentCaptor.getValue());
     Assertions.assertEquals(EMR_JOB_ID, dispatchQueryResponse.getJobId());
@@ -903,15 +1061,15 @@ public class SparkQueryDispatcherTest {
   @Test
   void testDropIndexQuery() throws ExecutionException, InterruptedException {
     String query = "DROP INDEX size_year ON my_glue.default.http_logs";
-    IndexDetails indexDetails =
-        IndexDetails.builder()
+    IndexQueryDetails indexQueryDetails =
+        IndexQueryDetails.builder()
             .indexName("size_year")
             .fullyQualifiedTableName(new FullyQualifiedTableName("my_glue.default.http_logs"))
             .autoRefresh(false)
-            .isDropIndex(true)
+            .indexQueryActionType(IndexQueryActionType.DROP)
             .indexType(FlintIndexType.COVERING)
             .build();
-    when(flintIndexMetadataReader.getFlintIndexMetadata(indexDetails))
+    when(flintIndexMetadataReader.getFlintIndexMetadata(indexQueryDetails))
         .thenReturn(flintIndexMetadata);
     when(flintIndexMetadata.getJobId()).thenReturn(EMR_JOB_ID);
     // auto_refresh == true
@@ -940,7 +1098,7 @@ public class SparkQueryDispatcherTest {
                 TEST_CLUSTER_NAME));
     verify(emrServerlessClient, times(1)).cancelJobRun(EMRS_APPLICATION_ID, EMR_JOB_ID);
     verify(dataSourceUserAuthorizationHelper, times(1)).authorizeDataSource(dataSourceMetadata);
-    verify(flintIndexMetadataReader, times(1)).getFlintIndexMetadata(indexDetails);
+    verify(flintIndexMetadataReader, times(1)).getFlintIndexMetadata(indexQueryDetails);
     SparkQueryDispatcher.DropIndexResult dropIndexResult =
         SparkQueryDispatcher.DropIndexResult.fromJobId(dispatchQueryResponse.getJobId());
     Assertions.assertEquals(JobRunState.SUCCESS.toString(), dropIndexResult.getStatus());
@@ -950,14 +1108,14 @@ public class SparkQueryDispatcherTest {
   @Test
   void testDropSkippingIndexQuery() throws ExecutionException, InterruptedException {
     String query = "DROP SKIPPING INDEX ON my_glue.default.http_logs";
-    IndexDetails indexDetails =
-        IndexDetails.builder()
+    IndexQueryDetails indexQueryDetails =
+        IndexQueryDetails.builder()
             .fullyQualifiedTableName(new FullyQualifiedTableName("my_glue.default.http_logs"))
             .autoRefresh(false)
-            .isDropIndex(true)
+            .indexQueryActionType(IndexQueryActionType.DROP)
             .indexType(FlintIndexType.SKIPPING)
             .build();
-    when(flintIndexMetadataReader.getFlintIndexMetadata(indexDetails))
+    when(flintIndexMetadataReader.getFlintIndexMetadata(indexQueryDetails))
         .thenReturn(flintIndexMetadata);
     when(flintIndexMetadata.getJobId()).thenReturn(EMR_JOB_ID);
     when(flintIndexMetadata.isAutoRefresh()).thenReturn(true);
@@ -984,7 +1142,7 @@ public class SparkQueryDispatcherTest {
                 TEST_CLUSTER_NAME));
     verify(emrServerlessClient, times(1)).cancelJobRun(EMRS_APPLICATION_ID, EMR_JOB_ID);
     verify(dataSourceUserAuthorizationHelper, times(1)).authorizeDataSource(dataSourceMetadata);
-    verify(flintIndexMetadataReader, times(1)).getFlintIndexMetadata(indexDetails);
+    verify(flintIndexMetadataReader, times(1)).getFlintIndexMetadata(indexQueryDetails);
     SparkQueryDispatcher.DropIndexResult dropIndexResult =
         SparkQueryDispatcher.DropIndexResult.fromJobId(dispatchQueryResponse.getJobId());
     Assertions.assertEquals(JobRunState.SUCCESS.toString(), dropIndexResult.getStatus());
@@ -995,14 +1153,14 @@ public class SparkQueryDispatcherTest {
   void testDropSkippingIndexQueryAutoRefreshFalse()
       throws ExecutionException, InterruptedException {
     String query = "DROP SKIPPING INDEX ON my_glue.default.http_logs";
-    IndexDetails indexDetails =
-        IndexDetails.builder()
+    IndexQueryDetails indexQueryDetails =
+        IndexQueryDetails.builder()
             .fullyQualifiedTableName(new FullyQualifiedTableName("my_glue.default.http_logs"))
             .autoRefresh(false)
-            .isDropIndex(true)
+            .indexQueryActionType(IndexQueryActionType.DROP)
             .indexType(FlintIndexType.SKIPPING)
             .build();
-    when(flintIndexMetadataReader.getFlintIndexMetadata(indexDetails))
+    when(flintIndexMetadataReader.getFlintIndexMetadata(indexQueryDetails))
         .thenReturn(flintIndexMetadata);
     when(flintIndexMetadata.isAutoRefresh()).thenReturn(false);
 
@@ -1023,7 +1181,7 @@ public class SparkQueryDispatcherTest {
                 TEST_CLUSTER_NAME));
     verify(emrServerlessClient, times(0)).cancelJobRun(EMRS_APPLICATION_ID, EMR_JOB_ID);
     verify(dataSourceUserAuthorizationHelper, times(1)).authorizeDataSource(dataSourceMetadata);
-    verify(flintIndexMetadataReader, times(1)).getFlintIndexMetadata(indexDetails);
+    verify(flintIndexMetadataReader, times(1)).getFlintIndexMetadata(indexQueryDetails);
     SparkQueryDispatcher.DropIndexResult dropIndexResult =
         SparkQueryDispatcher.DropIndexResult.fromJobId(dispatchQueryResponse.getJobId());
     Assertions.assertEquals(JobRunState.SUCCESS.toString(), dropIndexResult.getStatus());
@@ -1034,14 +1192,14 @@ public class SparkQueryDispatcherTest {
   void testDropSkippingIndexQueryDeleteIndexException()
       throws ExecutionException, InterruptedException {
     String query = "DROP SKIPPING INDEX ON my_glue.default.http_logs";
-    IndexDetails indexDetails =
-        IndexDetails.builder()
+    IndexQueryDetails indexQueryDetails =
+        IndexQueryDetails.builder()
             .fullyQualifiedTableName(new FullyQualifiedTableName("my_glue.default.http_logs"))
             .autoRefresh(false)
-            .isDropIndex(true)
+            .indexQueryActionType(IndexQueryActionType.DROP)
             .indexType(FlintIndexType.SKIPPING)
             .build();
-    when(flintIndexMetadataReader.getFlintIndexMetadata(indexDetails))
+    when(flintIndexMetadataReader.getFlintIndexMetadata(indexQueryDetails))
         .thenReturn(flintIndexMetadata);
     when(flintIndexMetadata.isAutoRefresh()).thenReturn(false);
 
@@ -1063,7 +1221,7 @@ public class SparkQueryDispatcherTest {
                 TEST_CLUSTER_NAME));
     verify(emrServerlessClient, times(0)).cancelJobRun(EMRS_APPLICATION_ID, EMR_JOB_ID);
     verify(dataSourceUserAuthorizationHelper, times(1)).authorizeDataSource(dataSourceMetadata);
-    verify(flintIndexMetadataReader, times(1)).getFlintIndexMetadata(indexDetails);
+    verify(flintIndexMetadataReader, times(1)).getFlintIndexMetadata(indexQueryDetails);
     SparkQueryDispatcher.DropIndexResult dropIndexResult =
         SparkQueryDispatcher.DropIndexResult.fromJobId(dispatchQueryResponse.getJobId());
     Assertions.assertEquals(JobRunState.FAILED.toString(), dropIndexResult.getStatus());
@@ -1076,14 +1234,14 @@ public class SparkQueryDispatcherTest {
   @Test
   void testDropMVQuery() throws ExecutionException, InterruptedException {
     String query = "DROP MATERIALIZED VIEW mv_1";
-    IndexDetails indexDetails =
-        IndexDetails.builder()
+    IndexQueryDetails indexQueryDetails =
+        IndexQueryDetails.builder()
             .mvName("mv_1")
-            .isDropIndex(true)
+            .indexQueryActionType(IndexQueryActionType.DROP)
             .fullyQualifiedTableName(null)
             .indexType(FlintIndexType.MATERIALIZED_VIEW)
             .build();
-    when(flintIndexMetadataReader.getFlintIndexMetadata(indexDetails))
+    when(flintIndexMetadataReader.getFlintIndexMetadata(indexQueryDetails))
         .thenReturn(flintIndexMetadata);
     when(flintIndexMetadata.getJobId()).thenReturn(EMR_JOB_ID);
     // auto_refresh == true
@@ -1112,7 +1270,7 @@ public class SparkQueryDispatcherTest {
                 TEST_CLUSTER_NAME));
     verify(emrServerlessClient, times(1)).cancelJobRun(EMRS_APPLICATION_ID, EMR_JOB_ID);
     verify(dataSourceUserAuthorizationHelper, times(1)).authorizeDataSource(dataSourceMetadata);
-    verify(flintIndexMetadataReader, times(1)).getFlintIndexMetadata(indexDetails);
+    verify(flintIndexMetadataReader, times(1)).getFlintIndexMetadata(indexQueryDetails);
     SparkQueryDispatcher.DropIndexResult dropIndexResult =
         SparkQueryDispatcher.DropIndexResult.fromJobId(dispatchQueryResponse.getJobId());
     Assertions.assertEquals(JobRunState.SUCCESS.toString(), dropIndexResult.getStatus());
