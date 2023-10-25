@@ -213,7 +213,8 @@ public class SparkQueryDispatcher {
     Map<String, String> tags = getDefaultTagsForJobSubmission(dispatchQueryRequest);
 
     if (sessionManager.isEnabled()) {
-      Session session;
+      Session session = null;
+
       if (dispatchQueryRequest.getSessionId() != null) {
         // get session from request
         SessionId sessionId = new SessionId(dispatchQueryRequest.getSessionId());
@@ -222,8 +223,9 @@ public class SparkQueryDispatcher {
           throw new IllegalArgumentException("no session found. " + sessionId);
         }
         session = createdSession.get();
-      } else {
-        // create session if not exist
+      }
+      if (session == null || !session.isReady()) {
+        // create session if not exist or session dead/fail
         tags.put(JOB_TYPE_TAG_KEY, JobType.INTERACTIVE.getText());
         session =
             sessionManager.createSession(
