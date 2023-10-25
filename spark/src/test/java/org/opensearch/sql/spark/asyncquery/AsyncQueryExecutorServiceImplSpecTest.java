@@ -460,7 +460,7 @@ public class AsyncQueryExecutorServiceImplSpecTest extends OpenSearchIntegTestCa
   }
 
   @Test
-  public void submitQueryInInvalidSessionThrowException() {
+  public void submitQueryInInvalidSessionWillCreateNewSession() {
     LocalEMRSClient emrsClient = new LocalEMRSClient();
     AsyncQueryExecutorService asyncQueryExecutorService =
         createAsyncQueryExecutorService(emrsClient);
@@ -468,16 +468,13 @@ public class AsyncQueryExecutorServiceImplSpecTest extends OpenSearchIntegTestCa
     // enable session
     enableSession(true);
 
-    // 1. create async query.
-    SessionId sessionId = SessionId.newSessionId(DATASOURCE);
-    IllegalArgumentException exception =
-        assertThrows(
-            IllegalArgumentException.class,
-            () ->
-                asyncQueryExecutorService.createAsyncQuery(
-                    new CreateAsyncQueryRequest(
-                        "select 1", DATASOURCE, LangType.SQL, sessionId.getSessionId())));
-    assertEquals("no session found. " + sessionId, exception.getMessage());
+    // 1. create async query with invalid sessionId
+    SessionId invalidSessionId = SessionId.newSessionId(DATASOURCE);
+    CreateAsyncQueryResponse asyncQuery = asyncQueryExecutorService.createAsyncQuery(
+        new CreateAsyncQueryRequest(
+            "select 1", DATASOURCE, LangType.SQL, invalidSessionId.getSessionId()));
+    assertNotNull(asyncQuery.getSessionId());
+    assertNotEquals(invalidSessionId.getSessionId(), asyncQuery.getSessionId());
   }
 
   private DataSourceServiceImpl createDataSourceService() {
