@@ -36,10 +36,7 @@ import org.opensearch.sql.spark.asyncquery.model.AsyncQueryJobMetadata;
 import org.opensearch.sql.spark.asyncquery.model.SparkSubmitParameters;
 import org.opensearch.sql.spark.client.EMRServerlessClient;
 import org.opensearch.sql.spark.client.StartJobRequest;
-import org.opensearch.sql.spark.dispatcher.model.DispatchQueryRequest;
-import org.opensearch.sql.spark.dispatcher.model.DispatchQueryResponse;
-import org.opensearch.sql.spark.dispatcher.model.IndexDetails;
-import org.opensearch.sql.spark.dispatcher.model.JobType;
+import org.opensearch.sql.spark.dispatcher.model.*;
 import org.opensearch.sql.spark.execution.session.CreateSessionRequest;
 import org.opensearch.sql.spark.execution.session.Session;
 import org.opensearch.sql.spark.execution.session.SessionId;
@@ -56,11 +53,10 @@ import org.opensearch.sql.spark.utils.SQLQueryUtils;
 public class SparkQueryDispatcher {
 
   private static final Logger LOG = LogManager.getLogger();
-
   public static final String INDEX_TAG_KEY = "index";
   public static final String DATASOURCE_TAG_KEY = "datasource";
   public static final String CLUSTER_NAME_TAG_KEY = "cluster";
-  public static final String JOB_TYPE_TAG_KEY = "job_type";
+  public static final String JOB_TYPE_TAG_KEY = "type";
 
   private EMRServerlessClient emrServerlessClient;
 
@@ -107,15 +103,18 @@ public class SparkQueryDispatcher {
   }
 
   private DispatchQueryResponse handleSQLQuery(DispatchQueryRequest dispatchQueryRequest) {
-    if (SQLQueryUtils.isIndexQuery(dispatchQueryRequest.getQuery())) {
-      IndexDetails indexDetails =
+    if (SQLQueryUtils.isFlintExtensionQuery(dispatchQueryRequest.getQuery())) {
+      IndexQueryDetails indexQueryDetails =
           SQLQueryUtils.extractIndexDetails(dispatchQueryRequest.getQuery());
-      fillMissingDetails(dispatchQueryRequest, indexDetails);
+      fillMissingDetails(dispatchQueryRequest, indexQueryDetails);
 
-      if (indexDetails.isDropIndex()) {
-        return handleDropIndexQuery(dispatchQueryRequest, indexDetails);
+      // TODO: refactor this code properly.
+      if (IndexQueryActionType.DROP.equals(indexQueryDetails.getIndexQueryActionType())) {
+        return handleDropIndexQuery(dispatchQueryRequest, indexQueryDetails);
+      } else if (IndexQueryActionType.CREATE.equals(indexQueryDetails.getIndexQueryActionType())) {
+        return handleStreamingQueries(dispatchQueryRequest, indexQueryDetails);
       } else {
-        return handleIndexQuery(dispatchQueryRequest, indexDetails);
+        return handleFlintNonStreamingQueries(dispatchQueryRequest, indexQueryDetails);
       }
     } else {
       return handleNonIndexQuery(dispatchQueryRequest);
@@ -127,24 +126,26 @@ public class SparkQueryDispatcher {
   // Spark Assumes the datasource to be catalog.
   // This is required to handle drop index case properly when datasource name is not provided.
   private static void fillMissingDetails(
-      DispatchQueryRequest dispatchQueryRequest, IndexDetails indexDetails) {
-    if (indexDetails.getFullyQualifiedTableName() != null
-        && indexDetails.getFullyQualifiedTableName().getDatasourceName() == null) {
-      indexDetails
+      DispatchQueryRequest dispatchQueryRequest, IndexQueryDetails indexQueryDetails) {
+    if (indexQueryDetails.getFullyQualifiedTableName() != null
+        && indexQueryDetails.getFullyQualifiedTableName().getDatasourceName() == null) {
+      indexQueryDetails
           .getFullyQualifiedTableName()
           .setDatasourceName(dispatchQueryRequest.getDatasource());
     }
   }
 
-  private DispatchQueryResponse handleIndexQuery(
-      DispatchQueryRequest dispatchQueryRequest, IndexDetails indexDetails) {
+  private DispatchQueryResponse handleStreamingQueries(
+      DispatchQueryRequest dispatchQueryRequest, IndexQueryDetails indexQueryDetails) {
     DataSourceMetadata dataSourceMetadata =
         this.dataSourceService.getRawDataSourceMetadata(dispatchQueryRequest.getDatasource());
     dataSourceUserAuthorizationHelper.authorizeDataSource(dataSourceMetadata);
     String jobName = dispatchQueryRequest.getClusterName() + ":" + "index-query";
     Map<String, String> tags = getDefaultTagsForJobSubmission(dispatchQueryRequest);
-    tags.put(INDEX_TAG_KEY, indexDetails.openSearchIndexName());
-    tags.put(JOB_TYPE_TAG_KEY, JobType.STREAMING.getText());
+    tags.put(INDEX_TAG_KEY, indexQueryDetails.openSearchIndexName());
+    if (indexQueryDetails.isAutoRefresh()) {
+      tags.put(JOB_TYPE_TAG_KEY, JobType.STREAMING.getText());
+    }
     StartJobRequest startJobRequest =
         new StartJobRequest(
             dispatchQueryRequest.getQuery(),
@@ -155,12 +156,44 @@ public class SparkQueryDispatcher {
                 .dataSource(
                     dataSourceService.getRawDataSourceMetadata(
                         dispatchQueryRequest.getDatasource()))
-                .structuredStreaming(indexDetails.isAutoRefresh())
+                .structuredStreaming(indexQueryDetails.isAutoRefresh())
                 .extraParameters(dispatchQueryRequest.getExtraSparkSubmitParams())
                 .build()
                 .toString(),
             tags,
-            indexDetails.isAutoRefresh(),
+            indexQueryDetails.isAutoRefresh(),
+            dataSourceMetadata.getResultIndex());
+    String jobId = emrServerlessClient.startJobRun(startJobRequest);
+    return new DispatchQueryResponse(
+        AsyncQueryId.newAsyncQueryId(dataSourceMetadata.getName()),
+        jobId,
+        false,
+        dataSourceMetadata.getResultIndex(),
+        null);
+  }
+
+  private DispatchQueryResponse handleFlintNonStreamingQueries(
+      DispatchQueryRequest dispatchQueryRequest, IndexQueryDetails indexQueryDetails) {
+    DataSourceMetadata dataSourceMetadata =
+        this.dataSourceService.getRawDataSourceMetadata(dispatchQueryRequest.getDatasource());
+    dataSourceUserAuthorizationHelper.authorizeDataSource(dataSourceMetadata);
+    String jobName = dispatchQueryRequest.getClusterName() + ":" + "index-query";
+    Map<String, String> tags = getDefaultTagsForJobSubmission(dispatchQueryRequest);
+    StartJobRequest startJobRequest =
+        new StartJobRequest(
+            dispatchQueryRequest.getQuery(),
+            jobName,
+            dispatchQueryRequest.getApplicationId(),
+            dispatchQueryRequest.getExecutionRoleARN(),
+            SparkSubmitParameters.Builder.builder()
+                .dataSource(
+                    dataSourceService.getRawDataSourceMetadata(
+                        dispatchQueryRequest.getDatasource()))
+                .extraParameters(dispatchQueryRequest.getExtraSparkSubmitParams())
+                .build()
+                .toString(),
+            tags,
+            indexQueryDetails.isAutoRefresh(),
             dataSourceMetadata.getResultIndex());
     String jobId = emrServerlessClient.startJobRun(startJobRequest);
     return new DispatchQueryResponse(
@@ -242,11 +275,12 @@ public class SparkQueryDispatcher {
   }
 
   private DispatchQueryResponse handleDropIndexQuery(
-      DispatchQueryRequest dispatchQueryRequest, IndexDetails indexDetails) {
+      DispatchQueryRequest dispatchQueryRequest, IndexQueryDetails indexQueryDetails) {
     DataSourceMetadata dataSourceMetadata =
         this.dataSourceService.getRawDataSourceMetadata(dispatchQueryRequest.getDatasource());
     dataSourceUserAuthorizationHelper.authorizeDataSource(dataSourceMetadata);
-    FlintIndexMetadata indexMetadata = flintIndexMetadataReader.getFlintIndexMetadata(indexDetails);
+    FlintIndexMetadata indexMetadata =
+        flintIndexMetadataReader.getFlintIndexMetadata(indexQueryDetails);
     // if index is created without auto refresh. there is no job to cancel.
     String status = JobRunState.FAILED.toString();
     try {
@@ -255,7 +289,7 @@ public class SparkQueryDispatcher {
             dispatchQueryRequest.getApplicationId(), indexMetadata.getJobId());
       }
     } finally {
-      String indexName = indexDetails.openSearchIndexName();
+      String indexName = indexQueryDetails.openSearchIndexName();
       try {
         AcknowledgedResponse response =
             client.admin().indices().delete(new DeleteIndexRequest().indices(indexName)).get();
