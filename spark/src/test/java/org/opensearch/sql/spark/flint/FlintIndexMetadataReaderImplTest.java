@@ -25,7 +25,8 @@ import org.opensearch.core.xcontent.DeprecationHandler;
 import org.opensearch.core.xcontent.NamedXContentRegistry;
 import org.opensearch.core.xcontent.XContentParser;
 import org.opensearch.sql.spark.dispatcher.model.FullyQualifiedTableName;
-import org.opensearch.sql.spark.dispatcher.model.IndexDetails;
+import org.opensearch.sql.spark.dispatcher.model.IndexQueryActionType;
+import org.opensearch.sql.spark.dispatcher.model.IndexQueryDetails;
 
 @ExtendWith(MockitoExtension.class)
 public class FlintIndexMetadataReaderImplTest {
@@ -44,10 +45,10 @@ public class FlintIndexMetadataReaderImplTest {
     FlintIndexMetadataReader flintIndexMetadataReader = new FlintIndexMetadataReaderImpl(client);
     FlintIndexMetadata indexMetadata =
         flintIndexMetadataReader.getFlintIndexMetadata(
-            IndexDetails.builder()
+            IndexQueryDetails.builder()
                 .fullyQualifiedTableName(new FullyQualifiedTableName("mys3.default.http_logs"))
                 .autoRefresh(false)
-                .isDropIndex(true)
+                .indexQueryActionType(IndexQueryActionType.DROP)
                 .indexType(FlintIndexType.SKIPPING)
                 .build());
     Assertions.assertEquals("00fdmvv9hp8u0o0q", indexMetadata.getJobId());
@@ -64,11 +65,11 @@ public class FlintIndexMetadataReaderImplTest {
     FlintIndexMetadataReader flintIndexMetadataReader = new FlintIndexMetadataReaderImpl(client);
     FlintIndexMetadata indexMetadata =
         flintIndexMetadataReader.getFlintIndexMetadata(
-            IndexDetails.builder()
+            IndexQueryDetails.builder()
                 .indexName("cv1")
                 .fullyQualifiedTableName(new FullyQualifiedTableName("mys3.default.http_logs"))
                 .autoRefresh(false)
-                .isDropIndex(true)
+                .indexQueryActionType(IndexQueryActionType.DROP)
                 .indexType(FlintIndexType.COVERING)
                 .build());
     Assertions.assertEquals("00fdmvv9hp8u0o0q", indexMetadata.getJobId());
@@ -87,12 +88,12 @@ public class FlintIndexMetadataReaderImplTest {
             IllegalArgumentException.class,
             () ->
                 flintIndexMetadataReader.getFlintIndexMetadata(
-                    IndexDetails.builder()
+                    IndexQueryDetails.builder()
                         .indexName("cv1")
                         .fullyQualifiedTableName(
                             new FullyQualifiedTableName("mys3.default.http_logs"))
                         .autoRefresh(false)
-                        .isDropIndex(true)
+                        .indexQueryActionType(IndexQueryActionType.DROP)
                         .indexType(FlintIndexType.COVERING)
                         .build()));
     Assertions.assertEquals("Provided Index doesn't exist", illegalArgumentException.getMessage());
