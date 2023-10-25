@@ -470,9 +470,10 @@ public class AsyncQueryExecutorServiceImplSpecTest extends OpenSearchIntegTestCa
 
     // 1. create async query with invalid sessionId
     SessionId invalidSessionId = SessionId.newSessionId(DATASOURCE);
-    CreateAsyncQueryResponse asyncQuery = asyncQueryExecutorService.createAsyncQuery(
-        new CreateAsyncQueryRequest(
-            "select 1", DATASOURCE, LangType.SQL, invalidSessionId.getSessionId()));
+    CreateAsyncQueryResponse asyncQuery =
+        asyncQueryExecutorService.createAsyncQuery(
+            new CreateAsyncQueryRequest(
+                "select 1", DATASOURCE, LangType.SQL, invalidSessionId.getSessionId()));
     assertNotNull(asyncQuery.getSessionId());
     assertNotEquals(invalidSessionId.getSessionId(), asyncQuery.getSessionId());
   }
