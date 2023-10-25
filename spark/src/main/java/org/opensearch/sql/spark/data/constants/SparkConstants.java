@@ -26,8 +26,6 @@ public class SparkConstants {
   public static final String FLINT_INTEGRATION_JAR =
       "s3://spark-datasource/flint-spark-integration-assembly-0.1.0-SNAPSHOT.jar";
   // TODO should be replaced with mvn jar.
-  public static final String FLINT_CATALOG_JAR =
-      "s3://flint-data-dp-eu-west-1-beta/code/flint/flint-catalog.jar";
   public static final String FLINT_DEFAULT_HOST = "localhost";
   public static final String FLINT_DEFAULT_PORT = "9200";
   public static final String FLINT_DEFAULT_SCHEME = "http";
