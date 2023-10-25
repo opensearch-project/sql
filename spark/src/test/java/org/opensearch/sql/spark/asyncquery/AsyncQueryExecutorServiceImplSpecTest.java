@@ -63,6 +63,7 @@ import org.opensearch.sql.spark.client.EMRServerlessClient;
 import org.opensearch.sql.spark.client.StartJobRequest;
 import org.opensearch.sql.spark.config.SparkExecutionEngineConfig;
 import org.opensearch.sql.spark.dispatcher.SparkQueryDispatcher;
+import org.opensearch.sql.spark.execution.session.SessionId;
 import org.opensearch.sql.spark.execution.session.SessionManager;
 import org.opensearch.sql.spark.execution.session.SessionModel;
 import org.opensearch.sql.spark.execution.session.SessionState;
@@ -390,6 +391,7 @@ public class AsyncQueryExecutorServiceImplSpecTest extends OpenSearchIntegTestCa
     assertEquals("mock error", asyncQueryResults.getError());
   }
 
+  // https://github.com/opensearch-project/sql/issues/2344
   @Test
   public void createSessionMoreThanLimitFailed() {
     LocalEMRSClient emrsClient = new LocalEMRSClient();
@@ -417,6 +419,65 @@ public class AsyncQueryExecutorServiceImplSpecTest extends OpenSearchIntegTestCa
                     new CreateAsyncQueryRequest("select 1", DATASOURCE, LangType.SQL, null)));
     assertEquals(
         "The maximum number of active sessions can be supported is 1", exception.getMessage());
+  }
+
+  // https://github.com/opensearch-project/sql/issues/2360
+  @Test
+  public void recreateSessionIfNotReady() {
+    LocalEMRSClient emrsClient = new LocalEMRSClient();
+    AsyncQueryExecutorService asyncQueryExecutorService =
+        createAsyncQueryExecutorService(emrsClient);
+
+    // enable session
+    enableSession(true);
+
+    // 1. create async query.
+    CreateAsyncQueryResponse first =
+        asyncQueryExecutorService.createAsyncQuery(
+            new CreateAsyncQueryRequest("select 1", DATASOURCE, LangType.SQL, null));
+    assertNotNull(first.getSessionId());
+
+    // set sessionState to FAIL
+    setSessionState(first.getSessionId(), SessionState.FAIL);
+
+    // 2. reuse session id
+    CreateAsyncQueryResponse second =
+        asyncQueryExecutorService.createAsyncQuery(
+            new CreateAsyncQueryRequest(
+                "select 1", DATASOURCE, LangType.SQL, first.getSessionId()));
+
+    assertNotEquals(first.getSessionId(), second.getSessionId());
+
+    // set sessionState to FAIL
+    setSessionState(second.getSessionId(), SessionState.DEAD);
+
+    // 3. reuse session id
+    CreateAsyncQueryResponse third =
+        asyncQueryExecutorService.createAsyncQuery(
+            new CreateAsyncQueryRequest(
+                "select 1", DATASOURCE, LangType.SQL, second.getSessionId()));
+    assertNotEquals(second.getSessionId(), third.getSessionId());
+  }
+
+  @Test
+  public void submitQueryInInvalidSessionThrowException() {
+    LocalEMRSClient emrsClient = new LocalEMRSClient();
+    AsyncQueryExecutorService asyncQueryExecutorService =
+        createAsyncQueryExecutorService(emrsClient);
+
+    // enable session
+    enableSession(true);
+
+    // 1. create async query.
+    SessionId sessionId = SessionId.newSessionId(DATASOURCE);
+    IllegalArgumentException exception =
+        assertThrows(
+            IllegalArgumentException.class,
+            () ->
+                asyncQueryExecutorService.createAsyncQuery(
+                    new CreateAsyncQueryRequest(
+                        "select 1", DATASOURCE, LangType.SQL, sessionId.getSessionId())));
+    assertEquals("no session found. " + sessionId, exception.getMessage());
   }
 
   private DataSourceServiceImpl createDataSourceService() {
@@ -536,6 +597,6 @@ public class AsyncQueryExecutorServiceImplSpecTest extends OpenSearchIntegTestCa
     Optional<SessionModel> model = getSession(stateStore, DATASOURCE).apply(sessionId);
     SessionModel updated =
         updateSessionState(stateStore, DATASOURCE).apply(model.get(), sessionState);
-    assertEquals(SessionState.RUNNING, updated.getSessionState());
+    assertEquals(sessionState, updated.getSessionState());
   }
 }

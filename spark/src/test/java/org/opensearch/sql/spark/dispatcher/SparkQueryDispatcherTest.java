@@ -315,6 +315,7 @@ public class SparkQueryDispatcherTest {
     doReturn(new SessionId(MOCK_SESSION_ID)).when(session).getSessionId();
     doReturn(new StatementId(MOCK_STATEMENT_ID)).when(session).submit(any());
     when(session.getSessionModel().getJobId()).thenReturn(EMR_JOB_ID);
+    when(session.isReady()).thenReturn(true);
     DataSourceMetadata dataSourceMetadata = constructMyGlueDataSourceMetadata();
     when(dataSourceService.getRawDataSourceMetadata("my_glue")).thenReturn(dataSourceMetadata);
     doNothing().when(dataSourceUserAuthorizationHelper).authorizeDataSource(dataSourceMetadata);
