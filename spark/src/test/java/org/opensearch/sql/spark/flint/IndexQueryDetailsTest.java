@@ -9,18 +9,19 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import org.junit.jupiter.api.Test;
 import org.opensearch.sql.spark.dispatcher.model.FullyQualifiedTableName;
-import org.opensearch.sql.spark.dispatcher.model.IndexDetails;
+import org.opensearch.sql.spark.dispatcher.model.IndexQueryActionType;
+import org.opensearch.sql.spark.dispatcher.model.IndexQueryDetails;
 
-public class IndexDetailsTest {
+public class IndexQueryDetailsTest {
   @Test
   public void skippingIndexName() {
     assertEquals(
         "flint_mys3_default_http_logs_skipping_index",
-        IndexDetails.builder()
+        IndexQueryDetails.builder()
             .indexName("invalid")
             .fullyQualifiedTableName(new FullyQualifiedTableName("mys3.default.http_logs"))
             .autoRefresh(false)
-            .isDropIndex(true)
+            .indexQueryActionType(IndexQueryActionType.DROP)
             .indexType(FlintIndexType.SKIPPING)
             .build()
             .openSearchIndexName());
