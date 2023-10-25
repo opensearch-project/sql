@@ -5,6 +5,9 @@
 
 package org.opensearch.sql.spark.dispatcher.model;
 
+import static org.apache.commons.lang3.StringUtils.strip;
+import static org.opensearch.sql.spark.dispatcher.model.IndexQueryDetails.STRIP_CHARS;
+
 import java.util.Arrays;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -39,5 +42,28 @@ public class FullyQualifiedTableName {
     } else if (parts.length == 1) {
       tableName = parts[0];
     }
+  }
+
+  /**
+   * Convert qualified name to Flint name concat by underscore.
+   *
+   * @return Flint name
+   */
+  public String toFlintName() {
+    StringBuilder builder = new StringBuilder();
+    if (datasourceName != null) {
+      builder
+          .append(strip(datasourceName, STRIP_CHARS))
+          .append("_");
+    }
+    if (schemaName != null) {
+      builder
+          .append(strip(schemaName, STRIP_CHARS))
+          .append("_");
+    }
+    if (tableName != null) {
+      builder.append(strip(tableName, STRIP_CHARS));
+    }
+    return builder.toString();
   }
 }
