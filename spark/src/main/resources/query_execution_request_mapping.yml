@@ -40,3 +40,5 @@ properties:
     format: strict_date_time||epoch_millis
   queryId:
     type: keyword
+  excludeJobIds:
+    type: keyword
