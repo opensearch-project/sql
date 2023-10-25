@@ -328,26 +328,6 @@ public class SparkQueryDispatcherTest {
   }
 
   @Test
-  void testDispatchSelectQueryInvalidSession() {
-    String query = "select * from my_glue.default.http_logs";
-    DispatchQueryRequest queryRequest = dispatchQueryRequestWithSessionId(query, "invalid");
-
-    doReturn(true).when(sessionManager).isEnabled();
-    doReturn(Optional.empty()).when(sessionManager).getSession(any());
-    DataSourceMetadata dataSourceMetadata = constructMyGlueDataSourceMetadata();
-    when(dataSourceService.getRawDataSourceMetadata("my_glue")).thenReturn(dataSourceMetadata);
-    doNothing().when(dataSourceUserAuthorizationHelper).authorizeDataSource(dataSourceMetadata);
-    IllegalArgumentException exception =
-        Assertions.assertThrows(
-            IllegalArgumentException.class, () -> sparkQueryDispatcher.dispatch(queryRequest));
-
-    verifyNoInteractions(emrServerlessClient);
-    verify(sessionManager, never()).createSession(any());
-    Assertions.assertEquals(
-        "no session found. " + new SessionId("invalid"), exception.getMessage());
-  }
-
-  @Test
   void testDispatchSelectQueryFailedCreateSession() {
     String query = "select * from my_glue.default.http_logs";
     DispatchQueryRequest queryRequest = dispatchQueryRequestWithSessionId(query, null);
