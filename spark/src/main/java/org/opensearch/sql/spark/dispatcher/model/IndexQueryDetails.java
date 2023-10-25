@@ -86,15 +86,15 @@ public class IndexQueryDetails {
       case COVERING:
         indexName =
             "flint_"
-                + fullyQualifiedTableName.toFlintName() + "_"
-                + strip(getIndexName(), STRIP_CHARS) + "_"
+                + fullyQualifiedTableName.toFlintName()
+                + "_"
+                + strip(getIndexName(), STRIP_CHARS)
+                + "_"
                 + getIndexType().getSuffix();
         break;
       case SKIPPING:
         indexName =
-            "flint_"
-                + fullyQualifiedTableName.toFlintName() + "_"
-                + getIndexType().getSuffix();
+            "flint_" + fullyQualifiedTableName.toFlintName() + "_" + getIndexType().getSuffix();
         break;
       case MATERIALIZED_VIEW:
         indexName = "flint_" + new FullyQualifiedTableName(mvName).toFlintName();

@@ -52,14 +52,10 @@ public class FullyQualifiedTableName {
   public String toFlintName() {
     StringBuilder builder = new StringBuilder();
     if (datasourceName != null) {
-      builder
-          .append(strip(datasourceName, STRIP_CHARS))
-          .append("_");
+      builder.append(strip(datasourceName, STRIP_CHARS)).append("_");
     }
     if (schemaName != null) {
-      builder
-          .append(strip(schemaName, STRIP_CHARS))
-          .append("_");
+      builder.append(strip(schemaName, STRIP_CHARS)).append("_");
     }
     if (tableName != null) {
       builder.append(strip(tableName, STRIP_CHARS));

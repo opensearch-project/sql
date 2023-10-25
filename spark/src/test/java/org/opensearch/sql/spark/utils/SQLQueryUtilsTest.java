@@ -104,21 +104,22 @@ public class SQLQueryUtilsTest {
   @Test
   void testExtractionFromFlintSkippingIndexQueries() {
     String[] createSkippingIndexQueries = {
-        "CREATE SKIPPING INDEX ON myS3.default.alb_logs (l_orderkey VALUE_SET)",
-        "CREATE SKIPPING INDEX IF NOT EXISTS"
-            + " ON myS3.default.alb_logs (l_orderkey VALUE_SET) "
-            + " WITH (auto_refresh = true)",
-        "CREATE SKIPPING INDEX ON myS3.default.alb_logs(l_orderkey VALUE_SET)" +
-            " WITH (auto_refresh = true)",
-        "CREATE SKIPPING INDEX ON myS3.default.alb_logs(l_orderkey VALUE_SET) "
-            + " WHERE elb_status_code = 500 "
-            + " WITH (auto_refresh = true)"
+      "CREATE SKIPPING INDEX ON myS3.default.alb_logs (l_orderkey VALUE_SET)",
+      "CREATE SKIPPING INDEX IF NOT EXISTS"
+          + " ON myS3.default.alb_logs (l_orderkey VALUE_SET) "
+          + " WITH (auto_refresh = true)",
+      "CREATE SKIPPING INDEX ON myS3.default.alb_logs(l_orderkey VALUE_SET)"
+          + " WITH (auto_refresh = true)",
+      "CREATE SKIPPING INDEX ON myS3.default.alb_logs(l_orderkey VALUE_SET) "
+          + " WHERE elb_status_code = 500 "
+          + " WITH (auto_refresh = true)"
     };
 
     for (String query : createSkippingIndexQueries) {
       Assertions.assertTrue(SQLQueryUtils.isFlintExtensionQuery(query), "Failed query: " + query);
       IndexQueryDetails indexQueryDetails = SQLQueryUtils.extractIndexDetails(query);
-      FullyQualifiedTableName fullyQualifiedTableName = indexQueryDetails.getFullyQualifiedTableName();
+      FullyQualifiedTableName fullyQualifiedTableName =
+          indexQueryDetails.getFullyQualifiedTableName();
 
       Assertions.assertNull(indexQueryDetails.getIndexName());
       Assertions.assertEquals("myS3", fullyQualifiedTableName.getDatasourceName());
@@ -130,21 +131,22 @@ public class SQLQueryUtilsTest {
   @Test
   void testExtractionFromFlintCoveringIndexQueries() {
     String[] createCoveredIndexQueries = {
-        "CREATE INDEX elb_and_requestUri ON myS3.default.alb_logs(l_orderkey, l_quantity)",
-        "CREATE INDEX IF NOT EXISTS elb_and_requestUri "
-            + " ON myS3.default.alb_logs(l_orderkey, l_quantity) "
-            + " WITH (auto_refresh = true)",
-        "CREATE INDEX elb_and_requestUri ON myS3.default.alb_logs(l_orderkey, l_quantity)" +
-            " WITH (auto_refresh = true)",
-        "CREATE INDEX elb_and_requestUri ON myS3.default.alb_logs(l_orderkey, l_quantity) "
-            + " WHERE elb_status_code = 500 "
-            + " WITH (auto_refresh = true)"
+      "CREATE INDEX elb_and_requestUri ON myS3.default.alb_logs(l_orderkey, l_quantity)",
+      "CREATE INDEX IF NOT EXISTS elb_and_requestUri "
+          + " ON myS3.default.alb_logs(l_orderkey, l_quantity) "
+          + " WITH (auto_refresh = true)",
+      "CREATE INDEX elb_and_requestUri ON myS3.default.alb_logs(l_orderkey, l_quantity)"
+          + " WITH (auto_refresh = true)",
+      "CREATE INDEX elb_and_requestUri ON myS3.default.alb_logs(l_orderkey, l_quantity) "
+          + " WHERE elb_status_code = 500 "
+          + " WITH (auto_refresh = true)"
     };
 
     for (String query : createCoveredIndexQueries) {
       Assertions.assertTrue(SQLQueryUtils.isFlintExtensionQuery(query), "Failed query: " + query);
       IndexQueryDetails indexQueryDetails = SQLQueryUtils.extractIndexDetails(query);
-      FullyQualifiedTableName fullyQualifiedTableName = indexQueryDetails.getFullyQualifiedTableName();
+      FullyQualifiedTableName fullyQualifiedTableName =
+          indexQueryDetails.getFullyQualifiedTableName();
 
       Assertions.assertEquals("elb_and_requestUri", indexQueryDetails.getIndexName());
       Assertions.assertEquals("myS3", fullyQualifiedTableName.getDatasourceName());
