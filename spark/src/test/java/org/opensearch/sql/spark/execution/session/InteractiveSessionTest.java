@@ -13,7 +13,6 @@ import static org.opensearch.sql.spark.execution.statestore.StateStore.getSessio
 
 import com.amazonaws.services.emrserverless.model.CancelJobRunResult;
 import com.amazonaws.services.emrserverless.model.GetJobRunResult;
-import com.google.common.collect.ImmutableMap;
 import java.util.HashMap;
 import java.util.Optional;
 import lombok.RequiredArgsConstructor;
@@ -194,7 +193,7 @@ public class InteractiveSessionTest extends OpenSearchIntegTestCase {
         "appId",
         "arn",
         SparkSubmitParameters.Builder.builder(),
-        ImmutableMap.of(),
+        new HashMap<>(),
         "resultIndex",
         DS_NAME);
   }
