@@ -135,6 +135,20 @@ public class OpenSearchSettings extends Settings {
           Setting.Property.NodeScope,
           Setting.Property.Dynamic);
 
+  public static final Setting<?> SPARK_EXECUTION_SESSION_ENABLED_SETTING =
+      Setting.boolSetting(
+          Key.SPARK_EXECUTION_SESSION_ENABLED.getKeyValue(),
+          false,
+          Setting.Property.NodeScope,
+          Setting.Property.Dynamic);
+
+  public static final Setting<?> SPARK_EXECUTION_SESSION_LIMIT_SETTING =
+      Setting.intSetting(
+          Key.SPARK_EXECUTION_SESSION_LIMIT.getKeyValue(),
+          100,
+          Setting.Property.NodeScope,
+          Setting.Property.Dynamic);
+
   /** Construct OpenSearchSetting. The OpenSearchSetting must be singleton. */
   @SuppressWarnings("unchecked")
   public OpenSearchSettings(ClusterSettings clusterSettings) {
@@ -205,6 +219,18 @@ public class OpenSearchSettings extends Settings {
         Key.SPARK_EXECUTION_ENGINE_CONFIG,
         SPARK_EXECUTION_ENGINE_CONFIG,
         new Updater(Key.SPARK_EXECUTION_ENGINE_CONFIG));
+    register(
+        settingBuilder,
+        clusterSettings,
+        Key.SPARK_EXECUTION_SESSION_ENABLED,
+        SPARK_EXECUTION_SESSION_ENABLED_SETTING,
+        new Updater(Key.SPARK_EXECUTION_SESSION_ENABLED));
+    register(
+        settingBuilder,
+        clusterSettings,
+        Key.SPARK_EXECUTION_SESSION_LIMIT,
+        SPARK_EXECUTION_SESSION_LIMIT_SETTING,
+        new Updater(Key.SPARK_EXECUTION_SESSION_LIMIT));
     registerNonDynamicSettings(
         settingBuilder, clusterSettings, Key.CLUSTER_NAME, ClusterName.CLUSTER_NAME_SETTING);
     defaultSettings = settingBuilder.build();
@@ -270,6 +296,8 @@ public class OpenSearchSettings extends Settings {
         .add(METRICS_ROLLING_INTERVAL_SETTING)
         .add(DATASOURCE_URI_HOSTS_DENY_LIST)
         .add(SPARK_EXECUTION_ENGINE_CONFIG)
+        .add(SPARK_EXECUTION_SESSION_ENABLED_SETTING)
+        .add(SPARK_EXECUTION_SESSION_LIMIT_SETTING)
         .build();
   }
 

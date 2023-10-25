@@ -12,6 +12,7 @@ import static org.opensearch.sql.datasources.glue.GlueDataSourceFactory.GLUE_IND
 import static org.opensearch.sql.datasources.glue.GlueDataSourceFactory.GLUE_INDEX_STORE_OPENSEARCH_URI;
 import static org.opensearch.sql.datasources.glue.GlueDataSourceFactory.GLUE_ROLE_ARN;
 import static org.opensearch.sql.spark.data.constants.SparkConstants.*;
+import static org.opensearch.sql.spark.execution.statestore.StateStore.DATASOURCE_TO_REQUEST_INDEX;
 
 import java.net.URI;
 import java.net.URISyntaxException;
@@ -30,6 +31,7 @@ import org.opensearch.sql.datasources.auth.AuthenticationType;
 public class SparkSubmitParameters {
   public static final String SPACE = " ";
   public static final String EQUALS = "=";
+  public static final String FLINT_BASIC_AUTH = "basic";
 
   private final String className;
   private final Map<String, String> config;
@@ -39,7 +41,7 @@ public class SparkSubmitParameters {
 
   public static class Builder {
 
-    private final String className;
+    private String className;
     private final Map<String, String> config;
     private String extraParameters;
 
@@ -68,6 +70,11 @@ public class SparkSubmitParameters {
 
     public static Builder builder() {
       return new Builder();
+    }
+
+    public Builder className(String className) {
+      this.className = className;
+      return this;
     }
 
     public Builder dataSource(DataSourceMetadata metadata) {
@@ -108,7 +115,7 @@ public class SparkSubmitParameters {
         Supplier<String> password,
         Supplier<String> region) {
       if (AuthenticationType.get(authType).equals(AuthenticationType.BASICAUTH)) {
-        config.put(FLINT_INDEX_STORE_AUTH_KEY, authType);
+        config.put(FLINT_INDEX_STORE_AUTH_KEY, FLINT_BASIC_AUTH);
         config.put(FLINT_INDEX_STORE_AUTH_USERNAME, userName.get());
         config.put(FLINT_INDEX_STORE_AUTH_PASSWORD, password.get());
       } else if (AuthenticationType.get(authType).equals(AuthenticationType.AWSSIGV4AUTH)) {
@@ -138,6 +145,12 @@ public class SparkSubmitParameters {
 
     public Builder extraParameters(String params) {
       extraParameters = params;
+      return this;
+    }
+
+    public Builder sessionExecution(String sessionId, String datasourceName) {
+      config.put(FLINT_JOB_REQUEST_INDEX, DATASOURCE_TO_REQUEST_INDEX.apply(datasourceName));
+      config.put(FLINT_JOB_SESSION_ID, sessionId);
       return this;
     }
 

@@ -49,6 +49,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Locale;
+import java.util.Map;
 import javax.management.MBeanServerInvocationHandler;
 import javax.management.ObjectName;
 import javax.management.remote.JMXConnector;
@@ -482,6 +483,15 @@ public abstract class SQLIntegTestCase extends OpenSearchSQLRestTestCase {
   protected static Request getUpdateDataSourceRequest(DataSourceMetadata dataSourceMetadata) {
     Request request = new Request("PUT", "/_plugins/_query/_datasources");
     request.setJsonEntity(new Gson().toJson(dataSourceMetadata));
+    RequestOptions.Builder restOptionsBuilder = RequestOptions.DEFAULT.toBuilder();
+    restOptionsBuilder.addHeader("Content-Type", "application/json");
+    request.setOptions(restOptionsBuilder);
+    return request;
+  }
+
+  protected static Request getPatchDataSourceRequest(Map<String, Object> dataSourceData) {
+    Request request = new Request("PATCH", "/_plugins/_query/_datasources");
+    request.setJsonEntity(new Gson().toJson(dataSourceData));
     RequestOptions.Builder restOptionsBuilder = RequestOptions.DEFAULT.toBuilder();
     restOptionsBuilder.addHeader("Content-Type", "application/json");
     request.setOptions(restOptionsBuilder);

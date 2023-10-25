@@ -58,18 +58,12 @@ import org.opensearch.sql.datasources.auth.DataSourceUserAuthorizationHelper;
 import org.opensearch.sql.datasources.auth.DataSourceUserAuthorizationHelperImpl;
 import org.opensearch.sql.datasources.encryptor.EncryptorImpl;
 import org.opensearch.sql.datasources.glue.GlueDataSourceFactory;
-import org.opensearch.sql.datasources.model.transport.CreateDataSourceActionResponse;
-import org.opensearch.sql.datasources.model.transport.DeleteDataSourceActionResponse;
-import org.opensearch.sql.datasources.model.transport.GetDataSourceActionResponse;
-import org.opensearch.sql.datasources.model.transport.UpdateDataSourceActionResponse;
+import org.opensearch.sql.datasources.model.transport.*;
 import org.opensearch.sql.datasources.rest.RestDataSourceQueryAction;
 import org.opensearch.sql.datasources.service.DataSourceMetadataStorage;
 import org.opensearch.sql.datasources.service.DataSourceServiceImpl;
 import org.opensearch.sql.datasources.storage.OpenSearchDataSourceMetadataStorage;
-import org.opensearch.sql.datasources.transport.TransportCreateDataSourceAction;
-import org.opensearch.sql.datasources.transport.TransportDeleteDataSourceAction;
-import org.opensearch.sql.datasources.transport.TransportGetDataSourceAction;
-import org.opensearch.sql.datasources.transport.TransportUpdateDataSourceAction;
+import org.opensearch.sql.datasources.transport.*;
 import org.opensearch.sql.legacy.esdomain.LocalClusterState;
 import org.opensearch.sql.legacy.executor.AsyncRestExecutor;
 import org.opensearch.sql.legacy.metrics.Metrics;
@@ -99,6 +93,8 @@ import org.opensearch.sql.spark.config.SparkExecutionEngineConfig;
 import org.opensearch.sql.spark.config.SparkExecutionEngineConfigSupplier;
 import org.opensearch.sql.spark.config.SparkExecutionEngineConfigSupplierImpl;
 import org.opensearch.sql.spark.dispatcher.SparkQueryDispatcher;
+import org.opensearch.sql.spark.execution.session.SessionManager;
+import org.opensearch.sql.spark.execution.statestore.StateStore;
 import org.opensearch.sql.spark.flint.FlintIndexMetadataReaderImpl;
 import org.opensearch.sql.spark.response.JobExecutionResponseReader;
 import org.opensearch.sql.spark.rest.RestAsyncQueryManagementAction;
@@ -180,6 +176,10 @@ public class SQLPlugin extends Plugin implements ActionPlugin, ScriptPlugin {
             new ActionType<>(
                 TransportUpdateDataSourceAction.NAME, UpdateDataSourceActionResponse::new),
             TransportUpdateDataSourceAction.class),
+        new ActionHandler<>(
+            new ActionType<>(
+                TransportPatchDataSourceAction.NAME, PatchDataSourceActionResponse::new),
+            TransportPatchDataSourceAction.class),
         new ActionHandler<>(
             new ActionType<>(
                 TransportDeleteDataSourceAction.NAME, DeleteDataSourceActionResponse::new),
@@ -306,8 +306,9 @@ public class SQLPlugin extends Plugin implements ActionPlugin, ScriptPlugin {
   private AsyncQueryExecutorService createAsyncQueryExecutorService(
       SparkExecutionEngineConfigSupplier sparkExecutionEngineConfigSupplier,
       SparkExecutionEngineConfig sparkExecutionEngineConfig) {
+    StateStore stateStore = new StateStore(client, clusterService);
     AsyncQueryJobMetadataStorageService asyncQueryJobMetadataStorageService =
-        new OpensearchAsyncQueryJobMetadataStorageService(client, clusterService);
+        new OpensearchAsyncQueryJobMetadataStorageService(stateStore);
     EMRServerlessClient emrServerlessClient =
         createEMRServerlessClient(sparkExecutionEngineConfig.getRegion());
     JobExecutionResponseReader jobExecutionResponseReader = new JobExecutionResponseReader(client);
@@ -318,7 +319,8 @@ public class SQLPlugin extends Plugin implements ActionPlugin, ScriptPlugin {
             new DataSourceUserAuthorizationHelperImpl(client),
             jobExecutionResponseReader,
             new FlintIndexMetadataReaderImpl(client),
-            client);
+            client,
+            new SessionManager(stateStore, emrServerlessClient, pluginSettings));
     return new AsyncQueryExecutorServiceImpl(
         asyncQueryJobMetadataStorageService,
         sparkQueryDispatcher,
