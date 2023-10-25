@@ -31,6 +31,7 @@ import org.opensearch.sql.datasources.auth.AuthenticationType;
 public class SparkSubmitParameters {
   public static final String SPACE = " ";
   public static final String EQUALS = "=";
+  public static final String FLINT_BASIC_AUTH = "basic";
 
   private final String className;
   private final Map<String, String> config;
@@ -114,7 +115,7 @@ public class SparkSubmitParameters {
         Supplier<String> password,
         Supplier<String> region) {
       if (AuthenticationType.get(authType).equals(AuthenticationType.BASICAUTH)) {
-        config.put(FLINT_INDEX_STORE_AUTH_KEY, authType);
+        config.put(FLINT_INDEX_STORE_AUTH_KEY, FLINT_BASIC_AUTH);
         config.put(FLINT_INDEX_STORE_AUTH_USERNAME, userName.get());
         config.put(FLINT_INDEX_STORE_AUTH_PASSWORD, password.get());
       } else if (AuthenticationType.get(authType).equals(AuthenticationType.AWSSIGV4AUTH)) {
