@@ -16,7 +16,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import lombok.AllArgsConstructor;
+import java.util.function.Function;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.Setter;
@@ -25,10 +25,23 @@ import org.opensearch.sql.datasource.DataSourceService;
 
 @Getter
 @Setter
-@AllArgsConstructor
 @EqualsAndHashCode
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class DataSourceMetadata {
+
+  public static final String DEFAULT_RESULT_INDEX = "query_execution_result";
+  public static final int MAX_RESULT_INDEX_NAME_SIZE = 255;
+  // OS doesn’t allow uppercase: https://tinyurl.com/yse2xdbx
+  public static final String RESULT_INDEX_NAME_PATTERN = "[a-z0-9_-]+";
+  public static String INVALID_RESULT_INDEX_NAME_SIZE =
+      "Result index name size must contains less than "
+          + MAX_RESULT_INDEX_NAME_SIZE
+          + " characters";
+  public static String INVALID_CHAR_IN_RESULT_INDEX_NAME =
+      "Result index name has invalid character. Valid characters are a-z, 0-9, -(hyphen) and"
+          + " _(underscore)";
+  public static String INVALID_RESULT_INDEX_PREFIX =
+      "Result index must start with " + DEFAULT_RESULT_INDEX;
 
   @JsonProperty private String name;
 
@@ -44,18 +57,32 @@ public class DataSourceMetadata {
 
   @JsonProperty private String resultIndex;
 
+  public static Function<String, String> DATASOURCE_TO_RESULT_INDEX =
+      datasourceName -> String.format("%s_%s", DEFAULT_RESULT_INDEX, datasourceName);
+
   public DataSourceMetadata(
       String name,
+      String description,
       DataSourceType connector,
       List<String> allowedRoles,
       Map<String, String> properties,
       String resultIndex) {
+    String errorMessage = validateCustomResultIndex(resultIndex);
+
     this.name = name;
     this.connector = connector;
-    this.description = StringUtils.EMPTY;
+    this.description = description;
     this.properties = properties;
     this.allowedRoles = allowedRoles;
-    this.resultIndex = resultIndex;
+
+    if (errorMessage != null) {
+      throw new IllegalArgumentException(errorMessage);
+    }
+    if (resultIndex == null) {
+      this.resultIndex = DATASOURCE_TO_RESULT_INDEX.apply(name);
+    } else {
+      this.resultIndex = resultIndex;
+    }
   }
 
   public DataSourceMetadata() {
@@ -71,9 +98,26 @@ public class DataSourceMetadata {
   public static DataSourceMetadata defaultOpenSearchDataSourceMetadata() {
     return new DataSourceMetadata(
         DEFAULT_DATASOURCE_NAME,
+        StringUtils.EMPTY,
         DataSourceType.OPENSEARCH,
         Collections.emptyList(),
         ImmutableMap.of(),
         null);
+  }
+
+  public String validateCustomResultIndex(String resultIndex) {
+    if (resultIndex == null) {
+      return null;
+    }
+    if (resultIndex.length() > MAX_RESULT_INDEX_NAME_SIZE) {
+      return INVALID_RESULT_INDEX_NAME_SIZE;
+    }
+    if (!resultIndex.matches(RESULT_INDEX_NAME_PATTERN)) {
+      return INVALID_CHAR_IN_RESULT_INDEX_NAME;
+    }
+    if (resultIndex != null && !resultIndex.startsWith(DEFAULT_RESULT_INDEX)) {
+      return INVALID_RESULT_INDEX_PREFIX;
+    }
+    return null;
   }
 }
