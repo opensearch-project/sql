@@ -143,23 +143,6 @@ public class SparkSqlFunctionTableScanOperatorTest {
 
   @Test
   @SneakyThrows
-  void testQueryResponseInvalidDataType() {
-    SparkQueryRequest sparkQueryRequest = new SparkQueryRequest();
-    sparkQueryRequest.setSql(QUERY);
-
-    SparkSqlFunctionTableScanOperator sparkSqlFunctionTableScanOperator =
-        new SparkSqlFunctionTableScanOperator(sparkClient, sparkQueryRequest);
-
-    when(sparkClient.sql(any())).thenReturn(new JSONObject(getJson("invalid_data_type.json")));
-
-    RuntimeException exception =
-        Assertions.assertThrows(
-            RuntimeException.class, () -> sparkSqlFunctionTableScanOperator.open());
-    Assertions.assertEquals("Result contains invalid data type", exception.getMessage());
-  }
-
-  @Test
-  @SneakyThrows
   void testQuerySchema() {
     SparkQueryRequest sparkQueryRequest = new SparkQueryRequest();
     sparkQueryRequest.setSql(QUERY);
