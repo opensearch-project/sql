@@ -6,12 +6,12 @@
 package org.opensearch.sql.spark.asyncquery;
 
 import static org.opensearch.sql.opensearch.setting.OpenSearchSettings.*;
+import static org.opensearch.sql.datasource.model.DataSourceMetadata.DEFAULT_RESULT_INDEX;
 import static org.opensearch.sql.spark.data.constants.SparkConstants.DEFAULT_CLASS_NAME;
 import static org.opensearch.sql.spark.data.constants.SparkConstants.FLINT_JOB_REQUEST_INDEX;
 import static org.opensearch.sql.spark.data.constants.SparkConstants.FLINT_JOB_SESSION_ID;
 import static org.opensearch.sql.spark.data.constants.SparkConstants.FLINT_SESSION_CLASS_NAME;
 import static org.opensearch.sql.spark.data.constants.SparkConstants.SPARK_REQUEST_BUFFER_INDEX_NAME;
-import static org.opensearch.sql.spark.data.constants.SparkConstants.SPARK_RESPONSE_BUFFER_INDEX_NAME;
 import static org.opensearch.sql.spark.execution.session.SessionModel.SESSION_DOC_TYPE;
 import static org.opensearch.sql.spark.execution.statement.StatementModel.SESSION_ID;
 import static org.opensearch.sql.spark.execution.statement.StatementModel.STATEMENT_DOC_TYPE;
@@ -115,6 +115,7 @@ public class AsyncQueryExecutorServiceImplSpecTest extends OpenSearchIntegTestCa
     dataSourceService.createDataSource(
         new DataSourceMetadata(
             DATASOURCE,
+            Strings.EMPTY,
             DataSourceType.S3GLUE,
             ImmutableList.of(),
             ImmutableMap.of(
@@ -128,7 +129,7 @@ public class AsyncQueryExecutorServiceImplSpecTest extends OpenSearchIntegTestCa
                 "noauth"),
             null));
     stateStore = new StateStore(client, clusterService);
-    createIndex(SPARK_RESPONSE_BUFFER_INDEX_NAME);
+    createIndex(DEFAULT_RESULT_INDEX);
   }
 
   @After
@@ -339,7 +340,12 @@ public class AsyncQueryExecutorServiceImplSpecTest extends OpenSearchIntegTestCa
 
     dataSourceService.createDataSource(
         new DataSourceMetadata(
-            "mybasicauth", DataSourceType.S3GLUE, ImmutableList.of(), properties, null));
+            "mybasicauth",
+            Strings.EMPTY,
+            DataSourceType.S3GLUE,
+            ImmutableList.of(),
+            properties,
+            null));
     LocalEMRSClient emrsClient = new LocalEMRSClient();
     AsyncQueryExecutorService asyncQueryExecutorService =
         createAsyncQueryExecutorService(emrsClient);
@@ -496,6 +502,7 @@ public class AsyncQueryExecutorServiceImplSpecTest extends OpenSearchIntegTestCa
     dataSourceService.createDataSource(
         new DataSourceMetadata(
             "TESTS3",
+            Strings.EMPTY,
             DataSourceType.S3GLUE,
             ImmutableList.of(),
             ImmutableMap.of(
