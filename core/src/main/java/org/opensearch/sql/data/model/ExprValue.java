@@ -61,6 +61,16 @@ public interface ExprValue extends Serializable, Comparable<ExprValue> {
     return false;
   }
 
+  /**
+   * Is Array value.
+   *
+   * @return true: is a array value, otherwise false
+   */
+  default boolean isArray() {
+    return false;
+  }
+
+  
   /** Get the {@link BindingTuple}. */
   default BindingTuple bindingTuples() {
     return BindingTuple.EMPTY;
@@ -106,6 +116,12 @@ public interface ExprValue extends Serializable, Comparable<ExprValue> {
   default String stringValue() {
     throw new ExpressionEvaluationException(
         "invalid to get stringValue from value of type " + type());
+  }
+
+  /** Get array value. */
+  default List<ExprValue> arrayValue() {
+    throw new ExpressionEvaluationException(
+        "invalid to get arrayValue from value of type " + type());
   }
 
   /** Get boolean value. */
