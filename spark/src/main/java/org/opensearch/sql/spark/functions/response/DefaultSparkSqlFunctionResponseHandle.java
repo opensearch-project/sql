@@ -5,13 +5,16 @@
 
 package org.opensearch.sql.spark.functions.response;
 
+import static java.util.Spliterators.spliteratorUnknownSize;
+import static java.util.stream.StreamSupport.stream;
+import static org.opensearch.sql.data.model.ExprValueUtils.fromObjectValue;
+
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Spliterator;
 import java.util.stream.Collectors;
-
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.json.JSONArray;
@@ -32,14 +35,7 @@ import org.opensearch.sql.data.type.ExprCoreType;
 import org.opensearch.sql.data.type.ExprType;
 import org.opensearch.sql.executor.ExecutionEngine;
 
-import static java.util.Spliterators.spliteratorUnknownSize;
-import static java.util.stream.StreamSupport.stream;
-import static org.opensearch.sql.data.model.ExprValueUtils.fromObjectValue;
-
-/** 
- * Default implementation of SparkSqlFunctionResponseHandle. 
- *
- */
+/** Default implementation of SparkSqlFunctionResponseHandle. */
 public class DefaultSparkSqlFunctionResponseHandle implements SparkSqlFunctionResponseHandle {
   public static final String DATA = "data";
   public static final String APPLICATION_ID = "applicationId";
@@ -51,7 +47,7 @@ public class DefaultSparkSqlFunctionResponseHandle implements SparkSqlFunctionRe
   private ExecutionEngine.Schema schema;
   private static final Logger logger =
       LogManager.getLogger(DefaultSparkSqlFunctionResponseHandle.class);
-  
+
   /**
    * Constructor.
    *
@@ -76,6 +72,7 @@ public class DefaultSparkSqlFunctionResponseHandle implements SparkSqlFunctionRe
     this.schema = new ExecutionEngine.Schema(columnList);
     this.responseIterator = result.iterator();
   }
+
   private static LinkedHashMap<String, ExprValue> extractRow(
       JSONObject row, List<ExecutionEngine.Schema.Column> columnList) {
     LinkedHashMap<String, ExprValue> linkedHashMap = new LinkedHashMap<>();
@@ -188,9 +185,7 @@ public class DefaultSparkSqlFunctionResponseHandle implements SparkSqlFunctionRe
     return schema;
   }
 
-  /**
-   * visitor implementation for traversing the json object
-   */
+  /** visitor implementation for traversing the json object */
   public static class JsonVisitorImpl implements JsonVisitor<ExprValue> {
     public ExprValue visit(Object obj) {
       if (obj instanceof JSONObject) {
@@ -204,15 +199,15 @@ public class DefaultSparkSqlFunctionResponseHandle implements SparkSqlFunctionRe
 
     @Override
     public ExprValue visitObject(JSONObject jsonObject) {
-      return fromObjectValue(jsonObject.keySet().stream().collect(Collectors.toMap(
-                      key -> key,
-                      key -> visit(jsonObject.get(key))
-              )));
+      return fromObjectValue(
+          jsonObject.keySet().stream()
+              .collect(Collectors.toMap(key -> key, key -> visit(jsonObject.get(key)))));
     }
 
     @Override
     public ExprValue visitArray(JSONArray jsonArray) {
-      return new ExprArrayValue(stream(spliteratorUnknownSize(jsonArray.iterator(), Spliterator.ORDERED), false)
+      return new ExprArrayValue(
+          stream(spliteratorUnknownSize(jsonArray.iterator(), Spliterator.ORDERED), false)
               .map(this::visit)
               .collect(Collectors.toList()));
     }

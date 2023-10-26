@@ -5,12 +5,11 @@
 
 package org.opensearch.sql.data.model;
 
+import java.util.List;
+import java.util.Objects;
 import lombok.RequiredArgsConstructor;
 import org.opensearch.sql.data.type.ExprCoreType;
 import org.opensearch.sql.data.type.ExprType;
-
-import java.util.List;
-import java.util.Objects;
 
 /** Expression array Value. */
 @RequiredArgsConstructor

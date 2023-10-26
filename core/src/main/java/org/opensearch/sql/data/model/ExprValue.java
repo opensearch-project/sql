@@ -70,7 +70,6 @@ public interface ExprValue extends Serializable, Comparable<ExprValue> {
     return false;
   }
 
-  
   /** Get the {@link BindingTuple}. */
   default BindingTuple bindingTuples() {
     return BindingTuple.EMPTY;
