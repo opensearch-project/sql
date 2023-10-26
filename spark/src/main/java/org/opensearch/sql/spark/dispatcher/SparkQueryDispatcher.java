@@ -219,10 +219,9 @@ public class SparkQueryDispatcher {
         // get session from request
         SessionId sessionId = new SessionId(dispatchQueryRequest.getSessionId());
         Optional<Session> createdSession = sessionManager.getSession(sessionId);
-        if (createdSession.isEmpty()) {
-          throw new IllegalArgumentException("no session found. " + sessionId);
+        if (createdSession.isPresent()) {
+          session = createdSession.get();
         }
-        session = createdSession.get();
       }
       if (session == null || !session.isReady()) {
         // create session if not exist or session dead/fail

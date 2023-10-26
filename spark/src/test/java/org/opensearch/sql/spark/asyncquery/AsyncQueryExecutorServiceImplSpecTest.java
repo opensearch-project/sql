@@ -40,6 +40,7 @@ import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.common.settings.ClusterSettings;
 import org.opensearch.common.settings.Setting;
 import org.opensearch.common.settings.Settings;
+import org.opensearch.core.common.Strings;
 import org.opensearch.index.query.QueryBuilder;
 import org.opensearch.index.query.QueryBuilders;
 import org.opensearch.plugins.Plugin;
@@ -237,6 +238,7 @@ public class AsyncQueryExecutorServiceImplSpecTest extends OpenSearchIntegTestCa
     // 2. fetch async query result.
     AsyncQueryExecutionResponse asyncQueryResults =
         asyncQueryExecutorService.getAsyncQueryResults(response.getQueryId());
+    assertTrue(Strings.isEmpty(asyncQueryResults.getError()));
     assertEquals(StatementState.WAITING.getState(), asyncQueryResults.getStatus());
 
     // 3. cancel async query.
@@ -478,7 +480,7 @@ public class AsyncQueryExecutorServiceImplSpecTest extends OpenSearchIntegTestCa
   }
 
   @Test
-  public void submitQueryInInvalidSessionThrowException() {
+  public void submitQueryInInvalidSessionWillCreateNewSession() {
     LocalEMRSClient emrsClient = new LocalEMRSClient();
     AsyncQueryExecutorService asyncQueryExecutorService =
         createAsyncQueryExecutorService(emrsClient);
@@ -486,16 +488,14 @@ public class AsyncQueryExecutorServiceImplSpecTest extends OpenSearchIntegTestCa
     // enable session
     enableSession(true);
 
-    // 1. create async query.
-    SessionId sessionId = SessionId.newSessionId(DATASOURCE);
-    IllegalArgumentException exception =
-        assertThrows(
-            IllegalArgumentException.class,
-            () ->
-                asyncQueryExecutorService.createAsyncQuery(
-                    new CreateAsyncQueryRequest(
-                        "select 1", DATASOURCE, LangType.SQL, sessionId.getSessionId())));
-    assertEquals("no session found. " + sessionId, exception.getMessage());
+    // 1. create async query with invalid sessionId
+    SessionId invalidSessionId = SessionId.newSessionId(DATASOURCE);
+    CreateAsyncQueryResponse asyncQuery =
+        asyncQueryExecutorService.createAsyncQuery(
+            new CreateAsyncQueryRequest(
+                "select 1", DATASOURCE, LangType.SQL, invalidSessionId.getSessionId()));
+    assertNotNull(asyncQuery.getSessionId());
+    assertNotEquals(invalidSessionId.getSessionId(), asyncQuery.getSessionId());
   }
 
   @Test
