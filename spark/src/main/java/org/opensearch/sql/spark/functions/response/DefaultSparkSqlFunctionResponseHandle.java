@@ -36,41 +36,9 @@ import static java.util.Spliterators.spliteratorUnknownSize;
 import static java.util.stream.StreamSupport.stream;
 import static org.opensearch.sql.data.model.ExprValueUtils.fromObjectValue;
 
-/** Default implementation of SparkSqlFunctionResponseHandle. 
- * - expecting the following schema -
- * {
- *   "data": {
- *     "applicationId": "some_spark_application_id",
- *     "schema": [
- *       {
- *         "name": "column1",
- *         "type": "string"
- *       },
- *       {
- *         "name": "column2",
- *         "type": "integer"
- *       },
- *       {
- *         "name": "column3",
- *         "type": "boolean"
- *       }
- *       // ... more schema definitions
- *     ],
- *     "result": [
- *       {
- *         "column1": "value1",
- *         "column2": 123,
- *         "column3": true
- *       },
- *       {
- *         "column1": "value2",
- *         "column2": 456,
- *         "column3": false
- *       },
- *       // ... more rows
- *     ]
- *   }
- * }
+/** 
+ * Default implementation of SparkSqlFunctionResponseHandle. 
+ *
  */
 public class DefaultSparkSqlFunctionResponseHandle implements SparkSqlFunctionResponseHandle {
   public static final String DATA = "data";
