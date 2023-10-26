@@ -33,6 +33,7 @@ import static org.opensearch.sql.spark.data.constants.SparkConstants.FLINT_INDEX
 import static org.opensearch.sql.spark.data.constants.SparkConstants.FLINT_INDEX_STORE_AUTH_USERNAME;
 import static org.opensearch.sql.spark.data.constants.SparkConstants.FLINT_INDEX_STORE_AWSREGION_KEY;
 import static org.opensearch.sql.spark.data.constants.SparkConstants.STATUS_FIELD;
+import static org.opensearch.sql.spark.dispatcher.SparkQueryDispatcher.*;
 
 import com.amazonaws.services.emrserverless.model.CancelJobRunResult;
 import com.amazonaws.services.emrserverless.model.GetJobRunResult;
@@ -120,9 +121,9 @@ public class SparkQueryDispatcherTest {
   @Test
   void testDispatchSelectQuery() {
     HashMap<String, String> tags = new HashMap<>();
-    tags.put("datasource", "my_glue");
-    tags.put("cluster", TEST_CLUSTER_NAME);
-    tags.put("type", JobType.BATCH.getText());
+    tags.put(DATASOURCE_TAG_KEY, "my_glue");
+    tags.put(CLUSTER_NAME_TAG_KEY, TEST_CLUSTER_NAME);
+    tags.put(JOB_TYPE_TAG_KEY, JobType.BATCH.getText());
     String query = "select * from my_glue.default.http_logs";
     String sparkSubmitParameters =
         constructExpectedSparkSubmitParameterString(
@@ -175,9 +176,9 @@ public class SparkQueryDispatcherTest {
   @Test
   void testDispatchSelectQueryWithBasicAuthIndexStoreDatasource() {
     HashMap<String, String> tags = new HashMap<>();
-    tags.put("datasource", "my_glue");
-    tags.put("cluster", TEST_CLUSTER_NAME);
-    tags.put("type", JobType.BATCH.getText());
+    tags.put(DATASOURCE_TAG_KEY, "my_glue");
+    tags.put(CLUSTER_NAME_TAG_KEY, TEST_CLUSTER_NAME);
+    tags.put(JOB_TYPE_TAG_KEY, JobType.BATCH.getText());
     String query = "select * from my_glue.default.http_logs";
     String sparkSubmitParameters =
         constructExpectedSparkSubmitParameterString(
@@ -231,9 +232,9 @@ public class SparkQueryDispatcherTest {
   @Test
   void testDispatchSelectQueryWithNoAuthIndexStoreDatasource() {
     HashMap<String, String> tags = new HashMap<>();
-    tags.put("datasource", "my_glue");
-    tags.put("cluster", TEST_CLUSTER_NAME);
-    tags.put("type", JobType.BATCH.getText());
+    tags.put(DATASOURCE_TAG_KEY, "my_glue");
+    tags.put(CLUSTER_NAME_TAG_KEY, TEST_CLUSTER_NAME);
+    tags.put(JOB_TYPE_TAG_KEY, JobType.BATCH.getText());
     String query = "select * from my_glue.default.http_logs";
     String sparkSubmitParameters =
         constructExpectedSparkSubmitParameterString(
@@ -346,10 +347,10 @@ public class SparkQueryDispatcherTest {
   @Test
   void testDispatchIndexQuery() {
     HashMap<String, String> tags = new HashMap<>();
-    tags.put("datasource", "my_glue");
-    tags.put("index", "flint_my_glue_default_http_logs_elb_and_requesturi_index");
-    tags.put("cluster", TEST_CLUSTER_NAME);
-    tags.put("type", JobType.STREAMING.getText());
+    tags.put(DATASOURCE_TAG_KEY, "my_glue");
+    tags.put(INDEX_TAG_KEY, "flint_my_glue_default_http_logs_elb_and_requesturi_index");
+    tags.put(CLUSTER_NAME_TAG_KEY, TEST_CLUSTER_NAME);
+    tags.put(JOB_TYPE_TAG_KEY, JobType.STREAMING.getText());
     String query =
         "CREATE INDEX elb_and_requestUri ON my_glue.default.http_logs(l_orderkey, l_quantity) WITH"
             + " (auto_refresh = true)";
@@ -405,9 +406,9 @@ public class SparkQueryDispatcherTest {
   @Test
   void testDispatchWithPPLQuery() {
     HashMap<String, String> tags = new HashMap<>();
-    tags.put("datasource", "my_glue");
-    tags.put("cluster", TEST_CLUSTER_NAME);
-    tags.put("type", JobType.BATCH.getText());
+    tags.put(DATASOURCE_TAG_KEY, "my_glue");
+    tags.put(CLUSTER_NAME_TAG_KEY, TEST_CLUSTER_NAME);
+    tags.put(JOB_TYPE_TAG_KEY, JobType.BATCH.getText());
     String query = "source = my_glue.default.http_logs";
     String sparkSubmitParameters =
         constructExpectedSparkSubmitParameterString(
@@ -460,9 +461,9 @@ public class SparkQueryDispatcherTest {
   @Test
   void testDispatchQueryWithoutATableAndDataSourceName() {
     HashMap<String, String> tags = new HashMap<>();
-    tags.put("datasource", "my_glue");
-    tags.put("cluster", TEST_CLUSTER_NAME);
-    tags.put("type", JobType.BATCH.getText());
+    tags.put(DATASOURCE_TAG_KEY, "my_glue");
+    tags.put(CLUSTER_NAME_TAG_KEY, TEST_CLUSTER_NAME);
+    tags.put(JOB_TYPE_TAG_KEY, JobType.BATCH.getText());
     String query = "show tables";
     String sparkSubmitParameters =
         constructExpectedSparkSubmitParameterString(
@@ -515,10 +516,10 @@ public class SparkQueryDispatcherTest {
   @Test
   void testDispatchIndexQueryWithoutADatasourceName() {
     HashMap<String, String> tags = new HashMap<>();
-    tags.put("datasource", "my_glue");
-    tags.put("index", "flint_my_glue_default_http_logs_elb_and_requesturi_index");
-    tags.put("cluster", TEST_CLUSTER_NAME);
-    tags.put("type", JobType.STREAMING.getText());
+    tags.put(DATASOURCE_TAG_KEY, "my_glue");
+    tags.put(INDEX_TAG_KEY, "flint_my_glue_default_http_logs_elb_and_requesturi_index");
+    tags.put(CLUSTER_NAME_TAG_KEY, TEST_CLUSTER_NAME);
+    tags.put(JOB_TYPE_TAG_KEY, JobType.STREAMING.getText());
     String query =
         "CREATE INDEX elb_and_requestUri ON default.http_logs(l_orderkey, l_quantity) WITH"
             + " (auto_refresh = true)";
@@ -574,10 +575,10 @@ public class SparkQueryDispatcherTest {
   @Test
   void testDispatchMaterializedViewQuery() {
     HashMap<String, String> tags = new HashMap<>();
-    tags.put("datasource", "my_glue");
-    tags.put("index", "flint_mv_1");
-    tags.put("cluster", TEST_CLUSTER_NAME);
-    tags.put("type", JobType.STREAMING.getText());
+    tags.put(DATASOURCE_TAG_KEY, "my_glue");
+    tags.put(INDEX_TAG_KEY, "flint_mv_1");
+    tags.put(CLUSTER_NAME_TAG_KEY, TEST_CLUSTER_NAME);
+    tags.put(JOB_TYPE_TAG_KEY, JobType.STREAMING.getText());
     String query =
         "CREATE MATERIALIZED VIEW mv_1 AS query=select * from my_glue.default.logs WITH"
             + " (auto_refresh = true)";
@@ -633,8 +634,8 @@ public class SparkQueryDispatcherTest {
   @Test
   void testDispatchShowMVQuery() {
     HashMap<String, String> tags = new HashMap<>();
-    tags.put("datasource", "my_glue");
-    tags.put("cluster", TEST_CLUSTER_NAME);
+    tags.put(DATASOURCE_TAG_KEY, "my_glue");
+    tags.put(CLUSTER_NAME_TAG_KEY, TEST_CLUSTER_NAME);
     String query = "SHOW MATERIALIZED VIEW IN mys3.default";
     String sparkSubmitParameters =
         constructExpectedSparkSubmitParameterString(
@@ -687,8 +688,8 @@ public class SparkQueryDispatcherTest {
   @Test
   void testRefreshIndexQuery() {
     HashMap<String, String> tags = new HashMap<>();
-    tags.put("datasource", "my_glue");
-    tags.put("cluster", TEST_CLUSTER_NAME);
+    tags.put(DATASOURCE_TAG_KEY, "my_glue");
+    tags.put(CLUSTER_NAME_TAG_KEY, TEST_CLUSTER_NAME);
     String query = "REFRESH SKIPPING INDEX ON my_glue.default.http_logs";
     String sparkSubmitParameters =
         constructExpectedSparkSubmitParameterString(
@@ -741,8 +742,8 @@ public class SparkQueryDispatcherTest {
   @Test
   void testDispatchDescribeIndexQuery() {
     HashMap<String, String> tags = new HashMap<>();
-    tags.put("datasource", "my_glue");
-    tags.put("cluster", TEST_CLUSTER_NAME);
+    tags.put(DATASOURCE_TAG_KEY, "my_glue");
+    tags.put(CLUSTER_NAME_TAG_KEY, TEST_CLUSTER_NAME);
     String query = "DESCRIBE SKIPPING INDEX ON mys3.default.http_logs";
     String sparkSubmitParameters =
         constructExpectedSparkSubmitParameterString(
