@@ -124,7 +124,7 @@ jacocoTestCoverageVerification {
                     'org.opensearch.sql.spark.execution.session.SessionModel',
                     'org.opensearch.sql.spark.execution.statement.StatementModel',
                     // TODO: add tests for purging flint indices
-                    'org.opensearch.sql.spark.cluster.ClusterManagerEventListener',
+                    'org.opensearch.sql.spark.cluster.ClusterManagerEventListener*',
                     'org.opensearch.sql.spark.cluster.FlintIndexRetention',
                     'org.opensearch.sql.spark.cluster.IndexCleanup'
             ]
