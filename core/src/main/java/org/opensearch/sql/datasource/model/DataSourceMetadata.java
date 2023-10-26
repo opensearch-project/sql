@@ -67,22 +67,21 @@ public class DataSourceMetadata {
       List<String> allowedRoles,
       Map<String, String> properties,
       String resultIndex) {
-    String errorMessage = validateCustomResultIndex(resultIndex);
-
     this.name = name;
-    this.connector = connector;
-    this.description = description;
-    this.properties = properties;
-    this.allowedRoles = allowedRoles;
-
+    String errorMessage = validateCustomResultIndex(resultIndex);
     if (errorMessage != null) {
       throw new IllegalArgumentException(errorMessage);
     }
     if (resultIndex == null) {
-      this.resultIndex = DATASOURCE_TO_RESULT_INDEX.apply(name);
+      this.resultIndex = fromNameToCustomResultIndex();
     } else {
       this.resultIndex = resultIndex;
     }
+
+    this.connector = connector;
+    this.description = description;
+    this.properties = properties;
+    this.allowedRoles = allowedRoles;
   }
 
   public DataSourceMetadata() {
@@ -119,5 +118,35 @@ public class DataSourceMetadata {
       return INVALID_RESULT_INDEX_PREFIX;
     }
     return null;
+  }
+
+  /**
+   * Since we are using datasource name to create result index, we need to make sure that the final
+   * name is valid
+   *
+   * @param resultIndex result index name
+   * @return valid result index name
+   */
+  private String convertToValidResultIndex(String resultIndex) {
+    // Limit Length
+    if (resultIndex.length() > MAX_RESULT_INDEX_NAME_SIZE) {
+      resultIndex = resultIndex.substring(0, MAX_RESULT_INDEX_NAME_SIZE);
+    }
+
+    // Pattern Matching: Remove characters that don't match the pattern
+    StringBuilder validChars = new StringBuilder();
+    for (char c : resultIndex.toCharArray()) {
+      if (String.valueOf(c).matches(RESULT_INDEX_NAME_PATTERN)) {
+        validChars.append(c);
+      }
+    }
+    return validChars.toString();
+  }
+
+  public String fromNameToCustomResultIndex() {
+    if (name == null) {
+      throw new IllegalArgumentException("Datasource name cannot be null");
+    }
+    return convertToValidResultIndex(DATASOURCE_TO_RESULT_INDEX.apply(name.toLowerCase()));
   }
 }

@@ -5,7 +5,6 @@
 
 package org.opensearch.sql.spark.asyncquery;
 
-import static org.opensearch.sql.datasource.model.DataSourceMetadata.DEFAULT_RESULT_INDEX;
 import static org.opensearch.sql.opensearch.setting.OpenSearchSettings.SPARK_EXECUTION_SESSION_ENABLED_SETTING;
 import static org.opensearch.sql.opensearch.setting.OpenSearchSettings.SPARK_EXECUTION_SESSION_LIMIT_SETTING;
 import static org.opensearch.sql.spark.data.constants.SparkConstants.DEFAULT_CLASS_NAME;
@@ -34,8 +33,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import joptsimple.internal.Strings;
 import lombok.Getter;
+import org.apache.commons.lang3.StringUtils;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -109,10 +108,10 @@ public class AsyncQueryExecutorServiceImplSpecTest extends OpenSearchIntegTestCa
     pluginSettings = new OpenSearchSettings(clusterSettings);
     client = (NodeClient) cluster().client();
     dataSourceService = createDataSourceService();
-    dataSourceService.createDataSource(
+    DataSourceMetadata dataSourceMetadata =
         new DataSourceMetadata(
             DATASOURCE,
-            Strings.EMPTY,
+            StringUtils.EMPTY,
             DataSourceType.S3GLUE,
             ImmutableList.of(),
             ImmutableMap.of(
@@ -124,9 +123,10 @@ public class AsyncQueryExecutorServiceImplSpecTest extends OpenSearchIntegTestCa
                 "http://localhost:9200",
                 "glue.indexstore.opensearch.auth",
                 "noauth"),
-            null));
+            null);
+    dataSourceService.createDataSource(dataSourceMetadata);
     stateStore = new StateStore(client, clusterService);
-    createIndex(DEFAULT_RESULT_INDEX);
+    createIndex(dataSourceMetadata.fromNameToCustomResultIndex());
   }
 
   @After
@@ -331,7 +331,7 @@ public class AsyncQueryExecutorServiceImplSpecTest extends OpenSearchIntegTestCa
     dataSourceService.createDataSource(
         new DataSourceMetadata(
             "mybasicauth",
-            Strings.EMPTY,
+            StringUtils.EMPTY,
             DataSourceType.S3GLUE,
             ImmutableList.of(),
             properties,
@@ -372,7 +372,7 @@ public class AsyncQueryExecutorServiceImplSpecTest extends OpenSearchIntegTestCa
     assertTrue(statementModel.isPresent());
     assertEquals(StatementState.WAITING, statementModel.get().getStatementState());
 
-    // 2. fetch async query result. not result write to SPARK_RESPONSE_BUFFER_INDEX_NAME yet.
+    // 2. fetch async query result. not result write to DEFAULT_RESULT_INDEX yet.
     // mock failed statement.
     StatementModel submitted = statementModel.get();
     StatementModel mocked =
