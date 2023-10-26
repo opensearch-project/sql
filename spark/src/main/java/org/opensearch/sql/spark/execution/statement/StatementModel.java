@@ -36,7 +36,7 @@ public class StatementModel extends StateModel {
   public static final String QUERY_ID = "queryId";
   public static final String SUBMIT_TIME = "submitTime";
   public static final String ERROR = "error";
-  public static final String UNKNOWN = "unknown";
+  public static final String UNKNOWN = "";
   public static final String STATEMENT_DOC_TYPE = "statement";
 
   private final String version;
