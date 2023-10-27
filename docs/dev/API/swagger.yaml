@@ -1,0 +1,92 @@
+openapi: "3.0.0"
+info:
+  title: "Async Query Interface Endpoints"
+  version: "1.0.0"
+
+paths:
+  /_plugins/_async_query:
+    post:
+      summary: "Create an async query"
+      description: "If the security plugin is enabled, this API can only be invoked by users with specific permissions."
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                datasource:
+                  type: string
+                lang:
+                  type: string
+                query:
+                  type: string
+                sessionId:
+                  type: string
+      responses:
+        "200":
+          description: "Query created successfully"
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  queryId:
+                    type: string
+                  sessionId:
+                    type: string
+
+  /_plugins/_async_query/{queryId}:
+    get:
+      summary: "Fetch async query result"
+      description: "If the security plugin is enabled, this API can only be invoked by users with specific permissions."
+      parameters:
+        - in: path
+          name: queryId
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: "Query result"
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                  schema:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        name:
+                          type: string
+                        type:
+                          type: string
+                  datarows:
+                    type: array
+                    items:
+                      type: array
+                      items:
+                        type: string
+                  total:
+                    type: integer
+                  size:
+                    type: integer
+
+    delete:
+      summary: "Cancel async query"
+      description: "If the security plugin is enabled, this API can only be invoked by users with specific permissions."
+      parameters:
+        - in: path
+          name: queryId
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: "Query cancelled successfully"
+servers:
+  - url: "http://ec2-18-237-133-156.us-west-2.compute.amazonaws.com:9200"
