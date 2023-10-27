@@ -44,6 +44,7 @@ public class XContentParserUtilsTest {
     dataSourceMetadata.setConnector(DataSourceType.PROMETHEUS);
     dataSourceMetadata.setAllowedRoles(List.of("prometheus_access"));
     dataSourceMetadata.setProperties(Map.of("prometheus.uri", "https://localhost:9090"));
+    dataSourceMetadata.setResultIndex("query_execution_result2");
     Gson gson = new Gson();
     String json = gson.toJson(dataSourceMetadata);
 
