@@ -3,6 +3,7 @@ package org.opensearch.sql.data.model;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.lessThan;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.Arrays;
@@ -13,9 +14,13 @@ import org.opensearch.sql.data.type.ExprCoreType;
 
 public class ExprArrayValueTest {
   @Test
+  public void testIsArrayFalse() {
+    assertFalse(new ExprStringValue("test").isArray());
+  }
+  @Test
   public void testIsArray() {
     ExprArrayValue exprArrayValue = new ExprArrayValue(Arrays.asList(new ExprStringValue("test")));
-    assertTrue(exprArrayValue.isArray());
+    assertFalse(exprArrayValue.isArray());
   }
 
   @Test
