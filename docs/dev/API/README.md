@@ -27,10 +27,22 @@ To create an async query, you can use the `POST /_plugins/_async_query` endpoint
 
 **Examples**
 
-- [Query Creation Sample Request](../system/query_creation_request.json)
-- [Query Creation Sample Response](../system/query_creation_response.json)
+- Query Creation Sample Request
+```
+  POST _plugins/_async_query
+  {"query":""CREATE EXTERNAL TABLE mys3.default.http_logs (
+           `@timestamp` TIMESTAMP,
+            clientip STRING,
+            request STRING, 
+            status INT, 
+            size INT, 
+            year INT, 
+            month INT, 
+            day INT) 
+        USING json PARTITIONED BY(year, month, day) OPTIONS (path 's3://flint-data-dp-eu-west-1-beta/data/http_log/http_logs_partitioned_json_bz2/', compression 'bzip2')""
+    ,"datasource":"mys3","lang":"sql"}
+```
 
----
 
 ## Query Result Retrieval
 
@@ -38,8 +50,11 @@ To fetch the result of a previously created async query, use the `GET /_plugins/
 
 **Examples**
 
-- [Query Result Sample Request](../system/query_result_request.json)
-- [Query Result Sample Response](../system/query_result_response.json)
+- Query Result Sample Request
+```
+POST _plugins/_async_query
+    {"query":"SELECT * FROM mys3.default.aws_elb","datasource":"mys3","lang":"sql"}
+```
 
 ---
 
@@ -49,8 +64,11 @@ To cancel a running or queued query, use the `DELETE /_plugins/_async_query/{que
 
 **Examples**
 
-- [Query Cancellation Sample Request](../system/query_cancellation_request.json)
-- [Query Cancellation Sample Response](../system/query_cancellation_response.json)
+- Query Cancellation Sample Request
+
+```
+DELETE _plugins/_async_query/VjlvWTNBbE1Lem15czM=
+```
 
 ---
 
