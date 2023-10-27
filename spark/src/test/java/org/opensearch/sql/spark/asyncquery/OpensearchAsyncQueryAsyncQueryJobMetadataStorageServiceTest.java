@@ -46,7 +46,7 @@ public class OpensearchAsyncQueryAsyncQueryJobMetadataStorageServiceTest
 
     assertTrue(actual.isPresent());
     assertEquals(expected, actual.get());
-    assertFalse(actual.get().isDropIndexQuery());
+    assertEquals(expected, actual.get());
     assertNull(actual.get().getSessionId());
   }
 
@@ -57,7 +57,6 @@ public class OpensearchAsyncQueryAsyncQueryJobMetadataStorageServiceTest
             AsyncQueryId.newAsyncQueryId(DS_NAME),
             EMR_JOB_ID,
             EMRS_APPLICATION_ID,
-            true,
             MOCK_RESULT_INDEX,
             MOCK_SESSION_ID);
 
@@ -67,7 +66,6 @@ public class OpensearchAsyncQueryAsyncQueryJobMetadataStorageServiceTest
 
     assertTrue(actual.isPresent());
     assertEquals(expected, actual.get());
-    assertTrue(actual.get().isDropIndexQuery());
     assertEquals("resultIndex", actual.get().getResultIndex());
     assertEquals(MOCK_SESSION_ID, actual.get().getSessionId());
   }

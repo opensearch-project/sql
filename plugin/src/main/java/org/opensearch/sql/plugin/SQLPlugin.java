@@ -320,7 +320,8 @@ public class SQLPlugin extends Plugin implements ActionPlugin, ScriptPlugin {
             jobExecutionResponseReader,
             new FlintIndexMetadataReaderImpl(client),
             client,
-            new SessionManager(stateStore, emrServerlessClient, pluginSettings));
+            new SessionManager(stateStore, emrServerlessClient, pluginSettings),
+            stateStore);
     return new AsyncQueryExecutorServiceImpl(
         asyncQueryJobMetadataStorageService,
         sparkQueryDispatcher,

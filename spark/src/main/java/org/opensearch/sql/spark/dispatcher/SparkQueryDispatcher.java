@@ -5,28 +5,15 @@
 
 package org.opensearch.sql.spark.dispatcher;
 
-import static org.opensearch.sql.spark.data.constants.SparkConstants.DATA_FIELD;
-import static org.opensearch.sql.spark.data.constants.SparkConstants.ERROR_FIELD;
 import static org.opensearch.sql.spark.data.constants.SparkConstants.FLINT_SESSION_CLASS_NAME;
-import static org.opensearch.sql.spark.data.constants.SparkConstants.STATUS_FIELD;
 
-import com.amazonaws.services.emrserverless.model.JobRunState;
-import java.nio.charset.StandardCharsets;
-import java.util.Base64;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
-import java.util.concurrent.ExecutionException;
 import lombok.AllArgsConstructor;
-import lombok.Getter;
-import lombok.RequiredArgsConstructor;
-import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.json.JSONArray;
 import org.json.JSONObject;
-import org.opensearch.action.admin.indices.delete.DeleteIndexRequest;
-import org.opensearch.action.support.master.AcknowledgedResponse;
 import org.opensearch.client.Client;
 import org.opensearch.sql.datasource.DataSourceService;
 import org.opensearch.sql.datasource.model.DataSourceMetadata;
@@ -42,7 +29,7 @@ import org.opensearch.sql.spark.execution.session.Session;
 import org.opensearch.sql.spark.execution.session.SessionId;
 import org.opensearch.sql.spark.execution.session.SessionManager;
 import org.opensearch.sql.spark.execution.statement.QueryRequest;
-import org.opensearch.sql.spark.flint.FlintIndexMetadata;
+import org.opensearch.sql.spark.execution.statestore.StateStore;
 import org.opensearch.sql.spark.flint.FlintIndexMetadataReader;
 import org.opensearch.sql.spark.response.JobExecutionResponseReader;
 import org.opensearch.sql.spark.rest.model.LangType;
@@ -72,6 +59,8 @@ public class SparkQueryDispatcher {
 
   private SessionManager sessionManager;
 
+  private StateStore stateStore;
+
   public DispatchQueryResponse dispatch(DispatchQueryRequest dispatchQueryRequest) {
     if (LangType.SQL.equals(dispatchQueryRequest.getLangType())) {
       return handleSQLQuery(dispatchQueryRequest);
@@ -86,6 +75,8 @@ public class SparkQueryDispatcher {
     if (asyncQueryJobMetadata.getSessionId() != null) {
       return new InteractiveQueryHandler(sessionManager, jobExecutionResponseReader)
           .getQueryResponse(asyncQueryJobMetadata);
+    } else if (IndexDMLHandler.isIndexDMLQuery(asyncQueryJobMetadata.getJobId())) {
+      return createIndexDMLHandler().getQueryResponse(asyncQueryJobMetadata);
     } else {
       return new BatchQueryHandler(emrServerlessClient, jobExecutionResponseReader)
           .getQueryResponse(asyncQueryJobMetadata);
@@ -93,13 +84,26 @@ public class SparkQueryDispatcher {
   }
 
   public String cancelJob(AsyncQueryJobMetadata asyncQueryJobMetadata) {
+    AsyncQueryHandler queryHandler;
     if (asyncQueryJobMetadata.getSessionId() != null) {
-      return new InteractiveQueryHandler(sessionManager, jobExecutionResponseReader)
-          .cancelJob(asyncQueryJobMetadata);
+      queryHandler = new InteractiveQueryHandler(sessionManager, jobExecutionResponseReader);
+    } else if (IndexDMLHandler.isIndexDMLQuery(asyncQueryJobMetadata.getJobId())) {
+      queryHandler = createIndexDMLHandler();
     } else {
-      return new BatchQueryHandler(emrServerlessClient, jobExecutionResponseReader)
-          .cancelJob(asyncQueryJobMetadata);
+      queryHandler = new BatchQueryHandler(emrServerlessClient, jobExecutionResponseReader);
     }
+    return queryHandler.cancelJob(asyncQueryJobMetadata);
+  }
+
+  private IndexDMLHandler createIndexDMLHandler() {
+    return new IndexDMLHandler(
+        emrServerlessClient,
+        dataSourceService,
+        dataSourceUserAuthorizationHelper,
+        jobExecutionResponseReader,
+        flintIndexMetadataReader,
+        client,
+        stateStore);
   }
 
   private DispatchQueryResponse handleSQLQuery(DispatchQueryRequest dispatchQueryRequest) {
@@ -110,7 +114,7 @@ public class SparkQueryDispatcher {
 
       // TODO: refactor this code properly.
       if (IndexQueryActionType.DROP.equals(indexQueryDetails.getIndexQueryActionType())) {
-        return handleDropIndexQuery(dispatchQueryRequest, indexQueryDetails);
+        return createIndexDMLHandler().handle(dispatchQueryRequest, indexQueryDetails);
       } else if (IndexQueryActionType.CREATE.equals(indexQueryDetails.getIndexQueryActionType())) {
         return handleStreamingQueries(dispatchQueryRequest, indexQueryDetails);
       } else {
@@ -167,7 +171,6 @@ public class SparkQueryDispatcher {
     return new DispatchQueryResponse(
         AsyncQueryId.newAsyncQueryId(dataSourceMetadata.getName()),
         jobId,
-        false,
         dataSourceMetadata.getResultIndex(),
         null);
   }
@@ -199,7 +202,6 @@ public class SparkQueryDispatcher {
     return new DispatchQueryResponse(
         AsyncQueryId.newAsyncQueryId(dataSourceMetadata.getName()),
         jobId,
-        false,
         dataSourceMetadata.getResultIndex(),
         null);
   }
@@ -249,7 +251,6 @@ public class SparkQueryDispatcher {
       return new DispatchQueryResponse(
           queryId,
           session.getSessionModel().getJobId(),
-          false,
           dataSourceMetadata.getResultIndex(),
           session.getSessionId().getSessionId());
     } else {
@@ -271,44 +272,8 @@ public class SparkQueryDispatcher {
               false,
               dataSourceMetadata.getResultIndex());
       String jobId = emrServerlessClient.startJobRun(startJobRequest);
-      return new DispatchQueryResponse(
-          queryId, jobId, false, dataSourceMetadata.getResultIndex(), null);
+      return new DispatchQueryResponse(queryId, jobId, dataSourceMetadata.getResultIndex(), null);
     }
-  }
-
-  private DispatchQueryResponse handleDropIndexQuery(
-      DispatchQueryRequest dispatchQueryRequest, IndexQueryDetails indexQueryDetails) {
-    DataSourceMetadata dataSourceMetadata =
-        this.dataSourceService.getRawDataSourceMetadata(dispatchQueryRequest.getDatasource());
-    dataSourceUserAuthorizationHelper.authorizeDataSource(dataSourceMetadata);
-    FlintIndexMetadata indexMetadata =
-        flintIndexMetadataReader.getFlintIndexMetadata(indexQueryDetails);
-    // if index is created without auto refresh. there is no job to cancel.
-    String status = JobRunState.FAILED.toString();
-    try {
-      if (indexMetadata.isAutoRefresh()) {
-        emrServerlessClient.cancelJobRun(
-            dispatchQueryRequest.getApplicationId(), indexMetadata.getJobId());
-      }
-    } finally {
-      String indexName = indexQueryDetails.openSearchIndexName();
-      try {
-        AcknowledgedResponse response =
-            client.admin().indices().delete(new DeleteIndexRequest().indices(indexName)).get();
-        if (!response.isAcknowledged()) {
-          LOG.error("failed to delete index");
-        }
-        status = JobRunState.SUCCESS.toString();
-      } catch (InterruptedException | ExecutionException e) {
-        LOG.error("failed to delete index");
-      }
-    }
-    return new DispatchQueryResponse(
-        AsyncQueryId.newAsyncQueryId(dataSourceMetadata.getName()),
-        new DropIndexResult(status).toJobId(),
-        true,
-        dataSourceMetadata.getResultIndex(),
-        null);
   }
 
   private static Map<String, String> getDefaultTagsForJobSubmission(
@@ -317,40 +282,5 @@ public class SparkQueryDispatcher {
     tags.put(CLUSTER_NAME_TAG_KEY, dispatchQueryRequest.getClusterName());
     tags.put(DATASOURCE_TAG_KEY, dispatchQueryRequest.getDatasource());
     return tags;
-  }
-
-  @Getter
-  @RequiredArgsConstructor
-  public static class DropIndexResult {
-    private static final int PREFIX_LEN = 10;
-
-    private final String status;
-
-    public static DropIndexResult fromJobId(String jobId) {
-      String status = new String(Base64.getDecoder().decode(jobId)).substring(PREFIX_LEN);
-      return new DropIndexResult(status);
-    }
-
-    public String toJobId() {
-      String queryId = RandomStringUtils.randomAlphanumeric(PREFIX_LEN) + status;
-      return Base64.getEncoder().encodeToString(queryId.getBytes(StandardCharsets.UTF_8));
-    }
-
-    public JSONObject result() {
-      JSONObject result = new JSONObject();
-      if (JobRunState.SUCCESS.toString().equalsIgnoreCase(status)) {
-        result.put(STATUS_FIELD, status);
-        // todo. refactor response handling.
-        JSONObject dummyData = new JSONObject();
-        dummyData.put("result", new JSONArray());
-        dummyData.put("schema", new JSONArray());
-        dummyData.put("applicationId", "fakeDropIndexApplicationId");
-        result.put(DATA_FIELD, dummyData);
-      } else {
-        result.put(STATUS_FIELD, status);
-        result.put(ERROR_FIELD, "failed to drop index");
-      }
-      return result;
-    }
   }
 }

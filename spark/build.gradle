@@ -122,7 +122,8 @@ jacocoTestCoverageVerification {
                     // ignore because XContext IOException
                     'org.opensearch.sql.spark.execution.statestore.StateStore',
                     'org.opensearch.sql.spark.execution.session.SessionModel',
-                    'org.opensearch.sql.spark.execution.statement.StatementModel'
+                    'org.opensearch.sql.spark.execution.statement.StatementModel',
+                    'org.opensearch.sql.spark.flint.FlintIndexStateModel'
             ]
             limit {
                 counter = 'LINE'

@@ -17,11 +17,6 @@ import org.opensearch.sql.spark.asyncquery.model.AsyncQueryJobMetadata;
 public abstract class AsyncQueryHandler {
 
   public JSONObject getQueryResponse(AsyncQueryJobMetadata asyncQueryJobMetadata) {
-    if (asyncQueryJobMetadata.isDropIndexQuery()) {
-      return SparkQueryDispatcher.DropIndexResult.fromJobId(asyncQueryJobMetadata.getJobId())
-          .result();
-    }
-
     JSONObject result = getResponseFromResultIndex(asyncQueryJobMetadata);
     if (result.has(DATA_FIELD)) {
       JSONObject items = result.getJSONObject(DATA_FIELD);
@@ -45,5 +40,5 @@ public abstract class AsyncQueryHandler {
   protected abstract JSONObject getResponseFromExecutor(
       AsyncQueryJobMetadata asyncQueryJobMetadata);
 
-  abstract String cancelJob(AsyncQueryJobMetadata asyncQueryJobMetadata);
+  public abstract String cancelJob(AsyncQueryJobMetadata asyncQueryJobMetadata);
 }
