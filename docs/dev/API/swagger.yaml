@@ -89,4 +89,4 @@ paths:
         "200":
           description: "Query cancelled successfully"
 servers:
-  - url: "http://ec2-18-237-133-156.us-west-2.compute.amazonaws.com:9200"
+  - url: "http://my-backend-opensearch:9200"
