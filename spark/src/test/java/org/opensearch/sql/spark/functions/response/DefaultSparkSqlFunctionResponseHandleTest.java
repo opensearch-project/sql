@@ -2,6 +2,8 @@ package org.opensearch.sql.spark.functions.response;
 
 import static java.lang.String.format;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.opensearch.sql.data.model.ExprTupleValue.fromExprValueMap;
 
 import java.util.List;
@@ -45,28 +47,28 @@ class DefaultSparkSqlFunctionResponseHandleTest {
                 new ExecutionEngine.Schema.Column("column3", "column3", ExprCoreType.BOOLEAN))),
         handle.schema());
 
-    assertEquals(true, handle.hasNext());
-    assertEquals(
+    assertTrue(handle.hasNext());
+    assertTrue(
         fromExprValueMap(
-            Map.of(
-                "column1",
-                new ExprStringValue("value1"),
-                "column2",
-                new ExprIntegerValue(123),
-                "column3",
-                ExprBooleanValue.of(true))),
-        handle.next());
-    assertEquals(
+                Map.of(
+                    "column1",
+                    new ExprStringValue("value1"),
+                    "column2",
+                    new ExprIntegerValue(123),
+                    "column3",
+                    ExprBooleanValue.of(true)))
+            .equal(handle.next()));
+    assertTrue(
         fromExprValueMap(
-            Map.of(
-                "column1",
-                new ExprStringValue("value2"),
-                "column2",
-                new ExprIntegerValue(456),
-                "column3",
-                ExprBooleanValue.of(false))),
-        handle.next());
-    assertEquals(false, handle.hasNext());
+                Map.of(
+                    "column1",
+                    new ExprStringValue("value2"),
+                    "column2",
+                    new ExprIntegerValue(456),
+                    "column3",
+                    ExprBooleanValue.of(false)))
+            .equal(handle.next()));
+    assertFalse(handle.hasNext());
   }
 
   @Test

@@ -7,6 +7,7 @@ package org.opensearch.sql.data.model;
 
 import java.util.List;
 import java.util.Objects;
+import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import org.opensearch.sql.data.type.ExprCoreType;
 import org.opensearch.sql.data.type.ExprType;
@@ -33,7 +34,7 @@ public class ExprArrayValue extends AbstractExprValue {
 
   @Override
   public String stringValue() {
-    return value.stream().map(Object::toString).reduce("", String::concat);
+    return value.stream().map(ExprValue::stringValue).collect(Collectors.joining(","));
   }
 
   @Override
@@ -43,7 +44,7 @@ public class ExprArrayValue extends AbstractExprValue {
 
   @Override
   public String toString() {
-    return String.format("\"%s\"", stringValue());
+    return String.format("%s", stringValue());
   }
 
   @Override
