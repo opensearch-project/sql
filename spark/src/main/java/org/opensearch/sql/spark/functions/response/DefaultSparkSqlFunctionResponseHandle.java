@@ -186,7 +186,7 @@ public class DefaultSparkSqlFunctionResponseHandle implements SparkSqlFunctionRe
   }
 
   /** visitor implementation for traversing the json object */
-  public static class JsonVisitorImpl implements JsonVisitor<ExprValue> {
+  private static class JsonVisitorImpl implements JsonVisitor<ExprValue> {
     public ExprValue visit(Object obj) {
       if (obj instanceof JSONObject) {
         return visitObject((JSONObject) obj);
