@@ -17,6 +17,7 @@ public class ExprArrayValueTest {
   public void testIsArrayFalse() {
     assertFalse(new ExprStringValue("test").isArray());
   }
+
   @Test
   public void testIsArray() {
     ExprArrayValue exprArrayValue = new ExprArrayValue(Arrays.asList(new ExprStringValue("test")));
