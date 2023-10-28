@@ -5,9 +5,9 @@
 
 package org.opensearch.sql.spark.response;
 
+import static org.opensearch.sql.datasource.model.DataSourceMetadata.DEFAULT_RESULT_INDEX;
 import static org.opensearch.sql.spark.data.constants.SparkConstants.DATA_FIELD;
 import static org.opensearch.sql.spark.data.constants.SparkConstants.JOB_ID_FIELD;
-import static org.opensearch.sql.spark.data.constants.SparkConstants.SPARK_RESPONSE_BUFFER_INDEX_NAME;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -45,7 +45,7 @@ public class JobExecutionResponseReader {
 
   private JSONObject searchInSparkIndex(QueryBuilder query, String resultIndex) {
     SearchRequest searchRequest = new SearchRequest();
-    String searchResultIndex = resultIndex == null ? SPARK_RESPONSE_BUFFER_INDEX_NAME : resultIndex;
+    String searchResultIndex = resultIndex == null ? DEFAULT_RESULT_INDEX : resultIndex;
     searchRequest.indices(searchResultIndex);
     SearchSourceBuilder searchSourceBuilder = new SearchSourceBuilder();
     searchSourceBuilder.query(query);
