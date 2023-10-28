@@ -21,6 +21,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import lombok.SneakyThrows;
+import org.apache.commons.lang3.StringUtils;
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Assert;
@@ -113,6 +114,7 @@ public class DataSourceAPIsIT extends PPLIntegTestCase {
     DataSourceMetadata createDSM =
         new DataSourceMetadata(
             "update_prometheus",
+            StringUtils.EMPTY,
             DataSourceType.PROMETHEUS,
             ImmutableList.of(),
             ImmutableMap.of("prometheus.uri", "https://localhost:9090"),
@@ -126,6 +128,7 @@ public class DataSourceAPIsIT extends PPLIntegTestCase {
     DataSourceMetadata updateDSM =
         new DataSourceMetadata(
             "update_prometheus",
+            StringUtils.EMPTY,
             DataSourceType.PROMETHEUS,
             ImmutableList.of(),
             ImmutableMap.of("prometheus.uri", "https://randomtest.com:9090"),
@@ -185,6 +188,7 @@ public class DataSourceAPIsIT extends PPLIntegTestCase {
     DataSourceMetadata createDSM =
         new DataSourceMetadata(
             "delete_prometheus",
+            StringUtils.EMPTY,
             DataSourceType.PROMETHEUS,
             ImmutableList.of(),
             ImmutableMap.of("prometheus.uri", "https://localhost:9090"),
@@ -224,6 +228,7 @@ public class DataSourceAPIsIT extends PPLIntegTestCase {
     DataSourceMetadata createDSM =
         new DataSourceMetadata(
             "get_all_prometheus",
+            StringUtils.EMPTY,
             DataSourceType.PROMETHEUS,
             ImmutableList.of(),
             ImmutableMap.of("prometheus.uri", "https://localhost:9090"),
