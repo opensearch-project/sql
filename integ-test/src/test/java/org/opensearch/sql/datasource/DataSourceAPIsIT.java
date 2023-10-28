@@ -21,6 +21,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import lombok.SneakyThrows;
+import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Assert;
 import org.junit.Test;
@@ -32,6 +33,11 @@ import org.opensearch.sql.datasource.model.DataSourceType;
 import org.opensearch.sql.ppl.PPLIntegTestCase;
 
 public class DataSourceAPIsIT extends PPLIntegTestCase {
+
+  @After
+  public void cleanUp() throws IOException {
+    wipeAllClusterSettings();
+  }
 
   @AfterClass
   protected static void deleteDataSourcesCreated() throws IOException {
@@ -48,6 +54,10 @@ public class DataSourceAPIsIT extends PPLIntegTestCase {
     Assert.assertEquals(204, deleteResponse.getStatusLine().getStatusCode());
 
     deleteRequest = getDeleteDataSourceRequest("Create_Prometheus");
+    deleteResponse = client().performRequest(deleteRequest);
+    Assert.assertEquals(204, deleteResponse.getStatusLine().getStatusCode());
+
+    deleteRequest = getDeleteDataSourceRequest("duplicate_prometheus");
     deleteResponse = client().performRequest(deleteRequest);
     Assert.assertEquals(204, deleteResponse.getStatusLine().getStatusCode());
   }
@@ -277,5 +287,46 @@ public class DataSourceAPIsIT extends PPLIntegTestCase {
     Assert.assertNull(dataSourceMetadata.getProperties().get("prometheus.auth.username"));
     Assert.assertNull(dataSourceMetadata.getProperties().get("prometheus.auth.password"));
     Assert.assertEquals("Prometheus Creation for Integ test", dataSourceMetadata.getDescription());
+  }
+
+  @Test
+  public void datasourceLimitTest() throws InterruptedException, IOException {
+    DataSourceMetadata d1 = mockDataSourceMetadata("duplicate_prometheus");
+    Request createRequest = getCreateDataSourceRequest(d1);
+    Response response = client().performRequest(createRequest);
+    Assert.assertEquals(201, response.getStatusLine().getStatusCode());
+    // Datasource is not immediately created. so introducing a sleep of 2s.
+    Thread.sleep(2000);
+
+    updateClusterSettings(new ClusterSetting(TRANSIENT, "plugins.query.datasources.limit", "1"));
+
+    DataSourceMetadata d2 = mockDataSourceMetadata("d2");
+    ResponseException exception =
+        Assert.assertThrows(
+            ResponseException.class, () -> client().performRequest(getCreateDataSourceRequest(d2)));
+    Assert.assertEquals(400, exception.getResponse().getStatusLine().getStatusCode());
+    String prometheusGetResponseString = getResponseBody(exception.getResponse());
+    JsonObject errorMessage = new Gson().fromJson(prometheusGetResponseString, JsonObject.class);
+    Assert.assertEquals(
+        "domain concurrent datasources can not exceed 1",
+        errorMessage.get("error").getAsJsonObject().get("details").getAsString());
+  }
+
+  public DataSourceMetadata mockDataSourceMetadata(String name) {
+    return new DataSourceMetadata(
+        name,
+        "Prometheus Creation for Integ test",
+        DataSourceType.PROMETHEUS,
+        ImmutableList.of(),
+        ImmutableMap.of(
+            "prometheus.uri",
+            "https://localhost:9090",
+            "prometheus.auth.type",
+            "basicauth",
+            "prometheus.auth.username",
+            "username",
+            "prometheus.auth.password",
+            "password"),
+        null);
   }
 }

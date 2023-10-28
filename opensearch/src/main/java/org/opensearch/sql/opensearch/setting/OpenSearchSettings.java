@@ -149,6 +149,13 @@ public class OpenSearchSettings extends Settings {
           Setting.Property.NodeScope,
           Setting.Property.Dynamic);
 
+  public static final Setting<?> DATASOURCES_LIMIT_SETTING =
+      Setting.intSetting(
+          Key.DATASOURCES_LIMIT.getKeyValue(),
+          20,
+          Setting.Property.NodeScope,
+          Setting.Property.Dynamic);
+
   /** Construct OpenSearchSetting. The OpenSearchSetting must be singleton. */
   @SuppressWarnings("unchecked")
   public OpenSearchSettings(ClusterSettings clusterSettings) {
@@ -231,6 +238,12 @@ public class OpenSearchSettings extends Settings {
         Key.SPARK_EXECUTION_SESSION_LIMIT,
         SPARK_EXECUTION_SESSION_LIMIT_SETTING,
         new Updater(Key.SPARK_EXECUTION_SESSION_LIMIT));
+    register(
+        settingBuilder,
+        clusterSettings,
+        Key.DATASOURCES_LIMIT,
+        DATASOURCES_LIMIT_SETTING,
+        new Updater(Key.DATASOURCES_LIMIT));
     registerNonDynamicSettings(
         settingBuilder, clusterSettings, Key.CLUSTER_NAME, ClusterName.CLUSTER_NAME_SETTING);
     defaultSettings = settingBuilder.build();
@@ -298,6 +311,7 @@ public class OpenSearchSettings extends Settings {
         .add(SPARK_EXECUTION_ENGINE_CONFIG)
         .add(SPARK_EXECUTION_SESSION_ENABLED_SETTING)
         .add(SPARK_EXECUTION_SESSION_LIMIT_SETTING)
+        .add(DATASOURCES_LIMIT_SETTING)
         .build();
   }
 

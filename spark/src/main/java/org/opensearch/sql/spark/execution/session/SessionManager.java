@@ -6,11 +6,8 @@
 package org.opensearch.sql.spark.execution.session;
 
 import static org.opensearch.sql.common.setting.Settings.Key.SPARK_EXECUTION_SESSION_ENABLED;
-import static org.opensearch.sql.common.setting.Settings.Key.SPARK_EXECUTION_SESSION_LIMIT;
 import static org.opensearch.sql.spark.execution.session.SessionId.newSessionId;
-import static org.opensearch.sql.spark.execution.statestore.StateStore.activeSessionsCount;
 
-import java.util.Locale;
 import java.util.Optional;
 import lombok.RequiredArgsConstructor;
 import org.opensearch.sql.common.setting.Settings;
@@ -29,15 +26,6 @@ public class SessionManager {
   private final Settings settings;
 
   public Session createSession(CreateSessionRequest request) {
-    int sessionMaxLimit = sessionMaxLimit();
-    if (activeSessionsCount(stateStore, request.getDatasourceName()).get() >= sessionMaxLimit) {
-      String errorMsg =
-          String.format(
-              Locale.ROOT,
-              "The maximum number of active sessions can be " + "supported is %d",
-              sessionMaxLimit);
-      throw new IllegalArgumentException(errorMsg);
-    }
     InteractiveSession session =
         InteractiveSession.builder()
             .sessionId(newSessionId(request.getDatasourceName()))
@@ -66,9 +54,5 @@ public class SessionManager {
 
   public boolean isEnabled() {
     return settings.getSettingValue(SPARK_EXECUTION_SESSION_ENABLED);
-  }
-
-  public int sessionMaxLimit() {
-    return settings.getSettingValue(SPARK_EXECUTION_SESSION_LIMIT);
   }
 }
