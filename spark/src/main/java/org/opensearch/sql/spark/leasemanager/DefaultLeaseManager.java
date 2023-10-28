@@ -12,7 +12,6 @@ import static org.opensearch.sql.spark.execution.statestore.StateStore.activeSes
 import java.util.Arrays;
 import java.util.List;
 import java.util.function.Predicate;
-import lombok.RequiredArgsConstructor;
 import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.spark.dispatcher.model.JobType;
 import org.opensearch.sql.spark.execution.statestore.StateStore;
@@ -49,7 +48,6 @@ public class DefaultLeaseManager implements LeaseManager {
     String description();
   }
 
-  @RequiredArgsConstructor
   public class ConcurrentSessionRule implements Rule<LeaseRequest> {
     @Override
     public String description() {
