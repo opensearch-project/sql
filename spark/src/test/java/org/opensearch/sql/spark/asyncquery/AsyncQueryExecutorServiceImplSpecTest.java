@@ -5,7 +5,6 @@
 
 package org.opensearch.sql.spark.asyncquery;
 
-import static org.opensearch.sql.opensearch.setting.OpenSearchSettings.*;
 import static org.opensearch.sql.spark.data.constants.SparkConstants.DEFAULT_CLASS_NAME;
 import static org.opensearch.sql.spark.data.constants.SparkConstants.FLINT_JOB_REQUEST_INDEX;
 import static org.opensearch.sql.spark.data.constants.SparkConstants.FLINT_JOB_SESSION_ID;
@@ -19,13 +18,13 @@ import static org.opensearch.sql.spark.execution.statestore.StateStore.updateSta
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import java.util.*;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 import org.apache.commons.lang3.StringUtils;
 import org.junit.Ignore;
 import org.junit.Test;
+import org.junit.jupiter.api.Disabled;
 import org.opensearch.core.common.Strings;
 import org.opensearch.index.query.QueryBuilders;
 import org.opensearch.sql.datasource.model.DataSourceMetadata;
@@ -42,7 +41,7 @@ import org.opensearch.sql.spark.rest.model.LangType;
 
 public class AsyncQueryExecutorServiceImplSpecTest extends AsyncQueryExecutorServiceSpec {
 
-  @Test
+  @Disabled("batch query is unsupported")
   public void withoutSessionCreateAsyncQueryThenGetResultThenCancel() {
     LocalEMRSClient emrsClient = new LocalEMRSClient();
     AsyncQueryExecutorService asyncQueryExecutorService =
@@ -70,7 +69,7 @@ public class AsyncQueryExecutorServiceImplSpecTest extends AsyncQueryExecutorSer
     emrsClient.cancelJobRunCalled(1);
   }
 
-  @Test
+  @Disabled("batch query is unsupported")
   public void sessionLimitNotImpactBatchQuery() {
     LocalEMRSClient emrsClient = new LocalEMRSClient();
     AsyncQueryExecutorService asyncQueryExecutorService =
@@ -92,7 +91,7 @@ public class AsyncQueryExecutorServiceImplSpecTest extends AsyncQueryExecutorSer
     emrsClient.startJobRunCalled(2);
   }
 
-  @Test
+  @Disabled("batch query is unsupported")
   public void createAsyncQueryCreateJobWithCorrectParameters() {
     LocalEMRSClient emrsClient = new LocalEMRSClient();
     AsyncQueryExecutorService asyncQueryExecutorService =
@@ -203,7 +202,7 @@ public class AsyncQueryExecutorServiceImplSpecTest extends AsyncQueryExecutorSer
     assertEquals(second.getQueryId(), secondModel.get().getQueryId());
   }
 
-  @Test
+  @Disabled("batch query is unsupported")
   public void batchQueryHasTimeout() {
     LocalEMRSClient emrsClient = new LocalEMRSClient();
     AsyncQueryExecutorService asyncQueryExecutorService =

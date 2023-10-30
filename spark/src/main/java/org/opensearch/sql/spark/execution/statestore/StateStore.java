@@ -6,6 +6,7 @@
 package org.opensearch.sql.spark.execution.statestore;
 
 import static org.opensearch.sql.spark.data.constants.SparkConstants.SPARK_REQUEST_BUFFER_INDEX_NAME;
+import static org.opensearch.sql.spark.execution.statestore.StateModel.STATE;
 
 import com.google.common.annotations.VisibleForTesting;
 import java.io.IOException;
@@ -330,5 +331,16 @@ public class StateStore {
   public static Function<IndexDMLResult, IndexDMLResult> createIndexDMLResult(
       StateStore stateStore, String indexName) {
     return (result) -> stateStore.create(result, IndexDMLResult::copy, indexName);
+  }
+
+  public static Supplier<Long> activeRefreshJobCount(StateStore stateStore, String datasourceName) {
+    return () ->
+        stateStore.count(
+            DATASOURCE_TO_REQUEST_INDEX.apply(datasourceName),
+            QueryBuilders.boolQuery()
+                .must(
+                    QueryBuilders.termQuery(
+                        SessionModel.TYPE, FlintIndexStateModel.FLINT_INDEX_DOC_TYPE))
+                .must(QueryBuilders.termQuery(STATE, FlintIndexState.REFRESHING.getState())));
   }
 }

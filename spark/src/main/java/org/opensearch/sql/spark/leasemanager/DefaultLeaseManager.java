@@ -5,14 +5,17 @@
 
 package org.opensearch.sql.spark.leasemanager;
 
+import static org.opensearch.sql.common.setting.Settings.Key.SPARK_EXECUTION_REFRESH_JOB_LIMIT;
 import static org.opensearch.sql.common.setting.Settings.Key.SPARK_EXECUTION_SESSION_LIMIT;
 import static org.opensearch.sql.spark.execution.statestore.StateStore.ALL_DATASOURCE;
+import static org.opensearch.sql.spark.execution.statestore.StateStore.activeRefreshJobCount;
 import static org.opensearch.sql.spark.execution.statestore.StateStore.activeSessionsCount;
 
 import java.util.Arrays;
 import java.util.List;
 import java.util.Locale;
 import java.util.function.Predicate;
+import lombok.RequiredArgsConstructor;
 import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.spark.dispatcher.model.JobType;
 import org.opensearch.sql.spark.execution.statestore.StateStore;
@@ -33,7 +36,10 @@ public class DefaultLeaseManager implements LeaseManager {
   public DefaultLeaseManager(Settings settings, StateStore stateStore) {
     this.settings = settings;
     this.stateStore = stateStore;
-    this.concurrentLimitRules = Arrays.asList(new ConcurrentSessionRule());
+    this.concurrentLimitRules =
+        Arrays.asList(
+            new ConcurrentSessionRule(settings, stateStore),
+            new ConcurrentRefreshJobRule(settings, stateStore));
   }
 
   @Override
@@ -49,7 +55,11 @@ public class DefaultLeaseManager implements LeaseManager {
     String description();
   }
 
-  public class ConcurrentSessionRule implements Rule<LeaseRequest> {
+  @RequiredArgsConstructor
+  public static class ConcurrentSessionRule implements Rule<LeaseRequest> {
+    private final Settings settings;
+    private final StateStore stateStore;
+
     @Override
     public String description() {
       return String.format(
@@ -66,6 +76,30 @@ public class DefaultLeaseManager implements LeaseManager {
 
     public int sessionMaxLimit() {
       return settings.getSettingValue(SPARK_EXECUTION_SESSION_LIMIT);
+    }
+  }
+
+  @RequiredArgsConstructor
+  public static class ConcurrentRefreshJobRule implements Rule<LeaseRequest> {
+    private final Settings settings;
+    private final StateStore stateStore;
+
+    @Override
+    public String description() {
+      return String.format(
+          Locale.ROOT, "domain concurrent refresh job can not exceed %d", refreshJobLimit());
+    }
+
+    @Override
+    public boolean test(LeaseRequest leaseRequest) {
+      if (leaseRequest.getJobType() == JobType.INTERACTIVE) {
+        return true;
+      }
+      return activeRefreshJobCount(stateStore, ALL_DATASOURCE).get() < refreshJobLimit();
+    }
+
+    public int refreshJobLimit() {
+      return settings.getSettingValue(SPARK_EXECUTION_REFRESH_JOB_LIMIT);
     }
   }
 }

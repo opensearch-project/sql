@@ -67,7 +67,7 @@ public class SparkQueryDispatcher {
     AsyncQueryHandler asyncQueryHandler =
         sessionManager.isEnabled()
             ? new InteractiveQueryHandler(sessionManager, jobExecutionResponseReader, leaseManager)
-            : new BatchQueryHandler(emrServerlessClient, jobExecutionResponseReader);
+            : new BatchQueryHandler(emrServerlessClient, jobExecutionResponseReader, leaseManager);
     DispatchQueryContext.DispatchQueryContextBuilder contextBuilder =
         DispatchQueryContext.builder()
             .dataSourceMetadata(dataSourceMetadata)
@@ -87,10 +87,12 @@ public class SparkQueryDispatcher {
       } else if (IndexQueryActionType.CREATE.equals(indexQueryDetails.getIndexQueryActionType())
           && indexQueryDetails.isAutoRefresh()) {
         asyncQueryHandler =
-            new StreamingQueryHandler(emrServerlessClient, jobExecutionResponseReader);
+            new StreamingQueryHandler(
+                emrServerlessClient, jobExecutionResponseReader, leaseManager);
       } else if (IndexQueryActionType.REFRESH.equals(indexQueryDetails.getIndexQueryActionType())) {
         // manual refresh should be handled by batch handler
-        asyncQueryHandler = new BatchQueryHandler(emrServerlessClient, jobExecutionResponseReader);
+        asyncQueryHandler =
+            new BatchQueryHandler(emrServerlessClient, jobExecutionResponseReader, leaseManager);
       }
     }
     return asyncQueryHandler.submit(dispatchQueryRequest, contextBuilder.build());
@@ -103,7 +105,7 @@ public class SparkQueryDispatcher {
     } else if (IndexDMLHandler.isIndexDMLQuery(asyncQueryJobMetadata.getJobId())) {
       return createIndexDMLHandler().getQueryResponse(asyncQueryJobMetadata);
     } else {
-      return new BatchQueryHandler(emrServerlessClient, jobExecutionResponseReader)
+      return new BatchQueryHandler(emrServerlessClient, jobExecutionResponseReader, leaseManager)
           .getQueryResponse(asyncQueryJobMetadata);
     }
   }
@@ -116,7 +118,8 @@ public class SparkQueryDispatcher {
     } else if (IndexDMLHandler.isIndexDMLQuery(asyncQueryJobMetadata.getJobId())) {
       queryHandler = createIndexDMLHandler();
     } else {
-      queryHandler = new BatchQueryHandler(emrServerlessClient, jobExecutionResponseReader);
+      queryHandler =
+          new BatchQueryHandler(emrServerlessClient, jobExecutionResponseReader, leaseManager);
     }
     return queryHandler.cancelJob(asyncQueryJobMetadata);
   }

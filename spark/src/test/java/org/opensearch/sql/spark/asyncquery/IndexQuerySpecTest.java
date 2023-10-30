@@ -17,48 +17,50 @@ import lombok.RequiredArgsConstructor;
 import lombok.SneakyThrows;
 import org.junit.Assert;
 import org.junit.Test;
+import org.opensearch.action.admin.indices.delete.DeleteIndexRequest;
 import org.opensearch.index.seqno.SequenceNumbers;
 import org.opensearch.sql.spark.asyncquery.model.AsyncQueryExecutionResponse;
 import org.opensearch.sql.spark.execution.statestore.StateStore;
 import org.opensearch.sql.spark.flint.FlintIndexState;
 import org.opensearch.sql.spark.flint.FlintIndexStateModel;
 import org.opensearch.sql.spark.flint.FlintIndexType;
+import org.opensearch.sql.spark.leasemanager.ConcurrencyLimitExceededException;
 import org.opensearch.sql.spark.rest.model.CreateAsyncQueryRequest;
 import org.opensearch.sql.spark.rest.model.CreateAsyncQueryResponse;
 import org.opensearch.sql.spark.rest.model.LangType;
 
-public class IndexDMLQuerySpecTest extends AsyncQueryExecutorServiceSpec {
+public class IndexQuerySpecTest extends AsyncQueryExecutorServiceSpec {
 
-  private final FlintDatasetMock LEGACY_SKIPPING =
+  public final FlintDatasetMock LEGACY_SKIPPING =
       new FlintDatasetMock(
               "DROP SKIPPING INDEX ON mys3.default.http_logs",
               FlintIndexType.SKIPPING,
               "flint_mys3_default_http_logs_skipping_index")
           .isLegacy(true);
-  private final FlintDatasetMock LEGACY_COVERING =
+  public final FlintDatasetMock LEGACY_COVERING =
       new FlintDatasetMock(
               "DROP INDEX covering ON mys3.default.http_logs",
               FlintIndexType.COVERING,
               "flint_mys3_default_http_logs_covering_index")
           .isLegacy(true);
-  private final FlintDatasetMock LEGACY_MV =
+  public final FlintDatasetMock LEGACY_MV =
       new FlintDatasetMock(
               "DROP MATERIALIZED VIEW mv", FlintIndexType.MATERIALIZED_VIEW, "flint_mv")
           .isLegacy(true);
 
-  private final FlintDatasetMock SKIPPING =
+  public final FlintDatasetMock SKIPPING =
       new FlintDatasetMock(
               "DROP SKIPPING INDEX ON mys3.default.http_logs",
               FlintIndexType.SKIPPING,
               "flint_mys3_default_http_logs_skipping_index")
           .latestId("skippingindexid");
-  private final FlintDatasetMock COVERING =
+  public final FlintDatasetMock COVERING =
       new FlintDatasetMock(
               "DROP INDEX covering ON mys3.default.http_logs",
               FlintIndexType.COVERING,
               "flint_mys3_default_http_logs_covering_index")
           .latestId("coveringid");
-  private final FlintDatasetMock MV =
+  public final FlintDatasetMock MV =
       new FlintDatasetMock(
               "DROP MATERIALIZED VIEW mv", FlintIndexType.MATERIALIZED_VIEW, "flint_mv")
           .latestId("mvid");
@@ -555,7 +557,7 @@ public class IndexDMLQuerySpecTest extends AsyncQueryExecutorServiceSpec {
    * <p>(1) not call EMR-S (2) change index state to: DELETED
    */
   @Test
-  public void edgeCaseNodeIndexStateDoc() {
+  public void edgeCaseNoIndexStateDoc() {
     ImmutableList.of(SKIPPING, COVERING, MV)
         .forEach(
             mockDS -> {
@@ -590,6 +592,98 @@ public class IndexDMLQuerySpecTest extends AsyncQueryExecutorServiceSpec {
               assertEquals("FAILED", asyncQueryResults.getStatus());
               assertTrue(asyncQueryResults.getError().contains("no state found"));
             });
+  }
+
+  @Test
+  public void concurrentRefreshJobLimitNotApplied() {
+    AsyncQueryExecutorService asyncQueryExecutorService =
+        createAsyncQueryExecutorService(new LocalEMRSClient());
+
+    // Mock flint index
+    COVERING.createIndex();
+    // Mock index state
+    MockFlintSparkJob flintIndexJob = new MockFlintSparkJob(COVERING.latestId);
+    flintIndexJob.refreshing();
+
+    // query with auto refresh
+    String query =
+        "CREATE INDEX covering ON mys3.default.http_logs(l_orderkey, "
+            + "l_quantity) WITH (auto_refresh = true)";
+    CreateAsyncQueryResponse response =
+        asyncQueryExecutorService.createAsyncQuery(
+            new CreateAsyncQueryRequest(query, DATASOURCE, LangType.SQL, null));
+    assertNull(response.getSessionId());
+  }
+
+  @Test
+  public void concurrentRefreshJobLimitAppliedToDDLWithAuthRefresh() {
+    AsyncQueryExecutorService asyncQueryExecutorService =
+        createAsyncQueryExecutorService(new LocalEMRSClient());
+
+    setConcurrentRefreshJob(1);
+
+    // Mock flint index
+    COVERING.createIndex();
+    // Mock index state
+    MockFlintSparkJob flintIndexJob = new MockFlintSparkJob(COVERING.latestId);
+    flintIndexJob.refreshing();
+
+    // query with auto_refresh = true.
+    String query =
+        "CREATE INDEX covering ON mys3.default.http_logs(l_orderkey, "
+            + "l_quantity) WITH (auto_refresh = true)";
+    ConcurrencyLimitExceededException exception =
+        assertThrows(
+            ConcurrencyLimitExceededException.class,
+            () ->
+                asyncQueryExecutorService.createAsyncQuery(
+                    new CreateAsyncQueryRequest(query, DATASOURCE, LangType.SQL, null)));
+    assertEquals("domain concurrent refresh job can not exceed 1", exception.getMessage());
+  }
+
+  @Test
+  public void concurrentRefreshJobLimitAppliedToRefresh() {
+    AsyncQueryExecutorService asyncQueryExecutorService =
+        createAsyncQueryExecutorService(new LocalEMRSClient());
+
+    setConcurrentRefreshJob(1);
+
+    // Mock flint index
+    COVERING.createIndex();
+    // Mock index state
+    MockFlintSparkJob flintIndexJob = new MockFlintSparkJob(COVERING.latestId);
+    flintIndexJob.refreshing();
+
+    // query with auto_refresh = true.
+    String query = "REFRESH INDEX covering ON mys3.default.http_logs";
+    ConcurrencyLimitExceededException exception =
+        assertThrows(
+            ConcurrencyLimitExceededException.class,
+            () ->
+                asyncQueryExecutorService.createAsyncQuery(
+                    new CreateAsyncQueryRequest(query, DATASOURCE, LangType.SQL, null)));
+    assertEquals("domain concurrent refresh job can not exceed 1", exception.getMessage());
+  }
+
+  @Test
+  public void concurrentRefreshJobLimitNotAppliedToDDL() {
+    String query = "CREATE INDEX covering ON mys3.default.http_logs(l_orderkey, l_quantity)";
+
+    AsyncQueryExecutorService asyncQueryExecutorService =
+        createAsyncQueryExecutorService(new LocalEMRSClient());
+
+    setConcurrentRefreshJob(1);
+
+    // Mock flint index
+    COVERING.createIndex();
+    // Mock index state
+    MockFlintSparkJob flintIndexJob = new MockFlintSparkJob(COVERING.latestId);
+    flintIndexJob.refreshing();
+
+    CreateAsyncQueryResponse asyncQueryResponse =
+        asyncQueryExecutorService.createAsyncQuery(
+            new CreateAsyncQueryRequest(query, DATASOURCE, LangType.SQL, null));
+    assertNotNull(asyncQueryResponse.getSessionId());
   }
 
   public class MockFlintSparkJob {
@@ -683,6 +777,11 @@ public class IndexDMLQuerySpecTest extends AsyncQueryExecutorServiceSpec {
           createIndexWithMappings(indexName, loadMappings(pathPrefix + "/" + "flint_mv.json"));
           break;
       }
+    }
+
+    @SneakyThrows
+    public void deleteIndex() {
+      client().admin().indices().delete(new DeleteIndexRequest().indices(indexName)).get();
     }
   }
 

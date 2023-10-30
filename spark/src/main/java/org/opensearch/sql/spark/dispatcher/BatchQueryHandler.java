@@ -22,12 +22,15 @@ import org.opensearch.sql.spark.dispatcher.model.DispatchQueryContext;
 import org.opensearch.sql.spark.dispatcher.model.DispatchQueryRequest;
 import org.opensearch.sql.spark.dispatcher.model.DispatchQueryResponse;
 import org.opensearch.sql.spark.dispatcher.model.JobType;
+import org.opensearch.sql.spark.leasemanager.LeaseManager;
+import org.opensearch.sql.spark.leasemanager.model.LeaseRequest;
 import org.opensearch.sql.spark.response.JobExecutionResponseReader;
 
 @RequiredArgsConstructor
 public class BatchQueryHandler extends AsyncQueryHandler {
   private final EMRServerlessClient emrServerlessClient;
   private final JobExecutionResponseReader jobExecutionResponseReader;
+  protected final LeaseManager leaseManager;
 
   @Override
   protected JSONObject getResponseFromResultIndex(AsyncQueryJobMetadata asyncQueryJobMetadata) {
@@ -60,6 +63,8 @@ public class BatchQueryHandler extends AsyncQueryHandler {
   @Override
   public DispatchQueryResponse submit(
       DispatchQueryRequest dispatchQueryRequest, DispatchQueryContext context) {
+    leaseManager.borrow(new LeaseRequest(JobType.BATCH, dispatchQueryRequest.getDatasource()));
+
     String jobName = dispatchQueryRequest.getClusterName() + ":" + "non-index-query";
     Map<String, String> tags = context.getTags();
     DataSourceMetadata dataSourceMetadata = context.getDataSourceMetadata();

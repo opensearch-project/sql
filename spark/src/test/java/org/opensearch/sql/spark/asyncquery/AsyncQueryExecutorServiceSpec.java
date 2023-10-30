@@ -5,7 +5,7 @@
 
 package org.opensearch.sql.spark.asyncquery;
 
-import static org.opensearch.sql.opensearch.setting.OpenSearchSettings.SPARK_EXECUTION_SESSION_ENABLED_SETTING;
+import static org.opensearch.sql.opensearch.setting.OpenSearchSettings.SPARK_EXECUTION_REFRESH_JOB_LIMIT_SETTING;
 import static org.opensearch.sql.opensearch.setting.OpenSearchSettings.SPARK_EXECUTION_SESSION_LIMIT_SETTING;
 import static org.opensearch.sql.spark.execution.statestore.StateStore.DATASOURCE_TO_REQUEST_INDEX;
 import static org.opensearch.sql.spark.execution.statestore.StateStore.getSession;
@@ -140,14 +140,14 @@ public class AsyncQueryExecutorServiceSpec extends OpenSearchIntegTestCase {
         .cluster()
         .prepareUpdateSettings()
         .setTransientSettings(
-            Settings.builder().putNull(SPARK_EXECUTION_SESSION_ENABLED_SETTING.getKey()).build())
+            Settings.builder().putNull(SPARK_EXECUTION_SESSION_LIMIT_SETTING.getKey()).build())
         .get();
     client
         .admin()
         .cluster()
         .prepareUpdateSettings()
         .setTransientSettings(
-            Settings.builder().putNull(SPARK_EXECUTION_SESSION_LIMIT_SETTING.getKey()).build())
+            Settings.builder().putNull(SPARK_EXECUTION_REFRESH_JOB_LIMIT_SETTING.getKey()).build())
         .get();
   }
 
@@ -234,15 +234,7 @@ public class AsyncQueryExecutorServiceSpec extends OpenSearchIntegTestCase {
   }
 
   public void enableSession(boolean enabled) {
-    client
-        .admin()
-        .cluster()
-        .prepareUpdateSettings()
-        .setTransientSettings(
-            Settings.builder()
-                .put(SPARK_EXECUTION_SESSION_ENABLED_SETTING.getKey(), enabled)
-                .build())
-        .get();
+    // doNothing
   }
 
   public void setSessionLimit(long limit) {
@@ -252,6 +244,18 @@ public class AsyncQueryExecutorServiceSpec extends OpenSearchIntegTestCase {
         .prepareUpdateSettings()
         .setTransientSettings(
             Settings.builder().put(SPARK_EXECUTION_SESSION_LIMIT_SETTING.getKey(), limit).build())
+        .get();
+  }
+
+  public void setConcurrentRefreshJob(long limit) {
+    client
+        .admin()
+        .cluster()
+        .prepareUpdateSettings()
+        .setTransientSettings(
+            Settings.builder()
+                .put(SPARK_EXECUTION_REFRESH_JOB_LIMIT_SETTING.getKey(), limit)
+                .build())
         .get();
   }
 
