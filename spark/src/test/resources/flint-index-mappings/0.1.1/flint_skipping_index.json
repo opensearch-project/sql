@@ -1,0 +1,23 @@
+{
+  "_meta": {
+    "kind": "skipping",
+    "indexedColumns": [
+      {
+        "columnType": "int",
+        "kind": "VALUE_SET",
+        "columnName": "status"
+      }
+    ],
+    "name": "flint_mys3_default_http_logs_skipping_index",
+    "options": {},
+    "source": "mys3.default.http_logs",
+    "version": "0.1.0",
+    "properties": {
+      "env": {
+        "SERVERLESS_EMR_VIRTUAL_CLUSTER_ID": "00fd777k3k3ls20p",
+        "SERVERLESS_EMR_JOB_ID": "00fdmvv9hp8u0o0q"
+      }
+    },
+    "latestId": "skippingindexid"
+  }
+}

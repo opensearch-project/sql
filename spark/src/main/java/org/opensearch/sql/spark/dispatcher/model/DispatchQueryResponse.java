@@ -9,7 +9,6 @@ import org.opensearch.sql.spark.asyncquery.model.AsyncQueryId;
 public class DispatchQueryResponse {
   private AsyncQueryId queryId;
   private String jobId;
-  private boolean isDropIndexQuery;
   private String resultIndex;
   private String sessionId;
 }
