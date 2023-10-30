@@ -137,17 +137,17 @@ public class OpenSearchSettings extends Settings {
           Setting.Property.NodeScope,
           Setting.Property.Dynamic);
 
-  public static final Setting<?> SPARK_EXECUTION_SESSION_ENABLED_SETTING =
-      Setting.boolSetting(
-          Key.SPARK_EXECUTION_SESSION_ENABLED.getKeyValue(),
-          true,
-          Setting.Property.NodeScope,
-          Setting.Property.Dynamic);
-
   public static final Setting<?> SPARK_EXECUTION_SESSION_LIMIT_SETTING =
       Setting.intSetting(
           Key.SPARK_EXECUTION_SESSION_LIMIT.getKeyValue(),
           100,
+          Setting.Property.NodeScope,
+          Setting.Property.Dynamic);
+
+  public static final Setting<?> SPARK_EXECUTION_REFRESH_JOB_LIMIT_SETTING =
+      Setting.intSetting(
+          Key.SPARK_EXECUTION_REFRESH_JOB_LIMIT.getKeyValue(),
+          50,
           Setting.Property.NodeScope,
           Setting.Property.Dynamic);
 
@@ -252,15 +252,15 @@ public class OpenSearchSettings extends Settings {
     register(
         settingBuilder,
         clusterSettings,
-        Key.SPARK_EXECUTION_SESSION_ENABLED,
-        SPARK_EXECUTION_SESSION_ENABLED_SETTING,
-        new Updater(Key.SPARK_EXECUTION_SESSION_ENABLED));
-    register(
-        settingBuilder,
-        clusterSettings,
         Key.SPARK_EXECUTION_SESSION_LIMIT,
         SPARK_EXECUTION_SESSION_LIMIT_SETTING,
         new Updater(Key.SPARK_EXECUTION_SESSION_LIMIT));
+    register(
+        settingBuilder,
+        clusterSettings,
+        Key.SPARK_EXECUTION_REFRESH_JOB_LIMIT,
+        SPARK_EXECUTION_REFRESH_JOB_LIMIT_SETTING,
+        new Updater(Key.SPARK_EXECUTION_REFRESH_JOB_LIMIT));
     register(
         settingBuilder,
         clusterSettings,
@@ -350,8 +350,8 @@ public class OpenSearchSettings extends Settings {
         .add(METRICS_ROLLING_INTERVAL_SETTING)
         .add(DATASOURCE_URI_HOSTS_DENY_LIST)
         .add(SPARK_EXECUTION_ENGINE_CONFIG)
-        .add(SPARK_EXECUTION_SESSION_ENABLED_SETTING)
         .add(SPARK_EXECUTION_SESSION_LIMIT_SETTING)
+        .add(SPARK_EXECUTION_REFRESH_JOB_LIMIT_SETTING)
         .add(SESSION_INDEX_TTL_SETTING)
         .add(RESULT_INDEX_TTL_SETTING)
         .add(AUTO_INDEX_MANAGEMENT_ENABLED_SETTING)
