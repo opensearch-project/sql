@@ -34,13 +34,18 @@ public abstract class Settings {
     QUERY_SIZE_LIMIT("plugins.query.size_limit"),
     ENCYRPTION_MASTER_KEY("plugins.query.datasources.encryption.masterkey"),
     DATASOURCES_URI_HOSTS_DENY_LIST("plugins.query.datasources.uri.hosts.denylist"),
+    DATASOURCES_LIMIT("plugins.query.datasources.limit"),
 
     METRICS_ROLLING_WINDOW("plugins.query.metrics.rolling_window"),
     METRICS_ROLLING_INTERVAL("plugins.query.metrics.rolling_interval"),
     SPARK_EXECUTION_ENGINE_CONFIG("plugins.query.executionengine.spark.config"),
     CLUSTER_NAME("cluster.name"),
     SPARK_EXECUTION_SESSION_ENABLED("plugins.query.executionengine.spark.session.enabled"),
-    SPARK_EXECUTION_SESSION_LIMIT("plugins.query.executionengine.spark.session.limit");
+    SPARK_EXECUTION_SESSION_LIMIT("plugins.query.executionengine.spark.session.limit"),
+    SESSION_INDEX_TTL("plugins.query.executionengine.spark.session.index.ttl"),
+    RESULT_INDEX_TTL("plugins.query.executionengine.spark.result.index.ttl"),
+    AUTO_INDEX_MANAGEMENT_ENABLED(
+        "plugins.query.executionengine.spark.auto_index_management.enabled");
 
     @Getter private final String keyValue;
 

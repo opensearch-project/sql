@@ -1,14 +1,19 @@
 package org.opensearch.sql.datasources.transport;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.fail;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+import static org.opensearch.sql.common.setting.Settings.Key.DATASOURCES_LIMIT;
 
 import java.util.HashSet;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.Answers;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
 import org.mockito.Mock;
@@ -21,6 +26,7 @@ import org.opensearch.sql.datasource.model.DataSourceType;
 import org.opensearch.sql.datasources.model.transport.CreateDataSourceActionRequest;
 import org.opensearch.sql.datasources.model.transport.CreateDataSourceActionResponse;
 import org.opensearch.sql.datasources.service.DataSourceServiceImpl;
+import org.opensearch.sql.opensearch.setting.OpenSearchSettings;
 import org.opensearch.tasks.Task;
 import org.opensearch.transport.TransportService;
 
@@ -29,9 +35,13 @@ public class TransportCreateDataSourceActionTest {
 
   @Mock private TransportService transportService;
   @Mock private TransportCreateDataSourceAction action;
-  @Mock private DataSourceServiceImpl dataSourceService;
+
+  @Mock(answer = Answers.RETURNS_DEEP_STUBS)
+  private DataSourceServiceImpl dataSourceService;
+
   @Mock private Task task;
   @Mock private ActionListener<CreateDataSourceActionResponse> actionListener;
+  @Mock private OpenSearchSettings settings;
 
   @Captor
   private ArgumentCaptor<CreateDataSourceActionResponse>
@@ -43,7 +53,9 @@ public class TransportCreateDataSourceActionTest {
   public void setUp() {
     action =
         new TransportCreateDataSourceAction(
-            transportService, new ActionFilters(new HashSet<>()), dataSourceService);
+            transportService, new ActionFilters(new HashSet<>()), dataSourceService, settings);
+    when(dataSourceService.getDataSourceMetadata(false).size()).thenReturn(1);
+    when(settings.getSettingValue(DATASOURCES_LIMIT)).thenReturn(20);
   }
 
   @Test
@@ -78,5 +90,31 @@ public class TransportCreateDataSourceActionTest {
     Exception exception = exceptionArgumentCaptor.getValue();
     Assertions.assertTrue(exception instanceof RuntimeException);
     Assertions.assertEquals("Error", exception.getMessage());
+  }
+
+  @Test
+  public void testDataSourcesLimit() {
+    DataSourceMetadata dataSourceMetadata = new DataSourceMetadata();
+    dataSourceMetadata.setName("test_datasource");
+    dataSourceMetadata.setConnector(DataSourceType.PROMETHEUS);
+    CreateDataSourceActionRequest request = new CreateDataSourceActionRequest(dataSourceMetadata);
+    when(dataSourceService.getDataSourceMetadata(false).size()).thenReturn(1);
+    when(settings.getSettingValue(DATASOURCES_LIMIT)).thenReturn(1);
+
+    action.doExecute(
+        task,
+        request,
+        new ActionListener<CreateDataSourceActionResponse>() {
+          @Override
+          public void onResponse(CreateDataSourceActionResponse createDataSourceActionResponse) {
+            fail();
+          }
+
+          @Override
+          public void onFailure(Exception e) {
+            assertEquals("domain concurrent datasources can not exceed 1", e.getMessage());
+          }
+        });
+    verify(dataSourceService, times(0)).createDataSource(dataSourceMetadata);
   }
 }

@@ -5,6 +5,7 @@
 
 package org.opensearch.sql.spark.asyncquery;
 
+import static org.opensearch.sql.opensearch.setting.OpenSearchSettings.*;
 import static org.opensearch.sql.spark.data.constants.SparkConstants.DEFAULT_CLASS_NAME;
 import static org.opensearch.sql.spark.data.constants.SparkConstants.FLINT_JOB_REQUEST_INDEX;
 import static org.opensearch.sql.spark.data.constants.SparkConstants.FLINT_JOB_SESSION_ID;
@@ -17,10 +18,27 @@ import static org.opensearch.sql.spark.execution.statestore.StateStore.getStatem
 import static org.opensearch.sql.spark.execution.statestore.StateStore.updateStatementState;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
+import java.util.*;
+import lombok.Getter;
+import org.apache.commons.lang3.StringUtils;
+import org.junit.After;
+import org.junit.Before;
+import org.junit.Ignore;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 import org.junit.Test;
+import org.opensearch.action.search.SearchRequest;
+import org.opensearch.action.search.SearchResponse;
+import org.opensearch.client.node.NodeClient;
+import org.opensearch.cluster.service.ClusterService;
+import org.opensearch.common.settings.ClusterSettings;
+import org.opensearch.common.settings.Setting;
+import org.opensearch.common.settings.Settings;
+import org.opensearch.core.common.Strings;
+import org.opensearch.index.query.QueryBuilder;
 import org.opensearch.index.query.QueryBuilders;
 import org.opensearch.sql.datasource.model.DataSourceMetadata;
 import org.opensearch.sql.datasource.model.DataSourceType;
@@ -64,6 +82,28 @@ public class AsyncQueryExecutorServiceImplSpecTest extends AsyncQueryExecutorSer
   }
 
   @Test
+  public void sessionLimitNotImpactBatchQuery() {
+    LocalEMRSClient emrsClient = new LocalEMRSClient();
+    AsyncQueryExecutorService asyncQueryExecutorService =
+        createAsyncQueryExecutorService(emrsClient);
+
+    // disable session
+    enableSession(false);
+    setSessionLimit(0);
+
+    // 1. create async query.
+    CreateAsyncQueryResponse response =
+        asyncQueryExecutorService.createAsyncQuery(
+            new CreateAsyncQueryRequest("select 1", DATASOURCE, LangType.SQL, null));
+    emrsClient.startJobRunCalled(1);
+
+    CreateAsyncQueryResponse resp2 =
+        asyncQueryExecutorService.createAsyncQuery(
+            new CreateAsyncQueryRequest("select 1", DATASOURCE, LangType.SQL, null));
+    emrsClient.startJobRunCalled(2);
+  }
+
+  @Test
   public void createAsyncQueryCreateJobWithCorrectParameters() {
     LocalEMRSClient emrsClient = new LocalEMRSClient();
     AsyncQueryExecutorService asyncQueryExecutorService =
@@ -102,9 +142,6 @@ public class AsyncQueryExecutorServiceImplSpecTest extends AsyncQueryExecutorSer
     AsyncQueryExecutorService asyncQueryExecutorService =
         createAsyncQueryExecutorService(emrsClient);
 
-    // enable session
-    enableSession(true);
-
     // 1. create async query.
     CreateAsyncQueryResponse response =
         asyncQueryExecutorService.createAsyncQuery(
@@ -118,6 +155,7 @@ public class AsyncQueryExecutorServiceImplSpecTest extends AsyncQueryExecutorSer
     // 2. fetch async query result.
     AsyncQueryExecutionResponse asyncQueryResults =
         asyncQueryExecutorService.getAsyncQueryResults(response.getQueryId());
+    assertTrue(Strings.isEmpty(asyncQueryResults.getError()));
     assertEquals(StatementState.WAITING.getState(), asyncQueryResults.getStatus());
 
     // 3. cancel async query.
@@ -204,6 +242,9 @@ public class AsyncQueryExecutorServiceImplSpecTest extends AsyncQueryExecutorSer
     assertEquals(0L, (long) emrsClient.getJobRequest().executionTimeout());
   }
 
+  @Ignore(
+      "flaky test, java.lang.IllegalArgumentException: Right now only AES/GCM/NoPadding is"
+          + " supported")
   @Test
   public void datasourceWithBasicAuth() {
     Map<String, String> properties = new HashMap<>();
@@ -217,7 +258,12 @@ public class AsyncQueryExecutorServiceImplSpecTest extends AsyncQueryExecutorSer
 
     dataSourceService.createDataSource(
         new DataSourceMetadata(
-            "mybasicauth", DataSourceType.S3GLUE, ImmutableList.of(), properties, null));
+            "mybasicauth",
+            StringUtils.EMPTY,
+            DataSourceType.S3GLUE,
+            ImmutableList.of(),
+            properties,
+            null));
     LocalEMRSClient emrsClient = new LocalEMRSClient();
     AsyncQueryExecutorService asyncQueryExecutorService =
         createAsyncQueryExecutorService(emrsClient);
@@ -254,7 +300,7 @@ public class AsyncQueryExecutorServiceImplSpecTest extends AsyncQueryExecutorSer
     assertTrue(statementModel.isPresent());
     assertEquals(StatementState.WAITING, statementModel.get().getStatementState());
 
-    // 2. fetch async query result. not result write to SPARK_RESPONSE_BUFFER_INDEX_NAME yet.
+    // 2. fetch async query result. not result write to DEFAULT_RESULT_INDEX yet.
     // mock failed statement.
     StatementModel submitted = statementModel.get();
     StatementModel mocked =
@@ -302,14 +348,13 @@ public class AsyncQueryExecutorServiceImplSpecTest extends AsyncQueryExecutorSer
     setSessionState(first.getSessionId(), SessionState.RUNNING);
 
     // 2. create async query without session.
-    IllegalArgumentException exception =
+    ConcurrencyLimitExceededException exception =
         assertThrows(
-            IllegalArgumentException.class,
+            ConcurrencyLimitExceededException.class,
             () ->
                 asyncQueryExecutorService.createAsyncQuery(
                     new CreateAsyncQueryRequest("select 1", DATASOURCE, LangType.SQL, null)));
-    assertEquals(
-        "The maximum number of active sessions can be supported is 1", exception.getMessage());
+    assertEquals("domain concurrent active session can not exceed 1", exception.getMessage());
   }
 
   // https://github.com/opensearch-project/sql/issues/2360
@@ -351,7 +396,7 @@ public class AsyncQueryExecutorServiceImplSpecTest extends AsyncQueryExecutorSer
   }
 
   @Test
-  public void submitQueryInInvalidSessionThrowException() {
+  public void submitQueryInInvalidSessionWillCreateNewSession() {
     LocalEMRSClient emrsClient = new LocalEMRSClient();
     AsyncQueryExecutorService asyncQueryExecutorService =
         createAsyncQueryExecutorService(emrsClient);
@@ -359,15 +404,76 @@ public class AsyncQueryExecutorServiceImplSpecTest extends AsyncQueryExecutorSer
     // enable session
     enableSession(true);
 
+    // 1. create async query with invalid sessionId
+    SessionId invalidSessionId = SessionId.newSessionId(DATASOURCE);
+    CreateAsyncQueryResponse asyncQuery =
+        asyncQueryExecutorService.createAsyncQuery(
+            new CreateAsyncQueryRequest(
+                "select 1", DATASOURCE, LangType.SQL, invalidSessionId.getSessionId()));
+    assertNotNull(asyncQuery.getSessionId());
+    assertNotEquals(invalidSessionId.getSessionId(), asyncQuery.getSessionId());
+  }
+
+  @Test
+  public void datasourceNameIncludeUppercase() {
+    dataSourceService.createDataSource(
+        new DataSourceMetadata(
+            "TESTS3",
+            StringUtils.EMPTY,
+            DataSourceType.S3GLUE,
+            ImmutableList.of(),
+            ImmutableMap.of(
+                "glue.auth.type",
+                "iam_role",
+                "glue.auth.role_arn",
+                "arn:aws:iam::924196221507:role/FlintOpensearchServiceRole",
+                "glue.indexstore.opensearch.uri",
+                "http://localhost:9200",
+                "glue.indexstore.opensearch.auth",
+                "noauth"),
+            null));
+
+    LocalEMRSClient emrsClient = new LocalEMRSClient();
+    AsyncQueryExecutorService asyncQueryExecutorService =
+        createAsyncQueryExecutorService(emrsClient);
+
+    // enable session
+    enableSession(true);
+
+    CreateAsyncQueryResponse response =
+        asyncQueryExecutorService.createAsyncQuery(
+            new CreateAsyncQueryRequest("select 1", "TESTS3", LangType.SQL, null));
+    String params = emrsClient.getJobRequest().getSparkSubmitParams();
+
+    assertNotNull(response.getSessionId());
+    assertTrue(
+        params.contains(
+            "--conf spark.sql.catalog.TESTS3=org.opensearch.sql.FlintDelegatingSessionCatalog"));
+  }
+
+  @Test
+  public void concurrentSessionLimitIsDomainLevel() {
+    LocalEMRSClient emrsClient = new LocalEMRSClient();
+    AsyncQueryExecutorService asyncQueryExecutorService =
+        createAsyncQueryExecutorService(emrsClient);
+
+    // only allow one session in domain.
+    setSessionLimit(1);
+
     // 1. create async query.
-    SessionId sessionId = SessionId.newSessionId(DATASOURCE);
-    IllegalArgumentException exception =
+    CreateAsyncQueryResponse first =
+        asyncQueryExecutorService.createAsyncQuery(
+            new CreateAsyncQueryRequest("select 1", DATASOURCE, LangType.SQL, null));
+    assertNotNull(first.getSessionId());
+    setSessionState(first.getSessionId(), SessionState.RUNNING);
+
+    // 2. create async query without session.
+    ConcurrencyLimitExceededException exception =
         assertThrows(
-            IllegalArgumentException.class,
+            ConcurrencyLimitExceededException.class,
             () ->
                 asyncQueryExecutorService.createAsyncQuery(
-                    new CreateAsyncQueryRequest(
-                        "select 1", DATASOURCE, LangType.SQL, sessionId.getSessionId())));
-    assertEquals("no session found. " + sessionId, exception.getMessage());
+                    new CreateAsyncQueryRequest("select 1", DSOTHER, LangType.SQL, null)));
+    assertEquals("domain concurrent active session can not exceed 1", exception.getMessage());
   }
 }

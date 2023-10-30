@@ -5,6 +5,8 @@
 
 package org.opensearch.sql.spark.dispatcher.model;
 
+import static org.apache.commons.lang3.StringUtils.strip;
+
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import org.apache.commons.lang3.StringUtils;
@@ -83,32 +85,19 @@ public class IndexQueryDetails {
     switch (getIndexType()) {
       case COVERING:
         indexName =
-            "flint"
+            "flint_"
+                + fullyQualifiedTableName.toFlintName()
                 + "_"
-                + StringUtils.strip(fullyQualifiedTableName.getDatasourceName(), STRIP_CHARS)
-                + "_"
-                + StringUtils.strip(fullyQualifiedTableName.getSchemaName(), STRIP_CHARS)
-                + "_"
-                + StringUtils.strip(fullyQualifiedTableName.getTableName(), STRIP_CHARS)
-                + "_"
-                + StringUtils.strip(getIndexName(), STRIP_CHARS)
+                + strip(getIndexName(), STRIP_CHARS)
                 + "_"
                 + getIndexType().getSuffix();
         break;
       case SKIPPING:
         indexName =
-            "flint"
-                + "_"
-                + StringUtils.strip(fullyQualifiedTableName.getDatasourceName(), STRIP_CHARS)
-                + "_"
-                + StringUtils.strip(fullyQualifiedTableName.getSchemaName(), STRIP_CHARS)
-                + "_"
-                + StringUtils.strip(fullyQualifiedTableName.getTableName(), STRIP_CHARS)
-                + "_"
-                + getIndexType().getSuffix();
+            "flint_" + fullyQualifiedTableName.toFlintName() + "_" + getIndexType().getSuffix();
         break;
       case MATERIALIZED_VIEW:
-        indexName = "flint" + "_" + StringUtils.strip(getMvName(), STRIP_CHARS).toLowerCase();
+        indexName = "flint_" + new FullyQualifiedTableName(mvName).toFlintName();
         break;
     }
     return indexName.toLowerCase();

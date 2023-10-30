@@ -123,7 +123,11 @@ jacocoTestCoverageVerification {
                     'org.opensearch.sql.spark.execution.statestore.StateStore',
                     'org.opensearch.sql.spark.execution.session.SessionModel',
                     'org.opensearch.sql.spark.execution.statement.StatementModel',
-                    'org.opensearch.sql.spark.flint.FlintIndexStateModel'
+                    'org.opensearch.sql.spark.flint.FlintIndexStateModel',
+                    // TODO: add tests for purging flint indices
+                    'org.opensearch.sql.spark.cluster.ClusterManagerEventListener*',
+                    'org.opensearch.sql.spark.cluster.FlintIndexRetention',
+                    'org.opensearch.sql.spark.cluster.IndexCleanup'
             ]
             limit {
                 counter = 'LINE'

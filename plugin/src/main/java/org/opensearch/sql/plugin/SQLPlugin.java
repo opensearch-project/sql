@@ -15,6 +15,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import java.security.AccessController;
 import java.security.PrivilegedAction;
+import java.time.Clock;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
@@ -89,6 +90,7 @@ import org.opensearch.sql.spark.asyncquery.AsyncQueryJobMetadataStorageService;
 import org.opensearch.sql.spark.asyncquery.OpensearchAsyncQueryJobMetadataStorageService;
 import org.opensearch.sql.spark.client.EMRServerlessClient;
 import org.opensearch.sql.spark.client.EmrServerlessClientImpl;
+import org.opensearch.sql.spark.cluster.ClusterManagerEventListener;
 import org.opensearch.sql.spark.config.SparkExecutionEngineConfig;
 import org.opensearch.sql.spark.config.SparkExecutionEngineConfigSupplier;
 import org.opensearch.sql.spark.config.SparkExecutionEngineConfigSupplierImpl;
@@ -96,6 +98,7 @@ import org.opensearch.sql.spark.dispatcher.SparkQueryDispatcher;
 import org.opensearch.sql.spark.execution.session.SessionManager;
 import org.opensearch.sql.spark.execution.statestore.StateStore;
 import org.opensearch.sql.spark.flint.FlintIndexMetadataReaderImpl;
+import org.opensearch.sql.spark.leasemanager.DefaultLeaseManager;
 import org.opensearch.sql.spark.response.JobExecutionResponseReader;
 import org.opensearch.sql.spark.rest.RestAsyncQueryManagementAction;
 import org.opensearch.sql.spark.storage.SparkStorageFactory;
@@ -245,7 +248,18 @@ public class SQLPlugin extends Plugin implements ActionPlugin, ScriptPlugin {
         });
 
     injector = modules.createInjector();
-    return ImmutableList.of(dataSourceService, asyncQueryExecutorService);
+    ClusterManagerEventListener clusterManagerEventListener =
+        new ClusterManagerEventListener(
+            clusterService,
+            threadPool,
+            client,
+            Clock.systemUTC(),
+            OpenSearchSettings.SESSION_INDEX_TTL_SETTING,
+            OpenSearchSettings.RESULT_INDEX_TTL_SETTING,
+            OpenSearchSettings.AUTO_INDEX_MANAGEMENT_ENABLED_SETTING,
+            environment.settings());
+    return ImmutableList.of(
+        dataSourceService, asyncQueryExecutorService, clusterManagerEventListener, pluginSettings);
   }
 
   @Override
@@ -321,7 +335,7 @@ public class SQLPlugin extends Plugin implements ActionPlugin, ScriptPlugin {
             new FlintIndexMetadataReaderImpl(client),
             client,
             new SessionManager(stateStore, emrServerlessClient, pluginSettings),
-            stateStore);
+            new DefaultLeaseManager(pluginSettings, stateStore));
     return new AsyncQueryExecutorServiceImpl(
         asyncQueryJobMetadataStorageService,
         sparkQueryDispatcher,
