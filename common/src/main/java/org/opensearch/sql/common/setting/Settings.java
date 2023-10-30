@@ -34,6 +34,7 @@ public abstract class Settings {
     QUERY_SIZE_LIMIT("plugins.query.size_limit"),
     ENCYRPTION_MASTER_KEY("plugins.query.datasources.encryption.masterkey"),
     DATASOURCES_URI_HOSTS_DENY_LIST("plugins.query.datasources.uri.hosts.denylist"),
+    DATASOURCES_LIMIT("plugins.query.datasources.limit"),
 
     METRICS_ROLLING_WINDOW("plugins.query.metrics.rolling_window"),
     METRICS_ROLLING_INTERVAL("plugins.query.metrics.rolling_interval"),
