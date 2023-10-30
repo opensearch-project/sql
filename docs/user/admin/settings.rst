@@ -348,12 +348,12 @@ SQL query::
     }
 
 plugins.query.executionengine.spark.session.limit
-===================================================
+==================================================
 
 Description
 -----------
 
-Each datasource can have maximum 100 sessions running in parallel by default. You can increase limit by this setting.
+Each cluster can have maximum 100 sessions running in parallel by default. You can increase limit by this setting.
 
 1. The default value is 100.
 2. This setting is node scope.
@@ -377,6 +377,39 @@ SQL query::
                   "limit": "200"
                 }
               }
+            }
+          }
+        }
+      }
+    }
+
+
+plugins.query.datasources.limit
+===============================
+
+Description
+-----------
+
+Each cluster can have maximum 20 datasources. You can increase limit by this setting.
+
+1. The default value is 20.
+2. This setting is node scope.
+3. This setting can be updated dynamically.
+
+You can update the setting with a new value like this.
+
+SQL query::
+
+    sh$ curl -sS -H 'Content-Type: application/json' -X PUT localhost:9200/_plugins/_query/settings \
+    ... -d '{"transient":{"plugins.query.datasources.limit":25}}'
+    {
+      "acknowledged": true,
+      "persistent": {},
+      "transient": {
+        "plugins": {
+          "query": {
+            "datasources": {
+              "limit": "25"
             }
           }
         }
