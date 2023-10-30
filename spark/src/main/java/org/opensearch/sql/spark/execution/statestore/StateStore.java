@@ -63,6 +63,7 @@ public class StateStore {
       datasourceName ->
           String.format(
               "%s_%s", SPARK_REQUEST_BUFFER_INDEX_NAME, datasourceName.toLowerCase(Locale.ROOT));
+  public static String ALL_DATASOURCE = "*";
 
   private static final Logger LOG = LogManager.getLogger();
 
@@ -192,9 +193,6 @@ public class StateStore {
   }
 
   private long count(String indexName, QueryBuilder query) {
-    if (!this.clusterService.state().routingTable().hasIndex(indexName)) {
-      return 0;
-    }
     SearchSourceBuilder searchSourceBuilder = new SearchSourceBuilder();
     searchSourceBuilder.query(query);
     searchSourceBuilder.size(0);
@@ -301,7 +299,6 @@ public class StateStore {
                 .must(
                     QueryBuilders.termQuery(
                         SessionModel.SESSION_TYPE, SessionType.INTERACTIVE.getSessionType()))
-                .must(QueryBuilders.termQuery(SessionModel.DATASOURCE_NAME, datasourceName))
                 .must(
                     QueryBuilders.termQuery(
                         SessionModel.SESSION_STATE, SessionState.RUNNING.getSessionState())));
