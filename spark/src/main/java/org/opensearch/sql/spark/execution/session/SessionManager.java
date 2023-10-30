@@ -5,7 +5,6 @@
 
 package org.opensearch.sql.spark.execution.session;
 
-import static org.opensearch.sql.common.setting.Settings.Key.SPARK_EXECUTION_SESSION_ENABLED;
 import static org.opensearch.sql.spark.execution.session.SessionId.newSessionId;
 
 import java.util.Optional;
@@ -52,7 +51,8 @@ public class SessionManager {
     return Optional.empty();
   }
 
+  // todo, keep it only for testing, will remove it later.
   public boolean isEnabled() {
-    return settings.getSettingValue(SPARK_EXECUTION_SESSION_ENABLED);
+    return true;
   }
 }
