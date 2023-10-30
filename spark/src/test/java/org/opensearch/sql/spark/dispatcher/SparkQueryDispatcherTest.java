@@ -74,6 +74,7 @@ import org.opensearch.sql.spark.execution.statement.StatementState;
 import org.opensearch.sql.spark.flint.FlintIndexMetadata;
 import org.opensearch.sql.spark.flint.FlintIndexMetadataReader;
 import org.opensearch.sql.spark.flint.FlintIndexType;
+import org.opensearch.sql.spark.leasemanager.LeaseManager;
 import org.opensearch.sql.spark.response.JobExecutionResponseReader;
 import org.opensearch.sql.spark.rest.model.LangType;
 
@@ -92,6 +93,8 @@ public class SparkQueryDispatcherTest {
   @Mock private FlintIndexMetadata flintIndexMetadata;
 
   @Mock private SessionManager sessionManager;
+
+  @Mock private LeaseManager leaseManager;
 
   @Mock(answer = RETURNS_DEEP_STUBS)
   private Session session;
@@ -115,7 +118,8 @@ public class SparkQueryDispatcherTest {
             jobExecutionResponseReader,
             flintIndexMetadataReader,
             openSearchClient,
-            sessionManager);
+            sessionManager,
+            leaseManager);
   }
 
   @Test
@@ -636,6 +640,7 @@ public class SparkQueryDispatcherTest {
     HashMap<String, String> tags = new HashMap<>();
     tags.put(DATASOURCE_TAG_KEY, "my_glue");
     tags.put(CLUSTER_NAME_TAG_KEY, TEST_CLUSTER_NAME);
+    tags.put(JOB_TYPE_TAG_KEY, JobType.BATCH.getText());
     String query = "SHOW MATERIALIZED VIEW IN mys3.default";
     String sparkSubmitParameters =
         constructExpectedSparkSubmitParameterString(
@@ -672,7 +677,7 @@ public class SparkQueryDispatcherTest {
     StartJobRequest expected =
         new StartJobRequest(
             query,
-            "TEST_CLUSTER:index-query",
+            "TEST_CLUSTER:non-index-query",
             EMRS_APPLICATION_ID,
             EMRS_EXECUTION_ROLE,
             sparkSubmitParameters,
@@ -690,6 +695,7 @@ public class SparkQueryDispatcherTest {
     HashMap<String, String> tags = new HashMap<>();
     tags.put(DATASOURCE_TAG_KEY, "my_glue");
     tags.put(CLUSTER_NAME_TAG_KEY, TEST_CLUSTER_NAME);
+    tags.put(JOB_TYPE_TAG_KEY, JobType.BATCH.getText());
     String query = "REFRESH SKIPPING INDEX ON my_glue.default.http_logs";
     String sparkSubmitParameters =
         constructExpectedSparkSubmitParameterString(
@@ -702,7 +708,7 @@ public class SparkQueryDispatcherTest {
     when(emrServerlessClient.startJobRun(
             new StartJobRequest(
                 query,
-                "TEST_CLUSTER:index-query",
+                "TEST_CLUSTER:non-index-query",
                 EMRS_APPLICATION_ID,
                 EMRS_EXECUTION_ROLE,
                 sparkSubmitParameters,
@@ -726,7 +732,7 @@ public class SparkQueryDispatcherTest {
     StartJobRequest expected =
         new StartJobRequest(
             query,
-            "TEST_CLUSTER:index-query",
+            "TEST_CLUSTER:non-index-query",
             EMRS_APPLICATION_ID,
             EMRS_EXECUTION_ROLE,
             sparkSubmitParameters,
@@ -744,6 +750,7 @@ public class SparkQueryDispatcherTest {
     HashMap<String, String> tags = new HashMap<>();
     tags.put(DATASOURCE_TAG_KEY, "my_glue");
     tags.put(CLUSTER_NAME_TAG_KEY, TEST_CLUSTER_NAME);
+    tags.put(JOB_TYPE_TAG_KEY, JobType.BATCH.getText());
     String query = "DESCRIBE SKIPPING INDEX ON mys3.default.http_logs";
     String sparkSubmitParameters =
         constructExpectedSparkSubmitParameterString(
@@ -780,7 +787,7 @@ public class SparkQueryDispatcherTest {
     StartJobRequest expected =
         new StartJobRequest(
             query,
-            "TEST_CLUSTER:index-query",
+            "TEST_CLUSTER:non-index-query",
             EMRS_APPLICATION_ID,
             EMRS_EXECUTION_ROLE,
             sparkSubmitParameters,
@@ -977,15 +984,6 @@ public class SparkQueryDispatcherTest {
 
   @Test
   void testGetQueryResponseWithSuccess() {
-    SparkQueryDispatcher sparkQueryDispatcher =
-        new SparkQueryDispatcher(
-            emrServerlessClient,
-            dataSourceService,
-            dataSourceUserAuthorizationHelper,
-            jobExecutionResponseReader,
-            flintIndexMetadataReader,
-            openSearchClient,
-            sessionManager);
     JSONObject queryResult = new JSONObject();
     Map<String, Object> resultMap = new HashMap<>();
     resultMap.put(STATUS_FIELD, "SUCCESS");
@@ -1013,16 +1011,6 @@ public class SparkQueryDispatcherTest {
   // todo. refactor query process logic in plugin.
   @Test
   void testGetQueryResponseOfDropIndex() {
-    SparkQueryDispatcher sparkQueryDispatcher =
-        new SparkQueryDispatcher(
-            emrServerlessClient,
-            dataSourceService,
-            dataSourceUserAuthorizationHelper,
-            jobExecutionResponseReader,
-            flintIndexMetadataReader,
-            openSearchClient,
-            sessionManager);
-
     String jobId =
         new SparkQueryDispatcher.DropIndexResult(JobRunState.SUCCESS.toString()).toJobId();
 

@@ -16,6 +16,7 @@ repositories {
 dependencies {
     implementation project(':core')
     implementation project(':protocol')
+    implementation project(':opensearch')
     implementation group: 'org.opensearch', name: 'opensearch', version: "${opensearch_version}"
     implementation group: 'org.opensearch', name: 'opensearch-x-content', version: "${opensearch_version}"
     implementation group: 'org.opensearch', name: 'common-utils', version: "${opensearch_build}"
@@ -35,7 +36,7 @@ dependencies {
 test {
     useJUnitPlatform()
     testLogging {
-        events "passed", "skipped", "failed"
+        events "skipped", "failed"
         exceptionFormat "full"
     }
 }
