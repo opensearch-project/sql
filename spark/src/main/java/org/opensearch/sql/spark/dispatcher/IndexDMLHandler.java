@@ -5,11 +5,9 @@
 
 package org.opensearch.sql.spark.dispatcher;
 
-import static org.opensearch.sql.spark.data.constants.SparkConstants.SPARK_RESPONSE_BUFFER_INDEX_NAME;
 import static org.opensearch.sql.spark.execution.statestore.StateStore.createIndexDMLResult;
 
 import com.amazonaws.services.emrserverless.model.JobRunState;
-import java.util.Optional;
 import lombok.RequiredArgsConstructor;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -21,6 +19,7 @@ import org.opensearch.sql.datasources.auth.DataSourceUserAuthorizationHelperImpl
 import org.opensearch.sql.spark.asyncquery.model.AsyncQueryId;
 import org.opensearch.sql.spark.asyncquery.model.AsyncQueryJobMetadata;
 import org.opensearch.sql.spark.client.EMRServerlessClient;
+import org.opensearch.sql.spark.dispatcher.model.DispatchQueryContext;
 import org.opensearch.sql.spark.dispatcher.model.DispatchQueryRequest;
 import org.opensearch.sql.spark.dispatcher.model.DispatchQueryResponse;
 import org.opensearch.sql.spark.dispatcher.model.IndexDMLResult;
@@ -58,11 +57,11 @@ public class IndexDMLHandler extends AsyncQueryHandler {
     return DROP_INDEX_JOB_ID.equalsIgnoreCase(jobId);
   }
 
-  public DispatchQueryResponse handle(
-      DispatchQueryRequest dispatchQueryRequest, IndexQueryDetails indexDetails) {
-    DataSourceMetadata dataSourceMetadata =
-        dataSourceService.getRawDataSourceMetadata(dispatchQueryRequest.getDatasource());
-    dataSourceUserAuthorizationHelper.authorizeDataSource(dataSourceMetadata);
+  @Override
+  public DispatchQueryResponse submit(
+      DispatchQueryRequest dispatchQueryRequest, DispatchQueryContext context) {
+    DataSourceMetadata dataSourceMetadata = context.getDataSourceMetadata();
+    IndexQueryDetails indexDetails = context.getIndexQueryDetails();
     FlintIndexMetadata indexMetadata = flintIndexMetadataReader.getFlintIndexMetadata(indexDetails);
     // if index is created without auto refresh. there is no job to cancel.
     String status = JobRunState.FAILED.toString();
@@ -92,9 +91,7 @@ public class IndexDMLHandler extends AsyncQueryHandler {
             dispatchQueryRequest.getDatasource(),
             System.currentTimeMillis() - startTime,
             System.currentTimeMillis());
-    String resultIndex =
-        Optional.ofNullable(dataSourceMetadata.getResultIndex())
-            .orElse(SPARK_RESPONSE_BUFFER_INDEX_NAME);
+    String resultIndex = dataSourceMetadata.getResultIndex();
     createIndexDMLResult(stateStore, resultIndex).apply(indexDMLResult);
 
     return new DispatchQueryResponse(asyncQueryId, DROP_INDEX_JOB_ID, resultIndex, null);

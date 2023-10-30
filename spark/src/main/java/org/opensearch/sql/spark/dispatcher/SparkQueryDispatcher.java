@@ -5,27 +5,12 @@
 
 package org.opensearch.sql.spark.dispatcher;
 
-import static org.opensearch.sql.spark.data.constants.SparkConstants.DATA_FIELD;
-import static org.opensearch.sql.spark.data.constants.SparkConstants.ERROR_FIELD;
-import static org.opensearch.sql.spark.data.constants.SparkConstants.FLINT_SESSION_CLASS_NAME;
-import static org.opensearch.sql.spark.data.constants.SparkConstants.STATUS_FIELD;
-
-import com.amazonaws.services.emrserverless.model.JobRunState;
-import java.nio.charset.StandardCharsets;
-import java.util.Base64;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.concurrent.ExecutionException;
 import lombok.AllArgsConstructor;
-import lombok.Getter;
-import lombok.RequiredArgsConstructor;
-import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.json.JSONArray;
 import org.json.JSONObject;
-import org.opensearch.action.admin.indices.delete.DeleteIndexRequest;
-import org.opensearch.action.support.master.AcknowledgedResponse;
 import org.opensearch.client.Client;
 import org.opensearch.sql.datasource.DataSourceService;
 import org.opensearch.sql.datasource.model.DataSourceMetadata;
@@ -40,7 +25,6 @@ import org.opensearch.sql.spark.dispatcher.model.IndexQueryActionType;
 import org.opensearch.sql.spark.dispatcher.model.IndexQueryDetails;
 import org.opensearch.sql.spark.execution.session.SessionManager;
 import org.opensearch.sql.spark.execution.statestore.StateStore;
-import org.opensearch.sql.spark.flint.FlintIndexMetadata;
 import org.opensearch.sql.spark.flint.FlintIndexMetadataReader;
 import org.opensearch.sql.spark.leasemanager.LeaseManager;
 import org.opensearch.sql.spark.response.JobExecutionResponseReader;
@@ -99,8 +83,7 @@ public class SparkQueryDispatcher {
       contextBuilder.indexQueryDetails(indexQueryDetails);
 
       if (IndexQueryActionType.DROP.equals(indexQueryDetails.getIndexQueryActionType())) {
-        // todo, fix in DROP INDEX PR.
-        return handleDropIndexQuery(dispatchQueryRequest, indexQueryDetails);
+        asyncQueryHandler = createIndexDMLHandler();
       } else if (IndexQueryActionType.CREATE.equals(indexQueryDetails.getIndexQueryActionType())
           && indexQueryDetails.isAutoRefresh()) {
         asyncQueryHandler =
@@ -128,9 +111,8 @@ public class SparkQueryDispatcher {
   public String cancelJob(AsyncQueryJobMetadata asyncQueryJobMetadata) {
     AsyncQueryHandler queryHandler;
     if (asyncQueryJobMetadata.getSessionId() != null) {
-      return new InteractiveQueryHandler(sessionManager, jobExecutionResponseReader, leaseManager)
-          .cancelJob(asyncQueryJobMetadata);
-      queryHandler = new InteractiveQueryHandler(sessionManager, jobExecutionResponseReader);
+      queryHandler =
+          new InteractiveQueryHandler(sessionManager, jobExecutionResponseReader, leaseManager);
     } else if (IndexDMLHandler.isIndexDMLQuery(asyncQueryJobMetadata.getJobId())) {
       queryHandler = createIndexDMLHandler();
     } else {
@@ -162,40 +144,6 @@ public class SparkQueryDispatcher {
           .getFullyQualifiedTableName()
           .setDatasourceName(dispatchQueryRequest.getDatasource());
     }
-  }
-
-  private DispatchQueryResponse handleDropIndexQuery(
-      DispatchQueryRequest dispatchQueryRequest, IndexQueryDetails indexQueryDetails) {
-    DataSourceMetadata dataSourceMetadata =
-        this.dataSourceService.getRawDataSourceMetadata(dispatchQueryRequest.getDatasource());
-    FlintIndexMetadata indexMetadata =
-        flintIndexMetadataReader.getFlintIndexMetadata(indexQueryDetails);
-    // if index is created without auto refresh. there is no job to cancel.
-    String status = JobRunState.FAILED.toString();
-    try {
-      if (indexMetadata.isAutoRefresh()) {
-        emrServerlessClient.cancelJobRun(
-            dispatchQueryRequest.getApplicationId(), indexMetadata.getJobId());
-      }
-    } finally {
-      String indexName = indexQueryDetails.openSearchIndexName();
-      try {
-        AcknowledgedResponse response =
-            client.admin().indices().delete(new DeleteIndexRequest().indices(indexName)).get();
-        if (!response.isAcknowledged()) {
-          LOG.error("failed to delete index");
-        }
-        status = JobRunState.SUCCESS.toString();
-      } catch (InterruptedException | ExecutionException e) {
-        LOG.error("failed to delete index");
-      }
-    }
-    return new DispatchQueryResponse(
-        AsyncQueryId.newAsyncQueryId(dataSourceMetadata.getName()),
-        new DropIndexResult(status).toJobId(),
-        true,
-        dataSourceMetadata.getResultIndex(),
-        null);
   }
 
   private static Map<String, String> getDefaultTagsForJobSubmission(

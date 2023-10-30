@@ -7,7 +7,6 @@ package org.opensearch.sql.spark.asyncquery;
 
 import static org.opensearch.sql.opensearch.setting.OpenSearchSettings.SPARK_EXECUTION_SESSION_ENABLED_SETTING;
 import static org.opensearch.sql.opensearch.setting.OpenSearchSettings.SPARK_EXECUTION_SESSION_LIMIT_SETTING;
-import static org.opensearch.sql.spark.data.constants.SparkConstants.SPARK_RESPONSE_BUFFER_INDEX_NAME;
 import static org.opensearch.sql.spark.execution.statestore.StateStore.DATASOURCE_TO_REQUEST_INDEX;
 import static org.opensearch.sql.spark.execution.statestore.StateStore.getSession;
 import static org.opensearch.sql.spark.execution.statestore.StateStore.updateSessionState;
@@ -27,6 +26,7 @@ import java.util.List;
 import java.util.Optional;
 import lombok.Getter;
 import lombok.SneakyThrows;
+import org.apache.commons.lang3.StringUtils;
 import org.junit.After;
 import org.junit.Before;
 import org.opensearch.action.admin.indices.create.CreateIndexRequest;
@@ -59,12 +59,14 @@ import org.opensearch.sql.spark.execution.session.SessionModel;
 import org.opensearch.sql.spark.execution.session.SessionState;
 import org.opensearch.sql.spark.execution.statestore.StateStore;
 import org.opensearch.sql.spark.flint.FlintIndexMetadataReaderImpl;
+import org.opensearch.sql.spark.leasemanager.DefaultLeaseManager;
 import org.opensearch.sql.spark.response.JobExecutionResponseReader;
 import org.opensearch.sql.storage.DataSourceFactory;
 import org.opensearch.test.OpenSearchIntegTestCase;
 
 public class AsyncQueryExecutorServiceSpec extends OpenSearchIntegTestCase {
   public static final String DATASOURCE = "mys3";
+  public static final String DSOTHER = "mytest";
 
   protected ClusterService clusterService;
   protected org.opensearch.sql.common.setting.Settings pluginSettings;
@@ -92,9 +94,10 @@ public class AsyncQueryExecutorServiceSpec extends OpenSearchIntegTestCase {
     pluginSettings = new OpenSearchSettings(clusterSettings);
     client = (NodeClient) cluster().client();
     dataSourceService = createDataSourceService();
-    dataSourceService.createDataSource(
+    DataSourceMetadata dm =
         new DataSourceMetadata(
             DATASOURCE,
+            StringUtils.EMPTY,
             DataSourceType.S3GLUE,
             ImmutableList.of(),
             ImmutableMap.of(
@@ -106,9 +109,28 @@ public class AsyncQueryExecutorServiceSpec extends OpenSearchIntegTestCase {
                 "http://localhost:9200",
                 "glue.indexstore.opensearch.auth",
                 "noauth"),
-            null));
+            null);
+    dataSourceService.createDataSource(dm);
+    DataSourceMetadata otherDm =
+        new DataSourceMetadata(
+            DSOTHER,
+            StringUtils.EMPTY,
+            DataSourceType.S3GLUE,
+            ImmutableList.of(),
+            ImmutableMap.of(
+                "glue.auth.type",
+                "iam_role",
+                "glue.auth.role_arn",
+                "arn:aws:iam::924196221507:role/FlintOpensearchServiceRole",
+                "glue.indexstore.opensearch.uri",
+                "http://localhost:9200",
+                "glue.indexstore.opensearch.auth",
+                "noauth"),
+            null);
+    dataSourceService.createDataSource(otherDm);
     stateStore = new StateStore(client, clusterService);
-    createIndexWithMappings(SPARK_RESPONSE_BUFFER_INDEX_NAME, loadResultIndexMappings());
+    createIndexWithMappings(dm.getResultIndex(), loadResultIndexMappings());
+    createIndexWithMappings(otherDm.getResultIndex(), loadResultIndexMappings());
   }
 
   @After
@@ -157,6 +179,7 @@ public class AsyncQueryExecutorServiceSpec extends OpenSearchIntegTestCase {
             new FlintIndexMetadataReaderImpl(client),
             client,
             new SessionManager(stateStore, emrServerlessClient, pluginSettings),
+            new DefaultLeaseManager(pluginSettings, stateStore),
             stateStore);
     return new AsyncQueryExecutorServiceImpl(
         asyncQueryJobMetadataStorageService,

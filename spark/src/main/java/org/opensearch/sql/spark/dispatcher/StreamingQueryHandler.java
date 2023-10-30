@@ -60,7 +60,6 @@ public class StreamingQueryHandler extends BatchQueryHandler {
     return new DispatchQueryResponse(
         AsyncQueryId.newAsyncQueryId(dataSourceMetadata.getName()),
         jobId,
-        false,
         dataSourceMetadata.getResultIndex(),
         null);
   }

@@ -81,6 +81,6 @@ public class BatchQueryHandler extends AsyncQueryHandler {
             dataSourceMetadata.getResultIndex());
     String jobId = emrServerlessClient.startJobRun(startJobRequest);
     return new DispatchQueryResponse(
-        context.getQueryId(), jobId, false, dataSourceMetadata.getResultIndex(), null);
+        context.getQueryId(), jobId, dataSourceMetadata.getResultIndex(), null);
   }
 }

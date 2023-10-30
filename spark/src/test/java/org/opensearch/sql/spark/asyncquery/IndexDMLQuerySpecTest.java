@@ -31,7 +31,7 @@ public class IndexDMLQuerySpecTest extends AsyncQueryExecutorServiceSpec {
 
   private final FlintDatasetMock LEGACY_SKIPPING =
       new FlintDatasetMock(
-              "DROP SKIPPING INDEX ON" + " mys3" + ".default.http_logs",
+              "DROP SKIPPING INDEX ON mys3.default.http_logs",
               FlintIndexType.SKIPPING,
               "flint_mys3_default_http_logs_skipping_index")
           .isLegacy(true);
@@ -48,13 +48,13 @@ public class IndexDMLQuerySpecTest extends AsyncQueryExecutorServiceSpec {
 
   private final FlintDatasetMock SKIPPING =
       new FlintDatasetMock(
-              "DROP SKIPPING INDEX ON mys3" + ".default.http_logs",
+              "DROP SKIPPING INDEX ON mys3.default.http_logs",
               FlintIndexType.SKIPPING,
               "flint_mys3_default_http_logs_skipping_index")
           .latestId("skippingindexid");
   private final FlintDatasetMock COVERING =
       new FlintDatasetMock(
-              "DROP INDEX covering ON mys3" + ".default.http_logs",
+              "DROP INDEX covering ON mys3.default.http_logs",
               FlintIndexType.COVERING,
               "flint_mys3_default_http_logs_covering_index")
           .latestId("coveringid");

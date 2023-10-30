@@ -11,6 +11,7 @@ import static org.opensearch.sql.spark.execution.statestore.StateStore.activeSes
 
 import java.util.Arrays;
 import java.util.List;
+import java.util.Locale;
 import java.util.function.Predicate;
 import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.spark.dispatcher.model.JobType;
@@ -51,7 +52,8 @@ public class DefaultLeaseManager implements LeaseManager {
   public class ConcurrentSessionRule implements Rule<LeaseRequest> {
     @Override
     public String description() {
-      return String.format("domain concurrent active session can not exceed %d", sessionMaxLimit());
+      return String.format(
+          Locale.ROOT, "domain concurrent active session can not exceed %d", sessionMaxLimit());
     }
 
     @Override
