@@ -1,0 +1,44 @@
+{
+  "dynamic": "false",
+  "properties": {
+    "applicationId": {
+      "type": "keyword"
+    },
+    "dataSourceName": {
+      "type": "keyword"
+    },
+    "error": {
+      "type": "text"
+    },
+    "jobRunId": {
+      "type": "keyword"
+    },
+    "queryId": {
+      "type": "keyword"
+    },
+    "queryRunTime": {
+      "type": "long"
+    },
+    "queryText": {
+      "type": "text"
+    },
+    "result": {
+      "type": "object",
+      "enabled": false
+    },
+    "schema": {
+      "type": "object",
+      "enabled": false
+    },
+    "sessionId": {
+      "type": "keyword"
+    },
+    "status": {
+      "type": "keyword"
+    },
+    "updateTime": {
+      "type": "date",
+      "format": "strict_date_time||epoch_millis"
+    }
+  }
+}
