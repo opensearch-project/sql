@@ -38,7 +38,6 @@ public abstract class Settings {
     METRICS_ROLLING_INTERVAL("plugins.query.metrics.rolling_interval"),
     SPARK_EXECUTION_ENGINE_CONFIG("plugins.query.executionengine.spark.config"),
     CLUSTER_NAME("cluster.name"),
-    SPARK_EXECUTION_SESSION_ENABLED("plugins.query.executionengine.spark.session.enabled"),
     SPARK_EXECUTION_SESSION_LIMIT("plugins.query.executionengine.spark.session.limit"),
     SPARK_EXECUTION_REFRESH_JOB_LIMIT("plugins.query.executionengine.spark.refresh_job.limit"),
     SESSION_INDEX_TTL("plugins.query.executionengine.spark.session.index.ttl"),
