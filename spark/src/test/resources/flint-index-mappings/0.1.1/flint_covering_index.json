@@ -1,0 +1,37 @@
+{
+  "_meta": {
+    "kind": "covering",
+    "indexedColumns": [
+      {
+        "columnType": "timestamp",
+        "columnName": "time"
+      },
+      {
+        "columnType": "string",
+        "columnName": "client_ip"
+      },
+      {
+        "columnType": "int",
+        "columnName": "client_port"
+      },
+      {
+        "columnType": "string",
+        "columnName": "request_url"
+      }
+    ],
+    "name": "test",
+    "options": {
+      "auto_refresh": "true",
+      "index_settings": "{\"number_of_shards\":1,\"number_of_replicas\":1}"
+    },
+    "source": "mys3.default.http_logs",
+    "version": "0.1.0",
+    "properties": {
+      "env": {
+        "SERVERLESS_EMR_VIRTUAL_CLUSTER_ID": "00fd777k3k3ls20p",
+        "SERVERLESS_EMR_JOB_ID": "00fe3gu2tgad000q"
+      }
+    },
+    "latestId": "coveringid"
+  }
+}

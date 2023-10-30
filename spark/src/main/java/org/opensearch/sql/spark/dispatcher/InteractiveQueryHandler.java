@@ -109,7 +109,6 @@ public class InteractiveQueryHandler extends AsyncQueryHandler {
     return new DispatchQueryResponse(
         context.getQueryId(),
         session.getSessionModel().getJobId(),
-        false,
         dataSourceMetadata.getResultIndex(),
         session.getSessionId().getSessionId());
   }
