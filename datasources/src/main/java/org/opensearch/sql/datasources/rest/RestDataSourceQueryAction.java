@@ -34,6 +34,8 @@ import org.opensearch.sql.datasources.model.transport.*;
 import org.opensearch.sql.datasources.transport.*;
 import org.opensearch.sql.datasources.utils.Scheduler;
 import org.opensearch.sql.datasources.utils.XContentParserUtils;
+import org.opensearch.sql.legacy.metrics.MetricName;
+import org.opensearch.sql.legacy.utils.MetricUtils;
 
 public class RestDataSourceQueryAction extends BaseRestHandler {
 
@@ -133,7 +135,6 @@ public class RestDataSourceQueryAction extends BaseRestHandler {
 
   private RestChannelConsumer executePostRequest(RestRequest restRequest, NodeClient nodeClient)
       throws IOException {
-
     DataSourceMetadata dataSourceMetadata =
         XContentParserUtils.toDataSourceMetadata(restRequest.contentParser());
     return restChannel ->
@@ -282,8 +283,10 @@ public class RestDataSourceQueryAction extends BaseRestHandler {
     } else {
       LOG.error("Error happened during request handling", e);
       if (isClientError(e)) {
+        MetricUtils.incrementNumericalMetric(MetricName.DATASOURCE_FAILED_REQ_COUNT_CUS);
         reportError(restChannel, e, BAD_REQUEST);
       } else {
+        MetricUtils.incrementNumericalMetric(MetricName.DATASOURCE_FAILED_REQ_COUNT_SYS);
         reportError(restChannel, e, SERVICE_UNAVAILABLE);
       }
     }

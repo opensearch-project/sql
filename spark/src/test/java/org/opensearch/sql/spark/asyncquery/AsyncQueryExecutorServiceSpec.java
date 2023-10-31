@@ -5,6 +5,7 @@
 
 package org.opensearch.sql.spark.asyncquery;
 
+import static org.opensearch.sql.opensearch.setting.OpenSearchSettings.DATASOURCE_URI_HOSTS_DENY_LIST;
 import static org.opensearch.sql.opensearch.setting.OpenSearchSettings.SPARK_EXECUTION_REFRESH_JOB_LIMIT_SETTING;
 import static org.opensearch.sql.opensearch.setting.OpenSearchSettings.SPARK_EXECUTION_SESSION_LIMIT_SETTING;
 import static org.opensearch.sql.spark.execution.statestore.StateStore.DATASOURCE_TO_REQUEST_INDEX;
@@ -22,6 +23,7 @@ import com.google.common.io.Resources;
 import java.net.URL;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import lombok.Getter;
@@ -49,6 +51,8 @@ import org.opensearch.sql.datasources.glue.GlueDataSourceFactory;
 import org.opensearch.sql.datasources.service.DataSourceMetadataStorage;
 import org.opensearch.sql.datasources.service.DataSourceServiceImpl;
 import org.opensearch.sql.datasources.storage.OpenSearchDataSourceMetadataStorage;
+import org.opensearch.sql.legacy.esdomain.LocalClusterState;
+import org.opensearch.sql.legacy.metrics.Metrics;
 import org.opensearch.sql.opensearch.setting.OpenSearchSettings;
 import org.opensearch.sql.spark.client.EMRServerlessClient;
 import org.opensearch.sql.spark.client.StartJobRequest;
@@ -92,7 +96,19 @@ public class AsyncQueryExecutorServiceSpec extends OpenSearchIntegTestCase {
     clusterService = clusterService();
     clusterSettings = clusterService.getClusterSettings();
     pluginSettings = new OpenSearchSettings(clusterSettings);
+    LocalClusterState.state().setClusterService(clusterService);
+    LocalClusterState.state().setPluginSettings((OpenSearchSettings) pluginSettings);
+    Metrics.getInstance().registerDefaultMetrics();
     client = (NodeClient) cluster().client();
+    client
+        .admin()
+        .cluster()
+        .prepareUpdateSettings()
+        .setTransientSettings(
+            Settings.builder()
+                .putList(DATASOURCE_URI_HOSTS_DENY_LIST.getKey(), Collections.emptyList())
+                .build())
+        .get();
     dataSourceService = createDataSourceService();
     DataSourceMetadata dm =
         new DataSourceMetadata(
@@ -148,6 +164,13 @@ public class AsyncQueryExecutorServiceSpec extends OpenSearchIntegTestCase {
         .prepareUpdateSettings()
         .setTransientSettings(
             Settings.builder().putNull(SPARK_EXECUTION_REFRESH_JOB_LIMIT_SETTING.getKey()).build())
+        .get();
+    client
+        .admin()
+        .cluster()
+        .prepareUpdateSettings()
+        .setTransientSettings(
+            Settings.builder().putNull(DATASOURCE_URI_HOSTS_DENY_LIST.getKey()).build())
         .get();
   }
 

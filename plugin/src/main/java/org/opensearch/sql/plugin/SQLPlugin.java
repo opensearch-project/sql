@@ -7,6 +7,7 @@ package org.opensearch.sql.plugin;
 
 import static org.opensearch.sql.common.setting.Settings.Key.SPARK_EXECUTION_ENGINE_CONFIG;
 import static org.opensearch.sql.datasource.model.DataSourceMetadata.defaultOpenSearchDataSourceMetadata;
+import static org.opensearch.sql.spark.execution.statestore.StateStore.ALL_DATASOURCE;
 
 import com.amazonaws.auth.DefaultAWSCredentialsProviderChain;
 import com.amazonaws.services.emrserverless.AWSEMRServerless;
@@ -67,6 +68,7 @@ import org.opensearch.sql.datasources.storage.OpenSearchDataSourceMetadataStorag
 import org.opensearch.sql.datasources.transport.*;
 import org.opensearch.sql.legacy.esdomain.LocalClusterState;
 import org.opensearch.sql.legacy.executor.AsyncRestExecutor;
+import org.opensearch.sql.legacy.metrics.GaugeMetric;
 import org.opensearch.sql.legacy.metrics.Metrics;
 import org.opensearch.sql.legacy.plugin.RestSqlAction;
 import org.opensearch.sql.legacy.plugin.RestSqlStatsAction;
@@ -321,6 +323,7 @@ public class SQLPlugin extends Plugin implements ActionPlugin, ScriptPlugin {
       SparkExecutionEngineConfigSupplier sparkExecutionEngineConfigSupplier,
       SparkExecutionEngineConfig sparkExecutionEngineConfig) {
     StateStore stateStore = new StateStore(client, clusterService);
+    registerStateStoreMetrics(stateStore);
     AsyncQueryJobMetadataStorageService asyncQueryJobMetadataStorageService =
         new OpensearchAsyncQueryJobMetadataStorageService(stateStore);
     EMRServerlessClient emrServerlessClient =
@@ -341,6 +344,19 @@ public class SQLPlugin extends Plugin implements ActionPlugin, ScriptPlugin {
         asyncQueryJobMetadataStorageService,
         sparkQueryDispatcher,
         sparkExecutionEngineConfigSupplier);
+  }
+
+  private void registerStateStoreMetrics(StateStore stateStore) {
+    GaugeMetric<Long> activeSessionMetric =
+        new GaugeMetric<>(
+            "active_async_query_sessions_count",
+            StateStore.activeSessionsCount(stateStore, ALL_DATASOURCE));
+    GaugeMetric<Long> activeStatementMetric =
+        new GaugeMetric<>(
+            "active_async_query_statements_count",
+            StateStore.activeStatementsCount(stateStore, ALL_DATASOURCE));
+    Metrics.getInstance().registerMetric(activeSessionMetric);
+    Metrics.getInstance().registerMetric(activeStatementMetric);
   }
 
   private EMRServerlessClient createEMRServerlessClient(String region) {
