@@ -20,6 +20,8 @@ import org.opensearch.sql.datasource.model.DataSourceMetadata;
 import org.opensearch.sql.datasources.model.transport.CreateDataSourceActionRequest;
 import org.opensearch.sql.datasources.model.transport.CreateDataSourceActionResponse;
 import org.opensearch.sql.datasources.service.DataSourceServiceImpl;
+import org.opensearch.sql.legacy.metrics.MetricName;
+import org.opensearch.sql.legacy.utils.MetricUtils;
 import org.opensearch.sql.protocol.response.format.JsonResponseFormatter;
 import org.opensearch.tasks.Task;
 import org.opensearch.transport.TransportService;
@@ -60,6 +62,7 @@ public class TransportCreateDataSourceAction
       Task task,
       CreateDataSourceActionRequest request,
       ActionListener<CreateDataSourceActionResponse> actionListener) {
+    MetricUtils.incrementNumericalMetric(MetricName.DATASOURCE_CREATION_REQ_COUNT);
     int dataSourceLimit = settings.getSettingValue(DATASOURCES_LIMIT);
     if (dataSourceService.getDataSourceMetadata(false).size() >= dataSourceLimit) {
       actionListener.onFailure(
