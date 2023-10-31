@@ -22,6 +22,8 @@ import java.security.AccessController;
 import java.security.PrivilegedAction;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.opensearch.sql.legacy.metrics.MetricName;
+import org.opensearch.sql.legacy.utils.MetricUtils;
 
 public class EmrServerlessClientImpl implements EMRServerlessClient {
 
@@ -52,9 +54,19 @@ public class EmrServerlessClientImpl implements EMRServerlessClient {
                             .withEntryPoint(SPARK_SQL_APPLICATION_JAR)
                             .withEntryPointArguments(startJobRequest.getQuery(), resultIndex)
                             .withSparkSubmitParameters(startJobRequest.getSparkSubmitParams())));
+
     StartJobRunResult startJobRunResult =
         AccessController.doPrivileged(
-            (PrivilegedAction<StartJobRunResult>) () -> emrServerless.startJobRun(request));
+            (PrivilegedAction<StartJobRunResult>)
+                () -> {
+                  try {
+                    return emrServerless.startJobRun(request);
+                  } catch (Throwable t) {
+                    MetricUtils.incrementNumericalMetric(
+                        MetricName.EMR_START_JOB_REQUEST_FAILURE_COUNT);
+                    throw t;
+                  }
+                });
     logger.info("Job Run ID: " + startJobRunResult.getJobRunId());
     return startJobRunResult.getJobRunId();
   }
@@ -65,7 +77,16 @@ public class EmrServerlessClientImpl implements EMRServerlessClient {
         new GetJobRunRequest().withApplicationId(applicationId).withJobRunId(jobId);
     GetJobRunResult getJobRunResult =
         AccessController.doPrivileged(
-            (PrivilegedAction<GetJobRunResult>) () -> emrServerless.getJobRun(request));
+            (PrivilegedAction<GetJobRunResult>)
+                () -> {
+                  try {
+                    return emrServerless.getJobRun(request);
+                  } catch (Throwable t) {
+                    MetricUtils.incrementNumericalMetric(
+                        MetricName.EMR_GET_JOB_RESULT_FAILURE_COUNT);
+                    throw t;
+                  }
+                });
     logger.info("Job Run state: " + getJobRunResult.getJobRun().getState());
     return getJobRunResult;
   }
@@ -78,7 +99,15 @@ public class EmrServerlessClientImpl implements EMRServerlessClient {
       CancelJobRunResult cancelJobRunResult =
           AccessController.doPrivileged(
               (PrivilegedAction<CancelJobRunResult>)
-                  () -> emrServerless.cancelJobRun(cancelJobRunRequest));
+                  () -> {
+                    try {
+                      return emrServerless.cancelJobRun(cancelJobRunRequest);
+                    } catch (Throwable t) {
+                      MetricUtils.incrementNumericalMetric(
+                          MetricName.EMR_CANCEL_JOB_REQUEST_FAILURE_COUNT);
+                      throw t;
+                    }
+                  });
       logger.info(String.format("Job : %s cancelled", cancelJobRunResult.getJobRunId()));
       return cancelJobRunResult;
     } catch (ValidationException e) {

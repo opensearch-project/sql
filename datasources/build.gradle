@@ -17,6 +17,7 @@ dependencies {
     implementation project(':core')
     implementation project(':protocol')
     implementation project(':opensearch')
+    implementation project(':legacy')
     implementation group: 'org.opensearch', name: 'opensearch', version: "${opensearch_version}"
     implementation group: 'org.opensearch', name: 'opensearch-x-content', version: "${opensearch_version}"
     implementation group: 'org.opensearch', name: 'common-utils', version: "${opensearch_build}"
