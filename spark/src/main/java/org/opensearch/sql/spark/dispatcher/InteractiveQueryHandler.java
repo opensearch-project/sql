@@ -15,6 +15,8 @@ import java.util.Optional;
 import lombok.RequiredArgsConstructor;
 import org.json.JSONObject;
 import org.opensearch.sql.datasource.model.DataSourceMetadata;
+import org.opensearch.sql.legacy.metrics.MetricName;
+import org.opensearch.sql.legacy.utils.MetricUtils;
 import org.opensearch.sql.spark.asyncquery.model.AsyncQueryJobMetadata;
 import org.opensearch.sql.spark.asyncquery.model.SparkSubmitParameters;
 import org.opensearch.sql.spark.dispatcher.model.DispatchQueryContext;
@@ -100,6 +102,7 @@ public class InteractiveQueryHandler extends AsyncQueryHandler {
                   tags,
                   dataSourceMetadata.getResultIndex(),
                   dataSourceMetadata.getName()));
+      MetricUtils.incrementNumericalMetric(MetricName.EMR_INTERACTIVE_QUERY_JOBS_CREATION_COUNT);
     }
     session.submit(
         new QueryRequest(

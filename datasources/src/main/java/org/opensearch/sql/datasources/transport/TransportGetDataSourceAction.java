@@ -18,6 +18,8 @@ import org.opensearch.sql.datasource.model.DataSourceMetadata;
 import org.opensearch.sql.datasources.model.transport.GetDataSourceActionRequest;
 import org.opensearch.sql.datasources.model.transport.GetDataSourceActionResponse;
 import org.opensearch.sql.datasources.service.DataSourceServiceImpl;
+import org.opensearch.sql.legacy.metrics.MetricName;
+import org.opensearch.sql.legacy.utils.MetricUtils;
 import org.opensearch.sql.protocol.response.format.JsonResponseFormatter;
 import org.opensearch.tasks.Task;
 import org.opensearch.transport.TransportService;
@@ -56,6 +58,7 @@ public class TransportGetDataSourceAction
       Task task,
       GetDataSourceActionRequest request,
       ActionListener<GetDataSourceActionResponse> actionListener) {
+    MetricUtils.incrementNumericalMetric(MetricName.DATASOURCE_GET_REQ_COUNT);
     try {
       String responseContent;
       if (request.getDataSourceName() == null) {

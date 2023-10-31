@@ -1,8 +1,11 @@
 package org.opensearch.sql.datasources.transport;
 
+import static java.util.Collections.emptyList;
+import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 import java.util.HashSet;
 import org.junit.jupiter.api.Assertions;
@@ -16,11 +19,15 @@ import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.opensearch.action.support.ActionFilters;
 import org.opensearch.core.action.ActionListener;
+import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.datasource.model.DataSourceMetadata;
 import org.opensearch.sql.datasource.model.DataSourceType;
 import org.opensearch.sql.datasources.model.transport.UpdateDataSourceActionRequest;
 import org.opensearch.sql.datasources.model.transport.UpdateDataSourceActionResponse;
 import org.opensearch.sql.datasources.service.DataSourceServiceImpl;
+import org.opensearch.sql.legacy.esdomain.LocalClusterState;
+import org.opensearch.sql.legacy.metrics.Metrics;
+import org.opensearch.sql.opensearch.setting.OpenSearchSettings;
 import org.opensearch.tasks.Task;
 import org.opensearch.transport.TransportService;
 
@@ -32,6 +39,7 @@ public class TransportUpdateDataSourceActionTest {
   @Mock private DataSourceServiceImpl dataSourceService;
   @Mock private Task task;
   @Mock private ActionListener<UpdateDataSourceActionResponse> actionListener;
+  @Mock private OpenSearchSettings settings;
 
   @Captor
   private ArgumentCaptor<UpdateDataSourceActionResponse>
@@ -44,6 +52,12 @@ public class TransportUpdateDataSourceActionTest {
     action =
         new TransportUpdateDataSourceAction(
             transportService, new ActionFilters(new HashSet<>()), dataSourceService);
+    // Required for metrics initialization
+    doReturn(emptyList()).when(settings).getSettings();
+    when(settings.getSettingValue(Settings.Key.METRICS_ROLLING_INTERVAL)).thenReturn(3600L);
+    when(settings.getSettingValue(Settings.Key.METRICS_ROLLING_WINDOW)).thenReturn(600L);
+    LocalClusterState.state().setPluginSettings(settings);
+    Metrics.getInstance().registerDefaultMetrics();
   }
 
   @Test
