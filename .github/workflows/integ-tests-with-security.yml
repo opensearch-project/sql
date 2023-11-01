@@ -10,6 +10,11 @@ on:
       - '.github/workflows/integ-tests-with-security.yml'
 
 jobs:
+  Get-CI-Image-Tag:
+    uses: opensearch-project/opensearch-build/.github/workflows/get-ci-image-tag.yml@main
+    with:
+      product: opensearch
+
   security-it-linux:
     needs: Get-CI-Image-Tag
     strategy:
