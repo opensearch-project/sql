@@ -47,7 +47,7 @@ jobs:
       uses: actions/setup-java@v3
       with:
         distribution: 'temurin'
-        java-version: ${{ matrix.entry.java }}
+        java-version: ${{ matrix.java }}
 
     - name: Build with Gradle
       run: |
