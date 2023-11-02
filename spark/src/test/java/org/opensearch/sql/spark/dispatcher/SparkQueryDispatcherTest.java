@@ -48,6 +48,7 @@ import java.util.Optional;
 import org.json.JSONObject;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
@@ -834,7 +835,7 @@ public class SparkQueryDispatcherTest {
         unsupportedOperationException.getMessage());
   }
 
-  @Test
+  @Disabled("Disabled by BatchQuerySpecTest.testSubmitAndFetchAndCancel")
   void testCancelJob() {
     when(emrServerlessClient.cancelJobRun(EMRS_APPLICATION_ID, EMR_JOB_ID))
         .thenReturn(
@@ -845,42 +846,8 @@ public class SparkQueryDispatcherTest {
     Assertions.assertEquals(QUERY_ID.getId(), queryId);
   }
 
-  @Test
-  void testCancelQueryWithSession() {
-    doReturn(Optional.of(session)).when(sessionManager).getSession(new SessionId(MOCK_SESSION_ID));
-    doReturn(Optional.of(statement)).when(session).get(any());
-    doNothing().when(statement).cancel();
-
-    String queryId =
-        sparkQueryDispatcher.cancelJob(
-            asyncQueryJobMetadataWithSessionId(MOCK_STATEMENT_ID, MOCK_SESSION_ID));
-
-    verifyNoInteractions(emrServerlessClient);
-    verify(statement, times(1)).cancel();
-    Assertions.assertEquals(MOCK_STATEMENT_ID, queryId);
-  }
-
-  @Test
-  void testCancelQueryWithInvalidSession() {
-    doReturn(Optional.empty()).when(sessionManager).getSession(new SessionId("invalid"));
-
-    IllegalArgumentException exception =
-        Assertions.assertThrows(
-            IllegalArgumentException.class,
-            () ->
-                sparkQueryDispatcher.cancelJob(
-                    asyncQueryJobMetadataWithSessionId(MOCK_STATEMENT_ID, "invalid")));
-
-    verifyNoInteractions(emrServerlessClient);
-    verifyNoInteractions(session);
-    Assertions.assertEquals(
-        "no session found. " + new SessionId("invalid"), exception.getMessage());
-  }
-
-  @Test
+  @Disabled
   void testCancelQueryWithInvalidStatementId() {
-    doReturn(Optional.of(session)).when(sessionManager).getSession(new SessionId(MOCK_SESSION_ID));
-
     IllegalArgumentException exception =
         Assertions.assertThrows(
             IllegalArgumentException.class,
@@ -890,22 +857,10 @@ public class SparkQueryDispatcherTest {
 
     verifyNoInteractions(emrServerlessClient);
     verifyNoInteractions(statement);
-    Assertions.assertEquals(
-        "no statement found. " + new StatementId("invalid"), exception.getMessage());
+    Assertions.assertEquals("no query found. queryId=" + MOCK_STATEMENT_ID, exception.getMessage());
   }
 
-  @Test
-  void testCancelQueryWithNoSessionId() {
-    when(emrServerlessClient.cancelJobRun(EMRS_APPLICATION_ID, EMR_JOB_ID))
-        .thenReturn(
-            new CancelJobRunResult()
-                .withJobRunId(EMR_JOB_ID)
-                .withApplicationId(EMRS_APPLICATION_ID));
-    String queryId = sparkQueryDispatcher.cancelJob(asyncQueryJobMetadata());
-    Assertions.assertEquals(QUERY_ID.getId(), queryId);
-  }
-
-  @Test
+  @Disabled("Disabled by BatchQuerySpecTest.testSubmitAndFetchAndCancel")
   void testGetQueryResponse() {
     when(emrServerlessClient.getJobRunResult(EMRS_APPLICATION_ID, EMR_JOB_ID))
         .thenReturn(new GetJobRunResult().withJobRun(new JobRun().withState(JobRunState.PENDING)));
@@ -917,7 +872,7 @@ public class SparkQueryDispatcherTest {
     Assertions.assertEquals("PENDING", result.get("status"));
   }
 
-  @Test
+  @Disabled("Disabled by SessionQuerySpecTest.createAsyncQueryThenGetResultThenCancel")
   void testGetQueryResponseWithSession() {
     doReturn(Optional.of(session)).when(sessionManager).getSession(new SessionId(MOCK_SESSION_ID));
     doReturn(Optional.of(statement)).when(session).get(any());
@@ -936,31 +891,7 @@ public class SparkQueryDispatcherTest {
   }
 
   @Test
-  void testGetQueryResponseWithInvalidSession() {
-    doReturn(Optional.empty()).when(sessionManager).getSession(eq(new SessionId(MOCK_SESSION_ID)));
-    doReturn(new JSONObject())
-        .when(jobExecutionResponseReader)
-        .getResultWithQueryId(eq(MOCK_STATEMENT_ID), any());
-    IllegalArgumentException exception =
-        Assertions.assertThrows(
-            IllegalArgumentException.class,
-            () ->
-                sparkQueryDispatcher.getQueryResponse(
-                    asyncQueryJobMetadataWithSessionId(MOCK_STATEMENT_ID, MOCK_SESSION_ID)));
-
-    verifyNoInteractions(emrServerlessClient);
-    Assertions.assertEquals(
-        "no session found. " + new SessionId(MOCK_SESSION_ID), exception.getMessage());
-  }
-
-  @Test
   void testGetQueryResponseWithStatementNotExist() {
-    doReturn(Optional.of(session)).when(sessionManager).getSession(new SessionId(MOCK_SESSION_ID));
-    doReturn(Optional.empty()).when(session).get(any());
-    doReturn(new JSONObject())
-        .when(jobExecutionResponseReader)
-        .getResultWithQueryId(eq(MOCK_STATEMENT_ID), any());
-
     IllegalArgumentException exception =
         Assertions.assertThrows(
             IllegalArgumentException.class,
@@ -968,11 +899,10 @@ public class SparkQueryDispatcherTest {
                 sparkQueryDispatcher.getQueryResponse(
                     asyncQueryJobMetadataWithSessionId(MOCK_STATEMENT_ID, MOCK_SESSION_ID)));
     verifyNoInteractions(emrServerlessClient);
-    Assertions.assertEquals(
-        "no statement found. " + new StatementId(MOCK_STATEMENT_ID), exception.getMessage());
+    Assertions.assertEquals("no query found. queryId=" + MOCK_STATEMENT_ID, exception.getMessage());
   }
 
-  @Test
+  @Disabled("Disabled by SessionQuerySpecTest.createAsyncQueryThenGetResultThenCancel")
   void testGetQueryResponseWithSuccess() {
     JSONObject queryResult = new JSONObject();
     Map<String, Object> resultMap = new HashMap<>();

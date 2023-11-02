@@ -147,9 +147,18 @@ public class SessionModel extends StateModel {
 
   public static SessionModel initInteractiveSession(
       String applicationId, String jobId, SessionId sid, String datasourceName) {
+    return initSession(applicationId, jobId, sid, INTERACTIVE, datasourceName);
+  }
+
+  public static SessionModel initSession(
+      String applicationId,
+      String jobId,
+      SessionId sid,
+      SessionType sessionType,
+      String datasourceName) {
     return builder()
         .version("1.0")
-        .sessionType(INTERACTIVE)
+        .sessionType(sessionType)
         .sessionId(sid)
         .sessionState(NOT_STARTED)
         .datasourceName(datasourceName)

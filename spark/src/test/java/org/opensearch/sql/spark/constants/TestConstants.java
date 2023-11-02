@@ -5,6 +5,8 @@
 
 package org.opensearch.sql.spark.constants;
 
+import org.opensearch.sql.spark.asyncquery.model.AsyncQueryId;
+
 public class TestConstants {
   public static final String QUERY = "select 1";
   public static final String TEST_DATASOURCE_NAME = "test_datasource_name";
@@ -17,5 +19,6 @@ public class TestConstants {
   public static final String SPARK_SUBMIT_PARAMETERS = "--conf org.flint.sql.SQLJob";
   public static final String TEST_CLUSTER_NAME = "TEST_CLUSTER";
   public static final String MOCK_SESSION_ID = "s-0123456";
-  public static final String MOCK_STATEMENT_ID = "st-0123456";
+  public static final String MOCK_STATEMENT_ID =
+      AsyncQueryId.newAsyncQueryId(TEST_DATASOURCE_NAME).getId();
 }

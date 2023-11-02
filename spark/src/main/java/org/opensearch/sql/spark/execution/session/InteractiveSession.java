@@ -24,7 +24,6 @@ import org.opensearch.sql.spark.execution.statement.QueryRequest;
 import org.opensearch.sql.spark.execution.statement.Statement;
 import org.opensearch.sql.spark.execution.statement.StatementId;
 import org.opensearch.sql.spark.execution.statestore.StateStore;
-import org.opensearch.sql.spark.rest.model.LangType;
 
 /**
  * Interactive session.
@@ -89,17 +88,16 @@ public class InteractiveSession implements Session {
         String qid = request.getQueryId().getId();
         StatementId statementId = newStatementId(qid);
         Statement st =
-            Statement.builder()
-                .sessionId(sessionId)
-                .applicationId(sessionModel.getApplicationId())
-                .jobId(sessionModel.getJobId())
-                .stateStore(stateStore)
-                .statementId(statementId)
-                .langType(LangType.SQL)
-                .datasourceName(sessionModel.getDatasourceName())
-                .query(request.getQuery())
-                .queryId(qid)
-                .build();
+            new Statement(
+                sessionId,
+                sessionModel.getApplicationId(),
+                sessionModel.getJobId(),
+                statementId,
+                request.getLangType(),
+                sessionModel.getDatasourceName(),
+                request.getQuery(),
+                qid,
+                stateStore);
         st.open();
         return statementId;
       } else {
@@ -118,19 +116,7 @@ public class InteractiveSession implements Session {
   public Optional<Statement> get(StatementId stID) {
     return StateStore.getStatement(stateStore, sessionModel.getDatasourceName())
         .apply(stID.getId())
-        .map(
-            model ->
-                Statement.builder()
-                    .sessionId(sessionId)
-                    .applicationId(model.getApplicationId())
-                    .jobId(model.getJobId())
-                    .statementId(model.getStatementId())
-                    .langType(model.getLangType())
-                    .query(model.getQuery())
-                    .queryId(model.getQueryId())
-                    .stateStore(stateStore)
-                    .statementModel(model)
-                    .build());
+        .map(model -> new Statement(stateStore, model));
   }
 
   @Override

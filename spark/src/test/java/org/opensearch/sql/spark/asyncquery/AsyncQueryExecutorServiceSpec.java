@@ -5,10 +5,12 @@
 
 package org.opensearch.sql.spark.asyncquery;
 
+import static org.opensearch.sql.datasource.model.DataSourceMetadata.DATASOURCE_TO_RESULT_INDEX;
 import static org.opensearch.sql.opensearch.setting.OpenSearchSettings.DATASOURCE_URI_HOSTS_DENY_LIST;
 import static org.opensearch.sql.opensearch.setting.OpenSearchSettings.SPARK_EXECUTION_REFRESH_JOB_LIMIT_SETTING;
 import static org.opensearch.sql.opensearch.setting.OpenSearchSettings.SPARK_EXECUTION_SESSION_LIMIT_SETTING;
 import static org.opensearch.sql.spark.execution.statestore.StateStore.DATASOURCE_TO_REQUEST_INDEX;
+import static org.opensearch.sql.spark.execution.statestore.StateStore.createIndexDMLResult;
 import static org.opensearch.sql.spark.execution.statestore.StateStore.getSession;
 import static org.opensearch.sql.spark.execution.statestore.StateStore.updateSessionState;
 
@@ -25,6 +27,7 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
+import java.util.Locale;
 import java.util.Optional;
 import lombok.Getter;
 import lombok.SneakyThrows;
@@ -58,6 +61,7 @@ import org.opensearch.sql.spark.client.EMRServerlessClient;
 import org.opensearch.sql.spark.client.StartJobRequest;
 import org.opensearch.sql.spark.config.SparkExecutionEngineConfig;
 import org.opensearch.sql.spark.dispatcher.SparkQueryDispatcher;
+import org.opensearch.sql.spark.dispatcher.model.IndexDMLResult;
 import org.opensearch.sql.spark.execution.session.SessionManager;
 import org.opensearch.sql.spark.execution.session.SessionModel;
 import org.opensearch.sql.spark.execution.session.SessionState;
@@ -310,5 +314,14 @@ public class AsyncQueryExecutorServiceSpec extends OpenSearchIntegTestCase {
     CreateIndexRequest request = new CreateIndexRequest(indexName);
     request.mapping(metadata, XContentType.JSON);
     client().admin().indices().create(request).actionGet();
+  }
+
+  public void writeQueryResult(String qid, String status, String error) {
+    IndexDMLResult indexDMLResult =
+        new IndexDMLResult(
+            qid, status, error, DATASOURCE, System.currentTimeMillis(), System.currentTimeMillis());
+    createIndexDMLResult(
+            stateStore, DATASOURCE_TO_RESULT_INDEX.apply(DATASOURCE.toLowerCase(Locale.ROOT)))
+        .apply(indexDMLResult);
   }
 }

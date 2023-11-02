@@ -39,6 +39,66 @@ public class Statement {
 
   @Setter private StatementModel statementModel;
 
+  public Statement(StateStore stateStore, StatementModel model) {
+    this(
+        model.getSessionId(),
+        model.getApplicationId(),
+        model.getJobId(),
+        model.getStatementId(),
+        model.getLangType(),
+        model.getDatasourceName(),
+        model.getQuery(),
+        model.getQueryId(),
+        stateStore,
+        model);
+  }
+
+  public Statement(
+      SessionId sessionId,
+      String applicationId,
+      String jobId,
+      StatementId statementId,
+      LangType langType,
+      String datasourceName,
+      String query,
+      String queryId,
+      StateStore stateStore) {
+    this(
+        sessionId,
+        applicationId,
+        jobId,
+        statementId,
+        langType,
+        datasourceName,
+        query,
+        queryId,
+        stateStore,
+        null);
+  }
+
+  public Statement(
+      SessionId sessionId,
+      String applicationId,
+      String jobId,
+      StatementId statementId,
+      LangType langType,
+      String datasourceName,
+      String query,
+      String queryId,
+      StateStore stateStore,
+      StatementModel statementModel) {
+    this.sessionId = sessionId;
+    this.applicationId = applicationId;
+    this.jobId = jobId;
+    this.statementId = statementId;
+    this.langType = langType;
+    this.datasourceName = datasourceName;
+    this.query = query;
+    this.queryId = queryId;
+    this.stateStore = stateStore;
+    this.statementModel = statementModel;
+  }
+
   /** Open a statement. */
   public void open() {
     try {
