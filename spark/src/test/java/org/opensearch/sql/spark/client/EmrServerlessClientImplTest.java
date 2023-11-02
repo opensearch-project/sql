@@ -8,11 +8,15 @@ import static java.util.Collections.emptyList;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.opensearch.sql.spark.constants.TestConstants.DEFAULT_RESULT_INDEX;
 import static org.opensearch.sql.spark.constants.TestConstants.EMRS_APPLICATION_ID;
 import static org.opensearch.sql.spark.constants.TestConstants.EMRS_EXECUTION_ROLE;
 import static org.opensearch.sql.spark.constants.TestConstants.EMRS_JOB_NAME;
 import static org.opensearch.sql.spark.constants.TestConstants.EMR_JOB_ID;
+import static org.opensearch.sql.spark.constants.TestConstants.ENTRY_POINT_START_JAR;
 import static org.opensearch.sql.spark.constants.TestConstants.QUERY;
 import static org.opensearch.sql.spark.constants.TestConstants.SPARK_SUBMIT_PARAMETERS;
 
@@ -20,13 +24,17 @@ import com.amazonaws.services.emrserverless.AWSEMRServerless;
 import com.amazonaws.services.emrserverless.model.CancelJobRunResult;
 import com.amazonaws.services.emrserverless.model.GetJobRunResult;
 import com.amazonaws.services.emrserverless.model.JobRun;
+import com.amazonaws.services.emrserverless.model.StartJobRunRequest;
 import com.amazonaws.services.emrserverless.model.StartJobRunResult;
 import com.amazonaws.services.emrserverless.model.ValidationException;
 import java.util.HashMap;
+import java.util.List;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
+import org.mockito.Captor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.opensearch.sql.common.setting.Settings;
@@ -39,6 +47,8 @@ public class EmrServerlessClientImplTest {
   @Mock private AWSEMRServerless emrServerless;
 
   @Mock private OpenSearchSettings settings;
+
+  @Captor private ArgumentCaptor<StartJobRunRequest> startJobRunRequestArgumentCaptor;
 
   @BeforeEach
   public void setUp() {
@@ -64,7 +74,16 @@ public class EmrServerlessClientImplTest {
             SPARK_SUBMIT_PARAMETERS,
             new HashMap<>(),
             false,
-            null));
+            DEFAULT_RESULT_INDEX));
+    verify(emrServerless, times(1)).startJobRun(startJobRunRequestArgumentCaptor.capture());
+    StartJobRunRequest startJobRunRequest = startJobRunRequestArgumentCaptor.getValue();
+    Assertions.assertEquals(EMRS_APPLICATION_ID, startJobRunRequest.getApplicationId());
+    Assertions.assertEquals(EMRS_EXECUTION_ROLE, startJobRunRequest.getExecutionRoleArn());
+    Assertions.assertEquals(
+        ENTRY_POINT_START_JAR, startJobRunRequest.getJobDriver().getSparkSubmit().getEntryPoint());
+    Assertions.assertEquals(
+        List.of(QUERY, DEFAULT_RESULT_INDEX),
+        startJobRunRequest.getJobDriver().getSparkSubmit().getEntryPointArguments());
   }
 
   @Test
