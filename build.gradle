@@ -114,8 +114,8 @@ allprojects {
         sourceCompatibility = targetCompatibility = "11"
     }
     configurations.all {
-        resolutionStrategy.force "org.jetbrains.kotlin:kotlin-stdlib:1.6.0"
-        resolutionStrategy.force "org.jetbrains.kotlin:kotlin-stdlib-common:1.6.0"
+        resolutionStrategy.force "org.jetbrains.kotlin:kotlin-stdlib:1.9.10"
+        resolutionStrategy.force "org.jetbrains.kotlin:kotlin-stdlib-common:1.9.10"
     }
 }
 
