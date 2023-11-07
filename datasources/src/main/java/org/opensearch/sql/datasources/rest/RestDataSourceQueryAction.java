@@ -276,8 +276,10 @@ public class RestDataSourceQueryAction extends BaseRestHandler {
 
   private void handleException(Exception e, RestChannel restChannel) {
     if (e instanceof DataSourceNotFoundException) {
+      MetricUtils.incrementNumericalMetric(MetricName.DATASOURCE_FAILED_REQ_COUNT_CUS);
       reportError(restChannel, e, NOT_FOUND);
     } else if (e instanceof OpenSearchException) {
+      MetricUtils.incrementNumericalMetric(MetricName.DATASOURCE_FAILED_REQ_COUNT_SYS);
       OpenSearchException exception = (OpenSearchException) e;
       reportError(restChannel, exception, exception.status());
     } else {
