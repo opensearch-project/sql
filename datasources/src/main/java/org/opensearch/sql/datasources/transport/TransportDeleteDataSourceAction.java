@@ -16,8 +16,6 @@ import org.opensearch.sql.datasource.DataSourceService;
 import org.opensearch.sql.datasources.model.transport.DeleteDataSourceActionRequest;
 import org.opensearch.sql.datasources.model.transport.DeleteDataSourceActionResponse;
 import org.opensearch.sql.datasources.service.DataSourceServiceImpl;
-import org.opensearch.sql.legacy.metrics.MetricName;
-import org.opensearch.sql.legacy.utils.MetricUtils;
 import org.opensearch.tasks.Task;
 import org.opensearch.transport.TransportService;
 
@@ -55,7 +53,6 @@ public class TransportDeleteDataSourceAction
       Task task,
       DeleteDataSourceActionRequest request,
       ActionListener<DeleteDataSourceActionResponse> actionListener) {
-    MetricUtils.incrementNumericalMetric(MetricName.DATASOURCE_DELETE_REQ_COUNT);
     try {
       dataSourceService.deleteDataSource(request.getDataSourceName());
       actionListener.onResponse(
