@@ -135,6 +135,7 @@ public class RestDataSourceQueryAction extends BaseRestHandler {
 
   private RestChannelConsumer executePostRequest(RestRequest restRequest, NodeClient nodeClient)
       throws IOException {
+    MetricUtils.incrementNumericalMetric(MetricName.DATASOURCE_CREATION_REQ_COUNT);
     DataSourceMetadata dataSourceMetadata =
         XContentParserUtils.toDataSourceMetadata(restRequest.contentParser());
     return restChannel ->
@@ -163,6 +164,7 @@ public class RestDataSourceQueryAction extends BaseRestHandler {
   }
 
   private RestChannelConsumer executeGetRequest(RestRequest restRequest, NodeClient nodeClient) {
+    MetricUtils.incrementNumericalMetric(MetricName.DATASOURCE_GET_REQ_COUNT);
     String dataSourceName = restRequest.param("dataSourceName");
     return restChannel ->
         Scheduler.schedule(
@@ -191,6 +193,7 @@ public class RestDataSourceQueryAction extends BaseRestHandler {
 
   private RestChannelConsumer executeUpdateRequest(RestRequest restRequest, NodeClient nodeClient)
       throws IOException {
+    MetricUtils.incrementNumericalMetric(MetricName.DATASOURCE_PUT_REQ_COUNT);
     DataSourceMetadata dataSourceMetadata =
         XContentParserUtils.toDataSourceMetadata(restRequest.contentParser());
     return restChannel ->
@@ -220,6 +223,7 @@ public class RestDataSourceQueryAction extends BaseRestHandler {
 
   private RestChannelConsumer executePatchRequest(RestRequest restRequest, NodeClient nodeClient)
       throws IOException {
+    MetricUtils.incrementNumericalMetric(MetricName.DATASOURCE_PATCH_REQ_COUNT);
     Map<String, Object> dataSourceData = XContentParserUtils.toMap(restRequest.contentParser());
     return restChannel ->
         Scheduler.schedule(
@@ -247,7 +251,7 @@ public class RestDataSourceQueryAction extends BaseRestHandler {
   }
 
   private RestChannelConsumer executeDeleteRequest(RestRequest restRequest, NodeClient nodeClient) {
-
+    MetricUtils.incrementNumericalMetric(MetricName.DATASOURCE_DELETE_REQ_COUNT);
     String dataSourceName = restRequest.param("dataSourceName");
     return restChannel ->
         Scheduler.schedule(
@@ -276,8 +280,10 @@ public class RestDataSourceQueryAction extends BaseRestHandler {
 
   private void handleException(Exception e, RestChannel restChannel) {
     if (e instanceof DataSourceNotFoundException) {
+      MetricUtils.incrementNumericalMetric(MetricName.DATASOURCE_FAILED_REQ_COUNT_CUS);
       reportError(restChannel, e, NOT_FOUND);
     } else if (e instanceof OpenSearchException) {
+      MetricUtils.incrementNumericalMetric(MetricName.DATASOURCE_FAILED_REQ_COUNT_SYS);
       OpenSearchException exception = (OpenSearchException) e;
       reportError(restChannel, exception, exception.status());
     } else {
