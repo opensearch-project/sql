@@ -56,7 +56,6 @@ public class PrometheusDataSourceCommandsIT extends PPLIntegTestCase {
     DataSourceMetadata createDSM =
         new DataSourceMetadata(
             "my_prometheus",
-            StringUtils.EMPTY,
             DataSourceType.PROMETHEUS,
             ImmutableList.of(),
             ImmutableMap.of("prometheus.uri", "http://localhost:9090"),

@@ -16,9 +16,4 @@ public class TestConstants {
   public static final String EMRS_JOB_NAME = "job_name";
   public static final String SPARK_SUBMIT_PARAMETERS = "--conf org.flint.sql.SQLJob";
   public static final String TEST_CLUSTER_NAME = "TEST_CLUSTER";
-  public static final String MOCK_SESSION_ID = "s-0123456";
-  public static final String MOCK_STATEMENT_ID = "st-0123456";
-  public static final String ENTRY_POINT_START_JAR =
-      "file:///home/hadoop/.ivy2/jars/org.opensearch_opensearch-spark-sql-application_2.12-0.1.0-SNAPSHOT.jar";
-  public static final String DEFAULT_RESULT_INDEX = "query_execution_result_ds1";
 }

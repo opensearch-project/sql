@@ -62,50 +62,6 @@ Sample Response::
       "queryId": "00fd796ut1a7eg0q"
     }
 
-Execute query in session
-------------------------
-
-if plugins.query.executionengine.spark.session.enabled is set to true, session based execution is enabled. Under the hood, all queries submitted to the same session will be executed in the same SparkContext. Session is auto closed if not query submission in 10 minutes.
-
-Async query response include ``sessionId`` indicate the query is executed in session.
-
-Sample Request::
-
-    curl --location 'http://localhost:9200/_plugins/_async_query' \
-    --header 'Content-Type: application/json' \
-    --data '{
-        "datasource" : "my_glue",
-        "lang" : "sql",
-        "query" : "select * from my_glue.default.http_logs limit 10"
-    }'
-
-Sample Response::
-
-    {
-      "queryId": "HlbM61kX6MDkAktO",
-      "sessionId": "1Giy65ZnzNlmsPAm"
-    }
-
-User could reuse the session by using ``sessionId`` query parameters.
-
-Sample Request::
-
-    curl --location 'http://localhost:9200/_plugins/_async_query' \
-    --header 'Content-Type: application/json' \
-    --data '{
-        "datasource" : "my_glue",
-        "lang" : "sql",
-        "query" : "select * from my_glue.default.http_logs limit 10",
-        "sessionId" : "1Giy65ZnzNlmsPAm"
-    }'
-
-Sample Response::
-
-    {
-      "queryId": "7GC4mHhftiTejvxN",
-      "sessionId": "1Giy65ZnzNlmsPAm"
-    }
-
 
 Async Query Result API
 ======================================

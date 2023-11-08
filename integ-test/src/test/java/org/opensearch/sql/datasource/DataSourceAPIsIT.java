@@ -5,8 +5,6 @@
 
 package org.opensearch.sql.datasource;
 
-import static org.opensearch.sql.datasources.utils.XContentParserUtils.DESCRIPTION_FIELD;
-import static org.opensearch.sql.datasources.utils.XContentParserUtils.NAME_FIELD;
 import static org.opensearch.sql.legacy.TestUtils.getResponseBody;
 
 import com.google.common.collect.ImmutableList;
@@ -17,12 +15,8 @@ import com.google.gson.reflect.TypeToken;
 import java.io.IOException;
 import java.lang.reflect.Type;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import lombok.SneakyThrows;
-import org.apache.commons.lang3.StringUtils;
-import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Assert;
 import org.junit.Test;
@@ -34,11 +28,6 @@ import org.opensearch.sql.datasource.model.DataSourceType;
 import org.opensearch.sql.ppl.PPLIntegTestCase;
 
 public class DataSourceAPIsIT extends PPLIntegTestCase {
-
-  @After
-  public void cleanUp() throws IOException {
-    wipeAllClusterSettings();
-  }
 
   @AfterClass
   protected static void deleteDataSourcesCreated() throws IOException {
@@ -55,10 +44,6 @@ public class DataSourceAPIsIT extends PPLIntegTestCase {
     Assert.assertEquals(204, deleteResponse.getStatusLine().getStatusCode());
 
     deleteRequest = getDeleteDataSourceRequest("Create_Prometheus");
-    deleteResponse = client().performRequest(deleteRequest);
-    Assert.assertEquals(204, deleteResponse.getStatusLine().getStatusCode());
-
-    deleteRequest = getDeleteDataSourceRequest("duplicate_prometheus");
     deleteResponse = client().performRequest(deleteRequest);
     Assert.assertEquals(204, deleteResponse.getStatusLine().getStatusCode());
   }
@@ -114,7 +99,6 @@ public class DataSourceAPIsIT extends PPLIntegTestCase {
     DataSourceMetadata createDSM =
         new DataSourceMetadata(
             "update_prometheus",
-            StringUtils.EMPTY,
             DataSourceType.PROMETHEUS,
             ImmutableList.of(),
             ImmutableMap.of("prometheus.uri", "https://localhost:9090"),
@@ -128,7 +112,6 @@ public class DataSourceAPIsIT extends PPLIntegTestCase {
     DataSourceMetadata updateDSM =
         new DataSourceMetadata(
             "update_prometheus",
-            StringUtils.EMPTY,
             DataSourceType.PROMETHEUS,
             ImmutableList.of(),
             ImmutableMap.of("prometheus.uri", "https://randomtest.com:9090"),
@@ -153,31 +136,6 @@ public class DataSourceAPIsIT extends PPLIntegTestCase {
     Assert.assertEquals(
         "https://randomtest.com:9090", dataSourceMetadata.getProperties().get("prometheus.uri"));
     Assert.assertEquals("", dataSourceMetadata.getDescription());
-
-    // patch datasource
-    Map<String, Object> updateDS =
-        new HashMap<>(Map.of(NAME_FIELD, "update_prometheus", DESCRIPTION_FIELD, "test"));
-    Request patchRequest = getPatchDataSourceRequest(updateDS);
-    Response patchResponse = client().performRequest(patchRequest);
-    Assert.assertEquals(200, patchResponse.getStatusLine().getStatusCode());
-    String patchResponseString = getResponseBody(patchResponse);
-    Assert.assertEquals("\"Updated DataSource with name update_prometheus\"", patchResponseString);
-
-    // Datasource is not immediately updated. so introducing a sleep of 2s.
-    Thread.sleep(2000);
-
-    // get datasource to validate the modification.
-    // get datasource
-    Request getRequestAfterPatch = getFetchDataSourceRequest("update_prometheus");
-    Response getResponseAfterPatch = client().performRequest(getRequestAfterPatch);
-    Assert.assertEquals(200, getResponseAfterPatch.getStatusLine().getStatusCode());
-    String getResponseStringAfterPatch = getResponseBody(getResponseAfterPatch);
-    DataSourceMetadata dataSourceMetadataAfterPatch =
-        new Gson().fromJson(getResponseStringAfterPatch, DataSourceMetadata.class);
-    Assert.assertEquals(
-        "https://randomtest.com:9090",
-        dataSourceMetadataAfterPatch.getProperties().get("prometheus.uri"));
-    Assert.assertEquals("test", dataSourceMetadataAfterPatch.getDescription());
   }
 
   @SneakyThrows
@@ -188,7 +146,6 @@ public class DataSourceAPIsIT extends PPLIntegTestCase {
     DataSourceMetadata createDSM =
         new DataSourceMetadata(
             "delete_prometheus",
-            StringUtils.EMPTY,
             DataSourceType.PROMETHEUS,
             ImmutableList.of(),
             ImmutableMap.of("prometheus.uri", "https://localhost:9090"),
@@ -228,7 +185,6 @@ public class DataSourceAPIsIT extends PPLIntegTestCase {
     DataSourceMetadata createDSM =
         new DataSourceMetadata(
             "get_all_prometheus",
-            StringUtils.EMPTY,
             DataSourceType.PROMETHEUS,
             ImmutableList.of(),
             ImmutableMap.of("prometheus.uri", "https://localhost:9090"),
@@ -292,46 +248,5 @@ public class DataSourceAPIsIT extends PPLIntegTestCase {
     Assert.assertNull(dataSourceMetadata.getProperties().get("prometheus.auth.username"));
     Assert.assertNull(dataSourceMetadata.getProperties().get("prometheus.auth.password"));
     Assert.assertEquals("Prometheus Creation for Integ test", dataSourceMetadata.getDescription());
-  }
-
-  @Test
-  public void datasourceLimitTest() throws InterruptedException, IOException {
-    DataSourceMetadata d1 = mockDataSourceMetadata("duplicate_prometheus");
-    Request createRequest = getCreateDataSourceRequest(d1);
-    Response response = client().performRequest(createRequest);
-    Assert.assertEquals(201, response.getStatusLine().getStatusCode());
-    // Datasource is not immediately created. so introducing a sleep of 2s.
-    Thread.sleep(2000);
-
-    updateClusterSettings(new ClusterSetting(TRANSIENT, "plugins.query.datasources.limit", "1"));
-
-    DataSourceMetadata d2 = mockDataSourceMetadata("d2");
-    ResponseException exception =
-        Assert.assertThrows(
-            ResponseException.class, () -> client().performRequest(getCreateDataSourceRequest(d2)));
-    Assert.assertEquals(400, exception.getResponse().getStatusLine().getStatusCode());
-    String prometheusGetResponseString = getResponseBody(exception.getResponse());
-    JsonObject errorMessage = new Gson().fromJson(prometheusGetResponseString, JsonObject.class);
-    Assert.assertEquals(
-        "domain concurrent datasources can not exceed 1",
-        errorMessage.get("error").getAsJsonObject().get("details").getAsString());
-  }
-
-  public DataSourceMetadata mockDataSourceMetadata(String name) {
-    return new DataSourceMetadata(
-        name,
-        "Prometheus Creation for Integ test",
-        DataSourceType.PROMETHEUS,
-        ImmutableList.of(),
-        ImmutableMap.of(
-            "prometheus.uri",
-            "https://localhost:9090",
-            "prometheus.auth.type",
-            "basicauth",
-            "prometheus.auth.username",
-            "username",
-            "prometheus.auth.password",
-            "password"),
-        null);
   }
 }

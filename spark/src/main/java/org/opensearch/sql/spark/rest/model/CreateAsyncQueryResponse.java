@@ -12,6 +12,4 @@ import lombok.Data;
 @AllArgsConstructor
 public class CreateAsyncQueryResponse {
   private String queryId;
-  // optional sessionId
-  private String sessionId;
 }

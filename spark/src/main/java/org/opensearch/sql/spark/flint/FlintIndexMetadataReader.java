@@ -1,6 +1,6 @@
 package org.opensearch.sql.spark.flint;
 
-import org.opensearch.sql.spark.dispatcher.model.IndexQueryDetails;
+import org.opensearch.sql.spark.dispatcher.model.IndexDetails;
 
 /** Interface for FlintIndexMetadataReader */
 public interface FlintIndexMetadataReader {
@@ -8,8 +8,8 @@ public interface FlintIndexMetadataReader {
   /**
    * Given Index details, get the streaming job Id.
    *
-   * @param indexQueryDetails indexDetails.
+   * @param indexDetails indexDetails.
    * @return FlintIndexMetadata.
    */
-  FlintIndexMetadata getFlintIndexMetadata(IndexQueryDetails indexQueryDetails);
+  FlintIndexMetadata getFlintIndexMetadata(IndexDetails indexDetails);
 }

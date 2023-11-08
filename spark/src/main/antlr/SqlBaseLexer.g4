@@ -447,7 +447,6 @@ PIPE: '|';
 CONCAT_PIPE: '||';
 HAT: '^';
 COLON: ':';
-DOUBLE_COLON: '::';
 ARROW: '->';
 FAT_ARROW : '=>';
 HENT_START: '/*+';

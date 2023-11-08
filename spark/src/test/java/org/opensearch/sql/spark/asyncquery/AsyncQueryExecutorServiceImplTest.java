@@ -11,7 +11,6 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
-import static org.opensearch.sql.spark.asyncquery.OpensearchAsyncQueryAsyncQueryJobMetadataStorageServiceTest.DS_NAME;
 import static org.opensearch.sql.spark.constants.TestConstants.EMRS_APPLICATION_ID;
 import static org.opensearch.sql.spark.constants.TestConstants.EMR_JOB_ID;
 import static org.opensearch.sql.spark.constants.TestConstants.TEST_CLUSTER_NAME;
@@ -30,7 +29,6 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.opensearch.sql.spark.asyncquery.exceptions.AsyncQueryNotFoundException;
 import org.opensearch.sql.spark.asyncquery.model.AsyncQueryExecutionResponse;
-import org.opensearch.sql.spark.asyncquery.model.AsyncQueryId;
 import org.opensearch.sql.spark.asyncquery.model.AsyncQueryJobMetadata;
 import org.opensearch.sql.spark.config.SparkExecutionEngineConfig;
 import org.opensearch.sql.spark.config.SparkExecutionEngineConfigSupplier;
@@ -49,7 +47,6 @@ public class AsyncQueryExecutorServiceImplTest {
   private AsyncQueryExecutorService jobExecutorService;
 
   @Mock private SparkExecutionEngineConfigSupplier sparkExecutionEngineConfigSupplier;
-  private final AsyncQueryId QUERY_ID = AsyncQueryId.newAsyncQueryId(DS_NAME);
 
   @BeforeEach
   void setUp() {
@@ -81,12 +78,11 @@ public class AsyncQueryExecutorServiceImplTest {
                 LangType.SQL,
                 "arn:aws:iam::270824043731:role/emr-job-execution-role",
                 TEST_CLUSTER_NAME)))
-        .thenReturn(new DispatchQueryResponse(QUERY_ID, EMR_JOB_ID, null, null));
+        .thenReturn(new DispatchQueryResponse(EMR_JOB_ID, false, null));
     CreateAsyncQueryResponse createAsyncQueryResponse =
         jobExecutorService.createAsyncQuery(createAsyncQueryRequest);
     verify(asyncQueryJobMetadataStorageService, times(1))
-        .storeJobMetadata(
-            new AsyncQueryJobMetadata(QUERY_ID, "00fd775baqpu4g0p", EMR_JOB_ID, null));
+        .storeJobMetadata(new AsyncQueryJobMetadata("00fd775baqpu4g0p", EMR_JOB_ID, null));
     verify(sparkExecutionEngineConfigSupplier, times(1)).getSparkExecutionEngineConfig();
     verify(sparkQueryDispatcher, times(1))
         .dispatch(
@@ -97,7 +93,7 @@ public class AsyncQueryExecutorServiceImplTest {
                 LangType.SQL,
                 "arn:aws:iam::270824043731:role/emr-job-execution-role",
                 TEST_CLUSTER_NAME));
-    Assertions.assertEquals(QUERY_ID.getId(), createAsyncQueryResponse.getQueryId());
+    Assertions.assertEquals(EMR_JOB_ID, createAsyncQueryResponse.getQueryId());
   }
 
   @Test
@@ -111,7 +107,7 @@ public class AsyncQueryExecutorServiceImplTest {
                 "--conf spark.dynamicAllocation.enabled=false",
                 TEST_CLUSTER_NAME));
     when(sparkQueryDispatcher.dispatch(any()))
-        .thenReturn(new DispatchQueryResponse(QUERY_ID, EMR_JOB_ID, null, null));
+        .thenReturn(new DispatchQueryResponse(EMR_JOB_ID, false, null));
 
     jobExecutorService.createAsyncQuery(
         new CreateAsyncQueryRequest(
@@ -143,13 +139,11 @@ public class AsyncQueryExecutorServiceImplTest {
   @Test
   void testGetAsyncQueryResultsWithInProgressJob() {
     when(asyncQueryJobMetadataStorageService.getJobMetadata(EMR_JOB_ID))
-        .thenReturn(
-            Optional.of(
-                new AsyncQueryJobMetadata(QUERY_ID, EMRS_APPLICATION_ID, EMR_JOB_ID, null)));
+        .thenReturn(Optional.of(new AsyncQueryJobMetadata(EMRS_APPLICATION_ID, EMR_JOB_ID, null)));
     JSONObject jobResult = new JSONObject();
     jobResult.put("status", JobRunState.PENDING.toString());
     when(sparkQueryDispatcher.getQueryResponse(
-            new AsyncQueryJobMetadata(QUERY_ID, EMRS_APPLICATION_ID, EMR_JOB_ID, null)))
+            new AsyncQueryJobMetadata(EMRS_APPLICATION_ID, EMR_JOB_ID, null)))
         .thenReturn(jobResult);
     AsyncQueryExecutionResponse asyncQueryExecutionResponse =
         jobExecutorService.getAsyncQueryResults(EMR_JOB_ID);
@@ -163,13 +157,11 @@ public class AsyncQueryExecutorServiceImplTest {
   @Test
   void testGetAsyncQueryResultsWithSuccessJob() throws IOException {
     when(asyncQueryJobMetadataStorageService.getJobMetadata(EMR_JOB_ID))
-        .thenReturn(
-            Optional.of(
-                new AsyncQueryJobMetadata(QUERY_ID, EMRS_APPLICATION_ID, EMR_JOB_ID, null)));
+        .thenReturn(Optional.of(new AsyncQueryJobMetadata(EMRS_APPLICATION_ID, EMR_JOB_ID, null)));
     JSONObject jobResult = new JSONObject(getJson("select_query_response.json"));
     jobResult.put("status", JobRunState.SUCCESS.toString());
     when(sparkQueryDispatcher.getQueryResponse(
-            new AsyncQueryJobMetadata(QUERY_ID, EMRS_APPLICATION_ID, EMR_JOB_ID, null)))
+            new AsyncQueryJobMetadata(EMRS_APPLICATION_ID, EMR_JOB_ID, null)))
         .thenReturn(jobResult);
 
     AsyncQueryExecutionResponse asyncQueryExecutionResponse =
@@ -216,11 +208,9 @@ public class AsyncQueryExecutorServiceImplTest {
   @Test
   void testCancelJob() {
     when(asyncQueryJobMetadataStorageService.getJobMetadata(EMR_JOB_ID))
-        .thenReturn(
-            Optional.of(
-                new AsyncQueryJobMetadata(QUERY_ID, EMRS_APPLICATION_ID, EMR_JOB_ID, null)));
+        .thenReturn(Optional.of(new AsyncQueryJobMetadata(EMRS_APPLICATION_ID, EMR_JOB_ID, null)));
     when(sparkQueryDispatcher.cancelJob(
-            new AsyncQueryJobMetadata(QUERY_ID, EMRS_APPLICATION_ID, EMR_JOB_ID, null)))
+            new AsyncQueryJobMetadata(EMRS_APPLICATION_ID, EMR_JOB_ID, null)))
         .thenReturn(EMR_JOB_ID);
     String jobId = jobExecutorService.cancelQuery(EMR_JOB_ID);
     Assertions.assertEquals(EMR_JOB_ID, jobId);
