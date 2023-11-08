@@ -88,21 +88,23 @@ public class EmrServerlessClientImplTest {
 
   @Test
   void testStartJobRunWithErrorMetric() {
-    doThrow(new RuntimeException()).when(emrServerless).startJobRun(any());
+    doThrow(new ValidationException("Couldn't start job")).when(emrServerless).startJobRun(any());
     EmrServerlessClientImpl emrServerlessClient = new EmrServerlessClientImpl(emrServerless);
-    Assertions.assertThrows(
-        RuntimeException.class,
-        () ->
-            emrServerlessClient.startJobRun(
-                new StartJobRequest(
-                    QUERY,
-                    EMRS_JOB_NAME,
-                    EMRS_APPLICATION_ID,
-                    EMRS_EXECUTION_ROLE,
-                    SPARK_SUBMIT_PARAMETERS,
-                    new HashMap<>(),
-                    false,
-                    null)));
+    RuntimeException runtimeException =
+        Assertions.assertThrows(
+            RuntimeException.class,
+            () ->
+                emrServerlessClient.startJobRun(
+                    new StartJobRequest(
+                        QUERY,
+                        EMRS_JOB_NAME,
+                        EMRS_APPLICATION_ID,
+                        EMRS_EXECUTION_ROLE,
+                        SPARK_SUBMIT_PARAMETERS,
+                        new HashMap<>(),
+                        false,
+                        null)));
+    Assertions.assertEquals("Internal Server Error.", runtimeException.getMessage());
   }
 
   @Test
@@ -136,11 +138,13 @@ public class EmrServerlessClientImplTest {
 
   @Test
   void testGetJobRunStateWithErrorMetric() {
-    doThrow(new RuntimeException()).when(emrServerless).getJobRun(any());
+    doThrow(new ValidationException("Not a good job")).when(emrServerless).getJobRun(any());
     EmrServerlessClientImpl emrServerlessClient = new EmrServerlessClientImpl(emrServerless);
-    Assertions.assertThrows(
-        RuntimeException.class,
-        () -> emrServerlessClient.getJobRunResult(EMRS_APPLICATION_ID, "123"));
+    RuntimeException runtimeException =
+        Assertions.assertThrows(
+            RuntimeException.class,
+            () -> emrServerlessClient.getJobRunResult(EMRS_APPLICATION_ID, "123"));
+    Assertions.assertEquals("Internal Server Error.", runtimeException.getMessage());
   }
 
   @Test
@@ -165,13 +169,10 @@ public class EmrServerlessClientImplTest {
   void testCancelJobRunWithValidationException() {
     doThrow(new ValidationException("Error")).when(emrServerless).cancelJobRun(any());
     EmrServerlessClientImpl emrServerlessClient = new EmrServerlessClientImpl(emrServerless);
-    IllegalArgumentException illegalArgumentException =
+    RuntimeException runtimeException =
         Assertions.assertThrows(
-            IllegalArgumentException.class,
+            RuntimeException.class,
             () -> emrServerlessClient.cancelJobRun(EMRS_APPLICATION_ID, EMR_JOB_ID));
-    Assertions.assertEquals(
-        "Couldn't cancel the queryId: job-123xxx due to Error (Service: null; Status Code: 0; Error"
-            + " Code: null; Request ID: null; Proxy: null)",
-        illegalArgumentException.getMessage());
+    Assertions.assertEquals("Internal Server Error.", runtimeException.getMessage());
   }
 }
