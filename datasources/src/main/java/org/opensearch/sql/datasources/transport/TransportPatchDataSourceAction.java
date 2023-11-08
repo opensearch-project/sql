@@ -19,8 +19,6 @@ import org.opensearch.sql.datasource.DataSourceService;
 import org.opensearch.sql.datasources.model.transport.PatchDataSourceActionRequest;
 import org.opensearch.sql.datasources.model.transport.PatchDataSourceActionResponse;
 import org.opensearch.sql.datasources.service.DataSourceServiceImpl;
-import org.opensearch.sql.legacy.metrics.MetricName;
-import org.opensearch.sql.legacy.utils.MetricUtils;
 import org.opensearch.sql.protocol.response.format.JsonResponseFormatter;
 import org.opensearch.tasks.Task;
 import org.opensearch.transport.TransportService;
@@ -59,7 +57,6 @@ public class TransportPatchDataSourceAction
       Task task,
       PatchDataSourceActionRequest request,
       ActionListener<PatchDataSourceActionResponse> actionListener) {
-    MetricUtils.incrementNumericalMetric(MetricName.DATASOURCE_PATCH_REQ_COUNT);
     try {
       dataSourceService.patchDataSource(request.getDataSourceData());
       String responseContent =
