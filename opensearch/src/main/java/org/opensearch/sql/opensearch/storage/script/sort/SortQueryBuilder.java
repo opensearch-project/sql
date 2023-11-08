@@ -19,7 +19,6 @@ import org.opensearch.sql.ast.tree.Sort;
 import org.opensearch.sql.expression.Expression;
 import org.opensearch.sql.expression.FunctionExpression;
 import org.opensearch.sql.expression.ReferenceExpression;
-import org.opensearch.sql.opensearch.data.type.OpenSearchTextType;
 
 /** Builder of {@link SortBuilder}. */
 public class SortQueryBuilder {
@@ -88,8 +87,7 @@ public class SortQueryBuilder {
   }
 
   private FieldSortBuilder fieldBuild(ReferenceExpression ref, Sort.SortOption option) {
-    return SortBuilders.fieldSort(
-            OpenSearchTextType.convertTextToKeyword(ref.getAttr(), ref.type()))
+    return SortBuilders.fieldSort(ref.type().convertFieldForSearchQuery(ref.getAttr()))
         .order(sortOrderMap.get(option.getSortOrder()))
         .missing(missingMap.get(option.getNullOrder()));
   }

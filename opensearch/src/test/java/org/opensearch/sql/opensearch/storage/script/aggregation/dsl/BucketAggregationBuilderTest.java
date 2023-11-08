@@ -14,7 +14,6 @@ import static org.opensearch.sql.expression.DSL.literal;
 import static org.opensearch.sql.expression.DSL.named;
 import static org.opensearch.sql.expression.DSL.ref;
 
-import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import lombok.SneakyThrows;
@@ -67,7 +66,7 @@ class BucketAggregationBuilderTest {
             + "    \"order\" : \"asc\"\n"
             + "  }\n"
             + "}",
-        buildQuery(Arrays.asList(asc(named("age", ref("age", INTEGER))))));
+        buildQuery(List.of(asc(named("age", ref("age", INTEGER))))));
   }
 
   @Test
@@ -86,7 +85,7 @@ class BucketAggregationBuilderTest {
             + "    \"order\" : \"asc\"\n"
             + "  }\n"
             + "}",
-        buildQuery(Arrays.asList(asc(named(literal)))));
+        buildQuery(List.of(asc(named(literal)))));
   }
 
   @Test
@@ -94,14 +93,14 @@ class BucketAggregationBuilderTest {
     assertEquals(
         "{\n"
             + "  \"terms\" : {\n"
-            + "    \"field\" : \"name.keyword\",\n"
+            + "    \"field\" : \"name.words\",\n"
             + "    \"missing_bucket\" : true,\n"
             + "    \"missing_order\" : \"first\",\n"
             + "    \"order\" : \"asc\"\n"
             + "  }\n"
             + "}",
         buildQuery(
-            Arrays.asList(
+            List.of(
                 asc(
                     named(
                         "name",
@@ -131,7 +130,7 @@ class BucketAggregationBuilderTest {
             + "    \"order\" : \"asc\"\n"
             + "  }\n"
             + "}",
-        buildQuery(Arrays.asList(asc(named("name", parseExpression)))));
+        buildQuery(List.of(asc(named("name", parseExpression)))));
   }
 
   @ParameterizedTest(name = "{0}")
@@ -149,7 +148,7 @@ class BucketAggregationBuilderTest {
             + "    \"order\" : \"asc\"\n"
             + "  }\n"
             + "}",
-        buildQuery(Arrays.asList(asc(named("date", ref("date", dataType))))));
+        buildQuery(List.of(asc(named("date", ref("date", dataType))))));
   }
 
   @SneakyThrows

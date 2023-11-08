@@ -117,6 +117,12 @@ public class OpenSearchExprValueFactory {
               OpenSearchDataType.of(OpenSearchDataType.MappingType.Double),
               (c, dt) -> new ExprDoubleValue(c.doubleValue()))
           .put(
+              OpenSearchDataType.of(OpenSearchDataType.MappingType.HalfFloat),
+              (c, dt) -> new ExprFloatValue(c.floatValue()))
+          .put(
+              OpenSearchDataType.of(OpenSearchDataType.MappingType.ScaledFloat),
+              (c, dt) -> new ExprDoubleValue(c.doubleValue()))
+          .put(
               OpenSearchDataType.of(OpenSearchDataType.MappingType.Text),
               (c, dt) -> new OpenSearchExprTextValue(c.stringValue()))
           .put(
