@@ -7,6 +7,7 @@ package org.opensearch.sql.spark.rest;
 
 import static org.opensearch.core.rest.RestStatus.BAD_REQUEST;
 import static org.opensearch.core.rest.RestStatus.SERVICE_UNAVAILABLE;
+import static org.opensearch.core.rest.RestStatus.TOO_MANY_REQUESTS;
 import static org.opensearch.rest.RestRequest.Method.DELETE;
 import static org.opensearch.rest.RestRequest.Method.GET;
 import static org.opensearch.rest.RestRequest.Method.POST;
@@ -29,6 +30,7 @@ import org.opensearch.sql.datasources.exceptions.ErrorMessage;
 import org.opensearch.sql.datasources.utils.Scheduler;
 import org.opensearch.sql.legacy.metrics.MetricName;
 import org.opensearch.sql.legacy.utils.MetricUtils;
+import org.opensearch.sql.spark.leasemanager.ConcurrencyLimitExceededException;
 import org.opensearch.sql.spark.rest.model.CreateAsyncQueryRequest;
 import org.opensearch.sql.spark.transport.TransportCancelAsyncQueryRequestAction;
 import org.opensearch.sql.spark.transport.TransportCreateAsyncQueryRequestAction;
@@ -174,6 +176,10 @@ public class RestAsyncQueryManagementAction extends BaseRestHandler {
     if (e instanceof OpenSearchException) {
       OpenSearchException exception = (OpenSearchException) e;
       reportError(restChannel, exception, exception.status());
+      addCustomerErrorMetric(requestMethod);
+    } else if (e instanceof ConcurrencyLimitExceededException) {
+      LOG.error("Too many request", e);
+      reportError(restChannel, e, TOO_MANY_REQUESTS);
       addCustomerErrorMetric(requestMethod);
     } else {
       LOG.error("Error happened during request handling", e);
