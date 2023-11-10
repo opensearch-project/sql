@@ -39,6 +39,9 @@ public class ErrorMessage {
   }
 
   protected String fetchReason() {
+    if (status == RestStatus.TOO_MANY_REQUESTS.getStatus()) {
+      return "Too Many Requests";
+    }
     return status == RestStatus.BAD_REQUEST.getStatus()
         ? "Invalid Request"
         : "There was internal problem at backend";
