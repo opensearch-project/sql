@@ -6,9 +6,7 @@
 package org.opensearch.sql.spark.execution.session;
 
 import static org.opensearch.sql.spark.execution.session.SessionModel.initInteractiveSession;
-import static org.opensearch.sql.spark.execution.session.SessionState.DEAD;
 import static org.opensearch.sql.spark.execution.session.SessionState.END_STATE;
-import static org.opensearch.sql.spark.execution.session.SessionState.FAIL;
 import static org.opensearch.sql.spark.execution.statement.StatementId.newStatementId;
 import static org.opensearch.sql.spark.execution.statestore.StateStore.createSession;
 import static org.opensearch.sql.spark.execution.statestore.StateStore.getSession;
@@ -131,10 +129,5 @@ public class InteractiveSession implements Session {
                     .stateStore(stateStore)
                     .statementModel(model)
                     .build());
-  }
-
-  @Override
-  public boolean isReady() {
-    return sessionModel.getSessionState() != DEAD && sessionModel.getSessionState() != FAIL;
   }
 }

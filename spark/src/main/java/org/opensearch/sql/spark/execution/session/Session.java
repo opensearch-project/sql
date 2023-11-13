@@ -37,7 +37,4 @@ public interface Session {
   SessionModel getSessionModel();
 
   SessionId getSessionId();
-
-  /** return true if session is ready to use. */
-  boolean isReady();
 }
