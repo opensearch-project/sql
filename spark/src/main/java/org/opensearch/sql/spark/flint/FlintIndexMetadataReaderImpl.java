@@ -5,7 +5,7 @@ import lombok.AllArgsConstructor;
 import org.opensearch.action.admin.indices.mapping.get.GetMappingsResponse;
 import org.opensearch.client.Client;
 import org.opensearch.cluster.metadata.MappingMetadata;
-import org.opensearch.sql.spark.dispatcher.model.IndexQueryDetails;
+import org.opensearch.sql.spark.dispatcher.model.IndexDetails;
 
 /** Implementation of {@link FlintIndexMetadataReader} */
 @AllArgsConstructor
@@ -14,8 +14,8 @@ public class FlintIndexMetadataReaderImpl implements FlintIndexMetadataReader {
   private final Client client;
 
   @Override
-  public FlintIndexMetadata getFlintIndexMetadata(IndexQueryDetails indexQueryDetails) {
-    String indexName = indexQueryDetails.openSearchIndexName();
+  public FlintIndexMetadata getFlintIndexMetadata(IndexDetails indexDetails) {
+    String indexName = indexDetails.openSearchIndexName();
     GetMappingsResponse mappingsResponse =
         client.admin().indices().prepareGetMappings(indexName).get();
     try {

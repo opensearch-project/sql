@@ -34,8 +34,6 @@ import org.opensearch.sql.spark.rest.model.LangType;
 public class InteractiveSession implements Session {
   private static final Logger LOG = LogManager.getLogger();
 
-  public static final String SESSION_ID_TAG_KEY = "sid";
-
   private final SessionId sessionId;
   private final StateStore stateStore;
   private final EMRServerlessClient serverlessClient;
@@ -48,7 +46,6 @@ public class InteractiveSession implements Session {
       createSessionRequest
           .getSparkSubmitParametersBuilder()
           .sessionExecution(sessionId.getSessionId(), createSessionRequest.getDatasourceName());
-      createSessionRequest.getTags().put(SESSION_ID_TAG_KEY, sessionId.getSessionId());
       String jobID = serverlessClient.startJobRun(createSessionRequest.getStartJobRequest());
       String applicationId = createSessionRequest.getStartJobRequest().getApplicationId();
 

@@ -79,7 +79,6 @@ dropCoveringIndexStatement
 
 materializedViewStatement
     : createMaterializedViewStatement
-    | refreshMaterializedViewStatement
     | showMaterializedViewStatement
     | describeMaterializedViewStatement
     | dropMaterializedViewStatement
@@ -89,10 +88,6 @@ createMaterializedViewStatement
     : CREATE MATERIALIZED VIEW (IF NOT EXISTS)? mvName=multipartIdentifier
         AS query=materializedViewQuery
         (WITH LEFT_PAREN propertyList RIGHT_PAREN)?
-    ;
-
-refreshMaterializedViewStatement
-    : REFRESH MATERIALIZED VIEW mvName=multipartIdentifier
     ;
 
 showMaterializedViewStatement
