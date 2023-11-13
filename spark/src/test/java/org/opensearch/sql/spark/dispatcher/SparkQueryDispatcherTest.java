@@ -41,8 +41,6 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Answers;
-import org.mockito.ArgumentCaptor;
-import org.mockito.Captor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.opensearch.action.support.master.AcknowledgedResponse;
@@ -80,8 +78,6 @@ public class SparkQueryDispatcherTest {
 
   private SparkQueryDispatcher sparkQueryDispatcher;
 
-  @Captor ArgumentCaptor<StartJobRequest> startJobRequestArgumentCaptor;
-
   @BeforeEach
   void setUp() {
     sparkQueryDispatcher =
@@ -100,21 +96,19 @@ public class SparkQueryDispatcherTest {
     tags.put("datasource", "my_glue");
     tags.put("cluster", TEST_CLUSTER_NAME);
     String query = "select * from my_glue.default.http_logs";
-    String sparkSubmitParameters =
-        constructExpectedSparkSubmitParameterString(
-            "sigv4",
-            new HashMap<>() {
-              {
-                put(FLINT_INDEX_STORE_AWSREGION_KEY, "eu-west-1");
-              }
-            });
     when(emrServerlessClient.startJobRun(
             new StartJobRequest(
                 query,
                 "TEST_CLUSTER:non-index-query",
                 EMRS_APPLICATION_ID,
                 EMRS_EXECUTION_ROLE,
-                sparkSubmitParameters,
+                constructExpectedSparkSubmitParameterString(
+                    "sigv4",
+                    new HashMap<>() {
+                      {
+                        put(FLINT_INDEX_STORE_AWSREGION_KEY, "eu-west-1");
+                      }
+                    }),
                 tags,
                 false,
                 any())))
@@ -131,18 +125,23 @@ public class SparkQueryDispatcherTest {
                 LangType.SQL,
                 EMRS_EXECUTION_ROLE,
                 TEST_CLUSTER_NAME));
-    verify(emrServerlessClient, times(1)).startJobRun(startJobRequestArgumentCaptor.capture());
-    StartJobRequest expected =
-        new StartJobRequest(
-            query,
-            "TEST_CLUSTER:non-index-query",
-            EMRS_APPLICATION_ID,
-            EMRS_EXECUTION_ROLE,
-            sparkSubmitParameters,
-            tags,
-            false,
-            null);
-    Assertions.assertEquals(expected, startJobRequestArgumentCaptor.getValue());
+    verify(emrServerlessClient, times(1))
+        .startJobRun(
+            new StartJobRequest(
+                query,
+                "TEST_CLUSTER:non-index-query",
+                EMRS_APPLICATION_ID,
+                EMRS_EXECUTION_ROLE,
+                constructExpectedSparkSubmitParameterString(
+                    "sigv4",
+                    new HashMap<>() {
+                      {
+                        put(FLINT_INDEX_STORE_AWSREGION_KEY, "eu-west-1");
+                      }
+                    }),
+                tags,
+                false,
+                any()));
     Assertions.assertEquals(EMR_JOB_ID, dispatchQueryResponse.getJobId());
     Assertions.assertFalse(dispatchQueryResponse.isDropIndexQuery());
     verifyNoInteractions(flintIndexMetadataReader);
@@ -154,22 +153,20 @@ public class SparkQueryDispatcherTest {
     tags.put("datasource", "my_glue");
     tags.put("cluster", TEST_CLUSTER_NAME);
     String query = "select * from my_glue.default.http_logs";
-    String sparkSubmitParameters =
-        constructExpectedSparkSubmitParameterString(
-            "basicauth",
-            new HashMap<>() {
-              {
-                put(FLINT_INDEX_STORE_AUTH_USERNAME, "username");
-                put(FLINT_INDEX_STORE_AUTH_PASSWORD, "password");
-              }
-            });
     when(emrServerlessClient.startJobRun(
             new StartJobRequest(
                 query,
                 "TEST_CLUSTER:non-index-query",
                 EMRS_APPLICATION_ID,
                 EMRS_EXECUTION_ROLE,
-                sparkSubmitParameters,
+                constructExpectedSparkSubmitParameterString(
+                    "basicauth",
+                    new HashMap<>() {
+                      {
+                        put(FLINT_INDEX_STORE_AUTH_USERNAME, "username");
+                        put(FLINT_INDEX_STORE_AUTH_PASSWORD, "password");
+                      }
+                    }),
                 tags,
                 false,
                 any())))
@@ -186,18 +183,24 @@ public class SparkQueryDispatcherTest {
                 LangType.SQL,
                 EMRS_EXECUTION_ROLE,
                 TEST_CLUSTER_NAME));
-    verify(emrServerlessClient, times(1)).startJobRun(startJobRequestArgumentCaptor.capture());
-    StartJobRequest expected =
-        new StartJobRequest(
-            query,
-            "TEST_CLUSTER:non-index-query",
-            EMRS_APPLICATION_ID,
-            EMRS_EXECUTION_ROLE,
-            sparkSubmitParameters,
-            tags,
-            false,
-            null);
-    Assertions.assertEquals(expected, startJobRequestArgumentCaptor.getValue());
+    verify(emrServerlessClient, times(1))
+        .startJobRun(
+            new StartJobRequest(
+                query,
+                "TEST_CLUSTER:non-index-query",
+                EMRS_APPLICATION_ID,
+                EMRS_EXECUTION_ROLE,
+                constructExpectedSparkSubmitParameterString(
+                    "basicauth",
+                    new HashMap<>() {
+                      {
+                        put(FLINT_INDEX_STORE_AUTH_USERNAME, "username");
+                        put(FLINT_INDEX_STORE_AUTH_PASSWORD, "password");
+                      }
+                    }),
+                tags,
+                false,
+                any()));
     Assertions.assertEquals(EMR_JOB_ID, dispatchQueryResponse.getJobId());
     Assertions.assertFalse(dispatchQueryResponse.isDropIndexQuery());
     verifyNoInteractions(flintIndexMetadataReader);
@@ -209,20 +212,18 @@ public class SparkQueryDispatcherTest {
     tags.put("datasource", "my_glue");
     tags.put("cluster", TEST_CLUSTER_NAME);
     String query = "select * from my_glue.default.http_logs";
-    String sparkSubmitParameters =
-        constructExpectedSparkSubmitParameterString(
-            "noauth",
-            new HashMap<>() {
-              {
-              }
-            });
     when(emrServerlessClient.startJobRun(
             new StartJobRequest(
                 query,
                 "TEST_CLUSTER:non-index-query",
                 EMRS_APPLICATION_ID,
                 EMRS_EXECUTION_ROLE,
-                sparkSubmitParameters,
+                constructExpectedSparkSubmitParameterString(
+                    "noauth",
+                    new HashMap<>() {
+                      {
+                      }
+                    }),
                 tags,
                 false,
                 any())))
@@ -239,18 +240,22 @@ public class SparkQueryDispatcherTest {
                 LangType.SQL,
                 EMRS_EXECUTION_ROLE,
                 TEST_CLUSTER_NAME));
-    verify(emrServerlessClient, times(1)).startJobRun(startJobRequestArgumentCaptor.capture());
-    StartJobRequest expected =
-        new StartJobRequest(
-            query,
-            "TEST_CLUSTER:non-index-query",
-            EMRS_APPLICATION_ID,
-            EMRS_EXECUTION_ROLE,
-            sparkSubmitParameters,
-            tags,
-            false,
-            null);
-    Assertions.assertEquals(expected, startJobRequestArgumentCaptor.getValue());
+    verify(emrServerlessClient, times(1))
+        .startJobRun(
+            new StartJobRequest(
+                query,
+                "TEST_CLUSTER:non-index-query",
+                EMRS_APPLICATION_ID,
+                EMRS_EXECUTION_ROLE,
+                constructExpectedSparkSubmitParameterString(
+                    "noauth",
+                    new HashMap<>() {
+                      {
+                      }
+                    }),
+                tags,
+                false,
+                any()));
     Assertions.assertEquals(EMR_JOB_ID, dispatchQueryResponse.getJobId());
     Assertions.assertFalse(dispatchQueryResponse.isDropIndexQuery());
     verifyNoInteractions(flintIndexMetadataReader);
@@ -267,22 +272,20 @@ public class SparkQueryDispatcherTest {
     String query =
         "CREATE INDEX elb_and_requestUri ON my_glue.default.http_logs(l_orderkey, l_quantity) WITH"
             + " (auto_refresh = true)";
-    String sparkSubmitParameters =
-        withStructuredStreaming(
-            constructExpectedSparkSubmitParameterString(
-                "sigv4",
-                new HashMap<>() {
-                  {
-                    put(FLINT_INDEX_STORE_AWSREGION_KEY, "eu-west-1");
-                  }
-                }));
     when(emrServerlessClient.startJobRun(
             new StartJobRequest(
                 query,
                 "TEST_CLUSTER:index-query",
                 EMRS_APPLICATION_ID,
                 EMRS_EXECUTION_ROLE,
-                sparkSubmitParameters,
+                withStructuredStreaming(
+                    constructExpectedSparkSubmitParameterString(
+                        "sigv4",
+                        new HashMap<>() {
+                          {
+                            put(FLINT_INDEX_STORE_AWSREGION_KEY, "eu-west-1");
+                          }
+                        })),
                 tags,
                 true,
                 any())))
@@ -299,18 +302,24 @@ public class SparkQueryDispatcherTest {
                 LangType.SQL,
                 EMRS_EXECUTION_ROLE,
                 TEST_CLUSTER_NAME));
-    verify(emrServerlessClient, times(1)).startJobRun(startJobRequestArgumentCaptor.capture());
-    StartJobRequest expected =
-        new StartJobRequest(
-            query,
-            "TEST_CLUSTER:index-query",
-            EMRS_APPLICATION_ID,
-            EMRS_EXECUTION_ROLE,
-            sparkSubmitParameters,
-            tags,
-            true,
-            null);
-    Assertions.assertEquals(expected, startJobRequestArgumentCaptor.getValue());
+    verify(emrServerlessClient, times(1))
+        .startJobRun(
+            new StartJobRequest(
+                query,
+                "TEST_CLUSTER:index-query",
+                EMRS_APPLICATION_ID,
+                EMRS_EXECUTION_ROLE,
+                withStructuredStreaming(
+                    constructExpectedSparkSubmitParameterString(
+                        "sigv4",
+                        new HashMap<>() {
+                          {
+                            put(FLINT_INDEX_STORE_AWSREGION_KEY, "eu-west-1");
+                          }
+                        })),
+                tags,
+                true,
+                any()));
     Assertions.assertEquals(EMR_JOB_ID, dispatchQueryResponse.getJobId());
     Assertions.assertFalse(dispatchQueryResponse.isDropIndexQuery());
     verifyNoInteractions(flintIndexMetadataReader);
@@ -323,21 +332,19 @@ public class SparkQueryDispatcherTest {
     tags.put("cluster", TEST_CLUSTER_NAME);
 
     String query = "source = my_glue.default.http_logs";
-    String sparkSubmitParameters =
-        constructExpectedSparkSubmitParameterString(
-            "sigv4",
-            new HashMap<>() {
-              {
-                put(FLINT_INDEX_STORE_AWSREGION_KEY, "eu-west-1");
-              }
-            });
     when(emrServerlessClient.startJobRun(
             new StartJobRequest(
                 query,
                 "TEST_CLUSTER:non-index-query",
                 EMRS_APPLICATION_ID,
                 EMRS_EXECUTION_ROLE,
-                sparkSubmitParameters,
+                constructExpectedSparkSubmitParameterString(
+                    "sigv4",
+                    new HashMap<>() {
+                      {
+                        put(FLINT_INDEX_STORE_AWSREGION_KEY, "eu-west-1");
+                      }
+                    }),
                 tags,
                 false,
                 any())))
@@ -354,18 +361,23 @@ public class SparkQueryDispatcherTest {
                 LangType.PPL,
                 EMRS_EXECUTION_ROLE,
                 TEST_CLUSTER_NAME));
-    verify(emrServerlessClient, times(1)).startJobRun(startJobRequestArgumentCaptor.capture());
-    StartJobRequest expected =
-        new StartJobRequest(
-            query,
-            "TEST_CLUSTER:non-index-query",
-            EMRS_APPLICATION_ID,
-            EMRS_EXECUTION_ROLE,
-            sparkSubmitParameters,
-            tags,
-            false,
-            null);
-    Assertions.assertEquals(expected, startJobRequestArgumentCaptor.getValue());
+    verify(emrServerlessClient, times(1))
+        .startJobRun(
+            new StartJobRequest(
+                query,
+                "TEST_CLUSTER:non-index-query",
+                EMRS_APPLICATION_ID,
+                EMRS_EXECUTION_ROLE,
+                constructExpectedSparkSubmitParameterString(
+                    "sigv4",
+                    new HashMap<>() {
+                      {
+                        put(FLINT_INDEX_STORE_AWSREGION_KEY, "eu-west-1");
+                      }
+                    }),
+                tags,
+                false,
+                any()));
     Assertions.assertEquals(EMR_JOB_ID, dispatchQueryResponse.getJobId());
     Assertions.assertFalse(dispatchQueryResponse.isDropIndexQuery());
     verifyNoInteractions(flintIndexMetadataReader);
@@ -378,21 +390,19 @@ public class SparkQueryDispatcherTest {
     tags.put("cluster", TEST_CLUSTER_NAME);
 
     String query = "show tables";
-    String sparkSubmitParameters =
-        constructExpectedSparkSubmitParameterString(
-            "sigv4",
-            new HashMap<>() {
-              {
-                put(FLINT_INDEX_STORE_AWSREGION_KEY, "eu-west-1");
-              }
-            });
     when(emrServerlessClient.startJobRun(
             new StartJobRequest(
                 query,
                 "TEST_CLUSTER:non-index-query",
                 EMRS_APPLICATION_ID,
                 EMRS_EXECUTION_ROLE,
-                sparkSubmitParameters,
+                constructExpectedSparkSubmitParameterString(
+                    "sigv4",
+                    new HashMap<>() {
+                      {
+                        put(FLINT_INDEX_STORE_AWSREGION_KEY, "eu-west-1");
+                      }
+                    }),
                 tags,
                 false,
                 any())))
@@ -409,18 +419,23 @@ public class SparkQueryDispatcherTest {
                 LangType.SQL,
                 EMRS_EXECUTION_ROLE,
                 TEST_CLUSTER_NAME));
-    verify(emrServerlessClient, times(1)).startJobRun(startJobRequestArgumentCaptor.capture());
-    StartJobRequest expected =
-        new StartJobRequest(
-            query,
-            "TEST_CLUSTER:non-index-query",
-            EMRS_APPLICATION_ID,
-            EMRS_EXECUTION_ROLE,
-            sparkSubmitParameters,
-            tags,
-            false,
-            null);
-    Assertions.assertEquals(expected, startJobRequestArgumentCaptor.getValue());
+    verify(emrServerlessClient, times(1))
+        .startJobRun(
+            new StartJobRequest(
+                query,
+                "TEST_CLUSTER:non-index-query",
+                EMRS_APPLICATION_ID,
+                EMRS_EXECUTION_ROLE,
+                constructExpectedSparkSubmitParameterString(
+                    "sigv4",
+                    new HashMap<>() {
+                      {
+                        put(FLINT_INDEX_STORE_AWSREGION_KEY, "eu-west-1");
+                      }
+                    }),
+                tags,
+                false,
+                any()));
     Assertions.assertEquals(EMR_JOB_ID, dispatchQueryResponse.getJobId());
     Assertions.assertFalse(dispatchQueryResponse.isDropIndexQuery());
     verifyNoInteractions(flintIndexMetadataReader);
@@ -438,22 +453,20 @@ public class SparkQueryDispatcherTest {
     String query =
         "CREATE INDEX elb_and_requestUri ON default.http_logs(l_orderkey, l_quantity) WITH"
             + " (auto_refresh = true)";
-    String sparkSubmitParameters =
-        withStructuredStreaming(
-            constructExpectedSparkSubmitParameterString(
-                "sigv4",
-                new HashMap<>() {
-                  {
-                    put(FLINT_INDEX_STORE_AWSREGION_KEY, "eu-west-1");
-                  }
-                }));
     when(emrServerlessClient.startJobRun(
             new StartJobRequest(
                 query,
                 "TEST_CLUSTER:index-query",
                 EMRS_APPLICATION_ID,
                 EMRS_EXECUTION_ROLE,
-                sparkSubmitParameters,
+                withStructuredStreaming(
+                    constructExpectedSparkSubmitParameterString(
+                        "sigv4",
+                        new HashMap<>() {
+                          {
+                            put(FLINT_INDEX_STORE_AWSREGION_KEY, "eu-west-1");
+                          }
+                        })),
                 tags,
                 true,
                 any())))
@@ -470,18 +483,24 @@ public class SparkQueryDispatcherTest {
                 LangType.SQL,
                 EMRS_EXECUTION_ROLE,
                 TEST_CLUSTER_NAME));
-    verify(emrServerlessClient, times(1)).startJobRun(startJobRequestArgumentCaptor.capture());
-    StartJobRequest expected =
-        new StartJobRequest(
-            query,
-            "TEST_CLUSTER:index-query",
-            EMRS_APPLICATION_ID,
-            EMRS_EXECUTION_ROLE,
-            sparkSubmitParameters,
-            tags,
-            true,
-            null);
-    Assertions.assertEquals(expected, startJobRequestArgumentCaptor.getValue());
+    verify(emrServerlessClient, times(1))
+        .startJobRun(
+            new StartJobRequest(
+                query,
+                "TEST_CLUSTER:index-query",
+                EMRS_APPLICATION_ID,
+                EMRS_EXECUTION_ROLE,
+                withStructuredStreaming(
+                    constructExpectedSparkSubmitParameterString(
+                        "sigv4",
+                        new HashMap<>() {
+                          {
+                            put(FLINT_INDEX_STORE_AWSREGION_KEY, "eu-west-1");
+                          }
+                        })),
+                tags,
+                true,
+                any()));
     Assertions.assertEquals(EMR_JOB_ID, dispatchQueryResponse.getJobId());
     Assertions.assertFalse(dispatchQueryResponse.isDropIndexQuery());
     verifyNoInteractions(flintIndexMetadataReader);
@@ -886,8 +905,8 @@ public class SparkQueryDispatcherTest {
         + "  --conf"
         + " spark.hive.metastore.glue.role.arn=arn:aws:iam::924196221507:role/FlintOpensearchServiceRole"
         + "  --conf spark.sql.catalog.my_glue=org.opensearch.sql.FlintDelegatingSessionCatalog "
-        + " --conf spark.flint.datasource.name=my_glue "
-        + authParamConfigBuilder;
+        + authParamConfigBuilder
+        + " --conf spark.flint.datasource.name=my_glue ";
   }
 
   private String withStructuredStreaming(String parameters) {
