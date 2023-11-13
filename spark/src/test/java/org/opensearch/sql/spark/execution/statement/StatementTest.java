@@ -5,7 +5,6 @@
 
 package org.opensearch.sql.spark.execution.statement;
 
-import static org.opensearch.sql.spark.execution.session.SessionManagerTest.sessionSetting;
 import static org.opensearch.sql.spark.execution.statement.StatementState.CANCELLED;
 import static org.opensearch.sql.spark.execution.statement.StatementState.WAITING;
 import static org.opensearch.sql.spark.execution.statement.StatementTest.TestStatement.testStatement;
@@ -197,7 +196,7 @@ public class StatementTest extends OpenSearchSingleNodeTestCase {
   @Test
   public void submitStatementInRunningSession() {
     Session session =
-        new SessionManager(stateStore, emrsClient, sessionSetting(false))
+        new SessionManager(stateStore, emrsClient)
             .createSession(new CreateSessionRequest(startJobRequest, "datasource"));
 
     // App change state to running
@@ -210,7 +209,7 @@ public class StatementTest extends OpenSearchSingleNodeTestCase {
   @Test
   public void submitStatementInNotStartedState() {
     Session session =
-        new SessionManager(stateStore, emrsClient, sessionSetting(false))
+        new SessionManager(stateStore, emrsClient)
             .createSession(new CreateSessionRequest(startJobRequest, "datasource"));
 
     StatementId statementId = session.submit(new QueryRequest(LangType.SQL, "select 1"));
@@ -220,7 +219,7 @@ public class StatementTest extends OpenSearchSingleNodeTestCase {
   @Test
   public void failToSubmitStatementInDeadState() {
     Session session =
-        new SessionManager(stateStore, emrsClient, sessionSetting(false))
+        new SessionManager(stateStore, emrsClient)
             .createSession(new CreateSessionRequest(startJobRequest, "datasource"));
 
     updateSessionState(stateStore).apply(session.getSessionModel(), SessionState.DEAD);
@@ -238,7 +237,7 @@ public class StatementTest extends OpenSearchSingleNodeTestCase {
   @Test
   public void failToSubmitStatementInFailState() {
     Session session =
-        new SessionManager(stateStore, emrsClient, sessionSetting(false))
+        new SessionManager(stateStore, emrsClient)
             .createSession(new CreateSessionRequest(startJobRequest, "datasource"));
 
     updateSessionState(stateStore).apply(session.getSessionModel(), SessionState.FAIL);
@@ -256,7 +255,7 @@ public class StatementTest extends OpenSearchSingleNodeTestCase {
   @Test
   public void newStatementFieldAssert() {
     Session session =
-        new SessionManager(stateStore, emrsClient, sessionSetting(false))
+        new SessionManager(stateStore, emrsClient)
             .createSession(new CreateSessionRequest(startJobRequest, "datasource"));
     StatementId statementId = session.submit(new QueryRequest(LangType.SQL, "select 1"));
     Optional<Statement> statement = session.get(statementId);
@@ -274,7 +273,7 @@ public class StatementTest extends OpenSearchSingleNodeTestCase {
   @Test
   public void failToSubmitStatementInDeletedSession() {
     Session session =
-        new SessionManager(stateStore, emrsClient, sessionSetting(false))
+        new SessionManager(stateStore, emrsClient)
             .createSession(new CreateSessionRequest(startJobRequest, "datasource"));
 
     // other's delete session
@@ -292,7 +291,7 @@ public class StatementTest extends OpenSearchSingleNodeTestCase {
   @Test
   public void getStatementSuccess() {
     Session session =
-        new SessionManager(stateStore, emrsClient, sessionSetting(false))
+        new SessionManager(stateStore, emrsClient)
             .createSession(new CreateSessionRequest(startJobRequest, "datasource"));
     // App change state to running
     updateSessionState(stateStore).apply(session.getSessionModel(), SessionState.RUNNING);
@@ -307,7 +306,7 @@ public class StatementTest extends OpenSearchSingleNodeTestCase {
   @Test
   public void getStatementNotExist() {
     Session session =
-        new SessionManager(stateStore, emrsClient, sessionSetting(false))
+        new SessionManager(stateStore, emrsClient)
             .createSession(new CreateSessionRequest(startJobRequest, "datasource"));
     // App change state to running
     updateSessionState(stateStore).apply(session.getSessionModel(), SessionState.RUNNING);

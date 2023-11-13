@@ -11,7 +11,6 @@ import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
-import static org.opensearch.sql.spark.constants.TestConstants.MOCK_SESSION_ID;
 
 import java.util.HashSet;
 import org.junit.jupiter.api.Assertions;
@@ -62,31 +61,13 @@ public class TransportCreateAsyncQueryRequestActionTest {
     CreateAsyncQueryActionRequest request =
         new CreateAsyncQueryActionRequest(createAsyncQueryRequest);
     when(jobExecutorService.createAsyncQuery(createAsyncQueryRequest))
-        .thenReturn(new CreateAsyncQueryResponse("123", null));
+        .thenReturn(new CreateAsyncQueryResponse("123"));
     action.doExecute(task, request, actionListener);
     Mockito.verify(actionListener).onResponse(createJobActionResponseArgumentCaptor.capture());
     CreateAsyncQueryActionResponse createAsyncQueryActionResponse =
         createJobActionResponseArgumentCaptor.getValue();
     Assertions.assertEquals(
         "{\n" + "  \"queryId\": \"123\"\n" + "}", createAsyncQueryActionResponse.getResult());
-  }
-
-  @Test
-  public void testDoExecuteWithSessionId() {
-    CreateAsyncQueryRequest createAsyncQueryRequest =
-        new CreateAsyncQueryRequest(
-            "source = my_glue.default.alb_logs", "my_glue", LangType.SQL, MOCK_SESSION_ID);
-    CreateAsyncQueryActionRequest request =
-        new CreateAsyncQueryActionRequest(createAsyncQueryRequest);
-    when(jobExecutorService.createAsyncQuery(createAsyncQueryRequest))
-        .thenReturn(new CreateAsyncQueryResponse("123", MOCK_SESSION_ID));
-    action.doExecute(task, request, actionListener);
-    Mockito.verify(actionListener).onResponse(createJobActionResponseArgumentCaptor.capture());
-    CreateAsyncQueryActionResponse createAsyncQueryActionResponse =
-        createJobActionResponseArgumentCaptor.getValue();
-    Assertions.assertEquals(
-        "{\n" + "  \"queryId\": \"123\",\n" + "  \"sessionId\": \"s-0123456\"\n" + "}",
-        createAsyncQueryActionResponse.getResult());
   }
 
   @Test

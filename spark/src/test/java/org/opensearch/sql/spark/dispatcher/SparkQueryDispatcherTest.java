@@ -8,12 +8,8 @@ package org.opensearch.sql.spark.dispatcher;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.argThat;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doNothing;
-import static org.mockito.Mockito.doReturn;
-import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.reset;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -22,8 +18,6 @@ import static org.mockito.Mockito.when;
 import static org.opensearch.sql.spark.constants.TestConstants.EMRS_APPLICATION_ID;
 import static org.opensearch.sql.spark.constants.TestConstants.EMRS_EXECUTION_ROLE;
 import static org.opensearch.sql.spark.constants.TestConstants.EMR_JOB_ID;
-import static org.opensearch.sql.spark.constants.TestConstants.MOCK_SESSION_ID;
-import static org.opensearch.sql.spark.constants.TestConstants.MOCK_STATEMENT_ID;
 import static org.opensearch.sql.spark.constants.TestConstants.TEST_CLUSTER_NAME;
 import static org.opensearch.sql.spark.data.constants.SparkConstants.DATA_FIELD;
 import static org.opensearch.sql.spark.data.constants.SparkConstants.ERROR_FIELD;
@@ -40,7 +34,6 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
-import java.util.Optional;
 import java.util.concurrent.ExecutionException;
 import org.json.JSONObject;
 import org.junit.jupiter.api.Assertions;
@@ -65,12 +58,6 @@ import org.opensearch.sql.spark.dispatcher.model.DispatchQueryRequest;
 import org.opensearch.sql.spark.dispatcher.model.DispatchQueryResponse;
 import org.opensearch.sql.spark.dispatcher.model.FullyQualifiedTableName;
 import org.opensearch.sql.spark.dispatcher.model.IndexDetails;
-import org.opensearch.sql.spark.execution.session.Session;
-import org.opensearch.sql.spark.execution.session.SessionId;
-import org.opensearch.sql.spark.execution.session.SessionManager;
-import org.opensearch.sql.spark.execution.statement.Statement;
-import org.opensearch.sql.spark.execution.statement.StatementId;
-import org.opensearch.sql.spark.execution.statement.StatementState;
 import org.opensearch.sql.spark.flint.FlintIndexMetadata;
 import org.opensearch.sql.spark.flint.FlintIndexMetadataReader;
 import org.opensearch.sql.spark.flint.FlintIndexType;
@@ -91,12 +78,6 @@ public class SparkQueryDispatcherTest {
 
   @Mock private FlintIndexMetadata flintIndexMetadata;
 
-  @Mock private SessionManager sessionManager;
-
-  @Mock private Session session;
-
-  @Mock private Statement statement;
-
   private SparkQueryDispatcher sparkQueryDispatcher;
 
   @Captor ArgumentCaptor<StartJobRequest> startJobRequestArgumentCaptor;
@@ -110,8 +91,7 @@ public class SparkQueryDispatcherTest {
             dataSourceUserAuthorizationHelper,
             jobExecutionResponseReader,
             flintIndexMetadataReader,
-            openSearchClient,
-            sessionManager);
+            openSearchClient);
   }
 
   @Test
@@ -274,84 +254,6 @@ public class SparkQueryDispatcherTest {
     Assertions.assertEquals(EMR_JOB_ID, dispatchQueryResponse.getJobId());
     Assertions.assertFalse(dispatchQueryResponse.isDropIndexQuery());
     verifyNoInteractions(flintIndexMetadataReader);
-  }
-
-  @Test
-  void testDispatchSelectQueryCreateNewSession() {
-    String query = "select * from my_glue.default.http_logs";
-    DispatchQueryRequest queryRequest = dispatchQueryRequestWithSessionId(query, null);
-
-    doReturn(true).when(sessionManager).isEnabled();
-    doReturn(session).when(sessionManager).createSession(any());
-    doReturn(new SessionId(MOCK_SESSION_ID)).when(session).getSessionId();
-    doReturn(new StatementId(MOCK_STATEMENT_ID)).when(session).submit(any());
-    DataSourceMetadata dataSourceMetadata = constructMyGlueDataSourceMetadata();
-    when(dataSourceService.getRawDataSourceMetadata("my_glue")).thenReturn(dataSourceMetadata);
-    doNothing().when(dataSourceUserAuthorizationHelper).authorizeDataSource(dataSourceMetadata);
-    DispatchQueryResponse dispatchQueryResponse = sparkQueryDispatcher.dispatch(queryRequest);
-
-    verifyNoInteractions(emrServerlessClient);
-    verify(sessionManager, never()).getSession(any());
-    Assertions.assertEquals(MOCK_STATEMENT_ID, dispatchQueryResponse.getJobId());
-    Assertions.assertEquals(MOCK_SESSION_ID, dispatchQueryResponse.getSessionId());
-  }
-
-  @Test
-  void testDispatchSelectQueryReuseSession() {
-    String query = "select * from my_glue.default.http_logs";
-    DispatchQueryRequest queryRequest = dispatchQueryRequestWithSessionId(query, MOCK_SESSION_ID);
-
-    doReturn(true).when(sessionManager).isEnabled();
-    doReturn(Optional.of(session))
-        .when(sessionManager)
-        .getSession(eq(new SessionId(MOCK_SESSION_ID)));
-    doReturn(new SessionId(MOCK_SESSION_ID)).when(session).getSessionId();
-    doReturn(new StatementId(MOCK_STATEMENT_ID)).when(session).submit(any());
-    DataSourceMetadata dataSourceMetadata = constructMyGlueDataSourceMetadata();
-    when(dataSourceService.getRawDataSourceMetadata("my_glue")).thenReturn(dataSourceMetadata);
-    doNothing().when(dataSourceUserAuthorizationHelper).authorizeDataSource(dataSourceMetadata);
-    DispatchQueryResponse dispatchQueryResponse = sparkQueryDispatcher.dispatch(queryRequest);
-
-    verifyNoInteractions(emrServerlessClient);
-    verify(sessionManager, never()).createSession(any());
-    Assertions.assertEquals(MOCK_STATEMENT_ID, dispatchQueryResponse.getJobId());
-    Assertions.assertEquals(MOCK_SESSION_ID, dispatchQueryResponse.getSessionId());
-  }
-
-  @Test
-  void testDispatchSelectQueryInvalidSession() {
-    String query = "select * from my_glue.default.http_logs";
-    DispatchQueryRequest queryRequest = dispatchQueryRequestWithSessionId(query, "invalid");
-
-    doReturn(true).when(sessionManager).isEnabled();
-    doReturn(Optional.empty()).when(sessionManager).getSession(any());
-    DataSourceMetadata dataSourceMetadata = constructMyGlueDataSourceMetadata();
-    when(dataSourceService.getRawDataSourceMetadata("my_glue")).thenReturn(dataSourceMetadata);
-    doNothing().when(dataSourceUserAuthorizationHelper).authorizeDataSource(dataSourceMetadata);
-    IllegalArgumentException exception =
-        Assertions.assertThrows(
-            IllegalArgumentException.class, () -> sparkQueryDispatcher.dispatch(queryRequest));
-
-    verifyNoInteractions(emrServerlessClient);
-    verify(sessionManager, never()).createSession(any());
-    Assertions.assertEquals(
-        "no session found. " + new SessionId("invalid"), exception.getMessage());
-  }
-
-  @Test
-  void testDispatchSelectQueryFailedCreateSession() {
-    String query = "select * from my_glue.default.http_logs";
-    DispatchQueryRequest queryRequest = dispatchQueryRequestWithSessionId(query, null);
-
-    doReturn(true).when(sessionManager).isEnabled();
-    doThrow(RuntimeException.class).when(sessionManager).createSession(any());
-    DataSourceMetadata dataSourceMetadata = constructMyGlueDataSourceMetadata();
-    when(dataSourceService.getRawDataSourceMetadata("my_glue")).thenReturn(dataSourceMetadata);
-    doNothing().when(dataSourceUserAuthorizationHelper).authorizeDataSource(dataSourceMetadata);
-    Assertions.assertThrows(
-        RuntimeException.class, () -> sparkQueryDispatcher.dispatch(queryRequest));
-
-    verifyNoInteractions(emrServerlessClient);
   }
 
   @Test
@@ -643,68 +545,6 @@ public class SparkQueryDispatcherTest {
   }
 
   @Test
-  void testCancelQueryWithSession() {
-    doReturn(Optional.of(session)).when(sessionManager).getSession(new SessionId(MOCK_SESSION_ID));
-    doReturn(Optional.of(statement)).when(session).get(any());
-    doNothing().when(statement).cancel();
-
-    String queryId =
-        sparkQueryDispatcher.cancelJob(
-            asyncQueryJobMetadataWithSessionId(MOCK_STATEMENT_ID, MOCK_SESSION_ID));
-
-    verifyNoInteractions(emrServerlessClient);
-    verify(statement, times(1)).cancel();
-    Assertions.assertEquals(MOCK_STATEMENT_ID, queryId);
-  }
-
-  @Test
-  void testCancelQueryWithInvalidSession() {
-    doReturn(Optional.empty()).when(sessionManager).getSession(new SessionId("invalid"));
-
-    IllegalArgumentException exception =
-        Assertions.assertThrows(
-            IllegalArgumentException.class,
-            () ->
-                sparkQueryDispatcher.cancelJob(
-                    asyncQueryJobMetadataWithSessionId(MOCK_STATEMENT_ID, "invalid")));
-
-    verifyNoInteractions(emrServerlessClient);
-    verifyNoInteractions(session);
-    Assertions.assertEquals(
-        "no session found. " + new SessionId("invalid"), exception.getMessage());
-  }
-
-  @Test
-  void testCancelQueryWithInvalidStatementId() {
-    doReturn(Optional.of(session)).when(sessionManager).getSession(new SessionId(MOCK_SESSION_ID));
-
-    IllegalArgumentException exception =
-        Assertions.assertThrows(
-            IllegalArgumentException.class,
-            () ->
-                sparkQueryDispatcher.cancelJob(
-                    asyncQueryJobMetadataWithSessionId("invalid", MOCK_SESSION_ID)));
-
-    verifyNoInteractions(emrServerlessClient);
-    verifyNoInteractions(statement);
-    Assertions.assertEquals(
-        "no statement found. " + new StatementId("invalid"), exception.getMessage());
-  }
-
-  @Test
-  void testCancelQueryWithNoSessionId() {
-    when(emrServerlessClient.cancelJobRun(EMRS_APPLICATION_ID, EMR_JOB_ID))
-        .thenReturn(
-            new CancelJobRunResult()
-                .withJobRunId(EMR_JOB_ID)
-                .withApplicationId(EMRS_APPLICATION_ID));
-    String jobId =
-        sparkQueryDispatcher.cancelJob(
-            new AsyncQueryJobMetadata(EMRS_APPLICATION_ID, EMR_JOB_ID, null));
-    Assertions.assertEquals(EMR_JOB_ID, jobId);
-  }
-
-  @Test
   void testGetQueryResponse() {
     when(emrServerlessClient.getJobRunResult(EMRS_APPLICATION_ID, EMR_JOB_ID))
         .thenReturn(new GetJobRunResult().withJobRun(new JobRun().withState(JobRunState.PENDING)));
@@ -719,60 +559,6 @@ public class SparkQueryDispatcherTest {
   }
 
   @Test
-  void testGetQueryResponseWithSession() {
-    doReturn(Optional.of(session)).when(sessionManager).getSession(new SessionId(MOCK_SESSION_ID));
-    doReturn(Optional.of(statement)).when(session).get(any());
-    doReturn(StatementState.WAITING).when(statement).getStatementState();
-
-    doReturn(new JSONObject())
-        .when(jobExecutionResponseReader)
-        .getResultFromOpensearchIndex(eq(MOCK_STATEMENT_ID), any());
-    JSONObject result =
-        sparkQueryDispatcher.getQueryResponse(
-            asyncQueryJobMetadataWithSessionId(MOCK_STATEMENT_ID, MOCK_SESSION_ID));
-
-    verifyNoInteractions(emrServerlessClient);
-    Assertions.assertEquals("waiting", result.get("status"));
-  }
-
-  @Test
-  void testGetQueryResponseWithInvalidSession() {
-    doReturn(Optional.empty()).when(sessionManager).getSession(eq(new SessionId(MOCK_SESSION_ID)));
-    doReturn(new JSONObject())
-        .when(jobExecutionResponseReader)
-        .getResultFromOpensearchIndex(eq(MOCK_STATEMENT_ID), any());
-    IllegalArgumentException exception =
-        Assertions.assertThrows(
-            IllegalArgumentException.class,
-            () ->
-                sparkQueryDispatcher.getQueryResponse(
-                    asyncQueryJobMetadataWithSessionId(MOCK_STATEMENT_ID, MOCK_SESSION_ID)));
-
-    verifyNoInteractions(emrServerlessClient);
-    Assertions.assertEquals(
-        "no session found. " + new SessionId(MOCK_SESSION_ID), exception.getMessage());
-  }
-
-  @Test
-  void testGetQueryResponseWithStatementNotExist() {
-    doReturn(Optional.of(session)).when(sessionManager).getSession(new SessionId(MOCK_SESSION_ID));
-    doReturn(Optional.empty()).when(session).get(any());
-    doReturn(new JSONObject())
-        .when(jobExecutionResponseReader)
-        .getResultFromOpensearchIndex(eq(MOCK_STATEMENT_ID), any());
-
-    IllegalArgumentException exception =
-        Assertions.assertThrows(
-            IllegalArgumentException.class,
-            () ->
-                sparkQueryDispatcher.getQueryResponse(
-                    asyncQueryJobMetadataWithSessionId(MOCK_STATEMENT_ID, MOCK_SESSION_ID)));
-    verifyNoInteractions(emrServerlessClient);
-    Assertions.assertEquals(
-        "no statement found. " + new StatementId(MOCK_STATEMENT_ID), exception.getMessage());
-  }
-
-  @Test
   void testGetQueryResponseWithSuccess() {
     SparkQueryDispatcher sparkQueryDispatcher =
         new SparkQueryDispatcher(
@@ -781,8 +567,7 @@ public class SparkQueryDispatcherTest {
             dataSourceUserAuthorizationHelper,
             jobExecutionResponseReader,
             flintIndexMetadataReader,
-            openSearchClient,
-            sessionManager);
+            openSearchClient);
     JSONObject queryResult = new JSONObject();
     Map<String, Object> resultMap = new HashMap<>();
     resultMap.put(STATUS_FIELD, "SUCCESS");
@@ -819,15 +604,14 @@ public class SparkQueryDispatcherTest {
             dataSourceUserAuthorizationHelper,
             jobExecutionResponseReader,
             flintIndexMetadataReader,
-            openSearchClient,
-            sessionManager);
+            openSearchClient);
 
     String jobId =
         new SparkQueryDispatcher.DropIndexResult(JobRunState.SUCCESS.toString()).toJobId();
 
     JSONObject result =
         sparkQueryDispatcher.getQueryResponse(
-            new AsyncQueryJobMetadata(EMRS_APPLICATION_ID, jobId, true, null, null));
+            new AsyncQueryJobMetadata(EMRS_APPLICATION_ID, jobId, true, null));
     verify(jobExecutionResponseReader, times(0))
         .getResultFromOpensearchIndex(anyString(), anyString());
     Assertions.assertEquals("SUCCESS", result.get(STATUS_FIELD));
@@ -1194,24 +978,6 @@ public class SparkQueryDispatcherTest {
         langType,
         EMRS_EXECUTION_ROLE,
         TEST_CLUSTER_NAME,
-        extraParameters,
-        null);
-  }
-
-  private DispatchQueryRequest dispatchQueryRequestWithSessionId(String query, String sessionId) {
-    return new DispatchQueryRequest(
-        EMRS_APPLICATION_ID,
-        query,
-        "my_glue",
-        LangType.SQL,
-        EMRS_EXECUTION_ROLE,
-        TEST_CLUSTER_NAME,
-        null,
-        sessionId);
-  }
-
-  private AsyncQueryJobMetadata asyncQueryJobMetadataWithSessionId(
-      String queryId, String sessionId) {
-    return new AsyncQueryJobMetadata(EMRS_APPLICATION_ID, queryId, false, null, sessionId);
+        extraParameters);
   }
 }

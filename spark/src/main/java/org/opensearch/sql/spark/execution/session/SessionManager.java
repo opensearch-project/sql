@@ -5,12 +5,10 @@
 
 package org.opensearch.sql.spark.execution.session;
 
-import static org.opensearch.sql.common.setting.Settings.Key.SPARK_EXECUTION_SESSION_ENABLED;
 import static org.opensearch.sql.spark.execution.session.SessionId.newSessionId;
 
 import java.util.Optional;
 import lombok.RequiredArgsConstructor;
-import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.spark.client.EMRServerlessClient;
 import org.opensearch.sql.spark.execution.statestore.StateStore;
 
@@ -23,7 +21,6 @@ import org.opensearch.sql.spark.execution.statestore.StateStore;
 public class SessionManager {
   private final StateStore stateStore;
   private final EMRServerlessClient emrServerlessClient;
-  private final Settings settings;
 
   public Session createSession(CreateSessionRequest request) {
     InteractiveSession session =
@@ -49,9 +46,5 @@ public class SessionManager {
       return Optional.ofNullable(session);
     }
     return Optional.empty();
-  }
-
-  public boolean isEnabled() {
-    return settings.getSettingValue(SPARK_EXECUTION_SESSION_ENABLED);
   }
 }
