@@ -6,38 +6,24 @@
 package org.opensearch.sql.spark.dispatcher;
 
 import static org.opensearch.sql.spark.data.constants.SparkConstants.ERROR_FIELD;
-import static org.opensearch.sql.spark.data.constants.SparkConstants.FLINT_SESSION_CLASS_NAME;
 import static org.opensearch.sql.spark.data.constants.SparkConstants.STATUS_FIELD;
-import static org.opensearch.sql.spark.dispatcher.SparkQueryDispatcher.JOB_TYPE_TAG_KEY;
 
-import java.util.Map;
 import java.util.Optional;
 import lombok.RequiredArgsConstructor;
 import org.json.JSONObject;
-import org.opensearch.sql.datasource.model.DataSourceMetadata;
 import org.opensearch.sql.spark.asyncquery.model.AsyncQueryJobMetadata;
-import org.opensearch.sql.spark.asyncquery.model.SparkSubmitParameters;
-import org.opensearch.sql.spark.dispatcher.model.DispatchQueryContext;
-import org.opensearch.sql.spark.dispatcher.model.DispatchQueryRequest;
-import org.opensearch.sql.spark.dispatcher.model.DispatchQueryResponse;
-import org.opensearch.sql.spark.dispatcher.model.JobType;
-import org.opensearch.sql.spark.execution.session.CreateSessionRequest;
 import org.opensearch.sql.spark.execution.session.Session;
 import org.opensearch.sql.spark.execution.session.SessionId;
 import org.opensearch.sql.spark.execution.session.SessionManager;
-import org.opensearch.sql.spark.execution.statement.QueryRequest;
 import org.opensearch.sql.spark.execution.statement.Statement;
 import org.opensearch.sql.spark.execution.statement.StatementId;
 import org.opensearch.sql.spark.execution.statement.StatementState;
-import org.opensearch.sql.spark.leasemanager.LeaseManager;
-import org.opensearch.sql.spark.leasemanager.model.LeaseRequest;
 import org.opensearch.sql.spark.response.JobExecutionResponseReader;
 
 @RequiredArgsConstructor
 public class InteractiveQueryHandler extends AsyncQueryHandler {
   private final SessionManager sessionManager;
   private final JobExecutionResponseReader jobExecutionResponseReader;
-  private final LeaseManager leaseManager;
 
   @Override
   protected JSONObject getResponseFromResultIndex(AsyncQueryJobMetadata asyncQueryJobMetadata) {
@@ -62,56 +48,6 @@ public class InteractiveQueryHandler extends AsyncQueryHandler {
     String queryId = asyncQueryJobMetadata.getQueryId().getId();
     getStatementByQueryId(asyncQueryJobMetadata.getSessionId(), queryId).cancel();
     return queryId;
-  }
-
-  @Override
-  public DispatchQueryResponse submit(
-      DispatchQueryRequest dispatchQueryRequest, DispatchQueryContext context) {
-    Session session = null;
-    String jobName = dispatchQueryRequest.getClusterName() + ":" + "non-index-query";
-    Map<String, String> tags = context.getTags();
-    DataSourceMetadata dataSourceMetadata = context.getDataSourceMetadata();
-
-    // todo, manage lease lifecycle
-    leaseManager.borrow(
-        new LeaseRequest(JobType.INTERACTIVE, dispatchQueryRequest.getDatasource()));
-
-    if (dispatchQueryRequest.getSessionId() != null) {
-      // get session from request
-      SessionId sessionId = new SessionId(dispatchQueryRequest.getSessionId());
-      Optional<Session> createdSession = sessionManager.getSession(sessionId);
-      if (createdSession.isPresent()) {
-        session = createdSession.get();
-      }
-    }
-    if (session == null || !session.isReady()) {
-      // create session if not exist or session dead/fail
-      tags.put(JOB_TYPE_TAG_KEY, JobType.INTERACTIVE.getText());
-      session =
-          sessionManager.createSession(
-              new CreateSessionRequest(
-                  jobName,
-                  dispatchQueryRequest.getApplicationId(),
-                  dispatchQueryRequest.getExecutionRoleARN(),
-                  SparkSubmitParameters.Builder.builder()
-                      .className(FLINT_SESSION_CLASS_NAME)
-                      .dataSource(dataSourceMetadata)
-                      .extraParameters(dispatchQueryRequest.getExtraSparkSubmitParams()),
-                  tags,
-                  dataSourceMetadata.getResultIndex(),
-                  dataSourceMetadata.getName()));
-    }
-    session.submit(
-        new QueryRequest(
-            context.getQueryId(),
-            dispatchQueryRequest.getLangType(),
-            dispatchQueryRequest.getQuery()));
-    return new DispatchQueryResponse(
-        context.getQueryId(),
-        session.getSessionModel().getJobId(),
-        false,
-        dataSourceMetadata.getResultIndex(),
-        session.getSessionId().getSessionId());
   }
 
   private Statement getStatementByQueryId(String sid, String qid) {

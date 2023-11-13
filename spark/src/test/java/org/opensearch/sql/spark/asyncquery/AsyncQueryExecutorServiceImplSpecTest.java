@@ -67,8 +67,6 @@ import org.opensearch.sql.spark.execution.statement.StatementModel;
 import org.opensearch.sql.spark.execution.statement.StatementState;
 import org.opensearch.sql.spark.execution.statestore.StateStore;
 import org.opensearch.sql.spark.flint.FlintIndexMetadataReaderImpl;
-import org.opensearch.sql.spark.leasemanager.ConcurrencyLimitExceededException;
-import org.opensearch.sql.spark.leasemanager.DefaultLeaseManager;
 import org.opensearch.sql.spark.response.JobExecutionResponseReader;
 import org.opensearch.sql.spark.rest.model.CreateAsyncQueryRequest;
 import org.opensearch.sql.spark.rest.model.CreateAsyncQueryResponse;
@@ -78,7 +76,6 @@ import org.opensearch.test.OpenSearchIntegTestCase;
 
 public class AsyncQueryExecutorServiceImplSpecTest extends OpenSearchIntegTestCase {
   public static final String DATASOURCE = "mys3";
-  public static final String DSOTHER = "mytest";
 
   private ClusterService clusterService;
   private org.opensearch.sql.common.setting.Settings pluginSettings;
@@ -115,7 +112,7 @@ public class AsyncQueryExecutorServiceImplSpecTest extends OpenSearchIntegTestCa
     clusterSettings = clusterService.getClusterSettings();
     pluginSettings = new OpenSearchSettings(clusterSettings);
     dataSourceService = createDataSourceService();
-    DataSourceMetadata dm =
+    DataSourceMetadata dataSourceMetadata =
         new DataSourceMetadata(
             DATASOURCE,
             StringUtils.EMPTY,
@@ -131,27 +128,9 @@ public class AsyncQueryExecutorServiceImplSpecTest extends OpenSearchIntegTestCa
                 "glue.indexstore.opensearch.auth",
                 "noauth"),
             null);
-    dataSourceService.createDataSource(dm);
-    DataSourceMetadata otherDm =
-        new DataSourceMetadata(
-            DSOTHER,
-            StringUtils.EMPTY,
-            DataSourceType.S3GLUE,
-            ImmutableList.of(),
-            ImmutableMap.of(
-                "glue.auth.type",
-                "iam_role",
-                "glue.auth.role_arn",
-                "arn:aws:iam::924196221507:role/FlintOpensearchServiceRole",
-                "glue.indexstore.opensearch.uri",
-                "http://localhost:9200",
-                "glue.indexstore.opensearch.auth",
-                "noauth"),
-            null);
-    dataSourceService.createDataSource(otherDm);
+    dataSourceService.createDataSource(dataSourceMetadata);
     stateStore = new StateStore(client, clusterService);
-    createIndex(dm.fromNameToCustomResultIndex());
-    createIndex(otherDm.fromNameToCustomResultIndex());
+    createIndex(dataSourceMetadata.fromNameToCustomResultIndex());
   }
 
   @After
@@ -205,28 +184,6 @@ public class AsyncQueryExecutorServiceImplSpecTest extends OpenSearchIntegTestCa
     String cancelQueryId = asyncQueryExecutorService.cancelQuery(response.getQueryId());
     assertEquals(response.getQueryId(), cancelQueryId);
     emrsClient.cancelJobRunCalled(1);
-  }
-
-  @Test
-  public void sessionLimitNotImpactBatchQuery() {
-    LocalEMRSClient emrsClient = new LocalEMRSClient();
-    AsyncQueryExecutorService asyncQueryExecutorService =
-        createAsyncQueryExecutorService(emrsClient);
-
-    // disable session
-    enableSession(false);
-    setSessionLimit(0);
-
-    // 1. create async query.
-    CreateAsyncQueryResponse response =
-        asyncQueryExecutorService.createAsyncQuery(
-            new CreateAsyncQueryRequest("select 1", DATASOURCE, LangType.SQL, null));
-    emrsClient.startJobRunCalled(1);
-
-    CreateAsyncQueryResponse resp2 =
-        asyncQueryExecutorService.createAsyncQuery(
-            new CreateAsyncQueryRequest("select 1", DATASOURCE, LangType.SQL, null));
-    emrsClient.startJobRunCalled(2);
   }
 
   @Test
@@ -474,13 +431,14 @@ public class AsyncQueryExecutorServiceImplSpecTest extends OpenSearchIntegTestCa
     setSessionState(first.getSessionId(), SessionState.RUNNING);
 
     // 2. create async query without session.
-    ConcurrencyLimitExceededException exception =
+    IllegalArgumentException exception =
         assertThrows(
-            ConcurrencyLimitExceededException.class,
+            IllegalArgumentException.class,
             () ->
                 asyncQueryExecutorService.createAsyncQuery(
                     new CreateAsyncQueryRequest("select 1", DATASOURCE, LangType.SQL, null)));
-    assertEquals("domain concurrent active session can not exceed 1", exception.getMessage());
+    assertEquals(
+        "The maximum number of active sessions can be supported is 1", exception.getMessage());
   }
 
   // https://github.com/opensearch-project/sql/issues/2360
@@ -577,32 +535,6 @@ public class AsyncQueryExecutorServiceImplSpecTest extends OpenSearchIntegTestCa
             "--conf spark.sql.catalog.TESTS3=org.opensearch.sql.FlintDelegatingSessionCatalog"));
   }
 
-  @Test
-  public void concurrentSessionLimitIsDomainLevel() {
-    LocalEMRSClient emrsClient = new LocalEMRSClient();
-    AsyncQueryExecutorService asyncQueryExecutorService =
-        createAsyncQueryExecutorService(emrsClient);
-
-    // only allow one session in domain.
-    setSessionLimit(1);
-
-    // 1. create async query.
-    CreateAsyncQueryResponse first =
-        asyncQueryExecutorService.createAsyncQuery(
-            new CreateAsyncQueryRequest("select 1", DATASOURCE, LangType.SQL, null));
-    assertNotNull(first.getSessionId());
-    setSessionState(first.getSessionId(), SessionState.RUNNING);
-
-    // 2. create async query without session.
-    ConcurrencyLimitExceededException exception =
-        assertThrows(
-            ConcurrencyLimitExceededException.class,
-            () ->
-                asyncQueryExecutorService.createAsyncQuery(
-                    new CreateAsyncQueryRequest("select 1", DSOTHER, LangType.SQL, null)));
-    assertEquals("domain concurrent active session can not exceed 1", exception.getMessage());
-  }
-
   private DataSourceServiceImpl createDataSourceService() {
     String masterKey = "a57d991d9b573f75b9bba1df";
     DataSourceMetadataStorage dataSourceMetadataStorage =
@@ -630,8 +562,7 @@ public class AsyncQueryExecutorServiceImplSpecTest extends OpenSearchIntegTestCa
             jobExecutionResponseReader,
             new FlintIndexMetadataReaderImpl(client),
             client,
-            new SessionManager(stateStore, emrServerlessClient, pluginSettings),
-            new DefaultLeaseManager(pluginSettings, stateStore));
+            new SessionManager(stateStore, emrServerlessClient, pluginSettings));
     return new AsyncQueryExecutorServiceImpl(
         asyncQueryJobMetadataStorageService,
         sparkQueryDispatcher,

@@ -98,7 +98,6 @@ import org.opensearch.sql.spark.dispatcher.SparkQueryDispatcher;
 import org.opensearch.sql.spark.execution.session.SessionManager;
 import org.opensearch.sql.spark.execution.statestore.StateStore;
 import org.opensearch.sql.spark.flint.FlintIndexMetadataReaderImpl;
-import org.opensearch.sql.spark.leasemanager.DefaultLeaseManager;
 import org.opensearch.sql.spark.response.JobExecutionResponseReader;
 import org.opensearch.sql.spark.rest.RestAsyncQueryManagementAction;
 import org.opensearch.sql.spark.storage.SparkStorageFactory;
@@ -259,7 +258,7 @@ public class SQLPlugin extends Plugin implements ActionPlugin, ScriptPlugin {
             OpenSearchSettings.AUTO_INDEX_MANAGEMENT_ENABLED_SETTING,
             environment.settings());
     return ImmutableList.of(
-        dataSourceService, asyncQueryExecutorService, clusterManagerEventListener, pluginSettings);
+        dataSourceService, asyncQueryExecutorService, clusterManagerEventListener);
   }
 
   @Override
@@ -334,8 +333,7 @@ public class SQLPlugin extends Plugin implements ActionPlugin, ScriptPlugin {
             jobExecutionResponseReader,
             new FlintIndexMetadataReaderImpl(client),
             client,
-            new SessionManager(stateStore, emrServerlessClient, pluginSettings),
-            new DefaultLeaseManager(pluginSettings, stateStore));
+            new SessionManager(stateStore, emrServerlessClient, pluginSettings));
     return new AsyncQueryExecutorServiceImpl(
         asyncQueryJobMetadataStorageService,
         sparkQueryDispatcher,
