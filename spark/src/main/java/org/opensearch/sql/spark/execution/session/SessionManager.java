@@ -28,7 +28,7 @@ public class SessionManager {
   public Session createSession(CreateSessionRequest request) {
     InteractiveSession session =
         InteractiveSession.builder()
-            .sessionId(newSessionId(request.getDatasourceName()))
+            .sessionId(newSessionId())
             .stateStore(stateStore)
             .serverlessClient(emrServerlessClient)
             .build();
@@ -37,8 +37,7 @@ public class SessionManager {
   }
 
   public Optional<Session> getSession(SessionId sid) {
-    Optional<SessionModel> model =
-        StateStore.getSession(stateStore, sid.getDataSourceName()).apply(sid.getSessionId());
+    Optional<SessionModel> model = StateStore.getSession(stateStore).apply(sid.getSessionId());
     if (model.isPresent()) {
       InteractiveSession session =
           InteractiveSession.builder()

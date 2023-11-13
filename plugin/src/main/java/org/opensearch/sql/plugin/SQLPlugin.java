@@ -7,6 +7,7 @@ package org.opensearch.sql.plugin;
 
 import static org.opensearch.sql.common.setting.Settings.Key.SPARK_EXECUTION_ENGINE_CONFIG;
 import static org.opensearch.sql.datasource.model.DataSourceMetadata.defaultOpenSearchDataSourceMetadata;
+import static org.opensearch.sql.spark.data.constants.SparkConstants.SPARK_REQUEST_BUFFER_INDEX_NAME;
 
 import com.amazonaws.auth.DefaultAWSCredentialsProviderChain;
 import com.amazonaws.services.emrserverless.AWSEMRServerless;
@@ -320,7 +321,9 @@ public class SQLPlugin extends Plugin implements ActionPlugin, ScriptPlugin {
             new FlintIndexMetadataReaderImpl(client),
             client,
             new SessionManager(
-                new StateStore(client, clusterService), emrServerlessClient, pluginSettings));
+                new StateStore(SPARK_REQUEST_BUFFER_INDEX_NAME, client),
+                emrServerlessClient,
+                pluginSettings));
     return new AsyncQueryExecutorServiceImpl(
         asyncQueryJobMetadataStorageService,
         sparkQueryDispatcher,

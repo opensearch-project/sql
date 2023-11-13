@@ -32,7 +32,6 @@ public class Statement {
   private final String jobId;
   private final StatementId statementId;
   private final LangType langType;
-  private final String datasourceName;
   private final String query;
   private final String queryId;
   private final StateStore stateStore;
@@ -43,16 +42,8 @@ public class Statement {
   public void open() {
     try {
       statementModel =
-          submitStatement(
-              sessionId,
-              applicationId,
-              jobId,
-              statementId,
-              langType,
-              datasourceName,
-              query,
-              queryId);
-      statementModel = createStatement(stateStore, datasourceName).apply(statementModel);
+          submitStatement(sessionId, applicationId, jobId, statementId, langType, query, queryId);
+      statementModel = createStatement(stateStore).apply(statementModel);
     } catch (VersionConflictEngineException e) {
       String errorMsg = "statement already exist. " + statementId;
       LOG.error(errorMsg);
@@ -70,8 +61,7 @@ public class Statement {
     }
     try {
       this.statementModel =
-          updateStatementState(stateStore, statementModel.getDatasourceName())
-              .apply(this.statementModel, StatementState.CANCELLED);
+          updateStatementState(stateStore).apply(this.statementModel, StatementState.CANCELLED);
     } catch (DocumentMissingException e) {
       String errorMsg =
           String.format("cancel statement failed. no statement found. statement: %s.", statementId);
@@ -79,9 +69,7 @@ public class Statement {
       throw new IllegalStateException(errorMsg);
     } catch (VersionConflictEngineException e) {
       this.statementModel =
-          getStatement(stateStore, statementModel.getDatasourceName())
-              .apply(statementModel.getId())
-              .orElse(this.statementModel);
+          getStatement(stateStore).apply(statementModel.getId()).orElse(this.statementModel);
       String errorMsg =
           String.format(
               "cancel statement failed. current statementState: %s " + "statement: %s.",

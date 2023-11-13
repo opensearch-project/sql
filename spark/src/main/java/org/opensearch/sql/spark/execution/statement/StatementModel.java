@@ -6,7 +6,6 @@
 package org.opensearch.sql.spark.execution.statement;
 
 import static org.opensearch.sql.spark.execution.session.SessionModel.APPLICATION_ID;
-import static org.opensearch.sql.spark.execution.session.SessionModel.DATASOURCE_NAME;
 import static org.opensearch.sql.spark.execution.session.SessionModel.JOB_ID;
 import static org.opensearch.sql.spark.execution.statement.StatementState.WAITING;
 
@@ -46,7 +45,6 @@ public class StatementModel extends StateModel {
   private final String applicationId;
   private final String jobId;
   private final LangType langType;
-  private final String datasourceName;
   private final String query;
   private final String queryId;
   private final long submitTime;
@@ -67,7 +65,6 @@ public class StatementModel extends StateModel {
         .field(APPLICATION_ID, applicationId)
         .field(JOB_ID, jobId)
         .field(LANG, langType.getText())
-        .field(DATASOURCE_NAME, datasourceName)
         .field(QUERY, query)
         .field(QUERY_ID, queryId)
         .field(SUBMIT_TIME, submitTime)
@@ -85,7 +82,6 @@ public class StatementModel extends StateModel {
         .applicationId(copy.applicationId)
         .jobId(copy.jobId)
         .langType(copy.langType)
-        .datasourceName(copy.datasourceName)
         .query(copy.query)
         .queryId(copy.queryId)
         .submitTime(copy.submitTime)
@@ -105,7 +101,6 @@ public class StatementModel extends StateModel {
         .applicationId(copy.applicationId)
         .jobId(copy.jobId)
         .langType(copy.langType)
-        .datasourceName(copy.datasourceName)
         .query(copy.query)
         .queryId(copy.queryId)
         .submitTime(copy.submitTime)
@@ -148,9 +143,6 @@ public class StatementModel extends StateModel {
         case LANG:
           builder.langType(LangType.fromString(parser.text()));
           break;
-        case DATASOURCE_NAME:
-          builder.datasourceName(parser.text());
-          break;
         case QUERY:
           builder.query(parser.text());
           break;
@@ -176,7 +168,6 @@ public class StatementModel extends StateModel {
       String jobId,
       StatementId statementId,
       LangType langType,
-      String datasourceName,
       String query,
       String queryId) {
     return builder()
@@ -187,7 +178,6 @@ public class StatementModel extends StateModel {
         .applicationId(applicationId)
         .jobId(jobId)
         .langType(langType)
-        .datasourceName(datasourceName)
         .query(query)
         .queryId(queryId)
         .submitTime(System.currentTimeMillis())

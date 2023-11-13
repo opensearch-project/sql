@@ -68,7 +68,6 @@ dependencies {
         because 'allows tests to run from IDEs that bundle older version of launcher'
     }
     testImplementation("org.opensearch.test:framework:${opensearch_version}")
-    testImplementation project(':opensearch')
 }
 
 test {

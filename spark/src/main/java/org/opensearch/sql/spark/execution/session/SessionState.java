@@ -8,7 +8,6 @@ package org.opensearch.sql.spark.execution.session;
 import com.google.common.collect.ImmutableList;
 import java.util.Arrays;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 import java.util.stream.Collectors;
 import lombok.Getter;
@@ -33,10 +32,8 @@ public enum SessionState {
           .collect(Collectors.toMap(t -> t.name().toLowerCase(), t -> t));
 
   public static SessionState fromString(String key) {
-    for (SessionState ss : SessionState.values()) {
-      if (ss.getSessionState().toLowerCase(Locale.ROOT).equals(key)) {
-        return ss;
-      }
+    if (STATES.containsKey(key)) {
+      return STATES.get(key);
     }
     throw new IllegalArgumentException("Invalid session state: " + key);
   }
