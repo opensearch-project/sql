@@ -5,7 +5,6 @@
 
 package org.opensearch.sql.datasource;
 
-import java.util.Map;
 import java.util.Set;
 import org.opensearch.sql.datasource.model.DataSource;
 import org.opensearch.sql.datasource.model.DataSourceMetadata;
@@ -57,18 +56,11 @@ public interface DataSourceService {
   void createDataSource(DataSourceMetadata metadata);
 
   /**
-   * Updates {@link DataSource} corresponding to dataSourceMetadata (all fields needed).
+   * Updates {@link DataSource} corresponding to dataSourceMetadata.
    *
    * @param dataSourceMetadata {@link DataSourceMetadata}.
    */
   void updateDataSource(DataSourceMetadata dataSourceMetadata);
-
-  /**
-   * Patches {@link DataSource} corresponding to the given name (only fields to be changed needed).
-   *
-   * @param dataSourceData
-   */
-  void patchDataSource(Map<String, Object> dataSourceData);
 
   /**
    * Deletes {@link DataSource} corresponding to the DataSource name.
