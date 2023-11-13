@@ -1,0 +1,25 @@
+---
+##
+# Copyright OpenSearch Contributors
+# SPDX-License-Identifier: Apache-2.0
+##
+
+# Schema file for the .ql-job-metadata index
+# Also "dynamic" is set to "false" so that other fields can be added.
+dynamic: false
+properties:
+  jobId:
+    type: text
+    fields:
+      keyword:
+        type: keyword
+  applicationId:
+    type: text
+    fields:
+      keyword:
+        type: keyword
+  resultIndex:
+    type: text
+    fields:
+      keyword:
+        type: keyword

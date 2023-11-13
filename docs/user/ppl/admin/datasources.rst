@@ -93,19 +93,6 @@ we can remove authorization and other details in case of security disabled domai
         "allowedRoles" : ["prometheus_access"]
     }
 
-* Datasource modification PATCH API ("_plugins/_query/_datasources") ::
-
-    PATCH https://localhost:9200/_plugins/_query/_datasources
-    content-type: application/json
-    Authorization: Basic {{username}} {{password}}
-
-    {
-        "name" : "my_prometheus",
-        "allowedRoles" : ["all_access"]
-    }
-
-  **Name is required and must exist. Connector cannot be modified and will be ignored.**
-
 * Datasource Read GET API("_plugins/_query/_datasources/{{dataSourceName}}" ::
 
     GET https://localhost:9200/_plugins/_query/_datasources/my_prometheus
@@ -127,7 +114,6 @@ Each of the datasource configuration management apis are controlled by following
 * cluster:admin/opensearch/datasources/create [Create POST API]
 * cluster:admin/opensearch/datasources/read   [Get GET API]
 * cluster:admin/opensearch/datasources/update [Update PUT API]
-* cluster:admin/opensearch/datasources/patch [Update PATCH API]
 * cluster:admin/opensearch/datasources/delete [Delete DELETE API]
 
 Only users mapped with roles having above actions are authorized to execute datasource management apis.

@@ -20,11 +20,13 @@ public class SparkConstants {
   // EMR-S will download JAR to local maven
   public static final String SPARK_SQL_APPLICATION_JAR =
       "file:///home/hadoop/.ivy2/jars/org.opensearch_opensearch-spark-sql-application_2.12-0.1.0-SNAPSHOT.jar";
-  public static final String SPARK_REQUEST_BUFFER_INDEX_NAME = ".query_execution_request";
+  public static final String SPARK_RESPONSE_BUFFER_INDEX_NAME = ".query_execution_result";
   // TODO should be replaced with mvn jar.
   public static final String FLINT_INTEGRATION_JAR =
       "s3://spark-datasource/flint-spark-integration-assembly-0.1.0-SNAPSHOT.jar";
   // TODO should be replaced with mvn jar.
+  public static final String FLINT_CATALOG_JAR =
+      "s3://flint-data-dp-eu-west-1-beta/code/flint/flint-catalog.jar";
   public static final String FLINT_DEFAULT_HOST = "localhost";
   public static final String FLINT_DEFAULT_PORT = "9200";
   public static final String FLINT_DEFAULT_SCHEME = "http";
@@ -84,8 +86,4 @@ public class SparkConstants {
   public static final String EMR_ASSUME_ROLE_CREDENTIALS_PROVIDER =
       "com.amazonaws.emr.AssumeRoleAWSCredentialsProvider";
   public static final String JAVA_HOME_LOCATION = "/usr/lib/jvm/java-17-amazon-corretto.x86_64/";
-
-  public static final String FLINT_JOB_REQUEST_INDEX = "spark.flint.job.requestIndex";
-  public static final String FLINT_JOB_SESSION_ID = "spark.flint.job.sessionId";
-  public static final String FLINT_SESSION_CLASS_NAME = "org.apache.spark.sql.FlintREPL";
 }

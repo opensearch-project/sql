@@ -7,7 +7,6 @@ package org.opensearch.sql.plugin;
 
 import static org.opensearch.sql.common.setting.Settings.Key.SPARK_EXECUTION_ENGINE_CONFIG;
 import static org.opensearch.sql.datasource.model.DataSourceMetadata.defaultOpenSearchDataSourceMetadata;
-import static org.opensearch.sql.spark.execution.statestore.StateStore.ALL_DATASOURCE;
 
 import com.amazonaws.auth.DefaultAWSCredentialsProviderChain;
 import com.amazonaws.services.emrserverless.AWSEMRServerless;
@@ -16,7 +15,6 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import java.security.AccessController;
 import java.security.PrivilegedAction;
-import java.time.Clock;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
@@ -60,15 +58,20 @@ import org.opensearch.sql.datasources.auth.DataSourceUserAuthorizationHelper;
 import org.opensearch.sql.datasources.auth.DataSourceUserAuthorizationHelperImpl;
 import org.opensearch.sql.datasources.encryptor.EncryptorImpl;
 import org.opensearch.sql.datasources.glue.GlueDataSourceFactory;
-import org.opensearch.sql.datasources.model.transport.*;
+import org.opensearch.sql.datasources.model.transport.CreateDataSourceActionResponse;
+import org.opensearch.sql.datasources.model.transport.DeleteDataSourceActionResponse;
+import org.opensearch.sql.datasources.model.transport.GetDataSourceActionResponse;
+import org.opensearch.sql.datasources.model.transport.UpdateDataSourceActionResponse;
 import org.opensearch.sql.datasources.rest.RestDataSourceQueryAction;
 import org.opensearch.sql.datasources.service.DataSourceMetadataStorage;
 import org.opensearch.sql.datasources.service.DataSourceServiceImpl;
 import org.opensearch.sql.datasources.storage.OpenSearchDataSourceMetadataStorage;
-import org.opensearch.sql.datasources.transport.*;
+import org.opensearch.sql.datasources.transport.TransportCreateDataSourceAction;
+import org.opensearch.sql.datasources.transport.TransportDeleteDataSourceAction;
+import org.opensearch.sql.datasources.transport.TransportGetDataSourceAction;
+import org.opensearch.sql.datasources.transport.TransportUpdateDataSourceAction;
 import org.opensearch.sql.legacy.esdomain.LocalClusterState;
 import org.opensearch.sql.legacy.executor.AsyncRestExecutor;
-import org.opensearch.sql.legacy.metrics.GaugeMetric;
 import org.opensearch.sql.legacy.metrics.Metrics;
 import org.opensearch.sql.legacy.plugin.RestSqlAction;
 import org.opensearch.sql.legacy.plugin.RestSqlStatsAction;
@@ -92,15 +95,11 @@ import org.opensearch.sql.spark.asyncquery.AsyncQueryJobMetadataStorageService;
 import org.opensearch.sql.spark.asyncquery.OpensearchAsyncQueryJobMetadataStorageService;
 import org.opensearch.sql.spark.client.EMRServerlessClient;
 import org.opensearch.sql.spark.client.EmrServerlessClientImpl;
-import org.opensearch.sql.spark.cluster.ClusterManagerEventListener;
 import org.opensearch.sql.spark.config.SparkExecutionEngineConfig;
 import org.opensearch.sql.spark.config.SparkExecutionEngineConfigSupplier;
 import org.opensearch.sql.spark.config.SparkExecutionEngineConfigSupplierImpl;
 import org.opensearch.sql.spark.dispatcher.SparkQueryDispatcher;
-import org.opensearch.sql.spark.execution.session.SessionManager;
-import org.opensearch.sql.spark.execution.statestore.StateStore;
 import org.opensearch.sql.spark.flint.FlintIndexMetadataReaderImpl;
-import org.opensearch.sql.spark.leasemanager.DefaultLeaseManager;
 import org.opensearch.sql.spark.response.JobExecutionResponseReader;
 import org.opensearch.sql.spark.rest.RestAsyncQueryManagementAction;
 import org.opensearch.sql.spark.storage.SparkStorageFactory;
@@ -183,10 +182,6 @@ public class SQLPlugin extends Plugin implements ActionPlugin, ScriptPlugin {
             TransportUpdateDataSourceAction.class),
         new ActionHandler<>(
             new ActionType<>(
-                TransportPatchDataSourceAction.NAME, PatchDataSourceActionResponse::new),
-            TransportPatchDataSourceAction.class),
-        new ActionHandler<>(
-            new ActionType<>(
                 TransportDeleteDataSourceAction.NAME, DeleteDataSourceActionResponse::new),
             TransportDeleteDataSourceAction.class),
         new ActionHandler<>(
@@ -250,18 +245,7 @@ public class SQLPlugin extends Plugin implements ActionPlugin, ScriptPlugin {
         });
 
     injector = modules.createInjector();
-    ClusterManagerEventListener clusterManagerEventListener =
-        new ClusterManagerEventListener(
-            clusterService,
-            threadPool,
-            client,
-            Clock.systemUTC(),
-            OpenSearchSettings.SESSION_INDEX_TTL_SETTING,
-            OpenSearchSettings.RESULT_INDEX_TTL_SETTING,
-            OpenSearchSettings.AUTO_INDEX_MANAGEMENT_ENABLED_SETTING,
-            environment.settings());
-    return ImmutableList.of(
-        dataSourceService, asyncQueryExecutorService, clusterManagerEventListener, pluginSettings);
+    return ImmutableList.of(dataSourceService, asyncQueryExecutorService);
   }
 
   @Override
@@ -322,10 +306,8 @@ public class SQLPlugin extends Plugin implements ActionPlugin, ScriptPlugin {
   private AsyncQueryExecutorService createAsyncQueryExecutorService(
       SparkExecutionEngineConfigSupplier sparkExecutionEngineConfigSupplier,
       SparkExecutionEngineConfig sparkExecutionEngineConfig) {
-    StateStore stateStore = new StateStore(client, clusterService);
-    registerStateStoreMetrics(stateStore);
     AsyncQueryJobMetadataStorageService asyncQueryJobMetadataStorageService =
-        new OpensearchAsyncQueryJobMetadataStorageService(stateStore);
+        new OpensearchAsyncQueryJobMetadataStorageService(client, clusterService);
     EMRServerlessClient emrServerlessClient =
         createEMRServerlessClient(sparkExecutionEngineConfig.getRegion());
     JobExecutionResponseReader jobExecutionResponseReader = new JobExecutionResponseReader(client);
@@ -336,27 +318,11 @@ public class SQLPlugin extends Plugin implements ActionPlugin, ScriptPlugin {
             new DataSourceUserAuthorizationHelperImpl(client),
             jobExecutionResponseReader,
             new FlintIndexMetadataReaderImpl(client),
-            client,
-            new SessionManager(stateStore, emrServerlessClient, pluginSettings),
-            new DefaultLeaseManager(pluginSettings, stateStore),
-            stateStore);
+            client);
     return new AsyncQueryExecutorServiceImpl(
         asyncQueryJobMetadataStorageService,
         sparkQueryDispatcher,
         sparkExecutionEngineConfigSupplier);
-  }
-
-  private void registerStateStoreMetrics(StateStore stateStore) {
-    GaugeMetric<Long> activeSessionMetric =
-        new GaugeMetric<>(
-            "active_async_query_sessions_count",
-            StateStore.activeSessionsCount(stateStore, ALL_DATASOURCE));
-    GaugeMetric<Long> activeStatementMetric =
-        new GaugeMetric<>(
-            "active_async_query_statements_count",
-            StateStore.activeStatementsCount(stateStore, ALL_DATASOURCE));
-    Metrics.getInstance().registerMetric(activeSessionMetric);
-    Metrics.getInstance().registerMetric(activeStatementMetric);
   }
 
   private EMRServerlessClient createEMRServerlessClient(String region) {

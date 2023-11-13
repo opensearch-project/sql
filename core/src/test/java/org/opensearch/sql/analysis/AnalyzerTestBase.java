@@ -19,7 +19,6 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
-import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.tuple.Pair;
 import org.opensearch.sql.DataSourceSchemaName;
 import org.opensearch.sql.analysis.symbol.Namespace;
@@ -198,7 +197,6 @@ public class AnalyzerTestBase {
               ds ->
                   new DataSourceMetadata(
                       ds.getName(),
-                      StringUtils.EMPTY,
                       ds.getConnectorType(),
                       Collections.emptyList(),
                       ImmutableMap.of(),
@@ -232,9 +230,6 @@ public class AnalyzerTestBase {
 
     @Override
     public void updateDataSource(DataSourceMetadata dataSourceMetadata) {}
-
-    @Override
-    public void patchDataSource(Map<String, Object> dataSourceData) {}
 
     @Override
     public void deleteDataSource(String dataSourceName) {}

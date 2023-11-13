@@ -6,7 +6,6 @@
 package org.opensearch.sql.opensearch.setting;
 
 import static org.opensearch.common.settings.Settings.EMPTY;
-import static org.opensearch.common.unit.TimeValue.timeValueDays;
 import static org.opensearch.sql.common.setting.Settings.Key.ENCYRPTION_MASTER_KEY;
 
 import com.google.common.annotations.VisibleForTesting;
@@ -26,7 +25,6 @@ import org.opensearch.common.settings.ClusterSettings;
 import org.opensearch.common.settings.SecureSetting;
 import org.opensearch.common.settings.Setting;
 import org.opensearch.common.unit.MemorySizeValue;
-import org.opensearch.common.unit.TimeValue;
 import org.opensearch.sql.common.setting.LegacySettings;
 import org.opensearch.sql.common.setting.Settings;
 
@@ -137,48 +135,6 @@ public class OpenSearchSettings extends Settings {
           Setting.Property.NodeScope,
           Setting.Property.Dynamic);
 
-  public static final Setting<?> SPARK_EXECUTION_SESSION_LIMIT_SETTING =
-      Setting.intSetting(
-          Key.SPARK_EXECUTION_SESSION_LIMIT.getKeyValue(),
-          100,
-          Setting.Property.NodeScope,
-          Setting.Property.Dynamic);
-
-  public static final Setting<?> SPARK_EXECUTION_REFRESH_JOB_LIMIT_SETTING =
-      Setting.intSetting(
-          Key.SPARK_EXECUTION_REFRESH_JOB_LIMIT.getKeyValue(),
-          50,
-          Setting.Property.NodeScope,
-          Setting.Property.Dynamic);
-
-  public static final Setting<TimeValue> SESSION_INDEX_TTL_SETTING =
-      Setting.positiveTimeSetting(
-          Key.SESSION_INDEX_TTL.getKeyValue(),
-          timeValueDays(14),
-          Setting.Property.NodeScope,
-          Setting.Property.Dynamic);
-
-  public static final Setting<TimeValue> RESULT_INDEX_TTL_SETTING =
-      Setting.positiveTimeSetting(
-          Key.RESULT_INDEX_TTL.getKeyValue(),
-          timeValueDays(60),
-          Setting.Property.NodeScope,
-          Setting.Property.Dynamic);
-
-  public static final Setting<Boolean> AUTO_INDEX_MANAGEMENT_ENABLED_SETTING =
-      Setting.boolSetting(
-          Key.AUTO_INDEX_MANAGEMENT_ENABLED.getKeyValue(),
-          true,
-          Setting.Property.NodeScope,
-          Setting.Property.Dynamic);
-
-  public static final Setting<?> DATASOURCES_LIMIT_SETTING =
-      Setting.intSetting(
-          Key.DATASOURCES_LIMIT.getKeyValue(),
-          20,
-          Setting.Property.NodeScope,
-          Setting.Property.Dynamic);
-
   /** Construct OpenSearchSetting. The OpenSearchSetting must be singleton. */
   @SuppressWarnings("unchecked")
   public OpenSearchSettings(ClusterSettings clusterSettings) {
@@ -249,42 +205,6 @@ public class OpenSearchSettings extends Settings {
         Key.SPARK_EXECUTION_ENGINE_CONFIG,
         SPARK_EXECUTION_ENGINE_CONFIG,
         new Updater(Key.SPARK_EXECUTION_ENGINE_CONFIG));
-    register(
-        settingBuilder,
-        clusterSettings,
-        Key.SPARK_EXECUTION_SESSION_LIMIT,
-        SPARK_EXECUTION_SESSION_LIMIT_SETTING,
-        new Updater(Key.SPARK_EXECUTION_SESSION_LIMIT));
-    register(
-        settingBuilder,
-        clusterSettings,
-        Key.SPARK_EXECUTION_REFRESH_JOB_LIMIT,
-        SPARK_EXECUTION_REFRESH_JOB_LIMIT_SETTING,
-        new Updater(Key.SPARK_EXECUTION_REFRESH_JOB_LIMIT));
-    register(
-        settingBuilder,
-        clusterSettings,
-        Key.SESSION_INDEX_TTL,
-        SESSION_INDEX_TTL_SETTING,
-        new Updater(Key.SESSION_INDEX_TTL));
-    register(
-        settingBuilder,
-        clusterSettings,
-        Key.RESULT_INDEX_TTL,
-        RESULT_INDEX_TTL_SETTING,
-        new Updater(Key.RESULT_INDEX_TTL));
-    register(
-        settingBuilder,
-        clusterSettings,
-        Key.AUTO_INDEX_MANAGEMENT_ENABLED,
-        AUTO_INDEX_MANAGEMENT_ENABLED_SETTING,
-        new Updater(Key.AUTO_INDEX_MANAGEMENT_ENABLED));
-    register(
-        settingBuilder,
-        clusterSettings,
-        Key.DATASOURCES_LIMIT,
-        DATASOURCES_LIMIT_SETTING,
-        new Updater(Key.DATASOURCES_LIMIT));
     registerNonDynamicSettings(
         settingBuilder, clusterSettings, Key.CLUSTER_NAME, ClusterName.CLUSTER_NAME_SETTING);
     defaultSettings = settingBuilder.build();
@@ -350,12 +270,6 @@ public class OpenSearchSettings extends Settings {
         .add(METRICS_ROLLING_INTERVAL_SETTING)
         .add(DATASOURCE_URI_HOSTS_DENY_LIST)
         .add(SPARK_EXECUTION_ENGINE_CONFIG)
-        .add(SPARK_EXECUTION_SESSION_LIMIT_SETTING)
-        .add(SPARK_EXECUTION_REFRESH_JOB_LIMIT_SETTING)
-        .add(SESSION_INDEX_TTL_SETTING)
-        .add(RESULT_INDEX_TTL_SETTING)
-        .add(AUTO_INDEX_MANAGEMENT_ENABLED_SETTING)
-        .add(DATASOURCES_LIMIT_SETTING)
         .build();
   }
 

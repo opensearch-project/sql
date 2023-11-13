@@ -18,7 +18,6 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 import static org.opensearch.sql.analysis.DataSourceSchemaIdentifierNameResolver.DEFAULT_DATASOURCE_NAME;
-import static org.opensearch.sql.datasources.utils.XContentParserUtils.*;
 
 import com.google.common.collect.ImmutableMap;
 import java.util.ArrayList;
@@ -29,7 +28,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
-import org.apache.commons.lang3.StringUtils;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -266,6 +264,7 @@ class DataSourceServiceImplTest {
 
   @Test
   void testUpdateDataSourceSuccessCase() {
+
     DataSourceMetadata dataSourceMetadata =
         metadata("testDS", DataSourceType.OPENSEARCH, Collections.emptyList(), ImmutableMap.of());
     dataSourceService.updateDataSource(dataSourceMetadata);
@@ -288,46 +287,6 @@ class DataSourceServiceImplTest {
     assertEquals(
         "Not allowed to update default datasource :" + DEFAULT_DATASOURCE_NAME,
         unsupportedOperationException.getMessage());
-  }
-
-  @Test
-  void testPatchDefaultDataSource() {
-    Map<String, Object> dataSourceData =
-        Map.of(NAME_FIELD, DEFAULT_DATASOURCE_NAME, DESCRIPTION_FIELD, "test");
-    UnsupportedOperationException unsupportedOperationException =
-        assertThrows(
-            UnsupportedOperationException.class,
-            () -> dataSourceService.patchDataSource(dataSourceData));
-    assertEquals(
-        "Not allowed to update default datasource :" + DEFAULT_DATASOURCE_NAME,
-        unsupportedOperationException.getMessage());
-  }
-
-  @Test
-  void testPatchDataSourceSuccessCase() {
-    // Tests that patch underlying implementation is to call update
-    Map<String, Object> dataSourceData =
-        new HashMap<>(
-            Map.of(
-                NAME_FIELD,
-                "testDS",
-                DESCRIPTION_FIELD,
-                "test",
-                CONNECTOR_FIELD,
-                "PROMETHEUS",
-                ALLOWED_ROLES_FIELD,
-                new ArrayList<>(),
-                PROPERTIES_FIELD,
-                Map.of(),
-                RESULT_INDEX_FIELD,
-                ""));
-    DataSourceMetadata getData =
-        metadata("testDS", DataSourceType.OPENSEARCH, Collections.emptyList(), ImmutableMap.of());
-    when(dataSourceMetadataStorage.getDataSourceMetadata("testDS"))
-        .thenReturn(Optional.ofNullable(getData));
-
-    dataSourceService.patchDataSource(dataSourceData);
-    verify(dataSourceMetadataStorage, times(1)).updateDataSourceMetadata(any());
   }
 
   @Test
@@ -383,7 +342,6 @@ class DataSourceServiceImplTest {
     DataSourceMetadata dataSourceMetadata =
         new DataSourceMetadata(
             "testDS",
-            StringUtils.EMPTY,
             DataSourceType.PROMETHEUS,
             Collections.singletonList("prometheus_access"),
             properties,
@@ -409,7 +367,6 @@ class DataSourceServiceImplTest {
     DataSourceMetadata dataSourceMetadata =
         new DataSourceMetadata(
             "testDS",
-            StringUtils.EMPTY,
             DataSourceType.PROMETHEUS,
             Collections.singletonList("prometheus_access"),
             properties,
@@ -437,7 +394,6 @@ class DataSourceServiceImplTest {
     DataSourceMetadata dataSourceMetadata =
         new DataSourceMetadata(
             "testGlue",
-            StringUtils.EMPTY,
             DataSourceType.S3GLUE,
             Collections.singletonList("glue_access"),
             properties,
@@ -502,7 +458,6 @@ class DataSourceServiceImplTest {
     DataSourceMetadata dataSourceMetadata =
         new DataSourceMetadata(
             "testDS",
-            StringUtils.EMPTY,
             DataSourceType.PROMETHEUS,
             Collections.singletonList("prometheus_access"),
             properties,

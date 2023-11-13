@@ -35,7 +35,7 @@ dependencies {
     implementation group: 'com.fasterxml.jackson.core', name: 'jackson-core', version: "${versions.jackson}"
     implementation group: 'com.fasterxml.jackson.core', name: 'jackson-databind', version: "${versions.jackson_databind}"
     implementation group: 'com.fasterxml.jackson.dataformat', name: 'jackson-dataformat-cbor', version: "${versions.jackson}"
-    implementation group: 'org.json', name: 'json', version:'20231013'
+    implementation group: 'org.json', name: 'json', version:'20230227'
     compileOnly group: 'org.opensearch.client', name: 'opensearch-rest-high-level-client', version: "${opensearch_version}"
     implementation group: 'org.opensearch', name:'opensearch-ml-client', version: "${opensearch_build}"
 

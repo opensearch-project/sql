@@ -5,7 +5,7 @@
 
 package org.opensearch.sql.spark.client;
 
-import static org.opensearch.sql.datasource.model.DataSourceMetadata.DEFAULT_RESULT_INDEX;
+import static org.opensearch.sql.spark.data.constants.SparkConstants.SPARK_RESPONSE_BUFFER_INDEX_NAME;
 import static org.opensearch.sql.spark.data.constants.SparkConstants.SPARK_SQL_APPLICATION_JAR;
 
 import com.amazonaws.services.elasticmapreduce.AmazonElasticMapReduce;
@@ -74,7 +74,7 @@ public class EmrClientImpl implements SparkClient {
                 flint.getFlintIntegrationJar(),
                 sparkApplicationJar,
                 query,
-                DEFAULT_RESULT_INDEX,
+                SPARK_RESPONSE_BUFFER_INDEX_NAME,
                 flint.getFlintHost(),
                 flint.getFlintPort(),
                 flint.getFlintScheme(),

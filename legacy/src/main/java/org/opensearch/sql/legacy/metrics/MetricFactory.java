@@ -27,19 +27,6 @@ public class MetricFactory {
       case PPL_REQ_COUNT_TOTAL:
       case PPL_FAILED_REQ_COUNT_CUS:
       case PPL_FAILED_REQ_COUNT_SYS:
-      case DATASOURCE_CREATION_REQ_COUNT:
-      case DATASOURCE_GET_REQ_COUNT:
-      case DATASOURCE_PUT_REQ_COUNT:
-      case DATASOURCE_PATCH_REQ_COUNT:
-      case DATASOURCE_DELETE_REQ_COUNT:
-      case DATASOURCE_FAILED_REQ_COUNT_SYS:
-      case DATASOURCE_FAILED_REQ_COUNT_CUS:
-      case EMR_GET_JOB_RESULT_FAILURE_COUNT:
-      case EMR_START_JOB_REQUEST_FAILURE_COUNT:
-      case EMR_CANCEL_JOB_REQUEST_FAILURE_COUNT:
-      case EMR_BATCH_QUERY_JOBS_CREATION_COUNT:
-      case EMR_STREAMING_QUERY_JOBS_CREATION_COUNT:
-      case EMR_INTERACTIVE_QUERY_JOBS_CREATION_COUNT:
         return new NumericMetric<>(name.getName(), new RollingCounter());
       default:
         return new NumericMetric<>(name.getName(), new BasicCounter());
