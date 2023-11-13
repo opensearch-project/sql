@@ -60,9 +60,7 @@ public class StateStore {
   public static String SETTINGS_FILE_NAME = "query_execution_request_settings.yml";
   public static String MAPPING_FILE_NAME = "query_execution_request_mapping.yml";
   public static Function<String, String> DATASOURCE_TO_REQUEST_INDEX =
-      datasourceName ->
-          String.format(
-              "%s_%s", SPARK_REQUEST_BUFFER_INDEX_NAME, datasourceName.toLowerCase(Locale.ROOT));
+      datasourceName -> String.format("%s_%s", SPARK_REQUEST_BUFFER_INDEX_NAME, datasourceName);
 
   private static final Logger LOG = LogManager.getLogger();
 

@@ -138,7 +138,7 @@ public class OpenSearchSettings extends Settings {
   public static final Setting<?> SPARK_EXECUTION_SESSION_ENABLED_SETTING =
       Setting.boolSetting(
           Key.SPARK_EXECUTION_SESSION_ENABLED.getKeyValue(),
-          true,
+          false,
           Setting.Property.NodeScope,
           Setting.Property.Dynamic);
 
