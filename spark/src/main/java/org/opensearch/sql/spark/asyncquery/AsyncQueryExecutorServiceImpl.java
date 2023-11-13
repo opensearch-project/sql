@@ -69,14 +69,13 @@ public class AsyncQueryExecutorServiceImpl implements AsyncQueryExecutorService 
                 createAsyncQueryRequest.getSessionId()));
     asyncQueryJobMetadataStorageService.storeJobMetadata(
         new AsyncQueryJobMetadata(
-            dispatchQueryResponse.getQueryId(),
             sparkExecutionEngineConfig.getApplicationId(),
             dispatchQueryResponse.getJobId(),
             dispatchQueryResponse.isDropIndexQuery(),
             dispatchQueryResponse.getResultIndex(),
             dispatchQueryResponse.getSessionId()));
     return new CreateAsyncQueryResponse(
-        dispatchQueryResponse.getQueryId().getId(), dispatchQueryResponse.getSessionId());
+        dispatchQueryResponse.getJobId(), dispatchQueryResponse.getSessionId());
   }
 
   @Override

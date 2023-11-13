@@ -306,9 +306,8 @@ public class SQLPlugin extends Plugin implements ActionPlugin, ScriptPlugin {
   private AsyncQueryExecutorService createAsyncQueryExecutorService(
       SparkExecutionEngineConfigSupplier sparkExecutionEngineConfigSupplier,
       SparkExecutionEngineConfig sparkExecutionEngineConfig) {
-    StateStore stateStore = new StateStore(client, clusterService);
     AsyncQueryJobMetadataStorageService asyncQueryJobMetadataStorageService =
-        new OpensearchAsyncQueryJobMetadataStorageService(stateStore);
+        new OpensearchAsyncQueryJobMetadataStorageService(client, clusterService);
     EMRServerlessClient emrServerlessClient =
         createEMRServerlessClient(sparkExecutionEngineConfig.getRegion());
     JobExecutionResponseReader jobExecutionResponseReader = new JobExecutionResponseReader(client);
@@ -320,7 +319,8 @@ public class SQLPlugin extends Plugin implements ActionPlugin, ScriptPlugin {
             jobExecutionResponseReader,
             new FlintIndexMetadataReaderImpl(client),
             client,
-            new SessionManager(stateStore, emrServerlessClient, pluginSettings));
+            new SessionManager(
+                new StateStore(client, clusterService), emrServerlessClient, pluginSettings));
     return new AsyncQueryExecutorServiceImpl(
         asyncQueryJobMetadataStorageService,
         sparkQueryDispatcher,

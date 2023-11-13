@@ -6,14 +6,14 @@
 package org.opensearch.sql.spark.execution.statement;
 
 import lombok.Data;
+import org.apache.commons.lang3.RandomStringUtils;
 
 @Data
 public class StatementId {
   private final String id;
 
-  // construct statementId from queryId.
-  public static StatementId newStatementId(String qid) {
-    return new StatementId(qid);
+  public static StatementId newStatementId() {
+    return new StatementId(RandomStringUtils.randomAlphanumeric(16));
   }
 
   @Override

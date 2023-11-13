@@ -5,7 +5,6 @@
 
 package org.opensearch.sql.spark.dispatcher;
 
-import static org.mockito.Answers.RETURNS_DEEP_STUBS;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.argThat;
@@ -20,7 +19,6 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
-import static org.opensearch.sql.spark.asyncquery.OpensearchAsyncQueryAsyncQueryJobMetadataStorageServiceTest.DS_NAME;
 import static org.opensearch.sql.spark.constants.TestConstants.EMRS_APPLICATION_ID;
 import static org.opensearch.sql.spark.constants.TestConstants.EMRS_EXECUTION_ROLE;
 import static org.opensearch.sql.spark.constants.TestConstants.EMR_JOB_ID;
@@ -49,6 +47,7 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.Answers;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
 import org.mockito.Mock;
@@ -59,7 +58,6 @@ import org.opensearch.sql.datasource.DataSourceService;
 import org.opensearch.sql.datasource.model.DataSourceMetadata;
 import org.opensearch.sql.datasource.model.DataSourceType;
 import org.opensearch.sql.datasources.auth.DataSourceUserAuthorizationHelperImpl;
-import org.opensearch.sql.spark.asyncquery.model.AsyncQueryId;
 import org.opensearch.sql.spark.asyncquery.model.AsyncQueryJobMetadata;
 import org.opensearch.sql.spark.client.EMRServerlessClient;
 import org.opensearch.sql.spark.client.StartJobRequest;
@@ -88,21 +86,18 @@ public class SparkQueryDispatcherTest {
   @Mock private DataSourceUserAuthorizationHelperImpl dataSourceUserAuthorizationHelper;
   @Mock private FlintIndexMetadataReader flintIndexMetadataReader;
 
-  @Mock(answer = RETURNS_DEEP_STUBS)
+  @Mock(answer = Answers.RETURNS_DEEP_STUBS)
   private Client openSearchClient;
 
   @Mock private FlintIndexMetadata flintIndexMetadata;
 
   @Mock private SessionManager sessionManager;
 
-  @Mock(answer = RETURNS_DEEP_STUBS)
-  private Session session;
+  @Mock private Session session;
 
   @Mock private Statement statement;
 
   private SparkQueryDispatcher sparkQueryDispatcher;
-
-  private final AsyncQueryId QUERY_ID = AsyncQueryId.newAsyncQueryId(DS_NAME);
 
   @Captor ArgumentCaptor<StartJobRequest> startJobRequestArgumentCaptor;
 
@@ -290,7 +285,6 @@ public class SparkQueryDispatcherTest {
     doReturn(session).when(sessionManager).createSession(any());
     doReturn(new SessionId(MOCK_SESSION_ID)).when(session).getSessionId();
     doReturn(new StatementId(MOCK_STATEMENT_ID)).when(session).submit(any());
-    when(session.getSessionModel().getJobId()).thenReturn(EMR_JOB_ID);
     DataSourceMetadata dataSourceMetadata = constructMyGlueDataSourceMetadata();
     when(dataSourceService.getRawDataSourceMetadata("my_glue")).thenReturn(dataSourceMetadata);
     doNothing().when(dataSourceUserAuthorizationHelper).authorizeDataSource(dataSourceMetadata);
@@ -298,7 +292,7 @@ public class SparkQueryDispatcherTest {
 
     verifyNoInteractions(emrServerlessClient);
     verify(sessionManager, never()).getSession(any());
-    Assertions.assertEquals(EMR_JOB_ID, dispatchQueryResponse.getJobId());
+    Assertions.assertEquals(MOCK_STATEMENT_ID, dispatchQueryResponse.getJobId());
     Assertions.assertEquals(MOCK_SESSION_ID, dispatchQueryResponse.getSessionId());
   }
 
@@ -313,7 +307,6 @@ public class SparkQueryDispatcherTest {
         .getSession(eq(new SessionId(MOCK_SESSION_ID)));
     doReturn(new SessionId(MOCK_SESSION_ID)).when(session).getSessionId();
     doReturn(new StatementId(MOCK_STATEMENT_ID)).when(session).submit(any());
-    when(session.getSessionModel().getJobId()).thenReturn(EMR_JOB_ID);
     DataSourceMetadata dataSourceMetadata = constructMyGlueDataSourceMetadata();
     when(dataSourceService.getRawDataSourceMetadata("my_glue")).thenReturn(dataSourceMetadata);
     doNothing().when(dataSourceUserAuthorizationHelper).authorizeDataSource(dataSourceMetadata);
@@ -321,7 +314,7 @@ public class SparkQueryDispatcherTest {
 
     verifyNoInteractions(emrServerlessClient);
     verify(sessionManager, never()).createSession(any());
-    Assertions.assertEquals(EMR_JOB_ID, dispatchQueryResponse.getJobId());
+    Assertions.assertEquals(MOCK_STATEMENT_ID, dispatchQueryResponse.getJobId());
     Assertions.assertEquals(MOCK_SESSION_ID, dispatchQueryResponse.getSessionId());
   }
 
@@ -643,8 +636,10 @@ public class SparkQueryDispatcherTest {
             new CancelJobRunResult()
                 .withJobRunId(EMR_JOB_ID)
                 .withApplicationId(EMRS_APPLICATION_ID));
-    String queryId = sparkQueryDispatcher.cancelJob(asyncQueryJobMetadata());
-    Assertions.assertEquals(QUERY_ID.getId(), queryId);
+    String jobId =
+        sparkQueryDispatcher.cancelJob(
+            new AsyncQueryJobMetadata(EMRS_APPLICATION_ID, EMR_JOB_ID, null));
+    Assertions.assertEquals(EMR_JOB_ID, jobId);
   }
 
   @Test
@@ -703,8 +698,10 @@ public class SparkQueryDispatcherTest {
             new CancelJobRunResult()
                 .withJobRunId(EMR_JOB_ID)
                 .withApplicationId(EMRS_APPLICATION_ID));
-    String queryId = sparkQueryDispatcher.cancelJob(asyncQueryJobMetadata());
-    Assertions.assertEquals(QUERY_ID.getId(), queryId);
+    String jobId =
+        sparkQueryDispatcher.cancelJob(
+            new AsyncQueryJobMetadata(EMRS_APPLICATION_ID, EMR_JOB_ID, null));
+    Assertions.assertEquals(EMR_JOB_ID, jobId);
   }
 
   @Test
@@ -715,7 +712,9 @@ public class SparkQueryDispatcherTest {
     // simulate result index is not created yet
     when(jobExecutionResponseReader.getResultFromOpensearchIndex(EMR_JOB_ID, null))
         .thenReturn(new JSONObject());
-    JSONObject result = sparkQueryDispatcher.getQueryResponse(asyncQueryJobMetadata());
+    JSONObject result =
+        sparkQueryDispatcher.getQueryResponse(
+            new AsyncQueryJobMetadata(EMRS_APPLICATION_ID, EMR_JOB_ID, null));
     Assertions.assertEquals("PENDING", result.get("status"));
   }
 
@@ -791,7 +790,9 @@ public class SparkQueryDispatcherTest {
     queryResult.put(DATA_FIELD, resultMap);
     when(jobExecutionResponseReader.getResultFromOpensearchIndex(EMR_JOB_ID, null))
         .thenReturn(queryResult);
-    JSONObject result = sparkQueryDispatcher.getQueryResponse(asyncQueryJobMetadata());
+    JSONObject result =
+        sparkQueryDispatcher.getQueryResponse(
+            new AsyncQueryJobMetadata(EMRS_APPLICATION_ID, EMR_JOB_ID, null));
     verify(jobExecutionResponseReader, times(1)).getResultFromOpensearchIndex(EMR_JOB_ID, null);
     Assertions.assertEquals(
         new HashSet<>(Arrays.asList(DATA_FIELD, STATUS_FIELD, ERROR_FIELD)), result.keySet());
@@ -826,13 +827,7 @@ public class SparkQueryDispatcherTest {
 
     JSONObject result =
         sparkQueryDispatcher.getQueryResponse(
-            new AsyncQueryJobMetadata(
-                AsyncQueryId.newAsyncQueryId(DS_NAME),
-                EMRS_APPLICATION_ID,
-                jobId,
-                true,
-                null,
-                null));
+            new AsyncQueryJobMetadata(EMRS_APPLICATION_ID, jobId, true, null, null));
     verify(jobExecutionResponseReader, times(0))
         .getResultFromOpensearchIndex(anyString(), anyString());
     Assertions.assertEquals("SUCCESS", result.get(STATUS_FIELD));
@@ -1215,13 +1210,8 @@ public class SparkQueryDispatcherTest {
         sessionId);
   }
 
-  private AsyncQueryJobMetadata asyncQueryJobMetadata() {
-    return new AsyncQueryJobMetadata(QUERY_ID, EMRS_APPLICATION_ID, EMR_JOB_ID, null);
-  }
-
   private AsyncQueryJobMetadata asyncQueryJobMetadataWithSessionId(
-      String statementId, String sessionId) {
-    return new AsyncQueryJobMetadata(
-        new AsyncQueryId(statementId), EMRS_APPLICATION_ID, EMR_JOB_ID, false, null, sessionId);
+      String queryId, String sessionId) {
+    return new AsyncQueryJobMetadata(EMRS_APPLICATION_ID, queryId, false, null, sessionId);
   }
 }

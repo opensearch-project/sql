@@ -8,8 +8,6 @@
 # Also "dynamic" is set to "false" so that other fields can be added.
 dynamic: false
 properties:
-  version:
-    type: keyword
   type:
     type: keyword
   state:

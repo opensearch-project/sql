@@ -22,7 +22,6 @@ import org.junit.Before;
 import org.junit.Test;
 import org.opensearch.action.admin.indices.delete.DeleteIndexRequest;
 import org.opensearch.action.delete.DeleteRequest;
-import org.opensearch.sql.spark.asyncquery.model.AsyncQueryId;
 import org.opensearch.sql.spark.execution.session.InteractiveSessionTest;
 import org.opensearch.sql.spark.execution.session.Session;
 import org.opensearch.sql.spark.execution.session.SessionId;
@@ -209,7 +208,7 @@ public class StatementTest extends OpenSearchIntegTestCase {
     // App change state to running
     updateSessionState(stateStore, DS_NAME).apply(session.getSessionModel(), SessionState.RUNNING);
 
-    StatementId statementId = session.submit(queryRequest());
+    StatementId statementId = session.submit(new QueryRequest(LangType.SQL, "select 1"));
     assertFalse(statementId.getId().isEmpty());
   }
 
@@ -219,7 +218,7 @@ public class StatementTest extends OpenSearchIntegTestCase {
         new SessionManager(stateStore, emrsClient, sessionSetting(false))
             .createSession(createSessionRequest());
 
-    StatementId statementId = session.submit(queryRequest());
+    StatementId statementId = session.submit(new QueryRequest(LangType.SQL, "select 1"));
     assertFalse(statementId.getId().isEmpty());
   }
 
@@ -232,7 +231,9 @@ public class StatementTest extends OpenSearchIntegTestCase {
     updateSessionState(stateStore, DS_NAME).apply(session.getSessionModel(), SessionState.DEAD);
 
     IllegalStateException exception =
-        assertThrows(IllegalStateException.class, () -> session.submit(queryRequest()));
+        assertThrows(
+            IllegalStateException.class,
+            () -> session.submit(new QueryRequest(LangType.SQL, "select 1")));
     assertEquals(
         "can't submit statement, session should not be in end state, current session state is:"
             + " dead",
@@ -248,7 +249,9 @@ public class StatementTest extends OpenSearchIntegTestCase {
     updateSessionState(stateStore, DS_NAME).apply(session.getSessionModel(), SessionState.FAIL);
 
     IllegalStateException exception =
-        assertThrows(IllegalStateException.class, () -> session.submit(queryRequest()));
+        assertThrows(
+            IllegalStateException.class,
+            () -> session.submit(new QueryRequest(LangType.SQL, "select 1")));
     assertEquals(
         "can't submit statement, session should not be in end state, current session state is:"
             + " fail",
@@ -260,7 +263,7 @@ public class StatementTest extends OpenSearchIntegTestCase {
     Session session =
         new SessionManager(stateStore, emrsClient, sessionSetting(false))
             .createSession(createSessionRequest());
-    StatementId statementId = session.submit(queryRequest());
+    StatementId statementId = session.submit(new QueryRequest(LangType.SQL, "select 1"));
     Optional<Statement> statement = session.get(statementId);
 
     assertTrue(statement.isPresent());
@@ -285,7 +288,9 @@ public class StatementTest extends OpenSearchIntegTestCase {
         .actionGet();
 
     IllegalStateException exception =
-        assertThrows(IllegalStateException.class, () -> session.submit(queryRequest()));
+        assertThrows(
+            IllegalStateException.class,
+            () -> session.submit(new QueryRequest(LangType.SQL, "select 1")));
     assertEquals("session does not exist. " + session.getSessionId(), exception.getMessage());
   }
 
@@ -296,7 +301,7 @@ public class StatementTest extends OpenSearchIntegTestCase {
             .createSession(createSessionRequest());
     // App change state to running
     updateSessionState(stateStore, DS_NAME).apply(session.getSessionModel(), SessionState.RUNNING);
-    StatementId statementId = session.submit(queryRequest());
+    StatementId statementId = session.submit(new QueryRequest(LangType.SQL, "select 1"));
 
     Optional<Statement> statement = session.get(statementId);
     assertTrue(statement.isPresent());
@@ -312,7 +317,7 @@ public class StatementTest extends OpenSearchIntegTestCase {
     // App change state to running
     updateSessionState(stateStore, DS_NAME).apply(session.getSessionModel(), SessionState.RUNNING);
 
-    Optional<Statement> statement = session.get(StatementId.newStatementId("not-exist-id"));
+    Optional<Statement> statement = session.get(StatementId.newStatementId());
     assertFalse(statement.isPresent());
   }
 
@@ -355,9 +360,5 @@ public class StatementTest extends OpenSearchIntegTestCase {
       st.cancel();
       return this;
     }
-  }
-
-  private QueryRequest queryRequest() {
-    return new QueryRequest(AsyncQueryId.newAsyncQueryId(DS_NAME), LangType.SQL, "select 1");
   }
 }
