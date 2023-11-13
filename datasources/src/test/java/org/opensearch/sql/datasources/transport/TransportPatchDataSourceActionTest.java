@@ -1,6 +1,5 @@
 package org.opensearch.sql.datasources.transport;
 
-import static java.util.Collections.emptyList;
 import static org.mockito.Mockito.*;
 import static org.opensearch.sql.datasources.utils.XContentParserUtils.*;
 
@@ -18,13 +17,9 @@ import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.opensearch.action.support.ActionFilters;
 import org.opensearch.core.action.ActionListener;
-import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.datasources.model.transport.PatchDataSourceActionRequest;
 import org.opensearch.sql.datasources.model.transport.PatchDataSourceActionResponse;
 import org.opensearch.sql.datasources.service.DataSourceServiceImpl;
-import org.opensearch.sql.legacy.esdomain.LocalClusterState;
-import org.opensearch.sql.legacy.metrics.Metrics;
-import org.opensearch.sql.opensearch.setting.OpenSearchSettings;
 import org.opensearch.tasks.Task;
 import org.opensearch.transport.TransportService;
 
@@ -41,19 +36,12 @@ public class TransportPatchDataSourceActionTest {
   private ArgumentCaptor<PatchDataSourceActionResponse> patchDataSourceActionResponseArgumentCaptor;
 
   @Captor private ArgumentCaptor<Exception> exceptionArgumentCaptor;
-  @Mock private OpenSearchSettings settings;
 
   @BeforeEach
   public void setUp() {
     action =
         new TransportPatchDataSourceAction(
             transportService, new ActionFilters(new HashSet<>()), dataSourceService);
-    // Required for metrics initialization
-    doReturn(emptyList()).when(settings).getSettings();
-    when(settings.getSettingValue(Settings.Key.METRICS_ROLLING_INTERVAL)).thenReturn(3600L);
-    when(settings.getSettingValue(Settings.Key.METRICS_ROLLING_WINDOW)).thenReturn(600L);
-    LocalClusterState.state().setPluginSettings(settings);
-    Metrics.getInstance().registerDefaultMetrics();
   }
 
   @Test

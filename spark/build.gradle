@@ -45,7 +45,6 @@ dependencies {
     api project(':core')
     implementation project(':protocol')
     implementation project(':datasources')
-    implementation project(':legacy')
 
     implementation group: 'org.opensearch', name: 'opensearch', version: "${opensearch_version}"
     implementation group: 'org.json', name: 'json', version: '20231013'

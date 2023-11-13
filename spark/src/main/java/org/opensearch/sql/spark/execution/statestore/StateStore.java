@@ -343,18 +343,4 @@ public class StateStore {
                         SessionModel.TYPE, FlintIndexStateModel.FLINT_INDEX_DOC_TYPE))
                 .must(QueryBuilders.termQuery(STATE, FlintIndexState.REFRESHING.getState())));
   }
-
-  public static Supplier<Long> activeStatementsCount(StateStore stateStore, String datasourceName) {
-    return () ->
-        stateStore.count(
-            DATASOURCE_TO_REQUEST_INDEX.apply(datasourceName),
-            QueryBuilders.boolQuery()
-                .must(
-                    QueryBuilders.termQuery(StatementModel.TYPE, StatementModel.STATEMENT_DOC_TYPE))
-                .should(
-                    QueryBuilders.termsQuery(
-                        StatementModel.STATEMENT_STATE,
-                        StatementState.RUNNING.getState(),
-                        StatementState.WAITING.getState())));
-  }
 }

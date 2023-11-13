@@ -10,8 +10,6 @@ import static org.opensearch.sql.spark.dispatcher.SparkQueryDispatcher.JOB_TYPE_
 
 import java.util.Map;
 import org.opensearch.sql.datasource.model.DataSourceMetadata;
-import org.opensearch.sql.legacy.metrics.MetricName;
-import org.opensearch.sql.legacy.utils.MetricUtils;
 import org.opensearch.sql.spark.asyncquery.model.AsyncQueryId;
 import org.opensearch.sql.spark.asyncquery.model.SparkSubmitParameters;
 import org.opensearch.sql.spark.client.EMRServerlessClient;
@@ -65,7 +63,6 @@ public class StreamingQueryHandler extends BatchQueryHandler {
             indexQueryDetails.isAutoRefresh(),
             dataSourceMetadata.getResultIndex());
     String jobId = emrServerlessClient.startJobRun(startJobRequest);
-    MetricUtils.incrementNumericalMetric(MetricName.EMR_STREAMING_QUERY_JOBS_CREATION_COUNT);
     return new DispatchQueryResponse(
         AsyncQueryId.newAsyncQueryId(dataSourceMetadata.getName()),
         jobId,

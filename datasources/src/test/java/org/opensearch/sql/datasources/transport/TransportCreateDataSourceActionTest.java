@@ -1,9 +1,7 @@
 package org.opensearch.sql.datasources.transport;
 
-import static java.util.Collections.emptyList;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.fail;
-import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -23,14 +21,11 @@ import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.opensearch.action.support.ActionFilters;
 import org.opensearch.core.action.ActionListener;
-import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.datasource.model.DataSourceMetadata;
 import org.opensearch.sql.datasource.model.DataSourceType;
 import org.opensearch.sql.datasources.model.transport.CreateDataSourceActionRequest;
 import org.opensearch.sql.datasources.model.transport.CreateDataSourceActionResponse;
 import org.opensearch.sql.datasources.service.DataSourceServiceImpl;
-import org.opensearch.sql.legacy.esdomain.LocalClusterState;
-import org.opensearch.sql.legacy.metrics.Metrics;
 import org.opensearch.sql.opensearch.setting.OpenSearchSettings;
 import org.opensearch.tasks.Task;
 import org.opensearch.transport.TransportService;
@@ -61,12 +56,6 @@ public class TransportCreateDataSourceActionTest {
             transportService, new ActionFilters(new HashSet<>()), dataSourceService, settings);
     when(dataSourceService.getDataSourceMetadata(false).size()).thenReturn(1);
     when(settings.getSettingValue(DATASOURCES_LIMIT)).thenReturn(20);
-    // Required for metrics initialization
-    doReturn(emptyList()).when(settings).getSettings();
-    when(settings.getSettingValue(Settings.Key.METRICS_ROLLING_INTERVAL)).thenReturn(3600L);
-    when(settings.getSettingValue(Settings.Key.METRICS_ROLLING_WINDOW)).thenReturn(600L);
-    LocalClusterState.state().setPluginSettings(settings);
-    Metrics.getInstance().registerDefaultMetrics();
   }
 
   @Test
