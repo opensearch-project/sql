@@ -6,7 +6,6 @@
 package org.opensearch.sql.spark.asyncquery;
 
 import static org.opensearch.sql.opensearch.setting.OpenSearchSettings.SPARK_EXECUTION_SESSION_ENABLED_SETTING;
-import static org.opensearch.sql.opensearch.setting.OpenSearchSettings.SPARK_EXECUTION_SESSION_LIMIT_SETTING;
 import static org.opensearch.sql.spark.data.constants.SparkConstants.DEFAULT_CLASS_NAME;
 import static org.opensearch.sql.spark.data.constants.SparkConstants.FLINT_JOB_REQUEST_INDEX;
 import static org.opensearch.sql.spark.data.constants.SparkConstants.FLINT_JOB_SESSION_ID;
@@ -17,9 +16,7 @@ import static org.opensearch.sql.spark.execution.session.SessionModel.SESSION_DO
 import static org.opensearch.sql.spark.execution.statement.StatementModel.SESSION_ID;
 import static org.opensearch.sql.spark.execution.statement.StatementModel.STATEMENT_DOC_TYPE;
 import static org.opensearch.sql.spark.execution.statestore.StateStore.DATASOURCE_TO_REQUEST_INDEX;
-import static org.opensearch.sql.spark.execution.statestore.StateStore.getSession;
 import static org.opensearch.sql.spark.execution.statestore.StateStore.getStatement;
-import static org.opensearch.sql.spark.execution.statestore.StateStore.updateSessionState;
 import static org.opensearch.sql.spark.execution.statestore.StateStore.updateStatementState;
 
 import com.amazonaws.services.emrserverless.model.CancelJobRunResult;
@@ -64,8 +61,6 @@ import org.opensearch.sql.spark.client.StartJobRequest;
 import org.opensearch.sql.spark.config.SparkExecutionEngineConfig;
 import org.opensearch.sql.spark.dispatcher.SparkQueryDispatcher;
 import org.opensearch.sql.spark.execution.session.SessionManager;
-import org.opensearch.sql.spark.execution.session.SessionModel;
-import org.opensearch.sql.spark.execution.session.SessionState;
 import org.opensearch.sql.spark.execution.statement.StatementModel;
 import org.opensearch.sql.spark.execution.statement.StatementState;
 import org.opensearch.sql.spark.execution.statestore.StateStore;
@@ -133,13 +128,6 @@ public class AsyncQueryExecutorServiceImplSpecTest extends OpenSearchIntegTestCa
         .prepareUpdateSettings()
         .setTransientSettings(
             Settings.builder().putNull(SPARK_EXECUTION_SESSION_ENABLED_SETTING.getKey()).build())
-        .get();
-    client
-        .admin()
-        .cluster()
-        .prepareUpdateSettings()
-        .setTransientSettings(
-            Settings.builder().putNull(SPARK_EXECUTION_SESSION_LIMIT_SETTING.getKey()).build())
         .get();
   }
 
@@ -390,35 +378,6 @@ public class AsyncQueryExecutorServiceImplSpecTest extends OpenSearchIntegTestCa
     assertEquals("mock error", asyncQueryResults.getError());
   }
 
-  @Test
-  public void createSessionMoreThanLimitFailed() {
-    LocalEMRSClient emrsClient = new LocalEMRSClient();
-    AsyncQueryExecutorService asyncQueryExecutorService =
-        createAsyncQueryExecutorService(emrsClient);
-
-    // enable session
-    enableSession(true);
-    // only allow one session in domain.
-    setSessionLimit(1);
-
-    // 1. create async query.
-    CreateAsyncQueryResponse first =
-        asyncQueryExecutorService.createAsyncQuery(
-            new CreateAsyncQueryRequest("select 1", DATASOURCE, LangType.SQL, null));
-    assertNotNull(first.getSessionId());
-    setSessionState(first.getSessionId(), SessionState.RUNNING);
-
-    // 2. create async query without session.
-    IllegalArgumentException exception =
-        assertThrows(
-            IllegalArgumentException.class,
-            () ->
-                asyncQueryExecutorService.createAsyncQuery(
-                    new CreateAsyncQueryRequest("select 1", DATASOURCE, LangType.SQL, null)));
-    assertEquals(
-        "The maximum number of active sessions can be supported is 1", exception.getMessage());
-  }
-
   private DataSourceServiceImpl createDataSourceService() {
     String masterKey = "a57d991d9b573f75b9bba1df";
     DataSourceMetadataStorage dataSourceMetadataStorage =
@@ -511,16 +470,6 @@ public class AsyncQueryExecutorServiceImplSpecTest extends OpenSearchIntegTestCa
         .get();
   }
 
-  public void setSessionLimit(long limit) {
-    client
-        .admin()
-        .cluster()
-        .prepareUpdateSettings()
-        .setTransientSettings(
-            Settings.builder().put(SPARK_EXECUTION_SESSION_LIMIT_SETTING.getKey(), limit).build())
-        .get();
-  }
-
   int search(QueryBuilder query) {
     SearchRequest searchRequest = new SearchRequest();
     searchRequest.indices(DATASOURCE_TO_REQUEST_INDEX.apply(DATASOURCE));
@@ -530,12 +479,5 @@ public class AsyncQueryExecutorServiceImplSpecTest extends OpenSearchIntegTestCa
     SearchResponse searchResponse = client.search(searchRequest).actionGet();
 
     return searchResponse.getHits().getHits().length;
-  }
-
-  void setSessionState(String sessionId, SessionState sessionState) {
-    Optional<SessionModel> model = getSession(stateStore, DATASOURCE).apply(sessionId);
-    SessionModel updated =
-        updateSessionState(stateStore, DATASOURCE).apply(model.get(), sessionState);
-    assertEquals(SessionState.RUNNING, updated.getSessionState());
   }
 }

@@ -33,7 +33,6 @@ public class SessionManagerTest {
   public static Settings sessionSetting(boolean enabled) {
     Map<Settings.Key, Object> settings = new HashMap<>();
     settings.put(Settings.Key.SPARK_EXECUTION_SESSION_ENABLED, enabled);
-    settings.put(Settings.Key.SPARK_EXECUTION_SESSION_LIMIT, 100);
     return settings(settings);
   }
 

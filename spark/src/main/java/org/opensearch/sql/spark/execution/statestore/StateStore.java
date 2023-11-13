@@ -14,7 +14,6 @@ import java.util.Locale;
 import java.util.Optional;
 import java.util.function.BiFunction;
 import java.util.function.Function;
-import java.util.function.Supplier;
 import lombok.RequiredArgsConstructor;
 import org.apache.commons.io.IOUtils;
 import org.apache.logging.log4j.LogManager;
@@ -26,8 +25,6 @@ import org.opensearch.action.get.GetRequest;
 import org.opensearch.action.get.GetResponse;
 import org.opensearch.action.index.IndexRequest;
 import org.opensearch.action.index.IndexResponse;
-import org.opensearch.action.search.SearchRequest;
-import org.opensearch.action.search.SearchResponse;
 import org.opensearch.action.support.WriteRequest;
 import org.opensearch.action.update.UpdateRequest;
 import org.opensearch.action.update.UpdateResponse;
@@ -41,13 +38,9 @@ import org.opensearch.common.xcontent.XContentType;
 import org.opensearch.core.xcontent.NamedXContentRegistry;
 import org.opensearch.core.xcontent.ToXContent;
 import org.opensearch.core.xcontent.XContentParser;
-import org.opensearch.index.query.QueryBuilder;
-import org.opensearch.index.query.QueryBuilders;
-import org.opensearch.search.builder.SearchSourceBuilder;
 import org.opensearch.sql.spark.asyncquery.model.AsyncQueryJobMetadata;
 import org.opensearch.sql.spark.execution.session.SessionModel;
 import org.opensearch.sql.spark.execution.session.SessionState;
-import org.opensearch.sql.spark.execution.session.SessionType;
 import org.opensearch.sql.spark.execution.statement.StatementModel;
 import org.opensearch.sql.spark.execution.statement.StatementState;
 
@@ -189,35 +182,6 @@ public class StateStore {
     }
   }
 
-  private long count(String indexName, QueryBuilder query) {
-    if (!this.clusterService.state().routingTable().hasIndex(indexName)) {
-      return 0;
-    }
-    SearchSourceBuilder searchSourceBuilder = new SearchSourceBuilder();
-    searchSourceBuilder.query(query);
-    searchSourceBuilder.size(0);
-
-    // https://github.com/opensearch-project/sql/issues/1801.
-    SearchRequest searchRequest =
-        new SearchRequest()
-            .indices(indexName)
-            .preference("_primary_first")
-            .source(searchSourceBuilder);
-
-    ActionFuture<SearchResponse> searchResponseActionFuture;
-    try (ThreadContext.StoredContext ignored =
-        client.threadPool().getThreadContext().stashContext()) {
-      searchResponseActionFuture = client.search(searchRequest);
-    }
-    SearchResponse searchResponse = searchResponseActionFuture.actionGet();
-    if (searchResponse.status().getStatus() != 200) {
-      throw new RuntimeException(
-          "Fetching job metadata information failed with status : " + searchResponse.status());
-    } else {
-      return searchResponse.getHits().getTotalHits().value;
-    }
-  }
-
   private String loadConfigFromResource(String fileName) throws IOException {
     InputStream fileStream = StateStore.class.getClassLoader().getResourceAsStream(fileName);
     return IOUtils.toString(fileStream, StandardCharsets.UTF_8);
@@ -288,20 +252,5 @@ public class StateStore {
             docId,
             AsyncQueryJobMetadata::fromXContent,
             DATASOURCE_TO_REQUEST_INDEX.apply(datasourceName));
-  }
-
-  public static Supplier<Long> activeSessionsCount(StateStore stateStore, String datasourceName) {
-    return () ->
-        stateStore.count(
-            DATASOURCE_TO_REQUEST_INDEX.apply(datasourceName),
-            QueryBuilders.boolQuery()
-                .must(QueryBuilders.termQuery(SessionModel.TYPE, SessionModel.SESSION_DOC_TYPE))
-                .must(
-                    QueryBuilders.termQuery(
-                        SessionModel.SESSION_TYPE, SessionType.INTERACTIVE.getSessionType()))
-                .must(QueryBuilders.termQuery(SessionModel.DATASOURCE_NAME, datasourceName))
-                .must(
-                    QueryBuilders.termQuery(
-                        SessionModel.SESSION_STATE, SessionState.RUNNING.getSessionState())));
   }
 }
