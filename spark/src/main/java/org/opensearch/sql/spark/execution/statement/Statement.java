@@ -62,15 +62,9 @@ public class Statement {
 
   /** Cancel a statement. */
   public void cancel() {
-    StatementState statementState = statementModel.getStatementState();
-
-    if (statementState.equals(StatementState.SUCCESS)
-        || statementState.equals(StatementState.FAILED)
-        || statementState.equals(StatementState.CANCELLED)) {
+    if (statementModel.getStatementState().equals(StatementState.RUNNING)) {
       String errorMsg =
-          String.format(
-              "can't cancel statement in %s state. statement: %s.",
-              statementState.getState(), statementId);
+          String.format("can't cancel statement in waiting state. statement: %s.", statementId);
       LOG.error(errorMsg);
       throw new IllegalStateException(errorMsg);
     }

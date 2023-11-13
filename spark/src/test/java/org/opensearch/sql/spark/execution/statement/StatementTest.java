@@ -8,7 +8,6 @@ package org.opensearch.sql.spark.execution.statement;
 import static org.opensearch.sql.spark.execution.session.InteractiveSessionTest.createSessionRequest;
 import static org.opensearch.sql.spark.execution.session.SessionManagerTest.sessionSetting;
 import static org.opensearch.sql.spark.execution.statement.StatementState.CANCELLED;
-import static org.opensearch.sql.spark.execution.statement.StatementState.RUNNING;
 import static org.opensearch.sql.spark.execution.statement.StatementState.WAITING;
 import static org.opensearch.sql.spark.execution.statement.StatementTest.TestStatement.testStatement;
 import static org.opensearch.sql.spark.execution.statestore.StateStore.DATASOURCE_TO_REQUEST_INDEX;
@@ -169,91 +168,36 @@ public class StatementTest extends OpenSearchIntegTestCase {
   }
 
   @Test
-  public void cancelSuccessStatementFailed() {
+  public void cancelRunningStatementFailed() {
     StatementId stId = new StatementId("statementId");
-    Statement st = createStatement(stId);
-
-    // update to running state
-    StatementModel model = st.getStatementModel();
-    st.setStatementModel(
-        StatementModel.copyWithState(
-            st.getStatementModel(),
-            StatementState.SUCCESS,
-            model.getSeqNo(),
-            model.getPrimaryTerm()));
-
-    // cancel conflict
-    IllegalStateException exception = assertThrows(IllegalStateException.class, st::cancel);
-    assertEquals(
-        String.format("can't cancel statement in success state. statement: %s.", stId),
-        exception.getMessage());
-  }
-
-  @Test
-  public void cancelFailedStatementFailed() {
-    StatementId stId = new StatementId("statementId");
-    Statement st = createStatement(stId);
-
-    // update to running state
-    StatementModel model = st.getStatementModel();
-    st.setStatementModel(
-        StatementModel.copyWithState(
-            st.getStatementModel(),
-            StatementState.FAILED,
-            model.getSeqNo(),
-            model.getPrimaryTerm()));
-
-    // cancel conflict
-    IllegalStateException exception = assertThrows(IllegalStateException.class, st::cancel);
-    assertEquals(
-        String.format("can't cancel statement in failed state. statement: %s.", stId),
-        exception.getMessage());
-  }
-
-  @Test
-  public void cancelCancelledStatementFailed() {
-    StatementId stId = new StatementId("statementId");
-    Statement st = createStatement(stId);
-
-    // update to running state
-    StatementModel model = st.getStatementModel();
-    st.setStatementModel(
-        StatementModel.copyWithState(
-            st.getStatementModel(), CANCELLED, model.getSeqNo(), model.getPrimaryTerm()));
-
-    // cancel conflict
-    IllegalStateException exception = assertThrows(IllegalStateException.class, st::cancel);
-    assertEquals(
-        String.format("can't cancel statement in cancelled state. statement: %s.", stId),
-        exception.getMessage());
-  }
-
-  @Test
-  public void cancelRunningStatementSuccess() {
     Statement st =
         Statement.builder()
             .sessionId(new SessionId("sessionId"))
             .applicationId("appId")
             .jobId("jobId")
-            .statementId(new StatementId("statementId"))
+            .statementId(stId)
             .langType(LangType.SQL)
             .datasourceName(DS_NAME)
             .query("query")
             .queryId("statementId")
             .stateStore(stateStore)
             .build();
+    st.open();
 
-    // submit statement
-    TestStatement testStatement = testStatement(st, stateStore);
-    testStatement
-        .open()
-        .assertSessionState(WAITING)
-        .assertStatementId(new StatementId("statementId"));
+    // update to running state
+    StatementModel model = st.getStatementModel();
+    st.setStatementModel(
+        StatementModel.copyWithState(
+            st.getStatementModel(),
+            StatementState.RUNNING,
+            model.getSeqNo(),
+            model.getPrimaryTerm()));
 
-    testStatement.run();
-
-    // close statement
-    testStatement.cancel().assertSessionState(CANCELLED);
+    // cancel conflict
+    IllegalStateException exception = assertThrows(IllegalStateException.class, st::cancel);
+    assertEquals(
+        String.format("can't cancel statement in waiting state. statement: %s.", stId),
+        exception.getMessage());
   }
 
   @Test
@@ -411,33 +355,9 @@ public class StatementTest extends OpenSearchIntegTestCase {
       st.cancel();
       return this;
     }
-
-    public TestStatement run() {
-      StatementModel model =
-          updateStatementState(stateStore, DS_NAME).apply(st.getStatementModel(), RUNNING);
-      st.setStatementModel(model);
-      return this;
-    }
   }
 
   private QueryRequest queryRequest() {
     return new QueryRequest(AsyncQueryId.newAsyncQueryId(DS_NAME), LangType.SQL, "select 1");
-  }
-
-  private Statement createStatement(StatementId stId) {
-    Statement st =
-        Statement.builder()
-            .sessionId(new SessionId("sessionId"))
-            .applicationId("appId")
-            .jobId("jobId")
-            .statementId(stId)
-            .langType(LangType.SQL)
-            .datasourceName(DS_NAME)
-            .query("query")
-            .queryId("statementId")
-            .stateStore(stateStore)
-            .build();
-    st.open();
-    return st;
   }
 }
