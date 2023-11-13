@@ -39,7 +39,7 @@ public class InteractiveQueryHandler extends AsyncQueryHandler {
     Statement statement = getStatementByQueryId(asyncQueryJobMetadata.getSessionId(), queryId);
     StatementState statementState = statement.getStatementState();
     result.put(STATUS_FIELD, statementState.getState());
-    result.put(ERROR_FIELD, Optional.of(statement.getStatementModel().getError()).orElse(""));
+    result.put(ERROR_FIELD, "");
     return result;
   }
 

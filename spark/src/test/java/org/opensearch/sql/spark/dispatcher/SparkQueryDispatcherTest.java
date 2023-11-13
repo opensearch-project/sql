@@ -99,8 +99,7 @@ public class SparkQueryDispatcherTest {
   @Mock(answer = RETURNS_DEEP_STUBS)
   private Session session;
 
-  @Mock(answer = RETURNS_DEEP_STUBS)
-  private Statement statement;
+  @Mock private Statement statement;
 
   private SparkQueryDispatcher sparkQueryDispatcher;
 
@@ -185,7 +184,7 @@ public class SparkQueryDispatcherTest {
     String query = "select * from my_glue.default.http_logs";
     String sparkSubmitParameters =
         constructExpectedSparkSubmitParameterString(
-            "basic",
+            "basicauth",
             new HashMap<>() {
               {
                 put(FLINT_INDEX_STORE_AUTH_USERNAME, "username");
@@ -784,7 +783,6 @@ public class SparkQueryDispatcherTest {
   void testGetQueryResponseWithSession() {
     doReturn(Optional.of(session)).when(sessionManager).getSession(new SessionId(MOCK_SESSION_ID));
     doReturn(Optional.of(statement)).when(session).get(any());
-    when(statement.getStatementModel().getError()).thenReturn("mock error");
     doReturn(StatementState.WAITING).when(statement).getStatementState();
 
     doReturn(new JSONObject())

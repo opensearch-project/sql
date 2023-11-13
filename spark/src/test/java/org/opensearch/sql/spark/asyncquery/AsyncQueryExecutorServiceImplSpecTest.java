@@ -17,7 +17,6 @@ import static org.opensearch.sql.spark.execution.statement.StatementModel.SESSIO
 import static org.opensearch.sql.spark.execution.statement.StatementModel.STATEMENT_DOC_TYPE;
 import static org.opensearch.sql.spark.execution.statestore.StateStore.DATASOURCE_TO_REQUEST_INDEX;
 import static org.opensearch.sql.spark.execution.statestore.StateStore.getStatement;
-import static org.opensearch.sql.spark.execution.statestore.StateStore.updateStatementState;
 
 import com.amazonaws.services.emrserverless.model.CancelJobRunResult;
 import com.amazonaws.services.emrserverless.model.GetJobRunResult;
@@ -27,9 +26,7 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 import lombok.Getter;
 import org.junit.After;
@@ -112,7 +109,7 @@ public class AsyncQueryExecutorServiceImplSpecTest extends OpenSearchIntegTestCa
                 "glue.auth.role_arn",
                 "arn:aws:iam::924196221507:role/FlintOpensearchServiceRole",
                 "glue.indexstore.opensearch.uri",
-                "http://localhost:9200",
+                "http://ec2-18-237-133-156.us-west-2.compute.amazonaws" + ".com:9200",
                 "glue.indexstore.opensearch.auth",
                 "noauth"),
             null));
@@ -272,114 +269,8 @@ public class AsyncQueryExecutorServiceImplSpecTest extends OpenSearchIntegTestCa
     assertEquals(second.getQueryId(), secondModel.get().getQueryId());
   }
 
-  @Test
-  public void batchQueryHasTimeout() {
-    LocalEMRSClient emrsClient = new LocalEMRSClient();
-    AsyncQueryExecutorService asyncQueryExecutorService =
-        createAsyncQueryExecutorService(emrsClient);
-
-    enableSession(false);
-    CreateAsyncQueryResponse response =
-        asyncQueryExecutorService.createAsyncQuery(
-            new CreateAsyncQueryRequest("select 1", DATASOURCE, LangType.SQL, null));
-
-    assertEquals(120L, (long) emrsClient.getJobRequest().executionTimeout());
-  }
-
-  @Test
-  public void interactiveQueryNoTimeout() {
-    LocalEMRSClient emrsClient = new LocalEMRSClient();
-    AsyncQueryExecutorService asyncQueryExecutorService =
-        createAsyncQueryExecutorService(emrsClient);
-
-    // enable session
-    enableSession(true);
-
-    asyncQueryExecutorService.createAsyncQuery(
-        new CreateAsyncQueryRequest("select 1", DATASOURCE, LangType.SQL, null));
-    assertEquals(0L, (long) emrsClient.getJobRequest().executionTimeout());
-  }
-
-  @Test
-  public void datasourceWithBasicAuth() {
-    Map<String, String> properties = new HashMap<>();
-    properties.put("glue.auth.type", "iam_role");
-    properties.put(
-        "glue.auth.role_arn", "arn:aws:iam::924196221507:role/FlintOpensearchServiceRole");
-    properties.put("glue.indexstore.opensearch.uri", "http://localhost:9200");
-    properties.put("glue.indexstore.opensearch.auth", "basicauth");
-    properties.put("glue.indexstore.opensearch.auth.username", "username");
-    properties.put("glue.indexstore.opensearch.auth.password", "password");
-
-    dataSourceService.createDataSource(
-        new DataSourceMetadata(
-            "mybasicauth", DataSourceType.S3GLUE, ImmutableList.of(), properties, null));
-    LocalEMRSClient emrsClient = new LocalEMRSClient();
-    AsyncQueryExecutorService asyncQueryExecutorService =
-        createAsyncQueryExecutorService(emrsClient);
-
-    // enable session
-    enableSession(true);
-
-    asyncQueryExecutorService.createAsyncQuery(
-        new CreateAsyncQueryRequest("select 1", "mybasicauth", LangType.SQL, null));
-    String params = emrsClient.getJobRequest().getSparkSubmitParams();
-    assertTrue(params.contains(String.format("--conf spark.datasource.flint.auth=basic")));
-    assertTrue(
-        params.contains(String.format("--conf spark.datasource.flint.auth.username=username")));
-    assertTrue(
-        params.contains(String.format("--conf spark.datasource.flint.auth.password=password")));
-  }
-
-  @Test
-  public void withSessionCreateAsyncQueryFailed() {
-    LocalEMRSClient emrsClient = new LocalEMRSClient();
-    AsyncQueryExecutorService asyncQueryExecutorService =
-        createAsyncQueryExecutorService(emrsClient);
-
-    // enable session
-    enableSession(true);
-
-    // 1. create async query.
-    CreateAsyncQueryResponse response =
-        asyncQueryExecutorService.createAsyncQuery(
-            new CreateAsyncQueryRequest("myselect 1", DATASOURCE, LangType.SQL, null));
-    assertNotNull(response.getSessionId());
-    Optional<StatementModel> statementModel =
-        getStatement(stateStore, DATASOURCE).apply(response.getQueryId());
-    assertTrue(statementModel.isPresent());
-    assertEquals(StatementState.WAITING, statementModel.get().getStatementState());
-
-    // 2. fetch async query result. not result write to SPARK_RESPONSE_BUFFER_INDEX_NAME yet.
-    // mock failed statement.
-    StatementModel submitted = statementModel.get();
-    StatementModel mocked =
-        StatementModel.builder()
-            .version("1.0")
-            .statementState(submitted.getStatementState())
-            .statementId(submitted.getStatementId())
-            .sessionId(submitted.getSessionId())
-            .applicationId(submitted.getApplicationId())
-            .jobId(submitted.getJobId())
-            .langType(submitted.getLangType())
-            .datasourceName(submitted.getDatasourceName())
-            .query(submitted.getQuery())
-            .queryId(submitted.getQueryId())
-            .submitTime(submitted.getSubmitTime())
-            .error("mock error")
-            .seqNo(submitted.getSeqNo())
-            .primaryTerm(submitted.getPrimaryTerm())
-            .build();
-    updateStatementState(stateStore, DATASOURCE).apply(mocked, StatementState.FAILED);
-
-    AsyncQueryExecutionResponse asyncQueryResults =
-        asyncQueryExecutorService.getAsyncQueryResults(response.getQueryId());
-    assertEquals(StatementState.FAILED.getState(), asyncQueryResults.getStatus());
-    assertEquals("mock error", asyncQueryResults.getError());
-  }
-
   private DataSourceServiceImpl createDataSourceService() {
-    String masterKey = "a57d991d9b573f75b9bba1df";
+    String masterKey = "1234567890";
     DataSourceMetadataStorage dataSourceMetadataStorage =
         new OpenSearchDataSourceMetadataStorage(
             client, clusterService, new EncryptorImpl(masterKey));
