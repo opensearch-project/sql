@@ -5,7 +5,8 @@
 
 package org.opensearch.sql.spark.asyncquery;
 
-import static org.opensearch.sql.opensearch.setting.OpenSearchSettings.*;
+import static org.opensearch.sql.opensearch.setting.OpenSearchSettings.SPARK_EXECUTION_SESSION_ENABLED_SETTING;
+import static org.opensearch.sql.opensearch.setting.OpenSearchSettings.SPARK_EXECUTION_SESSION_LIMIT_SETTING;
 import static org.opensearch.sql.spark.data.constants.SparkConstants.DEFAULT_CLASS_NAME;
 import static org.opensearch.sql.spark.data.constants.SparkConstants.FLINT_JOB_REQUEST_INDEX;
 import static org.opensearch.sql.spark.data.constants.SparkConstants.FLINT_JOB_SESSION_ID;
@@ -27,7 +28,12 @@ import com.amazonaws.services.emrserverless.model.JobRun;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
-import java.util.*;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 import lombok.Getter;
 import org.junit.After;
 import org.junit.Before;
@@ -99,18 +105,9 @@ public class AsyncQueryExecutorServiceImplSpecTest extends OpenSearchIntegTestCa
   @Before
   public void setup() {
     clusterService = clusterService();
-    client = (NodeClient) cluster().client();
-    client
-        .admin()
-        .cluster()
-        .prepareUpdateSettings()
-        .setTransientSettings(
-            Settings.builder()
-                .putList(DATASOURCE_URI_HOSTS_DENY_LIST.getKey(), Collections.emptyList())
-                .build())
-        .get();
     clusterSettings = clusterService.getClusterSettings();
     pluginSettings = new OpenSearchSettings(clusterSettings);
+    client = (NodeClient) cluster().client();
     dataSourceService = createDataSourceService();
     dataSourceService.createDataSource(
         new DataSourceMetadata(
@@ -146,13 +143,6 @@ public class AsyncQueryExecutorServiceImplSpecTest extends OpenSearchIntegTestCa
         .prepareUpdateSettings()
         .setTransientSettings(
             Settings.builder().putNull(SPARK_EXECUTION_SESSION_LIMIT_SETTING.getKey()).build())
-        .get();
-    client
-        .admin()
-        .cluster()
-        .prepareUpdateSettings()
-        .setTransientSettings(
-            Settings.builder().putNull(DATASOURCE_URI_HOSTS_DENY_LIST.getKey()).build())
         .get();
   }
 
