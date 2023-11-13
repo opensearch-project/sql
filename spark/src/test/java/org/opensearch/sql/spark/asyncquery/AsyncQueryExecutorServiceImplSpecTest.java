@@ -11,6 +11,7 @@ import static org.opensearch.sql.spark.data.constants.SparkConstants.FLINT_JOB_R
 import static org.opensearch.sql.spark.data.constants.SparkConstants.FLINT_JOB_SESSION_ID;
 import static org.opensearch.sql.spark.data.constants.SparkConstants.FLINT_SESSION_CLASS_NAME;
 import static org.opensearch.sql.spark.data.constants.SparkConstants.SPARK_REQUEST_BUFFER_INDEX_NAME;
+import static org.opensearch.sql.spark.data.constants.SparkConstants.SPARK_RESPONSE_BUFFER_INDEX_NAME;
 import static org.opensearch.sql.spark.execution.session.SessionModel.SESSION_DOC_TYPE;
 import static org.opensearch.sql.spark.execution.statement.StatementModel.SESSION_ID;
 import static org.opensearch.sql.spark.execution.statement.StatementModel.STATEMENT_DOC_TYPE;
@@ -28,7 +29,6 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import java.util.*;
 import lombok.Getter;
-import org.apache.commons.lang3.StringUtils;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Ignore;
@@ -112,10 +112,9 @@ public class AsyncQueryExecutorServiceImplSpecTest extends OpenSearchIntegTestCa
     clusterSettings = clusterService.getClusterSettings();
     pluginSettings = new OpenSearchSettings(clusterSettings);
     dataSourceService = createDataSourceService();
-    DataSourceMetadata dataSourceMetadata =
+    dataSourceService.createDataSource(
         new DataSourceMetadata(
             DATASOURCE,
-            StringUtils.EMPTY,
             DataSourceType.S3GLUE,
             ImmutableList.of(),
             ImmutableMap.of(
@@ -127,10 +126,9 @@ public class AsyncQueryExecutorServiceImplSpecTest extends OpenSearchIntegTestCa
                 "http://localhost:9200",
                 "glue.indexstore.opensearch.auth",
                 "noauth"),
-            null);
-    dataSourceService.createDataSource(dataSourceMetadata);
+            null));
     stateStore = new StateStore(client, clusterService);
-    createIndex(dataSourceMetadata.fromNameToCustomResultIndex());
+    createIndex(SPARK_RESPONSE_BUFFER_INDEX_NAME);
   }
 
   @After
@@ -341,12 +339,7 @@ public class AsyncQueryExecutorServiceImplSpecTest extends OpenSearchIntegTestCa
 
     dataSourceService.createDataSource(
         new DataSourceMetadata(
-            "mybasicauth",
-            StringUtils.EMPTY,
-            DataSourceType.S3GLUE,
-            ImmutableList.of(),
-            properties,
-            null));
+            "mybasicauth", DataSourceType.S3GLUE, ImmutableList.of(), properties, null));
     LocalEMRSClient emrsClient = new LocalEMRSClient();
     AsyncQueryExecutorService asyncQueryExecutorService =
         createAsyncQueryExecutorService(emrsClient);
@@ -383,7 +376,7 @@ public class AsyncQueryExecutorServiceImplSpecTest extends OpenSearchIntegTestCa
     assertTrue(statementModel.isPresent());
     assertEquals(StatementState.WAITING, statementModel.get().getStatementState());
 
-    // 2. fetch async query result. not result write to DEFAULT_RESULT_INDEX yet.
+    // 2. fetch async query result. not result write to SPARK_RESPONSE_BUFFER_INDEX_NAME yet.
     // mock failed statement.
     StatementModel submitted = statementModel.get();
     StatementModel mocked =
@@ -503,7 +496,6 @@ public class AsyncQueryExecutorServiceImplSpecTest extends OpenSearchIntegTestCa
     dataSourceService.createDataSource(
         new DataSourceMetadata(
             "TESTS3",
-            StringUtils.EMPTY,
             DataSourceType.S3GLUE,
             ImmutableList.of(),
             ImmutableMap.of(

@@ -29,7 +29,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
-import org.apache.commons.lang3.StringUtils;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -383,7 +382,6 @@ class DataSourceServiceImplTest {
     DataSourceMetadata dataSourceMetadata =
         new DataSourceMetadata(
             "testDS",
-            StringUtils.EMPTY,
             DataSourceType.PROMETHEUS,
             Collections.singletonList("prometheus_access"),
             properties,
@@ -409,7 +407,6 @@ class DataSourceServiceImplTest {
     DataSourceMetadata dataSourceMetadata =
         new DataSourceMetadata(
             "testDS",
-            StringUtils.EMPTY,
             DataSourceType.PROMETHEUS,
             Collections.singletonList("prometheus_access"),
             properties,
@@ -437,7 +434,6 @@ class DataSourceServiceImplTest {
     DataSourceMetadata dataSourceMetadata =
         new DataSourceMetadata(
             "testGlue",
-            StringUtils.EMPTY,
             DataSourceType.S3GLUE,
             Collections.singletonList("glue_access"),
             properties,
@@ -502,7 +498,6 @@ class DataSourceServiceImplTest {
     DataSourceMetadata dataSourceMetadata =
         new DataSourceMetadata(
             "testDS",
-            StringUtils.EMPTY,
             DataSourceType.PROMETHEUS,
             Collections.singletonList("prometheus_access"),
             properties,

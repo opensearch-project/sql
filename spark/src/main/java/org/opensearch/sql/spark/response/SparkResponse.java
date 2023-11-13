@@ -5,7 +5,7 @@
 
 package org.opensearch.sql.spark.response;
 
-import static org.opensearch.sql.datasource.model.DataSourceMetadata.DEFAULT_RESULT_INDEX;
+import static org.opensearch.sql.spark.data.constants.SparkConstants.SPARK_RESPONSE_BUFFER_INDEX_NAME;
 
 import com.google.common.annotations.VisibleForTesting;
 import lombok.Data;
@@ -51,7 +51,7 @@ public class SparkResponse {
 
   private JSONObject searchInSparkIndex(QueryBuilder query) {
     SearchRequest searchRequest = new SearchRequest();
-    searchRequest.indices(DEFAULT_RESULT_INDEX);
+    searchRequest.indices(SPARK_RESPONSE_BUFFER_INDEX_NAME);
     SearchSourceBuilder searchSourceBuilder = new SearchSourceBuilder();
     searchSourceBuilder.query(query);
     searchRequest.source(searchSourceBuilder);
@@ -65,7 +65,7 @@ public class SparkResponse {
     if (searchResponse.status().getStatus() != 200) {
       throw new RuntimeException(
           "Fetching result from "
-              + DEFAULT_RESULT_INDEX
+              + SPARK_RESPONSE_BUFFER_INDEX_NAME
               + " index failed with status : "
               + searchResponse.status());
     } else {
@@ -80,7 +80,7 @@ public class SparkResponse {
 
   @VisibleForTesting
   void deleteInSparkIndex(String id) {
-    DeleteRequest deleteRequest = new DeleteRequest(DEFAULT_RESULT_INDEX);
+    DeleteRequest deleteRequest = new DeleteRequest(SPARK_RESPONSE_BUFFER_INDEX_NAME);
     deleteRequest.id(id);
     ActionFuture<DeleteResponse> deleteResponseActionFuture;
     try {
