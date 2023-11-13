@@ -16,13 +16,12 @@ public class IndexDetailsTest {
   public void skippingIndexName() {
     assertEquals(
         "flint_mys3_default_http_logs_skipping_index",
-        IndexDetails.builder()
-            .indexName("invalid")
-            .fullyQualifiedTableName(new FullyQualifiedTableName("mys3.default.http_logs"))
-            .autoRefresh(false)
-            .isDropIndex(true)
-            .indexType(FlintIndexType.SKIPPING)
-            .build()
+        new IndexDetails(
+                "invalid",
+                new FullyQualifiedTableName("mys3.default.http_logs"),
+                false,
+                true,
+                FlintIndexType.SKIPPING)
             .openSearchIndexName());
   }
 }
