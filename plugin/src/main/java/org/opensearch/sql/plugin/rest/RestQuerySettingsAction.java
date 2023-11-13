@@ -39,8 +39,6 @@ public class RestQuerySettingsAction extends BaseRestHandler {
   private static final String LEGACY_SQL_SETTINGS_PREFIX = "opendistro.sql.";
   private static final String LEGACY_PPL_SETTINGS_PREFIX = "opendistro.ppl.";
   private static final String LEGACY_COMMON_SETTINGS_PREFIX = "opendistro.query.";
-  private static final String EXECUTION_ENGINE_SETTINGS_PREFIX = "plugins.query.executionengine";
-  public static final String DATASOURCES_SETTINGS_PREFIX = "plugins.query.datasources";
   private static final List<String> SETTINGS_PREFIX =
       ImmutableList.of(
           SQL_SETTINGS_PREFIX,
@@ -49,9 +47,6 @@ public class RestQuerySettingsAction extends BaseRestHandler {
           LEGACY_SQL_SETTINGS_PREFIX,
           LEGACY_PPL_SETTINGS_PREFIX,
           LEGACY_COMMON_SETTINGS_PREFIX);
-
-  private static final List<String> DENY_LIST_SETTINGS_PREFIX =
-      ImmutableList.of(EXECUTION_ENGINE_SETTINGS_PREFIX, DATASOURCES_SETTINGS_PREFIX);
 
   public static final String SETTINGS_API_ENDPOINT = "/_plugins/_query/settings";
   public static final String LEGACY_SQL_SETTINGS_API_ENDPOINT = "/_opendistro/_sql/settings";
@@ -138,10 +133,6 @@ public class RestQuerySettingsAction extends BaseRestHandler {
                 }
                 return true;
               });
-      // Applying DenyList Filter.
-      settingsBuilder
-          .keys()
-          .removeIf(key -> DENY_LIST_SETTINGS_PREFIX.stream().anyMatch(key::startsWith));
       return settingsBuilder.build();
     } catch (IOException e) {
       throw new OpenSearchGenerationException("Failed to generate [" + source + "]", e);

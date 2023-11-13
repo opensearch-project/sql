@@ -328,7 +328,7 @@ You can update the setting with a new value like this.
 
 SQL query::
 
-    sh$ curl -sS -H 'Content-Type: application/json' -X PUT localhost:9200/_cluster/settings \
+    sh$ curl -sS -H 'Content-Type: application/json' -X PUT localhost:9200/_plugins/_query/settings \
     ... -d '{"transient":{"plugins.query.executionengine.spark.session.limit":200}}'
     {
       "acknowledged": true,
@@ -365,7 +365,7 @@ You can update the setting with a new value like this.
 
 SQL query::
 
-    sh$ curl -sS -H 'Content-Type: application/json' -X PUT localhost:9200/_cluster/settings \
+    sh$ curl -sS -H 'Content-Type: application/json' -X PUT localhost:9200/_plugins/_query/settings \
     ... -d '{"transient":{"plugins.query.executionengine.spark.refresh_job.limit":200}}'
     {
       "acknowledged": true,
@@ -402,7 +402,7 @@ You can update the setting with a new value like this.
 
 SQL query::
 
-    sh$ curl -sS -H 'Content-Type: application/json' -X PUT localhost:9200/_cluster/settings \
+    sh$ curl -sS -H 'Content-Type: application/json' -X PUT localhost:9200/_plugins/_query/settings \
     ... -d '{"transient":{"plugins.query.datasources.limit":25}}'
     {
       "acknowledged": true,
