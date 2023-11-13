@@ -5,8 +5,6 @@
 
 package org.opensearch.sql.spark.leasemanager;
 
-import static org.junit.jupiter.api.Assertions.assertTrue;
-
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
@@ -24,18 +22,6 @@ class DefaultLeaseManagerTest {
 
   @Test
   public void concurrentSessionRuleOnlyApplyToInteractiveQuery() {
-    assertTrue(
-        new DefaultLeaseManager.ConcurrentSessionRule(settings, stateStore)
-            .test(new LeaseRequest(JobType.BATCH, "mys3")));
-    assertTrue(
-        new DefaultLeaseManager.ConcurrentSessionRule(settings, stateStore)
-            .test(new LeaseRequest(JobType.STREAMING, "mys3")));
-  }
-
-  @Test
-  public void concurrentRefreshRuleOnlyNotAppliedToInteractiveQuery() {
-    assertTrue(
-        new DefaultLeaseManager.ConcurrentRefreshJobRule(settings, stateStore)
-            .test(new LeaseRequest(JobType.INTERACTIVE, "mys3")));
+    new DefaultLeaseManager(settings, stateStore).borrow(new LeaseRequest(JobType.BATCH, "mys3"));
   }
 }

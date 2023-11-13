@@ -311,6 +311,41 @@ SQL query::
       "status": 400
     }
 
+plugins.query.executionengine.spark.session.enabled
+===================================================
+
+Description
+-----------
+
+By default, execution engine is executed in session mode. You can disable session mode by this setting.
+
+1. The default value is true.
+2. This setting is node scope.
+3. This setting can be updated dynamically.
+
+You can update the setting with a new value like this.
+
+SQL query::
+
+    sh$ curl -sS -H 'Content-Type: application/json' -X PUT localhost:9200/_plugins/_query/settings \
+    ... -d '{"transient":{"plugins.query.executionengine.spark.session.enabled":"false"}}'
+    {
+      "acknowledged": true,
+      "persistent": {},
+      "transient": {
+        "plugins": {
+          "query": {
+            "executionengine": {
+              "spark": {
+                "session": {
+                  "enabled": "false"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
 
 plugins.query.executionengine.spark.session.limit
 ==================================================
@@ -339,43 +374,6 @@ SQL query::
             "executionengine": {
               "spark": {
                 "session": {
-                  "limit": "200"
-                }
-              }
-            }
-          }
-        }
-      }
-    }
-
-
-plugins.query.executionengine.spark.refresh_job.limit
-=====================================================
-
-Description
------------
-
-Each cluster can have maximum 20 datasources. You can increase limit by this setting.
-
-1. The default value is 20.
-2. This setting is node scope.
-3. This setting can be updated dynamically.
-
-You can update the setting with a new value like this.
-
-SQL query::
-
-    sh$ curl -sS -H 'Content-Type: application/json' -X PUT localhost:9200/_plugins/_query/settings \
-    ... -d '{"transient":{"plugins.query.executionengine.spark.refresh_job.limit":200}}'
-    {
-      "acknowledged": true,
-      "persistent": {},
-      "transient": {
-        "plugins": {
-          "query": {
-            "executionengine": {
-              "spark": {
-                "refresh_job": {
                   "limit": "200"
                 }
               }

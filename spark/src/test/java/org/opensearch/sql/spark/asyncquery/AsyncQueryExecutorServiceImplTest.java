@@ -81,7 +81,7 @@ public class AsyncQueryExecutorServiceImplTest {
                 LangType.SQL,
                 "arn:aws:iam::270824043731:role/emr-job-execution-role",
                 TEST_CLUSTER_NAME)))
-        .thenReturn(new DispatchQueryResponse(QUERY_ID, EMR_JOB_ID, null, null));
+        .thenReturn(new DispatchQueryResponse(QUERY_ID, EMR_JOB_ID, false, null, null));
     CreateAsyncQueryResponse createAsyncQueryResponse =
         jobExecutorService.createAsyncQuery(createAsyncQueryRequest);
     verify(asyncQueryJobMetadataStorageService, times(1))
@@ -111,7 +111,7 @@ public class AsyncQueryExecutorServiceImplTest {
                 "--conf spark.dynamicAllocation.enabled=false",
                 TEST_CLUSTER_NAME));
     when(sparkQueryDispatcher.dispatch(any()))
-        .thenReturn(new DispatchQueryResponse(QUERY_ID, EMR_JOB_ID, null, null));
+        .thenReturn(new DispatchQueryResponse(QUERY_ID, EMR_JOB_ID, false, null, null));
 
     jobExecutorService.createAsyncQuery(
         new CreateAsyncQueryRequest(

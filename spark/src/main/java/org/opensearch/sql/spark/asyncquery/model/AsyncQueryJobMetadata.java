@@ -29,6 +29,7 @@ public class AsyncQueryJobMetadata extends StateModel {
   private final AsyncQueryId queryId;
   private final String applicationId;
   private final String jobId;
+  private final boolean isDropIndexQuery;
   private final String resultIndex;
   // optional sessionId.
   private final String sessionId;
@@ -42,6 +43,7 @@ public class AsyncQueryJobMetadata extends StateModel {
         queryId,
         applicationId,
         jobId,
+        false,
         resultIndex,
         null,
         SequenceNumbers.UNASSIGNED_SEQ_NO,
@@ -52,12 +54,14 @@ public class AsyncQueryJobMetadata extends StateModel {
       AsyncQueryId queryId,
       String applicationId,
       String jobId,
+      boolean isDropIndexQuery,
       String resultIndex,
       String sessionId) {
     this(
         queryId,
         applicationId,
         jobId,
+        isDropIndexQuery,
         resultIndex,
         sessionId,
         SequenceNumbers.UNASSIGNED_SEQ_NO,
@@ -68,6 +72,7 @@ public class AsyncQueryJobMetadata extends StateModel {
       AsyncQueryId queryId,
       String applicationId,
       String jobId,
+      boolean isDropIndexQuery,
       String resultIndex,
       String sessionId,
       long seqNo,
@@ -75,6 +80,7 @@ public class AsyncQueryJobMetadata extends StateModel {
     this.queryId = queryId;
     this.applicationId = applicationId;
     this.jobId = jobId;
+    this.isDropIndexQuery = isDropIndexQuery;
     this.resultIndex = resultIndex;
     this.sessionId = sessionId;
     this.seqNo = seqNo;
@@ -100,6 +106,7 @@ public class AsyncQueryJobMetadata extends StateModel {
         .field("type", TYPE_JOBMETA)
         .field("jobId", jobId)
         .field("applicationId", applicationId)
+        .field("isDropIndexQuery", isDropIndexQuery)
         .field("resultIndex", resultIndex)
         .field("sessionId", sessionId)
         .endObject();
@@ -113,6 +120,7 @@ public class AsyncQueryJobMetadata extends StateModel {
         copy.getQueryId(),
         copy.getApplicationId(),
         copy.getJobId(),
+        copy.isDropIndexQuery(),
         copy.getResultIndex(),
         copy.getSessionId(),
         seqNo,
@@ -168,7 +176,14 @@ public class AsyncQueryJobMetadata extends StateModel {
       throw new IllegalArgumentException("jobId and applicationId are required fields.");
     }
     return new AsyncQueryJobMetadata(
-        queryId, applicationId, jobId, resultIndex, sessionId, seqNo, primaryTerm);
+        queryId,
+        applicationId,
+        jobId,
+        isDropIndexQuery,
+        resultIndex,
+        sessionId,
+        seqNo,
+        primaryTerm);
   }
 
   @Override

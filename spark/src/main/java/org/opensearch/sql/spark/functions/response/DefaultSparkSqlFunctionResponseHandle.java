@@ -48,6 +48,7 @@ public class DefaultSparkSqlFunctionResponseHandle implements SparkSqlFunctionRe
     List<ExprValue> result = new ArrayList<>();
     List<ExecutionEngine.Schema.Column> columnList;
     JSONObject items = responseObject.getJSONObject("data");
+    logger.info("Spark Application ID: " + items.getString("applicationId"));
     columnList = getColumnList(items.getJSONArray("schema"));
     for (int i = 0; i < items.getJSONArray("result").length(); i++) {
       JSONObject row =

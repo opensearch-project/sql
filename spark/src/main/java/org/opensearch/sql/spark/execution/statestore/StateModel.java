@@ -9,10 +9,6 @@ import org.opensearch.core.xcontent.ToXContentObject;
 import org.opensearch.core.xcontent.XContentParser;
 
 public abstract class StateModel implements ToXContentObject {
-  public static final String VERSION_1_0 = "1.0";
-  public static final String TYPE = "type";
-  public static final String STATE = "state";
-  public static final String LAST_UPDATE_TIME = "lastUpdateTime";
 
   public abstract String getId();
 

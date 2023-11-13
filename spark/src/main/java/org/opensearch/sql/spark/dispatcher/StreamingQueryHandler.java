@@ -19,8 +19,6 @@ import org.opensearch.sql.spark.dispatcher.model.DispatchQueryRequest;
 import org.opensearch.sql.spark.dispatcher.model.DispatchQueryResponse;
 import org.opensearch.sql.spark.dispatcher.model.IndexQueryDetails;
 import org.opensearch.sql.spark.dispatcher.model.JobType;
-import org.opensearch.sql.spark.leasemanager.LeaseManager;
-import org.opensearch.sql.spark.leasemanager.model.LeaseRequest;
 import org.opensearch.sql.spark.response.JobExecutionResponseReader;
 
 /** Handle Streaming Query. */
@@ -29,18 +27,14 @@ public class StreamingQueryHandler extends BatchQueryHandler {
 
   public StreamingQueryHandler(
       EMRServerlessClient emrServerlessClient,
-      JobExecutionResponseReader jobExecutionResponseReader,
-      LeaseManager leaseManager) {
-    super(emrServerlessClient, jobExecutionResponseReader, leaseManager);
+      JobExecutionResponseReader jobExecutionResponseReader) {
+    super(emrServerlessClient, jobExecutionResponseReader);
     this.emrServerlessClient = emrServerlessClient;
   }
 
   @Override
   public DispatchQueryResponse submit(
       DispatchQueryRequest dispatchQueryRequest, DispatchQueryContext context) {
-
-    leaseManager.borrow(new LeaseRequest(JobType.STREAMING, dispatchQueryRequest.getDatasource()));
-
     String jobName = dispatchQueryRequest.getClusterName() + ":" + "index-query";
     IndexQueryDetails indexQueryDetails = context.getIndexQueryDetails();
     Map<String, String> tags = context.getTags();
@@ -66,6 +60,7 @@ public class StreamingQueryHandler extends BatchQueryHandler {
     return new DispatchQueryResponse(
         AsyncQueryId.newAsyncQueryId(dataSourceMetadata.getName()),
         jobId,
+        false,
         dataSourceMetadata.getResultIndex(),
         null);
   }

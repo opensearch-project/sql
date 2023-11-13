@@ -72,6 +72,7 @@ public class AsyncQueryExecutorServiceImpl implements AsyncQueryExecutorService 
             dispatchQueryResponse.getQueryId(),
             sparkExecutionEngineConfig.getApplicationId(),
             dispatchQueryResponse.getJobId(),
+            dispatchQueryResponse.isDropIndexQuery(),
             dispatchQueryResponse.getResultIndex(),
             dispatchQueryResponse.getSessionId()));
     return new CreateAsyncQueryResponse(

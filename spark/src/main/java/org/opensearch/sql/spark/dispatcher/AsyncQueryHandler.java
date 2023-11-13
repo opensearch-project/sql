@@ -20,6 +20,11 @@ import org.opensearch.sql.spark.dispatcher.model.DispatchQueryResponse;
 public abstract class AsyncQueryHandler {
 
   public JSONObject getQueryResponse(AsyncQueryJobMetadata asyncQueryJobMetadata) {
+    if (asyncQueryJobMetadata.isDropIndexQuery()) {
+      return SparkQueryDispatcher.DropIndexResult.fromJobId(asyncQueryJobMetadata.getJobId())
+          .result();
+    }
+
     JSONObject result = getResponseFromResultIndex(asyncQueryJobMetadata);
     if (result.has(DATA_FIELD)) {
       JSONObject items = result.getJSONObject(DATA_FIELD);
