@@ -5,9 +5,7 @@
 
 package org.opensearch.sql.spark.execution.session;
 
-import com.google.common.collect.ImmutableList;
 import java.util.Arrays;
-import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 import lombok.Getter;
@@ -18,8 +16,6 @@ public enum SessionState {
   RUNNING("running"),
   DEAD("dead"),
   FAIL("fail");
-
-  public static List<SessionState> END_STATE = ImmutableList.of(DEAD, FAIL);
 
   private final String sessionState;
 

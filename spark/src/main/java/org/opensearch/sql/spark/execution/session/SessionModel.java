@@ -12,16 +12,16 @@ import java.io.IOException;
 import lombok.Builder;
 import lombok.Data;
 import lombok.SneakyThrows;
+import org.opensearch.core.xcontent.ToXContentObject;
 import org.opensearch.core.xcontent.XContentBuilder;
 import org.opensearch.core.xcontent.XContentParser;
 import org.opensearch.core.xcontent.XContentParserUtils;
 import org.opensearch.index.seqno.SequenceNumbers;
-import org.opensearch.sql.spark.execution.statestore.StateModel;
 
 /** Session data in flint.ql.sessions index. */
 @Data
 @Builder
-public class SessionModel extends StateModel {
+public class SessionModel implements ToXContentObject {
   public static final String VERSION = "version";
   public static final String TYPE = "type";
   public static final String SESSION_TYPE = "sessionType";
@@ -73,27 +73,6 @@ public class SessionModel extends StateModel {
         .sessionId(new SessionId(copy.sessionId.getSessionId()))
         .sessionState(copy.sessionState)
         .datasourceName(copy.datasourceName)
-        .applicationId(copy.getApplicationId())
-        .jobId(copy.jobId)
-        .error(UNKNOWN)
-        .lastUpdateTime(copy.getLastUpdateTime())
-        .seqNo(seqNo)
-        .primaryTerm(primaryTerm)
-        .build();
-  }
-
-  public static SessionModel copyWithState(
-      SessionModel copy, SessionState state, long seqNo, long primaryTerm) {
-    return builder()
-        .version(copy.version)
-        .sessionType(copy.sessionType)
-        .sessionId(new SessionId(copy.sessionId.getSessionId()))
-        .sessionState(state)
-        .datasourceName(copy.datasourceName)
-        .applicationId(copy.getApplicationId())
-        .jobId(copy.jobId)
-        .error(UNKNOWN)
-        .lastUpdateTime(copy.getLastUpdateTime())
         .seqNo(seqNo)
         .primaryTerm(primaryTerm)
         .build();
@@ -160,10 +139,5 @@ public class SessionModel extends StateModel {
         .seqNo(SequenceNumbers.UNASSIGNED_SEQ_NO)
         .primaryTerm(SequenceNumbers.UNASSIGNED_PRIMARY_TERM)
         .build();
-  }
-
-  @Override
-  public String getId() {
-    return sessionId.getSessionId();
   }
 }
