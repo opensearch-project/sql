@@ -17,6 +17,7 @@ import com.amazonaws.services.emrserverless.model.JobDriver;
 import com.amazonaws.services.emrserverless.model.SparkSubmit;
 import com.amazonaws.services.emrserverless.model.StartJobRunRequest;
 import com.amazonaws.services.emrserverless.model.StartJobRunResult;
+import com.amazonaws.services.emrserverless.model.ValidationException;
 import java.security.AccessController;
 import java.security.PrivilegedAction;
 import org.apache.logging.log4j.LogManager;
@@ -28,8 +29,6 @@ public class EmrServerlessClientImpl implements EMRServerlessClient {
 
   private final AWSEMRServerless emrServerless;
   private static final Logger logger = LogManager.getLogger(EmrServerlessClientImpl.class);
-
-  private static final String GENERIC_INTERNAL_SERVER_ERROR_MESSAGE = "Internal Server Error.";
 
   public EmrServerlessClientImpl(AWSEMRServerless emrServerless) {
     this.emrServerless = emrServerless;
@@ -63,10 +62,9 @@ public class EmrServerlessClientImpl implements EMRServerlessClient {
                   try {
                     return emrServerless.startJobRun(request);
                   } catch (Throwable t) {
-                    logger.error("Error while making start job request to emr:", t);
                     MetricUtils.incrementNumericalMetric(
                         MetricName.EMR_START_JOB_REQUEST_FAILURE_COUNT);
-                    throw new RuntimeException(GENERIC_INTERNAL_SERVER_ERROR_MESSAGE);
+                    throw t;
                   }
                 });
     logger.info("Job Run ID: " + startJobRunResult.getJobRunId());
@@ -84,10 +82,9 @@ public class EmrServerlessClientImpl implements EMRServerlessClient {
                   try {
                     return emrServerless.getJobRun(request);
                   } catch (Throwable t) {
-                    logger.error("Error while making get job run request to emr:", t);
                     MetricUtils.incrementNumericalMetric(
                         MetricName.EMR_GET_JOB_RESULT_FAILURE_COUNT);
-                    throw new RuntimeException(GENERIC_INTERNAL_SERVER_ERROR_MESSAGE);
+                    throw t;
                   }
                 });
     logger.info("Job Run state: " + getJobRunResult.getJobRun().getState());
@@ -98,20 +95,24 @@ public class EmrServerlessClientImpl implements EMRServerlessClient {
   public CancelJobRunResult cancelJobRun(String applicationId, String jobId) {
     CancelJobRunRequest cancelJobRunRequest =
         new CancelJobRunRequest().withJobRunId(jobId).withApplicationId(applicationId);
-    CancelJobRunResult cancelJobRunResult =
-        AccessController.doPrivileged(
-            (PrivilegedAction<CancelJobRunResult>)
-                () -> {
-                  try {
-                    return emrServerless.cancelJobRun(cancelJobRunRequest);
-                  } catch (Throwable t) {
-                    logger.error("Error while making cancel job request to emr:", t);
-                    MetricUtils.incrementNumericalMetric(
-                        MetricName.EMR_CANCEL_JOB_REQUEST_FAILURE_COUNT);
-                    throw new RuntimeException(GENERIC_INTERNAL_SERVER_ERROR_MESSAGE);
-                  }
-                });
-    logger.info(String.format("Job : %s cancelled", cancelJobRunResult.getJobRunId()));
-    return cancelJobRunResult;
+    try {
+      CancelJobRunResult cancelJobRunResult =
+          AccessController.doPrivileged(
+              (PrivilegedAction<CancelJobRunResult>)
+                  () -> {
+                    try {
+                      return emrServerless.cancelJobRun(cancelJobRunRequest);
+                    } catch (Throwable t) {
+                      MetricUtils.incrementNumericalMetric(
+                          MetricName.EMR_CANCEL_JOB_REQUEST_FAILURE_COUNT);
+                      throw t;
+                    }
+                  });
+      logger.info(String.format("Job : %s cancelled", cancelJobRunResult.getJobRunId()));
+      return cancelJobRunResult;
+    } catch (ValidationException e) {
+      throw new IllegalArgumentException(
+          String.format("Couldn't cancel the queryId: %s due to %s", jobId, e.getMessage()));
+    }
   }
 }

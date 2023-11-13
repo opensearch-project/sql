@@ -33,15 +33,6 @@ public enum MetricName {
   DATASOURCE_DELETE_REQ_COUNT("datasource_delete_request_count"),
   DATASOURCE_FAILED_REQ_COUNT_SYS("datasource_failed_request_count_syserr"),
   DATASOURCE_FAILED_REQ_COUNT_CUS("datasource_failed_request_count_cuserr"),
-  ASYNC_QUERY_CREATE_API_REQUEST_COUNT("async_query_create_api_request_count"),
-  ASYNC_QUERY_GET_API_REQUEST_COUNT("async_query_get_api_request_count"),
-  ASYNC_QUERY_CANCEL_API_REQUEST_COUNT("async_query_cancel_api_request_count"),
-  ASYNC_QUERY_GET_API_FAILED_REQ_COUNT_SYS("async_query_get_api_failed_request_count_syserr"),
-  ASYNC_QUERY_GET_API_FAILED_REQ_COUNT_CUS("async_query_get_api_failed_request_count_cuserr"),
-  ASYNC_QUERY_CREATE_API_FAILED_REQ_COUNT_SYS("async_query_create_api_failed_request_count_syserr"),
-  ASYNC_QUERY_CREATE_API_FAILED_REQ_COUNT_CUS("async_query_create_api_failed_request_count_cuserr"),
-  ASYNC_QUERY_CANCEL_API_FAILED_REQ_COUNT_SYS("async_query_cancel_api_failed_request_count_syserr"),
-  ASYNC_QUERY_CANCEL_API_FAILED_REQ_COUNT_CUS("async_query_cancel_api_failed_request_count_cuserr"),
   EMR_START_JOB_REQUEST_FAILURE_COUNT("emr_start_job_request_failure_count"),
   EMR_GET_JOB_RESULT_FAILURE_COUNT("emr_get_job_request_failure_count"),
   EMR_CANCEL_JOB_REQUEST_FAILURE_COUNT("emr_cancel_job_request_failure_count"),
@@ -82,15 +73,6 @@ public enum MetricName {
           .add(EMR_INTERACTIVE_QUERY_JOBS_CREATION_COUNT)
           .add(EMR_STREAMING_QUERY_JOBS_CREATION_COUNT)
           .add(EMR_BATCH_QUERY_JOBS_CREATION_COUNT)
-          .add(ASYNC_QUERY_CREATE_API_FAILED_REQ_COUNT_CUS)
-          .add(ASYNC_QUERY_CREATE_API_FAILED_REQ_COUNT_SYS)
-          .add(ASYNC_QUERY_CANCEL_API_FAILED_REQ_COUNT_CUS)
-          .add(ASYNC_QUERY_CANCEL_API_FAILED_REQ_COUNT_SYS)
-          .add(ASYNC_QUERY_GET_API_FAILED_REQ_COUNT_CUS)
-          .add(ASYNC_QUERY_GET_API_FAILED_REQ_COUNT_SYS)
-          .add(ASYNC_QUERY_CREATE_API_REQUEST_COUNT)
-          .add(ASYNC_QUERY_GET_API_REQUEST_COUNT)
-          .add(ASYNC_QUERY_CANCEL_API_REQUEST_COUNT)
           .build();
 
   public boolean isNumerical() {
