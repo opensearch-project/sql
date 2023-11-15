@@ -27,7 +27,7 @@ plugins {
     id "io.freefair.lombok"
     id 'jacoco'
     id 'opensearch.opensearchplugin'
-    id 'com.diffplug.spotless' version '6.19.0'
+    id 'com.diffplug.spotless' version '6.22.0'
 }
 
 apply plugin: 'opensearch.pluginzip'
@@ -150,11 +150,11 @@ dependencies {
     api project(':datasources')
     api project(':spark')
 
-    testImplementation group: 'net.bytebuddy', name: 'byte-buddy-agent', version: '1.12.13'
+    testImplementation group: 'net.bytebuddy', name: 'byte-buddy-agent', version: '1.14.9'
     testImplementation group: 'org.hamcrest', name: 'hamcrest-library', version: '2.1'
     testImplementation group: 'org.mockito', name: 'mockito-core', version: "${versions.mockito}"
     testImplementation group: 'org.mockito', name: 'mockito-junit-jupiter', version: "${versions.mockito}"
-    testImplementation 'org.junit.jupiter:junit-jupiter:5.6.2'
+    testImplementation 'org.junit.jupiter:junit-jupiter:5.9.3'
 }
 
 test {
@@ -203,7 +203,7 @@ testingConventions.enabled = false
 thirdPartyAudit.enabled = false
 
 
-apply plugin: 'nebula.ospackage'
+apply plugin: 'com.netflix.nebula.ospackage'
 validateNebulaPom.enabled = false
 
 // This is afterEvaluate because the bundlePlugin ZIP task is updated afterEvaluate and changes the ZIP name to match the plugin name
@@ -245,9 +245,9 @@ afterEvaluate {
         task renameRpm(type: Copy) {
             from("$buildDir/distributions")
             into("$buildDir/distributions")
-            include archiveName
-            rename archiveName, "${packageName}-${version}.rpm"
-            doLast { delete file("$buildDir/distributions/$archiveName") }
+            include "$archiveFileName"
+            rename "$archiveFileName", "${packageName}-${version}.rpm"
+            doLast { delete file("$buildDir/distributions/$archiveFileName") }
         }
     }
 
@@ -258,9 +258,9 @@ afterEvaluate {
         task renameDeb(type: Copy) {
             from("$buildDir/distributions")
             into("$buildDir/distributions")
-            include archiveName
-            rename archiveName, "${packageName}-${version}.deb"
-            doLast { delete file("$buildDir/distributions/$archiveName") }
+            include "$archiveFileName"
+            rename "$archiveFileName", "${packageName}-${version}.deb"
+            doLast { delete file("$buildDir/distributions/$archiveFileName") }
         }
     }
 }

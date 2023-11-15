@@ -63,11 +63,11 @@ buildscript {
 }
 
 plugins {
-    id 'nebula.ospackage' version "8.3.0"
+    id "com.netflix.nebula.ospackage-base" version "11.5.0"
     id 'java-library'
-    id "io.freefair.lombok" version "6.4.0"
+    id "io.freefair.lombok" version "8.4"
     id 'jacoco'
-    id 'com.diffplug.spotless' version '6.19.0'
+    id 'com.diffplug.spotless' version '6.22.0'
 }
 
 // import versions defined in https://github.com/opensearch-project/OpenSearch/blob/main/buildSrc/src/main/java/org/opensearch/gradle/OpenSearchJavaPlugin.java#L94
@@ -155,8 +155,8 @@ jacoco {
 }
 jacocoTestReport {
     reports {
-        xml.enabled false
-        csv.enabled false
+        xml.required = false
+        csv.required = false
     }
     afterEvaluate {
         classDirectories.setFrom(files(classDirectories.files.collect {
