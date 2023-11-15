@@ -6,7 +6,7 @@
 package org.opensearch.sql.legacy.unittest.planner;
 
 import static java.util.Collections.emptyList;
-import static org.mockito.Matchers.any;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;

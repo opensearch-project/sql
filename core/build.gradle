@@ -28,7 +28,7 @@ plugins {
     id 'jacoco'
     id 'info.solidsoft.pitest' version '1.9.0'
     id 'java-test-fixtures'
-    id 'com.diffplug.spotless' version '6.19.0'
+    id 'com.diffplug.spotless' version '6.22.0'
 
 }
 
@@ -56,11 +56,10 @@ dependencies {
     api group: 'com.google.code.gson', name: 'gson', version: '2.8.9'
     api project(':common')
 
-    testImplementation('org.junit.jupiter:junit-jupiter:5.6.2')
+    testImplementation('org.junit.jupiter:junit-jupiter:5.9.3')
     testImplementation group: 'org.hamcrest', name: 'hamcrest-library', version: '2.1'
-    testImplementation group: 'org.mockito', name: 'mockito-core', version: '3.12.4'
-    testImplementation group: 'org.mockito', name: 'mockito-inline', version: '3.12.4'
-    testImplementation group: 'org.mockito', name: 'mockito-junit-jupiter', version: '3.12.4'
+    testImplementation group: 'org.mockito', name: 'mockito-core', version: '5.7.0'
+    testImplementation group: 'org.mockito', name: 'mockito-junit-jupiter', version: '5.7.0'
 }
 
 spotless {
@@ -91,8 +90,8 @@ test {
 
 jacocoTestReport {
     reports {
-        html.enabled true
-        xml.enabled true
+        html.required = true
+        xml.required = true
     }
     afterEvaluate {
         classDirectories.setFrom(files(classDirectories.files.collect {
