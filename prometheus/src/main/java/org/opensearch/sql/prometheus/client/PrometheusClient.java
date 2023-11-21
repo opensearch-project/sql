@@ -20,5 +20,7 @@ public interface PrometheusClient {
 
   Map<String, List<MetricMetadata>> getAllMetrics() throws IOException;
 
+  List<String> getAllSeriesLabels() throws IOException;
+
   JSONArray queryExemplars(String query, Long start, Long end) throws IOException;
 }

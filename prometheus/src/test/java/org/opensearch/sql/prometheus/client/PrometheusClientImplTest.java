@@ -168,6 +168,28 @@ public class PrometheusClientImplTest {
 
   @Test
   @SneakyThrows
+  void testGetSeriesLabels() {
+    MockResponse mockResponse =
+        new MockResponse()
+            .addHeader("Content-Type", "application/json; charset=utf-8")
+            .setBody(getJson("all_series_labels_response.json"));
+    mockWebServer.enqueue(mockResponse);
+    List<String> response = prometheusClient.getAllSeriesLabels();
+    List<String> expected =
+        new ArrayList<>() {
+          {
+            add("go_gc_duration_seconds");
+            add("test_usage");
+          }
+        };
+
+    assertEquals(expected, response);
+    RecordedRequest recordedRequest = mockWebServer.takeRequest();
+    verifyGetAllSeriesLabelsCall(recordedRequest);
+  }
+
+  @Test
+  @SneakyThrows
   void testQueryExemplars() {
     MockResponse mockResponse =
         new MockResponse()
@@ -202,6 +224,13 @@ public class PrometheusClientImplTest {
     assertNotNull(httpUrl);
     assertEquals("/api/v1/labels", httpUrl.encodedPath());
     assertEquals(METRIC_NAME, httpUrl.queryParameter("match[]"));
+  }
+
+  private void verifyGetAllSeriesLabelsCall(RecordedRequest recordedRequest) {
+    HttpUrl httpUrl = recordedRequest.getRequestUrl();
+    assertEquals("GET", recordedRequest.getMethod());
+    assertNotNull(httpUrl);
+    assertEquals("/api/v1/label/__name__/values", httpUrl.encodedPath());
   }
 
   private void verifyGetAllMetricsCall(RecordedRequest recordedRequest) {

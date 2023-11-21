@@ -84,6 +84,17 @@ public class PrometheusClientImpl implements PrometheusClient {
   }
 
   @Override
+  public List<String> getAllSeriesLabels() throws IOException {
+    String queryUrl =
+        String.format("%s/api/v1/label/__name__/values", uri.toString().replaceAll("/$", ""));
+    logger.debug("queryUrl: " + queryUrl);
+    Request request = new Request.Builder().url(queryUrl).build();
+    Response response = this.okHttpClient.newCall(request).execute();
+    JSONObject jsonObject = readResponse(response);
+    return toListOfLabels(jsonObject.getJSONArray("data"));
+  }
+
+  @Override
   public JSONArray queryExemplars(String query, Long start, Long end) throws IOException {
     String queryUrl =
         String.format(
