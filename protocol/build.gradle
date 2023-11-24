@@ -26,6 +26,7 @@ plugins {
     id 'java'
     id "io.freefair.lombok"
     id 'jacoco'
+    id 'maven-publish'
 }
 
 dependencies {
@@ -89,3 +90,40 @@ jacocoTestCoverageVerification {
 }
 check.dependsOn jacocoTestCoverageVerification
 jacocoTestCoverageVerification.dependsOn jacocoTestReport
+
+publishing {
+    publications {
+        mavenJava(MavenPublication) {
+            group = 'opensearch-sql'
+            artifactId = 'protocol'
+            from components.java
+            pom {
+                name = 'protocol'
+                description = 'OpenSearch PPL'
+                groupId = "org.opensearch.plugin"
+                licenses {
+                    license {
+                        name = 'The Apache License, Version 2.0'
+                        url = 'http://www.apache.org/licenses/LICENSE-2.0.txt'
+                    }
+                }
+                developers {
+                    developer {
+                        name = 'OpenSearch'
+                        url = 'https://github.com/opensearch-project/sql'
+                    }
+                }
+            }
+        }
+    }
+    repositories {
+        maven {
+            name = "Snapshots" //  optional target repository name
+            url = "https://aws.oss.sonatype.org/content/repositories/snapshots"
+            credentials {
+                username "$System.env.SONATYPE_USERNAME"
+                password "$System.env.SONATYPE_PASSWORD"
+            }
+        }
+    }
+}
