@@ -49,16 +49,9 @@ public class RestPPLQueryAction extends BaseRestHandler {
 
   private static final Logger LOG = LogManager.getLogger();
 
-  private final Supplier<Boolean> pplEnabled;
-
   /** Constructor of RestPPLQueryAction. */
-  public RestPPLQueryAction(
-      Settings pluginSettings, org.opensearch.common.settings.Settings clusterSettings) {
+  public RestPPLQueryAction() {
     super();
-    this.pplEnabled =
-        () ->
-            MULTI_ALLOW_EXPLICIT_INDEX.get(clusterSettings)
-                && (Boolean) pluginSettings.getSettingValue(Settings.Key.PPL_ENABLED);
   }
 
   private static boolean isClientError(Exception e) {
@@ -104,17 +97,6 @@ public class RestPPLQueryAction extends BaseRestHandler {
 
   @Override
   protected RestChannelConsumer prepareRequest(RestRequest request, NodeClient nodeClient) {
-    // TODO: need move to transport Action
-    if (!pplEnabled.get()) {
-      return channel ->
-          reportError(
-              channel,
-              new IllegalAccessException(
-                  "Either plugins.ppl.enabled or rest.action.multi.allow_explicit_index setting is"
-                      + " false"),
-              BAD_REQUEST);
-    }
-
     TransportPPLQueryRequest transportPPLQueryRequest =
         new TransportPPLQueryRequest(PPLQueryRequestFactory.getPPLRequest(request));
 
