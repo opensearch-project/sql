@@ -5,10 +5,13 @@
 
 package org.opensearch.sql.plugin.transport;
 
+import static org.opensearch.rest.BaseRestHandler.MULTI_ALLOW_EXPLICIT_INDEX;
 import static org.opensearch.sql.protocol.response.format.JsonResponseFormatter.Style.PRETTY;
 
 import java.util.Locale;
 import java.util.Optional;
+import java.util.function.Supplier;
+
 import org.opensearch.action.ActionRequest;
 import org.opensearch.action.support.ActionFilters;
 import org.opensearch.action.support.HandledTransportAction;
@@ -19,6 +22,7 @@ import org.opensearch.common.inject.Injector;
 import org.opensearch.common.inject.ModulesBuilder;
 import org.opensearch.core.action.ActionListener;
 import org.opensearch.sql.common.response.ResponseListener;
+import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.common.utils.QueryContext;
 import org.opensearch.sql.datasource.DataSourceService;
 import org.opensearch.sql.datasources.service.DataSourceServiceImpl;
@@ -47,6 +51,8 @@ public class TransportPPLQueryAction
 
   private final Injector injector;
 
+  private final Supplier<Boolean> pplEnabled;
+
   /** Constructor of TransportPPLQueryAction. */
   @Inject
   public TransportPPLQueryAction(
@@ -54,7 +60,9 @@ public class TransportPPLQueryAction
       ActionFilters actionFilters,
       NodeClient client,
       ClusterService clusterService,
-      DataSourceServiceImpl dataSourceService) {
+      DataSourceServiceImpl dataSourceService,
+      Settings pluginSettings,
+      org.opensearch.common.settings.Settings clusterSettings) {
     super(PPLQueryAction.NAME, transportService, actionFilters, TransportPPLQueryRequest::new);
 
     ModulesBuilder modules = new ModulesBuilder();
@@ -67,6 +75,10 @@ public class TransportPPLQueryAction
           b.bind(DataSourceService.class).toInstance(dataSourceService);
         });
     this.injector = modules.createInjector();
+    this.pplEnabled =
+        () ->
+            MULTI_ALLOW_EXPLICIT_INDEX.get(clusterSettings)
+                && (Boolean) pluginSettings.getSettingValue(Settings.Key.PPL_ENABLED);
   }
 
   /**
@@ -76,6 +88,12 @@ public class TransportPPLQueryAction
   @Override
   protected void doExecute(
       Task task, ActionRequest request, ActionListener<TransportPPLQueryResponse> listener) {
+    if (!pplEnabled.get()) {
+      listener.onFailure(new IllegalAccessException(
+                  "Either plugins.ppl.enabled or rest.action.multi.allow_explicit_index setting is"
+                      + " false"));
+      return;
+    }
     Metrics.getInstance().getNumericalMetric(MetricName.PPL_REQ_TOTAL).increment();
     Metrics.getInstance().getNumericalMetric(MetricName.PPL_REQ_COUNT_TOTAL).increment();
 
