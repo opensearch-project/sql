@@ -192,7 +192,7 @@ public class AsyncQueryExecutorServiceSpec extends OpenSearchIntegTestCase {
     StateStore stateStore = new StateStore(client, clusterService);
     AsyncQueryJobMetadataStorageService asyncQueryJobMetadataStorageService =
         new OpensearchAsyncQueryJobMetadataStorageService(stateStore);
-    JobExecutionResponseReader jobExecutionResponseReader = new JobExecutionResponseReader(client);
+    JobExecutionResponseReader jobExecutionResponseReader = createJobExecutionResponseReader();
     SparkQueryDispatcher sparkQueryDispatcher =
         new SparkQueryDispatcher(
             emrServerlessClient,
@@ -208,6 +208,10 @@ public class AsyncQueryExecutorServiceSpec extends OpenSearchIntegTestCase {
         asyncQueryJobMetadataStorageService,
         sparkQueryDispatcher,
         this::sparkExecutionEngineConfig);
+  }
+
+  protected JobExecutionResponseReader createJobExecutionResponseReader() {
+    return new JobExecutionResponseReader(client);
   }
 
   public static class LocalEMRSClient implements EMRServerlessClient {
