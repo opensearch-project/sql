@@ -28,17 +28,15 @@ import org.opensearch.sql.spark.rest.model.LangType;
 public class InteractiveQueryNullResultFixTest extends AsyncQueryExecutorServiceSpec {
 
   @Test
-  public void queryResult() {
-    LocalEMRSClient emrClient = new LocalEMRSClient();
-    AsyncQueryExecutorService queryService = createAsyncQueryExecutorService(emrClient);
-
+  public void reproduceSuccessStatementWithNullResult() {
+    AsyncQueryExecutorService queryService = createAsyncQueryExecutorService(new LocalEMRSClient());
     CreateAsyncQueryResponse response =
         queryService.createAsyncQuery(
             new CreateAsyncQueryRequest("SELECT 1", DATASOURCE, LangType.SQL, null));
-
     AsyncQueryExecutionResponse results = queryService.getAsyncQueryResults(response.getQueryId());
 
-    System.out.println(results);
+    assertEquals(StatementState.SUCCESS.getState(), results.getStatus());
+    assertNull(results.getResults());
   }
 
   @Override
@@ -51,27 +49,13 @@ public class InteractiveQueryNullResultFixTest extends AsyncQueryExecutorService
         JSONObject result = super.getResultWithQueryId(queryId, resultIndex);
 
         // 2) EMR-S bulk writes query_execution_result with refresh = wait_for
-        Map<String, Object> document = new HashMap<>();
-        document.put("result", new String[] {"{'1':1}"});
-        document.put("schema", new String[] {"{'column_name':'1','data_type':'integer'}"});
-        document.put("jobRunId", "XXX");
-        document.put("applicationId", "YYY");
-        document.put("dataSourceName", DATASOURCE);
-        document.put("status", "SUCCESS");
-        document.put("error", "");
-        document.put("queryId", queryId);
-        document.put("queryText", "SELECT 1");
-        document.put("sessionId", "ZZZ");
-        document.put("updateTime", 1699124602715L);
-        document.put("queryRunTime", 123);
-
         String resultIndexName = resultIndex == null ? DEFAULT_RESULT_INDEX : resultIndex;
         try {
           IndexRequest request =
               new IndexRequest()
                   .index(resultIndexName)
                   .setRefreshPolicy(WAIT_UNTIL)
-                  .source(document);
+                  .source(createResultDoc(queryId));
           client.index(request).get();
         } catch (Exception e) {
           Assert.fail("Failed to write result doc: " + e.getMessage());
@@ -85,5 +69,22 @@ public class InteractiveQueryNullResultFixTest extends AsyncQueryExecutorService
         return result;
       }
     };
+  }
+
+  private Map<String, Object> createResultDoc(String queryId) {
+    Map<String, Object> document = new HashMap<>();
+    document.put("result", new String[] {"{'1':1}"});
+    document.put("schema", new String[] {"{'column_name':'1','data_type':'integer'}"});
+    document.put("jobRunId", "XXX");
+    document.put("applicationId", "YYY");
+    document.put("dataSourceName", DATASOURCE);
+    document.put("status", "SUCCESS");
+    document.put("error", "");
+    document.put("queryId", queryId);
+    document.put("queryText", "SELECT 1");
+    document.put("sessionId", "ZZZ");
+    document.put("updateTime", 1699124602715L);
+    document.put("queryRunTime", 123);
+    return document;
   }
 }
