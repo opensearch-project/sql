@@ -66,8 +66,10 @@ public class SparkQueryDispatcher {
 
     AsyncQueryHandler asyncQueryHandler =
         sessionManager.isEnabled()
-            ? new InteractiveQueryHandler(sessionManager, jobExecutionResponseReader, leaseManager)
-            : new BatchQueryHandler(emrServerlessClient, jobExecutionResponseReader, leaseManager);
+            ? new InteractiveQueryHandler(
+                sessionManager, stateStore, jobExecutionResponseReader, leaseManager)
+            : new BatchQueryHandler(
+                emrServerlessClient, stateStore, jobExecutionResponseReader, leaseManager);
     DispatchQueryContext.DispatchQueryContextBuilder contextBuilder =
         DispatchQueryContext.builder()
             .dataSourceMetadata(dataSourceMetadata)
@@ -88,11 +90,12 @@ public class SparkQueryDispatcher {
           && indexQueryDetails.isAutoRefresh()) {
         asyncQueryHandler =
             new StreamingQueryHandler(
-                emrServerlessClient, jobExecutionResponseReader, leaseManager);
+                emrServerlessClient, stateStore, jobExecutionResponseReader, leaseManager);
       } else if (IndexQueryActionType.REFRESH.equals(indexQueryDetails.getIndexQueryActionType())) {
         // manual refresh should be handled by batch handler
         asyncQueryHandler =
-            new BatchQueryHandler(emrServerlessClient, jobExecutionResponseReader, leaseManager);
+            new BatchQueryHandler(
+                emrServerlessClient, stateStore, jobExecutionResponseReader, leaseManager);
       }
     }
     return asyncQueryHandler.submit(dispatchQueryRequest, contextBuilder.build());
@@ -100,12 +103,14 @@ public class SparkQueryDispatcher {
 
   public JSONObject getQueryResponse(AsyncQueryJobMetadata asyncQueryJobMetadata) {
     if (asyncQueryJobMetadata.getSessionId() != null) {
-      return new InteractiveQueryHandler(sessionManager, jobExecutionResponseReader, leaseManager)
+      return new InteractiveQueryHandler(
+              sessionManager, stateStore, jobExecutionResponseReader, leaseManager)
           .getQueryResponse(asyncQueryJobMetadata);
     } else if (IndexDMLHandler.isIndexDMLQuery(asyncQueryJobMetadata.getJobId())) {
       return createIndexDMLHandler().getQueryResponse(asyncQueryJobMetadata);
     } else {
-      return new BatchQueryHandler(emrServerlessClient, jobExecutionResponseReader, leaseManager)
+      return new BatchQueryHandler(
+              emrServerlessClient, stateStore, jobExecutionResponseReader, leaseManager)
           .getQueryResponse(asyncQueryJobMetadata);
     }
   }
@@ -114,12 +119,14 @@ public class SparkQueryDispatcher {
     AsyncQueryHandler queryHandler;
     if (asyncQueryJobMetadata.getSessionId() != null) {
       queryHandler =
-          new InteractiveQueryHandler(sessionManager, jobExecutionResponseReader, leaseManager);
+          new InteractiveQueryHandler(
+              sessionManager, stateStore, jobExecutionResponseReader, leaseManager);
     } else if (IndexDMLHandler.isIndexDMLQuery(asyncQueryJobMetadata.getJobId())) {
       queryHandler = createIndexDMLHandler();
     } else {
       queryHandler =
-          new BatchQueryHandler(emrServerlessClient, jobExecutionResponseReader, leaseManager);
+          new BatchQueryHandler(
+              emrServerlessClient, stateStore, jobExecutionResponseReader, leaseManager);
     }
     return queryHandler.cancelJob(asyncQueryJobMetadata);
   }

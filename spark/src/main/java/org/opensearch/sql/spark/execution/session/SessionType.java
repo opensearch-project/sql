@@ -10,7 +10,9 @@ import lombok.Getter;
 
 @Getter
 public enum SessionType {
-  INTERACTIVE("interactive");
+  INTERACTIVE("interactive"),
+  STREAMING("streaming"),
+  BATCH("batch");
 
   private final String sessionType;
 

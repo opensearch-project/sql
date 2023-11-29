@@ -21,6 +21,8 @@ import org.opensearch.sql.spark.dispatcher.model.DispatchQueryRequest;
 import org.opensearch.sql.spark.dispatcher.model.DispatchQueryResponse;
 import org.opensearch.sql.spark.dispatcher.model.IndexQueryDetails;
 import org.opensearch.sql.spark.dispatcher.model.JobType;
+import org.opensearch.sql.spark.execution.session.SessionType;
+import org.opensearch.sql.spark.execution.statestore.StateStore;
 import org.opensearch.sql.spark.leasemanager.LeaseManager;
 import org.opensearch.sql.spark.leasemanager.model.LeaseRequest;
 import org.opensearch.sql.spark.response.JobExecutionResponseReader;
@@ -31,9 +33,10 @@ public class StreamingQueryHandler extends BatchQueryHandler {
 
   public StreamingQueryHandler(
       EMRServerlessClient emrServerlessClient,
+      StateStore stateStore,
       JobExecutionResponseReader jobExecutionResponseReader,
       LeaseManager leaseManager) {
-    super(emrServerlessClient, jobExecutionResponseReader, leaseManager);
+    super(emrServerlessClient, stateStore, jobExecutionResponseReader, leaseManager);
     this.emrServerlessClient = emrServerlessClient;
   }
 
@@ -65,6 +68,13 @@ public class StreamingQueryHandler extends BatchQueryHandler {
             indexQueryDetails.isAutoRefresh(),
             dataSourceMetadata.getResultIndex());
     String jobId = emrServerlessClient.startJobRun(startJobRequest);
+    createSessionAndStatement(
+        dispatchQueryRequest,
+        dispatchQueryRequest.getApplicationId(),
+        jobId,
+        SessionType.BATCH,
+        dataSourceMetadata.getName(),
+        context.getQueryId());
     MetricUtils.incrementNumericalMetric(MetricName.EMR_STREAMING_QUERY_JOBS_CREATION_COUNT);
     return new DispatchQueryResponse(
         AsyncQueryId.newAsyncQueryId(dataSourceMetadata.getName()),

@@ -46,6 +46,7 @@ import org.opensearch.core.xcontent.XContentParser;
 import org.opensearch.index.query.QueryBuilder;
 import org.opensearch.index.query.QueryBuilders;
 import org.opensearch.search.builder.SearchSourceBuilder;
+import org.opensearch.sql.spark.asyncquery.model.AsyncQueryId;
 import org.opensearch.sql.spark.asyncquery.model.AsyncQueryJobMetadata;
 import org.opensearch.sql.spark.dispatcher.model.IndexDMLResult;
 import org.opensearch.sql.spark.execution.session.SessionModel;
@@ -356,5 +357,16 @@ public class StateStore {
                         StatementModel.STATEMENT_STATE,
                         StatementState.RUNNING.getState(),
                         StatementState.WAITING.getState())));
+  }
+
+  public static StatementModel getStatementModelByQueryId(
+      StateStore stateStore, AsyncQueryId queryId) {
+    Optional<StatementModel> statementModel =
+        StateStore.getStatement(stateStore, queryId.getDataSourceName()).apply(queryId.getId());
+    if (statementModel.isPresent()) {
+      return statementModel.get();
+    } else {
+      throw new IllegalArgumentException("no query found. queryId=" + queryId.getId());
+    }
   }
 }

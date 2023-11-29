@@ -6,12 +6,12 @@
 package org.opensearch.sql.spark.dispatcher;
 
 import static org.opensearch.sql.spark.execution.statestore.StateStore.createIndexDMLResult;
+import static org.opensearch.sql.spark.execution.statestore.StateStore.getStatementModelByQueryId;
 
 import com.amazonaws.services.emrserverless.model.JobRunState;
-import lombok.RequiredArgsConstructor;
+import java.util.Locale;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.json.JSONObject;
 import org.opensearch.client.Client;
 import org.opensearch.sql.datasource.DataSourceService;
 import org.opensearch.sql.datasource.model.DataSourceMetadata;
@@ -24,6 +24,8 @@ import org.opensearch.sql.spark.dispatcher.model.DispatchQueryRequest;
 import org.opensearch.sql.spark.dispatcher.model.DispatchQueryResponse;
 import org.opensearch.sql.spark.dispatcher.model.IndexDMLResult;
 import org.opensearch.sql.spark.dispatcher.model.IndexQueryDetails;
+import org.opensearch.sql.spark.execution.session.SessionType;
+import org.opensearch.sql.spark.execution.statement.StatementState;
 import org.opensearch.sql.spark.execution.statestore.StateStore;
 import org.opensearch.sql.spark.flint.FlintIndexMetadata;
 import org.opensearch.sql.spark.flint.FlintIndexMetadataReader;
@@ -33,7 +35,6 @@ import org.opensearch.sql.spark.flint.operation.FlintIndexOpDelete;
 import org.opensearch.sql.spark.response.JobExecutionResponseReader;
 
 /** Handle Index DML query. includes * DROP * ALT? */
-@RequiredArgsConstructor
 public class IndexDMLHandler extends AsyncQueryHandler {
   private static final Logger LOG = LogManager.getLogger();
 
@@ -52,6 +53,24 @@ public class IndexDMLHandler extends AsyncQueryHandler {
   private final Client client;
 
   private final StateStore stateStore;
+
+  public IndexDMLHandler(
+      EMRServerlessClient emrServerlessClient,
+      DataSourceService dataSourceService,
+      DataSourceUserAuthorizationHelperImpl dataSourceUserAuthorizationHelper,
+      JobExecutionResponseReader jobExecutionResponseReader,
+      FlintIndexMetadataReader flintIndexMetadataReader,
+      Client client,
+      StateStore stateStore) {
+    super(jobExecutionResponseReader, stateStore);
+    this.emrServerlessClient = emrServerlessClient;
+    this.dataSourceService = dataSourceService;
+    this.dataSourceUserAuthorizationHelper = dataSourceUserAuthorizationHelper;
+    this.jobExecutionResponseReader = jobExecutionResponseReader;
+    this.flintIndexMetadataReader = flintIndexMetadataReader;
+    this.client = client;
+    this.stateStore = stateStore;
+  }
 
   public static boolean isIndexDMLQuery(String jobId) {
     return DROP_INDEX_JOB_ID.equalsIgnoreCase(jobId);
@@ -93,20 +112,18 @@ public class IndexDMLHandler extends AsyncQueryHandler {
             System.currentTimeMillis());
     String resultIndex = dataSourceMetadata.getResultIndex();
     createIndexDMLResult(stateStore, resultIndex).apply(indexDMLResult);
-
+    createSessionAndStatement(
+        dispatchQueryRequest,
+        dispatchQueryRequest.getApplicationId(),
+        DROP_INDEX_JOB_ID,
+        SessionType.BATCH,
+        dataSourceMetadata.getName(),
+        asyncQueryId);
+    StateStore.updateStatementState(stateStore, asyncQueryId.getDataSourceName())
+        .apply(
+            getStatementModelByQueryId(stateStore, asyncQueryId),
+            StatementState.fromString(status.toLowerCase(Locale.ROOT)));
     return new DispatchQueryResponse(asyncQueryId, DROP_INDEX_JOB_ID, resultIndex, null);
-  }
-
-  @Override
-  protected JSONObject getResponseFromResultIndex(AsyncQueryJobMetadata asyncQueryJobMetadata) {
-    String queryId = asyncQueryJobMetadata.getQueryId().getId();
-    return jobExecutionResponseReader.getResultWithQueryId(
-        queryId, asyncQueryJobMetadata.getResultIndex());
-  }
-
-  @Override
-  protected JSONObject getResponseFromExecutor(AsyncQueryJobMetadata asyncQueryJobMetadata) {
-    throw new IllegalStateException("[BUG] can't fetch result of index DML query form server");
   }
 
   @Override
