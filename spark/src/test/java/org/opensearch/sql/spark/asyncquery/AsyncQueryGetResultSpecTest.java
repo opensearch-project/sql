@@ -18,7 +18,6 @@ import java.util.Map;
 import org.json.JSONObject;
 import org.junit.Assert;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.opensearch.action.index.IndexRequest;
 import org.opensearch.sql.data.model.ExprValue;
@@ -154,23 +153,22 @@ public class AsyncQueryGetResultSpecTest extends AsyncQueryExecutorServiceSpec {
     }
   }
 
-  @Ignore
+  @Test
   public void testDropIndexQueryGetResult() {
     // Create mock index with index state refreshing
     mockIndex.createIndex();
-    new MockFlintSparkJob(mockIndex.latestId).refreshing();
+    mockIndexState.refreshing();
 
-    createAsyncQuery(mockIndex.query)
-        .withInteraction(
-            interaction -> {
-              JSONObject result = interaction.pluginSearchQueryResult();
-              interaction.emrJobWriteResultDoc(createEmptyResultDoc(interaction.queryId));
-              interaction.emrJobUpdateJobState(JobRunState.SUCCESS);
-              return result;
-            })
-        .assertQueryResults("running", null)
-        .withoutInteraction()
-        .assertQueryResults("SUCCESS", List.of(tupleValue(Map.of("1", 1))));
+    LocalEMRSClient emrClient = new LocalEMRSClient();
+    emrClient.setJobState("Cancelled");
+    AsyncQueryExecutorService queryService = createAsyncQueryExecutorService(emrClient);
+    CreateAsyncQueryResponse response =
+        queryService.createAsyncQuery(
+            new CreateAsyncQueryRequest(mockIndex.query, DATASOURCE, LangType.SQL, null));
+
+    AsyncQueryExecutionResponse results = queryService.getAsyncQueryResults(response.getQueryId());
+    assertEquals("SUCCESS", results.getStatus());
+    assertNull(results.getError());
   }
 
   private AssertionHelper createAsyncQuery(String query) {
