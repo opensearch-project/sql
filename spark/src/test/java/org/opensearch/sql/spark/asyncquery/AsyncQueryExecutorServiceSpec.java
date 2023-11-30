@@ -189,10 +189,17 @@ public class AsyncQueryExecutorServiceSpec extends OpenSearchIntegTestCase {
 
   protected AsyncQueryExecutorService createAsyncQueryExecutorService(
       EMRServerlessClient emrServerlessClient) {
+    return createAsyncQueryExecutorService(
+        emrServerlessClient, new JobExecutionResponseReader(client));
+  }
+
+  /** Pass a custom response reader which can mock interaction between PPL plugin and EMR-S job. */
+  protected AsyncQueryExecutorService createAsyncQueryExecutorService(
+      EMRServerlessClient emrServerlessClient,
+      JobExecutionResponseReader jobExecutionResponseReader) {
     StateStore stateStore = new StateStore(client, clusterService);
     AsyncQueryJobMetadataStorageService asyncQueryJobMetadataStorageService =
         new OpensearchAsyncQueryJobMetadataStorageService(stateStore);
-    JobExecutionResponseReader jobExecutionResponseReader = createJobExecutionResponseReader();
     SparkQueryDispatcher sparkQueryDispatcher =
         new SparkQueryDispatcher(
             emrServerlessClient,
@@ -208,10 +215,6 @@ public class AsyncQueryExecutorServiceSpec extends OpenSearchIntegTestCase {
         asyncQueryJobMetadataStorageService,
         sparkQueryDispatcher,
         this::sparkExecutionEngineConfig);
-  }
-
-  protected JobExecutionResponseReader createJobExecutionResponseReader() {
-    return new JobExecutionResponseReader(client);
   }
 
   public static class LocalEMRSClient implements EMRServerlessClient {
