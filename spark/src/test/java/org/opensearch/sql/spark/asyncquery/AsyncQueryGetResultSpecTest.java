@@ -17,6 +17,7 @@ import java.util.List;
 import java.util.Map;
 import org.json.JSONObject;
 import org.junit.Assert;
+import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.Test;
 import org.opensearch.action.index.IndexRequest;
@@ -33,6 +34,7 @@ import org.opensearch.sql.spark.rest.model.LangType;
 
 public class AsyncQueryGetResultSpecTest extends AsyncQueryExecutorServiceSpec {
 
+  /** Mock Flint index and index state */
   private final FlintDatasetMock mockIndex =
       new FlintDatasetMock(
               "DROP SKIPPING INDEX ON mys3.default.http_logs",
@@ -40,8 +42,29 @@ public class AsyncQueryGetResultSpecTest extends AsyncQueryExecutorServiceSpec {
               "flint_mys3_default_http_logs_skipping_index")
           .latestId("skippingindexid");
 
+  private MockFlintSparkJob mockIndexState;
+
+  @Before
+  public void doSetUp() {
+    mockIndexState = new MockFlintSparkJob(mockIndex.latestId);
+  }
+
   @Test
   public void testInteractiveQueryGetResult() {
+    createAsyncQuery("SELECT 1")
+        .withoutInteraction()
+        .assertQueryResults("waiting", null)
+        .withInteraction(
+            interaction -> {
+              interaction.emrJobWriteResultDoc(createResultDoc(interaction.queryId));
+              interaction.emrJobUpdateStatementState(StatementState.SUCCESS);
+              return interaction.pluginSearchQueryResult();
+            })
+        .assertQueryResults("SUCCESS", ImmutableList.of(tupleValue(Map.of("1", 1))));
+  }
+
+  @Test
+  public void testInteractiveQueryGetResultWithSearchResultBeforeEmrJobUpdate() {
     createAsyncQuery("SELECT 1")
         .withoutInteraction()
         .assertQueryResults("waiting", null)
@@ -62,6 +85,18 @@ public class AsyncQueryGetResultSpecTest extends AsyncQueryExecutorServiceSpec {
     createAsyncQuery("REFRESH SKIPPING INDEX ON test")
         .withInteraction(
             interaction -> {
+              interaction.emrJobWriteResultDoc(createEmptyResultDoc(interaction.queryId));
+              interaction.emrJobUpdateJobState(JobRunState.SUCCESS);
+              return interaction.pluginSearchQueryResult();
+            })
+        .assertQueryResults("SUCCESS", ImmutableList.of());
+  }
+
+  @Test
+  public void testBatchQueryGetResultWithSearchResultBeforeEmrJobUpdate() {
+    createAsyncQuery("REFRESH SKIPPING INDEX ON test")
+        .withInteraction(
+            interaction -> {
               JSONObject result = interaction.pluginSearchQueryResult();
               interaction.emrJobWriteResultDoc(createEmptyResultDoc(interaction.queryId));
               interaction.emrJobUpdateJobState(JobRunState.SUCCESS);
@@ -76,21 +111,47 @@ public class AsyncQueryGetResultSpecTest extends AsyncQueryExecutorServiceSpec {
   public void testStreamingQueryGetResult() {
     // Create mock index with index state refreshing
     mockIndex.createIndex();
-    new MockFlintSparkJob(mockIndex.latestId).refreshing();
+    mockIndexState.refreshing();
+    try {
+      createAsyncQuery(
+              "CREATE SKIPPING INDEX ON mys3.default.http_logs "
+                  + "(l_orderkey VALUE_SET) WITH (auto_refresh = true)")
+          .withInteraction(
+              interaction -> {
+                interaction.emrJobWriteResultDoc(createEmptyResultDoc(interaction.queryId));
+                interaction.emrJobUpdateJobState(JobRunState.SUCCESS);
+                return interaction.pluginSearchQueryResult();
+              })
+          .assertQueryResults("SUCCESS", ImmutableList.of());
+    } finally {
+      mockIndex.deleteIndex();
+      mockIndexState.deleted();
+    }
+  }
 
-    createAsyncQuery(
-            "CREATE SKIPPING INDEX ON mys3.default.http_logs "
-                + "(l_orderkey VALUE_SET) WITH (auto_refresh = true)")
-        .withInteraction(
-            interaction -> {
-              JSONObject result = interaction.pluginSearchQueryResult();
-              interaction.emrJobWriteResultDoc(createEmptyResultDoc(interaction.queryId));
-              interaction.emrJobUpdateJobState(JobRunState.SUCCESS);
-              return result;
-            })
-        .assertQueryResults("running", null)
-        .withoutInteraction()
-        .assertQueryResults("SUCCESS", ImmutableList.of());
+  @Test
+  public void testStreamingQueryGetResultWithSearchResultBeforeEmrJobUpdate() {
+    // Create mock index with index state refreshing
+    mockIndex.createIndex();
+    mockIndexState.refreshing();
+    try {
+      createAsyncQuery(
+              "CREATE SKIPPING INDEX ON mys3.default.http_logs "
+                  + "(l_orderkey VALUE_SET) WITH (auto_refresh = true)")
+          .withInteraction(
+              interaction -> {
+                JSONObject result = interaction.pluginSearchQueryResult();
+                interaction.emrJobWriteResultDoc(createEmptyResultDoc(interaction.queryId));
+                interaction.emrJobUpdateJobState(JobRunState.SUCCESS);
+                return result;
+              })
+          .assertQueryResults("running", null)
+          .withoutInteraction()
+          .assertQueryResults("SUCCESS", ImmutableList.of());
+    } finally {
+      mockIndex.deleteIndex();
+      mockIndexState.deleted();
+    }
   }
 
   @Ignore
