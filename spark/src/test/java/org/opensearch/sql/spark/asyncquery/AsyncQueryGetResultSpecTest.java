@@ -10,6 +10,8 @@ import static org.opensearch.sql.data.model.ExprValueUtils.tupleValue;
 import static org.opensearch.sql.datasource.model.DataSourceMetadata.DEFAULT_RESULT_INDEX;
 import static org.opensearch.sql.spark.execution.statestore.StateStore.getStatement;
 
+import com.amazonaws.services.emrserverless.model.GetJobRunResult;
+import com.amazonaws.services.emrserverless.model.JobRunState;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -32,6 +34,8 @@ public class AsyncQueryGetResultSpecTest extends AsyncQueryExecutorServiceSpec {
   @Test
   public void testInteractiveQueryGetResult() {
     createAsyncQuery("SELECT 1")
+        .withoutInteraction()
+        .assertQueryResults("waiting", null)
         .withInteraction(
             interaction -> {
               JSONObject result = interaction.pluginSearchQueryResult();
@@ -40,7 +44,22 @@ public class AsyncQueryGetResultSpecTest extends AsyncQueryExecutorServiceSpec {
               return result;
             })
         .assertQueryResults("running", null)
-        .withInteraction(InteractionStep::pluginSearchQueryResult)
+        .withoutInteraction()
+        .assertQueryResults("SUCCESS", List.of(tupleValue(Map.of("1", 1))));
+  }
+
+  @Test
+  public void testBatchQueryGetResult() {
+    createAsyncQuery("REFRESH SKIPPING INDEX ON test")
+        .withInteraction(
+            interaction -> {
+              JSONObject result = interaction.pluginSearchQueryResult();
+              interaction.emrJobWriteResultDoc();
+              interaction.emrJobUpdateJobState(JobRunState.SUCCESS);
+              return result;
+            })
+        .assertQueryResults("running", null)
+        .withoutInteraction()
         .assertQueryResults("SUCCESS", List.of(tupleValue(Map.of("1", 1))));
   }
 
@@ -54,19 +73,34 @@ public class AsyncQueryGetResultSpecTest extends AsyncQueryExecutorServiceSpec {
     private Interaction interaction;
 
     AssertionHelper(String query) {
+      CustomEMRSClient emrClient = new CustomEMRSClient();
       this.queryService =
           createAsyncQueryExecutorService(
-              new LocalEMRSClient(),
+              emrClient,
+              /*
+               * Custom reader that intercepts get results call and inject extra steps defined in
+               * current interaction. Intercept both get methods for different query handler which
+               * will only call either of them.
+               */
               new JobExecutionResponseReader(client) {
                 @Override
+                public JSONObject getResultFromOpensearchIndex(String jobId, String resultIndex) {
+                  return interaction.interact(new InteractionStep(emrClient, jobId, resultIndex));
+                }
+
+                @Override
                 public JSONObject getResultWithQueryId(String queryId, String resultIndex) {
-                  // Get results with extra steps defined in current interaction
-                  return interaction.interact(new InteractionStep(queryId, resultIndex));
+                  return interaction.interact(new InteractionStep(emrClient, queryId, resultIndex));
                 }
               });
       this.createQueryResponse =
           queryService.createAsyncQuery(
               new CreateAsyncQueryRequest(query, DATASOURCE, LangType.SQL, null));
+    }
+
+    AssertionHelper withoutInteraction() {
+      // No interaction with EMR-S job. Plugin searches query result only.
+      return withInteraction(InteractionStep::pluginSearchQueryResult);
     }
 
     AssertionHelper withInteraction(Interaction interaction) {
@@ -83,6 +117,21 @@ public class AsyncQueryGetResultSpecTest extends AsyncQueryExecutorServiceSpec {
     }
   }
 
+  private class CustomEMRSClient extends LocalEMRSClient {
+    private String jobState;
+
+    @Override
+    public GetJobRunResult getJobRunResult(String applicationId, String jobId) {
+      GetJobRunResult result = super.getJobRunResult(applicationId, jobId);
+      result.getJobRun().setState(jobState);
+      return result;
+    }
+
+    void setJobState(String jobState) {
+      this.jobState = jobState;
+    }
+  }
+
   /** Define an interaction between PPL plugin and EMR-S job. */
   private interface Interaction {
 
@@ -94,10 +143,12 @@ public class AsyncQueryGetResultSpecTest extends AsyncQueryExecutorServiceSpec {
    * called in any order to simulate concurrent scenario.
    */
   private class InteractionStep {
+    private final CustomEMRSClient emrClient;
     private final String queryId;
     private final String resultIndex;
 
-    private InteractionStep(String queryId, String resultIndex) {
+    private InteractionStep(CustomEMRSClient emrClient, String queryId, String resultIndex) {
+      this.emrClient = emrClient;
       this.queryId = queryId;
       this.resultIndex = resultIndex == null ? DEFAULT_RESULT_INDEX : resultIndex;
     }
@@ -125,6 +176,10 @@ public class AsyncQueryGetResultSpecTest extends AsyncQueryExecutorServiceSpec {
     void emrJobUpdateStatementState(StatementState newState) {
       StatementModel stmt = getStatement(stateStore, DATASOURCE).apply(queryId).get();
       StateStore.updateStatementState(stateStore, DATASOURCE).apply(stmt, newState);
+    }
+
+    void emrJobUpdateJobState(JobRunState jobState) {
+      emrClient.setJobState(jobState.toString());
     }
   }
 
