@@ -101,6 +101,10 @@ spotless {
     }
 }
 
+project(':opensearch-sql-plugin'){
+    group = 'org.opensearch'
+}
+
 allprojects {
     version = opensearch_version.tokenize('-')[0] + '.0'
     if (buildVersionQualifier) {

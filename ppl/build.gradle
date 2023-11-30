@@ -102,12 +102,12 @@ check.dependsOn jacocoTestCoverageVerification
 publishing {
     publications {
         mavenJava(MavenPublication) {
-            artifactId = 'ppl'
+            groupId = 'org.opensearch'
+            artifactId = 'opensearch-ppl'
             from components.java
             pom {
-                name = 'ppl'
+                name = 'opensearch-ppl'
                 description = 'OpenSearch PPL'
-                groupId = "opensearch-sql"
                 licenses {
                     license {
                         name = 'The Apache License, Version 2.0'
