@@ -5,6 +5,8 @@
 
 package org.opensearch.sql.spark.dispatcher;
 
+import static org.opensearch.sql.spark.data.constants.SparkConstants.ERROR_FIELD;
+import static org.opensearch.sql.spark.data.constants.SparkConstants.STATUS_FIELD;
 import static org.opensearch.sql.spark.execution.statestore.StateStore.createIndexDMLResult;
 
 import com.amazonaws.services.emrserverless.model.JobRunState;
@@ -24,6 +26,7 @@ import org.opensearch.sql.spark.dispatcher.model.DispatchQueryRequest;
 import org.opensearch.sql.spark.dispatcher.model.DispatchQueryResponse;
 import org.opensearch.sql.spark.dispatcher.model.IndexDMLResult;
 import org.opensearch.sql.spark.dispatcher.model.IndexQueryDetails;
+import org.opensearch.sql.spark.execution.statement.StatementState;
 import org.opensearch.sql.spark.execution.statestore.StateStore;
 import org.opensearch.sql.spark.flint.FlintIndexMetadata;
 import org.opensearch.sql.spark.flint.FlintIndexMetadataReader;
@@ -106,7 +109,11 @@ public class IndexDMLHandler extends AsyncQueryHandler {
 
   @Override
   protected JSONObject getResponseFromExecutor(AsyncQueryJobMetadata asyncQueryJobMetadata) {
-    throw new IllegalStateException("[BUG] can't fetch result of index DML query form server");
+    // Consider statement still running if result doc created in submit() is not available yet
+    JSONObject result = new JSONObject();
+    result.put(STATUS_FIELD, StatementState.RUNNING.getState());
+    result.put(ERROR_FIELD, "");
+    return result;
   }
 
   @Override

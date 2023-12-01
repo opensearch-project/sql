@@ -15,6 +15,7 @@ import org.opensearch.sql.spark.asyncquery.model.AsyncQueryJobMetadata;
 import org.opensearch.sql.spark.dispatcher.model.DispatchQueryContext;
 import org.opensearch.sql.spark.dispatcher.model.DispatchQueryRequest;
 import org.opensearch.sql.spark.dispatcher.model.DispatchQueryResponse;
+import org.opensearch.sql.spark.execution.statement.StatementState;
 
 /** Process async query request. */
 public abstract class AsyncQueryHandler {
@@ -33,8 +34,18 @@ public abstract class AsyncQueryHandler {
       result.put(ERROR_FIELD, error);
       return result;
     } else {
-      return getResponseFromExecutor(asyncQueryJobMetadata);
+      JSONObject statement = getResponseFromExecutor(asyncQueryJobMetadata);
+
+      // Consider statement still running if state is success but query result unavailable
+      if (isSuccessState(statement)) {
+        statement.put(STATUS_FIELD, StatementState.RUNNING.getState());
+      }
+      return statement;
     }
+  }
+
+  private boolean isSuccessState(JSONObject statement) {
+    return StatementState.SUCCESS.getState().equalsIgnoreCase(statement.optString(STATUS_FIELD));
   }
 
   protected abstract JSONObject getResponseFromResultIndex(
