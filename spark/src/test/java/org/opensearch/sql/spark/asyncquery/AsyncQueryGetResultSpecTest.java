@@ -51,7 +51,7 @@ public class AsyncQueryGetResultSpecTest extends AsyncQueryExecutorServiceSpec {
   @Test
   public void testInteractiveQueryGetResult() {
     createAsyncQuery("SELECT 1")
-        .withoutInteraction()
+        .withInteraction(InteractionStep::pluginSearchQueryResult)
         .assertQueryResults("waiting", null)
         .withInteraction(
             interaction -> {
@@ -65,7 +65,7 @@ public class AsyncQueryGetResultSpecTest extends AsyncQueryExecutorServiceSpec {
   @Test
   public void testInteractiveQueryGetResultWithConcurrentEmrJobUpdate() {
     createAsyncQuery("SELECT 1")
-        .withoutInteraction()
+        .withInteraction(InteractionStep::pluginSearchQueryResult)
         .assertQueryResults("waiting", null)
         .withInteraction(
             interaction -> {
@@ -75,7 +75,7 @@ public class AsyncQueryGetResultSpecTest extends AsyncQueryExecutorServiceSpec {
               return result;
             })
         .assertQueryResults("running", null)
-        .withoutInteraction()
+        .withInteraction(InteractionStep::pluginSearchQueryResult)
         .assertQueryResults("SUCCESS", ImmutableList.of(tupleValue(Map.of("1", 1))));
   }
 
@@ -102,7 +102,7 @@ public class AsyncQueryGetResultSpecTest extends AsyncQueryExecutorServiceSpec {
               return result;
             })
         .assertQueryResults("running", null)
-        .withoutInteraction()
+        .withInteraction(InteractionStep::pluginSearchQueryResult)
         .assertQueryResults("SUCCESS", ImmutableList.of());
   }
 
@@ -145,7 +145,7 @@ public class AsyncQueryGetResultSpecTest extends AsyncQueryExecutorServiceSpec {
                 return result;
               })
           .assertQueryResults("running", null)
-          .withoutInteraction()
+          .withInteraction(InteractionStep::pluginSearchQueryResult)
           .assertQueryResults("SUCCESS", ImmutableList.of());
     } finally {
       mockIndex.deleteIndex();
@@ -162,7 +162,7 @@ public class AsyncQueryGetResultSpecTest extends AsyncQueryExecutorServiceSpec {
     LocalEMRSClient emrClient = new LocalEMRSClient();
     emrClient.setJobState("Cancelled");
     createAsyncQuery(mockIndex.query, emrClient)
-        .withoutInteraction()
+        .withInteraction(InteractionStep::pluginSearchQueryResult)
         .assertQueryResults("SUCCESS", ImmutableList.of());
   }
 
@@ -177,7 +177,7 @@ public class AsyncQueryGetResultSpecTest extends AsyncQueryExecutorServiceSpec {
     createAsyncQuery(mockIndex.query, emrClient)
         .withInteraction(interaction -> new JSONObject()) // simulate result index refresh delay
         .assertQueryResults("running", null)
-        .withoutInteraction()
+        .withInteraction(InteractionStep::pluginSearchQueryResult)
         .assertQueryResults("SUCCESS", ImmutableList.of());
   }
 
@@ -217,11 +217,6 @@ public class AsyncQueryGetResultSpecTest extends AsyncQueryExecutorServiceSpec {
       this.createQueryResponse =
           queryService.createAsyncQuery(
               new CreateAsyncQueryRequest(query, DATASOURCE, LangType.SQL, null));
-    }
-
-    AssertionHelper withoutInteraction() {
-      // No interaction with EMR-S job. Plugin searches query result only.
-      return withInteraction(InteractionStep::pluginSearchQueryResult);
     }
 
     AssertionHelper withInteraction(Interaction interaction) {
