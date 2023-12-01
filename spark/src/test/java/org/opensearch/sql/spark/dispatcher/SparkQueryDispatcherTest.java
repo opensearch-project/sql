@@ -314,7 +314,7 @@ public class SparkQueryDispatcherTest {
     doReturn(true).when(sessionManager).isEnabled();
     doReturn(Optional.of(session))
         .when(sessionManager)
-        .getSession(eq(new SessionId(MOCK_SESSION_ID)));
+        .getSession(eq(new SessionId(MOCK_SESSION_ID)), eq("my_glue"));
     doReturn(new SessionId(MOCK_SESSION_ID)).when(session).getSessionId();
     doReturn(new StatementId(MOCK_STATEMENT_ID)).when(session).submit(any());
     when(session.getSessionModel().getJobId()).thenReturn(EMR_JOB_ID);

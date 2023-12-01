@@ -81,7 +81,8 @@ public class InteractiveQueryHandler extends AsyncQueryHandler {
     if (dispatchQueryRequest.getSessionId() != null) {
       // get session from request
       SessionId sessionId = new SessionId(dispatchQueryRequest.getSessionId());
-      Optional<Session> createdSession = sessionManager.getSession(sessionId);
+      Optional<Session> createdSession =
+          sessionManager.getSession(sessionId, dispatchQueryRequest.getDatasource());
       if (createdSession.isPresent()) {
         session = createdSession.get();
       }

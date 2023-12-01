@@ -384,6 +384,44 @@ public class AsyncQueryExecutorServiceImplSpecTest extends AsyncQueryExecutorSer
   }
 
   @Test
+  public void submitQueryWithDifferentDataSourceSessionWillCreateNewSession() {
+    LocalEMRSClient emrsClient = new LocalEMRSClient();
+    AsyncQueryExecutorService asyncQueryExecutorService =
+        createAsyncQueryExecutorService(emrsClient);
+
+    // enable session
+    enableSession(true);
+
+    // 1. create async query.
+    CreateAsyncQueryResponse first =
+        asyncQueryExecutorService.createAsyncQuery(
+            new CreateAsyncQueryRequest(
+                "SHOW SCHEMAS IN " + DATASOURCE, DATASOURCE, LangType.SQL, null));
+    assertNotNull(first.getSessionId());
+
+    // set sessionState to RUNNING
+    setSessionState(first.getSessionId(), SessionState.RUNNING);
+
+    // 2. reuse session id
+    CreateAsyncQueryResponse second =
+        asyncQueryExecutorService.createAsyncQuery(
+            new CreateAsyncQueryRequest(
+                "SHOW SCHEMAS IN " + DATASOURCE, DATASOURCE, LangType.SQL, first.getSessionId()));
+
+    assertEquals(first.getSessionId(), second.getSessionId());
+
+    // set sessionState to RUNNING
+    setSessionState(second.getSessionId(), SessionState.RUNNING);
+
+    // 3. given different source, create a new session id
+    CreateAsyncQueryResponse third =
+        asyncQueryExecutorService.createAsyncQuery(
+            new CreateAsyncQueryRequest(
+                "SHOW SCHEMAS IN " + DSOTHER, DSOTHER, LangType.SQL, second.getSessionId()));
+    assertNotEquals(second.getSessionId(), third.getSessionId());
+  }
+
+  @Test
   public void submitQueryInInvalidSessionWillCreateNewSession() {
     LocalEMRSClient emrsClient = new LocalEMRSClient();
     AsyncQueryExecutorService asyncQueryExecutorService =
