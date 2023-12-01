@@ -63,7 +63,7 @@ public class AsyncQueryGetResultSpecTest extends AsyncQueryExecutorServiceSpec {
   }
 
   @Test
-  public void testInteractiveQueryGetResultWithSearchResultBeforeEmrJobUpdate() {
+  public void testInteractiveQueryGetResultWithConcurrentEmrJobUpdate() {
     createAsyncQuery("SELECT 1")
         .withoutInteraction()
         .assertQueryResults("waiting", null)
@@ -92,7 +92,7 @@ public class AsyncQueryGetResultSpecTest extends AsyncQueryExecutorServiceSpec {
   }
 
   @Test
-  public void testBatchQueryGetResultWithSearchResultBeforeEmrJobUpdate() {
+  public void testBatchQueryGetResultWithConcurrentEmrJobUpdate() {
     createAsyncQuery("REFRESH SKIPPING INDEX ON test")
         .withInteraction(
             interaction -> {
@@ -129,7 +129,7 @@ public class AsyncQueryGetResultSpecTest extends AsyncQueryExecutorServiceSpec {
   }
 
   @Test
-  public void testStreamingQueryGetResultWithSearchResultBeforeEmrJobUpdate() {
+  public void testStreamingQueryGetResultWithConcurrentEmrJobUpdate() {
     // Create mock index with index state refreshing
     mockIndex.createIndex();
     mockIndexState.refreshing();
@@ -161,18 +161,32 @@ public class AsyncQueryGetResultSpecTest extends AsyncQueryExecutorServiceSpec {
 
     LocalEMRSClient emrClient = new LocalEMRSClient();
     emrClient.setJobState("Cancelled");
-    AsyncQueryExecutorService queryService = createAsyncQueryExecutorService(emrClient);
-    CreateAsyncQueryResponse response =
-        queryService.createAsyncQuery(
-            new CreateAsyncQueryRequest(mockIndex.query, DATASOURCE, LangType.SQL, null));
+    createAsyncQuery(mockIndex.query, emrClient)
+        .withoutInteraction()
+        .assertQueryResults("SUCCESS", ImmutableList.of());
+  }
 
-    AsyncQueryExecutionResponse results = queryService.getAsyncQueryResults(response.getQueryId());
-    assertEquals("SUCCESS", results.getStatus());
-    assertNull(results.getError());
+  @Test
+  public void testDropIndexQueryGetResultWithResultDocRefreshDelay() {
+    // Create mock index with index state refreshing
+    mockIndex.createIndex();
+    mockIndexState.refreshing();
+
+    LocalEMRSClient emrClient = new LocalEMRSClient();
+    emrClient.setJobState("Cancelled");
+    createAsyncQuery(mockIndex.query, emrClient)
+        .withInteraction(interaction -> new JSONObject()) // simulate result index refresh delay
+        .assertQueryResults("running", null)
+        .withoutInteraction()
+        .assertQueryResults("SUCCESS", ImmutableList.of());
   }
 
   private AssertionHelper createAsyncQuery(String query) {
-    return new AssertionHelper(query);
+    return new AssertionHelper(query, new LocalEMRSClient());
+  }
+
+  private AssertionHelper createAsyncQuery(String query, LocalEMRSClient emrClient) {
+    return new AssertionHelper(query, emrClient);
   }
 
   private class AssertionHelper {
@@ -180,8 +194,7 @@ public class AsyncQueryGetResultSpecTest extends AsyncQueryExecutorServiceSpec {
     private final CreateAsyncQueryResponse createQueryResponse;
     private Interaction interaction;
 
-    AssertionHelper(String query) {
-      LocalEMRSClient emrClient = new LocalEMRSClient();
+    AssertionHelper(String query, LocalEMRSClient emrClient) {
       this.queryService =
           createAsyncQueryExecutorService(
               emrClient,
