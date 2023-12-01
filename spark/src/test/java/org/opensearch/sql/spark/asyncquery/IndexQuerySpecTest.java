@@ -8,21 +8,11 @@ package org.opensearch.sql.spark.asyncquery;
 import com.amazonaws.services.emrserverless.model.CancelJobRunResult;
 import com.amazonaws.services.emrserverless.model.GetJobRunResult;
 import com.amazonaws.services.emrserverless.model.JobRun;
-import com.google.common.base.Charsets;
 import com.google.common.collect.ImmutableList;
-import com.google.common.io.Resources;
-import java.net.URL;
-import java.util.Optional;
-import lombok.RequiredArgsConstructor;
-import lombok.SneakyThrows;
 import org.junit.Assert;
 import org.junit.Test;
-import org.opensearch.action.admin.indices.delete.DeleteIndexRequest;
-import org.opensearch.index.seqno.SequenceNumbers;
 import org.opensearch.sql.spark.asyncquery.model.AsyncQueryExecutionResponse;
-import org.opensearch.sql.spark.execution.statestore.StateStore;
 import org.opensearch.sql.spark.flint.FlintIndexState;
-import org.opensearch.sql.spark.flint.FlintIndexStateModel;
 import org.opensearch.sql.spark.flint.FlintIndexType;
 import org.opensearch.sql.spark.leasemanager.ConcurrencyLimitExceededException;
 import org.opensearch.sql.spark.rest.model.CreateAsyncQueryRequest;
@@ -684,110 +674,5 @@ public class IndexQuerySpecTest extends AsyncQueryExecutorServiceSpec {
         asyncQueryExecutorService.createAsyncQuery(
             new CreateAsyncQueryRequest(query, DATASOURCE, LangType.SQL, null));
     assertNotNull(asyncQueryResponse.getSessionId());
-  }
-
-  public class MockFlintSparkJob {
-
-    private FlintIndexStateModel stateModel;
-
-    public MockFlintSparkJob(String latestId) {
-      assertNotNull(latestId);
-      stateModel =
-          new FlintIndexStateModel(
-              FlintIndexState.EMPTY,
-              "mockAppId",
-              "mockJobId",
-              latestId,
-              DATASOURCE,
-              System.currentTimeMillis(),
-              "",
-              SequenceNumbers.UNASSIGNED_SEQ_NO,
-              SequenceNumbers.UNASSIGNED_PRIMARY_TERM);
-      stateModel = StateStore.createFlintIndexState(stateStore, DATASOURCE).apply(stateModel);
-    }
-
-    public void refreshing() {
-      stateModel =
-          StateStore.updateFlintIndexState(stateStore, DATASOURCE)
-              .apply(stateModel, FlintIndexState.REFRESHING);
-    }
-
-    public void cancelling() {
-      stateModel =
-          StateStore.updateFlintIndexState(stateStore, DATASOURCE)
-              .apply(stateModel, FlintIndexState.CANCELLING);
-    }
-
-    public void active() {
-      stateModel =
-          StateStore.updateFlintIndexState(stateStore, DATASOURCE)
-              .apply(stateModel, FlintIndexState.ACTIVE);
-    }
-
-    public void deleting() {
-      stateModel =
-          StateStore.updateFlintIndexState(stateStore, DATASOURCE)
-              .apply(stateModel, FlintIndexState.DELETING);
-    }
-
-    public void deleted() {
-      stateModel =
-          StateStore.updateFlintIndexState(stateStore, DATASOURCE)
-              .apply(stateModel, FlintIndexState.DELETED);
-    }
-
-    void assertState(FlintIndexState expected) {
-      Optional<FlintIndexStateModel> stateModelOpt =
-          StateStore.getFlintIndexState(stateStore, DATASOURCE).apply(stateModel.getId());
-      assertTrue((stateModelOpt.isPresent()));
-      assertEquals(expected, stateModelOpt.get().getIndexState());
-    }
-  }
-
-  @RequiredArgsConstructor
-  public class FlintDatasetMock {
-    private final String query;
-    private final FlintIndexType indexType;
-    private final String indexName;
-    private boolean isLegacy = false;
-    private String latestId;
-
-    FlintDatasetMock isLegacy(boolean isLegacy) {
-      this.isLegacy = isLegacy;
-      return this;
-    }
-
-    FlintDatasetMock latestId(String latestId) {
-      this.latestId = latestId;
-      return this;
-    }
-
-    public void createIndex() {
-      String pathPrefix = isLegacy ? "flint-index-mappings" : "flint-index-mappings/0.1.1";
-      switch (indexType) {
-        case SKIPPING:
-          createIndexWithMappings(
-              indexName, loadMappings(pathPrefix + "/" + "flint_skipping_index.json"));
-          break;
-        case COVERING:
-          createIndexWithMappings(
-              indexName, loadMappings(pathPrefix + "/" + "flint_covering_index.json"));
-          break;
-        case MATERIALIZED_VIEW:
-          createIndexWithMappings(indexName, loadMappings(pathPrefix + "/" + "flint_mv.json"));
-          break;
-      }
-    }
-
-    @SneakyThrows
-    public void deleteIndex() {
-      client().admin().indices().delete(new DeleteIndexRequest().indices(indexName)).get();
-    }
-  }
-
-  @SneakyThrows
-  public static String loadMappings(String path) {
-    URL url = Resources.getResource(path);
-    return Resources.toString(url, Charsets.UTF_8);
   }
 }
