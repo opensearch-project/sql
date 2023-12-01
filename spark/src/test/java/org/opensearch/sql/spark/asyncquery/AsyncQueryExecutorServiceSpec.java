@@ -15,6 +15,7 @@ import static org.opensearch.sql.spark.execution.statestore.StateStore.updateSes
 import com.amazonaws.services.emrserverless.model.CancelJobRunResult;
 import com.amazonaws.services.emrserverless.model.GetJobRunResult;
 import com.amazonaws.services.emrserverless.model.JobRun;
+import com.amazonaws.services.emrserverless.model.JobRunState;
 import com.google.common.base.Charsets;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -228,7 +229,7 @@ public class AsyncQueryExecutorServiceSpec extends OpenSearchIntegTestCase {
     private int startJobRunCalled = 0;
     private int cancelJobRunCalled = 0;
     private int getJobResult = 0;
-    private String jobState = "RUNNING";
+    private JobRunState jobState = JobRunState.RUNNING;
 
     @Getter private StartJobRequest jobRequest;
 
@@ -243,7 +244,7 @@ public class AsyncQueryExecutorServiceSpec extends OpenSearchIntegTestCase {
     public GetJobRunResult getJobRunResult(String applicationId, String jobId) {
       getJobResult++;
       JobRun jobRun = new JobRun();
-      jobRun.setState(jobState);
+      jobRun.setState(jobState.toString());
       return new GetJobRunResult().withJobRun(jobRun);
     }
 
@@ -265,7 +266,7 @@ public class AsyncQueryExecutorServiceSpec extends OpenSearchIntegTestCase {
       assertEquals(expectedTimes, getJobResult);
     }
 
-    public void setJobState(String jobState) {
+    public void setJobState(JobRunState jobState) {
       this.jobState = jobState;
     }
   }

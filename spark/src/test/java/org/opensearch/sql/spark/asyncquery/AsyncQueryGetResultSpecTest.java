@@ -160,7 +160,7 @@ public class AsyncQueryGetResultSpecTest extends AsyncQueryExecutorServiceSpec {
     mockIndexState.refreshing();
 
     LocalEMRSClient emrClient = new LocalEMRSClient();
-    emrClient.setJobState("Cancelled");
+    emrClient.setJobState(JobRunState.CANCELLED);
     createAsyncQuery(mockIndex.query, emrClient)
         .withInteraction(InteractionStep::pluginSearchQueryResult)
         .assertQueryResults("SUCCESS", ImmutableList.of());
@@ -173,7 +173,7 @@ public class AsyncQueryGetResultSpecTest extends AsyncQueryExecutorServiceSpec {
     mockIndexState.refreshing();
 
     LocalEMRSClient emrClient = new LocalEMRSClient();
-    emrClient.setJobState("Cancelled");
+    emrClient.setJobState(JobRunState.CANCELLED);
     createAsyncQuery(mockIndex.query, emrClient)
         .withInteraction(interaction -> new JSONObject()) // simulate result index refresh delay
         .assertQueryResults("running", null)
@@ -277,7 +277,7 @@ public class AsyncQueryGetResultSpecTest extends AsyncQueryExecutorServiceSpec {
     }
 
     void emrJobUpdateJobState(JobRunState jobState) {
-      emrClient.setJobState(jobState.toString());
+      emrClient.setJobState(jobState);
     }
   }
 
