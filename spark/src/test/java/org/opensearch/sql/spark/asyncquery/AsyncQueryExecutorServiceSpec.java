@@ -15,6 +15,7 @@ import static org.opensearch.sql.spark.execution.statestore.StateStore.updateSes
 import com.amazonaws.services.emrserverless.model.CancelJobRunResult;
 import com.amazonaws.services.emrserverless.model.GetJobRunResult;
 import com.amazonaws.services.emrserverless.model.JobRun;
+import com.amazonaws.services.emrserverless.model.JobRunState;
 import com.google.common.base.Charsets;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -27,11 +28,13 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import lombok.Getter;
+import lombok.RequiredArgsConstructor;
 import lombok.SneakyThrows;
 import org.apache.commons.lang3.StringUtils;
 import org.junit.After;
 import org.junit.Before;
 import org.opensearch.action.admin.indices.create.CreateIndexRequest;
+import org.opensearch.action.admin.indices.delete.DeleteIndexRequest;
 import org.opensearch.action.search.SearchRequest;
 import org.opensearch.action.search.SearchResponse;
 import org.opensearch.client.node.NodeClient;
@@ -41,6 +44,7 @@ import org.opensearch.common.settings.Setting;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.common.xcontent.XContentType;
 import org.opensearch.index.query.QueryBuilder;
+import org.opensearch.index.seqno.SequenceNumbers;
 import org.opensearch.plugins.Plugin;
 import org.opensearch.search.builder.SearchSourceBuilder;
 import org.opensearch.sql.datasource.model.DataSourceMetadata;
@@ -63,6 +67,9 @@ import org.opensearch.sql.spark.execution.session.SessionModel;
 import org.opensearch.sql.spark.execution.session.SessionState;
 import org.opensearch.sql.spark.execution.statestore.StateStore;
 import org.opensearch.sql.spark.flint.FlintIndexMetadataReaderImpl;
+import org.opensearch.sql.spark.flint.FlintIndexState;
+import org.opensearch.sql.spark.flint.FlintIndexStateModel;
+import org.opensearch.sql.spark.flint.FlintIndexType;
 import org.opensearch.sql.spark.leasemanager.DefaultLeaseManager;
 import org.opensearch.sql.spark.response.JobExecutionResponseReader;
 import org.opensearch.sql.storage.DataSourceFactory;
@@ -189,10 +196,17 @@ public class AsyncQueryExecutorServiceSpec extends OpenSearchIntegTestCase {
 
   protected AsyncQueryExecutorService createAsyncQueryExecutorService(
       EMRServerlessClient emrServerlessClient) {
+    return createAsyncQueryExecutorService(
+        emrServerlessClient, new JobExecutionResponseReader(client));
+  }
+
+  /** Pass a custom response reader which can mock interaction between PPL plugin and EMR-S job. */
+  protected AsyncQueryExecutorService createAsyncQueryExecutorService(
+      EMRServerlessClient emrServerlessClient,
+      JobExecutionResponseReader jobExecutionResponseReader) {
     StateStore stateStore = new StateStore(client, clusterService);
     AsyncQueryJobMetadataStorageService asyncQueryJobMetadataStorageService =
         new OpensearchAsyncQueryJobMetadataStorageService(stateStore);
-    JobExecutionResponseReader jobExecutionResponseReader = new JobExecutionResponseReader(client);
     SparkQueryDispatcher sparkQueryDispatcher =
         new SparkQueryDispatcher(
             emrServerlessClient,
@@ -215,6 +229,7 @@ public class AsyncQueryExecutorServiceSpec extends OpenSearchIntegTestCase {
     private int startJobRunCalled = 0;
     private int cancelJobRunCalled = 0;
     private int getJobResult = 0;
+    private JobRunState jobState = JobRunState.RUNNING;
 
     @Getter private StartJobRequest jobRequest;
 
@@ -229,7 +244,7 @@ public class AsyncQueryExecutorServiceSpec extends OpenSearchIntegTestCase {
     public GetJobRunResult getJobRunResult(String applicationId, String jobId) {
       getJobResult++;
       JobRun jobRun = new JobRun();
-      jobRun.setState("RUNNING");
+      jobRun.setState(jobState.toString());
       return new GetJobRunResult().withJobRun(jobRun);
     }
 
@@ -249,6 +264,10 @@ public class AsyncQueryExecutorServiceSpec extends OpenSearchIntegTestCase {
 
     public void getJobRunResultCalled(int expectedTimes) {
       assertEquals(expectedTimes, getJobResult);
+    }
+
+    public void setJobState(JobRunState jobState) {
+      this.jobState = jobState;
     }
   }
 
@@ -303,6 +322,111 @@ public class AsyncQueryExecutorServiceSpec extends OpenSearchIntegTestCase {
   @SneakyThrows
   public String loadResultIndexMappings() {
     URL url = Resources.getResource("query_execution_result_mapping.json");
+    return Resources.toString(url, Charsets.UTF_8);
+  }
+
+  public class MockFlintSparkJob {
+
+    private FlintIndexStateModel stateModel;
+
+    public MockFlintSparkJob(String latestId) {
+      assertNotNull(latestId);
+      stateModel =
+          new FlintIndexStateModel(
+              FlintIndexState.EMPTY,
+              "mockAppId",
+              "mockJobId",
+              latestId,
+              DATASOURCE,
+              System.currentTimeMillis(),
+              "",
+              SequenceNumbers.UNASSIGNED_SEQ_NO,
+              SequenceNumbers.UNASSIGNED_PRIMARY_TERM);
+      stateModel = StateStore.createFlintIndexState(stateStore, DATASOURCE).apply(stateModel);
+    }
+
+    public void refreshing() {
+      stateModel =
+          StateStore.updateFlintIndexState(stateStore, DATASOURCE)
+              .apply(stateModel, FlintIndexState.REFRESHING);
+    }
+
+    public void cancelling() {
+      stateModel =
+          StateStore.updateFlintIndexState(stateStore, DATASOURCE)
+              .apply(stateModel, FlintIndexState.CANCELLING);
+    }
+
+    public void active() {
+      stateModel =
+          StateStore.updateFlintIndexState(stateStore, DATASOURCE)
+              .apply(stateModel, FlintIndexState.ACTIVE);
+    }
+
+    public void deleting() {
+      stateModel =
+          StateStore.updateFlintIndexState(stateStore, DATASOURCE)
+              .apply(stateModel, FlintIndexState.DELETING);
+    }
+
+    public void deleted() {
+      stateModel =
+          StateStore.updateFlintIndexState(stateStore, DATASOURCE)
+              .apply(stateModel, FlintIndexState.DELETED);
+    }
+
+    void assertState(FlintIndexState expected) {
+      Optional<FlintIndexStateModel> stateModelOpt =
+          StateStore.getFlintIndexState(stateStore, DATASOURCE).apply(stateModel.getId());
+      assertTrue((stateModelOpt.isPresent()));
+      assertEquals(expected, stateModelOpt.get().getIndexState());
+    }
+  }
+
+  @RequiredArgsConstructor
+  public class FlintDatasetMock {
+    final String query;
+    final FlintIndexType indexType;
+    final String indexName;
+    boolean isLegacy = false;
+    String latestId;
+
+    FlintDatasetMock isLegacy(boolean isLegacy) {
+      this.isLegacy = isLegacy;
+      return this;
+    }
+
+    FlintDatasetMock latestId(String latestId) {
+      this.latestId = latestId;
+      return this;
+    }
+
+    public void createIndex() {
+      String pathPrefix = isLegacy ? "flint-index-mappings" : "flint-index-mappings/0.1.1";
+      switch (indexType) {
+        case SKIPPING:
+          createIndexWithMappings(
+              indexName, loadMappings(pathPrefix + "/" + "flint_skipping_index.json"));
+          break;
+        case COVERING:
+          createIndexWithMappings(
+              indexName, loadMappings(pathPrefix + "/" + "flint_covering_index.json"));
+          break;
+        case MATERIALIZED_VIEW:
+          createIndexWithMappings(indexName, loadMappings(pathPrefix + "/" + "flint_mv.json"));
+          break;
+      }
+    }
+
+    @SneakyThrows
+    public void deleteIndex() {
+      client().admin().indices().delete(new DeleteIndexRequest().indices(indexName)).get();
+    }
+  }
+
+  @SneakyThrows
+  public static String loadMappings(String path) {
+    URL url = Resources.getResource(path);
     return Resources.toString(url, Charsets.UTF_8);
   }
 
