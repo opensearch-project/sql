@@ -259,7 +259,7 @@ public class StatementTest extends OpenSearchIntegTestCase {
   @Test
   public void submitStatementInRunningSession() {
     Session session =
-        new SessionManager(stateStore, emrsClient, sessionSetting(false))
+        new SessionManager(stateStore, emrsClient, sessionSetting())
             .createSession(createSessionRequest());
 
     // App change state to running
@@ -272,7 +272,7 @@ public class StatementTest extends OpenSearchIntegTestCase {
   @Test
   public void submitStatementInNotStartedState() {
     Session session =
-        new SessionManager(stateStore, emrsClient, sessionSetting(false))
+        new SessionManager(stateStore, emrsClient, sessionSetting())
             .createSession(createSessionRequest());
 
     StatementId statementId = session.submit(queryRequest());
@@ -282,7 +282,7 @@ public class StatementTest extends OpenSearchIntegTestCase {
   @Test
   public void failToSubmitStatementInDeadState() {
     Session session =
-        new SessionManager(stateStore, emrsClient, sessionSetting(false))
+        new SessionManager(stateStore, emrsClient, sessionSetting())
             .createSession(createSessionRequest());
 
     updateSessionState(stateStore, DS_NAME).apply(session.getSessionModel(), SessionState.DEAD);
@@ -298,7 +298,7 @@ public class StatementTest extends OpenSearchIntegTestCase {
   @Test
   public void failToSubmitStatementInFailState() {
     Session session =
-        new SessionManager(stateStore, emrsClient, sessionSetting(false))
+        new SessionManager(stateStore, emrsClient, sessionSetting())
             .createSession(createSessionRequest());
 
     updateSessionState(stateStore, DS_NAME).apply(session.getSessionModel(), SessionState.FAIL);
@@ -314,7 +314,7 @@ public class StatementTest extends OpenSearchIntegTestCase {
   @Test
   public void newStatementFieldAssert() {
     Session session =
-        new SessionManager(stateStore, emrsClient, sessionSetting(false))
+        new SessionManager(stateStore, emrsClient, sessionSetting())
             .createSession(createSessionRequest());
     StatementId statementId = session.submit(queryRequest());
     Optional<Statement> statement = session.get(statementId);
@@ -332,7 +332,7 @@ public class StatementTest extends OpenSearchIntegTestCase {
   @Test
   public void failToSubmitStatementInDeletedSession() {
     Session session =
-        new SessionManager(stateStore, emrsClient, sessionSetting(false))
+        new SessionManager(stateStore, emrsClient, sessionSetting())
             .createSession(createSessionRequest());
 
     // other's delete session
@@ -348,7 +348,7 @@ public class StatementTest extends OpenSearchIntegTestCase {
   @Test
   public void getStatementSuccess() {
     Session session =
-        new SessionManager(stateStore, emrsClient, sessionSetting(false))
+        new SessionManager(stateStore, emrsClient, sessionSetting())
             .createSession(createSessionRequest());
     // App change state to running
     updateSessionState(stateStore, DS_NAME).apply(session.getSessionModel(), SessionState.RUNNING);
@@ -363,7 +363,7 @@ public class StatementTest extends OpenSearchIntegTestCase {
   @Test
   public void getStatementNotExist() {
     Session session =
-        new SessionManager(stateStore, emrsClient, sessionSetting(false))
+        new SessionManager(stateStore, emrsClient, sessionSetting())
             .createSession(createSessionRequest());
     // App change state to running
     updateSessionState(stateStore, DS_NAME).apply(session.getSessionModel(), SessionState.RUNNING);

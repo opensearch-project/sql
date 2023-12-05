@@ -5,24 +5,31 @@
 
 package org.opensearch.sql.spark.execution.session;
 
+import static org.opensearch.sql.common.setting.Settings.Key.SESSION_INACTIVITY_TIMEOUT_MILLIS;
 import static org.opensearch.sql.spark.execution.session.SessionId.newSessionId;
 
 import java.util.Optional;
-import lombok.RequiredArgsConstructor;
 import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.spark.client.EMRServerlessClient;
 import org.opensearch.sql.spark.execution.statestore.StateStore;
+import org.opensearch.sql.spark.utils.RealTimeProvider;
 
 /**
  * Singleton Class
  *
  * <p>todo. add Session cache and Session sweeper.
  */
-@RequiredArgsConstructor
 public class SessionManager {
   private final StateStore stateStore;
   private final EMRServerlessClient emrServerlessClient;
-  private final Settings settings;
+  private Settings settings;
+
+  public SessionManager(
+      StateStore stateStore, EMRServerlessClient emrServerlessClient, Settings settings) {
+    this.stateStore = stateStore;
+    this.emrServerlessClient = emrServerlessClient;
+    this.settings = settings;
+  }
 
   public Session createSession(CreateSessionRequest request) {
     InteractiveSession session =
@@ -63,6 +70,9 @@ public class SessionManager {
               .stateStore(stateStore)
               .serverlessClient(emrServerlessClient)
               .sessionModel(model.get())
+              .sessionInactivityTimeoutMilli(
+                  settings.getSettingValue(SESSION_INACTIVITY_TIMEOUT_MILLIS))
+              .timeProvider(new RealTimeProvider())
               .build();
       return Optional.ofNullable(session);
     }
