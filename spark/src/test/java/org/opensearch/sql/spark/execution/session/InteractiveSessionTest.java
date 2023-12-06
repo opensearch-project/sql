@@ -118,7 +118,7 @@ public class InteractiveSessionTest extends OpenSearchIntegTestCase {
   @Test
   public void sessionManagerCreateSession() {
     Session session =
-        new SessionManager(stateStore, emrsClient, sessionSetting(false))
+        new SessionManager(stateStore, emrsClient, sessionSetting())
             .createSession(createSessionRequest());
 
     TestSession testSession = testSession(session, stateStore);
@@ -127,8 +127,7 @@ public class InteractiveSessionTest extends OpenSearchIntegTestCase {
 
   @Test
   public void sessionManagerGetSession() {
-    SessionManager sessionManager =
-        new SessionManager(stateStore, emrsClient, sessionSetting(false));
+    SessionManager sessionManager = new SessionManager(stateStore, emrsClient, sessionSetting());
     Session session = sessionManager.createSession(createSessionRequest());
 
     Optional<Session> managerSession = sessionManager.getSession(session.getSessionId());
@@ -138,8 +137,7 @@ public class InteractiveSessionTest extends OpenSearchIntegTestCase {
 
   @Test
   public void sessionManagerGetSessionNotExist() {
-    SessionManager sessionManager =
-        new SessionManager(stateStore, emrsClient, sessionSetting(false));
+    SessionManager sessionManager = new SessionManager(stateStore, emrsClient, sessionSetting());
 
     Optional<Session> managerSession =
         sessionManager.getSession(SessionId.newSessionId("no-exist"));
