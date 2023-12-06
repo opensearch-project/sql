@@ -418,3 +418,148 @@ SQL query::
       }
     }
 
+
+plugins.query.executionengine.spark.session_inactivity_timeout_millis
+===============================
+
+Description
+-----------
+
+This setting determines the duration after which a session is considered stale if there has been no update. The default
+timeout is 3 minutes (180,000 milliseconds).
+
+1. Default Value: 180000 (milliseconds)
+2. Scope: Node-level
+3. Dynamic Update: Yes, this setting can be updated dynamically.
+
+To change the session inactivity timeout to 10 minutes for example, use the following command:
+
+SQL query::
+
+    sh$ curl -sS -H 'Content-Type: application/json' -X PUT localhost:9200/_cluster/settings \
+    ... -d '{"transient":{"plugins.query.executionengine.spark.session_inactivity_timeout_millis":600000}}'
+    {
+        "acknowledged": true,
+        "persistent": {},
+        "transient": {
+            "plugins": {
+                "query": {
+                    "executionengine": {
+                        "spark": {
+                            "session_inactivity_timeout_millis": "600000"
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+
+plugins.query.executionengine.spark.auto_index_management.enabled
+===============================
+
+Description
+-----------
+This setting controls the automatic management of request and result indices for each data source. When enabled, it
+deletes outdated index documents.
+
+* Default State: Enabled (true)
+* Purpose: Manages auto index management for request and result indices.
+
+To disable auto index management, use the following command:
+
+SQL query::
+
+    sh$ curl -sS -H 'Content-Type: application/json' -X PUT localhost:9200/_cluster/settings \
+    ... -d '{"transient":{"plugins.query.executionengine.spark.auto_index_management.enabled":false}}'
+    {
+        "acknowledged": true,
+        "persistent": {},
+        "transient": {
+            "plugins": {
+                "query": {
+                    "executionengine": {
+                        "spark": {
+                            "auto_index_management": {
+                                "enabled": "false"
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+
+plugins.query.executionengine.spark.session.index.ttl
+===============================
+
+Description
+-----------
+This setting defines the time-to-live (TTL) for request indices when plugins.query.executionengine.spark.auto_index_management.enabled
+is true. By default, request indices older than 14 days are deleted.
+
+* Default Value: 14 days
+
+To change the TTL to 30 days for example, execute the following command:
+
+SQL query::
+
+    sh$ curl -sS -H 'Content-Type: application/json' -X PUT localhost:9200/_cluster/settings \
+    ... -d '{"transient":{"plugins.query.executionengine.spark.session.index.ttl":"30d"}}'
+    {
+        "acknowledged": true,
+        "persistent": {},
+        "transient": {
+            "plugins": {
+                "query": {
+                    "executionengine": {
+                        "spark": {
+                            "session": {
+                                "index": {
+                                    "ttl": "30d"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+
+plugins.query.executionengine.spark.result.index.ttl
+===============================
+
+Description
+-----------
+This setting specifies the TTL for result indices when plugins.query.executionengine.spark.auto_index_management.enabled
+is set to true. The default setting is to delete result indices older than 60 days.
+
+* Default Value: 60 days
+
+To modify the TTL to 30 days for example, use this command:
+
+SQL query::
+
+    sh$ curl -sS -H 'Content-Type: application/json' -X PUT localhost:9200/_cluster/settings \
+    ... -d '{"transient":{"plugins.query.executionengine.spark.result.index.ttl":"30d"}}'
+    {
+        "acknowledged": true,
+        "persistent": {},
+        "transient": {
+            "plugins": {
+                "query": {
+                    "executionengine": {
+                        "spark": {
+                            "result": {
+                                "index": {
+                                    "ttl": "30d"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }

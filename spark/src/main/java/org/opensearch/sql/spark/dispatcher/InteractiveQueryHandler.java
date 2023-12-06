@@ -86,7 +86,8 @@ public class InteractiveQueryHandler extends AsyncQueryHandler {
         session = createdSession.get();
       }
     }
-    if (session == null || !session.isReady()) {
+    if (session == null
+        || !session.isOperationalForDataSource(dispatchQueryRequest.getDatasource())) {
       // create session if not exist or session dead/fail
       tags.put(JOB_TYPE_TAG_KEY, JobType.INTERACTIVE.getText());
       session =

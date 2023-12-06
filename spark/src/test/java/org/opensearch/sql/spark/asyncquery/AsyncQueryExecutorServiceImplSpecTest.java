@@ -25,8 +25,10 @@ import org.apache.commons.lang3.StringUtils;
 import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.jupiter.api.Disabled;
+import org.opensearch.action.admin.cluster.settings.ClusterUpdateSettingsRequest;
 import org.opensearch.core.common.Strings;
 import org.opensearch.index.query.QueryBuilders;
+import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.datasource.model.DataSourceMetadata;
 import org.opensearch.sql.datasource.model.DataSourceType;
 import org.opensearch.sql.spark.asyncquery.model.AsyncQueryExecutionResponse;
@@ -381,6 +383,98 @@ public class AsyncQueryExecutorServiceImplSpecTest extends AsyncQueryExecutorSer
             new CreateAsyncQueryRequest(
                 "select 1", DATASOURCE, LangType.SQL, second.getSessionId()));
     assertNotEquals(second.getSessionId(), third.getSessionId());
+  }
+
+  @Test
+  public void submitQueryWithDifferentDataSourceSessionWillCreateNewSession() {
+    LocalEMRSClient emrsClient = new LocalEMRSClient();
+    AsyncQueryExecutorService asyncQueryExecutorService =
+        createAsyncQueryExecutorService(emrsClient);
+
+    // enable session
+    enableSession(true);
+
+    // 1. create async query.
+    CreateAsyncQueryResponse first =
+        asyncQueryExecutorService.createAsyncQuery(
+            new CreateAsyncQueryRequest(
+                "SHOW SCHEMAS IN " + DATASOURCE, DATASOURCE, LangType.SQL, null));
+    assertNotNull(first.getSessionId());
+
+    // set sessionState to RUNNING
+    setSessionState(first.getSessionId(), SessionState.RUNNING);
+
+    // 2. reuse session id
+    CreateAsyncQueryResponse second =
+        asyncQueryExecutorService.createAsyncQuery(
+            new CreateAsyncQueryRequest(
+                "SHOW SCHEMAS IN " + DATASOURCE, DATASOURCE, LangType.SQL, first.getSessionId()));
+
+    assertEquals(first.getSessionId(), second.getSessionId());
+
+    // set sessionState to RUNNING
+    setSessionState(second.getSessionId(), SessionState.RUNNING);
+
+    // 3. given different source, create a new session id
+    CreateAsyncQueryResponse third =
+        asyncQueryExecutorService.createAsyncQuery(
+            new CreateAsyncQueryRequest(
+                "SHOW SCHEMAS IN " + DSOTHER, DSOTHER, LangType.SQL, second.getSessionId()));
+    assertNotEquals(second.getSessionId(), third.getSessionId());
+  }
+
+  @Test
+  public void recreateSessionIfStale() {
+    LocalEMRSClient emrsClient = new LocalEMRSClient();
+    AsyncQueryExecutorService asyncQueryExecutorService =
+        createAsyncQueryExecutorService(emrsClient);
+
+    // enable session
+    enableSession(true);
+
+    // 1. create async query.
+    CreateAsyncQueryResponse first =
+        asyncQueryExecutorService.createAsyncQuery(
+            new CreateAsyncQueryRequest("select 1", DATASOURCE, LangType.SQL, null));
+    assertNotNull(first.getSessionId());
+
+    // set sessionState to RUNNING
+    setSessionState(first.getSessionId(), SessionState.RUNNING);
+
+    // 2. reuse session id
+    CreateAsyncQueryResponse second =
+        asyncQueryExecutorService.createAsyncQuery(
+            new CreateAsyncQueryRequest(
+                "select 1", DATASOURCE, LangType.SQL, first.getSessionId()));
+
+    assertEquals(first.getSessionId(), second.getSessionId());
+
+    try {
+      // set timeout setting to 0
+      ClusterUpdateSettingsRequest request = new ClusterUpdateSettingsRequest();
+      org.opensearch.common.settings.Settings settings =
+          org.opensearch.common.settings.Settings.builder()
+              .put(Settings.Key.SESSION_INACTIVITY_TIMEOUT_MILLIS.getKeyValue(), 0)
+              .build();
+      request.transientSettings(settings);
+      client().admin().cluster().updateSettings(request).actionGet(60000);
+
+      // 3. not reuse session id
+      CreateAsyncQueryResponse third =
+          asyncQueryExecutorService.createAsyncQuery(
+              new CreateAsyncQueryRequest(
+                  "select 1", DATASOURCE, LangType.SQL, second.getSessionId()));
+      assertNotEquals(second.getSessionId(), third.getSessionId());
+    } finally {
+      // set timeout setting to 0
+      ClusterUpdateSettingsRequest request = new ClusterUpdateSettingsRequest();
+      org.opensearch.common.settings.Settings settings =
+          org.opensearch.common.settings.Settings.builder()
+              .putNull(Settings.Key.SESSION_INACTIVITY_TIMEOUT_MILLIS.getKeyValue())
+              .build();
+      request.transientSettings(settings);
+      client().admin().cluster().updateSettings(request).actionGet(60000);
+    }
   }
 
   @Test
