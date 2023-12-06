@@ -11,7 +11,6 @@ import static org.opensearch.sql.protocol.response.format.JsonResponseFormatter.
 import java.util.Locale;
 import java.util.Optional;
 import java.util.function.Supplier;
-
 import org.opensearch.action.ActionRequest;
 import org.opensearch.action.support.ActionFilters;
 import org.opensearch.action.support.HandledTransportAction;
@@ -61,7 +60,6 @@ public class TransportPPLQueryAction
       NodeClient client,
       ClusterService clusterService,
       DataSourceServiceImpl dataSourceService,
-      Settings pluginSettings,
       org.opensearch.common.settings.Settings clusterSettings) {
     super(PPLQueryAction.NAME, transportService, actionFilters, TransportPPLQueryRequest::new);
 
@@ -78,7 +76,10 @@ public class TransportPPLQueryAction
     this.pplEnabled =
         () ->
             MULTI_ALLOW_EXPLICIT_INDEX.get(clusterSettings)
-                && (Boolean) pluginSettings.getSettingValue(Settings.Key.PPL_ENABLED);
+                && (Boolean)
+                    injector
+                        .getInstance(org.opensearch.sql.common.setting.Settings.class)
+                        .getSettingValue(Settings.Key.PPL_ENABLED);
   }
 
   /**
@@ -89,9 +90,10 @@ public class TransportPPLQueryAction
   protected void doExecute(
       Task task, ActionRequest request, ActionListener<TransportPPLQueryResponse> listener) {
     if (!pplEnabled.get()) {
-      listener.onFailure(new IllegalAccessException(
-                  "Either plugins.ppl.enabled or rest.action.multi.allow_explicit_index setting is"
-                      + " false"));
+      listener.onFailure(
+          new IllegalAccessException(
+              "Either plugins.ppl.enabled or rest.action.multi.allow_explicit_index setting is"
+                  + " false"));
       return;
     }
     Metrics.getInstance().getNumericalMetric(MetricName.PPL_REQ_TOTAL).increment();
