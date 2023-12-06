@@ -39,5 +39,5 @@ public interface Session {
   SessionId getSessionId();
 
   /** return true if session is ready to use. */
-  boolean isReady();
+  boolean isOperationalForDataSource(String dataSourceName);
 }

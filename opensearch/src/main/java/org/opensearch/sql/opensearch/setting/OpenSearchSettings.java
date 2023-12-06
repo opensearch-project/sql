@@ -179,6 +179,13 @@ public class OpenSearchSettings extends Settings {
           Setting.Property.NodeScope,
           Setting.Property.Dynamic);
 
+  public static final Setting<Long> SESSION_INACTIVITY_TIMEOUT_MILLIS_SETTING =
+      Setting.longSetting(
+          Key.SESSION_INACTIVITY_TIMEOUT_MILLIS.getKeyValue(),
+          180000L,
+          Setting.Property.NodeScope,
+          Setting.Property.Dynamic);
+
   /** Construct OpenSearchSetting. The OpenSearchSetting must be singleton. */
   @SuppressWarnings("unchecked")
   public OpenSearchSettings(ClusterSettings clusterSettings) {
@@ -287,6 +294,12 @@ public class OpenSearchSettings extends Settings {
         new Updater(Key.DATASOURCES_LIMIT));
     registerNonDynamicSettings(
         settingBuilder, clusterSettings, Key.CLUSTER_NAME, ClusterName.CLUSTER_NAME_SETTING);
+    register(
+        settingBuilder,
+        clusterSettings,
+        Key.SESSION_INACTIVITY_TIMEOUT_MILLIS,
+        SESSION_INACTIVITY_TIMEOUT_MILLIS_SETTING,
+        new Updater((Key.SESSION_INACTIVITY_TIMEOUT_MILLIS)));
     defaultSettings = settingBuilder.build();
   }
 
@@ -356,6 +369,7 @@ public class OpenSearchSettings extends Settings {
         .add(RESULT_INDEX_TTL_SETTING)
         .add(AUTO_INDEX_MANAGEMENT_ENABLED_SETTING)
         .add(DATASOURCES_LIMIT_SETTING)
+        .add(SESSION_INACTIVITY_TIMEOUT_MILLIS_SETTING)
         .build();
   }
 
