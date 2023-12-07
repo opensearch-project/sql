@@ -10,8 +10,11 @@ import static org.junit.Assert.assertFalse;
 
 import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
@@ -34,13 +37,14 @@ public class TransportPPLQueryResponseTest {
           InstantiationException,
           IllegalAccessException,
           NoSuchMethodException,
-          InvocationTargetException {
+          InvocationTargetException,
+          URISyntaxException {
     ClassLoader loader = TransportPPLQueryResponseTest.class.getClassLoader();
-    String classFilePath =
+    URI resourceURI =
         loader
             .getResource("org/opensearch/sql/plugin/transport/TransportPPLQueryResponse.class")
-            .getPath();
-
+            .toURI();
+    Path classFilePath = Paths.get(resourceURI);
     CustomClassLoader classLoader1 = new CustomClassLoader(classFilePath);
     CustomClassLoader classLoader2 = new CustomClassLoader(classFilePath);
 
@@ -62,8 +66,8 @@ class CustomClassLoader extends ClassLoader {
 
   private final Path classFilePath;
 
-  public CustomClassLoader(String classFilePath) {
-    this.classFilePath = Path.of(classFilePath);
+  public CustomClassLoader(Path classFilePath) {
+    this.classFilePath = classFilePath;
   }
 
   @Override
