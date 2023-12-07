@@ -9,7 +9,6 @@ import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.UncheckedIOException;
-
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import org.opensearch.core.action.ActionResponse;
@@ -37,16 +36,16 @@ public class TransportPPLQueryResponse extends ActionResponse {
       return (TransportPPLQueryResponse) actionResponse;
     }
 
-    try (
-        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+    try (ByteArrayOutputStream baos = new ByteArrayOutputStream();
         OutputStreamStreamOutput osso = new OutputStreamStreamOutput(baos)) {
       actionResponse.writeTo(osso);
-      try (StreamInput input = new InputStreamStreamInput(new ByteArrayInputStream(baos.toByteArray()))) {
+      try (StreamInput input =
+          new InputStreamStreamInput(new ByteArrayInputStream(baos.toByteArray()))) {
         return new TransportPPLQueryResponse(input);
       }
     } catch (IOException e) {
-      throw new UncheckedIOException("failed to parse ActionResponse into TransportPPLQueryResponse", e);
+      throw new UncheckedIOException(
+          "failed to parse ActionResponse into TransportPPLQueryResponse", e);
     }
-
   }
 }
