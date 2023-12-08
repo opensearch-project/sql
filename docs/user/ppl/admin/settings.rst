@@ -63,6 +63,7 @@ PPL query::
 
     sh$ curl -sS -H 'Content-Type: application/json' \
     ... -X POST localhost:9200/_plugins/_ppl \
+    ... -d '{"query": "source=my_prometheus"}'
     {
       "error": {
         "reason": "Invalid Query",
