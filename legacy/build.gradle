@@ -89,7 +89,7 @@ dependencies {
         }
     }
     implementation group: 'com.google.guava', name: 'guava', version: '32.0.1-jre'
-    implementation group: 'org.json', name: 'json', version:'20230227'
+    implementation group: 'org.json', name: 'json', version:'20231013'
     implementation group: 'org.apache.commons', name: 'commons-lang3', version: '3.12.0'
     implementation group: 'org.opensearch', name: 'opensearch', version: "${opensearch_version}"
     // add geo module as dependency. https://github.com/opensearch-project/OpenSearch/pull/4180/.
