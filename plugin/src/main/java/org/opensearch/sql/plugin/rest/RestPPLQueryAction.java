@@ -15,7 +15,6 @@ import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
-import java.util.function.Supplier;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.OpenSearchSecurityException;
@@ -28,7 +27,6 @@ import org.opensearch.rest.BytesRestResponse;
 import org.opensearch.rest.RestChannel;
 import org.opensearch.rest.RestRequest;
 import org.opensearch.sql.common.antlr.SyntaxCheckException;
-import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.datasources.exceptions.DataSourceClientException;
 import org.opensearch.sql.exception.ExpressionEvaluationException;
 import org.opensearch.sql.exception.QueryEngineException;
@@ -49,16 +47,9 @@ public class RestPPLQueryAction extends BaseRestHandler {
 
   private static final Logger LOG = LogManager.getLogger();
 
-  private final Supplier<Boolean> pplEnabled;
-
   /** Constructor of RestPPLQueryAction. */
-  public RestPPLQueryAction(
-      Settings pluginSettings, org.opensearch.common.settings.Settings clusterSettings) {
+  public RestPPLQueryAction() {
     super();
-    this.pplEnabled =
-        () ->
-            MULTI_ALLOW_EXPLICIT_INDEX.get(clusterSettings)
-                && (Boolean) pluginSettings.getSettingValue(Settings.Key.PPL_ENABLED);
   }
 
   private static boolean isClientError(Exception e) {
@@ -104,17 +95,6 @@ public class RestPPLQueryAction extends BaseRestHandler {
 
   @Override
   protected RestChannelConsumer prepareRequest(RestRequest request, NodeClient nodeClient) {
-    // TODO: need move to transport Action
-    if (!pplEnabled.get()) {
-      return channel ->
-          reportError(
-              channel,
-              new IllegalAccessException(
-                  "Either plugins.ppl.enabled or rest.action.multi.allow_explicit_index setting is"
-                      + " false"),
-              BAD_REQUEST);
-    }
-
     TransportPPLQueryRequest transportPPLQueryRequest =
         new TransportPPLQueryRequest(PPLQueryRequestFactory.getPPLRequest(request));
 
