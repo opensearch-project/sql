@@ -6,7 +6,9 @@
 package org.opensearch.sql.spark.execution.statestore;
 
 import static org.opensearch.sql.spark.data.constants.SparkConstants.SPARK_REQUEST_BUFFER_INDEX_NAME;
+import static org.opensearch.sql.spark.execution.statestore.StateModel.STATE;
 
+import com.google.common.annotations.VisibleForTesting;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
@@ -45,11 +47,14 @@ import org.opensearch.index.query.QueryBuilder;
 import org.opensearch.index.query.QueryBuilders;
 import org.opensearch.search.builder.SearchSourceBuilder;
 import org.opensearch.sql.spark.asyncquery.model.AsyncQueryJobMetadata;
+import org.opensearch.sql.spark.dispatcher.model.IndexDMLResult;
 import org.opensearch.sql.spark.execution.session.SessionModel;
 import org.opensearch.sql.spark.execution.session.SessionState;
 import org.opensearch.sql.spark.execution.session.SessionType;
 import org.opensearch.sql.spark.execution.statement.StatementModel;
 import org.opensearch.sql.spark.execution.statement.StatementState;
+import org.opensearch.sql.spark.flint.FlintIndexState;
+import org.opensearch.sql.spark.flint.FlintIndexStateModel;
 
 /**
  * State Store maintain the state of Session and Statement. State State create/update/get doc on
@@ -60,14 +65,18 @@ public class StateStore {
   public static String SETTINGS_FILE_NAME = "query_execution_request_settings.yml";
   public static String MAPPING_FILE_NAME = "query_execution_request_mapping.yml";
   public static Function<String, String> DATASOURCE_TO_REQUEST_INDEX =
-      datasourceName -> String.format("%s_%s", SPARK_REQUEST_BUFFER_INDEX_NAME, datasourceName);
+      datasourceName ->
+          String.format(
+              "%s_%s", SPARK_REQUEST_BUFFER_INDEX_NAME, datasourceName.toLowerCase(Locale.ROOT));
+  public static String ALL_DATASOURCE = "*";
 
   private static final Logger LOG = LogManager.getLogger();
 
   private final Client client;
   private final ClusterService clusterService;
 
-  protected <T extends StateModel> T create(
+  @VisibleForTesting
+  public <T extends StateModel> T create(
       T st, StateModel.CopyBuilder<T> builder, String indexName) {
     try {
       if (!this.clusterService.state().routingTable().hasIndex(indexName)) {
@@ -101,7 +110,8 @@ public class StateStore {
     }
   }
 
-  protected <T extends StateModel> Optional<T> get(
+  @VisibleForTesting
+  public <T extends StateModel> Optional<T> get(
       String sid, StateModel.FromXContent<T> builder, String indexName) {
     try {
       if (!this.clusterService.state().routingTable().hasIndex(indexName)) {
@@ -132,7 +142,8 @@ public class StateStore {
     }
   }
 
-  protected <T extends StateModel, S> T updateState(
+  @VisibleForTesting
+  public <T extends StateModel, S> T updateState(
       T st, S state, StateModel.StateCopyBuilder<T, S> builder, String indexName) {
     try {
       T model = builder.of(st, state, st.getSeqNo(), st.getPrimaryTerm());
@@ -148,18 +159,8 @@ public class StateStore {
       try (ThreadContext.StoredContext ignored =
           client.threadPool().getThreadContext().stashContext()) {
         UpdateResponse updateResponse = client.update(updateRequest).actionGet();
-        if (updateResponse.getResult().equals(DocWriteResponse.Result.UPDATED)) {
-          LOG.debug("Successfully update doc. id: {}", st.getId());
-          return builder.of(
-              model, state, updateResponse.getSeqNo(), updateResponse.getPrimaryTerm());
-        } else {
-          throw new RuntimeException(
-              String.format(
-                  Locale.ROOT,
-                  "Failed update doc. id: %s, error: %s",
-                  st.getId(),
-                  updateResponse.getResult().getLowercase()));
-        }
+        LOG.debug("Successfully update doc. id: {}", st.getId());
+        return builder.of(model, state, updateResponse.getSeqNo(), updateResponse.getPrimaryTerm());
       }
     } catch (IOException e) {
       throw new RuntimeException(e);
@@ -190,9 +191,6 @@ public class StateStore {
   }
 
   private long count(String indexName, QueryBuilder query) {
-    if (!this.clusterService.state().routingTable().hasIndex(indexName)) {
-      return 0;
-    }
     SearchSourceBuilder searchSourceBuilder = new SearchSourceBuilder();
     searchSourceBuilder.query(query);
     searchSourceBuilder.size(0);
@@ -299,9 +297,64 @@ public class StateStore {
                 .must(
                     QueryBuilders.termQuery(
                         SessionModel.SESSION_TYPE, SessionType.INTERACTIVE.getSessionType()))
-                .must(QueryBuilders.termQuery(SessionModel.DATASOURCE_NAME, datasourceName))
                 .must(
                     QueryBuilders.termQuery(
                         SessionModel.SESSION_STATE, SessionState.RUNNING.getSessionState())));
+  }
+
+  public static BiFunction<FlintIndexStateModel, FlintIndexState, FlintIndexStateModel>
+      updateFlintIndexState(StateStore stateStore, String datasourceName) {
+    return (old, state) ->
+        stateStore.updateState(
+            old,
+            state,
+            FlintIndexStateModel::copyWithState,
+            DATASOURCE_TO_REQUEST_INDEX.apply(datasourceName));
+  }
+
+  public static Function<String, Optional<FlintIndexStateModel>> getFlintIndexState(
+      StateStore stateStore, String datasourceName) {
+    return (docId) ->
+        stateStore.get(
+            docId,
+            FlintIndexStateModel::fromXContent,
+            DATASOURCE_TO_REQUEST_INDEX.apply(datasourceName));
+  }
+
+  public static Function<FlintIndexStateModel, FlintIndexStateModel> createFlintIndexState(
+      StateStore stateStore, String datasourceName) {
+    return (st) ->
+        stateStore.create(
+            st, FlintIndexStateModel::copy, DATASOURCE_TO_REQUEST_INDEX.apply(datasourceName));
+  }
+
+  public static Function<IndexDMLResult, IndexDMLResult> createIndexDMLResult(
+      StateStore stateStore, String indexName) {
+    return (result) -> stateStore.create(result, IndexDMLResult::copy, indexName);
+  }
+
+  public static Supplier<Long> activeRefreshJobCount(StateStore stateStore, String datasourceName) {
+    return () ->
+        stateStore.count(
+            DATASOURCE_TO_REQUEST_INDEX.apply(datasourceName),
+            QueryBuilders.boolQuery()
+                .must(
+                    QueryBuilders.termQuery(
+                        SessionModel.TYPE, FlintIndexStateModel.FLINT_INDEX_DOC_TYPE))
+                .must(QueryBuilders.termQuery(STATE, FlintIndexState.REFRESHING.getState())));
+  }
+
+  public static Supplier<Long> activeStatementsCount(StateStore stateStore, String datasourceName) {
+    return () ->
+        stateStore.count(
+            DATASOURCE_TO_REQUEST_INDEX.apply(datasourceName),
+            QueryBuilders.boolQuery()
+                .must(
+                    QueryBuilders.termQuery(StatementModel.TYPE, StatementModel.STATEMENT_DOC_TYPE))
+                .should(
+                    QueryBuilders.termsQuery(
+                        StatementModel.STATEMENT_STATE,
+                        StatementState.RUNNING.getState(),
+                        StatementState.WAITING.getState())));
   }
 }

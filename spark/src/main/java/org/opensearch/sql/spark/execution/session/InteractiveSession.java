@@ -25,6 +25,7 @@ import org.opensearch.sql.spark.execution.statement.Statement;
 import org.opensearch.sql.spark.execution.statement.StatementId;
 import org.opensearch.sql.spark.execution.statestore.StateStore;
 import org.opensearch.sql.spark.rest.model.LangType;
+import org.opensearch.sql.spark.utils.TimeProvider;
 
 /**
  * Interactive session.
@@ -42,6 +43,9 @@ public class InteractiveSession implements Session {
   private final StateStore stateStore;
   private final EMRServerlessClient serverlessClient;
   private SessionModel sessionModel;
+  // the threshold of elapsed time in milliseconds before we say a session is stale
+  private long sessionInactivityTimeoutMilli;
+  private TimeProvider timeProvider;
 
   @Override
   public void open(CreateSessionRequest createSessionRequest) {
@@ -134,7 +138,14 @@ public class InteractiveSession implements Session {
   }
 
   @Override
-  public boolean isReady() {
-    return sessionModel.getSessionState() != DEAD && sessionModel.getSessionState() != FAIL;
+  public boolean isOperationalForDataSource(String dataSourceName) {
+    boolean isSessionStateValid =
+        sessionModel.getSessionState() != DEAD && sessionModel.getSessionState() != FAIL;
+    boolean isDataSourceMatch = sessionId.getDataSourceName().equals(dataSourceName);
+    boolean isSessionUpdatedRecently =
+        timeProvider.currentEpochMillis() - sessionModel.getLastUpdateTime()
+            <= sessionInactivityTimeoutMilli;
+
+    return isSessionStateValid && isDataSourceMatch && isSessionUpdatedRecently;
   }
 }

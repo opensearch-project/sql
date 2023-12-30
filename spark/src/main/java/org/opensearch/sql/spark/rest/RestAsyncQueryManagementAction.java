@@ -7,6 +7,7 @@ package org.opensearch.sql.spark.rest;
 
 import static org.opensearch.core.rest.RestStatus.BAD_REQUEST;
 import static org.opensearch.core.rest.RestStatus.SERVICE_UNAVAILABLE;
+import static org.opensearch.core.rest.RestStatus.TOO_MANY_REQUESTS;
 import static org.opensearch.rest.RestRequest.Method.DELETE;
 import static org.opensearch.rest.RestRequest.Method.GET;
 import static org.opensearch.rest.RestRequest.Method.POST;
@@ -27,6 +28,9 @@ import org.opensearch.rest.RestChannel;
 import org.opensearch.rest.RestRequest;
 import org.opensearch.sql.datasources.exceptions.ErrorMessage;
 import org.opensearch.sql.datasources.utils.Scheduler;
+import org.opensearch.sql.legacy.metrics.MetricName;
+import org.opensearch.sql.legacy.utils.MetricUtils;
+import org.opensearch.sql.spark.leasemanager.ConcurrencyLimitExceededException;
 import org.opensearch.sql.spark.rest.model.CreateAsyncQueryRequest;
 import org.opensearch.sql.spark.transport.TransportCancelAsyncQueryRequestAction;
 import org.opensearch.sql.spark.transport.TransportCreateAsyncQueryRequestAction;
@@ -110,6 +114,7 @@ public class RestAsyncQueryManagementAction extends BaseRestHandler {
 
   private RestChannelConsumer executePostRequest(RestRequest restRequest, NodeClient nodeClient)
       throws IOException {
+    MetricUtils.incrementNumericalMetric(MetricName.ASYNC_QUERY_CREATE_API_REQUEST_COUNT);
     CreateAsyncQueryRequest submitJobRequest =
         CreateAsyncQueryRequest.fromXContentParser(restRequest.contentParser());
     return restChannel ->
@@ -132,13 +137,14 @@ public class RestAsyncQueryManagementAction extends BaseRestHandler {
 
                       @Override
                       public void onFailure(Exception e) {
-                        handleException(e, restChannel);
+                        handleException(e, restChannel, restRequest.method());
                       }
                     }));
   }
 
   private RestChannelConsumer executeGetAsyncQueryResultRequest(
       RestRequest restRequest, NodeClient nodeClient) {
+    MetricUtils.incrementNumericalMetric(MetricName.ASYNC_QUERY_GET_API_REQUEST_COUNT);
     String queryId = restRequest.param("queryId");
     return restChannel ->
         Scheduler.schedule(
@@ -160,26 +166,35 @@ public class RestAsyncQueryManagementAction extends BaseRestHandler {
 
                       @Override
                       public void onFailure(Exception e) {
-                        handleException(e, restChannel);
+                        handleException(e, restChannel, restRequest.method());
                       }
                     }));
   }
 
-  private void handleException(Exception e, RestChannel restChannel) {
+  private void handleException(
+      Exception e, RestChannel restChannel, RestRequest.Method requestMethod) {
     if (e instanceof OpenSearchException) {
       OpenSearchException exception = (OpenSearchException) e;
       reportError(restChannel, exception, exception.status());
+      addCustomerErrorMetric(requestMethod);
+    } else if (e instanceof ConcurrencyLimitExceededException) {
+      LOG.error("Too many request", e);
+      reportError(restChannel, e, TOO_MANY_REQUESTS);
+      addCustomerErrorMetric(requestMethod);
     } else {
       LOG.error("Error happened during request handling", e);
       if (isClientError(e)) {
         reportError(restChannel, e, BAD_REQUEST);
+        addCustomerErrorMetric(requestMethod);
       } else {
         reportError(restChannel, e, SERVICE_UNAVAILABLE);
+        addSystemErrorMetric(requestMethod);
       }
     }
   }
 
   private RestChannelConsumer executeDeleteRequest(RestRequest restRequest, NodeClient nodeClient) {
+    MetricUtils.incrementNumericalMetric(MetricName.ASYNC_QUERY_CANCEL_API_REQUEST_COUNT);
     String queryId = restRequest.param("queryId");
     return restChannel ->
         Scheduler.schedule(
@@ -201,7 +216,7 @@ public class RestAsyncQueryManagementAction extends BaseRestHandler {
 
                       @Override
                       public void onFailure(Exception e) {
-                        handleException(e, restChannel);
+                        handleException(e, restChannel, restRequest.method());
                       }
                     }));
   }
@@ -213,5 +228,37 @@ public class RestAsyncQueryManagementAction extends BaseRestHandler {
 
   private static boolean isClientError(Exception e) {
     return e instanceof IllegalArgumentException || e instanceof IllegalStateException;
+  }
+
+  private void addSystemErrorMetric(RestRequest.Method requestMethod) {
+    switch (requestMethod) {
+      case POST:
+        MetricUtils.incrementNumericalMetric(
+            MetricName.ASYNC_QUERY_CREATE_API_FAILED_REQ_COUNT_SYS);
+        break;
+      case GET:
+        MetricUtils.incrementNumericalMetric(MetricName.ASYNC_QUERY_GET_API_FAILED_REQ_COUNT_SYS);
+        break;
+      case DELETE:
+        MetricUtils.incrementNumericalMetric(
+            MetricName.ASYNC_QUERY_CANCEL_API_FAILED_REQ_COUNT_SYS);
+        break;
+    }
+  }
+
+  private void addCustomerErrorMetric(RestRequest.Method requestMethod) {
+    switch (requestMethod) {
+      case POST:
+        MetricUtils.incrementNumericalMetric(
+            MetricName.ASYNC_QUERY_CREATE_API_FAILED_REQ_COUNT_CUS);
+        break;
+      case GET:
+        MetricUtils.incrementNumericalMetric(MetricName.ASYNC_QUERY_GET_API_FAILED_REQ_COUNT_CUS);
+        break;
+      case DELETE:
+        MetricUtils.incrementNumericalMetric(
+            MetricName.ASYNC_QUERY_CANCEL_API_FAILED_REQ_COUNT_CUS);
+        break;
+    }
   }
 }

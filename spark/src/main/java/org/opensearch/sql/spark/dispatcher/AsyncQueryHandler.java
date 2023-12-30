@@ -12,16 +12,15 @@ import static org.opensearch.sql.spark.data.constants.SparkConstants.STATUS_FIEL
 import com.amazonaws.services.emrserverless.model.JobRunState;
 import org.json.JSONObject;
 import org.opensearch.sql.spark.asyncquery.model.AsyncQueryJobMetadata;
+import org.opensearch.sql.spark.dispatcher.model.DispatchQueryContext;
+import org.opensearch.sql.spark.dispatcher.model.DispatchQueryRequest;
+import org.opensearch.sql.spark.dispatcher.model.DispatchQueryResponse;
+import org.opensearch.sql.spark.execution.statement.StatementState;
 
 /** Process async query request. */
 public abstract class AsyncQueryHandler {
 
   public JSONObject getQueryResponse(AsyncQueryJobMetadata asyncQueryJobMetadata) {
-    if (asyncQueryJobMetadata.isDropIndexQuery()) {
-      return SparkQueryDispatcher.DropIndexResult.fromJobId(asyncQueryJobMetadata.getJobId())
-          .result();
-    }
-
     JSONObject result = getResponseFromResultIndex(asyncQueryJobMetadata);
     if (result.has(DATA_FIELD)) {
       JSONObject items = result.getJSONObject(DATA_FIELD);
@@ -35,8 +34,18 @@ public abstract class AsyncQueryHandler {
       result.put(ERROR_FIELD, error);
       return result;
     } else {
-      return getResponseFromExecutor(asyncQueryJobMetadata);
+      JSONObject statement = getResponseFromExecutor(asyncQueryJobMetadata);
+
+      // Consider statement still running if state is success but query result unavailable
+      if (isSuccessState(statement)) {
+        statement.put(STATUS_FIELD, StatementState.RUNNING.getState());
+      }
+      return statement;
     }
+  }
+
+  private boolean isSuccessState(JSONObject statement) {
+    return StatementState.SUCCESS.getState().equalsIgnoreCase(statement.optString(STATUS_FIELD));
   }
 
   protected abstract JSONObject getResponseFromResultIndex(
@@ -45,5 +54,8 @@ public abstract class AsyncQueryHandler {
   protected abstract JSONObject getResponseFromExecutor(
       AsyncQueryJobMetadata asyncQueryJobMetadata);
 
-  abstract String cancelJob(AsyncQueryJobMetadata asyncQueryJobMetadata);
+  public abstract String cancelJob(AsyncQueryJobMetadata asyncQueryJobMetadata);
+
+  public abstract DispatchQueryResponse submit(
+      DispatchQueryRequest request, DispatchQueryContext context);
 }

@@ -18,6 +18,7 @@ statement
     : skippingIndexStatement
     | coveringIndexStatement
     | materializedViewStatement
+    | indexJobManagementStatement
     ;
 
 skippingIndexStatement
@@ -31,6 +32,7 @@ createSkippingIndexStatement
     : CREATE SKIPPING INDEX (IF NOT EXISTS)?
         ON tableName
         LEFT_PAREN indexColTypeList RIGHT_PAREN
+        whereClause?
         (WITH LEFT_PAREN propertyList RIGHT_PAREN)?
     ;
 
@@ -58,6 +60,7 @@ createCoveringIndexStatement
     : CREATE INDEX (IF NOT EXISTS)? indexName
         ON tableName
         LEFT_PAREN indexColumns=multipartIdentifierPropertyList RIGHT_PAREN
+        whereClause?
         (WITH LEFT_PAREN propertyList RIGHT_PAREN)?
     ;
 
@@ -107,11 +110,27 @@ dropMaterializedViewStatement
     : DROP MATERIALIZED VIEW mvName=multipartIdentifier
     ;
 
+indexJobManagementStatement
+    : recoverIndexJobStatement
+    ;
+
+recoverIndexJobStatement
+    : RECOVER INDEX JOB identifier
+    ;
+
 /*
  * Match all remaining tokens in non-greedy way
  * so WITH clause won't be captured by this rule.
  */
 materializedViewQuery
+    : .+?
+    ;
+
+whereClause
+    : WHERE filterCondition
+    ;
+
+filterCondition
     : .+?
     ;
 

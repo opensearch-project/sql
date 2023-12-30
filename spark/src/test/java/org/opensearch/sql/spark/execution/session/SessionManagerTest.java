@@ -24,16 +24,14 @@ public class SessionManagerTest {
 
   @Test
   public void sessionEnable() {
-    Assertions.assertTrue(
-        new SessionManager(stateStore, emrClient, sessionSetting(true)).isEnabled());
-    Assertions.assertFalse(
-        new SessionManager(stateStore, emrClient, sessionSetting(false)).isEnabled());
+    Assertions.assertTrue(new SessionManager(stateStore, emrClient, sessionSetting()).isEnabled());
   }
 
-  public static Settings sessionSetting(boolean enabled) {
-    Map<Settings.Key, Object> settings = new HashMap<>();
-    settings.put(Settings.Key.SPARK_EXECUTION_SESSION_ENABLED, enabled);
+  public static org.opensearch.sql.common.setting.Settings sessionSetting() {
+    Map<org.opensearch.sql.common.setting.Settings.Key, Object> settings = new HashMap<>();
     settings.put(Settings.Key.SPARK_EXECUTION_SESSION_LIMIT, 100);
+    settings.put(
+        org.opensearch.sql.common.setting.Settings.Key.SESSION_INACTIVITY_TIMEOUT_MILLIS, 10000L);
     return settings(settings);
   }
 

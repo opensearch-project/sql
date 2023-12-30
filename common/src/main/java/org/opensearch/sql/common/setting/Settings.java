@@ -5,8 +5,6 @@
 
 package org.opensearch.sql.common.setting;
 
-import static org.opensearch.sql.common.setting.Settings.Key.SPARK_EXECUTION_SESSION_ENABLED;
-
 import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableMap;
 import java.util.List;
@@ -34,13 +32,20 @@ public abstract class Settings {
     QUERY_SIZE_LIMIT("plugins.query.size_limit"),
     ENCYRPTION_MASTER_KEY("plugins.query.datasources.encryption.masterkey"),
     DATASOURCES_URI_HOSTS_DENY_LIST("plugins.query.datasources.uri.hosts.denylist"),
+    DATASOURCES_LIMIT("plugins.query.datasources.limit"),
 
     METRICS_ROLLING_WINDOW("plugins.query.metrics.rolling_window"),
     METRICS_ROLLING_INTERVAL("plugins.query.metrics.rolling_interval"),
     SPARK_EXECUTION_ENGINE_CONFIG("plugins.query.executionengine.spark.config"),
     CLUSTER_NAME("cluster.name"),
-    SPARK_EXECUTION_SESSION_ENABLED("plugins.query.executionengine.spark.session.enabled"),
-    SPARK_EXECUTION_SESSION_LIMIT("plugins.query.executionengine.spark.session.limit");
+    SPARK_EXECUTION_SESSION_LIMIT("plugins.query.executionengine.spark.session.limit"),
+    SPARK_EXECUTION_REFRESH_JOB_LIMIT("plugins.query.executionengine.spark.refresh_job.limit"),
+    SESSION_INDEX_TTL("plugins.query.executionengine.spark.session.index.ttl"),
+    RESULT_INDEX_TTL("plugins.query.executionengine.spark.result.index.ttl"),
+    AUTO_INDEX_MANAGEMENT_ENABLED(
+        "plugins.query.executionengine.spark.auto_index_management.enabled"),
+    SESSION_INACTIVITY_TIMEOUT_MILLIS(
+        "plugins.query.executionengine.spark.session_inactivity_timeout_millis");
 
     @Getter private final String keyValue;
 
@@ -64,9 +69,4 @@ public abstract class Settings {
   public abstract <T> T getSettingValue(Key key);
 
   public abstract List<?> getSettings();
-
-  /** Helper class */
-  public static boolean isSparkExecutionSessionEnabled(Settings settings) {
-    return settings.getSettingValue(SPARK_EXECUTION_SESSION_ENABLED);
-  }
 }

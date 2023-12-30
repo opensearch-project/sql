@@ -103,14 +103,14 @@ configurations.all {
     resolutionStrategy.force "com.fasterxml.jackson.dataformat:jackson-dataformat-smile:${versions.jackson}"
     resolutionStrategy.force "com.fasterxml.jackson.dataformat:jackson-dataformat-cbor:${versions.jackson}"
     resolutionStrategy.force "com.fasterxml.jackson.core:jackson-databind:${versions.jackson_databind}"
-    resolutionStrategy.force "com.squareup.okhttp3:okhttp:4.10.0"
-    resolutionStrategy.force "com.squareup.okio:okio:3.4.0"
+    resolutionStrategy.force "com.squareup.okhttp3:okhttp:4.12.0"
     resolutionStrategy.force "joda-time:joda-time:2.10.12"
     resolutionStrategy.force "org.slf4j:slf4j-api:1.7.36"
     resolutionStrategy.force "org.apache.httpcomponents:httpcore:4.4.15"
     resolutionStrategy.force "org.apache.httpcomponents:httpclient:4.5.13"
-    resolutionStrategy.force "org.jetbrains.kotlin:kotlin-stdlib-jdk7:1.5.31"
-    resolutionStrategy.force "org.jetbrains.kotlin:kotlin-stdlib-common:1.6.0"
+    resolutionStrategy.force "org.jetbrains.kotlin:kotlin-stdlib-jdk7:1.9.10"
+    resolutionStrategy.force "org.jetbrains.kotlin:kotlin-stdlib-jdk8:1.9.10"
+    resolutionStrategy.force "org.jetbrains.kotlin:kotlin-stdlib-common:1.9.10"
 }
 compileJava {
     options.compilerArgs.addAll(["-processor", 'lombok.launch.AnnotationProcessorHider$AnnotationProcessor'])

@@ -45,6 +45,7 @@ dependencies {
     api project(':core')
     implementation project(':protocol')
     implementation project(':datasources')
+    implementation project(':legacy')
 
     implementation group: 'org.opensearch', name: 'opensearch', version: "${opensearch_version}"
     implementation group: 'org.json', name: 'json', version: '20231013'
@@ -122,7 +123,12 @@ jacocoTestCoverageVerification {
                     // ignore because XContext IOException
                     'org.opensearch.sql.spark.execution.statestore.StateStore',
                     'org.opensearch.sql.spark.execution.session.SessionModel',
-                    'org.opensearch.sql.spark.execution.statement.StatementModel'
+                    'org.opensearch.sql.spark.execution.statement.StatementModel',
+                    'org.opensearch.sql.spark.flint.FlintIndexStateModel',
+                    // TODO: add tests for purging flint indices
+                    'org.opensearch.sql.spark.cluster.ClusterManagerEventListener*',
+                    'org.opensearch.sql.spark.cluster.FlintIndexRetention',
+                    'org.opensearch.sql.spark.cluster.IndexCleanup'
             ]
             limit {
                 counter = 'LINE'

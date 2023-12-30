@@ -11,13 +11,25 @@ run-name:
   ${{ inputs.name == '' && format('{0} @ {1}', github.ref_name, github.sha) || inputs.name }}
 
 jobs:
-  build:
+  Get-CI-Image-Tag:
+    uses: opensearch-project/opensearch-build/.github/workflows/get-ci-image-tag.yml@main
+    with:
+      product: opensearch
+
+  build-linux:
+    needs: Get-CI-Image-Tag
     strategy:
       matrix:
         java:
           - 11
           - 17
     runs-on: ubuntu-latest
+    container:
+      # using the same image which is used by opensearch-build team to build the OpenSearch Distribution
+      # this image tag is subject to change as more dependencies and updates will arrive over time
+      image: ${{ needs.Get-CI-Image-Tag.outputs.ci-image-version-linux }}
+      # need to switch to root so that github actions can install runner binary on container without permission issues.
+      options: --user root
 
     steps:
     - uses: actions/checkout@v3
@@ -30,7 +42,8 @@ jobs:
 
     - name: PiTest with Gradle
       run: |
-        ./gradlew --continue :core:pitest :opensearch:pitest
+        chown -R 1000:1000 `pwd`
+        su `id -un 1000` -c "./gradlew --continue :core:pitest :opensearch:pitest"
 
     - name: Upload test reports
       if: always()
