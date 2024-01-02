@@ -77,8 +77,14 @@ public class RestPPLQueryAction extends BaseRestHandler {
             RestRequest.Method.POST, QUERY_API_ENDPOINT,
             RestRequest.Method.POST, LEGACY_QUERY_API_ENDPOINT),
         new ReplacedRoute(
+            RestRequest.Method.GET, QUERY_API_ENDPOINT,
+            RestRequest.Method.GET, LEGACY_QUERY_API_ENDPOINT),
+        new ReplacedRoute(
             RestRequest.Method.POST, EXPLAIN_API_ENDPOINT,
-            RestRequest.Method.POST, LEGACY_EXPLAIN_API_ENDPOINT));
+            RestRequest.Method.POST, LEGACY_EXPLAIN_API_ENDPOINT),
+        new ReplacedRoute(
+            RestRequest.Method.GET, EXPLAIN_API_ENDPOINT,
+            RestRequest.Method.GET, LEGACY_EXPLAIN_API_ENDPOINT));
   }
 
   @Override
