@@ -43,7 +43,8 @@ public class StreamingQueryHandler extends BatchQueryHandler {
 
     leaseManager.borrow(new LeaseRequest(JobType.STREAMING, dispatchQueryRequest.getDatasource()));
 
-    String jobName = dispatchQueryRequest.getClusterName() + ":" + "index-query";
+    String clusterName = dispatchQueryRequest.getClusterName();
+    String jobName = clusterName + ":" + "index-query";
     IndexQueryDetails indexQueryDetails = context.getIndexQueryDetails();
     Map<String, String> tags = context.getTags();
     tags.put(INDEX_TAG_KEY, indexQueryDetails.openSearchIndexName());
@@ -56,6 +57,7 @@ public class StreamingQueryHandler extends BatchQueryHandler {
             dispatchQueryRequest.getApplicationId(),
             dispatchQueryRequest.getExecutionRoleARN(),
             SparkSubmitParameters.Builder.builder()
+                .clusterName(clusterName)
                 .dataSource(dataSourceMetadata)
                 .structuredStreaming(true)
                 .extraParameters(dispatchQueryRequest.getExtraSparkSubmitParams())

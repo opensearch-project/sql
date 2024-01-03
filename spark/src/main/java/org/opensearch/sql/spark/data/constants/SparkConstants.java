@@ -25,6 +25,7 @@ public class SparkConstants {
   public static final String FLINT_INTEGRATION_JAR =
       "s3://spark-datasource/flint-spark-integration-assembly-0.1.0-SNAPSHOT.jar";
   // TODO should be replaced with mvn jar.
+  public static final String FLINT_DEFAULT_CLUSTER_NAME = "opensearch-cluster";
   public static final String FLINT_DEFAULT_HOST = "localhost";
   public static final String FLINT_DEFAULT_PORT = "9200";
   public static final String FLINT_DEFAULT_SCHEME = "http";
@@ -45,6 +46,7 @@ public class SparkConstants {
   public static final String SPARK_DRIVER_ENV_JAVA_HOME_KEY =
       "spark.emr-serverless.driverEnv.JAVA_HOME";
   public static final String SPARK_EXECUTOR_ENV_JAVA_HOME_KEY = "spark.executorEnv.JAVA_HOME";
+  public static final String FLINT_INDEX_STORE_CLUSTER_NAME_KEY = "spark.flint.clusterName";
   public static final String FLINT_INDEX_STORE_HOST_KEY = "spark.datasource.flint.host";
   public static final String FLINT_INDEX_STORE_PORT_KEY = "spark.datasource.flint.port";
   public static final String FLINT_INDEX_STORE_SCHEME_KEY = "spark.datasource.flint.scheme";
