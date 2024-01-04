@@ -46,7 +46,10 @@ public class SparkConstants {
   public static final String SPARK_DRIVER_ENV_JAVA_HOME_KEY =
       "spark.emr-serverless.driverEnv.JAVA_HOME";
   public static final String SPARK_EXECUTOR_ENV_JAVA_HOME_KEY = "spark.executorEnv.JAVA_HOME";
-  public static final String FLINT_INDEX_STORE_CLUSTER_NAME_KEY = "spark.flint.clusterName";
+  public static final String SPARK_DRIVER_ENV_FLINT_CLUSTER_NAME_KEY =
+      "spark.emr-serverless.driverEnv.FLINT_CLUSTER_NAME";
+  public static final String SPARK_EXECUTOR_ENV_FLINT_CLUSTER_NAME_KEY =
+      "spark.executorEnv.FLINT_CLUSTER_NAME";
   public static final String FLINT_INDEX_STORE_HOST_KEY = "spark.datasource.flint.host";
   public static final String FLINT_INDEX_STORE_PORT_KEY = "spark.datasource.flint.port";
   public static final String FLINT_INDEX_STORE_SCHEME_KEY = "spark.datasource.flint.scheme";
