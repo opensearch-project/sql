@@ -59,6 +59,8 @@ public class SparkSubmitParameters {
       config.put(SPARK_JAR_REPOSITORIES_KEY, AWS_SNAPSHOT_REPOSITORY);
       config.put(SPARK_DRIVER_ENV_JAVA_HOME_KEY, JAVA_HOME_LOCATION);
       config.put(SPARK_EXECUTOR_ENV_JAVA_HOME_KEY, JAVA_HOME_LOCATION);
+      config.put(SPARK_DRIVER_ENV_FLINT_CLUSTER_NAME_KEY, FLINT_DEFAULT_CLUSTER_NAME);
+      config.put(SPARK_EXECUTOR_ENV_FLINT_CLUSTER_NAME_KEY, FLINT_DEFAULT_CLUSTER_NAME);
       config.put(FLINT_INDEX_STORE_HOST_KEY, FLINT_DEFAULT_HOST);
       config.put(FLINT_INDEX_STORE_PORT_KEY, FLINT_DEFAULT_PORT);
       config.put(FLINT_INDEX_STORE_SCHEME_KEY, FLINT_DEFAULT_SCHEME);
@@ -74,6 +76,12 @@ public class SparkSubmitParameters {
 
     public Builder className(String className) {
       this.className = className;
+      return this;
+    }
+
+    public Builder clusterName(String clusterName) {
+      config.put(SPARK_DRIVER_ENV_FLINT_CLUSTER_NAME_KEY, clusterName);
+      config.put(SPARK_EXECUTOR_ENV_FLINT_CLUSTER_NAME_KEY, clusterName);
       return this;
     }
 

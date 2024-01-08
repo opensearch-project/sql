@@ -67,7 +67,8 @@ public class BatchQueryHandler extends AsyncQueryHandler {
       DispatchQueryRequest dispatchQueryRequest, DispatchQueryContext context) {
     leaseManager.borrow(new LeaseRequest(JobType.BATCH, dispatchQueryRequest.getDatasource()));
 
-    String jobName = dispatchQueryRequest.getClusterName() + ":" + "non-index-query";
+    String clusterName = dispatchQueryRequest.getClusterName();
+    String jobName = clusterName + ":" + "non-index-query";
     Map<String, String> tags = context.getTags();
     DataSourceMetadata dataSourceMetadata = context.getDataSourceMetadata();
 
@@ -79,6 +80,7 @@ public class BatchQueryHandler extends AsyncQueryHandler {
             dispatchQueryRequest.getApplicationId(),
             dispatchQueryRequest.getExecutionRoleARN(),
             SparkSubmitParameters.Builder.builder()
+                .clusterName(clusterName)
                 .dataSource(context.getDataSourceMetadata())
                 .extraParameters(dispatchQueryRequest.getExtraSparkSubmitParams())
                 .build()
