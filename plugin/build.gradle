@@ -203,7 +203,7 @@ testingConventions.enabled = false
 thirdPartyAudit.enabled = false
 
 
-apply plugin: 'nebula.ospackage'
+apply plugin: 'com.netflix.nebula.ospackage'
 validateNebulaPom.enabled = false
 
 // This is afterEvaluate because the bundlePlugin ZIP task is updated afterEvaluate and changes the ZIP name to match the plugin name
@@ -245,8 +245,7 @@ afterEvaluate {
         task renameRpm(type: Copy) {
             from("$buildDir/distributions")
             into("$buildDir/distributions")
-            include archiveName
-            rename archiveName, "${packageName}-${version}.rpm"
+            rename "$archiveFileName", "${packageName}-${version}.rpm"
             doLast { delete file("$buildDir/distributions/$archiveName") }
         }
     }
@@ -258,8 +257,7 @@ afterEvaluate {
         task renameDeb(type: Copy) {
             from("$buildDir/distributions")
             into("$buildDir/distributions")
-            include archiveName
-            rename archiveName, "${packageName}-${version}.deb"
+            rename "$archiveFileName", "${packageName}-${version}.deb"
             doLast { delete file("$buildDir/distributions/$archiveName") }
         }
     }

@@ -88,8 +88,8 @@ test {
 
 jacocoTestReport {
     reports {
-        html.enabled true
-        xml.enabled true
+        html enabled true
+        xml.enabled.set(true)
     }
     afterEvaluate {
         classDirectories.setFrom(files(classDirectories.files.collect {

@@ -63,7 +63,7 @@ buildscript {
 }
 
 plugins {
-    id 'nebula.ospackage' version "8.3.0"
+    id "com.netflix.nebula.ospackage" version "11.6.0"
     id 'java-library'
     id "io.freefair.lombok" version "6.4.0"
     id 'jacoco'
@@ -155,8 +155,8 @@ jacoco {
 }
 jacocoTestReport {
     reports {
-        xml.enabled false
-        csv.enabled false
+        xml.required.set(false)
+        csv.required.set(false)
     }
     afterEvaluate {
         classDirectories.setFrom(files(classDirectories.files.collect {
