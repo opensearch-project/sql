@@ -84,9 +84,9 @@ ext {
         cluster.getNodes().forEach { node ->
             var creds = node.getCredentials()
             if (creds.isEmpty()) {
-                creds.add(Map.of('useradd', 'admin', '-p', 'admin'))
+                creds.add(Map.of('useradd', 'admin', '-p', 'myStrongPassword123!'))
             } else {
-                creds.get(0).putAll(Map.of('useradd', 'admin', '-p', 'admin'))
+                creds.get(0).putAll(Map.of('useradd', 'admin', '-p', 'myStrongPassword123!'))
             }
         }
 
