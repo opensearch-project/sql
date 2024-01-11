@@ -500,7 +500,7 @@ task comparisonTest(type: RestIntegTestTask) {
                     return new RegularFile() {
                         @Override
                         File getAsFile() {
-                            return configurations.zipArchive.asFileTree.matching {
+                            return configurations.zipArchive.singleFileTree.matching {
                                 include '**/opensearch-sql-plugin*'
                             }.singleFile
                         }
