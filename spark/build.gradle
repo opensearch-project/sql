@@ -96,8 +96,8 @@ jacocoTestReport {
     dependsOn test, junit4
     executionData test, junit4
     reports {
-        html.enabled true
-        xml.enabled true
+        html.required.set(true)
+        xml.required.set(true)
     }
     afterEvaluate {
         classDirectories.setFrom(files(classDirectories.files.collect {

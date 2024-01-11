@@ -155,8 +155,8 @@ jacoco {
 }
 jacocoTestReport {
     reports {
-        xml.required.set(false)
-        csv.required.set(false)
+        xml.setRequired(false)
+        csv.setRequired(false)
     }
     afterEvaluate {
         classDirectories.setFrom(files(classDirectories.files.collect {
