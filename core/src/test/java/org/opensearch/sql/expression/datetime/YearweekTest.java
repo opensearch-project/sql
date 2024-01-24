@@ -99,7 +99,7 @@ class YearweekTest extends ExpressionTestBase {
 
   @Test
   public void testYearweekWithTimeType() {
-    int week = LocalDate.now(functionProperties.getQueryStartClock()).get(ALIGNED_WEEK_OF_YEAR);
+    int week = LocalDate.now(functionProperties.getQueryStartClock()).get(ALIGNED_WEEK_OF_YEAR) - 1;
     int year = LocalDate.now(functionProperties.getQueryStartClock()).getYear();
     int expected = Integer.parseInt(String.format("%d%02d", year, week));
 

@@ -1236,17 +1236,20 @@ class DateTimeFunctionTest extends ExpressionTestBase {
                 DSL.week(
                     functionProperties, DSL.literal(new ExprTimeValue("12:23:34")), DSL.literal(0)),
                 "week(TIME '12:23:34', 0)",
-                LocalDate.now(functionProperties.getQueryStartClock()).get(ALIGNED_WEEK_OF_YEAR)),
+                LocalDate.now(functionProperties.getQueryStartClock()).get(ALIGNED_WEEK_OF_YEAR)
+                    - 1),
         () ->
             validateStringFormat(
                 DSL.week_of_year(functionProperties, DSL.literal(new ExprTimeValue("12:23:34"))),
                 "week_of_year(TIME '12:23:34')",
-                LocalDate.now(functionProperties.getQueryStartClock()).get(ALIGNED_WEEK_OF_YEAR)),
+                LocalDate.now(functionProperties.getQueryStartClock()).get(ALIGNED_WEEK_OF_YEAR)
+                    - 1),
         () ->
             validateStringFormat(
                 DSL.weekofyear(functionProperties, DSL.literal(new ExprTimeValue("12:23:34"))),
                 "weekofyear(TIME '12:23:34')",
-                LocalDate.now(functionProperties.getQueryStartClock()).get(ALIGNED_WEEK_OF_YEAR)));
+                LocalDate.now(functionProperties.getQueryStartClock()).get(ALIGNED_WEEK_OF_YEAR)
+                    - 1));
   }
 
   @Test

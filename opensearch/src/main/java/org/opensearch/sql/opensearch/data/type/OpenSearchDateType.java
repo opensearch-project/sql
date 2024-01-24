@@ -34,6 +34,7 @@ public class OpenSearchDateType extends OpenSearchDataType {
   public static final List<FormatNames> SUPPORTED_NAMED_DATETIME_FORMATS =
       List.of(
           FormatNames.ISO8601,
+          FormatNames.RFC3339_LENIENT,
           FormatNames.BASIC_DATE_TIME,
           FormatNames.BASIC_DATE_TIME_NO_MILLIS,
           FormatNames.BASIC_ORDINAL_DATE_TIME,

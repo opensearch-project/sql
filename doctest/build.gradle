@@ -97,7 +97,6 @@ doctest.dependsOn startOpenSearch
 doctest.finalizedBy stopOpenSearch
 check.dependsOn doctest
 clean.dependsOn(cleanBootstrap)
-clean.dependsOn(stopPrometheus)
 
 // 2.0.0-alpha1-SNAPSHOT -> 2.0.0.0-alpha1-SNAPSHOT
 String opensearch_no_snapshot = opensearch_version.replace('-SNAPSHOT', '')
