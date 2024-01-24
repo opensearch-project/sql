@@ -20,7 +20,7 @@ import java.util.Map;
 import org.hamcrest.Matcher;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.mockito.runners.MockitoJUnitRunner;
+import org.mockito.junit.MockitoJUnitRunner;
 import org.opensearch.sql.legacy.expression.domain.BindingTuple;
 import org.opensearch.sql.legacy.query.planner.physical.node.scroll.BindingTupleRow;
 import org.opensearch.sql.legacy.query.planner.physical.node.scroll.SearchAggregationResponseHelper;

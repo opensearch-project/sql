@@ -53,7 +53,7 @@ class LogicalPlanNodeVisitorTest {
   static Table table;
 
   @BeforeAll
-  private static void initMocks() {
+  public static void initMocks() {
     expression = mock(Expression.class);
     ref = mock(ReferenceExpression.class);
     aggregator = mock(Aggregator.class);
