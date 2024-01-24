@@ -43,7 +43,7 @@ public class DataSourceTableScanTest {
   private DataSourceTableScan dataSourceTableScan;
 
   @BeforeEach
-  private void setUp() {
+  public void setUp() {
     dataSourceTableScan = new DataSourceTableScan(dataSourceService);
   }
 
