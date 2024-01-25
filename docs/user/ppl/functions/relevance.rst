@@ -173,7 +173,7 @@ Available parameters include:
 
 Example with only ``fields`` and ``query`` expressions, and all other parameters are set default values::
 
-    os> source=books | where multi_match(['title'], 'Pooh House');
+    os> source=books | where multi_match(['title'], 'Pooh House') | fields id, title, author;
     fetched rows / total rows = 2/2
     +------+--------------------------+----------------------+
     | id   | title                    | author               |
@@ -184,7 +184,7 @@ Example with only ``fields`` and ``query`` expressions, and all other parameters
 
 Another example to show how to set custom values for the optional parameters::
 
-    os> source=books | where multi_match(['title'], 'Pooh House', operator='AND', analyzer=default);
+    os> source=books | where multi_match(['title'], 'Pooh House', operator='AND', analyzer=default) | fields id, title, author;
     fetched rows / total rows = 1/1
     +------+--------------------------+----------------------+
     | id   | title                    | author               |
@@ -226,7 +226,7 @@ Available parameters include:
 
 Example with only ``fields`` and ``query`` expressions, and all other parameters are set default values::
 
-    os> source=books | where simple_query_string(['title'], 'Pooh House');
+    os> source=books | where simple_query_string(['title'], 'Pooh House') | fields id, title, author;
     fetched rows / total rows = 2/2
     +------+--------------------------+----------------------+
     | id   | title                    | author               |
@@ -237,7 +237,7 @@ Example with only ``fields`` and ``query`` expressions, and all other parameters
 
 Another example to show how to set custom values for the optional parameters::
 
-    os> source=books | where simple_query_string(['title'], 'Pooh House', flags='ALL', default_operator='AND');
+    os> source=books | where simple_query_string(['title'], 'Pooh House', flags='ALL', default_operator='AND') | fields id, title, author;
     fetched rows / total rows = 1/1
     +------+--------------------------+----------------------+
     | id   | title                    | author               |
@@ -333,7 +333,7 @@ Available parameters include:
 
 Example with only ``fields`` and ``query`` expressions, and all other parameters are set default values::
 
-    os> source=books | where query_string(['title'], 'Pooh House');
+    os> source=books | where query_string(['title'], 'Pooh House') | fields id, title, author;
     fetched rows / total rows = 2/2
     +------+--------------------------+----------------------+
     | id   | title                    | author               |
@@ -344,7 +344,7 @@ Example with only ``fields`` and ``query`` expressions, and all other parameters
 
 Another example to show how to set custom values for the optional parameters::
 
-    os> source=books | where query_string(['title'], 'Pooh House', default_operator='AND');
+    os> source=books | where query_string(['title'], 'Pooh House', default_operator='AND') | fields id, title, author;
     fetched rows / total rows = 1/1
     +------+--------------------------+----------------------+
     | id   | title                    | author               |
