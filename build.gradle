@@ -63,11 +63,11 @@ buildscript {
 }
 
 plugins {
-    id 'nebula.ospackage' version "8.3.0"
+    id "com.netflix.nebula.ospackage-base" version "11.5.0"
     id 'java-library'
-    id "io.freefair.lombok" version "6.4.0"
+    id "io.freefair.lombok" version "8.4"
     id 'jacoco'
-    id 'com.diffplug.spotless' version '6.19.0'
+    id 'com.diffplug.spotless' version '6.22.0'
 }
 
 // import versions defined in https://github.com/opensearch-project/OpenSearch/blob/main/buildSrc/src/main/java/org/opensearch/gradle/OpenSearchJavaPlugin.java#L94
@@ -97,7 +97,7 @@ spotless {
         removeUnusedImports()
         trimTrailingWhitespace()
         endWithNewline()
-        googleJavaFormat('1.17.0').reflowLongStrings().groupArtifact('com.google.googlejavaformat:google-java-format')
+        googleJavaFormat('1.19.2').reflowLongStrings().groupArtifact('com.google.googlejavaformat:google-java-format')
     }
 }
 
@@ -118,6 +118,7 @@ allprojects {
         resolutionStrategy.force "com.squareup.okio:okio:3.5.0"
         resolutionStrategy.force "org.jetbrains.kotlin:kotlin-stdlib:1.9.0"
         resolutionStrategy.force "org.jetbrains.kotlin:kotlin-stdlib-jdk7:1.9.0"
+        resolutionStrategy.force "org.jetbrains.kotlin:kotlin-stdlib-jdk8:1.9.0"
     }
 }
 
@@ -157,8 +158,8 @@ jacoco {
 }
 jacocoTestReport {
     reports {
-        xml.enabled false
-        csv.enabled false
+        xml.required = false
+        csv.required = false
     }
     afterEvaluate {
         classDirectories.setFrom(files(classDirectories.files.collect {

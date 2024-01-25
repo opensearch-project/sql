@@ -26,6 +26,7 @@ plugins {
     id 'java'
     id "io.freefair.lombok"
     id 'jacoco'
+    id 'com.diffplug.spotless' version '6.22.0'
 }
 
 dependencies {
@@ -37,10 +38,10 @@ dependencies {
     implementation project(':core')
     implementation project(':opensearch')
 
-    testImplementation('org.junit.jupiter:junit-jupiter:5.6.2')
+    testImplementation('org.junit.jupiter:junit-jupiter:5.9.3')
     testImplementation group: 'org.hamcrest', name: 'hamcrest-library', version: '2.1'
-    testImplementation group: 'org.mockito', name: 'mockito-core', version: '3.12.4'
-    testImplementation group: 'org.mockito', name: 'mockito-junit-jupiter', version: '3.12.4'
+    testImplementation group: 'org.mockito', name: 'mockito-core', version: '5.7.0'
+    testImplementation group: 'org.mockito', name: 'mockito-junit-jupiter', version: '5.7.0'
 }
 
 configurations.all {
@@ -57,8 +58,8 @@ test {
 
 jacocoTestReport {
     reports {
-        html.enabled true
-        xml.enabled true
+        html.required = true
+        xml.required = true
     }
     afterEvaluate {
         classDirectories.setFrom(files(classDirectories.files.collect {
