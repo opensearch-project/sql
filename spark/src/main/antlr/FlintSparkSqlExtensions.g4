@@ -26,6 +26,7 @@ skippingIndexStatement
     | refreshSkippingIndexStatement
     | describeSkippingIndexStatement
     | dropSkippingIndexStatement
+    | vacuumSkippingIndexStatement
     ;
 
 createSkippingIndexStatement
@@ -48,12 +49,17 @@ dropSkippingIndexStatement
     : DROP SKIPPING INDEX ON tableName
     ;
 
+vacuumSkippingIndexStatement
+    : VACUUM SKIPPING INDEX ON tableName
+    ;
+
 coveringIndexStatement
     : createCoveringIndexStatement
     | refreshCoveringIndexStatement
     | showCoveringIndexStatement
     | describeCoveringIndexStatement
     | dropCoveringIndexStatement
+    | vacuumCoveringIndexStatement
     ;
 
 createCoveringIndexStatement
@@ -80,12 +86,17 @@ dropCoveringIndexStatement
     : DROP INDEX indexName ON tableName
     ;
 
+vacuumCoveringIndexStatement
+    : VACUUM INDEX indexName ON tableName
+    ;
+
 materializedViewStatement
     : createMaterializedViewStatement
     | refreshMaterializedViewStatement
     | showMaterializedViewStatement
     | describeMaterializedViewStatement
     | dropMaterializedViewStatement
+    | vacuumMaterializedViewStatement
     ;
 
 createMaterializedViewStatement
@@ -108,6 +119,10 @@ describeMaterializedViewStatement
 
 dropMaterializedViewStatement
     : DROP MATERIALIZED VIEW mvName=multipartIdentifier
+    ;
+
+vacuumMaterializedViewStatement
+    : VACUUM MATERIALIZED VIEW mvName=multipartIdentifier
     ;
 
 indexJobManagementStatement
@@ -140,6 +155,11 @@ indexColTypeList
 
 indexColType
     : identifier skipType=(PARTITION | VALUE_SET | MIN_MAX)
+        (LEFT_PAREN skipParams RIGHT_PAREN)?
+    ;
+
+skipParams
+    : propertyValue (COMMA propertyValue)*
     ;
 
 indexName
