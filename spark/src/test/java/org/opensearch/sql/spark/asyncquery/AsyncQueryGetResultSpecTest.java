@@ -332,6 +332,27 @@ public class AsyncQueryGetResultSpecTest extends AsyncQueryExecutorServiceSpec {
   }
 
   @Test
+  public void testExplainResponse() {
+    createAsyncQuery("EXPLAIN SELECT * FROM TABLE")
+        .withInteraction(InteractionStep::pluginSearchQueryResult)
+        .assertQueryResults("waiting", null)
+        .withInteraction(
+            interaction -> {
+              interaction.emrJobWriteResultDoc(
+                  createResultDoc(
+                      interaction.queryId,
+                      ImmutableList.of("{'plan':'== Physical Plan ==\\nAdaptiveSparkPlan'}"),
+                      ImmutableList.of("{'column_name':'plan','data_type':'string'}")));
+              interaction.emrJobUpdateStatementState(StatementState.SUCCESS);
+              return interaction.pluginSearchQueryResult();
+            })
+        .assertFormattedQueryResults(
+            "{\"status\":\"SUCCESS\",\"schema\":[{\"name\":\"plan\",\"type\":\"string\"}],\"datarows\":[[\"=="
+                + " Physical Plan ==\\n"
+                + "AdaptiveSparkPlan\"]],\"total\":1,\"size\":1}");
+  }
+
+  @Test
   public void testInteractiveQueryEmptyResponseIssue2367() {
     createAsyncQuery("SELECT * FROM TABLE")
         .withInteraction(InteractionStep::pluginSearchQueryResult)
