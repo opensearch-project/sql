@@ -5,7 +5,6 @@
 
 package org.opensearch.sql.spark.asyncquery;
 
-import static org.opensearch.sql.common.setting.Settings.Key.SPARK_EXECUTION_ENGINE_CONFIG;
 import static org.opensearch.sql.spark.data.constants.SparkConstants.ERROR_FIELD;
 import static org.opensearch.sql.spark.data.constants.SparkConstants.STATUS_FIELD;
 
@@ -34,26 +33,10 @@ public class AsyncQueryExecutorServiceImpl implements AsyncQueryExecutorService 
   private AsyncQueryJobMetadataStorageService asyncQueryJobMetadataStorageService;
   private SparkQueryDispatcher sparkQueryDispatcher;
   private SparkExecutionEngineConfigSupplier sparkExecutionEngineConfigSupplier;
-  private Boolean isSparkJobExecutionEnabled;
-
-  public AsyncQueryExecutorServiceImpl() {
-    this.isSparkJobExecutionEnabled = Boolean.FALSE;
-  }
-
-  public AsyncQueryExecutorServiceImpl(
-      AsyncQueryJobMetadataStorageService asyncQueryJobMetadataStorageService,
-      SparkQueryDispatcher sparkQueryDispatcher,
-      SparkExecutionEngineConfigSupplier sparkExecutionEngineConfigSupplier) {
-    this.isSparkJobExecutionEnabled = Boolean.TRUE;
-    this.asyncQueryJobMetadataStorageService = asyncQueryJobMetadataStorageService;
-    this.sparkQueryDispatcher = sparkQueryDispatcher;
-    this.sparkExecutionEngineConfigSupplier = sparkExecutionEngineConfigSupplier;
-  }
 
   @Override
   public CreateAsyncQueryResponse createAsyncQuery(
       CreateAsyncQueryRequest createAsyncQueryRequest) {
-    validateSparkExecutionEngineSettings();
     SparkExecutionEngineConfig sparkExecutionEngineConfig =
         sparkExecutionEngineConfigSupplier.getSparkExecutionEngineConfig();
     DispatchQueryResponse dispatchQueryResponse =
@@ -80,7 +63,6 @@ public class AsyncQueryExecutorServiceImpl implements AsyncQueryExecutorService 
 
   @Override
   public AsyncQueryExecutionResponse getAsyncQueryResults(String queryId) {
-    validateSparkExecutionEngineSettings();
     Optional<AsyncQueryJobMetadata> jobMetadata =
         asyncQueryJobMetadataStorageService.getJobMetadata(queryId);
     if (jobMetadata.isPresent()) {
@@ -119,15 +101,5 @@ public class AsyncQueryExecutorServiceImpl implements AsyncQueryExecutorService 
       return sparkQueryDispatcher.cancelJob(asyncQueryJobMetadata.get());
     }
     throw new AsyncQueryNotFoundException(String.format("QueryId: %s not found", queryId));
-  }
-
-  private void validateSparkExecutionEngineSettings() {
-    if (!isSparkJobExecutionEnabled) {
-      throw new IllegalArgumentException(
-          String.format(
-              "Async Query APIs are disabled as %s is not configured in cluster settings. Please"
-                  + " configure the setting and restart the domain to enable Async Query APIs",
-              SPARK_EXECUTION_ENGINE_CONFIG.getKeyValue()));
-    }
   }
 }

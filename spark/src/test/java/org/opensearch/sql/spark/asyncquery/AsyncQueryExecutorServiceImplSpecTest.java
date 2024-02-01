@@ -32,6 +32,7 @@ import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.datasource.model.DataSourceMetadata;
 import org.opensearch.sql.datasource.model.DataSourceType;
 import org.opensearch.sql.spark.asyncquery.model.AsyncQueryExecutionResponse;
+import org.opensearch.sql.spark.client.EMRServerlessClientFactory;
 import org.opensearch.sql.spark.execution.session.SessionId;
 import org.opensearch.sql.spark.execution.session.SessionState;
 import org.opensearch.sql.spark.execution.statement.StatementModel;
@@ -46,8 +47,9 @@ public class AsyncQueryExecutorServiceImplSpecTest extends AsyncQueryExecutorSer
   @Disabled("batch query is unsupported")
   public void withoutSessionCreateAsyncQueryThenGetResultThenCancel() {
     LocalEMRSClient emrsClient = new LocalEMRSClient();
+    EMRServerlessClientFactory emrServerlessClientFactory = () -> emrsClient;
     AsyncQueryExecutorService asyncQueryExecutorService =
-        createAsyncQueryExecutorService(emrsClient);
+        createAsyncQueryExecutorService(emrServerlessClientFactory);
 
     // disable session
     enableSession(false);
@@ -74,8 +76,9 @@ public class AsyncQueryExecutorServiceImplSpecTest extends AsyncQueryExecutorSer
   @Disabled("batch query is unsupported")
   public void sessionLimitNotImpactBatchQuery() {
     LocalEMRSClient emrsClient = new LocalEMRSClient();
+    EMRServerlessClientFactory emrServerlessClientFactory = () -> emrsClient;
     AsyncQueryExecutorService asyncQueryExecutorService =
-        createAsyncQueryExecutorService(emrsClient);
+        createAsyncQueryExecutorService(emrServerlessClientFactory);
 
     // disable session
     enableSession(false);
@@ -96,8 +99,9 @@ public class AsyncQueryExecutorServiceImplSpecTest extends AsyncQueryExecutorSer
   @Disabled("batch query is unsupported")
   public void createAsyncQueryCreateJobWithCorrectParameters() {
     LocalEMRSClient emrsClient = new LocalEMRSClient();
+    EMRServerlessClientFactory emrServerlessClientFactory = () -> emrsClient;
     AsyncQueryExecutorService asyncQueryExecutorService =
-        createAsyncQueryExecutorService(emrsClient);
+        createAsyncQueryExecutorService(emrServerlessClientFactory);
 
     enableSession(false);
     CreateAsyncQueryResponse response =
@@ -129,8 +133,9 @@ public class AsyncQueryExecutorServiceImplSpecTest extends AsyncQueryExecutorSer
   @Test
   public void withSessionCreateAsyncQueryThenGetResultThenCancel() {
     LocalEMRSClient emrsClient = new LocalEMRSClient();
+    EMRServerlessClientFactory emrServerlessClientFactory = () -> emrsClient;
     AsyncQueryExecutorService asyncQueryExecutorService =
-        createAsyncQueryExecutorService(emrsClient);
+        createAsyncQueryExecutorService(emrServerlessClientFactory);
 
     // 1. create async query.
     CreateAsyncQueryResponse response =
@@ -156,8 +161,9 @@ public class AsyncQueryExecutorServiceImplSpecTest extends AsyncQueryExecutorSer
   @Test
   public void reuseSessionWhenCreateAsyncQuery() {
     LocalEMRSClient emrsClient = new LocalEMRSClient();
+    EMRServerlessClientFactory emrServerlessClientFactory = () -> emrsClient;
     AsyncQueryExecutorService asyncQueryExecutorService =
-        createAsyncQueryExecutorService(emrsClient);
+        createAsyncQueryExecutorService(emrServerlessClientFactory);
 
     // enable session
     enableSession(true);
@@ -207,8 +213,9 @@ public class AsyncQueryExecutorServiceImplSpecTest extends AsyncQueryExecutorSer
   @Disabled("batch query is unsupported")
   public void batchQueryHasTimeout() {
     LocalEMRSClient emrsClient = new LocalEMRSClient();
+    EMRServerlessClientFactory emrServerlessClientFactory = () -> emrsClient;
     AsyncQueryExecutorService asyncQueryExecutorService =
-        createAsyncQueryExecutorService(emrsClient);
+        createAsyncQueryExecutorService(emrServerlessClientFactory);
 
     enableSession(false);
     CreateAsyncQueryResponse response =
@@ -221,8 +228,9 @@ public class AsyncQueryExecutorServiceImplSpecTest extends AsyncQueryExecutorSer
   @Test
   public void interactiveQueryNoTimeout() {
     LocalEMRSClient emrsClient = new LocalEMRSClient();
+    EMRServerlessClientFactory emrServerlessClientFactory = () -> emrsClient;
     AsyncQueryExecutorService asyncQueryExecutorService =
-        createAsyncQueryExecutorService(emrsClient);
+        createAsyncQueryExecutorService(emrServerlessClientFactory);
 
     // enable session
     enableSession(true);
@@ -255,8 +263,9 @@ public class AsyncQueryExecutorServiceImplSpecTest extends AsyncQueryExecutorSer
             properties,
             null));
     LocalEMRSClient emrsClient = new LocalEMRSClient();
+    EMRServerlessClientFactory emrServerlessClientFactory = () -> emrsClient;
     AsyncQueryExecutorService asyncQueryExecutorService =
-        createAsyncQueryExecutorService(emrsClient);
+        createAsyncQueryExecutorService(emrServerlessClientFactory);
 
     // enable session
     enableSession(true);
@@ -274,8 +283,9 @@ public class AsyncQueryExecutorServiceImplSpecTest extends AsyncQueryExecutorSer
   @Test
   public void withSessionCreateAsyncQueryFailed() {
     LocalEMRSClient emrsClient = new LocalEMRSClient();
+    EMRServerlessClientFactory emrServerlessClientFactory = () -> emrsClient;
     AsyncQueryExecutorService asyncQueryExecutorService =
-        createAsyncQueryExecutorService(emrsClient);
+        createAsyncQueryExecutorService(emrServerlessClientFactory);
 
     // enable session
     enableSession(true);
@@ -322,8 +332,9 @@ public class AsyncQueryExecutorServiceImplSpecTest extends AsyncQueryExecutorSer
   @Test
   public void createSessionMoreThanLimitFailed() {
     LocalEMRSClient emrsClient = new LocalEMRSClient();
+    EMRServerlessClientFactory emrServerlessClientFactory = () -> emrsClient;
     AsyncQueryExecutorService asyncQueryExecutorService =
-        createAsyncQueryExecutorService(emrsClient);
+        createAsyncQueryExecutorService(emrServerlessClientFactory);
 
     // enable session
     enableSession(true);
@@ -351,8 +362,9 @@ public class AsyncQueryExecutorServiceImplSpecTest extends AsyncQueryExecutorSer
   @Test
   public void recreateSessionIfNotReady() {
     LocalEMRSClient emrsClient = new LocalEMRSClient();
+    EMRServerlessClientFactory emrServerlessClientFactory = () -> emrsClient;
     AsyncQueryExecutorService asyncQueryExecutorService =
-        createAsyncQueryExecutorService(emrsClient);
+        createAsyncQueryExecutorService(emrServerlessClientFactory);
 
     // enable session
     enableSession(true);
@@ -388,8 +400,9 @@ public class AsyncQueryExecutorServiceImplSpecTest extends AsyncQueryExecutorSer
   @Test
   public void submitQueryWithDifferentDataSourceSessionWillCreateNewSession() {
     LocalEMRSClient emrsClient = new LocalEMRSClient();
+    EMRServerlessClientFactory emrServerlessClientFactory = () -> emrsClient;
     AsyncQueryExecutorService asyncQueryExecutorService =
-        createAsyncQueryExecutorService(emrsClient);
+        createAsyncQueryExecutorService(emrServerlessClientFactory);
 
     // enable session
     enableSession(true);
@@ -426,8 +439,9 @@ public class AsyncQueryExecutorServiceImplSpecTest extends AsyncQueryExecutorSer
   @Test
   public void recreateSessionIfStale() {
     LocalEMRSClient emrsClient = new LocalEMRSClient();
+    EMRServerlessClientFactory emrServerlessClientFactory = () -> emrsClient;
     AsyncQueryExecutorService asyncQueryExecutorService =
-        createAsyncQueryExecutorService(emrsClient);
+        createAsyncQueryExecutorService(emrServerlessClientFactory);
 
     // enable session
     enableSession(true);
@@ -480,8 +494,9 @@ public class AsyncQueryExecutorServiceImplSpecTest extends AsyncQueryExecutorSer
   @Test
   public void submitQueryInInvalidSessionWillCreateNewSession() {
     LocalEMRSClient emrsClient = new LocalEMRSClient();
+    EMRServerlessClientFactory emrServerlessClientFactory = () -> emrsClient;
     AsyncQueryExecutorService asyncQueryExecutorService =
-        createAsyncQueryExecutorService(emrsClient);
+        createAsyncQueryExecutorService(emrServerlessClientFactory);
 
     // enable session
     enableSession(true);
@@ -516,8 +531,9 @@ public class AsyncQueryExecutorServiceImplSpecTest extends AsyncQueryExecutorSer
             null));
 
     LocalEMRSClient emrsClient = new LocalEMRSClient();
+    EMRServerlessClientFactory emrServerlessClientFactory = () -> emrsClient;
     AsyncQueryExecutorService asyncQueryExecutorService =
-        createAsyncQueryExecutorService(emrsClient);
+        createAsyncQueryExecutorService(emrServerlessClientFactory);
 
     // enable session
     enableSession(true);
@@ -536,8 +552,9 @@ public class AsyncQueryExecutorServiceImplSpecTest extends AsyncQueryExecutorSer
   @Test
   public void concurrentSessionLimitIsDomainLevel() {
     LocalEMRSClient emrsClient = new LocalEMRSClient();
+    EMRServerlessClientFactory emrServerlessClientFactory = () -> emrsClient;
     AsyncQueryExecutorService asyncQueryExecutorService =
-        createAsyncQueryExecutorService(emrsClient);
+        createAsyncQueryExecutorService(emrServerlessClientFactory);
 
     // only allow one session in domain.
     setSessionLimit(1);
