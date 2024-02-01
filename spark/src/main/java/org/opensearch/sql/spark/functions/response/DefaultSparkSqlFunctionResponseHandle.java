@@ -19,6 +19,7 @@ import org.opensearch.sql.data.model.ExprDoubleValue;
 import org.opensearch.sql.data.model.ExprFloatValue;
 import org.opensearch.sql.data.model.ExprIntegerValue;
 import org.opensearch.sql.data.model.ExprLongValue;
+import org.opensearch.sql.data.model.ExprNullValue;
 import org.opensearch.sql.data.model.ExprShortValue;
 import org.opensearch.sql.data.model.ExprStringValue;
 import org.opensearch.sql.data.model.ExprTimestampValue;
@@ -27,6 +28,8 @@ import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.data.type.ExprCoreType;
 import org.opensearch.sql.data.type.ExprType;
 import org.opensearch.sql.executor.ExecutionEngine;
+import org.opensearch.sql.spark.data.type.SparkDataType;
+import org.opensearch.sql.spark.data.value.SparkExprValue;
 
 /** Default implementation of SparkSqlFunctionResponseHandle. */
 public class DefaultSparkSqlFunctionResponseHandle implements SparkSqlFunctionResponseHandle {
@@ -64,30 +67,43 @@ public class DefaultSparkSqlFunctionResponseHandle implements SparkSqlFunctionRe
     LinkedHashMap<String, ExprValue> linkedHashMap = new LinkedHashMap<>();
     for (ExecutionEngine.Schema.Column column : columnList) {
       ExprType type = column.getExprType();
-      if (type == ExprCoreType.BOOLEAN) {
-        linkedHashMap.put(column.getName(), ExprBooleanValue.of(row.getBoolean(column.getName())));
-      } else if (type == ExprCoreType.LONG) {
-        linkedHashMap.put(column.getName(), new ExprLongValue(row.getLong(column.getName())));
-      } else if (type == ExprCoreType.INTEGER) {
-        linkedHashMap.put(column.getName(), new ExprIntegerValue(row.getInt(column.getName())));
-      } else if (type == ExprCoreType.SHORT) {
-        linkedHashMap.put(column.getName(), new ExprShortValue(row.getInt(column.getName())));
-      } else if (type == ExprCoreType.BYTE) {
-        linkedHashMap.put(column.getName(), new ExprByteValue(row.getInt(column.getName())));
-      } else if (type == ExprCoreType.DOUBLE) {
-        linkedHashMap.put(column.getName(), new ExprDoubleValue(row.getDouble(column.getName())));
-      } else if (type == ExprCoreType.FLOAT) {
-        linkedHashMap.put(column.getName(), new ExprFloatValue(row.getFloat(column.getName())));
-      } else if (type == ExprCoreType.DATE) {
-        // TODO :: correct this to ExprTimestampValue
-        linkedHashMap.put(column.getName(), new ExprStringValue(row.getString(column.getName())));
-      } else if (type == ExprCoreType.TIMESTAMP) {
-        linkedHashMap.put(
-            column.getName(), new ExprTimestampValue(row.getString(column.getName())));
-      } else if (type == ExprCoreType.STRING) {
-        linkedHashMap.put(column.getName(), new ExprStringValue(jsonString(row, column.getName())));
+      if (!row.has(column.getName())) {
+        linkedHashMap.put(column.getName(), ExprNullValue.of());
       } else {
-        throw new RuntimeException("Result contains invalid data type");
+        if (type == ExprCoreType.BOOLEAN) {
+          linkedHashMap.put(
+              column.getName(), ExprBooleanValue.of(row.getBoolean(column.getName())));
+        } else if (type == ExprCoreType.LONG) {
+          linkedHashMap.put(column.getName(), new ExprLongValue(row.getLong(column.getName())));
+        } else if (type == ExprCoreType.INTEGER) {
+          linkedHashMap.put(column.getName(), new ExprIntegerValue(row.getInt(column.getName())));
+        } else if (type == ExprCoreType.SHORT) {
+          linkedHashMap.put(column.getName(), new ExprShortValue(row.getInt(column.getName())));
+        } else if (type == ExprCoreType.BYTE) {
+          linkedHashMap.put(column.getName(), new ExprByteValue(row.getInt(column.getName())));
+        } else if (type == ExprCoreType.DOUBLE) {
+          linkedHashMap.put(column.getName(), new ExprDoubleValue(row.getDouble(column.getName())));
+        } else if (type == ExprCoreType.FLOAT) {
+          linkedHashMap.put(column.getName(), new ExprFloatValue(row.getFloat(column.getName())));
+        } else if (type == ExprCoreType.DATE) {
+          // TODO :: correct this to ExprTimestampValue
+          linkedHashMap.put(column.getName(), new ExprStringValue(row.getString(column.getName())));
+        } else if (type == ExprCoreType.TIMESTAMP) {
+          linkedHashMap.put(
+              column.getName(), new ExprTimestampValue(row.getString(column.getName())));
+        } else if (type == ExprCoreType.STRING) {
+          linkedHashMap.put(column.getName(), new ExprStringValue(row.getString(column.getName())));
+        } else {
+          // SparkDataType
+          Object jsonValue = row.get(column.getName());
+          Object value = jsonValue;
+          if (jsonValue instanceof JSONObject) {
+            value = ((JSONObject) jsonValue).toMap();
+          } else if (jsonValue instanceof JSONArray) {
+            value = ((JSONArray) jsonValue).toList();
+          }
+          linkedHashMap.put(column.getName(), new SparkExprValue((SparkDataType) type, value));
+        }
       }
     }
 
@@ -107,8 +123,8 @@ public class DefaultSparkSqlFunctionResponseHandle implements SparkSqlFunctionRe
     return columnList;
   }
 
-  private ExprCoreType getDataType(String sparkDataType) {
-    switch (sparkDataType) {
+  private ExprType getDataType(String sparkType) {
+    switch (sparkType) {
       case "boolean":
         return ExprCoreType.BOOLEAN;
       case "long":
@@ -128,16 +144,10 @@ public class DefaultSparkSqlFunctionResponseHandle implements SparkSqlFunctionRe
       case "date":
         return ExprCoreType.TIMESTAMP;
       case "string":
-      case "varchar":
-      case "char":
         return ExprCoreType.STRING;
       default:
-        return ExprCoreType.UNKNOWN;
+        return new SparkDataType(sparkType);
     }
-  }
-
-  private static String jsonString(JSONObject jsonObject, String key) {
-    return jsonObject.has(key) ? jsonObject.getString(key) : "";
   }
 
   @Override
