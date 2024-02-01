@@ -10,6 +10,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
+import static org.opensearch.sql.data.model.ExprValueUtils.nullValue;
 import static org.opensearch.sql.data.model.ExprValueUtils.stringValue;
 import static org.opensearch.sql.spark.constants.TestConstants.QUERY;
 import static org.opensearch.sql.spark.utils.TestUtils.getJson;
@@ -18,6 +19,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import lombok.SneakyThrows;
+import org.json.JSONArray;
 import org.json.JSONObject;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
@@ -31,6 +33,7 @@ import org.opensearch.sql.data.model.ExprDoubleValue;
 import org.opensearch.sql.data.model.ExprFloatValue;
 import org.opensearch.sql.data.model.ExprIntegerValue;
 import org.opensearch.sql.data.model.ExprLongValue;
+import org.opensearch.sql.data.model.ExprNullValue;
 import org.opensearch.sql.data.model.ExprShortValue;
 import org.opensearch.sql.data.model.ExprStringValue;
 import org.opensearch.sql.data.model.ExprTimestampValue;
@@ -38,6 +41,8 @@ import org.opensearch.sql.data.model.ExprTupleValue;
 import org.opensearch.sql.data.type.ExprCoreType;
 import org.opensearch.sql.executor.ExecutionEngine;
 import org.opensearch.sql.spark.client.SparkClient;
+import org.opensearch.sql.spark.data.type.SparkDataType;
+import org.opensearch.sql.spark.data.value.SparkExprValue;
 import org.opensearch.sql.spark.functions.scan.SparkSqlFunctionTableScanOperator;
 import org.opensearch.sql.spark.request.SparkQueryRequest;
 
@@ -134,7 +139,7 @@ public class SparkSqlFunctionTableScanOperatorTest {
                 put("timestamp", new ExprDateValue("2023-07-01 10:31:30"));
                 put("date", new ExprTimestampValue("2023-07-01 10:31:30"));
                 put("string", new ExprStringValue("ABC"));
-                put("char", new ExprStringValue("A"));
+                put("char", new SparkExprValue(new SparkDataType("char"), "A"));
               }
             });
     assertEquals(firstRow, sparkSqlFunctionTableScanOperator.next());
@@ -143,19 +148,31 @@ public class SparkSqlFunctionTableScanOperatorTest {
 
   @Test
   @SneakyThrows
-  void testQueryResponseInvalidDataType() {
+  void testQueryResponseSparkDataType() {
     SparkQueryRequest sparkQueryRequest = new SparkQueryRequest();
     sparkQueryRequest.setSql(QUERY);
 
     SparkSqlFunctionTableScanOperator sparkSqlFunctionTableScanOperator =
         new SparkSqlFunctionTableScanOperator(sparkClient, sparkQueryRequest);
 
-    when(sparkClient.sql(any())).thenReturn(new JSONObject(getJson("invalid_data_type.json")));
-
-    RuntimeException exception =
-        Assertions.assertThrows(
-            RuntimeException.class, () -> sparkSqlFunctionTableScanOperator.open());
-    Assertions.assertEquals("Result contains invalid data type", exception.getMessage());
+    when(sparkClient.sql(any())).thenReturn(new JSONObject(getJson("spark_data_type.json")));
+    sparkSqlFunctionTableScanOperator.open();
+    assertEquals(
+        new ExprTupleValue(
+            new LinkedHashMap<>() {
+              {
+                put(
+                    "struct_column",
+                    new SparkExprValue(
+                        new SparkDataType("struct"),
+                        new JSONObject("{\"struct_value\":\"value\"}}").toMap()));
+                put(
+                    "array_column",
+                    new SparkExprValue(
+                        new SparkDataType("array"), new JSONArray("[1,2]").toList()));
+              }
+            }),
+        sparkSqlFunctionTableScanOperator.next());
   }
 
   @Test
@@ -194,7 +211,7 @@ public class SparkSqlFunctionTableScanOperatorTest {
               {
                 put("col_name", stringValue("day"));
                 put("data_type", stringValue("int"));
-                put("comment", stringValue(""));
+                put("comment", nullValue());
               }
             }),
         sparkSqlFunctionTableScanOperator.next());
@@ -224,10 +241,52 @@ public class SparkSqlFunctionTableScanOperatorTest {
               {
                 put("col_name", stringValue("day"));
                 put("data_type", stringValue("int"));
-                put("comment", stringValue(""));
+                put("comment", nullValue());
               }
             }),
         sparkSqlFunctionTableScanOperator.next());
     Assertions.assertFalse(sparkSqlFunctionTableScanOperator.hasNext());
+  }
+
+  @Test
+  @SneakyThrows
+  public void issue2367MissingFields() {
+    SparkQueryRequest sparkQueryRequest = new SparkQueryRequest();
+    sparkQueryRequest.setSql(QUERY);
+
+    SparkSqlFunctionTableScanOperator sparkSqlFunctionTableScanOperator =
+        new SparkSqlFunctionTableScanOperator(sparkClient, sparkQueryRequest);
+
+    when(sparkClient.sql(any()))
+        .thenReturn(
+            new JSONObject(
+                "{\n"
+                    + "  \"data\": {\n"
+                    + "    \"result\": [\n"
+                    + "      \"{}\",\n"
+                    + "      \"{'srcPort':20641}\"\n"
+                    + "    ],\n"
+                    + "    \"schema\": [\n"
+                    + "      \"{'column_name':'srcPort','data_type':'long'}\"\n"
+                    + "    ]\n"
+                    + "  }\n"
+                    + "}"));
+    sparkSqlFunctionTableScanOperator.open();
+    assertEquals(
+        new ExprTupleValue(
+            new LinkedHashMap<>() {
+              {
+                put("srcPort", ExprNullValue.of());
+              }
+            }),
+        sparkSqlFunctionTableScanOperator.next());
+    assertEquals(
+        new ExprTupleValue(
+            new LinkedHashMap<>() {
+              {
+                put("srcPort", new ExprLongValue(20641L));
+              }
+            }),
+        sparkSqlFunctionTableScanOperator.next());
   }
 }
