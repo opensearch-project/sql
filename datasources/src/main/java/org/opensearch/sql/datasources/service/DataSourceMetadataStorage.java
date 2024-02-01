@@ -8,6 +8,7 @@
 package org.opensearch.sql.datasources.service;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import org.opensearch.sql.datasource.model.DataSource;
 import org.opensearch.sql.datasource.model.DataSourceMetadata;
@@ -25,6 +26,8 @@ public interface DataSourceMetadataStorage {
    * @return list of {@link DataSourceMetadata}.
    */
   List<DataSourceMetadata> getDataSourceMetadata();
+
+  Map<String, Long> countDataSourcesPerConnector();
 
   /**
    * Gets {@link DataSourceMetadata} corresponding to the datasourceName from underlying storage.
