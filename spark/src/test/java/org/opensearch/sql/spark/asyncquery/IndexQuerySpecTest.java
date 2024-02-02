@@ -12,6 +12,8 @@ import com.google.common.collect.ImmutableList;
 import org.junit.Assert;
 import org.junit.Test;
 import org.opensearch.sql.spark.asyncquery.model.AsyncQueryExecutionResponse;
+import org.opensearch.sql.spark.client.EMRServerlessClient;
+import org.opensearch.sql.spark.client.EMRServerlessClientFactory;
 import org.opensearch.sql.spark.flint.FlintIndexState;
 import org.opensearch.sql.spark.flint.FlintIndexType;
 import org.opensearch.sql.spark.leasemanager.ConcurrencyLimitExceededException;
@@ -72,9 +74,15 @@ public class IndexQuerySpecTest extends AsyncQueryExecutorServiceSpec {
                       return new GetJobRunResult().withJobRun(new JobRun().withState("Cancelled"));
                     }
                   };
-
+              EMRServerlessClientFactory emrServerlessClientFactory =
+                  new EMRServerlessClientFactory() {
+                    @Override
+                    public EMRServerlessClient getClient() {
+                      return emrsClient;
+                    }
+                  };
               AsyncQueryExecutorService asyncQueryExecutorService =
-                  createAsyncQueryExecutorService(emrsClient);
+                  createAsyncQueryExecutorService(emrServerlessClientFactory);
 
               // Mock flint index
               mockDS.createIndex();
@@ -120,8 +128,15 @@ public class IndexQuerySpecTest extends AsyncQueryExecutorServiceSpec {
                       throw new IllegalArgumentException("Job run is not in a cancellable state");
                     }
                   };
+              EMRServerlessClientFactory emrServerlessClientFactory =
+                  new EMRServerlessClientFactory() {
+                    @Override
+                    public EMRServerlessClient getClient() {
+                      return emrsClient;
+                    }
+                  };
               AsyncQueryExecutorService asyncQueryExecutorService =
-                  createAsyncQueryExecutorService(emrsClient);
+                  createAsyncQueryExecutorService(emrServerlessClientFactory);
 
               // Mock flint index
               mockDS.createIndex();
@@ -157,8 +172,15 @@ public class IndexQuerySpecTest extends AsyncQueryExecutorServiceSpec {
                       return new GetJobRunResult().withJobRun(new JobRun().withState("Running"));
                     }
                   };
+              EMRServerlessClientFactory emrServerlessClientFactory =
+                  new EMRServerlessClientFactory() {
+                    @Override
+                    public EMRServerlessClient getClient() {
+                      return emrsClient;
+                    }
+                  };
               AsyncQueryExecutorService asyncQueryExecutorService =
-                  createAsyncQueryExecutorService(emrsClient);
+                  createAsyncQueryExecutorService(emrServerlessClientFactory);
 
               // Mock flint index
               mockDS.createIndex();
@@ -193,9 +215,15 @@ public class IndexQuerySpecTest extends AsyncQueryExecutorServiceSpec {
                       return new GetJobRunResult().withJobRun(new JobRun().withState("Cancelled"));
                     }
                   };
-
+              EMRServerlessClientFactory emrServerlessClientFactory =
+                  new EMRServerlessClientFactory() {
+                    @Override
+                    public EMRServerlessClient getClient() {
+                      return emrsClient;
+                    }
+                  };
               AsyncQueryExecutorService asyncQueryExecutorService =
-                  createAsyncQueryExecutorService(emrsClient);
+                  createAsyncQueryExecutorService(emrServerlessClientFactory);
 
               // Mock flint index
               mockDS.createIndex();
@@ -248,8 +276,15 @@ public class IndexQuerySpecTest extends AsyncQueryExecutorServiceSpec {
                       throw new IllegalArgumentException("Job run is not in a cancellable state");
                     }
                   };
+              EMRServerlessClientFactory emrServerlessClientFactory =
+                  new EMRServerlessClientFactory() {
+                    @Override
+                    public EMRServerlessClient getClient() {
+                      return emrsClient;
+                    }
+                  };
               AsyncQueryExecutorService asyncQueryExecutorService =
-                  createAsyncQueryExecutorService(emrsClient);
+                  createAsyncQueryExecutorService(emrServerlessClientFactory);
 
               // Mock flint index
               mockDS.createIndex();
@@ -290,8 +325,15 @@ public class IndexQuerySpecTest extends AsyncQueryExecutorServiceSpec {
                       return new GetJobRunResult().withJobRun(new JobRun().withState("Running"));
                     }
                   };
+              EMRServerlessClientFactory emrServerlessClientFactory =
+                  new EMRServerlessClientFactory() {
+                    @Override
+                    public EMRServerlessClient getClient() {
+                      return emrsClient;
+                    }
+                  };
               AsyncQueryExecutorService asyncQueryExecutorService =
-                  createAsyncQueryExecutorService(emrsClient);
+                  createAsyncQueryExecutorService(emrServerlessClientFactory);
 
               // Mock flint index
               mockDS.createIndex();
@@ -331,8 +373,15 @@ public class IndexQuerySpecTest extends AsyncQueryExecutorServiceSpec {
                       return new GetJobRunResult().withJobRun(new JobRun().withState("Cancelled"));
                     }
                   };
+              EMRServerlessClientFactory emrServerlessClientFactory =
+                  new EMRServerlessClientFactory() {
+                    @Override
+                    public EMRServerlessClient getClient() {
+                      return emrsClient;
+                    }
+                  };
               AsyncQueryExecutorService asyncQueryExecutorService =
-                  createAsyncQueryExecutorService(emrsClient);
+                  createAsyncQueryExecutorService(emrServerlessClientFactory);
 
               // Mock flint index
               mockDS.createIndex();
@@ -380,8 +429,15 @@ public class IndexQuerySpecTest extends AsyncQueryExecutorServiceSpec {
                       return null;
                     }
                   };
+              EMRServerlessClientFactory emrServerlessClientFactory =
+                  new EMRServerlessClientFactory() {
+                    @Override
+                    public EMRServerlessClient getClient() {
+                      return emrsClient;
+                    }
+                  };
               AsyncQueryExecutorService asyncQueryExecutorService =
-                  createAsyncQueryExecutorService(emrsClient);
+                  createAsyncQueryExecutorService(emrServerlessClientFactory);
 
               // Mock flint index
               mockDS.createIndex();
@@ -424,8 +480,15 @@ public class IndexQuerySpecTest extends AsyncQueryExecutorServiceSpec {
                       return null;
                     }
                   };
+              EMRServerlessClientFactory emrServerlessClientFactory =
+                  new EMRServerlessClientFactory() {
+                    @Override
+                    public EMRServerlessClient getClient() {
+                      return emrsClient;
+                    }
+                  };
               AsyncQueryExecutorService asyncQueryExecutorService =
-                  createAsyncQueryExecutorService(emrsClient);
+                  createAsyncQueryExecutorService(emrServerlessClientFactory);
 
               // Mock flint index
               mockDS.createIndex();
@@ -468,8 +531,15 @@ public class IndexQuerySpecTest extends AsyncQueryExecutorServiceSpec {
                       return null;
                     }
                   };
+              EMRServerlessClientFactory emrServerlessClientFactory =
+                  new EMRServerlessClientFactory() {
+                    @Override
+                    public EMRServerlessClient getClient() {
+                      return emrsClient;
+                    }
+                  };
               AsyncQueryExecutorService asyncQueryExecutorService =
-                  createAsyncQueryExecutorService(emrsClient);
+                  createAsyncQueryExecutorService(emrServerlessClientFactory);
 
               // Mock flint index
               mockDS.createIndex();
@@ -517,8 +587,15 @@ public class IndexQuerySpecTest extends AsyncQueryExecutorServiceSpec {
                       return null;
                     }
                   };
+              EMRServerlessClientFactory emrServerlessClientFactory =
+                  new EMRServerlessClientFactory() {
+                    @Override
+                    public EMRServerlessClient getClient() {
+                      return emrsClient;
+                    }
+                  };
               AsyncQueryExecutorService asyncQueryExecutorService =
-                  createAsyncQueryExecutorService(emrsClient);
+                  createAsyncQueryExecutorService(emrServerlessClientFactory);
 
               // Mock flint index
               mockDS.createIndex();
@@ -565,8 +642,15 @@ public class IndexQuerySpecTest extends AsyncQueryExecutorServiceSpec {
                       return null;
                     }
                   };
+              EMRServerlessClientFactory emrServerlessClientFactory =
+                  new EMRServerlessClientFactory() {
+                    @Override
+                    public EMRServerlessClient getClient() {
+                      return emrsClient;
+                    }
+                  };
               AsyncQueryExecutorService asyncQueryExecutorService =
-                  createAsyncQueryExecutorService(emrsClient);
+                  createAsyncQueryExecutorService(emrServerlessClientFactory);
 
               // Mock flint index
               mockDS.createIndex();
@@ -586,8 +670,9 @@ public class IndexQuerySpecTest extends AsyncQueryExecutorServiceSpec {
 
   @Test
   public void concurrentRefreshJobLimitNotApplied() {
+    EMRServerlessClientFactory emrServerlessClientFactory = new LocalEMRServerlessClientFactory();
     AsyncQueryExecutorService asyncQueryExecutorService =
-        createAsyncQueryExecutorService(new LocalEMRSClient());
+        createAsyncQueryExecutorService(emrServerlessClientFactory);
 
     // Mock flint index
     COVERING.createIndex();
@@ -607,8 +692,9 @@ public class IndexQuerySpecTest extends AsyncQueryExecutorServiceSpec {
 
   @Test
   public void concurrentRefreshJobLimitAppliedToDDLWithAuthRefresh() {
+    EMRServerlessClientFactory emrServerlessClientFactory = new LocalEMRServerlessClientFactory();
     AsyncQueryExecutorService asyncQueryExecutorService =
-        createAsyncQueryExecutorService(new LocalEMRSClient());
+        createAsyncQueryExecutorService(emrServerlessClientFactory);
 
     setConcurrentRefreshJob(1);
 
@@ -633,8 +719,9 @@ public class IndexQuerySpecTest extends AsyncQueryExecutorServiceSpec {
 
   @Test
   public void concurrentRefreshJobLimitAppliedToRefresh() {
+    EMRServerlessClientFactory emrServerlessClientFactory = new LocalEMRServerlessClientFactory();
     AsyncQueryExecutorService asyncQueryExecutorService =
-        createAsyncQueryExecutorService(new LocalEMRSClient());
+        createAsyncQueryExecutorService(emrServerlessClientFactory);
 
     setConcurrentRefreshJob(1);
 
@@ -658,9 +745,9 @@ public class IndexQuerySpecTest extends AsyncQueryExecutorServiceSpec {
   @Test
   public void concurrentRefreshJobLimitNotAppliedToDDL() {
     String query = "CREATE INDEX covering ON mys3.default.http_logs(l_orderkey, l_quantity)";
-
+    EMRServerlessClientFactory emrServerlessClientFactory = new LocalEMRServerlessClientFactory();
     AsyncQueryExecutorService asyncQueryExecutorService =
-        createAsyncQueryExecutorService(new LocalEMRSClient());
+        createAsyncQueryExecutorService(emrServerlessClientFactory);
 
     setConcurrentRefreshJob(1);
 

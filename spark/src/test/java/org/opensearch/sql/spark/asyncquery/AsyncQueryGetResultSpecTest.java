@@ -26,6 +26,7 @@ import org.opensearch.sql.protocol.response.format.JsonResponseFormatter;
 import org.opensearch.sql.protocol.response.format.ResponseFormatter;
 import org.opensearch.sql.spark.asyncquery.model.AsyncQueryExecutionResponse;
 import org.opensearch.sql.spark.asyncquery.model.AsyncQueryResult;
+import org.opensearch.sql.spark.client.EMRServerlessClientFactory;
 import org.opensearch.sql.spark.execution.statement.StatementModel;
 import org.opensearch.sql.spark.execution.statement.StatementState;
 import org.opensearch.sql.spark.execution.statestore.StateStore;
@@ -411,9 +412,10 @@ public class AsyncQueryGetResultSpecTest extends AsyncQueryExecutorServiceSpec {
     private Interaction interaction;
 
     AssertionHelper(String query, LocalEMRSClient emrClient) {
+      EMRServerlessClientFactory emrServerlessClientFactory = () -> emrClient;
       this.queryService =
           createAsyncQueryExecutorService(
-              emrClient,
+              emrServerlessClientFactory,
               /*
                * Custom reader that intercepts get results call and inject extra steps defined in
                * current interaction. Intercept both get methods for different query handler which
