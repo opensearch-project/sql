@@ -8,8 +8,8 @@
 package org.opensearch.sql.datasources.rest;
 
 import static org.opensearch.core.rest.RestStatus.BAD_REQUEST;
+import static org.opensearch.core.rest.RestStatus.INTERNAL_SERVER_ERROR;
 import static org.opensearch.core.rest.RestStatus.NOT_FOUND;
-import static org.opensearch.core.rest.RestStatus.SERVICE_UNAVAILABLE;
 import static org.opensearch.rest.RestRequest.Method.*;
 
 import com.google.common.collect.ImmutableList;
@@ -20,6 +20,7 @@ import java.util.Map;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.OpenSearchException;
+import org.opensearch.OpenSearchSecurityException;
 import org.opensearch.client.node.NodeClient;
 import org.opensearch.core.action.ActionListener;
 import org.opensearch.core.rest.RestStatus;
@@ -282,6 +283,10 @@ public class RestDataSourceQueryAction extends BaseRestHandler {
     if (e instanceof DataSourceNotFoundException) {
       MetricUtils.incrementNumericalMetric(MetricName.DATASOURCE_FAILED_REQ_COUNT_CUS);
       reportError(restChannel, e, NOT_FOUND);
+    } else if (e instanceof OpenSearchSecurityException) {
+      MetricUtils.incrementNumericalMetric(MetricName.DATASOURCE_FAILED_REQ_COUNT_CUS);
+      OpenSearchSecurityException exception = (OpenSearchSecurityException) e;
+      reportError(restChannel, exception, exception.status());
     } else if (e instanceof OpenSearchException) {
       MetricUtils.incrementNumericalMetric(MetricName.DATASOURCE_FAILED_REQ_COUNT_SYS);
       OpenSearchException exception = (OpenSearchException) e;
@@ -293,7 +298,7 @@ public class RestDataSourceQueryAction extends BaseRestHandler {
         reportError(restChannel, e, BAD_REQUEST);
       } else {
         MetricUtils.incrementNumericalMetric(MetricName.DATASOURCE_FAILED_REQ_COUNT_SYS);
-        reportError(restChannel, e, SERVICE_UNAVAILABLE);
+        reportError(restChannel, e, INTERNAL_SERVER_ERROR);
       }
     }
   }

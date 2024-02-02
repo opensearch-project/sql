@@ -151,7 +151,15 @@ public class TermFieldRewriter extends MySqlASTVisitorAdapter {
         indexToType.put(tableName, null);
       } else if (sqlExprTableSource.getExpr() instanceof SQLBinaryOpExpr) {
         SQLBinaryOpExpr sqlBinaryOpExpr = (SQLBinaryOpExpr) sqlExprTableSource.getExpr();
-        tableName = ((SQLIdentifierExpr) sqlBinaryOpExpr.getLeft()).getName();
+        SQLExpr leftSideOfExpression = sqlBinaryOpExpr.getLeft();
+        if (leftSideOfExpression instanceof SQLIdentifierExpr) {
+          tableName = ((SQLIdentifierExpr) sqlBinaryOpExpr.getLeft()).getName();
+        } else {
+          throw new ParserException(
+              "Left side of the expression ["
+                  + leftSideOfExpression.toString()
+                  + "] is expected to be an identifier");
+        }
         SQLExpr rightSideOfExpression = sqlBinaryOpExpr.getRight();
 
         // This assumes that right side of the expression is different name in query

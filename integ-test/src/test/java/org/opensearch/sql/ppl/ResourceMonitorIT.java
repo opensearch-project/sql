@@ -31,7 +31,7 @@ public class ResourceMonitorIT extends PPLIntegTestCase {
     String query = String.format("search source=%s age=20", TEST_INDEX_DOG);
 
     ResponseException exception = expectThrows(ResponseException.class, () -> executeQuery(query));
-    assertEquals(503, exception.getResponse().getStatusLine().getStatusCode());
+    assertEquals(500, exception.getResponse().getStatusLine().getStatusCode());
     assertThat(
         exception.getMessage(),
         Matchers.containsString("resource is not enough to run the" + " query, quit."));
