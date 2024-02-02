@@ -23,6 +23,7 @@ import org.opensearch.action.admin.indices.delete.DeleteIndexRequest;
 import org.opensearch.action.delete.DeleteRequest;
 import org.opensearch.sql.spark.asyncquery.model.SparkSubmitParameters;
 import org.opensearch.sql.spark.client.EMRServerlessClient;
+import org.opensearch.sql.spark.client.EMRServerlessClientFactory;
 import org.opensearch.sql.spark.client.StartJobRequest;
 import org.opensearch.sql.spark.execution.statestore.StateStore;
 import org.opensearch.test.OpenSearchIntegTestCase;
@@ -117,8 +118,9 @@ public class InteractiveSessionTest extends OpenSearchIntegTestCase {
 
   @Test
   public void sessionManagerCreateSession() {
+    EMRServerlessClientFactory emrServerlessClientFactory = () -> emrsClient;
     Session session =
-        new SessionManager(stateStore, emrsClient, sessionSetting())
+        new SessionManager(stateStore, emrServerlessClientFactory, sessionSetting())
             .createSession(createSessionRequest());
 
     TestSession testSession = testSession(session, stateStore);
@@ -127,7 +129,9 @@ public class InteractiveSessionTest extends OpenSearchIntegTestCase {
 
   @Test
   public void sessionManagerGetSession() {
-    SessionManager sessionManager = new SessionManager(stateStore, emrsClient, sessionSetting());
+    EMRServerlessClientFactory emrServerlessClientFactory = () -> emrsClient;
+    SessionManager sessionManager =
+        new SessionManager(stateStore, emrServerlessClientFactory, sessionSetting());
     Session session = sessionManager.createSession(createSessionRequest());
 
     Optional<Session> managerSession = sessionManager.getSession(session.getSessionId());
@@ -137,7 +141,9 @@ public class InteractiveSessionTest extends OpenSearchIntegTestCase {
 
   @Test
   public void sessionManagerGetSessionNotExist() {
-    SessionManager sessionManager = new SessionManager(stateStore, emrsClient, sessionSetting());
+    EMRServerlessClientFactory emrServerlessClientFactory = () -> emrsClient;
+    SessionManager sessionManager =
+        new SessionManager(stateStore, emrServerlessClientFactory, sessionSetting());
 
     Optional<Session> managerSession =
         sessionManager.getSession(SessionId.newSessionId("no-exist"));

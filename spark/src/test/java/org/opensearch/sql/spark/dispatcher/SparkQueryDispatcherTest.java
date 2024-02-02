@@ -62,6 +62,7 @@ import org.opensearch.sql.datasources.auth.DataSourceUserAuthorizationHelperImpl
 import org.opensearch.sql.spark.asyncquery.model.AsyncQueryId;
 import org.opensearch.sql.spark.asyncquery.model.AsyncQueryJobMetadata;
 import org.opensearch.sql.spark.client.EMRServerlessClient;
+import org.opensearch.sql.spark.client.EMRServerlessClientFactory;
 import org.opensearch.sql.spark.client.StartJobRequest;
 import org.opensearch.sql.spark.dispatcher.model.DispatchQueryRequest;
 import org.opensearch.sql.spark.dispatcher.model.DispatchQueryResponse;
@@ -82,6 +83,7 @@ import org.opensearch.sql.spark.rest.model.LangType;
 public class SparkQueryDispatcherTest {
 
   @Mock private EMRServerlessClient emrServerlessClient;
+  @Mock private EMRServerlessClientFactory emrServerlessClientFactory;
   @Mock private DataSourceService dataSourceService;
   @Mock private JobExecutionResponseReader jobExecutionResponseReader;
   @Mock private DataSourceUserAuthorizationHelperImpl dataSourceUserAuthorizationHelper;
@@ -112,7 +114,7 @@ public class SparkQueryDispatcherTest {
   void setUp() {
     sparkQueryDispatcher =
         new SparkQueryDispatcher(
-            emrServerlessClient,
+            emrServerlessClientFactory,
             dataSourceService,
             dataSourceUserAuthorizationHelper,
             jobExecutionResponseReader,
@@ -121,6 +123,7 @@ public class SparkQueryDispatcherTest {
             sessionManager,
             leaseManager,
             stateStore);
+    when(emrServerlessClientFactory.getClient()).thenReturn(emrServerlessClient);
   }
 
   @Test
