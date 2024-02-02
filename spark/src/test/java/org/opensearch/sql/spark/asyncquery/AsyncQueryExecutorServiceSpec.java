@@ -59,6 +59,7 @@ import org.opensearch.sql.legacy.esdomain.LocalClusterState;
 import org.opensearch.sql.legacy.metrics.Metrics;
 import org.opensearch.sql.opensearch.setting.OpenSearchSettings;
 import org.opensearch.sql.spark.client.EMRServerlessClient;
+import org.opensearch.sql.spark.client.EMRServerlessClientFactory;
 import org.opensearch.sql.spark.client.StartJobRequest;
 import org.opensearch.sql.spark.config.SparkExecutionEngineConfig;
 import org.opensearch.sql.spark.dispatcher.SparkQueryDispatcher;
@@ -195,27 +196,27 @@ public class AsyncQueryExecutorServiceSpec extends OpenSearchIntegTestCase {
   }
 
   protected AsyncQueryExecutorService createAsyncQueryExecutorService(
-      EMRServerlessClient emrServerlessClient) {
+      EMRServerlessClientFactory emrServerlessClientFactory) {
     return createAsyncQueryExecutorService(
-        emrServerlessClient, new JobExecutionResponseReader(client));
+        emrServerlessClientFactory, new JobExecutionResponseReader(client));
   }
 
   /** Pass a custom response reader which can mock interaction between PPL plugin and EMR-S job. */
   protected AsyncQueryExecutorService createAsyncQueryExecutorService(
-      EMRServerlessClient emrServerlessClient,
+      EMRServerlessClientFactory emrServerlessClientFactory,
       JobExecutionResponseReader jobExecutionResponseReader) {
     StateStore stateStore = new StateStore(client, clusterService);
     AsyncQueryJobMetadataStorageService asyncQueryJobMetadataStorageService =
         new OpensearchAsyncQueryJobMetadataStorageService(stateStore);
     SparkQueryDispatcher sparkQueryDispatcher =
         new SparkQueryDispatcher(
-            emrServerlessClient,
+            emrServerlessClientFactory,
             this.dataSourceService,
             new DataSourceUserAuthorizationHelperImpl(client),
             jobExecutionResponseReader,
             new FlintIndexMetadataReaderImpl(client),
             client,
-            new SessionManager(stateStore, emrServerlessClient, pluginSettings),
+            new SessionManager(stateStore, emrServerlessClientFactory, pluginSettings),
             new DefaultLeaseManager(pluginSettings, stateStore),
             stateStore);
     return new AsyncQueryExecutorServiceImpl(
@@ -268,6 +269,14 @@ public class AsyncQueryExecutorServiceSpec extends OpenSearchIntegTestCase {
 
     public void setJobState(JobRunState jobState) {
       this.jobState = jobState;
+    }
+  }
+
+  public static class LocalEMRServerlessClientFactory implements EMRServerlessClientFactory {
+
+    @Override
+    public EMRServerlessClient getClient() {
+      return new LocalEMRSClient();
     }
   }
 
