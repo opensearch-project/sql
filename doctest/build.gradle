@@ -21,7 +21,7 @@ def plugin_path = project(':doctest').projectDir
 
 task cloneSqlCli(type: Exec) {
     // clone the sql-cli repo locally
-    commandLine 'git', 'clone', 'https://github.com/opensearch-project/sql-cli.git'
+    commandLine 'git', 'clone', 'https://github.com/noCharger/sql-cli.git'
 }
 
 task bootstrap(type: Exec, dependsOn: ['cloneSqlCli', 'spotlessJava']) {
