@@ -10,6 +10,7 @@ import static org.opensearch.sql.legacy.util.MultipleIndexClusterUtils.mockMulti
 
 import com.alibaba.druid.sql.SQLUtils;
 import com.alibaba.druid.sql.ast.expr.SQLQueryExpr;
+import com.alibaba.druid.sql.parser.ParserException;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -97,6 +98,15 @@ public class TermFieldRewriterTest {
     String sql = "SELECT age FROM account* WHERE age = 10";
     exception.expect(VerificationException.class);
     exception.expectMessage("Different mappings are not allowed for the same field[age]");
+    rewriteTerm(sql);
+  }
+
+  @Test
+  public void testIssue2391_WithWrongBinaryOperation() {
+    String sql = "SELECT * from I_THINK/IM/A_URL";
+    exception.expect(ParserException.class);
+    exception.expectMessage(
+        "Left side of the expression [I_THINK / IM] is expected to be an identifier");
     rewriteTerm(sql);
   }
 

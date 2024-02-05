@@ -11,6 +11,8 @@ import static org.opensearch.sql.spark.constants.TestConstants.EMR_JOB_ID;
 import java.util.Optional;
 import org.junit.Before;
 import org.junit.Test;
+import org.junit.jupiter.api.Assertions;
+import org.opensearch.sql.spark.asyncquery.exceptions.AsyncQueryNotFoundException;
 import org.opensearch.sql.spark.asyncquery.model.AsyncQueryId;
 import org.opensearch.sql.spark.asyncquery.model.AsyncQueryJobMetadata;
 import org.opensearch.sql.spark.execution.statestore.StateStore;
@@ -22,6 +24,7 @@ public class OpensearchAsyncQueryAsyncQueryJobMetadataStorageServiceTest
   public static final String DS_NAME = "mys3";
   private static final String MOCK_SESSION_ID = "sessionId";
   private static final String MOCK_RESULT_INDEX = "resultIndex";
+  private static final String MOCK_QUERY_ID = "00fdo6u94n7abo0q";
   private OpensearchAsyncQueryJobMetadataStorageService opensearchJobMetadataStorageService;
 
   @Before
@@ -68,5 +71,25 @@ public class OpensearchAsyncQueryAsyncQueryJobMetadataStorageServiceTest
     assertEquals(expected, actual.get());
     assertEquals("resultIndex", actual.get().getResultIndex());
     assertEquals(MOCK_SESSION_ID, actual.get().getSessionId());
+  }
+
+  @Test
+  public void testGetJobMetadataWithMalformedQueryId() {
+    AsyncQueryNotFoundException asyncQueryNotFoundException =
+        Assertions.assertThrows(
+            AsyncQueryNotFoundException.class,
+            () -> opensearchJobMetadataStorageService.getJobMetadata(MOCK_QUERY_ID));
+    Assertions.assertEquals(
+        String.format("Invalid QueryId: %s", MOCK_QUERY_ID),
+        asyncQueryNotFoundException.getMessage());
+  }
+
+  @Test
+  public void testGetJobMetadataWithEmptyQueryId() {
+    AsyncQueryNotFoundException asyncQueryNotFoundException =
+        Assertions.assertThrows(
+            AsyncQueryNotFoundException.class,
+            () -> opensearchJobMetadataStorageService.getJobMetadata(""));
+    Assertions.assertEquals("Invalid QueryId: ", asyncQueryNotFoundException.getMessage());
   }
 }
