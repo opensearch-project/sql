@@ -5,7 +5,7 @@
 
 package org.opensearch.sql.legacy.plugin;
 
-import static org.opensearch.core.rest.RestStatus.SERVICE_UNAVAILABLE;
+import static org.opensearch.core.rest.RestStatus.INTERNAL_SERVER_ERROR;
 
 import com.google.common.collect.ImmutableList;
 import java.util.Arrays;
@@ -84,8 +84,8 @@ public class RestSqlStatsAction extends BaseRestHandler {
       return channel ->
           channel.sendResponse(
               new BytesRestResponse(
-                  SERVICE_UNAVAILABLE,
-                  ErrorMessageFactory.createErrorMessage(e, SERVICE_UNAVAILABLE.getStatus())
+                  INTERNAL_SERVER_ERROR,
+                  ErrorMessageFactory.createErrorMessage(e, INTERNAL_SERVER_ERROR.getStatus())
                       .toString()));
     }
   }

@@ -1754,7 +1754,7 @@ public class QueryIT extends SQLIntegTestCase {
       Assert.fail("Expected exception, but call succeeded");
     } catch (ResponseException e) {
       Assert.assertEquals(
-          RestStatus.BAD_REQUEST.getStatus(), e.getResponse().getStatusLine().getStatusCode());
+          RestStatus.NOT_FOUND.getStatus(), e.getResponse().getStatusLine().getStatusCode());
       final String entity = TestUtils.getResponseBody(e.getResponse());
       Assert.assertThat(entity, containsString("\"type\": \"IndexNotFoundException\""));
     }

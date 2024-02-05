@@ -87,7 +87,7 @@ public class CrossClusterSearchIT extends PPLIntegTestCase {
             () -> executeQuery(String.format("search source=%s", TEST_INDEX_ACCOUNT_REMOTE)));
     assertTrue(
         exception.getMessage().contains("IndexNotFoundException")
-            && exception.getMessage().contains("400 Bad Request"));
+            && exception.getMessage().contains("404 Not Found"));
   }
 
   @Test

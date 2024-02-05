@@ -6,8 +6,8 @@
 package org.opensearch.sql.legacy.plugin;
 
 import static org.opensearch.core.rest.RestStatus.BAD_REQUEST;
+import static org.opensearch.core.rest.RestStatus.INTERNAL_SERVER_ERROR;
 import static org.opensearch.core.rest.RestStatus.OK;
-import static org.opensearch.core.rest.RestStatus.SERVICE_UNAVAILABLE;
 
 import com.alibaba.druid.sql.parser.ParserException;
 import com.google.common.collect.ImmutableList;
@@ -23,6 +23,7 @@ import java.util.function.Predicate;
 import java.util.regex.Pattern;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.opensearch.OpenSearchException;
 import org.opensearch.client.Client;
 import org.opensearch.client.node.NodeClient;
 import org.opensearch.common.inject.Injector;
@@ -171,21 +172,23 @@ public class RestSqlAction extends BaseRestHandler {
               QueryAction queryAction = explainRequest(client, sqlRequest, format);
               executeSqlRequest(request, queryAction, client, restChannel);
             } catch (Exception e) {
-              logAndPublishMetrics(e);
-              reportError(restChannel, e, isClientError(e) ? BAD_REQUEST : SERVICE_UNAVAILABLE);
+              handleException(restChannel, e);
             }
           },
-          (restChannel, exception) -> {
-            logAndPublishMetrics(exception);
-            reportError(
-                restChannel,
-                exception,
-                isClientError(exception) ? BAD_REQUEST : SERVICE_UNAVAILABLE);
-          });
+          this::handleException);
     } catch (Exception e) {
-      logAndPublishMetrics(e);
-      return channel ->
-          reportError(channel, e, isClientError(e) ? BAD_REQUEST : SERVICE_UNAVAILABLE);
+      return channel -> handleException(channel, e);
+    }
+  }
+
+  private void handleException(RestChannel restChannel, Exception exception) {
+    logAndPublishMetrics(exception);
+    if (exception instanceof OpenSearchException) {
+      OpenSearchException openSearchException = (OpenSearchException) exception;
+      reportError(restChannel, openSearchException, openSearchException.status());
+    } else {
+      reportError(
+          restChannel, exception, isClientError(exception) ? BAD_REQUEST : INTERNAL_SERVER_ERROR);
     }
   }
 
