@@ -8,7 +8,6 @@ package org.opensearch.sql.plugin.rest;
 import static org.opensearch.core.rest.RestStatus.BAD_REQUEST;
 import static org.opensearch.core.rest.RestStatus.INTERNAL_SERVER_ERROR;
 import static org.opensearch.core.rest.RestStatus.OK;
-import static org.opensearch.core.rest.RestStatus.SERVICE_UNAVAILABLE;
 
 import com.google.common.collect.ImmutableList;
 import java.util.Arrays;
@@ -17,7 +16,7 @@ import java.util.List;
 import java.util.Set;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.opensearch.OpenSearchSecurityException;
+import org.opensearch.OpenSearchException;
 import org.opensearch.client.node.NodeClient;
 import org.opensearch.core.action.ActionListener;
 import org.opensearch.core.rest.RestStatus;
@@ -116,8 +115,11 @@ public class RestPPLQueryAction extends BaseRestHandler {
                       channel,
                       INTERNAL_SERVER_ERROR,
                       "Failed to explain the query due to error: " + e.getMessage());
-                } else if (e instanceof OpenSearchSecurityException) {
-                  OpenSearchSecurityException exception = (OpenSearchSecurityException) e;
+                } else if (e instanceof OpenSearchException) {
+                  Metrics.getInstance()
+                      .getNumericalMetric(MetricName.PPL_FAILED_REQ_COUNT_CUS)
+                      .increment();
+                  OpenSearchException exception = (OpenSearchException) e;
                   reportError(channel, exception, exception.status());
                 } else {
                   LOG.error("Error happened during query handling", e);
@@ -130,7 +132,7 @@ public class RestPPLQueryAction extends BaseRestHandler {
                     Metrics.getInstance()
                         .getNumericalMetric(MetricName.PPL_FAILED_REQ_COUNT_SYS)
                         .increment();
-                    reportError(channel, e, SERVICE_UNAVAILABLE);
+                    reportError(channel, e, INTERNAL_SERVER_ERROR);
                   }
                 }
               }

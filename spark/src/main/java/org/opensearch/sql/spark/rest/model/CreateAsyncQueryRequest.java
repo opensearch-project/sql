@@ -41,23 +41,28 @@ public class CreateAsyncQueryRequest {
     LangType lang = null;
     String datasource = null;
     String sessionId = null;
-    ensureExpectedToken(XContentParser.Token.START_OBJECT, parser.nextToken(), parser);
-    while (parser.nextToken() != XContentParser.Token.END_OBJECT) {
-      String fieldName = parser.currentName();
-      parser.nextToken();
-      if (fieldName.equals("query")) {
-        query = parser.textOrNull();
-      } else if (fieldName.equals("lang")) {
-        String langString = parser.textOrNull();
-        lang = LangType.fromString(langString);
-      } else if (fieldName.equals("datasource")) {
-        datasource = parser.textOrNull();
-      } else if (fieldName.equals(SESSION_ID)) {
-        sessionId = parser.textOrNull();
-      } else {
-        throw new IllegalArgumentException("Unknown field: " + fieldName);
+    try {
+      ensureExpectedToken(XContentParser.Token.START_OBJECT, parser.nextToken(), parser);
+      while (parser.nextToken() != XContentParser.Token.END_OBJECT) {
+        String fieldName = parser.currentName();
+        parser.nextToken();
+        if (fieldName.equals("query")) {
+          query = parser.textOrNull();
+        } else if (fieldName.equals("lang")) {
+          String langString = parser.textOrNull();
+          lang = LangType.fromString(langString);
+        } else if (fieldName.equals("datasource")) {
+          datasource = parser.textOrNull();
+        } else if (fieldName.equals(SESSION_ID)) {
+          sessionId = parser.textOrNull();
+        } else {
+          throw new IllegalArgumentException("Unknown field: " + fieldName);
+        }
       }
+      return new CreateAsyncQueryRequest(query, datasource, lang, sessionId);
+    } catch (Exception e) {
+      throw new IllegalArgumentException(
+          String.format("Error while parsing the request body: %s", e.getMessage()));
     }
-    return new CreateAsyncQueryRequest(query, datasource, lang, sessionId);
   }
 }

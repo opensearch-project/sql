@@ -58,7 +58,7 @@ public class PPLPluginIT extends PPLIntegTestCase {
   @Test
   public void testQueryEndpointShouldFailWithNonExistIndex() throws IOException {
     exceptionRule.expect(ResponseException.class);
-    exceptionRule.expect(hasProperty("response", statusCode(400)));
+    exceptionRule.expect(hasProperty("response", statusCode(404)));
 
     client().performRequest(makePPLRequest("search source=non_exist_index"));
   }

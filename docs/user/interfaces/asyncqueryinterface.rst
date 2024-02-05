@@ -30,10 +30,8 @@ Sample Setting Value ::
         "region":"eu-west-1",
         "sparkSubmitParameter": "--conf spark.dynamicAllocation.enabled=false"
     }'
-If this setting is not configured during bootstrap, Async Query APIs will be disabled and it requires a cluster restart to enable them back again.
-We make use of default aws credentials chain to make calls to the emr serverless application and also make sure the default credentials
-have pass role permissions for emr-job-execution-role mentioned in the engine configuration.
-
+The user must be careful before transitioning to a new application or region, as changing these parameters might lead to failures in the retrieval of results from previous async query jobs.
+The system relies on the default AWS credentials chain for making calls to the EMR serverless application. It is essential to confirm that the default credentials possess the necessary permissions to pass the role required for EMR job execution, as specified in the engine configuration.
 *  ``applicationId``, ``executionRoleARN`` and ``region`` are required parameters.
 *  ``sparkSubmitParameter`` is an optional parameter. It can take the form ``--conf A=1 --conf B=2 ...``.
 
