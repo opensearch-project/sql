@@ -49,8 +49,8 @@ dependencies {
 
     implementation group: 'org.opensearch', name: 'opensearch', version: "${opensearch_version}"
     implementation group: 'org.json', name: 'json', version: '20231013'
-    api group: 'com.amazonaws', name: 'aws-java-sdk-emr', version: '1.12.545'
-    api group: 'com.amazonaws', name: 'aws-java-sdk-emrserverless', version: '1.12.545'
+    api group: 'com.amazonaws', name: 'aws-java-sdk-emr', version: "${aws_java_sdk_version}"
+    api group: 'com.amazonaws', name: 'aws-java-sdk-emrserverless', version: "${aws_java_sdk_version}"
     implementation group: 'commons-io', name: 'commons-io', version: '2.8.0'
 
     testImplementation(platform("org.junit:junit-bom:5.9.3"))
