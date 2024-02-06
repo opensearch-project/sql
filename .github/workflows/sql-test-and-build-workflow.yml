@@ -31,6 +31,7 @@ jobs:
         java:
           - 11
           - 17
+          - 21
     runs-on: ubuntu-latest
     container:
       # using the same image which is used by opensearch-build team to build the OpenSearch Distribution
@@ -108,6 +109,8 @@ jobs:
           - { os: macos-latest, java: 11}
           - { os: windows-latest, java: 17, os_build_args: -x doctest -PbuildPlatform=windows }
           - { os: macos-latest, java: 17 }
+          - { os: windows-latest, java: 21, os_build_args: -x doctest -PbuildPlatform=windows }
+          - { os: macos-latest, java: 21 }
     runs-on: ${{ matrix.entry.os }}
 
     steps:
