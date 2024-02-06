@@ -45,7 +45,10 @@ public abstract class Settings {
     AUTO_INDEX_MANAGEMENT_ENABLED(
         "plugins.query.executionengine.spark.auto_index_management.enabled"),
     SESSION_INACTIVITY_TIMEOUT_MILLIS(
-        "plugins.query.executionengine.spark.session_inactivity_timeout_millis");
+        "plugins.query.executionengine.spark.session_inactivity_timeout_millis"),
+
+    /** Async query Settings * */
+    ASYNC_QUERY_ENABLED("plugins.query.executionengine.async_query.enabled");
 
     @Getter private final String keyValue;
 
