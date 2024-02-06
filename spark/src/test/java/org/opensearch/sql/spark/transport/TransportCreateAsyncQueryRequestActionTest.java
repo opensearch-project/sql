@@ -8,6 +8,7 @@
 package org.opensearch.sql.spark.transport;
 
 import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -25,6 +26,8 @@ import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.opensearch.action.support.ActionFilters;
 import org.opensearch.core.action.ActionListener;
+import org.opensearch.sql.common.setting.Settings;
+import org.opensearch.sql.opensearch.setting.OpenSearchSettings;
 import org.opensearch.sql.spark.asyncquery.AsyncQueryExecutorServiceImpl;
 import org.opensearch.sql.spark.rest.model.CreateAsyncQueryRequest;
 import org.opensearch.sql.spark.rest.model.CreateAsyncQueryResponse;
@@ -42,6 +45,7 @@ public class TransportCreateAsyncQueryRequestActionTest {
   @Mock private AsyncQueryExecutorServiceImpl jobExecutorService;
   @Mock private Task task;
   @Mock private ActionListener<CreateAsyncQueryActionResponse> actionListener;
+  @Mock private OpenSearchSettings pluginSettings;
 
   @Captor
   private ArgumentCaptor<CreateAsyncQueryActionResponse> createJobActionResponseArgumentCaptor;
@@ -52,7 +56,10 @@ public class TransportCreateAsyncQueryRequestActionTest {
   public void setUp() {
     action =
         new TransportCreateAsyncQueryRequestAction(
-            transportService, new ActionFilters(new HashSet<>()), jobExecutorService);
+            transportService,
+            new ActionFilters(new HashSet<>()),
+            jobExecutorService,
+            pluginSettings);
   }
 
   @Test
@@ -61,6 +68,7 @@ public class TransportCreateAsyncQueryRequestActionTest {
         new CreateAsyncQueryRequest("source = my_glue.default.alb_logs", "my_glue", LangType.SQL);
     CreateAsyncQueryActionRequest request =
         new CreateAsyncQueryActionRequest(createAsyncQueryRequest);
+    when(pluginSettings.getSettingValue(Settings.Key.ASYNC_QUERY_ENABLED)).thenReturn(true);
     when(jobExecutorService.createAsyncQuery(createAsyncQueryRequest))
         .thenReturn(new CreateAsyncQueryResponse("123", null));
     action.doExecute(task, request, actionListener);
@@ -78,6 +86,7 @@ public class TransportCreateAsyncQueryRequestActionTest {
             "source = my_glue.default.alb_logs", "my_glue", LangType.SQL, MOCK_SESSION_ID);
     CreateAsyncQueryActionRequest request =
         new CreateAsyncQueryActionRequest(createAsyncQueryRequest);
+    when(pluginSettings.getSettingValue(Settings.Key.ASYNC_QUERY_ENABLED)).thenReturn(true);
     when(jobExecutorService.createAsyncQuery(createAsyncQueryRequest))
         .thenReturn(new CreateAsyncQueryResponse("123", MOCK_SESSION_ID));
     action.doExecute(task, request, actionListener);
@@ -95,6 +104,7 @@ public class TransportCreateAsyncQueryRequestActionTest {
         new CreateAsyncQueryRequest("source = my_glue.default.alb_logs", "my_glue", LangType.SQL);
     CreateAsyncQueryActionRequest request =
         new CreateAsyncQueryActionRequest(createAsyncQueryRequest);
+    when(pluginSettings.getSettingValue(Settings.Key.ASYNC_QUERY_ENABLED)).thenReturn(true);
     doThrow(new RuntimeException("Error"))
         .when(jobExecutorService)
         .createAsyncQuery(createAsyncQueryRequest);
@@ -104,5 +114,22 @@ public class TransportCreateAsyncQueryRequestActionTest {
     Exception exception = exceptionArgumentCaptor.getValue();
     Assertions.assertTrue(exception instanceof RuntimeException);
     Assertions.assertEquals("Error", exception.getMessage());
+  }
+
+  @Test
+  public void asyncQueryDisabled() {
+    CreateAsyncQueryRequest createAsyncQueryRequest =
+        new CreateAsyncQueryRequest("source = my_glue.default.alb_logs", "my_glue", LangType.SQL);
+    CreateAsyncQueryActionRequest request =
+        new CreateAsyncQueryActionRequest(createAsyncQueryRequest);
+    when(pluginSettings.getSettingValue(Settings.Key.ASYNC_QUERY_ENABLED)).thenReturn(false);
+    action.doExecute(task, request, actionListener);
+    verify(jobExecutorService, never()).createAsyncQuery(createAsyncQueryRequest);
+    Mockito.verify(actionListener).onFailure(exceptionArgumentCaptor.capture());
+    Exception exception = exceptionArgumentCaptor.getValue();
+    Assertions.assertTrue(exception instanceof IllegalAccessException);
+    Assertions.assertEquals(
+        "plugins.query.executionengine.async_query.enabled " + "setting is false",
+        exception.getMessage());
   }
 }

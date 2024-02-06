@@ -563,3 +563,35 @@ SQL query::
             }
         }
     }
+
+plugins.query.executionengine.async_query.enabled
+===============================
+
+Description
+-----------
+You can disable submit async query to reject all coming requests.
+
+1. The default value is true.
+2. This setting is node scope.
+3. This setting can be updated dynamically.
+
+Request::
+
+    sh$ curl -sS -H 'Content-Type: application/json' -X PUT localhost:9200/_cluster/settings \
+    ... -d '{"transient":{"plugins.query.executionengine.async_query.enabled":"false"}}'
+    {
+        "acknowledged": true,
+        "persistent": {},
+        "transient": {
+            "plugins": {
+                "query": {
+                    "executionengine": {
+                        "async_query": {
+                            "enabled": "false"
+                        }
+                    }
+                }
+            }
+        }
+    }
+

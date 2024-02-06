@@ -7,11 +7,14 @@
 
 package org.opensearch.sql.spark.transport;
 
+import java.util.Locale;
 import org.opensearch.action.ActionType;
 import org.opensearch.action.support.ActionFilters;
 import org.opensearch.action.support.HandledTransportAction;
 import org.opensearch.common.inject.Inject;
 import org.opensearch.core.action.ActionListener;
+import org.opensearch.sql.common.setting.Settings;
+import org.opensearch.sql.opensearch.setting.OpenSearchSettings;
 import org.opensearch.sql.protocol.response.format.JsonResponseFormatter;
 import org.opensearch.sql.spark.asyncquery.AsyncQueryExecutorService;
 import org.opensearch.sql.spark.asyncquery.AsyncQueryExecutorServiceImpl;
@@ -26,6 +29,7 @@ public class TransportCreateAsyncQueryRequestAction
     extends HandledTransportAction<CreateAsyncQueryActionRequest, CreateAsyncQueryActionResponse> {
 
   private final AsyncQueryExecutorService asyncQueryExecutorService;
+  private final OpenSearchSettings pluginSettings;
 
   public static final String NAME = "cluster:admin/opensearch/ql/async_query/create";
   public static final ActionType<CreateAsyncQueryActionResponse> ACTION_TYPE =
@@ -35,9 +39,11 @@ public class TransportCreateAsyncQueryRequestAction
   public TransportCreateAsyncQueryRequestAction(
       TransportService transportService,
       ActionFilters actionFilters,
-      AsyncQueryExecutorServiceImpl jobManagementService) {
+      AsyncQueryExecutorServiceImpl jobManagementService,
+      OpenSearchSettings pluginSettings) {
     super(NAME, transportService, actionFilters, CreateAsyncQueryActionRequest::new);
     this.asyncQueryExecutorService = jobManagementService;
+    this.pluginSettings = pluginSettings;
   }
 
   @Override
@@ -46,6 +52,16 @@ public class TransportCreateAsyncQueryRequestAction
       CreateAsyncQueryActionRequest request,
       ActionListener<CreateAsyncQueryActionResponse> listener) {
     try {
+      if (!(Boolean) pluginSettings.getSettingValue(Settings.Key.ASYNC_QUERY_ENABLED)) {
+        listener.onFailure(
+            new IllegalAccessException(
+                String.format(
+                    Locale.ROOT,
+                    "%s setting is " + "false",
+                    Settings.Key.ASYNC_QUERY_ENABLED.getKeyValue())));
+        return;
+      }
+
       CreateAsyncQueryRequest createAsyncQueryRequest = request.getCreateAsyncQueryRequest();
       CreateAsyncQueryResponse createAsyncQueryResponse =
           asyncQueryExecutorService.createAsyncQuery(createAsyncQueryRequest);
