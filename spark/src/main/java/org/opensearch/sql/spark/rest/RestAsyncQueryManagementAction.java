@@ -236,7 +236,8 @@ public class RestAsyncQueryManagementAction extends BaseRestHandler {
     return e instanceof IllegalArgumentException
         || e instanceof IllegalStateException
         || e instanceof DataSourceNotFoundException
-        || e instanceof AsyncQueryNotFoundException;
+        || e instanceof AsyncQueryNotFoundException
+        || e instanceof IllegalAccessException;
   }
 
   private void addSystemErrorMetric(RestRequest.Method requestMethod) {
