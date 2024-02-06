@@ -20,21 +20,49 @@ All the queries to be executed on spark execution engine can only be submitted v
 
 Required Spark Execution Engine Config for Async Query APIs
 ===========================================================
-Currently, we only support AWS EMRServerless as SPARK execution engine. The details of execution engine should be configured under
-``plugins.query.executionengine.spark.config`` in cluster settings. The value should be a stringified json comprising of ``applicationId``, ``executionRoleARN``,``region``, ``sparkSubmitParameter``.
-Sample Setting Value ::
+Currently, the system supports only AWS EMRServerless as the SPARK execution engine. Configuration details for the execution engine should be specified under ``plugins.query.executionengine.spark.config`` in the opensearch.yml or cluster settings. The configuration value is expected to be a JSON string that includes ``applicationId``, ``executionRoleARN``, ``region``, and ``sparkSubmitParameter``.
 
-    plugins.query.executionengine.spark.config:
-    '{  "applicationId":"xxxxx",
-        "executionRoleARN":"arn:aws:iam::***********:role/emr-job-execution-role",
-        "region":"eu-west-1",
-        "sparkSubmitParameter": "--conf spark.dynamicAllocation.enabled=false"
-    }'
-The user must be careful before transitioning to a new application or region, as changing these parameters might lead to failures in the retrieval of results from previous async query jobs.
-The system relies on the default AWS credentials chain for making calls to the EMR serverless application. It is essential to confirm that the default credentials possess the necessary permissions to pass the role required for EMR job execution, as specified in the engine configuration.
-*  ``applicationId``, ``executionRoleARN`` and ``region`` are required parameters.
-*  ``sparkSubmitParameter`` is an optional parameter. It can take the form ``--conf A=1 --conf B=2 ...``.
+Sample Setting Value in opensearch.yml
+--------------------
 
+.. code-block:: yaml
+
+    "plugins.query.executionengine.spark.config: '{\"applicationId\":\"xxxxx\",\"executionRoleARN\":\"arn:aws:iam::xxxxx:role/emr-job-execution-role\",\"region\":\"us-west-2\", \"sparkSubmitParameters\": \"--conf spark.dynamicAllocation.enabled=false\"}'"
+
+Caution
+-------
+
+Users must exercise caution when transitioning to a new application or region, as changes to these parameters may lead to failures in retrieving results from previous asynchronous query jobs.
+
+The system utilizes the default AWS credentials chain for calls to the EMR serverless application. It is critical to ensure that the default credentials have the necessary permissions to assume the role required for EMR job execution, as delineated in the engine configuration.
+
+Requirements
+-------------
+
+- **Required Parameters**: ``applicationId``, ``executionRoleARN``, and ``region`` must be provided.
+- **Optional Parameter**: ``sparkSubmitParameter`` is optional and can be formatted as ``--conf A=1 --conf B=2 ...``.
+
+AWS CloudWatch metrics configuration
+-------------
+
+Starting with Flint 0.1.1, users can utilize AWS CloudWatch as an external metrics sink while configuring their own metric sources. Below is an example of a console request for setting this up:
+
+.. code-block:: json
+
+    PUT _cluster/settings
+    {
+      "persistent": {
+        "plugins.query.executionengine.spark.config": "{\"applicationId\":\"xxxxx\",\"executionRoleARN\":\"arn:aws:iam::xxxxx:role/emr-job-execution-role\",\"region\":\"us-east-1\",\"sparkSubmitParameters\":\"--conf spark.dynamicAllocation.enabled=false --conf spark.metrics.conf.*.sink.cloudwatch.class=org.apache.spark.metrics.sink.CloudWatchSink --conf spark.metrics.conf.*.sink.cloudwatch.namespace=OpenSearchSQLSpark --conf spark.metrics.conf.*.sink.cloudwatch.regex=(opensearch|numberAllExecutors).* --conf spark.metrics.conf.*.source.cloudwatch.class=org.apache.spark.metrics.source.FlintMetricSource \"}"
+      }
+    }
+
+For a comprehensive list of Spark configuration options related to metrics, please refer to the Spark documentation on monitoring:
+
+- Spark Monitoring Documentation: https://spark.apache.org/docs/latest/monitoring.html#metrics
+
+Additionally, for details on setting up CloudWatch metric sink and Flint metric source, consult the OpenSearch Spark project:
+
+- OpenSearch Spark GitHub Repository: https://github.com/opensearch-project/opensearch-spark
 
 Async Query Creation API
 ======================================
