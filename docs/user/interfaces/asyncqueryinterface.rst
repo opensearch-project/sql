@@ -35,6 +35,15 @@ The system relies on the default AWS credentials chain for making calls to the E
 *  ``applicationId``, ``executionRoleARN`` and ``region`` are required parameters.
 *  ``sparkSubmitParameter`` is an optional parameter. It can take the form ``--conf A=1 --conf B=2 ...``.
 
+Starting with Flint 0.1.1, users could use AWS CloudWatch as an external metrics sink while configuring their own metric sources. For example::
+
+   plugins.query.executionengine.spark.config:
+   '{  "applicationId":"xxxxx",
+       "executionRoleARN":"arn:aws:iam::***********:role/emr-job-execution-role",
+       "region":"eu-west-1",
+       "sparkSubmitParameters": "--conf spark.dynamicAllocation.enabled=false --conf spark.metrics.conf.*.sink.cloudwatch.class=org.apache.spark.metrics.sink.CloudWatchSink --conf spark.metrics.conf.*.sink.cloudwatch.namespace=OpenSearchSQLSpark --conf spark.metrics.conf.*.sink.cloudwatch.regex=(opensearch|numberAllExecutors).* --conf spark.metrics.conf.*.source.cloudwatch.class=org.apache.spark.metrics.source.FlintMetricSource"
+   }'
+Please refer to https://github.com/opensearch-project/opensearch-spark for a complete list of supported Spark configurations for custom metrics support.
 
 Async Query Creation API
 ======================================
