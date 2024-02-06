@@ -4098,7 +4098,7 @@ Available parameters include:
 
 Example with only ``fields`` and ``query`` expressions, and all other parameters are set default values::
 
-    os> select * from books where multi_match(['title'], 'Pooh House');
+    os> select id, title, author from books where multi_match(['title'], 'Pooh House');
     fetched rows / total rows = 2/2
     +------+--------------------------+----------------------+
     | id   | title                    | author               |
@@ -4109,7 +4109,7 @@ Example with only ``fields`` and ``query`` expressions, and all other parameters
 
 Another example to show how to set custom values for the optional parameters::
 
-    os> select * from books where multi_match(['title'], 'Pooh House', operator='AND', analyzer=default);
+    os> select id, title, author from books where multi_match(['title'], 'Pooh House', operator='AND', analyzer=default);
     fetched rows / total rows = 1/1
     +------+--------------------------+----------------------+
     | id   | title                    | author               |
@@ -4168,7 +4168,7 @@ Available parameters include:
 
 Example with only ``fields`` and ``query`` expressions, and all other parameters are set default values::
 
-    os> select * from books where simple_query_string(['title'], 'Pooh House');
+    os> select id, title, author from books where simple_query_string(['title'], 'Pooh House');
     fetched rows / total rows = 2/2
     +------+--------------------------+----------------------+
     | id   | title                    | author               |
@@ -4179,7 +4179,7 @@ Example with only ``fields`` and ``query`` expressions, and all other parameters
 
 Another example to show how to set custom values for the optional parameters::
 
-    os> select * from books where simple_query_string(['title'], 'Pooh House', flags='ALL', default_operator='AND');
+    os> select id, title, author from books where simple_query_string(['title'], 'Pooh House', flags='ALL', default_operator='AND');
     fetched rows / total rows = 1/1
     +------+--------------------------+----------------------+
     | id   | title                    | author               |
@@ -4230,7 +4230,7 @@ Available parameters include:
 
 Example with only ``fields`` and ``query`` expressions, and all other parameters are set default values::
 
-    os> select * from books where query_string(['title'], 'Pooh House');
+    os> select id, title, author from books where query_string(['title'], 'Pooh House');
     fetched rows / total rows = 2/2
     +------+--------------------------+----------------------+
     | id   | title                    | author               |
@@ -4241,7 +4241,7 @@ Example with only ``fields`` and ``query`` expressions, and all other parameters
 
 Another example to show how to set custom values for the optional parameters::
 
-    os> select * from books where query_string(['title'], 'Pooh House', default_operator='AND');
+    os> select id, title, author from books where query_string(['title'], 'Pooh House', default_operator='AND');
     fetched rows / total rows = 1/1
     +------+--------------------------+----------------------+
     | id   | title                    | author               |
@@ -4292,7 +4292,7 @@ Available parameters include:
 
 Example with only ``query_expressions``, and all other parameters are set default values::
 
-    os> select * from books where query('title:Pooh House');
+    os> select id, title, author from books where query('title:Pooh House');
     fetched rows / total rows = 2/2
     +------+--------------------------+----------------------+
     | id   | title                    | author               |
@@ -4303,7 +4303,7 @@ Example with only ``query_expressions``, and all other parameters are set defaul
 
 Another example to show how to set custom values for the optional parameters::
 
-    os> select * from books where query('title:Pooh House', default_operator='AND');
+    os> select id, title, author from books where query('title:Pooh House', default_operator='AND');
     fetched rows / total rows = 1/1
     +------+--------------------------+----------------------+
     | id   | title                    | author               |
@@ -4337,7 +4337,7 @@ The `score_query` and `scorequery` functions are alternative names for the `scor
 
 Example boosting score::
 
-    os> select *, _score from books where score(query('title:Pooh House', default_operator='AND'), 2.0);
+    os> select id, title, author, _score from books where score(query('title:Pooh House', default_operator='AND'), 2.0);
     fetched rows / total rows = 1/1
     +------+--------------------------+----------------------+-----------+
     | id   | title                    | author               | _score    |
@@ -4345,7 +4345,7 @@ Example boosting score::
     | 1    | The House at Pooh Corner | Alan Alexander Milne | 1.5884793 |
     +------+--------------------------+----------------------+-----------+
 
-    os> select *, _score from books where score(query('title:Pooh House', default_operator='AND'), 5.0) OR score(query('title:Winnie', default_operator='AND'), 1.5);
+    os> select id, title, author, _score from books where score(query('title:Pooh House', default_operator='AND'), 5.0) OR score(query('title:Winnie', default_operator='AND'), 1.5);
     fetched rows / total rows = 2/2
     +------+--------------------------+----------------------+-----------+
     | id   | title                    | author               | _score    |
