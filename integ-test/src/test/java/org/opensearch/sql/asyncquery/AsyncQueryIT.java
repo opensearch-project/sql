@@ -33,7 +33,7 @@ public class AsyncQueryIT extends PPLIntegTestCase {
     String query = "select 1";
     Response response = null;
     try {
-      executeAsyncQueryToString (query);
+      executeAsyncQueryToString(query);
     } catch (ResponseException ex) {
       response = ex.getResponse();
     }
@@ -60,11 +60,15 @@ public class AsyncQueryIT extends PPLIntegTestCase {
   protected Request buildAsyncRequest(String query, String endpoint) {
     Request request = new Request("POST", endpoint);
     request.setJsonEntity(String.format(Locale.ROOT, "{\n" + "  \"query\": \"%s\"\n" + "}", query));
-    request.setJsonEntity(String.format(Locale.ROOT, "{\n" +
-        "  \"datasource\": \"mys3\",\n" +
-        "  \"lang\": \"sql\",\n" +
-        "  \"query\": \"%s\"\n" +
-        "}", query));
+    request.setJsonEntity(
+        String.format(
+            Locale.ROOT,
+            "{\n"
+                + "  \"datasource\": \"mys3\",\n"
+                + "  \"lang\": \"sql\",\n"
+                + "  \"query\": \"%s\"\n"
+                + "}",
+            query));
 
     RequestOptions.Builder restOptionsBuilder = RequestOptions.DEFAULT.toBuilder();
     restOptionsBuilder.addHeader("Content-Type", "application/json");

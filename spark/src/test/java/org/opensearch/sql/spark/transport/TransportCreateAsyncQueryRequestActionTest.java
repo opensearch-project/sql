@@ -56,7 +56,10 @@ public class TransportCreateAsyncQueryRequestActionTest {
   public void setUp() {
     action =
         new TransportCreateAsyncQueryRequestAction(
-            transportService, new ActionFilters(new HashSet<>()), jobExecutorService, pluginSettings);
+            transportService,
+            new ActionFilters(new HashSet<>()),
+            jobExecutorService,
+            pluginSettings);
   }
 
   @Test
@@ -125,7 +128,8 @@ public class TransportCreateAsyncQueryRequestActionTest {
     Mockito.verify(actionListener).onFailure(exceptionArgumentCaptor.capture());
     Exception exception = exceptionArgumentCaptor.getValue();
     Assertions.assertTrue(exception instanceof IllegalAccessException);
-    Assertions.assertEquals("plugins.query.executionengine.async_query.enabled " +
-        "setting is false", exception.getMessage());
+    Assertions.assertEquals(
+        "plugins.query.executionengine.async_query.enabled " + "setting is false",
+        exception.getMessage());
   }
 }

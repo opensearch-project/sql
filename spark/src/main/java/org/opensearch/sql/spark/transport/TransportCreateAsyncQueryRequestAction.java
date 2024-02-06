@@ -53,9 +53,12 @@ public class TransportCreateAsyncQueryRequestAction
       ActionListener<CreateAsyncQueryActionResponse> listener) {
     try {
       if (!(Boolean) pluginSettings.getSettingValue(Settings.Key.ASYNC_QUERY_ENABLED)) {
-        listener.onFailure(new IllegalAccessException(String.format(Locale.ROOT, "%s setting is " +
-                "false",
-            Settings.Key.ASYNC_QUERY_ENABLED.getKeyValue())));
+        listener.onFailure(
+            new IllegalAccessException(
+                String.format(
+                    Locale.ROOT,
+                    "%s setting is " + "false",
+                    Settings.Key.ASYNC_QUERY_ENABLED.getKeyValue())));
         return;
       }
 
