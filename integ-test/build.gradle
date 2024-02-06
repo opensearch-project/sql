@@ -165,7 +165,7 @@ configurations.all {
     resolutionStrategy.force "org.jetbrains.kotlin:kotlin-stdlib-jdk8:1.9.10"
     resolutionStrategy.force "joda-time:joda-time:2.10.12"
     resolutionStrategy.force "org.slf4j:slf4j-api:1.7.36"
-    resolutionStrategy.force "com.amazonaws:aws-java-sdk-core:1.12.545"
+    resolutionStrategy.force "com.amazonaws:aws-java-sdk-core:${aws_java_sdk_version}"
 }
 
 configurations {
