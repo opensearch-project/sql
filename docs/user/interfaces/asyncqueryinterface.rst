@@ -35,15 +35,24 @@ The system relies on the default AWS credentials chain for making calls to the E
 *  ``applicationId``, ``executionRoleARN`` and ``region`` are required parameters.
 *  ``sparkSubmitParameter`` is an optional parameter. It can take the form ``--conf A=1 --conf B=2 ...``.
 
-Starting with Flint 0.1.1, users could use AWS CloudWatch as an external metrics sink while configuring their own metric sources. For example::
+Starting with Flint 0.1.1, users can utilize AWS CloudWatch as an external metrics sink while configuring their own metric sources. Below is an example of a console request for setting this up:
 
-   plugins.query.executionengine.spark.config:
-   '{  "applicationId":"xxxxx",
-       "executionRoleARN":"arn:aws:iam::***********:role/emr-job-execution-role",
-       "region":"eu-west-1",
-       "sparkSubmitParameters": "--conf spark.dynamicAllocation.enabled=false --conf spark.metrics.conf.*.sink.cloudwatch.class=org.apache.spark.metrics.sink.CloudWatchSink --conf spark.metrics.conf.*.sink.cloudwatch.namespace=OpenSearchSQLSpark --conf spark.metrics.conf.*.sink.cloudwatch.regex=(opensearch|numberAllExecutors).* --conf spark.metrics.conf.*.source.cloudwatch.class=org.apache.spark.metrics.source.FlintMetricSource"
-   }'
-Please refer to https://github.com/opensearch-project/opensearch-spark for a complete list of supported Spark configurations for custom metrics support.
+.. code-block:: json
+
+    PUT _cluster/settings
+    {
+      "persistent": {
+        "plugins.query.executionengine.spark.config": "{\"applicationId\":\"xxxxx\",\"executionRoleARN\":\"arn:aws:iam::xxxxx:role/emr-job-execution-role\",\"region\":\"us-east-1\",\"sparkSubmitParameters\":\"--conf spark.dynamicAllocation.enabled=false --conf spark.metrics.conf.*.sink.cloudwatch.class=org.apache.spark.metrics.sink.CloudWatchSink --conf spark.metrics.conf.*.sink.cloudwatch.namespace=OpenSearchSQLSpark --conf spark.metrics.conf.*.sink.cloudwatch.regex=(opensearch|numberAllExecutors).* --conf spark.metrics.conf.*.source.cloudwatch.class=org.apache.spark.metrics.source.FlintMetricSource \"}"
+      }
+    }
+
+For a comprehensive list of Spark configuration options related to metrics, please refer to the Spark documentation on monitoring:
+
+- Spark Monitoring Documentation: https://spark.apache.org/docs/latest/monitoring.html#metrics
+
+Additionally, for details on setting up CloudWatch metric sink and Flint metric source, consult the OpenSearch Spark project:
+
+- OpenSearch Spark GitHub Repository: https://github.com/opensearch-project/opensearch-spark
 
 Async Query Creation API
 ======================================
