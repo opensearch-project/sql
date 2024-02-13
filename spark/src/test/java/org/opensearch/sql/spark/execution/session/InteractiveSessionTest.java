@@ -43,7 +43,7 @@ public class InteractiveSessionTest extends OpenSearchIntegTestCase {
   @Before
   public void setup() {
     emrsClient = new TestEMRServerlessClient();
-    startJobRequest = new StartJobRequest("", "", "appId", "", "", new HashMap<>(), false, "");
+    startJobRequest = new StartJobRequest("", "appId", "", "", new HashMap<>(), false, "");
     stateStore = new StateStore(client(), clusterService());
   }
 

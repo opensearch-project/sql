@@ -25,13 +25,13 @@ import org.opensearch.sql.datasource.model.DataSourceMetadata;
 import org.opensearch.sql.datasource.model.DataSourceType;
 import org.opensearch.sql.datasources.auth.AuthenticationType;
 
-/** Define Spark Submit Parameters. */
+/** Defines the parameters required for Spark submit command construction. */
 @AllArgsConstructor
 @RequiredArgsConstructor
 public class SparkSubmitParameters {
-  public static final String SPACE = " ";
-  public static final String EQUALS = "=";
-  public static final String FLINT_BASIC_AUTH = "basic";
+  private static final String SPACE = " ";
+  private static final String EQUALS = "=";
+  private static final String FLINT_BASIC_AUTH = "basic";
 
   private final String className;
   private final Map<String, String> config;
@@ -40,15 +40,95 @@ public class SparkSubmitParameters {
   private String extraParameters;
 
   public static class Builder {
-
     private String className;
-    private final Map<String, String> config;
+    private final Map<String, String> config = new LinkedHashMap<>();
     private String extraParameters;
 
     private Builder() {
-      className = DEFAULT_CLASS_NAME;
-      config = new LinkedHashMap<>();
+      initializeDefaultConfigurations();
+    }
 
+    public static Builder builder() {
+      return new Builder();
+    }
+
+    public Builder className(String className) {
+      this.className = className;
+      return this;
+    }
+
+    public Builder clusterName(String clusterName) {
+      config.put(SPARK_DRIVER_ENV_FLINT_CLUSTER_NAME_KEY, clusterName);
+      config.put(SPARK_EXECUTOR_ENV_FLINT_CLUSTER_NAME_KEY, clusterName);
+      return this;
+    }
+
+    public Builder dataSource(DataSourceMetadata metadata) {
+      if (!DataSourceType.S3GLUE.equals(metadata.getConnector())) {
+        throw new UnsupportedOperationException(
+            String.format(
+                "Unsupported datasource type for async queries: %s", metadata.getConnector()));
+      }
+
+      configureDataSource(metadata);
+      return this;
+    }
+
+    public Builder extraParameters(String params) {
+      this.extraParameters = params;
+      return this;
+    }
+
+    public Builder query(String query) {
+      config.put(FLINT_JOB_QUERY, query);
+      return this;
+    }
+
+    public Builder sessionExecution(String sessionId, String datasourceName) {
+      config.put(FLINT_JOB_REQUEST_INDEX, DATASOURCE_TO_REQUEST_INDEX.apply(datasourceName));
+      config.put(FLINT_JOB_SESSION_ID, sessionId);
+      return this;
+    }
+
+    public Builder structuredStreaming(Boolean isStructuredStreaming) {
+      if (Boolean.TRUE.equals(isStructuredStreaming)) {
+        config.put("spark.flint.job.type", "streaming");
+      }
+      return this;
+    }
+
+    public SparkSubmitParameters build() {
+      return new SparkSubmitParameters(className, config, extraParameters);
+    }
+
+    private void configureDataSource(DataSourceMetadata metadata) {
+      // DataSource specific configuration
+      String roleArn = metadata.getProperties().get(GLUE_ROLE_ARN);
+
+      config.put(DRIVER_ENV_ASSUME_ROLE_ARN_KEY, roleArn);
+      config.put(EXECUTOR_ENV_ASSUME_ROLE_ARN_KEY, roleArn);
+      config.put(HIVE_METASTORE_GLUE_ARN_KEY, roleArn);
+      config.put("spark.sql.catalog." + metadata.getName(), FLINT_DELEGATE_CATALOG);
+      config.put(FLINT_DATA_SOURCE_KEY, metadata.getName());
+
+      URI uri =
+          parseUri(
+              metadata.getProperties().get(GLUE_INDEX_STORE_OPENSEARCH_URI), metadata.getName());
+      config.put(FLINT_INDEX_STORE_HOST_KEY, uri.getHost());
+      config.put(FLINT_INDEX_STORE_PORT_KEY, String.valueOf(uri.getPort()));
+      config.put(FLINT_INDEX_STORE_SCHEME_KEY, uri.getScheme());
+
+      setFlintIndexStoreAuthProperties(
+          metadata.getProperties().get(GLUE_INDEX_STORE_OPENSEARCH_AUTH),
+          () -> metadata.getProperties().get(GLUE_INDEX_STORE_OPENSEARCH_AUTH_USERNAME),
+          () -> metadata.getProperties().get(GLUE_INDEX_STORE_OPENSEARCH_AUTH_PASSWORD),
+          () -> metadata.getProperties().get(GLUE_INDEX_STORE_OPENSEARCH_REGION));
+      config.put("spark.flint.datasource.name", metadata.getName());
+    }
+
+    private void initializeDefaultConfigurations() {
+      className = DEFAULT_CLASS_NAME;
+      // Default configurations initialization
       config.put(S3_AWS_CREDENTIALS_PROVIDER_KEY, DEFAULT_S3_AWS_CREDENTIALS_PROVIDER_VALUE);
       config.put(
           HADOOP_CATALOG_CREDENTIALS_PROVIDER_FACTORY_KEY,
@@ -70,51 +150,15 @@ public class SparkSubmitParameters {
       config.put(HIVE_METASTORE_CLASS_KEY, GLUE_HIVE_CATALOG_FACTORY_CLASS);
     }
 
-    public static Builder builder() {
-      return new Builder();
-    }
-
-    public Builder className(String className) {
-      this.className = className;
-      return this;
-    }
-
-    public Builder clusterName(String clusterName) {
-      config.put(SPARK_DRIVER_ENV_FLINT_CLUSTER_NAME_KEY, clusterName);
-      config.put(SPARK_EXECUTOR_ENV_FLINT_CLUSTER_NAME_KEY, clusterName);
-      return this;
-    }
-
-    public Builder dataSource(DataSourceMetadata metadata) {
-      if (DataSourceType.S3GLUE.equals(metadata.getConnector())) {
-        String roleArn = metadata.getProperties().get(GLUE_ROLE_ARN);
-
-        config.put(DRIVER_ENV_ASSUME_ROLE_ARN_KEY, roleArn);
-        config.put(EXECUTOR_ENV_ASSUME_ROLE_ARN_KEY, roleArn);
-        config.put(HIVE_METASTORE_GLUE_ARN_KEY, roleArn);
-        config.put("spark.sql.catalog." + metadata.getName(), FLINT_DELEGATE_CATALOG);
-        config.put(FLINT_DATA_SOURCE_KEY, metadata.getName());
-
-        setFlintIndexStoreHost(
-            parseUri(
-                metadata.getProperties().get(GLUE_INDEX_STORE_OPENSEARCH_URI), metadata.getName()));
-        setFlintIndexStoreAuthProperties(
-            metadata.getProperties().get(GLUE_INDEX_STORE_OPENSEARCH_AUTH),
-            () -> metadata.getProperties().get(GLUE_INDEX_STORE_OPENSEARCH_AUTH_USERNAME),
-            () -> metadata.getProperties().get(GLUE_INDEX_STORE_OPENSEARCH_AUTH_PASSWORD),
-            () -> metadata.getProperties().get(GLUE_INDEX_STORE_OPENSEARCH_REGION));
-        config.put("spark.flint.datasource.name", metadata.getName());
-        return this;
+    private URI parseUri(String opensearchUri, String datasourceName) {
+      try {
+        return new URI(opensearchUri);
+      } catch (URISyntaxException e) {
+        throw new IllegalArgumentException(
+            String.format(
+                "Bad URI in indexstore configuration for datasource: %s.", datasourceName),
+            e);
       }
-      throw new UnsupportedOperationException(
-          String.format(
-              "UnSupported datasource type for async queries:: %s", metadata.getConnector()));
-    }
-
-    private void setFlintIndexStoreHost(URI uri) {
-      config.put(FLINT_INDEX_STORE_HOST_KEY, uri.getHost());
-      config.put(FLINT_INDEX_STORE_PORT_KEY, String.valueOf(uri.getPort()));
-      config.put(FLINT_INDEX_STORE_SCHEME_KEY, uri.getScheme());
     }
 
     private void setFlintIndexStoreAuthProperties(
@@ -133,57 +177,20 @@ public class SparkSubmitParameters {
         config.put(FLINT_INDEX_STORE_AUTH_KEY, authType);
       }
     }
-
-    private URI parseUri(String opensearchUri, String datasourceName) {
-      try {
-        return new URI(opensearchUri);
-      } catch (URISyntaxException e) {
-        throw new IllegalArgumentException(
-            String.format(
-                "Bad URI in indexstore configuration of the : %s datasoure.", datasourceName));
-      }
-    }
-
-    public Builder structuredStreaming(Boolean isStructuredStreaming) {
-      if (isStructuredStreaming) {
-        config.put("spark.flint.job.type", "streaming");
-      }
-      return this;
-    }
-
-    public Builder extraParameters(String params) {
-      extraParameters = params;
-      return this;
-    }
-
-    public Builder sessionExecution(String sessionId, String datasourceName) {
-      config.put(FLINT_JOB_REQUEST_INDEX, DATASOURCE_TO_REQUEST_INDEX.apply(datasourceName));
-      config.put(FLINT_JOB_SESSION_ID, sessionId);
-      return this;
-    }
-
-    public SparkSubmitParameters build() {
-      return new SparkSubmitParameters(className, config, extraParameters);
-    }
   }
 
   @Override
   public String toString() {
-    StringBuilder stringBuilder = new StringBuilder();
-    stringBuilder.append(" --class ");
-    stringBuilder.append(this.className);
-    stringBuilder.append(SPACE);
-    for (String key : config.keySet()) {
-      stringBuilder.append(" --conf ");
-      stringBuilder.append(key);
-      stringBuilder.append(EQUALS);
-      stringBuilder.append(config.get(key));
-      stringBuilder.append(SPACE);
-    }
-
-    if (extraParameters != null) {
-      stringBuilder.append(extraParameters);
-    }
+    StringBuilder stringBuilder = new StringBuilder(" --class ").append(className).append(SPACE);
+    config.forEach(
+        (key, value) ->
+            stringBuilder
+                .append(" --conf ")
+                .append(key)
+                .append(EQUALS)
+                .append(value)
+                .append(SPACE));
+    if (extraParameters != null) stringBuilder.append(extraParameters);
     return stringBuilder.toString();
   }
 }
