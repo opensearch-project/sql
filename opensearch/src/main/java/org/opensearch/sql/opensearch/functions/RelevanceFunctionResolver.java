@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-package org.opensearch.sql.expression.function;
+package org.opensearch.sql.opensearch.functions;
 
 import java.util.List;
 import lombok.Getter;
@@ -12,10 +12,14 @@ import org.apache.commons.lang3.tuple.Pair;
 import org.opensearch.sql.data.type.ExprCoreType;
 import org.opensearch.sql.data.type.ExprType;
 import org.opensearch.sql.exception.SemanticCheckException;
+import org.opensearch.sql.expression.function.FunctionBuilder;
+import org.opensearch.sql.expression.function.FunctionName;
+import org.opensearch.sql.expression.function.FunctionResolver;
+import org.opensearch.sql.expression.function.FunctionSignature;
+import org.opensearch.sql.expression.function.OpenSearchFunction;
 
 @RequiredArgsConstructor
 public class RelevanceFunctionResolver implements FunctionResolver {
-
   @Getter private final FunctionName functionName;
 
   @Override
@@ -38,8 +42,7 @@ public class RelevanceFunctionResolver implements FunctionResolver {
     }
 
     FunctionBuilder buildFunction =
-        (functionProperties, args) ->
-            new OpenSearchFunctions.OpenSearchFunction(functionName, args);
+        (functionProperties, args) -> new OpenSearchFunction(functionName, args);
     return Pair.of(unresolvedSignature, buildFunction);
   }
 

@@ -30,6 +30,7 @@ import org.opensearch.sql.expression.LiteralExpression;
 import org.opensearch.sql.expression.NamedArgumentExpression;
 import org.opensearch.sql.expression.env.Environment;
 import org.opensearch.sql.expression.function.FunctionName;
+import org.opensearch.sql.opensearch.expression.OpenSearchDSL;
 import org.opensearch.sql.opensearch.storage.script.filter.lucene.relevance.MultiMatchQuery;
 
 @DisplayNameGeneration(DisplayNameGenerator.ReplaceUnderscores.class)
@@ -186,7 +187,7 @@ class MultiMatchTest {
         List.of(
             namedArgument("fields", fields_value),
             namedArgument("query", query_value),
-            DSL.namedArgument("unsupported", "unsupported_value"));
+            OpenSearchDSL.namedArgument("unsupported", "unsupported_value"));
     Assertions.assertThrows(
         SemanticCheckException.class,
         () -> multiMatchQuery.build(new MultiMatchExpression(arguments)));
@@ -198,7 +199,7 @@ class MultiMatchTest {
         List.of(
             namedArgument("fields", fields_value),
             namedArgument("query", query_value),
-            DSL.namedArgument("unsupported", "unsupported_value"));
+            OpenSearchDSL.namedArgument("unsupported", "unsupported_value"));
     Assertions.assertThrows(
         SemanticCheckException.class,
         () -> multiMatchQuery.build(new MultiMatchExpression(arguments, snakeCaseMultiMatchName)));
@@ -210,7 +211,7 @@ class MultiMatchTest {
         List.of(
             namedArgument("fields", fields_value),
             namedArgument("query", query_value),
-            DSL.namedArgument("unsupported", "unsupported_value"));
+            OpenSearchDSL.namedArgument("unsupported", "unsupported_value"));
     Assertions.assertThrows(
         SemanticCheckException.class,
         () -> multiMatchQuery.build(new MultiMatchExpression(arguments, multiMatchQueryName)));

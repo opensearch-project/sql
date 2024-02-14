@@ -5,6 +5,8 @@
 
 package org.opensearch.sql.expression;
 
+import static org.opensearch.sql.datasource.model.EmptyDataSourceService.getEmptyDataSourceService;
+
 import java.util.Arrays;
 import org.opensearch.sql.ast.expression.SpanUnit;
 import org.opensearch.sql.data.model.ExprShortValue;
@@ -117,10 +119,6 @@ public class DSL {
 
   public static NamedArgumentExpression namedArgument(String argName, Expression value) {
     return new NamedArgumentExpression(argName, value);
-  }
-
-  public static NamedArgumentExpression namedArgument(String name, String value) {
-    return namedArgument(name, literal(value));
   }
 
   public static GrokExpression grok(
@@ -823,54 +821,6 @@ public class DSL {
     return compile(FunctionProperties.None, BuiltinFunctionName.TYPEOF, value);
   }
 
-  public static FunctionExpression match(Expression... args) {
-    return compile(FunctionProperties.None, BuiltinFunctionName.MATCH, args);
-  }
-
-  public static FunctionExpression match_phrase(Expression... args) {
-    return compile(FunctionProperties.None, BuiltinFunctionName.MATCH_PHRASE, args);
-  }
-
-  public static FunctionExpression match_phrase_prefix(Expression... args) {
-    return compile(FunctionProperties.None, BuiltinFunctionName.MATCH_PHRASE_PREFIX, args);
-  }
-
-  public static FunctionExpression multi_match(Expression... args) {
-    return compile(FunctionProperties.None, BuiltinFunctionName.MULTI_MATCH, args);
-  }
-
-  public static FunctionExpression simple_query_string(Expression... args) {
-    return compile(FunctionProperties.None, BuiltinFunctionName.SIMPLE_QUERY_STRING, args);
-  }
-
-  public static FunctionExpression query(Expression... args) {
-    return compile(FunctionProperties.None, BuiltinFunctionName.QUERY, args);
-  }
-
-  public static FunctionExpression query_string(Expression... args) {
-    return compile(FunctionProperties.None, BuiltinFunctionName.QUERY_STRING, args);
-  }
-
-  public static FunctionExpression match_bool_prefix(Expression... args) {
-    return compile(FunctionProperties.None, BuiltinFunctionName.MATCH_BOOL_PREFIX, args);
-  }
-
-  public static FunctionExpression wildcard_query(Expression... args) {
-    return compile(FunctionProperties.None, BuiltinFunctionName.WILDCARD_QUERY, args);
-  }
-
-  public static FunctionExpression score(Expression... args) {
-    return compile(FunctionProperties.None, BuiltinFunctionName.SCORE, args);
-  }
-
-  public static FunctionExpression scorequery(Expression... args) {
-    return compile(FunctionProperties.None, BuiltinFunctionName.SCOREQUERY, args);
-  }
-
-  public static FunctionExpression score_query(Expression... args) {
-    return compile(FunctionProperties.None, BuiltinFunctionName.SCORE_QUERY, args);
-  }
-
   public static FunctionExpression now(FunctionProperties functionProperties, Expression... args) {
     return compile(functionProperties, BuiltinFunctionName.NOW, args);
   }
@@ -953,7 +903,7 @@ public class DSL {
   private static <T extends FunctionImplementation> T compile(
       FunctionProperties functionProperties, BuiltinFunctionName bfn, Expression... args) {
     return (T)
-        BuiltinFunctionRepository.getInstance()
+        BuiltinFunctionRepository.getInstance(getEmptyDataSourceService())
             .compile(functionProperties, bfn.getName(), Arrays.asList(args));
   }
 }

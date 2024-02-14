@@ -3,16 +3,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-package org.opensearch.sql.expression;
+package org.opensearch.sql.opensearch.expression;
 
-import static org.opensearch.sql.config.TestConfig.BOOL_TYPE_MISSING_VALUE_FIELD;
-import static org.opensearch.sql.config.TestConfig.BOOL_TYPE_NULL_VALUE_FIELD;
-import static org.opensearch.sql.config.TestConfig.DOUBLE_TYPE_MISSING_VALUE_FIELD;
-import static org.opensearch.sql.config.TestConfig.DOUBLE_TYPE_NULL_VALUE_FIELD;
-import static org.opensearch.sql.config.TestConfig.INT_TYPE_MISSING_VALUE_FIELD;
-import static org.opensearch.sql.config.TestConfig.INT_TYPE_NULL_VALUE_FIELD;
-import static org.opensearch.sql.config.TestConfig.STRING_TYPE_MISSING_VALUE_FIELD;
-import static org.opensearch.sql.config.TestConfig.STRING_TYPE_NULL_VALUE_FIELD;
 import static org.opensearch.sql.data.model.ExprValueUtils.booleanValue;
 import static org.opensearch.sql.data.model.ExprValueUtils.collectionValue;
 import static org.opensearch.sql.data.model.ExprValueUtils.doubleValue;
@@ -23,20 +15,23 @@ import static org.opensearch.sql.data.model.ExprValueUtils.missingValue;
 import static org.opensearch.sql.data.model.ExprValueUtils.nullValue;
 import static org.opensearch.sql.data.model.ExprValueUtils.stringValue;
 import static org.opensearch.sql.data.model.ExprValueUtils.tupleValue;
+import static org.opensearch.sql.opensearch.config.TestConfig.BOOL_TYPE_MISSING_VALUE_FIELD;
+import static org.opensearch.sql.opensearch.config.TestConfig.BOOL_TYPE_NULL_VALUE_FIELD;
+import static org.opensearch.sql.opensearch.config.TestConfig.DOUBLE_TYPE_MISSING_VALUE_FIELD;
+import static org.opensearch.sql.opensearch.config.TestConfig.DOUBLE_TYPE_NULL_VALUE_FIELD;
+import static org.opensearch.sql.opensearch.config.TestConfig.INT_TYPE_MISSING_VALUE_FIELD;
+import static org.opensearch.sql.opensearch.config.TestConfig.INT_TYPE_NULL_VALUE_FIELD;
+import static org.opensearch.sql.opensearch.config.TestConfig.STRING_TYPE_MISSING_VALUE_FIELD;
+import static org.opensearch.sql.opensearch.config.TestConfig.STRING_TYPE_NULL_VALUE_FIELD;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import org.opensearch.sql.data.model.ExprValue;
-import org.opensearch.sql.data.type.ExprType;
+import org.opensearch.sql.expression.Expression;
+import org.opensearch.sql.expression.ReferenceExpression;
 import org.opensearch.sql.expression.env.Environment;
-import org.opensearch.sql.expression.function.FunctionProperties;
 
 public class ExpressionTestBase {
-
-  protected FunctionProperties functionProperties = new FunctionProperties();
-
-  protected Environment<Expression, ExprType> typeEnv;
-
   protected static Environment<Expression, ExprValue> valueEnv() {
     return var -> {
       if (var instanceof ReferenceExpression) {

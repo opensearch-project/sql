@@ -43,4 +43,10 @@ class OpenSearchStorageEngineTest {
         engine.getTable(new DataSourceSchemaName(DEFAULT_DATASOURCE_NAME, "default"), TABLE_INFO);
     assertAll(() -> assertNotNull(table), () -> assertTrue(table instanceof OpenSearchSystemIndex));
   }
+
+  @Test
+  public void getFunctions() {
+    OpenSearchStorageEngine engine = new OpenSearchStorageEngine(client, settings);
+    assertNotNull(engine.getFunctions());
+  }
 }
