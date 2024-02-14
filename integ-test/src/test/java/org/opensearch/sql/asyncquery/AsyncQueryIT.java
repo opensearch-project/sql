@@ -30,7 +30,7 @@ public class AsyncQueryIT extends PPLIntegTestCase {
     // disable
     updateClusterSettings(new ClusterSetting(PERSISTENT, setting, "false"));
 
-    String query = "select 1";
+    String query = "select 2";
     Response response = null;
     try {
       executeAsyncQueryToString(query);
