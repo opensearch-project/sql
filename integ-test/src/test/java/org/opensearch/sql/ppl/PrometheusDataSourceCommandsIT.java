@@ -23,6 +23,7 @@ import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.text.SimpleDateFormat;
 import java.util.Date;
+import java.util.TimeZone;
 import lombok.SneakyThrows;
 import org.apache.commons.lang3.StringUtils;
 import org.json.JSONArray;
@@ -98,6 +99,7 @@ public class PrometheusDataSourceCommandsIT extends PPLIntegTestCase {
   @SneakyThrows
   public void testSourceMetricCommandWithTimestamp() {
     SimpleDateFormat format = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+    format.setTimeZone(TimeZone.getTimeZone("UTC"));
     String query =
         "source=my_prometheus.prometheus_http_requests_total | where @timestamp > '"
             + format.format(new Date(System.currentTimeMillis() - 3600 * 1000))
