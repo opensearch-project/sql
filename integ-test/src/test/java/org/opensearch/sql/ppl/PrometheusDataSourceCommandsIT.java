@@ -21,7 +21,8 @@ import java.io.IOException;
 import java.net.URI;
 import java.nio.file.Files;
 import java.nio.file.Paths;
-import java.text.SimpleDateFormat;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.Date;
 import lombok.SneakyThrows;
 import org.apache.commons.lang3.StringUtils;
@@ -97,10 +98,12 @@ public class PrometheusDataSourceCommandsIT extends PPLIntegTestCase {
   @Test
   @SneakyThrows
   public void testSourceMetricCommandWithTimestamp() {
-    SimpleDateFormat format = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+    DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+    // Generate timestamp string for one hour less than the current time
+    String timestamp = LocalDateTime.now().minusHours(1).format(formatter);
     String query =
         "source=my_prometheus.prometheus_http_requests_total | where @timestamp > '"
-            + format.format(new Date(System.currentTimeMillis() - 3600 * 1000))
+            + timestamp
             + "'  | sort + @timestamp | head 5";
 
     JSONObject response = executeQuery(query);
