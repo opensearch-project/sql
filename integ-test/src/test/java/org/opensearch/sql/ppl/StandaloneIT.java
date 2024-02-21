@@ -252,6 +252,11 @@ public class StandaloneIT extends PPLIntegTestCase {
       }
 
       @Override
+      public Map<String, Long> countDataSourcesPerConnector() {
+        return Collections.emptyMap();
+      }
+
+      @Override
       public Optional<DataSourceMetadata> getDataSourceMetadata(String datasourceName) {
         return Optional.empty();
       }

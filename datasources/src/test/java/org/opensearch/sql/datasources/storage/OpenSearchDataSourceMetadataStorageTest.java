@@ -5,10 +5,12 @@
 
 package org.opensearch.sql.datasources.storage;
 
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.opensearch.sql.datasources.storage.OpenSearchDataSourceMetadataStorage.DATASOURCE_INDEX_NAME;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -40,6 +42,8 @@ import org.opensearch.index.engine.DocumentMissingException;
 import org.opensearch.index.engine.VersionConflictEngineException;
 import org.opensearch.search.SearchHit;
 import org.opensearch.search.SearchHits;
+import org.opensearch.search.aggregations.Aggregations;
+import org.opensearch.search.aggregations.bucket.terms.Terms;
 import org.opensearch.sql.datasource.model.DataSourceMetadata;
 import org.opensearch.sql.datasource.model.DataSourceType;
 import org.opensearch.sql.datasources.encryptor.Encryptor;
@@ -245,6 +249,83 @@ public class OpenSearchDataSourceMetadataStorageTest {
         openSearchDataSourceMetadataStorage.getDataSourceMetadata();
 
     Assertions.assertEquals(0, dataSourceMetadataList.size());
+  }
+
+  @SneakyThrows
+  @Test
+  public void testCountDataSourcesPerConnector() {
+    Mockito.when(clusterService.state().routingTable().hasIndex(DATASOURCE_INDEX_NAME))
+        .thenReturn(true);
+    Mockito.when(client.search(ArgumentMatchers.any())).thenReturn(searchResponseActionFuture);
+    Mockito.when(searchResponseActionFuture.actionGet()).thenReturn(searchResponse);
+    Mockito.when(searchResponse.status()).thenReturn(RestStatus.OK);
+    // Mocking the aggregation response
+    Terms.Bucket bucketA = Mockito.mock(Terms.Bucket.class);
+    Mockito.when(bucketA.getKeyAsString()).thenReturn("DataSourceTypeA");
+    Mockito.when(bucketA.getDocCount()).thenReturn(1L);
+
+    Terms.Bucket bucketB = Mockito.mock(Terms.Bucket.class);
+    Mockito.when(bucketB.getKeyAsString()).thenReturn("DataSourceTypeB");
+    Mockito.when(bucketB.getDocCount()).thenReturn(2L);
+
+    // Use raw type here and cast appropriately
+    Terms terms = Mockito.mock(Terms.class);
+    List rawBucketsList = Arrays.asList(bucketA, bucketB); // Raw type
+    Mockito.when(terms.getBuckets()).thenReturn((List) rawBucketsList); // Casting to raw type
+
+    Aggregations aggregations = Mockito.mock(Aggregations.class);
+    Mockito.when(aggregations.get(anyString())).thenReturn(terms);
+
+    Mockito.when(searchResponse.getAggregations()).thenReturn(aggregations);
+
+    Map<String, Long> connectorCounts =
+        openSearchDataSourceMetadataStorage.countDataSourcesPerConnector();
+
+    Assertions.assertEquals(
+        2, connectorCounts.size(), "The size of connectorCounts map should be 2.");
+    Assertions.assertEquals(
+        Long.valueOf(1),
+        connectorCounts.get("DataSourceTypeA"),
+        "DataSourceTypeA should have a count of 1.");
+    Assertions.assertEquals(
+        Long.valueOf(2),
+        connectorCounts.get("DataSourceTypeB"),
+        "DataSourceTypeB should have a count of 2.");
+  }
+
+  @SneakyThrows
+  @Test
+  public void testCountDataSourcesPerConnectorWithNoIndex() {
+    Mockito.when(clusterService.state().routingTable().hasIndex(DATASOURCE_INDEX_NAME))
+        .thenReturn(Boolean.FALSE);
+    Mockito.when(client.admin().indices().create(ArgumentMatchers.any()))
+        .thenReturn(createIndexResponseActionFuture);
+    Mockito.when(createIndexResponseActionFuture.actionGet())
+        .thenReturn(new CreateIndexResponse(true, true, DATASOURCE_INDEX_NAME));
+    Mockito.when(client.index(ArgumentMatchers.any())).thenReturn(indexResponseActionFuture);
+
+    Map<String, Long> connectorCounts =
+        openSearchDataSourceMetadataStorage.countDataSourcesPerConnector();
+
+    Assertions.assertEquals(0, connectorCounts.size());
+  }
+
+  @SneakyThrows
+  @Test
+  public void testCountDataSourcesPerConnectorWithWith404SearchResponse() {
+    Mockito.when(clusterService.state().routingTable().hasIndex(DATASOURCE_INDEX_NAME))
+        .thenReturn(true);
+    Mockito.when(client.search(ArgumentMatchers.any())).thenReturn(searchResponseActionFuture);
+    Mockito.when(searchResponseActionFuture.actionGet()).thenReturn(searchResponse);
+    Mockito.when(searchResponse.status()).thenReturn(RestStatus.NOT_FOUND);
+
+    RuntimeException runtimeException =
+        Assertions.assertThrows(
+            RuntimeException.class,
+            () -> openSearchDataSourceMetadataStorage.countDataSourcesPerConnector());
+    Assertions.assertEquals(
+        "Fetching dataSource metadata information failed with status : NOT_FOUND",
+        runtimeException.getMessage());
   }
 
   @SneakyThrows

@@ -17,6 +17,8 @@ import org.opensearch.sql.datasource.model.DataSource;
 import org.opensearch.sql.datasource.model.DataSourceMetadata;
 import org.opensearch.sql.datasources.auth.DataSourceUserAuthorizationHelper;
 import org.opensearch.sql.datasources.exceptions.DataSourceNotFoundException;
+import org.opensearch.sql.legacy.metrics.GaugeMetric;
+import org.opensearch.sql.legacy.metrics.Metrics;
 import org.opensearch.sql.storage.DataSourceFactory;
 
 /**
@@ -47,6 +49,7 @@ public class DataSourceServiceImpl implements DataSourceService {
     this.dataSourceMetadataStorage = dataSourceMetadataStorage;
     this.dataSourceUserAuthorizationHelper = dataSourceUserAuthorizationHelper;
     this.dataSourceLoaderCache = new DataSourceLoaderCacheImpl(dataSourceFactories);
+    registerDataSourceMetrics();
   }
 
   @Override
@@ -206,5 +209,13 @@ public class DataSourceServiceImpl implements DataSourceService {
                 CONFIDENTIAL_AUTH_KEYS.stream()
                     .anyMatch(confidentialKey -> entry.getKey().endsWith(confidentialKey)));
     dataSourceMetadata.setProperties(safeProperties);
+  }
+
+  private void registerDataSourceMetrics() {
+    GaugeMetric<Map<String, Long>> activeDataSourcesMetric =
+        new GaugeMetric<>(
+            "active_data_sources_count",
+            this.dataSourceMetadataStorage::countDataSourcesPerConnector);
+    Metrics.getInstance().registerMetric(activeDataSourcesMetric);
   }
 }

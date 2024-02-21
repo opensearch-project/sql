@@ -12,6 +12,7 @@ import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -41,6 +42,9 @@ import org.opensearch.index.engine.VersionConflictEngineException;
 import org.opensearch.index.query.QueryBuilder;
 import org.opensearch.index.query.QueryBuilders;
 import org.opensearch.search.SearchHit;
+import org.opensearch.search.aggregations.AggregationBuilders;
+import org.opensearch.search.aggregations.bucket.terms.Terms;
+import org.opensearch.search.aggregations.bucket.terms.TermsAggregationBuilder;
 import org.opensearch.search.builder.SearchSourceBuilder;
 import org.opensearch.sql.datasource.model.DataSourceMetadata;
 import org.opensearch.sql.datasources.encryptor.Encryptor;
@@ -84,6 +88,56 @@ public class OpenSearchDataSourceMetadataStorage implements DataSourceMetadataSt
       return Collections.emptyList();
     }
     return searchInDataSourcesIndex(QueryBuilders.matchAllQuery());
+  }
+
+  /**
+   * Counts the number of data sources per connector type in the specified OpenSearch index. This
+   * method queries the OpenSearch index defined by {@code DATASOURCE_INDEX_NAME} and aggregates the
+   * count of documents (data sources) based on the connector type, which is expected to be
+   * specified in the document field {@code connector}.
+   *
+   * <p>Note: This method uses the client's thread pool to execute the search request and
+   * temporarily stashes the current thread context to avoid context leakage.
+   *
+   * @return A {@link Map} where keys are connector types (as {@link String}) and values are counts
+   *     (as {@link Long}) of data sources of each type. Returns an empty map if the index does not
+   *     exist or if no data sources are found.
+   * @throws RuntimeException if the search operation fails or returns a non-200 status code,
+   *     indicating an error with the Elasticsearch query or connection.
+   */
+  @Override
+  public Map<String, Long> countDataSourcesPerConnector() {
+    if (!this.clusterService.state().routingTable().hasIndex(DATASOURCE_INDEX_NAME)) {
+      createDataSourcesIndex();
+      return Collections.emptyMap();
+    }
+
+    SearchRequest searchRequest = new SearchRequest(DATASOURCE_INDEX_NAME);
+    SearchSourceBuilder searchSourceBuilder = new SearchSourceBuilder();
+    TermsAggregationBuilder aggregation =
+        AggregationBuilders.terms("by_connector_type").field("connector");
+    // Drop the search hit
+    searchSourceBuilder.size(0).aggregation(aggregation);
+    searchRequest.source(searchSourceBuilder);
+    searchRequest.preference("_primary_first");
+    ActionFuture<SearchResponse> searchResponseActionFuture;
+    try (ThreadContext.StoredContext ignored =
+        client.threadPool().getThreadContext().stashContext()) {
+      searchResponseActionFuture = client.search(searchRequest);
+    }
+    SearchResponse searchResponse = searchResponseActionFuture.actionGet();
+    if (searchResponse.status().getStatus() != 200) {
+      throw new RuntimeException(
+          "Fetching dataSource metadata information failed with status : "
+              + searchResponse.status());
+    } else {
+      Terms connectorsAgg = searchResponse.getAggregations().get("by_connector_type");
+      Map<String, Long> connectorCounts = new HashMap<>();
+      for (Terms.Bucket bucket : connectorsAgg.getBuckets()) {
+        connectorCounts.put(bucket.getKeyAsString(), bucket.getDocCount());
+      }
+      return connectorCounts;
+    }
   }
 
   @Override
