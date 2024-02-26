@@ -17,6 +17,9 @@ import java.util.Locale;
 import java.util.function.Predicate;
 import lombok.RequiredArgsConstructor;
 import org.opensearch.sql.common.setting.Settings;
+import org.opensearch.sql.datasource.DataSourceService;
+import org.opensearch.sql.datasource.model.DataSourceMetadata;
+import org.opensearch.sql.datasources.glue.GlueDataSourceFactory;
 import org.opensearch.sql.spark.dispatcher.model.JobType;
 import org.opensearch.sql.spark.execution.statestore.StateStore;
 import org.opensearch.sql.spark.leasemanager.model.LeaseRequest;
@@ -32,14 +35,16 @@ public class DefaultLeaseManager implements LeaseManager {
   private final List<Rule<LeaseRequest>> concurrentLimitRules;
   private final Settings settings;
   private final StateStore stateStore;
+  private final DataSourceService dataSourceService;
 
-  public DefaultLeaseManager(Settings settings, StateStore stateStore) {
+  public DefaultLeaseManager(Settings settings, StateStore stateStore, DataSourceService dataSourceService) {
     this.settings = settings;
     this.stateStore = stateStore;
     this.concurrentLimitRules =
         Arrays.asList(
-            new ConcurrentSessionRule(settings, stateStore),
+            new ConcurrentSessionRule(settings, stateStore, dataSourceService),
             new ConcurrentRefreshJobRule(settings, stateStore));
+    this.dataSourceService = dataSourceService;
   }
 
   @Override
@@ -59,6 +64,7 @@ public class DefaultLeaseManager implements LeaseManager {
   public static class ConcurrentSessionRule implements Rule<LeaseRequest> {
     private final Settings settings;
     private final StateStore stateStore;
+    private final DataSourceService dataSourceService;
 
     @Override
     public String description() {
@@ -68,10 +74,22 @@ public class DefaultLeaseManager implements LeaseManager {
 
     @Override
     public boolean test(LeaseRequest leaseRequest) {
+
+      if (checkDataSourceCircuitBreakerIsEnabled(leaseRequest.getDatasourceName())) {
+        return false;
+      }
+
       if (leaseRequest.getJobType() != JobType.INTERACTIVE) {
         return true;
       }
       return activeSessionsCount(stateStore, ALL_DATASOURCE).get() < sessionMaxLimit();
+    }
+
+    private boolean checkDataSourceCircuitBreakerIsEnabled(String datasourceName) {
+      DataSourceMetadata dataSourceMetadata
+          = this.dataSourceService.getDataSourceMetadata(datasourceName);
+      return Boolean.parseBoolean(dataSourceMetadata.getProperties().getOrDefault(
+          GlueDataSourceFactory.GLUE_ASYNC_QUERY_ENABLED, "false"));
     }
 
     public int sessionMaxLimit() {

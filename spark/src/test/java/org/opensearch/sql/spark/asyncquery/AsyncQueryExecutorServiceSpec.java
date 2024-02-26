@@ -217,7 +217,7 @@ public class AsyncQueryExecutorServiceSpec extends OpenSearchIntegTestCase {
             new FlintIndexMetadataReaderImpl(client),
             client,
             new SessionManager(stateStore, emrServerlessClientFactory, pluginSettings),
-            new DefaultLeaseManager(pluginSettings, stateStore),
+            new DefaultLeaseManager(pluginSettings, stateStore, this.dataSourceService),
             stateStore);
     return new AsyncQueryExecutorServiceImpl(
         asyncQueryJobMetadataStorageService,

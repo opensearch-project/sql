@@ -16,6 +16,7 @@ import org.opensearch.common.inject.Singleton;
 import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.datasource.DataSourceService;
 import org.opensearch.sql.datasources.auth.DataSourceUserAuthorizationHelperImpl;
+import org.opensearch.sql.datasources.service.DataSourceServiceImpl;
 import org.opensearch.sql.legacy.metrics.GaugeMetric;
 import org.opensearch.sql.legacy.metrics.Metrics;
 import org.opensearch.sql.spark.asyncquery.AsyncQueryExecutorService;
@@ -96,8 +97,10 @@ public class AsyncExecutorServiceModule extends AbstractModule {
   }
 
   @Provides
-  public DefaultLeaseManager defaultLeaseManager(Settings settings, StateStore stateStore) {
-    return new DefaultLeaseManager(settings, stateStore);
+  public DefaultLeaseManager defaultLeaseManager(Settings settings,
+                                                 StateStore stateStore,
+                                                 DataSourceServiceImpl dataSourceService) {
+    return new DefaultLeaseManager(settings, stateStore, dataSourceService);
   }
 
   @Provides

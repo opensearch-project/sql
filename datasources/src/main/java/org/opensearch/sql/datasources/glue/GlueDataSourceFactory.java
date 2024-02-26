@@ -29,6 +29,8 @@ public class GlueDataSourceFactory implements DataSourceFactory {
       "glue.indexstore.opensearch.auth.password";
   public static final String GLUE_INDEX_STORE_OPENSEARCH_REGION =
       "glue.indexstore.opensearch.region";
+  public static final String GLUE_ASYNC_QUERY_ENABLED =
+      "glue.async_query.enabled";
 
   @Override
   public DataSourceType getDataSourceType() {
