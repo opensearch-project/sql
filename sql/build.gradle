@@ -46,7 +46,7 @@ dependencies {
 
     compile "org.antlr:antlr4-runtime:4.7.1"
     implementation group: 'com.google.guava', name: 'guava', version: '32.0.1-jre'
-    compile group: 'org.json', name: 'json', version:'20230227'
+    compile group: 'org.json', name: 'json', version:'20231013'
     compile group: 'org.springframework', name: 'spring-context', version: "${spring_version}"
     compile group: 'org.springframework', name: 'spring-beans', version: "${spring_version}"
     compile project(':common')
