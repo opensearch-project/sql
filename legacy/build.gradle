@@ -89,7 +89,7 @@ dependencies {
         }
     }
     implementation group: 'com.google.guava', name: 'guava', version: '32.0.1-jre'
-    compile group: 'org.json', name: 'json', version:'20230227'
+    compile group: 'org.json', name: 'json', version:'20231013'
     compile group: 'org.apache.commons', name: 'commons-lang3', version: '3.10'
     compile group: 'org.opensearch', name: 'opensearch', version: "${opensearch_version}"
     compile project(':sql')
