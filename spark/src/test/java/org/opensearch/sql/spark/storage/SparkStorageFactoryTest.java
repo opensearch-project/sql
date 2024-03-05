@@ -146,10 +146,12 @@ public class SparkStorageFactoryTest {
     properties.put("spark.datasource.flint.auth", "false");
     properties.put("spark.datasource.flint.region", "us-west-2");
 
-    DataSourceMetadata metadata = new DataSourceMetadata();
-    metadata.setName("spark");
-    metadata.setConnector(DataSourceType.SPARK);
-    metadata.setProperties(properties);
+    DataSourceMetadata metadata =
+        new DataSourceMetadata.Builder()
+            .setName("spark")
+            .setConnector(DataSourceType.SPARK)
+            .setProperties(properties)
+            .build();
 
     DataSource dataSource = new SparkStorageFactory(client, settings).createDataSource(metadata);
     Assertions.assertTrue(dataSource.getStorageEngine() instanceof SparkStorageEngine);
@@ -167,10 +169,12 @@ public class SparkStorageFactoryTest {
     properties.put("emr.auth.region", "region");
     properties.put("spark.datasource.flint.integration", "s3://spark/flint-spark-integration.jar");
 
-    DataSourceMetadata metadata = new DataSourceMetadata();
-    metadata.setName("spark");
-    metadata.setConnector(DataSourceType.SPARK);
-    metadata.setProperties(properties);
+    DataSourceMetadata metadata =
+        new DataSourceMetadata.Builder()
+            .setName("spark")
+            .setConnector(DataSourceType.SPARK)
+            .setProperties(properties)
+            .build();
 
     DataSource dataSource = new SparkStorageFactory(client, settings).createDataSource(metadata);
     Assertions.assertTrue(dataSource.getStorageEngine() instanceof SparkStorageEngine);

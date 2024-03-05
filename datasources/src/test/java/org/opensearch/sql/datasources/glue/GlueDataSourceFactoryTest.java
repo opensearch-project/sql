@@ -35,17 +35,18 @@ public class GlueDataSourceFactoryTest {
         .thenReturn(Collections.emptyList());
     GlueDataSourceFactory glueDatasourceFactory = new GlueDataSourceFactory(settings);
 
-    DataSourceMetadata metadata = new DataSourceMetadata();
     HashMap<String, String> properties = new HashMap<>();
     properties.put("glue.auth.type", "iam_role");
     properties.put("glue.auth.role_arn", "role_arn");
     properties.put("glue.indexstore.opensearch.uri", "http://localhost:9200");
     properties.put("glue.indexstore.opensearch.auth", "noauth");
     properties.put("glue.indexstore.opensearch.region", "us-west-2");
-
-    metadata.setName("my_glue");
-    metadata.setConnector(DataSourceType.S3GLUE);
-    metadata.setProperties(properties);
+    DataSourceMetadata metadata =
+        new DataSourceMetadata.Builder()
+            .setName("my_glue")
+            .setConnector(DataSourceType.S3GLUE)
+            .setProperties(properties)
+            .build();
     DataSource dataSource = glueDatasourceFactory.createDataSource(metadata);
     Assertions.assertEquals(DataSourceType.S3GLUE, dataSource.getConnectorType());
     UnsupportedOperationException unsupportedOperationException =
@@ -66,7 +67,6 @@ public class GlueDataSourceFactoryTest {
         .thenReturn(Collections.emptyList());
     GlueDataSourceFactory glueDatasourceFactory = new GlueDataSourceFactory(settings);
 
-    DataSourceMetadata metadata = new DataSourceMetadata();
     HashMap<String, String> properties = new HashMap<>();
     properties.put("glue.auth.type", "iam_role");
     properties.put("glue.auth.role_arn", "role_arn");
@@ -75,10 +75,12 @@ public class GlueDataSourceFactoryTest {
     properties.put("glue.indexstore.opensearch.auth.username", "username");
     properties.put("glue.indexstore.opensearch.auth.password", "password");
     properties.put("glue.indexstore.opensearch.region", "us-west-2");
-
-    metadata.setName("my_glue");
-    metadata.setConnector(DataSourceType.S3GLUE);
-    metadata.setProperties(properties);
+    DataSourceMetadata metadata =
+        new DataSourceMetadata.Builder()
+            .setName("my_glue")
+            .setConnector(DataSourceType.S3GLUE)
+            .setProperties(properties)
+            .build();
     DataSource dataSource = glueDatasourceFactory.createDataSource(metadata);
     Assertions.assertEquals(DataSourceType.S3GLUE, dataSource.getConnectorType());
     UnsupportedOperationException unsupportedOperationException =
@@ -99,17 +101,18 @@ public class GlueDataSourceFactoryTest {
         .thenReturn(Collections.emptyList());
     GlueDataSourceFactory glueDatasourceFactory = new GlueDataSourceFactory(settings);
 
-    DataSourceMetadata metadata = new DataSourceMetadata();
     HashMap<String, String> properties = new HashMap<>();
     properties.put("glue.auth.type", "iam_role");
     properties.put("glue.auth.role_arn", "role_arn");
     properties.put("glue.indexstore.opensearch.uri", "http://localhost:9200");
     properties.put("glue.indexstore.opensearch.auth", "awssigv4");
     properties.put("glue.indexstore.opensearch.region", "us-west-2");
-
-    metadata.setName("my_glue");
-    metadata.setConnector(DataSourceType.S3GLUE);
-    metadata.setProperties(properties);
+    DataSourceMetadata metadata =
+        new DataSourceMetadata.Builder()
+            .setName("my_glue")
+            .setConnector(DataSourceType.S3GLUE)
+            .setProperties(properties)
+            .build();
     DataSource dataSource = glueDatasourceFactory.createDataSource(metadata);
     Assertions.assertEquals(DataSourceType.S3GLUE, dataSource.getConnectorType());
     UnsupportedOperationException unsupportedOperationException =
@@ -128,16 +131,19 @@ public class GlueDataSourceFactoryTest {
   void testCreateGLueDatSourceWithBasicAuthForIndexStoreAndMissingFields() {
     GlueDataSourceFactory glueDatasourceFactory = new GlueDataSourceFactory(settings);
 
-    DataSourceMetadata metadata = new DataSourceMetadata();
     HashMap<String, String> properties = new HashMap<>();
     properties.put("glue.auth.type", "iam_role");
     properties.put("glue.auth.role_arn", "role_arn");
     properties.put("glue.indexstore.opensearch.uri", "http://localhost:9200");
     properties.put("glue.indexstore.opensearch.auth", "basicauth");
 
-    metadata.setName("my_glue");
-    metadata.setConnector(DataSourceType.S3GLUE);
-    metadata.setProperties(properties);
+    DataSourceMetadata metadata =
+        new DataSourceMetadata.Builder()
+            .setName("my_glue")
+            .setConnector(DataSourceType.S3GLUE)
+            .setProperties(properties)
+            .build();
+
     IllegalArgumentException illegalArgumentException =
         Assertions.assertThrows(
             IllegalArgumentException.class, () -> glueDatasourceFactory.createDataSource(metadata));
@@ -154,7 +160,6 @@ public class GlueDataSourceFactoryTest {
         .thenReturn(List.of("127.0.0.0/8"));
     GlueDataSourceFactory glueDatasourceFactory = new GlueDataSourceFactory(settings);
 
-    DataSourceMetadata metadata = new DataSourceMetadata();
     HashMap<String, String> properties = new HashMap<>();
     properties.put("glue.auth.type", "iam_role");
     properties.put("glue.auth.role_arn", "role_arn");
@@ -162,9 +167,12 @@ public class GlueDataSourceFactoryTest {
     properties.put("glue.indexstore.opensearch.auth", "noauth");
     properties.put("glue.indexstore.opensearch.region", "us-west-2");
 
-    metadata.setName("my_glue");
-    metadata.setConnector(DataSourceType.S3GLUE);
-    metadata.setProperties(properties);
+    DataSourceMetadata metadata =
+        new DataSourceMetadata.Builder()
+            .setName("my_glue")
+            .setConnector(DataSourceType.S3GLUE)
+            .setProperties(properties)
+            .build();
     IllegalArgumentException illegalArgumentException =
         Assertions.assertThrows(
             IllegalArgumentException.class, () -> glueDatasourceFactory.createDataSource(metadata));
@@ -181,7 +189,6 @@ public class GlueDataSourceFactoryTest {
         .thenReturn(List.of("127.0.0.0/8"));
     GlueDataSourceFactory glueDatasourceFactory = new GlueDataSourceFactory(settings);
 
-    DataSourceMetadata metadata = new DataSourceMetadata();
     HashMap<String, String> properties = new HashMap<>();
     properties.put("glue.auth.type", "iam_role");
     properties.put("glue.auth.role_arn", "role_arn");
@@ -191,9 +198,12 @@ public class GlueDataSourceFactoryTest {
     properties.put("glue.indexstore.opensearch.auth", "noauth");
     properties.put("glue.indexstore.opensearch.region", "us-west-2");
 
-    metadata.setName("my_glue");
-    metadata.setConnector(DataSourceType.S3GLUE);
-    metadata.setProperties(properties);
+    DataSourceMetadata metadata =
+        new DataSourceMetadata.Builder()
+            .setName("my_glue")
+            .setConnector(DataSourceType.S3GLUE)
+            .setProperties(properties)
+            .build();
     IllegalArgumentException illegalArgumentException =
         Assertions.assertThrows(
             IllegalArgumentException.class, () -> glueDatasourceFactory.createDataSource(metadata));

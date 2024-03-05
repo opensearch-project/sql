@@ -29,7 +29,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
-import org.apache.commons.lang3.StringUtils;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -39,9 +38,11 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.opensearch.sql.datasource.DataSourceService;
 import org.opensearch.sql.datasource.model.DataSource;
 import org.opensearch.sql.datasource.model.DataSourceMetadata;
+import org.opensearch.sql.datasource.model.DataSourceStatus;
 import org.opensearch.sql.datasource.model.DataSourceType;
 import org.opensearch.sql.datasources.auth.DataSourceUserAuthorizationHelper;
 import org.opensearch.sql.datasources.exceptions.DataSourceNotFoundException;
+import org.opensearch.sql.datasources.exceptions.DatasourceDisabledException;
 import org.opensearch.sql.storage.DataSourceFactory;
 import org.opensearch.sql.storage.StorageEngine;
 
@@ -165,57 +166,6 @@ class DataSourceServiceImplTest {
   }
 
   @Test
-  void testCreateDataSourceWithDisallowedDatasourceName() {
-    DataSourceMetadata dataSourceMetadata =
-        metadata(
-            "testDS$$$", DataSourceType.OPENSEARCH, Collections.emptyList(), ImmutableMap.of());
-    IllegalArgumentException exception =
-        assertThrows(
-            IllegalArgumentException.class,
-            () -> dataSourceService.createDataSource(dataSourceMetadata));
-    assertEquals(
-        "DataSource Name: testDS$$$ contains illegal characters."
-            + " Allowed characters: a-zA-Z0-9_-*@.",
-        exception.getMessage());
-    verify(dataSourceFactory, times(1)).getDataSourceType();
-    verify(dataSourceFactory, times(0)).createDataSource(dataSourceMetadata);
-    verifyNoInteractions(dataSourceMetadataStorage);
-  }
-
-  @Test
-  void testCreateDataSourceWithEmptyDatasourceName() {
-    DataSourceMetadata dataSourceMetadata =
-        metadata("", DataSourceType.OPENSEARCH, Collections.emptyList(), ImmutableMap.of());
-    IllegalArgumentException exception =
-        assertThrows(
-            IllegalArgumentException.class,
-            () -> dataSourceService.createDataSource(dataSourceMetadata));
-    assertEquals(
-        "Missing Name Field from a DataSource. Name is a required parameter.",
-        exception.getMessage());
-    verify(dataSourceFactory, times(1)).getDataSourceType();
-    verify(dataSourceFactory, times(0)).createDataSource(dataSourceMetadata);
-    verifyNoInteractions(dataSourceMetadataStorage);
-  }
-
-  @Test
-  void testCreateDataSourceWithNullParameters() {
-    DataSourceMetadata dataSourceMetadata =
-        metadata("testDS", DataSourceType.OPENSEARCH, Collections.emptyList(), null);
-    IllegalArgumentException exception =
-        assertThrows(
-            IllegalArgumentException.class,
-            () -> dataSourceService.createDataSource(dataSourceMetadata));
-    assertEquals(
-        "Missing properties field in datasource configuration. "
-            + "Properties are required parameters.",
-        exception.getMessage());
-    verify(dataSourceFactory, times(1)).getDataSourceType();
-    verify(dataSourceFactory, times(0)).createDataSource(dataSourceMetadata);
-    verifyNoInteractions(dataSourceMetadataStorage);
-  }
-
-  @Test
   void testGetDataSourceMetadataSet() {
     HashMap<String, String> properties = new HashMap<>();
     properties.put("prometheus.uri", "http://localhost:9200");
@@ -318,9 +268,11 @@ class DataSourceServiceImplTest {
                 ALLOWED_ROLES_FIELD,
                 new ArrayList<>(),
                 PROPERTIES_FIELD,
-                Map.of(),
+                Map.of("prometehus.uri", "random"),
                 RESULT_INDEX_FIELD,
-                ""));
+                "query_execution_result_testds",
+                STATUS_FIELD,
+                DataSourceStatus.DISABLED));
     DataSourceMetadata getData =
         metadata("testDS", DataSourceType.OPENSEARCH, Collections.emptyList(), ImmutableMap.of());
     when(dataSourceMetadataStorage.getDataSourceMetadata("testDS"))
@@ -365,12 +317,12 @@ class DataSourceServiceImplTest {
 
   DataSourceMetadata metadata(
       String name, DataSourceType type, List<String> allowedRoles, Map<String, String> properties) {
-    DataSourceMetadata dataSourceMetadata = new DataSourceMetadata();
-    dataSourceMetadata.setName(name);
-    dataSourceMetadata.setConnector(type);
-    dataSourceMetadata.setAllowedRoles(allowedRoles);
-    dataSourceMetadata.setProperties(properties);
-    return dataSourceMetadata;
+    return new DataSourceMetadata.Builder()
+        .setName(name)
+        .setConnector(type)
+        .setAllowedRoles(allowedRoles)
+        .setProperties(properties)
+        .build();
   }
 
   @Test
@@ -381,13 +333,12 @@ class DataSourceServiceImplTest {
     properties.put("prometheus.auth.username", "username");
     properties.put("prometheus.auth.password", "password");
     DataSourceMetadata dataSourceMetadata =
-        new DataSourceMetadata(
-            "testDS",
-            StringUtils.EMPTY,
-            DataSourceType.PROMETHEUS,
-            Collections.singletonList("prometheus_access"),
-            properties,
-            null);
+        new DataSourceMetadata.Builder()
+            .setName("testDS")
+            .setProperties(properties)
+            .setConnector(DataSourceType.PROMETHEUS)
+            .setAllowedRoles(Collections.singletonList("prometheus_access"))
+            .build();
     when(dataSourceMetadataStorage.getDataSourceMetadata("testDS"))
         .thenReturn(Optional.of(dataSourceMetadata));
 
@@ -407,13 +358,12 @@ class DataSourceServiceImplTest {
     properties.put("prometheus.auth.access_key", "access_key");
     properties.put("prometheus.auth.secret_key", "secret_key");
     DataSourceMetadata dataSourceMetadata =
-        new DataSourceMetadata(
-            "testDS",
-            StringUtils.EMPTY,
-            DataSourceType.PROMETHEUS,
-            Collections.singletonList("prometheus_access"),
-            properties,
-            null);
+        new DataSourceMetadata.Builder()
+            .setName("testDS")
+            .setProperties(properties)
+            .setConnector(DataSourceType.PROMETHEUS)
+            .setAllowedRoles(Collections.singletonList("prometheus_access"))
+            .build();
     when(dataSourceMetadataStorage.getDataSourceMetadata("testDS"))
         .thenReturn(Optional.of(dataSourceMetadata));
 
@@ -435,13 +385,12 @@ class DataSourceServiceImplTest {
     properties.put("glue.indexstore.opensearch.auth.username", "username");
     properties.put("glue.indexstore.opensearch.auth.password", "password");
     DataSourceMetadata dataSourceMetadata =
-        new DataSourceMetadata(
-            "testGlue",
-            StringUtils.EMPTY,
-            DataSourceType.S3GLUE,
-            Collections.singletonList("glue_access"),
-            properties,
-            null);
+        new DataSourceMetadata.Builder()
+            .setName("testGlue")
+            .setProperties(properties)
+            .setConnector(DataSourceType.S3GLUE)
+            .setAllowedRoles(Collections.singletonList("glue_access"))
+            .build();
     when(dataSourceMetadataStorage.getDataSourceMetadata("testGlue"))
         .thenReturn(Optional.of(dataSourceMetadata));
 
@@ -493,26 +442,50 @@ class DataSourceServiceImplTest {
   }
 
   @Test
-  void testGetRawDataSourceMetadata() {
+  void testVerifyDataSourceAccessAndGetRawDataSourceMetadataWithDisabledData() {
     HashMap<String, String> properties = new HashMap<>();
     properties.put("prometheus.uri", "https://localhost:9090");
     properties.put("prometheus.auth.type", "basicauth");
     properties.put("prometheus.auth.username", "username");
     properties.put("prometheus.auth.password", "password");
     DataSourceMetadata dataSourceMetadata =
-        new DataSourceMetadata(
-            "testDS",
-            StringUtils.EMPTY,
-            DataSourceType.PROMETHEUS,
-            Collections.singletonList("prometheus_access"),
-            properties,
-            null);
+        new DataSourceMetadata.Builder()
+            .setName("testDS")
+            .setProperties(properties)
+            .setConnector(DataSourceType.PROMETHEUS)
+            .setAllowedRoles(Collections.singletonList("prometheus_access"))
+            .setDataSourceStatus(DataSourceStatus.DISABLED)
+            .build();
     when(dataSourceMetadataStorage.getDataSourceMetadata("testDS"))
         .thenReturn(Optional.of(dataSourceMetadata));
+    DatasourceDisabledException datasourceDisabledException =
+        Assertions.assertThrows(
+            DatasourceDisabledException.class,
+            () -> dataSourceService.verifyDataSourceAccessAndGetRawMetadata("testDS"));
+    Assertions.assertEquals(
+        "Datasource testDS is disabled.", datasourceDisabledException.getMessage());
+  }
 
-    DataSourceMetadata dataSourceMetadata1 = dataSourceService.getRawDataSourceMetadata("testDS");
-    assertEquals("testDS", dataSourceMetadata1.getName());
-    assertEquals(DataSourceType.PROMETHEUS, dataSourceMetadata1.getConnector());
+  @Test
+  void testVerifyDataSourceAccessAndGetRawDataSourceMetadata() {
+    HashMap<String, String> properties = new HashMap<>();
+    properties.put("prometheus.uri", "https://localhost:9090");
+    properties.put("prometheus.auth.type", "basicauth");
+    properties.put("prometheus.auth.username", "username");
+    properties.put("prometheus.auth.password", "password");
+    DataSourceMetadata dataSourceMetadata =
+        new DataSourceMetadata.Builder()
+            .setName("testDS")
+            .setProperties(properties)
+            .setConnector(DataSourceType.PROMETHEUS)
+            .setAllowedRoles(Collections.singletonList("prometheus_access"))
+            .setDataSourceStatus(DataSourceStatus.ACTIVE)
+            .build();
+    when(dataSourceMetadataStorage.getDataSourceMetadata("testDS"))
+        .thenReturn(Optional.of(dataSourceMetadata));
+    DataSourceMetadata dataSourceMetadata1 =
+        dataSourceService.verifyDataSourceAccessAndGetRawMetadata("testDS");
+    assertTrue(dataSourceMetadata1.getProperties().containsKey("prometheus.uri"));
     assertTrue(dataSourceMetadata1.getProperties().containsKey("prometheus.auth.type"));
     assertTrue(dataSourceMetadata1.getProperties().containsKey("prometheus.auth.username"));
     assertTrue(dataSourceMetadata1.getProperties().containsKey("prometheus.auth.password"));
