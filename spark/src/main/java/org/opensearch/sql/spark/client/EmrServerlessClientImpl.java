@@ -19,6 +19,7 @@ import com.amazonaws.services.emrserverless.model.StartJobRunRequest;
 import com.amazonaws.services.emrserverless.model.StartJobRunResult;
 import java.security.AccessController;
 import java.security.PrivilegedAction;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.sql.legacy.metrics.MetricName;
@@ -28,6 +29,8 @@ public class EmrServerlessClientImpl implements EMRServerlessClient {
 
   private final AWSEMRServerless emrServerless;
   private static final Logger logger = LogManager.getLogger(EmrServerlessClientImpl.class);
+
+  private static final int MAX_JOB_NAME_LENGTH = 255;
 
   private static final String GENERIC_INTERNAL_SERVER_ERROR_MESSAGE = "Internal Server Error.";
 
@@ -43,7 +46,7 @@ public class EmrServerlessClientImpl implements EMRServerlessClient {
             : startJobRequest.getResultIndex();
     StartJobRunRequest request =
         new StartJobRunRequest()
-            .withName(startJobRequest.getJobName())
+            .withName(StringUtils.truncate(startJobRequest.getJobName(), MAX_JOB_NAME_LENGTH))
             .withApplicationId(startJobRequest.getApplicationId())
             .withExecutionRoleArn(startJobRequest.getExecutionRoleArn())
             .withTags(startJobRequest.getTags())
