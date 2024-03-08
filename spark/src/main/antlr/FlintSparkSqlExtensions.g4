@@ -18,6 +18,7 @@ statement
     : skippingIndexStatement
     | coveringIndexStatement
     | materializedViewStatement
+    | indexManagementStatement
     | indexJobManagementStatement
     ;
 
@@ -123,6 +124,14 @@ dropMaterializedViewStatement
 
 vacuumMaterializedViewStatement
     : VACUUM MATERIALIZED VIEW mvName=multipartIdentifier
+    ;
+
+indexManagementStatement
+    : showFlintIndexStatement
+    ;
+
+showFlintIndexStatement
+    : SHOW FLINT (INDEX | INDEXES) IN catalogDb=multipartIdentifier
     ;
 
 indexJobManagementStatement
