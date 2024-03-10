@@ -41,6 +41,7 @@ public class SparkConstants {
   public static final String HADOOP_CATALOG_CREDENTIALS_PROVIDER_FACTORY_KEY =
       "spark.hadoop.aws.catalog.credentials.provider.factory.class";
   public static final String HIVE_METASTORE_GLUE_ARN_KEY = "spark.hive.metastore.glue.role.arn";
+  public static final String SPARK_JARS_KEY = "spark.jars";
   public static final String SPARK_JAR_PACKAGES_KEY = "spark.jars.packages";
   public static final String SPARK_JAR_REPOSITORIES_KEY = "spark.jars.repositories";
   public static final String SPARK_DRIVER_ENV_JAVA_HOME_KEY =
@@ -69,6 +70,12 @@ public class SparkConstants {
       "com.amazonaws.emr.AssumeRoleAWSCredentialsProvider";
   public static final String DEFAULT_GLUE_CATALOG_CREDENTIALS_PROVIDER_FACTORY_KEY =
       "com.amazonaws.glue.catalog.metastore.STSAssumeRoleSessionCredentialsProviderFactory";
+  public static final String SPARK_STANDALONE_JAR =
+      "s3://flint-dev-seankao/opensearch-spark-jars/opensearch-spark-standalone_2.12-0.3.0-SNAPSHOT.jar";
+  public static final String SPARK_LAUNCHER_JAR =
+      "s3://flint-dev-seankao/opensearch-spark-jars/opensearch-spark-sql-application_2.12-0.3.0-SNAPSHOT.jar";
+  public static final String PPL_STANDALONE_JAR =
+      "s3://flint-dev-seankao/opensearch-spark-jars/opensearch-spark-ppl_2.12-0.3.0-SNAPSHOT.jar";
   public static final String SPARK_STANDALONE_PACKAGE =
       "org.opensearch:opensearch-spark-standalone_2.12:0.1.0-SNAPSHOT";
   public static final String SPARK_LAUNCHER_PACKAGE =
