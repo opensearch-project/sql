@@ -57,9 +57,9 @@ public class BatchQueryHandler extends AsyncQueryHandler {
 
   @Override
   public String cancelJob(AsyncQueryJobMetadata asyncQueryJobMetadata) {
-    emrServerlessClient.cancelJobRun(
-        asyncQueryJobMetadata.getApplicationId(), asyncQueryJobMetadata.getJobId());
-    return asyncQueryJobMetadata.getQueryId().getId();
+    throw new IllegalArgumentException(
+        "can't cancel index DML query, using ALTER auto_refresh=off statement to stop job, using"
+            + " VACUUM statement to stop job and delete data");
   }
 
   @Override

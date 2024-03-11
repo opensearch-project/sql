@@ -56,6 +56,18 @@ public class IndexQuerySpecTest extends AsyncQueryExecutorServiceSpec {
       new FlintDatasetMock(
               "DROP MATERIALIZED VIEW mv", FlintIndexType.MATERIALIZED_VIEW, "flint_mv")
           .latestId("mvid");
+  public final String CREATE_SI_AUTO =
+      "CREATE SKIPPING INDEX ON mys3.default.http_logs"
+          + "(l_orderkey VALUE_SET) WITH (auto_refresh = true)";
+  public final String REFRESH_SI = "REFRESH SKIPPING INDEX on mys3.default.http_logs";
+  public final String CREATE_CI_AUTO =
+      "CREATE INDEX covering ON mys3.default.http_logs "
+          + "(l_orderkey, l_quantity) WITH (auto_refresh = true)";
+  public final String REFRESH_CI = "REFRESH INDEX covering ON mys3.default.http_logs";
+  public final String CREATE_MV_AUTO =
+      "CREATE MATERIALIZED VIEW mv AS select * "
+          + "from mys3.default.https WITH (auto_refresh = true)";
+  public final String REFRESH_MV = "REFRESH MATERIALIZED VIEW mv";
 
   /**
    * Happy case. expectation is
@@ -761,5 +773,49 @@ public class IndexQuerySpecTest extends AsyncQueryExecutorServiceSpec {
         asyncQueryExecutorService.createAsyncQuery(
             new CreateAsyncQueryRequest(query, DATASOURCE, LangType.SQL, null));
     assertNotNull(asyncQueryResponse.getSessionId());
+  }
+
+  /** Cancel create flint index statement with auto_refresh=true, should throw exception. */
+  @Test
+  public void cancelAutoRefreshCreateFlintIndexShouldThrowException() {
+    ImmutableList.of(
+            CREATE_SI_AUTO, REFRESH_SI, CREATE_CI_AUTO, REFRESH_CI, CREATE_MV_AUTO, REFRESH_MV)
+        .forEach(
+            query -> {
+              LocalEMRSClient emrsClient =
+                  new LocalEMRSClient() {
+                    @Override
+                    public CancelJobRunResult cancelJobRun(String applicationId, String jobId) {
+                      Assert.fail("should not call cancelJobRun");
+                      return null;
+                    }
+
+                    @Override
+                    public GetJobRunResult getJobRunResult(String applicationId, String jobId) {
+                      Assert.fail("should not call getJobRunResult");
+                      return null;
+                    }
+                  };
+              EMRServerlessClientFactory emrServerlessClientFactory = () -> emrsClient;
+              AsyncQueryExecutorService asyncQueryExecutorService =
+                  createAsyncQueryExecutorService(emrServerlessClientFactory);
+
+              // 1. submit create / refresh index query
+              CreateAsyncQueryResponse response =
+                  asyncQueryExecutorService.createAsyncQuery(
+                      new CreateAsyncQueryRequest(query, DATASOURCE, LangType.SQL, null));
+
+              System.out.println(query);
+
+              // 2. cancel query
+              IllegalArgumentException exception =
+                  assertThrows(
+                      IllegalArgumentException.class,
+                      () -> asyncQueryExecutorService.cancelQuery(response.getQueryId()));
+              assertEquals(
+                  "can't cancel index DML query, using ALTER auto_refresh=off statement to stop"
+                      + " job, using VACUUM statement to stop job and delete data",
+                  exception.getMessage());
+            });
   }
 }

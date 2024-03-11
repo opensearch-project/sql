@@ -575,4 +575,55 @@ public class AsyncQueryExecutorServiceImplSpecTest extends AsyncQueryExecutorSer
                     new CreateAsyncQueryRequest("select 1", DSOTHER, LangType.SQL, null)));
     assertEquals("domain concurrent active session can not exceed 1", exception.getMessage());
   }
+
+  @Test
+  public void canNotCancelQueryInFailedState() {
+    LocalEMRSClient emrsClient = new LocalEMRSClient();
+    EMRServerlessClientFactory emrServerlessClientFactory = () -> emrsClient;
+    AsyncQueryExecutorService asyncQueryExecutorService =
+        createAsyncQueryExecutorService(emrServerlessClientFactory);
+
+    // 1. create async query.
+    CreateAsyncQueryResponse response =
+        asyncQueryExecutorService.createAsyncQuery(
+            new CreateAsyncQueryRequest("myselect 1", DATASOURCE, LangType.SQL, null));
+    assertNotNull(response.getSessionId());
+    Optional<StatementModel> statementModel =
+        getStatement(stateStore, DATASOURCE).apply(response.getQueryId());
+    assertTrue(statementModel.isPresent());
+    assertEquals(StatementState.WAITING, statementModel.get().getStatementState());
+
+    // 2. fetch async query result. no result write to DEFAULT_RESULT_INDEX yet.
+    // mock failed statement.
+    StatementModel submitted = statementModel.get();
+    StatementModel mocked =
+        StatementModel.builder()
+            .version("1.0")
+            .statementState(submitted.getStatementState())
+            .statementId(submitted.getStatementId())
+            .sessionId(submitted.getSessionId())
+            .applicationId(submitted.getApplicationId())
+            .jobId(submitted.getJobId())
+            .langType(submitted.getLangType())
+            .datasourceName(submitted.getDatasourceName())
+            .query(submitted.getQuery())
+            .queryId(submitted.getQueryId())
+            .submitTime(submitted.getSubmitTime())
+            .error("mock error")
+            .seqNo(submitted.getSeqNo())
+            .primaryTerm(submitted.getPrimaryTerm())
+            .build();
+    updateStatementState(stateStore, DATASOURCE).apply(mocked, StatementState.FAILED);
+
+    AsyncQueryExecutionResponse asyncQueryResults =
+        asyncQueryExecutorService.getAsyncQueryResults(response.getQueryId());
+    assertEquals(StatementState.FAILED.getState(), asyncQueryResults.getStatus());
+    assertEquals("mock error", asyncQueryResults.getError());
+
+    IllegalArgumentException exception =
+        assertThrows(
+            IllegalArgumentException.class,
+            () -> asyncQueryExecutorService.cancelQuery(response.getQueryId()));
+    assertEquals("can't cancel statement in failed state", exception.getMessage());
+  }
 }
