@@ -44,12 +44,17 @@ public class StreamingQueryHandler extends BatchQueryHandler {
     leaseManager.borrow(new LeaseRequest(JobType.STREAMING, dispatchQueryRequest.getDatasource()));
 
     String clusterName = dispatchQueryRequest.getClusterName();
-    String jobName = clusterName + ":" + "index-query";
     IndexQueryDetails indexQueryDetails = context.getIndexQueryDetails();
     Map<String, String> tags = context.getTags();
     tags.put(INDEX_TAG_KEY, indexQueryDetails.openSearchIndexName());
     DataSourceMetadata dataSourceMetadata = context.getDataSourceMetadata();
     tags.put(JOB_TYPE_TAG_KEY, JobType.STREAMING.getText());
+    String jobName =
+        clusterName
+            + ":"
+            + JobType.STREAMING.getText()
+            + ":"
+            + indexQueryDetails.openSearchIndexName();
     StartJobRequest startJobRequest =
         new StartJobRequest(
             dispatchQueryRequest.getQuery(),
