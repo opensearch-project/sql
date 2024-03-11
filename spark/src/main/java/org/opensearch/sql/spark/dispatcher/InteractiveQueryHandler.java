@@ -71,7 +71,6 @@ public class InteractiveQueryHandler extends AsyncQueryHandler {
       DispatchQueryRequest dispatchQueryRequest, DispatchQueryContext context) {
     Session session = null;
     String clusterName = dispatchQueryRequest.getClusterName();
-    String jobName = clusterName + ":" + "non-index-query";
     Map<String, String> tags = context.getTags();
     DataSourceMetadata dataSourceMetadata = context.getDataSourceMetadata();
 
@@ -94,7 +93,7 @@ public class InteractiveQueryHandler extends AsyncQueryHandler {
       session =
           sessionManager.createSession(
               new CreateSessionRequest(
-                  jobName,
+                  clusterName,
                   dispatchQueryRequest.getApplicationId(),
                   dispatchQueryRequest.getExecutionRoleARN(),
                   SparkSubmitParameters.Builder.builder()

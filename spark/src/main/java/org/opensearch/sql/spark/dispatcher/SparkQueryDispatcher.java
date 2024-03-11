@@ -127,8 +127,6 @@ public class SparkQueryDispatcher {
   private IndexDMLHandler createIndexDMLHandler(EMRServerlessClient emrServerlessClient) {
     return new IndexDMLHandler(
         emrServerlessClient,
-        dataSourceService,
-        dataSourceUserAuthorizationHelper,
         jobExecutionResponseReader,
         flintIndexMetadataReader,
         client,

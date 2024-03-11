@@ -15,9 +15,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.json.JSONObject;
 import org.opensearch.client.Client;
-import org.opensearch.sql.datasource.DataSourceService;
 import org.opensearch.sql.datasource.model.DataSourceMetadata;
-import org.opensearch.sql.datasources.auth.DataSourceUserAuthorizationHelperImpl;
 import org.opensearch.sql.spark.asyncquery.model.AsyncQueryId;
 import org.opensearch.sql.spark.asyncquery.model.AsyncQueryJobMetadata;
 import org.opensearch.sql.spark.client.EMRServerlessClient;
@@ -43,10 +41,6 @@ public class IndexDMLHandler extends AsyncQueryHandler {
   public static final String DROP_INDEX_JOB_ID = "dropIndexJobId";
 
   private final EMRServerlessClient emrServerlessClient;
-
-  private final DataSourceService dataSourceService;
-
-  private final DataSourceUserAuthorizationHelperImpl dataSourceUserAuthorizationHelper;
 
   private final JobExecutionResponseReader jobExecutionResponseReader;
 

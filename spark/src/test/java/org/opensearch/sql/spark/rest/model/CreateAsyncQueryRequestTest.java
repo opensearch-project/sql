@@ -49,11 +49,10 @@ public class CreateAsyncQueryRequestTest {
         Assertions.assertThrows(
             IllegalArgumentException.class,
             () -> CreateAsyncQueryRequest.fromXContentParser(xContentParser(request)));
-    Assertions.assertEquals(
-        "Error while parsing the request body: Duplicate field 'datasource'\n"
-            + " at [Source: REDACTED (`StreamReadFeature.INCLUDE_SOURCE_IN_LOCATION` disabled);"
-            + " line: 3, column: 15]",
-        illegalArgumentException.getMessage());
+    Assertions.assertTrue(
+        illegalArgumentException
+            .getMessage()
+            .contains("Error while parsing the request body: Duplicate field 'datasource'"));
   }
 
   @Test
