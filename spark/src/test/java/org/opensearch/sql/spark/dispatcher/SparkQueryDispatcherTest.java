@@ -5,6 +5,7 @@
 
 package org.opensearch.sql.spark.dispatcher;
 
+import static org.junit.Assert.assertThrows;
 import static org.mockito.Answers.RETURNS_DEEP_STUBS;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.argThat;
@@ -36,7 +37,6 @@ import static org.opensearch.sql.spark.dispatcher.SparkQueryDispatcher.DATASOURC
 import static org.opensearch.sql.spark.dispatcher.SparkQueryDispatcher.INDEX_TAG_KEY;
 import static org.opensearch.sql.spark.dispatcher.SparkQueryDispatcher.JOB_TYPE_TAG_KEY;
 
-import com.amazonaws.services.emrserverless.model.CancelJobRunResult;
 import com.amazonaws.services.emrserverless.model.GetJobRunResult;
 import com.amazonaws.services.emrserverless.model.JobRun;
 import com.amazonaws.services.emrserverless.model.JobRunState;
@@ -728,17 +728,6 @@ public class SparkQueryDispatcherTest {
   }
 
   @Test
-  void testCancelJob() {
-    when(emrServerlessClient.cancelJobRun(EMRS_APPLICATION_ID, EMR_JOB_ID))
-        .thenReturn(
-            new CancelJobRunResult()
-                .withJobRunId(EMR_JOB_ID)
-                .withApplicationId(EMRS_APPLICATION_ID));
-    String queryId = sparkQueryDispatcher.cancelJob(asyncQueryJobMetadata());
-    Assertions.assertEquals(QUERY_ID.getId(), queryId);
-  }
-
-  @Test
   void testCancelQueryWithSession() {
     doReturn(Optional.of(session)).when(sessionManager).getSession(new SessionId(MOCK_SESSION_ID));
     doReturn(Optional.of(statement)).when(session).get(any());
@@ -789,13 +778,8 @@ public class SparkQueryDispatcherTest {
 
   @Test
   void testCancelQueryWithNoSessionId() {
-    when(emrServerlessClient.cancelJobRun(EMRS_APPLICATION_ID, EMR_JOB_ID))
-        .thenReturn(
-            new CancelJobRunResult()
-                .withJobRunId(EMR_JOB_ID)
-                .withApplicationId(EMRS_APPLICATION_ID));
-    String queryId = sparkQueryDispatcher.cancelJob(asyncQueryJobMetadata());
-    Assertions.assertEquals(QUERY_ID.getId(), queryId);
+    assertThrows(IllegalArgumentException.class,
+        () -> sparkQueryDispatcher.cancelJob(asyncQueryJobMetadata()));
   }
 
   @Test
