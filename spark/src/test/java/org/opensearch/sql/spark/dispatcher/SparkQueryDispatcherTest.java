@@ -778,7 +778,8 @@ public class SparkQueryDispatcherTest {
 
   @Test
   void testCancelQueryWithNoSessionId() {
-    assertThrows(IllegalArgumentException.class,
+    assertThrows(
+        IllegalArgumentException.class,
         () -> sparkQueryDispatcher.cancelJob(asyncQueryJobMetadata()));
   }
 
