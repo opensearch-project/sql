@@ -701,7 +701,7 @@ public class SparkQueryDispatcherTest {
                         EMRS_EXECUTION_ROLE,
                         TEST_CLUSTER_NAME)));
     Assertions.assertEquals(
-        "Bad URI in indexstore configuration for datasource: my_glue.",
+        "Bad URI in indexstore configuration of the : my_glue datasoure.",
         illegalArgumentException.getMessage());
   }
 
@@ -723,7 +723,7 @@ public class SparkQueryDispatcherTest {
                         EMRS_EXECUTION_ROLE,
                         TEST_CLUSTER_NAME)));
     Assertions.assertEquals(
-        "Unsupported datasource type for async queries: PROMETHEUS",
+        "UnSupported datasource type for async queries:: PROMETHEUS",
         unsupportedOperationException.getMessage());
   }
 
