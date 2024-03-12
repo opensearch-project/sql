@@ -8,15 +8,15 @@ package org.opensearch.sql.datasources.service;
 import static org.opensearch.sql.analysis.DataSourceSchemaIdentifierNameResolver.DEFAULT_DATASOURCE_NAME;
 import static org.opensearch.sql.datasources.utils.XContentParserUtils.*;
 
-import com.google.common.base.Preconditions;
-import com.google.common.base.Strings;
 import java.util.*;
-import org.opensearch.sql.common.utils.StringUtils;
+import java.util.stream.Collectors;
 import org.opensearch.sql.datasource.DataSourceService;
 import org.opensearch.sql.datasource.model.DataSource;
 import org.opensearch.sql.datasource.model.DataSourceMetadata;
+import org.opensearch.sql.datasource.model.DataSourceStatus;
 import org.opensearch.sql.datasources.auth.DataSourceUserAuthorizationHelper;
 import org.opensearch.sql.datasources.exceptions.DataSourceNotFoundException;
+import org.opensearch.sql.datasources.exceptions.DatasourceDisabledException;
 import org.opensearch.sql.storage.DataSourceFactory;
 
 /**
@@ -29,7 +29,6 @@ import org.opensearch.sql.storage.DataSourceFactory;
  */
 public class DataSourceServiceImpl implements DataSourceService {
 
-  private static String DATASOURCE_NAME_REGEX = "[@*A-Za-z]+?[*a-zA-Z_\\-0-9]*";
   public static final Set<String> CONFIDENTIAL_AUTH_KEYS =
       Set.of("auth.username", "auth.password", "auth.access_key", "auth.secret_key");
 
@@ -57,27 +56,24 @@ public class DataSourceServiceImpl implements DataSourceService {
     if (isDefaultDataSourceRequired) {
       dataSourceMetadataSet.add(DataSourceMetadata.defaultOpenSearchDataSourceMetadata());
     }
-    removeAuthInfo(dataSourceMetadataSet);
-    return dataSourceMetadataSet;
+    return removeAuthInfo(dataSourceMetadataSet);
   }
 
   @Override
   public DataSourceMetadata getDataSourceMetadata(String dataSourceName) {
     DataSourceMetadata dataSourceMetadata = getRawDataSourceMetadata(dataSourceName);
-    removeAuthInfo(dataSourceMetadata);
-    return dataSourceMetadata;
+    return removeAuthInfo(dataSourceMetadata);
   }
 
   @Override
   public DataSource getDataSource(String dataSourceName) {
     DataSourceMetadata dataSourceMetadata = getRawDataSourceMetadata(dataSourceName);
-    this.dataSourceUserAuthorizationHelper.authorizeDataSource(dataSourceMetadata);
+    verifyDataSourceAccess(dataSourceMetadata);
     return dataSourceLoaderCache.getOrLoadDataSource(dataSourceMetadata);
   }
 
   @Override
   public void createDataSource(DataSourceMetadata metadata) {
-    validateDataSourceMetaData(metadata);
     if (!metadata.getName().equals(DEFAULT_DATASOURCE_NAME)) {
       this.dataSourceLoaderCache.getOrLoadDataSource(metadata);
       this.dataSourceMetadataStorage.createDataSourceMetadata(metadata);
@@ -86,7 +82,6 @@ public class DataSourceServiceImpl implements DataSourceService {
 
   @Override
   public void updateDataSource(DataSourceMetadata dataSourceMetadata) {
-    validateDataSourceMetaData(dataSourceMetadata);
     if (!dataSourceMetadata.getName().equals(DEFAULT_DATASOURCE_NAME)) {
       this.dataSourceLoaderCache.getOrLoadDataSource(dataSourceMetadata);
       this.dataSourceMetadataStorage.updateDataSourceMetadata(dataSourceMetadata);
@@ -101,8 +96,9 @@ public class DataSourceServiceImpl implements DataSourceService {
     if (!dataSourceData.get(NAME_FIELD).equals(DEFAULT_DATASOURCE_NAME)) {
       DataSourceMetadata dataSourceMetadata =
           getRawDataSourceMetadata((String) dataSourceData.get(NAME_FIELD));
-      replaceOldDatasourceMetadata(dataSourceData, dataSourceMetadata);
-      updateDataSource(dataSourceMetadata);
+      DataSourceMetadata updatedMetadata =
+          constructUpdatedDatasourceMetadata(dataSourceData, dataSourceMetadata);
+      updateDataSource(updatedMetadata);
     } else {
       throw new UnsupportedOperationException(
           "Not allowed to update default datasource :" + DEFAULT_DATASOURCE_NAME);
@@ -125,24 +121,19 @@ public class DataSourceServiceImpl implements DataSourceService {
         || this.dataSourceMetadataStorage.getDataSourceMetadata(dataSourceName).isPresent();
   }
 
-  /**
-   * This can be moved to a different validator class when we introduce more connectors.
-   *
-   * @param metadata {@link DataSourceMetadata}.
-   */
-  private void validateDataSourceMetaData(DataSourceMetadata metadata) {
-    Preconditions.checkArgument(
-        !Strings.isNullOrEmpty(metadata.getName()),
-        "Missing Name Field from a DataSource. Name is a required parameter.");
-    Preconditions.checkArgument(
-        metadata.getName().matches(DATASOURCE_NAME_REGEX),
-        StringUtils.format(
-            "DataSource Name: %s contains illegal characters. Allowed characters: a-zA-Z0-9_-*@.",
-            metadata.getName()));
-    Preconditions.checkArgument(
-        !Objects.isNull(metadata.getProperties()),
-        "Missing properties field in datasource configuration."
-            + " Properties are required parameters.");
+  @Override
+  public DataSourceMetadata verifyDataSourceAccessAndGetRawMetadata(String dataSourceName) {
+    DataSourceMetadata dataSourceMetadata = getRawDataSourceMetadata(dataSourceName);
+    verifyDataSourceAccess(dataSourceMetadata);
+    return dataSourceMetadata;
+  }
+
+  private void verifyDataSourceAccess(DataSourceMetadata dataSourceMetadata) {
+    if (dataSourceMetadata.getStatus().equals(DataSourceStatus.DISABLED)) {
+      throw new DatasourceDisabledException(
+          String.format("Datasource %s is disabled.", dataSourceMetadata.getName()));
+    }
+    this.dataSourceUserAuthorizationHelper.authorizeDataSource(dataSourceMetadata);
   }
 
   /**
@@ -151,34 +142,37 @@ public class DataSourceServiceImpl implements DataSourceService {
    * @param dataSourceData
    * @param metadata {@link DataSourceMetadata}.
    */
-  private void replaceOldDatasourceMetadata(
+  private DataSourceMetadata constructUpdatedDatasourceMetadata(
       Map<String, Object> dataSourceData, DataSourceMetadata metadata) {
-
+    DataSourceMetadata.Builder metadataBuilder = new DataSourceMetadata.Builder(metadata);
     for (String key : dataSourceData.keySet()) {
       switch (key) {
           // Name and connector should not be modified
         case DESCRIPTION_FIELD:
-          metadata.setDescription((String) dataSourceData.get(DESCRIPTION_FIELD));
+          metadataBuilder.setDescription((String) dataSourceData.get(DESCRIPTION_FIELD));
           break;
         case ALLOWED_ROLES_FIELD:
-          metadata.setAllowedRoles((List<String>) dataSourceData.get(ALLOWED_ROLES_FIELD));
+          metadataBuilder.setAllowedRoles((List<String>) dataSourceData.get(ALLOWED_ROLES_FIELD));
           break;
         case PROPERTIES_FIELD:
           Map<String, String> properties = new HashMap<>(metadata.getProperties());
           properties.putAll(((Map<String, String>) dataSourceData.get(PROPERTIES_FIELD)));
+          metadataBuilder.setProperties(properties);
           break;
-        case NAME_FIELD:
-        case CONNECTOR_FIELD:
+        case RESULT_INDEX_FIELD:
+          metadataBuilder.setResultIndex((String) dataSourceData.get(RESULT_INDEX_FIELD));
+        case STATUS_FIELD:
+          metadataBuilder.setDataSourceStatus((DataSourceStatus) dataSourceData.get(STATUS_FIELD));
+        default:
           break;
       }
     }
+    return metadataBuilder.build();
   }
 
-  @Override
-  public DataSourceMetadata getRawDataSourceMetadata(String dataSourceName) {
+  private DataSourceMetadata getRawDataSourceMetadata(String dataSourceName) {
     if (dataSourceName.equals(DEFAULT_DATASOURCE_NAME)) {
       return DataSourceMetadata.defaultOpenSearchDataSourceMetadata();
-
     } else {
       Optional<DataSourceMetadata> dataSourceMetadataOptional =
           this.dataSourceMetadataStorage.getDataSourceMetadata(dataSourceName);
@@ -193,11 +187,11 @@ public class DataSourceServiceImpl implements DataSourceService {
 
   // It is advised to avoid sending any kind credential
   // info in api response from security point of view.
-  private void removeAuthInfo(Set<DataSourceMetadata> dataSourceMetadataSet) {
-    dataSourceMetadataSet.forEach(this::removeAuthInfo);
+  private Set<DataSourceMetadata> removeAuthInfo(Set<DataSourceMetadata> dataSourceMetadataSet) {
+    return dataSourceMetadataSet.stream().map(this::removeAuthInfo).collect(Collectors.toSet());
   }
 
-  private void removeAuthInfo(DataSourceMetadata dataSourceMetadata) {
+  private DataSourceMetadata removeAuthInfo(DataSourceMetadata dataSourceMetadata) {
     HashMap<String, String> safeProperties = new HashMap<>(dataSourceMetadata.getProperties());
     safeProperties
         .entrySet()
@@ -205,6 +199,6 @@ public class DataSourceServiceImpl implements DataSourceService {
             entry ->
                 CONFIDENTIAL_AUTH_KEYS.stream()
                     .anyMatch(confidentialKey -> entry.getKey().endsWith(confidentialKey)));
-    dataSourceMetadata.setProperties(safeProperties);
+    return new DataSourceMetadata.Builder(dataSourceMetadata).setProperties(safeProperties).build();
   }
 }

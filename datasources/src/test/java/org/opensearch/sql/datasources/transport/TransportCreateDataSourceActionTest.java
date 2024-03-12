@@ -71,9 +71,11 @@ public class TransportCreateDataSourceActionTest {
 
   @Test
   public void testDoExecute() {
-    DataSourceMetadata dataSourceMetadata = new DataSourceMetadata();
-    dataSourceMetadata.setName("test_datasource");
-    dataSourceMetadata.setConnector(DataSourceType.PROMETHEUS);
+    DataSourceMetadata dataSourceMetadata =
+        new DataSourceMetadata.Builder()
+            .setName("test_datasource")
+            .setConnector(DataSourceType.PROMETHEUS)
+            .build();
     CreateDataSourceActionRequest request = new CreateDataSourceActionRequest(dataSourceMetadata);
 
     action.doExecute(task, request, actionListener);
@@ -88,9 +90,11 @@ public class TransportCreateDataSourceActionTest {
 
   @Test
   public void testDoExecuteWithException() {
-    DataSourceMetadata dataSourceMetadata = new DataSourceMetadata();
-    dataSourceMetadata.setName("test_datasource");
-    dataSourceMetadata.setConnector(DataSourceType.PROMETHEUS);
+    DataSourceMetadata dataSourceMetadata =
+        new DataSourceMetadata.Builder()
+            .setName("test_datasource")
+            .setConnector(DataSourceType.PROMETHEUS)
+            .build();
     doThrow(new RuntimeException("Error"))
         .when(dataSourceService)
         .createDataSource(dataSourceMetadata);
@@ -105,9 +109,11 @@ public class TransportCreateDataSourceActionTest {
 
   @Test
   public void testDataSourcesLimit() {
-    DataSourceMetadata dataSourceMetadata = new DataSourceMetadata();
-    dataSourceMetadata.setName("test_datasource");
-    dataSourceMetadata.setConnector(DataSourceType.PROMETHEUS);
+    DataSourceMetadata dataSourceMetadata =
+        new DataSourceMetadata.Builder()
+            .setName("test_datasource")
+            .setConnector(DataSourceType.PROMETHEUS)
+            .build();
     CreateDataSourceActionRequest request = new CreateDataSourceActionRequest(dataSourceMetadata);
     when(dataSourceService.getDataSourceMetadata(false).size()).thenReturn(1);
     when(settings.getSettingValue(DATASOURCES_LIMIT)).thenReturn(1);

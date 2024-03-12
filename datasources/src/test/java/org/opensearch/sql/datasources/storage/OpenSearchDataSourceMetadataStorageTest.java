@@ -501,8 +501,8 @@ public class OpenSearchDataSourceMetadataStorageTest {
     Mockito.when(encryptor.encrypt("access_key")).thenReturn("access_key");
     Mockito.when(client.update(ArgumentMatchers.any()))
         .thenThrow(new DocumentMissingException(ShardId.fromString("[2][2]"), "testDS"));
-    DataSourceMetadata dataSourceMetadata = getDataSourceMetadata();
-    dataSourceMetadata.setName("testDS");
+    DataSourceMetadata dataSourceMetadata =
+        new DataSourceMetadata.Builder(getDataSourceMetadata()).setName("testDS").build();
 
     DataSourceNotFoundException dataSourceNotFoundException =
         Assertions.assertThrows(
@@ -526,8 +526,8 @@ public class OpenSearchDataSourceMetadataStorageTest {
     Mockito.when(encryptor.encrypt("access_key")).thenReturn("access_key");
     Mockito.when(client.update(ArgumentMatchers.any()))
         .thenThrow(new RuntimeException("error message"));
-    DataSourceMetadata dataSourceMetadata = getDataSourceMetadata();
-    dataSourceMetadata.setName("testDS");
+    DataSourceMetadata dataSourceMetadata =
+        new DataSourceMetadata.Builder(getDataSourceMetadata()).setName("testDS").build();
 
     RuntimeException runtimeException =
         Assertions.assertThrows(
@@ -599,74 +599,82 @@ public class OpenSearchDataSourceMetadataStorageTest {
   }
 
   private String getBasicDataSourceMetadataString() throws JsonProcessingException {
-    DataSourceMetadata dataSourceMetadata = new DataSourceMetadata();
-    dataSourceMetadata.setName("testDS");
-    dataSourceMetadata.setConnector(DataSourceType.PROMETHEUS);
-    dataSourceMetadata.setAllowedRoles(Collections.singletonList("prometheus_access"));
     Map<String, String> properties = new HashMap<>();
     properties.put("prometheus.auth.type", "basicauth");
     properties.put("prometheus.auth.username", "username");
     properties.put("prometheus.auth.uri", "https://localhost:9090");
     properties.put("prometheus.auth.password", "password");
-    dataSourceMetadata.setProperties(properties);
+    DataSourceMetadata dataSourceMetadata =
+        new DataSourceMetadata.Builder()
+            .setName("testDS")
+            .setProperties(properties)
+            .setConnector(DataSourceType.PROMETHEUS)
+            .setAllowedRoles(Collections.singletonList("prometheus_access"))
+            .build();
     ObjectMapper objectMapper = new ObjectMapper();
     return objectMapper.writeValueAsString(dataSourceMetadata);
   }
 
   private String getAWSSigv4DataSourceMetadataString() throws JsonProcessingException {
-    DataSourceMetadata dataSourceMetadata = new DataSourceMetadata();
-    dataSourceMetadata.setName("testDS");
-    dataSourceMetadata.setConnector(DataSourceType.PROMETHEUS);
-    dataSourceMetadata.setAllowedRoles(Collections.singletonList("prometheus_access"));
     Map<String, String> properties = new HashMap<>();
     properties.put("prometheus.auth.type", "awssigv4");
     properties.put("prometheus.auth.secret_key", "secret_key");
     properties.put("prometheus.auth.uri", "https://localhost:9090");
     properties.put("prometheus.auth.access_key", "access_key");
-    dataSourceMetadata.setProperties(properties);
+    DataSourceMetadata dataSourceMetadata =
+        new DataSourceMetadata.Builder()
+            .setName("testDS")
+            .setProperties(properties)
+            .setConnector(DataSourceType.PROMETHEUS)
+            .setAllowedRoles(Collections.singletonList("prometheus_access"))
+            .build();
     ObjectMapper objectMapper = new ObjectMapper();
     return objectMapper.writeValueAsString(dataSourceMetadata);
   }
 
   private String getDataSourceMetadataStringWithBasicAuthentication()
       throws JsonProcessingException {
-    DataSourceMetadata dataSourceMetadata = new DataSourceMetadata();
-    dataSourceMetadata.setName("testDS");
-    dataSourceMetadata.setConnector(DataSourceType.PROMETHEUS);
-    dataSourceMetadata.setAllowedRoles(Collections.singletonList("prometheus_access"));
     Map<String, String> properties = new HashMap<>();
     properties.put("prometheus.auth.uri", "https://localhost:9090");
     properties.put("prometheus.auth.type", "basicauth");
     properties.put("prometheus.auth.username", "username");
     properties.put("prometheus.auth.password", "password");
-    dataSourceMetadata.setProperties(properties);
+    DataSourceMetadata dataSourceMetadata =
+        new DataSourceMetadata.Builder()
+            .setName("testDS")
+            .setProperties(properties)
+            .setConnector(DataSourceType.PROMETHEUS)
+            .setAllowedRoles(Collections.singletonList("prometheus_access"))
+            .build();
     ObjectMapper objectMapper = new ObjectMapper();
     return objectMapper.writeValueAsString(dataSourceMetadata);
   }
 
   private String getDataSourceMetadataStringWithNoAuthentication() throws JsonProcessingException {
-    DataSourceMetadata dataSourceMetadata = new DataSourceMetadata();
-    dataSourceMetadata.setName("testDS");
-    dataSourceMetadata.setConnector(DataSourceType.PROMETHEUS);
-    dataSourceMetadata.setAllowedRoles(Collections.singletonList("prometheus_access"));
     Map<String, String> properties = new HashMap<>();
     properties.put("prometheus.auth.uri", "https://localhost:9090");
-    dataSourceMetadata.setProperties(properties);
+    DataSourceMetadata dataSourceMetadata =
+        new DataSourceMetadata.Builder()
+            .setName("testDS")
+            .setProperties(properties)
+            .setConnector(DataSourceType.PROMETHEUS)
+            .setAllowedRoles(Collections.singletonList("prometheus_access"))
+            .build();
     ObjectMapper objectMapper = new ObjectMapper();
     return objectMapper.writeValueAsString(dataSourceMetadata);
   }
 
   private DataSourceMetadata getDataSourceMetadata() {
-    DataSourceMetadata dataSourceMetadata = new DataSourceMetadata();
-    dataSourceMetadata.setName("testDS");
-    dataSourceMetadata.setConnector(DataSourceType.PROMETHEUS);
-    dataSourceMetadata.setAllowedRoles(Collections.singletonList("prometheus_access"));
     Map<String, String> properties = new HashMap<>();
     properties.put("prometheus.auth.type", "awssigv4");
     properties.put("prometheus.auth.secret_key", "secret_key");
     properties.put("prometheus.auth.uri", "https://localhost:9090");
     properties.put("prometheus.auth.access_key", "access_key");
-    dataSourceMetadata.setProperties(properties);
-    return dataSourceMetadata;
+    return new DataSourceMetadata.Builder()
+        .setName("testDS")
+        .setProperties(properties)
+        .setConnector(DataSourceType.PROMETHEUS)
+        .setAllowedRoles(Collections.singletonList("prometheus_access"))
+        .build();
   }
 }

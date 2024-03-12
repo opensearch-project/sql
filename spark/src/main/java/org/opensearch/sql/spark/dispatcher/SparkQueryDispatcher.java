@@ -60,8 +60,8 @@ public class SparkQueryDispatcher {
   public DispatchQueryResponse dispatch(DispatchQueryRequest dispatchQueryRequest) {
     EMRServerlessClient emrServerlessClient = emrServerlessClientFactory.getClient();
     DataSourceMetadata dataSourceMetadata =
-        this.dataSourceService.getRawDataSourceMetadata(dispatchQueryRequest.getDatasource());
-    dataSourceUserAuthorizationHelper.authorizeDataSource(dataSourceMetadata);
+        this.dataSourceService.verifyDataSourceAccessAndGetRawMetadata(
+            dispatchQueryRequest.getDatasource());
     AsyncQueryHandler asyncQueryHandler =
         sessionManager.isEnabled()
             ? new InteractiveQueryHandler(sessionManager, jobExecutionResponseReader, leaseManager)

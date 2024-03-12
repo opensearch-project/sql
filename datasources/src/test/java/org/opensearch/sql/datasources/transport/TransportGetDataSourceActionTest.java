@@ -68,9 +68,11 @@ public class TransportGetDataSourceActionTest {
 
   @Test
   public void testDoExecute() {
-    DataSourceMetadata dataSourceMetadata = new DataSourceMetadata();
-    dataSourceMetadata.setName("test_datasource");
-    dataSourceMetadata.setConnector(DataSourceType.PROMETHEUS);
+    DataSourceMetadata dataSourceMetadata =
+        new DataSourceMetadata.Builder()
+            .setName("test_datasource")
+            .setConnector(DataSourceType.PROMETHEUS)
+            .build();
     GetDataSourceActionRequest request = new GetDataSourceActionRequest("test_datasource");
     when(dataSourceService.getDataSourceMetadata("test_datasource")).thenReturn(dataSourceMetadata);
 
@@ -97,10 +99,11 @@ public class TransportGetDataSourceActionTest {
 
   @Test
   public void testDoExecuteForGetAllDataSources() {
-    DataSourceMetadata dataSourceMetadata = new DataSourceMetadata();
-    dataSourceMetadata.setName("test_datasource");
-    dataSourceMetadata.setConnector(DataSourceType.PROMETHEUS);
-
+    DataSourceMetadata dataSourceMetadata =
+        new DataSourceMetadata.Builder()
+            .setName("test_datasource")
+            .setConnector(DataSourceType.PROMETHEUS)
+            .build();
     GetDataSourceActionRequest request = new GetDataSourceActionRequest();
     when(dataSourceService.getDataSourceMetadata(false))
         .thenReturn(Collections.singleton(dataSourceMetadata));

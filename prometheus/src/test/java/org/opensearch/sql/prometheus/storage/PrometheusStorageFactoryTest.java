@@ -181,10 +181,12 @@ public class PrometheusStorageFactoryTest {
     properties.put("prometheus.auth.username", "admin");
     properties.put("prometheus.auth.password", "admin");
 
-    DataSourceMetadata metadata = new DataSourceMetadata();
-    metadata.setName("prometheus");
-    metadata.setConnector(DataSourceType.PROMETHEUS);
-    metadata.setProperties(properties);
+    DataSourceMetadata metadata =
+        new DataSourceMetadata.Builder()
+            .setName("prometheus")
+            .setConnector(DataSourceType.PROMETHEUS)
+            .setProperties(properties)
+            .build();
 
     DataSource dataSource = new PrometheusStorageFactory(settings).createDataSource(metadata);
     Assertions.assertTrue(dataSource.getStorageEngine() instanceof PrometheusStorageEngine);
@@ -200,10 +202,12 @@ public class PrometheusStorageFactoryTest {
     properties.put("prometheus.auth.username", "admin");
     properties.put("prometheus.auth.password", "admin");
 
-    DataSourceMetadata metadata = new DataSourceMetadata();
-    metadata.setName("prometheus");
-    metadata.setConnector(DataSourceType.PROMETHEUS);
-    metadata.setProperties(properties);
+    DataSourceMetadata metadata =
+        new DataSourceMetadata.Builder()
+            .setName("prometheus")
+            .setConnector(DataSourceType.PROMETHEUS)
+            .setProperties(properties)
+            .build();
 
     DataSource dataSource = new PrometheusStorageFactory(settings).createDataSource(metadata);
     Assertions.assertTrue(dataSource.getStorageEngine() instanceof PrometheusStorageEngine);
@@ -219,10 +223,12 @@ public class PrometheusStorageFactoryTest {
     properties.put("prometheus.auth.username", "admin");
     properties.put("prometheus.auth.password", "admin");
 
-    DataSourceMetadata metadata = new DataSourceMetadata();
-    metadata.setName("prometheus");
-    metadata.setConnector(DataSourceType.PROMETHEUS);
-    metadata.setProperties(properties);
+    DataSourceMetadata metadata =
+        new DataSourceMetadata.Builder()
+            .setName("prometheus")
+            .setConnector(DataSourceType.PROMETHEUS)
+            .setProperties(properties)
+            .build();
 
     PrometheusStorageFactory prometheusStorageFactory = new PrometheusStorageFactory(settings);
     RuntimeException exception =
