@@ -26,7 +26,7 @@ import org.opensearch.rest.BaseRestHandler;
 import org.opensearch.rest.BytesRestResponse;
 import org.opensearch.rest.RestChannel;
 import org.opensearch.rest.RestRequest;
-import org.opensearch.sql.datasources.exceptions.DataSourceNotFoundException;
+import org.opensearch.sql.datasources.exceptions.DataSourceClientException;
 import org.opensearch.sql.datasources.exceptions.ErrorMessage;
 import org.opensearch.sql.datasources.utils.Scheduler;
 import org.opensearch.sql.legacy.metrics.MetricName;
@@ -235,7 +235,7 @@ public class RestAsyncQueryManagementAction extends BaseRestHandler {
   private static boolean isClientError(Exception e) {
     return e instanceof IllegalArgumentException
         || e instanceof IllegalStateException
-        || e instanceof DataSourceNotFoundException
+        || e instanceof DataSourceClientException
         || e instanceof AsyncQueryNotFoundException
         || e instanceof IllegalAccessException;
   }

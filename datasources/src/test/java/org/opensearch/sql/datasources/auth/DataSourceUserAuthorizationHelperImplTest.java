@@ -7,7 +7,6 @@ package org.opensearch.sql.datasources.auth;
 
 import static org.opensearch.commons.ConfigConstants.OPENSEARCH_SECURITY_USER_INFO_THREAD_CONTEXT;
 
-import java.util.HashMap;
 import java.util.List;
 import org.junit.Assert;
 import org.junit.jupiter.api.Test;
@@ -102,11 +101,10 @@ public class DataSourceUserAuthorizationHelperImplTest {
   }
 
   private DataSourceMetadata dataSourceMetadata() {
-    DataSourceMetadata dataSourceMetadata = new DataSourceMetadata();
-    dataSourceMetadata.setName("test");
-    dataSourceMetadata.setConnector(DataSourceType.PROMETHEUS);
-    dataSourceMetadata.setAllowedRoles(List.of("prometheus_access"));
-    dataSourceMetadata.setProperties(new HashMap<>());
-    return dataSourceMetadata;
+    return new DataSourceMetadata.Builder()
+        .setName("test")
+        .setAllowedRoles(List.of("prometheus_access"))
+        .setConnector(DataSourceType.PROMETHEUS)
+        .build();
   }
 }

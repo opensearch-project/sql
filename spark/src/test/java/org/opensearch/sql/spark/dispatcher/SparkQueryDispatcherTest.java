@@ -150,11 +150,12 @@ public class SparkQueryDispatcherTest {
             sparkSubmitParameters,
             tags,
             false,
-            null);
+            "query_execution_result_my_glue");
     when(emrServerlessClient.startJobRun(expected)).thenReturn(EMR_JOB_ID);
     DataSourceMetadata dataSourceMetadata = constructMyGlueDataSourceMetadata();
-    when(dataSourceService.getRawDataSourceMetadata("my_glue")).thenReturn(dataSourceMetadata);
-    doNothing().when(dataSourceUserAuthorizationHelper).authorizeDataSource(dataSourceMetadata);
+    when(dataSourceService.verifyDataSourceAccessAndGetRawMetadata("my_glue"))
+        .thenReturn(dataSourceMetadata);
+
     DispatchQueryResponse dispatchQueryResponse =
         sparkQueryDispatcher.dispatch(
             new DispatchQueryRequest(
@@ -195,11 +196,11 @@ public class SparkQueryDispatcherTest {
             sparkSubmitParameters,
             tags,
             false,
-            null);
+            "query_execution_result_my_glue");
     when(emrServerlessClient.startJobRun(expected)).thenReturn(EMR_JOB_ID);
     DataSourceMetadata dataSourceMetadata = constructMyGlueDataSourceMetadataWithBasicAuth();
-    when(dataSourceService.getRawDataSourceMetadata("my_glue")).thenReturn(dataSourceMetadata);
-    doNothing().when(dataSourceUserAuthorizationHelper).authorizeDataSource(dataSourceMetadata);
+    when(dataSourceService.verifyDataSourceAccessAndGetRawMetadata("my_glue"))
+        .thenReturn(dataSourceMetadata);
     DispatchQueryResponse dispatchQueryResponse =
         sparkQueryDispatcher.dispatch(
             new DispatchQueryRequest(
@@ -238,11 +239,12 @@ public class SparkQueryDispatcherTest {
             sparkSubmitParameters,
             tags,
             false,
-            null);
+            "query_execution_result_my_glue");
     when(emrServerlessClient.startJobRun(expected)).thenReturn(EMR_JOB_ID);
     DataSourceMetadata dataSourceMetadata = constructMyGlueDataSourceMetadataWithNoAuth();
-    when(dataSourceService.getRawDataSourceMetadata("my_glue")).thenReturn(dataSourceMetadata);
-    doNothing().when(dataSourceUserAuthorizationHelper).authorizeDataSource(dataSourceMetadata);
+    when(dataSourceService.verifyDataSourceAccessAndGetRawMetadata("my_glue"))
+        .thenReturn(dataSourceMetadata);
+
     DispatchQueryResponse dispatchQueryResponse =
         sparkQueryDispatcher.dispatch(
             new DispatchQueryRequest(
@@ -269,8 +271,9 @@ public class SparkQueryDispatcherTest {
     doReturn(new StatementId(MOCK_STATEMENT_ID)).when(session).submit(any());
     when(session.getSessionModel().getJobId()).thenReturn(EMR_JOB_ID);
     DataSourceMetadata dataSourceMetadata = constructMyGlueDataSourceMetadata();
-    when(dataSourceService.getRawDataSourceMetadata("my_glue")).thenReturn(dataSourceMetadata);
-    doNothing().when(dataSourceUserAuthorizationHelper).authorizeDataSource(dataSourceMetadata);
+    when(dataSourceService.verifyDataSourceAccessAndGetRawMetadata("my_glue"))
+        .thenReturn(dataSourceMetadata);
+
     DispatchQueryResponse dispatchQueryResponse = sparkQueryDispatcher.dispatch(queryRequest);
 
     verifyNoInteractions(emrServerlessClient);
@@ -293,8 +296,9 @@ public class SparkQueryDispatcherTest {
     when(session.getSessionModel().getJobId()).thenReturn(EMR_JOB_ID);
     when(session.isOperationalForDataSource(any())).thenReturn(true);
     DataSourceMetadata dataSourceMetadata = constructMyGlueDataSourceMetadata();
-    when(dataSourceService.getRawDataSourceMetadata("my_glue")).thenReturn(dataSourceMetadata);
-    doNothing().when(dataSourceUserAuthorizationHelper).authorizeDataSource(dataSourceMetadata);
+    when(dataSourceService.verifyDataSourceAccessAndGetRawMetadata("my_glue"))
+        .thenReturn(dataSourceMetadata);
+
     DispatchQueryResponse dispatchQueryResponse = sparkQueryDispatcher.dispatch(queryRequest);
 
     verifyNoInteractions(emrServerlessClient);
@@ -311,8 +315,9 @@ public class SparkQueryDispatcherTest {
     doReturn(true).when(sessionManager).isEnabled();
     doThrow(RuntimeException.class).when(sessionManager).createSession(any());
     DataSourceMetadata dataSourceMetadata = constructMyGlueDataSourceMetadata();
-    when(dataSourceService.getRawDataSourceMetadata("my_glue")).thenReturn(dataSourceMetadata);
-    doNothing().when(dataSourceUserAuthorizationHelper).authorizeDataSource(dataSourceMetadata);
+    when(dataSourceService.verifyDataSourceAccessAndGetRawMetadata("my_glue"))
+        .thenReturn(dataSourceMetadata);
+
     Assertions.assertThrows(
         RuntimeException.class, () -> sparkQueryDispatcher.dispatch(queryRequest));
 
@@ -347,11 +352,13 @@ public class SparkQueryDispatcherTest {
             sparkSubmitParameters,
             tags,
             true,
-            null);
+            "query_execution_result_my_glue");
+
     when(emrServerlessClient.startJobRun(expected)).thenReturn(EMR_JOB_ID);
     DataSourceMetadata dataSourceMetadata = constructMyGlueDataSourceMetadata();
-    when(dataSourceService.getRawDataSourceMetadata("my_glue")).thenReturn(dataSourceMetadata);
-    doNothing().when(dataSourceUserAuthorizationHelper).authorizeDataSource(dataSourceMetadata);
+    when(dataSourceService.verifyDataSourceAccessAndGetRawMetadata("my_glue"))
+        .thenReturn(dataSourceMetadata);
+
     DispatchQueryResponse dispatchQueryResponse =
         sparkQueryDispatcher.dispatch(
             new DispatchQueryRequest(
@@ -391,11 +398,11 @@ public class SparkQueryDispatcherTest {
             sparkSubmitParameters,
             tags,
             false,
-            null);
+            "query_execution_result_my_glue");
     when(emrServerlessClient.startJobRun(expected)).thenReturn(EMR_JOB_ID);
     DataSourceMetadata dataSourceMetadata = constructMyGlueDataSourceMetadata();
-    when(dataSourceService.getRawDataSourceMetadata("my_glue")).thenReturn(dataSourceMetadata);
-    doNothing().when(dataSourceUserAuthorizationHelper).authorizeDataSource(dataSourceMetadata);
+    when(dataSourceService.verifyDataSourceAccessAndGetRawMetadata("my_glue"))
+        .thenReturn(dataSourceMetadata);
     DispatchQueryResponse dispatchQueryResponse =
         sparkQueryDispatcher.dispatch(
             new DispatchQueryRequest(
@@ -435,11 +442,12 @@ public class SparkQueryDispatcherTest {
             sparkSubmitParameters,
             tags,
             false,
-            null);
+            "query_execution_result_my_glue");
     when(emrServerlessClient.startJobRun(expected)).thenReturn(EMR_JOB_ID);
     DataSourceMetadata dataSourceMetadata = constructMyGlueDataSourceMetadata();
-    when(dataSourceService.getRawDataSourceMetadata("my_glue")).thenReturn(dataSourceMetadata);
-    doNothing().when(dataSourceUserAuthorizationHelper).authorizeDataSource(dataSourceMetadata);
+    when(dataSourceService.verifyDataSourceAccessAndGetRawMetadata("my_glue"))
+        .thenReturn(dataSourceMetadata);
+
     DispatchQueryResponse dispatchQueryResponse =
         sparkQueryDispatcher.dispatch(
             new DispatchQueryRequest(
@@ -483,11 +491,12 @@ public class SparkQueryDispatcherTest {
             sparkSubmitParameters,
             tags,
             true,
-            null);
+            "query_execution_result_my_glue");
     when(emrServerlessClient.startJobRun(expected)).thenReturn(EMR_JOB_ID);
     DataSourceMetadata dataSourceMetadata = constructMyGlueDataSourceMetadata();
-    when(dataSourceService.getRawDataSourceMetadata("my_glue")).thenReturn(dataSourceMetadata);
-    doNothing().when(dataSourceUserAuthorizationHelper).authorizeDataSource(dataSourceMetadata);
+    when(dataSourceService.verifyDataSourceAccessAndGetRawMetadata("my_glue"))
+        .thenReturn(dataSourceMetadata);
+
     DispatchQueryResponse dispatchQueryResponse =
         sparkQueryDispatcher.dispatch(
             new DispatchQueryRequest(
@@ -531,11 +540,12 @@ public class SparkQueryDispatcherTest {
             sparkSubmitParameters,
             tags,
             true,
-            null);
+            "query_execution_result_my_glue");
     when(emrServerlessClient.startJobRun(expected)).thenReturn(EMR_JOB_ID);
     DataSourceMetadata dataSourceMetadata = constructMyGlueDataSourceMetadata();
-    when(dataSourceService.getRawDataSourceMetadata("my_glue")).thenReturn(dataSourceMetadata);
-    doNothing().when(dataSourceUserAuthorizationHelper).authorizeDataSource(dataSourceMetadata);
+    when(dataSourceService.verifyDataSourceAccessAndGetRawMetadata("my_glue"))
+        .thenReturn(dataSourceMetadata);
+
     DispatchQueryResponse dispatchQueryResponse =
         sparkQueryDispatcher.dispatch(
             new DispatchQueryRequest(
@@ -575,11 +585,12 @@ public class SparkQueryDispatcherTest {
             sparkSubmitParameters,
             tags,
             false,
-            null);
+            "query_execution_result_my_glue");
     when(emrServerlessClient.startJobRun(expected)).thenReturn(EMR_JOB_ID);
     DataSourceMetadata dataSourceMetadata = constructMyGlueDataSourceMetadata();
-    when(dataSourceService.getRawDataSourceMetadata("my_glue")).thenReturn(dataSourceMetadata);
-    doNothing().when(dataSourceUserAuthorizationHelper).authorizeDataSource(dataSourceMetadata);
+    when(dataSourceService.verifyDataSourceAccessAndGetRawMetadata("my_glue"))
+        .thenReturn(dataSourceMetadata);
+
     DispatchQueryResponse dispatchQueryResponse =
         sparkQueryDispatcher.dispatch(
             new DispatchQueryRequest(
@@ -619,11 +630,12 @@ public class SparkQueryDispatcherTest {
             sparkSubmitParameters,
             tags,
             false,
-            null);
+            "query_execution_result_my_glue");
     when(emrServerlessClient.startJobRun(expected)).thenReturn(EMR_JOB_ID);
     DataSourceMetadata dataSourceMetadata = constructMyGlueDataSourceMetadata();
-    when(dataSourceService.getRawDataSourceMetadata("my_glue")).thenReturn(dataSourceMetadata);
-    doNothing().when(dataSourceUserAuthorizationHelper).authorizeDataSource(dataSourceMetadata);
+    when(dataSourceService.verifyDataSourceAccessAndGetRawMetadata("my_glue"))
+        .thenReturn(dataSourceMetadata);
+
     DispatchQueryResponse dispatchQueryResponse =
         sparkQueryDispatcher.dispatch(
             new DispatchQueryRequest(
@@ -663,11 +675,12 @@ public class SparkQueryDispatcherTest {
             sparkSubmitParameters,
             tags,
             false,
-            null);
+            "query_execution_result_my_glue");
     when(emrServerlessClient.startJobRun(expected)).thenReturn(EMR_JOB_ID);
     DataSourceMetadata dataSourceMetadata = constructMyGlueDataSourceMetadata();
-    when(dataSourceService.getRawDataSourceMetadata("my_glue")).thenReturn(dataSourceMetadata);
-    doNothing().when(dataSourceUserAuthorizationHelper).authorizeDataSource(dataSourceMetadata);
+    when(dataSourceService.verifyDataSourceAccessAndGetRawMetadata("my_glue"))
+        .thenReturn(dataSourceMetadata);
+
     DispatchQueryResponse dispatchQueryResponse =
         sparkQueryDispatcher.dispatch(
             new DispatchQueryRequest(
@@ -685,7 +698,7 @@ public class SparkQueryDispatcherTest {
 
   @Test
   void testDispatchWithWrongURI() {
-    when(dataSourceService.getRawDataSourceMetadata("my_glue"))
+    when(dataSourceService.verifyDataSourceAccessAndGetRawMetadata("my_glue"))
         .thenReturn(constructMyGlueDataSourceMetadataWithBadURISyntax());
     String query = "select * from my_glue.default.http_logs";
     IllegalArgumentException illegalArgumentException =
@@ -707,7 +720,7 @@ public class SparkQueryDispatcherTest {
 
   @Test
   void testDispatchWithUnSupportedDataSourceType() {
-    when(dataSourceService.getRawDataSourceMetadata("my_prometheus"))
+    when(dataSourceService.verifyDataSourceAccessAndGetRawMetadata("my_prometheus"))
         .thenReturn(constructPrometheusDataSourceType());
     String query = "select * from my_prometheus.default.http_logs";
     UnsupportedOperationException unsupportedOperationException =
@@ -894,8 +907,8 @@ public class SparkQueryDispatcherTest {
   @Test
   void testDispatchQueryWithExtraSparkSubmitParameters() {
     DataSourceMetadata dataSourceMetadata = constructMyGlueDataSourceMetadata();
-    when(dataSourceService.getRawDataSourceMetadata("my_glue")).thenReturn(dataSourceMetadata);
-    doNothing().when(dataSourceUserAuthorizationHelper).authorizeDataSource(dataSourceMetadata);
+    when(dataSourceService.verifyDataSourceAccessAndGetRawMetadata("my_glue"))
+        .thenReturn(dataSourceMetadata);
 
     String extraParameters = "--conf spark.dynamicAllocation.enabled=false";
     DispatchQueryRequest[] requests = {
@@ -973,9 +986,7 @@ public class SparkQueryDispatcherTest {
   }
 
   private DataSourceMetadata constructMyGlueDataSourceMetadata() {
-    DataSourceMetadata dataSourceMetadata = new DataSourceMetadata();
-    dataSourceMetadata.setName("my_glue");
-    dataSourceMetadata.setConnector(DataSourceType.S3GLUE);
+
     Map<String, String> properties = new HashMap<>();
     properties.put("glue.auth.type", "iam_role");
     properties.put(
@@ -985,14 +996,14 @@ public class SparkQueryDispatcherTest {
         "https://search-flint-dp-benchmark-cf5crj5mj2kfzvgwdeynkxnefy.eu-west-1.es.amazonaws.com");
     properties.put("glue.indexstore.opensearch.auth", "awssigv4");
     properties.put("glue.indexstore.opensearch.region", "eu-west-1");
-    dataSourceMetadata.setProperties(properties);
-    return dataSourceMetadata;
+    return new DataSourceMetadata.Builder()
+        .setName("my_glue")
+        .setConnector(DataSourceType.S3GLUE)
+        .setProperties(properties)
+        .build();
   }
 
   private DataSourceMetadata constructMyGlueDataSourceMetadataWithBasicAuth() {
-    DataSourceMetadata dataSourceMetadata = new DataSourceMetadata();
-    dataSourceMetadata.setName("my_glue");
-    dataSourceMetadata.setConnector(DataSourceType.S3GLUE);
     Map<String, String> properties = new HashMap<>();
     properties.put("glue.auth.type", "iam_role");
     properties.put(
@@ -1003,14 +1014,14 @@ public class SparkQueryDispatcherTest {
     properties.put("glue.indexstore.opensearch.auth", "basicauth");
     properties.put("glue.indexstore.opensearch.auth.username", "username");
     properties.put("glue.indexstore.opensearch.auth.password", "password");
-    dataSourceMetadata.setProperties(properties);
-    return dataSourceMetadata;
+    return new DataSourceMetadata.Builder()
+        .setName("my_glue")
+        .setConnector(DataSourceType.S3GLUE)
+        .setProperties(properties)
+        .build();
   }
 
   private DataSourceMetadata constructMyGlueDataSourceMetadataWithNoAuth() {
-    DataSourceMetadata dataSourceMetadata = new DataSourceMetadata();
-    dataSourceMetadata.setName("my_glue");
-    dataSourceMetadata.setConnector(DataSourceType.S3GLUE);
     Map<String, String> properties = new HashMap<>();
     properties.put("glue.auth.type", "iam_role");
     properties.put(
@@ -1019,14 +1030,14 @@ public class SparkQueryDispatcherTest {
         "glue.indexstore.opensearch.uri",
         "https://search-flint-dp-benchmark-cf5crj5mj2kfzvgwdeynkxnefy.eu-west-1.es.amazonaws.com");
     properties.put("glue.indexstore.opensearch.auth", "noauth");
-    dataSourceMetadata.setProperties(properties);
-    return dataSourceMetadata;
+    return new DataSourceMetadata.Builder()
+        .setName("my_glue")
+        .setConnector(DataSourceType.S3GLUE)
+        .setProperties(properties)
+        .build();
   }
 
   private DataSourceMetadata constructMyGlueDataSourceMetadataWithBadURISyntax() {
-    DataSourceMetadata dataSourceMetadata = new DataSourceMetadata();
-    dataSourceMetadata.setName("my_glue");
-    dataSourceMetadata.setConnector(DataSourceType.S3GLUE);
     Map<String, String> properties = new HashMap<>();
     properties.put("glue.auth.type", "iam_role");
     properties.put(
@@ -1034,17 +1045,18 @@ public class SparkQueryDispatcherTest {
     properties.put("glue.indexstore.opensearch.uri", "http://localhost:9090? param");
     properties.put("glue.indexstore.opensearch.auth", "awssigv4");
     properties.put("glue.indexstore.opensearch.region", "eu-west-1");
-    dataSourceMetadata.setProperties(properties);
-    return dataSourceMetadata;
+    return new DataSourceMetadata.Builder()
+        .setName("my_glue")
+        .setConnector(DataSourceType.S3GLUE)
+        .setProperties(properties)
+        .build();
   }
 
   private DataSourceMetadata constructPrometheusDataSourceType() {
-    DataSourceMetadata dataSourceMetadata = new DataSourceMetadata();
-    dataSourceMetadata.setName("my_prometheus");
-    dataSourceMetadata.setConnector(DataSourceType.PROMETHEUS);
-    Map<String, String> properties = new HashMap<>();
-    dataSourceMetadata.setProperties(properties);
-    return dataSourceMetadata;
+    return new DataSourceMetadata.Builder()
+        .setName("my_prometheus")
+        .setConnector(DataSourceType.PROMETHEUS)
+        .build();
   }
 
   private DispatchQueryRequest constructDispatchQueryRequest(

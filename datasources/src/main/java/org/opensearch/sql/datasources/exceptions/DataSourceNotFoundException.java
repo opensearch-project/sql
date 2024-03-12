@@ -8,7 +8,7 @@
 package org.opensearch.sql.datasources.exceptions;
 
 /** DataSourceNotFoundException. */
-public class DataSourceNotFoundException extends RuntimeException {
+public class DataSourceNotFoundException extends DataSourceClientException {
   public DataSourceNotFoundException(String message) {
     super(message);
   }
