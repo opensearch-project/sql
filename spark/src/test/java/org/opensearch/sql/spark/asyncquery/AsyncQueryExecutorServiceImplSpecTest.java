@@ -16,21 +16,22 @@ import static org.opensearch.sql.spark.execution.statement.StatementModel.STATEM
 import static org.opensearch.sql.spark.execution.statestore.StateStore.getStatement;
 import static org.opensearch.sql.spark.execution.statestore.StateStore.updateStatementState;
 
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
-import org.apache.commons.lang3.StringUtils;
 import org.junit.Ignore;
 import org.junit.Test;
+import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Disabled;
 import org.opensearch.action.admin.cluster.settings.ClusterUpdateSettingsRequest;
 import org.opensearch.core.common.Strings;
 import org.opensearch.index.query.QueryBuilders;
 import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.datasource.model.DataSourceMetadata;
+import org.opensearch.sql.datasource.model.DataSourceStatus;
 import org.opensearch.sql.datasource.model.DataSourceType;
+import org.opensearch.sql.datasources.exceptions.DatasourceDisabledException;
 import org.opensearch.sql.spark.asyncquery.model.AsyncQueryExecutionResponse;
 import org.opensearch.sql.spark.client.EMRServerlessClientFactory;
 import org.opensearch.sql.spark.execution.session.SessionId;
@@ -255,13 +256,11 @@ public class AsyncQueryExecutorServiceImplSpecTest extends AsyncQueryExecutorSer
     properties.put("glue.indexstore.opensearch.auth.password", "password");
 
     dataSourceService.createDataSource(
-        new DataSourceMetadata(
-            "mybasicauth",
-            StringUtils.EMPTY,
-            DataSourceType.S3GLUE,
-            ImmutableList.of(),
-            properties,
-            null));
+        new DataSourceMetadata.Builder()
+            .setName("mybasicauth")
+            .setConnector(DataSourceType.S3GLUE)
+            .setProperties(properties)
+            .build());
     LocalEMRSClient emrsClient = new LocalEMRSClient();
     EMRServerlessClientFactory emrServerlessClientFactory = () -> emrsClient;
     AsyncQueryExecutorService asyncQueryExecutorService =
@@ -514,21 +513,20 @@ public class AsyncQueryExecutorServiceImplSpecTest extends AsyncQueryExecutorSer
   @Test
   public void datasourceNameIncludeUppercase() {
     dataSourceService.createDataSource(
-        new DataSourceMetadata(
-            "TESTS3",
-            StringUtils.EMPTY,
-            DataSourceType.S3GLUE,
-            ImmutableList.of(),
-            ImmutableMap.of(
-                "glue.auth.type",
-                "iam_role",
-                "glue.auth.role_arn",
-                "arn:aws:iam::924196221507:role/FlintOpensearchServiceRole",
-                "glue.indexstore.opensearch.uri",
-                "http://localhost:9200",
-                "glue.indexstore.opensearch.auth",
-                "noauth"),
-            null));
+        new DataSourceMetadata.Builder()
+            .setName("TESTS3")
+            .setConnector(DataSourceType.S3GLUE)
+            .setProperties(
+                ImmutableMap.of(
+                    "glue.auth.type",
+                    "iam_role",
+                    "glue.auth.role_arn",
+                    "arn:aws:iam::924196221507:role/FlintOpensearchServiceRole",
+                    "glue.indexstore.opensearch.uri",
+                    "http://localhost:9200",
+                    "glue.indexstore.opensearch.auth",
+                    "noauth"))
+            .build());
 
     LocalEMRSClient emrsClient = new LocalEMRSClient();
     EMRServerlessClientFactory emrServerlessClientFactory = () -> emrsClient;
@@ -574,5 +572,28 @@ public class AsyncQueryExecutorServiceImplSpecTest extends AsyncQueryExecutorSer
                 asyncQueryExecutorService.createAsyncQuery(
                     new CreateAsyncQueryRequest("select 1", DSOTHER, LangType.SQL, null)));
     assertEquals("domain concurrent active session can not exceed 1", exception.getMessage());
+  }
+
+  @Test
+  public void testDatasourceDisabled() {
+    LocalEMRSClient emrsClient = new LocalEMRSClient();
+    EMRServerlessClientFactory emrServerlessClientFactory = () -> emrsClient;
+    AsyncQueryExecutorService asyncQueryExecutorService =
+        createAsyncQueryExecutorService(emrServerlessClientFactory);
+
+    // Disable Datasource
+    HashMap<String, Object> datasourceMap = new HashMap<>();
+    datasourceMap.put("name", DATASOURCE);
+    datasourceMap.put("status", DataSourceStatus.DISABLED);
+    this.dataSourceService.patchDataSource(datasourceMap);
+
+    // 1. create async query.
+    try {
+      asyncQueryExecutorService.createAsyncQuery(
+          new CreateAsyncQueryRequest("select 1", DATASOURCE, LangType.SQL, null));
+      fail("It should have thrown DataSourceDisabledException");
+    } catch (DatasourceDisabledException exception) {
+      Assertions.assertEquals("Datasource mys3 is disabled.", exception.getMessage());
+    }
   }
 }

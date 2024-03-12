@@ -39,7 +39,8 @@ Example Prometheus Datasource Definition ::
             "prometheus.auth.username" : "admin",
             "prometheus.auth.password" : "admin"
         },
-        "allowedRoles" : ["prometheus_access"]
+        "allowedRoles" : ["prometheus_access"],
+        "status" : "ACTIVE|DISABLED"
     }
 Datasource configuration Restrictions.
 
@@ -51,6 +52,8 @@ Datasource configuration Restrictions.
 * Allowed Connectors.
     * ``prometheus`` [More details: `Prometheus Connector <connectors/prometheus_connector.rst>`_]
 * All the allowed config parameters in ``properties`` are defined in individual connector pages mentioned above.
+* From version 2.13, we have introduced a new optional field ``status`` which can be used to enable and disable a datasource.When a datasource is disabled, it blocks new queries, resulting in 400 errors for any attempts made on it. By default when a datasource is created, status is ACTIVE.
+
 
 Datasource configuration APIs
 ======================================
@@ -196,3 +199,16 @@ Moving from keystore datasource configuration
 =============================================
 * In versions prior to 2.7, the plugins.query.federation.datasources.config key store setting was used to configure datasources, but it has been deprecated and will be removed in version 3.0.
 * To port previously configured datasources from the keystore, users can use the `create datasource` REST API mentioned in the above section.
+
+Disabling a datasource to block new queries
+=============================================
+* We can disable a datasource using PATCH or PUT API. Below is the example request for disabling a datasource named "my_prometheus" using PATCH API. ::
+
+    PATCH https://localhost:9200/_plugins/_query/_datasources
+    content-type: application/json
+    Authorization: Basic {{username}} {{password}}
+
+    {
+        "name" : "my_prometheus",
+        "status" : "disabled"
+    }

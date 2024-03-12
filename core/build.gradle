@@ -79,7 +79,9 @@ jacocoTestCoverageVerification {
             excludes = [
                     'org.opensearch.sql.utils.MLCommonsConstants',
                     'org.opensearch.sql.utils.Constants',
-                    'org.opensearch.sql.datasource.model.*'
+                    'org.opensearch.sql.datasource.model.DataSource',
+                    'org.opensearch.sql.datasource.model.DataSourceStatus',
+                    'org.opensearch.sql.datasource.model.DataSourceType'
             ]
             limit {
                 counter = 'LINE'

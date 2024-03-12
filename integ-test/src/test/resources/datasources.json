@@ -1,2 +1,2 @@
-{"index":{"_id":"my_prometheus"}}
-{ "name" : "my_prometheus", "connector": "prometheus", "properties" : { "prometheus.uri" : "http://localhost:9090"}}
+{"index":{"_id":"old_prometheus"}}
+{ "name" : "old_prometheus", "connector": "prometheus", "properties" : { "prometheus.uri" : "http://localhost:9090"}}

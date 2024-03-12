@@ -21,6 +21,7 @@ import org.opensearch.core.xcontent.NamedXContentRegistry;
 import org.opensearch.core.xcontent.XContentBuilder;
 import org.opensearch.core.xcontent.XContentParser;
 import org.opensearch.sql.datasource.model.DataSourceMetadata;
+import org.opensearch.sql.datasource.model.DataSourceStatus;
 import org.opensearch.sql.datasource.model.DataSourceType;
 
 /** Utitlity class to serialize and deserialize objects in XContent. */
@@ -33,6 +34,7 @@ public class XContentParserUtils {
   public static final String ALLOWED_ROLES_FIELD = "allowedRoles";
 
   public static final String RESULT_INDEX_FIELD = "resultIndex";
+  public static final String STATUS_FIELD = "status";
 
   /**
    * Convert xcontent parser to DataSourceMetadata.
@@ -48,6 +50,7 @@ public class XContentParserUtils {
     List<String> allowedRoles = new ArrayList<>();
     Map<String, String> properties = new HashMap<>();
     String resultIndex = null;
+    DataSourceStatus status = null;
     ensureExpectedToken(XContentParser.Token.START_OBJECT, parser.nextToken(), parser);
     while (parser.nextToken() != XContentParser.Token.END_OBJECT) {
       String fieldName = parser.currentName();
@@ -79,15 +82,22 @@ public class XContentParserUtils {
         case RESULT_INDEX_FIELD:
           resultIndex = parser.textOrNull();
           break;
+        case STATUS_FIELD:
+          status = DataSourceStatus.fromString(parser.textOrNull());
+          break;
         default:
           throw new IllegalArgumentException("Unknown field: " + fieldName);
       }
     }
-    if (name == null || connector == null) {
-      throw new IllegalArgumentException("name and connector are required fields.");
-    }
-    return new DataSourceMetadata(
-        name, description, connector, allowedRoles, properties, resultIndex);
+    return new DataSourceMetadata.Builder()
+        .setName(name)
+        .setDescription(description)
+        .setConnector(connector)
+        .setProperties(properties)
+        .setAllowedRoles(allowedRoles)
+        .setResultIndex(resultIndex)
+        .setDataSourceStatus(status)
+        .build();
   }
 
   public static Map<String, Object> toMap(XContentParser parser) throws IOException {
@@ -97,6 +107,7 @@ public class XContentParserUtils {
     List<String> allowedRoles = new ArrayList<>();
     Map<String, String> properties = new HashMap<>();
     String resultIndex;
+    DataSourceStatus status;
     ensureExpectedToken(XContentParser.Token.START_OBJECT, parser.nextToken(), parser);
     while (parser.nextToken() != XContentParser.Token.END_OBJECT) {
       String fieldName = parser.currentName();
@@ -132,6 +143,10 @@ public class XContentParserUtils {
         case RESULT_INDEX_FIELD:
           resultIndex = parser.textOrNull();
           resultMap.put(RESULT_INDEX_FIELD, resultIndex);
+          break;
+        case STATUS_FIELD:
+          status = DataSourceStatus.fromString(parser.textOrNull());
+          resultMap.put(STATUS_FIELD, status);
           break;
         default:
           throw new IllegalArgumentException("Unknown field: " + fieldName);
@@ -202,6 +217,7 @@ public class XContentParserUtils {
     }
     builder.endObject();
     builder.field(RESULT_INDEX_FIELD, metadata.getResultIndex());
+    builder.field(STATUS_FIELD, metadata.getStatus());
     builder.endObject();
     return builder;
   }
