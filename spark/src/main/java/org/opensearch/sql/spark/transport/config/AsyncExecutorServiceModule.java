@@ -29,7 +29,7 @@ import org.opensearch.sql.spark.config.SparkExecutionEngineConfigSupplierImpl;
 import org.opensearch.sql.spark.dispatcher.SparkQueryDispatcher;
 import org.opensearch.sql.spark.execution.session.SessionManager;
 import org.opensearch.sql.spark.execution.statestore.StateStore;
-import org.opensearch.sql.spark.flint.FlintIndexMetadataReaderImpl;
+import org.opensearch.sql.spark.flint.FlintIndexMetadataServiceImpl;
 import org.opensearch.sql.spark.leasemanager.DefaultLeaseManager;
 import org.opensearch.sql.spark.response.JobExecutionResponseReader;
 
@@ -70,7 +70,7 @@ public class AsyncExecutorServiceModule extends AbstractModule {
       DataSourceService dataSourceService,
       DataSourceUserAuthorizationHelperImpl dataSourceUserAuthorizationHelper,
       JobExecutionResponseReader jobExecutionResponseReader,
-      FlintIndexMetadataReaderImpl flintIndexMetadataReader,
+      FlintIndexMetadataServiceImpl flintIndexMetadataReader,
       NodeClient client,
       SessionManager sessionManager,
       DefaultLeaseManager defaultLeaseManager,
@@ -113,8 +113,9 @@ public class AsyncExecutorServiceModule extends AbstractModule {
 
   @Provides
   @Singleton
-  public FlintIndexMetadataReaderImpl flintIndexMetadataReader(NodeClient client) {
-    return new FlintIndexMetadataReaderImpl(client);
+  public FlintIndexMetadataServiceImpl flintIndexMetadataReader(
+      NodeClient client, StateStore stateStore) {
+    return new FlintIndexMetadataServiceImpl(client);
   }
 
   @Provides

@@ -117,6 +117,7 @@ allprojects {
     configurations.all {
         resolutionStrategy.force "org.jetbrains.kotlin:kotlin-stdlib:1.9.10"
         resolutionStrategy.force "org.jetbrains.kotlin:kotlin-stdlib-common:1.9.10"
+        resolutionStrategy.force "net.bytebuddy:byte-buddy:1.14.9"
     }
 }
 

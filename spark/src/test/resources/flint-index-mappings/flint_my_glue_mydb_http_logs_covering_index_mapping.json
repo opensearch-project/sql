@@ -1,0 +1,39 @@
+{
+  "_meta": {
+    "latestId": "flint_my_glue_mydb_http_logs_covering_index_latest_id",
+    "kind": "covering",
+    "indexedColumns": [
+      {
+        "columnType": "string",
+        "columnName": "clientip"
+      },
+      {
+        "columnType": "int",
+        "columnName": "status"
+      }
+    ],
+    "name": "covering",
+    "options": {
+      "auto_refresh": "true",
+      "incremental_refresh": "false",
+      "index_settings": "{\"number_of_shards\":5,\"number_of_replicas\":1}",
+      "checkpoint_location": "s3://vamsicheckpoint/cv/"
+    },
+    "source": "my_glue.mydb.http_logs",
+    "version": "0.2.0",
+    "properties": {
+      "env": {
+        "SERVERLESS_EMR_VIRTUAL_CLUSTER_ID": "00fhh7frokkf0k0l",
+        "SERVERLESS_EMR_JOB_ID": "00fhoag6i0671o0m"
+      }
+    }
+  },
+  "properties": {
+    "clientip": {
+      "type": "keyword"
+    },
+    "status": {
+      "type": "integer"
+    }
+  }
+}

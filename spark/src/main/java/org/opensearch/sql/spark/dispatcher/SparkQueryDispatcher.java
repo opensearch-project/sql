@@ -25,7 +25,7 @@ import org.opensearch.sql.spark.dispatcher.model.IndexQueryDetails;
 import org.opensearch.sql.spark.dispatcher.model.JobType;
 import org.opensearch.sql.spark.execution.session.SessionManager;
 import org.opensearch.sql.spark.execution.statestore.StateStore;
-import org.opensearch.sql.spark.flint.FlintIndexMetadataReader;
+import org.opensearch.sql.spark.flint.FlintIndexMetadataService;
 import org.opensearch.sql.spark.leasemanager.LeaseManager;
 import org.opensearch.sql.spark.response.JobExecutionResponseReader;
 import org.opensearch.sql.spark.rest.model.LangType;
@@ -48,7 +48,7 @@ public class SparkQueryDispatcher {
 
   private JobExecutionResponseReader jobExecutionResponseReader;
 
-  private FlintIndexMetadataReader flintIndexMetadataReader;
+  private FlintIndexMetadataService flintIndexMetadataService;
 
   private Client client;
 
@@ -81,10 +81,9 @@ public class SparkQueryDispatcher {
       fillMissingDetails(dispatchQueryRequest, indexQueryDetails);
       contextBuilder.indexQueryDetails(indexQueryDetails);
 
-      if (IndexQueryActionType.DROP.equals(indexQueryDetails.getIndexQueryActionType())) {
+      if (isEligibleForIndexDMLHandling(indexQueryDetails)) {
         asyncQueryHandler = createIndexDMLHandler(emrServerlessClient);
-      } else if (IndexQueryActionType.CREATE.equals(indexQueryDetails.getIndexQueryActionType())
-          && indexQueryDetails.isAutoRefresh()) {
+      } else if (isEligibleForStreamingQuery(indexQueryDetails)) {
         asyncQueryHandler =
             new StreamingQueryHandler(
                 emrServerlessClient, jobExecutionResponseReader, leaseManager);
@@ -94,12 +93,31 @@ public class SparkQueryDispatcher {
             new RefreshQueryHandler(
                 emrServerlessClient,
                 jobExecutionResponseReader,
-                flintIndexMetadataReader,
+                flintIndexMetadataService,
                 stateStore,
                 leaseManager);
       }
     }
     return asyncQueryHandler.submit(dispatchQueryRequest, contextBuilder.build());
+  }
+
+  private boolean isEligibleForStreamingQuery(IndexQueryDetails indexQueryDetails) {
+    Boolean isCreateAutoRefreshIndex =
+        IndexQueryActionType.CREATE.equals(indexQueryDetails.getIndexQueryActionType())
+            && indexQueryDetails.getFlintIndexOptions().autoRefresh();
+    Boolean isAlterQuery =
+        IndexQueryActionType.ALTER.equals(indexQueryDetails.getIndexQueryActionType());
+    return isCreateAutoRefreshIndex || isAlterQuery;
+  }
+
+  private boolean isEligibleForIndexDMLHandling(IndexQueryDetails indexQueryDetails) {
+    return IndexQueryActionType.DROP.equals(indexQueryDetails.getIndexQueryActionType())
+        || (IndexQueryActionType.ALTER.equals(indexQueryDetails.getIndexQueryActionType())
+            && (indexQueryDetails
+                    .getFlintIndexOptions()
+                    .getProvidedOptions()
+                    .containsKey("auto_refresh")
+                && !indexQueryDetails.getFlintIndexOptions().autoRefresh()));
   }
 
   public JSONObject getQueryResponse(AsyncQueryJobMetadata asyncQueryJobMetadata) {
@@ -128,7 +146,7 @@ public class SparkQueryDispatcher {
           new RefreshQueryHandler(
               emrServerlessClient,
               jobExecutionResponseReader,
-              flintIndexMetadataReader,
+              flintIndexMetadataService,
               stateStore,
               leaseManager);
     } else if (asyncQueryJobMetadata.getJobType() == JobType.STREAMING) {
@@ -143,11 +161,7 @@ public class SparkQueryDispatcher {
 
   private IndexDMLHandler createIndexDMLHandler(EMRServerlessClient emrServerlessClient) {
     return new IndexDMLHandler(
-        emrServerlessClient,
-        jobExecutionResponseReader,
-        flintIndexMetadataReader,
-        client,
-        stateStore);
+        emrServerlessClient, jobExecutionResponseReader, flintIndexMetadataService, stateStore);
   }
 
   // TODO: Revisit this logic.
