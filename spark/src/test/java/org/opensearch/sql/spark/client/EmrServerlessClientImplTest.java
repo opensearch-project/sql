@@ -29,6 +29,7 @@ import com.amazonaws.services.emrserverless.model.StartJobRunResult;
 import com.amazonaws.services.emrserverless.model.ValidationException;
 import java.util.HashMap;
 import java.util.List;
+import org.apache.commons.lang3.RandomStringUtils;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -174,5 +175,26 @@ public class EmrServerlessClientImplTest {
             RuntimeException.class,
             () -> emrServerlessClient.cancelJobRun(EMRS_APPLICATION_ID, EMR_JOB_ID));
     Assertions.assertEquals("Internal Server Error.", runtimeException.getMessage());
+  }
+
+  @Test
+  void testStartJobRunWithLongJobName() {
+    StartJobRunResult response = new StartJobRunResult();
+    when(emrServerless.startJobRun(any())).thenReturn(response);
+
+    EmrServerlessClientImpl emrServerlessClient = new EmrServerlessClientImpl(emrServerless);
+    emrServerlessClient.startJobRun(
+        new StartJobRequest(
+            QUERY,
+            RandomStringUtils.random(300),
+            EMRS_APPLICATION_ID,
+            EMRS_EXECUTION_ROLE,
+            SPARK_SUBMIT_PARAMETERS,
+            new HashMap<>(),
+            false,
+            DEFAULT_RESULT_INDEX));
+    verify(emrServerless, times(1)).startJobRun(startJobRunRequestArgumentCaptor.capture());
+    StartJobRunRequest startJobRunRequest = startJobRunRequestArgumentCaptor.getValue();
+    Assertions.assertEquals(255, startJobRunRequest.getName().length());
   }
 }

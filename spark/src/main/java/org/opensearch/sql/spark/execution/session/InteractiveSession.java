@@ -20,6 +20,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.index.engine.VersionConflictEngineException;
 import org.opensearch.sql.spark.client.EMRServerlessClient;
+import org.opensearch.sql.spark.client.StartJobRequest;
 import org.opensearch.sql.spark.execution.statement.QueryRequest;
 import org.opensearch.sql.spark.execution.statement.Statement;
 import org.opensearch.sql.spark.execution.statement.StatementId;
@@ -55,8 +56,10 @@ public class InteractiveSession implements Session {
           .getSparkSubmitParametersBuilder()
           .sessionExecution(sessionId.getSessionId(), createSessionRequest.getDatasourceName());
       createSessionRequest.getTags().put(SESSION_ID_TAG_KEY, sessionId.getSessionId());
-      String jobID = serverlessClient.startJobRun(createSessionRequest.getStartJobRequest());
-      String applicationId = createSessionRequest.getStartJobRequest().getApplicationId();
+      StartJobRequest startJobRequest =
+          createSessionRequest.getStartJobRequest(sessionId.getSessionId());
+      String jobID = serverlessClient.startJobRun(startJobRequest);
+      String applicationId = startJobRequest.getApplicationId();
 
       sessionModel =
           initInteractiveSession(
