@@ -185,6 +185,9 @@ Async Query Cancellation API
 ======================================
 If security plugin is enabled, this API can only be invoked by users with permission ``cluster:admin/opensearch/ql/jobs/delete``.
 
+Limitation: Flint index creation can not be cancelled. User could submit ALTER statement to stop auto refresh query.
+- flint index creation statement include, CREATE SKIPPING INDEX / CREATE INDEX / CREATE MATERIALIZED VIEW
+
 HTTP URI: ``_plugins/_async_query/{queryId}``
 
 HTTP VERB: ``DELETE``

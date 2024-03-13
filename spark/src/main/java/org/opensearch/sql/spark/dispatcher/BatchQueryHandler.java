@@ -12,6 +12,8 @@ import static org.opensearch.sql.spark.dispatcher.SparkQueryDispatcher.JOB_TYPE_
 import com.amazonaws.services.emrserverless.model.GetJobRunResult;
 import java.util.Map;
 import lombok.RequiredArgsConstructor;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.json.JSONObject;
 import org.opensearch.sql.datasource.model.DataSourceMetadata;
 import org.opensearch.sql.legacy.metrics.MetricName;
@@ -24,14 +26,23 @@ import org.opensearch.sql.spark.dispatcher.model.DispatchQueryContext;
 import org.opensearch.sql.spark.dispatcher.model.DispatchQueryRequest;
 import org.opensearch.sql.spark.dispatcher.model.DispatchQueryResponse;
 import org.opensearch.sql.spark.dispatcher.model.JobType;
+import org.opensearch.sql.spark.execution.statestore.StateStore;
+import org.opensearch.sql.spark.flint.FlintIndexMetadata;
+import org.opensearch.sql.spark.flint.FlintIndexMetadataReader;
+import org.opensearch.sql.spark.flint.operation.FlintIndexOp;
+import org.opensearch.sql.spark.flint.operation.FlintIndexOpCancel;
 import org.opensearch.sql.spark.leasemanager.LeaseManager;
 import org.opensearch.sql.spark.leasemanager.model.LeaseRequest;
 import org.opensearch.sql.spark.response.JobExecutionResponseReader;
 
 @RequiredArgsConstructor
 public class BatchQueryHandler extends AsyncQueryHandler {
+  private static final Logger LOG = LogManager.getLogger();
+
   private final EMRServerlessClient emrServerlessClient;
   private final JobExecutionResponseReader jobExecutionResponseReader;
+  private final FlintIndexMetadataReader flintIndexMetadataReader;
+  private final StateStore stateStore;
   protected final LeaseManager leaseManager;
 
   @Override
@@ -57,9 +68,17 @@ public class BatchQueryHandler extends AsyncQueryHandler {
 
   @Override
   public String cancelJob(AsyncQueryJobMetadata asyncQueryJobMetadata) {
-    throw new IllegalArgumentException(
-        "can't cancel index DML query, using ALTER auto_refresh=off statement to stop job, using"
-            + " VACUUM statement to stop job and delete data");
+    String datasourceName = asyncQueryJobMetadata.getDatasourceName();
+    FlintIndexMetadata indexMetadata =
+        flintIndexMetadataReader.getFlintIndexMetadata(asyncQueryJobMetadata.getIndexName());
+    try {
+      FlintIndexOp jobCancelOp =
+          new FlintIndexOpCancel(stateStore, datasourceName, emrServerlessClient);
+      jobCancelOp.apply(indexMetadata);
+    } catch (Exception e) {
+      LOG.error(e);
+    }
+    return asyncQueryJobMetadata.getQueryId().getId();
   }
 
   @Override
@@ -90,6 +109,12 @@ public class BatchQueryHandler extends AsyncQueryHandler {
     String jobId = emrServerlessClient.startJobRun(startJobRequest);
     MetricUtils.incrementNumericalMetric(MetricName.EMR_BATCH_QUERY_JOBS_CREATION_COUNT);
     return new DispatchQueryResponse(
-        context.getQueryId(), jobId, dataSourceMetadata.getResultIndex(), null);
+        context.getQueryId(),
+        jobId,
+        dataSourceMetadata.getResultIndex(),
+        null,
+        dataSourceMetadata.getName(),
+        JobType.BATCH,
+        context.getIndexQueryDetails().openSearchIndexName());
   }
 }

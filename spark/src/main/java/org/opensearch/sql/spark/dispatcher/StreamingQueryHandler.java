@@ -13,6 +13,7 @@ import org.opensearch.sql.datasource.model.DataSourceMetadata;
 import org.opensearch.sql.legacy.metrics.MetricName;
 import org.opensearch.sql.legacy.utils.MetricUtils;
 import org.opensearch.sql.spark.asyncquery.model.AsyncQueryId;
+import org.opensearch.sql.spark.asyncquery.model.AsyncQueryJobMetadata;
 import org.opensearch.sql.spark.asyncquery.model.SparkSubmitParameters;
 import org.opensearch.sql.spark.client.EMRServerlessClient;
 import org.opensearch.sql.spark.client.StartJobRequest;
@@ -21,6 +22,8 @@ import org.opensearch.sql.spark.dispatcher.model.DispatchQueryRequest;
 import org.opensearch.sql.spark.dispatcher.model.DispatchQueryResponse;
 import org.opensearch.sql.spark.dispatcher.model.IndexQueryDetails;
 import org.opensearch.sql.spark.dispatcher.model.JobType;
+import org.opensearch.sql.spark.execution.statestore.StateStore;
+import org.opensearch.sql.spark.flint.FlintIndexMetadataReader;
 import org.opensearch.sql.spark.leasemanager.LeaseManager;
 import org.opensearch.sql.spark.leasemanager.model.LeaseRequest;
 import org.opensearch.sql.spark.response.JobExecutionResponseReader;
@@ -32,9 +35,23 @@ public class StreamingQueryHandler extends BatchQueryHandler {
   public StreamingQueryHandler(
       EMRServerlessClient emrServerlessClient,
       JobExecutionResponseReader jobExecutionResponseReader,
+      FlintIndexMetadataReader flintIndexMetadataReader,
+      StateStore stateStore,
       LeaseManager leaseManager) {
-    super(emrServerlessClient, jobExecutionResponseReader, leaseManager);
+    super(
+        emrServerlessClient,
+        jobExecutionResponseReader,
+        flintIndexMetadataReader,
+        stateStore,
+        leaseManager);
     this.emrServerlessClient = emrServerlessClient;
+  }
+
+  @Override
+  public String cancelJob(AsyncQueryJobMetadata asyncQueryJobMetadata) {
+    throw new IllegalArgumentException(
+        "can't cancel index DML query, using ALTER auto_refresh=off statement to stop job, using"
+            + " VACUUM statement to stop job and delete data");
   }
 
   @Override
@@ -77,6 +94,9 @@ public class StreamingQueryHandler extends BatchQueryHandler {
         AsyncQueryId.newAsyncQueryId(dataSourceMetadata.getName()),
         jobId,
         dataSourceMetadata.getResultIndex(),
-        null);
+        null,
+        dataSourceMetadata.getName(),
+        JobType.INTERACTIVE,
+        indexQueryDetails.openSearchIndexName());
   }
 }

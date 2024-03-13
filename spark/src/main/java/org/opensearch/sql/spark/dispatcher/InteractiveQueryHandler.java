@@ -9,7 +9,6 @@ import static org.opensearch.sql.spark.data.constants.SparkConstants.ERROR_FIELD
 import static org.opensearch.sql.spark.data.constants.SparkConstants.FLINT_SESSION_CLASS_NAME;
 import static org.opensearch.sql.spark.data.constants.SparkConstants.STATUS_FIELD;
 import static org.opensearch.sql.spark.dispatcher.SparkQueryDispatcher.JOB_TYPE_TAG_KEY;
-import static org.opensearch.sql.spark.execution.statement.StatementState.NOT_CANCELLABLE_STATE;
 
 import java.util.Map;
 import java.util.Optional;
@@ -63,13 +62,7 @@ public class InteractiveQueryHandler extends AsyncQueryHandler {
   @Override
   public String cancelJob(AsyncQueryJobMetadata asyncQueryJobMetadata) {
     String queryId = asyncQueryJobMetadata.getQueryId().getId();
-    Statement statement = getStatementByQueryId(asyncQueryJobMetadata.getSessionId(), queryId);
-    if (NOT_CANCELLABLE_STATE.contains(statement.getStatementState())) {
-      throw new IllegalArgumentException(
-          String.format(
-              "can't cancel statement in %s state", statement.getStatementState().getState()));
-    }
-    statement.cancel();
+    getStatementByQueryId(asyncQueryJobMetadata.getSessionId(), queryId).cancel();
     return queryId;
   }
 

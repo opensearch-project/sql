@@ -22,6 +22,7 @@ import org.opensearch.sql.spark.dispatcher.model.DispatchQueryRequest;
 import org.opensearch.sql.spark.dispatcher.model.DispatchQueryResponse;
 import org.opensearch.sql.spark.dispatcher.model.IndexQueryActionType;
 import org.opensearch.sql.spark.dispatcher.model.IndexQueryDetails;
+import org.opensearch.sql.spark.dispatcher.model.JobType;
 import org.opensearch.sql.spark.execution.session.SessionManager;
 import org.opensearch.sql.spark.execution.statestore.StateStore;
 import org.opensearch.sql.spark.flint.FlintIndexMetadataReader;
@@ -65,7 +66,12 @@ public class SparkQueryDispatcher {
     AsyncQueryHandler asyncQueryHandler =
         sessionManager.isEnabled()
             ? new InteractiveQueryHandler(sessionManager, jobExecutionResponseReader, leaseManager)
-            : new BatchQueryHandler(emrServerlessClient, jobExecutionResponseReader, leaseManager);
+            : new BatchQueryHandler(
+                emrServerlessClient,
+                jobExecutionResponseReader,
+                flintIndexMetadataReader,
+                stateStore,
+                leaseManager);
     DispatchQueryContext.DispatchQueryContextBuilder contextBuilder =
         DispatchQueryContext.builder()
             .dataSourceMetadata(dataSourceMetadata)
@@ -86,11 +92,20 @@ public class SparkQueryDispatcher {
           && indexQueryDetails.isAutoRefresh()) {
         asyncQueryHandler =
             new StreamingQueryHandler(
-                emrServerlessClient, jobExecutionResponseReader, leaseManager);
+                emrServerlessClient,
+                jobExecutionResponseReader,
+                flintIndexMetadataReader,
+                stateStore,
+                leaseManager);
       } else if (IndexQueryActionType.REFRESH.equals(indexQueryDetails.getIndexQueryActionType())) {
         // manual refresh should be handled by batch handler
         asyncQueryHandler =
-            new BatchQueryHandler(emrServerlessClient, jobExecutionResponseReader, leaseManager);
+            new BatchQueryHandler(
+                emrServerlessClient,
+                jobExecutionResponseReader,
+                flintIndexMetadataReader,
+                stateStore,
+                leaseManager);
       }
     }
     return asyncQueryHandler.submit(dispatchQueryRequest, contextBuilder.build());
@@ -104,7 +119,12 @@ public class SparkQueryDispatcher {
     } else if (IndexDMLHandler.isIndexDMLQuery(asyncQueryJobMetadata.getJobId())) {
       return createIndexDMLHandler(emrServerlessClient).getQueryResponse(asyncQueryJobMetadata);
     } else {
-      return new BatchQueryHandler(emrServerlessClient, jobExecutionResponseReader, leaseManager)
+      return new BatchQueryHandler(
+              emrServerlessClient,
+              jobExecutionResponseReader,
+              flintIndexMetadataReader,
+              stateStore,
+              leaseManager)
           .getQueryResponse(asyncQueryJobMetadata);
     }
   }
@@ -117,9 +137,22 @@ public class SparkQueryDispatcher {
           new InteractiveQueryHandler(sessionManager, jobExecutionResponseReader, leaseManager);
     } else if (IndexDMLHandler.isIndexDMLQuery(asyncQueryJobMetadata.getJobId())) {
       queryHandler = createIndexDMLHandler(emrServerlessClient);
+    } else if (asyncQueryJobMetadata.getJobType() == JobType.BATCH) {
+      queryHandler =
+          new BatchQueryHandler(
+              emrServerlessClient,
+              jobExecutionResponseReader,
+              flintIndexMetadataReader,
+              stateStore,
+              leaseManager);
     } else {
       queryHandler =
-          new BatchQueryHandler(emrServerlessClient, jobExecutionResponseReader, leaseManager);
+          new StreamingQueryHandler(
+              emrServerlessClient,
+              jobExecutionResponseReader,
+              flintIndexMetadataReader,
+              stateStore,
+              leaseManager);
     }
     return queryHandler.cancelJob(asyncQueryJobMetadata);
   }

@@ -43,6 +43,7 @@ public class AsyncQueryGetResultSpecTest extends AsyncQueryExecutorServiceSpec {
   private final FlintDatasetMock mockIndex =
       new FlintDatasetMock(
               "DROP SKIPPING INDEX ON mys3.default.http_logs",
+              "REFRESH SKIPPING INDEX ON mys3.default.http_logs",
               FlintIndexType.SKIPPING,
               "flint_mys3_default_http_logs_skipping_index")
           .latestId("skippingindexid");

@@ -5,11 +5,9 @@
 
 package org.opensearch.sql.spark.execution.statement;
 
-import com.google.common.collect.ImmutableSet;
 import java.util.Arrays;
 import java.util.Locale;
 import java.util.Map;
-import java.util.Set;
 import java.util.stream.Collectors;
 import lombok.Getter;
 
@@ -31,9 +29,6 @@ public enum StatementState {
   private static Map<String, StatementState> STATES =
       Arrays.stream(StatementState.values())
           .collect(Collectors.toMap(t -> t.name().toLowerCase(), t -> t));
-
-  public static Set<StatementState> NOT_CANCELLABLE_STATE =
-      ImmutableSet.of(SUCCESS, FAILED, CANCELLED);
 
   public static StatementState fromString(String key) {
     for (StatementState ss : StatementState.values()) {
