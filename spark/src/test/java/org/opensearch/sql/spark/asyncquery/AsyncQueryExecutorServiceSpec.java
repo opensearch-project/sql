@@ -391,6 +391,7 @@ public class AsyncQueryExecutorServiceSpec extends OpenSearchIntegTestCase {
   @RequiredArgsConstructor
   public class FlintDatasetMock {
     final String query;
+    final String refreshQuery;
     final FlintIndexType indexType;
     final String indexName;
     boolean isLegacy = false;
