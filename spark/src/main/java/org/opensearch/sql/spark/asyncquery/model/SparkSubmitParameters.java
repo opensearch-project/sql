@@ -85,6 +85,11 @@ public class SparkSubmitParameters {
       return this;
     }
 
+    public Builder query(String query) {
+      config.put(FLINT_JOB_QUERY, query);
+      return this;
+    }
+
     public Builder dataSource(DataSourceMetadata metadata) {
       if (DataSourceType.S3GLUE.equals(metadata.getConnector())) {
         String roleArn = metadata.getProperties().get(GLUE_ROLE_ARN);

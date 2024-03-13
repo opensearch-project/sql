@@ -74,13 +74,13 @@ public class BatchQueryHandler extends AsyncQueryHandler {
     tags.put(JOB_TYPE_TAG_KEY, JobType.BATCH.getText());
     StartJobRequest startJobRequest =
         new StartJobRequest(
-            dispatchQueryRequest.getQuery(),
             clusterName + ":" + JobType.BATCH.getText(),
             dispatchQueryRequest.getApplicationId(),
             dispatchQueryRequest.getExecutionRoleARN(),
             SparkSubmitParameters.Builder.builder()
                 .clusterName(clusterName)
                 .dataSource(context.getDataSourceMetadata())
+                .query(dispatchQueryRequest.getQuery())
                 .extraParameters(dispatchQueryRequest.getExtraSparkSubmitParams())
                 .build()
                 .toString(),
