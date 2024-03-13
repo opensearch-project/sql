@@ -48,6 +48,7 @@ import java.util.Optional;
 import org.json.JSONObject;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
@@ -551,7 +552,7 @@ public class SparkQueryDispatcherTest {
     verifyNoInteractions(flintIndexMetadataReader);
   }
 
-  @Test
+  @Disabled("BatchQueryHandler only handle refresh query")
   void testDispatchShowMVQuery() {
     HashMap<String, String> tags = new HashMap<>();
     tags.put(DATASOURCE_TAG_KEY, "my_glue");

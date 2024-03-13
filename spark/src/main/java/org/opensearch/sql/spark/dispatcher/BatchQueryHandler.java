@@ -108,6 +108,10 @@ public class BatchQueryHandler extends AsyncQueryHandler {
             dataSourceMetadata.getResultIndex());
     String jobId = emrServerlessClient.startJobRun(startJobRequest);
     MetricUtils.incrementNumericalMetric(MetricName.EMR_BATCH_QUERY_JOBS_CREATION_COUNT);
+    String indexName =
+        context.getIndexQueryDetails() == null
+            ? null
+            : context.getIndexQueryDetails().openSearchIndexName();
     return new DispatchQueryResponse(
         context.getQueryId(),
         jobId,
@@ -115,6 +119,6 @@ public class BatchQueryHandler extends AsyncQueryHandler {
         null,
         dataSourceMetadata.getName(),
         JobType.BATCH,
-        context.getIndexQueryDetails().openSearchIndexName());
+        indexName);
   }
 }
