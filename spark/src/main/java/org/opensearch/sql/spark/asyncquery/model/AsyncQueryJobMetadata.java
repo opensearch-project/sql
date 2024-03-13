@@ -38,9 +38,13 @@ public class AsyncQueryJobMetadata extends StateModel {
   private final String resultIndex;
   // optional sessionId.
   private final String sessionId;
-  private final String datasourceName;
+  // since 2.13
+  // jobType could be null before OpenSearch 2.12. SparkQueryDispatcher use jobType to choose
+  // cancel query handler. if jobType is null, it will invoke BatchQueryHandler.cancel().
   private final JobType jobType;
-  // null if JobType is INTERACTIVE
+  // null if JobType is null
+  private final String datasourceName;
+  // null if JobType is INTERACTIVE or null
   private final String indexName;
 
   @EqualsAndHashCode.Exclude private final long seqNo;
@@ -182,7 +186,6 @@ public class AsyncQueryJobMetadata extends StateModel {
     AsyncQueryId queryId = null;
     String jobId = null;
     String applicationId = null;
-    boolean isDropIndexQuery = false;
     String resultIndex = null;
     String sessionId = null;
     String datasourceName = null;
@@ -201,9 +204,6 @@ public class AsyncQueryJobMetadata extends StateModel {
           break;
         case "applicationId":
           applicationId = parser.textOrNull();
-          break;
-        case "isDropIndexQuery":
-          isDropIndexQuery = parser.booleanValue();
           break;
         case "resultIndex":
           resultIndex = parser.textOrNull();
@@ -233,7 +233,7 @@ public class AsyncQueryJobMetadata extends StateModel {
         resultIndex,
         sessionId,
         datasourceName,
-        Strings.isNullOrEmpty(jobTypeStr) ? JobType.INTERACTIVE : JobType.fromString(jobTypeStr),
+        Strings.isNullOrEmpty(jobTypeStr) ? null : JobType.fromString(jobTypeStr),
         indexName,
         seqNo,
         primaryTerm);

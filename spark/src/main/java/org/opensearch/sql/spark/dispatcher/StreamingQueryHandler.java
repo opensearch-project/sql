@@ -22,8 +22,6 @@ import org.opensearch.sql.spark.dispatcher.model.DispatchQueryRequest;
 import org.opensearch.sql.spark.dispatcher.model.DispatchQueryResponse;
 import org.opensearch.sql.spark.dispatcher.model.IndexQueryDetails;
 import org.opensearch.sql.spark.dispatcher.model.JobType;
-import org.opensearch.sql.spark.execution.statestore.StateStore;
-import org.opensearch.sql.spark.flint.FlintIndexMetadataReader;
 import org.opensearch.sql.spark.leasemanager.LeaseManager;
 import org.opensearch.sql.spark.leasemanager.model.LeaseRequest;
 import org.opensearch.sql.spark.response.JobExecutionResponseReader;
@@ -35,15 +33,8 @@ public class StreamingQueryHandler extends BatchQueryHandler {
   public StreamingQueryHandler(
       EMRServerlessClient emrServerlessClient,
       JobExecutionResponseReader jobExecutionResponseReader,
-      FlintIndexMetadataReader flintIndexMetadataReader,
-      StateStore stateStore,
       LeaseManager leaseManager) {
-    super(
-        emrServerlessClient,
-        jobExecutionResponseReader,
-        flintIndexMetadataReader,
-        stateStore,
-        leaseManager);
+    super(emrServerlessClient, jobExecutionResponseReader, leaseManager);
     this.emrServerlessClient = emrServerlessClient;
   }
 
@@ -96,7 +87,7 @@ public class StreamingQueryHandler extends BatchQueryHandler {
         dataSourceMetadata.getResultIndex(),
         null,
         dataSourceMetadata.getName(),
-        JobType.INTERACTIVE,
+        JobType.STREAMING,
         indexQueryDetails.openSearchIndexName());
   }
 }
