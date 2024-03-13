@@ -5,8 +5,6 @@
 
 package org.opensearch.sql.spark.dispatcher;
 
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 import org.opensearch.sql.datasource.model.DataSourceMetadata;
 import org.opensearch.sql.spark.asyncquery.model.AsyncQueryJobMetadata;
 import org.opensearch.sql.spark.client.EMRServerlessClient;
@@ -24,7 +22,6 @@ import org.opensearch.sql.spark.response.JobExecutionResponseReader;
 
 /** Handle Refresh Query. */
 public class RefreshQueryHandler extends BatchQueryHandler {
-  private static final Logger LOG = LogManager.getLogger();
 
   private final FlintIndexMetadataReader flintIndexMetadataReader;
   private final StateStore stateStore;
@@ -47,13 +44,9 @@ public class RefreshQueryHandler extends BatchQueryHandler {
     String datasourceName = asyncQueryJobMetadata.getDatasourceName();
     FlintIndexMetadata indexMetadata =
         flintIndexMetadataReader.getFlintIndexMetadata(asyncQueryJobMetadata.getIndexName());
-    try {
-      FlintIndexOp jobCancelOp =
-          new FlintIndexOpCancel(stateStore, datasourceName, emrServerlessClient);
-      jobCancelOp.apply(indexMetadata);
-    } catch (Exception e) {
-      LOG.error(e);
-    }
+    FlintIndexOp jobCancelOp =
+        new FlintIndexOpCancel(stateStore, datasourceName, emrServerlessClient);
+    jobCancelOp.apply(indexMetadata);
     return asyncQueryJobMetadata.getQueryId().getId();
   }
 
@@ -61,10 +54,6 @@ public class RefreshQueryHandler extends BatchQueryHandler {
   public DispatchQueryResponse submit(
       DispatchQueryRequest dispatchQueryRequest, DispatchQueryContext context) {
     DispatchQueryResponse resp = super.submit(dispatchQueryRequest, context);
-    String indexName =
-        context.getIndexQueryDetails() == null
-            ? null
-            : context.getIndexQueryDetails().openSearchIndexName();
     DataSourceMetadata dataSourceMetadata = context.getDataSourceMetadata();
     return new DispatchQueryResponse(
         resp.getQueryId(),
@@ -73,6 +62,6 @@ public class RefreshQueryHandler extends BatchQueryHandler {
         resp.getSessionId(),
         dataSourceMetadata.getName(),
         JobType.BATCH,
-        indexName);
+        context.getIndexQueryDetails().openSearchIndexName());
   }
 }
