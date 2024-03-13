@@ -86,12 +86,17 @@ public class SparkQueryDispatcher {
       } else if (IndexQueryActionType.CREATE.equals(indexQueryDetails.getIndexQueryActionType())
           && indexQueryDetails.isAutoRefresh()) {
         asyncQueryHandler =
-            new StreamingQueryHandler(emrServerlessClient, jobExecutionResponseReader, leaseManager);
+            new StreamingQueryHandler(
+                emrServerlessClient, jobExecutionResponseReader, leaseManager);
       } else if (IndexQueryActionType.REFRESH.equals(indexQueryDetails.getIndexQueryActionType())) {
         // manual refresh should be handled by batch handler
         asyncQueryHandler =
-            new RefreshQueryHandler(emrServerlessClient, jobExecutionResponseReader,
-                flintIndexMetadataReader, stateStore, leaseManager);
+            new RefreshQueryHandler(
+                emrServerlessClient,
+                jobExecutionResponseReader,
+                flintIndexMetadataReader,
+                stateStore,
+                leaseManager);
       }
     }
     return asyncQueryHandler.submit(dispatchQueryRequest, contextBuilder.build());
@@ -120,14 +125,18 @@ public class SparkQueryDispatcher {
       queryHandler = createIndexDMLHandler(emrServerlessClient);
     } else if (asyncQueryJobMetadata.getJobType() == JobType.BATCH) {
       queryHandler =
-          new RefreshQueryHandler(emrServerlessClient, jobExecutionResponseReader,
-              flintIndexMetadataReader, stateStore, leaseManager);
+          new RefreshQueryHandler(
+              emrServerlessClient,
+              jobExecutionResponseReader,
+              flintIndexMetadataReader,
+              stateStore,
+              leaseManager);
     } else if (asyncQueryJobMetadata.getJobType() == JobType.STREAMING) {
       queryHandler =
           new StreamingQueryHandler(emrServerlessClient, jobExecutionResponseReader, leaseManager);
     } else {
-      queryHandler = new BatchQueryHandler(emrServerlessClient, jobExecutionResponseReader,
-          leaseManager);
+      queryHandler =
+          new BatchQueryHandler(emrServerlessClient, jobExecutionResponseReader, leaseManager);
     }
     return queryHandler.cancelJob(asyncQueryJobMetadata);
   }

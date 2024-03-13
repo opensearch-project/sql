@@ -30,11 +30,12 @@ public class RefreshQueryHandler extends BatchQueryHandler {
   private final StateStore stateStore;
   private final EMRServerlessClient emrServerlessClient;
 
-  public RefreshQueryHandler(EMRServerlessClient emrServerlessClient,
-                             JobExecutionResponseReader jobExecutionResponseReader,
-                             FlintIndexMetadataReader flintIndexMetadataReader,
-                             StateStore stateStore,
-                             LeaseManager leaseManager) {
+  public RefreshQueryHandler(
+      EMRServerlessClient emrServerlessClient,
+      JobExecutionResponseReader jobExecutionResponseReader,
+      FlintIndexMetadataReader flintIndexMetadataReader,
+      StateStore stateStore,
+      LeaseManager leaseManager) {
     super(emrServerlessClient, jobExecutionResponseReader, leaseManager);
     this.flintIndexMetadataReader = flintIndexMetadataReader;
     this.stateStore = stateStore;
@@ -57,8 +58,8 @@ public class RefreshQueryHandler extends BatchQueryHandler {
   }
 
   @Override
-  public DispatchQueryResponse submit(DispatchQueryRequest dispatchQueryRequest,
-                                      DispatchQueryContext context) {
+  public DispatchQueryResponse submit(
+      DispatchQueryRequest dispatchQueryRequest, DispatchQueryContext context) {
     DispatchQueryResponse resp = super.submit(dispatchQueryRequest, context);
     String indexName =
         context.getIndexQueryDetails() == null
