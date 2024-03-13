@@ -22,40 +22,58 @@ import org.opensearch.sql.spark.rest.model.CreateAsyncQueryResponse;
 import org.opensearch.sql.spark.rest.model.LangType;
 
 public class IndexQuerySpecTest extends AsyncQueryExecutorServiceSpec {
+  public final String REFRESH_SI = "REFRESH SKIPPING INDEX on mys3.default.http_logs";
+  public final String REFRESH_CI = "REFRESH INDEX covering ON mys3.default.http_logs";
+  public final String REFRESH_MV = "REFRESH MATERIALIZED VIEW mv";
 
   public final FlintDatasetMock LEGACY_SKIPPING =
       new FlintDatasetMock(
               "DROP SKIPPING INDEX ON mys3.default.http_logs",
+              REFRESH_SI,
               FlintIndexType.SKIPPING,
               "flint_mys3_default_http_logs_skipping_index")
           .isLegacy(true);
   public final FlintDatasetMock LEGACY_COVERING =
       new FlintDatasetMock(
               "DROP INDEX covering ON mys3.default.http_logs",
+              REFRESH_CI,
               FlintIndexType.COVERING,
               "flint_mys3_default_http_logs_covering_index")
           .isLegacy(true);
   public final FlintDatasetMock LEGACY_MV =
       new FlintDatasetMock(
-              "DROP MATERIALIZED VIEW mv", FlintIndexType.MATERIALIZED_VIEW, "flint_mv")
+              "DROP MATERIALIZED VIEW mv", REFRESH_MV, FlintIndexType.MATERIALIZED_VIEW, "flint_mv")
           .isLegacy(true);
 
   public final FlintDatasetMock SKIPPING =
       new FlintDatasetMock(
               "DROP SKIPPING INDEX ON mys3.default.http_logs",
+              REFRESH_SI,
               FlintIndexType.SKIPPING,
               "flint_mys3_default_http_logs_skipping_index")
           .latestId("skippingindexid");
   public final FlintDatasetMock COVERING =
       new FlintDatasetMock(
               "DROP INDEX covering ON mys3.default.http_logs",
+              REFRESH_CI,
               FlintIndexType.COVERING,
               "flint_mys3_default_http_logs_covering_index")
           .latestId("coveringid");
   public final FlintDatasetMock MV =
       new FlintDatasetMock(
-              "DROP MATERIALIZED VIEW mv", FlintIndexType.MATERIALIZED_VIEW, "flint_mv")
+              "DROP MATERIALIZED VIEW mv", REFRESH_MV, FlintIndexType.MATERIALIZED_VIEW, "flint_mv")
           .latestId("mvid");
+  public final String CREATE_SI_AUTO =
+      "CREATE SKIPPING INDEX ON mys3.default.http_logs"
+          + "(l_orderkey VALUE_SET) WITH (auto_refresh = true)";
+
+  public final String CREATE_CI_AUTO =
+      "CREATE INDEX covering ON mys3.default.http_logs "
+          + "(l_orderkey, l_quantity) WITH (auto_refresh = true)";
+
+  public final String CREATE_MV_AUTO =
+      "CREATE MATERIALIZED VIEW mv AS select * "
+          + "from mys3.default.https WITH (auto_refresh = true)";
 
   /**
    * Happy case. expectation is
@@ -761,5 +779,90 @@ public class IndexQuerySpecTest extends AsyncQueryExecutorServiceSpec {
         asyncQueryExecutorService.createAsyncQuery(
             new CreateAsyncQueryRequest(query, DATASOURCE, LangType.SQL, null));
     assertNotNull(asyncQueryResponse.getSessionId());
+  }
+
+  /** Cancel create flint index statement with auto_refresh=true, should throw exception. */
+  @Test
+  public void cancelAutoRefreshCreateFlintIndexShouldThrowException() {
+    ImmutableList.of(CREATE_SI_AUTO, CREATE_CI_AUTO, CREATE_MV_AUTO)
+        .forEach(
+            query -> {
+              LocalEMRSClient emrsClient =
+                  new LocalEMRSClient() {
+                    @Override
+                    public CancelJobRunResult cancelJobRun(String applicationId, String jobId) {
+                      Assert.fail("should not call cancelJobRun");
+                      return null;
+                    }
+
+                    @Override
+                    public GetJobRunResult getJobRunResult(String applicationId, String jobId) {
+                      Assert.fail("should not call getJobRunResult");
+                      return null;
+                    }
+                  };
+              EMRServerlessClientFactory emrServerlessClientFactory = () -> emrsClient;
+              AsyncQueryExecutorService asyncQueryExecutorService =
+                  createAsyncQueryExecutorService(emrServerlessClientFactory);
+
+              // 1. submit create / refresh index query
+              CreateAsyncQueryResponse response =
+                  asyncQueryExecutorService.createAsyncQuery(
+                      new CreateAsyncQueryRequest(query, DATASOURCE, LangType.SQL, null));
+
+              System.out.println(query);
+
+              // 2. cancel query
+              IllegalArgumentException exception =
+                  assertThrows(
+                      IllegalArgumentException.class,
+                      () -> asyncQueryExecutorService.cancelQuery(response.getQueryId()));
+              assertEquals(
+                  "can't cancel index DML query, using ALTER auto_refresh=off statement to stop"
+                      + " job, using VACUUM statement to stop job and delete data",
+                  exception.getMessage());
+            });
+  }
+
+  /** Cancel REFRESH statement should success */
+  @Test
+  public void cancelRefreshStatement() {
+    ImmutableList.of(SKIPPING, COVERING, MV)
+        .forEach(
+            mockDS -> {
+              AsyncQueryExecutorService asyncQueryExecutorService =
+                  createAsyncQueryExecutorService(
+                      () ->
+                          new LocalEMRSClient() {
+                            @Override
+                            public GetJobRunResult getJobRunResult(
+                                String applicationId, String jobId) {
+                              return new GetJobRunResult()
+                                  .withJobRun(new JobRun().withState("Cancelled"));
+                            }
+                          });
+
+              // Mock flint index
+              mockDS.createIndex();
+              // Mock index state
+              MockFlintSparkJob flintIndexJob = new MockFlintSparkJob(mockDS.latestId);
+
+              // 1. Submit REFRESH statement
+              CreateAsyncQueryResponse response =
+                  asyncQueryExecutorService.createAsyncQuery(
+                      new CreateAsyncQueryRequest(
+                          mockDS.refreshQuery, DATASOURCE, LangType.SQL, null));
+              // mock index state.
+              flintIndexJob.refreshing();
+
+              // 2. Cancel query
+              String cancelResponse = asyncQueryExecutorService.cancelQuery(response.getQueryId());
+
+              assertNotNull(cancelResponse);
+              assertTrue(clusterService.state().routingTable().hasIndex(mockDS.indexName));
+
+              // assert state is active
+              flintIndexJob.assertState(FlintIndexState.ACTIVE);
+            });
   }
 }

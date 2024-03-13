@@ -15,7 +15,11 @@ public class FlintIndexMetadataReaderImpl implements FlintIndexMetadataReader {
 
   @Override
   public FlintIndexMetadata getFlintIndexMetadata(IndexQueryDetails indexQueryDetails) {
-    String indexName = indexQueryDetails.openSearchIndexName();
+    return getFlintIndexMetadata(indexQueryDetails.openSearchIndexName());
+  }
+
+  @Override
+  public FlintIndexMetadata getFlintIndexMetadata(String indexName) {
     GetMappingsResponse mappingsResponse =
         client.admin().indices().prepareGetMappings(indexName).get();
     try {
