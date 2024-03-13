@@ -7,6 +7,7 @@
 
 package org.opensearch.sql.ppl;
 
+import static org.hamcrest.Matchers.equalTo;
 import static org.opensearch.sql.prometheus.data.constants.PrometheusFieldConstants.LABELS;
 import static org.opensearch.sql.prometheus.data.constants.PrometheusFieldConstants.TIMESTAMP;
 import static org.opensearch.sql.prometheus.data.constants.PrometheusFieldConstants.VALUE;
@@ -14,7 +15,6 @@ import static org.opensearch.sql.util.MatcherUtils.assertJsonEquals;
 import static org.opensearch.sql.util.MatcherUtils.schema;
 import static org.opensearch.sql.util.MatcherUtils.verifySchema;
 
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.io.Resources;
 import java.io.IOException;
@@ -35,8 +35,11 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.opensearch.client.Request;
 import org.opensearch.client.Response;
+import org.opensearch.client.ResponseException;
 import org.opensearch.sql.datasource.model.DataSourceMetadata;
+import org.opensearch.sql.datasource.model.DataSourceStatus;
 import org.opensearch.sql.datasource.model.DataSourceType;
+import org.opensearch.sql.util.TestUtils;
 
 public class PrometheusDataSourceCommandsIT extends PPLIntegTestCase {
 
@@ -55,13 +58,11 @@ public class PrometheusDataSourceCommandsIT extends PPLIntegTestCase {
   @Override
   protected void init() throws InterruptedException, IOException {
     DataSourceMetadata createDSM =
-        new DataSourceMetadata(
-            "my_prometheus",
-            StringUtils.EMPTY,
-            DataSourceType.PROMETHEUS,
-            ImmutableList.of(),
-            ImmutableMap.of("prometheus.uri", "http://localhost:9090"),
-            null);
+        new DataSourceMetadata.Builder()
+            .setName("my_prometheus")
+            .setConnector(DataSourceType.PROMETHEUS)
+            .setProperties(ImmutableMap.of("prometheus.uri", "http://localhost:9090"))
+            .build();
     Request createRequest = getCreateDataSourceRequest(createDSM);
     Response response = client().performRequest(createRequest);
     Assert.assertEquals(201, response.getStatusLine().getStatusCode());
@@ -282,6 +283,38 @@ public class PrometheusDataSourceCommandsIT extends PPLIntegTestCase {
         explainQueryToString(
             "source = my_prometheus."
                 + "query_exemplars('app_ads_ad_requests_total',1689228292,1689232299)"));
+  }
+
+  @Test
+  public void testQueryOnDisabledDataSource() throws IOException {
+    DataSourceMetadata deletedDSM =
+        new DataSourceMetadata.Builder()
+            .setName("disabled_prometheus")
+            .setConnector(DataSourceType.PROMETHEUS)
+            .setProperties(ImmutableMap.of("prometheus.uri", "http://localhost:9090"))
+            .setDataSourceStatus(DataSourceStatus.DISABLED)
+            .build();
+    Request createRequest = getCreateDataSourceRequest(deletedDSM);
+    Response response = client().performRequest(createRequest);
+    Assert.assertEquals(201, response.getStatusLine().getStatusCode());
+
+    try {
+      executeQuery(
+          "source=disabled_prometheus.prometheus_http_requests_total | stats sum(@value) by"
+              + " span(@timestamp, 15s), handler, job");
+    } catch (ResponseException ex) {
+      response = ex.getResponse();
+    }
+    JSONObject result = new JSONObject(TestUtils.getResponseBody(response));
+    assertThat(result.getInt("status"), equalTo(400));
+    JSONObject error = result.getJSONObject("error");
+    assertThat(error.getString("reason"), equalTo("Invalid Query"));
+    assertThat(error.getString("details"), equalTo("Datasource disabled_prometheus is disabled."));
+    assertThat(error.getString("type"), equalTo("DatasourceDisabledException"));
+
+    Request deleteRequest = getDeleteDataSourceRequest("disabled_prometheus");
+    Response deleteResponse = client().performRequest(deleteRequest);
+    Assert.assertEquals(204, deleteResponse.getStatusLine().getStatusCode());
   }
 
   String loadFromFile(String filename) throws Exception {

@@ -13,12 +13,10 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableMap;
-import java.util.Collections;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.Set;
 import java.util.stream.Collectors;
-import org.apache.commons.lang3.StringUtils;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -61,13 +59,11 @@ public class DataSourceTableScanTest {
         dataSourceSet.stream()
             .map(
                 dataSource ->
-                    new DataSourceMetadata(
-                        dataSource.getName(),
-                        StringUtils.EMPTY,
-                        dataSource.getConnectorType(),
-                        Collections.emptyList(),
-                        ImmutableMap.of(),
-                        null))
+                    new DataSourceMetadata.Builder()
+                        .setName(dataSource.getName())
+                        .setConnector(dataSource.getConnectorType())
+                        .setProperties(ImmutableMap.of("prometheus.uri", "localhost:9200"))
+                        .build())
             .collect(Collectors.toSet());
     when(dataSourceService.getDataSourceMetadata(false)).thenReturn(dataSourceMetadata);
 

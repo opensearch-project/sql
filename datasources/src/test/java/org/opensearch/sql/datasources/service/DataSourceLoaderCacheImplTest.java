@@ -7,7 +7,6 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
-import com.google.common.collect.ImmutableMap;
 import java.util.Collections;
 import java.util.List;
 import org.junit.jupiter.api.Assertions;
@@ -46,11 +45,7 @@ class DataSourceLoaderCacheImplTest {
   void testGetOrLoadDataSource() {
     DataSourceLoaderCache dataSourceLoaderCache =
         new DataSourceLoaderCacheImpl(Collections.singleton(dataSourceFactory));
-    DataSourceMetadata dataSourceMetadata = new DataSourceMetadata();
-    dataSourceMetadata.setName("testDS");
-    dataSourceMetadata.setConnector(DataSourceType.OPENSEARCH);
-    dataSourceMetadata.setAllowedRoles(Collections.emptyList());
-    dataSourceMetadata.setProperties(ImmutableMap.of());
+    DataSourceMetadata dataSourceMetadata = getMetadata();
     DataSource dataSource = dataSourceLoaderCache.getOrLoadDataSource(dataSourceMetadata);
     verify(dataSourceFactory, times(1)).createDataSource(dataSourceMetadata);
     Assertions.assertEquals(
@@ -65,18 +60,19 @@ class DataSourceLoaderCacheImplTest {
     DataSourceMetadata dataSourceMetadata = getMetadata();
     dataSourceLoaderCache.getOrLoadDataSource(dataSourceMetadata);
     dataSourceLoaderCache.getOrLoadDataSource(dataSourceMetadata);
-    dataSourceMetadata.setAllowedRoles(List.of("testDS_access"));
+    dataSourceMetadata =
+        new DataSourceMetadata.Builder(dataSourceMetadata)
+            .setAllowedRoles(List.of("testDS_access"))
+            .build();
     dataSourceLoaderCache.getOrLoadDataSource(dataSourceMetadata);
     dataSourceLoaderCache.getOrLoadDataSource(dataSourceMetadata);
-    verify(dataSourceFactory, times(2)).createDataSource(dataSourceMetadata);
+    verify(dataSourceFactory, times(2)).createDataSource(any());
   }
 
   private DataSourceMetadata getMetadata() {
-    DataSourceMetadata dataSourceMetadata = new DataSourceMetadata();
-    dataSourceMetadata.setName("testDS");
-    dataSourceMetadata.setConnector(DataSourceType.OPENSEARCH);
-    dataSourceMetadata.setAllowedRoles(Collections.emptyList());
-    dataSourceMetadata.setProperties(ImmutableMap.of());
-    return dataSourceMetadata;
+    return new DataSourceMetadata.Builder()
+        .setName("testDS")
+        .setConnector(DataSourceType.OPENSEARCH)
+        .build();
   }
 }

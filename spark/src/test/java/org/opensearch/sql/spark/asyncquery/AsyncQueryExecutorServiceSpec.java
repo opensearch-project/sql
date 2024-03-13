@@ -17,7 +17,6 @@ import com.amazonaws.services.emrserverless.model.GetJobRunResult;
 import com.amazonaws.services.emrserverless.model.JobRun;
 import com.amazonaws.services.emrserverless.model.JobRunState;
 import com.google.common.base.Charsets;
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.io.Resources;
@@ -30,7 +29,6 @@ import java.util.Optional;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.SneakyThrows;
-import org.apache.commons.lang3.StringUtils;
 import org.junit.After;
 import org.junit.Before;
 import org.opensearch.action.admin.indices.create.CreateIndexRequest;
@@ -119,38 +117,36 @@ public class AsyncQueryExecutorServiceSpec extends OpenSearchIntegTestCase {
         .get();
     dataSourceService = createDataSourceService();
     DataSourceMetadata dm =
-        new DataSourceMetadata(
-            DATASOURCE,
-            StringUtils.EMPTY,
-            DataSourceType.S3GLUE,
-            ImmutableList.of(),
-            ImmutableMap.of(
-                "glue.auth.type",
-                "iam_role",
-                "glue.auth.role_arn",
-                "arn:aws:iam::924196221507:role/FlintOpensearchServiceRole",
-                "glue.indexstore.opensearch.uri",
-                "http://localhost:9200",
-                "glue.indexstore.opensearch.auth",
-                "noauth"),
-            null);
+        new DataSourceMetadata.Builder()
+            .setName(DATASOURCE)
+            .setConnector(DataSourceType.S3GLUE)
+            .setProperties(
+                ImmutableMap.of(
+                    "glue.auth.type",
+                    "iam_role",
+                    "glue.auth.role_arn",
+                    "arn:aws:iam::924196221507:role/FlintOpensearchServiceRole",
+                    "glue.indexstore.opensearch.uri",
+                    "http://localhost:9200",
+                    "glue.indexstore.opensearch.auth",
+                    "noauth"))
+            .build();
     dataSourceService.createDataSource(dm);
     DataSourceMetadata otherDm =
-        new DataSourceMetadata(
-            DSOTHER,
-            StringUtils.EMPTY,
-            DataSourceType.S3GLUE,
-            ImmutableList.of(),
-            ImmutableMap.of(
-                "glue.auth.type",
-                "iam_role",
-                "glue.auth.role_arn",
-                "arn:aws:iam::924196221507:role/FlintOpensearchServiceRole",
-                "glue.indexstore.opensearch.uri",
-                "http://localhost:9200",
-                "glue.indexstore.opensearch.auth",
-                "noauth"),
-            null);
+        new DataSourceMetadata.Builder()
+            .setName(DSOTHER)
+            .setConnector(DataSourceType.S3GLUE)
+            .setProperties(
+                ImmutableMap.of(
+                    "glue.auth.type",
+                    "iam_role",
+                    "glue.auth.role_arn",
+                    "arn:aws:iam::924196221507:role/FlintOpensearchServiceRole",
+                    "glue.indexstore.opensearch.uri",
+                    "http://localhost:9200",
+                    "glue.indexstore.opensearch.auth",
+                    "noauth"))
+            .build();
     dataSourceService.createDataSource(otherDm);
     stateStore = new StateStore(client, clusterService);
     createIndexWithMappings(dm.getResultIndex(), loadResultIndexMappings());

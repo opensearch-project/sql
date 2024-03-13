@@ -1,6 +1,7 @@
 package org.opensearch.sql.datasources.utils;
 
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.opensearch.sql.datasource.model.DataSourceStatus.ACTIVE;
 import static org.opensearch.sql.datasources.utils.XContentParserUtils.*;
 
 import com.google.gson.Gson;
@@ -23,28 +24,32 @@ public class XContentParserUtilsTest {
   @SneakyThrows
   @Test
   public void testConvertToXContent() {
-    DataSourceMetadata dataSourceMetadata = new DataSourceMetadata();
-    dataSourceMetadata.setName("testDS");
-    dataSourceMetadata.setConnector(DataSourceType.PROMETHEUS);
-    dataSourceMetadata.setAllowedRoles(List.of("prometheus_access"));
-    dataSourceMetadata.setProperties(Map.of("prometheus.uri", "https://localhost:9090"));
+    DataSourceMetadata dataSourceMetadata =
+        new DataSourceMetadata.Builder()
+            .setName("testDS")
+            .setConnector(DataSourceType.PROMETHEUS)
+            .setAllowedRoles(List.of("prometheus_access"))
+            .setProperties(Map.of("prometheus.uri", "https://localhost:9090"))
+            .build();
 
     XContentBuilder contentBuilder = XContentParserUtils.convertToXContent(dataSourceMetadata);
     String contentString = BytesReference.bytes(contentBuilder).utf8ToString();
     Assertions.assertEquals(
-        "{\"name\":\"testDS\",\"description\":\"\",\"connector\":\"PROMETHEUS\",\"allowedRoles\":[\"prometheus_access\"],\"properties\":{\"prometheus.uri\":\"https://localhost:9090\"},\"resultIndex\":null}",
+        "{\"name\":\"testDS\",\"description\":\"\",\"connector\":\"PROMETHEUS\",\"allowedRoles\":[\"prometheus_access\"],\"properties\":{\"prometheus.uri\":\"https://localhost:9090\"},\"resultIndex\":\"query_execution_result_testds\",\"status\":\"ACTIVE\"}",
         contentString);
   }
 
   @SneakyThrows
   @Test
   public void testToDataSourceMetadataFromJson() {
-    DataSourceMetadata dataSourceMetadata = new DataSourceMetadata();
-    dataSourceMetadata.setName("testDS");
-    dataSourceMetadata.setConnector(DataSourceType.PROMETHEUS);
-    dataSourceMetadata.setAllowedRoles(List.of("prometheus_access"));
-    dataSourceMetadata.setProperties(Map.of("prometheus.uri", "https://localhost:9090"));
-    dataSourceMetadata.setResultIndex("query_execution_result2");
+    DataSourceMetadata dataSourceMetadata =
+        new DataSourceMetadata.Builder()
+            .setName("testDS")
+            .setConnector(DataSourceType.PROMETHEUS)
+            .setAllowedRoles(List.of("prometheus_access"))
+            .setProperties(Map.of("prometheus.uri", "https://localhost:9090"))
+            .setResultIndex("query_execution_result2")
+            .build();
     Gson gson = new Gson();
     String json = gson.toJson(dataSourceMetadata);
 
@@ -70,7 +75,9 @@ public class XContentParserUtilsTest {
             CONNECTOR_FIELD,
             "PROMETHEUS",
             RESULT_INDEX_FIELD,
-            "");
+            "",
+            STATUS_FIELD,
+            ACTIVE);
 
     Map<String, Object> dataSourceDataConnectorRemoved =
         Map.of(
@@ -83,7 +90,9 @@ public class XContentParserUtilsTest {
             PROPERTIES_FIELD,
             Map.of("prometheus.uri", "localhost:9090"),
             RESULT_INDEX_FIELD,
-            "");
+            "",
+            STATUS_FIELD,
+            ACTIVE);
 
     Gson gson = new Gson();
     String json = gson.toJson(dataSourceData);
@@ -96,21 +105,17 @@ public class XContentParserUtilsTest {
 
   @SneakyThrows
   @Test
-  public void testToDataSourceMetadataFromJsonWithoutName() {
-    DataSourceMetadata dataSourceMetadata = new DataSourceMetadata();
-    dataSourceMetadata.setConnector(DataSourceType.PROMETHEUS);
-    dataSourceMetadata.setAllowedRoles(List.of("prometheus_access"));
-    dataSourceMetadata.setProperties(Map.of("prometheus.uri", "https://localhost:9090"));
-    Gson gson = new Gson();
-    String json = gson.toJson(dataSourceMetadata);
-
+  public void testToDataSourceMetadataFromJsonWithoutNameAndConnector() {
     IllegalArgumentException exception =
         assertThrows(
             IllegalArgumentException.class,
             () -> {
-              XContentParserUtils.toDataSourceMetadata(json);
+              XContentParserUtils.toDataSourceMetadata(
+                  "{\"description\":\"\",\"allowedRoles\":[\"prometheus_access\"],\"resultIndex\":\"query_execution_result_testds\",\"status\":\"ACTIVE\"}");
             });
-    Assertions.assertEquals("name and connector are required fields.", exception.getMessage());
+    Assertions.assertEquals(
+        "Datasource configuration error: name, connector cannot be null or empty.",
+        exception.getMessage());
   }
 
   @SneakyThrows
@@ -127,25 +132,6 @@ public class XContentParserUtilsTest {
               XContentParserUtils.toMap(json);
             });
     Assertions.assertEquals("Name is a required field.", exception.getMessage());
-  }
-
-  @SneakyThrows
-  @Test
-  public void testToDataSourceMetadataFromJsonWithoutConnector() {
-    DataSourceMetadata dataSourceMetadata = new DataSourceMetadata();
-    dataSourceMetadata.setName("name");
-    dataSourceMetadata.setAllowedRoles(List.of("prometheus_access"));
-    dataSourceMetadata.setProperties(Map.of("prometheus.uri", "https://localhost:9090"));
-    Gson gson = new Gson();
-    String json = gson.toJson(dataSourceMetadata);
-
-    IllegalArgumentException exception =
-        assertThrows(
-            IllegalArgumentException.class,
-            () -> {
-              XContentParserUtils.toDataSourceMetadata(json);
-            });
-    Assertions.assertEquals("name and connector are required fields.", exception.getMessage());
   }
 
   @SneakyThrows
