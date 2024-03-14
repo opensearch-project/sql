@@ -22,6 +22,7 @@ import org.opensearch.sql.spark.dispatcher.model.DispatchQueryRequest;
 import org.opensearch.sql.spark.dispatcher.model.DispatchQueryResponse;
 import org.opensearch.sql.spark.dispatcher.model.IndexQueryActionType;
 import org.opensearch.sql.spark.dispatcher.model.IndexQueryDetails;
+import org.opensearch.sql.spark.dispatcher.model.JobType;
 import org.opensearch.sql.spark.execution.session.SessionManager;
 import org.opensearch.sql.spark.execution.statestore.StateStore;
 import org.opensearch.sql.spark.flint.FlintIndexMetadataReader;
@@ -90,7 +91,12 @@ public class SparkQueryDispatcher {
       } else if (IndexQueryActionType.REFRESH.equals(indexQueryDetails.getIndexQueryActionType())) {
         // manual refresh should be handled by batch handler
         asyncQueryHandler =
-            new BatchQueryHandler(emrServerlessClient, jobExecutionResponseReader, leaseManager);
+            new RefreshQueryHandler(
+                emrServerlessClient,
+                jobExecutionResponseReader,
+                flintIndexMetadataReader,
+                stateStore,
+                leaseManager);
       }
     }
     return asyncQueryHandler.submit(dispatchQueryRequest, contextBuilder.build());
@@ -117,6 +123,17 @@ public class SparkQueryDispatcher {
           new InteractiveQueryHandler(sessionManager, jobExecutionResponseReader, leaseManager);
     } else if (IndexDMLHandler.isIndexDMLQuery(asyncQueryJobMetadata.getJobId())) {
       queryHandler = createIndexDMLHandler(emrServerlessClient);
+    } else if (asyncQueryJobMetadata.getJobType() == JobType.BATCH) {
+      queryHandler =
+          new RefreshQueryHandler(
+              emrServerlessClient,
+              jobExecutionResponseReader,
+              flintIndexMetadataReader,
+              stateStore,
+              leaseManager);
+    } else if (asyncQueryJobMetadata.getJobType() == JobType.STREAMING) {
+      queryHandler =
+          new StreamingQueryHandler(emrServerlessClient, jobExecutionResponseReader, leaseManager);
     } else {
       queryHandler =
           new BatchQueryHandler(emrServerlessClient, jobExecutionResponseReader, leaseManager);

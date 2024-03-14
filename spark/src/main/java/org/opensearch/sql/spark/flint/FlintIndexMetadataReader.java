@@ -12,4 +12,12 @@ public interface FlintIndexMetadataReader {
    * @return FlintIndexMetadata.
    */
   FlintIndexMetadata getFlintIndexMetadata(IndexQueryDetails indexQueryDetails);
+
+  /**
+   * Given Index name, get the streaming job Id.
+   *
+   * @param indexName indexName.
+   * @return FlintIndexMetadata.
+   */
+  FlintIndexMetadata getFlintIndexMetadata(String indexName);
 }
