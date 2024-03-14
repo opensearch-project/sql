@@ -11,5 +11,6 @@ public enum IndexQueryActionType {
   REFRESH,
   DESCRIBE,
   SHOW,
-  DROP
+  DROP,
+  VACUUM
 }

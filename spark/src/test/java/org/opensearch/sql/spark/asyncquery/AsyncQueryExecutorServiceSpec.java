@@ -350,6 +350,12 @@ public class AsyncQueryExecutorServiceSpec extends OpenSearchIntegTestCase {
       stateModel = StateStore.createFlintIndexState(stateStore, DATASOURCE).apply(stateModel);
     }
 
+    public void transition(FlintIndexState newState) {
+      stateModel =
+          StateStore.updateFlintIndexState(stateStore, DATASOURCE)
+              .apply(stateModel, newState);
+    }
+
     public void refreshing() {
       stateModel =
           StateStore.updateFlintIndexState(stateStore, DATASOURCE)

@@ -81,14 +81,16 @@ public class SparkQueryDispatcher {
       fillMissingDetails(dispatchQueryRequest, indexQueryDetails);
       contextBuilder.indexQueryDetails(indexQueryDetails);
 
-      if (IndexQueryActionType.DROP.equals(indexQueryDetails.getIndexQueryActionType())) {
+      IndexQueryActionType indexQueryActionType = indexQueryDetails.getIndexQueryActionType();
+      if (IndexQueryActionType.DROP.equals(indexQueryActionType)
+          || IndexQueryActionType.VACUUM.equals(indexQueryActionType)) {
         asyncQueryHandler = createIndexDMLHandler(emrServerlessClient);
-      } else if (IndexQueryActionType.CREATE.equals(indexQueryDetails.getIndexQueryActionType())
+      } else if (IndexQueryActionType.CREATE.equals(indexQueryActionType)
           && indexQueryDetails.isAutoRefresh()) {
         asyncQueryHandler =
             new StreamingQueryHandler(
                 emrServerlessClient, jobExecutionResponseReader, leaseManager);
-      } else if (IndexQueryActionType.REFRESH.equals(indexQueryDetails.getIndexQueryActionType())) {
+      } else if (IndexQueryActionType.REFRESH.equals(indexQueryActionType)) {
         // manual refresh should be handled by batch handler
         asyncQueryHandler =
             new RefreshQueryHandler(

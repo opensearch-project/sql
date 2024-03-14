@@ -23,6 +23,7 @@ import org.opensearch.sql.spark.dispatcher.model.DispatchQueryContext;
 import org.opensearch.sql.spark.dispatcher.model.DispatchQueryRequest;
 import org.opensearch.sql.spark.dispatcher.model.DispatchQueryResponse;
 import org.opensearch.sql.spark.dispatcher.model.IndexDMLResult;
+import org.opensearch.sql.spark.dispatcher.model.IndexQueryActionType;
 import org.opensearch.sql.spark.dispatcher.model.IndexQueryDetails;
 import org.opensearch.sql.spark.execution.statement.StatementState;
 import org.opensearch.sql.spark.execution.statestore.StateStore;
@@ -31,7 +32,9 @@ import org.opensearch.sql.spark.flint.FlintIndexMetadataReader;
 import org.opensearch.sql.spark.flint.operation.FlintIndexOp;
 import org.opensearch.sql.spark.flint.operation.FlintIndexOpCancel;
 import org.opensearch.sql.spark.flint.operation.FlintIndexOpDelete;
+import org.opensearch.sql.spark.flint.operation.FlintIndexOpVacuum;
 import org.opensearch.sql.spark.response.JobExecutionResponseReader;
+import org.opensearch.sql.spark.utils.SQLQueryUtils;
 
 /** Handle Index DML query. includes * DROP * ALT? */
 @RequiredArgsConstructor
@@ -64,19 +67,28 @@ public class IndexDMLHandler extends AsyncQueryHandler {
     String status = JobRunState.FAILED.toString();
     String error = "";
     long startTime = 0L;
+    String datasource = dispatchQueryRequest.getDatasource();
     try {
+      // For drop or vacuum, cancel running job (if refreshing) and delete index logically
       FlintIndexOp jobCancelOp =
           new FlintIndexOpCancel(
-              stateStore, dispatchQueryRequest.getDatasource(), emrServerlessClient);
+              stateStore, datasource, emrServerlessClient);
       jobCancelOp.apply(indexMetadata);
 
       FlintIndexOp indexDeleteOp =
-          new FlintIndexOpDelete(stateStore, dispatchQueryRequest.getDatasource());
+          new FlintIndexOpDelete(stateStore, datasource);
       indexDeleteOp.apply(indexMetadata);
+
+      // For vacuum, continue to delete index data physically
+      if (isVacuum(dispatchQueryRequest)) {
+        FlintIndexOp indexVacuumOp =
+            new FlintIndexOpVacuum(stateStore, datasource, client);
+        indexVacuumOp.apply(indexMetadata);
+      }
       status = JobRunState.SUCCESS.toString();
     } catch (Exception e) {
       error = e.getMessage();
-      LOG.error(e);
+      LOG.error("Failed to perform index DML operations", e);
     }
 
     AsyncQueryId asyncQueryId = AsyncQueryId.newAsyncQueryId(dataSourceMetadata.getName());
@@ -85,7 +97,7 @@ public class IndexDMLHandler extends AsyncQueryHandler {
             asyncQueryId.getId(),
             status,
             error,
-            dispatchQueryRequest.getDatasource(),
+            datasource,
             System.currentTimeMillis() - startTime,
             System.currentTimeMillis());
     String resultIndex = dataSourceMetadata.getResultIndex();
@@ -113,5 +125,10 @@ public class IndexDMLHandler extends AsyncQueryHandler {
   @Override
   public String cancelJob(AsyncQueryJobMetadata asyncQueryJobMetadata) {
     throw new IllegalArgumentException("can't cancel index DML query");
+  }
+
+  private boolean isVacuum(DispatchQueryRequest request) {
+    IndexQueryDetails details = SQLQueryUtils.extractIndexDetails(request.getQuery());
+    return details.getIndexQueryActionType() == IndexQueryActionType.VACUUM;
   }
 }

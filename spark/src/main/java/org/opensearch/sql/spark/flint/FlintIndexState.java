@@ -29,6 +29,8 @@ public enum FlintIndexState {
   // stable state
   DELETED("deleted"),
   // stable state
+  VACUUMING("vacuuming"),
+  // stable state
   FAILED("failed"),
   // unknown state, if some state update in Spark side, not reflect in here.
   UNKNOWN("unknown");
