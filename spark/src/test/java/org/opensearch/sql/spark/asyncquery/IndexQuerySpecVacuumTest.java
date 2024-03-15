@@ -5,20 +5,31 @@
 
 package org.opensearch.sql.spark.asyncquery;
 
-import static org.junit.runners.Parameterized.*;
 import static org.opensearch.sql.spark.execution.statestore.StateStore.DATASOURCE_TO_REQUEST_INDEX;
-import static org.opensearch.sql.spark.flint.FlintIndexType.*;
+import static org.opensearch.sql.spark.flint.FlintIndexState.ACTIVE;
+import static org.opensearch.sql.spark.flint.FlintIndexState.CANCELLING;
+import static org.opensearch.sql.spark.flint.FlintIndexState.DELETED;
+import static org.opensearch.sql.spark.flint.FlintIndexState.DELETING;
+import static org.opensearch.sql.spark.flint.FlintIndexState.EMPTY;
+import static org.opensearch.sql.spark.flint.FlintIndexState.REFRESHING;
+import static org.opensearch.sql.spark.flint.FlintIndexState.VACUUMING;
+import static org.opensearch.sql.spark.flint.FlintIndexType.COVERING;
+import static org.opensearch.sql.spark.flint.FlintIndexType.MATERIALIZED_VIEW;
+import static org.opensearch.sql.spark.flint.FlintIndexType.SKIPPING;
 
 import com.amazonaws.services.emrserverless.model.CancelJobRunResult;
 import com.amazonaws.services.emrserverless.model.GetJobRunResult;
+import com.amazonaws.services.emrserverless.model.JobRun;
 import com.google.common.collect.Lists;
 import java.util.Arrays;
 import java.util.Base64;
 import java.util.List;
-import org.junit.Assert;
+import java.util.function.BiConsumer;
+import org.apache.commons.lang3.tuple.Pair;
 import org.junit.Test;
 import org.opensearch.action.admin.indices.exists.indices.IndicesExistsRequest;
 import org.opensearch.action.get.GetRequest;
+import org.opensearch.sql.spark.asyncquery.model.AsyncQueryExecutionResponse;
 import org.opensearch.sql.spark.client.EMRServerlessClientFactory;
 import org.opensearch.sql.spark.flint.FlintIndexState;
 import org.opensearch.sql.spark.flint.FlintIndexType;
@@ -26,9 +37,12 @@ import org.opensearch.sql.spark.rest.model.CreateAsyncQueryRequest;
 import org.opensearch.sql.spark.rest.model.CreateAsyncQueryResponse;
 import org.opensearch.sql.spark.rest.model.LangType;
 
+@SuppressWarnings({"unchecked", "rawtypes"})
 public class IndexQuerySpecVacuumTest extends AsyncQueryExecutorServiceSpec {
 
-  private final List<FlintDatasetMock> flintIndices =
+  private static final EMRApiCall DEFAULT_OP = () -> null;
+
+  private final List<FlintDatasetMock> FLINT_TEST_DATASETS =
       Arrays.asList(
           mockDataset(
               "VACUUM SKIPPING INDEX ON mys3.default.http_logs",
@@ -44,79 +58,176 @@ public class IndexQuerySpecVacuumTest extends AsyncQueryExecutorServiceSpec {
               "flint_mys3_default_http_logs_metrics"));
 
   @Test
-  public void vacuumIndexWithState() {
-    List<FlintIndexState> states =
-        Arrays.asList(
-            FlintIndexState.EMPTY,
-            FlintIndexState.ACTIVE,
-            FlintIndexState.DELETING,
-            FlintIndexState.DELETED,
-            FlintIndexState.VACUUMING);
-    Lists.cartesianProduct(flintIndices, states)
-        .forEach(
-            params -> {
-              FlintDatasetMock mockDS = (FlintDatasetMock) params.get(0);
-              FlintIndexState state = (FlintIndexState) params.get(1);
-              String testName =
-                  String.format("Vacuuming Flint index %s in %s state", mockDS.indexName, state);
+  public void vacuumIndexInRefreshingState() {
+    List<List<Object>> testCases =
+        Lists.cartesianProduct(
+            FLINT_TEST_DATASETS,
+            List.of(REFRESHING),
+            List.of(
+                // Happy case that there is job running
+                Pair.<EMRApiCall, EMRApiCall>of(
+                    DEFAULT_OP,
+                    () -> new GetJobRunResult().withJobRun(new JobRun().withState("Cancelled"))),
+                // Cancel EMR-S job, but not job running
+                Pair.<EMRApiCall, EMRApiCall>of(
+                    () -> {
+                      throw new IllegalArgumentException("Job run is not in a cancellable state");
+                    },
+                    DEFAULT_OP)));
 
-              LocalEMRSClient emrsClient =
-                  new LocalEMRSClient() {
-                    @Override
-                    public CancelJobRunResult cancelJobRun(String applicationId, String jobId) {
-                      Assert.fail("should not call cancelJobRun");
-                      return null;
-                    }
+    runVacuumTestSuite(
+        testCases,
+        (mockDS, response) -> {
+          assertEquals("SUCCESS", response.getStatus());
+          assertFalse(flintIndexExists(mockDS.indexName));
+          assertFalse(indexDocExists(mockDS.latestId));
+        });
+  }
 
-                    @Override
-                    public GetJobRunResult getJobRunResult(String applicationId, String jobId) {
-                      Assert.fail("should not call getJobRunResult");
-                      return null;
-                    }
-                  };
-              EMRServerlessClientFactory emrServerlessClientFactory = () -> emrsClient;
-              AsyncQueryExecutorService asyncQueryExecutorService =
-                  createAsyncQueryExecutorService(emrServerlessClientFactory);
+  @Test
+  public void vacuumIndexInRefreshingStateButTimeout() {
+    List<List<Object>> testCases =
+        Lists.cartesianProduct(
+            FLINT_TEST_DATASETS,
+            List.of(REFRESHING),
+            List.of(
+                Pair.<EMRApiCall, EMRApiCall>of(
+                    DEFAULT_OP,
+                    () -> new GetJobRunResult().withJobRun(new JobRun().withState("Running")))));
 
-              // Mock Flint index
-              mockDS.createIndex();
+    runVacuumTestSuite(
+        testCases,
+        (mockDS, response) -> {
+          // assertEquals();
+        });
+  }
 
-              // Mock index state doc
-              MockFlintSparkJob flintIndexJob = new MockFlintSparkJob(mockDS.latestId);
-              flintIndexJob.transition(state);
+  @Test
+  public void vacuumIndexInCancellingState() {
+    List<List<Object>> testCases =
+        Lists.cartesianProduct(
+            FLINT_TEST_DATASETS,
+            List.of(CANCELLING),
+            List.of(
+                Pair.<EMRApiCall, EMRApiCall>of(
+                    DEFAULT_OP,
+                    () -> new GetJobRunResult().withJobRun(new JobRun().withState("Cancelled")))));
 
-              // Vacuum index
-              CreateAsyncQueryResponse response =
-                  asyncQueryExecutorService.createAsyncQuery(
-                      new CreateAsyncQueryRequest(mockDS.query, DATASOURCE, LangType.SQL, null));
+    runVacuumTestSuite(
+        testCases,
+        (mockDS, response) -> {
+          assertEquals("SUCCESS", response.getStatus());
+          assertFalse(flintIndexExists(mockDS.indexName));
+          assertFalse(indexDocExists(mockDS.latestId));
+        });
+  }
 
-              // Assert 1) successful response; 2) Flint index deleted; 3) index state doc deleted
-              assertEquals(
-                  testName,
-                  "SUCCESS",
-                  asyncQueryExecutorService
-                      .getAsyncQueryResults(response.getQueryId())
-                      .getStatus());
-              assertFalse(
-                  client
-                      .admin()
-                      .indices()
-                      .exists(new IndicesExistsRequest(mockDS.indexName))
-                      .actionGet()
-                      .isExists());
-              assertFalse(
-                  client
-                      .get(
-                          new GetRequest(
-                              DATASOURCE_TO_REQUEST_INDEX.apply("mys3"), mockDS.latestId))
-                      .actionGet()
-                      .isExists());
-            });
+  @Test
+  public void vacuumIndexWithoutJobRunning() {
+    List<List<Object>> testCases =
+        Lists.cartesianProduct(
+            FLINT_TEST_DATASETS,
+            List.of(EMPTY, ACTIVE, DELETING, DELETED, VACUUMING),
+            List.of(
+                Pair.<EMRApiCall, EMRApiCall>of(
+                    () -> {
+                      throw new AssertionError("should not call cancelJobRun");
+                    },
+                    () -> {
+                      throw new AssertionError("should not call getJobRunResult");
+                    })));
+
+    runVacuumTestSuite(
+        testCases,
+        (mockDS, response) -> {
+          assertEquals("SUCCESS", response.getStatus());
+          assertFalse(flintIndexExists(mockDS.indexName));
+          assertFalse(indexDocExists(mockDS.latestId));
+        });
+  }
+
+  private void runVacuumTestSuite(
+      List<List<Object>> testCases,
+      BiConsumer<FlintDatasetMock, AsyncQueryExecutionResponse> assertion) {
+    testCases.forEach(
+        params -> {
+          FlintDatasetMock mockDS = (FlintDatasetMock) params.get(0);
+          FlintIndexState state = (FlintIndexState) params.get(1);
+          EMRApiCall cancelJobRun = ((Pair<EMRApiCall, EMRApiCall>) params.get(2)).getLeft();
+          EMRApiCall getJobRunResult = ((Pair<EMRApiCall, EMRApiCall>) params.get(2)).getRight();
+
+          AsyncQueryExecutionResponse response =
+              runVacuumTest(mockDS, state, cancelJobRun, getJobRunResult);
+          assertion.accept(mockDS, response);
+        });
+  }
+
+  private AsyncQueryExecutionResponse runVacuumTest(
+      FlintDatasetMock mockDS,
+      FlintIndexState state,
+      EMRApiCall<CancelJobRunResult> cancelJobRun,
+      EMRApiCall<GetJobRunResult> getJobRunResult) {
+    LocalEMRSClient emrsClient =
+        new LocalEMRSClient() {
+          @Override
+          public CancelJobRunResult cancelJobRun(String applicationId, String jobId) {
+            if (cancelJobRun == DEFAULT_OP) {
+              return super.cancelJobRun(applicationId, jobId);
+            }
+            return cancelJobRun.call();
+          }
+
+          @Override
+          public GetJobRunResult getJobRunResult(String applicationId, String jobId) {
+            if (getJobRunResult == DEFAULT_OP) {
+              return super.getJobRunResult(applicationId, jobId);
+            }
+            return getJobRunResult.call();
+          }
+        };
+    EMRServerlessClientFactory emrServerlessClientFactory = () -> emrsClient;
+    AsyncQueryExecutorService asyncQueryExecutorService =
+        createAsyncQueryExecutorService(emrServerlessClientFactory);
+
+    // Mock Flint index
+    mockDS.createIndex();
+
+    // Mock index state doc
+    MockFlintSparkJob flintIndexJob = new MockFlintSparkJob(mockDS.latestId);
+    flintIndexJob.transition(state);
+
+    // Vacuum index
+    CreateAsyncQueryResponse response =
+        asyncQueryExecutorService.createAsyncQuery(
+            new CreateAsyncQueryRequest(mockDS.query, DATASOURCE, LangType.SQL, null));
+
+    return asyncQueryExecutorService.getAsyncQueryResults(response.getQueryId());
+  }
+
+  private boolean flintIndexExists(String flintIndexName) {
+    return client
+        .admin()
+        .indices()
+        .exists(new IndicesExistsRequest(flintIndexName))
+        .actionGet()
+        .isExists();
+  }
+
+  private boolean indexDocExists(String docId) {
+    return client
+        .get(new GetRequest(DATASOURCE_TO_REQUEST_INDEX.apply("mys3"), docId))
+        .actionGet()
+        .isExists();
   }
 
   private FlintDatasetMock mockDataset(String query, FlintIndexType indexType, String indexName) {
     FlintDatasetMock dataset = new FlintDatasetMock(query, "", indexType, indexName);
     dataset.latestId(Base64.getEncoder().encodeToString(indexName.getBytes()));
     return dataset;
+  }
+
+  @FunctionalInterface
+  public interface EMRApiCall<V> {
+    V call();
   }
 }
