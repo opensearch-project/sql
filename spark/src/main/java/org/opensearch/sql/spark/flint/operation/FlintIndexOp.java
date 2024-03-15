@@ -5,6 +5,7 @@
 
 package org.opensearch.sql.spark.flint.operation;
 
+import static org.opensearch.sql.spark.execution.statestore.StateStore.deleteFlintIndexState;
 import static org.opensearch.sql.spark.execution.statestore.StateStore.getFlintIndexState;
 import static org.opensearch.sql.spark.execution.statestore.StateStore.updateFlintIndexState;
 
@@ -84,7 +85,11 @@ public abstract class FlintIndexOp {
       // 4.commit, move to stable state
       FlintIndexState stableState = stableState();
       try {
-        updateFlintIndexState(stateStore, datasourceName).apply(flintIndex, stableState);
+        if (stableState == FlintIndexState.NONE) {
+          deleteFlintIndexState(stateStore, datasourceName).apply(flintIndex.getLatestId());
+        } else {
+          updateFlintIndexState(stateStore, datasourceName).apply(flintIndex, stableState);
+        }
       } catch (Exception e) {
         String errorMsg =
             String.format(Locale.ROOT, "commit failed. target stable state: [%s]", stableState);

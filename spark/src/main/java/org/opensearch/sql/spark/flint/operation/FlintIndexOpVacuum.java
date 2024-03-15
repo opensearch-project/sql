@@ -15,16 +15,12 @@ import org.opensearch.sql.spark.execution.statestore.StateStore;
 import org.opensearch.sql.spark.flint.FlintIndexState;
 import org.opensearch.sql.spark.flint.FlintIndexStateModel;
 
-/**
- * Flint index vacuum operation.
- */
+/** Flint index vacuum operation. */
 public class FlintIndexOpVacuum extends FlintIndexOp {
 
   private static final Logger LOG = LogManager.getLogger();
 
-  /**
-   * OpenSearch client.
-   */
+  /** OpenSearch client. */
   private final Client client;
 
   public FlintIndexOpVacuum(StateStore stateStore, String datasourceName, Client client) {
@@ -59,6 +55,6 @@ public class FlintIndexOpVacuum extends FlintIndexOp {
 
   @Override
   FlintIndexState stableState() {
-    return FlintIndexState.DELETED;
+    return FlintIndexState.NONE;
   }
 }

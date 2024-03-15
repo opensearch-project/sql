@@ -24,6 +24,8 @@ import org.apache.logging.log4j.Logger;
 import org.opensearch.action.DocWriteResponse;
 import org.opensearch.action.admin.indices.create.CreateIndexRequest;
 import org.opensearch.action.admin.indices.create.CreateIndexResponse;
+import org.opensearch.action.delete.DeleteRequest;
+import org.opensearch.action.delete.DeleteResponse;
 import org.opensearch.action.get.GetRequest;
 import org.opensearch.action.get.GetResponse;
 import org.opensearch.action.index.IndexRequest;
@@ -163,6 +165,25 @@ public class StateStore {
         return builder.of(model, state, updateResponse.getSeqNo(), updateResponse.getPrimaryTerm());
       }
     } catch (IOException e) {
+      throw new RuntimeException(e);
+    }
+  }
+
+  @VisibleForTesting
+  public boolean delete(String sid, String indexName) {
+    try {
+      // No action if the index doesn't exist
+      if (!this.clusterService.state().routingTable().hasIndex(indexName)) {
+        return true;
+      }
+
+      try (ThreadContext.StoredContext ignored =
+          client.threadPool().getThreadContext().stashContext()) {
+        DeleteRequest deleteRequest = new DeleteRequest(indexName, sid);
+        DeleteResponse deleteResponse = client.delete(deleteRequest).actionGet();
+        return deleteResponse.getResult() == DocWriteResponse.Result.DELETED;
+      }
+    } catch (Exception e) {
       throw new RuntimeException(e);
     }
   }
@@ -326,6 +347,14 @@ public class StateStore {
     return (st) ->
         stateStore.create(
             st, FlintIndexStateModel::copy, DATASOURCE_TO_REQUEST_INDEX.apply(datasourceName));
+  }
+
+  public static Function<String, FlintIndexStateModel> deleteFlintIndexState(
+      StateStore stateStore, String datasourceName) {
+    return (docId) -> {
+      stateStore.delete(docId, DATASOURCE_TO_REQUEST_INDEX.apply(datasourceName));
+      return null;
+    };
   }
 
   public static Function<IndexDMLResult, IndexDMLResult> createIndexDMLResult(

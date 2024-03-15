@@ -71,18 +71,15 @@ public class IndexDMLHandler extends AsyncQueryHandler {
     try {
       // For drop or vacuum, cancel running job (if refreshing) and delete index logically
       FlintIndexOp jobCancelOp =
-          new FlintIndexOpCancel(
-              stateStore, datasource, emrServerlessClient);
+          new FlintIndexOpCancel(stateStore, datasource, emrServerlessClient);
       jobCancelOp.apply(indexMetadata);
 
-      FlintIndexOp indexDeleteOp =
-          new FlintIndexOpDelete(stateStore, datasource);
+      FlintIndexOp indexDeleteOp = new FlintIndexOpDelete(stateStore, datasource);
       indexDeleteOp.apply(indexMetadata);
 
       // For vacuum, continue to delete index data physically
       if (isVacuum(dispatchQueryRequest)) {
-        FlintIndexOp indexVacuumOp =
-            new FlintIndexOpVacuum(stateStore, datasource, client);
+        FlintIndexOp indexVacuumOp = new FlintIndexOpVacuum(stateStore, datasource, client);
         indexVacuumOp.apply(indexMetadata);
       }
       status = JobRunState.SUCCESS.toString();

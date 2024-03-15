@@ -6,6 +6,7 @@
 package org.opensearch.sql.spark.asyncquery;
 
 import static org.junit.runners.Parameterized.*;
+import static org.opensearch.sql.spark.execution.statestore.StateStore.DATASOURCE_TO_REQUEST_INDEX;
 import static org.opensearch.sql.spark.flint.FlintIndexType.*;
 
 import com.amazonaws.services.emrserverless.model.CancelJobRunResult;
@@ -16,6 +17,8 @@ import java.util.Base64;
 import java.util.List;
 import org.junit.Assert;
 import org.junit.Test;
+import org.opensearch.action.admin.indices.exists.indices.IndicesExistsRequest;
+import org.opensearch.action.get.GetRequest;
 import org.opensearch.sql.spark.client.EMRServerlessClientFactory;
 import org.opensearch.sql.spark.flint.FlintIndexState;
 import org.opensearch.sql.spark.flint.FlintIndexType;
@@ -44,10 +47,11 @@ public class IndexQuerySpecVacuumTest extends AsyncQueryExecutorServiceSpec {
   public void vacuumIndexWithState() {
     List<FlintIndexState> states =
         Arrays.asList(
-            // FlintIndexState.ACTIVE,
-            // FlintIndexState.DELETING,
-            FlintIndexState.DELETED);
-            // FlintIndexState.VACUUMING);
+            FlintIndexState.EMPTY,
+            FlintIndexState.ACTIVE,
+            FlintIndexState.DELETING,
+            FlintIndexState.DELETED,
+            FlintIndexState.VACUUMING);
     Lists.cartesianProduct(flintIndices, states)
         .forEach(
             params -> {
@@ -74,10 +78,10 @@ public class IndexQuerySpecVacuumTest extends AsyncQueryExecutorServiceSpec {
               AsyncQueryExecutorService asyncQueryExecutorService =
                   createAsyncQueryExecutorService(emrServerlessClientFactory);
 
-              // Mock flint index
+              // Mock Flint index
               mockDS.createIndex();
 
-              // Mock index state
+              // Mock index state doc
               MockFlintSparkJob flintIndexJob = new MockFlintSparkJob(mockDS.latestId);
               flintIndexJob.transition(state);
 
@@ -86,15 +90,27 @@ public class IndexQuerySpecVacuumTest extends AsyncQueryExecutorServiceSpec {
                   asyncQueryExecutorService.createAsyncQuery(
                       new CreateAsyncQueryRequest(mockDS.query, DATASOURCE, LangType.SQL, null));
 
-              // 2. fetch result
+              // Assert 1) successful response; 2) Flint index deleted; 3) index state doc deleted
               assertEquals(
                   testName,
                   "SUCCESS",
                   asyncQueryExecutorService
                       .getAsyncQueryResults(response.getQueryId())
                       .getStatus());
-
-              flintIndexJob.assertState(FlintIndexState.DELETED);
+              assertFalse(
+                  client
+                      .admin()
+                      .indices()
+                      .exists(new IndicesExistsRequest(mockDS.indexName))
+                      .actionGet()
+                      .isExists());
+              assertFalse(
+                  client
+                      .get(
+                          new GetRequest(
+                              DATASOURCE_TO_REQUEST_INDEX.apply("mys3"), mockDS.latestId))
+                      .actionGet()
+                      .isExists());
             });
   }
 
