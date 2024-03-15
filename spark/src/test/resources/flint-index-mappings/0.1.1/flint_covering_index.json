@@ -19,7 +19,7 @@
         "columnName": "request_url"
       }
     ],
-    "name": "test",
+    "name": "covering",
     "options": {
       "auto_refresh": "true",
       "index_settings": "{\"number_of_shards\":1,\"number_of_replicas\":1}"
@@ -32,6 +32,6 @@
         "SERVERLESS_EMR_JOB_ID": "00fe3gu2tgad000q"
       }
     },
-    "latestId": "ZmxpbnRfbXlzM19kZWZhdWx0X2h0dHBfbG9nc190ZXN0X2luZGV4"
+    "latestId": "ZmxpbnRfbXlzM19kZWZhdWx0X2h0dHBfbG9nc19jb3ZlcmluZ19pbmRleA=="
   }
 }

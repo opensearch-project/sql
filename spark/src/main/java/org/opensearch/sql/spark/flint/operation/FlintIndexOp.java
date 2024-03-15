@@ -86,6 +86,7 @@ public abstract class FlintIndexOp {
       FlintIndexState stableState = stableState();
       try {
         if (stableState == FlintIndexState.NONE) {
+          LOG.info("Deleting index state with docId: " + flintIndex.getLatestId());
           deleteFlintIndexState(stateStore, datasourceName).apply(flintIndex.getLatestId());
         } else {
           updateFlintIndexState(stateStore, datasourceName).apply(flintIndex, stableState);

@@ -21,7 +21,6 @@ import com.amazonaws.services.emrserverless.model.CancelJobRunResult;
 import com.amazonaws.services.emrserverless.model.GetJobRunResult;
 import com.amazonaws.services.emrserverless.model.JobRun;
 import com.google.common.collect.Lists;
-import java.util.Arrays;
 import java.util.Base64;
 import java.util.List;
 import java.util.function.BiConsumer;
@@ -43,15 +42,15 @@ public class IndexQuerySpecVacuumTest extends AsyncQueryExecutorServiceSpec {
   private static final EMRApiCall DEFAULT_OP = () -> null;
 
   private final List<FlintDatasetMock> FLINT_TEST_DATASETS =
-      Arrays.asList(
+      List.of(
           mockDataset(
               "VACUUM SKIPPING INDEX ON mys3.default.http_logs",
               SKIPPING,
               "flint_mys3_default_http_logs_skipping_index"),
           mockDataset(
-              "VACUUM INDEX test ON mys3.default.http_logs",
+              "VACUUM INDEX covering ON mys3.default.http_logs",
               COVERING,
-              "flint_mys3_default_http_logs_test_index"),
+              "flint_mys3_default_http_logs_covering_index"),
           mockDataset(
               "VACUUM MATERIALIZED VIEW mys3.default.http_logs_metrics",
               MATERIALIZED_VIEW,
@@ -226,6 +225,11 @@ public class IndexQuerySpecVacuumTest extends AsyncQueryExecutorServiceSpec {
     return dataset;
   }
 
+  /**
+   * EMR API call mock interface.
+   *
+   * @param <V> API call response type
+   */
   @FunctionalInterface
   public interface EMRApiCall<V> {
     V call();

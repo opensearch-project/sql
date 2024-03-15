@@ -30,8 +30,7 @@ public class FlintIndexOpVacuum extends FlintIndexOp {
 
   @Override
   boolean validate(FlintIndexState state) {
-    return state == FlintIndexState.DELETED
-        || state == FlintIndexState.VACUUMING;
+    return state == FlintIndexState.DELETED || state == FlintIndexState.VACUUMING;
   }
 
   @Override
@@ -41,17 +40,19 @@ public class FlintIndexOpVacuum extends FlintIndexOp {
 
   @Override
   void runOp(FlintIndexStateModel flintIndex) {
+    // Decode Flint index name from latest ID
     String flintIndexName = new String(Base64.getDecoder().decode(flintIndex.getId()));
     LOG.info("Vacuuming Flint index {}", flintIndexName);
 
     // Delete OpenSearch index
     DeleteIndexRequest request = new DeleteIndexRequest().indices(flintIndexName);
     AcknowledgedResponse response = client.admin().indices().delete(request).actionGet();
-    LOG.info("OpenSearch index delete result {}", response.isAcknowledged());
+    LOG.info("OpenSearch index delete result: {}", response.isAcknowledged());
   }
 
   @Override
   FlintIndexState stableState() {
+    // Instruct StateStore to purge the index state doc
     return FlintIndexState.NONE;
   }
 }
