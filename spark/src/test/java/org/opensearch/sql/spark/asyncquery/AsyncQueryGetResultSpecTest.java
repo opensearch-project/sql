@@ -46,7 +46,7 @@ public class AsyncQueryGetResultSpecTest extends AsyncQueryExecutorServiceSpec {
               "REFRESH SKIPPING INDEX ON mys3.default.http_logs",
               FlintIndexType.SKIPPING,
               "flint_mys3_default_http_logs_skipping_index")
-          .latestId("skippingindexid");
+          .latestId("ZmxpbnRfbXlzM19kZWZhdWx0X2h0dHBfbG9nc19za2lwcGluZ19pbmRleA==");
 
   private MockFlintSparkJob mockIndexState;
 

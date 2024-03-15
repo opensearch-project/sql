@@ -169,6 +169,13 @@ public class StateStore {
     }
   }
 
+  /**
+   * Delete the index state document with the given ID.
+   *
+   * @param sid index state doc ID
+   * @param indexName index store index name
+   * @return true if deleted, otherwise false
+   */
   @VisibleForTesting
   public boolean delete(String sid, String indexName) {
     try {
@@ -184,7 +191,8 @@ public class StateStore {
         return deleteResponse.getResult() == DocWriteResponse.Result.DELETED;
       }
     } catch (Exception e) {
-      throw new RuntimeException(e);
+      throw new RuntimeException(
+          String.format("Failed to delete index state doc %s in index %s", sid, indexName), e);
     }
   }
 
@@ -349,12 +357,14 @@ public class StateStore {
             st, FlintIndexStateModel::copy, DATASOURCE_TO_REQUEST_INDEX.apply(datasourceName));
   }
 
-  public static Function<String, FlintIndexStateModel> deleteFlintIndexState(
+  /**
+   * @param stateStore index state store
+   * @param datasourceName data source name
+   * @return function that accepts index state doc ID and perform the deletion
+   */
+  public static Function<String, Boolean> deleteFlintIndexState(
       StateStore stateStore, String datasourceName) {
-    return (docId) -> {
-      stateStore.delete(docId, DATASOURCE_TO_REQUEST_INDEX.apply(datasourceName));
-      return null;
-    };
+    return (docId) -> stateStore.delete(docId, DATASOURCE_TO_REQUEST_INDEX.apply(datasourceName));
   }
 
   public static Function<IndexDMLResult, IndexDMLResult> createIndexDMLResult(

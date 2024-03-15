@@ -97,7 +97,10 @@ public class IndexQuerySpecVacuumTest extends AsyncQueryExecutorServiceSpec {
     runVacuumTestSuite(
         testCases,
         (mockDS, response) -> {
-          // assertEquals();
+          assertEquals("FAILED", response.getStatus());
+          assertEquals("cancel job timeout", response.getError());
+          assertTrue(indexExists(mockDS.indexName));
+          assertTrue(indexDocExists(mockDS.latestId));
         });
   }
 

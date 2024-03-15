@@ -111,7 +111,6 @@ configurations.all {
     resolutionStrategy.force "org.jetbrains.kotlin:kotlin-stdlib-jdk7:1.9.10"
     resolutionStrategy.force "org.jetbrains.kotlin:kotlin-stdlib-jdk8:1.9.10"
     resolutionStrategy.force "org.jetbrains.kotlin:kotlin-stdlib-common:1.9.10"
-    resolutionStrategy.force "net.bytebuddy:byte-buddy:1.14.9"
 }
 compileJava {
     options.compilerArgs.addAll(["-processor", 'lombok.launch.AnnotationProcessorHider$AnnotationProcessor'])
