@@ -30,8 +30,7 @@ public class FlintIndexOpVacuum extends FlintIndexOp {
 
   @Override
   boolean validate(FlintIndexState state) {
-    return state == FlintIndexState.ACTIVE
-        || state == FlintIndexState.DELETED
+    return state == FlintIndexState.DELETED
         || state == FlintIndexState.VACUUMING;
   }
 
@@ -49,8 +48,6 @@ public class FlintIndexOpVacuum extends FlintIndexOp {
     DeleteIndexRequest request = new DeleteIndexRequest().indices(flintIndexName);
     AcknowledgedResponse response = client.admin().indices().delete(request).actionGet();
     LOG.info("OpenSearch index delete result {}", response.isAcknowledged());
-
-    // Delete index state doc
   }
 
   @Override
