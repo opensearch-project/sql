@@ -120,6 +120,7 @@ allprojects {
         resolutionStrategy.force "org.jetbrains.kotlin:kotlin-stdlib:1.9.0"
         resolutionStrategy.force "org.jetbrains.kotlin:kotlin-stdlib-jdk7:1.9.0"
         resolutionStrategy.force "org.jetbrains.kotlin:kotlin-stdlib-jdk8:1.9.0"
+        resolutionStrategy.force "net.bytebuddy:byte-buddy:1.14.9"
     }
 }
 

@@ -14,26 +14,27 @@ import org.opensearch.sql.spark.flint.FlintIndexMetadata;
 import org.opensearch.sql.spark.flint.FlintIndexState;
 import org.opensearch.sql.spark.flint.FlintIndexStateModel;
 
-/** Cancel refreshing job for refresh query when user clicks cancel button on UI. */
-public class FlintIndexOpCancel extends FlintIndexOp {
+public class FlintIndexOpDrop extends FlintIndexOp {
   private static final Logger LOG = LogManager.getLogger();
 
   private final EMRServerlessClient emrServerlessClient;
 
-  public FlintIndexOpCancel(
+  public FlintIndexOpDrop(
       StateStore stateStore, String datasourceName, EMRServerlessClient emrServerlessClient) {
     super(stateStore, datasourceName);
     this.emrServerlessClient = emrServerlessClient;
   }
 
-  // Only in refreshing state, the job is cancellable in case of REFRESH query.
   public boolean validate(FlintIndexState state) {
-    return state == FlintIndexState.REFRESHING;
+    return state == FlintIndexState.REFRESHING
+        || state == FlintIndexState.EMPTY
+        || state == FlintIndexState.ACTIVE
+        || state == FlintIndexState.CREATING;
   }
 
   @Override
   FlintIndexState transitioningState() {
-    return FlintIndexState.CANCELLING;
+    return FlintIndexState.DELETING;
   }
 
   /** cancel EMR-S job, wait cancelled state upto 15s. */
@@ -48,6 +49,6 @@ public class FlintIndexOpCancel extends FlintIndexOp {
 
   @Override
   FlintIndexState stableState() {
-    return FlintIndexState.ACTIVE;
+    return FlintIndexState.DELETED;
   }
 }
