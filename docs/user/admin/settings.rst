@@ -318,9 +318,9 @@ plugins.query.executionengine.spark.session.limit
 Description
 -----------
 
-Each cluster can have maximum 100 sessions running in parallel by default. You can increase limit by this setting.
+Each cluster can have maximum 10 sessions running in parallel by default. You can increase limit by this setting.
 
-1. The default value is 100.
+1. The default value is 10.
 2. This setting is node scope.
 3. This setting can be updated dynamically.
 
@@ -355,9 +355,9 @@ plugins.query.executionengine.spark.refresh_job.limit
 Description
 -----------
 
-Each cluster can have maximum 20 datasources. You can increase limit by this setting.
+Each cluster can have maximum 5 refresh job running concurrently. You can increase limit by this setting.
 
-1. The default value is 20.
+1. The default value is 5.
 2. This setting is node scope.
 3. This setting can be updated dynamically.
 
@@ -499,9 +499,9 @@ Description
 This setting defines the time-to-live (TTL) for request indices when plugins.query.executionengine.spark.auto_index_management.enabled
 is true. By default, request indices older than 14 days are deleted.
 
-* Default Value: 14 days
+* Default Value: 30 days
 
-To change the TTL to 30 days for example, execute the following command:
+To change the TTL to 60 days for example, execute the following command:
 
 SQL query::
 
@@ -517,7 +517,7 @@ SQL query::
                         "spark": {
                             "session": {
                                 "index": {
-                                    "ttl": "30d"
+                                    "ttl": "60d"
                                 }
                             }
                         }
