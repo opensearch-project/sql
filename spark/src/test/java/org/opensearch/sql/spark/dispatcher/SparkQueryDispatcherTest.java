@@ -74,7 +74,7 @@ import org.opensearch.sql.spark.execution.statement.Statement;
 import org.opensearch.sql.spark.execution.statement.StatementId;
 import org.opensearch.sql.spark.execution.statement.StatementState;
 import org.opensearch.sql.spark.execution.statestore.StateStore;
-import org.opensearch.sql.spark.flint.FlintIndexMetadataReader;
+import org.opensearch.sql.spark.flint.FlintIndexMetadataService;
 import org.opensearch.sql.spark.leasemanager.LeaseManager;
 import org.opensearch.sql.spark.response.JobExecutionResponseReader;
 import org.opensearch.sql.spark.rest.model.LangType;
@@ -87,7 +87,7 @@ public class SparkQueryDispatcherTest {
   @Mock private DataSourceService dataSourceService;
   @Mock private JobExecutionResponseReader jobExecutionResponseReader;
   @Mock private DataSourceUserAuthorizationHelperImpl dataSourceUserAuthorizationHelper;
-  @Mock private FlintIndexMetadataReader flintIndexMetadataReader;
+  @Mock private FlintIndexMetadataService flintIndexMetadataService;
 
   @Mock(answer = RETURNS_DEEP_STUBS)
   private Client openSearchClient;
@@ -118,7 +118,7 @@ public class SparkQueryDispatcherTest {
             dataSourceService,
             dataSourceUserAuthorizationHelper,
             jobExecutionResponseReader,
-            flintIndexMetadataReader,
+            flintIndexMetadataService,
             openSearchClient,
             sessionManager,
             leaseManager,
@@ -168,7 +168,7 @@ public class SparkQueryDispatcherTest {
     verify(emrServerlessClient, times(1)).startJobRun(startJobRequestArgumentCaptor.capture());
     Assertions.assertEquals(expected, startJobRequestArgumentCaptor.getValue());
     Assertions.assertEquals(EMR_JOB_ID, dispatchQueryResponse.getJobId());
-    verifyNoInteractions(flintIndexMetadataReader);
+    verifyNoInteractions(flintIndexMetadataService);
   }
 
   @Test
@@ -213,7 +213,7 @@ public class SparkQueryDispatcherTest {
     verify(emrServerlessClient, times(1)).startJobRun(startJobRequestArgumentCaptor.capture());
     Assertions.assertEquals(expected, startJobRequestArgumentCaptor.getValue());
     Assertions.assertEquals(EMR_JOB_ID, dispatchQueryResponse.getJobId());
-    verifyNoInteractions(flintIndexMetadataReader);
+    verifyNoInteractions(flintIndexMetadataService);
   }
 
   @Test
@@ -257,7 +257,7 @@ public class SparkQueryDispatcherTest {
     verify(emrServerlessClient, times(1)).startJobRun(startJobRequestArgumentCaptor.capture());
     Assertions.assertEquals(expected, startJobRequestArgumentCaptor.getValue());
     Assertions.assertEquals(EMR_JOB_ID, dispatchQueryResponse.getJobId());
-    verifyNoInteractions(flintIndexMetadataReader);
+    verifyNoInteractions(flintIndexMetadataService);
   }
 
   @Test
@@ -371,7 +371,7 @@ public class SparkQueryDispatcherTest {
     verify(emrServerlessClient, times(1)).startJobRun(startJobRequestArgumentCaptor.capture());
     Assertions.assertEquals(expected, startJobRequestArgumentCaptor.getValue());
     Assertions.assertEquals(EMR_JOB_ID, dispatchQueryResponse.getJobId());
-    verifyNoInteractions(flintIndexMetadataReader);
+    verifyNoInteractions(flintIndexMetadataService);
   }
 
   @Test
@@ -415,7 +415,7 @@ public class SparkQueryDispatcherTest {
     verify(emrServerlessClient, times(1)).startJobRun(startJobRequestArgumentCaptor.capture());
     Assertions.assertEquals(expected, startJobRequestArgumentCaptor.getValue());
     Assertions.assertEquals(EMR_JOB_ID, dispatchQueryResponse.getJobId());
-    verifyNoInteractions(flintIndexMetadataReader);
+    verifyNoInteractions(flintIndexMetadataService);
   }
 
   @Test
@@ -460,7 +460,7 @@ public class SparkQueryDispatcherTest {
     verify(emrServerlessClient, times(1)).startJobRun(startJobRequestArgumentCaptor.capture());
     Assertions.assertEquals(expected, startJobRequestArgumentCaptor.getValue());
     Assertions.assertEquals(EMR_JOB_ID, dispatchQueryResponse.getJobId());
-    verifyNoInteractions(flintIndexMetadataReader);
+    verifyNoInteractions(flintIndexMetadataService);
   }
 
   @Test
@@ -509,7 +509,7 @@ public class SparkQueryDispatcherTest {
     verify(emrServerlessClient, times(1)).startJobRun(startJobRequestArgumentCaptor.capture());
     Assertions.assertEquals(expected, startJobRequestArgumentCaptor.getValue());
     Assertions.assertEquals(EMR_JOB_ID, dispatchQueryResponse.getJobId());
-    verifyNoInteractions(flintIndexMetadataReader);
+    verifyNoInteractions(flintIndexMetadataService);
   }
 
   @Test
@@ -558,7 +558,7 @@ public class SparkQueryDispatcherTest {
     verify(emrServerlessClient, times(1)).startJobRun(startJobRequestArgumentCaptor.capture());
     Assertions.assertEquals(expected, startJobRequestArgumentCaptor.getValue());
     Assertions.assertEquals(EMR_JOB_ID, dispatchQueryResponse.getJobId());
-    verifyNoInteractions(flintIndexMetadataReader);
+    verifyNoInteractions(flintIndexMetadataService);
   }
 
   @Test
@@ -603,7 +603,7 @@ public class SparkQueryDispatcherTest {
     verify(emrServerlessClient, times(1)).startJobRun(startJobRequestArgumentCaptor.capture());
     Assertions.assertEquals(expected, startJobRequestArgumentCaptor.getValue());
     Assertions.assertEquals(EMR_JOB_ID, dispatchQueryResponse.getJobId());
-    verifyNoInteractions(flintIndexMetadataReader);
+    verifyNoInteractions(flintIndexMetadataService);
   }
 
   @Test
@@ -648,7 +648,7 @@ public class SparkQueryDispatcherTest {
     verify(emrServerlessClient, times(1)).startJobRun(startJobRequestArgumentCaptor.capture());
     Assertions.assertEquals(expected, startJobRequestArgumentCaptor.getValue());
     Assertions.assertEquals(EMR_JOB_ID, dispatchQueryResponse.getJobId());
-    verifyNoInteractions(flintIndexMetadataReader);
+    verifyNoInteractions(flintIndexMetadataService);
   }
 
   @Test
@@ -693,7 +693,7 @@ public class SparkQueryDispatcherTest {
     verify(emrServerlessClient, times(1)).startJobRun(startJobRequestArgumentCaptor.capture());
     Assertions.assertEquals(expected, startJobRequestArgumentCaptor.getValue());
     Assertions.assertEquals(EMR_JOB_ID, dispatchQueryResponse.getJobId());
-    verifyNoInteractions(flintIndexMetadataReader);
+    verifyNoInteractions(flintIndexMetadataService);
   }
 
   @Test

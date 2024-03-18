@@ -18,16 +18,22 @@ public enum FlintIndexState {
   EMPTY("empty"),
   // transitioning state
   CREATING("creating"),
+  // stable state
+  ACTIVE("active"),
   // transitioning state
   REFRESHING("refreshing"),
   // transitioning state
   CANCELLING("cancelling"),
-  // stable state
-  ACTIVE("active"),
   // transitioning state
   DELETING("deleting"),
   // stable state
   DELETED("deleted"),
+  // transitioning state
+  RECOVERING("recovering"),
+  // transitioning state
+  VACUUMING("vacuuming"),
+  // transitioning state
+  UPDATING("updating"),
   // stable state
   FAILED("failed"),
   // unknown state, if some state update in Spark side, not reflect in here.

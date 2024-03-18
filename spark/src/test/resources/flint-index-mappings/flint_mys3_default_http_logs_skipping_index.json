@@ -2,23 +2,32 @@
   "flint_mys3_default_http_logs_skipping_index": {
     "mappings": {
       "_doc": {
-        "_meta": {
+        "_meta":  {
+          "latestId": "ZmxpbnRfdmFtc2lfZ2x1ZV92YW1zaWRiX2h0dHBfbG9nc19za2lwcGluZ19pbmRleA==",
           "kind": "skipping",
           "indexedColumns": [
             {
               "columnType": "int",
               "kind": "VALUE_SET",
+              "parameters": {
+                "max_size": "100"
+              },
               "columnName": "status"
             }
           ],
-          "name": "flint_mys3_default_http_logs_skipping_index",
-          "options": {},
-          "source": "mys3.default.http_logs",
-          "version": "0.1.0",
+          "name": "flint_vamsi_glue_vamsidb_http_logs_skipping_index",
+          "options": {
+            "auto_refresh": "true",
+            "incremental_refresh": "false",
+            "index_settings": "{\"number_of_shards\":5,\"number_of_replicas\":1}",
+            "checkpoint_location": "s3://vamsicheckpoint/skp/"
+          },
+          "source": "vamsi_glue.vamsidb.http_logs",
+          "version": "0.3.0",
           "properties": {
             "env": {
-              "SERVERLESS_EMR_VIRTUAL_CLUSTER_ID": "00fd777k3k3ls20p",
-              "SERVERLESS_EMR_JOB_ID": "00fdmvv9hp8u0o0q"
+              "SERVERLESS_EMR_VIRTUAL_CLUSTER_ID": "00fhe6d5jpah090l",
+              "SERVERLESS_EMR_JOB_ID": "00fhelvq7peuao0"
             }
           }
         }

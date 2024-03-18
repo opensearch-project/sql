@@ -42,7 +42,6 @@ import org.opensearch.common.settings.Setting;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.common.xcontent.XContentType;
 import org.opensearch.index.query.QueryBuilder;
-import org.opensearch.index.seqno.SequenceNumbers;
 import org.opensearch.plugins.Plugin;
 import org.opensearch.search.builder.SearchSourceBuilder;
 import org.opensearch.sql.datasource.model.DataSourceMetadata;
@@ -65,9 +64,7 @@ import org.opensearch.sql.spark.execution.session.SessionManager;
 import org.opensearch.sql.spark.execution.session.SessionModel;
 import org.opensearch.sql.spark.execution.session.SessionState;
 import org.opensearch.sql.spark.execution.statestore.StateStore;
-import org.opensearch.sql.spark.flint.FlintIndexMetadataReaderImpl;
-import org.opensearch.sql.spark.flint.FlintIndexState;
-import org.opensearch.sql.spark.flint.FlintIndexStateModel;
+import org.opensearch.sql.spark.flint.FlintIndexMetadataServiceImpl;
 import org.opensearch.sql.spark.flint.FlintIndexType;
 import org.opensearch.sql.spark.leasemanager.DefaultLeaseManager;
 import org.opensearch.sql.spark.response.JobExecutionResponseReader;
@@ -210,7 +207,7 @@ public class AsyncQueryExecutorServiceSpec extends OpenSearchIntegTestCase {
             this.dataSourceService,
             new DataSourceUserAuthorizationHelperImpl(client),
             jobExecutionResponseReader,
-            new FlintIndexMetadataReaderImpl(client),
+            new FlintIndexMetadataServiceImpl(client),
             client,
             new SessionManager(stateStore, emrServerlessClientFactory, pluginSettings),
             new DefaultLeaseManager(pluginSettings, stateStore),
@@ -328,64 +325,6 @@ public class AsyncQueryExecutorServiceSpec extends OpenSearchIntegTestCase {
   public String loadResultIndexMappings() {
     URL url = Resources.getResource("query_execution_result_mapping.json");
     return Resources.toString(url, Charsets.UTF_8);
-  }
-
-  public class MockFlintSparkJob {
-
-    private FlintIndexStateModel stateModel;
-
-    public MockFlintSparkJob(String latestId) {
-      assertNotNull(latestId);
-      stateModel =
-          new FlintIndexStateModel(
-              FlintIndexState.EMPTY,
-              "mockAppId",
-              "mockJobId",
-              latestId,
-              DATASOURCE,
-              System.currentTimeMillis(),
-              "",
-              SequenceNumbers.UNASSIGNED_SEQ_NO,
-              SequenceNumbers.UNASSIGNED_PRIMARY_TERM);
-      stateModel = StateStore.createFlintIndexState(stateStore, DATASOURCE).apply(stateModel);
-    }
-
-    public void refreshing() {
-      stateModel =
-          StateStore.updateFlintIndexState(stateStore, DATASOURCE)
-              .apply(stateModel, FlintIndexState.REFRESHING);
-    }
-
-    public void cancelling() {
-      stateModel =
-          StateStore.updateFlintIndexState(stateStore, DATASOURCE)
-              .apply(stateModel, FlintIndexState.CANCELLING);
-    }
-
-    public void active() {
-      stateModel =
-          StateStore.updateFlintIndexState(stateStore, DATASOURCE)
-              .apply(stateModel, FlintIndexState.ACTIVE);
-    }
-
-    public void deleting() {
-      stateModel =
-          StateStore.updateFlintIndexState(stateStore, DATASOURCE)
-              .apply(stateModel, FlintIndexState.DELETING);
-    }
-
-    public void deleted() {
-      stateModel =
-          StateStore.updateFlintIndexState(stateStore, DATASOURCE)
-              .apply(stateModel, FlintIndexState.DELETED);
-    }
-
-    void assertState(FlintIndexState expected) {
-      Optional<FlintIndexStateModel> stateModelOpt =
-          StateStore.getFlintIndexState(stateStore, DATASOURCE).apply(stateModel.getId());
-      assertTrue((stateModelOpt.isPresent()));
-      assertEquals(expected, stateModelOpt.get().getIndexState());
-    }
   }
 
   @RequiredArgsConstructor

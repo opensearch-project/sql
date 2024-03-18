@@ -19,6 +19,7 @@ import org.opensearch.sql.spark.antlr.parser.FlintSparkSqlExtensionsParser;
 import org.opensearch.sql.spark.antlr.parser.SqlBaseLexer;
 import org.opensearch.sql.spark.antlr.parser.SqlBaseParser;
 import org.opensearch.sql.spark.antlr.parser.SqlBaseParserBaseVisitor;
+import org.opensearch.sql.spark.dispatcher.model.FlintIndexOptions;
 import org.opensearch.sql.spark.dispatcher.model.FullyQualifiedTableName;
 import org.opensearch.sql.spark.dispatcher.model.IndexQueryActionType;
 import org.opensearch.sql.spark.dispatcher.model.IndexQueryDetails;
@@ -257,21 +258,46 @@ public class SQLQueryUtils {
 
     @Override
     public Void visitPropertyList(FlintSparkSqlExtensionsParser.PropertyListContext ctx) {
+      FlintIndexOptions flintIndexOptions = new FlintIndexOptions();
       if (ctx != null) {
         ctx.property()
             .forEach(
-                property -> {
-                  // todo. Currently, we use contains() api to avoid unescape string. In future, we
-                  //  should leverage
-                  // https://github.com/apache/spark/blob/v3.5.0/sql/api/src/main/scala/org/apache/spark/sql/catalyst/util/SparkParserUtils.scala#L35 to unescape string literal
-                  if (propertyKey(property.key).toLowerCase(Locale.ROOT).contains("auto_refresh")) {
-                    if (propertyValue(property.value).toLowerCase(Locale.ROOT).contains("true")) {
-                      indexQueryDetailsBuilder.autoRefresh(true);
-                    }
-                  }
-                });
+                property ->
+                    flintIndexOptions.setOption(
+                        removeUnwantedQuotes(propertyKey(property.key).toLowerCase(Locale.ROOT)),
+                        removeUnwantedQuotes(
+                            propertyValue(property.value).toLowerCase(Locale.ROOT))));
       }
+      indexQueryDetailsBuilder.indexOptions(flintIndexOptions);
       return null;
+    }
+
+    @Override
+    public Void visitAlterCoveringIndexStatement(
+        FlintSparkSqlExtensionsParser.AlterCoveringIndexStatementContext ctx) {
+      indexQueryDetailsBuilder.indexQueryActionType(IndexQueryActionType.ALTER);
+      indexQueryDetailsBuilder.indexType(FlintIndexType.COVERING);
+      visitPropertyList(ctx.propertyList());
+      return super.visitAlterCoveringIndexStatement(ctx);
+    }
+
+    @Override
+    public Void visitAlterSkippingIndexStatement(
+        FlintSparkSqlExtensionsParser.AlterSkippingIndexStatementContext ctx) {
+      indexQueryDetailsBuilder.indexQueryActionType(IndexQueryActionType.ALTER);
+      indexQueryDetailsBuilder.indexType(FlintIndexType.SKIPPING);
+      visitPropertyList(ctx.propertyList());
+      return super.visitAlterSkippingIndexStatement(ctx);
+    }
+
+    @Override
+    public Void visitAlterMaterializedViewStatement(
+        FlintSparkSqlExtensionsParser.AlterMaterializedViewStatementContext ctx) {
+      indexQueryDetailsBuilder.indexQueryActionType(IndexQueryActionType.ALTER);
+      indexQueryDetailsBuilder.indexType(FlintIndexType.MATERIALIZED_VIEW);
+      indexQueryDetailsBuilder.mvName(ctx.mvName.getText());
+      visitPropertyList(ctx.propertyList());
+      return super.visitAlterMaterializedViewStatement(ctx);
     }
 
     private String propertyKey(FlintSparkSqlExtensionsParser.PropertyKeyContext key) {
@@ -290,6 +316,13 @@ public class SQLQueryUtils {
       } else {
         return value.getText();
       }
+    }
+
+    // TODO: Currently escaping is handled partially.
+    // Full implementation should mirror this:
+    // https://github.com/apache/spark/blob/v3.5.0/sql/api/src/main/scala/org/apache/spark/sql/catalyst/util/SparkParserUtils.scala#L35
+    public String removeUnwantedQuotes(String input) {
+      return input.replaceAll("^\"|\"$", "");
     }
   }
 }
