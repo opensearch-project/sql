@@ -8,6 +8,7 @@ package org.opensearch.sql.spark.asyncquery;
 import static org.opensearch.sql.spark.execution.statestore.StateStore.DATASOURCE_TO_REQUEST_INDEX;
 import static org.opensearch.sql.spark.flint.FlintIndexState.ACTIVE;
 import static org.opensearch.sql.spark.flint.FlintIndexState.CANCELLING;
+import static org.opensearch.sql.spark.flint.FlintIndexState.CREATING;
 import static org.opensearch.sql.spark.flint.FlintIndexState.DELETED;
 import static org.opensearch.sql.spark.flint.FlintIndexState.DELETING;
 import static org.opensearch.sql.spark.flint.FlintIndexState.EMPTY;
@@ -57,7 +58,7 @@ public class IndexQuerySpecVacuumTest extends AsyncQueryExecutorServiceSpec {
               "flint_mys3_default_http_logs_metrics"));
 
   @Test
-  public void vacuumIndexInRefreshingState() {
+  public void shouldVacuumIndexInRefreshingState() {
     List<List<Object>> testCases =
         Lists.cartesianProduct(
             FLINT_TEST_DATASETS,
@@ -84,7 +85,7 @@ public class IndexQuerySpecVacuumTest extends AsyncQueryExecutorServiceSpec {
   }
 
   @Test
-  public void vacuumIndexInRefreshingStateButTimeout() {
+  public void shouldNotVacuumIndexInRefreshingStateIfCancelTimeout() {
     List<List<Object>> testCases =
         Lists.cartesianProduct(
             FLINT_TEST_DATASETS,
@@ -105,7 +106,31 @@ public class IndexQuerySpecVacuumTest extends AsyncQueryExecutorServiceSpec {
   }
 
   @Test
-  public void vacuumIndexInCancellingState() {
+  public void shouldNotVacuumIndexInCreatingState() {
+    List<List<Object>> testCases =
+        Lists.cartesianProduct(
+            FLINT_TEST_DATASETS,
+            List.of(CREATING),
+            List.of(
+                Pair.<EMRApiCall, EMRApiCall>of(
+                    () -> {
+                      throw new AssertionError("should not call cancelJobRun");
+                    },
+                    () -> {
+                      throw new AssertionError("should not call getJobRunResult");
+                    })));
+
+    runVacuumTestSuite(
+        testCases,
+        (mockDS, response) -> {
+          assertEquals("SUCCESS", response.getStatus());
+          assertTrue(flintIndexExists(mockDS.indexName));
+          assertTrue(indexDocExists(mockDS.latestId));
+        });
+  }
+
+  @Test
+  public void shouldVacuumIndexInCancellingState() {
     List<List<Object>> testCases =
         Lists.cartesianProduct(
             FLINT_TEST_DATASETS,
@@ -125,7 +150,7 @@ public class IndexQuerySpecVacuumTest extends AsyncQueryExecutorServiceSpec {
   }
 
   @Test
-  public void vacuumIndexWithoutJobRunning() {
+  public void shouldVacuumIndexWithoutJobRunning() {
     List<List<Object>> testCases =
         Lists.cartesianProduct(
             FLINT_TEST_DATASETS,
