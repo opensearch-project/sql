@@ -77,7 +77,7 @@ public class StreamingQueryHandler extends BatchQueryHandler {
                 .build()
                 .toString(),
             tags,
-            indexQueryDetails.isAutoRefresh(),
+            indexQueryDetails.getFlintIndexOptions().autoRefresh(),
             dataSourceMetadata.getResultIndex());
     String jobId = emrServerlessClient.startJobRun(startJobRequest);
     MetricUtils.incrementNumericalMetric(MetricName.EMR_STREAMING_QUERY_JOBS_CREATION_COUNT);

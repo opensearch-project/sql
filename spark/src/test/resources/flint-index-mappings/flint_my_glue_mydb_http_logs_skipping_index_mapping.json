@@ -1,0 +1,39 @@
+{
+  "_meta": {
+    "latestId": "flint_my_glue_mydb_http_logs_skipping_index_latest_id",
+    "kind": "skipping",
+    "indexedColumns": [
+      {
+        "columnType": "int",
+        "kind": "VALUE_SET",
+        "parameters": {
+          "max_size": "100"
+        },
+        "columnName": "status"
+      }
+    ],
+    "name": "flint_my_glue_mydb_http_logs_skipping_index",
+    "options": {
+      "auto_refresh": "true",
+      "incremental_refresh": "false",
+      "index_settings": "{\"number_of_shards\":5, \"number_of_replicas\":1}",
+      "checkpoint_location": "s3://vamsicheckpoint/skp/"
+    },
+    "source": "my_glue.mydb.http_logs",
+    "version": "0.3.0",
+    "properties": {
+      "env": {
+        "SERVERLESS_EMR_VIRTUAL_CLUSTER_ID": "00fhe6d5jpah090l",
+        "SERVERLESS_EMR_JOB_ID": "00fhelvq7peuao0m"
+      }
+    }
+  },
+  "properties": {
+    "file_path": {
+      "type": "keyword"
+    },
+    "status": {
+      "type": "integer"
+    }
+  }
+}

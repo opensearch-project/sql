@@ -9,11 +9,16 @@ import com.amazonaws.services.emrserverless.model.CancelJobRunResult;
 import com.amazonaws.services.emrserverless.model.GetJobRunResult;
 import com.amazonaws.services.emrserverless.model.JobRun;
 import com.google.common.collect.ImmutableList;
+import java.util.HashMap;
+import java.util.Map;
 import org.junit.Assert;
 import org.junit.Test;
+import org.junit.jupiter.api.Assertions;
 import org.opensearch.sql.spark.asyncquery.model.AsyncQueryExecutionResponse;
-import org.opensearch.sql.spark.client.EMRServerlessClient;
+import org.opensearch.sql.spark.asyncquery.model.MockFlintIndex;
+import org.opensearch.sql.spark.asyncquery.model.MockFlintSparkJob;
 import org.opensearch.sql.spark.client.EMRServerlessClientFactory;
+import org.opensearch.sql.spark.client.StartJobRequest;
 import org.opensearch.sql.spark.flint.FlintIndexState;
 import org.opensearch.sql.spark.flint.FlintIndexType;
 import org.opensearch.sql.spark.leasemanager.ConcurrencyLimitExceededException;
@@ -98,13 +103,7 @@ public class IndexQuerySpecTest extends AsyncQueryExecutorServiceSpec {
                       return new GetJobRunResult().withJobRun(new JobRun().withState("Cancelled"));
                     }
                   };
-              EMRServerlessClientFactory emrServerlessClientFactory =
-                  new EMRServerlessClientFactory() {
-                    @Override
-                    public EMRServerlessClient getClient() {
-                      return emrsClient;
-                    }
-                  };
+              EMRServerlessClientFactory emrServerlessClientFactory = () -> emrsClient;
               AsyncQueryExecutorService asyncQueryExecutorService =
                   createAsyncQueryExecutorService(emrServerlessClientFactory);
 
@@ -152,13 +151,7 @@ public class IndexQuerySpecTest extends AsyncQueryExecutorServiceSpec {
                       throw new IllegalArgumentException("Job run is not in a cancellable state");
                     }
                   };
-              EMRServerlessClientFactory emrServerlessClientFactory =
-                  new EMRServerlessClientFactory() {
-                    @Override
-                    public EMRServerlessClient getClient() {
-                      return emrsClient;
-                    }
-                  };
+              EMRServerlessClientFactory emrServerlessClientFactory = () -> emrsClient;
               AsyncQueryExecutorService asyncQueryExecutorService =
                   createAsyncQueryExecutorService(emrServerlessClientFactory);
 
@@ -196,13 +189,7 @@ public class IndexQuerySpecTest extends AsyncQueryExecutorServiceSpec {
                       return new GetJobRunResult().withJobRun(new JobRun().withState("Running"));
                     }
                   };
-              EMRServerlessClientFactory emrServerlessClientFactory =
-                  new EMRServerlessClientFactory() {
-                    @Override
-                    public EMRServerlessClient getClient() {
-                      return emrsClient;
-                    }
-                  };
+              EMRServerlessClientFactory emrServerlessClientFactory = () -> emrsClient;
               AsyncQueryExecutorService asyncQueryExecutorService =
                   createAsyncQueryExecutorService(emrServerlessClientFactory);
 
@@ -218,7 +205,7 @@ public class IndexQuerySpecTest extends AsyncQueryExecutorServiceSpec {
               AsyncQueryExecutionResponse asyncQueryResults =
                   asyncQueryExecutorService.getAsyncQueryResults(response.getQueryId());
               assertEquals("FAILED", asyncQueryResults.getStatus());
-              assertEquals("cancel job timeout", asyncQueryResults.getError());
+              assertEquals("Cancel job operation timed out.", asyncQueryResults.getError());
             });
   }
 
@@ -239,20 +226,15 @@ public class IndexQuerySpecTest extends AsyncQueryExecutorServiceSpec {
                       return new GetJobRunResult().withJobRun(new JobRun().withState("Cancelled"));
                     }
                   };
-              EMRServerlessClientFactory emrServerlessClientFactory =
-                  new EMRServerlessClientFactory() {
-                    @Override
-                    public EMRServerlessClient getClient() {
-                      return emrsClient;
-                    }
-                  };
+              EMRServerlessClientFactory emrServerlessClientFactory = () -> emrsClient;
               AsyncQueryExecutorService asyncQueryExecutorService =
                   createAsyncQueryExecutorService(emrServerlessClientFactory);
 
               // Mock flint index
               mockDS.createIndex();
               // Mock index state
-              MockFlintSparkJob flintIndexJob = new MockFlintSparkJob(mockDS.latestId);
+              MockFlintSparkJob flintIndexJob =
+                  new MockFlintSparkJob(stateStore, mockDS.latestId, DATASOURCE);
               flintIndexJob.refreshing();
 
               // 1.drop index
@@ -300,20 +282,15 @@ public class IndexQuerySpecTest extends AsyncQueryExecutorServiceSpec {
                       throw new IllegalArgumentException("Job run is not in a cancellable state");
                     }
                   };
-              EMRServerlessClientFactory emrServerlessClientFactory =
-                  new EMRServerlessClientFactory() {
-                    @Override
-                    public EMRServerlessClient getClient() {
-                      return emrsClient;
-                    }
-                  };
+              EMRServerlessClientFactory emrServerlessClientFactory = () -> emrsClient;
               AsyncQueryExecutorService asyncQueryExecutorService =
                   createAsyncQueryExecutorService(emrServerlessClientFactory);
 
               // Mock flint index
               mockDS.createIndex();
               // Mock index state in refresh state.
-              MockFlintSparkJob flintIndexJob = new MockFlintSparkJob(mockDS.latestId);
+              MockFlintSparkJob flintIndexJob =
+                  new MockFlintSparkJob(stateStore, mockDS.latestId, DATASOURCE);
               flintIndexJob.refreshing();
 
               // 1.drop index
@@ -349,20 +326,15 @@ public class IndexQuerySpecTest extends AsyncQueryExecutorServiceSpec {
                       return new GetJobRunResult().withJobRun(new JobRun().withState("Running"));
                     }
                   };
-              EMRServerlessClientFactory emrServerlessClientFactory =
-                  new EMRServerlessClientFactory() {
-                    @Override
-                    public EMRServerlessClient getClient() {
-                      return emrsClient;
-                    }
-                  };
+              EMRServerlessClientFactory emrServerlessClientFactory = () -> emrsClient;
               AsyncQueryExecutorService asyncQueryExecutorService =
                   createAsyncQueryExecutorService(emrServerlessClientFactory);
 
               // Mock flint index
               mockDS.createIndex();
               // Mock index state
-              MockFlintSparkJob flintIndexJob = new MockFlintSparkJob(mockDS.latestId);
+              MockFlintSparkJob flintIndexJob =
+                  new MockFlintSparkJob(stateStore, mockDS.latestId, DATASOURCE);
               flintIndexJob.refreshing();
 
               // 1. drop index
@@ -374,9 +346,8 @@ public class IndexQuerySpecTest extends AsyncQueryExecutorServiceSpec {
               AsyncQueryExecutionResponse asyncQueryResults =
                   asyncQueryExecutorService.getAsyncQueryResults(response.getQueryId());
               assertEquals("FAILED", asyncQueryResults.getStatus());
-              assertEquals("cancel job timeout", asyncQueryResults.getError());
-
-              flintIndexJob.assertState(FlintIndexState.CANCELLING);
+              assertEquals("Cancel job operation timed out.", asyncQueryResults.getError());
+              flintIndexJob.assertState(FlintIndexState.REFRESHING);
             });
   }
 
@@ -386,7 +357,7 @@ public class IndexQuerySpecTest extends AsyncQueryExecutorServiceSpec {
    * <p>(1) call EMR-S (2) change index state to: DELETED
    */
   @Test
-  public void dropIndexWithIndexInCancellingState() {
+  public void dropIndexWithIndexInRefreshingState() {
     ImmutableList.of(SKIPPING, COVERING, MV)
         .forEach(
             mockDS -> {
@@ -394,24 +365,113 @@ public class IndexQuerySpecTest extends AsyncQueryExecutorServiceSpec {
                   new LocalEMRSClient() {
                     @Override
                     public GetJobRunResult getJobRunResult(String applicationId, String jobId) {
+                      super.getJobRunResult(applicationId, jobId);
                       return new GetJobRunResult().withJobRun(new JobRun().withState("Cancelled"));
                     }
                   };
-              EMRServerlessClientFactory emrServerlessClientFactory =
-                  new EMRServerlessClientFactory() {
-                    @Override
-                    public EMRServerlessClient getClient() {
-                      return emrsClient;
-                    }
-                  };
+              EMRServerlessClientFactory emrServerlessClientFactory = () -> emrsClient;
               AsyncQueryExecutorService asyncQueryExecutorService =
                   createAsyncQueryExecutorService(emrServerlessClientFactory);
 
               // Mock flint index
               mockDS.createIndex();
               // Mock index state
-              MockFlintSparkJob flintIndexJob = new MockFlintSparkJob(mockDS.latestId);
-              flintIndexJob.cancelling();
+              MockFlintSparkJob flintIndexJob =
+                  new MockFlintSparkJob(stateStore, mockDS.latestId, DATASOURCE);
+              flintIndexJob.refreshing();
+
+              // 1. drop index
+              CreateAsyncQueryResponse response =
+                  asyncQueryExecutorService.createAsyncQuery(
+                      new CreateAsyncQueryRequest(mockDS.query, DATASOURCE, LangType.SQL, null));
+
+              // 2. fetch result
+              assertEquals(
+                  "SUCCESS",
+                  asyncQueryExecutorService
+                      .getAsyncQueryResults(response.getQueryId())
+                      .getStatus());
+
+              flintIndexJob.assertState(FlintIndexState.DELETED);
+              emrsClient.startJobRunCalled(0);
+              emrsClient.cancelJobRunCalled(1);
+              emrsClient.getJobRunResultCalled(1);
+            });
+  }
+
+  /**
+   * Index state is stable, Drop Index operation is retryable, expectation is
+   *
+   * <p>(1) call EMR-S (2) change index state to: DELETED
+   */
+  @Test
+  public void dropIndexWithIndexInActiveState() {
+    ImmutableList.of(SKIPPING, COVERING, MV)
+        .forEach(
+            mockDS -> {
+              LocalEMRSClient emrsClient =
+                  new LocalEMRSClient() {
+                    @Override
+                    public GetJobRunResult getJobRunResult(String applicationId, String jobId) {
+                      super.getJobRunResult(applicationId, jobId);
+                      return new GetJobRunResult().withJobRun(new JobRun().withState("Cancelled"));
+                    }
+                  };
+              EMRServerlessClientFactory emrServerlessClientFactory = () -> emrsClient;
+              AsyncQueryExecutorService asyncQueryExecutorService =
+                  createAsyncQueryExecutorService(emrServerlessClientFactory);
+
+              // Mock flint index
+              mockDS.createIndex();
+              // Mock index state
+              MockFlintSparkJob flintIndexJob =
+                  new MockFlintSparkJob(stateStore, mockDS.latestId, DATASOURCE);
+              flintIndexJob.active();
+
+              // 1. drop index
+              CreateAsyncQueryResponse response =
+                  asyncQueryExecutorService.createAsyncQuery(
+                      new CreateAsyncQueryRequest(mockDS.query, DATASOURCE, LangType.SQL, null));
+
+              // 2. fetch result
+              AsyncQueryExecutionResponse asyncQueryExecutionResponse =
+                  asyncQueryExecutorService.getAsyncQueryResults(response.getQueryId());
+              assertEquals("SUCCESS", asyncQueryExecutionResponse.getStatus());
+              flintIndexJob.assertState(FlintIndexState.DELETED);
+              emrsClient.startJobRunCalled(0);
+              emrsClient.cancelJobRunCalled(1);
+              emrsClient.getJobRunResultCalled(1);
+            });
+  }
+
+  /**
+   * Index state is stable, expectation is
+   *
+   * <p>(1) call EMR-S (2) change index state to: DELETED
+   */
+  @Test
+  public void dropIndexWithIndexInCreatingState() {
+    ImmutableList.of(SKIPPING, COVERING, MV)
+        .forEach(
+            mockDS -> {
+              LocalEMRSClient emrsClient =
+                  new LocalEMRSClient() {
+                    @Override
+                    public GetJobRunResult getJobRunResult(String applicationId, String jobId) {
+                      super.getJobRunResult(applicationId, jobId);
+                      return new GetJobRunResult().withJobRun(new JobRun().withState("Cancelled"));
+                    }
+                  };
+              EMRServerlessClientFactory emrServerlessClientFactory = () -> emrsClient;
+              AsyncQueryExecutorService asyncQueryExecutorService =
+                  createAsyncQueryExecutorService(emrServerlessClientFactory);
+
+              // Mock flint index
+              mockDS.createIndex();
+              // Mock index state
+              MockFlintSparkJob flintIndexJob =
+                  new MockFlintSparkJob(stateStore, mockDS.latestId, DATASOURCE);
+              flintIndexJob.creating();
 
               // 1. drop index
               CreateAsyncQueryResponse response =
@@ -430,112 +490,54 @@ public class IndexQuerySpecTest extends AsyncQueryExecutorServiceSpec {
   }
 
   /**
-   * No Job running, expectation is
+   * Index state is stable, Drop Index operation is retryable, expectation is
+   *
+   * <p>(1) call EMR-S (2) change index state to: DELETED
+   */
+  @Test
+  public void dropIndexWithIndexInEmptyState() {
+    ImmutableList.of(SKIPPING, COVERING, MV)
+        .forEach(
+            mockDS -> {
+              LocalEMRSClient emrsClient =
+                  new LocalEMRSClient() {
+                    @Override
+                    public GetJobRunResult getJobRunResult(String applicationId, String jobId) {
+                      super.getJobRunResult(applicationId, jobId);
+                      return new GetJobRunResult().withJobRun(new JobRun().withState("Cancelled"));
+                    }
+                  };
+              EMRServerlessClientFactory emrServerlessClientFactory = () -> emrsClient;
+              AsyncQueryExecutorService asyncQueryExecutorService =
+                  createAsyncQueryExecutorService(emrServerlessClientFactory);
+
+              // Mock flint index
+              mockDS.createIndex();
+              // Mock index state
+              MockFlintSparkJob flintIndexJob =
+                  new MockFlintSparkJob(stateStore, mockDS.latestId, DATASOURCE);
+
+              // 1. drop index
+              CreateAsyncQueryResponse response =
+                  asyncQueryExecutorService.createAsyncQuery(
+                      new CreateAsyncQueryRequest(mockDS.query, DATASOURCE, LangType.SQL, null));
+
+              // 2. fetch result
+              assertEquals(
+                  "SUCCESS",
+                  asyncQueryExecutorService
+                      .getAsyncQueryResults(response.getQueryId())
+                      .getStatus());
+
+              flintIndexJob.assertState(FlintIndexState.DELETED);
+            });
+  }
+
+  /**
+   * Couldn't acquire lock as the index is in transitioning state. Will result in error.
    *
    * <p>(1) not call EMR-S (2) change index state to: DELETED
    */
-  @Test
-  public void dropIndexWithIndexInActiveState() {
-    ImmutableList.of(SKIPPING, COVERING, MV)
-        .forEach(
-            mockDS -> {
-              LocalEMRSClient emrsClient =
-                  new LocalEMRSClient() {
-                    @Override
-                    public CancelJobRunResult cancelJobRun(String applicationId, String jobId) {
-                      Assert.fail("should not call cancelJobRun");
-                      return null;
-                    }
-
-                    @Override
-                    public GetJobRunResult getJobRunResult(String applicationId, String jobId) {
-                      Assert.fail("should not call getJobRunResult");
-                      return null;
-                    }
-                  };
-              EMRServerlessClientFactory emrServerlessClientFactory =
-                  new EMRServerlessClientFactory() {
-                    @Override
-                    public EMRServerlessClient getClient() {
-                      return emrsClient;
-                    }
-                  };
-              AsyncQueryExecutorService asyncQueryExecutorService =
-                  createAsyncQueryExecutorService(emrServerlessClientFactory);
-
-              // Mock flint index
-              mockDS.createIndex();
-              // Mock index state
-              MockFlintSparkJob flintIndexJob = new MockFlintSparkJob(mockDS.latestId);
-              flintIndexJob.active();
-
-              // 1. drop index
-              CreateAsyncQueryResponse response =
-                  asyncQueryExecutorService.createAsyncQuery(
-                      new CreateAsyncQueryRequest(mockDS.query, DATASOURCE, LangType.SQL, null));
-
-              // 2. fetch result
-              assertEquals(
-                  "SUCCESS",
-                  asyncQueryExecutorService
-                      .getAsyncQueryResults(response.getQueryId())
-                      .getStatus());
-
-              flintIndexJob.assertState(FlintIndexState.DELETED);
-            });
-  }
-
-  @Test
-  public void dropIndexWithIndexInDeletingState() {
-    ImmutableList.of(SKIPPING, COVERING, MV)
-        .forEach(
-            mockDS -> {
-              LocalEMRSClient emrsClient =
-                  new LocalEMRSClient() {
-                    @Override
-                    public CancelJobRunResult cancelJobRun(String applicationId, String jobId) {
-                      Assert.fail("should not call cancelJobRun");
-                      return null;
-                    }
-
-                    @Override
-                    public GetJobRunResult getJobRunResult(String applicationId, String jobId) {
-                      Assert.fail("should not call getJobRunResult");
-                      return null;
-                    }
-                  };
-              EMRServerlessClientFactory emrServerlessClientFactory =
-                  new EMRServerlessClientFactory() {
-                    @Override
-                    public EMRServerlessClient getClient() {
-                      return emrsClient;
-                    }
-                  };
-              AsyncQueryExecutorService asyncQueryExecutorService =
-                  createAsyncQueryExecutorService(emrServerlessClientFactory);
-
-              // Mock flint index
-              mockDS.createIndex();
-              // Mock index state
-              MockFlintSparkJob flintIndexJob = new MockFlintSparkJob(mockDS.latestId);
-              flintIndexJob.deleted();
-
-              // 1. drop index
-              CreateAsyncQueryResponse response =
-                  asyncQueryExecutorService.createAsyncQuery(
-                      new CreateAsyncQueryRequest(mockDS.query, DATASOURCE, LangType.SQL, null));
-
-              // 2. fetch result
-              assertEquals(
-                  "SUCCESS",
-                  asyncQueryExecutorService
-                      .getAsyncQueryResults(response.getQueryId())
-                      .getStatus());
-
-              flintIndexJob.assertState(FlintIndexState.DELETED);
-            });
-  }
-
   @Test
   public void dropIndexWithIndexInDeletedState() {
     ImmutableList.of(SKIPPING, COVERING, MV)
@@ -555,20 +557,15 @@ public class IndexQuerySpecTest extends AsyncQueryExecutorServiceSpec {
                       return null;
                     }
                   };
-              EMRServerlessClientFactory emrServerlessClientFactory =
-                  new EMRServerlessClientFactory() {
-                    @Override
-                    public EMRServerlessClient getClient() {
-                      return emrsClient;
-                    }
-                  };
+              EMRServerlessClientFactory emrServerlessClientFactory = () -> emrsClient;
               AsyncQueryExecutorService asyncQueryExecutorService =
                   createAsyncQueryExecutorService(emrServerlessClientFactory);
 
               // Mock flint index
               mockDS.createIndex();
               // Mock index state
-              MockFlintSparkJob flintIndexJob = new MockFlintSparkJob(mockDS.latestId);
+              MockFlintSparkJob flintIndexJob =
+                  new MockFlintSparkJob(stateStore, mockDS.latestId, DATASOURCE);
               flintIndexJob.deleting();
 
               // 1. drop index
@@ -576,69 +573,14 @@ public class IndexQuerySpecTest extends AsyncQueryExecutorServiceSpec {
                   asyncQueryExecutorService.createAsyncQuery(
                       new CreateAsyncQueryRequest(mockDS.query, DATASOURCE, LangType.SQL, null));
 
+              AsyncQueryExecutionResponse asyncQueryExecutionResponse =
+                  asyncQueryExecutorService.getAsyncQueryResults(response.getQueryId());
               // 2. fetch result
+              assertEquals("FAILED", asyncQueryExecutionResponse.getStatus());
               assertEquals(
-                  "SUCCESS",
-                  asyncQueryExecutorService
-                      .getAsyncQueryResults(response.getQueryId())
-                      .getStatus());
-
-              flintIndexJob.assertState(FlintIndexState.DELETED);
-            });
-  }
-
-  /**
-   * No Job running, expectation is
-   *
-   * <p>(1) not call EMR-S (2) change index state to: DELETED
-   */
-  @Test
-  public void dropIndexWithIndexInEmptyState() {
-    ImmutableList.of(SKIPPING, COVERING, MV)
-        .forEach(
-            mockDS -> {
-              LocalEMRSClient emrsClient =
-                  new LocalEMRSClient() {
-                    @Override
-                    public CancelJobRunResult cancelJobRun(String applicationId, String jobId) {
-                      Assert.fail("should not call cancelJobRun");
-                      return null;
-                    }
-
-                    @Override
-                    public GetJobRunResult getJobRunResult(String applicationId, String jobId) {
-                      Assert.fail("should not call getJobRunResult");
-                      return null;
-                    }
-                  };
-              EMRServerlessClientFactory emrServerlessClientFactory =
-                  new EMRServerlessClientFactory() {
-                    @Override
-                    public EMRServerlessClient getClient() {
-                      return emrsClient;
-                    }
-                  };
-              AsyncQueryExecutorService asyncQueryExecutorService =
-                  createAsyncQueryExecutorService(emrServerlessClientFactory);
-
-              // Mock flint index
-              mockDS.createIndex();
-              // Mock index state
-              MockFlintSparkJob flintIndexJob = new MockFlintSparkJob(mockDS.latestId);
-
-              // 1. drop index
-              CreateAsyncQueryResponse response =
-                  asyncQueryExecutorService.createAsyncQuery(
-                      new CreateAsyncQueryRequest(mockDS.query, DATASOURCE, LangType.SQL, null));
-
-              // 2. fetch result
-              assertEquals(
-                  "SUCCESS",
-                  asyncQueryExecutorService
-                      .getAsyncQueryResults(response.getQueryId())
-                      .getStatus());
-
-              flintIndexJob.assertState(FlintIndexState.DELETED);
+                  "Transaction failed as flint index is not in a valid state.",
+                  asyncQueryExecutionResponse.getError());
+              flintIndexJob.assertState(FlintIndexState.DELETING);
             });
   }
 
@@ -666,13 +608,7 @@ public class IndexQuerySpecTest extends AsyncQueryExecutorServiceSpec {
                       return null;
                     }
                   };
-              EMRServerlessClientFactory emrServerlessClientFactory =
-                  new EMRServerlessClientFactory() {
-                    @Override
-                    public EMRServerlessClient getClient() {
-                      return emrsClient;
-                    }
-                  };
+              EMRServerlessClientFactory emrServerlessClientFactory = () -> emrsClient;
               AsyncQueryExecutorService asyncQueryExecutorService =
                   createAsyncQueryExecutorService(emrServerlessClientFactory);
 
@@ -701,7 +637,8 @@ public class IndexQuerySpecTest extends AsyncQueryExecutorServiceSpec {
     // Mock flint index
     COVERING.createIndex();
     // Mock index state
-    MockFlintSparkJob flintIndexJob = new MockFlintSparkJob(COVERING.latestId);
+    MockFlintSparkJob flintIndexJob =
+        new MockFlintSparkJob(stateStore, COVERING.latestId, DATASOURCE);
     flintIndexJob.refreshing();
 
     // query with auto refresh
@@ -725,7 +662,8 @@ public class IndexQuerySpecTest extends AsyncQueryExecutorServiceSpec {
     // Mock flint index
     COVERING.createIndex();
     // Mock index state
-    MockFlintSparkJob flintIndexJob = new MockFlintSparkJob(COVERING.latestId);
+    MockFlintSparkJob flintIndexJob =
+        new MockFlintSparkJob(stateStore, COVERING.latestId, DATASOURCE);
     flintIndexJob.refreshing();
 
     // query with auto_refresh = true.
@@ -752,7 +690,8 @@ public class IndexQuerySpecTest extends AsyncQueryExecutorServiceSpec {
     // Mock flint index
     COVERING.createIndex();
     // Mock index state
-    MockFlintSparkJob flintIndexJob = new MockFlintSparkJob(COVERING.latestId);
+    MockFlintSparkJob flintIndexJob =
+        new MockFlintSparkJob(stateStore, COVERING.latestId, DATASOURCE);
     flintIndexJob.refreshing();
 
     // query with auto_refresh = true.
@@ -778,7 +717,8 @@ public class IndexQuerySpecTest extends AsyncQueryExecutorServiceSpec {
     // Mock flint index
     COVERING.createIndex();
     // Mock index state
-    MockFlintSparkJob flintIndexJob = new MockFlintSparkJob(COVERING.latestId);
+    MockFlintSparkJob flintIndexJob =
+        new MockFlintSparkJob(stateStore, COVERING.latestId, DATASOURCE);
     flintIndexJob.refreshing();
 
     CreateAsyncQueryResponse asyncQueryResponse =
@@ -816,8 +756,6 @@ public class IndexQuerySpecTest extends AsyncQueryExecutorServiceSpec {
                   asyncQueryExecutorService.createAsyncQuery(
                       new CreateAsyncQueryRequest(query, DATASOURCE, LangType.SQL, null));
 
-              System.out.println(query);
-
               // 2. cancel query
               IllegalArgumentException exception =
                   assertThrows(
@@ -851,7 +789,8 @@ public class IndexQuerySpecTest extends AsyncQueryExecutorServiceSpec {
               // Mock flint index
               mockDS.createIndex();
               // Mock index state
-              MockFlintSparkJob flintIndexJob = new MockFlintSparkJob(mockDS.latestId);
+              MockFlintSparkJob flintIndexJob =
+                  new MockFlintSparkJob(stateStore, mockDS.latestId, DATASOURCE);
 
               // 1. Submit REFRESH statement
               CreateAsyncQueryResponse response =
@@ -869,6 +808,946 @@ public class IndexQuerySpecTest extends AsyncQueryExecutorServiceSpec {
 
               // assert state is active
               flintIndexJob.assertState(FlintIndexState.ACTIVE);
+            });
+  }
+
+  /** Cancel REFRESH statement should success */
+  @Test
+  public void cancelRefreshStatementWithActiveState() {
+    ImmutableList.of(SKIPPING, COVERING, MV)
+        .forEach(
+            mockDS -> {
+              AsyncQueryExecutorService asyncQueryExecutorService =
+                  createAsyncQueryExecutorService(
+                      () ->
+                          new LocalEMRSClient() {
+                            @Override
+                            public GetJobRunResult getJobRunResult(
+                                String applicationId, String jobId) {
+                              return new GetJobRunResult()
+                                  .withJobRun(new JobRun().withState("Cancelled"));
+                            }
+                          });
+
+              // Mock flint index
+              mockDS.createIndex();
+              // Mock index state
+              MockFlintSparkJob flintIndexJob =
+                  new MockFlintSparkJob(stateStore, mockDS.latestId, DATASOURCE);
+
+              // 1. Submit REFRESH statement
+              CreateAsyncQueryResponse response =
+                  asyncQueryExecutorService.createAsyncQuery(
+                      new CreateAsyncQueryRequest(
+                          mockDS.refreshQuery, DATASOURCE, LangType.SQL, null));
+              // mock index state.
+              flintIndexJob.active();
+
+              // 2. Cancel query
+              IllegalStateException illegalStateException =
+                  Assertions.assertThrows(
+                      IllegalStateException.class,
+                      () -> asyncQueryExecutorService.cancelQuery(response.getQueryId()));
+              Assertions.assertEquals(
+                  "Transaction failed as flint index is not in a valid state.",
+                  illegalStateException.getMessage());
+
+              // assert state is active
+              flintIndexJob.assertState(FlintIndexState.ACTIVE);
+            });
+  }
+
+  @Test
+  public void cancelRefreshStatementWithFailureInFetchingIndexMetadata() {
+    String indexName = "flint_my_glue_mydb_http_logs_covering_corrupted_index";
+    MockFlintIndex mockFlintIndex =
+        new MockFlintIndex(client(), indexName, FlintIndexType.COVERING, null);
+    AsyncQueryExecutorService asyncQueryExecutorService =
+        createAsyncQueryExecutorService(
+            () ->
+                new LocalEMRSClient() {
+                  @Override
+                  public GetJobRunResult getJobRunResult(String applicationId, String jobId) {
+                    return new GetJobRunResult().withJobRun(new JobRun().withState("Cancelled"));
+                  }
+                });
+
+    mockFlintIndex.createIndex();
+    // Mock index state
+    MockFlintSparkJob flintIndexJob =
+        new MockFlintSparkJob(stateStore, indexName + "_latest_id", DATASOURCE);
+
+    // 1. Submit REFRESH statement
+    CreateAsyncQueryResponse response =
+        asyncQueryExecutorService.createAsyncQuery(
+            new CreateAsyncQueryRequest(
+                "REFRESH INDEX covering_corrupted ON my_glue.mydb.http_logs",
+                DATASOURCE,
+                LangType.SQL,
+                null));
+    // mock index state.
+    flintIndexJob.refreshing();
+
+    // 2. Cancel query
+    Assertions.assertThrows(
+        IllegalStateException.class,
+        () -> asyncQueryExecutorService.cancelQuery(response.getQueryId()));
+  }
+
+  @Test
+  public void testAlterIndexQueryConvertingToManualRefresh() {
+    MockFlintIndex ALTER_SKIPPING =
+        new MockFlintIndex(
+            client,
+            "flint_my_glue_mydb_http_logs_skipping_index",
+            FlintIndexType.SKIPPING,
+            "ALTER SKIPPING INDEX ON my_glue.mydb.http_logs WITH (auto_refresh=false,"
+                + " incremental_refresh=false)");
+    MockFlintIndex ALTER_COVERING =
+        new MockFlintIndex(
+            client,
+            "flint_my_glue_mydb_http_logs_covering_index",
+            FlintIndexType.COVERING,
+            "ALTER INDEX covering ON my_glue.mydb.http_logs WITH (auto_refresh=false,"
+                + " incremental_refresh=false)");
+    MockFlintIndex ALTER_MV =
+        new MockFlintIndex(
+            client,
+            "flint_my_glue_mydb_mv",
+            FlintIndexType.MATERIALIZED_VIEW,
+            "ALTER MATERIALIZED VIEW my_glue.mydb.mv WITH (auto_refresh=false,"
+                + " incremental_refresh=false) ");
+    ImmutableList.of(ALTER_SKIPPING, ALTER_COVERING, ALTER_MV)
+        .forEach(
+            mockDS -> {
+              LocalEMRSClient emrsClient =
+                  new LocalEMRSClient() {
+                    @Override
+                    public GetJobRunResult getJobRunResult(String applicationId, String jobId) {
+                      super.getJobRunResult(applicationId, jobId);
+                      JobRun jobRun = new JobRun();
+                      jobRun.setState("cancelled");
+                      return new GetJobRunResult().withJobRun(jobRun);
+                    }
+                  };
+              EMRServerlessClientFactory emrServerlessClientFactory = () -> emrsClient;
+              AsyncQueryExecutorService asyncQueryExecutorService =
+                  createAsyncQueryExecutorService(emrServerlessClientFactory);
+              // Mock flint index
+              mockDS.createIndex();
+              HashMap<String, Object> existingOptions = new HashMap<>();
+              existingOptions.put("auto_refresh", "true");
+              mockDS.updateIndexOptions(existingOptions, false);
+              // Mock index state
+              MockFlintSparkJob flintIndexJob =
+                  new MockFlintSparkJob(stateStore, mockDS.getLatestId(), DATASOURCE);
+              flintIndexJob.active();
+
+              // 1. alter index
+              CreateAsyncQueryResponse response =
+                  asyncQueryExecutorService.createAsyncQuery(
+                      new CreateAsyncQueryRequest(
+                          mockDS.getQuery(), DATASOURCE, LangType.SQL, null));
+
+              // 2. fetch result
+              AsyncQueryExecutionResponse asyncQueryExecutionResponse =
+                  asyncQueryExecutorService.getAsyncQueryResults(response.getQueryId());
+              assertEquals("SUCCESS", asyncQueryExecutionResponse.getStatus());
+              emrsClient.startJobRunCalled(0);
+              emrsClient.cancelJobRunCalled(1);
+              flintIndexJob.assertState(FlintIndexState.ACTIVE);
+              Map<String, Object> mappings = mockDS.getIndexMappings();
+              Map<String, Object> meta = (HashMap<String, Object>) mappings.get("_meta");
+              Map<String, Object> options = (Map<String, Object>) meta.get("options");
+              Assertions.assertEquals("false", options.get("auto_refresh"));
+            });
+  }
+
+  @Test
+  public void testAlterIndexQueryConvertingToManualRefreshWithNoIncrementalRefresh() {
+    MockFlintIndex ALTER_SKIPPING =
+        new MockFlintIndex(
+            client,
+            "flint_my_glue_mydb_http_logs_skipping_index",
+            FlintIndexType.SKIPPING,
+            "ALTER SKIPPING INDEX ON my_glue.mydb.http_logs WITH (auto_refresh=false)");
+    MockFlintIndex ALTER_COVERING =
+        new MockFlintIndex(
+            client,
+            "flint_my_glue_mydb_http_logs_covering_index",
+            FlintIndexType.COVERING,
+            "ALTER INDEX covering ON my_glue.mydb.http_logs WITH (auto_refresh=false)");
+    MockFlintIndex ALTER_MV =
+        new MockFlintIndex(
+            client,
+            "flint_my_glue_mydb_mv",
+            FlintIndexType.MATERIALIZED_VIEW,
+            "ALTER MATERIALIZED VIEW my_glue.mydb.mv WITH (auto_refresh=false)");
+    ImmutableList.of(ALTER_SKIPPING, ALTER_COVERING, ALTER_MV)
+        .forEach(
+            mockDS -> {
+              LocalEMRSClient emrsClient =
+                  new LocalEMRSClient() {
+                    @Override
+                    public GetJobRunResult getJobRunResult(String applicationId, String jobId) {
+                      super.getJobRunResult(applicationId, jobId);
+                      JobRun jobRun = new JobRun();
+                      jobRun.setState("cancelled");
+                      return new GetJobRunResult().withJobRun(jobRun);
+                    }
+                  };
+              EMRServerlessClientFactory emrServerlessClientFactory = () -> emrsClient;
+              AsyncQueryExecutorService asyncQueryExecutorService =
+                  createAsyncQueryExecutorService(emrServerlessClientFactory);
+              // Mock flint index
+              mockDS.createIndex();
+              HashMap<String, Object> existingOptions = new HashMap<>();
+              existingOptions.put("auto_refresh", "true");
+              existingOptions.put("checkpoint_location", "s3://checkpoint/location");
+              mockDS.updateIndexOptions(existingOptions, true);
+              // Mock index state
+              MockFlintSparkJob flintIndexJob =
+                  new MockFlintSparkJob(stateStore, mockDS.getLatestId(), DATASOURCE);
+              flintIndexJob.active();
+
+              // 1. alter index
+              CreateAsyncQueryResponse response =
+                  asyncQueryExecutorService.createAsyncQuery(
+                      new CreateAsyncQueryRequest(
+                          mockDS.getQuery(), DATASOURCE, LangType.SQL, null));
+
+              // 2. fetch result
+              AsyncQueryExecutionResponse asyncQueryExecutionResponse =
+                  asyncQueryExecutorService.getAsyncQueryResults(response.getQueryId());
+              assertEquals("SUCCESS", asyncQueryExecutionResponse.getStatus());
+              emrsClient.startJobRunCalled(0);
+              emrsClient.cancelJobRunCalled(1);
+              flintIndexJob.assertState(FlintIndexState.ACTIVE);
+              Map<String, Object> mappings = mockDS.getIndexMappings();
+              Map<String, Object> meta = (HashMap<String, Object>) mappings.get("_meta");
+              Map<String, Object> options = (Map<String, Object>) meta.get("options");
+              Assertions.assertEquals("false", options.get("auto_refresh"));
+            });
+  }
+
+  @Test
+  public void testAlterIndexQueryWithRedundantOperation() {
+    MockFlintIndex ALTER_SKIPPING =
+        new MockFlintIndex(
+            client,
+            "flint_my_glue_mydb_http_logs_skipping_index",
+            FlintIndexType.SKIPPING,
+            "ALTER SKIPPING INDEX ON my_glue.mydb.http_logs WITH (auto_refresh=false,"
+                + " incremental_refresh=false)");
+    MockFlintIndex ALTER_COVERING =
+        new MockFlintIndex(
+            client,
+            "flint_my_glue_mydb_http_logs_covering_index",
+            FlintIndexType.COVERING,
+            "ALTER INDEX covering ON my_glue.mydb.http_logs WITH (auto_refresh=false,"
+                + " incremental_refresh=false)");
+    MockFlintIndex ALTER_MV =
+        new MockFlintIndex(
+            client,
+            "flint_my_glue_mydb_mv",
+            FlintIndexType.MATERIALIZED_VIEW,
+            "ALTER MATERIALIZED VIEW my_glue.mydb.mv WITH (auto_refresh=false,"
+                + " incremental_refresh=false) ");
+    ImmutableList.of(ALTER_SKIPPING, ALTER_COVERING, ALTER_MV)
+        .forEach(
+            mockDS -> {
+              LocalEMRSClient emrsClient =
+                  new LocalEMRSClient() {
+                    @Override
+                    public String startJobRun(StartJobRequest startJobRequest) {
+                      return "jobId";
+                    }
+
+                    @Override
+                    public GetJobRunResult getJobRunResult(String applicationId, String jobId) {
+                      JobRun jobRun = new JobRun();
+                      jobRun.setState("cancelled");
+                      return new GetJobRunResult().withJobRun(jobRun);
+                    }
+
+                    @Override
+                    public CancelJobRunResult cancelJobRun(String applicationId, String jobId) {
+                      super.cancelJobRun(applicationId, jobId);
+                      throw new IllegalArgumentException("JobId doesn't exist");
+                    }
+                  };
+              EMRServerlessClientFactory emrServerlessCientFactory = () -> emrsClient;
+              AsyncQueryExecutorService asyncQueryExecutorService =
+                  createAsyncQueryExecutorService(emrServerlessCientFactory);
+              // Mock flint index
+              mockDS.createIndex();
+              HashMap<String, Object> existingOptions = new HashMap<>();
+              existingOptions.put("auto_refresh", "false");
+              mockDS.updateIndexOptions(existingOptions, false);
+              // Mock index state
+              MockFlintSparkJob flintIndexJob =
+                  new MockFlintSparkJob(stateStore, mockDS.getLatestId(), DATASOURCE);
+              flintIndexJob.active();
+
+              // 1. alter index
+              CreateAsyncQueryResponse response =
+                  asyncQueryExecutorService.createAsyncQuery(
+                      new CreateAsyncQueryRequest(
+                          mockDS.getQuery(), DATASOURCE, LangType.SQL, null));
+
+              // 2. fetch result
+              AsyncQueryExecutionResponse asyncQueryExecutionResponse =
+                  asyncQueryExecutorService.getAsyncQueryResults(response.getQueryId());
+              assertEquals("SUCCESS", asyncQueryExecutionResponse.getStatus());
+              emrsClient.startJobRunCalled(0);
+              emrsClient.cancelJobRunCalled(1);
+              emrsClient.getJobRunResultCalled(0);
+              flintIndexJob.assertState(FlintIndexState.ACTIVE);
+              Map<String, Object> mappings = mockDS.getIndexMappings();
+              Map<String, Object> meta = (HashMap<String, Object>) mappings.get("_meta");
+              Map<String, Object> options = (Map<String, Object>) meta.get("options");
+              Assertions.assertEquals("false", options.get("auto_refresh"));
+            });
+  }
+
+  @Test
+  public void testAlterIndexQueryConvertingToAutoRefresh() {
+    MockFlintIndex ALTER_SKIPPING =
+        new MockFlintIndex(
+            client,
+            "flint_my_glue_mydb_http_logs_skipping_index",
+            FlintIndexType.SKIPPING,
+            "ALTER SKIPPING INDEX ON my_glue.mydb.http_logs WITH (auto_refresh=true,"
+                + " incremental_refresh=false)");
+    MockFlintIndex ALTER_COVERING =
+        new MockFlintIndex(
+            client,
+            "flint_my_glue_mydb_http_logs_covering_index",
+            FlintIndexType.COVERING,
+            "ALTER INDEX covering ON my_glue.mydb.http_logs WITH (auto_refresh=true,"
+                + " incremental_refresh=false)");
+    MockFlintIndex ALTER_MV =
+        new MockFlintIndex(
+            client,
+            "flint_my_glue_mydb_mv",
+            FlintIndexType.MATERIALIZED_VIEW,
+            "ALTER MATERIALIZED VIEW my_glue.mydb.mv WITH (auto_refresh=true,"
+                + " incremental_refresh=false) ");
+    ImmutableList.of(ALTER_SKIPPING, ALTER_COVERING, ALTER_MV)
+        .forEach(
+            mockDS -> {
+              LocalEMRSClient localEMRSClient = new LocalEMRSClient();
+              EMRServerlessClientFactory clientFactory = () -> localEMRSClient;
+              AsyncQueryExecutorService asyncQueryExecutorService =
+                  createAsyncQueryExecutorService(clientFactory);
+
+              // Mock flint index
+              mockDS.createIndex();
+              HashMap<String, Object> existingOptions = new HashMap<>();
+              existingOptions.put("auto_refresh", "false");
+              mockDS.updateIndexOptions(existingOptions, false);
+              // Mock index state
+              MockFlintSparkJob flintIndexJob =
+                  new MockFlintSparkJob(stateStore, mockDS.getLatestId(), DATASOURCE);
+              flintIndexJob.active();
+
+              // 1. alter index
+              CreateAsyncQueryResponse response =
+                  asyncQueryExecutorService.createAsyncQuery(
+                      new CreateAsyncQueryRequest(
+                          mockDS.getQuery(), DATASOURCE, LangType.SQL, null));
+
+              // 2. fetch result
+              assertEquals(
+                  "RUNNING",
+                  asyncQueryExecutorService
+                      .getAsyncQueryResults(response.getQueryId())
+                      .getStatus());
+
+              flintIndexJob.assertState(FlintIndexState.ACTIVE);
+              localEMRSClient.startJobRunCalled(1);
+              localEMRSClient.getJobRunResultCalled(1);
+              localEMRSClient.cancelJobRunCalled(0);
+              Map<String, Object> mappings = mockDS.getIndexMappings();
+              Map<String, Object> meta = (HashMap<String, Object>) mappings.get("_meta");
+              Map<String, Object> options = (Map<String, Object>) meta.get("options");
+              Assertions.assertEquals("false", options.get("auto_refresh"));
+            });
+  }
+
+  @Test
+  public void testAlterIndexQueryWithOutAnyAutoRefresh() {
+    MockFlintIndex ALTER_SKIPPING =
+        new MockFlintIndex(
+            client,
+            "flint_my_glue_mydb_http_logs_skipping_index",
+            FlintIndexType.SKIPPING,
+            "ALTER SKIPPING INDEX ON my_glue.mydb.http_logs WITH ("
+                + " incremental_refresh=false)");
+    MockFlintIndex ALTER_COVERING =
+        new MockFlintIndex(
+            client,
+            "flint_my_glue_mydb_http_logs_covering_index",
+            FlintIndexType.COVERING,
+            "ALTER INDEX covering ON my_glue.mydb.http_logs WITH ("
+                + " incremental_refresh=false)");
+    MockFlintIndex ALTER_MV =
+        new MockFlintIndex(
+            client,
+            "flint_my_glue_mydb_mv",
+            FlintIndexType.MATERIALIZED_VIEW,
+            "ALTER MATERIALIZED VIEW my_glue.mydb.mv WITH (" + " incremental_refresh=false) ");
+    ImmutableList.of(ALTER_SKIPPING, ALTER_COVERING, ALTER_MV)
+        .forEach(
+            mockDS -> {
+              LocalEMRSClient localEMRSClient = new LocalEMRSClient();
+              EMRServerlessClientFactory clientFactory = () -> localEMRSClient;
+              AsyncQueryExecutorService asyncQueryExecutorService =
+                  createAsyncQueryExecutorService(clientFactory);
+
+              // Mock flint index
+              mockDS.createIndex();
+              HashMap<String, Object> existingOptions = new HashMap<>();
+              existingOptions.put("auto_refresh", "false");
+              mockDS.updateIndexOptions(existingOptions, false);
+              // Mock index state
+              MockFlintSparkJob flintIndexJob =
+                  new MockFlintSparkJob(stateStore, mockDS.getLatestId(), DATASOURCE);
+              flintIndexJob.active();
+
+              // 1. alter index
+              CreateAsyncQueryResponse response =
+                  asyncQueryExecutorService.createAsyncQuery(
+                      new CreateAsyncQueryRequest(
+                          mockDS.getQuery(), DATASOURCE, LangType.SQL, null));
+
+              // 2. fetch result
+              assertEquals(
+                  "RUNNING",
+                  asyncQueryExecutorService
+                      .getAsyncQueryResults(response.getQueryId())
+                      .getStatus());
+
+              flintIndexJob.assertState(FlintIndexState.ACTIVE);
+              localEMRSClient.startJobRunCalled(1);
+              localEMRSClient.getJobRunResultCalled(1);
+              localEMRSClient.cancelJobRunCalled(0);
+              Map<String, Object> mappings = mockDS.getIndexMappings();
+              Map<String, Object> meta = (HashMap<String, Object>) mappings.get("_meta");
+              Map<String, Object> options = (Map<String, Object>) meta.get("options");
+              Assertions.assertEquals("false", options.get("auto_refresh"));
+            });
+  }
+
+  @Test
+  public void testAlterIndexQueryOfFullRefreshWithInvalidOptions() {
+    MockFlintIndex ALTER_SKIPPING =
+        new MockFlintIndex(
+            client,
+            "flint_my_glue_mydb_http_logs_skipping_index",
+            FlintIndexType.SKIPPING,
+            "ALTER SKIPPING INDEX ON my_glue.mydb.http_logs WITH (auto_refresh=false,"
+                + " incremental_refresh=false, checkpoint_location=\"s3://ckp/skp\")");
+    MockFlintIndex ALTER_COVERING =
+        new MockFlintIndex(
+            client,
+            "flint_my_glue_mydb_http_logs_covering_index",
+            FlintIndexType.COVERING,
+            "ALTER INDEX covering ON my_glue.mydb.http_logs WITH (auto_refresh=false,"
+                + " incremental_refresh=false, checkpoint_location=\"s3://ckp/skp\")");
+    MockFlintIndex ALTER_MV =
+        new MockFlintIndex(
+            client,
+            "flint_my_glue_mydb_mv",
+            FlintIndexType.MATERIALIZED_VIEW,
+            "ALTER MATERIALIZED VIEW my_glue.mydb.mv WITH (auto_refresh=false,"
+                + " incremental_refresh=false, checkpoint_location=\"s3://ckp/skp\") ");
+    ImmutableList.of(ALTER_SKIPPING, ALTER_COVERING, ALTER_MV)
+        .forEach(
+            mockDS -> {
+              LocalEMRSClient emrsClient =
+                  new LocalEMRSClient() {
+                    @Override
+                    public GetJobRunResult getJobRunResult(String applicationId, String jobId) {
+                      super.getJobRunResult(applicationId, jobId);
+                      JobRun jobRun = new JobRun();
+                      jobRun.setState("cancelled");
+                      return new GetJobRunResult().withJobRun(jobRun);
+                    }
+                  };
+              EMRServerlessClientFactory emrServerlessClientFactory = () -> emrsClient;
+              AsyncQueryExecutorService asyncQueryExecutorService =
+                  createAsyncQueryExecutorService(emrServerlessClientFactory);
+              // Mock flint index
+              mockDS.createIndex();
+              HashMap<String, Object> existingOptions = new HashMap<>();
+              existingOptions.put("auto_refresh", "true");
+              mockDS.updateIndexOptions(existingOptions, false);
+              // Mock index state
+              MockFlintSparkJob flintIndexJob =
+                  new MockFlintSparkJob(stateStore, mockDS.getLatestId(), DATASOURCE);
+              flintIndexJob.active();
+
+              // 1. alter index
+              CreateAsyncQueryResponse response =
+                  asyncQueryExecutorService.createAsyncQuery(
+                      new CreateAsyncQueryRequest(
+                          mockDS.getQuery(), DATASOURCE, LangType.SQL, null));
+
+              // 2. fetch result
+              AsyncQueryExecutionResponse asyncQueryExecutionResponse =
+                  asyncQueryExecutorService.getAsyncQueryResults(response.getQueryId());
+              assertEquals("FAILED", asyncQueryExecutionResponse.getStatus());
+              assertEquals(
+                  "Altering to full refresh only allows: [auto_refresh, incremental_refresh]"
+                      + " options",
+                  asyncQueryExecutionResponse.getError());
+              emrsClient.startJobRunCalled(0);
+              emrsClient.cancelJobRunCalled(0);
+              flintIndexJob.assertState(FlintIndexState.ACTIVE);
+              Map<String, Object> mappings = mockDS.getIndexMappings();
+              Map<String, Object> meta = (HashMap<String, Object>) mappings.get("_meta");
+              Map<String, Object> options = (Map<String, Object>) meta.get("options");
+              Assertions.assertEquals("true", options.get("auto_refresh"));
+            });
+  }
+
+  @Test
+  public void testAlterIndexQueryOfIncrementalRefreshWithInvalidOptions() {
+    MockFlintIndex ALTER_SKIPPING =
+        new MockFlintIndex(
+            client,
+            "flint_my_glue_mydb_http_logs_skipping_index",
+            FlintIndexType.SKIPPING,
+            "ALTER SKIPPING INDEX ON my_glue.mydb.http_logs WITH (auto_refresh=false,"
+                + " incremental_refresh=true, output_mode=\"complete\")");
+    MockFlintIndex ALTER_COVERING =
+        new MockFlintIndex(
+            client,
+            "flint_my_glue_mydb_http_logs_covering_index",
+            FlintIndexType.COVERING,
+            "ALTER INDEX covering ON my_glue.mydb.http_logs WITH (auto_refresh=false,"
+                + " incremental_refresh=true, output_mode=\"complete\")");
+    MockFlintIndex ALTER_MV =
+        new MockFlintIndex(
+            client,
+            "flint_my_glue_mydb_mv",
+            FlintIndexType.MATERIALIZED_VIEW,
+            "ALTER MATERIALIZED VIEW my_glue.mydb.mv WITH (auto_refresh=false,"
+                + " incremental_refresh=true, output_mode=\"complete\") ");
+    ImmutableList.of(ALTER_SKIPPING, ALTER_COVERING, ALTER_MV)
+        .forEach(
+            mockDS -> {
+              LocalEMRSClient emrsClient =
+                  new LocalEMRSClient() {
+                    @Override
+                    public GetJobRunResult getJobRunResult(String applicationId, String jobId) {
+                      super.getJobRunResult(applicationId, jobId);
+                      JobRun jobRun = new JobRun();
+                      jobRun.setState("cancelled");
+                      return new GetJobRunResult().withJobRun(jobRun);
+                    }
+                  };
+              EMRServerlessClientFactory emrServerlessClientFactory = () -> emrsClient;
+              AsyncQueryExecutorService asyncQueryExecutorService =
+                  createAsyncQueryExecutorService(emrServerlessClientFactory);
+              // Mock flint index
+              mockDS.createIndex();
+              HashMap<String, Object> existingOptions = new HashMap<>();
+              existingOptions.put("auto_refresh", "true");
+              mockDS.updateIndexOptions(existingOptions, false);
+              // Mock index state
+              MockFlintSparkJob flintIndexJob =
+                  new MockFlintSparkJob(stateStore, mockDS.getLatestId(), DATASOURCE);
+              flintIndexJob.active();
+
+              // 1. alter index
+              CreateAsyncQueryResponse response =
+                  asyncQueryExecutorService.createAsyncQuery(
+                      new CreateAsyncQueryRequest(
+                          mockDS.getQuery(), DATASOURCE, LangType.SQL, null));
+
+              // 2. fetch result
+              AsyncQueryExecutionResponse asyncQueryExecutionResponse =
+                  asyncQueryExecutorService.getAsyncQueryResults(response.getQueryId());
+              assertEquals("FAILED", asyncQueryExecutionResponse.getStatus());
+              assertEquals(
+                  "Altering to incremental refresh only allows: [auto_refresh, incremental_refresh,"
+                      + " watermark_delay, checkpoint_location] options",
+                  asyncQueryExecutionResponse.getError());
+              emrsClient.startJobRunCalled(0);
+              emrsClient.cancelJobRunCalled(0);
+              flintIndexJob.assertState(FlintIndexState.ACTIVE);
+              Map<String, Object> mappings = mockDS.getIndexMappings();
+              Map<String, Object> meta = (HashMap<String, Object>) mappings.get("_meta");
+              Map<String, Object> options = (Map<String, Object>) meta.get("options");
+              Assertions.assertEquals("true", options.get("auto_refresh"));
+            });
+  }
+
+  @Test
+  public void testAlterIndexQueryOfIncrementalRefreshWithInsufficientOptions() {
+    MockFlintIndex ALTER_SKIPPING =
+        new MockFlintIndex(
+            client,
+            "flint_my_glue_mydb_http_logs_skipping_index",
+            FlintIndexType.SKIPPING,
+            "ALTER SKIPPING INDEX ON my_glue.mydb.http_logs WITH (auto_refresh=false,"
+                + " incremental_refresh=true)");
+    MockFlintIndex ALTER_COVERING =
+        new MockFlintIndex(
+            client,
+            "flint_my_glue_mydb_http_logs_covering_index",
+            FlintIndexType.COVERING,
+            "ALTER INDEX covering ON my_glue.mydb.http_logs WITH (auto_refresh=false,"
+                + " incremental_refresh=true)");
+    ImmutableList.of(ALTER_SKIPPING, ALTER_COVERING)
+        .forEach(
+            mockDS -> {
+              LocalEMRSClient emrsClient =
+                  new LocalEMRSClient() {
+                    @Override
+                    public GetJobRunResult getJobRunResult(String applicationId, String jobId) {
+                      super.getJobRunResult(applicationId, jobId);
+                      JobRun jobRun = new JobRun();
+                      jobRun.setState("cancelled");
+                      return new GetJobRunResult().withJobRun(jobRun);
+                    }
+                  };
+              EMRServerlessClientFactory emrServerlessClientFactory = () -> emrsClient;
+              AsyncQueryExecutorService asyncQueryExecutorService =
+                  createAsyncQueryExecutorService(emrServerlessClientFactory);
+              // Mock flint index
+              mockDS.createIndex();
+              HashMap<String, Object> existingOptions = new HashMap<>();
+              existingOptions.put("auto_refresh", "true");
+              existingOptions.put("incremental_refresh", "false");
+              mockDS.updateIndexOptions(existingOptions, true);
+              // Mock index state
+              MockFlintSparkJob flintIndexJob =
+                  new MockFlintSparkJob(stateStore, mockDS.getLatestId(), DATASOURCE);
+              flintIndexJob.active();
+
+              // 1. alter index
+              CreateAsyncQueryResponse response =
+                  asyncQueryExecutorService.createAsyncQuery(
+                      new CreateAsyncQueryRequest(
+                          mockDS.getQuery(), DATASOURCE, LangType.SQL, null));
+
+              // 2. fetch result
+              AsyncQueryExecutionResponse asyncQueryExecutionResponse =
+                  asyncQueryExecutorService.getAsyncQueryResults(response.getQueryId());
+              assertEquals("FAILED", asyncQueryExecutionResponse.getStatus());
+              assertEquals(
+                  "Conversion to incremental refresh index cannot proceed due to missing"
+                      + " attributes: checkpoint_location.",
+                  asyncQueryExecutionResponse.getError());
+              emrsClient.startJobRunCalled(0);
+              emrsClient.cancelJobRunCalled(0);
+              flintIndexJob.assertState(FlintIndexState.ACTIVE);
+              Map<String, Object> mappings = mockDS.getIndexMappings();
+              Map<String, Object> meta = (HashMap<String, Object>) mappings.get("_meta");
+              Map<String, Object> options = (Map<String, Object>) meta.get("options");
+              Assertions.assertEquals("true", options.get("auto_refresh"));
+            });
+  }
+
+  @Test
+  public void testAlterIndexQueryOfIncrementalRefreshWithInsufficientOptionsForMV() {
+    MockFlintIndex ALTER_MV =
+        new MockFlintIndex(
+            client,
+            "flint_my_glue_mydb_mv",
+            FlintIndexType.MATERIALIZED_VIEW,
+            "ALTER MATERIALIZED VIEW my_glue.mydb.mv WITH (auto_refresh=false,"
+                + " incremental_refresh=true) ");
+    ImmutableList.of(ALTER_MV)
+        .forEach(
+            mockDS -> {
+              LocalEMRSClient emrsClient =
+                  new LocalEMRSClient() {
+                    @Override
+                    public GetJobRunResult getJobRunResult(String applicationId, String jobId) {
+                      super.getJobRunResult(applicationId, jobId);
+                      JobRun jobRun = new JobRun();
+                      jobRun.setState("cancelled");
+                      return new GetJobRunResult().withJobRun(jobRun);
+                    }
+                  };
+              EMRServerlessClientFactory emrServerlessClientFactory = () -> emrsClient;
+              AsyncQueryExecutorService asyncQueryExecutorService =
+                  createAsyncQueryExecutorService(emrServerlessClientFactory);
+              // Mock flint index
+              mockDS.createIndex();
+              HashMap<String, Object> existingOptions = new HashMap<>();
+              existingOptions.put("auto_refresh", "true");
+              existingOptions.put("incremental_refresh", "false");
+              mockDS.updateIndexOptions(existingOptions, true);
+              // Mock index state
+              MockFlintSparkJob flintIndexJob =
+                  new MockFlintSparkJob(stateStore, mockDS.getLatestId(), DATASOURCE);
+              flintIndexJob.active();
+
+              // 1. alter index
+              CreateAsyncQueryResponse response =
+                  asyncQueryExecutorService.createAsyncQuery(
+                      new CreateAsyncQueryRequest(
+                          mockDS.getQuery(), DATASOURCE, LangType.SQL, null));
+
+              // 2. fetch result
+              AsyncQueryExecutionResponse asyncQueryExecutionResponse =
+                  asyncQueryExecutorService.getAsyncQueryResults(response.getQueryId());
+              assertEquals("FAILED", asyncQueryExecutionResponse.getStatus());
+              assertEquals(
+                  "Conversion to incremental refresh index cannot proceed due to missing"
+                      + " attributes: checkpoint_location, watermark_delay.",
+                  asyncQueryExecutionResponse.getError());
+              emrsClient.startJobRunCalled(0);
+              emrsClient.cancelJobRunCalled(0);
+              flintIndexJob.assertState(FlintIndexState.ACTIVE);
+              Map<String, Object> mappings = mockDS.getIndexMappings();
+              Map<String, Object> meta = (HashMap<String, Object>) mappings.get("_meta");
+              Map<String, Object> options = (Map<String, Object>) meta.get("options");
+              Assertions.assertEquals("true", options.get("auto_refresh"));
+            });
+  }
+
+  @Test
+  public void testAlterIndexQueryOfIncrementalRefreshWithEmptyExistingOptionsForMV() {
+    MockFlintIndex ALTER_MV =
+        new MockFlintIndex(
+            client,
+            "flint_my_glue_mydb_mv",
+            FlintIndexType.MATERIALIZED_VIEW,
+            "ALTER MATERIALIZED VIEW my_glue.mydb.mv WITH (auto_refresh=false,"
+                + " incremental_refresh=true) ");
+    ImmutableList.of(ALTER_MV)
+        .forEach(
+            mockDS -> {
+              LocalEMRSClient emrsClient =
+                  new LocalEMRSClient() {
+                    @Override
+                    public GetJobRunResult getJobRunResult(String applicationId, String jobId) {
+                      super.getJobRunResult(applicationId, jobId);
+                      JobRun jobRun = new JobRun();
+                      jobRun.setState("cancelled");
+                      return new GetJobRunResult().withJobRun(jobRun);
+                    }
+                  };
+              EMRServerlessClientFactory emrServerlessClientFactory = () -> emrsClient;
+              AsyncQueryExecutorService asyncQueryExecutorService =
+                  createAsyncQueryExecutorService(emrServerlessClientFactory);
+              // Mock flint index
+              mockDS.createIndex();
+              HashMap<String, Object> existingOptions = new HashMap<>();
+              existingOptions.put("auto_refresh", "true");
+              existingOptions.put("incremental_refresh", "false");
+              existingOptions.put("watermark_delay", "");
+              existingOptions.put("checkpoint_location", "");
+              mockDS.updateIndexOptions(existingOptions, true);
+              // Mock index state
+              MockFlintSparkJob flintIndexJob =
+                  new MockFlintSparkJob(stateStore, mockDS.getLatestId(), DATASOURCE);
+              flintIndexJob.active();
+
+              // 1. alter index
+              CreateAsyncQueryResponse response =
+                  asyncQueryExecutorService.createAsyncQuery(
+                      new CreateAsyncQueryRequest(
+                          mockDS.getQuery(), DATASOURCE, LangType.SQL, null));
+
+              // 2. fetch result
+              AsyncQueryExecutionResponse asyncQueryExecutionResponse =
+                  asyncQueryExecutorService.getAsyncQueryResults(response.getQueryId());
+              assertEquals("FAILED", asyncQueryExecutionResponse.getStatus());
+              assertEquals(
+                  "Conversion to incremental refresh index cannot proceed due to missing"
+                      + " attributes: checkpoint_location, watermark_delay.",
+                  asyncQueryExecutionResponse.getError());
+              emrsClient.startJobRunCalled(0);
+              emrsClient.cancelJobRunCalled(0);
+              flintIndexJob.assertState(FlintIndexState.ACTIVE);
+              Map<String, Object> mappings = mockDS.getIndexMappings();
+              Map<String, Object> meta = (HashMap<String, Object>) mappings.get("_meta");
+              Map<String, Object> options = (Map<String, Object>) meta.get("options");
+              Assertions.assertEquals("true", options.get("auto_refresh"));
+            });
+  }
+
+  @Test
+  public void testAlterIndexQueryOfIncrementalRefresh() {
+    MockFlintIndex ALTER_MV =
+        new MockFlintIndex(
+            client,
+            "flint_my_glue_mydb_mv",
+            FlintIndexType.MATERIALIZED_VIEW,
+            "ALTER MATERIALIZED VIEW my_glue.mydb.mv WITH (auto_refresh=false,"
+                + " incremental_refresh=true) ");
+    ImmutableList.of(ALTER_MV)
+        .forEach(
+            mockDS -> {
+              LocalEMRSClient emrsClient =
+                  new LocalEMRSClient() {
+                    @Override
+                    public GetJobRunResult getJobRunResult(String applicationId, String jobId) {
+                      super.getJobRunResult(applicationId, jobId);
+                      JobRun jobRun = new JobRun();
+                      jobRun.setState("cancelled");
+                      return new GetJobRunResult().withJobRun(jobRun);
+                    }
+                  };
+              EMRServerlessClientFactory emrServerlessClientFactory = () -> emrsClient;
+              AsyncQueryExecutorService asyncQueryExecutorService =
+                  createAsyncQueryExecutorService(emrServerlessClientFactory);
+              // Mock flint index
+              mockDS.createIndex();
+              HashMap<String, Object> existingOptions = new HashMap<>();
+              existingOptions.put("auto_refresh", "true");
+              existingOptions.put("incremental_refresh", "false");
+              existingOptions.put("watermark_delay", "watermark_delay");
+              existingOptions.put("checkpoint_location", "s3://checkpoint/location");
+              mockDS.updateIndexOptions(existingOptions, true);
+              // Mock index state
+              MockFlintSparkJob flintIndexJob =
+                  new MockFlintSparkJob(stateStore, mockDS.getLatestId(), DATASOURCE);
+              flintIndexJob.refreshing();
+
+              // 1. alter index
+              CreateAsyncQueryResponse response =
+                  asyncQueryExecutorService.createAsyncQuery(
+                      new CreateAsyncQueryRequest(
+                          mockDS.getQuery(), DATASOURCE, LangType.SQL, null));
+
+              // 2. fetch result
+              AsyncQueryExecutionResponse asyncQueryExecutionResponse =
+                  asyncQueryExecutorService.getAsyncQueryResults(response.getQueryId());
+              assertEquals("SUCCESS", asyncQueryExecutionResponse.getStatus());
+              emrsClient.startJobRunCalled(0);
+              emrsClient.getJobRunResultCalled(1);
+              emrsClient.cancelJobRunCalled(1);
+              flintIndexJob.assertState(FlintIndexState.ACTIVE);
+              Map<String, Object> mappings = mockDS.getIndexMappings();
+              Map<String, Object> meta = (HashMap<String, Object>) mappings.get("_meta");
+              Map<String, Object> options = (Map<String, Object>) meta.get("options");
+              Assertions.assertEquals("false", options.get("auto_refresh"));
+              Assertions.assertEquals("true", options.get("incremental_refresh"));
+            });
+  }
+
+  @Test
+  public void testAlterIndexQueryWithIncrementalRefreshAlreadyExisting() {
+    MockFlintIndex ALTER_MV =
+        new MockFlintIndex(
+            client,
+            "flint_my_glue_mydb_mv",
+            FlintIndexType.MATERIALIZED_VIEW,
+            "ALTER MATERIALIZED VIEW my_glue.mydb.mv WITH (auto_refresh=false) ");
+    ImmutableList.of(ALTER_MV)
+        .forEach(
+            mockDS -> {
+              LocalEMRSClient emrsClient =
+                  new LocalEMRSClient() {
+                    @Override
+                    public GetJobRunResult getJobRunResult(String applicationId, String jobId) {
+                      super.getJobRunResult(applicationId, jobId);
+                      JobRun jobRun = new JobRun();
+                      jobRun.setState("cancelled");
+                      return new GetJobRunResult().withJobRun(jobRun);
+                    }
+                  };
+              EMRServerlessClientFactory emrServerlessClientFactory = () -> emrsClient;
+              AsyncQueryExecutorService asyncQueryExecutorService =
+                  createAsyncQueryExecutorService(emrServerlessClientFactory);
+              // Mock flint index
+              mockDS.createIndex();
+              HashMap<String, Object> existingOptions = new HashMap<>();
+              existingOptions.put("auto_refresh", "true");
+              existingOptions.put("incremental_refresh", "true");
+              existingOptions.put("watermark_delay", "watermark_delay");
+              existingOptions.put("checkpoint_location", "s3://checkpoint/location");
+              mockDS.updateIndexOptions(existingOptions, true);
+              // Mock index state
+              MockFlintSparkJob flintIndexJob =
+                  new MockFlintSparkJob(stateStore, mockDS.getLatestId(), DATASOURCE);
+              flintIndexJob.refreshing();
+
+              // 1. alter index
+              CreateAsyncQueryResponse response =
+                  asyncQueryExecutorService.createAsyncQuery(
+                      new CreateAsyncQueryRequest(
+                          mockDS.getQuery(), DATASOURCE, LangType.SQL, null));
+
+              // 2. fetch result
+              AsyncQueryExecutionResponse asyncQueryExecutionResponse =
+                  asyncQueryExecutorService.getAsyncQueryResults(response.getQueryId());
+              assertEquals("SUCCESS", asyncQueryExecutionResponse.getStatus());
+              emrsClient.startJobRunCalled(0);
+              emrsClient.getJobRunResultCalled(1);
+              emrsClient.cancelJobRunCalled(1);
+              flintIndexJob.assertState(FlintIndexState.ACTIVE);
+              Map<String, Object> mappings = mockDS.getIndexMappings();
+              Map<String, Object> meta = (HashMap<String, Object>) mappings.get("_meta");
+              Map<String, Object> options = (Map<String, Object>) meta.get("options");
+              Assertions.assertEquals("false", options.get("auto_refresh"));
+              Assertions.assertEquals("true", options.get("incremental_refresh"));
+            });
+  }
+
+  @Test
+  public void testAlterIndexQueryWithInvalidInitialState() {
+    MockFlintIndex ALTER_SKIPPING =
+        new MockFlintIndex(
+            client,
+            "flint_my_glue_mydb_http_logs_skipping_index",
+            FlintIndexType.SKIPPING,
+            "ALTER SKIPPING INDEX ON my_glue.mydb.http_logs WITH (auto_refresh=false,"
+                + " incremental_refresh=false)");
+    ImmutableList.of(ALTER_SKIPPING)
+        .forEach(
+            mockDS -> {
+              LocalEMRSClient emrsClient =
+                  new LocalEMRSClient() {
+                    @Override
+                    public GetJobRunResult getJobRunResult(String applicationId, String jobId) {
+                      super.getJobRunResult(applicationId, jobId);
+                      JobRun jobRun = new JobRun();
+                      jobRun.setState("cancelled");
+                      return new GetJobRunResult().withJobRun(jobRun);
+                    }
+                  };
+              EMRServerlessClientFactory emrServerlessClientFactory = () -> emrsClient;
+              AsyncQueryExecutorService asyncQueryExecutorService =
+                  createAsyncQueryExecutorService(emrServerlessClientFactory);
+              // Mock flint index
+              mockDS.createIndex();
+              HashMap<String, Object> existingOptions = new HashMap<>();
+              existingOptions.put("auto_refresh", "true");
+              mockDS.updateIndexOptions(existingOptions, false);
+              // Mock index state
+              MockFlintSparkJob flintIndexJob =
+                  new MockFlintSparkJob(stateStore, mockDS.getLatestId(), DATASOURCE);
+              flintIndexJob.updating();
+
+              // 1. alter index
+              CreateAsyncQueryResponse response =
+                  asyncQueryExecutorService.createAsyncQuery(
+                      new CreateAsyncQueryRequest(
+                          mockDS.getQuery(), DATASOURCE, LangType.SQL, null));
+
+              // 2. fetch result
+              AsyncQueryExecutionResponse asyncQueryExecutionResponse =
+                  asyncQueryExecutorService.getAsyncQueryResults(response.getQueryId());
+              assertEquals("FAILED", asyncQueryExecutionResponse.getStatus());
+              assertEquals(
+                  "Transaction failed as flint index is not in a valid state.",
+                  asyncQueryExecutionResponse.getError());
+              emrsClient.startJobRunCalled(0);
+              emrsClient.cancelJobRunCalled(0);
+              flintIndexJob.assertState(FlintIndexState.UPDATING);
+              Map<String, Object> mappings = mockDS.getIndexMappings();
+              Map<String, Object> meta = (HashMap<String, Object>) mappings.get("_meta");
+              Map<String, Object> options = (Map<String, Object>) meta.get("options");
+              Assertions.assertEquals("true", options.get("auto_refresh"));
             });
   }
 }

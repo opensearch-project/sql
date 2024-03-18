@@ -1,0 +1,33 @@
+{
+  "_meta": {
+    "latestId": "flint_my_glue_mydb_mv_latest_id",
+    "kind": "mv",
+    "indexedColumns": [
+      {
+        "columnType": "bigint",
+        "columnName": "counter1"
+      }
+    ],
+    "name": "my_glue.mydb.mv",
+    "options": {
+      "auto_refresh": "true",
+      "incremental_refresh": "false",
+      "index_settings": "{\"number_of_shards\":5,\"number_of_replicas\":1}",
+      "checkpoint_location": "s3://vamsicheckpoint/mv/",
+      "watermark_delay": "10 seconds"
+    },
+    "source": "SELECT    count(`@timestamp`) AS `counter1` FROM my_glue.mydb.http_logs GROUP BY TUMBLE (`@timestamp`, '1 second')",
+    "version": "0.2.0",
+    "properties": {
+      "env": {
+        "SERVERLESS_EMR_VIRTUAL_CLUSTER_ID": "00fhh7frokkf0k0l",
+        "SERVERLESS_EMR_JOB_ID": "00fhob01oa7fu00m"
+      }
+    }
+  },
+  "properties": {
+    "counter1": {
+      "type": "long"
+    }
+  }
+}

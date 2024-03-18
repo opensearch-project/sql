@@ -12,6 +12,7 @@ import org.opensearch.action.admin.indices.delete.DeleteIndexRequest;
 import org.opensearch.action.support.master.AcknowledgedResponse;
 import org.opensearch.client.Client;
 import org.opensearch.sql.spark.execution.statestore.StateStore;
+import org.opensearch.sql.spark.flint.FlintIndexMetadata;
 import org.opensearch.sql.spark.flint.FlintIndexState;
 import org.opensearch.sql.spark.flint.FlintIndexStateModel;
 
@@ -30,7 +31,7 @@ public class FlintIndexOpVacuum extends FlintIndexOp {
 
   @Override
   boolean validate(FlintIndexState state) {
-    return state == FlintIndexState.DELETED || state == FlintIndexState.VACUUMING;
+    return state == FlintIndexState.DELETED;
   }
 
   @Override
@@ -39,7 +40,7 @@ public class FlintIndexOpVacuum extends FlintIndexOp {
   }
 
   @Override
-  void runOp(FlintIndexStateModel flintIndex) {
+  public void runOp(FlintIndexMetadata flintIndexMetadata, FlintIndexStateModel flintIndex) {
     // Decode Flint index name from latest ID
     String flintIndexName = new String(Base64.getDecoder().decode(flintIndex.getId()));
     LOG.info("Vacuuming Flint index {}", flintIndexName);
