@@ -58,7 +58,7 @@ public class AsyncQueryExecutorServiceImplSpecTest extends AsyncQueryExecutorSer
     // 1. create async query.
     CreateAsyncQueryResponse response =
         asyncQueryExecutorService.createAsyncQuery(
-            new CreateAsyncQueryRequest("select 1", DATASOURCE, LangType.SQL, null));
+            new CreateAsyncQueryRequest("select 1", MYS3_DATASOURCE, LangType.SQL, null));
     assertFalse(clusterService().state().routingTable().hasIndex(SPARK_REQUEST_BUFFER_INDEX_NAME));
     emrsClient.startJobRunCalled(1);
 
@@ -88,12 +88,12 @@ public class AsyncQueryExecutorServiceImplSpecTest extends AsyncQueryExecutorSer
     // 1. create async query.
     CreateAsyncQueryResponse response =
         asyncQueryExecutorService.createAsyncQuery(
-            new CreateAsyncQueryRequest("select 1", DATASOURCE, LangType.SQL, null));
+            new CreateAsyncQueryRequest("select 1", MYS3_DATASOURCE, LangType.SQL, null));
     emrsClient.startJobRunCalled(1);
 
     CreateAsyncQueryResponse resp2 =
         asyncQueryExecutorService.createAsyncQuery(
-            new CreateAsyncQueryRequest("select 1", DATASOURCE, LangType.SQL, null));
+            new CreateAsyncQueryRequest("select 1", MYS3_DATASOURCE, LangType.SQL, null));
     emrsClient.startJobRunCalled(2);
   }
 
@@ -107,7 +107,7 @@ public class AsyncQueryExecutorServiceImplSpecTest extends AsyncQueryExecutorSer
     enableSession(false);
     CreateAsyncQueryResponse response =
         asyncQueryExecutorService.createAsyncQuery(
-            new CreateAsyncQueryRequest("select 1", DATASOURCE, LangType.SQL, null));
+            new CreateAsyncQueryRequest("select 1", MYS3_DATASOURCE, LangType.SQL, null));
     String params = emrsClient.getJobRequest().getSparkSubmitParams();
     assertNull(response.getSessionId());
     assertTrue(params.contains(String.format("--class %s", DEFAULT_CLASS_NAME)));
@@ -121,7 +121,7 @@ public class AsyncQueryExecutorServiceImplSpecTest extends AsyncQueryExecutorSer
     enableSession(true);
     response =
         asyncQueryExecutorService.createAsyncQuery(
-            new CreateAsyncQueryRequest("select 1", DATASOURCE, LangType.SQL, null));
+            new CreateAsyncQueryRequest("select 1", MYS3_DATASOURCE, LangType.SQL, null));
     params = emrsClient.getJobRequest().getSparkSubmitParams();
     assertTrue(params.contains(String.format("--class %s", FLINT_SESSION_CLASS_NAME)));
     assertTrue(
@@ -141,10 +141,10 @@ public class AsyncQueryExecutorServiceImplSpecTest extends AsyncQueryExecutorSer
     // 1. create async query.
     CreateAsyncQueryResponse response =
         asyncQueryExecutorService.createAsyncQuery(
-            new CreateAsyncQueryRequest("select 1", DATASOURCE, LangType.SQL, null));
+            new CreateAsyncQueryRequest("select 1", MYS3_DATASOURCE, LangType.SQL, null));
     assertNotNull(response.getSessionId());
     Optional<StatementModel> statementModel =
-        getStatement(stateStore, DATASOURCE).apply(response.getQueryId());
+        getStatement(stateStore, MYS3_DATASOURCE).apply(response.getQueryId());
     assertTrue(statementModel.isPresent());
     assertEquals(StatementState.WAITING, statementModel.get().getStatementState());
 
@@ -172,14 +172,14 @@ public class AsyncQueryExecutorServiceImplSpecTest extends AsyncQueryExecutorSer
     // 1. create async query.
     CreateAsyncQueryResponse first =
         asyncQueryExecutorService.createAsyncQuery(
-            new CreateAsyncQueryRequest("select 1", DATASOURCE, LangType.SQL, null));
+            new CreateAsyncQueryRequest("select 1", MYS3_DATASOURCE, LangType.SQL, null));
     assertNotNull(first.getSessionId());
 
     // 2. reuse session id
     CreateAsyncQueryResponse second =
         asyncQueryExecutorService.createAsyncQuery(
             new CreateAsyncQueryRequest(
-                "select 1", DATASOURCE, LangType.SQL, first.getSessionId()));
+                "select 1", MYS3_DATASOURCE, LangType.SQL, first.getSessionId()));
 
     assertEquals(first.getSessionId(), second.getSessionId());
     assertNotEquals(first.getQueryId(), second.getQueryId());
@@ -199,13 +199,13 @@ public class AsyncQueryExecutorServiceImplSpecTest extends AsyncQueryExecutorSer
                 .must(QueryBuilders.termQuery(SESSION_ID, first.getSessionId()))));
 
     Optional<StatementModel> firstModel =
-        getStatement(stateStore, DATASOURCE).apply(first.getQueryId());
+        getStatement(stateStore, MYS3_DATASOURCE).apply(first.getQueryId());
     assertTrue(firstModel.isPresent());
     assertEquals(StatementState.WAITING, firstModel.get().getStatementState());
     assertEquals(first.getQueryId(), firstModel.get().getStatementId().getId());
     assertEquals(first.getQueryId(), firstModel.get().getQueryId());
     Optional<StatementModel> secondModel =
-        getStatement(stateStore, DATASOURCE).apply(second.getQueryId());
+        getStatement(stateStore, MYS3_DATASOURCE).apply(second.getQueryId());
     assertEquals(StatementState.WAITING, secondModel.get().getStatementState());
     assertEquals(second.getQueryId(), secondModel.get().getStatementId().getId());
     assertEquals(second.getQueryId(), secondModel.get().getQueryId());
@@ -221,7 +221,7 @@ public class AsyncQueryExecutorServiceImplSpecTest extends AsyncQueryExecutorSer
     enableSession(false);
     CreateAsyncQueryResponse response =
         asyncQueryExecutorService.createAsyncQuery(
-            new CreateAsyncQueryRequest("select 1", DATASOURCE, LangType.SQL, null));
+            new CreateAsyncQueryRequest("select 1", MYS3_DATASOURCE, LangType.SQL, null));
 
     assertEquals(120L, (long) emrsClient.getJobRequest().executionTimeout());
   }
@@ -237,7 +237,7 @@ public class AsyncQueryExecutorServiceImplSpecTest extends AsyncQueryExecutorSer
     enableSession(true);
 
     asyncQueryExecutorService.createAsyncQuery(
-        new CreateAsyncQueryRequest("select 1", DATASOURCE, LangType.SQL, null));
+        new CreateAsyncQueryRequest("select 1", MYS3_DATASOURCE, LangType.SQL, null));
     assertEquals(0L, (long) emrsClient.getJobRequest().executionTimeout());
   }
 
@@ -292,10 +292,10 @@ public class AsyncQueryExecutorServiceImplSpecTest extends AsyncQueryExecutorSer
     // 1. create async query.
     CreateAsyncQueryResponse response =
         asyncQueryExecutorService.createAsyncQuery(
-            new CreateAsyncQueryRequest("myselect 1", DATASOURCE, LangType.SQL, null));
+            new CreateAsyncQueryRequest("myselect 1", MYS3_DATASOURCE, LangType.SQL, null));
     assertNotNull(response.getSessionId());
     Optional<StatementModel> statementModel =
-        getStatement(stateStore, DATASOURCE).apply(response.getQueryId());
+        getStatement(stateStore, MYS3_DATASOURCE).apply(response.getQueryId());
     assertTrue(statementModel.isPresent());
     assertEquals(StatementState.WAITING, statementModel.get().getStatementState());
 
@@ -319,7 +319,7 @@ public class AsyncQueryExecutorServiceImplSpecTest extends AsyncQueryExecutorSer
             .seqNo(submitted.getSeqNo())
             .primaryTerm(submitted.getPrimaryTerm())
             .build();
-    updateStatementState(stateStore, DATASOURCE).apply(mocked, StatementState.FAILED);
+    updateStatementState(stateStore, MYS3_DATASOURCE).apply(mocked, StatementState.FAILED);
 
     AsyncQueryExecutionResponse asyncQueryResults =
         asyncQueryExecutorService.getAsyncQueryResults(response.getQueryId());
@@ -343,7 +343,7 @@ public class AsyncQueryExecutorServiceImplSpecTest extends AsyncQueryExecutorSer
     // 1. create async query.
     CreateAsyncQueryResponse first =
         asyncQueryExecutorService.createAsyncQuery(
-            new CreateAsyncQueryRequest("select 1", DATASOURCE, LangType.SQL, null));
+            new CreateAsyncQueryRequest("select 1", MYS3_DATASOURCE, LangType.SQL, null));
     assertNotNull(first.getSessionId());
     setSessionState(first.getSessionId(), SessionState.RUNNING);
 
@@ -353,7 +353,7 @@ public class AsyncQueryExecutorServiceImplSpecTest extends AsyncQueryExecutorSer
             ConcurrencyLimitExceededException.class,
             () ->
                 asyncQueryExecutorService.createAsyncQuery(
-                    new CreateAsyncQueryRequest("select 1", DATASOURCE, LangType.SQL, null)));
+                    new CreateAsyncQueryRequest("select 1", MYS3_DATASOURCE, LangType.SQL, null)));
     assertEquals("domain concurrent active session can not exceed 1", exception.getMessage());
   }
 
@@ -371,7 +371,7 @@ public class AsyncQueryExecutorServiceImplSpecTest extends AsyncQueryExecutorSer
     // 1. create async query.
     CreateAsyncQueryResponse first =
         asyncQueryExecutorService.createAsyncQuery(
-            new CreateAsyncQueryRequest("select 1", DATASOURCE, LangType.SQL, null));
+            new CreateAsyncQueryRequest("select 1", MYS3_DATASOURCE, LangType.SQL, null));
     assertNotNull(first.getSessionId());
 
     // set sessionState to FAIL
@@ -381,7 +381,7 @@ public class AsyncQueryExecutorServiceImplSpecTest extends AsyncQueryExecutorSer
     CreateAsyncQueryResponse second =
         asyncQueryExecutorService.createAsyncQuery(
             new CreateAsyncQueryRequest(
-                "select 1", DATASOURCE, LangType.SQL, first.getSessionId()));
+                "select 1", MYS3_DATASOURCE, LangType.SQL, first.getSessionId()));
 
     assertNotEquals(first.getSessionId(), second.getSessionId());
 
@@ -392,7 +392,7 @@ public class AsyncQueryExecutorServiceImplSpecTest extends AsyncQueryExecutorSer
     CreateAsyncQueryResponse third =
         asyncQueryExecutorService.createAsyncQuery(
             new CreateAsyncQueryRequest(
-                "select 1", DATASOURCE, LangType.SQL, second.getSessionId()));
+                "select 1", MYS3_DATASOURCE, LangType.SQL, second.getSessionId()));
     assertNotEquals(second.getSessionId(), third.getSessionId());
   }
 
@@ -410,7 +410,7 @@ public class AsyncQueryExecutorServiceImplSpecTest extends AsyncQueryExecutorSer
     CreateAsyncQueryResponse first =
         asyncQueryExecutorService.createAsyncQuery(
             new CreateAsyncQueryRequest(
-                "SHOW SCHEMAS IN " + DATASOURCE, DATASOURCE, LangType.SQL, null));
+                "SHOW SCHEMAS IN " + MYS3_DATASOURCE, MYS3_DATASOURCE, LangType.SQL, null));
     assertNotNull(first.getSessionId());
 
     // set sessionState to RUNNING
@@ -420,7 +420,10 @@ public class AsyncQueryExecutorServiceImplSpecTest extends AsyncQueryExecutorSer
     CreateAsyncQueryResponse second =
         asyncQueryExecutorService.createAsyncQuery(
             new CreateAsyncQueryRequest(
-                "SHOW SCHEMAS IN " + DATASOURCE, DATASOURCE, LangType.SQL, first.getSessionId()));
+                "SHOW SCHEMAS IN " + MYS3_DATASOURCE,
+                MYS3_DATASOURCE,
+                LangType.SQL,
+                first.getSessionId()));
 
     assertEquals(first.getSessionId(), second.getSessionId());
 
@@ -431,7 +434,10 @@ public class AsyncQueryExecutorServiceImplSpecTest extends AsyncQueryExecutorSer
     CreateAsyncQueryResponse third =
         asyncQueryExecutorService.createAsyncQuery(
             new CreateAsyncQueryRequest(
-                "SHOW SCHEMAS IN " + DSOTHER, DSOTHER, LangType.SQL, second.getSessionId()));
+                "SHOW SCHEMAS IN " + MYGLUE_DATASOURCE,
+                MYGLUE_DATASOURCE,
+                LangType.SQL,
+                second.getSessionId()));
     assertNotEquals(second.getSessionId(), third.getSessionId());
   }
 
@@ -448,7 +454,7 @@ public class AsyncQueryExecutorServiceImplSpecTest extends AsyncQueryExecutorSer
     // 1. create async query.
     CreateAsyncQueryResponse first =
         asyncQueryExecutorService.createAsyncQuery(
-            new CreateAsyncQueryRequest("select 1", DATASOURCE, LangType.SQL, null));
+            new CreateAsyncQueryRequest("select 1", MYS3_DATASOURCE, LangType.SQL, null));
     assertNotNull(first.getSessionId());
 
     // set sessionState to RUNNING
@@ -458,7 +464,7 @@ public class AsyncQueryExecutorServiceImplSpecTest extends AsyncQueryExecutorSer
     CreateAsyncQueryResponse second =
         asyncQueryExecutorService.createAsyncQuery(
             new CreateAsyncQueryRequest(
-                "select 1", DATASOURCE, LangType.SQL, first.getSessionId()));
+                "select 1", MYS3_DATASOURCE, LangType.SQL, first.getSessionId()));
 
     assertEquals(first.getSessionId(), second.getSessionId());
 
@@ -476,7 +482,7 @@ public class AsyncQueryExecutorServiceImplSpecTest extends AsyncQueryExecutorSer
       CreateAsyncQueryResponse third =
           asyncQueryExecutorService.createAsyncQuery(
               new CreateAsyncQueryRequest(
-                  "select 1", DATASOURCE, LangType.SQL, second.getSessionId()));
+                  "select 1", MYS3_DATASOURCE, LangType.SQL, second.getSessionId()));
       assertNotEquals(second.getSessionId(), third.getSessionId());
     } finally {
       // set timeout setting to 0
@@ -501,11 +507,11 @@ public class AsyncQueryExecutorServiceImplSpecTest extends AsyncQueryExecutorSer
     enableSession(true);
 
     // 1. create async query with invalid sessionId
-    SessionId invalidSessionId = SessionId.newSessionId(DATASOURCE);
+    SessionId invalidSessionId = SessionId.newSessionId(MYS3_DATASOURCE);
     CreateAsyncQueryResponse asyncQuery =
         asyncQueryExecutorService.createAsyncQuery(
             new CreateAsyncQueryRequest(
-                "select 1", DATASOURCE, LangType.SQL, invalidSessionId.getSessionId()));
+                "select 1", MYS3_DATASOURCE, LangType.SQL, invalidSessionId.getSessionId()));
     assertNotNull(asyncQuery.getSessionId());
     assertNotEquals(invalidSessionId.getSessionId(), asyncQuery.getSessionId());
   }
@@ -560,7 +566,7 @@ public class AsyncQueryExecutorServiceImplSpecTest extends AsyncQueryExecutorSer
     // 1. create async query.
     CreateAsyncQueryResponse first =
         asyncQueryExecutorService.createAsyncQuery(
-            new CreateAsyncQueryRequest("select 1", DATASOURCE, LangType.SQL, null));
+            new CreateAsyncQueryRequest("select 1", MYS3_DATASOURCE, LangType.SQL, null));
     assertNotNull(first.getSessionId());
     setSessionState(first.getSessionId(), SessionState.RUNNING);
 
@@ -570,7 +576,8 @@ public class AsyncQueryExecutorServiceImplSpecTest extends AsyncQueryExecutorSer
             ConcurrencyLimitExceededException.class,
             () ->
                 asyncQueryExecutorService.createAsyncQuery(
-                    new CreateAsyncQueryRequest("select 1", DSOTHER, LangType.SQL, null)));
+                    new CreateAsyncQueryRequest(
+                        "select 1", MYGLUE_DATASOURCE, LangType.SQL, null)));
     assertEquals("domain concurrent active session can not exceed 1", exception.getMessage());
   }
 
@@ -583,14 +590,14 @@ public class AsyncQueryExecutorServiceImplSpecTest extends AsyncQueryExecutorSer
 
     // Disable Datasource
     HashMap<String, Object> datasourceMap = new HashMap<>();
-    datasourceMap.put("name", DATASOURCE);
+    datasourceMap.put("name", MYS3_DATASOURCE);
     datasourceMap.put("status", DataSourceStatus.DISABLED);
     this.dataSourceService.patchDataSource(datasourceMap);
 
     // 1. create async query.
     try {
       asyncQueryExecutorService.createAsyncQuery(
-          new CreateAsyncQueryRequest("select 1", DATASOURCE, LangType.SQL, null));
+          new CreateAsyncQueryRequest("select 1", MYS3_DATASOURCE, LangType.SQL, null));
       fail("It should have thrown DataSourceDisabledException");
     } catch (DatasourceDisabledException exception) {
       Assertions.assertEquals("Datasource mys3 is disabled.", exception.getMessage());

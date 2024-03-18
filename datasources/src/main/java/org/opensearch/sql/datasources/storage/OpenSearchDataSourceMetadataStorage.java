@@ -165,6 +165,7 @@ public class OpenSearchDataSourceMetadataStorage implements DataSourceMetadataSt
   public void deleteDataSourceMetadata(String datasourceName) {
     DeleteRequest deleteRequest = new DeleteRequest(DATASOURCE_INDEX_NAME);
     deleteRequest.id(datasourceName);
+    deleteRequest.setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE);
     ActionFuture<DeleteResponse> deleteResponseActionFuture;
     try (ThreadContext.StoredContext storedContext =
         client.threadPool().getThreadContext().stashContext()) {

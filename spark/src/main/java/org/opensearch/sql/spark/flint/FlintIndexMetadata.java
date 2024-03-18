@@ -31,6 +31,9 @@ public class FlintIndexMetadata {
   private final String jobId;
   private final String appId;
   private final String latestId;
+  private final String kind;
+  private final String source;
+  private final String name;
   private final FlintIndexOptions flintIndexOptions;
 
   public Optional<String> getLatestId() {
