@@ -26,6 +26,7 @@ skippingIndexStatement
     : createSkippingIndexStatement
     | refreshSkippingIndexStatement
     | describeSkippingIndexStatement
+    | alterSkippingIndexStatement
     | dropSkippingIndexStatement
     | vacuumSkippingIndexStatement
     ;
@@ -46,6 +47,12 @@ describeSkippingIndexStatement
     : (DESC | DESCRIBE) SKIPPING INDEX ON tableName
     ;
 
+alterSkippingIndexStatement
+    : ALTER SKIPPING INDEX
+        ON tableName
+        WITH LEFT_PAREN propertyList RIGHT_PAREN
+    ;
+
 dropSkippingIndexStatement
     : DROP SKIPPING INDEX ON tableName
     ;
@@ -59,6 +66,7 @@ coveringIndexStatement
     | refreshCoveringIndexStatement
     | showCoveringIndexStatement
     | describeCoveringIndexStatement
+    | alterCoveringIndexStatement
     | dropCoveringIndexStatement
     | vacuumCoveringIndexStatement
     ;
@@ -83,6 +91,12 @@ describeCoveringIndexStatement
     : (DESC | DESCRIBE) INDEX indexName ON tableName
     ;
 
+alterCoveringIndexStatement
+    : ALTER INDEX indexName
+        ON tableName
+        WITH LEFT_PAREN propertyList RIGHT_PAREN
+    ;
+
 dropCoveringIndexStatement
     : DROP INDEX indexName ON tableName
     ;
@@ -96,6 +110,7 @@ materializedViewStatement
     | refreshMaterializedViewStatement
     | showMaterializedViewStatement
     | describeMaterializedViewStatement
+    | alterMaterializedViewStatement
     | dropMaterializedViewStatement
     | vacuumMaterializedViewStatement
     ;
@@ -116,6 +131,11 @@ showMaterializedViewStatement
 
 describeMaterializedViewStatement
     : (DESC | DESCRIBE) MATERIALIZED VIEW mvName=multipartIdentifier
+    ;
+
+alterMaterializedViewStatement
+    : ALTER MATERIALIZED VIEW mvName=multipartIdentifier
+        WITH LEFT_PAREN propertyList RIGHT_PAREN
     ;
 
 dropMaterializedViewStatement
@@ -163,7 +183,7 @@ indexColTypeList
     ;
 
 indexColType
-    : identifier skipType=(PARTITION | VALUE_SET | MIN_MAX)
+    : identifier skipType=(PARTITION | VALUE_SET | MIN_MAX | BLOOM_FILTER)
         (LEFT_PAREN skipParams RIGHT_PAREN)?
     ;
 
