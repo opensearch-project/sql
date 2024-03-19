@@ -11,7 +11,7 @@
         "columnName": "count"
       }
     ],
-    "name": "spark_catalog.default.http_logs_metrics_chen",
+    "name": "mys3.default.http_logs_metrics",
     "options": {
       "auto_refresh": "true",
       "checkpoint_location": "s3://flint-data-dp-eu-west-1-beta/data/checkpoint/chen-job-1",
@@ -25,6 +25,6 @@
         "SERVERLESS_EMR_JOB_ID": "00fe86mkk5q3u00q"
       }
     },
-    "latestId": "mvid"
+    "latestId": "ZmxpbnRfbXlzM19kZWZhdWx0X2h0dHBfbG9nc19tZXRyaWNz"
   }
 }

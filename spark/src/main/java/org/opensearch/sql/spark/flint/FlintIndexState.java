@@ -37,7 +37,9 @@ public enum FlintIndexState {
   // stable state
   FAILED("failed"),
   // unknown state, if some state update in Spark side, not reflect in here.
-  UNKNOWN("unknown");
+  UNKNOWN("unknown"),
+  // special state that instructs StateStore to purge the index state doc
+  NONE("none");
 
   private final String state;
 
