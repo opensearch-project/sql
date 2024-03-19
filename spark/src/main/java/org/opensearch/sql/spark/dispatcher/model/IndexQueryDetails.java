@@ -8,7 +8,6 @@ package org.opensearch.sql.spark.dispatcher.model;
 import static org.apache.commons.lang3.StringUtils.strip;
 
 import java.util.Set;
-
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import org.apache.commons.lang3.StringUtils;

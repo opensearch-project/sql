@@ -111,7 +111,8 @@ public class IndexQueryDetailsTest {
         "flint_mys3_default_test%20%2c%3a%22%2b%2f%5c%7c%3f%23%3e%3c_skipping_index",
         IndexQueryDetails.builder()
             .indexName("invalid")
-            .fullyQualifiedTableName(new FullyQualifiedTableName("mys3.default.`test ,:\"+/\\|?#><`"))
+            .fullyQualifiedTableName(
+                new FullyQualifiedTableName("mys3.default.`test ,:\"+/\\|?#><`"))
             .indexOptions(new FlintIndexOptions())
             .indexQueryActionType(IndexQueryActionType.DROP)
             .indexType(FlintIndexType.SKIPPING)

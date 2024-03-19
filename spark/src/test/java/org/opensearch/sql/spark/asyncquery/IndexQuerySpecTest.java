@@ -59,10 +59,10 @@ public class IndexQuerySpecTest extends AsyncQueryExecutorServiceSpec {
 
   public final FlintDatasetMock LEGACY_SPECIAL_CHARACTERS =
       new FlintDatasetMock(
-          "DROP SKIPPING INDEX ON mys3.default." + specialName,
-          REFRESH_SCI,
-          FlintIndexType.SKIPPING,
-          "flint_mys3_default_" + encodedName + "_skipping_index")
+              "DROP SKIPPING INDEX ON mys3.default." + specialName,
+              REFRESH_SCI,
+              FlintIndexType.SKIPPING,
+              "flint_mys3_default_" + encodedName + "_skipping_index")
           .isLegacy(true)
           .isSpecialCharacter(true);
 
@@ -82,10 +82,10 @@ public class IndexQuerySpecTest extends AsyncQueryExecutorServiceSpec {
           .latestId("ZmxpbnRfbXlzM19kZWZhdWx0X2h0dHBfbG9nc19jb3ZlcmluZ19pbmRleA==");
   public final FlintDatasetMock MV =
       new FlintDatasetMock(
-          "DROP MATERIALIZED VIEW mys3.default.http_logs_metrics",
-          REFRESH_MV,
-          FlintIndexType.MATERIALIZED_VIEW,
-          "flint_mys3_default_http_logs_metrics")
+              "DROP MATERIALIZED VIEW mys3.default.http_logs_metrics",
+              REFRESH_MV,
+              FlintIndexType.MATERIALIZED_VIEW,
+              "flint_mys3_default_http_logs_metrics")
           .latestId("ZmxpbnRfbXlzM19kZWZhdWx0X2h0dHBfbG9nc19tZXRyaWNz");
   public final FlintDatasetMock SPECIAL_CHARACTERS =
       new FlintDatasetMock(
@@ -94,7 +94,8 @@ public class IndexQuerySpecTest extends AsyncQueryExecutorServiceSpec {
               FlintIndexType.SKIPPING,
               "flint_mys3_default_" + encodedName + "_skipping_index")
           .isSpecialCharacter(true)
-          .latestId("ZmxpbnRfbXlzM19kZWZhdWx0X3Rlc3QlMjAlMmMlM2ElMjIlMmIlMmYlNWMlN2MlM2YlMjMlM2UlM2Nfc2tpcHBpbmdfaW5kZXg=");
+          .latestId(
+              "ZmxpbnRfbXlzM19kZWZhdWx0X3Rlc3QlMjAlMmMlM2ElMjIlMmIlMmYlNWMlN2MlM2YlMjMlM2UlM2Nfc2tpcHBpbmdfaW5kZXg=");
 
   public final String CREATE_SI_AUTO =
       "CREATE SKIPPING INDEX ON mys3.default.http_logs"

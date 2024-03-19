@@ -56,9 +56,9 @@ public class IndexQuerySpecVacuumTest extends AsyncQueryExecutorServiceSpec {
               MATERIALIZED_VIEW,
               "flint_mys3_default_http_logs_metrics"),
           mockDataset(
-              "VACUUM SKIPPING INDEX ON mys3.default.`test ,:\"+/\\|?#><`",
-              SKIPPING,
-              "flint_mys3_default_test%20%2c%3a%22%2b%2f%5c%7c%3f%23%3e%3c_skipping_index")
+                  "VACUUM SKIPPING INDEX ON mys3.default.`test ,:\"+/\\|?#><`",
+                  SKIPPING,
+                  "flint_mys3_default_test%20%2c%3a%22%2b%2f%5c%7c%3f%23%3e%3c_skipping_index")
               .isSpecialCharacter(true));
 
   @Test
