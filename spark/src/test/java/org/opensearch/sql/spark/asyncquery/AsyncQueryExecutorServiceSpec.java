@@ -334,10 +334,16 @@ public class AsyncQueryExecutorServiceSpec extends OpenSearchIntegTestCase {
     final FlintIndexType indexType;
     final String indexName;
     boolean isLegacy = false;
+    boolean isSpecialCharacter = false;
     String latestId;
 
     FlintDatasetMock isLegacy(boolean isLegacy) {
       this.isLegacy = isLegacy;
+      return this;
+    }
+
+    FlintDatasetMock isSpecialCharacter(boolean isSpecialCharacter) {
+      this.isSpecialCharacter = isSpecialCharacter;
       return this;
     }
 
@@ -348,6 +354,11 @@ public class AsyncQueryExecutorServiceSpec extends OpenSearchIntegTestCase {
 
     public void createIndex() {
       String pathPrefix = isLegacy ? "flint-index-mappings" : "flint-index-mappings/0.1.1";
+      if (isSpecialCharacter) {
+        createIndexWithMappings(
+            indexName, loadMappings(pathPrefix + "/" + "flint_special_character_index.json"));
+        return;
+      }
       switch (indexType) {
         case SKIPPING:
           createIndexWithMappings(
