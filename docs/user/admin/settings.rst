@@ -595,3 +595,38 @@ Request::
         }
     }
 
+plugins.query.executionengine.spark.streamingjobs.housekeeper.interval
+===============================
+
+Description
+-----------
+This setting specifies the interval at which the streaming job housekeeper runs to clean up streaming jobs associated with deleted and disabled data sources.
+The default configuration executes this cleanup every 15 minutes.
+
+* Default Value: 15 minutes
+
+To modify the TTL to 30 minutes for example, use this command:
+
+Request ::
+
+    sh$ curl -sS -H 'Content-Type: application/json' -X PUT localhost:9200/_cluster/settings \
+    ... -d '{"transient":{"plugins.query.executionengine.spark.streamingjobs.housekeeper.interval":"30m"}}'
+    {
+    "acknowledged": true,
+    "persistent": {},
+    "transient": {
+        "plugins": {
+            "query": {
+                "executionengine": {
+                    "spark": {
+                        "streamingjobs": {
+                            "housekeeper": {
+                                "interval": "30m"
+                            }
+                        }
+                    }
+                }
+            }
+        }
+      }
+    }

@@ -9,7 +9,10 @@
       }
     ],
     "name": "flint_mys3_default_http_logs_skipping_index",
-    "options": {},
+    "options": {
+      "auto_refresh" : "true",
+      "index_settings": "{\"number_of_shards\":1,\"number_of_replicas\":1}"
+    },
     "source": "mys3.default.http_logs",
     "version": "0.1.0",
     "properties": {

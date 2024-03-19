@@ -72,8 +72,8 @@ import org.opensearch.sql.storage.DataSourceFactory;
 import org.opensearch.test.OpenSearchIntegTestCase;
 
 public class AsyncQueryExecutorServiceSpec extends OpenSearchIntegTestCase {
-  public static final String DATASOURCE = "mys3";
-  public static final String DSOTHER = "mytest";
+  public static final String MYS3_DATASOURCE = "mys3";
+  public static final String MYGLUE_DATASOURCE = "my_glue";
 
   protected ClusterService clusterService;
   protected org.opensearch.sql.common.setting.Settings pluginSettings;
@@ -115,7 +115,7 @@ public class AsyncQueryExecutorServiceSpec extends OpenSearchIntegTestCase {
     dataSourceService = createDataSourceService();
     DataSourceMetadata dm =
         new DataSourceMetadata.Builder()
-            .setName(DATASOURCE)
+            .setName(MYS3_DATASOURCE)
             .setConnector(DataSourceType.S3GLUE)
             .setProperties(
                 ImmutableMap.of(
@@ -131,7 +131,7 @@ public class AsyncQueryExecutorServiceSpec extends OpenSearchIntegTestCase {
     dataSourceService.createDataSource(dm);
     DataSourceMetadata otherDm =
         new DataSourceMetadata.Builder()
-            .setName(DSOTHER)
+            .setName(MYGLUE_DATASOURCE)
             .setConnector(DataSourceType.S3GLUE)
             .setProperties(
                 ImmutableMap.of(
@@ -305,7 +305,7 @@ public class AsyncQueryExecutorServiceSpec extends OpenSearchIntegTestCase {
 
   int search(QueryBuilder query) {
     SearchRequest searchRequest = new SearchRequest();
-    searchRequest.indices(DATASOURCE_TO_REQUEST_INDEX.apply(DATASOURCE));
+    searchRequest.indices(DATASOURCE_TO_REQUEST_INDEX.apply(MYS3_DATASOURCE));
     SearchSourceBuilder searchSourceBuilder = new SearchSourceBuilder();
     searchSourceBuilder.query(query);
     searchRequest.source(searchSourceBuilder);
@@ -315,9 +315,9 @@ public class AsyncQueryExecutorServiceSpec extends OpenSearchIntegTestCase {
   }
 
   void setSessionState(String sessionId, SessionState sessionState) {
-    Optional<SessionModel> model = getSession(stateStore, DATASOURCE).apply(sessionId);
+    Optional<SessionModel> model = getSession(stateStore, MYS3_DATASOURCE).apply(sessionId);
     SessionModel updated =
-        updateSessionState(stateStore, DATASOURCE).apply(model.get(), sessionState);
+        updateSessionState(stateStore, MYS3_DATASOURCE).apply(model.get(), sessionState);
     assertEquals(sessionState, updated.getSessionState());
   }
 
@@ -337,7 +337,7 @@ public class AsyncQueryExecutorServiceSpec extends OpenSearchIntegTestCase {
     boolean isSpecialCharacter = false;
     String latestId;
 
-    FlintDatasetMock isLegacy(boolean isLegacy) {
+    public FlintDatasetMock isLegacy(boolean isLegacy) {
       this.isLegacy = isLegacy;
       return this;
     }
@@ -347,7 +347,7 @@ public class AsyncQueryExecutorServiceSpec extends OpenSearchIntegTestCase {
       return this;
     }
 
-    FlintDatasetMock latestId(String latestId) {
+    public FlintDatasetMock latestId(String latestId) {
       this.latestId = latestId;
       return this;
     }
