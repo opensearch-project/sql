@@ -87,7 +87,6 @@ public class IndexQuerySpecTest extends AsyncQueryExecutorServiceSpec {
           FlintIndexType.MATERIALIZED_VIEW,
           "flint_mys3_default_http_logs_metrics")
           .latestId("ZmxpbnRfbXlzM19kZWZhdWx0X2h0dHBfbG9nc19tZXRyaWNz");
-
   public final FlintDatasetMock SPECIAL_CHARACTERS =
       new FlintDatasetMock(
               "DROP SKIPPING INDEX ON mys3.default." + specialName,
@@ -95,7 +94,7 @@ public class IndexQuerySpecTest extends AsyncQueryExecutorServiceSpec {
               FlintIndexType.SKIPPING,
               "flint_mys3_default_" + encodedName + "_skipping_index")
           .isSpecialCharacter(true)
-          .latestId("specialcharacterindexid");
+          .latestId("ZmxpbnRfbXlzM19kZWZhdWx0X3Rlc3QlMjAlMmMlM2ElMjIlMmIlMmYlNWMlN2MlM2YlMjMlM2UlM2Nfc2tpcHBpbmdfaW5kZXg=");
 
   public final String CREATE_SI_AUTO =
       "CREATE SKIPPING INDEX ON mys3.default.http_logs"
