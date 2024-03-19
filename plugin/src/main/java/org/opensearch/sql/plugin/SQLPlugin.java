@@ -42,6 +42,7 @@ import org.opensearch.env.NodeEnvironment;
 import org.opensearch.plugins.ActionPlugin;
 import org.opensearch.plugins.Plugin;
 import org.opensearch.plugins.ScriptPlugin;
+import org.opensearch.plugins.SearchPlugin;
 import org.opensearch.repositories.RepositoriesService;
 import org.opensearch.rest.RestController;
 import org.opensearch.rest.RestHandler;
@@ -71,12 +72,15 @@ import org.opensearch.sql.opensearch.storage.OpenSearchDataSourceFactory;
 import org.opensearch.sql.opensearch.storage.script.ExpressionScriptEngine;
 import org.opensearch.sql.opensearch.storage.serialization.DefaultExpressionSerializer;
 import org.opensearch.sql.plugin.config.OpenSearchPluginModule;
+import org.opensearch.sql.plugin.queryengine.PPLQueryEngine;
+import org.opensearch.sql.plugin.queryengine.SQLQueryEngine;
 import org.opensearch.sql.plugin.rest.RestPPLQueryAction;
 import org.opensearch.sql.plugin.rest.RestPPLStatsAction;
 import org.opensearch.sql.plugin.rest.RestQuerySettingsAction;
 import org.opensearch.sql.plugin.transport.PPLQueryAction;
 import org.opensearch.sql.plugin.transport.TransportPPLQueryAction;
 import org.opensearch.sql.plugin.transport.TransportPPLQueryResponse;
+import org.opensearch.sql.ppl.PPLService;
 import org.opensearch.sql.prometheus.storage.PrometheusStorageFactory;
 import org.opensearch.sql.spark.asyncquery.AsyncQueryExecutorService;
 import org.opensearch.sql.spark.cluster.ClusterManagerEventListener;
@@ -89,13 +93,14 @@ import org.opensearch.sql.spark.transport.config.AsyncExecutorServiceModule;
 import org.opensearch.sql.spark.transport.model.CancelAsyncQueryActionResponse;
 import org.opensearch.sql.spark.transport.model.CreateAsyncQueryActionResponse;
 import org.opensearch.sql.spark.transport.model.GetAsyncQueryResultActionResponse;
+import org.opensearch.sql.sql.SQLService;
 import org.opensearch.sql.storage.DataSourceFactory;
 import org.opensearch.threadpool.ExecutorBuilder;
 import org.opensearch.threadpool.FixedExecutorBuilder;
 import org.opensearch.threadpool.ThreadPool;
 import org.opensearch.watcher.ResourceWatcherService;
 
-public class SQLPlugin extends Plugin implements ActionPlugin, ScriptPlugin {
+public class SQLPlugin extends Plugin implements ActionPlugin, ScriptPlugin, SearchPlugin {
 
   private static final Logger LOGGER = LogManager.getLogger(SQLPlugin.class);
 
@@ -109,7 +114,7 @@ public class SQLPlugin extends Plugin implements ActionPlugin, ScriptPlugin {
   private Injector injector;
 
   public String name() {
-    return "sql";
+    return "sql_plugin";
   }
 
   public String description() {
@@ -222,6 +227,8 @@ public class SQLPlugin extends Plugin implements ActionPlugin, ScriptPlugin {
             OpenSearchSettings.RESULT_INDEX_TTL_SETTING,
             OpenSearchSettings.AUTO_INDEX_MANAGEMENT_ENABLED_SETTING,
             environment.settings());
+    PPLQueryEngine.initialize(injector.getInstance(PPLService.class));
+    SQLQueryEngine.initialize(injector.getInstance(SQLService.class));
     return ImmutableList.of(
         dataSourceService,
         injector.getInstance(AsyncQueryExecutorService.class),
@@ -283,4 +290,14 @@ public class SQLPlugin extends Plugin implements ActionPlugin, ScriptPlugin {
         dataSourceMetadataStorage,
         dataSourceUserAuthorizationHelper);
   }
+
+  @Override
+  public List<QueryEngineSpec<?>> getQueryEnginesSpecs() {
+    return Arrays.asList( new QueryEngineSpec<>(
+            PPLQueryEngine.NAME, PPLQueryEngine::new, PPLQueryEngine::fromXContent),
+        new QueryEngineSpec<>(
+            SQLQueryEngine.NAME, SQLQueryEngine::new, SQLQueryEngine::fromXContent)
+        );
+  }
+
 }
