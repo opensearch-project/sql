@@ -7,12 +7,11 @@ package org.opensearch.sql.spark.asyncquery;
 
 import static org.opensearch.sql.spark.execution.statestore.StateStore.DATASOURCE_TO_REQUEST_INDEX;
 import static org.opensearch.sql.spark.flint.FlintIndexState.ACTIVE;
-import static org.opensearch.sql.spark.flint.FlintIndexState.CANCELLING;
+import static org.opensearch.sql.spark.flint.FlintIndexState.CREATING;
 import static org.opensearch.sql.spark.flint.FlintIndexState.DELETED;
-import static org.opensearch.sql.spark.flint.FlintIndexState.DELETING;
 import static org.opensearch.sql.spark.flint.FlintIndexState.EMPTY;
-import static org.opensearch.sql.spark.flint.FlintIndexState.FAILED;
 import static org.opensearch.sql.spark.flint.FlintIndexState.REFRESHING;
+import static org.opensearch.sql.spark.flint.FlintIndexState.VACUUMING;
 import static org.opensearch.sql.spark.flint.FlintIndexType.COVERING;
 import static org.opensearch.sql.spark.flint.FlintIndexType.MATERIALIZED_VIEW;
 import static org.opensearch.sql.spark.flint.FlintIndexType.SKIPPING;
@@ -25,7 +24,6 @@ import java.util.Base64;
 import java.util.List;
 import java.util.function.BiConsumer;
 import org.apache.commons.lang3.tuple.Pair;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.opensearch.action.admin.indices.exists.indices.IndicesExistsRequest;
 import org.opensearch.action.get.GetRequest;
@@ -106,12 +104,12 @@ public class IndexQuerySpecVacuumTest extends AsyncQueryExecutorServiceSpec {
         });
   }
 
-  @Ignore
-  public void shouldNotVacuumIndexInFailedState() {
+  @Test
+  public void shouldNotVacuumIndexInVacuumingState() {
     List<List<Object>> testCases =
         Lists.cartesianProduct(
             FLINT_TEST_DATASETS,
-            List.of(FAILED),
+            List.of(VACUUMING),
             List.of(
                 Pair.<EMRApiCall, EMRApiCall>of(
                     () -> {
@@ -124,46 +122,22 @@ public class IndexQuerySpecVacuumTest extends AsyncQueryExecutorServiceSpec {
     runVacuumTestSuite(
         testCases,
         (mockDS, response) -> {
-          assertEquals("SUCCESS", response.getStatus());
+          assertEquals("FAILED", response.getStatus());
           assertTrue(flintIndexExists(mockDS.indexName));
           assertTrue(indexDocExists(mockDS.latestId));
         });
   }
 
-  @Ignore
-  public void shouldVacuumIndexInCancellingState() {
-    List<List<Object>> testCases =
-        Lists.cartesianProduct(
-            FLINT_TEST_DATASETS,
-            List.of(CANCELLING),
-            List.of(
-                Pair.<EMRApiCall, EMRApiCall>of(
-                    DEFAULT_OP,
-                    () -> new GetJobRunResult().withJobRun(new JobRun().withState("Cancelled")))));
-
-    runVacuumTestSuite(
-        testCases,
-        (mockDS, response) -> {
-          assertEquals("SUCCESS", response.getStatus());
-          assertFalse(flintIndexExists(mockDS.indexName));
-          assertFalse(indexDocExists(mockDS.latestId));
-        });
-  }
-
-  @Ignore
+  @Test
   public void shouldVacuumIndexWithoutJobRunning() {
     List<List<Object>> testCases =
         Lists.cartesianProduct(
             FLINT_TEST_DATASETS,
-            List.of(EMPTY, ACTIVE, DELETING, DELETED),
+            List.of(EMPTY, CREATING, ACTIVE, DELETED),
             List.of(
                 Pair.<EMRApiCall, EMRApiCall>of(
-                    () -> {
-                      throw new AssertionError("should not call cancelJobRun");
-                    },
-                    () -> {
-                      throw new AssertionError("should not call getJobRunResult");
-                    })));
+                    DEFAULT_OP,
+                    () -> new GetJobRunResult().withJobRun(new JobRun().withState("Cancelled")))));
 
     runVacuumTestSuite(
         testCases,

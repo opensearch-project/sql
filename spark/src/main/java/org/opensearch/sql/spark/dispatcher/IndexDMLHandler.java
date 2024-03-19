@@ -25,7 +25,6 @@ import org.opensearch.sql.spark.dispatcher.model.DispatchQueryContext;
 import org.opensearch.sql.spark.dispatcher.model.DispatchQueryRequest;
 import org.opensearch.sql.spark.dispatcher.model.DispatchQueryResponse;
 import org.opensearch.sql.spark.dispatcher.model.IndexDMLResult;
-import org.opensearch.sql.spark.dispatcher.model.IndexQueryActionType;
 import org.opensearch.sql.spark.dispatcher.model.IndexQueryDetails;
 import org.opensearch.sql.spark.execution.statement.StatementState;
 import org.opensearch.sql.spark.execution.statestore.StateStore;
@@ -117,18 +116,10 @@ public class IndexDMLHandler extends AsyncQueryHandler {
       FlintIndexMetadata indexMetadata) {
     switch (indexQueryDetails.getIndexQueryActionType()) {
       case DROP:
-      case VACUUM:
         FlintIndexOp dropOp =
             new FlintIndexOpDrop(
                 stateStore, dispatchQueryRequest.getDatasource(), emrServerlessClient);
         dropOp.apply(indexMetadata);
-
-        // For vacuum, continue to delete index data physically
-        if (indexQueryDetails.getIndexQueryActionType() == IndexQueryActionType.VACUUM) {
-          FlintIndexOp indexVacuumOp =
-              new FlintIndexOpVacuum(stateStore, dispatchQueryRequest.getDatasource(), client);
-          indexVacuumOp.apply(indexMetadata);
-        }
         break;
       case ALTER:
         FlintIndexOpAlter flintIndexOpAlter =
@@ -139,6 +130,23 @@ public class IndexDMLHandler extends AsyncQueryHandler {
                 emrServerlessClient,
                 flintIndexMetadataService);
         flintIndexOpAlter.apply(indexMetadata);
+        break;
+      case VACUUM:
+        // Try to perform drop operation first
+        FlintIndexOp tryDropOp =
+            new FlintIndexOpDrop(
+                stateStore, dispatchQueryRequest.getDatasource(), emrServerlessClient);
+        try {
+          tryDropOp.apply(indexMetadata);
+        } catch (IllegalStateException e) {
+          // Drop failed possibly due to invalid initial state
+        }
+
+        // Continue to delete index data physically if state is DELETED
+        // which means previous transaction succeeds
+        FlintIndexOp indexVacuumOp =
+            new FlintIndexOpVacuum(stateStore, dispatchQueryRequest.getDatasource(), client);
+        indexVacuumOp.apply(indexMetadata);
         break;
       default:
         throw new IllegalStateException(
