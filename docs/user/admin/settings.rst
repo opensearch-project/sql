@@ -506,7 +506,7 @@ To change the TTL to 60 days for example, execute the following command:
 SQL query::
 
     sh$ curl -sS -H 'Content-Type: application/json' -X PUT localhost:9200/_cluster/settings \
-    ... -d '{"transient":{"plugins.query.executionengine.spark.session.index.ttl":"30d"}}'
+    ... -d '{"transient":{"plugins.query.executionengine.spark.session.index.ttl":"60d"}}'
     {
         "acknowledged": true,
         "persistent": {},
