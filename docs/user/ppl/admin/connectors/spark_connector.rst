@@ -35,7 +35,7 @@ Spark Connector Properties.
 * ``spark.datasource.flint.*`` [Optional]
     * This parameters provides the Opensearch domain host information for flint integration.
     * ``spark.datasource.flint.integration`` [Optional]
-        * Default value for integration jar is ``s3://spark-datasource/flint-spark-integration-assembly-0.1.0-SNAPSHOT.jar``.
+        * Default value for integration jar is ``s3://spark-datasource/flint-spark-integration-assembly-0.3.0-SNAPSHOT.jar``.
     * ``spark.datasource.flint.host`` [Optional]
         * Default value for host is ``localhost``.
     * ``spark.datasource.flint.port`` [Optional]

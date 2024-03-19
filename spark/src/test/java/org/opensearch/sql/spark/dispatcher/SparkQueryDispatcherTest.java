@@ -952,7 +952,7 @@ public class SparkQueryDispatcherTest {
                + "  --conf"
                + " spark.hadoop.aws.catalog.credentials.provider.factory.class=com.amazonaws.glue.catalog.metastore.STSAssumeRoleSessionCredentialsProviderFactory"
                + "  --conf"
-               + " spark.jars.packages=org.opensearch:opensearch-spark-standalone_2.12:0.1.0-SNAPSHOT,org.opensearch:opensearch-spark-sql-application_2.12:0.1.0-SNAPSHOT,org.opensearch:opensearch-spark-ppl_2.12:0.1.0-SNAPSHOT"
+               + " spark.jars.packages=org.opensearch:opensearch-spark-standalone_2.12:0.3.0-SNAPSHOT,org.opensearch:opensearch-spark-sql-application_2.12:0.3.0-SNAPSHOT,org.opensearch:opensearch-spark-ppl_2.12:0.3.0-SNAPSHOT"
                + "  --conf"
                + " spark.jars.repositories=https://aws.oss.sonatype.org/content/repositories/snapshots"
                + "  --conf"
