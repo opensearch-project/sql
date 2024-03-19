@@ -47,7 +47,8 @@ public enum MetricName {
   EMR_CANCEL_JOB_REQUEST_FAILURE_COUNT("emr_cancel_job_request_failure_count"),
   EMR_STREAMING_QUERY_JOBS_CREATION_COUNT("emr_streaming_jobs_creation_count"),
   EMR_INTERACTIVE_QUERY_JOBS_CREATION_COUNT("emr_interactive_jobs_creation_count"),
-  EMR_BATCH_QUERY_JOBS_CREATION_COUNT("emr_batch_jobs_creation_count");
+  EMR_BATCH_QUERY_JOBS_CREATION_COUNT("emr_batch_jobs_creation_count"),
+  STREAMING_JOB_HOUSEKEEPER_TASK_FAILURE_COUNT("streaming_job_housekeeper_task_failure_count");
 
   private String name;
 
@@ -91,6 +92,7 @@ public enum MetricName {
           .add(ASYNC_QUERY_CREATE_API_REQUEST_COUNT)
           .add(ASYNC_QUERY_GET_API_REQUEST_COUNT)
           .add(ASYNC_QUERY_CANCEL_API_REQUEST_COUNT)
+          .add(STREAMING_JOB_HOUSEKEEPER_TASK_FAILURE_COUNT)
           .build();
 
   public boolean isNumerical() {

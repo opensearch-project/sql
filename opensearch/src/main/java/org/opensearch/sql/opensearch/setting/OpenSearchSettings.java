@@ -7,6 +7,7 @@ package org.opensearch.sql.opensearch.setting;
 
 import static org.opensearch.common.settings.Settings.EMPTY;
 import static org.opensearch.common.unit.TimeValue.timeValueDays;
+import static org.opensearch.common.unit.TimeValue.timeValueMinutes;
 import static org.opensearch.sql.common.setting.Settings.Key.ENCYRPTION_MASTER_KEY;
 
 import com.google.common.annotations.VisibleForTesting;
@@ -193,6 +194,13 @@ public class OpenSearchSettings extends Settings {
           Setting.Property.NodeScope,
           Setting.Property.Dynamic);
 
+  public static final Setting<TimeValue> STREAMING_JOB_HOUSEKEEPER_INTERVAL_SETTING =
+      Setting.positiveTimeSetting(
+          Key.STREAMING_JOB_HOUSEKEEPER_INTERVAL.getKeyValue(),
+          timeValueMinutes(15),
+          Setting.Property.NodeScope,
+          Setting.Property.Dynamic);
+
   /** Construct OpenSearchSetting. The OpenSearchSetting must be singleton. */
   @SuppressWarnings("unchecked")
   public OpenSearchSettings(ClusterSettings clusterSettings) {
@@ -313,6 +321,12 @@ public class OpenSearchSettings extends Settings {
         Key.SESSION_INACTIVITY_TIMEOUT_MILLIS,
         SESSION_INACTIVITY_TIMEOUT_MILLIS_SETTING,
         new Updater((Key.SESSION_INACTIVITY_TIMEOUT_MILLIS)));
+    register(
+        settingBuilder,
+        clusterSettings,
+        Key.STREAMING_JOB_HOUSEKEEPER_INTERVAL,
+        STREAMING_JOB_HOUSEKEEPER_INTERVAL_SETTING,
+        new Updater((Key.STREAMING_JOB_HOUSEKEEPER_INTERVAL)));
     defaultSettings = settingBuilder.build();
   }
 
@@ -384,6 +398,7 @@ public class OpenSearchSettings extends Settings {
         .add(AUTO_INDEX_MANAGEMENT_ENABLED_SETTING)
         .add(DATASOURCES_LIMIT_SETTING)
         .add(SESSION_INACTIVITY_TIMEOUT_MILLIS_SETTING)
+        .add(STREAMING_JOB_HOUSEKEEPER_INTERVAL_SETTING)
         .build();
   }
 

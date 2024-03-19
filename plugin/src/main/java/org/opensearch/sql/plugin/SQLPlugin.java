@@ -79,7 +79,10 @@ import org.opensearch.sql.plugin.transport.TransportPPLQueryAction;
 import org.opensearch.sql.plugin.transport.TransportPPLQueryResponse;
 import org.opensearch.sql.prometheus.storage.PrometheusStorageFactory;
 import org.opensearch.sql.spark.asyncquery.AsyncQueryExecutorService;
+import org.opensearch.sql.spark.client.EMRServerlessClientFactory;
 import org.opensearch.sql.spark.cluster.ClusterManagerEventListener;
+import org.opensearch.sql.spark.execution.statestore.StateStore;
+import org.opensearch.sql.spark.flint.FlintIndexMetadataServiceImpl;
 import org.opensearch.sql.spark.rest.RestAsyncQueryManagementAction;
 import org.opensearch.sql.spark.storage.SparkStorageFactory;
 import org.opensearch.sql.spark.transport.TransportCancelAsyncQueryRequestAction;
@@ -220,8 +223,13 @@ public class SQLPlugin extends Plugin implements ActionPlugin, ScriptPlugin {
             Clock.systemUTC(),
             OpenSearchSettings.SESSION_INDEX_TTL_SETTING,
             OpenSearchSettings.RESULT_INDEX_TTL_SETTING,
+            OpenSearchSettings.STREAMING_JOB_HOUSEKEEPER_INTERVAL_SETTING,
             OpenSearchSettings.AUTO_INDEX_MANAGEMENT_ENABLED_SETTING,
-            environment.settings());
+            environment.settings(),
+            dataSourceService,
+            injector.getInstance(FlintIndexMetadataServiceImpl.class),
+            injector.getInstance(StateStore.class),
+            injector.getInstance(EMRServerlessClientFactory.class));
     return ImmutableList.of(
         dataSourceService,
         injector.getInstance(AsyncQueryExecutorService.class),
