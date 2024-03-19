@@ -27,9 +27,13 @@ import org.opensearch.sql.spark.rest.model.CreateAsyncQueryResponse;
 import org.opensearch.sql.spark.rest.model.LangType;
 
 public class IndexQuerySpecTest extends AsyncQueryExecutorServiceSpec {
+  private final String specialName = "`test ,:\"+/\\|?#><`";
+  private final String encodedName = "test%20%2c%3a%22%2b%2f%5c%7c%3f%23%3e%3c";
+
   public final String REFRESH_SI = "REFRESH SKIPPING INDEX on mys3.default.http_logs";
   public final String REFRESH_CI = "REFRESH INDEX covering ON mys3.default.http_logs";
   public final String REFRESH_MV = "REFRESH MATERIALIZED VIEW mys3.default.http_logs_metrics";
+  public final String REFRESH_SCI = "REFRESH SKIPPING INDEX on mys3.default." + specialName;
 
   public final FlintDatasetMock LEGACY_SKIPPING =
       new FlintDatasetMock(
@@ -53,6 +57,15 @@ public class IndexQuerySpecTest extends AsyncQueryExecutorServiceSpec {
               "flint_mys3_default_http_logs_metrics")
           .isLegacy(true);
 
+  public final FlintDatasetMock LEGACY_SPECIAL_CHARACTERS =
+      new FlintDatasetMock(
+              "DROP SKIPPING INDEX ON mys3.default." + specialName,
+              REFRESH_SCI,
+              FlintIndexType.SKIPPING,
+              "flint_mys3_default_" + encodedName + "_skipping_index")
+          .isLegacy(true)
+          .isSpecialCharacter(true);
+
   public final FlintDatasetMock SKIPPING =
       new FlintDatasetMock(
               "DROP SKIPPING INDEX ON mys3.default.http_logs",
@@ -74,6 +87,16 @@ public class IndexQuerySpecTest extends AsyncQueryExecutorServiceSpec {
               FlintIndexType.MATERIALIZED_VIEW,
               "flint_mys3_default_http_logs_metrics")
           .latestId("ZmxpbnRfbXlzM19kZWZhdWx0X2h0dHBfbG9nc19tZXRyaWNz");
+  public final FlintDatasetMock SPECIAL_CHARACTERS =
+      new FlintDatasetMock(
+              "DROP SKIPPING INDEX ON mys3.default." + specialName,
+              REFRESH_SCI,
+              FlintIndexType.SKIPPING,
+              "flint_mys3_default_" + encodedName + "_skipping_index")
+          .isSpecialCharacter(true)
+          .latestId(
+              "ZmxpbnRfbXlzM19kZWZhdWx0X3Rlc3QlMjAlMmMlM2ElMjIlMmIlMmYlNWMlN2MlM2YlMjMlM2UlM2Nfc2tpcHBpbmdfaW5kZXg=");
+
   public final String CREATE_SI_AUTO =
       "CREATE SKIPPING INDEX ON mys3.default.http_logs"
           + "(l_orderkey VALUE_SET) WITH (auto_refresh = true)";
@@ -93,7 +116,7 @@ public class IndexQuerySpecTest extends AsyncQueryExecutorServiceSpec {
    */
   @Test
   public void legacyBasicDropAndFetchAndCancel() {
-    ImmutableList.of(LEGACY_SKIPPING, LEGACY_COVERING)
+    ImmutableList.of(LEGACY_SKIPPING, LEGACY_COVERING, LEGACY_SPECIAL_CHARACTERS)
         .forEach(
             mockDS -> {
               LocalEMRSClient emrsClient =
@@ -141,7 +164,7 @@ public class IndexQuerySpecTest extends AsyncQueryExecutorServiceSpec {
    */
   @Test
   public void legacyDropIndexNoJobRunning() {
-    ImmutableList.of(LEGACY_SKIPPING, LEGACY_COVERING, LEGACY_MV)
+    ImmutableList.of(LEGACY_SKIPPING, LEGACY_COVERING, LEGACY_MV, LEGACY_SPECIAL_CHARACTERS)
         .forEach(
             mockDS -> {
               LocalEMRSClient emrsClient =
@@ -178,7 +201,7 @@ public class IndexQuerySpecTest extends AsyncQueryExecutorServiceSpec {
    */
   @Test
   public void legacyDropIndexCancelJobTimeout() {
-    ImmutableList.of(LEGACY_SKIPPING, LEGACY_COVERING, LEGACY_MV)
+    ImmutableList.of(LEGACY_SKIPPING, LEGACY_COVERING, LEGACY_MV, LEGACY_SPECIAL_CHARACTERS)
         .forEach(
             mockDS -> {
               // Mock EMR-S always return running.
@@ -210,13 +233,47 @@ public class IndexQuerySpecTest extends AsyncQueryExecutorServiceSpec {
   }
 
   /**
+   * Legacy Test, without state index support. Not EMR-S job running. expectation is
+   *
+   * <p>(1) Drop Index response is SUCCESS
+   */
+  @Test
+  public void legacyDropIndexSpecialCharacter() {
+    FlintDatasetMock mockDS = LEGACY_SPECIAL_CHARACTERS;
+    LocalEMRSClient emrsClient =
+        new LocalEMRSClient() {
+          @Override
+          public CancelJobRunResult cancelJobRun(String applicationId, String jobId) {
+            throw new IllegalArgumentException("Job run is not in a cancellable state");
+          }
+        };
+    EMRServerlessClientFactory emrServerlessClientFactory = () -> emrsClient;
+    AsyncQueryExecutorService asyncQueryExecutorService =
+        createAsyncQueryExecutorService(emrServerlessClientFactory);
+
+    // Mock flint index
+    mockDS.createIndex();
+
+    // 1.drop index
+    CreateAsyncQueryResponse response =
+        asyncQueryExecutorService.createAsyncQuery(
+            new CreateAsyncQueryRequest(mockDS.query, DATASOURCE, LangType.SQL, null));
+
+    // 2.fetch result.
+    AsyncQueryExecutionResponse asyncQueryResults =
+        asyncQueryExecutorService.getAsyncQueryResults(response.getQueryId());
+    assertEquals("SUCCESS", asyncQueryResults.getStatus());
+    assertNull(asyncQueryResults.getError());
+  }
+
+  /**
    * Happy case. expectation is
    *
    * <p>(1) Drop Index response is SUCCESS (2) change index state to: DELETED
    */
   @Test
   public void dropAndFetchAndCancel() {
-    ImmutableList.of(SKIPPING, COVERING, MV)
+    ImmutableList.of(SKIPPING, COVERING, MV, SPECIAL_CHARACTERS)
         .forEach(
             mockDS -> {
               LocalEMRSClient emrsClient =
@@ -582,6 +639,47 @@ public class IndexQuerySpecTest extends AsyncQueryExecutorServiceSpec {
                   asyncQueryExecutionResponse.getError());
               flintIndexJob.assertState(FlintIndexState.DELETING);
             });
+  }
+
+  /**
+   * Cancel EMR-S job, but not job running. expectation is
+   *
+   * <p>(1) Drop Index response is SUCCESS (2) change index state to: DELETED
+   */
+  @Test
+  public void dropIndexSpecialCharacter() {
+    FlintDatasetMock mockDS = SPECIAL_CHARACTERS;
+    // Mock EMR-S job is not running
+    LocalEMRSClient emrsClient =
+        new LocalEMRSClient() {
+          @Override
+          public CancelJobRunResult cancelJobRun(String applicationId, String jobId) {
+            throw new IllegalArgumentException("Job run is not in a cancellable state");
+          }
+        };
+    EMRServerlessClientFactory emrServerlessClientFactory = () -> emrsClient;
+    AsyncQueryExecutorService asyncQueryExecutorService =
+        createAsyncQueryExecutorService(emrServerlessClientFactory);
+
+    // Mock flint index
+    mockDS.createIndex();
+    // Mock index state in refresh state.
+    MockFlintSparkJob flintIndexJob =
+        new MockFlintSparkJob(stateStore, mockDS.latestId, DATASOURCE);
+    flintIndexJob.refreshing();
+
+    // 1.drop index
+    CreateAsyncQueryResponse response =
+        asyncQueryExecutorService.createAsyncQuery(
+            new CreateAsyncQueryRequest(mockDS.query, DATASOURCE, LangType.SQL, null));
+
+    // 2.fetch result.
+    AsyncQueryExecutionResponse asyncQueryResults =
+        asyncQueryExecutorService.getAsyncQueryResults(response.getQueryId());
+    assertEquals("SUCCESS", asyncQueryResults.getStatus());
+    assertNull(asyncQueryResults.getError());
+
+    flintIndexJob.assertState(FlintIndexState.DELETED);
   }
 
   /**
