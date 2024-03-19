@@ -147,21 +147,21 @@ public class OpenSearchSettings extends Settings {
   public static final Setting<?> SPARK_EXECUTION_SESSION_LIMIT_SETTING =
       Setting.intSetting(
           Key.SPARK_EXECUTION_SESSION_LIMIT.getKeyValue(),
-          100,
+          10,
           Setting.Property.NodeScope,
           Setting.Property.Dynamic);
 
   public static final Setting<?> SPARK_EXECUTION_REFRESH_JOB_LIMIT_SETTING =
       Setting.intSetting(
           Key.SPARK_EXECUTION_REFRESH_JOB_LIMIT.getKeyValue(),
-          50,
+          5,
           Setting.Property.NodeScope,
           Setting.Property.Dynamic);
 
   public static final Setting<TimeValue> SESSION_INDEX_TTL_SETTING =
       Setting.positiveTimeSetting(
           Key.SESSION_INDEX_TTL.getKeyValue(),
-          timeValueDays(14),
+          timeValueDays(30),
           Setting.Property.NodeScope,
           Setting.Property.Dynamic);
 
