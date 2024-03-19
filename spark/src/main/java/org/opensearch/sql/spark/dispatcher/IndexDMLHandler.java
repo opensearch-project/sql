@@ -32,9 +32,9 @@ import org.opensearch.sql.spark.execution.statestore.StateStore;
 import org.opensearch.sql.spark.flint.FlintIndexMetadata;
 import org.opensearch.sql.spark.flint.FlintIndexMetadataService;
 import org.opensearch.sql.spark.flint.operation.FlintIndexOp;
-import org.opensearch.sql.spark.flint.operation.FlintIndexOpVacuum;
 import org.opensearch.sql.spark.flint.operation.FlintIndexOpAlter;
 import org.opensearch.sql.spark.flint.operation.FlintIndexOpDrop;
+import org.opensearch.sql.spark.flint.operation.FlintIndexOpVacuum;
 import org.opensearch.sql.spark.response.JobExecutionResponseReader;
 
 /** Handle Index DML query. includes * DROP * ALT? */
