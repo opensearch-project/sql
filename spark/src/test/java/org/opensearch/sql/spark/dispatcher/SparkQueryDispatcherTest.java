@@ -947,6 +947,7 @@ public class SparkQueryDispatcherTest {
       authParamConfigBuilder.append(authParams.get(key));
       authParamConfigBuilder.append(" ");
     }
+    query = "\"" + query + "\"";
     return " --class org.apache.spark.sql.FlintJob  --conf"
                + " spark.hadoop.fs.s3.customAWSCredentialsProvider=com.amazonaws.emr.AssumeRoleAWSCredentialsProvider"
                + "  --conf"
