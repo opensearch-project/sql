@@ -259,50 +259,68 @@ public class SQLQueryUtilsTest {
   @Test
   void testAutoRefresh() {
     Assertions.assertFalse(
-        SQLQueryUtils.extractIndexDetails(skippingIndex().getQuery()).isAutoRefresh());
+        SQLQueryUtils.extractIndexDetails(skippingIndex().getQuery())
+            .getFlintIndexOptions()
+            .autoRefresh());
 
     Assertions.assertFalse(
         SQLQueryUtils.extractIndexDetails(
                 skippingIndex().withProperty("auto_refresh", "false").getQuery())
-            .isAutoRefresh());
+            .getFlintIndexOptions()
+            .autoRefresh());
 
     Assertions.assertTrue(
         SQLQueryUtils.extractIndexDetails(
                 skippingIndex().withProperty("auto_refresh", "true").getQuery())
-            .isAutoRefresh());
+            .getFlintIndexOptions()
+            .autoRefresh());
 
     Assertions.assertTrue(
         SQLQueryUtils.extractIndexDetails(
                 skippingIndex().withProperty("\"auto_refresh\"", "true").getQuery())
-            .isAutoRefresh());
+            .getFlintIndexOptions()
+            .autoRefresh());
 
     Assertions.assertTrue(
         SQLQueryUtils.extractIndexDetails(
                 skippingIndex().withProperty("\"auto_refresh\"", "\"true\"").getQuery())
-            .isAutoRefresh());
+            .getFlintIndexOptions()
+            .autoRefresh());
 
     Assertions.assertFalse(
         SQLQueryUtils.extractIndexDetails(
                 skippingIndex().withProperty("auto_refresh", "1").getQuery())
-            .isAutoRefresh());
+            .getFlintIndexOptions()
+            .autoRefresh());
 
     Assertions.assertFalse(
         SQLQueryUtils.extractIndexDetails(skippingIndex().withProperty("interval", "1").getQuery())
-            .isAutoRefresh());
+            .getFlintIndexOptions()
+            .autoRefresh());
 
-    Assertions.assertFalse(SQLQueryUtils.extractIndexDetails(index().getQuery()).isAutoRefresh());
+    Assertions.assertFalse(
+        SQLQueryUtils.extractIndexDetails(
+                skippingIndex().withProperty("\"\"", "\"true\"").getQuery())
+            .getFlintIndexOptions()
+            .autoRefresh());
+
+    Assertions.assertFalse(
+        SQLQueryUtils.extractIndexDetails(index().getQuery()).getFlintIndexOptions().autoRefresh());
 
     Assertions.assertFalse(
         SQLQueryUtils.extractIndexDetails(index().withProperty("auto_refresh", "false").getQuery())
-            .isAutoRefresh());
+            .getFlintIndexOptions()
+            .autoRefresh());
 
     Assertions.assertTrue(
         SQLQueryUtils.extractIndexDetails(index().withProperty("auto_refresh", "true").getQuery())
-            .isAutoRefresh());
+            .getFlintIndexOptions()
+            .autoRefresh());
 
     Assertions.assertTrue(
         SQLQueryUtils.extractIndexDetails(mv().withProperty("auto_refresh", "true").getQuery())
-            .isAutoRefresh());
+            .getFlintIndexOptions()
+            .autoRefresh());
   }
 
   @Getter

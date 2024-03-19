@@ -22,8 +22,8 @@ public class IndexQueryDetails {
   private String indexName;
   private FullyQualifiedTableName fullyQualifiedTableName;
   // by default, auto_refresh = false;
-  private boolean autoRefresh;
   private IndexQueryActionType indexQueryActionType;
+  private FlintIndexOptions flintIndexOptions;
   // materialized view special case where
   // table name and mv name are combined.
   private String mvName;
@@ -53,14 +53,14 @@ public class IndexQueryDetails {
       return this;
     }
 
-    public IndexQueryDetailsBuilder autoRefresh(Boolean autoRefresh) {
-      indexQueryDetails.autoRefresh = autoRefresh;
-      return this;
-    }
-
     public IndexQueryDetailsBuilder indexQueryActionType(
         IndexQueryActionType indexQueryActionType) {
       indexQueryDetails.indexQueryActionType = indexQueryActionType;
+      return this;
+    }
+
+    public IndexQueryDetailsBuilder indexOptions(FlintIndexOptions flintIndexOptions) {
+      indexQueryDetails.flintIndexOptions = flintIndexOptions;
       return this;
     }
 
@@ -75,6 +75,9 @@ public class IndexQueryDetails {
     }
 
     public IndexQueryDetails build() {
+      if (indexQueryDetails.flintIndexOptions == null) {
+        indexQueryDetails.flintIndexOptions = new FlintIndexOptions();
+      }
       return indexQueryDetails;
     }
   }

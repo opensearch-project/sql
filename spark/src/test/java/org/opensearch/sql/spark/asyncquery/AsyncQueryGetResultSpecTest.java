@@ -26,6 +26,7 @@ import org.opensearch.sql.protocol.response.format.JsonResponseFormatter;
 import org.opensearch.sql.protocol.response.format.ResponseFormatter;
 import org.opensearch.sql.spark.asyncquery.model.AsyncQueryExecutionResponse;
 import org.opensearch.sql.spark.asyncquery.model.AsyncQueryResult;
+import org.opensearch.sql.spark.asyncquery.model.MockFlintSparkJob;
 import org.opensearch.sql.spark.client.EMRServerlessClientFactory;
 import org.opensearch.sql.spark.execution.statement.StatementModel;
 import org.opensearch.sql.spark.execution.statement.StatementState;
@@ -52,7 +53,7 @@ public class AsyncQueryGetResultSpecTest extends AsyncQueryExecutorServiceSpec {
 
   @Before
   public void doSetUp() {
-    mockIndexState = new MockFlintSparkJob(mockIndex.latestId);
+    mockIndexState = new MockFlintSparkJob(stateStore, mockIndex.latestId, DATASOURCE);
   }
 
   @Test
