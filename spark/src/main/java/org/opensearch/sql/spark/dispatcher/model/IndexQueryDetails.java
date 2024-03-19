@@ -7,6 +7,8 @@ package org.opensearch.sql.spark.dispatcher.model;
 
 import static org.apache.commons.lang3.StringUtils.strip;
 
+import java.util.Set;
+
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import org.apache.commons.lang3.StringUtils;
@@ -18,6 +20,9 @@ import org.opensearch.sql.spark.flint.FlintIndexType;
 public class IndexQueryDetails {
 
   public static final String STRIP_CHARS = "`";
+
+  private static final Set<Character> INVALID_INDEX_NAME_CHARS =
+      Set.of(' ', ',', ':', '"', '+', '/', '\\', '|', '?', '#', '>', '<');
 
   private String indexName;
   private FullyQualifiedTableName fullyQualifiedTableName;
@@ -103,6 +108,21 @@ public class IndexQueryDetails {
         indexName = "flint_" + new FullyQualifiedTableName(mvName).toFlintName();
         break;
     }
-    return indexName.toLowerCase();
+    return percentEncode(indexName).toLowerCase();
+  }
+
+  /*
+   * Percent-encode invalid OpenSearch index name characters.
+   */
+  private String percentEncode(String indexName) {
+    StringBuilder builder = new StringBuilder(indexName.length());
+    for (char ch : indexName.toCharArray()) {
+      if (INVALID_INDEX_NAME_CHARS.contains(ch)) {
+        builder.append(String.format("%%%02X", (int) ch));
+      } else {
+        builder.append(ch);
+      }
+    }
+    return builder.toString();
   }
 }
