@@ -27,4 +27,11 @@ public class SparkSubmitParametersTest {
     // Assert the conf is included with a space
     assertTrue(params.endsWith(" --conf A=1"));
   }
+
+  @Test
+  public void testBuildQueryString() {
+    String query = "SHOW tables LIKE \"%\";";
+    String params = SparkSubmitParameters.Builder.builder().query(query).build().toString();
+    assertTrue(params.contains(query));
+  }
 }

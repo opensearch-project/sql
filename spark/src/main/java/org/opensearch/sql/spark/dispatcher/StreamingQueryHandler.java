@@ -65,13 +65,13 @@ public class StreamingQueryHandler extends BatchQueryHandler {
             + indexQueryDetails.openSearchIndexName();
     StartJobRequest startJobRequest =
         new StartJobRequest(
-            dispatchQueryRequest.getQuery(),
             jobName,
             dispatchQueryRequest.getApplicationId(),
             dispatchQueryRequest.getExecutionRoleARN(),
             SparkSubmitParameters.Builder.builder()
                 .clusterName(clusterName)
                 .dataSource(dataSourceMetadata)
+                .query(dispatchQueryRequest.getQuery())
                 .structuredStreaming(true)
                 .extraParameters(dispatchQueryRequest.getExtraSparkSubmitParams())
                 .build()

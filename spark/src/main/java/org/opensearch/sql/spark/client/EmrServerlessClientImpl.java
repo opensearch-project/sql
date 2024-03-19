@@ -56,7 +56,7 @@ public class EmrServerlessClientImpl implements EMRServerlessClient {
                     .withSparkSubmit(
                         new SparkSubmit()
                             .withEntryPoint(SPARK_SQL_APPLICATION_JAR)
-                            .withEntryPointArguments(startJobRequest.getQuery(), resultIndex)
+                            .withEntryPointArguments(resultIndex)
                             .withSparkSubmitParameters(startJobRequest.getSparkSubmitParams())));
 
     StartJobRunResult startJobRunResult =

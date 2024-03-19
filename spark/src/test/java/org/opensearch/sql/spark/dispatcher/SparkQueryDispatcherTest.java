@@ -140,10 +140,10 @@ public class SparkQueryDispatcherTest {
               {
                 put(FLINT_INDEX_STORE_AWSREGION_KEY, "eu-west-1");
               }
-            });
+            },
+            query);
     StartJobRequest expected =
         new StartJobRequest(
-            query,
             "TEST_CLUSTER:batch",
             EMRS_APPLICATION_ID,
             EMRS_EXECUTION_ROLE,
@@ -186,10 +186,10 @@ public class SparkQueryDispatcherTest {
                 put(FLINT_INDEX_STORE_AUTH_USERNAME, "username");
                 put(FLINT_INDEX_STORE_AUTH_PASSWORD, "password");
               }
-            });
+            },
+            query);
     StartJobRequest expected =
         new StartJobRequest(
-            query,
             "TEST_CLUSTER:batch",
             EMRS_APPLICATION_ID,
             EMRS_EXECUTION_ROLE,
@@ -229,10 +229,10 @@ public class SparkQueryDispatcherTest {
             new HashMap<>() {
               {
               }
-            });
+            },
+            query);
     StartJobRequest expected =
         new StartJobRequest(
-            query,
             "TEST_CLUSTER:batch",
             EMRS_APPLICATION_ID,
             EMRS_EXECUTION_ROLE,
@@ -342,10 +342,10 @@ public class SparkQueryDispatcherTest {
                   {
                     put(FLINT_INDEX_STORE_AWSREGION_KEY, "eu-west-1");
                   }
-                }));
+                },
+                query));
     StartJobRequest expected =
         new StartJobRequest(
-            query,
             "TEST_CLUSTER:streaming:flint_my_glue_default_http_logs_elb_and_requesturi_index",
             EMRS_APPLICATION_ID,
             EMRS_EXECUTION_ROLE,
@@ -388,10 +388,10 @@ public class SparkQueryDispatcherTest {
               {
                 put(FLINT_INDEX_STORE_AWSREGION_KEY, "eu-west-1");
               }
-            });
+            },
+            query);
     StartJobRequest expected =
         new StartJobRequest(
-            query,
             "TEST_CLUSTER:batch",
             EMRS_APPLICATION_ID,
             EMRS_EXECUTION_ROLE,
@@ -432,10 +432,10 @@ public class SparkQueryDispatcherTest {
               {
                 put(FLINT_INDEX_STORE_AWSREGION_KEY, "eu-west-1");
               }
-            });
+            },
+            query);
     StartJobRequest expected =
         new StartJobRequest(
-            query,
             "TEST_CLUSTER:batch",
             EMRS_APPLICATION_ID,
             EMRS_EXECUTION_ROLE,
@@ -481,10 +481,10 @@ public class SparkQueryDispatcherTest {
                   {
                     put(FLINT_INDEX_STORE_AWSREGION_KEY, "eu-west-1");
                   }
-                }));
+                },
+                query));
     StartJobRequest expected =
         new StartJobRequest(
-            query,
             "TEST_CLUSTER:streaming:flint_my_glue_default_http_logs_elb_and_requesturi_index",
             EMRS_APPLICATION_ID,
             EMRS_EXECUTION_ROLE,
@@ -530,10 +530,10 @@ public class SparkQueryDispatcherTest {
                   {
                     put(FLINT_INDEX_STORE_AWSREGION_KEY, "eu-west-1");
                   }
-                }));
+                },
+                query));
     StartJobRequest expected =
         new StartJobRequest(
-            query,
             "TEST_CLUSTER:streaming:flint_mv_1",
             EMRS_APPLICATION_ID,
             EMRS_EXECUTION_ROLE,
@@ -575,10 +575,10 @@ public class SparkQueryDispatcherTest {
               {
                 put(FLINT_INDEX_STORE_AWSREGION_KEY, "eu-west-1");
               }
-            });
+            },
+            query);
     StartJobRequest expected =
         new StartJobRequest(
-            query,
             "TEST_CLUSTER:batch",
             EMRS_APPLICATION_ID,
             EMRS_EXECUTION_ROLE,
@@ -620,10 +620,10 @@ public class SparkQueryDispatcherTest {
               {
                 put(FLINT_INDEX_STORE_AWSREGION_KEY, "eu-west-1");
               }
-            });
+            },
+            query);
     StartJobRequest expected =
         new StartJobRequest(
-            query,
             "TEST_CLUSTER:batch",
             EMRS_APPLICATION_ID,
             EMRS_EXECUTION_ROLE,
@@ -665,10 +665,10 @@ public class SparkQueryDispatcherTest {
               {
                 put(FLINT_INDEX_STORE_AWSREGION_KEY, "eu-west-1");
               }
-            });
+            },
+            query);
     StartJobRequest expected =
         new StartJobRequest(
-            query,
             "TEST_CLUSTER:batch",
             EMRS_APPLICATION_ID,
             EMRS_EXECUTION_ROLE,
@@ -938,7 +938,7 @@ public class SparkQueryDispatcherTest {
   }
 
   private String constructExpectedSparkSubmitParameterString(
-      String auth, Map<String, String> authParams) {
+      String auth, Map<String, String> authParams, String query) {
     StringBuilder authParamConfigBuilder = new StringBuilder();
     for (String key : authParams.keySet()) {
       authParamConfigBuilder.append(" --conf ");
@@ -978,7 +978,10 @@ public class SparkQueryDispatcherTest {
         + " spark.hive.metastore.glue.role.arn=arn:aws:iam::924196221507:role/FlintOpensearchServiceRole"
         + "  --conf spark.sql.catalog.my_glue=org.opensearch.sql.FlintDelegatingSessionCatalog "
         + " --conf spark.flint.datasource.name=my_glue "
-        + authParamConfigBuilder;
+        + authParamConfigBuilder
+        + " --conf spark.flint.job.query="
+        + query
+        + " ";
   }
 
   private String withStructuredStreaming(String parameters) {
