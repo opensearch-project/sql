@@ -11,11 +11,14 @@ import static org.opensearch.sql.spark.dispatcher.model.FlintIndexOptions.INCREM
 import static org.opensearch.sql.spark.dispatcher.model.FlintIndexOptions.WATERMARK_DELAY;
 import static org.opensearch.sql.spark.flint.FlintIndexMetadata.APP_ID;
 import static org.opensearch.sql.spark.flint.FlintIndexMetadata.ENV_KEY;
+import static org.opensearch.sql.spark.flint.FlintIndexMetadata.KIND_KEY;
 import static org.opensearch.sql.spark.flint.FlintIndexMetadata.LATEST_ID_KEY;
 import static org.opensearch.sql.spark.flint.FlintIndexMetadata.META_KEY;
+import static org.opensearch.sql.spark.flint.FlintIndexMetadata.NAME_KEY;
 import static org.opensearch.sql.spark.flint.FlintIndexMetadata.OPTIONS_KEY;
 import static org.opensearch.sql.spark.flint.FlintIndexMetadata.PROPERTIES_KEY;
 import static org.opensearch.sql.spark.flint.FlintIndexMetadata.SERVERLESS_EMR_JOB_ID;
+import static org.opensearch.sql.spark.flint.FlintIndexMetadata.SOURCE_KEY;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -149,9 +152,15 @@ public class FlintIndexMetadataServiceImpl implements FlintIndexMetadataService 
     String jobId = (String) envMap.get(SERVERLESS_EMR_JOB_ID);
     String appId = (String) envMap.getOrDefault(APP_ID, null);
     String latestId = (String) metaMap.getOrDefault(LATEST_ID_KEY, null);
+    String kind = (String) metaMap.getOrDefault(KIND_KEY, null);
+    String name = (String) metaMap.getOrDefault(NAME_KEY, null);
+    String source = (String) metaMap.getOrDefault(SOURCE_KEY, null);
     flintIndexMetadataBuilder.jobId(jobId);
     flintIndexMetadataBuilder.appId(appId);
     flintIndexMetadataBuilder.latestId(latestId);
+    flintIndexMetadataBuilder.name(name);
+    flintIndexMetadataBuilder.kind(kind);
+    flintIndexMetadataBuilder.source(source);
     flintIndexMetadataBuilder.opensearchIndexName(indexName);
     flintIndexMetadataBuilder.flintIndexOptions(flintIndexOptions);
     return flintIndexMetadataBuilder.build();

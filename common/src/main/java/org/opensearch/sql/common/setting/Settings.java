@@ -48,7 +48,9 @@ public abstract class Settings {
         "plugins.query.executionengine.spark.session_inactivity_timeout_millis"),
 
     /** Async query Settings * */
-    ASYNC_QUERY_ENABLED("plugins.query.executionengine.async_query.enabled");
+    ASYNC_QUERY_ENABLED("plugins.query.executionengine.async_query.enabled"),
+    STREAMING_JOB_HOUSEKEEPER_INTERVAL(
+        "plugins.query.executionengine.spark.streamingjobs.housekeeper.interval");
 
     @Getter private final String keyValue;
 

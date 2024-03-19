@@ -53,7 +53,7 @@ public class AsyncQueryGetResultSpecTest extends AsyncQueryExecutorServiceSpec {
 
   @Before
   public void doSetUp() {
-    mockIndexState = new MockFlintSparkJob(stateStore, mockIndex.latestId, DATASOURCE);
+    mockIndexState = new MockFlintSparkJob(stateStore, mockIndex.latestId, MYS3_DATASOURCE);
   }
 
   @Test
@@ -436,7 +436,7 @@ public class AsyncQueryGetResultSpecTest extends AsyncQueryExecutorServiceSpec {
               });
       this.createQueryResponse =
           queryService.createAsyncQuery(
-              new CreateAsyncQueryRequest(query, DATASOURCE, LangType.SQL, null));
+              new CreateAsyncQueryRequest(query, MYS3_DATASOURCE, LangType.SQL, null));
     }
 
     AssertionHelper withInteraction(Interaction interaction) {
@@ -510,8 +510,8 @@ public class AsyncQueryGetResultSpecTest extends AsyncQueryExecutorServiceSpec {
 
     /** Simulate EMR-S updates query_execution_request with state */
     void emrJobUpdateStatementState(StatementState newState) {
-      StatementModel stmt = getStatement(stateStore, DATASOURCE).apply(queryId).get();
-      StateStore.updateStatementState(stateStore, DATASOURCE).apply(stmt, newState);
+      StatementModel stmt = getStatement(stateStore, MYS3_DATASOURCE).apply(queryId).get();
+      StateStore.updateStatementState(stateStore, MYS3_DATASOURCE).apply(stmt, newState);
     }
 
     void emrJobUpdateJobState(JobRunState jobState) {
@@ -525,7 +525,7 @@ public class AsyncQueryGetResultSpecTest extends AsyncQueryExecutorServiceSpec {
     document.put("schema", ImmutableList.of());
     document.put("jobRunId", "XXX");
     document.put("applicationId", "YYY");
-    document.put("dataSourceName", DATASOURCE);
+    document.put("dataSourceName", MYS3_DATASOURCE);
     document.put("status", "SUCCESS");
     document.put("error", "");
     document.put("queryId", queryId);
@@ -550,7 +550,7 @@ public class AsyncQueryGetResultSpecTest extends AsyncQueryExecutorServiceSpec {
     document.put("schema", schema);
     document.put("jobRunId", "XXX");
     document.put("applicationId", "YYY");
-    document.put("dataSourceName", DATASOURCE);
+    document.put("dataSourceName", MYS3_DATASOURCE);
     document.put("status", "SUCCESS");
     document.put("error", "");
     document.put("queryId", queryId);
