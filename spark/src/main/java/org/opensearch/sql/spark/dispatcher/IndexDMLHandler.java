@@ -16,6 +16,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.json.JSONObject;
+import org.opensearch.client.Client;
 import org.opensearch.sql.datasource.model.DataSourceMetadata;
 import org.opensearch.sql.spark.asyncquery.model.AsyncQueryId;
 import org.opensearch.sql.spark.asyncquery.model.AsyncQueryJobMetadata;
@@ -32,6 +33,7 @@ import org.opensearch.sql.spark.flint.FlintIndexMetadataService;
 import org.opensearch.sql.spark.flint.operation.FlintIndexOp;
 import org.opensearch.sql.spark.flint.operation.FlintIndexOpAlter;
 import org.opensearch.sql.spark.flint.operation.FlintIndexOpDrop;
+import org.opensearch.sql.spark.flint.operation.FlintIndexOpVacuum;
 import org.opensearch.sql.spark.response.JobExecutionResponseReader;
 
 /** Handle Index DML query. includes * DROP * ALT? */
@@ -50,6 +52,8 @@ public class IndexDMLHandler extends AsyncQueryHandler {
   private final FlintIndexMetadataService flintIndexMetadataService;
 
   private final StateStore stateStore;
+
+  private final Client client;
 
   public static boolean isIndexDMLQuery(String jobId) {
     return DROP_INDEX_JOB_ID.equalsIgnoreCase(jobId) || DML_QUERY_JOB_ID.equalsIgnoreCase(jobId);
@@ -126,6 +130,23 @@ public class IndexDMLHandler extends AsyncQueryHandler {
                 emrServerlessClient,
                 flintIndexMetadataService);
         flintIndexOpAlter.apply(indexMetadata);
+        break;
+      case VACUUM:
+        // Try to perform drop operation first
+        FlintIndexOp tryDropOp =
+            new FlintIndexOpDrop(
+                stateStore, dispatchQueryRequest.getDatasource(), emrServerlessClient);
+        try {
+          tryDropOp.apply(indexMetadata);
+        } catch (IllegalStateException e) {
+          // Drop failed possibly due to invalid initial state
+        }
+
+        // Continue to delete index data physically if state is DELETED
+        // which means previous transaction succeeds
+        FlintIndexOp indexVacuumOp =
+            new FlintIndexOpVacuum(stateStore, dispatchQueryRequest.getDatasource(), client);
+        indexVacuumOp.apply(indexMetadata);
         break;
       default:
         throw new IllegalStateException(

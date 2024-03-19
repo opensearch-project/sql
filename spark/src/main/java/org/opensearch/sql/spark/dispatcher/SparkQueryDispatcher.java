@@ -112,6 +112,7 @@ public class SparkQueryDispatcher {
 
   private boolean isEligibleForIndexDMLHandling(IndexQueryDetails indexQueryDetails) {
     return IndexQueryActionType.DROP.equals(indexQueryDetails.getIndexQueryActionType())
+        || IndexQueryActionType.VACUUM.equals(indexQueryDetails.getIndexQueryActionType())
         || (IndexQueryActionType.ALTER.equals(indexQueryDetails.getIndexQueryActionType())
             && (indexQueryDetails
                     .getFlintIndexOptions()
@@ -161,7 +162,11 @@ public class SparkQueryDispatcher {
 
   private IndexDMLHandler createIndexDMLHandler(EMRServerlessClient emrServerlessClient) {
     return new IndexDMLHandler(
-        emrServerlessClient, jobExecutionResponseReader, flintIndexMetadataService, stateStore);
+        emrServerlessClient,
+        jobExecutionResponseReader,
+        flintIndexMetadataService,
+        stateStore,
+        client);
   }
 
   // TODO: Revisit this logic.

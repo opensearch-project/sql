@@ -24,6 +24,8 @@ import org.apache.logging.log4j.Logger;
 import org.opensearch.action.DocWriteResponse;
 import org.opensearch.action.admin.indices.create.CreateIndexRequest;
 import org.opensearch.action.admin.indices.create.CreateIndexResponse;
+import org.opensearch.action.delete.DeleteRequest;
+import org.opensearch.action.delete.DeleteResponse;
 import org.opensearch.action.get.GetRequest;
 import org.opensearch.action.get.GetResponse;
 import org.opensearch.action.index.IndexRequest;
@@ -164,6 +166,33 @@ public class StateStore {
       }
     } catch (IOException e) {
       throw new RuntimeException(e);
+    }
+  }
+
+  /**
+   * Delete the index state document with the given ID.
+   *
+   * @param sid index state doc ID
+   * @param indexName index store index name
+   * @return true if deleted, otherwise false
+   */
+  @VisibleForTesting
+  public boolean delete(String sid, String indexName) {
+    try {
+      // No action if the index doesn't exist
+      if (!this.clusterService.state().routingTable().hasIndex(indexName)) {
+        return true;
+      }
+
+      try (ThreadContext.StoredContext ignored =
+          client.threadPool().getThreadContext().stashContext()) {
+        DeleteRequest deleteRequest = new DeleteRequest(indexName, sid);
+        DeleteResponse deleteResponse = client.delete(deleteRequest).actionGet();
+        return deleteResponse.getResult() == DocWriteResponse.Result.DELETED;
+      }
+    } catch (Exception e) {
+      throw new RuntimeException(
+          String.format("Failed to delete index state doc %s in index %s", sid, indexName), e);
     }
   }
 
@@ -326,6 +355,16 @@ public class StateStore {
     return (st) ->
         stateStore.create(
             st, FlintIndexStateModel::copy, DATASOURCE_TO_REQUEST_INDEX.apply(datasourceName));
+  }
+
+  /**
+   * @param stateStore index state store
+   * @param datasourceName data source name
+   * @return function that accepts index state doc ID and perform the deletion
+   */
+  public static Function<String, Boolean> deleteFlintIndexState(
+      StateStore stateStore, String datasourceName) {
+    return (docId) -> stateStore.delete(docId, DATASOURCE_TO_REQUEST_INDEX.apply(datasourceName));
   }
 
   public static Function<IndexDMLResult, IndexDMLResult> createIndexDMLResult(

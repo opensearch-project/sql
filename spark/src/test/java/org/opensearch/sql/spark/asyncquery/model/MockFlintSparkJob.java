@@ -38,6 +38,11 @@ public class MockFlintSparkJob {
     stateModel = StateStore.createFlintIndexState(stateStore, datasource).apply(stateModel);
   }
 
+  public void transition(FlintIndexState newState) {
+    stateModel =
+        StateStore.updateFlintIndexState(stateStore, datasource).apply(stateModel, newState);
+  }
+
   public void refreshing() {
     stateModel =
         StateStore.updateFlintIndexState(stateStore, datasource)

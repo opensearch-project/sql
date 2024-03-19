@@ -29,7 +29,7 @@ import org.opensearch.sql.spark.rest.model.LangType;
 public class IndexQuerySpecTest extends AsyncQueryExecutorServiceSpec {
   public final String REFRESH_SI = "REFRESH SKIPPING INDEX on mys3.default.http_logs";
   public final String REFRESH_CI = "REFRESH INDEX covering ON mys3.default.http_logs";
-  public final String REFRESH_MV = "REFRESH MATERIALIZED VIEW mv";
+  public final String REFRESH_MV = "REFRESH MATERIALIZED VIEW mys3.default.http_logs_metrics";
 
   public final FlintDatasetMock LEGACY_SKIPPING =
       new FlintDatasetMock(
@@ -47,7 +47,10 @@ public class IndexQuerySpecTest extends AsyncQueryExecutorServiceSpec {
           .isLegacy(true);
   public final FlintDatasetMock LEGACY_MV =
       new FlintDatasetMock(
-              "DROP MATERIALIZED VIEW mv", REFRESH_MV, FlintIndexType.MATERIALIZED_VIEW, "flint_mv")
+              "DROP MATERIALIZED VIEW mys3.default.http_logs_metrics",
+              REFRESH_MV,
+              FlintIndexType.MATERIALIZED_VIEW,
+              "flint_mys3_default_http_logs_metrics")
           .isLegacy(true);
 
   public final FlintDatasetMock SKIPPING =
@@ -56,18 +59,21 @@ public class IndexQuerySpecTest extends AsyncQueryExecutorServiceSpec {
               REFRESH_SI,
               FlintIndexType.SKIPPING,
               "flint_mys3_default_http_logs_skipping_index")
-          .latestId("skippingindexid");
+          .latestId("ZmxpbnRfbXlzM19kZWZhdWx0X2h0dHBfbG9nc19za2lwcGluZ19pbmRleA==");
   public final FlintDatasetMock COVERING =
       new FlintDatasetMock(
               "DROP INDEX covering ON mys3.default.http_logs",
               REFRESH_CI,
               FlintIndexType.COVERING,
               "flint_mys3_default_http_logs_covering_index")
-          .latestId("coveringid");
+          .latestId("ZmxpbnRfbXlzM19kZWZhdWx0X2h0dHBfbG9nc19jb3ZlcmluZ19pbmRleA==");
   public final FlintDatasetMock MV =
       new FlintDatasetMock(
-              "DROP MATERIALIZED VIEW mv", REFRESH_MV, FlintIndexType.MATERIALIZED_VIEW, "flint_mv")
-          .latestId("mvid");
+              "DROP MATERIALIZED VIEW mys3.default.http_logs_metrics",
+              REFRESH_MV,
+              FlintIndexType.MATERIALIZED_VIEW,
+              "flint_mys3_default_http_logs_metrics")
+          .latestId("ZmxpbnRfbXlzM19kZWZhdWx0X2h0dHBfbG9nc19tZXRyaWNz");
   public final String CREATE_SI_AUTO =
       "CREATE SKIPPING INDEX ON mys3.default.http_logs"
           + "(l_orderkey VALUE_SET) WITH (auto_refresh = true)";
@@ -77,7 +83,7 @@ public class IndexQuerySpecTest extends AsyncQueryExecutorServiceSpec {
           + "(l_orderkey, l_quantity) WITH (auto_refresh = true)";
 
   public final String CREATE_MV_AUTO =
-      "CREATE MATERIALIZED VIEW mv AS select * "
+      "CREATE MATERIALIZED VIEW mys3.default.http_logs_metrics AS select * "
           + "from mys3.default.https WITH (auto_refresh = true)";
 
   /**

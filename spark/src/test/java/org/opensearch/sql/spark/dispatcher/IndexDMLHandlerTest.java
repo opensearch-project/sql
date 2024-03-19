@@ -24,6 +24,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.opensearch.client.Client;
 import org.opensearch.sql.datasource.model.DataSourceMetadata;
 import org.opensearch.sql.datasource.model.DataSourceType;
 import org.opensearch.sql.spark.client.EMRServerlessClient;
@@ -46,10 +47,12 @@ class IndexDMLHandlerTest {
   @Mock private JobExecutionResponseReader jobExecutionResponseReader;
   @Mock private FlintIndexMetadataService flintIndexMetadataService;
   @Mock private StateStore stateStore;
+  @Mock private Client client;
 
   @Test
   public void getResponseFromExecutor() {
-    JSONObject result = new IndexDMLHandler(null, null, null, null).getResponseFromExecutor(null);
+    JSONObject result =
+        new IndexDMLHandler(null, null, null, null, null).getResponseFromExecutor(null);
 
     assertEquals("running", result.getString(STATUS_FIELD));
     assertEquals("", result.getString(ERROR_FIELD));
@@ -59,7 +62,11 @@ class IndexDMLHandlerTest {
   public void testWhenIndexDetailsAreNotFound() {
     IndexDMLHandler indexDMLHandler =
         new IndexDMLHandler(
-            emrServerlessClient, jobExecutionResponseReader, flintIndexMetadataService, stateStore);
+            emrServerlessClient,
+            jobExecutionResponseReader,
+            flintIndexMetadataService,
+            stateStore,
+            client);
     DispatchQueryRequest dispatchQueryRequest =
         new DispatchQueryRequest(
             EMRS_APPLICATION_ID,
@@ -97,7 +104,11 @@ class IndexDMLHandlerTest {
     FlintIndexMetadata flintIndexMetadata = mock(FlintIndexMetadata.class);
     IndexDMLHandler indexDMLHandler =
         new IndexDMLHandler(
-            emrServerlessClient, jobExecutionResponseReader, flintIndexMetadataService, stateStore);
+            emrServerlessClient,
+            jobExecutionResponseReader,
+            flintIndexMetadataService,
+            stateStore,
+            client);
     DispatchQueryRequest dispatchQueryRequest =
         new DispatchQueryRequest(
             EMRS_APPLICATION_ID,
