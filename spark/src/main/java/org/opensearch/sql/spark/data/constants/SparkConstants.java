@@ -19,11 +19,11 @@ public class SparkConstants {
 
   // EMR-S will download JAR to local maven
   public static final String SPARK_SQL_APPLICATION_JAR =
-      "file:///home/hadoop/.ivy2/jars/org.opensearch_opensearch-spark-sql-application_2.12-0.1.0-SNAPSHOT.jar";
+      "file:///home/hadoop/.ivy2/jars/org.opensearch_opensearch-spark-sql-application_2.12-0.3.0-SNAPSHOT.jar";
   public static final String SPARK_REQUEST_BUFFER_INDEX_NAME = ".query_execution_request";
   // TODO should be replaced with mvn jar.
   public static final String FLINT_INTEGRATION_JAR =
-      "s3://spark-datasource/flint-spark-integration-assembly-0.1.0-SNAPSHOT.jar";
+      "s3://spark-datasource/flint-spark-integration-assembly-0.3.0-SNAPSHOT.jar";
   // TODO should be replaced with mvn jar.
   public static final String FLINT_DEFAULT_CLUSTER_NAME = "opensearch-cluster";
   public static final String FLINT_DEFAULT_HOST = "localhost";
@@ -70,11 +70,11 @@ public class SparkConstants {
   public static final String DEFAULT_GLUE_CATALOG_CREDENTIALS_PROVIDER_FACTORY_KEY =
       "com.amazonaws.glue.catalog.metastore.STSAssumeRoleSessionCredentialsProviderFactory";
   public static final String SPARK_STANDALONE_PACKAGE =
-      "org.opensearch:opensearch-spark-standalone_2.12:0.1.0-SNAPSHOT";
+      "org.opensearch:opensearch-spark-standalone_2.12:0.3.0-SNAPSHOT";
   public static final String SPARK_LAUNCHER_PACKAGE =
-      "org.opensearch:opensearch-spark-sql-application_2.12:0.1.0-SNAPSHOT";
+      "org.opensearch:opensearch-spark-sql-application_2.12:0.3.0-SNAPSHOT";
   public static final String PPL_STANDALONE_PACKAGE =
-      "org.opensearch:opensearch-spark-ppl_2.12:0.1.0-SNAPSHOT";
+      "org.opensearch:opensearch-spark-ppl_2.12:0.3.0-SNAPSHOT";
   public static final String AWS_SNAPSHOT_REPOSITORY =
       "https://aws.oss.sonatype.org/content/repositories/snapshots";
   public static final String GLUE_HIVE_CATALOG_FACTORY_CLASS =
