@@ -86,7 +86,8 @@ public class SparkSubmitParameters {
     }
 
     public Builder query(String query) {
-      config.put(FLINT_JOB_QUERY, query);
+      String wrappedQuery = "\"" + query + "\""; // Wrap the query with double quotes
+      config.put(FLINT_JOB_QUERY, wrappedQuery);
       return this;
     }
 
