@@ -133,7 +133,18 @@ public class ClusterManagerEventListener implements LocalNodeClusterManagerListe
             }
           });
     }
-    initializeStreamingJobHouseKeeperCron();
+
+    if (flintStreamingJobHouseKeeperCron == null) {
+      initializeStreamingJobHouseKeeperCron();
+      clusterService.addLifecycleListener(
+          new LifecycleListener() {
+            @Override
+            public void beforeStop() {
+              cancel(flintStreamingJobHouseKeeperCron);
+              flintStreamingJobHouseKeeperCron = null;
+            }
+          });
+    }
   }
 
   private void initializeStreamingJobHouseKeeperCron() {
