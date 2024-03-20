@@ -68,6 +68,14 @@ public class DataSourceAPIsIT extends PPLIntegTestCase {
     deleteRequest = getDeleteDataSourceRequest("duplicate_prometheus");
     deleteResponse = client().performRequest(deleteRequest);
     Assert.assertEquals(204, deleteResponse.getStatusLine().getStatusCode());
+
+    deleteRequest = getDeleteDataSourceRequest("patch_prometheus");
+    deleteResponse = client().performRequest(deleteRequest);
+    Assert.assertEquals(204, deleteResponse.getStatusLine().getStatusCode());
+
+    deleteRequest = getDeleteDataSourceRequest("old_prometheus");
+    deleteResponse = client().performRequest(deleteRequest);
+    Assert.assertEquals(204, deleteResponse.getStatusLine().getStatusCode());
   }
 
   @SneakyThrows
