@@ -160,7 +160,7 @@ public class EmrServerlessClientImplTest {
         .thenReturn(new CancelJobRunResult().withJobRunId(EMR_JOB_ID));
     EmrServerlessClientImpl emrServerlessClient = new EmrServerlessClientImpl(emrServerless);
     CancelJobRunResult cancelJobRunResult =
-        emrServerlessClient.cancelJobRun(EMRS_APPLICATION_ID, EMR_JOB_ID);
+        emrServerlessClient.cancelJobRun(EMRS_APPLICATION_ID, EMR_JOB_ID, false);
     Assertions.assertEquals(EMR_JOB_ID, cancelJobRunResult.getJobRunId());
   }
 
@@ -169,7 +169,8 @@ public class EmrServerlessClientImplTest {
     doThrow(new RuntimeException()).when(emrServerless).cancelJobRun(any());
     EmrServerlessClientImpl emrServerlessClient = new EmrServerlessClientImpl(emrServerless);
     Assertions.assertThrows(
-        RuntimeException.class, () -> emrServerlessClient.cancelJobRun(EMRS_APPLICATION_ID, "123"));
+        RuntimeException.class,
+        () -> emrServerlessClient.cancelJobRun(EMRS_APPLICATION_ID, "123", false));
   }
 
   @Test
@@ -179,8 +180,29 @@ public class EmrServerlessClientImplTest {
     RuntimeException runtimeException =
         Assertions.assertThrows(
             RuntimeException.class,
-            () -> emrServerlessClient.cancelJobRun(EMRS_APPLICATION_ID, EMR_JOB_ID));
+            () -> emrServerlessClient.cancelJobRun(EMRS_APPLICATION_ID, EMR_JOB_ID, false));
     Assertions.assertEquals("Internal Server Error.", runtimeException.getMessage());
+  }
+
+  @Test
+  void testCancelJobRunWithNativeEMRExceptionWithValidationException() {
+    doThrow(new ValidationException("Error")).when(emrServerless).cancelJobRun(any());
+    EmrServerlessClientImpl emrServerlessClient = new EmrServerlessClientImpl(emrServerless);
+    ValidationException validationException =
+        Assertions.assertThrows(
+            ValidationException.class,
+            () -> emrServerlessClient.cancelJobRun(EMRS_APPLICATION_ID, EMR_JOB_ID, true));
+    Assertions.assertTrue(validationException.getMessage().contains("Error"));
+  }
+
+  @Test
+  void testCancelJobRunWithNativeEMRException() {
+    when(emrServerless.cancelJobRun(any()))
+        .thenReturn(new CancelJobRunResult().withJobRunId(EMR_JOB_ID));
+    EmrServerlessClientImpl emrServerlessClient = new EmrServerlessClientImpl(emrServerless);
+    CancelJobRunResult cancelJobRunResult =
+        emrServerlessClient.cancelJobRun(EMRS_APPLICATION_ID, EMR_JOB_ID, true);
+    Assertions.assertEquals(EMR_JOB_ID, cancelJobRunResult.getJobRunId());
   }
 
   @Test

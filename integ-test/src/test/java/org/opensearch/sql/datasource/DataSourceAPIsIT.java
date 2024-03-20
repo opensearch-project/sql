@@ -11,7 +11,10 @@ import static org.opensearch.sql.datasources.utils.XContentParserUtils.ALLOWED_R
 import static org.opensearch.sql.datasources.utils.XContentParserUtils.DESCRIPTION_FIELD;
 import static org.opensearch.sql.datasources.utils.XContentParserUtils.NAME_FIELD;
 import static org.opensearch.sql.datasources.utils.XContentParserUtils.STATUS_FIELD;
+import static org.opensearch.sql.legacy.TestUtils.createIndexByRestClient;
 import static org.opensearch.sql.legacy.TestUtils.getResponseBody;
+import static org.opensearch.sql.legacy.TestUtils.isIndexExist;
+import static org.opensearch.sql.legacy.TestUtils.loadDataByRestClient;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.gson.Gson;
@@ -36,11 +39,6 @@ import org.opensearch.sql.datasource.model.DataSourceType;
 import org.opensearch.sql.ppl.PPLIntegTestCase;
 
 public class DataSourceAPIsIT extends PPLIntegTestCase {
-
-  @Override
-  protected void init() throws Exception {
-    loadIndex(Index.DATASOURCES);
-  }
 
   @After
   public void cleanUp() throws IOException {
@@ -397,6 +395,16 @@ public class DataSourceAPIsIT extends PPLIntegTestCase {
   @SneakyThrows
   @Test
   public void testOldDataSourceModelLoadingThroughGetDataSourcesAPI() {
+    Index index = Index.DATASOURCES;
+    String indexName = index.getName();
+    String mapping = index.getMapping();
+    String dataSet = index.getDataSet();
+    if (!isIndexExist(client(), indexName)) {
+      createIndexByRestClient(client(), indexName, mapping);
+    }
+    loadDataByRestClient(client(), indexName, dataSet);
+    // waiting for loaded indices.
+    Thread.sleep(1000);
     // get datasource to validate the creation.
     Request getRequest = getFetchDataSourceRequest(null);
     Response getResponse = client().performRequest(getRequest);

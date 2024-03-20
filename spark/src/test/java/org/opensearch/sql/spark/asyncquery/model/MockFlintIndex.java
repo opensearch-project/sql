@@ -5,7 +5,6 @@
 
 package org.opensearch.sql.spark.asyncquery.model;
 
-import java.util.HashMap;
 import java.util.Map;
 import lombok.Getter;
 import lombok.SneakyThrows;
@@ -55,7 +54,7 @@ public class MockFlintIndex {
         .getSourceAsMap();
   }
 
-  public void updateIndexOptions(HashMap<String, Object> newOptions, Boolean replaceCompletely) {
+  public void updateIndexOptions(Map<String, Object> newOptions, Boolean replaceCompletely) {
     GetMappingsResponse mappingsResponse =
         client.admin().indices().prepareGetMappings().setIndices(indexName).get();
     Map<String, Object> flintMetadataMap =
