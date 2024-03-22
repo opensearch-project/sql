@@ -87,8 +87,8 @@ public class SparkSubmitParameters {
     }
 
     /**
-     * For query in spark submit parameters to be parsed correctly, escape
-     * the characters in the query, then wrap the query with double quotes.
+     * For query in spark submit parameters to be parsed correctly, escape the characters in the
+     * query, then wrap the query with double quotes.
      */
     public Builder query(String query) {
       String escapedQuery = StringEscapeUtils.escapeJava(query);
