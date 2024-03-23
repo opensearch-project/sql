@@ -43,4 +43,12 @@ public class SparkSubmitParametersTest {
     String params = SparkSubmitParameters.Builder.builder().query(rawQuery).build().toString();
     assertTrue(params.contains(expectedQueryInParams));
   }
+
+  @Test
+  public void testBuildQueryStringSpecialCharacter() {
+    String rawQuery = "SELECT '{\"test ,:+\\\"inner\\\"/\\|?#><\"}'";
+    String expectedQueryInParams = "SELECT '{\\\"test ,:+\\\\\\\"inner\\\\\\\"/\\\\|?#><\\\"}'";
+    String params = SparkSubmitParameters.Builder.builder().query(rawQuery).build().toString();
+    assertTrue(params.contains(expectedQueryInParams));
+  }
 }
