@@ -742,7 +742,7 @@ public class SparkQueryDispatcherTest {
 
   @Test
   void testCancelJob() {
-    when(emrServerlessClient.cancelJobRun(EMRS_APPLICATION_ID, EMR_JOB_ID))
+    when(emrServerlessClient.cancelJobRun(EMRS_APPLICATION_ID, EMR_JOB_ID, false))
         .thenReturn(
             new CancelJobRunResult()
                 .withJobRunId(EMR_JOB_ID)
@@ -802,7 +802,7 @@ public class SparkQueryDispatcherTest {
 
   @Test
   void testCancelQueryWithNoSessionId() {
-    when(emrServerlessClient.cancelJobRun(EMRS_APPLICATION_ID, EMR_JOB_ID))
+    when(emrServerlessClient.cancelJobRun(EMRS_APPLICATION_ID, EMR_JOB_ID, false))
         .thenReturn(
             new CancelJobRunResult()
                 .withJobRunId(EMR_JOB_ID)
