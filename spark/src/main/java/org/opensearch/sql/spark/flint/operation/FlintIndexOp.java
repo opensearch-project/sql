@@ -5,10 +5,12 @@
 
 package org.opensearch.sql.spark.flint.operation;
 
+import static org.opensearch.sql.spark.client.EmrServerlessClientImpl.GENERIC_INTERNAL_SERVER_ERROR_MESSAGE;
 import static org.opensearch.sql.spark.execution.statestore.StateStore.deleteFlintIndexState;
 import static org.opensearch.sql.spark.execution.statestore.StateStore.getFlintIndexState;
 import static org.opensearch.sql.spark.execution.statestore.StateStore.updateFlintIndexState;
 
+import com.amazonaws.services.emrserverless.model.ValidationException;
 import java.util.Locale;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
@@ -145,11 +147,18 @@ public abstract class FlintIndexOp {
     String jobId = flintIndexStateModel.getJobId();
     try {
       emrServerlessClient.cancelJobRun(
-          flintIndexStateModel.getApplicationId(), flintIndexStateModel.getJobId());
-    } catch (IllegalArgumentException e) {
-      // handle job does not exist case.
+          flintIndexStateModel.getApplicationId(), flintIndexStateModel.getJobId(), true);
+    } catch (ValidationException e) {
+      // Exception when the job is not in cancellable state and already in terminal state.
+      if (e.getMessage().contains("Job run is not in a cancellable state")) {
+        LOG.error(e);
+        return;
+      } else {
+        throw new RuntimeException(GENERIC_INTERNAL_SERVER_ERROR_MESSAGE);
+      }
+    } catch (Exception e) {
       LOG.error(e);
-      return;
+      throw new RuntimeException(GENERIC_INTERNAL_SERVER_ERROR_MESSAGE);
     }
 
     // pull job state until timeout or cancelled.

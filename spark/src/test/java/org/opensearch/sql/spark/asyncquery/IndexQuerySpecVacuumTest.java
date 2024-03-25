@@ -19,6 +19,7 @@ import static org.opensearch.sql.spark.flint.FlintIndexType.SKIPPING;
 import com.amazonaws.services.emrserverless.model.CancelJobRunResult;
 import com.amazonaws.services.emrserverless.model.GetJobRunResult;
 import com.amazonaws.services.emrserverless.model.JobRun;
+import com.amazonaws.services.emrserverless.model.ValidationException;
 import com.google.common.collect.Lists;
 import java.util.Base64;
 import java.util.List;
@@ -75,7 +76,7 @@ public class IndexQuerySpecVacuumTest extends AsyncQueryExecutorServiceSpec {
                 // Cancel EMR-S job, but not job running
                 Pair.<EMRApiCall, EMRApiCall>of(
                     () -> {
-                      throw new IllegalArgumentException("Job run is not in a cancellable state");
+                      throw new ValidationException("Job run is not in a cancellable state");
                     },
                     DEFAULT_OP)));
 
@@ -177,9 +178,10 @@ public class IndexQuerySpecVacuumTest extends AsyncQueryExecutorServiceSpec {
     LocalEMRSClient emrsClient =
         new LocalEMRSClient() {
           @Override
-          public CancelJobRunResult cancelJobRun(String applicationId, String jobId) {
+          public CancelJobRunResult cancelJobRun(
+              String applicationId, String jobId, boolean allowExceptionPropagation) {
             if (cancelJobRun == DEFAULT_OP) {
-              return super.cancelJobRun(applicationId, jobId);
+              return super.cancelJobRun(applicationId, jobId, allowExceptionPropagation);
             }
             return cancelJobRun.call();
           }
