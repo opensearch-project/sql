@@ -21,6 +21,7 @@ import java.util.Map;
 import java.util.function.Supplier;
 import lombok.AllArgsConstructor;
 import lombok.RequiredArgsConstructor;
+import org.apache.commons.text.StringEscapeUtils;
 import org.opensearch.sql.datasource.model.DataSourceMetadata;
 import org.opensearch.sql.datasource.model.DataSourceType;
 import org.opensearch.sql.datasources.auth.AuthenticationType;
@@ -81,6 +82,17 @@ public class SparkSubmitParameters {
     public Builder clusterName(String clusterName) {
       config.put(SPARK_DRIVER_ENV_FLINT_CLUSTER_NAME_KEY, clusterName);
       config.put(SPARK_EXECUTOR_ENV_FLINT_CLUSTER_NAME_KEY, clusterName);
+      return this;
+    }
+
+    /**
+     * For query in spark submit parameters to be parsed correctly, escape the characters in the
+     * query, then wrap the query with double quotes.
+     */
+    public Builder query(String query) {
+      String escapedQuery = StringEscapeUtils.escapeJava(query);
+      String wrappedQuery = "\"" + escapedQuery + "\"";
+      config.put(FLINT_JOB_QUERY, wrappedQuery);
       return this;
     }
 
