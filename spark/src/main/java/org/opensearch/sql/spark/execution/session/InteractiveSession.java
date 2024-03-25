@@ -80,7 +80,8 @@ public class InteractiveSession implements Session {
     if (model.isEmpty()) {
       throw new IllegalStateException("session does not exist. " + sessionModel.getSessionId());
     } else {
-      serverlessClient.cancelJobRun(sessionModel.getApplicationId(), sessionModel.getJobId());
+      serverlessClient.cancelJobRun(
+          sessionModel.getApplicationId(), sessionModel.getJobId(), false);
     }
   }
 

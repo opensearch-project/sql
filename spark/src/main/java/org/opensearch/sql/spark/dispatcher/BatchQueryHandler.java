@@ -58,7 +58,7 @@ public class BatchQueryHandler extends AsyncQueryHandler {
   @Override
   public String cancelJob(AsyncQueryJobMetadata asyncQueryJobMetadata) {
     emrServerlessClient.cancelJobRun(
-        asyncQueryJobMetadata.getApplicationId(), asyncQueryJobMetadata.getJobId());
+        asyncQueryJobMetadata.getApplicationId(), asyncQueryJobMetadata.getJobId(), false);
     return asyncQueryJobMetadata.getQueryId().getId();
   }
 

@@ -41,5 +41,6 @@ public interface EMRServerlessClient {
    * @param jobId jobId.
    * @return {@link CancelJobRunResult}
    */
-  CancelJobRunResult cancelJobRun(String applicationId, String jobId);
+  CancelJobRunResult cancelJobRun(
+      String applicationId, String jobId, boolean allowExceptionPropagation);
 }

@@ -32,7 +32,7 @@ public class EmrServerlessClientImpl implements EMRServerlessClient {
 
   private static final int MAX_JOB_NAME_LENGTH = 255;
 
-  private static final String GENERIC_INTERNAL_SERVER_ERROR_MESSAGE = "Internal Server Error.";
+  public static final String GENERIC_INTERNAL_SERVER_ERROR_MESSAGE = "Internal Server Error.";
 
   public EmrServerlessClientImpl(AWSEMRServerless emrServerless) {
     this.emrServerless = emrServerless;
@@ -98,7 +98,8 @@ public class EmrServerlessClientImpl implements EMRServerlessClient {
   }
 
   @Override
-  public CancelJobRunResult cancelJobRun(String applicationId, String jobId) {
+  public CancelJobRunResult cancelJobRun(
+      String applicationId, String jobId, boolean allowExceptionPropagation) {
     CancelJobRunRequest cancelJobRunRequest =
         new CancelJobRunRequest().withJobRunId(jobId).withApplicationId(applicationId);
     CancelJobRunResult cancelJobRunResult =
@@ -108,10 +109,14 @@ public class EmrServerlessClientImpl implements EMRServerlessClient {
                   try {
                     return emrServerless.cancelJobRun(cancelJobRunRequest);
                   } catch (Throwable t) {
-                    logger.error("Error while making cancel job request to emr:", t);
-                    MetricUtils.incrementNumericalMetric(
-                        MetricName.EMR_CANCEL_JOB_REQUEST_FAILURE_COUNT);
-                    throw new RuntimeException(GENERIC_INTERNAL_SERVER_ERROR_MESSAGE);
+                    if (allowExceptionPropagation) {
+                      throw t;
+                    } else {
+                      logger.error("Error while making cancel job request to emr:", t);
+                      MetricUtils.incrementNumericalMetric(
+                          MetricName.EMR_CANCEL_JOB_REQUEST_FAILURE_COUNT);
+                      throw new RuntimeException(GENERIC_INTERNAL_SERVER_ERROR_MESSAGE);
+                    }
                   }
                 });
     logger.info(String.format("Job : %s cancelled", cancelJobRunResult.getJobRunId()));
