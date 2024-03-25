@@ -38,6 +38,7 @@ dependencies {
     api group: 'org.apache.logging.log4j', name: 'log4j-core', version:"${versions.log4j}"
     api group: 'org.apache.commons', name: 'commons-lang3', version: '3.12.0'
     api group: 'com.squareup.okhttp3', name: 'okhttp', version: '4.9.3'
+    api group: 'org.apache.commons', name: 'commons-text', version: '1.10.0'
     implementation 'com.github.babbel:okhttp-aws-signer:1.0.2'
     api group: 'com.amazonaws', name: 'aws-java-sdk-core', version: "${aws_java_sdk_version}"
     api group: 'com.amazonaws', name: 'aws-java-sdk-sts', version: "${aws_java_sdk_version}"
