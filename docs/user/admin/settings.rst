@@ -420,7 +420,7 @@ SQL query::
 
 
 plugins.query.executionengine.spark.session_inactivity_timeout_millis
-===============================
+=====================================================================
 
 Description
 -----------
@@ -456,7 +456,7 @@ SQL query::
 
 
 plugins.query.executionengine.spark.auto_index_management.enabled
-===============================
+=================================================================
 
 Description
 -----------
@@ -492,7 +492,7 @@ SQL query::
 
 
 plugins.query.executionengine.spark.session.index.ttl
-===============================
+=====================================================
 
 Description
 -----------
@@ -529,7 +529,7 @@ SQL query::
 
 
 plugins.query.executionengine.spark.result.index.ttl
-===============================
+====================================================
 
 Description
 -----------
@@ -565,7 +565,7 @@ SQL query::
     }
 
 plugins.query.executionengine.async_query.enabled
-===============================
+=================================================
 
 Description
 -----------
@@ -596,7 +596,7 @@ Request::
     }
 
 plugins.query.executionengine.spark.streamingjobs.housekeeper.interval
-===============================
+======================================================================
 
 Description
 -----------

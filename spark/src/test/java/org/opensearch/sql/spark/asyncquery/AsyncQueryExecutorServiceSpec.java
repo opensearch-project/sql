@@ -243,7 +243,8 @@ public class AsyncQueryExecutorServiceSpec extends OpenSearchIntegTestCase {
     }
 
     @Override
-    public CancelJobRunResult cancelJobRun(String applicationId, String jobId) {
+    public CancelJobRunResult cancelJobRun(
+        String applicationId, String jobId, boolean allowExceptionPropagation) {
       cancelJobRunCalled++;
       return new CancelJobRunResult().withJobRunId(jobId);
     }
