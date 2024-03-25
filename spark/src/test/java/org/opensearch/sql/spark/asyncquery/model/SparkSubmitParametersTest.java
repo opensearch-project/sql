@@ -30,8 +30,25 @@ public class SparkSubmitParametersTest {
 
   @Test
   public void testBuildQueryString() {
-    String query = "SHOW tables LIKE \"%\";";
-    String params = SparkSubmitParameters.Builder.builder().query(query).build().toString();
-    assertTrue(params.contains(query));
+    String rawQuery = "SHOW tables LIKE \"%\";";
+    String expectedQueryInParams = "\"SHOW tables LIKE \\\"%\\\";\"";
+    String params = SparkSubmitParameters.Builder.builder().query(rawQuery).build().toString();
+    assertTrue(params.contains(expectedQueryInParams));
+  }
+
+  @Test
+  public void testBuildQueryStringNestedQuote() {
+    String rawQuery = "SELECT '\"1\"'";
+    String expectedQueryInParams = "\"SELECT '\\\"1\\\"'\"";
+    String params = SparkSubmitParameters.Builder.builder().query(rawQuery).build().toString();
+    assertTrue(params.contains(expectedQueryInParams));
+  }
+
+  @Test
+  public void testBuildQueryStringSpecialCharacter() {
+    String rawQuery = "SELECT '{\"test ,:+\\\"inner\\\"/\\|?#><\"}'";
+    String expectedQueryInParams = "SELECT '{\\\"test ,:+\\\\\\\"inner\\\\\\\"/\\\\|?#><\\\"}'";
+    String params = SparkSubmitParameters.Builder.builder().query(rawQuery).build().toString();
+    assertTrue(params.contains(expectedQueryInParams));
   }
 }
