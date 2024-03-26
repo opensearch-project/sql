@@ -108,7 +108,14 @@ public class OpenSearchIndexScan extends TableScanOperator implements Serializab
   public void readExternal(ObjectInput in) throws IOException {
     int reqSize = in.readInt();
     byte[] requestStream = new byte[reqSize];
-    in.read(requestStream);
+    int read = 0;
+    do {
+      int currentRead = in.read(requestStream, read, reqSize - read);
+      if (currentRead == -1) {
+        throw new IOException();
+      }
+      read += currentRead;
+    } while (read < reqSize);
 
     var engine =
         (OpenSearchStorageEngine)
@@ -137,8 +144,8 @@ public class OpenSearchIndexScan extends TableScanOperator implements Serializab
     var reqAsBytes = reqOut.bytes().toBytesRef().bytes;
 
     // 3. Write out the byte[] to object output stream.
-    out.writeInt(reqAsBytes.length);
-    out.write(reqAsBytes);
+    out.writeInt(reqOut.size());
+    out.write(reqAsBytes, 0, reqOut.size());
 
     out.writeInt(maxResponseSize);
   }
