@@ -11,10 +11,7 @@ import static org.opensearch.sql.datasources.utils.XContentParserUtils.ALLOWED_R
 import static org.opensearch.sql.datasources.utils.XContentParserUtils.DESCRIPTION_FIELD;
 import static org.opensearch.sql.datasources.utils.XContentParserUtils.NAME_FIELD;
 import static org.opensearch.sql.datasources.utils.XContentParserUtils.STATUS_FIELD;
-import static org.opensearch.sql.legacy.TestUtils.createIndexByRestClient;
 import static org.opensearch.sql.legacy.TestUtils.getResponseBody;
-import static org.opensearch.sql.legacy.TestUtils.isIndexExist;
-import static org.opensearch.sql.legacy.TestUtils.loadDataByRestClient;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.gson.Gson;
@@ -68,10 +65,6 @@ public class DataSourceAPIsIT extends PPLIntegTestCase {
     Assert.assertEquals(204, deleteResponse.getStatusLine().getStatusCode());
 
     deleteRequest = getDeleteDataSourceRequest("patch_prometheus");
-    deleteResponse = client().performRequest(deleteRequest);
-    Assert.assertEquals(204, deleteResponse.getStatusLine().getStatusCode());
-
-    deleteRequest = getDeleteDataSourceRequest("old_prometheus");
     deleteResponse = client().performRequest(deleteRequest);
     Assert.assertEquals(204, deleteResponse.getStatusLine().getStatusCode());
   }
@@ -390,35 +383,6 @@ public class DataSourceAPIsIT extends PPLIntegTestCase {
     Assert.assertEquals(DISABLED, dataSourceMetadata.getStatus());
     Assert.assertEquals(List.of("role3", "role4"), dataSourceMetadata.getAllowedRoles());
     Assert.assertEquals("test", dataSourceMetadata.getDescription());
-  }
-
-  @SneakyThrows
-  @Test
-  public void testOldDataSourceModelLoadingThroughGetDataSourcesAPI() {
-    Index index = Index.DATASOURCES;
-    String indexName = index.getName();
-    String mapping = index.getMapping();
-    String dataSet = index.getDataSet();
-    if (!isIndexExist(client(), indexName)) {
-      createIndexByRestClient(client(), indexName, mapping);
-    }
-    loadDataByRestClient(client(), indexName, dataSet);
-    // waiting for loaded indices.
-    Thread.sleep(1000);
-    // get datasource to validate the creation.
-    Request getRequest = getFetchDataSourceRequest(null);
-    Response getResponse = client().performRequest(getRequest);
-    Assert.assertEquals(200, getResponse.getStatusLine().getStatusCode());
-    String getResponseString = getResponseBody(getResponse);
-    Type listType = new TypeToken<List<DataSourceMetadata>>() {}.getType();
-    List<DataSourceMetadata> dataSourceMetadataList =
-        new Gson().fromJson(getResponseString, listType);
-    Assert.assertTrue(
-        dataSourceMetadataList.stream()
-            .anyMatch(
-                dataSourceMetadata ->
-                    dataSourceMetadata.getName().equals("old_prometheus")
-                        && dataSourceMetadata.getStatus().equals(ACTIVE)));
   }
 
   public DataSourceMetadata mockDataSourceMetadata(String name) {
