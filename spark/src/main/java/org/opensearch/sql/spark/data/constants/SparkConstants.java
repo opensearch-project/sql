@@ -94,4 +94,15 @@ public class SparkConstants {
   public static final String FLINT_JOB_SESSION_ID = "spark.flint.job.sessionId";
 
   public static final String FLINT_SESSION_CLASS_NAME = "org.apache.spark.sql.FlintREPL";
+
+  public static final String SPARK_CATALOG = "spark.sql.catalog.spark_catalog";
+  public static final String ICEBERG_SESSION_CATALOG =
+      "org.apache.iceberg.spark.SparkSessionCatalog";
+  public static final String ICEBERG_SPARK_EXTENSION =
+      "org.apache.iceberg.spark.extensions.IcebergSparkSessionExtensions";
+  public static final String ICEBERG_SPARK_RUNTIME_PACKAGE =
+      "org.apache.iceberg:iceberg-spark-runtime-3.3_2.12:1.5.0";
+  public static final String SPARK_CATALOG_CATALOG_IMPL =
+      "spark.sql.catalog.spark_catalog.catalog-impl";
+  public static final String ICEBERG_GLUE_CATALOG = "org.apache.iceberg.aws.glue.GlueCatalog";
 }
