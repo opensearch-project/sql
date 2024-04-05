@@ -132,18 +132,6 @@ public class IndexDMLHandler extends AsyncQueryHandler {
         flintIndexOpAlter.apply(indexMetadata);
         break;
       case VACUUM:
-        // Try to perform drop operation first
-        FlintIndexOp tryDropOp =
-            new FlintIndexOpDrop(
-                stateStore, dispatchQueryRequest.getDatasource(), emrServerlessClient);
-        try {
-          tryDropOp.apply(indexMetadata);
-        } catch (IllegalStateException e) {
-          // Drop failed possibly due to invalid initial state
-        }
-
-        // Continue to delete index data physically if state is DELETED
-        // which means previous transaction succeeds
         FlintIndexOp indexVacuumOp =
             new FlintIndexOpVacuum(stateStore, dispatchQueryRequest.getDatasource(), client);
         indexVacuumOp.apply(indexMetadata);

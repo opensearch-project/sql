@@ -19,7 +19,6 @@ import static org.opensearch.sql.spark.flint.FlintIndexType.SKIPPING;
 import com.amazonaws.services.emrserverless.model.CancelJobRunResult;
 import com.amazonaws.services.emrserverless.model.GetJobRunResult;
 import com.amazonaws.services.emrserverless.model.JobRun;
-import com.amazonaws.services.emrserverless.model.ValidationException;
 import com.google.common.collect.Lists;
 import java.util.Base64;
 import java.util.List;
@@ -27,6 +26,7 @@ import java.util.function.BiConsumer;
 import org.apache.commons.lang3.tuple.Pair;
 import org.junit.Test;
 import org.opensearch.action.admin.indices.exists.indices.IndicesExistsRequest;
+import org.opensearch.action.delete.DeleteRequest;
 import org.opensearch.action.get.GetRequest;
 import org.opensearch.sql.spark.asyncquery.model.AsyncQueryExecutionResponse;
 import org.opensearch.sql.spark.asyncquery.model.MockFlintSparkJob;
@@ -63,22 +63,15 @@ public class IndexQuerySpecVacuumTest extends AsyncQueryExecutorServiceSpec {
               .isSpecialCharacter(true));
 
   @Test
-  public void shouldVacuumIndexInRefreshingState() {
+  public void shouldVacuumIndexInDeletedState() {
     List<List<Object>> testCases =
         Lists.cartesianProduct(
             FLINT_TEST_DATASETS,
-            List.of(REFRESHING),
+            List.of(DELETED),
             List.of(
-                // Happy case that there is job running
                 Pair.<EMRApiCall, EMRApiCall>of(
                     DEFAULT_OP,
-                    () -> new GetJobRunResult().withJobRun(new JobRun().withState("Cancelled"))),
-                // Cancel EMR-S job, but not job running
-                Pair.<EMRApiCall, EMRApiCall>of(
-                    () -> {
-                      throw new ValidationException("Job run is not in a cancellable state");
-                    },
-                    DEFAULT_OP)));
+                    () -> new GetJobRunResult().withJobRun(new JobRun().withState("Cancelled")))));
 
     runVacuumTestSuite(
         testCases,
@@ -90,32 +83,11 @@ public class IndexQuerySpecVacuumTest extends AsyncQueryExecutorServiceSpec {
   }
 
   @Test
-  public void shouldNotVacuumIndexInRefreshingStateIfCancelTimeout() {
+  public void shouldNotVacuumIndexInOtherStates() {
     List<List<Object>> testCases =
         Lists.cartesianProduct(
             FLINT_TEST_DATASETS,
-            List.of(REFRESHING),
-            List.of(
-                Pair.<EMRApiCall, EMRApiCall>of(
-                    DEFAULT_OP,
-                    () -> new GetJobRunResult().withJobRun(new JobRun().withState("Running")))));
-
-    runVacuumTestSuite(
-        testCases,
-        (mockDS, response) -> {
-          assertEquals("FAILED", response.getStatus());
-          assertEquals("Cancel job operation timed out.", response.getError());
-          assertTrue(indexExists(mockDS.indexName));
-          assertTrue(indexDocExists(mockDS.latestId));
-        });
-  }
-
-  @Test
-  public void shouldNotVacuumIndexInVacuumingState() {
-    List<List<Object>> testCases =
-        Lists.cartesianProduct(
-            FLINT_TEST_DATASETS,
-            List.of(VACUUMING),
+            List.of(EMPTY, CREATING, ACTIVE, REFRESHING, VACUUMING),
             List.of(
                 Pair.<EMRApiCall, EMRApiCall>of(
                     () -> {
@@ -134,39 +106,29 @@ public class IndexQuerySpecVacuumTest extends AsyncQueryExecutorServiceSpec {
         });
   }
 
-  @Test
-  public void shouldVacuumIndexWithoutJobRunning() {
-    List<List<Object>> testCases =
-        Lists.cartesianProduct(
-            FLINT_TEST_DATASETS,
-            List.of(EMPTY, CREATING, ACTIVE, DELETED),
-            List.of(
-                Pair.<EMRApiCall, EMRApiCall>of(
-                    DEFAULT_OP,
-                    () -> new GetJobRunResult().withJobRun(new JobRun().withState("Cancelled")))));
-
-    runVacuumTestSuite(
-        testCases,
-        (mockDS, response) -> {
-          assertEquals("SUCCESS", response.getStatus());
-          assertFalse(flintIndexExists(mockDS.indexName));
-          assertFalse(indexDocExists(mockDS.latestId));
-        });
-  }
-
   private void runVacuumTestSuite(
       List<List<Object>> testCases,
       BiConsumer<FlintDatasetMock, AsyncQueryExecutionResponse> assertion) {
     testCases.forEach(
         params -> {
           FlintDatasetMock mockDS = (FlintDatasetMock) params.get(0);
-          FlintIndexState state = (FlintIndexState) params.get(1);
-          EMRApiCall cancelJobRun = ((Pair<EMRApiCall, EMRApiCall>) params.get(2)).getLeft();
-          EMRApiCall getJobRunResult = ((Pair<EMRApiCall, EMRApiCall>) params.get(2)).getRight();
+          try {
+            FlintIndexState state = (FlintIndexState) params.get(1);
+            EMRApiCall cancelJobRun = ((Pair<EMRApiCall, EMRApiCall>) params.get(2)).getLeft();
+            EMRApiCall getJobRunResult = ((Pair<EMRApiCall, EMRApiCall>) params.get(2)).getRight();
 
-          AsyncQueryExecutionResponse response =
-              runVacuumTest(mockDS, state, cancelJobRun, getJobRunResult);
-          assertion.accept(mockDS, response);
+            AsyncQueryExecutionResponse response =
+                runVacuumTest(mockDS, state, cancelJobRun, getJobRunResult);
+            assertion.accept(mockDS, response);
+          } finally {
+            // Clean up because we simulate parameterized test in single unit test method
+            if (flintIndexExists(mockDS.indexName)) {
+              mockDS.deleteIndex();
+            }
+            if (indexDocExists(mockDS.latestId)) {
+              deleteIndexDoc(mockDS.latestId);
+            }
+          }
         });
   }
 
@@ -227,6 +189,10 @@ public class IndexQuerySpecVacuumTest extends AsyncQueryExecutorServiceSpec {
         .get(new GetRequest(DATASOURCE_TO_REQUEST_INDEX.apply("mys3"), docId))
         .actionGet()
         .isExists();
+  }
+
+  private void deleteIndexDoc(String docId) {
+    client.delete(new DeleteRequest(DATASOURCE_TO_REQUEST_INDEX.apply("mys3"), docId)).actionGet();
   }
 
   private FlintDatasetMock mockDataset(String query, FlintIndexType indexType, String indexName) {
