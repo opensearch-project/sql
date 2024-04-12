@@ -21,6 +21,7 @@ import static org.opensearch.sql.spark.constants.TestConstants.QUERY;
 import static org.opensearch.sql.spark.constants.TestConstants.SPARK_SUBMIT_PARAMETERS;
 
 import com.amazonaws.services.emrserverless.AWSEMRServerless;
+import com.amazonaws.services.emrserverless.model.AWSEMRServerlessException;
 import com.amazonaws.services.emrserverless.model.CancelJobRunResult;
 import com.amazonaws.services.emrserverless.model.GetJobRunResult;
 import com.amazonaws.services.emrserverless.model.JobRun;
@@ -97,7 +98,9 @@ public class EmrServerlessClientImplTest {
 
   @Test
   void testStartJobRunWithErrorMetric() {
-    doThrow(new ValidationException("Couldn't start job")).when(emrServerless).startJobRun(any());
+    doThrow(new AWSEMRServerlessException("Couldn't start job"))
+        .when(emrServerless)
+        .startJobRun(any());
     EmrServerlessClientImpl emrServerlessClient = new EmrServerlessClientImpl(emrServerless);
     RuntimeException runtimeException =
         Assertions.assertThrows(
@@ -223,5 +226,34 @@ public class EmrServerlessClientImplTest {
     verify(emrServerless, times(1)).startJobRun(startJobRunRequestArgumentCaptor.capture());
     StartJobRunRequest startJobRunRequest = startJobRunRequestArgumentCaptor.getValue();
     Assertions.assertEquals(255, startJobRunRequest.getName().length());
+  }
+
+  @Test
+  void testStartJobRunThrowsValidationException() {
+    when(emrServerless.startJobRun(any())).thenThrow(new ValidationException("Unmatched quote"));
+    EmrServerlessClientImpl emrServerlessClient = new EmrServerlessClientImpl(emrServerless);
+
+    IllegalArgumentException exception =
+        Assertions.assertThrows(
+            IllegalArgumentException.class,
+            () ->
+                emrServerlessClient.startJobRun(
+                    new StartJobRequest(
+                        EMRS_JOB_NAME,
+                        EMRS_APPLICATION_ID,
+                        EMRS_EXECUTION_ROLE,
+                        SPARK_SUBMIT_PARAMETERS,
+                        new HashMap<>(),
+                        false,
+                        DEFAULT_RESULT_INDEX)),
+            "Expected ValidationException to be thrown");
+
+    // Verify that the message in the exception is correct
+    Assertions.assertEquals(
+        "The input fails to satisfy the constraints specified by AWS EMR Serverless.",
+        exception.getMessage());
+
+    // Optionally verify that no job run is started
+    verify(emrServerless, times(1)).startJobRun(any());
   }
 }
