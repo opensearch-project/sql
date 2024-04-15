@@ -15,7 +15,6 @@ import org.apache.logging.log4j.Logger;
 import org.opensearch.index.engine.DocumentMissingException;
 import org.opensearch.index.engine.VersionConflictEngineException;
 import org.opensearch.sql.spark.execution.session.SessionId;
-import org.opensearch.sql.spark.execution.statestore.StateStore;
 import org.opensearch.sql.spark.rest.model.LangType;
 
 /** Statement represent query to execute in session. One statement map to one session. */
@@ -32,7 +31,6 @@ public class Statement {
   private final String datasourceName;
   private final String query;
   private final String queryId;
-  private final StateStore stateStore;
   private final StatementStorageService statementStorageService;
 
   @Setter private StatementModel statementModel;

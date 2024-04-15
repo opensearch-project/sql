@@ -15,7 +15,6 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.json.JSONObject;
-import org.opensearch.client.Client;
 import org.opensearch.sql.datasource.model.DataSourceMetadata;
 import org.opensearch.sql.spark.asyncquery.model.AsyncQueryId;
 import org.opensearch.sql.spark.asyncquery.model.AsyncQueryJobMetadata;
@@ -53,8 +52,6 @@ public class IndexDMLHandler extends AsyncQueryHandler {
 
   private final FlintIndexStateModelService flintIndexStateModelService;
   private final IndexDMLResultStorageService indexDMLResultStorageService;
-
-  private final Client client;
 
   public static boolean isIndexDMLQuery(String jobId) {
     return DROP_INDEX_JOB_ID.equalsIgnoreCase(jobId) || DML_QUERY_JOB_ID.equalsIgnoreCase(jobId);
@@ -137,7 +134,9 @@ public class IndexDMLHandler extends AsyncQueryHandler {
       case VACUUM:
         FlintIndexOp indexVacuumOp =
             new FlintIndexOpVacuum(
-                flintIndexStateModelService, dispatchQueryRequest.getDatasource(), client);
+                flintIndexStateModelService,
+                dispatchQueryRequest.getDatasource(),
+                flintIndexMetadataService);
         indexVacuumOp.apply(indexMetadata);
         break;
       default:
@@ -163,7 +162,7 @@ public class IndexDMLHandler extends AsyncQueryHandler {
   protected JSONObject getResponseFromResultIndex(AsyncQueryJobMetadata asyncQueryJobMetadata) {
     String queryId = asyncQueryJobMetadata.getQueryId().getId();
     return jobExecutionResponseReader.getResultWithQueryId(
-        queryId, asyncQueryJobMetadata.getResultIndex());
+        queryId, asyncQueryJobMetadata.getResultLocation());
   }
 
   @Override

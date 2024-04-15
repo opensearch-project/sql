@@ -9,7 +9,6 @@ import java.util.HashMap;
 import java.util.Map;
 import lombok.AllArgsConstructor;
 import org.json.JSONObject;
-import org.opensearch.client.Client;
 import org.opensearch.sql.datasource.DataSourceService;
 import org.opensearch.sql.datasource.model.DataSourceMetadata;
 import org.opensearch.sql.spark.asyncquery.model.AsyncQueryId;
@@ -47,8 +46,6 @@ public class SparkQueryDispatcher {
   private JobExecutionResponseReader jobExecutionResponseReader;
 
   private FlintIndexMetadataService flintIndexMetadataService;
-
-  private Client client;
 
   private SessionManager sessionManager;
 
@@ -166,8 +163,7 @@ public class SparkQueryDispatcher {
         jobExecutionResponseReader,
         flintIndexMetadataService,
         flintIndexStateModelService,
-        indexDMLResultStorageService,
-        client);
+        indexDMLResultStorageService);
   }
 
   // TODO: Revisit this logic.

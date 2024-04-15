@@ -511,6 +511,9 @@ public class FlintStreamingJobHouseKeeperTaskTest extends AsyncQueryExecutorServ
           @Override
           public void updateIndexToManualRefresh(
               String indexName, FlintIndexOptions flintIndexOptions) {}
+
+          @Override
+          public void deleteFlintIndex(String indexName) {}
         };
     FlintStreamingJobHouseKeeperTask flintStreamingJobHouseKeeperTask =
         new FlintStreamingJobHouseKeeperTask(

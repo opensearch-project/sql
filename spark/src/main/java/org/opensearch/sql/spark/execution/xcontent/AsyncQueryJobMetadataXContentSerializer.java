@@ -35,7 +35,7 @@ public class AsyncQueryJobMetadataXContentSerializer
         .field("type", TYPE_JOBMETA)
         .field("jobId", jobMetadata.getJobId())
         .field("applicationId", jobMetadata.getApplicationId())
-        .field("resultIndex", jobMetadata.getResultIndex())
+        .field("resultIndex", jobMetadata.getResultLocation())
         .field("sessionId", jobMetadata.getSessionId())
         .field(DATASOURCE_NAME, jobMetadata.getDatasourceName())
         .field(JOB_TYPE, jobMetadata.getJobType().getText().toLowerCase(Locale.ROOT))

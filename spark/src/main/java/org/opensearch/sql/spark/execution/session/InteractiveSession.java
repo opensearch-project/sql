@@ -24,7 +24,6 @@ import org.opensearch.sql.spark.execution.statement.Statement;
 import org.opensearch.sql.spark.execution.statement.StatementId;
 import org.opensearch.sql.spark.execution.statement.StatementStorageService;
 import org.opensearch.sql.spark.execution.statestore.SessionStorageService;
-import org.opensearch.sql.spark.execution.statestore.StateStore;
 import org.opensearch.sql.spark.rest.model.LangType;
 import org.opensearch.sql.spark.utils.TimeProvider;
 
@@ -41,7 +40,6 @@ public class InteractiveSession implements Session {
   public static final String SESSION_ID_TAG_KEY = "sid";
 
   private final SessionId sessionId;
-  private final StateStore stateStore;
   private final StatementStorageService statementStorageService;
   private final SessionStorageService sessionStorageService;
   private final EMRServerlessClient serverlessClient;
@@ -103,7 +101,6 @@ public class InteractiveSession implements Session {
                 .sessionId(sessionId)
                 .applicationId(sessionModel.getApplicationId())
                 .jobId(sessionModel.getJobId())
-                .stateStore(stateStore)
                 .statementStorageService(statementStorageService)
                 .statementId(statementId)
                 .langType(LangType.SQL)
@@ -139,7 +136,6 @@ public class InteractiveSession implements Session {
                     .langType(model.getLangType())
                     .query(model.getQuery())
                     .queryId(model.getQueryId())
-                    .stateStore(stateStore)
                     .statementStorageService(statementStorageService)
                     .statementModel(model)
                     .build());

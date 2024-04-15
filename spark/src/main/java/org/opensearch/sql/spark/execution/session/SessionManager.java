@@ -5,15 +5,12 @@
 
 package org.opensearch.sql.spark.execution.session;
 
-import static org.opensearch.sql.common.setting.Settings.Key.SESSION_INACTIVITY_TIMEOUT_MILLIS;
 import static org.opensearch.sql.spark.execution.session.SessionId.newSessionId;
 
 import java.util.Optional;
-import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.spark.client.EMRServerlessClientFactory;
 import org.opensearch.sql.spark.execution.statement.StatementStorageService;
 import org.opensearch.sql.spark.execution.statestore.SessionStorageService;
-import org.opensearch.sql.spark.execution.statestore.StateStore;
 import org.opensearch.sql.spark.utils.RealTimeProvider;
 
 /**
@@ -22,31 +19,26 @@ import org.opensearch.sql.spark.utils.RealTimeProvider;
  * <p>todo. add Session cache and Session sweeper.
  */
 public class SessionManager {
-  private final StateStore stateStore;
   private final StatementStorageService statementStorageService;
-
   private final SessionStorageService sessionStorageService;
   private final EMRServerlessClientFactory emrServerlessClientFactory;
-  private Settings settings;
+  private SessionConfigSupplier sessionConfigSupplier;
 
   public SessionManager(
-      StateStore stateStore,
       StatementStorageService statementStorageService,
       SessionStorageService sessionStorageService,
       EMRServerlessClientFactory emrServerlessClientFactory,
-      Settings settings) {
-    this.stateStore = stateStore;
+      SessionConfigSupplier sessionConfigSupplier) {
     this.statementStorageService = statementStorageService;
     this.sessionStorageService = sessionStorageService;
     this.emrServerlessClientFactory = emrServerlessClientFactory;
-    this.settings = settings;
+    this.sessionConfigSupplier = sessionConfigSupplier;
   }
 
   public Session createSession(CreateSessionRequest request) {
     InteractiveSession session =
         InteractiveSession.builder()
             .sessionId(newSessionId(request.getDatasourceName()))
-            .stateStore(stateStore)
             .statementStorageService(statementStorageService)
             .sessionStorageService(sessionStorageService)
             .serverlessClient(emrServerlessClientFactory.getClient())
@@ -80,13 +72,12 @@ public class SessionManager {
       InteractiveSession session =
           InteractiveSession.builder()
               .sessionId(sid)
-              .stateStore(stateStore)
               .statementStorageService(statementStorageService)
               .sessionStorageService(sessionStorageService)
               .serverlessClient(emrServerlessClientFactory.getClient())
               .sessionModel(model.get())
               .sessionInactivityTimeoutMilli(
-                  settings.getSettingValue(SESSION_INACTIVITY_TIMEOUT_MILLIS))
+                  sessionConfigSupplier.getSessionInactivityTimeoutMillis())
               .timeProvider(new RealTimeProvider())
               .build();
       return Optional.ofNullable(session);

@@ -20,6 +20,7 @@ import org.junit.Before;
 import org.junit.Test;
 import org.opensearch.action.admin.indices.delete.DeleteIndexRequest;
 import org.opensearch.action.delete.DeleteRequest;
+import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.spark.asyncquery.model.AsyncQueryId;
 import org.opensearch.sql.spark.client.EMRServerlessClientFactory;
 import org.opensearch.sql.spark.execution.session.InteractiveSessionTest;
@@ -70,7 +71,6 @@ public class StatementTest extends OpenSearchIntegTestCase {
             .datasourceName(DS_NAME)
             .query("query")
             .queryId("statementId")
-            .stateStore(stateStore)
             .statementStorageService(statementStorageService)
             .build();
 
@@ -97,7 +97,6 @@ public class StatementTest extends OpenSearchIntegTestCase {
             .datasourceName(DS_NAME)
             .query("query")
             .queryId("statementId")
-            .stateStore(stateStore)
             .statementStorageService(statementStorageService)
             .build();
     st.open();
@@ -113,7 +112,6 @@ public class StatementTest extends OpenSearchIntegTestCase {
             .datasourceName(DS_NAME)
             .query("query")
             .queryId("statementId")
-            .stateStore(stateStore)
             .statementStorageService(statementStorageService)
             .build();
     IllegalStateException exception = assertThrows(IllegalStateException.class, dupSt::open);
@@ -133,7 +131,6 @@ public class StatementTest extends OpenSearchIntegTestCase {
             .datasourceName(DS_NAME)
             .query("query")
             .queryId("statementId")
-            .stateStore(stateStore)
             .statementStorageService(statementStorageService)
             .build();
     st.open();
@@ -159,7 +156,6 @@ public class StatementTest extends OpenSearchIntegTestCase {
             .datasourceName(DS_NAME)
             .query("query")
             .queryId("statementId")
-            .stateStore(stateStore)
             .statementStorageService(statementStorageService)
             .build();
     st.open();
@@ -248,7 +244,6 @@ public class StatementTest extends OpenSearchIntegTestCase {
             .datasourceName(DS_NAME)
             .query("query")
             .queryId("statementId")
-            .stateStore(stateStore)
             .statementStorageService(statementStorageService)
             .build();
 
@@ -270,11 +265,12 @@ public class StatementTest extends OpenSearchIntegTestCase {
     EMRServerlessClientFactory emrServerlessClientFactory = () -> emrsClient;
     Session session =
         new SessionManager(
-                stateStore,
                 statementStorageService,
                 sessionStorageService,
                 emrServerlessClientFactory,
-                sessionSetting())
+                () ->
+                    sessionSetting()
+                        .getSettingValue(Settings.Key.SESSION_INACTIVITY_TIMEOUT_MILLIS))
             .createSession(createSessionRequest());
 
     // App change state to running
@@ -290,11 +286,12 @@ public class StatementTest extends OpenSearchIntegTestCase {
     EMRServerlessClientFactory emrServerlessClientFactory = () -> emrsClient;
     Session session =
         new SessionManager(
-                stateStore,
                 statementStorageService,
                 sessionStorageService,
                 emrServerlessClientFactory,
-                sessionSetting())
+                () ->
+                    sessionSetting()
+                        .getSettingValue(Settings.Key.SESSION_INACTIVITY_TIMEOUT_MILLIS))
             .createSession(createSessionRequest());
 
     StatementId statementId = session.submit(queryRequest());
@@ -306,11 +303,12 @@ public class StatementTest extends OpenSearchIntegTestCase {
     EMRServerlessClientFactory emrServerlessClientFactory = () -> emrsClient;
     Session session =
         new SessionManager(
-                stateStore,
                 statementStorageService,
                 sessionStorageService,
                 emrServerlessClientFactory,
-                sessionSetting())
+                () ->
+                    sessionSetting()
+                        .getSettingValue(Settings.Key.SESSION_INACTIVITY_TIMEOUT_MILLIS))
             .createSession(createSessionRequest());
 
     sessionStorageService.updateSessionState(session.getSessionModel(), SessionState.DEAD, DS_NAME);
@@ -328,11 +326,12 @@ public class StatementTest extends OpenSearchIntegTestCase {
     EMRServerlessClientFactory emrServerlessClientFactory = () -> emrsClient;
     Session session =
         new SessionManager(
-                stateStore,
                 statementStorageService,
                 sessionStorageService,
                 emrServerlessClientFactory,
-                sessionSetting())
+                () ->
+                    sessionSetting()
+                        .getSettingValue(Settings.Key.SESSION_INACTIVITY_TIMEOUT_MILLIS))
             .createSession(createSessionRequest());
 
     sessionStorageService.updateSessionState(session.getSessionModel(), SessionState.FAIL, DS_NAME);
@@ -350,11 +349,12 @@ public class StatementTest extends OpenSearchIntegTestCase {
     EMRServerlessClientFactory emrServerlessClientFactory = () -> emrsClient;
     Session session =
         new SessionManager(
-                stateStore,
                 statementStorageService,
                 sessionStorageService,
                 emrServerlessClientFactory,
-                sessionSetting())
+                () ->
+                    sessionSetting()
+                        .getSettingValue(Settings.Key.SESSION_INACTIVITY_TIMEOUT_MILLIS))
             .createSession(createSessionRequest());
     StatementId statementId = session.submit(queryRequest());
     Optional<Statement> statement = session.get(statementId);
@@ -374,11 +374,12 @@ public class StatementTest extends OpenSearchIntegTestCase {
     EMRServerlessClientFactory emrServerlessClientFactory = () -> emrsClient;
     Session session =
         new SessionManager(
-                stateStore,
                 statementStorageService,
                 sessionStorageService,
                 emrServerlessClientFactory,
-                sessionSetting())
+                () ->
+                    sessionSetting()
+                        .getSettingValue(Settings.Key.SESSION_INACTIVITY_TIMEOUT_MILLIS))
             .createSession(createSessionRequest());
 
     // other's delete session
@@ -396,11 +397,12 @@ public class StatementTest extends OpenSearchIntegTestCase {
     EMRServerlessClientFactory emrServerlessClientFactory = () -> emrsClient;
     Session session =
         new SessionManager(
-                stateStore,
                 statementStorageService,
                 sessionStorageService,
                 emrServerlessClientFactory,
-                sessionSetting())
+                () ->
+                    sessionSetting()
+                        .getSettingValue(Settings.Key.SESSION_INACTIVITY_TIMEOUT_MILLIS))
             .createSession(createSessionRequest());
     // App change state to running
     sessionStorageService.updateSessionState(
@@ -418,11 +420,12 @@ public class StatementTest extends OpenSearchIntegTestCase {
     EMRServerlessClientFactory emrServerlessClientFactory = () -> emrsClient;
     Session session =
         new SessionManager(
-                stateStore,
                 statementStorageService,
                 sessionStorageService,
                 emrServerlessClientFactory,
-                sessionSetting())
+                () ->
+                    sessionSetting()
+                        .getSettingValue(Settings.Key.SESSION_INACTIVITY_TIMEOUT_MILLIS))
             .createSession(createSessionRequest());
     // App change state to running
     sessionStorageService.updateSessionState(
@@ -496,7 +499,6 @@ public class StatementTest extends OpenSearchIntegTestCase {
             .datasourceName(DS_NAME)
             .query("query")
             .queryId("statementId")
-            .stateStore(stateStore)
             .statementStorageService(statementStorageService)
             .build();
     st.open();

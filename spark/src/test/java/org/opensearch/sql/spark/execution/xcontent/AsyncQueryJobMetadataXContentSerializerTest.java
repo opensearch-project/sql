@@ -79,7 +79,7 @@ class AsyncQueryJobMetadataXContentSerializerTest {
     assertEquals("query1", jobMetadata.getQueryId().getId());
     assertEquals("job1", jobMetadata.getJobId());
     assertEquals("app1", jobMetadata.getApplicationId());
-    assertEquals("result1", jobMetadata.getResultIndex());
+    assertEquals("result1", jobMetadata.getResultLocation());
     assertEquals("session1", jobMetadata.getSessionId());
     assertEquals("datasource1", jobMetadata.getDatasourceName());
     assertEquals(JobType.INTERACTIVE, jobMetadata.getJobType());
@@ -175,7 +175,7 @@ class AsyncQueryJobMetadataXContentSerializerTest {
     assertEquals("query1", jobMetadata.getQueryId().getId());
     assertEquals("job1", jobMetadata.getJobId());
     assertEquals("app1", jobMetadata.getApplicationId());
-    assertEquals("result1", jobMetadata.getResultIndex());
+    assertEquals("result1", jobMetadata.getResultLocation());
     assertEquals("session1", jobMetadata.getSessionId());
     assertEquals("datasource1", jobMetadata.getDatasourceName());
     assertNull(jobMetadata.getJobType());

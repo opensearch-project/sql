@@ -26,6 +26,7 @@ import org.opensearch.sql.spark.client.EMRServerlessClientFactoryImpl;
 import org.opensearch.sql.spark.config.SparkExecutionEngineConfigSupplier;
 import org.opensearch.sql.spark.config.SparkExecutionEngineConfigSupplierImpl;
 import org.opensearch.sql.spark.dispatcher.SparkQueryDispatcher;
+import org.opensearch.sql.spark.execution.session.SessionConfigSupplier;
 import org.opensearch.sql.spark.execution.session.SessionManager;
 import org.opensearch.sql.spark.execution.statement.OpenSearchStatementStorageService;
 import org.opensearch.sql.spark.execution.statement.StatementStorageService;
@@ -38,7 +39,7 @@ import org.opensearch.sql.spark.flint.IndexDMLResultStorageService;
 import org.opensearch.sql.spark.flint.OpenSearchFlintIndexStateModelService;
 import org.opensearch.sql.spark.flint.OpenSearchIndexDMLResultStorageService;
 import org.opensearch.sql.spark.leasemanager.DefaultLeaseManager;
-import org.opensearch.sql.spark.response.JobExecutionResponseReader;
+import org.opensearch.sql.spark.response.JobExecutionResponseReaderImpl;
 
 @RequiredArgsConstructor
 public class AsyncExecutorServiceModule extends AbstractModule {
@@ -75,9 +76,8 @@ public class AsyncExecutorServiceModule extends AbstractModule {
   public SparkQueryDispatcher sparkQueryDispatcher(
       EMRServerlessClientFactory emrServerlessClientFactory,
       DataSourceService dataSourceService,
-      JobExecutionResponseReader jobExecutionResponseReader,
+      JobExecutionResponseReaderImpl jobExecutionResponseReaderImpl,
       FlintIndexMetadataServiceImpl flintIndexMetadataReader,
-      NodeClient client,
       SessionManager sessionManager,
       DefaultLeaseManager defaultLeaseManager,
       FlintIndexStateModelService flintIndexStateModelService,
@@ -85,9 +85,8 @@ public class AsyncExecutorServiceModule extends AbstractModule {
     return new SparkQueryDispatcher(
         emrServerlessClientFactory,
         dataSourceService,
-        jobExecutionResponseReader,
+        jobExecutionResponseReaderImpl,
         flintIndexMetadataReader,
-        client,
         sessionManager,
         defaultLeaseManager,
         flintIndexStateModelService,
@@ -100,13 +99,12 @@ public class AsyncExecutorServiceModule extends AbstractModule {
       StatementStorageService statementStorageService,
       SessionStorageService sessionStorageService,
       EMRServerlessClientFactory emrServerlessClientFactory,
-      Settings settings) {
+      SessionConfigSupplier sessionConfigSupplier) {
     return new SessionManager(
-        stateStore,
         statementStorageService,
         sessionStorageService,
         emrServerlessClientFactory,
-        settings);
+        sessionConfigSupplier);
   }
 
   @Provides
@@ -153,8 +151,13 @@ public class AsyncExecutorServiceModule extends AbstractModule {
   }
 
   @Provides
-  public JobExecutionResponseReader jobExecutionResponseReader(NodeClient client) {
-    return new JobExecutionResponseReader(client);
+  public JobExecutionResponseReaderImpl jobExecutionResponseReader(NodeClient client) {
+    return new JobExecutionResponseReaderImpl(client);
+  }
+
+  @Provides
+  public SessionConfigSupplier sessionConfigSupplier(Settings settings) {
+    return () -> settings.getSettingValue(Settings.Key.SESSION_INACTIVITY_TIMEOUT_MILLIS);
   }
 
   private void registerStateStoreMetrics(StateStore stateStore) {

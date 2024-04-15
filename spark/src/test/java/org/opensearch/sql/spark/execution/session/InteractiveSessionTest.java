@@ -20,6 +20,7 @@ import org.junit.Before;
 import org.junit.Test;
 import org.opensearch.action.admin.indices.delete.DeleteIndexRequest;
 import org.opensearch.action.delete.DeleteRequest;
+import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.spark.asyncquery.model.SparkSubmitParameters;
 import org.opensearch.sql.spark.client.EMRServerlessClient;
 import org.opensearch.sql.spark.client.EMRServerlessClientFactory;
@@ -67,7 +68,6 @@ public class InteractiveSessionTest extends OpenSearchIntegTestCase {
     InteractiveSession session =
         InteractiveSession.builder()
             .sessionId(sessionId)
-            .stateStore(stateStore)
             .statementStorageService(statementStorageService)
             .sessionStorageService(sessionStorageService)
             .serverlessClient(emrsClient)
@@ -95,7 +95,6 @@ public class InteractiveSessionTest extends OpenSearchIntegTestCase {
     InteractiveSession session =
         InteractiveSession.builder()
             .sessionId(sessionId)
-            .stateStore(stateStore)
             .sessionStorageService(sessionStorageService)
             .statementStorageService(statementStorageService)
             .serverlessClient(emrsClient)
@@ -105,7 +104,6 @@ public class InteractiveSessionTest extends OpenSearchIntegTestCase {
     InteractiveSession duplicateSession =
         InteractiveSession.builder()
             .sessionId(sessionId)
-            .stateStore(stateStore)
             .statementStorageService(statementStorageService)
             .sessionStorageService(sessionStorageService)
             .serverlessClient(emrsClient)
@@ -122,7 +120,6 @@ public class InteractiveSessionTest extends OpenSearchIntegTestCase {
     InteractiveSession session =
         InteractiveSession.builder()
             .sessionId(sessionId)
-            .stateStore(stateStore)
             .statementStorageService(statementStorageService)
             .sessionStorageService(sessionStorageService)
             .serverlessClient(emrsClient)
@@ -141,11 +138,12 @@ public class InteractiveSessionTest extends OpenSearchIntegTestCase {
     EMRServerlessClientFactory emrServerlessClientFactory = () -> emrsClient;
     Session session =
         new SessionManager(
-                stateStore,
                 statementStorageService,
                 sessionStorageService,
                 emrServerlessClientFactory,
-                sessionSetting())
+                () ->
+                    sessionSetting()
+                        .getSettingValue(Settings.Key.SESSION_INACTIVITY_TIMEOUT_MILLIS))
             .createSession(createSessionRequest());
 
     TestSession testSession = testSession(session, sessionStorageService);
@@ -157,11 +155,10 @@ public class InteractiveSessionTest extends OpenSearchIntegTestCase {
     EMRServerlessClientFactory emrServerlessClientFactory = () -> emrsClient;
     SessionManager sessionManager =
         new SessionManager(
-            stateStore,
             statementStorageService,
             sessionStorageService,
             emrServerlessClientFactory,
-            sessionSetting());
+            () -> sessionSetting().getSettingValue(Settings.Key.SESSION_INACTIVITY_TIMEOUT_MILLIS));
     Session session = sessionManager.createSession(createSessionRequest());
 
     Optional<Session> managerSession = sessionManager.getSession(session.getSessionId());
@@ -174,11 +171,10 @@ public class InteractiveSessionTest extends OpenSearchIntegTestCase {
     EMRServerlessClientFactory emrServerlessClientFactory = () -> emrsClient;
     SessionManager sessionManager =
         new SessionManager(
-            stateStore,
             statementStorageService,
             sessionStorageService,
             emrServerlessClientFactory,
-            sessionSetting());
+            () -> sessionSetting().getSettingValue(Settings.Key.SESSION_INACTIVITY_TIMEOUT_MILLIS));
 
     Optional<Session> managerSession =
         sessionManager.getSession(SessionId.newSessionId("no-exist"));

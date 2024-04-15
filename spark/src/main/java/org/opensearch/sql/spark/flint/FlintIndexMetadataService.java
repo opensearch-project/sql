@@ -27,4 +27,11 @@ public interface FlintIndexMetadataService {
    * @param flintIndexOptions flintIndexOptions.
    */
   void updateIndexToManualRefresh(String indexName, FlintIndexOptions flintIndexOptions);
+
+  /**
+   * Deletes FlintIndex.
+   *
+   * @param indexName indexName.
+   */
+  void deleteFlintIndex(String indexName);
 }

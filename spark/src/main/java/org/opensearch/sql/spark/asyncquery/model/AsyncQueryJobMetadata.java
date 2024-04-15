@@ -25,7 +25,7 @@ public class AsyncQueryJobMetadata extends StateModel {
   private final AsyncQueryId queryId;
   private final String applicationId;
   private final String jobId;
-  private final String resultIndex;
+  private final String resultLocation;
   // optional sessionId.
   private final String sessionId;
   // since 2.13
@@ -41,12 +41,12 @@ public class AsyncQueryJobMetadata extends StateModel {
   @EqualsAndHashCode.Exclude private final long primaryTerm;
 
   public AsyncQueryJobMetadata(
-      AsyncQueryId queryId, String applicationId, String jobId, String resultIndex) {
+      AsyncQueryId queryId, String applicationId, String jobId, String resultLocation) {
     this(
         queryId,
         applicationId,
         jobId,
-        resultIndex,
+        resultLocation,
         null,
         null,
         JobType.INTERACTIVE,
@@ -59,13 +59,13 @@ public class AsyncQueryJobMetadata extends StateModel {
       AsyncQueryId queryId,
       String applicationId,
       String jobId,
-      String resultIndex,
+      String resultLocation,
       String sessionId) {
     this(
         queryId,
         applicationId,
         jobId,
-        resultIndex,
+        resultLocation,
         sessionId,
         null,
         JobType.INTERACTIVE,
@@ -78,7 +78,7 @@ public class AsyncQueryJobMetadata extends StateModel {
       AsyncQueryId queryId,
       String applicationId,
       String jobId,
-      String resultIndex,
+      String resultLocation,
       String sessionId,
       String datasourceName,
       JobType jobType,
@@ -87,7 +87,7 @@ public class AsyncQueryJobMetadata extends StateModel {
         queryId,
         applicationId,
         jobId,
-        resultIndex,
+        resultLocation,
         sessionId,
         datasourceName,
         jobType,
@@ -100,7 +100,7 @@ public class AsyncQueryJobMetadata extends StateModel {
       AsyncQueryId queryId,
       String applicationId,
       String jobId,
-      String resultIndex,
+      String resultLocation,
       String sessionId,
       String datasourceName,
       JobType jobType,
@@ -110,7 +110,7 @@ public class AsyncQueryJobMetadata extends StateModel {
     this.queryId = queryId;
     this.applicationId = applicationId;
     this.jobId = jobId;
-    this.resultIndex = resultIndex;
+    this.resultLocation = resultLocation;
     this.sessionId = sessionId;
     this.datasourceName = datasourceName;
     this.jobType = jobType;
@@ -131,7 +131,7 @@ public class AsyncQueryJobMetadata extends StateModel {
         copy.getQueryId(),
         copy.getApplicationId(),
         copy.getJobId(),
-        copy.getResultIndex(),
+        copy.getResultLocation(),
         copy.getSessionId(),
         copy.datasourceName,
         copy.jobType,

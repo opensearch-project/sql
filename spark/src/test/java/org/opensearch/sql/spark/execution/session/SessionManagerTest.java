@@ -33,11 +33,12 @@ public class SessionManagerTest {
   public void sessionEnable() {
     Assertions.assertTrue(
         new SessionManager(
-                stateStore,
                 statementStorageService,
                 sessionStorageService,
                 emrServerlessClientFactory,
-                sessionSetting())
+                () ->
+                    sessionSetting()
+                        .getSettingValue(Settings.Key.SESSION_INACTIVITY_TIMEOUT_MILLIS))
             .isEnabled());
   }
 

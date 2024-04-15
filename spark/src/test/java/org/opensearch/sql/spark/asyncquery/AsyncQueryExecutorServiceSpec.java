@@ -72,7 +72,7 @@ import org.opensearch.sql.spark.flint.IndexDMLResultStorageService;
 import org.opensearch.sql.spark.flint.OpenSearchFlintIndexStateModelService;
 import org.opensearch.sql.spark.flint.OpenSearchIndexDMLResultStorageService;
 import org.opensearch.sql.spark.leasemanager.DefaultLeaseManager;
-import org.opensearch.sql.spark.response.JobExecutionResponseReader;
+import org.opensearch.sql.spark.response.JobExecutionResponseReaderImpl;
 import org.opensearch.sql.storage.DataSourceFactory;
 import org.opensearch.test.OpenSearchIntegTestCase;
 
@@ -206,13 +206,13 @@ public class AsyncQueryExecutorServiceSpec extends OpenSearchIntegTestCase {
   protected AsyncQueryExecutorService createAsyncQueryExecutorService(
       EMRServerlessClientFactory emrServerlessClientFactory) {
     return createAsyncQueryExecutorService(
-        emrServerlessClientFactory, new JobExecutionResponseReader(client));
+        emrServerlessClientFactory, new JobExecutionResponseReaderImpl(client));
   }
 
   /** Pass a custom response reader which can mock interaction between PPL plugin and EMR-S job. */
   protected AsyncQueryExecutorService createAsyncQueryExecutorService(
       EMRServerlessClientFactory emrServerlessClientFactory,
-      JobExecutionResponseReader jobExecutionResponseReader) {
+      JobExecutionResponseReaderImpl jobExecutionResponseReaderImpl) {
     StateStore stateStore = new StateStore(client, clusterService);
     AsyncQueryJobMetadataStorageService asyncQueryJobMetadataStorageService =
         new OpensearchAsyncQueryJobMetadataStorageService(stateStore);
@@ -220,15 +220,16 @@ public class AsyncQueryExecutorServiceSpec extends OpenSearchIntegTestCase {
         new SparkQueryDispatcher(
             emrServerlessClientFactory,
             this.dataSourceService,
-            jobExecutionResponseReader,
+            jobExecutionResponseReaderImpl,
             new FlintIndexMetadataServiceImpl(client),
-            client,
             new SessionManager(
-                stateStore,
                 statementStorageService,
                 sessionStorageService,
                 emrServerlessClientFactory,
-                pluginSettings),
+                () ->
+                    pluginSettings.getSettingValue(
+                        org.opensearch.sql.common.setting.Settings.Key
+                            .SESSION_INACTIVITY_TIMEOUT_MILLIS)),
             new DefaultLeaseManager(pluginSettings, stateStore),
             flintIndexStateModelService,
             indexDMLResultStorageService);
