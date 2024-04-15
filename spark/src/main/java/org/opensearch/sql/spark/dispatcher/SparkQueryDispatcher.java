@@ -12,7 +12,6 @@ import org.json.JSONObject;
 import org.opensearch.client.Client;
 import org.opensearch.sql.datasource.DataSourceService;
 import org.opensearch.sql.datasource.model.DataSourceMetadata;
-import org.opensearch.sql.datasources.auth.DataSourceUserAuthorizationHelperImpl;
 import org.opensearch.sql.spark.asyncquery.model.AsyncQueryId;
 import org.opensearch.sql.spark.asyncquery.model.AsyncQueryJobMetadata;
 import org.opensearch.sql.spark.client.EMRServerlessClient;
@@ -43,8 +42,6 @@ public class SparkQueryDispatcher {
   private EMRServerlessClientFactory emrServerlessClientFactory;
 
   private DataSourceService dataSourceService;
-
-  private DataSourceUserAuthorizationHelperImpl dataSourceUserAuthorizationHelper;
 
   private JobExecutionResponseReader jobExecutionResponseReader;
 
