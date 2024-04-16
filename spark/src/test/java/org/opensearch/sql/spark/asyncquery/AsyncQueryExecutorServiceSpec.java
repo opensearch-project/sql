@@ -46,7 +46,6 @@ import org.opensearch.plugins.Plugin;
 import org.opensearch.search.builder.SearchSourceBuilder;
 import org.opensearch.sql.datasource.model.DataSourceMetadata;
 import org.opensearch.sql.datasource.model.DataSourceType;
-import org.opensearch.sql.datasources.auth.DataSourceUserAuthorizationHelperImpl;
 import org.opensearch.sql.datasources.encryptor.EncryptorImpl;
 import org.opensearch.sql.datasources.glue.GlueDataSourceFactory;
 import org.opensearch.sql.datasources.service.DataSourceMetadataStorage;
@@ -205,7 +204,6 @@ public class AsyncQueryExecutorServiceSpec extends OpenSearchIntegTestCase {
         new SparkQueryDispatcher(
             emrServerlessClientFactory,
             this.dataSourceService,
-            new DataSourceUserAuthorizationHelperImpl(client),
             jobExecutionResponseReader,
             new FlintIndexMetadataServiceImpl(client),
             client,

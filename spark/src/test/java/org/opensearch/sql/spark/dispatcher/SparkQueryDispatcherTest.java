@@ -58,7 +58,6 @@ import org.opensearch.client.Client;
 import org.opensearch.sql.datasource.DataSourceService;
 import org.opensearch.sql.datasource.model.DataSourceMetadata;
 import org.opensearch.sql.datasource.model.DataSourceType;
-import org.opensearch.sql.datasources.auth.DataSourceUserAuthorizationHelperImpl;
 import org.opensearch.sql.spark.asyncquery.model.AsyncQueryId;
 import org.opensearch.sql.spark.asyncquery.model.AsyncQueryJobMetadata;
 import org.opensearch.sql.spark.client.EMRServerlessClient;
@@ -86,7 +85,6 @@ public class SparkQueryDispatcherTest {
   @Mock private EMRServerlessClientFactory emrServerlessClientFactory;
   @Mock private DataSourceService dataSourceService;
   @Mock private JobExecutionResponseReader jobExecutionResponseReader;
-  @Mock private DataSourceUserAuthorizationHelperImpl dataSourceUserAuthorizationHelper;
   @Mock private FlintIndexMetadataService flintIndexMetadataService;
 
   @Mock(answer = RETURNS_DEEP_STUBS)
@@ -116,7 +114,6 @@ public class SparkQueryDispatcherTest {
         new SparkQueryDispatcher(
             emrServerlessClientFactory,
             dataSourceService,
-            dataSourceUserAuthorizationHelper,
             jobExecutionResponseReader,
             flintIndexMetadataService,
             openSearchClient,
