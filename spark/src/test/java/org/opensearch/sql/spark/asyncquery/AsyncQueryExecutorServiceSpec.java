@@ -66,6 +66,9 @@ import org.opensearch.sql.spark.execution.statestore.OpenSearchStatementStorageS
 import org.opensearch.sql.spark.execution.statestore.SessionStorageService;
 import org.opensearch.sql.spark.execution.statestore.StateStore;
 import org.opensearch.sql.spark.execution.statestore.StatementStorageService;
+import org.opensearch.sql.spark.execution.xcontent.FlintIndexStateModelXContentSerializer;
+import org.opensearch.sql.spark.execution.xcontent.SessionModelXContentSerializer;
+import org.opensearch.sql.spark.execution.xcontent.StatementModelXContentSerializer;
 import org.opensearch.sql.spark.flint.FlintIndexMetadataService;
 import org.opensearch.sql.spark.flint.FlintIndexMetadataServiceImpl;
 import org.opensearch.sql.spark.flint.FlintIndexStateModelService;
@@ -162,9 +165,13 @@ public class AsyncQueryExecutorServiceSpec extends OpenSearchIntegTestCase {
     createIndexWithMappings(dm.getResultIndex(), loadResultIndexMappings());
     createIndexWithMappings(otherDm.getResultIndex(), loadResultIndexMappings());
     flintIndexMetadataService = new FlintIndexMetadataServiceImpl(client);
-    flintIndexStateModelService = new OpenSearchFlintIndexStateModelService(stateStore);
-    sessionStorageService = new OpenSearchSessionStorageService(stateStore);
-    statementStorageService = new OpenSearchStatementStorageService(stateStore);
+    flintIndexStateModelService =
+        new OpenSearchFlintIndexStateModelService(
+            stateStore, new FlintIndexStateModelXContentSerializer());
+    sessionStorageService =
+        new OpenSearchSessionStorageService(stateStore, new SessionModelXContentSerializer());
+    statementStorageService =
+        new OpenSearchStatementStorageService(stateStore, new StatementModelXContentSerializer());
   }
 
   protected FlintIndexOpFactory getFlintIndexOpFactory(

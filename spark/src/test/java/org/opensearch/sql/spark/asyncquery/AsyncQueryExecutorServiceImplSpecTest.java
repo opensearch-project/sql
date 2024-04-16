@@ -10,9 +10,9 @@ import static org.opensearch.sql.spark.data.constants.SparkConstants.FLINT_JOB_R
 import static org.opensearch.sql.spark.data.constants.SparkConstants.FLINT_JOB_SESSION_ID;
 import static org.opensearch.sql.spark.data.constants.SparkConstants.FLINT_SESSION_CLASS_NAME;
 import static org.opensearch.sql.spark.data.constants.SparkConstants.SPARK_REQUEST_BUFFER_INDEX_NAME;
-import static org.opensearch.sql.spark.execution.session.SessionModel.SESSION_DOC_TYPE;
-import static org.opensearch.sql.spark.execution.statement.StatementModel.SESSION_ID;
-import static org.opensearch.sql.spark.execution.statement.StatementModel.STATEMENT_DOC_TYPE;
+import static org.opensearch.sql.spark.execution.xcontent.SessionModelXContentSerializer.SESSION_DOC_TYPE;
+import static org.opensearch.sql.spark.execution.xcontent.SessionModelXContentSerializer.SESSION_ID;
+import static org.opensearch.sql.spark.execution.xcontent.StatementModelXContentSerializer.STATEMENT_DOC_TYPE;
 
 import com.google.common.collect.ImmutableMap;
 import java.util.HashMap;

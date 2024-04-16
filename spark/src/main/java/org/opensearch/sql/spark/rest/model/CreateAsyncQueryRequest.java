@@ -6,7 +6,6 @@
 package org.opensearch.sql.spark.rest.model;
 
 import static org.opensearch.core.xcontent.XContentParserUtils.ensureExpectedToken;
-import static org.opensearch.sql.spark.execution.session.SessionModel.SESSION_ID;
 
 import java.io.IOException;
 import lombok.Data;
@@ -15,7 +14,6 @@ import org.opensearch.core.xcontent.XContentParser;
 
 @Data
 public class CreateAsyncQueryRequest {
-
   private String query;
   private String datasource;
   private LangType lang;
@@ -53,7 +51,7 @@ public class CreateAsyncQueryRequest {
           lang = LangType.fromString(langString);
         } else if (fieldName.equals("datasource")) {
           datasource = parser.textOrNull();
-        } else if (fieldName.equals(SESSION_ID)) {
+        } else if (fieldName.equals("sessionId")) {
           sessionId = parser.textOrNull();
         } else {
           throw new IllegalArgumentException("Unknown field: " + fieldName);

@@ -5,16 +5,12 @@
 
 package org.opensearch.sql.spark.execution.statestore;
 
-import static org.opensearch.sql.spark.data.constants.SparkConstants.SPARK_REQUEST_BUFFER_INDEX_NAME;
-import static org.opensearch.sql.spark.execution.statestore.StateModel.STATE;
-
 import com.google.common.annotations.VisibleForTesting;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.Locale;
 import java.util.Optional;
-import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.function.Supplier;
 import lombok.RequiredArgsConstructor;
@@ -40,7 +36,6 @@ import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.common.action.ActionFuture;
 import org.opensearch.common.util.concurrent.ThreadContext;
 import org.opensearch.common.xcontent.LoggingDeprecationHandler;
-import org.opensearch.common.xcontent.XContentFactory;
 import org.opensearch.common.xcontent.XContentType;
 import org.opensearch.core.xcontent.NamedXContentRegistry;
 import org.opensearch.core.xcontent.ToXContent;
@@ -49,11 +44,19 @@ import org.opensearch.index.query.QueryBuilder;
 import org.opensearch.index.query.QueryBuilders;
 import org.opensearch.search.builder.SearchSourceBuilder;
 import org.opensearch.sql.spark.asyncquery.model.AsyncQueryJobMetadata;
+import org.opensearch.sql.spark.dispatcher.model.IndexDMLResult;
 import org.opensearch.sql.spark.execution.session.SessionModel;
 import org.opensearch.sql.spark.execution.session.SessionState;
 import org.opensearch.sql.spark.execution.session.SessionType;
 import org.opensearch.sql.spark.execution.statement.StatementModel;
 import org.opensearch.sql.spark.execution.statement.StatementState;
+import org.opensearch.sql.spark.execution.xcontent.AsyncQueryJobMetadataXContentSerializer;
+import org.opensearch.sql.spark.execution.xcontent.FlintIndexStateModelXContentSerializer;
+import org.opensearch.sql.spark.execution.xcontent.IndexDMLResultXContentSerializer;
+import org.opensearch.sql.spark.execution.xcontent.SessionModelXContentSerializer;
+import org.opensearch.sql.spark.execution.xcontent.StatementModelXContentSerializer;
+import org.opensearch.sql.spark.execution.xcontent.XContentCommonAttributes;
+import org.opensearch.sql.spark.execution.xcontent.XContentSerializer;
 import org.opensearch.sql.spark.flint.FlintIndexState;
 import org.opensearch.sql.spark.flint.FlintIndexStateModel;
 
@@ -65,10 +68,6 @@ import org.opensearch.sql.spark.flint.FlintIndexStateModel;
 public class StateStore {
   public static String SETTINGS_FILE_NAME = "query_execution_request_settings.yml";
   public static String MAPPING_FILE_NAME = "query_execution_request_mapping.yml";
-  public static Function<String, String> DATASOURCE_TO_REQUEST_INDEX =
-      datasourceName ->
-          String.format(
-              "%s_%s", SPARK_REQUEST_BUFFER_INDEX_NAME, datasourceName.toLowerCase(Locale.ROOT));
   public static String ALL_DATASOURCE = "*";
 
   private static final Logger LOG = LogManager.getLogger();
@@ -77,16 +76,16 @@ public class StateStore {
   private final ClusterService clusterService;
 
   @VisibleForTesting
-  public <T extends StateModel> T create(
-      T st, StateModel.CopyBuilder<T> builder, String indexName) {
+  public <T extends StateModel> T create(T st, CopyBuilder<T> builder, String indexName) {
     try {
       if (!this.clusterService.state().routingTable().hasIndex(indexName)) {
         createIndex(indexName);
       }
+      XContentSerializer<T> serializer = getXContentSerializer(st);
       IndexRequest indexRequest =
           new IndexRequest(indexName)
               .id(st.getId())
-              .source(st.toXContent(XContentFactory.jsonBuilder(), ToXContent.EMPTY_PARAMS))
+              .source(serializer.toXContent(st, ToXContent.EMPTY_PARAMS))
               .setIfSeqNo(st.getSeqNo())
               .setIfPrimaryTerm(st.getPrimaryTerm())
               .create(true)
@@ -113,7 +112,7 @@ public class StateStore {
 
   @VisibleForTesting
   public <T extends StateModel> Optional<T> get(
-      String sid, StateModel.FromXContent<T> builder, String indexName) {
+      String sid, FromXContent<T> builder, String indexName) {
     try {
       if (!this.clusterService.state().routingTable().hasIndex(indexName)) {
         createIndex(indexName);
@@ -145,16 +144,17 @@ public class StateStore {
 
   @VisibleForTesting
   public <T extends StateModel, S> T updateState(
-      T st, S state, StateModel.StateCopyBuilder<T, S> builder, String indexName) {
+      T st, S state, StateCopyBuilder<T, S> builder, String indexName) {
     try {
       T model = builder.of(st, state, st.getSeqNo(), st.getPrimaryTerm());
+      XContentSerializer<T> serializer = getXContentSerializer(st);
       UpdateRequest updateRequest =
           new UpdateRequest()
               .index(indexName)
               .id(model.getId())
               .setIfSeqNo(model.getSeqNo())
               .setIfPrimaryTerm(model.getPrimaryTerm())
-              .doc(model.toXContent(XContentFactory.jsonBuilder(), ToXContent.EMPTY_PARAMS))
+              .doc(serializer.toXContent(model, ToXContent.EMPTY_PARAMS))
               .fetchSource(true)
               .setRefreshPolicy(WriteRequest.RefreshPolicy.WAIT_UNTIL);
       try (ThreadContext.StoredContext ignored =
@@ -255,64 +255,83 @@ public class StateStore {
         stateStore.create(
             jobMetadata,
             AsyncQueryJobMetadata::copy,
-            DATASOURCE_TO_REQUEST_INDEX.apply(datasourceName));
+            OpenSearchStateStoreUtil.getIndexName(datasourceName));
   }
 
   public static Function<String, Optional<AsyncQueryJobMetadata>> getJobMetaData(
       StateStore stateStore, String datasourceName) {
+    AsyncQueryJobMetadataXContentSerializer asyncQueryJobMetadataXContentSerializer =
+        new AsyncQueryJobMetadataXContentSerializer();
     return (docId) ->
         stateStore.get(
             docId,
-            AsyncQueryJobMetadata::fromXContent,
-            DATASOURCE_TO_REQUEST_INDEX.apply(datasourceName));
+            asyncQueryJobMetadataXContentSerializer::fromXContent,
+            OpenSearchStateStoreUtil.getIndexName(datasourceName));
   }
 
   public static Supplier<Long> activeSessionsCount(StateStore stateStore, String datasourceName) {
     return () ->
         stateStore.count(
-            DATASOURCE_TO_REQUEST_INDEX.apply(datasourceName),
+            OpenSearchStateStoreUtil.getIndexName(datasourceName),
             QueryBuilders.boolQuery()
-                .must(QueryBuilders.termQuery(SessionModel.TYPE, SessionModel.SESSION_DOC_TYPE))
                 .must(
                     QueryBuilders.termQuery(
-                        SessionModel.SESSION_TYPE, SessionType.INTERACTIVE.getSessionType()))
+                        XContentCommonAttributes.TYPE,
+                        SessionModelXContentSerializer.SESSION_DOC_TYPE))
                 .must(
                     QueryBuilders.termQuery(
-                        SessionModel.SESSION_STATE, SessionState.RUNNING.getSessionState())));
-  }
-
-  public static BiFunction<FlintIndexStateModel, FlintIndexState, FlintIndexStateModel>
-      updateFlintIndexState(StateStore stateStore, String datasourceName) {
-    return (old, state) ->
-        stateStore.updateState(
-            old,
-            state,
-            FlintIndexStateModel::copyWithState,
-            DATASOURCE_TO_REQUEST_INDEX.apply(datasourceName));
+                        SessionModelXContentSerializer.SESSION_TYPE,
+                        SessionType.INTERACTIVE.getSessionType()))
+                .must(
+                    QueryBuilders.termQuery(
+                        XContentCommonAttributes.STATE, SessionState.RUNNING.getSessionState())));
   }
 
   public static Supplier<Long> activeRefreshJobCount(StateStore stateStore, String datasourceName) {
     return () ->
         stateStore.count(
-            DATASOURCE_TO_REQUEST_INDEX.apply(datasourceName),
+            OpenSearchStateStoreUtil.getIndexName(datasourceName),
             QueryBuilders.boolQuery()
                 .must(
                     QueryBuilders.termQuery(
-                        SessionModel.TYPE, FlintIndexStateModel.FLINT_INDEX_DOC_TYPE))
-                .must(QueryBuilders.termQuery(STATE, FlintIndexState.REFRESHING.getState())));
+                        XContentCommonAttributes.TYPE,
+                        FlintIndexStateModelXContentSerializer.FLINT_INDEX_DOC_TYPE))
+                .must(
+                    QueryBuilders.termQuery(
+                        XContentCommonAttributes.STATE, FlintIndexState.REFRESHING.getState())));
   }
 
   public static Supplier<Long> activeStatementsCount(StateStore stateStore, String datasourceName) {
     return () ->
         stateStore.count(
-            DATASOURCE_TO_REQUEST_INDEX.apply(datasourceName),
+            OpenSearchStateStoreUtil.getIndexName(datasourceName),
             QueryBuilders.boolQuery()
                 .must(
-                    QueryBuilders.termQuery(StatementModel.TYPE, StatementModel.STATEMENT_DOC_TYPE))
+                    QueryBuilders.termQuery(
+                        XContentCommonAttributes.TYPE,
+                        StatementModelXContentSerializer.STATEMENT_DOC_TYPE))
                 .should(
                     QueryBuilders.termsQuery(
-                        StatementModel.STATEMENT_STATE,
+                        XContentCommonAttributes.STATE,
                         StatementState.RUNNING.getState(),
                         StatementState.WAITING.getState())));
+  }
+
+  @SuppressWarnings("unchecked")
+  private <T extends StateModel> XContentSerializer<T> getXContentSerializer(T st) {
+    if (st instanceof StatementModel) {
+      return (XContentSerializer<T>) new StatementModelXContentSerializer();
+    } else if (st instanceof SessionModel) {
+      return (XContentSerializer<T>) new SessionModelXContentSerializer();
+    } else if (st instanceof FlintIndexStateModel) {
+      return (XContentSerializer<T>) new FlintIndexStateModelXContentSerializer();
+    } else if (st instanceof AsyncQueryJobMetadata) {
+      return (XContentSerializer<T>) new AsyncQueryJobMetadataXContentSerializer();
+    } else if (st instanceof IndexDMLResult) {
+      return (XContentSerializer<T>) new IndexDMLResultXContentSerializer();
+    } else {
+      throw new IllegalArgumentException(
+          "Unsupported StateModel subclass: " + st.getClass().getSimpleName());
+    }
   }
 }

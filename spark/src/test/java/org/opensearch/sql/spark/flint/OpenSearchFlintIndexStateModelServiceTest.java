@@ -17,6 +17,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.opensearch.sql.spark.execution.statestore.StateStore;
+import org.opensearch.sql.spark.execution.xcontent.FlintIndexStateModelXContentSerializer;
 
 @ExtendWith(MockitoExtension.class)
 public class OpenSearchFlintIndexStateModelServiceTest {
@@ -28,6 +29,7 @@ public class OpenSearchFlintIndexStateModelServiceTest {
   @Mock FlintIndexStateModel flintIndexStateModel;
   @Mock FlintIndexState flintIndexState;
   @Mock FlintIndexStateModel responseFlintIndexStateModel;
+  @Mock FlintIndexStateModelXContentSerializer flintIndexStateModelXContentSerializer;
 
   @InjectMocks OpenSearchFlintIndexStateModelService openSearchFlintIndexStateModelService;
 

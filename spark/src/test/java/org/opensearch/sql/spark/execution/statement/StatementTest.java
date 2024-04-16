@@ -12,7 +12,6 @@ import static org.opensearch.sql.spark.execution.statement.StatementState.CANCEL
 import static org.opensearch.sql.spark.execution.statement.StatementState.RUNNING;
 import static org.opensearch.sql.spark.execution.statement.StatementState.WAITING;
 import static org.opensearch.sql.spark.execution.statement.StatementTest.TestStatement.testStatement;
-import static org.opensearch.sql.spark.execution.statestore.StateStore.DATASOURCE_TO_REQUEST_INDEX;
 
 import java.util.Optional;
 import lombok.RequiredArgsConstructor;
@@ -29,15 +28,19 @@ import org.opensearch.sql.spark.execution.session.SessionManager;
 import org.opensearch.sql.spark.execution.session.SessionState;
 import org.opensearch.sql.spark.execution.session.TestEMRServerlessClient;
 import org.opensearch.sql.spark.execution.statestore.OpenSearchSessionStorageService;
+import org.opensearch.sql.spark.execution.statestore.OpenSearchStateStoreUtil;
 import org.opensearch.sql.spark.execution.statestore.OpenSearchStatementStorageService;
 import org.opensearch.sql.spark.execution.statestore.SessionStorageService;
 import org.opensearch.sql.spark.execution.statestore.StateStore;
 import org.opensearch.sql.spark.execution.statestore.StatementStorageService;
+import org.opensearch.sql.spark.execution.xcontent.SessionModelXContentSerializer;
+import org.opensearch.sql.spark.execution.xcontent.StatementModelXContentSerializer;
 import org.opensearch.sql.spark.rest.model.LangType;
 import org.opensearch.test.OpenSearchIntegTestCase;
 
 public class StatementTest extends OpenSearchIntegTestCase {
-  private static final String indexName = DATASOURCE_TO_REQUEST_INDEX.apply(TEST_DATASOURCE_NAME);
+  private static final String indexName =
+      OpenSearchStateStoreUtil.getIndexName(TEST_DATASOURCE_NAME);
 
   private StatementStorageService statementStorageService;
   private SessionStorageService sessionStorageService;
@@ -48,8 +51,10 @@ public class StatementTest extends OpenSearchIntegTestCase {
   @Before
   public void setup() {
     StateStore stateStore = new StateStore(client(), clusterService());
-    statementStorageService = new OpenSearchStatementStorageService(stateStore);
-    sessionStorageService = new OpenSearchSessionStorageService(stateStore);
+    statementStorageService =
+        new OpenSearchStatementStorageService(stateStore, new StatementModelXContentSerializer());
+    sessionStorageService =
+        new OpenSearchSessionStorageService(stateStore, new SessionModelXContentSerializer());
     EMRServerlessClientFactory emrServerlessClientFactory = () -> emrsClient;
 
     sessionManager =
