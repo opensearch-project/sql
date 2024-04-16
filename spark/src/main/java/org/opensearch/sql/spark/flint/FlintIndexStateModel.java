@@ -5,20 +5,9 @@
 
 package org.opensearch.sql.spark.flint;
 
-import static org.opensearch.sql.spark.execution.session.SessionModel.APPLICATION_ID;
-import static org.opensearch.sql.spark.execution.session.SessionModel.DATASOURCE_NAME;
-import static org.opensearch.sql.spark.execution.session.SessionModel.JOB_ID;
-import static org.opensearch.sql.spark.execution.statement.StatementModel.ERROR;
-import static org.opensearch.sql.spark.execution.statement.StatementModel.VERSION;
-
-import java.io.IOException;
 import lombok.Builder;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
-import lombok.SneakyThrows;
-import org.opensearch.core.xcontent.XContentBuilder;
-import org.opensearch.core.xcontent.XContentParser;
-import org.opensearch.core.xcontent.XContentParserUtils;
 import org.opensearch.sql.spark.execution.statestore.StateModel;
 
 /** Flint Index Model maintain the index state. */
@@ -26,10 +15,6 @@ import org.opensearch.sql.spark.execution.statestore.StateModel;
 @Builder
 @EqualsAndHashCode(callSuper = false)
 public class FlintIndexStateModel extends StateModel {
-  public static final String FLINT_INDEX_DOC_TYPE = "flintindexstate";
-  public static final String LATEST_ID = "latestId";
-  public static final String DOC_ID_PREFIX = "flint";
-
   private final FlintIndexState indexState;
   private final String applicationId;
   private final String jobId;
@@ -89,62 +74,8 @@ public class FlintIndexStateModel extends StateModel {
         primaryTerm);
   }
 
-  @SneakyThrows
-  public static FlintIndexStateModel fromXContent(
-      XContentParser parser, long seqNo, long primaryTerm) {
-    FlintIndexStateModelBuilder builder = FlintIndexStateModel.builder();
-    XContentParserUtils.ensureExpectedToken(
-        XContentParser.Token.START_OBJECT, parser.currentToken(), parser);
-    while (!XContentParser.Token.END_OBJECT.equals(parser.nextToken())) {
-      String fieldName = parser.currentName();
-      parser.nextToken();
-      switch (fieldName) {
-        case STATE:
-          builder.indexState(FlintIndexState.fromString(parser.text()));
-        case APPLICATION_ID:
-          builder.applicationId(parser.text());
-          break;
-        case JOB_ID:
-          builder.jobId(parser.text());
-          break;
-        case LATEST_ID:
-          builder.latestId(parser.text());
-          break;
-        case DATASOURCE_NAME:
-          builder.datasourceName(parser.text());
-          break;
-        case LAST_UPDATE_TIME:
-          builder.lastUpdateTime(parser.longValue());
-          break;
-        case ERROR:
-          builder.error(parser.text());
-          break;
-      }
-    }
-    builder.seqNo(seqNo);
-    builder.primaryTerm(primaryTerm);
-    return builder.build();
-  }
-
   @Override
   public String getId() {
     return latestId;
-  }
-
-  @Override
-  public XContentBuilder toXContent(XContentBuilder builder, Params params) throws IOException {
-    builder
-        .startObject()
-        .field(VERSION, VERSION_1_0)
-        .field(TYPE, FLINT_INDEX_DOC_TYPE)
-        .field(STATE, indexState.getState())
-        .field(APPLICATION_ID, applicationId)
-        .field(JOB_ID, jobId)
-        .field(LATEST_ID, latestId)
-        .field(DATASOURCE_NAME, datasourceName)
-        .field(LAST_UPDATE_TIME, lastUpdateTime)
-        .field(ERROR, error)
-        .endObject();
-    return builder;
   }
 }
