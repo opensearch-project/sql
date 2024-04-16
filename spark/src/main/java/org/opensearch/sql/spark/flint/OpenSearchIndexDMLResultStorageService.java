@@ -18,8 +18,9 @@ public class OpenSearchIndexDMLResultStorageService implements IndexDMLResultSto
   private final StateStore stateStore;
 
   @Override
-  public IndexDMLResult createIndexDMLResult(IndexDMLResult result, String datasourceName) {
-    DataSourceMetadata dataSourceMetadata = dataSourceService.getDataSourceMetadata(datasourceName);
+  public IndexDMLResult createIndexDMLResult(IndexDMLResult result) {
+    DataSourceMetadata dataSourceMetadata =
+        dataSourceService.getDataSourceMetadata(result.getDatasourceName());
     return stateStore.create(result, IndexDMLResult::copy, dataSourceMetadata.getResultIndex());
   }
 }

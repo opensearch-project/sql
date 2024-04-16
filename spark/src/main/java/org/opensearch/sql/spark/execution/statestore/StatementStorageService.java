@@ -15,10 +15,10 @@ import org.opensearch.sql.spark.execution.statement.StatementState;
  */
 public interface StatementStorageService {
 
-  StatementModel createStatement(StatementModel statementModel, String datasourceName);
+  StatementModel createStatement(StatementModel statementModel);
 
   StatementModel updateStatementState(
-      StatementModel oldStatementModel, StatementState statementState, String datasourceName);
+      StatementModel oldStatementModel, StatementState statementState);
 
   Optional<StatementModel> getStatement(String id, String datasourceName);
 }

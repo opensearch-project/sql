@@ -12,10 +12,9 @@ import org.opensearch.sql.spark.execution.session.SessionState;
 /** Interface for accessing {@link SessionModel} data storage. */
 public interface SessionStorageService {
 
-  SessionModel createSession(SessionModel sessionModel, String datasourceName);
+  SessionModel createSession(SessionModel sessionModel);
 
   Optional<SessionModel> getSession(String id, String datasourceName);
 
-  SessionModel updateSessionState(
-      SessionModel sessionModel, SessionState sessionState, String datasourceName);
+  SessionModel updateSessionState(SessionModel sessionModel, SessionState sessionState);
 }

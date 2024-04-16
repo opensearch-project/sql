@@ -137,8 +137,7 @@ public class StatementTest extends OpenSearchIntegTestCase {
     st.open();
 
     StatementModel running =
-        statementStorageService.updateStatementState(
-            st.getStatementModel(), CANCELLED, TEST_DATASOURCE_NAME);
+        statementStorageService.updateStatementState(st.getStatementModel(), CANCELLED);
 
     assertEquals(StatementState.CANCELLED, running.getStatementState());
 
@@ -232,8 +231,7 @@ public class StatementTest extends OpenSearchIntegTestCase {
     Session session = sessionManager.createSession(createSessionRequest());
 
     // App change state to running
-    sessionStorageService.updateSessionState(
-        session.getSessionModel(), SessionState.RUNNING, TEST_DATASOURCE_NAME);
+    sessionStorageService.updateSessionState(session.getSessionModel(), SessionState.RUNNING);
 
     StatementId statementId = session.submit(queryRequest());
     assertFalse(statementId.getId().isEmpty());
@@ -251,8 +249,7 @@ public class StatementTest extends OpenSearchIntegTestCase {
   public void failToSubmitStatementInDeadState() {
     Session session = sessionManager.createSession(createSessionRequest());
 
-    sessionStorageService.updateSessionState(
-        session.getSessionModel(), SessionState.DEAD, TEST_DATASOURCE_NAME);
+    sessionStorageService.updateSessionState(session.getSessionModel(), SessionState.DEAD);
 
     IllegalStateException exception =
         assertThrows(IllegalStateException.class, () -> session.submit(queryRequest()));
@@ -266,8 +263,7 @@ public class StatementTest extends OpenSearchIntegTestCase {
   public void failToSubmitStatementInFailState() {
     Session session = sessionManager.createSession(createSessionRequest());
 
-    sessionStorageService.updateSessionState(
-        session.getSessionModel(), SessionState.FAIL, TEST_DATASOURCE_NAME);
+    sessionStorageService.updateSessionState(session.getSessionModel(), SessionState.FAIL);
 
     IllegalStateException exception =
         assertThrows(IllegalStateException.class, () -> session.submit(queryRequest()));
@@ -312,8 +308,7 @@ public class StatementTest extends OpenSearchIntegTestCase {
   public void getStatementSuccess() {
     Session session = sessionManager.createSession(createSessionRequest());
     // App change state to running
-    sessionStorageService.updateSessionState(
-        session.getSessionModel(), SessionState.RUNNING, TEST_DATASOURCE_NAME);
+    sessionStorageService.updateSessionState(session.getSessionModel(), SessionState.RUNNING);
     StatementId statementId = session.submit(queryRequest());
 
     Optional<Statement> statement = session.get(statementId);
@@ -326,8 +321,7 @@ public class StatementTest extends OpenSearchIntegTestCase {
   public void getStatementNotExist() {
     Session session = sessionManager.createSession(createSessionRequest());
     // App change state to running
-    sessionStorageService.updateSessionState(
-        session.getSessionModel(), SessionState.RUNNING, TEST_DATASOURCE_NAME);
+    sessionStorageService.updateSessionState(session.getSessionModel(), SessionState.RUNNING);
 
     Optional<Statement> statement = session.get(StatementId.newStatementId("not-exist-id"));
     assertFalse(statement.isPresent());
@@ -376,8 +370,7 @@ public class StatementTest extends OpenSearchIntegTestCase {
 
     public TestStatement run() {
       StatementModel model =
-          statementStorageService.updateStatementState(
-              st.getStatementModel(), RUNNING, TEST_DATASOURCE_NAME);
+          statementStorageService.updateStatementState(st.getStatementModel(), RUNNING);
       st.setStatementModel(model);
       return this;
     }

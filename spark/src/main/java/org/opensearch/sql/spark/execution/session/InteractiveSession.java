@@ -64,7 +64,7 @@ public class InteractiveSession implements Session {
       sessionModel =
           initInteractiveSession(
               applicationId, jobID, sessionId, createSessionRequest.getDatasourceName());
-      sessionStorageService.createSession(sessionModel, sessionModel.getDatasourceName());
+      sessionStorageService.createSession(sessionModel);
     } catch (VersionConflictEngineException e) {
       String errorMsg = "session already exist. " + sessionId;
       LOG.error(errorMsg);
