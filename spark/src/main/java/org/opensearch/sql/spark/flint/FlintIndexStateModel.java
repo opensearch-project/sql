@@ -5,14 +5,15 @@
 
 package org.opensearch.sql.spark.flint;
 
-import lombok.Builder;
+import com.google.common.collect.ImmutableMap;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
+import lombok.experimental.SuperBuilder;
 import org.opensearch.sql.spark.execution.statestore.StateModel;
 
 /** Flint Index Model maintain the index state. */
 @Getter
-@Builder
+@SuperBuilder
 @EqualsAndHashCode(callSuper = false)
 public class FlintIndexStateModel extends StateModel {
   private final FlintIndexState indexState;
@@ -23,55 +24,32 @@ public class FlintIndexStateModel extends StateModel {
   private final long lastUpdateTime;
   private final String error;
 
-  @EqualsAndHashCode.Exclude private final long seqNo;
-  @EqualsAndHashCode.Exclude private final long primaryTerm;
-
-  public FlintIndexStateModel(
-      FlintIndexState indexState,
-      String applicationId,
-      String jobId,
-      String latestId,
-      String datasourceName,
-      long lastUpdateTime,
-      String error,
-      long seqNo,
-      long primaryTerm) {
-    this.indexState = indexState;
-    this.applicationId = applicationId;
-    this.jobId = jobId;
-    this.latestId = latestId;
-    this.datasourceName = datasourceName;
-    this.lastUpdateTime = lastUpdateTime;
-    this.error = error;
-    this.seqNo = seqNo;
-    this.primaryTerm = primaryTerm;
-  }
-
-  public static FlintIndexStateModel copy(FlintIndexStateModel copy, long seqNo, long primaryTerm) {
-    return new FlintIndexStateModel(
-        copy.indexState,
-        copy.applicationId,
-        copy.jobId,
-        copy.latestId,
-        copy.datasourceName,
-        copy.lastUpdateTime,
-        copy.error,
-        seqNo,
-        primaryTerm);
+  public static FlintIndexStateModel copy(
+      FlintIndexStateModel copy, ImmutableMap<String, Object> metadata) {
+    return builder()
+        .indexState(copy.indexState)
+        .applicationId(copy.applicationId)
+        .jobId(copy.jobId)
+        .latestId(copy.latestId)
+        .datasourceName(copy.datasourceName)
+        .lastUpdateTime(copy.lastUpdateTime)
+        .error(copy.error)
+        .metadata(metadata)
+        .build();
   }
 
   public static FlintIndexStateModel copyWithState(
-      FlintIndexStateModel copy, FlintIndexState state, long seqNo, long primaryTerm) {
-    return new FlintIndexStateModel(
-        state,
-        copy.applicationId,
-        copy.jobId,
-        copy.latestId,
-        copy.datasourceName,
-        copy.lastUpdateTime,
-        copy.error,
-        seqNo,
-        primaryTerm);
+      FlintIndexStateModel copy, FlintIndexState state, ImmutableMap<String, Object> metadata) {
+    return builder()
+        .indexState(state)
+        .applicationId(copy.applicationId)
+        .jobId(copy.jobId)
+        .latestId(copy.latestId)
+        .datasourceName(copy.datasourceName)
+        .lastUpdateTime(copy.lastUpdateTime)
+        .error(copy.error)
+        .metadata(metadata)
+        .build();
   }
 
   @Override

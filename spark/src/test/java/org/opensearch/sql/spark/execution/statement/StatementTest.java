@@ -158,10 +158,7 @@ public class StatementTest extends OpenSearchIntegTestCase {
     StatementModel model = st.getStatementModel();
     st.setStatementModel(
         StatementModel.copyWithState(
-            st.getStatementModel(),
-            StatementState.SUCCESS,
-            model.getSeqNo(),
-            model.getPrimaryTerm()));
+            st.getStatementModel(), StatementState.SUCCESS, model.getMetadata()));
 
     // cancel conflict
     IllegalStateException exception = assertThrows(IllegalStateException.class, st::cancel);
@@ -179,10 +176,7 @@ public class StatementTest extends OpenSearchIntegTestCase {
     StatementModel model = st.getStatementModel();
     st.setStatementModel(
         StatementModel.copyWithState(
-            st.getStatementModel(),
-            StatementState.FAILED,
-            model.getSeqNo(),
-            model.getPrimaryTerm()));
+            st.getStatementModel(), StatementState.FAILED, model.getMetadata()));
 
     // cancel conflict
     IllegalStateException exception = assertThrows(IllegalStateException.class, st::cancel);
@@ -199,8 +193,7 @@ public class StatementTest extends OpenSearchIntegTestCase {
     // update to running state
     StatementModel model = st.getStatementModel();
     st.setStatementModel(
-        StatementModel.copyWithState(
-            st.getStatementModel(), CANCELLED, model.getSeqNo(), model.getPrimaryTerm()));
+        StatementModel.copyWithState(st.getStatementModel(), CANCELLED, model.getMetadata()));
 
     // cancel conflict
     IllegalStateException exception = assertThrows(IllegalStateException.class, st::cancel);

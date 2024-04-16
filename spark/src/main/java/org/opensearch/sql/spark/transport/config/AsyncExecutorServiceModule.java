@@ -33,6 +33,7 @@ import org.opensearch.sql.spark.execution.statestore.OpenSearchStatementStorageS
 import org.opensearch.sql.spark.execution.statestore.SessionStorageService;
 import org.opensearch.sql.spark.execution.statestore.StateStore;
 import org.opensearch.sql.spark.execution.statestore.StatementStorageService;
+import org.opensearch.sql.spark.execution.xcontent.AsyncQueryJobMetadataXContentSerializer;
 import org.opensearch.sql.spark.execution.xcontent.FlintIndexStateModelXContentSerializer;
 import org.opensearch.sql.spark.execution.xcontent.SessionModelXContentSerializer;
 import org.opensearch.sql.spark.execution.xcontent.StatementModelXContentSerializer;
@@ -64,8 +65,8 @@ public class AsyncExecutorServiceModule extends AbstractModule {
 
   @Provides
   public AsyncQueryJobMetadataStorageService asyncQueryJobMetadataStorageService(
-      StateStore stateStore) {
-    return new OpensearchAsyncQueryJobMetadataStorageService(stateStore);
+      StateStore stateStore, AsyncQueryJobMetadataXContentSerializer serializer) {
+    return new OpensearchAsyncQueryJobMetadataStorageService(stateStore, serializer);
   }
 
   @Provides
@@ -137,14 +138,14 @@ public class AsyncExecutorServiceModule extends AbstractModule {
 
   @Provides
   public SessionStorageService sessionStorageService(
-      StateStore stateStore, SessionModelXContentSerializer sessionModelXContentSerializer) {
-    return new OpenSearchSessionStorageService(stateStore, sessionModelXContentSerializer);
+      StateStore stateStore, SessionModelXContentSerializer serializer) {
+    return new OpenSearchSessionStorageService(stateStore, serializer);
   }
 
   @Provides
   public StatementStorageService statementStorageService(
-      StateStore stateStore, StatementModelXContentSerializer statementModelXContentSerializer) {
-    return new OpenSearchStatementStorageService(stateStore, statementModelXContentSerializer);
+      StateStore stateStore, StatementModelXContentSerializer serializer) {
+    return new OpenSearchStatementStorageService(stateStore, serializer);
   }
 
   @Provides
