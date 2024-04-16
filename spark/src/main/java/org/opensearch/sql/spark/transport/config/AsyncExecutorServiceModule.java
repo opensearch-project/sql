@@ -15,7 +15,6 @@ import org.opensearch.common.inject.Provides;
 import org.opensearch.common.inject.Singleton;
 import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.datasource.DataSourceService;
-import org.opensearch.sql.datasources.auth.DataSourceUserAuthorizationHelperImpl;
 import org.opensearch.sql.legacy.metrics.GaugeMetric;
 import org.opensearch.sql.legacy.metrics.Metrics;
 import org.opensearch.sql.spark.asyncquery.AsyncQueryExecutorService;
@@ -68,7 +67,6 @@ public class AsyncExecutorServiceModule extends AbstractModule {
   public SparkQueryDispatcher sparkQueryDispatcher(
       EMRServerlessClientFactory emrServerlessClientFactory,
       DataSourceService dataSourceService,
-      DataSourceUserAuthorizationHelperImpl dataSourceUserAuthorizationHelper,
       JobExecutionResponseReader jobExecutionResponseReader,
       FlintIndexMetadataServiceImpl flintIndexMetadataReader,
       NodeClient client,
@@ -78,7 +76,6 @@ public class AsyncExecutorServiceModule extends AbstractModule {
     return new SparkQueryDispatcher(
         emrServerlessClientFactory,
         dataSourceService,
-        dataSourceUserAuthorizationHelper,
         jobExecutionResponseReader,
         flintIndexMetadataReader,
         client,
@@ -113,20 +110,13 @@ public class AsyncExecutorServiceModule extends AbstractModule {
 
   @Provides
   @Singleton
-  public FlintIndexMetadataServiceImpl flintIndexMetadataReader(
-      NodeClient client, StateStore stateStore) {
+  public FlintIndexMetadataServiceImpl flintIndexMetadataReader(NodeClient client) {
     return new FlintIndexMetadataServiceImpl(client);
   }
 
   @Provides
   public JobExecutionResponseReader jobExecutionResponseReader(NodeClient client) {
     return new JobExecutionResponseReader(client);
-  }
-
-  @Provides
-  public DataSourceUserAuthorizationHelperImpl dataSourceUserAuthorizationHelper(
-      NodeClient client) {
-    return new DataSourceUserAuthorizationHelperImpl(client);
   }
 
   private void registerStateStoreMetrics(StateStore stateStore) {
