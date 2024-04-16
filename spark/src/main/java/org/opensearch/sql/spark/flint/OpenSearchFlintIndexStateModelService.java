@@ -9,10 +9,12 @@ import java.util.Optional;
 import lombok.RequiredArgsConstructor;
 import org.opensearch.sql.spark.execution.statestore.OpenSearchStateStoreUtil;
 import org.opensearch.sql.spark.execution.statestore.StateStore;
+import org.opensearch.sql.spark.execution.xcontent.FlintIndexStateModelXContentSerializer;
 
 @RequiredArgsConstructor
 public class OpenSearchFlintIndexStateModelService implements FlintIndexStateModelService {
   private final StateStore stateStore;
+  private final FlintIndexStateModelXContentSerializer serializer;
 
   @Override
   public FlintIndexStateModel updateFlintIndexState(
@@ -29,9 +31,7 @@ public class OpenSearchFlintIndexStateModelService implements FlintIndexStateMod
   @Override
   public Optional<FlintIndexStateModel> getFlintIndexStateModel(String id, String datasourceName) {
     return stateStore.get(
-        id,
-        FlintIndexStateModel::fromXContent,
-        OpenSearchStateStoreUtil.getIndexName(datasourceName));
+        id, serializer::fromXContent, OpenSearchStateStoreUtil.getIndexName(datasourceName));
   }
 
   @Override

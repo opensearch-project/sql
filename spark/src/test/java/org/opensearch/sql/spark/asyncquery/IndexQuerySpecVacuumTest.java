@@ -5,7 +5,6 @@
 
 package org.opensearch.sql.spark.asyncquery;
 
-import static org.opensearch.sql.spark.execution.statestore.StateStore.DATASOURCE_TO_REQUEST_INDEX;
 import static org.opensearch.sql.spark.flint.FlintIndexState.ACTIVE;
 import static org.opensearch.sql.spark.flint.FlintIndexState.CREATING;
 import static org.opensearch.sql.spark.flint.FlintIndexState.DELETED;
@@ -31,6 +30,7 @@ import org.opensearch.action.get.GetRequest;
 import org.opensearch.sql.spark.asyncquery.model.AsyncQueryExecutionResponse;
 import org.opensearch.sql.spark.asyncquery.model.MockFlintSparkJob;
 import org.opensearch.sql.spark.client.EMRServerlessClientFactory;
+import org.opensearch.sql.spark.execution.statestore.OpenSearchStateStoreUtil;
 import org.opensearch.sql.spark.flint.FlintIndexState;
 import org.opensearch.sql.spark.flint.FlintIndexType;
 import org.opensearch.sql.spark.rest.model.CreateAsyncQueryRequest;
@@ -187,13 +187,15 @@ public class IndexQuerySpecVacuumTest extends AsyncQueryExecutorServiceSpec {
 
   private boolean indexDocExists(String docId) {
     return client
-        .get(new GetRequest(DATASOURCE_TO_REQUEST_INDEX.apply("mys3"), docId))
+        .get(new GetRequest(OpenSearchStateStoreUtil.getIndexName("mys3"), docId))
         .actionGet()
         .isExists();
   }
 
   private void deleteIndexDoc(String docId) {
-    client.delete(new DeleteRequest(DATASOURCE_TO_REQUEST_INDEX.apply("mys3"), docId)).actionGet();
+    client
+        .delete(new DeleteRequest(OpenSearchStateStoreUtil.getIndexName("mys3"), docId))
+        .actionGet();
   }
 
   private FlintDatasetMock mockDataset(String query, FlintIndexType indexType, String indexName) {

@@ -5,28 +5,28 @@
 
 package org.opensearch.sql.spark.execution.statestore;
 
-import static org.opensearch.sql.spark.execution.statestore.StateStore.DATASOURCE_TO_REQUEST_INDEX;
-
 import java.util.Optional;
 import lombok.RequiredArgsConstructor;
 import org.opensearch.sql.spark.execution.session.SessionModel;
 import org.opensearch.sql.spark.execution.session.SessionState;
+import org.opensearch.sql.spark.execution.xcontent.SessionModelXContentSerializer;
 
 @RequiredArgsConstructor
 public class OpenSearchSessionStorageService implements SessionStorageService {
 
   private final StateStore stateStore;
+  private final SessionModelXContentSerializer serializer;
 
   @Override
   public SessionModel createSession(SessionModel sessionModel, String datasourceName) {
     return stateStore.create(
-        sessionModel, SessionModel::of, DATASOURCE_TO_REQUEST_INDEX.apply(datasourceName));
+        sessionModel, SessionModel::of, OpenSearchStateStoreUtil.getIndexName(datasourceName));
   }
 
   @Override
   public Optional<SessionModel> getSession(String id, String datasourceName) {
     return stateStore.get(
-        id, SessionModel::fromXContent, DATASOURCE_TO_REQUEST_INDEX.apply(datasourceName));
+        id, serializer::fromXContent, OpenSearchStateStoreUtil.getIndexName(datasourceName));
   }
 
   @Override
@@ -36,6 +36,6 @@ public class OpenSearchSessionStorageService implements SessionStorageService {
         sessionModel,
         sessionState,
         SessionModel::copyWithState,
-        DATASOURCE_TO_REQUEST_INDEX.apply(datasourceName));
+        OpenSearchStateStoreUtil.getIndexName(datasourceName));
   }
 }

@@ -5,28 +5,30 @@
 
 package org.opensearch.sql.spark.execution.statestore;
 
-import static org.opensearch.sql.spark.execution.statestore.StateStore.DATASOURCE_TO_REQUEST_INDEX;
-
 import java.util.Optional;
 import lombok.RequiredArgsConstructor;
 import org.opensearch.sql.spark.execution.statement.StatementModel;
 import org.opensearch.sql.spark.execution.statement.StatementState;
+import org.opensearch.sql.spark.execution.xcontent.StatementModelXContentSerializer;
 
 @RequiredArgsConstructor
 public class OpenSearchStatementStorageService implements StatementStorageService {
 
   private final StateStore stateStore;
+  private final StatementModelXContentSerializer serializer;
 
   @Override
   public StatementModel createStatement(StatementModel statementModel, String datasourceName) {
     return stateStore.create(
-        statementModel, StatementModel::copy, DATASOURCE_TO_REQUEST_INDEX.apply(datasourceName));
+        statementModel,
+        StatementModel::copy,
+        OpenSearchStateStoreUtil.getIndexName(datasourceName));
   }
 
   @Override
   public Optional<StatementModel> getStatement(String id, String datasourceName) {
     return stateStore.get(
-        id, StatementModel::fromXContent, DATASOURCE_TO_REQUEST_INDEX.apply(datasourceName));
+        id, serializer::fromXContent, OpenSearchStateStoreUtil.getIndexName(datasourceName));
   }
 
   @Override
@@ -36,6 +38,6 @@ public class OpenSearchStatementStorageService implements StatementStorageServic
         oldStatementModel,
         statementState,
         StatementModel::copyWithState,
-        DATASOURCE_TO_REQUEST_INDEX.apply(datasourceName));
+        OpenSearchStateStoreUtil.getIndexName(datasourceName));
   }
 }

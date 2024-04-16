@@ -13,7 +13,6 @@ import static org.opensearch.sql.datasources.glue.GlueDataSourceFactory.GLUE_IND
 import static org.opensearch.sql.datasources.glue.GlueDataSourceFactory.GLUE_LAKEFORMATION_ENABLED;
 import static org.opensearch.sql.datasources.glue.GlueDataSourceFactory.GLUE_ROLE_ARN;
 import static org.opensearch.sql.spark.data.constants.SparkConstants.*;
-import static org.opensearch.sql.spark.execution.statestore.StateStore.DATASOURCE_TO_REQUEST_INDEX;
 
 import java.net.URI;
 import java.net.URISyntaxException;
@@ -27,6 +26,7 @@ import org.apache.commons.text.StringEscapeUtils;
 import org.opensearch.sql.datasource.model.DataSourceMetadata;
 import org.opensearch.sql.datasource.model.DataSourceType;
 import org.opensearch.sql.datasources.auth.AuthenticationType;
+import org.opensearch.sql.spark.execution.statestore.OpenSearchStateStoreUtil;
 
 /** Define Spark Submit Parameters. */
 @AllArgsConstructor
@@ -181,7 +181,7 @@ public class SparkSubmitParameters {
     }
 
     public Builder sessionExecution(String sessionId, String datasourceName) {
-      config.put(FLINT_JOB_REQUEST_INDEX, DATASOURCE_TO_REQUEST_INDEX.apply(datasourceName));
+      config.put(FLINT_JOB_REQUEST_INDEX, OpenSearchStateStoreUtil.getIndexName(datasourceName));
       config.put(FLINT_JOB_SESSION_ID, sessionId);
       return this;
     }

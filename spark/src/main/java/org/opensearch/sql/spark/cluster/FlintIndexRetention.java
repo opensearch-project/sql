@@ -5,8 +5,8 @@
 
 package org.opensearch.sql.spark.cluster;
 
-import static org.opensearch.sql.spark.execution.session.SessionModel.LAST_UPDATE_TIME;
-import static org.opensearch.sql.spark.execution.statement.StatementModel.SUBMIT_TIME;
+import static org.opensearch.sql.spark.execution.xcontent.StatementModelXContentSerializer.SUBMIT_TIME;
+import static org.opensearch.sql.spark.execution.xcontent.XContentCommonAttributes.LAST_UPDATE_TIME;
 
 import java.time.Clock;
 import java.time.Duration;
