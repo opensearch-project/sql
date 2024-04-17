@@ -7,7 +7,7 @@
 
 package org.opensearch.sql.spark.asyncquery;
 
-import static org.opensearch.sql.spark.execution.statestore.StateStore.createJobMetaData;
+import static org.opensearch.sql.spark.execution.statestore.StateStore.DATASOURCE_TO_REQUEST_INDEX;
 
 import java.util.Optional;
 import lombok.RequiredArgsConstructor;
@@ -17,6 +17,7 @@ import org.opensearch.sql.spark.asyncquery.exceptions.AsyncQueryNotFoundExceptio
 import org.opensearch.sql.spark.asyncquery.model.AsyncQueryId;
 import org.opensearch.sql.spark.asyncquery.model.AsyncQueryJobMetadata;
 import org.opensearch.sql.spark.execution.statestore.StateStore;
+import org.opensearch.sql.spark.execution.xcontent.AsyncQueryJobMetadataXContentSerializer;
 
 /** Opensearch implementation of {@link AsyncQueryJobMetadataStorageService} */
 @RequiredArgsConstructor
@@ -31,15 +32,22 @@ public class OpensearchAsyncQueryJobMetadataStorageService
   @Override
   public void storeJobMetadata(AsyncQueryJobMetadata asyncQueryJobMetadata) {
     AsyncQueryId queryId = asyncQueryJobMetadata.getQueryId();
-    createJobMetaData(stateStore, queryId.getDataSourceName()).apply(asyncQueryJobMetadata);
+    stateStore.create(
+        asyncQueryJobMetadata,
+        AsyncQueryJobMetadata::copy,
+        DATASOURCE_TO_REQUEST_INDEX.apply(queryId.getDataSourceName()));
   }
 
   @Override
   public Optional<AsyncQueryJobMetadata> getJobMetadata(String qid) {
     try {
       AsyncQueryId queryId = new AsyncQueryId(qid);
-      return StateStore.getJobMetaData(stateStore, queryId.getDataSourceName())
-          .apply(queryId.docId());
+      AsyncQueryJobMetadataXContentSerializer asyncQueryJobMetadataXContentSerializer =
+          new AsyncQueryJobMetadataXContentSerializer();
+      return stateStore.get(
+          queryId.docId(),
+          asyncQueryJobMetadataXContentSerializer::fromXContent,
+          DATASOURCE_TO_REQUEST_INDEX.apply(queryId.getDataSourceName()));
     } catch (Exception e) {
       LOGGER.error("Error while fetching the job metadata.", e);
       throw new AsyncQueryNotFoundException(String.format("Invalid QueryId: %s", qid));

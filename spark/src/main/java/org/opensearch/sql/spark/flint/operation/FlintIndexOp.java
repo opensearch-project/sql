@@ -6,9 +6,6 @@
 package org.opensearch.sql.spark.flint.operation;
 
 import static org.opensearch.sql.spark.client.EmrServerlessClientImpl.GENERIC_INTERNAL_SERVER_ERROR_MESSAGE;
-import static org.opensearch.sql.spark.execution.statestore.StateStore.deleteFlintIndexState;
-import static org.opensearch.sql.spark.execution.statestore.StateStore.getFlintIndexState;
-import static org.opensearch.sql.spark.execution.statestore.StateStore.updateFlintIndexState;
 
 import com.amazonaws.services.emrserverless.model.ValidationException;
 import java.util.Locale;
@@ -21,17 +18,17 @@ import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
 import org.opensearch.index.seqno.SequenceNumbers;
 import org.opensearch.sql.spark.client.EMRServerlessClient;
-import org.opensearch.sql.spark.execution.statestore.StateStore;
 import org.opensearch.sql.spark.flint.FlintIndexMetadata;
 import org.opensearch.sql.spark.flint.FlintIndexState;
 import org.opensearch.sql.spark.flint.FlintIndexStateModel;
+import org.opensearch.sql.spark.flint.FlintIndexStateModelService;
 
 /** Flint Index Operation. */
 @RequiredArgsConstructor
 public abstract class FlintIndexOp {
   private static final Logger LOG = LogManager.getLogger();
 
-  private final StateStore stateStore;
+  private final FlintIndexStateModelService flintIndexStateModelService;
   private final String datasourceName;
 
   /** Apply operation on {@link FlintIndexMetadata} */
@@ -55,8 +52,10 @@ public abstract class FlintIndexOp {
       } catch (Throwable e) {
         LOG.error("Rolling back transient log due to transaction operation failure", e);
         try {
-          updateFlintIndexState(stateStore, datasourceName)
-              .apply(transitionedFlintIndexStateModel, initialFlintIndexStateModel.getIndexState());
+          flintIndexStateModelService.updateFlintIndexState(
+              transitionedFlintIndexStateModel,
+              initialFlintIndexStateModel.getIndexState(),
+              datasourceName);
         } catch (Exception ex) {
           LOG.error("Failed to rollback transient log", ex);
         }
@@ -68,7 +67,7 @@ public abstract class FlintIndexOp {
   @NotNull
   private FlintIndexStateModel getFlintIndexStateModel(String latestId) {
     Optional<FlintIndexStateModel> flintIndexOptional =
-        getFlintIndexState(stateStore, datasourceName).apply(latestId);
+        flintIndexStateModelService.getFlintIndexStateModel(latestId, datasourceName);
     if (flintIndexOptional.isEmpty()) {
       String errorMsg = String.format(Locale.ROOT, "no state found. docId: %s", latestId);
       LOG.error(errorMsg);
@@ -109,7 +108,8 @@ public abstract class FlintIndexOp {
     FlintIndexState transitioningState = transitioningState();
     try {
       flintIndex =
-          updateFlintIndexState(stateStore, datasourceName).apply(flintIndex, transitioningState());
+          flintIndexStateModelService.updateFlintIndexState(
+              flintIndex, transitioningState(), datasourceName);
     } catch (Exception e) {
       String errorMsg =
           String.format(Locale.ROOT, "Moving to transition state:%s failed.", transitioningState);
@@ -125,9 +125,10 @@ public abstract class FlintIndexOp {
     try {
       if (stableState == FlintIndexState.NONE) {
         LOG.info("Deleting index state with docId: " + flintIndex.getLatestId());
-        deleteFlintIndexState(stateStore, datasourceName).apply(flintIndex.getLatestId());
+        flintIndexStateModelService.deleteFlintIndexStateModel(
+            flintIndex.getLatestId(), datasourceName);
       } else {
-        updateFlintIndexState(stateStore, datasourceName).apply(flintIndex, stableState);
+        flintIndexStateModelService.updateFlintIndexState(flintIndex, stableState, datasourceName);
       }
     } catch (Exception e) {
       String errorMsg =

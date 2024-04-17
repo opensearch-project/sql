@@ -12,9 +12,6 @@ import static org.opensearch.sql.spark.execution.statement.StatementState.RUNNIN
 import static org.opensearch.sql.spark.execution.statement.StatementState.WAITING;
 import static org.opensearch.sql.spark.execution.statement.StatementTest.TestStatement.testStatement;
 import static org.opensearch.sql.spark.execution.statestore.StateStore.DATASOURCE_TO_REQUEST_INDEX;
-import static org.opensearch.sql.spark.execution.statestore.StateStore.getStatement;
-import static org.opensearch.sql.spark.execution.statestore.StateStore.updateSessionState;
-import static org.opensearch.sql.spark.execution.statestore.StateStore.updateStatementState;
 
 import java.util.Optional;
 import lombok.RequiredArgsConstructor;
@@ -30,6 +27,8 @@ import org.opensearch.sql.spark.execution.session.Session;
 import org.opensearch.sql.spark.execution.session.SessionId;
 import org.opensearch.sql.spark.execution.session.SessionManager;
 import org.opensearch.sql.spark.execution.session.SessionState;
+import org.opensearch.sql.spark.execution.statestore.OpensearchSessionStorageService;
+import org.opensearch.sql.spark.execution.statestore.SessionStorageService;
 import org.opensearch.sql.spark.execution.statestore.StateStore;
 import org.opensearch.sql.spark.rest.model.LangType;
 import org.opensearch.test.OpenSearchIntegTestCase;
@@ -40,12 +39,16 @@ public class StatementTest extends OpenSearchIntegTestCase {
   private static final String indexName = DATASOURCE_TO_REQUEST_INDEX.apply(DS_NAME);
 
   private StateStore stateStore;
+  private StatementStorageService statementStorageService;
+  private SessionStorageService sessionStorageService;
   private InteractiveSessionTest.TestEMRServerlessClient emrsClient =
       new InteractiveSessionTest.TestEMRServerlessClient();
 
   @Before
   public void setup() {
     stateStore = new StateStore(client(), clusterService());
+    statementStorageService = new OpenSearchStatementStorageService(stateStore);
+    sessionStorageService = new OpensearchSessionStorageService(stateStore);
   }
 
   @After
@@ -68,10 +71,11 @@ public class StatementTest extends OpenSearchIntegTestCase {
             .query("query")
             .queryId("statementId")
             .stateStore(stateStore)
+            .statementStorageService(statementStorageService)
             .build();
 
     // submit statement
-    TestStatement testStatement = testStatement(st, stateStore);
+    TestStatement testStatement = testStatement(st, statementStorageService);
     testStatement
         .open()
         .assertSessionState(WAITING)
@@ -94,6 +98,7 @@ public class StatementTest extends OpenSearchIntegTestCase {
             .query("query")
             .queryId("statementId")
             .stateStore(stateStore)
+            .statementStorageService(statementStorageService)
             .build();
     st.open();
 
@@ -109,6 +114,7 @@ public class StatementTest extends OpenSearchIntegTestCase {
             .query("query")
             .queryId("statementId")
             .stateStore(stateStore)
+            .statementStorageService(statementStorageService)
             .build();
     IllegalStateException exception = assertThrows(IllegalStateException.class, dupSt::open);
     assertEquals("statement already exist. statementId=statementId", exception.getMessage());
@@ -128,6 +134,7 @@ public class StatementTest extends OpenSearchIntegTestCase {
             .query("query")
             .queryId("statementId")
             .stateStore(stateStore)
+            .statementStorageService(statementStorageService)
             .build();
     st.open();
 
@@ -153,12 +160,12 @@ public class StatementTest extends OpenSearchIntegTestCase {
             .query("query")
             .queryId("statementId")
             .stateStore(stateStore)
+            .statementStorageService(statementStorageService)
             .build();
     st.open();
 
     StatementModel running =
-        updateStatementState(stateStore, DS_NAME).apply(st.getStatementModel(), CANCELLED);
-
+        statementStorageService.updateStatementState(st.getStatementModel(), CANCELLED, DS_NAME);
     assertEquals(StatementState.CANCELLED, running.getStatementState());
 
     // cancel conflict
@@ -242,10 +249,11 @@ public class StatementTest extends OpenSearchIntegTestCase {
             .query("query")
             .queryId("statementId")
             .stateStore(stateStore)
+            .statementStorageService(statementStorageService)
             .build();
 
     // submit statement
-    TestStatement testStatement = testStatement(st, stateStore);
+    TestStatement testStatement = testStatement(st, statementStorageService);
     testStatement
         .open()
         .assertSessionState(WAITING)
@@ -261,11 +269,17 @@ public class StatementTest extends OpenSearchIntegTestCase {
   public void submitStatementInRunningSession() {
     EMRServerlessClientFactory emrServerlessClientFactory = () -> emrsClient;
     Session session =
-        new SessionManager(stateStore, emrServerlessClientFactory, sessionSetting())
+        new SessionManager(
+                stateStore,
+                statementStorageService,
+                sessionStorageService,
+                emrServerlessClientFactory,
+                sessionSetting())
             .createSession(createSessionRequest());
 
     // App change state to running
-    updateSessionState(stateStore, DS_NAME).apply(session.getSessionModel(), SessionState.RUNNING);
+    sessionStorageService.updateSessionState(
+        session.getSessionModel(), SessionState.RUNNING, DS_NAME);
 
     StatementId statementId = session.submit(queryRequest());
     assertFalse(statementId.getId().isEmpty());
@@ -275,7 +289,12 @@ public class StatementTest extends OpenSearchIntegTestCase {
   public void submitStatementInNotStartedState() {
     EMRServerlessClientFactory emrServerlessClientFactory = () -> emrsClient;
     Session session =
-        new SessionManager(stateStore, emrServerlessClientFactory, sessionSetting())
+        new SessionManager(
+                stateStore,
+                statementStorageService,
+                sessionStorageService,
+                emrServerlessClientFactory,
+                sessionSetting())
             .createSession(createSessionRequest());
 
     StatementId statementId = session.submit(queryRequest());
@@ -286,10 +305,15 @@ public class StatementTest extends OpenSearchIntegTestCase {
   public void failToSubmitStatementInDeadState() {
     EMRServerlessClientFactory emrServerlessClientFactory = () -> emrsClient;
     Session session =
-        new SessionManager(stateStore, emrServerlessClientFactory, sessionSetting())
+        new SessionManager(
+                stateStore,
+                statementStorageService,
+                sessionStorageService,
+                emrServerlessClientFactory,
+                sessionSetting())
             .createSession(createSessionRequest());
 
-    updateSessionState(stateStore, DS_NAME).apply(session.getSessionModel(), SessionState.DEAD);
+    sessionStorageService.updateSessionState(session.getSessionModel(), SessionState.DEAD, DS_NAME);
 
     IllegalStateException exception =
         assertThrows(IllegalStateException.class, () -> session.submit(queryRequest()));
@@ -303,10 +327,15 @@ public class StatementTest extends OpenSearchIntegTestCase {
   public void failToSubmitStatementInFailState() {
     EMRServerlessClientFactory emrServerlessClientFactory = () -> emrsClient;
     Session session =
-        new SessionManager(stateStore, emrServerlessClientFactory, sessionSetting())
+        new SessionManager(
+                stateStore,
+                statementStorageService,
+                sessionStorageService,
+                emrServerlessClientFactory,
+                sessionSetting())
             .createSession(createSessionRequest());
 
-    updateSessionState(stateStore, DS_NAME).apply(session.getSessionModel(), SessionState.FAIL);
+    sessionStorageService.updateSessionState(session.getSessionModel(), SessionState.FAIL, DS_NAME);
 
     IllegalStateException exception =
         assertThrows(IllegalStateException.class, () -> session.submit(queryRequest()));
@@ -320,7 +349,12 @@ public class StatementTest extends OpenSearchIntegTestCase {
   public void newStatementFieldAssert() {
     EMRServerlessClientFactory emrServerlessClientFactory = () -> emrsClient;
     Session session =
-        new SessionManager(stateStore, emrServerlessClientFactory, sessionSetting())
+        new SessionManager(
+                stateStore,
+                statementStorageService,
+                sessionStorageService,
+                emrServerlessClientFactory,
+                sessionSetting())
             .createSession(createSessionRequest());
     StatementId statementId = session.submit(queryRequest());
     Optional<Statement> statement = session.get(statementId);
@@ -339,7 +373,12 @@ public class StatementTest extends OpenSearchIntegTestCase {
   public void failToSubmitStatementInDeletedSession() {
     EMRServerlessClientFactory emrServerlessClientFactory = () -> emrsClient;
     Session session =
-        new SessionManager(stateStore, emrServerlessClientFactory, sessionSetting())
+        new SessionManager(
+                stateStore,
+                statementStorageService,
+                sessionStorageService,
+                emrServerlessClientFactory,
+                sessionSetting())
             .createSession(createSessionRequest());
 
     // other's delete session
@@ -356,10 +395,16 @@ public class StatementTest extends OpenSearchIntegTestCase {
   public void getStatementSuccess() {
     EMRServerlessClientFactory emrServerlessClientFactory = () -> emrsClient;
     Session session =
-        new SessionManager(stateStore, emrServerlessClientFactory, sessionSetting())
+        new SessionManager(
+                stateStore,
+                statementStorageService,
+                sessionStorageService,
+                emrServerlessClientFactory,
+                sessionSetting())
             .createSession(createSessionRequest());
     // App change state to running
-    updateSessionState(stateStore, DS_NAME).apply(session.getSessionModel(), SessionState.RUNNING);
+    sessionStorageService.updateSessionState(
+        session.getSessionModel(), SessionState.RUNNING, DS_NAME);
     StatementId statementId = session.submit(queryRequest());
 
     Optional<Statement> statement = session.get(statementId);
@@ -372,10 +417,16 @@ public class StatementTest extends OpenSearchIntegTestCase {
   public void getStatementNotExist() {
     EMRServerlessClientFactory emrServerlessClientFactory = () -> emrsClient;
     Session session =
-        new SessionManager(stateStore, emrServerlessClientFactory, sessionSetting())
+        new SessionManager(
+                stateStore,
+                statementStorageService,
+                sessionStorageService,
+                emrServerlessClientFactory,
+                sessionSetting())
             .createSession(createSessionRequest());
     // App change state to running
-    updateSessionState(stateStore, DS_NAME).apply(session.getSessionModel(), SessionState.RUNNING);
+    sessionStorageService.updateSessionState(
+        session.getSessionModel(), SessionState.RUNNING, DS_NAME);
 
     Optional<Statement> statement = session.get(StatementId.newStatementId("not-exist-id"));
     assertFalse(statement.isPresent());
@@ -384,17 +435,18 @@ public class StatementTest extends OpenSearchIntegTestCase {
   @RequiredArgsConstructor
   static class TestStatement {
     private final Statement st;
-    private final StateStore stateStore;
+    private final StatementStorageService statementStorageService;
 
-    public static TestStatement testStatement(Statement st, StateStore stateStore) {
-      return new TestStatement(st, stateStore);
+    public static TestStatement testStatement(
+        Statement st, StatementStorageService statementStorageService) {
+      return new TestStatement(st, statementStorageService);
     }
 
     public TestStatement assertSessionState(StatementState expected) {
       assertEquals(expected, st.getStatementModel().getStatementState());
 
       Optional<StatementModel> model =
-          getStatement(stateStore, DS_NAME).apply(st.getStatementId().getId());
+          statementStorageService.getStatementModel(st.getStatementId().getId(), DS_NAME);
       assertTrue(model.isPresent());
       assertEquals(expected, model.get().getStatementState());
 
@@ -405,7 +457,7 @@ public class StatementTest extends OpenSearchIntegTestCase {
       assertEquals(expected, st.getStatementModel().getStatementId());
 
       Optional<StatementModel> model =
-          getStatement(stateStore, DS_NAME).apply(st.getStatementId().getId());
+          statementStorageService.getStatementModel(st.getStatementId().getId(), DS_NAME);
       assertTrue(model.isPresent());
       assertEquals(expected, model.get().getStatementId());
       return this;
@@ -423,7 +475,7 @@ public class StatementTest extends OpenSearchIntegTestCase {
 
     public TestStatement run() {
       StatementModel model =
-          updateStatementState(stateStore, DS_NAME).apply(st.getStatementModel(), RUNNING);
+          statementStorageService.updateStatementState(st.getStatementModel(), RUNNING, DS_NAME);
       st.setStatementModel(model);
       return this;
     }
@@ -445,6 +497,7 @@ public class StatementTest extends OpenSearchIntegTestCase {
             .query("query")
             .queryId("statementId")
             .stateStore(stateStore)
+            .statementStorageService(statementStorageService)
             .build();
     st.open();
     return st;

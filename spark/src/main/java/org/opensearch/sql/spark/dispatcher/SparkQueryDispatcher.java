@@ -23,8 +23,9 @@ import org.opensearch.sql.spark.dispatcher.model.IndexQueryActionType;
 import org.opensearch.sql.spark.dispatcher.model.IndexQueryDetails;
 import org.opensearch.sql.spark.dispatcher.model.JobType;
 import org.opensearch.sql.spark.execution.session.SessionManager;
-import org.opensearch.sql.spark.execution.statestore.StateStore;
 import org.opensearch.sql.spark.flint.FlintIndexMetadataService;
+import org.opensearch.sql.spark.flint.FlintIndexStateModelService;
+import org.opensearch.sql.spark.flint.IndexDMLResultStorageService;
 import org.opensearch.sql.spark.leasemanager.LeaseManager;
 import org.opensearch.sql.spark.response.JobExecutionResponseReader;
 import org.opensearch.sql.spark.rest.model.LangType;
@@ -53,7 +54,9 @@ public class SparkQueryDispatcher {
 
   private LeaseManager leaseManager;
 
-  private StateStore stateStore;
+  private FlintIndexStateModelService flintIndexStateModelService;
+
+  private IndexDMLResultStorageService indexDMLResultStorageService;
 
   public DispatchQueryResponse dispatch(DispatchQueryRequest dispatchQueryRequest) {
     EMRServerlessClient emrServerlessClient = emrServerlessClientFactory.getClient();
@@ -91,7 +94,7 @@ public class SparkQueryDispatcher {
                 emrServerlessClient,
                 jobExecutionResponseReader,
                 flintIndexMetadataService,
-                stateStore,
+                flintIndexStateModelService,
                 leaseManager);
       }
     }
@@ -145,7 +148,7 @@ public class SparkQueryDispatcher {
               emrServerlessClient,
               jobExecutionResponseReader,
               flintIndexMetadataService,
-              stateStore,
+              flintIndexStateModelService,
               leaseManager);
     } else if (asyncQueryJobMetadata.getJobType() == JobType.STREAMING) {
       queryHandler =
@@ -162,7 +165,8 @@ public class SparkQueryDispatcher {
         emrServerlessClient,
         jobExecutionResponseReader,
         flintIndexMetadataService,
-        stateStore,
+        flintIndexStateModelService,
+        indexDMLResultStorageService,
         client);
   }
 

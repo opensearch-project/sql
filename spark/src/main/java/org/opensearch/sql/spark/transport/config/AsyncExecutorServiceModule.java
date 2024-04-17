@@ -27,8 +27,16 @@ import org.opensearch.sql.spark.config.SparkExecutionEngineConfigSupplier;
 import org.opensearch.sql.spark.config.SparkExecutionEngineConfigSupplierImpl;
 import org.opensearch.sql.spark.dispatcher.SparkQueryDispatcher;
 import org.opensearch.sql.spark.execution.session.SessionManager;
+import org.opensearch.sql.spark.execution.statement.OpenSearchStatementStorageService;
+import org.opensearch.sql.spark.execution.statement.StatementStorageService;
+import org.opensearch.sql.spark.execution.statestore.OpensearchSessionStorageService;
+import org.opensearch.sql.spark.execution.statestore.SessionStorageService;
 import org.opensearch.sql.spark.execution.statestore.StateStore;
 import org.opensearch.sql.spark.flint.FlintIndexMetadataServiceImpl;
+import org.opensearch.sql.spark.flint.FlintIndexStateModelService;
+import org.opensearch.sql.spark.flint.IndexDMLResultStorageService;
+import org.opensearch.sql.spark.flint.OpenSearchFlintIndexStateModelService;
+import org.opensearch.sql.spark.flint.OpenSearchIndexDMLResultStorageService;
 import org.opensearch.sql.spark.leasemanager.DefaultLeaseManager;
 import org.opensearch.sql.spark.response.JobExecutionResponseReader;
 
@@ -72,7 +80,8 @@ public class AsyncExecutorServiceModule extends AbstractModule {
       NodeClient client,
       SessionManager sessionManager,
       DefaultLeaseManager defaultLeaseManager,
-      StateStore stateStore) {
+      FlintIndexStateModelService flintIndexStateModelService,
+      IndexDMLResultStorageService indexDMLResultStorageService) {
     return new SparkQueryDispatcher(
         emrServerlessClientFactory,
         dataSourceService,
@@ -81,15 +90,44 @@ public class AsyncExecutorServiceModule extends AbstractModule {
         client,
         sessionManager,
         defaultLeaseManager,
-        stateStore);
+        flintIndexStateModelService,
+        indexDMLResultStorageService);
   }
 
   @Provides
   public SessionManager sessionManager(
       StateStore stateStore,
+      StatementStorageService statementStorageService,
+      SessionStorageService sessionStorageService,
       EMRServerlessClientFactory emrServerlessClientFactory,
       Settings settings) {
-    return new SessionManager(stateStore, emrServerlessClientFactory, settings);
+    return new SessionManager(
+        stateStore,
+        statementStorageService,
+        sessionStorageService,
+        emrServerlessClientFactory,
+        settings);
+  }
+
+  @Provides
+  public StatementStorageService statementStorageService(StateStore stateStore) {
+    return new OpenSearchStatementStorageService(stateStore);
+  }
+
+  @Provides
+  public SessionStorageService sessionStorageService(StateStore stateStore) {
+    return new OpensearchSessionStorageService(stateStore);
+  }
+
+  @Provides
+  public FlintIndexStateModelService flintIndexStateModelService(StateStore stateStore) {
+    return new OpenSearchFlintIndexStateModelService(stateStore);
+  }
+
+  @Provides
+  public IndexDMLResultStorageService indexDMLResultStorageService(
+      StateStore stateStore, DataSourceService dataSourceService) {
+    return new OpenSearchIndexDMLResultStorageService(dataSourceService, stateStore);
   }
 
   @Provides

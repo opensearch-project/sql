@@ -19,9 +19,9 @@ import org.opensearch.sql.legacy.metrics.MetricName;
 import org.opensearch.sql.legacy.metrics.Metrics;
 import org.opensearch.sql.spark.client.EMRServerlessClientFactory;
 import org.opensearch.sql.spark.dispatcher.model.FlintIndexOptions;
-import org.opensearch.sql.spark.execution.statestore.StateStore;
 import org.opensearch.sql.spark.flint.FlintIndexMetadata;
 import org.opensearch.sql.spark.flint.FlintIndexMetadataService;
+import org.opensearch.sql.spark.flint.FlintIndexStateModelService;
 import org.opensearch.sql.spark.flint.operation.FlintIndexOpAlter;
 import org.opensearch.sql.spark.flint.operation.FlintIndexOpDrop;
 
@@ -31,7 +31,7 @@ public class FlintStreamingJobHouseKeeperTask implements Runnable {
 
   private final DataSourceService dataSourceService;
   private final FlintIndexMetadataService flintIndexMetadataService;
-  private final StateStore stateStore;
+  private final FlintIndexStateModelService flintIndexStateModelService;
   private final EMRServerlessClientFactory emrServerlessClientFactory;
 
   private static final Logger LOGGER = LogManager.getLogger(FlintStreamingJobHouseKeeperTask.class);
@@ -96,7 +96,8 @@ public class FlintStreamingJobHouseKeeperTask implements Runnable {
     // When the datasource is deleted. Possibly Replace with VACUUM Operation.
     LOGGER.info("Attempting to drop auto refresh index: {}", autoRefreshIndex);
     FlintIndexOpDrop flintIndexOpDrop =
-        new FlintIndexOpDrop(stateStore, datasourceName, emrServerlessClientFactory.getClient());
+        new FlintIndexOpDrop(
+            flintIndexStateModelService, datasourceName, emrServerlessClientFactory.getClient());
     flintIndexOpDrop.apply(flintIndexMetadata);
     LOGGER.info("Successfully dropped index: {}", autoRefreshIndex);
   }
@@ -109,7 +110,7 @@ public class FlintStreamingJobHouseKeeperTask implements Runnable {
     FlintIndexOpAlter flintIndexOpAlter =
         new FlintIndexOpAlter(
             flintIndexOptions,
-            stateStore,
+            flintIndexStateModelService,
             datasourceName,
             emrServerlessClientFactory.getClient(),
             flintIndexMetadataService);
