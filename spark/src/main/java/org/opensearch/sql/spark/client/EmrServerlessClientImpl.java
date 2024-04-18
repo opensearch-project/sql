@@ -17,6 +17,7 @@ import com.amazonaws.services.emrserverless.model.JobDriver;
 import com.amazonaws.services.emrserverless.model.SparkSubmit;
 import com.amazonaws.services.emrserverless.model.StartJobRunRequest;
 import com.amazonaws.services.emrserverless.model.StartJobRunResult;
+import com.amazonaws.services.emrserverless.model.ValidationException;
 import java.security.AccessController;
 import java.security.PrivilegedAction;
 import org.apache.commons.lang3.StringUtils;
@@ -69,6 +70,11 @@ public class EmrServerlessClientImpl implements EMRServerlessClient {
                     logger.error("Error while making start job request to emr:", t);
                     MetricUtils.incrementNumericalMetric(
                         MetricName.EMR_START_JOB_REQUEST_FAILURE_COUNT);
+                    if (t instanceof ValidationException) {
+                      throw new IllegalArgumentException(
+                          "The input fails to satisfy the constraints specified by AWS EMR"
+                              + " Serverless.");
+                    }
                     throw new RuntimeException(GENERIC_INTERNAL_SERVER_ERROR_MESSAGE);
                   }
                 });
