@@ -187,20 +187,6 @@ public class AsyncQueryExecutorServiceImplTest {
   }
 
   @Test
-  void testGetAsyncQueryResultsWithDisabledExecutionEngine() {
-    AsyncQueryExecutorService asyncQueryExecutorService = new AsyncQueryExecutorServiceImpl();
-    IllegalArgumentException illegalArgumentException =
-        Assertions.assertThrows(
-            IllegalArgumentException.class,
-            () -> asyncQueryExecutorService.getAsyncQueryResults(EMR_JOB_ID));
-    Assertions.assertEquals(
-        "Async Query APIs are disabled as plugins.query.executionengine.spark.config is not"
-            + " configured in cluster settings. Please configure the setting and restart the domain"
-            + " to enable Async Query APIs",
-        illegalArgumentException.getMessage());
-  }
-
-  @Test
   void testCancelJobWithJobNotFound() {
     when(asyncQueryJobMetadataStorageService.getJobMetadata(EMR_JOB_ID))
         .thenReturn(Optional.empty());

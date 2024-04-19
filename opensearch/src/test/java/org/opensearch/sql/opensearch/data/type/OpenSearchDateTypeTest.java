@@ -103,6 +103,8 @@ class OpenSearchDateTypeTest {
     return EnumSet.allOf(FormatNames.class).stream().map(Arguments::of);
   }
 
+  // Added RFC3339_LENIENT as a temporary fix.
+  // Issue: https://github.com/opensearch-project/sql/issues/2478
   @ParameterizedTest
   @MethodSource("getAllSupportedFormats")
   public void check_supported_format_names_coverage(FormatNames formatName) {
@@ -111,7 +113,8 @@ class OpenSearchDateTypeTest {
             || SUPPORTED_NAMED_DATETIME_FORMATS.contains(formatName)
             || SUPPORTED_NAMED_DATE_FORMATS.contains(formatName)
             || SUPPORTED_NAMED_TIME_FORMATS.contains(formatName)
-            || SUPPORTED_NAMED_INCOMPLETE_DATE_FORMATS.contains(formatName),
+            || SUPPORTED_NAMED_INCOMPLETE_DATE_FORMATS.contains(formatName)
+            || formatName.equals(FormatNames.RFC3339_LENIENT),
         formatName + " not supported");
   }
 

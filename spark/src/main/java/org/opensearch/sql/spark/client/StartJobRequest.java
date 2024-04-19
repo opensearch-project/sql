@@ -19,7 +19,6 @@ public class StartJobRequest {
 
   public static final Long DEFAULT_JOB_TIMEOUT = 120L;
 
-  private final String query;
   private final String jobName;
   private final String applicationId;
   private final String executionRoleArn;

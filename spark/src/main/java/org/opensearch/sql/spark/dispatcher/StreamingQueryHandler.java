@@ -13,6 +13,7 @@ import org.opensearch.sql.datasource.model.DataSourceMetadata;
 import org.opensearch.sql.legacy.metrics.MetricName;
 import org.opensearch.sql.legacy.utils.MetricUtils;
 import org.opensearch.sql.spark.asyncquery.model.AsyncQueryId;
+import org.opensearch.sql.spark.asyncquery.model.AsyncQueryJobMetadata;
 import org.opensearch.sql.spark.asyncquery.model.SparkSubmitParameters;
 import org.opensearch.sql.spark.client.EMRServerlessClient;
 import org.opensearch.sql.spark.client.StartJobRequest;
@@ -38,33 +39,45 @@ public class StreamingQueryHandler extends BatchQueryHandler {
   }
 
   @Override
+  public String cancelJob(AsyncQueryJobMetadata asyncQueryJobMetadata) {
+    throw new IllegalArgumentException(
+        "can't cancel index DML query, using ALTER auto_refresh=off statement to stop job, using"
+            + " VACUUM statement to stop job and delete data");
+  }
+
+  @Override
   public DispatchQueryResponse submit(
       DispatchQueryRequest dispatchQueryRequest, DispatchQueryContext context) {
 
     leaseManager.borrow(new LeaseRequest(JobType.STREAMING, dispatchQueryRequest.getDatasource()));
 
     String clusterName = dispatchQueryRequest.getClusterName();
-    String jobName = clusterName + ":" + "index-query";
     IndexQueryDetails indexQueryDetails = context.getIndexQueryDetails();
     Map<String, String> tags = context.getTags();
     tags.put(INDEX_TAG_KEY, indexQueryDetails.openSearchIndexName());
     DataSourceMetadata dataSourceMetadata = context.getDataSourceMetadata();
     tags.put(JOB_TYPE_TAG_KEY, JobType.STREAMING.getText());
+    String jobName =
+        clusterName
+            + ":"
+            + JobType.STREAMING.getText()
+            + ":"
+            + indexQueryDetails.openSearchIndexName();
     StartJobRequest startJobRequest =
         new StartJobRequest(
-            dispatchQueryRequest.getQuery(),
             jobName,
             dispatchQueryRequest.getApplicationId(),
             dispatchQueryRequest.getExecutionRoleARN(),
             SparkSubmitParameters.Builder.builder()
                 .clusterName(clusterName)
                 .dataSource(dataSourceMetadata)
+                .query(dispatchQueryRequest.getQuery())
                 .structuredStreaming(true)
                 .extraParameters(dispatchQueryRequest.getExtraSparkSubmitParams())
                 .build()
                 .toString(),
             tags,
-            indexQueryDetails.isAutoRefresh(),
+            indexQueryDetails.getFlintIndexOptions().autoRefresh(),
             dataSourceMetadata.getResultIndex());
     String jobId = emrServerlessClient.startJobRun(startJobRequest);
     MetricUtils.incrementNumericalMetric(MetricName.EMR_STREAMING_QUERY_JOBS_CREATION_COUNT);
@@ -72,6 +85,9 @@ public class StreamingQueryHandler extends BatchQueryHandler {
         AsyncQueryId.newAsyncQueryId(dataSourceMetadata.getName()),
         jobId,
         dataSourceMetadata.getResultIndex(),
-        null);
+        null,
+        dataSourceMetadata.getName(),
+        JobType.STREAMING,
+        indexQueryDetails.openSearchIndexName());
   }
 }

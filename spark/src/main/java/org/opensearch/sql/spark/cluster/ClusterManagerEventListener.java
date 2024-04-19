@@ -19,19 +19,29 @@ import org.opensearch.common.lifecycle.LifecycleListener;
 import org.opensearch.common.settings.Setting;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.common.unit.TimeValue;
+import org.opensearch.sql.datasource.DataSourceService;
 import org.opensearch.sql.datasource.model.DataSourceMetadata;
+import org.opensearch.sql.spark.client.EMRServerlessClientFactory;
+import org.opensearch.sql.spark.execution.statestore.StateStore;
+import org.opensearch.sql.spark.flint.FlintIndexMetadataService;
 import org.opensearch.threadpool.Scheduler.Cancellable;
 import org.opensearch.threadpool.ThreadPool;
 
 public class ClusterManagerEventListener implements LocalNodeClusterManagerListener {
 
   private Cancellable flintIndexRetentionCron;
+  private Cancellable flintStreamingJobHouseKeeperCron;
   private ClusterService clusterService;
   private ThreadPool threadPool;
   private Client client;
   private Clock clock;
+  private DataSourceService dataSourceService;
+  private FlintIndexMetadataService flintIndexMetadataService;
+  private StateStore stateStore;
+  private EMRServerlessClientFactory emrServerlessClientFactory;
   private Duration sessionTtlDuration;
   private Duration resultTtlDuration;
+  private TimeValue streamingJobHouseKeepingInterval;
   private boolean isAutoIndexManagementEnabled;
 
   public ClusterManagerEventListener(
@@ -41,16 +51,25 @@ public class ClusterManagerEventListener implements LocalNodeClusterManagerListe
       Clock clock,
       Setting<TimeValue> sessionTtl,
       Setting<TimeValue> resultTtl,
+      Setting<TimeValue> streamingJobHouseKeepingInterval,
       Setting<Boolean> isAutoIndexManagementEnabledSetting,
-      Settings settings) {
+      Settings settings,
+      DataSourceService dataSourceService,
+      FlintIndexMetadataService flintIndexMetadataService,
+      StateStore stateStore,
+      EMRServerlessClientFactory emrServerlessClientFactory) {
     this.clusterService = clusterService;
     this.threadPool = threadPool;
     this.client = client;
     this.clusterService.addLocalNodeClusterManagerListener(this);
     this.clock = clock;
-
+    this.dataSourceService = dataSourceService;
+    this.flintIndexMetadataService = flintIndexMetadataService;
+    this.stateStore = stateStore;
+    this.emrServerlessClientFactory = emrServerlessClientFactory;
     this.sessionTtlDuration = toDuration(sessionTtl.get(settings));
     this.resultTtlDuration = toDuration(resultTtl.get(settings));
+    this.streamingJobHouseKeepingInterval = streamingJobHouseKeepingInterval.get(settings);
 
     clusterService
         .getClusterSettings()
@@ -87,6 +106,16 @@ public class ClusterManagerEventListener implements LocalNodeClusterManagerListe
                 }
               }
             });
+
+    clusterService
+        .getClusterSettings()
+        .addSettingsUpdateConsumer(
+            streamingJobHouseKeepingInterval,
+            it -> {
+              this.streamingJobHouseKeepingInterval = it;
+              cancel(flintStreamingJobHouseKeeperCron);
+              initializeStreamingJobHouseKeeperCron();
+            });
   }
 
   @Override
@@ -104,6 +133,30 @@ public class ClusterManagerEventListener implements LocalNodeClusterManagerListe
             }
           });
     }
+
+    if (flintStreamingJobHouseKeeperCron == null) {
+      initializeStreamingJobHouseKeeperCron();
+      clusterService.addLifecycleListener(
+          new LifecycleListener() {
+            @Override
+            public void beforeStop() {
+              cancel(flintStreamingJobHouseKeeperCron);
+              flintStreamingJobHouseKeeperCron = null;
+            }
+          });
+    }
+  }
+
+  private void initializeStreamingJobHouseKeeperCron() {
+    flintStreamingJobHouseKeeperCron =
+        threadPool.scheduleWithFixedDelay(
+            new FlintStreamingJobHouseKeeperTask(
+                dataSourceService,
+                flintIndexMetadataService,
+                stateStore,
+                emrServerlessClientFactory),
+            streamingJobHouseKeepingInterval,
+            executorName());
   }
 
   private void reInitializeFlintIndexRetention() {
@@ -125,6 +178,8 @@ public class ClusterManagerEventListener implements LocalNodeClusterManagerListe
   public void offClusterManager() {
     cancel(flintIndexRetentionCron);
     flintIndexRetentionCron = null;
+    cancel(flintStreamingJobHouseKeeperCron);
+    flintStreamingJobHouseKeeperCron = null;
   }
 
   private void cancel(Cancellable cron) {

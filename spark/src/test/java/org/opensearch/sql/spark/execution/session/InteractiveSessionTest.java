@@ -23,7 +23,9 @@ import org.opensearch.action.admin.indices.delete.DeleteIndexRequest;
 import org.opensearch.action.delete.DeleteRequest;
 import org.opensearch.sql.spark.asyncquery.model.SparkSubmitParameters;
 import org.opensearch.sql.spark.client.EMRServerlessClient;
+import org.opensearch.sql.spark.client.EMRServerlessClientFactory;
 import org.opensearch.sql.spark.client.StartJobRequest;
+import org.opensearch.sql.spark.dispatcher.model.JobType;
 import org.opensearch.sql.spark.execution.statestore.StateStore;
 import org.opensearch.test.OpenSearchIntegTestCase;
 
@@ -32,6 +34,7 @@ public class InteractiveSessionTest extends OpenSearchIntegTestCase {
 
   private static final String DS_NAME = "mys3";
   private static final String indexName = DATASOURCE_TO_REQUEST_INDEX.apply(DS_NAME);
+  public static final String TEST_CLUSTER_NAME = "TEST_CLUSTER";
 
   private TestEMRServerlessClient emrsClient;
   private StartJobRequest startJobRequest;
@@ -40,7 +43,7 @@ public class InteractiveSessionTest extends OpenSearchIntegTestCase {
   @Before
   public void setup() {
     emrsClient = new TestEMRServerlessClient();
-    startJobRequest = new StartJobRequest("", "", "appId", "", "", new HashMap<>(), false, "");
+    startJobRequest = new StartJobRequest("", "appId", "", "", new HashMap<>(), false, "");
     stateStore = new StateStore(client(), clusterService());
   }
 
@@ -53,9 +56,10 @@ public class InteractiveSessionTest extends OpenSearchIntegTestCase {
 
   @Test
   public void openCloseSession() {
+    SessionId sessionId = SessionId.newSessionId(DS_NAME);
     InteractiveSession session =
         InteractiveSession.builder()
-            .sessionId(SessionId.newSessionId(DS_NAME))
+            .sessionId(sessionId)
             .stateStore(stateStore)
             .serverlessClient(emrsClient)
             .build();
@@ -68,6 +72,8 @@ public class InteractiveSessionTest extends OpenSearchIntegTestCase {
         .assertAppId("appId")
         .assertJobId("jobId");
     emrsClient.startJobRunCalled(1);
+    emrsClient.assertJobNameOfLastRequest(
+        TEST_CLUSTER_NAME + ":" + JobType.INTERACTIVE.getText() + ":" + sessionId.getSessionId());
 
     // close session
     testSession.close();
@@ -117,8 +123,9 @@ public class InteractiveSessionTest extends OpenSearchIntegTestCase {
 
   @Test
   public void sessionManagerCreateSession() {
+    EMRServerlessClientFactory emrServerlessClientFactory = () -> emrsClient;
     Session session =
-        new SessionManager(stateStore, emrsClient, sessionSetting())
+        new SessionManager(stateStore, emrServerlessClientFactory, sessionSetting())
             .createSession(createSessionRequest());
 
     TestSession testSession = testSession(session, stateStore);
@@ -127,7 +134,9 @@ public class InteractiveSessionTest extends OpenSearchIntegTestCase {
 
   @Test
   public void sessionManagerGetSession() {
-    SessionManager sessionManager = new SessionManager(stateStore, emrsClient, sessionSetting());
+    EMRServerlessClientFactory emrServerlessClientFactory = () -> emrsClient;
+    SessionManager sessionManager =
+        new SessionManager(stateStore, emrServerlessClientFactory, sessionSetting());
     Session session = sessionManager.createSession(createSessionRequest());
 
     Optional<Session> managerSession = sessionManager.getSession(session.getSessionId());
@@ -137,7 +146,9 @@ public class InteractiveSessionTest extends OpenSearchIntegTestCase {
 
   @Test
   public void sessionManagerGetSessionNotExist() {
-    SessionManager sessionManager = new SessionManager(stateStore, emrsClient, sessionSetting());
+    EMRServerlessClientFactory emrServerlessClientFactory = () -> emrsClient;
+    SessionManager sessionManager =
+        new SessionManager(stateStore, emrServerlessClientFactory, sessionSetting());
 
     Optional<Session> managerSession =
         sessionManager.getSession(SessionId.newSessionId("no-exist"));
@@ -187,7 +198,7 @@ public class InteractiveSessionTest extends OpenSearchIntegTestCase {
 
   public static CreateSessionRequest createSessionRequest() {
     return new CreateSessionRequest(
-        "jobName",
+        TEST_CLUSTER_NAME,
         "appId",
         "arn",
         SparkSubmitParameters.Builder.builder(),
@@ -201,8 +212,11 @@ public class InteractiveSessionTest extends OpenSearchIntegTestCase {
     private int startJobRunCalled = 0;
     private int cancelJobRunCalled = 0;
 
+    private StartJobRequest startJobRequest;
+
     @Override
     public String startJobRun(StartJobRequest startJobRequest) {
+      this.startJobRequest = startJobRequest;
       startJobRunCalled++;
       return "jobId";
     }
@@ -213,7 +227,8 @@ public class InteractiveSessionTest extends OpenSearchIntegTestCase {
     }
 
     @Override
-    public CancelJobRunResult cancelJobRun(String applicationId, String jobId) {
+    public CancelJobRunResult cancelJobRun(
+        String applicationId, String jobId, boolean allowExceptionPropagation) {
       cancelJobRunCalled++;
       return null;
     }
@@ -224,6 +239,10 @@ public class InteractiveSessionTest extends OpenSearchIntegTestCase {
 
     public void cancelJobRunCalled(int expectedTimes) {
       assertEquals(expectedTimes, cancelJobRunCalled);
+    }
+
+    public void assertJobNameOfLastRequest(String expectedJobName) {
+      assertEquals(expectedJobName, startJobRequest.getJobName());
     }
   }
 }

@@ -17,3 +17,5 @@ properties:
     type: keyword
   resultIndex:
     type: keyword
+  status:
+    type: keyword

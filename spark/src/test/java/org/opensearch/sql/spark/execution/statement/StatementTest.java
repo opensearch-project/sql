@@ -24,6 +24,7 @@ import org.junit.Test;
 import org.opensearch.action.admin.indices.delete.DeleteIndexRequest;
 import org.opensearch.action.delete.DeleteRequest;
 import org.opensearch.sql.spark.asyncquery.model.AsyncQueryId;
+import org.opensearch.sql.spark.client.EMRServerlessClientFactory;
 import org.opensearch.sql.spark.execution.session.InteractiveSessionTest;
 import org.opensearch.sql.spark.execution.session.Session;
 import org.opensearch.sql.spark.execution.session.SessionId;
@@ -258,8 +259,9 @@ public class StatementTest extends OpenSearchIntegTestCase {
 
   @Test
   public void submitStatementInRunningSession() {
+    EMRServerlessClientFactory emrServerlessClientFactory = () -> emrsClient;
     Session session =
-        new SessionManager(stateStore, emrsClient, sessionSetting())
+        new SessionManager(stateStore, emrServerlessClientFactory, sessionSetting())
             .createSession(createSessionRequest());
 
     // App change state to running
@@ -271,8 +273,9 @@ public class StatementTest extends OpenSearchIntegTestCase {
 
   @Test
   public void submitStatementInNotStartedState() {
+    EMRServerlessClientFactory emrServerlessClientFactory = () -> emrsClient;
     Session session =
-        new SessionManager(stateStore, emrsClient, sessionSetting())
+        new SessionManager(stateStore, emrServerlessClientFactory, sessionSetting())
             .createSession(createSessionRequest());
 
     StatementId statementId = session.submit(queryRequest());
@@ -281,8 +284,9 @@ public class StatementTest extends OpenSearchIntegTestCase {
 
   @Test
   public void failToSubmitStatementInDeadState() {
+    EMRServerlessClientFactory emrServerlessClientFactory = () -> emrsClient;
     Session session =
-        new SessionManager(stateStore, emrsClient, sessionSetting())
+        new SessionManager(stateStore, emrServerlessClientFactory, sessionSetting())
             .createSession(createSessionRequest());
 
     updateSessionState(stateStore, DS_NAME).apply(session.getSessionModel(), SessionState.DEAD);
@@ -297,8 +301,9 @@ public class StatementTest extends OpenSearchIntegTestCase {
 
   @Test
   public void failToSubmitStatementInFailState() {
+    EMRServerlessClientFactory emrServerlessClientFactory = () -> emrsClient;
     Session session =
-        new SessionManager(stateStore, emrsClient, sessionSetting())
+        new SessionManager(stateStore, emrServerlessClientFactory, sessionSetting())
             .createSession(createSessionRequest());
 
     updateSessionState(stateStore, DS_NAME).apply(session.getSessionModel(), SessionState.FAIL);
@@ -313,8 +318,9 @@ public class StatementTest extends OpenSearchIntegTestCase {
 
   @Test
   public void newStatementFieldAssert() {
+    EMRServerlessClientFactory emrServerlessClientFactory = () -> emrsClient;
     Session session =
-        new SessionManager(stateStore, emrsClient, sessionSetting())
+        new SessionManager(stateStore, emrServerlessClientFactory, sessionSetting())
             .createSession(createSessionRequest());
     StatementId statementId = session.submit(queryRequest());
     Optional<Statement> statement = session.get(statementId);
@@ -331,8 +337,9 @@ public class StatementTest extends OpenSearchIntegTestCase {
 
   @Test
   public void failToSubmitStatementInDeletedSession() {
+    EMRServerlessClientFactory emrServerlessClientFactory = () -> emrsClient;
     Session session =
-        new SessionManager(stateStore, emrsClient, sessionSetting())
+        new SessionManager(stateStore, emrServerlessClientFactory, sessionSetting())
             .createSession(createSessionRequest());
 
     // other's delete session
@@ -347,8 +354,9 @@ public class StatementTest extends OpenSearchIntegTestCase {
 
   @Test
   public void getStatementSuccess() {
+    EMRServerlessClientFactory emrServerlessClientFactory = () -> emrsClient;
     Session session =
-        new SessionManager(stateStore, emrsClient, sessionSetting())
+        new SessionManager(stateStore, emrServerlessClientFactory, sessionSetting())
             .createSession(createSessionRequest());
     // App change state to running
     updateSessionState(stateStore, DS_NAME).apply(session.getSessionModel(), SessionState.RUNNING);
@@ -362,8 +370,9 @@ public class StatementTest extends OpenSearchIntegTestCase {
 
   @Test
   public void getStatementNotExist() {
+    EMRServerlessClientFactory emrServerlessClientFactory = () -> emrsClient;
     Session session =
-        new SessionManager(stateStore, emrsClient, sessionSetting())
+        new SessionManager(stateStore, emrServerlessClientFactory, sessionSetting())
             .createSession(createSessionRequest());
     // App change state to running
     updateSessionState(stateStore, DS_NAME).apply(session.getSessionModel(), SessionState.RUNNING);

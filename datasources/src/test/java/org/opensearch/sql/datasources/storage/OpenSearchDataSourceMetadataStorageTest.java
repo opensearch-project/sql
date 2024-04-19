@@ -5,6 +5,7 @@
 
 package org.opensearch.sql.datasources.storage;
 
+import static org.opensearch.sql.datasource.model.DataSourceStatus.ACTIVE;
 import static org.opensearch.sql.datasources.storage.OpenSearchDataSourceMetadataStorage.DATASOURCE_INDEX_NAME;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -101,6 +102,39 @@ public class OpenSearchDataSourceMetadataStorageTest {
         "username", dataSourceMetadata.getProperties().get("prometheus.auth.username"));
     Assertions.assertEquals(
         "basicauth", dataSourceMetadata.getProperties().get("prometheus.auth.type"));
+  }
+
+  @SneakyThrows
+  @Test
+  public void testGetOldDataSourceMetadata() {
+    Mockito.when(clusterService.state().routingTable().hasIndex(DATASOURCE_INDEX_NAME))
+        .thenReturn(true);
+    Mockito.when(client.search(ArgumentMatchers.any())).thenReturn(searchResponseActionFuture);
+    Mockito.when(searchResponseActionFuture.actionGet()).thenReturn(searchResponse);
+    Mockito.when(searchResponse.status()).thenReturn(RestStatus.OK);
+    Mockito.when(searchResponse.getHits())
+        .thenReturn(
+            new SearchHits(
+                new SearchHit[] {searchHit}, new TotalHits(21, TotalHits.Relation.EQUAL_TO), 1.0F));
+    Mockito.when(searchHit.getSourceAsString())
+        .thenReturn(getOldDataSourceMetadataStringWithOutStatusEnum());
+    Mockito.when(encryptor.decrypt("password")).thenReturn("password");
+    Mockito.when(encryptor.decrypt("username")).thenReturn("username");
+
+    Optional<DataSourceMetadata> dataSourceMetadataOptional =
+        openSearchDataSourceMetadataStorage.getDataSourceMetadata(TEST_DATASOURCE_INDEX_NAME);
+
+    Assertions.assertFalse(dataSourceMetadataOptional.isEmpty());
+    DataSourceMetadata dataSourceMetadata = dataSourceMetadataOptional.get();
+    Assertions.assertEquals(TEST_DATASOURCE_INDEX_NAME, dataSourceMetadata.getName());
+    Assertions.assertEquals(DataSourceType.PROMETHEUS, dataSourceMetadata.getConnector());
+    Assertions.assertEquals(
+        "password", dataSourceMetadata.getProperties().get("prometheus.auth.password"));
+    Assertions.assertEquals(
+        "username", dataSourceMetadata.getProperties().get("prometheus.auth.username"));
+    Assertions.assertEquals(
+        "basicauth", dataSourceMetadata.getProperties().get("prometheus.auth.type"));
+    Assertions.assertEquals(ACTIVE, dataSourceMetadata.getStatus());
   }
 
   @SneakyThrows
@@ -501,8 +535,8 @@ public class OpenSearchDataSourceMetadataStorageTest {
     Mockito.when(encryptor.encrypt("access_key")).thenReturn("access_key");
     Mockito.when(client.update(ArgumentMatchers.any()))
         .thenThrow(new DocumentMissingException(ShardId.fromString("[2][2]"), "testDS"));
-    DataSourceMetadata dataSourceMetadata = getDataSourceMetadata();
-    dataSourceMetadata.setName("testDS");
+    DataSourceMetadata dataSourceMetadata =
+        new DataSourceMetadata.Builder(getDataSourceMetadata()).setName("testDS").build();
 
     DataSourceNotFoundException dataSourceNotFoundException =
         Assertions.assertThrows(
@@ -526,8 +560,8 @@ public class OpenSearchDataSourceMetadataStorageTest {
     Mockito.when(encryptor.encrypt("access_key")).thenReturn("access_key");
     Mockito.when(client.update(ArgumentMatchers.any()))
         .thenThrow(new RuntimeException("error message"));
-    DataSourceMetadata dataSourceMetadata = getDataSourceMetadata();
-    dataSourceMetadata.setName("testDS");
+    DataSourceMetadata dataSourceMetadata =
+        new DataSourceMetadata.Builder(getDataSourceMetadata()).setName("testDS").build();
 
     RuntimeException runtimeException =
         Assertions.assertThrows(
@@ -599,74 +633,86 @@ public class OpenSearchDataSourceMetadataStorageTest {
   }
 
   private String getBasicDataSourceMetadataString() throws JsonProcessingException {
-    DataSourceMetadata dataSourceMetadata = new DataSourceMetadata();
-    dataSourceMetadata.setName("testDS");
-    dataSourceMetadata.setConnector(DataSourceType.PROMETHEUS);
-    dataSourceMetadata.setAllowedRoles(Collections.singletonList("prometheus_access"));
     Map<String, String> properties = new HashMap<>();
     properties.put("prometheus.auth.type", "basicauth");
     properties.put("prometheus.auth.username", "username");
     properties.put("prometheus.auth.uri", "https://localhost:9090");
     properties.put("prometheus.auth.password", "password");
-    dataSourceMetadata.setProperties(properties);
+    DataSourceMetadata dataSourceMetadata =
+        new DataSourceMetadata.Builder()
+            .setName("testDS")
+            .setProperties(properties)
+            .setConnector(DataSourceType.PROMETHEUS)
+            .setAllowedRoles(Collections.singletonList("prometheus_access"))
+            .build();
     ObjectMapper objectMapper = new ObjectMapper();
     return objectMapper.writeValueAsString(dataSourceMetadata);
   }
 
+  private String getOldDataSourceMetadataStringWithOutStatusEnum() {
+    return "{\"name\":\"testDS\",\"description\":\"\",\"connector\":\"PROMETHEUS\",\"allowedRoles\":[\"prometheus_access\"],\"properties\":{\"prometheus.auth.password\":\"password\",\"prometheus.auth.username\":\"username\",\"prometheus.auth.uri\":\"https://localhost:9090\",\"prometheus.auth.type\":\"basicauth\"},\"resultIndex\":\"query_execution_result_testds\"}";
+  }
+
   private String getAWSSigv4DataSourceMetadataString() throws JsonProcessingException {
-    DataSourceMetadata dataSourceMetadata = new DataSourceMetadata();
-    dataSourceMetadata.setName("testDS");
-    dataSourceMetadata.setConnector(DataSourceType.PROMETHEUS);
-    dataSourceMetadata.setAllowedRoles(Collections.singletonList("prometheus_access"));
     Map<String, String> properties = new HashMap<>();
     properties.put("prometheus.auth.type", "awssigv4");
     properties.put("prometheus.auth.secret_key", "secret_key");
     properties.put("prometheus.auth.uri", "https://localhost:9090");
     properties.put("prometheus.auth.access_key", "access_key");
-    dataSourceMetadata.setProperties(properties);
+    DataSourceMetadata dataSourceMetadata =
+        new DataSourceMetadata.Builder()
+            .setName("testDS")
+            .setProperties(properties)
+            .setConnector(DataSourceType.PROMETHEUS)
+            .setAllowedRoles(Collections.singletonList("prometheus_access"))
+            .build();
     ObjectMapper objectMapper = new ObjectMapper();
     return objectMapper.writeValueAsString(dataSourceMetadata);
   }
 
   private String getDataSourceMetadataStringWithBasicAuthentication()
       throws JsonProcessingException {
-    DataSourceMetadata dataSourceMetadata = new DataSourceMetadata();
-    dataSourceMetadata.setName("testDS");
-    dataSourceMetadata.setConnector(DataSourceType.PROMETHEUS);
-    dataSourceMetadata.setAllowedRoles(Collections.singletonList("prometheus_access"));
     Map<String, String> properties = new HashMap<>();
     properties.put("prometheus.auth.uri", "https://localhost:9090");
     properties.put("prometheus.auth.type", "basicauth");
     properties.put("prometheus.auth.username", "username");
     properties.put("prometheus.auth.password", "password");
-    dataSourceMetadata.setProperties(properties);
+    DataSourceMetadata dataSourceMetadata =
+        new DataSourceMetadata.Builder()
+            .setName("testDS")
+            .setProperties(properties)
+            .setConnector(DataSourceType.PROMETHEUS)
+            .setAllowedRoles(Collections.singletonList("prometheus_access"))
+            .build();
     ObjectMapper objectMapper = new ObjectMapper();
     return objectMapper.writeValueAsString(dataSourceMetadata);
   }
 
   private String getDataSourceMetadataStringWithNoAuthentication() throws JsonProcessingException {
-    DataSourceMetadata dataSourceMetadata = new DataSourceMetadata();
-    dataSourceMetadata.setName("testDS");
-    dataSourceMetadata.setConnector(DataSourceType.PROMETHEUS);
-    dataSourceMetadata.setAllowedRoles(Collections.singletonList("prometheus_access"));
     Map<String, String> properties = new HashMap<>();
     properties.put("prometheus.auth.uri", "https://localhost:9090");
-    dataSourceMetadata.setProperties(properties);
+    DataSourceMetadata dataSourceMetadata =
+        new DataSourceMetadata.Builder()
+            .setName("testDS")
+            .setProperties(properties)
+            .setConnector(DataSourceType.PROMETHEUS)
+            .setAllowedRoles(Collections.singletonList("prometheus_access"))
+            .build();
     ObjectMapper objectMapper = new ObjectMapper();
     return objectMapper.writeValueAsString(dataSourceMetadata);
   }
 
   private DataSourceMetadata getDataSourceMetadata() {
-    DataSourceMetadata dataSourceMetadata = new DataSourceMetadata();
-    dataSourceMetadata.setName("testDS");
-    dataSourceMetadata.setConnector(DataSourceType.PROMETHEUS);
-    dataSourceMetadata.setAllowedRoles(Collections.singletonList("prometheus_access"));
     Map<String, String> properties = new HashMap<>();
     properties.put("prometheus.auth.type", "awssigv4");
     properties.put("prometheus.auth.secret_key", "secret_key");
     properties.put("prometheus.auth.uri", "https://localhost:9090");
     properties.put("prometheus.auth.access_key", "access_key");
-    dataSourceMetadata.setProperties(properties);
-    return dataSourceMetadata;
+    return new DataSourceMetadata.Builder()
+        .setName("testDS")
+        .setProperties(properties)
+        .setConnector(DataSourceType.PROMETHEUS)
+        .setAllowedRoles(Collections.singletonList("prometheus_access"))
+        .build();
   }
 }

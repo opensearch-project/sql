@@ -48,6 +48,7 @@ pitest {
 dependencies {
     api group: 'com.google.guava', name: 'guava', version: '32.0.1-jre'
     api group: 'org.apache.commons', name: 'commons-lang3', version: '3.12.0'
+    api group: 'org.apache.commons', name: 'commons-text', version: '1.10.0'
     api group: 'com.facebook.presto', name: 'presto-matching', version: '0.240'
     api group: 'org.apache.commons', name: 'commons-math3', version: '3.6.1'
     api "com.fasterxml.jackson.core:jackson-core:${versions.jackson}"
@@ -108,7 +109,9 @@ jacocoTestCoverageVerification {
             excludes = [
                     'org.opensearch.sql.utils.MLCommonsConstants',
                     'org.opensearch.sql.utils.Constants',
-                    'org.opensearch.sql.datasource.model.*'
+                    'org.opensearch.sql.datasource.model.DataSource',
+                    'org.opensearch.sql.datasource.model.DataSourceStatus',
+                    'org.opensearch.sql.datasource.model.DataSourceType'
             ]
             limit {
                 counter = 'LINE'

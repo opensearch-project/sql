@@ -19,6 +19,8 @@ public class TestConstants {
   public static final String MOCK_SESSION_ID = "s-0123456";
   public static final String MOCK_STATEMENT_ID = "st-0123456";
   public static final String ENTRY_POINT_START_JAR =
-      "file:///home/hadoop/.ivy2/jars/org.opensearch_opensearch-spark-sql-application_2.12-0.1.0-SNAPSHOT.jar";
+      "file:///home/hadoop/.ivy2/jars/org.opensearch_opensearch-spark-sql-application_2.12-0.3.0-SNAPSHOT.jar";
   public static final String DEFAULT_RESULT_INDEX = "query_execution_result_ds1";
+  public static final String US_EAST_REGION = "us-east-1";
+  public static final String US_WEST_REGION = "us-west-1";
 }

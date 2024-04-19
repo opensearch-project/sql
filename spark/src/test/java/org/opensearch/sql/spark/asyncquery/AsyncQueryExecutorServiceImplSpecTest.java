@@ -16,22 +16,24 @@ import static org.opensearch.sql.spark.execution.statement.StatementModel.STATEM
 import static org.opensearch.sql.spark.execution.statestore.StateStore.getStatement;
 import static org.opensearch.sql.spark.execution.statestore.StateStore.updateStatementState;
 
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
-import org.apache.commons.lang3.StringUtils;
 import org.junit.Ignore;
 import org.junit.Test;
+import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Disabled;
 import org.opensearch.action.admin.cluster.settings.ClusterUpdateSettingsRequest;
 import org.opensearch.core.common.Strings;
 import org.opensearch.index.query.QueryBuilders;
 import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.datasource.model.DataSourceMetadata;
+import org.opensearch.sql.datasource.model.DataSourceStatus;
 import org.opensearch.sql.datasource.model.DataSourceType;
+import org.opensearch.sql.datasources.exceptions.DatasourceDisabledException;
 import org.opensearch.sql.spark.asyncquery.model.AsyncQueryExecutionResponse;
+import org.opensearch.sql.spark.client.EMRServerlessClientFactory;
 import org.opensearch.sql.spark.execution.session.SessionId;
 import org.opensearch.sql.spark.execution.session.SessionState;
 import org.opensearch.sql.spark.execution.statement.StatementModel;
@@ -46,8 +48,9 @@ public class AsyncQueryExecutorServiceImplSpecTest extends AsyncQueryExecutorSer
   @Disabled("batch query is unsupported")
   public void withoutSessionCreateAsyncQueryThenGetResultThenCancel() {
     LocalEMRSClient emrsClient = new LocalEMRSClient();
+    EMRServerlessClientFactory emrServerlessClientFactory = () -> emrsClient;
     AsyncQueryExecutorService asyncQueryExecutorService =
-        createAsyncQueryExecutorService(emrsClient);
+        createAsyncQueryExecutorService(emrServerlessClientFactory);
 
     // disable session
     enableSession(false);
@@ -55,7 +58,7 @@ public class AsyncQueryExecutorServiceImplSpecTest extends AsyncQueryExecutorSer
     // 1. create async query.
     CreateAsyncQueryResponse response =
         asyncQueryExecutorService.createAsyncQuery(
-            new CreateAsyncQueryRequest("select 1", DATASOURCE, LangType.SQL, null));
+            new CreateAsyncQueryRequest("select 1", MYS3_DATASOURCE, LangType.SQL, null));
     assertFalse(clusterService().state().routingTable().hasIndex(SPARK_REQUEST_BUFFER_INDEX_NAME));
     emrsClient.startJobRunCalled(1);
 
@@ -74,8 +77,9 @@ public class AsyncQueryExecutorServiceImplSpecTest extends AsyncQueryExecutorSer
   @Disabled("batch query is unsupported")
   public void sessionLimitNotImpactBatchQuery() {
     LocalEMRSClient emrsClient = new LocalEMRSClient();
+    EMRServerlessClientFactory emrServerlessClientFactory = () -> emrsClient;
     AsyncQueryExecutorService asyncQueryExecutorService =
-        createAsyncQueryExecutorService(emrsClient);
+        createAsyncQueryExecutorService(emrServerlessClientFactory);
 
     // disable session
     enableSession(false);
@@ -84,25 +88,26 @@ public class AsyncQueryExecutorServiceImplSpecTest extends AsyncQueryExecutorSer
     // 1. create async query.
     CreateAsyncQueryResponse response =
         asyncQueryExecutorService.createAsyncQuery(
-            new CreateAsyncQueryRequest("select 1", DATASOURCE, LangType.SQL, null));
+            new CreateAsyncQueryRequest("select 1", MYS3_DATASOURCE, LangType.SQL, null));
     emrsClient.startJobRunCalled(1);
 
     CreateAsyncQueryResponse resp2 =
         asyncQueryExecutorService.createAsyncQuery(
-            new CreateAsyncQueryRequest("select 1", DATASOURCE, LangType.SQL, null));
+            new CreateAsyncQueryRequest("select 1", MYS3_DATASOURCE, LangType.SQL, null));
     emrsClient.startJobRunCalled(2);
   }
 
   @Disabled("batch query is unsupported")
   public void createAsyncQueryCreateJobWithCorrectParameters() {
     LocalEMRSClient emrsClient = new LocalEMRSClient();
+    EMRServerlessClientFactory emrServerlessClientFactory = () -> emrsClient;
     AsyncQueryExecutorService asyncQueryExecutorService =
-        createAsyncQueryExecutorService(emrsClient);
+        createAsyncQueryExecutorService(emrServerlessClientFactory);
 
     enableSession(false);
     CreateAsyncQueryResponse response =
         asyncQueryExecutorService.createAsyncQuery(
-            new CreateAsyncQueryRequest("select 1", DATASOURCE, LangType.SQL, null));
+            new CreateAsyncQueryRequest("select 1", MYS3_DATASOURCE, LangType.SQL, null));
     String params = emrsClient.getJobRequest().getSparkSubmitParams();
     assertNull(response.getSessionId());
     assertTrue(params.contains(String.format("--class %s", DEFAULT_CLASS_NAME)));
@@ -116,7 +121,7 @@ public class AsyncQueryExecutorServiceImplSpecTest extends AsyncQueryExecutorSer
     enableSession(true);
     response =
         asyncQueryExecutorService.createAsyncQuery(
-            new CreateAsyncQueryRequest("select 1", DATASOURCE, LangType.SQL, null));
+            new CreateAsyncQueryRequest("select 1", MYS3_DATASOURCE, LangType.SQL, null));
     params = emrsClient.getJobRequest().getSparkSubmitParams();
     assertTrue(params.contains(String.format("--class %s", FLINT_SESSION_CLASS_NAME)));
     assertTrue(
@@ -129,16 +134,17 @@ public class AsyncQueryExecutorServiceImplSpecTest extends AsyncQueryExecutorSer
   @Test
   public void withSessionCreateAsyncQueryThenGetResultThenCancel() {
     LocalEMRSClient emrsClient = new LocalEMRSClient();
+    EMRServerlessClientFactory emrServerlessClientFactory = () -> emrsClient;
     AsyncQueryExecutorService asyncQueryExecutorService =
-        createAsyncQueryExecutorService(emrsClient);
+        createAsyncQueryExecutorService(emrServerlessClientFactory);
 
     // 1. create async query.
     CreateAsyncQueryResponse response =
         asyncQueryExecutorService.createAsyncQuery(
-            new CreateAsyncQueryRequest("select 1", DATASOURCE, LangType.SQL, null));
+            new CreateAsyncQueryRequest("select 1", MYS3_DATASOURCE, LangType.SQL, null));
     assertNotNull(response.getSessionId());
     Optional<StatementModel> statementModel =
-        getStatement(stateStore, DATASOURCE).apply(response.getQueryId());
+        getStatement(stateStore, MYS3_DATASOURCE).apply(response.getQueryId());
     assertTrue(statementModel.isPresent());
     assertEquals(StatementState.WAITING, statementModel.get().getStatementState());
 
@@ -156,8 +162,9 @@ public class AsyncQueryExecutorServiceImplSpecTest extends AsyncQueryExecutorSer
   @Test
   public void reuseSessionWhenCreateAsyncQuery() {
     LocalEMRSClient emrsClient = new LocalEMRSClient();
+    EMRServerlessClientFactory emrServerlessClientFactory = () -> emrsClient;
     AsyncQueryExecutorService asyncQueryExecutorService =
-        createAsyncQueryExecutorService(emrsClient);
+        createAsyncQueryExecutorService(emrServerlessClientFactory);
 
     // enable session
     enableSession(true);
@@ -165,14 +172,14 @@ public class AsyncQueryExecutorServiceImplSpecTest extends AsyncQueryExecutorSer
     // 1. create async query.
     CreateAsyncQueryResponse first =
         asyncQueryExecutorService.createAsyncQuery(
-            new CreateAsyncQueryRequest("select 1", DATASOURCE, LangType.SQL, null));
+            new CreateAsyncQueryRequest("select 1", MYS3_DATASOURCE, LangType.SQL, null));
     assertNotNull(first.getSessionId());
 
     // 2. reuse session id
     CreateAsyncQueryResponse second =
         asyncQueryExecutorService.createAsyncQuery(
             new CreateAsyncQueryRequest(
-                "select 1", DATASOURCE, LangType.SQL, first.getSessionId()));
+                "select 1", MYS3_DATASOURCE, LangType.SQL, first.getSessionId()));
 
     assertEquals(first.getSessionId(), second.getSessionId());
     assertNotEquals(first.getQueryId(), second.getQueryId());
@@ -192,13 +199,13 @@ public class AsyncQueryExecutorServiceImplSpecTest extends AsyncQueryExecutorSer
                 .must(QueryBuilders.termQuery(SESSION_ID, first.getSessionId()))));
 
     Optional<StatementModel> firstModel =
-        getStatement(stateStore, DATASOURCE).apply(first.getQueryId());
+        getStatement(stateStore, MYS3_DATASOURCE).apply(first.getQueryId());
     assertTrue(firstModel.isPresent());
     assertEquals(StatementState.WAITING, firstModel.get().getStatementState());
     assertEquals(first.getQueryId(), firstModel.get().getStatementId().getId());
     assertEquals(first.getQueryId(), firstModel.get().getQueryId());
     Optional<StatementModel> secondModel =
-        getStatement(stateStore, DATASOURCE).apply(second.getQueryId());
+        getStatement(stateStore, MYS3_DATASOURCE).apply(second.getQueryId());
     assertEquals(StatementState.WAITING, secondModel.get().getStatementState());
     assertEquals(second.getQueryId(), secondModel.get().getStatementId().getId());
     assertEquals(second.getQueryId(), secondModel.get().getQueryId());
@@ -207,13 +214,14 @@ public class AsyncQueryExecutorServiceImplSpecTest extends AsyncQueryExecutorSer
   @Disabled("batch query is unsupported")
   public void batchQueryHasTimeout() {
     LocalEMRSClient emrsClient = new LocalEMRSClient();
+    EMRServerlessClientFactory emrServerlessClientFactory = () -> emrsClient;
     AsyncQueryExecutorService asyncQueryExecutorService =
-        createAsyncQueryExecutorService(emrsClient);
+        createAsyncQueryExecutorService(emrServerlessClientFactory);
 
     enableSession(false);
     CreateAsyncQueryResponse response =
         asyncQueryExecutorService.createAsyncQuery(
-            new CreateAsyncQueryRequest("select 1", DATASOURCE, LangType.SQL, null));
+            new CreateAsyncQueryRequest("select 1", MYS3_DATASOURCE, LangType.SQL, null));
 
     assertEquals(120L, (long) emrsClient.getJobRequest().executionTimeout());
   }
@@ -221,14 +229,15 @@ public class AsyncQueryExecutorServiceImplSpecTest extends AsyncQueryExecutorSer
   @Test
   public void interactiveQueryNoTimeout() {
     LocalEMRSClient emrsClient = new LocalEMRSClient();
+    EMRServerlessClientFactory emrServerlessClientFactory = () -> emrsClient;
     AsyncQueryExecutorService asyncQueryExecutorService =
-        createAsyncQueryExecutorService(emrsClient);
+        createAsyncQueryExecutorService(emrServerlessClientFactory);
 
     // enable session
     enableSession(true);
 
     asyncQueryExecutorService.createAsyncQuery(
-        new CreateAsyncQueryRequest("select 1", DATASOURCE, LangType.SQL, null));
+        new CreateAsyncQueryRequest("select 1", MYS3_DATASOURCE, LangType.SQL, null));
     assertEquals(0L, (long) emrsClient.getJobRequest().executionTimeout());
   }
 
@@ -247,16 +256,15 @@ public class AsyncQueryExecutorServiceImplSpecTest extends AsyncQueryExecutorSer
     properties.put("glue.indexstore.opensearch.auth.password", "password");
 
     dataSourceService.createDataSource(
-        new DataSourceMetadata(
-            "mybasicauth",
-            StringUtils.EMPTY,
-            DataSourceType.S3GLUE,
-            ImmutableList.of(),
-            properties,
-            null));
+        new DataSourceMetadata.Builder()
+            .setName("mybasicauth")
+            .setConnector(DataSourceType.S3GLUE)
+            .setProperties(properties)
+            .build());
     LocalEMRSClient emrsClient = new LocalEMRSClient();
+    EMRServerlessClientFactory emrServerlessClientFactory = () -> emrsClient;
     AsyncQueryExecutorService asyncQueryExecutorService =
-        createAsyncQueryExecutorService(emrsClient);
+        createAsyncQueryExecutorService(emrServerlessClientFactory);
 
     // enable session
     enableSession(true);
@@ -274,8 +282,9 @@ public class AsyncQueryExecutorServiceImplSpecTest extends AsyncQueryExecutorSer
   @Test
   public void withSessionCreateAsyncQueryFailed() {
     LocalEMRSClient emrsClient = new LocalEMRSClient();
+    EMRServerlessClientFactory emrServerlessClientFactory = () -> emrsClient;
     AsyncQueryExecutorService asyncQueryExecutorService =
-        createAsyncQueryExecutorService(emrsClient);
+        createAsyncQueryExecutorService(emrServerlessClientFactory);
 
     // enable session
     enableSession(true);
@@ -283,10 +292,10 @@ public class AsyncQueryExecutorServiceImplSpecTest extends AsyncQueryExecutorSer
     // 1. create async query.
     CreateAsyncQueryResponse response =
         asyncQueryExecutorService.createAsyncQuery(
-            new CreateAsyncQueryRequest("myselect 1", DATASOURCE, LangType.SQL, null));
+            new CreateAsyncQueryRequest("myselect 1", MYS3_DATASOURCE, LangType.SQL, null));
     assertNotNull(response.getSessionId());
     Optional<StatementModel> statementModel =
-        getStatement(stateStore, DATASOURCE).apply(response.getQueryId());
+        getStatement(stateStore, MYS3_DATASOURCE).apply(response.getQueryId());
     assertTrue(statementModel.isPresent());
     assertEquals(StatementState.WAITING, statementModel.get().getStatementState());
 
@@ -310,7 +319,7 @@ public class AsyncQueryExecutorServiceImplSpecTest extends AsyncQueryExecutorSer
             .seqNo(submitted.getSeqNo())
             .primaryTerm(submitted.getPrimaryTerm())
             .build();
-    updateStatementState(stateStore, DATASOURCE).apply(mocked, StatementState.FAILED);
+    updateStatementState(stateStore, MYS3_DATASOURCE).apply(mocked, StatementState.FAILED);
 
     AsyncQueryExecutionResponse asyncQueryResults =
         asyncQueryExecutorService.getAsyncQueryResults(response.getQueryId());
@@ -322,8 +331,9 @@ public class AsyncQueryExecutorServiceImplSpecTest extends AsyncQueryExecutorSer
   @Test
   public void createSessionMoreThanLimitFailed() {
     LocalEMRSClient emrsClient = new LocalEMRSClient();
+    EMRServerlessClientFactory emrServerlessClientFactory = () -> emrsClient;
     AsyncQueryExecutorService asyncQueryExecutorService =
-        createAsyncQueryExecutorService(emrsClient);
+        createAsyncQueryExecutorService(emrServerlessClientFactory);
 
     // enable session
     enableSession(true);
@@ -333,7 +343,7 @@ public class AsyncQueryExecutorServiceImplSpecTest extends AsyncQueryExecutorSer
     // 1. create async query.
     CreateAsyncQueryResponse first =
         asyncQueryExecutorService.createAsyncQuery(
-            new CreateAsyncQueryRequest("select 1", DATASOURCE, LangType.SQL, null));
+            new CreateAsyncQueryRequest("select 1", MYS3_DATASOURCE, LangType.SQL, null));
     assertNotNull(first.getSessionId());
     setSessionState(first.getSessionId(), SessionState.RUNNING);
 
@@ -343,7 +353,7 @@ public class AsyncQueryExecutorServiceImplSpecTest extends AsyncQueryExecutorSer
             ConcurrencyLimitExceededException.class,
             () ->
                 asyncQueryExecutorService.createAsyncQuery(
-                    new CreateAsyncQueryRequest("select 1", DATASOURCE, LangType.SQL, null)));
+                    new CreateAsyncQueryRequest("select 1", MYS3_DATASOURCE, LangType.SQL, null)));
     assertEquals("domain concurrent active session can not exceed 1", exception.getMessage());
   }
 
@@ -351,8 +361,9 @@ public class AsyncQueryExecutorServiceImplSpecTest extends AsyncQueryExecutorSer
   @Test
   public void recreateSessionIfNotReady() {
     LocalEMRSClient emrsClient = new LocalEMRSClient();
+    EMRServerlessClientFactory emrServerlessClientFactory = () -> emrsClient;
     AsyncQueryExecutorService asyncQueryExecutorService =
-        createAsyncQueryExecutorService(emrsClient);
+        createAsyncQueryExecutorService(emrServerlessClientFactory);
 
     // enable session
     enableSession(true);
@@ -360,7 +371,7 @@ public class AsyncQueryExecutorServiceImplSpecTest extends AsyncQueryExecutorSer
     // 1. create async query.
     CreateAsyncQueryResponse first =
         asyncQueryExecutorService.createAsyncQuery(
-            new CreateAsyncQueryRequest("select 1", DATASOURCE, LangType.SQL, null));
+            new CreateAsyncQueryRequest("select 1", MYS3_DATASOURCE, LangType.SQL, null));
     assertNotNull(first.getSessionId());
 
     // set sessionState to FAIL
@@ -370,7 +381,7 @@ public class AsyncQueryExecutorServiceImplSpecTest extends AsyncQueryExecutorSer
     CreateAsyncQueryResponse second =
         asyncQueryExecutorService.createAsyncQuery(
             new CreateAsyncQueryRequest(
-                "select 1", DATASOURCE, LangType.SQL, first.getSessionId()));
+                "select 1", MYS3_DATASOURCE, LangType.SQL, first.getSessionId()));
 
     assertNotEquals(first.getSessionId(), second.getSessionId());
 
@@ -381,15 +392,16 @@ public class AsyncQueryExecutorServiceImplSpecTest extends AsyncQueryExecutorSer
     CreateAsyncQueryResponse third =
         asyncQueryExecutorService.createAsyncQuery(
             new CreateAsyncQueryRequest(
-                "select 1", DATASOURCE, LangType.SQL, second.getSessionId()));
+                "select 1", MYS3_DATASOURCE, LangType.SQL, second.getSessionId()));
     assertNotEquals(second.getSessionId(), third.getSessionId());
   }
 
   @Test
   public void submitQueryWithDifferentDataSourceSessionWillCreateNewSession() {
     LocalEMRSClient emrsClient = new LocalEMRSClient();
+    EMRServerlessClientFactory emrServerlessClientFactory = () -> emrsClient;
     AsyncQueryExecutorService asyncQueryExecutorService =
-        createAsyncQueryExecutorService(emrsClient);
+        createAsyncQueryExecutorService(emrServerlessClientFactory);
 
     // enable session
     enableSession(true);
@@ -398,7 +410,7 @@ public class AsyncQueryExecutorServiceImplSpecTest extends AsyncQueryExecutorSer
     CreateAsyncQueryResponse first =
         asyncQueryExecutorService.createAsyncQuery(
             new CreateAsyncQueryRequest(
-                "SHOW SCHEMAS IN " + DATASOURCE, DATASOURCE, LangType.SQL, null));
+                "SHOW SCHEMAS IN " + MYS3_DATASOURCE, MYS3_DATASOURCE, LangType.SQL, null));
     assertNotNull(first.getSessionId());
 
     // set sessionState to RUNNING
@@ -408,7 +420,10 @@ public class AsyncQueryExecutorServiceImplSpecTest extends AsyncQueryExecutorSer
     CreateAsyncQueryResponse second =
         asyncQueryExecutorService.createAsyncQuery(
             new CreateAsyncQueryRequest(
-                "SHOW SCHEMAS IN " + DATASOURCE, DATASOURCE, LangType.SQL, first.getSessionId()));
+                "SHOW SCHEMAS IN " + MYS3_DATASOURCE,
+                MYS3_DATASOURCE,
+                LangType.SQL,
+                first.getSessionId()));
 
     assertEquals(first.getSessionId(), second.getSessionId());
 
@@ -419,15 +434,19 @@ public class AsyncQueryExecutorServiceImplSpecTest extends AsyncQueryExecutorSer
     CreateAsyncQueryResponse third =
         asyncQueryExecutorService.createAsyncQuery(
             new CreateAsyncQueryRequest(
-                "SHOW SCHEMAS IN " + DSOTHER, DSOTHER, LangType.SQL, second.getSessionId()));
+                "SHOW SCHEMAS IN " + MYGLUE_DATASOURCE,
+                MYGLUE_DATASOURCE,
+                LangType.SQL,
+                second.getSessionId()));
     assertNotEquals(second.getSessionId(), third.getSessionId());
   }
 
   @Test
   public void recreateSessionIfStale() {
     LocalEMRSClient emrsClient = new LocalEMRSClient();
+    EMRServerlessClientFactory emrServerlessClientFactory = () -> emrsClient;
     AsyncQueryExecutorService asyncQueryExecutorService =
-        createAsyncQueryExecutorService(emrsClient);
+        createAsyncQueryExecutorService(emrServerlessClientFactory);
 
     // enable session
     enableSession(true);
@@ -435,7 +454,7 @@ public class AsyncQueryExecutorServiceImplSpecTest extends AsyncQueryExecutorSer
     // 1. create async query.
     CreateAsyncQueryResponse first =
         asyncQueryExecutorService.createAsyncQuery(
-            new CreateAsyncQueryRequest("select 1", DATASOURCE, LangType.SQL, null));
+            new CreateAsyncQueryRequest("select 1", MYS3_DATASOURCE, LangType.SQL, null));
     assertNotNull(first.getSessionId());
 
     // set sessionState to RUNNING
@@ -445,7 +464,7 @@ public class AsyncQueryExecutorServiceImplSpecTest extends AsyncQueryExecutorSer
     CreateAsyncQueryResponse second =
         asyncQueryExecutorService.createAsyncQuery(
             new CreateAsyncQueryRequest(
-                "select 1", DATASOURCE, LangType.SQL, first.getSessionId()));
+                "select 1", MYS3_DATASOURCE, LangType.SQL, first.getSessionId()));
 
     assertEquals(first.getSessionId(), second.getSessionId());
 
@@ -463,7 +482,7 @@ public class AsyncQueryExecutorServiceImplSpecTest extends AsyncQueryExecutorSer
       CreateAsyncQueryResponse third =
           asyncQueryExecutorService.createAsyncQuery(
               new CreateAsyncQueryRequest(
-                  "select 1", DATASOURCE, LangType.SQL, second.getSessionId()));
+                  "select 1", MYS3_DATASOURCE, LangType.SQL, second.getSessionId()));
       assertNotEquals(second.getSessionId(), third.getSessionId());
     } finally {
       // set timeout setting to 0
@@ -480,18 +499,19 @@ public class AsyncQueryExecutorServiceImplSpecTest extends AsyncQueryExecutorSer
   @Test
   public void submitQueryInInvalidSessionWillCreateNewSession() {
     LocalEMRSClient emrsClient = new LocalEMRSClient();
+    EMRServerlessClientFactory emrServerlessClientFactory = () -> emrsClient;
     AsyncQueryExecutorService asyncQueryExecutorService =
-        createAsyncQueryExecutorService(emrsClient);
+        createAsyncQueryExecutorService(emrServerlessClientFactory);
 
     // enable session
     enableSession(true);
 
     // 1. create async query with invalid sessionId
-    SessionId invalidSessionId = SessionId.newSessionId(DATASOURCE);
+    SessionId invalidSessionId = SessionId.newSessionId(MYS3_DATASOURCE);
     CreateAsyncQueryResponse asyncQuery =
         asyncQueryExecutorService.createAsyncQuery(
             new CreateAsyncQueryRequest(
-                "select 1", DATASOURCE, LangType.SQL, invalidSessionId.getSessionId()));
+                "select 1", MYS3_DATASOURCE, LangType.SQL, invalidSessionId.getSessionId()));
     assertNotNull(asyncQuery.getSessionId());
     assertNotEquals(invalidSessionId.getSessionId(), asyncQuery.getSessionId());
   }
@@ -499,25 +519,25 @@ public class AsyncQueryExecutorServiceImplSpecTest extends AsyncQueryExecutorSer
   @Test
   public void datasourceNameIncludeUppercase() {
     dataSourceService.createDataSource(
-        new DataSourceMetadata(
-            "TESTS3",
-            StringUtils.EMPTY,
-            DataSourceType.S3GLUE,
-            ImmutableList.of(),
-            ImmutableMap.of(
-                "glue.auth.type",
-                "iam_role",
-                "glue.auth.role_arn",
-                "arn:aws:iam::924196221507:role/FlintOpensearchServiceRole",
-                "glue.indexstore.opensearch.uri",
-                "http://localhost:9200",
-                "glue.indexstore.opensearch.auth",
-                "noauth"),
-            null));
+        new DataSourceMetadata.Builder()
+            .setName("TESTS3")
+            .setConnector(DataSourceType.S3GLUE)
+            .setProperties(
+                ImmutableMap.of(
+                    "glue.auth.type",
+                    "iam_role",
+                    "glue.auth.role_arn",
+                    "arn:aws:iam::924196221507:role/FlintOpensearchServiceRole",
+                    "glue.indexstore.opensearch.uri",
+                    "http://localhost:9200",
+                    "glue.indexstore.opensearch.auth",
+                    "noauth"))
+            .build());
 
     LocalEMRSClient emrsClient = new LocalEMRSClient();
+    EMRServerlessClientFactory emrServerlessClientFactory = () -> emrsClient;
     AsyncQueryExecutorService asyncQueryExecutorService =
-        createAsyncQueryExecutorService(emrsClient);
+        createAsyncQueryExecutorService(emrServerlessClientFactory);
 
     // enable session
     enableSession(true);
@@ -536,8 +556,9 @@ public class AsyncQueryExecutorServiceImplSpecTest extends AsyncQueryExecutorSer
   @Test
   public void concurrentSessionLimitIsDomainLevel() {
     LocalEMRSClient emrsClient = new LocalEMRSClient();
+    EMRServerlessClientFactory emrServerlessClientFactory = () -> emrsClient;
     AsyncQueryExecutorService asyncQueryExecutorService =
-        createAsyncQueryExecutorService(emrsClient);
+        createAsyncQueryExecutorService(emrServerlessClientFactory);
 
     // only allow one session in domain.
     setSessionLimit(1);
@@ -545,7 +566,7 @@ public class AsyncQueryExecutorServiceImplSpecTest extends AsyncQueryExecutorSer
     // 1. create async query.
     CreateAsyncQueryResponse first =
         asyncQueryExecutorService.createAsyncQuery(
-            new CreateAsyncQueryRequest("select 1", DATASOURCE, LangType.SQL, null));
+            new CreateAsyncQueryRequest("select 1", MYS3_DATASOURCE, LangType.SQL, null));
     assertNotNull(first.getSessionId());
     setSessionState(first.getSessionId(), SessionState.RUNNING);
 
@@ -555,7 +576,31 @@ public class AsyncQueryExecutorServiceImplSpecTest extends AsyncQueryExecutorSer
             ConcurrencyLimitExceededException.class,
             () ->
                 asyncQueryExecutorService.createAsyncQuery(
-                    new CreateAsyncQueryRequest("select 1", DSOTHER, LangType.SQL, null)));
+                    new CreateAsyncQueryRequest(
+                        "select 1", MYGLUE_DATASOURCE, LangType.SQL, null)));
     assertEquals("domain concurrent active session can not exceed 1", exception.getMessage());
+  }
+
+  @Test
+  public void testDatasourceDisabled() {
+    LocalEMRSClient emrsClient = new LocalEMRSClient();
+    EMRServerlessClientFactory emrServerlessClientFactory = () -> emrsClient;
+    AsyncQueryExecutorService asyncQueryExecutorService =
+        createAsyncQueryExecutorService(emrServerlessClientFactory);
+
+    // Disable Datasource
+    HashMap<String, Object> datasourceMap = new HashMap<>();
+    datasourceMap.put("name", MYS3_DATASOURCE);
+    datasourceMap.put("status", DataSourceStatus.DISABLED);
+    this.dataSourceService.patchDataSource(datasourceMap);
+
+    // 1. create async query.
+    try {
+      asyncQueryExecutorService.createAsyncQuery(
+          new CreateAsyncQueryRequest("select 1", MYS3_DATASOURCE, LangType.SQL, null));
+      fail("It should have thrown DataSourceDisabledException");
+    } catch (DatasourceDisabledException exception) {
+      Assertions.assertEquals("Datasource mys3 is disabled.", exception.getMessage());
+    }
   }
 }

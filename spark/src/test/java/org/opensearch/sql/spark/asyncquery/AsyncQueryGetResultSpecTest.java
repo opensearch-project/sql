@@ -21,7 +21,13 @@ import org.junit.Before;
 import org.junit.Test;
 import org.opensearch.action.index.IndexRequest;
 import org.opensearch.sql.data.model.ExprValue;
+import org.opensearch.sql.executor.pagination.Cursor;
+import org.opensearch.sql.protocol.response.format.JsonResponseFormatter;
+import org.opensearch.sql.protocol.response.format.ResponseFormatter;
 import org.opensearch.sql.spark.asyncquery.model.AsyncQueryExecutionResponse;
+import org.opensearch.sql.spark.asyncquery.model.AsyncQueryResult;
+import org.opensearch.sql.spark.asyncquery.model.MockFlintSparkJob;
+import org.opensearch.sql.spark.client.EMRServerlessClientFactory;
 import org.opensearch.sql.spark.execution.statement.StatementModel;
 import org.opensearch.sql.spark.execution.statement.StatementState;
 import org.opensearch.sql.spark.execution.statestore.StateStore;
@@ -30,6 +36,7 @@ import org.opensearch.sql.spark.response.JobExecutionResponseReader;
 import org.opensearch.sql.spark.rest.model.CreateAsyncQueryRequest;
 import org.opensearch.sql.spark.rest.model.CreateAsyncQueryResponse;
 import org.opensearch.sql.spark.rest.model.LangType;
+import org.opensearch.sql.spark.transport.format.AsyncQueryResultResponseFormatter;
 
 public class AsyncQueryGetResultSpecTest extends AsyncQueryExecutorServiceSpec {
 
@@ -37,15 +44,16 @@ public class AsyncQueryGetResultSpecTest extends AsyncQueryExecutorServiceSpec {
   private final FlintDatasetMock mockIndex =
       new FlintDatasetMock(
               "DROP SKIPPING INDEX ON mys3.default.http_logs",
+              "REFRESH SKIPPING INDEX ON mys3.default.http_logs",
               FlintIndexType.SKIPPING,
               "flint_mys3_default_http_logs_skipping_index")
-          .latestId("skippingindexid");
+          .latestId("ZmxpbnRfbXlzM19kZWZhdWx0X2h0dHBfbG9nc19za2lwcGluZ19pbmRleA==");
 
   private MockFlintSparkJob mockIndexState;
 
   @Before
   public void doSetUp() {
-    mockIndexState = new MockFlintSparkJob(mockIndex.latestId);
+    mockIndexState = new MockFlintSparkJob(stateStore, mockIndex.latestId, MYS3_DATASOURCE);
   }
 
   @Test
@@ -181,6 +189,217 @@ public class AsyncQueryGetResultSpecTest extends AsyncQueryExecutorServiceSpec {
         .assertQueryResults("SUCCESS", ImmutableList.of());
   }
 
+  @Test
+  public void testInteractiveQueryResponse() {
+    createAsyncQuery("SELECT * FROM TABLE")
+        .withInteraction(InteractionStep::pluginSearchQueryResult)
+        .assertQueryResults("waiting", null)
+        .withInteraction(
+            interaction -> {
+              interaction.emrJobWriteResultDoc(createResultDoc(interaction.queryId));
+              interaction.emrJobUpdateStatementState(StatementState.SUCCESS);
+              return interaction.pluginSearchQueryResult();
+            })
+        .assertFormattedQueryResults(
+            "{\"status\":\"SUCCESS\",\"schema\":[{\"name\":\"1\","
+                + "\"type\":\"integer\"}],\"datarows\":[[1]],\"total\":1,\"size\":1}");
+  }
+
+  @Test
+  public void testInteractiveQueryResponseBasicType() {
+    createAsyncQuery("SELECT * FROM TABLE")
+        .withInteraction(InteractionStep::pluginSearchQueryResult)
+        .assertQueryResults("waiting", null)
+        .withInteraction(
+            interaction -> {
+              interaction.emrJobWriteResultDoc(
+                  createResultDoc(
+                      interaction.queryId,
+                      ImmutableList.of(
+                          "{'column1': 'value1', 'column2': 123, 'column3': true}",
+                          "{'column1': 'value2', 'column2': 456, 'column3': false}"),
+                      ImmutableList.of(
+                          "{'column_name': 'column1', 'data_type': 'string'}",
+                          "{'column_name': 'column2', 'data_type': 'integer'}",
+                          "{'column_name': 'column3', 'data_type': 'boolean'}")));
+              interaction.emrJobUpdateStatementState(StatementState.SUCCESS);
+              return interaction.pluginSearchQueryResult();
+            })
+        .assertFormattedQueryResults(
+            "{\"status\":\"SUCCESS\",\"schema\":[{\"name\":\"column1\",\"type\":\"string\"},{\"name\":\"column2\",\"type\":\"integer\"},{\"name\":\"column3\",\"type\":\"boolean\"}],\"datarows\":[[\"value1\",123,true],[\"value2\",456,false]],\"total\":2,\"size\":2}");
+  }
+
+  @Test
+  public void testInteractiveQueryResponseJsonArray() {
+    createAsyncQuery("SELECT * FROM TABLE")
+        .withInteraction(InteractionStep::pluginSearchQueryResult)
+        .assertQueryResults("waiting", null)
+        .withInteraction(
+            interaction -> {
+              interaction.emrJobWriteResultDoc(
+                  createResultDoc(
+                      interaction.queryId,
+                      ImmutableList.of(
+                          "{ 'attributes': [{ 'key': 'telemetry.sdk.language', 'value': {"
+                              + " 'stringValue': 'python' }}, { 'key': 'telemetry.sdk.name',"
+                              + " 'value': { 'stringValue': 'opentelemetry' }}, { 'key':"
+                              + " 'telemetry.sdk.version', 'value': { 'stringValue': '1.19.0' }}, {"
+                              + " 'key': 'service.namespace', 'value': { 'stringValue':"
+                              + " 'opentelemetry-demo' }}, { 'key': 'service.name', 'value': {"
+                              + " 'stringValue': 'recommendationservice' }}, { 'key':"
+                              + " 'telemetry.auto.version', 'value': { 'stringValue': '0.40b0'"
+                              + " }}]}"),
+                      ImmutableList.of("{'column_name':'attributes','data_type':'array'}")));
+              interaction.emrJobUpdateStatementState(StatementState.SUCCESS);
+              return interaction.pluginSearchQueryResult();
+            })
+        .assertFormattedQueryResults(
+            "{\"status\":\"SUCCESS\",\"schema\":[{\"name\":\"attributes\",\"type\":\"array\"}],\"datarows\":[[[{\"value\":{\"stringValue\":\"python\"},\"key\":\"telemetry.sdk.language\"},{\"value\":{\"stringValue\":\"opentelemetry\"},\"key\":\"telemetry.sdk.name\"},{\"value\":{\"stringValue\":\"1.19.0\"},\"key\":\"telemetry.sdk.version\"},{\"value\":{\"stringValue\":\"opentelemetry-demo\"},\"key\":\"service.namespace\"},{\"value\":{\"stringValue\":\"recommendationservice\"},\"key\":\"service.name\"},{\"value\":{\"stringValue\":\"0.40b0\"},\"key\":\"telemetry.auto.version\"}]]],\"total\":1,\"size\":1}");
+  }
+
+  @Test
+  public void testInteractiveQueryResponseJsonNested() {
+    createAsyncQuery("SELECT * FROM TABLE")
+        .withInteraction(InteractionStep::pluginSearchQueryResult)
+        .assertQueryResults("waiting", null)
+        .withInteraction(
+            interaction -> {
+              interaction.emrJobWriteResultDoc(
+                  createResultDoc(
+                      interaction.queryId,
+                      ImmutableList.of(
+                          "{\n"
+                              + "  'resourceSpans': {\n"
+                              + "    'scopeSpans': {\n"
+                              + "      'spans': {\n"
+                              + "          'key': 'rpc.system',\n"
+                              + "          'value': {\n"
+                              + "            'stringValue': 'grpc'\n"
+                              + "          }\n"
+                              + "      }\n"
+                              + "    }\n"
+                              + "  }\n"
+                              + "}"),
+                      ImmutableList.of("{'column_name':'resourceSpans','data_type':'struct'}")));
+              interaction.emrJobUpdateStatementState(StatementState.SUCCESS);
+              return interaction.pluginSearchQueryResult();
+            })
+        .assertFormattedQueryResults(
+            "{\"status\":\"SUCCESS\",\"schema\":[{\"name\":\"resourceSpans\",\"type\":\"struct\"}],\"datarows\":[[{\"scopeSpans\":{\"spans\":{\"value\":{\"stringValue\":\"grpc\"},\"key\":\"rpc.system\"}}}]],\"total\":1,\"size\":1}");
+  }
+
+  @Test
+  public void testInteractiveQueryResponseJsonNestedObjectArray() {
+    createAsyncQuery("SELECT * FROM TABLE")
+        .withInteraction(InteractionStep::pluginSearchQueryResult)
+        .assertQueryResults("waiting", null)
+        .withInteraction(
+            interaction -> {
+              interaction.emrJobWriteResultDoc(
+                  createResultDoc(
+                      interaction.queryId,
+                      ImmutableList.of(
+                          "{\n"
+                              + "  'resourceSpans': \n"
+                              + "    {\n"
+                              + "      'scopeSpans': \n"
+                              + "        {\n"
+                              + "          'spans': \n"
+                              + "            [\n"
+                              + "              {\n"
+                              + "                'attribute': {\n"
+                              + "                  'key': 'rpc.system',\n"
+                              + "                  'value': {\n"
+                              + "                    'stringValue': 'grpc'\n"
+                              + "                  }\n"
+                              + "                }\n"
+                              + "              },\n"
+                              + "              {\n"
+                              + "                'attribute': {\n"
+                              + "                  'key': 'rpc.system',\n"
+                              + "                  'value': {\n"
+                              + "                    'stringValue': 'grpc'\n"
+                              + "                  }\n"
+                              + "                }\n"
+                              + "              }\n"
+                              + "            ]\n"
+                              + "        }\n"
+                              + "    }\n"
+                              + "}"),
+                      ImmutableList.of("{'column_name':'resourceSpans','data_type':'struct'}")));
+              interaction.emrJobUpdateStatementState(StatementState.SUCCESS);
+              return interaction.pluginSearchQueryResult();
+            })
+        .assertFormattedQueryResults(
+            "{\"status\":\"SUCCESS\",\"schema\":[{\"name\":\"resourceSpans\",\"type\":\"struct\"}],\"datarows\":[[{\"scopeSpans\":{\"spans\":[{\"attribute\":{\"value\":{\"stringValue\":\"grpc\"},\"key\":\"rpc.system\"}},{\"attribute\":{\"value\":{\"stringValue\":\"grpc\"},\"key\":\"rpc.system\"}}]}}]],\"total\":1,\"size\":1}");
+  }
+
+  @Test
+  public void testExplainResponse() {
+    createAsyncQuery("EXPLAIN SELECT * FROM TABLE")
+        .withInteraction(InteractionStep::pluginSearchQueryResult)
+        .assertQueryResults("waiting", null)
+        .withInteraction(
+            interaction -> {
+              interaction.emrJobWriteResultDoc(
+                  createResultDoc(
+                      interaction.queryId,
+                      ImmutableList.of("{'plan':'== Physical Plan ==\\nAdaptiveSparkPlan'}"),
+                      ImmutableList.of("{'column_name':'plan','data_type':'string'}")));
+              interaction.emrJobUpdateStatementState(StatementState.SUCCESS);
+              return interaction.pluginSearchQueryResult();
+            })
+        .assertFormattedQueryResults(
+            "{\"status\":\"SUCCESS\",\"schema\":[{\"name\":\"plan\",\"type\":\"string\"}],\"datarows\":[[\"=="
+                + " Physical Plan ==\\n"
+                + "AdaptiveSparkPlan\"]],\"total\":1,\"size\":1}");
+  }
+
+  @Test
+  public void testInteractiveQueryEmptyResponseIssue2367() {
+    createAsyncQuery("SELECT * FROM TABLE")
+        .withInteraction(InteractionStep::pluginSearchQueryResult)
+        .assertQueryResults("waiting", null)
+        .withInteraction(
+            interaction -> {
+              interaction.emrJobWriteResultDoc(
+                  createResultDoc(
+                      interaction.queryId,
+                      ImmutableList.of(
+                          "{'srcPort':20641}",
+                          "{'srcPort':20641}",
+                          "{}",
+                          "{}",
+                          "{'srcPort':20641}",
+                          "{'srcPort':20641}"),
+                      ImmutableList.of("{'column_name':'srcPort','data_type':'long'}")));
+              interaction.emrJobUpdateStatementState(StatementState.SUCCESS);
+              return interaction.pluginSearchQueryResult();
+            })
+        .assertFormattedQueryResults(
+            "{\"status\":\"SUCCESS\",\"schema\":[{\"name\":\"srcPort\",\"type\":\"long\"}],\"datarows\":[[20641],[20641],[null],[null],[20641],[20641]],\"total\":6,\"size\":6}");
+  }
+
+  @Test
+  public void testInteractiveQueryArrayResponseIssue2367() {
+    createAsyncQuery("SELECT * FROM TABLE")
+        .withInteraction(InteractionStep::pluginSearchQueryResult)
+        .assertQueryResults("waiting", null)
+        .withInteraction(
+            interaction -> {
+              interaction.emrJobWriteResultDoc(
+                  createResultDoc(
+                      interaction.queryId,
+                      ImmutableList.of(
+                          "{'resourceSpans':[{'resource':{'attributes':[{'key':'telemetry.sdk.language','value':{'stringValue':'python'}},{'key':'telemetry.sdk.name','value':{'stringValue':'opentelemetry'}}]},'scopeSpans':[{'scope':{'name':'opentelemetry.instrumentation.grpc','version':'0.40b0'},'spans':[{'attributes':[{'key':'rpc.system','value':{'stringValue':'grpc'}},{'key':'rpc.grpc.status_code','value':{'intValue':'0'}}],'kind':3},{'attributes':[{'key':'rpc.system','value':{'stringValue':'grpc'}},{'key':'rpc.grpc.status_code','value':{'intValue':'0'}}],'kind':3}]}]}]}"),
+                      ImmutableList.of("{'column_name':'resourceSpans','data_type':'array'}")));
+              interaction.emrJobUpdateStatementState(StatementState.SUCCESS);
+              return interaction.pluginSearchQueryResult();
+            })
+        .assertFormattedQueryResults(
+            "{\"status\":\"SUCCESS\",\"schema\":[{\"name\":\"resourceSpans\",\"type\":\"array\"}],\"datarows\":[[[{\"resource\":{\"attributes\":[{\"value\":{\"stringValue\":\"python\"},\"key\":\"telemetry.sdk.language\"},{\"value\":{\"stringValue\":\"opentelemetry\"},\"key\":\"telemetry.sdk.name\"}]},\"scopeSpans\":[{\"spans\":[{\"kind\":3,\"attributes\":[{\"value\":{\"stringValue\":\"grpc\"},\"key\":\"rpc.system\"},{\"value\":{\"intValue\":\"0\"},\"key\":\"rpc.grpc.status_code\"}]},{\"kind\":3,\"attributes\":[{\"value\":{\"stringValue\":\"grpc\"},\"key\":\"rpc.system\"},{\"value\":{\"intValue\":\"0\"},\"key\":\"rpc.grpc.status_code\"}]}],\"scope\":{\"name\":\"opentelemetry.instrumentation.grpc\",\"version\":\"0.40b0\"}}]}]]],\"total\":1,\"size\":1}");
+  }
+
   private AssertionHelper createAsyncQuery(String query) {
     return new AssertionHelper(query, new LocalEMRSClient());
   }
@@ -195,9 +414,10 @@ public class AsyncQueryGetResultSpecTest extends AsyncQueryExecutorServiceSpec {
     private Interaction interaction;
 
     AssertionHelper(String query, LocalEMRSClient emrClient) {
+      EMRServerlessClientFactory emrServerlessClientFactory = () -> emrClient;
       this.queryService =
           createAsyncQueryExecutorService(
-              emrClient,
+              emrServerlessClientFactory,
               /*
                * Custom reader that intercepts get results call and inject extra steps defined in
                * current interaction. Intercept both get methods for different query handler which
@@ -216,7 +436,7 @@ public class AsyncQueryGetResultSpecTest extends AsyncQueryExecutorServiceSpec {
               });
       this.createQueryResponse =
           queryService.createAsyncQuery(
-              new CreateAsyncQueryRequest(query, DATASOURCE, LangType.SQL, null));
+              new CreateAsyncQueryRequest(query, MYS3_DATASOURCE, LangType.SQL, null));
     }
 
     AssertionHelper withInteraction(Interaction interaction) {
@@ -229,6 +449,24 @@ public class AsyncQueryGetResultSpecTest extends AsyncQueryExecutorServiceSpec {
           queryService.getAsyncQueryResults(createQueryResponse.getQueryId());
       assertEquals(status, results.getStatus());
       assertEquals(data, results.getResults());
+      return this;
+    }
+
+    AssertionHelper assertFormattedQueryResults(String expected) {
+      AsyncQueryExecutionResponse results =
+          queryService.getAsyncQueryResults(createQueryResponse.getQueryId());
+
+      ResponseFormatter<AsyncQueryResult> formatter =
+          new AsyncQueryResultResponseFormatter(JsonResponseFormatter.Style.COMPACT);
+      assertEquals(
+          expected,
+          formatter.format(
+              new AsyncQueryResult(
+                  results.getStatus(),
+                  results.getSchema(),
+                  results.getResults(),
+                  Cursor.None,
+                  results.getError())));
       return this;
     }
   }
@@ -272,8 +510,8 @@ public class AsyncQueryGetResultSpecTest extends AsyncQueryExecutorServiceSpec {
 
     /** Simulate EMR-S updates query_execution_request with state */
     void emrJobUpdateStatementState(StatementState newState) {
-      StatementModel stmt = getStatement(stateStore, DATASOURCE).apply(queryId).get();
-      StateStore.updateStatementState(stateStore, DATASOURCE).apply(stmt, newState);
+      StatementModel stmt = getStatement(stateStore, MYS3_DATASOURCE).apply(queryId).get();
+      StateStore.updateStatementState(stateStore, MYS3_DATASOURCE).apply(stmt, newState);
     }
 
     void emrJobUpdateJobState(JobRunState jobState) {
@@ -287,7 +525,7 @@ public class AsyncQueryGetResultSpecTest extends AsyncQueryExecutorServiceSpec {
     document.put("schema", ImmutableList.of());
     document.put("jobRunId", "XXX");
     document.put("applicationId", "YYY");
-    document.put("dataSourceName", DATASOURCE);
+    document.put("dataSourceName", MYS3_DATASOURCE);
     document.put("status", "SUCCESS");
     document.put("error", "");
     document.put("queryId", queryId);
@@ -299,12 +537,20 @@ public class AsyncQueryGetResultSpecTest extends AsyncQueryExecutorServiceSpec {
   }
 
   private Map<String, Object> createResultDoc(String queryId) {
+    return createResultDoc(
+        queryId,
+        ImmutableList.of("{'1':1}"),
+        ImmutableList.of("{'column_name" + "':'1','data_type':'integer'}"));
+  }
+
+  private Map<String, Object> createResultDoc(
+      String queryId, List<String> result, List<String> schema) {
     Map<String, Object> document = new HashMap<>();
-    document.put("result", ImmutableList.of("{'1':1}"));
-    document.put("schema", ImmutableList.of("{'column_name':'1','data_type':'integer'}"));
+    document.put("result", result);
+    document.put("schema", schema);
     document.put("jobRunId", "XXX");
     document.put("applicationId", "YYY");
-    document.put("dataSourceName", DATASOURCE);
+    document.put("dataSourceName", MYS3_DATASOURCE);
     document.put("status", "SUCCESS");
     document.put("error", "");
     document.put("queryId", queryId);

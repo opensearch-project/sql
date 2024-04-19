@@ -17,8 +17,10 @@ import com.amazonaws.services.emrserverless.model.JobDriver;
 import com.amazonaws.services.emrserverless.model.SparkSubmit;
 import com.amazonaws.services.emrserverless.model.StartJobRunRequest;
 import com.amazonaws.services.emrserverless.model.StartJobRunResult;
+import com.amazonaws.services.emrserverless.model.ValidationException;
 import java.security.AccessController;
 import java.security.PrivilegedAction;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.sql.legacy.metrics.MetricName;
@@ -29,7 +31,9 @@ public class EmrServerlessClientImpl implements EMRServerlessClient {
   private final AWSEMRServerless emrServerless;
   private static final Logger logger = LogManager.getLogger(EmrServerlessClientImpl.class);
 
-  private static final String GENERIC_INTERNAL_SERVER_ERROR_MESSAGE = "Internal Server Error.";
+  private static final int MAX_JOB_NAME_LENGTH = 255;
+
+  public static final String GENERIC_INTERNAL_SERVER_ERROR_MESSAGE = "Internal Server Error.";
 
   public EmrServerlessClientImpl(AWSEMRServerless emrServerless) {
     this.emrServerless = emrServerless;
@@ -43,7 +47,7 @@ public class EmrServerlessClientImpl implements EMRServerlessClient {
             : startJobRequest.getResultIndex();
     StartJobRunRequest request =
         new StartJobRunRequest()
-            .withName(startJobRequest.getJobName())
+            .withName(StringUtils.truncate(startJobRequest.getJobName(), MAX_JOB_NAME_LENGTH))
             .withApplicationId(startJobRequest.getApplicationId())
             .withExecutionRoleArn(startJobRequest.getExecutionRoleArn())
             .withTags(startJobRequest.getTags())
@@ -53,7 +57,7 @@ public class EmrServerlessClientImpl implements EMRServerlessClient {
                     .withSparkSubmit(
                         new SparkSubmit()
                             .withEntryPoint(SPARK_SQL_APPLICATION_JAR)
-                            .withEntryPointArguments(startJobRequest.getQuery(), resultIndex)
+                            .withEntryPointArguments(resultIndex)
                             .withSparkSubmitParameters(startJobRequest.getSparkSubmitParams())));
 
     StartJobRunResult startJobRunResult =
@@ -66,6 +70,11 @@ public class EmrServerlessClientImpl implements EMRServerlessClient {
                     logger.error("Error while making start job request to emr:", t);
                     MetricUtils.incrementNumericalMetric(
                         MetricName.EMR_START_JOB_REQUEST_FAILURE_COUNT);
+                    if (t instanceof ValidationException) {
+                      throw new IllegalArgumentException(
+                          "The input fails to satisfy the constraints specified by AWS EMR"
+                              + " Serverless.");
+                    }
                     throw new RuntimeException(GENERIC_INTERNAL_SERVER_ERROR_MESSAGE);
                   }
                 });
@@ -95,7 +104,8 @@ public class EmrServerlessClientImpl implements EMRServerlessClient {
   }
 
   @Override
-  public CancelJobRunResult cancelJobRun(String applicationId, String jobId) {
+  public CancelJobRunResult cancelJobRun(
+      String applicationId, String jobId, boolean allowExceptionPropagation) {
     CancelJobRunRequest cancelJobRunRequest =
         new CancelJobRunRequest().withJobRunId(jobId).withApplicationId(applicationId);
     CancelJobRunResult cancelJobRunResult =
@@ -105,10 +115,14 @@ public class EmrServerlessClientImpl implements EMRServerlessClient {
                   try {
                     return emrServerless.cancelJobRun(cancelJobRunRequest);
                   } catch (Throwable t) {
-                    logger.error("Error while making cancel job request to emr:", t);
-                    MetricUtils.incrementNumericalMetric(
-                        MetricName.EMR_CANCEL_JOB_REQUEST_FAILURE_COUNT);
-                    throw new RuntimeException(GENERIC_INTERNAL_SERVER_ERROR_MESSAGE);
+                    if (allowExceptionPropagation) {
+                      throw t;
+                    } else {
+                      logger.error("Error while making cancel job request to emr:", t);
+                      MetricUtils.incrementNumericalMetric(
+                          MetricName.EMR_CANCEL_JOB_REQUEST_FAILURE_COUNT);
+                      throw new RuntimeException(GENERIC_INTERNAL_SERVER_ERROR_MESSAGE);
+                    }
                   }
                 });
     logger.info(String.format("Job : %s cancelled", cancelJobRunResult.getJobRunId()));

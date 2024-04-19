@@ -14,7 +14,8 @@ import org.opensearch.sql.datasource.model.DataSourceMetadata;
 public interface DataSourceService {
 
   /**
-   * Returns {@link DataSource} corresponding to the DataSource name.
+   * Returns {@link DataSource} corresponding to the DataSource name only if the datasource is
+   * active and authorized.
    *
    * @param dataSourceName Name of the {@link DataSource}.
    * @return {@link DataSource}.
@@ -39,15 +40,6 @@ public interface DataSourceService {
    * @return set of {@link DataSourceMetadata}.
    */
   DataSourceMetadata getDataSourceMetadata(String name);
-
-  /**
-   * Returns dataSourceMetadata object with specific name. The returned objects contain all the
-   * metadata information without any filtering.
-   *
-   * @param name name of the {@link DataSource}.
-   * @return set of {@link DataSourceMetadata}.
-   */
-  DataSourceMetadata getRawDataSourceMetadata(String name);
 
   /**
    * Register {@link DataSource} defined by {@link DataSourceMetadata}.
@@ -84,4 +76,12 @@ public interface DataSourceService {
    * @param dataSourceName name of the {@link DataSource}.
    */
   Boolean dataSourceExists(String dataSourceName);
+
+  /**
+   * Performs authorization and datasource status check and then returns RawDataSourceMetadata.
+   * Specifically for addressing use cases in SparkQueryDispatcher.
+   *
+   * @param dataSourceName of the {@link DataSource}
+   */
+  DataSourceMetadata verifyDataSourceAccessAndGetRawMetadata(String dataSourceName);
 }

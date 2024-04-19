@@ -9,10 +9,11 @@ import java.util.Map;
 import lombok.Data;
 import org.opensearch.sql.spark.asyncquery.model.SparkSubmitParameters;
 import org.opensearch.sql.spark.client.StartJobRequest;
+import org.opensearch.sql.spark.dispatcher.model.JobType;
 
 @Data
 public class CreateSessionRequest {
-  private final String jobName;
+  private final String clusterName;
   private final String applicationId;
   private final String executionRoleArn;
   private final SparkSubmitParameters.Builder sparkSubmitParametersBuilder;
@@ -20,10 +21,9 @@ public class CreateSessionRequest {
   private final String resultIndex;
   private final String datasourceName;
 
-  public StartJobRequest getStartJobRequest() {
+  public StartJobRequest getStartJobRequest(String sessionId) {
     return new InteractiveSessionStartJobRequest(
-        "select 1",
-        jobName,
+        clusterName + ":" + JobType.INTERACTIVE.getText() + ":" + sessionId,
         applicationId,
         executionRoleArn,
         sparkSubmitParametersBuilder.build().toString(),
@@ -33,22 +33,13 @@ public class CreateSessionRequest {
 
   static class InteractiveSessionStartJobRequest extends StartJobRequest {
     public InteractiveSessionStartJobRequest(
-        String query,
         String jobName,
         String applicationId,
         String executionRoleArn,
         String sparkSubmitParams,
         Map<String, String> tags,
         String resultIndex) {
-      super(
-          query,
-          jobName,
-          applicationId,
-          executionRoleArn,
-          sparkSubmitParams,
-          tags,
-          false,
-          resultIndex);
+      super(jobName, applicationId, executionRoleArn, sparkSubmitParams, tags, false, resultIndex);
     }
 
     /** Interactive query keep running. */

@@ -58,7 +58,7 @@ public class BatchQueryHandler extends AsyncQueryHandler {
   @Override
   public String cancelJob(AsyncQueryJobMetadata asyncQueryJobMetadata) {
     emrServerlessClient.cancelJobRun(
-        asyncQueryJobMetadata.getApplicationId(), asyncQueryJobMetadata.getJobId());
+        asyncQueryJobMetadata.getApplicationId(), asyncQueryJobMetadata.getJobId(), false);
     return asyncQueryJobMetadata.getQueryId().getId();
   }
 
@@ -68,20 +68,19 @@ public class BatchQueryHandler extends AsyncQueryHandler {
     leaseManager.borrow(new LeaseRequest(JobType.BATCH, dispatchQueryRequest.getDatasource()));
 
     String clusterName = dispatchQueryRequest.getClusterName();
-    String jobName = clusterName + ":" + "non-index-query";
     Map<String, String> tags = context.getTags();
     DataSourceMetadata dataSourceMetadata = context.getDataSourceMetadata();
 
     tags.put(JOB_TYPE_TAG_KEY, JobType.BATCH.getText());
     StartJobRequest startJobRequest =
         new StartJobRequest(
-            dispatchQueryRequest.getQuery(),
-            jobName,
+            clusterName + ":" + JobType.BATCH.getText(),
             dispatchQueryRequest.getApplicationId(),
             dispatchQueryRequest.getExecutionRoleARN(),
             SparkSubmitParameters.Builder.builder()
                 .clusterName(clusterName)
                 .dataSource(context.getDataSourceMetadata())
+                .query(dispatchQueryRequest.getQuery())
                 .extraParameters(dispatchQueryRequest.getExtraSparkSubmitParams())
                 .build()
                 .toString(),

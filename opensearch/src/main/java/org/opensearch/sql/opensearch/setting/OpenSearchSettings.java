@@ -7,6 +7,7 @@ package org.opensearch.sql.opensearch.setting;
 
 import static org.opensearch.common.settings.Settings.EMPTY;
 import static org.opensearch.common.unit.TimeValue.timeValueDays;
+import static org.opensearch.common.unit.TimeValue.timeValueMinutes;
 import static org.opensearch.sql.common.setting.Settings.Key.ENCYRPTION_MASTER_KEY;
 
 import com.google.common.annotations.VisibleForTesting;
@@ -131,6 +132,13 @@ public class OpenSearchSettings extends Settings {
           Setting.Property.NodeScope,
           Setting.Property.Dynamic);
 
+  public static final Setting<Boolean> ASYNC_QUERY_ENABLED_SETTING =
+      Setting.boolSetting(
+          Key.ASYNC_QUERY_ENABLED.getKeyValue(),
+          true,
+          Setting.Property.NodeScope,
+          Setting.Property.Dynamic);
+
   public static final Setting<String> SPARK_EXECUTION_ENGINE_CONFIG =
       Setting.simpleString(
           Key.SPARK_EXECUTION_ENGINE_CONFIG.getKeyValue(),
@@ -140,21 +148,21 @@ public class OpenSearchSettings extends Settings {
   public static final Setting<?> SPARK_EXECUTION_SESSION_LIMIT_SETTING =
       Setting.intSetting(
           Key.SPARK_EXECUTION_SESSION_LIMIT.getKeyValue(),
-          100,
+          10,
           Setting.Property.NodeScope,
           Setting.Property.Dynamic);
 
   public static final Setting<?> SPARK_EXECUTION_REFRESH_JOB_LIMIT_SETTING =
       Setting.intSetting(
           Key.SPARK_EXECUTION_REFRESH_JOB_LIMIT.getKeyValue(),
-          50,
+          5,
           Setting.Property.NodeScope,
           Setting.Property.Dynamic);
 
   public static final Setting<TimeValue> SESSION_INDEX_TTL_SETTING =
       Setting.positiveTimeSetting(
           Key.SESSION_INDEX_TTL.getKeyValue(),
-          timeValueDays(14),
+          timeValueDays(30),
           Setting.Property.NodeScope,
           Setting.Property.Dynamic);
 
@@ -183,6 +191,13 @@ public class OpenSearchSettings extends Settings {
       Setting.longSetting(
           Key.SESSION_INACTIVITY_TIMEOUT_MILLIS.getKeyValue(),
           180000L,
+          Setting.Property.NodeScope,
+          Setting.Property.Dynamic);
+
+  public static final Setting<TimeValue> STREAMING_JOB_HOUSEKEEPER_INTERVAL_SETTING =
+      Setting.positiveTimeSetting(
+          Key.STREAMING_JOB_HOUSEKEEPER_INTERVAL.getKeyValue(),
+          timeValueMinutes(15),
           Setting.Property.NodeScope,
           Setting.Property.Dynamic);
 
@@ -253,6 +268,12 @@ public class OpenSearchSettings extends Settings {
     register(
         settingBuilder,
         clusterSettings,
+        Key.ASYNC_QUERY_ENABLED,
+        ASYNC_QUERY_ENABLED_SETTING,
+        new Updater(Key.ASYNC_QUERY_ENABLED));
+    register(
+        settingBuilder,
+        clusterSettings,
         Key.SPARK_EXECUTION_ENGINE_CONFIG,
         SPARK_EXECUTION_ENGINE_CONFIG,
         new Updater(Key.SPARK_EXECUTION_ENGINE_CONFIG));
@@ -300,6 +321,12 @@ public class OpenSearchSettings extends Settings {
         Key.SESSION_INACTIVITY_TIMEOUT_MILLIS,
         SESSION_INACTIVITY_TIMEOUT_MILLIS_SETTING,
         new Updater((Key.SESSION_INACTIVITY_TIMEOUT_MILLIS)));
+    register(
+        settingBuilder,
+        clusterSettings,
+        Key.STREAMING_JOB_HOUSEKEEPER_INTERVAL,
+        STREAMING_JOB_HOUSEKEEPER_INTERVAL_SETTING,
+        new Updater((Key.STREAMING_JOB_HOUSEKEEPER_INTERVAL)));
     defaultSettings = settingBuilder.build();
   }
 
@@ -362,6 +389,7 @@ public class OpenSearchSettings extends Settings {
         .add(METRICS_ROLLING_WINDOW_SETTING)
         .add(METRICS_ROLLING_INTERVAL_SETTING)
         .add(DATASOURCE_URI_HOSTS_DENY_LIST)
+        .add(ASYNC_QUERY_ENABLED_SETTING)
         .add(SPARK_EXECUTION_ENGINE_CONFIG)
         .add(SPARK_EXECUTION_SESSION_LIMIT_SETTING)
         .add(SPARK_EXECUTION_REFRESH_JOB_LIMIT_SETTING)
@@ -370,6 +398,7 @@ public class OpenSearchSettings extends Settings {
         .add(AUTO_INDEX_MANAGEMENT_ENABLED_SETTING)
         .add(DATASOURCES_LIMIT_SETTING)
         .add(SESSION_INACTIVITY_TIMEOUT_MILLIS_SETTING)
+        .add(STREAMING_JOB_HOUSEKEEPER_INTERVAL_SETTING)
         .build();
   }
 

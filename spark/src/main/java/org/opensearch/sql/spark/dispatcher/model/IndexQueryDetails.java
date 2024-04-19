@@ -7,6 +7,7 @@ package org.opensearch.sql.spark.dispatcher.model;
 
 import static org.apache.commons.lang3.StringUtils.strip;
 
+import java.util.Set;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import org.apache.commons.lang3.StringUtils;
@@ -19,11 +20,14 @@ public class IndexQueryDetails {
 
   public static final String STRIP_CHARS = "`";
 
+  private static final Set<Character> INVALID_INDEX_NAME_CHARS =
+      Set.of(' ', ',', ':', '"', '+', '/', '\\', '|', '?', '#', '>', '<');
+
   private String indexName;
   private FullyQualifiedTableName fullyQualifiedTableName;
   // by default, auto_refresh = false;
-  private boolean autoRefresh;
   private IndexQueryActionType indexQueryActionType;
+  private FlintIndexOptions flintIndexOptions;
   // materialized view special case where
   // table name and mv name are combined.
   private String mvName;
@@ -53,14 +57,14 @@ public class IndexQueryDetails {
       return this;
     }
 
-    public IndexQueryDetailsBuilder autoRefresh(Boolean autoRefresh) {
-      indexQueryDetails.autoRefresh = autoRefresh;
-      return this;
-    }
-
     public IndexQueryDetailsBuilder indexQueryActionType(
         IndexQueryActionType indexQueryActionType) {
       indexQueryDetails.indexQueryActionType = indexQueryActionType;
+      return this;
+    }
+
+    public IndexQueryDetailsBuilder indexOptions(FlintIndexOptions flintIndexOptions) {
+      indexQueryDetails.flintIndexOptions = flintIndexOptions;
       return this;
     }
 
@@ -75,6 +79,9 @@ public class IndexQueryDetails {
     }
 
     public IndexQueryDetails build() {
+      if (indexQueryDetails.flintIndexOptions == null) {
+        indexQueryDetails.flintIndexOptions = new FlintIndexOptions();
+      }
       return indexQueryDetails;
     }
   }
@@ -100,6 +107,21 @@ public class IndexQueryDetails {
         indexName = "flint_" + new FullyQualifiedTableName(mvName).toFlintName();
         break;
     }
-    return indexName.toLowerCase();
+    return percentEncode(indexName).toLowerCase();
+  }
+
+  /*
+   * Percent-encode invalid OpenSearch index name characters.
+   */
+  private String percentEncode(String indexName) {
+    StringBuilder builder = new StringBuilder(indexName.length());
+    for (char ch : indexName.toCharArray()) {
+      if (INVALID_INDEX_NAME_CHARS.contains(ch)) {
+        builder.append(String.format("%%%02X", (int) ch));
+      } else {
+        builder.append(ch);
+      }
+    }
+    return builder.toString();
   }
 }

@@ -6,7 +6,7 @@
 package org.opensearch.sql.spark.rest;
 
 import static org.opensearch.core.rest.RestStatus.BAD_REQUEST;
-import static org.opensearch.core.rest.RestStatus.SERVICE_UNAVAILABLE;
+import static org.opensearch.core.rest.RestStatus.INTERNAL_SERVER_ERROR;
 import static org.opensearch.core.rest.RestStatus.TOO_MANY_REQUESTS;
 import static org.opensearch.rest.RestRequest.Method.DELETE;
 import static org.opensearch.rest.RestRequest.Method.GET;
@@ -26,10 +26,12 @@ import org.opensearch.rest.BaseRestHandler;
 import org.opensearch.rest.BytesRestResponse;
 import org.opensearch.rest.RestChannel;
 import org.opensearch.rest.RestRequest;
+import org.opensearch.sql.datasources.exceptions.DataSourceClientException;
 import org.opensearch.sql.datasources.exceptions.ErrorMessage;
 import org.opensearch.sql.datasources.utils.Scheduler;
 import org.opensearch.sql.legacy.metrics.MetricName;
 import org.opensearch.sql.legacy.utils.MetricUtils;
+import org.opensearch.sql.spark.asyncquery.exceptions.AsyncQueryNotFoundException;
 import org.opensearch.sql.spark.leasemanager.ConcurrencyLimitExceededException;
 import org.opensearch.sql.spark.rest.model.CreateAsyncQueryRequest;
 import org.opensearch.sql.spark.transport.TransportCancelAsyncQueryRequestAction;
@@ -112,12 +114,12 @@ public class RestAsyncQueryManagementAction extends BaseRestHandler {
     }
   }
 
-  private RestChannelConsumer executePostRequest(RestRequest restRequest, NodeClient nodeClient)
-      throws IOException {
-    MetricUtils.incrementNumericalMetric(MetricName.ASYNC_QUERY_CREATE_API_REQUEST_COUNT);
-    CreateAsyncQueryRequest submitJobRequest =
-        CreateAsyncQueryRequest.fromXContentParser(restRequest.contentParser());
-    return restChannel ->
+  private RestChannelConsumer executePostRequest(RestRequest restRequest, NodeClient nodeClient) {
+    return restChannel -> {
+      try {
+        MetricUtils.incrementNumericalMetric(MetricName.ASYNC_QUERY_CREATE_API_REQUEST_COUNT);
+        CreateAsyncQueryRequest submitJobRequest =
+            CreateAsyncQueryRequest.fromXContentParser(restRequest.contentParser());
         Scheduler.schedule(
             nodeClient,
             () ->
@@ -140,6 +142,10 @@ public class RestAsyncQueryManagementAction extends BaseRestHandler {
                         handleException(e, restChannel, restRequest.method());
                       }
                     }));
+      } catch (Exception e) {
+        handleException(e, restChannel, restRequest.method());
+      }
+    };
   }
 
   private RestChannelConsumer executeGetAsyncQueryResultRequest(
@@ -187,7 +193,7 @@ public class RestAsyncQueryManagementAction extends BaseRestHandler {
         reportError(restChannel, e, BAD_REQUEST);
         addCustomerErrorMetric(requestMethod);
       } else {
-        reportError(restChannel, e, SERVICE_UNAVAILABLE);
+        reportError(restChannel, e, INTERNAL_SERVER_ERROR);
         addSystemErrorMetric(requestMethod);
       }
     }
@@ -227,7 +233,11 @@ public class RestAsyncQueryManagementAction extends BaseRestHandler {
   }
 
   private static boolean isClientError(Exception e) {
-    return e instanceof IllegalArgumentException || e instanceof IllegalStateException;
+    return e instanceof IllegalArgumentException
+        || e instanceof IllegalStateException
+        || e instanceof DataSourceClientException
+        || e instanceof AsyncQueryNotFoundException
+        || e instanceof IllegalAccessException;
   }
 
   private void addSystemErrorMetric(RestRequest.Method requestMethod) {

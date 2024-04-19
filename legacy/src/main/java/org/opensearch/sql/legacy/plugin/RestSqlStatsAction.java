@@ -5,17 +5,20 @@
 
 package org.opensearch.sql.legacy.plugin;
 
-import static org.opensearch.core.rest.RestStatus.SERVICE_UNAVAILABLE;
+import static org.opensearch.core.rest.RestStatus.INTERNAL_SERVER_ERROR;
 
 import com.google.common.collect.ImmutableList;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.ThreadContext;
 import org.opensearch.client.node.NodeClient;
 import org.opensearch.common.settings.Settings;
+import org.opensearch.common.unit.TimeValue;
 import org.opensearch.core.rest.RestStatus;
 import org.opensearch.rest.BaseRestHandler;
 import org.opensearch.rest.BytesRestResponse;
@@ -24,6 +27,7 @@ import org.opensearch.rest.RestRequest;
 import org.opensearch.sql.common.utils.QueryContext;
 import org.opensearch.sql.legacy.executor.format.ErrorMessageFactory;
 import org.opensearch.sql.legacy.metrics.Metrics;
+import org.opensearch.threadpool.ThreadPool;
 
 /**
  * Currently this interface is for node level. Cluster level is coming up soon.
@@ -69,16 +73,19 @@ public class RestSqlStatsAction extends BaseRestHandler {
 
     try {
       return channel ->
-          channel.sendResponse(
-              new BytesRestResponse(RestStatus.OK, Metrics.getInstance().collectToJSON()));
+          schedule(
+              client,
+              () ->
+                  channel.sendResponse(
+                      new BytesRestResponse(RestStatus.OK, Metrics.getInstance().collectToJSON())));
     } catch (Exception e) {
       LOG.error("Failed during Query SQL STATS Action.", e);
 
       return channel ->
           channel.sendResponse(
               new BytesRestResponse(
-                  SERVICE_UNAVAILABLE,
-                  ErrorMessageFactory.createErrorMessage(e, SERVICE_UNAVAILABLE.getStatus())
+                  INTERNAL_SERVER_ERROR,
+                  ErrorMessageFactory.createErrorMessage(e, INTERNAL_SERVER_ERROR.getStatus())
                       .toString()));
     }
   }
@@ -90,5 +97,18 @@ public class RestSqlStatsAction extends BaseRestHandler {
         Arrays.asList(
             "sql", "flat", "separator", "_score", "_type", "_id", "newLine", "format", "sanitize"));
     return responseParams;
+  }
+
+  private void schedule(NodeClient client, Runnable task) {
+    ThreadPool threadPool = client.threadPool();
+    threadPool.schedule(withCurrentContext(task), new TimeValue(0), "sql-worker");
+  }
+
+  private Runnable withCurrentContext(final Runnable task) {
+    final Map<String, String> currentContext = ThreadContext.getImmutableContext();
+    return () -> {
+      ThreadContext.putAll(currentContext);
+      task.run();
+    };
   }
 }

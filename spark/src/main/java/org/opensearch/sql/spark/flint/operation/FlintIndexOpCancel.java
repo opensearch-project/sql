@@ -5,17 +5,16 @@
 
 package org.opensearch.sql.spark.flint.operation;
 
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
 import lombok.SneakyThrows;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.sql.spark.client.EMRServerlessClient;
 import org.opensearch.sql.spark.execution.statestore.StateStore;
+import org.opensearch.sql.spark.flint.FlintIndexMetadata;
 import org.opensearch.sql.spark.flint.FlintIndexState;
 import org.opensearch.sql.spark.flint.FlintIndexStateModel;
 
-/** Cancel refreshing job. */
+/** Cancel refreshing job for refresh query when user clicks cancel button on UI. */
 public class FlintIndexOpCancel extends FlintIndexOp {
   private static final Logger LOG = LogManager.getLogger();
 
@@ -27,8 +26,9 @@ public class FlintIndexOpCancel extends FlintIndexOp {
     this.emrServerlessClient = emrServerlessClient;
   }
 
+  // Only in refreshing state, the job is cancellable in case of REFRESH query.
   public boolean validate(FlintIndexState state) {
-    return state == FlintIndexState.REFRESHING || state == FlintIndexState.CANCELLING;
+    return state == FlintIndexState.REFRESHING;
   }
 
   @Override
@@ -39,34 +39,11 @@ public class FlintIndexOpCancel extends FlintIndexOp {
   /** cancel EMR-S job, wait cancelled state upto 15s. */
   @SneakyThrows
   @Override
-  void runOp(FlintIndexStateModel flintIndexStateModel) {
-    String applicationId = flintIndexStateModel.getApplicationId();
-    String jobId = flintIndexStateModel.getJobId();
-    try {
-      emrServerlessClient.cancelJobRun(
-          flintIndexStateModel.getApplicationId(), flintIndexStateModel.getJobId());
-    } catch (IllegalArgumentException e) {
-      // handle job does not exist case.
-      LOG.error(e);
-      return;
-    }
-
-    // pull job state until timeout or cancelled.
-    String jobRunState = "";
-    int count = 3;
-    while (count-- != 0) {
-      jobRunState =
-          emrServerlessClient.getJobRunResult(applicationId, jobId).getJobRun().getState();
-      if (jobRunState.equalsIgnoreCase("Cancelled")) {
-        break;
-      }
-      TimeUnit.SECONDS.sleep(1);
-    }
-    if (!jobRunState.equalsIgnoreCase("Cancelled")) {
-      String errMsg = "cancel job timeout";
-      LOG.error(errMsg);
-      throw new TimeoutException(errMsg);
-    }
+  void runOp(FlintIndexMetadata flintIndexMetadata, FlintIndexStateModel flintIndexStateModel) {
+    LOG.debug(
+        "Performing drop index operation for index: {}",
+        flintIndexMetadata.getOpensearchIndexName());
+    cancelStreamingJob(emrServerlessClient, flintIndexStateModel);
   }
 
   @Override

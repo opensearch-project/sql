@@ -19,7 +19,6 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
-import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.tuple.Pair;
 import org.opensearch.sql.DataSourceSchemaName;
 import org.opensearch.sql.analysis.symbol.Namespace;
@@ -196,23 +195,15 @@ public class AnalyzerTestBase {
       return Stream.of(opensearchDataSource, prometheusDataSource)
           .map(
               ds ->
-                  new DataSourceMetadata(
-                      ds.getName(),
-                      StringUtils.EMPTY,
-                      ds.getConnectorType(),
-                      Collections.emptyList(),
-                      ImmutableMap.of(),
-                      null))
+                  new DataSourceMetadata.Builder()
+                      .setName(ds.getName())
+                      .setConnector(ds.getConnectorType())
+                      .build())
           .collect(Collectors.toSet());
     }
 
     @Override
     public DataSourceMetadata getDataSourceMetadata(String name) {
-      return null;
-    }
-
-    @Override
-    public DataSourceMetadata getRawDataSourceMetadata(String name) {
       return null;
     }
 
@@ -242,6 +233,11 @@ public class AnalyzerTestBase {
     @Override
     public Boolean dataSourceExists(String dataSourceName) {
       return dataSourceName.equals(DEFAULT_DATASOURCE_NAME) || dataSourceName.equals("prometheus");
+    }
+
+    @Override
+    public DataSourceMetadata verifyDataSourceAccessAndGetRawMetadata(String dataSourceName) {
+      return null;
     }
   }
 

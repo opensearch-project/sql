@@ -5,7 +5,7 @@
 
 package org.opensearch.sql.plugin.rest;
 
-import static org.opensearch.core.rest.RestStatus.SERVICE_UNAVAILABLE;
+import static org.opensearch.core.rest.RestStatus.INTERNAL_SERVER_ERROR;
 
 import com.google.common.collect.ImmutableList;
 import java.util.Arrays;
@@ -22,6 +22,7 @@ import org.opensearch.rest.BytesRestResponse;
 import org.opensearch.rest.RestController;
 import org.opensearch.rest.RestRequest;
 import org.opensearch.sql.common.utils.QueryContext;
+import org.opensearch.sql.datasources.utils.Scheduler;
 import org.opensearch.sql.legacy.executor.format.ErrorMessageFactory;
 import org.opensearch.sql.legacy.metrics.Metrics;
 
@@ -67,16 +68,19 @@ public class RestPPLStatsAction extends BaseRestHandler {
 
     try {
       return channel ->
-          channel.sendResponse(
-              new BytesRestResponse(RestStatus.OK, Metrics.getInstance().collectToJSON()));
+          Scheduler.schedule(
+              client,
+              () ->
+                  channel.sendResponse(
+                      new BytesRestResponse(RestStatus.OK, Metrics.getInstance().collectToJSON())));
     } catch (Exception e) {
       LOG.error("Failed during Query PPL STATS Action.", e);
 
       return channel ->
           channel.sendResponse(
               new BytesRestResponse(
-                  SERVICE_UNAVAILABLE,
-                  ErrorMessageFactory.createErrorMessage(e, SERVICE_UNAVAILABLE.getStatus())
+                  INTERNAL_SERVER_ERROR,
+                  ErrorMessageFactory.createErrorMessage(e, INTERNAL_SERVER_ERROR.getStatus())
                       .toString()));
     }
   }

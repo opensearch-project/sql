@@ -12,10 +12,8 @@ import static org.opensearch.sql.util.MatcherUtils.rows;
 import static org.opensearch.sql.util.MatcherUtils.verifyColumn;
 import static org.opensearch.sql.util.MatcherUtils.verifyDataRows;
 
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import java.io.IOException;
-import org.apache.commons.lang3.StringUtils;
 import org.json.JSONObject;
 import org.junit.After;
 import org.junit.Assert;
@@ -43,13 +41,11 @@ public class ShowDataSourcesCommandIT extends PPLIntegTestCase {
   @Override
   protected void init() throws InterruptedException, IOException {
     DataSourceMetadata createDSM =
-        new DataSourceMetadata(
-            "my_prometheus",
-            StringUtils.EMPTY,
-            DataSourceType.PROMETHEUS,
-            ImmutableList.of(),
-            ImmutableMap.of("prometheus.uri", "http://localhost:9090"),
-            null);
+        new DataSourceMetadata.Builder()
+            .setName("my_prometheus")
+            .setConnector(DataSourceType.PROMETHEUS)
+            .setProperties(ImmutableMap.of("prometheus.uri", "http://localhost:9090"))
+            .build();
     Request createRequest = getCreateDataSourceRequest(createDSM);
     Response response = client().performRequest(createRequest);
     Assert.assertEquals(201, response.getStatusLine().getStatusCode());

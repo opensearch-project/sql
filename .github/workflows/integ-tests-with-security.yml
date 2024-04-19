@@ -20,7 +20,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        java: [ 11, 17 ]
+        java: [ 11, 17, 21 ]
 
     runs-on: ubuntu-latest
     container:
@@ -60,7 +60,7 @@ jobs:
       fail-fast: false
       matrix:
         os: [ windows-latest, macos-latest ]
-        java: [ 11, 17 ]
+        java: [ 11, 17, 21 ]
 
     runs-on: ${{ matrix.os }}
 

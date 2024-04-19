@@ -10,14 +10,14 @@ import static org.opensearch.sql.spark.data.constants.SparkConstants.STATUS_FIEL
 import static org.opensearch.sql.spark.execution.statestore.StateStore.createIndexDMLResult;
 
 import com.amazonaws.services.emrserverless.model.JobRunState;
+import java.util.Map;
 import lombok.RequiredArgsConstructor;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.json.JSONObject;
 import org.opensearch.client.Client;
-import org.opensearch.sql.datasource.DataSourceService;
 import org.opensearch.sql.datasource.model.DataSourceMetadata;
-import org.opensearch.sql.datasources.auth.DataSourceUserAuthorizationHelperImpl;
 import org.opensearch.sql.spark.asyncquery.model.AsyncQueryId;
 import org.opensearch.sql.spark.asyncquery.model.AsyncQueryJobMetadata;
 import org.opensearch.sql.spark.client.EMRServerlessClient;
@@ -29,10 +29,11 @@ import org.opensearch.sql.spark.dispatcher.model.IndexQueryDetails;
 import org.opensearch.sql.spark.execution.statement.StatementState;
 import org.opensearch.sql.spark.execution.statestore.StateStore;
 import org.opensearch.sql.spark.flint.FlintIndexMetadata;
-import org.opensearch.sql.spark.flint.FlintIndexMetadataReader;
+import org.opensearch.sql.spark.flint.FlintIndexMetadataService;
 import org.opensearch.sql.spark.flint.operation.FlintIndexOp;
-import org.opensearch.sql.spark.flint.operation.FlintIndexOpCancel;
-import org.opensearch.sql.spark.flint.operation.FlintIndexOpDelete;
+import org.opensearch.sql.spark.flint.operation.FlintIndexOpAlter;
+import org.opensearch.sql.spark.flint.operation.FlintIndexOpDrop;
+import org.opensearch.sql.spark.flint.operation.FlintIndexOpVacuum;
 import org.opensearch.sql.spark.response.JobExecutionResponseReader;
 
 /** Handle Index DML query. includes * DROP * ALT? */
@@ -40,51 +41,62 @@ import org.opensearch.sql.spark.response.JobExecutionResponseReader;
 public class IndexDMLHandler extends AsyncQueryHandler {
   private static final Logger LOG = LogManager.getLogger();
 
+  // To be deprecated in 3.0. Still using for backward compatibility.
   public static final String DROP_INDEX_JOB_ID = "dropIndexJobId";
+  public static final String DML_QUERY_JOB_ID = "DMLQueryJobId";
 
   private final EMRServerlessClient emrServerlessClient;
 
-  private final DataSourceService dataSourceService;
-
-  private final DataSourceUserAuthorizationHelperImpl dataSourceUserAuthorizationHelper;
-
   private final JobExecutionResponseReader jobExecutionResponseReader;
 
-  private final FlintIndexMetadataReader flintIndexMetadataReader;
-
-  private final Client client;
+  private final FlintIndexMetadataService flintIndexMetadataService;
 
   private final StateStore stateStore;
 
+  private final Client client;
+
   public static boolean isIndexDMLQuery(String jobId) {
-    return DROP_INDEX_JOB_ID.equalsIgnoreCase(jobId);
+    return DROP_INDEX_JOB_ID.equalsIgnoreCase(jobId) || DML_QUERY_JOB_ID.equalsIgnoreCase(jobId);
   }
 
   @Override
   public DispatchQueryResponse submit(
       DispatchQueryRequest dispatchQueryRequest, DispatchQueryContext context) {
     DataSourceMetadata dataSourceMetadata = context.getDataSourceMetadata();
-    IndexQueryDetails indexDetails = context.getIndexQueryDetails();
-    FlintIndexMetadata indexMetadata = flintIndexMetadataReader.getFlintIndexMetadata(indexDetails);
-    // if index is created without auto refresh. there is no job to cancel.
-    String status = JobRunState.FAILED.toString();
-    String error = "";
-    long startTime = 0L;
+    long startTime = System.currentTimeMillis();
     try {
-      FlintIndexOp jobCancelOp =
-          new FlintIndexOpCancel(
-              stateStore, dispatchQueryRequest.getDatasource(), emrServerlessClient);
-      jobCancelOp.apply(indexMetadata);
-
-      FlintIndexOp indexDeleteOp =
-          new FlintIndexOpDelete(stateStore, dispatchQueryRequest.getDatasource());
-      indexDeleteOp.apply(indexMetadata);
-      status = JobRunState.SUCCESS.toString();
+      IndexQueryDetails indexDetails = context.getIndexQueryDetails();
+      FlintIndexMetadata indexMetadata = getFlintIndexMetadata(indexDetails);
+      executeIndexOp(dispatchQueryRequest, indexDetails, indexMetadata);
+      AsyncQueryId asyncQueryId =
+          storeIndexDMLResult(
+              dispatchQueryRequest,
+              dataSourceMetadata,
+              JobRunState.SUCCESS.toString(),
+              StringUtils.EMPTY,
+              startTime);
+      return new DispatchQueryResponse(
+          asyncQueryId, DML_QUERY_JOB_ID, dataSourceMetadata.getResultIndex(), null);
     } catch (Exception e) {
-      error = e.getMessage();
-      LOG.error(e);
+      LOG.error(e.getMessage());
+      AsyncQueryId asyncQueryId =
+          storeIndexDMLResult(
+              dispatchQueryRequest,
+              dataSourceMetadata,
+              JobRunState.FAILED.toString(),
+              e.getMessage(),
+              startTime);
+      return new DispatchQueryResponse(
+          asyncQueryId, DML_QUERY_JOB_ID, dataSourceMetadata.getResultIndex(), null);
     }
+  }
 
+  private AsyncQueryId storeIndexDMLResult(
+      DispatchQueryRequest dispatchQueryRequest,
+      DataSourceMetadata dataSourceMetadata,
+      String status,
+      String error,
+      long startTime) {
     AsyncQueryId asyncQueryId = AsyncQueryId.newAsyncQueryId(dataSourceMetadata.getName());
     IndexDMLResult indexDMLResult =
         new IndexDMLResult(
@@ -94,10 +106,53 @@ public class IndexDMLHandler extends AsyncQueryHandler {
             dispatchQueryRequest.getDatasource(),
             System.currentTimeMillis() - startTime,
             System.currentTimeMillis());
-    String resultIndex = dataSourceMetadata.getResultIndex();
-    createIndexDMLResult(stateStore, resultIndex).apply(indexDMLResult);
+    createIndexDMLResult(stateStore, dataSourceMetadata.getResultIndex()).apply(indexDMLResult);
+    return asyncQueryId;
+  }
 
-    return new DispatchQueryResponse(asyncQueryId, DROP_INDEX_JOB_ID, resultIndex, null);
+  private void executeIndexOp(
+      DispatchQueryRequest dispatchQueryRequest,
+      IndexQueryDetails indexQueryDetails,
+      FlintIndexMetadata indexMetadata) {
+    switch (indexQueryDetails.getIndexQueryActionType()) {
+      case DROP:
+        FlintIndexOp dropOp =
+            new FlintIndexOpDrop(
+                stateStore, dispatchQueryRequest.getDatasource(), emrServerlessClient);
+        dropOp.apply(indexMetadata);
+        break;
+      case ALTER:
+        FlintIndexOpAlter flintIndexOpAlter =
+            new FlintIndexOpAlter(
+                indexQueryDetails.getFlintIndexOptions(),
+                stateStore,
+                dispatchQueryRequest.getDatasource(),
+                emrServerlessClient,
+                flintIndexMetadataService);
+        flintIndexOpAlter.apply(indexMetadata);
+        break;
+      case VACUUM:
+        FlintIndexOp indexVacuumOp =
+            new FlintIndexOpVacuum(stateStore, dispatchQueryRequest.getDatasource(), client);
+        indexVacuumOp.apply(indexMetadata);
+        break;
+      default:
+        throw new IllegalStateException(
+            String.format(
+                "IndexQueryActionType: %s is not supported in IndexDMLHandler.",
+                indexQueryDetails.getIndexQueryActionType()));
+    }
+  }
+
+  private FlintIndexMetadata getFlintIndexMetadata(IndexQueryDetails indexDetails) {
+    Map<String, FlintIndexMetadata> indexMetadataMap =
+        flintIndexMetadataService.getFlintIndexMetadata(indexDetails.openSearchIndexName());
+    if (!indexMetadataMap.containsKey(indexDetails.openSearchIndexName())) {
+      throw new IllegalStateException(
+          String.format(
+              "Couldn't fetch flint index: %s details", indexDetails.openSearchIndexName()));
+    }
+    return indexMetadataMap.get(indexDetails.openSearchIndexName());
   }
 
   @Override

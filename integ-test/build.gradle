@@ -44,7 +44,7 @@ apply plugin: 'java'
 apply plugin: 'io.freefair.lombok'
 apply plugin: 'com.wiredforcode.spawn'
 
-String baseVersion = "2.12.0"
+String baseVersion = "2.13.0"
 String bwcVersion = baseVersion + ".0";
 String baseName = "sqlBwcCluster"
 String bwcFilePath = "src/test/resources/bwc/"
@@ -165,7 +165,7 @@ configurations.all {
     resolutionStrategy.force "org.jetbrains.kotlin:kotlin-stdlib-jdk8:1.9.10"
     resolutionStrategy.force "joda-time:joda-time:2.10.12"
     resolutionStrategy.force "org.slf4j:slf4j-api:1.7.36"
-    resolutionStrategy.force "com.amazonaws:aws-java-sdk-core:1.12.545"
+    resolutionStrategy.force "com.amazonaws:aws-java-sdk-core:${aws_java_sdk_version}"
 }
 
 configurations {

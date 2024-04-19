@@ -8,6 +8,7 @@ package org.opensearch.sql.spark.flint;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import org.junit.jupiter.api.Test;
+import org.opensearch.sql.spark.dispatcher.model.FlintIndexOptions;
 import org.opensearch.sql.spark.dispatcher.model.FullyQualifiedTableName;
 import org.opensearch.sql.spark.dispatcher.model.IndexQueryActionType;
 import org.opensearch.sql.spark.dispatcher.model.IndexQueryDetails;
@@ -20,7 +21,7 @@ public class IndexQueryDetailsTest {
         IndexQueryDetails.builder()
             .indexName("invalid")
             .fullyQualifiedTableName(new FullyQualifiedTableName("mys3.default.http_logs"))
-            .autoRefresh(false)
+            .indexOptions(new FlintIndexOptions())
             .indexQueryActionType(IndexQueryActionType.DROP)
             .indexType(FlintIndexType.SKIPPING)
             .build()
@@ -100,6 +101,21 @@ public class IndexQueryDetailsTest {
         IndexQueryDetails.builder()
             .mvName("http_logs_metrics")
             .indexType(FlintIndexType.MATERIALIZED_VIEW)
+            .build()
+            .openSearchIndexName());
+  }
+
+  @Test
+  public void sanitizedIndexName() {
+    assertEquals(
+        "flint_mys3_default_test%20%2c%3a%22%2b%2f%5c%7c%3f%23%3e%3c_skipping_index",
+        IndexQueryDetails.builder()
+            .indexName("invalid")
+            .fullyQualifiedTableName(
+                new FullyQualifiedTableName("mys3.default.`test ,:\"+/\\|?#><`"))
+            .indexOptions(new FlintIndexOptions())
+            .indexQueryActionType(IndexQueryActionType.DROP)
+            .indexType(FlintIndexType.SKIPPING)
             .build()
             .openSearchIndexName());
   }

@@ -62,9 +62,11 @@ public class TransportUpdateDataSourceActionTest {
 
   @Test
   public void testDoExecute() {
-    DataSourceMetadata dataSourceMetadata = new DataSourceMetadata();
-    dataSourceMetadata.setName("test_datasource");
-    dataSourceMetadata.setConnector(DataSourceType.PROMETHEUS);
+    DataSourceMetadata dataSourceMetadata =
+        new DataSourceMetadata.Builder()
+            .setName("test_datasource")
+            .setConnector(DataSourceType.PROMETHEUS)
+            .build();
     UpdateDataSourceActionRequest request = new UpdateDataSourceActionRequest(dataSourceMetadata);
 
     action.doExecute(task, request, actionListener);
@@ -80,9 +82,12 @@ public class TransportUpdateDataSourceActionTest {
 
   @Test
   public void testDoExecuteWithException() {
-    DataSourceMetadata dataSourceMetadata = new DataSourceMetadata();
-    dataSourceMetadata.setName("test_datasource");
-    dataSourceMetadata.setConnector(DataSourceType.PROMETHEUS);
+    DataSourceMetadata dataSourceMetadata =
+        new DataSourceMetadata.Builder()
+            .setName("test_datasource")
+            .setConnector(DataSourceType.PROMETHEUS)
+            .build();
+
     doThrow(new RuntimeException("Error"))
         .when(dataSourceService)
         .updateDataSource(dataSourceMetadata);

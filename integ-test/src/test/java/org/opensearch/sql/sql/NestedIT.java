@@ -588,7 +588,7 @@ public class NestedIT extends SQLIntegTestCase {
                     + "    \"details\": \"Invalid use of expression nested(message.*)\",\n"
                     + "    \"type\": \"UnsupportedOperationException\"\n"
                     + "  },\n"
-                    + "  \"status\": 503\n"
+                    + "  \"status\": 500\n"
                     + "}"));
   }
 }

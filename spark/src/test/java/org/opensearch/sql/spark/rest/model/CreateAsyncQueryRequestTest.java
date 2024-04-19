@@ -31,6 +31,63 @@ public class CreateAsyncQueryRequestTest {
   }
 
   @Test
+  public void testConstructor() {
+    Assertions.assertDoesNotThrow(
+        () -> new CreateAsyncQueryRequest("select * from apple", "my_glue", LangType.SQL));
+  }
+
+  @Test
+  public void fromXContentWithDuplicateFields() throws IOException {
+    String request =
+        "{\n"
+            + "  \"datasource\": \"my_glue\",\n"
+            + "  \"datasource\": \"my_glue_1\",\n"
+            + "  \"lang\": \"sql\",\n"
+            + "  \"query\": \"select 1\"\n"
+            + "}";
+    IllegalArgumentException illegalArgumentException =
+        Assertions.assertThrows(
+            IllegalArgumentException.class,
+            () -> CreateAsyncQueryRequest.fromXContentParser(xContentParser(request)));
+    Assertions.assertTrue(
+        illegalArgumentException
+            .getMessage()
+            .contains("Error while parsing the request body: Duplicate field 'datasource'"));
+  }
+
+  @Test
+  public void fromXContentWithUnknownField() throws IOException {
+    String request =
+        "{\n"
+            + "  \"datasource\": \"my_glue\",\n"
+            + "  \"random\": \"my_gue_1\",\n"
+            + "  \"lang\": \"sql\",\n"
+            + "  \"query\": \"select 1\"\n"
+            + "}";
+    IllegalArgumentException illegalArgumentException =
+        Assertions.assertThrows(
+            IllegalArgumentException.class,
+            () -> CreateAsyncQueryRequest.fromXContentParser(xContentParser(request)));
+    Assertions.assertEquals(
+        "Error while parsing the request body: Unknown field: random",
+        illegalArgumentException.getMessage());
+  }
+
+  @Test
+  public void fromXContentWithWrongDatatype() throws IOException {
+    String request =
+        "{\"datasource\": [\"my_glue\", \"my_glue_1\"], \"lang\": \"sql\", \"query\": \"select"
+            + " 1\"}";
+    IllegalArgumentException illegalArgumentException =
+        Assertions.assertThrows(
+            IllegalArgumentException.class,
+            () -> CreateAsyncQueryRequest.fromXContentParser(xContentParser(request)));
+    Assertions.assertEquals(
+        "Error while parsing the request body: Can't get text on a START_ARRAY at 1:16",
+        illegalArgumentException.getMessage());
+  }
+
+  @Test
   public void fromXContentWithSessionId() throws IOException {
     String request =
         "{\n"
