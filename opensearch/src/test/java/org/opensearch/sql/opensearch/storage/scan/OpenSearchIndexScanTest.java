@@ -18,18 +18,25 @@ import static org.opensearch.search.sort.FieldSortBuilder.DOC_FIELD_NAME;
 import static org.opensearch.search.sort.SortOrder.ASC;
 import static org.opensearch.sql.data.type.ExprCoreType.STRING;
 
+import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import lombok.SneakyThrows;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayNameGeneration;
 import org.junit.jupiter.api.DisplayNameGenerator;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.Mock;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -100,9 +107,10 @@ class OpenSearchIndexScanTest {
     }
   }
 
-  @Test
   @SneakyThrows
-  void serialize() {
+  @ParameterizedTest
+  @ValueSource(ints = {0, 150})
+  void serialize(Integer numberOfIncludes) {
     var searchSourceBuilder = new SearchSourceBuilder().size(4);
 
     var factory = mock(OpenSearchExprValueFactory.class);
@@ -110,9 +118,14 @@ class OpenSearchIndexScanTest {
     var index = mock(OpenSearchIndex.class);
     when(engine.getClient()).thenReturn(client);
     when(engine.getTable(any(), any())).thenReturn(index);
+    var includes =
+        Stream.iterate(1, i -> i + 1)
+            .limit(numberOfIncludes)
+            .map(i -> "column" + i)
+            .collect(Collectors.toList());
     var request =
         new OpenSearchScrollRequest(
-            INDEX_NAME, CURSOR_KEEP_ALIVE, searchSourceBuilder, factory, List.of());
+            INDEX_NAME, CURSOR_KEEP_ALIVE, searchSourceBuilder, factory, includes);
     request.setScrollId("valid-id");
     // make a response, so OpenSearchResponse::isEmpty would return true and unset needClean
     var response = mock(SearchResponse.class);
@@ -128,6 +141,22 @@ class OpenSearchIndexScanTest {
       var cursor = planSerializer.convertToCursor(indexScan);
       var newPlan = planSerializer.convertToPlan(cursor.toString());
       assertEquals(indexScan, newPlan);
+    }
+  }
+
+  @SneakyThrows
+  @Test
+  void throws_io_exception_if_too_short() {
+    var request = mock(OpenSearchRequest.class);
+    ByteArrayOutputStream output = new ByteArrayOutputStream();
+    ObjectOutputStream objectOutput = new ObjectOutputStream(output);
+    objectOutput.writeInt(4);
+    objectOutput.flush();
+    ObjectInputStream objectInput =
+        new ObjectInputStream(new ByteArrayInputStream(output.toByteArray()));
+
+    try (var indexScan = new OpenSearchIndexScan(client, QUERY_SIZE, request)) {
+      assertThrows(IOException.class, () -> indexScan.readExternal(objectInput));
     }
   }
 
