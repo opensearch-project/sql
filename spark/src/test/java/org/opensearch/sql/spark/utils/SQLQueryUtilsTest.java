@@ -277,13 +277,31 @@ public class SQLQueryUtilsTest {
 
     Assertions.assertTrue(
         SQLQueryUtils.extractIndexDetails(
+                skippingIndex().withProperty("auto_refresh", "true").withSemicolon().getQuery())
+            .getFlintIndexOptions()
+            .autoRefresh());
+
+    Assertions.assertTrue(
+        SQLQueryUtils.extractIndexDetails(
                 skippingIndex().withProperty("\"auto_refresh\"", "true").getQuery())
             .getFlintIndexOptions()
             .autoRefresh());
 
     Assertions.assertTrue(
         SQLQueryUtils.extractIndexDetails(
+                skippingIndex().withProperty("\"auto_refresh\"", "true").withSemicolon().getQuery())
+            .getFlintIndexOptions()
+            .autoRefresh());
+
+    Assertions.assertTrue(
+        SQLQueryUtils.extractIndexDetails(
                 skippingIndex().withProperty("\"auto_refresh\"", "\"true\"").getQuery())
+            .getFlintIndexOptions()
+            .autoRefresh());
+
+    Assertions.assertTrue(
+        SQLQueryUtils.extractIndexDetails(
+                skippingIndex().withProperty("\"auto_refresh\"", "\"true\"").withSemicolon().getQuery())
             .getFlintIndexOptions()
             .autoRefresh());
 
@@ -318,7 +336,17 @@ public class SQLQueryUtilsTest {
             .autoRefresh());
 
     Assertions.assertTrue(
+        SQLQueryUtils.extractIndexDetails(index().withProperty("auto_refresh", "true").withSemicolon().getQuery())
+            .getFlintIndexOptions()
+            .autoRefresh());
+
+    Assertions.assertTrue(
         SQLQueryUtils.extractIndexDetails(mv().withProperty("auto_refresh", "true").getQuery())
+            .getFlintIndexOptions()
+            .autoRefresh());
+
+    Assertions.assertTrue(
+        SQLQueryUtils.extractIndexDetails(mv().withProperty("auto_refresh", "true").withSemicolon().getQuery())
             .getFlintIndexOptions()
             .autoRefresh());
   }
@@ -348,6 +376,11 @@ public class SQLQueryUtilsTest {
 
     public IndexQuery withProperty(String key, String value) {
       query = String.format("%s with (%s = %s)", query, key, value);
+      return this;
+    }
+
+    public IndexQuery withSemicolon() {
+      query += ";";
       return this;
     }
   }
