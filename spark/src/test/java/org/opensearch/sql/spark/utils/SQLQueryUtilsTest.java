@@ -301,7 +301,10 @@ public class SQLQueryUtilsTest {
 
     Assertions.assertTrue(
         SQLQueryUtils.extractIndexDetails(
-                skippingIndex().withProperty("\"auto_refresh\"", "\"true\"").withSemicolon().getQuery())
+                skippingIndex()
+                    .withProperty("\"auto_refresh\"", "\"true\"")
+                    .withSemicolon()
+                    .getQuery())
             .getFlintIndexOptions()
             .autoRefresh());
 
@@ -336,7 +339,8 @@ public class SQLQueryUtilsTest {
             .autoRefresh());
 
     Assertions.assertTrue(
-        SQLQueryUtils.extractIndexDetails(index().withProperty("auto_refresh", "true").withSemicolon().getQuery())
+        SQLQueryUtils.extractIndexDetails(
+                index().withProperty("auto_refresh", "true").withSemicolon().getQuery())
             .getFlintIndexOptions()
             .autoRefresh());
 
@@ -346,7 +350,8 @@ public class SQLQueryUtilsTest {
             .autoRefresh());
 
     Assertions.assertTrue(
-        SQLQueryUtils.extractIndexDetails(mv().withProperty("auto_refresh", "true").withSemicolon().getQuery())
+        SQLQueryUtils.extractIndexDetails(
+                mv().withProperty("auto_refresh", "true").withSemicolon().getQuery())
             .getFlintIndexOptions()
             .autoRefresh());
   }
