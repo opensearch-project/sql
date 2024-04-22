@@ -9,6 +9,7 @@ import static org.opensearch.commons.ConfigConstants.OPENSEARCH_SECURITY_USER_IN
 
 import java.util.List;
 import org.junit.Assert;
+import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Answers;
@@ -16,7 +17,9 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.opensearch.OpenSearchSecurityException;
 import org.opensearch.client.Client;
+import org.opensearch.core.rest.RestStatus;
 import org.opensearch.sql.datasource.model.DataSourceMetadata;
 import org.opensearch.sql.datasource.model.DataSourceType;
 
@@ -90,14 +93,15 @@ public class DataSourceUserAuthorizationHelperImplTest {
                 .getTransient(OPENSEARCH_SECURITY_USER_INFO_THREAD_CONTEXT))
         .thenReturn(userString);
     DataSourceMetadata dataSourceMetadata = dataSourceMetadata();
-    SecurityException securityException =
+    OpenSearchSecurityException openSearchSecurityException =
         Assert.assertThrows(
-            SecurityException.class,
+            OpenSearchSecurityException.class,
             () -> this.dataSourceUserAuthorizationHelper.authorizeDataSource(dataSourceMetadata));
-    Assert.assertEquals(
+    Assertions.assertEquals(
         "User is not authorized to access datasource test. "
             + "User should be mapped to any of the roles in [prometheus_access] for access.",
-        securityException.getMessage());
+        openSearchSecurityException.getMessage());
+    Assertions.assertEquals(RestStatus.UNAUTHORIZED, openSearchSecurityException.status());
   }
 
   private DataSourceMetadata dataSourceMetadata() {
