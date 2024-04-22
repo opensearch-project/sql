@@ -50,10 +50,10 @@ public class SQLQueryUtils {
             new CommonTokenStream(
                 new FlintSparkSqlExtensionsLexer(new CaseInsensitiveCharStream(sqlQuery))));
     flintSparkSqlExtensionsParser.addErrorListener(new SyntaxAnalysisErrorListener());
-    FlintSparkSqlExtensionsParser.StatementContext statementContext =
-        flintSparkSqlExtensionsParser.statement();
+    FlintSparkSqlExtensionsParser.SingleStatementContext singleStatementContext =
+        flintSparkSqlExtensionsParser.singleStatement();
     FlintSQLIndexDetailsVisitor flintSQLIndexDetailsVisitor = new FlintSQLIndexDetailsVisitor();
-    statementContext.accept(flintSQLIndexDetailsVisitor);
+    singleStatementContext.accept(flintSQLIndexDetailsVisitor);
     return flintSQLIndexDetailsVisitor.getIndexQueryDetailsBuilder().build();
   }
 
