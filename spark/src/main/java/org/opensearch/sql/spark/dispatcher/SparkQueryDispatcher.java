@@ -8,8 +8,8 @@ package org.opensearch.sql.spark.dispatcher;
 import java.util.HashMap;
 import java.util.Map;
 import lombok.AllArgsConstructor;
+import org.jetbrains.annotations.NotNull;
 import org.json.JSONObject;
-import org.opensearch.client.Client;
 import org.opensearch.sql.datasource.DataSourceService;
 import org.opensearch.sql.datasource.model.DataSourceMetadata;
 import org.opensearch.sql.spark.asyncquery.model.AsyncQueryId;
@@ -23,10 +23,6 @@ import org.opensearch.sql.spark.dispatcher.model.IndexQueryActionType;
 import org.opensearch.sql.spark.dispatcher.model.IndexQueryDetails;
 import org.opensearch.sql.spark.dispatcher.model.JobType;
 import org.opensearch.sql.spark.execution.session.SessionManager;
-import org.opensearch.sql.spark.execution.statestore.StateStore;
-import org.opensearch.sql.spark.flint.FlintIndexMetadataService;
-import org.opensearch.sql.spark.leasemanager.LeaseManager;
-import org.opensearch.sql.spark.response.JobExecutionResponseReader;
 import org.opensearch.sql.spark.rest.model.LangType;
 import org.opensearch.sql.spark.utils.SQLQueryUtils;
 
@@ -39,64 +35,67 @@ public class SparkQueryDispatcher {
   public static final String CLUSTER_NAME_TAG_KEY = "domain_ident";
   public static final String JOB_TYPE_TAG_KEY = "type";
 
-  private EMRServerlessClientFactory emrServerlessClientFactory;
-
-  private DataSourceService dataSourceService;
-
-  private JobExecutionResponseReader jobExecutionResponseReader;
-
-  private FlintIndexMetadataService flintIndexMetadataService;
-
-  private Client client;
-
-  private SessionManager sessionManager;
-
-  private LeaseManager leaseManager;
-
-  private StateStore stateStore;
+  private final EMRServerlessClientFactory emrServerlessClientFactory;
+  private final DataSourceService dataSourceService;
+  private final SessionManager sessionManager;
+  private final QueryHandlerFactory queryHandlerFactory;
 
   public DispatchQueryResponse dispatch(DispatchQueryRequest dispatchQueryRequest) {
     EMRServerlessClient emrServerlessClient = emrServerlessClientFactory.getClient();
     DataSourceMetadata dataSourceMetadata =
         this.dataSourceService.verifyDataSourceAccessAndGetRawMetadata(
             dispatchQueryRequest.getDatasource());
-    AsyncQueryHandler asyncQueryHandler =
-        sessionManager.isEnabled()
-            ? new InteractiveQueryHandler(sessionManager, jobExecutionResponseReader, leaseManager)
-            : new BatchQueryHandler(emrServerlessClient, jobExecutionResponseReader, leaseManager);
-    DispatchQueryContext.DispatchQueryContextBuilder contextBuilder =
-        DispatchQueryContext.builder()
+
+    if (LangType.SQL.equals(dispatchQueryRequest.getLangType())
+        && SQLQueryUtils.isFlintExtensionQuery(dispatchQueryRequest.getQuery())) {
+      IndexQueryDetails indexQueryDetails = getIndexQueryDetails(dispatchQueryRequest);
+      DispatchQueryContext context = getDefaultDispatchContextBuilder(dispatchQueryRequest, dataSourceMetadata)
+                      .indexQueryDetails(indexQueryDetails)
+                      .build();
+
+      return getQueryHandlerForFlintExtensionQuery(indexQueryDetails, emrServerlessClient)
+              .submit(dispatchQueryRequest, context);
+    } else {
+      DispatchQueryContext context = getDefaultDispatchContextBuilder(dispatchQueryRequest, dataSourceMetadata)
+                      .build();
+      return getDefaultAsyncQueryHandler(emrServerlessClient).submit(dispatchQueryRequest, context);
+    }
+  }
+
+  private static DispatchQueryContext.DispatchQueryContextBuilder getDefaultDispatchContextBuilder(DispatchQueryRequest dispatchQueryRequest, DataSourceMetadata dataSourceMetadata) {
+    return DispatchQueryContext.builder()
             .dataSourceMetadata(dataSourceMetadata)
             .tags(getDefaultTagsForJobSubmission(dispatchQueryRequest))
             .queryId(AsyncQueryId.newAsyncQueryId(dataSourceMetadata.getName()));
-
-    // override asyncQueryHandler with specific.
-    if (LangType.SQL.equals(dispatchQueryRequest.getLangType())
-        && SQLQueryUtils.isFlintExtensionQuery(dispatchQueryRequest.getQuery())) {
-      IndexQueryDetails indexQueryDetails =
-          SQLQueryUtils.extractIndexDetails(dispatchQueryRequest.getQuery());
-      fillMissingDetails(dispatchQueryRequest, indexQueryDetails);
-      contextBuilder.indexQueryDetails(indexQueryDetails);
-
-      if (isEligibleForIndexDMLHandling(indexQueryDetails)) {
-        asyncQueryHandler = createIndexDMLHandler(emrServerlessClient);
-      } else if (isEligibleForStreamingQuery(indexQueryDetails)) {
-        asyncQueryHandler =
-            new StreamingQueryHandler(
-                emrServerlessClient, jobExecutionResponseReader, leaseManager);
-      } else if (IndexQueryActionType.REFRESH.equals(indexQueryDetails.getIndexQueryActionType())) {
-        // manual refresh should be handled by batch handler
-        asyncQueryHandler =
-            new RefreshQueryHandler(
-                emrServerlessClient,
-                jobExecutionResponseReader,
-                flintIndexMetadataService,
-                stateStore,
-                leaseManager);
-      }
-    }
-    return asyncQueryHandler.submit(dispatchQueryRequest, contextBuilder.build());
   }
+
+  private AsyncQueryHandler getQueryHandlerForFlintExtensionQuery(IndexQueryDetails indexQueryDetails, EMRServerlessClient emrServerlessClient) {
+    if (isEligibleForIndexDMLHandling(indexQueryDetails)) {
+      return queryHandlerFactory.getIndexDMLHandler(emrServerlessClient);
+    } else if (isEligibleForStreamingQuery(indexQueryDetails)) {
+      return queryHandlerFactory.getStreamingQueryHandler(emrServerlessClient);
+    } else if (IndexQueryActionType.REFRESH.equals(indexQueryDetails.getIndexQueryActionType())) {
+      // manual refresh should be handled by batch handler
+      return queryHandlerFactory.getRefreshQueryHandler(emrServerlessClient);
+    } else {
+      return getDefaultAsyncQueryHandler(emrServerlessClient);
+    }
+  }
+
+  @NotNull
+  private AsyncQueryHandler getDefaultAsyncQueryHandler(EMRServerlessClient emrServerlessClient) {
+    return sessionManager.isEnabled()
+            ? queryHandlerFactory.getInteractiveQueryHandler()
+            : queryHandlerFactory.getBatchQueryHandler(emrServerlessClient);
+  }
+
+  @NotNull
+  private static IndexQueryDetails getIndexQueryDetails(DispatchQueryRequest dispatchQueryRequest) {
+    IndexQueryDetails indexQueryDetails = SQLQueryUtils.extractIndexDetails(dispatchQueryRequest.getQuery());
+    fillDatasourceName(dispatchQueryRequest, indexQueryDetails);
+    return indexQueryDetails;
+  }
+
 
   private boolean isEligibleForStreamingQuery(IndexQueryDetails indexQueryDetails) {
     Boolean isCreateAutoRefreshIndex =
@@ -119,58 +118,33 @@ public class SparkQueryDispatcher {
   }
 
   public JSONObject getQueryResponse(AsyncQueryJobMetadata asyncQueryJobMetadata) {
-    EMRServerlessClient emrServerlessClient = emrServerlessClientFactory.getClient();
-    if (asyncQueryJobMetadata.getSessionId() != null) {
-      return new InteractiveQueryHandler(sessionManager, jobExecutionResponseReader, leaseManager)
-          .getQueryResponse(asyncQueryJobMetadata);
-    } else if (IndexDMLHandler.isIndexDMLQuery(asyncQueryJobMetadata.getJobId())) {
-      return createIndexDMLHandler(emrServerlessClient).getQueryResponse(asyncQueryJobMetadata);
-    } else {
-      return new BatchQueryHandler(emrServerlessClient, jobExecutionResponseReader, leaseManager)
-          .getQueryResponse(asyncQueryJobMetadata);
-    }
+    return getAsyncQueryHandlerForExistingQuery(asyncQueryJobMetadata).getQueryResponse(asyncQueryJobMetadata);
   }
 
   public String cancelJob(AsyncQueryJobMetadata asyncQueryJobMetadata) {
-    EMRServerlessClient emrServerlessClient = emrServerlessClientFactory.getClient();
-    AsyncQueryHandler queryHandler;
-    if (asyncQueryJobMetadata.getSessionId() != null) {
-      queryHandler =
-          new InteractiveQueryHandler(sessionManager, jobExecutionResponseReader, leaseManager);
-    } else if (IndexDMLHandler.isIndexDMLQuery(asyncQueryJobMetadata.getJobId())) {
-      queryHandler = createIndexDMLHandler(emrServerlessClient);
-    } else if (asyncQueryJobMetadata.getJobType() == JobType.BATCH) {
-      queryHandler =
-          new RefreshQueryHandler(
-              emrServerlessClient,
-              jobExecutionResponseReader,
-              flintIndexMetadataService,
-              stateStore,
-              leaseManager);
-    } else if (asyncQueryJobMetadata.getJobType() == JobType.STREAMING) {
-      queryHandler =
-          new StreamingQueryHandler(emrServerlessClient, jobExecutionResponseReader, leaseManager);
-    } else {
-      queryHandler =
-          new BatchQueryHandler(emrServerlessClient, jobExecutionResponseReader, leaseManager);
-    }
-    return queryHandler.cancelJob(asyncQueryJobMetadata);
+    return getAsyncQueryHandlerForExistingQuery(asyncQueryJobMetadata).cancelJob(asyncQueryJobMetadata);
   }
 
-  private IndexDMLHandler createIndexDMLHandler(EMRServerlessClient emrServerlessClient) {
-    return new IndexDMLHandler(
-        emrServerlessClient,
-        jobExecutionResponseReader,
-        flintIndexMetadataService,
-        stateStore,
-        client);
+  private AsyncQueryHandler getAsyncQueryHandlerForExistingQuery(AsyncQueryJobMetadata asyncQueryJobMetadata) {
+    EMRServerlessClient emrServerlessClient = emrServerlessClientFactory.getClient();
+    if (asyncQueryJobMetadata.getSessionId() != null) {
+      return queryHandlerFactory.getInteractiveQueryHandler();
+    } else if (IndexDMLHandler.isIndexDMLQuery(asyncQueryJobMetadata.getJobId())) {
+      return queryHandlerFactory.getIndexDMLHandler(emrServerlessClient);
+    } else if (asyncQueryJobMetadata.getJobType() == JobType.BATCH) {
+      return queryHandlerFactory.getRefreshQueryHandler(emrServerlessClient);
+    } else if (asyncQueryJobMetadata.getJobType() == JobType.STREAMING) {
+      return queryHandlerFactory.getStreamingQueryHandler(emrServerlessClient);
+    } else {
+      return queryHandlerFactory.getBatchQueryHandler(emrServerlessClient);
+    }
   }
 
   // TODO: Revisit this logic.
   // Currently, Spark if datasource is not provided in query.
   // Spark Assumes the datasource to be catalog.
   // This is required to handle drop index case properly when datasource name is not provided.
-  private static void fillMissingDetails(
+  private static void fillDatasourceName(
       DispatchQueryRequest dispatchQueryRequest, IndexQueryDetails indexQueryDetails) {
     if (indexQueryDetails.getFullyQualifiedTableName() != null
         && indexQueryDetails.getFullyQualifiedTableName().getDatasourceName() == null) {

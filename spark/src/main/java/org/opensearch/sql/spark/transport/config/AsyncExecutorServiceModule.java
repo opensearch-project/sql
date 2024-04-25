@@ -25,6 +25,7 @@ import org.opensearch.sql.spark.client.EMRServerlessClientFactory;
 import org.opensearch.sql.spark.client.EMRServerlessClientFactoryImpl;
 import org.opensearch.sql.spark.config.SparkExecutionEngineConfigSupplier;
 import org.opensearch.sql.spark.config.SparkExecutionEngineConfigSupplierImpl;
+import org.opensearch.sql.spark.dispatcher.QueryHandlerFactory;
 import org.opensearch.sql.spark.dispatcher.SparkQueryDispatcher;
 import org.opensearch.sql.spark.execution.session.SessionManager;
 import org.opensearch.sql.spark.execution.statestore.StateStore;
@@ -36,7 +37,8 @@ import org.opensearch.sql.spark.response.JobExecutionResponseReader;
 public class AsyncExecutorServiceModule extends AbstractModule {
 
   @Override
-  protected void configure() {}
+  protected void configure() {
+  }
 
   @Provides
   public AsyncQueryExecutorService asyncQueryExecutorService(
@@ -67,15 +69,27 @@ public class AsyncExecutorServiceModule extends AbstractModule {
   public SparkQueryDispatcher sparkQueryDispatcher(
       EMRServerlessClientFactory emrServerlessClientFactory,
       DataSourceService dataSourceService,
+      SessionManager sessionManager,
+      QueryHandlerFactory queryHandlerFactory
+  ) {
+    return new SparkQueryDispatcher(
+        emrServerlessClientFactory,
+        dataSourceService,
+        sessionManager,
+        queryHandlerFactory
+    );
+  }
+
+  @Provides
+  public QueryHandlerFactory queryhandlerFactory(
       JobExecutionResponseReader jobExecutionResponseReader,
       FlintIndexMetadataServiceImpl flintIndexMetadataReader,
       NodeClient client,
       SessionManager sessionManager,
       DefaultLeaseManager defaultLeaseManager,
-      StateStore stateStore) {
-    return new SparkQueryDispatcher(
-        emrServerlessClientFactory,
-        dataSourceService,
+      StateStore stateStore
+  ) {
+    return new QueryHandlerFactory(
         jobExecutionResponseReader,
         flintIndexMetadataReader,
         client,

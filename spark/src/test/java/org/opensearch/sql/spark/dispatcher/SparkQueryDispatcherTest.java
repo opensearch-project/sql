@@ -110,16 +110,20 @@ public class SparkQueryDispatcherTest {
 
   @BeforeEach
   void setUp() {
+    QueryHandlerFactory queryHandlerFactory = new QueryHandlerFactory(
+        jobExecutionResponseReader,
+        flintIndexMetadataService,
+        openSearchClient,
+        sessionManager,
+        leaseManager,
+        stateStore
+    );
     sparkQueryDispatcher =
         new SparkQueryDispatcher(
             emrServerlessClientFactory,
             dataSourceService,
-            jobExecutionResponseReader,
-            flintIndexMetadataService,
-            openSearchClient,
             sessionManager,
-            leaseManager,
-            stateStore);
+            queryHandlerFactory);
     when(emrServerlessClientFactory.getClient()).thenReturn(emrServerlessClient);
   }
 
