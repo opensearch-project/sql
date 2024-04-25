@@ -18,7 +18,7 @@ s3Glue connector provides a way to query s3 files using glue as metadata store a
 This page covers s3Glue datasource configuration and also how to query and s3Glue datasource.
 
 Required resources for s3 Glue Connector
-===================================
+========================================
 * ``EMRServerless Spark Execution Engine Config Setting``:  Since we execute s3Glue queries on top of spark execution engine, we require this configuration.
   More details: `ExecutionEngine Config <../../../interfaces/asyncqueryinterface.rst#id2>`_
 * ``S3``: This is where the data lies.
