@@ -24,35 +24,32 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.opensearch.client.Client;
 import org.opensearch.sql.datasource.model.DataSourceMetadata;
 import org.opensearch.sql.datasource.model.DataSourceType;
-import org.opensearch.sql.spark.client.EMRServerlessClient;
 import org.opensearch.sql.spark.dispatcher.model.DispatchQueryContext;
 import org.opensearch.sql.spark.dispatcher.model.DispatchQueryRequest;
 import org.opensearch.sql.spark.dispatcher.model.DispatchQueryResponse;
 import org.opensearch.sql.spark.dispatcher.model.IndexQueryActionType;
 import org.opensearch.sql.spark.dispatcher.model.IndexQueryDetails;
-import org.opensearch.sql.spark.execution.statestore.StateStore;
 import org.opensearch.sql.spark.flint.FlintIndexMetadata;
 import org.opensearch.sql.spark.flint.FlintIndexMetadataService;
 import org.opensearch.sql.spark.flint.FlintIndexType;
+import org.opensearch.sql.spark.flint.IndexDMLResultStorageService;
+import org.opensearch.sql.spark.flint.operation.FlintIndexOpFactory;
 import org.opensearch.sql.spark.response.JobExecutionResponseReader;
 import org.opensearch.sql.spark.rest.model.LangType;
 
 @ExtendWith(MockitoExtension.class)
 class IndexDMLHandlerTest {
 
-  @Mock private EMRServerlessClient emrServerlessClient;
   @Mock private JobExecutionResponseReader jobExecutionResponseReader;
   @Mock private FlintIndexMetadataService flintIndexMetadataService;
-  @Mock private StateStore stateStore;
-  @Mock private Client client;
+  @Mock private IndexDMLResultStorageService indexDMLResultStorageService;
+  @Mock private FlintIndexOpFactory flintIndexOpFactory;
 
   @Test
   public void getResponseFromExecutor() {
-    JSONObject result =
-        new IndexDMLHandler(null, null, null, null, null).getResponseFromExecutor(null);
+    JSONObject result = new IndexDMLHandler(null, null, null, null).getResponseFromExecutor(null);
 
     assertEquals("running", result.getString(STATUS_FIELD));
     assertEquals("", result.getString(ERROR_FIELD));
@@ -62,11 +59,10 @@ class IndexDMLHandlerTest {
   public void testWhenIndexDetailsAreNotFound() {
     IndexDMLHandler indexDMLHandler =
         new IndexDMLHandler(
-            emrServerlessClient,
             jobExecutionResponseReader,
             flintIndexMetadataService,
-            stateStore,
-            client);
+            indexDMLResultStorageService,
+            flintIndexOpFactory);
     DispatchQueryRequest dispatchQueryRequest =
         new DispatchQueryRequest(
             EMRS_APPLICATION_ID,
@@ -94,8 +90,10 @@ class IndexDMLHandlerTest {
             .build();
     Mockito.when(flintIndexMetadataService.getFlintIndexMetadata(any()))
         .thenReturn(new HashMap<>());
+
     DispatchQueryResponse dispatchQueryResponse =
         indexDMLHandler.submit(dispatchQueryRequest, dispatchQueryContext);
+
     Assertions.assertNotNull(dispatchQueryResponse.getQueryId());
   }
 
@@ -104,11 +102,10 @@ class IndexDMLHandlerTest {
     FlintIndexMetadata flintIndexMetadata = mock(FlintIndexMetadata.class);
     IndexDMLHandler indexDMLHandler =
         new IndexDMLHandler(
-            emrServerlessClient,
             jobExecutionResponseReader,
             flintIndexMetadataService,
-            stateStore,
-            client);
+            indexDMLResultStorageService,
+            flintIndexOpFactory);
     DispatchQueryRequest dispatchQueryRequest =
         new DispatchQueryRequest(
             EMRS_APPLICATION_ID,
@@ -139,6 +136,7 @@ class IndexDMLHandlerTest {
     flintMetadataMap.put(indexQueryDetails.openSearchIndexName(), flintIndexMetadata);
     when(flintIndexMetadataService.getFlintIndexMetadata(indexQueryDetails.openSearchIndexName()))
         .thenReturn(flintMetadataMap);
+
     indexDMLHandler.submit(dispatchQueryRequest, dispatchQueryContext);
   }
 

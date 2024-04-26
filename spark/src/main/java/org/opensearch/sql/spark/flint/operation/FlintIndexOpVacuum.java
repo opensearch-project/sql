@@ -10,6 +10,7 @@ import org.apache.logging.log4j.Logger;
 import org.opensearch.action.admin.indices.delete.DeleteIndexRequest;
 import org.opensearch.action.support.master.AcknowledgedResponse;
 import org.opensearch.client.Client;
+import org.opensearch.sql.spark.client.EMRServerlessClientFactory;
 import org.opensearch.sql.spark.execution.statestore.StateStore;
 import org.opensearch.sql.spark.flint.FlintIndexMetadata;
 import org.opensearch.sql.spark.flint.FlintIndexState;
@@ -23,8 +24,12 @@ public class FlintIndexOpVacuum extends FlintIndexOp {
   /** OpenSearch client. */
   private final Client client;
 
-  public FlintIndexOpVacuum(StateStore stateStore, String datasourceName, Client client) {
-    super(stateStore, datasourceName);
+  public FlintIndexOpVacuum(
+      StateStore stateStore,
+      String datasourceName,
+      Client client,
+      EMRServerlessClientFactory emrServerlessClientFactory) {
+    super(stateStore, datasourceName, emrServerlessClientFactory);
     this.client = client;
   }
 
