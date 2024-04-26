@@ -7,7 +7,7 @@ package org.opensearch.sql.spark.dispatcher;
 
 import lombok.RequiredArgsConstructor;
 import org.opensearch.client.Client;
-import org.opensearch.sql.spark.client.EMRServerlessClient;
+import org.opensearch.sql.spark.client.EMRServerlessClientFactory;
 import org.opensearch.sql.spark.execution.session.SessionManager;
 import org.opensearch.sql.spark.execution.statestore.StateStore;
 import org.opensearch.sql.spark.flint.FlintIndexMetadataService;
@@ -23,31 +23,34 @@ public class QueryHandlerFactory {
   private final SessionManager sessionManager;
   private final LeaseManager leaseManager;
   private final StateStore stateStore;
+  private final EMRServerlessClientFactory emrServerlessClientFactory;
 
-  public RefreshQueryHandler getRefreshQueryHandler(EMRServerlessClient emrServerlessClient) {
+  public RefreshQueryHandler getRefreshQueryHandler() {
     return new RefreshQueryHandler(
-        emrServerlessClient,
+        emrServerlessClientFactory.getClient(),
         jobExecutionResponseReader,
         flintIndexMetadataService,
         stateStore,
         leaseManager);
   }
 
-  public StreamingQueryHandler getStreamingQueryHandler(EMRServerlessClient emrServerlessClient) {
-    return new StreamingQueryHandler(emrServerlessClient, jobExecutionResponseReader, leaseManager);
+  public StreamingQueryHandler getStreamingQueryHandler() {
+    return new StreamingQueryHandler(
+        emrServerlessClientFactory.getClient(), jobExecutionResponseReader, leaseManager);
   }
 
-  public BatchQueryHandler getBatchQueryHandler(EMRServerlessClient emrServerlessClient) {
-    return new BatchQueryHandler(emrServerlessClient, jobExecutionResponseReader, leaseManager);
+  public BatchQueryHandler getBatchQueryHandler() {
+    return new BatchQueryHandler(
+        emrServerlessClientFactory.getClient(), jobExecutionResponseReader, leaseManager);
   }
 
   public InteractiveQueryHandler getInteractiveQueryHandler() {
     return new InteractiveQueryHandler(sessionManager, jobExecutionResponseReader, leaseManager);
   }
 
-  public IndexDMLHandler getIndexDMLHandler(EMRServerlessClient emrServerlessClient) {
+  public IndexDMLHandler getIndexDMLHandler() {
     return new IndexDMLHandler(
-        emrServerlessClient,
+        emrServerlessClientFactory.getClient(),
         jobExecutionResponseReader,
         flintIndexMetadataService,
         stateStore,

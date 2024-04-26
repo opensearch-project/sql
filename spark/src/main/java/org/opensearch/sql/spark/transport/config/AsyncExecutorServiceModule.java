@@ -37,8 +37,7 @@ import org.opensearch.sql.spark.response.JobExecutionResponseReader;
 public class AsyncExecutorServiceModule extends AbstractModule {
 
   @Override
-  protected void configure() {
-  }
+  protected void configure() {}
 
   @Provides
   public AsyncQueryExecutorService asyncQueryExecutorService(
@@ -67,17 +66,10 @@ public class AsyncExecutorServiceModule extends AbstractModule {
 
   @Provides
   public SparkQueryDispatcher sparkQueryDispatcher(
-      EMRServerlessClientFactory emrServerlessClientFactory,
       DataSourceService dataSourceService,
       SessionManager sessionManager,
-      QueryHandlerFactory queryHandlerFactory
-  ) {
-    return new SparkQueryDispatcher(
-        emrServerlessClientFactory,
-        dataSourceService,
-        sessionManager,
-        queryHandlerFactory
-    );
+      QueryHandlerFactory queryHandlerFactory) {
+    return new SparkQueryDispatcher(dataSourceService, sessionManager, queryHandlerFactory);
   }
 
   @Provides
@@ -87,15 +79,16 @@ public class AsyncExecutorServiceModule extends AbstractModule {
       NodeClient client,
       SessionManager sessionManager,
       DefaultLeaseManager defaultLeaseManager,
-      StateStore stateStore
-  ) {
+      StateStore stateStore,
+      EMRServerlessClientFactory emrServerlessClientFactory) {
     return new QueryHandlerFactory(
         jobExecutionResponseReader,
         flintIndexMetadataReader,
         client,
         sessionManager,
         defaultLeaseManager,
-        stateStore);
+        stateStore,
+        emrServerlessClientFactory);
   }
 
   @Provides
