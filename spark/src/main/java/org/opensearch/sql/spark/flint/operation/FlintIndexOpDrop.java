@@ -9,19 +9,22 @@ import lombok.SneakyThrows;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.sql.spark.client.EMRServerlessClientFactory;
-import org.opensearch.sql.spark.execution.statestore.StateStore;
 import org.opensearch.sql.spark.flint.FlintIndexMetadata;
 import org.opensearch.sql.spark.flint.FlintIndexState;
 import org.opensearch.sql.spark.flint.FlintIndexStateModel;
+import org.opensearch.sql.spark.flint.FlintIndexStateModelService;
 
+/**
+ * Operation to drop Flint index
+ */
 public class FlintIndexOpDrop extends FlintIndexOp {
   private static final Logger LOG = LogManager.getLogger();
 
   public FlintIndexOpDrop(
-      StateStore stateStore,
+      FlintIndexStateModelService flintIndexStateModelService,
       String datasourceName,
       EMRServerlessClientFactory emrServerlessClientFactory) {
-    super(stateStore, datasourceName, emrServerlessClientFactory);
+    super(flintIndexStateModelService, datasourceName, emrServerlessClientFactory);
   }
 
   public boolean validate(FlintIndexState state) {

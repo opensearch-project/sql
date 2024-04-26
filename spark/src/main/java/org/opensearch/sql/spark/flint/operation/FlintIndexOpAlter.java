@@ -10,11 +10,11 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.sql.spark.client.EMRServerlessClientFactory;
 import org.opensearch.sql.spark.dispatcher.model.FlintIndexOptions;
-import org.opensearch.sql.spark.execution.statestore.StateStore;
 import org.opensearch.sql.spark.flint.FlintIndexMetadata;
 import org.opensearch.sql.spark.flint.FlintIndexMetadataService;
 import org.opensearch.sql.spark.flint.FlintIndexState;
 import org.opensearch.sql.spark.flint.FlintIndexStateModel;
+import org.opensearch.sql.spark.flint.FlintIndexStateModelService;
 
 /**
  * Index Operation for Altering the flint index. Only handles alter operation when
@@ -27,11 +27,11 @@ public class FlintIndexOpAlter extends FlintIndexOp {
 
   public FlintIndexOpAlter(
       FlintIndexOptions flintIndexOptions,
-      StateStore stateStore,
+      FlintIndexStateModelService flintIndexStateModelService,
       String datasourceName,
       EMRServerlessClientFactory emrServerlessClientFactory,
       FlintIndexMetadataService flintIndexMetadataService) {
-    super(stateStore, datasourceName, emrServerlessClientFactory);
+    super(flintIndexStateModelService, datasourceName, emrServerlessClientFactory);
     this.flintIndexMetadataService = flintIndexMetadataService;
     this.flintIndexOptions = flintIndexOptions;
   }

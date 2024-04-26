@@ -294,7 +294,8 @@ public class IndexQuerySpecTest extends AsyncQueryExecutorServiceSpec {
               mockDS.createIndex();
               // Mock index state
               MockFlintSparkJob flintIndexJob =
-                  new MockFlintSparkJob(stateStore, mockDS.latestId, MYS3_DATASOURCE);
+                  new MockFlintSparkJob(
+                      flintIndexStateModelService, mockDS.latestId, MYS3_DATASOURCE);
               flintIndexJob.refreshing();
 
               // 1.drop index
@@ -352,7 +353,8 @@ public class IndexQuerySpecTest extends AsyncQueryExecutorServiceSpec {
               mockDS.createIndex();
               // Mock index state in refresh state.
               MockFlintSparkJob flintIndexJob =
-                  new MockFlintSparkJob(stateStore, mockDS.latestId, MYS3_DATASOURCE);
+                  new MockFlintSparkJob(
+                      flintIndexStateModelService, mockDS.latestId, MYS3_DATASOURCE);
               flintIndexJob.refreshing();
 
               // 1.drop index
@@ -397,7 +399,8 @@ public class IndexQuerySpecTest extends AsyncQueryExecutorServiceSpec {
               mockDS.createIndex();
               // Mock index state
               MockFlintSparkJob flintIndexJob =
-                  new MockFlintSparkJob(stateStore, mockDS.latestId, MYS3_DATASOURCE);
+                  new MockFlintSparkJob(
+                      flintIndexStateModelService, mockDS.latestId, MYS3_DATASOURCE);
               flintIndexJob.refreshing();
 
               // 1. drop index
@@ -441,7 +444,8 @@ public class IndexQuerySpecTest extends AsyncQueryExecutorServiceSpec {
               mockDS.createIndex();
               // Mock index state
               MockFlintSparkJob flintIndexJob =
-                  new MockFlintSparkJob(stateStore, mockDS.latestId, MYS3_DATASOURCE);
+                  new MockFlintSparkJob(
+                      flintIndexStateModelService, mockDS.latestId, MYS3_DATASOURCE);
               flintIndexJob.refreshing();
 
               // 1. drop index
@@ -490,7 +494,8 @@ public class IndexQuerySpecTest extends AsyncQueryExecutorServiceSpec {
               mockDS.createIndex();
               // Mock index state
               MockFlintSparkJob flintIndexJob =
-                  new MockFlintSparkJob(stateStore, mockDS.latestId, MYS3_DATASOURCE);
+                  new MockFlintSparkJob(
+                      flintIndexStateModelService, mockDS.latestId, MYS3_DATASOURCE);
               flintIndexJob.active();
 
               // 1. drop index
@@ -536,7 +541,8 @@ public class IndexQuerySpecTest extends AsyncQueryExecutorServiceSpec {
               mockDS.createIndex();
               // Mock index state
               MockFlintSparkJob flintIndexJob =
-                  new MockFlintSparkJob(stateStore, mockDS.latestId, MYS3_DATASOURCE);
+                  new MockFlintSparkJob(
+                      flintIndexStateModelService, mockDS.latestId, MYS3_DATASOURCE);
               flintIndexJob.creating();
 
               // 1. drop index
@@ -582,7 +588,8 @@ public class IndexQuerySpecTest extends AsyncQueryExecutorServiceSpec {
               mockDS.createIndex();
               // Mock index state
               MockFlintSparkJob flintIndexJob =
-                  new MockFlintSparkJob(stateStore, mockDS.latestId, MYS3_DATASOURCE);
+                  new MockFlintSparkJob(
+                      flintIndexStateModelService, mockDS.latestId, MYS3_DATASOURCE);
 
               // 1. drop index
               CreateAsyncQueryResponse response =
@@ -634,7 +641,8 @@ public class IndexQuerySpecTest extends AsyncQueryExecutorServiceSpec {
               mockDS.createIndex();
               // Mock index state
               MockFlintSparkJob flintIndexJob =
-                  new MockFlintSparkJob(stateStore, mockDS.latestId, MYS3_DATASOURCE);
+                  new MockFlintSparkJob(
+                      flintIndexStateModelService, mockDS.latestId, MYS3_DATASOURCE);
               flintIndexJob.deleting();
 
               // 1. drop index
@@ -679,7 +687,7 @@ public class IndexQuerySpecTest extends AsyncQueryExecutorServiceSpec {
     mockDS.createIndex();
     // Mock index state in refresh state.
     MockFlintSparkJob flintIndexJob =
-        new MockFlintSparkJob(stateStore, mockDS.latestId, MYGLUE_DATASOURCE);
+        new MockFlintSparkJob(flintIndexStateModelService, mockDS.latestId, MYGLUE_DATASOURCE);
     flintIndexJob.refreshing();
 
     // 1.drop index
@@ -752,7 +760,7 @@ public class IndexQuerySpecTest extends AsyncQueryExecutorServiceSpec {
     COVERING.createIndex();
     // Mock index state
     MockFlintSparkJob flintIndexJob =
-        new MockFlintSparkJob(stateStore, COVERING.latestId, MYS3_DATASOURCE);
+        new MockFlintSparkJob(flintIndexStateModelService, COVERING.latestId, MYS3_DATASOURCE);
     flintIndexJob.refreshing();
 
     // query with auto refresh
@@ -777,7 +785,7 @@ public class IndexQuerySpecTest extends AsyncQueryExecutorServiceSpec {
     COVERING.createIndex();
     // Mock index state
     MockFlintSparkJob flintIndexJob =
-        new MockFlintSparkJob(stateStore, COVERING.latestId, MYS3_DATASOURCE);
+        new MockFlintSparkJob(flintIndexStateModelService, COVERING.latestId, MYS3_DATASOURCE);
     flintIndexJob.refreshing();
 
     // query with auto_refresh = true.
@@ -805,7 +813,7 @@ public class IndexQuerySpecTest extends AsyncQueryExecutorServiceSpec {
     COVERING.createIndex();
     // Mock index state
     MockFlintSparkJob flintIndexJob =
-        new MockFlintSparkJob(stateStore, COVERING.latestId, MYS3_DATASOURCE);
+        new MockFlintSparkJob(flintIndexStateModelService, COVERING.latestId, MYS3_DATASOURCE);
     flintIndexJob.refreshing();
 
     // query with auto_refresh = true.
@@ -832,7 +840,7 @@ public class IndexQuerySpecTest extends AsyncQueryExecutorServiceSpec {
     COVERING.createIndex();
     // Mock index state
     MockFlintSparkJob flintIndexJob =
-        new MockFlintSparkJob(stateStore, COVERING.latestId, MYS3_DATASOURCE);
+        new MockFlintSparkJob(flintIndexStateModelService, COVERING.latestId, MYS3_DATASOURCE);
     flintIndexJob.refreshing();
 
     CreateAsyncQueryResponse asyncQueryResponse =
@@ -905,7 +913,8 @@ public class IndexQuerySpecTest extends AsyncQueryExecutorServiceSpec {
               mockDS.createIndex();
               // Mock index state
               MockFlintSparkJob flintIndexJob =
-                  new MockFlintSparkJob(stateStore, mockDS.latestId, MYS3_DATASOURCE);
+                  new MockFlintSparkJob(
+                      flintIndexStateModelService, mockDS.latestId, MYS3_DATASOURCE);
 
               // 1. Submit REFRESH statement
               CreateAsyncQueryResponse response =
@@ -948,7 +957,8 @@ public class IndexQuerySpecTest extends AsyncQueryExecutorServiceSpec {
               mockDS.createIndex();
               // Mock index state
               MockFlintSparkJob flintIndexJob =
-                  new MockFlintSparkJob(stateStore, mockDS.latestId, MYS3_DATASOURCE);
+                  new MockFlintSparkJob(
+                      flintIndexStateModelService, mockDS.latestId, MYS3_DATASOURCE);
 
               // 1. Submit REFRESH statement
               CreateAsyncQueryResponse response =
@@ -990,7 +1000,8 @@ public class IndexQuerySpecTest extends AsyncQueryExecutorServiceSpec {
     mockFlintIndex.createIndex();
     // Mock index state
     MockFlintSparkJob flintIndexJob =
-        new MockFlintSparkJob(stateStore, indexName + "_latest_id", MYS3_DATASOURCE);
+        new MockFlintSparkJob(
+            flintIndexStateModelService, indexName + "_latest_id", MYS3_DATASOURCE);
 
     // 1. Submit REFRESH statement
     CreateAsyncQueryResponse response =

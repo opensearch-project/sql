@@ -39,7 +39,8 @@ public class FlintStreamingJobHouseKeeperTaskTest extends AsyncQueryExecutorServ
         INDEX -> {
           INDEX.createIndex();
           MockFlintSparkJob flintIndexJob =
-              new MockFlintSparkJob(stateStore, INDEX.getLatestId(), MYGLUE_DATASOURCE);
+              new MockFlintSparkJob(
+                  flintIndexStateModelService, INDEX.getLatestId(), MYGLUE_DATASOURCE);
           indexJobMapping.put(INDEX, flintIndexJob);
           HashMap<String, Object> existingOptions = new HashMap<>();
           existingOptions.put("auto_refresh", "true");
@@ -117,7 +118,8 @@ public class FlintStreamingJobHouseKeeperTaskTest extends AsyncQueryExecutorServ
         INDEX -> {
           INDEX.createIndex();
           MockFlintSparkJob flintIndexJob =
-              new MockFlintSparkJob(stateStore, INDEX.getLatestId(), MYGLUE_DATASOURCE);
+              new MockFlintSparkJob(
+                  flintIndexStateModelService, INDEX.getLatestId(), MYGLUE_DATASOURCE);
           indexJobMapping.put(INDEX, flintIndexJob);
           HashMap<String, Object> existingOptions = new HashMap<>();
           existingOptions.put("auto_refresh", "true");
@@ -164,7 +166,8 @@ public class FlintStreamingJobHouseKeeperTaskTest extends AsyncQueryExecutorServ
         INDEX -> {
           INDEX.createIndex();
           MockFlintSparkJob flintIndexJob =
-              new MockFlintSparkJob(stateStore, INDEX.getLatestId(), MYGLUE_DATASOURCE);
+              new MockFlintSparkJob(
+                  flintIndexStateModelService, INDEX.getLatestId(), MYGLUE_DATASOURCE);
           indexJobMapping.put(INDEX, flintIndexJob);
           HashMap<String, Object> existingOptions = new HashMap<>();
           existingOptions.put("auto_refresh", "true");
@@ -213,7 +216,8 @@ public class FlintStreamingJobHouseKeeperTaskTest extends AsyncQueryExecutorServ
         INDEX -> {
           INDEX.createIndex();
           MockFlintSparkJob flintIndexJob =
-              new MockFlintSparkJob(stateStore, INDEX.getLatestId(), MYGLUE_DATASOURCE);
+              new MockFlintSparkJob(
+                  flintIndexStateModelService, INDEX.getLatestId(), MYGLUE_DATASOURCE);
           indexJobMapping.put(INDEX, flintIndexJob);
           HashMap<String, Object> existingOptions = new HashMap<>();
           existingOptions.put("auto_refresh", "true");
@@ -260,7 +264,8 @@ public class FlintStreamingJobHouseKeeperTaskTest extends AsyncQueryExecutorServ
         INDEX -> {
           INDEX.createIndex();
           MockFlintSparkJob flintIndexJob =
-              new MockFlintSparkJob(stateStore, INDEX.getLatestId(), MYGLUE_DATASOURCE);
+              new MockFlintSparkJob(
+                  flintIndexStateModelService, INDEX.getLatestId(), MYGLUE_DATASOURCE);
           indexJobMapping.put(INDEX, flintIndexJob);
           HashMap<String, Object> existingOptions = new HashMap<>();
           existingOptions.put("auto_refresh", "true");
@@ -409,7 +414,8 @@ public class FlintStreamingJobHouseKeeperTaskTest extends AsyncQueryExecutorServ
         INDEX -> {
           INDEX.createIndex();
           MockFlintSparkJob flintIndexJob =
-              new MockFlintSparkJob(stateStore, INDEX.getLatestId(), MYGLUE_DATASOURCE);
+              new MockFlintSparkJob(
+                  flintIndexStateModelService, INDEX.getLatestId(), MYGLUE_DATASOURCE);
           indexJobMapping.put(INDEX, flintIndexJob);
           HashMap<String, Object> existingOptions = new HashMap<>();
           existingOptions.put("auto_refresh", "true");
@@ -480,7 +486,8 @@ public class FlintStreamingJobHouseKeeperTaskTest extends AsyncQueryExecutorServ
         INDEX -> {
           INDEX.createIndex();
           MockFlintSparkJob flintIndexJob =
-              new MockFlintSparkJob(stateStore, INDEX.getLatestId(), MYGLUE_DATASOURCE);
+              new MockFlintSparkJob(
+                  flintIndexStateModelService, INDEX.getLatestId(), MYGLUE_DATASOURCE);
           indexJobMapping.put(INDEX, flintIndexJob);
           HashMap<String, Object> existingOptions = new HashMap<>();
           existingOptions.put("auto_refresh", "true");
