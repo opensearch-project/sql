@@ -106,4 +106,9 @@ public class SparkConstants {
   public static final String SPARK_CATALOG_CATALOG_IMPL =
       "spark.sql.catalog.spark_catalog.catalog-impl";
   public static final String ICEBERG_GLUE_CATALOG = "org.apache.iceberg.aws.glue.GlueCatalog";
+
+  public static final String EMR_LAKEFORMATION_OPTION =
+      "spark.emr-serverless.lakeformation.enabled";
+  public static final String FLINT_ACCELERATE_USING_COVERING_INDEX =
+      "spark.flint.optimizer.covering.enabled";
 }

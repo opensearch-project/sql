@@ -10,6 +10,7 @@ import static org.opensearch.sql.datasources.glue.GlueDataSourceFactory.GLUE_IND
 import static org.opensearch.sql.datasources.glue.GlueDataSourceFactory.GLUE_INDEX_STORE_OPENSEARCH_AUTH_USERNAME;
 import static org.opensearch.sql.datasources.glue.GlueDataSourceFactory.GLUE_INDEX_STORE_OPENSEARCH_REGION;
 import static org.opensearch.sql.datasources.glue.GlueDataSourceFactory.GLUE_INDEX_STORE_OPENSEARCH_URI;
+import static org.opensearch.sql.datasources.glue.GlueDataSourceFactory.GLUE_LAKEFORMATION_ENABLED;
 import static org.opensearch.sql.datasources.glue.GlueDataSourceFactory.GLUE_ROLE_ARN;
 import static org.opensearch.sql.spark.data.constants.SparkConstants.*;
 import static org.opensearch.sql.spark.execution.statestore.StateStore.DATASOURCE_TO_REQUEST_INDEX;
@@ -21,6 +22,7 @@ import java.util.Map;
 import java.util.function.Supplier;
 import lombok.AllArgsConstructor;
 import lombok.RequiredArgsConstructor;
+import org.apache.commons.lang3.BooleanUtils;
 import org.apache.commons.text.StringEscapeUtils;
 import org.opensearch.sql.datasource.model.DataSourceMetadata;
 import org.opensearch.sql.datasource.model.DataSourceType;
@@ -111,6 +113,11 @@ public class SparkSubmitParameters {
         config.put(HIVE_METASTORE_GLUE_ARN_KEY, roleArn);
         config.put("spark.sql.catalog." + metadata.getName(), FLINT_DELEGATE_CATALOG);
         config.put(FLINT_DATA_SOURCE_KEY, metadata.getName());
+
+        final boolean lakeFormationEnabled =
+            BooleanUtils.toBoolean(metadata.getProperties().get(GLUE_LAKEFORMATION_ENABLED));
+        config.put(EMR_LAKEFORMATION_OPTION, Boolean.toString(lakeFormationEnabled));
+        config.put(FLINT_ACCELERATE_USING_COVERING_INDEX, Boolean.toString(!lakeFormationEnabled));
 
         setFlintIndexStoreHost(
             parseUri(
