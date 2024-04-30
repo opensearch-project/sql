@@ -275,28 +275,11 @@ public class StateStore {
             DATASOURCE_TO_REQUEST_INDEX.apply(datasourceName));
   }
 
-  public static Function<SessionModel, SessionModel> createSession(
-      StateStore stateStore, String datasourceName) {
-    return (session) ->
-        stateStore.create(
-            session, SessionModel::of, DATASOURCE_TO_REQUEST_INDEX.apply(datasourceName));
-  }
-
   public static Function<String, Optional<SessionModel>> getSession(
       StateStore stateStore, String datasourceName) {
     return (docId) ->
         stateStore.get(
             docId, SessionModel::fromXContent, DATASOURCE_TO_REQUEST_INDEX.apply(datasourceName));
-  }
-
-  public static BiFunction<SessionModel, SessionState, SessionModel> updateSessionState(
-      StateStore stateStore, String datasourceName) {
-    return (old, state) ->
-        stateStore.updateState(
-            old,
-            state,
-            SessionModel::copyWithState,
-            DATASOURCE_TO_REQUEST_INDEX.apply(datasourceName));
   }
 
   public static Function<AsyncQueryJobMetadata, AsyncQueryJobMetadata> createJobMetaData(
