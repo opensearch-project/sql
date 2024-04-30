@@ -58,6 +58,7 @@ import org.opensearch.sql.spark.client.EMRServerlessClient;
 import org.opensearch.sql.spark.client.EMRServerlessClientFactory;
 import org.opensearch.sql.spark.client.StartJobRequest;
 import org.opensearch.sql.spark.config.SparkExecutionEngineConfig;
+import org.opensearch.sql.spark.dispatcher.QueryHandlerFactory;
 import org.opensearch.sql.spark.dispatcher.SparkQueryDispatcher;
 import org.opensearch.sql.spark.execution.session.SessionManager;
 import org.opensearch.sql.spark.execution.session.SessionModel;
@@ -200,16 +201,20 @@ public class AsyncQueryExecutorServiceSpec extends OpenSearchIntegTestCase {
     StateStore stateStore = new StateStore(client, clusterService);
     AsyncQueryJobMetadataStorageService asyncQueryJobMetadataStorageService =
         new OpensearchAsyncQueryJobMetadataStorageService(stateStore);
-    SparkQueryDispatcher sparkQueryDispatcher =
-        new SparkQueryDispatcher(
-            emrServerlessClientFactory,
-            this.dataSourceService,
+    QueryHandlerFactory queryHandlerFactory =
+        new QueryHandlerFactory(
             jobExecutionResponseReader,
             new FlintIndexMetadataServiceImpl(client),
             client,
             new SessionManager(stateStore, emrServerlessClientFactory, pluginSettings),
             new DefaultLeaseManager(pluginSettings, stateStore),
-            stateStore);
+            stateStore,
+            emrServerlessClientFactory);
+    SparkQueryDispatcher sparkQueryDispatcher =
+        new SparkQueryDispatcher(
+            this.dataSourceService,
+            new SessionManager(stateStore, emrServerlessClientFactory, pluginSettings),
+            queryHandlerFactory);
     return new AsyncQueryExecutorServiceImpl(
         asyncQueryJobMetadataStorageService,
         sparkQueryDispatcher,
