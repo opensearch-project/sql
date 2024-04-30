@@ -6,9 +6,6 @@
 package org.opensearch.sql.spark.execution.statement;
 
 import static org.opensearch.sql.spark.execution.statement.StatementModel.submitStatement;
-import static org.opensearch.sql.spark.execution.statestore.StateStore.createStatement;
-import static org.opensearch.sql.spark.execution.statestore.StateStore.getStatement;
-import static org.opensearch.sql.spark.execution.statestore.StateStore.updateStatementState;
 
 import lombok.Builder;
 import lombok.Getter;
@@ -36,6 +33,7 @@ public class Statement {
   private final String query;
   private final String queryId;
   private final StateStore stateStore;
+  private final StatementStorageService statementStorageService;
 
   @Setter private StatementModel statementModel;
 
@@ -52,7 +50,7 @@ public class Statement {
               datasourceName,
               query,
               queryId);
-      statementModel = createStatement(stateStore, datasourceName).apply(statementModel);
+      statementModel = statementStorageService.createStatement(statementModel, datasourceName);
     } catch (VersionConflictEngineException e) {
       String errorMsg = "statement already exist. " + statementId;
       LOG.error(errorMsg);
@@ -76,8 +74,8 @@ public class Statement {
     }
     try {
       this.statementModel =
-          updateStatementState(stateStore, statementModel.getDatasourceName())
-              .apply(this.statementModel, StatementState.CANCELLED);
+          statementStorageService.updateStatementState(
+              this.statementModel, StatementState.CANCELLED, statementModel.getDatasourceName());
     } catch (DocumentMissingException e) {
       String errorMsg =
           String.format("cancel statement failed. no statement found. statement: %s.", statementId);
@@ -85,8 +83,8 @@ public class Statement {
       throw new IllegalStateException(errorMsg);
     } catch (VersionConflictEngineException e) {
       this.statementModel =
-          getStatement(stateStore, statementModel.getDatasourceName())
-              .apply(statementModel.getId())
+          statementStorageService
+              .getStatementModel(statementId.getId(), statementModel.getDatasourceName())
               .orElse(this.statementModel);
       String errorMsg =
           String.format(

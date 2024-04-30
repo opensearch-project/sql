@@ -14,15 +14,17 @@ import org.opensearch.index.seqno.SequenceNumbers;
 import org.opensearch.sql.spark.execution.statestore.StateStore;
 import org.opensearch.sql.spark.flint.FlintIndexState;
 import org.opensearch.sql.spark.flint.FlintIndexStateModel;
+import org.opensearch.sql.spark.flint.FlintIndexStateModelService;
+import org.opensearch.sql.spark.flint.OpenSearchFlintIndexStateModelService;
 
 public class MockFlintSparkJob {
   private FlintIndexStateModel stateModel;
-  private StateStore stateStore;
+  private FlintIndexStateModelService flintIndexStateModelService;
   private String datasource;
 
   public MockFlintSparkJob(StateStore stateStore, String latestId, String datasource) {
     assertNotNull(latestId);
-    this.stateStore = stateStore;
+    this.flintIndexStateModelService = new OpenSearchFlintIndexStateModelService(stateStore);
     this.datasource = datasource;
     stateModel =
         new FlintIndexStateModel(
@@ -35,53 +37,54 @@ public class MockFlintSparkJob {
             "",
             SequenceNumbers.UNASSIGNED_SEQ_NO,
             SequenceNumbers.UNASSIGNED_PRIMARY_TERM);
-    stateModel = StateStore.createFlintIndexState(stateStore, datasource).apply(stateModel);
+    stateModel =
+        this.flintIndexStateModelService.createFlintIndexStateModel(stateModel, datasource);
   }
 
   public void transition(FlintIndexState newState) {
     stateModel =
-        StateStore.updateFlintIndexState(stateStore, datasource).apply(stateModel, newState);
+        this.flintIndexStateModelService.updateFlintIndexState(stateModel, newState, datasource);
   }
 
   public void refreshing() {
     stateModel =
-        StateStore.updateFlintIndexState(stateStore, datasource)
-            .apply(stateModel, FlintIndexState.REFRESHING);
+        this.flintIndexStateModelService.updateFlintIndexState(
+            stateModel, FlintIndexState.REFRESHING, datasource);
   }
 
   public void active() {
     stateModel =
-        StateStore.updateFlintIndexState(stateStore, datasource)
-            .apply(stateModel, FlintIndexState.ACTIVE);
+        this.flintIndexStateModelService.updateFlintIndexState(
+            stateModel, FlintIndexState.ACTIVE, datasource);
   }
 
   public void creating() {
     stateModel =
-        StateStore.updateFlintIndexState(stateStore, datasource)
-            .apply(stateModel, FlintIndexState.CREATING);
+        this.flintIndexStateModelService.updateFlintIndexState(
+            stateModel, FlintIndexState.CREATING, datasource);
   }
 
   public void updating() {
     stateModel =
-        StateStore.updateFlintIndexState(stateStore, datasource)
-            .apply(stateModel, FlintIndexState.UPDATING);
+        this.flintIndexStateModelService.updateFlintIndexState(
+            stateModel, FlintIndexState.UPDATING, datasource);
   }
 
   public void deleting() {
     stateModel =
-        StateStore.updateFlintIndexState(stateStore, datasource)
-            .apply(stateModel, FlintIndexState.DELETING);
+        this.flintIndexStateModelService.updateFlintIndexState(
+            stateModel, FlintIndexState.DELETING, datasource);
   }
 
   public void deleted() {
     stateModel =
-        StateStore.updateFlintIndexState(stateStore, datasource)
-            .apply(stateModel, FlintIndexState.DELETED);
+        this.flintIndexStateModelService.updateFlintIndexState(
+            stateModel, FlintIndexState.DELETED, datasource);
   }
 
   public void assertState(FlintIndexState expected) {
     Optional<FlintIndexStateModel> stateModelOpt =
-        StateStore.getFlintIndexState(stateStore, datasource).apply(stateModel.getId());
+        this.flintIndexStateModelService.getFlintIndexStateModel(stateModel.getId(), datasource);
     assertTrue((stateModelOpt.isPresent()));
     assertEquals(expected, stateModelOpt.get().getIndexState());
   }

@@ -13,8 +13,6 @@ import static org.opensearch.sql.spark.data.constants.SparkConstants.SPARK_REQUE
 import static org.opensearch.sql.spark.execution.session.SessionModel.SESSION_DOC_TYPE;
 import static org.opensearch.sql.spark.execution.statement.StatementModel.SESSION_ID;
 import static org.opensearch.sql.spark.execution.statement.StatementModel.STATEMENT_DOC_TYPE;
-import static org.opensearch.sql.spark.execution.statestore.StateStore.getStatement;
-import static org.opensearch.sql.spark.execution.statestore.StateStore.updateStatementState;
 
 import com.google.common.collect.ImmutableMap;
 import java.util.HashMap;
@@ -144,7 +142,7 @@ public class AsyncQueryExecutorServiceImplSpecTest extends AsyncQueryExecutorSer
             new CreateAsyncQueryRequest("select 1", MYS3_DATASOURCE, LangType.SQL, null));
     assertNotNull(response.getSessionId());
     Optional<StatementModel> statementModel =
-        getStatement(stateStore, MYS3_DATASOURCE).apply(response.getQueryId());
+        statementStorageService.getStatementModel(response.getQueryId(), MYS3_DATASOURCE);
     assertTrue(statementModel.isPresent());
     assertEquals(StatementState.WAITING, statementModel.get().getStatementState());
 
@@ -199,13 +197,13 @@ public class AsyncQueryExecutorServiceImplSpecTest extends AsyncQueryExecutorSer
                 .must(QueryBuilders.termQuery(SESSION_ID, first.getSessionId()))));
 
     Optional<StatementModel> firstModel =
-        getStatement(stateStore, MYS3_DATASOURCE).apply(first.getQueryId());
+        statementStorageService.getStatementModel(first.getQueryId(), MYS3_DATASOURCE);
     assertTrue(firstModel.isPresent());
     assertEquals(StatementState.WAITING, firstModel.get().getStatementState());
     assertEquals(first.getQueryId(), firstModel.get().getStatementId().getId());
     assertEquals(first.getQueryId(), firstModel.get().getQueryId());
     Optional<StatementModel> secondModel =
-        getStatement(stateStore, MYS3_DATASOURCE).apply(second.getQueryId());
+        statementStorageService.getStatementModel(second.getQueryId(), MYS3_DATASOURCE);
     assertEquals(StatementState.WAITING, secondModel.get().getStatementState());
     assertEquals(second.getQueryId(), secondModel.get().getStatementId().getId());
     assertEquals(second.getQueryId(), secondModel.get().getQueryId());
@@ -295,7 +293,7 @@ public class AsyncQueryExecutorServiceImplSpecTest extends AsyncQueryExecutorSer
             new CreateAsyncQueryRequest("myselect 1", MYS3_DATASOURCE, LangType.SQL, null));
     assertNotNull(response.getSessionId());
     Optional<StatementModel> statementModel =
-        getStatement(stateStore, MYS3_DATASOURCE).apply(response.getQueryId());
+        statementStorageService.getStatementModel(response.getQueryId(), MYS3_DATASOURCE);
     assertTrue(statementModel.isPresent());
     assertEquals(StatementState.WAITING, statementModel.get().getStatementState());
 
@@ -319,7 +317,7 @@ public class AsyncQueryExecutorServiceImplSpecTest extends AsyncQueryExecutorSer
             .seqNo(submitted.getSeqNo())
             .primaryTerm(submitted.getPrimaryTerm())
             .build();
-    updateStatementState(stateStore, MYS3_DATASOURCE).apply(mocked, StatementState.FAILED);
+    statementStorageService.updateStatementState(mocked, StatementState.FAILED, MYS3_DATASOURCE);
 
     AsyncQueryExecutionResponse asyncQueryResults =
         asyncQueryExecutorService.getAsyncQueryResults(response.getQueryId());

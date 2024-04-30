@@ -8,7 +8,6 @@ package org.opensearch.sql.spark.asyncquery;
 import static org.opensearch.action.support.WriteRequest.RefreshPolicy.WAIT_UNTIL;
 import static org.opensearch.sql.data.model.ExprValueUtils.tupleValue;
 import static org.opensearch.sql.datasource.model.DataSourceMetadata.DEFAULT_RESULT_INDEX;
-import static org.opensearch.sql.spark.execution.statestore.StateStore.getStatement;
 
 import com.amazonaws.services.emrserverless.model.JobRunState;
 import com.google.common.collect.ImmutableList;
@@ -30,7 +29,6 @@ import org.opensearch.sql.spark.asyncquery.model.MockFlintSparkJob;
 import org.opensearch.sql.spark.client.EMRServerlessClientFactory;
 import org.opensearch.sql.spark.execution.statement.StatementModel;
 import org.opensearch.sql.spark.execution.statement.StatementState;
-import org.opensearch.sql.spark.execution.statestore.StateStore;
 import org.opensearch.sql.spark.flint.FlintIndexType;
 import org.opensearch.sql.spark.response.JobExecutionResponseReader;
 import org.opensearch.sql.spark.rest.model.CreateAsyncQueryRequest;
@@ -510,8 +508,9 @@ public class AsyncQueryGetResultSpecTest extends AsyncQueryExecutorServiceSpec {
 
     /** Simulate EMR-S updates query_execution_request with state */
     void emrJobUpdateStatementState(StatementState newState) {
-      StatementModel stmt = getStatement(stateStore, MYS3_DATASOURCE).apply(queryId).get();
-      StateStore.updateStatementState(stateStore, MYS3_DATASOURCE).apply(stmt, newState);
+      StatementModel stmt =
+          statementStorageService.getStatementModel(queryId, MYS3_DATASOURCE).get();
+      statementStorageService.updateStatementState(stmt, newState, MYS3_DATASOURCE);
     }
 
     void emrJobUpdateJobState(JobRunState jobState) {

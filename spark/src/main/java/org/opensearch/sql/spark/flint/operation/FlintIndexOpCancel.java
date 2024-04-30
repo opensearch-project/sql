@@ -9,10 +9,10 @@ import lombok.SneakyThrows;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.sql.spark.client.EMRServerlessClient;
-import org.opensearch.sql.spark.execution.statestore.StateStore;
 import org.opensearch.sql.spark.flint.FlintIndexMetadata;
 import org.opensearch.sql.spark.flint.FlintIndexState;
 import org.opensearch.sql.spark.flint.FlintIndexStateModel;
+import org.opensearch.sql.spark.flint.FlintIndexStateModelService;
 
 /** Cancel refreshing job for refresh query when user clicks cancel button on UI. */
 public class FlintIndexOpCancel extends FlintIndexOp {
@@ -21,8 +21,10 @@ public class FlintIndexOpCancel extends FlintIndexOp {
   private final EMRServerlessClient emrServerlessClient;
 
   public FlintIndexOpCancel(
-      StateStore stateStore, String datasourceName, EMRServerlessClient emrServerlessClient) {
-    super(stateStore, datasourceName);
+      FlintIndexStateModelService flintIndexStateModelService,
+      String datasourceName,
+      EMRServerlessClient emrServerlessClient) {
+    super(flintIndexStateModelService, datasourceName);
     this.emrServerlessClient = emrServerlessClient;
   }
 
