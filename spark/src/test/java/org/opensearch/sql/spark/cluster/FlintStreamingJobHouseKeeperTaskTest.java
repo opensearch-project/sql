@@ -84,7 +84,10 @@ public class FlintStreamingJobHouseKeeperTaskTest extends AsyncQueryExecutorServ
     FlintIndexMetadataService flintIndexMetadataService = new FlintIndexMetadataServiceImpl(client);
     FlintStreamingJobHouseKeeperTask flintStreamingJobHouseKeeperTask =
         new FlintStreamingJobHouseKeeperTask(
-            dataSourceService, flintIndexMetadataService, stateStore, emrServerlessClientFactory);
+            dataSourceService,
+            flintIndexMetadataService,
+            flintIndexStateModelService,
+            emrServerlessClientFactory);
     Thread thread = new Thread(flintStreamingJobHouseKeeperTask);
     thread.start();
     thread.join();
@@ -152,7 +155,10 @@ public class FlintStreamingJobHouseKeeperTaskTest extends AsyncQueryExecutorServ
     FlintIndexMetadataService flintIndexMetadataService = new FlintIndexMetadataServiceImpl(client);
     FlintStreamingJobHouseKeeperTask flintStreamingJobHouseKeeperTask =
         new FlintStreamingJobHouseKeeperTask(
-            dataSourceService, flintIndexMetadataService, stateStore, emrServerlessClientFactory);
+            dataSourceService,
+            flintIndexMetadataService,
+            flintIndexStateModelService,
+            emrServerlessClientFactory);
     Thread thread = new Thread(flintStreamingJobHouseKeeperTask);
     thread.start();
     thread.join();
@@ -220,7 +226,10 @@ public class FlintStreamingJobHouseKeeperTaskTest extends AsyncQueryExecutorServ
     FlintIndexMetadataService flintIndexMetadataService = new FlintIndexMetadataServiceImpl(client);
     FlintStreamingJobHouseKeeperTask flintStreamingJobHouseKeeperTask =
         new FlintStreamingJobHouseKeeperTask(
-            dataSourceService, flintIndexMetadataService, stateStore, emrServerlessClientFactory);
+            dataSourceService,
+            flintIndexMetadataService,
+            flintIndexStateModelService,
+            emrServerlessClientFactory);
     FlintStreamingJobHouseKeeperTask.isRunning.compareAndSet(false, true);
     Thread thread = new Thread(flintStreamingJobHouseKeeperTask);
     thread.start();
@@ -299,7 +308,10 @@ public class FlintStreamingJobHouseKeeperTaskTest extends AsyncQueryExecutorServ
     FlintIndexMetadataService flintIndexMetadataService = new FlintIndexMetadataServiceImpl(client);
     FlintStreamingJobHouseKeeperTask flintStreamingJobHouseKeeperTask =
         new FlintStreamingJobHouseKeeperTask(
-            dataSourceService, flintIndexMetadataService, stateStore, emrServerlessClientFactory);
+            dataSourceService,
+            flintIndexMetadataService,
+            flintIndexStateModelService,
+            emrServerlessClientFactory);
     Thread thread = new Thread(flintStreamingJobHouseKeeperTask);
     thread.start();
     thread.join();
@@ -375,7 +387,10 @@ public class FlintStreamingJobHouseKeeperTaskTest extends AsyncQueryExecutorServ
     FlintIndexMetadataService flintIndexMetadataService = new FlintIndexMetadataServiceImpl(client);
     FlintStreamingJobHouseKeeperTask flintStreamingJobHouseKeeperTask =
         new FlintStreamingJobHouseKeeperTask(
-            dataSourceService, flintIndexMetadataService, stateStore, emrServerlessClientFactory);
+            dataSourceService,
+            flintIndexMetadataService,
+            flintIndexStateModelService,
+            emrServerlessClientFactory);
     Thread thread = new Thread(flintStreamingJobHouseKeeperTask);
     thread.start();
     thread.join();
@@ -417,7 +432,10 @@ public class FlintStreamingJobHouseKeeperTaskTest extends AsyncQueryExecutorServ
     FlintIndexMetadataService flintIndexMetadataService = new FlintIndexMetadataServiceImpl(client);
     FlintStreamingJobHouseKeeperTask flintStreamingJobHouseKeeperTask =
         new FlintStreamingJobHouseKeeperTask(
-            dataSourceService, flintIndexMetadataService, stateStore, emrServerlessClientFactory);
+            dataSourceService,
+            flintIndexMetadataService,
+            flintIndexStateModelService,
+            emrServerlessClientFactory);
     Thread thread = new Thread(flintStreamingJobHouseKeeperTask);
     thread.start();
     thread.join();
@@ -452,7 +470,10 @@ public class FlintStreamingJobHouseKeeperTaskTest extends AsyncQueryExecutorServ
     FlintIndexMetadataService flintIndexMetadataService = new FlintIndexMetadataServiceImpl(client);
     FlintStreamingJobHouseKeeperTask flintStreamingJobHouseKeeperTask =
         new FlintStreamingJobHouseKeeperTask(
-            dataSourceService, flintIndexMetadataService, stateStore, emrServerlessClientFactory);
+            dataSourceService,
+            flintIndexMetadataService,
+            flintIndexStateModelService,
+            emrServerlessClientFactory);
     Thread thread = new Thread(flintStreamingJobHouseKeeperTask);
     thread.start();
     thread.join();
@@ -490,10 +511,16 @@ public class FlintStreamingJobHouseKeeperTaskTest extends AsyncQueryExecutorServ
           @Override
           public void updateIndexToManualRefresh(
               String indexName, FlintIndexOptions flintIndexOptions) {}
+
+          @Override
+          public void deleteFlintIndex(String indexName) {}
         };
     FlintStreamingJobHouseKeeperTask flintStreamingJobHouseKeeperTask =
         new FlintStreamingJobHouseKeeperTask(
-            dataSourceService, flintIndexMetadataService, stateStore, emrServerlessClientFactory);
+            dataSourceService,
+            flintIndexMetadataService,
+            flintIndexStateModelService,
+            emrServerlessClientFactory);
     Thread thread = new Thread(flintStreamingJobHouseKeeperTask);
     thread.start();
     thread.join();
@@ -561,7 +588,10 @@ public class FlintStreamingJobHouseKeeperTaskTest extends AsyncQueryExecutorServ
     FlintIndexMetadataService flintIndexMetadataService = new FlintIndexMetadataServiceImpl(client);
     FlintStreamingJobHouseKeeperTask flintStreamingJobHouseKeeperTask =
         new FlintStreamingJobHouseKeeperTask(
-            dataSourceService, flintIndexMetadataService, stateStore, emrServerlessClientFactory);
+            dataSourceService,
+            flintIndexMetadataService,
+            flintIndexStateModelService,
+            emrServerlessClientFactory);
     Thread thread = new Thread(flintStreamingJobHouseKeeperTask);
     thread.start();
     thread.join();
@@ -663,7 +693,10 @@ public class FlintStreamingJobHouseKeeperTaskTest extends AsyncQueryExecutorServ
     FlintIndexMetadataService flintIndexMetadataService = new FlintIndexMetadataServiceImpl(client);
     FlintStreamingJobHouseKeeperTask flintStreamingJobHouseKeeperTask =
         new FlintStreamingJobHouseKeeperTask(
-            dataSourceService, flintIndexMetadataService, stateStore, emrServerlessClientFactory);
+            dataSourceService,
+            flintIndexMetadataService,
+            flintIndexStateModelService,
+            emrServerlessClientFactory);
     Thread thread = new Thread(flintStreamingJobHouseKeeperTask);
     thread.start();
     thread.join();

@@ -9,7 +9,6 @@ import java.util.HashMap;
 import java.util.Map;
 import lombok.AllArgsConstructor;
 import org.json.JSONObject;
-import org.opensearch.client.Client;
 import org.opensearch.sql.datasource.DataSourceService;
 import org.opensearch.sql.datasource.model.DataSourceMetadata;
 import org.opensearch.sql.spark.asyncquery.model.AsyncQueryId;
@@ -23,8 +22,9 @@ import org.opensearch.sql.spark.dispatcher.model.IndexQueryActionType;
 import org.opensearch.sql.spark.dispatcher.model.IndexQueryDetails;
 import org.opensearch.sql.spark.dispatcher.model.JobType;
 import org.opensearch.sql.spark.execution.session.SessionManager;
-import org.opensearch.sql.spark.execution.statestore.StateStore;
 import org.opensearch.sql.spark.flint.FlintIndexMetadataService;
+import org.opensearch.sql.spark.flint.FlintIndexStateModelService;
+import org.opensearch.sql.spark.flint.IndexDMLResultStorageService;
 import org.opensearch.sql.spark.leasemanager.LeaseManager;
 import org.opensearch.sql.spark.response.JobExecutionResponseReader;
 import org.opensearch.sql.spark.rest.model.LangType;
@@ -47,13 +47,13 @@ public class SparkQueryDispatcher {
 
   private FlintIndexMetadataService flintIndexMetadataService;
 
-  private Client client;
-
   private SessionManager sessionManager;
 
   private LeaseManager leaseManager;
 
-  private StateStore stateStore;
+  private FlintIndexStateModelService flintIndexStateModelService;
+
+  private IndexDMLResultStorageService indexDMLResultStorageService;
 
   public DispatchQueryResponse dispatch(DispatchQueryRequest dispatchQueryRequest) {
     EMRServerlessClient emrServerlessClient = emrServerlessClientFactory.getClient();
@@ -91,7 +91,7 @@ public class SparkQueryDispatcher {
                 emrServerlessClient,
                 jobExecutionResponseReader,
                 flintIndexMetadataService,
-                stateStore,
+                flintIndexStateModelService,
                 leaseManager);
       }
     }
@@ -145,7 +145,7 @@ public class SparkQueryDispatcher {
               emrServerlessClient,
               jobExecutionResponseReader,
               flintIndexMetadataService,
-              stateStore,
+              flintIndexStateModelService,
               leaseManager);
     } else if (asyncQueryJobMetadata.getJobType() == JobType.STREAMING) {
       queryHandler =
@@ -162,8 +162,8 @@ public class SparkQueryDispatcher {
         emrServerlessClient,
         jobExecutionResponseReader,
         flintIndexMetadataService,
-        stateStore,
-        client);
+        flintIndexStateModelService,
+        indexDMLResultStorageService);
   }
 
   // TODO: Revisit this logic.

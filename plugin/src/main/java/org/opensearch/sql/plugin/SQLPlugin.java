@@ -83,6 +83,7 @@ import org.opensearch.sql.spark.client.EMRServerlessClientFactory;
 import org.opensearch.sql.spark.cluster.ClusterManagerEventListener;
 import org.opensearch.sql.spark.execution.statestore.StateStore;
 import org.opensearch.sql.spark.flint.FlintIndexMetadataServiceImpl;
+import org.opensearch.sql.spark.flint.FlintIndexStateModelService;
 import org.opensearch.sql.spark.rest.RestAsyncQueryManagementAction;
 import org.opensearch.sql.spark.storage.SparkStorageFactory;
 import org.opensearch.sql.spark.transport.TransportCancelAsyncQueryRequestAction;
@@ -229,7 +230,8 @@ public class SQLPlugin extends Plugin implements ActionPlugin, ScriptPlugin {
             dataSourceService,
             injector.getInstance(FlintIndexMetadataServiceImpl.class),
             injector.getInstance(StateStore.class),
-            injector.getInstance(EMRServerlessClientFactory.class));
+            injector.getInstance(EMRServerlessClientFactory.class),
+            injector.getInstance(FlintIndexStateModelService.class));
     return ImmutableList.of(
         dataSourceService,
         injector.getInstance(AsyncQueryExecutorService.class),

@@ -31,7 +31,9 @@ import lombok.AllArgsConstructor;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.opensearch.action.admin.indices.delete.DeleteIndexRequest;
 import org.opensearch.action.admin.indices.mapping.get.GetMappingsResponse;
+import org.opensearch.action.support.master.AcknowledgedResponse;
 import org.opensearch.client.Client;
 import org.opensearch.sql.spark.dispatcher.model.FlintIndexOptions;
 
@@ -85,6 +87,14 @@ public class FlintIndexMetadataServiceImpl implements FlintIndexMetadataService 
     validateFlintIndexOptions(kind, options, newOptions);
     options.putAll(newOptions);
     client.admin().indices().preparePutMapping(indexName).setSource(flintMetadataMap).get();
+  }
+
+  @Override
+  public void deleteFlintIndex(String indexName) {
+    LOGGER.info("Vacuuming Flint index {}", indexName);
+    DeleteIndexRequest request = new DeleteIndexRequest().indices(indexName);
+    AcknowledgedResponse response = client.admin().indices().delete(request).actionGet();
+    LOGGER.info("OpenSearch index delete result: {}", response.isAcknowledged());
   }
 
   private void validateFlintIndexOptions(

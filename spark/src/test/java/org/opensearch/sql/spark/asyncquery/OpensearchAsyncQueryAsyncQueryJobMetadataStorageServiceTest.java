@@ -69,7 +69,7 @@ public class OpensearchAsyncQueryAsyncQueryJobMetadataStorageServiceTest
 
     assertTrue(actual.isPresent());
     assertEquals(expected, actual.get());
-    assertEquals("resultIndex", actual.get().getResultIndex());
+    assertEquals("resultIndex", actual.get().getResultLocation());
     assertEquals(MOCK_SESSION_ID, actual.get().getSessionId());
   }
 

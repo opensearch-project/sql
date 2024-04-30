@@ -33,20 +33,22 @@ import org.opensearch.sql.spark.dispatcher.model.DispatchQueryRequest;
 import org.opensearch.sql.spark.dispatcher.model.DispatchQueryResponse;
 import org.opensearch.sql.spark.dispatcher.model.IndexQueryActionType;
 import org.opensearch.sql.spark.dispatcher.model.IndexQueryDetails;
-import org.opensearch.sql.spark.execution.statestore.StateStore;
 import org.opensearch.sql.spark.flint.FlintIndexMetadata;
 import org.opensearch.sql.spark.flint.FlintIndexMetadataService;
+import org.opensearch.sql.spark.flint.FlintIndexStateModelService;
 import org.opensearch.sql.spark.flint.FlintIndexType;
-import org.opensearch.sql.spark.response.JobExecutionResponseReader;
+import org.opensearch.sql.spark.flint.IndexDMLResultStorageService;
+import org.opensearch.sql.spark.response.JobExecutionResponseReaderImpl;
 import org.opensearch.sql.spark.rest.model.LangType;
 
 @ExtendWith(MockitoExtension.class)
 class IndexDMLHandlerTest {
 
   @Mock private EMRServerlessClient emrServerlessClient;
-  @Mock private JobExecutionResponseReader jobExecutionResponseReader;
+  @Mock private JobExecutionResponseReaderImpl jobExecutionResponseReaderImpl;
   @Mock private FlintIndexMetadataService flintIndexMetadataService;
-  @Mock private StateStore stateStore;
+  @Mock private FlintIndexStateModelService flintIndexStateModelService;
+  @Mock private IndexDMLResultStorageService indexDMLResultStorageService;
   @Mock private Client client;
 
   @Test
@@ -63,10 +65,10 @@ class IndexDMLHandlerTest {
     IndexDMLHandler indexDMLHandler =
         new IndexDMLHandler(
             emrServerlessClient,
-            jobExecutionResponseReader,
+            jobExecutionResponseReaderImpl,
             flintIndexMetadataService,
-            stateStore,
-            client);
+            flintIndexStateModelService,
+            indexDMLResultStorageService);
     DispatchQueryRequest dispatchQueryRequest =
         new DispatchQueryRequest(
             EMRS_APPLICATION_ID,
@@ -105,10 +107,10 @@ class IndexDMLHandlerTest {
     IndexDMLHandler indexDMLHandler =
         new IndexDMLHandler(
             emrServerlessClient,
-            jobExecutionResponseReader,
+            jobExecutionResponseReaderImpl,
             flintIndexMetadataService,
-            stateStore,
-            client);
+            flintIndexStateModelService,
+            indexDMLResultStorageService);
     DispatchQueryRequest dispatchQueryRequest =
         new DispatchQueryRequest(
             EMRS_APPLICATION_ID,

@@ -24,6 +24,7 @@ import org.opensearch.sql.datasource.model.DataSourceMetadata;
 import org.opensearch.sql.spark.client.EMRServerlessClientFactory;
 import org.opensearch.sql.spark.execution.statestore.StateStore;
 import org.opensearch.sql.spark.flint.FlintIndexMetadataService;
+import org.opensearch.sql.spark.flint.FlintIndexStateModelService;
 import org.opensearch.threadpool.Scheduler.Cancellable;
 import org.opensearch.threadpool.ThreadPool;
 
@@ -39,6 +40,8 @@ public class ClusterManagerEventListener implements LocalNodeClusterManagerListe
   private FlintIndexMetadataService flintIndexMetadataService;
   private StateStore stateStore;
   private EMRServerlessClientFactory emrServerlessClientFactory;
+
+  private FlintIndexStateModelService flintIndexStateModelService;
   private Duration sessionTtlDuration;
   private Duration resultTtlDuration;
   private TimeValue streamingJobHouseKeepingInterval;
@@ -57,7 +60,8 @@ public class ClusterManagerEventListener implements LocalNodeClusterManagerListe
       DataSourceService dataSourceService,
       FlintIndexMetadataService flintIndexMetadataService,
       StateStore stateStore,
-      EMRServerlessClientFactory emrServerlessClientFactory) {
+      EMRServerlessClientFactory emrServerlessClientFactory,
+      FlintIndexStateModelService flintIndexStateModelService) {
     this.clusterService = clusterService;
     this.threadPool = threadPool;
     this.client = client;
@@ -70,7 +74,7 @@ public class ClusterManagerEventListener implements LocalNodeClusterManagerListe
     this.sessionTtlDuration = toDuration(sessionTtl.get(settings));
     this.resultTtlDuration = toDuration(resultTtl.get(settings));
     this.streamingJobHouseKeepingInterval = streamingJobHouseKeepingInterval.get(settings);
-
+    this.flintIndexStateModelService = flintIndexStateModelService;
     clusterService
         .getClusterSettings()
         .addSettingsUpdateConsumer(
@@ -153,7 +157,7 @@ public class ClusterManagerEventListener implements LocalNodeClusterManagerListe
             new FlintStreamingJobHouseKeeperTask(
                 dataSourceService,
                 flintIndexMetadataService,
-                stateStore,
+                flintIndexStateModelService,
                 emrServerlessClientFactory),
             streamingJobHouseKeepingInterval,
             executorName());

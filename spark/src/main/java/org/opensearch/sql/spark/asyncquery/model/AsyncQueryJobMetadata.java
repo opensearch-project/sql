@@ -7,19 +7,9 @@
 
 package org.opensearch.sql.spark.asyncquery.model;
 
-import static org.opensearch.core.xcontent.XContentParserUtils.ensureExpectedToken;
-import static org.opensearch.sql.spark.execution.session.SessionModel.DATASOURCE_NAME;
-import static org.opensearch.sql.spark.execution.statement.StatementModel.QUERY_ID;
-
 import com.google.gson.Gson;
-import java.io.IOException;
-import java.util.Locale;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
-import lombok.SneakyThrows;
-import org.opensearch.core.common.Strings;
-import org.opensearch.core.xcontent.XContentBuilder;
-import org.opensearch.core.xcontent.XContentParser;
 import org.opensearch.index.seqno.SequenceNumbers;
 import org.opensearch.sql.spark.dispatcher.model.JobType;
 import org.opensearch.sql.spark.execution.statestore.StateModel;
@@ -35,7 +25,7 @@ public class AsyncQueryJobMetadata extends StateModel {
   private final AsyncQueryId queryId;
   private final String applicationId;
   private final String jobId;
-  private final String resultIndex;
+  private final String resultLocation;
   // optional sessionId.
   private final String sessionId;
   // since 2.13
@@ -51,12 +41,12 @@ public class AsyncQueryJobMetadata extends StateModel {
   @EqualsAndHashCode.Exclude private final long primaryTerm;
 
   public AsyncQueryJobMetadata(
-      AsyncQueryId queryId, String applicationId, String jobId, String resultIndex) {
+      AsyncQueryId queryId, String applicationId, String jobId, String resultLocation) {
     this(
         queryId,
         applicationId,
         jobId,
-        resultIndex,
+        resultLocation,
         null,
         null,
         JobType.INTERACTIVE,
@@ -69,13 +59,13 @@ public class AsyncQueryJobMetadata extends StateModel {
       AsyncQueryId queryId,
       String applicationId,
       String jobId,
-      String resultIndex,
+      String resultLocation,
       String sessionId) {
     this(
         queryId,
         applicationId,
         jobId,
-        resultIndex,
+        resultLocation,
         sessionId,
         null,
         JobType.INTERACTIVE,
@@ -88,7 +78,7 @@ public class AsyncQueryJobMetadata extends StateModel {
       AsyncQueryId queryId,
       String applicationId,
       String jobId,
-      String resultIndex,
+      String resultLocation,
       String sessionId,
       String datasourceName,
       JobType jobType,
@@ -97,7 +87,7 @@ public class AsyncQueryJobMetadata extends StateModel {
         queryId,
         applicationId,
         jobId,
-        resultIndex,
+        resultLocation,
         sessionId,
         datasourceName,
         jobType,
@@ -110,7 +100,7 @@ public class AsyncQueryJobMetadata extends StateModel {
       AsyncQueryId queryId,
       String applicationId,
       String jobId,
-      String resultIndex,
+      String resultLocation,
       String sessionId,
       String datasourceName,
       JobType jobType,
@@ -120,7 +110,7 @@ public class AsyncQueryJobMetadata extends StateModel {
     this.queryId = queryId;
     this.applicationId = applicationId;
     this.jobId = jobId;
-    this.resultIndex = resultIndex;
+    this.resultLocation = resultLocation;
     this.sessionId = sessionId;
     this.datasourceName = datasourceName;
     this.jobType = jobType;
@@ -134,29 +124,6 @@ public class AsyncQueryJobMetadata extends StateModel {
     return new Gson().toJson(this);
   }
 
-  /**
-   * Converts JobMetadata to XContentBuilder.
-   *
-   * @return XContentBuilder {@link XContentBuilder}
-   * @throws Exception Exception.
-   */
-  @Override
-  public XContentBuilder toXContent(XContentBuilder builder, Params params) throws IOException {
-    builder
-        .startObject()
-        .field(QUERY_ID, queryId.getId())
-        .field("type", TYPE_JOBMETA)
-        .field("jobId", jobId)
-        .field("applicationId", applicationId)
-        .field("resultIndex", resultIndex)
-        .field("sessionId", sessionId)
-        .field(DATASOURCE_NAME, datasourceName)
-        .field(JOB_TYPE, jobType.getText().toLowerCase(Locale.ROOT))
-        .field(INDEX_NAME, indexName)
-        .endObject();
-    return builder;
-  }
-
   /** copy builder. update seqNo and primaryTerm */
   public static AsyncQueryJobMetadata copy(
       AsyncQueryJobMetadata copy, long seqNo, long primaryTerm) {
@@ -164,77 +131,11 @@ public class AsyncQueryJobMetadata extends StateModel {
         copy.getQueryId(),
         copy.getApplicationId(),
         copy.getJobId(),
-        copy.getResultIndex(),
+        copy.getResultLocation(),
         copy.getSessionId(),
         copy.datasourceName,
         copy.jobType,
         copy.indexName,
-        seqNo,
-        primaryTerm);
-  }
-
-  /**
-   * Convert xcontent parser to JobMetadata.
-   *
-   * @param parser parser.
-   * @return JobMetadata {@link AsyncQueryJobMetadata}
-   * @throws IOException IOException.
-   */
-  @SneakyThrows
-  public static AsyncQueryJobMetadata fromXContent(
-      XContentParser parser, long seqNo, long primaryTerm) {
-    AsyncQueryId queryId = null;
-    String jobId = null;
-    String applicationId = null;
-    String resultIndex = null;
-    String sessionId = null;
-    String datasourceName = null;
-    String jobTypeStr = null;
-    String indexName = null;
-    ensureExpectedToken(XContentParser.Token.START_OBJECT, parser.currentToken(), parser);
-    while (!XContentParser.Token.END_OBJECT.equals(parser.nextToken())) {
-      String fieldName = parser.currentName();
-      parser.nextToken();
-      switch (fieldName) {
-        case QUERY_ID:
-          queryId = new AsyncQueryId(parser.textOrNull());
-          break;
-        case "jobId":
-          jobId = parser.textOrNull();
-          break;
-        case "applicationId":
-          applicationId = parser.textOrNull();
-          break;
-        case "resultIndex":
-          resultIndex = parser.textOrNull();
-          break;
-        case "sessionId":
-          sessionId = parser.textOrNull();
-          break;
-        case DATASOURCE_NAME:
-          datasourceName = parser.textOrNull();
-        case JOB_TYPE:
-          jobTypeStr = parser.textOrNull();
-        case INDEX_NAME:
-          indexName = parser.textOrNull();
-        case "type":
-          break;
-        default:
-          throw new IllegalArgumentException("Unknown field: " + fieldName);
-      }
-    }
-    if (jobId == null || applicationId == null) {
-      throw new IllegalArgumentException("jobId and applicationId are required fields.");
-    }
-    return new AsyncQueryJobMetadata(
-        queryId,
-        applicationId,
-        jobId,
-        resultIndex,
-        sessionId,
-        datasourceName,
-        Strings.isNullOrEmpty(jobTypeStr) ? null : JobType.fromString(jobTypeStr),
-        indexName,
         seqNo,
         primaryTerm);
   }

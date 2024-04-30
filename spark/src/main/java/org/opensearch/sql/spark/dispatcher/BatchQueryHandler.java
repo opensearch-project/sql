@@ -38,8 +38,8 @@ public class BatchQueryHandler extends AsyncQueryHandler {
   protected JSONObject getResponseFromResultIndex(AsyncQueryJobMetadata asyncQueryJobMetadata) {
     // either empty json when the result is not available or data with status
     // Fetch from Result Index
-    return jobExecutionResponseReader.getResultFromOpensearchIndex(
-        asyncQueryJobMetadata.getJobId(), asyncQueryJobMetadata.getResultIndex());
+    return jobExecutionResponseReader.getResultWithJobId(
+        asyncQueryJobMetadata.getJobId(), asyncQueryJobMetadata.getResultLocation());
   }
 
   @Override

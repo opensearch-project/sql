@@ -7,13 +7,11 @@ package org.opensearch.sql.spark.flint.operation;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.opensearch.action.admin.indices.delete.DeleteIndexRequest;
-import org.opensearch.action.support.master.AcknowledgedResponse;
-import org.opensearch.client.Client;
-import org.opensearch.sql.spark.execution.statestore.StateStore;
 import org.opensearch.sql.spark.flint.FlintIndexMetadata;
+import org.opensearch.sql.spark.flint.FlintIndexMetadataService;
 import org.opensearch.sql.spark.flint.FlintIndexState;
 import org.opensearch.sql.spark.flint.FlintIndexStateModel;
+import org.opensearch.sql.spark.flint.FlintIndexStateModelService;
 
 /** Flint index vacuum operation. */
 public class FlintIndexOpVacuum extends FlintIndexOp {
@@ -21,11 +19,14 @@ public class FlintIndexOpVacuum extends FlintIndexOp {
   private static final Logger LOG = LogManager.getLogger();
 
   /** OpenSearch client. */
-  private final Client client;
+  private final FlintIndexMetadataService flintIndexMetadataService;
 
-  public FlintIndexOpVacuum(StateStore stateStore, String datasourceName, Client client) {
-    super(stateStore, datasourceName);
-    this.client = client;
+  public FlintIndexOpVacuum(
+      FlintIndexStateModelService flintIndexStateModelService,
+      String datasourceName,
+      FlintIndexMetadataService flintIndexMetadataService) {
+    super(flintIndexStateModelService, datasourceName);
+    this.flintIndexMetadataService = flintIndexMetadataService;
   }
 
   @Override
@@ -40,11 +41,7 @@ public class FlintIndexOpVacuum extends FlintIndexOp {
 
   @Override
   public void runOp(FlintIndexMetadata flintIndexMetadata, FlintIndexStateModel flintIndex) {
-    LOG.info("Vacuuming Flint index {}", flintIndexMetadata.getOpensearchIndexName());
-    DeleteIndexRequest request =
-        new DeleteIndexRequest().indices(flintIndexMetadata.getOpensearchIndexName());
-    AcknowledgedResponse response = client.admin().indices().delete(request).actionGet();
-    LOG.info("OpenSearch index delete result: {}", response.isAcknowledged());
+    flintIndexMetadataService.deleteFlintIndex(flintIndexMetadata.getOpensearchIndexName());
   }
 
   @Override

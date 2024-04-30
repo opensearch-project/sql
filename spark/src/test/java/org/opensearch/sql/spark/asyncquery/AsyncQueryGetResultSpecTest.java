@@ -8,7 +8,6 @@ package org.opensearch.sql.spark.asyncquery;
 import static org.opensearch.action.support.WriteRequest.RefreshPolicy.WAIT_UNTIL;
 import static org.opensearch.sql.data.model.ExprValueUtils.tupleValue;
 import static org.opensearch.sql.datasource.model.DataSourceMetadata.DEFAULT_RESULT_INDEX;
-import static org.opensearch.sql.spark.execution.statestore.StateStore.getStatement;
 
 import com.amazonaws.services.emrserverless.model.JobRunState;
 import com.google.common.collect.ImmutableList;
@@ -30,9 +29,8 @@ import org.opensearch.sql.spark.asyncquery.model.MockFlintSparkJob;
 import org.opensearch.sql.spark.client.EMRServerlessClientFactory;
 import org.opensearch.sql.spark.execution.statement.StatementModel;
 import org.opensearch.sql.spark.execution.statement.StatementState;
-import org.opensearch.sql.spark.execution.statestore.StateStore;
 import org.opensearch.sql.spark.flint.FlintIndexType;
-import org.opensearch.sql.spark.response.JobExecutionResponseReader;
+import org.opensearch.sql.spark.response.JobExecutionResponseReaderImpl;
 import org.opensearch.sql.spark.rest.model.CreateAsyncQueryRequest;
 import org.opensearch.sql.spark.rest.model.CreateAsyncQueryResponse;
 import org.opensearch.sql.spark.rest.model.LangType;
@@ -423,9 +421,9 @@ public class AsyncQueryGetResultSpecTest extends AsyncQueryExecutorServiceSpec {
                * current interaction. Intercept both get methods for different query handler which
                * will only call either of them.
                */
-              new JobExecutionResponseReader(client) {
+              new JobExecutionResponseReaderImpl(client) {
                 @Override
-                public JSONObject getResultFromOpensearchIndex(String jobId, String resultIndex) {
+                public JSONObject getResultWithJobId(String jobId, String resultIndex) {
                   return interaction.interact(new InteractionStep(emrClient, jobId, resultIndex));
                 }
 
@@ -494,7 +492,7 @@ public class AsyncQueryGetResultSpecTest extends AsyncQueryExecutorServiceSpec {
 
     /** Simulate PPL plugin search query_execution_result */
     JSONObject pluginSearchQueryResult() {
-      return new JobExecutionResponseReader(client).getResultWithQueryId(queryId, resultIndex);
+      return new JobExecutionResponseReaderImpl(client).getResultWithQueryId(queryId, resultIndex);
     }
 
     /** Simulate EMR-S bulk writes query_execution_result with refresh = wait_for */
@@ -510,8 +508,9 @@ public class AsyncQueryGetResultSpecTest extends AsyncQueryExecutorServiceSpec {
 
     /** Simulate EMR-S updates query_execution_request with state */
     void emrJobUpdateStatementState(StatementState newState) {
-      StatementModel stmt = getStatement(stateStore, MYS3_DATASOURCE).apply(queryId).get();
-      StateStore.updateStatementState(stateStore, MYS3_DATASOURCE).apply(stmt, newState);
+      StatementModel stmt =
+          statementStorageService.getStatementModel(queryId, MYS3_DATASOURCE).get();
+      statementStorageService.updateStatementState(stmt, newState, MYS3_DATASOURCE);
     }
 
     void emrJobUpdateJobState(JobRunState jobState) {

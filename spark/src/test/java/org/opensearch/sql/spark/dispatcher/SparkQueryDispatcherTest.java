@@ -72,10 +72,11 @@ import org.opensearch.sql.spark.execution.session.SessionManager;
 import org.opensearch.sql.spark.execution.statement.Statement;
 import org.opensearch.sql.spark.execution.statement.StatementId;
 import org.opensearch.sql.spark.execution.statement.StatementState;
-import org.opensearch.sql.spark.execution.statestore.StateStore;
 import org.opensearch.sql.spark.flint.FlintIndexMetadataService;
+import org.opensearch.sql.spark.flint.FlintIndexStateModelService;
+import org.opensearch.sql.spark.flint.IndexDMLResultStorageService;
 import org.opensearch.sql.spark.leasemanager.LeaseManager;
-import org.opensearch.sql.spark.response.JobExecutionResponseReader;
+import org.opensearch.sql.spark.response.JobExecutionResponseReaderImpl;
 import org.opensearch.sql.spark.rest.model.LangType;
 
 @ExtendWith(MockitoExtension.class)
@@ -84,7 +85,7 @@ public class SparkQueryDispatcherTest {
   @Mock private EMRServerlessClient emrServerlessClient;
   @Mock private EMRServerlessClientFactory emrServerlessClientFactory;
   @Mock private DataSourceService dataSourceService;
-  @Mock private JobExecutionResponseReader jobExecutionResponseReader;
+  @Mock private JobExecutionResponseReaderImpl jobExecutionResponseReaderImpl;
   @Mock private FlintIndexMetadataService flintIndexMetadataService;
 
   @Mock(answer = RETURNS_DEEP_STUBS)
@@ -100,7 +101,9 @@ public class SparkQueryDispatcherTest {
   @Mock(answer = RETURNS_DEEP_STUBS)
   private Statement statement;
 
-  @Mock private StateStore stateStore;
+  @Mock private FlintIndexStateModelService flintIndexStateModelService;
+
+  @Mock private IndexDMLResultStorageService indexDMLResultStorageService;
 
   private SparkQueryDispatcher sparkQueryDispatcher;
 
@@ -114,12 +117,12 @@ public class SparkQueryDispatcherTest {
         new SparkQueryDispatcher(
             emrServerlessClientFactory,
             dataSourceService,
-            jobExecutionResponseReader,
+            jobExecutionResponseReaderImpl,
             flintIndexMetadataService,
-            openSearchClient,
             sessionManager,
             leaseManager,
-            stateStore);
+            flintIndexStateModelService,
+            indexDMLResultStorageService);
     when(emrServerlessClientFactory.getClient()).thenReturn(emrServerlessClient);
   }
 
@@ -860,7 +863,7 @@ public class SparkQueryDispatcherTest {
         .thenReturn(new GetJobRunResult().withJobRun(new JobRun().withState(JobRunState.PENDING)));
 
     // simulate result index is not created yet
-    when(jobExecutionResponseReader.getResultFromOpensearchIndex(EMR_JOB_ID, null))
+    when(jobExecutionResponseReaderImpl.getResultWithJobId(EMR_JOB_ID, null))
         .thenReturn(new JSONObject());
     JSONObject result = sparkQueryDispatcher.getQueryResponse(asyncQueryJobMetadata());
     Assertions.assertEquals("PENDING", result.get("status"));
@@ -874,7 +877,7 @@ public class SparkQueryDispatcherTest {
     doReturn(StatementState.WAITING).when(statement).getStatementState();
 
     doReturn(new JSONObject())
-        .when(jobExecutionResponseReader)
+        .when(jobExecutionResponseReaderImpl)
         .getResultWithQueryId(eq(MOCK_STATEMENT_ID), any());
     JSONObject result =
         sparkQueryDispatcher.getQueryResponse(
@@ -888,7 +891,7 @@ public class SparkQueryDispatcherTest {
   void testGetQueryResponseWithInvalidSession() {
     doReturn(Optional.empty()).when(sessionManager).getSession(eq(new SessionId(MOCK_SESSION_ID)));
     doReturn(new JSONObject())
-        .when(jobExecutionResponseReader)
+        .when(jobExecutionResponseReaderImpl)
         .getResultWithQueryId(eq(MOCK_STATEMENT_ID), any());
     IllegalArgumentException exception =
         Assertions.assertThrows(
@@ -907,7 +910,7 @@ public class SparkQueryDispatcherTest {
     doReturn(Optional.of(session)).when(sessionManager).getSession(new SessionId(MOCK_SESSION_ID));
     doReturn(Optional.empty()).when(session).get(any());
     doReturn(new JSONObject())
-        .when(jobExecutionResponseReader)
+        .when(jobExecutionResponseReaderImpl)
         .getResultWithQueryId(eq(MOCK_STATEMENT_ID), any());
 
     IllegalArgumentException exception =
@@ -928,10 +931,10 @@ public class SparkQueryDispatcherTest {
     resultMap.put(STATUS_FIELD, "SUCCESS");
     resultMap.put(ERROR_FIELD, "");
     queryResult.put(DATA_FIELD, resultMap);
-    when(jobExecutionResponseReader.getResultFromOpensearchIndex(EMR_JOB_ID, null))
+    when(jobExecutionResponseReaderImpl.getResultWithJobId(EMR_JOB_ID, null))
         .thenReturn(queryResult);
     JSONObject result = sparkQueryDispatcher.getQueryResponse(asyncQueryJobMetadata());
-    verify(jobExecutionResponseReader, times(1)).getResultFromOpensearchIndex(EMR_JOB_ID, null);
+    verify(jobExecutionResponseReaderImpl, times(1)).getResultWithJobId(EMR_JOB_ID, null);
     Assertions.assertEquals(
         new HashSet<>(Arrays.asList(DATA_FIELD, STATUS_FIELD, ERROR_FIELD)), result.keySet());
     JSONObject dataJson = new JSONObject();

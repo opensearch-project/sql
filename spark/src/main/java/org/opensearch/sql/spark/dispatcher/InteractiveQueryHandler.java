@@ -45,7 +45,7 @@ public class InteractiveQueryHandler extends AsyncQueryHandler {
   protected JSONObject getResponseFromResultIndex(AsyncQueryJobMetadata asyncQueryJobMetadata) {
     String queryId = asyncQueryJobMetadata.getQueryId().getId();
     return jobExecutionResponseReader.getResultWithQueryId(
-        queryId, asyncQueryJobMetadata.getResultIndex());
+        queryId, asyncQueryJobMetadata.getResultLocation());
   }
 
   @Override

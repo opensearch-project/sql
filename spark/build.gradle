@@ -8,6 +8,7 @@ plugins {
     id "io.freefair.lombok"
     id 'jacoco'
     id 'antlr'
+    id 'com.github.johnrengelman.shadow'
 }
 
 repositories {
@@ -73,6 +74,15 @@ dependencies {
     }
     testImplementation("org.opensearch.test:framework:${opensearch_version}")
     testImplementation project(':opensearch')
+}
+
+shadowJar {
+    archiveBaseName.set('async-query-core')
+    archiveVersion.set('1.0.0')  // Set the desired version
+    archiveClassifier.set('all')
+
+    from sourceSets.main.output
+    configurations = [project.configurations.runtimeClasspath]
 }
 
 test {
