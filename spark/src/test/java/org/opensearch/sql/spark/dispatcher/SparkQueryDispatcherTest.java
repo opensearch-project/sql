@@ -172,6 +172,7 @@ public class SparkQueryDispatcherTest {
 
   @Test
   void testDispatchSelectQueryWithLakeFormation() {
+    when(emrServerlessClientFactory.getClient()).thenReturn(emrServerlessClient);
     HashMap<String, String> tags = new HashMap<>();
     tags.put(DATASOURCE_TAG_KEY, "my_glue");
     tags.put(CLUSTER_NAME_TAG_KEY, TEST_CLUSTER_NAME);
