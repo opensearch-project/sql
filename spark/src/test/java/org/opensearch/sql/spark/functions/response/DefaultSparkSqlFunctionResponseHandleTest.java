@@ -45,7 +45,7 @@ class DefaultSparkSqlFunctionResponseHandleTest {
     assertEquals(new ExprByteValue(5), row.get("col5"));
     assertEquals(new ExprDoubleValue(6.1), row.get("col6"));
     assertEquals(new ExprFloatValue(7.1), row.get("col7"));
-    assertEquals(new ExprTimestampValue("2024-01-02 03:04:05.1234"), row.get("col8"));
+    assertEquals(new ExprStringValue("2024-01-02 03:04:05.1234"), row.get("col8"));
     assertEquals(new ExprDateValue("2024-01-03 04:05:06.1234"), row.get("col9"));
     assertEquals(new ExprStringValue("some string"), row.get("col10"));
 
