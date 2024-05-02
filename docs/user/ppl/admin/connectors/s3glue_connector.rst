@@ -18,7 +18,7 @@ s3Glue connector provides a way to query s3 files using glue as metadata store a
 This page covers s3Glue datasource configuration and also how to query and s3Glue datasource.
 
 Required resources for s3 Glue Connector
-===================================
+========================================
 * ``EMRServerless Spark Execution Engine Config Setting``:  Since we execute s3Glue queries on top of spark execution engine, we require this configuration.
   More details: `ExecutionEngine Config <../../../interfaces/asyncqueryinterface.rst#id2>`_
 * ``S3``: This is where the data lies.
@@ -42,6 +42,7 @@ Glue Connector Properties.
         * Basic Auth required ``glue.indexstore.opensearch.auth.username`` and ``glue.indexstore.opensearch.auth.password``
         * AWSSigV4 Auth requires ``glue.indexstore.opensearch.auth.region``  and ``glue.auth.role_arn``
     * ``glue.indexstore.opensearch.region`` [Required for awssigv4 auth]
+* ``glue.lakeformation.enabled`` determines whether to enable lakeformation for queries. Default value is ``"false"`` if not specified
 
 Sample Glue dataSource configuration
 ========================================
@@ -56,7 +57,7 @@ Glue datasource configuration::
                 "glue.auth.role_arn": "role_arn",
                 "glue.indexstore.opensearch.uri": "http://localhost:9200",
                 "glue.indexstore.opensearch.auth" :"basicauth",
-                "glue.indexstore.opensearch.auth.username" :"username"
+                "glue.indexstore.opensearch.auth.username" :"username",
                 "glue.indexstore.opensearch.auth.password" :"password"
         },
         "resultIndex": "query_execution_result"
@@ -71,6 +72,7 @@ Glue datasource configuration::
                 "glue.indexstore.opensearch.uri": "http://adsasdf.amazonopensearch.com:9200",
                 "glue.indexstore.opensearch.auth" :"awssigv4",
                 "glue.indexstore.opensearch.auth.region" :"awssigv4",
+                "glue.lakeformation.enabled": "true"
         },
         "resultIndex": "query_execution_result"
     }]

@@ -169,6 +169,52 @@ public class SparkQueryDispatcherTest {
   }
 
   @Test
+  void testDispatchSelectQueryWithLakeFormation() {
+    HashMap<String, String> tags = new HashMap<>();
+    tags.put(DATASOURCE_TAG_KEY, "my_glue");
+    tags.put(CLUSTER_NAME_TAG_KEY, TEST_CLUSTER_NAME);
+    tags.put(JOB_TYPE_TAG_KEY, JobType.BATCH.getText());
+    String query = "select * from my_glue.default.http_logs";
+    String sparkSubmitParameters =
+        constructExpectedSparkSubmitParameterString(
+            "sigv4",
+            new HashMap<>() {
+              {
+                put(FLINT_INDEX_STORE_AWSREGION_KEY, "eu-west-1");
+              }
+            },
+            query,
+            true);
+    StartJobRequest expected =
+        new StartJobRequest(
+            "TEST_CLUSTER:batch",
+            EMRS_APPLICATION_ID,
+            EMRS_EXECUTION_ROLE,
+            sparkSubmitParameters,
+            tags,
+            false,
+            "query_execution_result_my_glue");
+    when(emrServerlessClient.startJobRun(expected)).thenReturn(EMR_JOB_ID);
+    DataSourceMetadata dataSourceMetadata = constructMyGlueDataSourceMetadataWithLakeFormation();
+    when(dataSourceService.verifyDataSourceAccessAndGetRawMetadata("my_glue"))
+        .thenReturn(dataSourceMetadata);
+
+    DispatchQueryResponse dispatchQueryResponse =
+        sparkQueryDispatcher.dispatch(
+            new DispatchQueryRequest(
+                EMRS_APPLICATION_ID,
+                query,
+                "my_glue",
+                LangType.SQL,
+                EMRS_EXECUTION_ROLE,
+                TEST_CLUSTER_NAME));
+    verify(emrServerlessClient, times(1)).startJobRun(startJobRequestArgumentCaptor.capture());
+    Assertions.assertEquals(expected, startJobRequestArgumentCaptor.getValue());
+    Assertions.assertEquals(EMR_JOB_ID, dispatchQueryResponse.getJobId());
+    verifyNoInteractions(flintIndexMetadataService);
+  }
+
+  @Test
   void testDispatchSelectQueryWithBasicAuthIndexStoreDatasource() {
     HashMap<String, String> tags = new HashMap<>();
     tags.put(DATASOURCE_TAG_KEY, "my_glue");
@@ -936,13 +982,17 @@ public class SparkQueryDispatcherTest {
 
   private String constructExpectedSparkSubmitParameterString(
       String auth, Map<String, String> authParams, String query) {
+    return constructExpectedSparkSubmitParameterString(auth, authParams, query, false);
+  }
+
+  private String constructExpectedSparkSubmitParameterString(
+      String auth, Map<String, String> authParams, String query, boolean lakeFormationEnabled) {
     StringBuilder authParamConfigBuilder = new StringBuilder();
     for (String key : authParams.keySet()) {
-      authParamConfigBuilder.append(" --conf ");
+      authParamConfigBuilder.append("  --conf ");
       authParamConfigBuilder.append(key);
       authParamConfigBuilder.append("=");
       authParamConfigBuilder.append(authParams.get(key));
-      authParamConfigBuilder.append(" ");
     }
     query = "\"" + query + "\"";
     return " --class org.apache.spark.sql.FlintJob  --conf"
@@ -978,9 +1028,13 @@ public class SparkQueryDispatcherTest {
         + "  --conf"
         + " spark.hive.metastore.glue.role.arn=arn:aws:iam::924196221507:role/FlintOpensearchServiceRole"
         + "  --conf spark.sql.catalog.my_glue=org.opensearch.sql.FlintDelegatingSessionCatalog "
-        + " --conf spark.flint.datasource.name=my_glue "
+        + " --conf spark.flint.datasource.name=my_glue  --conf"
+        + " spark.emr-serverless.lakeformation.enabled="
+        + Boolean.toString(lakeFormationEnabled)
+        + "  --conf spark.flint.optimizer.covering.enabled="
+        + Boolean.toString(!lakeFormationEnabled)
         + authParamConfigBuilder
-        + " --conf spark.flint.job.query="
+        + "  --conf spark.flint.job.query="
         + query
         + " ";
   }
@@ -1049,6 +1103,25 @@ public class SparkQueryDispatcherTest {
     properties.put("glue.indexstore.opensearch.uri", "http://localhost:9090? param");
     properties.put("glue.indexstore.opensearch.auth", "awssigv4");
     properties.put("glue.indexstore.opensearch.region", "eu-west-1");
+    return new DataSourceMetadata.Builder()
+        .setName("my_glue")
+        .setConnector(DataSourceType.S3GLUE)
+        .setProperties(properties)
+        .build();
+  }
+
+  private DataSourceMetadata constructMyGlueDataSourceMetadataWithLakeFormation() {
+
+    Map<String, String> properties = new HashMap<>();
+    properties.put("glue.auth.type", "iam_role");
+    properties.put(
+        "glue.auth.role_arn", "arn:aws:iam::924196221507:role/FlintOpensearchServiceRole");
+    properties.put(
+        "glue.indexstore.opensearch.uri",
+        "https://search-flint-dp-benchmark-cf5crj5mj2kfzvgwdeynkxnefy.eu-west-1.es.amazonaws.com");
+    properties.put("glue.indexstore.opensearch.auth", "awssigv4");
+    properties.put("glue.indexstore.opensearch.region", "eu-west-1");
+    properties.put("glue.lakeformation.enabled", "true");
     return new DataSourceMetadata.Builder()
         .setName("my_glue")
         .setConnector(DataSourceType.S3GLUE)
