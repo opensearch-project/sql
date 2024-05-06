@@ -8,8 +8,8 @@ package org.opensearch.sql.spark.flint;
 import java.util.Optional;
 
 /**
- * Abstraction over flint index state storage.
- * Flint index state will maintain the status of each flint index.
+ * Abstraction over flint index state storage. Flint index state will maintain the status of each
+ * flint index.
  */
 public interface FlintIndexStateModelService {
   FlintIndexStateModel createFlintIndexStateModel(

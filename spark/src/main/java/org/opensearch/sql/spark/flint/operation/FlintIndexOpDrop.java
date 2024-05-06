@@ -14,9 +14,7 @@ import org.opensearch.sql.spark.flint.FlintIndexState;
 import org.opensearch.sql.spark.flint.FlintIndexStateModel;
 import org.opensearch.sql.spark.flint.FlintIndexStateModelService;
 
-/**
- * Operation to drop Flint index
- */
+/** Operation to drop Flint index */
 public class FlintIndexOpDrop extends FlintIndexOp {
   private static final Logger LOG = LogManager.getLogger();
 
