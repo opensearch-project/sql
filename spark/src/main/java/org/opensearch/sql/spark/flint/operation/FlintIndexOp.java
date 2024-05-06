@@ -21,6 +21,7 @@ import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
 import org.opensearch.index.seqno.SequenceNumbers;
 import org.opensearch.sql.spark.client.EMRServerlessClient;
+import org.opensearch.sql.spark.client.EMRServerlessClientFactory;
 import org.opensearch.sql.spark.execution.statestore.StateStore;
 import org.opensearch.sql.spark.flint.FlintIndexMetadata;
 import org.opensearch.sql.spark.flint.FlintIndexState;
@@ -33,6 +34,7 @@ public abstract class FlintIndexOp {
 
   private final StateStore stateStore;
   private final String datasourceName;
+  private final EMRServerlessClientFactory emrServerlessClientFactory;
 
   /** Apply operation on {@link FlintIndexMetadata} */
   public void apply(FlintIndexMetadata metadata) {
@@ -140,11 +142,11 @@ public abstract class FlintIndexOp {
   /***
    * Common operation between AlterOff and Drop. So moved to FlintIndexOp.
    */
-  public void cancelStreamingJob(
-      EMRServerlessClient emrServerlessClient, FlintIndexStateModel flintIndexStateModel)
+  public void cancelStreamingJob(FlintIndexStateModel flintIndexStateModel)
       throws InterruptedException, TimeoutException {
     String applicationId = flintIndexStateModel.getApplicationId();
     String jobId = flintIndexStateModel.getJobId();
+    EMRServerlessClient emrServerlessClient = emrServerlessClientFactory.getClient();
     try {
       emrServerlessClient.cancelJobRun(
           flintIndexStateModel.getApplicationId(), flintIndexStateModel.getJobId(), true);
