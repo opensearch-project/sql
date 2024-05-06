@@ -8,7 +8,7 @@ package org.opensearch.sql.spark.flint.operation;
 import lombok.SneakyThrows;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.opensearch.sql.spark.client.EMRServerlessClient;
+import org.opensearch.sql.spark.client.EMRServerlessClientFactory;
 import org.opensearch.sql.spark.dispatcher.model.FlintIndexOptions;
 import org.opensearch.sql.spark.execution.statestore.StateStore;
 import org.opensearch.sql.spark.flint.FlintIndexMetadata;
@@ -22,7 +22,6 @@ import org.opensearch.sql.spark.flint.FlintIndexStateModel;
  */
 public class FlintIndexOpAlter extends FlintIndexOp {
   private static final Logger LOG = LogManager.getLogger(FlintIndexOpAlter.class);
-  private final EMRServerlessClient emrServerlessClient;
   private final FlintIndexMetadataService flintIndexMetadataService;
   private final FlintIndexOptions flintIndexOptions;
 
@@ -30,10 +29,9 @@ public class FlintIndexOpAlter extends FlintIndexOp {
       FlintIndexOptions flintIndexOptions,
       StateStore stateStore,
       String datasourceName,
-      EMRServerlessClient emrServerlessClient,
+      EMRServerlessClientFactory emrServerlessClientFactory,
       FlintIndexMetadataService flintIndexMetadataService) {
-    super(stateStore, datasourceName);
-    this.emrServerlessClient = emrServerlessClient;
+    super(stateStore, datasourceName, emrServerlessClientFactory);
     this.flintIndexMetadataService = flintIndexMetadataService;
     this.flintIndexOptions = flintIndexOptions;
   }
@@ -55,7 +53,7 @@ public class FlintIndexOpAlter extends FlintIndexOp {
         "Running alter index operation for index: {}", flintIndexMetadata.getOpensearchIndexName());
     this.flintIndexMetadataService.updateIndexToManualRefresh(
         flintIndexMetadata.getOpensearchIndexName(), flintIndexOptions);
-    cancelStreamingJob(emrServerlessClient, flintIndexStateModel);
+    cancelStreamingJob(flintIndexStateModel);
   }
 
   @Override

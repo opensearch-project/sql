@@ -13,11 +13,10 @@ import org.opensearch.sql.spark.dispatcher.model.DispatchQueryContext;
 import org.opensearch.sql.spark.dispatcher.model.DispatchQueryRequest;
 import org.opensearch.sql.spark.dispatcher.model.DispatchQueryResponse;
 import org.opensearch.sql.spark.dispatcher.model.JobType;
-import org.opensearch.sql.spark.execution.statestore.StateStore;
 import org.opensearch.sql.spark.flint.FlintIndexMetadata;
 import org.opensearch.sql.spark.flint.FlintIndexMetadataService;
 import org.opensearch.sql.spark.flint.operation.FlintIndexOp;
-import org.opensearch.sql.spark.flint.operation.FlintIndexOpCancel;
+import org.opensearch.sql.spark.flint.operation.FlintIndexOpFactory;
 import org.opensearch.sql.spark.leasemanager.LeaseManager;
 import org.opensearch.sql.spark.response.JobExecutionResponseReader;
 
@@ -25,19 +24,17 @@ import org.opensearch.sql.spark.response.JobExecutionResponseReader;
 public class RefreshQueryHandler extends BatchQueryHandler {
 
   private final FlintIndexMetadataService flintIndexMetadataService;
-  private final StateStore stateStore;
-  private final EMRServerlessClient emrServerlessClient;
+  private final FlintIndexOpFactory flintIndexOpFactory;
 
   public RefreshQueryHandler(
       EMRServerlessClient emrServerlessClient,
       JobExecutionResponseReader jobExecutionResponseReader,
       FlintIndexMetadataService flintIndexMetadataService,
-      StateStore stateStore,
-      LeaseManager leaseManager) {
+      LeaseManager leaseManager,
+      FlintIndexOpFactory flintIndexOpFactory) {
     super(emrServerlessClient, jobExecutionResponseReader, leaseManager);
     this.flintIndexMetadataService = flintIndexMetadataService;
-    this.stateStore = stateStore;
-    this.emrServerlessClient = emrServerlessClient;
+    this.flintIndexOpFactory = flintIndexOpFactory;
   }
 
   @Override
@@ -51,8 +48,7 @@ public class RefreshQueryHandler extends BatchQueryHandler {
               "Couldn't fetch flint index: %s details", asyncQueryJobMetadata.getIndexName()));
     }
     FlintIndexMetadata indexMetadata = indexMetadataMap.get(asyncQueryJobMetadata.getIndexName());
-    FlintIndexOp jobCancelOp =
-        new FlintIndexOpCancel(stateStore, datasourceName, emrServerlessClient);
+    FlintIndexOp jobCancelOp = flintIndexOpFactory.getCancel(datasourceName);
     jobCancelOp.apply(indexMetadata);
     return asyncQueryJobMetadata.getQueryId().getId();
   }

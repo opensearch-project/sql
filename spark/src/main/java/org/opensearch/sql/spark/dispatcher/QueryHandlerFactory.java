@@ -6,11 +6,11 @@
 package org.opensearch.sql.spark.dispatcher;
 
 import lombok.RequiredArgsConstructor;
-import org.opensearch.client.Client;
 import org.opensearch.sql.spark.client.EMRServerlessClientFactory;
 import org.opensearch.sql.spark.execution.session.SessionManager;
-import org.opensearch.sql.spark.execution.statestore.StateStore;
 import org.opensearch.sql.spark.flint.FlintIndexMetadataService;
+import org.opensearch.sql.spark.flint.IndexDMLResultStorageService;
+import org.opensearch.sql.spark.flint.operation.FlintIndexOpFactory;
 import org.opensearch.sql.spark.leasemanager.LeaseManager;
 import org.opensearch.sql.spark.response.JobExecutionResponseReader;
 
@@ -19,10 +19,10 @@ public class QueryHandlerFactory {
 
   private final JobExecutionResponseReader jobExecutionResponseReader;
   private final FlintIndexMetadataService flintIndexMetadataService;
-  private final Client client;
   private final SessionManager sessionManager;
   private final LeaseManager leaseManager;
-  private final StateStore stateStore;
+  private final IndexDMLResultStorageService indexDMLResultStorageService;
+  private final FlintIndexOpFactory flintIndexOpFactory;
   private final EMRServerlessClientFactory emrServerlessClientFactory;
 
   public RefreshQueryHandler getRefreshQueryHandler() {
@@ -30,8 +30,8 @@ public class QueryHandlerFactory {
         emrServerlessClientFactory.getClient(),
         jobExecutionResponseReader,
         flintIndexMetadataService,
-        stateStore,
-        leaseManager);
+        leaseManager,
+        flintIndexOpFactory);
   }
 
   public StreamingQueryHandler getStreamingQueryHandler() {
@@ -50,10 +50,9 @@ public class QueryHandlerFactory {
 
   public IndexDMLHandler getIndexDMLHandler() {
     return new IndexDMLHandler(
-        emrServerlessClientFactory.getClient(),
         jobExecutionResponseReader,
         flintIndexMetadataService,
-        stateStore,
-        client);
+        indexDMLResultStorageService,
+        flintIndexOpFactory);
   }
 }
