@@ -64,14 +64,18 @@ import org.opensearch.sql.spark.execution.session.SessionManager;
 import org.opensearch.sql.spark.execution.session.SessionModel;
 import org.opensearch.sql.spark.execution.session.SessionState;
 import org.opensearch.sql.spark.execution.statestore.StateStore;
+import org.opensearch.sql.spark.flint.FlintIndexMetadataService;
 import org.opensearch.sql.spark.flint.FlintIndexMetadataServiceImpl;
 import org.opensearch.sql.spark.flint.FlintIndexType;
+import org.opensearch.sql.spark.flint.OpenSearchIndexDMLResultStorageService;
+import org.opensearch.sql.spark.flint.operation.FlintIndexOpFactory;
 import org.opensearch.sql.spark.leasemanager.DefaultLeaseManager;
 import org.opensearch.sql.spark.response.JobExecutionResponseReader;
 import org.opensearch.sql.storage.DataSourceFactory;
 import org.opensearch.test.OpenSearchIntegTestCase;
 
 public class AsyncQueryExecutorServiceSpec extends OpenSearchIntegTestCase {
+
   public static final String MYS3_DATASOURCE = "mys3";
   public static final String MYGLUE_DATASOURCE = "my_glue";
 
@@ -81,6 +85,7 @@ public class AsyncQueryExecutorServiceSpec extends OpenSearchIntegTestCase {
   protected DataSourceServiceImpl dataSourceService;
   protected StateStore stateStore;
   protected ClusterSettings clusterSettings;
+  protected FlintIndexMetadataService flintIndexMetadataService;
 
   @Override
   protected Collection<Class<? extends Plugin>> nodePlugins() {
@@ -88,6 +93,7 @@ public class AsyncQueryExecutorServiceSpec extends OpenSearchIntegTestCase {
   }
 
   public static class TestSettingPlugin extends Plugin {
+
     @Override
     public List<Setting<?>> getSettings() {
       return OpenSearchSettings.pluginSettings();
@@ -148,6 +154,13 @@ public class AsyncQueryExecutorServiceSpec extends OpenSearchIntegTestCase {
     stateStore = new StateStore(client, clusterService);
     createIndexWithMappings(dm.getResultIndex(), loadResultIndexMappings());
     createIndexWithMappings(otherDm.getResultIndex(), loadResultIndexMappings());
+    flintIndexMetadataService = new FlintIndexMetadataServiceImpl(client);
+  }
+
+  protected FlintIndexOpFactory getFlintIndexOpFactory(
+      EMRServerlessClientFactory emrServerlessClientFactory) {
+    return new FlintIndexOpFactory(
+        stateStore, client, flintIndexMetadataService, emrServerlessClientFactory);
   }
 
   @After
@@ -205,10 +218,14 @@ public class AsyncQueryExecutorServiceSpec extends OpenSearchIntegTestCase {
         new QueryHandlerFactory(
             jobExecutionResponseReader,
             new FlintIndexMetadataServiceImpl(client),
-            client,
             new SessionManager(stateStore, emrServerlessClientFactory, pluginSettings),
             new DefaultLeaseManager(pluginSettings, stateStore),
-            stateStore,
+            new OpenSearchIndexDMLResultStorageService(dataSourceService, stateStore),
+            new FlintIndexOpFactory(
+                stateStore,
+                client,
+                new FlintIndexMetadataServiceImpl(client),
+                emrServerlessClientFactory),
             emrServerlessClientFactory);
     SparkQueryDispatcher sparkQueryDispatcher =
         new SparkQueryDispatcher(
@@ -267,6 +284,17 @@ public class AsyncQueryExecutorServiceSpec extends OpenSearchIntegTestCase {
     public void setJobState(JobRunState jobState) {
       this.jobState = jobState;
     }
+  }
+
+  protected LocalEMRSClient getCancelledLocalEmrsClient() {
+    return new LocalEMRSClient() {
+      public GetJobRunResult getJobRunResult(String applicationId, String jobId) {
+        super.getJobRunResult(applicationId, jobId);
+        JobRun jobRun = new JobRun();
+        jobRun.setState("cancelled");
+        return new GetJobRunResult().withJobRun(jobRun);
+      }
+    };
   }
 
   public static class LocalEMRServerlessClientFactory implements EMRServerlessClientFactory {
@@ -333,6 +361,7 @@ public class AsyncQueryExecutorServiceSpec extends OpenSearchIntegTestCase {
 
   @RequiredArgsConstructor
   public class FlintDatasetMock {
+
     final String query;
     final String refreshQuery;
     final FlintIndexType indexType;

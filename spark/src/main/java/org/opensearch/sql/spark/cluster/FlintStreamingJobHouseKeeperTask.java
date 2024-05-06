@@ -17,13 +17,10 @@ import org.opensearch.sql.datasource.model.DataSourceStatus;
 import org.opensearch.sql.datasources.exceptions.DataSourceNotFoundException;
 import org.opensearch.sql.legacy.metrics.MetricName;
 import org.opensearch.sql.legacy.metrics.Metrics;
-import org.opensearch.sql.spark.client.EMRServerlessClientFactory;
 import org.opensearch.sql.spark.dispatcher.model.FlintIndexOptions;
-import org.opensearch.sql.spark.execution.statestore.StateStore;
 import org.opensearch.sql.spark.flint.FlintIndexMetadata;
 import org.opensearch.sql.spark.flint.FlintIndexMetadataService;
-import org.opensearch.sql.spark.flint.operation.FlintIndexOpAlter;
-import org.opensearch.sql.spark.flint.operation.FlintIndexOpDrop;
+import org.opensearch.sql.spark.flint.operation.FlintIndexOpFactory;
 
 /** Cleaner task which alters the active streaming jobs of a disabled datasource. */
 @RequiredArgsConstructor
@@ -31,8 +28,7 @@ public class FlintStreamingJobHouseKeeperTask implements Runnable {
 
   private final DataSourceService dataSourceService;
   private final FlintIndexMetadataService flintIndexMetadataService;
-  private final StateStore stateStore;
-  private final EMRServerlessClientFactory emrServerlessClientFactory;
+  private final FlintIndexOpFactory flintIndexOpFactory;
 
   private static final Logger LOGGER = LogManager.getLogger(FlintStreamingJobHouseKeeperTask.class);
   protected static final AtomicBoolean isRunning = new AtomicBoolean(false);
@@ -95,9 +91,7 @@ public class FlintStreamingJobHouseKeeperTask implements Runnable {
       String autoRefreshIndex, FlintIndexMetadata flintIndexMetadata, String datasourceName) {
     // When the datasource is deleted. Possibly Replace with VACUUM Operation.
     LOGGER.info("Attempting to drop auto refresh index: {}", autoRefreshIndex);
-    FlintIndexOpDrop flintIndexOpDrop =
-        new FlintIndexOpDrop(stateStore, datasourceName, emrServerlessClientFactory.getClient());
-    flintIndexOpDrop.apply(flintIndexMetadata);
+    flintIndexOpFactory.getDrop(datasourceName).apply(flintIndexMetadata);
     LOGGER.info("Successfully dropped index: {}", autoRefreshIndex);
   }
 
@@ -106,14 +100,7 @@ public class FlintStreamingJobHouseKeeperTask implements Runnable {
     LOGGER.info("Attempting to alter index: {}", autoRefreshIndex);
     FlintIndexOptions flintIndexOptions = new FlintIndexOptions();
     flintIndexOptions.setOption(FlintIndexOptions.AUTO_REFRESH, "false");
-    FlintIndexOpAlter flintIndexOpAlter =
-        new FlintIndexOpAlter(
-            flintIndexOptions,
-            stateStore,
-            datasourceName,
-            emrServerlessClientFactory.getClient(),
-            flintIndexMetadataService);
-    flintIndexOpAlter.apply(flintIndexMetadata);
+    flintIndexOpFactory.getAlter(flintIndexOptions, datasourceName).apply(flintIndexMetadata);
     LOGGER.info("Successfully altered index: {}", autoRefreshIndex);
   }
 

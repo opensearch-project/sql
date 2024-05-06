@@ -30,6 +30,9 @@ import org.opensearch.sql.spark.dispatcher.SparkQueryDispatcher;
 import org.opensearch.sql.spark.execution.session.SessionManager;
 import org.opensearch.sql.spark.execution.statestore.StateStore;
 import org.opensearch.sql.spark.flint.FlintIndexMetadataServiceImpl;
+import org.opensearch.sql.spark.flint.IndexDMLResultStorageService;
+import org.opensearch.sql.spark.flint.OpenSearchIndexDMLResultStorageService;
+import org.opensearch.sql.spark.flint.operation.FlintIndexOpFactory;
 import org.opensearch.sql.spark.leasemanager.DefaultLeaseManager;
 import org.opensearch.sql.spark.response.JobExecutionResponseReader;
 
@@ -76,19 +79,35 @@ public class AsyncExecutorServiceModule extends AbstractModule {
   public QueryHandlerFactory queryhandlerFactory(
       JobExecutionResponseReader jobExecutionResponseReader,
       FlintIndexMetadataServiceImpl flintIndexMetadataReader,
-      NodeClient client,
       SessionManager sessionManager,
       DefaultLeaseManager defaultLeaseManager,
-      StateStore stateStore,
+      IndexDMLResultStorageService indexDMLResultStorageService,
+      FlintIndexOpFactory flintIndexOpFactory,
       EMRServerlessClientFactory emrServerlessClientFactory) {
     return new QueryHandlerFactory(
         jobExecutionResponseReader,
         flintIndexMetadataReader,
-        client,
         sessionManager,
         defaultLeaseManager,
-        stateStore,
+        indexDMLResultStorageService,
+        flintIndexOpFactory,
         emrServerlessClientFactory);
+  }
+
+  @Provides
+  public FlintIndexOpFactory flintIndexOpFactory(
+      StateStore stateStore,
+      NodeClient client,
+      FlintIndexMetadataServiceImpl flintIndexMetadataService,
+      EMRServerlessClientFactory emrServerlessClientFactory) {
+    return new FlintIndexOpFactory(
+        stateStore, client, flintIndexMetadataService, emrServerlessClientFactory);
+  }
+
+  @Provides
+  public IndexDMLResultStorageService indexDMLResultStorageService(
+      DataSourceService dataSourceService, StateStore stateStore) {
+    return new OpenSearchIndexDMLResultStorageService(dataSourceService, stateStore);
   }
 
   @Provides

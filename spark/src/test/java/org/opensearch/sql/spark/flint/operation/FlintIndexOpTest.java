@@ -13,6 +13,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.opensearch.index.seqno.SequenceNumbers;
+import org.opensearch.sql.spark.client.EMRServerlessClientFactory;
 import org.opensearch.sql.spark.execution.statestore.StateStore;
 import org.opensearch.sql.spark.flint.FlintIndexMetadata;
 import org.opensearch.sql.spark.flint.FlintIndexState;
@@ -22,6 +23,7 @@ import org.opensearch.sql.spark.flint.FlintIndexStateModel;
 public class FlintIndexOpTest {
 
   @Mock private StateStore mockStateStore;
+  @Mock private EMRServerlessClientFactory mockEmrServerlessClientFactory;
 
   @Test
   public void testApplyWithTransitioningStateFailure() {
@@ -42,7 +44,8 @@ public class FlintIndexOpTest {
         .thenReturn(Optional.of(fakeModel));
     when(mockStateStore.updateState(any(), any(), any(), any()))
         .thenThrow(new RuntimeException("Transitioning state failed"));
-    FlintIndexOp flintIndexOp = new TestFlintIndexOp(mockStateStore, "myS3");
+    FlintIndexOp flintIndexOp =
+        new TestFlintIndexOp(mockStateStore, "myS3", mockEmrServerlessClientFactory);
     IllegalStateException illegalStateException =
         Assertions.assertThrows(IllegalStateException.class, () -> flintIndexOp.apply(metadata));
     Assertions.assertEquals(
@@ -70,7 +73,8 @@ public class FlintIndexOpTest {
         .thenReturn(FlintIndexStateModel.copy(fakeModel, 1, 2))
         .thenThrow(new RuntimeException("Commit state failed"))
         .thenReturn(FlintIndexStateModel.copy(fakeModel, 1, 3));
-    FlintIndexOp flintIndexOp = new TestFlintIndexOp(mockStateStore, "myS3");
+    FlintIndexOp flintIndexOp =
+        new TestFlintIndexOp(mockStateStore, "myS3", mockEmrServerlessClientFactory);
     IllegalStateException illegalStateException =
         Assertions.assertThrows(IllegalStateException.class, () -> flintIndexOp.apply(metadata));
     Assertions.assertEquals(
@@ -98,7 +102,8 @@ public class FlintIndexOpTest {
         .thenReturn(FlintIndexStateModel.copy(fakeModel, 1, 2))
         .thenThrow(new RuntimeException("Commit state failed"))
         .thenThrow(new RuntimeException("Rollback failure"));
-    FlintIndexOp flintIndexOp = new TestFlintIndexOp(mockStateStore, "myS3");
+    FlintIndexOp flintIndexOp =
+        new TestFlintIndexOp(mockStateStore, "myS3", mockEmrServerlessClientFactory);
     IllegalStateException illegalStateException =
         Assertions.assertThrows(IllegalStateException.class, () -> flintIndexOp.apply(metadata));
     Assertions.assertEquals(
@@ -107,8 +112,11 @@ public class FlintIndexOpTest {
 
   static class TestFlintIndexOp extends FlintIndexOp {
 
-    public TestFlintIndexOp(StateStore stateStore, String datasourceName) {
-      super(stateStore, datasourceName);
+    public TestFlintIndexOp(
+        StateStore stateStore,
+        String datasourceName,
+        EMRServerlessClientFactory emrServerlessClientFactory) {
+      super(stateStore, datasourceName, emrServerlessClientFactory);
     }
 
     @Override
