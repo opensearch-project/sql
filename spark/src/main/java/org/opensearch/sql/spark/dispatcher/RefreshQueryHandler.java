@@ -21,9 +21,8 @@ import org.opensearch.sql.spark.leasemanager.LeaseManager;
 import org.opensearch.sql.spark.response.JobExecutionResponseReader;
 
 /**
- * The handler for refresh query.
- * Refresh query is one time query request to refresh(update) flint index, and new job is submitted
- * to Spark.
+ * The handler for refresh query. Refresh query is one time query request to refresh(update) flint
+ * index, and new job is submitted to Spark.
  */
 public class RefreshQueryHandler extends BatchQueryHandler {
 

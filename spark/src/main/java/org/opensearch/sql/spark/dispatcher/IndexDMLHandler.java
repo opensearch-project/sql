@@ -32,10 +32,10 @@ import org.opensearch.sql.spark.flint.operation.FlintIndexOpFactory;
 import org.opensearch.sql.spark.response.JobExecutionResponseReader;
 
 /**
- * The handler for Index DML (Data Manipulation Language) query.
- * Handles DROP/ALT/VACUUM operation for flint indices.
- * It will stop streaming query job as needed (e.g. when the flint index is automatically updated
- * by a streaming query, the streaming query is stopped when the index is dropped)
+ * The handler for Index DML (Data Manipulation Language) query. Handles DROP/ALT/VACUUM operation
+ * for flint indices. It will stop streaming query job as needed (e.g. when the flint index is
+ * automatically updated by a streaming query, the streaming query is stopped when the index is
+ * dropped)
  */
 @RequiredArgsConstructor
 public class IndexDMLHandler extends AsyncQueryHandler {

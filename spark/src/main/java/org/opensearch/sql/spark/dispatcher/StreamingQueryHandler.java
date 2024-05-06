@@ -27,8 +27,7 @@ import org.opensearch.sql.spark.leasemanager.model.LeaseRequest;
 import org.opensearch.sql.spark.response.JobExecutionResponseReader;
 
 /**
- * The handler for streaming query.
- * Streaming query is a job to continuously update flint index.
+ * The handler for streaming query. Streaming query is a job to continuously update flint index.
  * Once started, the job can be stopped by IndexDML query.
  */
 public class StreamingQueryHandler extends BatchQueryHandler {
