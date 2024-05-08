@@ -9,14 +9,11 @@ import static org.opensearch.sql.spark.execution.session.SessionModel.APPLICATIO
 import static org.opensearch.sql.spark.execution.session.SessionModel.DATASOURCE_NAME;
 import static org.opensearch.sql.spark.execution.session.SessionModel.JOB_ID;
 import static org.opensearch.sql.spark.execution.statement.StatementModel.ERROR;
-import static org.opensearch.sql.spark.execution.statement.StatementModel.VERSION;
 
-import java.io.IOException;
 import lombok.Builder;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.SneakyThrows;
-import org.opensearch.core.xcontent.XContentBuilder;
 import org.opensearch.core.xcontent.XContentParser;
 import org.opensearch.core.xcontent.XContentParserUtils;
 import org.opensearch.sql.spark.execution.statestore.StateModel;
@@ -129,22 +126,5 @@ public class FlintIndexStateModel extends StateModel {
   @Override
   public String getId() {
     return latestId;
-  }
-
-  @Override
-  public XContentBuilder toXContent(XContentBuilder builder, Params params) throws IOException {
-    builder
-        .startObject()
-        .field(VERSION, VERSION_1_0)
-        .field(TYPE, FLINT_INDEX_DOC_TYPE)
-        .field(STATE, indexState.getState())
-        .field(APPLICATION_ID, applicationId)
-        .field(JOB_ID, jobId)
-        .field(LATEST_ID, latestId)
-        .field(DATASOURCE_NAME, datasourceName)
-        .field(LAST_UPDATE_TIME, lastUpdateTime)
-        .field(ERROR, error)
-        .endObject();
-    return builder;
   }
 }
