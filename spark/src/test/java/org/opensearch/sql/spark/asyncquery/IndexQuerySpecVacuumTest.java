@@ -164,7 +164,8 @@ public class IndexQuerySpecVacuumTest extends AsyncQueryExecutorServiceSpec {
     mockDS.createIndex();
 
     // Mock index state doc
-    MockFlintSparkJob flintIndexJob = new MockFlintSparkJob(stateStore, mockDS.latestId, "mys3");
+    MockFlintSparkJob flintIndexJob =
+        new MockFlintSparkJob(flintIndexStateModelService, mockDS.latestId, "mys3");
     flintIndexJob.transition(state);
 
     // Vacuum index

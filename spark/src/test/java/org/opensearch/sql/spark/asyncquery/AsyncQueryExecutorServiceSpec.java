@@ -66,7 +66,9 @@ import org.opensearch.sql.spark.execution.session.SessionState;
 import org.opensearch.sql.spark.execution.statestore.StateStore;
 import org.opensearch.sql.spark.flint.FlintIndexMetadataService;
 import org.opensearch.sql.spark.flint.FlintIndexMetadataServiceImpl;
+import org.opensearch.sql.spark.flint.FlintIndexStateModelService;
 import org.opensearch.sql.spark.flint.FlintIndexType;
+import org.opensearch.sql.spark.flint.OpenSearchFlintIndexStateModelService;
 import org.opensearch.sql.spark.flint.OpenSearchIndexDMLResultStorageService;
 import org.opensearch.sql.spark.flint.operation.FlintIndexOpFactory;
 import org.opensearch.sql.spark.leasemanager.DefaultLeaseManager;
@@ -86,6 +88,7 @@ public class AsyncQueryExecutorServiceSpec extends OpenSearchIntegTestCase {
   protected StateStore stateStore;
   protected ClusterSettings clusterSettings;
   protected FlintIndexMetadataService flintIndexMetadataService;
+  protected FlintIndexStateModelService flintIndexStateModelService;
 
   @Override
   protected Collection<Class<? extends Plugin>> nodePlugins() {
@@ -155,12 +158,13 @@ public class AsyncQueryExecutorServiceSpec extends OpenSearchIntegTestCase {
     createIndexWithMappings(dm.getResultIndex(), loadResultIndexMappings());
     createIndexWithMappings(otherDm.getResultIndex(), loadResultIndexMappings());
     flintIndexMetadataService = new FlintIndexMetadataServiceImpl(client);
+    flintIndexStateModelService = new OpenSearchFlintIndexStateModelService(stateStore);
   }
 
   protected FlintIndexOpFactory getFlintIndexOpFactory(
       EMRServerlessClientFactory emrServerlessClientFactory) {
     return new FlintIndexOpFactory(
-        stateStore, client, flintIndexMetadataService, emrServerlessClientFactory);
+        flintIndexStateModelService, client, flintIndexMetadataService, emrServerlessClientFactory);
   }
 
   @After
@@ -222,7 +226,7 @@ public class AsyncQueryExecutorServiceSpec extends OpenSearchIntegTestCase {
             new DefaultLeaseManager(pluginSettings, stateStore),
             new OpenSearchIndexDMLResultStorageService(dataSourceService, stateStore),
             new FlintIndexOpFactory(
-                stateStore,
+                flintIndexStateModelService,
                 client,
                 new FlintIndexMetadataServiceImpl(client),
                 emrServerlessClientFactory),

@@ -30,7 +30,9 @@ import org.opensearch.sql.spark.dispatcher.SparkQueryDispatcher;
 import org.opensearch.sql.spark.execution.session.SessionManager;
 import org.opensearch.sql.spark.execution.statestore.StateStore;
 import org.opensearch.sql.spark.flint.FlintIndexMetadataServiceImpl;
+import org.opensearch.sql.spark.flint.FlintIndexStateModelService;
 import org.opensearch.sql.spark.flint.IndexDMLResultStorageService;
+import org.opensearch.sql.spark.flint.OpenSearchFlintIndexStateModelService;
 import org.opensearch.sql.spark.flint.OpenSearchIndexDMLResultStorageService;
 import org.opensearch.sql.spark.flint.operation.FlintIndexOpFactory;
 import org.opensearch.sql.spark.leasemanager.DefaultLeaseManager;
@@ -96,12 +98,17 @@ public class AsyncExecutorServiceModule extends AbstractModule {
 
   @Provides
   public FlintIndexOpFactory flintIndexOpFactory(
-      StateStore stateStore,
+      FlintIndexStateModelService flintIndexStateModelService,
       NodeClient client,
       FlintIndexMetadataServiceImpl flintIndexMetadataService,
       EMRServerlessClientFactory emrServerlessClientFactory) {
     return new FlintIndexOpFactory(
-        stateStore, client, flintIndexMetadataService, emrServerlessClientFactory);
+        flintIndexStateModelService, client, flintIndexMetadataService, emrServerlessClientFactory);
+  }
+
+  @Provides
+  public FlintIndexStateModelService flintIndexStateModelService(StateStore stateStore) {
+    return new OpenSearchFlintIndexStateModelService(stateStore);
   }
 
   @Provides

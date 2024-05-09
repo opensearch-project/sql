@@ -1,10 +1,14 @@
+/*
+ * Copyright OpenSearch Contributors
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
 package org.opensearch.sql.spark.flint.operation;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
-import static org.opensearch.sql.spark.execution.statestore.StateStore.DATASOURCE_TO_REQUEST_INDEX;
 
 import java.util.Optional;
 import org.junit.jupiter.api.Assertions;
@@ -14,15 +18,15 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.opensearch.index.seqno.SequenceNumbers;
 import org.opensearch.sql.spark.client.EMRServerlessClientFactory;
-import org.opensearch.sql.spark.execution.statestore.StateStore;
 import org.opensearch.sql.spark.flint.FlintIndexMetadata;
 import org.opensearch.sql.spark.flint.FlintIndexState;
 import org.opensearch.sql.spark.flint.FlintIndexStateModel;
+import org.opensearch.sql.spark.flint.FlintIndexStateModelService;
 
 @ExtendWith(MockitoExtension.class)
 public class FlintIndexOpTest {
 
-  @Mock private StateStore mockStateStore;
+  @Mock private FlintIndexStateModelService flintIndexStateModelService;
   @Mock private EMRServerlessClientFactory mockEmrServerlessClientFactory;
 
   @Test
@@ -40,12 +44,12 @@ public class FlintIndexOpTest {
             "",
             SequenceNumbers.UNASSIGNED_SEQ_NO,
             SequenceNumbers.UNASSIGNED_PRIMARY_TERM);
-    when(mockStateStore.get(eq("latestId"), any(), eq(DATASOURCE_TO_REQUEST_INDEX.apply("myS3"))))
+    when(flintIndexStateModelService.getFlintIndexStateModel(eq("latestId"), any()))
         .thenReturn(Optional.of(fakeModel));
-    when(mockStateStore.updateState(any(), any(), any(), any()))
+    when(flintIndexStateModelService.updateFlintIndexState(any(), any(), any()))
         .thenThrow(new RuntimeException("Transitioning state failed"));
     FlintIndexOp flintIndexOp =
-        new TestFlintIndexOp(mockStateStore, "myS3", mockEmrServerlessClientFactory);
+        new TestFlintIndexOp(flintIndexStateModelService, "myS3", mockEmrServerlessClientFactory);
     IllegalStateException illegalStateException =
         Assertions.assertThrows(IllegalStateException.class, () -> flintIndexOp.apply(metadata));
     Assertions.assertEquals(
@@ -67,14 +71,14 @@ public class FlintIndexOpTest {
             "",
             SequenceNumbers.UNASSIGNED_SEQ_NO,
             SequenceNumbers.UNASSIGNED_PRIMARY_TERM);
-    when(mockStateStore.get(eq("latestId"), any(), eq(DATASOURCE_TO_REQUEST_INDEX.apply("myS3"))))
+    when(flintIndexStateModelService.getFlintIndexStateModel(eq("latestId"), any()))
         .thenReturn(Optional.of(fakeModel));
-    when(mockStateStore.updateState(any(), any(), any(), any()))
+    when(flintIndexStateModelService.updateFlintIndexState(any(), any(), any()))
         .thenReturn(FlintIndexStateModel.copy(fakeModel, 1, 2))
         .thenThrow(new RuntimeException("Commit state failed"))
         .thenReturn(FlintIndexStateModel.copy(fakeModel, 1, 3));
     FlintIndexOp flintIndexOp =
-        new TestFlintIndexOp(mockStateStore, "myS3", mockEmrServerlessClientFactory);
+        new TestFlintIndexOp(flintIndexStateModelService, "myS3", mockEmrServerlessClientFactory);
     IllegalStateException illegalStateException =
         Assertions.assertThrows(IllegalStateException.class, () -> flintIndexOp.apply(metadata));
     Assertions.assertEquals(
@@ -96,14 +100,14 @@ public class FlintIndexOpTest {
             "",
             SequenceNumbers.UNASSIGNED_SEQ_NO,
             SequenceNumbers.UNASSIGNED_PRIMARY_TERM);
-    when(mockStateStore.get(eq("latestId"), any(), eq(DATASOURCE_TO_REQUEST_INDEX.apply("myS3"))))
+    when(flintIndexStateModelService.getFlintIndexStateModel(eq("latestId"), any()))
         .thenReturn(Optional.of(fakeModel));
-    when(mockStateStore.updateState(any(), any(), any(), any()))
+    when(flintIndexStateModelService.updateFlintIndexState(any(), any(), any()))
         .thenReturn(FlintIndexStateModel.copy(fakeModel, 1, 2))
         .thenThrow(new RuntimeException("Commit state failed"))
         .thenThrow(new RuntimeException("Rollback failure"));
     FlintIndexOp flintIndexOp =
-        new TestFlintIndexOp(mockStateStore, "myS3", mockEmrServerlessClientFactory);
+        new TestFlintIndexOp(flintIndexStateModelService, "myS3", mockEmrServerlessClientFactory);
     IllegalStateException illegalStateException =
         Assertions.assertThrows(IllegalStateException.class, () -> flintIndexOp.apply(metadata));
     Assertions.assertEquals(
@@ -113,10 +117,10 @@ public class FlintIndexOpTest {
   static class TestFlintIndexOp extends FlintIndexOp {
 
     public TestFlintIndexOp(
-        StateStore stateStore,
+        FlintIndexStateModelService flintIndexStateModelService,
         String datasourceName,
         EMRServerlessClientFactory emrServerlessClientFactory) {
-      super(stateStore, datasourceName, emrServerlessClientFactory);
+      super(flintIndexStateModelService, datasourceName, emrServerlessClientFactory);
     }
 
     @Override
