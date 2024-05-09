@@ -30,7 +30,7 @@ import org.opensearch.sql.spark.response.JobExecutionResponseReader;
 
 /**
  * The handler for batch query. With batch query, queries are executed as single batch. The queries
- * are sent along with job execution request to spark.
+ * are sent along with job execution request ({@link StartJobRequest}) to spark.
  */
 @RequiredArgsConstructor
 public class BatchQueryHandler extends AsyncQueryHandler {
