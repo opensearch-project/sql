@@ -68,7 +68,8 @@ public class IndexQuerySpecAlterTest extends AsyncQueryExecutorServiceSpec {
               mockDS.updateIndexOptions(existingOptions, false);
               // Mock index state
               MockFlintSparkJob flintIndexJob =
-                  new MockFlintSparkJob(stateStore, mockDS.getLatestId(), MYS3_DATASOURCE);
+                  new MockFlintSparkJob(
+                      flintIndexStateModelService, mockDS.getLatestId(), MYS3_DATASOURCE);
               flintIndexJob.active();
 
               // 1. alter index
@@ -135,7 +136,8 @@ public class IndexQuerySpecAlterTest extends AsyncQueryExecutorServiceSpec {
               mockDS.updateIndexOptions(existingOptions, true);
               // Mock index state
               MockFlintSparkJob flintIndexJob =
-                  new MockFlintSparkJob(stateStore, mockDS.getLatestId(), MYS3_DATASOURCE);
+                  new MockFlintSparkJob(
+                      flintIndexStateModelService, mockDS.getLatestId(), MYS3_DATASOURCE);
               flintIndexJob.active();
 
               // 1. alter index
@@ -215,7 +217,8 @@ public class IndexQuerySpecAlterTest extends AsyncQueryExecutorServiceSpec {
               mockDS.updateIndexOptions(existingOptions, false);
               // Mock index state
               MockFlintSparkJob flintIndexJob =
-                  new MockFlintSparkJob(stateStore, mockDS.getLatestId(), MYS3_DATASOURCE);
+                  new MockFlintSparkJob(
+                      flintIndexStateModelService, mockDS.getLatestId(), MYS3_DATASOURCE);
               flintIndexJob.active();
 
               // 1. alter index
@@ -277,7 +280,8 @@ public class IndexQuerySpecAlterTest extends AsyncQueryExecutorServiceSpec {
               mockDS.updateIndexOptions(existingOptions, false);
               // Mock index state
               MockFlintSparkJob flintIndexJob =
-                  new MockFlintSparkJob(stateStore, mockDS.getLatestId(), MYS3_DATASOURCE);
+                  new MockFlintSparkJob(
+                      flintIndexStateModelService, mockDS.getLatestId(), MYS3_DATASOURCE);
               flintIndexJob.active();
 
               // 1. alter index
@@ -341,7 +345,8 @@ public class IndexQuerySpecAlterTest extends AsyncQueryExecutorServiceSpec {
               mockDS.updateIndexOptions(existingOptions, false);
               // Mock index state
               MockFlintSparkJob flintIndexJob =
-                  new MockFlintSparkJob(stateStore, mockDS.getLatestId(), MYS3_DATASOURCE);
+                  new MockFlintSparkJob(
+                      flintIndexStateModelService, mockDS.getLatestId(), MYS3_DATASOURCE);
               flintIndexJob.active();
 
               // 1. alter index
@@ -414,7 +419,8 @@ public class IndexQuerySpecAlterTest extends AsyncQueryExecutorServiceSpec {
               mockDS.updateIndexOptions(existingOptions, false);
               // Mock index state
               MockFlintSparkJob flintIndexJob =
-                  new MockFlintSparkJob(stateStore, mockDS.getLatestId(), MYS3_DATASOURCE);
+                  new MockFlintSparkJob(
+                      flintIndexStateModelService, mockDS.getLatestId(), MYS3_DATASOURCE);
               flintIndexJob.active();
 
               // 1. alter index
@@ -487,7 +493,8 @@ public class IndexQuerySpecAlterTest extends AsyncQueryExecutorServiceSpec {
               mockDS.updateIndexOptions(existingOptions, false);
               // Mock index state
               MockFlintSparkJob flintIndexJob =
-                  new MockFlintSparkJob(stateStore, mockDS.getLatestId(), MYS3_DATASOURCE);
+                  new MockFlintSparkJob(
+                      flintIndexStateModelService, mockDS.getLatestId(), MYS3_DATASOURCE);
               flintIndexJob.active();
 
               // 1. alter index
@@ -554,7 +561,8 @@ public class IndexQuerySpecAlterTest extends AsyncQueryExecutorServiceSpec {
               mockDS.updateIndexOptions(existingOptions, true);
               // Mock index state
               MockFlintSparkJob flintIndexJob =
-                  new MockFlintSparkJob(stateStore, mockDS.getLatestId(), MYS3_DATASOURCE);
+                  new MockFlintSparkJob(
+                      flintIndexStateModelService, mockDS.getLatestId(), MYS3_DATASOURCE);
               flintIndexJob.active();
 
               // 1. alter index
@@ -614,7 +622,8 @@ public class IndexQuerySpecAlterTest extends AsyncQueryExecutorServiceSpec {
               mockDS.updateIndexOptions(existingOptions, true);
               // Mock index state
               MockFlintSparkJob flintIndexJob =
-                  new MockFlintSparkJob(stateStore, mockDS.getLatestId(), MYS3_DATASOURCE);
+                  new MockFlintSparkJob(
+                      flintIndexStateModelService, mockDS.getLatestId(), MYS3_DATASOURCE);
               flintIndexJob.active();
 
               // 1. alter index
@@ -676,7 +685,8 @@ public class IndexQuerySpecAlterTest extends AsyncQueryExecutorServiceSpec {
               mockDS.updateIndexOptions(existingOptions, true);
               // Mock index state
               MockFlintSparkJob flintIndexJob =
-                  new MockFlintSparkJob(stateStore, mockDS.getLatestId(), MYS3_DATASOURCE);
+                  new MockFlintSparkJob(
+                      flintIndexStateModelService, mockDS.getLatestId(), MYS3_DATASOURCE);
               flintIndexJob.active();
 
               // 1. alter index
@@ -738,7 +748,8 @@ public class IndexQuerySpecAlterTest extends AsyncQueryExecutorServiceSpec {
               mockDS.updateIndexOptions(existingOptions, true);
               // Mock index state
               MockFlintSparkJob flintIndexJob =
-                  new MockFlintSparkJob(stateStore, mockDS.getLatestId(), MYS3_DATASOURCE);
+                  new MockFlintSparkJob(
+                      flintIndexStateModelService, mockDS.getLatestId(), MYS3_DATASOURCE);
               flintIndexJob.refreshing();
 
               // 1. alter index
@@ -797,7 +808,8 @@ public class IndexQuerySpecAlterTest extends AsyncQueryExecutorServiceSpec {
               mockDS.updateIndexOptions(existingOptions, true);
               // Mock index state
               MockFlintSparkJob flintIndexJob =
-                  new MockFlintSparkJob(stateStore, mockDS.getLatestId(), MYS3_DATASOURCE);
+                  new MockFlintSparkJob(
+                      flintIndexStateModelService, mockDS.getLatestId(), MYS3_DATASOURCE);
               flintIndexJob.refreshing();
 
               // 1. alter index
@@ -854,7 +866,8 @@ public class IndexQuerySpecAlterTest extends AsyncQueryExecutorServiceSpec {
               mockDS.updateIndexOptions(existingOptions, false);
               // Mock index state
               MockFlintSparkJob flintIndexJob =
-                  new MockFlintSparkJob(stateStore, mockDS.getLatestId(), MYS3_DATASOURCE);
+                  new MockFlintSparkJob(
+                      flintIndexStateModelService, mockDS.getLatestId(), MYS3_DATASOURCE);
               flintIndexJob.updating();
 
               // 1. alter index
@@ -919,7 +932,8 @@ public class IndexQuerySpecAlterTest extends AsyncQueryExecutorServiceSpec {
               mockDS.updateIndexOptions(existingOptions, false);
               // Mock index state
               MockFlintSparkJob flintIndexJob =
-                  new MockFlintSparkJob(stateStore, mockDS.getLatestId(), MYS3_DATASOURCE);
+                  new MockFlintSparkJob(
+                      flintIndexStateModelService, mockDS.getLatestId(), MYS3_DATASOURCE);
               flintIndexJob.active();
 
               // 1. alter index
@@ -982,7 +996,8 @@ public class IndexQuerySpecAlterTest extends AsyncQueryExecutorServiceSpec {
               mockDS.updateIndexOptions(existingOptions, false);
               // Mock index state
               MockFlintSparkJob flintIndexJob =
-                  new MockFlintSparkJob(stateStore, mockDS.getLatestId(), MYS3_DATASOURCE);
+                  new MockFlintSparkJob(
+                      flintIndexStateModelService, mockDS.getLatestId(), MYS3_DATASOURCE);
               flintIndexJob.active();
 
               // 1. alter index
@@ -1046,7 +1061,8 @@ public class IndexQuerySpecAlterTest extends AsyncQueryExecutorServiceSpec {
               mockDS.updateIndexOptions(existingOptions, false);
               // Mock index state
               MockFlintSparkJob flintIndexJob =
-                  new MockFlintSparkJob(stateStore, mockDS.getLatestId(), MYS3_DATASOURCE);
+                  new MockFlintSparkJob(
+                      flintIndexStateModelService, mockDS.getLatestId(), MYS3_DATASOURCE);
               flintIndexJob.active();
 
               // 1. alter index

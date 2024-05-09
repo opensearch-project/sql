@@ -28,14 +28,12 @@ import org.opensearch.sql.spark.response.JobExecutionResponseReader;
 
 /** Handle Streaming Query. */
 public class StreamingQueryHandler extends BatchQueryHandler {
-  private final EMRServerlessClient emrServerlessClient;
 
   public StreamingQueryHandler(
       EMRServerlessClient emrServerlessClient,
       JobExecutionResponseReader jobExecutionResponseReader,
       LeaseManager leaseManager) {
     super(emrServerlessClient, jobExecutionResponseReader, leaseManager);
-    this.emrServerlessClient = emrServerlessClient;
   }
 
   @Override

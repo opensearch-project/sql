@@ -301,6 +301,7 @@ public class SparkQueryDispatcherTest {
                 LangType.SQL,
                 EMRS_EXECUTION_ROLE,
                 TEST_CLUSTER_NAME));
+
     verify(emrServerlessClient, times(1)).startJobRun(startJobRequestArgumentCaptor.capture());
     Assertions.assertEquals(expected, startJobRequestArgumentCaptor.getValue());
     Assertions.assertEquals(EMR_JOB_ID, dispatchQueryResponse.getJobId());
@@ -705,6 +706,7 @@ public class SparkQueryDispatcherTest {
                 LangType.SQL,
                 EMRS_EXECUTION_ROLE,
                 TEST_CLUSTER_NAME));
+
     verify(emrServerlessClient, times(1)).startJobRun(startJobRequestArgumentCaptor.capture());
     Assertions.assertEquals(expected, startJobRequestArgumentCaptor.getValue());
     Assertions.assertEquals(EMR_JOB_ID, dispatchQueryResponse.getJobId());
