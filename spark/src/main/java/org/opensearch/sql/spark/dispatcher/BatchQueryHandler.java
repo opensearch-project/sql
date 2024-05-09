@@ -30,8 +30,8 @@ import org.opensearch.sql.spark.response.JobExecutionResponseReader;
 
 @RequiredArgsConstructor
 public class BatchQueryHandler extends AsyncQueryHandler {
-  private final EMRServerlessClient emrServerlessClient;
-  private final JobExecutionResponseReader jobExecutionResponseReader;
+  protected final EMRServerlessClient emrServerlessClient;
+  protected final JobExecutionResponseReader jobExecutionResponseReader;
   protected final LeaseManager leaseManager;
 
   @Override

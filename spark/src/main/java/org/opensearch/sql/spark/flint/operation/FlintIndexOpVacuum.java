@@ -11,10 +11,10 @@ import org.opensearch.action.admin.indices.delete.DeleteIndexRequest;
 import org.opensearch.action.support.master.AcknowledgedResponse;
 import org.opensearch.client.Client;
 import org.opensearch.sql.spark.client.EMRServerlessClientFactory;
-import org.opensearch.sql.spark.execution.statestore.StateStore;
 import org.opensearch.sql.spark.flint.FlintIndexMetadata;
 import org.opensearch.sql.spark.flint.FlintIndexState;
 import org.opensearch.sql.spark.flint.FlintIndexStateModel;
+import org.opensearch.sql.spark.flint.FlintIndexStateModelService;
 
 /** Flint index vacuum operation. */
 public class FlintIndexOpVacuum extends FlintIndexOp {
@@ -25,11 +25,11 @@ public class FlintIndexOpVacuum extends FlintIndexOp {
   private final Client client;
 
   public FlintIndexOpVacuum(
-      StateStore stateStore,
+      FlintIndexStateModelService flintIndexStateModelService,
       String datasourceName,
       Client client,
       EMRServerlessClientFactory emrServerlessClientFactory) {
-    super(stateStore, datasourceName, emrServerlessClientFactory);
+    super(flintIndexStateModelService, datasourceName, emrServerlessClientFactory);
     this.client = client;
   }
 
