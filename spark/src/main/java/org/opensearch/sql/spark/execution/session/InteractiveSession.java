@@ -124,7 +124,8 @@ public class InteractiveSession implements Session {
 
   @Override
   public Optional<Statement> get(StatementId stID) {
-    return statementStorageService.getStatement(stID.getId(), sessionModel.getDatasourceName())
+    return statementStorageService
+        .getStatement(stID.getId(), sessionModel.getDatasourceName())
         .map(
             model ->
                 Statement.builder()

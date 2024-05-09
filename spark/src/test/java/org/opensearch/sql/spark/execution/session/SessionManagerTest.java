@@ -16,7 +16,6 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.spark.client.EMRServerlessClientFactory;
 import org.opensearch.sql.spark.execution.statestore.SessionStorageService;
-import org.opensearch.sql.spark.execution.statestore.StateStore;
 import org.opensearch.sql.spark.execution.statestore.StatementStorageService;
 
 @ExtendWith(MockitoExtension.class)
@@ -27,7 +26,12 @@ public class SessionManagerTest {
 
   @Test
   public void sessionEnable() {
-    SessionManager sessionManager = new SessionManager(sessionStorageService, statementStorageService, emrServerlessClientFactory, sessionSetting());
+    SessionManager sessionManager =
+        new SessionManager(
+            sessionStorageService,
+            statementStorageService,
+            emrServerlessClientFactory,
+            sessionSetting());
 
     Assertions.assertTrue(sessionManager.isEnabled());
   }

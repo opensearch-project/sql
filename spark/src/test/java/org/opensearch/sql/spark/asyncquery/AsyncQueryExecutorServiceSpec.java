@@ -228,7 +228,11 @@ public class AsyncQueryExecutorServiceSpec extends OpenSearchIntegTestCase {
         new QueryHandlerFactory(
             jobExecutionResponseReader,
             new FlintIndexMetadataServiceImpl(client),
-            new SessionManager(sessionStorageService, statementStorageService, emrServerlessClientFactory, pluginSettings),
+            new SessionManager(
+                sessionStorageService,
+                statementStorageService,
+                emrServerlessClientFactory,
+                pluginSettings),
             new DefaultLeaseManager(pluginSettings, stateStore),
             new OpenSearchIndexDMLResultStorageService(dataSourceService, stateStore),
             new FlintIndexOpFactory(
@@ -240,7 +244,11 @@ public class AsyncQueryExecutorServiceSpec extends OpenSearchIntegTestCase {
     SparkQueryDispatcher sparkQueryDispatcher =
         new SparkQueryDispatcher(
             this.dataSourceService,
-            new SessionManager(sessionStorageService, statementStorageService, emrServerlessClientFactory, pluginSettings),
+            new SessionManager(
+                sessionStorageService,
+                statementStorageService,
+                emrServerlessClientFactory,
+                pluginSettings),
             queryHandlerFactory);
     return new AsyncQueryExecutorServiceImpl(
         asyncQueryJobMetadataStorageService,
@@ -358,7 +366,8 @@ public class AsyncQueryExecutorServiceSpec extends OpenSearchIntegTestCase {
 
   void setSessionState(String sessionId, SessionState sessionState) {
     Optional<SessionModel> model = sessionStorageService.getSession(sessionId, MYS3_DATASOURCE);
-    SessionModel updated = sessionStorageService.updateSessionState(model.get(), sessionState, MYS3_DATASOURCE);
+    SessionModel updated =
+        sessionStorageService.updateSessionState(model.get(), sessionState, MYS3_DATASOURCE);
     assertEquals(sessionState, updated.getSessionState());
   }
 

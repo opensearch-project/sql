@@ -22,8 +22,8 @@ import org.opensearch.action.delete.DeleteRequest;
 import org.opensearch.sql.spark.client.EMRServerlessClientFactory;
 import org.opensearch.sql.spark.client.StartJobRequest;
 import org.opensearch.sql.spark.dispatcher.model.JobType;
-import org.opensearch.sql.spark.execution.statestore.OpenSearchStateStoreUtil;
 import org.opensearch.sql.spark.execution.statestore.OpenSearchSessionStorageService;
+import org.opensearch.sql.spark.execution.statestore.OpenSearchStateStoreUtil;
 import org.opensearch.sql.spark.execution.statestore.OpenSearchStatementStorageService;
 import org.opensearch.sql.spark.execution.statestore.SessionStorageService;
 import org.opensearch.sql.spark.execution.statestore.StateStore;
@@ -33,7 +33,8 @@ import org.opensearch.test.OpenSearchIntegTestCase;
 /** mock-maker-inline does not work with OpenSearchTestCase. */
 public class InteractiveSessionTest extends OpenSearchIntegTestCase {
 
-  private static final String indexName = OpenSearchStateStoreUtil.getIndexName(TEST_DATASOURCE_NAME);
+  private static final String indexName =
+      OpenSearchStateStoreUtil.getIndexName(TEST_DATASOURCE_NAME);
 
   private TestEMRServerlessClient emrsClient;
   private StartJobRequest startJobRequest;
@@ -49,7 +50,12 @@ public class InteractiveSessionTest extends OpenSearchIntegTestCase {
     sessionStorageService = new OpenSearchSessionStorageService(stateStore);
     statementStorageService = new OpenSearchStatementStorageService(stateStore);
     EMRServerlessClientFactory emrServerlessClientFactory = () -> emrsClient;
-    sessionManager = new SessionManager(sessionStorageService, statementStorageService, emrServerlessClientFactory, sessionSetting());
+    sessionManager =
+        new SessionManager(
+            sessionStorageService,
+            statementStorageService,
+            emrServerlessClientFactory,
+            sessionSetting());
   }
 
   @After
@@ -71,7 +77,8 @@ public class InteractiveSessionTest extends OpenSearchIntegTestCase {
             .build();
 
     SessionAssertions assertions = new SessionAssertions(session);
-    assertions.open(createSessionRequest())
+    assertions
+        .open(createSessionRequest())
         .assertSessionState(NOT_STARTED)
         .assertAppId("appId")
         .assertJobId("jobId");
@@ -132,7 +139,8 @@ public class InteractiveSessionTest extends OpenSearchIntegTestCase {
   public void sessionManagerCreateSession() {
     Session session = sessionManager.createSession(createSessionRequest());
 
-    new SessionAssertions(session).assertSessionState(NOT_STARTED)
+    new SessionAssertions(session)
+        .assertSessionState(NOT_STARTED)
         .assertAppId("appId")
         .assertJobId("jobId");
   }
@@ -188,6 +196,4 @@ public class InteractiveSessionTest extends OpenSearchIntegTestCase {
       return this;
     }
   }
-
-
 }

@@ -59,7 +59,8 @@ public class SessionManager {
    *     empty Optional if no matching session is found.
    */
   public Optional<Session> getSession(SessionId sid, String dataSourceName) {
-    Optional<SessionModel> model = sessionStorageService.getSession(sid.getSessionId(), dataSourceName);
+    Optional<SessionModel> model =
+        sessionStorageService.getSession(sid.getSessionId(), dataSourceName);
     if (model.isPresent()) {
       InteractiveSession session =
           InteractiveSession.builder()

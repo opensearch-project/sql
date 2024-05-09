@@ -73,8 +73,8 @@ public class Statement {
     }
     try {
       this.statementModel =
-          statementStorageService.updateStatementState(statementModel, StatementState.CANCELLED,
-              statementModel.getDatasourceName());
+          statementStorageService.updateStatementState(
+              statementModel, StatementState.CANCELLED, statementModel.getDatasourceName());
     } catch (DocumentMissingException e) {
       String errorMsg =
           String.format("cancel statement failed. no statement found. statement: %s.", statementId);
@@ -82,7 +82,8 @@ public class Statement {
       throw new IllegalStateException(errorMsg);
     } catch (VersionConflictEngineException e) {
       this.statementModel =
-          statementStorageService.getStatement(statementModel.getId(), statementModel.getDatasourceName())
+          statementStorageService
+              .getStatement(statementModel.getId(), statementModel.getDatasourceName())
               .orElse(this.statementModel);
       String errorMsg =
           String.format(

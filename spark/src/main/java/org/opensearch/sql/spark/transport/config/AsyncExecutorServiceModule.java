@@ -127,20 +127,17 @@ public class AsyncExecutorServiceModule extends AbstractModule {
       StatementStorageService statementStorageService,
       EMRServerlessClientFactory emrServerlessClientFactory,
       Settings settings) {
-    return new SessionManager(sessionStorageService, statementStorageService, emrServerlessClientFactory, settings);
+    return new SessionManager(
+        sessionStorageService, statementStorageService, emrServerlessClientFactory, settings);
   }
 
   @Provides
-  public SessionStorageService sessionStorageService(
-      StateStore stateStore
-  ) {
+  public SessionStorageService sessionStorageService(StateStore stateStore) {
     return new OpenSearchSessionStorageService(stateStore);
   }
 
   @Provides
-  public StatementStorageService statementStorageService(
-      StateStore stateStore
-  ) {
+  public StatementStorageService statementStorageService(StateStore stateStore) {
     return new OpenSearchStatementStorageService(stateStore);
   }
 
