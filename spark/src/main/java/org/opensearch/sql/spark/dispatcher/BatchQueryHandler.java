@@ -28,6 +28,10 @@ import org.opensearch.sql.spark.leasemanager.LeaseManager;
 import org.opensearch.sql.spark.leasemanager.model.LeaseRequest;
 import org.opensearch.sql.spark.response.JobExecutionResponseReader;
 
+/**
+ * The handler for batch query. With batch query, queries are executed as single batch. The queries
+ * are sent along with job execution request ({@link StartJobRequest}) to spark.
+ */
 @RequiredArgsConstructor
 public class BatchQueryHandler extends AsyncQueryHandler {
   protected final EMRServerlessClient emrServerlessClient;
