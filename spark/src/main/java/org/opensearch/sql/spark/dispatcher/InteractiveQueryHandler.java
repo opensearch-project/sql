@@ -35,6 +35,12 @@ import org.opensearch.sql.spark.leasemanager.LeaseManager;
 import org.opensearch.sql.spark.leasemanager.model.LeaseRequest;
 import org.opensearch.sql.spark.response.JobExecutionResponseReader;
 
+/**
+ * The handler for interactive query. With interactive query, a session will be first established
+ * and then the session will be reused for the following queries(statements). Session is an
+ * abstraction of spark job, and once the job is started, the job will continuously poll the
+ * statements and execute query specified in it.
+ */
 @RequiredArgsConstructor
 public class InteractiveQueryHandler extends AsyncQueryHandler {
   private final SessionManager sessionManager;
