@@ -1,3 +1,8 @@
+/*
+ * Copyright OpenSearch Contributors
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
 package org.opensearch.sql.spark.execution.session;
 
 import static org.opensearch.sql.spark.constants.TestConstants.TEST_CLUSTER_NAME;
