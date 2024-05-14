@@ -225,7 +225,7 @@ public class AstDSL {
 
   public static UnresolvedExpression aggregate(
       String func, UnresolvedExpression field, UnresolvedExpression... args) {
-    return new AggregateFunction(func, field, Arrays.asList(args));
+    return new AggregateFunction(func, field, List.of(args));
   }
 
   public static UnresolvedExpression filteredAggregate(

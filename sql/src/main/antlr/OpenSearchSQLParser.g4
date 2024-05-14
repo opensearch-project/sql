@@ -470,6 +470,14 @@ aggregateFunction
    : functionName = aggregationFunctionName LR_BRACKET functionArg RR_BRACKET   # regularAggregateFunctionCall
    | COUNT LR_BRACKET STAR RR_BRACKET                                           # countStarFunctionCall
    | COUNT LR_BRACKET DISTINCT functionArg RR_BRACKET                           # distinctCountFunctionCall
+   | percentileFunction                                                         # percentileFunctionSpec
+   ;
+
+percentileFunction
+   : PERCENTILE LR_BRACKET functionArg COMMA quantile = decimalLiteral RR_BRACKET   # percentileFunctionCall
+   | (PERCENTILE_CONT | PERCENTILE_DISC) LR_BRACKET quantile = decimalLiteral RR_BRACKET
+       WITHIN GROUP LR_BRACKET ORDER BY orderByElement RR_BRACKET
+       (filterClause)? (overClause)?                                                # ansiPercentileFunctionCall
    ;
 
 filterClause
@@ -489,6 +497,9 @@ aggregationFunctionName
    | STDDEV
    | STDDEV_POP
    | STDDEV_SAMP
+   | PERCENTILE
+   | PERCENTILE_CONT
+   | PERCENTILE_DISC
    ;
 
 mathematicalFunctionName

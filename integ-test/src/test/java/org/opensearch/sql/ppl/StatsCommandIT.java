@@ -189,4 +189,23 @@ public class StatsCommandIT extends PPLIntegTestCase {
         response, schema("count()", null, "integer"), schema("age_bucket", null, "integer"));
     verifyDataRows(response, rows(1, 20), rows(6, 30));
   }
+
+  // TODO need fix below two unit tests
+  @Test
+  public void testStatsPercentile() throws IOException {
+    JSONObject response =
+        executeQuery(String.format("source=%s | stats percentile<50>(balance)", TEST_INDEX_BANK));
+    verifySchema(response, schema("percentile<50>(balance)", null, "long"));
+    verifyDataRows(response, rows(32838));
+  }
+
+  @Test
+  public void testStatsPercentileWithNull() throws IOException {
+    JSONObject response =
+        executeQuery(
+            String.format(
+                "source=%s | stats percentile<50>(balance)", TEST_INDEX_BANK_WITH_NULL_VALUES));
+    verifySchema(response, schema("percentile<50>(balance)", null, "long"));
+    verifyDataRows(response, rows(39225));
+  }
 }

@@ -337,9 +337,17 @@ public class AstExpressionBuilderTest extends AstBuilderTest {
         agg(
             relation("t"),
             exprList(
+                alias("percentile<1>(a)", aggregate("percentile", field("a"), doubleLiteral(1D)))),
+            emptyList(),
+            emptyList(),
+            defaultStatsArgs()));
+    assertEqual(
+        "source=t | stats percentile<1.0>(a)",
+        agg(
+            relation("t"),
+            exprList(
                 alias(
-                    "percentile<1>(a)",
-                    aggregate("percentile", field("a"), argument("rank", intLiteral(1))))),
+                    "percentile<1.0>(a)", aggregate("percentile", field("a"), doubleLiteral(1D)))),
             emptyList(),
             emptyList(),
             defaultStatsArgs()));
@@ -569,7 +577,8 @@ public class AstExpressionBuilderTest extends AstBuilderTest {
   @Test
   public void functionNameCanBeUsedAsIdentifier() {
     assertFunctionNameCouldBeId(
-        "AVG | COUNT | SUM | MIN | MAX | VAR_SAMP | VAR_POP | STDDEV_SAMP | STDDEV_POP");
+        "AVG | COUNT | SUM | MIN | MAX | VAR_SAMP | VAR_POP | STDDEV_SAMP | STDDEV_POP "
+            + "| PERCENTILE | PERCENTILE_CONT | PERCENTILE_DISC");
     assertFunctionNameCouldBeId(
         "CURRENT_DATE | CURRENT_TIME | CURRENT_TIMESTAMP | LOCALTIME | LOCALTIMESTAMP | "
             + "UTC_TIMESTAMP | UTC_DATE | UTC_TIME | CURDATE | CURTIME | NOW");

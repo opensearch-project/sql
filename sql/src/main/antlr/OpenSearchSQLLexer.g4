@@ -106,6 +106,7 @@ UNION:                              'UNION';
 USING:                              'USING';
 WHEN:                               'WHEN';
 WHERE:                              'WHERE';
+WITHIN:                             'WITHIN';
 
 
 // OD SQL special keyword
@@ -322,6 +323,9 @@ MULTI_MATCH:                        'MULTI_MATCH';
 MULTIMATCHQUERY:                    'MULTIMATCHQUERY';
 NESTED:                             'NESTED';
 PERCENTILES:                        'PERCENTILES';
+PERCENTILE:                         'PERCENTILE';
+PERCENTILE_CONT:                    'PERCENTILE_CONT';
+PERCENTILE_DISC:                    'PERCENTILE_DISC';
 REGEXP_QUERY:                       'REGEXP_QUERY';
 REVERSE_NESTED:                     'REVERSE_NESTED';
 QUERY:                              'QUERY';

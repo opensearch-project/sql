@@ -237,8 +237,13 @@ takeAggFunction
    ;
 
 percentileAggFunction
-   : PERCENTILE LESS value = integerLiteral GREATER LT_PRTHS aggField = fieldExpression RT_PRTHS
+   : PERCENTILE LESS quantile = numericLiteral GREATER LT_PRTHS aggField = valueExpression RT_PRTHS
+   | PERCENTILE LT_PRTHS valueExpression COMMA quantile = numericLiteral RT_PRTHS
    ;
+
+numericLiteral
+    : (integerLiteral | decimalLiteral)
+    ;
 
 // expressions
 expression

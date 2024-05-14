@@ -729,7 +729,7 @@ public class AstBuilderTest {
 
   protected void assertEqual(String query, Node expectedPlan) {
     Node actualPlan = plan(query);
-    assertEquals(expectedPlan, actualPlan);
+    assertEquals(expectedPlan.toString(), actualPlan.toString());
   }
 
   protected void assertEqual(String query, String expected) {

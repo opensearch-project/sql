@@ -735,6 +735,18 @@ public class DSL {
     return aggregate(BuiltinFunctionName.MAX, expressions);
   }
 
+  public static Aggregator percentile(Expression... expressions) {
+    return aggregate(BuiltinFunctionName.PERCENTILE, expressions);
+  }
+
+  public static Aggregator percentileDisc(Expression... expressions) {
+    return aggregate(BuiltinFunctionName.PERCENTILE_DISC, expressions);
+  }
+
+  public static Aggregator percentileCont(Expression... expressions) {
+    return aggregate(BuiltinFunctionName.PERCENTILE_CONT, expressions);
+  }
+
   private static Aggregator aggregate(BuiltinFunctionName functionName, Expression... expressions) {
     return compile(FunctionProperties.None, functionName, expressions);
   }

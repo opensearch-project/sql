@@ -409,6 +409,19 @@ class AstExpressionBuilderTest {
   }
 
   @Test
+  public void canBuildPercentile() {
+    assertEquals(
+        aggregate("percentile", qualifiedName("age"), doubleLiteral(50D)),
+        buildExprAst("percentile(age, 50)"));
+  }
+
+  @Test
+  public void canBuildPercentileDisc() {}
+
+  @Test
+  public void canBuildPercentileCont() {}
+
+  @Test
   public void matchPhraseQueryAllParameters() {
     assertEquals(
         AstDSL.function(

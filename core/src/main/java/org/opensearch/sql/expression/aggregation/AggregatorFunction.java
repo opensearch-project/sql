@@ -57,6 +57,9 @@ public class AggregatorFunction {
     repository.register(stddevSamp());
     repository.register(stddevPop());
     repository.register(take());
+    repository.register(percentile());
+    repository.register(percentileCont());
+    repository.register(percentileDisc());
   }
 
   private static DefaultFunctionResolver avg() {
@@ -232,6 +235,84 @@ public class AggregatorFunction {
                 .put(
                     new FunctionSignature(functionName, ImmutableList.of(STRING, INTEGER)),
                     (functionProperties, arguments) -> new TakeAggregator(arguments, ARRAY))
+                .build());
+    return functionResolver;
+  }
+
+  private static DefaultFunctionResolver percentile() {
+    FunctionName functionName = BuiltinFunctionName.PERCENTILE.getName();
+    DefaultFunctionResolver functionResolver =
+        new DefaultFunctionResolver(
+            functionName,
+            new ImmutableMap.Builder<FunctionSignature, FunctionBuilder>()
+                .put(
+                    new FunctionSignature(functionName, ImmutableList.of(INTEGER, DOUBLE)),
+                    (functionProperties, arguments) ->
+                        PercentileAggregator.percentile(arguments, INTEGER))
+                .put(
+                    new FunctionSignature(functionName, ImmutableList.of(LONG, DOUBLE)),
+                    (functionProperties, arguments) ->
+                        PercentileAggregator.percentile(arguments, LONG))
+                .put(
+                    new FunctionSignature(functionName, ImmutableList.of(FLOAT, DOUBLE)),
+                    (functionProperties, arguments) ->
+                        PercentileAggregator.percentile(arguments, FLOAT))
+                .put(
+                    new FunctionSignature(functionName, ImmutableList.of(DOUBLE, DOUBLE)),
+                    (functionProperties, arguments) ->
+                        PercentileAggregator.percentile(arguments, DOUBLE))
+                .build());
+    return functionResolver;
+  }
+
+  private static DefaultFunctionResolver percentileDisc() {
+    FunctionName functionName = BuiltinFunctionName.PERCENTILE_DISC.getName();
+    DefaultFunctionResolver functionResolver =
+        new DefaultFunctionResolver(
+            functionName,
+            new ImmutableMap.Builder<FunctionSignature, FunctionBuilder>()
+                .put(
+                    new FunctionSignature(functionName, ImmutableList.of(INTEGER, DOUBLE)),
+                    (functionProperties, arguments) ->
+                        PercentileAggregator.percentileDisc(arguments, INTEGER))
+                .put(
+                    new FunctionSignature(functionName, ImmutableList.of(LONG, DOUBLE)),
+                    (functionProperties, arguments) ->
+                        PercentileAggregator.percentileDisc(arguments, LONG))
+                .put(
+                    new FunctionSignature(functionName, ImmutableList.of(FLOAT, DOUBLE)),
+                    (functionProperties, arguments) ->
+                        PercentileAggregator.percentileDisc(arguments, FLOAT))
+                .put(
+                    new FunctionSignature(functionName, ImmutableList.of(DOUBLE, DOUBLE)),
+                    (functionProperties, arguments) ->
+                        PercentileAggregator.percentileDisc(arguments, DOUBLE))
+                .build());
+    return functionResolver;
+  }
+
+  private static DefaultFunctionResolver percentileCont() {
+    FunctionName functionName = BuiltinFunctionName.PERCENTILE_CONT.getName();
+    DefaultFunctionResolver functionResolver =
+        new DefaultFunctionResolver(
+            functionName,
+            new ImmutableMap.Builder<FunctionSignature, FunctionBuilder>()
+                .put(
+                    new FunctionSignature(functionName, ImmutableList.of(INTEGER, DOUBLE)),
+                    (functionProperties, arguments) ->
+                        PercentileAggregator.percentileCont(arguments, INTEGER))
+                .put(
+                    new FunctionSignature(functionName, ImmutableList.of(LONG, DOUBLE)),
+                    (functionProperties, arguments) ->
+                        PercentileAggregator.percentileCont(arguments, LONG))
+                .put(
+                    new FunctionSignature(functionName, ImmutableList.of(FLOAT, DOUBLE)),
+                    (functionProperties, arguments) ->
+                        PercentileAggregator.percentileCont(arguments, FLOAT))
+                .put(
+                    new FunctionSignature(functionName, ImmutableList.of(DOUBLE, DOUBLE)),
+                    (functionProperties, arguments) ->
+                        PercentileAggregator.percentileCont(arguments, DOUBLE))
                 .build());
     return functionResolver;
   }

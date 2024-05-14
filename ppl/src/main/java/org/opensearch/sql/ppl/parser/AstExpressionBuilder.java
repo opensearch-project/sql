@@ -45,7 +45,6 @@ import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.WcFieldExp
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -57,7 +56,6 @@ import org.opensearch.sql.ast.expression.AggregateFunction;
 import org.opensearch.sql.ast.expression.Alias;
 import org.opensearch.sql.ast.expression.AllFields;
 import org.opensearch.sql.ast.expression.And;
-import org.opensearch.sql.ast.expression.Argument;
 import org.opensearch.sql.ast.expression.Cast;
 import org.opensearch.sql.ast.expression.Compare;
 import org.opensearch.sql.ast.expression.DataType;
@@ -187,7 +185,7 @@ public class AstExpressionBuilder extends OpenSearchPPLParserBaseVisitor<Unresol
     return new AggregateFunction(
         ctx.PERCENTILE().getText(),
         visit(ctx.aggField),
-        Collections.singletonList(new Argument("rank", (Literal) visit(ctx.value))));
+        List.of(AstDSL.doubleLiteral(Double.valueOf(ctx.quantile.getText()))));
   }
 
   @Override
