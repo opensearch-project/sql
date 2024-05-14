@@ -188,6 +188,7 @@ VAR_POP:                            'VAR_POP';
 STDDEV_SAMP:                        'STDDEV_SAMP';
 STDDEV_POP:                         'STDDEV_POP';
 PERCENTILE:                         'PERCENTILE';
+PERCENTILE_APPROX:                  'PERCENTILE_APPROX';
 TAKE:                               'TAKE';
 FIRST:                              'FIRST';
 LAST:                               'LAST';
