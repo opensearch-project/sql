@@ -44,7 +44,7 @@ apply plugin: 'java'
 apply plugin: 'io.freefair.lombok'
 apply plugin: 'com.wiredforcode.spawn'
 
-String baseVersion = System.getProperty("bwc.version.previous", "2.4.0.0")
+String baseVersion = System.getProperty("tests.bwc.version", "2.15.0")
 String bwcVersion = baseVersion + ".0";
 String baseName = "sqlBwcCluster"
 String bwcFilePath = "src/test/resources/bwc/"
