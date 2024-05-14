@@ -9,9 +9,7 @@ import java.util.Optional;
 import org.opensearch.sql.spark.execution.session.SessionModel;
 import org.opensearch.sql.spark.execution.session.SessionState;
 
-/**
- * Interface for accessing {@link SessionModel} data storage.
- */
+/** Interface for accessing {@link SessionModel} data storage. */
 public interface SessionStorageService {
 
   SessionModel createSession(SessionModel sessionModel, String datasourceName);
