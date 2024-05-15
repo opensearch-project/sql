@@ -16,7 +16,7 @@ public class CreateSessionRequest {
   private final String clusterName;
   private final String applicationId;
   private final String executionRoleArn;
-  private final SparkSubmitParameters.Builder sparkSubmitParametersBuilder;
+  private final SparkSubmitParameters sparkSubmitParameters;
   private final Map<String, String> tags;
   private final String resultIndex;
   private final String datasourceName;
@@ -26,7 +26,7 @@ public class CreateSessionRequest {
         clusterName + ":" + JobType.INTERACTIVE.getText() + ":" + sessionId,
         applicationId,
         executionRoleArn,
-        sparkSubmitParametersBuilder.build().toString(),
+        sparkSubmitParameters.toString(),
         tags,
         resultIndex);
   }
