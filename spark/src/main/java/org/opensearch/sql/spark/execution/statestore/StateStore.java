@@ -49,7 +49,6 @@ import org.opensearch.index.query.QueryBuilder;
 import org.opensearch.index.query.QueryBuilders;
 import org.opensearch.search.builder.SearchSourceBuilder;
 import org.opensearch.sql.spark.asyncquery.model.AsyncQueryJobMetadata;
-import org.opensearch.sql.spark.dispatcher.model.IndexDMLResult;
 import org.opensearch.sql.spark.execution.session.SessionModel;
 import org.opensearch.sql.spark.execution.session.SessionState;
 import org.opensearch.sql.spark.execution.session.SessionType;
@@ -250,55 +249,6 @@ public class StateStore {
     return IOUtils.toString(fileStream, StandardCharsets.UTF_8);
   }
 
-  /** Helper Functions */
-  public static Function<StatementModel, StatementModel> createStatement(
-      StateStore stateStore, String datasourceName) {
-    return (st) ->
-        stateStore.create(
-            st, StatementModel::copy, DATASOURCE_TO_REQUEST_INDEX.apply(datasourceName));
-  }
-
-  public static Function<String, Optional<StatementModel>> getStatement(
-      StateStore stateStore, String datasourceName) {
-    return (docId) ->
-        stateStore.get(
-            docId, StatementModel::fromXContent, DATASOURCE_TO_REQUEST_INDEX.apply(datasourceName));
-  }
-
-  public static BiFunction<StatementModel, StatementState, StatementModel> updateStatementState(
-      StateStore stateStore, String datasourceName) {
-    return (old, state) ->
-        stateStore.updateState(
-            old,
-            state,
-            StatementModel::copyWithState,
-            DATASOURCE_TO_REQUEST_INDEX.apply(datasourceName));
-  }
-
-  public static Function<SessionModel, SessionModel> createSession(
-      StateStore stateStore, String datasourceName) {
-    return (session) ->
-        stateStore.create(
-            session, SessionModel::of, DATASOURCE_TO_REQUEST_INDEX.apply(datasourceName));
-  }
-
-  public static Function<String, Optional<SessionModel>> getSession(
-      StateStore stateStore, String datasourceName) {
-    return (docId) ->
-        stateStore.get(
-            docId, SessionModel::fromXContent, DATASOURCE_TO_REQUEST_INDEX.apply(datasourceName));
-  }
-
-  public static BiFunction<SessionModel, SessionState, SessionModel> updateSessionState(
-      StateStore stateStore, String datasourceName) {
-    return (old, state) ->
-        stateStore.updateState(
-            old,
-            state,
-            SessionModel::copyWithState,
-            DATASOURCE_TO_REQUEST_INDEX.apply(datasourceName));
-  }
-
   public static Function<AsyncQueryJobMetadata, AsyncQueryJobMetadata> createJobMetaData(
       StateStore stateStore, String datasourceName) {
     return (jobMetadata) ->
@@ -339,37 +289,6 @@ public class StateStore {
             state,
             FlintIndexStateModel::copyWithState,
             DATASOURCE_TO_REQUEST_INDEX.apply(datasourceName));
-  }
-
-  public static Function<String, Optional<FlintIndexStateModel>> getFlintIndexState(
-      StateStore stateStore, String datasourceName) {
-    return (docId) ->
-        stateStore.get(
-            docId,
-            FlintIndexStateModel::fromXContent,
-            DATASOURCE_TO_REQUEST_INDEX.apply(datasourceName));
-  }
-
-  public static Function<FlintIndexStateModel, FlintIndexStateModel> createFlintIndexState(
-      StateStore stateStore, String datasourceName) {
-    return (st) ->
-        stateStore.create(
-            st, FlintIndexStateModel::copy, DATASOURCE_TO_REQUEST_INDEX.apply(datasourceName));
-  }
-
-  /**
-   * @param stateStore index state store
-   * @param datasourceName data source name
-   * @return function that accepts index state doc ID and perform the deletion
-   */
-  public static Function<String, Boolean> deleteFlintIndexState(
-      StateStore stateStore, String datasourceName) {
-    return (docId) -> stateStore.delete(docId, DATASOURCE_TO_REQUEST_INDEX.apply(datasourceName));
-  }
-
-  public static Function<IndexDMLResult, IndexDMLResult> createIndexDMLResult(
-      StateStore stateStore, String indexName) {
-    return (result) -> stateStore.create(result, IndexDMLResult::copy, indexName);
   }
 
   public static Supplier<Long> activeRefreshJobCount(StateStore stateStore, String datasourceName) {

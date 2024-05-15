@@ -28,7 +28,11 @@ import org.opensearch.sql.spark.config.SparkExecutionEngineConfigSupplierImpl;
 import org.opensearch.sql.spark.dispatcher.QueryHandlerFactory;
 import org.opensearch.sql.spark.dispatcher.SparkQueryDispatcher;
 import org.opensearch.sql.spark.execution.session.SessionManager;
+import org.opensearch.sql.spark.execution.statestore.OpenSearchSessionStorageService;
+import org.opensearch.sql.spark.execution.statestore.OpenSearchStatementStorageService;
+import org.opensearch.sql.spark.execution.statestore.SessionStorageService;
 import org.opensearch.sql.spark.execution.statestore.StateStore;
+import org.opensearch.sql.spark.execution.statestore.StatementStorageService;
 import org.opensearch.sql.spark.flint.FlintIndexMetadataServiceImpl;
 import org.opensearch.sql.spark.flint.FlintIndexStateModelService;
 import org.opensearch.sql.spark.flint.IndexDMLResultStorageService;
@@ -119,10 +123,22 @@ public class AsyncExecutorServiceModule extends AbstractModule {
 
   @Provides
   public SessionManager sessionManager(
-      StateStore stateStore,
+      SessionStorageService sessionStorageService,
+      StatementStorageService statementStorageService,
       EMRServerlessClientFactory emrServerlessClientFactory,
       Settings settings) {
-    return new SessionManager(stateStore, emrServerlessClientFactory, settings);
+    return new SessionManager(
+        sessionStorageService, statementStorageService, emrServerlessClientFactory, settings);
+  }
+
+  @Provides
+  public SessionStorageService sessionStorageService(StateStore stateStore) {
+    return new OpenSearchSessionStorageService(stateStore);
+  }
+
+  @Provides
+  public StatementStorageService statementStorageService(StateStore stateStore) {
+    return new OpenSearchStatementStorageService(stateStore);
   }
 
   @Provides

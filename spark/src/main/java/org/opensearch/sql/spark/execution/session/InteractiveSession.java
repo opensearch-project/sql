@@ -10,8 +10,6 @@ import static org.opensearch.sql.spark.execution.session.SessionState.DEAD;
 import static org.opensearch.sql.spark.execution.session.SessionState.END_STATE;
 import static org.opensearch.sql.spark.execution.session.SessionState.FAIL;
 import static org.opensearch.sql.spark.execution.statement.StatementId.newStatementId;
-import static org.opensearch.sql.spark.execution.statestore.StateStore.createSession;
-import static org.opensearch.sql.spark.execution.statestore.StateStore.getSession;
 
 import java.util.Optional;
 import lombok.Builder;
@@ -24,7 +22,8 @@ import org.opensearch.sql.spark.client.StartJobRequest;
 import org.opensearch.sql.spark.execution.statement.QueryRequest;
 import org.opensearch.sql.spark.execution.statement.Statement;
 import org.opensearch.sql.spark.execution.statement.StatementId;
-import org.opensearch.sql.spark.execution.statestore.StateStore;
+import org.opensearch.sql.spark.execution.statestore.SessionStorageService;
+import org.opensearch.sql.spark.execution.statestore.StatementStorageService;
 import org.opensearch.sql.spark.rest.model.LangType;
 import org.opensearch.sql.spark.utils.TimeProvider;
 
@@ -41,7 +40,8 @@ public class InteractiveSession implements Session {
   public static final String SESSION_ID_TAG_KEY = "sid";
 
   private final SessionId sessionId;
-  private final StateStore stateStore;
+  private final SessionStorageService sessionStorageService;
+  private final StatementStorageService statementStorageService;
   private final EMRServerlessClient serverlessClient;
   private SessionModel sessionModel;
   // the threshold of elapsed time in milliseconds before we say a session is stale
@@ -64,7 +64,7 @@ public class InteractiveSession implements Session {
       sessionModel =
           initInteractiveSession(
               applicationId, jobID, sessionId, createSessionRequest.getDatasourceName());
-      createSession(stateStore, sessionModel.getDatasourceName()).apply(sessionModel);
+      sessionStorageService.createSession(sessionModel, sessionModel.getDatasourceName());
     } catch (VersionConflictEngineException e) {
       String errorMsg = "session already exist. " + sessionId;
       LOG.error(errorMsg);
@@ -76,7 +76,7 @@ public class InteractiveSession implements Session {
   @Override
   public void close() {
     Optional<SessionModel> model =
-        getSession(stateStore, sessionModel.getDatasourceName()).apply(sessionModel.getId());
+        sessionStorageService.getSession(sessionModel.getId(), sessionModel.getDatasourceName());
     if (model.isEmpty()) {
       throw new IllegalStateException("session does not exist. " + sessionModel.getSessionId());
     } else {
@@ -88,7 +88,7 @@ public class InteractiveSession implements Session {
   /** Submit statement. If submit successfully, Statement in waiting state. */
   public StatementId submit(QueryRequest request) {
     Optional<SessionModel> model =
-        getSession(stateStore, sessionModel.getDatasourceName()).apply(sessionModel.getId());
+        sessionStorageService.getSession(sessionModel.getId(), sessionModel.getDatasourceName());
     if (model.isEmpty()) {
       throw new IllegalStateException("session does not exist. " + sessionModel.getSessionId());
     } else {
@@ -101,7 +101,7 @@ public class InteractiveSession implements Session {
                 .sessionId(sessionId)
                 .applicationId(sessionModel.getApplicationId())
                 .jobId(sessionModel.getJobId())
-                .stateStore(stateStore)
+                .statementStorageService(statementStorageService)
                 .statementId(statementId)
                 .langType(LangType.SQL)
                 .datasourceName(sessionModel.getDatasourceName())
@@ -124,8 +124,8 @@ public class InteractiveSession implements Session {
 
   @Override
   public Optional<Statement> get(StatementId stID) {
-    return StateStore.getStatement(stateStore, sessionModel.getDatasourceName())
-        .apply(stID.getId())
+    return statementStorageService
+        .getStatement(stID.getId(), sessionModel.getDatasourceName())
         .map(
             model ->
                 Statement.builder()
@@ -136,7 +136,7 @@ public class InteractiveSession implements Session {
                     .langType(model.getLangType())
                     .query(model.getQuery())
                     .queryId(model.getQueryId())
-                    .stateStore(stateStore)
+                    .statementStorageService(statementStorageService)
                     .statementModel(model)
                     .build());
   }
