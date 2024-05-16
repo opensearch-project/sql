@@ -21,6 +21,7 @@ import org.json.JSONObject;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -43,11 +44,22 @@ import org.opensearch.sql.spark.rest.model.LangType;
 @ExtendWith(MockitoExtension.class)
 class IndexDMLHandlerTest {
 
+  private static final String QUERY_ID = "QUERY_ID";
   @Mock private JobExecutionResponseReader jobExecutionResponseReader;
   @Mock private FlintIndexMetadataService flintIndexMetadataService;
   @Mock private IndexDMLResultStorageService indexDMLResultStorageService;
   @Mock private FlintIndexOpFactory flintIndexOpFactory;
   @Mock private SparkSubmitParameterModifier sparkSubmitParameterModifier;
+
+  @InjectMocks IndexDMLHandler indexDMLHandler;
+
+  private static final DataSourceMetadata metadata =
+      new DataSourceMetadata.Builder()
+          .setName("mys3")
+          .setDescription("test description")
+          .setConnector(DataSourceType.S3GLUE)
+          .setDataSourceStatus(ACTIVE)
+          .build();
 
   @Test
   public void getResponseFromExecutor() {
@@ -59,28 +71,7 @@ class IndexDMLHandlerTest {
 
   @Test
   public void testWhenIndexDetailsAreNotFound() {
-    IndexDMLHandler indexDMLHandler =
-        new IndexDMLHandler(
-            jobExecutionResponseReader,
-            flintIndexMetadataService,
-            indexDMLResultStorageService,
-            flintIndexOpFactory);
-    DispatchQueryRequest dispatchQueryRequest =
-        new DispatchQueryRequest(
-            EMRS_APPLICATION_ID,
-            "DROP INDEX",
-            "my_glue",
-            LangType.SQL,
-            EMRS_EXECUTION_ROLE,
-            TEST_CLUSTER_NAME,
-            sparkSubmitParameterModifier);
-    DataSourceMetadata metadata =
-        new DataSourceMetadata.Builder()
-            .setName("mys3")
-            .setDescription("test description")
-            .setConnector(DataSourceType.S3GLUE)
-            .setDataSourceStatus(ACTIVE)
-            .build();
+    DispatchQueryRequest dispatchQueryRequest = getDispatchQueryRequest("DROP INDEX");
     IndexQueryDetails indexQueryDetails =
         IndexQueryDetails.builder()
             .mvName("mys3.default.http_logs_metrics")
@@ -88,6 +79,7 @@ class IndexDMLHandlerTest {
             .build();
     DispatchQueryContext dispatchQueryContext =
         DispatchQueryContext.builder()
+            .queryId(QUERY_ID)
             .dataSourceMetadata(metadata)
             .indexQueryDetails(indexQueryDetails)
             .build();
@@ -103,28 +95,7 @@ class IndexDMLHandlerTest {
   @Test
   public void testWhenIndexDetailsWithInvalidQueryActionType() {
     FlintIndexMetadata flintIndexMetadata = mock(FlintIndexMetadata.class);
-    IndexDMLHandler indexDMLHandler =
-        new IndexDMLHandler(
-            jobExecutionResponseReader,
-            flintIndexMetadataService,
-            indexDMLResultStorageService,
-            flintIndexOpFactory);
-    DispatchQueryRequest dispatchQueryRequest =
-        new DispatchQueryRequest(
-            EMRS_APPLICATION_ID,
-            "CREATE INDEX",
-            "my_glue",
-            LangType.SQL,
-            EMRS_EXECUTION_ROLE,
-            TEST_CLUSTER_NAME,
-            sparkSubmitParameterModifier);
-    DataSourceMetadata metadata =
-        new DataSourceMetadata.Builder()
-            .setName("mys3")
-            .setDescription("test description")
-            .setConnector(DataSourceType.S3GLUE)
-            .setDataSourceStatus(ACTIVE)
-            .build();
+    DispatchQueryRequest dispatchQueryRequest = getDispatchQueryRequest("CREATE INDEX");
     IndexQueryDetails indexQueryDetails =
         IndexQueryDetails.builder()
             .mvName("mys3.default.http_logs_metrics")
@@ -133,6 +104,7 @@ class IndexDMLHandlerTest {
             .build();
     DispatchQueryContext dispatchQueryContext =
         DispatchQueryContext.builder()
+            .queryId(QUERY_ID)
             .dataSourceMetadata(metadata)
             .indexQueryDetails(indexQueryDetails)
             .build();
@@ -142,6 +114,17 @@ class IndexDMLHandlerTest {
         .thenReturn(flintMetadataMap);
 
     indexDMLHandler.submit(dispatchQueryRequest, dispatchQueryContext);
+  }
+
+  private DispatchQueryRequest getDispatchQueryRequest(String query) {
+    return new DispatchQueryRequest(
+        EMRS_APPLICATION_ID,
+        query,
+        "my_glue",
+        LangType.SQL,
+        EMRS_EXECUTION_ROLE,
+        TEST_CLUSTER_NAME,
+        sparkSubmitParameterModifier);
   }
 
   @Test

@@ -25,7 +25,9 @@ import org.opensearch.sql.spark.client.EMRServerlessClientFactory;
 import org.opensearch.sql.spark.client.EMRServerlessClientFactoryImpl;
 import org.opensearch.sql.spark.config.SparkExecutionEngineConfigSupplier;
 import org.opensearch.sql.spark.config.SparkExecutionEngineConfigSupplierImpl;
+import org.opensearch.sql.spark.dispatcher.DatasourceEmbeddedQueryIdProvider;
 import org.opensearch.sql.spark.dispatcher.QueryHandlerFactory;
+import org.opensearch.sql.spark.dispatcher.QueryIdProvider;
 import org.opensearch.sql.spark.dispatcher.SparkQueryDispatcher;
 import org.opensearch.sql.spark.execution.session.SessionManager;
 import org.opensearch.sql.spark.execution.statestore.OpenSearchSessionStorageService;
@@ -82,8 +84,15 @@ public class AsyncExecutorServiceModule extends AbstractModule {
   public SparkQueryDispatcher sparkQueryDispatcher(
       DataSourceService dataSourceService,
       SessionManager sessionManager,
-      QueryHandlerFactory queryHandlerFactory) {
-    return new SparkQueryDispatcher(dataSourceService, sessionManager, queryHandlerFactory);
+      QueryHandlerFactory queryHandlerFactory,
+      QueryIdProvider queryIdProvider) {
+    return new SparkQueryDispatcher(
+        dataSourceService, sessionManager, queryHandlerFactory, queryIdProvider);
+  }
+
+  @Provides
+  public QueryIdProvider queryIdProvider() {
+    return new DatasourceEmbeddedQueryIdProvider();
   }
 
   @Provides

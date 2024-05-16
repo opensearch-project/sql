@@ -21,7 +21,7 @@ import org.opensearch.sql.spark.execution.statestore.StateModel;
 @SuperBuilder
 @EqualsAndHashCode(callSuper = false)
 public class AsyncQueryJobMetadata extends StateModel {
-  private final AsyncQueryId queryId;
+  private final String queryId;
   private final String applicationId;
   private final String jobId;
   private final String resultIndex;
@@ -59,6 +59,6 @@ public class AsyncQueryJobMetadata extends StateModel {
 
   @Override
   public String getId() {
-    return queryId.docId();
+    return "qid" + queryId;
   }
 }

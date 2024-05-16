@@ -58,6 +58,7 @@ import org.opensearch.sql.spark.client.EMRServerlessClientFactory;
 import org.opensearch.sql.spark.client.StartJobRequest;
 import org.opensearch.sql.spark.config.OpenSearchSparkSubmitParameterModifier;
 import org.opensearch.sql.spark.config.SparkExecutionEngineConfig;
+import org.opensearch.sql.spark.dispatcher.DatasourceEmbeddedQueryIdProvider;
 import org.opensearch.sql.spark.dispatcher.QueryHandlerFactory;
 import org.opensearch.sql.spark.dispatcher.SparkQueryDispatcher;
 import org.opensearch.sql.spark.execution.session.SessionManager;
@@ -262,7 +263,8 @@ public class AsyncQueryExecutorServiceSpec extends OpenSearchIntegTestCase {
                 statementStorageService,
                 emrServerlessClientFactory,
                 pluginSettings),
-            queryHandlerFactory);
+            queryHandlerFactory,
+            new DatasourceEmbeddedQueryIdProvider());
     return new AsyncQueryExecutorServiceImpl(
         asyncQueryJobMetadataStorageService,
         sparkQueryDispatcher,

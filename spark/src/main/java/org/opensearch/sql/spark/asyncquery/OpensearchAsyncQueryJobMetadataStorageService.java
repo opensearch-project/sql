@@ -31,11 +31,10 @@ public class OpensearchAsyncQueryJobMetadataStorageService
 
   @Override
   public void storeJobMetadata(AsyncQueryJobMetadata asyncQueryJobMetadata) {
-    AsyncQueryId queryId = asyncQueryJobMetadata.getQueryId();
     stateStore.create(
         asyncQueryJobMetadata,
         AsyncQueryJobMetadata::copy,
-        OpenSearchStateStoreUtil.getIndexName(queryId.getDataSourceName()));
+        OpenSearchStateStoreUtil.getIndexName(asyncQueryJobMetadata.getDatasourceName()));
   }
 
   @Override

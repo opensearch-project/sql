@@ -63,7 +63,7 @@ public class AsyncQueryExecutorServiceImpl implements AsyncQueryExecutorService 
             .indexName(dispatchQueryResponse.getIndexName())
             .build());
     return new CreateAsyncQueryResponse(
-        dispatchQueryResponse.getQueryId().getId(), dispatchQueryResponse.getSessionId());
+        dispatchQueryResponse.getQueryId(), dispatchQueryResponse.getSessionId());
   }
 
   @Override

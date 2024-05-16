@@ -40,15 +40,16 @@ public class OpensearchAsyncQueryAsyncQueryJobMetadataStorageServiceTest
   public void testStoreJobMetadata() {
     AsyncQueryJobMetadata expected =
         AsyncQueryJobMetadata.builder()
-            .queryId(AsyncQueryId.newAsyncQueryId(DS_NAME))
+            .queryId(AsyncQueryId.newAsyncQueryId(DS_NAME).getId())
             .jobId(EMR_JOB_ID)
             .applicationId(EMRS_APPLICATION_ID)
             .resultIndex(MOCK_RESULT_INDEX)
+            .datasourceName(DS_NAME)
             .build();
 
     opensearchJobMetadataStorageService.storeJobMetadata(expected);
     Optional<AsyncQueryJobMetadata> actual =
-        opensearchJobMetadataStorageService.getJobMetadata(expected.getQueryId().getId());
+        opensearchJobMetadataStorageService.getJobMetadata(expected.getQueryId());
 
     assertTrue(actual.isPresent());
     assertEquals(expected, actual.get());
@@ -60,16 +61,17 @@ public class OpensearchAsyncQueryAsyncQueryJobMetadataStorageServiceTest
   public void testStoreJobMetadataWithResultExtraData() {
     AsyncQueryJobMetadata expected =
         AsyncQueryJobMetadata.builder()
-            .queryId(AsyncQueryId.newAsyncQueryId(DS_NAME))
+            .queryId(AsyncQueryId.newAsyncQueryId(DS_NAME).getId())
             .jobId(EMR_JOB_ID)
             .applicationId(EMRS_APPLICATION_ID)
             .resultIndex(MOCK_RESULT_INDEX)
             .sessionId(MOCK_SESSION_ID)
+            .datasourceName(DS_NAME)
             .build();
 
     opensearchJobMetadataStorageService.storeJobMetadata(expected);
     Optional<AsyncQueryJobMetadata> actual =
-        opensearchJobMetadataStorageService.getJobMetadata(expected.getQueryId().getId());
+        opensearchJobMetadataStorageService.getJobMetadata(expected.getQueryId());
 
     assertTrue(actual.isPresent());
     assertEquals(expected, actual.get());
