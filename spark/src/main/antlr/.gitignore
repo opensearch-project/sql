@@ -1,0 +1,2 @@
+# .g4 files are downloaded from other repositories during build
+*.g4

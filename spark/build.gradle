@@ -17,13 +17,19 @@ repositories {
 tasks.register('downloadG4Files', Exec) {
     description = 'Download remote .g4 files from GitHub'
 
-    executable 'curl'
+    // use doLast to wait the completion of command execution
+    doLast {
+        project.exec {
+            executable 'curl'
 
-    args '-o', 'src/main/antlr/FlintSparkSqlExtensions.g4', 'https://raw.githubusercontent.com/opensearch-project/opensearch-spark/main/flint-spark-integration/src/main/antlr4/FlintSparkSqlExtensions.g4'
-    args '-o', 'src/main/antlr/SparkSqlBase.g4', 'https://raw.githubusercontent.com/opensearch-project/opensearch-spark/main/flint-spark-integration/src/main/antlr4/SparkSqlBase.g4'
-    args '-o', 'src/main/antlr/SqlBaseParser.g4', 'https://raw.githubusercontent.com/apache/spark/master/sql/api/src/main/antlr4/org/apache/spark/sql/catalyst/parser/SqlBaseParser.g4'
-    args '-o', 'src/main/antlr/SqlBaseLexer.g4', 'https://raw.githubusercontent.com/apache/spark/master/sql/api/src/main/antlr4/org/apache/spark/sql/catalyst/parser/SqlBaseLexer.g4'
+            args '-o', 'src/main/antlr/FlintSparkSqlExtensions.g4', 'https://raw.githubusercontent.com/opensearch-project/opensearch-spark/main/flint-spark-integration/src/main/antlr4/FlintSparkSqlExtensions.g4'
+            args '-o', 'src/main/antlr/SparkSqlBase.g4', 'https://raw.githubusercontent.com/opensearch-project/opensearch-spark/main/flint-spark-integration/src/main/antlr4/SparkSqlBase.g4'
+            args '-o', 'src/main/antlr/SqlBaseParser.g4', 'https://raw.githubusercontent.com/apache/spark/master/sql/api/src/main/antlr4/org/apache/spark/sql/catalyst/parser/SqlBaseParser.g4'
+            args '-o', 'src/main/antlr/SqlBaseLexer.g4', 'https://raw.githubusercontent.com/apache/spark/master/sql/api/src/main/antlr4/org/apache/spark/sql/catalyst/parser/SqlBaseLexer.g4'
+        }
+    }
 }
+clean.delete fileTree('src/main/antlr/') { include '*.g4' }
 
 generateGrammarSource {
     arguments += ['-visitor', '-package', 'org.opensearch.sql.spark.antlr.parser']
@@ -38,6 +44,8 @@ configurations {
 
 // Make sure the downloadG4File task runs before the generateGrammarSource task
 generateGrammarSource.dependsOn downloadG4Files
+
+compileJava.dependsOn generateGrammarSource
 
 dependencies {
     antlr "org.antlr:antlr4:4.7.1"
