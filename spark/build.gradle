@@ -14,7 +14,7 @@ repositories {
     mavenCentral()
 }
 
-tasks.register('downloadG4Files', Exec) {
+tasks.register('downloadG4Files') {
     description = 'Download remote .g4 files from GitHub'
 
     // use doLast to wait the completion of command execution
@@ -27,6 +27,11 @@ tasks.register('downloadG4Files', Exec) {
             args '-o', 'src/main/antlr/SqlBaseParser.g4', 'https://raw.githubusercontent.com/apache/spark/master/sql/api/src/main/antlr4/org/apache/spark/sql/catalyst/parser/SqlBaseParser.g4'
             args '-o', 'src/main/antlr/SqlBaseLexer.g4', 'https://raw.githubusercontent.com/apache/spark/master/sql/api/src/main/antlr4/org/apache/spark/sql/catalyst/parser/SqlBaseLexer.g4'
         }
+        project.exec {
+            executable 'ls'
+
+            args '-l', 'src/main/antlr/'
+        }
     }
 }
 clean.delete fileTree('src/main/antlr/') { include '*.g4' }
@@ -36,6 +41,19 @@ generateGrammarSource {
     source = sourceSets.main.antlr
     outputDirectory = file("build/generated-src/antlr/main/org/opensearch/sql/spark/antlr/parser")
 }
+tasks.register('checkGrammarSource') {
+    description = 'temporal'
+
+    doLast {
+        project.exec {
+            executable 'ls'
+
+            args '-l', 'build/generated-src/antlr/main/org/opensearch/sql/spark/antlr/parser'
+        }
+    }
+}
+compileJava.dependsOn checkGrammarSource
+
 configurations {
     compile {
         extendsFrom = extendsFrom.findAll { it != configurations.antlr }
@@ -44,8 +62,6 @@ configurations {
 
 // Make sure the downloadG4File task runs before the generateGrammarSource task
 generateGrammarSource.dependsOn downloadG4Files
-
-compileJava.dependsOn generateGrammarSource
 
 dependencies {
     antlr "org.antlr:antlr4:4.7.1"
