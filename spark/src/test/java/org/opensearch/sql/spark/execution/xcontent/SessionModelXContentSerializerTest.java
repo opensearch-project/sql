@@ -27,7 +27,6 @@ class SessionModelXContentSerializerTest {
 
   @Test
   void toXContentShouldSerializeSessionModel() throws Exception {
-    // Given
     SessionModel sessionModel =
         SessionModel.builder()
             .version("1.0")
@@ -41,11 +40,9 @@ class SessionModelXContentSerializerTest {
             .error(null)
             .build();
 
-    // When
     XContentBuilder xContentBuilder = serializer.toXContent(sessionModel, ToXContent.EMPTY_PARAMS);
-    String json = xContentBuilder.toString();
 
-    // Then
+    String json = xContentBuilder.toString();
     assertEquals(true, json.contains("\"version\":\"1.0\""));
     assertEquals(true, json.contains("\"type\":\"session\""));
     assertEquals(true, json.contains("\"sessionType\":\"interactive\""));
@@ -58,7 +55,6 @@ class SessionModelXContentSerializerTest {
 
   @Test
   void fromXContentShouldDeserializeSessionModel() throws Exception {
-    // Given
     String json =
         "{\n"
             + "  \"version\": \"1.0\",\n"
@@ -78,10 +74,8 @@ class SessionModelXContentSerializerTest {
             .createParser(NamedXContentRegistry.EMPTY, LoggingDeprecationHandler.INSTANCE, json);
     parser.nextToken();
 
-    // When
     SessionModel sessionModel = serializer.fromXContent(parser, 1L, 1L);
 
-    // Then
     assertEquals("1.0", sessionModel.getVersion());
     assertEquals(SessionType.INTERACTIVE, sessionModel.getSessionType());
     assertEquals("session1", sessionModel.getSessionId().getSessionId());
