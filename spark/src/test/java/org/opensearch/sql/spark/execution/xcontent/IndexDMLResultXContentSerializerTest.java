@@ -38,15 +38,12 @@ class IndexDMLResultXContentSerializerTest {
 
   @Test
   void toXContentShouldHandleErrorInIndexDMLResult() throws IOException {
-    // Given
     IndexDMLResult dmlResult =
         new IndexDMLResult("query1", "FAILURE", "An error occurred", "datasource1", 1000L, 2000L);
 
-    // When
     XContentBuilder xContentBuilder = serializer.toXContent(dmlResult, ToXContent.EMPTY_PARAMS);
-    String json = xContentBuilder.toString();
 
-    // Then
+    String json = xContentBuilder.toString();
     assertTrue(json.contains("\"queryId\":\"query1\""));
     assertTrue(json.contains("\"status\":\"FAILURE\""));
     assertTrue(json.contains("\"error\":\"An error occurred\""));
@@ -59,7 +56,6 @@ class IndexDMLResultXContentSerializerTest {
 
   @Test
   void fromXContentShouldThrowUnsupportedOperationException() {
-    // When/Then
     assertThrows(UnsupportedOperationException.class, () -> serializer.fromXContent(null, 0L, 0L));
   }
 }

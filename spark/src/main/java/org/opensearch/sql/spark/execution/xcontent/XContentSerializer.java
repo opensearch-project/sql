@@ -11,7 +11,7 @@ import org.opensearch.core.xcontent.XContentBuilder;
 import org.opensearch.core.xcontent.XContentParser;
 import org.opensearch.sql.spark.execution.statestore.StateModel;
 
-/** Interface for XContentSerializer */
+/** Interface for XContentSerializer, which serialize/deserialize XContent */
 public interface XContentSerializer<T extends StateModel> {
 
   /**
