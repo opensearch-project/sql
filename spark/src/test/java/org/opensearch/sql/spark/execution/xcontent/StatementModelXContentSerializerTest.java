@@ -31,9 +31,7 @@ class StatementModelXContentSerializerTest {
 
   @Test
   void toXContentShouldSerializeStatementModel() throws Exception {
-
     serializer = new StatementModelXContentSerializer();
-    // Given
     StatementModel statementModel =
         StatementModel.builder()
             .version("1.0")
@@ -50,11 +48,10 @@ class StatementModelXContentSerializerTest {
             .error(null)
             .build();
 
-    // When
     XContentBuilder xContentBuilder =
         serializer.toXContent(statementModel, ToXContent.EMPTY_PARAMS);
-    String json = xContentBuilder.toString();
 
+    String json = xContentBuilder.toString();
     assertEquals(true, json.contains("\"version\":\"1.0\""));
     assertEquals(true, json.contains("\"state\":\"running\""));
     assertEquals(true, json.contains("\"statementId\":\"statement1\""));
@@ -63,7 +60,6 @@ class StatementModelXContentSerializerTest {
   @Test
   void fromXContentShouldDeserializeStatementModel() throws Exception {
     StatementModelXContentSerializer serializer = new StatementModelXContentSerializer();
-    // Given
     String json =
         "{\"version\":\"1.0\",\"type\":\"statement\",\"state\":\"running\",\"statementId\":\"statement1\",\"sessionId\":\"session1\",\"applicationId\":\"app1\",\"jobId\":\"job1\",\"lang\":\"SQL\",\"dataSourceName\":\"datasource1\",\"query\":\"SELECT"
             + " * FROM table\",\"queryId\":\"query1\",\"submitTime\":1623456789,\"error\":\"\"}";
@@ -84,7 +80,6 @@ class StatementModelXContentSerializerTest {
   @Test
   void fromXContentShouldDeserializeStatementModelThrowException() throws Exception {
     StatementModelXContentSerializer serializer = new StatementModelXContentSerializer();
-    // Given
     String json =
         "{\"version\":\"1.0\",\"type\":\"statement_state\",\"state\":\"running\",\"statementId\":\"statement1\",\"sessionId\":\"session1\",\"applicationId\":\"app1\",\"jobId\":\"job1\",\"lang\":\"SQL\",\"dataSourceName\":\"datasource1\",\"query\":\"SELECT"
             + " * FROM table\",\"queryId\":\"query1\",\"submitTime\":1623456789,\"error\":null}";
@@ -107,7 +102,6 @@ class StatementModelXContentSerializerTest {
   @Test
   void fromXContentShouldThrowExceptionForUnexpectedField() throws Exception {
     StatementModelXContentSerializer serializer = new StatementModelXContentSerializer();
-
     String jsonWithUnexpectedField =
         "{\"version\":\"1.0\",\"type\":\"statement\",\"state\":\"running\",\"statementId\":\"statement1\",\"sessionId\":\"session1\",\"applicationId\":\"app1\",\"jobId\":\"job1\",\"lang\":\"SQL\",\"dataSourceName\":\"datasource1\",\"query\":\"SELECT"
             + " * FROM"

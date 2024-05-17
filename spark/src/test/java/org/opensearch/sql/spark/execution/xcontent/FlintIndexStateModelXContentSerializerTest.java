@@ -55,7 +55,6 @@ class FlintIndexStateModelXContentSerializerTest {
 
   @Test
   void fromXContentShouldDeserializeFlintIndexStateModel() throws Exception {
-    // Given
     String json =
         "{\"version\":\"1.0\",\"type\":\"flintindexstate\",\"state\":\"active\",\"applicationId\":\"app1\",\"jobId\":\"job1\",\"latestId\":\"latest1\",\"dataSourceName\":\"datasource1\",\"lastUpdateTime\":1623456789,\"error\":\"\"}";
     XContentParser parser =
