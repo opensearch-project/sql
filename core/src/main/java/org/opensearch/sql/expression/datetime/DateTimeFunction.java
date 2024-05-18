@@ -1390,7 +1390,7 @@ public class DateTimeFunction {
    */
   private ExprValue exprDayName(ExprValue date) {
     return new ExprStringValue(
-        date.dateValue().getDayOfWeek().getDisplayName(TextStyle.FULL, Locale.getDefault()));
+        date.dateValue().getDayOfWeek().getDisplayName(TextStyle.FULL, Locale.ENGLISH));
   }
 
   /**
@@ -1656,7 +1656,7 @@ public class DateTimeFunction {
    */
   private ExprValue exprMonthName(ExprValue date) {
     return new ExprStringValue(
-        date.dateValue().getMonth().getDisplayName(TextStyle.FULL, Locale.getDefault()));
+        date.dateValue().getMonth().getDisplayName(TextStyle.FULL, Locale.ENGLISH));
   }
 
   private LocalDate parseDatePeriod(Integer period) {
