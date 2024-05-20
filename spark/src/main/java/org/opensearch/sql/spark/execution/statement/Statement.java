@@ -49,7 +49,7 @@ public class Statement {
               datasourceName,
               query,
               queryId);
-      statementModel = statementStorageService.createStatement(statementModel, datasourceName);
+      statementModel = statementStorageService.createStatement(statementModel);
     } catch (VersionConflictEngineException e) {
       String errorMsg = "statement already exist. " + statementId;
       LOG.error(errorMsg);
@@ -73,8 +73,7 @@ public class Statement {
     }
     try {
       this.statementModel =
-          statementStorageService.updateStatementState(
-              statementModel, StatementState.CANCELLED, statementModel.getDatasourceName());
+          statementStorageService.updateStatementState(statementModel, StatementState.CANCELLED);
     } catch (DocumentMissingException e) {
       String errorMsg =
           String.format("cancel statement failed. no statement found. statement: %s.", statementId);

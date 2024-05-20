@@ -36,11 +36,11 @@ public class OpenSearchFlintIndexStateModelService implements FlintIndexStateMod
 
   @Override
   public FlintIndexStateModel createFlintIndexStateModel(
-      FlintIndexStateModel flintIndexStateModel, String datasourceName) {
+      FlintIndexStateModel flintIndexStateModel) {
     return stateStore.create(
         flintIndexStateModel,
         FlintIndexStateModel::copy,
-        OpenSearchStateStoreUtil.getIndexName(datasourceName));
+        OpenSearchStateStoreUtil.getIndexName(flintIndexStateModel.getDatasourceName()));
   }
 
   @Override

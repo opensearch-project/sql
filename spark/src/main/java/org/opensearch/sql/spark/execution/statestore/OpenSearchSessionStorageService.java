@@ -18,9 +18,11 @@ public class OpenSearchSessionStorageService implements SessionStorageService {
   private final SessionModelXContentSerializer serializer;
 
   @Override
-  public SessionModel createSession(SessionModel sessionModel, String datasourceName) {
+  public SessionModel createSession(SessionModel sessionModel) {
     return stateStore.create(
-        sessionModel, SessionModel::of, OpenSearchStateStoreUtil.getIndexName(datasourceName));
+        sessionModel,
+        SessionModel::of,
+        OpenSearchStateStoreUtil.getIndexName(sessionModel.getDatasourceName()));
   }
 
   @Override
@@ -30,12 +32,11 @@ public class OpenSearchSessionStorageService implements SessionStorageService {
   }
 
   @Override
-  public SessionModel updateSessionState(
-      SessionModel sessionModel, SessionState sessionState, String datasourceName) {
+  public SessionModel updateSessionState(SessionModel sessionModel, SessionState sessionState) {
     return stateStore.updateState(
         sessionModel,
         sessionState,
         SessionModel::copyWithState,
-        OpenSearchStateStoreUtil.getIndexName(datasourceName));
+        OpenSearchStateStoreUtil.getIndexName(sessionModel.getDatasourceName()));
   }
 }

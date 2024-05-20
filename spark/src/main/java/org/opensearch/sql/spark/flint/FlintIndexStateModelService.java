@@ -12,8 +12,7 @@ import java.util.Optional;
  * flint index.
  */
 public interface FlintIndexStateModelService {
-  FlintIndexStateModel createFlintIndexStateModel(
-      FlintIndexStateModel flintIndexStateModel, String datasourceName);
+  FlintIndexStateModel createFlintIndexStateModel(FlintIndexStateModel flintIndexStateModel);
 
   Optional<FlintIndexStateModel> getFlintIndexStateModel(String id, String datasourceName);
 
