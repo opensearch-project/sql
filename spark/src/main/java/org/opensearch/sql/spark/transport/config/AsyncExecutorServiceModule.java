@@ -33,6 +33,9 @@ import org.opensearch.sql.spark.execution.statestore.OpenSearchStatementStorageS
 import org.opensearch.sql.spark.execution.statestore.SessionStorageService;
 import org.opensearch.sql.spark.execution.statestore.StateStore;
 import org.opensearch.sql.spark.execution.statestore.StatementStorageService;
+import org.opensearch.sql.spark.execution.xcontent.FlintIndexStateModelXContentSerializer;
+import org.opensearch.sql.spark.execution.xcontent.SessionModelXContentSerializer;
+import org.opensearch.sql.spark.execution.xcontent.StatementModelXContentSerializer;
 import org.opensearch.sql.spark.flint.FlintIndexMetadataServiceImpl;
 import org.opensearch.sql.spark.flint.FlintIndexStateModelService;
 import org.opensearch.sql.spark.flint.IndexDMLResultStorageService;
@@ -111,8 +114,9 @@ public class AsyncExecutorServiceModule extends AbstractModule {
   }
 
   @Provides
-  public FlintIndexStateModelService flintIndexStateModelService(StateStore stateStore) {
-    return new OpenSearchFlintIndexStateModelService(stateStore);
+  public FlintIndexStateModelService flintIndexStateModelService(
+      StateStore stateStore, FlintIndexStateModelXContentSerializer serializer) {
+    return new OpenSearchFlintIndexStateModelService(stateStore, serializer);
   }
 
   @Provides
@@ -132,13 +136,15 @@ public class AsyncExecutorServiceModule extends AbstractModule {
   }
 
   @Provides
-  public SessionStorageService sessionStorageService(StateStore stateStore) {
-    return new OpenSearchSessionStorageService(stateStore);
+  public SessionStorageService sessionStorageService(
+      StateStore stateStore, SessionModelXContentSerializer sessionModelXContentSerializer) {
+    return new OpenSearchSessionStorageService(stateStore, sessionModelXContentSerializer);
   }
 
   @Provides
-  public StatementStorageService statementStorageService(StateStore stateStore) {
-    return new OpenSearchStatementStorageService(stateStore);
+  public StatementStorageService statementStorageService(
+      StateStore stateStore, StatementModelXContentSerializer statementModelXContentSerializer) {
+    return new OpenSearchStatementStorageService(stateStore, statementModelXContentSerializer);
   }
 
   @Provides
