@@ -373,8 +373,7 @@ public class AsyncQueryExecutorServiceSpec extends OpenSearchIntegTestCase {
 
   void setSessionState(String sessionId, SessionState sessionState) {
     Optional<SessionModel> model = sessionStorageService.getSession(sessionId, MYS3_DATASOURCE);
-    SessionModel updated =
-        sessionStorageService.updateSessionState(model.get(), sessionState, MYS3_DATASOURCE);
+    SessionModel updated = sessionStorageService.updateSessionState(model.get(), sessionState);
     assertEquals(sessionState, updated.getSessionState());
   }
 

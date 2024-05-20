@@ -103,7 +103,7 @@ public class IndexDMLHandler extends AsyncQueryHandler {
             dispatchQueryRequest.getDatasource(),
             queryRunTime,
             System.currentTimeMillis());
-    indexDMLResultStorageService.createIndexDMLResult(indexDMLResult, dataSourceMetadata.getName());
+    indexDMLResultStorageService.createIndexDMLResult(indexDMLResult);
     return asyncQueryId;
   }
 
