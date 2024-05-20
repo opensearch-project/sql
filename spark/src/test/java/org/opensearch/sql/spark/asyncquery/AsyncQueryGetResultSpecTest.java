@@ -510,7 +510,7 @@ public class AsyncQueryGetResultSpecTest extends AsyncQueryExecutorServiceSpec {
     /** Simulate EMR-S updates query_execution_request with state */
     void emrJobUpdateStatementState(StatementState newState) {
       StatementModel stmt = statementStorageService.getStatement(queryId, MYS3_DATASOURCE).get();
-      statementStorageService.updateStatementState(stmt, newState, MYS3_DATASOURCE);
+      statementStorageService.updateStatementState(stmt, newState);
     }
 
     void emrJobUpdateJobState(JobRunState jobState) {

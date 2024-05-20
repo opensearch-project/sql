@@ -317,7 +317,7 @@ public class AsyncQueryExecutorServiceImplSpecTest extends AsyncQueryExecutorSer
             .seqNo(submitted.getSeqNo())
             .primaryTerm(submitted.getPrimaryTerm())
             .build();
-    statementStorageService.updateStatementState(mocked, StatementState.FAILED, MYS3_DATASOURCE);
+    statementStorageService.updateStatementState(mocked, StatementState.FAILED);
 
     AsyncQueryExecutionResponse asyncQueryResults =
         asyncQueryExecutorService.getAsyncQueryResults(response.getQueryId());

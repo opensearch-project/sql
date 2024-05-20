@@ -36,7 +36,7 @@ public class MockFlintSparkJob {
             "",
             SequenceNumbers.UNASSIGNED_SEQ_NO,
             SequenceNumbers.UNASSIGNED_PRIMARY_TERM);
-    stateModel = flintIndexStateModelService.createFlintIndexStateModel(stateModel, datasource);
+    stateModel = flintIndexStateModelService.createFlintIndexStateModel(stateModel);
   }
 
   public void transition(FlintIndexState newState) {

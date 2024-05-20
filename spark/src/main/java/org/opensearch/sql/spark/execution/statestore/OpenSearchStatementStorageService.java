@@ -18,11 +18,11 @@ public class OpenSearchStatementStorageService implements StatementStorageServic
   private final StatementModelXContentSerializer serializer;
 
   @Override
-  public StatementModel createStatement(StatementModel statementModel, String datasourceName) {
+  public StatementModel createStatement(StatementModel statementModel) {
     return stateStore.create(
         statementModel,
         StatementModel::copy,
-        OpenSearchStateStoreUtil.getIndexName(datasourceName));
+        OpenSearchStateStoreUtil.getIndexName(statementModel.getDatasourceName()));
   }
 
   @Override
@@ -33,11 +33,11 @@ public class OpenSearchStatementStorageService implements StatementStorageServic
 
   @Override
   public StatementModel updateStatementState(
-      StatementModel oldStatementModel, StatementState statementState, String datasourceName) {
+      StatementModel oldStatementModel, StatementState statementState) {
     return stateStore.updateState(
         oldStatementModel,
         statementState,
         StatementModel::copyWithState,
-        OpenSearchStateStoreUtil.getIndexName(datasourceName));
+        OpenSearchStateStoreUtil.getIndexName(oldStatementModel.getDatasourceName()));
   }
 }
