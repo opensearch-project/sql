@@ -11,7 +11,6 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import java.util.Optional;
-import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -47,19 +46,6 @@ public class FlintIndexOpTest {
 
     Assertions.assertEquals(
         "Moving to transition state:DELETING failed.", illegalStateException.getMessage());
-  }
-
-  @NotNull
-  private static FlintIndexStateModel getFlintIndexStateModel(FlintIndexMetadata metadata) {
-    return FlintIndexStateModel.builder()
-        .indexState(FlintIndexState.ACTIVE)
-        .applicationId(metadata.getAppId())
-        .jobId(metadata.getJobId())
-        .latestId("latestId")
-        .datasourceName("myS3")
-        .lastUpdateTime(System.currentTimeMillis())
-        .error("")
-        .build();
   }
 
   @Test
@@ -105,6 +91,18 @@ public class FlintIndexOpTest {
 
     Assertions.assertEquals(
         "commit failed. target stable state: [DELETED]", illegalStateException.getMessage());
+  }
+
+  private FlintIndexStateModel getFlintIndexStateModel(FlintIndexMetadata metadata) {
+    return FlintIndexStateModel.builder()
+        .indexState(FlintIndexState.ACTIVE)
+        .applicationId(metadata.getAppId())
+        .jobId(metadata.getJobId())
+        .latestId("latestId")
+        .datasourceName("myS3")
+        .lastUpdateTime(System.currentTimeMillis())
+        .error("")
+        .build();
   }
 
   static class TestFlintIndexOp extends FlintIndexOp {
