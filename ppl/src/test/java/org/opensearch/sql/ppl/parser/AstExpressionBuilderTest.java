@@ -333,21 +333,25 @@ public class AstExpressionBuilderTest extends AstBuilderTest {
   @Test
   public void testPercentileAggFuncExpr() {
     assertEqual(
-        "source=t | stats percentile<1>(a)",
-        agg(
-            relation("t"),
-            exprList(
-                alias("percentile<1>(a)", aggregate("percentile", field("a"), doubleLiteral(1D)))),
-            emptyList(),
-            emptyList(),
-            defaultStatsArgs()));
-    assertEqual(
-        "source=t | stats percentile<1.0>(a)",
+        "source=t | stats percentile(a, 1)",
         agg(
             relation("t"),
             exprList(
                 alias(
-                    "percentile<1.0>(a)", aggregate("percentile", field("a"), doubleLiteral(1D)))),
+                    "percentile(a, 1)",
+                    aggregate("percentile", field("a"), unresolvedArg("quantile", intLiteral(1))))),
+            emptyList(),
+            emptyList(),
+            defaultStatsArgs()));
+    assertEqual(
+        "source=t | stats percentile(a, 1.0)",
+        agg(
+            relation("t"),
+            exprList(
+                alias(
+                    "percentile(a, 1.0)",
+                    aggregate(
+                        "percentile", field("a"), unresolvedArg("quantile", doubleLiteral(1D))))),
             emptyList(),
             emptyList(),
             defaultStatsArgs()));
@@ -577,8 +581,8 @@ public class AstExpressionBuilderTest extends AstBuilderTest {
   @Test
   public void functionNameCanBeUsedAsIdentifier() {
     assertFunctionNameCouldBeId(
-        "AVG | COUNT | SUM | MIN | MAX | VAR_SAMP | VAR_POP | STDDEV_SAMP | STDDEV_POP "
-            + "| PERCENTILE | PERCENTILE_CONT | PERCENTILE_DISC");
+        "AVG | COUNT | SUM | MIN | MAX | VAR_SAMP | VAR_POP | STDDEV_SAMP | STDDEV_POP |"
+            + " PERCENTILE");
     assertFunctionNameCouldBeId(
         "CURRENT_DATE | CURRENT_TIME | CURRENT_TIMESTAMP | LOCALTIME | LOCALTIMESTAMP | "
             + "UTC_TIMESTAMP | UTC_DATE | UTC_TIME | CURDATE | CURTIME | NOW");

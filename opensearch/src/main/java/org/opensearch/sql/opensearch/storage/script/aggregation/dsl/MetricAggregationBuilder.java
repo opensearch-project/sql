@@ -158,8 +158,7 @@ public class MetricAggregationBuilder
             name,
             new TopHitsParser(name));
       case "percentile":
-      case "percentile_cont":
-      case "percentile_disc":
+      case "percentile_approx":
         return make(
             AggregationBuilders.percentiles(name),
             expression,

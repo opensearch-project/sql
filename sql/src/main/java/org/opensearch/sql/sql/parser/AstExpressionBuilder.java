@@ -393,18 +393,16 @@ public class AstExpressionBuilder extends OpenSearchSQLParserBaseVisitor<Unresol
   }
 
   @Override
-  public UnresolvedExpression visitPercentileFunctionCall(
-      OpenSearchSQLParser.PercentileFunctionCallContext ctx) {
+  public UnresolvedExpression visitPercentileApproxFunctionCall(
+      OpenSearchSQLParser.PercentileApproxFunctionCallContext ctx) {
+    ImmutableList.Builder<UnresolvedExpression> builder = ImmutableList.builder();
+    builder.add(
+        new UnresolvedArgument(
+            "quantile",
+            AstDSL.doubleLiteral(
+                Double.valueOf(ctx.percentileApproxFunction().quantile.getText()))));
     return new AggregateFunction(
-        ctx.PERCENTILE().getText(),
-        visitFunctionArg(ctx.functionArg()),
-        List.of(AstDSL.doubleLiteral(Double.valueOf(ctx.quantile.getText()))));
-  }
-
-  @Override
-  public UnresolvedExpression visitAnsiPercentileFunctionCall(
-      OpenSearchSQLParser.AnsiPercentileFunctionCallContext ctx) {
-    throw new UnsupportedOperationException("Unsupported ANSI Percentile Function");
+        "percentile", visit(ctx.percentileApproxFunction().aggField), builder.build());
   }
 
   @Override

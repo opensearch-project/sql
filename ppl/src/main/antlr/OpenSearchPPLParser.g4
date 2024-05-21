@@ -216,8 +216,8 @@ statsFunction
    : statsFunctionName LT_PRTHS valueExpression RT_PRTHS        # statsFunctionCall
    | COUNT LT_PRTHS RT_PRTHS                                    # countAllFunctionCall
    | (DISTINCT_COUNT | DC) LT_PRTHS valueExpression RT_PRTHS    # distinctCountFunctionCall
-   | percentileAggFunction                                      # percentileAggFunctionCall
    | takeAggFunction                                            # takeAggFunctionCall
+   | percentileApproxFunction                                   # percentileApproxFunctionCall
    ;
 
 statsFunctionName
@@ -230,19 +230,20 @@ statsFunctionName
    | VAR_POP
    | STDDEV_SAMP
    | STDDEV_POP
+   | PERCENTILE
    ;
 
 takeAggFunction
    : TAKE LT_PRTHS fieldExpression (COMMA size = integerLiteral)? RT_PRTHS
    ;
 
-percentileAggFunction
-   : PERCENTILE LESS quantile = numericLiteral GREATER LT_PRTHS aggField = valueExpression RT_PRTHS
-   | PERCENTILE LT_PRTHS valueExpression COMMA quantile = numericLiteral RT_PRTHS
+percentileApproxFunction
+   : (PERCENTILE | PERCENTILE_APPROX) LT_PRTHS aggField = valueExpression COMMA quantile = numericLiteral RT_PRTHS
    ;
 
 numericLiteral
-    : (integerLiteral | decimalLiteral)
+    : integerLiteral
+    | decimalLiteral
     ;
 
 // expressions

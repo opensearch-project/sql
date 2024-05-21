@@ -736,15 +736,11 @@ public class DSL {
   }
 
   public static Aggregator percentile(Expression... expressions) {
-    return aggregate(BuiltinFunctionName.PERCENTILE, expressions);
+    return percentileApprox(expressions);
   }
 
-  public static Aggregator percentileDisc(Expression... expressions) {
-    return aggregate(BuiltinFunctionName.PERCENTILE_DISC, expressions);
-  }
-
-  public static Aggregator percentileCont(Expression... expressions) {
-    return aggregate(BuiltinFunctionName.PERCENTILE_CONT, expressions);
+  public static Aggregator percentileApprox(Expression... expressions) {
+    return aggregate(BuiltinFunctionName.PERCENTILE_APPROX, expressions);
   }
 
   private static Aggregator aggregate(BuiltinFunctionName functionName, Expression... expressions) {

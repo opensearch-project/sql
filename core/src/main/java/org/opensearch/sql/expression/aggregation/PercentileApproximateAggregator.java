@@ -20,7 +20,7 @@ import org.opensearch.sql.expression.function.BuiltinFunctionName;
 public class PercentileApproximateAggregator
     extends Aggregator<PercentileApproximateAggregator.PercentileApproximateState> {
 
-  public static Aggregator percentile(List<Expression> arguments, ExprCoreType returnType) {
+  public static Aggregator percentileApprox(List<Expression> arguments, ExprCoreType returnType) {
     return new PercentileApproximateAggregator(arguments, returnType);
   }
 
@@ -53,7 +53,7 @@ public class PercentileApproximateAggregator
     PercentileApproximateState(double quantile) {
       super(DEFAULT_COMPRESSION);
       if (quantile < 0.0 || quantile > 100.0) {
-        throw new IllegalArgumentException("out of bounds quantile value, must be in (0, 100]");
+        throw new IllegalArgumentException("out of bounds quantile value, must be in [0, 100]");
       }
       this.p = quantile / 100.0;
     }

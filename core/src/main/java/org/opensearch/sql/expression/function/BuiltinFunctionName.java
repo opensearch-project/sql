@@ -175,12 +175,6 @@ public enum BuiltinFunctionName {
   STDDEV_POP(FunctionName.of("stddev_pop")),
   // take top documents from aggregation bucket.
   TAKE(FunctionName.of("take")),
-  // percentile
-  PERCENTILE(FunctionName.of("percentile")),
-  // continuous percentile
-  PERCENTILE_CONT(FunctionName.of("percentile_cont")),
-  // discrete percentile
-  PERCENTILE_DISC(FunctionName.of("percentile_disc")),
   // t-digest percentile
   PERCENTILE_APPROX(FunctionName.of("percentile_approx")),
   // Not always an aggregation query
@@ -287,7 +281,8 @@ public enum BuiltinFunctionName {
           .put("stddev_pop", BuiltinFunctionName.STDDEV_POP)
           .put("stddev_samp", BuiltinFunctionName.STDDEV_SAMP)
           .put("take", BuiltinFunctionName.TAKE)
-          .put("percentile", BuiltinFunctionName.PERCENTILE)
+          .put("percentile", BuiltinFunctionName.PERCENTILE_APPROX)
+          .put("percentile_approx", BuiltinFunctionName.PERCENTILE_APPROX)
           .build();
 
   public static Optional<BuiltinFunctionName> of(String str) {

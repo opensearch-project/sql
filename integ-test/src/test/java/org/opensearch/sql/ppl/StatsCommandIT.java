@@ -194,8 +194,8 @@ public class StatsCommandIT extends PPLIntegTestCase {
   @Test
   public void testStatsPercentile() throws IOException {
     JSONObject response =
-        executeQuery(String.format("source=%s | stats percentile<50>(balance)", TEST_INDEX_BANK));
-    verifySchema(response, schema("percentile<50>(balance)", null, "long"));
+        executeQuery(String.format("source=%s | stats percentile(balance, 50)", TEST_INDEX_BANK));
+    verifySchema(response, schema("percentile(balance, 50)", null, "long"));
     verifyDataRows(response, rows(32838));
   }
 
@@ -204,8 +204,8 @@ public class StatsCommandIT extends PPLIntegTestCase {
     JSONObject response =
         executeQuery(
             String.format(
-                "source=%s | stats percentile<50>(balance)", TEST_INDEX_BANK_WITH_NULL_VALUES));
-    verifySchema(response, schema("percentile<50>(balance)", null, "long"));
+                "source=%s | stats percentile(balance, 50)", TEST_INDEX_BANK_WITH_NULL_VALUES));
+    verifySchema(response, schema("percentile(balance, 50)", null, "long"));
     verifyDataRows(response, rows(39225));
   }
 }

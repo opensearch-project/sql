@@ -703,8 +703,8 @@ public class AstBuilderTest {
         new AD(
             relation("t"),
             ImmutableMap.<String, Literal>builder()
-                .put("anomaly_rate", new Literal(0.1, DataType.DOUBLE))
                 .put("anomaly_score_threshold", new Literal(0.1, DataType.DOUBLE))
+                .put("anomaly_rate", new Literal(0.1, DataType.DOUBLE))
                 .put("sample_size", new Literal(256, DataType.INTEGER))
                 .put("number_of_trees", new Literal(256, DataType.INTEGER))
                 .put("date_format", new Literal("HH:mm:ss yyyy-MM-dd", DataType.STRING))
@@ -729,7 +729,7 @@ public class AstBuilderTest {
 
   protected void assertEqual(String query, Node expectedPlan) {
     Node actualPlan = plan(query);
-    assertEquals(expectedPlan.toString(), actualPlan.toString());
+    assertEquals(expectedPlan, actualPlan);
   }
 
   protected void assertEqual(String query, String expected) {

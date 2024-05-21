@@ -410,16 +410,12 @@ class AstExpressionBuilderTest {
 
   @Test
   public void canBuildPercentile() {
-    assertEquals(
-        aggregate("percentile", qualifiedName("age"), doubleLiteral(50D)),
-        buildExprAst("percentile(age, 50)"));
+    Object expected =
+        aggregate(
+            "percentile", qualifiedName("age"), unresolvedArg("quantile", doubleLiteral(50D)));
+    assertEquals(expected, buildExprAst("percentile(age, 50)"));
+    assertEquals(expected, buildExprAst("percentile(age, 50.0)"));
   }
-
-  @Test
-  public void canBuildPercentileDisc() {}
-
-  @Test
-  public void canBuildPercentileCont() {}
 
   @Test
   public void matchPhraseQueryAllParameters() {
