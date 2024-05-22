@@ -85,12 +85,7 @@ public class AsyncQueryExecutorServiceImplTest {
         jobExecutorService.createAsyncQuery(createAsyncQueryRequest);
 
     verify(asyncQueryJobMetadataStorageService, times(1))
-        .storeJobMetadata(
-            AsyncQueryJobMetadata.builder()
-                .queryId(QUERY_ID)
-                .applicationId(EMRS_APPLICATION_ID)
-                .jobId(EMR_JOB_ID)
-                .build());
+        .storeJobMetadata(getAsyncQueryJobMetadata());
     verify(sparkExecutionEngineConfigSupplier, times(1)).getSparkExecutionEngineConfig();
     verify(sparkQueryDispatcher, times(1)).dispatch(expectedDispatchQueryRequest);
     Assertions.assertEquals(QUERY_ID.getId(), createAsyncQueryResponse.getQueryId());
@@ -152,14 +147,6 @@ public class AsyncQueryExecutorServiceImplTest {
     verifyNoInteractions(sparkExecutionEngineConfigSupplier);
   }
 
-  private AsyncQueryJobMetadata getAsyncQueryJobMetadata() {
-    return AsyncQueryJobMetadata.builder()
-        .queryId(QUERY_ID)
-        .applicationId(EMRS_APPLICATION_ID)
-        .jobId(EMR_JOB_ID)
-        .build();
-  }
-
   @Test
   void testGetAsyncQueryResultsWithSuccessJob() throws IOException {
     when(asyncQueryJobMetadataStorageService.getJobMetadata(EMR_JOB_ID))
@@ -203,5 +190,13 @@ public class AsyncQueryExecutorServiceImplTest {
     String jobId = jobExecutorService.cancelQuery(EMR_JOB_ID);
     Assertions.assertEquals(EMR_JOB_ID, jobId);
     verifyNoInteractions(sparkExecutionEngineConfigSupplier);
+  }
+
+  private AsyncQueryJobMetadata getAsyncQueryJobMetadata() {
+    return AsyncQueryJobMetadata.builder()
+        .queryId(QUERY_ID)
+        .applicationId(EMRS_APPLICATION_ID)
+        .jobId(EMR_JOB_ID)
+        .build();
   }
 }
