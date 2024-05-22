@@ -16,7 +16,6 @@ import lombok.RequiredArgsConstructor;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
-import org.opensearch.index.seqno.SequenceNumbers;
 import org.opensearch.sql.spark.client.EMRServerlessClient;
 import org.opensearch.sql.spark.client.EMRServerlessClientFactory;
 import org.opensearch.sql.spark.flint.FlintIndexMetadata;
@@ -81,16 +80,15 @@ public abstract class FlintIndexOp {
   private void takeActionWithoutOCC(FlintIndexMetadata metadata) {
     // take action without occ.
     FlintIndexStateModel fakeModel =
-        new FlintIndexStateModel(
-            FlintIndexState.REFRESHING,
-            metadata.getAppId(),
-            metadata.getJobId(),
-            "",
-            datasourceName,
-            System.currentTimeMillis(),
-            "",
-            SequenceNumbers.UNASSIGNED_SEQ_NO,
-            SequenceNumbers.UNASSIGNED_PRIMARY_TERM);
+        FlintIndexStateModel.builder()
+            .indexState(FlintIndexState.REFRESHING)
+            .applicationId(metadata.getAppId())
+            .jobId(metadata.getJobId())
+            .latestId("")
+            .datasourceName(datasourceName)
+            .lastUpdateTime(System.currentTimeMillis())
+            .error("")
+            .build();
     runOp(metadata, fakeModel);
   }
 

@@ -7,15 +7,18 @@
 
 package org.opensearch.sql.spark.asyncquery.model;
 
+import com.google.common.collect.ImmutableMap;
 import com.google.gson.Gson;
+import lombok.Builder.Default;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
-import org.opensearch.index.seqno.SequenceNumbers;
+import lombok.experimental.SuperBuilder;
 import org.opensearch.sql.spark.dispatcher.model.JobType;
 import org.opensearch.sql.spark.execution.statestore.StateModel;
 
 /** This class models all the metadata required for a job. */
 @Data
+@SuperBuilder
 @EqualsAndHashCode(callSuper = false)
 public class AsyncQueryJobMetadata extends StateModel {
   private final AsyncQueryId queryId;
@@ -27,93 +30,11 @@ public class AsyncQueryJobMetadata extends StateModel {
   // since 2.13
   // jobType could be null before OpenSearch 2.12. SparkQueryDispatcher use jobType to choose
   // cancel query handler. if jobType is null, it will invoke BatchQueryHandler.cancel().
-  private final JobType jobType;
+  @Default private final JobType jobType = JobType.INTERACTIVE;
   // null if JobType is null
   private final String datasourceName;
   // null if JobType is INTERACTIVE or null
   private final String indexName;
-
-  @EqualsAndHashCode.Exclude private final long seqNo;
-  @EqualsAndHashCode.Exclude private final long primaryTerm;
-
-  public AsyncQueryJobMetadata(
-      AsyncQueryId queryId, String applicationId, String jobId, String resultIndex) {
-    this(
-        queryId,
-        applicationId,
-        jobId,
-        resultIndex,
-        null,
-        null,
-        JobType.INTERACTIVE,
-        null,
-        SequenceNumbers.UNASSIGNED_SEQ_NO,
-        SequenceNumbers.UNASSIGNED_PRIMARY_TERM);
-  }
-
-  public AsyncQueryJobMetadata(
-      AsyncQueryId queryId,
-      String applicationId,
-      String jobId,
-      String resultIndex,
-      String sessionId) {
-    this(
-        queryId,
-        applicationId,
-        jobId,
-        resultIndex,
-        sessionId,
-        null,
-        JobType.INTERACTIVE,
-        null,
-        SequenceNumbers.UNASSIGNED_SEQ_NO,
-        SequenceNumbers.UNASSIGNED_PRIMARY_TERM);
-  }
-
-  public AsyncQueryJobMetadata(
-      AsyncQueryId queryId,
-      String applicationId,
-      String jobId,
-      String resultIndex,
-      String sessionId,
-      String datasourceName,
-      JobType jobType,
-      String indexName) {
-    this(
-        queryId,
-        applicationId,
-        jobId,
-        resultIndex,
-        sessionId,
-        datasourceName,
-        jobType,
-        indexName,
-        SequenceNumbers.UNASSIGNED_SEQ_NO,
-        SequenceNumbers.UNASSIGNED_PRIMARY_TERM);
-  }
-
-  public AsyncQueryJobMetadata(
-      AsyncQueryId queryId,
-      String applicationId,
-      String jobId,
-      String resultIndex,
-      String sessionId,
-      String datasourceName,
-      JobType jobType,
-      String indexName,
-      long seqNo,
-      long primaryTerm) {
-    this.queryId = queryId;
-    this.applicationId = applicationId;
-    this.jobId = jobId;
-    this.resultIndex = resultIndex;
-    this.sessionId = sessionId;
-    this.datasourceName = datasourceName;
-    this.jobType = jobType;
-    this.indexName = indexName;
-    this.seqNo = seqNo;
-    this.primaryTerm = primaryTerm;
-  }
 
   @Override
   public String toString() {
@@ -122,18 +43,18 @@ public class AsyncQueryJobMetadata extends StateModel {
 
   /** copy builder. update seqNo and primaryTerm */
   public static AsyncQueryJobMetadata copy(
-      AsyncQueryJobMetadata copy, long seqNo, long primaryTerm) {
-    return new AsyncQueryJobMetadata(
-        copy.getQueryId(),
-        copy.getApplicationId(),
-        copy.getJobId(),
-        copy.getResultIndex(),
-        copy.getSessionId(),
-        copy.datasourceName,
-        copy.jobType,
-        copy.indexName,
-        seqNo,
-        primaryTerm);
+      AsyncQueryJobMetadata copy, ImmutableMap<String, Object> metadata) {
+    return builder()
+        .queryId(copy.queryId)
+        .applicationId(copy.getApplicationId())
+        .jobId(copy.getJobId())
+        .resultIndex(copy.getResultIndex())
+        .sessionId(copy.getSessionId())
+        .datasourceName(copy.datasourceName)
+        .jobType(copy.jobType)
+        .indexName(copy.indexName)
+        .metadata(metadata)
+        .build();
   }
 
   @Override

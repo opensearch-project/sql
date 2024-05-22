@@ -16,6 +16,7 @@ import org.opensearch.sql.spark.asyncquery.exceptions.AsyncQueryNotFoundExceptio
 import org.opensearch.sql.spark.asyncquery.model.AsyncQueryId;
 import org.opensearch.sql.spark.asyncquery.model.AsyncQueryJobMetadata;
 import org.opensearch.sql.spark.execution.statestore.StateStore;
+import org.opensearch.sql.spark.execution.xcontent.AsyncQueryJobMetadataXContentSerializer;
 import org.opensearch.test.OpenSearchIntegTestCase;
 
 public class OpensearchAsyncQueryAsyncQueryJobMetadataStorageServiceTest
@@ -31,17 +32,19 @@ public class OpensearchAsyncQueryAsyncQueryJobMetadataStorageServiceTest
   public void setup() {
     opensearchJobMetadataStorageService =
         new OpensearchAsyncQueryJobMetadataStorageService(
-            new StateStore(client(), clusterService()));
+            new StateStore(client(), clusterService()),
+            new AsyncQueryJobMetadataXContentSerializer());
   }
 
   @Test
   public void testStoreJobMetadata() {
     AsyncQueryJobMetadata expected =
-        new AsyncQueryJobMetadata(
-            AsyncQueryId.newAsyncQueryId(DS_NAME),
-            EMR_JOB_ID,
-            EMRS_APPLICATION_ID,
-            MOCK_RESULT_INDEX);
+        AsyncQueryJobMetadata.builder()
+            .queryId(AsyncQueryId.newAsyncQueryId(DS_NAME))
+            .jobId(EMR_JOB_ID)
+            .applicationId(EMRS_APPLICATION_ID)
+            .resultIndex(MOCK_RESULT_INDEX)
+            .build();
 
     opensearchJobMetadataStorageService.storeJobMetadata(expected);
     Optional<AsyncQueryJobMetadata> actual =
@@ -56,12 +59,13 @@ public class OpensearchAsyncQueryAsyncQueryJobMetadataStorageServiceTest
   @Test
   public void testStoreJobMetadataWithResultExtraData() {
     AsyncQueryJobMetadata expected =
-        new AsyncQueryJobMetadata(
-            AsyncQueryId.newAsyncQueryId(DS_NAME),
-            EMR_JOB_ID,
-            EMRS_APPLICATION_ID,
-            MOCK_RESULT_INDEX,
-            MOCK_SESSION_ID);
+        AsyncQueryJobMetadata.builder()
+            .queryId(AsyncQueryId.newAsyncQueryId(DS_NAME))
+            .jobId(EMR_JOB_ID)
+            .applicationId(EMRS_APPLICATION_ID)
+            .resultIndex(MOCK_RESULT_INDEX)
+            .sessionId(MOCK_SESSION_ID)
+            .build();
 
     opensearchJobMetadataStorageService.storeJobMetadata(expected);
     Optional<AsyncQueryJobMetadata> actual =
@@ -69,7 +73,7 @@ public class OpensearchAsyncQueryAsyncQueryJobMetadataStorageServiceTest
 
     assertTrue(actual.isPresent());
     assertEquals(expected, actual.get());
-    assertEquals("resultIndex", actual.get().getResultIndex());
+    assertEquals(MOCK_RESULT_INDEX, actual.get().getResultIndex());
     assertEquals(MOCK_SESSION_ID, actual.get().getSessionId());
   }
 

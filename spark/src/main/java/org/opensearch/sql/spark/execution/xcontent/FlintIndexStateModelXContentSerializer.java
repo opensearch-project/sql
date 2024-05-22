@@ -50,7 +50,6 @@ public class FlintIndexStateModelXContentSerializer
   @Override
   @SneakyThrows
   public FlintIndexStateModel fromXContent(XContentParser parser, long seqNo, long primaryTerm) {
-    // Implement the fromXContent logic here
     FlintIndexStateModel.FlintIndexStateModelBuilder builder = FlintIndexStateModel.builder();
     XContentParserUtils.ensureExpectedToken(
         XContentParser.Token.START_OBJECT, parser.currentToken(), parser);
@@ -81,8 +80,7 @@ public class FlintIndexStateModelXContentSerializer
           break;
       }
     }
-    builder.seqNo(seqNo);
-    builder.primaryTerm(primaryTerm);
+    builder.metadata(XContentSerializerUtil.buildMetadata(seqNo, primaryTerm));
     return builder.build();
   }
 }
