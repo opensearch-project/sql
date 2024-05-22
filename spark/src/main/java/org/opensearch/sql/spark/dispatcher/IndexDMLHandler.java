@@ -96,13 +96,14 @@ public class IndexDMLHandler extends AsyncQueryHandler {
       long queryRunTime) {
     AsyncQueryId asyncQueryId = AsyncQueryId.newAsyncQueryId(dataSourceMetadata.getName());
     IndexDMLResult indexDMLResult =
-        new IndexDMLResult(
-            asyncQueryId.getId(),
-            status,
-            error,
-            dispatchQueryRequest.getDatasource(),
-            queryRunTime,
-            System.currentTimeMillis());
+        IndexDMLResult.builder()
+            .queryId(asyncQueryId.getId())
+            .status(status)
+            .error(error)
+            .datasourceName(dispatchQueryRequest.getDatasource())
+            .queryRunTime(queryRunTime)
+            .updateTime(System.currentTimeMillis())
+            .build();
     indexDMLResultStorageService.createIndexDMLResult(indexDMLResult);
     return asyncQueryId;
   }

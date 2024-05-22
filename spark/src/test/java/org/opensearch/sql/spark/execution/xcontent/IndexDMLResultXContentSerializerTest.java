@@ -21,7 +21,14 @@ class IndexDMLResultXContentSerializerTest {
   @Test
   void toXContentShouldSerializeIndexDMLResult() throws IOException {
     IndexDMLResult dmlResult =
-        new IndexDMLResult("query1", "SUCCESS", null, "datasource1", 1000L, 2000L);
+        IndexDMLResult.builder()
+            .queryId("query1")
+            .status("SUCCESS")
+            .error(null)
+            .datasourceName("datasource1")
+            .queryRunTime(1000L)
+            .updateTime(2000L)
+            .build();
 
     XContentBuilder xContentBuilder = serializer.toXContent(dmlResult, ToXContent.EMPTY_PARAMS);
     String json = xContentBuilder.toString();
@@ -39,7 +46,14 @@ class IndexDMLResultXContentSerializerTest {
   @Test
   void toXContentShouldHandleErrorInIndexDMLResult() throws IOException {
     IndexDMLResult dmlResult =
-        new IndexDMLResult("query1", "FAILURE", "An error occurred", "datasource1", 1000L, 2000L);
+        IndexDMLResult.builder()
+            .queryId("query1")
+            .status("FAILURE")
+            .error("An error occurred")
+            .datasourceName("datasource1")
+            .queryRunTime(1000L)
+            .updateTime(2000L)
+            .build();
 
     XContentBuilder xContentBuilder = serializer.toXContent(dmlResult, ToXContent.EMPTY_PARAMS);
 

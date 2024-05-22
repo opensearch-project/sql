@@ -66,6 +66,7 @@ import org.opensearch.sql.spark.execution.statestore.OpenSearchStatementStorageS
 import org.opensearch.sql.spark.execution.statestore.SessionStorageService;
 import org.opensearch.sql.spark.execution.statestore.StateStore;
 import org.opensearch.sql.spark.execution.statestore.StatementStorageService;
+import org.opensearch.sql.spark.execution.xcontent.AsyncQueryJobMetadataXContentSerializer;
 import org.opensearch.sql.spark.execution.xcontent.FlintIndexStateModelXContentSerializer;
 import org.opensearch.sql.spark.execution.xcontent.SessionModelXContentSerializer;
 import org.opensearch.sql.spark.execution.xcontent.StatementModelXContentSerializer;
@@ -230,7 +231,8 @@ public class AsyncQueryExecutorServiceSpec extends OpenSearchIntegTestCase {
       JobExecutionResponseReader jobExecutionResponseReader) {
     StateStore stateStore = new StateStore(client, clusterService);
     AsyncQueryJobMetadataStorageService asyncQueryJobMetadataStorageService =
-        new OpensearchAsyncQueryJobMetadataStorageService(stateStore);
+        new OpensearchAsyncQueryJobMetadataStorageService(
+            stateStore, new AsyncQueryJobMetadataXContentSerializer());
     QueryHandlerFactory queryHandlerFactory =
         new QueryHandlerFactory(
             jobExecutionResponseReader,

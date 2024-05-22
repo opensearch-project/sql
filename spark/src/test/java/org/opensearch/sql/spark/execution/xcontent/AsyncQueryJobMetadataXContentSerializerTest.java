@@ -28,17 +28,17 @@ class AsyncQueryJobMetadataXContentSerializerTest {
   @Test
   void toXContentShouldSerializeAsyncQueryJobMetadata() throws Exception {
     AsyncQueryJobMetadata jobMetadata =
-        new AsyncQueryJobMetadata(
-            new AsyncQueryId("query1"),
-            "app1",
-            "job1",
-            "result1",
-            "session1",
-            "datasource1",
-            JobType.INTERACTIVE,
-            "index1",
-            1L,
-            1L);
+        AsyncQueryJobMetadata.builder()
+            .queryId(new AsyncQueryId("query1"))
+            .applicationId("app1")
+            .jobId("job1")
+            .resultIndex("result1")
+            .sessionId("session1")
+            .datasourceName("datasource1")
+            .jobType(JobType.INTERACTIVE)
+            .indexName("index1")
+            .metadata(XContentSerializerUtil.buildMetadata(1L, 1L))
+            .build();
 
     XContentBuilder xContentBuilder = serializer.toXContent(jobMetadata, ToXContent.EMPTY_PARAMS);
     String json = xContentBuilder.toString();
@@ -56,23 +56,19 @@ class AsyncQueryJobMetadataXContentSerializerTest {
 
   @Test
   void fromXContentShouldDeserializeAsyncQueryJobMetadata() throws Exception {
-    String json =
-        "{\n"
-            + "  \"queryId\": \"query1\",\n"
-            + "  \"type\": \"jobmeta\",\n"
-            + "  \"jobId\": \"job1\",\n"
-            + "  \"applicationId\": \"app1\",\n"
-            + "  \"resultIndex\": \"result1\",\n"
-            + "  \"sessionId\": \"session1\",\n"
-            + "  \"dataSourceName\": \"datasource1\",\n"
-            + "  \"jobType\": \"interactive\",\n"
-            + "  \"indexName\": \"index1\"\n"
-            + "}";
     XContentParser parser =
-        XContentType.JSON
-            .xContent()
-            .createParser(NamedXContentRegistry.EMPTY, LoggingDeprecationHandler.INSTANCE, json);
-    parser.nextToken();
+        prepareParserForJson(
+            "{\n"
+                + "  \"queryId\": \"query1\",\n"
+                + "  \"type\": \"jobmeta\",\n"
+                + "  \"jobId\": \"job1\",\n"
+                + "  \"applicationId\": \"app1\",\n"
+                + "  \"resultIndex\": \"result1\",\n"
+                + "  \"sessionId\": \"session1\",\n"
+                + "  \"dataSourceName\": \"datasource1\",\n"
+                + "  \"jobType\": \"interactive\",\n"
+                + "  \"indexName\": \"index1\"\n"
+                + "}");
 
     AsyncQueryJobMetadata jobMetadata = serializer.fromXContent(parser, 1L, 1L);
 
@@ -88,87 +84,61 @@ class AsyncQueryJobMetadataXContentSerializerTest {
 
   @Test
   void fromXContentShouldThrowExceptionWhenMissingRequiredFields() throws Exception {
-    String json =
-        "{\n"
-            + "  \"queryId\": \"query1\",\n"
-            + "  \"type\": \"asyncqueryjobmeta\",\n"
-            + "  \"resultIndex\": \"result1\",\n"
-            + "  \"sessionId\": \"session1\",\n"
-            + "  \"dataSourceName\": \"datasource1\",\n"
-            + "  \"jobType\": \"async_query\",\n"
-            + "  \"indexName\": \"index1\"\n"
-            + "}";
     XContentParser parser =
-        XContentType.JSON
-            .xContent()
-            .createParser(NamedXContentRegistry.EMPTY, LoggingDeprecationHandler.INSTANCE, json);
-    parser.nextToken();
+        prepareParserForJson(
+            "{\n"
+                + "  \"queryId\": \"query1\",\n"
+                + "  \"type\": \"asyncqueryjobmeta\",\n"
+                + "  \"resultIndex\": \"result1\",\n"
+                + "  \"sessionId\": \"session1\",\n"
+                + "  \"dataSourceName\": \"datasource1\",\n"
+                + "  \"jobType\": \"async_query\",\n"
+                + "  \"indexName\": \"index1\"\n"
+                + "}");
 
     assertThrows(IllegalArgumentException.class, () -> serializer.fromXContent(parser, 1L, 1L));
   }
 
   @Test
   void fromXContentShouldDeserializeWithMissingApplicationId() throws Exception {
-    String json =
-        "{\n"
-            + "  \"queryId\": \"query1\",\n"
-            + "  \"type\": \"jobmeta\",\n"
-            + "  \"jobId\": \"job1\",\n"
-            + "  \"resultIndex\": \"result1\",\n"
-            + "  \"sessionId\": \"session1\",\n"
-            + "  \"dataSourceName\": \"datasource1\",\n"
-            + "  \"jobType\": \"interactive\",\n"
-            + "  \"indexName\": \"index1\"\n"
-            + "}";
     XContentParser parser =
-        XContentType.JSON
-            .xContent()
-            .createParser(NamedXContentRegistry.EMPTY, LoggingDeprecationHandler.INSTANCE, json);
-    parser.nextToken();
+        prepareParserForJson(
+            "{\n"
+                + "  \"queryId\": \"query1\",\n"
+                + "  \"type\": \"jobmeta\",\n"
+                + "  \"jobId\": \"job1\",\n"
+                + "  \"resultIndex\": \"result1\",\n"
+                + "  \"sessionId\": \"session1\",\n"
+                + "  \"dataSourceName\": \"datasource1\",\n"
+                + "  \"jobType\": \"interactive\",\n"
+                + "  \"indexName\": \"index1\"\n"
+                + "}");
 
     assertThrows(IllegalArgumentException.class, () -> serializer.fromXContent(parser, 1L, 1L));
   }
 
   @Test
   void fromXContentShouldThrowExceptionWhenUnknownFields() throws Exception {
-    String json =
-        "{\n"
-            + "  \"queryId\": \"query1\",\n"
-            + "  \"type\": \"asyncqueryjobmeta\",\n"
-            + "  \"resultIndex\": \"result1\",\n"
-            + "  \"sessionId\": \"session1\",\n"
-            + "  \"dataSourceName\": \"datasource1\",\n"
-            + "  \"jobType\": \"async_query\",\n"
-            + "  \"indexame\": \"index1\"\n"
-            + "}";
-    XContentParser parser =
-        XContentType.JSON
-            .xContent()
-            .createParser(NamedXContentRegistry.EMPTY, LoggingDeprecationHandler.INSTANCE, json);
-    parser.nextToken();
+    XContentParser parser = prepareParserForJson("{\"unknownAttr\": \"index1\"}");
 
     assertThrows(IllegalArgumentException.class, () -> serializer.fromXContent(parser, 1L, 1L));
   }
 
   @Test
   void fromXContentShouldDeserializeAsyncQueryWithJobTypeNUll() throws Exception {
-    String json =
-        "{\n"
-            + "  \"queryId\": \"query1\",\n"
-            + "  \"type\": \"jobmeta\",\n"
-            + "  \"jobId\": \"job1\",\n"
-            + "  \"applicationId\": \"app1\",\n"
-            + "  \"resultIndex\": \"result1\",\n"
-            + "  \"sessionId\": \"session1\",\n"
-            + "  \"dataSourceName\": \"datasource1\",\n"
-            + "  \"jobType\": \"\",\n"
-            + "  \"indexName\": \"index1\"\n"
-            + "}";
     XContentParser parser =
-        XContentType.JSON
-            .xContent()
-            .createParser(NamedXContentRegistry.EMPTY, LoggingDeprecationHandler.INSTANCE, json);
-    parser.nextToken();
+        prepareParserForJson(
+            "{\n"
+                + "  \"queryId\": \"query1\",\n"
+                + "  \"type\": \"jobmeta\",\n"
+                + "  \"jobId\": \"job1\",\n"
+                + "  \"applicationId\": \"app1\",\n"
+                + "  \"resultIndex\": \"result1\",\n"
+                + "  \"sessionId\": \"session1\",\n"
+                + "  \"dataSourceName\": \"datasource1\",\n"
+                + "  \"jobType\": \"\",\n"
+                + "  \"indexName\": \"index1\"\n"
+                + "}");
 
     AsyncQueryJobMetadata jobMetadata = serializer.fromXContent(parser, 1L, 1L);
 
@@ -180,5 +150,29 @@ class AsyncQueryJobMetadataXContentSerializerTest {
     assertEquals("datasource1", jobMetadata.getDatasourceName());
     assertNull(jobMetadata.getJobType());
     assertEquals("index1", jobMetadata.getIndexName());
+  }
+
+  @Test
+  void fromXContentShouldDeserializeAsyncQueryWithoutJobId() throws Exception {
+    XContentParser parser =
+        prepareParserForJson("{\"queryId\": \"query1\", \"applicationId\": \"app1\"}");
+
+    assertThrows(IllegalArgumentException.class, () -> serializer.fromXContent(parser, 1L, 1L));
+  }
+
+  @Test
+  void fromXContentShouldDeserializeAsyncQueryWithoutApplicationId() throws Exception {
+    XContentParser parser = prepareParserForJson("{\"queryId\": \"query1\", \"jobId\": \"job1\"}");
+
+    assertThrows(IllegalArgumentException.class, () -> serializer.fromXContent(parser, 1L, 1L));
+  }
+
+  private XContentParser prepareParserForJson(String json) throws Exception {
+    XContentParser parser =
+        XContentType.JSON
+            .xContent()
+            .createParser(NamedXContentRegistry.EMPTY, LoggingDeprecationHandler.INSTANCE, json);
+    parser.nextToken();
+    return parser;
   }
 }

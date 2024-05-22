@@ -52,7 +52,6 @@ public class SessionModelXContentSerializer implements XContentSerializer<Sessio
   @Override
   @SneakyThrows
   public SessionModel fromXContent(XContentParser parser, long seqNo, long primaryTerm) {
-    // Implement the fromXContent logic here
     SessionModel.SessionModelBuilder builder = SessionModel.builder();
     XContentParserUtils.ensureExpectedToken(
         XContentParser.Token.START_OBJECT, parser.currentToken(), parser);
@@ -92,8 +91,7 @@ public class SessionModelXContentSerializer implements XContentSerializer<Sessio
           break;
       }
     }
-    builder.seqNo(seqNo);
-    builder.primaryTerm(primaryTerm);
+    builder.metadata(XContentSerializerUtil.buildMetadata(seqNo, primaryTerm));
     return builder.build();
   }
 }

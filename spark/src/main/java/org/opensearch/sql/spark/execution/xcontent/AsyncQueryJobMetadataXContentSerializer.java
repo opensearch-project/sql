@@ -52,42 +52,37 @@ public class AsyncQueryJobMetadataXContentSerializer
   @Override
   @SneakyThrows
   public AsyncQueryJobMetadata fromXContent(XContentParser parser, long seqNo, long primaryTerm) {
-    AsyncQueryId queryId = null;
-    String jobId = null;
-    String applicationId = null;
-    String resultIndex = null;
-    String sessionId = null;
-    String datasourceName = null;
-    String jobTypeStr = null;
-    String indexName = null;
+    AsyncQueryJobMetadata.AsyncQueryJobMetadataBuilder builder = AsyncQueryJobMetadata.builder();
     ensureExpectedToken(XContentParser.Token.START_OBJECT, parser.currentToken(), parser);
     while (!XContentParser.Token.END_OBJECT.equals(parser.nextToken())) {
       String fieldName = parser.currentName();
       parser.nextToken();
       switch (fieldName) {
         case QUERY_ID:
-          queryId = new AsyncQueryId(parser.textOrNull());
+          builder.queryId(new AsyncQueryId(parser.textOrNull()));
           break;
         case JOB_ID:
-          jobId = parser.textOrNull();
+          builder.jobId(parser.textOrNull());
           break;
         case APPLICATION_ID:
-          applicationId = parser.textOrNull();
+          builder.applicationId(parser.textOrNull());
           break;
         case RESULT_INDEX:
-          resultIndex = parser.textOrNull();
+          builder.resultIndex(parser.textOrNull());
           break;
         case SESSION_ID:
-          sessionId = parser.textOrNull();
+          builder.sessionId(parser.textOrNull());
           break;
         case DATASOURCE_NAME:
-          datasourceName = parser.textOrNull();
+          builder.datasourceName(parser.textOrNull());
           break;
         case JOB_TYPE:
-          jobTypeStr = parser.textOrNull();
+          String jobTypeStr = parser.textOrNull();
+          builder.jobType(
+              Strings.isNullOrEmpty(jobTypeStr) ? null : JobType.fromString(jobTypeStr));
           break;
         case INDEX_NAME:
-          indexName = parser.textOrNull();
+          builder.indexName(parser.textOrNull());
           break;
         case TYPE:
           break;
@@ -95,19 +90,11 @@ public class AsyncQueryJobMetadataXContentSerializer
           throw new IllegalArgumentException("Unknown field: " + fieldName);
       }
     }
-    if (jobId == null || applicationId == null) {
+    builder.metadata(XContentSerializerUtil.buildMetadata(seqNo, primaryTerm));
+    AsyncQueryJobMetadata result = builder.build();
+    if (result.getJobId() == null || result.getApplicationId() == null) {
       throw new IllegalArgumentException("jobId and applicationId are required fields.");
     }
-    return new AsyncQueryJobMetadata(
-        queryId,
-        applicationId,
-        jobId,
-        resultIndex,
-        sessionId,
-        datasourceName,
-        Strings.isNullOrEmpty(jobTypeStr) ? null : JobType.fromString(jobTypeStr),
-        indexName,
-        seqNo,
-        primaryTerm);
+    return builder.build();
   }
 }
