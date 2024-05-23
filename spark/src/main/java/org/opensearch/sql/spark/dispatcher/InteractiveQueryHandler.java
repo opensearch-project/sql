@@ -100,6 +100,7 @@ public class InteractiveQueryHandler extends AsyncQueryHandler {
           sessionManager.createSession(
               new CreateSessionRequest(
                   clusterName,
+                  dispatchQueryRequest.getAccountId(),
                   dispatchQueryRequest.getApplicationId(),
                   dispatchQueryRequest.getExecutionRoleARN(),
                   SparkSubmitParameters.builder()

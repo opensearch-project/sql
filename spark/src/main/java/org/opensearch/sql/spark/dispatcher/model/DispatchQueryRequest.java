@@ -6,15 +6,16 @@
 package org.opensearch.sql.spark.dispatcher.model;
 
 import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Data;
-import lombok.RequiredArgsConstructor;
 import org.opensearch.sql.spark.config.SparkSubmitParameterModifier;
 import org.opensearch.sql.spark.rest.model.LangType;
 
 @AllArgsConstructor
 @Data
-@RequiredArgsConstructor // required explicitly
+@Builder
 public class DispatchQueryRequest {
+  private final String accountId;
   private final String applicationId;
   private final String query;
   private final String datasource;

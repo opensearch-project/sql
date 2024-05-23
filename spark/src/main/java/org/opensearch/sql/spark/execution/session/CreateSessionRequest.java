@@ -14,6 +14,7 @@ import org.opensearch.sql.spark.dispatcher.model.JobType;
 @Data
 public class CreateSessionRequest {
   private final String clusterName;
+  private final String accountId;
   private final String applicationId;
   private final String executionRoleArn;
   private final SparkSubmitParameters sparkSubmitParameters;
@@ -24,6 +25,7 @@ public class CreateSessionRequest {
   public StartJobRequest getStartJobRequest(String sessionId) {
     return new InteractiveSessionStartJobRequest(
         clusterName + ":" + JobType.INTERACTIVE.getText() + ":" + sessionId,
+        accountId,
         applicationId,
         executionRoleArn,
         sparkSubmitParameters.toString(),
@@ -34,12 +36,21 @@ public class CreateSessionRequest {
   static class InteractiveSessionStartJobRequest extends StartJobRequest {
     public InteractiveSessionStartJobRequest(
         String jobName,
+        String accountId,
         String applicationId,
         String executionRoleArn,
         String sparkSubmitParams,
         Map<String, String> tags,
         String resultIndex) {
-      super(jobName, applicationId, executionRoleArn, sparkSubmitParams, tags, false, resultIndex);
+      super(
+          jobName,
+          accountId,
+          applicationId,
+          executionRoleArn,
+          sparkSubmitParams,
+          tags,
+          false,
+          resultIndex);
     }
 
     /** Interactive query keep running. */

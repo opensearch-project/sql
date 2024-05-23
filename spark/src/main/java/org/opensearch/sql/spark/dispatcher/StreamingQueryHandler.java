@@ -66,6 +66,7 @@ public class StreamingQueryHandler extends BatchQueryHandler {
     StartJobRequest startJobRequest =
         new StartJobRequest(
             jobName,
+            dispatchQueryRequest.getAccountId(),
             dispatchQueryRequest.getApplicationId(),
             dispatchQueryRequest.getExecutionRoleARN(),
             SparkSubmitParameters.builder()

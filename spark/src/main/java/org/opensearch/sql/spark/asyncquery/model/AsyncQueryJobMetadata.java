@@ -20,6 +20,8 @@ import org.opensearch.sql.spark.execution.statestore.StateModel;
 @EqualsAndHashCode(callSuper = false)
 public class AsyncQueryJobMetadata extends StateModel {
   private final String queryId;
+  // optional: accountId for EMRS cluster
+  private final String accountId;
   private final String applicationId;
   private final String jobId;
   private final String resultIndex;
@@ -44,6 +46,7 @@ public class AsyncQueryJobMetadata extends StateModel {
       AsyncQueryJobMetadata copy, ImmutableMap<String, Object> metadata) {
     return builder()
         .queryId(copy.queryId)
+        .accountId(copy.accountId)
         .applicationId(copy.getApplicationId())
         .jobId(copy.getJobId())
         .resultIndex(copy.getResultIndex())
