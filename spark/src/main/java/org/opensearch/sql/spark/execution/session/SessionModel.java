@@ -8,14 +8,14 @@ package org.opensearch.sql.spark.execution.session;
 import static org.opensearch.sql.spark.execution.session.SessionState.NOT_STARTED;
 import static org.opensearch.sql.spark.execution.session.SessionType.INTERACTIVE;
 
-import lombok.Builder;
+import com.google.common.collect.ImmutableMap;
 import lombok.Data;
-import org.opensearch.index.seqno.SequenceNumbers;
+import lombok.experimental.SuperBuilder;
 import org.opensearch.sql.spark.execution.statestore.StateModel;
 
 /** Session data in flint.ql.sessions index. */
 @Data
-@Builder
+@SuperBuilder
 public class SessionModel extends StateModel {
 
   public static final String UNKNOWN = "unknown";
@@ -30,10 +30,7 @@ public class SessionModel extends StateModel {
   private final String error;
   private final long lastUpdateTime;
 
-  private final long seqNo;
-  private final long primaryTerm;
-
-  public static SessionModel of(SessionModel copy, long seqNo, long primaryTerm) {
+  public static SessionModel of(SessionModel copy, ImmutableMap<String, Object> metadata) {
     return builder()
         .version(copy.version)
         .sessionType(copy.sessionType)
@@ -44,13 +41,12 @@ public class SessionModel extends StateModel {
         .jobId(copy.jobId)
         .error(UNKNOWN)
         .lastUpdateTime(copy.getLastUpdateTime())
-        .seqNo(seqNo)
-        .primaryTerm(primaryTerm)
+        .metadata(metadata)
         .build();
   }
 
   public static SessionModel copyWithState(
-      SessionModel copy, SessionState state, long seqNo, long primaryTerm) {
+      SessionModel copy, SessionState state, ImmutableMap<String, Object> metadata) {
     return builder()
         .version(copy.version)
         .sessionType(copy.sessionType)
@@ -61,8 +57,7 @@ public class SessionModel extends StateModel {
         .jobId(copy.jobId)
         .error(UNKNOWN)
         .lastUpdateTime(copy.getLastUpdateTime())
-        .seqNo(seqNo)
-        .primaryTerm(primaryTerm)
+        .metadata(metadata)
         .build();
   }
 
@@ -78,8 +73,6 @@ public class SessionModel extends StateModel {
         .jobId(jobId)
         .error(UNKNOWN)
         .lastUpdateTime(System.currentTimeMillis())
-        .seqNo(SequenceNumbers.UNASSIGNED_SEQ_NO)
-        .primaryTerm(SequenceNumbers.UNASSIGNED_PRIMARY_TERM)
         .build();
   }
 

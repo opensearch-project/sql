@@ -1200,12 +1200,20 @@ public class SparkQueryDispatcherTest {
   }
 
   private AsyncQueryJobMetadata asyncQueryJobMetadata() {
-    return new AsyncQueryJobMetadata(QUERY_ID, EMRS_APPLICATION_ID, EMR_JOB_ID, null);
+    return AsyncQueryJobMetadata.builder()
+        .queryId(QUERY_ID)
+        .applicationId(EMRS_APPLICATION_ID)
+        .jobId(EMR_JOB_ID)
+        .build();
   }
 
   private AsyncQueryJobMetadata asyncQueryJobMetadataWithSessionId(
       String statementId, String sessionId) {
-    return new AsyncQueryJobMetadata(
-        new AsyncQueryId(statementId), EMRS_APPLICATION_ID, EMR_JOB_ID, null, sessionId);
+    return AsyncQueryJobMetadata.builder()
+        .queryId(new AsyncQueryId(statementId))
+        .applicationId(EMRS_APPLICATION_ID)
+        .jobId(EMR_JOB_ID)
+        .sessionId(sessionId)
+        .build();
   }
 }

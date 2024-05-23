@@ -110,8 +110,7 @@ public class StatementModelXContentSerializer implements XContentSerializer<Stat
           throw new IllegalArgumentException("Unexpected field: " + fieldName);
       }
     }
-    builder.seqNo(seqNo);
-    builder.primaryTerm(primaryTerm);
+    builder.metadata(XContentSerializerUtil.buildMetadata(seqNo, primaryTerm));
     return builder.build();
   }
 }

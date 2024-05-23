@@ -10,7 +10,6 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.Optional;
-import org.opensearch.index.seqno.SequenceNumbers;
 import org.opensearch.sql.spark.flint.FlintIndexState;
 import org.opensearch.sql.spark.flint.FlintIndexStateModel;
 import org.opensearch.sql.spark.flint.FlintIndexStateModelService;
@@ -26,16 +25,15 @@ public class MockFlintSparkJob {
     this.flintIndexStateModelService = flintIndexStateModelService;
     this.datasource = datasource;
     stateModel =
-        new FlintIndexStateModel(
-            FlintIndexState.EMPTY,
-            "mockAppId",
-            "mockJobId",
-            latestId,
-            datasource,
-            System.currentTimeMillis(),
-            "",
-            SequenceNumbers.UNASSIGNED_SEQ_NO,
-            SequenceNumbers.UNASSIGNED_PRIMARY_TERM);
+        FlintIndexStateModel.builder()
+            .indexState(FlintIndexState.EMPTY)
+            .applicationId("mockAppId")
+            .jobId("mockJobId")
+            .latestId(latestId)
+            .datasourceName(datasource)
+            .lastUpdateTime(System.currentTimeMillis())
+            .error("")
+            .build();
     stateModel = flintIndexStateModelService.createFlintIndexStateModel(stateModel);
   }
 

@@ -5,13 +5,15 @@
 
 package org.opensearch.sql.spark.dispatcher.model;
 
+import com.google.common.collect.ImmutableMap;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
-import org.opensearch.index.seqno.SequenceNumbers;
+import lombok.experimental.SuperBuilder;
 import org.opensearch.sql.spark.execution.statestore.StateModel;
 
 /** Plugin create Index DML result. */
 @Data
+@SuperBuilder
 @EqualsAndHashCode(callSuper = false)
 public class IndexDMLResult extends StateModel {
   public static final String DOC_ID_PREFIX = "index";
@@ -23,28 +25,20 @@ public class IndexDMLResult extends StateModel {
   private final Long queryRunTime;
   private final Long updateTime;
 
-  public static IndexDMLResult copy(IndexDMLResult copy, long seqNo, long primaryTerm) {
-    return new IndexDMLResult(
-        copy.queryId,
-        copy.status,
-        copy.error,
-        copy.datasourceName,
-        copy.queryRunTime,
-        copy.updateTime);
+  public static IndexDMLResult copy(IndexDMLResult copy, ImmutableMap<String, Object> metadata) {
+    return builder()
+        .queryId(copy.queryId)
+        .status(copy.status)
+        .error(copy.error)
+        .datasourceName(copy.datasourceName)
+        .queryRunTime(copy.queryRunTime)
+        .updateTime(copy.updateTime)
+        .metadata(metadata)
+        .build();
   }
 
   @Override
   public String getId() {
     return DOC_ID_PREFIX + queryId;
-  }
-
-  @Override
-  public long getSeqNo() {
-    return SequenceNumbers.UNASSIGNED_SEQ_NO;
-  }
-
-  @Override
-  public long getPrimaryTerm() {
-    return SequenceNumbers.UNASSIGNED_PRIMARY_TERM;
   }
 }

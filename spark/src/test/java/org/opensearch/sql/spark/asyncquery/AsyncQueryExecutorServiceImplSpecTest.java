@@ -149,6 +149,7 @@ public class AsyncQueryExecutorServiceImplSpecTest extends AsyncQueryExecutorSer
     // 2. fetch async query result.
     AsyncQueryExecutionResponse asyncQueryResults =
         asyncQueryExecutorService.getAsyncQueryResults(response.getQueryId());
+    assertEquals("", asyncQueryResults.getError());
     assertTrue(Strings.isEmpty(asyncQueryResults.getError()));
     assertEquals(StatementState.WAITING.getState(), asyncQueryResults.getStatus());
 
@@ -314,8 +315,7 @@ public class AsyncQueryExecutorServiceImplSpecTest extends AsyncQueryExecutorSer
             .queryId(submitted.getQueryId())
             .submitTime(submitted.getSubmitTime())
             .error("mock error")
-            .seqNo(submitted.getSeqNo())
-            .primaryTerm(submitted.getPrimaryTerm())
+            .metadata(submitted.getMetadata())
             .build();
     statementStorageService.updateStatementState(mocked, StatementState.FAILED);
 

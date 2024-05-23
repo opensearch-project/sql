@@ -42,6 +42,7 @@ import org.opensearch.core.xcontent.ToXContent;
 import org.opensearch.core.xcontent.XContentParser;
 import org.opensearch.index.query.QueryBuilder;
 import org.opensearch.index.query.QueryBuilders;
+import org.opensearch.index.seqno.SequenceNumbers;
 import org.opensearch.search.builder.SearchSourceBuilder;
 import org.opensearch.sql.spark.asyncquery.model.AsyncQueryJobMetadata;
 import org.opensearch.sql.spark.dispatcher.model.IndexDMLResult;
@@ -57,6 +58,7 @@ import org.opensearch.sql.spark.execution.xcontent.SessionModelXContentSerialize
 import org.opensearch.sql.spark.execution.xcontent.StatementModelXContentSerializer;
 import org.opensearch.sql.spark.execution.xcontent.XContentCommonAttributes;
 import org.opensearch.sql.spark.execution.xcontent.XContentSerializer;
+import org.opensearch.sql.spark.execution.xcontent.XContentSerializerUtil;
 import org.opensearch.sql.spark.flint.FlintIndexState;
 import org.opensearch.sql.spark.flint.FlintIndexStateModel;
 
@@ -86,8 +88,8 @@ public class StateStore {
           new IndexRequest(indexName)
               .id(st.getId())
               .source(serializer.toXContent(st, ToXContent.EMPTY_PARAMS))
-              .setIfSeqNo(st.getSeqNo())
-              .setIfPrimaryTerm(st.getPrimaryTerm())
+              .setIfSeqNo(getSeqNo(st))
+              .setIfPrimaryTerm(getPrimaryTerm(st))
               .create(true)
               .setRefreshPolicy(WriteRequest.RefreshPolicy.WAIT_UNTIL);
       try (ThreadContext.StoredContext ignored =
@@ -95,7 +97,10 @@ public class StateStore {
         IndexResponse indexResponse = client.index(indexRequest).actionGet();
         if (indexResponse.getResult().equals(DocWriteResponse.Result.CREATED)) {
           LOG.debug("Successfully created doc. id: {}", st.getId());
-          return builder.of(st, indexResponse.getSeqNo(), indexResponse.getPrimaryTerm());
+          return builder.of(
+              st,
+              XContentSerializerUtil.buildMetadata(
+                  indexResponse.getSeqNo(), indexResponse.getPrimaryTerm()));
         } else {
           throw new RuntimeException(
               String.format(
@@ -146,14 +151,14 @@ public class StateStore {
   public <T extends StateModel, S> T updateState(
       T st, S state, StateCopyBuilder<T, S> builder, String indexName) {
     try {
-      T model = builder.of(st, state, st.getSeqNo(), st.getPrimaryTerm());
+      T model = builder.of(st, state, st.getMetadata());
       XContentSerializer<T> serializer = getXContentSerializer(st);
       UpdateRequest updateRequest =
           new UpdateRequest()
               .index(indexName)
               .id(model.getId())
-              .setIfSeqNo(model.getSeqNo())
-              .setIfPrimaryTerm(model.getPrimaryTerm())
+              .setIfSeqNo(getSeqNo(model))
+              .setIfPrimaryTerm(getPrimaryTerm(model))
               .doc(serializer.toXContent(model, ToXContent.EMPTY_PARAMS))
               .fetchSource(true)
               .setRefreshPolicy(WriteRequest.RefreshPolicy.WAIT_UNTIL);
@@ -161,11 +166,25 @@ public class StateStore {
           client.threadPool().getThreadContext().stashContext()) {
         UpdateResponse updateResponse = client.update(updateRequest).actionGet();
         LOG.debug("Successfully update doc. id: {}", st.getId());
-        return builder.of(model, state, updateResponse.getSeqNo(), updateResponse.getPrimaryTerm());
+        return builder.of(
+            model,
+            state,
+            XContentSerializerUtil.buildMetadata(
+                updateResponse.getSeqNo(), updateResponse.getPrimaryTerm()));
       }
     } catch (IOException e) {
       throw new RuntimeException(e);
     }
+  }
+
+  private long getSeqNo(StateModel model) {
+    return model.getMetadataItem("seqNo", Long.class).orElse(SequenceNumbers.UNASSIGNED_SEQ_NO);
+  }
+
+  private long getPrimaryTerm(StateModel model) {
+    return model
+        .getMetadataItem("primaryTerm", Long.class)
+        .orElse(SequenceNumbers.UNASSIGNED_PRIMARY_TERM);
   }
 
   /**
