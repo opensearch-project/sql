@@ -68,7 +68,7 @@ public class EmrServerlessClientImplTest {
     when(emrServerless.startJobRun(any())).thenReturn(response);
 
     EmrServerlessClientImpl emrServerlessClient = new EmrServerlessClientImpl(emrServerless);
-    String parameters = SparkSubmitParameters.Builder.builder().query(QUERY).build().toString();
+    String parameters = SparkSubmitParameters.builder().query(QUERY).build().toString();
 
     emrServerlessClient.startJobRun(
         new StartJobRequest(

@@ -26,6 +26,7 @@ import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.opensearch.sql.datasource.model.DataSourceMetadata;
 import org.opensearch.sql.datasource.model.DataSourceType;
+import org.opensearch.sql.spark.config.SparkSubmitParameterModifier;
 import org.opensearch.sql.spark.dispatcher.model.DispatchQueryContext;
 import org.opensearch.sql.spark.dispatcher.model.DispatchQueryRequest;
 import org.opensearch.sql.spark.dispatcher.model.DispatchQueryResponse;
@@ -46,6 +47,7 @@ class IndexDMLHandlerTest {
   @Mock private FlintIndexMetadataService flintIndexMetadataService;
   @Mock private IndexDMLResultStorageService indexDMLResultStorageService;
   @Mock private FlintIndexOpFactory flintIndexOpFactory;
+  @Mock private SparkSubmitParameterModifier sparkSubmitParameterModifier;
 
   @Test
   public void getResponseFromExecutor() {
@@ -70,7 +72,8 @@ class IndexDMLHandlerTest {
             "my_glue",
             LangType.SQL,
             EMRS_EXECUTION_ROLE,
-            TEST_CLUSTER_NAME);
+            TEST_CLUSTER_NAME,
+            sparkSubmitParameterModifier);
     DataSourceMetadata metadata =
         new DataSourceMetadata.Builder()
             .setName("mys3")
@@ -113,7 +116,8 @@ class IndexDMLHandlerTest {
             "my_glue",
             LangType.SQL,
             EMRS_EXECUTION_ROLE,
-            TEST_CLUSTER_NAME);
+            TEST_CLUSTER_NAME,
+            sparkSubmitParameterModifier);
     DataSourceMetadata metadata =
         new DataSourceMetadata.Builder()
             .setName("mys3")

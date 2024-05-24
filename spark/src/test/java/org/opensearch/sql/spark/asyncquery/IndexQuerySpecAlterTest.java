@@ -76,7 +76,8 @@ public class IndexQuerySpecAlterTest extends AsyncQueryExecutorServiceSpec {
               CreateAsyncQueryResponse response =
                   asyncQueryExecutorService.createAsyncQuery(
                       new CreateAsyncQueryRequest(
-                          mockDS.getQuery(), MYS3_DATASOURCE, LangType.SQL, null));
+                          mockDS.getQuery(), MYS3_DATASOURCE, LangType.SQL, null),
+                      requestContext);
 
               // 2. fetch result
               AsyncQueryExecutionResponse asyncQueryExecutionResponse =
@@ -144,7 +145,8 @@ public class IndexQuerySpecAlterTest extends AsyncQueryExecutorServiceSpec {
               CreateAsyncQueryResponse response =
                   asyncQueryExecutorService.createAsyncQuery(
                       new CreateAsyncQueryRequest(
-                          mockDS.getQuery(), MYS3_DATASOURCE, LangType.SQL, null));
+                          mockDS.getQuery(), MYS3_DATASOURCE, LangType.SQL, null),
+                      requestContext);
 
               // 2. fetch result
               AsyncQueryExecutionResponse asyncQueryExecutionResponse =
@@ -225,7 +227,8 @@ public class IndexQuerySpecAlterTest extends AsyncQueryExecutorServiceSpec {
               CreateAsyncQueryResponse response =
                   asyncQueryExecutorService.createAsyncQuery(
                       new CreateAsyncQueryRequest(
-                          mockDS.getQuery(), MYS3_DATASOURCE, LangType.SQL, null));
+                          mockDS.getQuery(), MYS3_DATASOURCE, LangType.SQL, null),
+                      requestContext);
 
               // 2. fetch result
               AsyncQueryExecutionResponse asyncQueryExecutionResponse =
@@ -288,7 +291,8 @@ public class IndexQuerySpecAlterTest extends AsyncQueryExecutorServiceSpec {
               CreateAsyncQueryResponse response =
                   asyncQueryExecutorService.createAsyncQuery(
                       new CreateAsyncQueryRequest(
-                          mockDS.getQuery(), MYS3_DATASOURCE, LangType.SQL, null));
+                          mockDS.getQuery(), MYS3_DATASOURCE, LangType.SQL, null),
+                      requestContext);
 
               // 2. fetch result
               assertEquals(
@@ -353,7 +357,8 @@ public class IndexQuerySpecAlterTest extends AsyncQueryExecutorServiceSpec {
               CreateAsyncQueryResponse response =
                   asyncQueryExecutorService.createAsyncQuery(
                       new CreateAsyncQueryRequest(
-                          mockDS.getQuery(), MYS3_DATASOURCE, LangType.SQL, null));
+                          mockDS.getQuery(), MYS3_DATASOURCE, LangType.SQL, null),
+                      requestContext);
 
               // 2. fetch result
               assertEquals(
@@ -427,7 +432,8 @@ public class IndexQuerySpecAlterTest extends AsyncQueryExecutorServiceSpec {
               CreateAsyncQueryResponse response =
                   asyncQueryExecutorService.createAsyncQuery(
                       new CreateAsyncQueryRequest(
-                          mockDS.getQuery(), MYS3_DATASOURCE, LangType.SQL, null));
+                          mockDS.getQuery(), MYS3_DATASOURCE, LangType.SQL, null),
+                      requestContext);
 
               // 2. fetch result
               AsyncQueryExecutionResponse asyncQueryExecutionResponse =
@@ -501,7 +507,8 @@ public class IndexQuerySpecAlterTest extends AsyncQueryExecutorServiceSpec {
               CreateAsyncQueryResponse response =
                   asyncQueryExecutorService.createAsyncQuery(
                       new CreateAsyncQueryRequest(
-                          mockDS.getQuery(), MYS3_DATASOURCE, LangType.SQL, null));
+                          mockDS.getQuery(), MYS3_DATASOURCE, LangType.SQL, null),
+                      requestContext);
 
               // 2. fetch result
               AsyncQueryExecutionResponse asyncQueryExecutionResponse =
@@ -569,7 +576,8 @@ public class IndexQuerySpecAlterTest extends AsyncQueryExecutorServiceSpec {
               CreateAsyncQueryResponse response =
                   asyncQueryExecutorService.createAsyncQuery(
                       new CreateAsyncQueryRequest(
-                          mockDS.getQuery(), MYS3_DATASOURCE, LangType.SQL, null));
+                          mockDS.getQuery(), MYS3_DATASOURCE, LangType.SQL, null),
+                      requestContext);
 
               // 2. fetch result
               AsyncQueryExecutionResponse asyncQueryExecutionResponse =
@@ -630,7 +638,8 @@ public class IndexQuerySpecAlterTest extends AsyncQueryExecutorServiceSpec {
               CreateAsyncQueryResponse response =
                   asyncQueryExecutorService.createAsyncQuery(
                       new CreateAsyncQueryRequest(
-                          mockDS.getQuery(), MYS3_DATASOURCE, LangType.SQL, null));
+                          mockDS.getQuery(), MYS3_DATASOURCE, LangType.SQL, null),
+                      requestContext);
 
               // 2. fetch result
               AsyncQueryExecutionResponse asyncQueryExecutionResponse =
@@ -693,7 +702,8 @@ public class IndexQuerySpecAlterTest extends AsyncQueryExecutorServiceSpec {
               CreateAsyncQueryResponse response =
                   asyncQueryExecutorService.createAsyncQuery(
                       new CreateAsyncQueryRequest(
-                          mockDS.getQuery(), MYS3_DATASOURCE, LangType.SQL, null));
+                          mockDS.getQuery(), MYS3_DATASOURCE, LangType.SQL, null),
+                      requestContext);
 
               // 2. fetch result
               AsyncQueryExecutionResponse asyncQueryExecutionResponse =
@@ -756,7 +766,8 @@ public class IndexQuerySpecAlterTest extends AsyncQueryExecutorServiceSpec {
               CreateAsyncQueryResponse response =
                   asyncQueryExecutorService.createAsyncQuery(
                       new CreateAsyncQueryRequest(
-                          mockDS.getQuery(), MYS3_DATASOURCE, LangType.SQL, null));
+                          mockDS.getQuery(), MYS3_DATASOURCE, LangType.SQL, null),
+                      requestContext);
 
               // 2. fetch result
               AsyncQueryExecutionResponse asyncQueryExecutionResponse =
@@ -816,7 +827,8 @@ public class IndexQuerySpecAlterTest extends AsyncQueryExecutorServiceSpec {
               CreateAsyncQueryResponse response =
                   asyncQueryExecutorService.createAsyncQuery(
                       new CreateAsyncQueryRequest(
-                          mockDS.getQuery(), MYS3_DATASOURCE, LangType.SQL, null));
+                          mockDS.getQuery(), MYS3_DATASOURCE, LangType.SQL, null),
+                      requestContext);
 
               // 2. fetch result
               AsyncQueryExecutionResponse asyncQueryExecutionResponse =
@@ -874,7 +886,8 @@ public class IndexQuerySpecAlterTest extends AsyncQueryExecutorServiceSpec {
               CreateAsyncQueryResponse response =
                   asyncQueryExecutorService.createAsyncQuery(
                       new CreateAsyncQueryRequest(
-                          mockDS.getQuery(), MYS3_DATASOURCE, LangType.SQL, null));
+                          mockDS.getQuery(), MYS3_DATASOURCE, LangType.SQL, null),
+                      requestContext);
 
               // 2. fetch result
               AsyncQueryExecutionResponse asyncQueryExecutionResponse =
@@ -940,7 +953,8 @@ public class IndexQuerySpecAlterTest extends AsyncQueryExecutorServiceSpec {
               CreateAsyncQueryResponse response =
                   asyncQueryExecutorService.createAsyncQuery(
                       new CreateAsyncQueryRequest(
-                          mockDS.getQuery(), MYS3_DATASOURCE, LangType.SQL, null));
+                          mockDS.getQuery(), MYS3_DATASOURCE, LangType.SQL, null),
+                      requestContext);
 
               // 2. fetch result
               AsyncQueryExecutionResponse asyncQueryExecutionResponse =
@@ -1004,7 +1018,8 @@ public class IndexQuerySpecAlterTest extends AsyncQueryExecutorServiceSpec {
               CreateAsyncQueryResponse response =
                   asyncQueryExecutorService.createAsyncQuery(
                       new CreateAsyncQueryRequest(
-                          mockDS.getQuery(), MYS3_DATASOURCE, LangType.SQL, null));
+                          mockDS.getQuery(), MYS3_DATASOURCE, LangType.SQL, null),
+                      requestContext);
 
               // 2. fetch result
               AsyncQueryExecutionResponse asyncQueryExecutionResponse =
@@ -1069,7 +1084,8 @@ public class IndexQuerySpecAlterTest extends AsyncQueryExecutorServiceSpec {
               CreateAsyncQueryResponse response =
                   asyncQueryExecutorService.createAsyncQuery(
                       new CreateAsyncQueryRequest(
-                          mockDS.getQuery(), MYS3_DATASOURCE, LangType.SQL, null));
+                          mockDS.getQuery(), MYS3_DATASOURCE, LangType.SQL, null),
+                      requestContext);
 
               // 2. fetch result
               AsyncQueryExecutionResponse asyncQueryExecutionResponse =
