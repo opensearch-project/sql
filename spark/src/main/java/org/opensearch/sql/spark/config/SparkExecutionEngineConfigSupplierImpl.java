@@ -18,10 +18,14 @@ public class SparkExecutionEngineConfigSupplierImpl implements SparkExecutionEng
 
   @Override
   public SparkExecutionEngineConfig getSparkExecutionEngineConfig(RequestContext requestContext) {
+    ClusterName clusterName = settings.getSettingValue(CLUSTER_NAME);
+    return getBuilderFromSettingsIfAvailable().clusterName(clusterName.value()).build();
+  }
+
+  private SparkExecutionEngineConfig.SparkExecutionEngineConfigBuilder
+      getBuilderFromSettingsIfAvailable() {
     String sparkExecutionEngineConfigSettingString =
         this.settings.getSettingValue(SPARK_EXECUTION_ENGINE_CONFIG);
-    SparkExecutionEngineConfig.SparkExecutionEngineConfigBuilder builder =
-        SparkExecutionEngineConfig.builder();
     if (!StringUtils.isBlank(sparkExecutionEngineConfigSettingString)) {
       SparkExecutionEngineConfigClusterSetting setting =
           AccessController.doPrivileged(
@@ -29,13 +33,14 @@ public class SparkExecutionEngineConfigSupplierImpl implements SparkExecutionEng
                   () ->
                       SparkExecutionEngineConfigClusterSetting.toSparkExecutionEngineConfig(
                           sparkExecutionEngineConfigSettingString));
-      builder.applicationId(setting.getApplicationId());
-      builder.executionRoleARN(setting.getExecutionRoleARN());
-      builder.sparkSubmitParameterModifier(
-          new OpenSearchSparkSubmitParameterModifier(setting.getSparkSubmitParameters()));
-      builder.region(setting.getRegion());
+      return SparkExecutionEngineConfig.builder()
+          .applicationId(setting.getApplicationId())
+          .executionRoleARN(setting.getExecutionRoleARN())
+          .sparkSubmitParameterModifier(
+              new OpenSearchSparkSubmitParameterModifier(setting.getSparkSubmitParameters()))
+          .region(setting.getRegion());
+    } else {
+      return SparkExecutionEngineConfig.builder();
     }
-    ClusterName clusterName = settings.getSettingValue(CLUSTER_NAME);
-    return builder.clusterName(clusterName.value()).build();
   }
 }
