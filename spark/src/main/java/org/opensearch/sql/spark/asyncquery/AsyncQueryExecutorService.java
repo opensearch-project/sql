@@ -6,6 +6,7 @@
 package org.opensearch.sql.spark.asyncquery;
 
 import org.opensearch.sql.spark.asyncquery.model.AsyncQueryExecutionResponse;
+import org.opensearch.sql.spark.asyncquery.model.RequestContext;
 import org.opensearch.sql.spark.rest.model.CreateAsyncQueryRequest;
 import org.opensearch.sql.spark.rest.model.CreateAsyncQueryResponse;
 
@@ -20,7 +21,8 @@ public interface AsyncQueryExecutorService {
    * @param createAsyncQueryRequest createAsyncQueryRequest.
    * @return {@link CreateAsyncQueryResponse}
    */
-  CreateAsyncQueryResponse createAsyncQuery(CreateAsyncQueryRequest createAsyncQueryRequest);
+  CreateAsyncQueryResponse createAsyncQuery(
+      CreateAsyncQueryRequest createAsyncQueryRequest, RequestContext requestContext);
 
   /**
    * Returns async query response for a given queryId.

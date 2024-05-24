@@ -9,6 +9,7 @@ import lombok.AllArgsConstructor;
 import org.apache.commons.lang3.StringUtils;
 import org.opensearch.cluster.ClusterName;
 import org.opensearch.sql.common.setting.Settings;
+import org.opensearch.sql.spark.asyncquery.model.RequestContext;
 
 @AllArgsConstructor
 public class SparkExecutionEngineConfigSupplierImpl implements SparkExecutionEngineConfigSupplier {
@@ -16,27 +17,30 @@ public class SparkExecutionEngineConfigSupplierImpl implements SparkExecutionEng
   private Settings settings;
 
   @Override
-  public SparkExecutionEngineConfig getSparkExecutionEngineConfig() {
+  public SparkExecutionEngineConfig getSparkExecutionEngineConfig(RequestContext requestContext) {
+    ClusterName clusterName = settings.getSettingValue(CLUSTER_NAME);
+    return getBuilderFromSettingsIfAvailable().clusterName(clusterName.value()).build();
+  }
+
+  private SparkExecutionEngineConfig.SparkExecutionEngineConfigBuilder
+      getBuilderFromSettingsIfAvailable() {
     String sparkExecutionEngineConfigSettingString =
         this.settings.getSettingValue(SPARK_EXECUTION_ENGINE_CONFIG);
-    SparkExecutionEngineConfig sparkExecutionEngineConfig = new SparkExecutionEngineConfig();
     if (!StringUtils.isBlank(sparkExecutionEngineConfigSettingString)) {
-      SparkExecutionEngineConfigClusterSetting sparkExecutionEngineConfigClusterSetting =
+      SparkExecutionEngineConfigClusterSetting setting =
           AccessController.doPrivileged(
               (PrivilegedAction<SparkExecutionEngineConfigClusterSetting>)
                   () ->
                       SparkExecutionEngineConfigClusterSetting.toSparkExecutionEngineConfig(
                           sparkExecutionEngineConfigSettingString));
-      sparkExecutionEngineConfig.setApplicationId(
-          sparkExecutionEngineConfigClusterSetting.getApplicationId());
-      sparkExecutionEngineConfig.setExecutionRoleARN(
-          sparkExecutionEngineConfigClusterSetting.getExecutionRoleARN());
-      sparkExecutionEngineConfig.setSparkSubmitParameters(
-          sparkExecutionEngineConfigClusterSetting.getSparkSubmitParameters());
-      sparkExecutionEngineConfig.setRegion(sparkExecutionEngineConfigClusterSetting.getRegion());
+      return SparkExecutionEngineConfig.builder()
+          .applicationId(setting.getApplicationId())
+          .executionRoleARN(setting.getExecutionRoleARN())
+          .sparkSubmitParameterModifier(
+              new OpenSearchSparkSubmitParameterModifier(setting.getSparkSubmitParameters()))
+          .region(setting.getRegion());
+    } else {
+      return SparkExecutionEngineConfig.builder();
     }
-    ClusterName clusterName = settings.getSettingValue(CLUSTER_NAME);
-    sparkExecutionEngineConfig.setClusterName(clusterName.value());
-    return sparkExecutionEngineConfig;
   }
 }

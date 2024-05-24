@@ -1,8 +1,8 @@
 package org.opensearch.sql.spark.config;
 
 import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Data;
-import lombok.NoArgsConstructor;
 
 /**
  * POJO for spark Execution Engine Config. Interface between {@link
@@ -10,12 +10,12 @@ import lombok.NoArgsConstructor;
  * SparkExecutionEngineConfigSupplier}
  */
 @Data
-@NoArgsConstructor
+@Builder
 @AllArgsConstructor
 public class SparkExecutionEngineConfig {
   private String applicationId;
   private String region;
   private String executionRoleARN;
-  private String sparkSubmitParameters;
+  private SparkSubmitParameterModifier sparkSubmitParameterModifier;
   private String clusterName;
 }

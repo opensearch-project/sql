@@ -26,6 +26,8 @@ import org.opensearch.sql.protocol.response.format.ResponseFormatter;
 import org.opensearch.sql.spark.asyncquery.model.AsyncQueryExecutionResponse;
 import org.opensearch.sql.spark.asyncquery.model.AsyncQueryResult;
 import org.opensearch.sql.spark.asyncquery.model.MockFlintSparkJob;
+import org.opensearch.sql.spark.asyncquery.model.NullRequestContext;
+import org.opensearch.sql.spark.asyncquery.model.RequestContext;
 import org.opensearch.sql.spark.client.EMRServerlessClientFactory;
 import org.opensearch.sql.spark.execution.statement.StatementModel;
 import org.opensearch.sql.spark.execution.statement.StatementState;
@@ -37,6 +39,7 @@ import org.opensearch.sql.spark.rest.model.LangType;
 import org.opensearch.sql.spark.transport.format.AsyncQueryResultResponseFormatter;
 
 public class AsyncQueryGetResultSpecTest extends AsyncQueryExecutorServiceSpec {
+  RequestContext requestContext = new NullRequestContext();
 
   /** Mock Flint index and index state */
   private final FlintDatasetMock mockIndex =
@@ -435,7 +438,8 @@ public class AsyncQueryGetResultSpecTest extends AsyncQueryExecutorServiceSpec {
               });
       this.createQueryResponse =
           queryService.createAsyncQuery(
-              new CreateAsyncQueryRequest(query, MYS3_DATASOURCE, LangType.SQL, null));
+              new CreateAsyncQueryRequest(query, MYS3_DATASOURCE, LangType.SQL, null),
+              requestContext);
     }
 
     AssertionHelper withInteraction(Interaction interaction) {

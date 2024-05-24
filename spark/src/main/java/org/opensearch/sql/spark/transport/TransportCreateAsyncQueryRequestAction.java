@@ -18,6 +18,7 @@ import org.opensearch.sql.opensearch.setting.OpenSearchSettings;
 import org.opensearch.sql.protocol.response.format.JsonResponseFormatter;
 import org.opensearch.sql.spark.asyncquery.AsyncQueryExecutorService;
 import org.opensearch.sql.spark.asyncquery.AsyncQueryExecutorServiceImpl;
+import org.opensearch.sql.spark.asyncquery.model.NullRequestContext;
 import org.opensearch.sql.spark.rest.model.CreateAsyncQueryRequest;
 import org.opensearch.sql.spark.rest.model.CreateAsyncQueryResponse;
 import org.opensearch.sql.spark.transport.model.CreateAsyncQueryActionRequest;
@@ -64,7 +65,8 @@ public class TransportCreateAsyncQueryRequestAction
 
       CreateAsyncQueryRequest createAsyncQueryRequest = request.getCreateAsyncQueryRequest();
       CreateAsyncQueryResponse createAsyncQueryResponse =
-          asyncQueryExecutorService.createAsyncQuery(createAsyncQueryRequest);
+          asyncQueryExecutorService.createAsyncQuery(
+              createAsyncQueryRequest, new NullRequestContext());
       String responseContent =
           new JsonResponseFormatter<CreateAsyncQueryResponse>(JsonResponseFormatter.Style.PRETTY) {
             @Override

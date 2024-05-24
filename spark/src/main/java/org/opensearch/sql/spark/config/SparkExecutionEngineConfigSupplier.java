@@ -1,5 +1,7 @@
 package org.opensearch.sql.spark.config;
 
+import org.opensearch.sql.spark.asyncquery.model.RequestContext;
+
 /** Interface for extracting and providing SparkExecutionEngineConfig */
 public interface SparkExecutionEngineConfigSupplier {
 
@@ -8,5 +10,5 @@ public interface SparkExecutionEngineConfigSupplier {
    *
    * @return {@link SparkExecutionEngineConfig}.
    */
-  SparkExecutionEngineConfig getSparkExecutionEngineConfig();
+  SparkExecutionEngineConfig getSparkExecutionEngineConfig(RequestContext requestContext);
 }
