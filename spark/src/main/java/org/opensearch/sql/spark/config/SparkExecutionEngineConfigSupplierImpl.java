@@ -36,7 +36,6 @@ public class SparkExecutionEngineConfigSupplierImpl implements SparkExecutionEng
       builder.region(setting.getRegion());
     }
     ClusterName clusterName = settings.getSettingValue(CLUSTER_NAME);
-    builder.clusterName(clusterName.value());
-    return builder.build();
+    return builder.clusterName(clusterName.value()).build();
   }
 }
