@@ -102,11 +102,12 @@ public class InteractiveQueryHandler extends AsyncQueryHandler {
                   clusterName,
                   dispatchQueryRequest.getApplicationId(),
                   dispatchQueryRequest.getExecutionRoleARN(),
-                  SparkSubmitParameters.Builder.builder()
+                  SparkSubmitParameters.builder()
                       .className(FLINT_SESSION_CLASS_NAME)
                       .clusterName(clusterName)
                       .dataSource(dataSourceMetadata)
-                      .extraParameters(dispatchQueryRequest.getExtraSparkSubmitParams()),
+                      .build()
+                      .acceptModifier(dispatchQueryRequest.getSparkSubmitParameterModifier()),
                   tags,
                   dataSourceMetadata.getResultIndex(),
                   dataSourceMetadata.getName()));

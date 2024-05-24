@@ -18,7 +18,7 @@ public class SessionTestUtil {
         TEST_CLUSTER_NAME,
         "appId",
         "arn",
-        SparkSubmitParameters.Builder.builder(),
+        SparkSubmitParameters.builder().build(),
         new HashMap<>(),
         "resultIndex",
         TEST_DATASOURCE_NAME);

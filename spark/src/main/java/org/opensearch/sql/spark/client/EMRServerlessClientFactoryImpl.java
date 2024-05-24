@@ -13,6 +13,7 @@ import com.amazonaws.services.emrserverless.AWSEMRServerlessClientBuilder;
 import java.security.AccessController;
 import java.security.PrivilegedAction;
 import lombok.RequiredArgsConstructor;
+import org.opensearch.sql.spark.asyncquery.model.NullRequestContext;
 import org.opensearch.sql.spark.config.SparkExecutionEngineConfig;
 import org.opensearch.sql.spark.config.SparkExecutionEngineConfigSupplier;
 
@@ -32,7 +33,8 @@ public class EMRServerlessClientFactoryImpl implements EMRServerlessClientFactor
   @Override
   public EMRServerlessClient getClient() {
     SparkExecutionEngineConfig sparkExecutionEngineConfig =
-        this.sparkExecutionEngineConfigSupplier.getSparkExecutionEngineConfig();
+        this.sparkExecutionEngineConfigSupplier.getSparkExecutionEngineConfig(
+            new NullRequestContext());
     validateSparkExecutionEngineConfig(sparkExecutionEngineConfig);
     if (isNewClientCreationRequired(sparkExecutionEngineConfig.getRegion())) {
       region = sparkExecutionEngineConfig.getRegion();

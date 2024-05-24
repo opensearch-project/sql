@@ -171,7 +171,8 @@ public class IndexQuerySpecVacuumTest extends AsyncQueryExecutorServiceSpec {
     // Vacuum index
     CreateAsyncQueryResponse response =
         asyncQueryExecutorService.createAsyncQuery(
-            new CreateAsyncQueryRequest(mockDS.query, MYS3_DATASOURCE, LangType.SQL, null));
+            new CreateAsyncQueryRequest(mockDS.query, MYS3_DATASOURCE, LangType.SQL, null),
+            requestContext);
 
     return asyncQueryExecutorService.getAsyncQueryResults(response.getQueryId());
   }

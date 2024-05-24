@@ -7,6 +7,8 @@
 
 package org.opensearch.sql.spark.transport;
 
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
@@ -69,9 +71,11 @@ public class TransportCreateAsyncQueryRequestActionTest {
     CreateAsyncQueryActionRequest request =
         new CreateAsyncQueryActionRequest(createAsyncQueryRequest);
     when(pluginSettings.getSettingValue(Settings.Key.ASYNC_QUERY_ENABLED)).thenReturn(true);
-    when(jobExecutorService.createAsyncQuery(createAsyncQueryRequest))
+    when(jobExecutorService.createAsyncQuery(eq(createAsyncQueryRequest), any()))
         .thenReturn(new CreateAsyncQueryResponse("123", null));
+
     action.doExecute(task, request, actionListener);
+
     Mockito.verify(actionListener).onResponse(createJobActionResponseArgumentCaptor.capture());
     CreateAsyncQueryActionResponse createAsyncQueryActionResponse =
         createJobActionResponseArgumentCaptor.getValue();
@@ -87,9 +91,11 @@ public class TransportCreateAsyncQueryRequestActionTest {
     CreateAsyncQueryActionRequest request =
         new CreateAsyncQueryActionRequest(createAsyncQueryRequest);
     when(pluginSettings.getSettingValue(Settings.Key.ASYNC_QUERY_ENABLED)).thenReturn(true);
-    when(jobExecutorService.createAsyncQuery(createAsyncQueryRequest))
+    when(jobExecutorService.createAsyncQuery(eq(createAsyncQueryRequest), any()))
         .thenReturn(new CreateAsyncQueryResponse("123", MOCK_SESSION_ID));
+
     action.doExecute(task, request, actionListener);
+
     Mockito.verify(actionListener).onResponse(createJobActionResponseArgumentCaptor.capture());
     CreateAsyncQueryActionResponse createAsyncQueryActionResponse =
         createJobActionResponseArgumentCaptor.getValue();
@@ -107,9 +113,11 @@ public class TransportCreateAsyncQueryRequestActionTest {
     when(pluginSettings.getSettingValue(Settings.Key.ASYNC_QUERY_ENABLED)).thenReturn(true);
     doThrow(new RuntimeException("Error"))
         .when(jobExecutorService)
-        .createAsyncQuery(createAsyncQueryRequest);
+        .createAsyncQuery(eq(createAsyncQueryRequest), any());
+
     action.doExecute(task, request, actionListener);
-    verify(jobExecutorService, times(1)).createAsyncQuery(createAsyncQueryRequest);
+
+    verify(jobExecutorService, times(1)).createAsyncQuery(eq(createAsyncQueryRequest), any());
     Mockito.verify(actionListener).onFailure(exceptionArgumentCaptor.capture());
     Exception exception = exceptionArgumentCaptor.getValue();
     Assertions.assertTrue(exception instanceof RuntimeException);
@@ -123,8 +131,10 @@ public class TransportCreateAsyncQueryRequestActionTest {
     CreateAsyncQueryActionRequest request =
         new CreateAsyncQueryActionRequest(createAsyncQueryRequest);
     when(pluginSettings.getSettingValue(Settings.Key.ASYNC_QUERY_ENABLED)).thenReturn(false);
+
     action.doExecute(task, request, actionListener);
-    verify(jobExecutorService, never()).createAsyncQuery(createAsyncQueryRequest);
+
+    verify(jobExecutorService, never()).createAsyncQuery(eq(createAsyncQueryRequest), any());
     Mockito.verify(actionListener).onFailure(exceptionArgumentCaptor.capture());
     Exception exception = exceptionArgumentCaptor.getValue();
     Assertions.assertTrue(exception instanceof IllegalAccessException);

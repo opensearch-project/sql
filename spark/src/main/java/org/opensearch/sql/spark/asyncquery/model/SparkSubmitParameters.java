@@ -21,11 +21,13 @@ import java.util.Map;
 import java.util.function.Supplier;
 import lombok.AllArgsConstructor;
 import lombok.RequiredArgsConstructor;
+import lombok.Setter;
 import org.apache.commons.lang3.BooleanUtils;
 import org.apache.commons.text.StringEscapeUtils;
 import org.opensearch.sql.datasource.model.DataSourceMetadata;
 import org.opensearch.sql.datasource.model.DataSourceType;
 import org.opensearch.sql.datasources.auth.AuthenticationType;
+import org.opensearch.sql.spark.config.SparkSubmitParameterModifier;
 import org.opensearch.sql.spark.execution.statestore.OpenSearchStateStoreUtil;
 
 /** Define Spark Submit Parameters. */
@@ -40,7 +42,24 @@ public class SparkSubmitParameters {
   private final Map<String, String> config;
 
   /** Extra parameters to append finally */
-  private String extraParameters;
+  @Setter private String extraParameters;
+
+  public void setConfigItem(String key, String value) {
+    config.put(key, value);
+  }
+
+  public void deleteConfigItem(String key) {
+    config.remove(key);
+  }
+
+  public static Builder builder() {
+    return Builder.builder();
+  }
+
+  public SparkSubmitParameters acceptModifier(SparkSubmitParameterModifier modifier) {
+    modifier.modifyParameters(this);
+    return this;
+  }
 
   public static class Builder {
 
@@ -180,15 +199,14 @@ public class SparkSubmitParameters {
       return this;
     }
 
-    public Builder sessionExecution(String sessionId, String datasourceName) {
-      config.put(FLINT_JOB_REQUEST_INDEX, OpenSearchStateStoreUtil.getIndexName(datasourceName));
-      config.put(FLINT_JOB_SESSION_ID, sessionId);
-      return this;
-    }
-
     public SparkSubmitParameters build() {
       return new SparkSubmitParameters(className, config, extraParameters);
     }
+  }
+
+  public void sessionExecution(String sessionId, String datasourceName) {
+    config.put(FLINT_JOB_REQUEST_INDEX, OpenSearchStateStoreUtil.getIndexName(datasourceName));
+    config.put(FLINT_JOB_SESSION_ID, sessionId);
   }
 
   @Override
