@@ -54,11 +54,7 @@ public class InteractiveSession implements Session {
       // append session id;
       createSessionRequest
           .getSparkSubmitParameters()
-          .acceptModifier(
-              (parameters) -> {
-                parameters.sessionExecution(
-                    sessionId.getSessionId(), createSessionRequest.getDatasourceName());
-              });
+          .sessionExecution(sessionId.getSessionId(), createSessionRequest.getDatasourceName());
       createSessionRequest.getTags().put(SESSION_ID_TAG_KEY, sessionId.getSessionId());
       StartJobRequest startJobRequest =
           createSessionRequest.getStartJobRequest(sessionId.getSessionId());
