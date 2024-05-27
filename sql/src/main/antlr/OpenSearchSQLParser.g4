@@ -479,7 +479,8 @@ aggregateFunction
    ;
 
 percentileApproxFunction
-   : (PERCENTILE | PERCENTILE_APPROX) LR_BRACKET aggField = functionArg COMMA quantile = numericLiteral RR_BRACKET
+   : (PERCENTILE | PERCENTILE_APPROX) LR_BRACKET aggField = functionArg
+       COMMA quantile = numericLiteral (COMMA compression = numericLiteral)? RR_BRACKET
    ;
 
 filterClause

@@ -17,6 +17,7 @@ import org.opensearch.sql.data.type.ExprCoreType;
 import org.opensearch.sql.expression.Expression;
 import org.opensearch.sql.expression.function.BuiltinFunctionName;
 
+/** Aggregator to calculate approximate percentile. */
 public class PercentileApproximateAggregator
     extends Aggregator<PercentileApproximateAggregator.PercentileApproximateState> {
 
@@ -26,11 +27,21 @@ public class PercentileApproximateAggregator
 
   public PercentileApproximateAggregator(List<Expression> arguments, ExprCoreType returnType) {
     super(BuiltinFunctionName.PERCENTILE_APPROX.getName(), arguments, returnType);
+    if (!ExprCoreType.numberTypes().contains(returnType)) {
+      throw new IllegalArgumentException(
+          String.format("percentile aggregation over %s type is not supported", returnType));
+    }
   }
 
   @Override
   public PercentileApproximateState create() {
-    return new PercentileApproximateState(getArguments().get(1).valueOf().doubleValue());
+    if (getArguments().size() == 2) {
+      return new PercentileApproximateState(getArguments().get(1).valueOf().doubleValue());
+    } else {
+      return new PercentileApproximateState(
+          getArguments().get(1).valueOf().doubleValue(),
+          getArguments().get(2).valueOf().doubleValue());
+    }
   }
 
   @Override
@@ -44,18 +55,35 @@ public class PercentileApproximateAggregator
     return StringUtils.format("%s(%s)", "percentile", format(getArguments()));
   }
 
+  /**
+   * PercentileApproximateState is used to store the AVLTreeDigest state for percentile estimation.
+   */
   protected static class PercentileApproximateState extends AVLTreeDigest
       implements AggregationState {
-
-    private static final double DEFAULT_COMPRESSION = 100.0;
-    private final double p;
+    // The compression level for the AVLTreeDigest, keep the same default value as OpenSearch core.
+    public static final double DEFAULT_COMPRESSION = 100.0;
+    private final double quantileRatio;
 
     PercentileApproximateState(double quantile) {
       super(DEFAULT_COMPRESSION);
       if (quantile < 0.0 || quantile > 100.0) {
         throw new IllegalArgumentException("out of bounds quantile value, must be in [0, 100]");
       }
-      this.p = quantile / 100.0;
+      this.quantileRatio = quantile / 100.0;
+    }
+
+    /**
+     * Constructor for specifying both quantile and compression level.
+     *
+     * @param quantile the quantile to compute, must be in [0, 100]
+     * @param compression the compression factor of the t-digest sketches used
+     */
+    PercentileApproximateState(double quantile, double compression) {
+      super(compression);
+      if (quantile < 0.0 || quantile > 100.0) {
+        throw new IllegalArgumentException("out of bounds quantile value, must be in [0, 100]");
+      }
+      this.quantileRatio = quantile / 100.0;
     }
 
     public void evaluate(ExprValue value) {
@@ -64,7 +92,7 @@ public class PercentileApproximateAggregator
 
     @Override
     public ExprValue result() {
-      return this.size() == 0 ? ExprNullValue.of() : doubleValue(this.quantile(p));
+      return this.size() == 0 ? ExprNullValue.of() : doubleValue(this.quantile(quantileRatio));
     }
   }
 }

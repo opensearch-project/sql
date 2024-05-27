@@ -61,7 +61,6 @@ import org.opensearch.sql.ppl.utils.ArgumentFactory;
 public class AstExpressionBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedExpression> {
 
   private static final int DEFAULT_TAKE_FUNCTION_SIZE_VALUE = 10;
-  private static final double DEFAULT_PERCENTILE_COMPRESSION = 100.0;
 
   /** The function name mapping between fronted and core engine. */
   private static Map<String, String> FUNCTION_NAME_MAPPING =
@@ -163,6 +162,10 @@ public class AstExpressionBuilder extends OpenSearchPPLParserBaseVisitor<Unresol
       OpenSearchPPLParser.PercentileApproxFunctionCallContext ctx) {
     ImmutableList.Builder<UnresolvedExpression> builder = ImmutableList.builder();
     builder.add(new UnresolvedArgument("quantile", visit(ctx.percentileApproxFunction().quantile)));
+    if (ctx.percentileApproxFunction().compression != null) {
+      builder.add(
+          new UnresolvedArgument("compression", visit(ctx.percentileApproxFunction().compression)));
+    }
     return new AggregateFunction(
         "percentile", visit(ctx.percentileApproxFunction().aggField), builder.build());
   }

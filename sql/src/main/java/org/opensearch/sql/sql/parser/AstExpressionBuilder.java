@@ -401,6 +401,13 @@ public class AstExpressionBuilder extends OpenSearchSQLParserBaseVisitor<Unresol
             "quantile",
             AstDSL.doubleLiteral(
                 Double.valueOf(ctx.percentileApproxFunction().quantile.getText()))));
+    if (ctx.percentileApproxFunction().compression != null) {
+      builder.add(
+          new UnresolvedArgument(
+              "compression",
+              AstDSL.doubleLiteral(
+                  Double.valueOf(ctx.percentileApproxFunction().compression.getText()))));
+    }
     return new AggregateFunction(
         "percentile", visit(ctx.percentileApproxFunction().aggField), builder.build());
   }

@@ -238,7 +238,8 @@ takeAggFunction
    ;
 
 percentileApproxFunction
-   : (PERCENTILE | PERCENTILE_APPROX) LT_PRTHS aggField = valueExpression COMMA quantile = numericLiteral RT_PRTHS
+   : (PERCENTILE | PERCENTILE_APPROX) LT_PRTHS aggField = valueExpression
+       COMMA quantile = numericLiteral (COMMA compression = numericLiteral)? RT_PRTHS
    ;
 
 numericLiteral

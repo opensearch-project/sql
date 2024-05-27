@@ -13,8 +13,7 @@
 
 package org.opensearch.sql.expression.aggregation;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 import static org.opensearch.sql.data.model.ExprValueUtils.*;
@@ -27,6 +26,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.opensearch.sql.data.model.ExprValue;
+import org.opensearch.sql.data.model.ExprValueUtils;
 import org.opensearch.sql.exception.ExpressionEvaluationException;
 import org.opensearch.sql.expression.DSL;
 import org.opensearch.sql.expression.Expression;
@@ -53,6 +53,29 @@ public class PercentileApproxAggregatorTest extends AggregationTest {
     assertEquals(3.0, result.value());
     result = aggregation(DSL.percentile(DSL.ref("float_value", FLOAT), DSL.literal(50)), tuples);
     assertEquals(3.0, result.value());
+  }
+
+  @Test
+  public void test_percentile_field_expression_with_user_defined_compression() {
+    ExprValue result =
+        aggregation(
+            DSL.percentile(DSL.ref("integer_value", INTEGER), DSL.literal(50), DSL.literal(0.1)),
+            tuples);
+    assertEquals(2.5, result.value());
+    result =
+        aggregation(
+            DSL.percentile(DSL.ref("long_value", LONG), DSL.literal(50), DSL.literal(0.1)), tuples);
+    assertEquals(2.5, result.value());
+    result =
+        aggregation(
+            DSL.percentile(DSL.ref("double_value", DOUBLE), DSL.literal(50), DSL.literal(0.1)),
+            tuples);
+    assertEquals(2.5, result.value());
+    result =
+        aggregation(
+            DSL.percentile(DSL.ref("float_value", FLOAT), DSL.literal(50), DSL.literal(0.1)),
+            tuples);
+    assertEquals(2.5, result.value());
   }
 
   @Test
@@ -129,14 +152,39 @@ public class PercentileApproxAggregatorTest extends AggregationTest {
 
   @Test
   public void test_percentile_with_invalid_size() {
-    IllegalArgumentException exception =
+    var exception =
         assertThrows(
             IllegalArgumentException.class,
             () ->
                 aggregation(
                     DSL.percentile(DSL.ref("double_value", DOUBLE), DSL.literal(-1)), tuples));
     assertEquals("out of bounds quantile value, must be in [0, 100]", exception.getMessage());
-    ExpressionEvaluationException exception2 =
+    exception =
+        assertThrows(
+            IllegalArgumentException.class,
+            () ->
+                aggregation(
+                    DSL.percentile(DSL.ref("double_value", DOUBLE), DSL.literal(200)), tuples));
+    assertEquals("out of bounds quantile value, must be in [0, 100]", exception.getMessage());
+    exception =
+        assertThrows(
+            IllegalArgumentException.class,
+            () ->
+                aggregation(
+                    DSL.percentile(
+                        DSL.ref("double_value", DOUBLE), DSL.literal(-1), DSL.literal(100)),
+                    tuples));
+    assertEquals("out of bounds quantile value, must be in [0, 100]", exception.getMessage());
+    exception =
+        assertThrows(
+            IllegalArgumentException.class,
+            () ->
+                aggregation(
+                    DSL.percentile(
+                        DSL.ref("double_value", DOUBLE), DSL.literal(200), DSL.literal(100)),
+                    tuples));
+    assertEquals("out of bounds quantile value, must be in [0, 100]", exception.getMessage());
+    var exception2 =
         assertThrows(
             ExpressionEvaluationException.class,
             () ->
@@ -145,9 +193,81 @@ public class PercentileApproxAggregatorTest extends AggregationTest {
                     tuples));
     assertEquals(
         "percentile_approx function expected"
-            + " {[INTEGER,DOUBLE],[LONG,DOUBLE],[FLOAT,DOUBLE],[DOUBLE,DOUBLE]}, but get"
-            + " [DOUBLE,STRING]",
+            + " {[INTEGER,DOUBLE],[INTEGER,DOUBLE,DOUBLE],[LONG,DOUBLE],[LONG,DOUBLE,DOUBLE],"
+            + "[FLOAT,DOUBLE],[FLOAT,DOUBLE,DOUBLE],[DOUBLE,DOUBLE],[DOUBLE,DOUBLE,DOUBLE]},"
+            + " but get [DOUBLE,STRING]",
         exception2.getMessage());
+  }
+
+  @Test
+  public void test_arithmetic_expression() {
+    ExprValue result =
+        aggregation(
+            DSL.percentile(
+                DSL.multiply(
+                    DSL.ref("integer_value", INTEGER),
+                    DSL.literal(ExprValueUtils.integerValue(10))),
+                DSL.literal(50)),
+            tuples);
+    assertEquals(30.0, result.value());
+  }
+
+  @Test
+  public void test_filtered_percentile() {
+    ExprValue result =
+        aggregation(
+            DSL.percentile(DSL.ref("integer_value", INTEGER), DSL.literal(50))
+                .condition(DSL.greater(DSL.ref("integer_value", INTEGER), DSL.literal(1))),
+            tuples);
+    assertEquals(3.0, result.value());
+  }
+
+  @Test
+  public void test_with_missing() {
+    ExprValue result =
+        aggregation(
+            DSL.percentile(DSL.ref("integer_value", INTEGER), DSL.literal(50)),
+            tuples_with_null_and_missing);
+    assertEquals(2.0, result.value());
+  }
+
+  @Test
+  public void test_with_null() {
+    ExprValue result =
+        aggregation(
+            DSL.percentile(DSL.ref("double_value", DOUBLE), DSL.literal(50)),
+            tuples_with_null_and_missing);
+    assertEquals(4.0, result.value());
+  }
+
+  @Test
+  public void test_with_all_missing_or_null() {
+    ExprValue result =
+        aggregation(
+            DSL.percentile(DSL.ref("integer_value", INTEGER), DSL.literal(50)),
+            tuples_with_all_null_or_missing);
+    assertTrue(result.isNull());
+  }
+
+  @Test
+  public void test_unsupported_type() {
+    var exception =
+        assertThrows(
+            IllegalArgumentException.class,
+            () ->
+                new PercentileApproximateAggregator(
+                    List.of(DSL.ref("string", STRING), DSL.ref("string", STRING)), STRING));
+    assertEquals(
+        "percentile aggregation over STRING type is not supported", exception.getMessage());
+  }
+
+  @Test
+  public void test_to_string() {
+    Aggregator aggregator = DSL.percentile(DSL.ref("integer_value", INTEGER), DSL.literal(50));
+    assertEquals("percentile(integer_value,50)", aggregator.toString());
+    aggregator =
+        DSL.percentile(DSL.ref("integer_value", INTEGER), DSL.literal(50), DSL.literal(0.1));
+    assertEquals("percentile(integer_value,50,0.1)", aggregator.toString());
   }
 
   private ExprValue[] percentiles(ExprValue value, ExprValue... values) {

@@ -355,6 +355,21 @@ public class AstExpressionBuilderTest extends AstBuilderTest {
             emptyList(),
             emptyList(),
             defaultStatsArgs()));
+    assertEqual(
+        "source=t | stats percentile(a, 1.0, 100)",
+        agg(
+            relation("t"),
+            exprList(
+                alias(
+                    "percentile(a, 1.0, 100)",
+                    aggregate(
+                        "percentile",
+                        field("a"),
+                        unresolvedArg("quantile", doubleLiteral(1D)),
+                        unresolvedArg("compression", intLiteral(100))))),
+            emptyList(),
+            emptyList(),
+            defaultStatsArgs()));
   }
 
   @Test

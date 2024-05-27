@@ -418,6 +418,18 @@ class AstExpressionBuilderTest {
   }
 
   @Test
+  public void canBuildPercentileWithCompression() {
+    Object expected =
+        aggregate(
+            "percentile",
+            qualifiedName("age"),
+            unresolvedArg("quantile", doubleLiteral(50D)),
+            unresolvedArg("compression", doubleLiteral(100D)));
+    assertEquals(expected, buildExprAst("percentile(age, 50, 100)"));
+    assertEquals(expected, buildExprAst("percentile(age, 50.0, 100.0)"));
+  }
+
+  @Test
   public void matchPhraseQueryAllParameters() {
     assertEquals(
         AstDSL.function(

@@ -190,7 +190,6 @@ public class StatsCommandIT extends PPLIntegTestCase {
     verifyDataRows(response, rows(1, 20), rows(6, 30));
   }
 
-  // TODO need fix below two unit tests
   @Test
   public void testStatsPercentile() throws IOException {
     JSONObject response =
@@ -207,5 +206,14 @@ public class StatsCommandIT extends PPLIntegTestCase {
                 "source=%s | stats percentile(balance, 50)", TEST_INDEX_BANK_WITH_NULL_VALUES));
     verifySchema(response, schema("percentile(balance, 50)", null, "long"));
     verifyDataRows(response, rows(39225));
+  }
+
+  @Test
+  public void testStatsPercentileWithCompression() throws IOException {
+    JSONObject response =
+        executeQuery(
+            String.format("source=%s | stats percentile(balance, 50, 1)", TEST_INDEX_BANK));
+    verifySchema(response, schema("percentile(balance, 50, 1)", null, "long"));
+    verifyDataRows(response, rows(32838));
   }
 }

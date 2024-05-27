@@ -248,7 +248,15 @@ public class AggregatorFunction {
                     (functionProperties, arguments) ->
                         PercentileApproximateAggregator.percentileApprox(arguments, INTEGER))
                 .put(
+                    new FunctionSignature(functionName, ImmutableList.of(INTEGER, DOUBLE, DOUBLE)),
+                    (functionProperties, arguments) ->
+                        PercentileApproximateAggregator.percentileApprox(arguments, INTEGER))
+                .put(
                     new FunctionSignature(functionName, ImmutableList.of(LONG, DOUBLE)),
+                    (functionProperties, arguments) ->
+                        PercentileApproximateAggregator.percentileApprox(arguments, LONG))
+                .put(
+                    new FunctionSignature(functionName, ImmutableList.of(LONG, DOUBLE, DOUBLE)),
                     (functionProperties, arguments) ->
                         PercentileApproximateAggregator.percentileApprox(arguments, LONG))
                 .put(
@@ -256,7 +264,15 @@ public class AggregatorFunction {
                     (functionProperties, arguments) ->
                         PercentileApproximateAggregator.percentileApprox(arguments, FLOAT))
                 .put(
+                    new FunctionSignature(functionName, ImmutableList.of(FLOAT, DOUBLE, DOUBLE)),
+                    (functionProperties, arguments) ->
+                        PercentileApproximateAggregator.percentileApprox(arguments, FLOAT))
+                .put(
                     new FunctionSignature(functionName, ImmutableList.of(DOUBLE, DOUBLE)),
+                    (functionProperties, arguments) ->
+                        PercentileApproximateAggregator.percentileApprox(arguments, DOUBLE))
+                .put(
+                    new FunctionSignature(functionName, ImmutableList.of(DOUBLE, DOUBLE, DOUBLE)),
                     (functionProperties, arguments) ->
                         PercentileApproximateAggregator.percentileApprox(arguments, DOUBLE))
                 .build());
