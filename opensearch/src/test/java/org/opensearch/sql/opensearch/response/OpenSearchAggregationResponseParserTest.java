@@ -26,6 +26,8 @@ import org.opensearch.sql.opensearch.response.agg.CompositeAggregationParser;
 import org.opensearch.sql.opensearch.response.agg.FilterParser;
 import org.opensearch.sql.opensearch.response.agg.NoBucketAggregationParser;
 import org.opensearch.sql.opensearch.response.agg.OpenSearchAggregationResponseParser;
+import org.opensearch.sql.opensearch.response.agg.PercentilesParser;
+import org.opensearch.sql.opensearch.response.agg.SinglePercentileParser;
 import org.opensearch.sql.opensearch.response.agg.SingleValueParser;
 import org.opensearch.sql.opensearch.response.agg.StatsParser;
 import org.opensearch.sql.opensearch.response.agg.TopHitsParser;
@@ -307,6 +309,148 @@ class OpenSearchAggregationResponseParserTest {
     assertThat(
         parse(parser, response),
         contains(ImmutableMap.of("type", "take", "take", ImmutableList.of("m", "f"))));
+  }
+
+  /** SELECT PERCENTILES(age, 50) FROM accounts. */
+  @Test
+  void no_bucket_one_metric_percentile_should_pass() {
+    String response =
+        "{\n"
+            + "      \"percentiles#percentiles\": {\n"
+            + "        \"values\": {\n"
+            + "          \"50.0\": 35.0\n"
+            + "        }\n"
+            + "      }\n"
+            + "    }";
+    NoBucketAggregationParser parser =
+        new NoBucketAggregationParser(new SinglePercentileParser("percentiles"));
+    assertThat(parse(parser, response), contains(entry("percentiles", 35.0)));
+  }
+
+  /** SELECT PERCENTILES(age) FROM accounts. */
+  @Test
+  void no_bucket_one_metric_percentiles_should_pass() {
+    String response =
+        "{\n"
+            + "      \"percentiles#percentiles\": {\n"
+            + "        \"values\": {\n"
+            + "          \"1.0\": 21.0,\n"
+            + "          \"5.0\": 27.0,\n"
+            + "          \"25.0\": 30.0,\n"
+            + "          \"50.0\": 35.0,\n"
+            + "          \"75.0\": 55.0,\n"
+            + "          \"95.0\": 58.0,\n"
+            + "          \"99.0\": 60.0\n"
+            + "        }\n"
+            + "      }\n"
+            + "    }";
+    NoBucketAggregationParser parser =
+        new NoBucketAggregationParser(new PercentilesParser("percentiles"));
+    assertThat(
+        parse(parser, response),
+        contains(entry("percentiles", List.of(21.0, 27.0, 30.0, 35.0, 55.0, 58.0, 60.0))));
+  }
+
+  @Test
+  void one_bucket_one_metric_percentile_should_pass() {
+    String response =
+        "{\n"
+            + "  \"composite#composite_buckets\": {\n"
+            + "    \"after_key\": {\n"
+            + "      \"type\": \"sale\"\n"
+            + "    },\n"
+            + "    \"buckets\": [\n"
+            + "      {\n"
+            + "        \"key\": {\n"
+            + "          \"type\": \"cost\"\n"
+            + "        },\n"
+            + "        \"doc_count\": 2,\n"
+            + "        \"percentiles#percentiles\": {\n"
+            + "          \"values\": {\n"
+            + "              \"50.0\": 40.0\n"
+            + "          }\n"
+            + "        }\n"
+            + "      },\n"
+            + "      {\n"
+            + "        \"key\": {\n"
+            + "          \"type\": \"sale\"\n"
+            + "        },\n"
+            + "        \"doc_count\": 2,\n"
+            + "        \"percentiles#percentiles\": {\n"
+            + "          \"values\": {\n"
+            + "              \"50.0\": 100.0\n"
+            + "          }\n"
+            + "        }\n"
+            + "      }\n"
+            + "    ]\n"
+            + "  }\n"
+            + "}";
+
+    OpenSearchAggregationResponseParser parser =
+        new CompositeAggregationParser(new SinglePercentileParser("percentiles"));
+    assertThat(
+        parse(parser, response),
+        containsInAnyOrder(
+            ImmutableMap.of("type", "cost", "percentiles", 40d),
+            ImmutableMap.of("type", "sale", "percentiles", 100d)));
+  }
+
+  @Test
+  void one_bucket_one_metric_percentiles_should_pass() {
+    String response =
+        "{\n"
+            + "  \"composite#composite_buckets\": {\n"
+            + "    \"after_key\": {\n"
+            + "      \"type\": \"sale\"\n"
+            + "    },\n"
+            + "    \"buckets\": [\n"
+            + "      {\n"
+            + "        \"key\": {\n"
+            + "          \"type\": \"cost\"\n"
+            + "        },\n"
+            + "        \"doc_count\": 2,\n"
+            + "        \"percentiles#percentiles\": {\n"
+            + "          \"values\": {\n"
+            + "            \"1.0\": 21.0,\n"
+            + "            \"5.0\": 27.0,\n"
+            + "            \"25.0\": 30.0,\n"
+            + "            \"50.0\": 35.0,\n"
+            + "            \"75.0\": 55.0,\n"
+            + "            \"95.0\": 58.0,\n"
+            + "            \"99.0\": 60.0\n"
+            + "          }\n"
+            + "        }\n"
+            + "      },\n"
+            + "      {\n"
+            + "        \"key\": {\n"
+            + "          \"type\": \"sale\"\n"
+            + "        },\n"
+            + "        \"doc_count\": 2,\n"
+            + "        \"percentiles#percentiles\": {\n"
+            + "          \"values\": {\n"
+            + "            \"1.0\": 21.0,\n"
+            + "            \"5.0\": 27.0,\n"
+            + "            \"25.0\": 30.0,\n"
+            + "            \"50.0\": 35.0,\n"
+            + "            \"75.0\": 55.0,\n"
+            + "            \"95.0\": 58.0,\n"
+            + "            \"99.0\": 60.0\n"
+            + "          }\n"
+            + "        }\n"
+            + "      }\n"
+            + "    ]\n"
+            + "  }\n"
+            + "}";
+
+    OpenSearchAggregationResponseParser parser =
+        new CompositeAggregationParser(new PercentilesParser("percentiles"));
+    assertThat(
+        parse(parser, response),
+        containsInAnyOrder(
+            ImmutableMap.of(
+                "type", "cost", "percentiles", List.of(21.0, 27.0, 30.0, 35.0, 55.0, 58.0, 60.0)),
+            ImmutableMap.of(
+                "type", "sale", "percentiles", List.of(21.0, 27.0, 30.0, 35.0, 55.0, 58.0, 60.0))));
   }
 
   public List<Map<String, Object>> parse(OpenSearchAggregationResponseParser parser, String json) {
