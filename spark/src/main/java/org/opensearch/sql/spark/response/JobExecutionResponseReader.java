@@ -10,7 +10,7 @@ import org.json.JSONObject;
 /** Interface for reading job execution result */
 public interface JobExecutionResponseReader {
   /**
-   * Retrieves the result from the OpenSearch index based on the job ID.
+   * Retrieves the job execution result based on the job ID.
    *
    * @param jobId The job ID.
    * @param resultLocation The location identifier where the result is stored (optional).
@@ -19,7 +19,7 @@ public interface JobExecutionResponseReader {
   JSONObject getResultWithJobId(String jobId, String resultLocation);
 
   /**
-   * Retrieves the result from the OpenSearch index based on the query ID.
+   * Retrieves the job execution result based on the query ID.
    *
    * @param queryId The query ID.
    * @param resultLocation The location identifier where the result is stored (optional).
