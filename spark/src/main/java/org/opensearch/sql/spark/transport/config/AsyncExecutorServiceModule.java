@@ -45,6 +45,7 @@ import org.opensearch.sql.spark.flint.OpenSearchIndexDMLResultStorageService;
 import org.opensearch.sql.spark.flint.operation.FlintIndexOpFactory;
 import org.opensearch.sql.spark.leasemanager.DefaultLeaseManager;
 import org.opensearch.sql.spark.response.JobExecutionResponseReader;
+import org.opensearch.sql.spark.response.OpenSearchJobExecutionResponseReader;
 
 @RequiredArgsConstructor
 public class AsyncExecutorServiceModule extends AbstractModule {
@@ -87,7 +88,7 @@ public class AsyncExecutorServiceModule extends AbstractModule {
 
   @Provides
   public QueryHandlerFactory queryhandlerFactory(
-      JobExecutionResponseReader jobExecutionResponseReader,
+      JobExecutionResponseReader openSearchJobExecutionResponseReader,
       FlintIndexMetadataServiceImpl flintIndexMetadataReader,
       SessionManager sessionManager,
       DefaultLeaseManager defaultLeaseManager,
@@ -95,7 +96,7 @@ public class AsyncExecutorServiceModule extends AbstractModule {
       FlintIndexOpFactory flintIndexOpFactory,
       EMRServerlessClientFactory emrServerlessClientFactory) {
     return new QueryHandlerFactory(
-        jobExecutionResponseReader,
+        openSearchJobExecutionResponseReader,
         flintIndexMetadataReader,
         sessionManager,
         defaultLeaseManager,
@@ -172,7 +173,7 @@ public class AsyncExecutorServiceModule extends AbstractModule {
 
   @Provides
   public JobExecutionResponseReader jobExecutionResponseReader(NodeClient client) {
-    return new JobExecutionResponseReader(client);
+    return new OpenSearchJobExecutionResponseReader(client);
   }
 
   private void registerStateStoreMetrics(StateStore stateStore) {

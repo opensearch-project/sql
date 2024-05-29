@@ -18,6 +18,7 @@ import org.apache.lucene.search.TotalHits;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -30,11 +31,13 @@ import org.opensearch.search.SearchHit;
 import org.opensearch.search.SearchHits;
 
 @ExtendWith(MockitoExtension.class)
-public class AsyncQueryExecutionResponseReaderTest {
+public class OpenSearchJobExecutionResponseReaderTest {
   @Mock private Client client;
   @Mock private SearchResponse searchResponse;
   @Mock private SearchHit searchHit;
   @Mock private ActionFuture<SearchResponse> searchResponseActionFuture;
+
+  @InjectMocks OpenSearchJobExecutionResponseReader jobExecutionResponseReader;
 
   @Test
   public void testGetResultFromOpensearchIndex() {
@@ -46,9 +49,8 @@ public class AsyncQueryExecutionResponseReaderTest {
             new SearchHits(
                 new SearchHit[] {searchHit}, new TotalHits(1, TotalHits.Relation.EQUAL_TO), 1.0F));
     Mockito.when(searchHit.getSourceAsMap()).thenReturn(Map.of("stepId", EMR_JOB_ID));
-    JobExecutionResponseReader jobExecutionResponseReader = new JobExecutionResponseReader(client);
-    assertFalse(
-        jobExecutionResponseReader.getResultFromOpensearchIndex(EMR_JOB_ID, null).isEmpty());
+
+    assertFalse(jobExecutionResponseReader.getResultWithJobId(EMR_JOB_ID, null).isEmpty());
   }
 
   @Test
@@ -61,9 +63,8 @@ public class AsyncQueryExecutionResponseReaderTest {
             new SearchHits(
                 new SearchHit[] {searchHit}, new TotalHits(1, TotalHits.Relation.EQUAL_TO), 1.0F));
     Mockito.when(searchHit.getSourceAsMap()).thenReturn(Map.of("stepId", EMR_JOB_ID));
-    JobExecutionResponseReader jobExecutionResponseReader = new JobExecutionResponseReader(client);
-    assertFalse(
-        jobExecutionResponseReader.getResultFromOpensearchIndex(EMR_JOB_ID, "foo").isEmpty());
+
+    assertFalse(jobExecutionResponseReader.getResultWithJobId(EMR_JOB_ID, "foo").isEmpty());
   }
 
   @Test
@@ -72,11 +73,11 @@ public class AsyncQueryExecutionResponseReaderTest {
     when(searchResponseActionFuture.actionGet()).thenReturn(searchResponse);
     when(searchResponse.status()).thenReturn(RestStatus.NO_CONTENT);
 
-    JobExecutionResponseReader jobExecutionResponseReader = new JobExecutionResponseReader(client);
     RuntimeException exception =
         assertThrows(
             RuntimeException.class,
-            () -> jobExecutionResponseReader.getResultFromOpensearchIndex(EMR_JOB_ID, null));
+            () -> jobExecutionResponseReader.getResultWithJobId(EMR_JOB_ID, null));
+
     Assertions.assertEquals(
         "Fetching result from "
             + DEFAULT_RESULT_INDEX
@@ -88,17 +89,16 @@ public class AsyncQueryExecutionResponseReaderTest {
   @Test
   public void testSearchFailure() {
     when(client.search(any())).thenThrow(RuntimeException.class);
-    JobExecutionResponseReader jobExecutionResponseReader = new JobExecutionResponseReader(client);
+
     assertThrows(
         RuntimeException.class,
-        () -> jobExecutionResponseReader.getResultFromOpensearchIndex(EMR_JOB_ID, null));
+        () -> jobExecutionResponseReader.getResultWithJobId(EMR_JOB_ID, null));
   }
 
   @Test
   public void testIndexNotFoundException() {
     when(client.search(any())).thenThrow(IndexNotFoundException.class);
-    JobExecutionResponseReader jobExecutionResponseReader = new JobExecutionResponseReader(client);
-    assertTrue(
-        jobExecutionResponseReader.getResultFromOpensearchIndex(EMR_JOB_ID, "foo").isEmpty());
+
+    assertTrue(jobExecutionResponseReader.getResultWithJobId(EMR_JOB_ID, "foo").isEmpty());
   }
 }

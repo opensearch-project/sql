@@ -33,6 +33,7 @@ import org.opensearch.sql.spark.execution.statement.StatementModel;
 import org.opensearch.sql.spark.execution.statement.StatementState;
 import org.opensearch.sql.spark.flint.FlintIndexType;
 import org.opensearch.sql.spark.response.JobExecutionResponseReader;
+import org.opensearch.sql.spark.response.OpenSearchJobExecutionResponseReader;
 import org.opensearch.sql.spark.rest.model.CreateAsyncQueryRequest;
 import org.opensearch.sql.spark.rest.model.CreateAsyncQueryResponse;
 import org.opensearch.sql.spark.rest.model.LangType;
@@ -425,9 +426,9 @@ public class AsyncQueryGetResultSpecTest extends AsyncQueryExecutorServiceSpec {
                * current interaction. Intercept both get methods for different query handler which
                * will only call either of them.
                */
-              new JobExecutionResponseReader(client) {
+              new JobExecutionResponseReader() {
                 @Override
-                public JSONObject getResultFromOpensearchIndex(String jobId, String resultIndex) {
+                public JSONObject getResultWithJobId(String jobId, String resultIndex) {
                   return interaction.interact(new InteractionStep(emrClient, jobId, resultIndex));
                 }
 
@@ -497,7 +498,8 @@ public class AsyncQueryGetResultSpecTest extends AsyncQueryExecutorServiceSpec {
 
     /** Simulate PPL plugin search query_execution_result */
     JSONObject pluginSearchQueryResult() {
-      return new JobExecutionResponseReader(client).getResultWithQueryId(queryId, resultIndex);
+      return new OpenSearchJobExecutionResponseReader(client)
+          .getResultWithQueryId(queryId, resultIndex);
     }
 
     /** Simulate EMR-S bulk writes query_execution_result with refresh = wait_for */
