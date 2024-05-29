@@ -5,6 +5,10 @@
 
 package org.opensearch.sql.legacy.executor.join;
 
+import static org.opensearch.search.sort.FieldSortBuilder.DOC_FIELD_NAME;
+import static org.opensearch.search.sort.SortOrder.ASC;
+import static org.opensearch.sql.common.setting.Settings.Key.SQL_PAGINATION_API_SEARCH_AFTER;
+
 import com.alibaba.druid.sql.ast.statement.SQLJoinTableSource;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -25,6 +29,7 @@ import org.opensearch.search.SearchHits;
 import org.opensearch.sql.legacy.domain.Condition;
 import org.opensearch.sql.legacy.domain.Select;
 import org.opensearch.sql.legacy.domain.Where;
+import org.opensearch.sql.legacy.esdomain.LocalClusterState;
 import org.opensearch.sql.legacy.esdomain.OpenSearchClient;
 import org.opensearch.sql.legacy.exception.SqlParseException;
 import org.opensearch.sql.legacy.query.DefaultQueryAction;
@@ -111,11 +116,29 @@ public class NestedLoopsElasticExecutor extends ElasticJoinExecutor {
           if (!BackOffRetryStrategy.isHealthy()) {
             throw new IllegalStateException("Memory circuit is broken");
           }
-          firstTableResponse =
-              client
-                  .prepareSearchScroll(firstTableResponse.getScrollId())
-                  .setScroll(new TimeValue(600000))
-                  .get();
+          LocalClusterState clusterState = LocalClusterState.state();
+          Boolean paginationWithSearchAfter =
+              clusterState.getSettingValue(SQL_PAGINATION_API_SEARCH_AFTER);
+
+          if (paginationWithSearchAfter) {
+            SearchRequestBuilder request =
+                this.nestedLoopsRequest
+                    .getFirstTable()
+                    .getRequestBuilder()
+                    .searchAfter(firstTableResponse.getHits().getSortFields());
+            boolean ordered =
+                this.nestedLoopsRequest.getFirstTable().getOriginalSelect().isOrderdSelect();
+            if (!ordered) {
+              request.addSort(DOC_FIELD_NAME, ASC);
+            }
+            firstTableResponse = request.get();
+          } else {
+            firstTableResponse =
+                client
+                    .prepareSearchScroll(firstTableResponse.getScrollId())
+                    .setScroll(new TimeValue(600000))
+                    .get();
+          }
         } else {
           finishedWithFirstTable = true;
         }
@@ -262,6 +285,10 @@ public class NestedLoopsElasticExecutor extends ElasticJoinExecutor {
       Integer secondTableHintLimit = this.nestedLoopsRequest.getSecondTable().getHintLimit();
       if (secondTableHintLimit != null && secondTableHintLimit <= MAX_RESULTS_ON_ONE_FETCH) {
         secondTableRequest.setSize(secondTableHintLimit);
+      }
+      boolean ordered = secondTableSelect.isOrderdSelect();
+      if (!ordered) {
+        secondTableRequest.addSort(DOC_FIELD_NAME, ASC);
       }
       multiSearchRequest.add(secondTableRequest);
     }

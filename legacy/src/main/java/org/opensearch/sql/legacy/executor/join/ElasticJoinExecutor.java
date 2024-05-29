@@ -5,6 +5,8 @@
 
 package org.opensearch.sql.legacy.executor.join;
 
+import static org.opensearch.sql.common.setting.Settings.Key.SQL_PAGINATION_API_SEARCH_AFTER;
+
 import java.io.IOException;
 import java.util.Collection;
 import java.util.HashMap;
@@ -31,6 +33,7 @@ import org.opensearch.search.SearchHits;
 import org.opensearch.search.sort.FieldSortBuilder;
 import org.opensearch.search.sort.SortOrder;
 import org.opensearch.sql.legacy.domain.Field;
+import org.opensearch.sql.legacy.esdomain.LocalClusterState;
 import org.opensearch.sql.legacy.exception.SqlParseException;
 import org.opensearch.sql.legacy.executor.ElasticHitsExecutor;
 import org.opensearch.sql.legacy.query.SqlElasticRequestBuilder;
@@ -258,11 +261,18 @@ public abstract class ElasticJoinExecutor implements ElasticHitsExecutor {
 
   protected SearchResponse scrollOneTimeWithMax(
       Client client, TableInJoinRequestBuilder tableRequest) {
+
+    LocalClusterState clusterState = LocalClusterState.state();
+    Boolean paginationWithSearchAfter =
+        clusterState.getSettingValue(SQL_PAGINATION_API_SEARCH_AFTER);
+
     SearchRequestBuilder scrollRequest =
-        tableRequest
-            .getRequestBuilder()
-            .setScroll(new TimeValue(60000))
-            .setSize(MAX_RESULTS_ON_ONE_FETCH);
+        tableRequest.getRequestBuilder().setSize(MAX_RESULTS_ON_ONE_FETCH);
+
+    if (!paginationWithSearchAfter) {
+      scrollRequest.setScroll(new TimeValue(600000));
+    }
+
     boolean ordered = tableRequest.getOriginalSelect().isOrderdSelect();
     if (!ordered) {
       scrollRequest.addSort(FieldSortBuilder.DOC_FIELD_NAME, SortOrder.ASC);

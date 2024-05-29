@@ -5,6 +5,10 @@
 
 package org.opensearch.sql.legacy.executor.join;
 
+import static org.opensearch.search.sort.FieldSortBuilder.DOC_FIELD_NAME;
+import static org.opensearch.search.sort.SortOrder.ASC;
+import static org.opensearch.sql.common.setting.Settings.Key.SQL_PAGINATION_API_SEARCH_AFTER;
+
 import com.alibaba.druid.sql.ast.statement.SQLJoinTableSource;
 import java.io.IOException;
 import java.util.ArrayList;
@@ -28,6 +32,7 @@ import org.opensearch.search.SearchHit;
 import org.opensearch.sql.legacy.domain.Field;
 import org.opensearch.sql.legacy.domain.Select;
 import org.opensearch.sql.legacy.domain.Where;
+import org.opensearch.sql.legacy.esdomain.LocalClusterState;
 import org.opensearch.sql.legacy.exception.SqlParseException;
 import org.opensearch.sql.legacy.query.join.HashJoinElasticRequestBuilder;
 import org.opensearch.sql.legacy.query.join.TableInJoinRequestBuilder;
@@ -124,16 +129,32 @@ public class HashJoinElasticExecutor extends ElasticJoinExecutor {
     Integer hintLimit = secondTableRequest.getHintLimit();
     SearchResponse searchResponse;
     boolean finishedScrolling;
+    LocalClusterState clusterState = LocalClusterState.state();
+    Boolean paginationWithSearchAfter =
+        clusterState.getSettingValue(SQL_PAGINATION_API_SEARCH_AFTER);
     if (hintLimit != null && hintLimit < MAX_RESULTS_ON_ONE_FETCH) {
-      searchResponse = secondTableRequest.getRequestBuilder().setSize(hintLimit).get();
+      SearchRequestBuilder request = secondTableRequest.getRequestBuilder().setSize(hintLimit);
+      if (paginationWithSearchAfter) {
+        boolean ordered = secondTableRequest.getOriginalSelect().isOrderdSelect();
+        if (!ordered) {
+          request.addSort(DOC_FIELD_NAME, ASC);
+        }
+      }
+      searchResponse = request.get();
       finishedScrolling = true;
     } else {
-      searchResponse =
-          secondTableRequest
-              .getRequestBuilder()
-              .setScroll(new TimeValue(60000))
-              .setSize(MAX_RESULTS_ON_ONE_FETCH)
-              .get();
+      SearchRequestBuilder request =
+          secondTableRequest.getRequestBuilder().setSize(MAX_RESULTS_ON_ONE_FETCH);
+
+      if (paginationWithSearchAfter) {
+        boolean ordered = secondTableRequest.getOriginalSelect().isOrderdSelect();
+        if (!ordered) {
+          request.addSort(DOC_FIELD_NAME, ASC);
+        }
+      } else {
+        request.setScroll(new TimeValue(600000));
+      }
+      searchResponse = request.get();
       // es5.0 no need to scroll again!
       //            searchResponse = client.prepareSearchScroll(searchResponse.getScrollId())
       //            .setScroll(new TimeValue(600000)).get();
@@ -213,12 +234,25 @@ public class HashJoinElasticExecutor extends ElasticJoinExecutor {
       if (!finishedScrolling) {
         if (secondTableHits.length > 0
             && (hintLimit == null || fetchedSoFarFromSecondTable >= hintLimit)) {
-          searchResponse =
-              client
-                  .prepareSearchScroll(searchResponse.getScrollId())
-                  .setScroll(new TimeValue(600000))
-                  .execute()
-                  .actionGet();
+          if (paginationWithSearchAfter) {
+            SearchRequestBuilder request =
+                secondTableRequest
+                    .getRequestBuilder()
+                    .setSize(MAX_RESULTS_ON_ONE_FETCH)
+                    .searchAfter(searchResponse.getHits().getSortFields());
+            boolean ordered = secondTableRequest.getOriginalSelect().isOrderdSelect();
+            if (!ordered) {
+              request.addSort(DOC_FIELD_NAME, ASC);
+            }
+            searchResponse = request.get();
+          } else {
+            searchResponse =
+                client
+                    .prepareSearchScroll(searchResponse.getScrollId())
+                    .setScroll(new TimeValue(600000))
+                    .execute()
+                    .actionGet();
+          }
         } else {
           break;
         }
@@ -292,12 +326,12 @@ public class HashJoinElasticExecutor extends ElasticJoinExecutor {
 
   private List<SearchHit> scrollTillLimit(
       TableInJoinRequestBuilder tableInJoinRequest, Integer hintLimit) {
-    SearchResponse scrollResp = scrollOneTimeWithMax(client, tableInJoinRequest);
+    SearchResponse response = scrollOneTimeWithMax(client, tableInJoinRequest);
 
-    updateMetaSearchResults(scrollResp);
+    updateMetaSearchResults(response);
     List<SearchHit> hitsWithScan = new ArrayList<>();
     int curentNumOfResults = 0;
-    SearchHit[] hits = scrollResp.getHits().getHits();
+    SearchHit[] hits = response.getHits().getHits();
 
     if (hintLimit == null) {
       hintLimit = MAX_RESULTS_FOR_FIRST_TABLE;
@@ -311,13 +345,31 @@ public class HashJoinElasticExecutor extends ElasticJoinExecutor {
         System.out.println("too many results for first table, stoping at:" + curentNumOfResults);
         break;
       }
-      scrollResp =
-          client
-              .prepareSearchScroll(scrollResp.getScrollId())
-              .setScroll(new TimeValue(600000))
-              .execute()
-              .actionGet();
-      hits = scrollResp.getHits().getHits();
+      LocalClusterState clusterState = LocalClusterState.state();
+      Boolean paginationWithSearchAfter =
+          clusterState.getSettingValue(SQL_PAGINATION_API_SEARCH_AFTER);
+
+      if (paginationWithSearchAfter) {
+        SearchRequestBuilder request =
+            tableInJoinRequest
+                .getRequestBuilder()
+                .setSize(MAX_RESULTS_FOR_FIRST_TABLE)
+                .searchAfter(response.getHits().getSortFields());
+        boolean ordered = tableInJoinRequest.getOriginalSelect().isOrderdSelect();
+        if (!ordered) {
+          request.addSort(DOC_FIELD_NAME, ASC);
+        }
+        response = request.get();
+      } else {
+        response =
+            client
+                .prepareSearchScroll(response.getScrollId())
+                .setScroll(new TimeValue(600000))
+                .execute()
+                .actionGet();
+      }
+
+      hits = response.getHits().getHits();
     }
     return hitsWithScan;
   }
