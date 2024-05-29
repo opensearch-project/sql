@@ -81,6 +81,7 @@ import org.opensearch.sql.spark.flint.OpenSearchIndexDMLResultStorageService;
 import org.opensearch.sql.spark.flint.operation.FlintIndexOpFactory;
 import org.opensearch.sql.spark.leasemanager.DefaultLeaseManager;
 import org.opensearch.sql.spark.response.JobExecutionResponseReader;
+import org.opensearch.sql.spark.response.OpenSearchJobExecutionResponseReader;
 import org.opensearch.sql.storage.DataSourceFactory;
 import org.opensearch.test.OpenSearchIntegTestCase;
 
@@ -225,7 +226,7 @@ public class AsyncQueryExecutorServiceSpec extends OpenSearchIntegTestCase {
   protected AsyncQueryExecutorService createAsyncQueryExecutorService(
       EMRServerlessClientFactory emrServerlessClientFactory) {
     return createAsyncQueryExecutorService(
-        emrServerlessClientFactory, new JobExecutionResponseReader(client));
+        emrServerlessClientFactory, new OpenSearchJobExecutionResponseReader(client));
   }
 
   /** Pass a custom response reader which can mock interaction between PPL plugin and EMR-S job. */

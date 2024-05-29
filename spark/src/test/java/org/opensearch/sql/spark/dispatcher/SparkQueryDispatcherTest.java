@@ -906,7 +906,7 @@ public class SparkQueryDispatcherTest {
     when(emrServerlessClient.getJobRunResult(EMRS_APPLICATION_ID, EMR_JOB_ID))
         .thenReturn(new GetJobRunResult().withJobRun(new JobRun().withState(JobRunState.PENDING)));
     // simulate result index is not created yet
-    when(jobExecutionResponseReader.getResultFromOpensearchIndex(EMR_JOB_ID, null))
+    when(jobExecutionResponseReader.getResultWithJobId(EMR_JOB_ID, null))
         .thenReturn(new JSONObject());
 
     JSONObject result = sparkQueryDispatcher.getQueryResponse(asyncQueryJobMetadata());
@@ -978,12 +978,11 @@ public class SparkQueryDispatcherTest {
     resultMap.put(STATUS_FIELD, "SUCCESS");
     resultMap.put(ERROR_FIELD, "");
     queryResult.put(DATA_FIELD, resultMap);
-    when(jobExecutionResponseReader.getResultFromOpensearchIndex(EMR_JOB_ID, null))
-        .thenReturn(queryResult);
+    when(jobExecutionResponseReader.getResultWithJobId(EMR_JOB_ID, null)).thenReturn(queryResult);
 
     JSONObject result = sparkQueryDispatcher.getQueryResponse(asyncQueryJobMetadata());
 
-    verify(jobExecutionResponseReader, times(1)).getResultFromOpensearchIndex(EMR_JOB_ID, null);
+    verify(jobExecutionResponseReader, times(1)).getResultWithJobId(EMR_JOB_ID, null);
     Assertions.assertEquals(
         new HashSet<>(Arrays.asList(DATA_FIELD, STATUS_FIELD, ERROR_FIELD)), result.keySet());
     JSONObject dataJson = new JSONObject();
