@@ -339,7 +339,7 @@ public class AstExpressionBuilderTest extends AstBuilderTest {
             exprList(
                 alias(
                     "percentile(a, 1)",
-                    aggregate("percentile", field("a"), unresolvedArg("quantile", intLiteral(1))))),
+                    aggregate("percentile", field("a"), unresolvedArg("percent", intLiteral(1))))),
             emptyList(),
             emptyList(),
             defaultStatsArgs()));
@@ -351,7 +351,7 @@ public class AstExpressionBuilderTest extends AstBuilderTest {
                 alias(
                     "percentile(a, 1.0)",
                     aggregate(
-                        "percentile", field("a"), unresolvedArg("quantile", doubleLiteral(1D))))),
+                        "percentile", field("a"), unresolvedArg("percent", doubleLiteral(1D))))),
             emptyList(),
             emptyList(),
             defaultStatsArgs()));
@@ -365,7 +365,7 @@ public class AstExpressionBuilderTest extends AstBuilderTest {
                     aggregate(
                         "percentile",
                         field("a"),
-                        unresolvedArg("quantile", doubleLiteral(1D)),
+                        unresolvedArg("percent", doubleLiteral(1D)),
                         unresolvedArg("compression", intLiteral(100))))),
             emptyList(),
             emptyList(),

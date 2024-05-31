@@ -158,14 +158,14 @@ public class PercentileApproxAggregatorTest extends AggregationTest {
             () ->
                 aggregation(
                     DSL.percentile(DSL.ref("double_value", DOUBLE), DSL.literal(-1)), tuples));
-    assertEquals("out of bounds quantile value, must be in [0, 100]", exception.getMessage());
+    assertEquals("out of bounds percent value, must be in [0, 100]", exception.getMessage());
     exception =
         assertThrows(
             IllegalArgumentException.class,
             () ->
                 aggregation(
                     DSL.percentile(DSL.ref("double_value", DOUBLE), DSL.literal(200)), tuples));
-    assertEquals("out of bounds quantile value, must be in [0, 100]", exception.getMessage());
+    assertEquals("out of bounds percent value, must be in [0, 100]", exception.getMessage());
     exception =
         assertThrows(
             IllegalArgumentException.class,
@@ -174,7 +174,7 @@ public class PercentileApproxAggregatorTest extends AggregationTest {
                     DSL.percentile(
                         DSL.ref("double_value", DOUBLE), DSL.literal(-1), DSL.literal(100)),
                     tuples));
-    assertEquals("out of bounds quantile value, must be in [0, 100]", exception.getMessage());
+    assertEquals("out of bounds percent value, must be in [0, 100]", exception.getMessage());
     exception =
         assertThrows(
             IllegalArgumentException.class,
@@ -183,7 +183,7 @@ public class PercentileApproxAggregatorTest extends AggregationTest {
                     DSL.percentile(
                         DSL.ref("double_value", DOUBLE), DSL.literal(200), DSL.literal(100)),
                     tuples));
-    assertEquals("out of bounds quantile value, must be in [0, 100]", exception.getMessage());
+    assertEquals("out of bounds percent value, must be in [0, 100]", exception.getMessage());
     var exception2 =
         assertThrows(
             ExpressionEvaluationException.class,

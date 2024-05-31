@@ -398,9 +398,9 @@ public class AstExpressionBuilder extends OpenSearchSQLParserBaseVisitor<Unresol
     ImmutableList.Builder<UnresolvedExpression> builder = ImmutableList.builder();
     builder.add(
         new UnresolvedArgument(
-            "quantile",
+            "percent",
             AstDSL.doubleLiteral(
-                Double.valueOf(ctx.percentileApproxFunction().quantile.getText()))));
+                Double.valueOf(ctx.percentileApproxFunction().percent.getText()))));
     if (ctx.percentileApproxFunction().compression != null) {
       builder.add(
           new UnresolvedArgument(

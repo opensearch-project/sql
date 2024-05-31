@@ -411,8 +411,7 @@ class AstExpressionBuilderTest {
   @Test
   public void canBuildPercentile() {
     Object expected =
-        aggregate(
-            "percentile", qualifiedName("age"), unresolvedArg("quantile", doubleLiteral(50D)));
+        aggregate("percentile", qualifiedName("age"), unresolvedArg("percent", doubleLiteral(50D)));
     assertEquals(expected, buildExprAst("percentile(age, 50)"));
     assertEquals(expected, buildExprAst("percentile(age, 50.0)"));
   }
@@ -423,7 +422,7 @@ class AstExpressionBuilderTest {
         aggregate(
             "percentile",
             qualifiedName("age"),
-            unresolvedArg("quantile", doubleLiteral(50D)),
+            unresolvedArg("percent", doubleLiteral(50D)),
             unresolvedArg("compression", doubleLiteral(100D)));
     assertEquals(expected, buildExprAst("percentile(age, 50, 100)"));
     assertEquals(expected, buildExprAst("percentile(age, 50.0, 100.0)"));

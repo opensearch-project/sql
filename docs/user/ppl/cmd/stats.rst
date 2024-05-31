@@ -259,6 +259,27 @@ Example::
     | [Amber,Hattie,Nanette,Dale] |
     +-----------------------------+
 
+PERCENTILE or PERCENTILE_APPROX
+----------
+
+Description
+>>>>>>>>>>>
+
+Usage: PERCENTILE(expr, percent) or PERCENTILE_APPROX(expr, percent). Return the approximate percentile value of expr at the specified percentage.
+
+* percent: The number must be a constant between 0 and 100.
+
+Example::
+
+    os> source=accounts | stats percentile(age, 90) by gender;
+    fetched rows / total rows = 2/2
+    +---------------------+---------+
+    | percentile(age, 90) | gender  |
+    |---------------------+---------|
+    | 39                  | F       |
+    | 38                  | M       |
+    +---------------------+---------+
+
 Example 1: Calculate the count of events
 ========================================
 

@@ -161,7 +161,7 @@ public class AstExpressionBuilder extends OpenSearchPPLParserBaseVisitor<Unresol
   public UnresolvedExpression visitPercentileApproxFunctionCall(
       OpenSearchPPLParser.PercentileApproxFunctionCallContext ctx) {
     ImmutableList.Builder<UnresolvedExpression> builder = ImmutableList.builder();
-    builder.add(new UnresolvedArgument("quantile", visit(ctx.percentileApproxFunction().quantile)));
+    builder.add(new UnresolvedArgument("percent", visit(ctx.percentileApproxFunction().percent)));
     if (ctx.percentileApproxFunction().compression != null) {
       builder.add(
           new UnresolvedArgument("compression", visit(ctx.percentileApproxFunction().compression)));

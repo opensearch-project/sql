@@ -162,7 +162,7 @@ public class MetricAggregationBuilder
         return make(
             AggregationBuilders.percentiles(name),
             expression,
-            node.getArguments().get(1), // quantile
+            node.getArguments().get(1), // percent
             node.getArguments().size() >= 3 ? node.getArguments().get(2) : null, // compression
             condition,
             name,
@@ -229,7 +229,7 @@ public class MetricAggregationBuilder
   private Pair<AggregationBuilder, MetricParser> make(
       PercentilesAggregationBuilder builder,
       Expression expression,
-      Expression quantile,
+      Expression percent,
       Expression compression,
       Expression condition,
       String name,
@@ -239,7 +239,7 @@ public class MetricAggregationBuilder
     if (compression != null) {
       aggregationBuilder.compression(compression.valueOf().doubleValue());
     }
-    aggregationBuilder.percentiles(quantile.valueOf().doubleValue());
+    aggregationBuilder.percentiles(percent.valueOf().doubleValue());
     if (condition != null) {
       return Pair.of(
           makeFilterAggregation(aggregationBuilder, condition, name),

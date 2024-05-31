@@ -62,28 +62,28 @@ public class PercentileApproximateAggregator
       implements AggregationState {
     // The compression level for the AVLTreeDigest, keep the same default value as OpenSearch core.
     public static final double DEFAULT_COMPRESSION = 100.0;
-    private final double quantileRatio;
+    private final double percent;
 
-    PercentileApproximateState(double quantile) {
+    PercentileApproximateState(double percent) {
       super(DEFAULT_COMPRESSION);
-      if (quantile < 0.0 || quantile > 100.0) {
-        throw new IllegalArgumentException("out of bounds quantile value, must be in [0, 100]");
+      if (percent < 0.0 || percent > 100.0) {
+        throw new IllegalArgumentException("out of bounds percent value, must be in [0, 100]");
       }
-      this.quantileRatio = quantile / 100.0;
+      this.percent = percent / 100.0;
     }
 
     /**
-     * Constructor for specifying both quantile and compression level.
+     * Constructor for specifying both percent and compression level.
      *
-     * @param quantile the quantile to compute, must be in [0, 100]
+     * @param percent the percent to compute, must be in [0, 100]
      * @param compression the compression factor of the t-digest sketches used
      */
-    PercentileApproximateState(double quantile, double compression) {
+    PercentileApproximateState(double percent, double compression) {
       super(compression);
-      if (quantile < 0.0 || quantile > 100.0) {
-        throw new IllegalArgumentException("out of bounds quantile value, must be in [0, 100]");
+      if (percent < 0.0 || percent > 100.0) {
+        throw new IllegalArgumentException("out of bounds percent value, must be in [0, 100]");
       }
-      this.quantileRatio = quantile / 100.0;
+      this.percent = percent / 100.0;
     }
 
     public void evaluate(ExprValue value) {
@@ -92,7 +92,7 @@ public class PercentileApproximateAggregator
 
     @Override
     public ExprValue result() {
-      return this.size() == 0 ? ExprNullValue.of() : doubleValue(this.quantile(quantileRatio));
+      return this.size() == 0 ? ExprNullValue.of() : doubleValue(this.quantile(percent));
     }
   }
 }
