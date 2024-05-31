@@ -6,7 +6,7 @@
 package org.opensearch.sql.spark.asyncquery.model;
 
 /** An implementation of RequestContext for where context is not required */
-public class NullRequestContext implements RequestContext {
+public class NullAsyncQueryRequestContext implements AsyncQueryRequestContext {
   @Override
   public Object getAttribute(String name) {
     return null;

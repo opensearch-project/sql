@@ -8,6 +8,7 @@ package org.opensearch.sql.spark.flint;
 import lombok.RequiredArgsConstructor;
 import org.opensearch.sql.datasource.DataSourceService;
 import org.opensearch.sql.datasource.model.DataSourceMetadata;
+import org.opensearch.sql.spark.asyncquery.model.AsyncQueryRequestContext;
 import org.opensearch.sql.spark.dispatcher.model.IndexDMLResult;
 import org.opensearch.sql.spark.execution.statestore.StateStore;
 
@@ -18,7 +19,8 @@ public class OpenSearchIndexDMLResultStorageService implements IndexDMLResultSto
   private final StateStore stateStore;
 
   @Override
-  public IndexDMLResult createIndexDMLResult(IndexDMLResult result) {
+  public IndexDMLResult createIndexDMLResult(
+      IndexDMLResult result, AsyncQueryRequestContext asyncQueryRequestContexts) {
     DataSourceMetadata dataSourceMetadata =
         dataSourceService.getDataSourceMetadata(result.getDatasourceName());
     return stateStore.create(
