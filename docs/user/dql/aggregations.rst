@@ -371,7 +371,7 @@ To get the count of distinct values of a field, you can add a keyword ``DISTINCT
     +--------------------------+-----------------+
 
 PERCENTILE or PERCENTILE_APPROX
----
+-------------------------------
 
 Description
 >>>>>>>>>>>

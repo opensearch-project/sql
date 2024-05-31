@@ -260,7 +260,7 @@ Example::
     +-----------------------------+
 
 PERCENTILE or PERCENTILE_APPROX
-----------
+-------------------------------
 
 Description
 >>>>>>>>>>>
@@ -440,3 +440,56 @@ PPL query::
     | 2     | [amberduke@pyrami.com,daleadams@boink.com] | 30         | M        |
     | 1     | [hattiebond@netagy.com]                    | 35         | M        |
     +-------+--------------------------------------------+------------+----------+
+
+Example 11: Calculate the percentile of a field
+===============================================
+
+The example show calculate the percentile 90th age of all the accounts.
+
+PPL query::
+
+    os> source=accounts | stats percentile(age, 90);
+    fetched rows / total rows = 1/1
+    +---------------------+
+    | percentile(age, 90) |
+    |---------------------|
+    | 38                  |
+    +---------------------+
+
+
+Example 12: Calculate the percentile of a field by group
+========================================================
+
+The example show calculate the percentile 90th age of all the accounts group by gender.
+
+PPL query::
+
+    os> source=accounts | stats percentile(age, 90) by gender;
+    fetched rows / total rows = 2/2
+    +---------------------+----------+
+    | percentile(age, 90) | gender   |
+    |---------------------+----------|
+    | 39                  | F        |
+    | 38                  | M        |
+    +---------------------+----------+
+
+Example 13: Calculate the percentile by a gender and span
+=========================================================
+
+The example gets the percentile 90th age by the interval of 10 years and group by gender.
+
+PPL query::
+
+    os> source=accounts | stats percentile(age, 90) as p90 by span(age, 10) as age_span, gender
+    fetched rows / total rows = 6/6
+    +-------+------------+----------+
+    | p90   | age_span   | gender   |
+    |-------+------------+----------|
+    | 28    | 20         | F        |
+    | 28    | 20         | M        |
+    | 39    | 30         | F        |
+    | 38    | 30         | M        |
+    | 40    | 40         | F        |
+    | 40    | 40         | M        |
+    +-------+------------+----------+
+
