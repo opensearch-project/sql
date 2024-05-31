@@ -9,9 +9,9 @@ import com.google.common.base.Strings;
 import java.util.HashMap;
 import java.util.Map;
 import org.opensearch.common.document.DocumentField;
-import org.opensearch.index.mapper.MapperService;
 import org.opensearch.search.SearchHit;
 import org.opensearch.sql.legacy.query.planner.physical.Row;
+import org.opensearch.sql.legacy.utils.Util;
 
 /**
  *
@@ -146,9 +146,7 @@ class SearchHitRow implements Row<SearchHit> {
     hit.getFields()
         .forEach(
             (fieldName, docField) ->
-                (MapperService.META_FIELDS_BEFORE_7DOT8.contains(fieldName)
-                        ? metaFields
-                        : documentFields)
+                (Util.META_FIELDS_BEFORE_7DOT8.contains(fieldName) ? metaFields : documentFields)
                     .put(fieldName, docField));
     SearchHit combined =
         new SearchHit(

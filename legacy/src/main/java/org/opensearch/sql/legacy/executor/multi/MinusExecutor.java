@@ -19,7 +19,6 @@ import org.opensearch.action.search.SearchResponse;
 import org.opensearch.client.Client;
 import org.opensearch.common.document.DocumentField;
 import org.opensearch.common.unit.TimeValue;
-import org.opensearch.index.mapper.MapperService;
 import org.opensearch.search.SearchHit;
 import org.opensearch.search.SearchHits;
 import org.opensearch.sql.legacy.domain.Condition;
@@ -125,9 +124,7 @@ public class MinusExecutor implements ElasticHitsExecutor {
           .getFields()
           .forEach(
               (field, docField) ->
-                  (MapperService.META_FIELDS_BEFORE_7DOT8.contains(field)
-                          ? metaFields
-                          : documentFields)
+                  (Util.META_FIELDS_BEFORE_7DOT8.contains(field) ? metaFields : documentFields)
                       .put(field, docField));
       SearchHit searchHit = new SearchHit(currentId, currentId + "", documentFields, metaFields);
       searchHit.sourceRef(someHit.getSourceRef());
@@ -157,9 +154,7 @@ public class MinusExecutor implements ElasticHitsExecutor {
           .getFields()
           .forEach(
               (fieldName, docField) ->
-                  (MapperService.META_FIELDS_BEFORE_7DOT8.contains(fieldName)
-                          ? metaFields
-                          : documentFields)
+                  (Util.META_FIELDS_BEFORE_7DOT8.contains(fieldName) ? metaFields : documentFields)
                       .put(fieldName, docField));
       SearchHit searchHit =
           new SearchHit(currentId, originalHit.getId(), documentFields, metaFields);

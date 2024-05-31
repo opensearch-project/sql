@@ -19,7 +19,6 @@ import org.opensearch.action.search.SearchResponse;
 import org.opensearch.client.Client;
 import org.opensearch.common.document.DocumentField;
 import org.opensearch.common.unit.TimeValue;
-import org.opensearch.index.mapper.MapperService;
 import org.opensearch.search.SearchHit;
 import org.opensearch.search.SearchHits;
 import org.opensearch.sql.legacy.domain.Condition;
@@ -32,6 +31,7 @@ import org.opensearch.sql.legacy.query.join.BackOffRetryStrategy;
 import org.opensearch.sql.legacy.query.join.NestedLoopsElasticRequestBuilder;
 import org.opensearch.sql.legacy.query.join.TableInJoinRequestBuilder;
 import org.opensearch.sql.legacy.query.maker.Maker;
+import org.opensearch.sql.legacy.utils.Util;
 
 /** Created by Eliran on 15/9/2015. */
 public class NestedLoopsElasticExecutor extends ElasticJoinExecutor {
@@ -200,9 +200,7 @@ public class NestedLoopsElasticExecutor extends ElasticJoinExecutor {
         .getFields()
         .forEach(
             (fieldName, docField) ->
-                (MapperService.META_FIELDS_BEFORE_7DOT8.contains(fieldName)
-                        ? metaFields
-                        : documentFields)
+                (Util.META_FIELDS_BEFORE_7DOT8.contains(fieldName) ? metaFields : documentFields)
                     .put(fieldName, docField));
     SearchHit searchHit =
         new SearchHit(

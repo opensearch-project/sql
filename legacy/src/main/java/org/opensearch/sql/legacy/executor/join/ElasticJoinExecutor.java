@@ -23,7 +23,6 @@ import org.opensearch.common.document.DocumentField;
 import org.opensearch.common.unit.TimeValue;
 import org.opensearch.core.rest.RestStatus;
 import org.opensearch.core.xcontent.XContentBuilder;
-import org.opensearch.index.mapper.MapperService;
 import org.opensearch.rest.BytesRestResponse;
 import org.opensearch.rest.RestChannel;
 import org.opensearch.search.SearchHit;
@@ -39,6 +38,7 @@ import org.opensearch.sql.legacy.query.join.JoinRequestBuilder;
 import org.opensearch.sql.legacy.query.join.NestedLoopsElasticRequestBuilder;
 import org.opensearch.sql.legacy.query.join.TableInJoinRequestBuilder;
 import org.opensearch.sql.legacy.query.planner.HashJoinQueryPlanRequestBuilder;
+import org.opensearch.sql.legacy.utils.Util;
 
 /** Created by Eliran on 15/9/2015. */
 public abstract class ElasticJoinExecutor implements ElasticHitsExecutor {
@@ -223,9 +223,7 @@ public abstract class ElasticJoinExecutor implements ElasticHitsExecutor {
     hit.getFields()
         .forEach(
             (fieldName, docField) ->
-                (MapperService.META_FIELDS_BEFORE_7DOT8.contains(fieldName)
-                        ? metaFields
-                        : documentFields)
+                (Util.META_FIELDS_BEFORE_7DOT8.contains(fieldName) ? metaFields : documentFields)
                     .put(fieldName, docField));
     SearchHit searchHit = new SearchHit(docId, unmatchedId, documentFields, metaFields);
 

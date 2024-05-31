@@ -24,6 +24,8 @@ import com.alibaba.druid.sql.ast.statement.SQLUnionQuery;
 import com.alibaba.druid.sql.parser.ParserException;
 import com.alibaba.druid.sql.parser.SQLExprParser;
 import com.alibaba.druid.sql.parser.Token;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -40,6 +42,19 @@ import org.opensearch.sql.legacy.parser.ElasticSqlExprParser;
 public class Util {
 
   public static final String NESTED_JOIN_TYPE = "NestedJoinType";
+
+  public static final Set<String> META_FIELDS_BEFORE_7DOT8 =
+      Collections.unmodifiableSet(
+          new HashSet<>(
+              Arrays.asList(
+                  "_id",
+                  "_ignored",
+                  "_index",
+                  "_routing",
+                  "_size",
+                  "_timestamp",
+                  "_ttl",
+                  "_type")));
 
   public static String joiner(List<KVValue> lists, String oper) {
 

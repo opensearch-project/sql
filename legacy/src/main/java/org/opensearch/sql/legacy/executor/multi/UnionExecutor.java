@@ -15,7 +15,6 @@ import org.apache.lucene.search.TotalHits.Relation;
 import org.opensearch.action.search.SearchResponse;
 import org.opensearch.client.Client;
 import org.opensearch.common.document.DocumentField;
-import org.opensearch.index.mapper.MapperService;
 import org.opensearch.search.SearchHit;
 import org.opensearch.search.SearchHits;
 import org.opensearch.sql.legacy.executor.ElasticHitsExecutor;
@@ -60,9 +59,7 @@ public class UnionExecutor implements ElasticHitsExecutor {
       hit.getFields()
           .forEach(
               (fieldName, docField) ->
-                  (MapperService.META_FIELDS_BEFORE_7DOT8.contains(fieldName)
-                          ? metaFields
-                          : documentFields)
+                  (Util.META_FIELDS_BEFORE_7DOT8.contains(fieldName) ? metaFields : documentFields)
                       .put(fieldName, docField));
       SearchHit searchHit = new SearchHit(currentId, hit.getId(), documentFields, metaFields);
       searchHit.sourceRef(hit.getSourceRef());
