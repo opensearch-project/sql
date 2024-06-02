@@ -125,12 +125,24 @@ public class NestedLoopsElasticExecutor extends ElasticJoinExecutor {
                 this.nestedLoopsRequest
                     .getFirstTable()
                     .getRequestBuilder()
+                    .setPointInTime(
+                        new org.opensearch.search.builder.PointInTimeBuilder(
+                            nestedLoopsRequest.getPitId()))
                     .searchAfter(firstTableResponse.getHits().getSortFields());
+
             boolean ordered =
                 this.nestedLoopsRequest.getFirstTable().getOriginalSelect().isOrderdSelect();
             if (!ordered) {
               request.addSort(DOC_FIELD_NAME, ASC);
             }
+
+            Integer hintLimit = nestedLoopsRequest.getFirstTable().getHintLimit();
+            if (hintLimit != null && hintLimit < MAX_RESULTS_ON_ONE_FETCH) {
+              request.setSize(hintLimit);
+            } else {
+              request.setSize(MAX_RESULTS_ON_ONE_FETCH);
+            }
+
             firstTableResponse = request.get();
           } else {
             firstTableResponse =
@@ -314,8 +326,8 @@ public class NestedLoopsElasticExecutor extends ElasticJoinExecutor {
     boolean needScrollForFirstTable = false;
     SearchResponse responseWithHits;
     if (hintLimit != null && hintLimit < MAX_RESULTS_ON_ONE_FETCH) {
-
-      responseWithHits = tableRequest.getRequestBuilder().setSize(hintLimit).get();
+      responseWithHits =
+          tableRequest.getRequestBuilder().addSort(DOC_FIELD_NAME, ASC).setSize(hintLimit).get();
       needScrollForFirstTable = false;
     } else {
       // scroll request with max.

@@ -25,6 +25,7 @@ public class JoinRequestBuilder implements SqlElasticRequestBuilder {
   private TableInJoinRequestBuilder secondTable;
   private SQLJoinTableSource.JoinType joinType;
   private int totalLimit;
+  private String pitId;
 
   public JoinRequestBuilder() {
     firstTable = new TableInJoinRequestBuilder();
@@ -111,5 +112,13 @@ public class JoinRequestBuilder implements SqlElasticRequestBuilder {
 
   public void setTotalLimit(int totalLimit) {
     this.totalLimit = totalLimit;
+  }
+
+  public String getPitId() {
+    return pitId;
+  }
+
+  public void setPitId(String pitId) {
+    this.pitId = pitId;
   }
 }

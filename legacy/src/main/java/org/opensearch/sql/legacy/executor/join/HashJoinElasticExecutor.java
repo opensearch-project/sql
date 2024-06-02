@@ -29,6 +29,7 @@ import org.opensearch.index.mapper.MapperService;
 import org.opensearch.index.query.BoolQueryBuilder;
 import org.opensearch.index.query.QueryBuilders;
 import org.opensearch.search.SearchHit;
+import org.opensearch.search.builder.PointInTimeBuilder;
 import org.opensearch.sql.legacy.domain.Field;
 import org.opensearch.sql.legacy.domain.Select;
 import org.opensearch.sql.legacy.domain.Where;
@@ -139,6 +140,7 @@ public class HashJoinElasticExecutor extends ElasticJoinExecutor {
         if (!ordered) {
           request.addSort(DOC_FIELD_NAME, ASC);
         }
+        request.setPointInTime(new PointInTimeBuilder(secondTableRequest.getPitId()));
       }
       searchResponse = request.get();
       finishedScrolling = true;
@@ -151,6 +153,7 @@ public class HashJoinElasticExecutor extends ElasticJoinExecutor {
         if (!ordered) {
           request.addSort(DOC_FIELD_NAME, ASC);
         }
+        request.setPointInTime(new PointInTimeBuilder(secondTableRequest.getPitId()));
       } else {
         request.setScroll(new TimeValue(600000));
       }
@@ -239,6 +242,7 @@ public class HashJoinElasticExecutor extends ElasticJoinExecutor {
                 secondTableRequest
                     .getRequestBuilder()
                     .setSize(MAX_RESULTS_ON_ONE_FETCH)
+                    .setPointInTime(new PointInTimeBuilder(secondTableRequest.getPitId()))
                     .searchAfter(searchResponse.getHits().getSortFields());
             boolean ordered = secondTableRequest.getOriginalSelect().isOrderdSelect();
             if (!ordered) {
@@ -354,6 +358,7 @@ public class HashJoinElasticExecutor extends ElasticJoinExecutor {
             tableInJoinRequest
                 .getRequestBuilder()
                 .setSize(MAX_RESULTS_FOR_FIRST_TABLE)
+                .setPointInTime(new PointInTimeBuilder(tableInJoinRequest.getPitId()))
                 .searchAfter(response.getHits().getSortFields());
         boolean ordered = tableInJoinRequest.getOriginalSelect().isOrderdSelect();
         if (!ordered) {

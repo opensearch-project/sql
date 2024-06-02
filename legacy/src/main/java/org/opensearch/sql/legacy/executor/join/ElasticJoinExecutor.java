@@ -30,6 +30,7 @@ import org.opensearch.rest.BytesRestResponse;
 import org.opensearch.rest.RestChannel;
 import org.opensearch.search.SearchHit;
 import org.opensearch.search.SearchHits;
+import org.opensearch.search.builder.PointInTimeBuilder;
 import org.opensearch.search.sort.FieldSortBuilder;
 import org.opensearch.search.sort.SortOrder;
 import org.opensearch.sql.legacy.domain.Field;
@@ -266,18 +267,20 @@ public abstract class ElasticJoinExecutor implements ElasticHitsExecutor {
     Boolean paginationWithSearchAfter =
         clusterState.getSettingValue(SQL_PAGINATION_API_SEARCH_AFTER);
 
-    SearchRequestBuilder scrollRequest =
+    SearchRequestBuilder request =
         tableRequest.getRequestBuilder().setSize(MAX_RESULTS_ON_ONE_FETCH);
 
-    if (!paginationWithSearchAfter) {
-      scrollRequest.setScroll(new TimeValue(600000));
+    if (paginationWithSearchAfter) {
+      request.setPointInTime(new PointInTimeBuilder(tableRequest.getPitId()));
+    } else {
+      request.setScroll(new TimeValue(600000));
     }
 
     boolean ordered = tableRequest.getOriginalSelect().isOrderdSelect();
     if (!ordered) {
-      scrollRequest.addSort(FieldSortBuilder.DOC_FIELD_NAME, SortOrder.ASC);
+      request.addSort(FieldSortBuilder.DOC_FIELD_NAME, SortOrder.ASC);
     }
-    SearchResponse responseWithHits = scrollRequest.get();
+    SearchResponse responseWithHits = request.get();
     // on ordered select - not using SCAN , elastic returns hits on first scroll
     // es5.0 elastic always return docs on scan
     //  if(!ordered)
