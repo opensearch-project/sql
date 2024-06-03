@@ -1,8 +1,6 @@
 /*
- *
- *  * Copyright OpenSearch Contributors
- *  * SPDX-License-Identifier: Apache-2.0
- *
+ * Copyright OpenSearch Contributors
+ * SPDX-License-Identifier: Apache-2.0
  */
 
 package org.opensearch.sql.spark.asyncquery.model;
@@ -59,6 +57,6 @@ public class AsyncQueryJobMetadata extends StateModel {
 
   @Override
   public String getId() {
-    return "qid" + queryId;
+    return queryId;
   }
 }

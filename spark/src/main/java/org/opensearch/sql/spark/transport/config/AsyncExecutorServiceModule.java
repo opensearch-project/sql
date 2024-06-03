@@ -20,7 +20,7 @@ import org.opensearch.sql.legacy.metrics.Metrics;
 import org.opensearch.sql.spark.asyncquery.AsyncQueryExecutorService;
 import org.opensearch.sql.spark.asyncquery.AsyncQueryExecutorServiceImpl;
 import org.opensearch.sql.spark.asyncquery.AsyncQueryJobMetadataStorageService;
-import org.opensearch.sql.spark.asyncquery.OpensearchAsyncQueryJobMetadataStorageService;
+import org.opensearch.sql.spark.asyncquery.OpenSearchAsyncQueryJobMetadataStorageService;
 import org.opensearch.sql.spark.client.EMRServerlessClientFactory;
 import org.opensearch.sql.spark.client.EMRServerlessClientFactoryImpl;
 import org.opensearch.sql.spark.config.SparkExecutionEngineConfigSupplier;
@@ -69,7 +69,7 @@ public class AsyncExecutorServiceModule extends AbstractModule {
   @Provides
   public AsyncQueryJobMetadataStorageService asyncQueryJobMetadataStorageService(
       StateStore stateStore, AsyncQueryJobMetadataXContentSerializer serializer) {
-    return new OpensearchAsyncQueryJobMetadataStorageService(stateStore, serializer);
+    return new OpenSearchAsyncQueryJobMetadataStorageService(stateStore, serializer);
   }
 
   @Provides

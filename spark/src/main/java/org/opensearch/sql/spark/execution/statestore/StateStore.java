@@ -11,7 +11,6 @@ import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.Locale;
 import java.util.Optional;
-import java.util.function.Function;
 import java.util.function.Supplier;
 import lombok.RequiredArgsConstructor;
 import org.apache.commons.io.IOUtils;
@@ -78,7 +77,8 @@ public class StateStore {
   private final ClusterService clusterService;
 
   @VisibleForTesting
-  public <T extends StateModel> T create(T st, CopyBuilder<T> builder, String indexName) {
+  public <T extends StateModel> T create(
+      String docId, T st, CopyBuilder<T> builder, String indexName) {
     try {
       if (!this.clusterService.state().routingTable().hasIndex(indexName)) {
         createIndex(indexName);
@@ -86,7 +86,7 @@ public class StateStore {
       XContentSerializer<T> serializer = getXContentSerializer(st);
       IndexRequest indexRequest =
           new IndexRequest(indexName)
-              .id(st.getId())
+              .id(docId)
               .source(serializer.toXContent(st, ToXContent.EMPTY_PARAMS))
               .setIfSeqNo(getSeqNo(st))
               .setIfPrimaryTerm(getPrimaryTerm(st))
@@ -266,26 +266,6 @@ public class StateStore {
   private String loadConfigFromResource(String fileName) throws IOException {
     InputStream fileStream = StateStore.class.getClassLoader().getResourceAsStream(fileName);
     return IOUtils.toString(fileStream, StandardCharsets.UTF_8);
-  }
-
-  public static Function<AsyncQueryJobMetadata, AsyncQueryJobMetadata> createJobMetaData(
-      StateStore stateStore, String datasourceName) {
-    return (jobMetadata) ->
-        stateStore.create(
-            jobMetadata,
-            AsyncQueryJobMetadata::copy,
-            OpenSearchStateStoreUtil.getIndexName(datasourceName));
-  }
-
-  public static Function<String, Optional<AsyncQueryJobMetadata>> getJobMetaData(
-      StateStore stateStore, String datasourceName) {
-    AsyncQueryJobMetadataXContentSerializer asyncQueryJobMetadataXContentSerializer =
-        new AsyncQueryJobMetadataXContentSerializer();
-    return (docId) ->
-        stateStore.get(
-            docId,
-            asyncQueryJobMetadataXContentSerializer::fromXContent,
-            OpenSearchStateStoreUtil.getIndexName(datasourceName));
   }
 
   public static Supplier<Long> activeSessionsCount(StateStore stateStore, String datasourceName) {

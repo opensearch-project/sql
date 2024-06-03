@@ -5,14 +5,14 @@
 
 package org.opensearch.sql.spark.dispatcher;
 
-import org.opensearch.sql.spark.asyncquery.model.AsyncQueryId;
 import org.opensearch.sql.spark.dispatcher.model.DispatchQueryRequest;
+import org.opensearch.sql.spark.utils.IDUtils;
 
 /** Generates QueryId by embedding Datasource name and random UUID */
 public class DatasourceEmbeddedQueryIdProvider implements QueryIdProvider {
 
   @Override
   public String getQueryId(DispatchQueryRequest dispatchQueryRequest) {
-    return AsyncQueryId.newAsyncQueryId(dispatchQueryRequest.getDatasource()).getId();
+    return IDUtils.encode(dispatchQueryRequest.getDatasource());
   }
 }

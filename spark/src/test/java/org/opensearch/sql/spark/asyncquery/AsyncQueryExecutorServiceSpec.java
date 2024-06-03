@@ -236,7 +236,7 @@ public class AsyncQueryExecutorServiceSpec extends OpenSearchIntegTestCase {
       JobExecutionResponseReader jobExecutionResponseReader) {
     StateStore stateStore = new StateStore(client, clusterService);
     AsyncQueryJobMetadataStorageService asyncQueryJobMetadataStorageService =
-        new OpensearchAsyncQueryJobMetadataStorageService(
+        new OpenSearchAsyncQueryJobMetadataStorageService(
             stateStore, new AsyncQueryJobMetadataXContentSerializer());
     QueryHandlerFactory queryHandlerFactory =
         new QueryHandlerFactory(

@@ -13,25 +13,25 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.jupiter.api.Assertions;
 import org.opensearch.sql.spark.asyncquery.exceptions.AsyncQueryNotFoundException;
-import org.opensearch.sql.spark.asyncquery.model.AsyncQueryId;
 import org.opensearch.sql.spark.asyncquery.model.AsyncQueryJobMetadata;
 import org.opensearch.sql.spark.execution.statestore.StateStore;
 import org.opensearch.sql.spark.execution.xcontent.AsyncQueryJobMetadataXContentSerializer;
+import org.opensearch.sql.spark.utils.IDUtils;
 import org.opensearch.test.OpenSearchIntegTestCase;
 
-public class OpensearchAsyncQueryAsyncQueryJobMetadataStorageServiceTest
+public class OpenSearchAsyncQueryJobMetadataStorageServiceTest
     extends OpenSearchIntegTestCase {
 
   public static final String DS_NAME = "mys3";
   private static final String MOCK_SESSION_ID = "sessionId";
   private static final String MOCK_RESULT_INDEX = "resultIndex";
   private static final String MOCK_QUERY_ID = "00fdo6u94n7abo0q";
-  private OpensearchAsyncQueryJobMetadataStorageService opensearchJobMetadataStorageService;
+  private OpenSearchAsyncQueryJobMetadataStorageService openSearchJobMetadataStorageService;
 
   @Before
   public void setup() {
-    opensearchJobMetadataStorageService =
-        new OpensearchAsyncQueryJobMetadataStorageService(
+    openSearchJobMetadataStorageService =
+        new OpenSearchAsyncQueryJobMetadataStorageService(
             new StateStore(client(), clusterService()),
             new AsyncQueryJobMetadataXContentSerializer());
   }
@@ -40,16 +40,16 @@ public class OpensearchAsyncQueryAsyncQueryJobMetadataStorageServiceTest
   public void testStoreJobMetadata() {
     AsyncQueryJobMetadata expected =
         AsyncQueryJobMetadata.builder()
-            .queryId(AsyncQueryId.newAsyncQueryId(DS_NAME).getId())
+            .queryId(IDUtils.encode(DS_NAME))
             .jobId(EMR_JOB_ID)
             .applicationId(EMRS_APPLICATION_ID)
             .resultIndex(MOCK_RESULT_INDEX)
             .datasourceName(DS_NAME)
             .build();
 
-    opensearchJobMetadataStorageService.storeJobMetadata(expected);
+    openSearchJobMetadataStorageService.storeJobMetadata(expected);
     Optional<AsyncQueryJobMetadata> actual =
-        opensearchJobMetadataStorageService.getJobMetadata(expected.getQueryId());
+        openSearchJobMetadataStorageService.getJobMetadata(expected.getQueryId());
 
     assertTrue(actual.isPresent());
     assertEquals(expected, actual.get());
@@ -61,7 +61,7 @@ public class OpensearchAsyncQueryAsyncQueryJobMetadataStorageServiceTest
   public void testStoreJobMetadataWithResultExtraData() {
     AsyncQueryJobMetadata expected =
         AsyncQueryJobMetadata.builder()
-            .queryId(AsyncQueryId.newAsyncQueryId(DS_NAME).getId())
+            .queryId(IDUtils.encode(DS_NAME))
             .jobId(EMR_JOB_ID)
             .applicationId(EMRS_APPLICATION_ID)
             .resultIndex(MOCK_RESULT_INDEX)
@@ -69,9 +69,9 @@ public class OpensearchAsyncQueryAsyncQueryJobMetadataStorageServiceTest
             .datasourceName(DS_NAME)
             .build();
 
-    opensearchJobMetadataStorageService.storeJobMetadata(expected);
+    openSearchJobMetadataStorageService.storeJobMetadata(expected);
     Optional<AsyncQueryJobMetadata> actual =
-        opensearchJobMetadataStorageService.getJobMetadata(expected.getQueryId());
+        openSearchJobMetadataStorageService.getJobMetadata(expected.getQueryId());
 
     assertTrue(actual.isPresent());
     assertEquals(expected, actual.get());
@@ -84,7 +84,7 @@ public class OpensearchAsyncQueryAsyncQueryJobMetadataStorageServiceTest
     AsyncQueryNotFoundException asyncQueryNotFoundException =
         Assertions.assertThrows(
             AsyncQueryNotFoundException.class,
-            () -> opensearchJobMetadataStorageService.getJobMetadata(MOCK_QUERY_ID));
+            () -> openSearchJobMetadataStorageService.getJobMetadata(MOCK_QUERY_ID));
     Assertions.assertEquals(
         String.format("Invalid QueryId: %s", MOCK_QUERY_ID),
         asyncQueryNotFoundException.getMessage());
@@ -95,7 +95,7 @@ public class OpensearchAsyncQueryAsyncQueryJobMetadataStorageServiceTest
     AsyncQueryNotFoundException asyncQueryNotFoundException =
         Assertions.assertThrows(
             AsyncQueryNotFoundException.class,
-            () -> opensearchJobMetadataStorageService.getJobMetadata(""));
+            () -> openSearchJobMetadataStorageService.getJobMetadata(""));
     Assertions.assertEquals("Invalid QueryId: ", asyncQueryNotFoundException.getMessage());
   }
 }
