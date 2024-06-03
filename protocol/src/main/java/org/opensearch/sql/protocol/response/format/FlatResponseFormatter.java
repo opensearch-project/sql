@@ -12,6 +12,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import org.opensearch.sql.protocol.response.QueryResult;
@@ -25,10 +26,12 @@ public abstract class FlatResponseFormatter implements ResponseFormatter<QueryRe
   public static final String CONTENT_TYPE = "plain/text; charset=UTF-8";
 
   private boolean sanitize = false;
+  private boolean pretty = false;
 
-  public FlatResponseFormatter(String seperator, boolean sanitize) {
+  public FlatResponseFormatter(String seperator, boolean sanitize, boolean pretty) {
     this.INLINE_SEPARATOR = seperator;
     this.sanitize = sanitize;
+    this.pretty = pretty;
   }
 
   public String contentType() {
@@ -37,7 +40,7 @@ public abstract class FlatResponseFormatter implements ResponseFormatter<QueryRe
 
   @Override
   public String format(QueryResult response) {
-    FlatResult result = new FlatResult(response, sanitize);
+    FlatResult result = new FlatResult(response, sanitize, pretty);
     return result.getFlat();
   }
 
@@ -55,22 +58,54 @@ public abstract class FlatResponseFormatter implements ResponseFormatter<QueryRe
   static class FlatResult {
     private final QueryResult response;
     private final boolean sanitize;
+    private final boolean pretty;
+
+    private List<String> headers;
+    private List<List<String>> data;
+    private int[] maxWidths;
 
     public String getFlat() {
+      // Store headers and data in variables to avoid redundant calls
+      headers = getHeaders(response, sanitize);
+      data = getData(response, sanitize);
+
+      calculateMaxWidths();
+
       List<String> headersAndData = new ArrayList<>();
-      headersAndData.add(getHeaderLine(response, sanitize));
-      headersAndData.addAll(getDataLines(response, sanitize));
+      headersAndData.add(getHeaderLine());
+      headersAndData.addAll(getDataLines());
       return String.join(INTERLINE_SEPARATOR, headersAndData);
     }
 
-    private String getHeaderLine(QueryResult response, boolean sanitize) {
-      List<String> headers = getHeaders(response, sanitize);
-      return String.join(INLINE_SEPARATOR, headers);
+    private void calculateMaxWidths() {
+      int columns = headers.size();
+      maxWidths = new int[columns];
+
+      for (int i = 0; i < columns; i++) {
+        int maxWidth = headers.get(i).length();
+        for (List<String> row : data) {
+          maxWidth = Math.max(maxWidth, row.get(i).length());
+        }
+        maxWidths[i] = maxWidth;
+      }
     }
 
-    private List<String> getDataLines(QueryResult response, boolean sanitize) {
-      List<List<String>> data = getData(response, sanitize);
-      return data.stream().map(v -> String.join(INLINE_SEPARATOR, v)).collect(Collectors.toList());
+    private List<String> getDataLines() {
+      if (pretty) {
+        return data.stream().map(this::prettyFormatLine).collect(Collectors.toList());
+      } else {
+        return data.stream()
+            .map(v -> String.join(INLINE_SEPARATOR, v))
+            .collect(Collectors.toList());
+      }
+    }
+
+    private String getHeaderLine() {
+      if (pretty) {
+        return prettyFormatLine(headers);
+      } else {
+        return String.join(INLINE_SEPARATOR, headers);
+      }
     }
 
     private List<String> getHeaders(QueryResult response, boolean sanitize) {
@@ -144,6 +179,16 @@ public abstract class FlatResponseFormatter implements ResponseFormatter<QueryRe
 
     private boolean isStartWithSensitiveChar(String cell) {
       return SENSITIVE_CHAR.stream().anyMatch(cell::startsWith);
+    }
+
+    private String prettyFormatLine(List<String> line) {
+      return IntStream.range(0, line.size())
+          .mapToObj(i -> padRight(line.get(i), maxWidths[i]))
+          .collect(Collectors.joining(INLINE_SEPARATOR));
+    }
+
+    private String padRight(String s, int n) {
+      return String.format("%-" + n + "s", s);
     }
   }
 }

@@ -5,12 +5,13 @@
 
 package org.opensearch.sql.protocol.response.format;
 
+/** Response formatter to format response to csv format. */
 public class CsvResponseFormatter extends FlatResponseFormatter {
   public CsvResponseFormatter() {
-    super(",", true);
+    super(",", true, false);
   }
 
   public CsvResponseFormatter(boolean sanitize) {
-    super(",", sanitize);
+    super(",", sanitize, false);
   }
 }

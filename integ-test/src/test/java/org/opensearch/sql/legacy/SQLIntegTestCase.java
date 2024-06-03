@@ -239,8 +239,12 @@ public abstract class SQLIntegTestCase extends OpenSearchSQLRestTestCase {
   }
 
   protected String executeQuery(String query, String requestType) {
+    return executeQuery(query, requestType, false);
+  }
+
+  protected String executeQuery(String query, String requestType, boolean pretty) {
     try {
-      String endpoint = "/_plugins/_sql?format=" + requestType;
+      String endpoint = "/_plugins/_sql?format=" + requestType + "&pretty=" + pretty;
       String requestBody = makeRequest(query);
 
       Request sqlRequest = new Request("POST", endpoint);
