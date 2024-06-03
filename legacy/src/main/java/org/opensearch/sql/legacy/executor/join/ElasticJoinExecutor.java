@@ -273,7 +273,7 @@ public abstract class ElasticJoinExecutor implements ElasticHitsExecutor {
     if (paginationWithSearchAfter) {
       request.setPointInTime(new PointInTimeBuilder(tableRequest.getPitId()));
     } else {
-      request.setScroll(new TimeValue(600000));
+      request.setScroll(new TimeValue(60000));
     }
 
     boolean ordered = tableRequest.getOriginalSelect().isOrderdSelect();

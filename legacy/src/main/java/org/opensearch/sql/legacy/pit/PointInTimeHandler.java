@@ -16,7 +16,7 @@ import org.opensearch.core.action.ActionListener;
 
 public class PointInTimeHandler {
   private Client client;
-  private String pit;
+  private String pitId;
   private static final Logger LOG = LogManager.getLogger();
 
   public PointInTimeHandler(Client client, String[] indices) {
@@ -28,7 +28,7 @@ public class PointInTimeHandler {
         new ActionListener<>() {
           @Override
           public void onResponse(CreatePitResponse createPitResponse) {
-            pit = createPitResponse.getId();
+            pitId = createPitResponse.getId();
           }
 
           @Override
@@ -39,11 +39,11 @@ public class PointInTimeHandler {
   }
 
   public String getPointInTimeId() {
-    return pit;
+    return pitId;
   }
 
   public void closePointInTime() {
-    DeletePitRequest deletePitRequest = new DeletePitRequest(pit);
+    DeletePitRequest deletePitRequest = new DeletePitRequest(pitId);
     client.deletePits(
         deletePitRequest,
         new ActionListener<>() {
