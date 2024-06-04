@@ -382,12 +382,12 @@ Example::
 
     os> SELECT gender, percentile(age, 90) as p90 FROM accounts GROUP BY gender;
     fetched rows / total rows = 2/2
-    +----------+----------+
-    | gender   | p90      |
-    |----------+----------|
-    | F        | 39       |
-    | M        | 38       |
-    +----------+----------+
+    +----------+-------+
+    | gender   | p90   |
+    |----------+-------|
+    | F        | 28    |
+    | M        | 36    |
+    +----------+-------+
 
 HAVING Clause
 =============

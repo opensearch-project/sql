@@ -273,12 +273,12 @@ Example::
 
     os> source=accounts | stats percentile(age, 90) by gender;
     fetched rows / total rows = 2/2
-    +---------------------+---------+
-    | percentile(age, 90) | gender  |
-    |---------------------+---------|
-    | 39                  | F       |
-    | 38                  | M       |
-    +---------------------+---------+
+    +-----------------------+----------+
+    | percentile(age, 90)   | gender   |
+    |-----------------------+----------|
+    | 28                    | F        |
+    | 36                    | M        |
+    +-----------------------+----------+
 
 Example 1: Calculate the count of events
 ========================================
@@ -450,11 +450,11 @@ PPL query::
 
     os> source=accounts | stats percentile(age, 90);
     fetched rows / total rows = 1/1
-    +---------------------+
-    | percentile(age, 90) |
-    |---------------------|
-    | 38                  |
-    +---------------------+
+    +-----------------------+
+    | percentile(age, 90)   |
+    |-----------------------|
+    | 36                    |
+    +-----------------------+
 
 
 Example 12: Calculate the percentile of a field by group
@@ -466,12 +466,12 @@ PPL query::
 
     os> source=accounts | stats percentile(age, 90) by gender;
     fetched rows / total rows = 2/2
-    +---------------------+----------+
-    | percentile(age, 90) | gender   |
-    |---------------------+----------|
-    | 39                  | F        |
-    | 38                  | M        |
-    +---------------------+----------+
+    +-----------------------+----------+
+    | percentile(age, 90)   | gender   |
+    |-----------------------+----------|
+    | 28                    | F        |
+    | 36                    | M        |
+    +-----------------------+----------+
 
 Example 13: Calculate the percentile by a gender and span
 =========================================================
@@ -481,15 +481,11 @@ The example gets the percentile 90th age by the interval of 10 years and group b
 PPL query::
 
     os> source=accounts | stats percentile(age, 90) as p90 by span(age, 10) as age_span, gender
-    fetched rows / total rows = 6/6
+    fetched rows / total rows = 2/2
     +-------+------------+----------+
     | p90   | age_span   | gender   |
     |-------+------------+----------|
     | 28    | 20         | F        |
-    | 28    | 20         | M        |
-    | 39    | 30         | F        |
-    | 38    | 30         | M        |
-    | 40    | 40         | F        |
-    | 40    | 40         | M        |
+    | 36    | 30         | M        |
     +-------+------------+----------+
 

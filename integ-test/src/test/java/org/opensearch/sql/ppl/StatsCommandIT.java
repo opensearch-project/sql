@@ -216,4 +216,44 @@ public class StatsCommandIT extends PPLIntegTestCase {
     verifySchema(response, schema("percentile(balance, 50, 1)", null, "long"));
     verifyDataRows(response, rows(32838));
   }
+
+  @Test
+  public void testStatsPercentileWhere() throws IOException {
+    JSONObject response =
+        executeQuery(
+            String.format(
+                "source=%s | stats percentile(balance, 50) as p50 by state | where p50 > 40000",
+                TEST_INDEX_BANK));
+    verifySchema(response, schema("p50", null, "long"), schema("state", null, "string"));
+    verifyDataRows(response, rows(48086, "IN"), rows(40540, "PA"));
+  }
+
+  @Test
+  public void testStatsPercentileByNullValue() throws IOException {
+    JSONObject response =
+        executeQuery(
+            String.format(
+                "source=%s | stats percentile(balance, 50) as p50 by age",
+                TEST_INDEX_BANK_WITH_NULL_VALUES));
+    verifySchema(response, schema("p50", null, "long"), schema("age", null, "integer"));
+    verifyDataRows(
+        response,
+        rows(0, null),
+        rows(32838, 28),
+        rows(39225, 32),
+        rows(4180, 33),
+        rows(48086, 34),
+        rows(0, 36));
+  }
+
+  @Test
+  public void testStatsPercentileBySpan() throws IOException {
+    JSONObject response =
+        executeQuery(
+            String.format(
+                "source=%s | stats percentile(balance, 50) as p50 by span(age, 10) as age_bucket",
+                TEST_INDEX_BANK));
+    verifySchema(response, schema("p50", null, "long"), schema("age_bucket", null, "integer"));
+    verifyDataRows(response, rows(32838, 20), rows(39225, 30));
+  }
 }
