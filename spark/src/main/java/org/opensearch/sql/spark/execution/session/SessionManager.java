@@ -5,8 +5,6 @@
 
 package org.opensearch.sql.spark.execution.session;
 
-import static org.opensearch.sql.spark.execution.session.SessionId.newSessionId;
-
 import java.util.Optional;
 import lombok.RequiredArgsConstructor;
 import org.opensearch.sql.spark.asyncquery.model.AsyncQueryRequestContext;
@@ -26,12 +24,13 @@ public class SessionManager {
   private final StatementStorageService statementStorageService;
   private final EMRServerlessClientFactory emrServerlessClientFactory;
   private final SessionConfigSupplier sessionConfigSupplier;
+  private final SessionIdProvider sessionIdProvider;
 
   public Session createSession(
       CreateSessionRequest request, AsyncQueryRequestContext asyncQueryRequestContext) {
     InteractiveSession session =
         InteractiveSession.builder()
-            .sessionId(newSessionId(request.getDatasourceName()))
+            .sessionId(sessionIdProvider.getSessionId(request))
             .sessionStorageService(sessionStorageService)
             .statementStorageService(statementStorageService)
             .serverlessClient(emrServerlessClientFactory.getClient())
@@ -51,20 +50,19 @@ public class SessionManager {
    * <p>For more context on the use case and implementation, refer to the documentation here:
    * https://tinyurl.com/bdh6s834
    *
-   * @param sid The unique identifier of the session. It is used to fetch the corresponding session
-   *     details.
+   * @param sessionId The unique identifier of the session. It is used to fetch the corresponding
+   *     session details.
    * @param dataSourceName The name of the data source. This parameter is utilized in the session
    *     retrieval process.
    * @return An Optional containing the session associated with the provided session ID. Returns an
    *     empty Optional if no matching session is found.
    */
-  public Optional<Session> getSession(SessionId sid, String dataSourceName) {
-    Optional<SessionModel> model =
-        sessionStorageService.getSession(sid.getSessionId(), dataSourceName);
+  public Optional<Session> getSession(String sessionId, String dataSourceName) {
+    Optional<SessionModel> model = sessionStorageService.getSession(sessionId, dataSourceName);
     if (model.isPresent()) {
       InteractiveSession session =
           InteractiveSession.builder()
-              .sessionId(sid)
+              .sessionId(sessionId)
               .sessionStorageService(sessionStorageService)
               .statementStorageService(statementStorageService)
               .serverlessClient(emrServerlessClientFactory.getClient())
@@ -76,22 +74,6 @@ public class SessionManager {
       return Optional.ofNullable(session);
     }
     return Optional.empty();
-  }
-
-  /**
-   * Retrieves the session associated with the provided session ID.
-   *
-   * <p>This method is utilized specifically in scenarios where the data source information encoded
-   * in the session ID is considered trustworthy. It ensures the retrieval of session details based
-   * on the session ID, relying on the integrity of the data source information contained within it.
-   *
-   * @param sid The session ID used to identify and retrieve the corresponding session. It is
-   *     expected to contain valid and trusted data source information.
-   * @return An Optional containing the session associated with the provided session ID. If no
-   *     session is found that matches the session ID, an empty Optional is returned.
-   */
-  public Optional<Session> getSession(SessionId sid) {
-    return getSession(sid, sid.getDataSourceName());
   }
 
   // todo, keep it only for testing, will remove it later.

@@ -66,7 +66,6 @@ import org.opensearch.sql.spark.dispatcher.model.DispatchQueryRequest;
 import org.opensearch.sql.spark.dispatcher.model.DispatchQueryResponse;
 import org.opensearch.sql.spark.dispatcher.model.JobType;
 import org.opensearch.sql.spark.execution.session.Session;
-import org.opensearch.sql.spark.execution.session.SessionId;
 import org.opensearch.sql.spark.execution.session.SessionManager;
 import org.opensearch.sql.spark.execution.statement.Statement;
 import org.opensearch.sql.spark.execution.statement.StatementId;
@@ -81,6 +80,7 @@ import org.opensearch.sql.spark.rest.model.LangType;
 @ExtendWith(MockitoExtension.class)
 public class SparkQueryDispatcherTest {
 
+  public static final String MY_GLUE = "my_glue";
   @Mock private EMRServerlessClient emrServerlessClient;
   @Mock private EMRServerlessClientFactory emrServerlessClientFactory;
   @Mock private DataSourceService dataSourceService;
@@ -126,7 +126,7 @@ public class SparkQueryDispatcherTest {
   void testDispatchSelectQuery() {
     when(emrServerlessClientFactory.getClient()).thenReturn(emrServerlessClient);
     HashMap<String, String> tags = new HashMap<>();
-    tags.put(DATASOURCE_TAG_KEY, "my_glue");
+    tags.put(DATASOURCE_TAG_KEY, MY_GLUE);
     tags.put(CLUSTER_NAME_TAG_KEY, TEST_CLUSTER_NAME);
     tags.put(JOB_TYPE_TAG_KEY, JobType.BATCH.getText());
     String query = "select * from my_glue.default.http_logs";
@@ -151,7 +151,7 @@ public class SparkQueryDispatcherTest {
             "query_execution_result_my_glue");
     when(emrServerlessClient.startJobRun(expected)).thenReturn(EMR_JOB_ID);
     DataSourceMetadata dataSourceMetadata = constructMyGlueDataSourceMetadata();
-    when(dataSourceService.verifyDataSourceAccessAndGetRawMetadata("my_glue"))
+    when(dataSourceService.verifyDataSourceAccessAndGetRawMetadata(MY_GLUE))
         .thenReturn(dataSourceMetadata);
 
     DispatchQueryResponse dispatchQueryResponse =
@@ -159,7 +159,7 @@ public class SparkQueryDispatcherTest {
             DispatchQueryRequest.builder()
                 .applicationId(EMRS_APPLICATION_ID)
                 .query(query)
-                .datasource("my_glue")
+                .datasource(MY_GLUE)
                 .langType(LangType.SQL)
                 .executionRoleARN(EMRS_EXECUTION_ROLE)
                 .clusterName(TEST_CLUSTER_NAME)
@@ -177,7 +177,7 @@ public class SparkQueryDispatcherTest {
   void testDispatchSelectQueryWithLakeFormation() {
     when(emrServerlessClientFactory.getClient()).thenReturn(emrServerlessClient);
     HashMap<String, String> tags = new HashMap<>();
-    tags.put(DATASOURCE_TAG_KEY, "my_glue");
+    tags.put(DATASOURCE_TAG_KEY, MY_GLUE);
     tags.put(CLUSTER_NAME_TAG_KEY, TEST_CLUSTER_NAME);
     tags.put(JOB_TYPE_TAG_KEY, JobType.BATCH.getText());
     String query = "select * from my_glue.default.http_logs";
@@ -203,7 +203,7 @@ public class SparkQueryDispatcherTest {
             "query_execution_result_my_glue");
     when(emrServerlessClient.startJobRun(expected)).thenReturn(EMR_JOB_ID);
     DataSourceMetadata dataSourceMetadata = constructMyGlueDataSourceMetadataWithLakeFormation();
-    when(dataSourceService.verifyDataSourceAccessAndGetRawMetadata("my_glue"))
+    when(dataSourceService.verifyDataSourceAccessAndGetRawMetadata(MY_GLUE))
         .thenReturn(dataSourceMetadata);
 
     DispatchQueryResponse dispatchQueryResponse =
@@ -218,7 +218,7 @@ public class SparkQueryDispatcherTest {
   void testDispatchSelectQueryWithBasicAuthIndexStoreDatasource() {
     when(emrServerlessClientFactory.getClient()).thenReturn(emrServerlessClient);
     HashMap<String, String> tags = new HashMap<>();
-    tags.put(DATASOURCE_TAG_KEY, "my_glue");
+    tags.put(DATASOURCE_TAG_KEY, MY_GLUE);
     tags.put(CLUSTER_NAME_TAG_KEY, TEST_CLUSTER_NAME);
     tags.put(JOB_TYPE_TAG_KEY, JobType.BATCH.getText());
     String query = "select * from my_glue.default.http_logs";
@@ -244,7 +244,7 @@ public class SparkQueryDispatcherTest {
             "query_execution_result_my_glue");
     when(emrServerlessClient.startJobRun(expected)).thenReturn(EMR_JOB_ID);
     DataSourceMetadata dataSourceMetadata = constructMyGlueDataSourceMetadataWithBasicAuth();
-    when(dataSourceService.verifyDataSourceAccessAndGetRawMetadata("my_glue"))
+    when(dataSourceService.verifyDataSourceAccessAndGetRawMetadata(MY_GLUE))
         .thenReturn(dataSourceMetadata);
 
     DispatchQueryResponse dispatchQueryResponse =
@@ -260,7 +260,7 @@ public class SparkQueryDispatcherTest {
   void testDispatchSelectQueryWithNoAuthIndexStoreDatasource() {
     when(emrServerlessClientFactory.getClient()).thenReturn(emrServerlessClient);
     HashMap<String, String> tags = new HashMap<>();
-    tags.put(DATASOURCE_TAG_KEY, "my_glue");
+    tags.put(DATASOURCE_TAG_KEY, MY_GLUE);
     tags.put(CLUSTER_NAME_TAG_KEY, TEST_CLUSTER_NAME);
     tags.put(JOB_TYPE_TAG_KEY, JobType.BATCH.getText());
     String query = "select * from my_glue.default.http_logs";
@@ -284,7 +284,7 @@ public class SparkQueryDispatcherTest {
             "query_execution_result_my_glue");
     when(emrServerlessClient.startJobRun(expected)).thenReturn(EMR_JOB_ID);
     DataSourceMetadata dataSourceMetadata = constructMyGlueDataSourceMetadataWithNoAuth();
-    when(dataSourceService.verifyDataSourceAccessAndGetRawMetadata("my_glue"))
+    when(dataSourceService.verifyDataSourceAccessAndGetRawMetadata(MY_GLUE))
         .thenReturn(dataSourceMetadata);
 
     DispatchQueryResponse dispatchQueryResponse =
@@ -302,18 +302,18 @@ public class SparkQueryDispatcherTest {
 
     doReturn(true).when(sessionManager).isEnabled();
     doReturn(session).when(sessionManager).createSession(any(), any());
-    doReturn(new SessionId(MOCK_SESSION_ID)).when(session).getSessionId();
+    doReturn(MOCK_SESSION_ID).when(session).getSessionId();
     doReturn(new StatementId(MOCK_STATEMENT_ID)).when(session).submit(any(), any());
     when(session.getSessionModel().getJobId()).thenReturn(EMR_JOB_ID);
     DataSourceMetadata dataSourceMetadata = constructMyGlueDataSourceMetadata();
-    when(dataSourceService.verifyDataSourceAccessAndGetRawMetadata("my_glue"))
+    when(dataSourceService.verifyDataSourceAccessAndGetRawMetadata(MY_GLUE))
         .thenReturn(dataSourceMetadata);
 
     DispatchQueryResponse dispatchQueryResponse =
         sparkQueryDispatcher.dispatch(queryRequest, asyncQueryRequestContext);
 
     verifyNoInteractions(emrServerlessClient);
-    verify(sessionManager, never()).getSession(any());
+    verify(sessionManager, never()).getSession(any(), any());
     Assertions.assertEquals(EMR_JOB_ID, dispatchQueryResponse.getJobId());
     Assertions.assertEquals(MOCK_SESSION_ID, dispatchQueryResponse.getSessionId());
   }
@@ -326,13 +326,13 @@ public class SparkQueryDispatcherTest {
     doReturn(true).when(sessionManager).isEnabled();
     doReturn(Optional.of(session))
         .when(sessionManager)
-        .getSession(eq(new SessionId(MOCK_SESSION_ID)));
-    doReturn(new SessionId(MOCK_SESSION_ID)).when(session).getSessionId();
+        .getSession(eq(MOCK_SESSION_ID), eq(MY_GLUE));
+    doReturn(MOCK_SESSION_ID).when(session).getSessionId();
     doReturn(new StatementId(MOCK_STATEMENT_ID)).when(session).submit(any(), any());
     when(session.getSessionModel().getJobId()).thenReturn(EMR_JOB_ID);
     when(session.isOperationalForDataSource(any())).thenReturn(true);
     DataSourceMetadata dataSourceMetadata = constructMyGlueDataSourceMetadata();
-    when(dataSourceService.verifyDataSourceAccessAndGetRawMetadata("my_glue"))
+    when(dataSourceService.verifyDataSourceAccessAndGetRawMetadata(MY_GLUE))
         .thenReturn(dataSourceMetadata);
 
     DispatchQueryResponse dispatchQueryResponse =
@@ -352,7 +352,7 @@ public class SparkQueryDispatcherTest {
     doReturn(true).when(sessionManager).isEnabled();
     doThrow(RuntimeException.class).when(sessionManager).createSession(any(), any());
     DataSourceMetadata dataSourceMetadata = constructMyGlueDataSourceMetadata();
-    when(dataSourceService.verifyDataSourceAccessAndGetRawMetadata("my_glue"))
+    when(dataSourceService.verifyDataSourceAccessAndGetRawMetadata(MY_GLUE))
         .thenReturn(dataSourceMetadata);
 
     Assertions.assertThrows(
@@ -366,7 +366,7 @@ public class SparkQueryDispatcherTest {
   void testDispatchIndexQuery() {
     when(emrServerlessClientFactory.getClient()).thenReturn(emrServerlessClient);
     HashMap<String, String> tags = new HashMap<>();
-    tags.put(DATASOURCE_TAG_KEY, "my_glue");
+    tags.put(DATASOURCE_TAG_KEY, MY_GLUE);
     tags.put(INDEX_TAG_KEY, "flint_my_glue_default_http_logs_elb_and_requesturi_index");
     tags.put(CLUSTER_NAME_TAG_KEY, TEST_CLUSTER_NAME);
     tags.put(JOB_TYPE_TAG_KEY, JobType.STREAMING.getText());
@@ -395,7 +395,7 @@ public class SparkQueryDispatcherTest {
             "query_execution_result_my_glue");
     when(emrServerlessClient.startJobRun(expected)).thenReturn(EMR_JOB_ID);
     DataSourceMetadata dataSourceMetadata = constructMyGlueDataSourceMetadata();
-    when(dataSourceService.verifyDataSourceAccessAndGetRawMetadata("my_glue"))
+    when(dataSourceService.verifyDataSourceAccessAndGetRawMetadata(MY_GLUE))
         .thenReturn(dataSourceMetadata);
 
     DispatchQueryResponse dispatchQueryResponse =
@@ -411,7 +411,7 @@ public class SparkQueryDispatcherTest {
   void testDispatchWithPPLQuery() {
     when(emrServerlessClientFactory.getClient()).thenReturn(emrServerlessClient);
     HashMap<String, String> tags = new HashMap<>();
-    tags.put(DATASOURCE_TAG_KEY, "my_glue");
+    tags.put(DATASOURCE_TAG_KEY, MY_GLUE);
     tags.put(CLUSTER_NAME_TAG_KEY, TEST_CLUSTER_NAME);
     tags.put(JOB_TYPE_TAG_KEY, JobType.BATCH.getText());
     String query = "source = my_glue.default.http_logs";
@@ -436,7 +436,7 @@ public class SparkQueryDispatcherTest {
             "query_execution_result_my_glue");
     when(emrServerlessClient.startJobRun(expected)).thenReturn(EMR_JOB_ID);
     DataSourceMetadata dataSourceMetadata = constructMyGlueDataSourceMetadata();
-    when(dataSourceService.verifyDataSourceAccessAndGetRawMetadata("my_glue"))
+    when(dataSourceService.verifyDataSourceAccessAndGetRawMetadata(MY_GLUE))
         .thenReturn(dataSourceMetadata);
 
     DispatchQueryResponse dispatchQueryResponse =
@@ -454,7 +454,7 @@ public class SparkQueryDispatcherTest {
   void testDispatchQueryWithoutATableAndDataSourceName() {
     when(emrServerlessClientFactory.getClient()).thenReturn(emrServerlessClient);
     HashMap<String, String> tags = new HashMap<>();
-    tags.put(DATASOURCE_TAG_KEY, "my_glue");
+    tags.put(DATASOURCE_TAG_KEY, MY_GLUE);
     tags.put(CLUSTER_NAME_TAG_KEY, TEST_CLUSTER_NAME);
     tags.put(JOB_TYPE_TAG_KEY, JobType.BATCH.getText());
     String query = "show tables";
@@ -479,7 +479,7 @@ public class SparkQueryDispatcherTest {
             "query_execution_result_my_glue");
     when(emrServerlessClient.startJobRun(expected)).thenReturn(EMR_JOB_ID);
     DataSourceMetadata dataSourceMetadata = constructMyGlueDataSourceMetadata();
-    when(dataSourceService.verifyDataSourceAccessAndGetRawMetadata("my_glue"))
+    when(dataSourceService.verifyDataSourceAccessAndGetRawMetadata(MY_GLUE))
         .thenReturn(dataSourceMetadata);
 
     DispatchQueryResponse dispatchQueryResponse =
@@ -495,7 +495,7 @@ public class SparkQueryDispatcherTest {
   void testDispatchIndexQueryWithoutADatasourceName() {
     when(emrServerlessClientFactory.getClient()).thenReturn(emrServerlessClient);
     HashMap<String, String> tags = new HashMap<>();
-    tags.put(DATASOURCE_TAG_KEY, "my_glue");
+    tags.put(DATASOURCE_TAG_KEY, MY_GLUE);
     tags.put(INDEX_TAG_KEY, "flint_my_glue_default_http_logs_elb_and_requesturi_index");
     tags.put(CLUSTER_NAME_TAG_KEY, TEST_CLUSTER_NAME);
     tags.put(JOB_TYPE_TAG_KEY, JobType.STREAMING.getText());
@@ -524,7 +524,7 @@ public class SparkQueryDispatcherTest {
             "query_execution_result_my_glue");
     when(emrServerlessClient.startJobRun(expected)).thenReturn(EMR_JOB_ID);
     DataSourceMetadata dataSourceMetadata = constructMyGlueDataSourceMetadata();
-    when(dataSourceService.verifyDataSourceAccessAndGetRawMetadata("my_glue"))
+    when(dataSourceService.verifyDataSourceAccessAndGetRawMetadata(MY_GLUE))
         .thenReturn(dataSourceMetadata);
 
     DispatchQueryResponse dispatchQueryResponse =
@@ -540,7 +540,7 @@ public class SparkQueryDispatcherTest {
   void testDispatchMaterializedViewQuery() {
     when(emrServerlessClientFactory.getClient()).thenReturn(emrServerlessClient);
     HashMap<String, String> tags = new HashMap<>();
-    tags.put(DATASOURCE_TAG_KEY, "my_glue");
+    tags.put(DATASOURCE_TAG_KEY, MY_GLUE);
     tags.put(INDEX_TAG_KEY, "flint_mv_1");
     tags.put(CLUSTER_NAME_TAG_KEY, TEST_CLUSTER_NAME);
     tags.put(JOB_TYPE_TAG_KEY, JobType.STREAMING.getText());
@@ -569,7 +569,7 @@ public class SparkQueryDispatcherTest {
             "query_execution_result_my_glue");
     when(emrServerlessClient.startJobRun(expected)).thenReturn(EMR_JOB_ID);
     DataSourceMetadata dataSourceMetadata = constructMyGlueDataSourceMetadata();
-    when(dataSourceService.verifyDataSourceAccessAndGetRawMetadata("my_glue"))
+    when(dataSourceService.verifyDataSourceAccessAndGetRawMetadata(MY_GLUE))
         .thenReturn(dataSourceMetadata);
 
     DispatchQueryResponse dispatchQueryResponse =
@@ -585,7 +585,7 @@ public class SparkQueryDispatcherTest {
   void testDispatchShowMVQuery() {
     when(emrServerlessClientFactory.getClient()).thenReturn(emrServerlessClient);
     HashMap<String, String> tags = new HashMap<>();
-    tags.put(DATASOURCE_TAG_KEY, "my_glue");
+    tags.put(DATASOURCE_TAG_KEY, MY_GLUE);
     tags.put(CLUSTER_NAME_TAG_KEY, TEST_CLUSTER_NAME);
     tags.put(JOB_TYPE_TAG_KEY, JobType.BATCH.getText());
     String query = "SHOW MATERIALIZED VIEW IN mys3.default";
@@ -610,7 +610,7 @@ public class SparkQueryDispatcherTest {
             "query_execution_result_my_glue");
     when(emrServerlessClient.startJobRun(expected)).thenReturn(EMR_JOB_ID);
     DataSourceMetadata dataSourceMetadata = constructMyGlueDataSourceMetadata();
-    when(dataSourceService.verifyDataSourceAccessAndGetRawMetadata("my_glue"))
+    when(dataSourceService.verifyDataSourceAccessAndGetRawMetadata(MY_GLUE))
         .thenReturn(dataSourceMetadata);
 
     DispatchQueryResponse dispatchQueryResponse =
@@ -626,7 +626,7 @@ public class SparkQueryDispatcherTest {
   void testRefreshIndexQuery() {
     when(emrServerlessClientFactory.getClient()).thenReturn(emrServerlessClient);
     HashMap<String, String> tags = new HashMap<>();
-    tags.put(DATASOURCE_TAG_KEY, "my_glue");
+    tags.put(DATASOURCE_TAG_KEY, MY_GLUE);
     tags.put(CLUSTER_NAME_TAG_KEY, TEST_CLUSTER_NAME);
     tags.put(JOB_TYPE_TAG_KEY, JobType.BATCH.getText());
     String query = "REFRESH SKIPPING INDEX ON my_glue.default.http_logs";
@@ -651,7 +651,7 @@ public class SparkQueryDispatcherTest {
             "query_execution_result_my_glue");
     when(emrServerlessClient.startJobRun(expected)).thenReturn(EMR_JOB_ID);
     DataSourceMetadata dataSourceMetadata = constructMyGlueDataSourceMetadata();
-    when(dataSourceService.verifyDataSourceAccessAndGetRawMetadata("my_glue"))
+    when(dataSourceService.verifyDataSourceAccessAndGetRawMetadata(MY_GLUE))
         .thenReturn(dataSourceMetadata);
 
     DispatchQueryResponse dispatchQueryResponse =
@@ -667,7 +667,7 @@ public class SparkQueryDispatcherTest {
   void testDispatchDescribeIndexQuery() {
     when(emrServerlessClientFactory.getClient()).thenReturn(emrServerlessClient);
     HashMap<String, String> tags = new HashMap<>();
-    tags.put(DATASOURCE_TAG_KEY, "my_glue");
+    tags.put(DATASOURCE_TAG_KEY, MY_GLUE);
     tags.put(CLUSTER_NAME_TAG_KEY, TEST_CLUSTER_NAME);
     tags.put(JOB_TYPE_TAG_KEY, JobType.BATCH.getText());
     String query = "DESCRIBE SKIPPING INDEX ON mys3.default.http_logs";
@@ -692,7 +692,7 @@ public class SparkQueryDispatcherTest {
             "query_execution_result_my_glue");
     when(emrServerlessClient.startJobRun(expected)).thenReturn(EMR_JOB_ID);
     DataSourceMetadata dataSourceMetadata = constructMyGlueDataSourceMetadata();
-    when(dataSourceService.verifyDataSourceAccessAndGetRawMetadata("my_glue"))
+    when(dataSourceService.verifyDataSourceAccessAndGetRawMetadata(MY_GLUE))
         .thenReturn(dataSourceMetadata);
 
     DispatchQueryResponse dispatchQueryResponse =
@@ -706,7 +706,7 @@ public class SparkQueryDispatcherTest {
 
   @Test
   void testDispatchWithWrongURI() {
-    when(dataSourceService.verifyDataSourceAccessAndGetRawMetadata("my_glue"))
+    when(dataSourceService.verifyDataSourceAccessAndGetRawMetadata(MY_GLUE))
         .thenReturn(constructMyGlueDataSourceMetadataWithBadURISyntax());
     String query = "select * from my_glue.default.http_logs";
 
@@ -757,7 +757,7 @@ public class SparkQueryDispatcherTest {
 
   @Test
   void testCancelQueryWithSession() {
-    doReturn(Optional.of(session)).when(sessionManager).getSession(new SessionId(MOCK_SESSION_ID));
+    doReturn(Optional.of(session)).when(sessionManager).getSession(MOCK_SESSION_ID, MY_GLUE);
     doReturn(Optional.of(statement)).when(session).get(any());
     doNothing().when(statement).cancel();
 
@@ -772,7 +772,7 @@ public class SparkQueryDispatcherTest {
 
   @Test
   void testCancelQueryWithInvalidSession() {
-    doReturn(Optional.empty()).when(sessionManager).getSession(new SessionId("invalid"));
+    doReturn(Optional.empty()).when(sessionManager).getSession("invalid", MY_GLUE);
 
     IllegalArgumentException exception =
         Assertions.assertThrows(
@@ -783,13 +783,12 @@ public class SparkQueryDispatcherTest {
 
     verifyNoInteractions(emrServerlessClient);
     verifyNoInteractions(session);
-    Assertions.assertEquals(
-        "no session found. " + new SessionId("invalid"), exception.getMessage());
+    Assertions.assertEquals("no session found. invalid", exception.getMessage());
   }
 
   @Test
   void testCancelQueryWithInvalidStatementId() {
-    doReturn(Optional.of(session)).when(sessionManager).getSession(new SessionId(MOCK_SESSION_ID));
+    doReturn(Optional.of(session)).when(sessionManager).getSession(MOCK_SESSION_ID, MY_GLUE);
 
     IllegalArgumentException exception =
         Assertions.assertThrows(
@@ -834,7 +833,7 @@ public class SparkQueryDispatcherTest {
 
   @Test
   void testGetQueryResponseWithSession() {
-    doReturn(Optional.of(session)).when(sessionManager).getSession(new SessionId(MOCK_SESSION_ID));
+    doReturn(Optional.of(session)).when(sessionManager).getSession(MOCK_SESSION_ID, MY_GLUE);
     doReturn(Optional.of(statement)).when(session).get(any());
     when(statement.getStatementModel().getError()).thenReturn("mock error");
     doReturn(StatementState.WAITING).when(statement).getStatementState();
@@ -852,7 +851,7 @@ public class SparkQueryDispatcherTest {
 
   @Test
   void testGetQueryResponseWithInvalidSession() {
-    doReturn(Optional.empty()).when(sessionManager).getSession(eq(new SessionId(MOCK_SESSION_ID)));
+    doReturn(Optional.empty()).when(sessionManager).getSession(MOCK_SESSION_ID, MY_GLUE);
     doReturn(new JSONObject())
         .when(jobExecutionResponseReader)
         .getResultWithQueryId(eq(MOCK_STATEMENT_ID), any());
@@ -865,13 +864,12 @@ public class SparkQueryDispatcherTest {
                     asyncQueryJobMetadataWithSessionId(MOCK_STATEMENT_ID, MOCK_SESSION_ID)));
 
     verifyNoInteractions(emrServerlessClient);
-    Assertions.assertEquals(
-        "no session found. " + new SessionId(MOCK_SESSION_ID), exception.getMessage());
+    Assertions.assertEquals("no session found. " + MOCK_SESSION_ID, exception.getMessage());
   }
 
   @Test
   void testGetQueryResponseWithStatementNotExist() {
-    doReturn(Optional.of(session)).when(sessionManager).getSession(new SessionId(MOCK_SESSION_ID));
+    doReturn(Optional.of(session)).when(sessionManager).getSession(MOCK_SESSION_ID, MY_GLUE);
     doReturn(Optional.empty()).when(session).get(any());
     doReturn(new JSONObject())
         .when(jobExecutionResponseReader)
@@ -920,7 +918,7 @@ public class SparkQueryDispatcherTest {
   void testDispatchQueryWithExtraSparkSubmitParameters() {
     when(emrServerlessClientFactory.getClient()).thenReturn(emrServerlessClient);
     DataSourceMetadata dataSourceMetadata = constructMyGlueDataSourceMetadata();
-    when(dataSourceService.verifyDataSourceAccessAndGetRawMetadata("my_glue"))
+    when(dataSourceService.verifyDataSourceAccessAndGetRawMetadata(MY_GLUE))
         .thenReturn(dataSourceMetadata);
 
     String extraParameters = "--conf spark.dynamicAllocation.enabled=false";
@@ -1025,7 +1023,7 @@ public class SparkQueryDispatcherTest {
     properties.put("glue.indexstore.opensearch.auth", "awssigv4");
     properties.put("glue.indexstore.opensearch.region", "eu-west-1");
     return new DataSourceMetadata.Builder()
-        .setName("my_glue")
+        .setName(MY_GLUE)
         .setConnector(DataSourceType.S3GLUE)
         .setProperties(properties)
         .build();
@@ -1043,7 +1041,7 @@ public class SparkQueryDispatcherTest {
     properties.put("glue.indexstore.opensearch.auth.username", "username");
     properties.put("glue.indexstore.opensearch.auth.password", "password");
     return new DataSourceMetadata.Builder()
-        .setName("my_glue")
+        .setName(MY_GLUE)
         .setConnector(DataSourceType.S3GLUE)
         .setProperties(properties)
         .build();
@@ -1059,7 +1057,7 @@ public class SparkQueryDispatcherTest {
         "https://search-flint-dp-benchmark-cf5crj5mj2kfzvgwdeynkxnefy.eu-west-1.es.amazonaws.com");
     properties.put("glue.indexstore.opensearch.auth", "noauth");
     return new DataSourceMetadata.Builder()
-        .setName("my_glue")
+        .setName(MY_GLUE)
         .setConnector(DataSourceType.S3GLUE)
         .setProperties(properties)
         .build();
@@ -1074,7 +1072,7 @@ public class SparkQueryDispatcherTest {
     properties.put("glue.indexstore.opensearch.auth", "awssigv4");
     properties.put("glue.indexstore.opensearch.region", "eu-west-1");
     return new DataSourceMetadata.Builder()
-        .setName("my_glue")
+        .setName(MY_GLUE)
         .setConnector(DataSourceType.S3GLUE)
         .setProperties(properties)
         .build();
@@ -1093,7 +1091,7 @@ public class SparkQueryDispatcherTest {
     properties.put("glue.indexstore.opensearch.region", "eu-west-1");
     properties.put("glue.lakeformation.enabled", "true");
     return new DataSourceMetadata.Builder()
-        .setName("my_glue")
+        .setName(MY_GLUE)
         .setConnector(DataSourceType.S3GLUE)
         .setProperties(properties)
         .build();
@@ -1115,7 +1113,7 @@ public class SparkQueryDispatcherTest {
     return DispatchQueryRequest.builder()
         .applicationId(EMRS_APPLICATION_ID)
         .query(query)
-        .datasource("my_glue")
+        .datasource(MY_GLUE)
         .langType(LangType.SQL)
         .executionRoleARN(EMRS_EXECUTION_ROLE)
         .clusterName(TEST_CLUSTER_NAME)
@@ -1140,6 +1138,7 @@ public class SparkQueryDispatcherTest {
         .queryId(QUERY_ID)
         .applicationId(EMRS_APPLICATION_ID)
         .jobId(EMR_JOB_ID)
+        .datasourceName(MY_GLUE)
         .build();
   }
 
@@ -1150,6 +1149,7 @@ public class SparkQueryDispatcherTest {
         .applicationId(EMRS_APPLICATION_ID)
         .jobId(EMR_JOB_ID)
         .sessionId(sessionId)
+        .datasourceName(MY_GLUE)
         .build();
   }
 }

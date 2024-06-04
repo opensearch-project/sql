@@ -39,7 +39,7 @@ public interface Session {
 
   SessionModel getSessionModel();
 
-  SessionId getSessionId();
+  String getSessionId();
 
   /** return true if session is ready to use. */
   boolean isOperationalForDataSource(String dataSourceName);

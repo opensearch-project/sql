@@ -17,7 +17,6 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.opensearch.core.xcontent.ToXContent;
 import org.opensearch.core.xcontent.XContentBuilder;
 import org.opensearch.core.xcontent.XContentParser;
-import org.opensearch.sql.spark.execution.session.SessionId;
 import org.opensearch.sql.spark.execution.statement.StatementId;
 import org.opensearch.sql.spark.execution.statement.StatementModel;
 import org.opensearch.sql.spark.execution.statement.StatementState;
@@ -36,7 +35,7 @@ class StatementModelXContentSerializerTest {
             .version("1.0")
             .statementState(StatementState.RUNNING)
             .statementId(new StatementId("statement1"))
-            .sessionId(new SessionId("session1"))
+            .sessionId("session1")
             .accountId("account1")
             .applicationId("app1")
             .jobId("job1")
@@ -71,7 +70,7 @@ class StatementModelXContentSerializerTest {
     assertEquals("1.0", statementModel.getVersion());
     assertEquals(StatementState.RUNNING, statementModel.getStatementState());
     assertEquals("statement1", statementModel.getStatementId().getId());
-    assertEquals("session1", statementModel.getSessionId().getSessionId());
+    assertEquals("session1", statementModel.getSessionId());
     assertEquals("account1", statementModel.getAccountId());
   }
 
@@ -86,7 +85,7 @@ class StatementModelXContentSerializerTest {
     assertEquals("1.0", statementModel.getVersion());
     assertEquals(StatementState.RUNNING, statementModel.getStatementState());
     assertEquals("statement1", statementModel.getStatementId().getId());
-    assertEquals("session1", statementModel.getSessionId().getSessionId());
+    assertEquals("session1", statementModel.getSessionId());
     assertNull(statementModel.getAccountId());
   }
 

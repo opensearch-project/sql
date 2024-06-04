@@ -23,9 +23,10 @@ import org.opensearch.sql.spark.asyncquery.model.AsyncQueryId;
 import org.opensearch.sql.spark.asyncquery.model.AsyncQueryRequestContext;
 import org.opensearch.sql.spark.asyncquery.model.NullAsyncQueryRequestContext;
 import org.opensearch.sql.spark.client.EMRServerlessClientFactory;
+import org.opensearch.sql.spark.execution.session.DatasourceEmbeddedSessionIdProvider;
 import org.opensearch.sql.spark.execution.session.Session;
 import org.opensearch.sql.spark.execution.session.SessionConfigSupplier;
-import org.opensearch.sql.spark.execution.session.SessionId;
+import org.opensearch.sql.spark.execution.session.SessionIdProvider;
 import org.opensearch.sql.spark.execution.session.SessionManager;
 import org.opensearch.sql.spark.execution.session.SessionState;
 import org.opensearch.sql.spark.execution.session.TestEMRServerlessClient;
@@ -48,6 +49,7 @@ public class StatementTest extends OpenSearchIntegTestCase {
   private SessionStorageService sessionStorageService;
   private TestEMRServerlessClient emrsClient = new TestEMRServerlessClient();
   private SessionConfigSupplier sessionConfigSupplier = () -> 600000L;
+  private SessionIdProvider sessionIdProvider = new DatasourceEmbeddedSessionIdProvider();
 
   private SessionManager sessionManager;
   private AsyncQueryRequestContext asyncQueryRequestContext = new NullAsyncQueryRequestContext();
@@ -66,7 +68,8 @@ public class StatementTest extends OpenSearchIntegTestCase {
             sessionStorageService,
             statementStorageService,
             emrServerlessClientFactory,
-            sessionConfigSupplier);
+            sessionConfigSupplier,
+            sessionIdProvider);
   }
 
   @After
@@ -97,7 +100,7 @@ public class StatementTest extends OpenSearchIntegTestCase {
 
   private Statement buildStatement(StatementId stId) {
     return Statement.builder()
-        .sessionId(new SessionId("sessionId"))
+        .sessionId("sessionId")
         .applicationId("appId")
         .jobId("jobId")
         .statementId(stId)
@@ -302,9 +305,7 @@ public class StatementTest extends OpenSearchIntegTestCase {
         sessionManager.createSession(createSessionRequest(), asyncQueryRequestContext);
 
     // other's delete session
-    client()
-        .delete(new DeleteRequest(indexName, session.getSessionId().getSessionId()))
-        .actionGet();
+    client().delete(new DeleteRequest(indexName, session.getSessionId())).actionGet();
 
     IllegalStateException exception =
         assertThrows(
