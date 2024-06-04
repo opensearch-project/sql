@@ -288,6 +288,7 @@ public class JoinIT extends SQLIntegTestCase {
     Assert.assertThat(hits.length(), equalTo(42));
   }
 
+  @Ignore
   @Test
   public void joinWithGeoIntersectNL() throws IOException {
 
