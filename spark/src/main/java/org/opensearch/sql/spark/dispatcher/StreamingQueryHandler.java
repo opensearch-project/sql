@@ -12,7 +12,6 @@ import java.util.Map;
 import org.opensearch.sql.datasource.model.DataSourceMetadata;
 import org.opensearch.sql.legacy.metrics.MetricName;
 import org.opensearch.sql.legacy.utils.MetricUtils;
-import org.opensearch.sql.spark.asyncquery.model.AsyncQueryId;
 import org.opensearch.sql.spark.asyncquery.model.AsyncQueryJobMetadata;
 import org.opensearch.sql.spark.asyncquery.model.SparkSubmitParameters;
 import org.opensearch.sql.spark.client.EMRServerlessClient;
@@ -82,13 +81,13 @@ public class StreamingQueryHandler extends BatchQueryHandler {
             dataSourceMetadata.getResultIndex());
     String jobId = emrServerlessClient.startJobRun(startJobRequest);
     MetricUtils.incrementNumericalMetric(MetricName.EMR_STREAMING_QUERY_JOBS_CREATION_COUNT);
-    return new DispatchQueryResponse(
-        AsyncQueryId.newAsyncQueryId(dataSourceMetadata.getName()),
-        jobId,
-        dataSourceMetadata.getResultIndex(),
-        null,
-        dataSourceMetadata.getName(),
-        JobType.STREAMING,
-        indexQueryDetails.openSearchIndexName());
+    return DispatchQueryResponse.builder()
+        .queryId(context.getQueryId())
+        .jobId(jobId)
+        .resultIndex(dataSourceMetadata.getResultIndex())
+        .datasourceName(dataSourceMetadata.getName())
+        .jobType(JobType.STREAMING)
+        .indexName(indexQueryDetails.openSearchIndexName())
+        .build();
   }
 }

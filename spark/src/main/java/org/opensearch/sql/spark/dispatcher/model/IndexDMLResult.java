@@ -16,8 +16,6 @@ import org.opensearch.sql.spark.execution.statestore.StateModel;
 @SuperBuilder
 @EqualsAndHashCode(callSuper = false)
 public class IndexDMLResult extends StateModel {
-  public static final String DOC_ID_PREFIX = "index";
-
   private final String queryId;
   private final String status;
   private final String error;
@@ -39,6 +37,6 @@ public class IndexDMLResult extends StateModel {
 
   @Override
   public String getId() {
-    return DOC_ID_PREFIX + queryId;
+    return queryId;
   }
 }

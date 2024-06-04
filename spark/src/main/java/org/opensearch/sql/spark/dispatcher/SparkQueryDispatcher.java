@@ -12,7 +12,6 @@ import org.jetbrains.annotations.NotNull;
 import org.json.JSONObject;
 import org.opensearch.sql.datasource.DataSourceService;
 import org.opensearch.sql.datasource.model.DataSourceMetadata;
-import org.opensearch.sql.spark.asyncquery.model.AsyncQueryId;
 import org.opensearch.sql.spark.asyncquery.model.AsyncQueryJobMetadata;
 import org.opensearch.sql.spark.dispatcher.model.DispatchQueryContext;
 import org.opensearch.sql.spark.dispatcher.model.DispatchQueryRequest;
@@ -36,6 +35,7 @@ public class SparkQueryDispatcher {
   private final DataSourceService dataSourceService;
   private final SessionManager sessionManager;
   private final QueryHandlerFactory queryHandlerFactory;
+  private final QueryIdProvider queryIdProvider;
 
   public DispatchQueryResponse dispatch(DispatchQueryRequest dispatchQueryRequest) {
     DataSourceMetadata dataSourceMetadata =
@@ -59,12 +59,12 @@ public class SparkQueryDispatcher {
     }
   }
 
-  private static DispatchQueryContext.DispatchQueryContextBuilder getDefaultDispatchContextBuilder(
+  private DispatchQueryContext.DispatchQueryContextBuilder getDefaultDispatchContextBuilder(
       DispatchQueryRequest dispatchQueryRequest, DataSourceMetadata dataSourceMetadata) {
     return DispatchQueryContext.builder()
         .dataSourceMetadata(dataSourceMetadata)
         .tags(getDefaultTagsForJobSubmission(dispatchQueryRequest))
-        .queryId(AsyncQueryId.newAsyncQueryId(dataSourceMetadata.getName()));
+        .queryId(queryIdProvider.getQueryId(dispatchQueryRequest));
   }
 
   private AsyncQueryHandler getQueryHandlerForFlintExtensionQuery(

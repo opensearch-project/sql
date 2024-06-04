@@ -63,7 +63,7 @@ public class BatchQueryHandler extends AsyncQueryHandler {
   public String cancelJob(AsyncQueryJobMetadata asyncQueryJobMetadata) {
     emrServerlessClient.cancelJobRun(
         asyncQueryJobMetadata.getApplicationId(), asyncQueryJobMetadata.getJobId(), false);
-    return asyncQueryJobMetadata.getQueryId().getId();
+    return asyncQueryJobMetadata.getQueryId();
   }
 
   @Override
@@ -93,7 +93,12 @@ public class BatchQueryHandler extends AsyncQueryHandler {
             dataSourceMetadata.getResultIndex());
     String jobId = emrServerlessClient.startJobRun(startJobRequest);
     MetricUtils.incrementNumericalMetric(MetricName.EMR_BATCH_QUERY_JOBS_CREATION_COUNT);
-    return new DispatchQueryResponse(
-        context.getQueryId(), jobId, dataSourceMetadata.getResultIndex(), null);
+    return DispatchQueryResponse.builder()
+        .queryId(context.getQueryId())
+        .jobId(jobId)
+        .resultIndex(dataSourceMetadata.getResultIndex())
+        .datasourceName(dataSourceMetadata.getName())
+        .jobType(JobType.INTERACTIVE)
+        .build();
   }
 }

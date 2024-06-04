@@ -20,6 +20,7 @@ public class OpenSearchStatementStorageService implements StatementStorageServic
   @Override
   public StatementModel createStatement(StatementModel statementModel) {
     return stateStore.create(
+        statementModel.getId(),
         statementModel,
         StatementModel::copy,
         OpenSearchStateStoreUtil.getIndexName(statementModel.getDatasourceName()));

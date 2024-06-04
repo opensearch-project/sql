@@ -58,7 +58,8 @@ public class OpenSearchFlintIndexStateModelServiceTest {
 
   @Test
   void createFlintIndexStateModel() {
-    when(mockStateStore.create(any(), any(), any())).thenReturn(responseFlintIndexStateModel);
+    when(mockStateStore.create(any(), any(), any(), any()))
+        .thenReturn(responseFlintIndexStateModel);
     when(flintIndexStateModel.getDatasourceName()).thenReturn(DATASOURCE);
 
     FlintIndexStateModel result =

@@ -38,6 +38,7 @@ public class OpenSearchFlintIndexStateModelService implements FlintIndexStateMod
   public FlintIndexStateModel createFlintIndexStateModel(
       FlintIndexStateModel flintIndexStateModel) {
     return stateStore.create(
+        flintIndexStateModel.getId(),
         flintIndexStateModel,
         FlintIndexStateModel::copy,
         OpenSearchStateStoreUtil.getIndexName(flintIndexStateModel.getDatasourceName()));
