@@ -7,7 +7,6 @@ package org.opensearch.sql.spark.execution.session;
 
 import static org.opensearch.sql.spark.constants.TestConstants.TEST_CLUSTER_NAME;
 import static org.opensearch.sql.spark.constants.TestConstants.TEST_DATASOURCE_NAME;
-import static org.opensearch.sql.spark.execution.session.SessionManagerTest.sessionSetting;
 import static org.opensearch.sql.spark.execution.session.SessionState.NOT_STARTED;
 import static org.opensearch.sql.spark.execution.session.SessionTestUtil.createSessionRequest;
 
@@ -42,6 +41,7 @@ public class InteractiveSessionTest extends OpenSearchIntegTestCase {
   private StartJobRequest startJobRequest;
   private SessionStorageService sessionStorageService;
   private StatementStorageService statementStorageService;
+  private SessionConfigSupplier sessionConfigSupplier = () -> 600000L;
   private SessionManager sessionManager;
 
   @Before
@@ -54,12 +54,13 @@ public class InteractiveSessionTest extends OpenSearchIntegTestCase {
     statementStorageService =
         new OpenSearchStatementStorageService(stateStore, new StatementModelXContentSerializer());
     EMRServerlessClientFactory emrServerlessClientFactory = () -> emrsClient;
+
     sessionManager =
         new SessionManager(
             sessionStorageService,
             statementStorageService,
             emrServerlessClientFactory,
-            sessionSetting());
+            sessionConfigSupplier);
   }
 
   @After

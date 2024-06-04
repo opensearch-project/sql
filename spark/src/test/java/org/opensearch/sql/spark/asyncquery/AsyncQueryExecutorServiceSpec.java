@@ -61,6 +61,8 @@ import org.opensearch.sql.spark.config.SparkExecutionEngineConfig;
 import org.opensearch.sql.spark.dispatcher.DatasourceEmbeddedQueryIdProvider;
 import org.opensearch.sql.spark.dispatcher.QueryHandlerFactory;
 import org.opensearch.sql.spark.dispatcher.SparkQueryDispatcher;
+import org.opensearch.sql.spark.execution.session.OpenSearchSessionConfigSupplier;
+import org.opensearch.sql.spark.execution.session.SessionConfigSupplier;
 import org.opensearch.sql.spark.execution.session.SessionManager;
 import org.opensearch.sql.spark.execution.session.SessionModel;
 import org.opensearch.sql.spark.execution.session.SessionState;
@@ -93,6 +95,7 @@ public class AsyncQueryExecutorServiceSpec extends OpenSearchIntegTestCase {
 
   protected ClusterService clusterService;
   protected org.opensearch.sql.common.setting.Settings pluginSettings;
+  protected SessionConfigSupplier sessionConfigSupplier;
   protected NodeClient client;
   protected DataSourceServiceImpl dataSourceService;
   protected ClusterSettings clusterSettings;
@@ -123,6 +126,7 @@ public class AsyncQueryExecutorServiceSpec extends OpenSearchIntegTestCase {
     pluginSettings = new OpenSearchSettings(clusterSettings);
     LocalClusterState.state().setClusterService(clusterService);
     LocalClusterState.state().setPluginSettings((OpenSearchSettings) pluginSettings);
+    sessionConfigSupplier = new OpenSearchSessionConfigSupplier(pluginSettings);
     Metrics.getInstance().registerDefaultMetrics();
     client = (NodeClient) cluster().client();
     client
@@ -246,7 +250,7 @@ public class AsyncQueryExecutorServiceSpec extends OpenSearchIntegTestCase {
                 sessionStorageService,
                 statementStorageService,
                 emrServerlessClientFactory,
-                pluginSettings),
+                sessionConfigSupplier),
             new DefaultLeaseManager(pluginSettings, stateStore),
             new OpenSearchIndexDMLResultStorageService(dataSourceService, stateStore),
             new FlintIndexOpFactory(
@@ -262,7 +266,7 @@ public class AsyncQueryExecutorServiceSpec extends OpenSearchIntegTestCase {
                 sessionStorageService,
                 statementStorageService,
                 emrServerlessClientFactory,
-                pluginSettings),
+                sessionConfigSupplier),
             queryHandlerFactory,
             new DatasourceEmbeddedQueryIdProvider());
     return new AsyncQueryExecutorServiceImpl(
