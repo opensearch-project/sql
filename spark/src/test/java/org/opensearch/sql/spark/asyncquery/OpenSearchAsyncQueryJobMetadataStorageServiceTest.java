@@ -19,8 +19,7 @@ import org.opensearch.sql.spark.execution.xcontent.AsyncQueryJobMetadataXContent
 import org.opensearch.sql.spark.utils.IDUtils;
 import org.opensearch.test.OpenSearchIntegTestCase;
 
-public class OpenSearchAsyncQueryJobMetadataStorageServiceTest
-    extends OpenSearchIntegTestCase {
+public class OpenSearchAsyncQueryJobMetadataStorageServiceTest extends OpenSearchIntegTestCase {
 
   public static final String DS_NAME = "mys3";
   private static final String MOCK_SESSION_ID = "sessionId";
