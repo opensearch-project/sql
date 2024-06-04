@@ -20,7 +20,6 @@ import org.opensearch.core.common.Strings;
 import org.opensearch.core.xcontent.ToXContent;
 import org.opensearch.core.xcontent.XContentBuilder;
 import org.opensearch.core.xcontent.XContentParser;
-import org.opensearch.sql.spark.asyncquery.model.AsyncQueryId;
 import org.opensearch.sql.spark.asyncquery.model.AsyncQueryJobMetadata;
 import org.opensearch.sql.spark.dispatcher.model.JobType;
 
@@ -37,7 +36,7 @@ public class AsyncQueryJobMetadataXContentSerializer
       throws IOException {
     return XContentFactory.jsonBuilder()
         .startObject()
-        .field(QUERY_ID, jobMetadata.getQueryId().getId())
+        .field(QUERY_ID, jobMetadata.getQueryId())
         .field(TYPE, TYPE_JOBMETA)
         .field(JOB_ID, jobMetadata.getJobId())
         .field(APPLICATION_ID, jobMetadata.getApplicationId())
@@ -59,7 +58,7 @@ public class AsyncQueryJobMetadataXContentSerializer
       parser.nextToken();
       switch (fieldName) {
         case QUERY_ID:
-          builder.queryId(new AsyncQueryId(parser.textOrNull()));
+          builder.queryId(parser.textOrNull());
           break;
         case JOB_ID:
           builder.jobId(parser.textOrNull());

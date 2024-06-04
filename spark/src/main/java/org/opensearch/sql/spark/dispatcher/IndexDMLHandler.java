@@ -16,13 +16,13 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.json.JSONObject;
 import org.opensearch.sql.datasource.model.DataSourceMetadata;
-import org.opensearch.sql.spark.asyncquery.model.AsyncQueryId;
 import org.opensearch.sql.spark.asyncquery.model.AsyncQueryJobMetadata;
 import org.opensearch.sql.spark.dispatcher.model.DispatchQueryContext;
 import org.opensearch.sql.spark.dispatcher.model.DispatchQueryRequest;
 import org.opensearch.sql.spark.dispatcher.model.DispatchQueryResponse;
 import org.opensearch.sql.spark.dispatcher.model.IndexDMLResult;
 import org.opensearch.sql.spark.dispatcher.model.IndexQueryDetails;
+import org.opensearch.sql.spark.dispatcher.model.JobType;
 import org.opensearch.sql.spark.execution.statement.StatementState;
 import org.opensearch.sql.spark.flint.FlintIndexMetadata;
 import org.opensearch.sql.spark.flint.FlintIndexMetadataService;
@@ -65,39 +65,51 @@ public class IndexDMLHandler extends AsyncQueryHandler {
 
       getIndexOp(dispatchQueryRequest, indexDetails).apply(indexMetadata);
 
-      AsyncQueryId asyncQueryId =
+      String asyncQueryId =
           storeIndexDMLResult(
+              context.getQueryId(),
               dispatchQueryRequest,
               dataSourceMetadata,
               JobRunState.SUCCESS.toString(),
               StringUtils.EMPTY,
               getElapsedTimeSince(startTime));
-      return new DispatchQueryResponse(
-          asyncQueryId, DML_QUERY_JOB_ID, dataSourceMetadata.getResultIndex(), null);
+      return DispatchQueryResponse.builder()
+          .queryId(asyncQueryId)
+          .jobId(DML_QUERY_JOB_ID)
+          .resultIndex(dataSourceMetadata.getResultIndex())
+          .datasourceName(dataSourceMetadata.getName())
+          .jobType(JobType.INTERACTIVE)
+          .build();
     } catch (Exception e) {
       LOG.error(e.getMessage());
-      AsyncQueryId asyncQueryId =
+      String asyncQueryId =
           storeIndexDMLResult(
+              context.getQueryId(),
               dispatchQueryRequest,
               dataSourceMetadata,
               JobRunState.FAILED.toString(),
               e.getMessage(),
               getElapsedTimeSince(startTime));
-      return new DispatchQueryResponse(
-          asyncQueryId, DML_QUERY_JOB_ID, dataSourceMetadata.getResultIndex(), null);
+      return DispatchQueryResponse.builder()
+          .queryId(asyncQueryId)
+          .jobId(DML_QUERY_JOB_ID)
+          .resultIndex(dataSourceMetadata.getResultIndex())
+          .datasourceName(dataSourceMetadata.getName())
+          .jobType(JobType.INTERACTIVE)
+          .build();
     }
   }
 
-  private AsyncQueryId storeIndexDMLResult(
+  private String storeIndexDMLResult(
+      String queryId,
       DispatchQueryRequest dispatchQueryRequest,
       DataSourceMetadata dataSourceMetadata,
       String status,
       String error,
       long queryRunTime) {
-    AsyncQueryId asyncQueryId = AsyncQueryId.newAsyncQueryId(dataSourceMetadata.getName());
     IndexDMLResult indexDMLResult =
         IndexDMLResult.builder()
-            .queryId(asyncQueryId.getId())
+            .queryId(queryId)
             .status(status)
             .error(error)
             .datasourceName(dispatchQueryRequest.getDatasource())
@@ -105,7 +117,7 @@ public class IndexDMLHandler extends AsyncQueryHandler {
             .updateTime(System.currentTimeMillis())
             .build();
     indexDMLResultStorageService.createIndexDMLResult(indexDMLResult);
-    return asyncQueryId;
+    return queryId;
   }
 
   private long getElapsedTimeSince(long startTime) {
@@ -143,7 +155,7 @@ public class IndexDMLHandler extends AsyncQueryHandler {
 
   @Override
   protected JSONObject getResponseFromResultIndex(AsyncQueryJobMetadata asyncQueryJobMetadata) {
-    String queryId = asyncQueryJobMetadata.getQueryId().getId();
+    String queryId = asyncQueryJobMetadata.getQueryId();
     return jobExecutionResponseReader.getResultWithQueryId(
         queryId, asyncQueryJobMetadata.getResultIndex());
   }
