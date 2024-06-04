@@ -371,7 +371,7 @@ public class StatementTest extends OpenSearchIntegTestCase {
 
   private QueryRequest queryRequest() {
     return new QueryRequest(
-        AsyncQueryId.newAsyncQueryId(TEST_DATASOURCE_NAME), LangType.SQL, "select 1");
+        AsyncQueryId.newAsyncQueryId(TEST_DATASOURCE_NAME).getId(), LangType.SQL, "select 1");
   }
 
   private Statement createStatement(StatementId stId) {

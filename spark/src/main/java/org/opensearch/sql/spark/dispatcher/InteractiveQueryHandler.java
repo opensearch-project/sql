@@ -49,7 +49,7 @@ public class InteractiveQueryHandler extends AsyncQueryHandler {
 
   @Override
   protected JSONObject getResponseFromResultIndex(AsyncQueryJobMetadata asyncQueryJobMetadata) {
-    String queryId = asyncQueryJobMetadata.getQueryId().getId();
+    String queryId = asyncQueryJobMetadata.getQueryId();
     return jobExecutionResponseReader.getResultWithQueryId(
         queryId, asyncQueryJobMetadata.getResultIndex());
   }
@@ -57,7 +57,7 @@ public class InteractiveQueryHandler extends AsyncQueryHandler {
   @Override
   protected JSONObject getResponseFromExecutor(AsyncQueryJobMetadata asyncQueryJobMetadata) {
     JSONObject result = new JSONObject();
-    String queryId = asyncQueryJobMetadata.getQueryId().getId();
+    String queryId = asyncQueryJobMetadata.getQueryId();
     Statement statement = getStatementByQueryId(asyncQueryJobMetadata.getSessionId(), queryId);
     StatementState statementState = statement.getStatementState();
     result.put(STATUS_FIELD, statementState.getState());
@@ -67,7 +67,7 @@ public class InteractiveQueryHandler extends AsyncQueryHandler {
 
   @Override
   public String cancelJob(AsyncQueryJobMetadata asyncQueryJobMetadata) {
-    String queryId = asyncQueryJobMetadata.getQueryId().getId();
+    String queryId = asyncQueryJobMetadata.getQueryId();
     getStatementByQueryId(asyncQueryJobMetadata.getSessionId(), queryId).cancel();
     return queryId;
   }
@@ -118,11 +118,14 @@ public class InteractiveQueryHandler extends AsyncQueryHandler {
             context.getQueryId(),
             dispatchQueryRequest.getLangType(),
             dispatchQueryRequest.getQuery()));
-    return new DispatchQueryResponse(
-        context.getQueryId(),
-        session.getSessionModel().getJobId(),
-        dataSourceMetadata.getResultIndex(),
-        session.getSessionId().getSessionId());
+    return DispatchQueryResponse.builder()
+        .queryId(context.getQueryId())
+        .jobId(session.getSessionModel().getJobId())
+        .resultIndex(dataSourceMetadata.getResultIndex())
+        .sessionId(session.getSessionId().getSessionId())
+        .datasourceName(dataSourceMetadata.getName())
+        .jobType(JobType.INTERACTIVE)
+        .build();
   }
 
   private Statement getStatementByQueryId(String sid, String qid) {

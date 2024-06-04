@@ -20,6 +20,7 @@ public class OpenSearchSessionStorageService implements SessionStorageService {
   @Override
   public SessionModel createSession(SessionModel sessionModel) {
     return stateStore.create(
+        sessionModel.getId(),
         sessionModel,
         SessionModel::of,
         OpenSearchStateStoreUtil.getIndexName(sessionModel.getDatasourceName()));

@@ -53,7 +53,7 @@ public class RefreshQueryHandler extends BatchQueryHandler {
     FlintIndexMetadata indexMetadata = indexMetadataMap.get(asyncQueryJobMetadata.getIndexName());
     FlintIndexOp jobCancelOp = flintIndexOpFactory.getCancel(datasourceName);
     jobCancelOp.apply(indexMetadata);
-    return asyncQueryJobMetadata.getQueryId().getId();
+    return asyncQueryJobMetadata.getQueryId();
   }
 
   @Override
@@ -61,13 +61,14 @@ public class RefreshQueryHandler extends BatchQueryHandler {
       DispatchQueryRequest dispatchQueryRequest, DispatchQueryContext context) {
     DispatchQueryResponse resp = super.submit(dispatchQueryRequest, context);
     DataSourceMetadata dataSourceMetadata = context.getDataSourceMetadata();
-    return new DispatchQueryResponse(
-        resp.getQueryId(),
-        resp.getJobId(),
-        resp.getResultIndex(),
-        resp.getSessionId(),
-        dataSourceMetadata.getName(),
-        JobType.BATCH,
-        context.getIndexQueryDetails().openSearchIndexName());
+    return DispatchQueryResponse.builder()
+        .queryId(resp.getQueryId())
+        .jobId(resp.getJobId())
+        .resultIndex(resp.getResultIndex())
+        .sessionId(resp.getSessionId())
+        .datasourceName(dataSourceMetadata.getName())
+        .jobType(JobType.BATCH)
+        .indexName(context.getIndexQueryDetails().openSearchIndexName())
+        .build();
   }
 }

@@ -94,7 +94,7 @@ public class InteractiveSession implements Session {
     } else {
       sessionModel = model.get();
       if (!END_STATE.contains(sessionModel.getSessionState())) {
-        String qid = request.getQueryId().getId();
+        String qid = request.getQueryId();
         StatementId statementId = newStatementId(qid);
         Statement st =
             Statement.builder()
