@@ -42,7 +42,7 @@ public class PointInTimeHandler {
     return pitId;
   }
 
-  public void closePointInTime() {
+  public void deletePointInTime() {
     DeletePitRequest deletePitRequest = new DeletePitRequest(pitId);
     client.deletePits(
         deletePitRequest,

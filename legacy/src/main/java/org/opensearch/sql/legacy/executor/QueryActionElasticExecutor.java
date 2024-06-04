@@ -45,7 +45,7 @@ public class QueryActionElasticExecutor {
     ElasticJoinExecutor executor =
         ElasticJoinExecutor.createJoinExecutor(client, joinRequestBuilder);
     executor.run();
-    joinQueryAction.getPointInTimeHandler().closePointInTime();
+    joinQueryAction.getPointInTimeHandler().deletePointInTime();
     return executor.getHits();
   }
 
