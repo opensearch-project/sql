@@ -5,12 +5,10 @@
 
 package org.opensearch.sql.spark.execution.session;
 
-import static org.opensearch.sql.common.setting.Settings.Key.SESSION_INACTIVITY_TIMEOUT_MILLIS;
 import static org.opensearch.sql.spark.execution.session.SessionId.newSessionId;
 
 import java.util.Optional;
 import lombok.RequiredArgsConstructor;
-import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.spark.client.EMRServerlessClientFactory;
 import org.opensearch.sql.spark.execution.statestore.SessionStorageService;
 import org.opensearch.sql.spark.execution.statestore.StatementStorageService;
@@ -26,7 +24,7 @@ public class SessionManager {
   private final SessionStorageService sessionStorageService;
   private final StatementStorageService statementStorageService;
   private final EMRServerlessClientFactory emrServerlessClientFactory;
-  private final Settings settings;
+  private final SessionConfigSupplier sessionConfigSupplier;
 
   public Session createSession(CreateSessionRequest request) {
     InteractiveSession session =
@@ -70,7 +68,7 @@ public class SessionManager {
               .serverlessClient(emrServerlessClientFactory.getClient())
               .sessionModel(model.get())
               .sessionInactivityTimeoutMilli(
-                  settings.getSettingValue(SESSION_INACTIVITY_TIMEOUT_MILLIS))
+                  sessionConfigSupplier.getSessionInactivityTimeoutMillis())
               .timeProvider(new RealTimeProvider())
               .build();
       return Optional.ofNullable(session);
