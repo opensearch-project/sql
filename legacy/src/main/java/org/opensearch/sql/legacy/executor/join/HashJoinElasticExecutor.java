@@ -134,15 +134,7 @@ public class HashJoinElasticExecutor extends ElasticJoinExecutor {
     Boolean paginationWithSearchAfter =
         clusterState.getSettingValue(SQL_PAGINATION_API_SEARCH_AFTER);
     if (hintLimit != null && hintLimit < MAX_RESULTS_ON_ONE_FETCH) {
-      SearchRequestBuilder request = secondTableRequest.getRequestBuilder().setSize(hintLimit);
-      if (paginationWithSearchAfter) {
-        boolean ordered = secondTableRequest.getOriginalSelect().isOrderdSelect();
-        if (!ordered) {
-          request.addSort(DOC_FIELD_NAME, ASC);
-        }
-        request.setPointInTime(new PointInTimeBuilder(secondTableRequest.getPitId()));
-      }
-      searchResponse = request.get();
+      searchResponse = secondTableRequest.getRequestBuilder().setSize(hintLimit).get();
       finishedScrolling = true;
     } else {
       SearchRequestBuilder request =

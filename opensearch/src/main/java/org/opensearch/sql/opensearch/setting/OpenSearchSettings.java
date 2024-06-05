@@ -73,7 +73,7 @@ public class OpenSearchSettings extends Settings {
   public static final Setting<?> SQL_PAGINATION_API_SEARCH_AFTER_SETTING =
       Setting.boolSetting(
           Key.SQL_PAGINATION_API_SEARCH_AFTER.getKeyValue(),
-          false,
+          true,
           Setting.Property.NodeScope,
           Setting.Property.Dynamic);
 
