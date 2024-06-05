@@ -23,6 +23,7 @@ public class SessionManagerTest {
   @Mock private SessionStorageService sessionStorageService;
   @Mock private StatementStorageService statementStorageService;
   @Mock private EMRServerlessClientFactory emrServerlessClientFactory;
+  @Mock private SessionConfigSupplier sessionConfigSupplier;
 
   @Test
   public void sessionEnable() {
@@ -31,7 +32,7 @@ public class SessionManagerTest {
             sessionStorageService,
             statementStorageService,
             emrServerlessClientFactory,
-            sessionSetting());
+            sessionConfigSupplier);
 
     Assertions.assertTrue(sessionManager.isEnabled());
   }

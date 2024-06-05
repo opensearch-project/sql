@@ -29,6 +29,8 @@ import org.opensearch.sql.spark.dispatcher.DatasourceEmbeddedQueryIdProvider;
 import org.opensearch.sql.spark.dispatcher.QueryHandlerFactory;
 import org.opensearch.sql.spark.dispatcher.QueryIdProvider;
 import org.opensearch.sql.spark.dispatcher.SparkQueryDispatcher;
+import org.opensearch.sql.spark.execution.session.OpenSearchSessionConfigSupplier;
+import org.opensearch.sql.spark.execution.session.SessionConfigSupplier;
 import org.opensearch.sql.spark.execution.session.SessionManager;
 import org.opensearch.sql.spark.execution.statestore.OpenSearchSessionStorageService;
 import org.opensearch.sql.spark.execution.statestore.OpenSearchStatementStorageService;
@@ -141,9 +143,12 @@ public class AsyncExecutorServiceModule extends AbstractModule {
       SessionStorageService sessionStorageService,
       StatementStorageService statementStorageService,
       EMRServerlessClientFactory emrServerlessClientFactory,
-      Settings settings) {
+      SessionConfigSupplier sessionConfigSupplier) {
     return new SessionManager(
-        sessionStorageService, statementStorageService, emrServerlessClientFactory, settings);
+        sessionStorageService,
+        statementStorageService,
+        emrServerlessClientFactory,
+        sessionConfigSupplier);
   }
 
   @Provides
@@ -183,6 +188,11 @@ public class AsyncExecutorServiceModule extends AbstractModule {
   @Provides
   public JobExecutionResponseReader jobExecutionResponseReader(NodeClient client) {
     return new OpenSearchJobExecutionResponseReader(client);
+  }
+
+  @Provides
+  public SessionConfigSupplier sessionConfigSupplier(Settings settings) {
+    return new OpenSearchSessionConfigSupplier(settings);
   }
 
   private void registerStateStoreMetrics(StateStore stateStore) {
