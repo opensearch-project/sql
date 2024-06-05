@@ -24,6 +24,8 @@ public class StatementModel extends StateModel {
   private final StatementState statementState;
   private final StatementId statementId;
   private final SessionId sessionId;
+  // optional: accountId for EMRS cluster
+  private final String accountId;
   private final String applicationId;
   private final String jobId;
   private final LangType langType;
@@ -39,6 +41,7 @@ public class StatementModel extends StateModel {
         .statementState(copy.statementState)
         .statementId(copy.statementId)
         .sessionId(copy.sessionId)
+        .accountId(copy.accountId)
         .applicationId(copy.applicationId)
         .jobId(copy.jobId)
         .langType(copy.langType)
@@ -58,6 +61,7 @@ public class StatementModel extends StateModel {
         .statementState(state)
         .statementId(copy.statementId)
         .sessionId(copy.sessionId)
+        .accountId(copy.accountId)
         .applicationId(copy.applicationId)
         .jobId(copy.jobId)
         .langType(copy.langType)
@@ -72,6 +76,7 @@ public class StatementModel extends StateModel {
 
   public static StatementModel submitStatement(
       SessionId sid,
+      String accountId,
       String applicationId,
       String jobId,
       StatementId statementId,
@@ -84,6 +89,7 @@ public class StatementModel extends StateModel {
         .statementState(WAITING)
         .statementId(statementId)
         .sessionId(sid)
+        .accountId(accountId)
         .applicationId(applicationId)
         .jobId(jobId)
         .langType(langType)

@@ -79,6 +79,7 @@ public class BatchQueryHandler extends AsyncQueryHandler {
     StartJobRequest startJobRequest =
         new StartJobRequest(
             clusterName + ":" + JobType.BATCH.getText(),
+            dispatchQueryRequest.getAccountId(),
             dispatchQueryRequest.getApplicationId(),
             dispatchQueryRequest.getExecutionRoleARN(),
             SparkSubmitParameters.builder()
