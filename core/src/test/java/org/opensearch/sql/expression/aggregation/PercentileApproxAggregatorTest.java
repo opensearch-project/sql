@@ -46,13 +46,13 @@ public class PercentileApproxAggregatorTest extends AggregationTest {
   public void test_percentile_field_expression() {
     ExprValue result =
         aggregation(DSL.percentile(DSL.ref("integer_value", INTEGER), DSL.literal(50)), tuples);
-    assertEquals(3.0, result.value());
+    assertEquals(2.5, result.value());
     result = aggregation(DSL.percentile(DSL.ref("long_value", LONG), DSL.literal(50)), tuples);
-    assertEquals(3.0, result.value());
+    assertEquals(2.5, result.value());
     result = aggregation(DSL.percentile(DSL.ref("double_value", DOUBLE), DSL.literal(50)), tuples);
-    assertEquals(3.0, result.value());
+    assertEquals(2.5, result.value());
     result = aggregation(DSL.percentile(DSL.ref("float_value", FLOAT), DSL.literal(50)), tuples);
-    assertEquals(3.0, result.value());
+    assertEquals(2.5, result.value());
   }
 
   @Test
@@ -102,22 +102,23 @@ public class PercentileApproxAggregatorTest extends AggregationTest {
             longValue(-50000L),
             longValue(40000L),
             longValue(50000L));
-    assertEquals(40000.0, result.value());
+    assertEquals(-5000.0, result.value());
     ExprValue[] results =
         percentiles(longValue(-100000L), longValue(-50000L), longValue(40000L), longValue(50000L));
     assertPercentileValues(
-        results, -100000.0, // p=1.0
+        results,
+        -100000.0, // p=1.0
         -100000.0, // p=5.0
         -100000.0, // p=10.0
-        -100000.0, // p=20.0
-        -50000.0, // p=25.0
-        -50000.0, // p=30.0
-        -50000.0, // p=40.0
-        40000.0, // p=50.0
-        40000.0, // p=60.0
-        40000.0, // p=70.0
-        50000.0, // p=75.0
-        50000.0, // p=80.0
+        -85000.0, // p=20.0
+        -75000.0, // p=25.0
+        -65000.0, // p=30.0
+        -40999.999999999985, // p=40.0
+        -5000.0, // p=50.0
+        30999.999999999996, // p=60.0
+        43000.0, // p=70.0
+        45000.0, // p=75.0
+        47000.0, // p=80.0
         50000.0, // p=90.0
         50000.0, // p=95.0
         50000.0, // p=99.0
@@ -134,15 +135,15 @@ public class PercentileApproxAggregatorTest extends AggregationTest {
         results, 0.0, // p=1.0
         0.0, // p=5.0
         0.0, // p=10.0
-        1.0, // p=20.0
-        1.0, // p=25.0
+        0.5, // p=20.0
+        0.75, // p=25.0
         1.0, // p=30.0
-        2.0, // p=40.0
+        1.5, // p=40.0
         2.0, // p=50.0
-        3.0, // p=60.0
+        2.5, // p=60.0
         3.0, // p=70.0
-        3.0, // p=75.0
-        4.0, // p=80.0
+        3.25, // p=75.0
+        3.5, // p=80.0
         4.0, // p=90.0
         4.0, // p=95.0
         4.0, // p=99.0
@@ -209,7 +210,7 @@ public class PercentileApproxAggregatorTest extends AggregationTest {
                     DSL.literal(ExprValueUtils.integerValue(10))),
                 DSL.literal(50)),
             tuples);
-    assertEquals(30.0, result.value());
+    assertEquals(25.0, result.value());
   }
 
   @Test
@@ -228,7 +229,7 @@ public class PercentileApproxAggregatorTest extends AggregationTest {
         aggregation(
             DSL.percentile(DSL.ref("integer_value", INTEGER), DSL.literal(50)),
             tuples_with_null_and_missing);
-    assertEquals(2.0, result.value());
+    assertEquals(1.5, result.value());
   }
 
   @Test
@@ -237,7 +238,7 @@ public class PercentileApproxAggregatorTest extends AggregationTest {
         aggregation(
             DSL.percentile(DSL.ref("double_value", DOUBLE), DSL.literal(50)),
             tuples_with_null_and_missing);
-    assertEquals(4.0, result.value());
+    assertEquals(3.5, result.value());
   }
 
   @Test

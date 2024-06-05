@@ -156,11 +156,11 @@ public class WindowFunctionIT extends SQLIntegTestCase {
     verifyDataRowsInOrder(
         response,
         rows("Adams", 4180),
-        rows("Ayala", 40540),
+        rows("Ayala", 22360),
         rows("Bates", 32838),
-        rows("Bond", 32838),
+        rows("Bond", 19262),
         rows("Duke Willmington", 32838),
-        rows("Mcpherson", 39225),
+        rows("Mcpherson", 36031.5),
         rows("Ratliff", 32838));
   }
 
@@ -176,11 +176,11 @@ public class WindowFunctionIT extends SQLIntegTestCase {
     verifyDataRowsInOrder(
         response,
         rows("Ayala", 40540),
-        rows("Bates", 40540),
+        rows("Bates", 36689),
         rows("Mcpherson", 40540),
         rows("Adams", 4180),
-        rows("Bond", 5686),
+        rows("Bond", 4933),
         rows("Duke Willmington", 5686),
-        rows("Ratliff", 16418));
+        rows("Ratliff", 11052));
   }
 }

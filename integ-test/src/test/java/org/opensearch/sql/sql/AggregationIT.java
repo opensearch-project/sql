@@ -719,7 +719,7 @@ public class AggregationIT extends SQLIntegTestCase {
             "SELECT percentile(balance, 50) FILTER(WHERE balance > 40000) FROM " + TEST_INDEX_BANK);
     verifySchema(
         response, schema("percentile(balance, 50) FILTER(WHERE balance > 40000)", null, "long"));
-    verifyDataRows(response, rows(48086));
+    verifyDataRows(response, rows(44313));
   }
 
   @Test
@@ -736,7 +736,7 @@ public class AggregationIT extends SQLIntegTestCase {
         rows(39225, 32),
         rows(4180, 33),
         rows(48086, 34),
-        rows(16418, 36),
+        rows(11052, 36),
         rows(40540, 39));
   }
 

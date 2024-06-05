@@ -205,7 +205,7 @@ public class StatsCommandIT extends PPLIntegTestCase {
             String.format(
                 "source=%s | stats percentile(balance, 50)", TEST_INDEX_BANK_WITH_NULL_VALUES));
     verifySchema(response, schema("percentile(balance, 50)", null, "long"));
-    verifyDataRows(response, rows(39225));
+    verifyDataRows(response, rows(36031));
   }
 
   @Test
@@ -254,6 +254,6 @@ public class StatsCommandIT extends PPLIntegTestCase {
                 "source=%s | stats percentile(balance, 50) as p50 by span(age, 10) as age_bucket",
                 TEST_INDEX_BANK));
     verifySchema(response, schema("p50", null, "long"), schema("age_bucket", null, "integer"));
-    verifyDataRows(response, rows(32838, 20), rows(39225, 30));
+    verifyDataRows(response, rows(32838, 20), rows(27821, 30));
   }
 }
