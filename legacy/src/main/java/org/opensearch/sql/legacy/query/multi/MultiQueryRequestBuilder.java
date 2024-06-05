@@ -31,6 +31,7 @@ public class MultiQueryRequestBuilder implements SqlElasticRequestBuilder {
   private Map<String, String> secondTableFieldToAlias;
   private MultiQuerySelect multiQuerySelect;
   private SQLUnionOperator relation;
+  private String pitId;
 
   public MultiQueryRequestBuilder(MultiQuerySelect multiQuerySelect) {
     this.multiQuerySelect = multiQuerySelect;
@@ -97,6 +98,14 @@ public class MultiQueryRequestBuilder implements SqlElasticRequestBuilder {
   public void setSecondSearchRequest(SearchRequestBuilder secondSearchRequest) {
     this.secondSearchRequest = secondSearchRequest;
   }
+  public String getPitId() {
+    return pitId;
+  }
+
+  public void setPitId(String pitId) {
+    this.pitId = pitId;
+  }
+
 
   public void fillTableAliases(List<Field> firstTableFields, List<Field> secondTableFields) {
     fillTableToAlias(this.firstTableFieldToAlias, firstTableFields);

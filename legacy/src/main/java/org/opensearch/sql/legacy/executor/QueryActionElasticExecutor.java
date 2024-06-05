@@ -81,6 +81,7 @@ public class QueryActionElasticExecutor {
         MultiRequestExecutorFactory.createExecutor(
             client, (MultiQueryRequestBuilder) multiRequestBuilder);
     executor.run();
+    queryAction.getPointInTimeHandler().deletePointInTime();
     return executor.getHits();
   }
 
