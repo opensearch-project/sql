@@ -24,6 +24,8 @@ public class SessionModel extends StateModel {
   private final SessionType sessionType;
   private final SessionId sessionId;
   private final SessionState sessionState;
+  // optional: accountId for EMRS cluster
+  private final String accountId;
   private final String applicationId;
   private final String jobId;
   private final String datasourceName;
@@ -37,6 +39,7 @@ public class SessionModel extends StateModel {
         .sessionId(new SessionId(copy.sessionId.getSessionId()))
         .sessionState(copy.sessionState)
         .datasourceName(copy.datasourceName)
+        .accountId(copy.accountId)
         .applicationId(copy.getApplicationId())
         .jobId(copy.jobId)
         .error(UNKNOWN)
@@ -53,6 +56,7 @@ public class SessionModel extends StateModel {
         .sessionId(new SessionId(copy.sessionId.getSessionId()))
         .sessionState(state)
         .datasourceName(copy.datasourceName)
+        .accountId(copy.getAccountId())
         .applicationId(copy.getApplicationId())
         .jobId(copy.jobId)
         .error(UNKNOWN)
@@ -62,13 +66,14 @@ public class SessionModel extends StateModel {
   }
 
   public static SessionModel initInteractiveSession(
-      String applicationId, String jobId, SessionId sid, String datasourceName) {
+      String accountId, String applicationId, String jobId, SessionId sid, String datasourceName) {
     return builder()
         .version("1.0")
         .sessionType(INTERACTIVE)
         .sessionId(sid)
         .sessionState(NOT_STARTED)
         .datasourceName(datasourceName)
+        .accountId(accountId)
         .applicationId(applicationId)
         .jobId(jobId)
         .error(UNKNOWN)

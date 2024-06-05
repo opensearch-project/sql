@@ -17,6 +17,7 @@ import org.opensearch.sql.spark.execution.statestore.StateModel;
 @EqualsAndHashCode(callSuper = false)
 public class FlintIndexStateModel extends StateModel {
   private final FlintIndexState indexState;
+  private final String accountId;
   private final String applicationId;
   private final String jobId;
   private final String latestId;
@@ -28,6 +29,7 @@ public class FlintIndexStateModel extends StateModel {
       FlintIndexStateModel copy, ImmutableMap<String, Object> metadata) {
     return builder()
         .indexState(copy.indexState)
+        .accountId(copy.accountId)
         .applicationId(copy.applicationId)
         .jobId(copy.jobId)
         .latestId(copy.latestId)
@@ -42,6 +44,7 @@ public class FlintIndexStateModel extends StateModel {
       FlintIndexStateModel copy, FlintIndexState state, ImmutableMap<String, Object> metadata) {
     return builder()
         .indexState(state)
+        .accountId(copy.accountId)
         .applicationId(copy.applicationId)
         .jobId(copy.jobId)
         .latestId(copy.latestId)

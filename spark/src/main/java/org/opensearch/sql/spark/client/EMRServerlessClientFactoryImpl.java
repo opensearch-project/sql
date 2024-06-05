@@ -59,6 +59,7 @@ public class EMRServerlessClientFactoryImpl implements EMRServerlessClientFactor
   }
 
   private EMRServerlessClient createEMRServerlessClient(String awsRegion) {
+    // TODO: It does not handle accountId for now. (it creates client for same account)
     return AccessController.doPrivileged(
         (PrivilegedAction<EMRServerlessClient>)
             () -> {
