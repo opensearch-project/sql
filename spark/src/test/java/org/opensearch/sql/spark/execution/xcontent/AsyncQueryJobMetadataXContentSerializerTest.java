@@ -16,7 +16,6 @@ import org.opensearch.core.xcontent.NamedXContentRegistry;
 import org.opensearch.core.xcontent.ToXContent;
 import org.opensearch.core.xcontent.XContentBuilder;
 import org.opensearch.core.xcontent.XContentParser;
-import org.opensearch.sql.spark.asyncquery.model.AsyncQueryId;
 import org.opensearch.sql.spark.asyncquery.model.AsyncQueryJobMetadata;
 import org.opensearch.sql.spark.dispatcher.model.JobType;
 
@@ -29,7 +28,7 @@ class AsyncQueryJobMetadataXContentSerializerTest {
   void toXContentShouldSerializeAsyncQueryJobMetadata() throws Exception {
     AsyncQueryJobMetadata jobMetadata =
         AsyncQueryJobMetadata.builder()
-            .queryId(new AsyncQueryId("query1"))
+            .queryId("query1")
             .applicationId("app1")
             .jobId("job1")
             .resultIndex("result1")
@@ -72,7 +71,7 @@ class AsyncQueryJobMetadataXContentSerializerTest {
 
     AsyncQueryJobMetadata jobMetadata = serializer.fromXContent(parser, 1L, 1L);
 
-    assertEquals("query1", jobMetadata.getQueryId().getId());
+    assertEquals("query1", jobMetadata.getQueryId());
     assertEquals("job1", jobMetadata.getJobId());
     assertEquals("app1", jobMetadata.getApplicationId());
     assertEquals("result1", jobMetadata.getResultIndex());
@@ -142,7 +141,7 @@ class AsyncQueryJobMetadataXContentSerializerTest {
 
     AsyncQueryJobMetadata jobMetadata = serializer.fromXContent(parser, 1L, 1L);
 
-    assertEquals("query1", jobMetadata.getQueryId().getId());
+    assertEquals("query1", jobMetadata.getQueryId());
     assertEquals("job1", jobMetadata.getJobId());
     assertEquals("app1", jobMetadata.getApplicationId());
     assertEquals("result1", jobMetadata.getResultIndex());

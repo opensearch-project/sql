@@ -11,7 +11,6 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
-import static org.opensearch.sql.spark.asyncquery.OpensearchAsyncQueryAsyncQueryJobMetadataStorageServiceTest.DS_NAME;
 import static org.opensearch.sql.spark.constants.TestConstants.EMRS_APPLICATION_ID;
 import static org.opensearch.sql.spark.constants.TestConstants.EMRS_EXECUTION_ROLE;
 import static org.opensearch.sql.spark.constants.TestConstants.EMR_JOB_ID;
@@ -31,7 +30,6 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.opensearch.sql.spark.asyncquery.exceptions.AsyncQueryNotFoundException;
 import org.opensearch.sql.spark.asyncquery.model.AsyncQueryExecutionResponse;
-import org.opensearch.sql.spark.asyncquery.model.AsyncQueryId;
 import org.opensearch.sql.spark.asyncquery.model.AsyncQueryJobMetadata;
 import org.opensearch.sql.spark.asyncquery.model.RequestContext;
 import org.opensearch.sql.spark.config.OpenSearchSparkSubmitParameterModifier;
@@ -41,6 +39,7 @@ import org.opensearch.sql.spark.config.SparkSubmitParameterModifier;
 import org.opensearch.sql.spark.dispatcher.SparkQueryDispatcher;
 import org.opensearch.sql.spark.dispatcher.model.DispatchQueryRequest;
 import org.opensearch.sql.spark.dispatcher.model.DispatchQueryResponse;
+import org.opensearch.sql.spark.dispatcher.model.JobType;
 import org.opensearch.sql.spark.rest.model.CreateAsyncQueryRequest;
 import org.opensearch.sql.spark.rest.model.CreateAsyncQueryResponse;
 import org.opensearch.sql.spark.rest.model.LangType;
@@ -55,7 +54,7 @@ public class AsyncQueryExecutorServiceImplTest {
   @Mock private SparkExecutionEngineConfigSupplier sparkExecutionEngineConfigSupplier;
   @Mock private SparkSubmitParameterModifier sparkSubmitParameterModifier;
   @Mock private RequestContext requestContext;
-  private final AsyncQueryId QUERY_ID = AsyncQueryId.newAsyncQueryId(DS_NAME);
+  private final String QUERY_ID = "QUERY_ID";
 
   @BeforeEach
   void setUp() {
@@ -89,7 +88,12 @@ public class AsyncQueryExecutorServiceImplTest {
             TEST_CLUSTER_NAME,
             sparkSubmitParameterModifier);
     when(sparkQueryDispatcher.dispatch(expectedDispatchQueryRequest))
-        .thenReturn(new DispatchQueryResponse(QUERY_ID, EMR_JOB_ID, null, null));
+        .thenReturn(
+            DispatchQueryResponse.builder()
+                .queryId(QUERY_ID)
+                .jobId(EMR_JOB_ID)
+                .jobType(JobType.INTERACTIVE)
+                .build());
 
     CreateAsyncQueryResponse createAsyncQueryResponse =
         jobExecutorService.createAsyncQuery(createAsyncQueryRequest, requestContext);
@@ -98,8 +102,10 @@ public class AsyncQueryExecutorServiceImplTest {
         .storeJobMetadata(getAsyncQueryJobMetadata());
     verify(sparkExecutionEngineConfigSupplier, times(1))
         .getSparkExecutionEngineConfig(requestContext);
+    verify(sparkExecutionEngineConfigSupplier, times(1))
+        .getSparkExecutionEngineConfig(requestContext);
     verify(sparkQueryDispatcher, times(1)).dispatch(expectedDispatchQueryRequest);
-    Assertions.assertEquals(QUERY_ID.getId(), createAsyncQueryResponse.getQueryId());
+    Assertions.assertEquals(QUERY_ID, createAsyncQueryResponse.getQueryId());
   }
 
   @Test
@@ -115,7 +121,12 @@ public class AsyncQueryExecutorServiceImplTest {
                 modifier,
                 TEST_CLUSTER_NAME));
     when(sparkQueryDispatcher.dispatch(any()))
-        .thenReturn(new DispatchQueryResponse(QUERY_ID, EMR_JOB_ID, null, null));
+        .thenReturn(
+            DispatchQueryResponse.builder()
+                .queryId(QUERY_ID)
+                .jobId(EMR_JOB_ID)
+                .jobType(JobType.INTERACTIVE)
+                .build());
 
     jobExecutorService.createAsyncQuery(
         new CreateAsyncQueryRequest(

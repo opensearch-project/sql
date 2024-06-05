@@ -6,7 +6,6 @@
 package org.opensearch.sql.spark.execution.statement;
 
 import static org.opensearch.sql.spark.constants.TestConstants.TEST_DATASOURCE_NAME;
-import static org.opensearch.sql.spark.execution.session.SessionManagerTest.sessionSetting;
 import static org.opensearch.sql.spark.execution.session.SessionTestUtil.createSessionRequest;
 import static org.opensearch.sql.spark.execution.statement.StatementState.CANCELLED;
 import static org.opensearch.sql.spark.execution.statement.StatementState.RUNNING;
@@ -23,6 +22,7 @@ import org.opensearch.action.delete.DeleteRequest;
 import org.opensearch.sql.spark.asyncquery.model.AsyncQueryId;
 import org.opensearch.sql.spark.client.EMRServerlessClientFactory;
 import org.opensearch.sql.spark.execution.session.Session;
+import org.opensearch.sql.spark.execution.session.SessionConfigSupplier;
 import org.opensearch.sql.spark.execution.session.SessionId;
 import org.opensearch.sql.spark.execution.session.SessionManager;
 import org.opensearch.sql.spark.execution.session.SessionState;
@@ -45,6 +45,7 @@ public class StatementTest extends OpenSearchIntegTestCase {
   private StatementStorageService statementStorageService;
   private SessionStorageService sessionStorageService;
   private TestEMRServerlessClient emrsClient = new TestEMRServerlessClient();
+  private SessionConfigSupplier sessionConfigSupplier = () -> 600000L;
 
   private SessionManager sessionManager;
 
@@ -62,7 +63,7 @@ public class StatementTest extends OpenSearchIntegTestCase {
             sessionStorageService,
             statementStorageService,
             emrServerlessClientFactory,
-            sessionSetting());
+            sessionConfigSupplier);
   }
 
   @After
@@ -371,7 +372,7 @@ public class StatementTest extends OpenSearchIntegTestCase {
 
   private QueryRequest queryRequest() {
     return new QueryRequest(
-        AsyncQueryId.newAsyncQueryId(TEST_DATASOURCE_NAME), LangType.SQL, "select 1");
+        AsyncQueryId.newAsyncQueryId(TEST_DATASOURCE_NAME).getId(), LangType.SQL, "select 1");
   }
 
   private Statement createStatement(StatementId stId) {

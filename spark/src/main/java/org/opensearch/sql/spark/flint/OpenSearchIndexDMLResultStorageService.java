@@ -21,6 +21,14 @@ public class OpenSearchIndexDMLResultStorageService implements IndexDMLResultSto
   public IndexDMLResult createIndexDMLResult(IndexDMLResult result) {
     DataSourceMetadata dataSourceMetadata =
         dataSourceService.getDataSourceMetadata(result.getDatasourceName());
-    return stateStore.create(result, IndexDMLResult::copy, dataSourceMetadata.getResultIndex());
+    return stateStore.create(
+        mapIdToDocumentId(result.getId()),
+        result,
+        IndexDMLResult::copy,
+        dataSourceMetadata.getResultIndex());
+  }
+
+  private String mapIdToDocumentId(String id) {
+    return "index" + id;
   }
 }

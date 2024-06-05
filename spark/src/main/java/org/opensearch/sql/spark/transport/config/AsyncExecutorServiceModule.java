@@ -20,13 +20,17 @@ import org.opensearch.sql.legacy.metrics.Metrics;
 import org.opensearch.sql.spark.asyncquery.AsyncQueryExecutorService;
 import org.opensearch.sql.spark.asyncquery.AsyncQueryExecutorServiceImpl;
 import org.opensearch.sql.spark.asyncquery.AsyncQueryJobMetadataStorageService;
-import org.opensearch.sql.spark.asyncquery.OpensearchAsyncQueryJobMetadataStorageService;
+import org.opensearch.sql.spark.asyncquery.OpenSearchAsyncQueryJobMetadataStorageService;
 import org.opensearch.sql.spark.client.EMRServerlessClientFactory;
 import org.opensearch.sql.spark.client.EMRServerlessClientFactoryImpl;
 import org.opensearch.sql.spark.config.SparkExecutionEngineConfigSupplier;
 import org.opensearch.sql.spark.config.SparkExecutionEngineConfigSupplierImpl;
+import org.opensearch.sql.spark.dispatcher.DatasourceEmbeddedQueryIdProvider;
 import org.opensearch.sql.spark.dispatcher.QueryHandlerFactory;
+import org.opensearch.sql.spark.dispatcher.QueryIdProvider;
 import org.opensearch.sql.spark.dispatcher.SparkQueryDispatcher;
+import org.opensearch.sql.spark.execution.session.OpenSearchSessionConfigSupplier;
+import org.opensearch.sql.spark.execution.session.SessionConfigSupplier;
 import org.opensearch.sql.spark.execution.session.SessionManager;
 import org.opensearch.sql.spark.execution.statestore.OpenSearchSessionStorageService;
 import org.opensearch.sql.spark.execution.statestore.OpenSearchStatementStorageService;
@@ -67,7 +71,7 @@ public class AsyncExecutorServiceModule extends AbstractModule {
   @Provides
   public AsyncQueryJobMetadataStorageService asyncQueryJobMetadataStorageService(
       StateStore stateStore, AsyncQueryJobMetadataXContentSerializer serializer) {
-    return new OpensearchAsyncQueryJobMetadataStorageService(stateStore, serializer);
+    return new OpenSearchAsyncQueryJobMetadataStorageService(stateStore, serializer);
   }
 
   @Provides
@@ -82,8 +86,15 @@ public class AsyncExecutorServiceModule extends AbstractModule {
   public SparkQueryDispatcher sparkQueryDispatcher(
       DataSourceService dataSourceService,
       SessionManager sessionManager,
-      QueryHandlerFactory queryHandlerFactory) {
-    return new SparkQueryDispatcher(dataSourceService, sessionManager, queryHandlerFactory);
+      QueryHandlerFactory queryHandlerFactory,
+      QueryIdProvider queryIdProvider) {
+    return new SparkQueryDispatcher(
+        dataSourceService, sessionManager, queryHandlerFactory, queryIdProvider);
+  }
+
+  @Provides
+  public QueryIdProvider queryIdProvider() {
+    return new DatasourceEmbeddedQueryIdProvider();
   }
 
   @Provides
@@ -132,9 +143,12 @@ public class AsyncExecutorServiceModule extends AbstractModule {
       SessionStorageService sessionStorageService,
       StatementStorageService statementStorageService,
       EMRServerlessClientFactory emrServerlessClientFactory,
-      Settings settings) {
+      SessionConfigSupplier sessionConfigSupplier) {
     return new SessionManager(
-        sessionStorageService, statementStorageService, emrServerlessClientFactory, settings);
+        sessionStorageService,
+        statementStorageService,
+        emrServerlessClientFactory,
+        sessionConfigSupplier);
   }
 
   @Provides
@@ -174,6 +188,11 @@ public class AsyncExecutorServiceModule extends AbstractModule {
   @Provides
   public JobExecutionResponseReader jobExecutionResponseReader(NodeClient client) {
     return new OpenSearchJobExecutionResponseReader(client);
+  }
+
+  @Provides
+  public SessionConfigSupplier sessionConfigSupplier(Settings settings) {
+    return new OpenSearchSessionConfigSupplier(settings);
   }
 
   private void registerStateStoreMetrics(StateStore stateStore) {
