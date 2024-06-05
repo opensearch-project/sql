@@ -106,7 +106,6 @@ UNION:                              'UNION';
 USING:                              'USING';
 WHEN:                               'WHEN';
 WHERE:                              'WHERE';
-WITHIN:                             'WITHIN';
 
 
 // OD SQL special keyword

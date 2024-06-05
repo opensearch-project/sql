@@ -500,7 +500,6 @@ aggregationFunctionName
    | STDDEV
    | STDDEV_POP
    | STDDEV_SAMP
-   | PERCENTILE
    ;
 
 mathematicalFunctionName
