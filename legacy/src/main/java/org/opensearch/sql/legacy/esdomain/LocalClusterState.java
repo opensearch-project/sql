@@ -5,22 +5,19 @@
 
 package org.opensearch.sql.legacy.esdomain;
 
-import com.google.common.cache.Cache;
-import com.google.common.cache.CacheBuilder;
-import java.io.IOException;
 import java.util.Arrays;
-import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ExecutionException;
-import java.util.function.Function;
-import java.util.function.Predicate;
+import java.util.concurrent.TimeUnit;
+import lombok.AccessLevel;
+import lombok.NoArgsConstructor;
+import lombok.NonNull;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.action.support.IndicesOptions;
-import org.opensearch.cluster.ClusterState;
-import org.opensearch.cluster.metadata.IndexNameExpressionResolver;
+import org.opensearch.client.Client;
+import org.opensearch.cluster.metadata.MappingMetadata;
 import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.common.settings.Setting;
 import org.opensearch.index.IndexNotFoundException;
@@ -38,12 +35,10 @@ import org.opensearch.sql.opensearch.setting.OpenSearchSettings;
  * <p>2) Why injection by AbstractModule doesn't work here? Because this state needs to be used
  * across the plugin, ex. in rewriter, pretty formatter etc.
  */
+@NoArgsConstructor(access = AccessLevel.PRIVATE)
 public class LocalClusterState {
 
   private static final Logger LOG = LogManager.getLogger();
-
-  private static final Function<String, Predicate<String>> ALL_FIELDS =
-      (anyIndex -> (anyField -> true));
 
   /** Singleton instance */
   private static LocalClusterState INSTANCE;
@@ -51,17 +46,9 @@ public class LocalClusterState {
   /** Current cluster state on local node */
   private ClusterService clusterService;
 
+  private Client client;
+
   private OpenSearchSettings pluginSettings;
-
-  /** Index name expression resolver to get concrete index name */
-  private IndexNameExpressionResolver resolver;
-
-  /**
-   * Thread-safe mapping cache to save the computation of sourceAsMap() which is not lightweight as
-   * thought Array cannot be used as key because hashCode() always return reference address, so
-   * either use wrapper or List.
-   */
-  private final Cache<List<String>, IndexMappings> cache;
 
   /** Latest setting value for each registered key. Thread-safe is required. */
   private final Map<String, Object> latestSettings = new ConcurrentHashMap<>();
@@ -78,25 +65,33 @@ public class LocalClusterState {
     INSTANCE = instance;
   }
 
-  public void setClusterService(ClusterService clusterService) {
+  /**
+   * Sets the ClusterService used to receive ClusterSetting update notifications.
+   *
+   * @param clusterService The non-null cluster service instance.
+   */
+  public void setClusterService(@NonNull ClusterService clusterService) {
     this.clusterService = clusterService;
-
-    clusterService.addListener(
-        event -> {
-          if (event.metadataChanged()) {
-            // State in cluster service is already changed to event.state() before listener fired
-            if (LOG.isDebugEnabled()) {
-              LOG.debug(
-                  "Metadata in cluster state changed: {}",
-                  new IndexMappings(clusterService.state().metadata()));
-            }
-            cache.invalidateAll();
-          }
-        });
   }
 
-  public void setPluginSettings(OpenSearchSettings settings) {
+  /**
+   * Sets the Client used to interact with OpenSearch core.
+   *
+   * @param client The non-null client instance
+   */
+  public void setClient(@NonNull Client client) {
+    this.client = client;
+  }
+
+  /**
+   * Sets the plugin's settings.
+   *
+   * @param settings The non-null plugin settings instance
+   */
+  public void setPluginSettings(@NonNull OpenSearchSettings settings) {
+
     this.pluginSettings = settings;
+
     for (Setting<?> setting : settings.getSettings()) {
       clusterService
           .getClusterSettings()
@@ -111,14 +106,6 @@ public class LocalClusterState {
     }
   }
 
-  public void setResolver(IndexNameExpressionResolver resolver) {
-    this.resolver = resolver;
-  }
-
-  private LocalClusterState() {
-    cache = CacheBuilder.newBuilder().maximumSize(100).build();
-  }
-
   /**
    * Get plugin setting value by key. Return default value if not configured explicitly.
    *
@@ -131,39 +118,31 @@ public class LocalClusterState {
     return (T) latestSettings.getOrDefault(key.getKeyValue(), pluginSettings.getSettingValue(key));
   }
 
-  /** Get field mappings by index expressions. All types and fields are included in response. */
-  public IndexMappings getFieldMappings(String[] indices) {
-    return getFieldMappings(indices, ALL_FIELDS);
-  }
-
   /**
-   * Get field mappings by index expressions, type and field filter. Because
-   * IndexMetaData/MappingMetaData is hard to convert to FieldMappingMetaData, custom mapping domain
-   * objects are being used here. In future, it should be moved to domain model layer for all
-   * OpenSearch specific knowledge.
-   *
-   * <p>Note that cluster state may be change inside OpenSearch so it's possible to read different
-   * state in 2 accesses to ClusterService.state() here.
+   * Get field mappings by index expressions. Because IndexMetaData/MappingMetaData is hard to
+   * convert to FieldMappingMetaData, custom mapping domain objects are being used here. In future,
+   * it should be moved to domain model layer for all OpenSearch specific knowledge.
    *
    * @param indices index name expression
-   * @param fieldFilter field filter predicate
    * @return index mapping(s)
    */
-  private IndexMappings getFieldMappings(
-      String[] indices, Function<String, Predicate<String>> fieldFilter) {
-    Objects.requireNonNull(clusterService, "Cluster service is null");
-    Objects.requireNonNull(resolver, "Index name expression resolver is null");
+  public IndexMappings getFieldMappings(String[] indices) {
+    Objects.requireNonNull(client, "Client is null");
 
     try {
-      ClusterState state = clusterService.state();
-      String[] concreteIndices = resolveIndexExpression(state, indices);
 
-      IndexMappings mappings;
-      if (fieldFilter == ALL_FIELDS) {
-        mappings = findMappingsInCache(state, concreteIndices);
-      } else {
-        mappings = findMappings(state, concreteIndices, fieldFilter);
-      }
+      Map<String, MappingMetadata> mappingMetadata =
+          client
+              .admin()
+              .indices()
+              .prepareGetMappings(indices)
+              .setLocal(true)
+              .setIndicesOptions(IndicesOptions.strictExpandOpen())
+              .execute()
+              .actionGet(0, TimeUnit.NANOSECONDS)
+              .mappings();
+
+      IndexMappings mappings = new IndexMappings(mappingMetadata);
 
       LOG.debug("Found mappings: {}", mappings);
       return mappings;
@@ -173,37 +152,5 @@ public class LocalClusterState {
       throw new IllegalStateException(
           "Failed to read mapping in cluster state for indices=" + Arrays.toString(indices), e);
     }
-  }
-
-  private String[] resolveIndexExpression(ClusterState state, String[] indices) {
-    String[] concreteIndices =
-        resolver.concreteIndexNames(state, IndicesOptions.strictExpandOpen(), true, indices);
-
-    if (LOG.isDebugEnabled()) {
-      LOG.debug(
-          "Resolved index expression {} to concrete index names {}",
-          Arrays.toString(indices),
-          Arrays.toString(concreteIndices));
-    }
-    return concreteIndices;
-  }
-
-  private IndexMappings findMappings(
-      ClusterState state, String[] indices, Function<String, Predicate<String>> fieldFilter)
-      throws IOException {
-    LOG.debug("Cache didn't help. Load and parse mapping in cluster state");
-    return new IndexMappings(state.metadata().findMappings(indices, fieldFilter));
-  }
-
-  private IndexMappings findMappingsInCache(ClusterState state, String[] indices)
-      throws ExecutionException {
-    LOG.debug("Looking for mapping in cache: {}", cache.asMap());
-    return cache.get(sortToList(indices), () -> findMappings(state, indices, ALL_FIELDS));
-  }
-
-  private <T> List<T> sortToList(T[] array) {
-    // Mostly array has single element
-    Arrays.sort(array);
-    return Arrays.asList(array);
   }
 }

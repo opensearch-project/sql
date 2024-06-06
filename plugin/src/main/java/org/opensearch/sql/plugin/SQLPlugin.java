@@ -129,7 +129,6 @@ public class SQLPlugin extends Plugin implements ActionPlugin, ScriptPlugin {
     Objects.requireNonNull(clusterService, "Cluster service is required");
     Objects.requireNonNull(pluginSettings, "Cluster settings is required");
 
-    LocalClusterState.state().setResolver(indexNameExpressionResolver);
     Metrics.getInstance().registerDefaultMetrics();
 
     return Arrays.asList(
@@ -202,6 +201,7 @@ public class SQLPlugin extends Plugin implements ActionPlugin, ScriptPlugin {
     dataSourceService.createDataSource(defaultOpenSearchDataSourceMetadata());
     LocalClusterState.state().setClusterService(clusterService);
     LocalClusterState.state().setPluginSettings((OpenSearchSettings) pluginSettings);
+    LocalClusterState.state().setClient(client);
     ModulesBuilder modules = new ModulesBuilder();
     modules.add(new OpenSearchPluginModule());
     modules.add(
