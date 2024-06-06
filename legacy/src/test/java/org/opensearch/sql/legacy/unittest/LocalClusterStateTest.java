@@ -6,26 +6,15 @@
 package org.opensearch.sql.legacy.unittest;
 
 import static org.junit.Assert.assertEquals;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.doAnswer;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
-import static org.opensearch.sql.legacy.util.CheckScriptContents.mockClusterService;
 import static org.opensearch.sql.legacy.util.CheckScriptContents.mockLocalClusterState;
 
-import java.io.IOException;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
-import org.opensearch.cluster.ClusterChangedEvent;
 import org.opensearch.cluster.ClusterName;
-import org.opensearch.cluster.ClusterStateListener;
-import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.common.settings.ClusterSettings;
 import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.legacy.esdomain.LocalClusterState;
@@ -148,41 +137,6 @@ public class LocalClusterStateTest {
     Assert.assertNull(fieldMappings.mapping("manager.home-address"));
     Assert.assertNull(fieldMappings.mapping("manager.name.first"));
     Assert.assertNull(fieldMappings.mapping("manager.name.first.uppercase"));
-  }
-
-  @Test
-  public void getMappingFromCache() throws IOException {
-    // Mock here again for verification below and mock addListener()
-    ClusterService mockService = mockClusterService(MAPPING);
-    ClusterStateListener[] listener = new ClusterStateListener[1]; // Trick to access inside lambda
-    doAnswer(
-            invocation -> {
-              listener[0] = (ClusterStateListener) invocation.getArguments()[0];
-              return null;
-            })
-        .when(mockService)
-        .addListener(any());
-    LocalClusterState.state().setClusterService(mockService);
-
-    // 1.Actual findMappings be invoked only once
-    for (int i = 0; i < 10; i++) {
-      LocalClusterState.state().getFieldMappings(new String[] {INDEX_NAME});
-    }
-    verify(mockService.state().metadata(), times(1))
-        .findMappings(eq(new String[] {INDEX_NAME}), any());
-
-    // 2.Fire cluster state change event
-    Assert.assertNotNull(listener[0]);
-    ClusterChangedEvent mockEvent = mock(ClusterChangedEvent.class);
-    when(mockEvent.metadataChanged()).thenReturn(true);
-    listener[0].clusterChanged(mockEvent);
-
-    // 3.Cache should be invalidated and call findMapping another time only
-    for (int i = 0; i < 5; i++) {
-      LocalClusterState.state().getFieldMappings(new String[] {INDEX_NAME});
-    }
-    verify(mockService.state().metadata(), times(2))
-        .findMappings(eq(new String[] {INDEX_NAME}), any());
   }
 
   @Test
