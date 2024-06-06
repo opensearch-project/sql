@@ -157,8 +157,7 @@ public class StatementTest extends OpenSearchIntegTestCase {
 
     StatementModel model = st.getStatementModel();
     st.setStatementModel(
-        StatementModel.copyWithState(
-            st.getStatementModel(), state, model.getMetadata()));
+        StatementModel.copyWithState(st.getStatementModel(), state, model.getMetadata()));
 
     IllegalStateException exception = assertThrows(IllegalStateException.class, st::cancel);
     assertEquals(
