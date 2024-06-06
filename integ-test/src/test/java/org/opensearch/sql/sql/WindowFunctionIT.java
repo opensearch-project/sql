@@ -123,4 +123,64 @@ public class WindowFunctionIT extends SQLIntegTestCase {
         rows("Duke Willmington", 1),
         rows("Ratliff", 1));
   }
+
+  @Test
+  public void testPercentileOverNull() {
+    JSONObject response =
+        new JSONObject(
+            executeQuery(
+                "SELECT lastname, percentile(balance, 50) OVER() "
+                    + "FROM "
+                    + TestsConstants.TEST_INDEX_BANK,
+                "jdbc"));
+    verifyDataRows(
+        response,
+        rows("Duke Willmington", 32838),
+        rows("Bond", 32838),
+        rows("Bates", 32838),
+        rows("Adams", 32838),
+        rows("Ratliff", 32838),
+        rows("Ayala", 32838),
+        rows("Mcpherson", 32838));
+  }
+
+  @Test
+  public void testPercentileOver() {
+    JSONObject response =
+        new JSONObject(
+            executeQuery(
+                "SELECT lastname, percentile(balance, 50) OVER(ORDER BY lastname) "
+                    + "FROM "
+                    + TestsConstants.TEST_INDEX_BANK,
+                "jdbc"));
+    verifyDataRowsInOrder(
+        response,
+        rows("Adams", 4180),
+        rows("Ayala", 22360),
+        rows("Bates", 32838),
+        rows("Bond", 19262),
+        rows("Duke Willmington", 32838),
+        rows("Mcpherson", 36031.5),
+        rows("Ratliff", 32838));
+  }
+
+  @Test
+  public void testPercentilePartition() {
+    JSONObject response =
+        new JSONObject(
+            executeQuery(
+                "SELECT lastname, percentile(balance, 50) OVER(PARTITION BY gender ORDER BY"
+                    + " lastname) FROM "
+                    + TestsConstants.TEST_INDEX_BANK,
+                "jdbc"));
+    verifyDataRowsInOrder(
+        response,
+        rows("Ayala", 40540),
+        rows("Bates", 36689),
+        rows("Mcpherson", 40540),
+        rows("Adams", 4180),
+        rows("Bond", 4933),
+        rows("Duke Willmington", 5686),
+        rows("Ratliff", 11052));
+  }
 }

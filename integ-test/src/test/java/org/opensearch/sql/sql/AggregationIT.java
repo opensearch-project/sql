@@ -5,9 +5,7 @@
 
 package org.opensearch.sql.sql;
 
-import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_BANK;
-import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_CALCS;
-import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_NULL_MISSING;
+import static org.opensearch.sql.legacy.TestsConstants.*;
 import static org.opensearch.sql.legacy.plugin.RestSqlAction.QUERY_API_ENDPOINT;
 import static org.opensearch.sql.util.MatcherUtils.rows;
 import static org.opensearch.sql.util.MatcherUtils.schema;
@@ -704,6 +702,42 @@ public class AggregationIT extends SQLIntegTestCase {
         schema(
             "avg(CAST(datetime0 AS timestamp)) OVER(PARTITION BY datetime1)", null, "timestamp"));
     verifySome(response.getJSONArray("datarows"), rows("2004-07-20 10:38:09.705"));
+  }
+
+  @Test
+  public void testPercentilePushedDown() throws IOException {
+    var response =
+        executeQuery(String.format("SELECT percentile(balance, 50)" + " FROM %s", TEST_INDEX_BANK));
+    verifySchema(response, schema("percentile(balance, 50)", null, "long"));
+    verifyDataRows(response, rows(32838));
+  }
+
+  @Test
+  public void testFilteredPercentilePushDown() throws IOException {
+    JSONObject response =
+        executeQuery(
+            "SELECT percentile(balance, 50) FILTER(WHERE balance > 40000) FROM " + TEST_INDEX_BANK);
+    verifySchema(
+        response, schema("percentile(balance, 50) FILTER(WHERE balance > 40000)", null, "long"));
+    verifyDataRows(response, rows(44313));
+  }
+
+  @Test
+  public void testPercentileGroupByPushDown() throws IOException {
+    var response =
+        executeQuery(
+            String.format(
+                "SELECT percentile(balance, 50), age" + " FROM %s GROUP BY age", TEST_INDEX_BANK));
+    verifySchema(
+        response, schema("percentile(balance, 50)", null, "long"), schema("age", null, "integer"));
+    verifyDataRows(
+        response,
+        rows(32838, 28),
+        rows(39225, 32),
+        rows(4180, 33),
+        rows(48086, 34),
+        rows(11052, 36),
+        rows(40540, 39));
   }
 
   protected JSONObject executeQuery(String query) throws IOException {

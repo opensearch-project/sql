@@ -17,6 +17,7 @@ import org.opensearch.search.aggregations.AggregatorFactories;
 import org.opensearch.search.aggregations.bucket.filter.FilterAggregationBuilder;
 import org.opensearch.search.aggregations.metrics.CardinalityAggregationBuilder;
 import org.opensearch.search.aggregations.metrics.ExtendedStats;
+import org.opensearch.search.aggregations.metrics.PercentilesAggregationBuilder;
 import org.opensearch.search.aggregations.metrics.TopHitsAggregationBuilder;
 import org.opensearch.search.aggregations.support.ValuesSourceAggregationBuilder;
 import org.opensearch.sql.expression.Expression;
@@ -24,11 +25,7 @@ import org.opensearch.sql.expression.ExpressionNodeVisitor;
 import org.opensearch.sql.expression.LiteralExpression;
 import org.opensearch.sql.expression.ReferenceExpression;
 import org.opensearch.sql.expression.aggregation.NamedAggregator;
-import org.opensearch.sql.opensearch.response.agg.FilterParser;
-import org.opensearch.sql.opensearch.response.agg.MetricParser;
-import org.opensearch.sql.opensearch.response.agg.SingleValueParser;
-import org.opensearch.sql.opensearch.response.agg.StatsParser;
-import org.opensearch.sql.opensearch.response.agg.TopHitsParser;
+import org.opensearch.sql.opensearch.response.agg.*;
 import org.opensearch.sql.opensearch.storage.script.filter.FilterQueryBuilder;
 import org.opensearch.sql.opensearch.storage.serialization.ExpressionSerializer;
 
@@ -160,6 +157,16 @@ public class MetricAggregationBuilder
             condition,
             name,
             new TopHitsParser(name));
+      case "percentile":
+      case "percentile_approx":
+        return make(
+            AggregationBuilders.percentiles(name),
+            expression,
+            node.getArguments().get(1), // percent
+            node.getArguments().size() >= 3 ? node.getArguments().get(2) : null, // compression
+            condition,
+            name,
+            new SinglePercentileParser(name));
       default:
         throw new IllegalStateException(
             String.format("unsupported aggregator %s", node.getFunctionName().getFunctionName()));
@@ -217,6 +224,28 @@ public class MetricAggregationBuilder
           FilterParser.builder().name(name).metricsParser(parser).build());
     }
     return Pair.of(builder, parser);
+  }
+
+  private Pair<AggregationBuilder, MetricParser> make(
+      PercentilesAggregationBuilder builder,
+      Expression expression,
+      Expression percent,
+      Expression compression,
+      Expression condition,
+      String name,
+      MetricParser parser) {
+    PercentilesAggregationBuilder aggregationBuilder =
+        helper.build(expression, builder::field, builder::script);
+    if (compression != null) {
+      aggregationBuilder.compression(compression.valueOf().doubleValue());
+    }
+    aggregationBuilder.percentiles(percent.valueOf().doubleValue());
+    if (condition != null) {
+      return Pair.of(
+          makeFilterAggregation(aggregationBuilder, condition, name),
+          FilterParser.builder().name(name).metricsParser(parser).build());
+    }
+    return Pair.of(aggregationBuilder, parser);
   }
 
   /**
