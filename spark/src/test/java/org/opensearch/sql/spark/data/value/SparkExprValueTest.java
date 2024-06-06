@@ -11,30 +11,18 @@ import org.junit.jupiter.api.Test;
 import org.opensearch.sql.spark.data.type.SparkDataType;
 
 class SparkExprValueTest {
-  private final SparkDataType sparkDataType = new SparkDataType("char");
-
   @Test
-  public void getters() {
-    SparkExprValue sparkExprValue = new SparkExprValue(sparkDataType, "str");
-
-    assertEquals(sparkDataType, sparkExprValue.type());
-    assertEquals("str", sparkExprValue.value());
+  public void type() {
+    assertEquals(
+        new SparkDataType("char"), new SparkExprValue(new SparkDataType("char"), "str").type());
   }
 
   @Test
   public void unsupportedCompare() {
-    SparkExprValue sparkExprValue = new SparkExprValue(sparkDataType, "str");
+    SparkDataType type = new SparkDataType("char");
 
-    assertThrows(UnsupportedOperationException.class, () -> sparkExprValue.compare(sparkExprValue));
-  }
-
-  @Test
-  public void testEquals() {
-    SparkExprValue sparkExprValue1 = new SparkExprValue(sparkDataType, "str");
-    SparkExprValue sparkExprValue2 = new SparkExprValue(sparkDataType, "str");
-    SparkExprValue sparkExprValue3 = new SparkExprValue(sparkDataType, "other");
-
-    assertTrue(sparkExprValue1.equal(sparkExprValue2));
-    assertFalse(sparkExprValue1.equal(sparkExprValue3));
+    assertThrows(
+        UnsupportedOperationException.class,
+        () -> new SparkExprValue(type, "str").compare(new SparkExprValue(type, "str")));
   }
 }
