@@ -322,6 +322,8 @@ MULTI_MATCH:                        'MULTI_MATCH';
 MULTIMATCHQUERY:                    'MULTIMATCHQUERY';
 NESTED:                             'NESTED';
 PERCENTILES:                        'PERCENTILES';
+PERCENTILE:                         'PERCENTILE';
+PERCENTILE_APPROX:                  'PERCENTILE_APPROX';
 REGEXP_QUERY:                       'REGEXP_QUERY';
 REVERSE_NESTED:                     'REVERSE_NESTED';
 QUERY:                              'QUERY';

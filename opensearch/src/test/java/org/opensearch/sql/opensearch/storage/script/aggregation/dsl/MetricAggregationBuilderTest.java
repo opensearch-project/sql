@@ -10,6 +10,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.when;
 import static org.opensearch.sql.common.utils.StringUtils.format;
 import static org.opensearch.sql.data.type.ExprCoreType.ARRAY;
+import static org.opensearch.sql.data.type.ExprCoreType.DOUBLE;
 import static org.opensearch.sql.data.type.ExprCoreType.INTEGER;
 import static org.opensearch.sql.data.type.ExprCoreType.STRING;
 import static org.opensearch.sql.expression.DSL.literal;
@@ -39,6 +40,7 @@ import org.opensearch.sql.expression.aggregation.CountAggregator;
 import org.opensearch.sql.expression.aggregation.MaxAggregator;
 import org.opensearch.sql.expression.aggregation.MinAggregator;
 import org.opensearch.sql.expression.aggregation.NamedAggregator;
+import org.opensearch.sql.expression.aggregation.PercentileApproximateAggregator;
 import org.opensearch.sql.expression.aggregation.SumAggregator;
 import org.opensearch.sql.expression.aggregation.TakeAggregator;
 import org.opensearch.sql.expression.function.FunctionName;
@@ -213,6 +215,94 @@ class MetricAggregationBuilderTest {
                 named(
                     "var_samp(age)",
                     varianceSample(Arrays.asList(ref("age", INTEGER)), INTEGER)))));
+  }
+
+  @Test
+  void should_build_percentile_aggregation() {
+    assertEquals(
+        format(
+            "{%n"
+                + "  \"percentile(age, 50)\" : {%n"
+                + "    \"percentiles\" : {%n"
+                + "      \"field\" : \"age\",%n"
+                + "      \"percents\" : [ 50.0 ],%n"
+                + "      \"keyed\" : true,%n"
+                + "      \"tdigest\" : {%n"
+                + "        \"compression\" : 100.0%n"
+                + "      }%n"
+                + "    }%n"
+                + "  }%n"
+                + "}"),
+        buildQuery(
+            Arrays.asList(
+                named(
+                    "percentile(age, 50)",
+                    new PercentileApproximateAggregator(
+                        Arrays.asList(ref("age", INTEGER), literal(50)), DOUBLE)))));
+  }
+
+  @Test
+  void should_build_percentile_with_compression_aggregation() {
+    assertEquals(
+        format(
+            "{%n"
+                + "  \"percentile(age, 50)\" : {%n"
+                + "    \"percentiles\" : {%n"
+                + "      \"field\" : \"age\",%n"
+                + "      \"percents\" : [ 50.0 ],%n"
+                + "      \"keyed\" : true,%n"
+                + "      \"tdigest\" : {%n"
+                + "        \"compression\" : 0.1%n"
+                + "      }%n"
+                + "    }%n"
+                + "  }%n"
+                + "}"),
+        buildQuery(
+            Arrays.asList(
+                named(
+                    "percentile(age, 50)",
+                    new PercentileApproximateAggregator(
+                        Arrays.asList(ref("age", INTEGER), literal(50), literal(0.1)), DOUBLE)))));
+  }
+
+  @Test
+  void should_build_filtered_percentile_aggregation() {
+    assertEquals(
+        format(
+            "{%n"
+                + "  \"percentile(age, 50)\" : {%n"
+                + "    \"filter\" : {%n"
+                + "      \"range\" : {%n"
+                + "        \"age\" : {%n"
+                + "          \"from\" : 30,%n"
+                + "          \"to\" : null,%n"
+                + "          \"include_lower\" : false,%n"
+                + "          \"include_upper\" : true,%n"
+                + "          \"boost\" : 1.0%n"
+                + "        }%n"
+                + "      }%n"
+                + "    },%n"
+                + "    \"aggregations\" : {%n"
+                + "      \"percentile(age, 50)\" : {%n"
+                + "        \"percentiles\" : {%n"
+                + "          \"field\" : \"age\",%n"
+                + "          \"percents\" : [ 50.0 ],%n"
+                + "          \"keyed\" : true,%n"
+                + "          \"tdigest\" : {%n"
+                + "            \"compression\" : 100.0%n"
+                + "          }%n"
+                + "        }%n"
+                + "      }%n"
+                + "    }%n"
+                + "  }%n"
+                + "}"),
+        buildQuery(
+            Arrays.asList(
+                named(
+                    "percentile(age, 50)",
+                    new PercentileApproximateAggregator(
+                            Arrays.asList(ref("age", INTEGER), literal(50)), DOUBLE)
+                        .condition(DSL.greater(ref("age", INTEGER), literal(30)))))));
   }
 
   @Test
