@@ -132,6 +132,23 @@ public class StatementTest extends OpenSearchIntegTestCase {
   }
 
   @Test
+  public void cancelFailedBecauseOfConflict() {
+    StatementId stId = new StatementId("statementId");
+    Statement st = buildStatement(stId);
+    st.open();
+
+    StatementModel running =
+        statementStorageService.updateStatementState(st.getStatementModel(), CANCELLED);
+
+    assertEquals(StatementState.CANCELLED, running.getStatementState());
+    IllegalStateException exception = assertThrows(IllegalStateException.class, st::cancel);
+    assertEquals(
+        String.format(
+            "cancel statement failed. current statementState: CANCELLED " + "statement: %s.", stId),
+        exception.getMessage());
+  }
+
+  @Test
   public void cancelCancelledStatement_throwsException() {
     testCancelThrowsExceptionGivenStatementState(StatementState.CANCELLED);
   }
