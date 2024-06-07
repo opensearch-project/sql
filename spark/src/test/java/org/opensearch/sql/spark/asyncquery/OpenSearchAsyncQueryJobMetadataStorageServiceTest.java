@@ -14,6 +14,8 @@ import org.junit.Test;
 import org.junit.jupiter.api.Assertions;
 import org.opensearch.sql.spark.asyncquery.exceptions.AsyncQueryNotFoundException;
 import org.opensearch.sql.spark.asyncquery.model.AsyncQueryJobMetadata;
+import org.opensearch.sql.spark.asyncquery.model.AsyncQueryRequestContext;
+import org.opensearch.sql.spark.asyncquery.model.NullAsyncQueryRequestContext;
 import org.opensearch.sql.spark.execution.statestore.StateStore;
 import org.opensearch.sql.spark.execution.xcontent.AsyncQueryJobMetadataXContentSerializer;
 import org.opensearch.sql.spark.utils.IDUtils;
@@ -26,6 +28,7 @@ public class OpenSearchAsyncQueryJobMetadataStorageServiceTest extends OpenSearc
   private static final String MOCK_RESULT_INDEX = "resultIndex";
   private static final String MOCK_QUERY_ID = "00fdo6u94n7abo0q";
   private OpenSearchAsyncQueryJobMetadataStorageService openSearchJobMetadataStorageService;
+  private AsyncQueryRequestContext asyncQueryRequestContext = new NullAsyncQueryRequestContext();
 
   @Before
   public void setup() {
@@ -46,7 +49,7 @@ public class OpenSearchAsyncQueryJobMetadataStorageServiceTest extends OpenSearc
             .datasourceName(DS_NAME)
             .build();
 
-    openSearchJobMetadataStorageService.storeJobMetadata(expected);
+    openSearchJobMetadataStorageService.storeJobMetadata(expected, asyncQueryRequestContext);
     Optional<AsyncQueryJobMetadata> actual =
         openSearchJobMetadataStorageService.getJobMetadata(expected.getQueryId());
 
@@ -68,7 +71,7 @@ public class OpenSearchAsyncQueryJobMetadataStorageServiceTest extends OpenSearc
             .datasourceName(DS_NAME)
             .build();
 
-    openSearchJobMetadataStorageService.storeJobMetadata(expected);
+    openSearchJobMetadataStorageService.storeJobMetadata(expected, asyncQueryRequestContext);
     Optional<AsyncQueryJobMetadata> actual =
         openSearchJobMetadataStorageService.getJobMetadata(expected.getQueryId());
 

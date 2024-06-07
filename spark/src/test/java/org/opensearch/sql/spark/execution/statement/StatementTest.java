@@ -20,6 +20,8 @@ import org.junit.Test;
 import org.opensearch.action.admin.indices.delete.DeleteIndexRequest;
 import org.opensearch.action.delete.DeleteRequest;
 import org.opensearch.sql.spark.asyncquery.model.AsyncQueryId;
+import org.opensearch.sql.spark.asyncquery.model.AsyncQueryRequestContext;
+import org.opensearch.sql.spark.asyncquery.model.NullAsyncQueryRequestContext;
 import org.opensearch.sql.spark.client.EMRServerlessClientFactory;
 import org.opensearch.sql.spark.execution.session.Session;
 import org.opensearch.sql.spark.execution.session.SessionConfigSupplier;
@@ -48,6 +50,7 @@ public class StatementTest extends OpenSearchIntegTestCase {
   private SessionConfigSupplier sessionConfigSupplier = () -> 600000L;
 
   private SessionManager sessionManager;
+  private AsyncQueryRequestContext asyncQueryRequestContext = new NullAsyncQueryRequestContext();
 
   @Before
   public void setup() {
@@ -222,31 +225,36 @@ public class StatementTest extends OpenSearchIntegTestCase {
 
   @Test
   public void submitStatementInRunningSession() {
-    Session session = sessionManager.createSession(createSessionRequest());
+    Session session =
+        sessionManager.createSession(createSessionRequest(), asyncQueryRequestContext);
 
     // App change state to running
     sessionStorageService.updateSessionState(session.getSessionModel(), SessionState.RUNNING);
 
-    StatementId statementId = session.submit(queryRequest());
+    StatementId statementId = session.submit(queryRequest(), asyncQueryRequestContext);
     assertFalse(statementId.getId().isEmpty());
   }
 
   @Test
   public void submitStatementInNotStartedState() {
-    Session session = sessionManager.createSession(createSessionRequest());
+    Session session =
+        sessionManager.createSession(createSessionRequest(), asyncQueryRequestContext);
 
-    StatementId statementId = session.submit(queryRequest());
+    StatementId statementId = session.submit(queryRequest(), asyncQueryRequestContext);
     assertFalse(statementId.getId().isEmpty());
   }
 
   @Test
   public void failToSubmitStatementInDeadState() {
-    Session session = sessionManager.createSession(createSessionRequest());
+    Session session =
+        sessionManager.createSession(createSessionRequest(), asyncQueryRequestContext);
 
     sessionStorageService.updateSessionState(session.getSessionModel(), SessionState.DEAD);
 
     IllegalStateException exception =
-        assertThrows(IllegalStateException.class, () -> session.submit(queryRequest()));
+        assertThrows(
+            IllegalStateException.class,
+            () -> session.submit(queryRequest(), asyncQueryRequestContext));
     assertEquals(
         "can't submit statement, session should not be in end state, current session state is:"
             + " dead",
@@ -255,12 +263,15 @@ public class StatementTest extends OpenSearchIntegTestCase {
 
   @Test
   public void failToSubmitStatementInFailState() {
-    Session session = sessionManager.createSession(createSessionRequest());
+    Session session =
+        sessionManager.createSession(createSessionRequest(), asyncQueryRequestContext);
 
     sessionStorageService.updateSessionState(session.getSessionModel(), SessionState.FAIL);
 
     IllegalStateException exception =
-        assertThrows(IllegalStateException.class, () -> session.submit(queryRequest()));
+        assertThrows(
+            IllegalStateException.class,
+            () -> session.submit(queryRequest(), asyncQueryRequestContext));
     assertEquals(
         "can't submit statement, session should not be in end state, current session state is:"
             + " fail",
@@ -269,8 +280,9 @@ public class StatementTest extends OpenSearchIntegTestCase {
 
   @Test
   public void newStatementFieldAssert() {
-    Session session = sessionManager.createSession(createSessionRequest());
-    StatementId statementId = session.submit(queryRequest());
+    Session session =
+        sessionManager.createSession(createSessionRequest(), asyncQueryRequestContext);
+    StatementId statementId = session.submit(queryRequest(), asyncQueryRequestContext);
     Optional<Statement> statement = session.get(statementId);
 
     assertTrue(statement.isPresent());
@@ -286,7 +298,8 @@ public class StatementTest extends OpenSearchIntegTestCase {
   @Test
   public void failToSubmitStatementInDeletedSession() {
     EMRServerlessClientFactory emrServerlessClientFactory = () -> emrsClient;
-    Session session = sessionManager.createSession(createSessionRequest());
+    Session session =
+        sessionManager.createSession(createSessionRequest(), asyncQueryRequestContext);
 
     // other's delete session
     client()
@@ -294,16 +307,19 @@ public class StatementTest extends OpenSearchIntegTestCase {
         .actionGet();
 
     IllegalStateException exception =
-        assertThrows(IllegalStateException.class, () -> session.submit(queryRequest()));
+        assertThrows(
+            IllegalStateException.class,
+            () -> session.submit(queryRequest(), asyncQueryRequestContext));
     assertEquals("session does not exist. " + session.getSessionId(), exception.getMessage());
   }
 
   @Test
   public void getStatementSuccess() {
-    Session session = sessionManager.createSession(createSessionRequest());
+    Session session =
+        sessionManager.createSession(createSessionRequest(), asyncQueryRequestContext);
     // App change state to running
     sessionStorageService.updateSessionState(session.getSessionModel(), SessionState.RUNNING);
-    StatementId statementId = session.submit(queryRequest());
+    StatementId statementId = session.submit(queryRequest(), asyncQueryRequestContext);
 
     Optional<Statement> statement = session.get(statementId);
     assertTrue(statement.isPresent());
@@ -313,7 +329,8 @@ public class StatementTest extends OpenSearchIntegTestCase {
 
   @Test
   public void getStatementNotExist() {
-    Session session = sessionManager.createSession(createSessionRequest());
+    Session session =
+        sessionManager.createSession(createSessionRequest(), asyncQueryRequestContext);
     // App change state to running
     sessionStorageService.updateSessionState(session.getSessionModel(), SessionState.RUNNING);
 
