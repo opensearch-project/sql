@@ -121,7 +121,7 @@ public class StatementTest extends OpenSearchIntegTestCase {
   }
 
   @Test
-  public void cancelNotExistStatement() {
+  public void cancelNotExistStatement_throwsException() {
     StatementId stId = new StatementId("statementId");
     Statement st = buildStatement(stId);
     st.open();
@@ -144,8 +144,6 @@ public class StatementTest extends OpenSearchIntegTestCase {
         statementStorageService.updateStatementState(st.getStatementModel(), CANCELLED);
 
     assertEquals(StatementState.CANCELLED, running.getStatementState());
-
-    // cancel conflict
     IllegalStateException exception = assertThrows(IllegalStateException.class, st::cancel);
     assertEquals(
         String.format(
@@ -154,55 +152,36 @@ public class StatementTest extends OpenSearchIntegTestCase {
   }
 
   @Test
-  public void cancelSuccessStatementFailed() {
-    StatementId stId = new StatementId("statementId");
-    Statement st = createStatement(stId);
-
-    // update to running state
-    StatementModel model = st.getStatementModel();
-    st.setStatementModel(
-        StatementModel.copyWithState(
-            st.getStatementModel(), StatementState.SUCCESS, model.getMetadata()));
-
-    // cancel conflict
-    IllegalStateException exception = assertThrows(IllegalStateException.class, st::cancel);
-    assertEquals(
-        String.format("can't cancel statement in success state. statement: %s.", stId),
-        exception.getMessage());
+  public void cancelCancelledStatement_throwsException() {
+    testCancelThrowsExceptionGivenStatementState(StatementState.CANCELLED);
   }
 
   @Test
-  public void cancelFailedStatementFailed() {
-    StatementId stId = new StatementId("statementId");
-    Statement st = createStatement(stId);
-
-    // update to running state
-    StatementModel model = st.getStatementModel();
-    st.setStatementModel(
-        StatementModel.copyWithState(
-            st.getStatementModel(), StatementState.FAILED, model.getMetadata()));
-
-    // cancel conflict
-    IllegalStateException exception = assertThrows(IllegalStateException.class, st::cancel);
-    assertEquals(
-        String.format("can't cancel statement in failed state. statement: %s.", stId),
-        exception.getMessage());
+  public void cancelSuccessStatement_throwsException() {
+    testCancelThrowsExceptionGivenStatementState(StatementState.SUCCESS);
   }
 
   @Test
-  public void cancelCancelledStatementFailed() {
+  public void cancelFailedStatement_throwsException() {
+    testCancelThrowsExceptionGivenStatementState(StatementState.FAILED);
+  }
+
+  @Test
+  public void cancelTimeoutStatement_throwsException() {
+    testCancelThrowsExceptionGivenStatementState(StatementState.TIMEOUT);
+  }
+
+  private void testCancelThrowsExceptionGivenStatementState(StatementState state) {
     StatementId stId = new StatementId("statementId");
     Statement st = createStatement(stId);
 
-    // update to running state
     StatementModel model = st.getStatementModel();
     st.setStatementModel(
-        StatementModel.copyWithState(st.getStatementModel(), CANCELLED, model.getMetadata()));
+        StatementModel.copyWithState(st.getStatementModel(), state, model.getMetadata()));
 
-    // cancel conflict
     IllegalStateException exception = assertThrows(IllegalStateException.class, st::cancel);
     assertEquals(
-        String.format("can't cancel statement in cancelled state. statement: %s.", stId),
+        String.format("can't cancel statement in %s state. statement: %s.", state.getState(), stId),
         exception.getMessage());
   }
 

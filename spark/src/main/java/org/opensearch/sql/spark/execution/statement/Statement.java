@@ -69,6 +69,7 @@ public class Statement {
 
     if (statementState.equals(StatementState.SUCCESS)
         || statementState.equals(StatementState.FAILED)
+        || statementState.equals(StatementState.TIMEOUT)
         || statementState.equals(StatementState.CANCELLED)) {
       String errorMsg =
           String.format(
