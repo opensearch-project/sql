@@ -25,6 +25,8 @@ public class Statement {
   private static final Logger LOG = LogManager.getLogger();
 
   private final SessionId sessionId;
+  // optional
+  private final String accountId;
   private final String applicationId;
   private final String jobId;
   private final StatementId statementId;
@@ -42,6 +44,7 @@ public class Statement {
       statementModel =
           submitStatement(
               sessionId,
+              accountId,
               applicationId,
               jobId,
               statementId,

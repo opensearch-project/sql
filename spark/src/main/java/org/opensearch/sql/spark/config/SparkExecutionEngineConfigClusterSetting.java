@@ -16,6 +16,8 @@ import lombok.Data;
 @Data
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class SparkExecutionEngineConfigClusterSetting {
+  // optional
+  private String accountId;
   private String applicationId;
   private String region;
   private String executionRoleARN;

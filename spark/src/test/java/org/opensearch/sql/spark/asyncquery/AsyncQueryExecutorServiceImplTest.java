@@ -72,21 +72,23 @@ public class AsyncQueryExecutorServiceImplTest {
             "select * from my_glue.default.http_logs", "my_glue", LangType.SQL);
     when(sparkExecutionEngineConfigSupplier.getSparkExecutionEngineConfig(any()))
         .thenReturn(
-            new SparkExecutionEngineConfig(
-                EMRS_APPLICATION_ID,
-                "eu-west-1",
-                EMRS_EXECUTION_ROLE,
-                sparkSubmitParameterModifier,
-                TEST_CLUSTER_NAME));
+            SparkExecutionEngineConfig.builder()
+                .applicationId(EMRS_APPLICATION_ID)
+                .region("eu-west-1")
+                .executionRoleARN(EMRS_EXECUTION_ROLE)
+                .sparkSubmitParameterModifier(sparkSubmitParameterModifier)
+                .clusterName(TEST_CLUSTER_NAME)
+                .build());
     DispatchQueryRequest expectedDispatchQueryRequest =
-        new DispatchQueryRequest(
-            EMRS_APPLICATION_ID,
-            "select * from my_glue.default.http_logs",
-            "my_glue",
-            LangType.SQL,
-            EMRS_EXECUTION_ROLE,
-            TEST_CLUSTER_NAME,
-            sparkSubmitParameterModifier);
+        DispatchQueryRequest.builder()
+            .applicationId(EMRS_APPLICATION_ID)
+            .query("select * from my_glue.default.http_logs")
+            .datasource("my_glue")
+            .langType(LangType.SQL)
+            .executionRoleARN(EMRS_EXECUTION_ROLE)
+            .clusterName(TEST_CLUSTER_NAME)
+            .sparkSubmitParameterModifier(sparkSubmitParameterModifier)
+            .build();
     when(sparkQueryDispatcher.dispatch(expectedDispatchQueryRequest))
         .thenReturn(
             DispatchQueryResponse.builder()
@@ -114,12 +116,14 @@ public class AsyncQueryExecutorServiceImplTest {
         new OpenSearchSparkSubmitParameterModifier("--conf spark.dynamicAllocation.enabled=false");
     when(sparkExecutionEngineConfigSupplier.getSparkExecutionEngineConfig(any()))
         .thenReturn(
-            new SparkExecutionEngineConfig(
-                EMRS_APPLICATION_ID,
-                "eu-west-1",
-                EMRS_EXECUTION_ROLE,
-                modifier,
-                TEST_CLUSTER_NAME));
+            SparkExecutionEngineConfig.builder()
+                .applicationId(EMRS_APPLICATION_ID)
+                .region("eu-west-1")
+                .executionRoleARN(EMRS_EXECUTION_ROLE)
+                .sparkSubmitParameterModifier(sparkSubmitParameterModifier)
+                .sparkSubmitParameterModifier(modifier)
+                .clusterName(TEST_CLUSTER_NAME)
+                .build());
     when(sparkQueryDispatcher.dispatch(any()))
         .thenReturn(
             DispatchQueryResponse.builder()

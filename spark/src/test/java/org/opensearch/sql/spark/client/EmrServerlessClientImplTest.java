@@ -73,6 +73,7 @@ public class EmrServerlessClientImplTest {
     emrServerlessClient.startJobRun(
         new StartJobRequest(
             EMRS_JOB_NAME,
+            null,
             EMRS_APPLICATION_ID,
             EMRS_EXECUTION_ROLE,
             parameters,
@@ -109,6 +110,7 @@ public class EmrServerlessClientImplTest {
                 emrServerlessClient.startJobRun(
                     new StartJobRequest(
                         EMRS_JOB_NAME,
+                        null,
                         EMRS_APPLICATION_ID,
                         EMRS_EXECUTION_ROLE,
                         SPARK_SUBMIT_PARAMETERS,
@@ -127,6 +129,7 @@ public class EmrServerlessClientImplTest {
     emrServerlessClient.startJobRun(
         new StartJobRequest(
             EMRS_JOB_NAME,
+            null,
             EMRS_APPLICATION_ID,
             EMRS_EXECUTION_ROLE,
             SPARK_SUBMIT_PARAMETERS,
@@ -217,6 +220,7 @@ public class EmrServerlessClientImplTest {
     emrServerlessClient.startJobRun(
         new StartJobRequest(
             RandomStringUtils.random(300),
+            null,
             EMRS_APPLICATION_ID,
             EMRS_EXECUTION_ROLE,
             SPARK_SUBMIT_PARAMETERS,
@@ -240,6 +244,7 @@ public class EmrServerlessClientImplTest {
                 emrServerlessClient.startJobRun(
                     new StartJobRequest(
                         EMRS_JOB_NAME,
+                        null,
                         EMRS_APPLICATION_ID,
                         EMRS_EXECUTION_ROLE,
                         SPARK_SUBMIT_PARAMETERS,

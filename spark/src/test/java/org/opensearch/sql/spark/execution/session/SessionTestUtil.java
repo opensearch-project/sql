@@ -16,6 +16,7 @@ public class SessionTestUtil {
   public static CreateSessionRequest createSessionRequest() {
     return new CreateSessionRequest(
         TEST_CLUSTER_NAME,
+        null,
         "appId",
         "arn",
         SparkSubmitParameters.builder().build(),
