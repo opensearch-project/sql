@@ -106,7 +106,7 @@ public abstract class OpenSearchJoinQueryAction extends QueryAction {
             requestBuilder.getFirstTable().getOriginalSelect().getIndexArr(),
             requestBuilder.getSecondTable().getOriginalSelect().getIndexArr());
     this.pointInTimeHandler = new PointInTimeHandler(client, indices);
-    String pitId = pointInTimeHandler.getPointInTimeId();
+    String pitId = pointInTimeHandler.getPitId();
     requestBuilder.setPitId(pitId);
     requestBuilder.getFirstTable().setPitId(pitId);
     requestBuilder.getSecondTable().setPitId(pitId);

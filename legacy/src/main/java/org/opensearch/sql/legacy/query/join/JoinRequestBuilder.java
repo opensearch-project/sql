@@ -7,6 +7,7 @@ package org.opensearch.sql.legacy.query.join;
 
 import com.alibaba.druid.sql.ast.statement.SQLJoinTableSource;
 import java.io.IOException;
+import lombok.Setter;
 import org.opensearch.action.ActionRequest;
 import org.opensearch.action.ActionRequestBuilder;
 import org.opensearch.action.search.MultiSearchRequest;
@@ -25,7 +26,7 @@ public class JoinRequestBuilder implements SqlElasticRequestBuilder {
   private TableInJoinRequestBuilder secondTable;
   private SQLJoinTableSource.JoinType joinType;
   private int totalLimit;
-  private String pitId;
+  @Setter private String pitId;
 
   public JoinRequestBuilder() {
     firstTable = new TableInJoinRequestBuilder();
@@ -112,13 +113,5 @@ public class JoinRequestBuilder implements SqlElasticRequestBuilder {
 
   public void setTotalLimit(int totalLimit) {
     this.totalLimit = totalLimit;
-  }
-
-  public String getPitId() {
-    return pitId;
-  }
-
-  public void setPitId(String pitId) {
-    this.pitId = pitId;
   }
 }

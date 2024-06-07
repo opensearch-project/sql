@@ -5,6 +5,7 @@
 
 package org.opensearch.sql.legacy.pit;
 
+import lombok.Getter;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.action.search.CreatePitRequest;
@@ -16,7 +17,7 @@ import org.opensearch.core.action.ActionListener;
 
 public class PointInTimeHandler {
   private Client client;
-  private String pitId;
+  @Getter private String pitId;
   private static final Logger LOG = LogManager.getLogger();
 
   public PointInTimeHandler(Client client, String[] indices) {
@@ -33,13 +34,9 @@ public class PointInTimeHandler {
 
           @Override
           public void onFailure(Exception e) {
-            LOG.error("Error occurred while creating PIT" + e);
+            LOG.error("Error occurred while creating PIT", e);
           }
         });
-  }
-
-  public String getPointInTimeId() {
-    return pitId;
   }
 
   public void deletePointInTime() {
@@ -54,7 +51,7 @@ public class PointInTimeHandler {
 
           @Override
           public void onFailure(Exception e) {
-            LOG.error("Error occurred while deleting PIT" + e);
+            LOG.error("Error occurred while deleting PIT", e);
           }
         });
   }

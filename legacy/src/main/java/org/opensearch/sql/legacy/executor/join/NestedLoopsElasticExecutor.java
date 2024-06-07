@@ -5,10 +5,6 @@
 
 package org.opensearch.sql.legacy.executor.join;
 
-import static org.opensearch.search.sort.FieldSortBuilder.DOC_FIELD_NAME;
-import static org.opensearch.search.sort.SortOrder.ASC;
-import static org.opensearch.sql.common.setting.Settings.Key.SQL_PAGINATION_API_SEARCH_AFTER;
-
 import com.alibaba.druid.sql.ast.statement.SQLJoinTableSource;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -22,14 +18,12 @@ import org.opensearch.action.search.SearchRequestBuilder;
 import org.opensearch.action.search.SearchResponse;
 import org.opensearch.client.Client;
 import org.opensearch.common.document.DocumentField;
-import org.opensearch.common.unit.TimeValue;
 import org.opensearch.index.mapper.MapperService;
 import org.opensearch.search.SearchHit;
 import org.opensearch.search.SearchHits;
 import org.opensearch.sql.legacy.domain.Condition;
 import org.opensearch.sql.legacy.domain.Select;
 import org.opensearch.sql.legacy.domain.Where;
-import org.opensearch.sql.legacy.esdomain.LocalClusterState;
 import org.opensearch.sql.legacy.esdomain.OpenSearchClient;
 import org.opensearch.sql.legacy.exception.SqlParseException;
 import org.opensearch.sql.legacy.query.DefaultQueryAction;
@@ -116,40 +110,18 @@ public class NestedLoopsElasticExecutor extends ElasticJoinExecutor {
           if (!BackOffRetryStrategy.isHealthy()) {
             throw new IllegalStateException("Memory circuit is broken");
           }
-          LocalClusterState clusterState = LocalClusterState.state();
-          Boolean paginationWithSearchAfter =
-              clusterState.getSettingValue(SQL_PAGINATION_API_SEARCH_AFTER);
-
-          if (paginationWithSearchAfter) {
-            SearchRequestBuilder request =
-                this.nestedLoopsRequest
-                    .getFirstTable()
-                    .getRequestBuilder()
-                    .setPointInTime(
-                        new org.opensearch.search.builder.PointInTimeBuilder(
-                            nestedLoopsRequest.getPitId()))
-                    .searchAfter(firstTableResponse.getHits().getSortFields());
-
-            boolean ordered =
-                this.nestedLoopsRequest.getFirstTable().getOriginalSelect().isOrderdSelect();
-            if (!ordered) {
-              request.addSort(DOC_FIELD_NAME, ASC);
-            }
-
-            Integer hintLimit = nestedLoopsRequest.getFirstTable().getHintLimit();
-            if (hintLimit != null && hintLimit < MAX_RESULTS_ON_ONE_FETCH) {
-              request.setSize(hintLimit);
-            } else {
-              request.setSize(MAX_RESULTS_ON_ONE_FETCH);
-            }
-
-            firstTableResponse = request.get();
+          Integer hintLimit = nestedLoopsRequest.getFirstTable().getHintLimit();
+          if (hintLimit != null && hintLimit < MAX_RESULTS_ON_ONE_FETCH) {
+            firstTableResponse =
+                getResponseWithHits(
+                    client, nestedLoopsRequest.getFirstTable(), hintLimit, firstTableResponse);
           } else {
             firstTableResponse =
-                client
-                    .prepareSearchScroll(firstTableResponse.getScrollId())
-                    .setScroll(new TimeValue(600000))
-                    .get();
+                getResponseWithHits(
+                    client,
+                    nestedLoopsRequest.getFirstTable(),
+                    MAX_RESULTS_ON_ONE_FETCH,
+                    firstTableResponse);
           }
         } else {
           finishedWithFirstTable = true;
@@ -298,10 +270,6 @@ public class NestedLoopsElasticExecutor extends ElasticJoinExecutor {
       if (secondTableHintLimit != null && secondTableHintLimit <= MAX_RESULTS_ON_ONE_FETCH) {
         secondTableRequest.setSize(secondTableHintLimit);
       }
-      boolean ordered = secondTableSelect.isOrderdSelect();
-      if (!ordered) {
-        secondTableRequest.addSort(DOC_FIELD_NAME, ASC);
-      }
       multiSearchRequest.add(secondTableRequest);
     }
     return multiSearchRequest;
@@ -330,7 +298,7 @@ public class NestedLoopsElasticExecutor extends ElasticJoinExecutor {
       needScrollForFirstTable = false;
     } else {
       // scroll request with max.
-      responseWithHits = scrollOneTimeWithMax(client, tableRequest);
+      responseWithHits = getResponseWithHits(client, tableRequest, MAX_RESULTS_ON_ONE_FETCH, null);
       if (responseWithHits.getHits().getTotalHits() != null
           && responseWithHits.getHits().getTotalHits().value < MAX_RESULTS_ON_ONE_FETCH) {
         needScrollForFirstTable = true;

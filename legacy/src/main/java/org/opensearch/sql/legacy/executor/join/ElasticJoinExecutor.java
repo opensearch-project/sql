@@ -5,6 +5,7 @@
 
 package org.opensearch.sql.legacy.executor.join;
 
+import static org.opensearch.sql.common.setting.Settings.Key.SQL_CURSOR_KEEP_ALIVE;
 import static org.opensearch.sql.common.setting.Settings.Key.SQL_PAGINATION_API_SEARCH_AFTER;
 
 import java.io.IOException;
@@ -260,32 +261,44 @@ public abstract class ElasticJoinExecutor implements ElasticHitsExecutor {
     this.metaResults.updateTimeOut(searchResponse.isTimedOut());
   }
 
-  protected SearchResponse scrollOneTimeWithMax(
-      Client client, TableInJoinRequestBuilder tableRequest) {
+  public SearchResponse getResponseWithHits(
+      Client client,
+      TableInJoinRequestBuilder tableRequest,
+      int size,
+      SearchResponse previousResponse) {
+    // Set Size
+    SearchRequestBuilder request = tableRequest.getRequestBuilder().setSize(size);
 
-    LocalClusterState clusterState = LocalClusterState.state();
-    Boolean paginationWithSearchAfter =
-        clusterState.getSettingValue(SQL_PAGINATION_API_SEARCH_AFTER);
-
-    SearchRequestBuilder request =
-        tableRequest.getRequestBuilder().setSize(MAX_RESULTS_ON_ONE_FETCH);
-
-    if (paginationWithSearchAfter) {
-      request.setPointInTime(new PointInTimeBuilder(tableRequest.getPitId()));
-    } else {
-      request.setScroll(new TimeValue(60000));
-    }
-
+    // Set sort field for search_after
     boolean ordered = tableRequest.getOriginalSelect().isOrderdSelect();
     if (!ordered) {
       request.addSort(FieldSortBuilder.DOC_FIELD_NAME, SortOrder.ASC);
     }
-    SearchResponse responseWithHits = request.get();
-    // on ordered select - not using SCAN , elastic returns hits on first scroll
-    // es5.0 elastic always return docs on scan
-    //  if(!ordered)
-    //  responseWithHits = client.prepareSearchScroll(responseWithHits.getScrollId())
-    //  .setScroll(new TimeValue(600000)).get();
+
+    SearchResponse responseWithHits;
+    // Set PIT or scroll
+    if (LocalClusterState.state().getSettingValue(SQL_PAGINATION_API_SEARCH_AFTER)) {
+      request.setPointInTime(new PointInTimeBuilder(tableRequest.getPitId()));
+      if (previousResponse != null) {
+        request.searchAfter(previousResponse.getHits().getSortFields());
+      }
+      responseWithHits = request.get();
+    } else {
+      if (previousResponse == null) {
+        responseWithHits =
+            client
+                .prepareSearchScroll(previousResponse.getScrollId())
+                .setScroll(
+                    new TimeValue(LocalClusterState.state().getSettingValue(SQL_CURSOR_KEEP_ALIVE)))
+                .execute()
+                .actionGet();
+      } else {
+        request.setScroll(
+            new TimeValue(LocalClusterState.state().getSettingValue(SQL_CURSOR_KEEP_ALIVE)));
+        responseWithHits = request.get();
+      }
+    }
+
     return responseWithHits;
   }
 }
