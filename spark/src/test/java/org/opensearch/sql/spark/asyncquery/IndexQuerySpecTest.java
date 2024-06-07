@@ -479,7 +479,7 @@ public class IndexQuerySpecTest extends AsyncQueryExecutorServiceSpec {
   /**
    * Index state is stable, Drop Index operation is retryable, expectation is
    *
-   * <p>(1) call EMR-S (2) change index state to: DELETED
+   * <p>(1) not call EMR-S (2) change index state to: DELETED
    */
   @Test
   public void dropIndexWithIndexInActiveState() {
@@ -489,9 +489,16 @@ public class IndexQuerySpecTest extends AsyncQueryExecutorServiceSpec {
               LocalEMRSClient emrsClient =
                   new LocalEMRSClient() {
                     @Override
+                    public CancelJobRunResult cancelJobRun(
+                        String applicationId, String jobId, boolean allowExceptionPropagation) {
+                      Assert.fail("should not call cancelJobRun");
+                      return null;
+                    }
+
+                    @Override
                     public GetJobRunResult getJobRunResult(String applicationId, String jobId) {
-                      super.getJobRunResult(applicationId, jobId);
-                      return new GetJobRunResult().withJobRun(new JobRun().withState("Cancelled"));
+                      Assert.fail("should not call getJobRunResult");
+                      return null;
                     }
                   };
               EMRServerlessClientFactory emrServerlessClientFactory = () -> emrsClient;
@@ -519,8 +526,8 @@ public class IndexQuerySpecTest extends AsyncQueryExecutorServiceSpec {
               assertEquals("SUCCESS", asyncQueryExecutionResponse.getStatus());
               flintIndexJob.assertState(FlintIndexState.DELETED);
               emrsClient.startJobRunCalled(0);
-              emrsClient.cancelJobRunCalled(1);
-              emrsClient.getJobRunResultCalled(1);
+              emrsClient.cancelJobRunCalled(0);
+              emrsClient.getJobRunResultCalled(0);
             });
   }
 

@@ -31,6 +31,7 @@ public abstract class FlintIndexOp {
   private final FlintIndexStateModelService flintIndexStateModelService;
   private final String datasourceName;
   private final EMRServerlessClientFactory emrServerlessClientFactory;
+  private FlintIndexStateModel initialFlintIndexStateModel;
 
   /** Apply operation on {@link FlintIndexMetadata} */
   public void apply(FlintIndexMetadata metadata) {
@@ -39,7 +40,7 @@ public abstract class FlintIndexOp {
     if (latestId.isEmpty()) {
       takeActionWithoutOCC(metadata);
     } else {
-      FlintIndexStateModel initialFlintIndexStateModel = getFlintIndexStateModel(latestId.get());
+      initialFlintIndexStateModel = getFlintIndexStateModel(latestId.get());
       // 1.validate state.
       validFlintIndexInitialState(initialFlintIndexStateModel);
 
@@ -143,6 +144,13 @@ public abstract class FlintIndexOp {
    */
   public void cancelStreamingJob(FlintIndexStateModel flintIndexStateModel)
       throws InterruptedException, TimeoutException {
+    // TODO: null handling
+    if (initialFlintIndexStateModel.getIndexState() != FlintIndexState.REFRESHING) {
+      // Only refreshing index will have a job to cancel. Adding this validation prevents cancelling
+      // the interactive job where a non-auto-refresh index is created.
+      return;
+    }
+
     String applicationId = flintIndexStateModel.getApplicationId();
     String jobId = flintIndexStateModel.getJobId();
     EMRServerlessClient emrServerlessClient = emrServerlessClientFactory.getClient();
