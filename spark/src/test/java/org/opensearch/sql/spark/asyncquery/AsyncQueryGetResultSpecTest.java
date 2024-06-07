@@ -24,10 +24,10 @@ import org.opensearch.sql.executor.pagination.Cursor;
 import org.opensearch.sql.protocol.response.format.JsonResponseFormatter;
 import org.opensearch.sql.protocol.response.format.ResponseFormatter;
 import org.opensearch.sql.spark.asyncquery.model.AsyncQueryExecutionResponse;
+import org.opensearch.sql.spark.asyncquery.model.AsyncQueryRequestContext;
 import org.opensearch.sql.spark.asyncquery.model.AsyncQueryResult;
 import org.opensearch.sql.spark.asyncquery.model.MockFlintSparkJob;
-import org.opensearch.sql.spark.asyncquery.model.NullRequestContext;
-import org.opensearch.sql.spark.asyncquery.model.RequestContext;
+import org.opensearch.sql.spark.asyncquery.model.NullAsyncQueryRequestContext;
 import org.opensearch.sql.spark.client.EMRServerlessClientFactory;
 import org.opensearch.sql.spark.execution.statement.StatementModel;
 import org.opensearch.sql.spark.execution.statement.StatementState;
@@ -40,7 +40,7 @@ import org.opensearch.sql.spark.rest.model.LangType;
 import org.opensearch.sql.spark.transport.format.AsyncQueryResultResponseFormatter;
 
 public class AsyncQueryGetResultSpecTest extends AsyncQueryExecutorServiceSpec {
-  RequestContext requestContext = new NullRequestContext();
+  AsyncQueryRequestContext asyncQueryRequestContext = new NullAsyncQueryRequestContext();
 
   /** Mock Flint index and index state */
   private final FlintDatasetMock mockIndex =
@@ -440,7 +440,7 @@ public class AsyncQueryGetResultSpecTest extends AsyncQueryExecutorServiceSpec {
       this.createQueryResponse =
           queryService.createAsyncQuery(
               new CreateAsyncQueryRequest(query, MYS3_DATASOURCE, LangType.SQL, null),
-              requestContext);
+              asyncQueryRequestContext);
     }
 
     AssertionHelper withInteraction(Interaction interaction) {

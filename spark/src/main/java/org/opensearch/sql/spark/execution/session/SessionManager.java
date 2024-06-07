@@ -9,6 +9,7 @@ import static org.opensearch.sql.spark.execution.session.SessionId.newSessionId;
 
 import java.util.Optional;
 import lombok.RequiredArgsConstructor;
+import org.opensearch.sql.spark.asyncquery.model.AsyncQueryRequestContext;
 import org.opensearch.sql.spark.client.EMRServerlessClientFactory;
 import org.opensearch.sql.spark.execution.statestore.SessionStorageService;
 import org.opensearch.sql.spark.execution.statestore.StatementStorageService;
@@ -26,7 +27,8 @@ public class SessionManager {
   private final EMRServerlessClientFactory emrServerlessClientFactory;
   private final SessionConfigSupplier sessionConfigSupplier;
 
-  public Session createSession(CreateSessionRequest request) {
+  public Session createSession(
+      CreateSessionRequest request, AsyncQueryRequestContext asyncQueryRequestContext) {
     InteractiveSession session =
         InteractiveSession.builder()
             .sessionId(newSessionId(request.getDatasourceName()))
@@ -34,7 +36,7 @@ public class SessionManager {
             .statementStorageService(statementStorageService)
             .serverlessClient(emrServerlessClientFactory.getClient())
             .build();
-    session.open(request);
+    session.open(request, asyncQueryRequestContext);
     return session;
   }
 
