@@ -13,7 +13,6 @@ import org.opensearch.sql.spark.asyncquery.model.AsyncQueryExecutionResponse;
 import org.opensearch.sql.spark.asyncquery.model.MockFlintIndex;
 import org.opensearch.sql.spark.asyncquery.model.MockFlintSparkJob;
 import org.opensearch.sql.spark.client.EMRServerlessClientFactory;
-import org.opensearch.sql.spark.client.StartJobRequest;
 import org.opensearch.sql.spark.flint.FlintIndexState;
 import org.opensearch.sql.spark.flint.FlintIndexType;
 import org.opensearch.sql.spark.rest.model.CreateAsyncQueryRequest;
@@ -1006,8 +1005,8 @@ public class IndexQuerySpecAlterTest extends AsyncQueryExecutorServiceSpec {
               emrsClient.startJobRunCalled(0);
               emrsClient.cancelJobRunCalled(1);
               emrsClient.getJobRunResultCalled(0);
-              // TODO: such error will set index state to initial state, REFRESHING, inconsistent with
-              // auto_refresh setting "false"
+              // TODO: such error will set index state to initial state, REFRESHING, inconsistent
+              // with auto_refresh setting "false"
               flintIndexJob.assertState(FlintIndexState.REFRESHING);
               Map<String, Object> mappings = mockDS.getIndexMappings();
               Map<String, Object> meta = (HashMap<String, Object>) mappings.get("_meta");
@@ -1074,8 +1073,8 @@ public class IndexQuerySpecAlterTest extends AsyncQueryExecutorServiceSpec {
               emrsClient.startJobRunCalled(0);
               emrsClient.cancelJobRunCalled(1);
               emrsClient.getJobRunResultCalled(0);
-              // TODO: such error will set index state to initial state, REFRESHING, inconsistent with
-              // auto_refresh setting "false"
+              // TODO: such error will set index state to initial state, REFRESHING, inconsistent
+              // with auto_refresh setting "false"
               flintIndexJob.assertState(FlintIndexState.REFRESHING);
               Map<String, Object> mappings = mockDS.getIndexMappings();
               Map<String, Object> meta = (HashMap<String, Object>) mappings.get("_meta");
