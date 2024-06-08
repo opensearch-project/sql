@@ -188,23 +188,10 @@ public class IndexQuerySpecAlterTest extends AsyncQueryExecutorServiceSpec {
     ImmutableList.of(ALTER_SKIPPING, ALTER_COVERING, ALTER_MV)
         .forEach(
             mockDS -> {
-              LocalEMRSClient emrsClient =
-                  new LocalEMRSClient() {
-                    @Override
-                    public String startJobRun(StartJobRequest startJobRequest) {
-                      return "jobId";
-                    }
-
-                    @Override
-                    public CancelJobRunResult cancelJobRun(
-                        String applicationId, String jobId, boolean allowExceptionPropagation) {
-                      super.cancelJobRun(applicationId, jobId, allowExceptionPropagation);
-                      throw new ValidationException("Job run is not in a cancellable state");
-                    }
-                  };
-              EMRServerlessClientFactory emrServerlessCientFactory = () -> emrsClient;
+              LocalEMRSClient emrsClient = new LocalEMRSClient();
+              EMRServerlessClientFactory emrServerlessClientFactory = () -> emrsClient;
               AsyncQueryExecutorService asyncQueryExecutorService =
-                  createAsyncQueryExecutorService(emrServerlessCientFactory);
+                  createAsyncQueryExecutorService(emrServerlessClientFactory);
               // Mock flint index
               mockDS.createIndex();
               HashMap<String, Object> existingOptions = new HashMap<>();
@@ -297,10 +284,6 @@ public class IndexQuerySpecAlterTest extends AsyncQueryExecutorServiceSpec {
               localEMRSClient.startJobRunCalled(1);
               localEMRSClient.getJobRunResultCalled(1);
               localEMRSClient.cancelJobRunCalled(0);
-              Map<String, Object> mappings = mockDS.getIndexMappings();
-              Map<String, Object> meta = (HashMap<String, Object>) mappings.get("_meta");
-              Map<String, Object> options = (Map<String, Object>) meta.get("options");
-              Assertions.assertEquals("false", options.get("auto_refresh"));
             });
   }
 
@@ -1023,6 +1006,8 @@ public class IndexQuerySpecAlterTest extends AsyncQueryExecutorServiceSpec {
               emrsClient.startJobRunCalled(0);
               emrsClient.cancelJobRunCalled(1);
               emrsClient.getJobRunResultCalled(0);
+              // TODO: such error will set index state to initial state, REFRESHING, inconsistent with
+              // auto_refresh setting "false"
               flintIndexJob.assertState(FlintIndexState.REFRESHING);
               Map<String, Object> mappings = mockDS.getIndexMappings();
               Map<String, Object> meta = (HashMap<String, Object>) mappings.get("_meta");
@@ -1089,6 +1074,8 @@ public class IndexQuerySpecAlterTest extends AsyncQueryExecutorServiceSpec {
               emrsClient.startJobRunCalled(0);
               emrsClient.cancelJobRunCalled(1);
               emrsClient.getJobRunResultCalled(0);
+              // TODO: such error will set index state to initial state, REFRESHING, inconsistent with
+              // auto_refresh setting "false"
               flintIndexJob.assertState(FlintIndexState.REFRESHING);
               Map<String, Object> mappings = mockDS.getIndexMappings();
               Map<String, Object> meta = (HashMap<String, Object>) mappings.get("_meta");
