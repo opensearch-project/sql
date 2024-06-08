@@ -17,6 +17,7 @@ import org.opensearch.core.common.bytes.BytesReference;
 import org.opensearch.core.xcontent.XContentBuilder;
 import org.opensearch.sql.datasource.model.DataSourceMetadata;
 import org.opensearch.sql.datasource.model.DataSourceType;
+import org.opensearch.sql.utils.SerializeUtils;
 
 @ExtendWith(MockitoExtension.class)
 public class XContentParserUtilsTest {
@@ -50,7 +51,7 @@ public class XContentParserUtilsTest {
             .setProperties(Map.of("prometheus.uri", "https://localhost:9090"))
             .setResultIndex("query_execution_result2")
             .build();
-    Gson gson = new Gson();
+    Gson gson = SerializeUtils.buildGson();
     String json = gson.toJson(dataSourceMetadata);
 
     DataSourceMetadata retrievedMetadata = XContentParserUtils.toDataSourceMetadata(json);

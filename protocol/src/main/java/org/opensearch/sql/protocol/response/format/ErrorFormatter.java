@@ -6,12 +6,12 @@
 package org.opensearch.sql.protocol.response.format;
 
 import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
 import java.security.AccessController;
 import java.security.PrivilegedAction;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.UtilityClass;
+import org.opensearch.sql.utils.SerializeUtils;
 
 @UtilityClass
 public class ErrorFormatter {
@@ -19,10 +19,10 @@ public class ErrorFormatter {
   private static final Gson PRETTY_PRINT_GSON =
       AccessController.doPrivileged(
           (PrivilegedAction<Gson>)
-              () -> new GsonBuilder().setPrettyPrinting().disableHtmlEscaping().create());
+              () -> SerializeUtils.getGsonBuilder().setPrettyPrinting().disableHtmlEscaping().create());
   private static final Gson GSON =
       AccessController.doPrivileged(
-          (PrivilegedAction<Gson>) () -> new GsonBuilder().disableHtmlEscaping().create());
+          (PrivilegedAction<Gson>) () -> SerializeUtils.getGsonBuilder().disableHtmlEscaping().create());
 
   /** Util method to format {@link Throwable} response to JSON string in compact printing. */
   public static String compactFormat(Throwable t) {
