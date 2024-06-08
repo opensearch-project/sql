@@ -7,8 +7,6 @@ import com.amazonaws.services.emrserverless.model.ValidationException;
 import com.google.common.collect.ImmutableList;
 import java.util.HashMap;
 import java.util.Map;
-
-import org.junit.Assert;
 import org.junit.Test;
 import org.junit.jupiter.api.Assertions;
 import org.opensearch.sql.spark.asyncquery.model.AsyncQueryExecutionResponse;
