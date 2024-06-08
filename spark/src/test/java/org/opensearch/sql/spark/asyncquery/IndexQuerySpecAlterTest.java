@@ -7,6 +7,8 @@ import com.amazonaws.services.emrserverless.model.ValidationException;
 import com.google.common.collect.ImmutableList;
 import java.util.HashMap;
 import java.util.Map;
+
+import org.junit.Assert;
 import org.junit.Test;
 import org.junit.jupiter.api.Assertions;
 import org.opensearch.sql.spark.asyncquery.model.AsyncQueryExecutionResponse;
@@ -70,7 +72,7 @@ public class IndexQuerySpecAlterTest extends AsyncQueryExecutorServiceSpec {
               MockFlintSparkJob flintIndexJob =
                   new MockFlintSparkJob(
                       flintIndexStateModelService, mockDS.getLatestId(), MYS3_DATASOURCE);
-              flintIndexJob.active();
+              flintIndexJob.refreshing();
 
               // 1. alter index
               CreateAsyncQueryResponse response =
@@ -139,7 +141,7 @@ public class IndexQuerySpecAlterTest extends AsyncQueryExecutorServiceSpec {
               MockFlintSparkJob flintIndexJob =
                   new MockFlintSparkJob(
                       flintIndexStateModelService, mockDS.getLatestId(), MYS3_DATASOURCE);
-              flintIndexJob.active();
+              flintIndexJob.refreshing();
 
               // 1. alter index
               CreateAsyncQueryResponse response =
@@ -196,13 +198,6 @@ public class IndexQuerySpecAlterTest extends AsyncQueryExecutorServiceSpec {
                     }
 
                     @Override
-                    public GetJobRunResult getJobRunResult(String applicationId, String jobId) {
-                      JobRun jobRun = new JobRun();
-                      jobRun.setState("cancelled");
-                      return new GetJobRunResult().withJobRun(jobRun);
-                    }
-
-                    @Override
                     public CancelJobRunResult cancelJobRun(
                         String applicationId, String jobId, boolean allowExceptionPropagation) {
                       super.cancelJobRun(applicationId, jobId, allowExceptionPropagation);
@@ -235,7 +230,7 @@ public class IndexQuerySpecAlterTest extends AsyncQueryExecutorServiceSpec {
                   asyncQueryExecutorService.getAsyncQueryResults(response.getQueryId());
               assertEquals("SUCCESS", asyncQueryExecutionResponse.getStatus());
               emrsClient.startJobRunCalled(0);
-              emrsClient.cancelJobRunCalled(1);
+              emrsClient.cancelJobRunCalled(0);
               emrsClient.getJobRunResultCalled(0);
               flintIndexJob.assertState(FlintIndexState.ACTIVE);
               Map<String, Object> mappings = mockDS.getIndexMappings();
@@ -301,7 +296,6 @@ public class IndexQuerySpecAlterTest extends AsyncQueryExecutorServiceSpec {
                       .getAsyncQueryResults(response.getQueryId())
                       .getStatus());
 
-              flintIndexJob.assertState(FlintIndexState.ACTIVE);
               localEMRSClient.startJobRunCalled(1);
               localEMRSClient.getJobRunResultCalled(1);
               localEMRSClient.cancelJobRunCalled(0);
@@ -368,6 +362,8 @@ public class IndexQuerySpecAlterTest extends AsyncQueryExecutorServiceSpec {
                       .getStatus());
 
               flintIndexJob.assertState(FlintIndexState.ACTIVE);
+              // IndexDMLHandler can handle alter queries that explicitly set auto_refresh to false.
+              // Other alter queries are handled by StreamingQueryHandler, which starts a job.
               localEMRSClient.startJobRunCalled(1);
               localEMRSClient.getJobRunResultCalled(1);
               localEMRSClient.cancelJobRunCalled(0);
@@ -426,7 +422,7 @@ public class IndexQuerySpecAlterTest extends AsyncQueryExecutorServiceSpec {
               MockFlintSparkJob flintIndexJob =
                   new MockFlintSparkJob(
                       flintIndexStateModelService, mockDS.getLatestId(), MYS3_DATASOURCE);
-              flintIndexJob.active();
+              flintIndexJob.refreshing();
 
               // 1. alter index
               CreateAsyncQueryResponse response =
@@ -445,7 +441,7 @@ public class IndexQuerySpecAlterTest extends AsyncQueryExecutorServiceSpec {
                   asyncQueryExecutionResponse.getError());
               emrsClient.startJobRunCalled(0);
               emrsClient.cancelJobRunCalled(0);
-              flintIndexJob.assertState(FlintIndexState.ACTIVE);
+              flintIndexJob.assertState(FlintIndexState.REFRESHING);
               Map<String, Object> mappings = mockDS.getIndexMappings();
               Map<String, Object> meta = (HashMap<String, Object>) mappings.get("_meta");
               Map<String, Object> options = (Map<String, Object>) meta.get("options");
@@ -501,7 +497,7 @@ public class IndexQuerySpecAlterTest extends AsyncQueryExecutorServiceSpec {
               MockFlintSparkJob flintIndexJob =
                   new MockFlintSparkJob(
                       flintIndexStateModelService, mockDS.getLatestId(), MYS3_DATASOURCE);
-              flintIndexJob.active();
+              flintIndexJob.refreshing();
 
               // 1. alter index
               CreateAsyncQueryResponse response =
@@ -520,7 +516,7 @@ public class IndexQuerySpecAlterTest extends AsyncQueryExecutorServiceSpec {
                   asyncQueryExecutionResponse.getError());
               emrsClient.startJobRunCalled(0);
               emrsClient.cancelJobRunCalled(0);
-              flintIndexJob.assertState(FlintIndexState.ACTIVE);
+              flintIndexJob.assertState(FlintIndexState.REFRESHING);
               Map<String, Object> mappings = mockDS.getIndexMappings();
               Map<String, Object> meta = (HashMap<String, Object>) mappings.get("_meta");
               Map<String, Object> options = (Map<String, Object>) meta.get("options");
@@ -570,7 +566,7 @@ public class IndexQuerySpecAlterTest extends AsyncQueryExecutorServiceSpec {
               MockFlintSparkJob flintIndexJob =
                   new MockFlintSparkJob(
                       flintIndexStateModelService, mockDS.getLatestId(), MYS3_DATASOURCE);
-              flintIndexJob.active();
+              flintIndexJob.refreshing();
 
               // 1. alter index
               CreateAsyncQueryResponse response =
@@ -589,7 +585,7 @@ public class IndexQuerySpecAlterTest extends AsyncQueryExecutorServiceSpec {
                   asyncQueryExecutionResponse.getError());
               emrsClient.startJobRunCalled(0);
               emrsClient.cancelJobRunCalled(0);
-              flintIndexJob.assertState(FlintIndexState.ACTIVE);
+              flintIndexJob.assertState(FlintIndexState.REFRESHING);
               Map<String, Object> mappings = mockDS.getIndexMappings();
               Map<String, Object> meta = (HashMap<String, Object>) mappings.get("_meta");
               Map<String, Object> options = (Map<String, Object>) meta.get("options");
@@ -632,7 +628,7 @@ public class IndexQuerySpecAlterTest extends AsyncQueryExecutorServiceSpec {
               MockFlintSparkJob flintIndexJob =
                   new MockFlintSparkJob(
                       flintIndexStateModelService, mockDS.getLatestId(), MYS3_DATASOURCE);
-              flintIndexJob.active();
+              flintIndexJob.refreshing();
 
               // 1. alter index
               CreateAsyncQueryResponse response =
@@ -651,7 +647,7 @@ public class IndexQuerySpecAlterTest extends AsyncQueryExecutorServiceSpec {
                   asyncQueryExecutionResponse.getError());
               emrsClient.startJobRunCalled(0);
               emrsClient.cancelJobRunCalled(0);
-              flintIndexJob.assertState(FlintIndexState.ACTIVE);
+              flintIndexJob.assertState(FlintIndexState.REFRESHING);
               Map<String, Object> mappings = mockDS.getIndexMappings();
               Map<String, Object> meta = (HashMap<String, Object>) mappings.get("_meta");
               Map<String, Object> options = (Map<String, Object>) meta.get("options");
@@ -696,7 +692,7 @@ public class IndexQuerySpecAlterTest extends AsyncQueryExecutorServiceSpec {
               MockFlintSparkJob flintIndexJob =
                   new MockFlintSparkJob(
                       flintIndexStateModelService, mockDS.getLatestId(), MYS3_DATASOURCE);
-              flintIndexJob.active();
+              flintIndexJob.refreshing();
 
               // 1. alter index
               CreateAsyncQueryResponse response =
@@ -715,7 +711,7 @@ public class IndexQuerySpecAlterTest extends AsyncQueryExecutorServiceSpec {
                   asyncQueryExecutionResponse.getError());
               emrsClient.startJobRunCalled(0);
               emrsClient.cancelJobRunCalled(0);
-              flintIndexJob.assertState(FlintIndexState.ACTIVE);
+              flintIndexJob.assertState(FlintIndexState.REFRESHING);
               Map<String, Object> mappings = mockDS.getIndexMappings();
               Map<String, Object> meta = (HashMap<String, Object>) mappings.get("_meta");
               Map<String, Object> options = (Map<String, Object>) meta.get("options");
@@ -947,7 +943,7 @@ public class IndexQuerySpecAlterTest extends AsyncQueryExecutorServiceSpec {
               MockFlintSparkJob flintIndexJob =
                   new MockFlintSparkJob(
                       flintIndexStateModelService, mockDS.getLatestId(), MYS3_DATASOURCE);
-              flintIndexJob.active();
+              flintIndexJob.refreshing();
 
               // 1. alter index
               CreateAsyncQueryResponse response =
@@ -1012,7 +1008,7 @@ public class IndexQuerySpecAlterTest extends AsyncQueryExecutorServiceSpec {
               MockFlintSparkJob flintIndexJob =
                   new MockFlintSparkJob(
                       flintIndexStateModelService, mockDS.getLatestId(), MYS3_DATASOURCE);
-              flintIndexJob.active();
+              flintIndexJob.refreshing();
 
               // 1. alter index
               CreateAsyncQueryResponse response =
@@ -1029,7 +1025,7 @@ public class IndexQuerySpecAlterTest extends AsyncQueryExecutorServiceSpec {
               emrsClient.startJobRunCalled(0);
               emrsClient.cancelJobRunCalled(1);
               emrsClient.getJobRunResultCalled(0);
-              flintIndexJob.assertState(FlintIndexState.ACTIVE);
+              flintIndexJob.assertState(FlintIndexState.REFRESHING);
               Map<String, Object> mappings = mockDS.getIndexMappings();
               Map<String, Object> meta = (HashMap<String, Object>) mappings.get("_meta");
               Map<String, Object> options = (Map<String, Object>) meta.get("options");
@@ -1078,7 +1074,7 @@ public class IndexQuerySpecAlterTest extends AsyncQueryExecutorServiceSpec {
               MockFlintSparkJob flintIndexJob =
                   new MockFlintSparkJob(
                       flintIndexStateModelService, mockDS.getLatestId(), MYS3_DATASOURCE);
-              flintIndexJob.active();
+              flintIndexJob.refreshing();
 
               // 1. alter index
               CreateAsyncQueryResponse response =
@@ -1095,7 +1091,7 @@ public class IndexQuerySpecAlterTest extends AsyncQueryExecutorServiceSpec {
               emrsClient.startJobRunCalled(0);
               emrsClient.cancelJobRunCalled(1);
               emrsClient.getJobRunResultCalled(0);
-              flintIndexJob.assertState(FlintIndexState.ACTIVE);
+              flintIndexJob.assertState(FlintIndexState.REFRESHING);
               Map<String, Object> mappings = mockDS.getIndexMappings();
               Map<String, Object> meta = (HashMap<String, Object>) mappings.get("_meta");
               Map<String, Object> options = (Map<String, Object>) meta.get("options");
