@@ -80,6 +80,7 @@ public abstract class FlintIndexOp {
 
   private void takeActionWithoutOCC(FlintIndexMetadata metadata) {
     // take action without occ.
+    // indexState should be REFRESHING to allow for cancel streaming job.
     FlintIndexStateModel fakeModel =
         FlintIndexStateModel.builder()
             .indexState(FlintIndexState.REFRESHING)
@@ -90,6 +91,7 @@ public abstract class FlintIndexOp {
             .lastUpdateTime(System.currentTimeMillis())
             .error("")
             .build();
+    initialFlintIndexStateModel = fakeModel;
     runOp(metadata, fakeModel);
   }
 
