@@ -93,7 +93,8 @@ public class TransportGetDataSourceActionTest {
         dataSourceMetadataJsonResponseFormatter.format(dataSourceMetadata),
         getDataSourceActionResponse.getResult());
     DataSourceMetadata result =
-        SerializeUtils.buildGson().fromJson(getDataSourceActionResponse.getResult(), DataSourceMetadata.class);
+        SerializeUtils.buildGson()
+            .fromJson(getDataSourceActionResponse.getResult(), DataSourceMetadata.class);
     Assertions.assertEquals("test_datasource", result.getName());
     Assertions.assertEquals(DataSourceType.PROMETHEUS, result.getConnector());
   }

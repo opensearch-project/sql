@@ -19,10 +19,15 @@ public class ErrorFormatter {
   private static final Gson PRETTY_PRINT_GSON =
       AccessController.doPrivileged(
           (PrivilegedAction<Gson>)
-              () -> SerializeUtils.getGsonBuilder().setPrettyPrinting().disableHtmlEscaping().create());
+              () ->
+                  SerializeUtils.getGsonBuilder()
+                      .setPrettyPrinting()
+                      .disableHtmlEscaping()
+                      .create());
   private static final Gson GSON =
       AccessController.doPrivileged(
-          (PrivilegedAction<Gson>) () -> SerializeUtils.getGsonBuilder().disableHtmlEscaping().create());
+          (PrivilegedAction<Gson>)
+              () -> SerializeUtils.getGsonBuilder().disableHtmlEscaping().create());
 
   /** Util method to format {@link Throwable} response to JSON string in compact printing. */
   public static String compactFormat(Throwable t) {
