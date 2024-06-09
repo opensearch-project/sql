@@ -7,9 +7,6 @@ Compatible with OpenSearch and OpenSearch Dashboards Version 2.15.0
 * Add option to use LakeFormation in S3Glue data source ([#2624](https://github.com/opensearch-project/sql/pull/2624))
 * Remove direct ClusterState access in LocalClusterState ([#2717](https://github.com/opensearch-project/sql/pull/2717))
 
-### Bug Fixes
-*
-
 ### Maintenance
 * Use EMR serverless bundled iceberg JAR ([#2632](https://github.com/opensearch-project/sql/pull/2632))
 * Update maintainers list ([#2663](https://github.com/opensearch-project/sql/pull/2663))
