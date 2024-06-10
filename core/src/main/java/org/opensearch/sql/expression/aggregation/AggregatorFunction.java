@@ -57,6 +57,7 @@ public class AggregatorFunction {
     repository.register(stddevSamp());
     repository.register(stddevPop());
     repository.register(take());
+    repository.register(percentileApprox());
   }
 
   private static DefaultFunctionResolver avg() {
@@ -232,6 +233,48 @@ public class AggregatorFunction {
                 .put(
                     new FunctionSignature(functionName, ImmutableList.of(STRING, INTEGER)),
                     (functionProperties, arguments) -> new TakeAggregator(arguments, ARRAY))
+                .build());
+    return functionResolver;
+  }
+
+  private static DefaultFunctionResolver percentileApprox() {
+    FunctionName functionName = BuiltinFunctionName.PERCENTILE_APPROX.getName();
+    DefaultFunctionResolver functionResolver =
+        new DefaultFunctionResolver(
+            functionName,
+            new ImmutableMap.Builder<FunctionSignature, FunctionBuilder>()
+                .put(
+                    new FunctionSignature(functionName, ImmutableList.of(INTEGER, DOUBLE)),
+                    (functionProperties, arguments) ->
+                        PercentileApproximateAggregator.percentileApprox(arguments, INTEGER))
+                .put(
+                    new FunctionSignature(functionName, ImmutableList.of(INTEGER, DOUBLE, DOUBLE)),
+                    (functionProperties, arguments) ->
+                        PercentileApproximateAggregator.percentileApprox(arguments, INTEGER))
+                .put(
+                    new FunctionSignature(functionName, ImmutableList.of(LONG, DOUBLE)),
+                    (functionProperties, arguments) ->
+                        PercentileApproximateAggregator.percentileApprox(arguments, LONG))
+                .put(
+                    new FunctionSignature(functionName, ImmutableList.of(LONG, DOUBLE, DOUBLE)),
+                    (functionProperties, arguments) ->
+                        PercentileApproximateAggregator.percentileApprox(arguments, LONG))
+                .put(
+                    new FunctionSignature(functionName, ImmutableList.of(FLOAT, DOUBLE)),
+                    (functionProperties, arguments) ->
+                        PercentileApproximateAggregator.percentileApprox(arguments, FLOAT))
+                .put(
+                    new FunctionSignature(functionName, ImmutableList.of(FLOAT, DOUBLE, DOUBLE)),
+                    (functionProperties, arguments) ->
+                        PercentileApproximateAggregator.percentileApprox(arguments, FLOAT))
+                .put(
+                    new FunctionSignature(functionName, ImmutableList.of(DOUBLE, DOUBLE)),
+                    (functionProperties, arguments) ->
+                        PercentileApproximateAggregator.percentileApprox(arguments, DOUBLE))
+                .put(
+                    new FunctionSignature(functionName, ImmutableList.of(DOUBLE, DOUBLE, DOUBLE)),
+                    (functionProperties, arguments) ->
+                        PercentileApproximateAggregator.percentileApprox(arguments, DOUBLE))
                 .build());
     return functionResolver;
   }

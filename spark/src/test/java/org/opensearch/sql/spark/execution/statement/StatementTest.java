@@ -20,6 +20,8 @@ import org.junit.Test;
 import org.opensearch.action.admin.indices.delete.DeleteIndexRequest;
 import org.opensearch.action.delete.DeleteRequest;
 import org.opensearch.sql.spark.asyncquery.model.AsyncQueryId;
+import org.opensearch.sql.spark.asyncquery.model.AsyncQueryRequestContext;
+import org.opensearch.sql.spark.asyncquery.model.NullAsyncQueryRequestContext;
 import org.opensearch.sql.spark.client.EMRServerlessClientFactory;
 import org.opensearch.sql.spark.execution.session.Session;
 import org.opensearch.sql.spark.execution.session.SessionConfigSupplier;
@@ -48,6 +50,7 @@ public class StatementTest extends OpenSearchIntegTestCase {
   private SessionConfigSupplier sessionConfigSupplier = () -> 600000L;
 
   private SessionManager sessionManager;
+  private AsyncQueryRequestContext asyncQueryRequestContext = new NullAsyncQueryRequestContext();
 
   @Before
   public void setup() {
@@ -118,7 +121,7 @@ public class StatementTest extends OpenSearchIntegTestCase {
   }
 
   @Test
-  public void cancelNotExistStatement() {
+  public void cancelNotExistStatement_throwsException() {
     StatementId stId = new StatementId("statementId");
     Statement st = buildStatement(stId);
     st.open();
@@ -141,8 +144,6 @@ public class StatementTest extends OpenSearchIntegTestCase {
         statementStorageService.updateStatementState(st.getStatementModel(), CANCELLED);
 
     assertEquals(StatementState.CANCELLED, running.getStatementState());
-
-    // cancel conflict
     IllegalStateException exception = assertThrows(IllegalStateException.class, st::cancel);
     assertEquals(
         String.format(
@@ -151,55 +152,36 @@ public class StatementTest extends OpenSearchIntegTestCase {
   }
 
   @Test
-  public void cancelSuccessStatementFailed() {
-    StatementId stId = new StatementId("statementId");
-    Statement st = createStatement(stId);
-
-    // update to running state
-    StatementModel model = st.getStatementModel();
-    st.setStatementModel(
-        StatementModel.copyWithState(
-            st.getStatementModel(), StatementState.SUCCESS, model.getMetadata()));
-
-    // cancel conflict
-    IllegalStateException exception = assertThrows(IllegalStateException.class, st::cancel);
-    assertEquals(
-        String.format("can't cancel statement in success state. statement: %s.", stId),
-        exception.getMessage());
+  public void cancelCancelledStatement_throwsException() {
+    testCancelThrowsExceptionGivenStatementState(StatementState.CANCELLED);
   }
 
   @Test
-  public void cancelFailedStatementFailed() {
-    StatementId stId = new StatementId("statementId");
-    Statement st = createStatement(stId);
-
-    // update to running state
-    StatementModel model = st.getStatementModel();
-    st.setStatementModel(
-        StatementModel.copyWithState(
-            st.getStatementModel(), StatementState.FAILED, model.getMetadata()));
-
-    // cancel conflict
-    IllegalStateException exception = assertThrows(IllegalStateException.class, st::cancel);
-    assertEquals(
-        String.format("can't cancel statement in failed state. statement: %s.", stId),
-        exception.getMessage());
+  public void cancelSuccessStatement_throwsException() {
+    testCancelThrowsExceptionGivenStatementState(StatementState.SUCCESS);
   }
 
   @Test
-  public void cancelCancelledStatementFailed() {
+  public void cancelFailedStatement_throwsException() {
+    testCancelThrowsExceptionGivenStatementState(StatementState.FAILED);
+  }
+
+  @Test
+  public void cancelTimeoutStatement_throwsException() {
+    testCancelThrowsExceptionGivenStatementState(StatementState.TIMEOUT);
+  }
+
+  private void testCancelThrowsExceptionGivenStatementState(StatementState state) {
     StatementId stId = new StatementId("statementId");
     Statement st = createStatement(stId);
 
-    // update to running state
     StatementModel model = st.getStatementModel();
     st.setStatementModel(
-        StatementModel.copyWithState(st.getStatementModel(), CANCELLED, model.getMetadata()));
+        StatementModel.copyWithState(st.getStatementModel(), state, model.getMetadata()));
 
-    // cancel conflict
     IllegalStateException exception = assertThrows(IllegalStateException.class, st::cancel);
     assertEquals(
-        String.format("can't cancel statement in cancelled state. statement: %s.", stId),
+        String.format("can't cancel statement in %s state. statement: %s.", state.getState(), stId),
         exception.getMessage());
   }
 
@@ -222,31 +204,36 @@ public class StatementTest extends OpenSearchIntegTestCase {
 
   @Test
   public void submitStatementInRunningSession() {
-    Session session = sessionManager.createSession(createSessionRequest());
+    Session session =
+        sessionManager.createSession(createSessionRequest(), asyncQueryRequestContext);
 
     // App change state to running
     sessionStorageService.updateSessionState(session.getSessionModel(), SessionState.RUNNING);
 
-    StatementId statementId = session.submit(queryRequest());
+    StatementId statementId = session.submit(queryRequest(), asyncQueryRequestContext);
     assertFalse(statementId.getId().isEmpty());
   }
 
   @Test
   public void submitStatementInNotStartedState() {
-    Session session = sessionManager.createSession(createSessionRequest());
+    Session session =
+        sessionManager.createSession(createSessionRequest(), asyncQueryRequestContext);
 
-    StatementId statementId = session.submit(queryRequest());
+    StatementId statementId = session.submit(queryRequest(), asyncQueryRequestContext);
     assertFalse(statementId.getId().isEmpty());
   }
 
   @Test
   public void failToSubmitStatementInDeadState() {
-    Session session = sessionManager.createSession(createSessionRequest());
+    Session session =
+        sessionManager.createSession(createSessionRequest(), asyncQueryRequestContext);
 
     sessionStorageService.updateSessionState(session.getSessionModel(), SessionState.DEAD);
 
     IllegalStateException exception =
-        assertThrows(IllegalStateException.class, () -> session.submit(queryRequest()));
+        assertThrows(
+            IllegalStateException.class,
+            () -> session.submit(queryRequest(), asyncQueryRequestContext));
     assertEquals(
         "can't submit statement, session should not be in end state, current session state is:"
             + " dead",
@@ -255,12 +242,15 @@ public class StatementTest extends OpenSearchIntegTestCase {
 
   @Test
   public void failToSubmitStatementInFailState() {
-    Session session = sessionManager.createSession(createSessionRequest());
+    Session session =
+        sessionManager.createSession(createSessionRequest(), asyncQueryRequestContext);
 
     sessionStorageService.updateSessionState(session.getSessionModel(), SessionState.FAIL);
 
     IllegalStateException exception =
-        assertThrows(IllegalStateException.class, () -> session.submit(queryRequest()));
+        assertThrows(
+            IllegalStateException.class,
+            () -> session.submit(queryRequest(), asyncQueryRequestContext));
     assertEquals(
         "can't submit statement, session should not be in end state, current session state is:"
             + " fail",
@@ -269,8 +259,9 @@ public class StatementTest extends OpenSearchIntegTestCase {
 
   @Test
   public void newStatementFieldAssert() {
-    Session session = sessionManager.createSession(createSessionRequest());
-    StatementId statementId = session.submit(queryRequest());
+    Session session =
+        sessionManager.createSession(createSessionRequest(), asyncQueryRequestContext);
+    StatementId statementId = session.submit(queryRequest(), asyncQueryRequestContext);
     Optional<Statement> statement = session.get(statementId);
 
     assertTrue(statement.isPresent());
@@ -286,7 +277,8 @@ public class StatementTest extends OpenSearchIntegTestCase {
   @Test
   public void failToSubmitStatementInDeletedSession() {
     EMRServerlessClientFactory emrServerlessClientFactory = () -> emrsClient;
-    Session session = sessionManager.createSession(createSessionRequest());
+    Session session =
+        sessionManager.createSession(createSessionRequest(), asyncQueryRequestContext);
 
     // other's delete session
     client()
@@ -294,16 +286,19 @@ public class StatementTest extends OpenSearchIntegTestCase {
         .actionGet();
 
     IllegalStateException exception =
-        assertThrows(IllegalStateException.class, () -> session.submit(queryRequest()));
+        assertThrows(
+            IllegalStateException.class,
+            () -> session.submit(queryRequest(), asyncQueryRequestContext));
     assertEquals("session does not exist. " + session.getSessionId(), exception.getMessage());
   }
 
   @Test
   public void getStatementSuccess() {
-    Session session = sessionManager.createSession(createSessionRequest());
+    Session session =
+        sessionManager.createSession(createSessionRequest(), asyncQueryRequestContext);
     // App change state to running
     sessionStorageService.updateSessionState(session.getSessionModel(), SessionState.RUNNING);
-    StatementId statementId = session.submit(queryRequest());
+    StatementId statementId = session.submit(queryRequest(), asyncQueryRequestContext);
 
     Optional<Statement> statement = session.get(statementId);
     assertTrue(statement.isPresent());
@@ -313,7 +308,8 @@ public class StatementTest extends OpenSearchIntegTestCase {
 
   @Test
   public void getStatementNotExist() {
-    Session session = sessionManager.createSession(createSessionRequest());
+    Session session =
+        sessionManager.createSession(createSessionRequest(), asyncQueryRequestContext);
     // App change state to running
     sessionStorageService.updateSessionState(session.getSessionModel(), SessionState.RUNNING);
 

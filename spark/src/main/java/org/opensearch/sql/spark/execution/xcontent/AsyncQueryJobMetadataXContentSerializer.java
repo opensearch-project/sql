@@ -6,6 +6,7 @@
 package org.opensearch.sql.spark.execution.xcontent;
 
 import static org.opensearch.core.xcontent.XContentParserUtils.ensureExpectedToken;
+import static org.opensearch.sql.spark.execution.xcontent.XContentCommonAttributes.ACCOUNT_ID;
 import static org.opensearch.sql.spark.execution.xcontent.XContentCommonAttributes.APPLICATION_ID;
 import static org.opensearch.sql.spark.execution.xcontent.XContentCommonAttributes.DATASOURCE_NAME;
 import static org.opensearch.sql.spark.execution.xcontent.XContentCommonAttributes.JOB_ID;
@@ -39,6 +40,7 @@ public class AsyncQueryJobMetadataXContentSerializer
         .field(QUERY_ID, jobMetadata.getQueryId())
         .field(TYPE, TYPE_JOBMETA)
         .field(JOB_ID, jobMetadata.getJobId())
+        .field(ACCOUNT_ID, jobMetadata.getAccountId())
         .field(APPLICATION_ID, jobMetadata.getApplicationId())
         .field(RESULT_INDEX, jobMetadata.getResultIndex())
         .field(SESSION_ID, jobMetadata.getSessionId())
@@ -62,6 +64,9 @@ public class AsyncQueryJobMetadataXContentSerializer
           break;
         case JOB_ID:
           builder.jobId(parser.textOrNull());
+          break;
+        case ACCOUNT_ID:
+          builder.accountId(parser.textOrNull());
           break;
         case APPLICATION_ID:
           builder.applicationId(parser.textOrNull());

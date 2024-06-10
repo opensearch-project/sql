@@ -17,6 +17,7 @@ import org.apache.logging.log4j.Logger;
 import org.json.JSONObject;
 import org.opensearch.sql.datasource.model.DataSourceMetadata;
 import org.opensearch.sql.spark.asyncquery.model.AsyncQueryJobMetadata;
+import org.opensearch.sql.spark.asyncquery.model.AsyncQueryRequestContext;
 import org.opensearch.sql.spark.dispatcher.model.DispatchQueryContext;
 import org.opensearch.sql.spark.dispatcher.model.DispatchQueryRequest;
 import org.opensearch.sql.spark.dispatcher.model.DispatchQueryResponse;
@@ -72,7 +73,8 @@ public class IndexDMLHandler extends AsyncQueryHandler {
               dataSourceMetadata,
               JobRunState.SUCCESS.toString(),
               StringUtils.EMPTY,
-              getElapsedTimeSince(startTime));
+              getElapsedTimeSince(startTime),
+              context.getAsyncQueryRequestContext());
       return DispatchQueryResponse.builder()
           .queryId(asyncQueryId)
           .jobId(DML_QUERY_JOB_ID)
@@ -89,7 +91,8 @@ public class IndexDMLHandler extends AsyncQueryHandler {
               dataSourceMetadata,
               JobRunState.FAILED.toString(),
               e.getMessage(),
-              getElapsedTimeSince(startTime));
+              getElapsedTimeSince(startTime),
+              context.getAsyncQueryRequestContext());
       return DispatchQueryResponse.builder()
           .queryId(asyncQueryId)
           .jobId(DML_QUERY_JOB_ID)
@@ -106,7 +109,8 @@ public class IndexDMLHandler extends AsyncQueryHandler {
       DataSourceMetadata dataSourceMetadata,
       String status,
       String error,
-      long queryRunTime) {
+      long queryRunTime,
+      AsyncQueryRequestContext asyncQueryRequestContext) {
     IndexDMLResult indexDMLResult =
         IndexDMLResult.builder()
             .queryId(queryId)
@@ -116,7 +120,7 @@ public class IndexDMLHandler extends AsyncQueryHandler {
             .queryRunTime(queryRunTime)
             .updateTime(System.currentTimeMillis())
             .build();
-    indexDMLResultStorageService.createIndexDMLResult(indexDMLResult);
+    indexDMLResultStorageService.createIndexDMLResult(indexDMLResult, asyncQueryRequestContext);
     return queryId;
   }
 

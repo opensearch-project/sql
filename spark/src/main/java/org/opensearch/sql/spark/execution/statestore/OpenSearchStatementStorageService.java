@@ -7,6 +7,7 @@ package org.opensearch.sql.spark.execution.statestore;
 
 import java.util.Optional;
 import lombok.RequiredArgsConstructor;
+import org.opensearch.sql.spark.asyncquery.model.AsyncQueryRequestContext;
 import org.opensearch.sql.spark.execution.statement.StatementModel;
 import org.opensearch.sql.spark.execution.statement.StatementState;
 import org.opensearch.sql.spark.execution.xcontent.StatementModelXContentSerializer;
@@ -18,7 +19,8 @@ public class OpenSearchStatementStorageService implements StatementStorageServic
   private final StatementModelXContentSerializer serializer;
 
   @Override
-  public StatementModel createStatement(StatementModel statementModel) {
+  public StatementModel createStatement(
+      StatementModel statementModel, AsyncQueryRequestContext asyncQueryRequestContext) {
     return stateStore.create(
         statementModel.getId(),
         statementModel,

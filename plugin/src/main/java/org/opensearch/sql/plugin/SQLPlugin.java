@@ -83,6 +83,7 @@ import org.opensearch.sql.spark.cluster.ClusterManagerEventListener;
 import org.opensearch.sql.spark.flint.FlintIndexMetadataServiceImpl;
 import org.opensearch.sql.spark.flint.operation.FlintIndexOpFactory;
 import org.opensearch.sql.spark.rest.RestAsyncQueryManagementAction;
+import org.opensearch.sql.spark.storage.SparkStorageFactory;
 import org.opensearch.sql.spark.transport.TransportCancelAsyncQueryRequestAction;
 import org.opensearch.sql.spark.transport.TransportCreateAsyncQueryRequestAction;
 import org.opensearch.sql.spark.transport.TransportGetAsyncQueryResultAction;
@@ -129,7 +130,6 @@ public class SQLPlugin extends Plugin implements ActionPlugin, ScriptPlugin {
     Objects.requireNonNull(clusterService, "Cluster service is required");
     Objects.requireNonNull(pluginSettings, "Cluster settings is required");
 
-    LocalClusterState.state().setResolver(indexNameExpressionResolver);
     Metrics.getInstance().registerDefaultMetrics();
 
     return Arrays.asList(
@@ -202,6 +202,7 @@ public class SQLPlugin extends Plugin implements ActionPlugin, ScriptPlugin {
     dataSourceService.createDataSource(defaultOpenSearchDataSourceMetadata());
     LocalClusterState.state().setClusterService(clusterService);
     LocalClusterState.state().setPluginSettings((OpenSearchSettings) pluginSettings);
+    LocalClusterState.state().setClient(client);
     ModulesBuilder modules = new ModulesBuilder();
     modules.add(new OpenSearchPluginModule());
     modules.add(
@@ -282,6 +283,7 @@ public class SQLPlugin extends Plugin implements ActionPlugin, ScriptPlugin {
                 new OpenSearchDataSourceFactory(
                     new OpenSearchNodeClient(this.client), pluginSettings))
             .add(new PrometheusStorageFactory(pluginSettings))
+            .add(new SparkStorageFactory(this.client, pluginSettings))
             .add(new GlueDataSourceFactory(pluginSettings))
             .build(),
         dataSourceMetadataStorage,

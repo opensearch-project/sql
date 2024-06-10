@@ -370,6 +370,25 @@ To get the count of distinct values of a field, you can add a keyword ``DISTINCT
     | 2                        | 4               |
     +--------------------------+-----------------+
 
+PERCENTILE or PERCENTILE_APPROX
+-------------------------------
+
+Description
+>>>>>>>>>>>
+
+Usage: PERCENTILE(expr, percent) or PERCENTILE_APPROX(expr, percent). Returns the approximate percentile value of `expr` at the specified percentage. `percent` must be a constant between 0 and 100.
+
+Example::
+
+    os> SELECT gender, percentile(age, 90) as p90 FROM accounts GROUP BY gender;
+    fetched rows / total rows = 2/2
+    +----------+-------+
+    | gender   | p90   |
+    |----------+-------|
+    | F        | 28    |
+    | M        | 36    |
+    +----------+-------+
+
 HAVING Clause
 =============
 

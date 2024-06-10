@@ -185,6 +185,11 @@ decimalLiteral
    | TWO_DECIMAL
    ;
 
+numericLiteral
+   : decimalLiteral
+   | realLiteral
+   ;
+
 stringLiteral
    : STRING_LITERAL
    | DOUBLE_QUOTE_ID
@@ -470,6 +475,12 @@ aggregateFunction
    : functionName = aggregationFunctionName LR_BRACKET functionArg RR_BRACKET   # regularAggregateFunctionCall
    | COUNT LR_BRACKET STAR RR_BRACKET                                           # countStarFunctionCall
    | COUNT LR_BRACKET DISTINCT functionArg RR_BRACKET                           # distinctCountFunctionCall
+   | percentileApproxFunction                                                   # percentileApproxFunctionCall
+   ;
+
+percentileApproxFunction
+   : (PERCENTILE | PERCENTILE_APPROX) LR_BRACKET aggField = functionArg
+       COMMA percent = numericLiteral (COMMA compression = numericLiteral)? RR_BRACKET
    ;
 
 filterClause
@@ -752,8 +763,7 @@ relevanceFieldAndWeight
    ;
 
 relevanceFieldWeight
-   : realLiteral
-   | decimalLiteral
+   : numericLiteral
    ;
 
 relevanceField

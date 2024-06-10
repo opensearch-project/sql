@@ -117,14 +117,15 @@ class IndexDMLHandlerTest {
   }
 
   private DispatchQueryRequest getDispatchQueryRequest(String query) {
-    return new DispatchQueryRequest(
-        EMRS_APPLICATION_ID,
-        query,
-        "my_glue",
-        LangType.SQL,
-        EMRS_EXECUTION_ROLE,
-        TEST_CLUSTER_NAME,
-        sparkSubmitParameterModifier);
+    return DispatchQueryRequest.builder()
+        .applicationId(EMRS_APPLICATION_ID)
+        .query(query)
+        .datasource("my_glue")
+        .langType(LangType.SQL)
+        .executionRoleARN(EMRS_EXECUTION_ROLE)
+        .clusterName(TEST_CLUSTER_NAME)
+        .sparkSubmitParameterModifier(sparkSubmitParameterModifier)
+        .build();
   }
 
   @Test

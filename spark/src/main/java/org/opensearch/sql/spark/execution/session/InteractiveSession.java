@@ -17,6 +17,7 @@ import lombok.Getter;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.index.engine.VersionConflictEngineException;
+import org.opensearch.sql.spark.asyncquery.model.AsyncQueryRequestContext;
 import org.opensearch.sql.spark.client.EMRServerlessClient;
 import org.opensearch.sql.spark.client.StartJobRequest;
 import org.opensearch.sql.spark.execution.statement.QueryRequest;
@@ -49,22 +50,29 @@ public class InteractiveSession implements Session {
   private TimeProvider timeProvider;
 
   @Override
-  public void open(CreateSessionRequest createSessionRequest) {
+  public void open(
+      CreateSessionRequest createSessionRequest,
+      AsyncQueryRequestContext asyncQueryRequestContext) {
     try {
       // append session id;
       createSessionRequest
           .getSparkSubmitParameters()
-          .sessionExecution(sessionId.getSessionId(), createSessionRequest.getDatasourceName());
+          .acceptModifier(
+              (parameters) -> {
+                parameters.sessionExecution(
+                    sessionId.getSessionId(), createSessionRequest.getDatasourceName());
+              });
       createSessionRequest.getTags().put(SESSION_ID_TAG_KEY, sessionId.getSessionId());
       StartJobRequest startJobRequest =
           createSessionRequest.getStartJobRequest(sessionId.getSessionId());
       String jobID = serverlessClient.startJobRun(startJobRequest);
       String applicationId = startJobRequest.getApplicationId();
+      String accountId = createSessionRequest.getAccountId();
 
       sessionModel =
           initInteractiveSession(
-              applicationId, jobID, sessionId, createSessionRequest.getDatasourceName());
-      sessionStorageService.createSession(sessionModel);
+              accountId, applicationId, jobID, sessionId, createSessionRequest.getDatasourceName());
+      sessionStorageService.createSession(sessionModel, asyncQueryRequestContext);
     } catch (VersionConflictEngineException e) {
       String errorMsg = "session already exist. " + sessionId;
       LOG.error(errorMsg);
@@ -86,7 +94,8 @@ public class InteractiveSession implements Session {
   }
 
   /** Submit statement. If submit successfully, Statement in waiting state. */
-  public StatementId submit(QueryRequest request) {
+  public StatementId submit(
+      QueryRequest request, AsyncQueryRequestContext asyncQueryRequestContext) {
     Optional<SessionModel> model =
         sessionStorageService.getSession(sessionModel.getId(), sessionModel.getDatasourceName());
     if (model.isEmpty()) {
@@ -99,6 +108,7 @@ public class InteractiveSession implements Session {
         Statement st =
             Statement.builder()
                 .sessionId(sessionId)
+                .accountId(sessionModel.getAccountId())
                 .applicationId(sessionModel.getApplicationId())
                 .jobId(sessionModel.getJobId())
                 .statementStorageService(statementStorageService)
@@ -107,6 +117,7 @@ public class InteractiveSession implements Session {
                 .datasourceName(sessionModel.getDatasourceName())
                 .query(request.getQuery())
                 .queryId(qid)
+                .asyncQueryRequestContext(asyncQueryRequestContext)
                 .build();
         st.open();
         return statementId;
@@ -130,6 +141,7 @@ public class InteractiveSession implements Session {
             model ->
                 Statement.builder()
                     .sessionId(sessionId)
+                    .accountId(model.getAccountId())
                     .applicationId(model.getApplicationId())
                     .jobId(model.getJobId())
                     .statementId(model.getStatementId())

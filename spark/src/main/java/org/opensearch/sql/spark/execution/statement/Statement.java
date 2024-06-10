@@ -14,6 +14,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.index.engine.DocumentMissingException;
 import org.opensearch.index.engine.VersionConflictEngineException;
+import org.opensearch.sql.spark.asyncquery.model.AsyncQueryRequestContext;
 import org.opensearch.sql.spark.execution.session.SessionId;
 import org.opensearch.sql.spark.execution.statestore.StatementStorageService;
 import org.opensearch.sql.spark.rest.model.LangType;
@@ -25,6 +26,8 @@ public class Statement {
   private static final Logger LOG = LogManager.getLogger();
 
   private final SessionId sessionId;
+  // optional
+  private final String accountId;
   private final String applicationId;
   private final String jobId;
   private final StatementId statementId;
@@ -32,6 +35,7 @@ public class Statement {
   private final String datasourceName;
   private final String query;
   private final String queryId;
+  private final AsyncQueryRequestContext asyncQueryRequestContext;
   private final StatementStorageService statementStorageService;
 
   @Setter private StatementModel statementModel;
@@ -42,6 +46,7 @@ public class Statement {
       statementModel =
           submitStatement(
               sessionId,
+              accountId,
               applicationId,
               jobId,
               statementId,
@@ -49,7 +54,8 @@ public class Statement {
               datasourceName,
               query,
               queryId);
-      statementModel = statementStorageService.createStatement(statementModel);
+      statementModel =
+          statementStorageService.createStatement(statementModel, asyncQueryRequestContext);
     } catch (VersionConflictEngineException e) {
       String errorMsg = "statement already exist. " + statementId;
       LOG.error(errorMsg);
@@ -63,6 +69,7 @@ public class Statement {
 
     if (statementState.equals(StatementState.SUCCESS)
         || statementState.equals(StatementState.FAILED)
+        || statementState.equals(StatementState.TIMEOUT)
         || statementState.equals(StatementState.CANCELLED)) {
       String errorMsg =
           String.format(

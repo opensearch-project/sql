@@ -20,6 +20,8 @@ public class StartJobRequest {
   public static final Long DEFAULT_JOB_TIMEOUT = 120L;
 
   private final String jobName;
+  // optional
+  private final String accountId;
   private final String applicationId;
   private final String executionRoleArn;
   private final String sparkSubmitParams;

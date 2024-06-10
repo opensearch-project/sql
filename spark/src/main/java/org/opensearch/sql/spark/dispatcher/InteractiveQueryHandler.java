@@ -100,6 +100,7 @@ public class InteractiveQueryHandler extends AsyncQueryHandler {
           sessionManager.createSession(
               new CreateSessionRequest(
                   clusterName,
+                  dispatchQueryRequest.getAccountId(),
                   dispatchQueryRequest.getApplicationId(),
                   dispatchQueryRequest.getExecutionRoleARN(),
                   SparkSubmitParameters.builder()
@@ -110,14 +111,16 @@ public class InteractiveQueryHandler extends AsyncQueryHandler {
                       .acceptModifier(dispatchQueryRequest.getSparkSubmitParameterModifier()),
                   tags,
                   dataSourceMetadata.getResultIndex(),
-                  dataSourceMetadata.getName()));
+                  dataSourceMetadata.getName()),
+              context.getAsyncQueryRequestContext());
       MetricUtils.incrementNumericalMetric(MetricName.EMR_INTERACTIVE_QUERY_JOBS_CREATION_COUNT);
     }
     session.submit(
         new QueryRequest(
             context.getQueryId(),
             dispatchQueryRequest.getLangType(),
-            dispatchQueryRequest.getQuery()));
+            dispatchQueryRequest.getQuery()),
+        context.getAsyncQueryRequestContext());
     return DispatchQueryResponse.builder()
         .queryId(context.getQueryId())
         .jobId(session.getSessionModel().getJobId())

@@ -6,6 +6,7 @@
 package org.opensearch.sql.spark.execution.xcontent;
 
 import static org.opensearch.sql.spark.execution.xcontent.SessionModelXContentSerializer.SESSION_ID;
+import static org.opensearch.sql.spark.execution.xcontent.XContentCommonAttributes.ACCOUNT_ID;
 import static org.opensearch.sql.spark.execution.xcontent.XContentCommonAttributes.APPLICATION_ID;
 import static org.opensearch.sql.spark.execution.xcontent.XContentCommonAttributes.DATASOURCE_NAME;
 import static org.opensearch.sql.spark.execution.xcontent.XContentCommonAttributes.ERROR;
@@ -46,6 +47,7 @@ public class StatementModelXContentSerializer implements XContentSerializer<Stat
         .field(STATE, statementModel.getStatementState().getState())
         .field(STATEMENT_ID, statementModel.getStatementId().getId())
         .field(SESSION_ID, statementModel.getSessionId().getSessionId())
+        .field(ACCOUNT_ID, statementModel.getAccountId())
         .field(APPLICATION_ID, statementModel.getApplicationId())
         .field(JOB_ID, statementModel.getJobId())
         .field(LANG, statementModel.getLangType().getText())
@@ -81,6 +83,9 @@ public class StatementModelXContentSerializer implements XContentSerializer<Stat
           break;
         case SESSION_ID:
           builder.sessionId(new SessionId(parser.text()));
+          break;
+        case ACCOUNT_ID:
+          builder.accountId(parser.textOrNull());
           break;
         case APPLICATION_ID:
           builder.applicationId(parser.text());
