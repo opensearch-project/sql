@@ -40,7 +40,6 @@ import static org.opensearch.sql.legacy.plugin.RestSqlAction.EXPLAIN_API_ENDPOIN
 import static org.opensearch.sql.legacy.plugin.RestSqlAction.QUERY_API_ENDPOINT;
 
 import com.google.common.base.Strings;
-import com.google.gson.Gson;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
