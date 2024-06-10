@@ -806,12 +806,13 @@ public class SparkQueryDispatcherTest {
     DataSourceMetadata dataSourceMetadata = constructMyGlueDataSourceMetadata();
     when(dataSourceService.verifyDataSourceAccessAndGetRawMetadata("my_glue"))
         .thenReturn(dataSourceMetadata);
-    when(queryHandlerFactory.getIndexDMLHandler()).thenReturn(
-        new IndexDMLHandler(
-            jobExecutionResponseReader,
-            flintIndexMetadataService,
-            indexDMLResultStorageService,
-            flintIndexOpFactory));
+    when(queryHandlerFactory.getIndexDMLHandler())
+        .thenReturn(
+            new IndexDMLHandler(
+                jobExecutionResponseReader,
+                flintIndexMetadataService,
+                indexDMLResultStorageService,
+                flintIndexOpFactory));
 
     sparkQueryDispatcher.dispatch(getBaseDispatchQueryRequest(query), asyncQueryRequestContext);
     verify(queryHandlerFactory, times(1)).getIndexDMLHandler();
@@ -828,12 +829,13 @@ public class SparkQueryDispatcherTest {
     DataSourceMetadata dataSourceMetadata = constructMyGlueDataSourceMetadata();
     when(dataSourceService.verifyDataSourceAccessAndGetRawMetadata("my_glue"))
         .thenReturn(dataSourceMetadata);
-    when(queryHandlerFactory.getIndexDMLHandler()).thenReturn(
-        new IndexDMLHandler(
-            jobExecutionResponseReader,
-            flintIndexMetadataService,
-            indexDMLResultStorageService,
-            flintIndexOpFactory));
+    when(queryHandlerFactory.getIndexDMLHandler())
+        .thenReturn(
+            new IndexDMLHandler(
+                jobExecutionResponseReader,
+                flintIndexMetadataService,
+                indexDMLResultStorageService,
+                flintIndexOpFactory));
 
     sparkQueryDispatcher.dispatch(getBaseDispatchQueryRequest(query), asyncQueryRequestContext);
     verify(queryHandlerFactory, times(1)).getIndexDMLHandler();
@@ -850,12 +852,13 @@ public class SparkQueryDispatcherTest {
     DataSourceMetadata dataSourceMetadata = constructMyGlueDataSourceMetadata();
     when(dataSourceService.verifyDataSourceAccessAndGetRawMetadata("my_glue"))
         .thenReturn(dataSourceMetadata);
-    when(queryHandlerFactory.getIndexDMLHandler()).thenReturn(
-        new IndexDMLHandler(
-            jobExecutionResponseReader,
-            flintIndexMetadataService,
-            indexDMLResultStorageService,
-            flintIndexOpFactory));
+    when(queryHandlerFactory.getIndexDMLHandler())
+        .thenReturn(
+            new IndexDMLHandler(
+                jobExecutionResponseReader,
+                flintIndexMetadataService,
+                indexDMLResultStorageService,
+                flintIndexOpFactory));
 
     sparkQueryDispatcher.dispatch(getBaseDispatchQueryRequest(query), asyncQueryRequestContext);
     verify(queryHandlerFactory, times(1)).getIndexDMLHandler();
