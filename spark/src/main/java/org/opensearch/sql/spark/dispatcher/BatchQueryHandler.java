@@ -69,8 +69,6 @@ public class BatchQueryHandler extends AsyncQueryHandler {
   @Override
   public DispatchQueryResponse submit(
       DispatchQueryRequest dispatchQueryRequest, DispatchQueryContext context) {
-    leaseManager.borrow(new LeaseRequest(JobType.BATCH, dispatchQueryRequest.getDatasource()));
-
     String clusterName = dispatchQueryRequest.getClusterName();
     Map<String, String> tags = context.getTags();
     DataSourceMetadata dataSourceMetadata = context.getDataSourceMetadata();
