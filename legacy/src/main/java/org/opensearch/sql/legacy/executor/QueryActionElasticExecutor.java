@@ -5,6 +5,8 @@
 
 package org.opensearch.sql.legacy.executor;
 
+import static org.opensearch.sql.common.setting.Settings.Key.SQL_PAGINATION_API_SEARCH_AFTER;
+
 import java.io.IOException;
 import java.util.List;
 import org.opensearch.action.search.SearchResponse;
@@ -45,7 +47,10 @@ public class QueryActionElasticExecutor {
     ElasticJoinExecutor executor =
         ElasticJoinExecutor.createJoinExecutor(client, joinRequestBuilder);
     executor.run();
-    joinQueryAction.getPointInTimeHandler().deletePointInTime();
+    if (org.opensearch.sql.legacy.esdomain.LocalClusterState.state()
+        .getSettingValue(SQL_PAGINATION_API_SEARCH_AFTER)) {
+      joinQueryAction.getPointInTimeHandler().deletePointInTime();
+    }
     return executor.getHits();
   }
 

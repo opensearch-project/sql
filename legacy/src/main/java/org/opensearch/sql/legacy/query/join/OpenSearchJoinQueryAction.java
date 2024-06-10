@@ -5,6 +5,8 @@
 
 package org.opensearch.sql.legacy.query.join;
 
+import static org.opensearch.sql.common.setting.Settings.Key.SQL_PAGINATION_API_SEARCH_AFTER;
+
 import java.util.List;
 import org.opensearch.client.Client;
 import org.opensearch.common.util.ArrayUtils;
@@ -13,6 +15,7 @@ import org.opensearch.sql.legacy.domain.JoinSelect;
 import org.opensearch.sql.legacy.domain.Select;
 import org.opensearch.sql.legacy.domain.TableOnJoinSelect;
 import org.opensearch.sql.legacy.domain.hints.Hint;
+import org.opensearch.sql.legacy.esdomain.LocalClusterState;
 import org.opensearch.sql.legacy.exception.SqlParseException;
 import org.opensearch.sql.legacy.pit.PointInTimeHandler;
 import org.opensearch.sql.legacy.query.DefaultQueryAction;
@@ -37,7 +40,9 @@ public abstract class OpenSearchJoinQueryAction extends QueryAction {
     JoinRequestBuilder requestBuilder = createSpecificBuilder();
     fillBasicJoinRequestBuilder(requestBuilder);
     fillSpecificRequestBuilder(requestBuilder);
-    updateRequestWithPitId(requestBuilder);
+    if (LocalClusterState.state().getSettingValue(SQL_PAGINATION_API_SEARCH_AFTER)) {
+      updateRequestWithPitId(requestBuilder);
+    }
     return requestBuilder;
   }
 
