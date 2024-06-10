@@ -95,8 +95,7 @@ public class XContentParserUtilsTest {
             STATUS_FIELD,
             ACTIVE);
 
-    Gson gson = new Gson();
-    String json = gson.toJson(dataSourceData);
+    String json = SerializeUtils.buildGson().toJson(dataSourceData);
 
     Map<String, Object> parsedData = XContentParserUtils.toMap(json);
 
@@ -123,8 +122,7 @@ public class XContentParserUtilsTest {
   @Test
   public void testToMapFromJsonWithoutName() {
     Map<String, Object> dataSourceData = new HashMap<>(Map.of(DESCRIPTION_FIELD, "test"));
-    Gson gson = new Gson();
-    String json = gson.toJson(dataSourceData);
+    String json = SerializeUtils.buildGson().toJson(dataSourceData);
 
     IllegalArgumentException exception =
         assertThrows(
@@ -140,8 +138,7 @@ public class XContentParserUtilsTest {
   public void testToDataSourceMetadataFromJsonUsingUnknownObject() {
     HashMap<String, String> hashMap = new HashMap<>();
     hashMap.put("test", "test");
-    Gson gson = new Gson();
-    String json = gson.toJson(hashMap);
+    String json = SerializeUtils.buildGson().toJson(hashMap);
 
     IllegalArgumentException exception =
         assertThrows(
@@ -157,8 +154,7 @@ public class XContentParserUtilsTest {
   public void testToMapFromJsonUsingUnknownObject() {
     HashMap<String, String> hashMap = new HashMap<>();
     hashMap.put("test", "test");
-    Gson gson = new Gson();
-    String json = gson.toJson(hashMap);
+    String json = SerializeUtils.buildGson().toJson(hashMap);
 
     IllegalArgumentException exception =
         assertThrows(

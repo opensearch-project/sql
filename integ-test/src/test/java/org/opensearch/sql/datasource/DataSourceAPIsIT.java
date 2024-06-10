@@ -14,7 +14,6 @@ import static org.opensearch.sql.datasources.utils.XContentParserUtils.STATUS_FI
 import static org.opensearch.sql.legacy.TestUtils.getResponseBody;
 
 import com.google.common.collect.ImmutableMap;
-import com.google.gson.Gson;
 import com.google.gson.JsonObject;
 import com.google.gson.reflect.TypeToken;
 import java.io.IOException;
@@ -34,6 +33,7 @@ import org.opensearch.client.ResponseException;
 import org.opensearch.sql.datasource.model.DataSourceMetadata;
 import org.opensearch.sql.datasource.model.DataSourceType;
 import org.opensearch.sql.ppl.PPLIntegTestCase;
+import org.opensearch.sql.utils.SerializeUtils;
 
 public class DataSourceAPIsIT extends PPLIntegTestCase {
 
@@ -103,7 +103,7 @@ public class DataSourceAPIsIT extends PPLIntegTestCase {
     Assert.assertEquals(200, getResponse.getStatusLine().getStatusCode());
     String getResponseString = getResponseBody(getResponse);
     DataSourceMetadata dataSourceMetadata =
-        new Gson().fromJson(getResponseString, DataSourceMetadata.class);
+        SerializeUtils.buildGson().fromJson(getResponseString, DataSourceMetadata.class);
     Assert.assertEquals(
         "https://localhost:9090", dataSourceMetadata.getProperties().get("prometheus.uri"));
     Assert.assertEquals(
@@ -152,7 +152,7 @@ public class DataSourceAPIsIT extends PPLIntegTestCase {
     Assert.assertEquals(200, getResponse.getStatusLine().getStatusCode());
     String getResponseString = getResponseBody(getResponse);
     DataSourceMetadata dataSourceMetadata =
-        new Gson().fromJson(getResponseString, DataSourceMetadata.class);
+        SerializeUtils.buildGson().fromJson(getResponseString, DataSourceMetadata.class);
     Assert.assertEquals(
         "https://randomtest.com:9090", dataSourceMetadata.getProperties().get("prometheus.uri"));
     Assert.assertEquals("", dataSourceMetadata.getDescription());
@@ -176,7 +176,7 @@ public class DataSourceAPIsIT extends PPLIntegTestCase {
     Assert.assertEquals(200, getResponseAfterPatch.getStatusLine().getStatusCode());
     String getResponseStringAfterPatch = getResponseBody(getResponseAfterPatch);
     DataSourceMetadata dataSourceMetadataAfterPatch =
-        new Gson().fromJson(getResponseStringAfterPatch, DataSourceMetadata.class);
+        SerializeUtils.buildGson().fromJson(getResponseStringAfterPatch, DataSourceMetadata.class);
     Assert.assertEquals(
         "https://randomtest.com:9090",
         dataSourceMetadataAfterPatch.getProperties().get("prometheus.uri"));
@@ -216,7 +216,8 @@ public class DataSourceAPIsIT extends PPLIntegTestCase {
         404, prometheusGetResponseException.getResponse().getStatusLine().getStatusCode());
     String prometheusGetResponseString =
         getResponseBody(prometheusGetResponseException.getResponse());
-    JsonObject errorMessage = new Gson().fromJson(prometheusGetResponseString, JsonObject.class);
+    JsonObject errorMessage =
+        SerializeUtils.buildGson().fromJson(prometheusGetResponseString, JsonObject.class);
     Assert.assertEquals(
         "DataSource with name delete_prometheus doesn't exist.",
         errorMessage.get("error").getAsJsonObject().get("details").getAsString());
@@ -243,7 +244,7 @@ public class DataSourceAPIsIT extends PPLIntegTestCase {
     String getResponseString = getResponseBody(getResponse);
     Type listType = new TypeToken<ArrayList<DataSourceMetadata>>() {}.getType();
     List<DataSourceMetadata> dataSourceMetadataList =
-        new Gson().fromJson(getResponseString, listType);
+        SerializeUtils.buildGson().fromJson(getResponseString, listType);
     Assert.assertTrue(
         dataSourceMetadataList.stream().anyMatch(ds -> ds.getName().equals("get_all_prometheus")));
   }
@@ -283,7 +284,7 @@ public class DataSourceAPIsIT extends PPLIntegTestCase {
     Assert.assertEquals(200, getResponse.getStatusLine().getStatusCode());
     String getResponseString = getResponseBody(getResponse);
     DataSourceMetadata dataSourceMetadata =
-        new Gson().fromJson(getResponseString, DataSourceMetadata.class);
+        SerializeUtils.buildGson().fromJson(getResponseString, DataSourceMetadata.class);
     Assert.assertEquals(
         "https://localhost:9090", dataSourceMetadata.getProperties().get("prometheus.uri"));
     Assert.assertEquals(
@@ -310,7 +311,8 @@ public class DataSourceAPIsIT extends PPLIntegTestCase {
             ResponseException.class, () -> client().performRequest(getCreateDataSourceRequest(d2)));
     Assert.assertEquals(400, exception.getResponse().getStatusLine().getStatusCode());
     String prometheusGetResponseString = getResponseBody(exception.getResponse());
-    JsonObject errorMessage = new Gson().fromJson(prometheusGetResponseString, JsonObject.class);
+    JsonObject errorMessage =
+        SerializeUtils.buildGson().fromJson(prometheusGetResponseString, JsonObject.class);
     Assert.assertEquals(
         "domain concurrent datasources can not exceed 1",
         errorMessage.get("error").getAsJsonObject().get("details").getAsString());
@@ -373,7 +375,7 @@ public class DataSourceAPIsIT extends PPLIntegTestCase {
     Assert.assertEquals(200, getResponse.getStatusLine().getStatusCode());
     String getResponseString = getResponseBody(getResponse);
     DataSourceMetadata dataSourceMetadata =
-        new Gson().fromJson(getResponseString, DataSourceMetadata.class);
+        SerializeUtils.buildGson().fromJson(getResponseString, DataSourceMetadata.class);
     Assert.assertEquals(
         "https://localhost:9090", dataSourceMetadata.getProperties().get("prometheus.uri"));
     Assert.assertEquals(
