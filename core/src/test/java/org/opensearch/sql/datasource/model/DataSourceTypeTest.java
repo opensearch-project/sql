@@ -29,4 +29,11 @@ class DataSourceTypeTest {
   public void fromStringWithUnknownName_throws() {
     assertThrows(IllegalArgumentException.class, () -> DataSourceType.fromString("UnknownName"));
   }
+
+  @Test
+  public void registerExistingType_throwsException() {
+    assertThrows(
+        IllegalArgumentException.class,
+        () -> DataSourceType.register(new DataSourceType("s3glue")));
+  }
 }
