@@ -12,6 +12,7 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.reset;
 import static org.mockito.Mockito.times;
@@ -363,7 +364,7 @@ public class SparkQueryDispatcherTest {
   }
 
   @Test
-  void testDispatchIndexQuery() {
+  void testDispatchCreateAutoRefreshIndexQuery() {
     when(emrServerlessClientFactory.getClient()).thenReturn(emrServerlessClient);
     HashMap<String, String> tags = new HashMap<>();
     tags.put(DATASOURCE_TAG_KEY, MY_GLUE);
@@ -396,6 +397,49 @@ public class SparkQueryDispatcherTest {
     when(emrServerlessClient.startJobRun(expected)).thenReturn(EMR_JOB_ID);
     DataSourceMetadata dataSourceMetadata = constructMyGlueDataSourceMetadata();
     when(dataSourceService.verifyDataSourceAccessAndGetRawMetadata(MY_GLUE))
+        .thenReturn(dataSourceMetadata);
+
+    DispatchQueryResponse dispatchQueryResponse =
+        sparkQueryDispatcher.dispatch(getBaseDispatchQueryRequest(query), asyncQueryRequestContext);
+
+    verify(emrServerlessClient, times(1)).startJobRun(startJobRequestArgumentCaptor.capture());
+    Assertions.assertEquals(expected, startJobRequestArgumentCaptor.getValue());
+    Assertions.assertEquals(EMR_JOB_ID, dispatchQueryResponse.getJobId());
+    verifyNoInteractions(flintIndexMetadataService);
+  }
+
+  @Test
+  void testDispatchCreateManualRefreshIndexQuery() {
+    when(emrServerlessClientFactory.getClient()).thenReturn(emrServerlessClient);
+    HashMap<String, String> tags = new HashMap<>();
+    tags.put(DATASOURCE_TAG_KEY, "my_glue");
+    tags.put(CLUSTER_NAME_TAG_KEY, TEST_CLUSTER_NAME);
+    tags.put(JOB_TYPE_TAG_KEY, JobType.BATCH.getText());
+    String query =
+        "CREATE INDEX elb_and_requestUri ON my_glue.default.http_logs(l_orderkey, l_quantity) WITH"
+            + " (auto_refresh = false)";
+    String sparkSubmitParameters =
+        constructExpectedSparkSubmitParameterString(
+            "sigv4",
+            new HashMap<>() {
+              {
+                put(FLINT_INDEX_STORE_AWSREGION_KEY, "eu-west-1");
+              }
+            },
+            query);
+    StartJobRequest expected =
+        new StartJobRequest(
+            "TEST_CLUSTER:batch",
+            null,
+            EMRS_APPLICATION_ID,
+            EMRS_EXECUTION_ROLE,
+            sparkSubmitParameters,
+            tags,
+            false,
+            "query_execution_result_my_glue");
+    when(emrServerlessClient.startJobRun(expected)).thenReturn(EMR_JOB_ID);
+    DataSourceMetadata dataSourceMetadata = constructMyGlueDataSourceMetadata();
+    when(dataSourceService.verifyDataSourceAccessAndGetRawMetadata("my_glue"))
         .thenReturn(dataSourceMetadata);
 
     DispatchQueryResponse dispatchQueryResponse =
@@ -702,6 +746,122 @@ public class SparkQueryDispatcherTest {
     Assertions.assertEquals(expected, startJobRequestArgumentCaptor.getValue());
     Assertions.assertEquals(EMR_JOB_ID, dispatchQueryResponse.getJobId());
     verifyNoInteractions(flintIndexMetadataService);
+  }
+
+  @Test
+  void testDispatchAlterToAutoRefreshIndexQuery() {
+    when(emrServerlessClientFactory.getClient()).thenReturn(emrServerlessClient);
+    HashMap<String, String> tags = new HashMap<>();
+    tags.put(DATASOURCE_TAG_KEY, "my_glue");
+    tags.put(INDEX_TAG_KEY, "flint_my_glue_default_http_logs_elb_and_requesturi_index");
+    tags.put(CLUSTER_NAME_TAG_KEY, TEST_CLUSTER_NAME);
+    tags.put(JOB_TYPE_TAG_KEY, JobType.STREAMING.getText());
+    String query =
+        "ALTER INDEX elb_and_requestUri ON my_glue.default.http_logs WITH"
+            + " (auto_refresh = true)";
+    String sparkSubmitParameters =
+        withStructuredStreaming(
+            constructExpectedSparkSubmitParameterString(
+                "sigv4",
+                new HashMap<>() {
+                  {
+                    put(FLINT_INDEX_STORE_AWSREGION_KEY, "eu-west-1");
+                  }
+                },
+                query));
+    StartJobRequest expected =
+        new StartJobRequest(
+            "TEST_CLUSTER:streaming:flint_my_glue_default_http_logs_elb_and_requesturi_index",
+            null,
+            EMRS_APPLICATION_ID,
+            EMRS_EXECUTION_ROLE,
+            sparkSubmitParameters,
+            tags,
+            true,
+            "query_execution_result_my_glue");
+    when(emrServerlessClient.startJobRun(expected)).thenReturn(EMR_JOB_ID);
+    DataSourceMetadata dataSourceMetadata = constructMyGlueDataSourceMetadata();
+    when(dataSourceService.verifyDataSourceAccessAndGetRawMetadata("my_glue"))
+        .thenReturn(dataSourceMetadata);
+
+    DispatchQueryResponse dispatchQueryResponse =
+        sparkQueryDispatcher.dispatch(getBaseDispatchQueryRequest(query), asyncQueryRequestContext);
+
+    verify(emrServerlessClient, times(1)).startJobRun(startJobRequestArgumentCaptor.capture());
+    Assertions.assertEquals(expected, startJobRequestArgumentCaptor.getValue());
+    Assertions.assertEquals(EMR_JOB_ID, dispatchQueryResponse.getJobId());
+    verifyNoInteractions(flintIndexMetadataService);
+  }
+
+  @Test
+  void testDispatchAlterToManualRefreshIndexQuery() {
+    QueryHandlerFactory queryHandlerFactory = mock(QueryHandlerFactory.class);
+    sparkQueryDispatcher =
+        new SparkQueryDispatcher(
+            dataSourceService, sessionManager, queryHandlerFactory, queryIdProvider);
+
+    String query =
+        "ALTER INDEX elb_and_requestUri ON my_glue.default.http_logs WITH"
+            + " (auto_refresh = false)";
+    DataSourceMetadata dataSourceMetadata = constructMyGlueDataSourceMetadata();
+    when(dataSourceService.verifyDataSourceAccessAndGetRawMetadata("my_glue"))
+        .thenReturn(dataSourceMetadata);
+    when(queryHandlerFactory.getIndexDMLHandler())
+        .thenReturn(
+            new IndexDMLHandler(
+                jobExecutionResponseReader,
+                flintIndexMetadataService,
+                indexDMLResultStorageService,
+                flintIndexOpFactory));
+
+    sparkQueryDispatcher.dispatch(getBaseDispatchQueryRequest(query), asyncQueryRequestContext);
+    verify(queryHandlerFactory, times(1)).getIndexDMLHandler();
+  }
+
+  @Test
+  void testDispatchDropIndexQuery() {
+    QueryHandlerFactory queryHandlerFactory = mock(QueryHandlerFactory.class);
+    sparkQueryDispatcher =
+        new SparkQueryDispatcher(
+            dataSourceService, sessionManager, queryHandlerFactory, queryIdProvider);
+
+    String query = "DROP INDEX elb_and_requestUri ON my_glue.default.http_logs";
+    DataSourceMetadata dataSourceMetadata = constructMyGlueDataSourceMetadata();
+    when(dataSourceService.verifyDataSourceAccessAndGetRawMetadata("my_glue"))
+        .thenReturn(dataSourceMetadata);
+    when(queryHandlerFactory.getIndexDMLHandler())
+        .thenReturn(
+            new IndexDMLHandler(
+                jobExecutionResponseReader,
+                flintIndexMetadataService,
+                indexDMLResultStorageService,
+                flintIndexOpFactory));
+
+    sparkQueryDispatcher.dispatch(getBaseDispatchQueryRequest(query), asyncQueryRequestContext);
+    verify(queryHandlerFactory, times(1)).getIndexDMLHandler();
+  }
+
+  @Test
+  void testDispatchVacuumIndexQuery() {
+    QueryHandlerFactory queryHandlerFactory = mock(QueryHandlerFactory.class);
+    sparkQueryDispatcher =
+        new SparkQueryDispatcher(
+            dataSourceService, sessionManager, queryHandlerFactory, queryIdProvider);
+
+    String query = "VACUUM INDEX elb_and_requestUri ON my_glue.default.http_logs";
+    DataSourceMetadata dataSourceMetadata = constructMyGlueDataSourceMetadata();
+    when(dataSourceService.verifyDataSourceAccessAndGetRawMetadata("my_glue"))
+        .thenReturn(dataSourceMetadata);
+    when(queryHandlerFactory.getIndexDMLHandler())
+        .thenReturn(
+            new IndexDMLHandler(
+                jobExecutionResponseReader,
+                flintIndexMetadataService,
+                indexDMLResultStorageService,
+                flintIndexOpFactory));
+
+    sparkQueryDispatcher.dispatch(getBaseDispatchQueryRequest(query), asyncQueryRequestContext);
+    verify(queryHandlerFactory, times(1)).getIndexDMLHandler();
   }
 
   @Test

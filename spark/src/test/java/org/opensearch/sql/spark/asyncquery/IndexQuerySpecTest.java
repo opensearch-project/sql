@@ -864,7 +864,6 @@ public class IndexQuerySpecTest extends AsyncQueryExecutorServiceSpec {
         asyncQueryExecutorService.createAsyncQuery(
             new CreateAsyncQueryRequest(query, MYS3_DATASOURCE, LangType.SQL, null),
             asyncQueryRequestContext);
-    assertNotNull(asyncQueryResponse.getSessionId());
   }
 
   /** Cancel create flint index statement with auto_refresh=true, should throw exception. */
