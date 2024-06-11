@@ -15,7 +15,6 @@ import org.apache.logging.log4j.Logger;
 import org.opensearch.index.engine.DocumentMissingException;
 import org.opensearch.index.engine.VersionConflictEngineException;
 import org.opensearch.sql.spark.asyncquery.model.AsyncQueryRequestContext;
-import org.opensearch.sql.spark.execution.session.SessionId;
 import org.opensearch.sql.spark.execution.statestore.StatementStorageService;
 import org.opensearch.sql.spark.rest.model.LangType;
 
@@ -25,7 +24,7 @@ import org.opensearch.sql.spark.rest.model.LangType;
 public class Statement {
   private static final Logger LOG = LogManager.getLogger();
 
-  private final SessionId sessionId;
+  private final String sessionId;
   // optional
   private final String accountId;
   private final String applicationId;

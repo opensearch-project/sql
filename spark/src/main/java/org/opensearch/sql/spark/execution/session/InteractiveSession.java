@@ -40,7 +40,7 @@ public class InteractiveSession implements Session {
 
   public static final String SESSION_ID_TAG_KEY = "sid";
 
-  private final SessionId sessionId;
+  private final String sessionId;
   private final SessionStorageService sessionStorageService;
   private final StatementStorageService statementStorageService;
   private final EMRServerlessClient serverlessClient;
@@ -59,12 +59,10 @@ public class InteractiveSession implements Session {
           .getSparkSubmitParameters()
           .acceptModifier(
               (parameters) -> {
-                parameters.sessionExecution(
-                    sessionId.getSessionId(), createSessionRequest.getDatasourceName());
+                parameters.sessionExecution(sessionId, createSessionRequest.getDatasourceName());
               });
-      createSessionRequest.getTags().put(SESSION_ID_TAG_KEY, sessionId.getSessionId());
-      StartJobRequest startJobRequest =
-          createSessionRequest.getStartJobRequest(sessionId.getSessionId());
+      createSessionRequest.getTags().put(SESSION_ID_TAG_KEY, sessionId);
+      StartJobRequest startJobRequest = createSessionRequest.getStartJobRequest(sessionId);
       String jobID = serverlessClient.startJobRun(startJobRequest);
       String applicationId = startJobRequest.getApplicationId();
       String accountId = createSessionRequest.getAccountId();
@@ -157,11 +155,10 @@ public class InteractiveSession implements Session {
   public boolean isOperationalForDataSource(String dataSourceName) {
     boolean isSessionStateValid =
         sessionModel.getSessionState() != DEAD && sessionModel.getSessionState() != FAIL;
-    boolean isDataSourceMatch = sessionId.getDataSourceName().equals(dataSourceName);
     boolean isSessionUpdatedRecently =
         timeProvider.currentEpochMillis() - sessionModel.getLastUpdateTime()
             <= sessionInactivityTimeoutMilli;
 
-    return isSessionStateValid && isDataSourceMatch && isSessionUpdatedRecently;
+    return isSessionStateValid && isSessionUpdatedRecently;
   }
 }

@@ -34,7 +34,6 @@ import org.opensearch.sql.spark.asyncquery.model.AsyncQueryExecutionResponse;
 import org.opensearch.sql.spark.asyncquery.model.AsyncQueryRequestContext;
 import org.opensearch.sql.spark.asyncquery.model.NullAsyncQueryRequestContext;
 import org.opensearch.sql.spark.client.EMRServerlessClientFactory;
-import org.opensearch.sql.spark.execution.session.SessionId;
 import org.opensearch.sql.spark.execution.session.SessionState;
 import org.opensearch.sql.spark.execution.statement.StatementModel;
 import org.opensearch.sql.spark.execution.statement.StatementState;
@@ -42,6 +41,7 @@ import org.opensearch.sql.spark.leasemanager.ConcurrencyLimitExceededException;
 import org.opensearch.sql.spark.rest.model.CreateAsyncQueryRequest;
 import org.opensearch.sql.spark.rest.model.CreateAsyncQueryResponse;
 import org.opensearch.sql.spark.rest.model.LangType;
+import org.opensearch.sql.spark.utils.IDUtils;
 
 public class AsyncQueryExecutorServiceImplSpecTest extends AsyncQueryExecutorServiceSpec {
   AsyncQueryRequestContext asyncQueryRequestContext = new NullAsyncQueryRequestContext();
@@ -530,15 +530,16 @@ public class AsyncQueryExecutorServiceImplSpecTest extends AsyncQueryExecutorSer
     // enable session
     enableSession(true);
 
-    // 1. create async query with invalid sessionId
-    SessionId invalidSessionId = SessionId.newSessionId(MYS3_DATASOURCE);
+    // 1. create async query with unknown sessionId
+    String unknownSessionId = IDUtils.encode(MYS3_DATASOURCE);
     CreateAsyncQueryResponse asyncQuery =
         asyncQueryExecutorService.createAsyncQuery(
             new CreateAsyncQueryRequest(
-                "select 1", MYS3_DATASOURCE, LangType.SQL, invalidSessionId.getSessionId()),
+                "select 1", MYS3_DATASOURCE, LangType.SQL, unknownSessionId),
             asyncQueryRequestContext);
+
     assertNotNull(asyncQuery.getSessionId());
-    assertNotEquals(invalidSessionId.getSessionId(), asyncQuery.getSessionId());
+    assertNotEquals(unknownSessionId, asyncQuery.getSessionId());
   }
 
   @Test

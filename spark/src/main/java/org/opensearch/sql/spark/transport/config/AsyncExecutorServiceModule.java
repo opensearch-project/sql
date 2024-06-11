@@ -29,6 +29,7 @@ import org.opensearch.sql.spark.dispatcher.DatasourceEmbeddedQueryIdProvider;
 import org.opensearch.sql.spark.dispatcher.QueryHandlerFactory;
 import org.opensearch.sql.spark.dispatcher.QueryIdProvider;
 import org.opensearch.sql.spark.dispatcher.SparkQueryDispatcher;
+import org.opensearch.sql.spark.execution.session.DatasourceEmbeddedSessionIdProvider;
 import org.opensearch.sql.spark.execution.session.OpenSearchSessionConfigSupplier;
 import org.opensearch.sql.spark.execution.session.SessionConfigSupplier;
 import org.opensearch.sql.spark.execution.session.SessionManager;
@@ -148,7 +149,8 @@ public class AsyncExecutorServiceModule extends AbstractModule {
         sessionStorageService,
         statementStorageService,
         emrServerlessClientFactory,
-        sessionConfigSupplier);
+        sessionConfigSupplier,
+        new DatasourceEmbeddedSessionIdProvider());
   }
 
   @Provides
