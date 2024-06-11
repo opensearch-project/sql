@@ -30,7 +30,6 @@ class SerializeUtilsTest {
 
     Gson gson = SerializeUtils.buildGson();
     String json = gson.toJson(dataSourceMetadata);
-    System.out.println(json);
 
     // connector should be serialized as string (not as object)
     assertJsonAttribute(json, "connector", "S3GLUE");
