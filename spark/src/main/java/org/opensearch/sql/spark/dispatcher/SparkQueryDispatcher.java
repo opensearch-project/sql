@@ -80,10 +80,11 @@ public class SparkQueryDispatcher {
     } else if (isEligibleForStreamingQuery(indexQueryDetails)) {
       return queryHandlerFactory.getStreamingQueryHandler();
     } else if (IndexQueryActionType.CREATE.equals(indexQueryDetails.getIndexQueryActionType())) {
-      // create should be handled by batch handler
+      // Create should be handled by batch handler. This is to avoid DROP index incorrectly cancel
+      // an interactive job.
       return queryHandlerFactory.getBatchQueryHandler();
     } else if (IndexQueryActionType.REFRESH.equals(indexQueryDetails.getIndexQueryActionType())) {
-      // manual refresh should be handled by batch handler
+      // Manual refresh should be handled by batch handler
       return queryHandlerFactory.getRefreshQueryHandler();
     } else {
       return getDefaultAsyncQueryHandler();
