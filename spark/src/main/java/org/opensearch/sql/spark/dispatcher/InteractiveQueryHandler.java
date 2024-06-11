@@ -25,7 +25,6 @@ import org.opensearch.sql.spark.dispatcher.model.DispatchQueryResponse;
 import org.opensearch.sql.spark.dispatcher.model.JobType;
 import org.opensearch.sql.spark.execution.session.CreateSessionRequest;
 import org.opensearch.sql.spark.execution.session.Session;
-import org.opensearch.sql.spark.execution.session.SessionId;
 import org.opensearch.sql.spark.execution.session.SessionManager;
 import org.opensearch.sql.spark.execution.statement.QueryRequest;
 import org.opensearch.sql.spark.execution.statement.Statement;
@@ -58,7 +57,11 @@ public class InteractiveQueryHandler extends AsyncQueryHandler {
   protected JSONObject getResponseFromExecutor(AsyncQueryJobMetadata asyncQueryJobMetadata) {
     JSONObject result = new JSONObject();
     String queryId = asyncQueryJobMetadata.getQueryId();
-    Statement statement = getStatementByQueryId(asyncQueryJobMetadata.getSessionId(), queryId);
+    Statement statement =
+        getStatementByQueryId(
+            asyncQueryJobMetadata.getSessionId(),
+            queryId,
+            asyncQueryJobMetadata.getDatasourceName());
     StatementState statementState = statement.getStatementState();
     result.put(STATUS_FIELD, statementState.getState());
     result.put(ERROR_FIELD, Optional.of(statement.getStatementModel().getError()).orElse(""));
@@ -68,7 +71,11 @@ public class InteractiveQueryHandler extends AsyncQueryHandler {
   @Override
   public String cancelJob(AsyncQueryJobMetadata asyncQueryJobMetadata) {
     String queryId = asyncQueryJobMetadata.getQueryId();
-    getStatementByQueryId(asyncQueryJobMetadata.getSessionId(), queryId).cancel();
+    getStatementByQueryId(
+            asyncQueryJobMetadata.getSessionId(),
+            queryId,
+            asyncQueryJobMetadata.getDatasourceName())
+        .cancel();
     return queryId;
   }
 
@@ -86,10 +93,11 @@ public class InteractiveQueryHandler extends AsyncQueryHandler {
 
     if (dispatchQueryRequest.getSessionId() != null) {
       // get session from request
-      SessionId sessionId = new SessionId(dispatchQueryRequest.getSessionId());
-      Optional<Session> createdSession = sessionManager.getSession(sessionId);
-      if (createdSession.isPresent()) {
-        session = createdSession.get();
+      Optional<Session> existingSession =
+          sessionManager.getSession(
+              dispatchQueryRequest.getSessionId(), dispatchQueryRequest.getDatasource());
+      if (existingSession.isPresent()) {
+        session = existingSession.get();
       }
     }
     if (session == null
@@ -125,18 +133,17 @@ public class InteractiveQueryHandler extends AsyncQueryHandler {
         .queryId(context.getQueryId())
         .jobId(session.getSessionModel().getJobId())
         .resultIndex(dataSourceMetadata.getResultIndex())
-        .sessionId(session.getSessionId().getSessionId())
+        .sessionId(session.getSessionId())
         .datasourceName(dataSourceMetadata.getName())
         .jobType(JobType.INTERACTIVE)
         .build();
   }
 
-  private Statement getStatementByQueryId(String sid, String qid) {
-    SessionId sessionId = new SessionId(sid);
-    Optional<Session> session = sessionManager.getSession(sessionId);
+  private Statement getStatementByQueryId(String sessionId, String queryId, String datasourceName) {
+    Optional<Session> session = sessionManager.getSession(sessionId, datasourceName);
     if (session.isPresent()) {
       // todo, statementId == jobId if statement running in session.
-      StatementId statementId = new StatementId(qid);
+      StatementId statementId = new StatementId(queryId);
       Optional<Statement> statement = session.get().get(statementId);
       if (statement.isPresent()) {
         return statement.get();

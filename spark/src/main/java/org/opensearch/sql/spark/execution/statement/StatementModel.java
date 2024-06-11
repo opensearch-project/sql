@@ -10,7 +10,6 @@ import static org.opensearch.sql.spark.execution.statement.StatementState.WAITIN
 import com.google.common.collect.ImmutableMap;
 import lombok.Data;
 import lombok.experimental.SuperBuilder;
-import org.opensearch.sql.spark.execution.session.SessionId;
 import org.opensearch.sql.spark.execution.statestore.StateModel;
 import org.opensearch.sql.spark.rest.model.LangType;
 
@@ -23,7 +22,7 @@ public class StatementModel extends StateModel {
   private final String version;
   private final StatementState statementState;
   private final StatementId statementId;
-  private final SessionId sessionId;
+  private final String sessionId;
   // optional: accountId for EMRS cluster
   private final String accountId;
   private final String applicationId;
@@ -75,7 +74,7 @@ public class StatementModel extends StateModel {
   }
 
   public static StatementModel submitStatement(
-      SessionId sid,
+      String sessionId,
       String accountId,
       String applicationId,
       String jobId,
@@ -88,7 +87,7 @@ public class StatementModel extends StateModel {
         .version("1.0")
         .statementState(WAITING)
         .statementId(statementId)
-        .sessionId(sid)
+        .sessionId(sessionId)
         .accountId(accountId)
         .applicationId(applicationId)
         .jobId(jobId)
