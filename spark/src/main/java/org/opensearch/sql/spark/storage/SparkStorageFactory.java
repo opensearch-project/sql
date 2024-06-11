@@ -5,9 +5,6 @@
 
 package org.opensearch.sql.spark.storage;
 
-import static org.opensearch.sql.spark.data.constants.SparkConstants.EMR;
-import static org.opensearch.sql.spark.data.constants.SparkConstants.STEP_ID_FIELD;
-
 import com.amazonaws.auth.AWSStaticCredentialsProvider;
 import com.amazonaws.auth.BasicAWSCredentials;
 import com.amazonaws.services.elasticmapreduce.AmazonElasticMapReduce;
@@ -36,6 +33,8 @@ public class SparkStorageFactory implements DataSourceFactory {
   private final Client client;
   private final Settings settings;
 
+  public static final String EMR = "emr";
+  public static final String STEP_ID_FIELD = "stepId.keyword";
   // Spark datasource configuration properties
   public static final String CONNECTOR_TYPE = "spark.connector";
   public static final String SPARK_SQL_APPLICATION = "spark.sql.application";
@@ -44,7 +43,6 @@ public class SparkStorageFactory implements DataSourceFactory {
   public static final String EMR_CLUSTER = "emr.cluster";
   public static final String EMR_AUTH_TYPE = "emr.auth.type";
   public static final String EMR_REGION = "emr.auth.region";
-  public static final String EMR_ROLE_ARN = "emr.auth.role_arn";
   public static final String EMR_ACCESS_KEY = "emr.auth.access_key";
   public static final String EMR_SECRET_KEY = "emr.auth.secret_key";
 

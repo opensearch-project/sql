@@ -6,7 +6,6 @@
 package org.opensearch.sql.spark.client;
 
 import static org.opensearch.sql.datasource.model.DataSourceMetadata.DEFAULT_RESULT_INDEX;
-import static org.opensearch.sql.spark.data.constants.SparkConstants.SPARK_SQL_APPLICATION_JAR;
 
 import com.amazonaws.services.elasticmapreduce.AmazonElasticMapReduce;
 import com.amazonaws.services.elasticmapreduce.model.ActionOnFailure;
@@ -26,6 +25,10 @@ import org.opensearch.sql.spark.helper.FlintHelper;
 import org.opensearch.sql.spark.response.SparkResponse;
 
 public class EmrClientImpl implements SparkClient {
+  // EMR-S will download JAR to local maven
+  public static final String SPARK_SQL_APPLICATION_JAR =
+      "file:///home/hadoop/.ivy2/jars/org.opensearch_opensearch-spark-sql-application_2.12-0.3.0-SNAPSHOT.jar";
+
   private final AmazonElasticMapReduce emr;
   private final String emrCluster;
   private final FlintHelper flint;
