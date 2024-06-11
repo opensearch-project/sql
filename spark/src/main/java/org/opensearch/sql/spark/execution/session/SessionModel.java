@@ -22,7 +22,7 @@ public class SessionModel extends StateModel {
 
   private final String version;
   private final SessionType sessionType;
-  private final SessionId sessionId;
+  private final String sessionId;
   private final SessionState sessionState;
   // optional: accountId for EMRS cluster
   private final String accountId;
@@ -36,7 +36,7 @@ public class SessionModel extends StateModel {
     return builder()
         .version(copy.version)
         .sessionType(copy.sessionType)
-        .sessionId(new SessionId(copy.sessionId.getSessionId()))
+        .sessionId(copy.sessionId)
         .sessionState(copy.sessionState)
         .datasourceName(copy.datasourceName)
         .accountId(copy.accountId)
@@ -53,7 +53,7 @@ public class SessionModel extends StateModel {
     return builder()
         .version(copy.version)
         .sessionType(copy.sessionType)
-        .sessionId(new SessionId(copy.sessionId.getSessionId()))
+        .sessionId(copy.sessionId)
         .sessionState(state)
         .datasourceName(copy.datasourceName)
         .accountId(copy.getAccountId())
@@ -66,11 +66,15 @@ public class SessionModel extends StateModel {
   }
 
   public static SessionModel initInteractiveSession(
-      String accountId, String applicationId, String jobId, SessionId sid, String datasourceName) {
+      String accountId,
+      String applicationId,
+      String jobId,
+      String sessionId,
+      String datasourceName) {
     return builder()
         .version("1.0")
         .sessionType(INTERACTIVE)
-        .sessionId(sid)
+        .sessionId(sessionId)
         .sessionState(NOT_STARTED)
         .datasourceName(datasourceName)
         .accountId(accountId)
@@ -83,6 +87,6 @@ public class SessionModel extends StateModel {
 
   @Override
   public String getId() {
-    return sessionId.getSessionId();
+    return sessionId;
   }
 }
