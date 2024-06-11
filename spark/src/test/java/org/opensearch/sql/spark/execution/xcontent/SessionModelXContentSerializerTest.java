@@ -15,7 +15,6 @@ import org.junit.jupiter.api.Test;
 import org.opensearch.core.xcontent.ToXContent;
 import org.opensearch.core.xcontent.XContentBuilder;
 import org.opensearch.core.xcontent.XContentParser;
-import org.opensearch.sql.spark.execution.session.SessionId;
 import org.opensearch.sql.spark.execution.session.SessionModel;
 import org.opensearch.sql.spark.execution.session.SessionState;
 import org.opensearch.sql.spark.execution.session.SessionType;
@@ -30,7 +29,7 @@ class SessionModelXContentSerializerTest {
         SessionModel.builder()
             .version("1.0")
             .sessionType(SessionType.INTERACTIVE)
-            .sessionId(new SessionId("session1"))
+            .sessionId("session1")
             .sessionState(SessionState.FAIL)
             .datasourceName("datasource1")
             .accountId("account1")
@@ -63,7 +62,7 @@ class SessionModelXContentSerializerTest {
 
     assertEquals("1.0", sessionModel.getVersion());
     assertEquals(SessionType.INTERACTIVE, sessionModel.getSessionType());
-    assertEquals("session1", sessionModel.getSessionId().getSessionId());
+    assertEquals("session1", sessionModel.getSessionId());
     assertEquals(SessionState.FAIL, sessionModel.getSessionState());
     assertEquals("datasource1", sessionModel.getDatasourceName());
     assertEquals("account1", sessionModel.getAccountId());
@@ -80,7 +79,7 @@ class SessionModelXContentSerializerTest {
 
     assertEquals("1.0", sessionModel.getVersion());
     assertEquals(SessionType.INTERACTIVE, sessionModel.getSessionType());
-    assertEquals("session1", sessionModel.getSessionId().getSessionId());
+    assertEquals("session1", sessionModel.getSessionId());
     assertEquals(SessionState.FAIL, sessionModel.getSessionState());
     assertEquals("datasource1", sessionModel.getDatasourceName());
     assertNull(sessionModel.getAccountId());
