@@ -18,6 +18,7 @@ import org.opensearch.sql.spark.flint.FlintIndexMetadataService;
 import org.opensearch.sql.spark.flint.operation.FlintIndexOp;
 import org.opensearch.sql.spark.flint.operation.FlintIndexOpFactory;
 import org.opensearch.sql.spark.leasemanager.LeaseManager;
+import org.opensearch.sql.spark.leasemanager.model.LeaseRequest;
 import org.opensearch.sql.spark.response.JobExecutionResponseReader;
 
 /**
@@ -59,6 +60,8 @@ public class RefreshQueryHandler extends BatchQueryHandler {
   @Override
   public DispatchQueryResponse submit(
       DispatchQueryRequest dispatchQueryRequest, DispatchQueryContext context) {
+    leaseManager.borrow(new LeaseRequest(JobType.BATCH, dispatchQueryRequest.getDatasource()));
+
     DispatchQueryResponse resp = super.submit(dispatchQueryRequest, context);
     DataSourceMetadata dataSourceMetadata = context.getDataSourceMetadata();
     return DispatchQueryResponse.builder()
