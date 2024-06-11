@@ -28,7 +28,7 @@ tasks.register('downloadG4Files', Exec) {
 }
 
 generateGrammarSource {
-    arguments += ['-visitor', '-package', 'org.opensearch.sql.asyncquery.antlr.parser']
+    arguments += ['-visitor', '-package', 'org.opensearch.sql.spark.antlr.parser']
     source = sourceSets.main.antlr
     outputDirectory = file("build/generated-src/antlr/main/org/opensearch/sql/asyncquery/antlr/parser")
 }
@@ -44,6 +44,11 @@ generateGrammarSource.dependsOn downloadG4Files
 dependencies {
     antlr "org.antlr:antlr4:4.7.1"
 
+    implementation project(':core')
+    implementation project(':spark') // TODO: dependency to spark should be eliminated
+    implementation project(':datasources') // TODO: dependency to datasources should be eliminated
+    implementation project(':legacy') // TODO: dependency to legacy should be eliminated
+    implementation group: 'org.json', name: 'json', version: '20231013'
     implementation group: 'com.google.guava', name: 'guava', version: '32.0.1-jre'
     implementation group: 'com.fasterxml.jackson.core', name: 'jackson-core', version: "${versions.jackson}"
     implementation group: 'com.fasterxml.jackson.core', name: 'jackson-databind', version: "${versions.jackson_databind}"
@@ -108,7 +113,19 @@ jacocoTestCoverageVerification {
     violationRules {
         rule {
             element = 'CLASS'
-            excludes = []
+            //　TODO: Add unit tests in async-query-core and remove exclusions
+            excludes = [
+                    'org.opensearch.sql.spark.asyncquery.model.*',
+                    'org.opensearch.sql.spark.data.constants.*',
+                    'org.opensearch.sql.spark.dispatcher.model.*',
+                    'org.opensearch.sql.spark.dispatcher.*',
+                    'org.opensearch.sql.spark.execution.session.*',
+                    'org.opensearch.sql.spark.execution.statement.*',
+                    'org.opensearch.sql.spark.flint.*',
+                    'org.opensearch.sql.spark.flint.operation.*',
+                    'org.opensearch.sql.spark.rest.*',
+                    'org.opensearch.sql.spark.utils.SQLQueryUtils.*'
+            ]
             limit {
                 counter = 'LINE'
                 minimum = 1.0
