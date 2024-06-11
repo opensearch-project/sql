@@ -17,7 +17,7 @@ repositories {
 
 dependencies {
     api project(':core')
-    implementation project(':async-query-core')
+    api project(':async-query-core')
     implementation project(':protocol')
     implementation project(':datasources')
     implementation project(':legacy')
@@ -91,22 +91,12 @@ jacocoTestCoverageVerification {
         rule {
             element = 'CLASS'
             excludes = [
-                    'org.opensearch.sql.spark.data.constants.*',
-                    'org.opensearch.sql.spark.rest.*',
-                    'org.opensearch.sql.spark.transport.model.*',
-                    'org.opensearch.sql.spark.asyncquery.model.*',
-                    'org.opensearch.sql.spark.asyncquery.exceptions.*',
-                    'org.opensearch.sql.spark.dispatcher.model.*',
-                    'org.opensearch.sql.spark.flint.FlintIndexType',
-                    // ignore because XContext IOException
-                    'org.opensearch.sql.spark.execution.statestore.StateStore',
-                    'org.opensearch.sql.spark.execution.session.SessionModel',
-                    'org.opensearch.sql.spark.execution.statement.StatementModel',
-                    'org.opensearch.sql.spark.flint.FlintIndexStateModel',
-                    // TODO: add tests for purging flint indices
                     'org.opensearch.sql.spark.cluster.ClusterManagerEventListener*',
                     'org.opensearch.sql.spark.cluster.FlintIndexRetention',
-                    'org.opensearch.sql.spark.cluster.IndexCleanup'
+                    'org.opensearch.sql.spark.cluster.IndexCleanup',
+                    // ignore because XContext IOException
+                    'org.opensearch.sql.spark.execution.statestore.StateStore',
+                    'org.opensearch.sql.spark.transport.model.*'
             ]
             limit {
                 counter = 'LINE'
