@@ -40,7 +40,6 @@ import static org.opensearch.sql.legacy.plugin.RestSqlAction.EXPLAIN_API_ENDPOIN
 import static org.opensearch.sql.legacy.plugin.RestSqlAction.QUERY_API_ENDPOINT;
 
 import com.google.common.base.Strings;
-import com.google.gson.Gson;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
@@ -67,6 +66,7 @@ import org.opensearch.client.Response;
 import org.opensearch.client.RestClient;
 import org.opensearch.sql.common.setting.Settings;
 import org.opensearch.sql.datasource.model.DataSourceMetadata;
+import org.opensearch.sql.utils.SerializeUtils;
 
 /** OpenSearch Rest integration test base for SQL testing */
 public abstract class SQLIntegTestCase extends OpenSearchSQLRestTestCase {
@@ -479,7 +479,7 @@ public abstract class SQLIntegTestCase extends OpenSearchSQLRestTestCase {
 
   protected static Request getCreateDataSourceRequest(DataSourceMetadata dataSourceMetadata) {
     Request request = new Request("POST", "/_plugins/_query/_datasources");
-    request.setJsonEntity(new Gson().toJson(dataSourceMetadata));
+    request.setJsonEntity(SerializeUtils.buildGson().toJson(dataSourceMetadata));
     RequestOptions.Builder restOptionsBuilder = RequestOptions.DEFAULT.toBuilder();
     restOptionsBuilder.addHeader("Content-Type", "application/json");
     request.setOptions(restOptionsBuilder);
@@ -488,7 +488,7 @@ public abstract class SQLIntegTestCase extends OpenSearchSQLRestTestCase {
 
   protected static Request getUpdateDataSourceRequest(DataSourceMetadata dataSourceMetadata) {
     Request request = new Request("PUT", "/_plugins/_query/_datasources");
-    request.setJsonEntity(new Gson().toJson(dataSourceMetadata));
+    request.setJsonEntity(SerializeUtils.buildGson().toJson(dataSourceMetadata));
     RequestOptions.Builder restOptionsBuilder = RequestOptions.DEFAULT.toBuilder();
     restOptionsBuilder.addHeader("Content-Type", "application/json");
     request.setOptions(restOptionsBuilder);
@@ -497,7 +497,7 @@ public abstract class SQLIntegTestCase extends OpenSearchSQLRestTestCase {
 
   protected static Request getPatchDataSourceRequest(Map<String, Object> dataSourceData) {
     Request request = new Request("PATCH", "/_plugins/_query/_datasources");
-    request.setJsonEntity(new Gson().toJson(dataSourceData));
+    request.setJsonEntity(SerializeUtils.buildGson().toJson(dataSourceData));
     RequestOptions.Builder restOptionsBuilder = RequestOptions.DEFAULT.toBuilder();
     restOptionsBuilder.addHeader("Content-Type", "application/json");
     request.setOptions(restOptionsBuilder);

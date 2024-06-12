@@ -6,13 +6,13 @@
 package org.opensearch.sql.spark.asyncquery.model;
 
 import com.google.common.collect.ImmutableMap;
-import com.google.gson.Gson;
 import lombok.Builder.Default;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.experimental.SuperBuilder;
 import org.opensearch.sql.spark.dispatcher.model.JobType;
 import org.opensearch.sql.spark.execution.statestore.StateModel;
+import org.opensearch.sql.utils.SerializeUtils;
 
 /** This class models all the metadata required for a job. */
 @Data
@@ -38,7 +38,7 @@ public class AsyncQueryJobMetadata extends StateModel {
 
   @Override
   public String toString() {
-    return new Gson().toJson(this);
+    return SerializeUtils.buildGson().toJson(this);
   }
 
   /** copy builder. update seqNo and primaryTerm */
