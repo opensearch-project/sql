@@ -7,11 +7,10 @@ package org.opensearch.sql.spark.dispatcher;
 
 import static org.opensearch.sql.spark.dispatcher.SparkQueryDispatcher.INDEX_TAG_KEY;
 import static org.opensearch.sql.spark.dispatcher.SparkQueryDispatcher.JOB_TYPE_TAG_KEY;
+import static org.opensearch.sql.spark.metrics.EmrMetrics.EMR_STREAMING_QUERY_JOBS_CREATION_COUNT;
 
 import java.util.Map;
 import org.opensearch.sql.datasource.model.DataSourceMetadata;
-import org.opensearch.sql.legacy.metrics.MetricName;
-import org.opensearch.sql.legacy.utils.MetricUtils;
 import org.opensearch.sql.spark.asyncquery.model.AsyncQueryJobMetadata;
 import org.opensearch.sql.spark.asyncquery.model.SparkSubmitParameters;
 import org.opensearch.sql.spark.client.EMRServerlessClient;
@@ -23,6 +22,7 @@ import org.opensearch.sql.spark.dispatcher.model.IndexQueryDetails;
 import org.opensearch.sql.spark.dispatcher.model.JobType;
 import org.opensearch.sql.spark.leasemanager.LeaseManager;
 import org.opensearch.sql.spark.leasemanager.model.LeaseRequest;
+import org.opensearch.sql.spark.metrics.MetricsService;
 import org.opensearch.sql.spark.response.JobExecutionResponseReader;
 
 /**
@@ -34,8 +34,9 @@ public class StreamingQueryHandler extends BatchQueryHandler {
   public StreamingQueryHandler(
       EMRServerlessClient emrServerlessClient,
       JobExecutionResponseReader jobExecutionResponseReader,
-      LeaseManager leaseManager) {
-    super(emrServerlessClient, jobExecutionResponseReader, leaseManager);
+      LeaseManager leaseManager,
+      MetricsService metricsService) {
+    super(emrServerlessClient, jobExecutionResponseReader, leaseManager, metricsService);
   }
 
   @Override
@@ -81,7 +82,7 @@ public class StreamingQueryHandler extends BatchQueryHandler {
             indexQueryDetails.getFlintIndexOptions().autoRefresh(),
             dataSourceMetadata.getResultIndex());
     String jobId = emrServerlessClient.startJobRun(startJobRequest);
-    MetricUtils.incrementNumericalMetric(MetricName.EMR_STREAMING_QUERY_JOBS_CREATION_COUNT);
+    metricsService.incrementNumericalMetric(EMR_STREAMING_QUERY_JOBS_CREATION_COUNT);
     return DispatchQueryResponse.builder()
         .queryId(context.getQueryId())
         .jobId(jobId)
