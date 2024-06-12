@@ -14,6 +14,7 @@ import org.opensearch.client.Client;
 import org.opensearch.core.action.ActionResponse;
 import org.opensearch.search.SearchHits;
 import org.opensearch.search.aggregations.Aggregations;
+import org.opensearch.sql.legacy.esdomain.LocalClusterState;
 import org.opensearch.sql.legacy.exception.SqlParseException;
 import org.opensearch.sql.legacy.executor.adapter.QueryPlanQueryAction;
 import org.opensearch.sql.legacy.executor.adapter.QueryPlanRequestBuilder;
@@ -47,8 +48,7 @@ public class QueryActionElasticExecutor {
     ElasticJoinExecutor executor =
         ElasticJoinExecutor.createJoinExecutor(client, joinRequestBuilder);
     executor.run();
-    if (org.opensearch.sql.legacy.esdomain.LocalClusterState.state()
-        .getSettingValue(SQL_PAGINATION_API_SEARCH_AFTER)) {
+    if (LocalClusterState.state().getSettingValue(SQL_PAGINATION_API_SEARCH_AFTER)) {
       joinQueryAction.getPointInTimeHandler().deletePointInTime();
     }
     return executor.getHits();
