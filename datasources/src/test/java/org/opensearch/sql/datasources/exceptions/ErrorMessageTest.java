@@ -13,9 +13,33 @@ import org.opensearch.core.rest.RestStatus;
 class ErrorMessageTest {
 
   @Test
-  void fetchReason() {
+  void toString_returnPrettyPrintedJson() {
     ErrorMessage errorMessage =
         new ErrorMessage(new RuntimeException(), RestStatus.TOO_MANY_REQUESTS.getStatus());
-    assertEquals("Too Many Requests", errorMessage.getReason());
+
+    assertEquals(
+        "{\n"
+            + "  \"status\": 429,\n"
+            + "  \"error\": {\n"
+            + "    \"type\": \"RuntimeException\",\n"
+            + "    \"reason\": \"Too Many Requests\",\n"
+            + "    \"details\": \"\"\n"
+            + "  }\n"
+            + "}",
+        errorMessage.toString());
+  }
+
+  @Test
+  void getReason() {
+    testGetReason(RestStatus.TOO_MANY_REQUESTS, "Too Many Requests");
+    testGetReason(RestStatus.BAD_REQUEST, "Invalid Request");
+    // other status
+    testGetReason(RestStatus.BAD_GATEWAY, "There was internal problem at backend");
+  }
+
+  void testGetReason(RestStatus status, String expectedReason) {
+    ErrorMessage errorMessage = new ErrorMessage(new RuntimeException(), status.getStatus());
+
+    assertEquals(expectedReason, errorMessage.getReason());
   }
 }
