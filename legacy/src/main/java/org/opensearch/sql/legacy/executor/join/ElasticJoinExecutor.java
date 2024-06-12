@@ -284,17 +284,16 @@ public abstract class ElasticJoinExecutor implements ElasticHitsExecutor {
       }
       responseWithHits = request.get();
     } else {
-      if (previousResponse == null) {
+      TimeValue keepAlive = LocalClusterState.state().getSettingValue(SQL_CURSOR_KEEP_ALIVE);
+      if (previousResponse != null) {
         responseWithHits =
             client
                 .prepareSearchScroll(previousResponse.getScrollId())
-                .setScroll(
-                    new TimeValue(LocalClusterState.state().getSettingValue(SQL_CURSOR_KEEP_ALIVE)))
+                .setScroll(keepAlive)
                 .execute()
                 .actionGet();
       } else {
-        request.setScroll(
-            new TimeValue(LocalClusterState.state().getSettingValue(SQL_CURSOR_KEEP_ALIVE)));
+        request.setScroll(keepAlive);
         responseWithHits = request.get();
       }
     }
