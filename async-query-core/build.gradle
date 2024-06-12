@@ -48,18 +48,14 @@ dependencies {
     implementation project(':spark') // TODO: dependency to spark should be eliminated
     implementation project(':datasources') // TODO: dependency to datasources should be eliminated
     implementation project(':legacy') // TODO: dependency to legacy should be eliminated
-    implementation group: 'org.json', name: 'json', version: '20231013'
-    implementation group: 'com.google.guava', name: 'guava', version: '32.0.1-jre'
-    implementation group: 'com.fasterxml.jackson.core', name: 'jackson-core', version: "${versions.jackson}"
-    implementation group: 'com.fasterxml.jackson.core', name: 'jackson-databind', version: "${versions.jackson_databind}"
-    implementation group: 'com.fasterxml.jackson.dataformat', name: 'jackson-dataformat-cbor', version: "${versions.jackson}"
+    implementation 'org.json:json:20231013'
     implementation 'com.google.code.gson:gson:2.8.9'
 
     testImplementation(platform("org.junit:junit-bom:5.9.3"))
 
     testCompileOnly('org.junit.jupiter:junit-jupiter')
-    testImplementation group: 'org.mockito', name: 'mockito-core', version: '5.7.0'
-    testImplementation group: 'org.mockito', name: 'mockito-junit-jupiter', version: '5.7.0'
+    testImplementation 'org.mockito:mockito-core:5.7.0'
+    testImplementation 'org.mockito:mockito-junit-jupiter:5.7.0'
 
     testCompileOnly('junit:junit:4.13.1') {
         exclude group: 'org.hamcrest', module: 'hamcrest-core'
