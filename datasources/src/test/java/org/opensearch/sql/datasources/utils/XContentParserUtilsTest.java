@@ -17,6 +17,7 @@ import org.opensearch.core.common.bytes.BytesReference;
 import org.opensearch.core.xcontent.XContentBuilder;
 import org.opensearch.sql.datasource.model.DataSourceMetadata;
 import org.opensearch.sql.datasource.model.DataSourceType;
+import org.opensearch.sql.utils.SerializeUtils;
 
 @ExtendWith(MockitoExtension.class)
 public class XContentParserUtilsTest {
@@ -50,7 +51,7 @@ public class XContentParserUtilsTest {
             .setProperties(Map.of("prometheus.uri", "https://localhost:9090"))
             .setResultIndex("query_execution_result2")
             .build();
-    Gson gson = new Gson();
+    Gson gson = SerializeUtils.buildGson();
     String json = gson.toJson(dataSourceMetadata);
 
     DataSourceMetadata retrievedMetadata = XContentParserUtils.toDataSourceMetadata(json);
@@ -94,8 +95,7 @@ public class XContentParserUtilsTest {
             STATUS_FIELD,
             ACTIVE);
 
-    Gson gson = new Gson();
-    String json = gson.toJson(dataSourceData);
+    String json = SerializeUtils.buildGson().toJson(dataSourceData);
 
     Map<String, Object> parsedData = XContentParserUtils.toMap(json);
 
@@ -122,8 +122,7 @@ public class XContentParserUtilsTest {
   @Test
   public void testToMapFromJsonWithoutName() {
     Map<String, Object> dataSourceData = new HashMap<>(Map.of(DESCRIPTION_FIELD, "test"));
-    Gson gson = new Gson();
-    String json = gson.toJson(dataSourceData);
+    String json = SerializeUtils.buildGson().toJson(dataSourceData);
 
     IllegalArgumentException exception =
         assertThrows(
@@ -139,8 +138,7 @@ public class XContentParserUtilsTest {
   public void testToDataSourceMetadataFromJsonUsingUnknownObject() {
     HashMap<String, String> hashMap = new HashMap<>();
     hashMap.put("test", "test");
-    Gson gson = new Gson();
-    String json = gson.toJson(hashMap);
+    String json = SerializeUtils.buildGson().toJson(hashMap);
 
     IllegalArgumentException exception =
         assertThrows(
@@ -156,8 +154,7 @@ public class XContentParserUtilsTest {
   public void testToMapFromJsonUsingUnknownObject() {
     HashMap<String, String> hashMap = new HashMap<>();
     hashMap.put("test", "test");
-    Gson gson = new Gson();
-    String json = gson.toJson(hashMap);
+    String json = SerializeUtils.buildGson().toJson(hashMap);
 
     IllegalArgumentException exception =
         assertThrows(
