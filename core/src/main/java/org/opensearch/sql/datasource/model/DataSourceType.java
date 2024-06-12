@@ -35,13 +35,14 @@ public class DataSourceType {
   }
 
   /** Register DataSourceType to be used in fromString method */
-  public static void register(DataSourceType ... dataSourceTypes) {
+  public static void register(DataSourceType... dataSourceTypes) {
     for (DataSourceType type : dataSourceTypes) {
       String upperCaseName = type.name().toUpperCase();
       if (!knownValues.containsKey(upperCaseName)) {
         knownValues.put(type.name().toUpperCase(), type);
       } else {
-        throw new IllegalArgumentException("DataSourceType with name " + type.name() + " already exists");
+        throw new IllegalArgumentException(
+            "DataSourceType with name " + type.name() + " already exists");
       }
     }
   }
