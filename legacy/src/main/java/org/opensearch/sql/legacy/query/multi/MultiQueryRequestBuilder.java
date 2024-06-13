@@ -10,9 +10,12 @@ import java.io.IOException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import lombok.Getter;
+import lombok.Setter;
 import org.opensearch.action.ActionRequest;
 import org.opensearch.action.ActionRequestBuilder;
 import org.opensearch.action.search.SearchRequestBuilder;
+import org.opensearch.common.util.ArrayUtils;
 import org.opensearch.common.xcontent.XContentFactory;
 import org.opensearch.core.action.ActionResponse;
 import org.opensearch.core.common.bytes.BytesReference;
@@ -20,6 +23,7 @@ import org.opensearch.core.xcontent.ToXContent;
 import org.opensearch.core.xcontent.XContentBuilder;
 import org.opensearch.sql.legacy.domain.Field;
 import org.opensearch.sql.legacy.domain.Select;
+import org.opensearch.sql.legacy.pit.PointInTimeHandler;
 import org.opensearch.sql.legacy.query.SqlElasticRequestBuilder;
 
 /** Created by Eliran on 19/8/2016. */
@@ -31,7 +35,7 @@ public class MultiQueryRequestBuilder implements SqlElasticRequestBuilder {
   private Map<String, String> secondTableFieldToAlias;
   private MultiQuerySelect multiQuerySelect;
   private SQLUnionOperator relation;
-  private String pitId;
+  @Getter @Setter private PointInTimeHandler pit;
 
   public MultiQueryRequestBuilder(MultiQuerySelect multiQuerySelect) {
     this.multiQuerySelect = multiQuerySelect;
@@ -79,6 +83,14 @@ public class MultiQueryRequestBuilder implements SqlElasticRequestBuilder {
     return null;
   }
 
+  public void updateRequestWithPit(org.opensearch.client.Client client) {
+    String[] indices =
+        ArrayUtils.concat(
+            multiQuerySelect.getFirstSelect().getIndexArr(),
+            multiQuerySelect.getSecondSelect().getIndexArr());
+    pit = new PointInTimeHandler(client, indices);
+  }
+
   public SearchRequestBuilder getFirstSearchRequest() {
     return firstSearchRequest;
   }
@@ -98,14 +110,6 @@ public class MultiQueryRequestBuilder implements SqlElasticRequestBuilder {
   public void setSecondSearchRequest(SearchRequestBuilder secondSearchRequest) {
     this.secondSearchRequest = secondSearchRequest;
   }
-  public String getPitId() {
-    return pitId;
-  }
-
-  public void setPitId(String pitId) {
-    this.pitId = pitId;
-  }
-
 
   public void fillTableAliases(List<Field> firstTableFields, List<Field> secondTableFields) {
     fillTableToAlias(this.firstTableFieldToAlias, firstTableFields);

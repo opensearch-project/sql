@@ -92,11 +92,21 @@ public class QueryActionElasticExecutor {
   public static SearchHits executeMultiQueryAction(Client client, MultiQueryAction queryAction)
       throws SqlParseException, IOException {
     SqlElasticRequestBuilder multiRequestBuilder = queryAction.explain();
+
+    boolean isSearchAfter =
+        LocalClusterState.state().getSettingValue(SQL_PAGINATION_API_SEARCH_AFTER);
+    if (isSearchAfter) {
+      ((MultiQueryRequestBuilder) multiRequestBuilder).updateRequestWithPit(client);
+    }
+
     ElasticHitsExecutor executor =
         MultiRequestExecutorFactory.createExecutor(
             client, (MultiQueryRequestBuilder) multiRequestBuilder);
     executor.run();
-    queryAction.getPointInTimeHandler().deletePointInTime();
+
+    if (isSearchAfter) {
+      ((MultiQueryRequestBuilder) multiRequestBuilder).getPit().deletePointInTime(client);
+    }
     return executor.getHits();
   }
 
