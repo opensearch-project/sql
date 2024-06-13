@@ -5,6 +5,8 @@
 
 package org.opensearch.sql.legacy.executor;
 
+import static org.opensearch.sql.common.setting.Settings.Key.SQL_PAGINATION_API_SEARCH_AFTER;
+
 import com.google.common.collect.Maps;
 import java.io.IOException;
 import java.util.Map;
@@ -24,6 +26,7 @@ import org.opensearch.rest.BytesRestResponse;
 import org.opensearch.rest.RestChannel;
 import org.opensearch.rest.action.RestStatusToXContentListener;
 import org.opensearch.search.SearchHits;
+import org.opensearch.sql.legacy.esdomain.LocalClusterState;
 import org.opensearch.sql.legacy.exception.SqlParseException;
 import org.opensearch.sql.legacy.executor.join.ElasticJoinExecutor;
 import org.opensearch.sql.legacy.executor.join.ElasticUtils;
@@ -58,8 +61,16 @@ public class ElasticDefaultRestExecutor implements RestExecutor {
     ActionRequest request = requestBuilder.request();
 
     if (requestBuilder instanceof JoinRequestBuilder) {
+      boolean isSearchAfter =
+          LocalClusterState.state().getSettingValue(SQL_PAGINATION_API_SEARCH_AFTER);
+      if (isSearchAfter) {
+        ((JoinRequestBuilder) requestBuilder).updateRequestWithPit(client);
+      }
       ElasticJoinExecutor executor = ElasticJoinExecutor.createJoinExecutor(client, requestBuilder);
       executor.run();
+      if (isSearchAfter) {
+        ((JoinRequestBuilder) requestBuilder).getPit().deletePointInTime(client);
+      }
       executor.sendResponse(channel);
     } else if (requestBuilder instanceof MultiQueryRequestBuilder) {
       ElasticHitsExecutor executor =

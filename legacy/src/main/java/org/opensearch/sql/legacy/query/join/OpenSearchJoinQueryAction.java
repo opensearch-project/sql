@@ -5,19 +5,14 @@
 
 package org.opensearch.sql.legacy.query.join;
 
-import static org.opensearch.sql.common.setting.Settings.Key.SQL_PAGINATION_API_SEARCH_AFTER;
-
 import java.util.List;
 import org.opensearch.client.Client;
-import org.opensearch.common.util.ArrayUtils;
 import org.opensearch.sql.legacy.domain.Field;
 import org.opensearch.sql.legacy.domain.JoinSelect;
 import org.opensearch.sql.legacy.domain.Select;
 import org.opensearch.sql.legacy.domain.TableOnJoinSelect;
 import org.opensearch.sql.legacy.domain.hints.Hint;
-import org.opensearch.sql.legacy.esdomain.LocalClusterState;
 import org.opensearch.sql.legacy.exception.SqlParseException;
-import org.opensearch.sql.legacy.pit.PointInTimeHandler;
 import org.opensearch.sql.legacy.query.DefaultQueryAction;
 import org.opensearch.sql.legacy.query.QueryAction;
 import org.opensearch.sql.legacy.query.SqlElasticRequestBuilder;
@@ -28,7 +23,6 @@ import org.opensearch.sql.legacy.query.planner.core.Config;
 public abstract class OpenSearchJoinQueryAction extends QueryAction {
 
   protected JoinSelect joinSelect;
-  private PointInTimeHandler pointInTimeHandler;
 
   public OpenSearchJoinQueryAction(Client client, JoinSelect joinSelect) {
     super(client, joinSelect);
@@ -40,14 +34,7 @@ public abstract class OpenSearchJoinQueryAction extends QueryAction {
     JoinRequestBuilder requestBuilder = createSpecificBuilder();
     fillBasicJoinRequestBuilder(requestBuilder);
     fillSpecificRequestBuilder(requestBuilder);
-    if (LocalClusterState.state().getSettingValue(SQL_PAGINATION_API_SEARCH_AFTER)) {
-      updateRequestWithPitId(requestBuilder);
-    }
     return requestBuilder;
-  }
-
-  public PointInTimeHandler getPointInTimeHandler() {
-    return pointInTimeHandler;
   }
 
   protected abstract void fillSpecificRequestBuilder(JoinRequestBuilder requestBuilder)
@@ -103,18 +90,6 @@ public abstract class OpenSearchJoinQueryAction extends QueryAction {
           break;
       }
     }
-  }
-
-  private void updateRequestWithPitId(JoinRequestBuilder requestBuilder) {
-    String[] indices =
-        ArrayUtils.concat(
-            requestBuilder.getFirstTable().getOriginalSelect().getIndexArr(),
-            requestBuilder.getSecondTable().getOriginalSelect().getIndexArr());
-    this.pointInTimeHandler = new PointInTimeHandler(client, indices);
-    String pitId = pointInTimeHandler.getPitId();
-    requestBuilder.setPitId(pitId);
-    requestBuilder.getFirstTable().setPitId(pitId);
-    requestBuilder.getSecondTable().setPitId(pitId);
   }
 
   private Config queryPlannerConfig(JoinRequestBuilder requestBuilder) {
