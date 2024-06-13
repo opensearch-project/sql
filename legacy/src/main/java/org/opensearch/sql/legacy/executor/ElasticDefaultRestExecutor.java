@@ -59,10 +59,10 @@ public class ElasticDefaultRestExecutor implements RestExecutor {
       Client client, Map<String, String> params, QueryAction queryAction, RestChannel channel)
       throws Exception {
     ActionRequest request = requestBuilder.request();
+    boolean isSearchAfter =
+        LocalClusterState.state().getSettingValue(SQL_PAGINATION_API_SEARCH_AFTER);
 
     if (requestBuilder instanceof JoinRequestBuilder) {
-      boolean isSearchAfter =
-          LocalClusterState.state().getSettingValue(SQL_PAGINATION_API_SEARCH_AFTER);
       if (isSearchAfter) {
         ((JoinRequestBuilder) requestBuilder).updateRequestWithPit(client);
       }
@@ -73,18 +73,13 @@ public class ElasticDefaultRestExecutor implements RestExecutor {
       }
       executor.sendResponse(channel);
     } else if (requestBuilder instanceof MultiQueryRequestBuilder) {
-
-      boolean isSearchAfter =
-          LocalClusterState.state().getSettingValue(SQL_PAGINATION_API_SEARCH_AFTER);
       if (isSearchAfter) {
         ((MultiQueryRequestBuilder) requestBuilder).updateRequestWithPit(client);
       }
-
       ElasticHitsExecutor executor =
           MultiRequestExecutorFactory.createExecutor(
               client, (MultiQueryRequestBuilder) requestBuilder);
       executor.run();
-
       if (isSearchAfter) {
         ((MultiQueryRequestBuilder) requestBuilder).getPit().deletePointInTime(client);
       }

@@ -40,6 +40,7 @@ public class MultiQueryAction extends QueryAction {
     requestBuilder.fillTableAliases(
         this.multiQuerySelect.getFirstSelect().getFields(),
         this.multiQuerySelect.getSecondSelect().getFields());
+
     return requestBuilder;
   }
 

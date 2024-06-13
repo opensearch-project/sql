@@ -36,7 +36,6 @@ import org.opensearch.sql.legacy.domain.hints.HintType;
 import org.opensearch.sql.legacy.esdomain.LocalClusterState;
 import org.opensearch.sql.legacy.exception.SqlParseException;
 import org.opensearch.sql.legacy.executor.ElasticHitsExecutor;
-import org.opensearch.sql.legacy.executor.join.ElasticUtils;
 import org.opensearch.sql.legacy.query.DefaultQueryAction;
 import org.opensearch.sql.legacy.query.multi.MultiQueryRequestBuilder;
 import org.opensearch.sql.legacy.utils.Util;
@@ -192,7 +191,7 @@ public class MinusExecutor implements ElasticHitsExecutor {
 
   private Set<ComperableHitResult> runWithScrollings() {
 
-    SearchResponse response =
+    SearchResponse scrollResp =
         getResponseWithHits(
             client,
             builder.getFirstSearchRequest(),
@@ -202,7 +201,7 @@ public class MinusExecutor implements ElasticHitsExecutor {
             builder.getPit().getPitId());
     Set<ComperableHitResult> results = new HashSet<>();
 
-    SearchHit[] hits = response.getHits().getHits();
+    SearchHit[] hits = scrollResp.getHits().getHits();
     if (hits == null || hits.length == 0) {
       return new HashSet<>();
     }
@@ -214,24 +213,26 @@ public class MinusExecutor implements ElasticHitsExecutor {
       if (totalDocsFetchedFromFirstTable > this.maxDocsToFetchOnFirstTable) {
         break;
       }
-      response =
+      scrollResp =
           getResponseWithHits(
               client,
               builder.getFirstSearchRequest(),
               builder.getOriginalSelect(true),
               maxDocsToFetchOnEachScrollShard,
-              response,
+              scrollResp,
               builder.getPit().getPitId());
-      hits = response.getHits().getHits();
+      hits = scrollResp.getHits().getHits();
     }
-    response =
-        ElasticUtils.scrollOneTimeWithHits(
+    scrollResp =
+        getResponseWithHits(
             this.client,
             this.builder.getSecondSearchRequest(),
             builder.getOriginalSelect(false),
-            this.maxDocsToFetchOnEachScrollShard);
+            this.maxDocsToFetchOnEachScrollShard,
+            null,
+            builder.getPit().getPitId());
 
-    hits = response.getHits().getHits();
+    hits = scrollResp.getHits().getHits();
     if (hits == null || hits.length == 0) {
       return results;
     }
@@ -242,15 +243,15 @@ public class MinusExecutor implements ElasticHitsExecutor {
       if (totalDocsFetchedFromSecondTable > this.maxDocsToFetchOnSecondTable) {
         break;
       }
-      response =
+      scrollResp =
           getResponseWithHits(
               client,
               builder.getSecondSearchRequest(),
               builder.getOriginalSelect(false),
               maxDocsToFetchOnEachScrollShard,
-              response,
+              scrollResp,
               builder.getPit().getPitId());
-      hits = response.getHits().getHits();
+      hits = scrollResp.getHits().getHits();
     }
 
     return results;
@@ -348,11 +349,13 @@ public class MinusExecutor implements ElasticHitsExecutor {
         break;
       }
       SearchResponse responseForSecondTable =
-          ElasticUtils.scrollOneTimeWithHits(
+          getResponseWithHits(
               this.client,
               queryAction.getRequestBuilder(),
               secondQuerySelect,
-              this.maxDocsToFetchOnEachScrollShard);
+              this.maxDocsToFetchOnEachScrollShard,
+              null,
+              builder.getPit().getPitId());
       SearchHits secondQuerySearchHits = responseForSecondTable.getHits();
 
       SearchHit[] secondQueryHits = secondQuerySearchHits.getHits();
