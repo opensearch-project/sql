@@ -8,8 +8,13 @@ package org.opensearch.sql.datasources.storage;
 import static org.opensearch.sql.datasource.model.DataSourceStatus.ACTIVE;
 import static org.opensearch.sql.datasources.storage.OpenSearchDataSourceMetadataStorage.DATASOURCE_INDEX_NAME;
 
+import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializerProvider;
+import com.fasterxml.jackson.databind.module.SimpleModule;
+import com.fasterxml.jackson.databind.ser.std.StdSerializer;
+import java.io.IOException;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -645,8 +650,7 @@ public class OpenSearchDataSourceMetadataStorageTest {
             .setConnector(DataSourceType.PROMETHEUS)
             .setAllowedRoles(Collections.singletonList("prometheus_access"))
             .build();
-    ObjectMapper objectMapper = new ObjectMapper();
-    return objectMapper.writeValueAsString(dataSourceMetadata);
+    return serialize(dataSourceMetadata);
   }
 
   private String getOldDataSourceMetadataStringWithOutStatusEnum() {
@@ -666,8 +670,7 @@ public class OpenSearchDataSourceMetadataStorageTest {
             .setConnector(DataSourceType.PROMETHEUS)
             .setAllowedRoles(Collections.singletonList("prometheus_access"))
             .build();
-    ObjectMapper objectMapper = new ObjectMapper();
-    return objectMapper.writeValueAsString(dataSourceMetadata);
+    return serialize(dataSourceMetadata);
   }
 
   private String getDataSourceMetadataStringWithBasicAuthentication()
@@ -684,8 +687,7 @@ public class OpenSearchDataSourceMetadataStorageTest {
             .setConnector(DataSourceType.PROMETHEUS)
             .setAllowedRoles(Collections.singletonList("prometheus_access"))
             .build();
-    ObjectMapper objectMapper = new ObjectMapper();
-    return objectMapper.writeValueAsString(dataSourceMetadata);
+    return serialize(dataSourceMetadata);
   }
 
   private String getDataSourceMetadataStringWithNoAuthentication() throws JsonProcessingException {
@@ -698,8 +700,7 @@ public class OpenSearchDataSourceMetadataStorageTest {
             .setConnector(DataSourceType.PROMETHEUS)
             .setAllowedRoles(Collections.singletonList("prometheus_access"))
             .build();
-    ObjectMapper objectMapper = new ObjectMapper();
-    return objectMapper.writeValueAsString(dataSourceMetadata);
+    return serialize(dataSourceMetadata);
   }
 
   private DataSourceMetadata getDataSourceMetadata() {
@@ -714,5 +715,33 @@ public class OpenSearchDataSourceMetadataStorageTest {
         .setConnector(DataSourceType.PROMETHEUS)
         .setAllowedRoles(Collections.singletonList("prometheus_access"))
         .build();
+  }
+
+  private String serialize(DataSourceMetadata dataSourceMetadata) throws JsonProcessingException {
+    return getObjectMapper().writeValueAsString(dataSourceMetadata);
+  }
+
+  private ObjectMapper getObjectMapper() {
+    ObjectMapper mapper = new ObjectMapper();
+    addSerializerForDataSourceType(mapper);
+    return mapper;
+  }
+
+  /** It is needed to serialize DataSourceType as string. */
+  private void addSerializerForDataSourceType(ObjectMapper mapper) {
+    SimpleModule module = new SimpleModule();
+    module.addSerializer(DataSourceType.class, getDataSourceTypeSerializer());
+    mapper.registerModule(module);
+  }
+
+  private StdSerializer<DataSourceType> getDataSourceTypeSerializer() {
+    return new StdSerializer<>(DataSourceType.class) {
+      @Override
+      public void serialize(
+          DataSourceType dsType, JsonGenerator jsonGen, SerializerProvider provider)
+          throws IOException {
+        jsonGen.writeString(dsType.name());
+      }
+    };
   }
 }
