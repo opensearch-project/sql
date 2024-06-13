@@ -53,6 +53,13 @@ class StrToDateTest extends ExpressionTestBase {
             "%Y,%m,%d,%h,%i",
             new ExprTimestampValue("2000-01-01 10:11:00"),
             TIMESTAMP),
+        Arguments.of(
+            "01-May-13", "%d-%b-%y", new ExprTimestampValue("2013-05-01 00:00:00"), TIMESTAMP),
+        Arguments.of(
+            "01-Jan-00", "%d-%b-%y", new ExprTimestampValue("2000-01-01 00:00:00"), TIMESTAMP),
+        // Behavior consistent with OpenSearch Core
+        Arguments.of(
+            "31-Jul-99", "%d-%b-%y", new ExprTimestampValue("2099-07-31 00:00:00"), TIMESTAMP),
 
         // Invalid Arguments (should return null)
         Arguments.of("a09:30:17", "a%h:%i:%s", ExprNullValue.of(), UNDEFINED),
