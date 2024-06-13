@@ -12,6 +12,7 @@ import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.EvalComman
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.FieldsCommandContext;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.FromClauseContext;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.HeadCommandContext;
+import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.LookupCommandContext;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.RareCommandContext;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.RenameCommandContext;
 import static org.opensearch.sql.ppl.antlr.parser.OpenSearchPPLParser.SearchFilterFromContext;
@@ -54,6 +55,7 @@ import org.opensearch.sql.ast.tree.Eval;
 import org.opensearch.sql.ast.tree.Filter;
 import org.opensearch.sql.ast.tree.Head;
 import org.opensearch.sql.ast.tree.Kmeans;
+import org.opensearch.sql.ast.tree.Lookup;
 import org.opensearch.sql.ast.tree.ML;
 import org.opensearch.sql.ast.tree.Parse;
 import org.opensearch.sql.ast.tree.Project;
@@ -210,6 +212,47 @@ public class AstBuilder extends OpenSearchPPLParserBaseVisitor<UnresolvedPlan> {
   @Override
   public UnresolvedPlan visitDedupCommand(DedupCommandContext ctx) {
     return new Dedupe(ArgumentFactory.getArgumentList(ctx), getFieldList(ctx.fieldList()));
+  }
+
+  /** Lookup command */
+  @Override
+  public UnresolvedPlan visitLookupCommand(LookupCommandContext ctx) {
+    ArgumentFactory.getArgumentList(ctx);
+    ctx.tableSource();
+    ctx.copyFieldWithOptAs();
+    ctx.matchFieldWithOptAs();
+    return new Lookup(
+        ctx.tableSource().tableQualifiedName().getText(),
+        ctx.matchFieldWithOptAs().stream()
+            .map(
+                ct ->
+                    new Map(
+                        evaluateFieldExpressionContext(ct.orignalMatchField),
+                        evaluateFieldExpressionContext(ct.asMatchField, ct.orignalMatchField)))
+            .collect(Collectors.toList()),
+        ArgumentFactory.getArgumentList(ctx),
+        ctx.copyFieldWithOptAs().stream()
+            .map(
+                ct ->
+                    new Map(
+                        evaluateFieldExpressionContext(ct.orignalCopyField),
+                        evaluateFieldExpressionContext(ct.asCopyField, ct.orignalCopyField)))
+            .collect(Collectors.toList()));
+  }
+
+  private UnresolvedExpression evaluateFieldExpressionContext(
+      OpenSearchPPLParser.FieldExpressionContext f) {
+    return internalVisitExpression(f);
+  }
+
+  private UnresolvedExpression evaluateFieldExpressionContext(
+      OpenSearchPPLParser.FieldExpressionContext f0,
+      OpenSearchPPLParser.FieldExpressionContext f1) {
+    if (f0 == null) {
+      return internalVisitExpression(f1);
+    } else {
+      return internalVisitExpression(f0);
+    }
   }
 
   /** Head command visitor. */

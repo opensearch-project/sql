@@ -213,6 +213,20 @@ public class PPLQueryDataAnonymizer extends AbstractNodeVisitor<String, String> 
         child, fields, allowedDuplication, keepEmpty, consecutive);
   }
 
+  // Todo: do we need anonymization for lookups?
+  /*
+  @Override
+  public String visitLookup(Lookup node, String context) {
+    String child = node.getChild().get(0).accept(this, context);
+    String fields = visitFieldList(node.getFields());
+    List<Argument> options = node.getOptions();
+    Boolean appendonly = (Boolean) options.get(0).getValue().getValue();
+
+    return StringUtils.format(
+            "%s | lookup %s %d appendonly=%b ...",
+            child, fields, appendonly);
+  }*/
+
   @Override
   public String visitHead(Head node, String context) {
     String child = node.getChild().get(0).accept(this, context);
