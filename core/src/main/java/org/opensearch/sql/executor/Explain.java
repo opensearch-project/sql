@@ -22,6 +22,7 @@ import org.opensearch.sql.planner.physical.DedupeOperator;
 import org.opensearch.sql.planner.physical.EvalOperator;
 import org.opensearch.sql.planner.physical.FilterOperator;
 import org.opensearch.sql.planner.physical.LimitOperator;
+import org.opensearch.sql.planner.physical.LookupOperator;
 import org.opensearch.sql.planner.physical.NestedOperator;
 import org.opensearch.sql.planner.physical.PhysicalPlan;
 import org.opensearch.sql.planner.physical.PhysicalPlanNodeVisitor;
@@ -155,6 +156,20 @@ public class Explain extends PhysicalPlanNodeVisitor<ExplainResponseNode, Object
                     "allowedDuplication", node.getAllowedDuplication(),
                     "keepEmpty", node.getKeepEmpty(),
                     "consecutive", node.getConsecutive())));
+  }
+
+  @Override
+  public ExplainResponseNode visitLookup(LookupOperator node, Object context) {
+    return explain(
+        node,
+        context,
+        explainNode ->
+            explainNode.setDescription(
+                ImmutableMap.of(
+                    "copyfields", node.getCopyFieldMap(),
+                    "matchfields", node.getMatchFieldMap(),
+                    "indexname", node.getIndexName(),
+                    "appendonly", node.getAppendOnly())));
   }
 
   @Override

@@ -57,6 +57,7 @@ NUM:                                'NUM';
 // ARGUMENT KEYWORDS
 KEEPEMPTY:                          'KEEPEMPTY';
 CONSECUTIVE:                        'CONSECUTIVE';
+APPENDONLY:                         'APPENDONLY';
 DEDUP_SPLITVALUES:                  'DEDUP_SPLITVALUES';
 PARTITIONS:                         'PARTITIONS';
 ALLNUM:                             'ALLNUM';
