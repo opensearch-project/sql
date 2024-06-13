@@ -5,6 +5,7 @@
 
 package org.opensearch.sql.ast.dsl;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -49,6 +50,7 @@ import org.opensearch.sql.ast.tree.Eval;
 import org.opensearch.sql.ast.tree.Filter;
 import org.opensearch.sql.ast.tree.Head;
 import org.opensearch.sql.ast.tree.Limit;
+import org.opensearch.sql.ast.tree.Lookup;
 import org.opensearch.sql.ast.tree.Parse;
 import org.opensearch.sql.ast.tree.Project;
 import org.opensearch.sql.ast.tree.RareTopN;
@@ -439,6 +441,25 @@ public class AstDSL {
 
   public static Dedupe dedupe(UnresolvedPlan input, List<Argument> options, Field... fields) {
     return new Dedupe(input, options, Arrays.asList(fields));
+  }
+
+  public static Lookup lookup(
+      UnresolvedPlan input,
+      String indexName,
+      List<Map> matchFieldList,
+      List<Argument> options,
+      List<Map> copyFieldList) {
+    return new Lookup(input, indexName, matchFieldList, options, copyFieldList);
+  }
+
+  public static List<Map> fieldMap(String field, String asField, String... more) {
+    assert more == null || more.length % 2 == 0;
+    List list = new ArrayList();
+    list.add(map(field, asField));
+    for (int i = 0; i < more.length; i = i + 2) {
+      list.add(map(more[i], more[i + 1]));
+    }
+    return list;
   }
 
   public static Head head(UnresolvedPlan input, Integer size, Integer from) {

@@ -21,11 +21,13 @@ import static org.opensearch.sql.ast.dsl.AstDSL.defaultStatsArgs;
 import static org.opensearch.sql.ast.dsl.AstDSL.eval;
 import static org.opensearch.sql.ast.dsl.AstDSL.exprList;
 import static org.opensearch.sql.ast.dsl.AstDSL.field;
+import static org.opensearch.sql.ast.dsl.AstDSL.fieldMap;
 import static org.opensearch.sql.ast.dsl.AstDSL.filter;
 import static org.opensearch.sql.ast.dsl.AstDSL.function;
 import static org.opensearch.sql.ast.dsl.AstDSL.head;
 import static org.opensearch.sql.ast.dsl.AstDSL.intLiteral;
 import static org.opensearch.sql.ast.dsl.AstDSL.let;
+import static org.opensearch.sql.ast.dsl.AstDSL.lookup;
 import static org.opensearch.sql.ast.dsl.AstDSL.map;
 import static org.opensearch.sql.ast.dsl.AstDSL.nullLiteral;
 import static org.opensearch.sql.ast.dsl.AstDSL.parse;
@@ -44,6 +46,7 @@ import static org.opensearch.sql.utils.SystemIndexUtils.mappingTable;
 
 import com.google.common.collect.ImmutableMap;
 import java.util.Arrays;
+import java.util.Collections;
 import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
@@ -376,6 +379,18 @@ public class AstBuilderTest {
             exprList(field("f3", defaultSortFieldArgs())),
             null,
             defaultDedupArgs()));
+  }
+
+  @Test
+  public void testLookupCommand() {
+    assertEqual(
+        "source=t | lookup a field",
+        lookup(
+            relation("t"),
+            "a",
+            fieldMap("field", "field"),
+            exprList(argument("appendonly", booleanLiteral(false))),
+            Collections.emptyList()));
   }
 
   @Test

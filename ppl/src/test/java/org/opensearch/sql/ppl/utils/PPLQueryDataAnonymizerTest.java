@@ -90,6 +90,11 @@ public class PPLQueryDataAnonymizerTest {
   }
 
   @Test
+  public void testLookupCommand() {
+    assertEquals("source=t | lookup ", anonymize("source=t | lookup a field1, field2"));
+  }
+
+  @Test
   public void testHeadCommandWithNumber() {
     assertEquals("source=t | head 3", anonymize("source=t | head 3"));
   }
