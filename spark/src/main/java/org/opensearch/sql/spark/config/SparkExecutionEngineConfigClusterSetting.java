@@ -6,8 +6,8 @@
 package org.opensearch.sql.spark.config;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
-import com.google.gson.Gson;
 import lombok.Data;
+import org.opensearch.sql.utils.SerializeUtils;
 
 /**
  * This POJO is just for reading stringified json in `plugins.query.executionengine.spark.config`
@@ -16,6 +16,8 @@ import lombok.Data;
 @Data
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class SparkExecutionEngineConfigClusterSetting {
+  // optional
+  private String accountId;
   private String applicationId;
   private String region;
   private String executionRoleARN;
@@ -25,6 +27,7 @@ public class SparkExecutionEngineConfigClusterSetting {
 
   public static SparkExecutionEngineConfigClusterSetting toSparkExecutionEngineConfig(
       String jsonString) {
-    return new Gson().fromJson(jsonString, SparkExecutionEngineConfigClusterSetting.class);
+    return SerializeUtils.buildGson()
+        .fromJson(jsonString, SparkExecutionEngineConfigClusterSetting.class);
   }
 }

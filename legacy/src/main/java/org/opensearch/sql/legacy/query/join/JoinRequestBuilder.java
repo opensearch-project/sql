@@ -7,6 +7,8 @@ package org.opensearch.sql.legacy.query.join;
 
 import com.alibaba.druid.sql.ast.statement.SQLJoinTableSource;
 import java.io.IOException;
+import lombok.Getter;
+import lombok.Setter;
 import org.opensearch.action.ActionRequest;
 import org.opensearch.action.ActionRequestBuilder;
 import org.opensearch.action.search.MultiSearchRequest;
@@ -15,6 +17,7 @@ import org.opensearch.core.action.ActionResponse;
 import org.opensearch.core.common.bytes.BytesReference;
 import org.opensearch.core.xcontent.ToXContent;
 import org.opensearch.core.xcontent.XContentBuilder;
+import org.opensearch.sql.legacy.pit.PointInTimeHandler;
 import org.opensearch.sql.legacy.query.SqlElasticRequestBuilder;
 
 /** Created by Eliran on 15/9/2015. */
@@ -25,11 +28,21 @@ public class JoinRequestBuilder implements SqlElasticRequestBuilder {
   private TableInJoinRequestBuilder secondTable;
   private SQLJoinTableSource.JoinType joinType;
   private int totalLimit;
-  private String pitId;
+  @Setter @Getter private PointInTimeHandler pit;
 
   public JoinRequestBuilder() {
     firstTable = new TableInJoinRequestBuilder();
     secondTable = new TableInJoinRequestBuilder();
+  }
+
+  public void updateRequestWithPit(org.opensearch.client.Client client) {
+    String[] indices =
+        org.opensearch.common.util.ArrayUtils.concat(
+            firstTable.getOriginalSelect().getIndexArr(),
+            secondTable.getOriginalSelect().getIndexArr());
+    pit = new PointInTimeHandler(client, indices);
+    firstTable.setPitId(pit.getPitId());
+    secondTable.setPitId(pit.getPitId());
   }
 
   @Override
@@ -112,13 +125,5 @@ public class JoinRequestBuilder implements SqlElasticRequestBuilder {
 
   public void setTotalLimit(int totalLimit) {
     this.totalLimit = totalLimit;
-  }
-
-  public String getPitId() {
-    return pitId;
-  }
-
-  public void setPitId(String pitId) {
-    this.pitId = pitId;
   }
 }

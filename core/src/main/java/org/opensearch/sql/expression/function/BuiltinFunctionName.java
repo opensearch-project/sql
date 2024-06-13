@@ -175,6 +175,8 @@ public enum BuiltinFunctionName {
   STDDEV_POP(FunctionName.of("stddev_pop")),
   // take top documents from aggregation bucket.
   TAKE(FunctionName.of("take")),
+  // t-digest percentile which is used in OpenSearch core by default.
+  PERCENTILE_APPROX(FunctionName.of("percentile_approx")),
   // Not always an aggregation query
   NESTED(FunctionName.of("nested")),
 
@@ -279,6 +281,8 @@ public enum BuiltinFunctionName {
           .put("stddev_pop", BuiltinFunctionName.STDDEV_POP)
           .put("stddev_samp", BuiltinFunctionName.STDDEV_SAMP)
           .put("take", BuiltinFunctionName.TAKE)
+          .put("percentile", BuiltinFunctionName.PERCENTILE_APPROX)
+          .put("percentile_approx", BuiltinFunctionName.PERCENTILE_APPROX)
           .build();
 
   public static Optional<BuiltinFunctionName> of(String str) {

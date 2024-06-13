@@ -5,6 +5,7 @@
 
 package org.opensearch.sql.spark.execution.xcontent;
 
+import static org.opensearch.sql.spark.execution.xcontent.XContentCommonAttributes.ACCOUNT_ID;
 import static org.opensearch.sql.spark.execution.xcontent.XContentCommonAttributes.APPLICATION_ID;
 import static org.opensearch.sql.spark.execution.xcontent.XContentCommonAttributes.DATASOURCE_NAME;
 import static org.opensearch.sql.spark.execution.xcontent.XContentCommonAttributes.ERROR;
@@ -21,7 +22,6 @@ import org.opensearch.core.xcontent.ToXContent;
 import org.opensearch.core.xcontent.XContentBuilder;
 import org.opensearch.core.xcontent.XContentParser;
 import org.opensearch.core.xcontent.XContentParserUtils;
-import org.opensearch.sql.spark.execution.session.SessionId;
 import org.opensearch.sql.spark.execution.session.SessionModel;
 import org.opensearch.sql.spark.execution.session.SessionState;
 import org.opensearch.sql.spark.execution.session.SessionType;
@@ -39,9 +39,10 @@ public class SessionModelXContentSerializer implements XContentSerializer<Sessio
         .field(VERSION, sessionModel.getVersion())
         .field(TYPE, SESSION_DOC_TYPE)
         .field(SESSION_TYPE, sessionModel.getSessionType().getSessionType())
-        .field(SESSION_ID, sessionModel.getSessionId().getSessionId())
+        .field(SESSION_ID, sessionModel.getSessionId())
         .field(STATE, sessionModel.getSessionState().getSessionState())
         .field(DATASOURCE_NAME, sessionModel.getDatasourceName())
+        .field(ACCOUNT_ID, sessionModel.getAccountId())
         .field(APPLICATION_ID, sessionModel.getApplicationId())
         .field(JOB_ID, sessionModel.getJobId())
         .field(LAST_UPDATE_TIME, sessionModel.getLastUpdateTime())
@@ -66,7 +67,7 @@ public class SessionModelXContentSerializer implements XContentSerializer<Sessio
           builder.sessionType(SessionType.fromString(parser.text()));
           break;
         case SESSION_ID:
-          builder.sessionId(new SessionId(parser.text()));
+          builder.sessionId(parser.text());
           break;
         case STATE:
           builder.sessionState(SessionState.fromString(parser.text()));
@@ -76,6 +77,9 @@ public class SessionModelXContentSerializer implements XContentSerializer<Sessio
           break;
         case ERROR:
           builder.error(parser.text());
+          break;
+        case ACCOUNT_ID:
+          builder.accountId(parser.textOrNull());
           break;
         case APPLICATION_ID:
           builder.applicationId(parser.text());

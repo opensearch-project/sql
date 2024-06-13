@@ -18,7 +18,7 @@ import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.spark.asyncquery.exceptions.AsyncQueryNotFoundException;
 import org.opensearch.sql.spark.asyncquery.model.AsyncQueryExecutionResponse;
 import org.opensearch.sql.spark.asyncquery.model.AsyncQueryJobMetadata;
-import org.opensearch.sql.spark.asyncquery.model.RequestContext;
+import org.opensearch.sql.spark.asyncquery.model.AsyncQueryRequestContext;
 import org.opensearch.sql.spark.config.SparkExecutionEngineConfig;
 import org.opensearch.sql.spark.config.SparkExecutionEngineConfigSupplier;
 import org.opensearch.sql.spark.dispatcher.SparkQueryDispatcher;
@@ -37,23 +37,29 @@ public class AsyncQueryExecutorServiceImpl implements AsyncQueryExecutorService 
 
   @Override
   public CreateAsyncQueryResponse createAsyncQuery(
-      CreateAsyncQueryRequest createAsyncQueryRequest, RequestContext requestContext) {
+      CreateAsyncQueryRequest createAsyncQueryRequest,
+      AsyncQueryRequestContext asyncQueryRequestContext) {
     SparkExecutionEngineConfig sparkExecutionEngineConfig =
-        sparkExecutionEngineConfigSupplier.getSparkExecutionEngineConfig(requestContext);
+        sparkExecutionEngineConfigSupplier.getSparkExecutionEngineConfig(asyncQueryRequestContext);
     DispatchQueryResponse dispatchQueryResponse =
         sparkQueryDispatcher.dispatch(
-            new DispatchQueryRequest(
-                sparkExecutionEngineConfig.getApplicationId(),
-                createAsyncQueryRequest.getQuery(),
-                createAsyncQueryRequest.getDatasource(),
-                createAsyncQueryRequest.getLang(),
-                sparkExecutionEngineConfig.getExecutionRoleARN(),
-                sparkExecutionEngineConfig.getClusterName(),
-                sparkExecutionEngineConfig.getSparkSubmitParameterModifier(),
-                createAsyncQueryRequest.getSessionId()));
+            DispatchQueryRequest.builder()
+                .accountId(sparkExecutionEngineConfig.getAccountId())
+                .applicationId(sparkExecutionEngineConfig.getApplicationId())
+                .query(createAsyncQueryRequest.getQuery())
+                .datasource(createAsyncQueryRequest.getDatasource())
+                .langType(createAsyncQueryRequest.getLang())
+                .executionRoleARN(sparkExecutionEngineConfig.getExecutionRoleARN())
+                .clusterName(sparkExecutionEngineConfig.getClusterName())
+                .sparkSubmitParameterModifier(
+                    sparkExecutionEngineConfig.getSparkSubmitParameterModifier())
+                .sessionId(createAsyncQueryRequest.getSessionId())
+                .build(),
+            asyncQueryRequestContext);
     asyncQueryJobMetadataStorageService.storeJobMetadata(
         AsyncQueryJobMetadata.builder()
             .queryId(dispatchQueryResponse.getQueryId())
+            .accountId(sparkExecutionEngineConfig.getAccountId())
             .applicationId(sparkExecutionEngineConfig.getApplicationId())
             .jobId(dispatchQueryResponse.getJobId())
             .resultIndex(dispatchQueryResponse.getResultIndex())
@@ -61,7 +67,8 @@ public class AsyncQueryExecutorServiceImpl implements AsyncQueryExecutorService 
             .datasourceName(dispatchQueryResponse.getDatasourceName())
             .jobType(dispatchQueryResponse.getJobType())
             .indexName(dispatchQueryResponse.getIndexName())
-            .build());
+            .build(),
+        asyncQueryRequestContext);
     return new CreateAsyncQueryResponse(
         dispatchQueryResponse.getQueryId(), dispatchQueryResponse.getSessionId());
   }

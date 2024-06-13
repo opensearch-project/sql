@@ -13,9 +13,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.opensearch.sql.data.model.ExprValueUtils.integerValue;
 import static org.opensearch.sql.data.model.ExprValueUtils.longValue;
-import static org.opensearch.sql.data.type.ExprCoreType.INTEGER;
-import static org.opensearch.sql.data.type.ExprCoreType.LONG;
-import static org.opensearch.sql.data.type.ExprCoreType.STRING;
+import static org.opensearch.sql.data.type.ExprCoreType.*;
 import static org.opensearch.sql.planner.logical.LogicalPlanDSL.aggregation;
 import static org.opensearch.sql.planner.logical.LogicalPlanDSL.filter;
 import static org.opensearch.sql.planner.logical.LogicalPlanDSL.highlight;
@@ -177,6 +175,22 @@ class LogicalPlanOptimizerTest {
             aggregation(
                 relation("schema", table),
                 ImmutableList.of(DSL.named("AVG(intV)", DSL.avg(DSL.ref("intV", INTEGER)))),
+                ImmutableList.of(DSL.named("longV", DSL.ref("longV", LONG))))));
+  }
+
+  @Test
+  void table_scan_builder_support_percentile_aggregation_push_down_can_apply_its_rule() {
+    when(tableScanBuilder.pushDownAggregation(any())).thenReturn(true);
+
+    assertEquals(
+        tableScanBuilder,
+        optimize(
+            aggregation(
+                relation("schema", table),
+                ImmutableList.of(
+                    DSL.named(
+                        "PERCENTILE(intV, 1)",
+                        DSL.percentile(DSL.ref("intV", INTEGER), DSL.ref("percentile", DOUBLE)))),
                 ImmutableList.of(DSL.named("longV", DSL.ref("longV", LONG))))));
   }
 

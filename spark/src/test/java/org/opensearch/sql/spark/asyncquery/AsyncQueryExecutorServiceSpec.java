@@ -52,7 +52,7 @@ import org.opensearch.sql.datasources.storage.OpenSearchDataSourceMetadataStorag
 import org.opensearch.sql.legacy.esdomain.LocalClusterState;
 import org.opensearch.sql.legacy.metrics.Metrics;
 import org.opensearch.sql.opensearch.setting.OpenSearchSettings;
-import org.opensearch.sql.spark.asyncquery.model.RequestContext;
+import org.opensearch.sql.spark.asyncquery.model.AsyncQueryRequestContext;
 import org.opensearch.sql.spark.client.EMRServerlessClient;
 import org.opensearch.sql.spark.client.EMRServerlessClientFactory;
 import org.opensearch.sql.spark.client.StartJobRequest;
@@ -61,8 +61,10 @@ import org.opensearch.sql.spark.config.SparkExecutionEngineConfig;
 import org.opensearch.sql.spark.dispatcher.DatasourceEmbeddedQueryIdProvider;
 import org.opensearch.sql.spark.dispatcher.QueryHandlerFactory;
 import org.opensearch.sql.spark.dispatcher.SparkQueryDispatcher;
+import org.opensearch.sql.spark.execution.session.DatasourceEmbeddedSessionIdProvider;
 import org.opensearch.sql.spark.execution.session.OpenSearchSessionConfigSupplier;
 import org.opensearch.sql.spark.execution.session.SessionConfigSupplier;
+import org.opensearch.sql.spark.execution.session.SessionIdProvider;
 import org.opensearch.sql.spark.execution.session.SessionManager;
 import org.opensearch.sql.spark.execution.session.SessionModel;
 import org.opensearch.sql.spark.execution.session.SessionState;
@@ -104,7 +106,8 @@ public class AsyncQueryExecutorServiceSpec extends OpenSearchIntegTestCase {
   protected StateStore stateStore;
   protected SessionStorageService sessionStorageService;
   protected StatementStorageService statementStorageService;
-  protected RequestContext requestContext;
+  protected AsyncQueryRequestContext asyncQueryRequestContext;
+  protected SessionIdProvider sessionIdProvider = new DatasourceEmbeddedSessionIdProvider();
 
   @Override
   protected Collection<Class<? extends Plugin>> nodePlugins() {
@@ -250,7 +253,8 @@ public class AsyncQueryExecutorServiceSpec extends OpenSearchIntegTestCase {
                 sessionStorageService,
                 statementStorageService,
                 emrServerlessClientFactory,
-                sessionConfigSupplier),
+                sessionConfigSupplier,
+                sessionIdProvider),
             new DefaultLeaseManager(pluginSettings, stateStore),
             new OpenSearchIndexDMLResultStorageService(dataSourceService, stateStore),
             new FlintIndexOpFactory(
@@ -266,7 +270,8 @@ public class AsyncQueryExecutorServiceSpec extends OpenSearchIntegTestCase {
                 sessionStorageService,
                 statementStorageService,
                 emrServerlessClientFactory,
-                sessionConfigSupplier),
+                sessionConfigSupplier,
+                sessionIdProvider),
             queryHandlerFactory,
             new DatasourceEmbeddedQueryIdProvider());
     return new AsyncQueryExecutorServiceImpl(
@@ -342,7 +347,8 @@ public class AsyncQueryExecutorServiceSpec extends OpenSearchIntegTestCase {
     }
   }
 
-  public SparkExecutionEngineConfig sparkExecutionEngineConfig(RequestContext requestContext) {
+  public SparkExecutionEngineConfig sparkExecutionEngineConfig(
+      AsyncQueryRequestContext asyncQueryRequestContext) {
     return SparkExecutionEngineConfig.builder()
         .applicationId("appId")
         .region("us-west-2")

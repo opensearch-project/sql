@@ -22,8 +22,10 @@ public class SessionModel extends StateModel {
 
   private final String version;
   private final SessionType sessionType;
-  private final SessionId sessionId;
+  private final String sessionId;
   private final SessionState sessionState;
+  // optional: accountId for EMRS cluster
+  private final String accountId;
   private final String applicationId;
   private final String jobId;
   private final String datasourceName;
@@ -34,9 +36,10 @@ public class SessionModel extends StateModel {
     return builder()
         .version(copy.version)
         .sessionType(copy.sessionType)
-        .sessionId(new SessionId(copy.sessionId.getSessionId()))
+        .sessionId(copy.sessionId)
         .sessionState(copy.sessionState)
         .datasourceName(copy.datasourceName)
+        .accountId(copy.accountId)
         .applicationId(copy.getApplicationId())
         .jobId(copy.jobId)
         .error(UNKNOWN)
@@ -50,9 +53,10 @@ public class SessionModel extends StateModel {
     return builder()
         .version(copy.version)
         .sessionType(copy.sessionType)
-        .sessionId(new SessionId(copy.sessionId.getSessionId()))
+        .sessionId(copy.sessionId)
         .sessionState(state)
         .datasourceName(copy.datasourceName)
+        .accountId(copy.getAccountId())
         .applicationId(copy.getApplicationId())
         .jobId(copy.jobId)
         .error(UNKNOWN)
@@ -62,13 +66,18 @@ public class SessionModel extends StateModel {
   }
 
   public static SessionModel initInteractiveSession(
-      String applicationId, String jobId, SessionId sid, String datasourceName) {
+      String accountId,
+      String applicationId,
+      String jobId,
+      String sessionId,
+      String datasourceName) {
     return builder()
         .version("1.0")
         .sessionType(INTERACTIVE)
-        .sessionId(sid)
+        .sessionId(sessionId)
         .sessionState(NOT_STARTED)
         .datasourceName(datasourceName)
+        .accountId(accountId)
         .applicationId(applicationId)
         .jobId(jobId)
         .error(UNKNOWN)
@@ -78,6 +87,6 @@ public class SessionModel extends StateModel {
 
   @Override
   public String getId() {
-    return sessionId.getSessionId();
+    return sessionId;
   }
 }

@@ -5,6 +5,7 @@
 
 package org.opensearch.sql.spark.execution.xcontent;
 
+import static org.opensearch.sql.spark.execution.xcontent.XContentCommonAttributes.ACCOUNT_ID;
 import static org.opensearch.sql.spark.execution.xcontent.XContentCommonAttributes.APPLICATION_ID;
 import static org.opensearch.sql.spark.execution.xcontent.XContentCommonAttributes.DATASOURCE_NAME;
 import static org.opensearch.sql.spark.execution.xcontent.XContentCommonAttributes.ERROR;
@@ -38,6 +39,7 @@ public class FlintIndexStateModelXContentSerializer
         .field(VERSION, VERSION_1_0)
         .field(TYPE, FLINT_INDEX_DOC_TYPE)
         .field(STATE, flintIndexStateModel.getIndexState().getState())
+        .field(ACCOUNT_ID, flintIndexStateModel.getAccountId())
         .field(APPLICATION_ID, flintIndexStateModel.getApplicationId())
         .field(JOB_ID, flintIndexStateModel.getJobId())
         .field(LATEST_ID, flintIndexStateModel.getLatestId())
@@ -59,6 +61,9 @@ public class FlintIndexStateModelXContentSerializer
       switch (fieldName) {
         case STATE:
           builder.indexState(FlintIndexState.fromString(parser.text()));
+          break;
+        case ACCOUNT_ID:
+          builder.accountId(parser.textOrNull());
           break;
         case APPLICATION_ID:
           builder.applicationId(parser.text());

@@ -5,6 +5,8 @@
 
 package org.opensearch.sql.legacy.executor;
 
+import static org.opensearch.sql.common.setting.Settings.Key.SQL_PAGINATION_API_SEARCH_AFTER;
+
 import java.io.IOException;
 import java.util.List;
 import org.opensearch.action.search.SearchResponse;
@@ -12,6 +14,7 @@ import org.opensearch.client.Client;
 import org.opensearch.core.action.ActionResponse;
 import org.opensearch.search.SearchHits;
 import org.opensearch.search.aggregations.Aggregations;
+import org.opensearch.sql.legacy.esdomain.LocalClusterState;
 import org.opensearch.sql.legacy.exception.SqlParseException;
 import org.opensearch.sql.legacy.executor.adapter.QueryPlanQueryAction;
 import org.opensearch.sql.legacy.executor.adapter.QueryPlanRequestBuilder;
@@ -26,6 +29,7 @@ import org.opensearch.sql.legacy.query.QueryAction;
 import org.opensearch.sql.legacy.query.ShowQueryAction;
 import org.opensearch.sql.legacy.query.SqlElasticRequestBuilder;
 import org.opensearch.sql.legacy.query.SqlOpenSearchRequestBuilder;
+import org.opensearch.sql.legacy.query.join.JoinRequestBuilder;
 import org.opensearch.sql.legacy.query.join.OpenSearchJoinQueryAction;
 import org.opensearch.sql.legacy.query.multi.MultiQueryAction;
 import org.opensearch.sql.legacy.query.multi.MultiQueryRequestBuilder;
@@ -42,10 +46,21 @@ public class QueryActionElasticExecutor {
       Client client, OpenSearchJoinQueryAction joinQueryAction)
       throws IOException, SqlParseException {
     SqlElasticRequestBuilder joinRequestBuilder = joinQueryAction.explain();
+
+    boolean isSearchAfter =
+        LocalClusterState.state().getSettingValue(SQL_PAGINATION_API_SEARCH_AFTER);
+    if (isSearchAfter) {
+      JoinRequestBuilder requestBuilder = (JoinRequestBuilder) joinRequestBuilder;
+      requestBuilder.updateRequestWithPit(client);
+    }
     ElasticJoinExecutor executor =
         ElasticJoinExecutor.createJoinExecutor(client, joinRequestBuilder);
     executor.run();
-    joinQueryAction.getPointInTimeHandler().deletePointInTime();
+
+    if (isSearchAfter) {
+      JoinRequestBuilder requestBuilder = (JoinRequestBuilder) joinRequestBuilder;
+      requestBuilder.getPit().deletePointInTime(client);
+    }
     return executor.getHits();
   }
 

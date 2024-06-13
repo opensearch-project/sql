@@ -18,6 +18,7 @@ public enum StatementState {
   RUNNING("running"),
   SUCCESS("success"),
   FAILED("failed"),
+  TIMEOUT("timeout"),
   CANCELLED("cancelled");
 
   private final String state;

@@ -735,6 +735,18 @@ public class DSL {
     return aggregate(BuiltinFunctionName.MAX, expressions);
   }
 
+  /**
+   * OpenSearch uses T-Digest to approximate percentile, so PERCENTILE and PERCENTILE_APPROX are the
+   * same function.
+   */
+  public static Aggregator percentile(Expression... expressions) {
+    return percentileApprox(expressions);
+  }
+
+  public static Aggregator percentileApprox(Expression... expressions) {
+    return aggregate(BuiltinFunctionName.PERCENTILE_APPROX, expressions);
+  }
+
   private static Aggregator aggregate(BuiltinFunctionName functionName, Expression... expressions) {
     return compile(FunctionProperties.None, functionName, expressions);
   }

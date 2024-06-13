@@ -6,13 +6,13 @@
 package org.opensearch.sql.spark.asyncquery.model;
 
 import com.google.common.collect.ImmutableMap;
-import com.google.gson.Gson;
 import lombok.Builder.Default;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.experimental.SuperBuilder;
 import org.opensearch.sql.spark.dispatcher.model.JobType;
 import org.opensearch.sql.spark.execution.statestore.StateModel;
+import org.opensearch.sql.utils.SerializeUtils;
 
 /** This class models all the metadata required for a job. */
 @Data
@@ -20,6 +20,8 @@ import org.opensearch.sql.spark.execution.statestore.StateModel;
 @EqualsAndHashCode(callSuper = false)
 public class AsyncQueryJobMetadata extends StateModel {
   private final String queryId;
+  // optional: accountId for EMRS cluster
+  private final String accountId;
   private final String applicationId;
   private final String jobId;
   private final String resultIndex;
@@ -36,7 +38,7 @@ public class AsyncQueryJobMetadata extends StateModel {
 
   @Override
   public String toString() {
-    return new Gson().toJson(this);
+    return SerializeUtils.buildGson().toJson(this);
   }
 
   /** copy builder. update seqNo and primaryTerm */
@@ -44,6 +46,7 @@ public class AsyncQueryJobMetadata extends StateModel {
       AsyncQueryJobMetadata copy, ImmutableMap<String, Object> metadata) {
     return builder()
         .queryId(copy.queryId)
+        .accountId(copy.accountId)
         .applicationId(copy.getApplicationId())
         .jobId(copy.getJobId())
         .resultIndex(copy.getResultIndex())

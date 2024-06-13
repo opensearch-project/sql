@@ -18,6 +18,8 @@ import org.junit.Before;
 import org.junit.Test;
 import org.opensearch.action.admin.indices.delete.DeleteIndexRequest;
 import org.opensearch.action.delete.DeleteRequest;
+import org.opensearch.sql.spark.asyncquery.model.AsyncQueryRequestContext;
+import org.opensearch.sql.spark.asyncquery.model.NullAsyncQueryRequestContext;
 import org.opensearch.sql.spark.client.EMRServerlessClientFactory;
 import org.opensearch.sql.spark.client.StartJobRequest;
 import org.opensearch.sql.spark.dispatcher.model.JobType;
@@ -29,6 +31,7 @@ import org.opensearch.sql.spark.execution.statestore.StateStore;
 import org.opensearch.sql.spark.execution.statestore.StatementStorageService;
 import org.opensearch.sql.spark.execution.xcontent.SessionModelXContentSerializer;
 import org.opensearch.sql.spark.execution.xcontent.StatementModelXContentSerializer;
+import org.opensearch.sql.spark.utils.IDUtils;
 import org.opensearch.test.OpenSearchIntegTestCase;
 
 /** mock-maker-inline does not work with OpenSearchTestCase. */
@@ -43,11 +46,13 @@ public class InteractiveSessionTest extends OpenSearchIntegTestCase {
   private StatementStorageService statementStorageService;
   private SessionConfigSupplier sessionConfigSupplier = () -> 600000L;
   private SessionManager sessionManager;
+  private AsyncQueryRequestContext asyncQueryRequestContext = new NullAsyncQueryRequestContext();
+  private SessionIdProvider sessionIdProvider = new DatasourceEmbeddedSessionIdProvider();
 
   @Before
   public void setup() {
     emrsClient = new TestEMRServerlessClient();
-    startJobRequest = new StartJobRequest("", "appId", "", "", new HashMap<>(), false, "");
+    startJobRequest = new StartJobRequest("", null, "appId", "", "", new HashMap<>(), false, "");
     StateStore stateStore = new StateStore(client(), clusterService());
     sessionStorageService =
         new OpenSearchSessionStorageService(stateStore, new SessionModelXContentSerializer());
@@ -60,7 +65,8 @@ public class InteractiveSessionTest extends OpenSearchIntegTestCase {
             sessionStorageService,
             statementStorageService,
             emrServerlessClientFactory,
-            sessionConfigSupplier);
+            sessionConfigSupplier,
+            sessionIdProvider);
   }
 
   @After
@@ -72,7 +78,7 @@ public class InteractiveSessionTest extends OpenSearchIntegTestCase {
 
   @Test
   public void openCloseSession() {
-    SessionId sessionId = SessionId.newSessionId(TEST_DATASOURCE_NAME);
+    String sessionId = IDUtils.encode(TEST_DATASOURCE_NAME);
     InteractiveSession session =
         InteractiveSession.builder()
             .sessionId(sessionId)
@@ -89,7 +95,7 @@ public class InteractiveSessionTest extends OpenSearchIntegTestCase {
         .assertJobId("jobId");
     emrsClient.startJobRunCalled(1);
     emrsClient.assertJobNameOfLastRequest(
-        TEST_CLUSTER_NAME + ":" + JobType.INTERACTIVE.getText() + ":" + sessionId.getSessionId());
+        TEST_CLUSTER_NAME + ":" + JobType.INTERACTIVE.getText() + ":" + sessionId);
 
     // close session
     assertions.close();
@@ -98,7 +104,7 @@ public class InteractiveSessionTest extends OpenSearchIntegTestCase {
 
   @Test
   public void openSessionFailedConflict() {
-    SessionId sessionId = SessionId.newSessionId(TEST_DATASOURCE_NAME);
+    String sessionId = IDUtils.encode(TEST_DATASOURCE_NAME);
     InteractiveSession session =
         InteractiveSession.builder()
             .sessionId(sessionId)
@@ -106,7 +112,7 @@ public class InteractiveSessionTest extends OpenSearchIntegTestCase {
             .statementStorageService(statementStorageService)
             .serverlessClient(emrsClient)
             .build();
-    session.open(createSessionRequest());
+    session.open(createSessionRequest(), asyncQueryRequestContext);
 
     InteractiveSession duplicateSession =
         InteractiveSession.builder()
@@ -117,13 +123,14 @@ public class InteractiveSessionTest extends OpenSearchIntegTestCase {
             .build();
     IllegalStateException exception =
         assertThrows(
-            IllegalStateException.class, () -> duplicateSession.open(createSessionRequest()));
+            IllegalStateException.class,
+            () -> duplicateSession.open(createSessionRequest(), asyncQueryRequestContext));
     assertEquals("session already exist. " + sessionId, exception.getMessage());
   }
 
   @Test
   public void closeNotExistSession() {
-    SessionId sessionId = SessionId.newSessionId(TEST_DATASOURCE_NAME);
+    String sessionId = IDUtils.encode(TEST_DATASOURCE_NAME);
     InteractiveSession session =
         InteractiveSession.builder()
             .sessionId(sessionId)
@@ -131,9 +138,9 @@ public class InteractiveSessionTest extends OpenSearchIntegTestCase {
             .statementStorageService(statementStorageService)
             .serverlessClient(emrsClient)
             .build();
-    session.open(createSessionRequest());
+    session.open(createSessionRequest(), asyncQueryRequestContext);
 
-    client().delete(new DeleteRequest(indexName, sessionId.getSessionId())).actionGet();
+    client().delete(new DeleteRequest(indexName, sessionId)).actionGet();
 
     IllegalStateException exception = assertThrows(IllegalStateException.class, session::close);
     assertEquals("session does not exist. " + sessionId, exception.getMessage());
@@ -142,7 +149,8 @@ public class InteractiveSessionTest extends OpenSearchIntegTestCase {
 
   @Test
   public void sessionManagerCreateSession() {
-    Session session = sessionManager.createSession(createSessionRequest());
+    Session session =
+        sessionManager.createSession(createSessionRequest(), asyncQueryRequestContext);
 
     new SessionAssertions(session)
         .assertSessionState(NOT_STARTED)
@@ -152,18 +160,21 @@ public class InteractiveSessionTest extends OpenSearchIntegTestCase {
 
   @Test
   public void sessionManagerGetSession() {
-    Session session = sessionManager.createSession(createSessionRequest());
+    Session session =
+        sessionManager.createSession(createSessionRequest(), asyncQueryRequestContext);
 
-    Optional<Session> managerSession = sessionManager.getSession(session.getSessionId());
+    Optional<Session> managerSession =
+        sessionManager.getSession(session.getSessionId(), TEST_DATASOURCE_NAME);
     assertTrue(managerSession.isPresent());
     assertEquals(session.getSessionId(), managerSession.get().getSessionId());
   }
 
   @Test
-  public void sessionManagerGetSessionNotExist() {
-    Optional<Session> managerSession =
-        sessionManager.getSession(SessionId.newSessionId("no-exist"));
-    assertTrue(managerSession.isEmpty());
+  public void getSessionWithNonExistingId() {
+    Optional<Session> session =
+        sessionManager.getSession("non-existing-id", "non-existing-datasource");
+
+    assertTrue(session.isEmpty());
   }
 
   @RequiredArgsConstructor
@@ -192,7 +203,7 @@ public class InteractiveSessionTest extends OpenSearchIntegTestCase {
     }
 
     public SessionAssertions open(CreateSessionRequest req) {
-      session.open(req);
+      session.open(req, asyncQueryRequestContext);
       return this;
     }
 

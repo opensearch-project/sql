@@ -13,6 +13,7 @@ import org.json.JSONObject;
 import org.opensearch.sql.datasource.DataSourceService;
 import org.opensearch.sql.datasource.model.DataSourceMetadata;
 import org.opensearch.sql.spark.asyncquery.model.AsyncQueryJobMetadata;
+import org.opensearch.sql.spark.asyncquery.model.AsyncQueryRequestContext;
 import org.opensearch.sql.spark.dispatcher.model.DispatchQueryContext;
 import org.opensearch.sql.spark.dispatcher.model.DispatchQueryRequest;
 import org.opensearch.sql.spark.dispatcher.model.DispatchQueryResponse;
@@ -37,7 +38,9 @@ public class SparkQueryDispatcher {
   private final QueryHandlerFactory queryHandlerFactory;
   private final QueryIdProvider queryIdProvider;
 
-  public DispatchQueryResponse dispatch(DispatchQueryRequest dispatchQueryRequest) {
+  public DispatchQueryResponse dispatch(
+      DispatchQueryRequest dispatchQueryRequest,
+      AsyncQueryRequestContext asyncQueryRequestContext) {
     DataSourceMetadata dataSourceMetadata =
         this.dataSourceService.verifyDataSourceAccessAndGetRawMetadata(
             dispatchQueryRequest.getDatasource());
@@ -48,13 +51,16 @@ public class SparkQueryDispatcher {
       DispatchQueryContext context =
           getDefaultDispatchContextBuilder(dispatchQueryRequest, dataSourceMetadata)
               .indexQueryDetails(indexQueryDetails)
+              .asyncQueryRequestContext(asyncQueryRequestContext)
               .build();
 
       return getQueryHandlerForFlintExtensionQuery(indexQueryDetails)
           .submit(dispatchQueryRequest, context);
     } else {
       DispatchQueryContext context =
-          getDefaultDispatchContextBuilder(dispatchQueryRequest, dataSourceMetadata).build();
+          getDefaultDispatchContextBuilder(dispatchQueryRequest, dataSourceMetadata)
+              .asyncQueryRequestContext(asyncQueryRequestContext)
+              .build();
       return getDefaultAsyncQueryHandler().submit(dispatchQueryRequest, context);
     }
   }
@@ -73,8 +79,12 @@ public class SparkQueryDispatcher {
       return queryHandlerFactory.getIndexDMLHandler();
     } else if (isEligibleForStreamingQuery(indexQueryDetails)) {
       return queryHandlerFactory.getStreamingQueryHandler();
+    } else if (IndexQueryActionType.CREATE.equals(indexQueryDetails.getIndexQueryActionType())) {
+      // Create should be handled by batch handler. This is to avoid DROP index incorrectly cancel
+      // an interactive job.
+      return queryHandlerFactory.getBatchQueryHandler();
     } else if (IndexQueryActionType.REFRESH.equals(indexQueryDetails.getIndexQueryActionType())) {
-      // manual refresh should be handled by batch handler
+      // Manual refresh should be handled by batch handler
       return queryHandlerFactory.getRefreshQueryHandler();
     } else {
       return getDefaultAsyncQueryHandler();

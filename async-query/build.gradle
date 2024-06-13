@@ -1,0 +1,128 @@
+/*
+ * Copyright OpenSearch Contributors
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+plugins {
+    id 'java-library'
+    id "io.freefair.lombok"
+    id 'jacoco'
+    id 'antlr'
+}
+
+repositories {
+    mavenCentral()
+}
+
+
+dependencies {
+    api project(':core')
+    implementation project(':async-query-core')
+    implementation project(':protocol')
+    implementation project(':datasources')
+    implementation project(':legacy')
+
+    implementation group: 'org.opensearch', name: 'opensearch', version: "${opensearch_version}"
+    implementation group: 'org.json', name: 'json', version: '20231013'
+    api group: 'com.amazonaws', name: 'aws-java-sdk-emr', version: "${aws_java_sdk_version}"
+    api group: 'com.amazonaws', name: 'aws-java-sdk-emrserverless', version: "${aws_java_sdk_version}"
+    implementation group: 'commons-io', name: 'commons-io', version: '2.8.0'
+
+    testImplementation(platform("org.junit:junit-bom:5.9.3"))
+
+    testImplementation 'org.junit.jupiter:junit-jupiter-api:5.9.3'
+    testImplementation group: 'org.mockito', name: 'mockito-core', version: '5.7.0'
+    testImplementation group: 'org.mockito', name: 'mockito-junit-jupiter', version: '5.7.0'
+
+    testCompileOnly('junit:junit:4.13.1') {
+        exclude group: 'org.hamcrest', module: 'hamcrest-core'
+    }
+    testRuntimeOnly("org.junit.vintage:junit-vintage-engine") {
+        exclude group: 'org.hamcrest', module: 'hamcrest-core'
+    }
+    testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine") {
+        exclude group: 'org.hamcrest', module: 'hamcrest-core'
+    }
+    testRuntimeOnly("org.junit.platform:junit-platform-launcher") {
+        because 'allows tests to run from IDEs that bundle older version of launcher'
+    }
+    testImplementation("org.opensearch.test:framework:${opensearch_version}")
+    testImplementation project(':opensearch')
+}
+
+test {
+    useJUnitPlatform {
+        includeEngines("junit-jupiter")
+    }
+    testLogging {
+        events "failed"
+        exceptionFormat "full"
+    }
+}
+task junit4(type: Test) {
+    useJUnitPlatform {
+        includeEngines("junit-vintage")
+    }
+    systemProperty 'tests.security.manager', 'false'
+    testLogging {
+        events "failed"
+        exceptionFormat "full"
+    }
+}
+
+jacocoTestReport {
+    dependsOn test, junit4
+    executionData test, junit4
+    reports {
+        html.required = true
+        xml.required = true
+    }
+    afterEvaluate {
+        classDirectories.setFrom(files(classDirectories.files.collect {
+            fileTree(dir: it, exclude: ['**/antlr/parser/**'])
+        }))
+    }
+}
+
+jacocoTestCoverageVerification {
+    dependsOn test, junit4
+    executionData test, junit4
+    violationRules {
+        rule {
+            element = 'CLASS'
+            excludes = [
+                    'org.opensearch.sql.spark.data.constants.*',
+                    'org.opensearch.sql.spark.rest.*',
+                    'org.opensearch.sql.spark.transport.model.*',
+                    'org.opensearch.sql.spark.asyncquery.model.*',
+                    'org.opensearch.sql.spark.asyncquery.exceptions.*',
+                    'org.opensearch.sql.spark.dispatcher.model.*',
+                    'org.opensearch.sql.spark.flint.FlintIndexType',
+                    // ignore because XContext IOException
+                    'org.opensearch.sql.spark.execution.statestore.StateStore',
+                    'org.opensearch.sql.spark.execution.session.SessionModel',
+                    'org.opensearch.sql.spark.execution.statement.StatementModel',
+                    'org.opensearch.sql.spark.flint.FlintIndexStateModel',
+                    // TODO: add tests for purging flint indices
+                    'org.opensearch.sql.spark.cluster.ClusterManagerEventListener*',
+                    'org.opensearch.sql.spark.cluster.FlintIndexRetention',
+                    'org.opensearch.sql.spark.cluster.IndexCleanup'
+            ]
+            limit {
+                counter = 'LINE'
+                minimum = 1.0
+            }
+            limit {
+                counter = 'BRANCH'
+                minimum = 1.0
+            }
+        }
+    }
+    afterEvaluate {
+        classDirectories.setFrom(files(classDirectories.files.collect {
+            fileTree(dir: it, exclude: ['**/antlr/parser/**'])
+        }))
+    }
+}
+check.dependsOn jacocoTestCoverageVerification
+jacocoTestCoverageVerification.dependsOn jacocoTestReport

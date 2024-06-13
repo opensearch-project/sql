@@ -9,6 +9,7 @@ import java.util.Map;
 import lombok.Builder;
 import lombok.Getter;
 import org.opensearch.sql.datasource.model.DataSourceMetadata;
+import org.opensearch.sql.spark.asyncquery.model.AsyncQueryRequestContext;
 
 @Getter
 @Builder
@@ -17,4 +18,5 @@ public class DispatchQueryContext {
   private final DataSourceMetadata dataSourceMetadata;
   private final Map<String, String> tags;
   private final IndexQueryDetails indexQueryDetails;
+  private final AsyncQueryRequestContext asyncQueryRequestContext;
 }

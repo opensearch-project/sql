@@ -1,6 +1,5 @@
 package org.opensearch.sql.spark.config;
 
-import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 
@@ -11,8 +10,8 @@ import lombok.Data;
  */
 @Data
 @Builder
-@AllArgsConstructor
 public class SparkExecutionEngineConfig {
+  private String accountId;
   private String applicationId;
   private String region;
   private String executionRoleARN;
