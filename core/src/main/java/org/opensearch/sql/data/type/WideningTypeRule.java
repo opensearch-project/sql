@@ -11,19 +11,9 @@ import lombok.experimental.UtilityClass;
 import org.opensearch.sql.exception.ExpressionEvaluationException;
 
 /**
- * The definition of widening type rule for expression value.
- *
- * <table border="3">
- * <tr><th>ExprType</th><th>Widens to data types</th></tr>
- * <tr><td>INTEGER</td><td>LONG, FLOAT, DOUBLE</td></tr>
- * <tr><td>LONG</td><td>FLOAT, DOUBLE</td></tr>
- * <tr><td>FLOAT</td><td>DOUBLE</td></tr>
- * <tr><td>DOUBLE</td><td>DOUBLE</td></tr>
- * <tr><td>STRING</td><td>STRING</td></tr>
- * <tr><td>BOOLEAN</td><td>BOOLEAN</td></tr>
- * <tr><td>ARRAY</td><td>ARRAY</td></tr>
- * <tr><td>STRUCT</td><td>STRUCT</td></tr>
- * </table>
+ * The definition of widening type rule for expression value.<br>
+ * See type widening definitions in {@link ExprCoreType}.<br>
+ * For example, SHORT widens BYTE and so on.
  */
 @UtilityClass
 public class WideningTypeRule {
@@ -43,9 +33,9 @@ public class WideningTypeRule {
   }
 
   private static int distance(ExprType type1, ExprType type2, int distance) {
-    if (type1 == type2) {
+    if (type1.equals(type2)) {
       return distance;
-    } else if (type1 == UNKNOWN) {
+    } else if (type1.equals(UNKNOWN)) {
       return IMPOSSIBLE_WIDENING;
     } else {
       return type1.getParent().stream()

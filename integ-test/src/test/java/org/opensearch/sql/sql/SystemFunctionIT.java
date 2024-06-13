@@ -49,7 +49,8 @@ public class SystemFunctionIT extends SQLIntegTestCase {
                     + " typeof(half_float_number), typeof(scaled_float_number) from %s;",
                 TEST_INDEX_DATATYPE_NUMERIC));
     verifyDataRows(
-        response, rows("DOUBLE", "LONG", "INTEGER", "BYTE", "SHORT", "FLOAT", "FLOAT", "DOUBLE"));
+        response,
+        rows("DOUBLE", "LONG", "INTEGER", "BYTE", "SHORT", "FLOAT", "HALF_FLOAT", "SCALED_FLOAT"));
 
     response =
         executeJdbcRequest(
@@ -57,10 +58,7 @@ public class SystemFunctionIT extends SQLIntegTestCase {
                 "SELECT typeof(text_value),typeof(date_value), typeof(date_nanos_value),"
                     + " typeof(boolean_value), typeof(object_value),"
                     + " typeof(keyword_value),typeof(ip_value), typeof(binary_value),"
-                    + " typeof(geo_point_value)"
-                    // TODO activate this test once `ARRAY` type supported, see
-                    // ExpressionAnalyzer::isTypeNotSupported
-                    // + ", typeof(nested_value)"
+                    + " typeof(geo_point_value), typeof(nested_value)"
                     + " from %s;",
                 TEST_INDEX_DATATYPE_NONNUMERIC));
     verifyDataRows(
@@ -74,6 +72,7 @@ public class SystemFunctionIT extends SQLIntegTestCase {
             "KEYWORD",
             "IP",
             "BINARY",
-            "GEO_POINT"));
+            "GEO_POINT",
+            "NESTED"));
   }
 }
