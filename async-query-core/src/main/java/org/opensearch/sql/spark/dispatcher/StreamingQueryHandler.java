@@ -12,7 +12,6 @@ import static org.opensearch.sql.spark.metrics.EmrMetrics.EMR_STREAMING_QUERY_JO
 import java.util.Map;
 import org.opensearch.sql.datasource.model.DataSourceMetadata;
 import org.opensearch.sql.spark.asyncquery.model.AsyncQueryJobMetadata;
-import org.opensearch.sql.spark.asyncquery.model.SparkSubmitParameters;
 import org.opensearch.sql.spark.client.EMRServerlessClient;
 import org.opensearch.sql.spark.client.StartJobRequest;
 import org.opensearch.sql.spark.dispatcher.model.DispatchQueryContext;
@@ -23,6 +22,7 @@ import org.opensearch.sql.spark.dispatcher.model.JobType;
 import org.opensearch.sql.spark.leasemanager.LeaseManager;
 import org.opensearch.sql.spark.leasemanager.model.LeaseRequest;
 import org.opensearch.sql.spark.metrics.MetricsService;
+import org.opensearch.sql.spark.parameter.SparkSubmitParametersBuilderProvider;
 import org.opensearch.sql.spark.response.JobExecutionResponseReader;
 
 /**
@@ -35,8 +35,14 @@ public class StreamingQueryHandler extends BatchQueryHandler {
       EMRServerlessClient emrServerlessClient,
       JobExecutionResponseReader jobExecutionResponseReader,
       LeaseManager leaseManager,
-      MetricsService metricsService) {
-    super(emrServerlessClient, jobExecutionResponseReader, leaseManager, metricsService);
+      MetricsService metricsService,
+      SparkSubmitParametersBuilderProvider sparkSubmitParametersBuilderProvider) {
+    super(
+        emrServerlessClient,
+        jobExecutionResponseReader,
+        leaseManager,
+        metricsService,
+        sparkSubmitParametersBuilderProvider);
   }
 
   @Override
@@ -70,13 +76,15 @@ public class StreamingQueryHandler extends BatchQueryHandler {
             dispatchQueryRequest.getAccountId(),
             dispatchQueryRequest.getApplicationId(),
             dispatchQueryRequest.getExecutionRoleARN(),
-            SparkSubmitParameters.builder()
+            sparkSubmitParametersBuilderProvider
+                .getSparkSubmitParametersBuilder()
                 .clusterName(clusterName)
-                .dataSource(dataSourceMetadata)
                 .query(dispatchQueryRequest.getQuery())
                 .structuredStreaming(true)
-                .build()
+                .dataSource(
+                    dataSourceMetadata, dispatchQueryRequest, context.getAsyncQueryRequestContext())
                 .acceptModifier(dispatchQueryRequest.getSparkSubmitParameterModifier())
+                .acceptComposers(dispatchQueryRequest, context.getAsyncQueryRequestContext())
                 .toString(),
             tags,
             indexQueryDetails.getFlintIndexOptions().autoRefresh(),

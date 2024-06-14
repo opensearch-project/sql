@@ -6,6 +6,7 @@
 package org.opensearch.sql.spark.config;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import lombok.Builder;
 import lombok.Data;
 import org.opensearch.sql.utils.SerializeUtils;
 
@@ -14,6 +15,7 @@ import org.opensearch.sql.utils.SerializeUtils;
  * setting.
  */
 @Data
+@Builder
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class SparkExecutionEngineConfigClusterSetting {
   // optional
