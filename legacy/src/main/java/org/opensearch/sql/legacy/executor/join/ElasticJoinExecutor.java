@@ -268,22 +268,21 @@ public abstract class ElasticJoinExecutor implements ElasticHitsExecutor {
       SearchResponse previousResponse) {
     // Set Size
     SearchRequestBuilder request = tableRequest.getRequestBuilder().setSize(size);
-
-    // Set sort field for search_after
-    boolean ordered = tableRequest.getOriginalSelect().isOrderdSelect();
-    if (!ordered) {
-      request.addSort(FieldSortBuilder.DOC_FIELD_NAME, SortOrder.ASC);
-    }
-
     SearchResponse responseWithHits;
-    // Set PIT or scroll
     if (LocalClusterState.state().getSettingValue(SQL_PAGINATION_API_SEARCH_AFTER)) {
+      // Set sort field for search_after
+      boolean ordered = tableRequest.getOriginalSelect().isOrderdSelect();
+      if (!ordered) {
+        request.addSort(FieldSortBuilder.DOC_FIELD_NAME, SortOrder.ASC);
+      }
+      // Set PIT
       request.setPointInTime(new PointInTimeBuilder(tableRequest.getPitId()));
       if (previousResponse != null) {
         request.searchAfter(previousResponse.getHits().getSortFields());
       }
       responseWithHits = request.get();
     } else {
+      // Set scroll
       TimeValue keepAlive = LocalClusterState.state().getSettingValue(SQL_CURSOR_KEEP_ALIVE);
       if (previousResponse != null) {
         responseWithHits =
