@@ -5,6 +5,8 @@
 
 package org.opensearch.sql.legacy.executor.multi;
 
+import static org.opensearch.search.sort.FieldSortBuilder.DOC_FIELD_NAME;
+import static org.opensearch.search.sort.SortOrder.ASC;
 import static org.opensearch.sql.common.setting.Settings.Key.SQL_CURSOR_KEEP_ALIVE;
 import static org.opensearch.sql.common.setting.Settings.Key.SQL_PAGINATION_API_SEARCH_AFTER;
 
@@ -36,6 +38,7 @@ import org.opensearch.sql.legacy.domain.hints.HintType;
 import org.opensearch.sql.legacy.esdomain.LocalClusterState;
 import org.opensearch.sql.legacy.exception.SqlParseException;
 import org.opensearch.sql.legacy.executor.ElasticHitsExecutor;
+import org.opensearch.sql.legacy.pit.PointInTimeHandler;
 import org.opensearch.sql.legacy.query.DefaultQueryAction;
 import org.opensearch.sql.legacy.query.multi.MultiQueryRequestBuilder;
 import org.opensearch.sql.legacy.utils.Util;
@@ -198,7 +201,7 @@ public class MinusExecutor implements ElasticHitsExecutor {
             builder.getOriginalSelect(true),
             maxDocsToFetchOnEachScrollShard,
             null,
-            builder.getPit().getPitId());
+            builder.getPit());
     Set<ComperableHitResult> results = new HashSet<>();
 
     SearchHit[] hits = scrollResp.getHits().getHits();
@@ -220,7 +223,7 @@ public class MinusExecutor implements ElasticHitsExecutor {
               builder.getOriginalSelect(true),
               maxDocsToFetchOnEachScrollShard,
               scrollResp,
-              builder.getPit().getPitId());
+              builder.getPit());
       hits = scrollResp.getHits().getHits();
     }
     scrollResp =
@@ -230,7 +233,7 @@ public class MinusExecutor implements ElasticHitsExecutor {
             builder.getOriginalSelect(false),
             this.maxDocsToFetchOnEachScrollShard,
             null,
-            builder.getPit().getPitId());
+            builder.getPit());
 
     hits = scrollResp.getHits().getHits();
     if (hits == null || hits.length == 0) {
@@ -250,7 +253,7 @@ public class MinusExecutor implements ElasticHitsExecutor {
               builder.getOriginalSelect(false),
               maxDocsToFetchOnEachScrollShard,
               scrollResp,
-              builder.getPit().getPitId());
+              builder.getPit());
       hits = scrollResp.getHits().getHits();
     }
 
@@ -321,7 +324,7 @@ public class MinusExecutor implements ElasticHitsExecutor {
             builder.getOriginalSelect(true),
             maxDocsToFetchOnEachScrollShard,
             null,
-            builder.getPit().getPitId());
+            builder.getPit());
     Set<Object> results = new HashSet<>();
     int currentNumOfResults = 0;
     SearchHit[] hits = scrollResp.getHits().getHits();
@@ -355,7 +358,7 @@ public class MinusExecutor implements ElasticHitsExecutor {
               secondQuerySelect,
               this.maxDocsToFetchOnEachScrollShard,
               null,
-              builder.getPit().getPitId());
+              builder.getPit());
       SearchHits secondQuerySearchHits = responseForSecondTable.getHits();
 
       SearchHit[] secondQueryHits = secondQuerySearchHits.getHits();
@@ -373,7 +376,7 @@ public class MinusExecutor implements ElasticHitsExecutor {
                 secondQuerySelect,
                 maxDocsToFetchOnEachScrollShard,
                 responseForSecondTable,
-                builder.getPit().getPitId());
+                builder.getPit());
         secondQueryHits = responseForSecondTable.getHits().getHits();
       }
       results.addAll(currentSetFromResults);
@@ -389,7 +392,7 @@ public class MinusExecutor implements ElasticHitsExecutor {
               builder.getOriginalSelect(true),
               maxDocsToFetchOnEachScrollShard,
               scrollResp,
-              builder.getPit().getPitId());
+              builder.getPit());
       hits = scrollResp.getHits().getHits();
     }
     return new MinusOneFieldAndOptimizationResult(results, someHit);
@@ -401,27 +404,25 @@ public class MinusExecutor implements ElasticHitsExecutor {
       Select select,
       int size,
       SearchResponse previousResponse,
-      String pitId) {
+      PointInTimeHandler pit) {
     // Set Size
     request.setSize(size);
-
-    // Set sort field for search_after
-    boolean ordered = select.isOrderdSelect();
-    if (!ordered) {
-      request.addSort(
-          org.opensearch.search.sort.FieldSortBuilder.DOC_FIELD_NAME,
-          org.opensearch.search.sort.SortOrder.ASC);
-    }
-
     SearchResponse responseWithHits;
-    // Set PIT or scroll
+
     if (LocalClusterState.state().getSettingValue(SQL_PAGINATION_API_SEARCH_AFTER)) {
-      request.setPointInTime(new PointInTimeBuilder(pitId));
-      if (previousResponse != null) {
+      // Set sort field for search_after
+      boolean ordered = select.isOrderdSelect();
+      if (!ordered) {
+        request.addSort(DOC_FIELD_NAME, ASC);
+      }
+      // Set PIT
+      request.setPointInTime(new PointInTimeBuilder(pit.getPitId()));
+      if (previousResponse != null && select.getFrom().isEmpty()) {
         request.searchAfter(previousResponse.getHits().getSortFields());
       }
       responseWithHits = request.get();
     } else {
+      // Set scroll
       TimeValue keepAlive = LocalClusterState.state().getSettingValue(SQL_CURSOR_KEEP_ALIVE);
       if (previousResponse != null) {
         responseWithHits =
