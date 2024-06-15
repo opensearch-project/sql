@@ -181,3 +181,14 @@ Example::
     | Bates    | Nanette     | Bates      |
     | Adams    | Dale        | Adams      |
     +----------+-------------+------------+
+
+    os> source=accounts | eval is_vip = if(age > 30 AND isnotnull(employer), true, false) | fields is_vip, firstname, lastname
+    fetched rows / total rows = 4/4
+    +----------+-------------+------------+
+    | is_vip   | firstname   | lastname   |
+    |----------+-------------+------------|
+    | True     | Amber       | Duke       |
+    | True     | Hattie      | Bond       |
+    | False    | Nanette     | Bates      |
+    | False    | Dale        | Adams      |
+    +----------+-------------+------------+
