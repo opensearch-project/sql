@@ -53,6 +53,8 @@ public class HashJoinElasticExecutor extends ElasticJoinExecutor {
   }
 
   public List<SearchHit> innerRun() throws IOException, SqlParseException {
+    createPointInTimeHandler(client, requestBuilder);
+    pit.create();
 
     Map<String, Map<String, List<Object>>> optimizationTermsFilterStructure =
         initOptimizationStructure();
@@ -95,6 +97,7 @@ public class HashJoinElasticExecutor extends ElasticJoinExecutor {
             }
           });
     }
+    pit.delete();
     return combinedResult;
   }
 

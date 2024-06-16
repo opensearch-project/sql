@@ -38,6 +38,7 @@ import org.opensearch.sql.legacy.domain.Field;
 import org.opensearch.sql.legacy.esdomain.LocalClusterState;
 import org.opensearch.sql.legacy.exception.SqlParseException;
 import org.opensearch.sql.legacy.executor.ElasticHitsExecutor;
+import org.opensearch.sql.legacy.pit.PointInTimeHandler;
 import org.opensearch.sql.legacy.query.SqlElasticRequestBuilder;
 import org.opensearch.sql.legacy.query.join.HashJoinElasticRequestBuilder;
 import org.opensearch.sql.legacy.query.join.JoinRequestBuilder;
@@ -54,6 +55,7 @@ public abstract class ElasticJoinExecutor implements ElasticHitsExecutor {
   protected final int MAX_RESULTS_ON_ONE_FETCH = 10000;
   private Set<String> aliasesOnReturn;
   private boolean allFieldsReturn;
+  protected PointInTimeHandler pit;
 
   protected ElasticJoinExecutor(JoinRequestBuilder requestBuilder) {
     metaResults = new MetaSearchResult();
@@ -268,22 +270,21 @@ public abstract class ElasticJoinExecutor implements ElasticHitsExecutor {
       SearchResponse previousResponse) {
     // Set Size
     SearchRequestBuilder request = tableRequest.getRequestBuilder().setSize(size);
-
-    // Set sort field for search_after
-    boolean ordered = tableRequest.getOriginalSelect().isOrderdSelect();
-    if (!ordered) {
-      request.addSort(FieldSortBuilder.DOC_FIELD_NAME, SortOrder.ASC);
-    }
-
     SearchResponse responseWithHits;
-    // Set PIT or scroll
     if (LocalClusterState.state().getSettingValue(SQL_PAGINATION_API_SEARCH_AFTER)) {
-      request.setPointInTime(new PointInTimeBuilder(tableRequest.getPitId()));
+      // Set sort field for search_after
+      boolean ordered = tableRequest.getOriginalSelect().isOrderdSelect();
+      if (!ordered) {
+        request.addSort(FieldSortBuilder.DOC_FIELD_NAME, SortOrder.ASC);
+      }
+      // Set PIT
+      request.setPointInTime(new PointInTimeBuilder(pit.getPitId()));
       if (previousResponse != null) {
         request.searchAfter(previousResponse.getHits().getSortFields());
       }
       responseWithHits = request.get();
     } else {
+      // Set scroll
       TimeValue keepAlive = LocalClusterState.state().getSettingValue(SQL_CURSOR_KEEP_ALIVE);
       if (previousResponse != null) {
         responseWithHits =
@@ -299,5 +300,13 @@ public abstract class ElasticJoinExecutor implements ElasticHitsExecutor {
     }
 
     return responseWithHits;
+  }
+
+  public void createPointInTimeHandler(Client client, JoinRequestBuilder requestBuilder) {
+    String[] indices =
+        org.opensearch.common.util.ArrayUtils.concat(
+            requestBuilder.getFirstTable().getOriginalSelect().getIndexArr(),
+            requestBuilder.getSecondTable().getOriginalSelect().getIndexArr());
+    pit = new PointInTimeHandler(client, indices);
   }
 }

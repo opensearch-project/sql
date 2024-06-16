@@ -5,8 +5,6 @@
 
 package org.opensearch.sql.legacy.executor;
 
-import static org.opensearch.sql.common.setting.Settings.Key.SQL_PAGINATION_API_SEARCH_AFTER;
-
 import com.google.common.collect.Maps;
 import java.io.IOException;
 import java.util.Map;
@@ -26,7 +24,6 @@ import org.opensearch.rest.BytesRestResponse;
 import org.opensearch.rest.RestChannel;
 import org.opensearch.rest.action.RestStatusToXContentListener;
 import org.opensearch.search.SearchHits;
-import org.opensearch.sql.legacy.esdomain.LocalClusterState;
 import org.opensearch.sql.legacy.exception.SqlParseException;
 import org.opensearch.sql.legacy.executor.join.ElasticJoinExecutor;
 import org.opensearch.sql.legacy.executor.join.ElasticUtils;
@@ -59,30 +56,16 @@ public class ElasticDefaultRestExecutor implements RestExecutor {
       Client client, Map<String, String> params, QueryAction queryAction, RestChannel channel)
       throws Exception {
     ActionRequest request = requestBuilder.request();
-    boolean isSearchAfter =
-        LocalClusterState.state().getSettingValue(SQL_PAGINATION_API_SEARCH_AFTER);
 
     if (requestBuilder instanceof JoinRequestBuilder) {
-      if (isSearchAfter) {
-        ((JoinRequestBuilder) requestBuilder).updateRequestWithPit(client);
-      }
       ElasticJoinExecutor executor = ElasticJoinExecutor.createJoinExecutor(client, requestBuilder);
       executor.run();
-      if (isSearchAfter) {
-        ((JoinRequestBuilder) requestBuilder).getPit().deletePointInTime(client);
-      }
       executor.sendResponse(channel);
     } else if (requestBuilder instanceof MultiQueryRequestBuilder) {
-      if (isSearchAfter) {
-        ((MultiQueryRequestBuilder) requestBuilder).updateRequestWithPit(client);
-      }
       ElasticHitsExecutor executor =
           MultiRequestExecutorFactory.createExecutor(
               client, (MultiQueryRequestBuilder) requestBuilder);
       executor.run();
-      if (isSearchAfter) {
-        ((MultiQueryRequestBuilder) requestBuilder).getPit().deletePointInTime(client);
-      }
       sendDefaultResponse(executor.getHits(), channel);
     } else if (request instanceof SearchRequest) {
       client.search((SearchRequest) request, new RestStatusToXContentListener<>(channel));

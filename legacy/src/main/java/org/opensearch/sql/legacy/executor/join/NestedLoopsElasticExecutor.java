@@ -48,6 +48,8 @@ public class NestedLoopsElasticExecutor extends ElasticJoinExecutor {
 
   @Override
   protected List<SearchHit> innerRun() throws SqlParseException {
+    createPointInTimeHandler(client, nestedLoopsRequest);
+    pit.create();
     List<SearchHit> combinedResults = new ArrayList<>();
     int totalLimit = nestedLoopsRequest.getTotalLimit();
     int multiSearchMaxSize = nestedLoopsRequest.getMultiSearchMaxSize();
@@ -128,6 +130,7 @@ public class NestedLoopsElasticExecutor extends ElasticJoinExecutor {
         }
       }
     }
+    pit.delete();
     return combinedResults;
   }
 
