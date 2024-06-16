@@ -97,7 +97,7 @@ public class XContentParserUtils {
         .setAllowedRoles(allowedRoles)
         .setResultIndex(resultIndex)
         .setDataSourceStatus(status)
-        .build();
+        .validateAndBuild();
   }
 
   public static Map<String, Object> toMap(XContentParser parser) throws IOException {
