@@ -167,7 +167,7 @@ public class DataSourceServiceImpl implements DataSourceService {
           break;
       }
     }
-    return metadataBuilder.build();
+    return metadataBuilder.validateAndBuild();
   }
 
   private DataSourceMetadata getRawDataSourceMetadata(String dataSourceName) {
@@ -199,6 +199,8 @@ public class DataSourceServiceImpl implements DataSourceService {
             entry ->
                 CONFIDENTIAL_AUTH_KEYS.stream()
                     .anyMatch(confidentialKey -> entry.getKey().endsWith(confidentialKey)));
-    return new DataSourceMetadata.Builder(dataSourceMetadata).setProperties(safeProperties).build();
+    return new DataSourceMetadata.Builder(dataSourceMetadata)
+        .setProperties(safeProperties)
+        .validateAndBuild();
   }
 }

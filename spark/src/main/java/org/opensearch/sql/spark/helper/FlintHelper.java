@@ -5,16 +5,18 @@
 
 package org.opensearch.sql.spark.helper;
 
-import static org.opensearch.sql.spark.data.constants.SparkConstants.FLINT_DEFAULT_AUTH;
-import static org.opensearch.sql.spark.data.constants.SparkConstants.FLINT_DEFAULT_HOST;
-import static org.opensearch.sql.spark.data.constants.SparkConstants.FLINT_DEFAULT_PORT;
-import static org.opensearch.sql.spark.data.constants.SparkConstants.FLINT_DEFAULT_REGION;
-import static org.opensearch.sql.spark.data.constants.SparkConstants.FLINT_DEFAULT_SCHEME;
-import static org.opensearch.sql.spark.data.constants.SparkConstants.FLINT_INTEGRATION_JAR;
-
 import lombok.Getter;
 
 public class FlintHelper {
+  // TODO should be replaced with mvn jar.
+  public static final String FLINT_INTEGRATION_JAR =
+      "s3://spark-datasource/flint-spark-integration-assembly-0.3.0-SNAPSHOT.jar";
+  public static final String FLINT_DEFAULT_HOST = "localhost";
+  public static final String FLINT_DEFAULT_PORT = "9200";
+  public static final String FLINT_DEFAULT_SCHEME = "http";
+  public static final String FLINT_DEFAULT_AUTH = "noauth";
+  public static final String FLINT_DEFAULT_REGION = "us-west-2";
+
   @Getter private final String flintIntegrationJar;
   @Getter private final String flintHost;
   @Getter private final String flintPort;
