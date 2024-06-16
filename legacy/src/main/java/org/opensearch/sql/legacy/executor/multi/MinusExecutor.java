@@ -25,6 +25,7 @@ import org.opensearch.action.search.SearchResponse;
 import org.opensearch.client.Client;
 import org.opensearch.common.document.DocumentField;
 import org.opensearch.common.unit.TimeValue;
+import org.opensearch.common.util.ArrayUtils;
 import org.opensearch.index.mapper.MapperService;
 import org.opensearch.search.SearchHit;
 import org.opensearch.search.SearchHits;
@@ -57,6 +58,7 @@ public class MinusExecutor implements ElasticHitsExecutor {
   private String[] fieldsOrderFirstTable;
   private String[] fieldsOrderSecondTable;
   private String seperator;
+  private PointInTimeHandler pit;
 
   public MinusExecutor(Client client, MultiQueryRequestBuilder builder) {
     this.client = client;
@@ -71,6 +73,13 @@ public class MinusExecutor implements ElasticHitsExecutor {
 
   @Override
   public void run() throws SqlParseException {
+    String[] indices =
+        ArrayUtils.concat(
+            builder.getOriginalSelect(true).getIndexArr(),
+            builder.getOriginalSelect(false).getIndexArr());
+    pit = new PointInTimeHandler(client, indices);
+    pit.create();
+
     if (this.useTermsOptimization && this.fieldsOrderFirstTable.length != 1) {
       throw new SqlParseException(
           "Terms optimization failed: terms optimization for minus execution is supported with one"
@@ -111,6 +120,7 @@ public class MinusExecutor implements ElasticHitsExecutor {
       SearchHit someHit = optimizationResult.getSomeHit();
       fillMinusHitsFromOneField(fieldName, results, someHit);
     }
+    pit.delete();
   }
 
   @Override
@@ -200,8 +210,7 @@ public class MinusExecutor implements ElasticHitsExecutor {
             builder.getFirstSearchRequest(),
             builder.getOriginalSelect(true),
             maxDocsToFetchOnEachScrollShard,
-            null,
-            builder.getPit());
+            null);
     Set<ComperableHitResult> results = new HashSet<>();
 
     SearchHit[] hits = scrollResp.getHits().getHits();
@@ -222,8 +231,7 @@ public class MinusExecutor implements ElasticHitsExecutor {
               builder.getFirstSearchRequest(),
               builder.getOriginalSelect(true),
               maxDocsToFetchOnEachScrollShard,
-              scrollResp,
-              builder.getPit());
+              scrollResp);
       hits = scrollResp.getHits().getHits();
     }
     scrollResp =
@@ -232,8 +240,7 @@ public class MinusExecutor implements ElasticHitsExecutor {
             this.builder.getSecondSearchRequest(),
             builder.getOriginalSelect(false),
             this.maxDocsToFetchOnEachScrollShard,
-            null,
-            builder.getPit());
+            null);
 
     hits = scrollResp.getHits().getHits();
     if (hits == null || hits.length == 0) {
@@ -252,8 +259,7 @@ public class MinusExecutor implements ElasticHitsExecutor {
               builder.getSecondSearchRequest(),
               builder.getOriginalSelect(false),
               maxDocsToFetchOnEachScrollShard,
-              scrollResp,
-              builder.getPit());
+              scrollResp);
       hits = scrollResp.getHits().getHits();
     }
 
@@ -323,8 +329,7 @@ public class MinusExecutor implements ElasticHitsExecutor {
             builder.getFirstSearchRequest(),
             builder.getOriginalSelect(true),
             maxDocsToFetchOnEachScrollShard,
-            null,
-            builder.getPit());
+            null);
     Set<Object> results = new HashSet<>();
     int currentNumOfResults = 0;
     SearchHit[] hits = scrollResp.getHits().getHits();
@@ -357,8 +362,7 @@ public class MinusExecutor implements ElasticHitsExecutor {
               queryAction.getRequestBuilder(),
               secondQuerySelect,
               this.maxDocsToFetchOnEachScrollShard,
-              null,
-              builder.getPit());
+              null);
       SearchHits secondQuerySearchHits = responseForSecondTable.getHits();
 
       SearchHit[] secondQueryHits = secondQuerySearchHits.getHits();
@@ -375,8 +379,7 @@ public class MinusExecutor implements ElasticHitsExecutor {
                 queryAction.getRequestBuilder(),
                 secondQuerySelect,
                 maxDocsToFetchOnEachScrollShard,
-                responseForSecondTable,
-                builder.getPit());
+                responseForSecondTable);
         secondQueryHits = responseForSecondTable.getHits().getHits();
       }
       results.addAll(currentSetFromResults);
@@ -391,8 +394,7 @@ public class MinusExecutor implements ElasticHitsExecutor {
               builder.getFirstSearchRequest(),
               builder.getOriginalSelect(true),
               maxDocsToFetchOnEachScrollShard,
-              scrollResp,
-              builder.getPit());
+              scrollResp);
       hits = scrollResp.getHits().getHits();
     }
     return new MinusOneFieldAndOptimizationResult(results, someHit);
@@ -403,8 +405,7 @@ public class MinusExecutor implements ElasticHitsExecutor {
       SearchRequestBuilder request,
       Select select,
       int size,
-      SearchResponse previousResponse,
-      PointInTimeHandler pit) {
+      SearchResponse previousResponse) {
     // Set Size
     request.setSize(size);
     SearchResponse responseWithHits;
