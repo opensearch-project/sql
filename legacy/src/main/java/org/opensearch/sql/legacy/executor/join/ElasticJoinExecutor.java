@@ -55,7 +55,7 @@ public abstract class ElasticJoinExecutor implements ElasticHitsExecutor {
   protected final int MAX_RESULTS_ON_ONE_FETCH = 10000;
   private Set<String> aliasesOnReturn;
   private boolean allFieldsReturn;
-  private PointInTimeHandler pit;
+  protected PointInTimeHandler pit;
 
   protected ElasticJoinExecutor(JoinRequestBuilder requestBuilder) {
     metaResults = new MetaSearchResult();
@@ -302,19 +302,11 @@ public abstract class ElasticJoinExecutor implements ElasticHitsExecutor {
     return responseWithHits;
   }
 
-  public void createPointInTime(
-      org.opensearch.client.Client client, JoinRequestBuilder requestBuilder) {
+  public void createPointInTimeHandler(Client client, JoinRequestBuilder requestBuilder) {
     String[] indices =
         org.opensearch.common.util.ArrayUtils.concat(
             requestBuilder.getFirstTable().getOriginalSelect().getIndexArr(),
             requestBuilder.getSecondTable().getOriginalSelect().getIndexArr());
     pit = new PointInTimeHandler(client, indices);
-    pit.create();
-  }
-
-  public void deletePointInTime() {
-    if (pit != null) {
-      pit.delete();
-    }
   }
 }

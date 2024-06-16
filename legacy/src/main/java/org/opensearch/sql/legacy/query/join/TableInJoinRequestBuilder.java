@@ -17,7 +17,6 @@ public class TableInJoinRequestBuilder {
   private List<Field> returnedFields;
   private Select originalSelect;
   private Integer hintLimit;
-  private String pitId;
 
   public TableInJoinRequestBuilder() {}
 
@@ -59,13 +58,5 @@ public class TableInJoinRequestBuilder {
 
   public void setHintLimit(Integer hintLimit) {
     this.hintLimit = hintLimit;
-  }
-
-  public String getPitId() {
-    return pitId;
-  }
-
-  public void setPitId(String pitId) {
-    this.pitId = pitId;
   }
 }
