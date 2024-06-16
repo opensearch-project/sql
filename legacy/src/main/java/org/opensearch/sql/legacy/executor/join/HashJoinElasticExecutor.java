@@ -53,6 +53,7 @@ public class HashJoinElasticExecutor extends ElasticJoinExecutor {
   }
 
   public List<SearchHit> innerRun() throws IOException, SqlParseException {
+    createPointInTime(client, requestBuilder);
 
     Map<String, Map<String, List<Object>>> optimizationTermsFilterStructure =
         initOptimizationStructure();
@@ -95,6 +96,7 @@ public class HashJoinElasticExecutor extends ElasticJoinExecutor {
             }
           });
     }
+    deletePointInTime();
     return combinedResult;
   }
 

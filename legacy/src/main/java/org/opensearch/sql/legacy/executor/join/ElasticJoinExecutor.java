@@ -38,6 +38,7 @@ import org.opensearch.sql.legacy.domain.Field;
 import org.opensearch.sql.legacy.esdomain.LocalClusterState;
 import org.opensearch.sql.legacy.exception.SqlParseException;
 import org.opensearch.sql.legacy.executor.ElasticHitsExecutor;
+import org.opensearch.sql.legacy.pit.PointInTimeHandler;
 import org.opensearch.sql.legacy.query.SqlElasticRequestBuilder;
 import org.opensearch.sql.legacy.query.join.HashJoinElasticRequestBuilder;
 import org.opensearch.sql.legacy.query.join.JoinRequestBuilder;
@@ -54,6 +55,7 @@ public abstract class ElasticJoinExecutor implements ElasticHitsExecutor {
   protected final int MAX_RESULTS_ON_ONE_FETCH = 10000;
   private Set<String> aliasesOnReturn;
   private boolean allFieldsReturn;
+  private PointInTimeHandler pit;
 
   protected ElasticJoinExecutor(JoinRequestBuilder requestBuilder) {
     metaResults = new MetaSearchResult();
@@ -276,7 +278,7 @@ public abstract class ElasticJoinExecutor implements ElasticHitsExecutor {
         request.addSort(FieldSortBuilder.DOC_FIELD_NAME, SortOrder.ASC);
       }
       // Set PIT
-      request.setPointInTime(new PointInTimeBuilder(tableRequest.getPitId()));
+      request.setPointInTime(new PointInTimeBuilder(pit.getPitId()));
       if (previousResponse != null) {
         request.searchAfter(previousResponse.getHits().getSortFields());
       }
@@ -298,5 +300,21 @@ public abstract class ElasticJoinExecutor implements ElasticHitsExecutor {
     }
 
     return responseWithHits;
+  }
+
+  public void createPointInTime(
+      org.opensearch.client.Client client, JoinRequestBuilder requestBuilder) {
+    String[] indices =
+        org.opensearch.common.util.ArrayUtils.concat(
+            requestBuilder.getFirstTable().getOriginalSelect().getIndexArr(),
+            requestBuilder.getSecondTable().getOriginalSelect().getIndexArr());
+    pit = new PointInTimeHandler(client, indices);
+    pit.create();
+  }
+
+  public void deletePointInTime() {
+    if (pit != null) {
+      pit.delete();
+    }
   }
 }
