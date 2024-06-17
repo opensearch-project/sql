@@ -107,7 +107,7 @@ public class SQLQueryRequestTest {
   }
 
   @Test
-  public void should_support_cursor_request_with_builtin_parameters() {
+  public void should_support_cursor_request_with_supported_parameters() {
     SQLQueryRequest fetchSizeRequest =
         SQLQueryRequestBuilder.request("SELECT 1")
             .jsonContent("{\"query\": \"SELECT 1\", \"fetch_size\": 5}")

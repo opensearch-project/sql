@@ -85,9 +85,12 @@ public class SQLQueryRequest {
     boolean hasCursor = isCursor();
     boolean hasQuery = query != null;
     boolean hasContent = jsonContent != null && !jsonContent.isEmpty();
+
+    Predicate<String> supportedParams =
+        List.of(QUERY_PARAMS_FORMAT, QUERY_PARAMS_PRETTY)::contains;
     boolean hasUnsupportedParams =
         (!params.isEmpty())
-            && params.keySet().stream().dropWhile(builtinSupported).findAny().isPresent();
+            && params.keySet().stream().dropWhile(supportedParams).findAny().isPresent();
 
     boolean validCursor = hasCursor && !hasQuery && !hasUnsupportedParams && !hasContent;
     boolean validQuery = !hasCursor && hasQuery;
@@ -96,9 +99,6 @@ public class SQLQueryRequest {
         && isOnlySupportedFieldInPayload() // and request must contain supported fields only
         && isSupportedFormat(); // and request must be a supported format
   }
-
-  private final Predicate<String> builtinSupported =
-      List.of(QUERY_PARAMS_FORMAT, QUERY_PARAMS_PRETTY)::contains;
 
   private boolean isCursor() {
     return cursor != null && !cursor.isEmpty();
