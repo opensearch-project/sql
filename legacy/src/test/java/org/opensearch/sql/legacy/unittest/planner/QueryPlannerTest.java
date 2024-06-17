@@ -15,6 +15,7 @@ import static org.mockito.Mockito.when;
 
 import com.alibaba.druid.sql.ast.SQLExpr;
 import com.alibaba.druid.sql.ast.expr.SQLQueryExpr;
+import com.alibaba.druid.sql.ast.statement.SQLUnionQuery;
 import com.alibaba.druid.sql.parser.ParserException;
 import com.alibaba.druid.sql.parser.SQLExprParser;
 import com.alibaba.druid.sql.parser.Token;
@@ -52,6 +53,8 @@ import org.opensearch.sql.legacy.query.QueryAction;
 import org.opensearch.sql.legacy.query.SqlElasticRequestBuilder;
 import org.opensearch.sql.legacy.query.join.BackOffRetryStrategy;
 import org.opensearch.sql.legacy.query.join.OpenSearchJoinQueryActionFactory;
+import org.opensearch.sql.legacy.query.multi.MultiQuerySelect;
+import org.opensearch.sql.legacy.query.multi.OpenSearchMultiQueryActionFactory;
 import org.opensearch.sql.legacy.query.planner.HashJoinQueryPlanRequestBuilder;
 import org.opensearch.sql.legacy.query.planner.core.QueryPlanner;
 import org.opensearch.sql.legacy.request.SqlRequest;
@@ -190,6 +193,22 @@ public abstract class QueryPlannerTest {
           OpenSearchJoinQueryActionFactory.createJoinAction(client, joinSelect);
       queryAction.setSqlRequest(new SqlRequest(sql, null));
       return queryAction.explain();
+    } catch (SqlParseException e) {
+      throw new IllegalStateException("Invalid query: " + sql, e);
+    }
+  }
+
+  protected String explainUnion(String sql) {
+    try {
+      SQLQueryExpr sqlExpr = (SQLQueryExpr) toSqlExpr(sql);
+      SQLUnionQuery select = (SQLUnionQuery) sqlExpr.getSubQuery().getQuery();
+      MultiQuerySelect multiSelect =
+          new SqlParser().parseMultiSelect(select); // Ignore handleSubquery()
+      QueryAction queryAction =
+          OpenSearchMultiQueryActionFactory.createMultiQueryAction(client, multiSelect);
+      queryAction.setSqlRequest(new SqlRequest(sql, null));
+      SqlElasticRequestBuilder request = queryAction.explain();
+      return request.explain();
     } catch (SqlParseException e) {
       throw new IllegalStateException("Invalid query: " + sql, e);
     }

@@ -578,6 +578,80 @@ public class PrettyFormatResponseIT extends SQLIntegTestCase {
     testFieldOrder(expectedFields, expectedValues);
   }
 
+  @Test
+  public void unionQuery() throws IOException {
+    JSONObject response =
+        executeQuery(
+            String.format(
+                Locale.ROOT,
+                "SELECT firstname, lastname FROM %s "
+                    + "UNION ALL SELECT firstname, lastname FROM %s",
+                TestsConstants.TEST_INDEX_ACCOUNT,
+                TestsConstants.TEST_INDEX_ACCOUNT));
+
+    List<String> fields = Arrays.asList("firstname", "lastname");
+    JSONArray dataRows = getDataRows(response);
+    assertContainsColumns(getSchema(response), fields);
+    assertContainsData(dataRows, fields);
+  }
+
+  @Test
+  public void unionQueryWithAliasLeft() throws IOException {
+    JSONObject response =
+        executeQuery(
+            String.format(
+                Locale.ROOT,
+                "SELECT lastname AS firstname FROM %s UNION ALL SELECT firstname FROM %s",
+                TestsConstants.TEST_INDEX_ACCOUNT,
+                TestsConstants.TEST_INDEX_ACCOUNT));
+    List<String> fields = List.of("lastname");
+    Map<String, String> aliases = new HashMap<>();
+    aliases.put("lastname", "firstname");
+    JSONArray schema = getSchema(response);
+    JSONArray dataRows = getDataRows(response);
+    assertContainsColumns(schema, fields);
+    assertContainsAliases(schema, aliases);
+    assertContainsData(dataRows, fields);
+  }
+
+  @Test
+  public void unionQueryWithAliasRight() throws IOException {
+    JSONObject response =
+        executeQuery(
+            String.format(
+                Locale.ROOT,
+                "SELECT firstname FROM %s UNION ALL SELECT lastname AS firstname FROM %s",
+                TestsConstants.TEST_INDEX_ACCOUNT,
+                TestsConstants.TEST_INDEX_ACCOUNT));
+    List<String> fields = List.of("firstname");
+    JSONArray schema = getSchema(response);
+    JSONArray dataRows = getDataRows(response);
+    assertContainsColumns(schema, fields);
+    // Query schema uses first subquery schema, so alias in second subquery doesn't count in.
+    assertNoAlias(schema);
+    assertContainsData(dataRows, fields);
+  }
+
+  @Test
+  public void unionQueryWithAliasBothSide() throws IOException {
+    JSONObject response =
+        executeQuery(
+            String.format(
+                Locale.ROOT,
+                "SELECT firstname AS name FROM %s UNION ALL SELECT lastname AS name FROM %s",
+                TestsConstants.TEST_INDEX_ACCOUNT,
+                TestsConstants.TEST_INDEX_ACCOUNT));
+    List<String> fields = List.of("firstname");
+    Map<String, String> aliases = new HashMap<>();
+    aliases.put("firstname", "name");
+    aliases.put("lastname", "name");
+    JSONArray schema = getSchema(response);
+    JSONArray dataRows = getDataRows(response);
+    assertContainsColumns(schema, fields);
+    assertContainsAliases(schema, aliases);
+    assertContainsData(dataRows, fields);
+  }
+
   private void testFieldOrder(final String[] expectedFields, final Object[] expectedValues)
       throws IOException {
 
@@ -641,6 +715,13 @@ public class PrettyFormatResponseIT extends SQLIntegTestCase {
       String alias = column.getString("alias");
 
       assertThat(alias, equalTo(aliases.get(name)));
+    }
+  }
+
+  private void assertNoAlias(JSONArray schema) {
+    for (int i = 0; i < schema.length(); i++) {
+      JSONObject column = schema.getJSONObject(i);
+      assertFalse(column.has("alias"));
     }
   }
 
