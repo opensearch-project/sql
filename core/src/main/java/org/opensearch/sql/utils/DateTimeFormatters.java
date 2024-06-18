@@ -18,6 +18,8 @@ import java.time.format.DateTimeFormatterBuilder;
 import java.time.format.ResolverStyle;
 import java.time.format.SignStyle;
 import java.time.temporal.ChronoField;
+import java.util.Arrays;
+import java.util.List;
 import java.util.Locale;
 import lombok.experimental.UtilityClass;
 
@@ -42,6 +44,16 @@ public class DateTimeFormatters {
 
   private static final int MIN_FRACTION_SECONDS = 0;
   private static final int MAX_FRACTION_SECONDS = 9;
+
+  // Define the list of date time patterns
+  public static final List<String> DATE_TIME_FORMATTER_PATTERNS_NANOS_OPTIONAL = Arrays.asList(
+          "uuuu-MM-dd HH:mm:ss",
+          "uuuu-MM-dd HH:mm",
+          "HH:mm:ss",
+          "HH:mm",
+          "uuuu-MM-dd",
+          "dd-MMM-uu"
+  );
 
   public static final DateTimeFormatter TIME_ZONE_FORMATTER_NO_COLON =
       new DateTimeFormatterBuilder()
@@ -130,7 +142,7 @@ public class DateTimeFormatters {
 
   public static final DateTimeFormatter DATE_TIME_FORMATTER_VARIABLE_NANOS_OPTIONAL =
       new DateTimeFormatterBuilder()
-          .appendPattern("[uuuu-MM-dd HH:mm:ss][uuuu-MM-dd HH:mm][HH:mm:ss][HH:mm][uuuu-MM-dd]")
+          .appendPattern("[" + String.join("][", DATE_TIME_FORMATTER_PATTERNS_NANOS_OPTIONAL) + "]")
           .appendFraction(
               ChronoField.NANO_OF_SECOND, MIN_FRACTION_SECONDS, MAX_FRACTION_SECONDS, true)
           .toFormatter(Locale.ROOT)
