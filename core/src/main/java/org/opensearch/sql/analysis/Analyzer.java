@@ -512,8 +512,8 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
 
   /** Build {@link LogicalLookup}. */
   @Override
-  public LogicalPlan visitLookup(Lookup node, AnalysisContext context) {
-    LogicalPlan child = node.getChild().get(0).accept(this, context);
+  public LogicalPlan visitLookup(Lookup node, AnalysisContext queryContext) {
+    LogicalPlan child = node.getChild().get(0).accept(this, queryContext);
     List<Argument> options = node.getOptions();
     // Todo, refactor the option.
     Boolean appendOnly = (Boolean) options.get(0).getValue().getValue();
@@ -529,29 +529,40 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
           String.format("no such lookup index %s", node.getIndexName()));
     }
 
+    AnalysisContext lookupTableContext = new AnalysisContext();
+    TypeEnvironment lookupTableEnvironment = lookupTableContext.peek();
+    table
+        .getFieldTypes()
+        .forEach(
+            (name, type) ->
+                lookupTableEnvironment.define(new Symbol(Namespace.FIELD_NAME, name), type));
+    ImmutableMap<ReferenceExpression, ReferenceExpression> matchFieldMap =
+        analyzeLookupMatchFields(node.getMatchFieldList(), queryContext, lookupTableContext);
+
     return new LogicalLookup(
         child,
         node.getIndexName(),
-        analyzeLookupMatchFields(node.getMatchFieldList(), context),
+        matchFieldMap,
         appendOnly,
-        analyzeLookupCopyFields(node.getCopyFieldList(), context, table));
+        analyzeLookupCopyFields(node.getCopyFieldList(), queryContext, table));
   }
 
   private ImmutableMap<ReferenceExpression, ReferenceExpression> analyzeLookupMatchFields(
-      List<Map> inputMap, AnalysisContext context) {
+      List<Map> inputMap, AnalysisContext queryContext, AnalysisContext lookupTableContext) {
     ImmutableMap.Builder<ReferenceExpression, ReferenceExpression> copyMapBuilder =
         new ImmutableMap.Builder<>();
     for (Map resultMap : inputMap) {
-      Expression origin = expressionAnalyzer.analyze(resultMap.getOrigin(), context);
+      Expression origin = expressionAnalyzer.analyze(resultMap.getOrigin(), lookupTableContext);
       if (resultMap.getTarget() instanceof Field) {
-        ReferenceExpression target =
-            new ReferenceExpression(
-                ((Field) resultMap.getTarget()).getField().toString(), origin.type());
-        ReferenceExpression originExpr = DSL.ref(origin.toString(), origin.type());
-        TypeEnvironment curEnv = context.peek();
-        curEnv.remove(originExpr);
-        curEnv.define(target);
-        copyMapBuilder.put(originExpr, target);
+        Expression targerExpression =
+            expressionAnalyzer.analyze(resultMap.getTarget(), queryContext);
+        ReferenceExpression targetReference =
+            DSL.ref(targerExpression.toString(), targerExpression.type());
+        ReferenceExpression originReference = DSL.ref(origin.toString(), origin.type());
+        TypeEnvironment curEnv = queryContext.peek();
+        curEnv.remove(originReference);
+        curEnv.define(targetReference);
+        copyMapBuilder.put(originReference, targetReference);
       } else {
         throw new SemanticCheckException(
             String.format("the target expected to be field, but is %s", resultMap.getTarget()));
