@@ -138,4 +138,13 @@ public class LogicalPlanDSL {
   public static LogicalPlan limit(LogicalPlan input, Integer limit, Integer offset) {
     return new LogicalLimit(input, limit, offset);
   }
+
+  public static LogicalPlan lookup(
+      LogicalPlan input,
+      String indexName,
+      Map<ReferenceExpression, ReferenceExpression> matchFieldMap,
+      boolean appendOnly,
+      Map<ReferenceExpression, ReferenceExpression> copyFields) {
+    return new LogicalLookup(input, indexName, matchFieldMap, appendOnly, copyFields);
+  }
 }
