@@ -110,8 +110,10 @@ public class NestedLoopsElasticExecutor extends ElasticJoinExecutor {
           }
           /* Fetching next result page.
             Using scroll api - only scrollId from previous response is required for scroll request.
-            Using pit with search_after - we need to recreate search request along with pitId and sort fields from previous response.
+            Using pit with search_after - we need to recreate search request along with pitId and
+            sort fields from previous response.
             Here we are finding required size for recreating search request with pit and search after.
+            Conditions for size are similar as firstFetch().
             In case of scroll, this size will be ignored and size from first request will be used.
           */
           Integer hintLimit = nestedLoopsRequest.getFirstTable().getHintLimit();
