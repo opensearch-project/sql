@@ -38,18 +38,14 @@ public class NestedLoopsElasticExecutor extends ElasticJoinExecutor {
   private static final Logger LOG = LogManager.getLogger();
 
   private final NestedLoopsElasticRequestBuilder nestedLoopsRequest;
-  private final Client client;
 
   public NestedLoopsElasticExecutor(Client client, NestedLoopsElasticRequestBuilder nestedLoops) {
-    super(nestedLoops);
-    this.client = client;
+    super(client, nestedLoops);
     this.nestedLoopsRequest = nestedLoops;
   }
 
   @Override
   protected List<SearchHit> innerRun() throws SqlParseException {
-    createPointInTimeHandler(client, nestedLoopsRequest);
-    pit.create();
     List<SearchHit> combinedResults = new ArrayList<>();
     int totalLimit = nestedLoopsRequest.getTotalLimit();
     int multiSearchMaxSize = nestedLoopsRequest.getMultiSearchMaxSize();
@@ -116,11 +112,10 @@ public class NestedLoopsElasticExecutor extends ElasticJoinExecutor {
           if (hintLimit != null && hintLimit < MAX_RESULTS_ON_ONE_FETCH) {
             firstTableResponse =
                 getResponseWithHits(
-                    client, nestedLoopsRequest.getFirstTable(), hintLimit, firstTableResponse);
+                    nestedLoopsRequest.getFirstTable(), hintLimit, firstTableResponse);
           } else {
             firstTableResponse =
                 getResponseWithHits(
-                    client,
                     nestedLoopsRequest.getFirstTable(),
                     MAX_RESULTS_ON_ONE_FETCH,
                     firstTableResponse);
@@ -130,7 +125,6 @@ public class NestedLoopsElasticExecutor extends ElasticJoinExecutor {
         }
       }
     }
-    pit.delete();
     return combinedResults;
   }
 
@@ -301,7 +295,7 @@ public class NestedLoopsElasticExecutor extends ElasticJoinExecutor {
       needScrollForFirstTable = false;
     } else {
       // scroll request with max.
-      responseWithHits = getResponseWithHits(client, tableRequest, MAX_RESULTS_ON_ONE_FETCH, null);
+      responseWithHits = getResponseWithHits(tableRequest, MAX_RESULTS_ON_ONE_FETCH, null);
       if (responseWithHits.getHits().getTotalHits() != null
           && responseWithHits.getHits().getTotalHits().value < MAX_RESULTS_ON_ONE_FETCH) {
         needScrollForFirstTable = true;
