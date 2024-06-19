@@ -10,7 +10,6 @@ import org.opensearch.index.query.QueryBuilder;
 import org.opensearch.index.query.QueryBuilders;
 import org.opensearch.index.query.RangeQueryBuilder;
 import org.opensearch.sql.data.model.ExprValue;
-import org.opensearch.sql.data.type.ExprCoreType;
 import org.opensearch.sql.data.type.ExprType;
 
 /** Lucene query that builds range query for non-quality comparison. */
@@ -48,10 +47,6 @@ public class RangeQuery extends LuceneQuery {
   }
 
   private Object value(ExprValue literal) {
-    if (literal.type().equals(ExprCoreType.TIMESTAMP)) {
-      return literal.timestampValue().toEpochMilli();
-    } else {
-      return literal.value();
-    }
+    return literal.value();
   }
 }
