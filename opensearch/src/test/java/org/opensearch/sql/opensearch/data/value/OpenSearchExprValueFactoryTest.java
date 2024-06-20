@@ -685,27 +685,42 @@ class OpenSearchExprValueFactoryTest {
   }
 
   @Test
+  public void constructGeoPointLatLon() {
+    assertEquals(
+        doubleValue(42.60355556),
+        tupleValue("{\"geoV\":{\"lat\":42.60355556}}").get("geoV").tupleValue().get("lat"));
+    assertEquals(
+        doubleValue(-97.25263889),
+        tupleValue("{\"geoV\":{\"lon\":-97.25263889}}").get("geoV").tupleValue().get("lon"));
+  }
+
+  @Test
   public void constructGeoPointFromUnsupportedFormatShouldThrowException() {
     IllegalStateException exception =
         assertThrows(
             IllegalStateException.class,
             () -> tupleValue("{\"geoV\":[42.60355556,-97.25263889]}").get("geoV"));
     assertEquals(
-        "geo point must in format of {\"lat\": number, \"lon\": number}", exception.getMessage());
+        "geo point must be in format of {\"lat\": number, \"lon\": number}",
+        exception.getMessage());
 
     exception =
         assertThrows(
             IllegalStateException.class,
-            () -> tupleValue("{\"geoV\":{\"lon\":-97.25263889}}").get("geoV"));
+            () -> tupleValue("{\"geoV\":\"txhxegj0uyp3\"}").get("geoV"));
     assertEquals(
-        "geo point must in format of {\"lat\": number, \"lon\": number}", exception.getMessage());
+        "geo point must be in format of {\"lat\": number, \"lon\": number}",
+        exception.getMessage());
 
     exception =
         assertThrows(
             IllegalStateException.class,
-            () -> tupleValue("{\"geoV\":{\"lat\":-97.25263889}}").get("geoV"));
+            () ->
+                tupleValue("{\"geoV\":{\"type\": \"Point\"," + " \"coordinates\": [74.00, 40.71]}}")
+                    .get("geoV"));
     assertEquals(
-        "geo point must in format of {\"lat\": number, \"lon\": number}", exception.getMessage());
+        "geo point must be in format of {\"lat\": number, \"lon\": number}",
+        exception.getMessage());
 
     exception =
         assertThrows(

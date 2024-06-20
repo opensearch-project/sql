@@ -122,26 +122,34 @@ public class OpenSearchJsonContent implements Content {
   @Override
   public Pair<Double, Double> geoValue() {
     final JsonNode value = value();
-    if (value.has("lat") && value.has("lon")) {
-      Double lat = 0d;
-      Double lon = 0d;
+    Double lat = null;
+    Double lon = null;
+
+    if (value.has("lat")) {
       try {
         lat = extractDoubleValue(value.get("lat"));
       } catch (Exception exception) {
         throw new IllegalStateException(
             "latitude must be number value, but got value: " + value.get("lat"));
       }
+    }
+
+    if (value.has("lon")) {
       try {
         lon = extractDoubleValue(value.get("lon"));
       } catch (Exception exception) {
         throw new IllegalStateException(
             "longitude must be number value, but got value: " + value.get("lon"));
       }
-      return Pair.of(lat, lon);
-    } else {
-      throw new IllegalStateException(
-          "geo point must in format of {\"lat\": number, \"lon\": number}");
     }
+
+    // lat or lon can be null to support geopoint.lat query but both can't be null
+    if (lat == null && lon == null) {
+      throw new IllegalStateException(
+          "geo point must be in format of {\"lat\": number, \"lon\": number}");
+    }
+
+    return Pair.of(lat, lon);
   }
 
   /** Getter for value. If value is array the whole array is returned. */

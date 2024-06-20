@@ -1,0 +1,6 @@
+{"index":{"_id":"1"}}
+{"geo_point_object": {"lat": 40.71, "lon": 74.00}, "object": {"geo_point_object": {"lat": 40.71, "lon": 74.00}}, "geo_point_string": "40.71, 74.00", "geo_point_geohash": "txhxegj0uyp3", "geo_point_array": [74.00, 40.71], "geo_point_string_point": "POINT (74.00 40.71)", "geo_point_geojson": {"type": "Point", "coordinates": [74.00, 40.71]}}
+{"index":{"_id":"2"}}
+{"geo_point_object": {"lat": -33.85253637358241, "lon": 151.21652352950258}, "object": {"geo_point_object": {"lat": -33.85253637358241, "lon": 151.21652352950258}},"geo_point_string": "-33.85356510743158, 151.22222172610114", "geo_point_geohash": "txhxegj0uyp3", "geo_point_array": [74.00, 40.71], "geo_point_string_point": "POINT (74.00 40.71)", "geo_point_geojson": {"type": "Point", "coordinates": [74.00, 40.71]}}
+{"index":{"_id":"3"}}
+{"geo_point_object": null, "object": {"geo_point_object": null},"geo_point_string": null, "geo_point_geohash": null, "geo_point_array": null, "geo_point_string_point": null, "geo_point_geojson": null}
