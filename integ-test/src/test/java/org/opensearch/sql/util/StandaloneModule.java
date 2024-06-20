@@ -5,6 +5,8 @@
 
 package org.opensearch.sql.util;
 
+import static org.opensearch.sql.datasource.model.EmptyDataSourceService.getEmptyDataSourceService;
+
 import lombok.RequiredArgsConstructor;
 import org.opensearch.client.RestHighLevelClient;
 import org.opensearch.common.inject.AbstractModule;
@@ -50,7 +52,7 @@ public class StandaloneModule extends AbstractModule {
   private final DataSourceService dataSourceService;
 
   private final BuiltinFunctionRepository functionRepository =
-      BuiltinFunctionRepository.getInstance();
+      BuiltinFunctionRepository.getInstance(getEmptyDataSourceService());
 
   @Override
   protected void configure() {}

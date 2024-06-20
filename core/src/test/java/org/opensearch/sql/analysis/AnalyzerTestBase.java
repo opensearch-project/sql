@@ -40,6 +40,7 @@ import org.opensearch.sql.expression.function.FunctionBuilder;
 import org.opensearch.sql.expression.function.FunctionName;
 import org.opensearch.sql.expression.function.FunctionResolver;
 import org.opensearch.sql.expression.function.FunctionSignature;
+import org.opensearch.sql.expression.function.NestedFunctionResolver;
 import org.opensearch.sql.expression.function.TableFunctionImplementation;
 import org.opensearch.sql.planner.logical.LogicalPlan;
 import org.opensearch.sql.planner.physical.PhysicalPlan;
@@ -53,7 +54,17 @@ public class AnalyzerTestBase {
   }
 
   protected StorageEngine storageEngine() {
-    return (dataSourceSchemaName, tableName) -> table;
+    return new StorageEngine() {
+      @Override
+      public Collection<FunctionResolver> getFunctions() {
+        return Collections.singletonList(new NestedFunctionResolver());
+      }
+
+      @Override
+      public Table getTable(DataSourceSchemaName dataSourceSchemaName, String tableName) {
+        return table;
+      }
+    };
   }
 
   protected StorageEngine prometheusStorageEngine() {
@@ -159,7 +170,8 @@ public class AnalyzerTestBase {
 
   protected Analyzer analyzer(
       ExpressionAnalyzer expressionAnalyzer, DataSourceService dataSourceService) {
-    BuiltinFunctionRepository functionRepository = BuiltinFunctionRepository.getInstance();
+    BuiltinFunctionRepository functionRepository =
+        BuiltinFunctionRepository.getInstance(dataSourceService);
     return new Analyzer(expressionAnalyzer, dataSourceService, functionRepository);
   }
 
@@ -172,7 +184,7 @@ public class AnalyzerTestBase {
   }
 
   protected ExpressionAnalyzer expressionAnalyzer() {
-    return new ExpressionAnalyzer(BuiltinFunctionRepository.getInstance());
+    return new ExpressionAnalyzer(BuiltinFunctionRepository.getInstance(dataSourceService()));
   }
 
   protected void assertAnalyzeEqual(LogicalPlan expected, UnresolvedPlan unresolvedPlan) {
