@@ -54,14 +54,14 @@ class FlintIndexOpVacuumTest {
   }
 
   @Test
-  public void emptyLatestId_apply() {
+  public void testApplyWithEmptyLatestId() {
     flintIndexOpVacuum.apply(FLINT_INDEX_METADATA_WITHOUT_LATEST_ID);
 
     verify(flintIndexClient).deleteIndex(INDEX_NAME);
   }
 
   @Test
-  public void flintIndexStateNotFound_apply_throw() {
+  public void testApplyWithFlintIndexStateNotFound() {
     when(flintIndexStateModelService.getFlintIndexStateModel(LATEST_ID, DATASOURCE_NAME))
         .thenReturn(Optional.empty());
 
@@ -71,7 +71,7 @@ class FlintIndexOpVacuumTest {
   }
 
   @Test
-  public void notDeletedState_apply_throw() {
+  public void testApplyWithNotDeletedState() {
     when(flintIndexStateModelService.getFlintIndexStateModel(LATEST_ID, DATASOURCE_NAME))
         .thenReturn(Optional.of(flintIndexStateModel));
     when(flintIndexStateModel.getIndexState()).thenReturn(FlintIndexState.ACTIVE);
@@ -82,7 +82,7 @@ class FlintIndexOpVacuumTest {
   }
 
   @Test
-  public void updateFlintIndexStateThrow_apply_throw() {
+  public void testApplyWithUpdateFlintIndexStateThrow() {
     when(flintIndexStateModelService.getFlintIndexStateModel(LATEST_ID, DATASOURCE_NAME))
         .thenReturn(Optional.of(flintIndexStateModel));
     when(flintIndexStateModel.getIndexState()).thenReturn(FlintIndexState.DELETED);
@@ -96,7 +96,7 @@ class FlintIndexOpVacuumTest {
   }
 
   @Test
-  public void runOpThrow_apply_rollbackAndThrow() {
+  public void testApplyWithRunOpThrow() {
     when(flintIndexStateModelService.getFlintIndexStateModel(LATEST_ID, DATASOURCE_NAME))
         .thenReturn(Optional.of(flintIndexStateModel));
     when(flintIndexStateModel.getIndexState()).thenReturn(FlintIndexState.DELETED);
@@ -114,7 +114,7 @@ class FlintIndexOpVacuumTest {
   }
 
   @Test
-  public void runOpThrowAndRollbackThrow_apply_throw() {
+  public void testApplyWithRunOpThrowAndRollbackThrow() {
     when(flintIndexStateModelService.getFlintIndexStateModel(LATEST_ID, DATASOURCE_NAME))
         .thenReturn(Optional.of(flintIndexStateModel));
     when(flintIndexStateModel.getIndexState()).thenReturn(FlintIndexState.DELETED);
@@ -131,7 +131,7 @@ class FlintIndexOpVacuumTest {
   }
 
   @Test
-  public void deleteFlintIndexStateModelThrow_apply_throw() {
+  public void testApplyWithDeleteFlintIndexStateModelThrow() {
     when(flintIndexStateModelService.getFlintIndexStateModel(LATEST_ID, DATASOURCE_NAME))
         .thenReturn(Optional.of(flintIndexStateModel));
     when(flintIndexStateModel.getIndexState()).thenReturn(FlintIndexState.DELETED);
@@ -147,7 +147,7 @@ class FlintIndexOpVacuumTest {
   }
 
   @Test
-  public void happyPath_apply() {
+  public void testApplyHappyPath() {
     when(flintIndexStateModelService.getFlintIndexStateModel(LATEST_ID, DATASOURCE_NAME))
         .thenReturn(Optional.of(flintIndexStateModel));
     when(flintIndexStateModel.getIndexState()).thenReturn(FlintIndexState.DELETED);
