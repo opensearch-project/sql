@@ -20,7 +20,6 @@ public class OpenSearchFlintIndexClient implements FlintIndexClient {
 
   @Override
   public void deleteIndex(String indexName) {
-    LOG.info("Vacuuming Flint index {}", indexName);
     DeleteIndexRequest request = new DeleteIndexRequest().indices(indexName);
     AcknowledgedResponse response = client.admin().indices().delete(request).actionGet();
     LOG.info("OpenSearch index delete result: {}", response.isAcknowledged());

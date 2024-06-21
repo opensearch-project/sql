@@ -43,6 +43,7 @@ public class FlintIndexOpVacuum extends FlintIndexOp {
 
   @Override
   public void runOp(FlintIndexMetadata flintIndexMetadata, FlintIndexStateModel flintIndex) {
+    LOG.info("Vacuuming Flint index {}", flintIndexMetadata.getOpensearchIndexName());
     flintIndexClient.deleteIndex(flintIndexMetadata.getOpensearchIndexName());
   }
 
