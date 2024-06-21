@@ -85,6 +85,7 @@ import org.opensearch.sql.spark.flint.OpenSearchFlintIndexStateModelService;
 import org.opensearch.sql.spark.flint.OpenSearchIndexDMLResultStorageService;
 import org.opensearch.sql.spark.flint.operation.FlintIndexOpFactory;
 import org.opensearch.sql.spark.leasemanager.DefaultLeaseManager;
+import org.opensearch.sql.spark.metrics.OpenSearchMetricsService;
 import org.opensearch.sql.spark.response.JobExecutionResponseReader;
 import org.opensearch.sql.spark.response.OpenSearchJobExecutionResponseReader;
 import org.opensearch.sql.storage.DataSourceFactory;
@@ -262,7 +263,8 @@ public class AsyncQueryExecutorServiceSpec extends OpenSearchIntegTestCase {
                 client,
                 new FlintIndexMetadataServiceImpl(client),
                 emrServerlessClientFactory),
-            emrServerlessClientFactory);
+            emrServerlessClientFactory,
+            new OpenSearchMetricsService());
     SparkQueryDispatcher sparkQueryDispatcher =
         new SparkQueryDispatcher(
             this.dataSourceService,
