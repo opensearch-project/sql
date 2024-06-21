@@ -15,8 +15,6 @@ import java.util.Optional;
 import lombok.RequiredArgsConstructor;
 import org.json.JSONObject;
 import org.opensearch.sql.datasource.model.DataSourceMetadata;
-import org.opensearch.sql.legacy.metrics.MetricName;
-import org.opensearch.sql.legacy.utils.MetricUtils;
 import org.opensearch.sql.spark.asyncquery.model.AsyncQueryJobMetadata;
 import org.opensearch.sql.spark.asyncquery.model.SparkSubmitParameters;
 import org.opensearch.sql.spark.dispatcher.model.DispatchQueryContext;
@@ -32,6 +30,8 @@ import org.opensearch.sql.spark.execution.statement.StatementId;
 import org.opensearch.sql.spark.execution.statement.StatementState;
 import org.opensearch.sql.spark.leasemanager.LeaseManager;
 import org.opensearch.sql.spark.leasemanager.model.LeaseRequest;
+import org.opensearch.sql.spark.metrics.EmrMetrics;
+import org.opensearch.sql.spark.metrics.MetricsService;
 import org.opensearch.sql.spark.response.JobExecutionResponseReader;
 
 /**
@@ -45,6 +45,7 @@ public class InteractiveQueryHandler extends AsyncQueryHandler {
   private final SessionManager sessionManager;
   private final JobExecutionResponseReader jobExecutionResponseReader;
   private final LeaseManager leaseManager;
+  private final MetricsService metricsService;
 
   @Override
   protected JSONObject getResponseFromResultIndex(AsyncQueryJobMetadata asyncQueryJobMetadata) {
@@ -121,7 +122,7 @@ public class InteractiveQueryHandler extends AsyncQueryHandler {
                   dataSourceMetadata.getResultIndex(),
                   dataSourceMetadata.getName()),
               context.getAsyncQueryRequestContext());
-      MetricUtils.incrementNumericalMetric(MetricName.EMR_INTERACTIVE_QUERY_JOBS_CREATION_COUNT);
+      metricsService.incrementNumericalMetric(EmrMetrics.EMR_INTERACTIVE_QUERY_JOBS_CREATION_COUNT);
     }
     session.submit(
         new QueryRequest(
