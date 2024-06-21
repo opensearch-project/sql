@@ -16,12 +16,14 @@ import lombok.RequiredArgsConstructor;
 import org.opensearch.sql.spark.asyncquery.model.NullAsyncQueryRequestContext;
 import org.opensearch.sql.spark.config.SparkExecutionEngineConfig;
 import org.opensearch.sql.spark.config.SparkExecutionEngineConfigSupplier;
+import org.opensearch.sql.spark.metrics.MetricsService;
 
 /** Implementation of {@link EMRServerlessClientFactory}. */
 @RequiredArgsConstructor
 public class EMRServerlessClientFactoryImpl implements EMRServerlessClientFactory {
 
   private final SparkExecutionEngineConfigSupplier sparkExecutionEngineConfigSupplier;
+  private final MetricsService metricsService;
   private EMRServerlessClient emrServerlessClient;
   private String region;
 
@@ -68,7 +70,7 @@ public class EMRServerlessClientFactoryImpl implements EMRServerlessClientFactor
                       .withRegion(awsRegion)
                       .withCredentials(new DefaultAWSCredentialsProviderChain())
                       .build();
-              return new EmrServerlessClientImpl(awsemrServerless);
+              return new EmrServerlessClientImpl(awsemrServerless, metricsService);
             });
   }
 }

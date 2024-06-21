@@ -49,6 +49,8 @@ import org.opensearch.sql.spark.flint.OpenSearchFlintIndexStateModelService;
 import org.opensearch.sql.spark.flint.OpenSearchIndexDMLResultStorageService;
 import org.opensearch.sql.spark.flint.operation.FlintIndexOpFactory;
 import org.opensearch.sql.spark.leasemanager.DefaultLeaseManager;
+import org.opensearch.sql.spark.metrics.MetricsService;
+import org.opensearch.sql.spark.metrics.OpenSearchMetricsService;
 import org.opensearch.sql.spark.response.JobExecutionResponseReader;
 import org.opensearch.sql.spark.response.OpenSearchJobExecutionResponseReader;
 
@@ -106,7 +108,8 @@ public class AsyncExecutorServiceModule extends AbstractModule {
       DefaultLeaseManager defaultLeaseManager,
       IndexDMLResultStorageService indexDMLResultStorageService,
       FlintIndexOpFactory flintIndexOpFactory,
-      EMRServerlessClientFactory emrServerlessClientFactory) {
+      EMRServerlessClientFactory emrServerlessClientFactory,
+      MetricsService metricsService) {
     return new QueryHandlerFactory(
         openSearchJobExecutionResponseReader,
         flintIndexMetadataReader,
@@ -114,7 +117,8 @@ public class AsyncExecutorServiceModule extends AbstractModule {
         defaultLeaseManager,
         indexDMLResultStorageService,
         flintIndexOpFactory,
-        emrServerlessClientFactory);
+        emrServerlessClientFactory,
+        metricsService);
   }
 
   @Provides
@@ -172,8 +176,14 @@ public class AsyncExecutorServiceModule extends AbstractModule {
 
   @Provides
   public EMRServerlessClientFactory createEMRServerlessClientFactory(
-      SparkExecutionEngineConfigSupplier sparkExecutionEngineConfigSupplier) {
-    return new EMRServerlessClientFactoryImpl(sparkExecutionEngineConfigSupplier);
+      SparkExecutionEngineConfigSupplier sparkExecutionEngineConfigSupplier,
+      MetricsService metricsService) {
+    return new EMRServerlessClientFactoryImpl(sparkExecutionEngineConfigSupplier, metricsService);
+  }
+
+  @Provides
+  public MetricsService metricsService() {
+    return new OpenSearchMetricsService();
   }
 
   @Provides
