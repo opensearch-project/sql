@@ -18,7 +18,7 @@ import org.opensearch.core.action.ActionListener;
 import org.opensearch.sql.legacy.esdomain.LocalClusterState;
 
 /** Handler for Point In Time */
-public class PointInTimeHandler {
+public class PointInTimeHandler implements PIT {
   private Client client;
   private String[] indices;
   @Getter private String pitId;
@@ -36,6 +36,7 @@ public class PointInTimeHandler {
   }
 
   /** Create PIT for given indices */
+  @Override
   public void create() {
     CreatePitRequest createPitRequest =
         new CreatePitRequest(
@@ -56,6 +57,7 @@ public class PointInTimeHandler {
   }
 
   /** Delete PIT */
+  @Override
   public void delete() {
     DeletePitRequest deletePitRequest = new DeletePitRequest(pitId);
     client.deletePits(

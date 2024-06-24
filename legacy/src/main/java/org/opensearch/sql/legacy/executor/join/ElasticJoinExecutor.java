@@ -39,6 +39,7 @@ import org.opensearch.sql.legacy.domain.Field;
 import org.opensearch.sql.legacy.esdomain.LocalClusterState;
 import org.opensearch.sql.legacy.exception.SqlParseException;
 import org.opensearch.sql.legacy.executor.ElasticHitsExecutor;
+import org.opensearch.sql.legacy.pit.PIT;
 import org.opensearch.sql.legacy.pit.PointInTimeHandler;
 import org.opensearch.sql.legacy.query.SqlElasticRequestBuilder;
 import org.opensearch.sql.legacy.query.join.HashJoinElasticRequestBuilder;
@@ -58,7 +59,7 @@ public abstract class ElasticJoinExecutor implements ElasticHitsExecutor {
   private boolean allFieldsReturn;
   protected Client client;
   protected String[] indices;
-  protected PointInTimeHandler pit;
+  protected PIT pit;
 
   protected ElasticJoinExecutor(Client client, JoinRequestBuilder requestBuilder) {
     metaResults = new MetaSearchResult();
