@@ -11,6 +11,7 @@ import static org.opensearch.sql.datasource.model.DataSourceMetadata.defaultOpen
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import java.time.Clock;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
@@ -39,9 +40,11 @@ import org.opensearch.core.common.io.stream.NamedWriteableRegistry;
 import org.opensearch.core.xcontent.NamedXContentRegistry;
 import org.opensearch.env.Environment;
 import org.opensearch.env.NodeEnvironment;
+import org.opensearch.indices.SystemIndexDescriptor;
 import org.opensearch.plugins.ActionPlugin;
 import org.opensearch.plugins.Plugin;
 import org.opensearch.plugins.ScriptPlugin;
+import org.opensearch.plugins.SystemIndexPlugin;
 import org.opensearch.repositories.RepositoriesService;
 import org.opensearch.rest.RestController;
 import org.opensearch.rest.RestHandler;
@@ -58,7 +61,11 @@ import org.opensearch.sql.datasources.rest.RestDataSourceQueryAction;
 import org.opensearch.sql.datasources.service.DataSourceMetadataStorage;
 import org.opensearch.sql.datasources.service.DataSourceServiceImpl;
 import org.opensearch.sql.datasources.storage.OpenSearchDataSourceMetadataStorage;
-import org.opensearch.sql.datasources.transport.*;
+import org.opensearch.sql.datasources.transport.TransportCreateDataSourceAction;
+import org.opensearch.sql.datasources.transport.TransportDeleteDataSourceAction;
+import org.opensearch.sql.datasources.transport.TransportGetDataSourceAction;
+import org.opensearch.sql.datasources.transport.TransportPatchDataSourceAction;
+import org.opensearch.sql.datasources.transport.TransportUpdateDataSourceAction;
 import org.opensearch.sql.legacy.esdomain.LocalClusterState;
 import org.opensearch.sql.legacy.executor.AsyncRestExecutor;
 import org.opensearch.sql.legacy.metrics.Metrics;
@@ -97,7 +104,7 @@ import org.opensearch.threadpool.FixedExecutorBuilder;
 import org.opensearch.threadpool.ThreadPool;
 import org.opensearch.watcher.ResourceWatcherService;
 
-public class SQLPlugin extends Plugin implements ActionPlugin, ScriptPlugin {
+public class SQLPlugin extends Plugin implements ActionPlugin, ScriptPlugin, SystemIndexPlugin {
 
   private static final Logger LOGGER = LogManager.getLogger(SQLPlugin.class);
 
@@ -288,5 +295,14 @@ public class SQLPlugin extends Plugin implements ActionPlugin, ScriptPlugin {
             .build(),
         dataSourceMetadataStorage,
         dataSourceUserAuthorizationHelper);
+  }
+
+  @Override
+  public Collection<SystemIndexDescriptor> getSystemIndexDescriptors(Settings settings) {
+    List<SystemIndexDescriptor> systemIndexDescriptors = new ArrayList<>();
+    systemIndexDescriptors.add(
+        new SystemIndexDescriptor(
+            OpenSearchDataSourceMetadataStorage.DATASOURCE_INDEX_NAME, "SQL DataSources index"));
+    return systemIndexDescriptors;
   }
 }
