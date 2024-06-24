@@ -17,17 +17,25 @@ import org.opensearch.client.Client;
 import org.opensearch.core.action.ActionListener;
 import org.opensearch.sql.legacy.esdomain.LocalClusterState;
 
+/** Handler for Point In Time */
 public class PointInTimeHandler {
   private Client client;
   private String[] indices;
   @Getter private String pitId;
   private static final Logger LOG = LogManager.getLogger();
 
+  /**
+   * Constructor for class
+   *
+   * @param client OpenSearch client
+   * @param indices list of indices
+   */
   public PointInTimeHandler(Client client, String[] indices) {
     this.client = client;
     this.indices = indices;
   }
 
+  /** Create PIT for given indices */
   public void create() {
     CreatePitRequest createPitRequest =
         new CreatePitRequest(
@@ -47,6 +55,7 @@ public class PointInTimeHandler {
         });
   }
 
+  /** Delete PIT */
   public void delete() {
     DeletePitRequest deletePitRequest = new DeletePitRequest(pitId);
     client.deletePits(
