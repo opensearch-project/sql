@@ -21,6 +21,7 @@ import static org.opensearch.sql.planner.logical.LogicalPlanDSL.aggregation;
 import static org.opensearch.sql.planner.logical.LogicalPlanDSL.eval;
 import static org.opensearch.sql.planner.logical.LogicalPlanDSL.filter;
 import static org.opensearch.sql.planner.logical.LogicalPlanDSL.limit;
+import static org.opensearch.sql.planner.logical.LogicalPlanDSL.lookup;
 import static org.opensearch.sql.planner.logical.LogicalPlanDSL.nested;
 import static org.opensearch.sql.planner.logical.LogicalPlanDSL.project;
 import static org.opensearch.sql.planner.logical.LogicalPlanDSL.rareTopN;
@@ -122,22 +123,27 @@ class DefaultImplementorTest {
             nested(
                 limit(
                     LogicalPlanDSL.dedupe(
-                        rareTopN(
-                            sort(
-                                eval(
-                                    remove(
-                                        rename(
-                                            aggregation(
-                                                filter(values(emptyList()), filterExpr),
-                                                aggregators,
-                                                groupByExprs),
-                                            mappings),
-                                        exclude),
-                                    newEvalField),
-                                sortField),
-                            CommandType.TOP,
-                            topByExprs,
-                            rareTopNField),
+                        lookup(
+                            rareTopN(
+                                sort(
+                                    eval(
+                                        remove(
+                                            rename(
+                                                aggregation(
+                                                    filter(values(emptyList()), filterExpr),
+                                                    aggregators,
+                                                    groupByExprs),
+                                                mappings),
+                                            exclude),
+                                        newEvalField),
+                                    sortField),
+                                CommandType.TOP,
+                                topByExprs,
+                                rareTopNField),
+                            "lookup_index_name",
+                            Map.of(),
+                            false,
+                            Map.of()),
                         dedupeField),
                     limit,
                     offset),
@@ -152,24 +158,30 @@ class DefaultImplementorTest {
             PhysicalPlanDSL.nested(
                 PhysicalPlanDSL.limit(
                     PhysicalPlanDSL.dedupe(
-                        PhysicalPlanDSL.rareTopN(
-                            PhysicalPlanDSL.sort(
-                                PhysicalPlanDSL.eval(
-                                    PhysicalPlanDSL.remove(
-                                        PhysicalPlanDSL.rename(
-                                            PhysicalPlanDSL.agg(
-                                                PhysicalPlanDSL.filter(
-                                                    PhysicalPlanDSL.values(emptyList()),
-                                                    filterExpr),
-                                                aggregators,
-                                                groupByExprs),
-                                            mappings),
-                                        exclude),
-                                    newEvalField),
-                                sortField),
-                            CommandType.TOP,
-                            topByExprs,
-                            rareTopNField),
+                        PhysicalPlanDSL.lookup(
+                            PhysicalPlanDSL.rareTopN(
+                                PhysicalPlanDSL.sort(
+                                    PhysicalPlanDSL.eval(
+                                        PhysicalPlanDSL.remove(
+                                            PhysicalPlanDSL.rename(
+                                                PhysicalPlanDSL.agg(
+                                                    PhysicalPlanDSL.filter(
+                                                        PhysicalPlanDSL.values(emptyList()),
+                                                        filterExpr),
+                                                    aggregators,
+                                                    groupByExprs),
+                                                mappings),
+                                            exclude),
+                                        newEvalField),
+                                    sortField),
+                                CommandType.TOP,
+                                topByExprs,
+                                rareTopNField),
+                            "lookup_index_name",
+                            Map.of(),
+                            false,
+                            Map.of(),
+                            null),
                         dedupeField),
                     limit,
                     offset),
@@ -277,5 +289,23 @@ class DefaultImplementorTest {
     var physicalPlanTree =
         new ProjectOperator(new ValuesOperator(List.of(List.of())), List.of(), List.of());
     assertEquals(physicalPlanTree, logicalPlanTree.accept(implementor, null));
+  }
+
+  @Test
+  public void visitLookup_should_build_LookupOperator() {
+    LogicalPlan values = values(List.of(DSL.literal("to be or not to be")));
+    var logicalPlan = lookup(values, "lookup_index_name", Map.of(), false, Map.of());
+    var expectedPhysicalPlan =
+        PhysicalPlanDSL.lookup(
+            new ValuesOperator(List.of(List.of(DSL.literal("to be or not to be")))),
+            "lookup_index_name",
+            Map.of(),
+            false,
+            Map.of(),
+            null);
+
+    PhysicalPlan lookupOperator = logicalPlan.accept(implementor, null);
+
+    assertEquals(expectedPhysicalPlan, lookupOperator);
   }
 }

@@ -21,6 +21,7 @@ import static org.opensearch.sql.planner.physical.PhysicalPlanDSL.dedupe;
 import static org.opensearch.sql.planner.physical.PhysicalPlanDSL.eval;
 import static org.opensearch.sql.planner.physical.PhysicalPlanDSL.filter;
 import static org.opensearch.sql.planner.physical.PhysicalPlanDSL.limit;
+import static org.opensearch.sql.planner.physical.PhysicalPlanDSL.lookup;
 import static org.opensearch.sql.planner.physical.PhysicalPlanDSL.nested;
 import static org.opensearch.sql.planner.physical.PhysicalPlanDSL.project;
 import static org.opensearch.sql.planner.physical.PhysicalPlanDSL.rareTopN;
@@ -231,6 +232,33 @@ class ExplainTest extends ExpressionTestBase {
             new ExplainResponseNode(
                 "NestedOperator",
                 Map.of("nested", Set.of("message.info", "message")),
+                singletonList(tableScan.explainNode()))),
+        explain.apply(plan));
+  }
+
+  @Test
+  void can_explain_lookup() {
+    PhysicalPlan plan =
+        lookup(
+            tableScan,
+            "lookup_index_name",
+            Map.of(ref("lookup_index_field", STRING), ref("query_index_field", STRING)),
+            true,
+            Map.of(ref("lookup_index_field_name", STRING), ref("renamed_field", STRING)),
+            null);
+    assertEquals(
+        new ExplainResponse(
+            new ExplainResponseNode(
+                "LookupOperator",
+                Map.of(
+                    "copyfields",
+                    "{lookup_index_field_name=renamed_field}",
+                    "matchfields",
+                    "{lookup_index_field=query_index_field}",
+                    "indexname",
+                    "lookup_index_name",
+                    "appendonly",
+                    true),
                 singletonList(tableScan.explainNode()))),
         explain.apply(plan));
   }

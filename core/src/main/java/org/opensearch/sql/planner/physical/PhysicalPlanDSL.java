@@ -11,6 +11,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.BiFunction;
 import lombok.experimental.UtilityClass;
 import org.apache.commons.lang3.tuple.Pair;
 import org.opensearch.sql.ast.tree.RareTopN.CommandType;
@@ -83,16 +84,10 @@ public class PhysicalPlanDSL {
       String indexName,
       Map<ReferenceExpression, ReferenceExpression> matchFieldMap,
       Boolean appendOnly,
-      Map<ReferenceExpression, ReferenceExpression> copyFieldMap) {
+      Map<ReferenceExpression, ReferenceExpression> copyFieldMap,
+      BiFunction<String, Map<String, Object>, Map<String, Object>> lookupFunction) {
     return new LookupOperator(
-        input,
-        indexName,
-        matchFieldMap,
-        appendOnly,
-        copyFieldMap,
-        (a, b) -> {
-          throw new RuntimeException("not implemented by PhysicalPlanDSL");
-        });
+        input, indexName, matchFieldMap, appendOnly, copyFieldMap, lookupFunction);
   }
 
   public WindowOperator window(
