@@ -105,7 +105,7 @@ public class DateFieldFormatter {
   private Set<String> getDateColumns(List<Schema.Column> columns) {
     return columns.stream()
         .filter(column -> column.getType().equals(Schema.Type.DATE.nameLowerCase()))
-        .map(Schema.Column::getIdentifier)
+        .map(Schema.Column::getName)
         .collect(Collectors.toSet());
   }
 
