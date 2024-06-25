@@ -13,7 +13,7 @@ import static org.opensearch.sql.data.model.ExprValueUtils.stringValue;
 import static org.opensearch.sql.data.model.ExprValueUtils.tupleValue;
 import static org.opensearch.sql.data.type.ExprCoreType.INTEGER;
 import static org.opensearch.sql.data.type.ExprCoreType.STRING;
-import static org.opensearch.sql.protocol.response.format.FlatResponseFormatter.CONTENT_TYPE;
+import static org.opensearch.sql.protocol.response.format.RawResponseFormatter.CONTENT_TYPE;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -23,7 +23,7 @@ import org.opensearch.sql.data.model.ExprTupleValue;
 import org.opensearch.sql.executor.ExecutionEngine;
 import org.opensearch.sql.protocol.response.QueryResult;
 
-/** Unit test for {@link FlatResponseFormatter}. */
+/** Unit test for {@link RawResponseFormatter}. */
 public class RawResponseFormatterTest {
 
   @Test
@@ -215,11 +215,11 @@ public class RawResponseFormatterTest {
     assertEquals(getRawFormatterPretty().contentType(), CONTENT_TYPE);
   }
 
-  private FlatResponseFormatter getRawFormatter() {
+  private RawResponseFormatter getRawFormatter() {
     return new RawResponseFormatter();
   }
 
-  private FlatResponseFormatter getRawFormatterPretty() {
+  private RawResponseFormatter getRawFormatterPretty() {
     return new RawResponseFormatter(true);
   }
 }

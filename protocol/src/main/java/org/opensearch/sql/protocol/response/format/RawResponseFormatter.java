@@ -5,19 +5,46 @@
 
 package org.opensearch.sql.protocol.response.format;
 
+import org.opensearch.sql.protocol.response.QueryResult;
+
 /** Response formatter to format response to raw format. */
-public class RawResponseFormatter extends FlatResponseFormatter {
+public class RawResponseFormatter implements ResponseFormatter<QueryResult> {
+  public static final String CONTENT_TYPE = "plain/text; charset=UTF-8";
+  private final String separator;
+  private final boolean pretty;
+
   public RawResponseFormatter() {
-    super("|", false, false);
+    this("|", false);
+  }
+
+  public RawResponseFormatter(boolean pretty) {
+    this("|", pretty);
   }
 
   /**
-   * Create a raw response formatter with pretty parameter.
+   * Create a raw response formatter with separator and pretty parameter.
    *
    * @param pretty if true, display the columns with proper padding. Tracks the maximum width for
    *     each column to ensure proper formatting.
    */
-  public RawResponseFormatter(boolean pretty) {
-    super("|", false, pretty);
+  public RawResponseFormatter(String separator, boolean pretty) {
+    this.separator = separator;
+    this.pretty = pretty;
+  }
+
+  @Override
+  public String format(QueryResult response) {
+    Prettifier prettifier = new Prettifier(response, separator, pretty);
+    return prettifier.format();
+  }
+
+  @Override
+  public String format(Throwable t) {
+    return ErrorFormatter.prettyFormat(t);
+  }
+
+  @Override
+  public String contentType() {
+    return CONTENT_TYPE;
   }
 }

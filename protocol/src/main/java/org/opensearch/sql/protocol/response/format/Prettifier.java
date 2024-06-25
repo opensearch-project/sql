@@ -1,0 +1,63 @@
+/*
+ * Copyright OpenSearch Contributors
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+package org.opensearch.sql.protocol.response.format;
+
+import java.util.List;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
+import org.opensearch.sql.protocol.response.QueryResult;
+
+public class Prettifier extends FlatResponse {
+  private final boolean pretty;
+  private int[] maxWidths;
+
+  Prettifier(QueryResult response, String inlineSeparator, boolean pretty) {
+    super(response, inlineSeparator);
+    this.pretty = pretty;
+    calculateMaxWidths();
+  }
+
+  private void calculateMaxWidths() {
+    int columns = getHeaders().size();
+    maxWidths = new int[columns];
+
+    for (int i = 0; i < columns; i++) {
+      int maxWidth = getHeaders().get(i).length();
+      for (List<String> row : getData()) {
+        maxWidth = Math.max(maxWidth, row.get(i).length());
+      }
+      maxWidths[i] = maxWidth;
+    }
+  }
+
+  @Override
+  protected List<String> getDataLines() {
+    if (pretty) {
+      return getData().stream().map(this::prettyFormatLine).collect(Collectors.toList());
+    } else {
+      return super.getDataLines();
+    }
+  }
+
+  @Override
+  protected String getHeaderLine() {
+    if (pretty) {
+      return prettyFormatLine(getHeaders());
+    } else {
+      return super.getHeaderLine();
+    }
+  }
+
+  private String prettyFormatLine(List<String> line) {
+    return IntStream.range(0, line.size())
+        .mapToObj(i -> padRight(line.get(i), maxWidths[i]))
+        .collect(Collectors.joining(separator));
+  }
+
+  private String padRight(String s, int n) {
+    return String.format("%-" + n + "s", s);
+  }
+}
