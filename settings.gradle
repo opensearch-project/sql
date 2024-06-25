@@ -9,12 +9,10 @@ rootProject.name = 'opensearch-sql'
 include 'opensearch-sql-plugin'
 project(':opensearch-sql-plugin').projectDir = file('plugin')
 include 'ppl'
-include 'integ-test'
 include 'common'
 include 'opensearch'
 include 'core'
 include 'protocol'
-include 'doctest'
 include 'legacy'
 include 'sql'
 include 'prometheus'
@@ -23,3 +21,9 @@ include 'datasources'
 include 'spark'
 include 'async-query-core'
 include 'async-query'
+
+// exclude integ-test/doctest in case of offline build since they need downloads
+if (!gradle.startParameter.offline) {
+    include 'integ-test'
+    include 'doctest'
+}

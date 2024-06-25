@@ -12,6 +12,7 @@ import org.opensearch.sql.spark.flint.FlintIndexMetadataService;
 import org.opensearch.sql.spark.flint.IndexDMLResultStorageService;
 import org.opensearch.sql.spark.flint.operation.FlintIndexOpFactory;
 import org.opensearch.sql.spark.leasemanager.LeaseManager;
+import org.opensearch.sql.spark.metrics.MetricsService;
 import org.opensearch.sql.spark.response.JobExecutionResponseReader;
 
 @RequiredArgsConstructor
@@ -24,6 +25,7 @@ public class QueryHandlerFactory {
   private final IndexDMLResultStorageService indexDMLResultStorageService;
   private final FlintIndexOpFactory flintIndexOpFactory;
   private final EMRServerlessClientFactory emrServerlessClientFactory;
+  private final MetricsService metricsService;
 
   public RefreshQueryHandler getRefreshQueryHandler() {
     return new RefreshQueryHandler(
@@ -31,21 +33,29 @@ public class QueryHandlerFactory {
         jobExecutionResponseReader,
         flintIndexMetadataService,
         leaseManager,
-        flintIndexOpFactory);
+        flintIndexOpFactory,
+        metricsService);
   }
 
   public StreamingQueryHandler getStreamingQueryHandler() {
     return new StreamingQueryHandler(
-        emrServerlessClientFactory.getClient(), jobExecutionResponseReader, leaseManager);
+        emrServerlessClientFactory.getClient(),
+        jobExecutionResponseReader,
+        leaseManager,
+        metricsService);
   }
 
   public BatchQueryHandler getBatchQueryHandler() {
     return new BatchQueryHandler(
-        emrServerlessClientFactory.getClient(), jobExecutionResponseReader, leaseManager);
+        emrServerlessClientFactory.getClient(),
+        jobExecutionResponseReader,
+        leaseManager,
+        metricsService);
   }
 
   public InteractiveQueryHandler getInteractiveQueryHandler() {
-    return new InteractiveQueryHandler(sessionManager, jobExecutionResponseReader, leaseManager);
+    return new InteractiveQueryHandler(
+        sessionManager, jobExecutionResponseReader, leaseManager, metricsService);
   }
 
   public IndexDMLHandler getIndexDMLHandler() {
