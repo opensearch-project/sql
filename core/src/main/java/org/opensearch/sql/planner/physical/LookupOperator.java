@@ -77,8 +77,6 @@ public class LookupOperator extends PhysicalPlan {
         if (val != null) {
           matchMap.put(matchField.getKey().toString(), val);
         } else {
-          // System.out.println("No value in search results for " + matchField.getValue() + "
-          // field");
           // No value in search results, so we just return the input
           return inputValue;
         }
