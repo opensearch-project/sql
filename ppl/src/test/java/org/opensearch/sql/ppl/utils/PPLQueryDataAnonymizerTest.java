@@ -91,7 +91,18 @@ public class PPLQueryDataAnonymizerTest {
 
   @Test
   public void testLookupCommand() {
-    assertEquals("source=t | lookup ", anonymize("source=t | lookup a field1, field2"));
+    assertEquals(
+        "source=t | lookup index field1 as field1,field2 as field2 appendonly=false",
+        anonymize("source=t | lookup index field1,field2"));
+    assertEquals(
+        "source=t | lookup index field1 as field1,field2 as field2 appendonly=true",
+        anonymize("source=t | lookup index field1,field2 appendonly=true"));
+    assertEquals(
+        "source=t | lookup index field1 as field12,field2 as field22 appendonly=false copyfield1 as"
+            + " copyfield1,copyfield2 as copyfield22",
+        anonymize(
+            "source=t | lookup index field1 as field12, field2 AS field22 copyfield1, copyfield2 as"
+                + " copyfield22"));
   }
 
   @Test
