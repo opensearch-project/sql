@@ -6,7 +6,6 @@
 package org.opensearch.sql.sql.domain;
 
 import java.util.Collections;
-import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
@@ -86,7 +85,7 @@ public class SQLQueryRequest {
     boolean hasQuery = query != null;
     boolean hasContent = jsonContent != null && !jsonContent.isEmpty();
 
-    Predicate<String> supportedParams = List.of(QUERY_PARAMS_FORMAT, QUERY_PARAMS_PRETTY)::contains;
+    Predicate<String> supportedParams = Set.of(QUERY_PARAMS_FORMAT, QUERY_PARAMS_PRETTY)::contains;
     boolean hasUnsupportedParams =
         (!params.isEmpty())
             && params.keySet().stream().dropWhile(supportedParams).findAny().isPresent();
