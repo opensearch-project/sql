@@ -36,6 +36,7 @@ import org.opensearch.sql.ast.tree.Dedupe;
 import org.opensearch.sql.ast.tree.Eval;
 import org.opensearch.sql.ast.tree.Filter;
 import org.opensearch.sql.ast.tree.Head;
+import org.opensearch.sql.ast.tree.Lookup;
 import org.opensearch.sql.ast.tree.Project;
 import org.opensearch.sql.ast.tree.RareTopN;
 import org.opensearch.sql.ast.tree.Relation;
@@ -213,19 +214,40 @@ public class PPLQueryDataAnonymizer extends AbstractNodeVisitor<String, String> 
         child, fields, allowedDuplication, keepEmpty, consecutive);
   }
 
-  // Todo: do we need anonymization for lookups?
-  /*
   @Override
   public String visitLookup(Lookup node, String context) {
     String child = node.getChild().get(0).accept(this, context);
-    String fields = visitFieldList(node.getFields());
+    String lookupIndexName = node.getIndexName();
+    ImmutableMap.Builder<String, String> matchMapBuilder = new ImmutableMap.Builder<>();
+    for (Map matchMap : node.getMatchFieldList()) {
+      matchMapBuilder.put(
+          visitExpression(matchMap.getOrigin()),
+          ((Field) matchMap.getTarget()).getField().toString());
+    }
+    String matches =
+        matchMapBuilder.build().entrySet().stream()
+            .map(entry -> StringUtils.format("%s as %s", entry.getKey(), entry.getValue()))
+            .collect(Collectors.joining(","));
+
+    ImmutableMap.Builder<String, String> copyMapBuilder = new ImmutableMap.Builder<>();
+    for (Map copyMap : node.getCopyFieldList()) {
+      copyMapBuilder.put(
+          visitExpression(copyMap.getOrigin()),
+          ((Field) copyMap.getTarget()).getField().toString());
+    }
+    String copies =
+        copyMapBuilder.build().entrySet().stream()
+            .map(entry -> StringUtils.format("%s as %s", entry.getKey(), entry.getValue()))
+            .collect(Collectors.joining(","));
+
     List<Argument> options = node.getOptions();
     Boolean appendonly = (Boolean) options.get(0).getValue().getValue();
 
     return StringUtils.format(
-            "%s | lookup %s %d appendonly=%b ...",
-            child, fields, appendonly);
-  }*/
+            "%s | lookup %s %s appendonly=%b %s",
+            child, lookupIndexName, matches, appendonly, copies)
+        .trim();
+  }
 
   @Override
   public String visitHead(Head node, String context) {
