@@ -15,6 +15,7 @@ import java.util.function.BiFunction;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.NonNull;
+import lombok.ToString;
 import org.opensearch.sql.data.model.ExprTupleValue;
 import org.opensearch.sql.data.model.ExprValue;
 import org.opensearch.sql.data.model.ExprValueUtils;
@@ -22,6 +23,7 @@ import org.opensearch.sql.expression.ReferenceExpression;
 
 /** Lookup operator. Perform lookup on another OpenSearch index and enrich the results. */
 @Getter
+@ToString
 @EqualsAndHashCode(callSuper = false)
 public class LookupOperator extends PhysicalPlan {
   @Getter private final PhysicalPlan input;
@@ -29,6 +31,8 @@ public class LookupOperator extends PhysicalPlan {
   @Getter private final Map<ReferenceExpression, ReferenceExpression> matchFieldMap;
   @Getter private final Map<ReferenceExpression, ReferenceExpression> copyFieldMap;
   @Getter private final Boolean appendOnly;
+
+  @EqualsAndHashCode.Exclude
   private final BiFunction<String, Map<String, Object>, Map<String, Object>> lookup;
 
   /** Lookup Constructor. */
@@ -96,37 +100,29 @@ public class LookupOperator extends PhysicalPlan {
         finalMap.put("_copy", copyMap.keySet());
       }
 
-      Map<String, Object> source = lookup.apply(indexName, finalMap);
+      Map<String, Object> lookupResult = lookup.apply(indexName, finalMap);
 
-      if (source == null || source.isEmpty()) {
+      if (lookupResult == null || lookupResult.isEmpty()) {
         // no lookup found or lookup is empty, so we just return the original input value
         return inputValue;
       }
 
-      Map<String, ExprValue> tupleValue = ExprValueUtils.getTupleValue(inputValue);
-      Map<String, ExprValue> resultBuilder = new HashMap<>();
-      resultBuilder.putAll(tupleValue);
-
-      if (appendOnly) {
-
-        for (Map.Entry<String, Object> sourceField : source.entrySet()) {
-          String u = copyMap.get(sourceField.getKey());
-          resultBuilder.putIfAbsent(
-              u == null ? sourceField.getKey() : u.toString(),
-              ExprValueUtils.fromObjectValue(sourceField.getValue()));
-        }
-      } else {
-        // default
-
-        for (Map.Entry<String, Object> sourceField : source.entrySet()) {
-          String u = copyMap.get(sourceField.getKey());
-          resultBuilder.put(
-              u == null ? sourceField.getKey() : u.toString(),
-              ExprValueUtils.fromObjectValue(sourceField.getValue()));
+      Map<String, ExprValue> tupleInputValue = ExprValueUtils.getTupleValue(inputValue);
+      Map<String, ExprValue> resultTupleBuilder = new HashMap<>();
+      resultTupleBuilder.putAll(tupleInputValue);
+      for (Map.Entry<String, Object> sourceOfAdditionalField : lookupResult.entrySet()) {
+        String lookedUpFieldName = sourceOfAdditionalField.getKey();
+        Object lookedUpFieldValue = sourceOfAdditionalField.getValue();
+        String finalFieldName = copyMap.getOrDefault(lookedUpFieldName, lookedUpFieldName);
+        ExprValue value = ExprValueUtils.fromObjectValue(lookedUpFieldValue);
+        if (appendOnly) {
+          resultTupleBuilder.putIfAbsent(finalFieldName, value);
+        } else {
+          resultTupleBuilder.put(finalFieldName, value);
         }
       }
 
-      return ExprTupleValue.fromExprValueMap(resultBuilder);
+      return ExprTupleValue.fromExprValueMap(resultTupleBuilder);
 
     } else {
       return inputValue;

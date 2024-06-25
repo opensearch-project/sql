@@ -166,8 +166,8 @@ public class Explain extends PhysicalPlanNodeVisitor<ExplainResponseNode, Object
         explainNode ->
             explainNode.setDescription(
                 ImmutableMap.of(
-                    "copyfields", node.getCopyFieldMap(),
-                    "matchfields", node.getMatchFieldMap(),
+                    "copyfields", node.getCopyFieldMap().toString(),
+                    "matchfields", node.getMatchFieldMap().toString(),
                     "indexname", node.getIndexName(),
                     "appendonly", node.getAppendOnly())));
   }
