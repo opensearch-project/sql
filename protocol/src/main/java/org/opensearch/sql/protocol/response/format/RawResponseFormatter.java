@@ -34,8 +34,13 @@ public class RawResponseFormatter implements ResponseFormatter<QueryResult> {
 
   @Override
   public String format(QueryResult response) {
-    Prettifier prettifier = new Prettifier(response, separator, pretty);
-    return prettifier.format();
+    FlatResponseBase flatResponse;
+    if (pretty) {
+      flatResponse = new FlatResponseWithPrettifier(response, separator);
+    } else {
+      flatResponse = new FlatResponseBase(response, separator);
+    }
+    return flatResponse.format();
   }
 
   @Override

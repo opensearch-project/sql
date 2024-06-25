@@ -28,8 +28,13 @@ public class CsvResponseFormatter implements ResponseFormatter<QueryResult> {
 
   @Override
   public String format(QueryResult response) {
-    Sanitizer sanitizer = new Sanitizer(response, separator, sanitize);
-    return sanitizer.format();
+    FlatResponseBase flatResponse;
+    if (sanitize) {
+      flatResponse = new FlatResponseWithSanitizer(response, separator);
+    } else {
+      flatResponse = new FlatResponseBase(response, separator);
+    }
+    return flatResponse.format();
   }
 
   @Override

@@ -14,7 +14,7 @@ import lombok.Getter;
 import org.opensearch.sql.protocol.response.QueryResult;
 
 @Getter
-public class FlatResponse {
+public class FlatResponseBase {
   protected static final String INTERLINE_SEPARATOR = System.lineSeparator();
 
   private final QueryResult response;
@@ -23,7 +23,7 @@ public class FlatResponse {
   private final List<String> headers;
   private final List<List<String>> data;
 
-  FlatResponse(QueryResult response, String separator) {
+  FlatResponseBase(QueryResult response, String separator) {
     this.response = response;
     this.separator = separator;
     this.headers = getOriginalHeaders(response);

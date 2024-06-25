@@ -10,13 +10,11 @@ import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import org.opensearch.sql.protocol.response.QueryResult;
 
-public class Prettifier extends FlatResponse {
-  private final boolean pretty;
+public class FlatResponseWithPrettifier extends FlatResponseBase {
   private int[] maxWidths;
 
-  Prettifier(QueryResult response, String inlineSeparator, boolean pretty) {
+  FlatResponseWithPrettifier(QueryResult response, String inlineSeparator) {
     super(response, inlineSeparator);
-    this.pretty = pretty;
     calculateMaxWidths();
   }
 
@@ -35,20 +33,12 @@ public class Prettifier extends FlatResponse {
 
   @Override
   protected List<String> getDataLines() {
-    if (pretty) {
-      return getData().stream().map(this::prettyFormatLine).collect(Collectors.toList());
-    } else {
-      return super.getDataLines();
-    }
+    return getData().stream().map(this::prettyFormatLine).collect(Collectors.toList());
   }
 
   @Override
   protected String getHeaderLine() {
-    if (pretty) {
-      return prettyFormatLine(getHeaders());
-    } else {
-      return super.getHeaderLine();
-    }
+    return prettyFormatLine(getHeaders());
   }
 
   private String prettyFormatLine(List<String> line) {
