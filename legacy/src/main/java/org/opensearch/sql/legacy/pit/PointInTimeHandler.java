@@ -13,6 +13,7 @@ import org.apache.logging.log4j.Logger;
 import org.opensearch.action.search.CreatePitRequest;
 import org.opensearch.action.search.CreatePitResponse;
 import org.opensearch.action.search.DeletePitRequest;
+import org.opensearch.action.search.DeletePitResponse;
 import org.opensearch.client.Client;
 import org.opensearch.core.action.ActionListener;
 import org.opensearch.sql.legacy.esdomain.LocalClusterState;
@@ -64,7 +65,7 @@ public class PointInTimeHandler implements PIT {
         deletePitRequest,
         new ActionListener<>() {
           @Override
-          public void onResponse(org.opensearch.action.search.DeletePitResponse deletePitResponse) {
+          public void onResponse(DeletePitResponse deletePitResponse) {
             LOG.debug(deletePitResponse);
           }
 
