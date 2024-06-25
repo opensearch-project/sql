@@ -43,9 +43,6 @@ public class PointInTimeHandlerTest {
 
   @Test
   public void testCreate() {
-    mockStatic(LocalClusterState.class);
-    LocalClusterState localClusterState = mock(LocalClusterState.class);
-    when(LocalClusterState.state()).thenReturn(localClusterState);
     when(LocalClusterState.state().getSettingValue(SQL_CURSOR_KEEP_ALIVE))
         .thenReturn(new TimeValue(10000));
 
