@@ -128,10 +128,14 @@ public class DataSourceMetadata {
       return this;
     }
 
-    public DataSourceMetadata build() {
+    public DataSourceMetadata validateAndBuild() {
       validateMissingAttributes();
       validateName();
       validateCustomResultIndex();
+      return build();
+    }
+
+    public DataSourceMetadata build() {
       fillNullAttributes();
       return new DataSourceMetadata(this);
     }
@@ -239,6 +243,6 @@ public class DataSourceMetadata {
         .setConnector(DataSourceType.OPENSEARCH)
         .setAllowedRoles(Collections.emptyList())
         .setProperties(ImmutableMap.of())
-        .build();
+        .validateAndBuild();
   }
 }
