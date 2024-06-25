@@ -234,7 +234,8 @@ public class CursorIT extends SQLIntegTestCase {
   }
 
   @SneakyThrows
-  protected JSONObject executeRestQuery(String query, @Nullable Integer fetch_size, Map<String, String> params) {
+  protected JSONObject executeRestQuery(
+      String query, @Nullable Integer fetch_size, Map<String, String> params) {
     Request request = new Request("POST", QUERY_API_ENDPOINT);
     if (fetch_size != null) {
       request.setJsonEntity(
