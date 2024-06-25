@@ -42,9 +42,11 @@ import org.opensearch.sql.spark.execution.xcontent.AsyncQueryJobMetadataXContent
 import org.opensearch.sql.spark.execution.xcontent.FlintIndexStateModelXContentSerializer;
 import org.opensearch.sql.spark.execution.xcontent.SessionModelXContentSerializer;
 import org.opensearch.sql.spark.execution.xcontent.StatementModelXContentSerializer;
+import org.opensearch.sql.spark.flint.FlintIndexClient;
 import org.opensearch.sql.spark.flint.FlintIndexMetadataServiceImpl;
 import org.opensearch.sql.spark.flint.FlintIndexStateModelService;
 import org.opensearch.sql.spark.flint.IndexDMLResultStorageService;
+import org.opensearch.sql.spark.flint.OpenSearchFlintIndexClient;
 import org.opensearch.sql.spark.flint.OpenSearchFlintIndexStateModelService;
 import org.opensearch.sql.spark.flint.OpenSearchIndexDMLResultStorageService;
 import org.opensearch.sql.spark.flint.operation.FlintIndexOpFactory;
@@ -124,11 +126,19 @@ public class AsyncExecutorServiceModule extends AbstractModule {
   @Provides
   public FlintIndexOpFactory flintIndexOpFactory(
       FlintIndexStateModelService flintIndexStateModelService,
-      NodeClient client,
+      FlintIndexClient flintIndexClient,
       FlintIndexMetadataServiceImpl flintIndexMetadataService,
       EMRServerlessClientFactory emrServerlessClientFactory) {
     return new FlintIndexOpFactory(
-        flintIndexStateModelService, client, flintIndexMetadataService, emrServerlessClientFactory);
+        flintIndexStateModelService,
+        flintIndexClient,
+        flintIndexMetadataService,
+        emrServerlessClientFactory);
+  }
+
+  @Provides
+  public FlintIndexClient flintIndexClient(NodeClient nodeClient) {
+    return new OpenSearchFlintIndexClient(nodeClient);
   }
 
   @Provides
