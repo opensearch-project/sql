@@ -35,16 +35,13 @@ import org.opensearch.sql.legacy.query.maker.QueryMaker;
 /** Created by Eliran on 22/8/2015. */
 public class HashJoinElasticExecutor extends ElasticJoinExecutor {
   private HashJoinElasticRequestBuilder requestBuilder;
-
-  private Client client;
   private boolean useQueryTermsFilterOptimization = false;
   private final int MAX_RESULTS_FOR_FIRST_TABLE = 100000;
   HashJoinComparisonStructure hashJoinComparisonStructure;
   private Set<String> alreadyMatched;
 
   public HashJoinElasticExecutor(Client client, HashJoinElasticRequestBuilder requestBuilder) {
-    super(requestBuilder);
-    this.client = client;
+    super(client, requestBuilder);
     this.requestBuilder = requestBuilder;
     this.useQueryTermsFilterOptimization = requestBuilder.isUseTermFiltersOptimization();
     this.hashJoinComparisonStructure =
@@ -53,9 +50,6 @@ public class HashJoinElasticExecutor extends ElasticJoinExecutor {
   }
 
   public List<SearchHit> innerRun() throws IOException, SqlParseException {
-    createPointInTimeHandler(client, requestBuilder);
-    pit.create();
-
     Map<String, Map<String, List<Object>>> optimizationTermsFilterStructure =
         initOptimizationStructure();
 
@@ -128,11 +122,10 @@ public class HashJoinElasticExecutor extends ElasticJoinExecutor {
     boolean finishedScrolling;
 
     if (hintLimit != null && hintLimit < MAX_RESULTS_ON_ONE_FETCH) {
-      searchResponse = getResponseWithHits(client, secondTableRequest, hintLimit, null);
+      searchResponse = getResponseWithHits(secondTableRequest, hintLimit, null);
       finishedScrolling = true;
     } else {
-      searchResponse =
-          getResponseWithHits(client, secondTableRequest, MAX_RESULTS_ON_ONE_FETCH, null);
+      searchResponse = getResponseWithHits(secondTableRequest, MAX_RESULTS_ON_ONE_FETCH, null);
       // es5.0 no need to scroll again!
       //            searchResponse = client.prepareSearchScroll(searchResponse.getScrollId())
       //            .setScroll(new TimeValue(600000)).get();
@@ -213,8 +206,7 @@ public class HashJoinElasticExecutor extends ElasticJoinExecutor {
         if (secondTableHits.length > 0
             && (hintLimit == null || fetchedSoFarFromSecondTable >= hintLimit)) {
           searchResponse =
-              getResponseWithHits(
-                  client, secondTableRequest, MAX_RESULTS_ON_ONE_FETCH, searchResponse);
+              getResponseWithHits(secondTableRequest, MAX_RESULTS_ON_ONE_FETCH, searchResponse);
         } else {
           break;
         }
@@ -289,7 +281,7 @@ public class HashJoinElasticExecutor extends ElasticJoinExecutor {
   private List<SearchHit> scrollTillLimit(
       TableInJoinRequestBuilder tableInJoinRequest, Integer hintLimit) {
     SearchResponse response =
-        getResponseWithHits(client, tableInJoinRequest, MAX_RESULTS_ON_ONE_FETCH, null);
+        getResponseWithHits(tableInJoinRequest, MAX_RESULTS_ON_ONE_FETCH, null);
 
     updateMetaSearchResults(response);
     List<SearchHit> hitsWithScan = new ArrayList<>();
@@ -308,8 +300,7 @@ public class HashJoinElasticExecutor extends ElasticJoinExecutor {
         System.out.println("too many results for first table, stoping at:" + curentNumOfResults);
         break;
       }
-      response =
-          getResponseWithHits(client, tableInJoinRequest, MAX_RESULTS_FOR_FIRST_TABLE, response);
+      response = getResponseWithHits(tableInJoinRequest, MAX_RESULTS_FOR_FIRST_TABLE, response);
       hits = response.getHits().getHits();
     }
     return hitsWithScan;

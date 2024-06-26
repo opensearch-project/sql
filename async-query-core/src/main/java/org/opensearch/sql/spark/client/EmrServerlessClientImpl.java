@@ -7,6 +7,9 @@ package org.opensearch.sql.spark.client;
 
 import static org.opensearch.sql.datasource.model.DataSourceMetadata.DEFAULT_RESULT_INDEX;
 import static org.opensearch.sql.spark.data.constants.SparkConstants.SPARK_SQL_APPLICATION_JAR;
+import static org.opensearch.sql.spark.metrics.EmrMetrics.EMR_CANCEL_JOB_REQUEST_FAILURE_COUNT;
+import static org.opensearch.sql.spark.metrics.EmrMetrics.EMR_GET_JOB_RESULT_FAILURE_COUNT;
+import static org.opensearch.sql.spark.metrics.EmrMetrics.EMR_START_JOB_REQUEST_FAILURE_COUNT;
 
 import com.amazonaws.services.emrserverless.AWSEMRServerless;
 import com.amazonaws.services.emrserverless.model.CancelJobRunRequest;
@@ -20,24 +23,22 @@ import com.amazonaws.services.emrserverless.model.StartJobRunResult;
 import com.amazonaws.services.emrserverless.model.ValidationException;
 import java.security.AccessController;
 import java.security.PrivilegedAction;
+import lombok.RequiredArgsConstructor;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.opensearch.sql.legacy.metrics.MetricName;
-import org.opensearch.sql.legacy.utils.MetricUtils;
+import org.opensearch.sql.spark.metrics.MetricsService;
 
+@RequiredArgsConstructor
 public class EmrServerlessClientImpl implements EMRServerlessClient {
 
   private final AWSEMRServerless emrServerless;
+  private final MetricsService metricsService;
   private static final Logger logger = LogManager.getLogger(EmrServerlessClientImpl.class);
 
   private static final int MAX_JOB_NAME_LENGTH = 255;
 
   public static final String GENERIC_INTERNAL_SERVER_ERROR_MESSAGE = "Internal Server Error.";
-
-  public EmrServerlessClientImpl(AWSEMRServerless emrServerless) {
-    this.emrServerless = emrServerless;
-  }
 
   @Override
   public String startJobRun(StartJobRequest startJobRequest) {
@@ -68,8 +69,7 @@ public class EmrServerlessClientImpl implements EMRServerlessClient {
                     return emrServerless.startJobRun(request);
                   } catch (Throwable t) {
                     logger.error("Error while making start job request to emr:", t);
-                    MetricUtils.incrementNumericalMetric(
-                        MetricName.EMR_START_JOB_REQUEST_FAILURE_COUNT);
+                    metricsService.incrementNumericalMetric(EMR_START_JOB_REQUEST_FAILURE_COUNT);
                     if (t instanceof ValidationException) {
                       throw new IllegalArgumentException(
                           "The input fails to satisfy the constraints specified by AWS EMR"
@@ -94,8 +94,7 @@ public class EmrServerlessClientImpl implements EMRServerlessClient {
                     return emrServerless.getJobRun(request);
                   } catch (Throwable t) {
                     logger.error("Error while making get job run request to emr:", t);
-                    MetricUtils.incrementNumericalMetric(
-                        MetricName.EMR_GET_JOB_RESULT_FAILURE_COUNT);
+                    metricsService.incrementNumericalMetric(EMR_GET_JOB_RESULT_FAILURE_COUNT);
                     throw new RuntimeException(GENERIC_INTERNAL_SERVER_ERROR_MESSAGE);
                   }
                 });
@@ -119,8 +118,7 @@ public class EmrServerlessClientImpl implements EMRServerlessClient {
                       throw t;
                     } else {
                       logger.error("Error while making cancel job request to emr:", t);
-                      MetricUtils.incrementNumericalMetric(
-                          MetricName.EMR_CANCEL_JOB_REQUEST_FAILURE_COUNT);
+                      metricsService.incrementNumericalMetric(EMR_CANCEL_JOB_REQUEST_FAILURE_COUNT);
                       throw new RuntimeException(GENERIC_INTERNAL_SERVER_ERROR_MESSAGE);
                     }
                   }

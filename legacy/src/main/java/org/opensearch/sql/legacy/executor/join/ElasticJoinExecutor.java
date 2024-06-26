@@ -15,6 +15,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Stream;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.lucene.search.TotalHits;
@@ -39,6 +40,7 @@ import org.opensearch.sql.legacy.esdomain.LocalClusterState;
 import org.opensearch.sql.legacy.exception.SqlParseException;
 import org.opensearch.sql.legacy.executor.ElasticHitsExecutor;
 import org.opensearch.sql.legacy.pit.PointInTimeHandler;
+import org.opensearch.sql.legacy.pit.PointInTimeHandlerImpl;
 import org.opensearch.sql.legacy.query.SqlElasticRequestBuilder;
 import org.opensearch.sql.legacy.query.join.HashJoinElasticRequestBuilder;
 import org.opensearch.sql.legacy.query.join.JoinRequestBuilder;
@@ -55,9 +57,11 @@ public abstract class ElasticJoinExecutor implements ElasticHitsExecutor {
   protected final int MAX_RESULTS_ON_ONE_FETCH = 10000;
   private Set<String> aliasesOnReturn;
   private boolean allFieldsReturn;
+  protected Client client;
+  protected String[] indices;
   protected PointInTimeHandler pit;
 
-  protected ElasticJoinExecutor(JoinRequestBuilder requestBuilder) {
+  protected ElasticJoinExecutor(Client client, JoinRequestBuilder requestBuilder) {
     metaResults = new MetaSearchResult();
     aliasesOnReturn = new HashSet<>();
     List<Field> firstTableReturnedField = requestBuilder.getFirstTable().getReturnedFields();
@@ -65,6 +69,8 @@ public abstract class ElasticJoinExecutor implements ElasticHitsExecutor {
     allFieldsReturn =
         (firstTableReturnedField == null || firstTableReturnedField.size() == 0)
             && (secondTableReturnedField == null || secondTableReturnedField.size() == 0);
+    indices = getIndices(requestBuilder);
+    this.client = client;
   }
 
   public void sendResponse(RestChannel channel) throws IOException {
@@ -92,10 +98,22 @@ public abstract class ElasticJoinExecutor implements ElasticHitsExecutor {
   }
 
   public void run() throws IOException, SqlParseException {
-    long timeBefore = System.currentTimeMillis();
-    results = innerRun();
-    long joinTimeInMilli = System.currentTimeMillis() - timeBefore;
-    this.metaResults.setTookImMilli(joinTimeInMilli);
+    try {
+      long timeBefore = System.currentTimeMillis();
+      if (LocalClusterState.state().getSettingValue(SQL_PAGINATION_API_SEARCH_AFTER)) {
+        pit = new PointInTimeHandlerImpl(client, indices);
+        pit.create();
+      }
+      results = innerRun();
+      long joinTimeInMilli = System.currentTimeMillis() - timeBefore;
+      this.metaResults.setTookImMilli(joinTimeInMilli);
+    } catch (Exception e) {
+      LOG.error("Failed during join query run.", e);
+    } finally {
+      if (LocalClusterState.state().getSettingValue(SQL_PAGINATION_API_SEARCH_AFTER)) {
+        pit.delete();
+      }
+    }
   }
 
   protected abstract List<SearchHit> innerRun() throws IOException, SqlParseException;
@@ -110,7 +128,7 @@ public abstract class ElasticJoinExecutor implements ElasticHitsExecutor {
   public static ElasticJoinExecutor createJoinExecutor(
       Client client, SqlElasticRequestBuilder requestBuilder) {
     if (requestBuilder instanceof HashJoinQueryPlanRequestBuilder) {
-      return new QueryPlanElasticExecutor((HashJoinQueryPlanRequestBuilder) requestBuilder);
+      return new QueryPlanElasticExecutor(client, (HashJoinQueryPlanRequestBuilder) requestBuilder);
     } else if (requestBuilder instanceof HashJoinElasticRequestBuilder) {
       HashJoinElasticRequestBuilder hashJoin = (HashJoinElasticRequestBuilder) requestBuilder;
       return new HashJoinElasticExecutor(client, hashJoin);
@@ -264,10 +282,7 @@ public abstract class ElasticJoinExecutor implements ElasticHitsExecutor {
   }
 
   public SearchResponse getResponseWithHits(
-      Client client,
-      TableInJoinRequestBuilder tableRequest,
-      int size,
-      SearchResponse previousResponse) {
+      TableInJoinRequestBuilder tableRequest, int size, SearchResponse previousResponse) {
     // Set Size
     SearchRequestBuilder request = tableRequest.getRequestBuilder().setSize(size);
     SearchResponse responseWithHits;
@@ -302,11 +317,11 @@ public abstract class ElasticJoinExecutor implements ElasticHitsExecutor {
     return responseWithHits;
   }
 
-  public void createPointInTimeHandler(Client client, JoinRequestBuilder requestBuilder) {
-    String[] indices =
-        org.opensearch.common.util.ArrayUtils.concat(
-            requestBuilder.getFirstTable().getOriginalSelect().getIndexArr(),
-            requestBuilder.getSecondTable().getOriginalSelect().getIndexArr());
-    pit = new PointInTimeHandler(client, indices);
+  public String[] getIndices(JoinRequestBuilder joinRequestBuilder) {
+    return Stream.concat(
+            Stream.of(joinRequestBuilder.getFirstTable().getOriginalSelect().getIndexArr()),
+            Stream.of(joinRequestBuilder.getSecondTable().getOriginalSelect().getIndexArr()))
+        .distinct()
+        .toArray(String[]::new);
   }
 }

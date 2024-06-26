@@ -40,6 +40,7 @@ import org.opensearch.sql.legacy.esdomain.LocalClusterState;
 import org.opensearch.sql.legacy.exception.SqlParseException;
 import org.opensearch.sql.legacy.executor.ElasticHitsExecutor;
 import org.opensearch.sql.legacy.pit.PointInTimeHandler;
+import org.opensearch.sql.legacy.pit.PointInTimeHandlerImpl;
 import org.opensearch.sql.legacy.query.DefaultQueryAction;
 import org.opensearch.sql.legacy.query.multi.MultiQueryRequestBuilder;
 import org.opensearch.sql.legacy.utils.Util;
@@ -77,7 +78,7 @@ public class MinusExecutor implements ElasticHitsExecutor {
         ArrayUtils.concat(
             builder.getOriginalSelect(true).getIndexArr(),
             builder.getOriginalSelect(false).getIndexArr());
-    pit = new PointInTimeHandler(client, indices);
+    pit = new PointInTimeHandlerImpl(client, indices);
     pit.create();
 
     if (this.useTermsOptimization && this.fieldsOrderFirstTable.length != 1) {

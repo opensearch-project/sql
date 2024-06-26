@@ -38,18 +38,14 @@ public class NestedLoopsElasticExecutor extends ElasticJoinExecutor {
   private static final Logger LOG = LogManager.getLogger();
 
   private final NestedLoopsElasticRequestBuilder nestedLoopsRequest;
-  private final Client client;
 
   public NestedLoopsElasticExecutor(Client client, NestedLoopsElasticRequestBuilder nestedLoops) {
-    super(nestedLoops);
-    this.client = client;
+    super(client, nestedLoops);
     this.nestedLoopsRequest = nestedLoops;
   }
 
   @Override
   protected List<SearchHit> innerRun() throws SqlParseException {
-    createPointInTimeHandler(client, nestedLoopsRequest);
-    pit.create();
     List<SearchHit> combinedResults = new ArrayList<>();
     int totalLimit = nestedLoopsRequest.getTotalLimit();
     int multiSearchMaxSize = nestedLoopsRequest.getMultiSearchMaxSize();
@@ -112,15 +108,22 @@ public class NestedLoopsElasticExecutor extends ElasticJoinExecutor {
           if (!BackOffRetryStrategy.isHealthy()) {
             throw new IllegalStateException("Memory circuit is broken");
           }
+          /* Fetching next result page.
+            Using scroll api - only scrollId from previous response is required for scroll request.
+            Using pit with search_after - we need to recreate search request along with pitId and
+            sort fields from previous response.
+            Here we are finding required size for recreating search request with pit and search after.
+            Conditions for size are similar as firstFetch().
+            In case of scroll, this size will be ignored and size from first request will be used.
+          */
           Integer hintLimit = nestedLoopsRequest.getFirstTable().getHintLimit();
           if (hintLimit != null && hintLimit < MAX_RESULTS_ON_ONE_FETCH) {
             firstTableResponse =
                 getResponseWithHits(
-                    client, nestedLoopsRequest.getFirstTable(), hintLimit, firstTableResponse);
+                    nestedLoopsRequest.getFirstTable(), hintLimit, firstTableResponse);
           } else {
             firstTableResponse =
                 getResponseWithHits(
-                    client,
                     nestedLoopsRequest.getFirstTable(),
                     MAX_RESULTS_ON_ONE_FETCH,
                     firstTableResponse);
@@ -301,7 +304,7 @@ public class NestedLoopsElasticExecutor extends ElasticJoinExecutor {
       needScrollForFirstTable = false;
     } else {
       // scroll request with max.
-      responseWithHits = getResponseWithHits(client, tableRequest, MAX_RESULTS_ON_ONE_FETCH, null);
+      responseWithHits = getResponseWithHits(tableRequest, MAX_RESULTS_ON_ONE_FETCH, null);
       if (responseWithHits.getHits().getTotalHits() != null
           && responseWithHits.getHits().getTotalHits().value < MAX_RESULTS_ON_ONE_FETCH) {
         needScrollForFirstTable = true;

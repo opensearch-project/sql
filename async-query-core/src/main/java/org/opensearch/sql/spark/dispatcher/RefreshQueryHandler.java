@@ -19,6 +19,7 @@ import org.opensearch.sql.spark.flint.operation.FlintIndexOp;
 import org.opensearch.sql.spark.flint.operation.FlintIndexOpFactory;
 import org.opensearch.sql.spark.leasemanager.LeaseManager;
 import org.opensearch.sql.spark.leasemanager.model.LeaseRequest;
+import org.opensearch.sql.spark.metrics.MetricsService;
 import org.opensearch.sql.spark.response.JobExecutionResponseReader;
 
 /**
@@ -35,8 +36,9 @@ public class RefreshQueryHandler extends BatchQueryHandler {
       JobExecutionResponseReader jobExecutionResponseReader,
       FlintIndexMetadataService flintIndexMetadataService,
       LeaseManager leaseManager,
-      FlintIndexOpFactory flintIndexOpFactory) {
-    super(emrServerlessClient, jobExecutionResponseReader, leaseManager);
+      FlintIndexOpFactory flintIndexOpFactory,
+      MetricsService metricsService) {
+    super(emrServerlessClient, jobExecutionResponseReader, leaseManager, metricsService);
     this.flintIndexMetadataService = flintIndexMetadataService;
     this.flintIndexOpFactory = flintIndexOpFactory;
   }
