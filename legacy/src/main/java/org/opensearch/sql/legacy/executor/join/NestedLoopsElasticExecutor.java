@@ -133,7 +133,6 @@ public class NestedLoopsElasticExecutor extends ElasticJoinExecutor {
         }
       }
     }
-    pit.delete();
     return combinedResults;
   }
 

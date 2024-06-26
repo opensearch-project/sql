@@ -91,7 +91,6 @@ public class HashJoinElasticExecutor extends ElasticJoinExecutor {
             }
           });
     }
-    pit.delete();
     return combinedResult;
   }
 
