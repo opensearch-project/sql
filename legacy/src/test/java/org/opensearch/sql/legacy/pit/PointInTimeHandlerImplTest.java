@@ -25,6 +25,7 @@ import org.opensearch.action.search.DeletePitResponse;
 import org.opensearch.client.Client;
 import org.opensearch.common.unit.TimeValue;
 import org.opensearch.core.action.ActionListener;
+import org.opensearch.core.rest.RestStatus;
 import org.opensearch.sql.legacy.esdomain.LocalClusterState;
 
 public class PointInTimeHandlerImplTest {
@@ -33,6 +34,7 @@ public class PointInTimeHandlerImplTest {
   private String[] indices = {"index1", "index2"};
   private PointInTimeHandlerImpl pointInTimeHandlerImpl;
   @Captor private ArgumentCaptor<ActionListener<DeletePitResponse>> listenerCaptor;
+  private final String PIT_ID = "testId";
 
   @Before
   public void setUp() {
@@ -46,7 +48,7 @@ public class PointInTimeHandlerImplTest {
         .thenReturn(new TimeValue(10000));
 
     CreatePitResponse mockCreatePitResponse = mock(CreatePitResponse.class);
-    when(mockCreatePitResponse.getId()).thenReturn("testId");
+    when(mockCreatePitResponse.getId()).thenReturn(PIT_ID);
 
     CompletableFuture<CreatePitResponse> completableFuture =
         CompletableFuture.completedFuture(mockCreatePitResponse);
@@ -62,12 +64,16 @@ public class PointInTimeHandlerImplTest {
 
     pointInTimeHandlerImpl.create();
 
-    assertEquals("testId", pointInTimeHandlerImpl.getPitId());
+    assertEquals(PIT_ID, pointInTimeHandlerImpl.getPitId());
   }
 
   @Test
   public void testDelete() {
     DeletePitResponse mockedResponse = mock(DeletePitResponse.class);
+    RestStatus mockRestStatus = mock(RestStatus.class);
+    when(mockedResponse.status()).thenReturn(mockRestStatus);
+    when(mockedResponse.status().getStatus()).thenReturn(200);
+    pointInTimeHandlerImpl.setPitId(PIT_ID);
     pointInTimeHandlerImpl.delete();
     verify(mockClient).deletePits(any(), listenerCaptor.capture());
     listenerCaptor.getValue().onResponse(mockedResponse);

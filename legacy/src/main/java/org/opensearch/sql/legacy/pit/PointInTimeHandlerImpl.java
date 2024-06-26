@@ -8,6 +8,7 @@ package org.opensearch.sql.legacy.pit;
 import static org.opensearch.sql.common.setting.Settings.Key.SQL_CURSOR_KEEP_ALIVE;
 
 import lombok.Getter;
+import lombok.Setter;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.action.search.CreatePitRequest;
@@ -22,7 +23,7 @@ import org.opensearch.sql.legacy.esdomain.LocalClusterState;
 public class PointInTimeHandlerImpl implements PointInTimeHandler {
   private Client client;
   private String[] indices;
-  @Getter private String pitId;
+  @Getter @Setter private String pitId;
   private static final Logger LOG = LogManager.getLogger();
 
   /**
