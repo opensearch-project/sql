@@ -27,17 +27,17 @@ import org.opensearch.common.unit.TimeValue;
 import org.opensearch.core.action.ActionListener;
 import org.opensearch.sql.legacy.esdomain.LocalClusterState;
 
-public class PointInTimeHandlerTest {
+public class PointInTimeHandlerImplTest {
 
   @Mock private Client mockClient;
   private String[] indices = {"index1", "index2"};
-  private PointInTimeHandler pointInTimeHandler;
+  private PointInTimeHandlerImpl pointInTimeHandlerImpl;
   @Captor private ArgumentCaptor<ActionListener<DeletePitResponse>> listenerCaptor;
 
   @Before
   public void setUp() {
     MockitoAnnotations.initMocks(this);
-    pointInTimeHandler = new PointInTimeHandler(mockClient, indices);
+    pointInTimeHandlerImpl = new PointInTimeHandlerImpl(mockClient, indices);
   }
 
   @Test
@@ -60,15 +60,15 @@ public class PointInTimeHandlerTest {
         .when(mockClient)
         .createPit(any(), any());
 
-    pointInTimeHandler.create();
+    pointInTimeHandlerImpl.create();
 
-    assertEquals("testId", pointInTimeHandler.getPitId());
+    assertEquals("testId", pointInTimeHandlerImpl.getPitId());
   }
 
   @Test
   public void testDelete() {
     DeletePitResponse mockedResponse = mock(DeletePitResponse.class);
-    pointInTimeHandler.delete();
+    pointInTimeHandlerImpl.delete();
     verify(mockClient).deletePits(any(), listenerCaptor.capture());
     listenerCaptor.getValue().onResponse(mockedResponse);
   }
