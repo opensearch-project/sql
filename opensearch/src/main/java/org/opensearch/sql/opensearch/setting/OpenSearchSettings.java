@@ -70,6 +70,13 @@ public class OpenSearchSettings extends Settings {
           Setting.Property.NodeScope,
           Setting.Property.Dynamic);
 
+  public static final Setting<?> SQL_PAGINATION_API_SEARCH_AFTER_SETTING =
+      Setting.boolSetting(
+          Key.SQL_PAGINATION_API_SEARCH_AFTER.getKeyValue(),
+          true,
+          Setting.Property.NodeScope,
+          Setting.Property.Dynamic);
+
   public static final Setting<?> PPL_ENABLED_SETTING =
       Setting.boolSetting(
           Key.PPL_ENABLED.getKeyValue(),
@@ -232,6 +239,12 @@ public class OpenSearchSettings extends Settings {
     register(
         settingBuilder,
         clusterSettings,
+        Key.SQL_PAGINATION_API_SEARCH_AFTER,
+        SQL_PAGINATION_API_SEARCH_AFTER_SETTING,
+        new Updater(Key.SQL_PAGINATION_API_SEARCH_AFTER));
+    register(
+        settingBuilder,
+        clusterSettings,
         Key.PPL_ENABLED,
         PPL_ENABLED_SETTING,
         new Updater(Key.PPL_ENABLED));
@@ -383,6 +396,7 @@ public class OpenSearchSettings extends Settings {
         .add(SQL_SLOWLOG_SETTING)
         .add(SQL_CURSOR_KEEP_ALIVE_SETTING)
         .add(SQL_DELETE_ENABLED_SETTING)
+        .add(SQL_PAGINATION_API_SEARCH_AFTER_SETTING)
         .add(PPL_ENABLED_SETTING)
         .add(QUERY_MEMORY_LIMIT_SETTING)
         .add(QUERY_SIZE_LIMIT_SETTING)
