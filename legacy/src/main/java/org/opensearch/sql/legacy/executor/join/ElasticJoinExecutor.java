@@ -5,7 +5,6 @@
 
 package org.opensearch.sql.legacy.executor.join;
 
-import static org.opensearch.sql.common.setting.Settings.Key.SQL_CURSOR_KEEP_ALIVE;
 import static org.opensearch.sql.common.setting.Settings.Key.SQL_PAGINATION_API_SEARCH_AFTER;
 
 import java.io.IOException;
@@ -20,11 +19,9 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.lucene.search.TotalHits;
 import org.apache.lucene.search.TotalHits.Relation;
-import org.opensearch.action.search.SearchRequestBuilder;
 import org.opensearch.action.search.SearchResponse;
 import org.opensearch.client.Client;
 import org.opensearch.common.document.DocumentField;
-import org.opensearch.common.unit.TimeValue;
 import org.opensearch.core.rest.RestStatus;
 import org.opensearch.core.xcontent.XContentBuilder;
 import org.opensearch.index.mapper.MapperService;
@@ -32,9 +29,6 @@ import org.opensearch.rest.BytesRestResponse;
 import org.opensearch.rest.RestChannel;
 import org.opensearch.search.SearchHit;
 import org.opensearch.search.SearchHits;
-import org.opensearch.search.builder.PointInTimeBuilder;
-import org.opensearch.search.sort.FieldSortBuilder;
-import org.opensearch.search.sort.SortOrder;
 import org.opensearch.sql.legacy.domain.Field;
 import org.opensearch.sql.legacy.esdomain.LocalClusterState;
 import org.opensearch.sql.legacy.exception.SqlParseException;
@@ -283,38 +277,14 @@ public abstract class ElasticJoinExecutor implements ElasticHitsExecutor {
 
   public SearchResponse getResponseWithHits(
       TableInJoinRequestBuilder tableRequest, int size, SearchResponse previousResponse) {
-    // Set Size
-    SearchRequestBuilder request = tableRequest.getRequestBuilder().setSize(size);
-    SearchResponse responseWithHits;
-    if (LocalClusterState.state().getSettingValue(SQL_PAGINATION_API_SEARCH_AFTER)) {
-      // Set sort field for search_after
-      boolean ordered = tableRequest.getOriginalSelect().isOrderdSelect();
-      if (!ordered) {
-        request.addSort(FieldSortBuilder.DOC_FIELD_NAME, SortOrder.ASC);
-      }
-      // Set PIT
-      request.setPointInTime(new PointInTimeBuilder(pit.getPitId()));
-      if (previousResponse != null) {
-        request.searchAfter(previousResponse.getHits().getSortFields());
-      }
-      responseWithHits = request.get();
-    } else {
-      // Set scroll
-      TimeValue keepAlive = LocalClusterState.state().getSettingValue(SQL_CURSOR_KEEP_ALIVE);
-      if (previousResponse != null) {
-        responseWithHits =
-            client
-                .prepareSearchScroll(previousResponse.getScrollId())
-                .setScroll(keepAlive)
-                .execute()
-                .actionGet();
-      } else {
-        request.setScroll(keepAlive);
-        responseWithHits = request.get();
-      }
-    }
 
-    return responseWithHits;
+    return ElasticUtils.getResponseWithHits(
+        client,
+        tableRequest.getRequestBuilder(),
+        tableRequest.getOriginalSelect(),
+        size,
+        previousResponse,
+        pit.getPitId());
   }
 
   public String[] getIndices(JoinRequestBuilder joinRequestBuilder) {
