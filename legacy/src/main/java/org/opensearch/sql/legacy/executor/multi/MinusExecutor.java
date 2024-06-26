@@ -5,6 +5,8 @@
 
 package org.opensearch.sql.legacy.executor.multi;
 
+import static org.opensearch.sql.common.setting.Settings.Key.SQL_PAGINATION_API_SEARCH_AFTER;
+
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -13,6 +15,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.apache.lucene.search.TotalHits;
 import org.apache.lucene.search.TotalHits.Relation;
 import org.opensearch.action.search.SearchResponse;
@@ -28,6 +32,7 @@ import org.opensearch.sql.legacy.domain.Select;
 import org.opensearch.sql.legacy.domain.Where;
 import org.opensearch.sql.legacy.domain.hints.Hint;
 import org.opensearch.sql.legacy.domain.hints.HintType;
+import org.opensearch.sql.legacy.esdomain.LocalClusterState;
 import org.opensearch.sql.legacy.exception.SqlParseException;
 import org.opensearch.sql.legacy.executor.ElasticHitsExecutor;
 import org.opensearch.sql.legacy.executor.join.ElasticUtils;
@@ -39,6 +44,7 @@ import org.opensearch.sql.legacy.utils.Util;
 
 /** Created by Eliran on 26/8/2016. */
 public class MinusExecutor implements ElasticHitsExecutor {
+  private static final Logger LOG = LogManager.getLogger();
   private Client client;
   private MultiQueryRequestBuilder builder;
   private SearchHits minusHits;
@@ -66,54 +72,64 @@ public class MinusExecutor implements ElasticHitsExecutor {
 
   @Override
   public void run() throws SqlParseException {
-    String[] indices =
-        ArrayUtils.concat(
-            builder.getOriginalSelect(true).getIndexArr(),
-            builder.getOriginalSelect(false).getIndexArr());
-    pit = new PointInTimeHandlerImpl(client, indices);
-    pit.create();
-
-    if (this.useTermsOptimization && this.fieldsOrderFirstTable.length != 1) {
-      throw new SqlParseException(
-          "Terms optimization failed: terms optimization for minus execution is supported with one"
-              + " field");
-    }
-    if (this.useTermsOptimization && !this.useScrolling) {
-      throw new SqlParseException(
-          "Terms optimization failed: using scrolling is required for terms optimization");
-    }
-    if (!this.useScrolling || !this.useTermsOptimization) {
-      Set<ComperableHitResult> comperableHitResults;
-      if (!this.useScrolling) {
-        // 1. get results from first search , put in set
-        // 2. get reults from second search
-        // 2.1 for each result remove from set
-        comperableHitResults = simpleOneTimeQueryEach();
-      } else {
-        // if scrolling
-        // 1. get all results in scrolls (till some limit) . put on set
-        // 2. scroll on second table
-        // 3. on each scroll result remove items from set
-        comperableHitResults = runWithScrollings();
+    try {
+      if (LocalClusterState.state().getSettingValue(SQL_PAGINATION_API_SEARCH_AFTER)) {
+        pit =
+            new PointInTimeHandlerImpl(
+                client,
+                ArrayUtils.concat(
+                    builder.getOriginalSelect(true).getIndexArr(),
+                    builder.getOriginalSelect(false).getIndexArr()));
+        pit.create();
       }
-      fillMinusHitsFromResults(comperableHitResults);
-      return;
-    } else {
-      // if scrolling and optimization
-      // 0. save the original second table where , init set
-      // 1. on each scroll on first table , create miniSet
-      // 1.1 build where from all results (terms filter) , and run query
-      // 1.1.1 on each result remove from miniSet
-      // 1.1.2 add all results left from miniset to bigset
-      Select firstSelect = this.builder.getOriginalSelect(true);
-      MinusOneFieldAndOptimizationResult optimizationResult =
-          runWithScrollingAndAddFilter(fieldsOrderFirstTable[0], fieldsOrderSecondTable[0]);
-      String fieldName = getFieldName(firstSelect.getFields().get(0));
-      Set<Object> results = optimizationResult.getFieldValues();
-      SearchHit someHit = optimizationResult.getSomeHit();
-      fillMinusHitsFromOneField(fieldName, results, someHit);
+
+      if (this.useTermsOptimization && this.fieldsOrderFirstTable.length != 1) {
+        throw new SqlParseException(
+            "Terms optimization failed: terms optimization for minus execution is supported with"
+                + " one field");
+      }
+      if (this.useTermsOptimization && !this.useScrolling) {
+        throw new SqlParseException(
+            "Terms optimization failed: using scrolling is required for terms optimization");
+      }
+      if (!this.useScrolling || !this.useTermsOptimization) {
+        Set<ComperableHitResult> comperableHitResults;
+        if (!this.useScrolling) {
+          // 1. get results from first search , put in set
+          // 2. get reults from second search
+          // 2.1 for each result remove from set
+          comperableHitResults = simpleOneTimeQueryEach();
+        } else {
+          // if scrolling
+          // 1. get all results in scrolls (till some limit) . put on set
+          // 2. scroll on second table
+          // 3. on each scroll result remove items from set
+          comperableHitResults = runWithScrollings();
+        }
+        fillMinusHitsFromResults(comperableHitResults);
+        return;
+      } else {
+        // if scrolling and optimization
+        // 0. save the original second table where , init set
+        // 1. on each scroll on first table , create miniSet
+        // 1.1 build where from all results (terms filter) , and run query
+        // 1.1.1 on each result remove from miniSet
+        // 1.1.2 add all results left from miniset to bigset
+        Select firstSelect = this.builder.getOriginalSelect(true);
+        MinusOneFieldAndOptimizationResult optimizationResult =
+            runWithScrollingAndAddFilter(fieldsOrderFirstTable[0], fieldsOrderSecondTable[0]);
+        String fieldName = getFieldName(firstSelect.getFields().get(0));
+        Set<Object> results = optimizationResult.getFieldValues();
+        SearchHit someHit = optimizationResult.getSomeHit();
+        fillMinusHitsFromOneField(fieldName, results, someHit);
+      }
+    } catch (Exception e) {
+      LOG.error("Failed during multi query run.", e);
+    } finally {
+      if (LocalClusterState.state().getSettingValue(SQL_PAGINATION_API_SEARCH_AFTER)) {
+        pit.delete();
+      }
     }
-    pit.delete();
   }
 
   @Override
@@ -204,7 +220,7 @@ public class MinusExecutor implements ElasticHitsExecutor {
             builder.getOriginalSelect(true),
             maxDocsToFetchOnEachScrollShard,
             null,
-            pit.getPitId());
+            pit);
     Set<ComperableHitResult> results = new HashSet<>();
 
     SearchHit[] hits = scrollResp.getHits().getHits();
@@ -226,7 +242,7 @@ public class MinusExecutor implements ElasticHitsExecutor {
               builder.getOriginalSelect(true),
               maxDocsToFetchOnEachScrollShard,
               scrollResp,
-              pit.getPitId());
+              pit);
       hits = scrollResp.getHits().getHits();
     }
     scrollResp =
@@ -236,7 +252,7 @@ public class MinusExecutor implements ElasticHitsExecutor {
             builder.getOriginalSelect(false),
             this.maxDocsToFetchOnEachScrollShard,
             null,
-            pit.getPitId());
+            pit);
 
     hits = scrollResp.getHits().getHits();
     if (hits == null || hits.length == 0) {
@@ -256,7 +272,7 @@ public class MinusExecutor implements ElasticHitsExecutor {
               builder.getOriginalSelect(false),
               maxDocsToFetchOnEachScrollShard,
               scrollResp,
-              pit.getPitId());
+              pit);
       hits = scrollResp.getHits().getHits();
     }
 
@@ -327,7 +343,7 @@ public class MinusExecutor implements ElasticHitsExecutor {
             builder.getOriginalSelect(true),
             maxDocsToFetchOnEachScrollShard,
             null,
-            pit.getPitId());
+            pit);
     Set<Object> results = new HashSet<>();
     int currentNumOfResults = 0;
     SearchHit[] hits = scrollResp.getHits().getHits();
@@ -361,7 +377,7 @@ public class MinusExecutor implements ElasticHitsExecutor {
               secondQuerySelect,
               this.maxDocsToFetchOnEachScrollShard,
               null,
-              pit.getPitId());
+              pit);
       SearchHits secondQuerySearchHits = responseForSecondTable.getHits();
 
       SearchHit[] secondQueryHits = secondQuerySearchHits.getHits();
@@ -379,7 +395,7 @@ public class MinusExecutor implements ElasticHitsExecutor {
                 secondQuerySelect,
                 maxDocsToFetchOnEachScrollShard,
                 responseForSecondTable,
-                pit.getPitId());
+                pit);
         secondQueryHits = responseForSecondTable.getHits().getHits();
       }
       results.addAll(currentSetFromResults);
@@ -395,7 +411,7 @@ public class MinusExecutor implements ElasticHitsExecutor {
               builder.getOriginalSelect(true),
               maxDocsToFetchOnEachScrollShard,
               scrollResp,
-              pit.getPitId());
+              pit);
       hits = scrollResp.getHits().getHits();
     }
     return new MinusOneFieldAndOptimizationResult(results, someHit);

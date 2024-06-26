@@ -284,7 +284,7 @@ public abstract class ElasticJoinExecutor implements ElasticHitsExecutor {
         tableRequest.getOriginalSelect(),
         size,
         previousResponse,
-        pit.getPitId());
+        pit);
   }
 
   public String[] getIndices(JoinRequestBuilder joinRequestBuilder) {

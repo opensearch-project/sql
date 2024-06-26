@@ -33,6 +33,7 @@ import org.opensearch.search.sort.FieldSortBuilder;
 import org.opensearch.search.sort.SortOrder;
 import org.opensearch.sql.legacy.domain.Select;
 import org.opensearch.sql.legacy.esdomain.LocalClusterState;
+import org.opensearch.sql.legacy.pit.PointInTimeHandler;
 import org.opensearch.sql.legacy.query.join.BackOffRetryStrategy;
 
 /** Created by Eliran on 2/9/2016. */
@@ -62,7 +63,7 @@ public class ElasticUtils {
       Select select,
       int size,
       SearchResponse previousResponse,
-      String pitId) {
+      PointInTimeHandler pit) {
     // Set Size
     request.setSize(size);
     SearchResponse responseWithHits;
@@ -74,7 +75,9 @@ public class ElasticUtils {
         request.addSort(DOC_FIELD_NAME, ASC);
       }
       // Set PIT
-      request.setPointInTime(new PointInTimeBuilder(pitId));
+      request.setPointInTime(new PointInTimeBuilder(pit.getPitId()));
+      // from and size is alternate method to paginate result.
+      // If select has from clause, search after is not required.
       if (previousResponse != null && select.getFrom().isEmpty()) {
         request.searchAfter(previousResponse.getHits().getSortFields());
       }
