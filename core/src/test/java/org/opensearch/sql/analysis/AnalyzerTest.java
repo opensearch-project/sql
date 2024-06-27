@@ -7,14 +7,18 @@ package org.opensearch.sql.analysis;
 
 import static java.util.Collections.emptyList;
 import static org.junit.jupiter.api.Assertions.assertAll;
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.opensearch.sql.analysis.DataSourceSchemaIdentifierNameResolver.DEFAULT_DATASOURCE_NAME;
 import static org.opensearch.sql.analysis.NestedAnalyzer.isNestedFunction;
+import static org.opensearch.sql.ast.dsl.AstDSL.agg;
 import static org.opensearch.sql.ast.dsl.AstDSL.aggregate;
 import static org.opensearch.sql.ast.dsl.AstDSL.alias;
+import static org.opensearch.sql.ast.dsl.AstDSL.and;
 import static org.opensearch.sql.ast.dsl.AstDSL.argument;
 import static org.opensearch.sql.ast.dsl.AstDSL.booleanLiteral;
 import static org.opensearch.sql.ast.dsl.AstDSL.compare;
@@ -22,13 +26,16 @@ import static org.opensearch.sql.ast.dsl.AstDSL.field;
 import static org.opensearch.sql.ast.dsl.AstDSL.filter;
 import static org.opensearch.sql.ast.dsl.AstDSL.filteredAggregate;
 import static org.opensearch.sql.ast.dsl.AstDSL.function;
+import static org.opensearch.sql.ast.dsl.AstDSL.having;
 import static org.opensearch.sql.ast.dsl.AstDSL.intLiteral;
 import static org.opensearch.sql.ast.dsl.AstDSL.nestedAllTupleFields;
+import static org.opensearch.sql.ast.dsl.AstDSL.project;
 import static org.opensearch.sql.ast.dsl.AstDSL.qualifiedName;
 import static org.opensearch.sql.ast.dsl.AstDSL.relation;
 import static org.opensearch.sql.ast.dsl.AstDSL.span;
 import static org.opensearch.sql.ast.dsl.AstDSL.stringLiteral;
 import static org.opensearch.sql.ast.dsl.AstDSL.unresolvedArg;
+import static org.opensearch.sql.ast.dsl.AstDSL.window;
 import static org.opensearch.sql.ast.tree.Sort.NullOrder;
 import static org.opensearch.sql.ast.tree.Sort.SortOption;
 import static org.opensearch.sql.ast.tree.Sort.SortOption.DEFAULT_ASC;
@@ -93,9 +100,11 @@ import org.opensearch.sql.expression.DSL;
 import org.opensearch.sql.expression.HighlightExpression;
 import org.opensearch.sql.expression.NamedExpression;
 import org.opensearch.sql.expression.ReferenceExpression;
+import org.opensearch.sql.expression.aggregation.NamedAggregator;
 import org.opensearch.sql.expression.function.OpenSearchFunctions;
 import org.opensearch.sql.expression.window.WindowDefinition;
 import org.opensearch.sql.planner.logical.LogicalAD;
+import org.opensearch.sql.planner.logical.LogicalAggregation;
 import org.opensearch.sql.planner.logical.LogicalCloseCursor;
 import org.opensearch.sql.planner.logical.LogicalFetchCursor;
 import org.opensearch.sql.planner.logical.LogicalFilter;
@@ -1766,5 +1775,1020 @@ class AnalyzerTest extends AnalyzerTestBase {
         () -> assertTrue(analyzed.getChild().get(0) instanceof LogicalFetchCursor),
         () ->
             assertEquals("pewpew", ((LogicalFetchCursor) analyzed.getChild().get(0)).getCursor()));
+  }
+
+  // spotless:off
+  // Complex cases should be checked:
+  // +------+------------------------------------------------------------------------------------------+---------+-------------------------+
+  // | Case | Query                                                                                    | IsValid | Missed Field In GroupBy |
+  // +------+------------------------------------------------------------------------------------------+---------+-------------------------+
+  // | 1    | SELECT a FROM table GROUP BY b                                                           | No      | a                       |
+  // | 2    | SELECT a as c FROM table GROUP BY b                                                      | No      | a                       |
+  // | 3    | SELECT a FROM table GROUP BY a * 3                                                       | No      | a                       |
+  // | 4    | SELECT a * 3 FROM table GROUP BY a                                                       | Yes     | N/A                     |
+  // | 5    | SELECT a * 3 FROM table GROUP BY b                                                       | No      | a                       |
+  // | 6    | SELECT a FROM table GROUP BY upper(a)                                                    | No      | a                       |
+  // | 7    | SELECT upper(a) FROM table GROUP BY a                                                    | Yes     | N/A                     |
+  // | 8    | SELECT upper(a) FROM table GROUP BY upper(a)                                             | Yes     | N/A                     |
+  // | 9    | SELECT concat(upper(a), upper(b)) FROM table GROUP BY b                                  | No      | a                       |
+  // | 10   | SELECT concat(upper(a), upper(b)) FROM table GROUP BY upper(b)                           | No      | a                       |
+  // | 11   | SELECT concat(upper(a), upper(b)) FROM table GROUP BY concat(upper(a), upper(b))         | Yes     | N/A                     |
+  // | 12   | SELECT concat(upper(a), upper(b)) FROM table GROUP BY concat_ws(',', upper(a), upper(b)) | No      | a                       |
+  // | 13   | SELECT concat(a, b) FROM table group by upper(a), upper(b)                               | No      | a                       |
+  // | 14   | SELECT concat(a, b) FROM table group by a                                                | No      | b                       |
+  // | 15   | SELECT concat(a, b) FROM table group by a, upper(b)                                      | No      | b                       |
+  // | 16   | SELECT concat(a, b), upper(b) FROM table group by a, upper(b)                            | No      | b                       |
+  // | 17   | SELECT concat(a, b), upper(b) FROM table group by a, b                                   | Yes     | N/A                     |
+  // | 18   | SELECT upper(concat(a, b)) FROM table group by concat(a, b)                              | Yes     | N/A                     |
+  // | 19   | SELECT concat(concat(a, b), c) FROM table group by concat(a, b)                          | No      | c                       |
+  // | 20   | SELECT 1, 2, 3 FROM table group by a                                                     | Yes     | N/A                     |
+  // | 21   | SELECT 1, 2, b FROM table group by a                                                     | No      | b                       |
+  // +------+------------------------------------------------------------------------------------------+---------+-------------------------+
+  // spotless:on
+  /** case 1: SELECT integer_value FROM schema group by string_value; (invalid) */
+  @Test
+  public void field_not_in_group_by_case1() {
+    SemanticCheckException exception =
+        assertThrows(
+            SemanticCheckException.class,
+            () ->
+                analyze(
+                    project(
+                        agg(
+                            relation("schema"),
+                            emptyList(),
+                            emptyList(),
+                            ImmutableList.of(alias("string_value", qualifiedName("string_value"))),
+                            emptyList(),
+                            ImmutableList.of(
+                                alias("integer_value", qualifiedName("integer_value")))),
+                        alias("integer_value", qualifiedName("integer_value")))));
+    assertEquals(
+        "Field [integer_value] must appear in the GROUP BY clause or be used in an aggregate"
+            + " function",
+        exception.getMessage());
+  }
+
+  /** case 2: SELECT integer_value as int_value FROM schema group by string_value; (invalid) */
+  @Test
+  public void field_not_in_group_by_case2() {
+    SemanticCheckException exception =
+        assertThrows(
+            SemanticCheckException.class,
+            () ->
+                analyze(
+                    project(
+                        agg(
+                            relation("schema"),
+                            emptyList(),
+                            emptyList(),
+                            ImmutableList.of(alias("string_value", qualifiedName("string_value"))),
+                            emptyList(),
+                            ImmutableList.of(alias("int_value", qualifiedName("integer_value")))),
+                        alias("int_value", qualifiedName("integer_value")))));
+    assertEquals(
+        "Field [integer_value] must appear in the GROUP BY clause or be used in an aggregate"
+            + " function",
+        exception.getMessage());
+  }
+
+  /** case 3: SELECT integer_value FROM table GROUP BY integer_value * 3; (invalid) */
+  @Test
+  public void field_not_in_group_by_case3() {
+    SemanticCheckException exception =
+        assertThrows(
+            SemanticCheckException.class,
+            () ->
+                analyze(
+                    project(
+                        agg(
+                            relation("schema"),
+                            emptyList(),
+                            emptyList(),
+                            ImmutableList.of(
+                                alias(
+                                    "*(integer_value, 3)",
+                                    function(
+                                        "*",
+                                        alias("integer_value", qualifiedName("integer_value")),
+                                        intLiteral(3)))),
+                            emptyList(),
+                            ImmutableList.of(qualifiedName("integer_value"))),
+                        alias("integer_value", qualifiedName("integer_value")))));
+    assertEquals(
+        "Field [integer_value] must appear in the GROUP BY clause or be used in an aggregate"
+            + " function",
+        exception.getMessage());
+  }
+
+  /** case 4: SELECT integer_value * 3 FROM table GROUP BY integer_value; (valid) */
+  @Test
+  public void field_not_in_group_by_case4() {
+    assertDoesNotThrow(
+        () ->
+            analyze(
+                project(
+                    agg(
+                        relation("schema"),
+                        emptyList(),
+                        emptyList(),
+                        ImmutableList.of(alias("integer_value", qualifiedName("integer_value"))),
+                        emptyList(),
+                        ImmutableList.of(
+                            function(
+                                "*",
+                                alias("integer_value", qualifiedName("integer_value")),
+                                intLiteral(3)))),
+                    alias(
+                        "*(integer_value, 3)",
+                        function(
+                            "*",
+                            alias("integer_value", qualifiedName("integer_value")),
+                            intLiteral(3))))));
+  }
+
+  /** case 5: SELECT integer_value * 3 FROM table GROUP BY string_value; (invalid) */
+  @Test
+  public void field_not_in_group_by_case5() {
+    SemanticCheckException exception =
+        assertThrows(
+            SemanticCheckException.class,
+            () ->
+                analyze(
+                    project(
+                        agg(
+                            relation("schema"),
+                            emptyList(),
+                            emptyList(),
+                            ImmutableList.of(alias("string_value", qualifiedName("string_value"))),
+                            emptyList(),
+                            ImmutableList.of(
+                                function(
+                                    "*",
+                                    alias("integer_value", qualifiedName("integer_value")),
+                                    intLiteral(3)))),
+                        alias(
+                            "*(integer_value, 3)",
+                            function(
+                                "*",
+                                alias("integer_value", qualifiedName("integer_value")),
+                                intLiteral(3))))));
+    assertEquals(
+        "Field [integer_value] must appear in the GROUP BY clause or be used in an aggregate"
+            + " function",
+        exception.getMessage());
+  }
+
+  /** case 6: SELECT string_value FROM table GROUP BY upper(string_value); (invalid) */
+  @Test
+  public void field_not_in_group_by_case6() {
+    SemanticCheckException exception =
+        assertThrows(
+            SemanticCheckException.class,
+            () ->
+                analyze(
+                    project(
+                        agg(
+                            relation("schema"),
+                            emptyList(),
+                            emptyList(),
+                            ImmutableList.of(
+                                alias(
+                                    "upper(string_value)",
+                                    function(
+                                        "upper",
+                                        alias("string_value", qualifiedName("string_value"))))),
+                            emptyList(),
+                            ImmutableList.of(qualifiedName("string_value"))),
+                        alias("string_value", qualifiedName("string_value")))));
+    assertEquals(
+        "Field [string_value] must appear in the GROUP BY clause or be used in an aggregate"
+            + " function",
+        exception.getMessage());
+  }
+
+  /** case 7: SELECT upper(string_value) FROM table GROUP BY string_value; (valid) */
+  @Test
+  public void field_not_in_group_by_case7() {
+    assertDoesNotThrow(
+        () ->
+            analyze(
+                project(
+                    agg(
+                        relation("schema"),
+                        emptyList(),
+                        emptyList(),
+                        ImmutableList.of(alias("string_value", qualifiedName("string_value"))),
+                        emptyList(),
+                        ImmutableList.of(
+                            function(
+                                "upper", alias("string_value", qualifiedName("string_value"))))),
+                    alias(
+                        "upper(integer_value)",
+                        function("upper", alias("string_value", qualifiedName("string_value")))))));
+  }
+
+  /** case 8: SELECT upper(string_value) FROM table GROUP BY upper(string_value); (valid) */
+  @Test
+  public void field_not_in_group_by_case8() {
+    assertDoesNotThrow(
+        () ->
+            analyze(
+                project(
+                    agg(
+                        relation("schema"),
+                        emptyList(),
+                        emptyList(),
+                        ImmutableList.of(
+                            alias(
+                                "upper(string_value)",
+                                function(
+                                    "upper",
+                                    alias("string_value", qualifiedName("string_value"))))),
+                        emptyList(),
+                        ImmutableList.of(
+                            function(
+                                "upper", alias("string_value", qualifiedName("string_value"))))),
+                    alias(
+                        "upper(integer_value)",
+                        function("upper", alias("string_value", qualifiedName("string_value")))))));
+  }
+
+  /**
+   * case 9: SELECT concat(upper(field_value1), upper(field_value2)) FROM table GROUP BY
+   * field_value2; (invalid)
+   */
+  @Test
+  public void field_not_in_group_by_case9() {
+    SemanticCheckException exception =
+        assertThrows(
+            SemanticCheckException.class,
+            () ->
+                analyze(
+                    project(
+                        agg(
+                            relation("schema"),
+                            emptyList(),
+                            emptyList(),
+                            ImmutableList.of(alias("field_value2", qualifiedName("field_value2"))),
+                            emptyList(),
+                            ImmutableList.of(
+                                function(
+                                    "concat",
+                                    function("upper", qualifiedName("field_value1")),
+                                    function("upper", qualifiedName("field_value2"))))),
+                        alias(
+                            "concat(upper(string_value), upper(field_value2))",
+                            function(
+                                "concat",
+                                function(
+                                    "upper", alias("field_value1", qualifiedName("field_value1"))),
+                                function(
+                                    "upper",
+                                    alias("field_value2", qualifiedName("field_value2"))))))));
+    assertEquals(
+        "Field [field_value1] must appear in the GROUP BY clause or be used in an aggregate"
+            + " function",
+        exception.getMessage());
+  }
+
+  /**
+   * case 10: SELECT concat(upper(field_value1), upper(field_value2)) FROM table GROUP BY
+   * upper(field_value2); (invalid)
+   */
+  @Test
+  public void field_not_in_group_by_case10() {
+    SemanticCheckException exception =
+        assertThrows(
+            SemanticCheckException.class,
+            () ->
+                analyze(
+                    project(
+                        agg(
+                            relation("schema"),
+                            emptyList(),
+                            emptyList(),
+                            ImmutableList.of(
+                                alias(
+                                    "upper(field_value2)",
+                                    function(
+                                        "upper",
+                                        alias("field_value2", qualifiedName("field_value2"))))),
+                            emptyList(),
+                            ImmutableList.of(
+                                function(
+                                    "concat",
+                                    function("upper", qualifiedName("field_value1")),
+                                    function("upper", qualifiedName("field_value2"))))),
+                        alias(
+                            "concat(upper(field_value1), upper(field_value2))",
+                            function(
+                                "concat",
+                                function(
+                                    "upper", alias("field_value1", qualifiedName("field_value1"))),
+                                function(
+                                    "upper",
+                                    alias("field_value2", qualifiedName("field_value2"))))))));
+    assertEquals(
+        "Field [field_value1] must appear in the GROUP BY clause or be used in an aggregate"
+            + " function",
+        exception.getMessage());
+  }
+
+  /**
+   * case 11: SELECT concat(upper(field_value1), upper(field_value2)) FROM table GROUP BY
+   * concat(upper(field_value1), upper(field_value2)); (valid)
+   */
+  @Test
+  public void field_not_in_group_by_case11() {
+    assertDoesNotThrow(
+        () ->
+            analyze(
+                project(
+                    agg(
+                        relation("schema"),
+                        emptyList(),
+                        emptyList(),
+                        ImmutableList.of(
+                            alias(
+                                "concat(upper(field_value1), upper(field_value2))",
+                                function(
+                                    "concat",
+                                    function(
+                                        "upper",
+                                        alias("field_value1", qualifiedName("field_value1"))),
+                                    function(
+                                        "upper",
+                                        alias("field_value2", qualifiedName("field_value2")))))),
+                        emptyList(),
+                        ImmutableList.of(
+                            function(
+                                "concat",
+                                function("upper", qualifiedName("field_value1")),
+                                function("upper", qualifiedName("field_value2"))))),
+                    alias(
+                        "concat(upper(field_value1), upper(field_value2))",
+                        function(
+                            "concat",
+                            function("upper", alias("field_value1", qualifiedName("field_value1"))),
+                            function(
+                                "upper", alias("field_value2", qualifiedName("field_value2"))))))));
+  }
+
+  /**
+   * case 12: SELECT concat(upper(field_value1), upper(field_value2)) FROM table GROUP BY
+   * concat_ws(',', upper(field_value1), upper(field_value2)); (invalid)
+   */
+  @Test
+  public void field_not_in_group_by_case12() {
+    SemanticCheckException exception =
+        assertThrows(
+            SemanticCheckException.class,
+            () ->
+                analyze(
+                    project(
+                        agg(
+                            relation("schema"),
+                            emptyList(),
+                            emptyList(),
+                            ImmutableList.of(
+                                alias(
+                                    "concat_ws(upper(field_value1), upper(field_value2))",
+                                    function(
+                                        "concat_ws",
+                                        stringLiteral(","),
+                                        function(
+                                            "upper",
+                                            alias("field_value1", qualifiedName("field_value1"))),
+                                        function(
+                                            "upper",
+                                            alias(
+                                                "field_value2", qualifiedName("field_value2")))))),
+                            emptyList(),
+                            ImmutableList.of(
+                                function(
+                                    "concat",
+                                    function("upper", qualifiedName("field_value1")),
+                                    function("upper", qualifiedName("field_value2"))))),
+                        alias(
+                            "concat(upper(field_value1), upper(field_value2))",
+                            function(
+                                "concat",
+                                function(
+                                    "upper", alias("field_value1", qualifiedName("field_value1"))),
+                                function(
+                                    "upper",
+                                    alias("field_value2", qualifiedName("field_value2"))))))));
+    assertEquals(
+        "Field [field_value1] must appear in the GROUP BY clause or be used in an aggregate"
+            + " function",
+        exception.getMessage());
+  }
+
+  /**
+   * case 13: SELECT concat(field_value1, field_value2) FROM schema group by upper(field_value1),
+   * upper(field_value2); (invalid)
+   */
+  @Test
+  public void field_not_in_group_by_case13() {
+    SemanticCheckException exception =
+        assertThrows(
+            SemanticCheckException.class,
+            () ->
+                analyze(
+                    project(
+                        agg(
+                            relation("schema"),
+                            emptyList(),
+                            emptyList(),
+                            ImmutableList.of(
+                                alias(
+                                    "upper(field_value1)",
+                                    function(
+                                        "upper",
+                                        alias("field_value1", qualifiedName("field_value1")))),
+                                alias(
+                                    "upper(field_value2)",
+                                    function(
+                                        "upper",
+                                        alias("field_value2", qualifiedName("field_value2"))))),
+                            emptyList(),
+                            ImmutableList.of(
+                                function(
+                                    "concat",
+                                    qualifiedName("field_value1"),
+                                    qualifiedName("field_value2")))),
+                        alias(
+                            "concat(field_value1, field_value2)",
+                            function(
+                                "concat",
+                                alias("field_value1", qualifiedName("field_value1")),
+                                alias("field_value2", qualifiedName("field_value2")))))));
+    assertEquals(
+        "Field [field_value1] must appear in the GROUP BY clause or be used in an aggregate"
+            + " function",
+        exception.getMessage());
+  }
+
+  /**
+   * case 14: SELECT concat(field_value1, field_value2) FROM schema group by field_value1; (invalid)
+   */
+  @Test
+  public void field_not_in_group_by_case14() {
+    SemanticCheckException exception =
+        assertThrows(
+            SemanticCheckException.class,
+            () ->
+                analyze(
+                    project(
+                        agg(
+                            relation("schema"),
+                            emptyList(),
+                            emptyList(),
+                            ImmutableList.of(alias("field_value1", qualifiedName("field_value1"))),
+                            emptyList(),
+                            ImmutableList.of(
+                                function(
+                                    "concat",
+                                    qualifiedName("field_value1"),
+                                    qualifiedName("field_value2")))),
+                        alias(
+                            "concat(field_value1, field_value2)",
+                            function(
+                                "concat",
+                                alias("field_value1", qualifiedName("field_value1")),
+                                alias("field_value2", qualifiedName("field_value2")))))));
+    assertEquals(
+        "Field [field_value2] must appear in the GROUP BY clause or be used in an aggregate"
+            + " function",
+        exception.getMessage());
+  }
+
+  /**
+   * case 15: SELECT concat(field_value1, field_value2) FROM schema group by field_value1,
+   * upper(field_value2); (invalid)
+   */
+  @Test
+  public void field_not_in_group_by_case15() {
+    SemanticCheckException exception =
+        assertThrows(
+            SemanticCheckException.class,
+            () ->
+                analyze(
+                    project(
+                        agg(
+                            relation("schema"),
+                            emptyList(),
+                            emptyList(),
+                            ImmutableList.of(
+                                alias("field_value1", qualifiedName("field_value1")),
+                                alias(
+                                    "upper(field_value2)",
+                                    function(
+                                        "upper",
+                                        alias("field_value2", qualifiedName("field_value2"))))),
+                            emptyList(),
+                            ImmutableList.of(
+                                function(
+                                    "concat",
+                                    qualifiedName("field_value1"),
+                                    qualifiedName("field_value2")))),
+                        alias(
+                            "concat(field_value1, field_value2)",
+                            function(
+                                "concat",
+                                alias("field_value1", qualifiedName("field_value1")),
+                                alias("field_value2", qualifiedName("field_value2")))))));
+    assertEquals(
+        "Field [field_value2] must appear in the GROUP BY clause or be used in an aggregate"
+            + " function",
+        exception.getMessage());
+  }
+
+  /**
+   * case 16: SELECT concat(field_value1, field_value2), upper(b) FROM schema group by field_value1,
+   * upper(field_value2); (invalid)
+   */
+  @Test
+  public void field_not_in_group_by_case16() {
+    SemanticCheckException exception =
+        assertThrows(
+            SemanticCheckException.class,
+            () ->
+                analyze(
+                    project(
+                        agg(
+                            relation("schema"),
+                            emptyList(),
+                            emptyList(),
+                            ImmutableList.of(
+                                alias("field_value1", qualifiedName("field_value1")),
+                                alias(
+                                    "upper(field_value2)",
+                                    function(
+                                        "upper",
+                                        alias("field_value2", qualifiedName("field_value2"))))),
+                            emptyList(),
+                            ImmutableList.of(
+                                function(
+                                    "concat",
+                                    qualifiedName("field_value1"),
+                                    qualifiedName("field_value2")),
+                                function(
+                                    "upper",
+                                    alias("field_value2", qualifiedName("field_value2"))))),
+                        alias(
+                            "concat(field_value1, field_value2)",
+                            function(
+                                "concat",
+                                alias("field_value1", qualifiedName("field_value1")),
+                                alias("field_value2", qualifiedName("field_value2")))),
+                        alias(
+                            "upper(field_value2)",
+                            function(
+                                "upper", alias("field_value2", qualifiedName("field_value2")))))));
+    assertEquals(
+        "Field [field_value2] must appear in the GROUP BY clause or be used in an aggregate"
+            + " function",
+        exception.getMessage());
+  }
+
+  /**
+   * case 17: SELECT concat(field_value1, field_value2), upper(field_value2) FROM schema group by
+   * field_value1, field_value2; (valid)
+   */
+  @Test
+  public void field_not_in_group_by_case17() {
+    assertDoesNotThrow(
+        () ->
+            analyze(
+                project(
+                    agg(
+                        relation("schema"),
+                        emptyList(),
+                        emptyList(),
+                        ImmutableList.of(
+                            alias("field_value1", qualifiedName("field_value1")),
+                            alias("field_value2", qualifiedName("field_value2"))),
+                        emptyList(),
+                        ImmutableList.of(
+                            function(
+                                "concat",
+                                qualifiedName("field_value1"),
+                                qualifiedName("field_value2")),
+                            function(
+                                "upper", alias("field_value2", qualifiedName("field_value2"))))),
+                    alias(
+                        "concat(field_value1, field_value2)",
+                        function(
+                            "concat",
+                            alias("field_value1", qualifiedName("field_value1")),
+                            alias("field_value2", qualifiedName("field_value2")))),
+                    alias(
+                        "upper(field_value2)",
+                        function("upper", alias("field_value2", qualifiedName("field_value2")))))));
+  }
+
+  /**
+   * case 18: SELECT upper(concat(field_value1, field_value2)) FROM schema group by
+   * concat(field_value1, field_value2); (valid)
+   */
+  @Test
+  public void field_not_in_group_by_case18() {
+    assertDoesNotThrow(
+        () ->
+            analyze(
+                project(
+                    agg(
+                        relation("schema"),
+                        emptyList(),
+                        emptyList(),
+                        ImmutableList.of(
+                            alias(
+                                "concat(field_value1, field_value2)",
+                                function(
+                                    "concat",
+                                    alias("field_value1", qualifiedName("field_value1")),
+                                    alias("field_value2", qualifiedName("field_value2"))))),
+                        emptyList(),
+                        ImmutableList.of(
+                            function(
+                                "upper",
+                                function(
+                                    "concat",
+                                    qualifiedName("field_value1"),
+                                    qualifiedName("field_value2"))))),
+                    alias(
+                        "upper(concat(field_value1, field_value2))",
+                        function(
+                            "upper",
+                            alias(
+                                "concat(field_value1, field_value2)",
+                                function(
+                                    "concat",
+                                    alias("field_value1", qualifiedName("field_value1")),
+                                    alias("field_value2", qualifiedName("field_value2")))))))));
+  }
+
+  /**
+   * case 19: SELECT concat(concat(field_value1, field_value2), string_value) FROM schema group by
+   * concat(field_value1, field_value2); (invalid)
+   */
+  @Test
+  public void field_not_in_group_by_case19() {
+    SemanticCheckException exception =
+        assertThrows(
+            SemanticCheckException.class,
+            () ->
+                analyze(
+                    project(
+                        agg(
+                            relation("schema"),
+                            emptyList(),
+                            emptyList(),
+                            ImmutableList.of(
+                                alias(
+                                    "concat(field_value1, field_value2)",
+                                    function(
+                                        "concat",
+                                        alias("field_value1", qualifiedName("field_value1")),
+                                        alias("field_value2", qualifiedName("field_value2"))))),
+                            emptyList(),
+                            ImmutableList.of(
+                                function(
+                                    "concat",
+                                    function(
+                                        "concat",
+                                        qualifiedName("field_value1"),
+                                        qualifiedName("field_value2")),
+                                    qualifiedName("string_value")))),
+                        alias(
+                            "concat(concat(field_value1, field_value2), string_value)",
+                            function(
+                                "concat",
+                                alias(
+                                    "concat(field_value1, field_value2)",
+                                    function(
+                                        "concat",
+                                        alias("field_value1", qualifiedName("field_value1")),
+                                        alias("field_value2", qualifiedName("field_value2")))),
+                                alias("string_value", qualifiedName("string_value")))))));
+    assertEquals(
+        "Field [string_value] must appear in the GROUP BY clause or be used in an aggregate"
+            + " function",
+        exception.getMessage());
+  }
+
+  /** case 20: SELECT 1, 2, 3 FROM schema group by string_value; (valid) */
+  @Test
+  public void field_not_in_group_by_case20() {
+    assertAnalyzeEqual(
+        LogicalPlanDSL.project(
+            LogicalPlanDSL.aggregation(
+                LogicalPlanDSL.relation("schema", table),
+                emptyList(),
+                ImmutableList.of(DSL.named("string_value", DSL.ref("string_value", STRING)))),
+            ImmutableList.of(
+                DSL.named("1", DSL.literal(1)),
+                DSL.named("2", DSL.literal(2)),
+                DSL.named("3", DSL.literal(3))),
+            emptyList()),
+        project(
+            agg(
+                relation("schema"),
+                emptyList(),
+                emptyList(),
+                ImmutableList.of(alias("string_value", qualifiedName("string_value"))),
+                emptyList(),
+                ImmutableList.of(intLiteral(1), intLiteral(2), intLiteral(3))),
+            alias("1", intLiteral(1)),
+            alias("2", intLiteral(2)),
+            alias("3", intLiteral(3))));
+  }
+
+  /** case 21: SELECT 1, 2, field_value2 FROM schema group by field_value1; (invalid) */
+  @Test
+  public void field_not_in_group_by_case21() {
+    SemanticCheckException exception =
+        assertThrows(
+            SemanticCheckException.class,
+            () ->
+                analyze(
+                    project(
+                        agg(
+                            relation("schema"),
+                            emptyList(),
+                            emptyList(),
+                            ImmutableList.of(alias("field_value1", qualifiedName("field_value1"))),
+                            emptyList(),
+                            ImmutableList.of(
+                                intLiteral(1), intLiteral(2), qualifiedName("field_value2"))),
+                        alias("1", intLiteral(1)),
+                        alias("2", intLiteral(2)),
+                        alias("field_value2", qualifiedName("field_value2")))));
+    assertEquals(
+        "Field [field_value2] must appear in the GROUP BY clause or be used in an aggregate"
+            + " function",
+        exception.getMessage());
+  }
+
+  /** SELECT integer_value FROM schema GROUP BY avg(integer_value) */
+  @Test
+  public void aggregate_function_not_allowed_in_group_by_error() {
+    SemanticCheckException exception =
+        assertThrows(
+            SemanticCheckException.class,
+            () ->
+                analyze(
+                    project(
+                        agg(
+                            relation("schema"),
+                            ImmutableList.of(
+                                alias("integer_value", qualifiedName("integer_value"))),
+                            emptyList(),
+                            ImmutableList.of(
+                                alias(
+                                    "AVG(integer_value)",
+                                    aggregate("AVG", qualifiedName("integer_value")))),
+                            emptyList()),
+                        alias("integer_value", qualifiedName("integer_value")))));
+    assertEquals(
+        "Aggregate function is not allowed in a GROUP BY clause, but found [avg]",
+        exception.getMessage());
+  }
+
+  /** SELECT avg(integer_value) FROM schema GROUP BY 1 */
+  @Test
+  public void aggregate_function_from_ordinal_not_allowed_in_group_by() {
+    SemanticCheckException exception =
+        assertThrows(
+            SemanticCheckException.class,
+            () ->
+                analyze(
+                    project(
+                        agg(
+                            relation("schema"),
+                            ImmutableList.of(
+                                alias("integer_value", qualifiedName("integer_value"))),
+                            emptyList(),
+                            ImmutableList.of(
+                                alias(
+                                    "AVG(integer_value)",
+                                    aggregate("AVG", qualifiedName("integer_value")))),
+                            emptyList()),
+                        alias("integer_value", qualifiedName("integer_value")))));
+    assertEquals(
+        "Aggregate function is not allowed in a GROUP BY clause, but found [avg]",
+        exception.getMessage());
+  }
+
+  /** SELECT integer_value FROM schema WHERE integer_value */
+  @Test
+  public void non_boolean_expression_in_filter_error() {
+    SemanticCheckException exception =
+        assertThrows(
+            SemanticCheckException.class,
+            () ->
+                analyze(
+                    project(
+                        filter(relation("schema"), qualifiedName("integer_value")),
+                        alias("integer_value", qualifiedName("integer_value")))));
+    assertEquals(
+        "FILTER or HAVING expression must be type boolean, but found [INTEGER]",
+        exception.getMessage());
+  }
+
+  /** SELECT integer_value FROM schema WHERE nested(integer_value, true) */
+  @Test
+  public void non_boolean_expression_in_filter_error_except_in_nested() {
+    assertAnalyzeEqual(
+        LogicalPlanDSL.project(
+            LogicalPlanDSL.filter(
+                LogicalPlanDSL.relation("schema", table),
+                DSL.nested(DSL.ref("message", STRING), DSL.literal(true))),
+            ImmutableList.of(DSL.named("integer_value", DSL.ref("integer_value", INTEGER))),
+            emptyList()),
+        project(
+            filter(
+                relation("schema"),
+                function(
+                    "nested", alias("message", qualifiedName("message")), booleanLiteral(true))),
+            alias("integer_value", qualifiedName("integer_value"))));
+  }
+
+  /** SELECT string_value FROM schema GROUP BY string_value HAVING avg(integer_value) */
+  @Test
+  public void non_boolean_expression_in_having_error() {
+    SemanticCheckException exception =
+        assertThrows(
+            SemanticCheckException.class,
+            () ->
+                analyze(
+                    project(
+                        having(
+                            agg(
+                                relation("schema"),
+                                emptyList(),
+                                emptyList(),
+                                ImmutableList.of(
+                                    alias("string_value", qualifiedName("string_value"))),
+                                emptyList(),
+                                ImmutableList.of(
+                                    alias("string_value", qualifiedName("string_value")))),
+                            ImmutableList.of(
+                                alias(
+                                    "AVG(integer_value)",
+                                    aggregate("AVG", qualifiedName("integer_value")))),
+                            aggregate("AVG", qualifiedName("integer_value"))),
+                        alias("string_value", qualifiedName("string_value")))));
+    assertEquals(
+        "FILTER or HAVING expression must be type boolean, but found [DOUBLE]",
+        exception.getMessage());
+  }
+
+  /** SELECT count(string_value) filter(where integer_value) FROM schema */
+  @Test
+  public void non_boolean_expression_in_filtered_aggregation_error() {
+    SemanticCheckException exception =
+        assertThrows(
+            SemanticCheckException.class,
+            () ->
+                analyze(
+                    AstDSL.project(
+                        AstDSL.agg(
+                            AstDSL.relation("schema"),
+                            ImmutableList.of(
+                                alias(
+                                    "count(string_value) filter(where integer_value)",
+                                    filteredAggregate(
+                                        "count",
+                                        qualifiedName("string_value"),
+                                        qualifiedName("integer_value")))),
+                            emptyList(),
+                            emptyList(),
+                            emptyList()),
+                        AstDSL.alias(
+                            "count(string_value) filter(where integer_value)",
+                            filteredAggregate(
+                                "count",
+                                qualifiedName("string_value"),
+                                qualifiedName("integer_value"))))));
+    assertEquals(
+        "FILTER or HAVING expression must be type boolean, but found [INTEGER]",
+        exception.getMessage());
+  }
+
+  /** SELECT count(string_value) filter(where 10 > (avg(integer_value) + 3) * 2) FROM schema */
+  @Test
+  public void aggregate_function_in_filter_error() {
+    SemanticCheckException exception =
+        assertThrows(
+            SemanticCheckException.class,
+            () ->
+                analyze(
+                    AstDSL.project(
+                        AstDSL.agg(
+                            AstDSL.relation("schema"),
+                            ImmutableList.of(
+                                alias(
+                                    "count(string_value) filter(where integer_value)",
+                                    filteredAggregate(
+                                        "count",
+                                        qualifiedName("string_value"),
+                                        function(
+                                            ">",
+                                            intLiteral(10),
+                                            function(
+                                                "*",
+                                                function(
+                                                    "+",
+                                                    aggregate(
+                                                        "AVG", qualifiedName("integer_value")),
+                                                    intLiteral(3)),
+                                                intLiteral(2)))))),
+                            emptyList(),
+                            emptyList(),
+                            emptyList()),
+                        AstDSL.alias(
+                            "count(string_value) filter(where 10 > (max(integer_value) + 3) * 2)",
+                            filteredAggregate(
+                                "count",
+                                qualifiedName("string_value"),
+                                function(
+                                    ">",
+                                    intLiteral(10),
+                                    function(
+                                        "*",
+                                        function(
+                                            "+",
+                                            aggregate("AVG", qualifiedName("integer_value")),
+                                            intLiteral(3)),
+                                        intLiteral(2))))))));
+    assertEquals(
+        "Aggregate function is not allowed in a FILTER, but found [avg]", exception.getMessage());
+  }
+
+  /** SELECT string_value FROM schema where ROW_NUMBER() OVER(ORDER BY string_value) > 0 */
+  @Test
+  public void window_function_in_where_error() {
+    SemanticCheckException exception =
+        assertThrows(
+            SemanticCheckException.class,
+            () ->
+                analyze(
+                    project(
+                        filter(
+                            relation("schema"),
+                            function(
+                                ">",
+                                window(
+                                    function("row_number"),
+                                    ImmutableList.of(),
+                                    ImmutableList.of(
+                                        ImmutablePair.of(
+                                            DEFAULT_ASC, qualifiedName("string_value")))),
+                                intLiteral(0))))));
+    assertEquals("Window functions are not allowed in WHERE or HAVING", exception.getMessage());
+  }
+
+  /**
+   * SELECT string_value FROM schema GROUP BY string_value HAVING MIN(integer_value) > 1 AND
+   * MAX(integer_value) < 10
+   */
+  @Test
+  public void aggregators_in_having_should_be_merged_to_logical_aggregation() {
+    LogicalPlan actual =
+        analyze(
+            project(
+                having(
+                    agg(
+                        relation("schema"),
+                        emptyList(),
+                        emptyList(),
+                        ImmutableList.of(alias("string_value", qualifiedName("string_value"))),
+                        emptyList(),
+                        ImmutableList.of(alias("string_value", qualifiedName("string_value")))),
+                    ImmutableList.of(
+                        alias(
+                            "MIN(integer_value)", aggregate("MIN", qualifiedName("integer_value"))),
+                        alias(
+                            "MAX(integer_value)",
+                            aggregate("MAX", qualifiedName("integer_value")))),
+                    and(
+                        compare(
+                            ">", aggregate("MIN", qualifiedName("integer_value")), intLiteral(1)),
+                        compare(
+                            "<",
+                            aggregate("MAX", qualifiedName("integer_value")),
+                            intLiteral(10)))),
+                alias("string_value", qualifiedName("string_value"))));
+    assertInstanceOf(LogicalAggregation.class, actual.getChild().get(0));
+    List<NamedAggregator> mergedAggregators =
+        ((LogicalAggregation) actual.getChild().get(0)).getAggregatorList();
+    List<NamedAggregator> expected =
+        ImmutableList.of(
+            DSL.named("MIN(integer_value)", DSL.min(DSL.ref("integer_value", INTEGER))),
+            DSL.named("MAX(integer_value)", DSL.max(DSL.ref("integer_value", INTEGER))));
+    assertEquals(expected, mergedAggregators);
   }
 }

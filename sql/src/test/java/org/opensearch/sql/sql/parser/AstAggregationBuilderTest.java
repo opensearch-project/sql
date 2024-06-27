@@ -146,6 +146,17 @@ class AstAggregationBuilderTest {
                 alias("COUNT(DISTINCT name)", distinctAggregate("COUNT", qualifiedName("name"))))));
   }
 
+  @Disabled
+  void distinct_is_an_equivalent_grouping_by() {
+    assertThat(
+        buildAggregation("SELECT COUNT(DISTINCT name) FROM test GROUP BY age"),
+        allOf(
+            hasGroupByItems(
+                alias("age", qualifiedName("age")), alias("name", qualifiedName("name"))),
+            hasAggregators(
+                alias("COUNT(DISTINCT name)", distinctAggregate("COUNT", qualifiedName("name"))))));
+  }
+
   @Test
   void should_build_nothing_if_no_group_by_and_no_aggregators_in_select() {
     assertNull(buildAggregation("SELECT name FROM test"));

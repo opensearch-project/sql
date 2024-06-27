@@ -46,6 +46,7 @@ import org.opensearch.sql.ast.tree.Dedupe;
 import org.opensearch.sql.ast.tree.Eval;
 import org.opensearch.sql.ast.tree.FetchCursor;
 import org.opensearch.sql.ast.tree.Filter;
+import org.opensearch.sql.ast.tree.Having;
 import org.opensearch.sql.ast.tree.Head;
 import org.opensearch.sql.ast.tree.Kmeans;
 import org.opensearch.sql.ast.tree.Limit;
@@ -311,5 +312,9 @@ public abstract class AbstractNodeVisitor<T, C> {
 
   public T visitCloseCursor(CloseCursor closeCursor, C context) {
     return visitChildren(closeCursor, context);
+  }
+
+  public T visitHaving(Having having, C context) {
+    return visitChildren(having, context);
   }
 }

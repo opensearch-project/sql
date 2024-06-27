@@ -145,8 +145,16 @@ public class AstBuilder extends OpenSearchSQLParserBaseVisitor<UnresolvedPlan> {
 
     if (ctx.havingClause() != null) {
       UnresolvedPlan havingPlan = visit(ctx.havingClause());
-      verifySupportsCondition(((Filter) havingPlan).getCondition());
-      result = visit(ctx.havingClause()).attach(result);
+      UnresolvedExpression condition =
+          verifySupportsCondition(((Filter) havingPlan).getCondition());
+      if (aggregation != null) {
+        UnresolvedPlan newHavingPlan =
+            new AstHavingAggregationBuilder(context.peek(), condition).visit(ctx.havingClause());
+        // This having clause with aggregation, attach to new having plan
+        result = newHavingPlan.attach(result);
+      }
+      // attach to filter
+      result = havingPlan.attach(result);
     }
 
     if (ctx.orderByClause() != null) {
@@ -162,15 +170,16 @@ public class AstBuilder extends OpenSearchSQLParserBaseVisitor<UnresolvedPlan> {
    *
    * @param func : Function in HAVING clause
    */
-  private void verifySupportsCondition(UnresolvedExpression func) {
+  private UnresolvedExpression verifySupportsCondition(UnresolvedExpression func) {
     if (func instanceof Function) {
       if (((Function) func).getFuncName().equalsIgnoreCase(BuiltinFunctionName.NESTED.name())) {
         throw new SyntaxCheckException(
             "Falling back to legacy engine. Nested function is not supported in the HAVING"
                 + " clause.");
       }
-      ((Function) func).getFuncArgs().stream().forEach(e -> verifySupportsCondition(e));
+      ((Function) func).getFuncArgs().stream().forEach(this::verifySupportsCondition);
     }
+    return func;
   }
 
   @Override

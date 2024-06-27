@@ -13,6 +13,7 @@ import java.util.Optional;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import org.antlr.v4.runtime.tree.ParseTree;
+import org.opensearch.sql.QueryCompilationError;
 import org.opensearch.sql.ast.Node;
 import org.opensearch.sql.ast.expression.AggregateFunction;
 import org.opensearch.sql.ast.expression.Alias;
@@ -20,8 +21,6 @@ import org.opensearch.sql.ast.expression.QualifiedName;
 import org.opensearch.sql.ast.expression.UnresolvedExpression;
 import org.opensearch.sql.ast.tree.Aggregation;
 import org.opensearch.sql.ast.tree.UnresolvedPlan;
-import org.opensearch.sql.common.utils.StringUtils;
-import org.opensearch.sql.exception.SemanticCheckException;
 import org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParserBaseVisitor;
 import org.opensearch.sql.sql.parser.context.QuerySpecification;
 
@@ -76,8 +75,13 @@ public class AstAggregationBuilder extends OpenSearchSQLParserBaseVisitor<Unreso
   }
 
   private UnresolvedPlan buildExplicitAggregation() {
+    List<UnresolvedExpression> aliasFreeSelectItems = querySpec.getSelectItems();
     List<UnresolvedExpression> groupByItems = replaceGroupByItemIfAliasOrOrdinal();
-    return new Aggregation(new ArrayList<>(querySpec.getAggregators()), emptyList(), groupByItems);
+    return new Aggregation(
+        new ArrayList<>(querySpec.getAggregators()),
+        emptyList(),
+        groupByItems,
+        aliasFreeSelectItems);
   }
 
   private UnresolvedPlan buildImplicitAggregation() {
@@ -85,15 +89,14 @@ public class AstAggregationBuilder extends OpenSearchSQLParserBaseVisitor<Unreso
 
     if (invalidSelectItem.isPresent()) {
       // Report semantic error to avoid fall back to old engine again
-      throw new SemanticCheckException(
-          StringUtils.format(
-              "Explicit GROUP BY clause is required because expression [%s] "
-                  + "contains non-aggregated column",
-              invalidSelectItem.get()));
+      throw QueryCompilationError.groupByClauseIsMissingError(invalidSelectItem.get());
     }
 
     return new Aggregation(
-        new ArrayList<>(querySpec.getAggregators()), emptyList(), querySpec.getGroupByItems());
+        new ArrayList<>(querySpec.getAggregators()),
+        emptyList(),
+        querySpec.getGroupByItems(),
+        emptyList());
   }
 
   private List<UnresolvedExpression> replaceGroupByItemIfAliasOrOrdinal() {

@@ -61,6 +61,7 @@ import org.opensearch.sql.ast.expression.Field;
 import org.opensearch.sql.ast.expression.Literal;
 import org.opensearch.sql.ast.expression.RelevanceFieldList;
 import org.opensearch.sql.ast.expression.UnresolvedExpression;
+import org.opensearch.sql.ast.tree.FetchCursor;
 import org.opensearch.sql.ast.tree.Project;
 import org.opensearch.sql.ast.tree.Relation;
 
@@ -503,5 +504,15 @@ public class CanPaginateVisitorTest {
             assertFalse(
                 project(filter(tableFunction(List.of("1", "2")), booleanLiteral(true)))
                     .accept(visitor, null)));
+  }
+
+  /**
+   * The {@code getChild()} in {@link Alias} now returns its delegated member. Testing for non-child
+   * {@link Node}.
+   */
+  @Test
+  public void visitFetchCursor() {
+    var plan = new FetchCursor("test");
+    assertTrue(visitor.canPaginate(plan, null));
   }
 }

@@ -71,6 +71,6 @@ public class AggregateFunction extends UnresolvedExpression {
 
   @Override
   public String toString() {
-    return StringUtils.format("%s(%s)", funcName, field);
+    return StringUtils.format("%s(%s%s)", funcName, distinct ? "DISTINCT " : "", field);
   }
 }

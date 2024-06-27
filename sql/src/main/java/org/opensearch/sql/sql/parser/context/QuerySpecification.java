@@ -25,7 +25,9 @@ import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.ToString;
 import org.antlr.v4.runtime.tree.ParseTree;
+import org.opensearch.sql.QueryCompilationError;
 import org.opensearch.sql.ast.dsl.AstDSL;
+import org.opensearch.sql.ast.expression.AggregateFunction;
 import org.opensearch.sql.ast.expression.DataType;
 import org.opensearch.sql.ast.expression.Literal;
 import org.opensearch.sql.ast.expression.QualifiedName;
@@ -33,11 +35,13 @@ import org.opensearch.sql.ast.expression.UnresolvedExpression;
 import org.opensearch.sql.ast.tree.Sort.SortOption;
 import org.opensearch.sql.common.utils.StringUtils;
 import org.opensearch.sql.exception.SemanticCheckException;
+import org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParser;
 import org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParser.AggregateFunctionCallContext;
 import org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParser.QuerySpecificationContext;
 import org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParser.SelectSpecContext;
 import org.opensearch.sql.sql.antlr.parser.OpenSearchSQLParserBaseVisitor;
 import org.opensearch.sql.sql.parser.AstExpressionBuilder;
+import org.opensearch.sql.sql.parser.ParserUtils;
 
 /**
  * Query specification domain that collects basic info for a simple query.
@@ -67,10 +71,13 @@ public class QuerySpecification {
   private final Map<String, UnresolvedExpression> selectItemsByAlias = new HashMap<>();
 
   /**
-   * Aggregate function calls that spreads in SELECT, HAVING clause. Since this is going to be
-   * pushed to aggregation operator, de-duplicate is necessary to avoid duplication.
+   * Aggregate function calls that spreads in SELECT clause. Since this is going to be pushed to
+   * aggregation operator, de-duplicate is necessary to avoid duplication.
    */
   private final Set<UnresolvedExpression> aggregators = new LinkedHashSet<>();
+
+  /** Aggregate function calls that spreads HAVING clause. */
+  private final Set<UnresolvedExpression> aggregatorsInHaving = new LinkedHashSet<>();
 
   /**
    *
@@ -84,6 +91,8 @@ public class QuerySpecification {
    *  </pre>
    */
   private final List<UnresolvedExpression> groupByItems = new ArrayList<>();
+
+  private final List<UnresolvedExpression> distinctItems = new ArrayList<>();
 
   /** Items in ORDER BY clause that may be different forms as above and its options. */
   private final List<UnresolvedExpression> orderByItems = new ArrayList<>();
@@ -131,8 +140,7 @@ public class QuerySpecification {
   private UnresolvedExpression getSelectItemByOrdinal(UnresolvedExpression expr) {
     int ordinal = (Integer) ((Literal) expr).getValue();
     if (ordinal <= 0 || ordinal > selectItems.size()) {
-      throw new SemanticCheckException(
-          StringUtils.format("Ordinal [%d] is out of bound of select item list", ordinal));
+      throw QueryCompilationError.ordinalRefersOutOfBounds(ordinal);
     }
     return selectItems.get(ordinal - 1);
   }
@@ -197,6 +205,9 @@ public class QuerySpecification {
     @Override
     public Void visitSelectElement(SelectElementContext ctx) {
       UnresolvedExpression expr = visitAstExpression(ctx.expression());
+      if (expr instanceof AggregateFunction && ((AggregateFunction) expr).getDistinct()) {
+        distinctItems.add(((AggregateFunction) expr).getField());
+      }
       selectItems.add(expr);
 
       if (ctx.alias() != null) {
@@ -230,6 +241,17 @@ public class QuerySpecification {
       UnresolvedExpression aggregateFunction = visitAstExpression(ctx);
       aggregators.add(AstDSL.alias(getTextInQuery(ctx, queryString), aggregateFunction));
       return super.visitFilteredAggregationFunctionCall(ctx);
+    }
+
+    @Override
+    public Void visitHavingClause(OpenSearchSQLParser.HavingClauseContext ctx) {
+      UnresolvedExpression expression = visitAstExpression(ctx);
+      List<AggregateFunction> aggregateFunctions =
+          ParserUtils.findNodes(expression, n -> n instanceof AggregateFunction);
+      for (AggregateFunction aggregateFunction : aggregateFunctions) {
+        aggregatorsInHaving.add(AstDSL.alias(aggregateFunction.toString(), aggregateFunction));
+      }
+      return super.visitHavingClause(ctx);
     }
 
     private boolean isDistinct(SelectSpecContext ctx) {

@@ -18,6 +18,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
 import lombok.Getter;
+import org.opensearch.sql.QueryCompilationError;
 import org.opensearch.sql.analysis.symbol.Namespace;
 import org.opensearch.sql.analysis.symbol.Symbol;
 import org.opensearch.sql.ast.AbstractNodeVisitor;
@@ -70,6 +71,8 @@ import org.opensearch.sql.expression.function.OpenSearchFunctions;
 import org.opensearch.sql.expression.parse.ParseExpression;
 import org.opensearch.sql.expression.span.SpanExpression;
 import org.opensearch.sql.expression.window.aggregation.AggregateWindowFunction;
+import org.opensearch.sql.expression.window.ranking.RankingWindowFunction;
+import org.opensearch.sql.utils.ExpressionUtils;
 
 /**
  * Analyze the {@link UnresolvedExpression} in the {@link AnalysisContext} to construct the {@link
@@ -169,11 +172,23 @@ public class ExpressionAnalyzer extends AbstractNodeVisitor<Expression, Analysis
                   builder.build());
       aggregator.distinct(node.getDistinct());
       if (node.condition() != null) {
-        aggregator.condition(analyze(node.condition(), context));
+        // Check if the filter condition is a valid predicate.
+        Expression predicate = node.condition().accept(this, context);
+        if (predicate.type() != ExprCoreType.BOOLEAN) {
+          throw QueryCompilationError.nonBooleanExpressionInFilterOrHavingError(predicate.type());
+        }
+        // Check if any aggregate function in filter
+        List<Expression> results =
+            ExpressionUtils.findSubExpressions(predicate, Aggregator.class::isInstance);
+        if (!results.isEmpty()) {
+          throw QueryCompilationError.aggregateFunctionNotAllowedInFilterError(
+              ((Aggregator) results.get(0)).getFunctionName().getFunctionName());
+        }
+        aggregator.condition(predicate);
       }
       return aggregator;
     } else {
-      throw new SemanticCheckException("Unsupported aggregation function " + node.getFuncName());
+      throw QueryCompilationError.unsupportedAggregateFunctionError(node.getFuncName());
     }
   }
 
@@ -203,6 +218,10 @@ public class ExpressionAnalyzer extends AbstractNodeVisitor<Expression, Analysis
         repository.compile(context.getFunctionProperties(), functionName, arguments);
   }
 
+  /**
+   * Todo. throws SemanticCheckException when a configuration could be set in order to avoid
+   * breaking change. Order is required if function expression is {@link RankingWindowFunction}.
+   */
   @SuppressWarnings("unchecked")
   @Override
   public Expression visitWindowFunction(WindowFunction node, AnalysisContext context) {
