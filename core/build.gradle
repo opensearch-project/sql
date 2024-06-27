@@ -46,7 +46,7 @@ pitest {
 }
 
 dependencies {
-    api group: 'com.google.guava', name: 'guava', version: '32.0.1-jre'
+    api group: 'com.google.guava', name: 'guava', version: '32.1.3-jre'
     api group: 'org.apache.commons', name: 'commons-lang3', version: '3.12.0'
     api group: 'org.apache.commons', name: 'commons-text', version: '1.10.0'
     api group: 'com.facebook.presto', name: 'presto-matching', version: '0.240'

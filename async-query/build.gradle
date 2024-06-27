@@ -16,6 +16,8 @@ repositories {
 
 
 dependencies {
+    compileOnly "org.opensearch:opensearch-job-scheduler-spi:${opensearch_build}"
+
     api project(':core')
     api project(':async-query-core')
     implementation project(':protocol')
