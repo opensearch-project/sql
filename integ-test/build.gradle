@@ -194,6 +194,11 @@ dependencies {
     zipArchive group: 'org.opensearch.plugin', name:'opensearch-sql-plugin', version: "${bwcVersion}-SNAPSHOT"
 }
 
+java {
+    sourceCompatibility = JavaVersion.VERSION_21
+    targetCompatibility = JavaVersion.VERSION_21
+}
+
 dependencyLicenses.enabled = false
 testingConventions.enabled = false
 forbiddenApisTest.enabled = false

@@ -172,6 +172,11 @@ ext {
     noticeFile = rootProject.file('NOTICE')
 }
 
+java {
+    sourceCompatibility = JavaVersion.VERSION_21
+    targetCompatibility = JavaVersion.VERSION_21
+}
+
 // ANTLR generated parser file is too large to be checked which caused licenseHeaders stuck.
 licenseHeaders {
     enabled = true
@@ -282,3 +287,4 @@ testClusters.integTest {
 run {
     useCluster testClusters.integTest
 }
+
