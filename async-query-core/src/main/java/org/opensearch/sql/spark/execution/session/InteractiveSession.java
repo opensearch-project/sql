@@ -16,7 +16,6 @@ import lombok.Builder;
 import lombok.Getter;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.opensearch.index.engine.VersionConflictEngineException;
 import org.opensearch.sql.spark.asyncquery.model.AsyncQueryRequestContext;
 import org.opensearch.sql.spark.client.EMRServerlessClient;
 import org.opensearch.sql.spark.client.StartJobRequest;
@@ -52,29 +51,23 @@ public class InteractiveSession implements Session {
   public void open(
       CreateSessionRequest createSessionRequest,
       AsyncQueryRequestContext asyncQueryRequestContext) {
-    try {
-      // append session id;
-      createSessionRequest
-          .getSparkSubmitParameters()
-          .acceptModifier(
-              (parameters) -> {
-                parameters.sessionExecution(sessionId, createSessionRequest.getDatasourceName());
-              });
-      createSessionRequest.getTags().put(SESSION_ID_TAG_KEY, sessionId);
-      StartJobRequest startJobRequest = createSessionRequest.getStartJobRequest(sessionId);
-      String jobID = serverlessClient.startJobRun(startJobRequest);
-      String applicationId = startJobRequest.getApplicationId();
-      String accountId = createSessionRequest.getAccountId();
+    // append session id;
+    createSessionRequest
+        .getSparkSubmitParameters()
+        .acceptModifier(
+            (parameters) -> {
+              parameters.sessionExecution(sessionId, createSessionRequest.getDatasourceName());
+            });
+    createSessionRequest.getTags().put(SESSION_ID_TAG_KEY, sessionId);
+    StartJobRequest startJobRequest = createSessionRequest.getStartJobRequest(sessionId);
+    String jobID = serverlessClient.startJobRun(startJobRequest);
+    String applicationId = startJobRequest.getApplicationId();
+    String accountId = createSessionRequest.getAccountId();
 
-      sessionModel =
-          initInteractiveSession(
-              accountId, applicationId, jobID, sessionId, createSessionRequest.getDatasourceName());
-      sessionStorageService.createSession(sessionModel, asyncQueryRequestContext);
-    } catch (VersionConflictEngineException e) {
-      String errorMsg = "session already exist. " + sessionId;
-      LOG.error(errorMsg);
-      throw new IllegalStateException(errorMsg);
-    }
+    sessionModel =
+        initInteractiveSession(
+            accountId, applicationId, jobID, sessionId, createSessionRequest.getDatasourceName());
+    sessionStorageService.createSession(sessionModel, asyncQueryRequestContext);
   }
 
   /** todo. StatementSweeper will delete doc. */

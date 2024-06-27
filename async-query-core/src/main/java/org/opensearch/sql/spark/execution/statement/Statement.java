@@ -12,8 +12,6 @@ import lombok.Getter;
 import lombok.Setter;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.opensearch.index.engine.DocumentMissingException;
-import org.opensearch.index.engine.VersionConflictEngineException;
 import org.opensearch.sql.spark.asyncquery.model.AsyncQueryRequestContext;
 import org.opensearch.sql.spark.execution.statestore.StatementStorageService;
 import org.opensearch.sql.spark.rest.model.LangType;
@@ -41,25 +39,19 @@ public class Statement {
 
   /** Open a statement. */
   public void open() {
-    try {
-      statementModel =
-          submitStatement(
-              sessionId,
-              accountId,
-              applicationId,
-              jobId,
-              statementId,
-              langType,
-              datasourceName,
-              query,
-              queryId);
-      statementModel =
-          statementStorageService.createStatement(statementModel, asyncQueryRequestContext);
-    } catch (VersionConflictEngineException e) {
-      String errorMsg = "statement already exist. " + statementId;
-      LOG.error(errorMsg);
-      throw new IllegalStateException(errorMsg);
-    }
+    statementModel =
+        submitStatement(
+            sessionId,
+            accountId,
+            applicationId,
+            jobId,
+            statementId,
+            langType,
+            datasourceName,
+            query,
+            queryId);
+    statementModel =
+        statementStorageService.createStatement(statementModel, asyncQueryRequestContext);
   }
 
   /** Cancel a statement. */
@@ -77,26 +69,8 @@ public class Statement {
       LOG.error(errorMsg);
       throw new IllegalStateException(errorMsg);
     }
-    try {
-      this.statementModel =
-          statementStorageService.updateStatementState(statementModel, StatementState.CANCELLED);
-    } catch (DocumentMissingException e) {
-      String errorMsg =
-          String.format("cancel statement failed. no statement found. statement: %s.", statementId);
-      LOG.error(errorMsg);
-      throw new IllegalStateException(errorMsg);
-    } catch (VersionConflictEngineException e) {
-      this.statementModel =
-          statementStorageService
-              .getStatement(statementModel.getId(), statementModel.getDatasourceName())
-              .orElse(this.statementModel);
-      String errorMsg =
-          String.format(
-              "cancel statement failed. current statementState: %s " + "statement: %s.",
-              this.statementModel.getStatementState(), statementId);
-      LOG.error(errorMsg);
-      throw new IllegalStateException(errorMsg);
-    }
+    this.statementModel =
+        statementStorageService.updateStatementState(statementModel, StatementState.CANCELLED);
   }
 
   public StatementState getStatementState() {
