@@ -134,7 +134,10 @@ public class SQLQueryUtilsTest {
           + " WITH (auto_refresh = true)",
       "CREATE SKIPPING INDEX ON myS3.default.alb_logs(l_orderkey VALUE_SET) "
           + " WHERE elb_status_code = 500 "
-          + " WITH (auto_refresh = true)"
+          + " WITH (auto_refresh = true)",
+      "DROP SKIPPING INDEX ON myS3.default.alb_logs",
+      "VACUUM SKIPPING INDEX ON myS3.default.alb_logs",
+      "ALTER SKIPPING INDEX ON myS3.default.alb_logs WITH (auto_refresh = false)",
     };
 
     for (String query : createSkippingIndexQueries) {
@@ -151,7 +154,7 @@ public class SQLQueryUtilsTest {
 
   @Test
   void testExtractionFromFlintCoveringIndexQueries() {
-    String[] createCoveredIndexQueries = {
+    String[] coveringIndexQueries = {
       "CREATE INDEX elb_and_requestUri ON myS3.default.alb_logs(l_orderkey, l_quantity)",
       "CREATE INDEX IF NOT EXISTS elb_and_requestUri "
           + " ON myS3.default.alb_logs(l_orderkey, l_quantity) "
@@ -160,10 +163,13 @@ public class SQLQueryUtilsTest {
           + " WITH (auto_refresh = true)",
       "CREATE INDEX elb_and_requestUri ON myS3.default.alb_logs(l_orderkey, l_quantity) "
           + " WHERE elb_status_code = 500 "
-          + " WITH (auto_refresh = true)"
+          + " WITH (auto_refresh = true)",
+      "DROP INDEX elb_and_requestUri ON myS3.default.alb_logs",
+      "VACUUM INDEX elb_and_requestUri ON myS3.default.alb_logs",
+      "ALTER INDEX elb_and_requestUri ON myS3.default.alb_logs WITH (auto_refresh = false)"
     };
 
-    for (String query : createCoveredIndexQueries) {
+    for (String query : coveringIndexQueries) {
       assertTrue(SQLQueryUtils.isFlintExtensionQuery(query), "Failed query: " + query);
 
       IndexQueryDetails indexQueryDetails = SQLQueryUtils.extractIndexDetails(query);
@@ -177,19 +183,25 @@ public class SQLQueryUtilsTest {
 
   @Test
   void testExtractionFromFlintMVQuery() {
-    String createCoveredIndexQuery =
-        "CREATE MATERIALIZED VIEW mv_1 AS query=select * from my_glue.default.logs WITH"
-            + " (auto_refresh = true)";
-    assertTrue(SQLQueryUtils.isFlintExtensionQuery(createCoveredIndexQuery));
+    String[] mvQueries = {
+      "CREATE MATERIALIZED VIEW mv_1 AS query=select * from my_glue.default.logs WITH"
+          + " (auto_refresh = true)",
+      "DROP MATERIALIZED VIEW mv_1",
+      "VACUUM MATERIALIZED VIEW mv_1",
+      "ALTER MATERIALIZED VIEW mv_1 WITH (auto_refresh = false)",
+    };
 
-    IndexQueryDetails indexQueryDetails =
-        SQLQueryUtils.extractIndexDetails(createCoveredIndexQuery);
-    FullyQualifiedTableName fullyQualifiedTableName =
-        indexQueryDetails.getFullyQualifiedTableName();
+    for (String query : mvQueries) {
+      assertTrue(SQLQueryUtils.isFlintExtensionQuery(query));
 
-    assertNull(indexQueryDetails.getIndexName());
-    assertNull(fullyQualifiedTableName);
-    assertEquals("mv_1", indexQueryDetails.getMvName());
+      IndexQueryDetails indexQueryDetails = SQLQueryUtils.extractIndexDetails(query);
+      FullyQualifiedTableName fullyQualifiedTableName =
+          indexQueryDetails.getFullyQualifiedTableName();
+
+      assertNull(indexQueryDetails.getIndexName());
+      assertNull(fullyQualifiedTableName);
+      assertEquals("mv_1", indexQueryDetails.getMvName());
+    }
   }
 
   @Test
