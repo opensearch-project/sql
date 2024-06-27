@@ -70,6 +70,8 @@ import org.opensearch.sql.expression.function.OpenSearchFunctions;
 import org.opensearch.sql.expression.parse.ParseExpression;
 import org.opensearch.sql.expression.span.SpanExpression;
 import org.opensearch.sql.expression.window.aggregation.AggregateWindowFunction;
+import org.opensearch.sql.expression.window.ranking.RankingWindowFunction;
+import org.opensearch.sql.utils.ExpressionUtils;
 
 /**
  * Analyze the {@link UnresolvedExpression} in the {@link AnalysisContext} to construct the {@link
@@ -169,11 +171,23 @@ public class ExpressionAnalyzer extends AbstractNodeVisitor<Expression, Analysis
                   builder.build());
       aggregator.distinct(node.getDistinct());
       if (node.condition() != null) {
-        aggregator.condition(analyze(node.condition(), context));
+        // Check if the filter condition is a valid predicate.
+        Expression predicate = node.condition().accept(this, context);
+        if (predicate.type() != ExprCoreType.BOOLEAN) {
+          throw QueryCompilationError.nonBooleanExpressionInFilterOrHavingError(predicate.type());
+        }
+        // Check if any aggregate function in filter
+        List<Expression> results = new ArrayList<>();
+        ExpressionUtils.findExpressions(predicate, e -> e instanceof Aggregator, results);
+        if (!results.isEmpty()) {
+          throw QueryCompilationError.aggregateFunctionNotAllowedInFilterError(
+              ((Aggregator) results.get(0)).getFunctionName().getFunctionName());
+        }
+        aggregator.condition(predicate);
       }
       return aggregator;
     } else {
-      throw new SemanticCheckException("Unsupported aggregation function " + node.getFuncName());
+      throw QueryCompilationError.unsupportedAggregateFunctionError(node.getFuncName());
     }
   }
 
@@ -210,6 +224,10 @@ public class ExpressionAnalyzer extends AbstractNodeVisitor<Expression, Analysis
     // Wrap regular aggregator by aggregate window function to adapt window operator use
     if (expr instanceof Aggregator) {
       return new AggregateWindowFunction((Aggregator<AggregationState>) expr);
+    }
+    if (expr instanceof RankingWindowFunction && node.getSortList().isEmpty()) {
+      throw QueryCompilationError.rankingWindowFunctionMissesOrderClauseError(
+          ((RankingWindowFunction) expr).getFunctionName().getFunctionName());
     }
     return expr;
   }

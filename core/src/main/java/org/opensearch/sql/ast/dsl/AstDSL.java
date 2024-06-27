@@ -47,6 +47,7 @@ import org.opensearch.sql.ast.tree.Aggregation;
 import org.opensearch.sql.ast.tree.Dedupe;
 import org.opensearch.sql.ast.tree.Eval;
 import org.opensearch.sql.ast.tree.Filter;
+import org.opensearch.sql.ast.tree.Having;
 import org.opensearch.sql.ast.tree.Head;
 import org.opensearch.sql.ast.tree.Limit;
 import org.opensearch.sql.ast.tree.Parse;
@@ -470,5 +471,12 @@ public class AstDSL {
       Literal pattern,
       java.util.Map<String, Literal> arguments) {
     return new Parse(parseMethod, sourceField, pattern, arguments, input);
+  }
+
+  public static UnresolvedPlan having(
+      UnresolvedPlan input,
+      List<UnresolvedExpression> aggregators,
+      UnresolvedExpression condition) {
+    return new Having(aggregators, condition).attach(input);
   }
 }

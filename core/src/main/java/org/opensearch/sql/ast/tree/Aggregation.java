@@ -31,6 +31,10 @@ public class Aggregation extends UnresolvedPlan {
 
   /** Aggregation Constructor without span and argument. */
   public Aggregation(
+      // In unresolved logical plan, the aggExprList not only includes AggregatorFunctions,
+      // but also includes select expressions.
+      // Those invalid expressions will be erased when it is resolving to resolved plan.
+      // As a result, only aggregator functions will be converted to NamedAggregator.
       List<UnresolvedExpression> aggExprList,
       List<UnresolvedExpression> sortExprList,
       List<UnresolvedExpression> groupExprList) {
