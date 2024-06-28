@@ -533,6 +533,32 @@ public class AstExpressionBuilderTest extends AstBuilderTest {
   }
 
   @Test
+  public void canBuildMetaDataFieldAsQualifiedName() {
+    assertEqual(
+        "source=test | fields _id, _index, _sort, _maxscore",
+        projectWithArg(
+            relation("test"),
+            defaultFieldsArgs(),
+            field("_id"),
+            field("_index"),
+            field("_sort"),
+            field("_maxscore")));
+  }
+
+  @Test
+  public void canBuildNonMetaDataFieldAsQualifiedName() {
+    assertEqual(
+        "source=test | fields id, __id, _routing, ___field",
+        projectWithArg(
+            relation("test"),
+            defaultFieldsArgs(),
+            field("id"),
+            field("__id"),
+            field("_routing"),
+            field("___field")));
+  }
+
+  @Test
   public void canBuildMatchRelevanceFunctionWithArguments() {
     assertEqual(
         "source=test | where match('message', 'test query', analyzer='keyword')",
