@@ -16,12 +16,19 @@ import org.opensearch.sql.datasource.model.DataSourceType;
 import org.opensearch.sql.spark.asyncquery.model.AsyncQueryRequestContext;
 import org.opensearch.sql.spark.dispatcher.model.DispatchQueryRequest;
 
-/** Stores Spark parameter composers and dispatch compose request to each composer */
+/**
+ * Stores Spark parameter composers and dispatch compose request to each composer. Composers should
+ * be registered during initialization such as in Guice Module.
+ */
 public class SparkParameterComposerCollection {
-  Collection<GeneralSparkParameterComposer> generalComposers = new ArrayList<>();
-  Map<DataSourceType, Collection<DataSourceSparkParameterComposer>> datasourceComposers =
+  private Collection<GeneralSparkParameterComposer> generalComposers = new ArrayList<>();
+  private Map<DataSourceType, Collection<DataSourceSparkParameterComposer>> datasourceComposers =
       new HashMap<>();
 
+  /**
+   * Register composers for specific DataSourceType. The registered composer is called only if the
+   * request is for the dataSourceType.
+   */
   public void register(DataSourceType dataSourceType, DataSourceSparkParameterComposer composer) {
     if (!datasourceComposers.containsKey(dataSourceType)) {
       datasourceComposers.put(dataSourceType, new LinkedList<>());
@@ -29,6 +36,10 @@ public class SparkParameterComposerCollection {
     datasourceComposers.get(dataSourceType).add(composer);
   }
 
+  /**
+   * Register general composer. The composer is called when spark parameter is generated regardless
+   * of datasource type.
+   */
   public void register(GeneralSparkParameterComposer composer) {
     generalComposers.add(composer);
   }

@@ -14,6 +14,7 @@ import lombok.RequiredArgsConstructor;
 import org.apache.commons.lang3.StringUtils;
 import org.opensearch.sql.common.setting.Settings;
 
+/** Load SparkExecutionEngineConfigClusterSetting from settings with privilege check. */
 @RequiredArgsConstructor
 public class SparkExecutionEngineConfigClusterSettingLoader {
   private final Settings settings;
