@@ -12,7 +12,7 @@ import lombok.Getter;
 import lombok.ToString;
 import org.opensearch.sql.expression.ReferenceExpression;
 
-/** Logical Dedupe Plan. */
+/** Logical Lookup Plan. */
 @Getter
 @ToString
 @EqualsAndHashCode(callSuper = true)
@@ -23,7 +23,7 @@ public class LogicalLookup extends LogicalPlan {
   private final Map<ReferenceExpression, ReferenceExpression> copyFieldMap;
   private final Boolean appendOnly;
 
-  /** Constructor of LogicalDedupe. */
+  /** Constructor of LogicalLookup. */
   public LogicalLookup(
       LogicalPlan child,
       String indexName,
