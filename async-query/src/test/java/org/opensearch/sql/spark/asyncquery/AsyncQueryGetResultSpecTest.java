@@ -417,7 +417,7 @@ public class AsyncQueryGetResultSpecTest extends AsyncQueryExecutorServiceSpec {
     private Interaction interaction;
 
     AssertionHelper(String query, LocalEMRSClient emrClient) {
-      EMRServerlessClientFactory emrServerlessClientFactory = () -> emrClient;
+      EMRServerlessClientFactory emrServerlessClientFactory = (accountId) -> emrClient;
       this.queryService =
           createAsyncQueryExecutorService(
               emrServerlessClientFactory,
