@@ -107,12 +107,15 @@ public class AstExpressionBuilderTest extends AstBuilderTest {
   @Test
   public void testBooleanIsNullFunction() {
     assertEqual("source=t isnull(a)", filter(relation("t"), function("is null", field("a"))));
+    assertEqual("source=t ISNULL(a)", filter(relation("t"), function("is null", field("a"))));
   }
 
   @Test
   public void testBooleanIsNotNullFunction() {
     assertEqual(
         "source=t isnotnull(a)", filter(relation("t"), function("is not null", field("a"))));
+    assertEqual(
+        "source=t ISNOTNULL(a)", filter(relation("t"), function("is not null", field("a"))));
   }
 
   /** Todo. search operator should not include functionCall, need to change antlr. */
