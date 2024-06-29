@@ -96,11 +96,40 @@ public class DateTimeValueTest {
   }
 
   @Test
+  public void dateValueWithSupportedDateTimeFormatTest() {
+    ExprDateValue dateTimeWithSecValue = new ExprDateValue("2020-08-17 12:12:00");
+    assertEquals("2020-08-17 00:00:00", dateTimeWithSecValue.value());
+    assertEquals(LocalDate.of(2020, 8, 17), dateTimeWithSecValue.dateValue());
+
+    ExprDateValue dateTimeWithoutSecValue = new ExprDateValue("2020-08-17 12:12");
+    assertEquals("2020-08-17 00:00", dateTimeWithoutSecValue.value());
+    assertEquals(LocalDate.of(2020, 8, 17), dateTimeWithoutSecValue.dateValue());
+
+    ExprDateValue dateValue = new ExprDateValue("2020-08-17");
+    assertEquals("2020-08-17", dateValue.value());
+    assertEquals(LocalDate.of(2020, 8, 17), dateValue.dateValue());
+
+    ExprDateValue dateValue2 = new ExprDateValue("03-Jan-21");
+    assertEquals("03-Jan-21", dateValue2.value());
+    assertEquals(LocalDate.of(2021, 1, 3), dateValue2.dateValue());
+  }
+
+  @Test
   public void dateInUnsupportedFormat() {
     SemanticCheckException exception =
         assertThrows(SemanticCheckException.class, () -> new ExprDateValue("2020-07-07Z"));
     assertEquals(
         "date:2020-07-07Z in unsupported format, please use 'yyyy-MM-dd'", exception.getMessage());
+
+    SemanticCheckException timeException =
+            assertThrows(SemanticCheckException.class, () -> new ExprDateValue("01:01:01"));
+    assertEquals(
+            "date:01:01:01 in unsupported format, please use 'yyyy-MM-dd'", timeException.getMessage());
+
+    SemanticCheckException timeWithoutSecException =
+            assertThrows(SemanticCheckException.class, () -> new ExprDateValue("01:45"));
+    assertEquals(
+            "date:01:45 in unsupported format, please use 'yyyy-MM-dd'", timeWithoutSecException.getMessage());
   }
 
   @Test
