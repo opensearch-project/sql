@@ -719,6 +719,22 @@ class SQLSyntaxParserTest {
     assertNotNull(parser.parse("SELECT * FROM test WHERE Field = multimatch(\"query\")"));
   }
 
+  @Test
+  public void canParseIfFunction() {
+    assertNotNull(parser.parse("SELECT IF(1 > 2, 1, 0)"));
+    assertNotNull(parser.parse("SELECT IF(1 < 2, 1, 0)"));
+    assertNotNull(parser.parse("SELECT IF(1 >= 2, 1, 0)"));
+    assertNotNull(parser.parse("SELECT IF(1 <= 2, 1, 0)"));
+    assertNotNull(parser.parse("SELECT IF(1 <> 2, 1, 0)"));
+    assertNotNull(parser.parse("SELECT IF(1 != 2, 1, 0)"));
+    assertNotNull(parser.parse("SELECT IF(1 = 2, 1, 0)"));
+    assertNotNull(parser.parse("SELECT IF(true, 1, 0)"));
+    assertNotNull(parser.parse("SELECT IF(1 IS NOT NULL, 1, 0)"));
+    assertNotNull(parser.parse("SELECT IF(NOT 1 > 2, 1, 0)"));
+    assertNotNull(parser.parse("SELECT IF(NOT 1 IN (0, 1), 1, 0)"));
+    assertNotNull(parser.parse("SELECT IF(NOT 1 IN (0, 1) OR 1 IS NOT NULL, 1, 0)"));
+  }
+
   private static Stream<String> matchPhraseQueryComplexQueries() {
     return Stream.of(
         "SELECT * FROM t WHERE matchphrasequery(c, 3)",
