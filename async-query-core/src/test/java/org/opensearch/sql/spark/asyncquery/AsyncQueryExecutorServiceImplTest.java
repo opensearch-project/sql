@@ -33,7 +33,6 @@ import org.opensearch.sql.spark.asyncquery.exceptions.AsyncQueryNotFoundExceptio
 import org.opensearch.sql.spark.asyncquery.model.AsyncQueryExecutionResponse;
 import org.opensearch.sql.spark.asyncquery.model.AsyncQueryJobMetadata;
 import org.opensearch.sql.spark.asyncquery.model.AsyncQueryRequestContext;
-import org.opensearch.sql.spark.asyncquery.model.SparkSubmitParameters;
 import org.opensearch.sql.spark.config.SparkExecutionEngineConfig;
 import org.opensearch.sql.spark.config.SparkExecutionEngineConfigSupplier;
 import org.opensearch.sql.spark.config.SparkSubmitParameterModifier;
@@ -115,9 +114,7 @@ public class AsyncQueryExecutorServiceImplTest {
   @Test
   void testCreateAsyncQueryWithExtraSparkSubmitParameter() {
     SparkSubmitParameterModifier modifier =
-        (SparkSubmitParameters parameters) -> {
-          parameters.setExtraParameters("--conf spark.dynamicAllocation.enabled=false");
-        };
+        (builder) -> builder.extraParameters("--conf spark.dynamicAllocation.enabled=false");
     when(sparkExecutionEngineConfigSupplier.getSparkExecutionEngineConfig(any()))
         .thenReturn(
             SparkExecutionEngineConfig.builder()

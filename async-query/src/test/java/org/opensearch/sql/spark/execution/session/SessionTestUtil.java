@@ -9,7 +9,8 @@ import static org.opensearch.sql.spark.constants.TestConstants.TEST_CLUSTER_NAME
 import static org.opensearch.sql.spark.constants.TestConstants.TEST_DATASOURCE_NAME;
 
 import java.util.HashMap;
-import org.opensearch.sql.spark.asyncquery.model.SparkSubmitParameters;
+import org.opensearch.sql.spark.parameter.SparkParameterComposerCollection;
+import org.opensearch.sql.spark.parameter.SparkSubmitParametersBuilder;
 
 public class SessionTestUtil {
 
@@ -19,7 +20,7 @@ public class SessionTestUtil {
         null,
         "appId",
         "arn",
-        SparkSubmitParameters.builder().build(),
+        new SparkSubmitParametersBuilder(new SparkParameterComposerCollection()),
         new HashMap<>(),
         "resultIndex",
         TEST_DATASOURCE_NAME);

@@ -7,9 +7,9 @@ package org.opensearch.sql.spark.execution.session;
 
 import java.util.Map;
 import lombok.Data;
-import org.opensearch.sql.spark.asyncquery.model.SparkSubmitParameters;
 import org.opensearch.sql.spark.client.StartJobRequest;
 import org.opensearch.sql.spark.dispatcher.model.JobType;
+import org.opensearch.sql.spark.parameter.SparkSubmitParametersBuilder;
 
 @Data
 public class CreateSessionRequest {
@@ -17,7 +17,7 @@ public class CreateSessionRequest {
   private final String accountId;
   private final String applicationId;
   private final String executionRoleArn;
-  private final SparkSubmitParameters sparkSubmitParameters;
+  private final SparkSubmitParametersBuilder sparkSubmitParametersBuilder;
   private final Map<String, String> tags;
   private final String resultIndex;
   private final String datasourceName;
@@ -28,7 +28,7 @@ public class CreateSessionRequest {
         accountId,
         applicationId,
         executionRoleArn,
-        sparkSubmitParameters.toString(),
+        sparkSubmitParametersBuilder.toString(),
         tags,
         resultIndex);
   }

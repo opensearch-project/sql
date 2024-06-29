@@ -34,10 +34,12 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
+import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.opensearch.sql.spark.asyncquery.model.SparkSubmitParameters;
 import org.opensearch.sql.spark.metrics.MetricsService;
+import org.opensearch.sql.spark.parameter.SparkParameterComposerCollection;
+import org.opensearch.sql.spark.parameter.SparkSubmitParametersBuilder;
 
 @ExtendWith(MockitoExtension.class)
 public class EmrServerlessClientImplTest {
@@ -46,14 +48,17 @@ public class EmrServerlessClientImplTest {
 
   @Captor private ArgumentCaptor<StartJobRunRequest> startJobRunRequestArgumentCaptor;
 
+  @InjectMocks EmrServerlessClientImpl emrServerlessClient;
+
   @Test
   void testStartJobRun() {
     StartJobRunResult response = new StartJobRunResult();
     when(emrServerless.startJobRun(any())).thenReturn(response);
 
-    EmrServerlessClientImpl emrServerlessClient =
-        new EmrServerlessClientImpl(emrServerless, metricsService);
-    String parameters = SparkSubmitParameters.builder().query(QUERY).build().toString();
+    String parameters =
+        new SparkSubmitParametersBuilder(new SparkParameterComposerCollection())
+            .query(QUERY)
+            .toString();
 
     emrServerlessClient.startJobRun(
         new StartJobRequest(
@@ -87,8 +92,6 @@ public class EmrServerlessClientImplTest {
     doThrow(new AWSEMRServerlessException("Couldn't start job"))
         .when(emrServerless)
         .startJobRun(any());
-    EmrServerlessClientImpl emrServerlessClient =
-        new EmrServerlessClientImpl(emrServerless, metricsService);
     RuntimeException runtimeException =
         Assertions.assertThrows(
             RuntimeException.class,
@@ -111,8 +114,6 @@ public class EmrServerlessClientImplTest {
     StartJobRunResult response = new StartJobRunResult();
     when(emrServerless.startJobRun(any())).thenReturn(response);
 
-    EmrServerlessClientImpl emrServerlessClient =
-        new EmrServerlessClientImpl(emrServerless, metricsService);
     emrServerlessClient.startJobRun(
         new StartJobRequest(
             EMRS_JOB_NAME,
@@ -132,16 +133,12 @@ public class EmrServerlessClientImplTest {
     GetJobRunResult response = new GetJobRunResult();
     response.setJobRun(jobRun);
     when(emrServerless.getJobRun(any())).thenReturn(response);
-    EmrServerlessClientImpl emrServerlessClient =
-        new EmrServerlessClientImpl(emrServerless, metricsService);
     emrServerlessClient.getJobRunResult(EMRS_APPLICATION_ID, "123");
   }
 
   @Test
   void testGetJobRunStateWithErrorMetric() {
     doThrow(new ValidationException("Not a good job")).when(emrServerless).getJobRun(any());
-    EmrServerlessClientImpl emrServerlessClient =
-        new EmrServerlessClientImpl(emrServerless, metricsService);
     RuntimeException runtimeException =
         Assertions.assertThrows(
             RuntimeException.class,
@@ -153,18 +150,17 @@ public class EmrServerlessClientImplTest {
   void testCancelJobRun() {
     when(emrServerless.cancelJobRun(any()))
         .thenReturn(new CancelJobRunResult().withJobRunId(EMR_JOB_ID));
-    EmrServerlessClientImpl emrServerlessClient =
-        new EmrServerlessClientImpl(emrServerless, metricsService);
+
     CancelJobRunResult cancelJobRunResult =
         emrServerlessClient.cancelJobRun(EMRS_APPLICATION_ID, EMR_JOB_ID, false);
+
     Assertions.assertEquals(EMR_JOB_ID, cancelJobRunResult.getJobRunId());
   }
 
   @Test
   void testCancelJobRunWithErrorMetric() {
     doThrow(new RuntimeException()).when(emrServerless).cancelJobRun(any());
-    EmrServerlessClientImpl emrServerlessClient =
-        new EmrServerlessClientImpl(emrServerless, metricsService);
+
     Assertions.assertThrows(
         RuntimeException.class,
         () -> emrServerlessClient.cancelJobRun(EMRS_APPLICATION_ID, "123", false));
@@ -173,24 +169,24 @@ public class EmrServerlessClientImplTest {
   @Test
   void testCancelJobRunWithValidationException() {
     doThrow(new ValidationException("Error")).when(emrServerless).cancelJobRun(any());
-    EmrServerlessClientImpl emrServerlessClient =
-        new EmrServerlessClientImpl(emrServerless, metricsService);
+
     RuntimeException runtimeException =
         Assertions.assertThrows(
             RuntimeException.class,
             () -> emrServerlessClient.cancelJobRun(EMRS_APPLICATION_ID, EMR_JOB_ID, false));
+
     Assertions.assertEquals("Internal Server Error.", runtimeException.getMessage());
   }
 
   @Test
   void testCancelJobRunWithNativeEMRExceptionWithValidationException() {
     doThrow(new ValidationException("Error")).when(emrServerless).cancelJobRun(any());
-    EmrServerlessClientImpl emrServerlessClient =
-        new EmrServerlessClientImpl(emrServerless, metricsService);
+
     ValidationException validationException =
         Assertions.assertThrows(
             ValidationException.class,
             () -> emrServerlessClient.cancelJobRun(EMRS_APPLICATION_ID, EMR_JOB_ID, true));
+
     Assertions.assertTrue(validationException.getMessage().contains("Error"));
   }
 
@@ -198,10 +194,10 @@ public class EmrServerlessClientImplTest {
   void testCancelJobRunWithNativeEMRException() {
     when(emrServerless.cancelJobRun(any()))
         .thenReturn(new CancelJobRunResult().withJobRunId(EMR_JOB_ID));
-    EmrServerlessClientImpl emrServerlessClient =
-        new EmrServerlessClientImpl(emrServerless, metricsService);
+
     CancelJobRunResult cancelJobRunResult =
         emrServerlessClient.cancelJobRun(EMRS_APPLICATION_ID, EMR_JOB_ID, true);
+
     Assertions.assertEquals(EMR_JOB_ID, cancelJobRunResult.getJobRunId());
   }
 
@@ -210,8 +206,6 @@ public class EmrServerlessClientImplTest {
     StartJobRunResult response = new StartJobRunResult();
     when(emrServerless.startJobRun(any())).thenReturn(response);
 
-    EmrServerlessClientImpl emrServerlessClient =
-        new EmrServerlessClientImpl(emrServerless, metricsService);
     emrServerlessClient.startJobRun(
         new StartJobRequest(
             RandomStringUtils.random(300),
@@ -222,6 +216,7 @@ public class EmrServerlessClientImplTest {
             new HashMap<>(),
             false,
             DEFAULT_RESULT_INDEX));
+
     verify(emrServerless, times(1)).startJobRun(startJobRunRequestArgumentCaptor.capture());
     StartJobRunRequest startJobRunRequest = startJobRunRequestArgumentCaptor.getValue();
     Assertions.assertEquals(255, startJobRunRequest.getName().length());
@@ -230,8 +225,6 @@ public class EmrServerlessClientImplTest {
   @Test
   void testStartJobRunThrowsValidationException() {
     when(emrServerless.startJobRun(any())).thenThrow(new ValidationException("Unmatched quote"));
-    EmrServerlessClientImpl emrServerlessClient =
-        new EmrServerlessClientImpl(emrServerless, metricsService);
 
     IllegalArgumentException exception =
         Assertions.assertThrows(

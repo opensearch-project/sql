@@ -6,7 +6,7 @@
 package org.opensearch.sql.spark.config;
 
 import lombok.AllArgsConstructor;
-import org.opensearch.sql.spark.asyncquery.model.SparkSubmitParameters;
+import org.opensearch.sql.spark.parameter.SparkSubmitParametersBuilder;
 
 @AllArgsConstructor
 public class OpenSearchSparkSubmitParameterModifier implements SparkSubmitParameterModifier {
@@ -14,7 +14,7 @@ public class OpenSearchSparkSubmitParameterModifier implements SparkSubmitParame
   private String extraParameters;
 
   @Override
-  public void modifyParameters(SparkSubmitParameters parameters) {
-    parameters.setExtraParameters(this.extraParameters);
+  public void modifyParameters(SparkSubmitParametersBuilder builder) {
+    builder.extraParameters(this.extraParameters);
   }
 }
