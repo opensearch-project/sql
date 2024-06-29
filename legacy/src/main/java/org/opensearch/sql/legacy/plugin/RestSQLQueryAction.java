@@ -172,7 +172,7 @@ public class RestSQLQueryAction extends BaseRestHandler {
     } else if (format.equals(Format.CSV)) {
       formatter = new CsvResponseFormatter(request.sanitize());
     } else if (format.equals(Format.RAW)) {
-      formatter = new RawResponseFormatter();
+      formatter = new RawResponseFormatter(request.pretty());
     } else {
       formatter = new JdbcResponseFormatter(PRETTY);
     }
