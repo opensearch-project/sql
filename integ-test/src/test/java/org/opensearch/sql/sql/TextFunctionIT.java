@@ -5,6 +5,7 @@
 
 package org.opensearch.sql.sql;
 
+import static org.opensearch.sql.legacy.TestsConstants.TEST_INDEX_STRINGS;
 import static org.opensearch.sql.legacy.plugin.RestSqlAction.QUERY_API_ENDPOINT;
 import static org.opensearch.sql.util.MatcherUtils.rows;
 import static org.opensearch.sql.util.MatcherUtils.schema;
@@ -25,7 +26,7 @@ public class TextFunctionIT extends SQLIntegTestCase {
 
   @Override
   public void init() throws Exception {
-    super.init();
+    loadIndex(Index.BANK_WITH_STRING_VALUES);
   }
 
   void verifyQuery(String query, String type, String output) throws IOException {
@@ -50,6 +51,15 @@ public class TextFunctionIT extends SQLIntegTestCase {
   public void testRegexp() throws IOException {
     verifyQuery("'a' regexp 'b'", "integer", 0);
     verifyQuery("'a' regexp '.*'", "integer", 1);
+  }
+
+  @Test
+  public void testRegexpAgainstIndex() throws IOException {
+    JSONObject result =
+        executeQuery(
+            String.format("select * from %s where name regexp 'hel.*'", TEST_INDEX_STRINGS));
+    verifySchema(result, schema("name", "text"));
+    verifyDataRows(result, rows("hello"), rows("helloworld"));
   }
 
   @Test
