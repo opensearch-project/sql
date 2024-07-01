@@ -26,6 +26,7 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.apache.commons.lang3.tuple.Pair;
 import org.opensearch.sql.DataSourceSchemaName;
@@ -47,6 +48,7 @@ import org.opensearch.sql.ast.tree.Dedupe;
 import org.opensearch.sql.ast.tree.Eval;
 import org.opensearch.sql.ast.tree.FetchCursor;
 import org.opensearch.sql.ast.tree.Filter;
+import org.opensearch.sql.ast.tree.Having;
 import org.opensearch.sql.ast.tree.Head;
 import org.opensearch.sql.ast.tree.Kmeans;
 import org.opensearch.sql.ast.tree.Limit;
@@ -81,6 +83,7 @@ import org.opensearch.sql.expression.function.BuiltinFunctionRepository;
 import org.opensearch.sql.expression.function.FunctionName;
 import org.opensearch.sql.expression.function.TableFunctionImplementation;
 import org.opensearch.sql.expression.parse.ParseExpression;
+import org.opensearch.sql.expression.window.WindowFunctionExpression;
 import org.opensearch.sql.planner.logical.LogicalAD;
 import org.opensearch.sql.planner.logical.LogicalAggregation;
 import org.opensearch.sql.planner.logical.LogicalCloseCursor;
@@ -102,6 +105,7 @@ import org.opensearch.sql.planner.logical.LogicalSort;
 import org.opensearch.sql.planner.logical.LogicalValues;
 import org.opensearch.sql.planner.physical.datasource.DataSourceTable;
 import org.opensearch.sql.storage.Table;
+import org.opensearch.sql.utils.ExpressionUtils;
 import org.opensearch.sql.utils.ParseUtils;
 
 /**
@@ -235,11 +239,25 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
   public LogicalPlan visitFilter(Filter node, AnalysisContext context) {
     LogicalPlan child = node.getChild().get(0).accept(this, context);
     Expression condition = expressionAnalyzer.analyze(node.getCondition(), context);
+    validateCondition(condition);
 
     ExpressionReferenceOptimizer optimizer =
         new ExpressionReferenceOptimizer(expressionAnalyzer.getRepository(), child);
     Expression optimized = optimizer.optimize(condition, context);
     return new LogicalFilter(child, optimized);
+  }
+
+  private void validateCondition(Expression condition) {
+    // Check if the filter condition is a valid predicate.
+    if (condition.type() != ExprCoreType.BOOLEAN) {
+      throw QueryCompilationError.nonBooleanExpressionInFilterOrHavingError(condition.type());
+    }
+    // Check if any window functions in filter
+    List<Expression> results =
+        ExpressionUtils.findExpressions(condition, e -> e instanceof WindowFunctionExpression);
+    if (!results.isEmpty()) {
+      throw QueryCompilationError.windowFunctionNotAllowedError();
+    }
   }
 
   /**
@@ -295,13 +313,7 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
   @Override
   public LogicalPlan visitAggregation(Aggregation node, AnalysisContext context) {
     final LogicalPlan child = node.getChild().get(0).accept(this, context);
-    ImmutableList.Builder<NamedAggregator> aggregatorBuilder = new ImmutableList.Builder<>();
-    for (UnresolvedExpression expr : node.getAggExprList()) {
-      NamedExpression aggExpr = namedExpressionAnalyzer.analyze(expr, context);
-      aggregatorBuilder.add(
-          new NamedAggregator(aggExpr.getNameOrAlias(), (Aggregator) aggExpr.getDelegated()));
-    }
-
+    // resolve group-by list
     ImmutableList.Builder<NamedExpression> groupbyBuilder = new ImmutableList.Builder<>();
     // Span should be first expression if exist.
     if (node.getSpan() != null) {
@@ -310,12 +322,35 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
 
     for (UnresolvedExpression expr : node.getGroupExprList()) {
       NamedExpression resolvedExpr = namedExpressionAnalyzer.analyze(expr, context);
+      if (resolvedExpr.getDelegated() instanceof Aggregator) {
+        throw QueryCompilationError.aggregateFunctionNotAllowedInGroupByError(
+            ((Aggregator<?>) resolvedExpr.getDelegated()).getFunctionName().getFunctionName());
+      }
       verifySupportsCondition(resolvedExpr.getDelegated());
       groupbyBuilder.add(resolvedExpr);
     }
     ImmutableList<NamedExpression> groupBys = groupbyBuilder.build();
 
+    // resolve non-aggregating expression
+    for (UnresolvedExpression expr : node.getSelectExprList()) {
+      NamedExpression resolvedExpr = namedExpressionAnalyzer.analyze(expr, context);
+      if (resolvedExpr.getDelegated() instanceof ReferenceExpression) {
+        if (groupBys.stream()
+            .noneMatch(k -> k.getName().equalsIgnoreCase(resolvedExpr.getName()))) {
+          throw QueryCompilationError.fieldNotInGroupByClauseError(resolvedExpr.getName());
+        }
+      }
+    }
+
+    // resolve aggregators
+    ImmutableList.Builder<NamedAggregator> aggregatorBuilder = new ImmutableList.Builder<>();
+    for (UnresolvedExpression expr : node.getAggExprList()) {
+      NamedExpression aggExpr = namedExpressionAnalyzer.analyze(expr, context);
+      aggregatorBuilder.add(
+          new NamedAggregator(aggExpr.getNameOrAlias(), (Aggregator) aggExpr.getDelegated()));
+    }
     ImmutableList<NamedAggregator> aggregators = aggregatorBuilder.build();
+
     // new context
     context.push();
     TypeEnvironment newEnv = context.peek();
@@ -327,6 +362,41 @@ public class Analyzer extends AbstractNodeVisitor<LogicalPlan, AnalysisContext> 
         group ->
             newEnv.define(new Symbol(Namespace.FIELD_NAME, group.getNameOrAlias()), group.type()));
     return new LogicalAggregation(child, aggregators, groupBys);
+  }
+
+  /** Resolve Having clause to merge its aggregators to {@link LogicalAggregation}. */
+  @Override
+  public LogicalPlan visitHaving(Having node, AnalysisContext context) {
+    LogicalAggregation aggregation =
+        (LogicalAggregation) node.getChild().get(0).accept(this, context);
+    Expression condition = expressionAnalyzer.analyze(node.getCondition(), context);
+    validateCondition(condition);
+
+    // Extract aggregator from Having clause
+    ImmutableList.Builder<NamedAggregator> aggregatorBuilder = new ImmutableList.Builder<>();
+    for (UnresolvedExpression expr : node.getAggregators()) {
+      NamedExpression aggExpr = namedExpressionAnalyzer.analyze(expr, context);
+      aggregatorBuilder.add(
+          new NamedAggregator(aggExpr.getNameOrAlias(), (Aggregator) aggExpr.getDelegated()));
+    }
+    List<NamedAggregator> aggregatorListFromHaving = aggregatorBuilder.build();
+    // new context
+    context.push();
+    TypeEnvironment newEnv = context.peek();
+    aggregatorListFromHaving.forEach(
+        aggregator ->
+            newEnv.define(
+                new Symbol(Namespace.FIELD_NAME, aggregator.getName()), aggregator.type()));
+
+    List<NamedAggregator> aggregatorListFromChild = aggregation.getAggregatorList();
+    // merge the aggregators from having to its child's
+    List<NamedAggregator> mergedAggregators =
+        Stream.of(aggregatorListFromChild, aggregatorListFromHaving)
+            .flatMap(List::stream)
+            .collect(Collectors.toList());
+
+    return new LogicalAggregation(
+        aggregation.getChild().get(0), mergedAggregators, aggregation.getGroupByList());
   }
 
   /** Build {@link LogicalRareTopN}. */
