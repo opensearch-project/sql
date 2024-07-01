@@ -105,15 +105,36 @@ public class AstDSL {
     return new Project(Arrays.asList(projectList), argList).attach(input);
   }
 
+  /**
+   * Creates an aggregation with the specified aggregators, sort expressions, group-by expressions,
+   * and arguments.
+   *
+   * @param input the child unresolved plan
+   * @param aggList the list of aggregator
+   * @param sortList the list of sort expressions
+   * @param groupList the list of group-by expressions
+   * @param argList the list of arguments
+   */
   public static UnresolvedPlan agg(
       UnresolvedPlan input,
       List<UnresolvedExpression> aggList,
       List<UnresolvedExpression> sortList,
       List<UnresolvedExpression> groupList,
       List<Argument> argList) {
-    return new Aggregation(aggList, sortList, groupList, null, argList).attach(input);
+    return new Aggregation(aggList, sortList, groupList, null, argList, List.of()).attach(input);
   }
 
+  /**
+   * Creates an aggregation with the specified aggregators, sort expressions, group-by expressions,
+   * span expression, and arguments.
+   *
+   * @param input the child unresolved plan
+   * @param aggList the list of aggregators
+   * @param sortList the list of sort expressions
+   * @param groupList the list of group-by expressions
+   * @param span the span expression
+   * @param argList the list of arguments
+   */
   public static UnresolvedPlan agg(
       UnresolvedPlan input,
       List<UnresolvedExpression> aggList,
@@ -121,7 +142,51 @@ public class AstDSL {
       List<UnresolvedExpression> groupList,
       UnresolvedExpression span,
       List<Argument> argList) {
-    return new Aggregation(aggList, sortList, groupList, span, argList).attach(input);
+    return new Aggregation(aggList, sortList, groupList, span, argList, List.of()).attach(input);
+  }
+
+  /**
+   * Creates an aggregation with the specified aggregators, sort expressions, group-by expressions,
+   * arguments, and select expressions.
+   *
+   * @param input the child unresolved plan
+   * @param aggList the list of aggregators
+   * @param sortList the list of sort expressions
+   * @param groupList the list of group-by expressions
+   * @param argList the list of arguments
+   * @param selectList the list of select expressions
+   */
+  public static UnresolvedPlan agg(
+      UnresolvedPlan input,
+      List<UnresolvedExpression> aggList,
+      List<UnresolvedExpression> sortList,
+      List<UnresolvedExpression> groupList,
+      List<Argument> argList,
+      List<UnresolvedExpression> selectList) {
+    return new Aggregation(aggList, sortList, groupList, null, argList, selectList).attach(input);
+  }
+
+  /**
+   * Creates an aggregation with the specified aggregators, sort expressions, group-by expressions,
+   * span expression, arguments, and select expressions.
+   *
+   * @param input the child unresolved plan
+   * @param aggList the list of aggregators
+   * @param sortList the list of sort expressions
+   * @param groupList the list of group-by expressions
+   * @param span the span expression
+   * @param argList the list of arguments
+   * @param selectList the list of select expressions
+   */
+  public static UnresolvedPlan agg(
+      UnresolvedPlan input,
+      List<UnresolvedExpression> aggList,
+      List<UnresolvedExpression> sortList,
+      List<UnresolvedExpression> groupList,
+      UnresolvedExpression span,
+      List<Argument> argList,
+      List<UnresolvedExpression> selectList) {
+    return new Aggregation(aggList, sortList, groupList, span, argList, selectList).attach(input);
   }
 
   public static UnresolvedPlan rename(UnresolvedPlan input, Map... maps) {

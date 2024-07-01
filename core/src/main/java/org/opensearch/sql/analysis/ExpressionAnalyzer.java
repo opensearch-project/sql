@@ -177,8 +177,8 @@ public class ExpressionAnalyzer extends AbstractNodeVisitor<Expression, Analysis
           throw QueryCompilationError.nonBooleanExpressionInFilterOrHavingError(predicate.type());
         }
         // Check if any aggregate function in filter
-        List<Expression> results = new ArrayList<>();
-        ExpressionUtils.findExpressions(predicate, e -> e instanceof Aggregator, results);
+        List<Expression> results =
+            ExpressionUtils.findExpressions(predicate, e -> e instanceof Aggregator);
         if (!results.isEmpty()) {
           throw QueryCompilationError.aggregateFunctionNotAllowedInFilterError(
               ((Aggregator) results.get(0)).getFunctionName().getFunctionName());

@@ -10,6 +10,7 @@ import static java.util.Collections.emptyList;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import org.antlr.v4.runtime.tree.ParseTree;
@@ -77,7 +78,8 @@ public class AstAggregationBuilder extends OpenSearchSQLParserBaseVisitor<Unreso
   private UnresolvedPlan buildExplicitAggregation() {
     List<UnresolvedExpression> selectItems = replaceSelectItemIfAliasOrOrdinal();
     List<UnresolvedExpression> groupByItems = replaceGroupByItemIfAliasOrOrdinal();
-    return new Aggregation(selectItems, emptyList(), groupByItems);
+    return new Aggregation(
+        new ArrayList<>(querySpec.getAggregators()), emptyList(), groupByItems, selectItems);
   }
 
   private UnresolvedPlan buildImplicitAggregation() {
@@ -89,7 +91,10 @@ public class AstAggregationBuilder extends OpenSearchSQLParserBaseVisitor<Unreso
     }
 
     return new Aggregation(
-        new ArrayList<>(querySpec.getAggregators()), emptyList(), querySpec.getGroupByItems());
+        new ArrayList<>(querySpec.getAggregators()),
+        emptyList(),
+        querySpec.getGroupByItems(),
+        emptyList());
   }
 
   private List<UnresolvedExpression> replaceGroupByItemIfAliasOrOrdinal() {
@@ -104,6 +109,12 @@ public class AstAggregationBuilder extends OpenSearchSQLParserBaseVisitor<Unreso
         .map(querySpec::replaceIfAliasOrOrdinal)
         .map(expr -> new Alias(expr.toString(), expr))
         .collect(Collectors.toList());
+  }
+
+  private Set<UnresolvedExpression> findFields() {
+    return querySpec.getSelectItems().stream()
+        .filter(QualifiedName.class::isInstance)
+        .collect(Collectors.toSet());
   }
 
   /**

@@ -187,9 +187,7 @@ public class QuerySpecification {
 
     @Override
     public Void visitWindowFunctionClause(WindowFunctionClauseContext ctx) {
-      // window function should be added to aggregators
-      UnresolvedExpression aggregateFunction = visitAstExpression(ctx.function);
-      aggregators.add(AstDSL.alias(getTextInQuery(ctx, queryString), aggregateFunction));
+      // skip collecting sort items in window functions
       return null;
     }
 
@@ -248,9 +246,8 @@ public class QuerySpecification {
     @Override
     public Void visitHavingClause(OpenSearchSQLParser.HavingClauseContext ctx) {
       UnresolvedExpression expression = visitAstExpression(ctx);
-      List<UnresolvedExpression> aggregateFunctions = new ArrayList<>();
-      ExpressionUtils.findNodes(
-          expression, n -> n instanceof AggregateFunction, aggregateFunctions);
+      List<UnresolvedExpression> aggregateFunctions =
+          ExpressionUtils.findNodes(expression, n -> n instanceof AggregateFunction);
       for (UnresolvedExpression aggregateFunction : aggregateFunctions) {
         aggregatorsInHaving.add(AstDSL.alias(getTextInQuery(ctx, queryString), aggregateFunction));
       }

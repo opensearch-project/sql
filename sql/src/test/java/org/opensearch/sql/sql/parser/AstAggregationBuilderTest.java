@@ -49,9 +49,7 @@ class AstAggregationBuilderTest {
         buildAggregation("SELECT state, AVG(age) FROM test GROUP BY state"),
         allOf(
             hasGroupByItems(alias("state", qualifiedName("state"))),
-            hasAggregateExpressions(
-                alias("state", qualifiedName("state")),
-                alias("AVG(age)", aggregate("AVG", qualifiedName("age"))))));
+            hasAggregators(alias("AVG(age)", aggregate("AVG", qualifiedName("age"))))));
   }
 
   @Test
@@ -63,10 +61,7 @@ class AstAggregationBuilderTest {
                 alias(
                     "ABS(+(age, 1))",
                     function("ABS", function("+", qualifiedName("age"), intLiteral(1))))),
-            hasAggregateExpressions(
-                alias(
-                    "ABS(+(age, 1))",
-                    function("ABS", function("+", qualifiedName("age"), intLiteral(1)))))));
+            hasAggregators()));
   }
 
   @Test
@@ -75,22 +70,14 @@ class AstAggregationBuilderTest {
         buildAggregation("SELECT state, ABS(2 * AVG(age)) FROM test GROUP BY state"),
         allOf(
             hasGroupByItems(alias("state", qualifiedName("state"))),
-            hasAggregateExpressions(
-                alias("state", qualifiedName("state")),
-                alias(
-                    "ABS(*(2, AVG(age)))",
-                    function(
-                        "ABS",
-                        function("*", intLiteral(2), aggregate("AVG", qualifiedName("age"))))))));
+            hasAggregators(alias("AVG(age)", aggregate("AVG", qualifiedName("age"))))));
   }
 
   @Test
   void can_build_group_by_clause_without_aggregators() {
     assertThat(
         buildAggregation("SELECT state FROM test GROUP BY state"),
-        allOf(
-            hasGroupByItems(alias("state", qualifiedName("state"))),
-            hasAggregateExpressions(alias("state", qualifiedName("state")))));
+        allOf(hasGroupByItems(alias("state", qualifiedName("state"))), hasAggregators()));
   }
 
   @Test
@@ -99,7 +86,7 @@ class AstAggregationBuilderTest {
         buildAggregation("SELECT AVG(age), SUM(balance) FROM test"),
         allOf(
             hasGroupByItems(),
-            hasAggregateExpressions(
+            hasAggregators(
                 alias("AVG(age)", aggregate("AVG", qualifiedName("age"))),
                 alias("SUM(balance)", aggregate("SUM", qualifiedName("balance"))))));
   }
@@ -110,43 +97,43 @@ class AstAggregationBuilderTest {
         buildAggregation("SELECT true FROM test HAVING AVG(age) > 30"),
         allOf(
             hasGroupByItems(),
-            hasAggregateExpressions(alias("AVG(age)", aggregate("AVG", qualifiedName("age"))))));
+            hasAggregators(alias("AVG(age)", aggregate("AVG", qualifiedName("age"))))));
 
     assertThat(
         buildAggregation("SELECT PI() FROM test HAVING AVG(age) > 30"),
         allOf(
             hasGroupByItems(),
-            hasAggregateExpressions(alias("AVG(age)", aggregate("AVG", qualifiedName("age"))))));
+            hasAggregators(alias("AVG(age)", aggregate("AVG", qualifiedName("age"))))));
 
     assertThat(
         buildAggregation("SELECT ABS(1.5) FROM test HAVING AVG(age) > 30"),
         allOf(
             hasGroupByItems(),
-            hasAggregateExpressions(alias("AVG(age)", aggregate("AVG", qualifiedName("age"))))));
+            hasAggregators(alias("AVG(age)", aggregate("AVG", qualifiedName("age"))))));
 
     assertThat(
         buildAggregation("SELECT ABS(ABS(1.5)) FROM test HAVING AVG(age) > 30"),
         allOf(
             hasGroupByItems(),
-            hasAggregateExpressions(alias("AVG(age)", aggregate("AVG", qualifiedName("age"))))));
+            hasAggregators(alias("AVG(age)", aggregate("AVG", qualifiedName("age"))))));
 
     assertThat(
         buildAggregation("SELECT INTERVAL 1 DAY FROM test HAVING AVG(age) > 30"),
         allOf(
             hasGroupByItems(),
-            hasAggregateExpressions(alias("AVG(age)", aggregate("AVG", qualifiedName("age"))))));
+            hasAggregators(alias("AVG(age)", aggregate("AVG", qualifiedName("age"))))));
 
     assertThat(
         buildAggregation("SELECT CAST(1 AS LONG) FROM test HAVING AVG(age) > 30"),
         allOf(
             hasGroupByItems(),
-            hasAggregateExpressions(alias("AVG(age)", aggregate("AVG", qualifiedName("age"))))));
+            hasAggregators(alias("AVG(age)", aggregate("AVG", qualifiedName("age"))))));
 
     assertThat(
         buildAggregation("SELECT CASE WHEN true THEN 1 ELSE 2 END FROM test HAVING AVG(age) > 30"),
         allOf(
             hasGroupByItems(),
-            hasAggregateExpressions(alias("AVG(age)", aggregate("AVG", qualifiedName("age"))))));
+            hasAggregators(alias("AVG(age)", aggregate("AVG", qualifiedName("age"))))));
   }
 
   @Test
@@ -155,7 +142,7 @@ class AstAggregationBuilderTest {
         buildAggregation("SELECT COUNT(DISTINCT name) FROM test group by age"),
         allOf(
             hasGroupByItems(alias("age", qualifiedName("age"))),
-            hasAggregateExpressions(
+            hasAggregators(
                 alias("COUNT(DISTINCT name)", distinctAggregate("COUNT", qualifiedName("name"))))));
   }
 
@@ -166,7 +153,7 @@ class AstAggregationBuilderTest {
         allOf(
             hasGroupByItems(
                 alias("age", qualifiedName("age")), alias("name", qualifiedName("name"))),
-            hasAggregateExpressions(
+            hasAggregators(
                 alias("COUNT(DISTINCT name)", distinctAggregate("COUNT", qualifiedName("name"))))));
   }
 
@@ -285,8 +272,8 @@ class AstAggregationBuilderTest {
     return featureValueOf("groupByItems", Aggregation::getGroupExprList, exprs);
   }
 
-  private Matcher<UnresolvedPlan> hasAggregateExpressions(UnresolvedExpression... exprs) {
-    return featureValueOf("aggregateExpressions", Aggregation::getAggExprList, exprs);
+  private Matcher<UnresolvedPlan> hasAggregators(UnresolvedExpression... exprs) {
+    return featureValueOf("aggregators", Aggregation::getAggExprList, exprs);
   }
 
   private Matcher<UnresolvedPlan> featureValueOf(

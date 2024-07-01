@@ -10,16 +10,15 @@ import static org.opensearch.sql.common.utils.StringUtils.format;
 import org.opensearch.sql.ast.expression.UnresolvedExpression;
 import org.opensearch.sql.data.type.ExprType;
 import org.opensearch.sql.exception.SemanticCheckException;
-import org.opensearch.sql.expression.NamedExpression;
 
 /** Grouping error messages from {@link SemanticCheckException} thrown during query compilation. */
 public class QueryCompilationError {
 
-  public static SemanticCheckException fieldNotInGroupByClauseError(NamedExpression expr) {
+  public static SemanticCheckException fieldNotInGroupByClauseError(String name) {
     return new SemanticCheckException(
         format(
             "Field [%s] must appear in the GROUP BY clause or be used in an aggregate function",
-            expr.getName()));
+            name));
   }
 
   public static SemanticCheckException groupByClauseIsMissingError(UnresolvedExpression expr) {
@@ -44,14 +43,6 @@ public class QueryCompilationError {
             "FILTER or HAVING expression must be type boolean, but found [%s]", type.typeName()));
   }
 
-  public static SemanticCheckException groupByOrdinalRefersToAggregateFunctionError(int ordinal) {
-    return new SemanticCheckException(
-        format(
-            "GROUP BY %s refers to an expression that contains an aggregate function. Aggregate"
-                + " functions are not allowed in GROUP BY",
-            ordinal));
-  }
-
   public static SemanticCheckException ordinalRefersOutOfBounds(int ordinal) {
     return new SemanticCheckException(
         format("Ordinal [%d] is out of bound of select item list", ordinal));
@@ -64,7 +55,7 @@ public class QueryCompilationError {
   }
 
   public static SemanticCheckException windowFunctionNotAllowedError() {
-    return new SemanticCheckException("window functions are not allowed in WHERE or HAVING");
+    return new SemanticCheckException("Window functions are not allowed in WHERE or HAVING");
   }
 
   public static SemanticCheckException unsupportedAggregateFunctionError(String functionName) {
@@ -75,7 +66,7 @@ public class QueryCompilationError {
       String functionName) {
     return new SemanticCheckException(
         format(
-            "Window function [%s] requires window to be ordered, please add ORDER BY clause.",
+            "Window function [%s] requires window to be ordered, please add ORDER BY clause",
             functionName));
   }
 }

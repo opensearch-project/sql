@@ -13,6 +13,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.opensearch.sql.analysis.DataSourceSchemaIdentifierNameResolver.DEFAULT_DATASOURCE_NAME;
 import static org.opensearch.sql.analysis.NestedAnalyzer.isNestedFunction;
+import static org.opensearch.sql.ast.dsl.AstDSL.agg;
 import static org.opensearch.sql.ast.dsl.AstDSL.aggregate;
 import static org.opensearch.sql.ast.dsl.AstDSL.alias;
 import static org.opensearch.sql.ast.dsl.AstDSL.argument;
@@ -22,13 +23,16 @@ import static org.opensearch.sql.ast.dsl.AstDSL.field;
 import static org.opensearch.sql.ast.dsl.AstDSL.filter;
 import static org.opensearch.sql.ast.dsl.AstDSL.filteredAggregate;
 import static org.opensearch.sql.ast.dsl.AstDSL.function;
+import static org.opensearch.sql.ast.dsl.AstDSL.having;
 import static org.opensearch.sql.ast.dsl.AstDSL.intLiteral;
 import static org.opensearch.sql.ast.dsl.AstDSL.nestedAllTupleFields;
+import static org.opensearch.sql.ast.dsl.AstDSL.project;
 import static org.opensearch.sql.ast.dsl.AstDSL.qualifiedName;
 import static org.opensearch.sql.ast.dsl.AstDSL.relation;
 import static org.opensearch.sql.ast.dsl.AstDSL.span;
 import static org.opensearch.sql.ast.dsl.AstDSL.stringLiteral;
 import static org.opensearch.sql.ast.dsl.AstDSL.unresolvedArg;
+import static org.opensearch.sql.ast.dsl.AstDSL.window;
 import static org.opensearch.sql.ast.tree.Sort.NullOrder;
 import static org.opensearch.sql.ast.tree.Sort.SortOption;
 import static org.opensearch.sql.ast.tree.Sort.SortOption.DEFAULT_ASC;
@@ -1766,5 +1770,275 @@ class AnalyzerTest extends AnalyzerTestBase {
         () -> assertTrue(analyzed.getChild().get(0) instanceof LogicalFetchCursor),
         () ->
             assertEquals("pewpew", ((LogicalFetchCursor) analyzed.getChild().get(0)).getCursor()));
+  }
+
+  /** SELECT integer_value FROM schema group by string_value */
+  @Test
+  public void field_not_in_group_by_clause_error() {
+    SemanticCheckException exception =
+        assertThrows(
+            SemanticCheckException.class,
+            () ->
+                analyze(
+                    project(
+                        agg(
+                            relation("schema"),
+                            emptyList(),
+                            emptyList(),
+                            ImmutableList.of(alias("string_value", qualifiedName("string_value"))),
+                            emptyList(),
+                            ImmutableList.of(
+                                alias("integer_value", qualifiedName("integer_value")))),
+                        alias("integer_value", qualifiedName("integer_value")))));
+    assertEquals(
+        "Field [integer_value] must appear in the GROUP BY clause or be used in an aggregate"
+            + " function",
+        exception.getMessage());
+  }
+
+  /** SELECT integer_value as int_value FROM schema group by string_value */
+  @Test
+  public void field_with_alias_not_in_group_by_clause_error() {
+    SemanticCheckException exception =
+        assertThrows(
+            SemanticCheckException.class,
+            () ->
+                analyze(
+                    project(
+                        agg(
+                            relation("schema"),
+                            emptyList(),
+                            emptyList(),
+                            ImmutableList.of(alias("string_value", qualifiedName("string_value"))),
+                            emptyList(),
+                            ImmutableList.of(alias("int_value", qualifiedName("integer_value")))),
+                        alias("int_value", qualifiedName("integer_value")))));
+    assertEquals(
+        "Field [integer_value] must appear in the GROUP BY clause or be used in an aggregate"
+            + " function",
+        exception.getMessage());
+  }
+
+  /** SELECT integer_value FROM schema GROUP BY avg(integer_value) */
+  @Test
+  public void aggregate_function_not_allowed_in_group_by_error() {
+    SemanticCheckException exception =
+        assertThrows(
+            SemanticCheckException.class,
+            () ->
+                analyze(
+                    project(
+                        agg(
+                            relation("schema"),
+                            ImmutableList.of(
+                                alias("integer_value", qualifiedName("integer_value"))),
+                            emptyList(),
+                            ImmutableList.of(
+                                alias(
+                                    "AVG(integer_value)",
+                                    aggregate("AVG", qualifiedName("integer_value")))),
+                            emptyList()),
+                        alias("integer_value", qualifiedName("integer_value")))));
+    assertEquals(
+        "Aggregate function is not allowed in a GROUP BY clause, but found [avg]",
+        exception.getMessage());
+  }
+
+  /** SELECT avg(integer_value) FROM schema GROUP BY 1 */
+  @Test
+  public void aggregate_function_not_allowed_in_group_by_error1() {
+    SemanticCheckException exception =
+        assertThrows(
+            SemanticCheckException.class,
+            () ->
+                analyze(
+                    project(
+                        agg(
+                            relation("schema"),
+                            ImmutableList.of(
+                                alias("integer_value", qualifiedName("integer_value"))),
+                            emptyList(),
+                            ImmutableList.of(
+                                alias(
+                                    "AVG(integer_value)",
+                                    aggregate("AVG", qualifiedName("integer_value")))),
+                            emptyList()),
+                        alias("integer_value", qualifiedName("integer_value")))));
+    assertEquals(
+        "Aggregate function is not allowed in a GROUP BY clause, but found [avg]",
+        exception.getMessage());
+  }
+
+  /** SELECT integer_value FROM schema WHERE integer_value */
+  @Test
+  public void non_boolean_expression_in_filter_error() {
+    SemanticCheckException exception =
+        assertThrows(
+            SemanticCheckException.class,
+            () ->
+                analyze(
+                    project(
+                        filter(relation("schema"), qualifiedName("integer_value")),
+                        alias("integer_value", qualifiedName("integer_value")))));
+    assertEquals(
+        "FILTER or HAVING expression must be type boolean, but found [INTEGER]",
+        exception.getMessage());
+  }
+
+  /** SELECT string_value FROM schema GROUP BY string_value HAVING avg(integer_value) */
+  @Test
+  public void non_boolean_expression_in_having_error() {
+    SemanticCheckException exception =
+        assertThrows(
+            SemanticCheckException.class,
+            () ->
+                analyze(
+                    project(
+                        having(
+                            agg(
+                                relation("schema"),
+                                emptyList(),
+                                emptyList(),
+                                ImmutableList.of(
+                                    alias("string_value", qualifiedName("string_value"))),
+                                emptyList(),
+                                ImmutableList.of(
+                                    alias("string_value", qualifiedName("string_value")))),
+                            ImmutableList.of(
+                                alias(
+                                    "HAVING AVG(integer_value)",
+                                    aggregate("AVG", qualifiedName("integer_value")))),
+                            aggregate("AVG", qualifiedName("integer_value"))),
+                        alias("string_value", qualifiedName("string_value")))));
+    assertEquals(
+        "FILTER or HAVING expression must be type boolean, but found [DOUBLE]",
+        exception.getMessage());
+  }
+
+  /** SELECT count(string_value) filter(where integer_value) FROM schema */
+  @Test
+  public void non_boolean_expression_in_filtered_aggregation_error() {
+    SemanticCheckException exception =
+        assertThrows(
+            SemanticCheckException.class,
+            () ->
+                analyze(
+                    AstDSL.project(
+                        AstDSL.agg(
+                            AstDSL.relation("schema"),
+                            ImmutableList.of(
+                                alias(
+                                    "count(string_value) filter(where integer_value)",
+                                    filteredAggregate(
+                                        "count",
+                                        qualifiedName("string_value"),
+                                        qualifiedName("integer_value")))),
+                            emptyList(),
+                            emptyList(),
+                            emptyList()),
+                        AstDSL.alias(
+                            "count(string_value) filter(where integer_value)",
+                            filteredAggregate(
+                                "count",
+                                qualifiedName("string_value"),
+                                qualifiedName("integer_value"))))));
+    assertEquals(
+        "FILTER or HAVING expression must be type boolean, but found [INTEGER]",
+        exception.getMessage());
+  }
+
+  /** SELECT count(string_value) filter(where 10 > (avg(integer_value) + 3) * 2) FROM schema */
+  @Test
+  public void aggregate_function_in_filter_error() {
+    SemanticCheckException exception =
+        assertThrows(
+            SemanticCheckException.class,
+            () ->
+                analyze(
+                    AstDSL.project(
+                        AstDSL.agg(
+                            AstDSL.relation("schema"),
+                            ImmutableList.of(
+                                alias(
+                                    "count(string_value) filter(where integer_value)",
+                                    filteredAggregate(
+                                        "count",
+                                        qualifiedName("string_value"),
+                                        function(
+                                            ">",
+                                            intLiteral(10),
+                                            function(
+                                                "*",
+                                                function(
+                                                    "+",
+                                                    aggregate(
+                                                        "AVG", qualifiedName("integer_value")),
+                                                    intLiteral(3)),
+                                                intLiteral(2)))))),
+                            emptyList(),
+                            emptyList(),
+                            emptyList()),
+                        AstDSL.alias(
+                            "count(string_value) filter(where 10 > (max(integer_value) + 3) * 2)",
+                            filteredAggregate(
+                                "count",
+                                qualifiedName("string_value"),
+                                function(
+                                    ">",
+                                    intLiteral(10),
+                                    function(
+                                        "*",
+                                        function(
+                                            "+",
+                                            aggregate("AVG", qualifiedName("integer_value")),
+                                            intLiteral(3)),
+                                        intLiteral(2))))))));
+    assertEquals(
+        "Aggregate function is not allowed in a FILTER, but found [avg]", exception.getMessage());
+  }
+
+  /** SELECT string_value FROM schema where ROW_NUMBER() OVER(ORDER BY string_value) > 0 */
+  @Test
+  public void window_function_in_where_error() {
+    SemanticCheckException exception =
+        assertThrows(
+            SemanticCheckException.class,
+            () ->
+                analyze(
+                    project(
+                        filter(
+                            relation("schema"),
+                            function(
+                                ">",
+                                window(
+                                    function("row_number"),
+                                    ImmutableList.of(),
+                                    ImmutableList.of(
+                                        ImmutablePair.of(
+                                            DEFAULT_ASC, qualifiedName("string_value")))),
+                                intLiteral(0))))));
+    assertEquals("Window functions are not allowed in WHERE or HAVING", exception.getMessage());
+  }
+
+  /** select string_value, rank() over (partition by string_value) from schema */
+  @Test
+  public void ranking_window_function_misses_order_error() {
+    SemanticCheckException exception =
+        assertThrows(
+            SemanticCheckException.class,
+            () ->
+                analyze(
+                    project(
+                        relation("schema"),
+                        alias("string_value", qualifiedName("string_value")),
+                        alias(
+                            "rank() over (partition by string_value)",
+                            window(
+                                function("rank"),
+                                ImmutableList.of(AstDSL.qualifiedName("string_value")),
+                                ImmutableList.of())))));
+    assertEquals(
+        "Window function [rank] requires window to be ordered, please add ORDER BY clause",
+        exception.getMessage());
   }
 }

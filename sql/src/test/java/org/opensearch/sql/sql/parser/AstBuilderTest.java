@@ -174,12 +174,13 @@ class AstBuilderTest extends AstBuilderTestBase {
         project(
             agg(
                 relation("test"),
-                ImmutableList.of(
-                    alias("name", qualifiedName("name")),
-                    alias("AVG(age)", aggregate("AVG", qualifiedName("age")))),
+                ImmutableList.of(alias("AVG(age)", aggregate("AVG", qualifiedName("age")))),
                 emptyList(),
                 ImmutableList.of(alias("name", qualifiedName("name"))),
-                emptyList()),
+                emptyList(),
+                ImmutableList.of(
+                    alias("name", qualifiedName("name")),
+                    alias("AVG(age)", aggregate("AVG", qualifiedName("age"))))),
             alias("name", qualifiedName("name")),
             alias("AVG(age)", aggregate("AVG", qualifiedName("age")))),
         buildAST("SELECT name, AVG(age) FROM test GROUP BY name"));
@@ -191,12 +192,13 @@ class AstBuilderTest extends AstBuilderTestBase {
         project(
             agg(
                 relation("test"),
-                ImmutableList.of(
-                    alias("abs(name)", function("abs", qualifiedName("name"))),
-                    alias("AVG(age)", aggregate("AVG", qualifiedName("age")))),
+                ImmutableList.of(alias("AVG(age)", aggregate("AVG", qualifiedName("age")))),
                 emptyList(),
                 ImmutableList.of(alias("abs(name)", function("abs", qualifiedName("name")))),
-                emptyList()),
+                emptyList(),
+                ImmutableList.of(
+                    alias("abs(name)", function("abs", qualifiedName("name"))),
+                    alias("AVG(age)", aggregate("AVG", qualifiedName("age"))))),
             alias("abs(name)", function("abs", qualifiedName("name"))),
             alias("AVG(age)", aggregate("AVG", qualifiedName("age")))),
         buildAST("SELECT abs(name), AVG(age) FROM test GROUP BY abs(name)"));
@@ -208,12 +210,13 @@ class AstBuilderTest extends AstBuilderTestBase {
         project(
             agg(
                 relation("test"),
-                ImmutableList.of(
-                    alias("ABS(name)", function("ABS", qualifiedName("name"))),
-                    alias("AVG(age)", aggregate("AVG", qualifiedName("age")))),
+                ImmutableList.of(alias("AVG(age)", aggregate("AVG", qualifiedName("age")))),
                 emptyList(),
                 ImmutableList.of(alias("ABS(name)", function("ABS", qualifiedName("name")))),
-                emptyList()),
+                emptyList(),
+                ImmutableList.of(
+                    alias("ABS(name)", function("ABS", qualifiedName("name"))),
+                    alias("AVG(age)", aggregate("AVG", qualifiedName("age"))))),
             alias("ABS(name)", function("ABS", qualifiedName("name"))),
             alias("AVG(age)", aggregate("AVG", qualifiedName("age")))),
         buildAST("SELECT ABS(name), AVG(age) FROM test GROUP BY 1"));
@@ -225,12 +228,13 @@ class AstBuilderTest extends AstBuilderTestBase {
         project(
             agg(
                 relation("test"),
-                ImmutableList.of(
-                    alias("abs(name)", function("abs", qualifiedName("name"))),
-                    alias("AVG(age)", aggregate("AVG", qualifiedName("age")))),
+                ImmutableList.of(alias("AVG(age)", aggregate("AVG", qualifiedName("age")))),
                 emptyList(),
                 ImmutableList.of(alias("abs(name)", function("abs", qualifiedName("name")))),
-                emptyList()),
+                emptyList(),
+                ImmutableList.of(
+                    alias("abs(name)", function("abs", qualifiedName("name"))),
+                    alias("AVG(age)", aggregate("AVG", qualifiedName("age"))))),
             alias("abs(name)", function("abs", qualifiedName("name")), "n"),
             alias("AVG(age)", aggregate("AVG", qualifiedName("age")))),
         buildAST("SELECT abs(name) as n, AVG(age) FROM test GROUP BY n"));
@@ -242,12 +246,13 @@ class AstBuilderTest extends AstBuilderTestBase {
         project(
             agg(
                 relation("test"),
-                ImmutableList.of(
-                    alias("abs(name)", function("abs", qualifiedName("name"))),
-                    alias("AVG(age)", aggregate("AVG", qualifiedName("age")))),
+                ImmutableList.of(alias("AVG(age)", aggregate("AVG", qualifiedName("age")))),
                 emptyList(),
                 ImmutableList.of(alias("abs(name)", function("abs", qualifiedName("name")))),
-                emptyList()),
+                emptyList(),
+                ImmutableList.of(
+                    alias("abs(name)", function("abs", qualifiedName("name"))),
+                    alias("AVG(age)", aggregate("AVG", qualifiedName("age"))))),
             alias("abs(name)", function("abs", qualifiedName("name")), "n"),
             alias("AVG(age)", aggregate("AVG", qualifiedName("age")))),
         buildAST("SELECT abs(name) as n, AVG(age) FROM test GROUP BY 1"));
@@ -276,11 +281,14 @@ class AstBuilderTest extends AstBuilderTestBase {
                     agg(
                         relation("test"),
                         ImmutableList.of(
-                            alias("name", qualifiedName("name")),
-                            alias("AVG(age)", aggregate("AVG", qualifiedName("age")))),
+                            alias("AVG(age)", aggregate("AVG", qualifiedName("age"))),
+                            alias("MIN(balance)", aggregate("MIN", qualifiedName("balance")))),
                         emptyList(),
                         ImmutableList.of(alias("name", qualifiedName("name"))),
-                        emptyList()),
+                        emptyList(),
+                        ImmutableList.of(
+                            alias("name", qualifiedName("name")),
+                            alias("AVG(age)", aggregate("AVG", qualifiedName("age"))))),
                     ImmutableList.of(
                         alias(
                             "HAVING MIN(balance) > 1000",
@@ -300,12 +308,13 @@ class AstBuilderTest extends AstBuilderTestBase {
                 having(
                     agg(
                         relation("test"),
-                        ImmutableList.of(
-                            alias("name", qualifiedName("name")),
-                            alias("AVG(age)", aggregate("AVG", qualifiedName("age")))),
+                        ImmutableList.of(alias("AVG(age)", aggregate("AVG", qualifiedName("age")))),
                         emptyList(),
                         ImmutableList.of(alias("name", qualifiedName("name"))),
-                        emptyList()),
+                        emptyList(),
+                        ImmutableList.of(
+                            alias("name", qualifiedName("name")),
+                            alias("AVG(age)", aggregate("AVG", qualifiedName("age"))))),
                     ImmutableList.of(),
                     function(">", aggregate("AVG", qualifiedName("age")), intLiteral(1000))),
                 function(">", aggregate("AVG", qualifiedName("age")), intLiteral(1000))),
@@ -372,12 +381,13 @@ class AstBuilderTest extends AstBuilderTestBase {
         project(
             agg(
                 relation("test"),
+                emptyList(),
+                emptyList(),
                 ImmutableList.of(
                     alias("name", qualifiedName("name")), alias("age", qualifiedName("age"))),
                 emptyList(),
                 ImmutableList.of(
-                    alias("name", qualifiedName("name")), alias("age", qualifiedName("age"))),
-                emptyList()),
+                    alias("name", qualifiedName("name")), alias("age", qualifiedName("age")))),
             alias("name", qualifiedName("name")),
             alias("age", qualifiedName("age"))),
         buildAST("SELECT DISTINCT name, age FROM test"));
@@ -389,6 +399,8 @@ class AstBuilderTest extends AstBuilderTestBase {
         project(
             agg(
                 relation("test"),
+                emptyList(),
+                emptyList(),
                 ImmutableList.of(
                     alias(
                         "SUBSTRING(name, 1, 2)",
@@ -399,8 +411,7 @@ class AstBuilderTest extends AstBuilderTestBase {
                     alias(
                         "SUBSTRING(name, 1, 2)",
                         function(
-                            "SUBSTRING", qualifiedName("name"), intLiteral(1), intLiteral(2)))),
-                emptyList()),
+                            "SUBSTRING", qualifiedName("name"), intLiteral(1), intLiteral(2))))),
             alias(
                 "SUBSTRING(name, 1, 2)",
                 function("SUBSTRING", qualifiedName("name"), intLiteral(1), intLiteral(2)))),
