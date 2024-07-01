@@ -1,0 +1,13 @@
+{ "index" : { "_id" : "1" } }
+{ "device-id":255, "temperature":28.1, "@timestamp":"2015-01-20T15:31:32.406431+00:00" }
+{ "index" : { "_id" : "2" } }
+{ "device-id":256, "temperature":27.8, "@timestamp":"2016-01-20T15:31:33.509334+00:00" }
+{ "index" : { "_id" : "3" } }
+{ "device-id":257, "temperature":27.4, "@timestamp":"2017-01-20T15:31:35.732436+00:00" }
+{ "index" : { "_id" : "4" } }
+{ "device-id":255, "temperature":28.5, "@timestamp":"2018-01-20T15:32:32.406431+00:00" }
+{ "index" : { "_id" : "5" } }
+{ "device-id":256, "temperature":27.9, "@timestamp":"2019-01-20T15:32:33.509334+00:00" }
+{ "index" : { "_id" : "6" } }
+{ "device-id":257, "temperature":27.4, "@timestamp":"2020-01-20T15:32:35.732436+00:00" }
+{ "index" : { "_id" : "7" } }
