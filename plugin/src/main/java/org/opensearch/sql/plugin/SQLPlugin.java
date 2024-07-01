@@ -7,6 +7,7 @@ package org.opensearch.sql.plugin;
 
 import static java.util.Collections.singletonList;
 import static org.opensearch.sql.datasource.model.DataSourceMetadata.defaultOpenSearchDataSourceMetadata;
+import static org.opensearch.sql.spark.data.constants.SparkConstants.SPARK_REQUEST_BUFFER_INDEX_NAME;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
@@ -303,6 +304,9 @@ public class SQLPlugin extends Plugin implements ActionPlugin, ScriptPlugin, Sys
     systemIndexDescriptors.add(
         new SystemIndexDescriptor(
             OpenSearchDataSourceMetadataStorage.DATASOURCE_INDEX_NAME, "SQL DataSources index"));
+    systemIndexDescriptors.add(
+        new SystemIndexDescriptor(
+            SPARK_REQUEST_BUFFER_INDEX_NAME + "*", "SQL Spark Request Buffer index pattern"));
     return systemIndexDescriptors;
   }
 }
