@@ -48,6 +48,15 @@ class ExpressionFilterScript extends FilterScript {
       return ExprBooleanValue.of(false);
     }
 
+    // refer to https://github.com/opensearch-project/sql/issues/2796
+    if (result.type() == ExprCoreType.INTEGER) {
+      if (result.integerValue() == 0) {
+        result = ExprBooleanValue.of(false);
+      } else if (result.integerValue() == 1) {
+        result = ExprBooleanValue.of(true);
+      }
+    }
+
     if (result.type() != ExprCoreType.BOOLEAN) {
       throw new IllegalStateException(
           String.format(
