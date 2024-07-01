@@ -5,6 +5,8 @@
 
 package org.opensearch.sql.spark.utils;
 
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Locale;
@@ -70,6 +72,32 @@ public class SQLQueryUtils {
       return true;
     } catch (SyntaxCheckException syntaxCheckException) {
       return false;
+    }
+  }
+
+  public static List<String> validateSparkSqlQuery(String sqlQuery) {
+    SparkSqlValidatorVisitor sparkSqlValidatorVisitor = new SparkSqlValidatorVisitor();
+    SqlBaseParser sqlBaseParser =
+        new SqlBaseParser(
+            new CommonTokenStream(new SqlBaseLexer(new CaseInsensitiveCharStream(sqlQuery))));
+    sqlBaseParser.addErrorListener(new SyntaxAnalysisErrorListener());
+    try {
+      SqlBaseParser.StatementContext statement = sqlBaseParser.statement();
+      sparkSqlValidatorVisitor.visit(statement);
+      return sparkSqlValidatorVisitor.getValidationErrors();
+    } catch (SyntaxCheckException syntaxCheckException) {
+      return Collections.emptyList();
+    }
+  }
+
+  private static class SparkSqlValidatorVisitor extends SqlBaseParserBaseVisitor<Void> {
+
+    @Getter private final List<String> validationErrors = new ArrayList<>();
+
+    @Override
+    public Void visitCreateFunction(SqlBaseParser.CreateFunctionContext ctx) {
+      validationErrors.add("Creating user-defined functions is not allowed");
+      return super.visitCreateFunction(ctx);
     }
   }
 
