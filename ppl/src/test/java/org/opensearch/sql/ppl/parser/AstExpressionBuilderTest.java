@@ -616,10 +616,9 @@ public class AstExpressionBuilderTest extends AstBuilderTest {
             + " | LOG10 | LOG2 | MOD | PI |POW | POWER | RAND | ROUND | SIGN | SQRT | TRUNCATE "
             + "| ACOS | ASIN | ATAN | ATAN2 | COS | COT | DEGREES | RADIANS | SIN | TAN");
     assertFunctionNameCouldBeId(
-        "SEARCH | DESCRIBE | SHOW | FROM | WHERE | FIELDS | RENAME | STATS "
-            + "| DEDUP | SORT | EVAL | HEAD | TOP | RARE | PARSE | METHOD | REGEX | PUNCT | GROK "
-            + "| PATTERN | PATTERNS | NEW_FIELD | KMEANS | AD | ML | SOURCE | INDEX | D | DESC "
-            + "| DATASOURCES");
+        "SEARCH | DESCRIBE | SHOW | FROM | WHERE | FIELDS | RENAME | STATS | DEDUP | LOOKUP | SORT"
+            + " | EVAL | HEAD | TOP | RARE | PARSE | METHOD | REGEX | PUNCT | GROK | PATTERN |"
+            + " PATTERNS | NEW_FIELD | KMEANS | AD | ML | SOURCE | INDEX | D | DESC | DATASOURCES");
   }
 
   void assertFunctionNameCouldBeId(String antlrFunctionName) {
