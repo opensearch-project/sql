@@ -54,14 +54,15 @@ public class SparkQueryDispatcher {
               .asyncQueryRequestContext(asyncQueryRequestContext)
               .build();
 
-      return getQueryHandlerForFlintExtensionQuery(indexQueryDetails)
+      return getQueryHandlerForFlintExtensionQuery(dispatchQueryRequest, indexQueryDetails)
           .submit(dispatchQueryRequest, context);
     } else {
       DispatchQueryContext context =
           getDefaultDispatchContextBuilder(dispatchQueryRequest, dataSourceMetadata)
               .asyncQueryRequestContext(asyncQueryRequestContext)
               .build();
-      return getDefaultAsyncQueryHandler().submit(dispatchQueryRequest, context);
+      return getDefaultAsyncQueryHandler(dispatchQueryRequest.getAccountId())
+          .submit(dispatchQueryRequest, context);
     }
   }
 
@@ -74,28 +75,28 @@ public class SparkQueryDispatcher {
   }
 
   private AsyncQueryHandler getQueryHandlerForFlintExtensionQuery(
-      IndexQueryDetails indexQueryDetails) {
+      DispatchQueryRequest dispatchQueryRequest, IndexQueryDetails indexQueryDetails) {
     if (isEligibleForIndexDMLHandling(indexQueryDetails)) {
       return queryHandlerFactory.getIndexDMLHandler();
     } else if (isEligibleForStreamingQuery(indexQueryDetails)) {
-      return queryHandlerFactory.getStreamingQueryHandler();
+      return queryHandlerFactory.getStreamingQueryHandler(dispatchQueryRequest.getAccountId());
     } else if (IndexQueryActionType.CREATE.equals(indexQueryDetails.getIndexQueryActionType())) {
       // Create should be handled by batch handler. This is to avoid DROP index incorrectly cancel
       // an interactive job.
-      return queryHandlerFactory.getBatchQueryHandler();
+      return queryHandlerFactory.getBatchQueryHandler(dispatchQueryRequest.getAccountId());
     } else if (IndexQueryActionType.REFRESH.equals(indexQueryDetails.getIndexQueryActionType())) {
       // Manual refresh should be handled by batch handler
-      return queryHandlerFactory.getRefreshQueryHandler();
+      return queryHandlerFactory.getRefreshQueryHandler(dispatchQueryRequest.getAccountId());
     } else {
-      return getDefaultAsyncQueryHandler();
+      return getDefaultAsyncQueryHandler(dispatchQueryRequest.getAccountId());
     }
   }
 
   @NotNull
-  private AsyncQueryHandler getDefaultAsyncQueryHandler() {
+  private AsyncQueryHandler getDefaultAsyncQueryHandler(String accountId) {
     return sessionManager.isEnabled()
         ? queryHandlerFactory.getInteractiveQueryHandler()
-        : queryHandlerFactory.getBatchQueryHandler();
+        : queryHandlerFactory.getBatchQueryHandler(accountId);
   }
 
   @NotNull
@@ -143,11 +144,11 @@ public class SparkQueryDispatcher {
     } else if (IndexDMLHandler.isIndexDMLQuery(asyncQueryJobMetadata.getJobId())) {
       return queryHandlerFactory.getIndexDMLHandler();
     } else if (asyncQueryJobMetadata.getJobType() == JobType.BATCH) {
-      return queryHandlerFactory.getRefreshQueryHandler();
+      return queryHandlerFactory.getRefreshQueryHandler(asyncQueryJobMetadata.getAccountId());
     } else if (asyncQueryJobMetadata.getJobType() == JobType.STREAMING) {
-      return queryHandlerFactory.getStreamingQueryHandler();
+      return queryHandlerFactory.getStreamingQueryHandler(asyncQueryJobMetadata.getAccountId());
     } else {
-      return queryHandlerFactory.getBatchQueryHandler();
+      return queryHandlerFactory.getBatchQueryHandler(asyncQueryJobMetadata.getAccountId());
     }
   }
 

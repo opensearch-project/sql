@@ -58,7 +58,7 @@ public class InteractiveSessionTest extends OpenSearchIntegTestCase {
         new OpenSearchSessionStorageService(stateStore, new SessionModelXContentSerializer());
     statementStorageService =
         new OpenSearchStatementStorageService(stateStore, new StatementModelXContentSerializer());
-    EMRServerlessClientFactory emrServerlessClientFactory = () -> emrsClient;
+    EMRServerlessClientFactory emrServerlessClientFactory = (accountId) -> emrsClient;
 
     sessionManager =
         new SessionManager(

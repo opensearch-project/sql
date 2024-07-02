@@ -61,7 +61,7 @@ public class StatementTest extends OpenSearchIntegTestCase {
         new OpenSearchStatementStorageService(stateStore, new StatementModelXContentSerializer());
     sessionStorageService =
         new OpenSearchSessionStorageService(stateStore, new SessionModelXContentSerializer());
-    EMRServerlessClientFactory emrServerlessClientFactory = () -> emrsClient;
+    EMRServerlessClientFactory emrServerlessClientFactory = (accountId) -> emrsClient;
 
     sessionManager =
         new SessionManager(
@@ -279,7 +279,7 @@ public class StatementTest extends OpenSearchIntegTestCase {
 
   @Test
   public void failToSubmitStatementInDeletedSession() {
-    EMRServerlessClientFactory emrServerlessClientFactory = () -> emrsClient;
+    EMRServerlessClientFactory emrServerlessClientFactory = (accountId) -> emrsClient;
     Session session =
         sessionManager.createSession(createSessionRequest(), asyncQueryRequestContext);
 

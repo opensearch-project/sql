@@ -351,7 +351,7 @@ public class AsyncQueryExecutorServiceSpec extends OpenSearchIntegTestCase {
   public static class LocalEMRServerlessClientFactory implements EMRServerlessClientFactory {
 
     @Override
-    public EMRServerlessClient getClient() {
+    public EMRServerlessClient getClient(String accountId) {
       return new LocalEMRSClient();
     }
   }

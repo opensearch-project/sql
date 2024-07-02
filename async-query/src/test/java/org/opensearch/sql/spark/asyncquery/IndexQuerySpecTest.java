@@ -124,7 +124,7 @@ public class IndexQuerySpecTest extends AsyncQueryExecutorServiceSpec {
                       return new GetJobRunResult().withJobRun(new JobRun().withState("Cancelled"));
                     }
                   };
-              EMRServerlessClientFactory emrServerlessClientFactory = () -> emrsClient;
+              EMRServerlessClientFactory emrServerlessClientFactory = (accountId) -> emrsClient;
               AsyncQueryExecutorService asyncQueryExecutorService =
                   createAsyncQueryExecutorService(emrServerlessClientFactory);
 
@@ -175,7 +175,7 @@ public class IndexQuerySpecTest extends AsyncQueryExecutorServiceSpec {
                       throw new ValidationException("Job run is not in a cancellable state");
                     }
                   };
-              EMRServerlessClientFactory emrServerlessClientFactory = () -> emrsClient;
+              EMRServerlessClientFactory emrServerlessClientFactory = (accountId) -> emrsClient;
               AsyncQueryExecutorService asyncQueryExecutorService =
                   createAsyncQueryExecutorService(emrServerlessClientFactory);
 
@@ -215,7 +215,7 @@ public class IndexQuerySpecTest extends AsyncQueryExecutorServiceSpec {
                       return new GetJobRunResult().withJobRun(new JobRun().withState("Running"));
                     }
                   };
-              EMRServerlessClientFactory emrServerlessClientFactory = () -> emrsClient;
+              EMRServerlessClientFactory emrServerlessClientFactory = (accountId) -> emrsClient;
               AsyncQueryExecutorService asyncQueryExecutorService =
                   createAsyncQueryExecutorService(emrServerlessClientFactory);
 
@@ -253,7 +253,7 @@ public class IndexQuerySpecTest extends AsyncQueryExecutorServiceSpec {
             throw new ValidationException("Job run is not in a cancellable state");
           }
         };
-    EMRServerlessClientFactory emrServerlessClientFactory = () -> emrsClient;
+    EMRServerlessClientFactory emrServerlessClientFactory = (accountId) -> emrsClient;
     AsyncQueryExecutorService asyncQueryExecutorService =
         createAsyncQueryExecutorService(emrServerlessClientFactory);
 
@@ -290,7 +290,7 @@ public class IndexQuerySpecTest extends AsyncQueryExecutorServiceSpec {
                       return new GetJobRunResult().withJobRun(new JobRun().withState("Cancelled"));
                     }
                   };
-              EMRServerlessClientFactory emrServerlessClientFactory = () -> emrsClient;
+              EMRServerlessClientFactory emrServerlessClientFactory = (accountId) -> emrsClient;
               AsyncQueryExecutorService asyncQueryExecutorService =
                   createAsyncQueryExecutorService(emrServerlessClientFactory);
 
@@ -350,7 +350,7 @@ public class IndexQuerySpecTest extends AsyncQueryExecutorServiceSpec {
                       throw new ValidationException("Job run is not in a cancellable state");
                     }
                   };
-              EMRServerlessClientFactory emrServerlessClientFactory = () -> emrsClient;
+              EMRServerlessClientFactory emrServerlessClientFactory = (accountId) -> emrsClient;
               AsyncQueryExecutorService asyncQueryExecutorService =
                   createAsyncQueryExecutorService(emrServerlessClientFactory);
 
@@ -397,7 +397,7 @@ public class IndexQuerySpecTest extends AsyncQueryExecutorServiceSpec {
                       return new GetJobRunResult().withJobRun(new JobRun().withState("Running"));
                     }
                   };
-              EMRServerlessClientFactory emrServerlessClientFactory = () -> emrsClient;
+              EMRServerlessClientFactory emrServerlessClientFactory = (accountId) -> emrsClient;
               AsyncQueryExecutorService asyncQueryExecutorService =
                   createAsyncQueryExecutorService(emrServerlessClientFactory);
 
@@ -443,7 +443,7 @@ public class IndexQuerySpecTest extends AsyncQueryExecutorServiceSpec {
                       return new GetJobRunResult().withJobRun(new JobRun().withState("Cancelled"));
                     }
                   };
-              EMRServerlessClientFactory emrServerlessClientFactory = () -> emrsClient;
+              EMRServerlessClientFactory emrServerlessClientFactory = (accountId) -> emrsClient;
               AsyncQueryExecutorService asyncQueryExecutorService =
                   createAsyncQueryExecutorService(emrServerlessClientFactory);
 
@@ -494,7 +494,7 @@ public class IndexQuerySpecTest extends AsyncQueryExecutorServiceSpec {
                       return new GetJobRunResult().withJobRun(new JobRun().withState("Cancelled"));
                     }
                   };
-              EMRServerlessClientFactory emrServerlessClientFactory = () -> emrsClient;
+              EMRServerlessClientFactory emrServerlessClientFactory = (accountId) -> emrsClient;
               AsyncQueryExecutorService asyncQueryExecutorService =
                   createAsyncQueryExecutorService(emrServerlessClientFactory);
 
@@ -542,7 +542,7 @@ public class IndexQuerySpecTest extends AsyncQueryExecutorServiceSpec {
                       return new GetJobRunResult().withJobRun(new JobRun().withState("Cancelled"));
                     }
                   };
-              EMRServerlessClientFactory emrServerlessClientFactory = () -> emrsClient;
+              EMRServerlessClientFactory emrServerlessClientFactory = (accountId) -> emrsClient;
               AsyncQueryExecutorService asyncQueryExecutorService =
                   createAsyncQueryExecutorService(emrServerlessClientFactory);
 
@@ -590,7 +590,7 @@ public class IndexQuerySpecTest extends AsyncQueryExecutorServiceSpec {
                       return new GetJobRunResult().withJobRun(new JobRun().withState("Cancelled"));
                     }
                   };
-              EMRServerlessClientFactory emrServerlessClientFactory = () -> emrsClient;
+              EMRServerlessClientFactory emrServerlessClientFactory = (accountId) -> emrsClient;
               AsyncQueryExecutorService asyncQueryExecutorService =
                   createAsyncQueryExecutorService(emrServerlessClientFactory);
 
@@ -644,7 +644,7 @@ public class IndexQuerySpecTest extends AsyncQueryExecutorServiceSpec {
                       return null;
                     }
                   };
-              EMRServerlessClientFactory emrServerlessClientFactory = () -> emrsClient;
+              EMRServerlessClientFactory emrServerlessClientFactory = (accountId) -> emrsClient;
               AsyncQueryExecutorService asyncQueryExecutorService =
                   createAsyncQueryExecutorService(emrServerlessClientFactory);
 
@@ -691,7 +691,7 @@ public class IndexQuerySpecTest extends AsyncQueryExecutorServiceSpec {
             throw new IllegalArgumentException("Job run is not in a cancellable state");
           }
         };
-    EMRServerlessClientFactory emrServerlessClientFactory = () -> emrsClient;
+    EMRServerlessClientFactory emrServerlessClientFactory = (accountId) -> emrsClient;
     AsyncQueryExecutorService asyncQueryExecutorService =
         createAsyncQueryExecutorService(emrServerlessClientFactory);
 
@@ -742,7 +742,7 @@ public class IndexQuerySpecTest extends AsyncQueryExecutorServiceSpec {
                       return null;
                     }
                   };
-              EMRServerlessClientFactory emrServerlessClientFactory = () -> emrsClient;
+              EMRServerlessClientFactory emrServerlessClientFactory = (accountId) -> emrsClient;
               AsyncQueryExecutorService asyncQueryExecutorService =
                   createAsyncQueryExecutorService(emrServerlessClientFactory);
 
@@ -887,7 +887,7 @@ public class IndexQuerySpecTest extends AsyncQueryExecutorServiceSpec {
                       return null;
                     }
                   };
-              EMRServerlessClientFactory emrServerlessClientFactory = () -> emrsClient;
+              EMRServerlessClientFactory emrServerlessClientFactory = (accountId) -> emrsClient;
               AsyncQueryExecutorService asyncQueryExecutorService =
                   createAsyncQueryExecutorService(emrServerlessClientFactory);
 
@@ -917,7 +917,7 @@ public class IndexQuerySpecTest extends AsyncQueryExecutorServiceSpec {
             mockDS -> {
               AsyncQueryExecutorService asyncQueryExecutorService =
                   createAsyncQueryExecutorService(
-                      () ->
+                      (accountId) ->
                           new LocalEMRSClient() {
                             @Override
                             public GetJobRunResult getJobRunResult(
@@ -962,7 +962,7 @@ public class IndexQuerySpecTest extends AsyncQueryExecutorServiceSpec {
             mockDS -> {
               AsyncQueryExecutorService asyncQueryExecutorService =
                   createAsyncQueryExecutorService(
-                      () ->
+                      (accountId) ->
                           new LocalEMRSClient() {
                             @Override
                             public GetJobRunResult getJobRunResult(
@@ -1009,7 +1009,7 @@ public class IndexQuerySpecTest extends AsyncQueryExecutorServiceSpec {
         new MockFlintIndex(client(), indexName, FlintIndexType.COVERING, null);
     AsyncQueryExecutorService asyncQueryExecutorService =
         createAsyncQueryExecutorService(
-            () ->
+            (accountId) ->
                 new LocalEMRSClient() {
                   @Override
                   public GetJobRunResult getJobRunResult(String applicationId, String jobId) {

@@ -145,7 +145,8 @@ public abstract class FlintIndexOp {
       throws InterruptedException, TimeoutException {
     String applicationId = flintIndexStateModel.getApplicationId();
     String jobId = flintIndexStateModel.getJobId();
-    EMRServerlessClient emrServerlessClient = emrServerlessClientFactory.getClient();
+    EMRServerlessClient emrServerlessClient =
+        emrServerlessClientFactory.getClient(flintIndexStateModel.getAccountId());
     try {
       emrServerlessClient.cancelJobRun(
           flintIndexStateModel.getApplicationId(), flintIndexStateModel.getJobId(), true);

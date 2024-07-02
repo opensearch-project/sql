@@ -18,7 +18,6 @@ import org.opensearch.sql.spark.config.SparkExecutionEngineConfig;
 import org.opensearch.sql.spark.config.SparkExecutionEngineConfigSupplier;
 import org.opensearch.sql.spark.metrics.MetricsService;
 
-/** Implementation of {@link EMRServerlessClientFactory}. */
 @RequiredArgsConstructor
 public class EMRServerlessClientFactoryImpl implements EMRServerlessClientFactory {
 
@@ -27,13 +26,8 @@ public class EMRServerlessClientFactoryImpl implements EMRServerlessClientFactor
   private EMRServerlessClient emrServerlessClient;
   private String region;
 
-  /**
-   * Gets an instance of {@link EMRServerlessClient}.
-   *
-   * @return An {@link EMRServerlessClient} instance.
-   */
   @Override
-  public EMRServerlessClient getClient() {
+  public EMRServerlessClient getClient(String accountId) {
     SparkExecutionEngineConfig sparkExecutionEngineConfig =
         this.sparkExecutionEngineConfigSupplier.getSparkExecutionEngineConfig(
             new NullAsyncQueryRequestContext());

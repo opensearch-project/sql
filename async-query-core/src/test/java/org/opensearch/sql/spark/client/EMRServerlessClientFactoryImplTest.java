@@ -21,6 +21,7 @@ import org.opensearch.sql.spark.metrics.MetricsService;
 @ExtendWith(MockitoExtension.class)
 public class EMRServerlessClientFactoryImplTest {
 
+  public static final String ACCOUNT_ID = "accountId";
   @Mock private SparkExecutionEngineConfigSupplier sparkExecutionEngineConfigSupplier;
   @Mock private MetricsService metricsService;
 
@@ -30,7 +31,9 @@ public class EMRServerlessClientFactoryImplTest {
         .thenReturn(createSparkExecutionEngineConfig());
     EMRServerlessClientFactory emrServerlessClientFactory =
         new EMRServerlessClientFactoryImpl(sparkExecutionEngineConfigSupplier, metricsService);
-    EMRServerlessClient emrserverlessClient = emrServerlessClientFactory.getClient();
+
+    EMRServerlessClient emrserverlessClient = emrServerlessClientFactory.getClient(ACCOUNT_ID);
+
     Assertions.assertNotNull(emrserverlessClient);
   }
 
@@ -41,16 +44,16 @@ public class EMRServerlessClientFactoryImplTest {
         .thenReturn(sparkExecutionEngineConfig);
     EMRServerlessClientFactory emrServerlessClientFactory =
         new EMRServerlessClientFactoryImpl(sparkExecutionEngineConfigSupplier, metricsService);
-    EMRServerlessClient emrserverlessClient = emrServerlessClientFactory.getClient();
+    EMRServerlessClient emrserverlessClient = emrServerlessClientFactory.getClient(ACCOUNT_ID);
     Assertions.assertNotNull(emrserverlessClient);
 
-    EMRServerlessClient emrServerlessClient1 = emrServerlessClientFactory.getClient();
+    EMRServerlessClient emrServerlessClient1 = emrServerlessClientFactory.getClient(ACCOUNT_ID);
     Assertions.assertEquals(emrServerlessClient1, emrserverlessClient);
 
     sparkExecutionEngineConfig.setRegion(TestConstants.US_WEST_REGION);
     when(sparkExecutionEngineConfigSupplier.getSparkExecutionEngineConfig(any()))
         .thenReturn(sparkExecutionEngineConfig);
-    EMRServerlessClient emrServerlessClient2 = emrServerlessClientFactory.getClient();
+    EMRServerlessClient emrServerlessClient2 = emrServerlessClientFactory.getClient(ACCOUNT_ID);
     Assertions.assertNotEquals(emrServerlessClient2, emrserverlessClient);
     Assertions.assertNotEquals(emrServerlessClient2, emrServerlessClient1);
   }
@@ -60,9 +63,11 @@ public class EMRServerlessClientFactoryImplTest {
     when(sparkExecutionEngineConfigSupplier.getSparkExecutionEngineConfig(any())).thenReturn(null);
     EMRServerlessClientFactory emrServerlessClientFactory =
         new EMRServerlessClientFactoryImpl(sparkExecutionEngineConfigSupplier, metricsService);
+
     IllegalArgumentException illegalArgumentException =
         Assertions.assertThrows(
-            IllegalArgumentException.class, emrServerlessClientFactory::getClient);
+            IllegalArgumentException.class, () -> emrServerlessClientFactory.getClient(ACCOUNT_ID));
+
     Assertions.assertEquals(
         "Async Query APIs are disabled. Please configure plugins.query.executionengine.spark.config"
             + " in cluster settings to enable them.",
@@ -77,9 +82,11 @@ public class EMRServerlessClientFactoryImplTest {
         .thenReturn(sparkExecutionEngineConfig);
     EMRServerlessClientFactory emrServerlessClientFactory =
         new EMRServerlessClientFactoryImpl(sparkExecutionEngineConfigSupplier, metricsService);
+
     IllegalArgumentException illegalArgumentException =
         Assertions.assertThrows(
-            IllegalArgumentException.class, emrServerlessClientFactory::getClient);
+            IllegalArgumentException.class, () -> emrServerlessClientFactory.getClient(ACCOUNT_ID));
+
     Assertions.assertEquals(
         "Async Query APIs are disabled. Please configure plugins.query.executionengine.spark.config"
             + " in cluster settings to enable them.",

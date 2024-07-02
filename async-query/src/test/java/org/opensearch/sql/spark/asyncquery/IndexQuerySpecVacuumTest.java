@@ -156,7 +156,7 @@ public class IndexQuerySpecVacuumTest extends AsyncQueryExecutorServiceSpec {
             return getJobRunResult.call();
           }
         };
-    EMRServerlessClientFactory emrServerlessClientFactory = () -> emrsClient;
+    EMRServerlessClientFactory emrServerlessClientFactory = (accountId) -> emrsClient;
     AsyncQueryExecutorService asyncQueryExecutorService =
         createAsyncQueryExecutorService(emrServerlessClientFactory);
 

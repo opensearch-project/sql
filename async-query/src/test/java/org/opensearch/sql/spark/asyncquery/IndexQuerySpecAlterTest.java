@@ -63,7 +63,7 @@ public class IndexQuerySpecAlterTest extends AsyncQueryExecutorServiceSpec {
                       return new GetJobRunResult().withJobRun(jobRun);
                     }
                   };
-              EMRServerlessClientFactory emrServerlessClientFactory = () -> emrsClient;
+              EMRServerlessClientFactory emrServerlessClientFactory = (accountId) -> emrsClient;
               AsyncQueryExecutorService asyncQueryExecutorService =
                   createAsyncQueryExecutorService(emrServerlessClientFactory);
               // Mock flint index
@@ -131,7 +131,7 @@ public class IndexQuerySpecAlterTest extends AsyncQueryExecutorServiceSpec {
                       return new GetJobRunResult().withJobRun(jobRun);
                     }
                   };
-              EMRServerlessClientFactory emrServerlessClientFactory = () -> emrsClient;
+              EMRServerlessClientFactory emrServerlessClientFactory = (accountId) -> emrsClient;
               AsyncQueryExecutorService asyncQueryExecutorService =
                   createAsyncQueryExecutorService(emrServerlessClientFactory);
               // Mock flint index
@@ -214,7 +214,7 @@ public class IndexQuerySpecAlterTest extends AsyncQueryExecutorServiceSpec {
                       throw new ValidationException("Job run is not in a cancellable state");
                     }
                   };
-              EMRServerlessClientFactory emrServerlessCientFactory = () -> emrsClient;
+              EMRServerlessClientFactory emrServerlessCientFactory = (accountId) -> emrsClient;
               AsyncQueryExecutorService asyncQueryExecutorService =
                   createAsyncQueryExecutorService(emrServerlessCientFactory);
               // Mock flint index
@@ -276,8 +276,8 @@ public class IndexQuerySpecAlterTest extends AsyncQueryExecutorServiceSpec {
     ImmutableList.of(ALTER_SKIPPING, ALTER_COVERING, ALTER_MV)
         .forEach(
             mockDS -> {
-              LocalEMRSClient localEMRSClient = new LocalEMRSClient();
-              EMRServerlessClientFactory clientFactory = () -> localEMRSClient;
+              LocalEMRSClient emrsClient = new LocalEMRSClient();
+              EMRServerlessClientFactory clientFactory = (accountId) -> emrsClient;
               AsyncQueryExecutorService asyncQueryExecutorService =
                   createAsyncQueryExecutorService(clientFactory);
 
@@ -307,9 +307,9 @@ public class IndexQuerySpecAlterTest extends AsyncQueryExecutorServiceSpec {
                       .getStatus());
 
               flintIndexJob.assertState(FlintIndexState.ACTIVE);
-              localEMRSClient.startJobRunCalled(1);
-              localEMRSClient.getJobRunResultCalled(1);
-              localEMRSClient.cancelJobRunCalled(0);
+              emrsClient.startJobRunCalled(1);
+              emrsClient.getJobRunResultCalled(1);
+              emrsClient.cancelJobRunCalled(0);
               Map<String, Object> mappings = mockDS.getIndexMappings();
               Map<String, Object> meta = (HashMap<String, Object>) mappings.get("_meta");
               Map<String, Object> options = (Map<String, Object>) meta.get("options");
@@ -342,8 +342,8 @@ public class IndexQuerySpecAlterTest extends AsyncQueryExecutorServiceSpec {
     ImmutableList.of(ALTER_SKIPPING, ALTER_COVERING, ALTER_MV)
         .forEach(
             mockDS -> {
-              LocalEMRSClient localEMRSClient = new LocalEMRSClient();
-              EMRServerlessClientFactory clientFactory = () -> localEMRSClient;
+              LocalEMRSClient emrsClient = new LocalEMRSClient();
+              EMRServerlessClientFactory clientFactory = (accountId) -> emrsClient;
               AsyncQueryExecutorService asyncQueryExecutorService =
                   createAsyncQueryExecutorService(clientFactory);
 
@@ -373,9 +373,9 @@ public class IndexQuerySpecAlterTest extends AsyncQueryExecutorServiceSpec {
                       .getStatus());
 
               flintIndexJob.assertState(FlintIndexState.ACTIVE);
-              localEMRSClient.startJobRunCalled(1);
-              localEMRSClient.getJobRunResultCalled(1);
-              localEMRSClient.cancelJobRunCalled(0);
+              emrsClient.startJobRunCalled(1);
+              emrsClient.getJobRunResultCalled(1);
+              emrsClient.cancelJobRunCalled(0);
               Map<String, Object> mappings = mockDS.getIndexMappings();
               Map<String, Object> meta = (HashMap<String, Object>) mappings.get("_meta");
               Map<String, Object> options = (Map<String, Object>) meta.get("options");
@@ -419,7 +419,7 @@ public class IndexQuerySpecAlterTest extends AsyncQueryExecutorServiceSpec {
                       return new GetJobRunResult().withJobRun(jobRun);
                     }
                   };
-              EMRServerlessClientFactory emrServerlessClientFactory = () -> emrsClient;
+              EMRServerlessClientFactory emrServerlessClientFactory = (accountId) -> emrsClient;
               AsyncQueryExecutorService asyncQueryExecutorService =
                   createAsyncQueryExecutorService(emrServerlessClientFactory);
               // Mock flint index
@@ -494,7 +494,7 @@ public class IndexQuerySpecAlterTest extends AsyncQueryExecutorServiceSpec {
                       return new GetJobRunResult().withJobRun(jobRun);
                     }
                   };
-              EMRServerlessClientFactory emrServerlessClientFactory = () -> emrsClient;
+              EMRServerlessClientFactory emrServerlessClientFactory = (accountId) -> emrsClient;
               AsyncQueryExecutorService asyncQueryExecutorService =
                   createAsyncQueryExecutorService(emrServerlessClientFactory);
               // Mock flint index
@@ -562,7 +562,7 @@ public class IndexQuerySpecAlterTest extends AsyncQueryExecutorServiceSpec {
                       return new GetJobRunResult().withJobRun(jobRun);
                     }
                   };
-              EMRServerlessClientFactory emrServerlessClientFactory = () -> emrsClient;
+              EMRServerlessClientFactory emrServerlessClientFactory = (accountId) -> emrsClient;
               AsyncQueryExecutorService asyncQueryExecutorService =
                   createAsyncQueryExecutorService(emrServerlessClientFactory);
               // Mock flint index
@@ -624,7 +624,7 @@ public class IndexQuerySpecAlterTest extends AsyncQueryExecutorServiceSpec {
                       return new GetJobRunResult().withJobRun(jobRun);
                     }
                   };
-              EMRServerlessClientFactory emrServerlessClientFactory = () -> emrsClient;
+              EMRServerlessClientFactory emrServerlessClientFactory = (accountId) -> emrsClient;
               AsyncQueryExecutorService asyncQueryExecutorService =
                   createAsyncQueryExecutorService(emrServerlessClientFactory);
               // Mock flint index
@@ -686,7 +686,7 @@ public class IndexQuerySpecAlterTest extends AsyncQueryExecutorServiceSpec {
                       return new GetJobRunResult().withJobRun(jobRun);
                     }
                   };
-              EMRServerlessClientFactory emrServerlessClientFactory = () -> emrsClient;
+              EMRServerlessClientFactory emrServerlessClientFactory = (accountId) -> emrsClient;
               AsyncQueryExecutorService asyncQueryExecutorService =
                   createAsyncQueryExecutorService(emrServerlessClientFactory);
               // Mock flint index
@@ -750,7 +750,7 @@ public class IndexQuerySpecAlterTest extends AsyncQueryExecutorServiceSpec {
                       return new GetJobRunResult().withJobRun(jobRun);
                     }
                   };
-              EMRServerlessClientFactory emrServerlessClientFactory = () -> emrsClient;
+              EMRServerlessClientFactory emrServerlessClientFactory = (accountId) -> emrsClient;
               AsyncQueryExecutorService asyncQueryExecutorService =
                   createAsyncQueryExecutorService(emrServerlessClientFactory);
               // Mock flint index
@@ -811,7 +811,7 @@ public class IndexQuerySpecAlterTest extends AsyncQueryExecutorServiceSpec {
                       return new GetJobRunResult().withJobRun(jobRun);
                     }
                   };
-              EMRServerlessClientFactory emrServerlessClientFactory = () -> emrsClient;
+              EMRServerlessClientFactory emrServerlessClientFactory = (accountId) -> emrsClient;
               AsyncQueryExecutorService asyncQueryExecutorService =
                   createAsyncQueryExecutorService(emrServerlessClientFactory);
               // Mock flint index
@@ -873,7 +873,7 @@ public class IndexQuerySpecAlterTest extends AsyncQueryExecutorServiceSpec {
                       return new GetJobRunResult().withJobRun(jobRun);
                     }
                   };
-              EMRServerlessClientFactory emrServerlessClientFactory = () -> emrsClient;
+              EMRServerlessClientFactory emrServerlessClientFactory = (accountId) -> emrsClient;
               AsyncQueryExecutorService asyncQueryExecutorService =
                   createAsyncQueryExecutorService(emrServerlessClientFactory);
               // Mock flint index
@@ -940,7 +940,7 @@ public class IndexQuerySpecAlterTest extends AsyncQueryExecutorServiceSpec {
                       throw new ValidationException("Job run is not in a cancellable state");
                     }
                   };
-              EMRServerlessClientFactory emrServerlessClientFactory = () -> emrsClient;
+              EMRServerlessClientFactory emrServerlessClientFactory = (accountId) -> emrsClient;
               AsyncQueryExecutorService asyncQueryExecutorService =
                   createAsyncQueryExecutorService(emrServerlessClientFactory);
               // Mock flint index
@@ -1005,7 +1005,7 @@ public class IndexQuerySpecAlterTest extends AsyncQueryExecutorServiceSpec {
                       throw new ValidationException("Random validation exception");
                     }
                   };
-              EMRServerlessClientFactory emrServerlessClientFactory = () -> emrsClient;
+              EMRServerlessClientFactory emrServerlessClientFactory = (accountId) -> emrsClient;
               AsyncQueryExecutorService asyncQueryExecutorService =
                   createAsyncQueryExecutorService(emrServerlessClientFactory);
               // Mock flint index
@@ -1071,7 +1071,7 @@ public class IndexQuerySpecAlterTest extends AsyncQueryExecutorServiceSpec {
                       throw new IllegalArgumentException("Unknown Error");
                     }
                   };
-              EMRServerlessClientFactory emrServerlessClientFactory = () -> emrsClient;
+              EMRServerlessClientFactory emrServerlessClientFactory = (accountId) -> emrsClient;
               AsyncQueryExecutorService asyncQueryExecutorService =
                   createAsyncQueryExecutorService(emrServerlessClientFactory);
               // Mock flint index
