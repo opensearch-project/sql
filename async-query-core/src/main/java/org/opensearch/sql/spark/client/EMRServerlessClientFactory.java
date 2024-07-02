@@ -11,7 +11,8 @@ public interface EMRServerlessClientFactory {
   /**
    * Gets an instance of {@link EMRServerlessClient}.
    *
+   * @param accountId Account ID of the requester. It will be used to decide the cluster.
    * @return An {@link EMRServerlessClient} instance.
    */
-  EMRServerlessClient getClient();
+  EMRServerlessClient getClient(String accountId);
 }
