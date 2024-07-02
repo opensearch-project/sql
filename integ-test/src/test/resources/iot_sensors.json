@@ -1,0 +1,6 @@
+{ "index" : { "_id" : "1" } }
+{ "did" : 255, "name":"temperature-basement", "vendor":"VendorOne", "type":"meter"}
+{ "index" : { "_id" : "2" } }
+{ "did" : 256, "name":"temperature-living-room", "vendor":"VendorTwo", "type":"temperature meter" }
+{ "index" : { "_id" : "3" } }
+{ "did" : 257, "name":"temperature-bedroom", "vendor":"VendorThree", "type":"camcorder"}

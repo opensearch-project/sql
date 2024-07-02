@@ -57,6 +57,8 @@ public class TestsConstants {
   public static final String TEST_INDEX_WILDCARD = TEST_INDEX + "_wildcard";
   public static final String TEST_INDEX_MULTI_NESTED_TYPE = TEST_INDEX + "_multi_nested";
   public static final String TEST_INDEX_NESTED_WITH_NULLS = TEST_INDEX + "_nested_with_nulls";
+  public static final String TEST_INDEX_IOT_READINGS = TEST_INDEX + "_iot_readings";
+  public static final String TEST_INDEX_IOT_SENSORS = TEST_INDEX + "_iot_sensors";
   public static final String DATASOURCES = ".ql-datasources";
 
   public static final String DATE_FORMAT = "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'";
