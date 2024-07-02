@@ -28,10 +28,7 @@ jobs:
       # Run all jobs
       fail-fast: false
       matrix:
-        java:
-          - 11
-          - 17
-          - 21
+        java: [21]
     runs-on: ubuntu-latest
     container:
       # using the same image which is used by opensearch-build team to build the OpenSearch Distribution
@@ -105,8 +102,6 @@ jobs:
       fail-fast: false
       matrix:
         entry:
-          - { os: windows-latest, java: 11, os_build_args: -x doctest  -PbuildPlatform=windows }
-          - { os: windows-latest, java: 17, os_build_args: -x doctest -PbuildPlatform=windows }
           - { os: windows-latest, java: 21, os_build_args: -x doctest -PbuildPlatform=windows }
     runs-on: ${{ matrix.entry.os }}
 
