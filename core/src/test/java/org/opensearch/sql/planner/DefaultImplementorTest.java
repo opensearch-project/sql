@@ -48,6 +48,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.opensearch.sql.ast.tree.RareTopN.CommandType;
 import org.opensearch.sql.ast.tree.Sort;
 import org.opensearch.sql.data.model.ExprBooleanValue;
+import org.opensearch.sql.data.model.ExprValueUtils;
 import org.opensearch.sql.data.type.ExprCoreType;
 import org.opensearch.sql.executor.pagination.PlanSerializer;
 import org.opensearch.sql.expression.DSL;
@@ -59,6 +60,7 @@ import org.opensearch.sql.expression.aggregation.NamedAggregator;
 import org.opensearch.sql.expression.window.WindowDefinition;
 import org.opensearch.sql.expression.window.ranking.RowNumberFunction;
 import org.opensearch.sql.planner.logical.LogicalCloseCursor;
+import org.opensearch.sql.planner.logical.LogicalLookup;
 import org.opensearch.sql.planner.logical.LogicalPaginate;
 import org.opensearch.sql.planner.logical.LogicalPlan;
 import org.opensearch.sql.planner.logical.LogicalPlanDSL;
@@ -307,5 +309,20 @@ class DefaultImplementorTest {
     PhysicalPlan lookupOperator = logicalPlan.accept(implementor, null);
 
     assertEquals(expectedPhysicalPlan, lookupOperator);
+  }
+
+  @Test
+  public void visitLookup_should_throw_unsupportedOperationException() {
+    LogicalLookup input = mock(LogicalLookup.class);
+    LogicalPlan dataSource = mock(LogicalPlan.class);
+    PhysicalPlan physicalSource = mock(PhysicalPlan.class);
+    when(dataSource.accept(implementor, null)).thenReturn(physicalSource);
+    when(input.getChild()).thenReturn(List.of(dataSource));
+    PhysicalPlan lookupOperator = implementor.visitLookup(input, null);
+    when(physicalSource.next()).thenReturn(ExprValueUtils.tupleValue(Map.of("field", "value")));
+
+    var ex = assertThrows(UnsupportedOperationException.class, () -> lookupOperator.next());
+
+    assertEquals("Lookup not implemented by DefaultImplementor", ex.getMessage());
   }
 }

@@ -143,7 +143,7 @@ public class LogicalPlanDSL {
       LogicalPlan input,
       String indexName,
       Map<ReferenceExpression, ReferenceExpression> matchFieldMap,
-      boolean appendOnly,
+      Boolean appendOnly,
       Map<ReferenceExpression, ReferenceExpression> copyFields) {
     return new LogicalLookup(input, indexName, matchFieldMap, appendOnly, copyFields);
   }

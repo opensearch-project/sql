@@ -85,7 +85,7 @@ public class DefaultImplementor<C> extends LogicalPlanNodeVisitor<PhysicalPlan, 
         node.getAppendOnly(),
         node.getCopyFieldMap(),
         (a, b) -> {
-          throw new RuntimeException("not implemented by DefaultImplementor");
+          throw new UnsupportedOperationException("Lookup not implemented by DefaultImplementor");
         });
   }
 
