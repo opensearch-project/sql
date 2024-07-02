@@ -14,7 +14,7 @@ import lombok.RequiredArgsConstructor;
 import org.opensearch.core.common.Strings;
 import org.opensearch.sql.protocol.response.QueryResult;
 import org.opensearch.sql.protocol.response.format.JsonResponseFormatter;
-import org.opensearch.sql.spark.asyncquery.model.AsyncQueryResult;
+import org.opensearch.sql.spark.transport.model.AsyncQueryResult;
 
 /**
  * JSON response format with schema header and data rows. For example,

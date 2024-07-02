@@ -1,3 +1,8 @@
+/*
+ * Copyright OpenSearch Contributors
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
 package org.opensearch.sql.spark.transport.format;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -11,7 +16,7 @@ import com.google.common.collect.ImmutableMap;
 import java.util.Arrays;
 import org.junit.jupiter.api.Test;
 import org.opensearch.sql.executor.ExecutionEngine;
-import org.opensearch.sql.spark.asyncquery.model.AsyncQueryResult;
+import org.opensearch.sql.spark.transport.model.AsyncQueryResult;
 
 public class AsyncQueryResultResponseFormatterTest {
 
