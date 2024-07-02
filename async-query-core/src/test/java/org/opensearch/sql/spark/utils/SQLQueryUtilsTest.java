@@ -5,12 +5,17 @@
 
 package org.opensearch.sql.spark.utils;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.opensearch.sql.spark.utils.SQLQueryUtilsTest.IndexQuery.index;
 import static org.opensearch.sql.spark.utils.SQLQueryUtilsTest.IndexQuery.mv;
 import static org.opensearch.sql.spark.utils.SQLQueryUtilsTest.IndexQuery.skippingIndex;
 
+import java.util.List;
 import lombok.Getter;
-import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -26,46 +31,34 @@ public class SQLQueryUtilsTest {
   void testExtractionOfTableNameFromSQLQueries() {
     String sqlQuery = "select * from my_glue.default.http_logs";
     FullyQualifiedTableName fullyQualifiedTableName =
-        SQLQueryUtils.extractFullyQualifiedTableName(sqlQuery);
-    Assertions.assertFalse(SQLQueryUtils.isFlintExtensionQuery(sqlQuery));
-    Assertions.assertEquals("my_glue", fullyQualifiedTableName.getDatasourceName());
-    Assertions.assertEquals("default", fullyQualifiedTableName.getSchemaName());
-    Assertions.assertEquals("http_logs", fullyQualifiedTableName.getTableName());
+        SQLQueryUtils.extractFullyQualifiedTableNames(sqlQuery).get(0);
+    assertFalse(SQLQueryUtils.isFlintExtensionQuery(sqlQuery));
+    assertFullyQualifiedTableName("my_glue", "default", "http_logs", fullyQualifiedTableName);
 
     sqlQuery = "select * from my_glue.db.http_logs";
-    Assertions.assertFalse(SQLQueryUtils.isFlintExtensionQuery(sqlQuery));
-    fullyQualifiedTableName = SQLQueryUtils.extractFullyQualifiedTableName(sqlQuery);
-    Assertions.assertEquals("my_glue", fullyQualifiedTableName.getDatasourceName());
-    Assertions.assertEquals("db", fullyQualifiedTableName.getSchemaName());
-    Assertions.assertEquals("http_logs", fullyQualifiedTableName.getTableName());
+    assertFalse(SQLQueryUtils.isFlintExtensionQuery(sqlQuery));
+    fullyQualifiedTableName = SQLQueryUtils.extractFullyQualifiedTableNames(sqlQuery).get(0);
+    assertFullyQualifiedTableName("my_glue", "db", "http_logs", fullyQualifiedTableName);
 
     sqlQuery = "select * from my_glue.http_logs";
-    fullyQualifiedTableName = SQLQueryUtils.extractFullyQualifiedTableName(sqlQuery);
-    Assertions.assertFalse(SQLQueryUtils.isFlintExtensionQuery(sqlQuery));
-    Assertions.assertEquals("my_glue", fullyQualifiedTableName.getSchemaName());
-    Assertions.assertNull(fullyQualifiedTableName.getDatasourceName());
-    Assertions.assertEquals("http_logs", fullyQualifiedTableName.getTableName());
+    fullyQualifiedTableName = SQLQueryUtils.extractFullyQualifiedTableNames(sqlQuery).get(0);
+    assertFalse(SQLQueryUtils.isFlintExtensionQuery(sqlQuery));
+    assertFullyQualifiedTableName(null, "my_glue", "http_logs", fullyQualifiedTableName);
 
     sqlQuery = "select * from http_logs";
-    fullyQualifiedTableName = SQLQueryUtils.extractFullyQualifiedTableName(sqlQuery);
-    Assertions.assertFalse(SQLQueryUtils.isFlintExtensionQuery(sqlQuery));
-    Assertions.assertNull(fullyQualifiedTableName.getDatasourceName());
-    Assertions.assertNull(fullyQualifiedTableName.getSchemaName());
-    Assertions.assertEquals("http_logs", fullyQualifiedTableName.getTableName());
+    fullyQualifiedTableName = SQLQueryUtils.extractFullyQualifiedTableNames(sqlQuery).get(0);
+    assertFalse(SQLQueryUtils.isFlintExtensionQuery(sqlQuery));
+    assertFullyQualifiedTableName(null, null, "http_logs", fullyQualifiedTableName);
 
     sqlQuery = "DROP TABLE myS3.default.alb_logs";
-    fullyQualifiedTableName = SQLQueryUtils.extractFullyQualifiedTableName(sqlQuery);
-    Assertions.assertFalse(SQLQueryUtils.isFlintExtensionQuery(sqlQuery));
-    Assertions.assertEquals("myS3", fullyQualifiedTableName.getDatasourceName());
-    Assertions.assertEquals("default", fullyQualifiedTableName.getSchemaName());
-    Assertions.assertEquals("alb_logs", fullyQualifiedTableName.getTableName());
+    fullyQualifiedTableName = SQLQueryUtils.extractFullyQualifiedTableNames(sqlQuery).get(0);
+    assertFalse(SQLQueryUtils.isFlintExtensionQuery(sqlQuery));
+    assertFullyQualifiedTableName("myS3", "default", "alb_logs", fullyQualifiedTableName);
 
     sqlQuery = "DESCRIBE TABLE myS3.default.alb_logs";
-    fullyQualifiedTableName = SQLQueryUtils.extractFullyQualifiedTableName(sqlQuery);
-    Assertions.assertFalse(SQLQueryUtils.isFlintExtensionQuery(sqlQuery));
-    Assertions.assertEquals("myS3", fullyQualifiedTableName.getDatasourceName());
-    Assertions.assertEquals("default", fullyQualifiedTableName.getSchemaName());
-    Assertions.assertEquals("alb_logs", fullyQualifiedTableName.getTableName());
+    fullyQualifiedTableName = SQLQueryUtils.extractFullyQualifiedTableNames(sqlQuery).get(0);
+    assertFalse(SQLQueryUtils.isFlintExtensionQuery(sqlQuery));
+    assertFullyQualifiedTableName("myS3", "default", "alb_logs", fullyQualifiedTableName);
 
     sqlQuery =
         "CREATE EXTERNAL TABLE\n"
@@ -74,31 +67,60 @@ public class SQLQueryUtilsTest {
             + "[ ROW FORMAT DELIMITED row_format ]\n"
             + "STORED AS file_format\n"
             + "LOCATION { 's3://bucket/folder/' }";
-    fullyQualifiedTableName = SQLQueryUtils.extractFullyQualifiedTableName(sqlQuery);
-    Assertions.assertFalse(SQLQueryUtils.isFlintExtensionQuery(sqlQuery));
-    Assertions.assertEquals("myS3", fullyQualifiedTableName.getDatasourceName());
-    Assertions.assertEquals("default", fullyQualifiedTableName.getSchemaName());
-    Assertions.assertEquals("alb_logs", fullyQualifiedTableName.getTableName());
+    fullyQualifiedTableName = SQLQueryUtils.extractFullyQualifiedTableNames(sqlQuery).get(0);
+    assertFalse(SQLQueryUtils.isFlintExtensionQuery(sqlQuery));
+    assertFullyQualifiedTableName("myS3", "default", "alb_logs", fullyQualifiedTableName);
   }
 
   @Test
-  void testErrorScenarios() {
-    String sqlQuery = "SHOW tables";
-    FullyQualifiedTableName fullyQualifiedTableName =
-        SQLQueryUtils.extractFullyQualifiedTableName(sqlQuery);
-    Assertions.assertNotNull(fullyQualifiedTableName);
-    Assertions.assertNull(fullyQualifiedTableName.getFullyQualifiedName());
-    Assertions.assertNull(fullyQualifiedTableName.getSchemaName());
-    Assertions.assertNull(fullyQualifiedTableName.getTableName());
-    Assertions.assertNull(fullyQualifiedTableName.getDatasourceName());
+  void testMultipleTables() {
+    String[] sqlQueries = {
+      "SELECT * FROM my_glue.default.http_logs, my_glue.default.access_logs",
+      "SELECT * FROM my_glue.default.http_logs LEFT JOIN my_glue.default.access_logs",
+      "SELECT table1.id, table2.id FROM my_glue.default.http_logs table1 LEFT OUTER JOIN"
+          + " (SELECT * FROM my_glue.default.access_logs) table2 ON table1.tag = table2.tag",
+      "SELECT table1.id, table2.id FROM my_glue.default.http_logs FOR VERSION AS OF 1 table1"
+          + " LEFT OUTER JOIN"
+          + " (SELECT * FROM my_glue.default.access_logs) table2"
+          + " ON table1.tag = table2.tag"
+    };
 
-    sqlQuery = "DESCRIBE TABLE FROM myS3.default.alb_logs";
-    fullyQualifiedTableName = SQLQueryUtils.extractFullyQualifiedTableName(sqlQuery);
-    Assertions.assertFalse(SQLQueryUtils.isFlintExtensionQuery(sqlQuery));
-    Assertions.assertEquals("FROM", fullyQualifiedTableName.getFullyQualifiedName());
-    Assertions.assertNull(fullyQualifiedTableName.getSchemaName());
-    Assertions.assertEquals("FROM", fullyQualifiedTableName.getTableName());
-    Assertions.assertNull(fullyQualifiedTableName.getDatasourceName());
+    for (String sqlQuery : sqlQueries) {
+      List<FullyQualifiedTableName> fullyQualifiedTableNames =
+          SQLQueryUtils.extractFullyQualifiedTableNames(sqlQuery);
+
+      assertFalse(SQLQueryUtils.isFlintExtensionQuery(sqlQuery));
+      assertEquals(2, fullyQualifiedTableNames.size());
+      assertFullyQualifiedTableName(
+          "my_glue", "default", "http_logs", fullyQualifiedTableNames.get(0));
+      assertFullyQualifiedTableName(
+          "my_glue", "default", "access_logs", fullyQualifiedTableNames.get(1));
+    }
+  }
+
+  @Test
+  void testMultipleTablesWithJoin() {
+    String sqlQuery =
+        "select * from my_glue.default.http_logs LEFT JOIN my_glue.default.access_logs";
+
+    List<FullyQualifiedTableName> fullyQualifiedTableNames =
+        SQLQueryUtils.extractFullyQualifiedTableNames(sqlQuery);
+
+    assertFalse(SQLQueryUtils.isFlintExtensionQuery(sqlQuery));
+    assertFullyQualifiedTableName(
+        "my_glue", "default", "http_logs", fullyQualifiedTableNames.get(0));
+    assertFullyQualifiedTableName(
+        "my_glue", "default", "access_logs", fullyQualifiedTableNames.get(1));
+  }
+
+  @Test
+  void testNoFullyQualifiedTableName() {
+    String sqlQuery = "SHOW tables";
+
+    List<FullyQualifiedTableName> fullyQualifiedTableNames =
+        SQLQueryUtils.extractFullyQualifiedTableNames(sqlQuery);
+
+    assertEquals(0, fullyQualifiedTableNames.size());
   }
 
   @Test
@@ -112,25 +134,27 @@ public class SQLQueryUtilsTest {
           + " WITH (auto_refresh = true)",
       "CREATE SKIPPING INDEX ON myS3.default.alb_logs(l_orderkey VALUE_SET) "
           + " WHERE elb_status_code = 500 "
-          + " WITH (auto_refresh = true)"
+          + " WITH (auto_refresh = true)",
+      "DROP SKIPPING INDEX ON myS3.default.alb_logs",
+      "VACUUM SKIPPING INDEX ON myS3.default.alb_logs",
+      "ALTER SKIPPING INDEX ON myS3.default.alb_logs WITH (auto_refresh = false)",
     };
 
     for (String query : createSkippingIndexQueries) {
-      Assertions.assertTrue(SQLQueryUtils.isFlintExtensionQuery(query), "Failed query: " + query);
+      assertTrue(SQLQueryUtils.isFlintExtensionQuery(query), "Failed query: " + query);
+
       IndexQueryDetails indexQueryDetails = SQLQueryUtils.extractIndexDetails(query);
       FullyQualifiedTableName fullyQualifiedTableName =
           indexQueryDetails.getFullyQualifiedTableName();
 
-      Assertions.assertNull(indexQueryDetails.getIndexName());
-      Assertions.assertEquals("myS3", fullyQualifiedTableName.getDatasourceName());
-      Assertions.assertEquals("default", fullyQualifiedTableName.getSchemaName());
-      Assertions.assertEquals("alb_logs", fullyQualifiedTableName.getTableName());
+      assertNull(indexQueryDetails.getIndexName());
+      assertFullyQualifiedTableName("myS3", "default", "alb_logs", fullyQualifiedTableName);
     }
   }
 
   @Test
   void testExtractionFromFlintCoveringIndexQueries() {
-    String[] createCoveredIndexQueries = {
+    String[] coveringIndexQueries = {
       "CREATE INDEX elb_and_requestUri ON myS3.default.alb_logs(l_orderkey, l_quantity)",
       "CREATE INDEX IF NOT EXISTS elb_and_requestUri "
           + " ON myS3.default.alb_logs(l_orderkey, l_quantity) "
@@ -139,167 +163,177 @@ public class SQLQueryUtilsTest {
           + " WITH (auto_refresh = true)",
       "CREATE INDEX elb_and_requestUri ON myS3.default.alb_logs(l_orderkey, l_quantity) "
           + " WHERE elb_status_code = 500 "
-          + " WITH (auto_refresh = true)"
+          + " WITH (auto_refresh = true)",
+      "DROP INDEX elb_and_requestUri ON myS3.default.alb_logs",
+      "VACUUM INDEX elb_and_requestUri ON myS3.default.alb_logs",
+      "ALTER INDEX elb_and_requestUri ON myS3.default.alb_logs WITH (auto_refresh = false)"
     };
 
-    for (String query : createCoveredIndexQueries) {
-      Assertions.assertTrue(SQLQueryUtils.isFlintExtensionQuery(query), "Failed query: " + query);
+    for (String query : coveringIndexQueries) {
+      assertTrue(SQLQueryUtils.isFlintExtensionQuery(query), "Failed query: " + query);
+
       IndexQueryDetails indexQueryDetails = SQLQueryUtils.extractIndexDetails(query);
       FullyQualifiedTableName fullyQualifiedTableName =
           indexQueryDetails.getFullyQualifiedTableName();
 
-      Assertions.assertEquals("elb_and_requestUri", indexQueryDetails.getIndexName());
-      Assertions.assertEquals("myS3", fullyQualifiedTableName.getDatasourceName());
-      Assertions.assertEquals("default", fullyQualifiedTableName.getSchemaName());
-      Assertions.assertEquals("alb_logs", fullyQualifiedTableName.getTableName());
+      assertEquals("elb_and_requestUri", indexQueryDetails.getIndexName());
+      assertFullyQualifiedTableName("myS3", "default", "alb_logs", fullyQualifiedTableName);
     }
   }
 
   @Test
   void testExtractionFromFlintMVQuery() {
-    String createCoveredIndexQuery =
-        "CREATE MATERIALIZED VIEW mv_1 AS query=select * from my_glue.default.logs WITH"
-            + " (auto_refresh = true)";
-    Assertions.assertTrue(SQLQueryUtils.isFlintExtensionQuery(createCoveredIndexQuery));
-    IndexQueryDetails indexQueryDetails =
-        SQLQueryUtils.extractIndexDetails(createCoveredIndexQuery);
-    FullyQualifiedTableName fullyQualifiedTableName =
-        indexQueryDetails.getFullyQualifiedTableName();
-    Assertions.assertNull(indexQueryDetails.getIndexName());
-    Assertions.assertNull(fullyQualifiedTableName);
-    Assertions.assertEquals("mv_1", indexQueryDetails.getMvName());
+    String[] mvQueries = {
+      "CREATE MATERIALIZED VIEW mv_1 AS query=select * from my_glue.default.logs WITH"
+          + " (auto_refresh = true)",
+      "DROP MATERIALIZED VIEW mv_1",
+      "VACUUM MATERIALIZED VIEW mv_1",
+      "ALTER MATERIALIZED VIEW mv_1 WITH (auto_refresh = false)",
+    };
+
+    for (String query : mvQueries) {
+      assertTrue(SQLQueryUtils.isFlintExtensionQuery(query));
+
+      IndexQueryDetails indexQueryDetails = SQLQueryUtils.extractIndexDetails(query);
+      FullyQualifiedTableName fullyQualifiedTableName =
+          indexQueryDetails.getFullyQualifiedTableName();
+
+      assertNull(indexQueryDetails.getIndexName());
+      assertNull(fullyQualifiedTableName);
+      assertEquals("mv_1", indexQueryDetails.getMvName());
+    }
   }
 
   @Test
-  void testDescIndex() {
+  void testDescSkippingIndex() {
     String descSkippingIndex = "DESC SKIPPING INDEX ON mys3.default.http_logs";
-    Assertions.assertTrue(SQLQueryUtils.isFlintExtensionQuery(descSkippingIndex));
+    assertTrue(SQLQueryUtils.isFlintExtensionQuery(descSkippingIndex));
     IndexQueryDetails indexDetails = SQLQueryUtils.extractIndexDetails(descSkippingIndex);
     FullyQualifiedTableName fullyQualifiedTableName = indexDetails.getFullyQualifiedTableName();
-    Assertions.assertNull(indexDetails.getIndexName());
-    Assertions.assertNotNull(fullyQualifiedTableName);
-    Assertions.assertEquals(FlintIndexType.SKIPPING, indexDetails.getIndexType());
-    Assertions.assertEquals(IndexQueryActionType.DESCRIBE, indexDetails.getIndexQueryActionType());
+    assertNull(indexDetails.getIndexName());
+    assertNotNull(fullyQualifiedTableName);
+    assertEquals(FlintIndexType.SKIPPING, indexDetails.getIndexType());
+    assertEquals(IndexQueryActionType.DESCRIBE, indexDetails.getIndexQueryActionType());
 
     String descCoveringIndex = "DESC INDEX cv1 ON mys3.default.http_logs";
-    Assertions.assertTrue(SQLQueryUtils.isFlintExtensionQuery(descCoveringIndex));
+    assertTrue(SQLQueryUtils.isFlintExtensionQuery(descCoveringIndex));
     indexDetails = SQLQueryUtils.extractIndexDetails(descCoveringIndex);
     fullyQualifiedTableName = indexDetails.getFullyQualifiedTableName();
-    Assertions.assertEquals("cv1", indexDetails.getIndexName());
-    Assertions.assertNotNull(fullyQualifiedTableName);
-    Assertions.assertEquals(FlintIndexType.COVERING, indexDetails.getIndexType());
-    Assertions.assertEquals(IndexQueryActionType.DESCRIBE, indexDetails.getIndexQueryActionType());
+    assertEquals("cv1", indexDetails.getIndexName());
+    assertNotNull(fullyQualifiedTableName);
+    assertEquals(FlintIndexType.COVERING, indexDetails.getIndexType());
+    assertEquals(IndexQueryActionType.DESCRIBE, indexDetails.getIndexQueryActionType());
 
     String descMv = "DESC MATERIALIZED VIEW mv1";
-    Assertions.assertTrue(SQLQueryUtils.isFlintExtensionQuery(descMv));
+    assertTrue(SQLQueryUtils.isFlintExtensionQuery(descMv));
     indexDetails = SQLQueryUtils.extractIndexDetails(descMv);
     fullyQualifiedTableName = indexDetails.getFullyQualifiedTableName();
-    Assertions.assertNull(indexDetails.getIndexName());
-    Assertions.assertEquals("mv1", indexDetails.getMvName());
-    Assertions.assertNull(fullyQualifiedTableName);
-    Assertions.assertEquals(FlintIndexType.MATERIALIZED_VIEW, indexDetails.getIndexType());
-    Assertions.assertEquals(IndexQueryActionType.DESCRIBE, indexDetails.getIndexQueryActionType());
+    assertNull(indexDetails.getIndexName());
+    assertEquals("mv1", indexDetails.getMvName());
+    assertNull(fullyQualifiedTableName);
+    assertEquals(FlintIndexType.MATERIALIZED_VIEW, indexDetails.getIndexType());
+    assertEquals(IndexQueryActionType.DESCRIBE, indexDetails.getIndexQueryActionType());
   }
 
   @Test
   void testShowIndex() {
     String showCoveringIndex = " SHOW INDEX ON myS3.default.http_logs";
-    Assertions.assertTrue(SQLQueryUtils.isFlintExtensionQuery(showCoveringIndex));
+    assertTrue(SQLQueryUtils.isFlintExtensionQuery(showCoveringIndex));
     IndexQueryDetails indexDetails = SQLQueryUtils.extractIndexDetails(showCoveringIndex);
     FullyQualifiedTableName fullyQualifiedTableName = indexDetails.getFullyQualifiedTableName();
-    Assertions.assertNull(indexDetails.getIndexName());
-    Assertions.assertNull(indexDetails.getMvName());
-    Assertions.assertNotNull(fullyQualifiedTableName);
-    Assertions.assertEquals(FlintIndexType.COVERING, indexDetails.getIndexType());
-    Assertions.assertEquals(IndexQueryActionType.SHOW, indexDetails.getIndexQueryActionType());
+    assertNull(indexDetails.getIndexName());
+    assertNull(indexDetails.getMvName());
+    assertNotNull(fullyQualifiedTableName);
+    assertEquals(FlintIndexType.COVERING, indexDetails.getIndexType());
+    assertEquals(IndexQueryActionType.SHOW, indexDetails.getIndexQueryActionType());
 
     String showMV = "SHOW MATERIALIZED VIEW IN my_glue.default";
-    Assertions.assertTrue(SQLQueryUtils.isFlintExtensionQuery(showMV));
+    assertTrue(SQLQueryUtils.isFlintExtensionQuery(showMV));
     indexDetails = SQLQueryUtils.extractIndexDetails(showMV);
     fullyQualifiedTableName = indexDetails.getFullyQualifiedTableName();
-    Assertions.assertNull(indexDetails.getIndexName());
-    Assertions.assertNull(indexDetails.getMvName());
-    Assertions.assertNull(fullyQualifiedTableName);
-    Assertions.assertEquals(FlintIndexType.MATERIALIZED_VIEW, indexDetails.getIndexType());
-    Assertions.assertEquals(IndexQueryActionType.SHOW, indexDetails.getIndexQueryActionType());
+    assertNull(indexDetails.getIndexName());
+    assertNull(indexDetails.getMvName());
+    assertNull(fullyQualifiedTableName);
+    assertEquals(FlintIndexType.MATERIALIZED_VIEW, indexDetails.getIndexType());
+    assertEquals(IndexQueryActionType.SHOW, indexDetails.getIndexQueryActionType());
   }
 
   @Test
   void testRefreshIndex() {
     String refreshSkippingIndex = "REFRESH SKIPPING INDEX ON mys3.default.http_logs";
-    Assertions.assertTrue(SQLQueryUtils.isFlintExtensionQuery(refreshSkippingIndex));
+    assertTrue(SQLQueryUtils.isFlintExtensionQuery(refreshSkippingIndex));
     IndexQueryDetails indexDetails = SQLQueryUtils.extractIndexDetails(refreshSkippingIndex);
     FullyQualifiedTableName fullyQualifiedTableName = indexDetails.getFullyQualifiedTableName();
-    Assertions.assertNull(indexDetails.getIndexName());
-    Assertions.assertNotNull(fullyQualifiedTableName);
-    Assertions.assertEquals(FlintIndexType.SKIPPING, indexDetails.getIndexType());
-    Assertions.assertEquals(IndexQueryActionType.REFRESH, indexDetails.getIndexQueryActionType());
+    assertNull(indexDetails.getIndexName());
+    assertNotNull(fullyQualifiedTableName);
+    assertEquals(FlintIndexType.SKIPPING, indexDetails.getIndexType());
+    assertEquals(IndexQueryActionType.REFRESH, indexDetails.getIndexQueryActionType());
 
     String refreshCoveringIndex = "REFRESH INDEX cv1 ON mys3.default.http_logs";
-    Assertions.assertTrue(SQLQueryUtils.isFlintExtensionQuery(refreshCoveringIndex));
+    assertTrue(SQLQueryUtils.isFlintExtensionQuery(refreshCoveringIndex));
     indexDetails = SQLQueryUtils.extractIndexDetails(refreshCoveringIndex);
     fullyQualifiedTableName = indexDetails.getFullyQualifiedTableName();
-    Assertions.assertEquals("cv1", indexDetails.getIndexName());
-    Assertions.assertNotNull(fullyQualifiedTableName);
-    Assertions.assertEquals(FlintIndexType.COVERING, indexDetails.getIndexType());
-    Assertions.assertEquals(IndexQueryActionType.REFRESH, indexDetails.getIndexQueryActionType());
+    assertEquals("cv1", indexDetails.getIndexName());
+    assertNotNull(fullyQualifiedTableName);
+    assertEquals(FlintIndexType.COVERING, indexDetails.getIndexType());
+    assertEquals(IndexQueryActionType.REFRESH, indexDetails.getIndexQueryActionType());
 
     String refreshMV = "REFRESH MATERIALIZED VIEW mv1";
-    Assertions.assertTrue(SQLQueryUtils.isFlintExtensionQuery(refreshMV));
+    assertTrue(SQLQueryUtils.isFlintExtensionQuery(refreshMV));
     indexDetails = SQLQueryUtils.extractIndexDetails(refreshMV);
     fullyQualifiedTableName = indexDetails.getFullyQualifiedTableName();
-    Assertions.assertNull(indexDetails.getIndexName());
-    Assertions.assertEquals("mv1", indexDetails.getMvName());
-    Assertions.assertNull(fullyQualifiedTableName);
-    Assertions.assertEquals(FlintIndexType.MATERIALIZED_VIEW, indexDetails.getIndexType());
-    Assertions.assertEquals(IndexQueryActionType.REFRESH, indexDetails.getIndexQueryActionType());
+    assertNull(indexDetails.getIndexName());
+    assertEquals("mv1", indexDetails.getMvName());
+    assertNull(fullyQualifiedTableName);
+    assertEquals(FlintIndexType.MATERIALIZED_VIEW, indexDetails.getIndexType());
+    assertEquals(IndexQueryActionType.REFRESH, indexDetails.getIndexQueryActionType());
   }
 
   /** https://github.com/opensearch-project/sql/issues/2206 */
   @Test
   void testAutoRefresh() {
-    Assertions.assertFalse(
+    assertFalse(
         SQLQueryUtils.extractIndexDetails(skippingIndex().getQuery())
             .getFlintIndexOptions()
             .autoRefresh());
 
-    Assertions.assertFalse(
+    assertFalse(
         SQLQueryUtils.extractIndexDetails(
                 skippingIndex().withProperty("auto_refresh", "false").getQuery())
             .getFlintIndexOptions()
             .autoRefresh());
 
-    Assertions.assertTrue(
+    assertTrue(
         SQLQueryUtils.extractIndexDetails(
                 skippingIndex().withProperty("auto_refresh", "true").getQuery())
             .getFlintIndexOptions()
             .autoRefresh());
 
-    Assertions.assertTrue(
+    assertTrue(
         SQLQueryUtils.extractIndexDetails(
                 skippingIndex().withProperty("auto_refresh", "true").withSemicolon().getQuery())
             .getFlintIndexOptions()
             .autoRefresh());
 
-    Assertions.assertTrue(
+    assertTrue(
         SQLQueryUtils.extractIndexDetails(
                 skippingIndex().withProperty("\"auto_refresh\"", "true").getQuery())
             .getFlintIndexOptions()
             .autoRefresh());
 
-    Assertions.assertTrue(
+    assertTrue(
         SQLQueryUtils.extractIndexDetails(
                 skippingIndex().withProperty("\"auto_refresh\"", "true").withSemicolon().getQuery())
             .getFlintIndexOptions()
             .autoRefresh());
 
-    Assertions.assertTrue(
+    assertTrue(
         SQLQueryUtils.extractIndexDetails(
                 skippingIndex().withProperty("\"auto_refresh\"", "\"true\"").getQuery())
             .getFlintIndexOptions()
             .autoRefresh());
 
-    Assertions.assertTrue(
+    assertTrue(
         SQLQueryUtils.extractIndexDetails(
                 skippingIndex()
                     .withProperty("\"auto_refresh\"", "\"true\"")
@@ -308,48 +342,48 @@ public class SQLQueryUtilsTest {
             .getFlintIndexOptions()
             .autoRefresh());
 
-    Assertions.assertFalse(
+    assertFalse(
         SQLQueryUtils.extractIndexDetails(
                 skippingIndex().withProperty("auto_refresh", "1").getQuery())
             .getFlintIndexOptions()
             .autoRefresh());
 
-    Assertions.assertFalse(
+    assertFalse(
         SQLQueryUtils.extractIndexDetails(skippingIndex().withProperty("interval", "1").getQuery())
             .getFlintIndexOptions()
             .autoRefresh());
 
-    Assertions.assertFalse(
+    assertFalse(
         SQLQueryUtils.extractIndexDetails(
                 skippingIndex().withProperty("\"\"", "\"true\"").getQuery())
             .getFlintIndexOptions()
             .autoRefresh());
 
-    Assertions.assertFalse(
+    assertFalse(
         SQLQueryUtils.extractIndexDetails(index().getQuery()).getFlintIndexOptions().autoRefresh());
 
-    Assertions.assertFalse(
+    assertFalse(
         SQLQueryUtils.extractIndexDetails(index().withProperty("auto_refresh", "false").getQuery())
             .getFlintIndexOptions()
             .autoRefresh());
 
-    Assertions.assertTrue(
+    assertTrue(
         SQLQueryUtils.extractIndexDetails(index().withProperty("auto_refresh", "true").getQuery())
             .getFlintIndexOptions()
             .autoRefresh());
 
-    Assertions.assertTrue(
+    assertTrue(
         SQLQueryUtils.extractIndexDetails(
                 index().withProperty("auto_refresh", "true").withSemicolon().getQuery())
             .getFlintIndexOptions()
             .autoRefresh());
 
-    Assertions.assertTrue(
+    assertTrue(
         SQLQueryUtils.extractIndexDetails(mv().withProperty("auto_refresh", "true").getQuery())
             .getFlintIndexOptions()
             .autoRefresh());
 
-    Assertions.assertTrue(
+    assertTrue(
         SQLQueryUtils.extractIndexDetails(
                 mv().withProperty("auto_refresh", "true").withSemicolon().getQuery())
             .getFlintIndexOptions()
@@ -388,5 +422,15 @@ public class SQLQueryUtilsTest {
       query += ";";
       return this;
     }
+  }
+
+  private void assertFullyQualifiedTableName(
+      String expectedDatasourceName,
+      String expectedSchemaName,
+      String expectedTableName,
+      FullyQualifiedTableName fullyQualifiedTableName) {
+    assertEquals(expectedDatasourceName, fullyQualifiedTableName.getDatasourceName());
+    assertEquals(expectedSchemaName, fullyQualifiedTableName.getSchemaName());
+    assertEquals(expectedTableName, fullyQualifiedTableName.getTableName());
   }
 }
