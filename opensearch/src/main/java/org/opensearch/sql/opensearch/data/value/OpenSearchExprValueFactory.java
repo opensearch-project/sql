@@ -135,10 +135,6 @@ public class OpenSearchExprValueFactory {
               OpenSearchDataType.of(OpenSearchDataType.MappingType.Ip),
               (c, dt) -> new OpenSearchExprIpValue(c.stringValue()))
           .put(
-              OpenSearchDataType.of(OpenSearchDataType.MappingType.GeoPoint),
-              (c, dt) ->
-                  new OpenSearchExprGeoPointValue(c.geoValue().getLeft(), c.geoValue().getRight()))
-          .put(
               OpenSearchDataType.of(OpenSearchDataType.MappingType.Binary),
               (c, dt) -> new OpenSearchExprBinaryValue(c.stringValue()))
           .build();
@@ -193,8 +189,11 @@ public class OpenSearchExprValueFactory {
       return ExprNullValue.of();
     }
 
-    ExprType type = fieldType.get();
-    if (type.equals(OpenSearchDataType.of(OpenSearchDataType.MappingType.Nested))
+    final ExprType type = fieldType.get();
+
+    if (type.equals(OpenSearchDataType.of(OpenSearchDataType.MappingType.GeoPoint))) {
+      return parseGeoPoint(content, supportArrays);
+    } else if (type.equals(OpenSearchDataType.of(OpenSearchDataType.MappingType.Nested))
         || content.isArray()) {
       return parseArray(content, field, type, supportArrays);
     } else if (type.equals(OpenSearchDataType.of(OpenSearchDataType.MappingType.Object))
@@ -361,6 +360,46 @@ public class OpenSearchExprValueFactory {
               });
     }
     return new ExprCollectionValue(result);
+  }
+
+  /**
+   * Parse geo point content.
+   *
+   * @param content Content to parse.
+   * @param supportArrays Parsing the whole array or not
+   * @return Geo point value parsed from content.
+   */
+  private ExprValue parseGeoPoint(Content content, boolean supportArrays) {
+    // there is only one point in doc.
+    if (content.isArray() == false) {
+      final var pair = content.geoValue();
+      return new OpenSearchExprGeoPointValue(pair.getLeft(), pair.getRight());
+    }
+
+    var elements = content.array();
+    var first = elements.next();
+    // an array in the [longitude, latitude] format.
+    if (first.isNumber()) {
+      double lon = first.doubleValue();
+      double lat = elements.next().doubleValue();
+      return new OpenSearchExprGeoPointValue(lat, lon);
+    }
+
+    // there are multi points in doc
+    var pair = first.geoValue();
+    var firstPoint = new OpenSearchExprGeoPointValue(pair.getLeft(), pair.getRight());
+    if (supportArrays) {
+      List<ExprValue> result = new ArrayList<>();
+      result.add(firstPoint);
+      elements.forEachRemaining(
+          e -> {
+            var p = e.geoValue();
+            result.add(new OpenSearchExprGeoPointValue(p.getLeft(), p.getRight()));
+          });
+      return new ExprCollectionValue(result);
+    } else {
+      return firstPoint;
+    }
   }
 
   /**
