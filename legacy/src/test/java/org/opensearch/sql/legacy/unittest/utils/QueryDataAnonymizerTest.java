@@ -101,7 +101,6 @@ public class QueryDataAnonymizerTest {
             + "FROM accounts a JOIN employees e";
     SQLQueryRequest request =
         new SQLQueryRequest(null, query, "/_plugins/_sql", Map.of("pretty", "true"), null);
-    ;
     String actualQuery = request.toAnonymousString(QueryDataAnonymizer::anonymizeData);
     String expectedQuery =
         "SQLQueryRequest(query=( SELECT identifier, identifier, identifier, identifier, identifier"
