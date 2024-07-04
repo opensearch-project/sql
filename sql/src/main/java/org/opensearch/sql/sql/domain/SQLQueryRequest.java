@@ -150,7 +150,8 @@ public class SQLQueryRequest {
     return true;
   }
 
-  public String toAnonymousString(Function<String, String> anonymizer) {
+  /** A new toString() with anonymizer parameter to anonymize its query statement. */
+  public String toString(Function<String, String> anonymizer) {
     return "SQLQueryRequest("
         + "query="
         + anonymizer.apply(getQuery())
