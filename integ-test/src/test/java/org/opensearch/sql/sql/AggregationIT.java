@@ -23,6 +23,7 @@ import org.opensearch.client.Request;
 import org.opensearch.client.RequestOptions;
 import org.opensearch.client.Response;
 import org.opensearch.sql.legacy.SQLIntegTestCase;
+import org.opensearch.sql.legacy.utils.StringUtils;
 
 public class AggregationIT extends SQLIntegTestCase {
   @Override
@@ -745,6 +746,145 @@ public class AggregationIT extends SQLIntegTestCase {
         rows(48086, 34),
         rows(16418, 36),
         rows(40540, 39));
+  }
+
+  @Test
+  public void testFieldNotInGroupByClauseError() {
+    List<String> queries =
+        List.of(
+            StringUtils.format("SELECT firstname FROM %s GROUP BY lastname", TEST_INDEX_BANK),
+            StringUtils.format(
+                "SELECT firstname as name FROM %s GROUP BY lastname", TEST_INDEX_BANK),
+            StringUtils.format(
+                "SELECT firstname FROM %s GROUP BY upper(firstname)", TEST_INDEX_BANK),
+            StringUtils.format(
+                "SELECT upper(firstname) FROM %s GROUP BY lastname", TEST_INDEX_BANK),
+            StringUtils.format(
+                "SELECT firstname FROM %s GROUP BY upper(firstname)", TEST_INDEX_BANK),
+            StringUtils.format(
+                "SELECT concat(upper(firstname), upper(lastname)) FROM %s GROUP BY lastname",
+                TEST_INDEX_BANK),
+            StringUtils.format(
+                "SELECT concat(upper(firstname), upper(lastname)) FROM %s GROUP BY upper(lastname)",
+                TEST_INDEX_BANK),
+            StringUtils.format(
+                "SELECT concat(upper(firstname), upper(lastname)) FROM %s GROUP BY concat_ws(',',"
+                    + " upper(firstname), upper(lastname))",
+                TEST_INDEX_BANK),
+            StringUtils.format(
+                "SELECT concat(firstname, lastname) FROM %s GROUP BY upper(firstname),"
+                    + " upper(lastname)",
+                TEST_INDEX_BANK),
+            StringUtils.format(
+                "SELECT concat(firstname, lastname) FROM %s GROUP BY lastname", TEST_INDEX_BANK),
+            StringUtils.format(
+                "SELECT concat(firstname, lastname) FROM %s GROUP BY lastname, upper(firstname)",
+                TEST_INDEX_BANK),
+            StringUtils.format(
+                "SELECT concat(firstname, lastname), upper(firstname) FROM %s GROUP BY lastname,"
+                    + " upper(firstname)",
+                TEST_INDEX_BANK),
+            StringUtils.format(
+                "SELECT concat(concat(lastname, city), firstname) FROM %s GROUP BY concat(lastname,"
+                    + " city)",
+                TEST_INDEX_BANK),
+            StringUtils.format("SELECT 1, 2, firstname FROM %s GROUP BY lastname", TEST_INDEX_BANK),
+            StringUtils.format(
+                "SELECT IF(firstname='Nanette', 1 , 2) AS vip FROM %s GROUP BY state",
+                TEST_INDEX_BANK));
+    for (String query : queries) {
+      RuntimeException exception =
+          expectThrows(RuntimeException.class, () -> executeJdbcRequest(query));
+      assertTrue(
+          exception
+              .getMessage()
+              .contains(
+                  "Field [firstname] must appear in the GROUP BY clause or be used in an aggregate"
+                      + " function"));
+      assertTrue(exception.getMessage().contains("SemanticCheckException"));
+    }
+  }
+
+  @Test
+  public void testAggregateFunctionNotAllowedInGroupByError() {
+    List<String> queries =
+        List.of(
+            StringUtils.format("SELECT firstname FROM %s GROUP BY AVG(age)", TEST_INDEX_BANK),
+            StringUtils.format("SELECT AVG(age) FROM %s GROUP BY 1", TEST_INDEX_BANK));
+    for (String query : queries) {
+      RuntimeException exception =
+          expectThrows(RuntimeException.class, () -> executeJdbcRequest(query));
+      assertTrue(
+          exception
+              .getMessage()
+              .contains("Aggregate function is not allowed in a GROUP BY clause, but found [avg]"));
+      assertTrue(exception.getMessage().contains("SemanticCheckException"));
+    }
+  }
+
+  @Test
+  public void testNonBooleanExpressionInFilterError() {
+    List<String> queries =
+        List.of(
+            StringUtils.format("SELECT firstname FROM %s WHERE age", TEST_INDEX_BANK),
+            StringUtils.format(
+                "SELECT firstname FROM %s GROUP BY firstname HAVING AVG(age)", TEST_INDEX_BANK),
+            StringUtils.format(
+                "SELECT COUNT(firstname) FILTER(WHERE age) FROM %s", TEST_INDEX_BANK),
+            StringUtils.format(
+                "SELECT COUNT(firstname) FILTER(WHERE (MAX(age) + 3) * 2) FROM %s",
+                TEST_INDEX_BANK));
+    for (String query : queries) {
+      RuntimeException exception =
+          expectThrows(RuntimeException.class, () -> executeJdbcRequest(query));
+      assertTrue(
+          exception.getMessage().contains("FILTER or HAVING expression must be type boolean"));
+      assertTrue(exception.getMessage().contains("SemanticCheckException"));
+    }
+  }
+
+  @Test
+  public void testAggregateFunctionInFilterError() {
+    List<String> queries =
+        List.of(
+            StringUtils.format(
+                "SELECT COUNT(firstname) FILTER(WHERE MAX(age) > 30) FROM %s", TEST_INDEX_BANK),
+            StringUtils.format(
+                "SELECT COUNT(firstname) FILTER(WHERE 10 > (MAX(age) + 3) * 2) FROM %s",
+                TEST_INDEX_BANK));
+    for (String query : queries) {
+      RuntimeException exception =
+          expectThrows(RuntimeException.class, () -> executeJdbcRequest(query));
+      System.out.println(exception.getMessage());
+      assertTrue(
+          exception
+              .getMessage()
+              .contains("Aggregate function is not allowed in a FILTER, but found [max]"));
+      assertTrue(exception.getMessage().contains("SemanticCheckException"));
+    }
+  }
+
+  @Test
+  public void testWindowFunctionInWhereError() {
+    List<String> queries =
+        List.of(
+            StringUtils.format(
+                "SELECT firstname FROM %s where ROW_NUMBER() OVER(ORDER BY lastname) > 0",
+                TEST_INDEX_BANK),
+            StringUtils.format(
+                "SELECT firstname FROM %s where DENSE_RANK() OVER(PARTITION BY state ORDER BY"
+                    + " lastname) > 0",
+                TEST_INDEX_BANK),
+            StringUtils.format(
+                "SELECT firstname FROM %s where RANK() OVER(ORDER BY lastname DESC) > 0",
+                TEST_INDEX_BANK));
+    for (String query : queries) {
+      RuntimeException exception =
+          expectThrows(RuntimeException.class, () -> executeJdbcRequest(query));
+      assertTrue(
+          exception.getMessage().contains("Window functions are not allowed in WHERE or HAVING"));
+      assertTrue(exception.getMessage().contains("SemanticCheckException"));
+    }
   }
 
   protected JSONObject executeQuery(String query) throws IOException {
