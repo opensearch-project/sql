@@ -5,9 +5,11 @@
 
 package org.opensearch.sql.legacy.unittest.utils;
 
+import java.util.Map;
 import org.junit.Assert;
 import org.junit.Test;
 import org.opensearch.sql.legacy.utils.QueryDataAnonymizer;
+import org.opensearch.sql.sql.domain.SQLQueryRequest;
 
 public class QueryDataAnonymizerTest {
 
@@ -90,5 +92,21 @@ public class QueryDataAnonymizerTest {
         "( SELECT identifier, identifier FROM table "
             + "UNION SELECT identifier, identifier FROM table )";
     Assert.assertEquals(expectedQuery, QueryDataAnonymizer.anonymizeData(query));
+  }
+
+  @Test
+  public void test_to_anonymous_string_of_SQLQueryRequest() {
+    String query =
+        "SELECT a.account_number, a.firstname, a.lastname, e.id, e.name "
+            + "FROM accounts a JOIN employees e";
+    SQLQueryRequest request =
+        new SQLQueryRequest(null, query, "/_plugins/_sql", Map.of("pretty", "true"), null);
+    ;
+    String actualQuery = request.toAnonymousString(QueryDataAnonymizer::anonymizeData);
+    String expectedQuery =
+        "SQLQueryRequest(query=( SELECT identifier, identifier, identifier, identifier, identifier"
+            + " FROM table a JOIN table e ), path=/_plugins/_sql, format=jdbc,"
+            + " params={pretty=true}, sanitize=true, cursor=Optional.empty)";
+    Assert.assertEquals(expectedQuery, actualQuery);
   }
 }
