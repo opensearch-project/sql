@@ -6,7 +6,7 @@
 
 buildscript {
     ext {
-        opensearch_version = System.getProperty("opensearch.version", "1.3.17-SNAPSHOT")
+        opensearch_version = System.getProperty("opensearch.version", "1.3.18-SNAPSHOT")
         spring_version = "5.3.27"
     }
 
