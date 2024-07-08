@@ -47,6 +47,7 @@ import java.util.Map;
 import lombok.EqualsAndHashCode;
 import lombok.ToString;
 import org.junit.jupiter.api.Test;
+import org.opensearch.OpenSearchParseException;
 import org.opensearch.geometry.utils.Geohash;
 import org.opensearch.sql.data.model.ExprCollectionValue;
 import org.opensearch.sql.data.model.ExprDateValue;
@@ -719,6 +720,27 @@ class OpenSearchExprValueFactoryTest {
     assertEquals(
         new OpenSearchExprGeoPointValue(42.60355556, -97.25263889),
         constructFromObject("geoV", "42.60355556,-97.25263889"));
+  }
+
+  @Test
+  public void constructGeoPointFromUnsupportedFormatShouldThrowException() {
+    OpenSearchParseException exception =
+        assertThrows(
+            OpenSearchParseException.class,
+            () -> tupleValue("{\"geoV\": [42.60355556, false]}").get("geoV"));
+    assertEquals("lat must be a number, got false", exception.getMessage());
+
+    exception =
+        assertThrows(
+            OpenSearchParseException.class,
+            () -> tupleValue("{\"geoV\":{\"lon\":-97.25263889}}").get("geoV"));
+    assertEquals("field [lat] missing", exception.getMessage());
+
+    exception =
+        assertThrows(
+            OpenSearchParseException.class,
+            () -> tupleValue("{\"geoV\":{\"lat\":true,\"lon\":-97.25263889}}").get("geoV"));
+    assertEquals("lat must be a number", exception.getMessage());
   }
 
   @Test

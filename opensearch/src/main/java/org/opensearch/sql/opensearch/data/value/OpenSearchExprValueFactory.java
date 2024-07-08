@@ -39,6 +39,7 @@ import java.util.Optional;
 import java.util.function.BiFunction;
 import lombok.Getter;
 import lombok.Setter;
+import org.opensearch.OpenSearchParseException;
 import org.opensearch.common.time.DateFormatter;
 import org.opensearch.common.time.DateFormatters;
 import org.opensearch.common.time.FormatNames;
@@ -381,8 +382,11 @@ public class OpenSearchExprValueFactory {
     // an array in the [longitude, latitude] format.
     if (first.isNumber()) {
       double lon = first.doubleValue();
-      double lat = elements.next().doubleValue();
-      return new OpenSearchExprGeoPointValue(lat, lon);
+      var second = elements.next();
+      if (second.isNumber() == false) {
+        throw new OpenSearchParseException("lat must be a number, got " + second.objectValue());
+      }
+      return new OpenSearchExprGeoPointValue(second.doubleValue(), lon);
     }
 
     // there are multi points in doc
