@@ -105,6 +105,10 @@ jobs:
           - { os: windows-latest, java: 21, os_build_args: -x doctest -PbuildPlatform=windows }
     runs-on: ${{ matrix.entry.os }}
 
+    # Allow using Node16 actions
+    env:
+      ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION: true
+
     steps:
     - uses: actions/checkout@v3
 
