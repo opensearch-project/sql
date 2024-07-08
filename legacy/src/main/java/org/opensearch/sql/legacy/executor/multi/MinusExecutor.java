@@ -208,7 +208,6 @@ public class MinusExecutor extends ElasticHitsExecutor {
 
     SearchResponse scrollResp =
         getResponseWithHits(
-            client,
             builder.getFirstSearchRequest(),
             builder.getOriginalSelect(true),
             maxDocsToFetchOnEachScrollShard,
@@ -230,7 +229,6 @@ public class MinusExecutor extends ElasticHitsExecutor {
       }
       scrollResp =
           getResponseWithHits(
-              client,
               builder.getFirstSearchRequest(),
               builder.getOriginalSelect(true),
               maxDocsToFetchOnEachScrollShard,
@@ -240,7 +238,6 @@ public class MinusExecutor extends ElasticHitsExecutor {
     }
     scrollResp =
         getResponseWithHits(
-            this.client,
             this.builder.getSecondSearchRequest(),
             builder.getOriginalSelect(false),
             this.maxDocsToFetchOnEachScrollShard,
@@ -260,7 +257,6 @@ public class MinusExecutor extends ElasticHitsExecutor {
       }
       scrollResp =
           getResponseWithHits(
-              client,
               builder.getSecondSearchRequest(),
               builder.getOriginalSelect(false),
               maxDocsToFetchOnEachScrollShard,
@@ -331,7 +327,6 @@ public class MinusExecutor extends ElasticHitsExecutor {
       String firstFieldName, String secondFieldName) throws SqlParseException {
     SearchResponse scrollResp =
         getResponseWithHits(
-            client,
             builder.getFirstSearchRequest(),
             builder.getOriginalSelect(true),
             maxDocsToFetchOnEachScrollShard,
@@ -365,7 +360,6 @@ public class MinusExecutor extends ElasticHitsExecutor {
       }
       SearchResponse responseForSecondTable =
           getResponseWithHits(
-              this.client,
               queryAction.getRequestBuilder(),
               secondQuerySelect,
               this.maxDocsToFetchOnEachScrollShard,
@@ -383,7 +377,6 @@ public class MinusExecutor extends ElasticHitsExecutor {
         }
         responseForSecondTable =
             getResponseWithHits(
-                client,
                 queryAction.getRequestBuilder(),
                 secondQuerySelect,
                 maxDocsToFetchOnEachScrollShard,
@@ -399,7 +392,6 @@ public class MinusExecutor extends ElasticHitsExecutor {
       }
       scrollResp =
           getResponseWithHits(
-              client,
               builder.getFirstSearchRequest(),
               builder.getOriginalSelect(true),
               maxDocsToFetchOnEachScrollShard,

@@ -24,9 +24,8 @@ import org.opensearch.sql.legacy.esdomain.LocalClusterState;
 import org.opensearch.sql.legacy.exception.SqlParseException;
 import org.opensearch.sql.legacy.pit.PointInTimeHandler;
 
-/** Created by Eliran on 21/8/2016. */
+/** Executor for search requests with pagination. */
 public abstract class ElasticHitsExecutor {
-
   protected static final Logger LOG = LogManager.getLogger();
   protected PointInTimeHandler pit;
   protected Client client;
@@ -35,8 +34,17 @@ public abstract class ElasticHitsExecutor {
 
   protected abstract SearchHits getHits();
 
+  /**
+   * Get response for search request with pit/scroll
+   *
+   * @param request search request
+   * @param select sql select
+   * @param size fetch size
+   * @param previousResponse response for previous request
+   * @param pit point in time
+   * @return search response for subsequent request
+   */
   public SearchResponse getResponseWithHits(
-      Client client,
       SearchRequestBuilder request,
       Select select,
       int size,

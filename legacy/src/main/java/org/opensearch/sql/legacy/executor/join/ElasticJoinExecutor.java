@@ -273,7 +273,6 @@ public abstract class ElasticJoinExecutor extends ElasticHitsExecutor {
       TableInJoinRequestBuilder tableRequest, int size, SearchResponse previousResponse) {
 
     return getResponseWithHits(
-        client,
         tableRequest.getRequestBuilder(),
         tableRequest.getOriginalSelect(),
         size,
